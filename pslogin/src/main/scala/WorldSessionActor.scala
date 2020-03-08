@@ -50,7 +50,7 @@ import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade, WeaponTurret, WeaponTurrets}
 import net.psforever.objects.serverobject.zipline.ZipLinePath
 import net.psforever.objects.teamwork.Squad
-import net.psforever.objects.vehicles.{AccessPermissionGroup, Cargo, MountedWeapons, Utility, UtilityType, VehicleLockState}
+import net.psforever.objects.vehicles.{AccessPermissionGroup, Cargo, CargoBehavior, MountedWeapons, Utility, UtilityType, VehicleLockState}
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.vital.{DamageFromPainbox, HealFromExoSuitChange, HealFromKit, HealFromTerm, PlayerSuicide, RepairFromKit, Vitality}
 import net.psforever.objects.zones.{InterstellarCluster, Zone, ZoneHotSpotProjector}
@@ -295,7 +295,7 @@ class WorldSessionActor extends Actor
       HandleAvatarServiceResponse(toChannel, guid, reply)
 
     case CommonMessages.Hack(tplayer, obj : Locker, Some(item : SimpleItem)) if tplayer == player =>
-      val hackSpeed = GetPlayerHackSpeed(obj)
+      val hackSpeed = GenericHackables.GetHackSpeed(player, obj)
       if(hackSpeed > 0) {
         progressBarValue = Some(-hackSpeed)
         self ! Progress(
@@ -307,7 +307,7 @@ class WorldSessionActor extends Actor
       }
 
     case CommonMessages.Hack(tplayer, obj : CaptureTerminal, Some(item : SimpleItem)) if tplayer == player =>
-      val hackSpeed = GetPlayerHackSpeed(obj)
+      val hackSpeed = GenericHackables.GetHackSpeed(player, obj)
       if(hackSpeed > 0) {
         progressBarValue = Some(-hackSpeed)
         self ! Progress(
@@ -319,7 +319,7 @@ class WorldSessionActor extends Actor
       }
 
     case CommonMessages.Hack(tplayer, obj : ImplantTerminalMech, Some(item : SimpleItem)) if tplayer == player =>
-      val hackSpeed = GetPlayerHackSpeed(obj)
+      val hackSpeed = GenericHackables.GetHackSpeed(player, obj)
       if(hackSpeed > 0) {
         progressBarValue = Some(-hackSpeed)
         self ! Progress(
@@ -331,7 +331,7 @@ class WorldSessionActor extends Actor
       }
 
     case CommonMessages.Hack(tplayer, obj : Terminal, Some(item : SimpleItem)) if tplayer == player =>
-      val hackSpeed = GetPlayerHackSpeed(obj)
+      val hackSpeed = GenericHackables.GetHackSpeed(player, obj)
       if(hackSpeed > 0) {
         progressBarValue = Some(-hackSpeed)
         self ! Progress(
@@ -343,7 +343,7 @@ class WorldSessionActor extends Actor
       }
 
     case CommonMessages.Hack(tplayer, obj : IFFLock, Some(item : SimpleItem)) if tplayer == player =>
-      val hackSpeed = GetPlayerHackSpeed(obj)
+      val hackSpeed = GenericHackables.GetHackSpeed(player, obj)
       if(hackSpeed > 0) {
         progressBarValue = Some(-hackSpeed)
         if(obj.Faction != tplayer.Faction) {
@@ -367,12 +367,12 @@ class WorldSessionActor extends Actor
       }
 
     case CommonMessages.Hack(tplayer, obj : Vehicle, Some(item : SimpleItem)) if tplayer == player =>
-      val hackSpeed = GetPlayerHackSpeed(obj)
+      val hackSpeed = GenericHackables.GetHackSpeed(player, obj)
       if(hackSpeed > 0) {
         progressBarValue = Some(-hackSpeed)
         self ! Progress(
           hackSpeed,
-          FinishHackingVehicle(obj,3212836864L),
+          Vehicles.FinishHackingVehicle(obj, tplayer,3212836864L),
           GenericHackables.HackingTickAction(progressType = 1, tplayer, obj, item.GUID)
         )
         log.trace(s"${tplayer.Name} is hacking a vehicle")
@@ -752,12 +752,6 @@ class WorldSessionActor extends Actor
           antDischargingTick.cancel()
           antDischargingTick = context.system.scheduler.scheduleOnce(1000 milliseconds, self, NtuDischarging(player, continent.GUID(vehicle_guid).get.asInstanceOf[Vehicle], silo_guid))
       }
-
-    case CheckCargoDismount(cargo_guid, carrier_guid, mountPoint, iteration) =>
-      HandleCheckCargoDismounting(cargo_guid, carrier_guid, mountPoint, iteration)
-
-    case CheckCargoMounting(cargo_guid, carrier_guid, mountPoint, iteration) =>
-      HandleCheckCargoMounting(cargo_guid, carrier_guid, mountPoint, iteration)
 
     case CreateCharacter(name, head, voice, gender, empire) =>
       log.info(s"Creating new character $name...")
@@ -2941,7 +2935,8 @@ class WorldSessionActor extends Actor
         }
 
       case VehicleResponse.ForceDismountVehicleCargo(cargo_guid, bailed, requestedByPassenger, kicked) =>
-        DismountVehicleCargo(tplayer_guid, cargo_guid, bailed, requestedByPassenger, kicked)
+        CargoBehavior.HandleVehicleCargoDismount(continent, tplayer_guid, cargo_guid, bailed, requestedByPassenger, kicked)
+
       case VehicleResponse.KickCargo(vehicle, speed, delay) =>
         if(player.VehicleSeated.nonEmpty && deadState == DeadState.Alive) {
           if(speed > 0) {
@@ -3000,203 +2995,6 @@ class WorldSessionActor extends Actor
   }
 
   /**
-    * na
-    * @param decorator custom text for these messages in the log
-    * @param target an optional the target object
-    * @param targetGUID the expected globally unique identifier of the target object
-    */
-  def LogCargoEventMissingVehicleError(decorator : String, target : Option[PlanetSideGameObject], targetGUID : PlanetSideGUID) : Unit = {
-    target match {
-      case Some(_ : Vehicle) => ;
-      case Some(_) => log.error(s"$decorator target $targetGUID no longer identifies as a vehicle")
-      case None => log.error(s"$decorator target $targetGUID has gone missing")
-    }
-  }
-
-  /**
-    * na
-    * @param cargoGUID  na
-    * @param carrierGUID na
-    * @param mountPoint na
-    * @param iteration na
-    */
-  def HandleCheckCargoDismounting(cargoGUID : PlanetSideGUID, carrierGUID : PlanetSideGUID, mountPoint : Int, iteration : Int) : Unit = {
-    (continent.GUID(cargoGUID), continent.GUID(carrierGUID)) match {
-      case ((Some(vehicle : Vehicle), Some(cargo_vehicle : Vehicle))) =>
-        HandleCheckCargoDismounting(cargoGUID, vehicle, carrierGUID, cargo_vehicle, mountPoint, iteration)
-      case (cargo, carrier) if iteration > 0 =>
-        log.error(s"HandleCheckCargoDismounting: participant vehicles changed in the middle of a mounting event")
-        LogCargoEventMissingVehicleError("HandleCheckCargoDismounting: cargo", cargo, cargoGUID)
-        LogCargoEventMissingVehicleError("HandleCheckCargoDismounting: carrier", carrier, carrierGUID)
-      case _ =>
-    }
-  }
-
-  /**
-    * na
-    * @param cargoGUID na
-    * @param cargo na
-    * @param carrierGUID na
-    * @param carrier na
-    * @param mountPoint na
-    * @param iteration na
-    */
-  def HandleCheckCargoDismounting(cargoGUID : PlanetSideGUID, cargo : Vehicle, carrierGUID : PlanetSideGUID, carrier : Vehicle, mountPoint : Int, iteration : Int) : Unit = {
-    carrier.CargoHold(mountPoint) match {
-      case Some(hold) if !hold.isOccupied =>
-        val distance = Vector3.DistanceSquared(cargo.Position, carrier.Position)
-        log.debug(s"HandleCheckCargoDismounting: mount distance between $cargoGUID and $carrierGUID - actual=$distance, target=225")
-        if(distance > 225) {
-          //cargo vehicle has moved far enough away; close the carrier's hold door
-          log.info(s"HandleCheckCargoDismounting: dismount of cargo vehicle from carrier complete at distance of $distance")
-          continent.VehicleEvents ! VehicleServiceMessage(
-            continent.Id,
-            VehicleAction.SendResponse(
-              player.GUID,
-              CargoMountPointStatusMessage(carrierGUID, PlanetSideGUID(0), PlanetSideGUID(0), cargoGUID, mountPoint, CargoStatus.Empty, 0)
-            )
-          )
-          //sending packet to the cargo vehicle's client results in player locking himself in his vehicle
-          //player gets stuck as "always trying to remount the cargo hold"
-          //obviously, don't do this
-        }
-        else if(iteration > 40) {
-          //cargo vehicle has spent too long not getting far enough away; restore the cargo's mount in the carrier hold
-          cargo.MountedIn = carrierGUID
-          hold.Occupant = cargo
-          StartBundlingPackets()
-          CargoMountBehaviorForAll(carrier, cargo, mountPoint)
-          StopBundlingPackets()
-        }
-        else {
-          //cargo vehicle did not move far away enough yet and there is more time to wait; reschedule check
-          import scala.concurrent.ExecutionContext.Implicits.global
-          cargoDismountTimer = context.system.scheduler.scheduleOnce(250 milliseconds, self, CheckCargoDismount(cargoGUID, carrierGUID, mountPoint, iteration + 1))
-        }
-      case None =>
-        log.warn(s"HandleCheckCargoDismounting: carrier vehicle $carrier does not have a cargo hold #$mountPoint")
-      case _ =>
-        if(iteration == 0) {
-          log.warn(s"HandleCheckCargoDismounting: carrier vehicle $carrier will not discharge the cargo of hold #$mountPoint; this operation was initiated incorrectly")
-        }
-        else {
-          log.error(s"HandleCheckCargoDismounting: something has attached to the carrier vehicle $carrier cargo of hold #$mountPoint while a cargo dismount event was ongoing; stopped at iteration $iteration / 40")
-        }
-    }
-  }
-
-  /**
-    * na
-    * @param cargoGUID the vehicle being ferried as cargo
-    * @param carrierGUID the ferrying carrier vehicle
-    * @param mountPoint the cargo hold to which the cargo vehicle is stowed
-    * @param iteration number of times a proper mounting for this combination has been queried
-    */
-  def HandleCheckCargoMounting(cargoGUID : PlanetSideGUID, carrierGUID : PlanetSideGUID, mountPoint : Int, iteration : Int) : Unit = {
-    (continent.GUID(cargoGUID), continent.GUID(carrierGUID)) match {
-      case ((Some(cargo : Vehicle), Some(carrier : Vehicle))) =>
-        HandleCheckCargoMounting(cargoGUID, cargo, carrierGUID, carrier, mountPoint, iteration)
-      case (cargo, carrier) if iteration > 0 =>
-        log.error(s"HandleCheckCargoMounting: participant vehicles changed in the middle of a mounting event")
-        LogCargoEventMissingVehicleError("HandleCheckCargoMounting: cargo", cargo, cargoGUID)
-        LogCargoEventMissingVehicleError("HandleCheckCargoMounting: carrier", carrier, carrierGUID)
-      case _ => ;
-    }
-  }
-
-  /**
-    * na
-    * @param cargoGUID the vehicle being ferried as cargo
-    * @param cargo the vehicle being ferried as cargo
-    * @param carrierGUID the ferrying carrier vehicle
-    * @param carrier the ferrying carrier vehicle
-    * @param mountPoint the cargo hold to which the cargo vehicle is stowed
-    * @param iteration number of times a proper mounting for this combination has been queried
-    */
-  def HandleCheckCargoMounting(cargoGUID : PlanetSideGUID, cargo : Vehicle, carrierGUID : PlanetSideGUID, carrier : Vehicle, mountPoint : Int, iteration : Int) : Unit = {
-    val distance = Vector3.DistanceSquared(cargo.Position, carrier.Position)
-    carrier.CargoHold(mountPoint) match {
-      case Some(hold) if !hold.isOccupied =>
-        log.debug(s"HandleCheckCargoMounting: mount distance between $cargoGUID and $carrierGUID - actual=$distance, target=64")
-        if(distance <= 64) {
-          //cargo vehicle is close enough to assume to be physically within the carrier's hold; mount it
-          log.info(s"HandleCheckCargoMounting: mounting cargo vehicle in carrier at distance of $distance")
-          cargo.MountedIn = carrierGUID
-          hold.Occupant = cargo
-          cargo.Velocity = None
-          continent.VehicleEvents ! VehicleServiceMessage(s"${cargo.Actor}", VehicleAction.SendResponse(PlanetSideGUID(0), PlanetsideAttributeMessage(cargoGUID, 0, cargo.Health)))
-          continent.VehicleEvents ! VehicleServiceMessage(s"${cargo.Actor}", VehicleAction.SendResponse(PlanetSideGUID(0), PlanetsideAttributeMessage(cargoGUID, 68, cargo.Shields)))
-          StartBundlingPackets()
-          val (attachMsg, mountPointMsg) = CargoMountBehaviorForAll(carrier, cargo, mountPoint)
-          StopBundlingPackets()
-          log.info(s"HandleCheckCargoMounting: $attachMsg")
-          log.info(s"HandleCheckCargoMounting: $mountPointMsg")
-        }
-        else if(distance > 625 || iteration >= 40) {
-          //vehicles moved too far away or took too long to get into proper position; abort mounting
-          log.info("HandleCheckCargoMounting: cargo vehicle is too far away or didn't mount within allocated time - aborting")
-          continent.VehicleEvents ! VehicleServiceMessage(
-            continent.Id,
-            VehicleAction.SendResponse(
-              player.GUID,
-              CargoMountPointStatusMessage(carrierGUID, PlanetSideGUID(0), PlanetSideGUID(0), cargoGUID, mountPoint, CargoStatus.Empty, 0)
-            )
-          )
-          //sending packet to the cargo vehicle's client results in player locking himself in his vehicle
-          //player gets stuck as "always trying to remount the cargo hold"
-          //obviously, don't do this
-        }
-        else {
-          //cargo vehicle still not in position but there is more time to wait; reschedule check
-          import scala.concurrent.ExecutionContext.Implicits.global
-          cargoMountTimer = context.system.scheduler.scheduleOnce(250 milliseconds, self, CheckCargoMounting(cargoGUID, carrierGUID, mountPoint, iteration = iteration + 1))
-        }
-      case None => ;
-        log.warn(s"HandleCheckCargoMounting: carrier vehicle $carrier does not have a cargo hold #$mountPoint")
-      case _ =>
-        if(iteration == 0) {
-          log.warn(s"HandleCheckCargoMounting: carrier vehicle $carrier already possesses cargo in hold #$mountPoint; this operation was initiated incorrectly")
-        }
-        else {
-          log.error(s"HandleCheckCargoMounting: something has attached to the carrier vehicle $carrier cargo of hold #$mountPoint while a cargo dismount event was ongoing; stopped at iteration $iteration / 40")
-        }
-    }
-  }
-
-  /**
-    * Produce an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet
-    * that will set up a realized parent-child association between a ferrying vehicle and a ferried vehicle.
-    * @see `CargoMountPointStatusMessage`
-    * @see `ObjectAttachMessage`
-    * @see `Vehicles.CargoOrientation`
-    * @param carrier the ferrying vehicle
-    * @param cargo the ferried vehicle
-    * @param mountPoint the point on the ferryoing vehicle where the ferried vehicle is attached;
-    *                   also known as a "cargo hold"
-    * @return a tuple composed of an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet
-    */
-  def CargoMountMessages(carrier : Vehicle, cargo : Vehicle, mountPoint : Int) : (ObjectAttachMessage, CargoMountPointStatusMessage) = {
-    CargoMountMessages(carrier.GUID, cargo.GUID, mountPoint, Vehicles.CargoOrientation(cargo))
-  }
-
-  /**
-    * Produce an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet
-    * that will set up a realized parent-child association between a ferrying vehicle and a ferried vehicle.
-    * @see `CargoMountPointStatusMessage`
-    * @see `ObjectAttachMessage`
-    * @param carrier the ferrying vehicle
-    * @param cargo the ferried vehicle
-    * @param mountPoint the point on the ferryoing vehicle where the ferried vehicle is attached
-    * @return a tuple composed of an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet
-    */
-  def CargoMountMessages(carrierGUID : PlanetSideGUID, cargoGUID : PlanetSideGUID, mountPoint : Int, orientation : Int) : (ObjectAttachMessage, CargoMountPointStatusMessage) = {
-    (
-      ObjectAttachMessage(carrierGUID, cargoGUID, mountPoint),
-      CargoMountPointStatusMessage(carrierGUID, cargoGUID, cargoGUID, PlanetSideGUID(0), mountPoint, CargoStatus.Occupied, orientation)
-    )
-  }
-
-  /**
     * Dispatch an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet only to this client.
     * @see `CargoMountPointStatusMessage`
     * @see `ObjectAttachMessage`
@@ -3206,7 +3004,7 @@ class WorldSessionActor extends Actor
     * @return a tuple composed of an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet
     */
   def CargoMountBehaviorForUs(carrier : Vehicle, cargo : Vehicle, mountPoint : Int) : (ObjectAttachMessage, CargoMountPointStatusMessage) = {
-    val msgs @ (attachMessage, mountPointStatusMessage) = CargoMountMessages(carrier, cargo, mountPoint)
+    val msgs @ (attachMessage, mountPointStatusMessage) = CargoBehavior.CargoMountMessages(carrier, cargo, mountPoint)
     CargoMountMessagesForUs(attachMessage, mountPointStatusMessage)
     msgs
   }
@@ -3221,52 +3019,6 @@ class WorldSessionActor extends Actor
   def CargoMountMessagesForUs(attachMessage : ObjectAttachMessage, mountPointStatusMessage : CargoMountPointStatusMessage) : Unit = {
     sendResponse(attachMessage)
     sendResponse(mountPointStatusMessage)
-  }
-
-
-
-  /**
-    * Dispatch an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet to all other clients, not this one.
-    * @see `CargoMountPointStatusMessage`
-    * @see `ObjectAttachMessage`
-    * @param carrier the ferrying vehicle
-    * @param cargo the ferried vehicle
-    * @param mountPoint the point on the ferryoing vehicle where the ferried vehicle is attached
-    * @return a tuple composed of an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet
-    */
-  def CargoMountBehaviorForOthers(carrier : Vehicle, cargo : Vehicle, mountPoint : Int) : (ObjectAttachMessage, CargoMountPointStatusMessage) = {
-    val msgs @ (attachMessage, mountPointStatusMessage) = CargoMountMessages(carrier, cargo, mountPoint)
-    CargoMountMessagesForOthers(attachMessage, mountPointStatusMessage)
-    msgs
-  }
-
-  /**
-    * Dispatch an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet to all other clients, not this one.
-    * @see `CargoMountPointStatusMessage`
-    * @see `ObjectAttachMessage`
-    * @param attachMessage an `ObjectAttachMessage` packet suitable for initializing cargo operations
-    * @param mountPointStatusMessage a `CargoMountPointStatusMessage` packet suitable for initializing cargo operations
-    */
-  def CargoMountMessagesForOthers(attachMessage : ObjectAttachMessage, mountPointStatusMessage : CargoMountPointStatusMessage) : Unit = {
-    val pguid = player.GUID
-    continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.SendResponse(pguid, attachMessage))
-    continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.SendResponse(pguid, mountPointStatusMessage))
-  }
-
-  /**
-    * Dispatch an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet to everyone.
-    * @see `CargoMountPointStatusMessage`
-    * @see `ObjectAttachMessage`
-    * @param carrier the ferrying vehicle
-    * @param cargo the ferried vehicle
-    * @param mountPoint the point on the ferryoing vehicle where the ferried vehicle is attached
-    * @return a tuple composed of an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet
-    */
-  def CargoMountBehaviorForAll(carrier : Vehicle, cargo : Vehicle, mountPoint : Int) : (ObjectAttachMessage, CargoMountPointStatusMessage) = {
-    val msgs @ (attachMessage, mountPointStatusMessage) = CargoMountMessages(carrier, cargo, mountPoint)
-    CargoMountMessagesForUs(attachMessage, mountPointStatusMessage)
-    CargoMountMessagesForOthers(attachMessage, mountPointStatusMessage)
-    msgs
   }
 
   /**
@@ -3684,34 +3436,33 @@ class WorldSessionActor extends Actor
 
       accountIntermediary ! RetrieveAccountData(token)
 
-    case msg @ MountVehicleCargoMsg(player_guid, vehicle_guid, cargo_vehicle_guid, unk4) =>
+    case msg @ MountVehicleCargoMsg(player_guid, cargo_guid, carrier_guid, unk4) =>
       log.info(msg.toString)
-      (continent.GUID(vehicle_guid), continent.GUID(cargo_vehicle_guid)) match {
-        case (Some(_ : Vehicle), Some(carrier : Vehicle)) =>
-          carrier.Definition.Cargo.headOption match {
-            case Some((mountPoint, _)) => //begin the mount process - open the cargo door
-              val reply = CargoMountPointStatusMessage(cargo_vehicle_guid, PlanetSideGUID(0), vehicle_guid, PlanetSideGUID(0), mountPoint, CargoStatus.InProgress, 0)
-              log.debug(reply.toString)
-              continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.SendResponse(player.GUID, reply))
-              sendResponse(reply)
-
-              import scala.concurrent.duration._
-              import scala.concurrent.ExecutionContext.Implicits.global
-              // Start timer to check every second if the vehicle is close enough to mount, or far enough away to cancel the mounting
-              cargoMountTimer.cancel
-              cargoMountTimer = context.system.scheduler.scheduleOnce(1 second, self, CheckCargoMounting(vehicle_guid, cargo_vehicle_guid, mountPoint, iteration = 0))
-            case None =>
+      (continent.GUID(cargo_guid), continent.GUID(carrier_guid)) match {
+        case (Some(cargo : Vehicle), Some(carrier : Vehicle)) =>
+          carrier.CargoHolds.find({ case (_, hold) => !hold.isOccupied }) match {
+            case Some((mountPoint, _)) => //try begin the mount process
+              cargo.Actor ! CargoBehavior.CheckCargoMounting(carrier_guid, mountPoint, 0)
+            case _ =>
               log.warn(s"MountVehicleCargoMsg: target carrier vehicle (${carrier.Definition.Name}) does not have a cargo hold")
           }
         case (None, _) | (Some(_), None) =>
-          log.warn(s"MountVehicleCargoMsg: one or more of the target vehicles do not exist - $cargo_vehicle_guid or $vehicle_guid")
+          log.warn(s"MountVehicleCargoMsg: one or more of the target vehicles do not exist - $carrier_guid or $cargo_guid")
         case _ => ;
       }
 
     case msg @ DismountVehicleCargoMsg(player_guid, cargo_guid, bailed, requestedByPassenger, kicked) =>
       log.info(msg.toString)
-      if(!requestedByPassenger) {
-        DismountVehicleCargo(player_guid, cargo_guid, bailed, requestedByPassenger, kicked)
+      //when kicked by carrier driver, player_guid will be PlanetSideGUID(0)
+      //when exiting of the cargo vehicle driver's own accord, player_guid will be the cargo vehicle driver
+      continent.GUID(cargo_guid) match {
+        case Some(cargo : Vehicle) if !requestedByPassenger =>
+          continent.GUID(cargo.MountedIn) match {
+            case Some(carrier : Vehicle) =>
+              CargoBehavior.HandleVehicleCargoDismount(continent, player_guid, cargo_guid, bailed, requestedByPassenger, kicked)
+            case _ => ;
+          }
+        case _ => ;
       }
 
     case msg @ CharacterCreateRequestMessage(name, head, voice, gender, empire) =>
@@ -3997,7 +3748,7 @@ class WorldSessionActor extends Actor
       //cargo occupants (including our own vehicle as cargo)
       vehicles.collect { case vehicle if vehicle.CargoHolds.nonEmpty =>
         vehicle.CargoHolds.collect({ case (index, hold) if hold.isOccupied => {
-          CargoMountBehaviorForAll(vehicle, hold.Occupant.get, index) //CargoMountBehaviorForUs can fail to attach the cargo vehicle on some clients
+          CargoBehavior.CargoMountBehaviorForAll(vehicle, hold.Occupant.get, index) //CargoMountBehaviorForUs can fail to attach the cargo vehicle on some clients
         }})
       }
       //special deploy states
@@ -6557,91 +6308,6 @@ class WorldSessionActor extends Actor
   }
 
   /**
-    * The process of hacking/jacking a vehicle is complete.
-    * Change the faction of the vehicle to the hacker's faction and remove all occupants.
-    *
-    * @param target The `Vehicle` object that has been hacked/jacked
-    * @param unk na; used by HackMessage` as `unk5`
-    */
-  private def FinishHackingVehicle(target : Vehicle, unk : Long)(): Unit = {
-    log.info(s"Vehicle guid: ${target.GUID} has been jacked")
-    // Forcefully dismount any cargo
-    target.CargoHolds.values.foreach(cargoHold =>  {
-      cargoHold.Occupant match {
-        case Some(cargo : Vehicle) => {
-          cargo.Seats(0).Occupant match {
-            case Some(cargoDriver: Player) =>
-              DismountVehicleCargo(cargoDriver.GUID, cargo.GUID, bailed = target.Flying, requestedByPassenger = false, kicked = true )
-            case None =>
-              log.error("FinishHackingVehicle: vehicle in cargo hold missing driver")
-              HandleDismountVehicleCargo(player.GUID, cargo.GUID, cargo, target.GUID, target, false, false, true)
-          }
-        }
-        case None => ;
-      }
-    })
-    // Forcefully dismount all seated occupants from the vehicle
-    target.Seats.values.foreach(seat => {
-      seat.Occupant match {
-        case Some(tplayer) =>
-          seat.Occupant = None
-          tplayer.VehicleSeated = None
-          if(tplayer.HasGUID) {
-            continent.VehicleEvents ! VehicleServiceMessage(tplayer.Continent, VehicleAction.KickPassenger(tplayer.GUID, 4, unk2 = false, target.GUID))
-          }
-        case None => ;
-      }
-    })
-    // If the vehicle can fly and is flying deconstruct it, and well played to whomever managed to hack a plane in mid air. I'm impressed.
-    if(target.Definition.CanFly && target.Flying) {
-      // todo: Should this force the vehicle to land in the same way as when a pilot bails with passengers on board?
-      continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(target), continent))
-      continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(target, continent, Some(0 seconds)))
-    } else { // Otherwise handle ownership transfer as normal
-      // Remove ownership of our current vehicle, if we have one
-      player.VehicleOwned match {
-        case Some(guid : PlanetSideGUID) =>
-          continent.GUID(guid) match {
-            case Some(vehicle: Vehicle) =>
-              Vehicles.Disown(player, vehicle)
-            case _ => ;
-          }
-        case _ => ;
-      }
-      target.Owner match {
-        case Some(previousOwnerGuid: PlanetSideGUID) =>
-          // Remove ownership of the vehicle from the previous player
-          continent.GUID(previousOwnerGuid) match {
-            case Some(player: Player) =>
-              Vehicles.Disown(player, target)
-            case _ => ; // Vehicle already has no owner
-          }
-        case _ => ;
-      }
-      // Now take ownership of the jacked vehicle
-      target.Actor ! CommonMessages.Hack(player, target)
-      target.Faction = player.Faction
-      Vehicles.Own(target, player)
-      //todo: Send HackMessage -> HackCleared to vehicle? can be found in packet captures. Not sure if necessary.
-      // And broadcast the faction change to other clients
-      sendResponse(SetEmpireMessage(target.GUID, player.Faction))
-      continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.SetEmpire(player.GUID, target.GUID, player.Faction))
-    }
-    continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.TriggerSound(player.GUID, TriggeredSound.HackVehicle, target.Position, 30, 0.49803925f))
-    // Clean up after specific vehicles, e.g. remove router telepads
-    // If AMS is deployed, swap it to the new faction
-    target.Definition match {
-      case GlobalDefinitions.router =>
-        log.info("FinishHackingVehicle: cleaning up after a router ...")
-        Deployables.RemoveTelepad(target)
-      case GlobalDefinitions.ams
-        if(target.DeploymentState == DriveState.Deployed) =>
-        continent.VehicleEvents ! VehicleServiceMessage.AMSDeploymentChange(continent)
-      case _ => ;
-    }
-  }
-
-  /**
     * Gives a target player positive battle experience points only.
     * If the player has access to more implant slots as a result of changing battle experience points, unlock those slots.
     * @param avatar the player
@@ -7811,9 +7477,9 @@ class WorldSessionActor extends Actor
     * In reality, they produce the same output but enforce different relationships between the components.
     * The vehicle without a rendered player will always be created if that vehicle exists.
     * The vehicle should only be constructed once.
-    * @see `BeginZoningMessage`
-    * @see `CargoMountBehaviorForOthers`
     * @see `AvatarCreateInVehicle`
+    * @see `BeginZoningMessage`
+    * @see `CargoBehavior.CargoMountBehaviorForOthers`
     * @see `GetKnownVehicleAndSeat`
     * @see `LoadZoneTransferPassengerMessages`
     * @see `Player.Spawn`
@@ -7860,7 +7526,7 @@ class WorldSessionActor extends Actor
           continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.LoadVehicle(player.GUID, vehicle, vdef.ObjectId, vguid, data))
           carrierInfo match {
             case (Some(carrier), Some((index, _))) =>
-              CargoMountBehaviorForOthers(carrier, vehicle, index)
+              CargoBehavior.CargoMountBehaviorForOthers(carrier, vehicle, index, player.GUID)
             case _ =>
               vehicle.MountedIn = None
           }
@@ -9432,7 +9098,7 @@ class WorldSessionActor extends Actor
       case ("MISSING_DRIVER", index) =>
         val cargo = vehicle.CargoHolds(index).Occupant.get
         log.error(s"LoadZoneInVehicleAsDriver: eject cargo in hold $index; vehicle missing driver")
-        HandleDismountVehicleCargo(pguid, cargo.GUID, cargo, vehicle.GUID, vehicle, false, false, true)
+        CargoBehavior.HandleVehicleCargoDismount(pguid, cargo.GUID, cargo, vehicle.GUID, vehicle, false, false, true)
       case (name, index) =>
         val cargo = vehicle.CargoHolds(index).Occupant.get
         continent.VehicleEvents ! VehicleServiceMessage(name, VehicleAction.TransferPassengerChannel(pguid, s"${cargo.Actor}", toChannel, cargo, topLevel))
@@ -9776,133 +9442,6 @@ class WorldSessionActor extends Actor
     continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Stop(player.GUID, weapon_guid))
     sendResponse(WeaponDryFireMessage(weapon_guid))
     continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.WeaponDryFire(player.GUID, weapon_guid))
-  }
-
-  /**
-    * na
-    * @param player_guid the target player
-    * @param cargoGUID the globally unique number for the vehicle being ferried
-    * @param cargo the vehicle being ferried
-    * @param carrierGUID the globally unique number for the vehicle doing the ferrying
-    * @param carrier the vehicle doing the ferrying
-    * @param bailed the ferried vehicle is bailing from the cargo hold
-    * @param requestedByPassenger the ferried vehicle is being politely disembarked from the cargo hold
-    * @param kicked the ferried vehicle is being kicked out of the cargo hold
-    */
-  def HandleDismountVehicleCargo(player_guid : PlanetSideGUID, cargoGUID : PlanetSideGUID, cargo : Vehicle, carrierGUID : PlanetSideGUID, carrier : Vehicle, bailed : Boolean, requestedByPassenger : Boolean, kicked : Boolean) : Unit = {
-    carrier.CargoHolds.find({case((_, hold)) => hold.Occupant.contains(cargo)}) match {
-      case Some((mountPoint, hold)) =>
-        cargo.MountedIn = None
-        hold.Occupant = None
-        val driverOpt = cargo.Seats(0).Occupant
-        val rotation : Vector3 = if(Vehicles.CargoOrientation(cargo) == 1) { //TODO: BFRs will likely also need this set
-          //dismount router "sideways" in a lodestar
-          carrier.Orientation.xy + Vector3.z((carrier.Orientation.z - 90) % 360)
-        }
-        else {
-          carrier.Orientation
-        }
-        val cargoHoldPosition : Vector3 = if(carrier.Definition == GlobalDefinitions.dropship) {
-          //the galaxy cargo bay is offset backwards from the center of the vehicle
-          carrier.Position + Vector3.Rz(Vector3(0, 7, 0), math.toRadians(carrier.Orientation.z))
-        }
-        else {
-          //the lodestar's cargo hold is almost the center of the vehicle
-          carrier.Position
-        }
-        StartBundlingPackets()
-        continent.VehicleEvents ! VehicleServiceMessage(s"${cargo.Actor}", VehicleAction.SendResponse(PlanetSideGUID(0), PlanetsideAttributeMessage(cargoGUID, 0, cargo.Health)))
-        continent.VehicleEvents ! VehicleServiceMessage(s"${cargo.Actor}", VehicleAction.SendResponse(PlanetSideGUID(0), PlanetsideAttributeMessage(cargoGUID, 68, cargo.Shields)))
-        if(carrier.Flying) {
-          //the carrier vehicle is flying; eject the cargo vehicle
-          val ejectCargoMsg = CargoMountPointStatusMessage(carrierGUID, PlanetSideGUID(0), PlanetSideGUID(0), cargoGUID, mountPoint, CargoStatus.InProgress, 0)
-          val detachCargoMsg = ObjectDetachMessage(carrierGUID, cargoGUID, cargoHoldPosition - Vector3.z(1), rotation)
-          val resetCargoMsg = CargoMountPointStatusMessage(carrierGUID, PlanetSideGUID(0), PlanetSideGUID(0), cargoGUID, mountPoint, CargoStatus.Empty, 0)
-          sendResponse(ejectCargoMsg) //dismount vehicle on UI and disable "shield" effect on lodestar
-          sendResponse(detachCargoMsg)
-          continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.SendResponse(player_guid, ejectCargoMsg))
-          continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.SendResponse(player_guid, detachCargoMsg))
-          continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.SendResponse(PlanetSideGUID(0), resetCargoMsg)) //lazy
-          log.debug(ejectCargoMsg.toString)
-          log.debug(detachCargoMsg.toString)
-          if(driverOpt.isEmpty) {
-            //TODO cargo should drop like a rock like normal; until then, deconstruct it
-            continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(cargo), continent))
-            continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(cargo, continent, Some(0 seconds)))
-          }
-        }
-        else {
-          //the carrier vehicle is not flying; just open the door and let the cargo vehicle back out; force it out if necessary
-          val cargoStatusMessage = CargoMountPointStatusMessage(carrierGUID, PlanetSideGUID(0), cargoGUID, PlanetSideGUID(0), mountPoint, CargoStatus.InProgress, 0)
-          val cargoDetachMessage = ObjectDetachMessage(carrierGUID, cargoGUID, cargoHoldPosition + Vector3.z(1f), rotation)
-          sendResponse(cargoStatusMessage)
-          sendResponse(cargoDetachMessage)
-          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.SendResponse(player_guid, cargoStatusMessage))
-          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.SendResponse(player_guid, cargoDetachMessage))
-          driverOpt match {
-            case Some(driver) =>
-              continent.VehicleEvents ! VehicleServiceMessage(s"${driver.Name}", VehicleAction.KickCargo(player_guid, cargo, cargo.Definition.AutoPilotSpeed2, 2500))
-
-              import scala.concurrent.duration._
-              import scala.concurrent.ExecutionContext.Implicits.global
-              //check every quarter second if the vehicle has moved far enough away to be considered dismounted
-              cargoDismountTimer.cancel
-              cargoDismountTimer = context.system.scheduler.scheduleOnce(250 milliseconds, self, CheckCargoDismount(cargoGUID, carrierGUID, mountPoint, iteration = 0))
-            case None =>
-              val resetCargoMsg = CargoMountPointStatusMessage(carrierGUID, PlanetSideGUID(0), PlanetSideGUID(0), cargoGUID, mountPoint, CargoStatus.Empty, 0)
-              continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.SendResponse(PlanetSideGUID(0), resetCargoMsg)) //lazy
-              //TODO cargo should back out like normal; until then, deconstruct it
-              continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(cargo), continent))
-              continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(cargo, continent, Some(0 seconds)))
-          }
-        }
-        StopBundlingPackets()
-
-      case None =>
-        log.warn(s"HandleDismountVehicleCargo: can not locate cargo $cargo in any hold of the carrier vehicle $carrier")
-    }
-  }
-
-  /**
-    * na
-    * @param player_guid na
-    * @param cargo_guid na
-    * @param bailed na
-    * @param requestedByPassenger na
-    * @param kicked na
-    */
-  def DismountVehicleCargo(player_guid : PlanetSideGUID, cargo_guid : PlanetSideGUID, bailed : Boolean, requestedByPassenger : Boolean, kicked : Boolean) : Unit = {
-    continent.GUID(cargo_guid) match {
-      case Some(cargo : Vehicle) =>
-        continent.GUID(cargo.MountedIn) match {
-          case Some(ferry : Vehicle) =>
-            HandleDismountVehicleCargo(player_guid, cargo_guid, cargo, ferry.GUID, ferry, bailed, requestedByPassenger, kicked)
-          case _ =>
-            log.warn(s"DismountVehicleCargo: target ${cargo.Definition.Name}@$cargo_guid does not know what treats it as cargo")
-        }
-      case _ =>
-        log.warn(s"DismountVehicleCargo: target $cargo_guid either is not a vehicle in ${continent.Id} or does not exist")
-    }
-  }
-
-  def GetPlayerHackSpeed(obj: PlanetSideServerObject): Float = {
-    val playerHackLevel = Player.GetHackLevel(player)
-    val timeToHack = obj match {
-      case (vehicle : Vehicle) => vehicle.JackingDuration(playerHackLevel)
-      case (hackable : Hackable) => hackable.HackDuration(playerHackLevel)
-      case _ =>
-        log.warn(s"Player tried to hack an object that has no hack time defined ${obj.GUID} - ${obj.Definition.Name}")
-        0
-    }
-    if(timeToHack == 0) {
-      log.warn(s"Player ${player.GUID} tried to hack an object ${obj.GUID} - ${obj.Definition.Name} that they don't have the correct hacking level for")
-      0f
-    }
-    else {
-      // 250 ms per tick on the hacking progress bar
-      val ticks = (timeToHack * 1000) / 250
-      100f / ticks
-    }
   }
 
   def SaveLoadoutToDB(owner : Player, label : String, line : Int) = {
@@ -11039,8 +10578,6 @@ object WorldSessionActor {
   private final case class ListAccountCharacters()
   private final case class SetCurrentAvatar(tplayer : Player)
   private final case class VehicleLoaded(vehicle : Vehicle)
-  private final case class CheckCargoMounting(vehicle_guid : PlanetSideGUID, cargo_vehicle_guid: PlanetSideGUID, cargo_mountpoint: Int, iteration: Int)
-  private final case class CheckCargoDismount(vehicle_guid : PlanetSideGUID, cargo_vehicle_guid: PlanetSideGUID, cargo_mountpoint: Int, iteration: Int)
 
   /**
     * The message that indidctes the level of completion of a process.

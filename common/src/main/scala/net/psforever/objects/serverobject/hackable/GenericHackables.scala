@@ -1,7 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.hackable
 
-import net.psforever.objects.Player
+import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.packet.game.{HackMessage, HackState}
 import net.psforever.types.PlanetSideGUID
@@ -13,6 +13,31 @@ import scala.util.{Failure, Success}
 
 object GenericHackables {
   private val log = org.log4s.getLogger("HackableBehavior")
+
+  /**
+    * na
+    * @param player the player doing the hacking
+    * @param obj the object being hacked
+    * @return the percentage amount of progress per tick
+    */
+  def GetHackSpeed(player : Player, obj: PlanetSideServerObject): Float = {
+    val playerHackLevel = Player.GetHackLevel(player)
+    val timeToHack = obj match {
+      case vehicle : Vehicle => vehicle.JackingDuration(playerHackLevel)
+      case hackable : Hackable => hackable.HackDuration(playerHackLevel)
+      case _ =>
+        log.warn(s"${player.Name} tried to hack an object that has no hack time defined - ${obj.Definition.Name}#${obj.GUID} on ${obj.Zone.Id}")
+        0
+    }
+    if(timeToHack == 0) {
+      log.warn(s"${player.Name} tried to hack an object that they don't have the correct hacking level for - ${obj.Definition.Name}#${obj.GUID} on ${obj.Zone.Id}")
+      0f
+    }
+    else {
+      //timeToHack is in seconds; progress is measured in quarters of a second (250ms)
+      (100 / timeToHack) / 4
+    }
+  }
 
   /**
     * Evaluate the progress of the user applying a tool to modify some server object.

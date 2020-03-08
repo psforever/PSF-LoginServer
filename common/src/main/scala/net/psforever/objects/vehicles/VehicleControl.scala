@@ -12,7 +12,7 @@ import net.psforever.objects.serverobject.damage.DamageableVehicle
 import net.psforever.objects.serverobject.deploy.DeploymentBehavior
 import net.psforever.objects.serverobject.repair.RepairableVehicle
 import net.psforever.objects.vital.VehicleShieldCharge
-import net.psforever.types.{CertificationType, ExoSuitType, PlanetSideGUID}
+import net.psforever.types.{ExoSuitType, PlanetSideGUID}
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 /**
@@ -27,6 +27,7 @@ class VehicleControl(vehicle : Vehicle) extends Actor
   with DeploymentBehavior
   with MountableBehavior.Mount
   with MountableBehavior.Dismount
+  with CargoBehavior
   with DamageableVehicle
   with RepairableVehicle
   with JammableMountedWeapons {
@@ -35,6 +36,7 @@ class VehicleControl(vehicle : Vehicle) extends Actor
   vehicle.Utilities.foreach({case (_, util) => util.Setup })
 
   def MountableObject = vehicle
+  def CargoObject = vehicle
   def JammableObject = vehicle
   def FactionObject = vehicle
   def DeploymentObject = vehicle
@@ -53,6 +55,7 @@ class VehicleControl(vehicle : Vehicle) extends Actor
 
   def Enabled : Receive = checkBehavior
     .orElse(deployBehavior)
+    .orElse(cargoBehavior)
     .orElse(jammableBehavior)
     .orElse(takesDamage)
     .orElse(canBeRepairedByNanoDispenser)

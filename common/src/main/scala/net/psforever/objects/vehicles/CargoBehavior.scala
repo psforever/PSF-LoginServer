@@ -7,6 +7,7 @@ import net.psforever.objects._
 import net.psforever.objects.vehicles.CargoBehavior.{CheckCargoDismount, CheckCargoMounting}
 import net.psforever.packet.game.{CargoMountPointStatusMessage, ObjectAttachMessage, ObjectDetachMessage, PlanetsideAttributeMessage}
 import net.psforever.types.{CargoStatus, PlanetSideGUID, Vector3}
+import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.{RemoverActor, Service}
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
 
@@ -29,6 +30,16 @@ trait CargoBehavior {
       val obj = CargoObject
       if((isMounting.isEmpty || isMounting.contains(carrier_guid)) && isDismounting.isEmpty &&
         CargoBehavior.HandleCheckCargoMounting(obj.Zone, carrier_guid, obj.GUID, obj, mountPoint, iteration)) {
+        if(iteration == 0) {
+          //open the cargo bay door
+          obj.Zone.AvatarEvents ! AvatarServiceMessage(
+            obj.Zone.Id,
+            AvatarAction.SendResponse(
+              Service.defaultPlayerGUID,
+              CargoMountPointStatusMessage(carrier_guid, PlanetSideGUID(0), obj.GUID, PlanetSideGUID(0), mountPoint, CargoStatus.InProgress, 0)
+            )
+          )
+        }
         isMounting = Some(carrier_guid)
         import scala.concurrent.ExecutionContext.Implicits.global
         cargoMountTimer.cancel
@@ -56,8 +67,8 @@ trait CargoBehavior {
 object CargoBehavior {
   private val log = org.log4s.getLogger("CargoBehavior")
 
-  private final case class CheckCargoMounting(carrier_guid: PlanetSideGUID, cargo_mountpoint: Int, iteration: Int)
-  private final case class CheckCargoDismount(carrier_guid: PlanetSideGUID, cargo_mountpoint: Int, iteration: Int)
+  final case class CheckCargoMounting(carrier_guid: PlanetSideGUID, cargo_mountpoint: Int, iteration: Int)
+  final case class CheckCargoDismount(carrier_guid: PlanetSideGUID, cargo_mountpoint: Int, iteration: Int)
 
   /**
     * na
@@ -226,12 +237,12 @@ object CargoBehavior {
     * @param requestedByPassenger na
     * @param kicked na
     */
-  def DismountVehicleCargo(zone : Zone, player_guid : PlanetSideGUID, cargo_guid : PlanetSideGUID, bailed : Boolean, requestedByPassenger : Boolean, kicked : Boolean) : Unit = {
+  def HandleVehicleCargoDismount(zone : Zone, player_guid : PlanetSideGUID, cargo_guid : PlanetSideGUID, bailed : Boolean, requestedByPassenger : Boolean, kicked : Boolean) : Unit = {
     zone.GUID(cargo_guid) match {
       case Some(cargo : Vehicle) =>
         zone.GUID(cargo.MountedIn) match {
           case Some(ferry : Vehicle) =>
-            HandleDismountVehicleCargo(player_guid, cargo_guid, cargo, ferry.GUID, ferry, bailed, requestedByPassenger, kicked)
+            HandleVehicleCargoDismount(player_guid, cargo_guid, cargo, ferry.GUID, ferry, bailed, requestedByPassenger, kicked)
           case _ =>
             log.warn(s"DismountVehicleCargo: target ${cargo.Definition.Name}@$cargo_guid does not know what treats it as cargo")
         }
@@ -251,7 +262,7 @@ object CargoBehavior {
     * @param requestedByPassenger the ferried vehicle is being politely disembarked from the cargo hold
     * @param kicked the ferried vehicle is being kicked out of the cargo hold
     */
-  def HandleDismountVehicleCargo(player_guid : PlanetSideGUID, cargoGUID : PlanetSideGUID, cargo : Vehicle, carrierGUID : PlanetSideGUID, carrier : Vehicle, bailed : Boolean, requestedByPassenger : Boolean, kicked : Boolean) : Unit = {
+  def HandleVehicleCargoDismount(player_guid : PlanetSideGUID, cargoGUID : PlanetSideGUID, cargo : Vehicle, carrierGUID : PlanetSideGUID, carrier : Vehicle, bailed : Boolean, requestedByPassenger : Boolean, kicked : Boolean) : Unit = {
     val zone = carrier.Zone
     carrier.CargoHolds.find({case(_, hold) => hold.Occupant.contains(cargo)}) match {
       case Some((mountPoint, hold)) =>
@@ -364,35 +375,6 @@ object CargoBehavior {
       CargoMountPointStatusMessage(carrierGUID, cargoGUID, cargoGUID, PlanetSideGUID(0), mountPoint, CargoStatus.Occupied, orientation)
     )
   }
-
-//  /**
-//    * Dispatch an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet only to this client.
-//    * @see `CargoMountPointStatusMessage`
-//    * @see `ObjectAttachMessage`
-//    * @param carrier the ferrying vehicle
-//    * @param cargo the ferried vehicle
-//    * @param mountPoint the point on the ferryoing vehicle where the ferried vehicle is attached
-//    * @return a tuple composed of an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet
-//    */
-//  def CargoMountMessagesForOne(carrier : Vehicle, cargo : Vehicle, mountPoint : Int, channel : String) : (ObjectAttachMessage, CargoMountPointStatusMessage) = {
-//    val msgs @ (attachMessage, mountPointStatusMessage) = CargoMountMessages(carrier, cargo, mountPoint)
-//    CargoMountMessagesForOne(carrier.Zone, channel, attachMessage, mountPointStatusMessage)
-//    msgs
-//  }
-//
-//  /**
-//    * Dispatch an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet only to this client.
-//    * @see `CargoMountPointStatusMessage`
-//    * @see `ObjectAttachMessage`
-//    * @param attachMessage an `ObjectAttachMessage` packet suitable for initializing cargo operations
-//    * @param mountPointStatusMessage a `CargoMountPointStatusMessage` packet suitable for initializing cargo operations
-//    */
-//  def CargoMountMessagesForOne(zone : Zone, channel : String, attachMessage : ObjectAttachMessage, mountPointStatusMessage : CargoMountPointStatusMessage) : Unit = {
-//    zone.VehicleEvents ! VehicleServiceMessage(channel, VehicleAction.SendResponse(Service.defaultPlayerGUID, attachMessage))
-//    zone.VehicleEvents ! VehicleServiceMessage(channel, VehicleAction.SendResponse(Service.defaultPlayerGUID, mountPointStatusMessage))
-//  }
-
-
 
   /**
     * Dispatch an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet to all other clients, not this one.
