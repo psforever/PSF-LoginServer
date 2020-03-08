@@ -648,6 +648,21 @@ object Player {
     }
   }
 
+  def GetHackLevel(player : Player): Int = {
+    if(player.Certifications.contains(CertificationType.ExpertHacking) || player.Certifications.contains(CertificationType.ElectronicsExpert)) {
+      3
+    }
+    else if(player.Certifications.contains(CertificationType.AdvancedHacking)) {
+      2
+    }
+    else if (player.Certifications.contains(CertificationType.Hacking)) {
+      1
+    }
+    else {
+      0
+    }
+  }
+
   def toString(obj : Player) : String = {
     val guid = if(obj.HasGUID) { s" ${obj.Continent}-${obj.GUID.guid}" } else { "" }
     s"${obj.core}$guid ${obj.Health}/${obj.MaxHealth} ${obj.Armor}/${obj.MaxArmor}"

@@ -19,11 +19,6 @@ import scodec.bits.ByteVector
 //project imports
 import csr.{CSRWarp, CSRZone, Traveler}
 import MDCContextAware.Implicits._
-import net.psforever.packet._
-import net.psforever.packet.control._
-import net.psforever.packet.game._
-import net.psforever.packet.game.objectcreate.{ConstructorData, DetailedCharacterData, DroppedItemData, ObjectClass, ObjectCreateMessageParent, PlacementData}
-import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo}
 import net.psforever.objects._
 import net.psforever.objects.avatar.{Certification, DeployableToolbox}
 import net.psforever.objects.ballistics.{PlayerSource, Projectile, ProjectileResolution, ResolvedProjectile, SourceEntry}
@@ -40,25 +35,30 @@ import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObjec
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.doors.Door
-import net.psforever.objects.serverobject.hackable.Hackable
+import net.psforever.objects.serverobject.hackable.{Hackable, GenericHackables}
 import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
-import net.psforever.objects.serverobject.locks.IFFLock
+import net.psforever.objects.serverobject.locks.{IFFLock, IFFLocks}
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 import net.psforever.objects.serverobject.painbox.Painbox
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
-import net.psforever.objects.serverobject.terminals.{CaptureTerminal, MatrixTerminalDefinition, MedicalTerminalDefinition, ProximityDefinition, ProximityTerminal, ProximityUnit, Terminal}
+import net.psforever.objects.serverobject.terminals.{CaptureTerminal, CaptureTerminals, MatrixTerminalDefinition, MedicalTerminalDefinition, ProximityDefinition, ProximityTerminal, ProximityUnit, Terminal}
 import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
 import net.psforever.objects.serverobject.tube.SpawnTube
-import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade, WeaponTurret}
+import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade, WeaponTurret, WeaponTurrets}
 import net.psforever.objects.serverobject.zipline.ZipLinePath
 import net.psforever.objects.teamwork.Squad
 import net.psforever.objects.vehicles.{AccessPermissionGroup, Cargo, MountedWeapons, Utility, UtilityType, VehicleLockState}
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.vital.{DamageFromPainbox, HealFromExoSuitChange, HealFromKit, HealFromTerm, PlayerSuicide, RepairFromKit, Vitality}
 import net.psforever.objects.zones.{InterstellarCluster, Zone, ZoneHotSpotProjector}
+import net.psforever.packet._
+import net.psforever.packet.control._
+import net.psforever.packet.game._
+import net.psforever.packet.game.objectcreate.{ConstructorData, DetailedCharacterData, DroppedItemData, ObjectClass, ObjectCreateMessageParent, PlacementData}
+import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo}
 import net.psforever.types._
 import services.{RemoverActor, Service, ServiceManager}
 import services.account.{AccountPersistenceService, PlayerToken, ReceiveAccountData, RetrieveAccountData}
@@ -300,10 +300,10 @@ class WorldSessionActor extends Actor
         progressBarValue = Some(-hackSpeed)
         self ! Progress(
           hackSpeed,
-          FinishHacking(obj, 3212836864L),
-          HackingTickAction(progressType = 1, player, obj, item.GUID)
+          GenericHackables.FinishHacking(obj, tplayer, 3212836864L),
+          GenericHackables.HackingTickAction(progressType = 1, tplayer, obj, item.GUID)
         )
-        log.info(s"${player.Name} is hacking a locker")
+        log.info(s"${tplayer.Name} is hacking a locker")
       }
 
     case CommonMessages.Hack(tplayer, obj : CaptureTerminal, Some(item : SimpleItem)) if tplayer == player =>
@@ -312,10 +312,10 @@ class WorldSessionActor extends Actor
         progressBarValue = Some(-hackSpeed)
         self ! Progress(
           hackSpeed,
-          FinishHackingCaptureConsole(obj, 3212836864L),
-          HackingTickAction(progressType = 1, player, obj, item.GUID)
+          CaptureTerminals.FinishHackingCaptureConsole(obj, player, 3212836864L),
+          GenericHackables.HackingTickAction(progressType = 1, tplayer, obj, item.GUID)
         )
-        log.info(s"${player.Name} is hacking a capture terminal")
+        log.info(s"${tplayer.Name} is hacking a capture terminal")
       }
 
     case CommonMessages.Hack(tplayer, obj : ImplantTerminalMech, Some(item : SimpleItem)) if tplayer == player =>
@@ -324,10 +324,10 @@ class WorldSessionActor extends Actor
         progressBarValue = Some(-hackSpeed)
         self ! Progress(
           hackSpeed,
-          FinishHacking(obj, 3212836864L),
-          HackingTickAction(progressType = 1, player, obj, item.GUID)
+          GenericHackables.FinishHacking(obj, tplayer, 3212836864L),
+          GenericHackables.HackingTickAction(progressType = 1, tplayer, obj, item.GUID)
         )
-        log.info(s"${player.Name} is hacking an implant terminal")
+        log.info(s"${tplayer.Name} is hacking an implant terminal")
       }
 
     case CommonMessages.Hack(tplayer, obj : Terminal, Some(item : SimpleItem)) if tplayer == player =>
@@ -336,31 +336,31 @@ class WorldSessionActor extends Actor
         progressBarValue = Some(-hackSpeed)
         self ! Progress(
           hackSpeed,
-          FinishHacking(obj, 3212836864L),
-          HackingTickAction(progressType = 1, player, obj, item.GUID)
+          GenericHackables.FinishHacking(obj, tplayer, 3212836864L),
+          GenericHackables.HackingTickAction(progressType = 1, tplayer, obj, item.GUID)
         )
-        log.info(s"${player.Name} is hacking a terminal")
+        log.info(s"${tplayer.Name} is hacking a terminal")
       }
 
     case CommonMessages.Hack(tplayer, obj : IFFLock, Some(item : SimpleItem)) if tplayer == player =>
       val hackSpeed = GetPlayerHackSpeed(obj)
       if(hackSpeed > 0) {
         progressBarValue = Some(-hackSpeed)
-        if(obj.Faction != player.Faction) {
+        if(obj.Faction != tplayer.Faction) {
           // Enemy faction is hacking this IFF lock
           self ! Progress(
             hackSpeed,
-            FinishHacking(obj, 1114636288L),
-            HackingTickAction(progressType = 1, player, obj, item.GUID)
+            GenericHackables.FinishHacking(obj, tplayer, 1114636288L),
+            GenericHackables.HackingTickAction(progressType = 1, tplayer, obj, item.GUID)
           )
-          log.info(s"${player.Name} is hacking an IFF lock")
+          log.info(s"${tplayer.Name} is hacking an IFF lock")
         }
         else {
           // IFF Lock is being resecured by it's owner faction
           self ! Progress(
             hackSpeed,
-            FinishResecuringIFFLock(obj),
-            HackingTickAction(progressType = 1, player, obj, item.GUID)
+            IFFLocks.FinishResecuringIFFLock(obj),
+            GenericHackables.HackingTickAction(progressType = 1, player, obj, item.GUID)
           )
           log.info(s"${player.Name} is resecuring an IFF lock")
         }
@@ -372,10 +372,10 @@ class WorldSessionActor extends Actor
         progressBarValue = Some(-hackSpeed)
         self ! Progress(
           hackSpeed,
-          FinishHackingVehicle(obj, 3212836864L),
-          HackingTickAction(progressType = 1, player, obj, item.GUID)
+          FinishHackingVehicle(obj,3212836864L),
+          GenericHackables.HackingTickAction(progressType = 1, tplayer, obj, item.GUID)
         )
-        log.trace(s"${player.Name} is hacking a vehicle")
+        log.trace(s"${tplayer.Name} is hacking a vehicle")
       }
 
     case CommonMessages.Use(tplayer, Some((item : Tool, user : Player))) =>
@@ -383,9 +383,10 @@ class WorldSessionActor extends Actor
         progressBarValue = Some(-4)
         self ! Progress(
           4,
-          FinishRevivingPlayer(tplayer),
-          RevivingTickAction(tplayer, user, item)
+          Players.FinishRevivingPlayer(tplayer, user.Name),
+          Players.RevivingTickAction(tplayer, user, item)
         )
+        log.trace(s"${user.Name} is reviving a dead ally")
       }
 
     case Door.DoorMessage(tplayer, msg, order) =>
@@ -2944,7 +2945,7 @@ class WorldSessionActor extends Actor
       case VehicleResponse.KickCargo(vehicle, speed, delay) =>
         if(player.VehicleSeated.nonEmpty && deadState == DeadState.Alive) {
           if(speed > 0) {
-            val strafe = if(CargoOrientation(vehicle) == 1) 2 else 1
+            val strafe = if(Vehicles.CargoOrientation(vehicle) == 1) 2 else 1
             val reverseSpeed = if(strafe > 1) 0 else speed
             //strafe or reverse, not both
             controlled = Some(reverseSpeed)
@@ -3166,8 +3167,8 @@ class WorldSessionActor extends Actor
     * Produce an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet
     * that will set up a realized parent-child association between a ferrying vehicle and a ferried vehicle.
     * @see `CargoMountPointStatusMessage`
-    * @see `CargoOrientation`
     * @see `ObjectAttachMessage`
+    * @see `Vehicles.CargoOrientation`
     * @param carrier the ferrying vehicle
     * @param cargo the ferried vehicle
     * @param mountPoint the point on the ferryoing vehicle where the ferried vehicle is attached;
@@ -3175,7 +3176,7 @@ class WorldSessionActor extends Actor
     * @return a tuple composed of an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet
     */
   def CargoMountMessages(carrier : Vehicle, cargo : Vehicle, mountPoint : Int) : (ObjectAttachMessage, CargoMountPointStatusMessage) = {
-    CargoMountMessages(carrier.GUID, cargo.GUID, mountPoint, CargoOrientation(cargo))
+    CargoMountMessages(carrier.GUID, cargo.GUID, mountPoint, Vehicles.CargoOrientation(cargo))
   }
 
   /**
@@ -3193,22 +3194,6 @@ class WorldSessionActor extends Actor
       ObjectAttachMessage(carrierGUID, cargoGUID, mountPoint),
       CargoMountPointStatusMessage(carrierGUID, cargoGUID, cargoGUID, PlanetSideGUID(0), mountPoint, CargoStatus.Occupied, orientation)
     )
-  }
-
-  /**
-    * The orientation of a cargo vehicle as it is being loaded into and contained by a carrier vehicle.
-    * The type of carrier is not an important consideration in determining the orientation, oddly enough.
-    * @param vehicle the cargo vehicle
-    * @return the orientation as an `Integer` value;
-    *         `0` for almost all cases
-    */
-  def CargoOrientation(vehicle : Vehicle) : Int = {
-    if(vehicle.Definition == GlobalDefinitions.router) {
-      1
-    }
-    else {
-      0
-    }
   }
 
   /**
@@ -4437,7 +4422,7 @@ class WorldSessionActor extends Actor
           case Some(pad : VehicleSpawnPad) =>
             pad.Actor ! VehicleSpawnControl.ProcessControl.Flush
           case Some(turret : FacilityTurret) if turret.isUpgrading =>
-            FinishUpgradingMannedTurret(turret, TurretUpgrade.None)
+            WeaponTurrets.FinishUpgradingMannedTurret(turret, TurretUpgrade.None)
           case _ =>
             self ! PacketCoding.CreateGamePacket(0, RequestDestroyMessage(PlanetSideGUID(guid)))
         }
@@ -4739,7 +4724,7 @@ class WorldSessionActor extends Actor
               case Some(unholsteredItem : Equipment) =>
                 if(unholsteredItem.Definition == GlobalDefinitions.remote_electronics_kit) {
                   // Player has unholstered a REK - we need to set an atttribute on the REK itself to change the beam/icon colour to the correct one for the player's hack level
-                  continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(unholsteredItem.GUID, 116, GetPlayerHackLevel()))
+                  continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(unholsteredItem.GUID, 116, Player.GetHackLevel(player)))
                 }
               case None => ;
             }
@@ -5209,8 +5194,8 @@ class WorldSessionActor extends Actor
                   progressBarValue = Some(-1.25f)
                   self ! Progress(
                     delta = 1.25f,
-                    FinishUpgradingMannedTurret(obj, gluegun, TurretUpgrade(unk2.toInt)),
-                    HackingTickAction(progressType = 2, player, obj, gluegun.GUID)
+                    WeaponTurrets.FinishUpgradingMannedTurret(obj, player, gluegun, TurretUpgrade(unk2.toInt)),
+                    GenericHackables.HackingTickAction(progressType = 2, player, obj, gluegun.GUID)
                   )
 
                 case _ => ;
@@ -6572,125 +6557,6 @@ class WorldSessionActor extends Actor
   }
 
   /**
-    * Evaluate the progress of the user applying a tool to modify some server object.
-    * This action is using the remote electronics kit to convert an enemy unit into an allied unit, primarily.
-    * The act of transforming allied units of one kind into allied units of another kind (facility turret upgrades)
-    * is also governed by this action per tick of progress.
-    * @see `HackMessage`
-    * @see `HackState`
-    * @param progressType 1 - remote electronics kit hack (various ...);
-    *                     2 - nano dispenser (upgrade canister) turret upgrade
-    * @param tplayer the player performing the action
-    * @param target the object being affected
-    * @param tool_guid the tool being used to affest the object
-    * @param progress the current progress value
-    * @returns `true`, if the next cycle of progress should occur;
-    *         `false`, otherwise
-    */
-  private def HackingTickAction(progressType : Int, tplayer : Player, target : PlanetSideServerObject, tool_guid : PlanetSideGUID)(progress : Float) : Boolean = {
-    //hack state for progress bar visibility
-    val vis = if(progress <= 0L) {
-      HackState.Start
-    }
-    else if(progress >= 100L) {
-      HackState.Finished
-    }
-    else if(target.isMoving(1f)) {
-      // If the object is moving (more than slightly to account for things like magriders rotating, or the last velocity reported being the magrider dipping down on dismount) then cancel the hack
-      HackState.Cancelled
-    }
-    else {
-      HackState.Ongoing
-    }
-    if(!target.HasGUID) {
-      //cancel the hack (target is gone)
-      sendResponse(HackMessage(progressType, target.GUID, player.GUID, 0, 0L, HackState.Cancelled, 8L))
-    }
-    else if(vis == HackState.Cancelled) {
-      //cancel the hack (e.g. vehicle drove away)
-      sendResponse(HackMessage(progressType, target.GUID, player.GUID, 0, 0L, vis, 8L))
-    }
-    else {
-      sendResponse(HackMessage(progressType, target.GUID, player.GUID, progress.toInt, 0L, vis, 8L))
-    }
-    vis != HackState.Cancelled
-  }
-
-  /**
-    * Evaluate the progress of the user applying a tool to modify some other server object.
-    * This action is using the medical applicator to revive a fallen (dead but not released) ally.
-    * @param target the player being affected by the revive action
-    * @param user the player performing the revive action
-    * @param item the tool being used to revive the target player
-    * @param progress the current progress value
-    * @returns `true`, if the next cycle of progress should occur;
-    *         `false`, otherwise
-    */
-  private def RevivingTickAction(target : Player, user : Player, item : Tool)(progress : Float) : Boolean = {
-    if(!target.isAlive && !target.isBackpack &&
-      user.isAlive && !user.isMoving &&
-      user.Slot(user.DrawnSlot).Equipment.contains(item) && item.Magazine > 0) {
-      val magazine = item.Discharge
-      sendResponse(InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine))
-      sendResponse(RepairMessage(target.GUID, progress.toInt))
-      true
-    }
-    else {
-      false
-    }
-  }
-
-  /**
-    * The process of hacking an object is completed.
-    * Pass the message onto the hackable object and onto the local events system.
-    * @param target the `Hackable` object that has been hacked
-    * @param unk na;
-    *            used by `HackMessage` as `unk5`
-    * @see `HackMessage`
-    */
-  //TODO add params here depending on which params in HackMessage are important
-  private def FinishHacking(target : PlanetSideServerObject with Hackable, unk : Long)() : Unit = {
-    log.info(s"Hacked a $target")
-    // Wait for the target actor to set the HackedBy property, otherwise LocalAction.HackTemporarily will not complete properly
-    import scala.concurrent.ExecutionContext.Implicits.global
-    val tplayer = player
-    ask(target.Actor, CommonMessages.Hack(tplayer, target))(1 second).mapTo[Boolean].onComplete {
-      case Success(_) =>
-        val zone = target.Zone
-        val zoneId = zone.Id
-        val pguid = tplayer.GUID
-        zone.LocalEvents ! LocalServiceMessage(zoneId, LocalAction.TriggerSound(pguid, target.HackSound, tplayer.Position, 30, 0.49803925f))
-        zone.LocalEvents ! LocalServiceMessage(zoneId, LocalAction.HackTemporarily(pguid, zone, target, unk, target.HackEffectDuration(GetPlayerHackLevel())))
-      case scala.util.Failure(_) => log.warn(s"Hack message failed on target guid: ${target.GUID}")
-    }
-  }
-
-  /**
-    * The process of hacking an object is completed.
-    * Pass the message onto the hackable object and onto the local events system.
-    * @param target the `Hackable` object that has been hacked
-    * @param unk na;
-    *            used by `HackMessage` as `unk5`
-    * @see `HackMessage`
-    */
-  //TODO add params here depending on which params in HackMessage are important
-  private def FinishHackingCaptureConsole(target : CaptureTerminal, unk : Long)() : Unit = {
-    log.info(s"Hacked a $target")
-    // Wait for the target actor to set the HackedBy property, otherwise LocalAction.HackTemporarily will not complete properly
-    import scala.concurrent.ExecutionContext.Implicits.global
-    val tplayer = player
-    ask(target.Actor, CommonMessages.Hack(tplayer, target))(1 second).mapTo[Boolean].onComplete {
-      case Success(_) =>
-        val zone = target.Zone
-        val zoneId = zone.Id
-        val pguid = tplayer.GUID
-        zone.LocalEvents ! LocalServiceMessage(zoneId, LocalAction.TriggerSound(pguid, target.HackSound, tplayer.Position, 30, 0.49803925f))
-        zone.LocalEvents ! LocalServiceMessage(zoneId, LocalAction.HackCaptureTerminal(pguid, zone, target, unk, 8L, tplayer.Faction == target.Faction))
-      case scala.util.Failure(_) => log.warn(s"Hack message failed on target guid: ${target.GUID}")
-    }
-  }
-
-  /**
     * The process of hacking/jacking a vehicle is complete.
     * Change the faction of the vehicle to the hacker's faction and remove all occupants.
     *
@@ -6699,8 +6565,6 @@ class WorldSessionActor extends Actor
     */
   private def FinishHackingVehicle(target : Vehicle, unk : Long)(): Unit = {
     log.info(s"Vehicle guid: ${target.GUID} has been jacked")
-
-
     // Forcefully dismount any cargo
     target.CargoHolds.values.foreach(cargoHold =>  {
       cargoHold.Occupant match {
@@ -6716,7 +6580,6 @@ class WorldSessionActor extends Actor
         case None => ;
       }
     })
-
     // Forcefully dismount all seated occupants from the vehicle
     target.Seats.values.foreach(seat => {
       seat.Occupant match {
@@ -6729,7 +6592,6 @@ class WorldSessionActor extends Actor
         case None => ;
       }
     })
-
     // If the vehicle can fly and is flying deconstruct it, and well played to whomever managed to hack a plane in mid air. I'm impressed.
     if(target.Definition.CanFly && target.Flying) {
       // todo: Should this force the vehicle to land in the same way as when a pilot bails with passengers on board?
@@ -6746,7 +6608,6 @@ class WorldSessionActor extends Actor
           }
         case _ => ;
       }
-
       target.Owner match {
         case Some(previousOwnerGuid: PlanetSideGUID) =>
           // Remove ownership of the vehicle from the previous player
@@ -6757,83 +6618,27 @@ class WorldSessionActor extends Actor
           }
         case _ => ;
       }
-
       // Now take ownership of the jacked vehicle
       target.Actor ! CommonMessages.Hack(player, target)
       target.Faction = player.Faction
       Vehicles.Own(target, player)
-
       //todo: Send HackMessage -> HackCleared to vehicle? can be found in packet captures. Not sure if necessary.
-
       // And broadcast the faction change to other clients
       sendResponse(SetEmpireMessage(target.GUID, player.Faction))
       continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.SetEmpire(player.GUID, target.GUID, player.Faction))
     }
-
     continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.TriggerSound(player.GUID, TriggeredSound.HackVehicle, target.Position, 30, 0.49803925f))
-
     // Clean up after specific vehicles, e.g. remove router telepads
     // If AMS is deployed, swap it to the new faction
     target.Definition match {
       case GlobalDefinitions.router =>
         log.info("FinishHackingVehicle: cleaning up after a router ...")
-        RemoveTelepads(target)
+        Deployables.RemoveTelepad(target)
       case GlobalDefinitions.ams
         if(target.DeploymentState == DriveState.Deployed) =>
         continent.VehicleEvents ! VehicleServiceMessage.AMSDeploymentChange(continent)
       case _ => ;
     }
-  }
-
-  /**
-    * The process of resecuring an IFF lock is finished
-    * Clear the hack state and send to clients
-    * @param lock the `IFFLock` object that has been resecured
-    */
-  private def FinishResecuringIFFLock(lock: IFFLock)() : Unit = {
-    continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.ClearTemporaryHack(player.GUID, lock))
-  }
-
-  /**
-    * The process of upgrading a turret's weapon(s) is completed.
-    * Pass the message onto the turret and onto the vehicle events system.
-    * Additionally, force-deplete the ammunition count of the nano-dispenser used to perform the upgrade.
-    * @param target the turret
-    * @param tool the nano-dispenser that was used to perform this upgrade
-    * @param upgrade the new upgrade state
-    */
-  private def FinishUpgradingMannedTurret(target : FacilityTurret, tool : Tool, upgrade : TurretUpgrade.Value)() : Unit = {
-    tool.Magazine = 0
-    sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, tool.GUID, 0))
-    FinishUpgradingMannedTurret(target, upgrade)
-  }
-
-  /**
-    * na
-    * @see `FacilityTurret`
-    * @see `TurretUpgrade`
-    * @see `TurretUpgrader.AddTask`
-    * @see `TurretUpgrader.ClearSpecific`
-    * @see `VehicleServiceMessage.TurretUpgrade`
-    * @param target the facility turret being upgraded
-    * @param upgrade the upgrade being applied to the turret (usually, it's weapon system)
-    */
-  private def FinishUpgradingMannedTurret(target : FacilityTurret, upgrade : TurretUpgrade.Value) : Unit = {
-    log.info(s"Converting manned wall turret weapon to $upgrade")
-    continent.VehicleEvents ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.ClearSpecific(List(target), continent))
-    continent.VehicleEvents ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.AddTask(target, continent, upgrade))
-  }
-
-  /**
-    * na
-    * @see `AvatarAction.Revive`
-    * @see `AvatarResponse.Revive`
-    * @param target the player being revived
-    */
-  private def FinishRevivingPlayer(target : Player)() : Unit = {
-    val name =  target.Name
-    log.info(s"${player.Name} had revived $name")
-    target.Zone.AvatarEvents ! AvatarServiceMessage(name, AvatarAction.Revive(target.GUID))
   }
 
   /**
@@ -9941,25 +9746,7 @@ class WorldSessionActor extends Actor
       case GlobalDefinitions.router =>
         //this may repeat for multiple players on the same continent but that's okay(?)
         log.info("BeforeUnload: cleaning up after a router ...")
-        RemoveTelepads(vehicle)
-      case _ => ;
-    }
-  }
-
-  def RemoveTelepads(vehicle: Vehicle) : Unit = {
-    (vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
-      case Some(util : Utility.InternalTelepad) =>
-        val telepad = util.Telepad
-        util.Telepad = None
-        continent.GUID(telepad)
-      case _ =>
-        None
-    }) match {
-      case Some(telepad : TelepadDeployable) =>
-        log.info(s"BeforeUnload: deconstructing telepad $telepad that was linked to router $vehicle ...")
-        telepad.Active = false
-        continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(telepad), continent))
-        continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(telepad, continent, Some(0 seconds)))
+        Deployables.RemoveTelepad(vehicle)
       case _ => ;
     }
   }
@@ -10008,7 +9795,7 @@ class WorldSessionActor extends Actor
         cargo.MountedIn = None
         hold.Occupant = None
         val driverOpt = cargo.Seats(0).Occupant
-        val rotation : Vector3 = if(CargoOrientation(cargo) == 1) { //TODO: BFRs will likely also need this set
+        val rotation : Vector3 = if(Vehicles.CargoOrientation(cargo) == 1) { //TODO: BFRs will likely also need this set
           //dismount router "sideways" in a lodestar
           carrier.Orientation.xy + Vector3.z((carrier.Orientation.z - 90) % 360)
         }
@@ -10099,7 +9886,7 @@ class WorldSessionActor extends Actor
   }
 
   def GetPlayerHackSpeed(obj: PlanetSideServerObject): Float = {
-    val playerHackLevel = GetPlayerHackLevel()
+    val playerHackLevel = Player.GetHackLevel(player)
     val timeToHack = obj match {
       case (vehicle : Vehicle) => vehicle.JackingDuration(playerHackLevel)
       case (hackable : Hackable) => hackable.HackDuration(playerHackLevel)
@@ -10115,18 +9902,6 @@ class WorldSessionActor extends Actor
       // 250 ms per tick on the hacking progress bar
       val ticks = (timeToHack * 1000) / 250
       100f / ticks
-    }
-  }
-
-  def GetPlayerHackLevel(): Int = {
-    if(player.Certifications.contains(CertificationType.ExpertHacking) || player.Certifications.contains(CertificationType.ElectronicsExpert)) {
-      3
-    } else if(player.Certifications.contains(CertificationType.AdvancedHacking)) {
-      2
-    } else if (player.Certifications.contains(CertificationType.Hacking)) {
-      1
-    } else {
-      0
     }
   }
 

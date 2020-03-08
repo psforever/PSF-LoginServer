@@ -1,3 +1,4 @@
+// Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.hackable
 
 import akka.actor.Actor
@@ -11,7 +12,6 @@ object HackableBehavior {
     */
   trait GenericHackable {
     this : Actor =>
-
     def HackableObject : Hackable
 
     val hackableBehavior : Receive = {
