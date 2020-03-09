@@ -127,7 +127,16 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
   def Health : Int = health
 
   def Health_=(assignHealth : Int) : Int = {
-    health = math.min(math.max(0, assignHealth), MaxHealth)
+    val newHealth = math.min(math.max(0, assignHealth), MaxHealth)
+    val delta = health - newHealth
+
+    health = newHealth
+
+    if (delta > 0) // If Health has decreased drain stamina too at half the amount of Health damage
+    {
+      Stamina -= math.floor(delta / 2).toInt
+    }
+
     Health
   }
 
