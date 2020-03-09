@@ -8,6 +8,7 @@ import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.Container
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSideGamePacket
+import net.psforever.packet.game.ImplantAction
 import net.psforever.packet.game.objectcreate.{ConstructorData, ObjectCreateMessageParent}
 import net.psforever.types.{ExoSuitType, PlanetSideEmpire, PlanetSideGUID, Vector3}
 
@@ -32,6 +33,7 @@ object AvatarAction {
   final case class EnvironmentalDamage(player_guid : PlanetSideGUID, source_guid : PlanetSideGUID, amount: Int) extends Action
   final case class DeployItem(player_guid : PlanetSideGUID, item : PlanetSideGameObject with Deployable) extends Action
   final case class DeactivateImplantSlot(player_guid : PlanetSideGUID, slot : Int) extends Action
+  final case class ActivateImplantSlot(player_guid : PlanetSideGUID, slot : Int) extends Action
   final case class Destroy(victim : PlanetSideGUID, killer : PlanetSideGUID, weapon : PlanetSideGUID, pos : Vector3) extends Action
   final case class DestroyDisplay(killer : SourceEntry, victim : SourceEntry, method : Int, unk : Int = 121) extends Action
   final case class DropItem(player_guid : PlanetSideGUID, item : Equipment, zone : Zone) extends Action

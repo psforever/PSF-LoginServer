@@ -1,7 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.definition.{ImplantDefinition, Stance}
+import akka.actor.Cancellable
+import net.psforever.objects.definition.ImplantDefinition
 import net.psforever.types.{ExoSuitType, ImplantType}
 
 /**
@@ -18,10 +19,20 @@ class ImplantSlot {
   private var unlocked : Boolean = false
   /** whether this implant is ready for use */
   private var initialized : Boolean = false
+  /** a cancellable timer that can be used to set an implant as initialized once complete */
+  private var initializeTimer: Cancellable = DefaultCancellable.obj
+
   /** is this implant active */
   private var active : Boolean = false
   /** what implant is currently installed in this slot; None if there is no implant currently installed */
   private var implant : Option[ImplantDefinition] = None
+
+  def InitializeTimer : Cancellable = initializeTimer
+
+  def InitializeTimer_=(timer : Cancellable) : Cancellable = {
+    initializeTimer = timer
+    initializeTimer
+  }
 
   def Unlocked : Boolean = unlocked
 
@@ -78,12 +89,12 @@ class ImplantSlot {
     case ImplantType.None =>
       -1L
     case _ =>
-      Installed.get.Initialization
+      Installed.get.InitializationDuration
   }
 
   def ActivationCharge : Int =  {
     if(Active) {
-      Installed.get.ActivationCharge
+      Installed.get.ActivationStaminaCost
     }
     else {
       0
@@ -92,15 +103,13 @@ class ImplantSlot {
 
   /**
     * Calculate the stamina consumption of the implant for any given moment of being active after its activation.
-    * As implant energy use can be influenced by both exo-suit worn and general stance held, both are considered.
     * @param suit the exo-suit being worn
-    * @param stance the player's stance
     * @return the amount of stamina (energy) that is consumed
     */
-  def Charge(suit : ExoSuitType.Value, stance : Stance.Value) : Int = {
+  def Charge(suit : ExoSuitType.Value) : Int = {
     if(Active) {
       val inst = Installed.get
-      inst.DurationChargeBase + inst.DurationChargeByExoSuit(suit) + inst.DurationChargeByStance(stance)
+      inst.StaminaCost
     }
     else {
       0

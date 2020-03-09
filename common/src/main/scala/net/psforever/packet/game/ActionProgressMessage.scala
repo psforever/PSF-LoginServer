@@ -6,9 +6,9 @@ import scodec.Codec
 import scodec.codecs._
 
 /**
-  *
+  * 6,7,8 - Start implant initialization timer for slots 0,1,2 respectively. Allowed values: 0-100 (50 will start timer at 50% complete)
   */
-final case class ActionProgressMessage(unk1 : Int,
+final case class ActionProgressMessage(action : Int,
                                        unk2 : Long)
   extends PlanetSideGamePacket {
   type Packet = ActionProgressMessage
@@ -18,7 +18,7 @@ final case class ActionProgressMessage(unk1 : Int,
 
 object ActionProgressMessage extends Marshallable[ActionProgressMessage] {
   implicit val codec : Codec[ActionProgressMessage] = (
-    ("unk1" | uint4L) ::
+    ("action" | uint4L) ::
       ("unk2" | uint32L)
     ).as[ActionProgressMessage]
 }

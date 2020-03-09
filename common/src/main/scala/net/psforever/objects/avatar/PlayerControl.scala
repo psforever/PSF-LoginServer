@@ -2,17 +2,20 @@
 package net.psforever.objects.avatar
 
 import akka.actor.Actor
-import net.psforever.objects.Player
+import net.psforever.objects.{DefaultCancellable, ImplantSlot, Player}
 import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile, SourceEntry}
+import net.psforever.objects.definition.ImplantDefinition
 import net.psforever.objects.equipment.{JammableBehavior, JammableUnit}
 import net.psforever.objects.vital.{PlayerSuicide, Vitality}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
-import net.psforever.types.{ExoSuitType, PlanetSideGUID}
+import net.psforever.types.{ExoSuitType, ImplantType, PlanetSideGUID}
 import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 
 import scala.concurrent.duration._
+import scala.collection.mutable
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
   * na;
@@ -25,7 +28,86 @@ class PlayerControl(player : Player) extends Actor
   private [this] val log = org.log4s.getLogger(player.Name)
   private [this] val damageLog = org.log4s.getLogger("DamageResolution")
 
+  // A collection of timers for each slot to trigger stamina drain on an interval
+  val implantSlotStaminaDrainTimers = mutable.HashMap(0 -> DefaultCancellable.obj, 1 -> DefaultCancellable.obj, 2 -> DefaultCancellable.obj)
+
   def receive : Receive = jammableBehavior.orElse {
+    case Player.ImplantActivation(slot: Int, status : Int) =>
+      // todo: disable implants with stamina cost when changing armour type
+      val implantSlot = player.ImplantSlot(slot)
+
+      if(status == 0 && implantSlot.Active) {
+        // Cancel stamina drain timer
+        implantSlotStaminaDrainTimers(slot).cancel()
+        implantSlotStaminaDrainTimers(slot) = DefaultCancellable.obj
+
+        implantSlot.Active = false
+        player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, player.Implant(slot).id * 2)) // Deactivation sound / effect
+        player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.DeactivateImplantSlot(player.GUID, slot))
+      } else if (status == 1 && implantSlot.Initialized && !implantSlot.Active && !player.Fatigued) {
+        implantSlot.Installed match {
+          case Some(implant: ImplantDefinition) =>
+            implantSlot.Active = true
+
+            if (implant.ActivationStaminaCost >= 0) {
+              player.Stamina -= implant.ActivationStaminaCost // Activation stamina drain
+            }
+
+            if(implant.StaminaCost > 0 && implant.GetCostIntervalByExoSuit(player.ExoSuit) > 0) { // Ongoing stamina drain, if applicable
+              implantSlotStaminaDrainTimers(slot) = context.system.scheduler.schedule(0 seconds, implant.GetCostIntervalByExoSuit(player.ExoSuit) milliseconds, self, Player.DrainStamina(implant.StaminaCost))
+            }
+
+            player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, player.Implant(slot).id * 2 + 1)) // Activation sound / effect
+            player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.ActivateImplantSlot(player.GUID, slot))
+        }
+      }
+
+    case Player.UninitializeImplant(slot: Int) => {
+      PlayerControl.UninitializeImplant(player, slot)
+    }
+
+    case Player.ImplantInitializationStart(slot: Int) =>
+      val implantSlot = player.ImplantSlot(slot)
+      if(implantSlot.Installed.isDefined) {
+        if(implantSlot.Initialized) {
+          PlayerControl.UninitializeImplant(player, slot)
+        }
+
+        // Start client side initialization timer
+        player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.SendResponse(player.GUID, ActionProgressMessage(slot + 6, 0)))
+
+        // Callback after initialization timer to complete initialization
+        implantSlot.InitializeTimer = context.system.scheduler.scheduleOnce(implantSlot.MaxTimer milliseconds, self, Player.ImplantInitializationComplete(slot))
+      }
+
+    case Player.ImplantInitializationComplete(slot: Int) =>
+      val implantSlot = player.ImplantSlot(slot)
+      if(implantSlot.Installed.isDefined) {
+        player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.SendResponse(player.GUID, AvatarImplantMessage(player.GUID, ImplantAction.Initialization, slot, 1)))
+        implantSlot.Initialized = true
+        implantSlot.InitializeTimer = DefaultCancellable.obj
+      }
+
+    case Player.DrainStamina(amount : Int) =>
+      player.Stamina -= amount
+
+    case Player.StaminaChanged(currentStamina : Int) =>
+    if(currentStamina == 0) {
+        player.Fatigued = true
+        player.skipStaminaRegenForTurns += 4
+        for(slot <- 0 to player.Implants.length - 1) { // Disable all implants
+          self ! Player.ImplantActivation(slot, 0)
+          player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.SendResponseTargeted(player.GUID, AvatarImplantMessage(player.GUID, ImplantAction.OutOfStamina, slot, 1)))
+        }
+      } else if (player.Fatigued && currentStamina >= 20) {
+        player.Fatigued = false
+        for(slot <- 0 to player.Implants.length - 1) { // Re-enable all implants
+          player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.SendResponseTargeted(player.GUID, AvatarImplantMessage(player.GUID, ImplantAction.OutOfStamina, slot, 0)))
+        }
+      }
+
+      player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
+
     case Player.Die() =>
       PlayerControl.HandleDestructionAwareness(player, player.GUID, None)
 
@@ -232,5 +314,12 @@ object PlayerControl {
       case None =>
         events ! AvatarServiceMessage(zoneChannel, AvatarAction.DestroyDisplay(pentry, pentry, 0))
     }
+  }
+
+  def UninitializeImplant(player: Player, slot: Int): Unit = {
+    val implantSlot = player.ImplantSlot(slot)
+
+    implantSlot.Initialized = false
+    player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.SendResponse(player.GUID, AvatarImplantMessage(player.GUID, ImplantAction.Initialization, slot, 0)))
   }
 }
