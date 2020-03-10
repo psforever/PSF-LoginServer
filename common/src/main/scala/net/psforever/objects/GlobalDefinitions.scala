@@ -6324,14 +6324,14 @@ object GlobalDefinitions {
 
     implant_terminal_mech.Name = "implant_terminal_mech"
     implant_terminal_mech.MaxHealth = 1000
-    implant_terminal_mech.Damageable = false //TODO true
+    implant_terminal_mech.Damageable = true //TODO true
     implant_terminal_mech.Repairable = true
     implant_terminal_mech.RepairIfDestroyed = true
 
     implant_terminal_interface.Name = "implant_terminal_interface"
     implant_terminal_interface.Tab += 0 -> OrderTerminalDefinition.ImplantPage(ImplantTerminalDefinition.implants)
     implant_terminal_interface.MaxHealth = 500
-    implant_terminal_interface.Damageable = false //TODO true
+    implant_terminal_interface.Damageable = true //TODO true
     implant_terminal_interface.Repairable = true
     implant_terminal_interface.RepairIfDestroyed = true
 
@@ -6582,6 +6582,7 @@ object GlobalDefinitions {
     manned_turret.Damageable = true
     manned_turret.DamageDisablesAt = 0
     manned_turret.Repairable = true
+    manned_turret.RepairIfDestroyed = true
     manned_turret.Weapons += 1 -> new mutable.HashMap()
     manned_turret.Weapons(1) += TurretUpgrade.None -> phalanx_sgl_hevgatcan
     manned_turret.Weapons(1) += TurretUpgrade.AVCombo -> phalanx_avcombo
@@ -6595,6 +6596,7 @@ object GlobalDefinitions {
     vanu_sentry_turret.Damageable = true
     vanu_sentry_turret.DamageDisablesAt = 0
     vanu_sentry_turret.Repairable = true
+    vanu_sentry_turret.RepairIfDestroyed = true
     vanu_sentry_turret.Weapons += 1 -> new mutable.HashMap()
     vanu_sentry_turret.Weapons(1) += TurretUpgrade.None -> vanu_sentry_turret_weapon
     vanu_sentry_turret.MountPoints += 1 -> 0
@@ -6632,7 +6634,7 @@ object GlobalDefinitions {
 
     generator.Name = "generator"
     generator.MaxHealth = 4000
-    generator.Damageable = true
+    generator.Damageable = false //TODO true
     generator.Repairable = true
     generator.RepairIfDestroyed = true
     generator.Subtract.Damage1 = 9

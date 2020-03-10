@@ -6,8 +6,8 @@ import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.{GlobalDefinitions, SpawnPoint, SpawnPointDefinition}
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{Additional1, Additional2, Additional3, PlanetSideGeneratorState}
-import net.psforever.types.{PlanetSideEmpire, Vector3}
+import net.psforever.packet.game.{Additional1, Additional2, Additional3}
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGeneratorState, Vector3}
 
 import scala.collection.mutable
 

@@ -9,7 +9,6 @@ import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.DamageableWeaponTurret
 import net.psforever.objects.serverobject.repair.Repairable.Target
 import net.psforever.objects.serverobject.repair.RepairableWeaponTurret
-import net.psforever.objects.vital.Vitality
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.local.{LocalAction, LocalServiceMessage}
 
@@ -44,6 +43,7 @@ class FacilityTurretControl(turret : FacilityTurret) extends Actor
   def receive : Receive = checkBehavior
     .orElse(jammableBehavior)
     .orElse(dismountBehavior)
+    .orElse(takesDamage)
     .orElse(canBeRepairedByNanoDispenser)
     .orElse {
       case FacilityTurret.RechargeAmmo() =>
@@ -73,20 +73,18 @@ class FacilityTurretControl(turret : FacilityTurret) extends Actor
             sender ! Mountable.MountMessages(user, Mountable.CanNotMount(turret, seat_num))
         }
 
-      case msg : Vitality.Damage =>
-        val destroyedBefore = turret.Destroyed
-        takesDamage.apply(msg)
-        if(turret.Destroyed != destroyedBefore) {
-          val zone = turret.Zone
-          val zoneId = zone.Id
-          val events = zone.AvatarEvents
-          val tguid = turret.GUID
-          events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 50, 1))
-          events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 51, 1))
-        }
-
       case _ => ;
     }
+
+  override protected def Destruction(target : Target) : Unit = {
+    super.Destruction(target)
+    val zone = target.Zone
+    val zoneId = zone.Id
+    val events = zone.AvatarEvents
+    val tguid = target.GUID
+    events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 50, 1))
+    events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 51, 1))
+  }
 
   override def Restoration(obj : Target) : Unit = {
     super.Restoration(obj)

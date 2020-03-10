@@ -744,13 +744,17 @@ class WorldSessionActor extends Actor
       CanNotChangeDeployment(obj, state, reason)
 
     case ResourceSilo.ResourceSiloMessage(tplayer, msg, order) =>
-      val vehicle_guid = msg.avatar_guid
-      val silo_guid = msg.object_guid
-      order match {
-        case ResourceSilo.ChargeEvent() =>
-          antChargingTick.cancel() // If an ANT is refilling an NTU silo it isn't in a warpgate, so disable NTU regeneration
-          antDischargingTick.cancel()
-          antDischargingTick = context.system.scheduler.scheduleOnce(1000 milliseconds, self, NtuDischarging(player, continent.GUID(vehicle_guid).get.asInstanceOf[Vehicle], silo_guid))
+      continent.GUID(msg.avatar_guid) match {
+        case Some(vehicle : Vehicle) =>
+          val silo_guid = msg.object_guid
+          order match {
+            case ResourceSilo.ChargeEvent() =>
+              antChargingTick.cancel() // If an ANT is refilling an NTU silo it isn't in a warpgate, so disable NTU regeneration
+              antDischargingTick.cancel()
+              antDischargingTick = context.system.scheduler.scheduleOnce(1000 milliseconds, self, NtuDischarging(player, vehicle, msg.object_guid))
+            case _ => ;
+          }
+        case _ => ;
       }
 
     case CreateCharacter(name, head, voice, gender, empire) =>
@@ -1009,7 +1013,7 @@ class WorldSessionActor extends Actor
             continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(obj), continent))
             sendResponse(SetEmpireMessage(guid, faction))
             continent.AvatarEvents ! AvatarServiceMessage(factionChannel, AvatarAction.SetEmpire(playerGUID, guid, faction))
-            val info = DeployableInfo(obj.GUID, DeployableIcon.Boomer, obj.Position, obj.Owner.get)
+            val info = DeployableInfo(obj.GUID, DeployableIcon.Boomer, obj.Position, obj.Owner.getOrElse(PlanetSideGUID(0)))
             sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, info))
             continent.LocalEvents ! LocalServiceMessage(factionChannel, LocalAction.DeployableMapIcon(playerGUID, DeploymentAction.Build, info))
           case Some(_) | None => ; //pointless trigger; see Zone.Ground.ItemOnGround(BoomerTrigger, ...)
@@ -4648,7 +4652,7 @@ class WorldSessionActor extends Actor
                 }
               }
               else if(!indexSlot.Equipment.contains(item)) {
-                log.error(s"MoveItem: wanted to move $item_guid, but found unexpected ${indexSlot.Equipment.get} at source location")
+                log.error(s"MoveItem: wanted to move $item_guid, but found unexpected ${indexSlot.Equipment} at source location")
               }
               else {
                 destinationCollisionTest match {
@@ -5056,10 +5060,10 @@ class WorldSessionActor extends Actor
                 case Some(util : Utility.InternalTelepad) =>
                   UseRouterTelepadSystem(router = vehicle, internalTelepad = util, remoteTelepad = obj, src = obj, dest = util)
                 case _ =>
-                  log.error(s"telepad@${object_guid.guid} is not linked to a router - ${vehicle.Definition.Name}@${obj.Router.get.guid}")
+                  log.error(s"telepad@${object_guid.guid} is not linked to a router - ${vehicle.Definition.Name}, ${obj.Router}")
               }
             case Some(o) =>
-              log.error(s"telepad@${object_guid.guid} is linked to wrong kind of object - ${o.Definition.Name}@${obj.Router.get.guid}")
+              log.error(s"telepad@${object_guid.guid} is linked to wrong kind of object - ${o.Definition.Name}, ${obj.Router}")
             case None => ;
           }
 
@@ -6642,7 +6646,11 @@ class WorldSessionActor extends Actor
     */
   private def ModifyAmmunitionInVehicle(obj : Vehicle)(box : AmmoBox, reloadValue : Int) : Unit = {
     val capacity = ModifyAmmunition(obj)(box, reloadValue)
-    continent.VehicleEvents ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.InventoryState(player.GUID, box, obj.GUID, obj.Find(box).get, box.Definition.Packet.DetailedConstructorData(box).get))
+    obj.Find(box) match {
+      case Some(index) =>
+        continent.VehicleEvents ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.InventoryState(player.GUID, box, obj.GUID, index, box.Definition.Packet.DetailedConstructorData(box).get))
+      case None => ;
+    }
   }
 
   /**
@@ -7170,14 +7178,14 @@ class WorldSessionActor extends Actor
           state match {
             case DriveState.Deployed =>
               // We only want this WSA (not other player's WSA) to manage timers
-              if(vehicle.Seat(0).get.Occupant.contains(player)){
+              if(vehicle.Seats(0).Occupant.contains(player)){
                 // Start ntu regeneration
                 // If vehicle sends UseItemMessage with silo as target NTU regeneration will be disabled and orb particles will be disabled
                 antChargingTick = context.system.scheduler.scheduleOnce(1000 milliseconds, self, NtuCharging(player, vehicle))
               }
             case DriveState.Undeploying =>
               // We only want this WSA (not other player's WSA) to manage timers
-              if(vehicle.Seat(0).get.Occupant.contains(player)){
+              if(vehicle.Seats(0).Occupant.contains(player)){
                 antChargingTick.cancel() // Stop charging NTU if charging
               }
 
@@ -7714,7 +7722,7 @@ class WorldSessionActor extends Actor
         val vdef = vehicle.Definition
         val vguid = vehicle.GUID
         if(seat == 0) {
-          val seat = vehicle.Seat(0).get
+          val seat = vehicle.Seats(0)
           seat.Occupant = None
           val vdata = vdef.Packet.ConstructorData(vehicle).get
           sendResponse(ObjectCreateMessage(vehicle.Definition.ObjectId, vguid, vdata))
@@ -8434,12 +8442,12 @@ class WorldSessionActor extends Actor
     * but will not possess a valid GUID for that zone until he spawns in it at least once,
     * this function is swapped with another after the first spawn in any given zone.
     * This function is restored upon transferring zones.
-    * @see `SetCurrentAvatar`<br>
-    *       `DontRedrawIcons`
+    * @see `DontRedrawIcons`
+    * @see `SetCurrentAvatar`
     * @param obj a `Deployable` object
     */
   def RedrawDeployableIcons(obj : PlanetSideGameObject with Deployable) : Unit = {
-    val deployInfo = DeployableInfo(obj.GUID, Deployable.Icon(obj.Definition.Item), obj.Position, obj.Owner.get)
+    val deployInfo = DeployableInfo(obj.GUID, Deployable.Icon(obj.Definition.Item), obj.Position, obj.Owner.getOrElse(PlanetSideGUID(0)))
     sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, deployInfo))
   }
 
@@ -8460,8 +8468,8 @@ class WorldSessionActor extends Actor
     * but will not possess a valid GUID for that zone until he spawns in it at least once,
     * this function swaps out with another after the first spawn in any given zone.
     * It stays swapped in until the player changes zones.
-    * @see `SetCurrentAvatar`<br>
-    *       `RedrawDeployableIcons`
+    * @see `RedrawDeployableIcons`
+    * @see `SetCurrentAvatar`
     * @param obj a `Deployable` object
     */
   def DontRedrawIcons(obj : PlanetSideGameObject with Deployable) : Unit = { }
@@ -8472,8 +8480,8 @@ class WorldSessionActor extends Actor
     * and each of these sub-modes have certification requirements that must be met before they can be used.
     * Additional effort is exerted to ensure that the requirements for the given mode and given sub-mode are satisfied.
     * If no satisfactory combination is achieved, the original state will be restored.
-    * @see `PerformConstructionItemAmmoChange`<br>
-    *       `FireModeSwitch.NextFireMode`
+    * @see `FireModeSwitch.NextFireMode`
+    * @see `PerformConstructionItemAmmoChange`
     * @param obj the `ConstructionItem` object
     * @param originalModeIndex the starting point fire mode index
     * @return the changed fire mode

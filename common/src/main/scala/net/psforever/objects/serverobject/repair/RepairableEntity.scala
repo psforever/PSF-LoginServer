@@ -2,7 +2,7 @@
 package net.psforever.objects.serverobject.repair
 
 import akka.actor.Actor.Receive
-import net.psforever.objects.{GlobalDefinitions, PlanetSideGameObject, Player, Tool}
+import net.psforever.objects.{GlobalDefinitions, Player, Tool}
 import net.psforever.objects.equipment.Ammo
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.packet.game.{InventoryStateMessage, RepairMessage}
@@ -17,25 +17,37 @@ trait RepairableEntity extends Repairable {
       if(CanPerformRepairs(obj, player, item)) {
         PerformRepairs(obj, player, item)
       }
-      else {
-        //TODO temp debug
-        val definition = obj.Definition
-        val rep = definition.Repairable
-        val health = obj.Health < definition.MaxHealth
-        val notDest = !obj.Destroyed
-        val repIf = definition.RepairIfDestroyed
-        val fact = obj.Faction == player.Faction || obj.Faction == PlanetSideEmpire.NEUTRAL
-        val ammoGood = item.AmmoType == Ammo.armor_canister && item.Magazine > 0
-        org.log4s.getLogger.warn(s"${obj.asInstanceOf[PlanetSideGameObject].Definition.Name} not repairable for reason: hp=$health, destroyed=$notDest, canrep=$rep | revive=$repIf, faction=$fact, ammo=$ammoGood")
-      }
   }
 
   protected def CanPerformRepairs(obj : Repairable.Target, player : Player, item : Tool) : Boolean = {
     val definition = obj.Definition
-    definition.Repairable && obj.Health < definition.MaxHealth && (definition.RepairIfDestroyed || !obj.Destroyed) &&
+    val o = definition.Repairable && obj.Health < definition.MaxHealth && (definition.RepairIfDestroyed || !obj.Destroyed) &&
       (obj.Faction == player.Faction || obj.Faction == PlanetSideEmpire.NEUTRAL) &&
       item.AmmoType == Ammo.armor_canister && item.Magazine > 0 &&
       Vector3.Distance(obj.Position, player.Position) < 5
+    if(o) {
+      o
+    }
+    else {
+      org.log4s.getLogger.info(
+        if(!definition.Repairable) {
+          "This is not repairable."
+        }
+        else if(obj.Health == definition.MaxHealth) {
+          "This does not need repairs."
+        }
+        else if(!definition.RepairIfDestroyed && obj.Destroyed) {
+          "This is destroyed and can not be repaired from such a state."
+        }
+        else if(Vector3.Distance(obj.Position, player.Position) >= 5) {
+          "This is too far away to be repaired."
+        }
+        else {
+          "Who knows why this doesn't need repairs?"
+        }
+      )
+      false
+    }
   }
 
   protected def PerformRepairs(obj : Repairable.Target, player : Player, item : Tool) : Unit = {

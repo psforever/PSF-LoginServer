@@ -6,14 +6,15 @@ import java.util.concurrent.TimeUnit
 import akka.actor.{ActorContext, ActorRef}
 import net.psforever.objects.{GlobalDefinitions, Player}
 import net.psforever.objects.definition.ObjectDefinition
+import net.psforever.objects.serverobject.generator.Generator
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.painbox.Painbox
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.terminals.CaptureTerminal
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game._
-import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
+import net.psforever.packet.game.{Additional1, Additional2, Additional3}
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, PlanetSideGeneratorState, Vector3}
 import scalax.collection.{Graph, GraphEdge}
 import services.Service
 import services.local.{LocalAction, LocalServiceMessage}
@@ -182,8 +183,13 @@ class Building(private val name: String,
       case _ =>
         (false, PlanetSideEmpire.NEUTRAL, 0L)
     }
-    //TODO if we have a generator, get the current repair state
-    val (generatorState, boostGeneratorPain) = (PlanetSideGeneratorState.Normal, false) // todo: poll pain field strength
+    //if we have no generator, assume the state is "Normal"
+    val (generatorState, boostGeneratorPain) = Amenities.find(x => x.isInstanceOf[Generator]) match {
+      case Some(obj : Generator) =>
+        (obj.Condition, false) // todo: poll pain field strength
+      case _ =>
+        (PlanetSideGeneratorState.Normal, false)
+    }
     //if we have spawn tubes, determine if any of them are active
     val (spawnTubesNormal, boostSpawnPain) : (Boolean, Boolean) = {
       val o = Amenities.collect({ case tube : SpawnTube if !tube.Destroyed => tube })
