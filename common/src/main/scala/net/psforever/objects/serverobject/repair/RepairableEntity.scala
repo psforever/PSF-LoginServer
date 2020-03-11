@@ -25,29 +25,17 @@ trait RepairableEntity extends Repairable {
       (obj.Faction == player.Faction || obj.Faction == PlanetSideEmpire.NEUTRAL) &&
       item.AmmoType == Ammo.armor_canister && item.Magazine > 0 &&
       Vector3.Distance(obj.Position, player.Position) < 5
-    if(o) {
-      o
-    }
-    else {
-      org.log4s.getLogger.info(
-        if(!definition.Repairable) {
-          "This is not repairable."
-        }
-        else if(obj.Health == definition.MaxHealth) {
-          "This does not need repairs."
-        }
-        else if(!definition.RepairIfDestroyed && obj.Destroyed) {
-          "This is destroyed and can not be repaired from such a state."
-        }
-        else if(Vector3.Distance(obj.Position, player.Position) >= 5) {
-          "This is too far away to be repaired."
-        }
-        else {
-          "Who knows why this doesn't need repairs?"
-        }
+    if(!o) {
+      import net.psforever.objects.definition.ObjectDefinition
+      org.log4s.getLogger.warn(
+        if(!definition.Repairable) s"The ${definition.asInstanceOf[ObjectDefinition].Name} object type is not repairable."
+        else if(obj.Health == obj.MaxHealth) "This entity does not require repairs."
+        else if(!obj.CanRepair) "There is some other reason this entity can not be repaired."
+        else if(Vector3.Distance(obj.Position, player.Position) > 5) s"This entity is too far away to repair - pos=${obj.Position}, dist=${Vector3.Distance(obj.Position, player.Position)}."
+        else "Who knows why this entity can not be repaired!"
       )
-      false
     }
+    o
   }
 
   protected def PerformRepairs(obj : Repairable.Target, player : Player, item : Tool) : Unit = {
@@ -58,18 +46,22 @@ trait RepairableEntity extends Repairable {
     val tguid = obj.GUID
     val originalHealth = obj.Health
     val health = originalHealth + 12 + RepairValue(item) + definition.RepairMod
-    if(!(player.isMoving || obj.isMoving)) { //only allow stationary repairs
-      obj.Health = health
+    val updatedHealth = if(!(player.isMoving || obj.isMoving)) { //only allow stationary repairs
+      val newHealth = obj.Health = health
       val zoneId = zone.Id
       val magazine = item.Discharge
       events ! AvatarServiceMessage(pname, AvatarAction.SendResponse(Service.defaultPlayerGUID, InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong)))
-      events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 0, health))
+      events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 0, newHealth))
       if(obj.Destroyed && health > definition.RepairRestoresAt) {
         Restoration(obj)
       }
+      newHealth
+    }
+    else {
+      originalHealth
     }
     //progress bar remains visible for all repair attempts
-    events ! AvatarServiceMessage(pname, AvatarAction.SendResponse(Service.defaultPlayerGUID, RepairMessage(tguid, health * 100 / definition.MaxHealth)))
+    events ! AvatarServiceMessage(pname, AvatarAction.SendResponse(Service.defaultPlayerGUID, RepairMessage(tguid, updatedHealth * 100 / definition.MaxHealth)))
   }
 
   override def RepairValue(item : Tool) : Int = item.FireMode.Modifiers.Damage4

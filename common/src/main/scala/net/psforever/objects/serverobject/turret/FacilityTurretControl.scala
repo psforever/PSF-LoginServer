@@ -4,7 +4,7 @@ package net.psforever.objects.serverobject.turret
 import akka.actor.Actor
 import net.psforever.objects.{GlobalDefinitions, Player}
 import net.psforever.objects.equipment.JammableMountedWeapons
-import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
+import net.psforever.objects.serverobject.mount.MountableBehavior
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.DamageableWeaponTurret
 import net.psforever.objects.serverobject.repair.Repairable.Target
@@ -26,6 +26,7 @@ import scala.concurrent.duration._
   */
 class FacilityTurretControl(turret : FacilityTurret) extends Actor
   with FactionAffinityBehavior.Check
+  with MountableBehavior.TurretMount
   with MountableBehavior.Dismount
   with DamageableWeaponTurret
   with RepairableWeaponTurret
@@ -42,6 +43,7 @@ class FacilityTurretControl(turret : FacilityTurret) extends Actor
 
   def receive : Receive = checkBehavior
     .orElse(jammableBehavior)
+    .orElse(mountBehavior)
     .orElse(dismountBehavior)
     .orElse(takesDamage)
     .orElse(canBeRepairedByNanoDispenser)
@@ -56,21 +58,6 @@ class FacilityTurretControl(turret : FacilityTurret) extends Actor
             case Some(player: Player) => turret.Zone.LocalEvents ! LocalServiceMessage(turret.Zone.Id, LocalAction.RechargeVehicleWeapon(player.GUID, turret.GUID, weapon.GUID))
             case _ => ;
           }
-        }
-
-      case Mountable.TryMount(user, seat_num) =>
-        turret.Seat(seat_num) match {
-          case Some(seat) =>
-            if((!turret.Definition.FactionLocked || user.Faction == turret.Faction) &&
-              (seat.Occupant = user).contains(user)) {
-              user.VehicleSeated = turret.GUID
-              sender ! Mountable.MountMessages(user, Mountable.CanMount(turret, seat_num))
-            }
-            else {
-              sender ! Mountable.MountMessages(user, Mountable.CanNotMount(turret, seat_num))
-            }
-          case None =>
-            sender ! Mountable.MountMessages(user, Mountable.CanNotMount(turret, seat_num))
         }
 
       case _ => ;

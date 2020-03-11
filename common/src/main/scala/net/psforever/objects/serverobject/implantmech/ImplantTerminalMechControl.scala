@@ -2,9 +2,9 @@
 package net.psforever.objects.serverobject.implantmech
 
 import akka.actor.Actor
-import net.psforever.objects.{GlobalDefinitions, SimpleItem}
-import net.psforever.objects.serverobject.CommonMessages
-import net.psforever.objects.serverobject.mount.MountableBehavior
+import net.psforever.objects.{GlobalDefinitions, Player, SimpleItem}
+import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
+import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.DamageableMountable
 import net.psforever.objects.serverobject.hackable.HackableBehavior
@@ -44,4 +44,18 @@ class ImplantTerminalMechControl(mech : ImplantTerminalMech) extends Actor
         }
       case _ => ;
     }
+
+  override protected def MountTest(obj : PlanetSideServerObject with Mountable, seatNumber : Int, player : Player) : Boolean = {
+    val zone = obj.Zone
+    zone.Map.TerminalToInterface.get(obj.GUID.guid) match {
+      case Some(interface_guid) =>
+        (zone.GUID(interface_guid) match {
+          case Some(interface) => !interface.Destroyed
+          case None => false
+        }) &&
+        super.MountTest(obj, seatNumber, player)
+      case None =>
+        false
+    }
+  }
 }

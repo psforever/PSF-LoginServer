@@ -59,7 +59,7 @@ object TurretDeployableDefinition {
 class TurretControl(turret : TurretDeployable) extends Actor
   with FactionAffinityBehavior.Check
   with JammableMountedWeapons //note: jammable status is reported as vehicle events, not local events
-  with MountableBehavior.Mount
+  with MountableBehavior.TurretMount
   with MountableBehavior.Dismount
   with DamageableWeaponTurret
   with RepairableWeaponTurret {
@@ -71,8 +71,8 @@ class TurretControl(turret : TurretDeployable) extends Actor
 
   def receive : Receive = checkBehavior
     .orElse(jammableBehavior)
+    .orElse(mountBehavior)
     .orElse(dismountBehavior)
-    .orElse(turretMountBehavior)
     .orElse(canBeRepairedByNanoDispenser)
     .orElse {
       case msg : Vitality.Damage =>

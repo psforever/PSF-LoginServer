@@ -4,7 +4,6 @@ package net.psforever.objects.serverobject.doors
 import net.psforever.objects.Player
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.packet.game.UseItemMessage
-import net.psforever.types.Vector3
 
 /**
   * A structure-owned server object that is a "door" that can open and can close.

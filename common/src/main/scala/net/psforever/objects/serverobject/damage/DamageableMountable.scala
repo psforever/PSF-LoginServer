@@ -7,7 +7,7 @@ import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.structures.Amenity
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 
-trait DamageableMountable extends DamageableAmenity {
+trait DamageableMountable extends DamageableEntity {
   def DamageableObject : Amenity with Mountable
 
   override protected def DamageAwareness(target : Damageable.Target, cause : ResolvedProjectile, amount : Int) : Unit = {

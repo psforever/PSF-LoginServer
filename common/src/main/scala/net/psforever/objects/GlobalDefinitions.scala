@@ -6331,7 +6331,7 @@ object GlobalDefinitions {
     implant_terminal_interface.Name = "implant_terminal_interface"
     implant_terminal_interface.Tab += 0 -> OrderTerminalDefinition.ImplantPage(ImplantTerminalDefinition.implants)
     implant_terminal_interface.MaxHealth = 500
-    implant_terminal_interface.Damageable = true //TODO true
+    implant_terminal_interface.Damageable = true
     implant_terminal_interface.Repairable = true
     implant_terminal_interface.RepairIfDestroyed = true
 
