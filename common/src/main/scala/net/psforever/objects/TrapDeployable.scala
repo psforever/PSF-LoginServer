@@ -7,10 +7,9 @@ import net.psforever.objects.ce.{ComplexDeployable, Deployable, DeployedItem}
 import net.psforever.objects.definition.converter.TRAPConverter
 import net.psforever.objects.definition.{ComplexDeployableDefinition, SimpleDeployableDefinition}
 import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity}
 import net.psforever.objects.serverobject.repair.RepairableEntity
-import net.psforever.objects.vital.{StandardResolutions, Vitality}
-import net.psforever.types.PlanetSideGUID
-import services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.objects.vital.StandardResolutions
 
 class TrapDeployable(cdef : TrapDeployableDefinition) extends ComplexDeployable(cdef)
 
@@ -34,45 +33,19 @@ object TrapDeployableDefinition {
 }
 
 class TrapDeployableControl(trap : TrapDeployable) extends Actor
+  with DamageableEntity
   with RepairableEntity {
+  def DamageableObject = trap
   def RepairableObject = trap
 
-  def receive : Receive = canBeRepairedByNanoDispenser
+  def receive : Receive = takesDamage
+    .orElse(canBeRepairedByNanoDispenser)
     .orElse {
-      case Vitality.Damage(damage_func) =>
-        val originalHealth = trap.Health
-        if(originalHealth > 0) {
-          val cause = damage_func(trap)
-          TrapDeployableControl.HandleDamageResolution(trap, cause, originalHealth - trap.Health)
-        }
-
       case _ =>
     }
-}
 
-object TrapDeployableControl {
-  def HandleDamageResolution(target : TrapDeployable, cause : ResolvedProjectile, damage : Int) : Unit = {
-    val zone = target.Zone
-    val playerGUID = zone.LivePlayers.find { p => cause.projectile.owner.Name.equals(p.Name) } match {
-      case Some(player) => player.GUID
-      case _ => PlanetSideGUID(0)
-    }
-    if(target.Health == 0) {
-      HandleDestructionAwareness(target, playerGUID, cause)
-    }
-    zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttribute(target.GUID, 0, target.Health))
-  }
-
-  /**
-    * na
-    * @param target na
-    * @param attribution na
-    * @param lastShot na
-    */
-  def HandleDestructionAwareness(target : TrapDeployable, attribution : PlanetSideGUID, lastShot : ResolvedProjectile) : Unit = {
-    target.Destroyed = true
-    val zone = target.Zone
-    Deployables.AnnounceDestroyDeployable(target, None)
-    zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.Destroy(target.GUID, attribution, attribution, target.Position))
+  override protected def DestructionAwareness(target : Damageable.Target, cause : ResolvedProjectile) : Unit = {
+    super.DestructionAwareness(target, cause)
+    Deployables.AnnounceDestroyDeployable(trap, None)
   }
 }

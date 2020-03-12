@@ -2,18 +2,20 @@
 package net.psforever.objects
 
 import akka.actor.{Actor, ActorContext, Props}
+import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.ce.{ComplexDeployable, Deployable, DeployedItem}
 import net.psforever.objects.definition.{ComplexDeployableDefinition, SimpleDeployableDefinition}
 import net.psforever.objects.definition.converter.SmallTurretConverter
 import net.psforever.objects.equipment.{JammableMountedWeapons, JammableUnit}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
+import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.DamageableWeaponTurret
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.mount.MountableBehavior
 import net.psforever.objects.serverobject.repair.RepairableWeaponTurret
 import net.psforever.objects.serverobject.turret.{TurretDefinition, WeaponTurret}
-import net.psforever.objects.vital.{StandardResolutions, StandardVehicleDamage, StandardVehicleResistance, Vitality}
+import net.psforever.objects.vital.{StandardResolutions, StandardVehicleDamage, StandardVehicleResistance}
 
 class TurretDeployable(tdef : TurretDeployableDefinition) extends ComplexDeployable(tdef)
   with WeaponTurret
@@ -73,14 +75,14 @@ class TurretControl(turret : TurretDeployable) extends Actor
     .orElse(jammableBehavior)
     .orElse(mountBehavior)
     .orElse(dismountBehavior)
+    .orElse(takesDamage)
     .orElse(canBeRepairedByNanoDispenser)
     .orElse {
-      case msg : Vitality.Damage =>
-        val destroyedBefore = turret.Destroyed
-        takesDamage.apply(msg)
-        if(turret.Destroyed != destroyedBefore) {
-          Deployables.AnnounceDestroyDeployable(turret, None)
-        }
       case _ => ;
     }
+
+  override protected def DestructionAwareness(target : Target, cause : ResolvedProjectile) : Unit = {
+    super.DestructionAwareness(target, cause)
+    Deployables.AnnounceDestroyDeployable(turret, None)
+  }
 }

@@ -86,7 +86,7 @@ object DamageableVehicle {
     })
     //shields
     val zone = target.Zone
-    zone.VehicleEvents ! VehicleServiceMessage(s"${target.Actor}", VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 68, 0))
+    zone.VehicleEvents ! VehicleServiceMessage(s"${target.Actor}", VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 68, target.Shields))
   }
 
   /**

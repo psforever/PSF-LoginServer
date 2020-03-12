@@ -5,7 +5,6 @@ import akka.actor.ActorRef
 
 import scala.concurrent.duration._
 import net.psforever.objects.ce.{Deployable, DeployedItem}
-import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.vehicles.{Utility, UtilityType}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{DeployableInfo, DeploymentAction}
@@ -61,7 +60,7 @@ object Deployables {
     * @param time length of time that the deployable is allowed to exist in the game world;
     *             `None` indicates the normal un-owned existence time (180 seconds)
     */
-  def AnnounceDestroyDeployable(target : PlanetSideServerObject with Deployable, time : Option[FiniteDuration]) : Unit = {
+  def AnnounceDestroyDeployable(target : PlanetSideGameObject with Deployable, time : Option[FiniteDuration]) : Unit = {
     val zone = target.Zone
     target.OwnerName match {
       case Some(owner) =>

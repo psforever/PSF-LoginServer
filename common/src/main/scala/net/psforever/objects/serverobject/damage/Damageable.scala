@@ -13,6 +13,8 @@ trait Damageable {
 
   def takesDamage : Receive
 
+  protected def DamageAwareness(target : Damageable.Target, cause : ResolvedProjectile, amount : Int) : Unit
+
   protected def DestructionAwareness(target : Damageable.Target, cause : ResolvedProjectile) : Unit = {
     target.Destroyed = true
   }

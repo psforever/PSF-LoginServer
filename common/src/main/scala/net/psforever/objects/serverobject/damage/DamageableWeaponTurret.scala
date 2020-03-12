@@ -13,6 +13,10 @@ import services.vehicle.VehicleServiceMessage
 trait DamageableWeaponTurret extends DamageableEntity {
   def DamageableObject : Damageable.Target with WeaponTurret
 
+  override def WillAffectTarget(damage : Int, cause : ResolvedProjectile) : Boolean = {
+    super.WillAffectTarget(damage, cause) || cause.projectile.profile.JammerProjectile
+  }
+
   override protected def DamageAwareness(target : Damageable.Target, cause : ResolvedProjectile, amount : Int) : Unit = {
     super.DamageAwareness(target, cause, amount)
     val obj = DamageableObject

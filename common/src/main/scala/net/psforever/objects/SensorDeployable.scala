@@ -8,13 +8,12 @@ import net.psforever.objects.definition.converter.SmallDeployableConverter
 import net.psforever.objects.definition.{ComplexDeployableDefinition, SimpleDeployableDefinition}
 import net.psforever.objects.equipment.{JammableBehavior, JammableUnit}
 import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity}
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.repair.RepairableEntity
-import net.psforever.objects.vital.{StandardResolutions, Vitality}
-import net.psforever.objects.zones.Zone
+import net.psforever.objects.vital.StandardResolutions
 import net.psforever.types.PlanetSideGUID
 import services.Service
-import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.local.{LocalAction, LocalServiceMessage}
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
 
@@ -45,21 +44,33 @@ object SensorDeployableDefinition {
 
 class SensorDeployableControl(sensor : SensorDeployable) extends Actor
   with JammableBehavior
+  with DamageableEntity
   with RepairableEntity {
   def JammableObject = sensor
+  def DamageableObject = sensor
   def RepairableObject = sensor
 
   def receive : Receive = jammableBehavior
+    .orElse(takesDamage)
     .orElse(canBeRepairedByNanoDispenser)
     .orElse {
-      case Vitality.Damage(damage_func) =>
-        if(sensor.CanDamage) {
-          val originalHealth = sensor.Health
-          val cause = damage_func(sensor)
-          SensorDeployableControl.HandleDamageResolution(sensor, cause, originalHealth - sensor.Health)
-        }
+      case _ => ;
+  }
 
-    case _ => ;
+  override protected def DamageLog(msg : String) : Unit = { }
+
+  override protected def WillAffectTarget(damage : Int, cause : ResolvedProjectile) : Boolean = {
+    super.WillAffectTarget(damage, cause) || cause.projectile.profile.JammerProjectile
+  }
+
+  override protected def DamageAwareness(target : Damageable.Target, cause : ResolvedProjectile, amount : Int) : Unit = {
+    super.DamageAwareness(target, cause, amount)
+    SensorDeployableControl.DamageAwareness(target, PlanetSideGUID(0), cause)
+  }
+
+  override protected def DestructionAwareness(target : Damageable.Target, cause : ResolvedProjectile) : Unit = {
+    super.DestructionAwareness(target, cause)
+    SensorDeployableControl.DestructionAwareness(sensor, PlanetSideGUID(0))
   }
 
   override def StartJammeredSound(target : Any, dur : Int) : Unit = target match {
@@ -71,7 +82,8 @@ class SensorDeployableControl(sensor : SensorDeployable) extends Actor
 
   override def StartJammeredStatus(target : Any, dur : Int) : Unit = target match {
     case obj : PlanetSideServerObject with JammableUnit if !obj.Jammed =>
-      sensor.Zone.LocalEvents ! LocalServiceMessage(sensor.Zone.Id, LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", obj.GUID, false, 1000))
+      val zone = obj.Zone
+      zone.LocalEvents ! LocalServiceMessage(zone.Id, LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", obj.GUID, false, 1000))
       super.StartJammeredStatus(obj, dur)
     case _ => ;
   }
@@ -79,7 +91,8 @@ class SensorDeployableControl(sensor : SensorDeployable) extends Actor
   override def CancelJammeredSound(target : Any) : Unit = {
     target match {
       case obj : PlanetSideServerObject if jammedSound =>
-        obj.Zone.VehicleEvents ! VehicleServiceMessage(obj.Zone.Id, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, obj.GUID, 54, 0))
+        val zone = obj.Zone
+        zone.VehicleEvents ! VehicleServiceMessage(zone.Id, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, obj.GUID, 54, 0))
       case _ => ;
     }
     super.CancelJammeredSound(target)
@@ -96,41 +109,28 @@ class SensorDeployableControl(sensor : SensorDeployable) extends Actor
 }
 
 object SensorDeployableControl {
-  def HandleDamageResolution(target : SensorDeployable, cause : ResolvedProjectile, damage : Int) : Unit = {
-    val zone = target.Zone
-    val targetGUID = target.GUID
-    val playerGUID = zone.LivePlayers.find { p => cause.projectile.owner.Name.equals(p.Name) } match {
-      case Some(player) => player.GUID
-      case _ => PlanetSideGUID(0)
+  /**
+    * na
+    * @param target na
+    * @param attribution na
+    * @param cause na
+    */
+  def DamageAwareness(target : Damageable.Target, attribution : PlanetSideGUID, cause : ResolvedProjectile) : Unit = {
+    if(cause.projectile.profile.JammerProjectile) {
+      target.Actor ! JammableUnit.Jammered(cause)
     }
-    if(target.Health > 0) {
-      //activity on map
-      if(damage > 0) {
-        zone.Activity ! Zone.HotSpot.Activity(cause.target, cause.projectile.owner, cause.hit_pos)
-      }
-      if(cause.projectile.profile.JammerProjectile) {
-        target.Actor ! JammableUnit.Jammered(cause)
-      }
-    }
-    else {
-      HandleDestructionAwareness(target, playerGUID, cause)
-    }
-    zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttribute(targetGUID, 0, target.Health))
   }
 
   /**
     * na
     * @param target na
     * @param attribution na
-    * @param lastShot na
     */
-  def HandleDestructionAwareness(target : SensorDeployable, attribution : PlanetSideGUID, lastShot : ResolvedProjectile) : Unit = {
+  def DestructionAwareness(target : Damageable.Target with Deployable, attribution : PlanetSideGUID) : Unit = {
     target.Actor ! JammableUnit.ClearJammeredSound()
     target.Actor ! JammableUnit.ClearJammeredStatus()
-    target.Destroyed = true
-    val zone = target.Zone
     Deployables.AnnounceDestroyDeployable(target, None)
+    val zone = target.Zone
     zone.LocalEvents ! LocalServiceMessage(zone.Id, LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", target.GUID, false, 1000))
-    zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.Destroy(target.GUID, attribution, attribution, target.Position))
   }
 }

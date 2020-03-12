@@ -10,6 +10,12 @@ trait DamageableAmenity extends DamageableEntity {
 
   override protected def DestructionAwareness(target : Damageable.Target, cause : ResolvedProjectile) : Unit = {
     super.DestructionAwareness(target, cause)
+    DamageableAmenity.DestructionAwareness(target, cause)
+  }
+}
+
+object DamageableAmenity {
+  def DestructionAwareness(target : Damageable.Target, cause : ResolvedProjectile) : Unit = {
     val zone = target.Zone
     val zoneId = zone.Id
     val events = zone.AvatarEvents

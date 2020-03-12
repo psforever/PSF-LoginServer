@@ -29,9 +29,10 @@ trait RepairableEntity extends Repairable {
       import net.psforever.objects.definition.ObjectDefinition
       org.log4s.getLogger.warn(
         if(!definition.Repairable) s"The ${definition.asInstanceOf[ObjectDefinition].Name} object type is not repairable."
+        else if(obj.Destroyed && !definition.RepairIfDestroyed) s"The ${definition.asInstanceOf[ObjectDefinition].Name} object type can not be repaired if already destroyed."
         else if(obj.Health == obj.MaxHealth) "This entity does not require repairs."
-        else if(!obj.CanRepair) "There is some other reason this entity can not be repaired."
         else if(Vector3.Distance(obj.Position, player.Position) > 5) s"This entity is too far away to repair - pos=${obj.Position}, dist=${Vector3.Distance(obj.Position, player.Position)}."
+        else if(!obj.CanRepair) "There is some other reason this entity can not be repaired."
         else "Who knows why this entity can not be repaired!"
       )
     }

@@ -1267,7 +1267,7 @@ class WorldSessionActor extends Actor
         target.Destroyed = true
         val guid = target.GUID
         continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, guid))
-        AnnounceDestroyDeployable(target, Some(0 seconds))
+        Deployables.AnnounceDestroyDeployable(target, Some(0 seconds))
       }
 
     case Vitality.DamageResolution(target : PlanetSideGameObject, _) =>
@@ -8855,44 +8855,6 @@ class WorldSessionActor extends Actor
       )
     }
     StopBundlingPackets()
-  }
-
-  /**
-    * Distribute information that a deployable has been destroyed.
-    * The deployable may not have yet been eliminated from the game world (client or server),
-    * but its health is zero and it has entered the conditions where it is nearly irrelevant.<br>
-    * <br>
-    * The typical use case of this function involves destruction via weapon fire, attributed to a particular player.
-    * Contrast this to simply destroying a deployable by being the deployable's owner and using the map icon controls.
-    * This function eventually invokes the same routine
-    * but mainly goes into effect when the deployable has been destroyed
-    * and may still leave a physical component in the game world to be cleaned up later.
-    * That is the task `EliminateDeployable` performs.
-    * Additionally, since the player who destroyed the deployable isn't necessarily the owner,
-    * and the real owner will still be aware of the existence of the deployable,
-    * that player must be informed of the loss of the deployable directly.
-    * @see `DeployableRemover`
-    * @see `Vitality.DamageResolution`
-    * @see `LocalResponse.EliminateDeployable`
-    * @see `DeconstructDeployable`
-    * @param target the deployable that is destroyed
-    * @param time length of time that the deployable is allowed to exist in the game world;
-    *             `None` indicates the normal un-owned existence time (180 seconds)
-    */
-  def AnnounceDestroyDeployable(target : PlanetSideGameObject with Deployable, time : Option[FiniteDuration]) : Unit = {
-    target.OwnerName match {
-      case Some(owner) =>
-        target.OwnerName = None
-        continent.LocalEvents ! LocalServiceMessage(owner, LocalAction.AlertDestroyDeployable(PlanetSideGUID(0), target))
-      case None => ;
-    }
-    continent.LocalEvents ! LocalServiceMessage(s"${target.Faction}", LocalAction.DeployableMapIcon(
-      PlanetSideGUID(0),
-      DeploymentAction.Dismiss,
-      DeployableInfo(target.GUID, Deployable.Icon(target.Definition.Item), target.Position, PlanetSideGUID(0)))
-    )
-    continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(target), continent))
-    continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(target, continent, time))
   }
 
   /**
