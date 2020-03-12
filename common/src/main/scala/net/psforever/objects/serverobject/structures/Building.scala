@@ -313,6 +313,7 @@ object Building {
     obj
   }
 
+  final case class AmenityStateChange(obj : Amenity)
   final case class SendMapUpdate(all_clients: Boolean)
   final case class TriggerZoneMapUpdate(zone_num: Int)
 }

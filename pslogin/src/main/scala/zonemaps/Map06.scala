@@ -365,7 +365,7 @@ object Map06 { // Ceryshen
       LocalObject(180, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 20)
       LocalObject(222, Door.Constructor(Vector3(4012.339f, 4310.464f, 269.8218f)), owning_building_guid = 20)
       LocalObject(232, Terminal.Constructor(Vector3.Zero, gen_control), owning_building_guid = 20) //TODO placeholder
-      LocalObject(241, Generator.Constructor, owning_building_guid = 20)
+      LocalObject(241, Generator.Constructor(Vector3(3970.211f, 4304.297f, 248.04688f)), owning_building_guid = 20)
       LocalObject(370, Door.Constructor(Vector3(3884.196f, 4196.501f, 268.0948f)), owning_building_guid = 20)
       LocalObject(371, Door.Constructor(Vector3(3884.196f, 4214.693f, 276.0588f)), owning_building_guid = 20)
       LocalObject(372, Door.Constructor(Vector3(3901.307f, 4172.197f, 276.0588f)), owning_building_guid = 20)

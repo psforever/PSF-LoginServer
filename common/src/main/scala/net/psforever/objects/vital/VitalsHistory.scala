@@ -55,8 +55,20 @@ trait VitalsHistory {
     * @param action the fully-informed entry
     * @return the list of previous changes to this object's vital statistics
     */
-  def History(action : VitalsActivity) : List[VitalsActivity] = {
-    vitalsHistory = action +: vitalsHistory
+  def History(action : VitalsActivity) : List[VitalsActivity] = History(Some(action))
+
+  /**
+    * A `VitalsActivity` event must be recorded.
+    * Add new entry to the front of the list (for recent activity).
+    * @param action the fully-informed entry
+    * @return the list of previous changes to this object's vital statistics
+    */
+  def History(action : Option[VitalsActivity]) : List[VitalsActivity] = {
+    action match {
+      case Some(act) =>
+        vitalsHistory = act +: vitalsHistory
+      case None => ;
+    }
     vitalsHistory
   }
 

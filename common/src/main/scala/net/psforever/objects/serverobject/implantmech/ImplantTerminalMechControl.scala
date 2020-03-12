@@ -8,7 +8,7 @@ import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.DamageableMountable
 import net.psforever.objects.serverobject.hackable.HackableBehavior
-import net.psforever.objects.serverobject.repair.RepairableAmenity
+import net.psforever.objects.serverobject.repair.RepairableEntity
 import net.psforever.objects.serverobject.structures.Building
 
 /**
@@ -21,7 +21,7 @@ class ImplantTerminalMechControl(mech : ImplantTerminalMech) extends Actor
   with MountableBehavior.Dismount
   with HackableBehavior.GenericHackable
   with DamageableMountable
-  with RepairableAmenity {
+  with RepairableEntity {
   def MountableObject = mech
   def HackableObject = mech
   def FactionObject = mech

@@ -303,13 +303,12 @@ class ProjectileTest extends Specification {
     val fury_dm = fury.DamageModel
 
     "construct" in {
-      val obj = ResolvedProjectile(ProjectileResolution.Hit, projectile, PlayerSource(player2), fury_dm, Vector3(1.2f, 3.4f, 5.6f), 123456L)
+      val obj = ResolvedProjectile(ProjectileResolution.Hit, projectile, PlayerSource(player2), fury_dm, Vector3(1.2f, 3.4f, 5.6f))
       obj.resolution mustEqual ProjectileResolution.Hit
       obj.projectile mustEqual projectile
       obj.target mustEqual p2_source
       obj.damage_model mustEqual fury.DamageModel
       obj.hit_pos mustEqual Vector3(1.2f, 3.4f, 5.6f)
-      obj.hit_time mustEqual 123456L
     }
   }
 }

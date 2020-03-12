@@ -35,6 +35,7 @@ import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObjec
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.doors.Door
+import net.psforever.objects.serverobject.generator.Generator
 import net.psforever.objects.serverobject.hackable.{Hackable, GenericHackables}
 import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.{IFFLock, IFFLocks}
@@ -4920,6 +4921,13 @@ class WorldSessionActor extends Actor
               accessedContainer = Some(container)
               sendResponse(UseItemMessage(avatar_guid, item_used_guid, container.GUID, unk2, unk3, unk4, unk5, unk6, unk7, unk8, 456))
             case _ => ;
+          }
+
+        case Some(gen : Generator) =>
+          equipment match {
+            case Some(item) =>
+              gen.Actor ! CommonMessages.Use(player, Some(item))
+            case None => ;
           }
 
         case Some(mech : ImplantTerminalMech) =>

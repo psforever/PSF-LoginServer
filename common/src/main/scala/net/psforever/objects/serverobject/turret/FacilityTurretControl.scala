@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.turret
 
 import akka.actor.Actor
+import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.{GlobalDefinitions, Player}
 import net.psforever.objects.equipment.JammableMountedWeapons
 import net.psforever.objects.serverobject.mount.MountableBehavior
@@ -63,8 +64,8 @@ class FacilityTurretControl(turret : FacilityTurret) extends Actor
       case _ => ;
     }
 
-  override protected def Destruction(target : Target) : Unit = {
-    super.Destruction(target)
+  override protected def DestructionAwareness(target : Target, cause : ResolvedProjectile) : Unit = {
+    super.DestructionAwareness(target, cause)
     val zone = target.Zone
     val zoneId = zone.Id
     val events = zone.AvatarEvents

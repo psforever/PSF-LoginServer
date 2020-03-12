@@ -201,6 +201,7 @@ object ResolutionCalculations {
         turret.History(data)
       case amenity : Amenity if amenity.Health > 0 =>
         amenity.Health -= damage
+        amenity.History(data)
       case _ => ;
     }
     data

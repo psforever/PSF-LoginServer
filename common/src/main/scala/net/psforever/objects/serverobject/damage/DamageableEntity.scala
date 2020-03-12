@@ -93,8 +93,8 @@ trait DamageableEntity extends Damageable {
     * @param target na
     * @param cause na
     */
-  protected def DestructionAwareness(target : Damageable.Target, cause : ResolvedProjectile) : Unit = {
-    Destruction(target)
+  override protected def DestructionAwareness(target : Damageable.Target, cause : ResolvedProjectile) : Unit = {
+    super.DestructionAwareness(target, cause)
     val playerGUID = target.Zone.LivePlayers.find { p => cause.projectile.owner.Name.equals(p.Name) } match {
       case Some(player) => player.GUID
       case _ => PlanetSideGUID(0)

@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.damage
 
 import akka.actor.Actor.Receive
+import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.vital.Vitality
@@ -12,7 +13,7 @@ trait Damageable {
 
   def takesDamage : Receive
 
-  protected def Destruction(target : Damageable.Target) : Unit = {
+  protected def DestructionAwareness(target : Damageable.Target, cause : ResolvedProjectile) : Unit = {
     target.Destroyed = true
   }
 }

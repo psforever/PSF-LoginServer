@@ -2,12 +2,12 @@
 package net.psforever.objects.serverobject.tube
 
 import akka.actor.Actor
+import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
+import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.DamageableAmenity
 import net.psforever.objects.serverobject.repair.{Repairable, RepairableAmenity}
 import net.psforever.objects.serverobject.structures.Building
-import net.psforever.objects.serverobject.structures.Building.SendMapUpdate
-import net.psforever.objects.vital.Vitality
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `SpawnTube`.
@@ -22,29 +22,24 @@ class SpawnTubeControl(tube : SpawnTube) extends Actor
   def RepairableObject = tube
 
   def receive : Receive = checkBehavior
+      .orElse(takesDamage)
     .orElse(canBeRepairedByNanoDispenser)
     .orElse {
-      case msg : Vitality.Damage =>
-        val destroyedBefore = tube.Destroyed
-        takesDamage.apply(msg)
-        if(tube.Destroyed != destroyedBefore) {
-          tube.Owner.Actor ! SendMapUpdate(true)
-        }
-
-//      case msg : CommonMessages.Use =>
-//        val destroyedBefore = tube.Destroyed
-//        canBeRepairedByNanoDispenser.apply(msg)
-//        if(tube.Destroyed != destroyedBefore) {
-//          tube.Owner.Actor ! SendMapUpdate(true)
-//        }
-
       case _ => ;
     }
+
+  override protected def DestructionAwareness(target : Target, cause : ResolvedProjectile) : Unit = {
+    super.DestructionAwareness(target, cause)
+    tube.Owner match {
+      case b : Building => b.Actor ! Building.AmenityStateChange(tube)
+      case _ => ;
+    }
+  }
 
   override def Restoration(obj : Repairable.Target) : Unit = {
     super.Restoration(obj)
     tube.Owner match {
-      case _ : Building => tube.Owner.Actor ! SendMapUpdate(true)
+      case b : Building => b.Actor ! Building.AmenityStateChange(tube)
       case _ => ;
     }
   }

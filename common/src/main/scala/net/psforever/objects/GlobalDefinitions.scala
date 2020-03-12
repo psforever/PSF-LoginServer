@@ -6324,7 +6324,7 @@ object GlobalDefinitions {
 
     implant_terminal_mech.Name = "implant_terminal_mech"
     implant_terminal_mech.MaxHealth = 1000
-    implant_terminal_mech.Damageable = true //TODO true
+    implant_terminal_mech.Damageable = true
     implant_terminal_mech.Repairable = true
     implant_terminal_mech.RepairIfDestroyed = true
 
@@ -6634,7 +6634,7 @@ object GlobalDefinitions {
 
     generator.Name = "generator"
     generator.MaxHealth = 4000
-    generator.Damageable = false //TODO true
+    generator.Damageable = true
     generator.Repairable = true
     generator.RepairIfDestroyed = true
     generator.Subtract.Damage1 = 9

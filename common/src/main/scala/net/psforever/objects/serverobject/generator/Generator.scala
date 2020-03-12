@@ -33,15 +33,6 @@ object Generator {
   }
 
   import akka.actor.ActorContext
-  def Constructor(id : Int, context : ActorContext) : Generator = {
-    import akka.actor.Props
-    import net.psforever.objects.GlobalDefinitions
-
-    val obj = Generator(GlobalDefinitions.generator)
-    obj.Actor = context.actorOf(Props(classOf[GeneratorControl], obj), s"${obj.Definition.Name}_$id")
-    obj
-  }
-
   import net.psforever.types.Vector3
   def Constructor(pos : Vector3)(id : Int, context : ActorContext) : Generator = {
     import akka.actor.Props
