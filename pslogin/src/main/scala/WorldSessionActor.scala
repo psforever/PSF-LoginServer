@@ -6,7 +6,10 @@ import com.github.mauricio.async.db.general.ArrayRowData
 import com.github.mauricio.async.db.{Connection, QueryResult}
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+
+import net.psforever.objects.vital.VitalityDefinition
 import org.log4s.{Logger, MDC}
+
 import scala.annotation.{switch, tailrec}
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.LongMap
@@ -1152,7 +1155,7 @@ class WorldSessionActor extends Actor
       StartBundlingPackets()
       sendResponse(GenericObjectActionMessage(guid, 21)) //reset build cooldown
       sendResponse(ObjectDeployedMessage.Failure(definition.Name))
-      log.warn(s"FinalizeDeployable: deployable ${definition.asInstanceOf[SimpleDeployableDefinition].Item}@$guid not handled by specific case")
+      log.warn(s"FinalizeDeployable: deployable ${definition.asInstanceOf[BaseDeployableDefinition].Item}@$guid not handled by specific case")
       log.warn(s"FinalizeDeployable: deployable will be cleaned up, but may not get unregistered properly")
       TryDropConstructionTool(tool, index, obj.Position)
       obj.Position = Vector3.Zero
@@ -1934,44 +1937,11 @@ class WorldSessionActor extends Actor
         sendResponse(HackMessage(0, target_guid, guid, 0, unk1, HackState.HackCleared, unk2))
 
       case LocalResponse.HackObject(target_guid, unk1, unk2) =>
-          sendResponse(HackMessage(0, target_guid, guid, 100, unk1, HackState.Hacked, unk2))
+        HackObject(target_guid, unk1, unk2)
+
       case LocalResponse.HackCaptureTerminal(target_guid, unk1, unk2, isResecured) =>
-        var value = 0L
+        HackCaptureTerminal(target_guid, unk1, unk2, isResecured)
 
-        if (isResecured) {
-          value = 17039360L
-          sendResponse(PlanetsideAttributeMessage(target_guid, 20, value))
-        }
-        else {
-          continent.GUID(target_guid) match {
-            case Some(capture_terminal: Amenity with Hackable) =>
-              capture_terminal.HackedBy match {
-                case Some(Hackable.HackInfo(_, _, hfaction, _, start, length)) =>
-                  val hack_time_remaining_ms = TimeUnit.MILLISECONDS.convert(math.max(0, start + length - System.nanoTime), TimeUnit.NANOSECONDS)
-                  val deciseconds_remaining = (hack_time_remaining_ms / 100)
-
-                  // See PlanetSideAttributeMessage #20 documentation for an explanation of how the timer is calculated
-                  val start_num = hfaction match {
-                    case PlanetSideEmpire.TR => 65536L
-                    case PlanetSideEmpire.NC => 131072L
-                    case PlanetSideEmpire.VS => 196608L
-                  }
-                  value = start_num + deciseconds_remaining
-
-                  sendResponse(PlanetsideAttributeMessage(target_guid, 20, value))
-
-                  continent.GUID(player.VehicleSeated) match {
-                    case Some(mountable: Amenity with Mountable) =>
-                      if(mountable.Owner.GUID == capture_terminal.Owner.GUID) {
-                        continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(player.GUID, mountable.Seats.head._1, true, mountable.GUID))
-                      }
-                    case _ => ;
-                  }
-                case _ => log.warn("LocalResponse.HackCaptureTerminal: HackedBy not defined")
-              }
-            case _ => log.warn(s"LocalResponse.HackCaptureTerminal: Couldn't find capture terminal with GUID ${target_guid} in zone ${continent.Id}")
-          }
-        }
       case LocalResponse.ObjectDelete(object_guid, unk) =>
         if(tplayer_guid != guid) {
           sendResponse(ObjectDeleteMessage(object_guid, unk))
@@ -7386,42 +7356,100 @@ class WorldSessionActor extends Actor
 
       building.Amenities.foreach(amenity => {
         val amenityId = amenity.GUID
-        sendResponse(PlanetsideAttributeMessage(amenityId, 50, 0))
-        sendResponse(PlanetsideAttributeMessage(amenityId, 51, 0))
-
-        amenity.Definition match {
-          case GlobalDefinitions.resource_silo =>
-            // Synchronise warning light & silo capacity
-            val silo = amenity.asInstanceOf[ResourceSilo]
+        val configValue = amenity match {
+          case _ : ImplantTerminalMech => 0
+          case _ : Generator => 0
+          case _ if amenity.Definition.Damageable => boolToInt(amenity.Destroyed)
+          case _ => 0
+        }
+        //sync model access state
+        sendResponse(PlanetsideAttributeMessage(amenityId, 50, configValue))
+        sendResponse(PlanetsideAttributeMessage(amenityId, 51, configValue))
+        //sync damageable
+        if(amenity.Definition.Damageable && amenity.Health < amenity.MaxHealth) {
+            sendResponse(PlanetsideAttributeMessage(amenityId, 0, amenity.Health))
+        }
+        //sync special object type cases
+        amenity match {
+          case silo : ResourceSilo =>
+            //silo capacity
             sendResponse(PlanetsideAttributeMessage(amenityId, 45, silo.CapacitorDisplay))
+            //warning lights
             sendResponse(PlanetsideAttributeMessage(silo.Owner.GUID, 47, if(silo.LowNtuWarningOn) 1 else 0))
-
             if(silo.ChargeLevel == 0) {
               sendResponse(PlanetsideAttributeMessage(silo.Owner.GUID, 48, 1))
             }
+          case door : Door if door.isOpen =>
+            sendResponse(GenericObjectStateMsg(amenityId, 16))
+
           case _ => ;
         }
-
-        // Synchronise hack states to clients joining the zone.
-        // We'll have to fake LocalServiceResponse messages to self, otherwise it means duplicating the same hack handling code twice
-        if(amenity.isInstanceOf[Hackable]) {
-          val hackable = amenity.asInstanceOf[Hackable]
-
-          if(hackable.HackedBy.isDefined) {
+        //sync hack state
+        amenity match {
+          case obj : Hackable if obj.HackedBy.nonEmpty =>
             amenity.Definition match {
               case GlobalDefinitions.capture_terminal =>
-                self ! LocalServiceResponse("", PlanetSideGUID(0), LocalResponse.HackCaptureTerminal(amenity.GUID, 0L, 0L, false))
+                HackCaptureTerminal(amenity.GUID, 0L, 0L, false)
               case _ =>
-                // Generic hackable object
-                self ! LocalServiceResponse("", PlanetSideGUID(0), LocalResponse.HackObject(amenity.GUID, 1114636288L, 8L))
+                HackObject(amenity.GUID, 1114636288L, 8L) //generic hackable object
             }
-          }
+          case _ => ;
         }
       })
-
-//      sendResponse(HackMessage(3, PlanetSideGUID(building.ModelId), PlanetSideGUID(0), 0, 3212836864L, HackState.HackCleared, 8))
       Thread.sleep(connectionState)
     })
+  }
+
+  /**
+    * na
+    * @param target_guid na
+    * @param unk1 na
+    * @param unk2 na
+    */
+  def HackObject(target_guid : PlanetSideGUID, unk1 : Long, unk2 : Long) : Unit = {
+    sendResponse(HackMessage(0, target_guid, PlanetSideGUID(0), 100, unk1, HackState.Hacked, unk2))
+  }
+
+  /**
+    * na
+    * @param target_guid na
+    * @param unk1 na
+    * @param unk2 na
+    * @param isResecured na
+    */
+  def HackCaptureTerminal(target_guid : PlanetSideGUID, unk1 : Long, unk2 : Long, isResecured : Boolean) : Unit = {
+    var value = 0L
+    if(isResecured) {
+      value = 17039360L
+      sendResponse(PlanetsideAttributeMessage(target_guid, 20, value))
+    }
+    else {
+      continent.GUID(target_guid) match {
+        case Some(capture_terminal : Amenity with Hackable) =>
+          capture_terminal.HackedBy match {
+            case Some(Hackable.HackInfo(_, _, hfaction, _, start, length)) =>
+              val hack_time_remaining_ms = TimeUnit.MILLISECONDS.convert(math.max(0, start + length - System.nanoTime), TimeUnit.NANOSECONDS)
+              val deciseconds_remaining = (hack_time_remaining_ms / 100)
+              //See PlanetSideAttributeMessage #20 documentation for an explanation of how the timer is calculated
+              val start_num = hfaction match {
+                case PlanetSideEmpire.TR => 65536L
+                case PlanetSideEmpire.NC => 131072L
+                case PlanetSideEmpire.VS => 196608L
+              }
+              value = start_num + deciseconds_remaining
+              sendResponse(PlanetsideAttributeMessage(target_guid, 20, value))
+              continent.GUID(player.VehicleSeated) match {
+                case Some(mountable : Amenity with Mountable) =>
+                  if(mountable.Owner.GUID == capture_terminal.Owner.GUID) {
+                    continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(player.GUID, mountable.Seats.head._1, true, mountable.GUID))
+                  }
+                case _ => ;
+              }
+            case _ => log.warn("HackCaptureTerminal: hack state monitor not defined")
+          }
+        case _ => log.warn(s"HackCaptureTerminal: couldn't find capture terminal with GUID ${target_guid} in zone ${continent.Id}")
+      }
+    }
   }
 
   /**

@@ -6,10 +6,11 @@ import net.psforever.objects.{GlobalDefinitions, Player, Tool}
 import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile, SourceEntry}
 import net.psforever.objects.equipment.{Ammo, JammableBehavior, JammableUnit}
 import net.psforever.objects.serverobject.CommonMessages
+import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.vital.{PlayerSuicide, Vitality}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
-import net.psforever.types.{ExoSuitType, PlanetSideGUID, Vector3}
+import net.psforever.types.{ExoSuitType, Vector3}
 import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 
@@ -20,90 +21,96 @@ import scala.concurrent.duration._
   * stub for future development
   */
 class PlayerControl(player : Player) extends Actor
-  with JammableBehavior {
+  with JammableBehavior
+  with Damageable {
   def JammableObject = player
+  def DamageableObject = player
 
   //private [this] val log = org.log4s.getLogger(player.Name)
   private [this] val damageLog = org.log4s.getLogger("DamageResolution")
 
-  def receive : Receive = jammableBehavior.orElse {
-    case Player.Die() =>
-      PlayerControl.HandleDestructionAwareness(player, player.GUID, None)
+  def receive : Receive = jammableBehavior
+    .orElse(takesDamage)
+    .orElse {
+      case Player.Die() =>
+        PlayerControl.DestructionAwareness(player, None)
 
-    case Vitality.Damage(resolution_function) =>
+      case CommonMessages.Use(user, Some(item : Tool)) if item.Definition == GlobalDefinitions.medicalapplicator && player.isAlive =>
+        //heal
+        val originalHealth = player.Health
+        if(player.MaxHealth > 0 && originalHealth < player.MaxHealth &&
+          user.Faction == player.Faction &&
+          item.Magazine > 0 &&
+          Vector3.Distance(user.Position, player.Position) < 5) {
+          val definition = player.Definition
+          val zone = player.Zone
+          val events = zone.AvatarEvents
+          val uname = user.Name
+          val guid = player.GUID
+          if(!(player.isMoving || user.isMoving)) { //only allow stationary healing
+            player.Health = originalHealth + 10
+            val magazine = item.Discharge
+            events ! AvatarServiceMessage(uname, AvatarAction.SendResponse(Service.defaultPlayerGUID, InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong)))
+            events ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttributeToAll(guid, 0, player.Health))
+          }
+          if(player != user) {
+            //progress bar remains visible for all repair attempts
+            events ! AvatarServiceMessage(uname, AvatarAction.SendResponse(Service.defaultPlayerGUID, RepairMessage(guid, player.Health * 100 / definition.MaxHealth)))
+          }
+        }
+
+      case CommonMessages.Use(user, Some(item : Tool)) if item.Definition == GlobalDefinitions.medicalapplicator && !player.isAlive =>
+        //revive
+        if(user != player && user.isAlive && !user.isMoving &&
+          !player.isBackpack &&
+          item.Magazine >= 25) {
+          sender ! CommonMessages.Use(player, Some((item, user)))
+        }
+
+      case CommonMessages.Use(user, Some(item : Tool)) if item.Definition == GlobalDefinitions.bank =>
+        val originalArmor = player.Armor
+        if(player.MaxArmor > 0 && originalArmor < player.MaxArmor &&
+          user.Faction == player.Faction &&
+          item.AmmoType == Ammo.armor_canister && item.Magazine > 0 &&
+          Vector3.Distance(user.Position, player.Position) < 5) {
+          val definition = player.Definition
+          val zone = player.Zone
+          val events = zone.AvatarEvents
+          val uname = user.Name
+          val guid = player.GUID
+          if(!(player.isMoving || user.isMoving)) { //only allow stationary repairs
+            player.Armor = originalArmor + 12 + RepairValue(item) + definition.RepairMod
+            val magazine = item.Discharge
+            events ! AvatarServiceMessage(uname, AvatarAction.SendResponse(Service.defaultPlayerGUID, InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong)))
+            events ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttributeToAll(guid, 4, player.Armor))
+          }
+          if(player != user) {
+            //progress bar remains visible for all repair attempts
+            events ! AvatarServiceMessage(uname, AvatarAction.SendResponse(Service.defaultPlayerGUID, RepairMessage(guid, player.Armor * 100 / player.MaxArmor)))
+          }
+        }
+
+      case _ => ;
+    }
+
+  protected def TakesDamage : Receive = {
+    case Vitality.Damage(applyDamageTo) =>
       if(player.isAlive) {
         val originalHealth = player.Health
         val originalArmor = player.Armor
         val originalCapacitor = player.Capacitor.toInt
-        val cause = resolution_function(player)
+        val cause = applyDamageTo(player)
         val health = player.Health
         val armor = player.Armor
         val capacitor = player.Capacitor.toInt
         val damageToHealth = originalHealth - health
         val damageToArmor = originalArmor - armor
         val damageToCapacitor = originalCapacitor - capacitor
-        PlayerControl.HandleDamageResolution(player, cause, damageToHealth, damageToArmor, damageToCapacitor)
-        if(damageToHealth != 0 || damageToArmor != 0 || damageToCapacitor != 0) {
+        PlayerControl.HandleDamage(player, cause, damageToHealth, damageToArmor, damageToCapacitor)
+        if(damageToHealth > 0 || damageToArmor > 0 || damageToCapacitor > 0) {
           damageLog.info(s"${player.Name}-infantry: BEFORE=$originalHealth/$originalArmor/$originalCapacitor, AFTER=$health/$armor/$capacitor, CHANGE=$damageToHealth/$damageToArmor/$damageToCapacitor")
         }
       }
-
-    case CommonMessages.Use(user, Some(item : Tool)) if item.Definition == GlobalDefinitions.medicalapplicator && player.isAlive =>
-      //heal
-      val originalHealth = player.Health
-      if(player.MaxHealth > 0 && originalHealth < player.MaxHealth &&
-        user.Faction == player.Faction &&
-        item.Magazine > 0 &&
-        Vector3.Distance(user.Position, player.Position) < 5) {
-        val definition = player.Definition
-        val zone = player.Zone
-        val events = zone.AvatarEvents
-        val uname = user.Name
-        val guid = player.GUID
-        if(!(player.isMoving || user.isMoving)) { //only allow stationary healing
-          player.Health = originalHealth + 10
-          val magazine = item.Discharge
-          events ! AvatarServiceMessage(uname, AvatarAction.SendResponse(Service.defaultPlayerGUID, InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong)))
-          events ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttributeToAll(guid, 0, player.Health))
-        }
-        if(player != user) {
-          //progress bar remains visible for all repair attempts
-          events ! AvatarServiceMessage(uname, AvatarAction.SendResponse(Service.defaultPlayerGUID, RepairMessage(guid, player.Health * 100 / definition.MaxHealth)))
-        }
-      }
-
-    case CommonMessages.Use(user, Some(item : Tool)) if item.Definition == GlobalDefinitions.medicalapplicator && !player.isAlive =>
-      //revive
-      if(user != player && user.isAlive && !user.isMoving &&
-        !player.isBackpack &&
-        item.Magazine >= 25) {
-        sender ! CommonMessages.Use(player, Some((item, user)))
-      }
-
-    case CommonMessages.Use(user, Some(item : Tool)) if item.Definition == GlobalDefinitions.bank =>
-      val originalArmor = player.Armor
-      if(player.MaxArmor > 0 && originalArmor < player.MaxArmor &&
-        user.Faction == player.Faction &&
-        item.AmmoType == Ammo.armor_canister && item.Magazine > 0 &&
-        Vector3.Distance(user.Position, player.Position) < 5) {
-        val definition = player.Definition
-        val zone = player.Zone
-        val events = zone.AvatarEvents
-        val uname = user.Name
-        val guid = player.GUID
-        if(!(player.isMoving || user.isMoving)) { //only allow stationary repairs
-          player.Armor = originalArmor + 12 + RepairValue(item) + definition.RepairMod
-          val magazine = item.Discharge
-          events ! AvatarServiceMessage(uname, AvatarAction.SendResponse(Service.defaultPlayerGUID, InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong)))
-          events ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttributeToAll(guid, 4, player.Armor))
-        }
-        if(player != user) {
-          //progress bar remains visible for all repair attempts
-          events ! AvatarServiceMessage(uname, AvatarAction.SendResponse(Service.defaultPlayerGUID, RepairMessage(guid, player.Armor * 100 / player.MaxArmor)))
-        }
-      }
-
-    case _ => ;
   }
 
   /**
@@ -166,46 +173,43 @@ object PlayerControl {
     * na
     * @param target na
     */
-  def HandleDamageResolution(target : Player, cause : ResolvedProjectile, damageToHealth : Int, damageToArmor : Int, damageToCapacitor : Int) : Unit = {
+  def HandleDamage(target : Player, cause : ResolvedProjectile, damageToHealth : Int, damageToArmor : Int, damageToCapacitor : Int) : Unit = {
     val targetGUID = target.GUID
-    val playerGUID = target.Zone.LivePlayers.find { p => cause.projectile.owner.Name.equals(p.Name) } match {
-      case Some(player) => player.GUID
-      case _ => PlanetSideGUID(0)
-    }
     if(target.Health > 0) {
-      //activity on map
-      if(damageToHealth + damageToArmor > 0) {
+      if(damageToCapacitor > 0) {
+        target.Zone.AvatarEvents ! AvatarServiceMessage(target.Name, AvatarAction.PlanetsideAttributeSelf(targetGUID, 7, target.Capacitor.toLong))
+      }
+      if(damageToHealth > 0 || damageToArmor > 0) {
+        if(damageToHealth > 0) {
+          target.Zone.AvatarEvents ! AvatarServiceMessage(target.Zone.Id, AvatarAction.PlanetsideAttributeToAll(targetGUID, 0, target.Health))
+        }
+        if(damageToArmor > 0) {
+          target.Zone.AvatarEvents ! AvatarServiceMessage(target.Zone.Id, AvatarAction.PlanetsideAttributeToAll(targetGUID, 4, target.Armor))
+        }
+        //activity on map
         target.Zone.Activity ! Zone.HotSpot.Activity(cause.target, cause.projectile.owner, cause.hit_pos)
         //alert damage source
-        HandleDamageAwareness(target, playerGUID, cause)
+        DamageAwareness(target, cause)
       }
       if(cause.projectile.profile.JammerProjectile) {
         target.Actor ! JammableUnit.Jammered(cause)
       }
     }
     else {
-      HandleDestructionAwareness(target, playerGUID, Some(cause))
-    }
-    if(damageToHealth > 0) {
-      target.Zone.AvatarEvents ! AvatarServiceMessage(target.Zone.Id, AvatarAction.PlanetsideAttributeToAll(targetGUID, 0, target.Health))
-    }
-    if(damageToArmor > 0) {
-      target.Zone.AvatarEvents ! AvatarServiceMessage(target.Zone.Id, AvatarAction.PlanetsideAttributeToAll(targetGUID, 4, target.Armor))
-    }
-    if(damageToCapacitor > 0) {
-      target.Zone.AvatarEvents ! AvatarServiceMessage(target.Name, AvatarAction.PlanetsideAttributeSelf(targetGUID, 7, target.Capacitor.toLong))
+      if(damageToArmor > 0) {
+        target.Zone.AvatarEvents ! AvatarServiceMessage(target.Zone.Id, AvatarAction.PlanetsideAttributeToAll(targetGUID, 4, target.Armor))
+      }
+      DestructionAwareness(target, Some(cause))
     }
   }
 
   /**
     * na
     * @param target na
-    * @param attribution na
-    * @param lastShot na
+    * @param cause na
     */
-  def HandleDamageAwareness(target : Player, attribution : PlanetSideGUID, lastShot : ResolvedProjectile) : Unit = {
-    val owner = lastShot.projectile.owner
-    owner match {
+  def DamageAwareness(target : Player, cause : ResolvedProjectile) : Unit = {
+    cause.projectile.owner match {
       case pSource : PlayerSource =>
         target.Zone.LivePlayers.find(_.Name == pSource.Name) match {
           case Some(tplayer) =>
@@ -237,10 +241,9 @@ object PlayerControl {
     * A maximum revive waiting timer is started.
     * When this timer reaches zero, the avatar will attempt to spawn back on its faction-specific sanctuary continent.
     * @param target na
-    * @param attribution na
-    * @param lastShot na
+    * @param cause na
     */
-  def HandleDestructionAwareness(target : Player, attribution : PlanetSideGUID, lastShot : Option[ResolvedProjectile]) : Unit = {
+  def DestructionAwareness(target : Player, cause : Option[ResolvedProjectile]) : Unit = {
     val player_guid = target.GUID
     val pos = target.Position
     val respawnTimer = 300000 //milliseconds
@@ -248,6 +251,18 @@ object PlayerControl {
     val events = zone.AvatarEvents
     val nameChannel = target.Name
     val zoneChannel = zone.Id
+    val attribute = cause match {
+      case Some(resolved) =>
+        resolved.projectile.owner match {
+          case pSource : PlayerSource =>
+            target.Zone.LivePlayers.find(_.Name == pSource.Name) match {
+              case Some(player) => player.GUID
+              case None => player_guid
+            }
+          case _ => player_guid
+        }
+      case _ => player_guid
+    }
     target.Die
     target.Actor ! JammableUnit.ClearJammeredSound()
     target.Actor ! JammableUnit.ClearJammeredStatus()
@@ -260,13 +275,13 @@ object PlayerControl {
     }
     events ! AvatarServiceMessage(zoneChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 0, 0)) //health
     events ! AvatarServiceMessage(nameChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 2, 0)) //stamina
-    events ! AvatarServiceMessage(zoneChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 4, target.Armor)) //armor
     if(target.ExoSuit == ExoSuitType.MAX) {
+      target.Capacitor = 0
       events ! AvatarServiceMessage(nameChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 7, 0)) // capacitor
     }
     events ! AvatarServiceMessage(
       nameChannel,
-      AvatarAction.SendResponse(Service.defaultPlayerGUID, DestroyMessage(player_guid, player_guid, Service.defaultPlayerGUID, pos)) //how many players get this message?
+      AvatarAction.SendResponse(Service.defaultPlayerGUID, DestroyMessage(player_guid, attribute, Service.defaultPlayerGUID, pos)) //how many players get this message?
     )
     events ! AvatarServiceMessage(
       nameChannel,
@@ -278,7 +293,7 @@ object PlayerControl {
       case Some(PlayerSuicide(_)) =>
         None
       case _ =>
-        lastShot.orElse { target.LastShot } match {
+        cause.orElse { target.LastShot } match {
           case out @ Some(shot) =>
             if(System.nanoTime - shot.hit_time < (10 seconds).toNanos) {
               out

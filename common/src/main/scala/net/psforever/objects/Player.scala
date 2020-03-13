@@ -24,7 +24,7 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
   with JammableUnit
   with ZoneAware {
   Health = 0 //player health is artificially managed as a part of their lifecycle; start entity as dead
-  private var alive : Boolean = false
+  Destroyed = true //see isAlive
   private var backpack : Boolean = false
   private var stamina : Int = 0
   private var armor : Int = 0
@@ -83,13 +83,13 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
 
   def LFS : Boolean = core.LFS
 
-  def isAlive : Boolean = alive
+  def isAlive : Boolean = !Destroyed
 
   def isBackpack : Boolean = backpack
 
   def Spawn : Boolean = {
     if(!isAlive && !isBackpack) {
-      alive = true
+      Destroyed = false
       Health = Definition.DefaultHealth
       Stamina = MaxStamina
       Armor = MaxArmor
@@ -100,14 +100,14 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
   }
 
   def Die : Boolean = {
-    alive = false
+    Destroyed = true
     Health = 0
     Stamina = 0
     false
   }
 
   def Revive : Boolean = {
-    alive = true
+    Destroyed = false
     Health = Definition.DefaultHealth
     true
   }

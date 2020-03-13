@@ -41,6 +41,7 @@ class ShieldGeneratorControl(gen : ShieldGeneratorDeployable) extends Actor
   def JammableObject = gen
   def DamageableObject = gen
   def RepairableObject = gen
+  private var handleDamageToShields : Boolean = false
 
   def receive : Receive = jammableBehavior
     .orElse(takesDamage)
@@ -78,14 +79,15 @@ class ShieldGeneratorControl(gen : ShieldGeneratorDeployable) extends Actor
       val name = target.Actor.toString
       val slashPoint = name.lastIndexOf("/")
       DamageLog(s"${name.substring(slashPoint + 1, name.length - 1)}: BEFORE=$originalHealth/$originalShields, AFTER=$health/$shields, CHANGE=$damageToHealth/$damageToShields")
-      HandleDamage(target, cause, damage)
+      handleDamageToShields = damageToShields > 0
+      HandleDamage(target, cause, damageToHealth)
     }
   }
 
   override protected def DamageAwareness(target : Damageable.Target, cause : ResolvedProjectile, amount : Int) : Unit = {
     super.DamageAwareness(target, cause, amount)
-    //TODO shield damage; need to implement shield upgrades
-    ShieldGeneratorControl.DamageAwareness(target, PlanetSideGUID(0), cause)
+    ShieldGeneratorControl.DamageAwareness(gen, cause, handleDamageToShields)
+    handleDamageToShields = false
   }
 
   override protected def DestructionAwareness(target : Target, cause : ResolvedProjectile) : Unit = {
@@ -122,12 +124,17 @@ object ShieldGeneratorControl {
   /**
     * na
     * @param target na
-    * @param attribution na
     * @param cause na
+    * @param damageToShields na
     */
-  def DamageAwareness(target : Damageable.Target, attribution : PlanetSideGUID, cause : ResolvedProjectile) : Unit = {
+  def DamageAwareness(target : ShieldGeneratorDeployable, cause : ResolvedProjectile, damageToShields : Boolean) : Unit = {
     if(cause.projectile.profile.JammerProjectile) {
       target.Actor ! JammableUnit.Jammered(cause)
+    }
+    //shields
+    if(damageToShields) {
+      val zone = target.Zone
+      zone.VehicleEvents ! VehicleServiceMessage(zone.Id, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 68, target.Shields))
     }
   }
 

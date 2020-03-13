@@ -11,7 +11,7 @@ import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 
 trait RepairableEntity extends Repairable {
-  val canBeRepairedByNanoDispenser : Receive = {
+  final val canBeRepairedByNanoDispenser : Receive = {
     case CommonMessages.Use(player, Some(item : Tool)) if item.Definition == GlobalDefinitions.nano_dispenser =>
       val obj = RepairableObject
       if(CanPerformRepairs(obj, player, item)) {

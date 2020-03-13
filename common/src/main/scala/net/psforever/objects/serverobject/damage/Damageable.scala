@@ -11,15 +11,15 @@ import net.psforever.objects.zones.ZoneAware
 trait Damageable {
   def DamageableObject : PlanetSideServerObject with Vitality
 
-  def takesDamage : Receive
+  final val takesDamage : Receive = TakesDamage
 
-  protected def DamageAwareness(target : Damageable.Target, cause : ResolvedProjectile, amount : Int) : Unit
-
-  protected def DestructionAwareness(target : Damageable.Target, cause : ResolvedProjectile) : Unit = {
-    target.Destroyed = true
-  }
+  protected def TakesDamage : Receive
 }
 
 object Damageable {
   type Target = PlanetSideServerObject with Vitality with FactionAffinity with ZoneAware
+
+  def DestructionAwareness(target : Damageable.Target, cause : ResolvedProjectile) : Unit = {
+    target.Destroyed = true
+  }
 }

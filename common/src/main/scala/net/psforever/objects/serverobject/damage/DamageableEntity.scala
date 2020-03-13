@@ -34,8 +34,6 @@ trait DamageableEntity extends Damageable {
       }
   }
 
-  val takesDamage : Receive = TakesDamage
-
   /**
     * na
     * @param target na
@@ -71,10 +69,7 @@ trait DamageableEntity extends Damageable {
     * @param damage na
     */
   protected def HandleDamage(target : Damageable.Target, cause : ResolvedProjectile, damage : Int) : Unit = {
-    val zone = target.Zone
-    val health = target.Health
-    zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttribute(target.GUID, 0, health))
-    if(health <= target.Definition.DamageDestroysAt) {
+    if(target.Health <= target.Definition.DamageDestroysAt) {
       DestructionAwareness(target, cause)
     }
     else {
@@ -89,7 +84,7 @@ trait DamageableEntity extends Damageable {
     * @param amount na
     */
   protected def DamageAwareness(target : Damageable.Target, cause : ResolvedProjectile, amount : Int) : Unit = {
-    DamageableEntity.DamageAwareness(target, cause)
+    DamageableEntity.DamageAwareness(target, cause, amount)
   }
 
   /**
@@ -97,8 +92,8 @@ trait DamageableEntity extends Damageable {
     * @param target na
     * @param cause na
     */
-  override protected def DestructionAwareness(target : Damageable.Target, cause : ResolvedProjectile) : Unit = {
-    super.DestructionAwareness(target, cause)
+  protected def DestructionAwareness(target : Damageable.Target, cause : ResolvedProjectile) : Unit = {
+    Damageable.DestructionAwareness(target, cause)
     DamageableEntity.DestructionAwareness(target, cause)
   }
 }
@@ -109,9 +104,13 @@ object DamageableEntity {
     * @param target na
     * @param cause na
     */
-  def DamageAwareness(target : Damageable.Target, cause : ResolvedProjectile) : Unit = {
+  def DamageAwareness(target : Damageable.Target, cause : ResolvedProjectile, amount : Int) : Unit = {
     val zone = target.Zone
     val targetGUID = target.GUID
+    if(amount > 0) {
+      val zone = target.Zone
+      zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttribute(targetGUID, 0, target.Health))
+    }
     val attribution = target.Zone.LivePlayers.find { p => cause.projectile.owner.Name.equals(p.Name) } match {
       case Some(player) => player.GUID
       case _ => PlanetSideGUID(0)
@@ -135,6 +134,8 @@ object DamageableEntity {
     }
     val zone = target.Zone
     val zoneId = zone.Id
-    zone.AvatarEvents ! AvatarServiceMessage(zoneId, AvatarAction.Destroy(target.GUID, attribution, Service.defaultPlayerGUID, target.Position))
+    val tguid = target.GUID
+    zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttribute(tguid, 0, target.Health))
+    zone.AvatarEvents ! AvatarServiceMessage(zoneId, AvatarAction.Destroy(tguid, attribution, Service.defaultPlayerGUID, target.Position))
   }
 }
