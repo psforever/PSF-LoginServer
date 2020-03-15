@@ -9,7 +9,7 @@ import net.psforever.objects.definition.converter.ShieldGeneratorConverter
 import net.psforever.objects.equipment.{JammableBehavior, JammableUnit}
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity}
-import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
+import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.repair.RepairableEntity
 import net.psforever.objects.vital.resolution.ResolutionCalculations
@@ -45,22 +45,29 @@ class ShieldGeneratorControl(gen : ShieldGeneratorDeployable) extends Actor
 
   def receive : Receive = jammableBehavior
     .orElse(takesDamage)
+    .orElse(canBeRepairedByNanoDispenser)
     .orElse {
-      case msg @ CommonMessages.Use(_, Some(item : Tool)) if item.Definition == GlobalDefinitions.nano_dispenser =>
-        if(gen.CanRepair) {
-          canBeRepairedByNanoDispenser.apply(msg)
-        }
-        else if(!gen.Destroyed) {
-          if(gen.Shields < gen.MaxShields) {
-            //TODO reinforced shield upgrade not implemented yet
-          }
-          else {
-            //TODO ammunition supply upgrade not implemented yet
-          }
-        }
-
       case _ => ;
     }
+
+  /**
+    * The shield generator has two upgrade paths - blocking projectiles, and providing ammunition like a terminal.
+    * Both upgrade paths are possible using the nano dispenser with an armor canister,
+    * and can only be started when the generator is undamaged.
+    * @see `PlanetSideGameObject.CanRepair`
+    * @see `RepairableEntity.CanPerformRepairs`
+    * @param player the user of the nano dispenser tool
+    * @param item the nano dispenser tool
+    */
+  override def CanBeRepairedByNanoDispenser(player : Player, item : Tool) : Unit = {
+    if(gen.CanRepair) {
+      super.CanBeRepairedByNanoDispenser(player, item)
+    }
+    else if(!gen.Destroyed) {
+      //TODO reinforced shield upgrade not implemented yet
+      //TODO ammunition supply upgrade not implemented yet
+    }
+  }
 
 //  override def WillAffectTarget(damage : Int, cause : ResolvedProjectile) : Boolean = {
 //    super.WillAffectTarget(damage, cause) || cause.projectile.profile.JammerProjectile

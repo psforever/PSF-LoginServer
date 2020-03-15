@@ -7,6 +7,7 @@ import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile, Sourc
 import net.psforever.objects.equipment.{Ammo, JammableBehavior, JammableUnit}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.damage.Damageable
+import net.psforever.objects.serverobject.repair.Repairable
 import net.psforever.objects.vital.{PlayerSuicide, Vitality}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
@@ -79,7 +80,7 @@ class PlayerControl(player : Player) extends Actor
           val uname = user.Name
           val guid = player.GUID
           if(!(player.isMoving || user.isMoving)) { //only allow stationary repairs
-            player.Armor = originalArmor + 12 + RepairValue(item) + definition.RepairMod
+            player.Armor = originalArmor + Repairable.Quality + RepairValue(item) + definition.RepairMod
             val magazine = item.Discharge
             events ! AvatarServiceMessage(uname, AvatarAction.SendResponse(Service.defaultPlayerGUID, InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong)))
             events ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttributeToAll(guid, 4, player.Armor))

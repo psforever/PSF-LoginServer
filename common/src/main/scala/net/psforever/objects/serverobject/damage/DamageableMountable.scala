@@ -2,46 +2,63 @@
 package net.psforever.objects.serverobject.damage
 
 import net.psforever.objects.Player
-import net.psforever.objects.ballistics.ResolvedProjectile
+import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile}
 import net.psforever.objects.serverobject.mount.Mountable
-import net.psforever.objects.serverobject.structures.Amenity
+import net.psforever.packet.game.DamageWithPositionMessage
+import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 
-trait DamageableMountable extends DamageableEntity {
-  def DamageableObject : Amenity with Mountable
-
-  override protected def DamageAwareness(target : Damageable.Target, cause : ResolvedProjectile, amount : Int) : Unit = {
-    super.DamageAwareness(target, cause, amount)
-    DamageableMountable.DamageAwareness(DamageableObject, cause, amount)
-  }
-
-  override protected def DestructionAwareness(target : Damageable.Target, cause : ResolvedProjectile) : Unit = {
-    super.DestructionAwareness(target, cause)
-    DamageableMountable.DestructionAwareness(DamageableObject, cause)
-  }
-}
-
+/**
+  * Functions to assist other damage-dealing code for objects that contain users.
+  */
 object DamageableMountable {
-  def DamageAwareness(obj : Damageable.Target with Mountable, cause : ResolvedProjectile, amount : Int) : Unit = {
-    //alert occupants to damage source
-    val zone = obj.Zone
-    val zoneId = zone.Id
+  /**
+    * A damaged target alerts its occupants (as it is a `Mountable` object) of the source of the damage.
+    * @see `AvatarAction.HitHint`
+    * @see `AvatarAction.SendResponse`
+    * @see `AvatarServiceMessage`
+    * @see `DamageWithPositionMessage`
+    * @see `Mountable.Seats`
+    * @see `Service.defaultPlayerGUID`
+    * @see `Zone.AvatarEvents`
+    * @see `Zone.LivePlayers`
+    * @param target the entity being damaged
+    * @param cause historical information about the damage
+    */
+  def DamageAwareness(target : Damageable.Target with Mountable, cause : ResolvedProjectile) : Unit = {
+    val tguid = target.GUID
+    val zone = target.Zone
     val events = zone.AvatarEvents
-    val attribution = zone.LivePlayers.find { p => cause.projectile.owner.Name.equals(p.Name) } match {
-      case Some(player) => player.GUID
-      case _ => obj.GUID
+    val occupants = target.Seats.values.collect {
+      case seat if seat.isOccupied && seat.Occupant.get.isAlive =>
+        seat.Occupant.get
     }
-    obj.Seats.values.filter(seat => {
-      seat.isOccupied && seat.Occupant.get.isAlive
-    }).foreach(seat => {
-      val tplayer = seat.Occupant.get
-      events ! AvatarServiceMessage(zoneId, AvatarAction.HitHint(attribution, tplayer.GUID))
-    })
+    (cause.projectile.owner match {
+      case pSource : PlayerSource => //player damage
+        val name = pSource.Name
+        val blame = zone.LivePlayers.find(_.Name == name).orElse(zone.Corpses.find(_.Name == name)) match {
+          case Some(player) => player.GUID
+          case None => tguid
+        }
+        occupants.map { tplayer => (tplayer.Name, AvatarAction.HitHint(blame, tplayer.GUID)) }
+      case source => //object damage
+        val msg = DamageWithPositionMessage(10, source.Position)
+        occupants.map { tplayer => (tplayer.Name, AvatarAction.SendResponse(Service.defaultPlayerGUID, msg)) }
+    }).foreach { case (channel, msg) =>
+      events ! AvatarServiceMessage(channel, msg)
+    }
   }
 
-  def DestructionAwareness(obj : Damageable.Target with Mountable, cause : ResolvedProjectile) : Unit = {
-    //kill everyone (and hide the bodies)
-    obj.Seats.values.filter(seat => {
+  /**
+    * When the target dies, so do all of its occupants.
+    * @see `Mountable.Seats`
+    * @see `Player.Die`
+    * @see `VitalsHistory.History`
+    * @param target the entity being destroyed
+    * @param cause historical information about the damage
+    */
+  def DestructionAwareness(target : Damageable.Target with Mountable, cause : ResolvedProjectile) : Unit = {
+    target.Seats.values.filter(seat => {
       seat.isOccupied && seat.Occupant.get.isAlive
     }).foreach(seat => {
       val tplayer = seat.Occupant.get

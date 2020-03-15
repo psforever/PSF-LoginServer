@@ -10,18 +10,22 @@ import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.vehicle.support.TurretUpgrader
 import services.vehicle.VehicleServiceMessage
 
+/**
+  * The "control" `Actor` mixin for damage-handling code for `WeaponTurret` objects.
+  */
 trait DamageableWeaponTurret extends DamageableEntity {
   def DamageableObject : Damageable.Target with WeaponTurret
 
   override def WillAffectTarget(damage : Int, cause : ResolvedProjectile) : Boolean = {
+    //jammable
     super.WillAffectTarget(damage, cause) || cause.projectile.profile.JammerProjectile
   }
 
   override protected def DamageAwareness(target : Damageable.Target, cause : ResolvedProjectile, amount : Int) : Unit = {
     super.DamageAwareness(target, cause, amount)
     val obj = DamageableObject
-    DamageableWeaponTurret.DamageAwareness(obj, cause, amount)
-    DamageableMountable.DamageAwareness(obj, cause, amount)
+    DamageableWeaponTurret.DamageAwareness(obj, cause)
+    DamageableMountable.DamageAwareness(obj, cause)
   }
 
   override protected def DestructionAwareness(target : Damageable.Target, cause : ResolvedProjectile) : Unit = {
@@ -34,32 +38,49 @@ trait DamageableWeaponTurret extends DamageableEntity {
 
 object DamageableWeaponTurret {
   /**
-    * na
-    * @param obj na
-    * @param cause na
-    * @param amount na
+    * The weapons attached to the turret jams if the projectile has jammering properties.
+    * @see `JammableUnit.Jammered`
+    * @param target the entity being damaged
+    * @param cause historical information about the damage
     */
-  def DamageAwareness(obj : Damageable.Target, cause : ResolvedProjectile, amount : Int) : Unit = {
-    //if entity gets jammered ...
+  def DamageAwareness(target : Damageable.Target, cause : ResolvedProjectile) : Unit = {
     if(cause.projectile.profile.JammerProjectile) {
-      obj.Actor ! JammableUnit.Jammered(cause)
+      target.Actor ! JammableUnit.Jammered(cause)
     }
   }
 
   /**
-    * na
-    * @param obj na
-    * @param lastShot na
+    * A destroyed target dispatches a message to conceal (delete) its weapons from users.
+    * If affected by a jammer property, the jammer propoerty will be removed.
+    * If the type of entity is a `WeaponTurret`, the weapons are converted to their "normal" upgrade state.
+    * @see `AvatarAction.DeleteObject`
+    * @see `AvatarServiceMessage`
+    * @see `JammableUnit.ClearJammeredSound`
+    * @see `JammableUnit.ClearJammeredStatus`
+    * @see `MountedWeapons`
+    * @see `MountedWeapons.Weapons`
+    * @see `Service.defaultPlayerGUID`
+    * @see `TurretUpgrade.None`
+    * @see `TurretUpgrader.AddTask`
+    * @see `TurretUpgrader.ClearSpecific`
+    * @see `WeaponTurret`
+    * @see `VehicleServiceMessage.TurretUpgrade`
+    * @see `Zone.AvatarEvents`
+    * @see `Zone.VehicleEvents`
+    * @param target the entity being destroyed;
+    *               note: `MountedWeapons` is a parent of `WeaponTurret`
+    *               but the handling code closely associates with the former
+    * @param cause historical information about the damage
     */
-  def DestructionAwareness(obj : Damageable.Target with MountedWeapons, lastShot : ResolvedProjectile) : Unit = {
+  def DestructionAwareness(target : Damageable.Target with MountedWeapons, cause : ResolvedProjectile) : Unit = {
     //un-jam
-    obj.Actor ! JammableUnit.ClearJammeredSound()
-    obj.Actor ! JammableUnit.ClearJammeredStatus()
+    target.Actor ! JammableUnit.ClearJammeredSound()
+    target.Actor ! JammableUnit.ClearJammeredStatus()
     //wreckage has no (visible) mounted weapons
-    val zone = obj.Zone
+    val zone = target.Zone
     val zoneId = zone.Id
     val avatarEvents = zone.AvatarEvents
-    obj.Weapons.values
+    target.Weapons.values
       .filter {
         _.Equipment.nonEmpty
       }
@@ -67,7 +88,7 @@ object DamageableWeaponTurret {
         val wep = slot.Equipment.get
         avatarEvents ! AvatarServiceMessage(zoneId, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, wep.GUID))
       })
-    obj match {
+    target match {
       case turret : WeaponTurret =>
         if(turret.Upgrade != TurretUpgrade.None) {
           val vehicleEvents = zone.VehicleEvents

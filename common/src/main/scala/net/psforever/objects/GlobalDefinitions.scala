@@ -6323,7 +6323,7 @@ object GlobalDefinitions {
     cert_terminal.Subtract.Damage1 = 8
 
     implant_terminal_mech.Name = "implant_terminal_mech"
-    implant_terminal_mech.MaxHealth = 1000
+    implant_terminal_mech.MaxHealth = 1500 //TODO 1000
     implant_terminal_mech.Damageable = true
     implant_terminal_mech.Repairable = true
     implant_terminal_mech.RepairIfDestroyed = true
@@ -6331,7 +6331,7 @@ object GlobalDefinitions {
     implant_terminal_interface.Name = "implant_terminal_interface"
     implant_terminal_interface.Tab += 0 -> OrderTerminalDefinition.ImplantPage(ImplantTerminalDefinition.implants)
     implant_terminal_interface.MaxHealth = 500
-    implant_terminal_interface.Damageable = true
+    implant_terminal_interface.Damageable = false //TODO true
     implant_terminal_interface.Repairable = true
     implant_terminal_interface.RepairIfDestroyed = true
 

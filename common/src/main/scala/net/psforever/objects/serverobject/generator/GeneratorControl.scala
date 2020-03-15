@@ -44,16 +44,8 @@ class GeneratorControl(gen : Generator) extends Actor
         //kill everyone within 14m
         gen.Owner match {
           case b : Building =>
-            val cause =
-              gen.LastShot match {
-                case Some(data) =>
-                  Some(DamageFromProjectile(data.copy())) //repackage to update timestamp for DestroyDisplay
-                case _ =>
-                  None
-              }
             b.PlayersInSOI.collect {
               case player if player.isAlive && Vector3.DistanceSquared(player.Position, gen.Position) < 196 =>
-                player.History(cause) //assign blame for player dying
                 player.Actor ! Player.Die()
             }
           case _ => ;

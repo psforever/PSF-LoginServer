@@ -132,5 +132,6 @@ object SensorDeployableControl {
     Deployables.AnnounceDestroyDeployable(target, None)
     val zone = target.Zone
     zone.LocalEvents ! LocalServiceMessage(zone.Id, LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", target.GUID, false, 1000))
+    //TODO replaced by an alternate model!
   }
 }

@@ -2,11 +2,13 @@
 package net.psforever.objects.serverobject.implantmech
 
 import akka.actor.Actor
+import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.{GlobalDefinitions, Player, SimpleItem}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
-import net.psforever.objects.serverobject.damage.DamageableMountable
+import net.psforever.objects.serverobject.damage.Damageable.Target
+import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity, DamageableMountable}
 import net.psforever.objects.serverobject.hackable.HackableBehavior
 import net.psforever.objects.serverobject.repair.RepairableEntity
 import net.psforever.objects.serverobject.structures.Building
@@ -20,7 +22,7 @@ class ImplantTerminalMechControl(mech : ImplantTerminalMech) extends Actor
   with MountableBehavior.Mount
   with MountableBehavior.Dismount
   with HackableBehavior.GenericHackable
-  with DamageableMountable
+  with DamageableEntity
   with RepairableEntity {
   def MountableObject = mech
   def HackableObject = mech
@@ -57,5 +59,15 @@ class ImplantTerminalMechControl(mech : ImplantTerminalMech) extends Actor
       case None =>
         false
     }
+  }
+
+  override protected def DamageAwareness(target : Target, cause : ResolvedProjectile, amount : Int) : Unit = {
+    super.DamageAwareness(target, cause, amount)
+    DamageableMountable.DamageAwareness(DamageableObject, cause)
+  }
+
+  override protected def DestructionAwareness(target : Damageable.Target, cause : ResolvedProjectile) : Unit = {
+    super.DestructionAwareness(target, cause)
+    DamageableMountable.DestructionAwareness(DamageableObject, cause)
   }
 }

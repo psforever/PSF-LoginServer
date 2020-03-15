@@ -15,17 +15,22 @@ import services.vehicle.{VehicleAction, VehicleService, VehicleServiceMessage}
 
 import scala.concurrent.duration._
 
+/**
+  * The "control" `Actor` mixin for damage-handling code for `Vehicle` objects.
+  */
 trait DamageableVehicle extends DamageableEntity {
+  /** vehicles (may) have shields; they need to be handled */
   private var handleDamageToShields : Boolean = false
 
   def DamageableObject : Vehicle
 
   override protected def TakesDamage : Receive = super.TakesDamage.orElse {
-    //handle cargo vehicles inheriting feedback from carrier
     case DamageableVehicle.Damage(cause) =>
+      //cargo vehicles inherit feedback from carrier
       DamageAwareness(DamageableObject, cause, amount = 1) //non-zero
 
     case DamageableVehicle.Destruction(cause) =>
+      //cargo vehicles are destroyed when carrier is destroyed
       val obj = DamageableObject
       obj.Health = 0
       obj.Shields = 0
@@ -34,9 +39,15 @@ trait DamageableVehicle extends DamageableEntity {
   }
 
   override def WillAffectTarget(damage : Int, cause : ResolvedProjectile) : Boolean = {
+    //jammable
     super.WillAffectTarget(damage, cause) || cause.projectile.profile.JammerProjectile
   }
 
+  /**
+    * Vehicles may have charged shields that absorb damage before the vehicle's own health is affected.
+    * @param target the entity to be damaged
+    * @param applyDamageTo the function that applies the damage to the target in a target-tailored fashion
+    */
   override protected def PerformDamage(target : Damageable.Target, applyDamageTo : ResolutionCalculations.Output) : Unit = {
     val obj = DamageableObject
     val originalHealth = obj.Health
@@ -46,11 +57,8 @@ trait DamageableVehicle extends DamageableEntity {
     val shields = obj.Shields
     val damageToHealth = originalHealth - health
     val damageToShields = originalShields - shields
-    val damage = damageToHealth + damageToShields
-    if(WillAffectTarget(damage, cause)) {
-      val name = target.Actor.toString
-      val slashPoint = name.lastIndexOf("/")
-      DamageLog(s"${name.substring(slashPoint + 1, name.length - 1)}: BEFORE=$originalHealth/$originalShields, AFTER=$health/$shields, CHANGE=$damageToHealth/$damageToShields")
+    if(WillAffectTarget(damageToHealth + damageToShields, cause)) {
+      DamageLog(target, s"BEFORE=$originalHealth/$originalShields, AFTER=$health/$shields, CHANGE=$damageToHealth/$damageToShields")
       handleDamageToShields = damageToShields > 0
       HandleDamage(target, cause, damageToHealth)
     }
@@ -59,10 +67,11 @@ trait DamageableVehicle extends DamageableEntity {
   override protected def DamageAwareness(target : Target, cause : ResolvedProjectile, amount : Int) : Unit = {
     super.DamageAwareness(target, cause, amount)
     val obj = DamageableObject
-    DamageableMountable.DamageAwareness(obj, cause, amount)
-    DamageableVehicle.DamageAwareness(obj, cause, handleDamageToShields)
-    DamageableWeaponTurret.DamageAwareness(obj, cause, amount)
+    val handleShields = handleDamageToShields
     handleDamageToShields = false
+    DamageableMountable.DamageAwareness(obj, cause)
+    DamageableVehicle.DamageAwareness(obj, cause, handleShields)
+    DamageableWeaponTurret.DamageAwareness(obj, cause)
   }
 
   override protected def DestructionAwareness(target : Target, cause : ResolvedProjectile) : Unit = {
@@ -75,17 +84,35 @@ trait DamageableVehicle extends DamageableEntity {
 }
 
 object DamageableVehicle {
+  /**
+    * Message for instructing the target's cargo vehicles about a damage source affecting their carrier.
+    * @param cause historical information about damage
+    */
   private case class Damage(cause : ResolvedProjectile)
+  /**
+    * Message for instructing the target's cargo vehicles that their carrier is destroyed,
+    * and they should be destroyed too.
+    * @param cause historical information about damage
+    */
   private case class Destruction(cause : ResolvedProjectile)
 
   /**
-    * na
-    * @param target na
-    * @param cause na
-    * @param damageToShields na
+    * Most all vehicles and the weapons mounted to them can jam
+    * if the projectile that strikes (near) them has jammering properties.
+    * A damaged carrier alerts its cargo vehicles of the source of the damage,
+    * but it will not be affected by the same jammering effect.
+    * If this vehicle has shields that were affected by previous damage, that is also reported to the clients.
+    * @see `JammableUnit.Jammered`
+    * @see `Service.defaultPlayerGUID`
+    * @see `Vehicle.CargoHolds`
+    * @see `VehicleAction.PlanetsideAttribute`
+    * @see `VehicleServiceMessage`
+    * @param target the entity being destroyed
+    * @param cause historical information about the damage
+    * @param damageToShields dispatch a shield strength update
     */
   def DamageAwareness(target : Vehicle, cause : ResolvedProjectile, damageToShields : Boolean) : Unit = {
-    if(cause.projectile.profile.JammerProjectile) {
+    if(target.MountedIn.isEmpty && cause.projectile.profile.JammerProjectile) {
       target.Actor ! JammableUnit.Jammered(cause)
     }
     //alert cargo occupants to damage source
@@ -104,9 +131,27 @@ object DamageableVehicle {
   }
 
   /**
-    * na
-    * @param target na
-    * @param cause na
+    * A destroyed carrier informs its cargo vehicles that they should also be destroyed
+    * for reasons of the same cause being inherited as the source of damage.
+    * Regardless of the amount of damage they carrier takes or some other target would take,
+    * its cargo vehicles die immediately.
+    * The vehicle's shields are zero'd out if they were previously energized
+    * so that the vehicle's corpse does not act like it is still protected by vehicle shields.
+    * Finally, the vehicle is tasked for deconstruction.
+    * @see `JammableUnit.ClearJammeredSound`
+    * @see `JammableUnit.ClearJammeredStatus`
+    * @see `Deployment.TryDeploymentChange`
+    * @see `DriveState.Undeploying`
+    * @see `Service.defaultPlayerGUID`
+    * @see `Vehicle.CargoHolds`
+    * @see `VehicleAction.PlanetsideAttribute`
+    * @see `RemoverActor.AddTask`
+    * @see `RemoverActor.ClearSpecific`
+    * @see `VehicleServiceMessage`
+    * @see `VehicleServiceMessage.Decon`
+    * @see `Zone.VehicleEvents`
+    * @param target the entity being destroyed
+    * @param cause historical information about the damage
     */
   def DestructionAwareness(target : Vehicle, cause : ResolvedProjectile) : Unit = {
     val zone = target.Zone

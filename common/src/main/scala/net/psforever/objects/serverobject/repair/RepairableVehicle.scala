@@ -3,14 +3,18 @@ package net.psforever.objects.serverobject.repair
 
 import net.psforever.objects.Tool
 
+/**
+  * The "control" `Actor` mixin for repair-handling code for `Vehicle` objects.
+  */
 trait RepairableVehicle extends RepairableEntity {
-  override def RepairValue(item : Tool) : Int = item.FireMode.Modifiers.Damage1
-
   override def Restoration(obj : Repairable.Target) : Unit = {
     obj.Health = 0
-    //super.Restoration(obj)
-    /* to properly restore a destroyed vehicle, an ObjectCreateMessage packet must be dispatched */
-    /* additionally, the vehicle deconstruction task must be cancelled */
+    obj.Destroyed = true
     /* no vanilla vehicles are capable of being restored from destruction */
+    /* if you wanted to properly restore a destroyed vehicle, the quickest way is an ObjectCreateMessage packet */
+    /* additionally, the vehicle deconstruction task must be cancelled */
   }
+
+  /* vehicle repair modifier */
+  override def RepairValue(item : Tool) : Int = item.FireMode.Modifiers.Damage1
 }

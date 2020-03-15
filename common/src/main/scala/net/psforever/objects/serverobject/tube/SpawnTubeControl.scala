@@ -22,7 +22,7 @@ class SpawnTubeControl(tube : SpawnTube) extends Actor
   def RepairableObject = tube
 
   def receive : Receive = checkBehavior
-      .orElse(takesDamage)
+    .orElse(takesDamage)
     .orElse(canBeRepairedByNanoDispenser)
     .orElse {
       case _ => ;
