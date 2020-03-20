@@ -71,9 +71,13 @@ trait DamageableEntity extends Damageable {
     val cause = applyDamageTo(target)
     val health = target.Health
     val damage = originalHealth - health
-    if(WillAffectTarget(damage, cause)) {
+    if(WillAffectTarget(target, damage, cause)) {
       DamageLog(target, s"BEFORE=$originalHealth, AFTER=$health, CHANGE=$damage")
       HandleDamage(target, cause, damage)
+    }
+    else {
+      target.Health = originalHealth
+      target.History = target.History.drop(1)
     }
   }
 
@@ -90,8 +94,8 @@ trait DamageableEntity extends Damageable {
     * @return `true`, if damage resolution is to be evaluated;
     *        `false`, otherwise
     */
-  protected def WillAffectTarget(damage : Int, cause : ResolvedProjectile) : Boolean = {
-    damage > 0
+  protected def WillAffectTarget(target : Damageable.Target, damage : Int, cause : ResolvedProjectile) : Boolean = {
+    damage > 0 && (target.Definition.DamageableByFriendlyFire || cause.projectile.owner.Faction != target.Faction)
   }
 
   /**

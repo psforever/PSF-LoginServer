@@ -59,8 +59,8 @@ class SensorDeployableControl(sensor : SensorDeployable) extends Actor
 
   override protected def DamageLog(msg : String) : Unit = { }
 
-  override protected def WillAffectTarget(damage : Int, cause : ResolvedProjectile) : Boolean = {
-    super.WillAffectTarget(damage, cause) || cause.projectile.profile.JammerProjectile
+  override protected def WillAffectTarget(target :Damageable.Target, damage : Int, cause : ResolvedProjectile) : Boolean = {
+    super.WillAffectTarget(target, damage, cause) || cause.projectile.profile.JammerProjectile
   }
 
   override protected def DamageAwareness(target : Damageable.Target, cause : ResolvedProjectile, amount : Int) : Unit = {

@@ -69,8 +69,8 @@ class ShieldGeneratorControl(gen : ShieldGeneratorDeployable) extends Actor
     }
   }
 
-//  override def WillAffectTarget(damage : Int, cause : ResolvedProjectile) : Boolean = {
-//    super.WillAffectTarget(damage, cause) || cause.projectile.profile.JammerProjectile
+//  override def WillAffectTarget(target : Damageable.Target, damage : Int, cause : ResolvedProjectile) : Boolean = {
+//    super.WillAffectTarget(target, damage, cause) || cause.projectile.profile.JammerProjectile
 //  }
 
   override protected def PerformDamage(target : Damageable.Target, applyDamageTo : ResolutionCalculations.Output) : Unit = {
@@ -82,12 +82,17 @@ class ShieldGeneratorControl(gen : ShieldGeneratorDeployable) extends Actor
     val damageToHealth = originalHealth - health
     val damageToShields = originalShields - shields
     val damage = damageToHealth + damageToShields
-    if(WillAffectTarget(damage, cause)) {
+    if(WillAffectTarget(target, damage, cause)) {
       val name = target.Actor.toString
       val slashPoint = name.lastIndexOf("/")
       DamageLog(s"${name.substring(slashPoint + 1, name.length - 1)}: BEFORE=$originalHealth/$originalShields, AFTER=$health/$shields, CHANGE=$damageToHealth/$damageToShields")
       handleDamageToShields = damageToShields > 0
       HandleDamage(target, cause, damageToHealth)
+    }
+    else {
+      gen.Health = originalHealth
+      gen.Shields = originalShields
+      target.History = target.History.drop(1)
     }
   }
 

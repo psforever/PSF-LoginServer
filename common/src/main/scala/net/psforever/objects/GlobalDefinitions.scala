@@ -6411,8 +6411,9 @@ object GlobalDefinitions {
     respawn_tube_sanctuary.Name = "respawn_tube"
     respawn_tube_sanctuary.Delay = 10
     respawn_tube_sanctuary.SpecificPointFunc = SpawnPoint.Default
-    respawn_tube_sanctuary.Damageable = false
-    respawn_tube_sanctuary.Repairable = false
+    respawn_tube_sanctuary.Damageable = false //true?
+    respawn_tube_sanctuary.DamageableByFriendlyFire = false
+    respawn_tube_sanctuary.Repairable = true
 
     respawn_tube_tower.Name = "respawn_tube_tower"
     respawn_tube_tower.Delay = 10
@@ -6636,6 +6637,7 @@ object GlobalDefinitions {
     generator.MaxHealth = 4000
     generator.Damageable = true
     generator.Repairable = true
+    generator.DamageableByFriendlyFire = false
     generator.RepairIfDestroyed = true
     generator.Subtract.Damage1 = 9
   }

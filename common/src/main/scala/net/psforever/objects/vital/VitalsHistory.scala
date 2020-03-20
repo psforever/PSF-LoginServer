@@ -49,6 +49,11 @@ trait VitalsHistory {
 
   def History : List[VitalsActivity] = vitalsHistory
 
+  def History_=(alternate : List[VitalsActivity]) : List[VitalsActivity] = {
+    vitalsHistory = alternate
+    History
+  }
+
   /**
     * A `VitalsActivity` event must be recorded.
     * Add new entry to the front of the list (for recent activity).

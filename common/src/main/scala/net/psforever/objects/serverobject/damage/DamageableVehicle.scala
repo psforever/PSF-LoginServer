@@ -41,9 +41,9 @@ trait DamageableVehicle extends DamageableEntity {
       DestructionAwareness(obj, cause)
   }
 
-  override def WillAffectTarget(damage : Int, cause : ResolvedProjectile) : Boolean = {
+  override def WillAffectTarget(target : Damageable.Target, damage : Int, cause : ResolvedProjectile) : Boolean = {
     //jammable
-    super.WillAffectTarget(damage, cause) || cause.projectile.profile.JammerProjectile
+    super.WillAffectTarget(target, damage, cause) || cause.projectile.profile.JammerProjectile
   }
 
   /**
@@ -60,10 +60,15 @@ trait DamageableVehicle extends DamageableEntity {
     val shields = obj.Shields
     val damageToHealth = originalHealth - health
     val damageToShields = originalShields - shields
-    if(WillAffectTarget(damageToHealth + damageToShields, cause)) {
+    if(WillAffectTarget(target, damageToHealth + damageToShields, cause)) {
       DamageLog(target, s"BEFORE=$originalHealth/$originalShields, AFTER=$health/$shields, CHANGE=$damageToHealth/$damageToShields")
       handleDamageToShields = damageToShields > 0
       HandleDamage(target, cause, damageToHealth + damageToShields)
+    }
+    else {
+      obj.Health = originalHealth
+      obj.Shields = originalShields
+      target.History = target.History.drop(1)
     }
   }
 
