@@ -571,19 +571,25 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
 
   def AvatarEvents : ActorRef = avatarEvents
 
+  def LocalEvents : ActorRef = localEvents
+
+  def VehicleEvents : ActorRef = vehicleEvents
+
+  //mainly for testing
+  def Activity_=(bus : ActorRef) : ActorRef = {
+    projector = bus
+    Activity
+  }
+
   def AvatarEvents_=(bus : ActorRef) : ActorRef = {
     avatarEvents = bus
     AvatarEvents
   }
 
-  def LocalEvents : ActorRef = localEvents
-
   def LocalEvents_=(bus : ActorRef) : ActorRef = {
     localEvents = bus
     LocalEvents
   }
-
-  def VehicleEvents : ActorRef = vehicleEvents
 
   def VehicleEvents_=(bus : ActorRef) : ActorRef = {
     vehicleEvents = bus

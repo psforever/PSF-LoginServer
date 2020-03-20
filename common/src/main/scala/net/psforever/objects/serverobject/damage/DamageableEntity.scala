@@ -6,7 +6,6 @@ import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.resolution.ResolutionCalculations
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.DamageFeedbackMessage
 import net.psforever.types.PlanetSideGUID
 import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
@@ -103,7 +102,7 @@ trait DamageableEntity extends Damageable {
     * @param damage the amount of damage
     */
   protected def HandleDamage(target : Damageable.Target, cause : ResolvedProjectile, damage : Int) : Unit = {
-    if(target.Health <= target.Definition.DamageDestroysAt) {
+    if(!target.Destroyed && target.Health <= target.Definition.DamageDestroysAt) {
       DestructionAwareness(target, cause)
     }
     else {
@@ -139,7 +138,7 @@ object DamageableEntity {
     * - reports its adjusted its health;
     * - alert the activity monitor for that `Zone` about the damage; and,
     * - provide a feedback message regarding the damage.
-    * @see `AvatarAction.PlanetsideAttribute`
+    * @see `AvatarAction.PlanetsideAttributeToAll`
     * @see `AvatarAction.SendResponse`
     * @see `AvatarServiceMessage`
     * @see `DamageFeedbackMessage`
@@ -154,21 +153,8 @@ object DamageableEntity {
   def DamageAwareness(target : Damageable.Target, cause : ResolvedProjectile, amount : Int) : Unit = {
     val zone = target.Zone
     val tguid = target.GUID
-    val owner = cause.projectile.owner
-    val name = owner.Name
-    if(amount > 0) {
-      val zone = target.Zone
-      zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttribute(tguid, 0, target.Health))
-    }
-    val attribution = target.Zone.LivePlayers.find { p => name.equals(p.Name) } match {
-      case Some(player) => player.GUID
-      case _ => PlanetSideGUID(0)
-    }
-    zone.Activity ! Zone.HotSpot.Activity(cause.target, owner, cause.hit_pos)
-    zone.AvatarEvents ! AvatarServiceMessage(
-      name,
-      AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageFeedbackMessage(5, true, Some(attribution), None, None, false, Some(tguid), None, None, None, 0, 0L, 0))
-    )
+    zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttributeToAll(tguid, 0, target.Health))
+    zone.Activity ! Zone.HotSpot.Activity(cause.target, cause.projectile.owner, cause.hit_pos)
   }
 
   /**
@@ -191,7 +177,7 @@ object DamageableEntity {
     val zone = target.Zone
     val zoneId = zone.Id
     val tguid = target.GUID
-    zone.AvatarEvents ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttribute(tguid, 0, target.Health))
+    zone.AvatarEvents ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 0, target.Health))
     zone.AvatarEvents ! AvatarServiceMessage(zoneId, AvatarAction.Destroy(tguid, attribution, Service.defaultPlayerGUID, target.Position))
   }
 }

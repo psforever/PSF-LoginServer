@@ -3,7 +3,7 @@ package net.psforever.objects.avatar
 
 import akka.actor.Actor
 import net.psforever.objects.{GlobalDefinitions, Player, Tool}
-import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile, SourceEntry}
+import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile}
 import net.psforever.objects.equipment.{Ammo, JammableBehavior, JammableUnit}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.damage.Damageable
@@ -34,7 +34,9 @@ class PlayerControl(player : Player) extends Actor
     .orElse(takesDamage)
     .orElse {
       case Player.Die() =>
-        PlayerControl.DestructionAwareness(player, None)
+        if(player.isAlive) {
+          PlayerControl.DestructionAwareness(player, None)
+        }
 
       case CommonMessages.Use(user, Some(item : Tool)) if item.Definition == GlobalDefinitions.medicalapplicator && player.isAlive =>
         //heal
@@ -48,7 +50,7 @@ class PlayerControl(player : Player) extends Actor
           val events = zone.AvatarEvents
           val uname = user.Name
           val guid = player.GUID
-          if(!(player.isMoving || user.isMoving)) { //only allow stationary healing
+          if(!(player.isMoving || user.isMoving)) { //only allow stationary heals
             player.Health = originalHealth + 10
             val magazine = item.Discharge
             events ! AvatarServiceMessage(uname, AvatarAction.SendResponse(Service.defaultPlayerGUID, InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong)))
@@ -176,19 +178,23 @@ object PlayerControl {
     */
   def HandleDamage(target : Player, cause : ResolvedProjectile, damageToHealth : Int, damageToArmor : Int, damageToCapacitor : Int) : Unit = {
     val targetGUID = target.GUID
-    if(target.Health > 0) {
+    val zone = target.Zone
+    val zoneId = zone.Id
+    val events = zone.AvatarEvents
+    val health = target.Health
+    if(health > 0) {
       if(damageToCapacitor > 0) {
-        target.Zone.AvatarEvents ! AvatarServiceMessage(target.Name, AvatarAction.PlanetsideAttributeSelf(targetGUID, 7, target.Capacitor.toLong))
+        events ! AvatarServiceMessage(target.Name, AvatarAction.PlanetsideAttributeSelf(targetGUID, 7, target.Capacitor.toLong))
       }
       if(damageToHealth > 0 || damageToArmor > 0) {
         if(damageToHealth > 0) {
-          target.Zone.AvatarEvents ! AvatarServiceMessage(target.Zone.Id, AvatarAction.PlanetsideAttributeToAll(targetGUID, 0, target.Health))
+          events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(targetGUID, 0, health))
         }
         if(damageToArmor > 0) {
-          target.Zone.AvatarEvents ! AvatarServiceMessage(target.Zone.Id, AvatarAction.PlanetsideAttributeToAll(targetGUID, 4, target.Armor))
+          events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(targetGUID, 4, target.Armor))
         }
         //activity on map
-        target.Zone.Activity ! Zone.HotSpot.Activity(cause.target, cause.projectile.owner, cause.hit_pos)
+        zone.Activity ! Zone.HotSpot.Activity(cause.target, cause.projectile.owner, cause.hit_pos)
         //alert damage source
         DamageAwareness(target, cause)
       }
@@ -198,7 +204,7 @@ object PlayerControl {
     }
     else {
       if(damageToArmor > 0) {
-        target.Zone.AvatarEvents ! AvatarServiceMessage(target.Zone.Id, AvatarAction.PlanetsideAttributeToAll(targetGUID, 4, target.Armor))
+        events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(targetGUID, 4, target.Armor))
       }
       DestructionAwareness(target, Some(cause))
     }
@@ -210,23 +216,23 @@ object PlayerControl {
     * @param cause na
     */
   def DamageAwareness(target : Player, cause : ResolvedProjectile) : Unit = {
-    cause.projectile.owner match {
-      case pSource : PlayerSource =>
-        target.Zone.LivePlayers.find(_.Name == pSource.Name) match {
-          case Some(tplayer) =>
-            target.Zone.AvatarEvents ! AvatarServiceMessage(
-              target.Name,
-              AvatarAction.HitHint(tplayer.GUID, target.GUID)
-            )
-          case None => ;
-        }
-      case vSource : SourceEntry =>
-        target.Zone.AvatarEvents ! AvatarServiceMessage(
-          target.Name,
-          AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(10, vSource.Position))
-        )
-      case _ => ;
-    }
+    val name = target.Name
+    val zone = target.Zone
+    zone.AvatarEvents ! AvatarServiceMessage(
+      name,
+      cause.projectile.owner match {
+        case pSource : PlayerSource => //player damage
+          val name = pSource.Name
+          (zone.LivePlayers.find(_.Name == name).orElse(zone.Corpses.find(_.Name == name)) match {
+            case Some(player) => AvatarAction.HitHint(player.GUID, player.GUID)
+            case None => AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(10, pSource.Position))
+          }) match {
+            case AvatarAction.HitHint(_, guid) => AvatarAction.HitHint(target.GUID, guid)
+            case msg => msg
+          }
+        case source => AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(10, source.Position))
+      }
+    )
   }
 
   /**
@@ -256,7 +262,8 @@ object PlayerControl {
       case Some(resolved) =>
         resolved.projectile.owner match {
           case pSource : PlayerSource =>
-            target.Zone.LivePlayers.find(_.Name == pSource.Name) match {
+            val name = pSource.Name
+            zone.LivePlayers.find(_.Name == name) match {
               case Some(player) => player.GUID
               case None => player_guid
             }
@@ -265,6 +272,7 @@ object PlayerControl {
       case _ => player_guid
     }
     target.Die
+    //unjam
     target.Actor ! JammableUnit.ClearJammeredSound()
     target.Actor ! JammableUnit.ClearJammeredStatus()
     events ! AvatarServiceMessage(nameChannel, AvatarAction.Killed(player_guid)) //align client interface fields with state
@@ -276,7 +284,7 @@ object PlayerControl {
     }
     events ! AvatarServiceMessage(zoneChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 0, 0)) //health
     events ! AvatarServiceMessage(nameChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 2, 0)) //stamina
-    if(target.ExoSuit == ExoSuitType.MAX) {
+    if(target.Capacitor > 0) {
       target.Capacitor = 0
       events ! AvatarServiceMessage(nameChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 7, 0)) // capacitor
     }
@@ -307,7 +315,6 @@ object PlayerControl {
         }
     }) match {
       case Some(shot) =>
-        zone.Activity ! Zone.HotSpot.Activity(pentry, shot.projectile.owner, shot.hit_pos)
         events ! AvatarServiceMessage(zoneChannel, AvatarAction.DestroyDisplay(shot.projectile.owner, pentry, shot.projectile.attribute_to))
       case None =>
         events ! AvatarServiceMessage(zoneChannel, AvatarAction.DestroyDisplay(pentry, pentry, 0))

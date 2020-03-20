@@ -21,19 +21,22 @@ import scala.concurrent.duration._
 trait DamageableVehicle extends DamageableEntity {
   /** vehicles (may) have shields; they need to be handled */
   private var handleDamageToShields : Boolean = false
+  /** whether or not the vehicle has been damaged directly, report that damage has occurred */
+  private var reportDamageToVehicle : Boolean = false
 
   def DamageableObject : Vehicle
 
-  override protected def TakesDamage : Receive = super.TakesDamage.orElse {
-    case DamageableVehicle.Damage(cause) =>
+  override protected def TakesDamage : Receive =
+    super.TakesDamage.orElse {
+    case DamageableVehicle.Damage(cause, damage) =>
       //cargo vehicles inherit feedback from carrier
-      DamageAwareness(DamageableObject, cause, amount = 1) //non-zero
+      reportDamageToVehicle = damage > 0
+      DamageAwareness(DamageableObject, cause, amount = 0)
 
     case DamageableVehicle.Destruction(cause) =>
       //cargo vehicles are destroyed when carrier is destroyed
       val obj = DamageableObject
       obj.Health = 0
-      obj.Shields = 0
       obj.History(cause)
       DestructionAwareness(obj, cause)
   }
@@ -60,18 +63,24 @@ trait DamageableVehicle extends DamageableEntity {
     if(WillAffectTarget(damageToHealth + damageToShields, cause)) {
       DamageLog(target, s"BEFORE=$originalHealth/$originalShields, AFTER=$health/$shields, CHANGE=$damageToHealth/$damageToShields")
       handleDamageToShields = damageToShields > 0
-      HandleDamage(target, cause, damageToHealth)
+      HandleDamage(target, cause, damageToHealth + damageToShields)
     }
   }
 
   override protected def DamageAwareness(target : Target, cause : ResolvedProjectile, amount : Int) : Unit = {
-    super.DamageAwareness(target, cause, amount)
     val obj = DamageableObject
+    val damageGreaterThanZero = amount > 0
     val handleShields = handleDamageToShields
     handleDamageToShields = false
-    DamageableMountable.DamageAwareness(obj, cause)
-    DamageableVehicle.DamageAwareness(obj, cause, handleShields)
-    DamageableWeaponTurret.DamageAwareness(obj, cause)
+    val handleReport = reportDamageToVehicle || damageGreaterThanZero
+    reportDamageToVehicle = false
+    if(damageGreaterThanZero) {
+      super.DamageAwareness(target, cause, amount)
+    }
+    if(handleReport) {
+      DamageableMountable.DamageAwareness(obj, cause)
+    }
+    DamageableVehicle.DamageAwareness(obj, cause, amount, handleShields)
   }
 
   override protected def DestructionAwareness(target : Target, cause : ResolvedProjectile) : Unit = {
@@ -88,7 +97,7 @@ object DamageableVehicle {
     * Message for instructing the target's cargo vehicles about a damage source affecting their carrier.
     * @param cause historical information about damage
     */
-  private case class Damage(cause : ResolvedProjectile)
+  private case class Damage(cause : ResolvedProjectile, amount : Int)
   /**
     * Message for instructing the target's cargo vehicles that their carrier is destroyed,
     * and they should be destroyed too.
@@ -109,9 +118,10 @@ object DamageableVehicle {
     * @see `VehicleServiceMessage`
     * @param target the entity being destroyed
     * @param cause historical information about the damage
+    * @param damage how much damage was performed
     * @param damageToShields dispatch a shield strength update
     */
-  def DamageAwareness(target : Vehicle, cause : ResolvedProjectile, damageToShields : Boolean) : Unit = {
+  def DamageAwareness(target : Vehicle, cause : ResolvedProjectile, damage : Int, damageToShields : Boolean) : Unit = {
     if(target.MountedIn.isEmpty && cause.projectile.profile.JammerProjectile) {
       target.Actor ! JammableUnit.Jammered(cause)
     }
@@ -119,7 +129,7 @@ object DamageableVehicle {
     target.CargoHolds.values.foreach(hold => {
       hold.Occupant match {
         case Some(cargo) =>
-          cargo.Actor ! DamageableVehicle.Damage(cause)
+          cargo.Actor ! DamageableVehicle.Damage(cause, damage + (if(damageToShields) 1 else 0))
         case None => ;
       }
     })
@@ -138,8 +148,6 @@ object DamageableVehicle {
     * The vehicle's shields are zero'd out if they were previously energized
     * so that the vehicle's corpse does not act like it is still protected by vehicle shields.
     * Finally, the vehicle is tasked for deconstruction.
-    * @see `JammableUnit.ClearJammeredSound`
-    * @see `JammableUnit.ClearJammeredStatus`
     * @see `Deployment.TryDeploymentChange`
     * @see `DriveState.Undeploying`
     * @see `Service.defaultPlayerGUID`
@@ -155,8 +163,6 @@ object DamageableVehicle {
     */
   def DestructionAwareness(target : Vehicle, cause : ResolvedProjectile) : Unit = {
     val zone = target.Zone
-    target.Actor ! JammableUnit.ClearJammeredSound()
-    target.Actor ! JammableUnit.ClearJammeredStatus()
     //cargo vehicles die with us
     target.CargoHolds.values.foreach(hold => {
       hold.Occupant match {

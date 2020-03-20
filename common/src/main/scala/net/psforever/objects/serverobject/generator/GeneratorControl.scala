@@ -9,7 +9,6 @@ import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.DamageableEntity
 import net.psforever.objects.serverobject.repair.{Repairable, RepairableEntity}
 import net.psforever.objects.serverobject.structures.Building
-import net.psforever.objects.vital.DamageFromProjectile
 import net.psforever.packet.game.TriggerEffectMessage
 import net.psforever.types.{PlanetSideGeneratorState, Vector3}
 import services.Service

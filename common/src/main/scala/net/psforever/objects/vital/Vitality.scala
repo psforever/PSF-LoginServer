@@ -11,6 +11,7 @@ import net.psforever.objects.vital.resolution.ResolutionCalculations
   */
 trait Vitality extends VitalsHistory {
   private var health : Int = Definition.DefaultHealth
+  private var defaultHealth : Option[Int] = None
   private var maxHealth : Option[Int] = None
 
   def Health : Int = health
@@ -19,6 +20,8 @@ trait Vitality extends VitalsHistory {
     health = math.min(math.max(0, assignHealth), MaxHealth)
     Health
   }
+
+  def DefaultHealth : Int = defaultHealth.getOrElse(Definition.DefaultHealth)
 
   def MaxHealth : Int = maxHealth.getOrElse(Definition.MaxHealth)
 

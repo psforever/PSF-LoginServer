@@ -26,7 +26,6 @@ object DamageableMountable {
     * @param cause historical information about the damage
     */
   def DamageAwareness(target : Damageable.Target with Mountable, cause : ResolvedProjectile) : Unit = {
-    val tguid = target.GUID
     val zone = target.Zone
     val events = zone.AvatarEvents
     val occupants = target.Seats.values.collect {
@@ -36,14 +35,18 @@ object DamageableMountable {
     (cause.projectile.owner match {
       case pSource : PlayerSource => //player damage
         val name = pSource.Name
-        val blame = zone.LivePlayers.find(_.Name == name).orElse(zone.Corpses.find(_.Name == name)) match {
-          case Some(player) => player.GUID
-          case None => tguid
+        (zone.LivePlayers.find(_.Name == name).orElse(zone.Corpses.find(_.Name == name)) match {
+          case Some(player) => AvatarAction.HitHint(player.GUID, player.GUID)
+          case None => AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(10, pSource.Position))
+        }) match {
+          case AvatarAction.HitHint(_, guid) =>
+            occupants.map { tplayer => (tplayer.Name, AvatarAction.HitHint(tplayer.GUID, guid)) }
+          case msg =>
+            occupants.map { tplayer => (tplayer.Name, msg) }
         }
-        occupants.map { tplayer => (tplayer.Name, AvatarAction.HitHint(blame, tplayer.GUID)) }
       case source => //object damage
-        val msg = DamageWithPositionMessage(10, source.Position)
-        occupants.map { tplayer => (tplayer.Name, AvatarAction.SendResponse(Service.defaultPlayerGUID, msg)) }
+        val msg = AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(10, source.Position))
+        occupants.map { tplayer => (tplayer.Name, msg) }
     }).foreach { case (channel, msg) =>
       events ! AvatarServiceMessage(channel, msg)
     }

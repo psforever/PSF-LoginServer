@@ -55,18 +55,18 @@ trait RepairableEntity extends Repairable {
       (target.Faction == player.Faction || target.Faction == PlanetSideEmpire.NEUTRAL) && item.Magazine > 0 &&
       player.isAlive && Vector3.Distance(target.Position, player.Position) < 5
     //debug warning messages; note: no warning message for being "too far away"
-    if(!o) {
-      import net.psforever.objects.definition.ObjectDefinition
-      val tname = definition.asInstanceOf[ObjectDefinition].Name
-      org.log4s.getLogger.warn(
-        if(!definition.Repairable) s"The $tname object type is not repairable."
-        else if(target.Destroyed && !definition.RepairIfDestroyed) s"The $tname object type can not be repaired if already destroyed."
-        else if(target.Health == target.MaxHealth) s"This $tname does not require repairs."
-        else if(!player.isAlive) s"${player.Name} is dead and can not repair this $tname."
-        else if(!target.CanRepair) s"There is some other reason this $tname can not be repaired."
-        else s"Who knows why this $tname can not be repaired!"
-      )
-    }
+//    if(!o) {
+//      import net.psforever.objects.definition.ObjectDefinition
+//      val tname = definition.asInstanceOf[ObjectDefinition].Name
+//      org.log4s.getLogger.warn(
+//        if(!definition.Repairable) s"The $tname object type is not repairable."
+//        else if(target.Destroyed && !definition.RepairIfDestroyed) s"The $tname object type can not be repaired if already destroyed."
+//        else if(target.Health == target.MaxHealth) s"This $tname does not require repairs."
+//        else if(!player.isAlive) s"${player.Name} is dead and can not repair this $tname."
+//        else if(!target.CanRepair) s"There is some other reason this $tname can not be repaired."
+//        else s"Who knows why this $tname can not be repaired!"
+//      )
+//    }
     o
   }
 

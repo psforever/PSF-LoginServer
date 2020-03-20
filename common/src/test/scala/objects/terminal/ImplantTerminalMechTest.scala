@@ -4,10 +4,14 @@ package objects.terminal
 import akka.actor.{ActorRef, ActorSystem, Props}
 import base.ActorTest
 import net.psforever.objects.definition.SeatDefinition
+import net.psforever.objects.guid.NumberPoolHub
+import net.psforever.objects.guid.source.LimitedNumberSource
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.implantmech.{ImplantTerminalMech, ImplantTerminalMechControl}
-import net.psforever.objects.serverobject.structures.StructureType
+import net.psforever.objects.serverobject.structures.{Building, StructureType}
+import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.vehicles.Seat
+import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, Vector3}
 import org.specs2.mutable.Specification
@@ -24,7 +28,7 @@ class ImplantTerminalMechTest extends Specification {
       implant_terminal_mech.Seats(0).isInstanceOf[SeatDefinition] mustEqual true
       implant_terminal_mech.Seats(0).ArmorRestriction mustEqual net.psforever.objects.vehicles.SeatArmorRestriction.NoMax
       implant_terminal_mech.Seats(0).Bailable mustEqual false
-      implant_terminal_mech.Seats(0).ControlledWeapon mustEqual None
+      implant_terminal_mech.Seats(0).ControlledWeapon.isEmpty mustEqual true
     }
   }
 
@@ -39,19 +43,19 @@ class ImplantTerminalMechTest extends Specification {
 
     "get seat from mount points" in {
       val obj = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech)
-      obj.GetSeatFromMountPoint(0) mustEqual None
-      obj.GetSeatFromMountPoint(1) mustEqual Some(0)
-      obj.GetSeatFromMountPoint(2) mustEqual None
+      obj.GetSeatFromMountPoint(0).isEmpty mustEqual true
+      obj.GetSeatFromMountPoint(1).contains(0) mustEqual true
+      obj.GetSeatFromMountPoint(2).isEmpty mustEqual true
     }
 
     "get passenger in a seat" in {
       val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       val obj = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech)
-      obj.PassengerInSeat(player) mustEqual None
+      obj.PassengerInSeat(player).isEmpty mustEqual true
       obj.Seats(0).Occupant = player
-      obj.PassengerInSeat(player) mustEqual Some(0)
+      obj.PassengerInSeat(player).contains(0) mustEqual true
       obj.Seats(0).Occupant = None
-      obj.PassengerInSeat(player) mustEqual None
+      obj.PassengerInSeat(player).isEmpty mustEqual true
     }
   }
 }
@@ -113,7 +117,7 @@ class ImplantTerminalMechControl4Test extends ActorTest {
     "dismount player after mounting" in {
       val (player, mech) = ImplantTerminalMechTest.SetUpAgents(PlanetSideEmpire.TR)
       mech.Actor ! Mountable.TryMount(player, 0)
-      receiveOne(Duration.create(100, "ms")) //consume reply
+      receiveOne(Duration.create(200, "ms")) //consume reply
       assert(mech.Seat(0).get.isOccupied)
 
       mech.Actor ! Mountable.TryDismount(player, 0)
@@ -155,14 +159,26 @@ class ImplantTerminalMechControl5Test extends ActorTest {
 
 object ImplantTerminalMechTest {
   def SetUpAgents(faction : PlanetSideEmpire.Value)(implicit system : ActorSystem) : (Player, ImplantTerminalMech) = {
-    import net.psforever.objects.serverobject.structures.Building
-    import net.psforever.objects.zones.Zone
-    import net.psforever.types.PlanetSideGUID
-    val terminal = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech)
-    terminal.Actor = system.actorOf(Props(classOf[ImplantTerminalMechControl], terminal), "mech")
-    terminal.Owner = new Building("Building", building_guid = 0, map_id = 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
-    terminal.Owner.Faction = faction
-    terminal.GUID = PlanetSideGUID(1)
+    val guid = new NumberPoolHub(new LimitedNumberSource(10))
+    val map = new ZoneMap("test")
+    val zone = new Zone("test", map, 0) {
+      override def SetupNumberPools() = {}
+      GUID(guid)
+    }
+    val building = new Building("Building", building_guid = 0, map_id = 0, zone, StructureType.Building, GlobalDefinitions.building) //guid=3
+    building.Faction = faction
+
+    val interface = Terminal(GlobalDefinitions.implant_terminal_interface) //guid=2
+    interface.Owner = building
+    val terminal = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech) //guid=1
+    terminal.Owner = building
+
+    guid.register(terminal, 1)
+    guid.register(interface, 2)
+    guid.register(building, 3)
+    map.TerminalToInterface(1, 2)
+    terminal.Actor = system.actorOf(Props(classOf[ImplantTerminalMechControl], terminal), "terminal-control")
+
     (Player(Avatar("test", faction, CharacterGender.Male, 0, CharacterVoice.Mute)), terminal)
   }
 }

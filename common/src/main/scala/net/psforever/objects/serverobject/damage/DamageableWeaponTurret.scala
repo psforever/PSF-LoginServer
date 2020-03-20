@@ -22,10 +22,11 @@ trait DamageableWeaponTurret extends DamageableEntity {
   }
 
   override protected def DamageAwareness(target : Damageable.Target, cause : ResolvedProjectile, amount : Int) : Unit = {
-    super.DamageAwareness(target, cause, amount)
-    val obj = DamageableObject
-    DamageableWeaponTurret.DamageAwareness(obj, cause)
-    DamageableMountable.DamageAwareness(obj, cause)
+    DamageableWeaponTurret.DamageAwareness(target, cause) //jammer, even if no damage amount
+    if(amount > 0) {
+      super.DamageAwareness(target, cause, amount)
+      DamageableMountable.DamageAwareness(DamageableObject, cause)
+    }
   }
 
   override protected def DestructionAwareness(target : Damageable.Target, cause : ResolvedProjectile) : Unit = {
