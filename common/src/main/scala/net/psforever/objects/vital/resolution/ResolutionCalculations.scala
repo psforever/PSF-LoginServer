@@ -4,8 +4,11 @@ package net.psforever.objects.vital.resolution
 import net.psforever.objects.{Player, TurretDeployable, Vehicle}
 import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile}
 import net.psforever.objects.ce.{ComplexDeployable, Deployable}
+import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.serverobject.turret.FacilityTurret
+import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.projectile.ProjectileCalculations
 
 /**
@@ -113,8 +116,11 @@ object ResolutionCalculations {
   def SubtractWithRemainder(current : Int, damage : Int) : (Int, Int) = {
     val a = Math.max(0, current - damage)
     val remainingDamage = Math.abs(current - damage - a)
-
     (a, remainingDamage)
+  }
+
+  private def CanDamage(obj : Vitality with FactionAffinity, damage : Int, data : ResolvedProjectile) : Boolean = {
+    obj.Health > 0 && Damageable.CanDamage(obj, damage, data)
   }
 
   /**
@@ -131,7 +137,6 @@ object ResolutionCalculations {
         var result = (0, 0)
         //TODO Personal Shield implant test should go here and modify the values a and b
         if(player.isAlive && !(a == 0 && b == 0)) {
-          player.History(data)
           if(player.Capacitor.toInt > 0 && player.isShielded) {
             // Subtract armour damage from capacitor
             result = SubtractWithRemainder(player.Capacitor.toInt, b)
@@ -173,8 +178,7 @@ object ResolutionCalculations {
     */
   def VehicleApplication(damage : Int, data : ResolvedProjectile)(target : Any) : ResolvedProjectile = {
     target match {
-      case vehicle : Vehicle if vehicle.Health > 0 && damage > 0 =>
-        vehicle.History(data)
+      case vehicle : Vehicle if CanDamage(vehicle, damage, data) =>
         val shields = vehicle.Shields
         if(shields > damage) {
           vehicle.Shields = shields - damage
@@ -193,15 +197,12 @@ object ResolutionCalculations {
 
   def SimpleApplication(damage : Int, data : ResolvedProjectile)(target : Any) : ResolvedProjectile = {
     target match {
-      case obj : Deployable if obj.Health > 0 =>
+      case obj : Deployable if CanDamage(obj, damage, data) =>
         obj.Health -= damage
-        obj.History(data)
-      case turret : FacilityTurret if turret.Health > 0 =>
+      case turret : FacilityTurret if CanDamage(turret, damage, data) =>
         turret.Health -= damage
-        turret.History(data)
-      case amenity : Amenity if amenity.Health > 0 =>
+      case amenity : Amenity if CanDamage(amenity, damage, data) =>
         amenity.Health -= damage
-        amenity.History(data)
       case _ => ;
     }
     data
@@ -209,8 +210,7 @@ object ResolutionCalculations {
 
   def ComplexDeployableApplication(damage : Int, data : ResolvedProjectile)(target : Any) : ResolvedProjectile = {
     target match {
-      case ce : ComplexDeployable if ce.Health > 0 && damage > 0 =>
-        ce.History(data)
+      case ce : ComplexDeployable if CanDamage(ce, damage, data) =>
         if(ce.Shields > 0) {
           if(damage > ce.Shields) {
             ce.Health -= (damage - ce.Shields)
@@ -224,8 +224,7 @@ object ResolutionCalculations {
           ce.Health -= damage
         }
 
-      case ce : TurretDeployable if ce.Health > 0 && damage > 0 =>
-        ce.History(data)
+      case ce : TurretDeployable if CanDamage(ce, damage, data) =>
         if(ce.Shields > 0) {
           if(damage > ce.Shields) {
             ce.Health -= (damage - ce.Shields)

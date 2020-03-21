@@ -69,10 +69,6 @@ class ShieldGeneratorControl(gen : ShieldGeneratorDeployable) extends Actor
     }
   }
 
-//  override def WillAffectTarget(target : Damageable.Target, damage : Int, cause : ResolvedProjectile) : Boolean = {
-//    super.WillAffectTarget(target, damage, cause) || cause.projectile.profile.JammerProjectile
-//  }
-
   override protected def PerformDamage(target : Damageable.Target, applyDamageTo : ResolutionCalculations.Output) : Unit = {
     val originalHealth = gen.Health
     val originalShields = gen.Shields
@@ -83,16 +79,14 @@ class ShieldGeneratorControl(gen : ShieldGeneratorDeployable) extends Actor
     val damageToShields = originalShields - shields
     val damage = damageToHealth + damageToShields
     if(WillAffectTarget(target, damage, cause)) {
-      val name = target.Actor.toString
-      val slashPoint = name.lastIndexOf("/")
-      DamageLog(s"${name.substring(slashPoint + 1, name.length - 1)}: BEFORE=$originalHealth/$originalShields, AFTER=$health/$shields, CHANGE=$damageToHealth/$damageToShields")
+      target.History(cause)
+      DamageLog(target,s"BEFORE=$originalHealth/$originalShields, AFTER=$health/$shields, CHANGE=$damageToHealth/$damageToShields")
       handleDamageToShields = damageToShields > 0
       HandleDamage(target, cause, damageToHealth)
     }
     else {
       gen.Health = originalHealth
       gen.Shields = originalShields
-      target.History = target.History.drop(1)
     }
   }
 
@@ -140,9 +134,6 @@ object ShieldGeneratorControl {
     * @param damageToShields na
     */
   def DamageAwareness(target : ShieldGeneratorDeployable, cause : ResolvedProjectile, damageToShields : Boolean) : Unit = {
-    if(cause.projectile.profile.JammerProjectile) {
-      target.Actor ! JammableUnit.Jammered(cause)
-    }
     //shields
     if(damageToShields) {
       val zone = target.Zone
@@ -156,8 +147,6 @@ object ShieldGeneratorControl {
     * @param attribution na
     */
   def DestructionAwareness(target : Damageable.Target with Deployable, attribution : PlanetSideGUID) : Unit = {
-    target.Actor ! JammableUnit.ClearJammeredSound()
-    target.Actor ! JammableUnit.ClearJammeredStatus()
     Deployables.AnnounceDestroyDeployable(target, None)
   }
 }

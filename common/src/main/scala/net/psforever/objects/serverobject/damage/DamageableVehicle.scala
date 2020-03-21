@@ -4,7 +4,6 @@ package net.psforever.objects.serverobject.damage
 import akka.actor.Actor.Receive
 import net.psforever.objects.{GlobalDefinitions, Vehicle}
 import net.psforever.objects.ballistics.ResolvedProjectile
-import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.vital.resolution.ResolutionCalculations
@@ -28,7 +27,7 @@ trait DamageableVehicle extends DamageableEntity {
 
   override protected def TakesDamage : Receive =
     super.TakesDamage.orElse {
-    case DamageableVehicle.Damage(cause, damage) =>
+      case DamageableVehicle.Damage(cause, damage) =>
       //cargo vehicles inherit feedback from carrier
       reportDamageToVehicle = damage > 0
       DamageAwareness(DamageableObject, cause, amount = 0)
@@ -39,11 +38,6 @@ trait DamageableVehicle extends DamageableEntity {
       obj.Health = 0
       obj.History(cause)
       DestructionAwareness(obj, cause)
-  }
-
-  override def WillAffectTarget(target : Damageable.Target, damage : Int, cause : ResolvedProjectile) : Boolean = {
-    //jammable
-    super.WillAffectTarget(target, damage, cause) || cause.projectile.profile.JammerProjectile
   }
 
   /**
@@ -61,6 +55,7 @@ trait DamageableVehicle extends DamageableEntity {
     val damageToHealth = originalHealth - health
     val damageToShields = originalShields - shields
     if(WillAffectTarget(target, damageToHealth + damageToShields, cause)) {
+      target.History(cause)
       DamageLog(target, s"BEFORE=$originalHealth/$originalShields, AFTER=$health/$shields, CHANGE=$damageToHealth/$damageToShields")
       handleDamageToShields = damageToShields > 0
       HandleDamage(target, cause, damageToHealth + damageToShields)
@@ -68,18 +63,16 @@ trait DamageableVehicle extends DamageableEntity {
     else {
       obj.Health = originalHealth
       obj.Shields = originalShields
-      target.History = target.History.drop(1)
     }
   }
 
   override protected def DamageAwareness(target : Target, cause : ResolvedProjectile, amount : Int) : Unit = {
     val obj = DamageableObject
-    val damageGreaterThanZero = amount > 0
     val handleShields = handleDamageToShields
     handleDamageToShields = false
-    val handleReport = reportDamageToVehicle || damageGreaterThanZero
+    val handleReport = reportDamageToVehicle || amount > 0
     reportDamageToVehicle = false
-    if(damageGreaterThanZero) {
+    if(Damageable.CanDamageOrJammer(target, amount, cause)) {
       super.DamageAwareness(target, cause, amount)
     }
     if(handleReport) {
@@ -116,7 +109,6 @@ object DamageableVehicle {
     * A damaged carrier alerts its cargo vehicles of the source of the damage,
     * but it will not be affected by the same jammering effect.
     * If this vehicle has shields that were affected by previous damage, that is also reported to the clients.
-    * @see `JammableUnit.Jammered`
     * @see `Service.defaultPlayerGUID`
     * @see `Vehicle.CargoHolds`
     * @see `VehicleAction.PlanetsideAttribute`
@@ -127,9 +119,6 @@ object DamageableVehicle {
     * @param damageToShields dispatch a shield strength update
     */
   def DamageAwareness(target : Vehicle, cause : ResolvedProjectile, damage : Int, damageToShields : Boolean) : Unit = {
-    if(target.MountedIn.isEmpty && cause.projectile.profile.JammerProjectile) {
-      target.Actor ! JammableUnit.Jammered(cause)
-    }
     //alert cargo occupants to damage source
     target.CargoHolds.values.foreach(hold => {
       hold.Occupant match {

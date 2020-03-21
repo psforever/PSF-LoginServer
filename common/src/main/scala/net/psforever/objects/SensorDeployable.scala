@@ -59,15 +59,6 @@ class SensorDeployableControl(sensor : SensorDeployable) extends Actor
 
   override protected def DamageLog(msg : String) : Unit = { }
 
-  override protected def WillAffectTarget(target :Damageable.Target, damage : Int, cause : ResolvedProjectile) : Boolean = {
-    super.WillAffectTarget(target, damage, cause) || cause.projectile.profile.JammerProjectile
-  }
-
-  override protected def DamageAwareness(target : Damageable.Target, cause : ResolvedProjectile, amount : Int) : Unit = {
-    super.DamageAwareness(target, cause, amount)
-    SensorDeployableControl.DamageAwareness(target, PlanetSideGUID(0), cause)
-  }
-
   override protected def DestructionAwareness(target : Damageable.Target, cause : ResolvedProjectile) : Unit = {
     super.DestructionAwareness(target, cause)
     SensorDeployableControl.DestructionAwareness(sensor, PlanetSideGUID(0))
@@ -113,22 +104,8 @@ object SensorDeployableControl {
     * na
     * @param target na
     * @param attribution na
-    * @param cause na
-    */
-  def DamageAwareness(target : Damageable.Target, attribution : PlanetSideGUID, cause : ResolvedProjectile) : Unit = {
-    if(cause.projectile.profile.JammerProjectile) {
-      target.Actor ! JammableUnit.Jammered(cause)
-    }
-  }
-
-  /**
-    * na
-    * @param target na
-    * @param attribution na
     */
   def DestructionAwareness(target : Damageable.Target with Deployable, attribution : PlanetSideGUID) : Unit = {
-    target.Actor ! JammableUnit.ClearJammeredSound()
-    target.Actor ! JammableUnit.ClearJammeredStatus()
     Deployables.AnnounceDestroyDeployable(target, None)
     val zone = target.Zone
     zone.LocalEvents ! LocalServiceMessage(zone.Id, LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", target.GUID, false, 1000))

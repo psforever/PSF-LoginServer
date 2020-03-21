@@ -972,6 +972,7 @@ class WorldSessionActor extends Actor
           avatar.Deployables.Remove(obj)
           UpdateDeployableUIElements(avatar.Deployables.UpdateUIElement(obj.Definition.Item))
           continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent))
+          obj.Faction = PlanetSideEmpire.NEUTRAL
           sendResponse(SetEmpireMessage(guid, PlanetSideEmpire.NEUTRAL))
           continent.AvatarEvents ! AvatarServiceMessage(factionChannel, AvatarAction.SetEmpire(playerGUID, guid, PlanetSideEmpire.NEUTRAL))
           val info = DeployableInfo(guid, DeployableIcon.Boomer, obj.Position, PlanetSideGUID(0))

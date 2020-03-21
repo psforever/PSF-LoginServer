@@ -63,10 +63,16 @@ class ExplosiveDeployableControl(mine : ExplosiveDeployable) extends Actor
 
   protected def TakesDamage : Receive = {
     case Vitality.Damage(applyDamageTo) =>
-      val originalHealth = mine.Health
       if(mine.CanDamage) {
+        val originalHealth = mine.Health
         val cause = applyDamageTo(mine)
-        ExplosiveDeployableControl.DamageResolution(mine, cause, originalHealth - mine.Health)
+        val damage = originalHealth - mine.Health
+        if(Damageable.CanDamageOrJammer(mine, damage, cause)) {
+          ExplosiveDeployableControl.DamageResolution(mine, cause, damage)
+        }
+        else {
+          mine.Health = originalHealth
+        }
       }
   }
 }
@@ -106,4 +112,3 @@ object ExplosiveDeployableControl {
     zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.Destroy(target.GUID, attribution, attribution, target.Position))
   }
 }
-

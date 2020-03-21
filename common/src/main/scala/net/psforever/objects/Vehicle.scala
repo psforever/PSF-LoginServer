@@ -76,7 +76,7 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends AmenityOwner
   with StandardResistanceProfile
   with JammableUnit
   with Container {
-  private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.TR
+  private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
   private var shields : Int = 0
   private var isDead : Boolean = false
   private var decal : Int = 0

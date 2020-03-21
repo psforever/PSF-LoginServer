@@ -2,7 +2,6 @@
 package net.psforever.objects.serverobject.damage
 
 import net.psforever.objects.ballistics.ResolvedProjectile
-import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.turret.{TurretUpgrade, WeaponTurret}
 import net.psforever.objects.vehicles.MountedWeapons
 import services.Service
@@ -16,15 +15,9 @@ import services.vehicle.VehicleServiceMessage
 trait DamageableWeaponTurret extends DamageableEntity {
   def DamageableObject : Damageable.Target with WeaponTurret
 
-  override def WillAffectTarget(target : Damageable.Target, damage : Int, cause : ResolvedProjectile) : Boolean = {
-    //jammable
-    super.WillAffectTarget(target, damage, cause) || cause.projectile.profile.JammerProjectile
-  }
-
   override protected def DamageAwareness(target : Damageable.Target, cause : ResolvedProjectile, amount : Int) : Unit = {
-    DamageableWeaponTurret.DamageAwareness(target, cause) //jammer, even if no damage amount
+    super.DamageAwareness(target, cause, amount)
     if(amount > 0) {
-      super.DamageAwareness(target, cause, amount)
       DamageableMountable.DamageAwareness(DamageableObject, cause)
     }
   }
@@ -39,25 +32,11 @@ trait DamageableWeaponTurret extends DamageableEntity {
 
 object DamageableWeaponTurret {
   /**
-    * The weapons attached to the turret jams if the projectile has jammering properties.
-    * @see `JammableUnit.Jammered`
-    * @param target the entity being damaged
-    * @param cause historical information about the damage
-    */
-  def DamageAwareness(target : Damageable.Target, cause : ResolvedProjectile) : Unit = {
-    if(cause.projectile.profile.JammerProjectile) {
-      target.Actor ! JammableUnit.Jammered(cause)
-    }
-  }
-
-  /**
     * A destroyed target dispatches a message to conceal (delete) its weapons from users.
     * If affected by a jammer property, the jammer propoerty will be removed.
     * If the type of entity is a `WeaponTurret`, the weapons are converted to their "normal" upgrade state.
     * @see `AvatarAction.DeleteObject`
     * @see `AvatarServiceMessage`
-    * @see `JammableUnit.ClearJammeredSound`
-    * @see `JammableUnit.ClearJammeredStatus`
     * @see `MountedWeapons`
     * @see `MountedWeapons.Weapons`
     * @see `Service.defaultPlayerGUID`
@@ -74,9 +53,6 @@ object DamageableWeaponTurret {
     * @param cause historical information about the damage
     */
   def DestructionAwareness(target : Damageable.Target with MountedWeapons, cause : ResolvedProjectile) : Unit = {
-    //un-jam
-    target.Actor ! JammableUnit.ClearJammeredSound()
-    target.Actor ! JammableUnit.ClearJammeredStatus()
     //wreckage has no (visible) mounted weapons
     val zone = target.Zone
     val zoneId = zone.Id

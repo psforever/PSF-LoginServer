@@ -198,7 +198,7 @@ object PlayerControl {
         //alert damage source
         DamageAwareness(target, cause)
       }
-      if(cause.projectile.profile.JammerProjectile) {
+      if(Damageable.CanJammer(target, cause)) {
         target.Actor ! JammableUnit.Jammered(cause)
       }
     }

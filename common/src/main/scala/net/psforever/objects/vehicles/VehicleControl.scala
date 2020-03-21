@@ -3,7 +3,7 @@ package net.psforever.objects.vehicles
 
 import akka.actor.{Actor, ActorRef}
 import net.psforever.objects.{GlobalDefinitions, SimpleItem, Vehicle}
-import net.psforever.objects.ballistics.VehicleSource
+import net.psforever.objects.ballistics.{ResolvedProjectile, VehicleSource}
 import net.psforever.objects.equipment.JammableMountedWeapons
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
@@ -133,6 +133,12 @@ class VehicleControl(vehicle : Vehicle) extends Actor
 
       case _ =>
     }
+
+  override def TryJammerEffectActivate(target : Any, cause : ResolvedProjectile) : Unit = {
+    if(vehicle.MountedIn.isEmpty) {
+      super.TryJammerEffectActivate(target, cause)
+    }
+  }
 }
 
 object VehicleControl {

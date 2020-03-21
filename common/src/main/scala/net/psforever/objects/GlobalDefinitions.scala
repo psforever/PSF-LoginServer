@@ -6063,6 +6063,7 @@ object GlobalDefinitions {
     boomer.Descriptor = "Boomers"
     boomer.MaxHealth = 100
     boomer.Damageable = true
+    boomer.DamageableByFriendlyFire = false
     boomer.Repairable = false
     boomer.DeployCategory = DeployableCategory.Boomers
     boomer.DeployTime = Duration.create(1000, "ms")
@@ -6071,6 +6072,7 @@ object GlobalDefinitions {
     he_mine.Descriptor = "Mines"
     he_mine.MaxHealth = 100
     he_mine.Damageable = true
+    he_mine.DamageableByFriendlyFire = false
     he_mine.Repairable = false
     he_mine.DeployTime = Duration.create(1000, "ms")
 
@@ -6078,6 +6080,7 @@ object GlobalDefinitions {
     jammer_mine.Descriptor = "JammerMines"
     jammer_mine.MaxHealth = 100
     jammer_mine.Damageable = true
+    jammer_mine.DamageableByFriendlyFire = false
     jammer_mine.Repairable = false
     jammer_mine.DeployTime = Duration.create(1000, "ms")
     jammer_mine.DetonateOnJamming = false

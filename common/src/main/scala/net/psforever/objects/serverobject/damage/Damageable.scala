@@ -4,6 +4,8 @@ package net.psforever.objects.serverobject.damage
 import akka.actor.Actor.Receive
 import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.vital.Vitality
 
 /**
@@ -35,6 +37,78 @@ trait Damageable {
 object Damageable {
   /* the type of all entities governed by this mixin; see Repairable.Target */
   final type Target = PlanetSideServerObject with Vitality
+
+  /**
+    * Does the possibility exist that the designated target can be affected by this projectile?
+    * @see `Hackable`
+    * @see `ObjectDefinition.DamageableByFriendlyFire`
+    * @param obj the entity being damaged
+    * @param data historical information about the damage
+    * @return `true`, if the target can be affected;
+    *        `false`, otherwise
+    */
+  def CanAffect(obj : Vitality with FactionAffinity, data : ResolvedProjectile) : Boolean = {
+    obj.Definition.DamageableByFriendlyFire ||
+      (data.projectile.owner.Faction != obj.Faction ||
+        (obj match {
+          case hobj : Hackable => hobj.HackedBy.nonEmpty;
+          case _ => false
+        })
+      )
+  }
+
+  /**
+    * Does the possibility exist that the designated target can be affected by this projectile's damage?
+    * @see `Hackable`
+    * @see `ObjectDefinition.DamageableByFriendlyFire`
+    * @param obj the entity being damaged
+    * @param damage the amount of damage
+    * @param data historical information about the damage
+    * @return `true`, if the target can be affected;
+    *        `false`, otherwise
+    */
+  def CanDamage(obj : Vitality with FactionAffinity, damage : Int, data : ResolvedProjectile) : Boolean = {
+    damage > 0 &&
+      (obj.Definition.DamageableByFriendlyFire ||
+        (data.projectile.owner.Faction != obj.Faction ||
+          (obj match {
+            case hobj : Hackable => hobj.HackedBy.nonEmpty;
+            case _ => false
+          })
+        )
+      )
+  }
+
+  /**
+    * Does the possibility exist that the designated target can be affected by this projectile's jammer effect?
+    * @see `Hackable`
+    * @see `ProjectileDefinition..JammerProjectile`
+    * @param obj the entity being damaged
+    * @param data historical information about the damage
+    * @return `true`, if the target can be affected;
+    *        `false`, otherwise
+    */
+  def CanJammer(obj : Vitality with FactionAffinity, data : ResolvedProjectile) : Boolean = {
+    data.projectile.profile.JammerProjectile &&
+      (data.projectile.owner.Faction != obj.Faction ||
+        (obj match {
+          case hobj : Hackable => hobj.HackedBy.nonEmpty;
+          case _ => false
+        })
+      )
+  }
+
+  /**
+    * Does the possibility exist that the designated target can be affected by this projectile?
+    * @param obj the entity being damaged
+    * @param damage the amount of damage
+    * @param data historical information about the damage
+    * @return `true`, if the target can be affected;
+    *        `false`, otherwise
+    */
+  def CanDamageOrJammer(obj : Vitality with FactionAffinity, damage : Int, data : ResolvedProjectile) : Boolean = {
+    CanDamage(obj, damage, data) || CanJammer(obj, data)
+  }
 
   /**
     * The entity has ben destroyed.
