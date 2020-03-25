@@ -170,7 +170,7 @@ object DamageableEntity {
   }
 
   /**
-    * A destroyed target dispatches two messages to:
+    * A destroyed target dispatches messages to:
     * - reports its adjusted its health; and,
     * - report about its destruction.
     * @see `AvatarAction.Destroy`

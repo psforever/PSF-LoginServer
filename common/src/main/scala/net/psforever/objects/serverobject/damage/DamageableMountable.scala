@@ -40,7 +40,7 @@ object DamageableMountable {
           case None => AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(10, pSource.Position))
         }) match {
           case AvatarAction.HitHint(_, guid) =>
-            occupants.map { tplayer => (tplayer.Name, AvatarAction.HitHint(tplayer.GUID, guid)) }
+            occupants.map { tplayer => (tplayer.Name, AvatarAction.HitHint(guid, tplayer.GUID)) }
           case msg =>
             occupants.map { tplayer => (tplayer.Name, msg) }
         }

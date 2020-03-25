@@ -3,6 +3,7 @@ package net.psforever.objects.serverobject.damage
 
 import akka.actor.Actor.Receive
 import net.psforever.objects.ballistics.ResolvedProjectile
+import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.hackable.Hackable
@@ -39,25 +40,6 @@ object Damageable {
   final type Target = PlanetSideServerObject with Vitality
 
   /**
-    * Does the possibility exist that the designated target can be affected by this projectile?
-    * @see `Hackable`
-    * @see `ObjectDefinition.DamageableByFriendlyFire`
-    * @param obj the entity being damaged
-    * @param data historical information about the damage
-    * @return `true`, if the target can be affected;
-    *        `false`, otherwise
-    */
-  def CanAffect(obj : Vitality with FactionAffinity, data : ResolvedProjectile) : Boolean = {
-    obj.Definition.DamageableByFriendlyFire ||
-      (data.projectile.owner.Faction != obj.Faction ||
-        (obj match {
-          case hobj : Hackable => hobj.HackedBy.nonEmpty;
-          case _ => false
-        })
-      )
-  }
-
-  /**
     * Does the possibility exist that the designated target can be affected by this projectile's damage?
     * @see `Hackable`
     * @see `ObjectDefinition.DamageableByFriendlyFire`
@@ -89,10 +71,12 @@ object Damageable {
     *        `false`, otherwise
     */
   def CanJammer(obj : Vitality with FactionAffinity, data : ResolvedProjectile) : Boolean = {
-    data.projectile.profile.JammerProjectile &&
-      (data.projectile.owner.Faction != obj.Faction ||
+    val projectile = data.projectile
+    projectile.profile.JammerProjectile &&
+      (projectile.owner.Faction != obj.Faction ||
         (obj match {
-          case hobj : Hackable => hobj.HackedBy.nonEmpty;
+          case hobj : JammableUnit with Hackable => hobj.HackedBy.nonEmpty
+          case _ : JammableUnit => true
           case _ => false
         })
       )

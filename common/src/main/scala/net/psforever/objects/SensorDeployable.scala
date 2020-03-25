@@ -108,7 +108,13 @@ object SensorDeployableControl {
   def DestructionAwareness(target : Damageable.Target with Deployable, attribution : PlanetSideGUID) : Unit = {
     Deployables.AnnounceDestroyDeployable(target, None)
     val zone = target.Zone
-    zone.LocalEvents ! LocalServiceMessage(zone.Id, LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", target.GUID, false, 1000))
-    //TODO replaced by an alternate model!
+    zone.LocalEvents ! LocalServiceMessage(zone.Id,
+      LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", target.GUID, false, 1000)
+    )
+    //TODO following explosion effect should be positioned in bulk area of sensor stalk, not at base
+    zone.LocalEvents ! LocalServiceMessage(zone.Id,
+      LocalAction.TriggerEffectLocation(Service.defaultPlayerGUID, "motion_sensor_destroyed", target.Position, target.Orientation)
+    )
+    //TODO replaced by an alternate model (charred stub)?
   }
 }

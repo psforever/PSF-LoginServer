@@ -27,7 +27,6 @@ class PlayerControl(player : Player) extends Actor
   def JammableObject = player
   def DamageableObject = player
 
-  //private [this] val log = org.log4s.getLogger(player.Name)
   private [this] val damageLog = org.log4s.getLogger("DamageResolution")
 
   def receive : Receive = jammableBehavior
@@ -57,6 +56,8 @@ class PlayerControl(player : Player) extends Actor
             events ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttributeToAll(guid, 0, player.Health))
           }
           if(player != user) {
+            //"Someone is trying to heal you"
+            events ! AvatarServiceMessage(player.Name, AvatarAction.PlanetsideAttributeToAll(guid, 55, 1))
             //progress bar remains visible for all repair attempts
             events ! AvatarServiceMessage(uname, AvatarAction.SendResponse(Service.defaultPlayerGUID, RepairMessage(guid, player.Health * 100 / definition.MaxHealth)))
           }
@@ -88,6 +89,13 @@ class PlayerControl(player : Player) extends Actor
             events ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttributeToAll(guid, 4, player.Armor))
           }
           if(player != user) {
+            if(player.isAlive) {
+              //"Someone is trying to repair you" gets strobed twice for visibility
+              val msg = AvatarServiceMessage(player.Name, AvatarAction.PlanetsideAttributeToAll(guid, 56, 1))
+              events ! msg
+              import scala.concurrent.ExecutionContext.Implicits.global
+              context.system.scheduler.scheduleOnce(250 milliseconds, events, msg)
+            }
             //progress bar remains visible for all repair attempts
             events ! AvatarServiceMessage(uname, AvatarAction.SendResponse(Service.defaultPlayerGUID, RepairMessage(guid, player.Armor * 100 / player.MaxArmor)))
           }
@@ -144,8 +152,12 @@ class PlayerControl(player : Player) extends Actor
   override def StartJammeredStatus(target : Any, dur : Int) : Unit = target match {
     case obj : Player =>
       //TODO these features
-      obj.Zone.AvatarEvents ! AvatarServiceMessage(obj.Zone.Id, AvatarAction.DeactivateImplantSlot(obj.GUID, 1))
-      obj.Zone.AvatarEvents ! AvatarServiceMessage(obj.Zone.Id, AvatarAction.DeactivateImplantSlot(obj.GUID, 2))
+      val guid = obj.GUID
+      val zone = obj.Zone
+      val zoneId = zone.Id
+      val events = zone.AvatarEvents
+      events ! AvatarServiceMessage(zoneId, AvatarAction.DeactivateImplantSlot(guid, 1))
+      events ! AvatarServiceMessage(zoneId, AvatarAction.DeactivateImplantSlot(guid, 2))
       obj.skipStaminaRegenForTurns = math.max(obj.skipStaminaRegenForTurns, 10)
       super.StartJammeredStatus(target, dur)
     case _ => ;
@@ -216,19 +228,15 @@ object PlayerControl {
     * @param cause na
     */
   def DamageAwareness(target : Player, cause : ResolvedProjectile) : Unit = {
-    val name = target.Name
     val zone = target.Zone
     zone.AvatarEvents ! AvatarServiceMessage(
-      name,
+      target.Name,
       cause.projectile.owner match {
         case pSource : PlayerSource => //player damage
           val name = pSource.Name
-          (zone.LivePlayers.find(_.Name == name).orElse(zone.Corpses.find(_.Name == name)) match {
-            case Some(player) => AvatarAction.HitHint(player.GUID, player.GUID)
+          zone.LivePlayers.find(_.Name == name).orElse(zone.Corpses.find(_.Name == name)) match {
+            case Some(player) => AvatarAction.HitHint(player.GUID, target.GUID)
             case None => AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(10, pSource.Position))
-          }) match {
-            case AvatarAction.HitHint(_, guid) => AvatarAction.HitHint(target.GUID, guid)
-            case msg => msg
           }
         case source => AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(10, source.Position))
       }

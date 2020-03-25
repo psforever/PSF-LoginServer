@@ -11,6 +11,7 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.vital.{StandardResolutions, Vitality}
 import net.psforever.types.{PlanetSideGUID, Vector3}
+import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.local.{LocalAction, LocalServiceMessage}
 
@@ -110,5 +111,8 @@ object ExplosiveDeployableControl {
     target.Destroyed = true
     Deployables.AnnounceDestroyDeployable(target, Some(if(target.Jammed) 0 seconds else 500 milliseconds))
     zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.Destroy(target.GUID, attribution, attribution, target.Position))
+    if(target.Health == 0) {
+      zone.LocalEvents ! LocalServiceMessage(zone.Id, LocalAction.TriggerEffect(Service.defaultPlayerGUID, "detonate_damaged_mine", target.GUID))
+    }
   }
 }
