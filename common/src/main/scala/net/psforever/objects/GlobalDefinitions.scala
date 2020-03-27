@@ -6326,7 +6326,7 @@ object GlobalDefinitions {
     cert_terminal.Subtract.Damage1 = 8
 
     implant_terminal_mech.Name = "implant_terminal_mech"
-    implant_terminal_mech.MaxHealth = 1500 //TODO 1000
+    implant_terminal_mech.MaxHealth = 1500 //TODO 1000; right now, 1000 (mech) + 500 (interface)
     implant_terminal_mech.Damageable = true
     implant_terminal_mech.Repairable = true
     implant_terminal_mech.RepairIfDestroyed = true

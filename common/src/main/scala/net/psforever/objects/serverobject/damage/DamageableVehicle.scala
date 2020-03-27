@@ -182,5 +182,6 @@ object DamageableVehicle {
     }
     zone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(target), zone))
     zone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(target, zone, Some(1 minute)))
+    target.ClearHistory()
   }
 }

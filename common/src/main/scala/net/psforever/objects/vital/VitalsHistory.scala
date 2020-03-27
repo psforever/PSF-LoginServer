@@ -2,7 +2,7 @@
 package net.psforever.objects.vital
 
 import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile, SourceEntry, VehicleSource}
-import net.psforever.objects.definition.KitDefinition
+import net.psforever.objects.definition.{EquipmentDefinition, KitDefinition, ObjectDefinition}
 import net.psforever.objects.serverobject.painbox.Painbox
 import net.psforever.objects.serverobject.terminals.TerminalDefinition
 import net.psforever.types.{ExoSuitType, ImplantType}
@@ -20,6 +20,8 @@ abstract class DamagingActivity(target : SourceEntry) extends VitalsActivity(tar
 
 final case class HealFromKit(target : PlayerSource, amount : Int, kit_def : KitDefinition) extends HealingActivity(target)
 
+final case class HealFromEquipment(target : PlayerSource, user : PlayerSource, amount : Int, equipment_def : EquipmentDefinition) extends HealingActivity(target)
+
 final case class HealFromTerm(target : PlayerSource, health : Int, armor : Int, term_def : TerminalDefinition) extends HealingActivity(target)
 
 final case class HealFromImplant(target : PlayerSource, amount : Int, implant : ImplantType.Value) extends HealingActivity(target)
@@ -27,6 +29,8 @@ final case class HealFromImplant(target : PlayerSource, amount : Int, implant : 
 final case class HealFromExoSuitChange(target : PlayerSource, exosuit : ExoSuitType.Value) extends HealingActivity(target)
 
 final case class RepairFromKit(target : PlayerSource, amount : Int, kit_def : KitDefinition) extends HealingActivity(target)
+
+final case class RepairFromEquipment(target : PlayerSource, user : PlayerSource, amount : Int, equipment_def : EquipmentDefinition) extends HealingActivity(target)
 
 final case class RepairFromTerm(target : VehicleSource, amount : Int, term_def : TerminalDefinition) extends HealingActivity(target)
 
@@ -37,6 +41,8 @@ final case class DamageFromProjectile(data : ResolvedProjectile) extends Damagin
 final case class DamageFromPainbox(target : PlayerSource, painbox : Painbox, damage : Int) extends DamagingActivity(target)
 
 final case class PlayerSuicide(target : PlayerSource) extends DamagingActivity(target)
+
+final case class DamageFromExplosion(target : PlayerSource, cause : ObjectDefinition) extends DamagingActivity(target)
 
 /**
   * A vital object can be hurt or damaged or healed or repaired (HDHR).

@@ -80,6 +80,7 @@ class ExplosiveDeployableControl(mine : ExplosiveDeployable) extends Actor
 
 object ExplosiveDeployableControl {
   def DamageResolution(target : ExplosiveDeployable, cause : ResolvedProjectile, damage : Int) : Unit = {
+    target.History(cause)
     if(target.Health == 0) {
       DestructionAwareness(target, cause)
     }

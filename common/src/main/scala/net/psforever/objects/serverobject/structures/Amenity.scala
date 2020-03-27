@@ -1,8 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.structures
 
+import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.vital.{DamageResistanceModel, StandardResistanceProfile, Vitality}
+import net.psforever.objects.vital.{DamageResistanceModel, StandardResistanceProfile, Vitality, VitalsActivity}
 import net.psforever.objects.zones.{Zone, ZoneAware}
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 import net.psforever.objects.zones.{Zone => World}
@@ -80,4 +81,9 @@ abstract class Amenity extends PlanetSideServerObject
   def DamageModel = Definition.asInstanceOf[DamageResistanceModel]
 
   def Definition : AmenityDefinition
+
+  //TODO override and blank until events system is better managed for environment persistent objects
+  override def History(action : VitalsActivity) : List[VitalsActivity] = Nil
+  override def History(action : Option[VitalsActivity]) : List[VitalsActivity] = Nil
+  override def History(projectile : ResolvedProjectile) : List[VitalsActivity] = Nil
 }

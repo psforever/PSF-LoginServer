@@ -17,7 +17,7 @@ class SmallDeployableConverter extends ObjectCreateConverter[PlanetSideGameObjec
         CommonFieldData(
           obj.Faction,
           bops = false,
-          alternate = false,
+          alternate = obj.Destroyed,
           false,
           None,
           jammered = obj match {

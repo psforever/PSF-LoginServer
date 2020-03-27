@@ -69,5 +69,6 @@ class ImplantTerminalMechControl(mech : ImplantTerminalMech) extends Actor
   override protected def DestructionAwareness(target : Damageable.Target, cause : ResolvedProjectile) : Unit = {
     super.DestructionAwareness(target, cause)
     DamageableMountable.DestructionAwareness(DamageableObject, cause)
+    target.ClearHistory()
   }
 }

@@ -73,10 +73,10 @@ object Damageable {
   def CanJammer(obj : Vitality with FactionAffinity, data : ResolvedProjectile) : Boolean = {
     val projectile = data.projectile
     projectile.profile.JammerProjectile &&
+      obj.isInstanceOf[JammableUnit] &&
       (projectile.owner.Faction != obj.Faction ||
         (obj match {
-          case hobj : JammableUnit with Hackable => hobj.HackedBy.nonEmpty
-          case _ : JammableUnit => true
+          case hobj : Hackable => hobj.HackedBy.nonEmpty
           case _ => false
         })
       )

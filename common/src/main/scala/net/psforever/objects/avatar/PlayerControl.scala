@@ -8,7 +8,7 @@ import net.psforever.objects.equipment.{Ammo, JammableBehavior, JammableUnit}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.serverobject.repair.Repairable
-import net.psforever.objects.vital.{PlayerSuicide, Vitality}
+import net.psforever.objects.vital._
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
 import net.psforever.types.{ExoSuitType, Vector3}
@@ -50,10 +50,11 @@ class PlayerControl(player : Player) extends Actor
           val uname = user.Name
           val guid = player.GUID
           if(!(player.isMoving || user.isMoving)) { //only allow stationary heals
-            player.Health = originalHealth + 10
+            val newHealth = player.Health = originalHealth + 10
             val magazine = item.Discharge
             events ! AvatarServiceMessage(uname, AvatarAction.SendResponse(Service.defaultPlayerGUID, InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong)))
-            events ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttributeToAll(guid, 0, player.Health))
+            events ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttributeToAll(guid, 0, newHealth))
+            player.History(HealFromEquipment(PlayerSource(player), PlayerSource(user), newHealth - originalHealth, GlobalDefinitions.medicalapplicator))
           }
           if(player != user) {
             //"Someone is trying to heal you"
@@ -83,10 +84,11 @@ class PlayerControl(player : Player) extends Actor
           val uname = user.Name
           val guid = player.GUID
           if(!(player.isMoving || user.isMoving)) { //only allow stationary repairs
-            player.Armor = originalArmor + Repairable.Quality + RepairValue(item) + definition.RepairMod
+            val newArmor = player.Armor = originalArmor + Repairable.Quality + RepairValue(item) + definition.RepairMod
             val magazine = item.Discharge
             events ! AvatarServiceMessage(uname, AvatarAction.SendResponse(Service.defaultPlayerGUID, InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong)))
             events ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttributeToAll(guid, 4, player.Armor))
+            player.History(RepairFromEquipment(PlayerSource(player), PlayerSource(user), newArmor - originalArmor, GlobalDefinitions.bank))
           }
           if(player != user) {
             if(player.isAlive) {
@@ -199,6 +201,7 @@ object PlayerControl {
         events ! AvatarServiceMessage(target.Name, AvatarAction.PlanetsideAttributeSelf(targetGUID, 7, target.Capacitor.toLong))
       }
       if(damageToHealth > 0 || damageToArmor > 0) {
+        target.History(cause)
         if(damageToHealth > 0) {
           events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(targetGUID, 0, health))
         }

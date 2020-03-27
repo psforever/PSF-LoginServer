@@ -16,6 +16,7 @@ trait DamageableAmenity extends DamageableEntity {
   override protected def DestructionAwareness(target : Damageable.Target, cause : ResolvedProjectile) : Unit = {
     super.DestructionAwareness(target, cause)
     DamageableAmenity.DestructionAwareness(target, cause)
+    target.ClearHistory()
   }
 }
 

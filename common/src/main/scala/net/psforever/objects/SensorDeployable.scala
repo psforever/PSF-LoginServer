@@ -12,10 +12,12 @@ import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity}
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.repair.RepairableEntity
 import net.psforever.objects.vital.StandardResolutions
-import net.psforever.types.PlanetSideGUID
+import net.psforever.types.{PlanetSideGUID, Vector3}
 import services.Service
 import services.local.{LocalAction, LocalServiceMessage}
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
+
+import scala.concurrent.duration._
 
 class SensorDeployable(cdef : SensorDeployableDefinition) extends ComplexDeployable(cdef)
   with Hackable
@@ -106,14 +108,25 @@ object SensorDeployableControl {
     * @param attribution na
     */
   def DestructionAwareness(target : Damageable.Target with Deployable, attribution : PlanetSideGUID) : Unit = {
-    Deployables.AnnounceDestroyDeployable(target, None)
+    Deployables.AnnounceDestroyDeployable(target, Some(1 seconds))
     val zone = target.Zone
     zone.LocalEvents ! LocalServiceMessage(zone.Id,
       LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", target.GUID, false, 1000)
     )
-    //TODO following explosion effect should be positioned in bulk area of sensor stalk, not at base
+    //position the explosion effect near the bulky area of the sensor stalk
+    val ang = target.Orientation
+    val explosionPos =  {
+      val pos = target.Position
+      val yRadians = ang.y.toRadians
+      val d = Vector3.Rz(Vector3(0, 0.875f, 0), ang.z) * math.sin(yRadians).toFloat
+      Vector3(
+        pos.x + d.x,
+        pos.y + d.y,
+        pos.z + math.cos(yRadians).toFloat * 0.875f
+      )
+    }
     zone.LocalEvents ! LocalServiceMessage(zone.Id,
-      LocalAction.TriggerEffectLocation(Service.defaultPlayerGUID, "motion_sensor_destroyed", target.Position, target.Orientation)
+      LocalAction.TriggerEffectLocation(Service.defaultPlayerGUID, "motion_sensor_destroyed", explosionPos, ang)
     )
     //TODO replaced by an alternate model (charred stub)?
   }

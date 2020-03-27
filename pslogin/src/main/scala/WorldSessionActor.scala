@@ -6,10 +6,7 @@ import com.github.mauricio.async.db.general.ArrayRowData
 import com.github.mauricio.async.db.{Connection, QueryResult}
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
-
-import net.psforever.objects.vital.VitalityDefinition
 import org.log4s.{Logger, MDC}
-
 import scala.annotation.{switch, tailrec}
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.LongMap
@@ -29,7 +26,7 @@ import net.psforever.objects.ce.{ComplexDeployable, Deployable, DeployableCatego
 import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter.{CorpseConverter, DestroyedVehicleConverter}
 import net.psforever.objects.entity.{SimpleWorldEntity, WorldEntity}
-import net.psforever.objects.equipment.{Ammo, CItem, EffectTarget, Equipment, EquipmentSize, EquipmentSlot, FireModeSwitch}
+import net.psforever.objects.equipment.{Ammo, CItem, EffectTarget, Equipment, EquipmentSize, EquipmentSlot, FireModeSwitch, JammableUnit}
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
@@ -56,7 +53,7 @@ import net.psforever.objects.serverobject.zipline.ZipLinePath
 import net.psforever.objects.teamwork.Squad
 import net.psforever.objects.vehicles.{AccessPermissionGroup, Cargo, CargoBehavior, MountedWeapons, Utility, UtilityType, VehicleLockState}
 import net.psforever.objects.vehicles.Utility.InternalTelepad
-import net.psforever.objects.vital.{DamageFromPainbox, HealFromExoSuitChange, HealFromKit, HealFromTerm, PlayerSuicide, RepairFromKit, Vitality}
+import net.psforever.objects.vital.{DamageFromPainbox, HealFromExoSuitChange, HealFromKit, HealFromTerm, PlayerSuicide, RepairFromKit, Vitality, VitalityDefinition}
 import net.psforever.objects.zones.{InterstellarCluster, Zone, ZoneHotSpotProjector}
 import net.psforever.packet._
 import net.psforever.packet.control._
@@ -773,6 +770,7 @@ class WorldSessionActor extends Actor
             )
           }.onComplete {
             case scala.util.Success(insertResult) =>
+              if(connection.isConnected) connection.disconnect
               insertResult match {
                 case result: QueryResult =>
                   if (result.rows.nonEmpty) {
@@ -788,7 +786,6 @@ class WorldSessionActor extends Actor
                 case e =>
                   log.error(s"CreateCharacter: unexpected error while creating new character for $accountUserName")
                   sendResponse(ActionResultMessage.Fail(3))
-                  if(connection.isConnected) connection.disconnect
                   self ! ListAccountCharacters()
               }
             case scala.util.Failure(e) =>
@@ -807,6 +804,7 @@ class WorldSessionActor extends Actor
             "SELECT id, name, faction_id, gender_id, head_id, voice_id, deleted, last_login FROM characters where account_id=? ORDER BY last_login", Array(account.AccountId)
           ).onComplete {
             case scala.util.Success(result : QueryResult) =>
+              if(connection.isConnected) connection.disconnect
               if(result.rows.nonEmpty) {
                 import net.psforever.objects.definition.converter.CharacterSelectConverter
                 val gen : AtomicInteger = new AtomicInteger(1)
@@ -856,7 +854,6 @@ class WorldSessionActor extends Actor
                 }
               }
               Thread.sleep(50)
-              if(connection.isConnected) connection.disconnect
 
             case scala.util.Success(result) =>
               if(connection.isConnected) connection.disconnect //pre-empt failWithError
@@ -1291,6 +1288,7 @@ class WorldSessionActor extends Actor
             "SELECT gm FROM accounts where id=?", Array(account.AccountId)
           )).onComplete {
             case scala.util.Success(queryResult) =>
+              if(connection.isConnected) connection.disconnect
               queryResult match {
                 case row: ArrayRowData => // If we got a row from the database
                   log.info(s"ReceiveAccountData: ready to load character list for ${account.Username}")
@@ -1298,12 +1296,11 @@ class WorldSessionActor extends Actor
                 case _ => // If the account didn't exist in the database
                   log.error(s"ReceiveAccountData: ${account.Username} data not found, or unexpected query result format - ${queryResult.getClass}")
                   Thread.sleep(50)
-                  if(connection.isConnected) connection.disconnect
                   sendResponse(DropSession(sessionId, "You should not exist!"))
               }
             case scala.util.Failure(e) =>
-              log.error(s"ReceiveAccountData: ${e.getMessage}")
               if(connection.isConnected) connection.disconnect
+              log.error(s"ReceiveAccountData: ${e.getMessage}")
               Thread.sleep(50)
           }
         case scala.util.Failure(e) =>
@@ -3449,6 +3446,7 @@ class WorldSessionActor extends Actor
             "SELECT account_id FROM characters where name ILIKE ? AND deleted = false", Array(name)
           )).onComplete {
             case scala.util.Success(queryResult) =>
+              if(connection.isConnected) connection.disconnect
               queryResult match {
                 case row: ArrayRowData => // If we got a row from the database
                   if (row(0).asInstanceOf[Int] == account.AccountId) { // create char
@@ -3463,7 +3461,6 @@ class WorldSessionActor extends Actor
                 case _ => // If the char name didn't exist in the database, create char
                   self ! CreateCharacter(name, head, voice, gender, empire)
               }
-              if(connection.isConnected) connection.disconnect
             case scala.util.Failure(e) =>
               if(connection.isConnected) connection.disconnect
               sendResponse(ActionResultMessage.Fail(4))
@@ -3506,6 +3503,7 @@ class WorldSessionActor extends Actor
                 "SELECT id, name, faction_id, gender_id, head_id, voice_id FROM characters where id=?", Array(charId)
               )).onComplete {
                 case Success(queryResult) =>
+                  if(connection.isConnected) connection.disconnect
                   queryResult match {
                     case row : ArrayRowData =>
                       val lName : String = row(1).asInstanceOf[String]
@@ -3524,7 +3522,6 @@ class WorldSessionActor extends Actor
                     case _ =>
                       log.error(s"CharacterRequest/Select: no character for $charId found")
                   }
-                  if(connection.isConnected) connection.disconnect
                 case e =>
                   if(connection.isConnected) connection.disconnect
                   log.error(s"CharacterRequest/Select: toto tata; unexpected query result format - ${e.getClass}")
@@ -3561,7 +3558,6 @@ class WorldSessionActor extends Actor
       sendResponse(ContinentalLockUpdateMessage(13, PlanetSideEmpire.VS)) // "The VS have captured the VS Sanctuary."
       sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty)) //clear squad list
       sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 0)) // disable festive backpacks
-      //(0 to 255).foreach(i => { sendResponse(SetEmpireMessage(PlanetSideGUID(i), PlanetSideEmpire.VS)) })
 
       //find and reclaim own deployables, if any
       val guid = player.GUID
@@ -3615,13 +3611,22 @@ class WorldSessionActor extends Actor
               }
           }
       })
+      //sensor animation
       normal
-        .filter(_.Definition.DeployCategory == DeployableCategory.Sensors)
+        .filter(obj =>
+          obj.Definition.DeployCategory == DeployableCategory.Sensors &&
+            !obj.Destroyed &&
+            (obj match { case jObj : JammableUnit => !jObj.Jammed; case _ => true })
+        )
         .foreach(obj => { sendResponse(TriggerEffectMessage(obj.GUID, "on", true, 1000)) })
+      //update the health of our faction's deployables (if necessary)
       //draw our faction's deployables on the map
       continent.DeployableList
-        .filter(obj => obj.Faction == faction && obj.Health > 0)
+        .filter(obj => obj.Faction == faction && !obj.Destroyed)
         .foreach(obj => {
+          if(obj.Health != obj.DefaultHealth) {
+            sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))
+          }
           val deployInfo = DeployableInfo(obj.GUID, Deployable.Icon(obj.Definition.Item), obj.Position, obj.Owner.getOrElse(PlanetSideGUID(0)))
           sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, deployInfo))
         })
@@ -3656,9 +3661,11 @@ class WorldSessionActor extends Actor
         (a, (continent.GUID(player.VehicleSeated) match {
           case Some(vehicle : Vehicle) if vehicle.PassengerInSeat(player).isDefined =>
             b.partition { _.GUID != vehicle.GUID }
-          case None =>
+          case Some(_) =>
+            //vehicle, but we're not seated in it
+            player.VehicleSeated = None
             (b, List.empty[Vehicle])
-          case _ =>
+          case None =>
             //throw error since VehicleSeated didn't point to a vehicle?
             player.VehicleSeated = None
             (b, List.empty[Vehicle])
@@ -3684,8 +3691,10 @@ class WorldSessionActor extends Actor
               )
             )
           })
-        Vehicles.ReloadAccessPermissions(vehicle, player.Name)
       })
+      vehicles.collect { case vehicle if vehicle.Faction == faction =>
+        Vehicles.ReloadAccessPermissions(vehicle, player.Name)
+      }
       //our vehicle would have already been loaded; see NewPlayerLoaded/AvatarCreate
       usedVehicle.headOption match {
         case Some(vehicle) =>
@@ -3709,7 +3718,11 @@ class WorldSessionActor extends Actor
           (0 to 3).foreach { group =>
             sendResponse(PlanetsideAttributeMessage(vguid, group + 10, vehicle.PermissionGroup(group).get.id))
           }
-        case _ => ; //driver, or no vehicle
+          //positive shield strength
+          if(vehicle.Shields > 0) {
+            sendResponse(PlanetsideAttributeMessage(vguid, 68, vehicle.Shields))
+          }
+        case _ => ; //no vehicle
       }
       //vehicle wreckages
       wreckages.foreach(vehicle => {
@@ -5111,6 +5124,7 @@ class WorldSessionActor extends Actor
           val dObj : PlanetSideGameObject with Deployable = Deployables.Make(ammoType)()
           dObj.Position = pos
           dObj.Orientation = orient
+          log.info(s"Deployable build: pos=${dObj.Position} ang=${dObj.Orientation}")
           dObj.Faction = player.Faction
           dObj.AssignOwnership(player)
           val tasking : TaskResolver.GiveTask = dObj match {
@@ -9577,6 +9591,7 @@ class WorldSessionActor extends Actor
           "SELECT id, loadout_number, exosuit_id, name, items FROM loadouts where characters_id = ?", Array(owner.CharId)
         ).onComplete {
           case Success(queryResult) =>
+            if(connection.isConnected) connection.disconnect
             queryResult match {
               case result: QueryResult =>
                 if (result.rows.nonEmpty) {
@@ -9635,7 +9650,6 @@ class WorldSessionActor extends Actor
               case _ =>
                 log.debug(s"LoadDataBaseLoadouts: no saved loadout(s) for character with id ${owner.CharId}")
             }
-            if(connection.isConnected) connection.disconnect
             result success queryResult
           case scala.util.Failure(e) =>
             if(connection.isConnected) connection.disconnect
