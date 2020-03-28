@@ -8,7 +8,7 @@ import org.specs2.mutable._
 
 class ImplantTest extends Specification {
   val sample = new ImplantDefinition(8) //variant of sensor shield/silent run
-      sample.InitializationDuration = 90000 //1:30
+      sample.InitializationDuration = 90 //1:30
       sample.ActivationStaminaCost = 3
       sample.StaminaCost = 1
       sample.CostIntervalDefault = 1000
@@ -16,7 +16,7 @@ class ImplantTest extends Specification {
 
   "ImplantDefinition" should {
     "define" in {
-      sample.InitializationDuration mustEqual 90000
+      sample.InitializationDuration mustEqual 90
       sample.ActivationStaminaCost mustEqual 3
       sample.StaminaCost mustEqual 1
       sample.GetCostIntervalByExoSuit(ExoSuitType.Reinforced) mustEqual 1000 // Default value

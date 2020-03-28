@@ -1303,7 +1303,8 @@ class WorldSessionActor extends Actor
       InitializeDeployableQuantities(avatar) //set deployables ui elements
       AwardBattleExperiencePoints(avatar, 20000000L)
       avatar.CEP = 600000
-                   avatar.Implants(0).Unlocked = true
+
+      avatar.Implants(0).Unlocked = true
       avatar.Implants(0).Implant = GlobalDefinitions.darklight_vision
       avatar.Implants(1).Unlocked = true
       avatar.Implants(1).Implant = GlobalDefinitions.surge
@@ -1311,17 +1312,6 @@ class WorldSessionActor extends Actor
       avatar.Implants(2).Implant = GlobalDefinitions.targeting
 
       player = new Player(avatar)
-
-      (0 until DetailedCharacterData.numberOfImplantSlots(player.BEP)).foreach(slot => {
-        val implantSlot = player.ImplantSlot(slot)
-        if(implantSlot.Initialized) {
-          sendResponse(AvatarImplantMessage(player.GUID, ImplantAction.Initialization, slot, 1))
-        }
-        else {
-          player.Actor ! Player.ImplantInitializationStart(slot)
-        }
-        //TODO if this implant is Installed but does not have shortcut, add to a free slot or write over slot 61/62/63
-      })
 
       //xy-coordinates indicate sanctuary spawn bias:
       player.Position = math.abs(scala.util.Random.nextInt() % avatar.name.hashCode % 4) match {

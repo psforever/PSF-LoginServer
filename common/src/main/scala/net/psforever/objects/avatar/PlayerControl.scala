@@ -77,7 +77,7 @@ class PlayerControl(player : Player) extends Actor
         player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.SendResponse(player.GUID, ActionProgressMessage(slot + 6, 0)))
 
         // Callback after initialization timer to complete initialization
-        implantSlot.InitializeTimer = context.system.scheduler.scheduleOnce(implantSlot.MaxTimer milliseconds, self, Player.ImplantInitializationComplete(slot))
+        implantSlot.InitializeTimer = context.system.scheduler.scheduleOnce(implantSlot.MaxTimer seconds, self, Player.ImplantInitializationComplete(slot))
       }
 
     case Player.ImplantInitializationComplete(slot: Int) =>
