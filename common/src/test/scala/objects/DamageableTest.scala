@@ -6,12 +6,15 @@ import akka.testkit.TestProbe
 import base.ActorTest
 import net.psforever.objects._
 import net.psforever.objects.ballistics._
+import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.LimitedNumberSource
+import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.serverobject.generator.{Generator, GeneratorControl}
 import net.psforever.objects.serverobject.implantmech.{ImplantTerminalMech, ImplantTerminalMechControl}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
-import net.psforever.objects.serverobject.terminals.{Terminal, TerminalControl}
+import net.psforever.objects.serverobject.terminals.{Terminal, TerminalControl, TerminalDefinition}
+import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.{FacilityTurret, FacilityTurretControl, TurretUpgrade}
 import net.psforever.objects.vehicles.VehicleControl
 import net.psforever.objects.vital.Vitality
@@ -23,8 +26,201 @@ import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.support.SupportActor
 import services.vehicle.support.TurretUpgrader
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
+import org.specs2.mutable.Specification
 
 import scala.concurrent.duration._
+
+class DamageableTest extends Specification {
+  val player1 = Player(Avatar("TestCharacter1",PlanetSideEmpire.TR,CharacterGender.Male,0,CharacterVoice.Mute))
+  val pSource = PlayerSource(player1)
+  val weaponA = Tool(GlobalDefinitions.phoenix) //decimator
+  val projectileA = weaponA.Projectile
+
+  "Damageable" should {
+    "permit damage" in {
+      val target = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
+      val resolved = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3.Zero
+      )
+
+      Damageable.CanDamage(target, projectileA.Damage0, resolved) mustEqual true
+    }
+
+    "ignore attempts at non-zero damage" in {
+      val target = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
+      val resolved = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        Projectile(projectileA, weaponA.Definition, weaponA.FireMode, PlayerSource(player1), 0, Vector3.Zero, Vector3.Zero),
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3.Zero
+      )
+
+      Damageable.CanDamage(target, 0, resolved) mustEqual false
+    }
+
+    "ignore attempts at damaging friendly targets not designated for friendly fire" in {
+      val target = new Generator(GlobalDefinitions.generator)
+      target.Owner = new Building("test-building", 0, 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building) {
+        Faction = player1.Faction
+      }
+      val resolved = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3.Zero
+      )
+
+      target.Definition.DamageableByFriendlyFire mustEqual false
+      target.Faction == player1.Faction mustEqual true
+      Damageable.CanDamage(target, projectileA.Damage0, resolved) mustEqual false
+
+      target.Owner.Faction = PlanetSideEmpire.NC
+      target.Faction != player1.Faction mustEqual true
+      Damageable.CanDamage(target, projectileA.Damage0, resolved) mustEqual true
+    }
+
+    "ignore attempts at damaging a target that is not damageable" in {
+      val target = new SpawnTube(GlobalDefinitions.respawn_tube_sanctuary)
+      target.Owner = new Building("test-building", 0, 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building) {
+        Faction = PlanetSideEmpire.NC
+      }
+      val resolved = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3.Zero
+      )
+
+      target.Definition.Damageable mustEqual false
+      target.Faction != player1.Faction mustEqual true
+      Damageable.CanDamage(target, projectileA.Damage0, resolved) mustEqual false
+    }
+
+    "permit damaging friendly targets, even those not designated for friendly fire, if the target is hacked" in {
+      val player2 = Player(Avatar("TestCharacter2",PlanetSideEmpire.NC,CharacterGender.Male,0,CharacterVoice.Mute))
+      player2.GUID = PlanetSideGUID(1)
+      val target = new Terminal(new TerminalDefinition(0) {
+        Damageable = true
+        DamageableByFriendlyFire = false
+        override def Request(player : Player, msg : Any) : Terminal.Exchange = null
+      })
+      target.Owner = new Building("test-building", 0, 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building) {
+        Faction = player1.Faction
+      }
+      val resolved = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3.Zero
+      )
+
+      target.Definition.DamageableByFriendlyFire mustEqual false
+      target.Faction == player1.Faction mustEqual true
+      target.HackedBy.isEmpty mustEqual true
+      Damageable.CanDamage(target, projectileA.Damage0, resolved) mustEqual false
+
+      target.HackedBy = player2
+      target.Faction == player1.Faction mustEqual true
+      target.HackedBy.nonEmpty mustEqual true
+      Damageable.CanDamage(target, projectileA.Damage0, resolved) mustEqual true
+    }
+
+    val weaponB = Tool(GlobalDefinitions.jammer_grenade)
+    val projectileB = weaponB.Projectile
+
+    "permit jamming" in {
+      val target = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
+      val resolved = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        Projectile(projectileB, weaponB.Definition, weaponB.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3.Zero
+      )
+
+      resolved.projectile.profile.JammerProjectile mustEqual true
+      Damageable.CanJammer(target, resolved) mustEqual true
+    }
+
+    "ignore attempts at jamming if the projectile is does not cause the effect" in {
+      val target = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
+      val resolved = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3.Zero
+      ) //decimator
+
+      resolved.projectile.profile.JammerProjectile mustEqual false
+      Damageable.CanJammer(target, resolved) mustEqual false
+    }
+
+    "ignore attempts at jamming friendly targets" in {
+      val target = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
+      target.Faction = player1.Faction
+      val resolved = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        Projectile(projectileB, weaponB.Definition, weaponB.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3.Zero
+      )
+
+      resolved.projectile.profile.JammerProjectile mustEqual true
+      resolved.projectile.owner.Faction == target.Faction mustEqual true
+      Damageable.CanJammer(target, resolved) mustEqual false
+    }
+
+    "ignore attempts at jamming targets that are not jammable" in {
+      val target = new TrapDeployable(GlobalDefinitions.tank_traps)
+      val resolved = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        Projectile(projectileB, weaponB.Definition, weaponB.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3.Zero
+      )
+
+      resolved.projectile.profile.JammerProjectile mustEqual true
+      resolved.projectile.owner.Faction == target.Faction mustEqual false
+      target.isInstanceOf[JammableUnit] mustEqual false
+      Damageable.CanJammer(target, resolved) mustEqual false
+    }
+
+    "permit jamming friendly targets if the target is hacked" in {
+      val player2 = Player(Avatar("TestCharacter2",PlanetSideEmpire.NC,CharacterGender.Male,0,CharacterVoice.Mute))
+      player2.GUID = PlanetSideGUID(1)
+      val target = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
+      target.Faction = player1.Faction
+      val resolved = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        Projectile(projectileB, weaponB.Definition, weaponB.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3.Zero
+      )
+
+      resolved.projectile.profile.JammerProjectile mustEqual true
+      resolved.projectile.owner.Faction == target.Faction mustEqual true
+      target.isInstanceOf[JammableUnit] mustEqual true
+      target.HackedBy.nonEmpty mustEqual false
+      Damageable.CanJammer(target, resolved) mustEqual false
+
+      target.HackedBy = player2
+      target.HackedBy.nonEmpty mustEqual true
+      Damageable.CanJammer(target, resolved) mustEqual true
+    }
+  }
+}
 
 /*
 the damage targets, Generator, Terminal, etc., are used to test basic destruction

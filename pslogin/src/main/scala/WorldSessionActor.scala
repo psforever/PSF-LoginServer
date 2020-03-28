@@ -5124,7 +5124,6 @@ class WorldSessionActor extends Actor
           val dObj : PlanetSideGameObject with Deployable = Deployables.Make(ammoType)()
           dObj.Position = pos
           dObj.Orientation = orient
-          log.info(s"Deployable build: pos=${dObj.Position} ang=${dObj.Orientation}")
           dObj.Faction = player.Faction
           dObj.AssignOwnership(player)
           val tasking : TaskResolver.GiveTask = dObj match {

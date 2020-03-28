@@ -50,11 +50,13 @@ object Damageable {
     *        `false`, otherwise
     */
   def CanDamage(obj : Vitality with FactionAffinity, damage : Int, data : ResolvedProjectile) : Boolean = {
+    val definition = obj.Definition
     damage > 0 &&
-      (obj.Definition.DamageableByFriendlyFire ||
+      definition.Damageable &&
+      (definition.DamageableByFriendlyFire ||
         (data.projectile.owner.Faction != obj.Faction ||
           (obj match {
-            case hobj : Hackable => hobj.HackedBy.nonEmpty;
+            case hobj : Hackable => hobj.HackedBy.nonEmpty
             case _ => false
           })
         )
@@ -77,7 +79,7 @@ object Damageable {
       (projectile.owner.Faction != obj.Faction ||
         (obj match {
           case hobj : Hackable => hobj.HackedBy.nonEmpty
-          case _ => true
+          case _ => false
         })
       )
   }

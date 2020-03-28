@@ -85,7 +85,7 @@ object ExplosiveDeployableControl {
     if(target.Health == 0) {
       DestructionAwareness(target, cause)
     }
-    else if(!target.Jammed && cause.projectile.profile.JammerProjectile) {
+    else if(!target.Jammed && Damageable.CanJammer(target, cause)) {
       if(target.Jammed = {
         val radius = cause.projectile.profile.DamageRadius
         Vector3.DistanceSquared(cause.hit_pos, cause.target.Position) < radius * radius
