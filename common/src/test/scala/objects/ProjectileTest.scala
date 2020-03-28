@@ -183,7 +183,7 @@ class ProjectileTest extends Specification {
       SourceEntry(fury) match {
         case o : VehicleSource =>
           o.Name mustEqual "Fury"
-          o.Faction mustEqual PlanetSideEmpire.TR
+          o.Faction mustEqual PlanetSideEmpire.NEUTRAL
           o.Definition mustEqual GlobalDefinitions.fury
           o.Health mustEqual 650
           o.Shields mustEqual 0

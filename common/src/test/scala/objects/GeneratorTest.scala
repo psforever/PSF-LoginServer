@@ -101,8 +101,8 @@ class GeneratorControlCriticalTest extends ActorTest {
           case _ => false
         }
       )
-      assert(gen.Health == 0)
-      assert(gen.Destroyed)
+      assert(gen.Health == 1)
+      assert(!gen.Destroyed)
       assert(gen.Condition == PlanetSideGeneratorState.Critical)
     }
   }
@@ -159,7 +159,7 @@ class GeneratorControlDestroyedTest extends ActorTest {
       assert(gen.Condition == PlanetSideGeneratorState.Normal)
 
       gen.Actor ! Vitality.Damage(applyDamageTo)
-      avatarProbe.receiveN(2, 500 milliseconds) //see DamageableEntity test file
+      avatarProbe.expectNoMsg(500 milliseconds)
       val msg1 = buildingProbe.receiveOne(500 milliseconds)
       assert(
         msg1 match {
@@ -167,14 +167,14 @@ class GeneratorControlDestroyedTest extends ActorTest {
           case _ => false
         }
       )
-      assert(gen.Health == 0)
-      assert(gen.Destroyed)
+      assert(gen.Health == 1)
+      assert(!gen.Destroyed)
       assert(gen.Condition == PlanetSideGeneratorState.Critical)
 
       expectNoMsg(9 seconds)
-      avatarProbe.expectNoMsg(50 milliseconds) //no prior messages
       buildingProbe.expectNoMsg(50 milliseconds) //no prior messages
-      val msg2 = buildingProbe.receiveOne(1000 milliseconds)
+      avatarProbe.receiveN(2, 1000 milliseconds) //see DamageableEntity test file
+      val msg2 = buildingProbe.receiveOne(200 milliseconds)
       assert(
         msg2 match {
           case Building.AmenityStateChange(o) => o eq gen
@@ -258,8 +258,8 @@ class GeneratorControlKillsTest extends ActorTest {
 
       gen.Actor ! Vitality.Damage(applyDamageTo)
       buildingProbe.receiveOne(1000 milliseconds)
-      assert(gen.Health == 0)
-      assert(gen.Destroyed)
+      assert(gen.Health == 1)
+      assert(!gen.Destroyed)
       assert(gen.Condition == PlanetSideGeneratorState.Critical)
 
       expectNoMsg(9 seconds)

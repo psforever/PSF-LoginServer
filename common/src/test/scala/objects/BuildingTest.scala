@@ -16,8 +16,11 @@ import services.galaxy.GalaxyService
 import scala.concurrent.duration._
 
 class AmenityTest extends Specification {
+  val definition = new AmenityDefinition(0) {
+    //intentionally blank
+  }
   class AmenityObject extends Amenity {
-    def Definition : AmenityDefinition = null
+    def Definition : AmenityDefinition = definition
   }
 
   "Amenity" should {

@@ -77,7 +77,7 @@ object Damageable {
       (projectile.owner.Faction != obj.Faction ||
         (obj match {
           case hobj : Hackable => hobj.HackedBy.nonEmpty
-          case _ => false
+          case _ => true
         })
       )
   }

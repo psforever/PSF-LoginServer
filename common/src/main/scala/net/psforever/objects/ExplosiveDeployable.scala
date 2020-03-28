@@ -10,6 +10,7 @@ import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.vital.{StandardResolutions, Vitality}
+import net.psforever.objects.zones.Zone
 import net.psforever.types.{PlanetSideGUID, Vector3}
 import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
@@ -91,6 +92,7 @@ object ExplosiveDeployableControl {
       }) {
         if(target.Definition.DetonateOnJamming) {
           val zone = target.Zone
+          zone.Activity ! Zone.HotSpot.Activity(cause.target, cause.projectile.owner, cause.hit_pos)
           zone.LocalEvents ! LocalServiceMessage(zone.Id, LocalAction.Detonate(target.GUID, target))
         }
         DestructionAwareness(target, cause)
@@ -111,7 +113,7 @@ object ExplosiveDeployableControl {
     }
     target.Destroyed = true
     Deployables.AnnounceDestroyDeployable(target, Some(if(target.Jammed) 0 seconds else 500 milliseconds))
-    zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.Destroy(target.GUID, attribution, attribution, target.Position))
+    zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.Destroy(target.GUID, attribution, Service.defaultPlayerGUID, target.Position))
     if(target.Health == 0) {
       zone.LocalEvents ! LocalServiceMessage(zone.Id, LocalAction.TriggerEffect(Service.defaultPlayerGUID, "detonate_damaged_mine", target.GUID))
     }

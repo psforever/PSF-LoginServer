@@ -52,7 +52,7 @@ class PlayerControlHealTest extends ActorTest {
       assert(originalHealth < player2.MaxHealth)
 
       player2.Actor ! CommonMessages.Use(player1, Some(tool))
-      val msg_avatar = avatarProbe.receiveN(3, 500 milliseconds)
+      val msg_avatar = avatarProbe.receiveN(4, 500 milliseconds)
       assert(
         msg_avatar.head match {
           case AvatarServiceMessage("TestCharacter1", AvatarAction.SendResponse(_, InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _))) => true
@@ -67,6 +67,12 @@ class PlayerControlHealTest extends ActorTest {
       )
       assert(
         msg_avatar(2) match {
+          case AvatarServiceMessage("TestCharacter2", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 55, 1)) => true
+          case _ => false
+        }
+      )
+      assert(
+        msg_avatar(3) match {
           case AvatarServiceMessage("TestCharacter1", AvatarAction.SendResponse(_, RepairMessage(PlanetSideGUID(2), _))) => true
           case _ => false
         }
@@ -181,7 +187,7 @@ class PlayerControlRepairTest extends ActorTest {
       assert(originalArmor < player2.MaxArmor)
 
       player2.Actor ! CommonMessages.Use(player1, Some(tool))
-      val msg_avatar = avatarProbe.receiveN(3, 500 milliseconds)
+      val msg_avatar = avatarProbe.receiveN(5, 500 milliseconds)
       assert(
         msg_avatar.head match {
           case AvatarServiceMessage("TestCharacter1", AvatarAction.SendResponse(_, InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _))) => true
@@ -196,7 +202,19 @@ class PlayerControlRepairTest extends ActorTest {
       )
       assert(
         msg_avatar(2) match {
+          case AvatarServiceMessage("TestCharacter2", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 56, 1)) => true
+          case _ => false
+        }
+      )
+      assert(
+        msg_avatar(3) match {
           case AvatarServiceMessage("TestCharacter1", AvatarAction.SendResponse(_, RepairMessage(PlanetSideGUID(2), _))) => true
+          case _ => false
+        }
+      )
+      assert(
+        msg_avatar(4) match {
+          case AvatarServiceMessage("TestCharacter2", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 56, 1)) => true
           case _ => false
         }
       )

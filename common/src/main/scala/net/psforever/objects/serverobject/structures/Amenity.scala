@@ -81,9 +81,4 @@ abstract class Amenity extends PlanetSideServerObject
   def DamageModel = Definition.asInstanceOf[DamageResistanceModel]
 
   def Definition : AmenityDefinition
-
-  //TODO override and blank until events system is better managed for environment persistent objects
-  override def History(action : VitalsActivity) : List[VitalsActivity] = Nil
-  override def History(action : Option[VitalsActivity]) : List[VitalsActivity] = Nil
-  override def History(projectile : ResolvedProjectile) : List[VitalsActivity] = Nil
 }

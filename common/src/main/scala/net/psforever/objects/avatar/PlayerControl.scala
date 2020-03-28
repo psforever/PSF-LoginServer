@@ -59,7 +59,7 @@ class PlayerControl(player : Player) extends Actor
           if(player != user) {
             //"Someone is trying to heal you"
             events ! AvatarServiceMessage(player.Name, AvatarAction.PlanetsideAttributeToAll(guid, 55, 1))
-            //progress bar remains visible for all repair attempts
+            //progress bar remains visible for all heal attempts
             events ! AvatarServiceMessage(uname, AvatarAction.SendResponse(Service.defaultPlayerGUID, RepairMessage(guid, player.Health * 100 / definition.MaxHealth)))
           }
         }
@@ -269,19 +269,6 @@ object PlayerControl {
     val events = zone.AvatarEvents
     val nameChannel = target.Name
     val zoneChannel = zone.Id
-    val attribute = cause match {
-      case Some(resolved) =>
-        resolved.projectile.owner match {
-          case pSource : PlayerSource =>
-            val name = pSource.Name
-            zone.LivePlayers.find(_.Name == name) match {
-              case Some(player) => player.GUID
-              case None => player_guid
-            }
-          case _ => player_guid
-        }
-      case _ => player_guid
-    }
     target.Die
     //unjam
     target.Actor ! JammableUnit.ClearJammeredSound()
@@ -298,6 +285,19 @@ object PlayerControl {
     if(target.Capacitor > 0) {
       target.Capacitor = 0
       events ! AvatarServiceMessage(nameChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 7, 0)) // capacitor
+    }
+    val attribute = cause match {
+      case Some(resolved) =>
+        resolved.projectile.owner match {
+          case pSource : PlayerSource =>
+            val name = pSource.Name
+            zone.LivePlayers.find(_.Name == name).orElse(zone.Corpses.find(_.Name == name)) match {
+              case Some(player) => player.GUID
+              case None => player_guid
+            }
+          case _ => player_guid
+        }
+      case _ => player_guid
     }
     events ! AvatarServiceMessage(
       nameChannel,

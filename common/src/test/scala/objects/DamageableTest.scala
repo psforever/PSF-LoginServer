@@ -102,28 +102,28 @@ class DamageableEntityDestroyedTest extends ActorTest {
   zone.AvatarEvents = avatarProbe.ref
   val activityProbe = TestProbe()
   zone.Activity = activityProbe.ref
-  val gen = Generator(GlobalDefinitions.generator) //guid=2
-  gen.Position = Vector3(1, 0, 0)
-  gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "generator-control")
+  val mech = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech) //guid=2
+  mech.Position = Vector3(1, 0, 0)
+  mech.Actor = system.actorOf(Props(classOf[ImplantTerminalMechControl], mech), "mech-control")
   val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
   player1.Position = Vector3(14, 0, 0) //<14m from generator; dies
   player1.Spawn
   val building = Building("test-building", 1, 1, zone, StructureType.Facility) //guid=1
   building.Position = Vector3(1, 0, 0)
   building.Zone = zone
-  building.Amenities = gen
+  building.Amenities = mech
   val buildingProbe = TestProbe()
   building.Actor = buildingProbe.ref
   guid.register(building, 1)
-  guid.register(gen, 2)
+  guid.register(mech, 2)
   guid.register(player1, 3)
   val weapon = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
   val resolved = ResolvedProjectile(
     ProjectileResolution.Splash,
     Projectile(projectile, weapon.Definition, weapon.FireMode, PlayerSource(player1), 0, Vector3(2, 0, 0), Vector3(-1, 0, 0)),
-    SourceEntry(gen),
-    gen.DamageModel,
+    SourceEntry(mech),
+    mech.DamageModel,
     Vector3(1, 0, 0)
   )
   val applyDamageTo = resolved.damage_model.Calculate(resolved)
@@ -132,11 +132,11 @@ class DamageableEntityDestroyedTest extends ActorTest {
 
   "DamageableEntity" should {
     "manage taking damage until being destroyed" in {
-      gen.Health = 1 //no matter what, the next shot destoys it
-      assert(gen.Health == 1)
-      assert(!gen.Destroyed)
+      mech.Health = 1 //no matter what, the next shot destoys it
+      assert(mech.Health == 1)
+      assert(!mech.Destroyed)
 
-      gen.Actor ! Vitality.Damage(applyDamageTo)
+      mech.Actor ! Vitality.Damage(applyDamageTo)
       val msg1_2 = avatarProbe.receiveN(2, 500 milliseconds)
       assert(
         msg1_2.head match {
@@ -150,8 +150,8 @@ class DamageableEntityDestroyedTest extends ActorTest {
           case _ => false
         }
       )
-      assert(gen.Health == 0)
-      assert(gen.Destroyed)
+      assert(mech.Health == 0)
+      assert(mech.Destroyed)
     }
   }
 }
