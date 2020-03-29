@@ -3374,7 +3374,14 @@ class WorldSessionActor extends Actor
         player.Actor ! Player.ImplantInitializationStart(slot)
       }
       //TODO if this implant is Installed but does not have shortcut, add to a free slot or write over slot 61/62/63
+      // for now, just write into slots 2, 3 and 4
+      Shortcut.ImplantsMap(implantSlot.Implant) match {
+        case Some(shortcut : Shortcut) =>
+          sendResponse(CreateShortcutMessage(guid, slot + 2, 0, addShortcut = true, Some(shortcut)))
+        case _ => log.warn(s"Could not find shortcut for implant ${implantSlot.Implant.toString()}")
+      }
     })
+
     sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 82, 0))
     //TODO if Medkit does not have shortcut, add to a free slot or write over slot 64
     sendResponse(CreateShortcutMessage(guid, 1, 0, true, Shortcut.MEDKIT))

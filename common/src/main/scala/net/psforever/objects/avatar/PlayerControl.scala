@@ -44,9 +44,12 @@ class PlayerControl(player : Player) extends Actor
         implantSlot.Active = false
         player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, player.Implant(slot).id * 2)) // Deactivation sound / effect
         player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.DeactivateImplantSlot(player.GUID, slot))
-      } else if (status == 1 && implantSlot.Initialized && !implantSlot.Active && !player.Fatigued) {
+      } else if (status == 1 && implantSlot.Initialized && !player.Fatigued) {
         implantSlot.Installed match {
           case Some(implant: ImplantDefinition) =>
+            if(implantSlot.Active) {
+              log.warn(s"Implant ${slot} is already active, but activating again")
+            }
             implantSlot.Active = true
 
             if (implant.ActivationStaminaCost >= 0) {
@@ -60,6 +63,9 @@ class PlayerControl(player : Player) extends Actor
             player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, player.Implant(slot).id * 2 + 1)) // Activation sound / effect
             player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.ActivateImplantSlot(player.GUID, slot))
         }
+      }
+      else {
+        log.warn(s"Can't handle ImplantActivation: Player GUID: ${player.GUID} Slot ${slot} Status: ${status} Initialized: ${implantSlot.Initialized} Active: ${implantSlot.Active} Fatigued: ${player.Fatigued}")
       }
 
     case Player.UninitializeImplant(slot: Int) => {
