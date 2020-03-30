@@ -78,7 +78,6 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends AmenityOwner
   with Container {
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
   private var shields : Int = 0
-  private var isDead : Boolean = false
   private var decal : Int = 0
   private var trunkAccess : Option[PlanetSideGUID] = None
   private var jammered : Boolean = false
@@ -145,16 +144,10 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends AmenityOwner
     MountedIn
   }
 
-  def IsDead : Boolean = {
-    isDead
-  }
-
   override def Health_=(assignHealth : Int) : Int = {
-    if(!isDead) {
+    //TODO should vehicle class enforce this?
+    if(!Destroyed) {
       super.Health_=(assignHealth)
-    }
-    if(Health == 0) {
-      isDead = true
     }
     Health
   }

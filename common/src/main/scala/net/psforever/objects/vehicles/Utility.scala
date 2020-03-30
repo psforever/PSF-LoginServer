@@ -268,7 +268,7 @@ object InternalTelepadDefinition {
   def SimpleUninitialize(obj : PlanetSideGameObject, context : ActorContext) : Unit = { }
 
   def SimpleUninitialize(obj : PlanetSideServerObject, context : ActorContext) : Unit = {
-    obj.Actor ! akka.actor.PoisonPill
+    context.stop(obj.Actor)
     obj.Actor = ActorRef.noSender
   }
 }

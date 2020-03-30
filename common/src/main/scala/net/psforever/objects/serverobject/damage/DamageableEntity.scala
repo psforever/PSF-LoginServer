@@ -17,7 +17,7 @@ import services.avatar.{AvatarAction, AvatarServiceMessage}
   */
 trait DamageableEntity extends Damageable {
   /** log specifically for damage events */
-  private[this] val damageLog = org.log4s.getLogger("DamageResolution")
+  private[this] val damageLog = org.log4s.getLogger(Damageable.LogChannel)
 
   /**
     * Log a damage message.

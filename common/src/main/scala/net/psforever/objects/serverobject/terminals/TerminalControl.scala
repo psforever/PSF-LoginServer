@@ -39,37 +39,6 @@ class TerminalControl(term : Terminal) extends Actor
             sender ! CommonMessages.Hack(player, term, Some(item))
           case _ => ;
         }
-
-//      case CommonMessages.Use(player, None) if term.Faction == player.Faction =>
-//        val tdef = term.Definition
-//        if(tdef.isInstanceOf[MatrixTerminalDefinition]) {
-//          //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
-//          term.Zone.AvatarEvents ! AvatarServiceMessage(
-//            player.Name,
-//            AvatarAction.SendResponse(Service.defaultPlayerGUID, BindPlayerMessage(BindStatus.Bind, "", true, true, SpawnGroup.Sanctuary, 0, 0, term.Position))
-//          )
-//        }
-//        else if(tdef == GlobalDefinitions.multivehicle_rearm_terminal || tdef == GlobalDefinitions.bfr_rearm_terminal ||
-//          tdef == GlobalDefinitions.air_rearm_terminal || tdef == GlobalDefinitions.ground_rearm_terminal) {
-//          FindLocalVehicle match {
-//            case Some(vehicle) =>
-//              sendResponse(UseItemMessage(player.GUID, PlanetSideGUID(0), object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
-//              sendResponse(UseItemMessage(player.GUID, PlanetSideGUID(0), vehicle.GUID, unk2, unk3, unk4, unk5, unk6, unk7, unk8, vehicle.Definition.ObjectId))
-//            case None =>
-//              log.error("UseItem: expected seated vehicle, but found none")
-//          }
-//        }
-//        else if(tdef == GlobalDefinitions.teleportpad_terminal) {
-//          //explicit request
-//          term.Actor ! Terminal.Request(
-//            player,
-//            ItemTransactionMessage(term.GUID, TransactionType.Buy, 0, "router_telepad", 0, PlanetSideGUID(0))
-//          )
-//        }
-//        else {
-//          sendResponse(UseItemMessage(player.GUID, PlanetSideGUID(0), term.GUID, unk2, unk3, unk4, unk5, unk6, unk7, unk8, tdef.ObjectId))
-//        }
-
       case _ => ;
     }
 

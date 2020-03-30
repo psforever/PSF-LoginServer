@@ -33,6 +33,7 @@ import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
 import net.psforever.objects.loadouts.{InfantryLoadout, Loadout, SquadLoadout, VehicleLoadout}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.generator.Generator
@@ -79,7 +80,7 @@ class WorldSessionActor extends Actor
   import WorldSessionActor._
 
   private[this] val log = org.log4s.getLogger
-  private[this] val damageLog = org.log4s.getLogger("DamageResolution")
+  private[this] val damageLog = org.log4s.getLogger(Damageable.LogChannel)
   var sessionId : Long = 0
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
@@ -921,7 +922,7 @@ class WorldSessionActor extends Actor
 
     case Zone.Lattice.SpawnPoint(zone_id, spawn_tube) =>
       var (pos, ori) = spawn_tube.SpecificPoint(continent.GUID(player.VehicleSeated) match {
-        case Some(obj : Vehicle) if !obj.IsDead =>
+        case Some(obj : Vehicle) if !obj.Destroyed =>
           obj
         case _ =>
           player
@@ -1124,7 +1125,7 @@ class WorldSessionActor extends Actor
         continent.GUID(router) match {
           case Some(vehicle : Vehicle) =>
             val routerGUID = router.get
-            if(vehicle.Health == 0) {
+            if(vehicle.Destroyed) {
               //the Telepad was successfully deployed; but, before it could configure, its Router was destroyed
               sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", "@Telepad_NoDeploy_RouterLost", None))
               continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent, Some(0 seconds)))
@@ -1426,7 +1427,7 @@ class WorldSessionActor extends Actor
           }
           else {
             inZone.GUID(p.VehicleSeated) match {
-              case Some(v : Vehicle) if v.Health == 0 =>
+              case Some(v : Vehicle) if v.Destroyed =>
                 inZone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(v), inZone))
                 inZone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(v, inZone, if(v.Flying) {
                   //TODO gravity
@@ -1865,7 +1866,7 @@ class WorldSessionActor extends Actor
         sendResponse(GenericObjectStateMsg(door_guid, 17))
 
       case LocalResponse.EliminateDeployable(obj : TurretDeployable, guid, pos) =>
-        if(obj.Health == 0) {
+        if(obj.Destroyed) {
           DeconstructDeployable(obj, guid, pos)
         }
         else {
@@ -1883,7 +1884,7 @@ class WorldSessionActor extends Actor
         }
 
       case LocalResponse.EliminateDeployable(obj : ComplexDeployable, guid, pos) =>
-        if(obj.Health == 0) {
+        if(obj.Destroyed) {
           DeconstructDeployable(obj, guid, pos)
         }
         else {
@@ -1912,7 +1913,7 @@ class WorldSessionActor extends Actor
           case _ => ;
         }
         //standard deployable elimination behavior
-        if(obj.Health == 0) {
+        if(obj.Destroyed) {
           DeconstructDeployable(obj, guid, pos)
         }
         else {
@@ -1921,7 +1922,7 @@ class WorldSessionActor extends Actor
         }
 
       case LocalResponse.EliminateDeployable(obj, guid, pos) =>
-        if(obj.Health == 0) {
+        if(obj.Destroyed) {
           DeconstructDeployable(obj, guid, pos)
         }
         else {
@@ -3657,7 +3658,7 @@ class WorldSessionActor extends Actor
       }
       //load vehicles in zone (put separate the one we may be using)
       val (wreckages, (vehicles, usedVehicle)) = {
-        val (a, b) = continent.Vehicles.partition(vehicle => { vehicle.Health == 0 && vehicle.Definition.DestroyedModel.nonEmpty })
+        val (a, b) = continent.Vehicles.partition(vehicle => { vehicle.Destroyed && vehicle.Definition.DestroyedModel.nonEmpty })
         (a, (continent.GUID(player.VehicleSeated) match {
           case Some(vehicle : Vehicle) if vehicle.PassengerInSeat(player).isDefined =>
             b.partition { _.GUID != vehicle.GUID }
@@ -4018,6 +4019,7 @@ class WorldSessionActor extends Actor
       continent.Population ! Zone.Population.Release(avatar)
       player.VehicleSeated match {
         case None =>
+          log.info("not in vehicle")
           PrepareToTurnPlayerIntoCorpse(player, continent)
 
         case Some(_) =>
@@ -4521,9 +4523,9 @@ class WorldSessionActor extends Actor
       // TODO: Make sure this is the correct response for all cases
       ValidObject(object_guid) match {
         case Some(vehicle : Vehicle) =>
-          if((player.VehicleOwned.contains(object_guid) && vehicle.Owner.contains(player.GUID))
-            || (player.Faction == vehicle.Faction
-            && ((vehicle.Owner.isEmpty || continent.GUID(vehicle.Owner.get).isEmpty) || vehicle.Health == 0))) {
+          if((player.VehicleOwned.contains(object_guid) && vehicle.Owner.contains(player.GUID)) ||
+            (player.Faction == vehicle.Faction &&
+              ((vehicle.Owner.isEmpty || continent.GUID(vehicle.Owner.get).isEmpty) || vehicle.Destroyed))) {
             continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(vehicle), continent))
             continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(vehicle, continent, Some(0 seconds)))
             log.info(s"RequestDestroy: vehicle $vehicle")
@@ -5673,7 +5675,7 @@ class WorldSessionActor extends Actor
         case Some(vehicleGUID) =>
           continent.GUID(vehicleGUID) match {
             case Some(obj : Vehicle) =>
-              if(!obj.IsDead) { //vehicle will try to charge even if destroyed
+              if(!obj.Destroyed) { //vehicle will try to charge even if destroyed
                 obj.Actor ! Vehicle.ChargeShields(15)
               }
             case _ =>
@@ -7367,51 +7369,91 @@ class WorldSessionActor extends Actor
       if(building.IsCapitol && building.ForceDomeActive) {
         sendResponse(GenericObjectActionMessage(building.GUID, 13))
       }
-
-      building.Amenities.foreach(amenity => {
-        val amenityId = amenity.GUID
-        val configValue = amenity match {
-          case _ : ImplantTerminalMech => 0
-          case _ : Generator => 0
-          case _ if amenity.Definition.Damageable => boolToInt(amenity.Destroyed)
-          case _ => 0
-        }
-        //sync model access state
-        sendResponse(PlanetsideAttributeMessage(amenityId, 50, configValue))
-        sendResponse(PlanetsideAttributeMessage(amenityId, 51, configValue))
-        //sync damageable
-        if(amenity.Definition.Damageable && amenity.Health < amenity.MaxHealth) {
-            sendResponse(PlanetsideAttributeMessage(amenityId, 0, amenity.Health))
-        }
-        //sync special object type cases
-        amenity match {
-          case silo : ResourceSilo =>
-            //silo capacity
-            sendResponse(PlanetsideAttributeMessage(amenityId, 45, silo.CapacitorDisplay))
-            //warning lights
-            sendResponse(PlanetsideAttributeMessage(silo.Owner.GUID, 47, if(silo.LowNtuWarningOn) 1 else 0))
-            if(silo.ChargeLevel == 0) {
-              sendResponse(PlanetsideAttributeMessage(silo.Owner.GUID, 48, 1))
-            }
-          case door : Door if door.isOpen =>
-            sendResponse(GenericObjectStateMsg(amenityId, 16))
-
-          case _ => ;
-        }
-        //sync hack state
-        amenity match {
-          case obj : Hackable if obj.HackedBy.nonEmpty =>
-            amenity.Definition match {
-              case GlobalDefinitions.capture_terminal =>
-                HackCaptureTerminal(amenity.GUID, 0L, 0L, false)
-              case _ =>
-                HackObject(amenity.GUID, 1114636288L, 8L) //generic hackable object
-            }
-          case _ => ;
-        }
-      })
+      // Synchronise amenities
+      building.Amenities.collect {
+        case obj if obj.Destroyed => configAmenityAsDestroyed(obj)
+        case obj => configAmenityAsWorking(obj)
+      }
       Thread.sleep(connectionState)
     })
+  }
+
+  /**
+    * Configure the specific working amenity by sending the client packets.
+    * Amenities that are not `Damageable` are also included.
+    * These actions are performed during the loading of a zone.
+    * @see `Door`
+    * @see `GenericObjectStateMsg`
+    * @see `Hackable`
+    * @see `HackCaptureTerminal`
+    * @see `HackObject`
+    * @see `PlanetsideAttributeMessage`
+    * @see `ResourceSilo`
+    * @see `SetEmpireMessage`
+    * @see `VitalityDefinition.Damageable`
+    * @param amenity the facility object
+    */
+  def configAmenityAsWorking(amenity : Amenity) : Unit = {
+    val amenityId = amenity.GUID
+    //sync model access state
+    sendResponse(PlanetsideAttributeMessage(amenityId, 50, 0))
+    sendResponse(PlanetsideAttributeMessage(amenityId, 51, 0))
+    //sync damageable, if
+    val health = amenity.Health
+    if(amenity.Definition.Damageable && health < amenity.MaxHealth) {
+      sendResponse(PlanetsideAttributeMessage(amenityId, 0, health))
+    }
+    //sync special object type cases
+    amenity match {
+      case silo : ResourceSilo =>
+        //silo capacity
+        sendResponse(PlanetsideAttributeMessage(amenityId, 45, silo.CapacitorDisplay))
+        //warning lights
+        sendResponse(PlanetsideAttributeMessage(silo.Owner.GUID, 47, if(silo.LowNtuWarningOn) 1 else 0))
+        if(silo.ChargeLevel == 0) {
+          sendResponse(PlanetsideAttributeMessage(silo.Owner.GUID, 48, 1))
+        }
+      case door : Door if door.isOpen =>
+        sendResponse(GenericObjectStateMsg(amenityId, 16))
+
+      case _ => ;
+    }
+    //sync hack state
+    amenity match {
+      case obj : Hackable if obj.HackedBy.nonEmpty =>
+        amenity.Definition match {
+          case GlobalDefinitions.capture_terminal =>
+            HackCaptureTerminal(amenity.GUID, 0L, 0L, false)
+          case _ =>
+            HackObject(amenity.GUID, 1114636288L, 8L) //generic hackable object
+        }
+      case _ => ;
+    }
+  }
+
+  /**
+    * Configure the specific destroyed amenity by sending the client packets.
+    * These actions are performed during the loading of a zone.
+    * @see `Generator`
+    * @see `ImplantTerminalMech`
+    * @see `PlanetsideAttributeMessage`
+    * @see `PlanetSideGameObject.Destroyed`
+    * @param amenity the facility object
+    */
+  def configAmenityAsDestroyed(amenity : Amenity) : Unit = {
+    val amenityId = amenity.GUID
+    val configValue = amenity match {
+      case _ : ImplantTerminalMech => 0
+      case _ : Generator => 0
+      case _ => 1
+    }
+    //sync model access state
+    sendResponse(PlanetsideAttributeMessage(amenityId, 50, configValue))
+    sendResponse(PlanetsideAttributeMessage(amenityId, 51, configValue))
+    //sync damageable, if
+    if(amenity.Definition.Damageable) {
+      sendResponse(PlanetsideAttributeMessage(amenityId, 0, 0))
+    }
   }
 
   /**
@@ -7987,11 +8029,10 @@ class WorldSessionActor extends Actor
     }
     else {
       continent.GUID(player.VehicleSeated) match {
-        case Some(obj : Vehicle) if !obj.IsDead =>
+        case Some(obj : Vehicle) if !obj.Destroyed =>
           cluster ! Zone.Lattice.RequestSpawnPoint(sanctNumber, tplayer, 12) //warp gates for functioning vehicles
-        case None =>
-          cluster ! Zone.Lattice.RequestSpawnPoint(sanctNumber, tplayer, 7) //player character spawns
         case _ =>
+          cluster ! Zone.Lattice.RequestSpawnPoint(sanctNumber, tplayer, 7) //player character spawns
       }
     }
   }

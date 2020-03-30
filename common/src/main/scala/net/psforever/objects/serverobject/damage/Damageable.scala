@@ -38,6 +38,13 @@ trait Damageable {
 object Damageable {
   /* the type of all entities governed by this mixin; see Repairable.Target */
   final type Target = PlanetSideServerObject with Vitality
+  /* the master channel for logging damage resolution information
+   * the format of the channel is expected to follow:
+   * "[identifier]: BEFORE=[before1/before2/etc.] AFTER=[after1/after2/etc.] CHANGE=[change1/change2/etc.]"
+   * ... where before1 - change1 = after1, and so forth, for each field that matters
+   * the fields do not have to be labeled but the first (if not only) should always be Health
+   */
+  final val LogChannel : String = "DamageResolution"
 
   /**
     * Does the possibility exist that the designated target can be affected by this projectile's damage?

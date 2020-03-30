@@ -5905,6 +5905,7 @@ object GlobalDefinitions {
     dropship.MaxHealth = 5000
     dropship.Damageable = true
     dropship.Repairable = true
+    dropship.RepairDistance = 20
     dropship.RepairIfDestroyed = false
     dropship.MaxShields = 1000 + 1
     dropship.CanFly = true
@@ -5965,6 +5966,7 @@ object GlobalDefinitions {
     galaxy_gunship.MaxHealth = 6000
     galaxy_gunship.Damageable = true
     galaxy_gunship.Repairable = true
+    galaxy_gunship.RepairDistance = 20
     galaxy_gunship.RepairIfDestroyed = false
     galaxy_gunship.MaxShields = 1200 + 1
     galaxy_gunship.CanFly = true
@@ -6002,6 +6004,7 @@ object GlobalDefinitions {
     lodestar.MaxHealth = 5000
     lodestar.Damageable = true
     lodestar.Repairable = true
+    lodestar.RepairDistance = 20
     lodestar.RepairIfDestroyed = false
     lodestar.MaxShields = 1000 + 1
     lodestar.CanFly = true
@@ -6639,8 +6642,9 @@ object GlobalDefinitions {
     generator.Name = "generator"
     generator.MaxHealth = 4000
     generator.Damageable = true
-    generator.Repairable = true
     generator.DamageableByFriendlyFire = false
+    generator.Repairable = true
+    generator.RepairDistance = 13.5f
     generator.RepairIfDestroyed = true
     generator.Subtract.Damage1 = 9
   }

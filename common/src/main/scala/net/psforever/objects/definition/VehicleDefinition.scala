@@ -48,6 +48,8 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId)
   DamageUsing = StandardVehicleDamage
   ResistUsing = StandardVehicleResistance
   Model = StandardResolutions.Vehicle
+  RepairDistance = 10
+  RepairRestoresAt = 1
 
   def MaxShields : Int = maxShields
 

@@ -103,7 +103,7 @@ class ResourceSiloControlUseTest extends ActorTest {
   zone.Transport ! Zone.Vehicle.Spawn(vehicle)
   vehicle.Seats(0).Occupant = player
   player.VehicleSeated = vehicle.GUID
-  val msg = UseItemMessage(PlanetSideGUID(1), PlanetSideGUID(0), PlanetSideGUID(2), 0L, false, Vector3(0f,0f,0f),Vector3(0f,0f,0f),0,0,0,0L) //faked
+  val msg = UseItemMessage(PlanetSideGUID(1), PlanetSideGUID(0), PlanetSideGUID(2), 0L, false, Vector3.Zero,Vector3.Zero,0,0,0,0L) //faked
   expectNoMsg(200 milliseconds)
 
   "Resource silo" should {

@@ -135,8 +135,6 @@ object WeaponTurret {
     */
   def LoadDefinition(turret : WeaponTurret, tdef : TurretDefinition) : WeaponTurret = {
     import net.psforever.objects.equipment.EquipmentSize.BaseTurretWeapon
-    //general stuff
-    //turret.Health = tdef.MaxHealth
     //create weapons; note the class
     turret.weapons = tdef.Weapons.map({case (num, upgradePaths) =>
       val slot = EquipmentSlot(BaseTurretWeapon)

@@ -45,7 +45,8 @@ trait Repairable {
   def CanBeRepairedByNanoDispenser(player : Player, item : Tool) : Unit
 
   /**
-    *
+    * The amount of repair that any specific tool provides.
+    * @see `Repairable.Quality`
     * @param item the tool in question
     * @return an amount to add to the repair attempt progress
     */

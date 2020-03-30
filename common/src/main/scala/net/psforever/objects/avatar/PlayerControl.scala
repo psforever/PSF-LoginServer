@@ -7,6 +7,7 @@ import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile}
 import net.psforever.objects.equipment.{Ammo, JammableBehavior, JammableUnit}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.damage.Damageable
+import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.repair.Repairable
 import net.psforever.objects.vital._
 import net.psforever.objects.zones.Zone
@@ -27,7 +28,7 @@ class PlayerControl(player : Player) extends Actor
   def JammableObject = player
   def DamageableObject = player
 
-  private [this] val damageLog = org.log4s.getLogger("DamageResolution")
+  private [this] val damageLog = org.log4s.getLogger(Damageable.LogChannel)
 
   def receive : Receive = jammableBehavior
     .orElse(takesDamage)
@@ -40,11 +41,11 @@ class PlayerControl(player : Player) extends Actor
       case CommonMessages.Use(user, Some(item : Tool)) if item.Definition == GlobalDefinitions.medicalapplicator && player.isAlive =>
         //heal
         val originalHealth = player.Health
+        val definition = player.Definition
         if(player.MaxHealth > 0 && originalHealth < player.MaxHealth &&
           user.Faction == player.Faction &&
           item.Magazine > 0 &&
-          Vector3.Distance(user.Position, player.Position) < 5) {
-          val definition = player.Definition
+          Vector3.Distance(user.Position, player.Position) < definition.RepairDistance) {
           val zone = player.Zone
           val events = zone.AvatarEvents
           val uname = user.Name
@@ -74,11 +75,11 @@ class PlayerControl(player : Player) extends Actor
 
       case CommonMessages.Use(user, Some(item : Tool)) if item.Definition == GlobalDefinitions.bank =>
         val originalArmor = player.Armor
+        val definition = player.Definition
         if(player.MaxArmor > 0 && originalArmor < player.MaxArmor &&
           user.Faction == player.Faction &&
           item.AmmoType == Ammo.armor_canister && item.Magazine > 0 &&
-          Vector3.Distance(user.Position, player.Position) < 5) {
-          val definition = player.Definition
+          Vector3.Distance(user.Position, player.Position) < definition.RepairDistance) {
           val zone = player.Zone
           val events = zone.AvatarEvents
           val uname = user.Name
@@ -274,11 +275,22 @@ object PlayerControl {
     target.Actor ! JammableUnit.ClearJammeredSound()
     target.Actor ! JammableUnit.ClearJammeredStatus()
     events ! AvatarServiceMessage(nameChannel, AvatarAction.Killed(player_guid)) //align client interface fields with state
-    if(target.VehicleSeated.nonEmpty) {
-      //make player invisible (if not, the cadaver sticks out the side in a seated position)
-      events ! AvatarServiceMessage(nameChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 29, 1))
-      //only the dead player should "see" their own body, so that the death camera has something to focus on
-      events ! AvatarServiceMessage(zoneChannel, AvatarAction.ObjectDelete(player_guid, player_guid))
+    zone.GUID(target.VehicleSeated) match {
+      case Some(obj : Mountable) =>
+        //boot cadaver from seat
+        events ! AvatarServiceMessage(nameChannel, AvatarAction.SendResponse(Service.defaultPlayerGUID,
+          ObjectDetachMessage(obj.GUID, player_guid, target.Position, Vector3.Zero))
+        )
+        obj.PassengerInSeat(target) match {
+          case Some(index) =>
+            obj.Seats(index).Occupant = None
+          case _ => ;
+        }
+        //make player invisible
+        events ! AvatarServiceMessage(nameChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 29, 1))
+        //only the dead player should "see" their own body, so that the death camera has something to focus on
+        events ! AvatarServiceMessage(zoneChannel, AvatarAction.ObjectDelete(player_guid, player_guid))
+      case _ => ;
     }
     events ! AvatarServiceMessage(zoneChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 0, 0)) //health
     events ! AvatarServiceMessage(nameChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 2, 0)) //stamina

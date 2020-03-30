@@ -499,6 +499,9 @@ class PlayerControlDeathSeatedTest extends ActorTest {
   player2.Spawn
   player2.Actor = system.actorOf(Props(classOf[PlayerControl], player2), "player2-control")
 
+  val vehicle = Vehicle(GlobalDefinitions.quadstealth) //guid=5
+  vehicle.Faction = player2.Faction
+
   val tool = Tool(GlobalDefinitions.suppressor) //guid 3 & 4
   val projectile = tool.Projectile
   val player1Source = SourceEntry(player1)
@@ -514,18 +517,20 @@ class PlayerControlDeathSeatedTest extends ActorTest {
   guid.register(player2, 2)
   guid.register(tool, 3)
   guid.register(tool.AmmoSlot.Box, 4)
+  guid.register(vehicle, 5)
   expectNoMsg(200 milliseconds)
 
   "PlayerControl" should {
     "handle death when seated (in something)" in {
       player2.Health = player2.Definition.DamageDestroysAt + 1 //initial state manip
-      player2.VehicleSeated = PlanetSideGUID(10) //initial state manip, anything
+      player2.VehicleSeated = vehicle.GUID //initial state manip, anything
+      vehicle.Seats(0).Occupant = player2
       player2.Armor = 0 //initial state manip
       assert(player2.Health > player2.Definition.DamageDestroysAt)
       assert(player2.isAlive)
 
       player2.Actor ! Vitality.Damage(applyDamageTo)
-      val msg_avatar = avatarProbe.receiveN(8, 500 milliseconds)
+      val msg_avatar = avatarProbe.receiveN(9, 500 milliseconds)
       activityProbe.expectNoMsg(200 milliseconds)
       assert(
         msg_avatar.head match {
@@ -535,42 +540,50 @@ class PlayerControlDeathSeatedTest extends ActorTest {
       )
       assert(
         msg_avatar(1) match {
-          case AvatarServiceMessage("TestCharacter2", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 29, 1)) => true
+          case AvatarServiceMessage("TestCharacter2", AvatarAction.SendResponse(_,
+          ObjectDetachMessage(PlanetSideGUID(5), PlanetSideGUID(2), _, _, _, _))
+          ) => true
           case _ => false
         }
       )
       assert(
         msg_avatar(2) match {
-          case AvatarServiceMessage("test", AvatarAction.ObjectDelete(PlanetSideGUID(2), PlanetSideGUID(2), _)) => true
+          case AvatarServiceMessage("TestCharacter2", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 29, 1)) => true
           case _ => false
         }
       )
       assert(
         msg_avatar(3) match {
-          case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
+          case AvatarServiceMessage("test", AvatarAction.ObjectDelete(PlanetSideGUID(2), PlanetSideGUID(2), _)) => true
           case _ => false
         }
       )
       assert(
         msg_avatar(4) match {
-          case AvatarServiceMessage("TestCharacter2", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 2, _)) => true
+          case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
           case _ => false
         }
       )
       assert(
         msg_avatar(5) match {
-          case AvatarServiceMessage("TestCharacter2", AvatarAction.SendResponse(_, DestroyMessage(PlanetSideGUID(2), PlanetSideGUID(2), _, Vector3.Zero))) => true
+          case AvatarServiceMessage("TestCharacter2", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 2, _)) => true
           case _ => false
         }
       )
       assert(
         msg_avatar(6) match {
-          case AvatarServiceMessage("TestCharacter2", AvatarAction.SendResponse(_, AvatarDeadStateMessage(DeadState.Dead, 300000, 300000, Vector3.Zero, PlanetSideEmpire.NC, true))) => true
+          case AvatarServiceMessage("TestCharacter2", AvatarAction.SendResponse(_, DestroyMessage(PlanetSideGUID(2), PlanetSideGUID(2), _, Vector3.Zero))) => true
           case _ => false
         }
       )
       assert(
         msg_avatar(7) match {
+          case AvatarServiceMessage("TestCharacter2", AvatarAction.SendResponse(_, AvatarDeadStateMessage(DeadState.Dead, 300000, 300000, Vector3.Zero, PlanetSideEmpire.NC, true))) => true
+          case _ => false
+        }
+      )
+      assert(
+        msg_avatar(8) match {
           case AvatarServiceMessage("test", AvatarAction.DestroyDisplay(killer, victim, _, _))
             if killer == player1Source && victim == PlayerSource(player2) => true
           case _ => false

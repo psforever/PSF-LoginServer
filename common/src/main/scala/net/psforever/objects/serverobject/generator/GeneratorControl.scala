@@ -63,6 +63,10 @@ class GeneratorControl(gen : Generator) extends Actor
     gen.Condition != PlanetSideGeneratorState.Critical && super.CanPerformRepairs(obj, player, item)
   }
 
+  override protected def WillAffectTarget(target : Target, damage : Int, cause : ResolvedProjectile) : Boolean = {
+    gen.Condition != PlanetSideGeneratorState.Critical && super.WillAffectTarget(target, damage, cause)
+  }
+
   override protected def DestructionAwareness(target : Target, cause : ResolvedProjectile) : Unit = {
     if(target.Health == 0) {
       target.Health = 1 //temporary
