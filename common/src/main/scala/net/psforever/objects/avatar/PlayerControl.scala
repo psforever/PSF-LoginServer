@@ -43,7 +43,7 @@ class PlayerControl(player : Player) extends Actor
 
         implantSlot.Active = false
         player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, player.Implant(slot).id * 2)) // Deactivation sound / effect
-        player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.DeactivateImplantSlot(player.GUID, slot))
+        player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.DeactivateImplantSlot(player.GUID, slot))
       } else if (status == 1 && implantSlot.Initialized && !player.Fatigued) {
         implantSlot.Installed match {
           case Some(implant: ImplantDefinition) =>
@@ -61,7 +61,7 @@ class PlayerControl(player : Player) extends Actor
             }
 
             player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, player.Implant(slot).id * 2 + 1)) // Activation sound / effect
-            player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.ActivateImplantSlot(player.GUID, slot))
+            player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.ActivateImplantSlot(player.GUID, slot))
         }
       }
       else {
