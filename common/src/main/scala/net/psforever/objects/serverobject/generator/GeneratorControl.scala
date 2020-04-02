@@ -26,6 +26,7 @@ class GeneratorControl(gen : Generator) extends Actor
   def FactionObject = gen
   def DamageableObject = gen
   def RepairableObject = gen
+  var imminentExplosion : Boolean = false
 
   def receive : Receive = checkBehavior
     .orElse(takesDamage)
@@ -43,6 +44,7 @@ class GeneratorControl(gen : Generator) extends Actor
             Service.defaultPlayerGUID, TriggerEffectMessage(gen.GUID, "explosion_generator", None, None)
           )
         )
+        imminentExplosion = false
         //kill everyone within 14m
         gen.Owner match {
           case b : Building =>
@@ -60,22 +62,26 @@ class GeneratorControl(gen : Generator) extends Actor
     }
 
   override protected def CanPerformRepairs(obj : Target, player : Player, item : Tool) : Boolean = {
-    gen.Condition != PlanetSideGeneratorState.Critical && super.CanPerformRepairs(obj, player, item)
+    !imminentExplosion && super.CanPerformRepairs(obj, player, item)
   }
 
   override protected def WillAffectTarget(target : Target, damage : Int, cause : ResolvedProjectile) : Boolean = {
-    gen.Condition != PlanetSideGeneratorState.Critical && super.WillAffectTarget(target, damage, cause)
+    !imminentExplosion && super.WillAffectTarget(target, damage, cause)
+  }
+
+  override protected def DamageAwareness(target : Target, cause : ResolvedProjectile, amount : Int) : Unit = {
+    super.DamageAwareness(target, cause, amount)
+    GeneratorControl.DamageAwareness(gen, cause, amount)
   }
 
   override protected def DestructionAwareness(target : Target, cause : ResolvedProjectile) : Unit = {
-    if(target.Health == 0) {
+    if(!target.Destroyed) {
       target.Health = 1 //temporary
-      gen.Condition = PlanetSideGeneratorState.Critical
-      GeneratorControl.UpdateOwner(gen)
-      //imminent kaboom
+      imminentExplosion = true
       import scala.concurrent.duration._
       import scala.concurrent.ExecutionContext.Implicits.global
       context.system.scheduler.scheduleOnce(10 seconds, self, GeneratorControl.GeneratorExplodes())
+      GeneratorControl.BroadcastGeneratorEvent(gen, 16)
     }
   }
 
@@ -83,6 +89,7 @@ class GeneratorControl(gen : Generator) extends Actor
     super.Restoration(obj)
     gen.Condition = PlanetSideGeneratorState.Normal
     GeneratorControl.UpdateOwner(gen)
+    GeneratorControl.BroadcastGeneratorEvent(gen, 17)
   }
 }
 
@@ -100,6 +107,42 @@ object GeneratorControl {
     obj.Owner match {
       case b : Building => b.Actor ! Building.AmenityStateChange(obj)
       case _ => ;
+    }
+  }
+
+  /**
+    * na
+    * @param target the generator
+    * @param event the action code for the event
+    */
+  private def BroadcastGeneratorEvent(target : Generator, event : Int) : Unit = {
+    target.Owner match {
+      case b : Building =>
+        val events = target.Zone.AvatarEvents
+        val msg = AvatarAction.GenericObjectAction(Service.defaultPlayerGUID, target.Owner.GUID, event)
+        b.PlayersInSOI.foreach { player =>
+          events ! AvatarServiceMessage(player.Name, msg)
+        }
+      case _ => ;
+    }
+  }
+
+  /**
+    * If not destroyed, it will complain about being damaged.
+    * @param target the entity being damaged
+    * @param cause historical information about the damage
+    * @param amount the amount of damage
+    */
+  def DamageAwareness(target : Generator, cause : ResolvedProjectile, amount : Int) : Unit = {
+    if(!target.Destroyed) {
+      val health : Float = target.Health
+      val max : Float = target.MaxHealth
+      if(target.Condition != PlanetSideGeneratorState.Critical && health / max < 0.51f) { //becoming critical
+        target.Condition = PlanetSideGeneratorState.Critical
+        GeneratorControl.UpdateOwner(target)
+      }
+      //the generator is under attack
+      GeneratorControl.BroadcastGeneratorEvent(target, 15)
     }
   }
 }

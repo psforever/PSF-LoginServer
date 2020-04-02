@@ -163,8 +163,10 @@ object DamageableEntity {
     }
     if(amount > 0) {
       val zone = target.Zone
-      val tguid = target.GUID
-      zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttributeToAll(tguid, 0, target.Health))
+      if(!target.Destroyed) {
+        val tguid = target.GUID
+        zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttributeToAll(tguid, 0, target.Health))
+      }
       zone.Activity ! Zone.HotSpot.Activity(cause.target, cause.projectile.owner, cause.hit_pos)
     }
   }
