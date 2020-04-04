@@ -454,7 +454,8 @@ class DamageableAmenityTest extends ActorTest {
   "DamageableAmenity" should {
     "send de-initialization messages upon destruction" in {
       //the decimator does enough damage to one-shot this terminal from any initial health
-      assert(term.Health == term.Definition.DefaultHealth)
+      term.Health = term.Definition.DamageDestroysAt + 1
+      assert(term.Health > term.Definition.DamageDestroysAt)
       assert(!term.Destroyed)
 
       term.Actor ! Vitality.Damage(applyDamageTo)
