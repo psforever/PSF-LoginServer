@@ -14,7 +14,4 @@ trait RepairableVehicle extends RepairableEntity {
     /* if you wanted to properly restore a destroyed vehicle, the quickest way is an ObjectCreateMessage packet */
     /* additionally, the vehicle deconstruction task must be cancelled */
   }
-
-  /* vehicle repair modifier */
-  override def RepairValue(item : Tool) : Int = item.FireMode.Modifiers.Damage1
 }

@@ -104,5 +104,5 @@ trait RepairableEntity extends Repairable {
   }
 
   /* random object repair modifier */
-  override def RepairValue(item : Tool) : Int = item.FireMode.Modifiers.Damage4
+  override def RepairValue(item : Tool) : Int = item.FireMode.Modifiers.Damage1
 }

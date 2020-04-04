@@ -46,7 +46,7 @@ class DamageCalculationsTests extends Specification {
     }
 
     "extract damage against something" in {
-      DamageAgainstUnknown(proj_prof) mustEqual 66
+      DamageAgainstBFR(proj_prof) mustEqual 66
     }
 
     "extract a complete damage profile (1)" in {

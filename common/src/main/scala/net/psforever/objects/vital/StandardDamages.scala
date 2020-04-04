@@ -97,13 +97,13 @@ object AircraftLashDamage extends DamageCalculations(
 
 object AmenityHitDamage extends DamageCalculations(
   DirectHitDamageWithDegrade,
-  DamageWithModifiers(DamageAgainstUnknown),
+  DamageWithModifiers(DamageAgainstVehicle),
   DistanceBetweenTargetandSource
 )
 
 object AmenitySplashDamage extends DamageCalculations(
   SplashDamageWithRadialDegrade,
-  DamageWithModifiers(DamageAgainstUnknown),
+  DamageWithModifiers(DamageAgainstVehicle),
   DistanceFromExplosionToTarget
 )
 

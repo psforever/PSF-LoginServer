@@ -17,9 +17,6 @@ trait RepairableWeaponTurret extends RepairableEntity {
     super.Restoration(target)
     RepairableWeaponTurret.Restoration(RepairableObject)
   }
-
-  /* vehicle repair modifier */
-  override def RepairValue(item : Tool) : Int = item.FireMode.Modifiers.Damage1
 }
 
 object RepairableWeaponTurret {
