@@ -2,7 +2,9 @@
 package net.psforever.objects.zones
 
 import akka.actor.{Actor, Props}
+import net.psforever.objects.SpawnPoint
 import net.psforever.objects.serverobject.structures.Building
+import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 import scala.annotation.tailrec
 
@@ -53,7 +55,7 @@ class InterstellarCluster(zones : List[Zone]) extends Actor {
       zones.foreach(zone => { sender ! Zone.ClientInitialization(zone.ClientInitialization()) })
       sender ! InterstellarCluster.ClientInitializationComplete() //will be processed after all Zones
 
-    case msg @ Zone.Lattice.RequestSpawnPoint(zone_number, _, _) =>
+    case msg @ Zone.Lattice.RequestSpawnPoint(zone_number, _, _, _) =>
       recursiveFindWorldInCluster(zones.iterator, _.Number == zone_number) match {
         case Some(zone) =>
           zone.Actor forward msg
@@ -62,7 +64,7 @@ class InterstellarCluster(zones : List[Zone]) extends Actor {
           sender ! Zone.Lattice.NoValidSpawnPoint(zone_number, None)
       }
 
-    case msg @ Zone.Lattice.RequestSpecificSpawnPoint(zone_number, _, _) =>
+    case msg @ Zone.Lattice.RequestSpecificSpawnPoint(zone_number, _, _, _) =>
       recursiveFindWorldInCluster(zones.iterator, _.Number == zone_number) match {
         case Some(zone) =>
           zone.Actor forward msg
@@ -73,6 +75,46 @@ class InterstellarCluster(zones : List[Zone]) extends Actor {
     case InterstellarCluster.ZoneMapUpdate(zone_num: Int) =>
       val zone = zones.find(x => x.Number == zone_num).get
       zone.Buildings.values.foreach(b => b.Actor ! Building.SendMapUpdate(all_clients = true))
+
+
+    case InterstellarCluster.InstantActionRequest(faction) =>
+      val time = System.nanoTime
+      val interests = zones.flatMap { zone =>
+        zone.HotSpots.map { info =>
+          (
+            zone, //zone
+            info.DisplayLocation, //hotspot
+            info.Activity.values.minBy(time - _.LastReport), //lower time = more recent
+            info.Activity.maxBy { case (_, act) => act.Heat }._1, //what faction was the most active
+            info.Activity.values.foldLeft(0)(_ + _.Heat) //total activity
+          )
+        }
+      }
+      if(interests.nonEmpty) {
+        //TODO droppod action?
+        interests
+          .map { case info @ (zone, pos, _, _, _) =>
+            (
+              info,
+              ZoneActor.FindLocalSpawnPointsInZone(zone, pos, faction, 0).getOrElse(Nil) ++
+                ZoneActor.FindLocalSpawnPointsInZone(zone, pos, faction, 2).getOrElse(Nil)
+            )
+          }
+          .filter { case (_, spawns) => spawns.nonEmpty }
+          .sortBy({ case ((_, _, _, _, total), _) => total })(Ordering[Int].reverse) //greatest > least
+          .headOption match {
+          case Some(((zone, pos, _, _, _), List(spawnPoint))) =>
+            sender ! InterstellarCluster.InstantActionLocated(zone.Id, pos, spawnPoint.Position, Some(spawnPoint))
+          case Some(((zone, pos, _, _, _), spawns)) =>
+            val spawnPoint = spawns.minBy(point => Vector3.DistanceSquared(point.Position, pos))
+            sender ! InterstellarCluster.InstantActionLocated(zone.Id, pos, spawnPoint.Position, Some(spawnPoint))
+          case None =>
+            sender ! InterstellarCluster.InstantActionNotLocated()
+        }
+      }
+      else {
+        sender ! InterstellarCluster.InstantActionNotLocated()
+      }
 
     case _ =>
       log.warn(s"InterstellarCluster received unknown message");
@@ -133,6 +175,12 @@ object InterstellarCluster {
     * @param zone_num the zone number to request building map updates for
     */
   final case class ZoneMapUpdate(zone_num: Int)
+
+  final case class InstantActionRequest(faction : PlanetSideEmpire.Value)
+
+  final case class InstantActionLocated(zone_id : String, hotspot : Vector3, spawn_pos : Vector3, spawn_point : Option[SpawnPoint])
+
+  final case class InstantActionNotLocated()
 }
 
 /*

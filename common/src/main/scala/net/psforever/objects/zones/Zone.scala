@@ -678,12 +678,45 @@ object Zone {
     /**
       * Message requesting that the current zone determine where a `player` can spawn.
       * @param zone_number this zone's numeric identifier
-      * @param player the `Player` object
+      * @param position the locality that the result should adhere
+      * @param faction which empire's spawn options should be available
       * @param spawn_group the category of spawn points the request wants searched
       */
-    final case class RequestSpawnPoint(zone_number : Int, player : Player, spawn_group : Int)
+    final case class RequestSpawnPoint(zone_number : Int, position : Vector3, faction : PlanetSideEmpire.Value, spawn_group : Int)
 
-    final case class RequestSpecificSpawnPoint(zone_number : Int, player : Player, target : PlanetSideGUID)
+    object RequestSpawnPoint {
+      /**
+        * Overloaded constructor for `RequestSpawnPoint`.
+        * @param zone_number this zone's numeric identifier
+        * @param player the `Player` object
+        * @param spawn_group the category of spawn points the request wants searched
+        */
+      def apply(zone_number : Int, player : Player, spawn_group : Int) : RequestSpawnPoint = {
+        RequestSpawnPoint(zone_number, player.Position, player.Faction, spawn_group)
+      }
+    }
+
+    /**
+      * Message requesting a particular spawn point in the current zone.
+      * @param zone_number this zone's numeric identifier
+      * @param position the locality that the result should adhere
+      * @param faction which empire's spawn options should be available
+      * @param target the identifier of the spawn object
+      */
+    final case class RequestSpecificSpawnPoint(zone_number : Int, position : Vector3, faction : PlanetSideEmpire.Value, target : PlanetSideGUID)
+
+    object RequestSpecificSpawnPoint {
+      /**
+        * Overloaded constructor for `RequestSpecificSpawnPoint`.
+        * @param zone_number this zone's numeric identifier
+        * @param player the `Player` object
+        * @param target the identifier of the spawn object
+        */
+      def apply(zone_number : Int, player : Player, target : PlanetSideGUID) : RequestSpecificSpawnPoint = {
+        RequestSpecificSpawnPoint(zone_number, player.Position, player.Faction, target)
+      }
+    }
+
     /**
       * Message that returns a discovered spawn point to a request source.
       * @param zone_id the zone's text identifier
