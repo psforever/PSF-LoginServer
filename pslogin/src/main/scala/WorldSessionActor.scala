@@ -6,7 +6,10 @@ import com.github.mauricio.async.db.general.ArrayRowData
 import com.github.mauricio.async.db.{Connection, QueryResult}
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+
+import net.psforever.objects.serverobject.structures.SphereOfInfluence
 import org.log4s.{Logger, MDC}
+
 import scala.annotation.{switch, tailrec}
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.LongMap
@@ -163,6 +166,9 @@ class WorldSessionActor extends Actor
   var squadSetup : () => Unit = FirstTimeSquadSetup
   var squadUpdateCounter : Int = 0
   val queuedSquadActions : Seq[() => Unit] = Seq(SquadUpdates, NoSquadUpdates, NoSquadUpdates, NoSquadUpdates)
+  var instantActionStatus : InterstellarCluster.InstantAction.Value = InterstellarCluster.InstantAction.None
+  var instantActionCounter : Int = 0
+
 
   lazy val unsignedIntMaxValue : Long = Int.MaxValue.toLong * 2L + 1L
   var serverTime : Long = 0
@@ -180,6 +186,7 @@ class WorldSessionActor extends Actor
   var cargoDismountTimer : Cancellable = DefaultCancellable.obj
   var antChargingTick : Cancellable = DefaultCancellable.obj
   var antDischargingTick : Cancellable = DefaultCancellable.obj
+  var instantActionTimer : Cancellable = DefaultCancellable.obj
 
   /**
     * Convert a boolean value into an integer value.
@@ -1140,6 +1147,70 @@ class WorldSessionActor extends Actor
         case _ =>
           taskResolver ! RegisterNewAvatar(player)
       }
+
+    case InterstellarCluster.InstantActionLocated(zone_id, hotspot_position, spawn_point_position, Some(spawn_point)) =>
+      if(instantActionStatus == InterstellarCluster.InstantAction.Request) {
+        instantActionStatus = InterstellarCluster.InstantAction.Countdown
+        instantActionCounter = if(Zones.SanctuaryZoneNumber(player.Faction) == continent.Number) {
+          10
+        }
+        else {
+          (continent.Buildings
+            .values
+            .filter { building =>
+              val radius = building.Definition.SOIRadius
+              Vector3.DistanceSquared(building.Position, player.Position) < radius * radius
+            }) match {
+            case Nil =>
+              20
+            case List(building) =>
+              if(building.Faction == player.Faction) 10
+              else if(building.Faction == PlanetSideEmpire.NEUTRAL) 20
+              else 30
+            case buildings =>
+              if(buildings.forall(_.Faction == player.Faction)) 10
+              else if(buildings.forall(_.Faction == PlanetSideEmpire.NEUTRAL)) 20
+              else 30
+          }
+        }
+        import scala.concurrent.ExecutionContext.Implicits.global
+        instantActionTimer.cancel
+        instantActionTimer = context.system.scheduler.scheduleOnce(5 seconds, cluster, InterstellarCluster.InstantActionRequest(player.Faction))
+      }
+      else if(instantActionStatus == InterstellarCluster.InstantAction.Countdown) {
+        instantActionTimer.cancel
+        instantActionCounter -= 5
+        if(instantActionCounter > 0) {
+          if(Seq(5, 10, 20).contains(instantActionCounter)) {
+            sendResponse(ChatMsg(ChatMessageType.CMT_INSTANTACTION, false, "", s"@instantaction_$instantActionCounter", None))
+          }
+          instantActionTimer = context.system.scheduler.scheduleOnce(5 seconds, cluster, InterstellarCluster.InstantActionRequest(player.Faction))
+        }
+        else {
+          //instant action deployment
+          instantActionCounter = 0
+          instantActionStatus = InterstellarCluster.InstantAction.None
+          log.info("Thunderbirds are go!")
+        }
+        //sendResponse(ChatMsg(ChatMessageType.CMT_INSTANTACTION, false, "", "@instantaction_cancel", None))
+        //sendResponse(ChatMsg(ChatMessageType.CMT_INSTANTACTION, false, "", "@instantaction_cancel_motion", None))
+        //sendResponse(ChatMsg(ChatMessageType.CMT_INSTANTACTION, false, "", "@instantaction_cancel_fire", None))
+        //sendResponse(ChatMsg(ChatMessageType.CMT_INSTANTACTION, false, "", "@instantaction_cancel_dmg", None))
+      }
+
+    case InterstellarCluster.InstantActionLocated(zone_id, hotspot_position, spawn_point_position, None) =>
+      //droppod into the zone
+      //TODO todo
+      instantActionTimer.cancel
+      instantActionCounter = 0
+      instantActionStatus = InterstellarCluster.InstantAction.None
+
+    case InterstellarCluster.InstantActionNotLocated() =>
+      //no instant action available
+      instantActionTimer.cancel
+      instantActionCounter = 0
+      instantActionStatus = InterstellarCluster.InstantAction.None
+      sendResponse(ChatMsg(ChatMessageType.CMT_INSTANTACTION, false, "", "@InstantActionNoHotspotsAvailable", None))
 
     case NewPlayerLoaded(tplayer) =>
       //new zone
@@ -3970,6 +4041,13 @@ class WorldSessionActor extends Actor
         } else {
           spectator = false
           sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, msg.wideContents, msg.recipient, "off", msg.note))
+        }
+      }
+      else if(messagetype == ChatMessageType.CMT_INSTANTACTION) {
+        makeReply = false
+        if(instantActionStatus == InterstellarCluster.InstantAction.None) {
+          instantActionStatus = InterstellarCluster.InstantAction.Request
+          cluster ! InterstellarCluster.InstantActionRequest(player.Faction)
         }
       }
 

@@ -2,16 +2,15 @@
 package net.psforever.objects.serverobject.structures
 
 import akka.actor.ActorContext
-import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.{GlobalDefinitions, SpawnPoint, SpawnPointDefinition}
+import net.psforever.objects.{GlobalDefinitions, SpawnPoint}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{Additional1, Additional2, Additional3}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGeneratorState, Vector3}
 
 import scala.collection.mutable
 
-class WarpGate(name : String, building_guid : Int, map_id : Int, zone : Zone, buildingDefinition : ObjectDefinition with SpawnPointDefinition)
+class WarpGate(name : String, building_guid : Int, map_id : Int, zone : Zone, buildingDefinition : WarpGateDefinition)
   extends Building(name, building_guid, map_id, zone, StructureType.WarpGate, buildingDefinition)
     with SpawnPoint {
   /** can this building be used as an active warp gate */
@@ -155,12 +154,12 @@ class WarpGate(name : String, building_guid : Int, map_id : Int, zone : Zone, bu
 
   def Owner : PlanetSideServerObject = this
 
-  override def Definition : ObjectDefinition with SpawnPointDefinition = buildingDefinition
+  override def Definition : WarpGateDefinition = buildingDefinition
   //TODO stuff later
 }
 
 object WarpGate {
-  def apply(name : String, guid : Int, map_id : Int, zone : Zone, buildingDefinition : ObjectDefinition with SpawnPointDefinition) : WarpGate = {
+  def apply(name : String, guid : Int, map_id : Int, zone : Zone, buildingDefinition : WarpGateDefinition) : WarpGate = {
     new WarpGate(name, guid, map_id, zone, buildingDefinition)
   }
 
@@ -179,7 +178,7 @@ object WarpGate {
     obj
   }
 
-  def Structure(location : Vector3, buildingDefinition : ObjectDefinition with SpawnPointDefinition)(name : String, guid : Int, map_id : Int, zone : Zone, context : ActorContext) : WarpGate = {
+  def Structure(location : Vector3, buildingDefinition : WarpGateDefinition)(name : String, guid : Int, map_id : Int, zone : Zone, context : ActorContext) : WarpGate = {
     import akka.actor.Props
     val obj = new WarpGate(name, guid, map_id, zone, buildingDefinition)
     obj.Position = location

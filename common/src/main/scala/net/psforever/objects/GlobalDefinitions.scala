@@ -17,7 +17,7 @@ import net.psforever.objects.serverobject.painbox.PainboxDefinition
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.tube.SpawnTubeDefinition
 import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
-import net.psforever.objects.serverobject.structures.SphereOfInfluence
+import net.psforever.objects.serverobject.structures.{BuildingDefinition, SphereOfInfluence, WarpGateDefinition}
 import net.psforever.objects.serverobject.turret.{FacilityTurretDefinition, TurretUpgrade}
 import net.psforever.objects.vehicles.{DestroyedVehicle, InternalTelepadDefinition, SeatArmorRestriction, UtilityType}
 import net.psforever.objects.vital.{DamageType, StandardMaxDamage, StandardResolutions}
@@ -1055,39 +1055,39 @@ object GlobalDefinitions {
   /*
   Buildings
    */
-  val building : ObjectDefinition = new ObjectDefinition(474) { Name = "building" } //borrows object id of entity mainbase1
-  val amp_station : ObjectDefinition = new ObjectDefinition(45) with SphereOfInfluence { Name = "amp_station"; SOIRadius = 300 }
-  val comm_station : ObjectDefinition = new ObjectDefinition(211) with SphereOfInfluence { Name = "comm_station"; SOIRadius = 300 }
-  val comm_station_dsp : ObjectDefinition = new ObjectDefinition(212) with SphereOfInfluence { Name = "comm_station_dsp"; SOIRadius = 300 }
-  val cryo_facility : ObjectDefinition = new ObjectDefinition(215) with SphereOfInfluence { Name = "cryo_facility"; SOIRadius = 300 }
+  val building = new BuildingDefinition(474) { Name = "building" } //borrows object id of entity mainbase1
+  val amp_station = new BuildingDefinition(45) { Name = "amp_station"; SOIRadius = 300 }
+  val comm_station = new BuildingDefinition(211) { Name = "comm_station"; SOIRadius = 300 }
+  val comm_station_dsp = new BuildingDefinition(212) { Name = "comm_station_dsp"; SOIRadius = 300 }
+  val cryo_facility = new BuildingDefinition(215) { Name = "cryo_facility"; SOIRadius = 300 }
 
-  val vanu_core : ObjectDefinition = new ObjectDefinition(932) { Name = "vanu_core" }
+  val vanu_core = new BuildingDefinition(932) { Name = "vanu_core" }
 
-  val ground_bldg_a : ObjectDefinition = new ObjectDefinition(474) { Name = "ground_bldg_a" } //borrows object id of entity mainbase1
-  val ground_bldg_b : ObjectDefinition = new ObjectDefinition(474) { Name = "ground_bldg_b" } //borrows object id of entity mainbase1
-  val ground_bldg_c : ObjectDefinition = new ObjectDefinition(474) { Name = "ground_bldg_c" } //borrows object id of entity mainbase1
-  val ground_bldg_d : ObjectDefinition = new ObjectDefinition(474) { Name = "ground_bldg_d" } //borrows object id of entity mainbase1
-  val ground_bldg_e : ObjectDefinition = new ObjectDefinition(474) { Name = "ground_bldg_e" } //borrows object id of entity mainbase1
-  val ground_bldg_f : ObjectDefinition = new ObjectDefinition(474) { Name = "ground_bldg_f" } //borrows object id of entity mainbase1
-  val ground_bldg_g : ObjectDefinition = new ObjectDefinition(474) { Name = "ground_bldg_g" } //borrows object id of entity mainbase1
-  val ground_bldg_h : ObjectDefinition = new ObjectDefinition(474) { Name = "ground_bldg_h" } //borrows object id of entity mainbase1
-  val ground_bldg_i : ObjectDefinition = new ObjectDefinition(474) { Name = "ground_bldg_i" } //borrows object id of entity mainbase1
-  val ground_bldg_j : ObjectDefinition = new ObjectDefinition(474) { Name = "ground_bldg_j" } //borrows object id of entity mainbase1
-  val ground_bldg_z : ObjectDefinition = new ObjectDefinition(474) { Name = "ground_bldg_z" } //borrows object id of entity mainbase1
+  val ground_bldg_a = new BuildingDefinition(474) { Name = "ground_bldg_a" } //borrows object id of entity mainbase1
+  val ground_bldg_b = new BuildingDefinition(474) { Name = "ground_bldg_b" } //borrows object id of entity mainbase1
+  val ground_bldg_c = new BuildingDefinition(474) { Name = "ground_bldg_c" } //borrows object id of entity mainbase1
+  val ground_bldg_d = new BuildingDefinition(474) { Name = "ground_bldg_d" } //borrows object id of entity mainbase1
+  val ground_bldg_e = new BuildingDefinition(474) { Name = "ground_bldg_e" } //borrows object id of entity mainbase1
+  val ground_bldg_f = new BuildingDefinition(474) { Name = "ground_bldg_f" } //borrows object id of entity mainbase1
+  val ground_bldg_g = new BuildingDefinition(474) { Name = "ground_bldg_g" } //borrows object id of entity mainbase1
+  val ground_bldg_h = new BuildingDefinition(474) { Name = "ground_bldg_h" } //borrows object id of entity mainbase1
+  val ground_bldg_i = new BuildingDefinition(474) { Name = "ground_bldg_i" } //borrows object id of entity mainbase1
+  val ground_bldg_j = new BuildingDefinition(474) { Name = "ground_bldg_j" } //borrows object id of entity mainbase1
+  val ground_bldg_z = new BuildingDefinition(474) { Name = "ground_bldg_z" } //borrows object id of entity mainbase1
 
-  val ceiling_bldg_a : ObjectDefinition = new ObjectDefinition(474) { Name = "ceiling_bldg_a" } //borrows object id of entity mainbase1
-  val ceiling_bldg_b : ObjectDefinition = new ObjectDefinition(474) { Name = "ceiling_bldg_b" } //borrows object id of entity mainbase1
-  val ceiling_bldg_c : ObjectDefinition = new ObjectDefinition(474) { Name = "ceiling_bldg_c" } //borrows object id of entity mainbase1
-  val ceiling_bldg_d : ObjectDefinition = new ObjectDefinition(474) { Name = "ceiling_bldg_d" } //borrows object id of entity mainbase1
-  val ceiling_bldg_e : ObjectDefinition = new ObjectDefinition(474) { Name = "ceiling_bldg_e" } //borrows object id of entity mainbase1
-  val ceiling_bldg_f : ObjectDefinition = new ObjectDefinition(474) { Name = "ceiling_bldg_f" } //borrows object id of entity mainbase1
-  val ceiling_bldg_g : ObjectDefinition = new ObjectDefinition(474) { Name = "ceiling_bldg_g" } //borrows object id of entity mainbase1
-  val ceiling_bldg_h : ObjectDefinition = new ObjectDefinition(474) { Name = "ceiling_bldg_h" } //borrows object id of entity mainbase1
-  val ceiling_bldg_i : ObjectDefinition = new ObjectDefinition(474) { Name = "ceiling_bldg_i" } //borrows object id of entity mainbase1
-  val ceiling_bldg_j : ObjectDefinition = new ObjectDefinition(474) { Name = "ceiling_bldg_j" } //borrows object id of entity mainbase1
-  val ceiling_bldg_z : ObjectDefinition = new ObjectDefinition(474) { Name = "ceiling_bldg_z" } //borrows object id of entity mainbase1
+  val ceiling_bldg_a = new BuildingDefinition(474) { Name = "ceiling_bldg_a" } //borrows object id of entity mainbase1
+  val ceiling_bldg_b = new BuildingDefinition(474) { Name = "ceiling_bldg_b" } //borrows object id of entity mainbase1
+  val ceiling_bldg_c = new BuildingDefinition(474) { Name = "ceiling_bldg_c" } //borrows object id of entity mainbase1
+  val ceiling_bldg_d = new BuildingDefinition(474) { Name = "ceiling_bldg_d" } //borrows object id of entity mainbase1
+  val ceiling_bldg_e = new BuildingDefinition(474) { Name = "ceiling_bldg_e" } //borrows object id of entity mainbase1
+  val ceiling_bldg_f = new BuildingDefinition(474) { Name = "ceiling_bldg_f" } //borrows object id of entity mainbase1
+  val ceiling_bldg_g = new BuildingDefinition(474) { Name = "ceiling_bldg_g" } //borrows object id of entity mainbase1
+  val ceiling_bldg_h = new BuildingDefinition(474) { Name = "ceiling_bldg_h" } //borrows object id of entity mainbase1
+  val ceiling_bldg_i = new BuildingDefinition(474) { Name = "ceiling_bldg_i" } //borrows object id of entity mainbase1
+  val ceiling_bldg_j = new BuildingDefinition(474) { Name = "ceiling_bldg_j" } //borrows object id of entity mainbase1
+  val ceiling_bldg_z = new BuildingDefinition(474) { Name = "ceiling_bldg_z" } //borrows object id of entity mainbase1
 
-  val hst : ObjectDefinition with SpawnPointDefinition = new ObjectDefinition(402) with SpawnPointDefinition
+  val hst = new WarpGateDefinition(402)
   hst.Name = "hst"
   hst.UseRadius = 20.4810f
   hst.VehicleAllowance = true
@@ -1102,54 +1102,54 @@ object GlobalDefinitions {
   //hst.NoWarp += peregrine_flight
   hst.SpecificPointFunc = SpawnPoint.Gate
 
-  val mainbase1 : ObjectDefinition = new ObjectDefinition(474) { Name = "mainbase1" }
-  val mainbase2 : ObjectDefinition = new ObjectDefinition(475) { Name = "mainbase2" }
-  val mainbase3 : ObjectDefinition = new ObjectDefinition(476) { Name = "mainbase3" }
-  val meeting_center_nc : ObjectDefinition = new ObjectDefinition(537) { Name = "meeting_center_nc" }
-  val meeting_center_tr : ObjectDefinition = new ObjectDefinition(538) { Name = "meeting_center_tr" }
-  val meeting_center_vs : ObjectDefinition = new ObjectDefinition(539) { Name = "meeting_center_vs" }
-  val minibase1 : ObjectDefinition = new ObjectDefinition(557) { Name = "minibase1" }
-  val minibase2 : ObjectDefinition = new ObjectDefinition(558) { Name = "minibase2" }
-  val minibase3 : ObjectDefinition = new ObjectDefinition(559) { Name = "minibase3" }
-  val redoubt : ObjectDefinition = new ObjectDefinition(726) with SphereOfInfluence { Name = "redoubt"; SOIRadius = 187 }
-  val tech_plant : ObjectDefinition = new ObjectDefinition(852) with SphereOfInfluence { Name = "tech_plant"; SOIRadius = 300 }
-  val tower_a : ObjectDefinition = new ObjectDefinition(869) with SphereOfInfluence { Name = "tower_a"; SOIRadius = 50 }
-  val tower_b : ObjectDefinition = new ObjectDefinition(870) with SphereOfInfluence { Name = "tower_b"; SOIRadius = 50 }
-  val tower_c : ObjectDefinition = new ObjectDefinition(871) with SphereOfInfluence { Name = "tower_c"; SOIRadius = 50 }
-  val vanu_control_point : ObjectDefinition = new ObjectDefinition(931) with SphereOfInfluence { Name = "vanu_control_point"; SOIRadius = 187 }
-  val vanu_vehicle_station : ObjectDefinition = new ObjectDefinition(948) with SphereOfInfluence { Name = "vanu_vehicle_station"; SOIRadius = 187 }
+  val mainbase1 = new BuildingDefinition(474) { Name = "mainbase1" }
+  val mainbase2 = new BuildingDefinition(475) { Name = "mainbase2" }
+  val mainbase3 = new BuildingDefinition(476) { Name = "mainbase3" }
+  val meeting_center_nc = new BuildingDefinition(537) { Name = "meeting_center_nc" }
+  val meeting_center_tr = new BuildingDefinition(538) { Name = "meeting_center_tr" }
+  val meeting_center_vs = new BuildingDefinition(539) { Name = "meeting_center_vs" }
+  val minibase1 = new BuildingDefinition(557) { Name = "minibase1" }
+  val minibase2 = new BuildingDefinition(558) { Name = "minibase2" }
+  val minibase3 = new BuildingDefinition(559) { Name = "minibase3" }
+  val redoubt = new BuildingDefinition(726) { Name = "redoubt"; SOIRadius = 187 }
+  val tech_plant = new BuildingDefinition(852) { Name = "tech_plant"; SOIRadius = 300 }
+  val tower_a = new BuildingDefinition(869) { Name = "tower_a"; SOIRadius = 50 }
+  val tower_b = new BuildingDefinition(870) { Name = "tower_b"; SOIRadius = 50 }
+  val tower_c = new BuildingDefinition(871) { Name = "tower_c"; SOIRadius = 50 }
+  val vanu_control_point = new BuildingDefinition(931) { Name = "vanu_control_point"; SOIRadius = 187 }
+  val vanu_vehicle_station = new BuildingDefinition(948) { Name = "vanu_vehicle_station"; SOIRadius = 187 }
 
-  val warpgate : ObjectDefinition with SpawnPointDefinition = new ObjectDefinition(993) with SpawnPointDefinition
+  val warpgate = new WarpGateDefinition(993)
   warpgate.Name = "warpgate"
   warpgate.UseRadius = 301.8713f
   warpgate.VehicleAllowance = true
   warpgate.SpecificPointFunc = SpawnPoint.Gate
 
-  val warpgate_cavern : ObjectDefinition with SpawnPointDefinition = new ObjectDefinition(994) with SpawnPointDefinition
+  val warpgate_cavern = new WarpGateDefinition(994)
   warpgate_cavern.Name = "warpgate_cavern"
   warpgate_cavern.UseRadius = 51.0522f
   warpgate_cavern.VehicleAllowance = true
   warpgate_cavern.SpecificPointFunc = SpawnPoint.Gate
 
-  val warpgate_small : ObjectDefinition with SpawnPointDefinition = new ObjectDefinition(995) with SpawnPointDefinition
+  val warpgate_small = new WarpGateDefinition(995)
   warpgate_small.Name = "warpgate_small"
   warpgate_small.UseRadius = 103f
   warpgate_small.VehicleAllowance = true
   warpgate_small.SpecificPointFunc = SpawnPoint.Gate
 
-  val bunker_gauntlet : ObjectDefinition = new ObjectDefinition(150) { Name = "bunker_gauntlet" }
-  val bunker_lg : ObjectDefinition = new ObjectDefinition(151) { Name = "bunker_lg" }
-  val bunker_sm : ObjectDefinition = new ObjectDefinition(152) { Name = "bunker_sm" }
+  val bunker_gauntlet = new BuildingDefinition(150) { Name = "bunker_gauntlet" }
+  val bunker_lg = new BuildingDefinition(151) { Name = "bunker_lg" }
+  val bunker_sm = new BuildingDefinition(152) { Name = "bunker_sm" }
 
-  val orbital_building_nc : ObjectDefinition = new ObjectDefinition(605) { Name = "orbital_building_nc" }
-  val orbital_building_tr : ObjectDefinition = new ObjectDefinition(606) { Name = "orbital_building_tr" }
-  val orbital_building_vs : ObjectDefinition = new ObjectDefinition(607) { Name = "orbital_building_vs" }
-  val VT_building_nc : ObjectDefinition = new ObjectDefinition(978) { Name = "VT_building_nc" }
-  val VT_building_tr : ObjectDefinition = new ObjectDefinition(979) { Name = "VT_building_tr" }
-  val VT_building_vs : ObjectDefinition = new ObjectDefinition(980) { Name = "VT_building_vs" }
-  val vt_dropship : ObjectDefinition = new ObjectDefinition(981) { Name = "vt_dropship" }
-  val vt_spawn : ObjectDefinition = new ObjectDefinition(984) { Name = "vt_spawn" }
-  val vt_vehicle : ObjectDefinition = new ObjectDefinition(985) { Name = "vt_vehicle" }
+  val orbital_building_nc = new BuildingDefinition(605) { Name = "orbital_building_nc" }
+  val orbital_building_tr = new BuildingDefinition(606) { Name = "orbital_building_tr" }
+  val orbital_building_vs = new BuildingDefinition(607) { Name = "orbital_building_vs" }
+  val VT_building_nc = new BuildingDefinition(978) { Name = "VT_building_nc" }
+  val VT_building_tr = new BuildingDefinition(979) { Name = "VT_building_tr" }
+  val VT_building_vs = new BuildingDefinition(980) { Name = "VT_building_vs" }
+  val vt_dropship = new BuildingDefinition(981) { Name = "vt_dropship" }
+  val vt_spawn = new BuildingDefinition(984) { Name = "vt_spawn" }
+  val vt_vehicle = new BuildingDefinition(985) { Name = "vt_vehicle" }
 
 
   /**

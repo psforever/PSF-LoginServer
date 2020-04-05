@@ -46,7 +46,7 @@ class SphereOfInfluenceActor(zone: Zone) extends Actor {
     sois = zone.Buildings
       .values
       .map { facility => (facility, facility.Definition) }
-      .collect { case (facility, soi : ObjectDefinition with SphereOfInfluence) if soi.SOIRadius > 0 =>
+      .collect { case (facility, soi) if soi.SOIRadius > 0 =>
         (facility, soi.SOIRadius * soi.SOIRadius)
       }
   }

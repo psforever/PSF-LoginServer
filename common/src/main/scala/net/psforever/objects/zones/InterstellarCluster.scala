@@ -80,7 +80,7 @@ class InterstellarCluster(zones : List[Zone]) extends Actor {
     case InterstellarCluster.InstantActionRequest(faction) =>
       val time = System.nanoTime
       val interests = zones.flatMap { zone =>
-        zone.HotSpots.map { info =>
+        zone.HotSpotData.map { info =>
           (
             zone, //zone
             info.DisplayLocation, //hotspot
@@ -175,6 +175,14 @@ object InterstellarCluster {
     * @param zone_num the zone number to request building map updates for
     */
   final case class ZoneMapUpdate(zone_num: Int)
+
+  object InstantAction extends Enumeration {
+    type Type = Value
+
+    val None = Value(0)
+    val Request = Value(1)
+    val Countdown = Value(2)
+  }
 
   final case class InstantActionRequest(faction : PlanetSideEmpire.Value)
 

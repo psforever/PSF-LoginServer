@@ -1,26 +1,45 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.objects.zones
 
-import akka.actor.{Actor, ActorRef, Cancellable}
+import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import net.psforever.objects.DefaultCancellable
 import net.psforever.types.PlanetSideEmpire
 import services.ServiceManager
 
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
+
+class ZoneHotSpotDisplay(zone : Zone,
+                         outputList : ListBuffer[HotSpotInfo],
+                         outputBlanking : FiniteDuration,
+                         dataList : ListBuffer[HotSpotInfo],
+                         dataBlanking : FiniteDuration) extends Actor {
+  val display = context.actorOf(Props(classOf[ZoneHotSpotProjector], zone, outputList, outputBlanking), s"${zone.Id}-hotspot-display")
+  val backup = context.actorOf(Props(classOf[ZoneHotSpotHistory], zone, dataList, dataBlanking), s"${zone.Id}-hotspot-backup")
+
+  def receive : Receive = {
+    case _ if sender == display || sender == backup => ; //catch and disrupt cyclic messaging paths
+    case msg =>
+      display ! msg
+      backup ! msg
+  }
+}
 
 /**
   * Manage hotspot information for a given zone,
   * keeping track of aggressive faction interactions,
   * and maintaining the visibility state of the hotspots that alert of the location of that activity.
   * @param zone the zone
+  * @param hotspots the data structure of hot spot information that this projector will be leveraging
+  * @param blankingTime how long to wait in between blanking periods
   */
-class ZoneHotSpotProjector(zone : Zone) extends Actor {
+class ZoneHotSpotProjector(zone : Zone, hotspots : ListBuffer[HotSpotInfo], blankingTime : FiniteDuration) extends Actor {
   /** a hook for the `GalaxyService` used to broadcast messages */
-  private var galaxy : ActorRef = ActorRef.noSender
+  var galaxy : ActorRef = ActorRef.noSender
   /** the timer for the blanking process */
-  private var blanking : Cancellable = DefaultCancellable.obj
+  var blanking : Cancellable = DefaultCancellable.obj
   /** how long to wait in between blanking periods while hotspots decay */
-  private val blankingDelay : FiniteDuration = 15 seconds
+  var blankingDelay : FiniteDuration = blankingTime
 
   private[this] val log = org.log4s.getLogger(s"${zone.Id.capitalize}HotSpotProjector")
 
@@ -88,7 +107,7 @@ class ZoneHotSpotProjector(zone : Zone) extends Actor {
     case ZoneHotSpotProjector.UpdateDurationFunction() =>
       blanking.cancel
       UpdateDurationFunction()
-      UpdateHotSpots(PlanetSideEmpire.values, zone.HotSpots)
+      UpdateHotSpots(PlanetSideEmpire.values, hotspots)
       import scala.concurrent.ExecutionContext.Implicits.global
       blanking = context.system.scheduler.scheduleOnce(blankingDelay, self, ZoneHotSpotProjector.BlankingPhase())
 
@@ -97,7 +116,7 @@ class ZoneHotSpotProjector(zone : Zone) extends Actor {
       //this is different from the many individual activity locations that contributed to that `DisplayLocation`
       blanking.cancel
       UpdateMappingFunction()
-      UpdateHotSpots(PlanetSideEmpire.values, zone.HotSpots)
+      UpdateHotSpots(PlanetSideEmpire.values, hotspots)
       import scala.concurrent.ExecutionContext.Implicits.global
       blanking = context.system.scheduler.scheduleOnce(blankingDelay, self, ZoneHotSpotProjector.BlankingPhase())
 
@@ -105,7 +124,7 @@ class ZoneHotSpotProjector(zone : Zone) extends Actor {
       log.trace(s"received information about activity in ${zone.Id}@$location")
       val defenderFaction = defender.Faction
       val attackerFaction = attacker.Faction
-      val noPriorHotSpots = zone.HotSpots.isEmpty
+      val noPriorHotSpots = hotspots.isEmpty
       val duration = zone.HotSpotTimeFunction(defender, attacker)
       if(duration.toNanos > 0) {
         val hotspot = zone.TryHotSpot( zone.HotSpotCoordinateFunction(location) )
@@ -123,7 +142,7 @@ class ZoneHotSpotProjector(zone : Zone) extends Actor {
         }
         //if the level of activity changed for one of the participants or the number of hotspots was zero
         if(noPriorActivity || noPriorHotSpots) {
-          UpdateHotSpots(affectedFactions, zone.HotSpots)
+          UpdateHotSpots(affectedFactions, hotspots)
           if(noPriorHotSpots) {
             import scala.concurrent.ExecutionContext.Implicits.global
             blanking.cancel
@@ -134,13 +153,13 @@ class ZoneHotSpotProjector(zone : Zone) extends Actor {
 
     case Zone.HotSpot.UpdateNow =>
       log.trace(s"asked to update for zone ${zone.Id} without a blanking period or new activity")
-      UpdateHotSpots(PlanetSideEmpire.values, zone.HotSpots)
+      UpdateHotSpots(PlanetSideEmpire.values, hotspots)
 
     case ZoneHotSpotProjector.BlankingPhase() | Zone.HotSpot.Cleanup() =>
       blanking.cancel
       val curr : Long = System.nanoTime
       //blanking dated activity reports
-      val changed = zone.HotSpots.flatMap(spot => {
+      val changed = hotspots.flatMap(spot => {
         spot.Activity.collect {
           case (b, a) if a.LastReport + a.Duration.toNanos <= curr =>
             a.Clear() //this faction has no more activity in this sector
@@ -148,7 +167,7 @@ class ZoneHotSpotProjector(zone : Zone) extends Actor {
         }
       })
       //collect and re-assign still-relevant hotspots
-      val spots = zone.HotSpots.filter(spot => {
+      val spots = hotspots.filter(spot => {
         spot.Activity
           .values
           .collect {
@@ -157,9 +176,11 @@ class ZoneHotSpotProjector(zone : Zone) extends Actor {
           }
           .foldLeft(false)(_ || _)
       })
-      val changesOnMap = zone.HotSpots.size - spots.size
-      log.trace(s"blanking out $changesOnMap hotspots from zone ${zone.Id}; ${spots.size} remain active")
-      zone.HotSpots = spots
+      val newSize = spots.size
+      val changesOnMap = hotspots.size - newSize
+      log.trace(s"blanking out $changesOnMap hotspots from zone ${zone.Id}; $newSize remain active")
+      hotspots.clear
+      hotspots.insertAll(0, spots)
       //other hotspots still need to be blanked later
       if(spots.nonEmpty) {
         import scala.concurrent.ExecutionContext.Implicits.global
@@ -174,7 +195,7 @@ class ZoneHotSpotProjector(zone : Zone) extends Actor {
     case Zone.HotSpot.ClearAll() =>
       log.trace(s"blanking out all hotspots from zone ${zone.Id} immediately")
       blanking.cancel
-      zone.HotSpots = Nil
+      hotspots.clear()
       UpdateHotSpots(PlanetSideEmpire.values, Nil)
 
     case _ => ;
@@ -185,7 +206,7 @@ class ZoneHotSpotProjector(zone : Zone) extends Actor {
     * Recalculate all current hotspot information.
     */
   def UpdateDurationFunction(): Unit = {
-    zone.HotSpots.foreach { spot =>
+    hotspots.foreach { spot =>
       spot.Activity.values.foreach { report =>
         val heat = report.Heat
         report.Clear()
@@ -193,7 +214,7 @@ class ZoneHotSpotProjector(zone : Zone) extends Actor {
         report.Duration = 0L
       }
     }
-    log.trace(s"new duration remapping function provided; reloading ${zone.HotSpots.size} hotspots for one blanking phase")
+    log.trace(s"new duration remapping function provided; reloading ${hotspots.size} hotspots for one blanking phase")
   }
 
   /**
@@ -201,7 +222,7 @@ class ZoneHotSpotProjector(zone : Zone) extends Actor {
     * Recalculate all current hotspot information.
     */
   def UpdateMappingFunction() : Unit = {
-    val redoneSpots = zone.HotSpots.map { spot =>
+    val redoneSpots = hotspots.map { spot =>
       val newSpot = new HotSpotInfo( zone.HotSpotCoordinateFunction(spot.DisplayLocation) )
       PlanetSideEmpire.values.foreach { faction =>
         if(spot.ActivityBy(faction)) {
@@ -211,8 +232,9 @@ class ZoneHotSpotProjector(zone : Zone) extends Actor {
       }
       newSpot
     }
-    log.trace(s"new coordinate remapping function provided; updating ${redoneSpots.size} hotspots")
-    zone.HotSpots = redoneSpots
+    log.trace(s"new coordinate remapping function provided; updating $redoneSpots.size hotspots")
+    hotspots.clear()
+    hotspots.insertAll(0, redoneSpots)
   }
 
   /**
@@ -224,14 +246,15 @@ class ZoneHotSpotProjector(zone : Zone) extends Actor {
     *                     if empty or contains no information for a selected group,
     *                     that group's hotspots will be eliminated (blanked) as a result
     */
-  def UpdateHotSpots(affectedFactions : Iterable[PlanetSideEmpire.Value], hotSpotInfos : List[HotSpotInfo]) : Unit = {
+  def UpdateHotSpots(affectedFactions : Iterable[PlanetSideEmpire.Value], hotSpotInfos : Iterable[HotSpotInfo]) : Unit = {
     val zoneNumber = zone.Number
+    val hotSpotInfoList = hotSpotInfos.toList
     affectedFactions.foreach(faction =>
       galaxy ! Zone.HotSpot.Update(
         faction,
         zoneNumber,
         1,
-        ZoneHotSpotProjector.SpecificHotSpotInfo(faction, hotSpotInfos)
+        ZoneHotSpotProjector.SpecificHotSpotInfo(faction, hotSpotInfoList)
       )
     )
   }
@@ -239,6 +262,12 @@ class ZoneHotSpotProjector(zone : Zone) extends Actor {
   def CreateHotSpotUpdate(faction : PlanetSideEmpire.Value, hotSpotInfos : List[HotSpotInfo]) : List[HotSpotInfo] = {
     Nil
   }
+}
+
+class ZoneHotSpotHistory(zone : Zone, hotspots : ListBuffer[HotSpotInfo], blankingTime : FiniteDuration) extends ZoneHotSpotProjector(zone, hotspots, blankingTime) {
+  override def preStart() : Unit = { context.become(Established) }
+
+  override def UpdateHotSpots(affectedFactions : Iterable[PlanetSideEmpire.Value], hotSpotInfos : Iterable[HotSpotInfo]) : Unit = { }
 }
 
 object ZoneHotSpotProjector {

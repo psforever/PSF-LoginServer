@@ -92,6 +92,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   private var projector : ActorRef = ActorRef.noSender
   /** */
   private var hotspots : ListBuffer[HotSpotInfo] = ListBuffer[HotSpotInfo]()
+  /** */
+  private val hotspotHistory : ListBuffer[HotSpotInfo] = ListBuffer[HotSpotInfo]()
   /** calculate a approximated coordinate from a raw input coordinate */
   private var hotspotCoordinateFunc : Vector3=>Vector3 = Zone.HotSpot.Rules.OneToOne
   /** calculate a duration from a given interaction's participants */
@@ -128,7 +130,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
       deployables = context.actorOf(Props(classOf[ZoneDeployableActor], this, constructions), s"$Id-deployables")
       transport = context.actorOf(Props(classOf[ZoneVehicleActor], this, vehicles), s"$Id-vehicles")
       population = context.actorOf(Props(classOf[ZonePopulationActor], this, players, corpses), s"$Id-players")
-      projector = context.actorOf(Props(classOf[ZoneHotSpotProjector], this), s"$Id-hotpots")
+      projector = context.actorOf(Props(classOf[ZoneHotSpotDisplay], this, hotspots, 15 seconds, hotspotHistory, 90 seconds), s"$Id-hotspots")
       soi = context.actorOf(Props(classOf[SphereOfInfluenceActor], this), s"$Id-soi")
 
       avatarEvents = context.actorOf(Props(classOf[AvatarService], this), s"$Id-avatar-events")
@@ -506,10 +508,19 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
 
   def HotSpots : List[HotSpotInfo] = hotspots toList
 
-  def HotSpots_=(spots : Seq[HotSpotInfo]) : List[HotSpotInfo] = {
-    hotspots.clear
-    hotspots ++= spots
-    HotSpots
+  def HotSpotData : List[HotSpotInfo] = {
+    val data = hotspotHistory toList
+    val (found, unique) = hotspots.partition(info => data.exists(_.DisplayLocation == info.DisplayLocation))
+    found.foreach { info =>
+      data.find(_.DisplayLocation == info.DisplayLocation) match {
+        case Some(entry) =>
+          entry.Activity foreach { case (id, activity) =>
+            activity.Report(info.Activity(id).Heat)
+          }
+        case None => ;
+      }
+    }
+    data ++ unique
   }
 
   def TryHotSpot(displayLoc : Vector3) : HotSpotInfo = {
