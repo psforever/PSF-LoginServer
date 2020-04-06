@@ -4819,7 +4819,7 @@ class WorldSessionActor extends Actor
                 }
               }
               else if(!indexSlot.Equipment.contains(item)) {
-                log.error(s"MoveItem: wanted to move $item_guid, but found unexpected ${indexSlot.Equipment.get} at source location")
+                log.error(s"MoveItem: wanted to move $item_guid, but found unexpected ${indexSlot.Equipment} at source location")
               }
               else {
                 destinationCollisionTest match {
@@ -10080,76 +10080,33 @@ class WorldSessionActor extends Actor
   }
 
   def SaveLoadoutToDB(owner : Player, label : String, line : Int) = {
-    var megaList : String = ""
-    var localType : String = ""
-    var ammoInfo : String = ""
-    (0 until 5).foreach(index => {
-      if(owner.Slot(index).Equipment.isDefined) {
-        owner.Slot(index).Equipment.get match {
-          case test : Tool =>
-            localType = "Tool"
-          case test : AmmoBox =>
-            localType = "AmmoBox"
-          case test : ConstructionItem =>
-            localType = "ConstructionItem"
-          case test : BoomerTrigger =>
-            localType = "BoomerTrigger"
-          case test : SimpleItem =>
-            localType = "SimpleItem"
-          case test : Kit =>
-            localType = "Kit"
-          case _ =>
-            localType = ""
+    val charId = owner.CharId
+    val exosuitId = owner.ExoSuit.id
+    var clob : String = {
+      val clobber : StringBuilder = new StringBuilder()
+      //encode holsters
+      owner.Holsters()
+        .zipWithIndex
+        .collect { case (slot, index) if slot.Equipment.nonEmpty =>
+          clobber.append(EncodeLoadoutCLOBFragment(slot.Equipment.get, index))
         }
-        if(localType == "Tool") {
-          owner.Slot(index).Equipment.get.asInstanceOf[Tool].AmmoSlots.indices.foreach(index2 => {
-            if (owner.Slot(index).Equipment.get.asInstanceOf[Tool].AmmoSlots(index2).AmmoTypeIndex != 0) {
-              ammoInfo = ammoInfo+"_"+index2+"-"+owner.Slot(index).Equipment.get.asInstanceOf[Tool].AmmoSlots(index2).AmmoTypeIndex+"-"+owner.Slot(index).Equipment.get.asInstanceOf[Tool].AmmoSlots(index2).AmmoType.id
-            }
-          })
-        }
-        megaList = megaList + "/" + localType + "," + index + "," + owner.Slot(index).Equipment.get.Definition.ObjectId + ","  + ammoInfo
-        ammoInfo = ""
+      //encode inventory
+      owner.Inventory.Items.foreach { case InventoryItem(obj, index) =>
+        clobber.append(EncodeLoadoutCLOBFragment(obj, index))
       }
-    })
-    owner.Inventory.Items.foreach(test => {
-      test.obj match {
-        case test : Tool =>
-          localType = "Tool"
-        case test : AmmoBox =>
-          localType = "AmmoBox"
-        case test : ConstructionItem =>
-          localType = "ConstructionItem"
-        case test : BoomerTrigger =>
-          localType = "BoomerTrigger"
-        case test : SimpleItem =>
-          localType = "SimpleItem"
-        case test : Kit =>
-          localType = "Kit"
-        case _ =>
-          localType = ""
-      }
-      if(localType == "Tool") {
-        owner.Slot(test.start).Equipment.get.asInstanceOf[Tool].AmmoSlots.indices.foreach(index2 => {
-          if (owner.Slot(test.start).Equipment.get.asInstanceOf[Tool].AmmoSlots(index2).AmmoTypeIndex != 0) {
-            ammoInfo = ammoInfo+"_"+index2+"-"+owner.Slot(test.start).Equipment.get.asInstanceOf[Tool].AmmoSlots(index2).AmmoTypeIndex+"-"+owner.Slot(test.start).Equipment.get.asInstanceOf[Tool].AmmoSlots(index2).AmmoType.id
-          }
-        })
-      }
-      megaList = megaList + "/" + localType + "," + test.start + "," + owner.Slot(test.start).Equipment.get.Definition.ObjectId + ","  + ammoInfo
-      ammoInfo = ""
-    })
-
+      clobber.mkString
+    }
+    //database
     Database.getConnection.connect.onComplete {
       case scala.util.Success(connection) =>
         Database.query(connection.sendPreparedStatement(
-          "SELECT id, exosuit_id, name, items FROM loadouts where characters_id = ? AND loadout_number = ?", Array(owner.CharId, line)
+          "SELECT id, exosuit_id, name, items FROM loadouts where characters_id = ? AND loadout_number = ?", Array(charId, line)
         )).onComplete {
           case scala.util.Success(queryResult) =>
             queryResult match {
               case row: ArrayRowData => // Update
                 connection.sendPreparedStatement(
-                  "UPDATE loadouts SET exosuit_id=?, name=?, items=? where id=?", Array(owner.ExoSuit.id, label, megaList.drop(1), row(0))
+                  "UPDATE loadouts SET exosuit_id=?, name=?, items=? where id=?", Array(exosuitId, label, clob.drop(1), row(0))
                 ).onComplete {
                   case _ =>
                     if(connection.isConnected) connection.disconnect
@@ -10158,7 +10115,7 @@ class WorldSessionActor extends Actor
               case _ => // Save
                 connection.sendPreparedStatement(
                   "INSERT INTO loadouts (characters_id, loadout_number, exosuit_id, name, items) VALUES(?,?,?,?,?) RETURNING id",
-                  Array(owner.CharId, line, owner.ExoSuit.id, label, megaList.drop(1))
+                  Array(charId, line, exosuitId, label, clob.drop(1))
                 ).onComplete {
                   case _ =>
                     if(connection.isConnected) connection.disconnect
@@ -10170,8 +10127,29 @@ class WorldSessionActor extends Actor
             log.error(s"SaveLoadoutToDB: query failed - ${e.getMessage}")
         }
       case scala.util.Failure(e) =>
-        log.error(s"SaveLoadoutToDB: no conenction ${e.getMessage}")
+        log.error(s"SaveLoadoutToDB: no connection ${e.getMessage}")
     }
+  }
+
+  /**
+    * na
+    * @param equipment
+    * @param index
+    * @return
+    */
+  def EncodeLoadoutCLOBFragment(equipment : Equipment, index : Int) : String = {
+    val ammoInfo : String = equipment match {
+      case tool : Tool =>
+        tool.AmmoSlots
+          .zipWithIndex
+          .collect { case (ammoSlot, index2) if ammoSlot.AmmoTypeIndex != 0 =>
+            s"_$index2-${ammoSlot.AmmoTypeIndex}-${ammoSlot.AmmoType.id}"
+          }
+          .mkString
+      case _ =>
+        ""
+    }
+    s"/${equipment.getClass.getSimpleName},$index,${equipment.Definition.ObjectId},$ammoInfo"
   }
 
   /**
@@ -10233,16 +10211,14 @@ class WorldSessionActor extends Actor
                             doll.Slot(lIndex).Equipment = AmmoBox(GetToolDefFromObjectID(lObjectId).asInstanceOf[AmmoBoxDefinition])
                           case "ConstructionItem" =>
                             doll.Slot(lIndex).Equipment = ConstructionItem(GetToolDefFromObjectID(lObjectId).asInstanceOf[ConstructionItemDefinition])
-                          case "BoomerTrigger" =>
-                            log.error("LoadDataBaseLoadouts: found a BoomerTrigger in a loadout?!")
                           case "SimpleItem" =>
                             doll.Slot(lIndex).Equipment = SimpleItem(GetToolDefFromObjectID(lObjectId).asInstanceOf[SimpleItemDefinition])
                           case "Kit" =>
                             doll.Slot(lIndex).Equipment = Kit(GetToolDefFromObjectID(lObjectId).asInstanceOf[KitDefinition])
-                          case _ =>
-                            log.error("LoadDataBaseLoadouts: what's that item in the loadout?!")
+                          case thing =>
+                            log.warn(s"LoadDataBaseLoadouts: what's that $thing doing in the loadout?")
                         }
-                        if (args2.length == 4) {
+                        if (args2.length == 4) { //tool ammo info
                           val args3 = args2(3).split("_")
                           (1 until args3.length).foreach(j => {
                             val args4 = args3(j).split("-")
