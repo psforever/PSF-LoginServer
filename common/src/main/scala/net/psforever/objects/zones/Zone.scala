@@ -506,21 +506,16 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
 
   def Activity : ActorRef = projector
 
-  def HotSpots : List[HotSpotInfo] = hotspots toList
+  def HotSpots : List[HotSpotInfo] = hotSpotListDuplicate(hotspots).toList
 
-  def HotSpotData : List[HotSpotInfo] = {
-    val data = hotspotHistory toList
-    val (found, unique) = hotspots.partition(info => data.exists(_.DisplayLocation == info.DisplayLocation))
-    found.foreach { info =>
-      data.find(_.DisplayLocation == info.DisplayLocation) match {
-        case Some(entry) =>
-          entry.Activity foreach { case (id, activity) =>
-            activity.Report(info.Activity(id).Heat)
-          }
-        case None => ;
-      }
+  def HotSpotData : List[HotSpotInfo] = hotSpotListDuplicate(hotspotHistory).toList
+
+  private def hotSpotListDuplicate(data : ListBuffer[HotSpotInfo]) : ListBuffer[HotSpotInfo] = {
+    data map { info =>
+      val data = new HotSpotInfo(info.DisplayLocation)
+      info.Activity.foreach { case (faction, report) => data.Activity(faction).Report(report.Heat) }
+      data
     }
-    data ++ unique
   }
 
   def TryHotSpot(displayLoc : Vector3) : HotSpotInfo = {

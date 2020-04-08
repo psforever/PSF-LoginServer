@@ -176,12 +176,22 @@ object InterstellarCluster {
     */
   final case class ZoneMapUpdate(zone_num: Int)
 
-  object InstantAction extends Enumeration {
-    type Type = Value
+  object InstantAction {
+    object Status extends Enumeration {
+      type Type = Value
 
-    val None = Value(0)
-    val Request = Value(1)
-    val Countdown = Value(2)
+      val Cancel = Value(-1)
+      val None = Value(0)
+      val Request = Value(1)
+      val Countdown = Value(2)
+    }
+
+    object Time {
+      final val Sanctuary : Int = 10
+      final val Friendly : Int = 10
+      final val Neutral : Int = 20
+      final val Enemy : Int = 30
+    }
   }
 
   final case class InstantActionRequest(faction : PlanetSideEmpire.Value)

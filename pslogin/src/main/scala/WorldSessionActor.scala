@@ -6,10 +6,7 @@ import com.github.mauricio.async.db.general.ArrayRowData
 import com.github.mauricio.async.db.{Connection, QueryResult}
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
-
-import net.psforever.objects.serverobject.structures.SphereOfInfluence
 import org.log4s.{Logger, MDC}
-
 import scala.annotation.{switch, tailrec}
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.LongMap
@@ -48,7 +45,7 @@ import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 import net.psforever.objects.serverobject.painbox.Painbox
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
-import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
+import net.psforever.objects.serverobject.structures.{Amenity, Building, SphereOfInfluence, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals.{CaptureTerminal, CaptureTerminals, MatrixTerminalDefinition, MedicalTerminalDefinition, ProximityDefinition, ProximityTerminal, ProximityUnit, Terminal}
 import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
 import net.psforever.objects.serverobject.tube.SpawnTube
@@ -80,6 +77,7 @@ import services.vehicle.support.TurretUpgrader
 
 class WorldSessionActor extends Actor
   with MDCContextAware {
+
   import WorldSessionActor._
 
   private[this] val log = org.log4s.getLogger
@@ -89,7 +87,7 @@ class WorldSessionActor extends Actor
   var rightRef : ActorRef = ActorRef.noSender
   var accountIntermediary : ActorRef = ActorRef.noSender
   var accountPersistence : ActorRef = ActorRef.noSender
-  var chatService: ActorRef = ActorRef.noSender
+  var chatService : ActorRef = ActorRef.noSender
   var galaxyService : ActorRef = ActorRef.noSender
   var squadService : ActorRef = ActorRef.noSender
   var taskResolver : ActorRef = Actor.noSender
@@ -133,9 +131,9 @@ class WorldSessionActor extends Actor
   var recentTeleportAttempt : Long = 0
   var lastTerminalOrderFulfillment : Boolean = true
   var shiftPosition : Option[Vector3] = None
-  var setupAvatarFunc : ()=>Unit = AvatarCreate
-  var beginZoningSetCurrentAvatarFunc : (Player)=>Unit = SetCurrentAvatarNormally
-  var persist : ()=>Unit = NoPersistence
+  var setupAvatarFunc : () => Unit = AvatarCreate
+  var beginZoningSetCurrentAvatarFunc : (Player) => Unit = SetCurrentAvatarNormally
+  var persist : () => Unit = NoPersistence
   /**
     * used during zone transfers to maintain reference to seated vehicle (which does not yet exist in the new zone)
     * used during intrazone gate transfers, but not in a way distinct from prior zone transfer procedures
@@ -166,18 +164,17 @@ class WorldSessionActor extends Actor
   var squadSetup : () => Unit = FirstTimeSquadSetup
   var squadUpdateCounter : Int = 0
   val queuedSquadActions : Seq[() => Unit] = Seq(SquadUpdates, NoSquadUpdates, NoSquadUpdates, NoSquadUpdates)
-  var instantActionStatus : InterstellarCluster.InstantAction.Value = InterstellarCluster.InstantAction.None
+  var instantActionStatus : InterstellarCluster.InstantAction.Status.Value = InterstellarCluster.InstantAction.Status.None
   var instantActionCounter : Int = 0
-
-
-  lazy val unsignedIntMaxValue : Long = Int.MaxValue.toLong * 2L + 1L
-  var serverTime : Long = 0
-
   /** Keeps track of the number of PlayerStateMessageUpstream messages received by the client
     * As they should arrive roughly every 250 milliseconds this allows for a very crude method of scheduling tasks up to four times per second */
   private var playerStateMessageUpstreamCount = 0
-
+  var timeDL : Long = 0
+  var timeSurge : Long = 0
+  lazy val unsignedIntMaxValue : Long = Int.MaxValue.toLong * 2L + 1L
+  var serverTime : Long = 0
   var amsSpawnPoints : List[SpawnPoint] = Nil
+
   var clientKeepAlive : Cancellable = DefaultCancellable.obj
   var progressBarUpdate : Cancellable = DefaultCancellable.obj
   var reviveTimer : Cancellable = DefaultCancellable.obj
@@ -187,15 +184,17 @@ class WorldSessionActor extends Actor
   var antChargingTick : Cancellable = DefaultCancellable.obj
   var antDischargingTick : Cancellable = DefaultCancellable.obj
   var instantActionTimer : Cancellable = DefaultCancellable.obj
-
   /**
     * Convert a boolean value into an integer value.
     * Use: `true:Int` or `false:Int`
     * @param b `true` or `false` (or `null`)
     * @return 1 for `true`; 0 for `false`
     */
+
   import scala.language.implicitConversions
-  implicit def boolToInt(b : Boolean) : Int = if(b) 1 else 0
+
+  implicit def boolToInt(b : Boolean) : Int = if(b) 1
+  else 0
 
   override def postStop() : Unit = {
     //normally, the player avatar persists a minute or so after disconnect; we are subject to the SessionReaper
@@ -259,7 +258,7 @@ class WorldSessionActor extends Actor
   def ValidObject(id : PlanetSideGUID) : Option[PlanetSideGameObject] = ValidObject(Some(id))
 
   def ValidObject(id : Option[PlanetSideGUID]) : Option[PlanetSideGameObject] = continent.GUID(id) match {
-    case out @ Some(obj) if obj.HasGUID =>
+    case out@Some(obj) if obj.HasGUID =>
       out
     case None if id.nonEmpty =>
       //delete stale entity reference from client
@@ -454,18 +453,18 @@ class WorldSessionActor extends Actor
             val leader = squad.Leader
             val membershipPositions = positionsToUpdate map squad.Membership.zipWithIndex
             StartBundlingPackets()
-            membershipPositions.find({ case(member, _) => member.CharId == avatar.CharId }) match {
+            membershipPositions.find({ case (member, _) => member.CharId == avatar.CharId }) match {
               case Some((ourMember, ourIndex)) =>
                 //we are joining the squad
                 //load each member's entry (our own too)
                 squad_supplement_id = squad.GUID.guid + 1
-                membershipPositions.foreach { case(member, index) =>
+                membershipPositions.foreach { case (member, index) =>
                   sendResponse(SquadMemberEvent.Add(squad_supplement_id, member.CharId, index, member.Name, member.ZoneId, unk7 = 0))
                   squadUI(member.CharId) = SquadUIElement(member.Name, index, member.ZoneId, member.Health, member.Armor, member.Position)
                 }
                 //repeat our entry
                 sendResponse(SquadMemberEvent.Add(squad_supplement_id, ourMember.CharId, ourIndex, ourMember.Name, ourMember.ZoneId, unk7 = 0)) //repeat of our entry
-                val playerGuid = player.GUID
+              val playerGuid = player.GUID
                 //turn lfs off
                 val factionChannel = s"${player.Faction}"
                 if(avatar.LFS) {
@@ -486,7 +485,7 @@ class WorldSessionActor extends Actor
                 //other player is joining our squad
                 //load each member's entry
                 GiveSquadColorsInZone(
-                  membershipPositions.map { case(member, index) =>
+                  membershipPositions.map { case (member, index) =>
                     val charId = member.CharId
                     sendResponse(SquadMemberEvent.Add(squad_supplement_id, charId, index, member.Name, member.ZoneId, unk7 = 0))
                     squadUI(charId) = SquadUIElement(member.Name, index, member.ZoneId, member.Health, member.Armor, member.Position)
@@ -499,17 +498,17 @@ class WorldSessionActor extends Actor
             sendResponse(SquadState(PlanetSideGUID(squad_supplement_id),
               membershipPositions
                 .filterNot { case (member, _) => member.CharId == avatar.CharId }
-                .map{ case (member, _) => SquadStateInfo(member.CharId, member.Health, member.Armor, member.Position, 2,2, false, 429, None,None) }
+                .map { case (member, _) => SquadStateInfo(member.CharId, member.Health, member.Armor, member.Position, 2, 2, false, 429, None, None) }
                 .toList
             ))
 
           case SquadResponse.Leave(squad, positionsToUpdate) =>
             StartBundlingPackets()
-            positionsToUpdate.find({ case(member, _) => member == avatar.CharId }) match {
+            positionsToUpdate.find({ case (member, _) => member == avatar.CharId }) match {
               case Some((ourMember, ourIndex)) =>
                 //we are leaving the squad
                 //remove each member's entry (our own too)
-                positionsToUpdate.foreach { case(member, index) =>
+                positionsToUpdate.foreach { case (member, index) =>
                   sendResponse(SquadMemberEvent.Remove(squad_supplement_id, member, index))
                   squadUI.remove(member)
                 }
@@ -530,7 +529,7 @@ class WorldSessionActor extends Actor
               case _ =>
                 //remove each member's entry
                 GiveSquadColorsInZone(
-                  positionsToUpdate.map { case(member, index) =>
+                  positionsToUpdate.map { case (member, index) =>
                     sendResponse(SquadMemberEvent.Remove(squad_supplement_id, member, index))
                     squadUI.remove(member)
                     member
@@ -589,7 +588,7 @@ class WorldSessionActor extends Actor
               sendResponse(
                 SquadState(
                   PlanetSideGUID(squad_supplement_id),
-                  updatedEntries.map { entry => SquadStateInfo(entry.char_id, entry.health, entry.armor, entry.pos, 2,2, false, 429, None,None)}
+                  updatedEntries.map { entry => SquadStateInfo(entry.char_id, entry.health, entry.armor, entry.pos, 2, 2, false, 429, None, None) }
                 )
               )
             }
@@ -686,16 +685,17 @@ class WorldSessionActor extends Actor
         case scala.util.Success(connection) =>
           val accountUserName : String = account.Username
           connection.inTransaction {
-            c => c.sendPreparedStatement(
-              "INSERT INTO characters (name, account_id, faction_id, gender_id, head_id, voice_id) VALUES(?,?,?,?,?,?) RETURNING id",
-              Array(name, account.AccountId, empire.id, gender.id, head, voice.id)
-            )
+            c =>
+              c.sendPreparedStatement(
+                "INSERT INTO characters (name, account_id, faction_id, gender_id, head_id, voice_id) VALUES(?,?,?,?,?,?) RETURNING id",
+                Array(name, account.AccountId, empire.id, gender.id, head, voice.id)
+              )
           }.onComplete {
             case scala.util.Success(insertResult) =>
               if(connection.isConnected) connection.disconnect
               insertResult match {
-                case result: QueryResult =>
-                  if (result.rows.nonEmpty) {
+                case result : QueryResult =>
+                  if(result.rows.nonEmpty) {
                     log.info(s"CreateCharacter: successfully created new character for $accountUserName")
                     sendResponse(ActionResultMessage.Pass)
                     self ! ListAccountCharacters()
@@ -731,7 +731,6 @@ class WorldSessionActor extends Actor
                 import net.psforever.objects.definition.converter.CharacterSelectConverter
                 val gen : AtomicInteger = new AtomicInteger(1)
                 val converter : CharacterSelectConverter = new CharacterSelectConverter
-
                 result.rows foreach { row =>
                   log.trace(s"char list : ${row.toString()}")
                   val nowTimeInSeconds = System.currentTimeMillis() / 1000
@@ -805,12 +804,11 @@ class WorldSessionActor extends Actor
 
       // StopBundlingPackets() is called on ClientInitializationComplete
       StartBundlingPackets()
-
       zone.Buildings.foreach({ case (id, building) => initBuilding(continentNumber, building.MapId, building) })
       sendResponse(ZonePopulationUpdateMessage(continentNumber, 414, 138, popTR, 138, popNC, 138, popVS, 138, popBO))
-      if (continentNumber == 11) sendResponse(ContinentalLockUpdateMessage(continentNumber, PlanetSideEmpire.NC)) // "The NC have captured the NC Sanctuary."
-      else if (continentNumber == 12) sendResponse(ContinentalLockUpdateMessage(continentNumber, PlanetSideEmpire.TR)) // "The TR have captured the TR Sanctuary."
-      else if (continentNumber == 13) sendResponse(ContinentalLockUpdateMessage(continentNumber, PlanetSideEmpire.VS)) // "The VS have captured the VS Sanctuary."
+      if(continentNumber == 11) sendResponse(ContinentalLockUpdateMessage(continentNumber, PlanetSideEmpire.NC)) // "The NC have captured the NC Sanctuary."
+      else if(continentNumber == 12) sendResponse(ContinentalLockUpdateMessage(continentNumber, PlanetSideEmpire.TR)) // "The TR have captured the TR Sanctuary."
+      else if(continentNumber == 13) sendResponse(ContinentalLockUpdateMessage(continentNumber, PlanetSideEmpire.VS)) // "The VS have captured the VS Sanctuary."
       else sendResponse(ContinentalLockUpdateMessage(continentNumber, PlanetSideEmpire.NEUTRAL))
       //CaptureFlagUpdateMessage()
       //VanuModuleUpdateMessage()
@@ -818,7 +816,6 @@ class WorldSessionActor extends Actor
       sendResponse(ZoneInfoMessage(continentNumber, true, 0))
       sendResponse(ZoneLockInfoMessage(continentNumber, false, true))
       sendResponse(ZoneForcedCavernConnectionsMessage(continentNumber, 0))
-
       sendResponse(HotSpotUpdateMessage(
         continentNumber,
         1,
@@ -874,10 +871,10 @@ class WorldSessionActor extends Actor
         RequestSanctuaryZoneSpawn(player, zone_number)
       }
 
-    case msg @ Zone.Vehicle.CanNotSpawn(zone, vehicle, reason) =>
+    case msg@Zone.Vehicle.CanNotSpawn(zone, vehicle, reason) =>
       log.warn(s"$msg")
 
-    case msg @ Zone.Vehicle.CanNotDespawn(zone, vehicle, reason) =>
+    case msg@Zone.Vehicle.CanNotDespawn(zone, vehicle, reason) =>
       log.warn(s"$msg")
 
     case Zone.Ground.ItemOnGround(item : BoomerTrigger, pos, orient) =>
@@ -1149,68 +1146,22 @@ class WorldSessionActor extends Actor
       }
 
     case InterstellarCluster.InstantActionLocated(zone_id, hotspot_position, spawn_point_position, Some(spawn_point)) =>
-      if(instantActionStatus == InterstellarCluster.InstantAction.Request) {
-        instantActionStatus = InterstellarCluster.InstantAction.Countdown
-        instantActionCounter = if(Zones.SanctuaryZoneNumber(player.Faction) == continent.Number) {
-          10
-        }
-        else {
-          (continent.Buildings
-            .values
-            .filter { building =>
-              val radius = building.Definition.SOIRadius
-              Vector3.DistanceSquared(building.Position, player.Position) < radius * radius
-            }) match {
-            case Nil =>
-              20
-            case List(building) =>
-              if(building.Faction == player.Faction) 10
-              else if(building.Faction == PlanetSideEmpire.NEUTRAL) 20
-              else 30
-            case buildings =>
-              if(buildings.forall(_.Faction == player.Faction)) 10
-              else if(buildings.forall(_.Faction == PlanetSideEmpire.NEUTRAL)) 20
-              else 30
-          }
-        }
-        import scala.concurrent.ExecutionContext.Implicits.global
-        instantActionTimer.cancel
-        instantActionTimer = context.system.scheduler.scheduleOnce(5 seconds, cluster, InterstellarCluster.InstantActionRequest(player.Faction))
-      }
-      else if(instantActionStatus == InterstellarCluster.InstantAction.Countdown) {
-        instantActionTimer.cancel
-        instantActionCounter -= 5
-        if(instantActionCounter > 0) {
-          if(Seq(5, 10, 20).contains(instantActionCounter)) {
-            sendResponse(ChatMsg(ChatMessageType.CMT_INSTANTACTION, false, "", s"@instantaction_$instantActionCounter", None))
-          }
-          instantActionTimer = context.system.scheduler.scheduleOnce(5 seconds, cluster, InterstellarCluster.InstantActionRequest(player.Faction))
-        }
-        else {
-          //instant action deployment
-          instantActionCounter = 0
-          instantActionStatus = InterstellarCluster.InstantAction.None
-          log.info("Thunderbirds are go!")
-        }
-        //sendResponse(ChatMsg(ChatMessageType.CMT_INSTANTACTION, false, "", "@instantaction_cancel", None))
-        //sendResponse(ChatMsg(ChatMessageType.CMT_INSTANTACTION, false, "", "@instantaction_cancel_motion", None))
-        //sendResponse(ChatMsg(ChatMessageType.CMT_INSTANTACTION, false, "", "@instantaction_cancel_fire", None))
-        //sendResponse(ChatMsg(ChatMessageType.CMT_INSTANTACTION, false, "", "@instantaction_cancel_dmg", None))
+      if(EvaluateInstantActionResponse()) {
+        PlayerActionsToCancel()
+        CancelAllProximityUnits()
+        continent.Population ! Zone.Population.Release(avatar)
+        LoadZonePhysicalSpawnPoint(zone_id, spawn_point_position, spawn_point.Orientation, CountSpawnDelay(zone_id, spawn_point, continent.Id))
       }
 
     case InterstellarCluster.InstantActionLocated(zone_id, hotspot_position, spawn_point_position, None) =>
       //droppod into the zone
       //TODO todo
-      instantActionTimer.cancel
-      instantActionCounter = 0
-      instantActionStatus = InterstellarCluster.InstantAction.None
+      EvaluateInstantActionResponse()
+      CancelInstantActionWithReason("@instantaction_cancel")
 
     case InterstellarCluster.InstantActionNotLocated() =>
       //no instant action available
-      instantActionTimer.cancel
-      instantActionCounter = 0
-      instantActionStatus = InterstellarCluster.InstantAction.None
-      sendResponse(ChatMsg(ChatMessageType.CMT_INSTANTACTION, false, "", "@InstantActionNoHotspotsAvailable", None))
+      CancelInstantActionWithReason("@InstantActionNoHotspotsAvailable")
 
     case NewPlayerLoaded(tplayer) =>
       //new zone
@@ -1273,7 +1224,7 @@ class WorldSessionActor extends Actor
             case scala.util.Success(queryResult) =>
               if(connection.isConnected) connection.disconnect
               queryResult match {
-                case row: ArrayRowData => // If we got a row from the database
+                case row : ArrayRowData => // If we got a row from the database
                   log.info(s"ReceiveAccountData: ready to load character list for ${account.Username}")
                   self ! ListAccountCharacters()
                 case _ => // If the account didn't exist in the database
@@ -1363,7 +1314,6 @@ class WorldSessionActor extends Actor
       InitializeDeployableQuantities(avatar) //set deployables ui elements
       AwardBattleExperiencePoints(avatar, 20000000L)
       avatar.CEP = 600000
-
       avatar.Implants(0).Unlocked = true
       avatar.Implants(0).Implant = GlobalDefinitions.darklight_vision
       avatar.Implants(1).Unlocked = true
@@ -1372,7 +1322,6 @@ class WorldSessionActor extends Actor
       avatar.Implants(2).Implant = GlobalDefinitions.targeting
 
       player = new Player(avatar)
-
       //xy-coordinates indicate sanctuary spawn bias:
       player.Position = math.abs(scala.util.Random.nextInt() % avatar.name.hashCode % 4) match {
         case 0 => Vector3(8192, 8192, 0) //NE
@@ -1469,7 +1418,7 @@ class WorldSessionActor extends Actor
   /**
     * Do not update this player avatar for persistence.
     */
-  def NoPersistence() : Unit = { }
+  def NoPersistence() : Unit = {}
 
   /**
     * Common action to perform before starting the transition to client initialization.
@@ -1514,6 +1463,97 @@ class WorldSessionActor extends Actor
         result failure new Throwable(msg)
     }
     result.future
+  }
+
+  def EvaluateInstantActionResponse() : Boolean = {
+    if(instantActionStatus == InterstellarCluster.InstantAction.Status.Request) {
+      val onSanctuaryAlready = Zones.SanctuaryZoneNumber(player.Faction) == continent.Number
+      instantActionStatus = InterstellarCluster.InstantAction.Status.Countdown
+      instantActionCounter = if(onSanctuaryAlready) {
+        InterstellarCluster.InstantAction.Time.Sanctuary
+      }
+      else {
+        (continent.Buildings
+          .values
+          .filter { building =>
+            val radius = building.Definition.SOIRadius
+            Vector3.DistanceSquared(building.Position, player.Position) < radius * radius
+          }) match {
+          case Nil =>
+            InterstellarCluster.InstantAction.Time.Neutral
+          case List(building) =>
+            if(building.Faction == player.Faction) InterstellarCluster.InstantAction.Time.Friendly
+            else if(building.Faction == PlanetSideEmpire.NEUTRAL) InterstellarCluster.InstantAction.Time.Neutral
+            else InterstellarCluster.InstantAction.Time.Enemy
+          case buildings =>
+            if(buildings.forall(_.Faction == player.Faction)) InterstellarCluster.InstantAction.Time.Friendly
+            else if(buildings.forall(_.Faction == PlanetSideEmpire.NEUTRAL)) InterstellarCluster.InstantAction.Time.Neutral
+            else InterstellarCluster.InstantAction.Time.Enemy
+        }
+      }
+      if(onSanctuaryAlready) {
+        sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@instantaction_sanctuary", None))
+      }
+      else if(instantActionCounter == InterstellarCluster.InstantAction.Time.Friendly) {
+        sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@instantaction_friendly", None))
+      }
+      else if(instantActionCounter == InterstellarCluster.InstantAction.Time.Neutral) {
+        sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@instantaction_neutral", None))
+      }
+      else {
+        sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@instantaction_enemy", None))
+      }
+      import scala.concurrent.ExecutionContext.Implicits.global
+      instantActionTimer.cancel
+      instantActionTimer = context.system.scheduler.scheduleOnce(5 seconds, cluster, InterstellarCluster.InstantActionRequest(player.Faction))
+      false
+    }
+    else if(instantActionStatus == InterstellarCluster.InstantAction.Status.Countdown) {
+      instantActionTimer.cancel
+      instantActionCounter -= 5
+      if(instantActionCounter > 0) {
+        if(Seq(5, 10, 20).contains(instantActionCounter)) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_INSTANTACTION, false, "", s"@instantaction_$instantActionCounter", None))
+        }
+        instantActionTimer = context.system.scheduler.scheduleOnce(5 seconds, cluster, InterstellarCluster.InstantActionRequest(player.Faction))
+        false
+      }
+      else {
+        //instant action deployment
+        instantActionCounter = 0
+        instantActionStatus = InterstellarCluster.InstantAction.Status.None
+        true
+      }
+      //sendResponse(ChatMsg(ChatMessageType.CMT_INSTANTACTION, false, "", "@instantaction_cancel", None))
+      //sendResponse(ChatMsg(ChatMessageType.CMT_INSTANTACTION, false, "", "@instantaction_cancel_motion", None))
+      //sendResponse(ChatMsg(ChatMessageType.CMT_INSTANTACTION, false, "", "@instantaction_cancel_dmg", None))
+      //sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noinstantaction_invehicle", None)
+    }
+    else {
+      false
+    }
+  }
+
+  /**
+    * na
+    * @param msg na
+    * @param msgType na;
+    *                defaults to `ChatMessageType.CMT_INSTANTACTION`
+    */
+  def CancelInstantActionWithReason(msg : String, msgType : ChatMessageType.Value = ChatMessageType.CMT_INSTANTACTION) : Unit = {
+    if(instantActionStatus > InterstellarCluster.InstantAction.Status.None) {
+      sendResponse(ChatMsg(msgType, false, "", msg, None))
+    }
+    CancelInstantAction()
+  }
+
+  /**
+    * na
+    */
+  def CancelInstantAction() : Unit = {
+    instantActionTimer.cancel
+    instantActionCounter = 0
+    instantActionStatus = InterstellarCluster.InstantAction.Status.None
   }
 
   /**
@@ -1598,6 +1638,7 @@ class WorldSessionActor extends Actor
               player.History(DamageFromPainbox(PlayerSource(player), obj, amount))
             case _ => ;
           }
+          sendResponse(ChatMsg(ChatMessageType.CMT_INSTANTACTION, false, "", "@instantaction_cancel_dmg", None))
           player.Health = originalHealth - amount
           sendResponse(PlanetsideAttributeMessage(target, 0, player.Health))
           continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(target, 0, player.Health))
@@ -1638,6 +1679,7 @@ class WorldSessionActor extends Actor
       case AvatarResponse.HitHint(source_guid) =>
         if(player.isAlive) {
           sendResponse(HitHint(source_guid, guid))
+          CancelInstantActionWithReason("@instantaction_cancel_dmg")
         }
 
       case AvatarResponse.Killed() =>
@@ -1651,6 +1693,8 @@ class WorldSessionActor extends Actor
           case _ => ;
         }
         PlayerActionsToCancel()
+        CancelAllProximityUnits()
+        CancelInstantActionWithReason("@instantaction_cancel")
         if(shotsWhileDead > 0) {
           log.warn(s"KillPlayer/SHOTS_WHILE_DEAD: client of ${avatar.name} fired $shotsWhileDead rounds while character was dead on server")
           shotsWhileDead = 0
@@ -2070,14 +2114,16 @@ class WorldSessionActor extends Actor
   def HandleMountMessages(tplayer : Player, reply : Mountable.Exchange) : Unit = {
     reply match {
       case Mountable.CanMount(obj : ImplantTerminalMech, seat_num) =>
+        CancelInstantActionWithReason("@instantaction_cancel")
+        CancelAllProximityUnits()
         MountingAction(tplayer, obj, seat_num)
-        sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, 1000L)) //health of mech
 
       case Mountable.CanMount(obj : Vehicle, seat_num) =>
+        CancelInstantActionWithReason("@noinstantaction_invehicle", ChatMessageType.CMT_QUIT)
         val obj_guid : PlanetSideGUID = obj.GUID
         val player_guid : PlanetSideGUID = tplayer.GUID
         log.info(s"MountVehicleMsg: $player_guid mounts $obj_guid @ $seat_num")
-        PlayerActionsToCancel()
+        CancelAllProximityUnits()
         sendResponse(PlanetsideAttributeMessage(obj_guid, 0, obj.Health))
         sendResponse(PlanetsideAttributeMessage(obj_guid, 68, obj.Shields)) //shield health
         if(obj.Definition.MaxNtuCapacitor > 0) {
@@ -2115,6 +2161,7 @@ class WorldSessionActor extends Actor
         MountingAction(tplayer, obj, seat_num)
 
       case Mountable.CanMount(obj : FacilityTurret, seat_num) =>
+        CancelInstantActionWithReason("@noinstantaction_invehicle", ChatMessageType.CMT_QUIT)
         if(!obj.isUpgrading) {
           if(obj.Definition == GlobalDefinitions.vanu_sentry_turret) {
             obj.Zone.LocalEvents ! LocalServiceMessage(obj.Zone.Id, LocalAction.SetEmpire(obj.GUID, player.Faction))
@@ -2128,6 +2175,7 @@ class WorldSessionActor extends Actor
         }
 
       case Mountable.CanMount(obj : PlanetSideGameObject with WeaponTurret, seat_num) =>
+        CancelInstantActionWithReason("@instantaction_cancel")
         sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))
         UpdateWeaponAtSeatPosition(obj, seat_num)
         MountingAction(tplayer, obj, seat_num)
@@ -2919,6 +2967,7 @@ class WorldSessionActor extends Actor
       case VehicleResponse.StartPlayerSeatedInVehicle(vehicle, pad) =>
         val vehicle_guid = vehicle.GUID
         PlayerActionsToCancel()
+        CancelAllProximityUnits()
         if(player.VisibleSlots.contains(player.DrawnSlot)) {
           player.DrawnSlot = Player.HandsDownSlot
           sendResponse(ObjectHeldMessage(player.GUID, Player.HandsDownSlot, true))
@@ -3843,13 +3892,30 @@ class WorldSessionActor extends Actor
           player.Stamina += 1
         }
       }
-
+      else {
+        timeDL = 0
+        timeSurge = 0
+        false
+      }
+      if(staminaBefore != player.Stamina) { //stamina changed
+        sendResponse(PlanetsideAttributeMessage(player.GUID, 2, player.Stamina))
+      }
+      if(implantsAreActive && !hasStaminaAfter) { //implants deactivated at 0 stamina
+        DeactivateImplants()
+      }
+      //implants and stamina management finish
+      if(isMovingPlus) {
+        CancelInstantActionWithReason("@instantaction_cancel_motion")
+      }
       player.Position = pos
       player.Velocity = vel
       player.Orientation = Vector3(player.Orientation.x, pitch, yaw)
       player.FacingYawUpper = yaw_upper
       player.Crouching = is_crouching
       player.Jumping = is_jumping
+      if(is_cloaking && !player.Cloaked) {
+        CancelInstantActionWithReason("@instantaction_cancel_cloak")
+      }
       player.Cloaked = player.ExoSuit == ExoSuitType.Infiltration && is_cloaking
       CapacitorTick(jump_thrust)
 
@@ -4045,9 +4111,14 @@ class WorldSessionActor extends Actor
       }
       else if(messagetype == ChatMessageType.CMT_INSTANTACTION) {
         makeReply = false
-        if(instantActionStatus == InterstellarCluster.InstantAction.None) {
-          instantActionStatus = InterstellarCluster.InstantAction.Request
-          cluster ! InterstellarCluster.InstantActionRequest(player.Faction)
+        if(instantActionStatus <= InterstellarCluster.InstantAction.Status.None) {
+          if(player.VehicleSeated.nonEmpty) {
+            sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noinstantaction_invehicle", None))
+          }
+          else {
+            instantActionStatus = InterstellarCluster.InstantAction.Status.Request
+            cluster ! InterstellarCluster.InstantActionRequest(player.Faction)
+          }
         }
       }
 
@@ -4060,13 +4131,17 @@ class WorldSessionActor extends Actor
               vehicle.PassengerInSeat(player) match {
                 case Some(0) =>
                   vehicle.Position = pos
+                  CancelAllProximityUnits()
+                  CancelInstantAction()
                   LoadZonePhysicalSpawnPoint(zone, pos, Vector3.Zero, 0)
                 case _ => //not seated as the driver, in which case we can't move
                   deadState = DeadState.Alive
               }
             case None =>
               player.Position = pos
+              CancelAllProximityUnits()
               //continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, player.GUID))
+              CancelInstantAction()
               LoadZonePhysicalSpawnPoint(zone, pos, Vector3.Zero, 0)
             case _ => //seated in something that is not a vehicle or the vehicle is cargo, in which case we can't move
               deadState = DeadState.Alive
@@ -4084,12 +4159,16 @@ class WorldSessionActor extends Actor
               vehicle.PassengerInSeat(player) match {
                 case Some(0) =>
                   vehicle.Position = pos
+                  CancelAllProximityUnits()
+                  CancelInstantActionWithReason("@instantaction_cancel")
                   LoadZonePhysicalSpawnPoint(continent.Id, pos, Vector3.z(vehicle.Orientation.z), 0)
                 case _ => //not seated as the driver, in which case we can't move
                   deadState = DeadState.Alive
               }
             case None =>
               player.Position = pos
+              CancelAllProximityUnits()
+              CancelInstantActionWithReason("@instantaction_cancel_motion")
               sendResponse(PlayerStateShiftMessage(ShiftState(0, pos, player.Orientation.z, None)))
               deadState = DeadState.Alive //must be set here
             case _ => //seated in something that is not a vehicle or the vehicle is cargo, in which case we can't move
@@ -5487,6 +5566,7 @@ class WorldSessionActor extends Actor
 
     case msg @ WeaponFireMessage(seq_time, weapon_guid, projectile_guid, shot_origin, unk1, unk2, unk3, unk4, unk5, unk6, unk7) =>
       log.info(s"WeaponFire: $msg")
+      CancelInstantActionWithReason("@instantaction_cancel_fire")
       if(player.isShielded) {
         // Cancel NC MAX shield if it's active
         ToggleMaxSpecialState(enable = false)
