@@ -897,6 +897,8 @@ object GlobalDefinitions {
   val lodestar = VehicleDefinition(ObjectClass.lodestar)
 
   val phantasm = VehicleDefinition(ObjectClass.phantasm)
+
+  val droppod = VehicleDefinition(ObjectClass.droppod)
   init_vehicles()
 
   /*
@@ -6083,6 +6085,17 @@ object GlobalDefinitions {
     phantasm.Packet = variantConverter
     phantasm.DestroyedModel = None //the adb calls out a phantasm_destroyed but no such asset exists
     phantasm.JackingDuration = Array(0, 60, 20, 10)
+
+    droppod.Name = "droppod"
+    droppod.MaxHealth = 20000
+    //droppod.Damageable = false
+    droppod.CanFly = true
+    droppod.Seats += 0 -> new SeatDefinition
+    droppod.MountPoints += 1 -> 0
+    droppod.TrunkSize = InventoryTile.None
+    droppod.Packet = new DroppodConverter()
+    droppod.DeconstructionTime = Some(5 seconds)
+    droppod.DestroyedModel = None //the adb calls out a droppod; the cyclic nature of this confound me
   }
 
   /**

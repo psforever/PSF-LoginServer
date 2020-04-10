@@ -3,7 +3,7 @@ package net.psforever.objects.zones
 
 import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import net.psforever.objects.DefaultCancellable
-import net.psforever.types.PlanetSideEmpire
+import net.psforever.types.{PlanetSideEmpire, Vector3}
 import services.ServiceManager
 
 import scala.collection.mutable.ListBuffer
@@ -127,7 +127,7 @@ class ZoneHotSpotProjector(zone : Zone, hotspots : ListBuffer[HotSpotInfo], blan
       val noPriorHotSpots = hotspots.isEmpty
       val duration = zone.HotSpotTimeFunction(defender, attacker)
       if(duration.toNanos > 0) {
-        val hotspot = zone.TryHotSpot( zone.HotSpotCoordinateFunction(location) )
+        val hotspot = TryHotSpot( zone.HotSpotCoordinateFunction(location) )
         log.trace(s"updating activity status for ${zone.Id} hotspot x=${hotspot.DisplayLocation.x} y=${hotspot.DisplayLocation.y}")
         val noPriorActivity = !(hotspot.ActivityBy(defenderFaction) && hotspot.ActivityBy(attackerFaction))
         //update the activity report for these factions
@@ -199,6 +199,19 @@ class ZoneHotSpotProjector(zone : Zone, hotspots : ListBuffer[HotSpotInfo], blan
       UpdateHotSpots(PlanetSideEmpire.values, Nil)
 
     case _ => ;
+  }
+
+  def TryHotSpot(displayLoc : Vector3) : HotSpotInfo = {
+    hotspots.find(spot => spot.DisplayLocation == displayLoc) match {
+      case Some(spot) =>
+        //hotspot already exists
+        spot
+      case None =>
+        //insert new hotspot
+        val spot = new HotSpotInfo(displayLoc)
+        hotspots += spot
+        spot
+    }
   }
 
   /**

@@ -511,24 +511,16 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   def HotSpotData : List[HotSpotInfo] = hotSpotListDuplicate(hotspotHistory).toList
 
   private def hotSpotListDuplicate(data : ListBuffer[HotSpotInfo]) : ListBuffer[HotSpotInfo] = {
-    data map { info =>
-      val data = new HotSpotInfo(info.DisplayLocation)
-      info.Activity.foreach { case (faction, report) => data.Activity(faction).Report(report.Heat) }
-      data
+    val out = data map { info =>
+      val outData = new HotSpotInfo(info.DisplayLocation)
+      info.Activity.foreach { case (faction, report) =>
+        val doctoredReport = outData.Activity(faction)
+        doctoredReport.ReportOld(report.Heat)
+        doctoredReport.SetLastReport(report.LastReport)
+      }
+      outData
     }
-  }
-
-  def TryHotSpot(displayLoc : Vector3) : HotSpotInfo = {
-    hotspots.find(spot => spot.DisplayLocation == displayLoc) match {
-      case Some(spot) =>
-        //hotspot already exists
-        spot
-      case None =>
-        //insert new hotspot
-        val spot = new HotSpotInfo(displayLoc)
-        hotspots += spot
-        spot
-    }
+    out
   }
 
   def HotSpotCoordinateFunction : Vector3=>Vector3 = hotspotCoordinateFunc

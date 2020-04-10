@@ -1145,19 +1145,56 @@ class WorldSessionActor extends Actor
           taskResolver ! RegisterNewAvatar(player)
       }
 
-    case InterstellarCluster.InstantActionLocated(zone_id, hotspot_position, spawn_point_position, Some(spawn_point)) =>
+    case InterstellarCluster.InstantActionLocated(zone, hotspot_position, spawn_point_position, Some(spawn_point)) =>
       if(EvaluateInstantActionResponse()) {
         PlayerActionsToCancel()
         CancelAllProximityUnits()
         continent.Population ! Zone.Population.Release(avatar)
-        LoadZonePhysicalSpawnPoint(zone_id, spawn_point_position, spawn_point.Orientation, CountSpawnDelay(zone_id, spawn_point, continent.Id))
+        LoadZonePhysicalSpawnPoint(zone.Id, spawn_point_position, spawn_point.Orientation, 0L)
       }
 
-    case InterstellarCluster.InstantActionLocated(zone_id, hotspot_position, spawn_point_position, None) =>
+    case InterstellarCluster.InstantActionLocated(zone, hotspot_position, spawn_point_position, None) =>
       //droppod into the zone
-      //TODO todo
-      EvaluateInstantActionResponse()
-      CancelInstantActionWithReason("@instantaction_cancel")
+      if(EvaluateInstantActionResponse()) {
+        instantActionStatus = InterstellarCluster.InstantAction.Status.Droppod
+        PlayerActionsToCancel()
+        CancelAllProximityUnits()
+        //find a safe drop point
+        var targetBuildings = zone.Buildings.values
+        var whereToDroppod = spawn_point_position.xy
+        while(targetBuildings.nonEmpty) {
+          (continent.Buildings
+            .values
+            .filter { building =>
+              val radius = building.Definition.SOIRadius
+              Vector3.DistanceSquared(building.Position.xy, whereToDroppod) < radius * radius
+            }) match {
+            case Nil =>
+              //no soi overlap
+              targetBuildings = Nil
+            case List(building) =>
+              //overlapping a single soi; find space just outside of this soi and confirm no new overlap
+              val radius = Vector3(0, building.Definition.SOIRadius + 5, 0)
+              whereToDroppod = building.Position.xy + Vector3.Rz(radius, math.abs(scala.util.Random.nextInt() % 360))
+            case buildings =>
+              //probably a facility and its tower (maximum overlap potential is 2); find space beyond the largest soi
+              val largestBuilding = buildings.maxBy(_.Definition.SOIRadius)
+              val radius = Vector3(0, largestBuilding.Definition.SOIRadius + 5, 0)
+              whereToDroppod = largestBuilding.Position.xy + Vector3.Rz(radius, math.abs(scala.util.Random.nextInt() % 360))
+              targetBuildings = buildings
+          }
+        }
+        //droppod action
+        val droppod = Vehicle(GlobalDefinitions.droppod)
+        droppod.Faction = player.Faction
+        droppod.Position = whereToDroppod + Vector3.z(1024)
+        droppod.Seats(0).Occupant = player
+        droppod.GUID = PlanetSideGUID(0) //droppod is not registered, we must short-circuit this
+        droppod.Invalidate()
+        interstellarFerry = Some(droppod) //leverage vehicle gating
+        continent.Population ! Zone.Population.Release(avatar)
+        LoadZonePhysicalSpawnPoint(zone.Id, droppod.Position, Vector3.Zero, 0L)
+      }
 
     case InterstellarCluster.InstantActionNotLocated() =>
       //no instant action available
@@ -1512,7 +1549,7 @@ class WorldSessionActor extends Actor
       instantActionTimer.cancel
       instantActionCounter -= 5
       if(instantActionCounter > 0) {
-        if(Seq(5, 10, 20).contains(instantActionCounter)) {
+        if(InterstellarCluster.InstantAction.Time.All.contains(instantActionCounter)) {
           sendResponse(ChatMsg(ChatMessageType.CMT_INSTANTACTION, false, "", s"@instantaction_$instantActionCounter", None))
         }
         instantActionTimer = context.system.scheduler.scheduleOnce(5 seconds, cluster, InterstellarCluster.InstantActionRequest(player.Faction))
@@ -1524,10 +1561,6 @@ class WorldSessionActor extends Actor
         instantActionStatus = InterstellarCluster.InstantAction.Status.None
         true
       }
-      //sendResponse(ChatMsg(ChatMessageType.CMT_INSTANTACTION, false, "", "@instantaction_cancel", None))
-      //sendResponse(ChatMsg(ChatMessageType.CMT_INSTANTACTION, false, "", "@instantaction_cancel_motion", None))
-      //sendResponse(ChatMsg(ChatMessageType.CMT_INSTANTACTION, false, "", "@instantaction_cancel_dmg", None))
-      //sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noinstantaction_invehicle", None)
     }
     else {
       false
@@ -1685,6 +1718,7 @@ class WorldSessionActor extends Actor
       case AvatarResponse.Killed() =>
         val respawnTimer = 300000 //milliseconds
         ToggleMaxSpecialState(enable = false)
+        instantActionStatus = InterstellarCluster.InstantAction.Status.None
         deadState = DeadState.Dead
         continent.GUID(player.VehicleSeated) match {
           case Some(obj : Vehicle) =>
@@ -2185,6 +2219,13 @@ class WorldSessionActor extends Actor
 
       case Mountable.CanDismount(obj : ImplantTerminalMech, seat_num) =>
         DismountAction(tplayer, obj, seat_num)
+
+      case Mountable.CanDismount(obj : Vehicle, seat_num) if obj.Definition == GlobalDefinitions.droppod =>
+        instantActionStatus = InterstellarCluster.InstantAction.Status.None
+        UnAccessContents(obj)
+        DismountAction(tplayer, obj, seat_num)
+        continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(obj), continent))
+        continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(obj, continent, obj.Definition.DeconstructionTime))
 
       case Mountable.CanDismount(obj : Vehicle, seat_num) =>
         val player_guid : PlanetSideGUID = tplayer.GUID
@@ -2766,7 +2807,7 @@ class WorldSessionActor extends Actor
                 entry.obj.Faction = toFaction
                 vTrunk += entry.start -> entry.obj
               })
-              taskResolver ! RegisterNewVehicle(vehicle, pad)
+              taskResolver ! RegisterVehicleFromSpawnPad(vehicle, pad)
               sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true))
             }
             else {
@@ -3273,10 +3314,18 @@ class WorldSessionActor extends Actor
       case _ =>
         player.VehicleOwned = None
     }
-
-    //if driver of a vehicle, summon any passengers and cargo vehicles left behind on previous continent
     GetVehicleAndSeat() match {
+      //we're falling
+      case (Some(vehicle), _) if vehicle.Definition == GlobalDefinitions.droppod =>
+        sendResponse(DroppodFreefallingMessage(
+          vehicle.GUID,
+          vehicle.Position + Vector3.z(50),
+          Vector3.z(-999),
+          vehicle.Position + Vector3.z(25),
+          Vector3(0, 70.3125f, 90), Vector3(0, 0, 90)
+        ))
       case (Some(vehicle), Some(0)) =>
+        //summon any passengers and cargo vehicles left behind on previous continent
         LoadZoneTransferPassengerMessages(
           guid,
           continent.Id,
@@ -4111,7 +4160,7 @@ class WorldSessionActor extends Actor
       }
       else if(messagetype == ChatMessageType.CMT_INSTANTACTION) {
         makeReply = false
-        if(instantActionStatus <= InterstellarCluster.InstantAction.Status.None) {
+        if(deadState == DeadState.Alive && instantActionStatus <= InterstellarCluster.InstantAction.Status.None) {
           if(player.VehicleSeated.nonEmpty) {
             sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noinstantaction_invehicle", None))
           }
@@ -4160,7 +4209,6 @@ class WorldSessionActor extends Actor
                 case Some(0) =>
                   vehicle.Position = pos
                   CancelAllProximityUnits()
-                  CancelInstantActionWithReason("@instantaction_cancel")
                   LoadZonePhysicalSpawnPoint(continent.Id, pos, Vector3.z(vehicle.Orientation.z), 0)
                 case _ => //not seated as the driver, in which case we can't move
                   deadState = DeadState.Alive
@@ -6203,7 +6251,7 @@ class WorldSessionActor extends Actor
     * Construct tasking that adds a completed and registered vehicle into the scene.
     * Use this function to renew the globally unique identifiers on a vehicle that has already been added to the scene once.
     * @param vehicle the `Vehicle` object
-    * @see `RegisterNewVehicle`
+    * @see `RegisterVehicleFromSpawnPad`
     * @return a `TaskResolver.GiveTask` message
     */
   def RegisterVehicle(vehicle : Vehicle) : TaskResolver.GiveTask = {
@@ -6230,9 +6278,36 @@ class WorldSessionActor extends Actor
     )
   }
 
+  def RegisterDroppod(vehicle : Vehicle, tplayer : Player) : TaskResolver.GiveTask = {
+    TaskResolver.GiveTask(
+      new Task() {
+        private val localDriver = tplayer
+        private val localVehicle = vehicle
+        private val localAnnounce = self
+
+        override def isComplete : Task.Resolution.Value = {
+          if(localVehicle.HasGUID) {
+            Task.Resolution.Success
+          }
+          else {
+            Task.Resolution.Incomplete
+          }
+        }
+
+        def Execute(resolver : ActorRef) : Unit = {
+          log.info(s"Vehicle $localVehicle is registered")
+          localDriver.VehicleSeated = localVehicle.GUID
+          Vehicles.Own(localVehicle, localDriver)
+          localAnnounce ! PlayerLoaded(localDriver)
+          resolver ! scala.util.Success(this)
+        }
+      }, List(GUIDTask.RegisterObjectTask(vehicle)(continent.GUID))
+    )
+  }
+
   /**
     * Construct tasking that adds a completed and registered vehicle into the scene.
-    * The major difference between `RegisterVehicle` and `RegisterNewVehicle` is the assumption that this vehicle lacks an internal `Actor`.
+    * The major difference between `RegisterVehicle` and `RegisterVehicleFromSpawnPad` is the assumption that this vehicle lacks an internal `Actor`.
     * Before being finished, that vehicle is supplied an `Actor` such that it may function properly.
     * This function wraps around `RegisterVehicle` and is used in case, prior to this event,
     * the vehicle is being brought into existence from scratch and was never a member of any `Zone`.
@@ -6240,7 +6315,7 @@ class WorldSessionActor extends Actor
     * @see `RegisterVehicle`
     * @return a `TaskResolver.GiveTask` message
     */
-  def RegisterNewVehicle(obj : Vehicle, pad : VehicleSpawnPad) : TaskResolver.GiveTask = {
+  def RegisterVehicleFromSpawnPad(obj : Vehicle, pad : VehicleSpawnPad) : TaskResolver.GiveTask = {
     TaskResolver.GiveTask(
       new Task() {
         private val localVehicle = obj
@@ -9296,7 +9371,7 @@ class WorldSessionActor extends Actor
     }
     else {
       interstellarFerry.orElse(continent.GUID(player.VehicleSeated)) match {
-        case Some(vehicle : Vehicle) => //driver or passenger in vehicle using a warp gate
+        case Some(vehicle : Vehicle) => //driver or passenger in vehicle using a warp gate, or a droppod
           LoadZoneInVehicle(vehicle, pos, ori, zone_id)
 
         case _ if player.HasGUID => //player is deconstructing self
@@ -9447,8 +9522,19 @@ class WorldSessionActor extends Actor
     }
     //
     if(zone_id == continent.Id) {
-      //transferring a vehicle between spawn points (warp gates) in the same zone
-      (self, PlayerLoaded(player))
+      if(vehicle.Definition == GlobalDefinitions.droppod) {
+        //instant action droppod in the same zone
+        (taskResolver, RegisterDroppod(vehicle, player))
+      }
+      else {
+        //transferring a vehicle between spawn points (warp gates) in the same zone
+        (self, PlayerLoaded(player))
+      }
+    }
+    else if(vehicle.Definition == GlobalDefinitions.droppod) {
+      LoadZoneCommonTransferActivity()
+      player.Continent = zone_id //forward-set the continent id to perform a test
+      (taskResolver, TaskBeforeZoneChange(GUIDTask.UnregisterAvatar(player)(continent.GUID), zone_id))
     }
     else {
       UnAccessContents(vehicle)

@@ -78,37 +78,39 @@ class InterstellarCluster(zones : List[Zone]) extends Actor {
 
 
     case InterstellarCluster.InstantActionRequest(faction) =>
-      val time = System.nanoTime
       val interests = zones.flatMap { zone =>
-        zone.HotSpotData.map { info =>
-          (
-            zone, //zone
-            info.DisplayLocation, //hotspot
-            info.Activity.values.minBy(time - _.LastReport), //lower time = more recent
-            info.Activity.maxBy { case (_, act) => act.Heat }._1, //what faction was the most active
-            info.Activity.values.foldLeft(0)(_ + _.Heat) //total activity
-          )
-        }
+        //TODO zone.Locked.contains(faction)
+        zone.HotSpotData
+          .collect { case spot if zone.Players.nonEmpty => (zone, spot) }
       }
       if(interests.nonEmpty) {
-        //TODO droppod action?
+        //the allocated spawn points on all represented zones
+        val foundSpawnsInZoneMap : Map[Int, List[SpawnPoint]] = interests.collect { case (zone, spot) =>
+          val pos = spot.DisplayLocation
+          zone.Number -> (ZoneActor.FindLocalSpawnPointsInZone(zone, pos, faction, 0).getOrElse(Nil) ++
+            ZoneActor.FindLocalSpawnPointsInZone(zone, pos, faction, 2).getOrElse(Nil))
+        }.toMap
         interests
-          .map { case info @ (zone, pos, _, _, _) =>
-            (
-              info,
-              ZoneActor.FindLocalSpawnPointsInZone(zone, pos, faction, 0).getOrElse(Nil) ++
-                ZoneActor.FindLocalSpawnPointsInZone(zone, pos, faction, 2).getOrElse(Nil)
-            )
-          }
-          .filter { case (_, spawns) => spawns.nonEmpty }
-          .sortBy({ case ((_, _, _, _, total), _) => total })(Ordering[Int].reverse) //greatest > least
+          .collect { case (zone, spot) if !zone.Map.Cavern || foundSpawnsInZoneMap(zone.Number).nonEmpty =>
+            (zone, spot, foundSpawnsInZoneMap(zone.Number))
+          } /* pair zones and spawn points (caverns can not be accessed through droppods, so they must have spawns) */
+          .sortBy({ case (_, spot, _) => spot.Activity.values.foldLeft(0)(_ + _.Heat) })(Ordering[Int].reverse) /* greatest > least */
           .headOption match {
-          case Some(((zone, pos, _, _, _), List(spawnPoint))) =>
-            sender ! InterstellarCluster.InstantActionLocated(zone.Id, pos, spawnPoint.Position, Some(spawnPoint))
-          case Some(((zone, pos, _, _, _), spawns)) =>
+          case Some((zone, info, Nil)) =>
+            //droppod
+            val pos = info.DisplayLocation
+            sender ! InterstellarCluster.InstantActionLocated(zone, pos, pos, None)
+          case Some((zone, info, List(spawnPoint))) =>
+            //one spawn
+            val pos = info.DisplayLocation
+            sender ! InterstellarCluster.InstantActionLocated(zone, pos, spawnPoint.Position, Some(spawnPoint))
+          case Some((zone, info, spawns)) =>
+            //multiple spawn options
+            val pos = info.DisplayLocation
             val spawnPoint = spawns.minBy(point => Vector3.DistanceSquared(point.Position, pos))
-            sender ! InterstellarCluster.InstantActionLocated(zone.Id, pos, spawnPoint.Position, Some(spawnPoint))
+            sender ! InterstellarCluster.InstantActionLocated(zone, pos, spawnPoint.Position, Some(spawnPoint))
           case None =>
+            //no hot spots at all
             sender ! InterstellarCluster.InstantActionNotLocated()
         }
       }
@@ -180,10 +182,12 @@ object InterstellarCluster {
     object Status extends Enumeration {
       type Type = Value
 
-      val Cancel = Value(-1)
-      val None = Value(0)
-      val Request = Value(1)
-      val Countdown = Value(2)
+      val
+      None,
+      Request,
+      Countdown,
+      Droppod
+      = Value
     }
 
     object Time {
@@ -191,12 +195,14 @@ object InterstellarCluster {
       final val Friendly : Int = 10
       final val Neutral : Int = 20
       final val Enemy : Int = 30
+
+      final val All : List[Int] = List(Sanctuary, Friendly, Neutral, Enemy)
     }
   }
 
   final case class InstantActionRequest(faction : PlanetSideEmpire.Value)
 
-  final case class InstantActionLocated(zone_id : String, hotspot : Vector3, spawn_pos : Vector3, spawn_point : Option[SpawnPoint])
+  final case class InstantActionLocated(zone : Zone, hotspot : Vector3, spawn_pos : Vector3, spawn_point : Option[SpawnPoint])
 
   final case class InstantActionNotLocated()
 }
