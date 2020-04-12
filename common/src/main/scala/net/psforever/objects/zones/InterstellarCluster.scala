@@ -4,7 +4,7 @@ package net.psforever.objects.zones
 import akka.actor.{Actor, Props}
 import net.psforever.objects.SpawnPoint
 import net.psforever.objects.serverobject.structures.Building
-import net.psforever.types.{PlanetSideEmpire, Vector3}
+import net.psforever.types.Vector3
 
 import scala.annotation.tailrec
 
@@ -77,45 +77,47 @@ class InterstellarCluster(zones : List[Zone]) extends Actor {
       zone.Buildings.values.foreach(b => b.Actor ! Building.SendMapUpdate(all_clients = true))
 
 
-    case InterstellarCluster.InstantActionRequest(faction) =>
+    case InstantAction.Request(faction) =>
       val interests = zones.flatMap { zone =>
         //TODO zone.Locked.contains(faction)
         zone.HotSpotData
           .collect { case spot if zone.Players.nonEmpty => (zone, spot) }
-      }
+      } /* ignore zones without existing population */
       if(interests.nonEmpty) {
-        //the allocated spawn points on all represented zones
-        val foundSpawnsInZoneMap : Map[Int, List[SpawnPoint]] = interests.collect { case (zone, spot) =>
-          val pos = spot.DisplayLocation
-          zone.Number -> (ZoneActor.FindLocalSpawnPointsInZone(zone, pos, faction, 0).getOrElse(Nil) ++
-            ZoneActor.FindLocalSpawnPointsInZone(zone, pos, faction, 2).getOrElse(Nil))
-        }.toMap
-        interests
-          .collect { case (zone, spot) if !zone.Map.Cavern || foundSpawnsInZoneMap(zone.Number).nonEmpty =>
-            (zone, spot, foundSpawnsInZoneMap(zone.Number))
-          } /* pair zones and spawn points (caverns can not be accessed through droppods, so they must have spawns) */
+        val (withAllies, onlyEnemies) = interests
+          .map { case (zone, spot) =>
+            val pos = spot.DisplayLocation
+            (
+              zone,
+              spot,
+              ZoneActor.FindLocalSpawnPointsInZone(zone, pos, faction, 0).getOrElse(Nil) ++
+                ZoneActor.FindLocalSpawnPointsInZone(zone, pos, faction, 2).getOrElse(Nil)
+            )
+          } /* pair hotspots and spawn points */
+          .filterNot { case (zone, _, spawns) => zone.Map.Cavern && spawns.isEmpty } /* can not droppod into caverns, so spawns must exist */
           .sortBy({ case (_, spot, _) => spot.Activity.values.foldLeft(0)(_ + _.Heat) })(Ordering[Int].reverse) /* greatest > least */
-          .headOption match {
+          .partition { case (_, spot, _) => spot.ActivityBy().contains(faction) } /* us versus them */
+        withAllies.headOption.orElse(onlyEnemies.headOption) match {
           case Some((zone, info, Nil)) =>
             //droppod
             val pos = info.DisplayLocation
-            sender ! InterstellarCluster.InstantActionLocated(zone, pos, pos, None)
+            sender ! InstantAction.Located(zone, pos, pos, None)
           case Some((zone, info, List(spawnPoint))) =>
             //one spawn
             val pos = info.DisplayLocation
-            sender ! InterstellarCluster.InstantActionLocated(zone, pos, spawnPoint.Position, Some(spawnPoint))
+            sender ! InstantAction.Located(zone, pos, spawnPoint.Position, Some(spawnPoint))
           case Some((zone, info, spawns)) =>
             //multiple spawn options
             val pos = info.DisplayLocation
             val spawnPoint = spawns.minBy(point => Vector3.DistanceSquared(point.Position, pos))
-            sender ! InterstellarCluster.InstantActionLocated(zone, pos, spawnPoint.Position, Some(spawnPoint))
+            sender ! InstantAction.Located(zone, pos, spawnPoint.Position, Some(spawnPoint))
           case None =>
             //no hot spots at all
-            sender ! InterstellarCluster.InstantActionNotLocated()
+            sender ! InstantAction.NotLocated()
         }
       }
       else {
-        sender ! InterstellarCluster.InstantActionNotLocated()
+        sender ! InstantAction.NotLocated()
       }
 
     case _ =>
@@ -176,61 +178,5 @@ object InterstellarCluster {
     * @see `BuildingInfoUpdateMessage`
     * @param zone_num the zone number to request building map updates for
     */
-  final case class ZoneMapUpdate(zone_num: Int)
-
-  object InstantAction {
-    object Status extends Enumeration {
-      type Type = Value
-
-      val
-      None,
-      Request,
-      Countdown,
-      Droppod
-      = Value
-    }
-
-    object Time {
-      final val Sanctuary : Int = 10
-      final val Friendly : Int = 10
-      final val Neutral : Int = 20
-      final val Enemy : Int = 30
-
-      final val All : List[Int] = List(Sanctuary, Friendly, Neutral, Enemy)
-    }
-  }
-
-  final case class InstantActionRequest(faction : PlanetSideEmpire.Value)
-
-  final case class InstantActionLocated(zone : Zone, hotspot : Vector3, spawn_pos : Vector3, spawn_point : Option[SpawnPoint])
-
-  final case class InstantActionNotLocated()
+  final case class ZoneMapUpdate(zone_num : Int)
 }
-
-/*
-// List[Building] --> List[List[(Amenity, Building)]] --> List[(SpawnTube*, Building)]
-zone.LocalLattice.Buildings.values
-  .filter(_.Faction == player.Faction)
-  .map(building => { building.Amenities.map { _ -> building } })
-  .flatMap( _.filter({ case(amenity, _) => amenity.isInstanceOf[SpawnTube] }) )
- */
-
-/*
-zone.Buildings.values.filter(building => {
-  (
-    if(spawn_zone == 6) { Set(StructureType.Tower) }
-    else if(spawn_zone == 7) { Set(StructureType.Facility, StructureType.Building) }
-    else { Set.empty[StructureType.Value] }
-    ).contains(building.BuildingType) &&
-    building.Amenities.exists(_.isInstanceOf[SpawnTube]) &&
-    building.Faction == player.Faction &&
-    building.Position != Vector3.Zero
-})
-  .toSeq
-  .sortBy(building => {
-    Vector3.DistanceSquared(player.Position, building.Position) < Vector3.DistanceSquared(player.Position, building.Position)
-  })
-  .map(building => { building.Amenities.map { _ -> building } })
-  .flatMap( _.filter({ case(amenity, _) => amenity.isInstanceOf[SpawnTube] }) )
-).headOption
- */

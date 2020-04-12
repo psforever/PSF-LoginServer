@@ -9,18 +9,37 @@ import services.ServiceManager
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 
+/**
+  * Manage hotspot information for a given zone,
+  * keeping track of aggressive faction interactions,
+  * and maintaining the visibility state of the hotspots that alert of the location of that activity.<br>
+  * <br>
+  * Initializes two internal devices to manage the hotspot activity reported by the zone.
+  * The first device - "projector" - keeps track of any hotspots that are currently being displayed on the zone map.
+  * The second device - "backup" - is designed to maintain a much longer record of the same hostpot activity
+  * that was displayed by the projector.
+  * Messages sent to this device are sent automatically to each internal device.
+  * The internal devices do not have to be messaged separately.
+  * @see `ZoneHotSpotProjector`
+  * @see `ZoneHotSpotHistory`
+  * @param zone the zone whose map serves as the "screen" for the hotspot data
+  * @param outputList an external list used for storing displayed activity hotspots
+  * @param outputBlanking the period of decay time before hotspot information is forgotten
+  * @param dataList an external list used for storing activity for prolonged periods of time
+  * @param dataBlanking the period of decay time before prolonged activity information is forgotten
+  */
 class ZoneHotSpotDisplay(zone : Zone,
                          outputList : ListBuffer[HotSpotInfo],
                          outputBlanking : FiniteDuration,
                          dataList : ListBuffer[HotSpotInfo],
                          dataBlanking : FiniteDuration) extends Actor {
-  val display = context.actorOf(Props(classOf[ZoneHotSpotProjector], zone, outputList, outputBlanking), s"${zone.Id}-hotspot-display")
+  val projector = context.actorOf(Props(classOf[ZoneHotSpotProjector], zone, outputList, outputBlanking), s"${zone.Id}-hotspot-projector")
   val backup = context.actorOf(Props(classOf[ZoneHotSpotHistory], zone, dataList, dataBlanking), s"${zone.Id}-hotspot-backup")
 
   def receive : Receive = {
-    case _ if sender == display || sender == backup => ; //catch and disrupt cyclic messaging paths
+    case _ if sender == projector || sender == backup => ; //catch and disrupt cyclic messaging paths
     case msg =>
-      display ! msg
+      projector ! msg
       backup ! msg
   }
 }
@@ -29,6 +48,9 @@ class ZoneHotSpotDisplay(zone : Zone,
   * Manage hotspot information for a given zone,
   * keeping track of aggressive faction interactions,
   * and maintaining the visibility state of the hotspots that alert of the location of that activity.
+  * One of the internal devices controlled by the `ZoneHotSpotDisplay`,
+  * this is the "projector" component that actually displays hotspots onto the zone's map.
+  * @see `ZoneHotSpotDisplay`
   * @param zone the zone
   * @param hotspots the data structure of hot spot information that this projector will be leveraging
   * @param blankingTime how long to wait in between blanking periods
@@ -201,6 +223,13 @@ class ZoneHotSpotProjector(zone : Zone, hotspots : ListBuffer[HotSpotInfo], blan
     case _ => ;
   }
 
+  /**
+    * Match a hotspot location with a data structure for keeping track of activity information,
+    * either an existing structure or one that was created in the list of activity data for this location.
+    * @see `HotSpotInfo`
+    * @param displayLoc the location for the hotpot that was normalized by the coordinate mapping function
+    * @return the hotspot data that corresponds to this location
+    */
   def TryHotSpot(displayLoc : Vector3) : HotSpotInfo = {
     hotspots.find(spot => spot.DisplayLocation == displayLoc) match {
       case Some(spot) =>
@@ -271,15 +300,25 @@ class ZoneHotSpotProjector(zone : Zone, hotspots : ListBuffer[HotSpotInfo], blan
       )
     )
   }
-
-  def CreateHotSpotUpdate(faction : PlanetSideEmpire.Value, hotSpotInfos : List[HotSpotInfo]) : List[HotSpotInfo] = {
-    Nil
-  }
 }
 
+/**
+  * Manage hotspot information for a given zone,
+  * keeping track of aggressive faction interactions,
+  * and maintaining the visibility state of the hotspots that alert of the location of that activity.
+  * One of the internal devices controlled by the `ZoneHotSpotDisplay`,
+  * this is the "backup" component that is intended to retain reported activity for a longer period of time.
+  * @see `ZoneHotSpotDisplay`
+  * @see `ZoneHotSpotProjector`
+  * @param zone the zone
+  * @param hotspots the data structure of hot spot information that this projector will be leveraging
+  * @param blankingTime how long to wait in between blanking periods
+  */
 class ZoneHotSpotHistory(zone : Zone, hotspots : ListBuffer[HotSpotInfo], blankingTime : FiniteDuration) extends ZoneHotSpotProjector(zone, hotspots, blankingTime) {
+  /* the galaxy service is unnecessary */
   override def preStart() : Unit = { context.become(Established) }
-
+  /* this component does not actually the visible hotspots
+   * a duplicate of the projector device otherwise */
   override def UpdateHotSpots(affectedFactions : Iterable[PlanetSideEmpire.Value], hotSpotInfos : Iterable[HotSpotInfo]) : Unit = { }
 }
 

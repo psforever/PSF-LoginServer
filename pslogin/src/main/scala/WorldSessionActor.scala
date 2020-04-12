@@ -55,7 +55,7 @@ import net.psforever.objects.teamwork.Squad
 import net.psforever.objects.vehicles.{AccessPermissionGroup, Cargo, CargoBehavior, MountedWeapons, Utility, UtilityType, VehicleLockState}
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.vital.{DamageFromPainbox, HealFromExoSuitChange, HealFromKit, HealFromTerm, PlayerSuicide, RepairFromKit, Vitality, VitalityDefinition}
-import net.psforever.objects.zones.{InterstellarCluster, Zone, ZoneHotSpotProjector}
+import net.psforever.objects.zones.{InterstellarCluster, InstantAction, Zone, ZoneHotSpotProjector}
 import net.psforever.packet._
 import net.psforever.packet.control._
 import net.psforever.packet.game._
@@ -164,7 +164,7 @@ class WorldSessionActor extends Actor
   var squadSetup : () => Unit = FirstTimeSquadSetup
   var squadUpdateCounter : Int = 0
   val queuedSquadActions : Seq[() => Unit] = Seq(SquadUpdates, NoSquadUpdates, NoSquadUpdates, NoSquadUpdates)
-  var instantActionStatus : InterstellarCluster.InstantAction.Status.Value = InterstellarCluster.InstantAction.Status.None
+  var instantActionStatus : InstantAction.Status.Value = InstantAction.Status.None
   var instantActionCounter : Int = 0
   /** Keeps track of the number of PlayerStateMessageUpstream messages received by the client
     * As they should arrive roughly every 250 milliseconds this allows for a very crude method of scheduling tasks up to four times per second */
@@ -184,6 +184,7 @@ class WorldSessionActor extends Actor
   var antChargingTick : Cancellable = DefaultCancellable.obj
   var antDischargingTick : Cancellable = DefaultCancellable.obj
   var instantActionTimer : Cancellable = DefaultCancellable.obj
+  var instantActionReset : Cancellable = DefaultCancellable.obj
   /**
     * Convert a boolean value into an integer value.
     * Use: `true:Int` or `false:Int`
@@ -1145,7 +1146,9 @@ class WorldSessionActor extends Actor
           taskResolver ! RegisterNewAvatar(player)
       }
 
-    case InterstellarCluster.InstantActionLocated(zone, hotspot_position, spawn_point_position, Some(spawn_point)) =>
+    case InstantAction.Located(zone, hotspot_position, spawn_point_position, Some(spawn_point)) =>
+      //in between subsequent reply messages, it does not matter if the destination changes
+      //so long as there is at least one destination at all
       if(EvaluateInstantActionResponse()) {
         PlayerActionsToCancel()
         CancelAllProximityUnits()
@@ -1153,18 +1156,19 @@ class WorldSessionActor extends Actor
         LoadZonePhysicalSpawnPoint(zone.Id, spawn_point_position, spawn_point.Orientation, 0L)
       }
 
-    case InterstellarCluster.InstantActionLocated(zone, hotspot_position, spawn_point_position, None) =>
+    case InstantAction.Located(zone, hotspot_position, spawn_point_position, None) =>
       //droppod into the zone
+      //in between subsequent reply messages, it does not matter if the destination changes
+      //so long as there is at least one destination at all
       if(EvaluateInstantActionResponse()) {
-        instantActionStatus = InterstellarCluster.InstantAction.Status.Droppod
+        instantActionStatus = InstantAction.Status.Droppod
         PlayerActionsToCancel()
         CancelAllProximityUnits()
         //find a safe drop point
         var targetBuildings = zone.Buildings.values
         var whereToDroppod = spawn_point_position.xy
         while(targetBuildings.nonEmpty) {
-          (continent.Buildings
-            .values
+          (targetBuildings
             .filter { building =>
               val radius = building.Definition.SOIRadius
               Vector3.DistanceSquared(building.Position.xy, whereToDroppod) < radius * radius
@@ -1177,7 +1181,7 @@ class WorldSessionActor extends Actor
               val radius = Vector3(0, building.Definition.SOIRadius + 5, 0)
               whereToDroppod = building.Position.xy + Vector3.Rz(radius, math.abs(scala.util.Random.nextInt() % 360))
             case buildings =>
-              //probably a facility and its tower (maximum overlap potential is 2); find space beyond the largest soi
+              //probably a facility and its tower (maximum overlap potential is 2?); find space outside of largest soi
               val largestBuilding = buildings.maxBy(_.Definition.SOIRadius)
               val radius = Vector3(0, largestBuilding.Definition.SOIRadius + 5, 0)
               whereToDroppod = largestBuilding.Position.xy + Vector3.Rz(radius, math.abs(scala.util.Random.nextInt() % 360))
@@ -1187,18 +1191,23 @@ class WorldSessionActor extends Actor
         //droppod action
         val droppod = Vehicle(GlobalDefinitions.droppod)
         droppod.Faction = player.Faction
-        droppod.Position = whereToDroppod + Vector3.z(1024)
+        droppod.Position = whereToDroppod.xy + Vector3.z(1024)
+        droppod.Orientation = Vector3.z(180) //you always seems to land looking south; don't know why
         droppod.Seats(0).Occupant = player
-        droppod.GUID = PlanetSideGUID(0) //droppod is not registered, we must short-circuit this
-        droppod.Invalidate()
+        droppod.GUID = PlanetSideGUID(0) //droppod is not registered, we must jury-rig this
+        droppod.Invalidate() //now, we must short-circuit the jury-rig
         interstellarFerry = Some(droppod) //leverage vehicle gating
+        player.Position = droppod.Position
         continent.Population ! Zone.Population.Release(avatar)
         LoadZonePhysicalSpawnPoint(zone.Id, droppod.Position, Vector3.Zero, 0L)
       }
 
-    case InterstellarCluster.InstantActionNotLocated() =>
+    case InstantAction.NotLocated() =>
       //no instant action available
       CancelInstantActionWithReason("@InstantActionNoHotspotsAvailable")
+
+    case InstantActionReset() =>
+      CancelInstantAction()
 
     case NewPlayerLoaded(tplayer) =>
       //new zone
@@ -1502,63 +1511,82 @@ class WorldSessionActor extends Actor
     result.future
   }
 
+  /**
+    * An instant action message was received.
+    * That doesn't matter.
+    * In what stage of the instant action determination process is the client, and what is the next stage.<br>
+    * <br>
+    * To perform any actions involving instant action, an initial request must have been dispatched and marked as dispatched.
+    * When invoked after, the process will switch over to a countdown of time until the instant action actually occurs.
+    * The origin will be evaluated based on comparison of faction affinity with the client's player
+    * and from that an initial time and a message will be generated.
+    * Afterwards, the process will queue another inquiry for another instant action response.
+    * Each time 5s of the countdown passes, another message will be sent and received;
+    * and, this is another pass of the countdown.<br>
+    * <br>
+    * Once the countdown reaches 0, the transportation that has been promised by the instant action attempt may begin.
+    * @return `true`, if the instant action transportation process should start;
+    *        `false`, otherwise
+    */
   def EvaluateInstantActionResponse() : Boolean = {
-    if(instantActionStatus == InterstellarCluster.InstantAction.Status.Request) {
-      val onSanctuaryAlready = Zones.SanctuaryZoneNumber(player.Faction) == continent.Number
-      instantActionStatus = InterstellarCluster.InstantAction.Status.Countdown
-      instantActionCounter = if(onSanctuaryAlready) {
-        InterstellarCluster.InstantAction.Time.Sanctuary
+    if(instantActionStatus == InstantAction.Status.Request) {
+      DeactivateImplants()
+      instantActionStatus = InstantAction.Status.Countdown
+      /*
+      The primary method of determination involves the faction affinity of the most favorable available region subset,
+      e.g., in the overlapping sphere of influences of a friendly field tower and an enemy major facility,
+      the time representative of the the tower has priority.
+      One's sanctuary is a special case.
+       */
+      val origin : (Int, String) = (if(Zones.SanctuaryZoneNumber(player.Faction) == continent.Number) {
+        (InstantAction.Time.Sanctuary, "sanctuary")
       }
       else {
+        val playerPosition = player.Position.xy
         (continent.Buildings
           .values
           .filter { building =>
             val radius = building.Definition.SOIRadius
-            Vector3.DistanceSquared(building.Position, player.Position) < radius * radius
+            Vector3.DistanceSquared(building.Position.xy, playerPosition) < radius * radius
           }) match {
           case Nil =>
-            InterstellarCluster.InstantAction.Time.Neutral
+            (InstantAction.Time.Neutral, "neutral")
           case List(building) =>
-            if(building.Faction == player.Faction) InterstellarCluster.InstantAction.Time.Friendly
-            else if(building.Faction == PlanetSideEmpire.NEUTRAL) InterstellarCluster.InstantAction.Time.Neutral
-            else InterstellarCluster.InstantAction.Time.Enemy
+            if(building.Faction == player.Faction) (InstantAction.Time.Friendly, "friendly")
+            else if(building.Faction == PlanetSideEmpire.NEUTRAL) (InstantAction.Time.Neutral, "neutral")
+            else (InstantAction.Time.Enemy, "enemy")
           case buildings =>
-            if(buildings.forall(_.Faction == player.Faction)) InterstellarCluster.InstantAction.Time.Friendly
-            else if(buildings.forall(_.Faction == PlanetSideEmpire.NEUTRAL)) InterstellarCluster.InstantAction.Time.Neutral
-            else InterstellarCluster.InstantAction.Time.Enemy
+            if(buildings.exists(_.Faction == player.Faction)) (InstantAction.Time.Friendly, "friendly")
+            else if(buildings.exists(_.Faction == PlanetSideEmpire.NEUTRAL)) (InstantAction.Time.Neutral, "neutral")
+            else (InstantAction.Time.Enemy, "enemy")
         }
-      }
-      if(onSanctuaryAlready) {
-        sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@instantaction_sanctuary", None))
-      }
-      else if(instantActionCounter == InterstellarCluster.InstantAction.Time.Friendly) {
-        sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@instantaction_friendly", None))
-      }
-      else if(instantActionCounter == InterstellarCluster.InstantAction.Time.Neutral) {
-        sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@instantaction_neutral", None))
-      }
-      else {
-        sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@instantaction_enemy", None))
-      }
+      })
+      instantActionCounter = origin._1
+      sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", s"@instantaction_${origin._2}", None))
       import scala.concurrent.ExecutionContext.Implicits.global
+      instantActionReset.cancel
       instantActionTimer.cancel
-      instantActionTimer = context.system.scheduler.scheduleOnce(5 seconds, cluster, InterstellarCluster.InstantActionRequest(player.Faction))
+      instantActionReset = context.system.scheduler.scheduleOnce(10 seconds, self, InstantActionReset())
+      instantActionTimer = context.system.scheduler.scheduleOnce(5 seconds, cluster, InstantAction.Request(player.Faction))
       false
     }
-    else if(instantActionStatus == InterstellarCluster.InstantAction.Status.Countdown) {
-      instantActionTimer.cancel
+    else if(instantActionStatus == InstantAction.Status.Countdown) {
       instantActionCounter -= 5
+      instantActionReset.cancel
+      instantActionTimer.cancel
       if(instantActionCounter > 0) {
-        if(InterstellarCluster.InstantAction.Time.All.contains(instantActionCounter)) {
+        if(InstantActionCountdownMessages.contains(instantActionCounter)) {
           sendResponse(ChatMsg(ChatMessageType.CMT_INSTANTACTION, false, "", s"@instantaction_$instantActionCounter", None))
         }
-        instantActionTimer = context.system.scheduler.scheduleOnce(5 seconds, cluster, InterstellarCluster.InstantActionRequest(player.Faction))
+        //again
+        instantActionReset = context.system.scheduler.scheduleOnce(10 seconds, self, InstantActionReset())
+        instantActionTimer = context.system.scheduler.scheduleOnce(5 seconds, cluster, InstantAction.Request(player.Faction))
         false
       }
       else {
         //instant action deployment
         instantActionCounter = 0
-        instantActionStatus = InterstellarCluster.InstantAction.Status.None
+        instantActionStatus = InstantAction.Status.None
         true
       }
     }
@@ -1568,25 +1596,27 @@ class WorldSessionActor extends Actor
   }
 
   /**
-    * na
-    * @param msg na
-    * @param msgType na;
+    * We are no longer expecting to perform an instant action event,
+    * for this reason.
+    * @param msg the message to the user
+    * @param msgType the type of message, influencing how it is presented to the user;
     *                defaults to `ChatMessageType.CMT_INSTANTACTION`
     */
   def CancelInstantActionWithReason(msg : String, msgType : ChatMessageType.Value = ChatMessageType.CMT_INSTANTACTION) : Unit = {
-    if(instantActionStatus > InterstellarCluster.InstantAction.Status.None) {
+    if(instantActionStatus > InstantAction.Status.None) {
       sendResponse(ChatMsg(msgType, false, "", msg, None))
     }
     CancelInstantAction()
   }
 
   /**
-    * na
+    * We are no longer expecting to perform an instant action event.
     */
   def CancelInstantAction() : Unit = {
     instantActionTimer.cancel
+    instantActionReset.cancel
     instantActionCounter = 0
-    instantActionStatus = InterstellarCluster.InstantAction.Status.None
+    instantActionStatus = InstantAction.Status.None
   }
 
   /**
@@ -1718,7 +1748,7 @@ class WorldSessionActor extends Actor
       case AvatarResponse.Killed() =>
         val respawnTimer = 300000 //milliseconds
         ToggleMaxSpecialState(enable = false)
-        instantActionStatus = InterstellarCluster.InstantAction.Status.None
+        instantActionStatus = InstantAction.Status.None
         deadState = DeadState.Dead
         continent.GUID(player.VehicleSeated) match {
           case Some(obj : Vehicle) =>
@@ -2221,7 +2251,7 @@ class WorldSessionActor extends Actor
         DismountAction(tplayer, obj, seat_num)
 
       case Mountable.CanDismount(obj : Vehicle, seat_num) if obj.Definition == GlobalDefinitions.droppod =>
-        instantActionStatus = InterstellarCluster.InstantAction.Status.None
+        instantActionStatus = InstantAction.Status.None
         UnAccessContents(obj)
         DismountAction(tplayer, obj, seat_num)
         continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(obj), continent))
@@ -4160,13 +4190,14 @@ class WorldSessionActor extends Actor
       }
       else if(messagetype == ChatMessageType.CMT_INSTANTACTION) {
         makeReply = false
-        if(deadState == DeadState.Alive && instantActionStatus <= InterstellarCluster.InstantAction.Status.None) {
+        if(deadState == DeadState.Alive && instantActionStatus <= InstantAction.Status.None) {
           if(player.VehicleSeated.nonEmpty) {
             sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noinstantaction_invehicle", None))
           }
           else {
-            instantActionStatus = InterstellarCluster.InstantAction.Status.Request
-            cluster ! InterstellarCluster.InstantActionRequest(player.Faction)
+            instantActionStatus = InstantAction.Status.Request
+            instantActionReset = context.system.scheduler.scheduleOnce(10 seconds, self, InstantActionReset())
+            cluster ! InstantAction.Request(player.Faction)
           }
         }
       }
@@ -5047,6 +5078,7 @@ class WorldSessionActor extends Actor
     case msg @ AvatarImplantMessage(player_guid, action, slot, status) =>
       log.info("AvatarImplantMessage: " + msg)
       if(action == ImplantAction.Activation) {
+        CancelInstantActionWithReason("@instantaction_cancel_implant")
         player.Actor ! Player.ImplantActivation(slot, status)
       }
 
@@ -6278,6 +6310,32 @@ class WorldSessionActor extends Actor
     )
   }
 
+  /**
+    * Use this function to facilitate registering a droppod for a globally unique identifier
+    * in the event that the user has instigated an instant action event to a destination within the current zone.<br>
+    * <br>
+    * If going to another zone instead,
+    * this is uneccessary as the normal vehicle gating protocol is partially intersected for droppod operation,
+    * and will properly register the droppod before introducing it into the new zone without additional concern.
+    * The droppod should actually not be completely unregistered.
+    * If inquired, it will act like a GUID had already been assigned to it, but it was invalidated.
+    * This condition is artificial, but it necessary to pass certain operations related to vehicle gating.
+    * Additionally, the driver is only partially associated with the vehicle at this time.
+    * `interstellarFerry` is properly keeping track of the vehicle during the transition
+    * and the user who is the driver (second param) is properly seated
+    * but the said driver does not know about the vehicle through his usual convention - VehicleSeated` - yet.
+    * @see `GlobalDefinitions.droppod`
+    * @see `GUIDTask.RegisterObjectTask`
+    * @see `interstellarFerry`
+    * @see `Player.VehicleSeated`
+    * @see `PlayerLoaded`
+    * @see `TaskResolver.GiveTask`
+    * @see `Vehicles.Own`
+    * @param vehicle the unregistered droppod
+    * @param tplayer the player using the droppod for instant action;
+    *                should already be the driver of the droppod
+    * @return a `TaskResolver.GiveTask` message
+    */
   def RegisterDroppod(vehicle : Vehicle, tplayer : Player) : TaskResolver.GiveTask = {
     TaskResolver.GiveTask(
       new Task() {
@@ -10952,6 +11010,7 @@ object WorldSessionActor {
   private final case class ListAccountCharacters()
   private final case class SetCurrentAvatar(tplayer : Player)
   private final case class VehicleLoaded(vehicle : Vehicle)
+  private final case class InstantActionReset()
 
   /**
     * The message that progresses some form of user-driven activity with a certain eventual outcome
@@ -10962,6 +11021,8 @@ object WorldSessionActor {
     * @param tickAction an action that is performed for each increase of progress
     */
   final case class ProgressEvent(delta : Float, completionAction : ()=>Unit, tickAction : Float=>Boolean)
+
+  private final val InstantActionCountdownMessages : Seq[Int] = Seq(5,10,20)
 
   protected final case class SquadUIElement(name : String, index : Int, zone : Int, health : Int, armor : Int, position : Vector3)
 

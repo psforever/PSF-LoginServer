@@ -17,7 +17,7 @@ import net.psforever.objects.serverobject.painbox.PainboxDefinition
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.tube.SpawnTubeDefinition
 import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
-import net.psforever.objects.serverobject.structures.{BuildingDefinition, SphereOfInfluence, WarpGateDefinition}
+import net.psforever.objects.serverobject.structures.{BuildingDefinition, WarpGateDefinition}
 import net.psforever.objects.serverobject.turret.{FacilityTurretDefinition, TurretUpgrade}
 import net.psforever.objects.vehicles.{DestroyedVehicle, InternalTelepadDefinition, SeatArmorRestriction, UtilityType}
 import net.psforever.objects.vital.{DamageType, StandardMaxDamage, StandardResolutions}
@@ -1092,6 +1092,7 @@ object GlobalDefinitions {
   val hst = new WarpGateDefinition(402)
   hst.Name = "hst"
   hst.UseRadius = 20.4810f
+  hst.SOIRadius = 21
   hst.VehicleAllowance = true
   hst.NoWarp += dropship
   hst.NoWarp += galaxy_gunship
@@ -1124,18 +1125,21 @@ object GlobalDefinitions {
   val warpgate = new WarpGateDefinition(993)
   warpgate.Name = "warpgate"
   warpgate.UseRadius = 301.8713f
+  warpgate.SOIRadius = 302
   warpgate.VehicleAllowance = true
   warpgate.SpecificPointFunc = SpawnPoint.Gate
 
   val warpgate_cavern = new WarpGateDefinition(994)
   warpgate_cavern.Name = "warpgate_cavern"
   warpgate_cavern.UseRadius = 51.0522f
+  warpgate_cavern.SOIRadius = 52
   warpgate_cavern.VehicleAllowance = true
   warpgate_cavern.SpecificPointFunc = SpawnPoint.Gate
 
   val warpgate_small = new WarpGateDefinition(995)
   warpgate_small.Name = "warpgate_small"
   warpgate_small.UseRadius = 103f
+  warpgate_small.SOIRadius = 103
   warpgate_small.VehicleAllowance = true
   warpgate_small.SpecificPointFunc = SpawnPoint.Gate
 
