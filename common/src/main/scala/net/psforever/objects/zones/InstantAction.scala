@@ -26,8 +26,7 @@ object InstantAction {
     val
     None,
     Request,
-    Countdown,
-    Droppod
+    Countdown
     = Value
   }
 
@@ -38,13 +37,14 @@ object InstantAction {
   object Time {
     final val Sanctuary : Int = 10
     final val Friendly : Int = 10
+    final val None : Int = 20
     final val Neutral : Int = 20
     final val Enemy : Int = 30
   }
 
   final case class Request(faction : PlanetSideEmpire.Value)
 
-  final case class Located(zone : Zone, hotspot : Vector3, spawn_pos : Vector3, spawn_point : Option[SpawnPoint])
+  final case class Located(zone : Zone, hotspot : Vector3, spawn_pos : Vector3, spawn_point : SpawnPoint)
 
   final case class NotLocated()
 }

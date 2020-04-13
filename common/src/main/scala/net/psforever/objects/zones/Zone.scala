@@ -130,7 +130,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
       deployables = context.actorOf(Props(classOf[ZoneDeployableActor], this, constructions), s"$Id-deployables")
       transport = context.actorOf(Props(classOf[ZoneVehicleActor], this, vehicles), s"$Id-vehicles")
       population = context.actorOf(Props(classOf[ZonePopulationActor], this, players, corpses), s"$Id-players")
-      projector = context.actorOf(Props(classOf[ZoneHotSpotDisplay], this, hotspots, 15 seconds, hotspotHistory, 90 seconds), s"$Id-hotspots")
+      projector = context.actorOf(Props(classOf[ZoneHotSpotDisplay], this, hotspots, 15 seconds, hotspotHistory, 60 seconds), s"$Id-hotspots")
       soi = context.actorOf(Props(classOf[SphereOfInfluenceActor], this), s"$Id-soi")
 
       avatarEvents = context.actorOf(Props(classOf[AvatarService], this), s"$Id-avatar-events")

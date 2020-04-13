@@ -131,6 +131,7 @@ class WorldSessionActor extends Actor
   var recentTeleportAttempt : Long = 0
   var lastTerminalOrderFulfillment : Boolean = true
   var shiftPosition : Option[Vector3] = None
+  var shiftOrientation : Option[Vector3] = None
   var setupAvatarFunc : () => Unit = AvatarCreate
   var beginZoningSetCurrentAvatarFunc : (Player) => Unit = SetCurrentAvatarNormally
   var persist : () => Unit = NoPersistence
@@ -166,6 +167,7 @@ class WorldSessionActor extends Actor
   val queuedSquadActions : Seq[() => Unit] = Seq(SquadUpdates, NoSquadUpdates, NoSquadUpdates, NoSquadUpdates)
   var instantActionStatus : InstantAction.Status.Value = InstantAction.Status.None
   var instantActionCounter : Int = 0
+  var instantActionFallbackDestination : Option[InstantAction.Located] = None
   /** Keeps track of the number of PlayerStateMessageUpstream messages received by the client
     * As they should arrive roughly every 250 milliseconds this allows for a very crude method of scheduling tasks up to four times per second */
   private var playerStateMessageUpstreamCount = 0
@@ -840,6 +842,7 @@ class WorldSessionActor extends Actor
       log.warn(s"$tplayer is already spawned on zone ${zone.Id}; a clerical error?")
 
     case Zone.Lattice.SpawnPoint(zone_id, spawn_tube) =>
+      CancelInstantAction()
       var (pos, ori) = spawn_tube.SpecificPoint(continent.GUID(player.VehicleSeated) match {
         case Some(obj : Vehicle) if !obj.Destroyed =>
           obj
@@ -1146,65 +1149,26 @@ class WorldSessionActor extends Actor
           taskResolver ! RegisterNewAvatar(player)
       }
 
-    case InstantAction.Located(zone, hotspot_position, spawn_point_position, Some(spawn_point)) =>
+    case msg @ InstantAction.Located(zone, hotspot_position, spawn_point_position, spawn_point) =>
       //in between subsequent reply messages, it does not matter if the destination changes
-      //so long as there is at least one destination at all
+      //so long as there is at least one destination at all (including the fallback)
       if(EvaluateInstantActionResponse()) {
-        PlayerActionsToCancel()
-        CancelAllProximityUnits()
-        continent.Population ! Zone.Population.Release(avatar)
-        LoadZonePhysicalSpawnPoint(zone.Id, spawn_point_position, spawn_point.Orientation, 0L)
+        SpawnUsingInstantAction(zone, hotspot_position, spawn_point_position, spawn_point)
       }
-
-    case InstantAction.Located(zone, hotspot_position, spawn_point_position, None) =>
-      //droppod into the zone
-      //in between subsequent reply messages, it does not matter if the destination changes
-      //so long as there is at least one destination at all
-      if(EvaluateInstantActionResponse()) {
-        instantActionStatus = InstantAction.Status.Droppod
-        PlayerActionsToCancel()
-        CancelAllProximityUnits()
-        //find a safe drop point
-        var targetBuildings = zone.Buildings.values
-        var whereToDroppod = spawn_point_position.xy
-        while(targetBuildings.nonEmpty) {
-          (targetBuildings
-            .filter { building =>
-              val radius = building.Definition.SOIRadius
-              Vector3.DistanceSquared(building.Position.xy, whereToDroppod) < radius * radius
-            }) match {
-            case Nil =>
-              //no soi overlap
-              targetBuildings = Nil
-            case List(building) =>
-              //overlapping a single soi; find space just outside of this soi and confirm no new overlap
-              val radius = Vector3(0, building.Definition.SOIRadius + 5, 0)
-              whereToDroppod = building.Position.xy + Vector3.Rz(radius, math.abs(scala.util.Random.nextInt() % 360))
-            case buildings =>
-              //probably a facility and its tower (maximum overlap potential is 2?); find space outside of largest soi
-              val largestBuilding = buildings.maxBy(_.Definition.SOIRadius)
-              val radius = Vector3(0, largestBuilding.Definition.SOIRadius + 5, 0)
-              whereToDroppod = largestBuilding.Position.xy + Vector3.Rz(radius, math.abs(scala.util.Random.nextInt() % 360))
-              targetBuildings = buildings
-          }
-        }
-        //droppod action
-        val droppod = Vehicle(GlobalDefinitions.droppod)
-        droppod.Faction = player.Faction
-        droppod.Position = whereToDroppod.xy + Vector3.z(1024)
-        droppod.Orientation = Vector3.z(180) //you always seems to land looking south; don't know why
-        droppod.Seats(0).Occupant = player
-        droppod.GUID = PlanetSideGUID(0) //droppod is not registered, we must jury-rig this
-        droppod.Invalidate() //now, we must short-circuit the jury-rig
-        interstellarFerry = Some(droppod) //leverage vehicle gating
-        player.Position = droppod.Position
-        continent.Population ! Zone.Population.Release(avatar)
-        LoadZonePhysicalSpawnPoint(zone.Id, droppod.Position, Vector3.Zero, 0L)
+      else if(instantActionStatus != InstantAction.Status.None) {
+        instantActionFallbackDestination = Some(msg)
       }
 
     case InstantAction.NotLocated() =>
-      //no instant action available
-      CancelInstantActionWithReason("@InstantActionNoHotspotsAvailable")
+      instantActionFallbackDestination match {
+        case Some(InstantAction.Located(zone, hotspot_position, spawn_point_position, spawn_point)) if spawn_point.Owner.Faction == player.Faction /*&& !spawn_point.Offline*/ =>
+          if(EvaluateInstantActionResponse()) {
+            SpawnUsingInstantAction(zone, hotspot_position, spawn_point_position, spawn_point)
+          }
+        case _ =>
+          //no instant action available
+          CancelInstantActionWithReason("@InstantActionNoHotspotsAvailable")
+      }
 
     case InstantActionReset() =>
       CancelInstantAction()
@@ -1550,7 +1514,7 @@ class WorldSessionActor extends Actor
             Vector3.DistanceSquared(building.Position.xy, playerPosition) < radius * radius
           }) match {
           case Nil =>
-            (InstantAction.Time.Neutral, "neutral")
+            (InstantAction.Time.None, "none")
           case List(building) =>
             if(building.Faction == player.Faction) (InstantAction.Time.Friendly, "friendly")
             else if(building.Faction == PlanetSideEmpire.NEUTRAL) (InstantAction.Time.Neutral, "neutral")
@@ -1585,8 +1549,6 @@ class WorldSessionActor extends Actor
       }
       else {
         //instant action deployment
-        instantActionCounter = 0
-        instantActionStatus = InstantAction.Status.None
         true
       }
     }
@@ -1596,8 +1558,73 @@ class WorldSessionActor extends Actor
   }
 
   /**
-    * We are no longer expecting to perform an instant action event,
-    * for this reason.
+    * Use instant action to respond to some activity using some spawnable entity in the destination zone.
+    * @param zone the destination zone
+    * @param hotspotPosition where is the hotspot that is being addressed
+    * @param spawnPosition the destination spawn position (may not be related to `spawnPoint`)
+    * @param spawnPoint a `SpointPoint` entity that is the target of our spawning in the destination zone
+    */
+  def SpawnUsingInstantAction(zone : Zone, hotspotPosition : Vector3, spawnPosition : Vector3, spawnPoint : SpawnPoint) : Unit = {
+    CancelInstantAction()
+    PlayerActionsToCancel()
+    CancelAllProximityUnits()
+    continent.Population ! Zone.Population.Release(avatar)
+    LoadZonePhysicalSpawnPoint(zone.Id, spawnPosition, spawnPoint.Orientation, 0L)
+  }
+
+  /**
+    * You can't instant action to respond to some activity using a droppod!
+    * You can't.
+    * You just can't.
+    * @param zone the destination zone
+    * @param hotspotPosition where is the hotspot that is being addressed
+    * @param spawnPosition the destination spawn position (may not be related to a literal `SpawnPoint` entity)
+    */
+  def YouCantInstantActionUsingDroppod(zone : Zone, hotspotPosition : Vector3, spawnPosition : Vector3) : Unit = {
+    CancelInstantAction()
+    PlayerActionsToCancel()
+    CancelAllProximityUnits()
+    //find a safe drop point
+    var targetBuildings = zone.Buildings.values
+    var whereToDroppod = spawnPosition.xy
+    while(targetBuildings.nonEmpty) {
+      (targetBuildings
+        .filter { building =>
+          val radius = building.Definition.SOIRadius
+          Vector3.DistanceSquared(building.Position.xy, whereToDroppod) < radius * radius
+        }) match {
+        case Nil =>
+          //no soi interference
+          targetBuildings = Nil
+        case List(building) =>
+          //blocked by a single soi; find space just outside of this soi and confirm no new overlap
+          val radius = Vector3(0, building.Definition.SOIRadius + 5, 0)
+          whereToDroppod = building.Position.xy + Vector3.Rz(radius, math.abs(scala.util.Random.nextInt() % 360))
+        case buildings =>
+          //probably blocked by a facility and its tower (maximum overlap potential is 2?); find space outside of largest soi
+          val largestBuilding = buildings.maxBy(_.Definition.SOIRadius)
+          val radius = Vector3(0, largestBuilding.Definition.SOIRadius + 5, 0)
+          whereToDroppod = largestBuilding.Position.xy + Vector3.Rz(radius, math.abs(scala.util.Random.nextInt() % 360))
+          targetBuildings = buildings
+      }
+    }
+    //droppod action
+    val droppod = Vehicle(GlobalDefinitions.droppod)
+    droppod.Faction = player.Faction
+    droppod.Position = whereToDroppod.xy + Vector3.z(1024)
+    droppod.Orientation = Vector3.z(180) //you always seems to land looking south; don't know why
+    droppod.Seats(0).Occupant = player
+    droppod.GUID = PlanetSideGUID(0) //droppod is not registered, we must jury-rig this
+    droppod.Invalidate() //now, we must short-circuit the jury-rig
+    interstellarFerry = Some(droppod) //leverage vehicle gating
+    player.Position = droppod.Position
+    continent.Population ! Zone.Population.Release(avatar)
+    LoadZonePhysicalSpawnPoint(zone.Id, droppod.Position, Vector3.Zero, 0L)
+    /* Don't even think about it. */
+  }
+
+  /**
+    * No longer expecting to perform an instant action event for this reason.
     * @param msg the message to the user
     * @param msgType the type of message, influencing how it is presented to the user;
     *                defaults to `ChatMessageType.CMT_INSTANTACTION`
@@ -1610,12 +1637,14 @@ class WorldSessionActor extends Actor
   }
 
   /**
-    * We are no longer expecting to perform an instant action event.
+    * The user no longer expects to perform an instant action event,
+    * or the process is merely resetting its internal state.
     */
   def CancelInstantAction() : Unit = {
     instantActionTimer.cancel
     instantActionReset.cancel
     instantActionCounter = 0
+    instantActionFallbackDestination = None
     instantActionStatus = InstantAction.Status.None
   }
 
@@ -1701,7 +1730,7 @@ class WorldSessionActor extends Actor
               player.History(DamageFromPainbox(PlayerSource(player), obj, amount))
             case _ => ;
           }
-          sendResponse(ChatMsg(ChatMessageType.CMT_INSTANTACTION, false, "", "@instantaction_cancel_dmg", None))
+          CancelInstantActionWithReason("@instantaction_cancel_dmg")
           player.Health = originalHealth - amount
           sendResponse(PlanetsideAttributeMessage(target, 0, player.Health))
           continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(target, 0, player.Health))
@@ -2183,7 +2212,7 @@ class WorldSessionActor extends Actor
         MountingAction(tplayer, obj, seat_num)
 
       case Mountable.CanMount(obj : Vehicle, seat_num) =>
-        CancelInstantActionWithReason("@noinstantaction_invehicle", ChatMessageType.CMT_QUIT)
+        CancelInstantActionWithReason("@instantaction_cancel_mount")
         val obj_guid : PlanetSideGUID = obj.GUID
         val player_guid : PlanetSideGUID = tplayer.GUID
         log.info(s"MountVehicleMsg: $player_guid mounts $obj_guid @ $seat_num")
@@ -2225,7 +2254,7 @@ class WorldSessionActor extends Actor
         MountingAction(tplayer, obj, seat_num)
 
       case Mountable.CanMount(obj : FacilityTurret, seat_num) =>
-        CancelInstantActionWithReason("@noinstantaction_invehicle", ChatMessageType.CMT_QUIT)
+        CancelInstantActionWithReason("@instantaction_cancel_mount")
         if(!obj.isUpgrading) {
           if(obj.Definition == GlobalDefinitions.vanu_sentry_turret) {
             obj.Zone.LocalEvents ! LocalServiceMessage(obj.Zone.Id, LocalAction.SetEmpire(obj.GUID, player.Faction))
@@ -2239,7 +2268,7 @@ class WorldSessionActor extends Actor
         }
 
       case Mountable.CanMount(obj : PlanetSideGameObject with WeaponTurret, seat_num) =>
-        CancelInstantActionWithReason("@instantaction_cancel")
+        CancelInstantActionWithReason("@instantaction_cancel_mount")
         sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))
         UpdateWeaponAtSeatPosition(obj, seat_num)
         MountingAction(tplayer, obj, seat_num)
@@ -2251,7 +2280,6 @@ class WorldSessionActor extends Actor
         DismountAction(tplayer, obj, seat_num)
 
       case Mountable.CanDismount(obj : Vehicle, seat_num) if obj.Definition == GlobalDefinitions.droppod =>
-        instantActionStatus = InstantAction.Status.None
         UnAccessContents(obj)
         DismountAction(tplayer, obj, seat_num)
         continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(obj), continent))
@@ -3264,8 +3292,9 @@ class WorldSessionActor extends Actor
     sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 75, 0))
     sendResponse(SetCurrentAvatarMessage(guid, 0, 0))
     sendResponse(ChatMsg(ChatMessageType.CMT_EXPANSIONS, true, "", "1 on", None)) //CC on //TODO once per respawn?
-    sendResponse(PlayerStateShiftMessage(ShiftState(1, shiftPosition.getOrElse(tplayer.Position), tplayer.Orientation.z)))
+    sendResponse(PlayerStateShiftMessage(ShiftState(1, shiftPosition.getOrElse(tplayer.Position), shiftOrientation.getOrElse(tplayer.Orientation).z)))
     shiftPosition = None
+    shiftOrientation = None
     if(spectator) {
       sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, false, "", "on", None))
     }
@@ -4190,15 +4219,19 @@ class WorldSessionActor extends Actor
       }
       else if(messagetype == ChatMessageType.CMT_INSTANTACTION) {
         makeReply = false
-        if(deadState == DeadState.Alive && instantActionStatus <= InstantAction.Status.None) {
-          if(player.VehicleSeated.nonEmpty) {
-            sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noinstantaction_invehicle", None))
-          }
-          else {
-            instantActionStatus = InstantAction.Status.Request
-            instantActionReset = context.system.scheduler.scheduleOnce(10 seconds, self, InstantActionReset())
-            cluster ! InstantAction.Request(player.Faction)
-          }
+        if(instantActionStatus > InstantAction.Status.None) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noinstantaction_instantactionting", None))
+        }
+        else if(deadState != DeadState.Alive) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noinstantaction_dead", None))
+        }
+        else if(player.VehicleSeated.nonEmpty) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noinstantaction_invehicle", None))
+        }
+        else {
+          instantActionStatus = InstantAction.Status.Request
+          instantActionReset = context.system.scheduler.scheduleOnce(10 seconds, self, InstantActionReset())
+          cluster ! InstantAction.Request(player.Faction)
         }
       }
 
@@ -4212,7 +4245,6 @@ class WorldSessionActor extends Actor
                 case Some(0) =>
                   vehicle.Position = pos
                   CancelAllProximityUnits()
-                  CancelInstantAction()
                   LoadZonePhysicalSpawnPoint(zone, pos, Vector3.Zero, 0)
                 case _ => //not seated as the driver, in which case we can't move
                   deadState = DeadState.Alive
@@ -4757,6 +4789,7 @@ class WorldSessionActor extends Actor
 
     case msg @ PickupItemMessage(item_guid, player_guid, unk1, unk2) =>
       log.info(s"PickupItem: $msg")
+      CancelInstantActionWithReason("@instantaction_cancel_use")
       ValidObject(item_guid) match {
         case Some(item : Equipment) =>
           player.Fit(item) match {
@@ -4869,10 +4902,13 @@ class WorldSessionActor extends Actor
       }
 
       if(isTeleporter) {
+        CancelInstantActionWithReason("@instantaction_cancel_use")
         val endPoint = path.get.ZipLinePoints.last
         sendResponse(ZipLineMessage(PlanetSideGUID(0), forwards, 0, path_id, pos)) // todo: send to zone to show teleport animation to all clients
         sendResponse(PlayerStateShiftMessage(ShiftState(0, endPoint, player.Orientation.z, None)))
-      } else {
+      }
+      else {
+        CancelInstantActionWithReason("@instantaction_cancel_motion")
         action match {
           case 0 =>
             // Travel along the zipline in the direction specified
@@ -5122,11 +5158,13 @@ class WorldSessionActor extends Actor
         case Some(panel : IFFLock) =>
           equipment match {
             case Some(item) =>
+              CancelInstantActionWithReason("@instantaction_cancel_use")
               panel.Actor ! CommonMessages.Use(player, Some(item))
             case _ => ;
           }
 
         case Some(obj : Player) =>
+          CancelInstantActionWithReason("@instantaction_cancel_use")
           if(obj.isBackpack) {
             log.info(s"UseItem: $player looting the corpse of $obj")
             sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
@@ -5250,12 +5288,12 @@ class WorldSessionActor extends Actor
 
               case Some(tool: Tool) if tool.Definition == GlobalDefinitions.medicalapplicator =>
                 obj.Actor ! CommonMessages.Use(player, equipment)
-
               case _ => ;
             }
           }
 
         case Some(locker : Locker) =>
+          CancelInstantActionWithReason("@instantaction_cancel_use")
           equipment match {
             case Some(item) =>
               locker.Actor ! CommonMessages.Use(player, Some(item))
@@ -5270,6 +5308,7 @@ class WorldSessionActor extends Actor
         case Some(gen : Generator) =>
           equipment match {
             case Some(item) =>
+              CancelInstantActionWithReason("@instantaction_cancel_use")
               gen.Actor ! CommonMessages.Use(player, Some(item))
             case None => ;
           }
@@ -5277,6 +5316,7 @@ class WorldSessionActor extends Actor
         case Some(mech : ImplantTerminalMech) =>
           equipment match {
             case Some(item) =>
+              CancelInstantActionWithReason("@instantaction_cancel_use")
               mech.Actor ! CommonMessages.Use(player, Some(item))
             case None => ;
           }
@@ -5284,6 +5324,7 @@ class WorldSessionActor extends Actor
         case Some(captureTerminal : CaptureTerminal) =>
           equipment match {
             case Some(item) =>
+              CancelInstantActionWithReason("@instantaction_cancel_use")
               captureTerminal.Actor ! CommonMessages.Use(player, Some(item))
             case _ => ;
           }
@@ -5291,6 +5332,7 @@ class WorldSessionActor extends Actor
         case Some(obj : FacilityTurret) =>
           equipment match {
             case Some(item) =>
+              CancelInstantActionWithReason("@instantaction_cancel_use")
               obj.Actor ! CommonMessages.Use(player, Some(item)) //try generic
               obj.Actor ! CommonMessages.Use(player, Some((item, unk2.toInt))) //try upgrade path
             case _ => ;
@@ -5299,12 +5341,15 @@ class WorldSessionActor extends Actor
         case Some(obj : Vehicle) =>
           equipment match {
             case Some(item) =>
+              CancelInstantActionWithReason("@instantaction_cancel_use")
               obj.Actor ! CommonMessages.Use(player, Some(item))
 
             case None if player.Faction == obj.Faction =>
               //access to trunk
               if(obj.AccessingTrunk.isEmpty &&
                 (!obj.PermissionGroup(AccessPermissionGroup.Trunk.id).contains(VehicleLockState.Locked) || obj.Owner.contains(player.GUID))) {
+                CancelInstantActionWithReason("@instantaction_cancel_use")
+              }
                 obj.AccessingTrunk = player.GUID
                 accessedContainer = Some(obj)
                 AccessContents(obj)
@@ -5317,12 +5362,14 @@ class WorldSessionActor extends Actor
           log.info(s"$msg")
           equipment match {
             case Some(item) =>
+              CancelInstantActionWithReason("@instantaction_cancel_use")
               terminal.Actor ! CommonMessages.Use(player, Some(item))
 
             case None if terminal.Faction == player.Faction || terminal.HackedBy.nonEmpty =>
               val tdef = terminal.Definition
               if(tdef.isInstanceOf[MatrixTerminalDefinition]) {
                 //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
+                CancelInstantActionWithReason("@instantaction_cancel_use")
                 sendResponse(BindPlayerMessage(BindStatus.Bind, "", true, true, SpawnGroup.Sanctuary, 0, 0, terminal.Position))
               }
               else if(tdef == GlobalDefinitions.multivehicle_rearm_terminal || tdef == GlobalDefinitions.bfr_rearm_terminal ||
@@ -5337,12 +5384,14 @@ class WorldSessionActor extends Actor
               }
               else if(tdef == GlobalDefinitions.teleportpad_terminal) {
                 //explicit request
+                CancelInstantActionWithReason("@instantaction_cancel_use")
                 terminal.Actor ! Terminal.Request(
                   player,
                   ItemTransactionMessage(object_guid, TransactionType.Buy, 0, "router_telepad", 0, PlanetSideGUID(0))
                 )
               }
               else {
+                CancelInstantActionWithReason("@instantaction_cancel_use")
                 sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
               }
 
@@ -5352,9 +5401,11 @@ class WorldSessionActor extends Actor
         case Some(obj : SpawnTube) =>
           equipment match {
             case Some(item) =>
+              CancelInstantActionWithReason("@instantaction_cancel_use")
               obj.Actor ! CommonMessages.Use(player, Some(item))
             case None if player.Faction == obj.Faction =>
               //deconstruction
+              CancelInstantActionWithReason("@instantaction_cancel_use")
               PlayerActionsToCancel()
               CancelAllProximityUnits()
               continent.Population ! Zone.Population.Release(avatar)
@@ -5365,6 +5416,7 @@ class WorldSessionActor extends Actor
         case Some(obj : SensorDeployable) =>
           equipment match {
             case Some(item) =>
+              CancelInstantActionWithReason("@instantaction_cancel_use")
               obj.Actor ! CommonMessages.Use(player, Some(item))
             case _ => ;
           }
@@ -5372,6 +5424,7 @@ class WorldSessionActor extends Actor
         case Some(obj : TurretDeployable) =>
           equipment match {
             case Some(item) =>
+              CancelInstantActionWithReason("@instantaction_cancel_use")
               obj.Actor ! CommonMessages.Use(player, Some(item))
             case _ => ;
           }
@@ -5379,6 +5432,7 @@ class WorldSessionActor extends Actor
         case Some(obj : TrapDeployable) =>
           equipment match {
             case Some(item) =>
+              CancelInstantActionWithReason("@instantaction_cancel_use")
               obj.Actor ! CommonMessages.Use(player, Some(item))
             case _ => ;
           }
@@ -5386,6 +5440,7 @@ class WorldSessionActor extends Actor
         case Some(obj : ShieldGeneratorDeployable) =>
           equipment match {
             case Some(item) =>
+              CancelInstantActionWithReason("@instantaction_cancel_use")
               obj.Actor ! CommonMessages.Use(player, Some(item))
             case _ => ;
           }
@@ -5395,6 +5450,7 @@ class WorldSessionActor extends Actor
             case Some(vehicle : Vehicle) =>
               vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
                 case Some(util : Utility.InternalTelepad) =>
+                  CancelInstantActionWithReason("@instantaction_cancel_use")
                   UseRouterTelepadSystem(router = vehicle, internalTelepad = util, remoteTelepad = obj, src = obj, dest = util)
                 case _ =>
                   log.error(s"telepad@${object_guid.guid} is not linked to a router - ${vehicle.Definition.Name}, ${obj.Router}")
@@ -5407,6 +5463,7 @@ class WorldSessionActor extends Actor
         case Some(obj : Utility.InternalTelepad) =>
           continent.GUID(obj.Telepad) match {
             case Some(pad : TelepadDeployable) =>
+              CancelInstantActionWithReason("@instantaction_cancel_use")
               UseRouterTelepadSystem(router = obj.Owner.asInstanceOf[Vehicle], internalTelepad = obj, remoteTelepad = pad, src = obj, dest = pad)
             case Some(o) =>
               log.error(s"internal telepad@${object_guid.guid} is not linked to a remote telepad - ${o.Definition.Name}@${o.GUID.guid}")
@@ -5414,6 +5471,7 @@ class WorldSessionActor extends Actor
           }
 
         case Some(obj) =>
+          CancelInstantActionWithReason("@instantaction_cancel_use")
           log.warn(s"UseItem: don't know how to handle $obj; taking a shot in the dark")
           sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
 
@@ -5466,6 +5524,7 @@ class WorldSessionActor extends Actor
               turret
           }
           log.info(s"DeployObject: Constructing a ${ammoType}")
+          CancelInstantActionWithReason("@instantaction_cancel_use")
           val dObj : PlanetSideGameObject with Deployable = Deployables.Make(ammoType)()
           dObj.Position = pos
           dObj.Orientation = orient
@@ -5582,6 +5641,7 @@ class WorldSessionActor extends Actor
           log.info(s"ItemTransaction: ${term.Definition.Name} found")
           if(lastTerminalOrderFulfillment) {
             lastTerminalOrderFulfillment = false
+            CancelInstantActionWithReason("@instantaction_cancel_use")
             term.Actor ! Terminal.Request(player, msg)
           }
         case Some(obj : PlanetSideGameObject) =>
@@ -5612,6 +5672,7 @@ class WorldSessionActor extends Actor
               None
             }) match {
               case Some(owner : Player) => //InfantryLoadout
+                CancelInstantActionWithReason("@instantaction_cancel_use")
                 avatar.EquipmentLoadouts.SaveLoadout(owner, name, lineno)
                 SaveLoadoutToDB(owner, name, lineno)
                 import InfantryLoadout._
@@ -5625,6 +5686,7 @@ class WorldSessionActor extends Actor
             }
 
           case FavoritesAction.Delete =>
+            CancelInstantActionWithReason("@instantaction_cancel_use")
             avatar.EquipmentLoadouts.DeleteLoadout(lineno)
             sendResponse(FavoritesMessage(list, player_guid, line, ""))
 
@@ -5810,6 +5872,7 @@ class WorldSessionActor extends Actor
 
     case msg @ WarpgateRequest(continent_guid, building_guid, dest_building_guid, dest_continent_guid, unk1, unk2) =>
       log.info(s"WarpgateRequest: $msg")
+      CancelInstantActionWithReason("@instantaction_cancel_use")
       if(deadState != DeadState.RespawnTime) {
         continent.Buildings.values.find(building => building.GUID == building_guid) match {
           case Some(wg : WarpGate) if (wg.Active && (GetKnownVehicleAndSeat() match {
@@ -9420,6 +9483,7 @@ class WorldSessionActor extends Actor
     deadState = DeadState.RespawnTime
     sendResponse(AvatarDeadStateMessage(DeadState.RespawnTime, respawnTimeMillis, respawnTimeMillis, Vector3.Zero, player.Faction, true))
     shiftPosition = Some(pos)
+    shiftOrientation = Some(ori)
     val (target, msg) = if(backpack) { //if the player is dead, he is handled as dead infantry, even if he died in a vehicle
       //new player is spawning
       val newPlayer = RespawnClone(player)

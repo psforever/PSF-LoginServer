@@ -2,7 +2,6 @@
 package net.psforever.objects.zones
 
 import akka.actor.{Actor, Props}
-import net.psforever.objects.SpawnPoint
 import net.psforever.objects.serverobject.structures.Building
 import net.psforever.types.Vector3
 
@@ -86,37 +85,32 @@ class InterstellarCluster(zones : List[Zone]) extends Actor {
       if(interests.nonEmpty) {
         val (withAllies, onlyEnemies) = interests
           .map { case (zone, spot) =>
-            val pos = spot.DisplayLocation
             (
               zone,
               spot,
-              ZoneActor.FindLocalSpawnPointsInZone(zone, pos, faction, 0).getOrElse(Nil) ++
-                ZoneActor.FindLocalSpawnPointsInZone(zone, pos, faction, 2).getOrElse(Nil)
+              ZoneActor.FindLocalSpawnPointsInZone(zone, spot.DisplayLocation, faction, 0).getOrElse(Nil)
             )
           } /* pair hotspots and spawn points */
-          .filterNot { case (zone, _, spawns) => zone.Map.Cavern && spawns.isEmpty } /* can not droppod into caverns, so spawns must exist */
+          .filter { case (_, _, spawns) => spawns.nonEmpty } /* faction spawns must exist */
           .sortBy({ case (_, spot, _) => spot.Activity.values.foldLeft(0)(_ + _.Heat) })(Ordering[Int].reverse) /* greatest > least */
           .partition { case (_, spot, _) => spot.ActivityBy().contains(faction) } /* us versus them */
         withAllies.headOption.orElse(onlyEnemies.headOption) match {
-          case Some((zone, info, Nil)) =>
-            //droppod
-            val pos = info.DisplayLocation
-            sender ! InstantAction.Located(zone, pos, pos, None)
           case Some((zone, info, List(spawnPoint))) =>
             //one spawn
             val pos = info.DisplayLocation
-            sender ! InstantAction.Located(zone, pos, spawnPoint.Position, Some(spawnPoint))
+            sender ! InstantAction.Located(zone, pos, spawnPoint.Position, spawnPoint)
           case Some((zone, info, spawns)) =>
             //multiple spawn options
             val pos = info.DisplayLocation
             val spawnPoint = spawns.minBy(point => Vector3.DistanceSquared(point.Position, pos))
-            sender ! InstantAction.Located(zone, pos, spawnPoint.Position, Some(spawnPoint))
+            sender ! InstantAction.Located(zone, pos, spawnPoint.Position, spawnPoint)
           case None =>
-            //no hot spots at all
+            //no actionable hot spots
             sender ! InstantAction.NotLocated()
         }
       }
       else {
+        //never had any actionable hot spots
         sender ! InstantAction.NotLocated()
       }
 
