@@ -4812,7 +4812,9 @@ class WorldSessionActor extends Actor
                 }
               } && indexSlot.Equipment.contains(item)) {
                 if(PermitEquipmentStow(item, destination)) {
+                  StartBundlingPackets()
                   PerformMoveItem(item, source, index, destination, dest, destItemEntry)
+                  StopBundlingPackets()
                 }
                 else {
                   log.error(s"MoveItem: $item disallowed storage in $destination")
@@ -4862,7 +4864,9 @@ class WorldSessionActor extends Actor
             }, target.Fit(item)) match {
             case (Some((source, Some(index))), Some(dest)) =>
               if(PermitEquipmentStow(item, target)) {
+                StartBundlingPackets()
                 PerformMoveItem(item, source, index, target, dest, None)
+                StopBundlingPackets()
               }
               else {
                 log.error(s"LootItem: $item disallowed storage in $target")
