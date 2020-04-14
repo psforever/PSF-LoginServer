@@ -6,6 +6,7 @@ import net.psforever.objects.serverobject.structures.Building
 import net.psforever.types.Vector3
 
 import scala.annotation.tailrec
+import scala.util.Random
 
 /**
   * The root of the universe of one-continent planets, codified by the game's "Interstellar Map."
@@ -24,6 +25,7 @@ import scala.annotation.tailrec
   */
 class InterstellarCluster(zones : List[Zone]) extends Actor {
   private[this] val log = org.log4s.getLogger
+  val recallRandom = new Random()
   log.info("Starting interplanetary cluster ...")
 
   /**
@@ -76,7 +78,7 @@ class InterstellarCluster(zones : List[Zone]) extends Actor {
       zone.Buildings.values.foreach(b => b.Actor ! Building.SendMapUpdate(all_clients = true))
 
 
-    case InstantAction.Request(faction) =>
+    case Zoning.InstantAction.Request(faction) =>
       val interests = zones.flatMap { zone =>
         //TODO zone.Locked.contains(faction)
         zone.HotSpotData
@@ -98,20 +100,49 @@ class InterstellarCluster(zones : List[Zone]) extends Actor {
           case Some((zone, info, List(spawnPoint))) =>
             //one spawn
             val pos = info.DisplayLocation
-            sender ! InstantAction.Located(zone, pos, spawnPoint.Position, spawnPoint)
+            sender ! Zoning.InstantAction.Located(zone, pos, spawnPoint)
           case Some((zone, info, spawns)) =>
             //multiple spawn options
             val pos = info.DisplayLocation
             val spawnPoint = spawns.minBy(point => Vector3.DistanceSquared(point.Position, pos))
-            sender ! InstantAction.Located(zone, pos, spawnPoint.Position, spawnPoint)
+            sender ! Zoning.InstantAction.Located(zone, pos, spawnPoint)
           case None =>
             //no actionable hot spots
-            sender ! InstantAction.NotLocated()
+            sender ! Zoning.InstantAction.NotLocated()
         }
       }
       else {
         //never had any actionable hot spots
-        sender ! InstantAction.NotLocated()
+        sender ! Zoning.InstantAction.NotLocated()
+      }
+
+    case Zoning.Recall.Request(faction, sanctuary_id) =>
+      recursiveFindWorldInCluster(zones.iterator, _.Id.equals(sanctuary_id)) match {
+        case Some(zone) =>
+          //TODO zone full
+          val width = zone.Map.Scale.width
+          val height = zone.Map.Scale.height
+          //xy-coordinates indicate sanctuary spawn bias:
+          val spot = math.abs(scala.util.Random.nextInt() % sender.toString.hashCode % 4) match {
+            case 0 => Vector3(width, height, 0) //NE
+            case 1 => Vector3(width, 0, 0) //SE
+            case 2 => Vector3.Zero //SW
+            case 3 => Vector3(0, height, 0) //NW
+          }
+          ZoneActor.FindLocalSpawnPointsInZone(zone, spot, faction, 7).getOrElse(Nil) match {
+            case Nil =>
+              //no spawns
+              sender ! Zoning.Recall.Denied("unavailable")
+            case List(spawnPoint) =>
+              //one spawn
+              sender ! Zoning.Recall.Located(zone, spawnPoint)
+            case spawnPoints =>
+              //multiple spawn options
+              val spawnPoint = spawnPoints(recallRandom.nextInt(spawnPoints.length))
+              sender ! Zoning.Recall.Located(zone, spawnPoint)
+          }
+        case None =>
+          sender ! Zoning.Recall.Denied("unavailable")
       }
 
     case _ =>
