@@ -14,11 +14,11 @@ import net.psforever.types.Vector3
   * @param target what the projectile hit
   * @param damage_model the kind of damage model to which the `target` is/was subject
   * @param hit_pos where the projectile hit
-  * @param hit_time the sequence timing when the projectile hit the target
   */
 final case class ResolvedProjectile(resolution : ProjectileResolution.Value,
                                     projectile : Projectile,
                                     target : SourceEntry,
                                     damage_model : DamageResistanceModel,
-                                    hit_pos : Vector3,
-                                    hit_time : Long = System.nanoTime)
+                                    hit_pos : Vector3) {
+  val hit_time : Long = System.nanoTime
+}

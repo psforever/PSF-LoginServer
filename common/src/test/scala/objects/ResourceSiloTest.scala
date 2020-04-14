@@ -5,11 +5,12 @@ import akka.actor.{Actor, Props}
 import akka.routing.RandomPool
 import akka.testkit.TestProbe
 import base.ActorTest
-import net.psforever.objects.guid.TaskResolver
-import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
+import net.psforever.objects.guid.{NumberPoolHub, TaskResolver}
+import net.psforever.objects.guid.source.LimitedNumberSource
+import net.psforever.objects.{Avatar, GlobalDefinitions, Player, Vehicle}
 import net.psforever.objects.serverobject.resourcesilo.{ResourceSilo, ResourceSiloControl, ResourceSiloDefinition}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
-import net.psforever.objects.zones.{Zone, ZoneMap}
+import net.psforever.objects.zones.{Zone, ZoneActor, ZoneMap}
 import net.psforever.packet.game.UseItemMessage
 import net.psforever.types._
 import org.specs2.mutable.Specification
@@ -77,15 +78,33 @@ class ResourceSiloControlStartupTest extends ActorTest {
 }
 
 class ResourceSiloControlUseTest extends ActorTest {
-  val serviceManager = ServiceManager.boot(system)
-  serviceManager ! ServiceManager.Register(RandomPool(1).props(Props[TaskResolver]), "taskResolver")
-  val probe = TestProbe()
-  serviceManager ! ServiceManager.Register(Props(classOf[ResourceSiloTest.ProbedAvatarService], probe), "avatar")
-  val msg = UseItemMessage(PlanetSideGUID(1), PlanetSideGUID(0), PlanetSideGUID(2), 0L, false, Vector3(0f,0f,0f),Vector3(0f,0f,0f),0,0,0,0L) //faked
-  val obj = ResourceSilo()
-  obj.GUID = PlanetSideGUID(1)
+  val guid = new NumberPoolHub(new LimitedNumberSource(10))
+  val map = new ZoneMap("test")
+  val zone = new Zone("test", map, 0) {
+    override def SetupNumberPools() = {}
+    GUID(guid)
+  }
+  zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-zone-actor")
+  zone.Actor ! Zone.Init()
+  val building = new Building("Building", building_guid = 0, map_id = 0, zone, StructureType.Building, GlobalDefinitions.building) //guid=1
+
+  val obj = ResourceSilo() //guid=2
   obj.Actor = system.actorOf(Props(classOf[ResourceSiloControl], obj), "test-silo")
+  obj.Owner = building
   obj.Actor ! "startup"
+
+  val player = Player(new Avatar(0L, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
+  val vehicle = Vehicle(GlobalDefinitions.ant) //guid=4
+
+  guid.register(building, 1)
+  guid.register(obj, 2)
+  guid.register(player, 3)
+  guid.register(vehicle, 4)
+  zone.Transport ! Zone.Vehicle.Spawn(vehicle)
+  vehicle.Seats(0).Occupant = player
+  player.VehicleSeated = vehicle.GUID
+  val msg = UseItemMessage(PlanetSideGUID(1), PlanetSideGUID(0), PlanetSideGUID(2), 0L, false, Vector3.Zero,Vector3.Zero,0,0,0,0L) //faked
+  expectNoMsg(200 milliseconds)
 
   "Resource silo" should {
     "respond when being used" in {

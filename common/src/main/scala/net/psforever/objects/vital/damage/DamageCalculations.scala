@@ -59,7 +59,7 @@ object DamageCalculations {
 
   def DamageAgainstMaxSuit(profile : DamageProfile) : Int = profile.Damage3
 
-  def DamageAgainstUnknown(profile : DamageProfile) : Int = profile.Damage4
+  def DamageAgainstBFR(profile : DamageProfile) : Int = profile.Damage4
 
   //raw damage selection functions
   /**

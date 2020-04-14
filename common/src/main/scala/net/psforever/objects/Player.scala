@@ -24,9 +24,9 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
   with Container
   with JammableUnit
   with ZoneAware {
-  private var alive : Boolean = false
+  Health = 0 //player health is artificially managed as a part of their lifecycle; start entity as dead
+  Destroyed = true //see isAlive
   private var backpack : Boolean = false
-  private var health : Int = 0
   private var stamina : Int = 0
   private var armor : Int = 0
 
@@ -35,7 +35,6 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
   private var capacitorLastUsedMillis : Long = 0
   private var capacitorLastChargedMillis : Long = 0
 
-  private var maxHealth : Int = 100 //TODO affected by empire benefits, territory benefits, and bops
   private var maxStamina : Int = 100 //does anything affect this?
 
   private var exosuit : ExoSuitDefinition = GlobalDefinitions.Standard
@@ -86,14 +85,14 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
 
   def LFS : Boolean = core.LFS
 
-  def isAlive : Boolean = alive
+  def isAlive : Boolean = !Destroyed
 
   def isBackpack : Boolean = backpack
 
   def Spawn : Boolean = {
     if(!isAlive && !isBackpack) {
-      alive = true
-      Health = MaxHealth
+      Destroyed = false
+      Health = Definition.DefaultHealth
       Stamina = MaxStamina
       Armor = MaxArmor
       Capacitor = 0
@@ -103,14 +102,15 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
   }
 
   def Die : Boolean = {
-    alive = false
+    Destroyed = true
     Health = 0
     Stamina = 0
     false
   }
 
   def Revive : Boolean = {
-    alive = true
+    Destroyed = false
+    Health = Definition.DefaultHealth
     true
   }
 
@@ -122,29 +122,6 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
     else {
       false
     }
-  }
-
-  def Health : Int = health
-
-  def Health_=(assignHealth : Int) : Int = {
-    val newHealth = math.min(math.max(0, assignHealth), MaxHealth)
-    val delta = health - newHealth
-
-    health = newHealth
-
-    if (delta > 0) // If Health has decreased drain stamina too at half the amount of Health damage
-    {
-      Stamina -= math.floor(delta / 2).toInt
-    }
-
-    Health
-  }
-
-  def MaxHealth : Int = maxHealth
-
-  def MaxHealth_=(max : Int) : Int = {
-    maxHealth = math.min(math.max(0, max), 65535)
-    MaxHealth
   }
 
   def Stamina : Int = stamina
@@ -689,6 +666,21 @@ object Player {
     }
     else {
       player
+    }
+  }
+
+  def GetHackLevel(player : Player): Int = {
+    if(player.Certifications.contains(CertificationType.ExpertHacking) || player.Certifications.contains(CertificationType.ElectronicsExpert)) {
+      3
+    }
+    else if(player.Certifications.contains(CertificationType.AdvancedHacking)) {
+      2
+    }
+    else if (player.Certifications.contains(CertificationType.Hacking)) {
+      1
+    }
+    else {
+      0
     }
   }
 

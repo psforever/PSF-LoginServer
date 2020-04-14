@@ -127,9 +127,12 @@ class PlayerTest extends Specification {
       obj.MaxStamina mustEqual 100
       obj.MaxHealth = 123
       obj.MaxStamina = 456
-      obj.Spawn
-      obj.Health mustEqual 123
-      obj.Stamina mustEqual 456
+      obj.MaxHealth mustEqual 123
+      obj.MaxStamina mustEqual 456
+      obj.MaxHealth = None
+      //MaxStamina has no equivalent
+      obj.MaxHealth mustEqual 100
+      obj.MaxStamina mustEqual 456
     }
 
 //    "set new values (health, armor, stamina) but only when alive" in {

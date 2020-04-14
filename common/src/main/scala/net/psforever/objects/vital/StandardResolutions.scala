@@ -41,4 +41,5 @@ object StandardResolutions extends ResolutionSelection {
   def SimpleDeployables : ResolutionCalculations.Form = SimpleResolutions.Calculate
   def ComplexDeployables : ResolutionCalculations.Form = ComplexDeployableResolutions.Calculate
   def FacilityTurrets : ResolutionCalculations.Form = SimpleResolutions.Calculate
+  def Amenities : ResolutionCalculations.Form = SimpleResolutions.Calculate
 }

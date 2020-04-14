@@ -324,6 +324,7 @@ class VehicleControlStopMountingTest extends ActorTest {
       player1.GUID = PlanetSideGUID(1)
       val player2 = Player(VehicleTest.avatar2)
       val vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
+      vehicle.Faction = PlanetSideEmpire.TR
       vehicle.GUID = PlanetSideGUID(3)
       vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
       vehicle.Zone = new Zone("test", new ZoneMap("test"), 0) {
@@ -349,6 +350,7 @@ class VehicleControlRestartMountingTest extends ActorTest {
   val player2 = Player(VehicleTest.avatar2)
   player2.GUID = PlanetSideGUID(2)
   val vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
+  vehicle.Faction = PlanetSideEmpire.TR
   vehicle.GUID = PlanetSideGUID(3)
   vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
   vehicle.Zone = new Zone("test", new ZoneMap("test"), 0) {
@@ -380,6 +382,7 @@ class VehicleControlAlwaysDismountTest extends ActorTest {
   val player2 = Player(VehicleTest.avatar2)
   player2.GUID = PlanetSideGUID(2)
   val vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
+  vehicle.Faction = PlanetSideEmpire.TR
   vehicle.GUID = PlanetSideGUID(3)
   vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
   vehicle.Zone = new Zone("test", new ZoneMap("test"), 0) {
@@ -430,6 +433,7 @@ class VehicleControlMountingBlockedExosuitTest extends ActorTest {
     }
   }
   val vehicle = Vehicle(GlobalDefinitions.apc_tr)
+  vehicle.Faction = PlanetSideEmpire.TR
   vehicle.GUID = PlanetSideGUID(10)
   vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
 
@@ -490,6 +494,7 @@ class VehicleControlMountingBlockedSeatPermissionTest extends ActorTest {
     }
   }
   val vehicle = Vehicle(GlobalDefinitions.apc_tr)
+  vehicle.Faction = PlanetSideEmpire.TR
   vehicle.GUID = PlanetSideGUID(10)
   vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
 
@@ -524,6 +529,7 @@ class VehicleControlMountingDriverSeatTest extends ActorTest {
     }
   }
   val vehicle = Vehicle(GlobalDefinitions.apc_tr)
+  vehicle.Faction = PlanetSideEmpire.TR
   vehicle.GUID = PlanetSideGUID(10)
   vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
   val player1 = Player(VehicleTest.avatar1)
@@ -563,6 +569,7 @@ class VehicleControlMountingOwnedLockedDriverSeatTest extends ActorTest {
     }
   }
   val vehicle = Vehicle(GlobalDefinitions.apc_tr)
+  vehicle.Faction = PlanetSideEmpire.TR
   vehicle.GUID = PlanetSideGUID(10)
   vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
   val player1 = Player(VehicleTest.avatar1)
@@ -602,6 +609,7 @@ class VehicleControlMountingOwnedUnlockedDriverSeatTest extends ActorTest {
     }
   }
   val vehicle = Vehicle(GlobalDefinitions.apc_tr)
+  vehicle.Faction = PlanetSideEmpire.TR
   vehicle.GUID = PlanetSideGUID(10)
   vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
   val player1 = Player(VehicleTest.avatar1)
@@ -627,34 +635,6 @@ class VehicleControlMountingOwnedUnlockedDriverSeatTest extends ActorTest {
       checkCanMount()
       assert(vehicle.Seats(0).Occupant.nonEmpty)
     }
-  }
-}
-
-class VehicleControlRepairTest extends ActorTest {
-  val probe = new TestProbe(system)
-  val vehicle = Vehicle(GlobalDefinitions.fury)
-  vehicle.GUID = PlanetSideGUID(10)
-  vehicle.Health = 50
-  vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
-  vehicle.Zone = new Zone("test", new ZoneMap("test"), 0) {
-    VehicleEvents = probe.ref
-  }
-
-  "Can repair alive vehicle" in {
-    assert(vehicle.Health == 50)
-
-    vehicle.Health += 10
-    assert(vehicle.Health == 60)
-  }
-
-  "Can't repair dead vehicle" in {
-    assert(vehicle.Health > 0)
-
-    vehicle.Health = 0
-    assert(vehicle.Health == 0)
-
-    vehicle.Health += 10
-    assert(vehicle.Health == 0)
   }
 }
 
@@ -767,7 +747,7 @@ class VehicleControlShieldsNotChargingTooEarlyTest extends ActorTest {
 //  val p_source = PlayerSource( Player(Avatar("TestTarget", PlanetSideEmpire.NC, CharacterGender.Female, 1, CharacterVoice.Mute)) )
 //  val projectile = Projectile(beamer_wep.Projectile, GlobalDefinitions.beamer, beamer_wep.FireMode, p_source, GlobalDefinitions.beamer.ObjectId, Vector3.Zero, Vector3.Zero)
 //  val fury_dm = Vehicle(GlobalDefinitions.fury).DamageModel
-//  val obj = ResolvedProjectile(ProjectileResolution.Hit, projectile, p_source, fury_dm, Vector3(1.2f, 3.4f, 5.6f), System.nanoTime)
+//  val obj = ResolvedProjectile(ProjectileResolution.Hit, projectile, p_source, fury_dm, Vector3(1.2f, 3.4f, 5.6f))
 //
 //  "not charge vehicle shields if recently damaged" in {
 //    assert(vehicle.Shields == 0)

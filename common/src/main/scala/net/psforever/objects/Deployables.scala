@@ -2,10 +2,10 @@
 package net.psforever.objects
 
 import akka.actor.ActorRef
-import scala.concurrent.duration._
 
+import scala.concurrent.duration._
 import net.psforever.objects.ce.{Deployable, DeployedItem}
-import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.vehicles.{Utility, UtilityType}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{DeployableInfo, DeploymentAction}
 import net.psforever.types.PlanetSideGUID
@@ -13,6 +13,8 @@ import services.RemoverActor
 import services.local.{LocalAction, LocalServiceMessage}
 
 object Deployables {
+  private val log = org.log4s.getLogger("Deployables")
+
   object Make {
     def apply(item : DeployedItem.Value) : ()=>PlanetSideGameObject with Deployable = cemap(item)
 
@@ -58,7 +60,7 @@ object Deployables {
     * @param time length of time that the deployable is allowed to exist in the game world;
     *             `None` indicates the normal un-owned existence time (180 seconds)
     */
-  def AnnounceDestroyDeployable(target : PlanetSideServerObject with Deployable, time : Option[FiniteDuration]) : Unit = {
+  def AnnounceDestroyDeployable(target : PlanetSideGameObject with Deployable, time : Option[FiniteDuration]) : Unit = {
     val zone = target.Zone
     target.OwnerName match {
       case Some(owner) =>
@@ -101,5 +103,24 @@ object Deployables {
       obj.Owner = None
     })
     boomers ++ deployables
+  }
+
+  def RemoveTelepad(vehicle: Vehicle) : Unit = {
+    val zone = vehicle.Zone
+    (vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
+      case Some(util : Utility.InternalTelepad) =>
+        val telepad = util.Telepad
+        util.Telepad = None
+        zone.GUID(telepad)
+      case _ =>
+        None
+    }) match {
+      case Some(telepad : TelepadDeployable) =>
+        log.info(s"BeforeUnload: deconstructing telepad $telepad that was linked to router $vehicle ...")
+        telepad.Active = false
+        zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(telepad), zone))
+        zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(telepad, zone, Some(0 seconds)))
+      case _ => ;
+    }
   }
 }

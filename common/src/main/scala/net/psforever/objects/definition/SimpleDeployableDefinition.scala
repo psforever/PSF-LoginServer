@@ -7,26 +7,15 @@ import net.psforever.objects.ce.{Deployable, DeployableCategory, DeployedItem}
 import net.psforever.objects.definition.converter.SmallDeployableConverter
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.vital.resistance.ResistanceProfileMutators
-import net.psforever.objects.vital.{DamageResistanceModel, NoResistanceSelection, StandardDeployableDamage}
+import net.psforever.objects.vital.{DamageResistanceModel, NoResistanceSelection, StandardDeployableDamage, VitalityDefinition}
 
 import scala.concurrent.duration._
 
-trait BaseDeployableDefinition extends DamageResistanceModel
-  with ResistanceProfileMutators {
+trait BaseDeployableDefinition {
   private var category : DeployableCategory.Value = DeployableCategory.Boomers
   private var deployTime : Long = (1 second).toMillis //ms
-  private var maxHealth : Int = 1
-  Damage = StandardDeployableDamage
-  Resistance = NoResistanceSelection
 
   def Item : DeployedItem.Value
-
-  def MaxHealth : Int = maxHealth
-
-  def MaxHealth_=(toHealth : Int) : Int = {
-    maxHealth = toHealth
-    MaxHealth
-  }
 
   def DeployCategory : DeployableCategory.Value = category
 
@@ -53,20 +42,23 @@ trait BaseDeployableDefinition extends DamageResistanceModel
   def Uninitialize(obj : PlanetSideServerObject with Deployable, context : ActorContext) : Unit = { }
 }
 
-class SimpleDeployableDefinition(private val objectId : Int) extends ObjectDefinition(objectId)
+abstract class DeployableDefinition(objectId : Int) extends ObjectDefinition(objectId)
+  with DamageResistanceModel
+  with ResistanceProfileMutators
+  with VitalityDefinition
   with BaseDeployableDefinition {
   private val item = DeployedItem(objectId) //let throw NoSuchElementException
+  DamageUsing = StandardDeployableDamage
+  ResistUsing = NoResistanceSelection
+
+  def Item : DeployedItem.Value = item
+}
+
+class SimpleDeployableDefinition(objectId : Int) extends DeployableDefinition(objectId) {
   Packet = new SmallDeployableConverter
-
-  def Item : DeployedItem.Value = item
 }
 
-abstract class ComplexDeployableDefinition(private val objectId : Int) extends ObjectDefinition(objectId)
-  with BaseDeployableDefinition {
-  private val item = DeployedItem(objectId) //let throw NoSuchElementException
-
-  def Item : DeployedItem.Value = item
-}
+abstract class ComplexDeployableDefinition(objectId : Int) extends DeployableDefinition(objectId)
 
 object SimpleDeployableDefinition {
   def apply(item : DeployedItem.Value) : SimpleDeployableDefinition =
@@ -75,7 +67,7 @@ object SimpleDeployableDefinition {
   def SimpleUninitialize(obj : PlanetSideGameObject, context : ActorContext) : Unit = { }
 
   def SimpleUninitialize(obj : PlanetSideServerObject, context : ActorContext) : Unit = {
-    obj.Actor ! akka.actor.PoisonPill
+    context.stop(obj.Actor)
     obj.Actor = ActorRef.noSender
   }
 }

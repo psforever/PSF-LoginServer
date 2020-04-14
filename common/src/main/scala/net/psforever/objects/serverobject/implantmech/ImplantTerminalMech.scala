@@ -2,12 +2,12 @@
 package net.psforever.objects.serverobject.implantmech
 
 import net.psforever.objects.Player
-import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.vehicles.Seat
 import net.psforever.packet.game.TriggeredSound
+import net.psforever.types.Vector3
 
 /**
   * A structure-owned server object that is the visible and `Mountable` component of an implant terminal.
@@ -38,7 +38,7 @@ class ImplantTerminalMech(private val idef : ImplantTerminalMechDefinition) exte
     }
   }
 
-  def Definition : ObjectDefinition = idef
+  def Definition : ImplantTerminalMechDefinition = idef
 }
 
 object ImplantTerminalMech {
@@ -53,10 +53,21 @@ object ImplantTerminalMech {
   import akka.actor.ActorContext
   /**
     * Instantiate an configure a `ImplantTerminalMech` object
+    * @param pos the position of the entity
     * @param id the unique id that will be assigned to this entity
     * @param context a context to allow the object to properly set up `ActorSystem` functionality
     * @return the `ImplantTerminalMech` object
     */
+  def Constructor(pos : Vector3)(id : Int, context : ActorContext) : ImplantTerminalMech = {
+    import akka.actor.Props
+    import net.psforever.objects.GlobalDefinitions
+
+    val obj = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech)
+    obj.Position = pos
+    obj.Actor = context.actorOf(Props(classOf[ImplantTerminalMechControl], obj), s"${GlobalDefinitions.implant_terminal_mech.Name}_$id")
+    obj
+  }
+  @deprecated("use implant terminal mechs that have position","destroyAndRepair")
   def Constructor(id : Int, context : ActorContext) : ImplantTerminalMech = {
     import akka.actor.Props
     import net.psforever.objects.GlobalDefinitions

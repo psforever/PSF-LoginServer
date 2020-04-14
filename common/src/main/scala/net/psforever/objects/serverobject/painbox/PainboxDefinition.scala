@@ -1,9 +1,9 @@
 package net.psforever.objects.serverobject.painbox
 
-import net.psforever.objects.definition.ObjectDefinition
+import net.psforever.objects.serverobject.structures.AmenityDefinition
 import net.psforever.types.Vector3
 
-class PainboxDefinition(objectId : Int) extends ObjectDefinition(objectId) {
+class PainboxDefinition(objectId : Int) extends AmenityDefinition(objectId) {
   private var alwaysOn : Boolean = true
   private var radius : Float = 0f
   private var damage : Int = 10
@@ -39,7 +39,7 @@ class PainboxDefinition(objectId : Int) extends ObjectDefinition(objectId) {
       radius = 8.55f
       sphereOffset = Vector3.Zero
     case _ =>
-      throw new IllegalArgumentException(s"${objectId} is not a valid painbox object id")
+      throw new IllegalArgumentException(s"$objectId is not a valid painbox object id")
   }
 
   def Radius : Float = radius

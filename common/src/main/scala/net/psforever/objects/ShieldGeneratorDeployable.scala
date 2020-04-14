@@ -7,12 +7,13 @@ import net.psforever.objects.ce.{ComplexDeployable, Deployable, DeployableCatego
 import net.psforever.objects.definition.{ComplexDeployableDefinition, SimpleDeployableDefinition}
 import net.psforever.objects.definition.converter.ShieldGeneratorConverter
 import net.psforever.objects.equipment.{JammableBehavior, JammableUnit}
+import net.psforever.objects.serverobject.damage.Damageable.Target
+import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.hackable.Hackable
-import net.psforever.objects.vital.Vitality
-import net.psforever.objects.zones.Zone
+import net.psforever.objects.serverobject.repair.RepairableEntity
+import net.psforever.objects.vital.resolution.ResolutionCalculations
 import net.psforever.types.PlanetSideGUID
-import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.Service
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
 
@@ -34,32 +35,75 @@ class ShieldGeneratorDefinition extends ComplexDeployableDefinition(240) {
 }
 
 class ShieldGeneratorControl(gen : ShieldGeneratorDeployable) extends Actor
-  with JammableBehavior {
-
+  with JammableBehavior
+  with DamageableEntity
+  with RepairableEntity {
   def JammableObject = gen
+  def DamageableObject = gen
+  def RepairableObject = gen
+  private var handleDamageToShields : Boolean = false
 
   def receive : Receive = jammableBehavior
+    .orElse(takesDamage)
+    .orElse(canBeRepairedByNanoDispenser)
     .orElse {
-      case Vitality.Damage(damage_func) =>  //note: damage status is reported as vehicle events, not local events
-        if(gen.Health > 0) {
-          val originalHealth = gen.Health
-          val cause = damage_func(gen)
-          val health = gen.Health
-          val damageToHealth = originalHealth - health
-          ShieldGeneratorControl.HandleDamageResolution(gen, cause, damageToHealth)
-          if(damageToHealth > 0) {
-            val name = gen.Actor.toString
-            val slashPoint = name.lastIndexOf("/")
-            org.log4s.getLogger("DamageResolution").info(s"${name.substring(slashPoint + 1, name.length - 1)}: BEFORE=$originalHealth, AFTER=$health, CHANGE=$damageToHealth")
-          }
-        }
-
       case _ => ;
     }
+
+  /**
+    * The shield generator has two upgrade paths - blocking projectiles, and providing ammunition like a terminal.
+    * Both upgrade paths are possible using the nano dispenser with an armor canister,
+    * and can only be started when the generator is undamaged.
+    * @see `PlanetSideGameObject.CanRepair`
+    * @see `RepairableEntity.CanPerformRepairs`
+    * @param player the user of the nano dispenser tool
+    * @param item the nano dispenser tool
+    */
+  override def CanBeRepairedByNanoDispenser(player : Player, item : Tool) : Unit = {
+    if(gen.CanRepair) {
+      super.CanBeRepairedByNanoDispenser(player, item)
+    }
+    else if(!gen.Destroyed) {
+      //TODO reinforced shield upgrade not implemented yet
+      //TODO ammunition supply upgrade not implemented yet
+    }
+  }
+
+  override protected def PerformDamage(target : Damageable.Target, applyDamageTo : ResolutionCalculations.Output) : Unit = {
+    val originalHealth = gen.Health
+    val originalShields = gen.Shields
+    val cause = applyDamageTo(target)
+    val health = gen.Health
+    val shields = gen.Shields
+    val damageToHealth = originalHealth - health
+    val damageToShields = originalShields - shields
+    val damage = damageToHealth + damageToShields
+    if(WillAffectTarget(target, damage, cause)) {
+      target.History(cause)
+      DamageLog(target,s"BEFORE=$originalHealth/$originalShields, AFTER=$health/$shields, CHANGE=$damageToHealth/$damageToShields")
+      handleDamageToShields = damageToShields > 0
+      HandleDamage(target, cause, damageToHealth)
+    }
+    else {
+      gen.Health = originalHealth
+      gen.Shields = originalShields
+    }
+  }
+
+  override protected def DamageAwareness(target : Damageable.Target, cause : ResolvedProjectile, amount : Int) : Unit = {
+    super.DamageAwareness(target, cause, amount)
+    ShieldGeneratorControl.DamageAwareness(gen, cause, handleDamageToShields)
+    handleDamageToShields = false
+  }
+
+  override protected def DestructionAwareness(target : Target, cause : ResolvedProjectile) : Unit = {
+    super.DestructionAwareness(target, cause)
+    ShieldGeneratorControl.DestructionAwareness(gen, PlanetSideGUID(0))
+  }
+
   /*
   while the shield generator is technically a supported jammable target, how that works is currently unknown
-  electing to use a "status only, no sound" approach by overriding one with an empty function is not entirely arbitrary
-  the superclass of "status" calls also sets the jammed object property
+  check the object definition for proper feature activation
    */
   override def StartJammeredSound(target : Any, dur : Int) : Unit =  { }
 
@@ -86,40 +130,23 @@ object ShieldGeneratorControl {
   /**
     * na
     * @param target na
+    * @param cause na
+    * @param damageToShields na
     */
-  def HandleDamageResolution(target : ShieldGeneratorDeployable, cause : ResolvedProjectile, damage : Int) : Unit = {
-    val zone = target.Zone
-    val targetGUID = target.GUID
-    val playerGUID = zone.LivePlayers.find { p => cause.projectile.owner.Name.equals(p.Name) } match {
-      case Some(player) => player.GUID
-      case _ => PlanetSideGUID(0)
+  def DamageAwareness(target : ShieldGeneratorDeployable, cause : ResolvedProjectile, damageToShields : Boolean) : Unit = {
+    //shields
+    if(damageToShields) {
+      val zone = target.Zone
+      zone.VehicleEvents ! VehicleServiceMessage(zone.Id, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 68, target.Shields))
     }
-    if(target.Health > 0) {
-      //activity on map
-      if(damage > 0) {
-        zone.Activity ! Zone.HotSpot.Activity(cause.target, cause.projectile.owner, cause.hit_pos)
-      }
-      if(cause.projectile.profile.JammerProjectile) {
-        target.Actor ! JammableUnit.Jammered(cause)
-      }
-    }
-    else {
-      HandleDestructionAwareness(target, playerGUID, cause)
-    }
-    zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttribute(targetGUID, 0, target.Health))
   }
 
   /**
     * na
     * @param target na
     * @param attribution na
-    * @param lastShot na
     */
-  def HandleDestructionAwareness(target : ShieldGeneratorDeployable, attribution : PlanetSideGUID, lastShot : ResolvedProjectile) : Unit = {
-    target.Actor ! JammableUnit.ClearJammeredSound()
-    target.Actor ! JammableUnit.ClearJammeredStatus()
-    val zone = target.Zone
+  def DestructionAwareness(target : Damageable.Target with Deployable, attribution : PlanetSideGUID) : Unit = {
     Deployables.AnnounceDestroyDeployable(target, None)
-    zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.Destroy(target.GUID, attribution, attribution, target.Position))
   }
 }

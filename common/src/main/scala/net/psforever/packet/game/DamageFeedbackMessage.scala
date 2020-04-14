@@ -7,6 +7,22 @@ import scodec.Codec
 import scodec.codecs._
 import shapeless.{::, HNil}
 
+/**
+  * na
+  * @param unk1 na
+  * @param unk2 if no global unique identifier (below), the alternate identification for the entity
+  * @param unk2a the global unique identifier of the entity inflicting the damage
+  * @param unk2b if no global unique identifier (above), the name of the entity inflicting the damage
+  * @param unk2c if no global unique identifier (above), the object type of the entity inflicting the damage
+  * @param unk3 if no global unique identifier (below), the alternate identification for the entity
+  * @param unk3a the global unique identifier of the entity absorbing the damage
+  * @param unk3b if no global unique identifier (above), the name of the entity absorbing the damage
+  * @param unk3c if no global unique identifier (above), the object type of the entity absorbing the damage
+  * @param unk3d na
+  * @param unk4 na
+  * @param unk5 the amount of damage
+  * @param unk6 na
+  */
 final case class DamageFeedbackMessage(unk1 : Int,
                                        unk2 : Boolean,
                                        unk2a : Option[PlanetSideGUID],
@@ -55,12 +71,12 @@ object DamageFeedbackMessage extends Marshallable[DamageFeedbackMessage] {
         bool >>:~ { u3 =>
           ("unk2a" | conditional(u2, PlanetSideGUID.codec)) ::
             (("unk2b" | conditional(!u2 && u3, PacketHelpers.encodedWideStringAligned(6))) >>:~ { u2b =>
-              ("unk2c" | conditional(!(u2 && u3), uintL(11))) ::
+              ("unk2c" | conditional(!u2 && !u3, uintL(11))) ::
                 (bool >>:~ { u5 =>
                   bool >>:~ { u6 =>
                   ("unk3a" | conditional(u5, PlanetSideGUID.codec)) ::
                     ("unk3b" | conditional(!u5 && u6, PacketHelpers.encodedWideStringAligned( if(u2b.nonEmpty) 3 else 1 ))) ::
-                    ("unk3c" | conditional(!(u5 && u6), uintL(11))) ::
+                    ("unk3c" | conditional(!u5 && !u6, uintL(11))) ::
                     ("unk3d" | conditional(!u5, uint2)) ::
                     ("unk4" | uint(3)) ::
                     ("unk5" | uint32L) ::

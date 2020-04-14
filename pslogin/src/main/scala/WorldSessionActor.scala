@@ -19,11 +19,6 @@ import scodec.bits.ByteVector
 //project imports
 import csr.{CSRWarp, CSRZone, Traveler}
 import MDCContextAware.Implicits._
-import net.psforever.packet._
-import net.psforever.packet.control._
-import net.psforever.packet.game._
-import net.psforever.packet.game.objectcreate.{ConstructorData, DetailedCharacterData, DroppedItemData, ObjectClass, ObjectCreateMessageParent, PlacementData}
-import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo}
 import net.psforever.objects._
 import net.psforever.objects.avatar.{Certification, DeployableToolbox}
 import net.psforever.objects.ballistics.{PlayerSource, Projectile, ProjectileResolution, ResolvedProjectile, SourceEntry}
@@ -31,34 +26,41 @@ import net.psforever.objects.ce.{ComplexDeployable, Deployable, DeployableCatego
 import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter.{CorpseConverter, DestroyedVehicleConverter}
 import net.psforever.objects.entity.{SimpleWorldEntity, WorldEntity}
-import net.psforever.objects.equipment.{Ammo, CItem, EffectTarget, Equipment, EquipmentSize, EquipmentSlot, FireModeSwitch}
+import net.psforever.objects.equipment.{Ammo, CItem, EffectTarget, Equipment, EquipmentSize, EquipmentSlot, FireModeSwitch, JammableUnit}
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
 import net.psforever.objects.loadouts.{InfantryLoadout, Loadout, SquadLoadout, VehicleLoadout}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.doors.Door
-import net.psforever.objects.serverobject.hackable.Hackable
+import net.psforever.objects.serverobject.generator.Generator
+import net.psforever.objects.serverobject.hackable.{Hackable, GenericHackables}
 import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
-import net.psforever.objects.serverobject.locks.IFFLock
+import net.psforever.objects.serverobject.locks.{IFFLock, IFFLocks}
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 import net.psforever.objects.serverobject.painbox.Painbox
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
-import net.psforever.objects.serverobject.terminals.{CaptureTerminal, MatrixTerminalDefinition, MedicalTerminalDefinition, ProximityDefinition, ProximityTerminal, ProximityUnit, Terminal}
+import net.psforever.objects.serverobject.terminals.{CaptureTerminal, CaptureTerminals, MatrixTerminalDefinition, MedicalTerminalDefinition, ProximityDefinition, ProximityTerminal, ProximityUnit, Terminal}
 import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
 import net.psforever.objects.serverobject.tube.SpawnTube
-import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade, WeaponTurret}
+import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade, WeaponTurret, WeaponTurrets}
 import net.psforever.objects.serverobject.zipline.ZipLinePath
 import net.psforever.objects.teamwork.Squad
-import net.psforever.objects.vehicles.{AccessPermissionGroup, Cargo, MountedWeapons, Utility, UtilityType, VehicleLockState}
+import net.psforever.objects.vehicles.{AccessPermissionGroup, Cargo, CargoBehavior, MountedWeapons, Utility, UtilityType, VehicleLockState}
 import net.psforever.objects.vehicles.Utility.InternalTelepad
-import net.psforever.objects.vital.{DamageFromPainbox, HealFromExoSuitChange, HealFromKit, HealFromTerm, PlayerSuicide, RepairFromKit, Vitality}
+import net.psforever.objects.vital.{DamageFromPainbox, HealFromExoSuitChange, HealFromKit, HealFromTerm, PlayerSuicide, RepairFromKit, Vitality, VitalityDefinition}
 import net.psforever.objects.zones.{InterstellarCluster, Zone, ZoneHotSpotProjector}
+import net.psforever.packet._
+import net.psforever.packet.control._
+import net.psforever.packet.game._
+import net.psforever.packet.game.objectcreate.{ConstructorData, DetailedCharacterData, DroppedItemData, ObjectClass, ObjectCreateMessageParent, PlacementData}
+import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo}
 import net.psforever.types._
 import services.{RemoverActor, Service, ServiceManager}
 import services.account.{AccountPersistenceService, PlayerToken, ReceiveAccountData, RetrieveAccountData}
@@ -78,7 +80,7 @@ class WorldSessionActor extends Actor
   import WorldSessionActor._
 
   private[this] val log = org.log4s.getLogger
-  private[this] val damageLog = org.log4s.getLogger("DamageResolution")
+  private[this] val damageLog = org.log4s.getLogger(Damageable.LogChannel)
   var sessionId : Long = 0
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
@@ -295,6 +297,101 @@ class WorldSessionActor extends Actor
 
     case AvatarServiceResponse(toChannel, guid, reply) =>
       HandleAvatarServiceResponse(toChannel, guid, reply)
+
+    case CommonMessages.Hack(tplayer, obj : Locker, Some(item : SimpleItem)) if tplayer == player =>
+      val hackSpeed = GenericHackables.GetHackSpeed(player, obj)
+      if(hackSpeed > 0) {
+        progressBarValue = Some(-hackSpeed)
+        self ! Progress(
+          hackSpeed,
+          GenericHackables.FinishHacking(obj, tplayer, 3212836864L),
+          GenericHackables.HackingTickAction(progressType = 1, tplayer, obj, item.GUID)
+        )
+        log.info(s"${tplayer.Name} is hacking a locker")
+      }
+
+    case CommonMessages.Hack(tplayer, obj : CaptureTerminal, Some(item : SimpleItem)) if tplayer == player =>
+      val hackSpeed = GenericHackables.GetHackSpeed(player, obj)
+      if(hackSpeed > 0) {
+        progressBarValue = Some(-hackSpeed)
+        self ! Progress(
+          hackSpeed,
+          CaptureTerminals.FinishHackingCaptureConsole(obj, player, 3212836864L),
+          GenericHackables.HackingTickAction(progressType = 1, tplayer, obj, item.GUID)
+        )
+        log.info(s"${tplayer.Name} is hacking a capture terminal")
+      }
+
+    case CommonMessages.Hack(tplayer, obj : ImplantTerminalMech, Some(item : SimpleItem)) if tplayer == player =>
+      val hackSpeed = GenericHackables.GetHackSpeed(player, obj)
+      if(hackSpeed > 0) {
+        progressBarValue = Some(-hackSpeed)
+        self ! Progress(
+          hackSpeed,
+          GenericHackables.FinishHacking(obj, tplayer, 3212836864L),
+          GenericHackables.HackingTickAction(progressType = 1, tplayer, obj, item.GUID)
+        )
+        log.info(s"${tplayer.Name} is hacking an implant terminal")
+      }
+
+    case CommonMessages.Hack(tplayer, obj : Terminal, Some(item : SimpleItem)) if tplayer == player =>
+      val hackSpeed = GenericHackables.GetHackSpeed(player, obj)
+      if(hackSpeed > 0) {
+        progressBarValue = Some(-hackSpeed)
+        self ! Progress(
+          hackSpeed,
+          GenericHackables.FinishHacking(obj, tplayer, 3212836864L),
+          GenericHackables.HackingTickAction(progressType = 1, tplayer, obj, item.GUID)
+        )
+        log.info(s"${tplayer.Name} is hacking a terminal")
+      }
+
+    case CommonMessages.Hack(tplayer, obj : IFFLock, Some(item : SimpleItem)) if tplayer == player =>
+      val hackSpeed = GenericHackables.GetHackSpeed(player, obj)
+      if(hackSpeed > 0) {
+        progressBarValue = Some(-hackSpeed)
+        if(obj.Faction != tplayer.Faction) {
+          // Enemy faction is hacking this IFF lock
+          self ! Progress(
+            hackSpeed,
+            GenericHackables.FinishHacking(obj, tplayer, 1114636288L),
+            GenericHackables.HackingTickAction(progressType = 1, tplayer, obj, item.GUID)
+          )
+          log.info(s"${tplayer.Name} is hacking an IFF lock")
+        }
+        else {
+          // IFF Lock is being resecured by it's owner faction
+          self ! Progress(
+            hackSpeed,
+            IFFLocks.FinishResecuringIFFLock(obj),
+            GenericHackables.HackingTickAction(progressType = 1, player, obj, item.GUID)
+          )
+          log.info(s"${player.Name} is resecuring an IFF lock")
+        }
+      }
+
+    case CommonMessages.Hack(tplayer, obj : Vehicle, Some(item : SimpleItem)) if tplayer == player =>
+      val hackSpeed = GenericHackables.GetHackSpeed(player, obj)
+      if(hackSpeed > 0) {
+        progressBarValue = Some(-hackSpeed)
+        self ! Progress(
+          hackSpeed,
+          Vehicles.FinishHackingVehicle(obj, tplayer,3212836864L),
+          GenericHackables.HackingTickAction(progressType = 1, tplayer, obj, item.GUID)
+        )
+        log.trace(s"${tplayer.Name} is hacking a vehicle")
+      }
+
+    case CommonMessages.Use(tplayer, Some((item : Tool, user : Player))) =>
+      if(progressBarValue.isEmpty) {
+        progressBarValue = Some(-4)
+        self ! Progress(
+          4,
+          Players.FinishRevivingPlayer(tplayer, user.Name),
+          Players.RevivingTickAction(tplayer, user, item)
+        )
+        log.trace(s"${user.Name} is reviving a dead ally")
+      }
 
     case Door.DoorMessage(tplayer, msg, order) =>
       HandleDoorMessage(tplayer, msg, order)
@@ -651,20 +748,18 @@ class WorldSessionActor extends Actor
       CanNotChangeDeployment(obj, state, reason)
 
     case ResourceSilo.ResourceSiloMessage(tplayer, msg, order) =>
-      val vehicle_guid = msg.avatar_guid
-      val silo_guid = msg.object_guid
-      order match {
-        case ResourceSilo.ChargeEvent() =>
-          antChargingTick.cancel() // If an ANT is refilling an NTU silo it isn't in a warpgate, so disable NTU regeneration
-          antDischargingTick.cancel()
-          antDischargingTick = context.system.scheduler.scheduleOnce(1000 milliseconds, self, NtuDischarging(player, continent.GUID(vehicle_guid).get.asInstanceOf[Vehicle], silo_guid))
+      continent.GUID(msg.avatar_guid) match {
+        case Some(vehicle : Vehicle) =>
+          val silo_guid = msg.object_guid
+          order match {
+            case ResourceSilo.ChargeEvent() =>
+              antChargingTick.cancel() // If an ANT is refilling an NTU silo it isn't in a warpgate, so disable NTU regeneration
+              antDischargingTick.cancel()
+              antDischargingTick = context.system.scheduler.scheduleOnce(1000 milliseconds, self, NtuDischarging(player, vehicle, msg.object_guid))
+            case _ => ;
+          }
+        case _ => ;
       }
-
-    case CheckCargoDismount(cargo_guid, carrier_guid, mountPoint, iteration) =>
-      HandleCheckCargoDismounting(cargo_guid, carrier_guid, mountPoint, iteration)
-
-    case CheckCargoMounting(cargo_guid, carrier_guid, mountPoint, iteration) =>
-      HandleCheckCargoMounting(cargo_guid, carrier_guid, mountPoint, iteration)
 
     case CreateCharacter(name, head, voice, gender, empire) =>
       log.info(s"Creating new character $name...")
@@ -678,6 +773,7 @@ class WorldSessionActor extends Actor
             )
           }.onComplete {
             case scala.util.Success(insertResult) =>
+              if(connection.isConnected) connection.disconnect
               insertResult match {
                 case result: QueryResult =>
                   if (result.rows.nonEmpty) {
@@ -693,7 +789,6 @@ class WorldSessionActor extends Actor
                 case e =>
                   log.error(s"CreateCharacter: unexpected error while creating new character for $accountUserName")
                   sendResponse(ActionResultMessage.Fail(3))
-                  if(connection.isConnected) connection.disconnect
                   self ! ListAccountCharacters()
               }
             case scala.util.Failure(e) =>
@@ -712,6 +807,7 @@ class WorldSessionActor extends Actor
             "SELECT id, name, faction_id, gender_id, head_id, voice_id, deleted, last_login FROM characters where account_id=? ORDER BY last_login", Array(account.AccountId)
           ).onComplete {
             case scala.util.Success(result : QueryResult) =>
+              if(connection.isConnected) connection.disconnect
               if(result.rows.nonEmpty) {
                 import net.psforever.objects.definition.converter.CharacterSelectConverter
                 val gen : AtomicInteger = new AtomicInteger(1)
@@ -761,7 +857,6 @@ class WorldSessionActor extends Actor
                 }
               }
               Thread.sleep(50)
-              if(connection.isConnected) connection.disconnect
 
             case scala.util.Success(result) =>
               if(connection.isConnected) connection.disconnect //pre-empt failWithError
@@ -829,7 +924,7 @@ class WorldSessionActor extends Actor
 
     case Zone.Lattice.SpawnPoint(zone_id, spawn_tube) =>
       var (pos, ori) = spawn_tube.SpecificPoint(continent.GUID(player.VehicleSeated) match {
-        case Some(obj : Vehicle) if !obj.IsDead =>
+        case Some(obj : Vehicle) if !obj.Destroyed =>
           obj
         case _ =>
           player
@@ -877,6 +972,7 @@ class WorldSessionActor extends Actor
           avatar.Deployables.Remove(obj)
           UpdateDeployableUIElements(avatar.Deployables.UpdateUIElement(obj.Definition.Item))
           continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent))
+          obj.Faction = PlanetSideEmpire.NEUTRAL
           sendResponse(SetEmpireMessage(guid, PlanetSideEmpire.NEUTRAL))
           continent.AvatarEvents ! AvatarServiceMessage(factionChannel, AvatarAction.SetEmpire(playerGUID, guid, PlanetSideEmpire.NEUTRAL))
           val info = DeployableInfo(guid, DeployableIcon.Boomer, obj.Position, PlanetSideGUID(0))
@@ -922,7 +1018,7 @@ class WorldSessionActor extends Actor
             continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(obj), continent))
             sendResponse(SetEmpireMessage(guid, faction))
             continent.AvatarEvents ! AvatarServiceMessage(factionChannel, AvatarAction.SetEmpire(playerGUID, guid, faction))
-            val info = DeployableInfo(obj.GUID, DeployableIcon.Boomer, obj.Position, obj.Owner.get)
+            val info = DeployableInfo(obj.GUID, DeployableIcon.Boomer, obj.Position, obj.Owner.getOrElse(PlanetSideGUID(0)))
             sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, info))
             continent.LocalEvents ! LocalServiceMessage(factionChannel, LocalAction.DeployableMapIcon(playerGUID, DeploymentAction.Build, info))
           case Some(_) | None => ; //pointless trigger; see Zone.Ground.ItemOnGround(BoomerTrigger, ...)
@@ -1014,7 +1110,7 @@ class WorldSessionActor extends Actor
       StopBundlingPackets()
 
     case WorldSessionActor.FinalizeDeployable(obj : ComplexDeployable, tool, index) =>
-      //spitfires and deployable field turrets and the deployable_shield_generator
+      //tank_traps, spitfires, deployable field turrets and the deployable_shield_generator
       StartBundlingPackets()
       DeployableBuildActivity(obj)
       CommonDestroyConstructionItem(tool, index)
@@ -1031,7 +1127,7 @@ class WorldSessionActor extends Actor
         continent.GUID(router) match {
           case Some(vehicle : Vehicle) =>
             val routerGUID = router.get
-            if(vehicle.Health == 0) {
+            if(vehicle.Destroyed) {
               //the Telepad was successfully deployed; but, before it could configure, its Router was destroyed
               sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", "@Telepad_NoDeploy_RouterLost", None))
               continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent, Some(0 seconds)))
@@ -1054,21 +1150,13 @@ class WorldSessionActor extends Actor
       }
       StopBundlingPackets()
 
-    case WorldSessionActor.FinalizeDeployable(obj : SimpleDeployable, tool, index) =>
-      //tank_trap
-      StartBundlingPackets()
-      DeployableBuildActivity(obj)
-      CommonDestroyConstructionItem(tool, index)
-      FindReplacementConstructionItem(tool, index)
-      StopBundlingPackets()
-
     case WorldSessionActor.FinalizeDeployable(obj : PlanetSideGameObject with Deployable, tool, index) =>
       val guid = obj.GUID
       val definition = obj.Definition
       StartBundlingPackets()
       sendResponse(GenericObjectActionMessage(guid, 21)) //reset build cooldown
       sendResponse(ObjectDeployedMessage.Failure(definition.Name))
-      log.warn(s"FinalizeDeployable: deployable ${definition.asInstanceOf[SimpleDeployableDefinition].Item}@$guid not handled by specific case")
+      log.warn(s"FinalizeDeployable: deployable ${definition.asInstanceOf[BaseDeployableDefinition].Item}@$guid not handled by specific case")
       log.warn(s"FinalizeDeployable: deployable will be cleaned up, but may not get unregistered properly")
       TryDropConstructionTool(tool, index, obj.Position)
       obj.Position = Vector3.Zero
@@ -1173,25 +1261,17 @@ class WorldSessionActor extends Actor
     case NtuDischarging(tplayer, vehicle, silo_guid) =>
       HandleNtuDischarging(tplayer, vehicle, silo_guid)
 
-    case HackingProgress(progressType, tplayer, target, tool_guid, delta, completeAction, tickAction) =>
-      HandleHackingProgress(progressType, tplayer, target, tool_guid, delta, completeAction, tickAction)
-
-    case Vitality.DamageResolution(target : TrapDeployable, _) =>
-      //tank_traps
-      val guid = target.GUID
-      val health = target.Health
-      continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(guid, 0, health))
-      if(health <= 0) {
-        AnnounceDestroyDeployable(target, None)
-      }
+    case Progress(delta, completeAction, tickAction) =>
+      HandleProgressChange(delta, completeAction, tickAction)
 
     case Vitality.DamageResolution(target : TelepadDeployable, _) =>
       //telepads
       if(target.Health <= 0) {
         //update if destroyed
+        target.Destroyed = true
         val guid = target.GUID
         continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, guid))
-        AnnounceDestroyDeployable(target, Some(0 seconds))
+        Deployables.AnnounceDestroyDeployable(target, Some(0 seconds))
       }
 
     case Vitality.DamageResolution(target : PlanetSideGameObject, _) =>
@@ -1211,6 +1291,7 @@ class WorldSessionActor extends Actor
             "SELECT gm FROM accounts where id=?", Array(account.AccountId)
           )).onComplete {
             case scala.util.Success(queryResult) =>
+              if(connection.isConnected) connection.disconnect
               queryResult match {
                 case row: ArrayRowData => // If we got a row from the database
                   log.info(s"ReceiveAccountData: ready to load character list for ${account.Username}")
@@ -1218,12 +1299,11 @@ class WorldSessionActor extends Actor
                 case _ => // If the account didn't exist in the database
                   log.error(s"ReceiveAccountData: ${account.Username} data not found, or unexpected query result format - ${queryResult.getClass}")
                   Thread.sleep(50)
-                  if(connection.isConnected) connection.disconnect
                   sendResponse(DropSession(sessionId, "You should not exist!"))
               }
             case scala.util.Failure(e) =>
-              log.error(s"ReceiveAccountData: ${e.getMessage}")
               if(connection.isConnected) connection.disconnect
+              log.error(s"ReceiveAccountData: ${e.getMessage}")
               Thread.sleep(50)
           }
         case scala.util.Failure(e) =>
@@ -1357,7 +1437,7 @@ class WorldSessionActor extends Actor
           }
           else {
             inZone.GUID(p.VehicleSeated) match {
-              case Some(v : Vehicle) if v.Health == 0 =>
+              case Some(v : Vehicle) if v.Destroyed =>
                 inZone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(v), inZone))
                 inZone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(v, inZone, if(v.Flying) {
                   //TODO gravity
@@ -1480,9 +1560,13 @@ class WorldSessionActor extends Actor
 
       case AvatarResponse.Revive(target_guid) =>
         if(tplayer_guid == target_guid) {
-          deadState = DeadState.Alive
           reviveTimer.cancel
+          deadState = DeadState.Alive
+          player.Revive
+          val health = player.Health
+          sendResponse(PlanetsideAttributeMessage(target_guid, 0, health))
           sendResponse(AvatarDeadStateMessage(DeadState.Alive, 0, 0, player.Position, player.Faction, true))
+          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttributeToAll(target_guid, 0, health))
         }
 
       case AvatarResponse.ArmorChanged(suit, subtype) =>
@@ -1788,26 +1872,29 @@ class WorldSessionActor extends Actor
         sendResponse(GenericObjectStateMsg(door_guid, 17))
 
       case LocalResponse.EliminateDeployable(obj : TurretDeployable, guid, pos) =>
-        if(obj.Health == 0) {
+        if(obj.Destroyed) {
           DeconstructDeployable(obj, guid, pos)
         }
         else {
+          obj.Destroyed = true
           DeconstructDeployable(obj, guid, pos, obj.Orientation, if(obj.MountPoints.isEmpty) 2 else 1)
         }
 
       case LocalResponse.EliminateDeployable(obj : ExplosiveDeployable, guid, pos) =>
-        if(obj.Exploded || obj.Jammed || obj.Health == 0) {
+        if(obj.Destroyed || obj.Jammed || obj.Health == 0) {
           DeconstructDeployable(obj, guid, pos)
         }
         else {
+          obj.Destroyed = true
           DeconstructDeployable(obj, guid, pos, obj.Orientation, 2)
         }
 
       case LocalResponse.EliminateDeployable(obj : ComplexDeployable, guid, pos) =>
-        if(obj.Health == 0) {
+        if(obj.Destroyed) {
           DeconstructDeployable(obj, guid, pos)
         }
         else {
+          obj.Destroyed = true
           DeconstructDeployable(obj, guid, pos, obj.Orientation, 1)
         }
 
@@ -1832,18 +1919,20 @@ class WorldSessionActor extends Actor
           case _ => ;
         }
         //standard deployable elimination behavior
-        if(obj.Health == 0) {
+        if(obj.Destroyed) {
           DeconstructDeployable(obj, guid, pos)
         }
         else {
+          obj.Destroyed = true
           DeconstructDeployable(obj, guid, pos, obj.Orientation, 2)
         }
 
       case LocalResponse.EliminateDeployable(obj, guid, pos) =>
-        if(obj.Health == 0) {
+        if(obj.Destroyed) {
           DeconstructDeployable(obj, guid, pos)
         }
         else {
+          obj.Destroyed = true
           DeconstructDeployable(obj, guid, pos, obj.Orientation, 2)
         }
 
@@ -1853,44 +1942,11 @@ class WorldSessionActor extends Actor
         sendResponse(HackMessage(0, target_guid, guid, 0, unk1, HackState.HackCleared, unk2))
 
       case LocalResponse.HackObject(target_guid, unk1, unk2) =>
-          sendResponse(HackMessage(0, target_guid, guid, 100, unk1, HackState.Hacked, unk2))
+        HackObject(target_guid, unk1, unk2)
+
       case LocalResponse.HackCaptureTerminal(target_guid, unk1, unk2, isResecured) =>
-        var value = 0L
+        HackCaptureTerminal(target_guid, unk1, unk2, isResecured)
 
-        if (isResecured) {
-          value = 17039360L
-          sendResponse(PlanetsideAttributeMessage(target_guid, 20, value))
-        }
-        else {
-          continent.GUID(target_guid) match {
-            case Some(capture_terminal: Amenity with Hackable) =>
-              capture_terminal.HackedBy match {
-                case Some(Hackable.HackInfo(_, _, hfaction, _, start, length)) =>
-                  val hack_time_remaining_ms = TimeUnit.MILLISECONDS.convert(math.max(0, start + length - System.nanoTime), TimeUnit.NANOSECONDS)
-                  val deciseconds_remaining = (hack_time_remaining_ms / 100)
-
-                  // See PlanetSideAttributeMessage #20 documentation for an explanation of how the timer is calculated
-                  val start_num = hfaction match {
-                    case PlanetSideEmpire.TR => 65536L
-                    case PlanetSideEmpire.NC => 131072L
-                    case PlanetSideEmpire.VS => 196608L
-                  }
-                  value = start_num + deciseconds_remaining
-
-                  sendResponse(PlanetsideAttributeMessage(target_guid, 20, value))
-
-                  continent.GUID(player.VehicleSeated) match {
-                    case Some(mountable: Amenity with Mountable) =>
-                      if(mountable.Owner.GUID == capture_terminal.Owner.GUID) {
-                        continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(player.GUID, mountable.Seats.head._1, true, mountable.GUID))
-                      }
-                    case _ => ;
-                  }
-                case _ => log.warn("LocalResponse.HackCaptureTerminal: HackedBy not defined")
-              }
-            case _ => log.warn(s"LocalResponse.HackCaptureTerminal: Couldn't find capture terminal with GUID ${target_guid} in zone ${continent.Id}")
-          }
-        }
       case LocalResponse.ObjectDelete(object_guid, unk) =>
         if(tplayer_guid != guid) {
           sendResponse(ObjectDeleteMessage(object_guid, unk))
@@ -2861,11 +2917,12 @@ class WorldSessionActor extends Actor
         }
 
       case VehicleResponse.ForceDismountVehicleCargo(cargo_guid, bailed, requestedByPassenger, kicked) =>
-        DismountVehicleCargo(tplayer_guid, cargo_guid, bailed, requestedByPassenger, kicked)
+        CargoBehavior.HandleVehicleCargoDismount(continent, tplayer_guid, cargo_guid, bailed, requestedByPassenger, kicked)
+
       case VehicleResponse.KickCargo(vehicle, speed, delay) =>
         if(player.VehicleSeated.nonEmpty && deadState == DeadState.Alive) {
           if(speed > 0) {
-            val strafe = if(CargoOrientation(vehicle) == 1) 2 else 1
+            val strafe = if(Vehicles.CargoOrientation(vehicle) == 1) 2 else 1
             val reverseSpeed = if(strafe > 1) 0 else speed
             //strafe or reverse, not both
             controlled = Some(reverseSpeed)
@@ -2920,219 +2977,6 @@ class WorldSessionActor extends Actor
   }
 
   /**
-    * na
-    * @param decorator custom text for these messages in the log
-    * @param target an optional the target object
-    * @param targetGUID the expected globally unique identifier of the target object
-    */
-  def LogCargoEventMissingVehicleError(decorator : String, target : Option[PlanetSideGameObject], targetGUID : PlanetSideGUID) : Unit = {
-    target match {
-      case Some(_ : Vehicle) => ;
-      case Some(_) => log.error(s"$decorator target $targetGUID no longer identifies as a vehicle")
-      case None => log.error(s"$decorator target $targetGUID has gone missing")
-    }
-  }
-
-  /**
-    * na
-    * @param cargoGUID  na
-    * @param carrierGUID na
-    * @param mountPoint na
-    * @param iteration na
-    */
-  def HandleCheckCargoDismounting(cargoGUID : PlanetSideGUID, carrierGUID : PlanetSideGUID, mountPoint : Int, iteration : Int) : Unit = {
-    (continent.GUID(cargoGUID), continent.GUID(carrierGUID)) match {
-      case ((Some(vehicle : Vehicle), Some(cargo_vehicle : Vehicle))) =>
-        HandleCheckCargoDismounting(cargoGUID, vehicle, carrierGUID, cargo_vehicle, mountPoint, iteration)
-      case (cargo, carrier) if iteration > 0 =>
-        log.error(s"HandleCheckCargoDismounting: participant vehicles changed in the middle of a mounting event")
-        LogCargoEventMissingVehicleError("HandleCheckCargoDismounting: cargo", cargo, cargoGUID)
-        LogCargoEventMissingVehicleError("HandleCheckCargoDismounting: carrier", carrier, carrierGUID)
-      case _ =>
-    }
-  }
-
-  /**
-    * na
-    * @param cargoGUID na
-    * @param cargo na
-    * @param carrierGUID na
-    * @param carrier na
-    * @param mountPoint na
-    * @param iteration na
-    */
-  def HandleCheckCargoDismounting(cargoGUID : PlanetSideGUID, cargo : Vehicle, carrierGUID : PlanetSideGUID, carrier : Vehicle, mountPoint : Int, iteration : Int) : Unit = {
-    carrier.CargoHold(mountPoint) match {
-      case Some(hold) if !hold.isOccupied =>
-        val distance = Vector3.DistanceSquared(cargo.Position, carrier.Position)
-        log.debug(s"HandleCheckCargoDismounting: mount distance between $cargoGUID and $carrierGUID - actual=$distance, target=225")
-        if(distance > 225) {
-          //cargo vehicle has moved far enough away; close the carrier's hold door
-          log.info(s"HandleCheckCargoDismounting: dismount of cargo vehicle from carrier complete at distance of $distance")
-          continent.VehicleEvents ! VehicleServiceMessage(
-            continent.Id,
-            VehicleAction.SendResponse(
-              player.GUID,
-              CargoMountPointStatusMessage(carrierGUID, PlanetSideGUID(0), PlanetSideGUID(0), cargoGUID, mountPoint, CargoStatus.Empty, 0)
-            )
-          )
-          //sending packet to the cargo vehicle's client results in player locking himself in his vehicle
-          //player gets stuck as "always trying to remount the cargo hold"
-          //obviously, don't do this
-        }
-        else if(iteration > 40) {
-          //cargo vehicle has spent too long not getting far enough away; restore the cargo's mount in the carrier hold
-          cargo.MountedIn = carrierGUID
-          hold.Occupant = cargo
-          StartBundlingPackets()
-          CargoMountBehaviorForAll(carrier, cargo, mountPoint)
-          StopBundlingPackets()
-        }
-        else {
-          //cargo vehicle did not move far away enough yet and there is more time to wait; reschedule check
-          import scala.concurrent.ExecutionContext.Implicits.global
-          cargoDismountTimer = context.system.scheduler.scheduleOnce(250 milliseconds, self, CheckCargoDismount(cargoGUID, carrierGUID, mountPoint, iteration + 1))
-        }
-      case None =>
-        log.warn(s"HandleCheckCargoDismounting: carrier vehicle $carrier does not have a cargo hold #$mountPoint")
-      case _ =>
-        if(iteration == 0) {
-          log.warn(s"HandleCheckCargoDismounting: carrier vehicle $carrier will not discharge the cargo of hold #$mountPoint; this operation was initiated incorrectly")
-        }
-        else {
-          log.error(s"HandleCheckCargoDismounting: something has attached to the carrier vehicle $carrier cargo of hold #$mountPoint while a cargo dismount event was ongoing; stopped at iteration $iteration / 40")
-        }
-    }
-  }
-
-  /**
-    * na
-    * @param cargoGUID the vehicle being ferried as cargo
-    * @param carrierGUID the ferrying carrier vehicle
-    * @param mountPoint the cargo hold to which the cargo vehicle is stowed
-    * @param iteration number of times a proper mounting for this combination has been queried
-    */
-  def HandleCheckCargoMounting(cargoGUID : PlanetSideGUID, carrierGUID : PlanetSideGUID, mountPoint : Int, iteration : Int) : Unit = {
-    (continent.GUID(cargoGUID), continent.GUID(carrierGUID)) match {
-      case ((Some(cargo : Vehicle), Some(carrier : Vehicle))) =>
-        HandleCheckCargoMounting(cargoGUID, cargo, carrierGUID, carrier, mountPoint, iteration)
-      case (cargo, carrier) if iteration > 0 =>
-        log.error(s"HandleCheckCargoMounting: participant vehicles changed in the middle of a mounting event")
-        LogCargoEventMissingVehicleError("HandleCheckCargoMounting: cargo", cargo, cargoGUID)
-        LogCargoEventMissingVehicleError("HandleCheckCargoMounting: carrier", carrier, carrierGUID)
-      case _ => ;
-    }
-  }
-
-  /**
-    * na
-    * @param cargoGUID the vehicle being ferried as cargo
-    * @param cargo the vehicle being ferried as cargo
-    * @param carrierGUID the ferrying carrier vehicle
-    * @param carrier the ferrying carrier vehicle
-    * @param mountPoint the cargo hold to which the cargo vehicle is stowed
-    * @param iteration number of times a proper mounting for this combination has been queried
-    */
-  def HandleCheckCargoMounting(cargoGUID : PlanetSideGUID, cargo : Vehicle, carrierGUID : PlanetSideGUID, carrier : Vehicle, mountPoint : Int, iteration : Int) : Unit = {
-    val distance = Vector3.DistanceSquared(cargo.Position, carrier.Position)
-    carrier.CargoHold(mountPoint) match {
-      case Some(hold) if !hold.isOccupied =>
-        log.debug(s"HandleCheckCargoMounting: mount distance between $cargoGUID and $carrierGUID - actual=$distance, target=64")
-        if(distance <= 64) {
-          //cargo vehicle is close enough to assume to be physically within the carrier's hold; mount it
-          log.info(s"HandleCheckCargoMounting: mounting cargo vehicle in carrier at distance of $distance")
-          cargo.MountedIn = carrierGUID
-          hold.Occupant = cargo
-          cargo.Velocity = None
-          continent.VehicleEvents ! VehicleServiceMessage(s"${cargo.Actor}", VehicleAction.SendResponse(PlanetSideGUID(0), PlanetsideAttributeMessage(cargoGUID, 0, cargo.Health)))
-          continent.VehicleEvents ! VehicleServiceMessage(s"${cargo.Actor}", VehicleAction.SendResponse(PlanetSideGUID(0), PlanetsideAttributeMessage(cargoGUID, 68, cargo.Shields)))
-          StartBundlingPackets()
-          val (attachMsg, mountPointMsg) = CargoMountBehaviorForAll(carrier, cargo, mountPoint)
-          StopBundlingPackets()
-          log.info(s"HandleCheckCargoMounting: $attachMsg")
-          log.info(s"HandleCheckCargoMounting: $mountPointMsg")
-        }
-        else if(distance > 625 || iteration >= 40) {
-          //vehicles moved too far away or took too long to get into proper position; abort mounting
-          log.info("HandleCheckCargoMounting: cargo vehicle is too far away or didn't mount within allocated time - aborting")
-          continent.VehicleEvents ! VehicleServiceMessage(
-            continent.Id,
-            VehicleAction.SendResponse(
-              player.GUID,
-              CargoMountPointStatusMessage(carrierGUID, PlanetSideGUID(0), PlanetSideGUID(0), cargoGUID, mountPoint, CargoStatus.Empty, 0)
-            )
-          )
-          //sending packet to the cargo vehicle's client results in player locking himself in his vehicle
-          //player gets stuck as "always trying to remount the cargo hold"
-          //obviously, don't do this
-        }
-        else {
-          //cargo vehicle still not in position but there is more time to wait; reschedule check
-          import scala.concurrent.ExecutionContext.Implicits.global
-          cargoMountTimer = context.system.scheduler.scheduleOnce(250 milliseconds, self, CheckCargoMounting(cargoGUID, carrierGUID, mountPoint, iteration = iteration + 1))
-        }
-      case None => ;
-        log.warn(s"HandleCheckCargoMounting: carrier vehicle $carrier does not have a cargo hold #$mountPoint")
-      case _ =>
-        if(iteration == 0) {
-          log.warn(s"HandleCheckCargoMounting: carrier vehicle $carrier already possesses cargo in hold #$mountPoint; this operation was initiated incorrectly")
-        }
-        else {
-          log.error(s"HandleCheckCargoMounting: something has attached to the carrier vehicle $carrier cargo of hold #$mountPoint while a cargo dismount event was ongoing; stopped at iteration $iteration / 40")
-        }
-    }
-  }
-
-  /**
-    * Produce an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet
-    * that will set up a realized parent-child association between a ferrying vehicle and a ferried vehicle.
-    * @see `CargoMountPointStatusMessage`
-    * @see `CargoOrientation`
-    * @see `ObjectAttachMessage`
-    * @param carrier the ferrying vehicle
-    * @param cargo the ferried vehicle
-    * @param mountPoint the point on the ferryoing vehicle where the ferried vehicle is attached;
-    *                   also known as a "cargo hold"
-    * @return a tuple composed of an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet
-    */
-  def CargoMountMessages(carrier : Vehicle, cargo : Vehicle, mountPoint : Int) : (ObjectAttachMessage, CargoMountPointStatusMessage) = {
-    CargoMountMessages(carrier.GUID, cargo.GUID, mountPoint, CargoOrientation(cargo))
-  }
-
-  /**
-    * Produce an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet
-    * that will set up a realized parent-child association between a ferrying vehicle and a ferried vehicle.
-    * @see `CargoMountPointStatusMessage`
-    * @see `ObjectAttachMessage`
-    * @param carrier the ferrying vehicle
-    * @param cargo the ferried vehicle
-    * @param mountPoint the point on the ferryoing vehicle where the ferried vehicle is attached
-    * @return a tuple composed of an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet
-    */
-  def CargoMountMessages(carrierGUID : PlanetSideGUID, cargoGUID : PlanetSideGUID, mountPoint : Int, orientation : Int) : (ObjectAttachMessage, CargoMountPointStatusMessage) = {
-    (
-      ObjectAttachMessage(carrierGUID, cargoGUID, mountPoint),
-      CargoMountPointStatusMessage(carrierGUID, cargoGUID, cargoGUID, PlanetSideGUID(0), mountPoint, CargoStatus.Occupied, orientation)
-    )
-  }
-
-  /**
-    * The orientation of a cargo vehicle as it is being loaded into and contained by a carrier vehicle.
-    * The type of carrier is not an important consideration in determining the orientation, oddly enough.
-    * @param vehicle the cargo vehicle
-    * @return the orientation as an `Integer` value;
-    *         `0` for almost all cases
-    */
-  def CargoOrientation(vehicle : Vehicle) : Int = {
-    if(vehicle.Definition == GlobalDefinitions.router) {
-      1
-    }
-    else {
-      0
-    }
-  }
-
-  /**
     * Dispatch an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet only to this client.
     * @see `CargoMountPointStatusMessage`
     * @see `ObjectAttachMessage`
@@ -3142,7 +2986,7 @@ class WorldSessionActor extends Actor
     * @return a tuple composed of an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet
     */
   def CargoMountBehaviorForUs(carrier : Vehicle, cargo : Vehicle, mountPoint : Int) : (ObjectAttachMessage, CargoMountPointStatusMessage) = {
-    val msgs @ (attachMessage, mountPointStatusMessage) = CargoMountMessages(carrier, cargo, mountPoint)
+    val msgs @ (attachMessage, mountPointStatusMessage) = CargoBehavior.CargoMountMessages(carrier, cargo, mountPoint)
     CargoMountMessagesForUs(attachMessage, mountPointStatusMessage)
     msgs
   }
@@ -3157,52 +3001,6 @@ class WorldSessionActor extends Actor
   def CargoMountMessagesForUs(attachMessage : ObjectAttachMessage, mountPointStatusMessage : CargoMountPointStatusMessage) : Unit = {
     sendResponse(attachMessage)
     sendResponse(mountPointStatusMessage)
-  }
-
-
-
-  /**
-    * Dispatch an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet to all other clients, not this one.
-    * @see `CargoMountPointStatusMessage`
-    * @see `ObjectAttachMessage`
-    * @param carrier the ferrying vehicle
-    * @param cargo the ferried vehicle
-    * @param mountPoint the point on the ferryoing vehicle where the ferried vehicle is attached
-    * @return a tuple composed of an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet
-    */
-  def CargoMountBehaviorForOthers(carrier : Vehicle, cargo : Vehicle, mountPoint : Int) : (ObjectAttachMessage, CargoMountPointStatusMessage) = {
-    val msgs @ (attachMessage, mountPointStatusMessage) = CargoMountMessages(carrier, cargo, mountPoint)
-    CargoMountMessagesForOthers(attachMessage, mountPointStatusMessage)
-    msgs
-  }
-
-  /**
-    * Dispatch an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet to all other clients, not this one.
-    * @see `CargoMountPointStatusMessage`
-    * @see `ObjectAttachMessage`
-    * @param attachMessage an `ObjectAttachMessage` packet suitable for initializing cargo operations
-    * @param mountPointStatusMessage a `CargoMountPointStatusMessage` packet suitable for initializing cargo operations
-    */
-  def CargoMountMessagesForOthers(attachMessage : ObjectAttachMessage, mountPointStatusMessage : CargoMountPointStatusMessage) : Unit = {
-    val pguid = player.GUID
-    continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.SendResponse(pguid, attachMessage))
-    continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.SendResponse(pguid, mountPointStatusMessage))
-  }
-
-  /**
-    * Dispatch an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet to everyone.
-    * @see `CargoMountPointStatusMessage`
-    * @see `ObjectAttachMessage`
-    * @param carrier the ferrying vehicle
-    * @param cargo the ferried vehicle
-    * @param mountPoint the point on the ferryoing vehicle where the ferried vehicle is attached
-    * @return a tuple composed of an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet
-    */
-  def CargoMountBehaviorForAll(carrier : Vehicle, cargo : Vehicle, mountPoint : Int) : (ObjectAttachMessage, CargoMountPointStatusMessage) = {
-    val msgs @ (attachMessage, mountPointStatusMessage) = CargoMountMessages(carrier, cargo, mountPoint)
-    CargoMountMessagesForUs(attachMessage, mountPointStatusMessage)
-    CargoMountMessagesForOthers(attachMessage, mountPointStatusMessage)
-    msgs
   }
 
   /**
@@ -3290,60 +3088,66 @@ class WorldSessionActor extends Actor
   }
 
   /**
-    * na
-    * @param progressType na
-    * @param tplayer na
-    * @param target na
-    * @param tool_guid na
-    * @param delta na
-    * @param completeAction na
-    * @param tickAction na
+    * Handle the message that indidctes the level of completion of a process.
+    * The process is any form of user-driven activity with a certain eventual outcome
+    * but indeterminate progress feedback per cycle.<br>
+    * <br>
+    * This task is broken down into the "progression" from its initial state to the eventual outcome
+    * as is reported back to the player through some means of messaging window feedback.
+    * Though common in practice, this is not a requirement
+    * and the progress can accumulate without a user reportable method.
+    * To ensure that completion is reported properly,
+    * an exception is made that 99% completion is accounted uniquely
+    * before the final 100% is achieved.
+    * If the background process recording value is never set before running the initial operation
+    * or gets unset by failing a `tickAction` check
+    * the process is stopped.
+    * @see `progressBarUpdate`
+    * @see `progressBarValue`
+    * @see `WorldSessionActor.Progress`
+    * @param delta how much the progress changes each tick
+    * @param completeAction a custom action performed once the process is completed
+    * @param tickAction an optional action is is performed for each tick of progress;
+    *                   also performs a continuity check to determine if the process has been disrupted
     */
-  def HandleHackingProgress(progressType : Int, tplayer : Player, target : PlanetSideServerObject, tool_guid : PlanetSideGUID, delta : Float, completeAction : ()=>Unit, tickAction : Option[()=>Unit]) : Unit = {
+  def HandleProgressChange(delta : Float, completionAction : ()=>Unit, tickAction : Float=>Boolean) : Unit = {
     progressBarUpdate.cancel
-    if(progressBarValue.isDefined) {
-      val progressBarVal : Float = if (progressBarValue.get + delta > 100) { 100f } else { progressBarValue.get + delta }
-
-      val vis = if(progressBarVal == 0L) {
-        //hack state for progress bar visibility
-        HackState.Start
-      }
-      else if(progressBarVal >= 100L) {
-        HackState.Finished
-      }
-      else if(target.Velocity.isDefined && Vector3.Distance(Vector3.Zero, target.Velocity.get) > 1f) {
-        // If the object is moving (more than slightly to account for things like magriders rotating, or the last velocity reported being the magrider dipping down on dismount) then cancel the hack
-        HackState.Cancelled
-      }
-      else {
-        HackState.Ongoing
-      }
-
-      if(!target.HasGUID) {
-        // Target is gone, cancel the hack.
-        sendResponse(HackMessage(progressType, target.GUID, player.GUID, 0, 0L, HackState.Cancelled, 8L))
-      }
-      else if(vis == HackState.Cancelled) {
-        // Object moved. Cancel the hack (e.g. vehicle drove away)
-        sendResponse(HackMessage(progressType, target.GUID, player.GUID, 0, 0L, vis, 8L))
-      }
-      else
-      {
-        sendResponse(HackMessage(progressType, target.GUID, player.GUID, progressBarVal.toInt, 0L, vis, 8L))
-
-        if(progressBarVal >= 100) {
-          //done
+    progressBarValue match {
+      case Some(value) =>
+        val next = value + delta
+        if(value >= 100f) {
+          //complete
           progressBarValue = None
-          completeAction()
+          tickAction(100)
+          completionAction()
+        }
+        else if(value < 100f && next >= 100f) {
+          if(tickAction(99)) {
+            //will complete after this turn
+            progressBarValue = Some(next)
+            import scala.concurrent.ExecutionContext.Implicits.global
+            progressBarUpdate = context.system.scheduler.scheduleOnce(100 milliseconds, self,
+              Progress(delta, completionAction, tickAction)
+            )
+          }
+          else {
+            progressBarValue = None
+          }
         }
         else {
-          //continue next tick
-          tickAction.getOrElse(() => Unit)()
-          progressBarValue = Some(progressBarVal)
-          import scala.concurrent.ExecutionContext.Implicits.global
-          progressBarUpdate = context.system.scheduler.scheduleOnce(250 milliseconds, self, HackingProgress(progressType, tplayer, target, tool_guid, delta, completeAction))
+          if(tickAction(next)) {
+            //normal progress activity
+            progressBarValue = Some(next)
+            import scala.concurrent.ExecutionContext.Implicits.global
+            progressBarUpdate = context.system.scheduler.scheduleOnce(250 milliseconds, self,
+              Progress(delta, completionAction, tickAction)
+            )
+          }
+          else {
+            progressBarValue = None
+          }
         }
-      }
+      case None => ;
     }
   }
 
@@ -3626,34 +3430,33 @@ class WorldSessionActor extends Actor
 
       accountIntermediary ! RetrieveAccountData(token)
 
-    case msg @ MountVehicleCargoMsg(player_guid, vehicle_guid, cargo_vehicle_guid, unk4) =>
+    case msg @ MountVehicleCargoMsg(player_guid, cargo_guid, carrier_guid, unk4) =>
       log.info(msg.toString)
-      (continent.GUID(vehicle_guid), continent.GUID(cargo_vehicle_guid)) match {
-        case (Some(_ : Vehicle), Some(carrier : Vehicle)) =>
-          carrier.Definition.Cargo.headOption match {
-            case Some((mountPoint, _)) => //begin the mount process - open the cargo door
-              val reply = CargoMountPointStatusMessage(cargo_vehicle_guid, PlanetSideGUID(0), vehicle_guid, PlanetSideGUID(0), mountPoint, CargoStatus.InProgress, 0)
-              log.debug(reply.toString)
-              continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.SendResponse(player.GUID, reply))
-              sendResponse(reply)
-
-              import scala.concurrent.duration._
-              import scala.concurrent.ExecutionContext.Implicits.global
-              // Start timer to check every second if the vehicle is close enough to mount, or far enough away to cancel the mounting
-              cargoMountTimer.cancel
-              cargoMountTimer = context.system.scheduler.scheduleOnce(1 second, self, CheckCargoMounting(vehicle_guid, cargo_vehicle_guid, mountPoint, iteration = 0))
-            case None =>
+      (continent.GUID(cargo_guid), continent.GUID(carrier_guid)) match {
+        case (Some(cargo : Vehicle), Some(carrier : Vehicle)) =>
+          carrier.CargoHolds.find({ case (_, hold) => !hold.isOccupied }) match {
+            case Some((mountPoint, _)) => //try begin the mount process
+              cargo.Actor ! CargoBehavior.CheckCargoMounting(carrier_guid, mountPoint, 0)
+            case _ =>
               log.warn(s"MountVehicleCargoMsg: target carrier vehicle (${carrier.Definition.Name}) does not have a cargo hold")
           }
         case (None, _) | (Some(_), None) =>
-          log.warn(s"MountVehicleCargoMsg: one or more of the target vehicles do not exist - $cargo_vehicle_guid or $vehicle_guid")
+          log.warn(s"MountVehicleCargoMsg: one or more of the target vehicles do not exist - $carrier_guid or $cargo_guid")
         case _ => ;
       }
 
     case msg @ DismountVehicleCargoMsg(player_guid, cargo_guid, bailed, requestedByPassenger, kicked) =>
       log.info(msg.toString)
-      if(!requestedByPassenger) {
-        DismountVehicleCargo(player_guid, cargo_guid, bailed, requestedByPassenger, kicked)
+      //when kicked by carrier driver, player_guid will be PlanetSideGUID(0)
+      //when exiting of the cargo vehicle driver's own accord, player_guid will be the cargo vehicle driver
+      continent.GUID(cargo_guid) match {
+        case Some(cargo : Vehicle) if !requestedByPassenger =>
+          continent.GUID(cargo.MountedIn) match {
+            case Some(carrier : Vehicle) =>
+              CargoBehavior.HandleVehicleCargoDismount(continent, player_guid, cargo_guid, bailed, requestedByPassenger, kicked)
+            case _ => ;
+          }
+        case _ => ;
       }
 
     case msg @ CharacterCreateRequestMessage(name, head, voice, gender, empire) =>
@@ -3664,6 +3467,7 @@ class WorldSessionActor extends Actor
             "SELECT account_id FROM characters where name ILIKE ? AND deleted = false", Array(name)
           )).onComplete {
             case scala.util.Success(queryResult) =>
+              if(connection.isConnected) connection.disconnect
               queryResult match {
                 case row: ArrayRowData => // If we got a row from the database
                   if (row(0).asInstanceOf[Int] == account.AccountId) { // create char
@@ -3678,7 +3482,6 @@ class WorldSessionActor extends Actor
                 case _ => // If the char name didn't exist in the database, create char
                   self ! CreateCharacter(name, head, voice, gender, empire)
               }
-              if(connection.isConnected) connection.disconnect
             case scala.util.Failure(e) =>
               if(connection.isConnected) connection.disconnect
               sendResponse(ActionResultMessage.Fail(4))
@@ -3721,6 +3524,7 @@ class WorldSessionActor extends Actor
                 "SELECT id, name, faction_id, gender_id, head_id, voice_id FROM characters where id=?", Array(charId)
               )).onComplete {
                 case Success(queryResult) =>
+                  if(connection.isConnected) connection.disconnect
                   queryResult match {
                     case row : ArrayRowData =>
                       val lName : String = row(1).asInstanceOf[String]
@@ -3739,7 +3543,6 @@ class WorldSessionActor extends Actor
                     case _ =>
                       log.error(s"CharacterRequest/Select: no character for $charId found")
                   }
-                  if(connection.isConnected) connection.disconnect
                 case e =>
                   if(connection.isConnected) connection.disconnect
                   log.error(s"CharacterRequest/Select: toto tata; unexpected query result format - ${e.getClass}")
@@ -3776,7 +3579,6 @@ class WorldSessionActor extends Actor
       sendResponse(ContinentalLockUpdateMessage(13, PlanetSideEmpire.VS)) // "The VS have captured the VS Sanctuary."
       sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty)) //clear squad list
       sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 0)) // disable festive backpacks
-      //(0 to 255).foreach(i => { sendResponse(SetEmpireMessage(PlanetSideGUID(i), PlanetSideEmpire.VS)) })
 
       //find and reclaim own deployables, if any
       val guid = player.GUID
@@ -3830,13 +3632,22 @@ class WorldSessionActor extends Actor
               }
           }
       })
+      //sensor animation
       normal
-        .filter(_.Definition.DeployCategory == DeployableCategory.Sensors)
+        .filter(obj =>
+          obj.Definition.DeployCategory == DeployableCategory.Sensors &&
+            !obj.Destroyed &&
+            (obj match { case jObj : JammableUnit => !jObj.Jammed; case _ => true })
+        )
         .foreach(obj => { sendResponse(TriggerEffectMessage(obj.GUID, "on", true, 1000)) })
+      //update the health of our faction's deployables (if necessary)
       //draw our faction's deployables on the map
       continent.DeployableList
-        .filter(obj => obj.Faction == faction && obj.Health > 0)
+        .filter(obj => obj.Faction == faction && !obj.Destroyed)
         .foreach(obj => {
+          if(obj.Health != obj.DefaultHealth) {
+            sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))
+          }
           val deployInfo = DeployableInfo(obj.GUID, Deployable.Icon(obj.Definition.Item), obj.Position, obj.Owner.getOrElse(PlanetSideGUID(0)))
           sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, deployInfo))
         })
@@ -3867,13 +3678,15 @@ class WorldSessionActor extends Actor
       }
       //load vehicles in zone (put separate the one we may be using)
       val (wreckages, (vehicles, usedVehicle)) = {
-        val (a, b) = continent.Vehicles.partition(vehicle => { vehicle.Health == 0 && vehicle.Definition.DestroyedModel.nonEmpty })
+        val (a, b) = continent.Vehicles.partition(vehicle => { vehicle.Destroyed && vehicle.Definition.DestroyedModel.nonEmpty })
         (a, (continent.GUID(player.VehicleSeated) match {
           case Some(vehicle : Vehicle) if vehicle.PassengerInSeat(player).isDefined =>
             b.partition { _.GUID != vehicle.GUID }
-          case None =>
+          case Some(_) =>
+            //vehicle, but we're not seated in it
+            player.VehicleSeated = None
             (b, List.empty[Vehicle])
-          case _ =>
+          case None =>
             //throw error since VehicleSeated didn't point to a vehicle?
             player.VehicleSeated = None
             (b, List.empty[Vehicle])
@@ -3899,8 +3712,10 @@ class WorldSessionActor extends Actor
               )
             )
           })
-        Vehicles.ReloadAccessPermissions(vehicle, player.Name)
       })
+      vehicles.collect { case vehicle if vehicle.Faction == faction =>
+        Vehicles.ReloadAccessPermissions(vehicle, player.Name)
+      }
       //our vehicle would have already been loaded; see NewPlayerLoaded/AvatarCreate
       usedVehicle.headOption match {
         case Some(vehicle) =>
@@ -3924,7 +3739,11 @@ class WorldSessionActor extends Actor
           (0 to 3).foreach { group =>
             sendResponse(PlanetsideAttributeMessage(vguid, group + 10, vehicle.PermissionGroup(group).get.id))
           }
-        case _ => ; //driver, or no vehicle
+          //positive shield strength
+          if(vehicle.Shields > 0) {
+            sendResponse(PlanetsideAttributeMessage(vguid, 68, vehicle.Shields))
+          }
+        case _ => ; //no vehicle
       }
       //vehicle wreckages
       wreckages.foreach(vehicle => {
@@ -3939,7 +3758,7 @@ class WorldSessionActor extends Actor
       //cargo occupants (including our own vehicle as cargo)
       vehicles.collect { case vehicle if vehicle.CargoHolds.nonEmpty =>
         vehicle.CargoHolds.collect({ case (index, hold) if hold.isOccupied => {
-          CargoMountBehaviorForAll(vehicle, hold.Occupant.get, index) //CargoMountBehaviorForUs can fail to attach the cargo vehicle on some clients
+          CargoBehavior.CargoMountBehaviorForAll(vehicle, hold.Occupant.get, index) //CargoMountBehaviorForUs can fail to attach the cargo vehicle on some clients
         }})
       }
       //special deploy states
@@ -4170,6 +3989,7 @@ class WorldSessionActor extends Actor
       continent.Population ! Zone.Population.Release(avatar)
       player.VehicleSeated match {
         case None =>
+          log.info("not in vehicle")
           PrepareToTurnPlayerIntoCorpse(player, continent)
 
         case Some(_) =>
@@ -4314,7 +4134,7 @@ class WorldSessionActor extends Actor
           case Some(pad : VehicleSpawnPad) =>
             pad.Actor ! VehicleSpawnControl.ProcessControl.Flush
           case Some(turret : FacilityTurret) if turret.isUpgrading =>
-            FinishUpgradingMannedTurret(turret, TurretUpgrade.None)
+            WeaponTurrets.FinishUpgradingMannedTurret(turret, TurretUpgrade.None)
           case _ =>
             self ! PacketCoding.CreateGamePacket(0, RequestDestroyMessage(PlanetSideGUID(guid)))
         }
@@ -4501,7 +4321,7 @@ class WorldSessionActor extends Actor
           continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ChangeFireState_Start(playerGUID, item_guid))
           continent.GUID(trigger.Companion) match {
             case Some(boomer : BoomerDeployable) =>
-              boomer.Exploded = true
+              boomer.Destroyed = true
               continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.Detonate(boomer.GUID, boomer))
               Deployables.AnnounceDestroyDeployable(boomer, Some(500 milliseconds))
             case Some(_) | None => ;
@@ -4616,7 +4436,7 @@ class WorldSessionActor extends Actor
               case Some(unholsteredItem : Equipment) =>
                 if(unholsteredItem.Definition == GlobalDefinitions.remote_electronics_kit) {
                   // Player has unholstered a REK - we need to set an atttribute on the REK itself to change the beam/icon colour to the correct one for the player's hack level
-                  continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(unholsteredItem.GUID, 116, GetPlayerHackLevel()))
+                  continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttribute(unholsteredItem.GUID, 116, Player.GetHackLevel(player)))
                 }
               case None => ;
             }
@@ -4672,9 +4492,9 @@ class WorldSessionActor extends Actor
       // TODO: Make sure this is the correct response for all cases
       ValidObject(object_guid) match {
         case Some(vehicle : Vehicle) =>
-          if((player.VehicleOwned.contains(object_guid) && vehicle.Owner.contains(player.GUID))
-            || (player.Faction == vehicle.Faction
-            && ((vehicle.Owner.isEmpty || continent.GUID(vehicle.Owner.get).isEmpty) || vehicle.Health == 0))) {
+          if((player.VehicleOwned.contains(object_guid) && vehicle.Owner.contains(player.GUID)) ||
+            (player.Faction == vehicle.Faction &&
+              ((vehicle.Owner.isEmpty || continent.GUID(vehicle.Owner.get).isEmpty) || vehicle.Destroyed))) {
             continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(vehicle), continent))
             continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(vehicle, continent, Some(0 seconds)))
             log.info(s"RequestDestroy: vehicle $vehicle")
@@ -4781,14 +4601,16 @@ class WorldSessionActor extends Actor
                 }
               } && indexSlot.Equipment.contains(item)) {
                 if(PermitEquipmentStow(item, destination)) {
+                  StartBundlingPackets()
                   PerformMoveItem(item, source, index, destination, dest, destItemEntry)
+                  StopBundlingPackets()
                 }
                 else {
                   log.error(s"MoveItem: $item disallowed storage in $destination")
                 }
               }
               else if(!indexSlot.Equipment.contains(item)) {
-                log.error(s"MoveItem: wanted to move $item_guid, but found unexpected ${indexSlot.Equipment.get} at source location")
+                log.error(s"MoveItem: wanted to move $item_guid, but found unexpected ${indexSlot.Equipment} at source location")
               }
               else {
                 destinationCollisionTest match {
@@ -4831,7 +4653,9 @@ class WorldSessionActor extends Actor
             }, target.Fit(item)) match {
             case (Some((source, Some(index))), Some(dest)) =>
               if(PermitEquipmentStow(item, target)) {
+                StartBundlingPackets()
                 PerformMoveItem(item, source, index, target, dest, None)
+                StopBundlingPackets()
               }
               else {
                 log.error(s"LootItem: $item disallowed storage in $target")
@@ -4861,6 +4685,10 @@ class WorldSessionActor extends Actor
       //log.info("UseItem: " + msg)
       // TODO: Not all fields in the response are identical to source in real packet logs (but seems to be ok)
       // TODO: Not all incoming UseItemMessage's respond with another UseItemMessage (i.e. doors only send out GenericObjectStateMsg)
+      val equipment = player.Slot(player.DrawnSlot).Equipment match {
+        case out @ Some(item) if item.GUID == item_used_guid => out
+        case _ => None
+      }
       ValidObject(object_guid) match {
         case Some(door : Door) =>
           if(player.Faction == door.Faction || (continent.Map.DoorToLock.get(object_guid.guid) match {
@@ -4888,44 +4716,13 @@ class WorldSessionActor extends Actor
           }
 
         case Some(resourceSilo : ResourceSilo) =>
-          log.info(s"UseItem: Vehicle $avatar_guid is refilling resource silo $object_guid")
-          val vehicle = continent.GUID(avatar_guid).get.asInstanceOf[Vehicle]
-
-          if(resourceSilo.Faction == PlanetSideEmpire.NEUTRAL || player.Faction == resourceSilo.Faction) {
-            if(vehicle.Seat(0).get.Occupant.contains(player)) {
-              log.trace("UseItem: Player matches vehicle driver. Calling ResourceSilo.Use")
-              resourceSilo.Actor ! ResourceSilo.Use(player, msg)
-            }
-          } else {
-            log.warn(s"Player ${player.GUID} - ${player.Faction} tried to refill silo ${resourceSilo.GUID} - ${resourceSilo.Faction} belonging to another empire")
-          }
+          resourceSilo.Actor ! ResourceSilo.Use(player, msg)
 
         case Some(panel : IFFLock) =>
-          if((panel.Faction != player.Faction && panel.HackedBy.isEmpty) || (panel.Faction == player.Faction && panel.HackedBy.isDefined)) {
-            player.Slot(player.DrawnSlot).Equipment match {
-              case Some(tool : SimpleItem) =>
-                if(tool.Definition == GlobalDefinitions.remote_electronics_kit) {
-                  val hackSpeed = GetPlayerHackSpeed(panel)
-
-                  if(hackSpeed > 0) {
-                    progressBarValue = Some(-hackSpeed)
-                    if(panel.Faction != player.Faction) {
-                      // Enemy faction is hacking this IFF lock
-                      self ! WorldSessionActor.HackingProgress(progressType = 1, player, panel, tool.GUID, hackSpeed, FinishHacking(panel, 1114636288L))
-                      log.info("Hacking an IFF lock")
-                    } else {
-                      // IFF Lock is being resecured by it's owner faction
-                      self ! WorldSessionActor.HackingProgress(progressType = 1, player, panel, tool.GUID, hackSpeed, FinishResecuringIFFLock(panel))
-                      log.info("Resecuring an IFF lock")
-                    }
-                  }
-                }
-              case _ => ;
-            }
-          } else {
-            log.warn("IFF lock is being hacked, but don't know how to handle this state")
-            log.warn(s"Lock - HackedBy.isDefined: ${panel.HackedBy.isDefined} Faction: ${panel.Faction} HackedBy.isEmpty: ${panel.HackedBy.isEmpty}")
-            log.warn(s"Hacking player - Faction: ${player.Faction}")
+          equipment match {
+            case Some(item) =>
+              panel.Actor ! CommonMessages.Use(player, Some(item))
+            case _ => ;
           }
 
         case Some(obj : Player) =>
@@ -4935,7 +4732,7 @@ class WorldSessionActor extends Actor
             accessedContainer = Some(obj)
           }
           else if(!unk3 && player.isAlive) { //potential kit use
-            ValidObject(item_used_guid) match {
+            equipment match {
               case Some(kit : Kit) =>
                 player.Find(kit) match {
                   case Some(index) =>
@@ -5046,167 +4843,79 @@ class WorldSessionActor extends Actor
             }
           }
           else if (itemType == ObjectClass.avatar && unk3) {
-            FindWeapon match {
-              case Some(tool: Tool) =>
-                if (tool.Definition == GlobalDefinitions.bank) {
-                  ValidObject(object_guid) match {
-                    case Some(tplayer: Player) =>
-                      if (player.GUID != tplayer.GUID && Vector3.Distance(player.Position, tplayer.Position) < 5 && player.Faction == tplayer.Faction && !player.isMoving && tplayer.MaxArmor > 0 && tplayer.Armor < tplayer.MaxArmor) {
-                        tplayer.Armor += 15
-                        tool.Discharge
-                        sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
-                        val RepairPercent: Int = tplayer.Armor * 100 / tplayer.MaxArmor
-                        sendResponse(RepairMessage(object_guid, RepairPercent))
-                        continent.AvatarEvents ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttributeToAll(tplayer.GUID, 4, tplayer.Armor))
-                      } else if (player.GUID == tplayer.GUID && !player.isMoving && tplayer.MaxArmor > 0) {
-                        player.Armor += 15
-                        tool.Discharge
-                        sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
-                        continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeToAll(player.GUID, 4, player.Armor))
-                      }
-                    case _ => ;
-                  }
-                } else if (tool.Definition == GlobalDefinitions.medicalapplicator) {
-                  continent.GUID(object_guid) match {
-                    case Some(tplayer: Player) =>
-                      if (player.GUID != tplayer.GUID && Vector3.Distance(player.Position, tplayer.Position) < 5 && player.Faction == tplayer.Faction && !player.isMoving && tplayer.MaxHealth > 0 && tplayer.Health < tplayer.MaxHealth) {
-                        if(tplayer.isAlive) {
-                          tplayer.Health += 10
-                        } else {
-                          // Reviving another player is normally 25 "medical energy" (ammo) and 5,000 milliseconds duration, based on the game properties revive_ammo_required and revive_time
-                          //todo: @NotEnoughAmmoToRevive=You do not have enough medical energy to revive this corpse.
-                          tplayer.Health += 4 // 4 health per tick = 5 second revive timer from 0 health
-                        }
-                        tool.Discharge
-                        sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
-                        val repairPercent: Int = tplayer.Health * 100 / tplayer.MaxHealth
-                        sendResponse(RepairMessage(object_guid, repairPercent))
+            equipment match {
+              case Some(tool: Tool) if tool.Definition == GlobalDefinitions.bank =>
+                obj.Actor ! CommonMessages.Use(player, equipment)
 
-                        if(!tplayer.isAlive && tplayer.Health == tplayer.MaxHealth) {
-                          tplayer.Revive
-                          continent.AvatarEvents ! AvatarServiceMessage(tplayer.Continent, AvatarAction.Revive(tplayer.GUID))
-                        }
+              case Some(tool: Tool) if tool.Definition == GlobalDefinitions.medicalapplicator =>
+                obj.Actor ! CommonMessages.Use(player, equipment)
 
-                        if(tplayer.isAlive) {
-                          continent.AvatarEvents ! AvatarServiceMessage(tplayer.Continent, AvatarAction.PlanetsideAttributeToAll(tplayer.GUID, 0, tplayer.Health))
-                        }
-                      } else if (player.GUID == tplayer.GUID && !player.isMoving && tplayer.MaxHealth > 0 && player.isAlive) {
-                        player.Health += 10
-                        tool.Discharge
-                        sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, obj.GUID, tool.Magazine))
-                        continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.PlanetsideAttributeToAll(player.GUID, 0, player.Health))
-                      }
-                    case _ => ;
-                  }
-                }
-              case None => ;
+              case _ => ;
             }
           }
 
         case Some(locker : Locker) =>
-          if(locker.Faction != player.Faction && locker.HackedBy.isEmpty) {
-            player.Slot(player.DrawnSlot).Equipment match {
-              case Some(tool: SimpleItem) =>
-                if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
-                  val hackSpeed = GetPlayerHackSpeed(locker)
-
-                  if(hackSpeed > 0)  {
-                    progressBarValue = Some(-hackSpeed)
-                    self ! WorldSessionActor.HackingProgress(progressType = 1, player, locker, tool.GUID, hackSpeed, FinishHacking(locker, 3212836864L))
-                    log.info("Hacking a locker")
-                  }
-                }
-              case _ => ;
-            }
-          } else if(player.Faction == locker.Faction || !locker.HackedBy.isEmpty) {
-            log.info(s"UseItem: $player accessing a locker")
-            val container = player.Locker
-            accessedContainer = Some(container)
-            sendResponse(UseItemMessage(avatar_guid, item_used_guid, container.GUID, unk2, unk3, unk4, unk5, unk6, unk7, unk8, 456))
-          }
-          else {
-            log.info(s"UseItem: not $player's locker")
+          equipment match {
+            case Some(item) =>
+              locker.Actor ! CommonMessages.Use(player, Some(item))
+            case None if locker.Faction == player.Faction || !locker.HackedBy.isEmpty =>
+              log.trace(s"UseItem: $player accessing a locker")
+              val container = player.Locker
+              accessedContainer = Some(container)
+              sendResponse(UseItemMessage(avatar_guid, item_used_guid, container.GUID, unk2, unk3, unk4, unk5, unk6, unk7, unk8, 456))
+            case _ => ;
           }
 
-        case Some(implant_terminal : ImplantTerminalMech) =>
-          if(implant_terminal.Faction != player.Faction && implant_terminal.HackedBy.isEmpty) {
-            player.Slot(player.DrawnSlot).Equipment match {
-              case Some(tool: SimpleItem) =>
-                if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
-                  val hackSpeed = GetPlayerHackSpeed(implant_terminal)
+        case Some(gen : Generator) =>
+          equipment match {
+            case Some(item) =>
+              gen.Actor ! CommonMessages.Use(player, Some(item))
+            case None => ;
+          }
 
-                  if(hackSpeed > 0)  {
-                    progressBarValue = Some(-hackSpeed)
-                    self ! WorldSessionActor.HackingProgress(progressType = 1, player, implant_terminal, tool.GUID, hackSpeed, FinishHacking(implant_terminal, 3212836864L))
-                    log.info("Hacking an implant terminal")
-                  }
-                }
-              case _ => ;
-            }
+        case Some(mech : ImplantTerminalMech) =>
+          equipment match {
+            case Some(item) =>
+              mech.Actor ! CommonMessages.Use(player, Some(item))
+            case None => ;
           }
 
         case Some(captureTerminal : CaptureTerminal) =>
-          val hackedByCurrentFaction = (captureTerminal.Faction != player.Faction && !captureTerminal.HackedBy.isEmpty && captureTerminal.HackedBy.get.hackerFaction == player.Faction)
-          val ownedByPlayerFactionAndHackedByEnemyFaction = (captureTerminal.Faction == player.Faction && !captureTerminal.HackedBy.isEmpty)
-          if(!hackedByCurrentFaction || ownedByPlayerFactionAndHackedByEnemyFaction) {
-            player.Slot(player.DrawnSlot).Equipment match {
-              case Some(tool: SimpleItem) =>
-                if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
-                  val hackSpeed = GetPlayerHackSpeed(captureTerminal)
-
-                  if(hackSpeed > 0) {
-                    progressBarValue = Some(-hackSpeed)
-                    self ! WorldSessionActor.HackingProgress(progressType = 1, player, captureTerminal, tool.GUID, hackSpeed, FinishHacking(captureTerminal, 3212836864L))
-                    log.info("Hacking a capture terminal")
-                  }
-                }
-              case _ => ;
-            }
+          equipment match {
+            case Some(item) =>
+              captureTerminal.Actor ! CommonMessages.Use(player, Some(item))
+            case _ => ;
           }
 
         case Some(obj : FacilityTurret) =>
-          player.Slot(player.DrawnSlot).Equipment match {
-            case Some(tool : Tool) =>
-              if(tool.Definition == GlobalDefinitions.nano_dispenser && tool.Magazine > 0) {
-                val ammo = tool.AmmoType
-                if(ammo == Ammo.upgrade_canister && obj.Seats.values.count(_.isOccupied) == 0) {
+          val tdef = obj.Definition
+          (obj.Owner, equipment) match {
+            case (b : Building, Some(gluegun : Tool)) if b.Faction == player.Faction &&
+              gluegun.Definition == GlobalDefinitions.nano_dispenser =>
+              gluegun.AmmoType match {
+                case Ammo.armor_canister => //repair
+                  obj.Actor ! CommonMessages.Use(player, Some(gluegun))
+
+                case Ammo.upgrade_canister if gluegun.Magazine > 0 && obj.Seats.values.forall(!_.isOccupied) => //upgrade
                   progressBarValue = Some(-1.25f)
-                  self ! WorldSessionActor.HackingProgress(
-                    progressType = 2,
-                    player,
-                    obj,
-                    tool.GUID,
+                  self ! Progress(
                     delta = 1.25f,
-                    FinishUpgradingMannedTurret(obj, tool, TurretUpgrade(unk2.toInt))
+                    WeaponTurrets.FinishUpgradingMannedTurret(obj, player, gluegun, TurretUpgrade(unk2.toInt)),
+                    GenericHackables.HackingTickAction(progressType = 2, player, obj, gluegun.GUID)
                   )
-                }
-                else if(ammo == Ammo.armor_canister && obj.Health < obj.MaxHealth) {
-                  //repair turret
-                  obj.Health += 48
-                  if (obj.Health > obj.MaxHealth) obj.Health = obj.MaxHealth
-                  //                sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
-                  val RepairPercent: Int = obj.Health * 100 / obj.MaxHealth
-                  sendResponse(RepairMessage(object_guid, RepairPercent))
-                  continent.AvatarEvents ! AvatarServiceMessage(obj.Continent, AvatarAction.PlanetsideAttribute(obj.GUID, 0, obj.Health))
-                }
+
+                case _ => ;
               }
-              else if(tool.Definition == GlobalDefinitions.trek) {
-                //infect turret with virus
-              }
+
             case _ => ;
           }
 
         case Some(obj : Vehicle) =>
-          val equipment = player.Slot(player.DrawnSlot).Equipment
-          if(player.Faction == obj.Faction) {
-            if(equipment match {
-              case Some(tool : Tool) =>
-                tool.Definition match {
-                  case GlobalDefinitions.nano_dispenser => false
-                  case _ => true
-                }
-              case _ => true
-            }) {
+          equipment match {
+            case Some(item) =>
+              obj.Actor ! CommonMessages.Use(player, Some(item))
+
+            case None if player.Faction == obj.Faction =>
               //access to trunk
               if(obj.AccessingTrunk.isEmpty &&
                 (!obj.PermissionGroup(AccessPermissionGroup.Trunk.id).contains(VehicleLockState.Locked) || obj.Owner.contains(player.GUID))) {
@@ -5215,80 +4924,22 @@ class WorldSessionActor extends Actor
                 AccessContents(obj)
                 sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
               }
-              else {
-                log.info(s"UseItem: $obj's trunk is not currently accessible for $player")
-              }
-            }
-            else if(equipment.isDefined) {
-              equipment.get.Definition match {
-                case GlobalDefinitions.nano_dispenser =>
-                  if (!player.isMoving && Vector3.Distance(player.Position, obj.Position) < 5) {
-                    if (obj.Health < obj.MaxHealth && !obj.IsDead) {
-                      obj.Health += 48
-                      //                sendResponse(QuantityUpdateMessage(PlanetSideGUID(8214),ammo_quantity_left))
-                      val RepairPercent: Int = obj.Health * 100 / obj.MaxHealth
-                      sendResponse(RepairMessage(object_guid, RepairPercent))
-                      continent.AvatarEvents ! AvatarServiceMessage(obj.Continent, AvatarAction.PlanetsideAttribute(obj.GUID, 0, obj.Health))
-                    }
-                  }
-
-                case _ => ;
-              }
-            }
-          }
-          //enemy player interactions
-          else if(equipment.isDefined) {
-            equipment.get.Definition match {
-              case GlobalDefinitions.remote_electronics_kit =>
-                val hackSpeed = GetPlayerHackSpeed(obj)
-
-                if(hackSpeed > 0) {
-                  progressBarValue = Some(-hackSpeed)
-                  self ! WorldSessionActor.HackingProgress(progressType = 1, player, obj, equipment.get.GUID, hackSpeed, FinishHackingVehicle(obj, 3212836864L))
-                  log.info("Hacking a vehicle")
-                }
-              case _ => ;
-            }
-          }
-
-        case Some(terminal : Terminal) =>
-          val tdef = terminal.Definition
-
-          // If the base this terminal belongs to has been hacked the owning faction needs to be able to hack it to gain access
-          val ownerIsHacked = terminal.Owner match {
-            case b: Building => b.CaptureConsoleIsHacked
-            case _ => false
-          }
-          var playerIsHacking = false
-
-          player.Slot(player.DrawnSlot).Equipment match {
-            case Some(tool: SimpleItem) =>
-              if (tool.Definition == GlobalDefinitions.remote_electronics_kit) {
-                if (!terminal.HackedBy.isEmpty) {
-                  log.warn("Player tried to hack a terminal that is already hacked")
-                  log.warn(s"Player faction ${player.Faction} terminal faction: ${terminal.Faction} terminal hacked: ${terminal.HackedBy.isDefined} owner hacked: ${ownerIsHacked}")
-                }
-                else if (terminal.Faction != player.Faction || ownerIsHacked) {
-                  val hackSpeed = GetPlayerHackSpeed(terminal)
-
-                  if (hackSpeed > 0) {
-                    progressBarValue = Some(-hackSpeed)
-                    self ! WorldSessionActor.HackingProgress(progressType = 1, player, terminal, tool.GUID, hackSpeed, FinishHacking(terminal, 3212836864L))
-                    playerIsHacking = true
-                    log.info("Hacking a terminal")
-                  }
-                }
-              }
             case _ => ;
           }
 
-          if(!playerIsHacking) {
-            if (terminal.Faction == player.Faction) {
-              if (tdef.isInstanceOf[MatrixTerminalDefinition]) {
+        case Some(terminal : Terminal) =>
+          log.info(s"$msg")
+          equipment match {
+            case Some(item) =>
+              terminal.Actor ! CommonMessages.Use(player, Some(item))
+
+            case None if terminal.Faction == player.Faction || terminal.HackedBy.nonEmpty =>
+              val tdef = terminal.Definition
+              if(tdef.isInstanceOf[MatrixTerminalDefinition]) {
                 //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
                 sendResponse(BindPlayerMessage(BindStatus.Bind, "", true, true, SpawnGroup.Sanctuary, 0, 0, terminal.Position))
               }
-              else if (tdef == GlobalDefinitions.multivehicle_rearm_terminal || tdef == GlobalDefinitions.bfr_rearm_terminal ||
+              else if(tdef == GlobalDefinitions.multivehicle_rearm_terminal || tdef == GlobalDefinitions.bfr_rearm_terminal ||
                 tdef == GlobalDefinitions.air_rearm_terminal || tdef == GlobalDefinitions.ground_rearm_terminal) {
                 FindLocalVehicle match {
                   case Some(vehicle) =>
@@ -5298,37 +4949,60 @@ class WorldSessionActor extends Actor
                     log.error("UseItem: expected seated vehicle, but found none")
                 }
               }
-              else if (tdef == GlobalDefinitions.teleportpad_terminal) {
+              else if(tdef == GlobalDefinitions.teleportpad_terminal) {
                 //explicit request
                 terminal.Actor ! Terminal.Request(
                   player,
                   ItemTransactionMessage(object_guid, TransactionType.Buy, 0, "router_telepad", 0, PlanetSideGUID(0))
                 )
               }
-              else if (!ownerIsHacked || (ownerIsHacked && terminal.HackedBy.isDefined)) {
+              else {
                 sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
               }
-              else {
-                log.warn("Tried to use a terminal, but can't handle this case")
-                log.warn(s"Terminal - isHacked ${terminal.HackedBy.isDefined} ownerIsHacked ${ownerIsHacked}")
-              }
-            }
-            else if (terminal.HackedBy.isDefined || terminal.Owner.GUID == PlanetSideGUID(0)) {
-              sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
-            } else {
-              log.warn("Tried to use a terminal that doesn't belong to this faction and isn't hacked")
-              log.warn(s"Player faction ${player.Faction} terminal faction: ${terminal.Faction} terminal hacked: ${terminal.HackedBy.isDefined} owner hacked: ${ownerIsHacked}")
-            }
-          }
-        case Some(obj : SpawnTube) =>
-          if(item_used_guid == PlanetSideGUID(0)) { // Ensure that we're not trying to use a tool on the spawn tube, e.g. medical applicator
-            //deconstruction
-            PlayerActionsToCancel()
-            CancelAllProximityUnits()
-            continent.Population ! Zone.Population.Release(avatar)
-            GoToDeploymentMap()
+
+            case _ => ;
           }
 
+        case Some(obj : SpawnTube) =>
+          equipment match {
+            case Some(item) =>
+              obj.Actor ! CommonMessages.Use(player, Some(item))
+            case None if player.Faction == obj.Faction =>
+              //deconstruction
+              PlayerActionsToCancel()
+              CancelAllProximityUnits()
+              continent.Population ! Zone.Population.Release(avatar)
+              GoToDeploymentMap()
+            case _ => ;
+          }
+
+        case Some(obj : SensorDeployable) =>
+          equipment match {
+            case Some(item) =>
+              obj.Actor ! CommonMessages.Use(player, Some(item))
+            case _ => ;
+          }
+
+        case Some(obj : TurretDeployable) =>
+          equipment match {
+            case Some(item) =>
+              obj.Actor ! CommonMessages.Use(player, Some(item))
+            case _ => ;
+          }
+
+        case Some(obj : TrapDeployable) =>
+          equipment match {
+            case Some(item) =>
+              obj.Actor ! CommonMessages.Use(player, Some(item))
+            case _ => ;
+          }
+
+        case Some(obj : ShieldGeneratorDeployable) =>
+          equipment match {
+            case Some(item) =>
+              obj.Actor ! CommonMessages.Use(player, Some(item))
+            case _ => ;
+          }
 
         case Some(obj : TelepadDeployable) =>
           continent.GUID(obj.Router) match {
@@ -5337,10 +5011,10 @@ class WorldSessionActor extends Actor
                 case Some(util : Utility.InternalTelepad) =>
                   UseRouterTelepadSystem(router = vehicle, internalTelepad = util, remoteTelepad = obj, src = obj, dest = util)
                 case _ =>
-                  log.error(s"telepad@${object_guid.guid} is not linked to a router - ${vehicle.Definition.Name}@${obj.Router.get.guid}")
+                  log.error(s"telepad@${object_guid.guid} is not linked to a router - ${vehicle.Definition.Name}, ${obj.Router}")
               }
             case Some(o) =>
-              log.error(s"telepad@${object_guid.guid} is linked to wrong kind of object - ${o.Definition.Name}@${obj.Router.get.guid}")
+              log.error(s"telepad@${object_guid.guid} is linked to wrong kind of object - ${o.Definition.Name}, ${obj.Router}")
             case None => ;
           }
 
@@ -5957,7 +5631,7 @@ class WorldSessionActor extends Actor
         case Some(vehicleGUID) =>
           continent.GUID(vehicleGUID) match {
             case Some(obj : Vehicle) =>
-              if(!obj.IsDead) { //vehicle will try to charge even if destroyed
+              if(!obj.Destroyed) { //vehicle will try to charge even if destroyed
                 obj.Actor ! Vehicle.ChargeShields(15)
               }
             case _ =>
@@ -6605,155 +6279,6 @@ class WorldSessionActor extends Actor
   }
 
   /**
-    * The process of hacking an object is completed.
-    * Pass the message onto the hackable object and onto the local events system.
-    * @param target the `Hackable` object that has been hacked
-    * @param unk na;
-    *            used by `HackMessage` as `unk5`
-    * @see `HackMessage`
-    */
-  //TODO add params here depending on which params in HackMessage are important
-  private def FinishHacking(target : PlanetSideServerObject with Hackable, unk : Long)() : Unit = {
-    log.info(s"Hacked a $target")
-    // Wait for the target actor to set the HackedBy property, otherwise LocalAction.HackTemporarily will not complete properly
-    import scala.concurrent.ExecutionContext.Implicits.global
-    ask(target.Actor, CommonMessages.Hack(player))(1 second).mapTo[Boolean].onComplete {
-      case Success(_) =>
-        continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.TriggerSound(player.GUID, target.HackSound, player.Position, 30, 0.49803925f))
-        target match {
-          case term: CaptureTerminal =>
-            val isResecured = player.Faction == target.Faction
-            continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.HackCaptureTerminal(player.GUID, continent, term, unk, 8L, isResecured))
-          case _ => continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.HackTemporarily(player.GUID, continent, target, unk, target.HackEffectDuration(GetPlayerHackLevel())))
-        }
-      case scala.util.Failure(_) => log.warn(s"Hack message failed on target guid: ${target.GUID}")
-    }
-  }
-
-  /**
-    * The process of hacking/jacking a vehicle is complete.
-    * Change the faction of the vehicle to the hacker's faction and remove all occupants.
-    *
-    * @param target The `Vehicle` object that has been hacked/jacked
-    * @param unk na; used by HackMessage` as `unk5`
-    */
-  private def FinishHackingVehicle(target : Vehicle, unk : Long)(): Unit = {
-    log.info(s"Vehicle guid: ${target.GUID} has been jacked")
-
-
-    // Forcefully dismount any cargo
-    target.CargoHolds.values.foreach(cargoHold =>  {
-      cargoHold.Occupant match {
-        case Some(cargo : Vehicle) => {
-          cargo.Seats(0).Occupant match {
-            case Some(cargoDriver: Player) =>
-              DismountVehicleCargo(cargoDriver.GUID, cargo.GUID, bailed = target.Flying, requestedByPassenger = false, kicked = true )
-            case None =>
-              log.error("FinishHackingVehicle: vehicle in cargo hold missing driver")
-              HandleDismountVehicleCargo(player.GUID, cargo.GUID, cargo, target.GUID, target, false, false, true)
-          }
-        }
-        case None => ;
-      }
-    })
-
-    // Forcefully dismount all seated occupants from the vehicle
-    target.Seats.values.foreach(seat => {
-      seat.Occupant match {
-        case Some(tplayer) =>
-          seat.Occupant = None
-          tplayer.VehicleSeated = None
-          if(tplayer.HasGUID) {
-            continent.VehicleEvents ! VehicleServiceMessage(tplayer.Continent, VehicleAction.KickPassenger(tplayer.GUID, 4, unk2 = false, target.GUID))
-          }
-        case None => ;
-      }
-    })
-
-    // If the vehicle can fly and is flying deconstruct it, and well played to whomever managed to hack a plane in mid air. I'm impressed.
-    if(target.Definition.CanFly && target.Flying) {
-      // todo: Should this force the vehicle to land in the same way as when a pilot bails with passengers on board?
-      continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(target), continent))
-      continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(target, continent, Some(0 seconds)))
-    } else { // Otherwise handle ownership transfer as normal
-      // Remove ownership of our current vehicle, if we have one
-      player.VehicleOwned match {
-        case Some(guid : PlanetSideGUID) =>
-          continent.GUID(guid) match {
-            case Some(vehicle: Vehicle) =>
-              Vehicles.Disown(player, vehicle)
-            case _ => ;
-          }
-        case _ => ;
-      }
-
-      target.Owner match {
-        case Some(previousOwnerGuid: PlanetSideGUID) =>
-          // Remove ownership of the vehicle from the previous player
-          continent.GUID(previousOwnerGuid) match {
-            case Some(player: Player) =>
-              Vehicles.Disown(player, target)
-            case _ => ; // Vehicle already has no owner
-          }
-        case _ => ;
-      }
-
-      // Now take ownership of the jacked vehicle
-      target.Faction = player.Faction
-      Vehicles.Own(target, player)
-
-      //todo: Send HackMessage -> HackCleared to vehicle? can be found in packet captures. Not sure if necessary.
-
-      // And broadcast the faction change to other clients
-      sendResponse(SetEmpireMessage(target.GUID, player.Faction))
-      continent.AvatarEvents ! AvatarServiceMessage(player.Continent, AvatarAction.SetEmpire(player.GUID, target.GUID, player.Faction))
-    }
-
-    continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.TriggerSound(player.GUID, TriggeredSound.HackVehicle, target.Position, 30, 0.49803925f))
-
-    // Clean up after specific vehicles, e.g. remove router telepads
-    // If AMS is deployed, swap it to the new faction
-    target.Definition match {
-      case GlobalDefinitions.router =>
-        log.info("FinishHackingVehicle: cleaning up after a router ...")
-        RemoveTelepads(target)
-      case GlobalDefinitions.ams
-        if(target.DeploymentState == DriveState.Deployed) =>
-        continent.VehicleEvents ! VehicleServiceMessage.AMSDeploymentChange(continent)
-      case _ => ;
-    }
-  }
-
-  /**
-    * The process of resecuring an IFF lock is finished
-    * Clear the hack state and send to clients
-    * @param lock the `IFFLock` object that has been resecured
-    */
-  private def FinishResecuringIFFLock(lock: IFFLock)() : Unit = {
-    continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.ClearTemporaryHack(player.GUID, lock))
-  }
-
-  /**
-    * The process of upgrading a turret's weapon(s) is completed.
-    * Pass the message onto the turret and onto the vehicle events system.
-    * Additionally, force-deplete the ammunition count of the nano-dispenser used to perform the upgrade.
-    * @param target the turret
-    * @param tool the nano-dispenser that was used to perform this upgrade
-    * @param upgrade the new upgrade state
-    */
-  private def FinishUpgradingMannedTurret(target : FacilityTurret, tool : Tool, upgrade : TurretUpgrade.Value)() : Unit = {
-    tool.Magazine = 0
-    sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, tool.GUID, 0))
-    FinishUpgradingMannedTurret(target, upgrade)
-  }
-
-  private def FinishUpgradingMannedTurret(target : FacilityTurret, upgrade : TurretUpgrade.Value) : Unit = {
-    log.info(s"Converting manned wall turret weapon to $upgrade")
-    continent.VehicleEvents ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.ClearSpecific(List(target), continent))
-    continent.VehicleEvents ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.AddTask(target, continent, upgrade))
-  }
-
-  /**
     * Gives a target player positive battle experience points only.
     * If the player has access to more implant slots as a result of changing battle experience points, unlock those slots.
     * @param avatar the player
@@ -7088,7 +6613,11 @@ class WorldSessionActor extends Actor
     */
   private def ModifyAmmunitionInVehicle(obj : Vehicle)(box : AmmoBox, reloadValue : Int) : Unit = {
     val capacity = ModifyAmmunition(obj)(box, reloadValue)
-    continent.VehicleEvents ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.InventoryState(player.GUID, box, obj.GUID, obj.Find(box).get, box.Definition.Packet.DetailedConstructorData(box).get))
+    obj.Find(box) match {
+      case Some(index) =>
+        continent.VehicleEvents ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.InventoryState(player.GUID, box, obj.GUID, index, box.Definition.Packet.DetailedConstructorData(box).get))
+      case None => ;
+    }
   }
 
   /**
@@ -7616,14 +7145,14 @@ class WorldSessionActor extends Actor
           state match {
             case DriveState.Deployed =>
               // We only want this WSA (not other player's WSA) to manage timers
-              if(vehicle.Seat(0).get.Occupant.contains(player)){
+              if(vehicle.Seats(0).Occupant.contains(player)){
                 // Start ntu regeneration
                 // If vehicle sends UseItemMessage with silo as target NTU regeneration will be disabled and orb particles will be disabled
                 antChargingTick = context.system.scheduler.scheduleOnce(1000 milliseconds, self, NtuCharging(player, vehicle))
               }
             case DriveState.Undeploying =>
               // We only want this WSA (not other player's WSA) to manage timers
-              if(vehicle.Seat(0).get.Occupant.contains(player)){
+              if(vehicle.Seats(0).Occupant.contains(player)){
                 antChargingTick.cancel() // Stop charging NTU if charging
               }
 
@@ -7813,45 +7342,143 @@ class WorldSessionActor extends Actor
       if(building.IsCapitol && building.ForceDomeActive) {
         sendResponse(GenericObjectActionMessage(building.GUID, 13))
       }
-
-      building.Amenities.foreach(amenity => {
-        val amenityId = amenity.GUID
-        sendResponse(PlanetsideAttributeMessage(amenityId, 50, 0))
-        sendResponse(PlanetsideAttributeMessage(amenityId, 51, 0))
-
-        amenity.Definition match {
-          case GlobalDefinitions.resource_silo =>
-            // Synchronise warning light & silo capacity
-            val silo = amenity.asInstanceOf[ResourceSilo]
-            sendResponse(PlanetsideAttributeMessage(amenityId, 45, silo.CapacitorDisplay))
-            sendResponse(PlanetsideAttributeMessage(silo.Owner.GUID, 47, if(silo.LowNtuWarningOn) 1 else 0))
-
-            if(silo.ChargeLevel == 0) {
-              sendResponse(PlanetsideAttributeMessage(silo.Owner.GUID, 48, 1))
-            }
-          case _ => ;
-        }
-
-        // Synchronise hack states to clients joining the zone.
-        // We'll have to fake LocalServiceResponse messages to self, otherwise it means duplicating the same hack handling code twice
-        if(amenity.isInstanceOf[Hackable]) {
-          val hackable = amenity.asInstanceOf[Hackable]
-
-          if(hackable.HackedBy.isDefined) {
-            amenity.Definition match {
-              case GlobalDefinitions.capture_terminal =>
-                self ! LocalServiceResponse("", PlanetSideGUID(0), LocalResponse.HackCaptureTerminal(amenity.GUID, 0L, 0L, false))
-              case _ =>
-                // Generic hackable object
-                self ! LocalServiceResponse("", PlanetSideGUID(0), LocalResponse.HackObject(amenity.GUID, 1114636288L, 8L))
-            }
-          }
-        }
-      })
-
-//      sendResponse(HackMessage(3, PlanetSideGUID(building.ModelId), PlanetSideGUID(0), 0, 3212836864L, HackState.HackCleared, 8))
+      // Synchronise amenities
+      building.Amenities.collect {
+        case obj if obj.Destroyed => configAmenityAsDestroyed(obj)
+        case obj => configAmenityAsWorking(obj)
+      }
       Thread.sleep(connectionState)
     })
+  }
+
+  /**
+    * Configure the specific working amenity by sending the client packets.
+    * Amenities that are not `Damageable` are also included.
+    * These actions are performed during the loading of a zone.
+    * @see `Door`
+    * @see `GenericObjectStateMsg`
+    * @see `Hackable`
+    * @see `HackCaptureTerminal`
+    * @see `HackObject`
+    * @see `PlanetsideAttributeMessage`
+    * @see `ResourceSilo`
+    * @see `SetEmpireMessage`
+    * @see `VitalityDefinition.Damageable`
+    * @param amenity the facility object
+    */
+  def configAmenityAsWorking(amenity : Amenity) : Unit = {
+    val amenityId = amenity.GUID
+    //sync model access state
+    sendResponse(PlanetsideAttributeMessage(amenityId, 50, 0))
+    sendResponse(PlanetsideAttributeMessage(amenityId, 51, 0))
+    //sync damageable, if
+    val health = amenity.Health
+    if(amenity.Definition.Damageable && health < amenity.MaxHealth) {
+      sendResponse(PlanetsideAttributeMessage(amenityId, 0, health))
+    }
+    //sync special object type cases
+    amenity match {
+      case silo : ResourceSilo =>
+        //silo capacity
+        sendResponse(PlanetsideAttributeMessage(amenityId, 45, silo.CapacitorDisplay))
+        //warning lights
+        sendResponse(PlanetsideAttributeMessage(silo.Owner.GUID, 47, if(silo.LowNtuWarningOn) 1 else 0))
+        if(silo.ChargeLevel == 0) {
+          sendResponse(PlanetsideAttributeMessage(silo.Owner.GUID, 48, 1))
+        }
+      case door : Door if door.isOpen =>
+        sendResponse(GenericObjectStateMsg(amenityId, 16))
+
+      case _ => ;
+    }
+    //sync hack state
+    amenity match {
+      case obj : Hackable if obj.HackedBy.nonEmpty =>
+        amenity.Definition match {
+          case GlobalDefinitions.capture_terminal =>
+            HackCaptureTerminal(amenity.GUID, 0L, 0L, false)
+          case _ =>
+            HackObject(amenity.GUID, 1114636288L, 8L) //generic hackable object
+        }
+      case _ => ;
+    }
+  }
+
+  /**
+    * Configure the specific destroyed amenity by sending the client packets.
+    * These actions are performed during the loading of a zone.
+    * @see `Generator`
+    * @see `ImplantTerminalMech`
+    * @see `PlanetsideAttributeMessage`
+    * @see `PlanetSideGameObject.Destroyed`
+    * @param amenity the facility object
+    */
+  def configAmenityAsDestroyed(amenity : Amenity) : Unit = {
+    val amenityId = amenity.GUID
+    val configValue = amenity match {
+      case _ : ImplantTerminalMech => 0
+      case _ : Generator => 0
+      case _ => 1
+    }
+    //sync model access state
+    sendResponse(PlanetsideAttributeMessage(amenityId, 50, configValue))
+    sendResponse(PlanetsideAttributeMessage(amenityId, 51, configValue))
+    //sync damageable, if
+    if(amenity.Definition.Damageable) {
+      sendResponse(PlanetsideAttributeMessage(amenityId, 0, 0))
+    }
+  }
+
+  /**
+    * na
+    * @param target_guid na
+    * @param unk1 na
+    * @param unk2 na
+    */
+  def HackObject(target_guid : PlanetSideGUID, unk1 : Long, unk2 : Long) : Unit = {
+    sendResponse(HackMessage(0, target_guid, PlanetSideGUID(0), 100, unk1, HackState.Hacked, unk2))
+  }
+
+  /**
+    * na
+    * @param target_guid na
+    * @param unk1 na
+    * @param unk2 na
+    * @param isResecured na
+    */
+  def HackCaptureTerminal(target_guid : PlanetSideGUID, unk1 : Long, unk2 : Long, isResecured : Boolean) : Unit = {
+    var value = 0L
+    if(isResecured) {
+      value = 17039360L
+      sendResponse(PlanetsideAttributeMessage(target_guid, 20, value))
+    }
+    else {
+      continent.GUID(target_guid) match {
+        case Some(capture_terminal : Amenity with Hackable) =>
+          capture_terminal.HackedBy match {
+            case Some(Hackable.HackInfo(_, _, hfaction, _, start, length)) =>
+              val hack_time_remaining_ms = TimeUnit.MILLISECONDS.convert(math.max(0, start + length - System.nanoTime), TimeUnit.NANOSECONDS)
+              val deciseconds_remaining = (hack_time_remaining_ms / 100)
+              //See PlanetSideAttributeMessage #20 documentation for an explanation of how the timer is calculated
+              val start_num = hfaction match {
+                case PlanetSideEmpire.TR => 65536L
+                case PlanetSideEmpire.NC => 131072L
+                case PlanetSideEmpire.VS => 196608L
+              }
+              value = start_num + deciseconds_remaining
+              sendResponse(PlanetsideAttributeMessage(target_guid, 20, value))
+              continent.GUID(player.VehicleSeated) match {
+                case Some(mountable : Amenity with Mountable) =>
+                  if(mountable.Owner.GUID == capture_terminal.Owner.GUID) {
+                    continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(player.GUID, mountable.Seats.head._1, true, mountable.GUID))
+                  }
+                case _ => ;
+              }
+            case _ => log.warn("HackCaptureTerminal: hack state monitor not defined")
+          }
+        case _ => log.warn(s"HackCaptureTerminal: couldn't find capture terminal with GUID ${target_guid} in zone ${continent.Id}")
+      }
+    }
   }
 
   /**
@@ -7923,9 +7550,9 @@ class WorldSessionActor extends Actor
     * In reality, they produce the same output but enforce different relationships between the components.
     * The vehicle without a rendered player will always be created if that vehicle exists.
     * The vehicle should only be constructed once.
-    * @see `BeginZoningMessage`
-    * @see `CargoMountBehaviorForOthers`
     * @see `AvatarCreateInVehicle`
+    * @see `BeginZoningMessage`
+    * @see `CargoBehavior.CargoMountBehaviorForOthers`
     * @see `GetKnownVehicleAndSeat`
     * @see `LoadZoneTransferPassengerMessages`
     * @see `Player.Spawn`
@@ -7972,7 +7599,7 @@ class WorldSessionActor extends Actor
           continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.LoadVehicle(player.GUID, vehicle, vdef.ObjectId, vguid, data))
           carrierInfo match {
             case (Some(carrier), Some((index, _))) =>
-              CargoMountBehaviorForOthers(carrier, vehicle, index)
+              CargoBehavior.CargoMountBehaviorForOthers(carrier, vehicle, index, player.GUID)
             case _ =>
               vehicle.MountedIn = None
           }
@@ -8160,7 +7787,7 @@ class WorldSessionActor extends Actor
         val vdef = vehicle.Definition
         val vguid = vehicle.GUID
         if(seat == 0) {
-          val seat = vehicle.Seat(0).get
+          val seat = vehicle.Seats(0)
           seat.Occupant = None
           val vdata = vdef.Packet.ConstructorData(vehicle).get
           sendResponse(ObjectCreateMessage(vehicle.Definition.ObjectId, vguid, vdata))
@@ -8376,11 +8003,10 @@ class WorldSessionActor extends Actor
     }
     else {
       continent.GUID(player.VehicleSeated) match {
-        case Some(obj : Vehicle) if !obj.IsDead =>
+        case Some(obj : Vehicle) if !obj.Destroyed =>
           cluster ! Zone.Lattice.RequestSpawnPoint(sanctNumber, tplayer, 12) //warp gates for functioning vehicles
-        case None =>
-          cluster ! Zone.Lattice.RequestSpawnPoint(sanctNumber, tplayer, 7) //player character spawns
         case _ =>
+          cluster ! Zone.Lattice.RequestSpawnPoint(sanctNumber, tplayer, 7) //player character spawns
       }
     }
   }
@@ -8750,20 +8376,20 @@ class WorldSessionActor extends Actor
     * The active `target` and the target of the `ResolvedProjectile` do not have be the same.
     * While the "tell" for being able to sustain damage is an entity of type `Vitality`,
     * only specific `Vitality` entity types are being screened for sustaining damage.
-    * @see `DamageResistanceModel`<br>
-    *       `Vitality`
+    * @see `DamageResistanceModel`
+    * @see `Vitality`
     * @param target a valid game object that is known to the server
     * @param data a projectile that will affect the target
     */
   def HandleDealingDamage(target : PlanetSideGameObject with Vitality, data : ResolvedProjectile) : Unit = {
     val func = data.damage_model.Calculate(data)
     target match {
-      case obj : Player if obj.Health > 0 => obj.Actor ! Vitality.Damage(func)
-      case obj : Vehicle if obj.Health > 0 => obj.Actor ! Vitality.Damage(func)
-      case obj : FacilityTurret if obj.Health > 0 => obj.Actor ! Vitality.Damage(func)
-      case obj : ComplexDeployable if obj.Health > 0 => obj.Actor ! Vitality.Damage(func)
+      case obj : Player if obj.CanDamage => obj.Actor ! Vitality.Damage(func)
+      case obj : Vehicle if obj.CanDamage => obj.Actor ! Vitality.Damage(func)
+      case obj : Amenity if obj.CanDamage => obj.Actor ! Vitality.Damage(func)
+      case obj : ComplexDeployable if obj.CanDamage => obj.Actor ! Vitality.Damage(func)
 
-      case obj : SimpleDeployable if obj.Health > 0 =>
+      case obj : SimpleDeployable if obj.CanDamage =>
         //damage is synchronized on `LSA` (results returned to and distributed from this `WSA`)
         continent.LocalEvents ! Vitality.DamageOn(obj, func)
       case _ => ;
@@ -8881,12 +8507,12 @@ class WorldSessionActor extends Actor
     * but will not possess a valid GUID for that zone until he spawns in it at least once,
     * this function is swapped with another after the first spawn in any given zone.
     * This function is restored upon transferring zones.
-    * @see `SetCurrentAvatar`<br>
-    *       `DontRedrawIcons`
+    * @see `DontRedrawIcons`
+    * @see `SetCurrentAvatar`
     * @param obj a `Deployable` object
     */
   def RedrawDeployableIcons(obj : PlanetSideGameObject with Deployable) : Unit = {
-    val deployInfo = DeployableInfo(obj.GUID, Deployable.Icon(obj.Definition.Item), obj.Position, obj.Owner.get)
+    val deployInfo = DeployableInfo(obj.GUID, Deployable.Icon(obj.Definition.Item), obj.Position, obj.Owner.getOrElse(PlanetSideGUID(0)))
     sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, deployInfo))
   }
 
@@ -8907,8 +8533,8 @@ class WorldSessionActor extends Actor
     * but will not possess a valid GUID for that zone until he spawns in it at least once,
     * this function swaps out with another after the first spawn in any given zone.
     * It stays swapped in until the player changes zones.
-    * @see `SetCurrentAvatar`<br>
-    *       `RedrawDeployableIcons`
+    * @see `RedrawDeployableIcons`
+    * @see `SetCurrentAvatar`
     * @param obj a `Deployable` object
     */
   def DontRedrawIcons(obj : PlanetSideGameObject with Deployable) : Unit = { }
@@ -8919,8 +8545,8 @@ class WorldSessionActor extends Actor
     * and each of these sub-modes have certification requirements that must be met before they can be used.
     * Additional effort is exerted to ensure that the requirements for the given mode and given sub-mode are satisfied.
     * If no satisfactory combination is achieved, the original state will be restored.
-    * @see `PerformConstructionItemAmmoChange`<br>
-    *       `FireModeSwitch.NextFireMode`
+    * @see `FireModeSwitch.NextFireMode`
+    * @see `PerformConstructionItemAmmoChange`
     * @param obj the `ConstructionItem` object
     * @param originalModeIndex the starting point fire mode index
     * @return the changed fire mode
@@ -9289,44 +8915,6 @@ class WorldSessionActor extends Actor
   }
 
   /**
-    * Distribute information that a deployable has been destroyed.
-    * The deployable may not have yet been eliminated from the game world (client or server),
-    * but its health is zero and it has entered the conditions where it is nearly irrelevant.<br>
-    * <br>
-    * The typical use case of this function involves destruction via weapon fire, attributed to a particular player.
-    * Contrast this to simply destroying a deployable by being the deployable's owner and using the map icon controls.
-    * This function eventually invokes the same routine
-    * but mainly goes into effect when the deployable has been destroyed
-    * and may still leave a physical component in the game world to be cleaned up later.
-    * That is the task `EliminateDeployable` performs.
-    * Additionally, since the player who destroyed the deployable isn't necessarily the owner,
-    * and the real owner will still be aware of the existence of the deployable,
-    * that player must be informed of the loss of the deployable directly.
-    * @see `DeployableRemover`
-    * @see `Vitality.DamageResolution`
-    * @see `LocalResponse.EliminateDeployable`
-    * @see `DeconstructDeployable`
-    * @param target the deployable that is destroyed
-    * @param time length of time that the deployable is allowed to exist in the game world;
-    *             `None` indicates the normal un-owned existence time (180 seconds)
-    */
-  def AnnounceDestroyDeployable(target : PlanetSideGameObject with Deployable, time : Option[FiniteDuration]) : Unit = {
-    target.OwnerName match {
-      case Some(owner) =>
-        target.OwnerName = None
-        continent.LocalEvents ! LocalServiceMessage(owner, LocalAction.AlertDestroyDeployable(PlanetSideGUID(0), target))
-      case None => ;
-    }
-    continent.LocalEvents ! LocalServiceMessage(s"${target.Faction}", LocalAction.DeployableMapIcon(
-      PlanetSideGUID(0),
-      DeploymentAction.Dismiss,
-      DeployableInfo(target.GUID, Deployable.Icon(target.Definition.Item), target.Position, PlanetSideGUID(0)))
-    )
-    continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(target), continent))
-    continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(target, continent, time))
-  }
-
-  /**
     * Search through the player's holsters and their inventory space
     * and remove all `BoomerTrigger` objects, both functionally and visually.
     * @return all discovered `BoomTrigger` objects
@@ -9545,7 +9133,7 @@ class WorldSessionActor extends Actor
       case ("MISSING_DRIVER", index) =>
         val cargo = vehicle.CargoHolds(index).Occupant.get
         log.error(s"LoadZoneInVehicleAsDriver: eject cargo in hold $index; vehicle missing driver")
-        HandleDismountVehicleCargo(pguid, cargo.GUID, cargo, vehicle.GUID, vehicle, false, false, true)
+        CargoBehavior.HandleVehicleCargoDismount(pguid, cargo.GUID, cargo, vehicle.GUID, vehicle, false, false, true)
       case (name, index) =>
         val cargo = vehicle.CargoHolds(index).Occupant.get
         continent.VehicleEvents ! VehicleServiceMessage(name, VehicleAction.TransferPassengerChannel(pguid, s"${cargo.Actor}", toChannel, cargo, topLevel))
@@ -9859,25 +9447,7 @@ class WorldSessionActor extends Actor
       case GlobalDefinitions.router =>
         //this may repeat for multiple players on the same continent but that's okay(?)
         log.info("BeforeUnload: cleaning up after a router ...")
-        RemoveTelepads(vehicle)
-      case _ => ;
-    }
-  }
-
-  def RemoveTelepads(vehicle: Vehicle) : Unit = {
-    (vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
-      case Some(util : Utility.InternalTelepad) =>
-        val telepad = util.Telepad
-        util.Telepad = None
-        continent.GUID(telepad)
-      case _ =>
-        None
-    }) match {
-      case Some(telepad : TelepadDeployable) =>
-        log.info(s"BeforeUnload: deconstructing telepad $telepad that was linked to router $vehicle ...")
-        telepad.Active = false
-        continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(telepad), continent))
-        continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(telepad, continent, Some(0 seconds)))
+        Deployables.RemoveTelepad(vehicle)
       case _ => ;
     }
   }
@@ -9909,217 +9479,34 @@ class WorldSessionActor extends Actor
     continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.WeaponDryFire(player.GUID, weapon_guid))
   }
 
-  /**
-    * na
-    * @param player_guid the target player
-    * @param cargoGUID the globally unique number for the vehicle being ferried
-    * @param cargo the vehicle being ferried
-    * @param carrierGUID the globally unique number for the vehicle doing the ferrying
-    * @param carrier the vehicle doing the ferrying
-    * @param bailed the ferried vehicle is bailing from the cargo hold
-    * @param requestedByPassenger the ferried vehicle is being politely disembarked from the cargo hold
-    * @param kicked the ferried vehicle is being kicked out of the cargo hold
-    */
-  def HandleDismountVehicleCargo(player_guid : PlanetSideGUID, cargoGUID : PlanetSideGUID, cargo : Vehicle, carrierGUID : PlanetSideGUID, carrier : Vehicle, bailed : Boolean, requestedByPassenger : Boolean, kicked : Boolean) : Unit = {
-    carrier.CargoHolds.find({case((_, hold)) => hold.Occupant.contains(cargo)}) match {
-      case Some((mountPoint, hold)) =>
-        cargo.MountedIn = None
-        hold.Occupant = None
-        val driverOpt = cargo.Seats(0).Occupant
-        val rotation : Vector3 = if(CargoOrientation(cargo) == 1) { //TODO: BFRs will likely also need this set
-          //dismount router "sideways" in a lodestar
-          carrier.Orientation.xy + Vector3.z((carrier.Orientation.z - 90) % 360)
-        }
-        else {
-          carrier.Orientation
-        }
-        val cargoHoldPosition : Vector3 = if(carrier.Definition == GlobalDefinitions.dropship) {
-          //the galaxy cargo bay is offset backwards from the center of the vehicle
-          carrier.Position + Vector3.Rz(Vector3(0, 7, 0), math.toRadians(carrier.Orientation.z))
-        }
-        else {
-          //the lodestar's cargo hold is almost the center of the vehicle
-          carrier.Position
-        }
-        StartBundlingPackets()
-        continent.VehicleEvents ! VehicleServiceMessage(s"${cargo.Actor}", VehicleAction.SendResponse(PlanetSideGUID(0), PlanetsideAttributeMessage(cargoGUID, 0, cargo.Health)))
-        continent.VehicleEvents ! VehicleServiceMessage(s"${cargo.Actor}", VehicleAction.SendResponse(PlanetSideGUID(0), PlanetsideAttributeMessage(cargoGUID, 68, cargo.Shields)))
-        if(carrier.Flying) {
-          //the carrier vehicle is flying; eject the cargo vehicle
-          val ejectCargoMsg = CargoMountPointStatusMessage(carrierGUID, PlanetSideGUID(0), PlanetSideGUID(0), cargoGUID, mountPoint, CargoStatus.InProgress, 0)
-          val detachCargoMsg = ObjectDetachMessage(carrierGUID, cargoGUID, cargoHoldPosition - Vector3.z(1), rotation)
-          val resetCargoMsg = CargoMountPointStatusMessage(carrierGUID, PlanetSideGUID(0), PlanetSideGUID(0), cargoGUID, mountPoint, CargoStatus.Empty, 0)
-          sendResponse(ejectCargoMsg) //dismount vehicle on UI and disable "shield" effect on lodestar
-          sendResponse(detachCargoMsg)
-          continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.SendResponse(player_guid, ejectCargoMsg))
-          continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.SendResponse(player_guid, detachCargoMsg))
-          continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.SendResponse(PlanetSideGUID(0), resetCargoMsg)) //lazy
-          log.debug(ejectCargoMsg.toString)
-          log.debug(detachCargoMsg.toString)
-          if(driverOpt.isEmpty) {
-            //TODO cargo should drop like a rock like normal; until then, deconstruct it
-            continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(cargo), continent))
-            continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(cargo, continent, Some(0 seconds)))
-          }
-        }
-        else {
-          //the carrier vehicle is not flying; just open the door and let the cargo vehicle back out; force it out if necessary
-          val cargoStatusMessage = CargoMountPointStatusMessage(carrierGUID, PlanetSideGUID(0), cargoGUID, PlanetSideGUID(0), mountPoint, CargoStatus.InProgress, 0)
-          val cargoDetachMessage = ObjectDetachMessage(carrierGUID, cargoGUID, cargoHoldPosition + Vector3.z(1f), rotation)
-          sendResponse(cargoStatusMessage)
-          sendResponse(cargoDetachMessage)
-          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.SendResponse(player_guid, cargoStatusMessage))
-          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.SendResponse(player_guid, cargoDetachMessage))
-          driverOpt match {
-            case Some(driver) =>
-              continent.VehicleEvents ! VehicleServiceMessage(s"${driver.Name}", VehicleAction.KickCargo(player_guid, cargo, cargo.Definition.AutoPilotSpeed2, 2500))
-
-              import scala.concurrent.duration._
-              import scala.concurrent.ExecutionContext.Implicits.global
-              //check every quarter second if the vehicle has moved far enough away to be considered dismounted
-              cargoDismountTimer.cancel
-              cargoDismountTimer = context.system.scheduler.scheduleOnce(250 milliseconds, self, CheckCargoDismount(cargoGUID, carrierGUID, mountPoint, iteration = 0))
-            case None =>
-              val resetCargoMsg = CargoMountPointStatusMessage(carrierGUID, PlanetSideGUID(0), PlanetSideGUID(0), cargoGUID, mountPoint, CargoStatus.Empty, 0)
-              continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.SendResponse(PlanetSideGUID(0), resetCargoMsg)) //lazy
-              //TODO cargo should back out like normal; until then, deconstruct it
-              continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(cargo), continent))
-              continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(cargo, continent, Some(0 seconds)))
-          }
-        }
-        StopBundlingPackets()
-
-      case None =>
-        log.warn(s"HandleDismountVehicleCargo: can not locate cargo $cargo in any hold of the carrier vehicle $carrier")
-    }
-  }
-
-  /**
-    * na
-    * @param player_guid na
-    * @param cargo_guid na
-    * @param bailed na
-    * @param requestedByPassenger na
-    * @param kicked na
-    */
-  def DismountVehicleCargo(player_guid : PlanetSideGUID, cargo_guid : PlanetSideGUID, bailed : Boolean, requestedByPassenger : Boolean, kicked : Boolean) : Unit = {
-    continent.GUID(cargo_guid) match {
-      case Some(cargo : Vehicle) =>
-        continent.GUID(cargo.MountedIn) match {
-          case Some(ferry : Vehicle) =>
-            HandleDismountVehicleCargo(player_guid, cargo_guid, cargo, ferry.GUID, ferry, bailed, requestedByPassenger, kicked)
-          case _ =>
-            log.warn(s"DismountVehicleCargo: target ${cargo.Definition.Name}@$cargo_guid does not know what treats it as cargo")
-        }
-      case _ =>
-        log.warn(s"DismountVehicleCargo: target $cargo_guid either is not a vehicle in ${continent.Id} or does not exist")
-    }
-  }
-
-  def GetPlayerHackSpeed(obj: PlanetSideServerObject): Float = {
-    val playerHackLevel = GetPlayerHackLevel()
-
-    val timeToHack = obj match {
-        case (hackable: Hackable) => hackable.HackDuration(playerHackLevel)
-        case (vehicle: Vehicle) => vehicle.JackingDuration(playerHackLevel)
-        case _ =>
-          log.warn(s"Player tried to hack an object that has no hack time defined ${obj.GUID} - ${obj.Definition.Name}")
-        0
-    }
-
-    if(timeToHack == 0) {
-      log.warn(s"Player ${player.GUID} tried to hack an object ${obj.GUID} - ${obj.Definition.Name} that they don't have the correct hacking level for")
-      0f
-    } else {
-      // 250 ms per tick on the hacking progress bar
-      val ticks = (timeToHack * 1000) / 250
-      100f / ticks
-    }
-  }
-
-  def GetPlayerHackLevel(): Int = {
-    if(player.Certifications.contains(CertificationType.ExpertHacking) || player.Certifications.contains(CertificationType.ElectronicsExpert)) {
-      3
-    } else if(player.Certifications.contains(CertificationType.AdvancedHacking)) {
-      2
-    } else if (player.Certifications.contains(CertificationType.Hacking)) {
-      1
-    } else {
-      0
-    }
-  }
-
   def SaveLoadoutToDB(owner : Player, label : String, line : Int) = {
-    var megaList : String = ""
-    var localType : String = ""
-    var ammoInfo : String = ""
-    (0 until 5).foreach(index => {
-      if(owner.Slot(index).Equipment.isDefined) {
-        owner.Slot(index).Equipment.get match {
-          case test : Tool =>
-            localType = "Tool"
-          case test : AmmoBox =>
-            localType = "AmmoBox"
-          case test : ConstructionItem =>
-            localType = "ConstructionItem"
-          case test : BoomerTrigger =>
-            localType = "BoomerTrigger"
-          case test : SimpleItem =>
-            localType = "SimpleItem"
-          case test : Kit =>
-            localType = "Kit"
-          case _ =>
-            localType = ""
+    val charId = owner.CharId
+    val exosuitId = owner.ExoSuit.id
+    var clob : String = {
+      val clobber : StringBuilder = new StringBuilder()
+      //encode holsters
+      owner.Holsters()
+        .zipWithIndex
+        .collect { case (slot, index) if slot.Equipment.nonEmpty =>
+          clobber.append(EncodeLoadoutCLOBFragment(slot.Equipment.get, index))
         }
-        if(localType == "Tool") {
-          owner.Slot(index).Equipment.get.asInstanceOf[Tool].AmmoSlots.indices.foreach(index2 => {
-            if (owner.Slot(index).Equipment.get.asInstanceOf[Tool].AmmoSlots(index2).AmmoTypeIndex != 0) {
-              ammoInfo = ammoInfo+"_"+index2+"-"+owner.Slot(index).Equipment.get.asInstanceOf[Tool].AmmoSlots(index2).AmmoTypeIndex+"-"+owner.Slot(index).Equipment.get.asInstanceOf[Tool].AmmoSlots(index2).AmmoType.id
-            }
-          })
-        }
-        megaList = megaList + "/" + localType + "," + index + "," + owner.Slot(index).Equipment.get.Definition.ObjectId + ","  + ammoInfo
-        ammoInfo = ""
+      //encode inventory
+      owner.Inventory.Items.foreach { case InventoryItem(obj, index) =>
+        clobber.append(EncodeLoadoutCLOBFragment(obj, index))
       }
-    })
-    owner.Inventory.Items.foreach(test => {
-      test.obj match {
-        case test : Tool =>
-          localType = "Tool"
-        case test : AmmoBox =>
-          localType = "AmmoBox"
-        case test : ConstructionItem =>
-          localType = "ConstructionItem"
-        case test : BoomerTrigger =>
-          localType = "BoomerTrigger"
-        case test : SimpleItem =>
-          localType = "SimpleItem"
-        case test : Kit =>
-          localType = "Kit"
-        case _ =>
-          localType = ""
-      }
-      if(localType == "Tool") {
-        owner.Slot(test.start).Equipment.get.asInstanceOf[Tool].AmmoSlots.indices.foreach(index2 => {
-          if (owner.Slot(test.start).Equipment.get.asInstanceOf[Tool].AmmoSlots(index2).AmmoTypeIndex != 0) {
-            ammoInfo = ammoInfo+"_"+index2+"-"+owner.Slot(test.start).Equipment.get.asInstanceOf[Tool].AmmoSlots(index2).AmmoTypeIndex+"-"+owner.Slot(test.start).Equipment.get.asInstanceOf[Tool].AmmoSlots(index2).AmmoType.id
-          }
-        })
-      }
-      megaList = megaList + "/" + localType + "," + test.start + "," + owner.Slot(test.start).Equipment.get.Definition.ObjectId + ","  + ammoInfo
-      ammoInfo = ""
-    })
-
+      clobber.mkString
+    }
+    //database
     Database.getConnection.connect.onComplete {
       case scala.util.Success(connection) =>
         Database.query(connection.sendPreparedStatement(
-          "SELECT id, exosuit_id, name, items FROM loadouts where characters_id = ? AND loadout_number = ?", Array(owner.CharId, line)
+          "SELECT id, exosuit_id, name, items FROM loadouts where characters_id = ? AND loadout_number = ?", Array(charId, line)
         )).onComplete {
           case scala.util.Success(queryResult) =>
             queryResult match {
               case row: ArrayRowData => // Update
                 connection.sendPreparedStatement(
-                  "UPDATE loadouts SET exosuit_id=?, name=?, items=? where id=?", Array(owner.ExoSuit.id, label, megaList.drop(1), row(0))
+                  "UPDATE loadouts SET exosuit_id=?, name=?, items=? where id=?", Array(exosuitId, label, clob.drop(1), row(0))
                 ).onComplete {
                   case _ =>
                     if(connection.isConnected) connection.disconnect
@@ -10128,7 +9515,7 @@ class WorldSessionActor extends Actor
               case _ => // Save
                 connection.sendPreparedStatement(
                   "INSERT INTO loadouts (characters_id, loadout_number, exosuit_id, name, items) VALUES(?,?,?,?,?) RETURNING id",
-                  Array(owner.CharId, line, owner.ExoSuit.id, label, megaList.drop(1))
+                  Array(charId, line, exosuitId, label, clob.drop(1))
                 ).onComplete {
                   case _ =>
                     if(connection.isConnected) connection.disconnect
@@ -10140,8 +9527,29 @@ class WorldSessionActor extends Actor
             log.error(s"SaveLoadoutToDB: query failed - ${e.getMessage}")
         }
       case scala.util.Failure(e) =>
-        log.error(s"SaveLoadoutToDB: no conenction ${e.getMessage}")
+        log.error(s"SaveLoadoutToDB: no connection ${e.getMessage}")
     }
+  }
+
+  /**
+    * na
+    * @param equipment
+    * @param index
+    * @return
+    */
+  def EncodeLoadoutCLOBFragment(equipment : Equipment, index : Int) : String = {
+    val ammoInfo : String = equipment match {
+      case tool : Tool =>
+        tool.AmmoSlots
+          .zipWithIndex
+          .collect { case (ammoSlot, index2) if ammoSlot.AmmoTypeIndex != 0 =>
+            s"_$index2-${ammoSlot.AmmoTypeIndex}-${ammoSlot.AmmoType.id}"
+          }
+          .mkString
+      case _ =>
+        ""
+    }
+    s"/${equipment.getClass.getSimpleName},$index,${equipment.Definition.ObjectId},$ammoInfo"
   }
 
   /**
@@ -10175,6 +9583,7 @@ class WorldSessionActor extends Actor
           "SELECT id, loadout_number, exosuit_id, name, items FROM loadouts where characters_id = ?", Array(owner.CharId)
         ).onComplete {
           case Success(queryResult) =>
+            if(connection.isConnected) connection.disconnect
             queryResult match {
               case result: QueryResult =>
                 if (result.rows.nonEmpty) {
@@ -10203,16 +9612,14 @@ class WorldSessionActor extends Actor
                             doll.Slot(lIndex).Equipment = AmmoBox(GetToolDefFromObjectID(lObjectId).asInstanceOf[AmmoBoxDefinition])
                           case "ConstructionItem" =>
                             doll.Slot(lIndex).Equipment = ConstructionItem(GetToolDefFromObjectID(lObjectId).asInstanceOf[ConstructionItemDefinition])
-                          case "BoomerTrigger" =>
-                            log.error("LoadDataBaseLoadouts: found a BoomerTrigger in a loadout?!")
                           case "SimpleItem" =>
                             doll.Slot(lIndex).Equipment = SimpleItem(GetToolDefFromObjectID(lObjectId).asInstanceOf[SimpleItemDefinition])
                           case "Kit" =>
                             doll.Slot(lIndex).Equipment = Kit(GetToolDefFromObjectID(lObjectId).asInstanceOf[KitDefinition])
-                          case _ =>
-                            log.error("LoadDataBaseLoadouts: what's that item in the loadout?!")
+                          case thing =>
+                            log.warn(s"LoadDataBaseLoadouts: what's that $thing doing in the loadout?")
                         }
-                        if (args2.length == 4) {
+                        if (args2.length == 4) { //tool ammo info
                           val args3 = args2(3).split("_")
                           (1 until args3.length).foreach(j => {
                             val args4 = args3(j).split("-")
@@ -10233,7 +9640,6 @@ class WorldSessionActor extends Actor
               case _ =>
                 log.debug(s"LoadDataBaseLoadouts: no saved loadout(s) for character with id ${owner.CharId}")
             }
-            if(connection.isConnected) connection.disconnect
             result success queryResult
           case scala.util.Failure(e) =>
             if(connection.isConnected) connection.disconnect
@@ -11153,33 +10559,19 @@ object WorldSessionActor {
   private final case class ListAccountCharacters()
   private final case class SetCurrentAvatar(tplayer : Player)
   private final case class VehicleLoaded(vehicle : Vehicle)
-  private final case class CheckCargoMounting(vehicle_guid : PlanetSideGUID, cargo_vehicle_guid: PlanetSideGUID, cargo_mountpoint: Int, iteration: Int)
-  private final case class CheckCargoDismount(vehicle_guid : PlanetSideGUID, cargo_vehicle_guid: PlanetSideGUID, cargo_mountpoint: Int, iteration: Int)
-
 
   /**
-    * A message that indicates the user is using a remote electronics kit to hack some server object.<br>
-    * <br>
-    * Each time this message is sent for a given hack attempt counts as a single "tick" of progress.
-    * The process of "making progress" with a hack involves sending this message repeatedly until the progress is 100 or more.
-    * To calculate the actual amount of change in the progress `delta`,
-    * start with 100, divide by the length of time in seconds, then divide once more by 4.
-    * @param progressType 1 - REK hack
-    *                     2 - Turret upgrade with glue gun + upgrade cannister
-    * @param tplayer the player
-    * @param target the object being hacked
-    * @param tool_guid the REK
-    * @param delta how much the progress bar value changes each tick
-    * @param completeAction a custom action performed once the hack is completed
-    * @param tickAction an optional action is is performed for each tick of progress
+    * The message that indidctes the level of completion of a process.
+    * The process is any form of user-driven activity with a certain eventual outcome
+    * but indeterminate progress feedback per cycle.
+    * @param delta how much the progress value changes each tick, which will be treated as a percentage;
+    *              must be a positive value
+    * @param completeAction a finalizing action performed once the progress reaches 100(%)
+    * @param tickAction an action that is performed for each increase of progress
     */
-  private final case class HackingProgress(progressType : Int,
-                                           tplayer : Player,
-                                           target : PlanetSideServerObject,
-                                           tool_guid : PlanetSideGUID,
-                                           delta : Float,
-                                           completeAction : () => Unit,
-                                           tickAction : Option[() => Unit] = None)
+  private final case class Progress(delta : Float, completionAction : ()=>Unit, tickAction : Float=>Boolean) {
+    assert(delta > 0, s"progress activity change value must be positive number - $delta")
+  }
 
   protected final case class SquadUIElement(name : String, index : Int, zone : Int, health : Int, armor : Int, position : Vector3)
 

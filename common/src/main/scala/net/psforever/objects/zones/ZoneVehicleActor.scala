@@ -51,7 +51,7 @@ class ZoneVehicleActor(zone : Zone, vehicleList : ListBuffer[Vehicle]) extends A
       ZoneVehicleActor.recursiveFindVehicle(vehicleList.iterator, vehicle) match {
         case Some(index) =>
           vehicleList.remove(index)
-          vehicle.Actor ! akka.actor.PoisonPill
+          context.stop(vehicle.Actor)
           vehicle.Actor = ActorRef.noSender
         case None => ;
           sender ! Zone.Vehicle.CanNotDespawn(zone, vehicle, "can not find")

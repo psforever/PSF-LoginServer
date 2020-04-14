@@ -89,7 +89,8 @@ class ZoneActor(zone : Zone) extends Actor {
             //ams
             zone.Vehicles
               .filter(veh =>
-                  veh.Definition == GlobalDefinitions.ams &&
+                veh.Definition == GlobalDefinitions.ams &&
+                  !veh.Destroyed &&
                   veh.DeploymentState == DriveState.Deployed &&
                   veh.Faction == player.Faction
               )
@@ -120,12 +121,12 @@ class ZoneActor(zone : Zone) extends Actor {
               Set.empty[StructureType.Value]
             }
             zone.SpawnGroups()
-              .filter({ case (building, _) =>
+              .filter({ case (building, tubes) =>
                 buildingTypeSet.contains(building.BuildingType) && (building match {
                   case wg : WarpGate =>
                     building.Faction == player.Faction || building.Faction == PlanetSideEmpire.NEUTRAL || wg.Broadcast
                   case _ =>
-                    building.Faction == player.Faction
+                    building.Faction == player.Faction && !tubes.forall(sp => sp.Offline)
                 })
               })
               .toSeq
@@ -144,7 +145,10 @@ class ZoneActor(zone : Zone) extends Actor {
             sender ! Zone.Lattice.SpawnPoint(zone.Id, tube)
 
           case Some(tubes) =>
-            sender ! Zone.Lattice.SpawnPoint(zone.Id, scala.util.Random.shuffle(tubes).head)
+            val tube = scala.util.Random.shuffle(
+              tubes.filter(sp => !sp.Offline)
+            ).head
+            sender ! Zone.Lattice.SpawnPoint(zone.Id, tube)
 
           case None =>
             sender ! Zone.Lattice.NoValidSpawnPoint(zone_number, Some(spawn_group))

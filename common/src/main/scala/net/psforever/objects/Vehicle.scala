@@ -9,6 +9,7 @@ import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.deploy.Deployment
+import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.AmenityOwner
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vital.{DamageResistanceModel, StandardResistanceProfile, Vitality}
@@ -65,6 +66,7 @@ import scala.annotation.tailrec
   *                   used in the initialization process (`loadVehicleDefinition`)
   */
 class Vehicle(private val vehicleDef : VehicleDefinition) extends AmenityOwner
+  with Hackable
   with FactionAffinity
   with Mountable
   with MountedWeapons
@@ -74,10 +76,8 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends AmenityOwner
   with StandardResistanceProfile
   with JammableUnit
   with Container {
-  private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.TR
-  private var health : Int = 1
+  private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
   private var shields : Int = 0
-  private var isDead : Boolean = false
   private var decal : Int = 0
   private var trunkAccess : Option[PlanetSideGUID] = None
   private var jammered : Boolean = false
@@ -144,28 +144,12 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends AmenityOwner
     MountedIn
   }
 
-  def IsDead : Boolean = {
-    isDead
-  }
-
-  def Health : Int = {
-    health
-  }
-
-  def Health_=(assignHealth : Int) : Int = {
-    if(!isDead) {
-      health = math.min(math.max(0, assignHealth), MaxHealth)
+  override def Health_=(assignHealth : Int) : Int = {
+    //TODO should vehicle class enforce this?
+    if(!Destroyed) {
+      super.Health_=(assignHealth)
     }
-
-    if(health == 0) {
-      isDead = true
-    }
-
-    health
-  }
-
-  def MaxHealth : Int = {
-    Definition.MaxHealth
+    Health
   }
 
   def Shields : Int = {
@@ -644,7 +628,7 @@ object Vehicle {
   def LoadDefinition(vehicle : Vehicle) : Vehicle = {
     val vdef : VehicleDefinition = vehicle.Definition
     //general stuff
-    vehicle.Health = vdef.MaxHealth
+    vehicle.Health = vdef.DefaultHealth
     //create weapons
     vehicle.weapons = vdef.Weapons.map({case (num, definition) =>
       val slot = EquipmentSlot(EquipmentSize.VehicleWeapon)

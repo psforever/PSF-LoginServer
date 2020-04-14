@@ -95,6 +95,18 @@ object AircraftLashDamage extends DamageCalculations(
   DistanceBetweenTargetandSource
 )
 
+object AmenityHitDamage extends DamageCalculations(
+  DirectHitDamageWithDegrade,
+  DamageWithModifiers(DamageAgainstVehicle),
+  DistanceBetweenTargetandSource
+)
+
+object AmenitySplashDamage extends DamageCalculations(
+  SplashDamageWithRadialDegrade,
+  DamageWithModifiers(DamageAgainstVehicle),
+  DistanceFromExplosionToTarget
+)
+
 object NoDamageSelection extends DamageSelection {
   def Direct = None
   def Splash = None
@@ -128,5 +140,11 @@ object StandardAircraftDamage extends DamageSelection {
 object StandardDeployableDamage extends DamageSelection {
   def Direct = VehicleHitDamage.Calculate
   def Splash = VehicleSplashDamage.Calculate
+  def Lash = NoDamage.Calculate
+}
+
+object StandardAmenityDamage extends DamageSelection {
+  def Direct = AmenityHitDamage.Calculate
+  def Splash = AmenitySplashDamage.Calculate
   def Lash = NoDamage.Calculate
 }

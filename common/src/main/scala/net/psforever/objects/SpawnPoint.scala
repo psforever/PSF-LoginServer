@@ -45,6 +45,8 @@ trait SpawnPoint {
     */
   def Definition : ObjectDefinition with SpawnPointDefinition
 
+  def Offline : Boolean = psso.Destroyed
+
   /**
     * Determine a specific position and orientation in which to spawn the target.
     * @return a `Tuple` of `Vector3` objects;

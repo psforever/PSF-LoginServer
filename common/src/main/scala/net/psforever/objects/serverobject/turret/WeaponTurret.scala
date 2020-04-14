@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.turret
 
+import net.psforever.objects.{AmmoBox, PlanetSideGameObject, Player, Tool}
 import net.psforever.objects.definition.{AmmoBoxDefinition, SeatDefinition, ToolDefinition}
-import net.psforever.objects._
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.objects.inventory.{Container, GridInventory}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
@@ -13,10 +13,8 @@ trait WeaponTurret extends FactionAffinity
   with Mountable
   with MountedWeapons
   with Container {
-  this : PlanetSideGameObject =>
+  _ : PlanetSideGameObject =>
 
-  private var health : Int = 1
-  private var jammered : Boolean = false
   /** manned turrets have just one seat; this is just standard interface */
   protected val seats : Map[Int, Chair] = Map(0 -> Chair(new SeatDefinition() { ControlledWeapon = Some(1) }))
   /** turrets have just one weapon; this is just standard interface */
@@ -24,21 +22,21 @@ trait WeaponTurret extends FactionAffinity
   /** may or may not have inaccessible inventory space
     * see `ReserveAmmunition` in the definition */
   protected val inventory : GridInventory = new GridInventory() {
-
     import net.psforever.types.PlanetSideGUID
-
     override def Remove(index : Int) : Boolean = false
     override def Remove(guid : PlanetSideGUID) : Boolean = false
   }
+  /** some turrets can be updated; they all start without updates */
+  private var upgradePath : TurretUpgrade.Value = TurretUpgrade.None
+  private var middleOfUpgrade : Boolean = false
 
-  def Health : Int = {
-    health
-  }
-
-  def Health_=(toHealth : Int) : Int = {
-    health = toHealth
-    health
-  }
+  /*
+  do not mind what the IDE probably comments about these method prototypes for Health and MaxHealth
+  they do not override methods in Vitality, unless overrode in any class that implements this one
+  due to the inheritance requirement above, these statements are not required to be implemented or overrode ever
+  they are purely for class visibility
+   */
+  def Health : Int
 
   def MaxHealth : Int
 
@@ -81,12 +79,39 @@ trait WeaponTurret extends FactionAffinity
     }
   }
 
-  def Jammered : Boolean = jammered
+  def Upgrade : TurretUpgrade.Value = upgradePath
 
-  def Jammered_=(jamState : Boolean) : Boolean = {
-    jammered = jamState
-    Jammered
+  def Upgrade_=(upgrade : TurretUpgrade.Value) : TurretUpgrade.Value = {
+    middleOfUpgrade = true //blocking flag; block early
+    var updated = false
+    //upgrade each weapon as long as that weapon has a valid option for that upgrade
+    Definition match {
+      case definition : TurretDefinition =>
+        definition.Weapons.foreach({ case(index, upgradePaths) =>
+          if(upgradePaths.contains(upgrade)) {
+            updated = true
+            weapons(index).Equipment.get.asInstanceOf[TurretWeapon].Upgrade = upgrade
+          }
+        })
+      case _ => ;
+    }
+    if(updated) {
+      upgradePath = upgrade
+    }
+    else {
+      middleOfUpgrade = false //reset
+    }
+    Upgrade
   }
+
+  def ConfirmUpgrade(upgrade : TurretUpgrade.Value) : TurretUpgrade.Value = {
+    if(middleOfUpgrade && upgradePath == upgrade) {
+      middleOfUpgrade = false
+    }
+    upgradePath
+  }
+
+  def isUpgrading : Boolean = middleOfUpgrade
 
   def Definition : TurretDefinition
 }
@@ -110,8 +135,6 @@ object WeaponTurret {
     */
   def LoadDefinition(turret : WeaponTurret, tdef : TurretDefinition) : WeaponTurret = {
     import net.psforever.objects.equipment.EquipmentSize.BaseTurretWeapon
-    //general stuff
-    turret.Health = tdef.MaxHealth
     //create weapons; note the class
     turret.weapons = tdef.Weapons.map({case (num, upgradePaths) =>
       val slot = EquipmentSlot(BaseTurretWeapon)

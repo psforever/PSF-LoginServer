@@ -4,8 +4,11 @@ package net.psforever.objects.serverobject.terminals
 import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects._
 import net.psforever.objects.serverobject.CommonMessages
-import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
+import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
+import net.psforever.objects.serverobject.damage.DamageableAmenity
 import net.psforever.objects.serverobject.hackable.HackableBehavior
+import net.psforever.objects.serverobject.repair.RepairableAmenity
+import net.psforever.objects.serverobject.structures.Building
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -16,27 +19,42 @@ import scala.concurrent.duration._
   * it returns the same type of messages - wrapped in a `TerminalMessage` - to the `sender`.
   * @param term the proximity unit (terminal)
   */
-class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor with FactionAffinityBehavior.Check with HackableBehavior.GenericHackable {
+class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
+  with FactionAffinityBehavior.Check
+  with HackableBehavior.GenericHackable
+  with DamageableAmenity
+  with RepairableAmenity {
+  def FactionObject = term
+  def HackableObject = term
+  def TerminalObject = term
+  def DamageableObject = term
+  def RepairableObject = term
+
   var terminalAction : Cancellable = DefaultCancellable.obj
   val callbacks : mutable.ListBuffer[ActorRef] = new mutable.ListBuffer[ActorRef]()
   val log = org.log4s.getLogger
 
-  def FactionObject : FactionAffinity = term
-  def HackableObject = term
-
-  def TerminalObject : Terminal with ProximityUnit = term
-
   def receive : Receive = checkBehavior
-      .orElse(hackableBehavior)
-      .orElse {
-        case CommonMessages.Use(_, Some(target : PlanetSideGameObject)) =>
-          if(term.Definition.asInstanceOf[ProximityDefinition].Validations.exists(p => p(target))) {
-            Use(target, term.Continent, sender)
-          }
-        case CommonMessages.Use(_, Some((target : PlanetSideGameObject, callback : ActorRef))) =>
-          if(term.Definition.asInstanceOf[ProximityDefinition].Validations.exists(p => p(target))) {
-            Use(target, term.Continent, callback)
-          }
+    .orElse(hackableBehavior)
+    .orElse(takesDamage)
+    .orElse(canBeRepairedByNanoDispenser)
+    .orElse {
+      case CommonMessages.Use(player, Some(item : SimpleItem)) if item.Definition == GlobalDefinitions.remote_electronics_kit =>
+        //TODO setup certifications check
+        term.Owner match {
+          case b : Building if (b.Faction != player.Faction || b.CaptureConsoleIsHacked) && term.HackedBy.isEmpty =>
+            sender ! CommonMessages.Hack(player, term, Some(item))
+          case _ => ;
+        }
+
+      case CommonMessages.Use(_, Some(target : PlanetSideGameObject)) =>
+        if(!term.Destroyed && term.Definition.asInstanceOf[ProximityDefinition].Validations.exists(p => p(target))) {
+          Use(target, term.Continent, sender)
+        }
+      case CommonMessages.Use(_, Some((target : PlanetSideGameObject, callback : ActorRef))) =>
+        if(!term.Destroyed && term.Definition.asInstanceOf[ProximityDefinition].Validations.exists(p => p(target))) {
+          Use(target, term.Continent, callback)
+        }
 
       case CommonMessages.Use(_, _) =>
         log.warn(s"unexpected format for CommonMessages.Use in this context")
@@ -52,7 +70,7 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
         val validateFunc : PlanetSideGameObject=>Boolean = term.Validate(proxDef.UseRadius * proxDef.UseRadius, proxDef.Validations)
         val callbackList = callbacks.toList
         term.Targets.zipWithIndex.foreach({ case(target, index) =>
-          if(validateFunc(target)) {
+          if(!term.Destroyed && validateFunc(target)) {
             callbackList.lift(index) match {
               case Some(cback) =>
                 cback ! ProximityUnit.Action(term, target)

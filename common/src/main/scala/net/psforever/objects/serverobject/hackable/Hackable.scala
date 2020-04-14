@@ -2,11 +2,12 @@ package net.psforever.objects.serverobject.hackable
 
 import net.psforever.objects.Player
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.serverobject.hackable.Hackable.HackInfo
 import net.psforever.packet.game.TriggeredSound
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
-trait Hackable extends FactionAffinity {
-  import Hackable._
+trait Hackable {
+  _ : FactionAffinity =>
   /** inportant information regarding the hack and how it was started */
   private var hackedBy : Option[HackInfo] = None
   def HackedBy : Option[HackInfo] = hackedBy
@@ -66,6 +67,18 @@ trait Hackable extends FactionAffinity {
     hackDuration = arr
     arr
   }
+
+//  private var hackable : Option[Boolean] = None
+//  def Hackable : Boolean = hackable.getOrElse(Definition.Hackable)
+//
+//  def Hackable_=(state : Boolean) : Boolean = Hackable_=(Some(state))
+//
+//  def Hackable_=(state : Option[Boolean]) : Boolean = {
+//    hackable = state
+//    Hackable
+//  }
+//
+//  def Definition : HackableDefinition
 }
 
 object Hackable {

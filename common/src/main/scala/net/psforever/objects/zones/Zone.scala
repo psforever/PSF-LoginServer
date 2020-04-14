@@ -402,6 +402,16 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     })
     //after all fixed GUID's are defined  ...
     other.foreach(obj => guid.register(obj, "dynamic"))
+    //TODO temporary; convert all old-style ImplantTerminalMech.Constructor with the kind that provides position data
+    import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
+    import net.psforever.objects.serverobject.terminals.Terminal
+    zoneMap.TerminalToInterface.foreach { case (mech_guid, interface_guid) =>
+      (GUID(mech_guid), GUID(interface_guid)) match {
+        case (Some(mech : ImplantTerminalMech), Some(interface : Terminal)) =>
+          mech.Position = interface.Position
+        case _ => ;
+      }
+    }
   }
 
   private def MakeBuildings(implicit context : ActorContext) : PairMap[Int, Building] = {
@@ -561,19 +571,25 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
 
   def AvatarEvents : ActorRef = avatarEvents
 
+  def LocalEvents : ActorRef = localEvents
+
+  def VehicleEvents : ActorRef = vehicleEvents
+
+  //mainly for testing
+  def Activity_=(bus : ActorRef) : ActorRef = {
+    projector = bus
+    Activity
+  }
+
   def AvatarEvents_=(bus : ActorRef) : ActorRef = {
     avatarEvents = bus
     AvatarEvents
   }
 
-  def LocalEvents : ActorRef = localEvents
-
   def LocalEvents_=(bus : ActorRef) : ActorRef = {
     localEvents = bus
     LocalEvents
   }
-
-  def VehicleEvents : ActorRef = vehicleEvents
 
   def VehicleEvents_=(bus : ActorRef) : ActorRef = {
     vehicleEvents = bus

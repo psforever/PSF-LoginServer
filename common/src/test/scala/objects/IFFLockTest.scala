@@ -60,7 +60,7 @@ class IFFLockControl2Test extends ActorTest {
       player.GUID = PlanetSideGUID(1)
       assert(lock.HackedBy.isEmpty)
 
-      lock.Actor ! CommonMessages.Hack(player)
+      lock.Actor ! CommonMessages.Hack(player, lock)
       Thread.sleep(500L) //blocking
       assert(lock.HackedBy.nonEmpty) //TODO rewrite later
     }
@@ -74,7 +74,7 @@ class IFFLockControl3Test extends ActorTest {
       player.GUID = PlanetSideGUID(1)
       assert(lock.HackedBy.isEmpty)
 
-      lock.Actor ! CommonMessages.Hack(player)
+      lock.Actor ! CommonMessages.Hack(player, lock)
       Thread.sleep(500L) //blocking
       assert(lock.HackedBy.nonEmpty) //TODO rewrite later
       lock.Actor ! CommonMessages.ClearHack()
