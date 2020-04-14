@@ -1,4 +1,4 @@
-// Copyright (c) 2017 PSForever
+// Copyright (c) 2018 PSForever
 package net.psforever.objects
 
 import akka.actor.{Actor, ActorContext, Props}
@@ -8,8 +8,11 @@ import net.psforever.objects.definition.{ComplexDeployableDefinition, SimpleDepl
 import net.psforever.objects.definition.converter.SmallDeployableConverter
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.vital.{StandardResolutions, Vitality}
+import net.psforever.objects.zones.Zone
 import net.psforever.types.{PlanetSideGUID, Vector3}
+import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.local.{LocalAction, LocalServiceMessage}
 
@@ -17,14 +20,6 @@ import scala.concurrent.duration._
 
 class ExplosiveDeployable(cdef : ExplosiveDeployableDefinition) extends ComplexDeployable(cdef)
   with JammableUnit {
-  private var exploded : Boolean = false
-
-  def Exploded : Boolean = exploded
-
-  def Exploded_=(fuse : Boolean) : Boolean = {
-    exploded = fuse
-    Exploded
-  }
 
   override def Definition : ExplosiveDeployableDefinition = cdef
 }
@@ -59,38 +54,48 @@ object ExplosiveDeployableDefinition {
   }
 }
 
-class ExplosiveDeployableControl(mine : ExplosiveDeployable) extends Actor {
-  def receive : Receive = {
-    case Vitality.Damage(damage_func) =>
-      val originalHealth = mine.Health
-      if(originalHealth > 0) {
-        val cause = damage_func(mine)
-        ExplosiveDeployableControl.HandleDamageResolution(mine, cause, originalHealth - mine.Health)
-      }
+class ExplosiveDeployableControl(mine : ExplosiveDeployable) extends Actor
+  with Damageable {
+  def DamageableObject = mine
 
-    case _ => ;
+  def receive : Receive = takesDamage
+    .orElse {
+      case _ => ;
+    }
+
+  protected def TakesDamage : Receive = {
+    case Vitality.Damage(applyDamageTo) =>
+      if(mine.CanDamage) {
+        val originalHealth = mine.Health
+        val cause = applyDamageTo(mine)
+        val damage = originalHealth - mine.Health
+        if(Damageable.CanDamageOrJammer(mine, damage, cause)) {
+          ExplosiveDeployableControl.DamageResolution(mine, cause, damage)
+        }
+        else {
+          mine.Health = originalHealth
+        }
+      }
   }
 }
 
 object ExplosiveDeployableControl {
-  def HandleDamageResolution(target : ExplosiveDeployable, cause : ResolvedProjectile, damage : Int) : Unit = {
-    val zone = target.Zone
-    val playerGUID = zone.LivePlayers.find { p => cause.projectile.owner.Name.equals(p.Name) } match {
-      case Some(player) => player.GUID
-      case _ => PlanetSideGUID(0)
-    }
+  def DamageResolution(target : ExplosiveDeployable, cause : ResolvedProjectile, damage : Int) : Unit = {
+    target.History(cause)
     if(target.Health == 0) {
-      HandleDestructionAwareness(target, playerGUID, cause)
+      DestructionAwareness(target, cause)
     }
-    else if(!target.Jammed && cause.projectile.profile.JammerProjectile) {
+    else if(!target.Jammed && Damageable.CanJammer(target, cause)) {
       if(target.Jammed = {
         val radius = cause.projectile.profile.DamageRadius
         Vector3.DistanceSquared(cause.hit_pos, cause.target.Position) < radius * radius
       }) {
         if(target.Definition.DetonateOnJamming) {
-          target.Zone.LocalEvents ! LocalServiceMessage(target.Zone.Id, LocalAction.Detonate(target.GUID, target))
+          val zone = target.Zone
+          zone.Activity ! Zone.HotSpot.Activity(cause.target, cause.projectile.owner, cause.hit_pos)
+          zone.LocalEvents ! LocalServiceMessage(zone.Id, LocalAction.Detonate(target.GUID, target))
         }
-        HandleDestructionAwareness(target, playerGUID, cause)
+        DestructionAwareness(target, cause)
       }
     }
   }
@@ -98,13 +103,19 @@ object ExplosiveDeployableControl {
   /**
     * na
     * @param target na
-    * @param attribution na
-    * @param lastShot na
+    * @param cause na
     */
-  def HandleDestructionAwareness(target : ExplosiveDeployable, attribution : PlanetSideGUID, lastShot : ResolvedProjectile) : Unit = {
+  def DestructionAwareness(target : ExplosiveDeployable, cause : ResolvedProjectile) : Unit = {
     val zone = target.Zone
+    val attribution = zone.LivePlayers.find { p => cause.projectile.owner.Name.equals(p.Name) } match {
+      case Some(player) => player.GUID
+      case _ => PlanetSideGUID(0)
+    }
+    target.Destroyed = true
     Deployables.AnnounceDestroyDeployable(target, Some(if(target.Jammed) 0 seconds else 500 milliseconds))
-    zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.Destroy(target.GUID, attribution, attribution, target.Position))
+    zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.Destroy(target.GUID, attribution, Service.defaultPlayerGUID, target.Position))
+    if(target.Health == 0) {
+      zone.LocalEvents ! LocalServiceMessage(zone.Id, LocalAction.TriggerEffect(Service.defaultPlayerGUID, "detonate_damaged_mine", target.GUID))
+    }
   }
 }
-

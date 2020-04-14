@@ -3,15 +3,14 @@ package net.psforever.objects.serverobject.tube
 
 import akka.actor.ActorContext
 import net.psforever.objects.SpawnPointDefinition
-import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.definition.converter.SpawnTubeConverter
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.serverobject.structures.Amenity
+import net.psforever.objects.serverobject.structures.{Amenity, AmenityDefinition}
 
 /**
   * The definition for any spawn point in the game world.
   */
-class SpawnTubeDefinition(object_id : Int) extends ObjectDefinition(object_id)
+class SpawnTubeDefinition(object_id : Int) extends AmenityDefinition(object_id)
   with SpawnPointDefinition {
   Packet = new SpawnTubeConverter
 }

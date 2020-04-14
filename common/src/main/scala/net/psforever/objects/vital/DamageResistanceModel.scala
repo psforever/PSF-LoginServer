@@ -26,26 +26,26 @@ import net.psforever.objects.vital.resolution.ResolutionCalculations
   */
 trait DamageResistanceModel {
   /** the functionality that processes damage; required */
-  private var damage : DamageSelection = NoDamageSelection
+  private var damageUsing : DamageSelection = NoDamageSelection
 
   /** the functionality that processes resistance; optional */
-  private var resistance : ResistanceSelection = NoResistanceSelection
+  private var resistUsing : ResistanceSelection = NoResistanceSelection
 
   /** the functionality that prepares for damage application actions; required */
   private var model : ResolutionCalculations.Form = NoResolutions.Calculate
 
-  def Damage : DamageSelection = damage
+  def DamageUsing : DamageSelection = damageUsing
 
-  def Damage_=(selector : DamageSelection) : DamageSelection = {
-    damage = selector
-    Damage
+  def DamageUsing_=(selector : DamageSelection) : DamageSelection = {
+    damageUsing = selector
+    DamageUsing
   }
 
-  def Resistance : ResistanceSelection = resistance
+  def ResistUsing : ResistanceSelection = resistUsing
 
-  def Resistance_=(selector : ResistanceSelection) : ResistanceSelection = {
-    resistance = selector
-    Resistance
+  def ResistUsing_=(selector : ResistanceSelection) : ResistanceSelection = {
+    resistUsing = selector
+    ResistUsing
   }
 
   def Model : ResolutionCalculations.Form = model
@@ -61,8 +61,8 @@ trait DamageResistanceModel {
     * @return a function literal that encapsulates delayed modification instructions for certain objects
     */
   def Calculate(data : ResolvedProjectile) : ResolutionCalculations.Output = {
-    val dam : ProjectileCalculations.Form = Damage(data)
-    val res : ProjectileCalculations.Form = Resistance(data)
+    val dam : ProjectileCalculations.Form = DamageUsing(data)
+    val res : ProjectileCalculations.Form = ResistUsing(data)
     Model(dam, res, data)
   }
 
@@ -73,8 +73,8 @@ trait DamageResistanceModel {
     * @return a function literal that encapsulates delayed modification instructions for certain objects
     */
   def Calculate(data : ResolvedProjectile, resolution : ProjectileResolution.Value) : ResolutionCalculations.Output = {
-    val dam : ProjectileCalculations.Form = Damage(resolution)
-    val res : ProjectileCalculations.Form = Resistance(resolution)
+    val dam : ProjectileCalculations.Form = DamageUsing(resolution)
+    val res : ProjectileCalculations.Form = ResistUsing(resolution)
     Model(dam, res, data)
   }
 }

@@ -2,7 +2,7 @@
 package net.psforever.objects.ce
 
 import net.psforever.objects._
-import net.psforever.objects.definition.{BaseDeployableDefinition, ObjectDefinition}
+import net.psforever.objects.definition.DeployableDefinition
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.vital.{DamageResistanceModel, Vitality}
 import net.psforever.objects.zones.ZoneAware
@@ -14,15 +14,7 @@ trait Deployable extends FactionAffinity
   with OwnableByPlayer
   with ZoneAware {
   this : PlanetSideGameObject =>
-  private var health : Int = 1
   private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
-
-  def Health : Int = health
-
-  def Health_=(toHealth : Int) : Int = {
-    health = math.min(math.max(0, toHealth), MaxHealth)
-    Health
-  }
 
   def MaxHealth : Int
 
@@ -35,7 +27,7 @@ trait Deployable extends FactionAffinity
 
   def DamageModel : DamageResistanceModel = Definition.asInstanceOf[DamageResistanceModel]
 
-  def Definition : ObjectDefinition with BaseDeployableDefinition
+  def Definition : DeployableDefinition
 }
 
 object Deployable {

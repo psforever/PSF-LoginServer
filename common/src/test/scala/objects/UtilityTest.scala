@@ -5,8 +5,10 @@ import akka.actor.{Actor, ActorRef, Props}
 import base.ActorTest
 import net.psforever.objects._
 import net.psforever.objects.serverobject.terminals.Terminal
+import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vehicles._
-import net.psforever.types.PlanetSideGUID
+import net.psforever.packet.game.ItemTransactionMessage
+import net.psforever.types._
 import org.specs2.mutable._
 
 import scala.concurrent.duration.Duration
@@ -38,7 +40,6 @@ class UtilityTest extends Specification {
     }
 
     "create an ams_respawn_tube object" in {
-      import net.psforever.objects.serverobject.tube.SpawnTube
       val obj = Utility(UtilityType.ams_respawn_tube, UtilityTest.vehicle)
       obj.UtilType mustEqual UtilityType.ams_respawn_tube
       obj().isInstanceOf[SpawnTube] mustEqual true
@@ -54,17 +55,18 @@ class UtilityTest extends Specification {
       obj().asInstanceOf[Terminal].Actor mustEqual ActorRef.noSender
     }
 
-    "teleportpad_terminal produces a telepad object (router_telepad)" in {
-      import net.psforever.packet.game.ItemTransactionMessage
-      import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, TransactionType}
+    "produce a telepad object through the teleportpad_terminal" in {
       val veh = Vehicle(GlobalDefinitions.quadstealth)
+      veh.Faction = PlanetSideEmpire.TR
       val obj = Utility(UtilityType.teleportpad_terminal, UtilityTest.vehicle)
+      val player = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       veh.GUID = PlanetSideGUID(101)
       obj().Owner = veh //hack
       obj().GUID = PlanetSideGUID(1)
+      player.GUID = PlanetSideGUID(2)
 
       val msg = obj().asInstanceOf[Terminal].Request(
-        Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)),
+        player,
         ItemTransactionMessage(PlanetSideGUID(853), TransactionType.Buy, 0, "router_telepad", 0, PlanetSideGUID(0))
       )
       msg.isInstanceOf[Terminal.BuyEquipment] mustEqual true
@@ -83,13 +85,13 @@ class UtilityTest extends Specification {
       val obj = Utility(UtilityType.internal_router_telepad_deployable, UtilityTest.vehicle)
       val inpad = obj().asInstanceOf[Utility.InternalTelepad]
 
-      inpad.Telepad mustEqual None
+      inpad.Telepad.isEmpty mustEqual true
       inpad.Telepad = PlanetSideGUID(5)
-      inpad.Telepad mustEqual Some(PlanetSideGUID(5))
+      inpad.Telepad.contains(PlanetSideGUID(5)) mustEqual true
       inpad.Telepad = PlanetSideGUID(6)
-      inpad.Telepad mustEqual Some(PlanetSideGUID(6))
+      inpad.Telepad.contains(PlanetSideGUID(6)) mustEqual true
       inpad.Telepad = None
-      inpad.Telepad mustEqual None
+      inpad.Telepad.isEmpty mustEqual true
     }
 
     "be located with their owner (terminal)" in {
@@ -98,7 +100,6 @@ class UtilityTest extends Specification {
       obj().Position mustEqual veh.Position
       obj().Orientation mustEqual veh.Orientation
 
-      import net.psforever.types.Vector3
       veh.Position = Vector3(1, 2, 3)
       veh.Orientation = Vector3(4, 5, 6)
       obj().Position mustEqual veh.Position
@@ -111,7 +112,6 @@ class UtilityTest extends Specification {
       obj().Position mustEqual veh.Position
       obj().Orientation mustEqual veh.Orientation
 
-      import net.psforever.types.Vector3
       veh.Position = Vector3(1, 2, 3)
       veh.Orientation = Vector3(4, 5, 6)
       obj().Position mustEqual veh.Position
@@ -124,13 +124,12 @@ class UtilityTest extends Specification {
       obj().Position mustEqual veh.Position
       obj().Orientation mustEqual veh.Orientation
 
-      import net.psforever.types.Vector3
       veh.Position = Vector3(1, 2, 3)
       veh.Orientation = Vector3(4, 5, 6)
       veh.GUID = PlanetSideGUID(101)
       obj().Position mustEqual veh.Position
       obj().Orientation mustEqual veh.Orientation
-      obj().asInstanceOf[Utility.InternalTelepad].Router mustEqual Some(veh.GUID)
+      obj().asInstanceOf[Utility.InternalTelepad].Router.contains(veh.GUID) mustEqual true
     }
   }
 }

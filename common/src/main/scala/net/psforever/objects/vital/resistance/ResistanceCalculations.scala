@@ -4,6 +4,7 @@ package net.psforever.objects.vital.resistance
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.ballistics._
 import net.psforever.objects.definition.ExoSuitDefinition
+import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.vital.projectile.ProjectileCalculations
 import net.psforever.types.ExoSuitType
 
@@ -103,6 +104,20 @@ object ResistanceCalculations {
     }
   }
 
+  def ValidAmenityTarget(data : ResolvedProjectile) : Try[ObjectSource] = {
+    data.target match {
+      case target : ObjectSource =>
+        if(target.obj.isInstanceOf[Amenity]) {
+          Success(target)
+        }
+        else {
+          failure("something else")
+        }
+      case _ =>
+        failure("something else")
+    }
+  }
+
   //extractors
   def NoResistExtractor(target : SourceEntry) : Int = 0
 
@@ -121,6 +136,10 @@ object ResistanceCalculations {
   def VehicleAggravatedExtractor(target : VehicleSource) : Int = target.Definition.ResistanceAggravated
 
   def VehicleRadiationExtractor(target : VehicleSource) : Float = target.Definition.RadiationShielding
+
+  def OtherDirectExtractor(target : ObjectSource) : Int = target.Definition.asInstanceOf[ResistanceProfile].ResistanceDirectHit
+
+  def OtherSplashExtractor(target : ObjectSource) : Int = target.Definition.asInstanceOf[ResistanceProfile].ResistanceSplash
 
   def MaximumResistance(target : SourceEntry) : Int = Integer.MAX_VALUE
 }

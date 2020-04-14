@@ -2,7 +2,7 @@
 package net.psforever.objects.serverobject.resourcesilo
 
 import akka.actor.{ActorContext, Props}
-import net.psforever.objects.{GlobalDefinitions, Player, Vehicle}
+import net.psforever.objects.{GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.packet.game.UseItemMessage
 

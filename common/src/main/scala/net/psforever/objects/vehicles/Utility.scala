@@ -1,13 +1,16 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vehicles
 
-import akka.actor.ActorContext
-import net.psforever.objects.definition.SimpleDeployableDefinition
+import akka.actor.{ActorContext, ActorRef}
+import net.psforever.objects.definition.BaseDeployableDefinition
 import net.psforever.objects._
-import net.psforever.objects.ce.TelepadLike
-import net.psforever.objects.serverobject.structures.Amenity
+import net.psforever.objects.ce.{DeployedItem, TelepadLike}
+import net.psforever.objects.definition.converter.SmallDeployableConverter
+import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.structures.{Amenity, AmenityDefinition}
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.tube.{SpawnTube, SpawnTubeDefinition}
+import net.psforever.objects.vehicles.Utility.InternalTelepadDefinition
 import net.psforever.packet.game.ItemTransactionMessage
 import net.psforever.types.{PlanetSideGUID, Vector3}
 
@@ -193,7 +196,8 @@ object Utility {
     * and allows it to serve as one of the terminal points of a Router-telepad teleportation system.
     * @param ddef na
     */
-  class InternalTelepad(ddef : SimpleDeployableDefinition) extends Amenity
+  class InternalTelepad(ddef : InternalTelepadDefinition) extends Amenity
+    with UtilityWorldEntity
     with TelepadLike {
     /** a link to the telepad that serves as the other endpoint of this teleportation system */
     private var activeTelepad : Option[PlanetSideGUID] = None
@@ -213,6 +217,21 @@ object Utility {
     override def Router : Option[PlanetSideGUID] = Some(Owner.GUID)
 
     def Definition = ddef
+  }
+
+  /**
+    * As the `InternalTelepad` object is a unique intersection of `Amenity` and `TelepadLike`
+    * that is treated like a `Deployable`,
+    * its definition must be a unique intersection of `AmenityDefinition` and `BaseDeployableDefinition`.
+    * @see `AmenityDefinition`
+    * @see `BaseDeployableDefinition`
+    * @see `DeployableDefinition`
+    */
+  class InternalTelepadDefinition extends AmenityDefinition(DeployedItem.router_telepad_deployable.id)
+    with BaseDeployableDefinition {
+    Packet = new SmallDeployableConverter
+
+    def Item : DeployedItem.Value = DeployedItem.router_telepad_deployable
   }
 
   /**
@@ -239,5 +258,17 @@ object Utility {
       OrderTerminalDefinition.Setup
     case UtilityType.internal_router_telepad_deployable =>
       TelepadLike.Setup
+  }
+}
+
+object InternalTelepadDefinition {
+  def apply() : InternalTelepadDefinition =
+    new InternalTelepadDefinition()
+
+  def SimpleUninitialize(obj : PlanetSideGameObject, context : ActorContext) : Unit = { }
+
+  def SimpleUninitialize(obj : PlanetSideServerObject, context : ActorContext) : Unit = {
+    context.stop(obj.Actor)
+    obj.Actor = ActorRef.noSender
   }
 }

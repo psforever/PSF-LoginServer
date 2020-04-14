@@ -3,6 +3,8 @@ package net.psforever.objects.serverobject.structures
 
 import akka.actor.{Actor, ActorRef}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
+import net.psforever.objects.serverobject.generator.Generator
+import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.zones.InterstellarCluster
 import net.psforever.packet.game.BuildingInfoUpdateMessage
 import services.ServiceManager
@@ -35,43 +37,62 @@ class BuildingControl(building : Building) extends Actor with FactionAffinityBeh
         building.Amenities.foreach(_.Actor forward FactionAffinity.ConfirmFactionAffinity())
       }
       sender ! FactionAffinity.AssertFactionAffinity(building, faction)
-    case Building.TriggerZoneMapUpdate(zone_num: Int) =>
-      if(interstellarCluster != ActorRef.noSender) interstellarCluster ! InterstellarCluster.ZoneMapUpdate(zone_num)
-    case Building.SendMapUpdate(all_clients: Boolean) =>
-      val zoneNumber = building.Zone.Number
-      val buildingNumber = building.MapId
-      log.trace(s"sending BuildingInfoUpdateMessage update - zone=$zoneNumber, building=$buildingNumber")
-      val (
-        ntuLevel,
-        isHacked, empireHack, hackTimeRemaining, controllingEmpire,
-        unk1, unk1x,
-        generatorState, spawnTubesNormal, forceDomeActive,
-        latticeBenefit, cavernBenefit,
-        unk4, unk5, unk6,
-        unk7, unk7x,
-        boostSpawnPain, boostGeneratorPain
-        ) = building.Info
-      val msg = BuildingInfoUpdateMessage(
-        zoneNumber,
-        buildingNumber,
-        ntuLevel,
-        isHacked, empireHack, hackTimeRemaining, controllingEmpire,
-        unk1, unk1x,
-        generatorState, spawnTubesNormal, forceDomeActive,
-        latticeBenefit, cavernBenefit,
-        unk4, unk5, unk6,
-        unk7, unk7x,
-        boostSpawnPain, boostGeneratorPain
-      )
 
-      if(all_clients) {
-        if(galaxyService != ActorRef.noSender) galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(msg))
-      } else {
-        // Fake a GalaxyServiceResponse response back to just the sender
-        sender ! GalaxyServiceResponse("", GalaxyResponse.MapUpdate(msg))
+    case Building.AmenityStateChange(obj : SpawnTube) =>
+      if(building.Amenities.contains(obj)) {
+        SendMapUpdate(allClients = true)
       }
 
-    case default =>
-      log.warn(s"BuildingControl: Unknown message $default received from ${sender().path}")
+    case Building.AmenityStateChange(obj : Generator) =>
+      if(building.Amenities.contains(obj)) {
+        SendMapUpdate(allClients = true)
+      }
+
+    case Building.TriggerZoneMapUpdate(zone_num: Int) =>
+      if(interstellarCluster != ActorRef.noSender) interstellarCluster ! InterstellarCluster.ZoneMapUpdate(zone_num)
+
+    case Building.SendMapUpdate(all_clients: Boolean) =>
+      SendMapUpdate(all_clients)
+
+    case _ =>
+  }
+
+  /**
+    * na
+    * @param allClients na
+    */
+  def SendMapUpdate(allClients : Boolean) : Unit = {
+    val zoneNumber = building.Zone.Number
+    val buildingNumber = building.MapId
+    log.trace(s"sending BuildingInfoUpdateMessage update - zone=$zoneNumber, building=$buildingNumber")
+    val (
+      ntuLevel,
+      isHacked, empireHack, hackTimeRemaining, controllingEmpire,
+      unk1, unk1x,
+      generatorState, spawnTubesNormal, forceDomeActive,
+      latticeBenefit, cavernBenefit,
+      unk4, unk5, unk6,
+      unk7, unk7x,
+      boostSpawnPain, boostGeneratorPain
+      ) = building.Info
+    val msg = BuildingInfoUpdateMessage(
+      zoneNumber,
+      buildingNumber,
+      ntuLevel,
+      isHacked, empireHack, hackTimeRemaining, controllingEmpire,
+      unk1, unk1x,
+      generatorState, spawnTubesNormal, forceDomeActive,
+      latticeBenefit, cavernBenefit,
+      unk4, unk5, unk6,
+      unk7, unk7x,
+      boostSpawnPain, boostGeneratorPain
+    )
+
+    if(allClients) {
+      if(galaxyService != ActorRef.noSender) galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(msg))
+    } else {
+      // Fake a GalaxyServiceResponse response back to just the sender
+      sender ! GalaxyServiceResponse("", GalaxyResponse.MapUpdate(msg))
+    }
   }
 }

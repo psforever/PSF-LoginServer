@@ -8,7 +8,5 @@ abstract class SimpleDeployable(cdef : SimpleDeployableDefinition) extends Plane
   with Deployable {
   Health = Definition.MaxHealth
 
-  def MaxHealth : Int = Definition.MaxHealth
-
   def Definition = cdef
 }

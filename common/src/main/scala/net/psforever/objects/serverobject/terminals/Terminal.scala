@@ -17,22 +17,20 @@ import net.psforever.types.{PlanetSideGUID, Vector3}
   * while `Vehicle`-owned terminals may not.
   * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
-class Terminal(tdef : TerminalDefinition) extends Amenity with Hackable {
+class Terminal(tdef : TerminalDefinition) extends Amenity
+  with Hackable {
   HackSound = TriggeredSound.HackTerminal
   HackEffectDuration = Array(0, 30, 60, 90)
   HackDuration = Array(0, 10, 5, 3)
 
   //the following fields and related methods are neither finalized nor integrated; GOTO Request
-  private var health : Int = 100 //TODO not real health value
-
-  def Health : Int = health
 
   def Damaged(dam : Int) : Unit = {
-    health = Math.max(0, Health - dam)
+    Health = Math.max(0, Health - dam)
   }
 
   def Repair(rep : Int) : Unit = {
-    health = Math.min(Health + rep, 100)
+    Health = Math.min(Health + rep, 100)
   }
 
   /**

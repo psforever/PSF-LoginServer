@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.generator
 
 import net.psforever.objects.serverobject.structures.Amenity
+import net.psforever.types.PlanetSideGeneratorState
 
 /**
   * The generator is a big feature of all major facilities.
@@ -14,7 +15,15 @@ import net.psforever.objects.serverobject.structures.Amenity
   * @param gdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
 class Generator(private val gdef : GeneratorDefinition) extends Amenity {
-  //TODO should have Vitality, to indicate damaged/destroyed property
+  private var condition : PlanetSideGeneratorState.Value = PlanetSideGeneratorState.Normal
+
+  def Condition : PlanetSideGeneratorState.Value = condition
+
+  def Condition_=(state : PlanetSideGeneratorState.Value) : PlanetSideGeneratorState.Value = {
+    condition = state
+    Condition
+  }
+
   def Definition : GeneratorDefinition = gdef
 }
 
@@ -24,15 +33,6 @@ object Generator {
   }
 
   import akka.actor.ActorContext
-  def Constructor(id : Int, context : ActorContext) : Generator = {
-    import akka.actor.Props
-    import net.psforever.objects.GlobalDefinitions
-
-    val obj = Generator(GlobalDefinitions.generator)
-    obj.Actor = context.actorOf(Props(classOf[GeneratorControl], obj), s"${obj.Definition.Name}_$id")
-    obj
-  }
-
   import net.psforever.types.Vector3
   def Constructor(pos : Vector3)(id : Int, context : ActorContext) : Generator = {
     import akka.actor.Props

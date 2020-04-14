@@ -6,10 +6,6 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 
 abstract class ComplexDeployable(cdef : ComplexDeployableDefinition) extends PlanetSideServerObject
   with Deployable {
-  Health = Definition.MaxHealth
-
-  def MaxHealth : Int = Definition.MaxHealth
-
   private var shields : Int = 0
 
   def Shields : Int = shields

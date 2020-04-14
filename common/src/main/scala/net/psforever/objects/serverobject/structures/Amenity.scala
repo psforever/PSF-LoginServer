@@ -1,10 +1,12 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.structures
 
+import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.vital.{DamageResistanceModel, StandardResistanceProfile, Vitality, VitalsActivity}
 import net.psforever.objects.zones.{Zone, ZoneAware}
 import net.psforever.types.{PlanetSideEmpire, Vector3}
-import net.psforever.objects.zones.{ Zone => World }
+import net.psforever.objects.zones.{Zone => World}
 
 /**
   * Amenities are elements of the game that belong to other elements of the game.<br>
@@ -14,9 +16,13 @@ import net.psforever.objects.zones.{ Zone => World }
   * This association strips away at the internalization and redirects a reference to some properties somewhere else.
   * An `Amenity` object belongs to its `Owner` object;
   * the `Amenity` objects look to its `Owner` object for some of its properties.
+  * @see `AmenityOwner`
   * @see `FactionAffinity`
   */
-abstract class Amenity extends PlanetSideServerObject with ZoneAware {
+abstract class Amenity extends PlanetSideServerObject
+  with Vitality
+  with ZoneAware
+  with StandardResistanceProfile {
   private[this] val log = org.log4s.getLogger("Amenity")
   /** what other entity has authority over this amenity; usually either a building or a vehicle */
   private var owner : AmenityOwner = Building.NoBuilding
@@ -71,4 +77,8 @@ abstract class Amenity extends PlanetSideServerObject with ZoneAware {
     }
     LocationOffset
   }
+
+  def DamageModel = Definition.asInstanceOf[DamageResistanceModel]
+
+  def Definition : AmenityDefinition
 }

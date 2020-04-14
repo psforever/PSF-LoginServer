@@ -1,12 +1,12 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.pad
 
-import net.psforever.objects.definition.ObjectDefinition
+import net.psforever.objects.serverobject.structures.AmenityDefinition
 
 /**
   * The definition for any `VehicleSpawnPad`.
   */
-class VehicleSpawnPadDefinition(objectId : Int) extends ObjectDefinition(objectId) {
+class VehicleSpawnPadDefinition(objectId : Int) extends AmenityDefinition(objectId) {
 
   // Different pads require a Z offset to stop vehicles falling through the world after the pad rises from the floor, these values are found in game_objects.adb.lst
   private var vehicle_creation_z_offset = 0f

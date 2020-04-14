@@ -1061,7 +1061,7 @@ class SquadService extends Actor {
                   squad.GUID,
                   SquadDetail().Members(List(SquadPositionEntry(position, SquadPositionDetail.Closed)))
                 )
-              case Some(false) | None => ;
+              case Some(_) | None => ;
             }
 
           case AddSquadMemberPosition(position) =>
@@ -2267,75 +2267,75 @@ class SquadService extends Actor {
   def JoinSquad(player : Player, squad : Squad, position : Int) : Boolean = {
     val charId = player.CharId
     val role = squad.Membership(position)
-    if(UserEvents.get(charId).nonEmpty && squad.Leader.CharId != charId && squad.isAvailable(position, player.Certifications)) {
-      role.Name = player.Name
-      role.CharId = charId
-      role.Health = StatConverter.Health(player.Health, player.MaxHealth, min=1, max=64)
-      role.Armor = StatConverter.Health(player.Armor, player.MaxArmor, min=1, max=64)
-      role.Position = player.Position
-      role.ZoneId = 1
-      memberToSquad(charId) = squad
+    UserEvents.get(charId) match {
+      case Some(events) if squad.Leader.CharId != charId && squad.isAvailable(position, player.Certifications) =>
+        role.Name = player.Name
+        role.CharId = charId
+        role.Health = StatConverter.Health(player.Health, player.MaxHealth, min=1, max=64)
+        role.Armor = StatConverter.Health(player.Armor, player.MaxArmor, min=1, max=64)
+        role.Position = player.Position
+        role.ZoneId = 1
+        memberToSquad(charId) = squad
 
-      continueToMonitorDetails.remove(charId)
-      RemoveAllInvitesWithPlayer(charId)
-      InitialAssociation(squad)
-      Publish(charId, SquadResponse.AssociateWithSquad(squad.GUID))
-      val features = squadFeatures(squad.GUID)
-      val size = squad.Size
-      if(size == 2) {
-        //first squad member after leader; both members fully initialize
-        val (memberCharIds, indices) = squad.Membership
-          .zipWithIndex
-          .filterNot { case (member, _) => member.CharId == 0 }
-          .toList
-          .unzip { case (member, index) => (member.CharId, index) }
-        val toChannel = features.ToChannel
-        memberCharIds.foreach { charId =>
-          SquadEvents.subscribe(UserEvents(charId), s"/$toChannel/Squad")
-          Publish(charId,
+        continueToMonitorDetails.remove(charId)
+        RemoveAllInvitesWithPlayer(charId)
+        InitialAssociation(squad)
+        Publish(charId, SquadResponse.AssociateWithSquad(squad.GUID))
+        val features = squadFeatures(squad.GUID)
+        val size = squad.Size
+        if(size == 2) {
+          //first squad member after leader; both members fully initialize
+          val (memberCharIds, indices) = squad.Membership
+            .zipWithIndex
+            .filterNot { case (member, _) => member.CharId == 0 }
+            .toList
+            .unzip { case (member, index) => (member.CharId, index) }
+          val toChannel = features.ToChannel
+          memberCharIds.foreach { charId =>
+            SquadEvents.subscribe(events, s"/$toChannel/Squad")
+            Publish(charId,
+              SquadResponse.Join(
+                squad,
+                indices.filterNot(_ == position) :+ position,
+                toChannel
+              )
+            )
+            InitWaypoints(charId, squad.GUID)
+          }
+          //fully update for all users
+          InitSquadDetail(squad)
+        }
+        else {
+          //joining an active squad; everybody updates differently
+          val updatedIndex = List(position)
+          val toChannel = features.ToChannel
+          //new member gets full squad UI updates
+          Publish(
+            charId,
             SquadResponse.Join(
               squad,
-              indices.filterNot(_ == position) :+ position,
+              position +: squad.Membership
+                .zipWithIndex
+                .collect({ case (member, index) if member.CharId > 0 => index })
+                .filterNot(_ == position)
+                .toList,
               toChannel
             )
           )
+          //other squad members see new member joining the squad
+          Publish(toChannel, SquadResponse.Join(squad, updatedIndex, ""))
           InitWaypoints(charId, squad.GUID)
-        }
-        //fully update for all users
-        InitSquadDetail(squad)
-      }
-      else {
-        //joining an active squad; everybody updates differently
-        val updatedIndex = List(position)
-        val toChannel = features.ToChannel
-        //new member gets full squad UI updates
-        Publish(
-          charId,
-          SquadResponse.Join(
-            squad,
-            position +: squad.Membership
-              .zipWithIndex
-              .collect({ case (member, index) if member.CharId > 0 => index })
-              .filterNot(_ == position)
-              .toList,
-            toChannel
+          InitSquadDetail(squad.GUID, Seq(charId), squad)
+          UpdateSquadDetail(
+            squad.GUID,
+            SquadDetail().Members(List(SquadPositionEntry(position, SquadPositionDetail().CharId(charId).Name(player.Name))))
           )
-        )
-        //other squad members see new member joining the squad
-        Publish(toChannel, SquadResponse.Join(squad, updatedIndex, ""))
-        InitWaypoints(charId, squad.GUID)
-        InitSquadDetail(squad.GUID, Seq(charId), squad)
-        UpdateSquadDetail(
-          squad.GUID,
-          SquadDetail().Members(List(SquadPositionEntry(position, SquadPositionDetail().CharId(charId).Name(player.Name))))
-        )
-        SquadEvents.subscribe(UserEvents(charId), s"/$toChannel/Squad")
-      }
-      UpdateSquadListWhenListed(features, SquadInfo().Size(size))
-      true
-    }
-    else {
-      false
+          SquadEvents.subscribe(events, s"/$toChannel/Squad")
+        }
+        UpdateSquadListWhenListed(features, SquadInfo().Size(size))
+        true
+      case _ =>
+        false
     }
   }
 

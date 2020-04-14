@@ -15,8 +15,6 @@ trait TurretDefinition extends ResistanceProfileMutators
   with DamageResistanceModel {
   odef : ObjectDefinition =>
   Turrets(odef.ObjectId) //let throw NoSuchElementException
-
-  private var maxHealth : Int = 100
   /* key - entry point index, value - seat index */
   private val mountPoints : mutable.HashMap[Int, Int] = mutable.HashMap()
   /* key - seat number, value - hash map (below) */
@@ -28,13 +26,6 @@ trait TurretDefinition extends ResistanceProfileMutators
   /** creates internal ammunition reserves that can not become depleted
     * see `MannedTurret.TurretAmmoBox` for details */
   private var hasReserveAmmunition : Boolean = false
-
-  def MaxHealth : Int = maxHealth
-
-  def MaxHealth_=(health : Int) : Int = {
-    maxHealth = health
-    MaxHealth
-  }
 
   def MountPoints : mutable.HashMap[Int, Int] = mountPoints
 

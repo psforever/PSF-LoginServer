@@ -3,12 +3,13 @@ package net.psforever.objects.serverobject.terminals
 
 import net.psforever.objects.Player
 import net.psforever.objects.definition.converter.TerminalConverter
+import net.psforever.objects.serverobject.structures.AmenityDefinition
 
 /**
   * The basic definition for any `Terminal` object.
   * @param objectId the object's identifier number
   */
-abstract class TerminalDefinition(objectId : Int) extends net.psforever.objects.definition.ObjectDefinition(objectId) {
+abstract class TerminalDefinition(objectId : Int) extends AmenityDefinition(objectId) {
   Name = "terminal"
   Packet = new TerminalConverter
 

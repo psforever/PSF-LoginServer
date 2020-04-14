@@ -2,24 +2,10 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
-import net.psforever.types.PlanetSideEmpire
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGeneratorState}
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}
-
-/**
-  * An `Enumeration` `Codec` that represents that various states of a major facility's Generator.
-  */
-object PlanetSideGeneratorState extends Enumeration {
-  type Type = Value
-  val Normal,
-      Critical,
-      Destroyed,
-      Unk3
-       = Value
-
-  implicit val codec = PacketHelpers.createEnumerationCodec(this, uintL(2))
-}
 
 /**
   * na
