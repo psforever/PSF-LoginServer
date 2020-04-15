@@ -36,6 +36,7 @@ class PlayerControl(player : Player) extends Actor
   def JammableObject = player
   def DamageableObject = player
 
+  private [this] val log = org.log4s.getLogger(player.Name)
   private [this] val damageLog = org.log4s.getLogger(Damageable.LogChannel)
 
   // A collection of timers for each slot to trigger stamina drain on an interval
