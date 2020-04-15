@@ -1163,9 +1163,12 @@ class WorldSessionActor extends Actor
 
     case Zoning.InstantAction.NotLocated() =>
       instantActionFallbackDestination match {
-        case Some(Zoning.InstantAction.Located(zone, _, spawn_point)) if spawn_point.Owner.Faction == player.Faction /*&& !spawn_point.Offline*/ =>
+        case Some(Zoning.InstantAction.Located(zone, _, spawn_point)) if spawn_point.Owner.Faction == player.Faction && !spawn_point.Offline =>
           if(ContemplateZoningResponse(Zoning.InstantAction.Request(player.Faction))) {
             SpawnThroughZoningProcess(zone, spawn_point.Position, spawn_point)
+          }
+          else if(zoningCounter == 0) {
+            CancelZoningProcessWithReason("@InstantActionNoHotspotsAvailable")
           }
         case _ =>
           //no instant action available
@@ -1486,22 +1489,22 @@ class WorldSessionActor extends Actor
   }
 
   /**
-    * An instant action message was received.
+    * A zoning message was received.
     * That doesn't matter.
-    * In what stage of the instant action determination process is the client, and what is the next stage.<br>
+    * In what stage of the zoning determination process is the client, and what is the next stage.<br>
     * <br>
-    * To perform any actions involving instant action, an initial request must have been dispatched and marked as dispatched.
-    * When invoked after, the process will switch over to a countdown of time until the instant action actually occurs.
+    * To perform any actions involving zoning, an initial request must have been dispatched and marked as dispatched.
+    * When invoked after, the process will switch over to a countdown of time until the zoning actually occurs.
     * The origin will be evaluated based on comparison of faction affinity with the client's player
     * and from that an initial time and a message will be generated.
-    * Afterwards, the process will queue another inquiry for another instant action response.
+    * Afterwards, the process will queue another inquiry for another zoning response.
     * Each time 5s of the countdown passes, another message will be sent and received;
     * and, this is another pass of the countdown.<br>
     * <br>
-    * Once the countdown reaches 0, the transportation that has been promised by the instant action attempt may begin.
+    * Once the countdown reaches 0, the transportation that has been promised by the zoning attempt may begin.
     * @param nextStepMsg send this message to the `InterGalacticCluster` for the next step of the zoning process,
     *                    if there will be a next step
-    * @return `true`, if the instant action transportation process should start;
+    * @return `true`, if the zoning transportation process should start;
     *         `false`, otherwise
     */
   def ContemplateZoningResponse(nextStepMsg : Any) : Boolean = {
@@ -1654,7 +1657,15 @@ class WorldSessionActor extends Actor
 
   /**
     * The user no longer expects to perform a zoning event for this reason.
-    * @param msg     the message to the user
+    * @param msg the message to the user
+    */
+  def CancelZoningProcessWithDescriptiveReason(msg : String) : Unit = {
+    CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_$msg", Some(zoningChatMessageType))
+  }
+
+  /**
+    * The user no longer expects to perform a zoning event for this reason.
+    * @param msg the message to the user
     * @param msgType the type of message, influencing how it is presented to the user;
     *                normally, this message uses the same value as `zoningChatMessageType`s
     *                defaults to `None`
@@ -1676,7 +1687,7 @@ class WorldSessionActor extends Actor
     zoningType = Zoning.Method.None
     zoningStatus = Zoning.Status.None
     zoningCounter = 0
-    //instant action exclusive fields
+    //instant action exclusive field
     instantActionFallbackDestination = None
   }
 
@@ -1762,7 +1773,7 @@ class WorldSessionActor extends Actor
               player.History(DamageFromPainbox(PlayerSource(player), obj, amount))
             case _ => ;
           }
-          CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_dmg")
+          CancelZoningProcessWithDescriptiveReason("cancel_dmg")
           player.Health = originalHealth - amount
           sendResponse(PlanetsideAttributeMessage(target, 0, player.Health))
           continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(target, 0, player.Health))
@@ -1803,7 +1814,7 @@ class WorldSessionActor extends Actor
       case AvatarResponse.HitHint(source_guid) =>
         if(player.isAlive) {
           sendResponse(HitHint(source_guid, guid))
-          CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_dmg")
+          CancelZoningProcessWithDescriptiveReason("cancel_dmg")
         }
 
       case AvatarResponse.Killed() =>
@@ -1819,7 +1830,7 @@ class WorldSessionActor extends Actor
         }
         PlayerActionsToCancel()
         CancelAllProximityUnits()
-        CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel")
+        CancelZoningProcessWithDescriptiveReason("cancel")
         if(shotsWhileDead > 0) {
           log.warn(s"KillPlayer/SHOTS_WHILE_DEAD: client of ${avatar.name} fired $shotsWhileDead rounds while character was dead on server")
           shotsWhileDead = 0
@@ -2241,12 +2252,12 @@ class WorldSessionActor extends Actor
   def HandleMountMessages(tplayer : Player, reply : Mountable.Exchange) : Unit = {
     reply match {
       case Mountable.CanMount(obj : ImplantTerminalMech, seat_num) =>
-        CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_use")
+        CancelZoningProcessWithDescriptiveReason("cancel_use")
         CancelAllProximityUnits()
         MountingAction(tplayer, obj, seat_num)
 
       case Mountable.CanMount(obj : Vehicle, seat_num) =>
-        CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_mount")
+        CancelZoningProcessWithDescriptiveReason("cancel_mount")
         val obj_guid : PlanetSideGUID = obj.GUID
         val player_guid : PlanetSideGUID = tplayer.GUID
         log.info(s"MountVehicleMsg: $player_guid mounts $obj_guid @ $seat_num")
@@ -2287,7 +2298,7 @@ class WorldSessionActor extends Actor
         MountingAction(tplayer, obj, seat_num)
 
       case Mountable.CanMount(obj : FacilityTurret, seat_num) =>
-        CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_mount")
+        CancelZoningProcessWithDescriptiveReason("cancel_mount")
         if(!obj.isUpgrading) {
           if(obj.Definition == GlobalDefinitions.vanu_sentry_turret) {
             obj.Zone.LocalEvents ! LocalServiceMessage(obj.Zone.Id, LocalAction.SetEmpire(obj.GUID, player.Faction))
@@ -2301,7 +2312,7 @@ class WorldSessionActor extends Actor
         }
 
       case Mountable.CanMount(obj : PlanetSideGameObject with WeaponTurret, seat_num) =>
-        CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_mount")
+        CancelZoningProcessWithDescriptiveReason("cancel_mount")
         sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))
         UpdateWeaponAtSeatPosition(obj, seat_num)
         MountingAction(tplayer, obj, seat_num)
@@ -4063,7 +4074,7 @@ class WorldSessionActor extends Actor
       }
       //implants and stamina management finish
       if(isMovingPlus) {
-        CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_motion")
+        CancelZoningProcessWithDescriptiveReason("cancel_motion")
       }
       player.Position = pos
       player.Velocity = vel
@@ -4072,7 +4083,7 @@ class WorldSessionActor extends Actor
       player.Crouching = is_crouching
       player.Jumping = is_jumping
       if(is_cloaking && !player.Cloaked) {
-        CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_cloak")
+        CancelZoningProcessWithDescriptiveReason("cancel_cloak")
       }
       player.Cloaked = player.ExoSuit == ExoSuitType.Infiltration && is_cloaking
       CapacitorTick(jump_thrust)
@@ -4366,7 +4377,7 @@ class WorldSessionActor extends Actor
             case None =>
               player.Position = pos
               CancelAllProximityUnits()
-              CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_motion")
+              CancelZoningProcessWithDescriptiveReason("cancel_motion")
               sendResponse(PlayerStateShiftMessage(ShiftState(0, pos, player.Orientation.z, None)))
               deadState = DeadState.Alive //must be set here
             case _ => //seated in something that is not a vehicle or the vehicle is cargo, in which case we can't move
@@ -4993,13 +5004,13 @@ class WorldSessionActor extends Actor
           (false, None)
       }
       if(isTeleporter) {
-        CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel")
+        CancelZoningProcessWithDescriptiveReason("cancel")
         val endPoint = path.get.ZipLinePoints.last
         sendResponse(ZipLineMessage(PlanetSideGUID(0), forwards, 0, path_id, pos)) // todo: send to zone to show teleport animation to all clients
         sendResponse(PlayerStateShiftMessage(ShiftState(0, endPoint, player.Orientation.z, None)))
       }
       else {
-        CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_motion")
+        CancelZoningProcessWithDescriptiveReason("cancel_motion")
         action match {
           case 0 =>
             // Travel along the zipline in the direction specified
@@ -5247,13 +5258,13 @@ class WorldSessionActor extends Actor
         case Some(panel : IFFLock) =>
           equipment match {
             case Some(item) =>
-              CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_use")
+              CancelZoningProcessWithDescriptiveReason("cancel_use")
               panel.Actor ! CommonMessages.Use(player, Some(item))
             case _ => ;
           }
 
         case Some(obj : Player) =>
-          CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_use")
+          CancelZoningProcessWithDescriptiveReason("cancel_use")
           if(obj.isBackpack) {
             log.info(s"UseItem: $player looting the corpse of $obj")
             sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
@@ -5384,11 +5395,11 @@ class WorldSessionActor extends Actor
         case Some(locker : Locker) =>
           equipment match {
             case Some(item) =>
-              CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_use")
+              CancelZoningProcessWithDescriptiveReason("cancel_use")
               locker.Actor ! CommonMessages.Use(player, Some(item))
             case None if locker.Faction == player.Faction || !locker.HackedBy.isEmpty =>
               log.trace(s"UseItem: $player accessing a locker")
-              CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_use")
+              CancelZoningProcessWithDescriptiveReason("cancel_use")
               val container = player.Locker
               accessedContainer = Some(container)
               sendResponse(UseItemMessage(avatar_guid, item_used_guid, container.GUID, unk2, unk3, unk4, unk5, unk6, unk7, unk8, 456))
@@ -5398,7 +5409,7 @@ class WorldSessionActor extends Actor
         case Some(gen : Generator) =>
           equipment match {
             case Some(item) =>
-              CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_use")
+              CancelZoningProcessWithDescriptiveReason("cancel_use")
               gen.Actor ! CommonMessages.Use(player, Some(item))
             case None => ;
           }
@@ -5406,7 +5417,7 @@ class WorldSessionActor extends Actor
         case Some(mech : ImplantTerminalMech) =>
           equipment match {
             case Some(item) =>
-              CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_use")
+              CancelZoningProcessWithDescriptiveReason("cancel_use")
               mech.Actor ! CommonMessages.Use(player, Some(item))
             case None => ;
           }
@@ -5414,7 +5425,7 @@ class WorldSessionActor extends Actor
         case Some(captureTerminal : CaptureTerminal) =>
           equipment match {
             case Some(item) =>
-              CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_use")
+              CancelZoningProcessWithDescriptiveReason("cancel_use")
               captureTerminal.Actor ! CommonMessages.Use(player, Some(item))
             case _ => ;
           }
@@ -5431,19 +5442,19 @@ class WorldSessionActor extends Actor
         case Some(obj : Vehicle) =>
           equipment match {
             case Some(item) =>
-              CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_use")
+              CancelZoningProcessWithDescriptiveReason("cancel_use")
               obj.Actor ! CommonMessages.Use(player, Some(item))
 
             case None if player.Faction == obj.Faction =>
               //access to trunk
               if(obj.AccessingTrunk.isEmpty &&
                 (!obj.PermissionGroup(AccessPermissionGroup.Trunk.id).contains(VehicleLockState.Locked) || obj.Owner.contains(player.GUID))) {
-                CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_use")
-              }
-              obj.AccessingTrunk = player.GUID
-              accessedContainer = Some(obj)
-              AccessContents(obj)
-              sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+                CancelZoningProcessWithDescriptiveReason("cancel_use")
+                obj.AccessingTrunk = player.GUID
+                accessedContainer = Some(obj)
+                AccessContents(obj)
+                sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+            }
             case _ => ;
           }
 
@@ -5451,14 +5462,14 @@ class WorldSessionActor extends Actor
           log.info(s"$msg")
           equipment match {
             case Some(item) =>
-              CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_use")
+              CancelZoningProcessWithDescriptiveReason("cancel_use")
               terminal.Actor ! CommonMessages.Use(player, Some(item))
 
             case None if terminal.Faction == player.Faction || terminal.HackedBy.nonEmpty =>
               val tdef = terminal.Definition
               if(tdef.isInstanceOf[MatrixTerminalDefinition]) {
                 //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
-                CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_use")
+                CancelZoningProcessWithDescriptiveReason("cancel_use")
                 sendResponse(BindPlayerMessage(BindStatus.Bind, "", true, true, SpawnGroup.Sanctuary, 0, 0, terminal.Position))
               }
               else if(tdef == GlobalDefinitions.multivehicle_rearm_terminal || tdef == GlobalDefinitions.bfr_rearm_terminal ||
@@ -5473,14 +5484,14 @@ class WorldSessionActor extends Actor
               }
               else if(tdef == GlobalDefinitions.teleportpad_terminal) {
                 //explicit request
-                CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_use")
+                CancelZoningProcessWithDescriptiveReason("cancel_use")
                 terminal.Actor ! Terminal.Request(
                   player,
                   ItemTransactionMessage(object_guid, TransactionType.Buy, 0, "router_telepad", 0, PlanetSideGUID(0))
                 )
               }
               else {
-                CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_use")
+                CancelZoningProcessWithDescriptiveReason("cancel_use")
                 sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
               }
 
@@ -5490,11 +5501,11 @@ class WorldSessionActor extends Actor
         case Some(obj : SpawnTube) =>
           equipment match {
             case Some(item) =>
-              CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_use")
+              CancelZoningProcessWithDescriptiveReason("cancel_use")
               obj.Actor ! CommonMessages.Use(player, Some(item))
             case None if player.Faction == obj.Faction =>
               //deconstruction
-              CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_use")
+              CancelZoningProcessWithDescriptiveReason("cancel_use")
               PlayerActionsToCancel()
               CancelAllProximityUnits()
               continent.Population ! Zone.Population.Release(avatar)
@@ -5505,7 +5516,7 @@ class WorldSessionActor extends Actor
         case Some(obj : SensorDeployable) =>
           equipment match {
             case Some(item) =>
-              CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_use")
+              CancelZoningProcessWithDescriptiveReason("cancel_use")
               obj.Actor ! CommonMessages.Use(player, Some(item))
             case _ => ;
           }
@@ -5513,7 +5524,7 @@ class WorldSessionActor extends Actor
         case Some(obj : TurretDeployable) =>
           equipment match {
             case Some(item) =>
-              CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_use")
+              CancelZoningProcessWithDescriptiveReason("cancel_use")
               obj.Actor ! CommonMessages.Use(player, Some(item))
             case _ => ;
           }
@@ -5521,7 +5532,7 @@ class WorldSessionActor extends Actor
         case Some(obj : TrapDeployable) =>
           equipment match {
             case Some(item) =>
-              CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_use")
+              CancelZoningProcessWithDescriptiveReason("cancel_use")
               obj.Actor ! CommonMessages.Use(player, Some(item))
             case _ => ;
           }
@@ -5529,7 +5540,7 @@ class WorldSessionActor extends Actor
         case Some(obj : ShieldGeneratorDeployable) =>
           equipment match {
             case Some(item) =>
-              CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_use")
+              CancelZoningProcessWithDescriptiveReason("cancel_use")
               obj.Actor ! CommonMessages.Use(player, Some(item))
             case _ => ;
           }
@@ -5539,7 +5550,7 @@ class WorldSessionActor extends Actor
             case Some(vehicle : Vehicle) =>
               vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
                 case Some(util : Utility.InternalTelepad) =>
-                  CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel")
+                  CancelZoningProcessWithDescriptiveReason("cancel")
                   UseRouterTelepadSystem(router = vehicle, internalTelepad = util, remoteTelepad = obj, src = obj, dest = util)
                 case _ =>
                   log.error(s"telepad@${object_guid.guid} is not linked to a router - ${vehicle.Definition.Name}, ${obj.Router}")
@@ -5552,7 +5563,7 @@ class WorldSessionActor extends Actor
         case Some(obj : Utility.InternalTelepad) =>
           continent.GUID(obj.Telepad) match {
             case Some(pad : TelepadDeployable) =>
-              CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel")
+              CancelZoningProcessWithDescriptiveReason("cancel")
               UseRouterTelepadSystem(router = obj.Owner.asInstanceOf[Vehicle], internalTelepad = obj, remoteTelepad = pad, src = obj, dest = pad)
             case Some(o) =>
               log.error(s"internal telepad@${object_guid.guid} is not linked to a remote telepad - ${o.Definition.Name}@${o.GUID.guid}")
@@ -5560,7 +5571,7 @@ class WorldSessionActor extends Actor
           }
 
         case Some(obj) =>
-          CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_use")
+          CancelZoningProcessWithDescriptiveReason("cancel_use")
           log.warn(s"UseItem: don't know how to handle $obj; taking a shot in the dark")
           sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
 
@@ -5613,7 +5624,7 @@ class WorldSessionActor extends Actor
               turret
           }
           log.info(s"DeployObject: Constructing a ${ammoType}")
-          CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_use")
+          CancelZoningProcessWithDescriptiveReason("cancel_use")
           val dObj : PlanetSideGameObject with Deployable = Deployables.Make(ammoType)()
           dObj.Position = pos
           dObj.Orientation = orient
@@ -5730,7 +5741,7 @@ class WorldSessionActor extends Actor
           log.info(s"ItemTransaction: ${term.Definition.Name} found")
           if(lastTerminalOrderFulfillment) {
             lastTerminalOrderFulfillment = false
-            CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_use")
+            CancelZoningProcessWithDescriptiveReason("cancel_use")
             term.Actor ! Terminal.Request(player, msg)
           }
         case Some(obj : PlanetSideGameObject) =>
@@ -5761,7 +5772,7 @@ class WorldSessionActor extends Actor
               None
             }) match {
               case Some(owner : Player) => //InfantryLoadout
-                CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_use")
+                CancelZoningProcessWithDescriptiveReason("cancel_use")
                 avatar.EquipmentLoadouts.SaveLoadout(owner, name, lineno)
                 SaveLoadoutToDB(owner, name, lineno)
                 import InfantryLoadout._
@@ -5775,7 +5786,7 @@ class WorldSessionActor extends Actor
             }
 
           case FavoritesAction.Delete =>
-            CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_use")
+            CancelZoningProcessWithDescriptiveReason("cancel_use")
             avatar.EquipmentLoadouts.DeleteLoadout(lineno)
             sendResponse(FavoritesMessage(list, player_guid, line, ""))
 
@@ -5797,7 +5808,7 @@ class WorldSessionActor extends Actor
 
     case msg @ WeaponFireMessage(seq_time, weapon_guid, projectile_guid, shot_origin, unk1, unk2, unk3, unk4, unk5, unk6, unk7) =>
       log.info(s"WeaponFire: $msg")
-      CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_fire")
+      CancelZoningProcessWithDescriptiveReason("cancel_fire")
       if(player.isShielded) {
         // Cancel NC MAX shield if it's active
         ToggleMaxSpecialState(enable = false)
@@ -5961,7 +5972,7 @@ class WorldSessionActor extends Actor
 
     case msg @ WarpgateRequest(continent_guid, building_guid, dest_building_guid, dest_continent_guid, unk1, unk2) =>
       log.info(s"WarpgateRequest: $msg")
-      CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_use")
+      CancelZoningProcessWithDescriptiveReason("cancel_use")
       if(deadState != DeadState.RespawnTime) {
         continent.Buildings.values.find(building => building.GUID == building_guid) match {
           case Some(wg : WarpGate) if (wg.Active && (GetKnownVehicleAndSeat() match {
@@ -9864,7 +9875,7 @@ class WorldSessionActor extends Actor
     *               as indicated, the simulation is only concerned with certain angles
     */
   def PutItemOnGround(item : Equipment, pos : Vector3, orient : Vector3) : Unit = {
-    CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_use")
+    CancelZoningProcessWithDescriptiveReason("cancel_use")
     //TODO delay or reverse dropping item when player is falling down
     item.Position = pos
     item.Orientation = Vector3.z(orient.z)
@@ -9895,7 +9906,7 @@ class WorldSessionActor extends Actor
   def PutItemInHand(item : Equipment) : Boolean = {
     player.Fit(item) match {
       case Some(slotNum) =>
-        CancelZoningProcessWithReason(s"@${zoningType.toString.toLowerCase}_cancel_use")
+        CancelZoningProcessWithDescriptiveReason("cancel_use")
         item.Faction = player.Faction
         val item_guid = item.GUID
         val player_guid = player.GUID
