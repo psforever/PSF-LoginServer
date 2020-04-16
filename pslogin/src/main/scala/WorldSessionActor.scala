@@ -4028,6 +4028,7 @@ class WorldSessionActor extends Actor
       var makeReply : Boolean = false
       var echoContents : String = contents
       val trimContents = contents.trim
+      val trimRecipient = recipient.trim
       //TODO messy on/off strings may work
       if(messagetype == ChatMessageType.CMT_FLY && admin) {
         makeReply = false
@@ -4150,14 +4151,276 @@ class WorldSessionActor extends Actor
         echoContents = s"zone=${continent.Id} pos=${player.Position.x},${player.Position.y},${player.Position.z}; ori=${player.Orientation.x},${player.Orientation.y},${player.Orientation.z}"
         log.info(echoContents)
       }
-      else if (trimContents.equals("!list") && admin) {
-        sendResponse(ChatMsg(ChatMessageType.CMT_TELL, has_wide_contents, "Server",
-          "\\#8ID / Name (faction) Cont-PosX/PosY/PosZ", note_contents))
-        continent.LivePlayers.filterNot(_.GUID == player.GUID).sortBy(_.Name).foreach(char => {
-          sendResponse(ChatMsg(ChatMessageType.CMT_TELL, has_wide_contents, "Server",
-            "GUID / Name: " + char.GUID.guid + " / " + char.Name + " (" + char.Faction + ") " +
-              char.Continent + "-" + char.Position.x.toInt + "/" + char.Position.y.toInt + "/" + char.Position.z.toInt, note_contents))
-        })
+      else if (trimContents.contains("!list") && admin) {
+        //        StartBundlingPackets()
+        val localString : String = contents.drop(contents.indexOf(" ") + 1)
+
+        if(localString.equalsIgnoreCase("!list")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID] at PosX PosY PosZ", note_contents))
+          continent.LivePlayers.filterNot(_.GUID == player.GUID).sortBy(_.Name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server",
+              char.Name + " (" + char.Faction + ") [" + char.CharId + "] at " + char.Position.x.toInt + " " + char.Position.y.toInt + " " + char.Position.z.toInt, note_contents))
+          })
+          continent.Corpses.filterNot(_.GUID == player.GUID).sortBy(_.Name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server",
+              "\\#7" + char.Name + " (" + char.Faction + ") [" + char.CharId + "] at " + char.Position.x.toInt + " " + char.Position.y.toInt + " " + char.Position.z.toInt, note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("z1")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.z1.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("z2")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.z2.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("z3")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.z3.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("z4")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.z4.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("z5")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.z5.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("z6")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.z6.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("z7")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.z7.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("z8")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.z8.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("z9")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.z9.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("z10")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.z10.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("home1")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.home1.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("home2")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.home2.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("home3")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.home3.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("c1")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.c1.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("c2")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.c2.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("c3")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.c3.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("c4")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.c4.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("c5")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.c5.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("c6")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.c6.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("i1")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.i1.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("i2")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.i2.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("i3")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.i3.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("i4")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.i4.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID] in Zone at PosX PosY PosZ", note_contents))
+          continent.LivePlayers.filter(_.Name.contains(localString)).sortBy(_.Name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server",
+              char.Name + " (" + char.Faction + ") [" + char.CharId + "] in " + char.Continent + " at " + char.Position.x.toInt + " " + char.Position.y.toInt + " " + char.Position.z.toInt, note_contents))
+          })
+          continent.Corpses.filter(_.Name.contains(localString)).sortBy(_.Name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server",
+              "\\#7" + char.Name + " (" + char.Faction + ") [" + char.CharId + "] in " + char.Continent + " at " + char.Position.x.toInt + " " + char.Position.y.toInt + " " + char.Position.z.toInt, note_contents))
+          })
+        }
+        //        StopBundlingPackets()
+      }
+      else if (trimContents.contains("!kick") && admin) {
+        val CharIDorName : String = contents.drop(contents.indexOf(" ") + 1)
+        try {
+          val charID : Long = CharIDorName.toLong
+          if(charID != player.CharId) {
+            var charToKick = continent.LivePlayers.filter(_.CharId == charID)
+            if (charToKick.nonEmpty) {
+              charToKick.head.death_by = -1
+            }
+            else {
+              charToKick = continent.Corpses.filter(_.CharId == charID)
+              if (charToKick.nonEmpty) charToKick.head.death_by = -1
+            }
+          }
+        }
+        catch {
+          case _ : Throwable =>
+          {
+            val charToKick = continent.LivePlayers.filter(_.Name.equalsIgnoreCase(CharIDorName))
+            if(charToKick.nonEmpty) charToKick.head.death_by = -1
+          }
+        }
+      }
+      else if(trimRecipient.equals("tr")) {
+        sendResponse(ZonePopulationUpdateMessage(4, 414, 138, contents.toInt, 138, contents.toInt / 2, 138, 0, 138, 0))
+      }
+      else if(trimRecipient.equals("nc")) {
+        sendResponse(ZonePopulationUpdateMessage(4, 414, 138, 0, 138, contents.toInt, 138, contents.toInt / 3, 138, 0))
+      }
+      else if(trimRecipient.equals("vs")) {
+        sendResponse(ZonePopulationUpdateMessage(4, 414, 138, contents.toInt * 2, 138, 0, 138, contents.toInt, 138, 0))
+      }
+      else if(trimRecipient.equals("bo")){
+        sendResponse(ZonePopulationUpdateMessage(4, 414, 138, 0, 138, 0, 138, 0, 138, contents.toInt))
+
+        //          sendResponse(ZoneInfoMessage(contents.toInt, true, 25200000))
+        //          sendResponse(ZoneInfoMessage(contents.toInt-1, false, 25200000))
+        //          sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", "@cavern_switched^@c1~^@c5~", None))
+      }
+      else if(trimContents.startsWith("!ntu") && admin){
+        continent.Buildings.values.foreach(building =>
+          building.Amenities.foreach(amenity =>
+            amenity.Definition match {
+              case GlobalDefinitions.resource_silo =>
+                val r = new scala.util.Random
+                val silo = amenity.asInstanceOf[ResourceSilo]
+                val ntu: Int = 900 + r.nextInt(100) - silo.ChargeLevel
+                //                val ntu: Int = 0 + r.nextInt(100) - silo.ChargeLevel
+                silo.Actor ! ResourceSilo.UpdateChargeLevel(ntu)
+
+              case _ => ;
+            }
+          )
+        )
+      }
+      else if(trimContents.startsWith("!hack") && admin){
+        var hackFaction = PlanetSideEmpire.NEUTRAL
+        val args = trimContents.split(" ")
+        if (args.length == 3) {
+          var bad : Boolean = false
+          if(args(2).equalsIgnoreCase("tr")) hackFaction = PlanetSideEmpire.TR
+          else if(args(2).equalsIgnoreCase("nc")) hackFaction = PlanetSideEmpire.NC
+          else if(args(2).equalsIgnoreCase("vs")) hackFaction = PlanetSideEmpire.VS
+          else if(args(2).equalsIgnoreCase("bo")) hackFaction = PlanetSideEmpire.NEUTRAL
+          else bad = true
+          if(bad) {
+            sendResponse(ChatMsg(ChatMessageType.UNK_229, true, "", "USE !hack tr|vs|nc|bo OR !hack BaseName tr|vs|nc|bo", None))
+          }
+          else {
+            continent.Buildings.foreach({
+              case (id, building) =>
+                if(!building.Name.isEmpty && args(1).equalsIgnoreCase(building.Name)) {
+                  log.info(s"Hack Base Name : ${args(1)} to empire : ${args(2)}")
+                  building.Faction = hackFaction
+                  building.Actor ! Building.TriggerZoneMapUpdate(continent.Number)
+                  continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.SetEmpire(building.GUID, hackFaction))
+                }
+            })
+          }
+        } else if (args.length == 2) {
+          var bad : Boolean = false
+          if(args(1).equalsIgnoreCase("tr")) hackFaction = PlanetSideEmpire.TR
+          else if(args(1).equalsIgnoreCase("nc")) hackFaction = PlanetSideEmpire.NC
+          else if(args(1).equalsIgnoreCase("vs")) hackFaction = PlanetSideEmpire.VS
+          else if(args(1).equalsIgnoreCase("bo")) hackFaction = PlanetSideEmpire.NEUTRAL
+          else bad = true
+          if(bad) {
+            sendResponse(ChatMsg(ChatMessageType.UNK_229, true, "", "USE !hack tr|vs|nc|bo OR !hack BaseName tr|vs|nc|bo", None))
+          }
+          else {
+            continent.Buildings.foreach({
+              case (id, building) =>
+                if (!building.Name.isEmpty && !bad && building.BuildingType.id != 6) {
+                  log.info(s"Hack Bases to empire : ${args(1)}")
+                  building.Faction = hackFaction
+                  building.Actor ! Building.TriggerZoneMapUpdate(continent.Number)
+                  continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.SetEmpire(building.GUID, hackFaction))
+                }
+            })
+          }
+        }
+        else {
+          sendResponse(ChatMsg(ChatMessageType.UNK_229, true, "", "USE !hack tr|vs|nc|bo OR !hack BaseName tr|vs|nc|bo", None))
+        }
       }
       // TODO: Depending on messagetype, may need to prepend sender's name to contents with proper spacing
       // TODO: Just replays the packet straight back to sender; actually needs to be routed to recipients!
