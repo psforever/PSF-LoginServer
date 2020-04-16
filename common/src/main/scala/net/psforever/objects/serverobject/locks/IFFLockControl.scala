@@ -5,7 +5,7 @@ import akka.actor.Actor
 import net.psforever.objects.{GlobalDefinitions, SimpleItem}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
-import net.psforever.objects.serverobject.hackable.HackableBehavior
+import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `IFFLock`.
@@ -20,8 +20,19 @@ class IFFLockControl(lock : IFFLock) extends Actor with FactionAffinityBehavior.
     .orElse(hackableBehavior)
     .orElse {
       case CommonMessages.Use(player, Some(item : SimpleItem)) if item.Definition == GlobalDefinitions.remote_electronics_kit =>
-        if((lock.Faction != player.Faction && lock.HackedBy.isEmpty) || (lock.Faction == player.Faction && lock.HackedBy.nonEmpty)) {
-          sender ! CommonMessages.Hack(player, lock, Some(item))
+        if(lock.Faction != player.Faction && lock.HackedBy.isEmpty) {
+          sender ! CommonMessages.Progress(
+            GenericHackables.GetHackSpeed(player, lock),
+            GenericHackables.FinishHacking(lock, player, 1114636288L),
+            GenericHackables.HackingTickAction(progressType = 1, player, lock, item.GUID)
+          )
+        }
+        else if(lock.Faction == player.Faction && lock.HackedBy.nonEmpty) {
+          sender ! CommonMessages.Progress(
+            GenericHackables.GetHackSpeed(player, lock),
+            IFFLocks.FinishResecuringIFFLock(lock),
+            GenericHackables.HackingTickAction(progressType = 1, player, lock, item.GUID)
+          )
         }
         else {
           val log = org.log4s.getLogger

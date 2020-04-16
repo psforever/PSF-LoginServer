@@ -3,11 +3,13 @@ package net.psforever.objects.serverobject.turret
 
 import akka.actor.Actor
 import net.psforever.objects.ballistics.ResolvedProjectile
-import net.psforever.objects.{GlobalDefinitions, Player}
-import net.psforever.objects.equipment.JammableMountedWeapons
+import net.psforever.objects.{GlobalDefinitions, Player, Tool}
+import net.psforever.objects.equipment.{Ammo, JammableMountedWeapons}
+import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.mount.MountableBehavior
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.DamageableWeaponTurret
+import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.repair.Repairable.Target
 import net.psforever.objects.serverobject.repair.RepairableWeaponTurret
 import services.avatar.{AvatarAction, AvatarServiceMessage}
@@ -49,6 +51,20 @@ class FacilityTurretControl(turret : FacilityTurret) extends Actor
     .orElse(takesDamage)
     .orElse(canBeRepairedByNanoDispenser)
     .orElse {
+      case CommonMessages.Use(player, Some((item : Tool, upgradeValue : Int)))
+        if player.Faction == turret.Faction &&
+          item.Definition == GlobalDefinitions.nano_dispenser && item.AmmoType == Ammo.upgrade_canister &&
+          item.Magazine > 0 && turret.Seats.values.forall(!_.isOccupied) =>
+        TurretUpgrade.values.find(_.id == upgradeValue) match {
+          case Some(upgrade) if turret.Upgrade != upgrade && turret.Definition.Weapons.values.flatMap( _.keySet).exists(_ == upgrade) =>
+            sender ! CommonMessages.Progress(
+              1.25f,
+              WeaponTurrets.FinishUpgradingMannedTurret(turret, player, item, upgrade),
+              GenericHackables.HackingTickAction(progressType = 2, player, turret, item.GUID)
+            )
+          case _ => ;
+        }
+
       case FacilityTurret.RechargeAmmo() =>
         val weapon = turret.ControlledWeapon(1).get.asInstanceOf[net.psforever.objects.Tool]
         // recharge when last shot fired 3s delay, +1, 200ms interval

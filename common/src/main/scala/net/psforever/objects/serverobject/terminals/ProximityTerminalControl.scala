@@ -6,7 +6,7 @@ import net.psforever.objects._
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.DamageableAmenity
-import net.psforever.objects.serverobject.hackable.HackableBehavior
+import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}
 import net.psforever.objects.serverobject.repair.RepairableAmenity
 import net.psforever.objects.serverobject.structures.Building
 
@@ -43,7 +43,11 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
         //TODO setup certifications check
         term.Owner match {
           case b : Building if (b.Faction != player.Faction || b.CaptureConsoleIsHacked) && term.HackedBy.isEmpty =>
-            sender ! CommonMessages.Hack(player, term, Some(item))
+            sender ! CommonMessages.Progress(
+              GenericHackables.GetHackSpeed(player, term),
+              GenericHackables.FinishHacking(term, player, 3212836864L),
+              GenericHackables.HackingTickAction(progressType = 1, player, term, item.GUID)
+            )
           case _ => ;
         }
 

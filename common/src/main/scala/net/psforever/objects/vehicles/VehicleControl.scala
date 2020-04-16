@@ -2,7 +2,7 @@
 package net.psforever.objects.vehicles
 
 import akka.actor.{Actor, ActorRef}
-import net.psforever.objects.{GlobalDefinitions, SimpleItem, Vehicle}
+import net.psforever.objects.{GlobalDefinitions, SimpleItem, Vehicle, Vehicles}
 import net.psforever.objects.ballistics.{ResolvedProjectile, VehicleSource}
 import net.psforever.objects.equipment.JammableMountedWeapons
 import net.psforever.objects.serverobject.CommonMessages
@@ -10,6 +10,7 @@ import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.damage.DamageableVehicle
 import net.psforever.objects.serverobject.deploy.DeploymentBehavior
+import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.repair.RepairableVehicle
 import net.psforever.objects.vital.VehicleShieldCharge
 import net.psforever.types.{ExoSuitType, PlanetSideGUID}
@@ -86,7 +87,11 @@ class VehicleControl(vehicle : Vehicle) extends Actor
       case CommonMessages.Use(player, Some(item : SimpleItem)) if item.Definition == GlobalDefinitions.remote_electronics_kit =>
         //TODO setup certifications check
         if(vehicle.Faction != player.Faction) {
-          sender ! CommonMessages.Hack(player, vehicle, Some(item))
+          sender ! CommonMessages.Progress(
+            GenericHackables.GetHackSpeed(player, vehicle),
+            Vehicles.FinishHackingVehicle(vehicle, player,3212836864L),
+            GenericHackables.HackingTickAction(progressType = 1, player, vehicle, item.GUID)
+          )
         }
 
       case Vehicle.PrepareForDeletion() =>

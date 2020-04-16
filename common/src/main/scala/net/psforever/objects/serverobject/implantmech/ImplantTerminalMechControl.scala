@@ -9,7 +9,7 @@ import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity, DamageableMountable}
-import net.psforever.objects.serverobject.hackable.HackableBehavior
+import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}
 import net.psforever.objects.serverobject.repair.RepairableEntity
 import net.psforever.objects.serverobject.structures.Building
 
@@ -41,7 +41,11 @@ class ImplantTerminalMechControl(mech : ImplantTerminalMech) extends Actor
         //TODO setup certifications check
         mech.Owner match {
           case b : Building if (b.Faction != player.Faction || b.CaptureConsoleIsHacked) && mech.HackedBy.isEmpty =>
-            sender ! CommonMessages.Hack(player, mech, Some(item))
+            sender ! CommonMessages.Progress(
+              GenericHackables.GetHackSpeed(player, mech),
+              GenericHackables.FinishHacking(mech, player, 3212836864L),
+              GenericHackables.HackingTickAction(progressType = 1, player, mech, item.GUID)
+            )
           case _ => ;
         }
       case _ => ;

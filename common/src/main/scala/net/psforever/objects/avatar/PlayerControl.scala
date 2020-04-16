@@ -2,14 +2,11 @@
 package net.psforever.objects.avatar
 
 import akka.actor.Actor
-import net.psforever.objects.{DefaultCancellable, ImplantSlot, Player}
+import net.psforever.objects.{DefaultCancellable, GlobalDefinitions, ImplantSlot, Player, Players, Tool}
 import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile, SourceEntry}
 import net.psforever.objects.definition.ImplantDefinition
-import net.psforever.objects.equipment.{JammableBehavior, JammableUnit}
-import net.psforever.objects.vital.{PlayerSuicide, Vitality}
-import net.psforever.objects.{GlobalDefinitions, Player, Tool}
-import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile}
 import net.psforever.objects.equipment.{Ammo, JammableBehavior, JammableUnit}
+import net.psforever.objects.vital.{PlayerSuicide, Vitality}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.serverobject.mount.Mountable
@@ -17,8 +14,7 @@ import net.psforever.objects.serverobject.repair.Repairable
 import net.psforever.objects.vital._
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
-import net.psforever.types.{ExoSuitType, ImplantType, PlanetSideGUID}
-import net.psforever.types.{ExoSuitType, Vector3}
+import net.psforever.types.{ExoSuitType, ImplantType, PlanetSideGUID, Vector3}
 import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 
@@ -167,7 +163,11 @@ class PlayerControl(player : Player) extends Actor
         if(user != player && user.isAlive && !user.isMoving &&
           !player.isBackpack &&
           item.Magazine >= 25) {
-          sender ! CommonMessages.Use(player, Some((item, user)))
+          sender ! CommonMessages.Progress(
+            4,
+            Players.FinishRevivingPlayer(player, user.Name),
+            Players.RevivingTickAction(player, user, item)
+          )
         }
 
       case CommonMessages.Use(user, Some(item : Tool)) if item.Definition == GlobalDefinitions.bank =>
