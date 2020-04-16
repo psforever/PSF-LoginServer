@@ -296,100 +296,12 @@ class WorldSessionActor extends Actor
     case AvatarServiceResponse(toChannel, guid, reply) =>
       HandleAvatarServiceResponse(toChannel, guid, reply)
 
-    case CommonMessages.Hack(tplayer, obj : Locker, Some(item : SimpleItem)) if tplayer == player =>
-      val hackSpeed = GenericHackables.GetHackSpeed(player, obj)
-      if(hackSpeed > 0) {
-        progressBarValue = Some(-hackSpeed)
-        self ! Progress(
-          hackSpeed,
-          GenericHackables.FinishHacking(obj, tplayer, 3212836864L),
-          GenericHackables.HackingTickAction(progressType = 1, tplayer, obj, item.GUID)
-        )
-        log.info(s"${tplayer.Name} is hacking a locker")
-      }
+    case CommonMessages.Progress(rate, finishedAction, stepAction) =>
+      progressBarValue = Some(-rate)
+      self ! ProgressEvent(rate, finishedAction, stepAction)
 
-    case CommonMessages.Hack(tplayer, obj : CaptureTerminal, Some(item : SimpleItem)) if tplayer == player =>
-      val hackSpeed = GenericHackables.GetHackSpeed(player, obj)
-      if(hackSpeed > 0) {
-        progressBarValue = Some(-hackSpeed)
-        self ! Progress(
-          hackSpeed,
-          CaptureTerminals.FinishHackingCaptureConsole(obj, player, 3212836864L),
-          GenericHackables.HackingTickAction(progressType = 1, tplayer, obj, item.GUID)
-        )
-        log.info(s"${tplayer.Name} is hacking a capture terminal")
-      }
-
-    case CommonMessages.Hack(tplayer, obj : ImplantTerminalMech, Some(item : SimpleItem)) if tplayer == player =>
-      val hackSpeed = GenericHackables.GetHackSpeed(player, obj)
-      if(hackSpeed > 0) {
-        progressBarValue = Some(-hackSpeed)
-        self ! Progress(
-          hackSpeed,
-          GenericHackables.FinishHacking(obj, tplayer, 3212836864L),
-          GenericHackables.HackingTickAction(progressType = 1, tplayer, obj, item.GUID)
-        )
-        log.info(s"${tplayer.Name} is hacking an implant terminal")
-      }
-
-    case CommonMessages.Hack(tplayer, obj : Terminal, Some(item : SimpleItem)) if tplayer == player =>
-      val hackSpeed = GenericHackables.GetHackSpeed(player, obj)
-      if(hackSpeed > 0) {
-        progressBarValue = Some(-hackSpeed)
-        self ! Progress(
-          hackSpeed,
-          GenericHackables.FinishHacking(obj, tplayer, 3212836864L),
-          GenericHackables.HackingTickAction(progressType = 1, tplayer, obj, item.GUID)
-        )
-        log.info(s"${tplayer.Name} is hacking a terminal")
-      }
-
-    case CommonMessages.Hack(tplayer, obj : IFFLock, Some(item : SimpleItem)) if tplayer == player =>
-      val hackSpeed = GenericHackables.GetHackSpeed(player, obj)
-      if(hackSpeed > 0) {
-        progressBarValue = Some(-hackSpeed)
-        if(obj.Faction != tplayer.Faction) {
-          // Enemy faction is hacking this IFF lock
-          self ! Progress(
-            hackSpeed,
-            GenericHackables.FinishHacking(obj, tplayer, 1114636288L),
-            GenericHackables.HackingTickAction(progressType = 1, tplayer, obj, item.GUID)
-          )
-          log.info(s"${tplayer.Name} is hacking an IFF lock")
-        }
-        else {
-          // IFF Lock is being resecured by it's owner faction
-          self ! Progress(
-            hackSpeed,
-            IFFLocks.FinishResecuringIFFLock(obj),
-            GenericHackables.HackingTickAction(progressType = 1, player, obj, item.GUID)
-          )
-          log.info(s"${player.Name} is resecuring an IFF lock")
-        }
-      }
-
-    case CommonMessages.Hack(tplayer, obj : Vehicle, Some(item : SimpleItem)) if tplayer == player =>
-      val hackSpeed = GenericHackables.GetHackSpeed(player, obj)
-      if(hackSpeed > 0) {
-        progressBarValue = Some(-hackSpeed)
-        self ! Progress(
-          hackSpeed,
-          Vehicles.FinishHackingVehicle(obj, tplayer,3212836864L),
-          GenericHackables.HackingTickAction(progressType = 1, tplayer, obj, item.GUID)
-        )
-        log.trace(s"${tplayer.Name} is hacking a vehicle")
-      }
-
-    case CommonMessages.Use(tplayer, Some((item : Tool, user : Player))) =>
-      if(progressBarValue.isEmpty) {
-        progressBarValue = Some(-4)
-        self ! Progress(
-          4,
-          Players.FinishRevivingPlayer(tplayer, user.Name),
-          Players.RevivingTickAction(tplayer, user, item)
-        )
-        log.trace(s"${user.Name} is reviving a dead ally")
-      }
+    case ProgressEvent(delta, completeAction, tickAction) =>
+      HandleProgressChange(delta, completeAction, tickAction)
 
     case Door.DoorMessage(tplayer, msg, order) =>
       HandleDoorMessage(tplayer, msg, order)
@@ -1258,9 +1170,6 @@ class WorldSessionActor extends Actor
 
     case NtuDischarging(tplayer, vehicle, silo_guid) =>
       HandleNtuDischarging(tplayer, vehicle, silo_guid)
-
-    case Progress(delta, completeAction, tickAction) =>
-      HandleProgressChange(delta, completeAction, tickAction)
 
     case Vitality.DamageResolution(target : TelepadDeployable, _) =>
       //telepads
@@ -3080,7 +2989,7 @@ class WorldSessionActor extends Actor
   }
 
   /**
-    * Handle the message that indidctes the level of completion of a process.
+    * Handle the message that indicates the level of completion of a process.
     * The process is any form of user-driven activity with a certain eventual outcome
     * but indeterminate progress feedback per cycle.<br>
     * <br>
@@ -3119,7 +3028,7 @@ class WorldSessionActor extends Actor
             progressBarValue = Some(next)
             import scala.concurrent.ExecutionContext.Implicits.global
             progressBarUpdate = context.system.scheduler.scheduleOnce(100 milliseconds, self,
-              Progress(delta, completionAction, tickAction)
+              ProgressEvent(delta, completionAction, tickAction)
             )
           }
           else {
@@ -3132,7 +3041,7 @@ class WorldSessionActor extends Actor
             progressBarValue = Some(next)
             import scala.concurrent.ExecutionContext.Implicits.global
             progressBarUpdate = context.system.scheduler.scheduleOnce(250 milliseconds, self,
-              Progress(delta, completionAction, tickAction)
+              ProgressEvent(delta, completionAction, tickAction)
             )
           }
           else {
@@ -4935,25 +4844,10 @@ class WorldSessionActor extends Actor
           }
 
         case Some(obj : FacilityTurret) =>
-          val tdef = obj.Definition
-          (obj.Owner, equipment) match {
-            case (b : Building, Some(gluegun : Tool)) if b.Faction == player.Faction &&
-              gluegun.Definition == GlobalDefinitions.nano_dispenser =>
-              gluegun.AmmoType match {
-                case Ammo.armor_canister => //repair
-                  obj.Actor ! CommonMessages.Use(player, Some(gluegun))
-
-                case Ammo.upgrade_canister if gluegun.Magazine > 0 && obj.Seats.values.forall(!_.isOccupied) => //upgrade
-                  progressBarValue = Some(-1.25f)
-                  self ! Progress(
-                    delta = 1.25f,
-                    WeaponTurrets.FinishUpgradingMannedTurret(obj, player, gluegun, TurretUpgrade(unk2.toInt)),
-                    GenericHackables.HackingTickAction(progressType = 2, player, obj, gluegun.GUID)
-                  )
-
-                case _ => ;
-              }
-
+          equipment match {
+            case Some(item) =>
+              obj.Actor ! CommonMessages.Use(player, Some(item)) //try generic
+              obj.Actor ! CommonMessages.Use(player, Some((item, unk2.toInt))) //try upgrade path
             case _ => ;
           }
 
@@ -10621,17 +10515,14 @@ object WorldSessionActor {
   private final case class VehicleLoaded(vehicle : Vehicle)
 
   /**
-    * The message that indidctes the level of completion of a process.
-    * The process is any form of user-driven activity with a certain eventual outcome
-    * but indeterminate progress feedback per cycle.
+    * The message that progresses some form of user-driven activity with a certain eventual outcome
+    * and potential feedback per cycle.
     * @param delta how much the progress value changes each tick, which will be treated as a percentage;
     *              must be a positive value
-    * @param completeAction a finalizing action performed once the progress reaches 100(%)
+    * @param completionAction a finalizing action performed once the progress reaches 100(%)
     * @param tickAction an action that is performed for each increase of progress
     */
-  private final case class Progress(delta : Float, completionAction : ()=>Unit, tickAction : Float=>Boolean) {
-    assert(delta > 0, s"progress activity change value must be positive number - $delta")
-  }
+  final case class ProgressEvent(delta : Float, completionAction : ()=>Unit, tickAction : Float=>Boolean)
 
   protected final case class SquadUIElement(name : String, index : Int, zone : Int, health : Int, armor : Int, position : Vector3)
 

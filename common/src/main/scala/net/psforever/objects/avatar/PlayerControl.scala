@@ -2,7 +2,7 @@
 package net.psforever.objects.avatar
 
 import akka.actor.Actor
-import net.psforever.objects.{GlobalDefinitions, Player, Tool}
+import net.psforever.objects.{GlobalDefinitions, Player, Players, Tool}
 import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile}
 import net.psforever.objects.equipment.{Ammo, JammableBehavior, JammableUnit}
 import net.psforever.objects.serverobject.CommonMessages
@@ -70,7 +70,11 @@ class PlayerControl(player : Player) extends Actor
         if(user != player && user.isAlive && !user.isMoving &&
           !player.isBackpack &&
           item.Magazine >= 25) {
-          sender ! CommonMessages.Use(player, Some((item, user)))
+          sender ! CommonMessages.Progress(
+            4,
+            Players.FinishRevivingPlayer(player, user.Name),
+            Players.RevivingTickAction(player, user, item)
+          )
         }
 
       case CommonMessages.Use(user, Some(item : Tool)) if item.Definition == GlobalDefinitions.bank =>
