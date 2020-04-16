@@ -144,6 +144,8 @@ object Map06 { // Ceryshen
       LocalObject(1921, Painbox.Constructor(Vector3(4385.29f, 3735.5f, 212.8079f), painbox_door_radius_continuous), owning_building_guid = 1)
       LocalObject(1922, Painbox.Constructor(Vector3(4404.919f, 3753.075f, 212.8724f), painbox_door_radius_continuous), owning_building_guid = 1)
       LocalObject(1923, Painbox.Constructor(Vector3(4409.922f, 3739.557f, 214.7865f), painbox_door_radius_continuous), owning_building_guid = 1)
+      LocalObject(243, Generator.Constructor(Vector3(4360.482f, 3782.537f, 202.8139f)), owning_building_guid = 1)
+      LocalObject(234, Terminal.Constructor(Vector3(4365.999f, 3776.481f, 204.1079f), gen_control), owning_building_guid = 1)
     }
 
     Building43()
@@ -356,6 +358,8 @@ object Map06 { // Ceryshen
       LocalObject(1912, Painbox.Constructor(Vector3(3705.308f, 1911.986f, 257.1398f), painbox_door_radius_continuous), owning_building_guid = 17)
       LocalObject(1913, Painbox.Constructor(Vector3(3726.813f, 1897.668f, 258.1398f), painbox_door_radius_continuous), owning_building_guid = 17)
       LocalObject(1914, Painbox.Constructor(Vector3(3732.633f, 1910.613f, 256.9215f), painbox_door_radius_continuous), owning_building_guid = 17)
+      LocalObject(240, Generator.Constructor(Vector3(3739.898f, 1975.332f, 246.5198f)), owning_building_guid = 17)
+      LocalObject(231, Terminal.Constructor(Vector3(3731.707f, 1975.428f, 247.8138f), gen_control), owning_building_guid = 17)
     }
 
     Building2()
@@ -364,8 +368,6 @@ object Map06 { // Ceryshen
       LocalBuilding("Anguta", 20, 2, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3944f, 4240f, 266.4438f), comm_station_dsp)))
       LocalObject(180, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 20)
       LocalObject(222, Door.Constructor(Vector3(4012.339f, 4310.464f, 269.8218f)), owning_building_guid = 20)
-      LocalObject(232, Terminal.Constructor(Vector3.Zero, gen_control), owning_building_guid = 20) //TODO placeholder
-      LocalObject(241, Generator.Constructor(Vector3(3970.211f, 4304.297f, 248.04688f)), owning_building_guid = 20)
       LocalObject(370, Door.Constructor(Vector3(3884.196f, 4196.501f, 268.0948f)), owning_building_guid = 20)
       LocalObject(371, Door.Constructor(Vector3(3884.196f, 4214.693f, 276.0588f)), owning_building_guid = 20)
       LocalObject(372, Door.Constructor(Vector3(3901.307f, 4172.197f, 276.0588f)), owning_building_guid = 20)
@@ -497,6 +499,8 @@ object Map06 { // Ceryshen
       LocalObject(1918, Painbox.Constructor(Vector3(3987.087f, 4245.386f, 258.9731f), painbox_door_radius_continuous), owning_building_guid = 20)
       LocalObject(1919, Painbox.Constructor(Vector3(3987.895f, 4274.081f, 259.4438f), painbox_door_radius_continuous), owning_building_guid = 20)
       LocalObject(1920, Painbox.Constructor(Vector3(4002.317f, 4267.888f, 259.8741f), painbox_door_radius_continuous), owning_building_guid = 20)
+      LocalObject(241, Generator.Constructor(Vector3(3968.445f, 4299.975f, 247.7498f)), owning_building_guid = 20)
+      LocalObject(232, Terminal.Constructor(Vector3(3976.637f, 4300.022f, 249.0439f), gen_control), owning_building_guid = 20)
     }
 
     Building8()
@@ -631,10 +635,10 @@ object Map06 { // Ceryshen
       TurretToWeapon(1386, 5023)
       LocalObject(1387, FacilityTurret.Constructor(Vector3(3085.971f, 2208.674f, 245.6193f), manned_turret), owning_building_guid = 23)
       TurretToWeapon(1387, 5024)
-      LocalObject(732, ImplantTerminalMech.Constructor, owning_building_guid = 23)
+      LocalObject(732, ImplantTerminalMech.Constructor(Vector3(2999.384f, 2186.84f, 226.6943f)), owning_building_guid = 23)
       LocalObject(726, Terminal.Constructor(Vector3(2999.395f, 2186.826f, 226.6943f), implant_terminal_interface), owning_building_guid = 23)
       TerminalToInterface(732, 726)
-      LocalObject(733, ImplantTerminalMech.Constructor, owning_building_guid = 23)
+      LocalObject(733, ImplantTerminalMech.Constructor(Vector3(3008.847f, 2174.747f, 226.6943f)), owning_building_guid = 23)
       LocalObject(727, Terminal.Constructor(Vector3(3008.836f, 2174.761f, 226.6943f), implant_terminal_interface), owning_building_guid = 23)
       TerminalToInterface(733, 727)
       LocalObject(1876, Painbox.Constructor(Vector3(2963.485f, 2240.053f, 251.2461f), painbox), owning_building_guid = 23)
@@ -643,6 +647,8 @@ object Map06 { // Ceryshen
       LocalObject(1903, Painbox.Constructor(Vector3(2969.758f, 2195.823f, 230.7582f), painbox_door_radius_continuous), owning_building_guid = 23)
       LocalObject(1904, Painbox.Constructor(Vector3(2970.336f, 2223.25f, 229.5732f), painbox_door_radius_continuous), owning_building_guid = 23)
       LocalObject(1905, Painbox.Constructor(Vector3(2986.041f, 2199.939f, 228.9315f), painbox_door_radius_continuous), owning_building_guid = 23)
+      LocalObject(237, Generator.Constructor(Vector3(2962.326f, 2244.083f, 245.9233f)), owning_building_guid = 23)
+      LocalObject(228, Terminal.Constructor(Vector3(2967.407f, 2237.657f, 247.2173f), gen_control), owning_building_guid = 23)
     }
 
     Building7()
@@ -777,10 +783,10 @@ object Map06 { // Ceryshen
       TurretToWeapon(1429, 5028)
       LocalObject(1430, FacilityTurret.Constructor(Vector3(4055.275f, 5319.357f, 240.6305f), manned_turret), owning_building_guid = 26)
       TurretToWeapon(1430, 5029)
-      LocalObject(734, ImplantTerminalMech.Constructor, owning_building_guid = 26)
+      LocalObject(734, ImplantTerminalMech.Constructor(Vector3(3970.905f, 5164.46f, 221.7055f)), owning_building_guid = 26)
       LocalObject(728, Terminal.Constructor(Vector3(3970.906f, 5164.479f, 221.7055f), implant_terminal_interface), owning_building_guid = 26)
       TerminalToInterface(734, 728)
-      LocalObject(735, ImplantTerminalMech.Constructor, owning_building_guid = 26)
+      LocalObject(735, ImplantTerminalMech.Constructor(Vector3(3971.161f, 5179.814f, 221.7055f)), owning_building_guid = 26)
       LocalObject(729, Terminal.Constructor(Vector3(3971.161f, 5179.796f, 221.7055f), implant_terminal_interface), owning_building_guid = 26)
       TerminalToInterface(735, 729)
       LocalObject(1881, Painbox.Constructor(Vector3(3976.751f, 5243.761f, 246.2573f), painbox), owning_building_guid = 26)
@@ -789,6 +795,8 @@ object Map06 { // Ceryshen
       LocalObject(1915, Painbox.Constructor(Vector3(3953.79f, 5205.439f, 225.7694f), painbox_door_radius_continuous), owning_building_guid = 26)
       LocalObject(1916, Painbox.Constructor(Vector3(3969.036f, 5198.391f, 223.9427f), painbox_door_radius_continuous), owning_building_guid = 26)
       LocalObject(1917, Painbox.Constructor(Vector3(3971.5f, 5226.391f, 224.5844f), painbox_door_radius_continuous), owning_building_guid = 26)
+      LocalObject(242, Generator.Constructor(Vector3(3978.387f, 5247.622f, 240.9345f)), owning_building_guid = 26)
+      LocalObject(233, Terminal.Constructor(Vector3(3978.291f, 5239.43f, 242.2285f), gen_control), owning_building_guid = 26)
     }
 
     Building9()
@@ -923,10 +931,10 @@ object Map06 { // Ceryshen
       TurretToWeapon(1454, 5033)
       LocalObject(1455, FacilityTurret.Constructor(Vector3(5187.971f, 3277.762f, 225.4629f), manned_turret), owning_building_guid = 29)
       TurretToWeapon(1455, 5034)
-      LocalObject(736, ImplantTerminalMech.Constructor, owning_building_guid = 29)
+      LocalObject(736, ImplantTerminalMech.Constructor(Vector3(5150.537f, 3288.71f, 206.5379f)), owning_building_guid = 29)
       LocalObject(730, Terminal.Constructor(Vector3(5150.555f, 3288.71f, 206.5379f), implant_terminal_interface), owning_building_guid = 29)
       TerminalToInterface(736, 730)
-      LocalObject(737, ImplantTerminalMech.Constructor, owning_building_guid = 29)
+      LocalObject(737, ImplantTerminalMech.Constructor(Vector3(5165.89f, 3288.99f, 206.5379f)), owning_building_guid = 29)
       LocalObject(731, Terminal.Constructor(Vector3(5165.873f, 3288.99f, 206.5379f), implant_terminal_interface), owning_building_guid = 29)
       TerminalToInterface(737, 731)
       LocalObject(1883, Painbox.Constructor(Vector3(5086.435f, 3292.064f, 231.0897f), painbox), owning_building_guid = 29)
@@ -935,6 +943,8 @@ object Map06 { // Ceryshen
       LocalObject(1924, Painbox.Constructor(Vector3(5103.978f, 3287.423f, 209.4168f), painbox_door_radius_continuous), owning_building_guid = 29)
       LocalObject(1925, Painbox.Constructor(Vector3(5125.534f, 3270.455f, 210.6018f), painbox_door_radius_continuous), owning_building_guid = 29)
       LocalObject(1926, Painbox.Constructor(Vector3(5132.045f, 3285.937f, 208.7751f), painbox_door_radius_continuous), owning_building_guid = 29)
+      LocalObject(244, Generator.Constructor(Vector3(5082.519f, 3293.564f, 225.7669f)), owning_building_guid = 29)
+      LocalObject(235, Terminal.Constructor(Vector3(5090.709f, 3293.754f, 227.0609f), gen_control), owning_building_guid = 29)
     }
 
     Building18657()
@@ -1071,6 +1081,8 @@ object Map06 { // Ceryshen
       LocalObject(1906, Painbox.Constructor(Vector3(3269.954f, 5737.836f, 229.1586f), painbox_door_radius_continuous), owning_building_guid = 36)
       LocalObject(1907, Painbox.Constructor(Vector3(3289.952f, 5720.878f, 230.613f), painbox_door_radius_continuous), owning_building_guid = 36)
       LocalObject(1908, Painbox.Constructor(Vector3(3297.426f, 5736.53f, 229.7069f), painbox_door_radius_continuous), owning_building_guid = 36)
+      LocalObject(238, Generator.Constructor(Vector3(3319.067f, 5728.037f, 218.2367f)), owning_building_guid = 36)
+      LocalObject(229, Terminal.Constructor(Vector3(3310.875f, 5728.133f, 219.5307f), gen_control), owning_building_guid = 36)
     }
 
     Building5()
@@ -1195,6 +1207,8 @@ object Map06 { // Ceryshen
       LocalObject(1909, Painbox.Constructor(Vector3(3594.169f, 3733.382f, 217.1532f), painbox_door_radius_continuous), owning_building_guid = 39)
       LocalObject(1910, Painbox.Constructor(Vector3(3595.863f, 3707.217f, 218.6076f), painbox_door_radius_continuous), owning_building_guid = 39)
       LocalObject(1911, Painbox.Constructor(Vector3(3612.313f, 3712.714f, 217.7015f), painbox_door_radius_continuous), owning_building_guid = 39)
+      LocalObject(239, Generator.Constructor(Vector3(3621.237f, 3691.247f, 206.2313f)), owning_building_guid = 39)
+      LocalObject(230, Terminal.Constructor(Vector3(3615.615f, 3697.206f, 207.5253f), gen_control), owning_building_guid = 39)
     }
 
     Building6()
@@ -1319,6 +1333,8 @@ object Map06 { // Ceryshen
       LocalObject(1927, Painbox.Constructor(Vector3(5882.231f, 3463.861f, 91.68585f), painbox_door_radius_continuous), owning_building_guid = 42)
       LocalObject(1928, Painbox.Constructor(Vector3(5889.43f, 3479.641f, 92.59195f), painbox_door_radius_continuous), owning_building_guid = 42)
       LocalObject(1929, Painbox.Constructor(Vector3(5909.722f, 3463.035f, 91.13755f), painbox_door_radius_continuous), owning_building_guid = 42)
+      LocalObject(245, Generator.Constructor(Vector3(5860.445f, 3471.975f, 80.21565f)), owning_building_guid = 42)
+      LocalObject(236, Terminal.Constructor(Vector3(5868.637f, 3472.022f, 81.50965f), gen_control), owning_building_guid = 42)
     }
 
     Building14()

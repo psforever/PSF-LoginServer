@@ -2,6 +2,7 @@ package zonemaps
 
 import net.psforever.objects.GlobalDefinitions._
 import net.psforever.objects.serverobject.doors.Door
+import net.psforever.objects.serverobject.generator.Generator
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
@@ -156,6 +157,8 @@ object Map96 { // Nexus
       LocalObject(245, Painbox.Constructor(Vector3(1965.087f, 1945.386f, 28.24196f), painbox_door_radius_continuous), owning_building_guid = 1)
       LocalObject(246, Painbox.Constructor(Vector3(1965.895f, 1974.081f, 28.71276f), painbox_door_radius_continuous), owning_building_guid = 1)
       LocalObject(247, Painbox.Constructor(Vector3(1980.317f, 1967.888f, 29.14306f), painbox_door_radius_continuous), owning_building_guid = 1)
+      LocalObject(27, Generator.Constructor(Vector3(1946.445f, 1999.975f, 17.01876f)), owning_building_guid = 1)
+      LocalObject(26, Terminal.Constructor(Vector3(1954.637f, 2000.022f, 18.31276f), gen_control), owning_building_guid = 1)
     }
 
     Building10000()
