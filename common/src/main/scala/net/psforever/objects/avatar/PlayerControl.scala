@@ -75,6 +75,7 @@ class PlayerControl(player : Player) extends Actor
 
             player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, player.Implant(slot).id * 2 + 1)) // Activation sound / effect
             player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.ActivateImplantSlot(player.GUID, slot))
+          case _ => ;
         }
       }
       else {
