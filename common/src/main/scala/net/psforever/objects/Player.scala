@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
+import akka.actor.ActorRef
 import net.psforever.objects.avatar.LoadoutManager
 import net.psforever.objects.definition.{AvatarDefinition, ExoSuitDefinition, SpecialExoSuitDefinition}
 import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot, JammableUnit}
@@ -48,6 +49,7 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
   private var crouching : Boolean  = false
   private var jumping : Boolean = false
   private var cloaked : Boolean = false
+  private var fatigued : Boolean = false // If stamina drops to 0, player is fatigued until regenerating at least 20 stamina
 
   private var vehicleSeated : Option[PlanetSideGUID] = None
 
@@ -124,8 +126,13 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
 
   def Stamina : Int = stamina
 
-  def Stamina_=(assignEnergy : Int) : Int = {
-    stamina = if(isAlive) { math.min(math.max(0, assignEnergy), MaxStamina) } else { 0 }
+  def Stamina_=(assignStamina : Int) : Int = {
+    stamina = if(isAlive) { math.min(math.max(0, assignStamina), MaxStamina) } else { 0 }
+
+    if(Actor != ActorRef.noSender) {
+      Actor ! Player.StaminaChanged(Stamina)
+    }
+
     Stamina
   }
 
@@ -359,6 +366,8 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
     */
   def Implant(slot : Int) : ImplantType.Value = core.Implant(slot)
 
+  def ImplantSlot(slot: Int) : ImplantSlot = core.Implants(slot)
+
   /**
     * A read-only `Array` of tuples representing important information about all unlocked implant slots.
     * @return a maximum of three implant types, initialization times, and active flags
@@ -395,6 +404,12 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
   def Cloaked_=(isCloaked : Boolean) : Boolean = {
     cloaked = isCloaked
     Cloaked
+  }
+
+  def Fatigued : Boolean = fatigued
+  def Fatigued_=(isFatigued : Boolean) : Boolean = {
+    fatigued = isFatigued
+    Fatigued
   }
 
   def PersonalStyleFeatures : Option[Cosmetics] = core.PersonalStyleFeatures
@@ -623,6 +638,12 @@ object Player {
   final val HandsDownSlot : Int = 255
 
   final case class Die()
+  final case class ImplantActivation(slot : Int, status : Int)
+  final case class ImplantInitializationStart(slot : Int)
+  final case class UninitializeImplant(slot : Int)
+  final case class ImplantInitializationComplete(slot : Int)
+  final case class DrainStamina(amount : Int)
+  final case class StaminaChanged(currentStamina : Int)
 
   def apply(core : Avatar) : Player = {
     new Player(core)

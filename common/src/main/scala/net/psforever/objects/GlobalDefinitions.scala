@@ -53,24 +53,51 @@ object GlobalDefinitions {
   Implants
    */
   val advanced_regen = ImplantDefinition(0)
+  advanced_regen.InitializationDuration = 120
+  advanced_regen.StaminaCost = 2
+  advanced_regen.CostIntervalDefault = 500
 
   val targeting = ImplantDefinition(1)
+  targeting.InitializationDuration = 60
 
   val audio_amplifier = ImplantDefinition(2)
+  audio_amplifier.InitializationDuration = 60
+  audio_amplifier.StaminaCost = 1
+  audio_amplifier.CostIntervalDefault = 1000
 
   val darklight_vision = ImplantDefinition(3)
+  darklight_vision.InitializationDuration = 60
+  darklight_vision.ActivationStaminaCost = 3
+  darklight_vision.StaminaCost = 1
+  darklight_vision.CostIntervalDefault = 500
 
   val melee_booster = ImplantDefinition(4)
+  melee_booster.InitializationDuration = 120
+  melee_booster.StaminaCost = 10
 
   val personal_shield = ImplantDefinition(5)
+  personal_shield.InitializationDuration = 120
+  personal_shield.StaminaCost = 1
+  personal_shield.CostIntervalDefault = 600
 
   val range_magnifier = ImplantDefinition(6)
+  range_magnifier.InitializationDuration = 60
 
   val second_wind = ImplantDefinition(7)
+  second_wind.InitializationDuration = 180
 
   val silent_run = ImplantDefinition(8)
+  silent_run.InitializationDuration = 90
+  silent_run.StaminaCost = 1
+  silent_run.CostIntervalDefault = 333
+  silent_run.CostIntervalByExoSuitHashMap(ExoSuitType.Agile) = 1000
 
   val surge = ImplantDefinition(9)
+  surge.InitializationDuration = 90
+  surge.StaminaCost = 1
+  surge.CostIntervalDefault = 1000
+  surge.CostIntervalByExoSuitHashMap(ExoSuitType.Agile) = 500
+  surge.CostIntervalByExoSuitHashMap(ExoSuitType.Reinforced) = 333
 
   /*
   Projectiles

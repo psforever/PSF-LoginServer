@@ -2,31 +2,25 @@
 package objects
 
 import net.psforever.objects.ImplantSlot
-import net.psforever.objects.definition.{ImplantDefinition, Stance}
+import net.psforever.objects.definition.ImplantDefinition
 import net.psforever.types.{ExoSuitType, ImplantType}
 import org.specs2.mutable._
 
 class ImplantTest extends Specification {
   val sample = new ImplantDefinition(8) //variant of sensor shield/silent run
-      sample.Initialization = 90000 //1:30
-      sample.ActivationCharge = 3
-      sample.DurationChargeBase = 1
-      sample.DurationChargeByExoSuit += ExoSuitType.Agile -> 2
-      sample.DurationChargeByExoSuit += ExoSuitType.Reinforced -> 2
-      sample.DurationChargeByExoSuit += ExoSuitType.Standard -> 1
-      sample.DurationChargeByStance += Stance.Running -> 1
+      sample.InitializationDuration = 90 //1:30
+      sample.ActivationStaminaCost = 3
+      sample.StaminaCost = 1
+      sample.CostIntervalDefault = 1000
+      sample.CostIntervalByExoSuitHashMap += ExoSuitType.Agile -> 500
 
   "ImplantDefinition" should {
     "define" in {
-      sample.Initialization mustEqual 90000
-      sample.ActivationCharge mustEqual 3
-      sample.DurationChargeBase mustEqual 1
-      sample.DurationChargeByExoSuit(ExoSuitType.Agile) mustEqual 2
-      sample.DurationChargeByExoSuit(ExoSuitType.Reinforced) mustEqual 2
-      sample.DurationChargeByExoSuit(ExoSuitType.Standard) mustEqual 1
-      sample.DurationChargeByExoSuit(ExoSuitType.Infiltration) mustEqual 0 //default value
-      sample.DurationChargeByStance(Stance.Running) mustEqual 1
-      sample.DurationChargeByStance(Stance.Crouching) mustEqual 0 //default value
+      sample.InitializationDuration mustEqual 90
+      sample.ActivationStaminaCost mustEqual 3
+      sample.StaminaCost mustEqual 1
+      sample.GetCostIntervalByExoSuit(ExoSuitType.Reinforced) mustEqual 1000 // Default value
+      sample.GetCostIntervalByExoSuit(ExoSuitType.Agile) mustEqual 500 // Overridden value
       sample.Type mustEqual ImplantType.SilentRun
     }
   }
@@ -73,14 +67,14 @@ class ImplantTest extends Specification {
       obj.Unlocked mustEqual true
     }
 
-    "initialize without an implant" in {
+    "can not initialize without an implant" in {
       val obj = new ImplantSlot
       obj.Initialized mustEqual false
       obj.Initialized = true
       obj.Initialized mustEqual false
     }
 
-    "initialize an implant" in {
+    "can initialize an implant" in {
       val obj = new ImplantSlot
       obj.Initialized mustEqual false
 
@@ -90,7 +84,7 @@ class ImplantTest extends Specification {
       obj.Initialized mustEqual true
     }
 
-    "activate an uninitialized implant" in {
+    "can not activate an uninitialized implant" in {
       val obj = new ImplantSlot
       obj.Unlocked = true
       obj.Implant = sample
@@ -101,7 +95,7 @@ class ImplantTest extends Specification {
       obj.Active mustEqual false
     }
 
-    "activate an initialized implant" in {
+    "can activate an initialized implant" in {
       val obj = new ImplantSlot
       obj.Unlocked = true
       obj.Implant = sample
@@ -120,7 +114,7 @@ class ImplantTest extends Specification {
       obj.Initialized = true
       obj.Active mustEqual false
       obj.ActivationCharge mustEqual 0
-      obj.Charge(ExoSuitType.Reinforced, Stance.Running) mustEqual 0
+      obj.Charge(ExoSuitType.Reinforced) mustEqual 0
     }
 
     "cost energy while active" in {
@@ -131,7 +125,7 @@ class ImplantTest extends Specification {
       obj.Active = true
       obj.Active mustEqual true
       obj.ActivationCharge mustEqual 3
-      obj.Charge(ExoSuitType.Reinforced, Stance.Running) mustEqual 4
+      obj.Charge(ExoSuitType.Reinforced) mustEqual 1
     }
   }
 }
