@@ -4159,14 +4159,6 @@ class WorldSessionActor extends Actor
               char.Continent + "-" + char.Position.x.toInt + "/" + char.Position.y.toInt + "/" + char.Position.z.toInt, note_contents))
         })
       }
-      else if(trimContents.equals("!ams")) {
-        makeReply = false
-        if(player.isBackpack) { //player is on deployment screen (either dead or deconstructed)
-          if(deadState == DeadState.Release) { //player is on deployment screen (either dead or deconstructed)
-            cluster ! Zone.Lattice.RequestSpawnPoint(continent.Number, player, 2)
-          }
-        }
-      }
       // TODO: Depending on messagetype, may need to prepend sender's name to contents with proper spacing
       // TODO: Just replays the packet straight back to sender; actually needs to be routed to recipients!
       if(makeReply) {
