@@ -2,6 +2,7 @@ package zonemaps
 
 import net.psforever.objects.GlobalDefinitions._
 import net.psforever.objects.serverobject.doors.Door
+import net.psforever.objects.serverobject.generator.Generator
 import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
@@ -143,6 +144,8 @@ object Map02 { // Hossin
       LocalObject(1983, Painbox.Constructor(Vector3(3369.449f, 3146.419f, 33.87925f), painbox_door_radius_continuous), owning_building_guid = 1)
       LocalObject(1984, Painbox.Constructor(Vector3(3388.132f, 3164.998f, 33.94375f), painbox_door_radius_continuous), owning_building_guid = 1)
       LocalObject(1985, Painbox.Constructor(Vector3(3393.836f, 3151.761f, 35.85785f), painbox_door_radius_continuous), owning_building_guid = 1)
+      LocalObject(254, Generator.Constructor(Vector3(3342.214f, 3192.094f, 23.88525f)), owning_building_guid = 1)
+      LocalObject(243, Terminal.Constructor(Vector3(3348.04f, 3186.335f, 25.17925f), gen_control), owning_building_guid = 1)
     }
 
     Building46()
@@ -355,6 +358,8 @@ object Map02 { // Hossin
       LocalObject(1974, Painbox.Constructor(Vector3(1910.076f, 2944.086f, 30.49153f), painbox_door_radius_continuous), owning_building_guid = 17)
       LocalObject(1975, Painbox.Constructor(Vector3(1931.827f, 2930.145f, 31.49153f), painbox_door_radius_continuous), owning_building_guid = 17)
       LocalObject(1976, Painbox.Constructor(Vector3(1937.42f, 2943.19f, 30.27323f), painbox_door_radius_continuous), owning_building_guid = 17)
+      LocalObject(251, Generator.Constructor(Vector3(1943.555f, 3008.025f, 19.87153f)), owning_building_guid = 17)
+      LocalObject(240, Terminal.Constructor(Vector3(1935.363f, 3007.978f, 21.16553f), gen_control), owning_building_guid = 17)
     }
 
     Building13()
@@ -472,6 +477,8 @@ object Map02 { // Hossin
       LocalObject(1980, Painbox.Constructor(Vector3(3339.914f, 5432.076f, 23.06943f), painbox_door_radius_continuous), owning_building_guid = 20)
       LocalObject(1981, Painbox.Constructor(Vector3(3340.81f, 5459.42f, 22.85113f), painbox_door_radius_continuous), owning_building_guid = 20)
       LocalObject(1982, Painbox.Constructor(Vector3(3353.855f, 5453.827f, 24.06943f), painbox_door_radius_continuous), owning_building_guid = 20)
+      LocalObject(253, Generator.Constructor(Vector3(3275.975f, 5465.555f, 12.44943f)), owning_building_guid = 20)
+      LocalObject(242, Terminal.Constructor(Vector3(3276.022f, 5457.363f, 13.74343f), gen_control), owning_building_guid = 20)
     }
 
     Building5()
@@ -589,6 +596,8 @@ object Map02 { // Hossin
       LocalObject(1995, Painbox.Constructor(Vector3(4527.914f, 3488.076f, 20.34107f), painbox_door_radius_continuous), owning_building_guid = 23)
       LocalObject(1996, Painbox.Constructor(Vector3(4528.81f, 3515.42f, 20.12277f), painbox_door_radius_continuous), owning_building_guid = 23)
       LocalObject(1997, Painbox.Constructor(Vector3(4541.855f, 3509.827f, 21.34107f), painbox_door_radius_continuous), owning_building_guid = 23)
+      LocalObject(257, Generator.Constructor(Vector3(4463.975f, 3521.555f, 9.721073f)), owning_building_guid = 23)
+      LocalObject(246, Terminal.Constructor(Vector3(4464.022f, 3513.363f, 11.01507f), gen_control), owning_building_guid = 23)
     }
 
     Building6()
@@ -728,6 +737,8 @@ object Map02 { // Hossin
       LocalObject(1998, Painbox.Constructor(Vector3(5442.276f, 3509.341f, 20.24611f), painbox_door_radius_continuous), owning_building_guid = 26)
       LocalObject(1999, Painbox.Constructor(Vector3(5463.137f, 3529.061f, 20.71691f), painbox_door_radius_continuous), owning_building_guid = 26)
       LocalObject(2000, Painbox.Constructor(Vector3(5468.956f, 3514.484f, 21.14721f), painbox_door_radius_continuous), owning_building_guid = 26)
+      LocalObject(259, Generator.Constructor(Vector3(5467.694f, 3561.124f, 9.022909f)), owning_building_guid = 26)
+      LocalObject(248, Terminal.Constructor(Vector3(5473.52f, 3555.364f, 10.31691f), gen_control), owning_building_guid = 26)
     }
 
     Building8()
@@ -862,10 +873,10 @@ object Map02 { // Hossin
       TurretToWeapon(1478, 5035)
       LocalObject(1479, FacilityTurret.Constructor(Vector3(3559.709f, 4126.193f, 38.22469f), manned_turret), owning_building_guid = 29)
       TurretToWeapon(1479, 5036)
-      LocalObject(806, ImplantTerminalMech.Constructor, owning_building_guid = 29)
+      LocalObject(806, ImplantTerminalMech.Constructor(Vector3(3522.186f, 4045.161f, 19.29969f)), owning_building_guid = 29)
       LocalObject(800, Terminal.Constructor(Vector3(3522.204f, 4045.161f, 19.29969f), implant_terminal_interface), owning_building_guid = 29)
       TerminalToInterface(806, 800)
-      LocalObject(807, ImplantTerminalMech.Constructor, owning_building_guid = 29)
+      LocalObject(807, ImplantTerminalMech.Constructor(Vector3(3537.54f, 4044.905f, 19.29969f)), owning_building_guid = 29)
       LocalObject(801, Terminal.Constructor(Vector3(3537.521f, 4044.906f, 19.29969f), implant_terminal_interface), owning_building_guid = 29)
       TerminalToInterface(807, 801)
       LocalObject(1945, Painbox.Constructor(Vector3(3458.239f, 4050.751f, 43.85149f), painbox), owning_building_guid = 29)
@@ -874,6 +885,8 @@ object Map02 { // Hossin
       LocalObject(1986, Painbox.Constructor(Vector3(3475.61f, 4045.5f, 22.17859f), painbox_door_radius_continuous), owning_building_guid = 29)
       LocalObject(1987, Painbox.Constructor(Vector3(3496.561f, 4027.79f, 23.36359f), painbox_door_radius_continuous), owning_building_guid = 29)
       LocalObject(1988, Painbox.Constructor(Vector3(3503.609f, 4043.036f, 21.53689f), painbox_door_radius_continuous), owning_building_guid = 29)
+      LocalObject(255, Generator.Constructor(Vector3(3454.378f, 4052.387f, 38.52869f)), owning_building_guid = 29)
+      LocalObject(244, Terminal.Constructor(Vector3(3462.57f, 4052.291f, 39.82269f), gen_control), owning_building_guid = 29)
     }
 
     Building9()
@@ -1008,10 +1021,10 @@ object Map02 { // Hossin
       TurretToWeapon(1503, 5040)
       LocalObject(1504, FacilityTurret.Constructor(Vector3(4544.813f, 2608.496f, 38.83506f), manned_turret), owning_building_guid = 32)
       TurretToWeapon(1504, 5041)
-      LocalObject(808, ImplantTerminalMech.Constructor, owning_building_guid = 32)
+      LocalObject(808, ImplantTerminalMech.Constructor(Vector3(4490.066f, 2614.368f, 19.91006f)), owning_building_guid = 32)
       LocalObject(802, Terminal.Constructor(Vector3(4490.066f, 2614.386f, 19.91006f), implant_terminal_interface), owning_building_guid = 32)
       TerminalToInterface(808, 802)
-      LocalObject(809, ImplantTerminalMech.Constructor, owning_building_guid = 32)
+      LocalObject(809, ImplantTerminalMech.Constructor(Vector3(4490.054f, 2629.724f, 19.91006f)), owning_building_guid = 32)
       LocalObject(803, Terminal.Constructor(Vector3(4490.054f, 2629.706f, 19.91006f), implant_terminal_interface), owning_building_guid = 32)
       TerminalToInterface(809, 803)
       LocalObject(1948, Painbox.Constructor(Vector3(4485.593f, 2550.334f, 44.46186f), painbox), owning_building_guid = 32)
@@ -1020,6 +1033,8 @@ object Map02 { // Hossin
       LocalObject(1992, Painbox.Constructor(Vector3(4490.54f, 2567.793f, 22.78896f), painbox_door_radius_continuous), owning_building_guid = 32)
       LocalObject(1993, Painbox.Constructor(Vector3(4492.516f, 2595.831f, 22.14726f), painbox_door_radius_continuous), owning_building_guid = 32)
       LocalObject(1994, Painbox.Constructor(Vector3(4507.882f, 2589.05f, 23.97396f), painbox_door_radius_continuous), owning_building_guid = 32)
+      LocalObject(258, Generator.Constructor(Vector3(4484.025f, 2546.445f, 39.13906f)), owning_building_guid = 32)
+      LocalObject(247, Terminal.Constructor(Vector3(4483.978f, 2554.637f, 40.43306f), gen_control), owning_building_guid = 32)
     }
 
     Building7()
@@ -1154,10 +1169,10 @@ object Map02 { // Hossin
       TurretToWeapon(1536, 5045)
       LocalObject(1537, FacilityTurret.Constructor(Vector3(6826.629f, 2355.626f, 137.6113f), manned_turret), owning_building_guid = 35)
       TurretToWeapon(1537, 5046)
-      LocalObject(810, ImplantTerminalMech.Constructor, owning_building_guid = 35)
+      LocalObject(810, ImplantTerminalMech.Constructor(Vector3(6670.276f, 2302.054f, 118.6863f)), owning_building_guid = 35)
       LocalObject(804, Terminal.Constructor(Vector3(6670.294f, 2302.054f, 118.6863f), implant_terminal_interface), owning_building_guid = 35)
       TerminalToInterface(810, 804)
-      LocalObject(811, ImplantTerminalMech.Constructor, owning_building_guid = 35)
+      LocalObject(811, ImplantTerminalMech.Constructor(Vector3(6685.632f, 2302.066f, 118.6863f)), owning_building_guid = 35)
       LocalObject(805, Terminal.Constructor(Vector3(6685.614f, 2302.066f, 118.6863f), implant_terminal_interface), owning_building_guid = 35)
       TerminalToInterface(811, 805)
       LocalObject(1951, Painbox.Constructor(Vector3(6749.666f, 2297.594f, 143.2381f), painbox), owning_building_guid = 35)
@@ -1166,6 +1181,8 @@ object Map02 { // Hossin
       LocalObject(2004, Painbox.Constructor(Vector3(6704.169f, 2304.515f, 120.9235f), painbox_door_radius_continuous), owning_building_guid = 35)
       LocalObject(2005, Painbox.Constructor(Vector3(6710.95f, 2319.882f, 122.7502f), painbox_door_radius_continuous), owning_building_guid = 35)
       LocalObject(2006, Painbox.Constructor(Vector3(6732.207f, 2302.54f, 121.5652f), painbox_door_radius_continuous), owning_building_guid = 35)
+      LocalObject(261, Generator.Constructor(Vector3(6753.555f, 2296.025f, 137.9153f)), owning_building_guid = 35)
+      LocalObject(250, Terminal.Constructor(Vector3(6745.363f, 2295.978f, 139.2093f), gen_control), owning_building_guid = 35)
     }
 
     Building18907()
@@ -1302,6 +1319,8 @@ object Map02 { // Hossin
       LocalObject(1977, Painbox.Constructor(Vector3(2501.035f, 3712.278f, 35.93399f), painbox_door_radius_continuous), owning_building_guid = 42)
       LocalObject(1978, Painbox.Constructor(Vector3(2501.861f, 3739.769f, 36.48229f), painbox_door_radius_continuous), owning_building_guid = 42)
       LocalObject(1979, Painbox.Constructor(Vector3(2517.641f, 3732.57f, 37.38839f), painbox_door_radius_continuous), owning_building_guid = 42)
+      LocalObject(252, Generator.Constructor(Vector3(2509.975f, 3761.555f, 25.01209f)), owning_building_guid = 42)
+      LocalObject(241, Terminal.Constructor(Vector3(2510.022f, 3753.363f, 26.30609f), gen_control), owning_building_guid = 42)
     }
 
     Building10()
@@ -1426,6 +1445,8 @@ object Map02 { // Hossin
       LocalObject(1989, Painbox.Constructor(Vector3(4039.035f, 5962.278f, 34.01743f), painbox_door_radius_continuous), owning_building_guid = 45)
       LocalObject(1990, Painbox.Constructor(Vector3(4039.861f, 5989.769f, 34.56573f), painbox_door_radius_continuous), owning_building_guid = 45)
       LocalObject(1991, Painbox.Constructor(Vector3(4055.641f, 5982.57f, 35.47183f), painbox_door_radius_continuous), owning_building_guid = 45)
+      LocalObject(256, Generator.Constructor(Vector3(4047.975f, 6011.555f, 23.09553f)), owning_building_guid = 45)
+      LocalObject(245, Terminal.Constructor(Vector3(4048.022f, 6003.363f, 24.38953f), gen_control), owning_building_guid = 45)
     }
 
     Building14()
@@ -1550,6 +1571,8 @@ object Map02 { // Hossin
       LocalObject(2001, Painbox.Constructor(Vector3(5617.645f, 2806.712f, 31.70413f), painbox_door_radius_continuous), owning_building_guid = 48)
       LocalObject(2002, Painbox.Constructor(Vector3(5637.344f, 2789.408f, 33.15853f), painbox_door_radius_continuous), owning_building_guid = 48)
       LocalObject(2003, Painbox.Constructor(Vector3(5645.089f, 2804.927f, 32.25243f), painbox_door_radius_continuous), owning_building_guid = 48)
+      LocalObject(260, Generator.Constructor(Vector3(5666.579f, 2796.058f, 20.78223f)), owning_building_guid = 48)
+      LocalObject(249, Terminal.Constructor(Vector3(5658.39f, 2796.296f, 22.07623f), gen_control), owning_building_guid = 48)
     }
 
     Building15()

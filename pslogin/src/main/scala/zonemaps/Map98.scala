@@ -2,6 +2,7 @@ package zonemaps
 
 import net.psforever.objects.GlobalDefinitions._
 import net.psforever.objects.serverobject.doors.Door
+import net.psforever.objects.serverobject.generator.Generator
 import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
@@ -144,6 +145,8 @@ object Map98 { // Ascension
       LocalObject(735, Painbox.Constructor(Vector3(2636.01f, 2264.526f, 84.5473f), painbox_door_radius_continuous), owning_building_guid = 1)
       LocalObject(736, Painbox.Constructor(Vector3(2639.294f, 2290.668f, 84.6118f), painbox_door_radius_continuous), owning_building_guid = 1)
       LocalObject(737, Painbox.Constructor(Vector3(2651.938f, 2283.749f, 86.5259f), painbox_door_radius_continuous), owning_building_guid = 1)
+      LocalObject(97, Generator.Constructor(Vector3(2586.428f, 2283.75f, 74.5533f)), owning_building_guid = 1)
+      LocalObject(94, Terminal.Constructor(Vector3(2594.565f, 2282.799f, 75.8473f), gen_control), owning_building_guid = 1)
     }
 
     Building17()
@@ -432,6 +435,8 @@ object Map98 { // Ascension
       LocalObject(732, Painbox.Constructor(Vector3(1788.939f, 2697.081f, 82.455f), painbox_door_radius_continuous), owning_building_guid = 28)
       LocalObject(733, Painbox.Constructor(Vector3(1790.474f, 2711.191f, 83.6733f), painbox_door_radius_continuous), owning_building_guid = 28)
       LocalObject(734, Painbox.Constructor(Vector3(1815.351f, 2704.219f, 82.6733f), painbox_door_radius_continuous), owning_building_guid = 28)
+      LocalObject(96, Generator.Constructor(Vector3(1802.028f, 2633.285f, 72.0533f)), owning_building_guid = 28)
+      LocalObject(93, Terminal.Constructor(Vector3(1809.848f, 2635.725f, 73.34731f), gen_control), owning_building_guid = 28)
     }
 
     Building8()
@@ -566,10 +571,10 @@ object Map98 { // Ascension
       TurretToWeapon(551, 5015)
       LocalObject(554, FacilityTurret.Constructor(Vector3(1851.693f, 1730.733f, 99.0493f), manned_turret), owning_building_guid = 31)
       TurretToWeapon(554, 5016)
-      LocalObject(296, ImplantTerminalMech.Constructor, owning_building_guid = 31)
+      LocalObject(296, ImplantTerminalMech.Constructor(Vector3(1691.387f, 1770.96f, 80.1243f)), owning_building_guid = 31)
       LocalObject(294, Terminal.Constructor(Vector3(1691.402f, 1770.95f, 80.1243f), implant_terminal_interface), owning_building_guid = 31)
       TerminalToInterface(296, 294)
-      LocalObject(297, ImplantTerminalMech.Constructor, owning_building_guid = 31)
+      LocalObject(297, ImplantTerminalMech.Constructor(Vector3(1704.272f, 1762.607f, 80.1243f)), owning_building_guid = 31)
       LocalObject(295, Terminal.Constructor(Vector3(1704.257f, 1762.616f, 80.1243f), implant_terminal_interface), owning_building_guid = 31)
       TerminalToInterface(297, 295)
       LocalObject(720, Painbox.Constructor(Vector3(1755.54f, 1723.98f, 104.6761f), painbox), owning_building_guid = 31)
@@ -578,6 +583,8 @@ object Map98 { // Ascension
       LocalObject(729, Painbox.Constructor(Vector3(1721.153f, 1754.565f, 82.3615f), painbox_door_radius_continuous), owning_building_guid = 31)
       LocalObject(730, Painbox.Constructor(Vector3(1735.208f, 1763.759f, 84.1882f), painbox_door_radius_continuous), owning_building_guid = 31)
       LocalObject(731, Painbox.Constructor(Vector3(1743.591f, 1737.637f, 83.0032f), painbox_door_radius_continuous), owning_building_guid = 31)
+      LocalObject(95, Generator.Constructor(Vector3(1757.947f, 1720.547f, 99.3533f)), owning_building_guid = 31)
+      LocalObject(92, Terminal.Constructor(Vector3(1751.051f, 1724.969f, 100.6473f), gen_control), owning_building_guid = 31)
     }
 
     Building6()

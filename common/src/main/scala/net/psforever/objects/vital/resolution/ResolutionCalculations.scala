@@ -154,6 +154,8 @@ object ResolutionCalculations {
           player.Armor = result._1
           b = result._2
 
+
+          val originalHealth = player.Health
           // Then bleed through to health if armour ran out
           result = SubtractWithRemainder(player.Health, b)
           player.Health = result._1
@@ -163,6 +165,12 @@ object ResolutionCalculations {
           result = SubtractWithRemainder(player.Health, a)
           player.Health = result._1
           a = result._2
+
+          // If any health damage was applied also drain an amount of stamina equal to half the health damage
+          if(player.Health < originalHealth) {
+            val delta = originalHealth - player.Health
+            player.Stamina = player.Stamina - math.floor(delta / 2).toInt
+          }
         }
       case _ =>
     }

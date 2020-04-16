@@ -2,6 +2,7 @@ package zonemaps
 
 import net.psforever.objects.GlobalDefinitions._
 import net.psforever.objects.serverobject.doors.Door
+import net.psforever.objects.serverobject.generator.Generator
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
@@ -162,6 +163,8 @@ object Map97 { // Desolation
       LocalObject(548, Painbox.Constructor(Vector3(1486.353f, 2262.927f, 24.95038f), painbox_door_radius_continuous), owning_building_guid = 4)
       LocalObject(549, Painbox.Constructor(Vector3(1493.449f, 2237.685f, 26.40478f), painbox_door_radius_continuous), owning_building_guid = 4)
       LocalObject(550, Painbox.Constructor(Vector3(1508.398f, 2246.482f, 25.49868f), painbox_door_radius_continuous), owning_building_guid = 4)
+      LocalObject(66, Generator.Constructor(Vector3(1521.59f, 2227.339f, 14.02848f)), owning_building_guid = 4)
+      LocalObject(63, Terminal.Constructor(Vector3(1514.852f, 2232f, 15.32248f), gen_control), owning_building_guid = 4)
     }
 
     Building3()
@@ -286,6 +289,8 @@ object Map97 { // Desolation
       LocalObject(551, Painbox.Constructor(Vector3(2475.337f, 1540.709f, 25.49868f), painbox_door_radius_continuous), owning_building_guid = 7)
       LocalObject(552, Painbox.Constructor(Vector3(2491.611f, 1518.538f, 24.95038f), painbox_door_radius_continuous), owning_building_guid = 7)
       LocalObject(553, Painbox.Constructor(Vector3(2492.205f, 1544.751f, 26.40478f), painbox_door_radius_continuous), owning_building_guid = 7)
+      LocalObject(67, Generator.Constructor(Vector3(2468.319f, 1562.872f, 14.02848f)), owning_building_guid = 7)
+      LocalObject(64, Terminal.Constructor(Vector3(2473.399f, 1556.446f, 15.32248f), gen_control), owning_building_guid = 7)
     }
 
     Building2()
@@ -410,6 +415,8 @@ object Map97 { // Desolation
       LocalObject(554, Painbox.Constructor(Vector3(2519.685f, 2470.551f, 26.40478f), painbox_door_radius_continuous), owning_building_guid = 10)
       LocalObject(555, Painbox.Constructor(Vector3(2528.482f, 2455.602f, 25.49868f), painbox_door_radius_continuous), owning_building_guid = 10)
       LocalObject(556, Painbox.Constructor(Vector3(2544.927f, 2477.647f, 24.95038f), painbox_door_radius_continuous), owning_building_guid = 10)
+      LocalObject(68, Generator.Constructor(Vector3(2509.339f, 2442.41f, 14.02848f)), owning_building_guid = 10)
+      LocalObject(65, Terminal.Constructor(Vector3(2514f, 2449.148f, 15.32248f), gen_control), owning_building_guid = 10)
     }
 
     Building6()

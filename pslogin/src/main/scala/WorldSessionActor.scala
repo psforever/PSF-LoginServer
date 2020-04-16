@@ -164,10 +164,12 @@ class WorldSessionActor extends Actor
   var squadUpdateCounter : Int = 0
   val queuedSquadActions : Seq[() => Unit] = Seq(SquadUpdates, NoSquadUpdates, NoSquadUpdates, NoSquadUpdates)
 
-  var timeDL : Long = 0
-  var timeSurge : Long = 0
   lazy val unsignedIntMaxValue : Long = Int.MaxValue.toLong * 2L + 1L
   var serverTime : Long = 0
+
+  /** Keeps track of the number of PlayerStateMessageUpstream messages received by the client
+    * As they should arrive roughly every 250 milliseconds this allows for a very crude method of scheduling tasks up to four times per second */
+  private var playerStateMessageUpstreamCount = 0
 
   var amsSpawnPoints : List[SpawnPoint] = Nil
   var clientKeepAlive : Cancellable = DefaultCancellable.obj
@@ -1291,7 +1293,15 @@ class WorldSessionActor extends Actor
       AwardBattleExperiencePoints(avatar, 20000000L)
       avatar.CEP = 600000
 
+      avatar.Implants(0).Unlocked = true
+      avatar.Implants(0).Implant = GlobalDefinitions.darklight_vision
+      avatar.Implants(1).Unlocked = true
+      avatar.Implants(1).Implant = GlobalDefinitions.surge
+      avatar.Implants(2).Unlocked = true
+      avatar.Implants(2).Implant = GlobalDefinitions.targeting
+
       player = new Player(avatar)
+
       //xy-coordinates indicate sanctuary spawn bias:
       player.Position = math.abs(scala.util.Random.nextInt() % avatar.name.hashCode % 4) match {
         case 0 => Vector3(8192, 8192, 0) //NE
@@ -1527,12 +1537,10 @@ class WorldSessionActor extends Actor
         }
 
       case AvatarResponse.DeactivateImplantSlot(slot) =>
-        //temporary solution until implants are finalized
-        slot match {
-          case 1 => DeactivateImplantDarkLight()
-          case 2 => DeactivateImplantSurge()
-          case _ => ;
-        }
+        sendResponse(AvatarImplantMessage(PlanetSideGUID(player.GUID.guid), ImplantAction.Activation, slot, 0))
+
+      case AvatarResponse.ActivateImplantSlot(slot) =>
+        sendResponse(AvatarImplantMessage(PlanetSideGUID(player.GUID.guid), ImplantAction.Activation, slot, 1))
 
       case AvatarResponse.Destroy(victim, killer, weapon, pos) =>
         // guid = victim // killer = killer ;)
@@ -1565,8 +1573,6 @@ class WorldSessionActor extends Actor
         val respawnTimer = 300000 //milliseconds
         ToggleMaxSpecialState(enable = false)
         deadState = DeadState.Dead
-        timeDL = 0
-        timeSurge = 0
         continent.GUID(player.VehicleSeated) match {
           case Some(obj : Vehicle) =>
             TotalDriverVehicleControl(obj)
@@ -2552,6 +2558,7 @@ class WorldSessionActor extends Actor
           log.info(s"$message - put in slot $slot")
           sendResponse(AvatarImplantMessage(tplayer.GUID, ImplantAction.Add, slot, implant_type.id))
           sendResponse(ItemTransactionResultMessage(terminal_guid, TransactionType.Learn, true))
+          player.Actor ! Player.ImplantInitializationStart(slot)
         }
         else {
           if(interface.isEmpty) {
@@ -2585,6 +2592,7 @@ class WorldSessionActor extends Actor
         if(interface.contains(terminal_guid.guid) && slotNumber.isDefined) {
           val slot = slotNumber.get
           log.info(s"$tplayer is selling $implant_type - take from slot $slot")
+          player.Actor ! Player.UninitializeImplant(slot)
           sendResponse(AvatarImplantMessage(tplayer.GUID, ImplantAction.Remove, slot, 0))
           sendResponse(ItemTransactionResultMessage(terminal_guid, TransactionType.Sell, true))
         }
@@ -3071,10 +3079,22 @@ class WorldSessionActor extends Actor
       sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, false, "", "on", None))
     }
     (0 until DetailedCharacterData.numberOfImplantSlots(tplayer.BEP)).foreach(slot => {
-      sendResponse(AvatarImplantMessage(guid, ImplantAction.Initialization, slot, 1)) //init implant slot
-      sendResponse(AvatarImplantMessage(guid, ImplantAction.Activation, slot, 0)) //deactivate implant
+      val implantSlot = player.ImplantSlot(slot)
+      if(implantSlot.Initialized) {
+        sendResponse(AvatarImplantMessage(guid, ImplantAction.Initialization, slot, 1))
+      }
+      else {
+        player.Actor ! Player.ImplantInitializationStart(slot)
+      }
       //TODO if this implant is Installed but does not have shortcut, add to a free slot or write over slot 61/62/63
+      // for now, just write into slots 2, 3 and 4
+      Shortcut.ImplantsMap(implantSlot.Implant) match {
+        case Some(shortcut : Shortcut) =>
+          sendResponse(CreateShortcutMessage(guid, slot + 2, 0, addShortcut = true, Some(shortcut)))
+        case _ => log.warn(s"Could not find shortcut for implant ${implantSlot.Implant.toString()}")
+      }
     })
+
     sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 82, 0))
     //TODO if Medkit does not have shortcut, add to a free slot or write over slot 64
     sendResponse(CreateShortcutMessage(guid, 1, 0, true, Shortcut.MEDKIT))
@@ -3739,70 +3759,20 @@ class WorldSessionActor extends Actor
       beginZoningSetCurrentAvatarFunc(player)
 
     case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, yaw, pitch, yaw_upper, seq_time, unk3, is_crouching, is_jumping, jump_thrust, is_cloaking, unk5, unk6) =>
+      playerStateMessageUpstreamCount += 1
       val isMoving = WorldEntity.isMoving(vel)
       val isMovingPlus = isMoving || is_jumping || jump_thrust
-      //implants and stamina management start
-      val implantsAreActive = avatar.Implants(0).Active || avatar.Implants(1).Active
-      val staminaBefore = player.Stamina
-      val hadStaminaBefore = staminaBefore > 0
-      val hasStaminaAfter = if(deadState == DeadState.Alive) {
-        if(implantsAreActive && hadStaminaBefore) {
-          val time = System.currentTimeMillis()
-          if(timeDL != 0) {
-            val duration = time - timeDL
-            if(duration > 500) {
-              val units = (duration / 500).toInt
-              player.Stamina = player.Stamina - units
-              timeDL += units * 500
-            }
-          }
-          if(timeSurge != 0) {
-            val duration = time - timeSurge
-            val period = player.ExoSuit match {
-              case ExoSuitType.Agile => 500
-              case ExoSuitType.Reinforced => 333
-              case ExoSuitType.Infiltration => 1000
-              case ExoSuitType.Standard => 1000
-              case _ => 1
-            }
-            if(duration > period) {
-              val units = (duration / period).toInt
-              player.Stamina = player.Stamina - units
-              timeSurge += period * units
-            }
-          }
-        }
+
+      if(deadState == DeadState.Alive && playerStateMessageUpstreamCount % 2 == 0) { // Regen stamina roughly every 500ms
         if(player.skipStaminaRegenForTurns > 0) {
           //do not renew stamina for a while
           player.skipStaminaRegenForTurns -= 1
-          player.Stamina > 0
         }
-        else if(player.Stamina == 0 && hadStaminaBefore) {
-          //if the player lost all stamina this turn (had stamina at the start), do not renew stamina for a while
-          player.skipStaminaRegenForTurns = 4
-          player.Stamina > 0
-        }
-        else if(isMovingPlus || player.Stamina == player.MaxStamina) {
-          //ineligible for stamina regen
-          player.Stamina > 0
-        }
-        else {
-          player.Stamina = player.Stamina + 1
-          true
+        else if(!isMovingPlus && player.Stamina != player.MaxStamina) {
+          player.Stamina += 1
         }
       }
-      else {
-        timeDL = 0
-        timeSurge = 0
-        false
-      }
-      if(staminaBefore != player.Stamina) { //stamina changed
-        sendResponse(PlanetsideAttributeMessage(player.GUID, 2, player.Stamina))
-      }
-      if(implantsAreActive && !hasStaminaAfter) { //implants deactivated at 0 stamina
-        DeactivateImplants()
-      }
-      //implants and stamina management finish
+
       player.Position = pos
       player.Velocity = vel
       player.Orientation = Vector3(player.Orientation.x, pitch, yaw)
@@ -3967,6 +3937,7 @@ class WorldSessionActor extends Actor
       var makeReply : Boolean = false
       var echoContents : String = contents
       val trimContents = contents.trim
+      val trimRecipient = recipient.trim
       //TODO messy on/off strings may work
       if(messagetype == ChatMessageType.CMT_FLY && admin) {
         makeReply = false
@@ -4089,21 +4060,275 @@ class WorldSessionActor extends Actor
         echoContents = s"zone=${continent.Id} pos=${player.Position.x},${player.Position.y},${player.Position.z}; ori=${player.Orientation.x},${player.Orientation.y},${player.Orientation.z}"
         log.info(echoContents)
       }
-      else if (trimContents.equals("!list") && admin) {
-        sendResponse(ChatMsg(ChatMessageType.CMT_TELL, has_wide_contents, "Server",
-          "\\#8ID / Name (faction) Cont-PosX/PosY/PosZ", note_contents))
-        continent.LivePlayers.filterNot(_.GUID == player.GUID).sortBy(_.Name).foreach(char => {
-          sendResponse(ChatMsg(ChatMessageType.CMT_TELL, has_wide_contents, "Server",
-            "GUID / Name: " + char.GUID.guid + " / " + char.Name + " (" + char.Faction + ") " +
-              char.Continent + "-" + char.Position.x.toInt + "/" + char.Position.y.toInt + "/" + char.Position.z.toInt, note_contents))
-        })
+      else if (trimContents.contains("!list") && admin) {
+        //        StartBundlingPackets()
+        val localString : String = contents.drop(contents.indexOf(" ") + 1)
+
+        if(localString.equalsIgnoreCase("!list")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID] at PosX PosY PosZ", note_contents))
+          continent.LivePlayers.filterNot(_.GUID == player.GUID).sortBy(_.Name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server",
+              char.Name + " (" + char.Faction + ") [" + char.CharId + "] at " + char.Position.x.toInt + " " + char.Position.y.toInt + " " + char.Position.z.toInt, note_contents))
+          })
+          continent.Corpses.filterNot(_.GUID == player.GUID).sortBy(_.Name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server",
+              "\\#7" + char.Name + " (" + char.Faction + ") [" + char.CharId + "] at " + char.Position.x.toInt + " " + char.Position.y.toInt + " " + char.Position.z.toInt, note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("z1")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.z1.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("z2")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.z2.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("z3")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.z3.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("z4")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.z4.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("z5")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.z5.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("z6")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.z6.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("z7")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.z7.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("z8")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.z8.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("z9")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.z9.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("z10")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.z10.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("home1")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.home1.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("home2")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.home2.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("home3")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.home3.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("c1")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.c1.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("c2")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.c2.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("c3")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.c3.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("c4")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.c4.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("c5")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.c5.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("c6")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.c6.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("i1")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.i1.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("i2")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.i2.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("i3")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.i3.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else if(localString.equalsIgnoreCase("i4")) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents))
+          Zones.i4.Players.filterNot(_.CharId == player.CharId).sortBy(_.name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", char.name + " (" + char.faction + ") [" + char.CharId + "]", note_contents))
+          })
+        }
+        else {
+          sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID] in Zone at PosX PosY PosZ", note_contents))
+          continent.LivePlayers.filter(_.Name.contains(localString)).sortBy(_.Name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server",
+              char.Name + " (" + char.Faction + ") [" + char.CharId + "] in " + char.Continent + " at " + char.Position.x.toInt + " " + char.Position.y.toInt + " " + char.Position.z.toInt, note_contents))
+          })
+          continent.Corpses.filter(_.Name.contains(localString)).sortBy(_.Name).foreach(char => {
+            sendResponse(ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server",
+              "\\#7" + char.Name + " (" + char.Faction + ") [" + char.CharId + "] in " + char.Continent + " at " + char.Position.x.toInt + " " + char.Position.y.toInt + " " + char.Position.z.toInt, note_contents))
+          })
+        }
+        //        StopBundlingPackets()
       }
-      else if(trimContents.equals("!ams")) {
-        makeReply = false
-        if(player.isBackpack) { //player is on deployment screen (either dead or deconstructed)
-          if(deadState == DeadState.Release) { //player is on deployment screen (either dead or deconstructed)
-            cluster ! Zone.Lattice.RequestSpawnPoint(continent.Number, player, 2)
+      else if (trimContents.contains("!kick") && admin) {
+        val CharIDorName : String = contents.drop(contents.indexOf(" ") + 1)
+        try {
+          val charID : Long = CharIDorName.toLong
+          if(charID != player.CharId) {
+            var charToKick = continent.LivePlayers.filter(_.CharId == charID)
+            if (charToKick.nonEmpty) {
+              charToKick.head.death_by = -1
+            }
+            else {
+              charToKick = continent.Corpses.filter(_.CharId == charID)
+              if (charToKick.nonEmpty) charToKick.head.death_by = -1
+            }
           }
+        }
+        catch {
+          case _ : Throwable =>
+          {
+            val charToKick = continent.LivePlayers.filter(_.Name.equalsIgnoreCase(CharIDorName))
+            if(charToKick.nonEmpty) charToKick.head.death_by = -1
+          }
+        }
+      }
+      else if(trimRecipient.equals("tr")) {
+        sendResponse(ZonePopulationUpdateMessage(4, 414, 138, contents.toInt, 138, contents.toInt / 2, 138, 0, 138, 0))
+      }
+      else if(trimRecipient.equals("nc")) {
+        sendResponse(ZonePopulationUpdateMessage(4, 414, 138, 0, 138, contents.toInt, 138, contents.toInt / 3, 138, 0))
+      }
+      else if(trimRecipient.equals("vs")) {
+        sendResponse(ZonePopulationUpdateMessage(4, 414, 138, contents.toInt * 2, 138, 0, 138, contents.toInt, 138, 0))
+      }
+      else if(trimRecipient.equals("bo")){
+        sendResponse(ZonePopulationUpdateMessage(4, 414, 138, 0, 138, 0, 138, 0, 138, contents.toInt))
+
+        //          sendResponse(ZoneInfoMessage(contents.toInt, true, 25200000))
+        //          sendResponse(ZoneInfoMessage(contents.toInt-1, false, 25200000))
+        //          sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", "@cavern_switched^@c1~^@c5~", None))
+      }
+      else if(trimContents.startsWith("!ntu") && admin){
+        continent.Buildings.values.foreach(building =>
+          building.Amenities.foreach(amenity =>
+            amenity.Definition match {
+              case GlobalDefinitions.resource_silo =>
+                val r = new scala.util.Random
+                val silo = amenity.asInstanceOf[ResourceSilo]
+                val ntu: Int = 900 + r.nextInt(100) - silo.ChargeLevel
+                //                val ntu: Int = 0 + r.nextInt(100) - silo.ChargeLevel
+                silo.Actor ! ResourceSilo.UpdateChargeLevel(ntu)
+
+              case _ => ;
+            }
+          )
+        )
+      }
+      else if(trimContents.startsWith("!hack") && admin){
+        var hackFaction = PlanetSideEmpire.NEUTRAL
+        val args = trimContents.split(" ")
+        if (args.length == 3) {
+          var bad : Boolean = false
+          if(args(2).equalsIgnoreCase("tr")) hackFaction = PlanetSideEmpire.TR
+          else if(args(2).equalsIgnoreCase("nc")) hackFaction = PlanetSideEmpire.NC
+          else if(args(2).equalsIgnoreCase("vs")) hackFaction = PlanetSideEmpire.VS
+          else if(args(2).equalsIgnoreCase("bo")) hackFaction = PlanetSideEmpire.NEUTRAL
+          else bad = true
+          if(bad) {
+            sendResponse(ChatMsg(ChatMessageType.UNK_229, true, "", "USE !hack tr|vs|nc|bo OR !hack BaseName tr|vs|nc|bo", None))
+          }
+          else {
+            continent.Buildings.foreach({
+              case (id, building) =>
+                if(!building.Name.isEmpty && args(1).equalsIgnoreCase(building.Name)) {
+                  log.info(s"Hack Base Name : ${args(1)} to empire : ${args(2)}")
+                  building.Faction = hackFaction
+                  building.Actor ! Building.TriggerZoneMapUpdate(continent.Number)
+                  continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.SetEmpire(building.GUID, hackFaction))
+                }
+            })
+          }
+        } else if (args.length == 2) {
+          var bad : Boolean = false
+          if(args(1).equalsIgnoreCase("tr")) hackFaction = PlanetSideEmpire.TR
+          else if(args(1).equalsIgnoreCase("nc")) hackFaction = PlanetSideEmpire.NC
+          else if(args(1).equalsIgnoreCase("vs")) hackFaction = PlanetSideEmpire.VS
+          else if(args(1).equalsIgnoreCase("bo")) hackFaction = PlanetSideEmpire.NEUTRAL
+          else bad = true
+          if(bad) {
+            sendResponse(ChatMsg(ChatMessageType.UNK_229, true, "", "USE !hack tr|vs|nc|bo OR !hack BaseName tr|vs|nc|bo", None))
+          }
+          else {
+            continent.Buildings.foreach({
+              case (id, building) =>
+                if (!building.Name.isEmpty && !bad && building.BuildingType.id != 6) {
+                  log.info(s"Hack Bases to empire : ${args(1)}")
+                  building.Faction = hackFaction
+                  building.Actor ! Building.TriggerZoneMapUpdate(continent.Number)
+                  continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.SetEmpire(building.GUID, hackFaction))
+                }
+            })
+          }
+        }
+        else {
+          sendResponse(ChatMsg(ChatMessageType.UNK_229, true, "", "USE !hack tr|vs|nc|bo OR !hack BaseName tr|vs|nc|bo", None))
         }
       }
       // TODO: Depending on messagetype, may need to prepend sender's name to contents with proper spacing
@@ -4396,7 +4621,6 @@ class WorldSessionActor extends Actor
       //log.info("AvatarJump: " + msg)
       player.Stamina = player.Stamina - 10
       player.skipStaminaRegenForTurns = math.max(player.skipStaminaRegenForTurns, 5)
-      sendResponse(PlanetsideAttributeMessage(player.GUID, 2, player.Stamina))
 
     case msg @ ZipLineMessage(player_guid,forwards,action,path_id,pos) =>
       log.info("ZipLineMessage: " + msg)
@@ -4615,25 +4839,10 @@ class WorldSessionActor extends Actor
           log.warn(s"LootItem: can not find where to put $item_guid")
       }
 
-    case msg @ AvatarImplantMessage(_, action, slot, status) => //(player_guid, unk1, unk2, implant) =>
+    case msg @ AvatarImplantMessage(player_guid, action, slot, status) =>
       log.info("AvatarImplantMessage: " + msg)
-      if (avatar.Implants(slot).Initialized) {
-        if(action == ImplantAction.Activation && status == 1) { // active
-          avatar.Implants(slot).Active = true
-          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(slot).id * 2 + 1))
-          if (avatar.Implant(slot).id == 3) {
-            timeDL = System.currentTimeMillis()
-            player.Stamina = player.Stamina - 3
-            sendResponse(PlanetsideAttributeMessage(player.GUID, 2, player.Stamina))
-          }
-          if (avatar.Implant(slot).id == 9) timeSurge = System.currentTimeMillis()
-        } else if(action == ImplantAction.Activation && status == 0) { //desactive
-          avatar.Implants(slot).Active = false
-          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(slot).id * 2))
-          if (avatar.Implant(slot).id == 3) timeDL = 0
-          if (avatar.Implant(slot).id == 9) timeSurge = 0
-        }
-        sendResponse(AvatarImplantMessage(PlanetSideGUID(player.GUID.guid),action,slot,status))
+      if(action == ImplantAction.Activation) {
+        player.Actor ! Player.ImplantActivation(slot, status)
       }
 
     case msg @ UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType) =>
@@ -4779,7 +4988,6 @@ class WorldSessionActor extends Actor
                             sendResponse(ObjectDeleteMessage(kit.GUID, 0))
                             taskResolver ! GUIDTask.UnregisterEquipment(kit)(continent.GUID)
                             player.Stamina = player.Stamina + 100
-                            sendResponse(PlanetsideAttributeMessage(avatar_guid, 2, player.Stamina))
                           case None =>
                             log.error(s"UseItem: anticipated a $kit, but can't find it")
                         }
@@ -5220,7 +5428,6 @@ class WorldSessionActor extends Actor
           else { //shooting
             if (tool.FireModeIndex == 1 && (tool.Definition.Name == "anniversary_guna" || tool.Definition.Name == "anniversary_gun" || tool.Definition.Name == "anniversary_gunb")) {
               player.Stamina = 0
-              sendResponse(PlanetsideAttributeMessage(player.GUID, 2, 0))
             }
 
             prefire = shooting.orElse(Some(weapon_guid))
@@ -5597,7 +5804,24 @@ class WorldSessionActor extends Actor
 
     case msg @ TargetingImplantRequest(list) =>
       log.info("TargetingImplantRequest: "+msg)
+      val targetInfo: List[TargetInfo] = list.flatMap(x => {
+        continent.GUID(x.target_guid) match {
+          case Some(player: Player) =>
+            val health = player.Health.toFloat / player.MaxHealth
+            val armor = if (player.MaxArmor > 0) {
+              player.Armor.toFloat / player.MaxArmor
+            } else {
+              0
+            }
 
+            Some(TargetInfo(player.GUID, health, armor))
+          case _ =>
+            log.warn(s"Target info requested for guid ${x.target_guid} but is not a player")
+            None
+        }
+      })
+
+      sendResponse(TargetingInfoMessage(targetInfo))
     case msg @ ActionCancelMessage(u1, u2, u3) =>
       log.info("Cancelled: "+msg)
 
@@ -7796,6 +8020,7 @@ class WorldSessionActor extends Actor
   def RespawnClone(tplayer : Player) : Player = {
     val faction = tplayer.Faction
     val obj = Player.Respawn(tplayer)
+    obj.ResetAllImplants()
     LoadClassicDefault(obj)
     obj
   }
@@ -10349,39 +10574,9 @@ class WorldSessionActor extends Actor
     projectilesToCleanUp(local_index) = false
   }
 
-  /**
-    * Deactivate all active implants.
-    * This method is intended to support only the current Live server implants that are functional,
-    * the darklight vision implant and the surge implant.
-    */
   def DeactivateImplants() : Unit = {
-    DeactivateImplantDarkLight()
-    DeactivateImplantSurge()
-  }
-
-  /**
-    * Deactivate the darklight vision implant.
-    * This method is intended to support only the current Live server implants.
-    */
-  def DeactivateImplantDarkLight() : Unit = {
-    if(avatar.Implants(0).Active && avatar.Implants(0).Implant == ImplantType.DarklightVision) {
-      avatar.Implants(0).Active = false
-      continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(0).id * 2))
-      sendResponse(AvatarImplantMessage(PlanetSideGUID(player.GUID.guid), ImplantAction.Activation, 0, 0))
-      timeDL = 0
-    }
-  }
-
-  /**
-    * Deactivate the surge implant.
-    * This method is intended to support only the current Live server implants.
-    */
-  def DeactivateImplantSurge() : Unit = {
-    if(avatar.Implants(1).Active && avatar.Implants(0).Implant == ImplantType.Surge) {
-      avatar.Implants(1).Active = false
-      continent.AvatarEvents  ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, avatar.Implant(1).id * 2))
-      sendResponse(AvatarImplantMessage(PlanetSideGUID(player.GUID.guid), ImplantAction.Activation, 1, 0))
-      timeSurge = 0
+    for(slot <- 0 to player.Implants.length - 1) {
+      player.Actor ! Player.ImplantActivation(slot, 0)
     }
   }
 

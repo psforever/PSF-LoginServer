@@ -100,6 +100,7 @@ class ResourceSiloControlUseTest extends ActorTest {
   guid.register(obj, 2)
   guid.register(player, 3)
   guid.register(vehicle, 4)
+  expectNoMsg(200 milliseconds)
   zone.Transport ! Zone.Vehicle.Spawn(vehicle)
   vehicle.Seats(0).Occupant = player
   player.VehicleSeated = vehicle.GUID

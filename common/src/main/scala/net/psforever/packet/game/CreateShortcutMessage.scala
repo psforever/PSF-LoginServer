@@ -2,7 +2,7 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
-import net.psforever.types.PlanetSideGUID
+import net.psforever.types.{ImplantType, PlanetSideGUID}
 import scodec.Codec
 import scodec.codecs._
 
@@ -85,6 +85,23 @@ final case class CreateShortcutMessage(player_guid : PlanetSideGUID,
 
 object Shortcut extends Marshallable[Shortcut] {
   // Convenient predefined Shortcuts for the Medkit and Implants
+
+  /**
+    A map to convert between ImplantTypes and Implant Shortcuts
+   */
+  final lazy val ImplantsMap = Map(
+    ImplantType.AdvancedRegen->REGENERATION,
+    ImplantType.Targeting->ENHANCED_TARGETING,
+    ImplantType.AudioAmplifier->AUDIO_AMPLIFIER,
+    ImplantType.DarklightVision->DARKLIGHT_VISION,
+    ImplantType.MeleeBooster->MELEE_BOOSTER,
+    ImplantType.PersonalShield->PERSONAL_SHIELD,
+    ImplantType.RangeMagnifier->RANGE_MAGNIFIER,
+    ImplantType.SecondWind->SECOND_WIND,
+    ImplantType.SilentRun->SENSOR_SHIELD,
+    ImplantType.Surge->SURGE
+  )
+
   /**
     * Preset for the Audio Amplifier implant. */
   final val AUDIO_AMPLIFIER : Some[Shortcut] = Some(Shortcut(2, "audio_amplifier"))
