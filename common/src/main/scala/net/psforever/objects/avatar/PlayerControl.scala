@@ -39,7 +39,7 @@ class PlayerControl(player : Player) extends Actor
   private [this] val log = org.log4s.getLogger(player.Name)
   private [this] val damageLog = org.log4s.getLogger(Damageable.LogChannel)
 
-  // A collection of timers for each slot to trigger stamina drain on an interval 
+  // A collection of timers for each slot to trigger stamina drain on an interval
   val implantSlotStaminaDrainTimers = mutable.HashMap(0 -> DefaultCancellable.obj, 1 -> DefaultCancellable.obj, 2 -> DefaultCancellable.obj)
 
   def receive : Receive = jammableBehavior
