@@ -310,11 +310,13 @@ class WorldSessionActor extends Actor
       HandleAvatarServiceResponse(toChannel, guid, reply)
 
     case CommonMessages.Progress(rate, finishedAction, stepAction) =>
-      progressBarValue = Some(-rate)
-      self ! ProgressEvent(rate, finishedAction, stepAction)
+      if(progressBarValue.isEmpty) {
+        progressBarValue = Some(-rate)
+        self ! ProgressEvent(rate, finishedAction, stepAction)
+      }
 
-    case ProgressEvent(delta, completeAction, tickAction) =>
-      HandleProgressChange(delta, completeAction, tickAction)
+    case ProgressEvent(delta, finishedAction, stepAction) =>
+      HandleProgressChange(delta, finishedAction, stepAction)
 
     case Door.DoorMessage(tplayer, msg, order) =>
       HandleDoorMessage(tplayer, msg, order)
@@ -5259,7 +5261,7 @@ class WorldSessionActor extends Actor
             accessedContainer = Some(obj)
           }
           else if(!unk3 && player.isAlive) { //potential kit use
-            equipment match {
+            ValidObject(item_used_guid) match {
               case Some(kit : Kit) =>
                 player.Find(kit) match {
                   case Some(index) =>
@@ -5271,20 +5273,15 @@ class WorldSessionActor extends Actor
                         sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", s"@TimeUntilNextUse^${5 - (System.currentTimeMillis - whenUsedLastKit) / 1000}~", None))
                       }
                       else {
-                        player.Find(kit) match {
-                          case Some(index) =>
-                            whenUsedLastKit = System.currentTimeMillis
-                            player.Slot(index).Equipment = None //remove from slot immediately; must exist on client for next packet
-                            sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
-                            sendResponse(ObjectDeleteMessage(kit.GUID, 0))
-                            taskResolver ! GUIDTask.UnregisterEquipment(kit)(continent.GUID)
-                            player.History(HealFromKit(PlayerSource(player), 25, kit.Definition))
-                            player.Health = player.Health + 25
-                            sendResponse(PlanetsideAttributeMessage(avatar_guid, 0, player.Health))
-                            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(avatar_guid, 0, player.Health))
-                          case None =>
-                            log.error(s"UseItem: anticipated a $kit, but can't find it")
-                        }
+                        whenUsedLastKit = System.currentTimeMillis
+                        player.Slot(index).Equipment = None //remove from slot immediately; must exist on client for next packet
+                        sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+                        sendResponse(ObjectDeleteMessage(kit.GUID, 0))
+                        taskResolver ! GUIDTask.UnregisterEquipment(kit)(continent.GUID)
+                        player.History(HealFromKit(PlayerSource(player), 25, kit.Definition))
+                        player.Health = player.Health + 25
+                        sendResponse(PlanetsideAttributeMessage(avatar_guid, 0, player.Health))
+                        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(avatar_guid, 0, player.Health))
                       }
                     }
                     else if(kit.Definition == GlobalDefinitions.super_medkit) {
@@ -5295,20 +5292,15 @@ class WorldSessionActor extends Actor
                         sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", s"@TimeUntilNextUse^${1200 - (System.currentTimeMillis - whenUsedLastSMKit) / 1000}~", None))
                       }
                       else {
-                        player.Find(kit) match {
-                          case Some(index) =>
-                            whenUsedLastSMKit = System.currentTimeMillis
-                            player.Slot(index).Equipment = None //remove from slot immediately; must exist on client for next packet
-                            sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
-                            sendResponse(ObjectDeleteMessage(kit.GUID, 0))
-                            taskResolver ! GUIDTask.UnregisterEquipment(kit)(continent.GUID)
-                            player.History(HealFromKit(PlayerSource(player), 100, kit.Definition))
-                            player.Health = player.Health + 100
-                            sendResponse(PlanetsideAttributeMessage(avatar_guid, 0, player.Health))
-                            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(avatar_guid, 0, player.Health))
-                          case None =>
-                            log.error(s"UseItem: anticipated a $kit, but can't find it")
-                        }
+                        whenUsedLastSMKit = System.currentTimeMillis
+                        player.Slot(index).Equipment = None //remove from slot immediately; must exist on client for next packet
+                        sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+                        sendResponse(ObjectDeleteMessage(kit.GUID, 0))
+                        taskResolver ! GUIDTask.UnregisterEquipment(kit)(continent.GUID)
+                        player.History(HealFromKit(PlayerSource(player), 100, kit.Definition))
+                        player.Health = player.Health + 100
+                        sendResponse(PlanetsideAttributeMessage(avatar_guid, 0, player.Health))
+                        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(avatar_guid, 0, player.Health))
                       }
                     }
                     else if(kit.Definition == GlobalDefinitions.super_armorkit) {
@@ -5319,20 +5311,15 @@ class WorldSessionActor extends Actor
                         sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", s"@TimeUntilNextUse^${1200 - (System.currentTimeMillis - whenUsedLastSAKit) / 1000}~", None))
                       }
                       else {
-                        player.Find(kit) match {
-                          case Some(index) =>
-                            whenUsedLastSAKit = System.currentTimeMillis
-                            player.Slot(index).Equipment = None //remove from slot immediately; must exist on client for next packet
-                            sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
-                            sendResponse(ObjectDeleteMessage(kit.GUID, 0))
-                            taskResolver ! GUIDTask.UnregisterEquipment(kit)(continent.GUID)
-                            player.History(RepairFromKit(PlayerSource(player), 200, kit.Definition))
-                            player.Armor = player.Armor + 200
-                            sendResponse(PlanetsideAttributeMessage(avatar_guid, 4, player.Armor))
-                            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(avatar_guid, 4, player.Armor))
-                          case None =>
-                            log.error(s"UseItem: anticipated a $kit, but can't find it")
-                        }
+                        whenUsedLastSAKit = System.currentTimeMillis
+                        player.Slot(index).Equipment = None //remove from slot immediately; must exist on client for next packet
+                        sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+                        sendResponse(ObjectDeleteMessage(kit.GUID, 0))
+                        taskResolver ! GUIDTask.UnregisterEquipment(kit)(continent.GUID)
+                        player.History(RepairFromKit(PlayerSource(player), 200, kit.Definition))
+                        player.Armor = player.Armor + 200
+                        sendResponse(PlanetsideAttributeMessage(avatar_guid, 4, player.Armor))
+                        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(avatar_guid, 4, player.Armor))
                       }
                     }
                     else if(kit.Definition == GlobalDefinitions.super_staminakit) {
@@ -5343,17 +5330,12 @@ class WorldSessionActor extends Actor
                         sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", s"@TimeUntilNextUse^${300 - (System.currentTimeMillis - whenUsedLastSSKit) / 1200}~", None))
                       }
                       else {
-                        player.Find(kit) match {
-                          case Some(index) =>
-                            whenUsedLastSSKit = System.currentTimeMillis
-                            player.Slot(index).Equipment = None //remove from slot immediately; must exist on client for next packet
-                            sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
-                            sendResponse(ObjectDeleteMessage(kit.GUID, 0))
-                            taskResolver ! GUIDTask.UnregisterEquipment(kit)(continent.GUID)
-                            player.Stamina = player.Stamina + 100
-                          case None =>
-                            log.error(s"UseItem: anticipated a $kit, but can't find it")
-                        }
+                        whenUsedLastSSKit = System.currentTimeMillis
+                        player.Slot(index).Equipment = None //remove from slot immediately; must exist on client for next packet
+                        sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+                        sendResponse(ObjectDeleteMessage(kit.GUID, 0))
+                        taskResolver ! GUIDTask.UnregisterEquipment(kit)(continent.GUID)
+                        player.Stamina = player.Stamina + 100
                       }
                     }
                     else {
