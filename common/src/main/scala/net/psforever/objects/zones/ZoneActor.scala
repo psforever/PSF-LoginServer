@@ -88,10 +88,13 @@ class ZoneActor(zone : Zone) extends Actor {
             sender ! Zone.Lattice.SpawnPoint(zone.Id, tube)
 
           case Some(tubes) =>
-            val tube = scala.util.Random.shuffle(
+            scala.util.Random.shuffle(
               tubes.filter(sp => !sp.Offline)
-            ).head
-            sender ! Zone.Lattice.SpawnPoint(zone.Id, tube)
+            ).headOption match {
+              case Some(tube: SpawnPoint) =>
+                sender ! Zone.Lattice.SpawnPoint(zone.Id, tube)
+              case _ => sender ! Zone.Lattice.NoValidSpawnPoint(zone_number, Some(spawn_group))
+            }
 
           case None =>
             sender ! Zone.Lattice.NoValidSpawnPoint(zone_number, Some(spawn_group))
