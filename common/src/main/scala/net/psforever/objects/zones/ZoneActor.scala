@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import akka.actor.Actor
 import net.psforever.objects.{GlobalDefinitions, PlanetSideGameObject, SpawnPoint, Tool}
-import net.psforever.objects.serverobject.structures.{StructureType, WarpGate}
+import net.psforever.objects.serverobject.structures.{AmenityOwner, StructureType, WarpGate}
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vehicles.UtilityType
 import net.psforever.types.{DriveState, PlanetSideEmpire, Vector3}
@@ -84,17 +84,15 @@ class ZoneActor(zone : Zone) extends Actor {
     case Zone.Lattice.RequestSpawnPoint(zone_number, position, faction, spawn_group) =>
       if(zone_number == zone.Number) {
         ZoneActor.FindLocalSpawnPointsInZone(zone, position, faction, spawn_group) match {
+          case Some(Nil) | None =>
+            sender ! Zone.Lattice.NoValidSpawnPoint(zone_number, Some(spawn_group))
+
           case Some(List(tube)) =>
             sender ! Zone.Lattice.SpawnPoint(zone.Id, tube)
 
           case Some(tubes) =>
-            val tube = scala.util.Random.shuffle(
-              tubes.filter(sp => !sp.Offline)
-            ).head
+            val tube = scala.util.Random.shuffle(tubes).head
             sender ! Zone.Lattice.SpawnPoint(zone.Id, tube)
-
-          case None =>
-            sender ! Zone.Lattice.NoValidSpawnPoint(zone_number, Some(spawn_group))
         }
       }
       else { //wrong zone_number
@@ -225,61 +223,87 @@ object ZoneActor {
     * @return na
     */
   def FindLocalSpawnPointsInZone(zone : Zone, position : Vector3, faction : PlanetSideEmpire.Value, spawn_group : Int) : Option[List[SpawnPoint]] = {
-    val playerPosition = position.xy
-    if(spawn_group == 2) {
-      //ams
-      zone.Vehicles
-        .filter(veh =>
-          veh.Definition == GlobalDefinitions.ams &&
-            veh.DeploymentState == DriveState.Deployed &&
-            veh.Faction == faction
-        )
-        .sortBy(veh => Vector3.DistanceSquared(playerPosition, veh.Position.xy))
-        .flatMap(veh => veh.Utilities.values.filter(util => util.UtilType == UtilityType.ams_respawn_tube))
-        .headOption match {
-        case None =>
-          None
-        case Some(util) =>
-          Some(List(util().asInstanceOf[SpawnTube]))
-      }
+    (if(spawn_group == 2) {
+      FindVehicleSpawnPointsInZone(zone, position, faction)
     }
     else {
-      //facilities, towers, and buildings
-      val buildingTypeSet = if(spawn_group == 0) {
-        Set(StructureType.Facility, StructureType.Tower, StructureType.Building)
-      }
-      else if(spawn_group == 6) {
-        Set(StructureType.Tower)
-      }
-      else if(spawn_group == 7) {
-        Set(StructureType.Facility, StructureType.Building)
-      }
-      else if(spawn_group == 12) {
-        Set(StructureType.WarpGate)
-      }
-      else {
-        Set.empty[StructureType.Value]
-      }
-      zone.SpawnGroups()
-        .filter({ case (building, _) =>
-          buildingTypeSet.contains(building.BuildingType) && (building match {
-            case wg : WarpGate =>
-              building.Faction == faction || building.Faction == PlanetSideEmpire.NEUTRAL || wg.Broadcast
-            case _ =>
-              building.Faction == faction
-          })
-        })
-        .toSeq
-        .sortBy({ case (building, _) =>
-          Vector3.DistanceSquared(playerPosition, building.Position.xy)
-        })
-        .headOption match {
+      FindBuildingSpawnPointsInZone(zone, position, faction, spawn_group)
+    })
+      .headOption match {
         case None | Some((_, Nil)) =>
           None
         case Some((_, tubes)) =>
-          Some(tubes)
+          Some(tubes toList)
       }
     }
+  /**
+    * na
+    * @param zone na
+    * @param position na
+    * @param faction na
+    * @return na
+    */
+  private def FindVehicleSpawnPointsInZone(zone : Zone, position : Vector3, faction : PlanetSideEmpire.Value) : List[(AmenityOwner, Iterable[SpawnTube])] = {
+    val xy = position.xy
+    //ams
+    zone.Vehicles
+      .filter(veh =>
+        veh.Definition == GlobalDefinitions.ams &&
+          !veh.Destroyed &&
+          veh.DeploymentState == DriveState.Deployed &&
+          veh.Faction == faction
+      )
+      .sortBy(veh => Vector3.DistanceSquared(xy, veh.Position.xy))
+      .map(veh =>
+        (
+          veh,
+          veh.Utilities.values
+            .filter(util => util.UtilType == UtilityType.ams_respawn_tube)
+            .map(_().asInstanceOf[SpawnTube])
+        )
+      )
+  }
+
+  /**
+    * na
+    * @param zone na
+    * @param position na
+    * @param faction na
+    * @param spawn_group na
+    * @return na
+    */
+  private def FindBuildingSpawnPointsInZone(zone : Zone, position : Vector3, faction : PlanetSideEmpire.Value, spawn_group : Int) : List[(AmenityOwner, Iterable[SpawnPoint])] = {
+    val xy = position.xy
+    //facilities, towers, warp gates, and other buildings
+    val buildingTypeSet = if(spawn_group == 0) {
+      Set(StructureType.Facility, StructureType.Tower, StructureType.Building)
+    }
+    else if(spawn_group == 6) {
+      Set(StructureType.Tower)
+    }
+    else if(spawn_group == 7) {
+      Set(StructureType.Facility, StructureType.Building)
+    }
+    else if(spawn_group == 12) {
+      Set(StructureType.WarpGate)
+    }
+    else {
+      Set.empty[StructureType.Value]
+    }
+    zone.SpawnGroups()
+      .collect({ case (building, spawns) if
+        buildingTypeSet.contains(building.BuildingType) && (building match {
+          case wg : WarpGate =>
+            building.Faction == faction || building.Faction == PlanetSideEmpire.NEUTRAL || wg.Broadcast
+          case _ =>
+            building.Faction == faction && spawns.nonEmpty && spawns.exists(_.Offline == false)
+        }) => (building, spawns.filter(_.Offline == false))
+      })
+      .toSeq
+      .sortBy({ case (building, _) =>
+        Vector3.DistanceSquared(xy, building.Position.xy)
+      })
+      .toList
   }
 
   /**
