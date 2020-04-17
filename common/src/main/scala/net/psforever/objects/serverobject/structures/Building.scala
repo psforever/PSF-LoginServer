@@ -24,7 +24,7 @@ class Building(private val name: String,
                private val map_id : Int,
                private val zone : Zone,
                private val buildingType : StructureType.Value,
-               private val buildingDefinition : ObjectDefinition) extends AmenityOwner {
+               private val buildingDefinition : BuildingDefinition) extends AmenityOwner {
   /**
     * The map_id is the identifier number used in BuildingInfoUpdateMessage. This is the index that the building appears in the MPO file starting from index 1
     * The GUID is the identifier number used in SetEmpireMessage / Facility hacking / PlanetSideAttributeMessage.
@@ -267,7 +267,7 @@ class Building(private val name: String,
 
   override def Continent_=(zone : String) : String = Continent //building never leaves zone after being set in constructor
 
-  def Definition: ObjectDefinition = buildingDefinition
+  def Definition: BuildingDefinition = buildingDefinition
 }
 
 object Building {
@@ -281,7 +281,7 @@ object Building {
     new Building(name, guid, map_id, zone, buildingType, GlobalDefinitions.building)
   }
 
-  def Structure(buildingType : StructureType.Value, location : Vector3, definition: ObjectDefinition)(name : String, guid : Int, map_id : Int, zone : Zone, context : ActorContext) : Building = {
+  def Structure(buildingType : StructureType.Value, location : Vector3, definition: BuildingDefinition)(name : String, guid : Int, map_id : Int, zone : Zone, context : ActorContext) : Building = {
     import akka.actor.Props
     val obj = new Building(name, guid, map_id, zone, buildingType, definition)
     obj.Position = location
@@ -305,7 +305,7 @@ object Building {
     obj
   }
 
-  def Structure(buildingType : StructureType.Value, buildingDefinition : ObjectDefinition, location : Vector3)(name: String, guid: Int, id : Int, zone : Zone, context : ActorContext) : Building = {
+  def Structure(buildingType : StructureType.Value, buildingDefinition : BuildingDefinition, location : Vector3)(name: String, guid: Int, id : Int, zone : Zone, context : ActorContext) : Building = {
     import akka.actor.Props
     val obj = new Building(name, guid, id, zone, buildingType, buildingDefinition)
     obj.Position = location

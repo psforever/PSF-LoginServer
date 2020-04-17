@@ -276,7 +276,7 @@ object Vector3 {
   }
 
   /**
-    * Perform the x-axis rotation of a `Vector3` element where the angle of rotation is assumed in degrees.
+    * Perform the y-axis rotation of a `Vector3` element where the angle of rotation is assumed in degrees.
     * @see `Vector3.Ry(Vector3, Double)`
     * @param vec a mathematical vector representing direction
     * @param ang a rotation angle, in degrees
@@ -302,7 +302,7 @@ object Vector3 {
   }
 
   /**
-    * Perform the x-axis rotation of a `Vector3` element where the angle of rotation is assumed in degrees.
+    * Perform the z-axis rotation of a `Vector3` element where the angle of rotation is assumed in degrees.
     * @see `Vector3.Rz(Vector3, Double)`
     * @param vec a mathematical vector representing direction
     * @param ang a rotation angle, in degrees

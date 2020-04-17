@@ -6,7 +6,7 @@ import net.psforever.objects.vehicles.{CargoBehavior, VehicleLockState}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.TriggeredSound
 import net.psforever.types.{DriveState, PlanetSideGUID}
-import services.RemoverActor
+import services.{RemoverActor, Service}
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.local.{LocalAction, LocalServiceMessage}
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
@@ -244,8 +244,7 @@ object Vehicles {
       Vehicles.Own(target, hacker)
       //todo: Send HackMessage -> HackCleared to vehicle? can be found in packet captures. Not sure if necessary.
       // And broadcast the faction change to other clients
-      zone.AvatarEvents ! AvatarServiceMessage(hacker.Name, AvatarAction.SetEmpire(hacker.GUID, target.GUID, hacker.Faction))
-      zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.SetEmpire(hacker.GUID, target.GUID, hacker.Faction))
+      zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.SetEmpire(Service.defaultPlayerGUID, target.GUID, hacker.Faction))
     }
     zone.LocalEvents ! LocalServiceMessage(zone.Id, LocalAction.TriggerSound(hacker.GUID, TriggeredSound.HackVehicle, target.Position, 30, 0.49803925f))
     // Clean up after specific vehicles, e.g. remove router telepads

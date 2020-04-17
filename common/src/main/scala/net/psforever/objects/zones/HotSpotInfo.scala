@@ -77,7 +77,12 @@ class ActivityReport {
     * As a `Long` value, if there was no previous report, the value will be considered `0L`.
     * @return the time of the last activity report
     */
-  def LastReport : Long = lastReport match { case Some(t) => t; case _ => 0L }
+  def LastReport : Long = lastReport.getOrElse(0L)
+
+  def SetLastReport(time : Long) : Long = {
+    lastReport = Some(time)
+    LastReport
+  }
 
   /**
     * The length of time that this (ongoing) activity is relevant.
@@ -127,6 +132,16 @@ class ActivityReport {
   def Report(pow : Int) : ActivityReport = {
     RaiseHeat(pow)
     Renew
+    this
+  }
+
+  /**
+    * Submit new activity.
+    * Do not increase the lifespan of the current report's existence.
+    * @return the current report
+    */
+  def ReportOld(pow : Int) : ActivityReport = {
+    RaiseHeat(pow)
     this
   }
 

@@ -3,8 +3,10 @@ package net.psforever.objects.zones
 
 import akka.actor.{Actor, Props}
 import net.psforever.objects.serverobject.structures.Building
+import net.psforever.types.Vector3
 
 import scala.annotation.tailrec
+import scala.util.Random
 
 /**
   * The root of the universe of one-continent planets, codified by the game's "Interstellar Map."
@@ -23,6 +25,7 @@ import scala.annotation.tailrec
   */
 class InterstellarCluster(zones : List[Zone]) extends Actor {
   private[this] val log = org.log4s.getLogger
+  val recallRandom = new Random()
   log.info("Starting interplanetary cluster ...")
 
   /**
@@ -53,7 +56,7 @@ class InterstellarCluster(zones : List[Zone]) extends Actor {
       zones.foreach(zone => { sender ! Zone.ClientInitialization(zone.ClientInitialization()) })
       sender ! InterstellarCluster.ClientInitializationComplete() //will be processed after all Zones
 
-    case msg @ Zone.Lattice.RequestSpawnPoint(zone_number, _, _) =>
+    case msg @ Zone.Lattice.RequestSpawnPoint(zone_number, _, _, _) =>
       recursiveFindWorldInCluster(zones.iterator, _.Number == zone_number) match {
         case Some(zone) =>
           zone.Actor forward msg
@@ -62,7 +65,7 @@ class InterstellarCluster(zones : List[Zone]) extends Actor {
           sender ! Zone.Lattice.NoValidSpawnPoint(zone_number, None)
       }
 
-    case msg @ Zone.Lattice.RequestSpecificSpawnPoint(zone_number, _, _) =>
+    case msg @ Zone.Lattice.RequestSpecificSpawnPoint(zone_number, _, _, _) =>
       recursiveFindWorldInCluster(zones.iterator, _.Number == zone_number) match {
         case Some(zone) =>
           zone.Actor forward msg
@@ -73,6 +76,74 @@ class InterstellarCluster(zones : List[Zone]) extends Actor {
     case InterstellarCluster.ZoneMapUpdate(zone_num: Int) =>
       val zone = zones.find(x => x.Number == zone_num).get
       zone.Buildings.values.foreach(b => b.Actor ! Building.SendMapUpdate(all_clients = true))
+
+
+    case Zoning.InstantAction.Request(faction) =>
+      val interests = zones.flatMap { zone =>
+        //TODO zone.Locked.contains(faction)
+        zone.HotSpotData
+          .collect { case spot if zone.Players.nonEmpty => (zone, spot) }
+      } /* ignore zones without existing population */
+      if(interests.nonEmpty) {
+        val (withAllies, onlyEnemies) = interests
+          .map { case (zone, spot) =>
+            (
+              zone,
+              spot,
+              ZoneActor.FindLocalSpawnPointsInZone(zone, spot.DisplayLocation, faction, 0).getOrElse(Nil)
+            )
+          } /* pair hotspots and spawn points */
+          .filter { case (_, _, spawns) => spawns.nonEmpty } /* faction spawns must exist */
+          .sortBy({ case (_, spot, _) => spot.Activity.values.foldLeft(0)(_ + _.Heat) })(Ordering[Int].reverse) /* greatest > least */
+          .partition { case (_, spot, _) => spot.ActivityBy().contains(faction) } /* us versus them */
+        withAllies.headOption.orElse(onlyEnemies.headOption) match {
+          case Some((zone, info, List(spawnPoint))) =>
+            //one spawn
+            val pos = info.DisplayLocation
+            sender ! Zoning.InstantAction.Located(zone, pos, spawnPoint)
+          case Some((zone, info, spawns)) =>
+            //multiple spawn options
+            val pos = info.DisplayLocation
+            val spawnPoint = spawns.minBy(point => Vector3.DistanceSquared(point.Position, pos))
+            sender ! Zoning.InstantAction.Located(zone, pos, spawnPoint)
+          case None =>
+            //no actionable hot spots
+            sender ! Zoning.InstantAction.NotLocated()
+        }
+      }
+      else {
+        //never had any actionable hot spots
+        sender ! Zoning.InstantAction.NotLocated()
+      }
+
+    case Zoning.Recall.Request(faction, sanctuary_id) =>
+      recursiveFindWorldInCluster(zones.iterator, _.Id.equals(sanctuary_id)) match {
+        case Some(zone) =>
+          //TODO zone full
+          val width = zone.Map.Scale.width
+          val height = zone.Map.Scale.height
+          //xy-coordinates indicate sanctuary spawn bias:
+          val spot = math.abs(scala.util.Random.nextInt() % sender.toString.hashCode % 4) match {
+            case 0 => Vector3(width, height, 0) //NE
+            case 1 => Vector3(width, 0, 0) //SE
+            case 2 => Vector3.Zero //SW
+            case 3 => Vector3(0, height, 0) //NW
+          }
+          ZoneActor.FindLocalSpawnPointsInZone(zone, spot, faction, 7).getOrElse(Nil) match {
+            case Nil =>
+              //no spawns
+              sender ! Zoning.Recall.Denied("unavailable")
+            case List(spawnPoint) =>
+              //one spawn
+              sender ! Zoning.Recall.Located(zone, spawnPoint)
+            case spawnPoints =>
+              //multiple spawn options
+              val spawnPoint = spawnPoints(recallRandom.nextInt(spawnPoints.length))
+              sender ! Zoning.Recall.Located(zone, spawnPoint)
+          }
+        case None =>
+          sender ! Zoning.Recall.Denied("unavailable")
+      }
 
     case _ =>
       log.warn(s"InterstellarCluster received unknown message");
@@ -132,33 +203,5 @@ object InterstellarCluster {
     * @see `BuildingInfoUpdateMessage`
     * @param zone_num the zone number to request building map updates for
     */
-  final case class ZoneMapUpdate(zone_num: Int)
+  final case class ZoneMapUpdate(zone_num : Int)
 }
-
-/*
-// List[Building] --> List[List[(Amenity, Building)]] --> List[(SpawnTube*, Building)]
-zone.LocalLattice.Buildings.values
-  .filter(_.Faction == player.Faction)
-  .map(building => { building.Amenities.map { _ -> building } })
-  .flatMap( _.filter({ case(amenity, _) => amenity.isInstanceOf[SpawnTube] }) )
- */
-
-/*
-zone.Buildings.values.filter(building => {
-  (
-    if(spawn_zone == 6) { Set(StructureType.Tower) }
-    else if(spawn_zone == 7) { Set(StructureType.Facility, StructureType.Building) }
-    else { Set.empty[StructureType.Value] }
-    ).contains(building.BuildingType) &&
-    building.Amenities.exists(_.isInstanceOf[SpawnTube]) &&
-    building.Faction == player.Faction &&
-    building.Position != Vector3.Zero
-})
-  .toSeq
-  .sortBy(building => {
-    Vector3.DistanceSquared(player.Position, building.Position) < Vector3.DistanceSquared(player.Position, building.Position)
-  })
-  .map(building => { building.Amenities.map { _ -> building } })
-  .flatMap( _.filter({ case(amenity, _) => amenity.isInstanceOf[SpawnTube] }) )
-).headOption
- */

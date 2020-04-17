@@ -440,7 +440,7 @@ object GamePacketOpcode extends Enumeration {
     case 0x66 => game.WeaponJammedMessage.decode
     case 0x67 => noDecoder(LinkDeadAwarenessMsg)
     // 0x68
-    case 0x68 => noDecoder(DroppodFreefallingMessage)
+    case 0x68 => game.DroppodFreefallingMessage.decode
     case 0x69 => game.AvatarFirstTimeEventMessage.decode
     case 0x6a => noDecoder(AggravatedDamageMessage)
     case 0x6b => game.TriggerSoundMessage.decode

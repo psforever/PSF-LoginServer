@@ -100,7 +100,7 @@ class ImplantTerminalMechObjectBuilderTest extends ActorTest {
   "Implant terminal mech object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1, ImplantTerminalMech.Constructor), hub), "mech")
+      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1, ImplantTerminalMech.Constructor(Vector3.Zero)), hub), "mech")
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))

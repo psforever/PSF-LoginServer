@@ -15,6 +15,7 @@ import net.psforever.types.Vector3
 object Ugd03 { // Adlivun
   val ZoneMap = new ZoneMap("ugd03") {
     Scale = MapScale.Dim2048
+    Cavern = true
     Checksum = 1673539651L
 
     Building10020()

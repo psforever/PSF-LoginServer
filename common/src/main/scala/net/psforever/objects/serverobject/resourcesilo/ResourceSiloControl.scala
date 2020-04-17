@@ -22,7 +22,7 @@ class ResourceSiloControl(resourceSilo : ResourceSilo) extends Actor with Factio
   def receive : Receive = {
     case "startup" =>
       // todo: This is just a temporary solution to drain NTU over time. When base object destruction is properly implemented NTU should be deducted when base objects repair themselves
-      context.system.scheduler.schedule(5 second, 5 second, self, ResourceSilo.UpdateChargeLevel(-1))
+//      context.system.scheduler.schedule(5 second, 5 second, self, ResourceSilo.UpdateChargeLevel(-1))
       context.become(Processing)
 
     case _ => ;

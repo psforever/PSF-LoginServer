@@ -92,6 +92,8 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   private var projector : ActorRef = ActorRef.noSender
   /** */
   private var hotspots : ListBuffer[HotSpotInfo] = ListBuffer[HotSpotInfo]()
+  /** */
+  private val hotspotHistory : ListBuffer[HotSpotInfo] = ListBuffer[HotSpotInfo]()
   /** calculate a approximated coordinate from a raw input coordinate */
   private var hotspotCoordinateFunc : Vector3=>Vector3 = Zone.HotSpot.Rules.OneToOne
   /** calculate a duration from a given interaction's participants */
@@ -128,7 +130,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
       deployables = context.actorOf(Props(classOf[ZoneDeployableActor], this, constructions), s"$Id-deployables")
       transport = context.actorOf(Props(classOf[ZoneVehicleActor], this, vehicles), s"$Id-vehicles")
       population = context.actorOf(Props(classOf[ZonePopulationActor], this, players, corpses), s"$Id-players")
-      projector = context.actorOf(Props(classOf[ZoneHotSpotProjector], this), s"$Id-hotpots")
+      projector = context.actorOf(Props(classOf[ZoneHotSpotDisplay], this, hotspots, 15 seconds, hotspotHistory, 60 seconds), s"$Id-hotspots")
       soi = context.actorOf(Props(classOf[SphereOfInfluenceActor], this), s"$Id-soi")
 
       avatarEvents = context.actorOf(Props(classOf[AvatarService], this), s"$Id-avatar-events")
@@ -504,25 +506,21 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
 
   def Activity : ActorRef = projector
 
-  def HotSpots : List[HotSpotInfo] = hotspots toList
+  def HotSpots : List[HotSpotInfo] = hotSpotListDuplicate(hotspots).toList
 
-  def HotSpots_=(spots : Seq[HotSpotInfo]) : List[HotSpotInfo] = {
-    hotspots.clear
-    hotspots ++= spots
-    HotSpots
-  }
+  def HotSpotData : List[HotSpotInfo] = hotSpotListDuplicate(hotspotHistory).toList
 
-  def TryHotSpot(displayLoc : Vector3) : HotSpotInfo = {
-    hotspots.find(spot => spot.DisplayLocation == displayLoc) match {
-      case Some(spot) =>
-        //hotspot already exists
-        spot
-      case None =>
-        //insert new hotspot
-        val spot = new HotSpotInfo(displayLoc)
-        hotspots += spot
-        spot
+  private def hotSpotListDuplicate(data : ListBuffer[HotSpotInfo]) : ListBuffer[HotSpotInfo] = {
+    val out = data map { info =>
+      val outData = new HotSpotInfo(info.DisplayLocation)
+      info.Activity.foreach { case (faction, report) =>
+        val doctoredReport = outData.Activity(faction)
+        doctoredReport.ReportOld(report.Heat)
+        doctoredReport.SetLastReport(report.LastReport)
+      }
+      outData
     }
+    out
   }
 
   def HotSpotCoordinateFunction : Vector3=>Vector3 = hotspotCoordinateFunc
@@ -678,12 +676,45 @@ object Zone {
     /**
       * Message requesting that the current zone determine where a `player` can spawn.
       * @param zone_number this zone's numeric identifier
-      * @param player the `Player` object
+      * @param position the locality that the result should adhere
+      * @param faction which empire's spawn options should be available
       * @param spawn_group the category of spawn points the request wants searched
       */
-    final case class RequestSpawnPoint(zone_number : Int, player : Player, spawn_group : Int)
+    final case class RequestSpawnPoint(zone_number : Int, position : Vector3, faction : PlanetSideEmpire.Value, spawn_group : Int)
 
-    final case class RequestSpecificSpawnPoint(zone_number : Int, player : Player, target : PlanetSideGUID)
+    object RequestSpawnPoint {
+      /**
+        * Overloaded constructor for `RequestSpawnPoint`.
+        * @param zone_number this zone's numeric identifier
+        * @param player the `Player` object
+        * @param spawn_group the category of spawn points the request wants searched
+        */
+      def apply(zone_number : Int, player : Player, spawn_group : Int) : RequestSpawnPoint = {
+        RequestSpawnPoint(zone_number, player.Position, player.Faction, spawn_group)
+      }
+    }
+
+    /**
+      * Message requesting a particular spawn point in the current zone.
+      * @param zone_number this zone's numeric identifier
+      * @param position the locality that the result should adhere
+      * @param faction which empire's spawn options should be available
+      * @param target the identifier of the spawn object
+      */
+    final case class RequestSpecificSpawnPoint(zone_number : Int, position : Vector3, faction : PlanetSideEmpire.Value, target : PlanetSideGUID)
+
+    object RequestSpecificSpawnPoint {
+      /**
+        * Overloaded constructor for `RequestSpecificSpawnPoint`.
+        * @param zone_number this zone's numeric identifier
+        * @param player the `Player` object
+        * @param target the identifier of the spawn object
+        */
+      def apply(zone_number : Int, player : Player, target : PlanetSideGUID) : RequestSpecificSpawnPoint = {
+        RequestSpecificSpawnPoint(zone_number, player.Position, player.Faction, target)
+      }
+    }
+
     /**
       * Message that returns a discovered spawn point to a request source.
       * @param zone_id the zone's text identifier

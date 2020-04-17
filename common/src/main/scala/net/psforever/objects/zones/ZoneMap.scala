@@ -37,6 +37,7 @@ class ZoneMap(private val name : String) {
   private var lattice: Set[(String, String)] = Set()
   private var checksum : Long = 0
   private var zipLinePaths : List[ZipLinePath] = List()
+  private var cavern : Boolean = false
 
   def Name : String = name
 
@@ -140,5 +141,12 @@ class ZoneMap(private val name : String) {
 
   def LatticeLink(source : String, target: String) : Unit = {
     lattice = lattice ++ Set((source, target))
+  }
+
+  def Cavern : Boolean = cavern
+
+  def Cavern_=(cave : Boolean) : Boolean = {
+    cavern = cave
+    Cavern
   }
 }
