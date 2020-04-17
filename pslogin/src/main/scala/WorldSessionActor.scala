@@ -4051,6 +4051,9 @@ class WorldSessionActor extends Actor
       playerStateMessageUpstreamCount += 1
       val isMoving = WorldEntity.isMoving(vel)
       val isMovingPlus = isMoving || is_jumping || jump_thrust
+      if(isMovingPlus) {
+        CancelZoningProcessWithDescriptiveReason("cancel_motion")
+      }
 
       if(deadState == DeadState.Alive && playerStateMessageUpstreamCount % 2 == 0) { // Regen stamina roughly every 500ms
         if(player.skipStaminaRegenForTurns > 0) {
@@ -4060,21 +4063,6 @@ class WorldSessionActor extends Actor
         else if(!isMovingPlus && player.Stamina != player.MaxStamina) {
           player.Stamina += 1
         }
-      }
-      else {
-        timeDL = 0
-        timeSurge = 0
-        false
-      }
-      if(staminaBefore != player.Stamina) { //stamina changed
-        sendResponse(PlanetsideAttributeMessage(player.GUID, 2, player.Stamina))
-      }
-      if(implantsAreActive && !hasStaminaAfter) { //implants deactivated at 0 stamina
-        DeactivateImplants()
-      }
-      //implants and stamina management finish
-      if(isMovingPlus) {
-        CancelZoningProcessWithDescriptiveReason("cancel_motion")
       }
       player.Position = pos
       player.Velocity = vel
@@ -5215,7 +5203,7 @@ class WorldSessionActor extends Actor
     case msg @ AvatarImplantMessage(player_guid, action, slot, status) =>
       log.info("AvatarImplantMessage: " + msg)
       if(action == ImplantAction.Activation) {
-        CancelInstantActionWithReason("@instantaction_cancel_implant")
+        CancelZoningProcessWithDescriptiveReason("cancel_implant")
         player.Actor ! Player.ImplantActivation(slot, status)
       }
 
@@ -5433,7 +5421,7 @@ class WorldSessionActor extends Actor
         case Some(obj : FacilityTurret) =>
           equipment match {
             case Some(item) =>
-              CancelInstantActionWithReason("@instantaction_cancel_use")
+              CancelZoningProcessWithDescriptiveReason("cancel_use")
               obj.Actor ! CommonMessages.Use(player, Some(item)) //try generic
               obj.Actor ! CommonMessages.Use(player, Some((item, unk2.toInt))) //try upgrade path
             case _ => ;
