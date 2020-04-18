@@ -1212,7 +1212,12 @@ class WorldSessionActor extends Actor
       }
 
     case SetCurrentAvatar(tplayer) =>
-      HandleSetCurrentAvatar(tplayer)
+      if(tplayer.Actor == ActorRef.noSender) {
+        respawnTimer = context.system.scheduler.scheduleOnce(100 milliseconds, self, SetCurrentAvatar(tplayer))
+      }
+      else {
+        HandleSetCurrentAvatar(tplayer)
+      }
 
     case NtuCharging(tplayer, vehicle) =>
       HandleNtuCharging(tplayer, vehicle)
@@ -4191,7 +4196,7 @@ class WorldSessionActor extends Actor
           log.warn(s"ProjectileState: constructed projectile ${projectile_guid.guid} can not be found")
       }
 
-    case msg@ReleaseAvatarRequestMessage() =>
+    case msg @ ReleaseAvatarRequestMessage() =>
       log.info(s"ReleaseAvatarRequest: ${player.GUID} on ${continent.Id} has released")
       reviveTimer.cancel
       GoToDeploymentMap()
