@@ -3336,6 +3336,7 @@ class WorldSessionActor extends Actor
     * @param tplayer the target player
     */
   def HandleSetCurrentAvatar(tplayer : Player) : Unit = {
+    while(tplayer.Actor == ActorRef.noSender) { /* we can wait ... */ }
     player = tplayer
     val guid = tplayer.GUID
     StartBundlingPackets()
