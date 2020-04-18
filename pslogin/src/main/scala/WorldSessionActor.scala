@@ -4198,7 +4198,6 @@ class WorldSessionActor extends Actor
       continent.Population ! Zone.Population.Release(avatar)
       player.VehicleSeated match {
         case None =>
-          log.info("not in vehicle")
           PrepareToTurnPlayerIntoCorpse(player, continent)
 
         case Some(_) =>
@@ -4852,7 +4851,8 @@ class WorldSessionActor extends Actor
           trigger.Companion = None
         case _ => ;
       }
-      progressBarUpdate.cancel //TODO independent action?
+      progressBarUpdate.cancel
+      progressBarValue = None
 
     case msg@EmoteMsg(avatar_guid, emote) =>
       log.info("Emote: " + msg)
@@ -6195,6 +6195,8 @@ class WorldSessionActor extends Actor
       sendResponse(TargetingInfoMessage(targetInfo))
     case msg @ ActionCancelMessage(u1, u2, u3) =>
       log.info("Cancelled: "+msg)
+      progressBarUpdate.cancel
+      progressBarValue = None
 
     case default => log.error(s"Unhandled GamePacket $pkt")
   }
