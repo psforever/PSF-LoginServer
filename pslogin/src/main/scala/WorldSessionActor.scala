@@ -1340,9 +1340,9 @@ class WorldSessionActor extends Actor
       AwardBattleExperiencePoints(avatar, 20000000L)
       avatar.CEP = 600000
       avatar.Implants(0).Unlocked = true
-      avatar.Implants(0).Implant = GlobalDefinitions.darklight_vision
+      avatar.Implants(0).Implant = GlobalDefinitions.surge
       avatar.Implants(1).Unlocked = true
-      avatar.Implants(1).Implant = GlobalDefinitions.surge
+      avatar.Implants(1).Implant = GlobalDefinitions.audio_amplifier
       avatar.Implants(2).Unlocked = true
       avatar.Implants(2).Implant = GlobalDefinitions.targeting
 
