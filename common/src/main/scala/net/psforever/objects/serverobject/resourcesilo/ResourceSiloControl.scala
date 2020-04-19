@@ -50,6 +50,7 @@ class ResourceSiloControl(resourceSilo : ResourceSilo) extends Actor with Factio
 
     case ResourceSilo.UpdateChargeLevel(amount: Int) =>
       val siloChargeBeforeChange = resourceSilo.ChargeLevel
+      val siloDisplayBeforeChange = resourceSilo.CapacitorDisplay
       val building = resourceSilo.Owner.asInstanceOf[Building]
       val zone = building.Zone
 
@@ -59,11 +60,9 @@ class ResourceSiloControl(resourceSilo : ResourceSilo) extends Actor with Factio
         log.trace(s"UpdateChargeLevel: Silo ${resourceSilo.GUID} set to ${resourceSilo.ChargeLevel}")
       }
 
-      val ntuBarLevel = scala.math.ceil((resourceSilo.ChargeLevel.toFloat / resourceSilo.MaximumCharge.toFloat) * 10).toInt
       // Only send updated capacitor display value to all clients if it has actually changed
-      if(resourceSilo.CapacitorDisplay != ntuBarLevel) {
-        log.trace(s"Silo ${resourceSilo.GUID} NTU bar level has changed from ${resourceSilo.CapacitorDisplay} to $ntuBarLevel")
-        resourceSilo.CapacitorDisplay = ntuBarLevel
+      if(resourceSilo.CapacitorDisplay != siloDisplayBeforeChange) {
+        log.trace(s"Silo ${resourceSilo.GUID} NTU bar level has changed from $siloDisplayBeforeChange to ${resourceSilo.CapacitorDisplay}")
         resourceSilo.Owner.Actor ! Building.SendMapUpdate(all_clients = true)
         zone.AvatarEvents ! AvatarServiceMessage(
           zone.Id,
