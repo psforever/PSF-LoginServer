@@ -14,10 +14,7 @@ object Zones {
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
       HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
 
-      BuildingByMapId(1).get.asInstanceOf[WarpGate].BroadcastFor = PlanetSideEmpire.TR
-      BuildingByMapId(2).get.asInstanceOf[WarpGate].BroadcastFor = PlanetSideEmpire.TR
-      BuildingByMapId(3).get.asInstanceOf[WarpGate].BroadcastFor = PlanetSideEmpire.TR
-      BuildingByMapId(4).get.asInstanceOf[WarpGate].BroadcastFor = PlanetSideEmpire.TR
+      InitZoneAmenities(zone = this)
     }
   }
 
@@ -26,6 +23,8 @@ object Zones {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
       HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
+
+      InitZoneAmenities(zone = this)
     }
   }
 
@@ -34,6 +33,8 @@ object Zones {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
       HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
+
+      InitZoneAmenities(zone = this)
     }
   }
 
@@ -43,13 +44,8 @@ object Zones {
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
       HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
 
-      Buildings.values.flatMap {
-        _.Amenities.collect {
-          case amenity if amenity.Definition == GlobalDefinitions.resource_silo =>
-            val silo = amenity.asInstanceOf[ResourceSilo]
-            silo.ChargeLevel = silo.MaximumCharge
-        }
-      }
+      InitZoneAmenities(zone = this)
+
       BuildingByMapId(5).get.Faction = PlanetSideEmpire.TR //Akkan
       BuildingByMapId(6).get.Faction = PlanetSideEmpire.TR //Baal
       BuildingByMapId(7).get.Faction = PlanetSideEmpire.TR //Dagon
@@ -119,6 +115,8 @@ object Zones {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
       HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
+
+      InitZoneAmenities(zone = this)
     }
   }
 
@@ -128,21 +126,12 @@ object Zones {
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
       HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
 
-      GUID(2094) match {
-        case Some(silo : ResourceSilo) =>
-          silo.ChargeLevel = silo.MaximumCharge
-        case _ => ;
-      }
       import net.psforever.types.PlanetSideEmpire
       BuildingByMapId(2).get.Faction = PlanetSideEmpire.VS
-      BuildingByMapId(10).get.asInstanceOf[WarpGate].BroadcastFor = PlanetSideEmpire.VS
-      BuildingByMapId(11).get.asInstanceOf[WarpGate].BroadcastFor = PlanetSideEmpire.VS
-      BuildingByMapId(12).get.asInstanceOf[WarpGate].BroadcastFor = PlanetSideEmpire.VS
-      BuildingByMapId(13).get.asInstanceOf[WarpGate].BroadcastFor = PlanetSideEmpire.VS
       BuildingByMapId(48).get.Faction = PlanetSideEmpire.VS
       BuildingByMapId(49).get.Faction = PlanetSideEmpire.VS
-      BuildingByMapId(18657).get.asInstanceOf[WarpGate].Active = false
-      BuildingByMapId(18658).get.asInstanceOf[WarpGate].Active = false
+
+      InitZoneAmenities(zone = this)
     }
   }
 
@@ -151,6 +140,8 @@ object Zones {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
       HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
+
+      InitZoneAmenities(zone = this)
     }
   }
 
@@ -159,6 +150,8 @@ object Zones {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
       HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
+
+      InitZoneAmenities(zone = this)
     }
   }
 
@@ -167,6 +160,8 @@ object Zones {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
       HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
+
+      InitZoneAmenities(zone = this)
     }
   }
 
@@ -175,6 +170,8 @@ object Zones {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
       HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
+
+      InitZoneAmenities(zone = this)
     }
   }
 
@@ -184,6 +181,8 @@ object Zones {
 
       import net.psforever.types.PlanetSideEmpire
       Buildings.values.foreach { _.Faction = PlanetSideEmpire.NC }
+
+      InitZoneAmenities(zone = this)
     }
   }
 
@@ -193,9 +192,8 @@ object Zones {
 
       import net.psforever.types.PlanetSideEmpire
       Buildings.values.foreach { _.Faction = PlanetSideEmpire.TR }
-      BuildingByMapId(1).get.asInstanceOf[WarpGate].Broadcast = true
-      BuildingByMapId(2).get.asInstanceOf[WarpGate].Broadcast = true
-      BuildingByMapId(3).get.asInstanceOf[WarpGate].Broadcast = true
+
+      InitZoneAmenities(zone = this)
     }
   }
 
@@ -205,9 +203,8 @@ object Zones {
 
       import net.psforever.types.PlanetSideEmpire
       Buildings.values.foreach { _.Faction = PlanetSideEmpire.VS }
-      BuildingByMapId(60).get.Faction = PlanetSideEmpire.NC //South Villa Gun Tower
-      BuildingByMapId(1).get.asInstanceOf[WarpGate].Broadcast = true
-      BuildingByMapId(3).get.asInstanceOf[WarpGate].Broadcast = true
+
+      InitZoneAmenities(zone = this)
     }
   }
 
@@ -234,6 +231,8 @@ object Zones {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
       HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
+
+      InitZoneAmenities(zone = this)
     }
   }
 
@@ -242,6 +241,8 @@ object Zones {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
       HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
+
+      InitZoneAmenities(zone = this)
     }
   }
 
@@ -250,6 +251,8 @@ object Zones {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
       HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
+
+      InitZoneAmenities(zone = this)
     }
   }
 
@@ -258,6 +261,8 @@ object Zones {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
       HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
+
+      InitZoneAmenities(zone = this)
     }
   }
 
@@ -266,6 +271,8 @@ object Zones {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
       HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
+
+      InitZoneAmenities(zone = this)
     }
   }
 
@@ -274,6 +281,8 @@ object Zones {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
       HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
+
+      InitZoneAmenities(zone = this)
     }
   }
 
@@ -282,6 +291,8 @@ object Zones {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
       HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
+
+      InitZoneAmenities(zone = this)
     }
   }
 
@@ -290,6 +301,8 @@ object Zones {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
       HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
+
+      InitZoneAmenities(zone = this)
     }
   }
 
@@ -298,6 +311,8 @@ object Zones {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
       HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
+
+      InitZoneAmenities(zone = this)
     }
   }
 
@@ -306,6 +321,37 @@ object Zones {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
       HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
+
+      InitZoneAmenities(zone = this)
+    }
+  }
+
+  def InitZoneAmenities(zone: Zone): Unit = {
+    InitResourceSilos(zone)
+    InitWarpGates(zone)
+
+    def InitWarpGates(zone: Zone): Unit = {
+      // todo: work out which faction owns links to this warpgate and if they should be marked as broadcast or not
+      // todo: enable geowarps to go to the correct cave
+      zone.Buildings.values.collect {
+        case wg : WarpGate if wg.Definition == GlobalDefinitions.warpgate || wg.Definition == GlobalDefinitions.warpgate_small =>
+          wg.Active = true
+          wg.Faction = PlanetSideEmpire.NEUTRAL
+          wg.Broadcast = true
+        case geowarp : WarpGate if geowarp.Definition == GlobalDefinitions.warpgate_cavern || geowarp.Definition == GlobalDefinitions.hst =>
+          geowarp.Faction = PlanetSideEmpire.NEUTRAL
+          geowarp.Active = false
+      }
+  }
+
+    def InitResourceSilos(zone: Zone): Unit = {
+      // todo: load silo charge from database
+      zone.Buildings.values.flatMap {
+        _.Amenities.collect {
+          case silo : ResourceSilo =>
+            silo.Actor ! ResourceSilo.UpdateChargeLevel(silo.MaximumCharge)
+        }
+      }
     }
   }
 
