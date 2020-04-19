@@ -45,7 +45,8 @@ class PlayerControl(player : Player) extends Actor
       // todo: disable implants with stamina cost when changing armour type
       val implantSlot = player.ImplantSlot(slot)
 
-      if(status == 0 && implantSlot.Active) {
+      // Allow uninitialized implants to be deactivated in case they're stuck in a state where they are no longer active or initialized but still draining stamina (e.g. by EMP)
+      if(status == 0 && (implantSlot.Active || !implantSlot.Initialized)) {
         // Cancel stamina drain timer
         implantSlotStaminaDrainTimers(slot).cancel()
         implantSlotStaminaDrainTimers(slot) = DefaultCancellable.obj
@@ -259,7 +260,7 @@ class PlayerControl(player : Player) extends Actor
 
       for(slot <- 0 to player.Implants.length - 1) { // Deactivate & uninitialize all implants
         player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, player.Implant(slot).id * 2)) // Deactivation sound / effect
-        events ! AvatarServiceMessage(player.Name, AvatarAction.DeactivateImplantSlot(guid, slot))
+        self ! Player.ImplantActivation(slot, 0)
         PlayerControl.UninitializeImplant(player, slot)
       }
 
