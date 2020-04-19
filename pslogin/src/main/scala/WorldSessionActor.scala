@@ -1157,7 +1157,8 @@ class WorldSessionActor extends Actor
       //in between subsequent reply messages, it does not matter if the destination changes
       //so long as there is at least one destination at all (including the fallback)
       if(ContemplateZoningResponse(Zoning.InstantAction.Request(player.Faction))) {
-        SpawnThroughZoningProcess(zone, spawn_point.Position, spawn_point)
+        val (pos, ori) = spawn_point.SpecificPoint(player)
+        SpawnThroughZoningProcess(zone, pos, ori)
       }
       else if(zoningStatus != Zoning.Status.None) {
         instantActionFallbackDestination = Some(msg)
@@ -1167,7 +1168,8 @@ class WorldSessionActor extends Actor
       instantActionFallbackDestination match {
         case Some(Zoning.InstantAction.Located(zone, _, spawn_point)) if spawn_point.Owner.Faction == player.Faction && !spawn_point.Offline =>
           if(ContemplateZoningResponse(Zoning.InstantAction.Request(player.Faction))) {
-            SpawnThroughZoningProcess(zone, spawn_point.Position, spawn_point)
+            val (pos, ori) = spawn_point.SpecificPoint(player)
+            SpawnThroughZoningProcess(zone, pos, ori)
           }
           else if(zoningCounter == 0) {
             CancelZoningProcessWithReason("@InstantActionNoHotspotsAvailable")
@@ -1179,7 +1181,8 @@ class WorldSessionActor extends Actor
 
     case Zoning.Recall.Located(zone, spawn_point) =>
       if(ContemplateZoningResponse(Zoning.Recall.Request(player.Faction, zone.Id))) {
-        SpawnThroughZoningProcess(zone, spawn_point.Position, spawn_point)
+        val (pos, ori) = spawn_point.SpecificPoint(player)
+        SpawnThroughZoningProcess(zone, pos, ori)
       }
 
     case Zoning.Recall.Denied(reason) =>
@@ -1591,10 +1594,10 @@ class WorldSessionActor extends Actor
   /**
     * Use the zoning process using some spawnable entity in the destination zone.
     * @param zone          the destination zone
-    * @param spawnPosition the destination spawn position (may not be related to `spawnPoint`)
-    * @param spawnPoint    a `SpawntPoint` entity that is the target of our spawning in the destination zone
+    * @param spawnPosition the destination spawn position
+    * @param spawnOrientation the destination spawn orientation
     */
-  def SpawnThroughZoningProcess(zone : Zone, spawnPosition : Vector3, spawnPoint : SpawnPoint) : Unit = {
+  def SpawnThroughZoningProcess(zone : Zone, spawnPosition : Vector3, spawnOrientation : Vector3) : Unit = {
     CancelZoningProcess()
     PlayerActionsToCancel()
     CancelAllProximityUnits()
@@ -1608,7 +1611,7 @@ class WorldSessionActor extends Actor
       //zone loading will take long enough
       0L
     }
-    LoadZonePhysicalSpawnPoint(zone.Id, spawnPosition, spawnPoint.Orientation, respawnTime)
+    LoadZonePhysicalSpawnPoint(zone.Id, spawnPosition, spawnOrientation, respawnTime)
   }
 
   /**
