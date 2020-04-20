@@ -158,10 +158,12 @@ class PlayerControl(player : Player) extends Actor
           }
         }
 
-      case CommonMessages.Use(user, Some(item : Tool)) if item.Definition == GlobalDefinitions.medicalapplicator && !player.isAlive =>
+      case CommonMessages.Use(user, Some(item : Tool)) if item.Definition == GlobalDefinitions.medicalapplicator =>
         //revive
-        if(user != player && user.isAlive && !user.isMoving &&
-          !player.isBackpack &&
+        if(user != player &&
+          user.Faction == player.Faction &&
+          user.isAlive && !user.isMoving &&
+          !player.isAlive && !player.isBackpack &&
           item.Magazine >= 25) {
           sender ! CommonMessages.Progress(
             4,

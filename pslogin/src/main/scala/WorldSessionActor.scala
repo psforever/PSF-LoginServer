@@ -5261,9 +5261,11 @@ class WorldSessionActor extends Actor
         case Some(obj : Player) =>
           CancelZoningProcessWithDescriptiveReason("cancel_use")
           if(obj.isBackpack) {
-            log.info(s"UseItem: $player looting the corpse of $obj")
-            sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
-            accessedContainer = Some(obj)
+            if(equipment.isEmpty) {
+              log.info(s"UseItem: $player looting the corpse of $obj")
+              sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+              accessedContainer = Some(obj)
+            }
           }
           else if(!unk3 && player.isAlive) { //potential kit use
             ValidObject(item_used_guid) match {
@@ -5521,18 +5523,20 @@ class WorldSessionActor extends Actor
           }
 
         case Some(obj : TelepadDeployable) =>
-          continent.GUID(obj.Router) match {
-            case Some(vehicle : Vehicle) =>
-              vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
-                case Some(util : Utility.InternalTelepad) =>
-                  CancelZoningProcessWithDescriptiveReason("cancel")
-                  UseRouterTelepadSystem(router = vehicle, internalTelepad = util, remoteTelepad = obj, src = obj, dest = util)
-                case _ =>
-                  log.error(s"telepad@${object_guid.guid} is not linked to a router - ${vehicle.Definition.Name}, ${obj.Router}")
-              }
-            case Some(o) =>
-              log.error(s"telepad@${object_guid.guid} is linked to wrong kind of object - ${o.Definition.Name}, ${obj.Router}")
-            case None => ;
+          if(equipment.isEmpty) {
+            continent.GUID(obj.Router) match {
+              case Some(vehicle : Vehicle) =>
+                vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
+                  case Some(util : Utility.InternalTelepad) =>
+                    CancelZoningProcessWithDescriptiveReason("cancel")
+                    UseRouterTelepadSystem(router = vehicle, internalTelepad = util, remoteTelepad = obj, src = obj, dest = util)
+                  case _ =>
+                    log.error(s"telepad@${object_guid.guid} is not linked to a router - ${vehicle.Definition.Name}, ${obj.Router}")
+                }
+              case Some(o) =>
+                log.error(s"telepad@${object_guid.guid} is linked to wrong kind of object - ${o.Definition.Name}, ${obj.Router}")
+              case None => ;
+            }
           }
 
         case Some(obj : Utility.InternalTelepad) =>
@@ -5547,8 +5551,7 @@ class WorldSessionActor extends Actor
 
         case Some(obj) =>
           CancelZoningProcessWithDescriptiveReason("cancel_use")
-          log.warn(s"UseItem: don't know how to handle $obj; taking a shot in the dark")
-          sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+          log.warn(s"UseItem: don't know how to handle $obj")
 
         case None =>
           log.error(s"UseItem: can not find object $object_guid")
