@@ -1157,7 +1157,8 @@ class WorldSessionActor extends Actor
       //in between subsequent reply messages, it does not matter if the destination changes
       //so long as there is at least one destination at all (including the fallback)
       if(ContemplateZoningResponse(Zoning.InstantAction.Request(player.Faction))) {
-        SpawnThroughZoningProcess(zone, spawn_point.Position, spawn_point)
+        val (pos, ori) = spawn_point.SpecificPoint(player)
+        SpawnThroughZoningProcess(zone, pos, ori)
       }
       else if(zoningStatus != Zoning.Status.None) {
         instantActionFallbackDestination = Some(msg)
@@ -1167,7 +1168,8 @@ class WorldSessionActor extends Actor
       instantActionFallbackDestination match {
         case Some(Zoning.InstantAction.Located(zone, _, spawn_point)) if spawn_point.Owner.Faction == player.Faction && !spawn_point.Offline =>
           if(ContemplateZoningResponse(Zoning.InstantAction.Request(player.Faction))) {
-            SpawnThroughZoningProcess(zone, spawn_point.Position, spawn_point)
+            val (pos, ori) = spawn_point.SpecificPoint(player)
+            SpawnThroughZoningProcess(zone, pos, ori)
           }
           else if(zoningCounter == 0) {
             CancelZoningProcessWithReason("@InstantActionNoHotspotsAvailable")
@@ -1179,7 +1181,8 @@ class WorldSessionActor extends Actor
 
     case Zoning.Recall.Located(zone, spawn_point) =>
       if(ContemplateZoningResponse(Zoning.Recall.Request(player.Faction, zone.Id))) {
-        SpawnThroughZoningProcess(zone, spawn_point.Position, spawn_point)
+        val (pos, ori) = spawn_point.SpecificPoint(player)
+        SpawnThroughZoningProcess(zone, pos, ori)
       }
 
     case Zoning.Recall.Denied(reason) =>
@@ -1591,10 +1594,10 @@ class WorldSessionActor extends Actor
   /**
     * Use the zoning process using some spawnable entity in the destination zone.
     * @param zone          the destination zone
-    * @param spawnPosition the destination spawn position (may not be related to `spawnPoint`)
-    * @param spawnPoint    a `SpawntPoint` entity that is the target of our spawning in the destination zone
+    * @param spawnPosition the destination spawn position
+    * @param spawnOrientation the destination spawn orientation
     */
-  def SpawnThroughZoningProcess(zone : Zone, spawnPosition : Vector3, spawnPoint : SpawnPoint) : Unit = {
+  def SpawnThroughZoningProcess(zone : Zone, spawnPosition : Vector3, spawnOrientation : Vector3) : Unit = {
     CancelZoningProcess()
     PlayerActionsToCancel()
     CancelAllProximityUnits()
@@ -1608,7 +1611,7 @@ class WorldSessionActor extends Actor
       //zone loading will take long enough
       0L
     }
-    LoadZonePhysicalSpawnPoint(zone.Id, spawnPosition, spawnPoint.Orientation, respawnTime)
+    LoadZonePhysicalSpawnPoint(zone.Id, spawnPosition, spawnOrientation, respawnTime)
   }
 
   /**
@@ -4329,55 +4332,59 @@ class WorldSessionActor extends Actor
         }
       }
       CSRZone.read(traveler, msg) match {
-        case (true, zone, pos) if player.isAlive =>
-          deadState = DeadState.Release //cancel movement updates
-          PlayerActionsToCancel()
-          continent.GUID(player.VehicleSeated) match {
-            case Some(vehicle : Vehicle) if vehicle.MountedIn.isEmpty =>
-              vehicle.PassengerInSeat(player) match {
-                case Some(0) =>
-                  vehicle.Position = pos
-                  CancelAllProximityUnits()
-                  LoadZonePhysicalSpawnPoint(zone, pos, Vector3.Zero, 0)
-                case _ => //not seated as the driver, in which case we can't move
-                  deadState = DeadState.Alive
-              }
-            case None =>
-              player.Position = pos
-              CancelAllProximityUnits()
-              //continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, player.GUID))
-              CancelZoningProcess()
-              LoadZonePhysicalSpawnPoint(zone, pos, Vector3.Zero, 0)
-            case _ => //seated in something that is not a vehicle or the vehicle is cargo, in which case we can't move
-              deadState = DeadState.Alive
+        case (true, zone, pos) =>
+          if (player.isAlive && zone != player.Continent && (admin || zone == "z8" || zone == "c1" || zone == "c2" || zone == "c3" || zone == "c4" || zone == "c5" || zone == "c6" ||
+            zone == "tzshtr" || zone == "tzcotr" || zone == "tzdrtr" ||
+            zone == "tzshnc" || zone == "tzconc" || zone == "tzdrnc" ||
+            zone == "tzshvs" || zone == "tzcovs" || zone == "tzdrvs")) {
+            deadState = DeadState.Release //cancel movement updates
+            PlayerActionsToCancel()
+            continent.GUID(player.VehicleSeated) match {
+              case Some(vehicle : Vehicle) if vehicle.MountedIn.isEmpty =>
+                vehicle.PassengerInSeat(player) match {
+                  case Some(0) =>
+                    vehicle.Position = pos
+                    LoadZonePhysicalSpawnPoint(zone, pos, Vector3.Zero, 0)
+                  case _ => //not seated as the driver, in which case we can't move
+                    deadState = DeadState.Alive
+                }
+              case None =>
+                player.Position = pos
+                //continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, player.GUID))
+                LoadZonePhysicalSpawnPoint(zone, pos, Vector3.Zero, 0)
+              case _ => //seated in something that is not a vehicle or the vehicle is cargo, in which case we can't move
+                deadState = DeadState.Alive
+            }
           }
-
         case (_, _, _) => ;
       }
-      CSRWarp.read(traveler, msg) match {
-        case (true, pos) if player.isAlive =>
-          deadState = DeadState.Release //cancel movement updates
-          PlayerActionsToCancel()
-          continent.GUID(player.VehicleSeated) match {
-            case Some(vehicle : Vehicle) if vehicle.MountedIn.isEmpty =>
-              vehicle.PassengerInSeat(player) match {
-                case Some(0) =>
-                  vehicle.Position = pos
-                  CancelAllProximityUnits()
-                  LoadZonePhysicalSpawnPoint(continent.Id, pos, Vector3.z(vehicle.Orientation.z), 0)
-                case _ => //not seated as the driver, in which case we can't move
-                  deadState = DeadState.Alive
-              }
-            case None =>
-              player.Position = pos
-              CancelAllProximityUnits()
-              CancelZoningProcessWithDescriptiveReason("cancel_motion")
-              sendResponse(PlayerStateShiftMessage(ShiftState(0, pos, player.Orientation.z, None)))
-              deadState = DeadState.Alive //must be set here
-            case _ => //seated in something that is not a vehicle or the vehicle is cargo, in which case we can't move
-              deadState = DeadState.Alive
-          }
 
+      CSRWarp.read(traveler, msg) match {
+        case (true, pos) =>
+          // continent.Id == "c1" || continent.Id == "c2" || continent.Id == "c3" || continent.Id == "c4" || continent.Id == "c5" || continent.Id == "c6" ||
+          if (player.isAlive && (admin || continent.Id == "z8" ||
+            continent.Id == "tzshtr" || continent.Id == "tzcotr" || continent.Id == "tzdrtr" ||
+            continent.Id == "tzshnc" || continent.Id == "tzconc" || continent.Id == "tzdrnc" ||
+            continent.Id == "tzshvs" || continent.Id == "tzcovs" || continent.Id == "tzdrvs")) {
+            deadState = DeadState.Release //cancel movement updates
+            PlayerActionsToCancel()
+            continent.GUID(player.VehicleSeated) match {
+              case Some(vehicle : Vehicle) if vehicle.MountedIn.isEmpty =>
+                vehicle.PassengerInSeat(player) match {
+                  case Some(0) =>
+                    vehicle.Position = pos
+                    LoadZonePhysicalSpawnPoint(continent.Id, pos, Vector3.z(vehicle.Orientation.z), 0)
+                  case _ => //not seated as the driver, in which case we can't move
+                    deadState = DeadState.Alive
+                }
+              case None =>
+                player.Position = pos
+                sendResponse(PlayerStateShiftMessage(ShiftState(0, pos, player.Orientation.z, None)))
+                deadState = DeadState.Alive //must be set here
+              case _ => //seated in something that is not a vehicle or the vehicle is cargo, in which case we can't move
+                deadState = DeadState.Alive
+            }
+          }
         case (_, _) => ;
       }
 

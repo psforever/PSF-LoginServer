@@ -36,10 +36,9 @@ class ResourceSiloTest extends Specification {
       //
       obj.ChargeLevel = 50
       obj.LowNtuWarningOn = false
-      obj.CapacitorDisplay = 75
       obj.ChargeLevel mustEqual 50
       obj.LowNtuWarningOn mustEqual false
-      obj.CapacitorDisplay mustEqual 75
+      obj.CapacitorDisplay mustEqual 1
     }
 
     "charge level can not exceed limits(0 to maximum)" in {
@@ -237,7 +236,6 @@ class ResourceSiloControlUpdate2Test extends ActorTest {
       bldg.Actor = buildingEvents.ref
 
       obj.ChargeLevel = 100
-      obj.CapacitorDisplay = 1
       obj.LowNtuWarningOn = true
       assert(obj.ChargeLevel == 100)
       assert(obj.CapacitorDisplay == 1)
@@ -295,7 +293,6 @@ class ResourceSiloControlNoUpdateTest extends ActorTest {
       bldg.Actor = buildingEvents.ref
 
       obj.ChargeLevel = 250
-      obj.CapacitorDisplay = 3
       obj.LowNtuWarningOn = false
       assert(obj.ChargeLevel == 250)
       assert(obj.CapacitorDisplay == 3)

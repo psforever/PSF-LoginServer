@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package services.vehicle.support
 
+import akka.actor.ActorRef
 import net.psforever.objects.Vehicle
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
 import net.psforever.objects.zones.Zone
@@ -26,7 +27,9 @@ class VehicleRemover extends RemoverActor {
     entry.zone.GUID(vehicleGUID) match {
       case Some(vehicle : Vehicle) if vehicle.HasGUID =>
         val zoneId = entry.zone.Id
-        vehicle.Actor ! Vehicle.PrepareForDeletion()
+        if(vehicle.Actor != ActorRef.noSender) {
+          vehicle.Actor ! Vehicle.PrepareForDeletion()
+        }
         //escape being someone else's cargo
         (vehicle.MountedIn match {
           case Some(carrierGUID) =>
