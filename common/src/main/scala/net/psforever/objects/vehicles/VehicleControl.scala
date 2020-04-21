@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vehicles
 
-import akka.actor.{Actor, ActorRef}
-import net.psforever.objects.{GlobalDefinitions, SimpleItem, Vehicle, Vehicles}
+import akka.actor.{Actor, ActorRef, Cancellable}
+import net.psforever.objects.{DefaultCancellable, GlobalDefinitions, SimpleItem, Vehicle, Vehicles}
 import net.psforever.objects.ballistics.{ResolvedProjectile, VehicleSource}
 import net.psforever.objects.equipment.JammableMountedWeapons
 import net.psforever.objects.serverobject.CommonMessages
@@ -13,8 +13,13 @@ import net.psforever.objects.serverobject.deploy.DeploymentBehavior
 import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.repair.RepairableVehicle
 import net.psforever.objects.vital.VehicleShieldCharge
-import net.psforever.types.{ExoSuitType, PlanetSideGUID}
+import net.psforever.objects.zones.Zone
+import net.psforever.types.{DriveState, ExoSuitType, PlanetSideGUID, Vector3}
+import services.{RemoverActor, Service}
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `Vehicle`.<br>
@@ -44,10 +49,13 @@ class VehicleControl(vehicle : Vehicle) extends Actor
   def DamageableObject = vehicle
   def RepairableObject = vehicle
 
+  var deconstructionTimer : Cancellable = DefaultCancellable.obj
+
   def receive : Receive = Enabled
 
   override def postStop() : Unit = {
     super.postStop()
+    deconstructionTimer.cancel
     vehicle.Utilities.values.foreach { util =>
       context.stop(util().Actor)
       util().Actor = ActorRef.noSender
@@ -63,9 +71,16 @@ class VehicleControl(vehicle : Vehicle) extends Actor
     .orElse {
       case msg : Mountable.TryMount =>
         tryMountBehavior.apply(msg)
+        if(MountableObject.Seats.values.exists(_.isOccupied)) {
+          deconstructionTimer.cancel
+        }
 
       case msg : Mountable.TryDismount =>
         dismountBehavior.apply(msg)
+        val obj = MountableObject
+        if(obj.Owner.isEmpty && obj.Seats.values.forall(!_.isOccupied)) {
+          deconstructionTimer = context.system.scheduler.scheduleOnce(MountableObject.Definition.DeconstructionTime.getOrElse(5 minutes), self, VehicleControl.PrepareForDeletion())
+        }
 
       case Vehicle.ChargeShields(amount) =>
         val now : Long = System.nanoTime
@@ -94,10 +109,17 @@ class VehicleControl(vehicle : Vehicle) extends Actor
           )
         }
 
-      case Vehicle.PrepareForDeletion() =>
-        CancelJammeredSound(vehicle)
-        CancelJammeredStatus(vehicle)
-        context.become(Disabled)
+      case Vehicle.Deconstruct(time) =>
+        deconstructionTimer.cancel
+        time match {
+          case Some(delay) =>
+            deconstructionTimer = context.system.scheduler.scheduleOnce(delay, self, VehicleControl.PrepareForDeletion())
+          case None =>
+            PrepareForDeletion()
+        }
+
+      case VehicleControl.PrepareForDeletion() =>
+        PrepareForDeletion()
 
       case _ => ;
     }
@@ -128,14 +150,70 @@ class VehicleControl(vehicle : Vehicle) extends Actor
       }
   }
 
+  def PrepareForDeletion() : Unit = {
+    val guid = vehicle.GUID
+    val zone = vehicle.Zone
+    val zoneId = zone.Id
+    val events = zone.VehicleEvents
+    //become disabled
+    context.become(Disabled)
+    //cancel jammed behavior
+    CancelJammeredSound(vehicle)
+    CancelJammeredStatus(vehicle)
+    //escape being someone else's cargo
+    (vehicle.MountedIn match {
+      case Some(carrierGUID) =>
+        zone.Vehicles.find(v => v.GUID == carrierGUID)
+      case None =>
+        None
+    }) match {
+      case Some(carrier : Vehicle) =>
+        val driverName = carrier.Seats(0).Occupant match {
+          case Some(driver) => driver.Name
+          case _ => zoneId
+        }
+        events ! VehicleServiceMessage(
+          s"$driverName",
+          VehicleAction.ForceDismountVehicleCargo(Service.defaultPlayerGUID, guid, true, false, false)
+        )
+      case _ => ;
+    }
+    //kick all passengers
+    vehicle.Seats.values.foreach(seat => {
+      seat.Occupant match {
+        case Some(player) =>
+          seat.Occupant = None
+          player.VehicleSeated = None
+          if(player.HasGUID) {
+            events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, false, guid))
+          }
+        case None => ;
+      }
+      //abandon all cargo
+      vehicle.CargoHolds.values
+        .collect { case hold if hold.isOccupied =>
+          val cargo = hold.Occupant.get
+          events ! VehicleServiceMessage(
+            zoneId,
+            VehicleAction.ForceDismountVehicleCargo(Service.defaultPlayerGUID, cargo.GUID, true, false, false)
+          )
+        }
+    })
+    //unregister
+    events ! VehicleServiceMessage.Decon(RemoverActor.AddTask(vehicle, zone, Some(0 seconds)))
+    //banished to the shadow realm
+    vehicle.Position = Vector3.Zero
+    vehicle.DeploymentState = DriveState.Mobile
+    //queue final deletion
+    deconstructionTimer = context.system.scheduler.scheduleOnce(5 seconds, self, VehicleControl.Deletion())
+  }
+
   def Disabled : Receive = checkBehavior
     .orElse {
-      case msg : Mountable.TryDismount =>
-        dismountBehavior.apply(msg)
-
-      case Vehicle.Reactivate() =>
-        context.become(Enabled)
-
+      case VehicleControl.Deletion() =>
+        val zone = vehicle.Zone
+        zone.VehicleEvents ! VehicleServiceMessage(zone.Id, VehicleAction.UnloadVehicle(Service.defaultPlayerGUID, zone, vehicle, vehicle.GUID))
+        zone.Transport ! Zone.Vehicle.Despawn(vehicle)
       case _ =>
     }
 
@@ -149,6 +227,10 @@ class VehicleControl(vehicle : Vehicle) extends Actor
 object VehicleControl {
   import net.psforever.objects.vital.{DamageFromProjectile, VehicleShieldCharge, VitalsActivity}
   import scala.concurrent.duration._
+
+  private case class PrepareForDeletion()
+
+  private case class Deletion()
 
   /**
     * Determine if a given activity entry would invalidate the act of charging vehicle shields this tick.

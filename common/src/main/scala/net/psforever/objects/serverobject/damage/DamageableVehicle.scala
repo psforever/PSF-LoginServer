@@ -8,7 +8,7 @@ import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.vital.resolution.ResolutionCalculations
 import net.psforever.types.{DriveState, PlanetSideGUID}
-import services.{RemoverActor, Service}
+import services.Service
 import services.local.{LocalAction, LocalServiceMessage}
 import services.vehicle.{VehicleAction, VehicleService, VehicleServiceMessage}
 
@@ -180,8 +180,7 @@ object DamageableVehicle {
       target.Shields = 0
       zone.VehicleEvents ! VehicleServiceMessage(zone.Id, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 68, 0))
     }
-    zone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(target), zone))
-    zone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(target, zone, Some(1 minute)))
+    target.Actor ! Vehicle.Deconstruct(Some(1 minute))
     target.ClearHistory()
   }
 }

@@ -4,6 +4,7 @@ package net.psforever.objects.serverobject.pad.process
 import akka.actor.Props
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
+import net.psforever.objects.zones.Zone
 import net.psforever.types.Vector3
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -36,7 +37,7 @@ class VehicleSpawnControlLoadVehicle(pad : VehicleSpawnPad) extends VehicleSpawn
       }
       else {
         trace("owner lost or vehicle in poor condition; abort order fulfillment")
-        VehicleSpawnControl.DisposeSpawnedVehicle(order, pad.Zone)
+        VehicleSpawnControl.DisposeVehicle(order.vehicle, pad.Zone)
         context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
       }
 

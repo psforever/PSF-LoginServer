@@ -8,7 +8,7 @@ import net.psforever.objects.vehicles.CargoBehavior.{CheckCargoDismount, CheckCa
 import net.psforever.packet.game.{CargoMountPointStatusMessage, ObjectAttachMessage, ObjectDetachMessage, PlanetsideAttributeMessage}
 import net.psforever.types.{CargoStatus, PlanetSideGUID, Vector3}
 import services.avatar.{AvatarAction, AvatarServiceMessage}
-import services.{RemoverActor, Service}
+import services.Service
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.duration._
@@ -298,8 +298,7 @@ object CargoBehavior {
           log.debug(detachCargoMsg.toString)
           if(driverOpt.isEmpty) {
             //TODO cargo should drop like a rock like normal; until then, deconstruct it
-            zone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(cargo), zone))
-            zone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(cargo, zone, Some(0 seconds)))
+            cargo.Actor ! Vehicle.Deconstruct()
           }
         }
         else {
@@ -317,8 +316,7 @@ object CargoBehavior {
               val resetCargoMsg = CargoMountPointStatusMessage(carrierGUID, PlanetSideGUID(0), PlanetSideGUID(0), cargoGUID, mountPoint, CargoStatus.Empty, 0)
               zone.VehicleEvents ! VehicleServiceMessage(zone.Id, VehicleAction.SendResponse(PlanetSideGUID(0), resetCargoMsg)) //lazy
               //TODO cargo should back out like normal; until then, deconstruct it
-              zone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(cargo), zone))
-              zone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(cargo, zone, Some(0 seconds)))
+              cargo.Actor ! Vehicle.Deconstruct()
           }
         }
 

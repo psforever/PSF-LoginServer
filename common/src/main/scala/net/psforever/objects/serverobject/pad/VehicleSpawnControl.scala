@@ -6,6 +6,8 @@ import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffi
 import net.psforever.objects.serverobject.pad.process.{VehicleSpawnControlBase, VehicleSpawnControlConcealPlayer}
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{DefaultCancellable, Player, Vehicle}
+import services.RemoverActor
+import services.vehicle.VehicleServiceMessage
 
 import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -64,9 +66,7 @@ class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase
         handleOrderFunc(VehicleSpawnControl.Order(player, vehicle))
       }
       catch {
-        case _ : AssertionError if vehicle.HasGUID => //same as order being dropped
-          VehicleSpawnControl.DisposeSpawnedVehicle(vehicle, pad.Zone)
-        case _ : AssertionError => ; //shrug
+        case _ : AssertionError => ; //ehhh
         case e : Exception => //something unexpected
           e.printStackTrace()
       }
@@ -143,7 +143,7 @@ class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase
       pad.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(name, VehicleSpawnPad.Reminders.Queue, Some(orders.length + 1))
     }
     else {
-      VehicleSpawnControl.DisposeSpawnedVehicle(order, pad.Zone)
+      VehicleSpawnControl.DisposeVehicle(order.vehicle, pad.Zone)
     }
   }
 
@@ -282,19 +282,24 @@ object VehicleSpawnControl {
     * Properly clean up a vehicle that has been registered and spawned into the game world.
     * Call this downstream of "`ConcealPlayer`".
     * @param entry the order being cancelled
-    * @param zone the continent on which the vehicle was registered
+    * @param zone the zone in which the vehicle is registered (should be located)
     */
   def DisposeSpawnedVehicle(entry : VehicleSpawnControl.Order, zone: Zone) : Unit = {
-    DisposeSpawnedVehicle(entry.vehicle, zone)
+    DisposeVehicle(entry.vehicle, zone)
     zone.VehicleEvents ! VehicleSpawnPad.RevealPlayer(entry.DriverGUID)
   }
 
   /**
     * Properly clean up a vehicle that has been registered and spawned into the game world.
-    * @param vehicle the vehicle being cancelled
-    * @param zone the continent on which the vehicle was registered
+    * @param vehicle the vehicle being disposed
+    * @param zone the zone in which the vehicle is registered (should be located)
     */
-  def DisposeSpawnedVehicle(vehicle : Vehicle, zone: Zone) : Unit = {
-    zone.VehicleEvents ! VehicleSpawnPad.DisposeVehicle(vehicle)
+  def DisposeVehicle(vehicle : Vehicle, zone : Zone) : Unit = {
+    if(zone.Vehicles.exists(_.GUID == vehicle.GUID)) { //already added to zone
+      vehicle.Actor ! Vehicle.Deconstruct()
+    }
+    else { //just registered to zone
+      zone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(vehicle, zone, Some(0 seconds)))
+    }
   }
 }

@@ -21,15 +21,12 @@ class VehicleSpawnControlDriverControl(pad : VehicleSpawnPad) extends VehicleSpa
 
   def receive : Receive = {
     case order @ VehicleSpawnControl.Order(driver, vehicle) =>
-      if(vehicle.Health == 0) {
-        trace(s"vehicle was already destroyed; but, everything is fine")
-      }
-      if(vehicle.PassengerInSeat(driver).contains(0)) {
+      if(vehicle.Health > 0 && vehicle.PassengerInSeat(driver).contains(0)) {
         trace(s"returning control of ${vehicle.Definition.Name} to ${driver.Name}")
         pad.Zone.VehicleEvents ! VehicleSpawnPad.ServerVehicleOverrideEnd(driver.Name, vehicle, pad)
       }
       else {
-        trace(s"${driver.Name} is not seated in ${vehicle.Definition.Name}; vehicle controls have been locked")
+        trace(s"${driver.Name} is not seated in ${vehicle.Definition.Name}; vehicle controls might have been locked")
       }
       finalClear ! order
 

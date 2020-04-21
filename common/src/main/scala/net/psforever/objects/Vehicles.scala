@@ -6,7 +6,7 @@ import net.psforever.objects.vehicles.{CargoBehavior, VehicleLockState}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.TriggeredSound
 import net.psforever.types.{DriveState, PlanetSideGUID}
-import services.{RemoverActor, Service}
+import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.local.{LocalAction, LocalServiceMessage}
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
@@ -215,8 +215,7 @@ object Vehicles {
     // If the vehicle can fly and is flying deconstruct it, and well played to whomever managed to hack a plane in mid air. I'm impressed.
     if(target.Definition.CanFly && target.Flying) {
       // todo: Should this force the vehicle to land in the same way as when a pilot bails with passengers on board?
-      zone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(target), zone))
-      zone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(target, zone, Some(0 seconds)))
+      target.Actor ! Vehicle.Deconstruct()
     } else { // Otherwise handle ownership transfer as normal
       // Remove ownership of our current vehicle, if we have one
       hacker.VehicleOwned match {
