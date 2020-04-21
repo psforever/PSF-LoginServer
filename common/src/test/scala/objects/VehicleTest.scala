@@ -3,16 +3,16 @@ package objects
 
 import akka.actor.Props
 import akka.testkit.TestProbe
-import base.ActorTest
+import base.{ActorTest, FreedContextActorTest}
 import net.psforever.objects._
-import net.psforever.objects.ballistics.{PlayerSource, Projectile, ProjectileResolution, ResolvedProjectile}
 import net.psforever.objects.definition.{SeatDefinition, VehicleDefinition}
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vehicles._
-import net.psforever.objects.vital.{VehicleShieldCharge, Vitality}
-import net.psforever.objects.zones.{Zone, ZoneMap}
+import net.psforever.objects.vital.VehicleShieldCharge
+import net.psforever.objects.zones.{Zone, ZoneActor, ZoneMap}
 import net.psforever.types.{PlanetSideGUID, _}
 import org.specs2.mutable._
+import services.{RemoverActor, ServiceManager}
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.duration._
@@ -30,13 +30,13 @@ class VehicleTest extends Specification {
       val t_seat = new SeatDefinition
       t_seat.ArmorRestriction mustEqual SeatArmorRestriction.NoMax
       t_seat.Bailable mustEqual false
-      t_seat.ControlledWeapon mustEqual None
+      t_seat.ControlledWeapon.isEmpty mustEqual true
     }
 
     "define (custom)" in {
       seat.ArmorRestriction mustEqual SeatArmorRestriction.MaxOnly
       seat.Bailable mustEqual true
-      seat.ControlledWeapon mustEqual Some(5)
+      seat.ControlledWeapon.contains(5)
     }
   }
 
@@ -47,13 +47,13 @@ class VehicleTest extends Specification {
       fury.CanCloak mustEqual false
       fury.Seats.size mustEqual 1
       fury.Seats(0).Bailable mustEqual true
-      fury.Seats(0).ControlledWeapon mustEqual Some(1)
+      fury.Seats(0).ControlledWeapon.contains(1)
       fury.MountPoints.size mustEqual 2
-      fury.MountPoints.get(1) mustEqual Some(0)
-      fury.MountPoints.get(2) mustEqual Some(0)
+      fury.MountPoints.get(1).contains(0)
+      fury.MountPoints.get(2).contains(0)
       fury.Weapons.size mustEqual 1
-      fury.Weapons.get(0) mustEqual None
-      fury.Weapons.get(1) mustEqual Some(GlobalDefinitions.fury_weapon_systema)
+      fury.Weapons.get(0).isEmpty mustEqual true
+      fury.Weapons.get(1).contains(GlobalDefinitions.fury_weapon_systema)
       fury.TrunkSize.Width mustEqual 11
       fury.TrunkSize.Height mustEqual 11
       fury.TrunkOffset mustEqual 30
@@ -70,9 +70,9 @@ class VehicleTest extends Specification {
       val seat = new Seat(seat_def)
       seat.ArmorRestriction mustEqual SeatArmorRestriction.MaxOnly
       seat.Bailable mustEqual true
-      seat.ControlledWeapon mustEqual Some(5)
+      seat.ControlledWeapon.contains(5)
       seat.isOccupied mustEqual false
-      seat.Occupant mustEqual None
+      seat.Occupant.isEmpty mustEqual true
     }
 
     "player can sit" in {
@@ -136,19 +136,19 @@ class VehicleTest extends Specification {
 
     "construct (detailed)" in {
       val fury_vehicle = Vehicle(GlobalDefinitions.fury)
-      fury_vehicle.Owner mustEqual None
+      fury_vehicle.Owner.isEmpty mustEqual true
       fury_vehicle.Seats.size mustEqual 1
       fury_vehicle.Seats(0).ArmorRestriction mustEqual SeatArmorRestriction.NoMax
       fury_vehicle.Seats(0).isOccupied mustEqual false
-      fury_vehicle.Seats(0).Occupant mustEqual None
+      fury_vehicle.Seats(0).Occupant.isEmpty mustEqual true
       fury_vehicle.Seats(0).Bailable mustEqual true
-      fury_vehicle.Seats(0).ControlledWeapon mustEqual Some(1)
-      fury_vehicle.PermissionGroup(0) mustEqual Some(VehicleLockState.Locked) //driver
-      fury_vehicle.PermissionGroup(1) mustEqual Some(VehicleLockState.Empire) //gunner
-      fury_vehicle.PermissionGroup(2) mustEqual Some(VehicleLockState.Empire) //passenger
-      fury_vehicle.PermissionGroup(3) mustEqual Some(VehicleLockState.Locked) //trunk
+      fury_vehicle.Seats(0).ControlledWeapon.contains(1)
+      fury_vehicle.PermissionGroup(0).contains(VehicleLockState.Locked) //driver
+      fury_vehicle.PermissionGroup(1).contains(VehicleLockState.Empire) //gunner
+      fury_vehicle.PermissionGroup(2).contains(VehicleLockState.Empire) //passenger
+      fury_vehicle.PermissionGroup(3).contains(VehicleLockState.Locked) //trunk
       fury_vehicle.Weapons.size mustEqual 1
-      fury_vehicle.Weapons.get(0) mustEqual None
+      fury_vehicle.Weapons.get(0).isEmpty mustEqual true
       fury_vehicle.Weapons.get(1).isDefined mustEqual true
       fury_vehicle.Weapons(1).Equipment.isDefined mustEqual true
       fury_vehicle.Weapons(1).Equipment.get.Definition mustEqual GlobalDefinitions.fury.Weapons(1)
@@ -156,8 +156,8 @@ class VehicleTest extends Specification {
       fury_vehicle.Trunk.Width mustEqual 11
       fury_vehicle.Trunk.Height mustEqual 11
       fury_vehicle.Trunk.Offset mustEqual 30
-      fury_vehicle.GetSeatFromMountPoint(1) mustEqual Some(0)
-      fury_vehicle.GetSeatFromMountPoint(2) mustEqual Some(0)
+      fury_vehicle.GetSeatFromMountPoint(1).contains(0)
+      fury_vehicle.GetSeatFromMountPoint(2).contains(0)
       fury_vehicle.Decal mustEqual 0
       fury_vehicle.Health mustEqual fury_vehicle.Definition.MaxHealth
     }
@@ -192,30 +192,30 @@ class VehicleTest extends Specification {
 
     "can use mount point to get seat number" in {
       val fury_vehicle = Vehicle(GlobalDefinitions.fury)
-      fury_vehicle.GetSeatFromMountPoint(0) mustEqual None
-      fury_vehicle.GetSeatFromMountPoint(1) mustEqual Some(0)
-      fury_vehicle.GetSeatFromMountPoint(2) mustEqual Some(0)
-      fury_vehicle.GetSeatFromMountPoint(3) mustEqual None
+      fury_vehicle.GetSeatFromMountPoint(0).isEmpty mustEqual true
+      fury_vehicle.GetSeatFromMountPoint(1).contains(0)
+      fury_vehicle.GetSeatFromMountPoint(2).contains(0)
+      fury_vehicle.GetSeatFromMountPoint(3).isEmpty mustEqual true
     }
 
     "has four permission groups" in {
       val fury_vehicle = Vehicle(GlobalDefinitions.fury)
-      fury_vehicle.PermissionGroup(AccessPermissionGroup.Driver.id) mustEqual Some(VehicleLockState.Locked)
-      fury_vehicle.PermissionGroup(AccessPermissionGroup.Gunner.id) mustEqual Some(VehicleLockState.Empire)
-      fury_vehicle.PermissionGroup(AccessPermissionGroup.Passenger.id) mustEqual Some(VehicleLockState.Empire)
-      fury_vehicle.PermissionGroup(AccessPermissionGroup.Trunk.id) mustEqual Some(VehicleLockState.Locked)
+      fury_vehicle.PermissionGroup(AccessPermissionGroup.Driver.id).contains(VehicleLockState.Locked)
+      fury_vehicle.PermissionGroup(AccessPermissionGroup.Gunner.id).contains(VehicleLockState.Empire)
+      fury_vehicle.PermissionGroup(AccessPermissionGroup.Passenger.id).contains(VehicleLockState.Empire)
+      fury_vehicle.PermissionGroup(AccessPermissionGroup.Trunk.id).contains(VehicleLockState.Locked)
     }
 
     "set new permission level" in {
       val fury_vehicle = Vehicle(GlobalDefinitions.fury)
-      fury_vehicle.PermissionGroup(AccessPermissionGroup.Driver.id) mustEqual Some(VehicleLockState.Locked)
-      fury_vehicle.PermissionGroup(AccessPermissionGroup.Driver.id, VehicleLockState.Group.id) mustEqual Some(VehicleLockState.Group)
+      fury_vehicle.PermissionGroup(AccessPermissionGroup.Driver.id).contains(VehicleLockState.Locked)
+      fury_vehicle.PermissionGroup(AccessPermissionGroup.Driver.id, VehicleLockState.Group.id).contains(VehicleLockState.Group)
     }
 
     "set the same permission level" in {
       val fury_vehicle = Vehicle(GlobalDefinitions.fury)
-      fury_vehicle.PermissionGroup(AccessPermissionGroup.Driver.id) mustEqual Some(VehicleLockState.Locked)
-      fury_vehicle.PermissionGroup(AccessPermissionGroup.Driver.id, VehicleLockState.Locked.id) mustEqual None
+      fury_vehicle.PermissionGroup(AccessPermissionGroup.Driver.id).contains(VehicleLockState.Locked)
+      fury_vehicle.PermissionGroup(AccessPermissionGroup.Driver.id, VehicleLockState.Locked.id).isEmpty mustEqual true
     }
 
     "alternate permission level indices" in {
@@ -226,15 +226,15 @@ class VehicleTest extends Specification {
       fury_vehicle.PermissionGroup(AccessPermissionGroup.Trunk.id) mustEqual fury_vehicle.PermissionGroup(13)
 
       (AccessPermissionGroup.Driver.id + 10) mustEqual 10
-      fury_vehicle.PermissionGroup(AccessPermissionGroup.Driver.id, VehicleLockState.Group.id) mustEqual Some(VehicleLockState.Group)
+      fury_vehicle.PermissionGroup(AccessPermissionGroup.Driver.id, VehicleLockState.Group.id).contains(VehicleLockState.Group)
       fury_vehicle.PermissionGroup(AccessPermissionGroup.Driver.id) mustEqual fury_vehicle.PermissionGroup(10)
     }
 
     "can determine permission group from seat" in {
       val harasser_vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
-      harasser_vehicle.SeatPermissionGroup(0) mustEqual Some(AccessPermissionGroup.Driver)
-      harasser_vehicle.SeatPermissionGroup(1) mustEqual Some(AccessPermissionGroup.Gunner)
-      harasser_vehicle.SeatPermissionGroup(2) mustEqual None
+      harasser_vehicle.SeatPermissionGroup(0).contains(AccessPermissionGroup.Driver)
+      harasser_vehicle.SeatPermissionGroup(1).contains(AccessPermissionGroup.Gunner)
+      harasser_vehicle.SeatPermissionGroup(2).isEmpty mustEqual true
       //TODO test for AccessPermissionGroup.Passenger later
     }
 
@@ -247,11 +247,11 @@ class VehicleTest extends Specification {
       harasser_vehicle.Seat(0).get.Occupant = player1 //don't worry about ownership for now
       harasser_vehicle.Seat(1).get.Occupant = player2
 
-      harasser_vehicle.PassengerInSeat(player1) mustEqual Some(0)
-      harasser_vehicle.PassengerInSeat(player2) mustEqual Some(1)
+      harasser_vehicle.PassengerInSeat(player1).contains(0)
+      harasser_vehicle.PassengerInSeat(player2).contains(1)
       harasser_vehicle.Seat(0).get.Occupant = None
-      harasser_vehicle.PassengerInSeat(player1) mustEqual None
-      harasser_vehicle.PassengerInSeat(player2) mustEqual Some(1)
+      harasser_vehicle.PassengerInSeat(player1).isEmpty mustEqual true
+      harasser_vehicle.PassengerInSeat(player2).contains(1)
     }
 
     "can find a weapon controlled from seat" in {
@@ -259,7 +259,7 @@ class VehicleTest extends Specification {
       val chaingun_p = harasser_vehicle.Weapons(2).Equipment
       chaingun_p.isDefined mustEqual true
 
-      harasser_vehicle.WeaponControlledFromSeat(0) mustEqual None
+      harasser_vehicle.WeaponControlledFromSeat(0).isEmpty mustEqual true
       harasser_vehicle.WeaponControlledFromSeat(1) mustEqual chaingun_p
     }
 
@@ -273,12 +273,12 @@ class VehicleTest extends Specification {
       obj.Utilities.size mustEqual 3
       obj.Utilities(-1).UtilType mustEqual UtilityType.order_terminala
       obj.Utilities(0).UtilType mustEqual UtilityType.order_terminalb
-      obj.Utilities.get(1) mustEqual None
+      obj.Utilities.get(1).isEmpty mustEqual true
       obj.Utilities(2).UtilType mustEqual UtilityType.order_terminalb
 
       val filteredMap = Vehicle.EquipmentUtilities(obj.Utilities)
       filteredMap.size mustEqual 2
-      filteredMap.get(-1) mustEqual None
+      filteredMap.get(-1).isEmpty mustEqual true
       filteredMap(0).UtilType mustEqual UtilityType.order_terminalb
       filteredMap(2).UtilType mustEqual UtilityType.order_terminalb
     }
@@ -303,7 +303,7 @@ class VehicleTest extends Specification {
       val harasser_vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
       harasser_vehicle.Weapons(2).Equipment.get.GUID = PlanetSideGUID(10)
 
-      harasser_vehicle.Find(PlanetSideGUID(10)) mustEqual Some(2)
+      harasser_vehicle.Find(PlanetSideGUID(10)).contains(2)
     }
 
     "find items in its trunk by GUID" in {
@@ -312,101 +312,214 @@ class VehicleTest extends Specification {
       ammobox.GUID = PlanetSideGUID(10)
       harasser_vehicle.Inventory += 30 -> ammobox
 
-      harasser_vehicle.Find(PlanetSideGUID(10)) mustEqual Some(30)
+      harasser_vehicle.Find(PlanetSideGUID(10)).contains(30)
     }
   }
 }
 
-class VehicleControlStopMountingTest extends ActorTest {
-  "Vehicle Control" should {
-    "deactivate and stop handling mount messages" in {
-      val player1 = Player(VehicleTest.avatar1)
-      player1.GUID = PlanetSideGUID(1)
-      val player2 = Player(VehicleTest.avatar2)
-      val vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
-      vehicle.Faction = PlanetSideEmpire.TR
-      vehicle.GUID = PlanetSideGUID(3)
-      vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
-      vehicle.Zone = new Zone("test", new ZoneMap("test"), 0) {
-        VehicleEvents = new TestProbe(system).ref //necessary
-      }
-      vehicle.Weapons(2).Equipment.get.GUID = PlanetSideGUID(4)
-      val probe = new TestProbe(system)
-
-      vehicle.Actor.tell(Mountable.TryMount(player1, 0), probe.ref)
-      val reply = probe.receiveOne(Duration.create(200, "ms"))
-      assert(reply.isInstanceOf[Mountable.MountMessages])
-
-      vehicle.Actor.tell(Vehicle.PrepareForDeletion(), probe.ref)
-      vehicle.Actor.tell(Mountable.TryMount(player2, 1), probe.ref)
-      probe.expectNoMsg(Duration.create(200, "ms")) //assertion failed: received unexpected message MountMessages(CanMount
-    }
-  }
-}
-
-class VehicleControlRestartMountingTest extends ActorTest {
-  val player1 = Player(VehicleTest.avatar1)
-  player1.GUID = PlanetSideGUID(1)
-  val player2 = Player(VehicleTest.avatar2)
-  player2.GUID = PlanetSideGUID(2)
+class VehicleControlPrepareForDeletionTest extends ActorTest {
   val vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
   vehicle.Faction = PlanetSideEmpire.TR
-  vehicle.GUID = PlanetSideGUID(3)
   vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
+  val vehicleProbe = new TestProbe(system)
   vehicle.Zone = new Zone("test", new ZoneMap("test"), 0) {
-    VehicleEvents = new TestProbe(system).ref
+    VehicleEvents = vehicleProbe.ref
   }
-  vehicle.Weapons(2).Equipment.get.GUID = PlanetSideGUID(4)
-  val probe = new TestProbe(system)
 
-  "Vehicle Control" should {
-    "reactivate and resume handling mount messages" in {
-      vehicle.Actor.tell(Mountable.TryMount(player1, 0), probe.ref)
-      probe.receiveOne(Duration.create(200, "ms")) //discard
-      vehicle.Actor.tell(Vehicle.PrepareForDeletion(), probe.ref)
-      vehicle.Actor.tell(Mountable.TryMount(player2, 1), probe.ref)
-      probe.expectNoMsg(Duration.create(200, "ms"))
+  vehicle.GUID = PlanetSideGUID(1)
+  expectNoMsg(200 milliseconds)
 
-      vehicle.Actor.tell(Vehicle.Reactivate(), probe.ref)
-      vehicle.Actor.tell(Mountable.TryMount(player2, 1), probe.ref)
-      val reply = probe.receiveOne(Duration.create(200, "ms"))
-      assert(reply.isInstanceOf[Mountable.MountMessages])
+  "VehicleControl" should {
+    "submit for unregistering when marked for deconstruction" in {
+      vehicle.Actor ! Vehicle.Deconstruct()
+
+      val vehicle_msg = vehicleProbe.receiveN(1, 500 milliseconds)
+      assert(
+        vehicle_msg.head match {
+          case VehicleServiceMessage.Decon(RemoverActor.AddTask(v, z, _)) => (v eq vehicle) && (z == vehicle.Zone)
+          case _ => false
+        }
+      )
+
+      val vehicle_msg_final = vehicleProbe.receiveN(1, 6 seconds)
+      assert(
+        vehicle_msg_final.head match {
+          case VehicleServiceMessage("test", VehicleAction.UnloadVehicle(_, z, v, PlanetSideGUID(1))) => (v eq vehicle) && (z == vehicle.Zone)
+          case _ => false
+        }
+      )
     }
   }
 }
 
-class VehicleControlAlwaysDismountTest extends ActorTest {
-  val probe = new TestProbe(system)
-  val player1 = Player(VehicleTest.avatar1)
-  player1.GUID = PlanetSideGUID(1)
-  val player2 = Player(VehicleTest.avatar2)
-  player2.GUID = PlanetSideGUID(2)
+class VehicleControlPrepareForDeletionPassengerTest extends ActorTest {
   val vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
   vehicle.Faction = PlanetSideEmpire.TR
-  vehicle.GUID = PlanetSideGUID(3)
   vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
+  val vehicleProbe = new TestProbe(system)
   vehicle.Zone = new Zone("test", new ZoneMap("test"), 0) {
-    VehicleEvents = new TestProbe(system).ref
+    VehicleEvents = vehicleProbe.ref
   }
-  vehicle.Weapons(2).Equipment.get.GUID = PlanetSideGUID(4)
+  val player1 = Player(VehicleTest.avatar1)
 
-  "Vehicle Control" should {
-    "always allow dismount messages" in {
-      vehicle.Actor.tell(Mountable.TryMount(player1, 0), probe.ref)
-      probe.receiveOne(Duration.create(100, "ms")) //discard
-      vehicle.Actor.tell(Mountable.TryMount(player2, 1), probe.ref)
-      probe.receiveOne(Duration.create(100, "ms")) //discard
+  vehicle.GUID = PlanetSideGUID(1)
+  player1.GUID = PlanetSideGUID(2)
+  vehicle.Seats(1).Occupant = player1 //passenger seat
+  player1.VehicleSeated = vehicle.GUID
+  expectNoMsg(200 milliseconds)
 
-      vehicle.Actor.tell(Mountable.TryDismount(player2, 1), probe.ref) //player2 requests dismount
-      val reply1 = probe.receiveOne(Duration.create(100, "ms"))
-      assert(reply1.isInstanceOf[Mountable.MountMessages])
-      assert(reply1.asInstanceOf[Mountable.MountMessages].response.isInstanceOf[Mountable.CanDismount]) //player2 dismounts
+  "VehicleControl" should {
+    "kick all players when marked for deconstruction" in {
+      vehicle.Actor ! Vehicle.Deconstruct()
 
-      vehicle.Actor.tell(Vehicle.PrepareForDeletion(), probe.ref)
-      vehicle.Actor.tell(Mountable.TryDismount(player1, 0), probe.ref) //player1 requests dismount
-      val reply2 = probe.receiveOne(Duration.create(100, "ms"))
-      assert(reply2.isInstanceOf[Mountable.MountMessages])
-      assert(reply2.asInstanceOf[Mountable.MountMessages].response.isInstanceOf[Mountable.CanDismount]) //player1 dismounts
+      val vehicle_msg = vehicleProbe.receiveN(2, 500 milliseconds)
+      assert(
+        vehicle_msg.head match {
+          case VehicleServiceMessage("test", VehicleAction.KickPassenger(PlanetSideGUID(2), 4, false, PlanetSideGUID(1))) => true
+          case _ => false
+        }
+      )
+      assert(player1.VehicleSeated.isEmpty)
+      assert(vehicle.Seats(1).Occupant.isEmpty)
+      assert(
+        vehicle_msg(1) match {
+          case VehicleServiceMessage.Decon(RemoverActor.AddTask(v, z, _)) => (v eq vehicle) && (z == vehicle.Zone)
+          case _ => false
+        }
+      )
+    }
+  }
+}
+
+class VehicleControlPrepareForDeletionMountedInTest extends FreedContextActorTest {
+  ServiceManager.boot
+  val zone = new Zone("test", new ZoneMap("test"), 0)
+  zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-zone-actor")
+  zone.Init(context)
+
+  val vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
+  vehicle.Faction = PlanetSideEmpire.TR
+  vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test-cargo")
+  vehicle.Zone = zone
+  val lodestar = Vehicle(GlobalDefinitions.lodestar)
+  lodestar.Faction = PlanetSideEmpire.TR
+  val player1 = Player(VehicleTest.avatar1) //name="test1"
+  val player2 = Player(VehicleTest.avatar2) //name="test2"
+
+  vehicle.GUID = PlanetSideGUID(1)
+  lodestar.GUID = PlanetSideGUID(2)
+  player1.GUID = PlanetSideGUID(3)
+  var utilityId = 10
+  lodestar.Utilities.values.foreach { util =>
+    util().GUID = PlanetSideGUID(utilityId)
+    utilityId += 1
+  }
+  vehicle.Seats(1).Occupant = player1 //passenger seat
+  player1.VehicleSeated = vehicle.GUID
+  lodestar.Seats(0).Occupant = player2
+  player2.VehicleSeated = lodestar.GUID
+  lodestar.CargoHolds(1).Occupant = vehicle
+  vehicle.MountedIn = lodestar.GUID
+
+  val vehicleProbe = new TestProbe(system)
+  zone.VehicleEvents = vehicleProbe.ref
+  zone.Transport ! Zone.Vehicle.Spawn(lodestar) //can not fake this
+  expectNoMsg(200 milliseconds)
+
+  "VehicleControl" should {
+    "if mounted as cargo, self-eject when marked for deconstruction" in {
+      vehicle.Actor ! Vehicle.Deconstruct()
+
+      val vehicle_msg = vehicleProbe.receiveN(3, 500 milliseconds)
+      assert(
+        vehicle_msg.head match {
+          case VehicleServiceMessage("test2", VehicleAction.ForceDismountVehicleCargo(_, PlanetSideGUID(1), true, false, false)) => true
+          case _ => false
+        }
+      )
+      //TODO: does not actually kick out the cargo, but instigates the process
+      assert(
+        vehicle_msg(1) match {
+          case VehicleServiceMessage("test", VehicleAction.KickPassenger(PlanetSideGUID(3), 4, false, PlanetSideGUID(1))) => true
+          case _ => false
+        }
+      )
+      assert(player1.VehicleSeated.isEmpty)
+      assert(vehicle.Seats(1).Occupant.isEmpty)
+      assert(
+        vehicle_msg(2) match {
+          case VehicleServiceMessage.Decon(RemoverActor.AddTask(v, z, _)) => (v eq vehicle) && (z == vehicle.Zone)
+          case _ => false
+        }
+      )
+    }
+  }
+}
+
+class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActorTest {
+  ServiceManager.boot
+  val zone = new Zone("test", new ZoneMap("test"), 0) {
+    override def SetupNumberPools() : Unit = { }
+  }
+  zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-zone-actor")
+  zone.Init(context)
+
+  val vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
+  vehicle.Faction = PlanetSideEmpire.TR
+  vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test-cargo")
+  vehicle.Zone = zone
+  val lodestar = Vehicle(GlobalDefinitions.lodestar)
+  lodestar.Faction = PlanetSideEmpire.TR
+  val player1 = Player(VehicleTest.avatar1) //name="test1"
+  val player2 = Player(VehicleTest.avatar2) //name="test2"
+
+  vehicle.GUID = PlanetSideGUID(1)
+  lodestar.GUID = PlanetSideGUID(2)
+  player1.GUID = PlanetSideGUID(3)
+  player2.GUID = PlanetSideGUID(4)
+  var utilityId = 10
+  lodestar.Utilities.values.foreach { util =>
+    util().GUID = PlanetSideGUID(utilityId)
+    utilityId += 1
+  }
+  vehicle.Seats(1).Occupant = player1 //passenger seat
+  player1.VehicleSeated = vehicle.GUID
+  lodestar.Seats(0).Occupant = player2
+  player2.VehicleSeated = lodestar.GUID
+  lodestar.CargoHolds(1).Occupant = vehicle
+  vehicle.MountedIn = lodestar.GUID
+
+  val vehicleProbe = new TestProbe(system)
+  zone.VehicleEvents = vehicleProbe.ref
+  zone.Transport ! Zone.Vehicle.Spawn(lodestar) //can not fake this
+  expectNoMsg(200 milliseconds)
+
+  "VehicleControl" should {
+    "if with mounted cargo, eject it when marked for deconstruction" in {
+      lodestar.Actor ! Vehicle.Deconstruct()
+
+      val vehicle_msg = vehicleProbe.receiveN(3, 500 milliseconds)
+      assert(
+        vehicle_msg.head match {
+          case VehicleServiceMessage("test", VehicleAction.KickPassenger(PlanetSideGUID(4), 4, false, PlanetSideGUID(2))) => true
+          case _ => false
+        }
+      )
+      assert(player2.VehicleSeated.isEmpty)
+      assert(lodestar.Seats(0).Occupant.isEmpty)
+      assert(
+        vehicle_msg(1) match {
+          case VehicleServiceMessage("test2", VehicleAction.ForceDismountVehicleCargo(_, PlanetSideGUID(1), true, false, false)) => true
+          case _ => false
+        }
+      )
+      //TODO: does not actually kick out the cargo, but instigates the process
+      assert(
+        vehicle_msg(2) match {
+          case VehicleServiceMessage.Decon(RemoverActor.AddTask(v, z, _)) => (v eq lodestar) && (z == vehicle.Zone)
+          case _ => false
+        }
+      )
     }
   }
 }

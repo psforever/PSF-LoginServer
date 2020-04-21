@@ -155,6 +155,11 @@ class VehicleControl(vehicle : Vehicle) extends Actor
     val zone = vehicle.Zone
     val zoneId = zone.Id
     val events = zone.VehicleEvents
+    //driver's name
+    val driverName = vehicle.Seats(0).Occupant match {
+      case Some(driver) => driver.Name
+      case _ => zoneId
+    }
     //become disabled
     context.become(Disabled)
     //cancel jammed behavior
@@ -194,7 +199,7 @@ class VehicleControl(vehicle : Vehicle) extends Actor
         .collect { case hold if hold.isOccupied =>
           val cargo = hold.Occupant.get
           events ! VehicleServiceMessage(
-            zoneId,
+            driverName,
             VehicleAction.ForceDismountVehicleCargo(Service.defaultPlayerGUID, cargo.GUID, true, false, false)
           )
         }

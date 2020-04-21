@@ -9,6 +9,7 @@ import net.psforever.objects.serverobject.structures.StructureType
 import net.psforever.objects.{Avatar, GlobalDefinitions, Player, Vehicle}
 import net.psforever.objects.zones.Zone
 import net.psforever.types.{PlanetSideGUID, _}
+import services.RemoverActor
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.duration._
@@ -107,7 +108,13 @@ class VehicleSpawnControl4Test extends ActorTest {
 
       pad.Actor ! VehicleSpawnPad.VehicleOrder(player, vehicle) //order
 
-      probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.DisposeVehicle])
+      val msg = probe.receiveOne(1 minute)
+      assert(
+        msg match {
+          case VehicleServiceMessage.Decon(RemoverActor.AddTask(v, z , _)) => (v == vehicle) && (z == zone)
+          case _ => false
+        }
+      )
       probe.expectNoMsg(5 seconds)
     }
   }

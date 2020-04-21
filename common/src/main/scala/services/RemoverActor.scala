@@ -61,7 +61,7 @@ abstract class RemoverActor extends SupportActor[RemoverActor.Entry] {
     */
   override def preStart() : Unit = {
     super.preStart()
-    self ! Service.Startup()
+    ServiceManager.serviceManager ! ServiceManager.Lookup("taskResolver") //ask for a resolver to deal with the GUID system
   }
 
   /**
@@ -84,9 +84,6 @@ abstract class RemoverActor extends SupportActor[RemoverActor.Entry] {
   }
 
   def receive : Receive = {
-    case Service.Startup() =>
-      ServiceManager.serviceManager ! ServiceManager.Lookup("taskResolver") //ask for a resolver to deal with the GUID system
-
     case ServiceManager.LookupResult("taskResolver", endpoint) =>
       taskResolver = endpoint
       context.become(Processing)
