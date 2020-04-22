@@ -191,10 +191,10 @@ object Vehicles {
         case Some(cargo : Vehicle) => {
           cargo.Seats(0).Occupant match {
             case Some(cargoDriver: Player) =>
-              CargoBehavior.HandleVehicleCargoDismount(target.Zone, cargoDriver.GUID, cargo.GUID, bailed = target.Flying, requestedByPassenger = false, kicked = true )
+              CargoBehavior.HandleVehicleCargoDismount(target.Zone, cargo.GUID, bailed = target.Flying, requestedByPassenger = false, kicked = true )
             case None =>
               log.error("FinishHackingVehicle: vehicle in cargo hold missing driver")
-              CargoBehavior.HandleVehicleCargoDismount(hacker.GUID, cargo.GUID, cargo, target.GUID, target, false, false, true)
+              CargoBehavior.HandleVehicleCargoDismount(cargo.GUID, cargo, target.GUID, target, false, false, true)
           }
         }
         case None => ;

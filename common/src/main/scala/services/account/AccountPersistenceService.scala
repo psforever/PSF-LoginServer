@@ -351,7 +351,7 @@ class PersistenceMonitor(name : String, squadService : ActorRef, taskResolver : 
         vehicle.Actor ! Vehicle.Deconstruct(
           if(vehicle.Flying) {
             //TODO gravity
-            Some(0 seconds) //immediate deconstruction
+            None //immediate deconstruction
           }
           else {
             vehicle.Definition.DeconstructionTime //normal deconstruction

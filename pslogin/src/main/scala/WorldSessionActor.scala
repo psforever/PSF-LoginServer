@@ -1403,7 +1403,7 @@ class WorldSessionActor extends Actor
                 v.Actor ! Vehicle.Deconstruct(
                   if(v.Flying) {
                   //TODO gravity
-                  Some(0 seconds) //immediate deconstruction
+                  None //immediate deconstruction
                 }
                 else {
                   v.Definition.DeconstructionTime //normal deconstruction
@@ -3097,7 +3097,7 @@ class WorldSessionActor extends Actor
         }
 
       case VehicleResponse.ForceDismountVehicleCargo(cargo_guid, bailed, requestedByPassenger, kicked) =>
-        CargoBehavior.HandleVehicleCargoDismount(continent, tplayer_guid, cargo_guid, bailed, requestedByPassenger, kicked)
+        CargoBehavior.HandleVehicleCargoDismount(continent, cargo_guid, bailed, requestedByPassenger, kicked)
 
       case VehicleResponse.KickCargo(vehicle, speed, delay) =>
         if(player.VehicleSeated.nonEmpty && deadState == DeadState.Alive) {
@@ -3110,7 +3110,7 @@ class WorldSessionActor extends Actor
             controlled = Some(reverseSpeed)
             sendResponse(ServerVehicleOverrideMsg(true, true, true, false, 0, strafe, reverseSpeed, Some(0)))
             import scala.concurrent.ExecutionContext.Implicits.global
-            context.system.scheduler.scheduleOnce(delay milliseconds, self, VehicleServiceResponse(toChannel, tplayer_guid, VehicleResponse.KickCargo(vehicle, 0, delay)))
+            context.system.scheduler.scheduleOnce(delay milliseconds, self, VehicleServiceResponse(toChannel, PlanetSideGUID(0), VehicleResponse.KickCargo(vehicle, 0, delay)))
           }
           else {
             controlled = None
@@ -3646,7 +3646,7 @@ class WorldSessionActor extends Actor
         case Some(cargo : Vehicle) if !requestedByPassenger =>
           continent.GUID(cargo.MountedIn) match {
             case Some(carrier : Vehicle) =>
-              CargoBehavior.HandleVehicleCargoDismount(continent, player_guid, cargo_guid, bailed, requestedByPassenger, kicked)
+              CargoBehavior.HandleVehicleCargoDismount(continent, cargo_guid, bailed, requestedByPassenger, kicked)
             case _ => ;
           }
         case _ => ;
@@ -9717,7 +9717,7 @@ class WorldSessionActor extends Actor
       case ("MISSING_DRIVER", index) =>
         val cargo = vehicle.CargoHolds(index).Occupant.get
         log.error(s"LoadZoneInVehicleAsDriver: eject cargo in hold $index; vehicle missing driver")
-        CargoBehavior.HandleVehicleCargoDismount(pguid, cargo.GUID, cargo, vehicle.GUID, vehicle, false, false, true)
+        CargoBehavior.HandleVehicleCargoDismount(cargo.GUID, cargo, vehicle.GUID, vehicle, false, false, true)
       case (name, index) =>
         val cargo = vehicle.CargoHolds(index).Occupant.get
         continent.VehicleEvents ! VehicleServiceMessage(name, VehicleAction.TransferPassengerChannel(pguid, s"${cargo.Actor}", toChannel, cargo, topLevel))

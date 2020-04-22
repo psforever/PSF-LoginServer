@@ -6,10 +6,13 @@ import akka.testkit.TestProbe
 import base.{ActorTest, FreedContextActorTest}
 import net.psforever.objects._
 import net.psforever.objects.definition.{SeatDefinition, VehicleDefinition}
+import net.psforever.objects.guid.NumberPoolHub
+import net.psforever.objects.guid.source.LimitedNumberSource
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vital.VehicleShieldCharge
 import net.psforever.objects.zones.{Zone, ZoneActor, ZoneMap}
+import net.psforever.packet.game.{CargoMountPointStatusMessage, ObjectDetachMessage, PlanetsideAttributeMessage}
 import net.psforever.types.{PlanetSideGUID, _}
 import org.specs2.mutable._
 import services.{RemoverActor, ServiceManager}
@@ -457,8 +460,10 @@ class VehicleControlPrepareForDeletionMountedInTest extends FreedContextActorTes
 }
 
 class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActorTest {
+  val guid = new NumberPoolHub(new LimitedNumberSource(10))
   ServiceManager.boot
   val zone = new Zone("test", new ZoneMap("test"), 0) {
+    GUID(guid)
     override def SetupNumberPools() : Unit = { }
   }
   zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-zone-actor")
@@ -466,15 +471,16 @@ class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActor
 
   val vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
   vehicle.Faction = PlanetSideEmpire.TR
-  vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test-cargo")
   vehicle.Zone = zone
+  val cargoProbe = new TestProbe(system)
+  vehicle.Actor = cargoProbe.ref
   val lodestar = Vehicle(GlobalDefinitions.lodestar)
   lodestar.Faction = PlanetSideEmpire.TR
   val player1 = Player(VehicleTest.avatar1) //name="test1"
   val player2 = Player(VehicleTest.avatar2) //name="test2"
 
-  vehicle.GUID = PlanetSideGUID(1)
-  lodestar.GUID = PlanetSideGUID(2)
+  guid.register(vehicle, 1)
+  guid.register(lodestar, 2)
   player1.GUID = PlanetSideGUID(3)
   player2.GUID = PlanetSideGUID(4)
   var utilityId = 10
@@ -498,7 +504,7 @@ class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActor
     "if with mounted cargo, eject it when marked for deconstruction" in {
       lodestar.Actor ! Vehicle.Deconstruct()
 
-      val vehicle_msg = vehicleProbe.receiveN(3, 500 milliseconds)
+      val vehicle_msg = vehicleProbe.receiveN(7, 500 milliseconds)
       assert(
         vehicle_msg.head match {
           case VehicleServiceMessage("test", VehicleAction.KickPassenger(PlanetSideGUID(4), 4, false, PlanetSideGUID(2))) => true
@@ -507,15 +513,46 @@ class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActor
       )
       assert(player2.VehicleSeated.isEmpty)
       assert(lodestar.Seats(0).Occupant.isEmpty)
+      //cargo dismounting messages
       assert(
         vehicle_msg(1) match {
-          case VehicleServiceMessage("test2", VehicleAction.ForceDismountVehicleCargo(_, PlanetSideGUID(1), true, false, false)) => true
+          case VehicleServiceMessage(_, VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 0, _))) => true
           case _ => false
         }
       )
-      //TODO: does not actually kick out the cargo, but instigates the process
       assert(
         vehicle_msg(2) match {
+          case VehicleServiceMessage(_, VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 68, _))) => true
+          case _ => false
+        }
+      )
+      assert(
+        vehicle_msg(3) match {
+          case VehicleServiceMessage("test", VehicleAction.SendResponse(_,
+              CargoMountPointStatusMessage(PlanetSideGUID(2), _, PlanetSideGUID(1), _, 1, CargoStatus.InProgress, 0)
+            )) => true
+          case _ => false
+        }
+      )
+      assert(
+        vehicle_msg(4) match {
+          case VehicleServiceMessage("test", VehicleAction.SendResponse(_,
+              ObjectDetachMessage(PlanetSideGUID(2), PlanetSideGUID(1), _, _, _, _)
+            )) => true
+          case _ => false
+        }
+      )
+      assert(
+        vehicle_msg(5) match {
+          case VehicleServiceMessage("test", VehicleAction.SendResponse(_,
+              CargoMountPointStatusMessage(PlanetSideGUID(2), _, _, PlanetSideGUID(1), 1, CargoStatus.Empty, 0)
+            )) => true
+          case _ => false
+        }
+      )
+      //cargo dismounting messages
+      assert(
+        vehicle_msg(6) match {
           case VehicleServiceMessage.Decon(RemoverActor.AddTask(v, z, _)) => (v eq lodestar) && (z == vehicle.Zone)
           case _ => false
         }

@@ -49,13 +49,17 @@ class VehicleControl(vehicle : Vehicle) extends Actor
   def DamageableObject = vehicle
   def RepairableObject = vehicle
 
-  var deconstructionTimer : Cancellable = DefaultCancellable.obj
+  /** cheap flag for whether the vehicle is decaying */
+  var decaying : Boolean = false
+  /** primary vehicle decay timer */
+  var decayTimer : Cancellable = DefaultCancellable.obj
 
   def receive : Receive = Enabled
 
   override def postStop() : Unit = {
     super.postStop()
-    deconstructionTimer.cancel
+    decaying = false
+    decayTimer.cancel
     vehicle.Utilities.values.foreach { util =>
       context.stop(util().Actor)
       util().Actor = ActorRef.noSender
@@ -72,14 +76,16 @@ class VehicleControl(vehicle : Vehicle) extends Actor
       case msg : Mountable.TryMount =>
         tryMountBehavior.apply(msg)
         if(MountableObject.Seats.values.exists(_.isOccupied)) {
-          deconstructionTimer.cancel
+          decaying = false
+          decayTimer.cancel
         }
 
       case msg : Mountable.TryDismount =>
         dismountBehavior.apply(msg)
         val obj = MountableObject
-        if(obj.Owner.isEmpty && obj.Seats.values.forall(!_.isOccupied)) {
-          deconstructionTimer = context.system.scheduler.scheduleOnce(MountableObject.Definition.DeconstructionTime.getOrElse(5 minutes), self, VehicleControl.PrepareForDeletion())
+        if(!decaying && obj.Owner.isEmpty && obj.Seats.values.forall(!_.isOccupied)) {
+          decaying = true
+          decayTimer = context.system.scheduler.scheduleOnce(MountableObject.Definition.DeconstructionTime.getOrElse(5 minutes), self, VehicleControl.PrepareForDeletion())
         }
 
       case Vehicle.ChargeShields(amount) =>
@@ -110,11 +116,12 @@ class VehicleControl(vehicle : Vehicle) extends Actor
         }
 
       case Vehicle.Deconstruct(time) =>
-        deconstructionTimer.cancel
         time match {
           case Some(delay) =>
-            deconstructionTimer = context.system.scheduler.scheduleOnce(delay, self, VehicleControl.PrepareForDeletion())
-          case None =>
+            decaying = true
+            decayTimer.cancel
+            decayTimer = context.system.scheduler.scheduleOnce(delay, self, VehicleControl.PrepareForDeletion())
+          case _ =>
             PrepareForDeletion()
         }
 
@@ -151,15 +158,11 @@ class VehicleControl(vehicle : Vehicle) extends Actor
   }
 
   def PrepareForDeletion() : Unit = {
+    decaying = false
     val guid = vehicle.GUID
     val zone = vehicle.Zone
     val zoneId = zone.Id
     val events = zone.VehicleEvents
-    //driver's name
-    val driverName = vehicle.Seats(0).Occupant match {
-      case Some(driver) => driver.Name
-      case _ => zoneId
-    }
     //become disabled
     context.become(Disabled)
     //cancel jammed behavior
@@ -198,10 +201,7 @@ class VehicleControl(vehicle : Vehicle) extends Actor
       vehicle.CargoHolds.values
         .collect { case hold if hold.isOccupied =>
           val cargo = hold.Occupant.get
-          events ! VehicleServiceMessage(
-            driverName,
-            VehicleAction.ForceDismountVehicleCargo(Service.defaultPlayerGUID, cargo.GUID, true, false, false)
-          )
+          CargoBehavior.HandleVehicleCargoDismount(zone, cargo.GUID, bailed = false, requestedByPassenger = false, kicked = false)
         }
     })
     //unregister
@@ -210,7 +210,7 @@ class VehicleControl(vehicle : Vehicle) extends Actor
     vehicle.Position = Vector3.Zero
     vehicle.DeploymentState = DriveState.Mobile
     //queue final deletion
-    deconstructionTimer = context.system.scheduler.scheduleOnce(5 seconds, self, VehicleControl.Deletion())
+    decayTimer = context.system.scheduler.scheduleOnce(5 seconds, self, VehicleControl.Deletion())
   }
 
   def Disabled : Receive = checkBehavior

@@ -578,14 +578,8 @@ object Vehicle {
   final case class VehicleMessages(player : Player, response : Exchange)
 
   /**
-    * The `Vehicle` will become unresponsive to player activity.
-    * Usually, it does this to await deconstruction and clean-up.
-    * @see `VehicleControl`
-    */
-  final case class PrepareForDeletion()
-
-  /**
     * Initiate vehicle deconstruction.
+    * @see `VehicleControl`
     * @param time the delay before deconstruction should initiate;
     *             should initiate instantly when `None`
     */
