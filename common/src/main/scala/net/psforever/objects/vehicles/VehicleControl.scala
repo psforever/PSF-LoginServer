@@ -169,21 +169,9 @@ class VehicleControl(vehicle : Vehicle) extends Actor
     CancelJammeredSound(vehicle)
     CancelJammeredStatus(vehicle)
     //escape being someone else's cargo
-    (vehicle.MountedIn match {
-      case Some(carrierGUID) =>
-        zone.Vehicles.find(v => v.GUID == carrierGUID)
-      case None =>
-        None
-    }) match {
-      case Some(carrier : Vehicle) =>
-        val driverName = carrier.Seats(0).Occupant match {
-          case Some(driver) => driver.Name
-          case _ => zoneId
-        }
-        events ! VehicleServiceMessage(
-          s"$driverName",
-          VehicleAction.ForceDismountVehicleCargo(Service.defaultPlayerGUID, guid, true, false, false)
-        )
+    vehicle.MountedIn match {
+      case Some(_) =>
+        CargoBehavior.HandleVehicleCargoDismount(zone, guid, bailed = false, requestedByPassenger = false, kicked = false)
       case _ => ;
     }
     //kick all passengers
@@ -201,7 +189,7 @@ class VehicleControl(vehicle : Vehicle) extends Actor
       vehicle.CargoHolds.values
         .collect { case hold if hold.isOccupied =>
           val cargo = hold.Occupant.get
-          CargoBehavior.HandleVehicleCargoDismount(zone, cargo.GUID, bailed = false, requestedByPassenger = false, kicked = false)
+          CargoBehavior.HandleVehicleCargoDismount(cargo.GUID, cargo, guid, vehicle, bailed = false, requestedByPassenger = false, kicked = false)
         }
     })
     //unregister
