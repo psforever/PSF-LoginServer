@@ -15,6 +15,9 @@ import net.psforever.types.{PlanetSideGeneratorState, Vector3}
 import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
+
 /**
   * An `Actor` that handles messages being dispatched to a specific `Generator`.
   * @param gen the `Generator` object being governed
@@ -27,6 +30,7 @@ class GeneratorControl(gen : Generator) extends Actor
   def DamageableObject = gen
   def RepairableObject = gen
   var imminentExplosion : Boolean = false
+  var alarmCooldownPeriod : Boolean = false
 
   def receive : Receive = checkBehavior
     .orElse(takesDamage)
@@ -58,6 +62,16 @@ class GeneratorControl(gen : Generator) extends Actor
         }
         gen.ClearHistory()
 
+      case GeneratorControl.UnderThreatAlarm() =>
+        if(!alarmCooldownPeriod) {
+          alarmCooldownPeriod = true
+          GeneratorControl.BroadcastGeneratorEvent(gen, event = 15)
+          context.system.scheduler.scheduleOnce(delay = 5 seconds, self, GeneratorControl.AlarmReset())
+        }
+
+      case GeneratorControl.AlarmReset() =>
+        alarmCooldownPeriod = false
+
       case _ => ;
     }
 
@@ -78,8 +92,6 @@ class GeneratorControl(gen : Generator) extends Actor
     if(!target.Destroyed) {
       target.Health = 1 //temporary
       imminentExplosion = true
-      import scala.concurrent.duration._
-      import scala.concurrent.ExecutionContext.Implicits.global
       context.system.scheduler.scheduleOnce(10 seconds, self, GeneratorControl.GeneratorExplodes())
       GeneratorControl.BroadcastGeneratorEvent(gen, 16)
     }
@@ -98,6 +110,15 @@ object GeneratorControl {
     * na
     */
   private case class GeneratorExplodes()
+
+  /**
+    * na
+    */
+  private case class UnderThreatAlarm()
+  /**
+    * na
+    */
+  private case class AlarmReset()
 
   /**
     * na
@@ -142,7 +163,7 @@ object GeneratorControl {
         GeneratorControl.UpdateOwner(target)
       }
       //the generator is under attack
-      GeneratorControl.BroadcastGeneratorEvent(target, 15)
+      target.Actor ! UnderThreatAlarm()
     }
   }
 }
