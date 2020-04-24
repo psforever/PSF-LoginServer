@@ -525,4 +525,136 @@ class InventoryTest extends Specification {
       ok
     }
   }
+
+  "InventoryEquiupmentSlot" should {
+    "insert, collide, insert" in {
+      val obj : GridInventory = GridInventory(7, 7)
+      obj.Slot(16).Equipment = bullet9mmBox1
+      //confirm all squares
+      obj.Slot( 8).Equipment.nonEmpty mustEqual false
+      obj.Slot( 9).Equipment.nonEmpty mustEqual false
+      obj.Slot( 10).Equipment.nonEmpty mustEqual false
+      obj.Slot( 11).Equipment.nonEmpty mustEqual false
+      obj.Slot( 12).Equipment.nonEmpty mustEqual false
+      //
+      obj.Slot(15).Equipment.nonEmpty mustEqual false
+      obj.Slot(16).Equipment.nonEmpty mustEqual true
+      obj.Slot(17).Equipment.nonEmpty mustEqual true
+      obj.Slot(18).Equipment.nonEmpty mustEqual true
+      obj.Slot(19).Equipment.nonEmpty mustEqual false
+      //
+      obj.Slot(22).Equipment.nonEmpty mustEqual false
+      obj.Slot(23).Equipment.nonEmpty mustEqual true
+      obj.Slot(24).Equipment.nonEmpty mustEqual true
+      obj.Slot(25).Equipment.nonEmpty mustEqual true
+      obj.Slot(26).Equipment.nonEmpty mustEqual false
+      //
+      obj.Slot(29).Equipment.nonEmpty mustEqual false
+      obj.Slot(30).Equipment.nonEmpty mustEqual true
+      obj.Slot(31).Equipment.nonEmpty mustEqual true
+      obj.Slot(32).Equipment.nonEmpty mustEqual true
+      obj.Slot(33).Equipment.nonEmpty mustEqual false
+      //
+      obj.Slot(36).Equipment.nonEmpty mustEqual false
+      obj.Slot(37).Equipment.nonEmpty mustEqual false
+      obj.Slot(38).Equipment.nonEmpty mustEqual false
+      obj.Slot(39).Equipment.nonEmpty mustEqual false
+      obj.Slot(40).Equipment.nonEmpty mustEqual false
+      //
+      //remove
+      obj.Slot(16).Equipment = None
+      obj.Slot( 8).Equipment.nonEmpty mustEqual false
+      obj.Slot( 9).Equipment.nonEmpty mustEqual false
+      obj.Slot( 10).Equipment.nonEmpty mustEqual false
+      obj.Slot( 11).Equipment.nonEmpty mustEqual false
+      obj.Slot( 12).Equipment.nonEmpty mustEqual false
+      //
+      obj.Slot(15).Equipment.nonEmpty mustEqual false
+      obj.Slot(16).Equipment.nonEmpty mustEqual false
+      obj.Slot(17).Equipment.nonEmpty mustEqual false
+      obj.Slot(18).Equipment.nonEmpty mustEqual false
+      obj.Slot(19).Equipment.nonEmpty mustEqual false
+      //
+      obj.Slot(22).Equipment.nonEmpty mustEqual false
+      obj.Slot(23).Equipment.nonEmpty mustEqual false
+      obj.Slot(24).Equipment.nonEmpty mustEqual false
+      obj.Slot(25).Equipment.nonEmpty mustEqual false
+      obj.Slot(26).Equipment.nonEmpty mustEqual false
+      //
+      obj.Slot(29).Equipment.nonEmpty mustEqual false
+      obj.Slot(30).Equipment.nonEmpty mustEqual false
+      obj.Slot(31).Equipment.nonEmpty mustEqual false
+      obj.Slot(32).Equipment.nonEmpty mustEqual false
+      obj.Slot(33).Equipment.nonEmpty mustEqual false
+      //
+      obj.Slot(36).Equipment.nonEmpty mustEqual false
+      obj.Slot(37).Equipment.nonEmpty mustEqual false
+      obj.Slot(38).Equipment.nonEmpty mustEqual false
+      obj.Slot(39).Equipment.nonEmpty mustEqual false
+      obj.Slot(40).Equipment.nonEmpty mustEqual false
+      //insert again
+      obj.Slot(16).Equipment = bullet9mmBox2
+      obj.Slot( 8).Equipment.nonEmpty mustEqual false
+      obj.Slot( 9).Equipment.nonEmpty mustEqual false
+      obj.Slot( 10).Equipment.nonEmpty mustEqual false
+      obj.Slot( 11).Equipment.nonEmpty mustEqual false
+      obj.Slot( 12).Equipment.nonEmpty mustEqual false
+      //
+      obj.Slot(15).Equipment.nonEmpty mustEqual false
+      obj.Slot(16).Equipment.nonEmpty mustEqual true
+      obj.Slot(17).Equipment.nonEmpty mustEqual true
+      obj.Slot(18).Equipment.nonEmpty mustEqual true
+      obj.Slot(19).Equipment.nonEmpty mustEqual false
+      //
+      obj.Slot(22).Equipment.nonEmpty mustEqual false
+      obj.Slot(23).Equipment.nonEmpty mustEqual true
+      obj.Slot(24).Equipment.nonEmpty mustEqual true
+      obj.Slot(25).Equipment.nonEmpty mustEqual true
+      obj.Slot(26).Equipment.nonEmpty mustEqual false
+      //
+      obj.Slot(29).Equipment.nonEmpty mustEqual false
+      obj.Slot(30).Equipment.nonEmpty mustEqual true
+      obj.Slot(31).Equipment.nonEmpty mustEqual true
+      obj.Slot(32).Equipment.nonEmpty mustEqual true
+      obj.Slot(33).Equipment.nonEmpty mustEqual false
+      //
+      obj.Slot(36).Equipment.nonEmpty mustEqual false
+      obj.Slot(37).Equipment.nonEmpty mustEqual false
+      obj.Slot(38).Equipment.nonEmpty mustEqual false
+      obj.Slot(39).Equipment.nonEmpty mustEqual false
+      obj.Slot(40).Equipment.nonEmpty mustEqual false
+      //
+      //remove
+      obj.Slot(16).Equipment = None
+      obj.Slot( 8).Equipment.nonEmpty mustEqual false
+      obj.Slot( 9).Equipment.nonEmpty mustEqual false
+      obj.Slot( 10).Equipment.nonEmpty mustEqual false
+      obj.Slot( 11).Equipment.nonEmpty mustEqual false
+      obj.Slot( 12).Equipment.nonEmpty mustEqual false
+      //
+      obj.Slot(15).Equipment.nonEmpty mustEqual false
+      obj.Slot(16).Equipment.nonEmpty mustEqual false
+      obj.Slot(17).Equipment.nonEmpty mustEqual false
+      obj.Slot(18).Equipment.nonEmpty mustEqual false
+      obj.Slot(19).Equipment.nonEmpty mustEqual false
+      //
+      obj.Slot(22).Equipment.nonEmpty mustEqual false
+      obj.Slot(23).Equipment.nonEmpty mustEqual false
+      obj.Slot(24).Equipment.nonEmpty mustEqual false
+      obj.Slot(25).Equipment.nonEmpty mustEqual false
+      obj.Slot(26).Equipment.nonEmpty mustEqual false
+      //
+      obj.Slot(29).Equipment.nonEmpty mustEqual false
+      obj.Slot(30).Equipment.nonEmpty mustEqual false
+      obj.Slot(31).Equipment.nonEmpty mustEqual false
+      obj.Slot(32).Equipment.nonEmpty mustEqual false
+      obj.Slot(33).Equipment.nonEmpty mustEqual false
+      //
+      obj.Slot(36).Equipment.nonEmpty mustEqual false
+      obj.Slot(37).Equipment.nonEmpty mustEqual false
+      obj.Slot(38).Equipment.nonEmpty mustEqual false
+      obj.Slot(39).Equipment.nonEmpty mustEqual false
+      obj.Slot(40).Equipment.nonEmpty mustEqual false
+    }
+  }
 }

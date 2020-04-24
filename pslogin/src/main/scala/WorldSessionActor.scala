@@ -28,7 +28,7 @@ import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
 import net.psforever.objects.loadouts.{InfantryLoadout, Loadout, SquadLoadout, VehicleLoadout}
-import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
+import net.psforever.objects.serverobject.{CommonMessages, Containable, PlanetSideServerObject}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.serverobject.deploy.Deployment
@@ -5536,49 +5536,51 @@ class WorldSessionActor extends Actor
     case msg@MoveItemMessage(item_guid, source_guid, destination_guid, dest, _) =>
       log.info(s"MoveItem: $msg")
       (continent.GUID(source_guid), continent.GUID(destination_guid), continent.GUID(item_guid)) match {
-        case (Some(source : Container), Some(destination : Container), Some(item : Equipment)) =>
-          source.Find(item_guid) match {
-            case Some(index) =>
-              val indexSlot = source.Slot(index)
-              val tile = item.Definition.Tile
-              val destinationCollisionTest = destination.Collisions(dest, tile.Width, tile.Height)
-              val destItemEntry = destinationCollisionTest match {
-                case Success(entry :: Nil) =>
-                  Some(entry)
-                case _ =>
-                  None
-              }
-              if( {
-                destinationCollisionTest match {
-                  case Success(Nil) | Success(_ :: Nil) =>
-                    true //no item or one item to swap
-                  case _ =>
-                    false //abort when too many items at destination or other failure case
-                }
-              } && indexSlot.Equipment.contains(item)) {
-                if(PermitEquipmentStow(item, destination)) {
-                  StartBundlingPackets()
-                  PerformMoveItem(item, source, index, destination, dest, destItemEntry)
-                  StopBundlingPackets()
-                }
-                else {
-                  log.error(s"MoveItem: $item disallowed storage in $destination")
-                }
-              }
-              else if(!indexSlot.Equipment.contains(item)) {
-                log.error(s"MoveItem: wanted to move $item_guid, but found unexpected ${indexSlot.Equipment} at source location")
-              }
-              else {
-                destinationCollisionTest match {
-                  case Success(_) =>
-                    log.error(s"MoveItem: wanted to move $item_guid, but multiple unexpected items at destination blocked progress")
-                  case scala.util.Failure(err) =>
-                    log.error(s"MoveItem: wanted to move $item_guid, but $err")
-                }
-              }
-            case _ =>
-              log.error(s"MoveItem: wanted to move $item_guid, but could not find it")
-          }
+        case (Some(source : PlanetSideServerObject with Container), Some(destination : PlanetSideServerObject with Container), Some(item : Equipment)) =>
+          destination.Actor ! Containable.MoveItem(source, item, dest)
+//          source.Find(item_guid) match {
+//            case Some(index) =>
+//              destination.Actor ! Containable.MoveItem(source, item, index)
+//              val indexSlot = source.Slot(index)
+//              val tile = item.Definition.Tile
+//              val destinationCollisionTest = destination.Collisions(dest, tile.Width, tile.Height)
+//              val destItemEntry = destinationCollisionTest match {
+//                case Success(entry :: Nil) =>
+//                  Some(entry)
+//                case _ =>
+//                  None
+//              }
+//              if( {
+//                destinationCollisionTest match {
+//                  case Success(Nil) | Success(_ :: Nil) =>
+//                    true //no item or one item to swap
+//                  case _ =>
+//                    false //abort when too many items at destination or other failure case
+//                }
+//              } && indexSlot.Equipment.contains(item)) {
+//                if(PermitEquipmentStow(item, destination)) {
+//                  StartBundlingPackets()
+//                  PerformMoveItem(item, source, index, destination, dest, destItemEntry)
+//                  StopBundlingPackets()
+//                }
+//                else {
+//                  log.error(s"MoveItem: $item disallowed storage in $destination")
+//                }
+//              }
+//              else if(!indexSlot.Equipment.contains(item)) {
+//                log.error(s"MoveItem: wanted to move $item_guid, but found unexpected ${indexSlot.Equipment} at source location")
+//              }
+//              else {
+//                destinationCollisionTest match {
+//                  case Success(_) =>
+//                    log.error(s"MoveItem: wanted to move $item_guid, but multiple unexpected items at destination blocked progress")
+//                  case scala.util.Failure(err) =>
+//                    log.error(s"MoveItem: wanted to move $item_guid, but $err")
+//                }
+//              }
+//            case _ =>
+//              log.error(s"MoveItem: wanted to move $item_guid, but could not find it")
+//          }
         case (None, _, _) =>
           log.error(s"MoveItem: wanted to move $item_guid from $source_guid, but could not find source object")
         case (_, None, _) =>

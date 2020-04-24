@@ -578,7 +578,7 @@ class GridInventory extends Container {
   def Clear() : List[InventoryItem] = {
     val list = items.values.toList
     items.clear
-    //entryIndex.set(0)
+    entryIndex.set(0)
     grid = SetCellsOnlyNoOffset(0, width, height)
     list
   }
@@ -778,5 +778,18 @@ object GridInventory {
     node.Split()
     node.down.get(node.x, node.y + height, node.width, node.height - height)
     node.right.get(node.x + width, node.y, node.width - width, height)
+  }
+
+  def toPrintedList(inv : GridInventory) : String = {
+    val list = new StringBuilder
+    list.append("\n")
+    inv.Items.zipWithIndex.foreach { case (InventoryItem(obj, start), index) =>
+      list.append(s"${index+1}: ${obj.Definition.Name}@${obj.GUID} -> $start\n")
+    }
+    list.toString
+  }
+
+  def toPrintedGrid(inv : GridInventory) : String = {
+    new StringBuilder().append("\n").append(inv.grid.toSeq.grouped(inv.width).mkString("\n")).toString
   }
 }

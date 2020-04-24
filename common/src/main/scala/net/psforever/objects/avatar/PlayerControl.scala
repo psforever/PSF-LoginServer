@@ -7,7 +7,7 @@ import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile, Sourc
 import net.psforever.objects.definition.ImplantDefinition
 import net.psforever.objects.equipment.{Ammo, JammableBehavior, JammableUnit}
 import net.psforever.objects.vital.{PlayerSuicide, Vitality}
-import net.psforever.objects.serverobject.CommonMessages
+import net.psforever.objects.serverobject.{CommonMessages, Containable}
 import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.repair.Repairable
@@ -25,9 +25,11 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class PlayerControl(player : Player) extends Actor
   with JammableBehavior
-  with Damageable {
+  with Damageable
+  with Containable {
   def JammableObject = player
   def DamageableObject = player
+  def ContainerObject = player
 
   private [this] val log = org.log4s.getLogger(player.Name)
   private [this] val damageLog = org.log4s.getLogger(Damageable.LogChannel)
@@ -37,6 +39,7 @@ class PlayerControl(player : Player) extends Actor
 
   def receive : Receive = jammableBehavior
     .orElse(takesDamage)
+    .orElse(behavior)
     .orElse {
     case Player.ImplantActivation(slot: Int, status : Int) =>
       // todo: disable implants with stamina cost when changing armour type
