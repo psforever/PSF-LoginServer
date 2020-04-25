@@ -1,20 +1,21 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.avatar
 
-import akka.actor.Actor
-import net.psforever.objects.{Default, GlobalDefinitions, ImplantSlot, Player, Players, Tool}
-import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile, SourceEntry}
+import net.psforever.objects.{Default, GlobalDefinitions, Player, Players, Tool}
+import akka.actor.{Actor, ActorRef, Props}
+import net.psforever.objects._
+import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile}
 import net.psforever.objects.definition.ImplantDefinition
 import net.psforever.objects.equipment.{Ammo, JammableBehavior, JammableUnit}
 import net.psforever.objects.vital.{PlayerSuicide, Vitality}
-import net.psforever.objects.serverobject.{CommonMessages, Containable}
+import net.psforever.objects.serverobject.{CommonMessages, Containable, PlanetSideServerObject}
 import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.repair.Repairable
 import net.psforever.objects.vital._
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
-import net.psforever.types.{ExoSuitType, ImplantType, PlanetSideGUID, Vector3}
+import net.psforever.types.{ExoSuitType, Vector3}
 import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 
@@ -36,10 +37,22 @@ class PlayerControl(player : Player) extends Actor
 
   // A collection of timers for each slot to trigger stamina drain on an interval
   val implantSlotStaminaDrainTimers = mutable.HashMap(0 -> Default.Cancellable, 1 -> Default.Cancellable, 2 -> Default.Cancellable)
+  // control agency for the player's locker container (dedicated inventory slot #5)
+  val lockerControlAgent : ActorRef = {
+    val locker = player.Locker
+    locker.Zone = player.Zone
+    locker.Actor = context.actorOf(Props(classOf[LockerContainerControl], locker), PlanetSideServerObject.UniqueActorName(locker))
+  }
+
+  override def postStop() : Unit = {
+    context.stop(lockerControlAgent)
+    player.Locker.Actor = ActorRef.noSender
+    implantSlotStaminaDrainTimers.values.foreach { _.cancel }
+  }
 
   def receive : Receive = jammableBehavior
     .orElse(takesDamage)
-    .orElse(behavior)
+    .orElse(containerBehavior)
     .orElse {
     case Player.ImplantActivation(slot: Int, status : Int) =>
       // todo: disable implants with stamina cost when changing armour type

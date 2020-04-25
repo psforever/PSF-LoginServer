@@ -189,7 +189,8 @@ class Avatar(private val char_id : Long, val name : String, val faction : Planet
 
   def FifthSlot : EquipmentSlot = {
     new OffhandEquipmentSlot(EquipmentSize.Inventory) {
-      Equipment = locker
+      val obj = new LockerEquipment(locker)
+      Equipment = obj
     }
   }
 
