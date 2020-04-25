@@ -4,111 +4,181 @@ package net.psforever.objects.serverobject
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
-import net.psforever.objects.{BoomerTrigger, PlanetSideGameObject, Player}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.packet.game.{ObjectCreateDetailedMessage, ObjectDetachMessage}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.types.Vector3
-import services.Service
-import services.avatar.{AvatarAction, AvatarServiceMessage}
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Success
+import services.Service
+import services.avatar.{AvatarAction, AvatarServiceMessage}
+
 
 trait Containable {
   _ : Actor =>
-  //val log = org.log4s.getLogger("Container.behavior")
-  var movingItem : Boolean = false
+  private var waitWhileMovingItems : Boolean = false
 
   def ContainerObject : PlanetSideServerObject with Container
 
-  def behavior : Receive = {
+  final val containerBehavior : Receive = {
     case Containable.RemoveItemFromSlot(None, Some(slot)) =>
-      val source = ContainerObject
-      val(_, item) = Containable.TryRemoveItemFromSlot(source, slot)
-      sender ! Containable.ItemFromSlot(source, item, Some(slot))
+      sender ! LocalRemoveItemFromSlot(slot)
 
     case Containable.RemoveItemFromSlot(Some(item), _) =>
-      val source = ContainerObject
-      val(slot, _) = Containable.TryRemoveItemFromSlot(source, item)
-      sender ! Containable.ItemFromSlot(source, Some(item), slot)
+      sender ! LocalRemoveItemFromSlot(item)
 
     case Containable.PutItemInSlot(item, dest) =>
-      val destination = ContainerObject
-      Containable.PutItemInSlot(destination, item, dest) match {
-        case (true, swapItem) =>
-          movingItem = false
-          sender ! Containable.ItemPutInSlot(destination, item, dest, swapItem)
-        case (false, _) =>
-          movingItem = false
-          sender ! Containable.CanNotItemPutInSlot(destination, item, dest)
-      }
+      sender ! LocalPutItemInSlot(item, dest)
 
     case Containable.PutItemAway(item) =>
-      val destination = ContainerObject
-      Containable.PutItemAway(destination, item) match {
-        case Some(dest) =>
-          movingItem = false
-          sender ! Containable.ItemPutInSlot(destination, item, dest, None)
-        case _ =>
-          movingItem = false
-          sender ! Containable.CanNotItemPutInSlot(destination, item, -1)
-      }
+      sender ! LocalPutItemAway(item)
 
     case Containable.PutItemInSlotOrAway(item, dest) =>
-      val destination = ContainerObject
-      Containable.PutItemInSlotOrAway(destination, item, dest) match {
-        case (Some(slot), swapItem) =>
-          movingItem = false
-          sender ! Containable.ItemPutInSlot(destination, item, slot, swapItem)
-        case (None, _) =>
-          movingItem = false
-          sender ! Containable.CanNotItemPutInSlot(destination, item, dest.getOrElse(-1))
-      }
+      sender ! LocalPutItemInSlotOrAway(item, dest)
 
-    case msg : Containable.MoveItem if movingItem =>
+    case msg : Containable.MoveItem if waitWhileMovingItems =>
       import scala.concurrent.ExecutionContext.Implicits.global
       context.system.scheduler.scheduleOnce(100 milliseconds, self, msg)
 
     case Containable.MoveItem(source, equipment, destSlot) =>
+      val to = sender
       val destination = ContainerObject
       val item = equipment
       val dest = destSlot
       val sourceIsDestination = source == destination
       implicit val timeout = Timeout(1000 milliseconds)
-      movingItem = true
+      waitWhileMovingItems = true
       val result = if(sourceIsDestination) {
-        val(slot, _) = Containable.TryRemoveItemFromSlot(source, item)
-        Future { Containable.ItemFromSlot(source, Some(item), slot) }
+        Future { LocalRemoveItemFromSlot(item) }
       }
       else {
         ask(source.Actor, Containable.RemoveItemFromSlot(item))
       }
       result.onSuccess {
         case Containable.ItemFromSlot(_, Some(thing), Some(slot)) if thing == item =>
-          Containable.PutItemInSlot(destination, item, dest) match {
-            case (true, Some(swapItem)) =>
+          LocalPutItemInSlot(item, dest) match {
+            case Containable.ItemPutInSlot(_, _, _, Some(swapItem)) => //passing condition
               if(sourceIsDestination) {
-                Containable.PutItemInSlot(source, swapItem, slot)
-                movingItem = false
+                sender ! LocalPutItemInSlotOrAway(swapItem, Some(slot))
               }
               else {
-                source.Actor forward Containable.PutItemInSlot(swapItem, slot)
+                to.tell(Containable.PutItemInSlotOrAway(swapItem, Some(slot)), source.Actor)
               }
-            case (true, None) =>
-              movingItem = false
-            case _ => ;
+              waitWhileMovingItems = false
+            case Containable.ItemPutInSlot(_, _, _, None) => //passing condition
+              waitWhileMovingItems = false
+            case _ =>
+              waitWhileMovingItems = false
           }
         case _ => ;
       }
+      result.onFailure {
+        case _ =>
+          waitWhileMovingItems = false
+      }
+  }
+
+  final def LocalRemoveItemFromSlot(slot : Int) : Any = {
+    val source = ContainerObject
+    val (_, item) = Containable.TryRemoveItemFromSlot(source, slot)
+    item match {
+      case Some(thing) => RemoveItemFromSlotCallback(thing)
+      case None => ;
+    }
+    Containable.ItemFromSlot(source, item, Some(slot))
+  }
+
+  final def LocalRemoveItemFromSlot(item : Equipment) : Any = {
+    val source = ContainerObject
+    val(slot, retItem) = Containable.TryRemoveItemFromSlot(source, item)
+    retItem match {
+      case Some(thing) => RemoveItemFromSlotCallback(thing)
+      case None => ;
+    }
+    Containable.ItemFromSlot(source, Some(item), slot)
+  }
+
+  final def LocalPutItemInSlot(item : Equipment, dest : Int) : Any = {
+    val destination = ContainerObject
+    Containable.TryPutItemInSlot(destination, item, dest) match {
+      case (true, swapItem) =>
+        swapItem match {
+          case Some(thing) => SwapItemCallback(thing)
+          case None => ;
+        }
+        PutItemInSlotCallback(item, dest)
+        waitWhileMovingItems = false
+        Containable.ItemPutInSlot(destination, item, dest, swapItem)
+      case (false, _) =>
+        waitWhileMovingItems = false
+        Containable.CanNotItemPutInSlot(destination, item, dest)
+    }
+  }
+
+  final def LocalPutItemAway(item : Equipment) : Any = {
+    val destination = ContainerObject
+    Containable.TryPutItemAway(destination, item) match {
+      case Some(dest) =>
+        PutItemInSlotCallback(item, dest)
+        waitWhileMovingItems = false
+        Containable.ItemPutInSlot(destination, item, dest, None)
+      case _ =>
+        waitWhileMovingItems = false
+        Containable.CanNotItemPutInSlot(destination, item, -1)
+    }
+  }
+
+  final def LocalPutItemInSlotOrAway(item : Equipment, dest : Option[Int]) : Any = {
+    val destination = ContainerObject
+    Containable.TryPutItemInSlotOrAway(destination, item, dest) match {
+      case (Some(slot), swapItem) =>
+        swapItem match {
+          case Some(thing) => SwapItemCallback(thing)
+          case None => ;
+        }
+        PutItemInSlotCallback(item, slot)
+        waitWhileMovingItems = false
+        Containable.ItemPutInSlot(destination, item, slot, swapItem)
+      case (None, _) =>
+        waitWhileMovingItems = false
+        Containable.CanNotItemPutInSlot(destination, item, dest.getOrElse(-1))
+    }
+  }
+
+  def RemoveItemFromSlotCallback(item : Equipment) : Unit = {
+    val zone = ContainerObject.Zone
+    zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, item.GUID))
+  }
+
+  def PutItemInSlotCallback(item : Equipment, slot : Int) : Unit = {
+    val obj = ContainerObject
+    val zone = obj.Zone
+    val definition = item.Definition
+    zone.AvatarEvents ! AvatarServiceMessage(
+      zone.Id,
+      AvatarAction.SendResponse(
+        Service.defaultPlayerGUID,
+        ObjectCreateDetailedMessage(
+          definition.ObjectId,
+          item.GUID,
+          ObjectCreateMessageParent(obj.GUID, slot),
+          definition.Packet.DetailedConstructorData(item).get
+        )
+      )
+    )
+  }
+
+  def SwapItemCallback(item : Equipment) : Unit = {
+    val obj = ContainerObject
+    val zone = obj.Zone
+    zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectDetachMessage(obj.GUID, item.GUID, Vector3.Zero, 0f)))
   }
 }
 
 object Containable {
-
   final case class RemoveItemFromSlot(item : Option[Equipment], slot : Option[Int])
 
   object RemoveItemFromSlot {
@@ -137,7 +207,6 @@ object Containable {
     source.Find(item) match {
       case slot @ Some(index) =>
         source.Slot(index).Equipment = None
-        source.Zone.AvatarEvents ! AvatarServiceMessage(source.Zone.Id, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, item.GUID))
         (slot, Some(item))
       case None =>
         (None, None)
@@ -148,16 +217,15 @@ object Containable {
     val item = source.Slot(slot).Equipment
     source.Slot(slot).Equipment = None
     item match {
-      case Some(thing) =>
-        source.Zone.AvatarEvents ! AvatarServiceMessage(source.Zone.Id, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, thing.GUID))
+      case Some(_) =>
         (Some(slot), item)
       case None =>
         (None, None)
     }
   }
 
-  def PutItemInSlot(destination : PlanetSideServerObject with Container, item : Equipment, dest : Int) : (Boolean, Option[Equipment]) = {
-    if(Containable.PermitEquipmentStow(item, destination)) {
+  def TryPutItemInSlot(destination : PlanetSideServerObject with Container, item : Equipment, dest : Int) : (Boolean, Option[Equipment]) = {
+    if(Containable.PermitEquipmentStow(destination, item)) {
       val tile = item.Definition.Tile
       val destinationCollisionTest = destination.Collisions(dest, tile.Width, tile.Height)
       if(
@@ -174,25 +242,8 @@ object Containable {
           case _ =>
             (None, dest)
         }
-        swapItem match {
-          case Some(swap) =>
-            destination.Zone.AvatarEvents ! AvatarServiceMessage(destination.Zone.Id, AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectDetachMessage(destination.GUID, swap.GUID, Vector3.Zero, 0f)))
-          case None =>
-        }
         destination.Slot(swapSlot).Equipment = None
         if((destination.Slot(dest).Equipment = item).contains(item)) {
-          destination.Zone.AvatarEvents ! AvatarServiceMessage(
-            destination.Zone.Id,
-            AvatarAction.SendResponse(
-              Service.defaultPlayerGUID,
-              ObjectCreateDetailedMessage(
-                item.Definition.ObjectId,
-                item.GUID,
-                ObjectCreateMessageParent(destination.GUID, dest),
-                item.Definition.Packet.DetailedConstructorData(item).get
-              )
-            )
-          )
           (true, swapItem)
         }
         else {
@@ -212,7 +263,7 @@ object Containable {
     }
   }
 
-  def PutItemAway(destination : PlanetSideServerObject with Container, item : Equipment) : Option[Int] = {
+  def TryPutItemAway(destination : PlanetSideServerObject with Container, item : Equipment) : Option[Int] = {
     destination.Fit(item) match {
       case out @ Some(dest) =>
         destination.Slot(dest).Equipment = item
@@ -222,10 +273,10 @@ object Containable {
     }
   }
 
-  def FitItemIntSlot(destination : PlanetSideServerObject with Container, item : Equipment) : Option[Int] = {
+  def TryFitItemIntSlot(destination : PlanetSideServerObject with Container, item : Equipment) : Option[Int] = {
     destination.Fit(item) match {
       case Some(slot) =>
-        PutItemInSlot(destination, item, slot) match {
+        TryPutItemInSlot(destination, item, slot) match {
           case (true, _) => Some(slot)
           case (false, _) => None
         }
@@ -234,14 +285,14 @@ object Containable {
     }
   }
 
-  def PutItemInSlotOrAway(destination : PlanetSideServerObject with Container, item : Equipment, dest : Option[Int]) : (Option[Int], Option[Equipment]) = {
+  def TryPutItemInSlotOrAway(destination : PlanetSideServerObject with Container, item : Equipment, dest : Option[Int]) : (Option[Int], Option[Equipment]) = {
     dest match {
       case Some(destSlot) =>
-        Containable.PutItemInSlot(destination, item, destSlot) match {
+        Containable.TryPutItemInSlot(destination, item, destSlot) match {
           case (true, swapItem) =>
             (dest, swapItem)
           case (false, _) =>
-            Containable.FitItemIntSlot(destination, item) match {
+            Containable.TryFitItemIntSlot(destination, item) match {
               case out @ Some(_) =>
                 (out, None)
               case None =>
@@ -249,7 +300,7 @@ object Containable {
             }
         }
       case None =>
-        Containable.FitItemIntSlot(destination, item) match {
+        Containable.TryFitItemIntSlot(destination, item) match {
           case out @ Some(_) =>
             (out, None)
           case None =>
@@ -261,10 +312,10 @@ object Containable {
   /**
     * na
     * @param equipment na
-    * @param obj na
     * @return `true`, if the object is allowed to contain the type of equipment object
     */
-  def PermitEquipmentStow(equipment : Equipment, obj : PlanetSideGameObject with Container) : Boolean = {
+  def PermitEquipmentStow(obj : PlanetSideServerObject with Container, equipment : Equipment) : Boolean = {
+    import net.psforever.objects.{BoomerTrigger, Player}
     equipment match {
       case _ : BoomerTrigger =>
         obj.isInstanceOf[Player] //a BoomerTrigger can only be stowed in a player's holsters or inventory

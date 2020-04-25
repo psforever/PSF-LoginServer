@@ -216,6 +216,8 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
 
   def Locker : LockerContainer = core.Locker
 
+  def FifthSlot : EquipmentSlot = core.FifthSlot
+
   override def Fit(obj : Equipment) : Option[Int] = {
     recursiveHolsterFit(holsters.iterator, obj.Size) match {
       case Some(index) =>
