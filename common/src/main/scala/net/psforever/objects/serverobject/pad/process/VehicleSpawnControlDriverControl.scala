@@ -28,6 +28,7 @@ class VehicleSpawnControlDriverControl(pad : VehicleSpawnPad) extends VehicleSpa
       else {
         trace(s"${driver.Name} is not seated in ${vehicle.Definition.Name}; vehicle controls might have been locked")
       }
+      vehicle.MountedIn = None
       finalClear ! order
 
     case msg @ (VehicleSpawnControl.ProcessControl.Reminder | VehicleSpawnControl.ProcessControl.GetNewOrder) =>

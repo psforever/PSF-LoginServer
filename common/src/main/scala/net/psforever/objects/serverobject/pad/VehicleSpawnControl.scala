@@ -112,6 +112,8 @@ class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase
         case None => ;
       }
       trackedOrder = None
+      handleOrderFunc = NewTasking
+      pad.Zone.VehicleEvents ! VehicleSpawnPad.ResetSpawnPad(pad) //cautious animation reset
       concealPlayer ! akka.actor.Kill //should cause the actor to restart, which will abort any trapped messages
 
     case _ => ;

@@ -5024,9 +5024,17 @@ class WorldSessionActor extends Actor
       // TODO: Make sure this is the correct response for all cases
       ValidObject(object_guid) match {
         case Some(vehicle : Vehicle) =>
-          if((player.VehicleOwned.contains(object_guid) && vehicle.Owner.contains(player.GUID)) ||
-            (player.Faction == vehicle.Faction &&
-              ((vehicle.Owner.isEmpty || continent.GUID(vehicle.Owner.get).isEmpty) || vehicle.Destroyed))) {
+          /* line 1a: player is admin (and overrules other access requirements) */
+          /* line 1b: vehicle and player (as the owner) acknowledge each other */
+          /* line 1c: vehicle is the same faction as player and either the owner is absent or the vehicle is destroyed */
+          /* line 2: vehicle is not mounted in anything or, if it is, its seats are empty */
+          if(
+            (admin ||
+              (player.VehicleOwned.contains(object_guid) && vehicle.Owner.contains(player.GUID)) ||
+              (player.Faction == vehicle.Faction && ((vehicle.Owner.isEmpty || continent.GUID(vehicle.Owner.get).isEmpty) || vehicle.Destroyed))
+              ) &&
+              (vehicle.MountedIn.isEmpty || !vehicle.Seats.values.exists(_.isOccupied))
+          ) {
             vehicle.Actor ! Vehicle.Deconstruct()
             log.info(s"RequestDestroy: vehicle $vehicle")
           }
@@ -5995,45 +6003,56 @@ class WorldSessionActor extends Actor
       }
       if(player.GUID == player_guid) {
         //normally disembarking from a seat
-        player.VehicleSeated match {
-          case Some(obj_guid) =>
-            interstellarFerry.orElse(continent.GUID(obj_guid)) match {
-              case Some(obj : Mountable) =>
-                obj.PassengerInSeat(player) match {
-                  case Some(0) if controlled.nonEmpty =>
-                    log.warn(s"DismountVehicleMsg: can not dismount from vehicle as driver while server has asserted control; please wait ...")
-                  case Some(seat_num : Int) =>
-                    obj.Actor ! Mountable.TryDismount(player, seat_num)
-                    if(interstellarFerry.isDefined) {
-                      //short-circuit the temporary channel for transferring between zones, the player is no longer doing that
-                      //see above in VehicleResponse.TransferPassenger case
-                      interstellarFerry = None
-                    }
-                    // Deconstruct the vehicle if the driver has bailed out and the vehicle is capable of flight
-                    //todo: implement auto landing procedure if the pilot bails but passengers are still present instead of deconstructing the vehicle
-                    //todo: continue flight path until aircraft crashes if no passengers present (or no passenger seats), then deconstruct.
-                    //todo: kick cargo passengers out. To be added after PR #216 is merged
-                    obj match {
-                      case v : Vehicle if bailType == BailType.Bailed && seat_num == 0 && v.Flying =>
-                        v.Actor ! Vehicle.Deconstruct() // Immediately deconstruct vehicle
-                      case _ => ;
-                    }
-
-                  case None =>
-                    dismountWarning(s"DismountVehicleMsg: can not find where player $player_guid is seated in mountable $obj_guid")
-                }
-              case _ =>
-                dismountWarning(s"DismountVehicleMsg: can not find mountable entity $obj_guid")
-            }
-          case None =>
+        (interstellarFerry.orElse(continent.GUID(player.VehicleSeated)) match {
+          case out @ Some(obj : Vehicle) =>
+            if(obj.MountedIn.isEmpty) out else None
+          case out @ Some(_ : Mountable) =>
+            out
+          case _ =>
             dismountWarning(s"DismountVehicleMsg: player $player_guid not considered seated in a mountable entity")
+            None
+        }) match {
+          case Some(obj : Mountable) =>
+            obj.PassengerInSeat(player) match {
+              case Some(0) if controlled.nonEmpty =>
+                log.warn(s"DismountVehicleMsg: can not dismount from vehicle as driver while server has asserted control; please wait ...")
+              case Some(seat_num : Int) =>
+                obj.Actor ! Mountable.TryDismount(player, seat_num)
+                if(interstellarFerry.isDefined) {
+                  //short-circuit the temporary channel for transferring between zones, the player is no longer doing that
+                  //see above in VehicleResponse.TransferPassenger case
+                  interstellarFerry = None
+                }
+                // Deconstruct the vehicle if the driver has bailed out and the vehicle is capable of flight
+                //todo: implement auto landing procedure if the pilot bails but passengers are still present instead of deconstructing the vehicle
+                //todo: continue flight path until aircraft crashes if no passengers present (or no passenger seats), then deconstruct.
+                //todo: kick cargo passengers out. To be added after PR #216 is merged
+                obj match {
+                  case v : Vehicle if bailType == BailType.Bailed && seat_num == 0 && v.Flying =>
+                    continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(obj), continent))
+                    continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(obj, continent, Some(0 seconds))) // Immediately deconstruct vehicle
+                  case _ => ;
+                }
+
+              case None =>
+                dismountWarning(s"DismountVehicleMsg: can not find where player $player_guid is seated in mountable ${player.VehicleSeated}")
+            }
+          case _ =>
+            dismountWarning(s"DismountVehicleMsg: can not find mountable entity ${player.VehicleSeated}")
         }
       }
       else {
         //kicking someone else out of a seat; need to own that seat/mountable
         player.VehicleOwned match {
           case Some(obj_guid) =>
-            (ValidObject(obj_guid), ValidObject(player_guid)) match {
+            ((ValidObject(obj_guid), ValidObject(player_guid)) match {
+              case (vehicle @ Some(obj : Vehicle), tplayer) =>
+                if(obj.MountedIn.isEmpty) (vehicle, tplayer) else (None, None)
+              case (mount @ Some(obj : Mountable), tplayer) =>
+                (mount, tplayer)
+              case _ =>
+                (None, None)
+            }) match {
               case (Some(obj : Mountable), Some(tplayer : Player)) =>
                 obj.PassengerInSeat(tplayer) match {
                   case Some(seat_num : Int) =>
