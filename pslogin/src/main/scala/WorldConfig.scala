@@ -37,6 +37,9 @@ object WorldConfig extends ConfigParser {
       ConfigEntryTime ("NetSim.Delay", 150 milliseconds, Constraints.min(0 seconds), Constraints.max(2 seconds)),
       ConfigEntryFloat("NetSim.ReorderChance", 0.005f, Constraints.min(0.0f), Constraints.max(1.0f)),
       ConfigEntryTime ("NetSim.ReorderTime", 150 milliseconds, Constraints.min(0 seconds), Constraints.max(2 seconds))
+    ),
+    ConfigSection("kamon",
+      ConfigEntryBool("Active", false)
     )
   )
 

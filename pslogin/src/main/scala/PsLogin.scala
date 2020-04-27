@@ -28,6 +28,8 @@ import scala.collection.JavaConverters._
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
+import kamon.Kamon
+
 object PsLogin {
   private val logger = org.log4s.getLogger
 
@@ -220,6 +222,15 @@ object PsLogin {
       "akka.loglevel" -> "INFO",
       "akka.logging-filter" -> "akka.event.slf4j.Slf4jLoggingFilter"
     ).asJava
+
+    WorldConfig.Get[Boolean]("kamon.Active") match {
+      case true =>
+        logger.info("Starting Kamon")
+
+        Kamon.init()
+      case _ => ;
+    }
+
 
     logger.info("Starting actor subsystems")
 
