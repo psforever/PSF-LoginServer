@@ -6,7 +6,11 @@ import net.psforever.objects.definition.EquipmentDefinition
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.{Container, GridInventory}
 import net.psforever.objects.serverobject.{Containable, PlanetSideServerObject}
-import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
+import net.psforever.packet.game.{ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectDetachMessage}
+import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
+import services.Service
+import services.avatar.{AvatarAction, AvatarServiceMessage}
 
 /**
   * The companion of a `Locker` that is carried with a player
@@ -54,7 +58,7 @@ class LockerEquipment(locker : LockerContainer) extends Equipment
   def Definition : EquipmentDefinition = obj.Definition
 }
 
-class LockerContainerControl(locker : LockerContainer) extends Actor
+class LockerContainerControl(locker : LockerContainer, toChannel : String) extends Actor
   with Containable {
   def ContainerObject = locker
 
@@ -62,4 +66,49 @@ class LockerContainerControl(locker : LockerContainer) extends Actor
     .orElse {
       case _ => ;
     }
+
+  def MessageDeferredCallback(msg : Any) : Unit = {
+    msg match {
+      case Containable.MoveItem(_, item, _) =>
+        //momentarily put item back where it was originally
+        val obj = ContainerObject
+        obj.Find(item) match {
+          case Some(slot) =>
+            obj.Zone.AvatarEvents ! AvatarServiceMessage(
+              toChannel,
+              AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectAttachMessage(obj.GUID, item.GUID, slot))
+            )
+          case None => ;
+        }
+      case _ => ;
+    }
+  }
+
+  def RemoveItemFromSlotCallback(item : Equipment, slot : Int) : Unit = {
+    val zone = locker.Zone
+    zone.AvatarEvents ! AvatarServiceMessage(toChannel, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, item.GUID))
+  }
+
+  def PutItemInSlotCallback(item : Equipment, slot : Int) : Unit = {
+    val zone = locker.Zone
+    val definition = item.Definition
+    item.Faction = PlanetSideEmpire.NEUTRAL
+    zone.AvatarEvents ! AvatarServiceMessage(
+      toChannel,
+      AvatarAction.SendResponse(
+        Service.defaultPlayerGUID,
+        ObjectCreateDetailedMessage(
+          definition.ObjectId,
+          item.GUID,
+          ObjectCreateMessageParent(locker.GUID, slot),
+          definition.Packet.DetailedConstructorData(item).get
+        )
+      )
+    )
+  }
+
+  def SwapItemCallback(item : Equipment) : Unit = {
+    val zone = locker.Zone
+    zone.AvatarEvents ! AvatarServiceMessage(toChannel, AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectDetachMessage(locker.GUID, item.GUID, Vector3.Zero, 0f)))
+  }
 }

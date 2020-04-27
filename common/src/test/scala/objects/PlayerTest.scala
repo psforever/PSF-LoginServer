@@ -279,7 +279,7 @@ class PlayerTest extends Specification {
 
     "can access the player's locker-space" in {
       val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      obj.Slot(5).Equipment.get.isInstanceOf[LockerContainer] mustEqual true
+      obj.Slot(5).Equipment.get.isInstanceOf[LockerEquipment] mustEqual true
     }
 
     "can find equipment" in {
