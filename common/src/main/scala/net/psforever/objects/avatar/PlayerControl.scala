@@ -5,7 +5,7 @@ import akka.actor.{Actor, ActorRef, Props}
 import net.psforever.objects._
 import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile}
 import net.psforever.objects.definition.ImplantDefinition
-import net.psforever.objects.equipment.{Ammo, JammableBehavior, JammableUnit}
+import net.psforever.objects.equipment.{Ammo, Equipment, JammableBehavior, JammableUnit}
 import net.psforever.objects.vital.{PlayerSuicide, Vitality}
 import net.psforever.objects.serverobject.{CommonMessages, Containable, PlanetSideServerObject}
 import net.psforever.objects.serverobject.damage.Damageable
@@ -14,7 +14,8 @@ import net.psforever.objects.serverobject.repair.Repairable
 import net.psforever.objects.vital._
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
-import net.psforever.types.{ExoSuitType, Vector3}
+import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
+import net.psforever.types.{ExoSuitType, PlanetSideEmpire, Vector3}
 import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 
@@ -40,7 +41,7 @@ class PlayerControl(player : Player) extends Actor
   val lockerControlAgent : ActorRef = {
     val locker = player.Locker
     locker.Zone = player.Zone
-    locker.Actor = context.actorOf(Props(classOf[LockerContainerControl], locker), PlanetSideServerObject.UniqueActorName(locker))
+    locker.Actor = context.actorOf(Props(classOf[LockerContainerControl], locker, player.Name), PlanetSideServerObject.UniqueActorName(locker))
   }
 
   override def postStop() : Unit = {
@@ -313,6 +314,67 @@ class PlayerControl(player : Player) extends Actor
   }
   else {
     item.FireMode.Modifiers.Damage3
+  }
+
+  def MessageDeferredCallback(msg : Any) : Unit = {
+    msg match {
+      case Containable.MoveItem(_, item, _) =>
+        //momentarily put item back where it was originally
+        val obj = ContainerObject
+        obj.Find(item) match {
+          case Some(slot) =>
+            obj.Zone.AvatarEvents ! AvatarServiceMessage(
+              player.Name,
+              AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectAttachMessage(obj.GUID, item.GUID, slot))
+            )
+          case None => ;
+        }
+      case _ => ;
+    }
+  }
+
+  def RemoveItemFromSlotCallback(item : Equipment, slot : Int) : Unit = {
+    val obj = ContainerObject
+    val zone = obj.Zone
+    val toChannel = if(obj.VisibleSlots.contains(slot) || obj.isBackpack) zone.Id else player.Name
+    if(slot == obj.DrawnSlot) {
+      obj.DrawnSlot = Player.HandsDownSlot
+    }
+    zone.AvatarEvents ! AvatarServiceMessage(toChannel, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, item.GUID))
+  }
+
+  def PutItemInSlotCallback(item : Equipment, slot : Int) : Unit = {
+    val obj = ContainerObject
+    val guid = obj.GUID
+    val zone = obj.Zone
+    val events = zone.AvatarEvents
+    val definition = item.Definition
+    val msg = AvatarAction.SendResponse(
+      Service.defaultPlayerGUID,
+      ObjectCreateDetailedMessage(
+        definition.ObjectId,
+        item.GUID,
+        ObjectCreateMessageParent(guid, slot),
+        definition.Packet.DetailedConstructorData(item).get
+      )
+    )
+    if(obj.isBackpack) {
+      item.Faction = PlanetSideEmpire.NEUTRAL
+      events ! AvatarServiceMessage(zone.Id, msg)
+    }
+    else {
+      item.Faction = obj.Faction
+      events ! AvatarServiceMessage(player.Name, msg)
+      if(obj.VisibleSlots.contains(slot)) {
+        events ! AvatarServiceMessage(zone.Id, AvatarAction.EquipmentInHand(guid, guid, slot, item))
+      }
+    }
+  }
+
+  def SwapItemCallback(item : Equipment) : Unit = {
+    val obj = ContainerObject
+    val zone = obj.Zone
+    zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectDetachMessage(obj.GUID, item.GUID, Vector3.Zero, 0f)))
   }
 }
 

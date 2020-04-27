@@ -1433,6 +1433,12 @@ class WorldSessionActor extends Actor
           self ! PlayerToken.LoginInfo(playerName, Zone.Nowhere, pos)
       }
 
+    case msg @ Containable.ItemPutInSlot(_ : PlanetSideServerObject with Container, _ : Equipment, _ : Int, _ : Option[Equipment]) =>
+      log.info(s"$msg")
+
+    case msg @ Containable.CanNotPutItemInSlot(_ : PlanetSideServerObject with Container, _ : Equipment, _ : Int) =>
+      log.info(s"$msg")
+
     case default =>
       log.warn(s"Invalid packet class received: $default from $sender")
   }
@@ -5153,50 +5159,7 @@ class WorldSessionActor extends Actor
       log.info(s"MoveItem: $msg")
       (continent.GUID(source_guid), continent.GUID(destination_guid), continent.GUID(item_guid)) match {
         case (Some(source : PlanetSideServerObject with Container), Some(destination : PlanetSideServerObject with Container), Some(item : Equipment)) =>
-          destination.Actor ! Containable.MoveItem(source, item, dest)
-//          source.Find(item_guid) match {
-//            case Some(index) =>
-//              destination.Actor ! Containable.MoveItem(source, item, index)
-//              val indexSlot = source.Slot(index)
-//              val tile = item.Definition.Tile
-//              val destinationCollisionTest = destination.Collisions(dest, tile.Width, tile.Height)
-//              val destItemEntry = destinationCollisionTest match {
-//                case Success(entry :: Nil) =>
-//                  Some(entry)
-//                case _ =>
-//                  None
-//              }
-//              if( {
-//                destinationCollisionTest match {
-//                  case Success(Nil) | Success(_ :: Nil) =>
-//                    true //no item or one item to swap
-//                  case _ =>
-//                    false //abort when too many items at destination or other failure case
-//                }
-//              } && indexSlot.Equipment.contains(item)) {
-//                if(PermitEquipmentStow(item, destination)) {
-//                  StartBundlingPackets()
-//                  PerformMoveItem(item, source, index, destination, dest, destItemEntry)
-//                  StopBundlingPackets()
-//                }
-//                else {
-//                  log.error(s"MoveItem: $item disallowed storage in $destination")
-//                }
-//              }
-//              else if(!indexSlot.Equipment.contains(item)) {
-//                log.error(s"MoveItem: wanted to move $item_guid, but found unexpected ${indexSlot.Equipment} at source location")
-//              }
-//              else {
-//                destinationCollisionTest match {
-//                  case Success(_) =>
-//                    log.error(s"MoveItem: wanted to move $item_guid, but multiple unexpected items at destination blocked progress")
-//                  case scala.util.Failure(err) =>
-//                    log.error(s"MoveItem: wanted to move $item_guid, but $err")
-//                }
-//              }
-//            case _ =>
-//              log.error(s"MoveItem: wanted to move $item_guid, but could not find it")
-//          }
+          source.Actor ! Containable.MoveItem(destination, item, dest)
         case (None, _, _) =>
           log.error(s"MoveItem: wanted to move $item_guid from $source_guid, but could not find source object")
         case (_, None, _) =>
@@ -5210,33 +5173,26 @@ class WorldSessionActor extends Actor
     case msg@LootItemMessage(item_guid, target_guid) =>
       log.info(s"LootItem: $msg")
       (ValidObject(item_guid), ValidObject(target_guid)) match {
-        case (Some(item : Equipment), Some(target : Container)) =>
+        case (Some(item : Equipment), Some(destination : PlanetSideServerObject with Container)) =>
           //figure out the source
           ( {
-            val findFunc : PlanetSideGameObject with Container => Option[(PlanetSideGameObject with Container, Option[Int])] = FindInLocalContainer(item_guid)
+            val findFunc : PlanetSideServerObject with Container => Option[(PlanetSideServerObject with Container, Option[Int])] = FindInLocalContainer(item_guid)
             findFunc(player.Locker)
               .orElse(findFunc(player))
               .orElse(accessedContainer match {
-                case Some(parent) =>
+                case Some(parent : PlanetSideServerObject) =>
                   findFunc(parent)
-                case None =>
+                case _ =>
                   None
               }
               )
-          }, target.Fit(item)) match {
-            case (Some((source, Some(index))), Some(dest)) =>
-              if(PermitEquipmentStow(item, target)) {
-                StartBundlingPackets()
-                PerformMoveItem(item, source, index, target, dest, None)
-                StopBundlingPackets()
-              }
-              else {
-                log.error(s"LootItem: $item disallowed storage in $target")
-              }
+          }, destination.Fit(item)) match {
+            case (Some((source, Some(_))), Some(dest)) =>
+              source.Actor ! Containable.MoveItem(destination, item, dest)
             case (None, _) =>
               log.error(s"LootItem: can not find where $item is put currently")
             case (_, None) =>
-              log.error(s"LootItem: can not find somwhere to put $item in $target")
+              log.error(s"LootItem: can not find somwhere to put $item in $destination")
             case _ =>
               log.error(s"LootItem: wanted to move $item_guid to $target_guid, but multiple problems were encountered")
           }
@@ -7336,176 +7292,6 @@ class WorldSessionActor extends Actor
   }
 
   /**
-    * Given an item, and two places, one where the item currently is and one where the item will be moved,
-    * perform a controlled transfer of the item.
-    * If something exists at the `destination` side of the transfer in the position that `item` will occupy,
-    * resolve its location as well by swapping it with where `item` originally was positioned.<br>
-    * <br>
-    * Parameter checks will not be performed.
-    * Do perform checks before sending data to this function.
-    * Do not call with incorrect or unverified data, e.g., `item` not actually being at `source` @ `index`.
-    * @param item the item being moved
-    * @param source the container in which `item` is currently located
-    * @param index the index position in `source` where `item` is currently located
-    * @param destination the container where `item` is being moved
-    * @param dest the index position in `destination` where `item` is being moved
-    * @param destinationCollisionEntry information about the contents in an area of `destination` starting at index `dest`
-    */
-  private def PerformMoveItem(item : Equipment,
-                              source : PlanetSideGameObject with Container,
-                              index : Int,
-                              destination : PlanetSideGameObject with Container,
-                              dest : Int,
-                              destinationCollisionEntry : Option[InventoryItem]) : Unit = {
-    val item_guid = item.GUID
-    val source_guid = source.GUID
-    val destination_guid = destination.GUID
-    val player_guid = player.GUID
-    val indexSlot = source.Slot(index)
-    val sourceIsNotDestination : Boolean = source != destination //if source is destination, explicit OCDM is not required
-    if(sourceIsNotDestination) {
-      log.info(s"MoveItem: $item moved from $source @ $index to $destination @ $dest")
-    }
-    else {
-      log.info(s"MoveItem: $item moved from $index to $dest in $source")
-    }
-    //remove item from source
-    indexSlot.Equipment = None
-    source match {
-      case obj : Vehicle =>
-        continent.VehicleEvents ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.UnstowEquipment(player_guid, item_guid))
-      case obj : Player =>
-        if(obj.isBackpack || source.VisibleSlots.contains(index)) { //corpse being looted, or item was in hands
-          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, item_guid))
-        }
-      case _ => ;
-    }
-
-    destinationCollisionEntry match { //do we have a swap item in the destination slot?
-      case Some(InventoryItem(item2, destIndex)) => //yes, swap
-        //cleanly shuffle items around to avoid losing icons
-        //the next ObjectDetachMessage is necessary to avoid icons being lost, but only as part of this swap
-        sendResponse(ObjectDetachMessage(source_guid, item_guid, Vector3.Zero, 0f))
-        val item2_guid = item2.GUID
-        destination.Slot(destIndex).Equipment = None //remove the swap item from destination
-        (indexSlot.Equipment = item2) match {
-          case Some(_) => //item and item2 swapped places successfully
-            log.info(s"MoveItem: $item2 swapped to $source @ $index")
-            //remove item2 from destination
-            sendResponse(ObjectDetachMessage(destination_guid, item2_guid, Vector3.Zero, 0f))
-            destination match {
-              case obj : Vehicle =>
-                continent.VehicleEvents ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.UnstowEquipment(player_guid, item2_guid))
-              case obj : Player =>
-                if(obj.isBackpack || destination.VisibleSlots.contains(dest)) { //corpse being looted, or item was accessible
-                  continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, item2_guid))
-                  //put hand down locally
-                  if(dest == player.DrawnSlot) {
-                    player.DrawnSlot = Player.HandsDownSlot
-                  }
-                }
-              case _ => ;
-            }
-            //display item2 in source
-            if(sourceIsNotDestination && player == source) {
-              val objDef = item2.Definition
-              sendResponse(
-                ObjectCreateDetailedMessage(
-                  objDef.ObjectId,
-                  item2_guid,
-                  ObjectCreateMessageParent(source_guid, index),
-                  objDef.Packet.DetailedConstructorData(item2).get
-                )
-              )
-            }
-            else {
-              sendResponse(ObjectAttachMessage(source_guid, item2_guid, index))
-            }
-            source match {
-              case obj : Vehicle =>
-                item2.Faction = PlanetSideEmpire.NEUTRAL
-                continent.VehicleEvents ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.StowEquipment(player_guid, source_guid, index, item2))
-              case obj : Player =>
-                item2.Faction = obj.Faction
-                if(source.VisibleSlots.contains(index)) { //item is put in hands
-                  continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.EquipmentInHand(player_guid, source_guid, index, item2))
-                }
-                else if(obj.isBackpack) { //corpse being given item
-                  continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.StowEquipment(player_guid, source_guid, index, item2))
-                }
-              case _ =>
-                item2.Faction = PlanetSideEmpire.NEUTRAL
-            }
-
-          case None => //item2 does not fit; drop on ground
-            log.info(s"MoveItem: $item2 can not fit in swap location; dropping on ground @ ${source.Position}")
-            val pos = source.Position
-            val sourceOrientZ = source.Orientation.z
-            val orient : Vector3 = Vector3(0f, 0f, sourceOrientZ)
-            continent.Ground ! Zone.Ground.DropItem(item2, pos, orient)
-            sendResponse(ObjectDetachMessage(destination_guid, item2_guid, pos, sourceOrientZ)) //ground
-            val objDef = item2.Definition
-            destination match {
-              case obj : Vehicle =>
-                continent.VehicleEvents ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.UnstowEquipment(player_guid, item2_guid))
-              case _ => ;
-              //Player does not require special case; the act of dropping forces the item and icon to change
-            }
-            continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.DropItem(player_guid, item2, continent))
-        }
-
-      case None => ;
-    }
-    //move item into destination slot
-    destination.Slot(dest).Equipment = item
-    if(sourceIsNotDestination && player == destination) {
-      val objDef = item.Definition
-      sendResponse(
-        ObjectCreateDetailedMessage(
-          objDef.ObjectId,
-          item_guid,
-          ObjectCreateMessageParent(destination_guid, dest),
-          objDef.Packet.DetailedConstructorData(item).get
-        )
-      )
-    }
-    else {
-      sendResponse(ObjectAttachMessage(destination_guid, item_guid, dest))
-    }
-    destination match {
-      case obj : Vehicle =>
-        item.Faction = PlanetSideEmpire.NEUTRAL
-        continent.VehicleEvents ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.StowEquipment(player_guid, destination_guid, dest, item))
-      case obj : Player =>
-        if(destination.VisibleSlots.contains(dest)) { //item is put in hands
-          item.Faction = obj.Faction
-          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.EquipmentInHand(player_guid, destination_guid, dest, item))
-        }
-        else if(obj.isBackpack) { //corpse being given item
-          item.Faction = PlanetSideEmpire.NEUTRAL
-          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.StowEquipment(player_guid, destination_guid, dest, item))
-        }
-      case _ =>
-        item.Faction = PlanetSideEmpire.NEUTRAL
-    }
-  }
-
-  /**
-    * na
-    * @param equipment na
-    * @param obj na
-    * @return `true`, if the object is allowed to contain the type of equipment object
-    */
-  def PermitEquipmentStow(equipment : Equipment, obj : PlanetSideGameObject with Container) : Boolean = {
-    equipment match {
-      case _ : BoomerTrigger =>
-        obj.isInstanceOf[Player] //a BoomerTrigger can only be stowed in a player's holsters or inventory
-      case _ =>
-        true
-    }
-  }
-
-  /**
     * na
     * @param tool na
     * @param obj na
@@ -7740,7 +7526,7 @@ class WorldSessionActor extends Actor
     *         the first value is the container that matched correctly with the object's GUID;
     *         the second value is the slot position of the object
     */
-  def FindInLocalContainer(object_guid : PlanetSideGUID)(parent : PlanetSideGameObject with Container) : Option[(PlanetSideGameObject with Container, Option[Int])] = {
+  def FindInLocalContainer(object_guid : PlanetSideGUID)(parent : PlanetSideServerObject with Container) : Option[(PlanetSideServerObject with Container, Option[Int])] = {
     val slot : Option[Int] = parent.Find(object_guid)
     slot match {
       case place @ Some(_) =>
@@ -9486,21 +9272,21 @@ class WorldSessionActor extends Actor
     *        `false`, otherwise
     */
   def FindEquipmentToDelete(object_guid : PlanetSideGUID, obj : Equipment) : Boolean = {
-    val findFunc : PlanetSideGameObject with Container => Option[(PlanetSideGameObject with Container, Option[Int])] =
+    val findFunc : PlanetSideServerObject with Container => Option[(PlanetSideServerObject with Container, Option[Int])] =
       FindInLocalContainer(object_guid)
 
     findFunc(player.Locker)
       .orElse(findFunc(player))
       .orElse(accessedContainer match {
-        case Some(parent) =>
+        case Some(parent : PlanetSideServerObject) =>
           findFunc(parent)
-        case None =>
+        case _ =>
           None
       })
       .orElse(FindLocalVehicle match {
-        case Some(parent) =>
+        case Some(parent : PlanetSideServerObject) =>
           findFunc(parent)
-        case None =>
+        case _ =>
           None
       })
     match {

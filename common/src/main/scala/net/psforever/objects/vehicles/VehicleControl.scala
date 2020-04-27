@@ -4,8 +4,8 @@ package net.psforever.objects.vehicles
 import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects.{DefaultCancellable, GlobalDefinitions, SimpleItem, Vehicle, Vehicles}
 import net.psforever.objects.ballistics.{ResolvedProjectile, VehicleSource}
-import net.psforever.objects.equipment.JammableMountedWeapons
-import net.psforever.objects.serverobject.CommonMessages
+import net.psforever.objects.equipment.{Equipment, JammableMountedWeapons}
+import net.psforever.objects.serverobject.{CommonMessages, Containable}
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.damage.DamageableVehicle
@@ -16,6 +16,11 @@ import net.psforever.objects.vital.VehicleShieldCharge
 import net.psforever.objects.zones.Zone
 import net.psforever.types.{DriveState, ExoSuitType, PlanetSideGUID, Vector3}
 import services.{RemoverActor, Service}
+import net.psforever.packet.game.{ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectDetachMessage}
+import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
+import net.psforever.types.{ExoSuitType, PlanetSideEmpire, PlanetSideGUID, Vector3}
+import services.Service
+import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -36,7 +41,8 @@ class VehicleControl(vehicle : Vehicle) extends Actor
   with CargoBehavior
   with DamageableVehicle
   with RepairableVehicle
-  with JammableMountedWeapons {
+  with JammableMountedWeapons
+  with Containable {
 
   //make control actors belonging to utilities when making control actor belonging to vehicle
   vehicle.Utilities.foreach({case (_, util) => util.Setup })
@@ -48,6 +54,7 @@ class VehicleControl(vehicle : Vehicle) extends Actor
   def DeploymentObject = vehicle
   def DamageableObject = vehicle
   def RepairableObject = vehicle
+  def ContainerObject = vehicle
 
   /** cheap flag for whether the vehicle is decaying */
   var decaying : Boolean = false
@@ -72,6 +79,7 @@ class VehicleControl(vehicle : Vehicle) extends Actor
     .orElse(jammableBehavior)
     .orElse(takesDamage)
     .orElse(canBeRepairedByNanoDispenser)
+    .orElse(containerBehavior)
     .orElse {
       case msg : Mountable.TryMount =>
         tryMountBehavior.apply(msg)
@@ -220,6 +228,58 @@ class VehicleControl(vehicle : Vehicle) extends Actor
     if(vehicle.MountedIn.isEmpty) {
       super.TryJammerEffectActivate(target, cause)
     }
+  }
+
+  def MessageDeferredCallback(msg : Any) : Unit = {
+    msg match {
+      case Containable.MoveItem(_, item, _) =>
+        //momentarily put item back where it was originally
+        val obj = ContainerObject
+        obj.Find(item) match {
+          case Some(slot) =>
+            obj.Zone.AvatarEvents ! AvatarServiceMessage(
+              self.toString,
+              AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectAttachMessage(obj.GUID, item.GUID, slot))
+            )
+          case None => ;
+        }
+      case _ => ;
+    }
+  }
+
+  def RemoveItemFromSlotCallback(item : Equipment, slot : Int) : Unit = {
+    val zone = ContainerObject.Zone
+    zone.VehicleEvents ! VehicleServiceMessage(self.toString, VehicleAction.UnstowEquipment(Service.defaultPlayerGUID, item.GUID))
+  }
+
+  def PutItemInSlotCallback(item : Equipment, slot : Int) : Unit = {
+    val obj = ContainerObject
+    val guid = obj.GUID
+    val zone = obj.Zone
+    val events = zone.VehicleEvents
+    val definition = item.Definition
+    item.Faction = PlanetSideEmpire.NEUTRAL
+    if(obj.VisibleSlots.contains(slot)) {
+      events ! VehicleServiceMessage(zone.Id, VehicleAction.StowEquipment(guid, guid, slot, item))
+    }
+    events ! VehicleServiceMessage(
+      self.toString,
+      VehicleAction.SendResponse(
+        Service.defaultPlayerGUID,
+        ObjectCreateDetailedMessage(
+          definition.ObjectId,
+          item.GUID,
+          ObjectCreateMessageParent(obj.GUID, slot),
+          definition.Packet.DetailedConstructorData(item).get
+        )
+      )
+    )
+  }
+
+  def SwapItemCallback(item : Equipment) : Unit = {
+    val obj = ContainerObject
+    val zone = obj.Zone
+    zone.VehicleEvents ! VehicleServiceMessage(self.toString, VehicleAction.SendResponse(Service.defaultPlayerGUID, ObjectDetachMessage(obj.GUID, item.GUID, Vector3.Zero, 0f)))
   }
 }
 
