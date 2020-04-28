@@ -16,6 +16,7 @@ import net.psforever.objects.vital.{DamageResistanceModel, StandardResistancePro
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 
 import scala.annotation.tailrec
+import scala.concurrent.duration.FiniteDuration
 
 /**
   * The server-side support object that represents a vehicle.<br>
@@ -577,11 +578,12 @@ object Vehicle {
   final case class VehicleMessages(player : Player, response : Exchange)
 
   /**
-    * The `Vehicle` will become unresponsive to player activity.
-    * Usually, it does this to await deconstruction and clean-up.
+    * Initiate vehicle deconstruction.
     * @see `VehicleControl`
+    * @param time the delay before deconstruction should initiate;
+    *             should initiate instantly when `None`
     */
-  final case class PrepareForDeletion()
+  final case class Deconstruct(time : Option[FiniteDuration] = None)
 
   /**
     * The `Vehicle` will resume previous unresponsiveness to player activity.

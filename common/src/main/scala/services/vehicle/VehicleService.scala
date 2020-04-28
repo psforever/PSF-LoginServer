@@ -137,11 +137,6 @@ class VehicleService(zone : Zone) extends Actor {
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.TransferPassengerChannel(old_channel, temp_channel, vehicle, vehicle_to_delete))
           )
-
-        case VehicleAction.ForceDismountVehicleCargo(player_guid, vehicle_guid, bailed, requestedByPassenger, kicked) =>
-          VehicleEvents.publish(
-            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.ForceDismountVehicleCargo(vehicle_guid, bailed, requestedByPassenger, kicked))
-          )
         case VehicleAction.KickCargo(player_guid, cargo, speed, delay) =>
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.KickCargo(cargo, speed, delay))
@@ -216,12 +211,6 @@ class VehicleService(zone : Zone) extends Actor {
       VehicleEvents.publish(
         VehicleServiceResponse(s"/${zone.Id}/Vehicle", Service.defaultPlayerGUID, VehicleResponse.LoadVehicle(vehicle, vtype, vguid, vdata))
       )
-      //avoid unattended vehicle spawning blocking the pad; user should mount (and does so normally) to reset decon timer
-      vehicleDecon forward RemoverActor.AddTask(vehicle, zone, Some(30 seconds))
-
-    case VehicleSpawnPad.DisposeVehicle(vehicle) =>
-      vehicleDecon forward RemoverActor.AddTask(vehicle, zone, Some(0 seconds))
-      vehicleDecon forward RemoverActor.HurrySpecific(List(vehicle), zone)
 
     //correspondence from WorldSessionActor
     case VehicleServiceMessage.AMSDeploymentChange(_) =>

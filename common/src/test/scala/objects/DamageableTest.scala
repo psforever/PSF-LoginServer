@@ -21,7 +21,7 @@ import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game.DamageWithPositionMessage
 import net.psforever.types._
-import services.{RemoverActor, Service}
+import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.support.SupportActor
 import services.vehicle.support.TurretUpgrader
@@ -1307,7 +1307,6 @@ class DamageableVehicleDestroyTest extends ActorTest {
       atv.Actor ! Vitality.Damage(applyDamageTo)
       val msg124 = avatarProbe.receiveN(3, 500 milliseconds)
       val msg3 = player2Probe.receiveOne(200 milliseconds)
-      val msg567 = vehicleProbe.receiveN(2, 200 milliseconds)
       assert(
         msg124.head match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(1), 0, _)) => true
@@ -1329,18 +1328,6 @@ class DamageableVehicleDestroyTest extends ActorTest {
       assert(
         msg124(2) match {
           case AvatarServiceMessage("test", AvatarAction.ObjectDelete(PlanetSideGUID(0), PlanetSideGUID(4), _)) => true
-          case _ => false
-        }
-      )
-      assert(
-        msg567.head match {
-          case VehicleServiceMessage.Decon(SupportActor.ClearSpecific(List(target), _zone)) if (target eq atv) && (_zone eq zone) => true
-          case _ => false
-        }
-      )
-      assert(
-        msg567(1) match {
-          case VehicleServiceMessage.Decon(RemoverActor.AddTask(target, _zone, _)) if (target eq atv) && (_zone eq zone) => true
           case _ => false
         }
       )
@@ -1467,7 +1454,7 @@ class DamageableVehicleDestroyMountedTest extends ActorTest {
     player2Probe.expectNoMsg(10 milliseconds)
     val msg_player3 = player3Probe.receiveOne(200 milliseconds)
     player3Probe.expectNoMsg(10 milliseconds)
-    val msg_vehicle = vehicleProbe.receiveN(6, 200 milliseconds)
+    val msg_vehicle = vehicleProbe.receiveN(2, 200 milliseconds)
     vehicleProbe.expectNoMsg(10 milliseconds)
     assert(
       msg_avatar.exists( {
@@ -1510,30 +1497,6 @@ class DamageableVehicleDestroyMountedTest extends ActorTest {
         case Player.Die() => true
         case _ => false
       }
-    )
-    assert(
-      msg_vehicle.exists( {
-        case VehicleServiceMessage.Decon(SupportActor.ClearSpecific(List(target), _zone)) if (target eq lodestar) && (_zone eq zone) => true
-        case _ => false
-      })
-    )
-    assert(
-      msg_vehicle.exists( {
-        case VehicleServiceMessage.Decon(RemoverActor.AddTask(target, _zone, _)) if (target eq lodestar) && (_zone eq zone) => true
-        case _ => false
-      })
-    )
-    assert(
-      msg_vehicle.exists( {
-        case VehicleServiceMessage.Decon(SupportActor.ClearSpecific(List(target), _zone)) if (target eq atv) && (_zone eq zone) => true
-        case _ => false
-      })
-    )
-    assert(
-      msg_vehicle.exists( {
-        case VehicleServiceMessage.Decon(RemoverActor.AddTask(target, _zone, _)) if (target eq atv) && (_zone eq zone) => true
-        case _ => false
-      })
     )
     assert(
         msg_vehicle.exists( {

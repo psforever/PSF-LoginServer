@@ -8,7 +8,7 @@ import net.psforever.objects.vehicles.CargoBehavior.{CheckCargoDismount, CheckCa
 import net.psforever.packet.game.{CargoMountPointStatusMessage, ObjectAttachMessage, ObjectDetachMessage, PlanetsideAttributeMessage}
 import net.psforever.types.{CargoStatus, PlanetSideGUID, Vector3}
 import services.avatar.{AvatarAction, AvatarServiceMessage}
-import services.{RemoverActor, Service}
+import services.Service
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.duration._
@@ -231,18 +231,18 @@ object CargoBehavior {
 
   /**
     * na
-    * @param player_guid na
+    * @param zone na
     * @param cargo_guid na
     * @param bailed na
     * @param requestedByPassenger na
     * @param kicked na
     */
-  def HandleVehicleCargoDismount(zone : Zone, player_guid : PlanetSideGUID, cargo_guid : PlanetSideGUID, bailed : Boolean, requestedByPassenger : Boolean, kicked : Boolean) : Unit = {
+  def HandleVehicleCargoDismount(zone : Zone, cargo_guid : PlanetSideGUID, bailed : Boolean, requestedByPassenger : Boolean, kicked : Boolean) : Unit = {
     zone.GUID(cargo_guid) match {
       case Some(cargo : Vehicle) =>
         zone.GUID(cargo.MountedIn) match {
           case Some(ferry : Vehicle) =>
-            HandleVehicleCargoDismount(player_guid, cargo_guid, cargo, ferry.GUID, ferry, bailed, requestedByPassenger, kicked)
+            HandleVehicleCargoDismount(cargo_guid, cargo, ferry.GUID, ferry, bailed, requestedByPassenger, kicked)
           case _ =>
             log.warn(s"DismountVehicleCargo: target ${cargo.Definition.Name}@$cargo_guid does not know what treats it as cargo")
         }
@@ -253,7 +253,6 @@ object CargoBehavior {
 
   /**
     * na
-    * @param player_guid the target player
     * @param cargoGUID the globally unique number for the vehicle being ferried
     * @param cargo the vehicle being ferried
     * @param carrierGUID the globally unique number for the vehicle doing the ferrying
@@ -262,7 +261,7 @@ object CargoBehavior {
     * @param requestedByPassenger the ferried vehicle is being politely disembarked from the cargo hold
     * @param kicked the ferried vehicle is being kicked out of the cargo hold
     */
-  def HandleVehicleCargoDismount(player_guid : PlanetSideGUID, cargoGUID : PlanetSideGUID, cargo : Vehicle, carrierGUID : PlanetSideGUID, carrier : Vehicle, bailed : Boolean, requestedByPassenger : Boolean, kicked : Boolean) : Unit = {
+  def HandleVehicleCargoDismount(cargoGUID : PlanetSideGUID, cargo : Vehicle, carrierGUID : PlanetSideGUID, carrier : Vehicle, bailed : Boolean, requestedByPassenger : Boolean, kicked : Boolean) : Unit = {
     val zone = carrier.Zone
     carrier.CargoHolds.find({case(_, hold) => hold.Occupant.contains(cargo)}) match {
       case Some((mountPoint, hold)) =>
@@ -284,41 +283,43 @@ object CargoBehavior {
           //the lodestar's cargo hold is almost the center of the vehicle
           carrier.Position
         }
-        zone.VehicleEvents ! VehicleServiceMessage(s"${cargo.Actor}", VehicleAction.SendResponse(PlanetSideGUID(0), PlanetsideAttributeMessage(cargoGUID, 0, cargo.Health)))
-        zone.VehicleEvents ! VehicleServiceMessage(s"${cargo.Actor}", VehicleAction.SendResponse(PlanetSideGUID(0), PlanetsideAttributeMessage(cargoGUID, 68, cargo.Shields)))
+        val GUID0 = Service.defaultPlayerGUID
+        val zoneId = zone.Id
+        val events = zone.VehicleEvents
+        val cargoActor = cargo.Actor
+        events ! VehicleServiceMessage(s"$cargoActor", VehicleAction.SendResponse(GUID0, PlanetsideAttributeMessage(cargoGUID, 0, cargo.Health)))
+        events ! VehicleServiceMessage(s"$cargoActor", VehicleAction.SendResponse(GUID0, PlanetsideAttributeMessage(cargoGUID, 68, cargo.Shields)))
         if(carrier.Flying) {
           //the carrier vehicle is flying; eject the cargo vehicle
-          val ejectCargoMsg = CargoMountPointStatusMessage(carrierGUID, PlanetSideGUID(0), PlanetSideGUID(0), cargoGUID, mountPoint, CargoStatus.InProgress, 0)
+          val ejectCargoMsg = CargoMountPointStatusMessage(carrierGUID, GUID0, GUID0, cargoGUID, mountPoint, CargoStatus.InProgress, 0)
           val detachCargoMsg = ObjectDetachMessage(carrierGUID, cargoGUID, cargoHoldPosition - Vector3.z(1), rotation)
-          val resetCargoMsg = CargoMountPointStatusMessage(carrierGUID, PlanetSideGUID(0), PlanetSideGUID(0), cargoGUID, mountPoint, CargoStatus.Empty, 0)
-          zone.VehicleEvents ! VehicleServiceMessage(zone.Id, VehicleAction.SendResponse(Service.defaultPlayerGUID, ejectCargoMsg))
-          zone.VehicleEvents ! VehicleServiceMessage(zone.Id, VehicleAction.SendResponse(Service.defaultPlayerGUID, detachCargoMsg))
-          zone.VehicleEvents ! VehicleServiceMessage(zone.Id, VehicleAction.SendResponse(Service.defaultPlayerGUID, resetCargoMsg))
+          val resetCargoMsg = CargoMountPointStatusMessage(carrierGUID, GUID0, GUID0, cargoGUID, mountPoint, CargoStatus.Empty, 0)
+          events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(GUID0, ejectCargoMsg))
+          events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(GUID0, detachCargoMsg))
+          events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(GUID0, resetCargoMsg))
           log.debug(ejectCargoMsg.toString)
           log.debug(detachCargoMsg.toString)
           if(driverOpt.isEmpty) {
             //TODO cargo should drop like a rock like normal; until then, deconstruct it
-            zone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(cargo), zone))
-            zone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(cargo, zone, Some(0 seconds)))
+            cargo.Actor ! Vehicle.Deconstruct()
           }
         }
         else {
           //the carrier vehicle is not flying; just open the door and let the cargo vehicle back out; force it out if necessary
-          val cargoStatusMessage = CargoMountPointStatusMessage(carrierGUID, PlanetSideGUID(0), cargoGUID, PlanetSideGUID(0), mountPoint, CargoStatus.InProgress, 0)
+          val cargoStatusMessage = CargoMountPointStatusMessage(carrierGUID, GUID0, cargoGUID, GUID0, mountPoint, CargoStatus.InProgress, 0)
           val cargoDetachMessage = ObjectDetachMessage(carrierGUID, cargoGUID, cargoHoldPosition + Vector3.z(1f), rotation)
-          zone.VehicleEvents ! VehicleServiceMessage(zone.Id, VehicleAction.SendResponse(Service.defaultPlayerGUID, cargoStatusMessage))
-          zone.VehicleEvents ! VehicleServiceMessage(zone.Id, VehicleAction.SendResponse(Service.defaultPlayerGUID, cargoDetachMessage))
+          events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(GUID0, cargoStatusMessage))
+          events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(GUID0, cargoDetachMessage))
           driverOpt match {
             case Some(driver) =>
-              zone.VehicleEvents ! VehicleServiceMessage(s"${driver.Name}", VehicleAction.KickCargo(player_guid, cargo, cargo.Definition.AutoPilotSpeed2, 2500))
+              events ! VehicleServiceMessage(s"${driver.Name}", VehicleAction.KickCargo(GUID0, cargo, cargo.Definition.AutoPilotSpeed2, 2500))
               //check every quarter second if the vehicle has moved far enough away to be considered dismounted
-              cargo.Actor ! CheckCargoDismount(carrierGUID, mountPoint, 0)
+              cargoActor ! CheckCargoDismount(carrierGUID, mountPoint, 0)
             case None =>
-              val resetCargoMsg = CargoMountPointStatusMessage(carrierGUID, PlanetSideGUID(0), PlanetSideGUID(0), cargoGUID, mountPoint, CargoStatus.Empty, 0)
-              zone.VehicleEvents ! VehicleServiceMessage(zone.Id, VehicleAction.SendResponse(PlanetSideGUID(0), resetCargoMsg)) //lazy
+              val resetCargoMsg = CargoMountPointStatusMessage(carrierGUID, GUID0, GUID0, cargoGUID, mountPoint, CargoStatus.Empty, 0)
+              events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(GUID0, resetCargoMsg)) //lazy
               //TODO cargo should back out like normal; until then, deconstruct it
-              zone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(cargo), zone))
-              zone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(cargo, zone, Some(0 seconds)))
+              cargoActor ! Vehicle.Deconstruct()
           }
         }
 

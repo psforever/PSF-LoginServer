@@ -348,16 +348,15 @@ class PersistenceMonitor(name : String, squadService : ActorRef, taskResolver : 
   def DisownVehicle(player : Player) : Unit = {
     Vehicles.Disown(player, inZone) match {
       case Some(vehicle) if vehicle.Health == 0 || (vehicle.Seats.values.forall(seat => !seat.isOccupied) && vehicle.Owner.isEmpty) =>
-        inZone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(vehicle), inZone))
-        inZone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(vehicle, inZone,
+        vehicle.Actor ! Vehicle.Deconstruct(
           if(vehicle.Flying) {
             //TODO gravity
-            Some(0 seconds) //immediate deconstruction
+            None //immediate deconstruction
           }
           else {
             vehicle.Definition.DeconstructionTime //normal deconstruction
           }
-        ))
+        )
       case _ => ;
     }
   }

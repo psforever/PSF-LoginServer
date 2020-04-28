@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.pad.process
 
 import akka.actor.{ActorRef, Props}
+import net.psforever.objects.Vehicle
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -38,9 +39,12 @@ class VehicleSpawnControlSeatDriver(pad : VehicleSpawnPad) extends VehicleSpawnC
 
     case VehicleSpawnControlSeatDriver.BeginDriverInSeat(entry) =>
       val driver = entry.driver
-      if(entry.vehicle.Health > 0 && driver.isAlive && driver.Continent == pad.Continent && driver.VehicleSeated.isEmpty) {
+      val vehicle = entry.vehicle
+      //avoid unattended vehicle blocking the pad; user should mount (and does so normally) to reset decon timer
+      vehicle.Actor ! Vehicle.Deconstruct(Some(30 seconds))
+      if(vehicle.Health > 0 && driver.isAlive && driver.Continent == pad.Continent && driver.VehicleSeated.isEmpty) {
         trace("driver to be made seated in vehicle")
-        pad.Zone.VehicleEvents ! VehicleSpawnPad.StartPlayerSeatedInVehicle(entry.driver.Name, entry.vehicle, pad)
+        pad.Zone.VehicleEvents ! VehicleSpawnPad.StartPlayerSeatedInVehicle(driver.Name, vehicle, pad)
       }
       else{
         trace("driver lost; vehicle stranded on pad")
@@ -48,7 +52,7 @@ class VehicleSpawnControlSeatDriver(pad : VehicleSpawnPad) extends VehicleSpawnC
       context.system.scheduler.scheduleOnce(2500 milliseconds, self, VehicleSpawnControlSeatDriver.DriverInSeat(entry))
 
     case VehicleSpawnControlSeatDriver.DriverInSeat(entry) =>
-      if(entry.driver.isAlive && entry.vehicle.PassengerInSeat(entry.driver).contains(0)) {
+      if(entry.vehicle.Health > 0 && entry.driver.isAlive && entry.vehicle.PassengerInSeat(entry.driver).contains(0)) {
         trace(s"driver ${entry.driver.Name} has taken the wheel")
         pad.Zone.VehicleEvents ! VehicleSpawnPad.PlayerSeatedInVehicle(entry.driver.Name, entry.vehicle, pad)
       }
