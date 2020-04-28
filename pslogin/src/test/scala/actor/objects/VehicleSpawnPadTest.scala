@@ -218,7 +218,7 @@ object VehicleSpawnPadControlTest {
     val vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
     val weapon = vehicle.WeaponControlledFromSeat(1).get.asInstanceOf[Tool]
     val guid : NumberPoolHub = new NumberPoolHub(LimitedNumberSource(5))
-    guid.AddPool("test-pool", (0 to 3).toList)
+    guid.AddPool("test-pool", (0 to 5).toList)
     guid.register(vehicle, "test-pool")
     guid.register(weapon, "test-pool")
     guid.register(weapon.AmmoSlot.Box, "test-pool")
@@ -241,6 +241,7 @@ object VehicleSpawnPadControlTest {
     pad.Owner = new Building("Building", building_guid = 0, map_id = 0, zone, StructureType.Building, GlobalDefinitions.building)
     pad.Owner.Faction = faction
     pad.Zone = zone
+    guid.register(pad, "test-pool")
     val player = Player(Avatar("test", faction, CharacterGender.Male, 0, CharacterVoice.Mute))
     guid.register(player, "test-pool")
     player.Zone = zone
