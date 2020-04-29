@@ -218,3 +218,17 @@ NetSim.ReorderTime = 150 milliseconds
 
 #
 ###################################################################################################
+
+
+[kamon]
+
+# Kamon
+#
+#    Active (boolean)
+#        Description: Enables reporting of metrics to Kamon.io
+#        Important:   Ensure the API key is set in application.conf in the same
+#                     folder as PsLogin.scala
+#        Default:     no  - (Disabled)
+#                     yes - (Enabled)
+
+Active = no

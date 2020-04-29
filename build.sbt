@@ -44,7 +44,9 @@ lazy val commonSettings = Seq(
     "com.github.mauricio"        %% "postgresql-async" % "0.2.21",
     "com.github.t3hnar"          %% "scala-bcrypt"  % "3.1",
     "org.ini4j"                  % "ini4j"         % "0.5.4",
-    "org.scala-graph"            %% "graph-core"    % "1.12.5"
+    "org.scala-graph"            %% "graph-core"    % "1.12.5",
+    "io.kamon"                   %% "kamon-bundle" % "2.1.0",
+    "io.kamon"                   %% "kamon-apm-reporter" % "2.1.0"
   )
 )
 
