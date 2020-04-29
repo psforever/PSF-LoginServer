@@ -26,6 +26,7 @@ object FacilityTurret {
   }
 
   final case class RechargeAmmo()
+  final case class WeaponDischarged()
 
   import akka.actor.ActorContext
   /**

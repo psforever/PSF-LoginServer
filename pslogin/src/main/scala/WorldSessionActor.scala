@@ -5850,6 +5850,12 @@ class WorldSessionActor extends Actor
                 })
               }
               projectilesToCleanUp(projectileIndex) = false
+
+              obj match {
+                case turret : FacilityTurret if turret.Definition == GlobalDefinitions.vanu_sentry_turret =>
+                  turret.Actor ! FacilityTurret.WeaponDischarged()
+                case _ => ;
+              }
             }
             else {
               log.warn(s"WeaponFireMessage: $player's ${tool.Definition.Name} projectile is too far from owner position at time of discharge ($distanceToOwner > $acceptableDistanceToOwner); suspect")

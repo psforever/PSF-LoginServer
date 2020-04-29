@@ -3,7 +3,7 @@ package net.psforever.objects.serverobject.turret
 
 import akka.actor.Actor
 import net.psforever.objects.ballistics.ResolvedProjectile
-import net.psforever.objects.{GlobalDefinitions, Player, Tool}
+import net.psforever.objects.{DefaultCancellable, GlobalDefinitions, Player, Tool}
 import net.psforever.objects.equipment.{Ammo, JammableMountedWeapons}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.mount.MountableBehavior
@@ -39,10 +39,9 @@ class FacilityTurretControl(turret : FacilityTurret) extends Actor
   def JammableObject = turret
   def DamageableObject = turret
   def RepairableObject = turret
-  if(turret.Definition == GlobalDefinitions.vanu_sentry_turret) {
-    // todo: Schedule this to start when weapon is discharged, not all the time
-    context.system.scheduler.schedule(3 seconds, 200 milliseconds, self, FacilityTurret.RechargeAmmo())
-  }
+
+  // Used for timing ammo recharge for vanu turrets in caves
+  var weaponAmmoRechargeTimer = DefaultCancellable.obj
 
   def receive : Receive = checkBehavior
     .orElse(jammableBehavior)
@@ -65,6 +64,13 @@ class FacilityTurretControl(turret : FacilityTurret) extends Actor
           case _ => ;
         }
 
+      case FacilityTurret.WeaponDischarged() =>
+        if(weaponAmmoRechargeTimer != DefaultCancellable.obj) {
+          weaponAmmoRechargeTimer.cancel()
+        }
+
+        weaponAmmoRechargeTimer = context.system.scheduler.schedule(3 seconds, 200 milliseconds, self, FacilityTurret.RechargeAmmo())
+
       case FacilityTurret.RechargeAmmo() =>
         val weapon = turret.ControlledWeapon(1).get.asInstanceOf[net.psforever.objects.Tool]
         // recharge when last shot fired 3s delay, +1, 200ms interval
@@ -75,6 +81,11 @@ class FacilityTurretControl(turret : FacilityTurret) extends Actor
             case Some(player: Player) => turret.Zone.LocalEvents ! LocalServiceMessage(turret.Zone.Id, LocalAction.RechargeVehicleWeapon(player.GUID, turret.GUID, weapon.GUID))
             case _ => ;
           }
+        }
+
+        if(weapon.Magazine == weapon.MaxMagazine && weaponAmmoRechargeTimer != DefaultCancellable.obj) {
+          weaponAmmoRechargeTimer.cancel()
+          weaponAmmoRechargeTimer = DefaultCancellable.obj
         }
 
       case _ => ;
