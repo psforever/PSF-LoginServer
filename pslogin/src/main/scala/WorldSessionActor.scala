@@ -265,7 +265,7 @@ class WorldSessionActor extends Actor
   def ValidObject(id : Option[PlanetSideGUID]) : Option[PlanetSideGameObject] = continent.GUID(id) match {
     case out@Some(obj) if obj.HasGUID =>
       out
-    case None if id.nonEmpty =>
+    case None if id.nonEmpty && id.get != PlanetSideGUID(0) =>
       //delete stale entity reference from client
       log.warn(s"Player ${player.Name} has an invalid reference to GUID ${id.get} in zone ${continent.Id}.")
       //sendResponse(ObjectDeleteMessage(id.get, 0))
