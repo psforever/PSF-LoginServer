@@ -2,8 +2,13 @@
 package net.psforever.objects.zones
 
 import akka.actor.Actor
+import net.psforever.objects.{BoomerDeployable, BoomerTrigger}
 import net.psforever.objects.equipment.Equipment
-import net.psforever.types.PlanetSideGUID
+import net.psforever.packet.game._
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
+import services.{RemoverActor, Service}
+import services.avatar.{AvatarAction, AvatarServiceMessage}
+import services.local.{LocalAction, LocalServiceMessage}
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
@@ -28,6 +33,9 @@ class ZoneGroundActor(zone : Zone, equipmentOnGround : ListBuffer[Equipment]) ex
       }
       else {
         equipmentOnGround += item
+        item.Position = pos
+        item.Orientation = orient
+        ZoneGroundActor.PutItemOnGround(zone, item)
         Zone.Ground.ItemOnGround(item, pos, orient)
       })
 
@@ -81,5 +89,47 @@ class ZoneGroundActor(zone : Zone, equipmentOnGround : ListBuffer[Equipment]) ex
         recursiveFindItemOnGround(iter, item_guid, index + 1)
       }
     }
+  }
+}
+
+object ZoneGroundActor {
+  /**
+    * Primary functionality for tranferring a piece of equipment from a player's hands or his inventory to the ground.
+    * Items are always dropped at player's feet because for simplicity's sake
+    * because, by virtue of already standing there, the stability of the surface has been proven.
+    * The only exception to this is dropping items while falling.
+    * We have no case for that yet, so the item hangs in midair, typically unreachable.
+    * @see `Player.Find`<br>
+    *       `ObjectDetachMessage`
+    * @param item the `Equipment` object in the player's hand
+    */
+  def PutItemOnGround(zone : Zone, item : Equipment) : Unit = {
+    item match {
+      case trigger : BoomerTrigger =>
+        //dropped the trigger, no longer own the boomer; make certain whole faction is aware of that
+        zone.GUID(trigger.Companion) match {
+          case Some(obj : BoomerDeployable) =>
+            val guid = obj.GUID
+            val factionChannel = obj.Faction.toString
+            val owner = obj.OwnerName.getOrElse("")
+            val info = DeployableInfo(guid, DeployableIcon.Boomer, obj.Position, PlanetSideGUID(0))
+            zone.LocalEvents ! LocalServiceMessage(owner, LocalAction.AlertDestroyDeployable(Service.defaultPlayerGUID, obj))
+            obj.AssignOwnership(None)
+            obj.Faction = PlanetSideEmpire.NEUTRAL
+            zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, zone))
+            zone.LocalEvents ! LocalServiceMessage(factionChannel, LocalAction.DeployableMapIcon(Service.defaultPlayerGUID, DeploymentAction.Dismiss, info))
+            zone.AvatarEvents ! AvatarServiceMessage(factionChannel, AvatarAction.SetEmpire(Service.defaultPlayerGUID, guid, PlanetSideEmpire.NEUTRAL))
+          case Some(_) | None =>
+            //TODO pointless trigger
+            println("[ERROR] Ground: you have a pointless boomer trigger that I can't clean up")
+//            val guid = item.GUID
+//            zone.Ground ! Zone.Ground.RemoveItem(guid) //undo; no callback
+//            zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.ObjectDelete(PlanetSideGUID(0), guid))
+//            taskResolver ! GUIDTask.UnregisterObjectTask(item)(zone.GUID)
+        }
+      case _ => ;
+    }
+    item.Faction = PlanetSideEmpire.NEUTRAL
+    zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.DropItem(Service.defaultPlayerGUID, item, zone))
   }
 }

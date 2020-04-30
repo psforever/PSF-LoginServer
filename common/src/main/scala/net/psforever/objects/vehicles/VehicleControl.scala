@@ -1,4 +1,4 @@
-// Copyright (c) 2017 PSForever
+// Copyright (c) 2017-2020 PSForever
 package net.psforever.objects.vehicles
 
 import akka.actor.{Actor, ActorRef, Cancellable}
@@ -14,8 +14,8 @@ import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.repair.RepairableVehicle
 import net.psforever.objects.vital.VehicleShieldCharge
 import net.psforever.objects.zones.Zone
-import net.psforever.types.{DriveState, ExoSuitType, PlanetSideGUID, Vector3}
-import services.{RemoverActor, Service}
+import net.psforever.types.DriveState
+import services.RemoverActor
 import net.psforever.packet.game.{ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectDetachMessage}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.types.{ExoSuitType, PlanetSideEmpire, PlanetSideGUID, Vector3}
