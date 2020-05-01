@@ -27,7 +27,7 @@ object GenericHackables {
       case hackable : Hackable => hackable.HackDuration(playerHackLevel)
       case _ =>
         log.warn(s"${player.Name} tried to hack an object that has no hack time defined - ${obj.Definition.Name}#${obj.GUID} on ${obj.Zone.Id}")
-        0
+        0f
     }
     if(timeToHack == 0) {
       log.warn(s"${player.Name} tried to hack an object that they don't have the correct hacking level for - ${obj.Definition.Name}#${obj.GUID} on ${obj.Zone.Id}")
@@ -35,7 +35,7 @@ object GenericHackables {
     }
     else {
       //timeToHack is in seconds; progress is measured in quarters of a second (250ms)
-      (100 / timeToHack) / 4
+      (100f / timeToHack) / 4
     }
   }
 
