@@ -4663,7 +4663,6 @@ class WorldSessionActor extends Actor
                 if(!building.Name.isEmpty && args(1).equalsIgnoreCase(building.Name)) {
                   log.info(s"Hack Base Name : ${args(1)} to empire : ${args(2)}")
                   building.Faction = hackFaction
-                  building.Actor ! Building.TriggerZoneMapUpdate(continent.Number)
                   continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.SetEmpire(building.GUID, hackFaction))
                 }
             })
@@ -4681,10 +4680,13 @@ class WorldSessionActor extends Actor
           else {
             continent.Buildings.foreach({
               case (id, building) =>
-                if (!building.Name.isEmpty && !bad && building.BuildingType.id != 6) {
+                if (!building.Name.isEmpty && !bad
+                  && building.BuildingType != StructureType.Bridge
+                  && building.BuildingType != StructureType.Bunker
+                  && building.BuildingType != StructureType.WarpGate
+                ) {
                   log.info(s"Hack Bases to empire : ${args(1)}")
                   building.Faction = hackFaction
-                  building.Actor ! Building.TriggerZoneMapUpdate(continent.Number)
                   continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.SetEmpire(building.GUID, hackFaction))
                 }
             })

@@ -2,7 +2,7 @@
 package net.psforever.objects.zones
 
 import akka.actor.{Actor, Props}
-import net.psforever.objects.serverobject.structures.Building
+import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.types.Vector3
 
 import scala.annotation.tailrec
@@ -75,7 +75,9 @@ class InterstellarCluster(zones : List[Zone]) extends Actor {
       }
     case InterstellarCluster.ZoneMapUpdate(zone_num: Int) =>
       val zone = zones.find(x => x.Number == zone_num).get
-      zone.Buildings.values.foreach(b => b.Actor ! Building.SendMapUpdate(all_clients = true))
+      zone.Buildings
+          .filter(_._2.BuildingType == StructureType.Facility)
+          .values.foreach(b => b.Actor ! Building.SendMapUpdate(all_clients = true))
 
 
     case Zoning.InstantAction.Request(faction) =>
