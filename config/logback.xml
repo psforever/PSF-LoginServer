@@ -39,6 +39,5 @@
 
   <!-- Logger specific overrides -->
   <logger name="com.github.mauricio.async" level="OFF"/>
-  <logger name="oshi.util.FileUtil" level="OFF"/>
-  <logger name="o.h.platform.linux.LinuxDisks" level="OFF"/>
+  <logger name="oshi" level="OFF"/>
 </configuration>
