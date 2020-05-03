@@ -281,10 +281,11 @@ object Building {
     new Building(name, guid, map_id, zone, buildingType, GlobalDefinitions.building)
   }
 
-  def Structure(buildingType : StructureType.Value, location : Vector3, definition: BuildingDefinition)(name : String, guid : Int, map_id : Int, zone : Zone, context : ActorContext) : Building = {
+  def Structure(buildingType : StructureType.Value, location : Vector3, rotation : Vector3, definition: BuildingDefinition)(name : String, guid : Int, map_id : Int, zone : Zone, context : ActorContext) : Building = {
     import akka.actor.Props
     val obj = new Building(name, guid, map_id, zone, buildingType, definition)
     obj.Position = location
+    obj.Orientation = rotation
     obj.Actor = context.actorOf(Props(classOf[BuildingControl], obj), s"$map_id-$buildingType-building")
     obj
   }

@@ -15,13 +15,12 @@ import net.psforever.types.Vector3
 object Ugd05 { // Annwn
   val ZoneMap = new ZoneMap("ugd05") {
     Scale = MapScale.Dim2048
-    Cavern = true
     Checksum = 1769572498L
 
     Building10116()
 
     def Building10116(): Unit = { // Name: ceiling_bldg_a_10116 Type: ceiling_bldg_a GUID: 1, MapID: 10116
-      LocalBuilding("ceiling_bldg_a_10116", 1, 10116, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1287.36f, 953.39f, 272.03f), ceiling_bldg_a)))
+      LocalBuilding("ceiling_bldg_a_10116", 1, 10116, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1287.36f, 953.39f, 272.03f), Vector3(0f, 0f, 279f), ceiling_bldg_a)))
       LocalObject(478, Door.Constructor(Vector3(1278.85f, 936.597f, 279.315f)), owning_building_guid = 1)
       LocalObject(479, Door.Constructor(Vector3(1292.775f, 968.4059f, 273.809f)), owning_building_guid = 1)
       LocalObject(480, Door.Constructor(Vector3(1293.9f, 937.462f, 273.809f)), owning_building_guid = 1)
@@ -31,7 +30,7 @@ object Ugd05 { // Annwn
     Building10014()
 
     def Building10014(): Unit = { // Name: ceiling_bldg_b_10014 Type: ceiling_bldg_b GUID: 2, MapID: 10014
-      LocalBuilding("ceiling_bldg_b_10014", 2, 10014, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(978.8f, 980.41f, 242.69f), ceiling_bldg_b)))
+      LocalBuilding("ceiling_bldg_b_10014", 2, 10014, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(978.8f, 980.41f, 242.69f), Vector3(0f, 0f, 317f), ceiling_bldg_b)))
       LocalObject(391, Door.Constructor(Vector3(982.511f, 975.5684f, 244.469f)), owning_building_guid = 2)
       LocalObject(396, Door.Constructor(Vector3(991.5198f, 991.0958f, 244.469f)), owning_building_guid = 2)
     }
@@ -39,7 +38,7 @@ object Ugd05 { // Annwn
     Building10002()
 
     def Building10002(): Unit = { // Name: ceiling_bldg_b_10002 Type: ceiling_bldg_b GUID: 3, MapID: 10002
-      LocalBuilding("ceiling_bldg_b_10002", 3, 10002, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1192.36f, 1130.14f, 256.99f), ceiling_bldg_b)))
+      LocalBuilding("ceiling_bldg_b_10002", 3, 10002, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1192.36f, 1130.14f, 256.99f), Vector3(0f, 0f, 0f), ceiling_bldg_b)))
       LocalObject(445, Door.Constructor(Vector3(1194.375f, 1146.63f, 258.769f)), owning_building_guid = 3)
       LocalObject(448, Door.Constructor(Vector3(1198.376f, 1129.13f, 258.769f)), owning_building_guid = 3)
     }
@@ -47,7 +46,7 @@ object Ugd05 { // Annwn
     Building10004()
 
     def Building10004(): Unit = { // Name: ceiling_bldg_d_10004 Type: ceiling_bldg_d GUID: 4, MapID: 10004
-      LocalBuilding("ceiling_bldg_d_10004", 4, 10004, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1208.22f, 913.48f, 275.19f), ceiling_bldg_d)))
+      LocalBuilding("ceiling_bldg_d_10004", 4, 10004, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1208.22f, 913.48f, 275.19f), Vector3(0f, 0f, 185f), ceiling_bldg_d)))
       LocalObject(442, Door.Constructor(Vector3(1190.778f, 911.9379f, 276.925f)), owning_building_guid = 4)
       LocalObject(450, Door.Constructor(Vector3(1206.678f, 930.9219f, 276.925f)), owning_building_guid = 4)
       LocalObject(452, Door.Constructor(Vector3(1209.728f, 896.0551f, 276.925f)), owning_building_guid = 4)
@@ -58,7 +57,7 @@ object Ugd05 { // Annwn
     Building10036()
 
     def Building10036(): Unit = { // Name: ceiling_bldg_g_10036 Type: ceiling_bldg_g GUID: 5, MapID: 10036
-      LocalBuilding("ceiling_bldg_g_10036", 5, 10036, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1142.28f, 928.25f, 402.85f), ceiling_bldg_g)))
+      LocalBuilding("ceiling_bldg_g_10036", 5, 10036, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1142.28f, 928.25f, 402.85f), Vector3(0f, 0f, 0f), ceiling_bldg_g)))
       LocalObject(430, Door.Constructor(Vector3(1134.296f, 911.74f, 404.629f)), owning_building_guid = 5)
       LocalObject(431, Door.Constructor(Vector3(1142.296f, 945.74f, 404.629f)), owning_building_guid = 5)
     }
@@ -66,7 +65,7 @@ object Ugd05 { // Annwn
     Building10013()
 
     def Building10013(): Unit = { // Name: ceiling_bldg_i_10013 Type: ceiling_bldg_i GUID: 6, MapID: 10013
-      LocalBuilding("ceiling_bldg_i_10013", 6, 10013, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(989.84f, 1093.24f, 286.02f), ceiling_bldg_i)))
+      LocalBuilding("ceiling_bldg_i_10013", 6, 10013, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(989.84f, 1093.24f, 286.02f), Vector3(0f, 0f, 0f), ceiling_bldg_i)))
       LocalObject(384, Door.Constructor(Vector3(965.35f, 1096.756f, 287.799f)), owning_building_guid = 6)
       LocalObject(408, Door.Constructor(Vector3(1015.35f, 1096.756f, 287.799f)), owning_building_guid = 6)
     }
@@ -74,7 +73,7 @@ object Ugd05 { // Annwn
     Building10117()
 
     def Building10117(): Unit = { // Name: ceiling_bldg_j_10117 Type: ceiling_bldg_j GUID: 7, MapID: 10117
-      LocalBuilding("ceiling_bldg_j_10117", 7, 10117, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1013.22f, 1222.5f, 246.4f), ceiling_bldg_j)))
+      LocalBuilding("ceiling_bldg_j_10117", 7, 10117, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1013.22f, 1222.5f, 246.4f), Vector3(0f, 0f, 107f), ceiling_bldg_j)))
       LocalObject(404, Door.Constructor(Vector3(1001.271f, 1218.864f, 248.179f)), owning_building_guid = 7)
       LocalObject(409, Door.Constructor(Vector3(1025.179f, 1226.173f, 248.179f)), owning_building_guid = 7)
     }
@@ -82,7 +81,7 @@ object Ugd05 { // Annwn
     Building10114()
 
     def Building10114(): Unit = { // Name: ceiling_bldg_j_10114 Type: ceiling_bldg_j GUID: 8, MapID: 10114
-      LocalBuilding("ceiling_bldg_j_10114", 8, 10114, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1048.57f, 1135.38f, 275.22f), ceiling_bldg_j)))
+      LocalBuilding("ceiling_bldg_j_10114", 8, 10114, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1048.57f, 1135.38f, 275.22f), Vector3(0f, 0f, 126f), ceiling_bldg_j)))
       LocalObject(411, Door.Constructor(Vector3(1038.456f, 1128.052f, 276.999f)), owning_building_guid = 8)
       LocalObject(414, Door.Constructor(Vector3(1058.681f, 1142.746f, 276.999f)), owning_building_guid = 8)
     }
@@ -90,7 +89,7 @@ object Ugd05 { // Annwn
     Building10115()
 
     def Building10115(): Unit = { // Name: ceiling_bldg_j_10115 Type: ceiling_bldg_j GUID: 9, MapID: 10115
-      LocalBuilding("ceiling_bldg_j_10115", 9, 10115, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1128.81f, 798.93f, 197.93f), ceiling_bldg_j)))
+      LocalBuilding("ceiling_bldg_j_10115", 9, 10115, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1128.81f, 798.93f, 197.93f), Vector3(0f, 0f, 0f), ceiling_bldg_j)))
       LocalObject(428, Door.Constructor(Vector3(1128.826f, 786.42f, 199.709f)), owning_building_guid = 9)
       LocalObject(429, Door.Constructor(Vector3(1128.826f, 811.42f, 199.709f)), owning_building_guid = 9)
     }
@@ -98,7 +97,7 @@ object Ugd05 { // Annwn
     Building10037()
 
     def Building10037(): Unit = { // Name: ceiling_bldg_z_10037 Type: ceiling_bldg_z GUID: 10, MapID: 10037
-      LocalBuilding("ceiling_bldg_z_10037", 10, 10037, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1015.45f, 1060.53f, 401.85f), ceiling_bldg_z)))
+      LocalBuilding("ceiling_bldg_z_10037", 10, 10037, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1015.45f, 1060.53f, 401.85f), Vector3(0f, 0f, 0f), ceiling_bldg_z)))
       LocalObject(395, Door.Constructor(Vector3(990.96f, 1064.546f, 403.629f)), owning_building_guid = 10)
       LocalObject(412, Door.Constructor(Vector3(1047.96f, 1064.546f, 403.629f)), owning_building_guid = 10)
     }
@@ -106,7 +105,7 @@ object Ugd05 { // Annwn
     Building10009()
 
     def Building10009(): Unit = { // Name: ceiling_bldg_z_10009 Type: ceiling_bldg_z GUID: 11, MapID: 10009
-      LocalBuilding("ceiling_bldg_z_10009", 11, 10009, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1068.84f, 852.69f, 258.04f), ceiling_bldg_z)))
+      LocalBuilding("ceiling_bldg_z_10009", 11, 10009, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1068.84f, 852.69f, 258.04f), Vector3(0f, 0f, 317f), ceiling_bldg_z)))
       LocalObject(413, Door.Constructor(Vector3(1053.668f, 872.3293f, 259.819f)), owning_building_guid = 11)
       LocalObject(421, Door.Constructor(Vector3(1095.355f, 833.4553f, 259.819f)), owning_building_guid = 11)
     }
@@ -114,7 +113,7 @@ object Ugd05 { // Annwn
     Building10031()
 
     def Building10031(): Unit = { // Name: ceiling_bldg_z_10031 Type: ceiling_bldg_z GUID: 12, MapID: 10031
-      LocalBuilding("ceiling_bldg_z_10031", 12, 10031, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1193.06f, 1036.8f, 234.92f), ceiling_bldg_z)))
+      LocalBuilding("ceiling_bldg_z_10031", 12, 10031, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1193.06f, 1036.8f, 234.92f), Vector3(0f, 0f, 0f), ceiling_bldg_z)))
       LocalObject(436, Door.Constructor(Vector3(1168.57f, 1040.816f, 236.699f)), owning_building_guid = 12)
       LocalObject(461, Door.Constructor(Vector3(1225.57f, 1040.816f, 236.699f)), owning_building_guid = 12)
     }
@@ -122,7 +121,7 @@ object Ugd05 { // Annwn
     Building10038()
 
     def Building10038(): Unit = { // Name: ground_bldg_a_10038 Type: ground_bldg_a GUID: 23, MapID: 10038
-      LocalBuilding("ground_bldg_a_10038", 23, 10038, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1235.85f, 1129.52f, 189.73f), ground_bldg_a)))
+      LocalBuilding("ground_bldg_a_10038", 23, 10038, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1235.85f, 1129.52f, 189.73f), Vector3(0f, 0f, 54f), ground_bldg_a)))
       LocalObject(457, Door.Constructor(Vector3(1221.054f, 1122.782f, 191.509f)), owning_building_guid = 23)
       LocalObject(472, Door.Constructor(Vector3(1242.228f, 1145.131f, 191.509f)), owning_building_guid = 23)
     }
@@ -130,7 +129,7 @@ object Ugd05 { // Annwn
     Building10005()
 
     def Building10005(): Unit = { // Name: ground_bldg_b_10005 Type: ground_bldg_b GUID: 24, MapID: 10005
-      LocalBuilding("ground_bldg_b_10005", 24, 10005, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1113.49f, 784.48f, 241.05f), ground_bldg_b)))
+      LocalBuilding("ground_bldg_b_10005", 24, 10005, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1113.49f, 784.48f, 241.05f), Vector3(0f, 0f, 39f), ground_bldg_b)))
       LocalObject(423, Door.Constructor(Vector3(1104.678f, 798.5632f, 242.829f)), owning_building_guid = 24)
       LocalObject(426, Door.Constructor(Vector3(1118.801f, 787.4811f, 242.829f)), owning_building_guid = 24)
       LocalObject(427, Door.Constructor(Vector3(1128.761f, 804.5875f, 248.329f)), owning_building_guid = 24)
@@ -139,7 +138,7 @@ object Ugd05 { // Annwn
     Building10213()
 
     def Building10213(): Unit = { // Name: ground_bldg_c_10213 Type: ground_bldg_c GUID: 25, MapID: 10213
-      LocalBuilding("ground_bldg_c_10213", 25, 10213, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(996.82f, 984.32f, 310.7f), ground_bldg_c)))
+      LocalBuilding("ground_bldg_c_10213", 25, 10213, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(996.82f, 984.32f, 310.7f), Vector3(0f, 0f, 192f), ground_bldg_c)))
       LocalObject(378, Door.Constructor(Vector3(949.452f, 985.9983f, 312.479f)), owning_building_guid = 25)
       LocalObject(381, Door.Constructor(Vector3(955.8972f, 955.6757f, 312.479f)), owning_building_guid = 25)
       LocalObject(401, Door.Constructor(Vector3(999.1253f, 980.737f, 312.479f)), owning_building_guid = 25)
@@ -148,7 +147,7 @@ object Ugd05 { // Annwn
     Building10006()
 
     def Building10006(): Unit = { // Name: ground_bldg_c_10006 Type: ground_bldg_c GUID: 26, MapID: 10006
-      LocalBuilding("ground_bldg_c_10006", 26, 10006, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1260.71f, 1059.42f, 379.18f), ground_bldg_c)))
+      LocalBuilding("ground_bldg_c_10006", 26, 10006, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1260.71f, 1059.42f, 379.18f), Vector3(0f, 0f, 192f), ground_bldg_c)))
       LocalObject(454, Door.Constructor(Vector3(1213.342f, 1061.098f, 380.959f)), owning_building_guid = 26)
       LocalObject(456, Door.Constructor(Vector3(1219.787f, 1030.776f, 380.959f)), owning_building_guid = 26)
       LocalObject(476, Door.Constructor(Vector3(1263.015f, 1055.837f, 380.959f)), owning_building_guid = 26)
@@ -157,7 +156,7 @@ object Ugd05 { // Annwn
     Building10001()
 
     def Building10001(): Unit = { // Name: ground_bldg_d_10001 Type: ground_bldg_d GUID: 27, MapID: 10001
-      LocalBuilding("ground_bldg_d_10001", 27, 10001, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1193.17f, 1133.19f, 320.03f), ground_bldg_d)))
+      LocalBuilding("ground_bldg_d_10001", 27, 10001, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1193.17f, 1133.19f, 320.03f), Vector3(0f, 0f, 0f), ground_bldg_d)))
       LocalObject(440, Door.Constructor(Vector3(1175.68f, 1133.206f, 321.765f)), owning_building_guid = 27)
       LocalObject(443, Door.Constructor(Vector3(1193.186f, 1115.68f, 321.765f)), owning_building_guid = 27)
       LocalObject(444, Door.Constructor(Vector3(1193.186f, 1150.68f, 321.765f)), owning_building_guid = 27)
@@ -167,7 +166,7 @@ object Ugd05 { // Annwn
     Building10020()
 
     def Building10020(): Unit = { // Name: ground_bldg_e_10020 Type: ground_bldg_e GUID: 28, MapID: 10020
-      LocalBuilding("ground_bldg_e_10020", 28, 10020, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(978.04f, 851.77f, 235.98f), ground_bldg_e)))
+      LocalBuilding("ground_bldg_e_10020", 28, 10020, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(978.04f, 851.77f, 235.98f), Vector3(0f, 0f, 0f), ground_bldg_e)))
       LocalObject(385, Door.Constructor(Vector3(966.024f, 850.78f, 237.759f)), owning_building_guid = 28)
       LocalObject(390, Door.Constructor(Vector3(982.024f, 884.28f, 243.259f)), owning_building_guid = 28)
       LocalObject(400, Door.Constructor(Vector3(997.05f, 879.786f, 237.759f)), owning_building_guid = 28)
@@ -177,7 +176,7 @@ object Ugd05 { // Annwn
     Building10007()
 
     def Building10007(): Unit = { // Name: ground_bldg_f_10007 Type: ground_bldg_f GUID: 29, MapID: 10007
-      LocalBuilding("ground_bldg_f_10007", 29, 10007, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1090.77f, 844.07f, 321.32f), ground_bldg_f)))
+      LocalBuilding("ground_bldg_f_10007", 29, 10007, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1090.77f, 844.07f, 321.32f), Vector3(0f, 0f, 325f), ground_bldg_f)))
       LocalObject(416, Door.Constructor(Vector3(1062.523f, 839.4526f, 323.099f)), owning_building_guid = 29)
       LocalObject(424, Door.Constructor(Vector3(1116.939f, 860.5503f, 323.099f)), owning_building_guid = 29)
     }
@@ -185,7 +184,7 @@ object Ugd05 { // Annwn
     Building10022()
 
     def Building10022(): Unit = { // Name: ground_bldg_f_10022 Type: ground_bldg_f GUID: 30, MapID: 10022
-      LocalBuilding("ground_bldg_f_10022", 30, 10022, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1123.7f, 1147.15f, 234.98f), ground_bldg_f)))
+      LocalBuilding("ground_bldg_f_10022", 30, 10022, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1123.7f, 1147.15f, 234.98f), Vector3(0f, 0f, 346f), ground_bldg_f)))
       LocalObject(422, Door.Constructor(Vector3(1098.984f, 1132.717f, 236.759f)), owning_building_guid = 30)
       LocalObject(432, Door.Constructor(Vector3(1142.225f, 1171.914f, 236.759f)), owning_building_guid = 30)
     }
@@ -193,7 +192,7 @@ object Ugd05 { // Annwn
     Building10024()
 
     def Building10024(): Unit = { // Name: ground_bldg_i_10024 Type: ground_bldg_i GUID: 31, MapID: 10024
-      LocalBuilding("ground_bldg_i_10024", 31, 10024, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1218.75f, 1051.94f, 287.43f), ground_bldg_i)))
+      LocalBuilding("ground_bldg_i_10024", 31, 10024, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1218.75f, 1051.94f, 287.43f), Vector3(0f, 0f, 24f), ground_bldg_i)))
       LocalObject(446, Door.Constructor(Vector3(1194.947f, 1045.191f, 289.209f)), owning_building_guid = 31)
       LocalObject(471, Door.Constructor(Vector3(1240.625f, 1065.528f, 289.209f)), owning_building_guid = 31)
     }
@@ -201,7 +200,7 @@ object Ugd05 { // Annwn
     Building10039()
 
     def Building10039(): Unit = { // Name: ground_bldg_z_10039 Type: ground_bldg_z GUID: 32, MapID: 10039
-      LocalBuilding("ground_bldg_z_10039", 32, 10039, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(954.47f, 849.74f, 178.4f), ground_bldg_z)))
+      LocalBuilding("ground_bldg_z_10039", 32, 10039, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(954.47f, 849.74f, 178.4f), Vector3(0f, 0f, 293f), ground_bldg_z)))
       LocalObject(372, Door.Constructor(Vector3(935.0992f, 848.0531f, 191.179f)), owning_building_guid = 32)
       LocalObject(373, Door.Constructor(Vector3(937.5516f, 869.1636f, 180.179f)), owning_building_guid = 32)
       LocalObject(376, Door.Constructor(Vector3(944.9157f, 872.2894f, 196.679f)), owning_building_guid = 32)
@@ -215,7 +214,7 @@ object Ugd05 { // Annwn
     Building10209()
 
     def Building10209(): Unit = { // Name: NW_Redoubt Type: redoubt GUID: 33, MapID: 10209
-      LocalBuilding("NW_Redoubt", 33, 10209, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(887.44f, 1064.63f, 163.23f), redoubt)))
+      LocalBuilding("NW_Redoubt", 33, 10209, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(887.44f, 1064.63f, 163.23f), Vector3(0f, 0f, 4f), redoubt)))
       LocalObject(552, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 33)
       LocalObject(363, Door.Constructor(Vector3(869.9915f, 1063.426f, 164.965f)), owning_building_guid = 33)
       LocalObject(364, Door.Constructor(Vector3(874.3493f, 1075.823f, 175.009f)), owning_building_guid = 33)
@@ -232,7 +231,7 @@ object Ugd05 { // Annwn
     Building10210()
 
     def Building10210(): Unit = { // Name: SE_Redoubt Type: redoubt GUID: 34, MapID: 10210
-      LocalBuilding("SE_Redoubt", 34, 10210, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(1157.92f, 849.04f, 158.73f), redoubt)))
+      LocalBuilding("SE_Redoubt", 34, 10210, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(1157.92f, 849.04f, 158.73f), Vector3(0f, 0f, 310f), redoubt)))
       LocalObject(555, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 34)
       LocalObject(433, Door.Constructor(Vector3(1146.69f, 862.4484f, 160.465f)), owning_building_guid = 34)
       LocalObject(434, Door.Constructor(Vector3(1159.281f, 866.2097f, 170.509f)), owning_building_guid = 34)
@@ -249,7 +248,7 @@ object Ugd05 { // Annwn
     Building10012()
 
     def Building10012(): Unit = { // Name: NW_Stasis Type: vanu_control_point GUID: 68, MapID: 10012
-      LocalBuilding("NW_Stasis", 68, 10012, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(995.33f, 1106.69f, 329.62f), vanu_control_point)))
+      LocalBuilding("NW_Stasis", 68, 10012, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(995.33f, 1106.69f, 329.62f), Vector3(0f, 0f, 222f), vanu_control_point)))
       LocalObject(554, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 68)
       LocalObject(375, Door.Constructor(Vector3(943.5559f, 1095.08f, 331.399f)), owning_building_guid = 68)
       LocalObject(392, Door.Constructor(Vector3(983.5845f, 1098.827f, 336.34f)), owning_building_guid = 68)
@@ -282,7 +281,7 @@ object Ugd05 { // Annwn
     Building10003()
 
     def Building10003(): Unit = { // Name: SE_Stasis Type: vanu_control_point GUID: 69, MapID: 10003
-      LocalBuilding("SE_Stasis", 69, 10003, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1232.73f, 922.42f, 322.62f), vanu_control_point)))
+      LocalBuilding("SE_Stasis", 69, 10003, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1232.73f, 922.42f, 322.62f), Vector3(0f, 0f, 224f), vanu_control_point)))
       LocalObject(557, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 69)
       LocalObject(441, Door.Constructor(Vector3(1181.393f, 909.0106f, 324.399f)), owning_building_guid = 69)
       LocalObject(458, Door.Constructor(Vector3(1221.266f, 914.1519f, 329.34f)), owning_building_guid = 69)
@@ -315,7 +314,7 @@ object Ugd05 { // Annwn
     Building10000()
 
     def Building10000(): Unit = { // Name: Core Type: vanu_core GUID: 70, MapID: 10000
-      LocalBuilding("Core", 70, 10000, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1093.35f, 991.55f, 292.73f), vanu_core)))
+      LocalBuilding("Core", 70, 10000, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1093.35f, 991.55f, 292.73f), Vector3(0f, 0f, 0f), vanu_core)))
       LocalObject(415, Door.Constructor(Vector3(1060.857f, 979.572f, 299.518f)), owning_building_guid = 70)
       LocalObject(417, Door.Constructor(Vector3(1089.328f, 951.057f, 299.518f)), owning_building_guid = 70)
       LocalObject(418, Door.Constructor(Vector3(1089.328f, 951.057f, 304.518f)), owning_building_guid = 70)
@@ -327,7 +326,7 @@ object Ugd05 { // Annwn
     Building10044()
 
     def Building10044(): Unit = { // Name: NW_ATPlant Type: vanu_vehicle_station GUID: 97, MapID: 10044
-      LocalBuilding("NW_ATPlant", 97, 10044, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(930.3f, 1141.53f, 164.95f), vanu_vehicle_station)))
+      LocalBuilding("NW_ATPlant", 97, 10044, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(930.3f, 1141.53f, 164.95f), Vector3(0f, 0f, 82f), vanu_vehicle_station)))
       LocalObject(553, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 97)
       LocalObject(369, Door.Constructor(Vector3(914.9034f, 1139.01f, 166.729f)), owning_building_guid = 97)
       LocalObject(370, Door.Constructor(Vector3(919.5815f, 1114.117f, 186.641f)), owning_building_guid = 97)
@@ -351,7 +350,7 @@ object Ugd05 { // Annwn
     Building10197()
 
     def Building10197(): Unit = { // Name: SE_ATPlant Type: vanu_vehicle_station GUID: 98, MapID: 10197
-      LocalBuilding("SE_ATPlant", 98, 10197, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1244.82f, 841.97f, 159.95f), vanu_vehicle_station)))
+      LocalBuilding("SE_ATPlant", 98, 10197, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1244.82f, 841.97f, 159.95f), Vector3(0f, 0f, 274f), vanu_vehicle_station)))
       LocalObject(556, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 98)
       LocalObject(447, Door.Constructor(Vector3(1195.006f, 843.136f, 161.729f)), owning_building_guid = 98)
       LocalObject(449, Door.Constructor(Vector3(1202.975f, 843.6932f, 181.653f)), owning_building_guid = 98)
