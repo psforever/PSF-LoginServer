@@ -22,10 +22,7 @@ import scala.concurrent.duration._
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 
-/**
-  * na;
-  * stub for future development
-  */
+
 class PlayerControl(player : Player) extends Actor
   with JammableBehavior
   with Damageable {
@@ -58,7 +55,12 @@ class PlayerControl(player : Player) extends Actor
         implantSlot.Installed match {
           case Some(implant: ImplantDefinition) =>
             if(implantSlot.Active) {
+              // Some events such as zoning will reset the implant on the client side without sending a deactivation packet
+              // But the implant will remain in an active state server side. For now, allow reactivation of the implant.
+              // todo: Deactivate implants server side when actions like zoning happen. (Other actions?)
               log.warn(s"Implant ${slot} is already active, but activating again")
+              implantSlotStaminaDrainTimers(slot).cancel()
+              implantSlotStaminaDrainTimers(slot) = DefaultCancellable.obj
             }
             implantSlot.Active = true
 
