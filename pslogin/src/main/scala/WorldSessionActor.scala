@@ -6035,8 +6035,7 @@ class WorldSessionActor extends Actor
                 //todo: kick cargo passengers out. To be added after PR #216 is merged
                 obj match {
                   case v : Vehicle if bailType == BailType.Bailed && seat_num == 0 && v.Flying =>
-                    continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.ClearSpecific(List(obj), continent))
-                    continent.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(obj, continent, Some(0 seconds))) // Immediately deconstruct vehicle
+                    v.Actor ! Vehicle.Deconstruct(None) //immediate deconstruction
                   case _ => ;
                 }
 
