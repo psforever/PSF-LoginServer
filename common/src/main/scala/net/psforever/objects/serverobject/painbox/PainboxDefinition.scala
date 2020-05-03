@@ -6,7 +6,7 @@ import net.psforever.types.Vector3
 class PainboxDefinition(objectId : Int) extends AmenityDefinition(objectId) {
   private var alwaysOn : Boolean = true
   private var radius : Float = 0f
-  private var damage : Int = 10
+  private var damage : Int = 5
   private var sphereOffset = Vector3(0f, 0f, -0.4f)
   private var hasNearestDoorDependency = false
 
