@@ -14,11 +14,9 @@ class PainboxDefinition(objectId : Int) extends AmenityDefinition(objectId) {
     case 622 =>
       Name = "painbox"
       alwaysOn = false
-      radius = 10f // Guess - not in game_objects.adb.lst - probably not radius based but it will have to do for the moment
       damage = 0
     case 623 =>
       Name = "painbox_continuous"
-      radius = 10f // Guess - not in game_objects.adb.lst - probably not radius based but it will have to do for the moment
     case 624 =>
       Name = "painbox_door_radius"
       alwaysOn = false

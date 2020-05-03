@@ -326,4 +326,11 @@ object Vector3 {
       z
     )
   }
+
+  def PlanarRotateAroundPoint(point: Vector3, center: Vector3, radians : Float) : Vector3 = {
+    val x = (Math.cos(radians) * (point.x - center.x) - Math.sin(radians) * (point.y - center.y) + center.x).toFloat
+    val y = (Math.sin(radians) * (point.x - center.x) + Math.cos(radians) * (point.y - center.y) + center.y).toFloat
+
+    Vector3(x, y, point.z)
+  }
 }
