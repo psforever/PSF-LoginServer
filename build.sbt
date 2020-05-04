@@ -47,7 +47,8 @@ lazy val commonSettings = Seq(
     "org.scala-graph"            %% "graph-core"    % "1.12.5",
     "io.kamon"                   %% "kamon-bundle" % "2.1.0",
     "io.kamon"                   %% "kamon-apm-reporter" % "2.1.0"
-  )
+  ),
+  classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
 )
 
 lazy val pscryptoSettings = Seq(
