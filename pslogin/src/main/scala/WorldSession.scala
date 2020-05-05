@@ -9,7 +9,7 @@ import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.serverobject.{Containable, PlanetSideServerObject}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{ItemTransactionResultMessage, ObjectHeldMessage}
-import net.psforever.types._
+import net.psforever.types.{PlanetSideGUID, TransactionType, Vector3}
 import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 
@@ -105,7 +105,7 @@ object WorldSession {
         private val localItem = item
         private val localPlayer = player
         private val localResolver = taskResolver
-        private val localTermMsg : Boolean=>Unit = TerminalResult(term, localPlayer)
+        private val localTermMsg : Boolean=>Unit = TerminalResult(term, localPlayer, TransactionType.Buy)
 
         override def isComplete : Task.Resolution.Value = Task.Resolution.Success
 
@@ -134,7 +134,7 @@ object WorldSession {
     val localPlayer = player
     val localSlot = slot
     val localResolver = taskResolver
-    val localTermMsg : Boolean=>Unit = TerminalResult(term, localPlayer)
+    val localTermMsg : Boolean=>Unit = TerminalResult(term, localPlayer, TransactionType.Sell)
 
     ask(localContainer.Actor, Containable.RemoveItemFromSlot(localSlot)).onComplete {
       case scala.util.Success(Containable.ItemFromSlot(_, Some(item), Some(_))) =>
@@ -210,10 +210,27 @@ object WorldSession {
     }
   }
 
-  def TerminalResult(guid : PlanetSideGUID, player : Player)(result : Boolean) : Unit = {
+  def TerminalResult(guid : PlanetSideGUID, player : Player, transaction : TransactionType.Value)(result : Boolean) : Unit = {
     player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name,
-      AvatarAction.SendResponse(Service.defaultPlayerGUID, ItemTransactionResultMessage(guid, TransactionType.Buy, result))
+      AvatarAction.SendResponse(Service.defaultPlayerGUID, ItemTransactionResultMessage(guid, transaction, result))
     )
+  }
+
+  /**
+    * na
+    * @param dropOrDelete na
+    */
+  def DropOrDeleteLeftovers(player : Player, taskResolver : ActorRef)(dropOrDelete : List[InventoryItem]) : Unit = {
+    //drop or retire
+    val zone = player.Zone
+    val pos = player.Position
+    val orient = Vector3.z(player.Orientation.z)
+    val (finalDroppedItems, retiredItems) = dropOrDelete.partition(Containable.DropPredicate(player))
+    //drop special items on ground
+    //TODO make a sound when dropping stuff?
+    finalDroppedItems.foreach { entry => zone.Ground ! Zone.Ground.DropItem(entry.obj, pos, orient) }
+    //deconstruct normal items
+    retiredItems.foreach{ entry => taskResolver ! GUIDTask.UnregisterEquipment(entry.obj)(zone.GUID) }
   }
 
   /**

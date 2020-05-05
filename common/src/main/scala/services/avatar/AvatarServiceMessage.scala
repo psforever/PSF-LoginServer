@@ -5,12 +5,11 @@ import net.psforever.objects.{PlanetSideGameObject, Player}
 import net.psforever.objects.ballistics.{Projectile, SourceEntry}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.Equipment
-import net.psforever.objects.inventory.Container
+import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.ImplantAction
 import net.psforever.packet.game.objectcreate.{ConstructorData, ObjectCreateMessageParent}
-import net.psforever.types.{ExoSuitType, PlanetSideEmpire, PlanetSideGUID, Vector3}
+import net.psforever.types.{ExoSuitType, PlanetSideEmpire, PlanetSideGUID, TransactionType, Vector3}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -63,6 +62,10 @@ object AvatarAction {
 
   final case class SendResponse(player_guid: PlanetSideGUID, msg: PlanetSideGamePacket) extends Action
   final case class SendResponseTargeted(target_guid: PlanetSideGUID, msg: PlanetSideGamePacket) extends Action
+
+  final case class TerminalOrderResult(terminal_guid : PlanetSideGUID, action : TransactionType.Value, result : Boolean) extends Action
+  final case class ChangeExosuit(target_guid : PlanetSideGUID, exosuit : ExoSuitType.Value, subtype : Int, last_drawn_slot : Int, new_max_hand : Boolean, holsters : List[InventoryItem], inventory : List[InventoryItem], drop : List[InventoryItem]) extends Action
+  final case class ChangeLoadout(target_guid : PlanetSideGUID, exosuit : ExoSuitType.Value, subtype : Int, last_drawn_slot : Int, new_max_hand : Boolean, holsters : List[InventoryItem], inventory : List[InventoryItem], drop : List[InventoryItem]) extends Action
 
   final case class TeardownConnection() extends Action
   //  final case class PlayerStateShift(killer : PlanetSideGUID, victim : PlanetSideGUID) extends Action

@@ -610,6 +610,24 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
 
   def VehicleOwned_=(guid : Option[PlanetSideGUID]) : Option[PlanetSideGUID] = core.VehicleOwned_=(guid)
 
+  def GetLastUsedTime(code : Int) : Long = core.GetLastUsedTime(code)
+
+  def GetLastUsedTime(code : ExoSuitType.Value) : Long = core.GetLastUsedTime(code)
+
+  def GetLastUsedTime(code : ExoSuitType.Value, subtype : Int) : Long = core.GetLastUsedTime(code, subtype)
+
+  def SetLastUsedTime(code : Int): Unit = core.SetLastUsedTime(code)
+
+  def SetLastUsedTime(code : Int, time : Long) : Unit = core.SetLastUsedTime(code, time)
+
+  def SetLastUsedTime(code : ExoSuitType.Value): Unit = core.SetLastUsedTime(code)
+
+  def SetLastUsedTime(code : ExoSuitType.Value, time : Long) : Unit = core.SetLastUsedTime(code, time)
+
+  def SetLastUsedTime(code : ExoSuitType.Value, subtype : Int): Unit = core.SetLastUsedTime(code, subtype)
+
+  def SetLastUsedTime(code : ExoSuitType.Value, subtype : Int, time : Long) : Unit = core.SetLastUsedTime(code, subtype, time)
+
   def DamageModel = exosuit.asInstanceOf[DamageResistanceModel]
 
   def Definition : AvatarDefinition = core.Definition
