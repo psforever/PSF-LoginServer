@@ -238,6 +238,19 @@ class AvatarService(zone : Zone) extends Actor {
             AvatarServiceResponse(s"/$forChannel/Avatar", Service.defaultPlayerGUID, AvatarResponse.TeardownConnection())
           )
 
+        case AvatarAction.TerminalOrderResult(terminal, term_action, result) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", Service.defaultPlayerGUID, AvatarResponse.TerminalOrderResult(terminal, term_action, result))
+          )
+        case AvatarAction.ChangeExosuit(target, exosuit, subtype, slot, maxhand, holsters, inventory, drop) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", Service.defaultPlayerGUID, AvatarResponse.ChangeExosuit(target, exosuit, subtype, slot, maxhand, holsters, inventory, drop))
+          )
+        case AvatarAction.ChangeLoadout(target, exosuit, subtype, slot, maxhand, holsters, inventory, drop) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", Service.defaultPlayerGUID, AvatarResponse.ChangeLoadout(target, exosuit, subtype, slot, maxhand, holsters, inventory, drop))
+          )
+
         case _ => ;
     }
 
@@ -259,6 +272,7 @@ class AvatarService(zone : Zone) extends Actor {
         ))
       }
       */
+
     case msg =>
       log.warn(s"Unhandled message $msg from $sender")
   }

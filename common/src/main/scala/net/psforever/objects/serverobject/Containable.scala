@@ -4,10 +4,11 @@ package net.psforever.objects.serverobject
 import akka.actor.{Actor, ActorRef}
 import akka.pattern.ask
 import akka.util.Timeout
+import net.psforever.objects.{BoomerTrigger, GlobalDefinitions, Player}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.zones.Zone
-import net.psforever.types.Vector3
+import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -602,5 +603,25 @@ object Containable {
       case _ =>
         true
     }
+  }
+
+  /**
+    * A predicate used to determine if an `InventoryItem` object contains `Equipment` that should be dropped.
+    * Used to filter through lists of object data before it is placed into a player's inventory.
+    * Drop the item if:<br>
+    * - the item is cavern equipment<br>
+    * - the item is a `BoomerTrigger` type object<br>
+    * - the item is a `router_telepad` type object<br>
+    * - the item is another faction's exclusive equipment
+    * @param tplayer the player
+    * @return true if the item is to be dropped; false, otherwise
+    */
+  def DropPredicate(tplayer : Player) : InventoryItem => Boolean = entry => {
+    val objDef = entry.obj.Definition
+    val faction = GlobalDefinitions.isFactionEquipment(objDef)
+    GlobalDefinitions.isCavernEquipment(objDef) ||
+      objDef == GlobalDefinitions.router_telepad ||
+      entry.obj.isInstanceOf[BoomerTrigger] ||
+      (faction != tplayer.Faction && faction != PlanetSideEmpire.NEUTRAL)
   }
 }

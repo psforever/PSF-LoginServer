@@ -5,13 +5,16 @@ import net.psforever.objects.{Default, GlobalDefinitions, Player, Players, Tool}
 import akka.actor.{Actor, ActorRef, Props}
 import net.psforever.objects._
 import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile}
-import net.psforever.objects.definition.ImplantDefinition
-import net.psforever.objects.equipment.{Ammo, Equipment, JammableBehavior, JammableUnit}
+import net.psforever.objects.definition.{ExoSuitDefinition, ImplantDefinition}
+import net.psforever.objects.equipment.{Ammo, Equipment, EquipmentSize, JammableBehavior, JammableUnit}
+import net.psforever.objects.inventory.{GridInventory, InventoryItem}
+import net.psforever.objects.loadouts.{InfantryLoadout, Loadout}
 import net.psforever.objects.vital.{PlayerSuicide, Vitality}
 import net.psforever.objects.serverobject.{CommonMessages, Containable, PlanetSideServerObject}
 import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.repair.Repairable
+import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.vital._
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
@@ -75,7 +78,7 @@ class PlayerControl(player : Player) extends Actor
               // Some events such as zoning will reset the implant on the client side without sending a deactivation packet
               // But the implant will remain in an active state server side. For now, allow reactivation of the implant.
               // todo: Deactivate implants server side when actions like zoning happen. (Other actions?)
-              log.warn(s"Implant ${slot} is already active, but activating again")
+              log.warn(s"Implant $slot is already active, but activating again")
               implantSlotStaminaDrainTimers(slot).cancel()
               implantSlotStaminaDrainTimers(slot) = Default.Cancellable
             }
@@ -95,12 +98,11 @@ class PlayerControl(player : Player) extends Actor
         }
       }
       else {
-        log.warn(s"Can't handle ImplantActivation: Player GUID: ${player.GUID} Slot ${slot} Status: ${status} Initialized: ${implantSlot.Initialized} Active: ${implantSlot.Active} Fatigued: ${player.Fatigued}")
+        log.warn(s"Can't handle ImplantActivation: Player GUID: ${player.GUID} Slot $slot Status: $status Initialized: ${implantSlot.Initialized} Active: ${implantSlot.Active} Fatigued: ${player.Fatigued}")
       }
 
-    case Player.UninitializeImplant(slot: Int) => {
+    case Player.UninitializeImplant(slot: Int) =>
       PlayerControl.UninitializeImplant(player, slot)
-    }
 
     case Player.ImplantInitializationStart(slot: Int) =>
       val implantSlot = player.ImplantSlot(slot)
@@ -131,16 +133,16 @@ class PlayerControl(player : Player) extends Actor
       player.Stamina -= amount
 
     case Player.StaminaChanged(currentStamina : Int) =>
-    if(currentStamina == 0) {
+      if(currentStamina == 0) {
         player.Fatigued = true
         player.skipStaminaRegenForTurns += 4
-        for(slot <- 0 to player.Implants.length - 1) { // Disable all implants
+        player.Implants.indices.foreach { slot => // Disable all implants
           self ! Player.ImplantActivation(slot, 0)
           player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.SendResponseTargeted(player.GUID, AvatarImplantMessage(player.GUID, ImplantAction.OutOfStamina, slot, 1)))
         }
       } else if (player.Fatigued && currentStamina >= 20) {
         player.Fatigued = false
-        for(slot <- 0 to player.Implants.length - 1) { // Re-enable all implants
+        player.Implants.indices.foreach { slot => // Re-enable all implants
           player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.SendResponseTargeted(player.GUID, AvatarImplantMessage(player.GUID, ImplantAction.OutOfStamina, slot, 0)))
         }
       }
@@ -222,6 +224,167 @@ class PlayerControl(player : Player) extends Actor
             events ! AvatarServiceMessage(uname, AvatarAction.SendResponse(Service.defaultPlayerGUID, RepairMessage(guid, player.Armor * 100 / player.MaxArmor)))
           }
         }
+
+    case Terminal.TerminalMessage(_, msg, order) =>
+      order match {
+        case Terminal.BuyExosuit(exosuit, subtype) =>
+          var toDropOrDelete : List[InventoryItem] = Nil
+          //TODO check exo-suit permissions
+          val originalSuit = player.ExoSuit
+          val originalSubtype = Loadout.DetermineSubtype(player)
+          var requestToChangeArmor = originalSuit != exosuit || originalSubtype != subtype
+          var allowedToChangeArmor : Boolean = true
+          val result = if(requestToChangeArmor && allowedToChangeArmor) {
+            log.info(s"${player.Name} wants to change to a different exo-suit - $exosuit")
+            val beforeInventory = player.Inventory.Clear()
+            val beforeHolsters = Players.clearHolsters(player.Holsters().iterator)
+            //change suit
+            val originalArmor = player.Armor
+            player.ExoSuit = exosuit //changes the value of MaxArmor to reflect the new exo-suit
+            val toMaxArmor = player.MaxArmor
+            if (originalSuit != exosuit || originalSubtype != subtype || originalArmor > toMaxArmor) {
+              player.History(HealFromExoSuitChange(PlayerSource(player), exosuit))
+              player.Armor = toMaxArmor
+            }
+            else {
+              player.Armor = originalArmor
+            }
+            //ensure arm is down, even if it needs to go back up
+            if (player.DrawnSlot != Player.HandsDownSlot) {
+              player.DrawnSlot = Player.HandsDownSlot
+            }
+            val normalHolsters = if (originalSuit == ExoSuitType.MAX) {
+              val (maxWeapons, normalWeapons) = beforeHolsters.partition(elem => elem.obj.Size == EquipmentSize.Max)
+              toDropOrDelete = toDropOrDelete ++ maxWeapons
+              normalWeapons
+            }
+            else {
+              beforeHolsters
+            }
+            //populate holsters
+            val (afterHolsters, finalInventory) = if (exosuit == ExoSuitType.MAX) {
+              (normalHolsters, Players.fillEmptyHolsters(List(player.Slot(4)).iterator, normalHolsters) ++ beforeInventory)
+            }
+            else if (originalSuit == exosuit) { //note - this will rarely be the situation
+              (normalHolsters, Players.fillEmptyHolsters(player.Holsters().iterator, normalHolsters))
+            }
+            else {
+              val (afterHolsters, toInventory) = normalHolsters.partition(elem => elem.obj.Size == player.Slot(elem.start).Size)
+              afterHolsters.foreach({ elem => player.Slot(elem.start).Equipment = elem.obj })
+              val remainder = Players.fillEmptyHolsters(player.Holsters().iterator, toInventory ++ beforeInventory)
+              (
+                player.Holsters()
+                  .zipWithIndex
+                  .map { case (slot, i) => (slot.Equipment, i) }
+                  .collect { case (Some(obj), index) => InventoryItem(obj, index) }
+                  .toList,
+                remainder
+              )
+            }
+            //put items back into inventory
+            val (stow, drop) = if (originalSuit == exosuit) {
+              (finalInventory, Nil)
+            }
+            else {
+              val (a, b) = GridInventory.recoverInventory(finalInventory, player.Inventory)
+              (a, b.map { InventoryItem(_, -1) })
+            }
+            stow.foreach { elem =>
+              player.Inventory.InsertQuickly(elem.start, elem.obj)
+            }
+            player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id,
+              AvatarAction.ChangeExosuit(player.GUID, exosuit, subtype, player.LastDrawnSlot, exosuit == ExoSuitType.MAX && requestToChangeArmor, afterHolsters, stow, toDropOrDelete ++ drop)
+            )
+            true
+          }
+          else {
+            false
+          }
+          player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, result))
+
+        case Terminal.InfantryLoadout(exosuit, subtype, holsters, inventory) =>
+          log.info(s"${player.Name} wants to change equipment loadout to their option #${msg.unk1 + 1}")
+          val fallbackSubtype = 0
+          val fallbackSuit = ExoSuitType.Standard
+          val originalSuit = player.ExoSuit
+          val originalSubtype = Loadout.DetermineSubtype(player)
+          //sanitize exo-suit for change
+          val dropPred = Containable.DropPredicate(player)
+          val toDeleteOrDrop : List[InventoryItem] = (player.FreeHand.Equipment match {
+            case Some(obj) =>
+              player.FreeHand.Equipment = None
+              List(InventoryItem(obj, -1))
+            case _ =>
+              Nil
+          }) ++ Players.clearHolsters(player.Holsters().iterator) ++ player.Inventory.Clear()
+          //a loadout with a prohibited exo-suit type will result in the fallback exo-suit type
+          val (nextSuit : ExoSuitType.Value, nextSubtype : Int) =
+            if(ExoSuitDefinition.Select(exosuit, player.Faction).Permissions match {
+              case Nil =>
+                true
+              case permissions if subtype != 0 =>
+                val certs = player.Certifications
+                certs.intersect(permissions.toSet).nonEmpty &&
+                  certs.intersect(InfantryLoadout.DetermineSubtypeC(subtype)).nonEmpty
+              case permissions =>
+                player.Certifications.intersect(permissions.toSet).nonEmpty
+            }) {
+              (exosuit, subtype)
+            }
+            else {
+              log.warn(s"${player.Name} no longer has permission to wear the exo-suit type $exosuit; will wear $fallbackSuit instead")
+              (fallbackSuit, fallbackSubtype)
+            }
+          //update suit interally
+          val originalArmor = player.Armor
+          player.ExoSuit = nextSuit
+          val toMaxArmor = player.MaxArmor
+          if(originalSuit != nextSuit || originalSubtype != nextSubtype || originalArmor > toMaxArmor) {
+            player.History(HealFromExoSuitChange(PlayerSource(player), nextSuit))
+            player.Armor = toMaxArmor
+          }
+          else {
+            player.Armor = originalArmor
+          }
+          //ensure arm is down, even if it needs to go back up
+          if(player.DrawnSlot != Player.HandsDownSlot) {
+            player.DrawnSlot = Player.HandsDownSlot
+          }
+          //a change due to exo-suit permissions mismatch will result in (more) items being re-arranged and/or dropped
+          //dropped items are not registered and can just be forgotten
+          val (afterHolsters, afterInventory) = if(nextSuit == exosuit) {
+            (
+              //melee slot preservation for MAX
+              if(nextSuit == ExoSuitType.MAX) holsters.filter(_.start == 4)
+              else holsters.filterNot(dropPred),
+              inventory.filterNot(dropPred)
+            )
+          }
+          else {
+            //our exo-suit type was hijacked by changing permissions; we shouldn't even be able to use that loadout(!)
+            //holsters
+            val leftoversForInventory = Players.fillEmptyHolsters(player.Holsters().iterator, (holsters ++ inventory).filterNot(dropPred))
+            val finalHolsters = player.Holsters()
+              .zipWithIndex
+              .collect { case (slot, index) if slot.Equipment.nonEmpty => InventoryItem(slot.Equipment.get, index) }
+              .toList
+            //inventory
+            val (finalInventory, _) = GridInventory.recoverInventory(leftoversForInventory, player.Inventory)
+            (finalHolsters, finalInventory)
+          }
+          (afterHolsters ++ afterInventory).foreach { entry => entry.obj.Faction = player.Faction }
+          toDeleteOrDrop.foreach { entry => entry.obj.Faction = PlanetSideEmpire.NEUTRAL }
+
+          player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id,
+            AvatarAction.ChangeLoadout(player.GUID, nextSuit, nextSubtype, player.LastDrawnSlot, exosuit == ExoSuitType.MAX, afterHolsters, afterInventory, toDeleteOrDrop)
+          )
+          player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, true))
+
+        case Terminal.NoDeal() =>
+          player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, false))
+
+        case _ => ; //not handled here
+      }
 
       case _ => ;
     }

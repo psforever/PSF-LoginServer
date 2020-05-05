@@ -58,6 +58,12 @@ class Avatar(private val char_id : Long, val name : String, val faction : Planet
 
   private var vehicleOwned : Option[PlanetSideGUID] = None
 
+  private var lastUsedEquipmentTimes : mutable.LongMap[Long] = mutable.LongMap[Long]()
+
+  private val lastUsedExoSuitTimes : Array[Long] = Array.fill[Long](ExoSuitType.values.size)(0L)
+
+  private val lastUsedMaxExoSuitTimes : Array[Long] = Array.fill[Long](4)(0L) //invalid, ai, av, aa
+
   def CharId : Long = char_id
 
   def BEP : Long = bep
@@ -219,6 +225,47 @@ class Avatar(private val char_id : Long, val name : String, val faction : Planet
   def VehicleOwned_=(guid : Option[PlanetSideGUID]) : Option[PlanetSideGUID] = {
     vehicleOwned = guid
     VehicleOwned
+  }
+
+  def GetLastUsedTime(code : Int) : Long = {
+    lastUsedEquipmentTimes.get(code) match {
+      case Some(time) => time
+      case None => 0
+    }
+  }
+
+  def GetLastUsedTime(code : ExoSuitType.Value) : Long = {
+    lastUsedExoSuitTimes(code.id)
+  }
+
+  def GetLastUsedTime(code : ExoSuitType.Value, subtype : Int) : Long = {
+    if(code == ExoSuitType.MAX) {
+      lastUsedMaxExoSuitTimes(subtype)
+    }
+    else {
+      GetLastUsedTime(code)
+    }
+  }
+
+  def SetLastUsedTime(code : Int) : Unit = SetLastUsedTime(code, System.currentTimeMillis())
+
+  def SetLastUsedTime(code : Int, time : Long) : Unit = {
+    lastUsedEquipmentTimes += code.toLong -> time
+  }
+
+  def SetLastUsedTime(code : ExoSuitType.Value) : Unit = SetLastUsedTime(code, System.currentTimeMillis())
+
+  def SetLastUsedTime(code : ExoSuitType.Value, time : Long) : Unit = {
+    lastUsedExoSuitTimes(code.id) = time
+  }
+
+  def SetLastUsedTime(code : ExoSuitType.Value, subtype : Int) : Unit = SetLastUsedTime(code, System.currentTimeMillis())
+
+  def SetLastUsedTime(code : ExoSuitType.Value, subtype : Int, time : Long) : Unit = {
+    if(code == ExoSuitType.MAX) {
+      lastUsedMaxExoSuitTimes(subtype) = time
+    }
+    SetLastUsedTime(code, time)
   }
 
   def Definition : AvatarDefinition = GlobalDefinitions.avatar

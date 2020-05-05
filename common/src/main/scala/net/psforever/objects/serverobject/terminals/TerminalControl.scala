@@ -30,7 +30,9 @@ class TerminalControl(term : Terminal) extends Actor
     .orElse(canBeRepairedByNanoDispenser)
     .orElse {
       case Terminal.Request(player, msg) =>
-        sender ! Terminal.TerminalMessage(player, msg, term.Request(player, msg))
+        val response = Terminal.TerminalMessage(player, msg, term.Request(player, msg))
+        player.Actor ! response
+        sender ! response
 
       case CommonMessages.Use(player, Some(item : SimpleItem)) if item.Definition == GlobalDefinitions.remote_electronics_kit =>
         //TODO setup certifications check
