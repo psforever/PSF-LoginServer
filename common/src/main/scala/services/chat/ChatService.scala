@@ -80,6 +80,14 @@ class ChatService extends Actor {
           ChatEvents.publish(
             ChatServiceResponse(s"/Chat/$forChannel", player_guid, player_name, cont, player_pos, player_faction, 2, ChatMsg(ChatMessageType.CMT_SQUAD,msg.wideContents,player_name,msg.contents,None))
           )
+        case ChatAction.Platoon(player_guid, player_name, cont, player_pos, player_faction, msg) => // platoon
+          ChatEvents.publish(
+            ChatServiceResponse(s"/Chat/$forChannel", player_guid, player_name, cont, player_pos, player_faction, 2, ChatMsg(ChatMessageType.CMT_PLATOON,msg.wideContents,player_name,msg.contents,None))
+          )
+        case ChatAction.Command(player_guid, player_name, cont, player_pos, player_faction, msg) => // command
+          ChatEvents.publish(
+            ChatServiceResponse(s"/Chat/$forChannel", player_guid, player_name, cont, player_pos, player_faction, 2, ChatMsg(ChatMessageType.CMT_COMMAND,msg.wideContents,player_name,msg.contents,None))
+          )
         case ChatAction.GM(player_guid, player_name, msg) => // GM
           msg.messageType match {
             case ChatMessageType.CMT_SILENCE =>

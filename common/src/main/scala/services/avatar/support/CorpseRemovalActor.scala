@@ -9,7 +9,7 @@ import services.avatar.{AvatarAction, AvatarServiceMessage}
 import scala.concurrent.duration._
 
 class CorpseRemovalActor extends RemoverActor {
-  final val FirstStandardDuration : FiniteDuration = 3 minutes
+  final val FirstStandardDuration : FiniteDuration = 1 minute
 
   final val SecondStandardDuration : FiniteDuration = 500 milliseconds
 

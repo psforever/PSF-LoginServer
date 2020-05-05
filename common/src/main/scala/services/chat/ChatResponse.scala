@@ -13,6 +13,8 @@ object ChatResponse {
   final case class Voice(messageType : ChatMessageType.Value, wideContents : Boolean, recipient : String, contents : String, note : Option[String]) extends Response
   final case class Unk45(sender : String, messageType : ChatMessageType.Value, wideContents : Boolean, recipient : String, contents : String, note : Option[String]) extends Response
   final case class Squad(sender : String, messageType : ChatMessageType.Value, wideContents : Boolean, recipient : String, contents : String, note : Option[String]) extends Response
+  final case class Platoon(sender : String, messageType : ChatMessageType.Value, wideContents : Boolean, recipient : String, contents : String, note : Option[String]) extends Response
+  final case class Command(sender : String, messageType : ChatMessageType.Value, wideContents : Boolean, recipient : String, contents : String, note : Option[String]) extends Response
 
   final case class Text(toChannel : String, avatar_guid : PlanetSideGUID, personal : Int, messageType : ChatMessageType.Value, wideContents : Boolean, recipient : String, contents : String, note : Option[String])
 }

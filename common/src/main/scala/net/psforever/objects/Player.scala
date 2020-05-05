@@ -55,13 +55,8 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
 
   Continent = "home2" //the zone id
 
+  var spectator : Boolean = false
   var silenced : Boolean = false
-  var firstLoad : Boolean = false
-  def FirstLoad : Boolean = firstLoad
-  def FirstLoad_=(status : Boolean) : Boolean = {
-    firstLoad = status
-    FirstLoad
-  }
   var death_by : Int = 0
   var lastSeenStreamMessage : Array[Long] = Array.fill[Long](65535)(0L)
   var lastShotSeq_time : Int = -1
