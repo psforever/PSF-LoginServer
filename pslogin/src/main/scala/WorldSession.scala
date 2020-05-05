@@ -211,9 +211,7 @@ object WorldSession {
   }
 
   def TerminalResult(guid : PlanetSideGUID, player : Player, transaction : TransactionType.Value)(result : Boolean) : Unit = {
-    player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name,
-      AvatarAction.SendResponse(Service.defaultPlayerGUID, ItemTransactionResultMessage(guid, transaction, result))
-    )
+    player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.TerminalOrderResult(guid, transaction, true))
   }
 
   /**

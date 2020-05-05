@@ -379,10 +379,7 @@ class PlayerControl(player : Player) extends Actor
           )
           player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, true))
 
-        case Terminal.NoDeal() =>
-          player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, false))
-
-        case _ => ; //not handled here
+        case _ => ; //terminal messages not handled here
       }
 
       case _ => ;
@@ -438,10 +435,9 @@ class PlayerControl(player : Player) extends Actor
       //TODO these features
       val guid = obj.GUID
       val zone = obj.Zone
-      val zoneId = zone.Id
       val events = zone.AvatarEvents
 
-      for(slot <- 0 to player.Implants.length - 1) { // Deactivate & uninitialize all implants
+      player.Implants.indices.foreach { slot => // Deactivate & uninitialize all implants
         player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, player.Implant(slot).id * 2)) // Deactivation sound / effect
         self ! Player.ImplantActivation(slot, 0)
         PlayerControl.UninitializeImplant(player, slot)
@@ -453,7 +449,7 @@ class PlayerControl(player : Player) extends Actor
   }
 
   override def CancelJammeredStatus(target: Any): Unit = {
-    for(slot <- 0 to player.Implants.length - 1) { // Start reinitializing all implants
+    player.Implants.indices.foreach { slot => // Start reinitializing all implants
       self ! Player.ImplantInitializationStart(slot)
     }
 

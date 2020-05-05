@@ -4870,7 +4870,7 @@ class WorldSessionActor extends Actor
 
     case msg@MoveItemMessage(item_guid, source_guid, destination_guid, dest, _) =>
       log.info(s"MoveItem: $msg")
-      (continent.GUID(source_guid), continent.GUID(destination_guid), continent.GUID(item_guid)) match {
+      (continent.GUID(source_guid), continent.GUID(destination_guid), ValidObject(item_guid)) match {
         case (Some(source : PlanetSideServerObject with Container), Some(destination : PlanetSideServerObject with Container), Some(item : Equipment)) =>
           source.Actor ! Containable.MoveItem(destination, item, dest)
         case (None, _, _) =>
@@ -4885,7 +4885,7 @@ class WorldSessionActor extends Actor
 
     case msg@LootItemMessage(item_guid, target_guid) =>
       log.info(s"LootItem: $msg")
-      (ValidObject(item_guid), ValidObject(target_guid)) match {
+      (ValidObject(item_guid), continent.GUID(target_guid)) match {
         case (Some(item : Equipment), Some(destination : PlanetSideServerObject with Container)) =>
           //figure out the source
           ( {
