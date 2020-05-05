@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.terminals
 
+import akka.actor.ActorRef
 import net.psforever.objects.Player
 import net.psforever.objects.definition.converter.TerminalConverter
 import net.psforever.objects.serverobject.structures.AmenityDefinition
@@ -22,4 +23,6 @@ abstract class TerminalDefinition(objectId : Int) extends AmenityDefinition(obje
     * @return a message that resolves the transaction
     */
   def Request(player : Player, msg : Any) : Terminal.Exchange
+
+  def Dispatch(sender : ActorRef, terminal : Terminal, msg : Terminal.TerminalMessage) : Unit = { }
 }
