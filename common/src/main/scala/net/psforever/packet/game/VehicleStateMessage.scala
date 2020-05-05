@@ -25,7 +25,7 @@ import scodec.codecs._
   *                        30 for hard left;
   *                        values in between are possible;
   *                        vehicles that hover also influence this field as expected
-  * @param unk5 na - Possibly a flag to indicate the vehicle is attached to something else e.g. is in a galaxy/lodestar cargo bay
+  * @param is_decelerating If the vehicle is decelerating (in any direction), i.e. if the brake lights are on.
   * @param is_cloaked vehicle is cloaked by virtue of being a Wraith or a Phantasm
   * @see `PlacementData`
   */
@@ -53,7 +53,7 @@ final case class VehicleStateMessage(vehicle_guid : PlanetSideGUID,
                                      unk3 : Int,
                                      unk4 : Int,
                                      wheel_direction : Int,
-                                     unk5 : Boolean,
+                                     is_decelerating : Boolean,
                                      is_cloaked : Boolean
                                     ) extends PlanetSideGamePacket {
   type Packet = VehicleStateMessage

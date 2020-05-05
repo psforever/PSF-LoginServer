@@ -83,6 +83,12 @@ class VehicleControl(vehicle : Vehicle) extends Actor
       case msg : Mountable.TryDismount =>
         dismountBehavior.apply(msg)
         val obj = MountableObject
+
+        // Reset velocity to zero when driver dismounts, to allow jacking/repair if vehicle was moving slightly before dismount
+        if(!obj.Seats(0).isOccupied) {
+          obj.Velocity = Some(Vector3.Zero)
+        }
+
         if(!decaying && obj.Owner.isEmpty && obj.Seats.values.forall(!_.isOccupied)) {
           decaying = true
           decayTimer = context.system.scheduler.scheduleOnce(MountableObject.Definition.DeconstructionTime.getOrElse(5 minutes), self, VehicleControl.PrepareForDeletion())
