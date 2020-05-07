@@ -338,7 +338,11 @@ object OrderTerminalDefinition {
     }
 
     def Dispatch(sender : ActorRef, terminal : Terminal, msg : Terminal.TerminalMessage) : Unit = {
-      sender ! msg
+      val player = msg.player
+      player.Zone.GUID(player.VehicleOwned) match {
+        case Some(vehicle : Vehicle) => vehicle.Actor ! msg
+        case _ => sender ! Terminal.TerminalMessage(player, msg.msg, Terminal.NoDeal())
+      }
     }
   }
 

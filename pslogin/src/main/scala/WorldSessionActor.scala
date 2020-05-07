@@ -3005,7 +3005,7 @@ class WorldSessionActor extends Actor
             sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Loadout, false))
         }
         lastTerminalOrderFulfillment = true
-
+        
       case Terminal.LearnCertification(cert) =>
         val name = tplayer.Name
         if(!tplayer.Certifications.contains(cert)) {
@@ -3400,6 +3400,34 @@ class WorldSessionActor extends Actor
             "Your vehicle order has been cancelled."
         })
         sendResponse(ChatMsg(ChatMessageType.CMT_OPEN, true, "", msg, None))
+
+      case VehicleResponse.ChangeLoadout(target, old_weapons, added_weapons, old_inventory, new_inventory) =>
+        //TODO when vehicle weapons can be changed without visual glitches, rewrite this
+        continent.GUID(target) match {
+          case Some(vehicle : Vehicle) =>
+            if(player.VehicleOwned.contains(target)) {
+              //owner: must unregister old equipment, and register and install new equipment
+              (old_weapons ++ old_inventory).foreach { case (obj, guid) =>
+                taskResolver ! GUIDTask.UnregisterEquipment(obj)(continent.GUID)
+              }
+              val stowEquipment : (Equipment,Int) => TaskResolver.GiveTask = PutLoadoutEquipmentInInventory(vehicle, taskResolver)
+              (added_weapons ++ new_inventory).foreach { case InventoryItem(obj, slot) => taskResolver ! stowEquipment(obj, slot) }
+            }
+            else if(accessedContainer.contains(target)) {
+              //external participant: observe changes to equipment
+              (old_weapons ++ old_inventory).foreach { case (_, guid) => sendResponse(ObjectDeleteMessage(guid, 0)) }
+            }
+            vehicle.PassengerInSeat(player) match {
+              case Some(seatNum) =>
+                //participant: observe changes to equipment
+                (old_weapons ++ old_inventory).foreach { case (_, guid) => sendResponse(ObjectDeleteMessage(guid, 0)) }
+                UpdateWeaponAtSeatPosition(vehicle, seatNum)
+              case None =>
+                //observer: observe changes to external equipment
+                old_weapons.foreach { case (_, guid) => sendResponse(ObjectDeleteMessage(guid, 0)) }
+            }
+          case _ => ;
+        }
 
       case _ => ;
     }

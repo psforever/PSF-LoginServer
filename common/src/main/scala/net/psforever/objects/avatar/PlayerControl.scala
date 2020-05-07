@@ -303,7 +303,7 @@ class PlayerControl(player : Player) extends Actor
           player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, result))
 
         case Terminal.InfantryLoadout(exosuit, subtype, holsters, inventory) =>
-          log.info(s"${player.Name} wants to change equipment loadout to their option #${msg.unk1 + 1}")
+          log.info(s"wants to change equipment loadout to their option #${msg.unk1 + 1}")
           val fallbackSubtype = 0
           val fallbackSuit = ExoSuitType.Standard
           val originalSuit = player.ExoSuit
