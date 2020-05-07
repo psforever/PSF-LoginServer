@@ -92,7 +92,7 @@ class PacketCodingActor extends Actor with MDCContextAware {
 
   def Established : Receive = {
     case PacketCodingActor.SubslotResend() => {
-      log.trace("Subslot resend timeout reached")
+      log.trace(s"Subslot resend timeout reached, session: ${sessionId}")
       relatedABufferTimeout.cancel()
       log.trace(s"Client indicated successful subslots ${relatedALog.sortBy(x => x).mkString(" ")}")
 

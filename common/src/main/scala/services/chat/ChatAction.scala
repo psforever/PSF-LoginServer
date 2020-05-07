@@ -14,5 +14,7 @@ object ChatAction {
   final case class Voice(player_guid : PlanetSideGUID, player_name : String, continent : Zone, player_pos : Vector3, player_faction : PlanetSideEmpire.Value, msg : ChatMsg) extends Action
   final case class Note(player_guid : PlanetSideGUID, player_name : String, msg : ChatMsg) extends Action
   final case class Squad(player_guid : PlanetSideGUID, player_name : String, continent : Zone, player_pos : Vector3, player_faction : PlanetSideEmpire.Value, msg : ChatMsg) extends Action
+  final case class Platoon(player_guid : PlanetSideGUID, player_name : String, continent : Zone, player_pos : Vector3, player_faction : PlanetSideEmpire.Value, msg : ChatMsg) extends Action
+  final case class Command(player_guid : PlanetSideGUID, player_name : String, continent : Zone, player_pos : Vector3, player_faction : PlanetSideEmpire.Value, msg : ChatMsg) extends Action
   final case class GM(player_guid : PlanetSideGUID, player_name : String, msg : ChatMsg) extends Action
 }
