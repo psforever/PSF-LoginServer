@@ -2,9 +2,10 @@
 package net.psforever.objects.vehicles
 
 import akka.actor.{Actor, ActorRef, Cancellable}
-import net.psforever.objects.{DefaultCancellable, GlobalDefinitions, SimpleItem, Vehicle, Vehicles}
+import net.psforever.objects._
 import net.psforever.objects.ballistics.{ResolvedProjectile, VehicleSource}
 import net.psforever.objects.equipment.{Equipment, JammableMountedWeapons}
+import net.psforever.objects.inventory.{GridInventory, InventoryItem}
 import net.psforever.objects.serverobject.{CommonMessages, Containable}
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
@@ -12,13 +13,13 @@ import net.psforever.objects.serverobject.damage.DamageableVehicle
 import net.psforever.objects.serverobject.deploy.DeploymentBehavior
 import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.repair.RepairableVehicle
+import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.vital.VehicleShieldCharge
 import net.psforever.objects.zones.Zone
-import net.psforever.types.DriveState
+import net.psforever.types._
 import services.RemoverActor
-import net.psforever.packet.game.{ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectDetachMessage}
+import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
-import net.psforever.types.{ExoSuitType, PlanetSideEmpire, PlanetSideGUID, Vector3}
 import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
@@ -127,6 +128,52 @@ class VehicleControl(vehicle : Vehicle) extends Actor
             Vehicles.FinishHackingVehicle(vehicle, player,3212836864L),
             GenericHackables.HackingTickAction(progressType = 1, player, vehicle, item.GUID)
           )
+        }
+
+      case Terminal.TerminalMessage(player, msg, reply) =>
+        reply match {
+          case Terminal.VehicleLoadout(definition, weapons, inventory) =>
+            org.log4s.getLogger(vehicle.Definition.Name).info(s"changing vehicle equipment loadout to ${player.Name}'s option #${msg.unk1 + 1}")
+            //remove old inventory
+            val oldInventory = vehicle.Inventory.Clear().map { case InventoryItem(obj, _) => (obj, obj.GUID) }
+            //"dropped" items are lost; if it doesn't go in the trunk, it vanishes into the nanite cloud
+            val (_, afterInventory) = inventory.partition(Containable.DropPredicate(player))
+            val (oldWeapons, newWeapons, finalInventory) = if(vehicle.Definition == definition) {
+              //vehicles are the same type
+              //TODO want to completely swap weapons, but holster icon vanishes temporarily after swap
+              //TODO BFR arms must be swapped properly
+//              //remove old weapons
+//              val oldWeapons = vehicle.Weapons.values.collect { case slot if slot.Equipment.nonEmpty =>
+//                val obj = slot.Equipment.get
+//                slot.Equipment = None
+//                (obj, obj.GUID)
+//              }.toList
+//              (oldWeapons, weapons, afterInventory)
+              //TODO for now, just refill ammo; assume weapons stay the same
+              vehicle.Weapons
+                .collect { case (_, slot) if slot.Equipment.nonEmpty => slot.Equipment.get }
+                .collect { case weapon : Tool =>
+                  weapon.AmmoSlots.foreach { ammo => ammo.Box.Capacity = ammo.Box.Definition.Capacity }
+                }
+              (Nil, Nil, afterInventory)
+            }
+            else {
+              //vehicle loadout is not for this vehicle
+              //do not transfer over weapon ammo
+              if(vehicle.Definition.TrunkSize == definition.TrunkSize && vehicle.Definition.TrunkOffset == definition.TrunkOffset) {
+                (Nil, Nil, afterInventory) //trunk is the same dimensions, however
+              }
+              else {
+                //accommodate as much of inventory as possible
+                val (stow, _) = GridInventory.recoverInventory(afterInventory, vehicle.Inventory)
+                (Nil, Nil, stow)
+              }
+            }
+            finalInventory.foreach { _.obj.Faction = vehicle.Faction }
+            player.Zone.VehicleEvents ! VehicleServiceMessage(player.Zone.Id, VehicleAction.ChangeLoadout(vehicle.GUID, oldWeapons, newWeapons, oldInventory, finalInventory))
+            player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, true))
+
+          case _ => ;
         }
 
       case Vehicle.Deconstruct(time) =>
@@ -254,26 +301,41 @@ class VehicleControl(vehicle : Vehicle) extends Actor
 
   def PutItemInSlotCallback(item : Equipment, slot : Int) : Unit = {
     val obj = ContainerObject
-    val guid = obj.GUID
+    val oguid = obj.GUID
     val zone = obj.Zone
+    val channel = self.toString
     val events = zone.VehicleEvents
+    val iguid = item.GUID
     val definition = item.Definition
-    item.Faction = PlanetSideEmpire.NEUTRAL
-    if(obj.VisibleSlots.contains(slot)) {
-      events ! VehicleServiceMessage(zone.Id, VehicleAction.StowEquipment(guid, guid, slot, item))
-    }
+    item.Faction = obj.Faction
     events ! VehicleServiceMessage(
-      self.toString,
+      //TODO when a new weapon, the equipment slot ui goes blank, but the weapon functions; remount vehicle to correct it
+      if(obj.VisibleSlots.contains(slot)) zone.Id else channel,
       VehicleAction.SendResponse(
         Service.defaultPlayerGUID,
-        ObjectCreateDetailedMessage(
+        ObjectCreateMessage(
           definition.ObjectId,
-          item.GUID,
-          ObjectCreateMessageParent(obj.GUID, slot),
-          definition.Packet.DetailedConstructorData(item).get
+          iguid,
+          ObjectCreateMessageParent(oguid, slot),
+          definition.Packet.ConstructorData(item).get
         )
       )
     )
+    item match {
+      case box : AmmoBox =>
+        events ! VehicleServiceMessage(
+          channel,
+          VehicleAction.InventoryState2(Service.defaultPlayerGUID, iguid, oguid, box.Capacity)
+        )
+      case weapon : Tool =>
+        weapon.AmmoSlots.map { slot => slot.Box }.foreach { box =>
+          events ! VehicleServiceMessage(
+            channel,
+            VehicleAction.InventoryState2(Service.defaultPlayerGUID, iguid, weapon.GUID, box.Capacity)
+          )
+        }
+      case _ => ;
+    }
   }
 
   def SwapItemCallback(item : Equipment) : Unit = {

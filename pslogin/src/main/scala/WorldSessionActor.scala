@@ -2435,55 +2435,6 @@ class WorldSessionActor extends Actor
       case Terminal.SellEquipment() =>
         SellEquipmentFromInventory(tplayer, taskResolver, tplayer, msg.terminal_guid)(Player.FreeHandSlot)
 
-      case Terminal.VehicleLoadout(definition, weapons, inventory) =>
-        log.info(s"$tplayer wants to change their vehicle equipment loadout to their option #${msg.unk1 + 1}")
-        FindLocalVehicle match {
-          case Some(vehicle) =>
-            sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Loadout, true))
-            val (_, afterInventory) = inventory.partition(Containable.DropPredicate(tplayer))
-            //dropped items are lost
-            //remove old inventory
-            val deleteEquipment : (Equipment) => Unit = RemoveOldEquipmentFromInventory(vehicle, taskResolver)
-            vehicle.Inventory.Clear().foreach({ case InventoryItem(obj, index) => deleteEquipment(obj) })
-            val stowEquipment : (Equipment,Int) => TaskResolver.GiveTask = PutLoadoutEquipmentInInventory(vehicle, taskResolver)
-            (if(vehicle.Definition == definition) {
-              //vehicles are the same type; transfer over weapon ammo
-              //TODO ammo switching? no vehicle weapon does that currently but ...
-              //TODO want to completely swap weapons, but holster icon vanishes temporarily after swap
-              //TODO BFR arms must be swapped properly
-              val channel = s"${vehicle.Actor}"
-              weapons.foreach({ case InventoryItem(obj, index) =>
-                val savedWeapon = obj.asInstanceOf[Tool]
-                val existingWeapon = vehicle.Weapons(index).Equipment.get.asInstanceOf[Tool]
-                (0 until existingWeapon.MaxAmmoSlot).foreach({ index =>
-                  val existingBox = existingWeapon.AmmoSlots(index).Box
-                  existingBox.Capacity = savedWeapon.AmmoSlots(index).Box.Capacity
-                  //use VehicleAction.InventoryState2; VehicleAction.InventoryState temporarily glitches ammo count in ui
-                  continent.VehicleEvents ! VehicleServiceMessage(channel, VehicleAction.InventoryState2(PlanetSideGUID(0), existingBox.GUID, existingWeapon.GUID, existingBox.Capacity))
-                })
-              })
-              afterInventory
-            }
-            else {
-              //do not transfer over weapon ammo
-              if(vehicle.Definition.TrunkSize == definition.TrunkSize && vehicle.Definition.TrunkOffset == definition.TrunkOffset) {
-                afterInventory
-              }
-              else {
-                //accommodate as much of inventory as possible
-                val (stow, _) = GridInventory.recoverInventory(afterInventory, vehicle.Inventory) //dropped items can be forgotten
-                stow
-              }
-            }).foreach({ case InventoryItem(obj, index) =>
-              obj.Faction = tplayer.Faction
-              taskResolver ! stowEquipment(obj, index)
-            })
-          case None =>
-            log.error(s"can not apply the loadout - can not find a vehicle")
-            sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Loadout, false))
-        }
-        lastTerminalOrderFulfillment = true
-
       case Terminal.LearnCertification(cert) =>
         val name = tplayer.Name
         if(!tplayer.Certifications.contains(cert)) {
@@ -2878,6 +2829,34 @@ class WorldSessionActor extends Actor
             "Your vehicle order has been cancelled."
         })
         sendResponse(ChatMsg(ChatMessageType.CMT_OPEN, true, "", msg, None))
+
+      case VehicleResponse.ChangeLoadout(target, old_weapons, added_weapons, old_inventory, new_inventory) =>
+        //TODO when vehicle weapons can be changed without visual glitches, rewrite this
+        continent.GUID(target) match {
+          case Some(vehicle : Vehicle) =>
+            if(player.VehicleOwned.contains(target)) {
+              //owner: must unregister old equipment, and register and install new equipment
+              (old_weapons ++ old_inventory).foreach { case (obj, guid) =>
+                taskResolver ! GUIDTask.UnregisterEquipment(obj)(continent.GUID)
+              }
+              val stowEquipment : (Equipment,Int) => TaskResolver.GiveTask = PutLoadoutEquipmentInInventory(vehicle, taskResolver)
+              (added_weapons ++ new_inventory).foreach { case InventoryItem(obj, slot) => taskResolver ! stowEquipment(obj, slot) }
+            }
+            else if(accessedContainer.contains(target)) {
+              //external participant: observe changes to equipment
+              (old_weapons ++ old_inventory).foreach { case (_, guid) => sendResponse(ObjectDeleteMessage(guid, 0)) }
+            }
+            vehicle.PassengerInSeat(player) match {
+              case Some(seatNum) =>
+                //participant: observe changes to equipment
+                (old_weapons ++ old_inventory).foreach { case (_, guid) => sendResponse(ObjectDeleteMessage(guid, 0)) }
+                UpdateWeaponAtSeatPosition(vehicle, seatNum)
+              case None =>
+                //observer: observe changes to external equipment
+                old_weapons.foreach { case (_, guid) => sendResponse(ObjectDeleteMessage(guid, 0)) }
+            }
+          case _ => ;
+        }
 
       case _ => ;
     }

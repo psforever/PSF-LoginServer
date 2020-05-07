@@ -4,7 +4,7 @@ package net.psforever.objects
 import akka.actor.ActorRef
 import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot, JammableUnit}
-import net.psforever.objects.inventory.{Container, GridInventory, InventoryTile}
+import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem, InventoryTile}
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
@@ -17,6 +17,7 @@ import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 
 import scala.annotation.tailrec
 import scala.concurrent.duration.FiniteDuration
+import scala.util.{Success, Try}
 
 /**
   * The server-side support object that represents a vehicle.<br>
@@ -449,6 +450,20 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends AmenityOwner
         Some(index)
       case None =>
         Inventory.Find(guid)
+    }
+  }
+
+  override def Collisions(dest : Int, width : Int, height : Int) : Try[List[InventoryItem]] = {
+    weapons.get(dest) match {
+      case Some(slot) =>
+        slot.Equipment match {
+          case Some(item) =>
+            Success(List(InventoryItem(item, dest)))
+          case None =>
+            Success(List())
+        }
+      case None =>
+        super.Collisions(dest, width, height)
     }
   }
 
