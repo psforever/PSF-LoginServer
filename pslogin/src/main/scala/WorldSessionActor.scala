@@ -1193,7 +1193,8 @@ class WorldSessionActor extends Actor
       log.info(s"Player ${tplayer.Name} has been loaded")
       player = tplayer
       //LoadMapMessage causes the client to send BeginZoningMessage, eventually leading to SetCurrentAvatar
-      sendResponse(LoadMapMessage(continent.Map.Name, continent.Id, 40100, 25, true, continent.Map.Checksum))
+      val weaponsEnabled = (continent.Map.Name != "map11" && continent.Map.Name != "map12" && continent.Map.Name != "map13")
+      sendResponse(LoadMapMessage(continent.Map.Name, continent.Id, 40100, 25, weaponsEnabled, continent.Map.Checksum))
       setupAvatarFunc() //important! the LoadMapMessage must be processed by the client before the avatar is created
       persist()
 
