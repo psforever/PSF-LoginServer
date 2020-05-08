@@ -57,12 +57,24 @@ class Avatar(private val char_id : Long, val name : String, val faction : Planet
   private var lfs : Boolean = false
 
   private var vehicleOwned : Option[PlanetSideGUID] = None
-
-  private var lastUsedEquipmentTimes : mutable.LongMap[Long] = mutable.LongMap[Long]()
-
+  /** key - object id<br>
+    * value - time last used (ms)
+    * */
+  private var lastUsedEquipmentTimes : mutable.LongMap[Long] =  mutable.LongMap[Long]()
+  /** exo-suit times are sorted by `Enumeration` order, which was determined by packet process<br>
+    * key - exo-suit id<br>
+    * value - time last used (ms)
+    * */
   private val lastUsedExoSuitTimes : Array[Long] = Array.fill[Long](ExoSuitType.values.size)(0L)
-
+  /** mechanized exo-suit times are sorted by subtype distinction, which was determined by packet process<br>
+    * key - subtype id<br>
+    * value - time last used (ms)
+    * */
   private val lastUsedMaxExoSuitTimes : Array[Long] = Array.fill[Long](4)(0L) //invalid, ai, av, aa
+  /** key - object id<br>
+    * value - time last acquired (from a terminal) (ms)
+    * */
+  private var lastPurchaseTimes : mutable.LongMap[Long] =  mutable.LongMap[Long]()
 
   def CharId : Long = char_id
 
@@ -247,7 +259,7 @@ class Avatar(private val char_id : Long, val name : String, val faction : Planet
     }
   }
 
-  def SetLastUsedTime(code : Int) : Unit = SetLastUsedTime(code, System.currentTimeMillis())
+  def GetAllLastUsedTimes : Map[Long, Long] = lastUsedEquipmentTimes.toMap
 
   def SetLastUsedTime(code : Int, time : Long) : Unit = {
     lastUsedEquipmentTimes += code.toLong -> time
@@ -259,13 +271,24 @@ class Avatar(private val char_id : Long, val name : String, val faction : Planet
     lastUsedExoSuitTimes(code.id) = time
   }
 
-  def SetLastUsedTime(code : ExoSuitType.Value, subtype : Int) : Unit = SetLastUsedTime(code, System.currentTimeMillis())
-
   def SetLastUsedTime(code : ExoSuitType.Value, subtype : Int, time : Long) : Unit = {
     if(code == ExoSuitType.MAX) {
       lastUsedMaxExoSuitTimes(subtype) = time
     }
     SetLastUsedTime(code, time)
+  }
+
+  def GetLastPurchaseTime(code : Int) : Long = {
+    lastPurchaseTimes.get(code) match {
+      case Some(time) => time
+      case None => 0
+    }
+  }
+
+  def GetAllLastPurchaseTimes : Map[Long, Long] = lastPurchaseTimes.toMap
+
+  def SetLastPurchaseTime(code : Int, time : Long) : Unit = {
+    lastPurchaseTimes += code.toLong -> time
   }
 
   def Definition : AvatarDefinition = GlobalDefinitions.avatar

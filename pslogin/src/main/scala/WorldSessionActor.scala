@@ -112,17 +112,8 @@ class WorldSessionActor extends Actor
   //keep track of avatar's ServerVehicleOverride state
   var traveler : Traveler = null
   var deadState : DeadState.Value = DeadState.Dead
-  var whenUsedLastAAMAX : Long = 0
-  var whenUsedLastAIMAX : Long = 0
-  var whenUsedLastAVMAX : Long = 0
-  var whenUsedLastMAX : Array[Long] = Array.fill[Long](4)(0L)
   var whenUsedLastMAXName : Array[String] = Array.fill[String](4)("")
-  var whenUsedLastItem : Array[Long] = Array.fill[Long](1020)(0L)
-  var whenUsedLastItemName : Array[String] = Array.fill[String](1020)("")
-  var whenUsedLastKit : Long = 0
-  var whenUsedLastSMKit : Long = 0
-  var whenUsedLastSAKit : Long = 0
-  var whenUsedLastSSKit : Long = 0
+  val objectTypeNameReference : LongMap[String] = new LongMap[String]()
   val projectiles : Array[Option[Projectile]] = Array.fill[Option[Projectile]](Projectile.RangeUID - Projectile.BaseUID)(None)
   val projectilesToCleanUp : Array[Boolean] = Array.fill[Boolean](Projectile.RangeUID - Projectile.BaseUID)(false)
   var drawDeloyableIcon : PlanetSideGameObject with Deployable => Unit = RedrawDeployableIcons
@@ -2324,11 +2315,21 @@ class WorldSessionActor extends Actor
         sendResponse(ItemTransactionResultMessage(terminal_guid, action, result))
         lastTerminalOrderFulfillment = true
 
-      case AvatarResponse.ChangeExosuit(target, exosuit, subtype, slot, maxhand, holsters, inventory, dropOrDelete) =>
+      case AvatarResponse.ChangeExosuit(target, exosuit, subtype, slot, maxhand, old_holsters, holsters, old_inventory, inventory, drop, delete) =>
+        StartBundlingPackets()
         sendResponse(ArmorChangedMessage(target, exosuit, subtype))
         sendResponse(PlanetsideAttributeMessage(target, 4, player.Armor))
         if(tplayer_guid == target) {
+          //happening to this player
+          if(exosuit == ExoSuitType.MAX) {
+            sendResponse(AvatarVehicleTimerMessage(player.GUID, whenUsedLastMAXName(subtype), 300, true))
+          }
+          //cleanup
           sendResponse(ObjectHeldMessage(target, Player.HandsDownSlot, false))
+          (old_holsters ++ old_inventory ++ delete).foreach { case (_, guid) => sendResponse(ObjectDeleteMessage(guid, 0)) }
+          //functionally delete
+          delete.foreach { case (obj, _) => taskResolver ! GUIDTask.UnregisterEquipment(obj)(continent.GUID) }
+          //redraw
           if(maxhand) {
             taskResolver ! HoldNewEquipmentUp(player, taskResolver)(Tool(GlobalDefinitions.MAXArms(subtype, player.Faction)), 0)
           }
@@ -2358,10 +2359,13 @@ class WorldSessionActor extends Actor
               )
             )
           }
-          DropOrDeleteLeftovers(player, taskResolver)(dropOrDelete)
+          DropLeftovers(player)(drop)
         }
         else {
+          //happening to some other player
           sendResponse(ObjectHeldMessage(target, slot, false))
+          //cleanup
+          (old_holsters ++ delete).foreach { case (_, guid) => sendResponse(ObjectDeleteMessage(guid, 0)) }
           //draw holsters
           holsters.foreach { case InventoryItem(obj, index) =>
             val definition = obj.Definition
@@ -2375,26 +2379,81 @@ class WorldSessionActor extends Actor
             )
           }
         }
+        StopBundlingPackets()
 
-      case AvatarResponse.ChangeLoadout(target, exosuit, subtype, slot, maxhand, holsters, inventory, dropOrDelete) =>
+      case AvatarResponse.ChangeLoadout(target, exosuit, subtype, slot, maxhand, old_holsters, holsters, old_inventory, inventory, drops) =>
+        StartBundlingPackets()
         sendResponse(ArmorChangedMessage(target, exosuit, subtype))
         sendResponse(PlanetsideAttributeMessage(target, 4, player.Armor))
         if(tplayer_guid == target) {
+          //happening to this player
+          if(exosuit == ExoSuitType.MAX) {
+            sendResponse(AvatarVehicleTimerMessage(player.GUID, whenUsedLastMAXName(subtype), 300, true))
+          }
           sendResponse(ObjectHeldMessage(target, Player.HandsDownSlot, false))
+          //cleanup
+          (old_holsters ++ old_inventory).foreach { case (obj, guid) =>
+            sendResponse(ObjectDeleteMessage(guid, 0))
+            taskResolver ! GUIDTask.UnregisterEquipment(obj)(continent.GUID)
+          }
+          //redraw
           if(maxhand) {
             taskResolver ! HoldNewEquipmentUp(player, taskResolver)(Tool(GlobalDefinitions.MAXArms(subtype, player.Faction)), 0)
           }
-          //depiction of holsters and inventory is handled by callbacks
-          val loadoutEquipmentFunc : (Equipment, Int)=>TaskResolver.GiveTask = PutLoadoutEquipmentInInventory(player, taskResolver)
-          (holsters ++ inventory).foreach { case InventoryItem(obj, slot) => taskResolver ! loadoutEquipmentFunc(obj, slot) }
-          DropOrDeleteLeftovers(player, taskResolver)(dropOrDelete)
+          ApplyPurchaseTimersBeforePackingLoadout(player, player, holsters ++ inventory)
+          DropLeftovers(player)(drops)
         }
         else {
+          //happening to some other player
           sendResponse(ObjectHeldMessage(target, slot, false))
-          //holster depiction is handled by callbacks
+          //cleanup
+          old_holsters.foreach { case (_, guid) => sendResponse(ObjectDeleteMessage(guid, 0)) }
+          //redraw handled by callback
         }
+        StopBundlingPackets()
 
       case _ => ;
+    }
+  }
+
+  /**
+    * Enforce constraints on bulk purchases as determined by a given player's previous purchase times and hard acquisition delays.
+    * Intended to assist in sanitizing loadout information from the perspectvie of the player, or target owner.
+    * The equipment is expected to be unregistered and already fitted to their ultimate slot in the target container.
+    * @see `AvatarVehicleTimerMessage`
+    * @see `Container`
+    * @see `delayedPurchaseEntries`
+    * @see `InventoryItem`
+    * @see `objectTypeNameReference`
+    * @see `Player.GetLastUsedTime`
+    * @see `Player.SetLastUsedTime`
+    * @see `TaskResolver.GiveTask`
+    * @see `WorldSession.PutLoadoutEquipmentInInventory`
+    * @param player the player whose purchasing constraints are to be tested
+    * @param target the location in which the equipment will be stowed
+    * @param slots the equipment, in the standard object-slot format container
+    */
+  def ApplyPurchaseTimersBeforePackingLoadout(player : Player, target : PlanetSideServerObject with Container, slots : List[InventoryItem]) : Unit = {
+    //depiction of packed equipment is handled through callbacks
+    val loadoutEquipmentFunc : (Equipment, Int)=>TaskResolver.GiveTask = PutLoadoutEquipmentInInventory(target, taskResolver)
+    val time = System.currentTimeMillis
+    slots.collect { case InventoryItem(obj, slot)
+      if {
+        val id = obj.Definition.ObjectId
+        val lastUse = player.GetLastPurchaseTime(id)
+        val delay = delayedPurchaseEntries.getOrElse(id, 0L)
+        time - lastUse > delay
+      } =>
+      val definition = obj.Definition
+      val id = definition.ObjectId
+      player.SetLastPurchaseTime(id, time)
+      objectTypeNameReference += id.toLong -> definition.Name //may need to set Descriptor to be purchase name instead
+      delayedPurchaseEntries.get(id) match {
+        case Some(delay) =>
+          sendResponse(AvatarVehicleTimerMessage(player.GUID, definition.Name, delay / 1000, true))
+        case _ => ;
+      }
+      taskResolver ! loadoutEquipmentFunc(obj, slot)
     }
   }
 
@@ -2797,12 +2856,26 @@ class WorldSessionActor extends Actor
   def HandleTerminalMessage(tplayer : Player, msg : ItemTransactionMessage, order : Terminal.Exchange) : Unit = {
     order match {
       case Terminal.BuyEquipment(item) =>
-        taskResolver ! BuyNewEquipmentPutInInventory(
-          continent.GUID(tplayer.VehicleSeated) match { case Some(v : Vehicle) => v; case _ => player },
-          taskResolver,
-          tplayer,
-          msg.terminal_guid
-        )(item)
+        val itemid = item.Definition.ObjectId
+        val time = System.currentTimeMillis
+        if(delayedPurchaseEntries.get(itemid) match {
+          case Some(delay) if time - tplayer.GetLastPurchaseTime(itemid) > delay =>
+            player.SetLastPurchaseTime(itemid, time)
+            objectTypeNameReference += itemid.toLong -> msg.item_name
+            sendResponse(AvatarVehicleTimerMessage(tplayer.GUID, msg.item_name, delay / 1000, true))
+            true
+          case Some(_) =>
+            false
+          case _ => ;
+            true
+        }) {
+          taskResolver ! BuyNewEquipmentPutInInventory(
+            continent.GUID(tplayer.VehicleSeated) match { case Some(v : Vehicle) => v; case _ => player },
+            taskResolver,
+            tplayer,
+            msg.terminal_guid
+          )(item)
+        }
 
       case Terminal.SellEquipment() =>
         SellEquipmentFromInventory(tplayer, taskResolver, tplayer, msg.terminal_guid)(Player.FreeHandSlot)
@@ -3136,11 +3209,19 @@ class WorldSessionActor extends Actor
       case Terminal.BuyVehicle(vehicle, weapons, trunk) =>
         continent.Map.TerminalToSpawnPad.get(msg.terminal_guid.guid) match {
           case Some(pad_guid) =>
-            val lTime = System.currentTimeMillis
-            if(lTime - whenUsedLastItem(vehicle.Definition.ObjectId) > 300000) {
-              whenUsedLastItem(vehicle.Definition.ObjectId) = lTime
-              whenUsedLastItemName(vehicle.Definition.ObjectId) = msg.item_name
-              sendResponse(AvatarVehicleTimerMessage(tplayer.GUID, msg.item_name, 300, true))
+            val vid = vehicle.Definition.ObjectId
+            val time = System.currentTimeMillis
+            if(delayedPurchaseEntries.get(vid) match {
+              case Some(delay) if time - tplayer.GetLastPurchaseTime(vid) > delay =>
+                tplayer.SetLastPurchaseTime(vid, time)
+                objectTypeNameReference += vid.toLong -> msg.item_name
+                sendResponse(AvatarVehicleTimerMessage(tplayer.GUID, msg.item_name, delay / 1000, true))
+                true
+              case Some(_) =>
+                false
+              case None => ;
+                true
+            }) {
               val toFaction = tplayer.Faction
               val pad = continent.GUID(pad_guid).get.asInstanceOf[VehicleSpawnPad]
               vehicle.Faction = toFaction
@@ -3405,13 +3486,14 @@ class WorldSessionActor extends Actor
         //TODO when vehicle weapons can be changed without visual glitches, rewrite this
         continent.GUID(target) match {
           case Some(vehicle : Vehicle) =>
+            StartBundlingPackets()
             if(player.VehicleOwned.contains(target)) {
               //owner: must unregister old equipment, and register and install new equipment
               (old_weapons ++ old_inventory).foreach { case (obj, guid) =>
+                sendResponse(ObjectDeleteMessage(guid, 0))
                 taskResolver ! GUIDTask.UnregisterEquipment(obj)(continent.GUID)
               }
-              val stowEquipment : (Equipment,Int) => TaskResolver.GiveTask = PutLoadoutEquipmentInInventory(vehicle, taskResolver)
-              (added_weapons ++ new_inventory).foreach { case InventoryItem(obj, slot) => taskResolver ! stowEquipment(obj, slot) }
+              ApplyPurchaseTimersBeforePackingLoadout(player, vehicle, added_weapons ++ new_inventory)
             }
             else if(accessedContainer.contains(target)) {
               //external participant: observe changes to equipment
@@ -3426,6 +3508,7 @@ class WorldSessionActor extends Actor
                 //observer: observe changes to external equipment
                 old_weapons.foreach { case (_, guid) => sendResponse(ObjectDeleteMessage(guid, 0)) }
             }
+            StopBundlingPackets()
           case _ => ;
         }
 
@@ -4011,9 +4094,10 @@ class WorldSessionActor extends Actor
                       log.info(s"CharacterRequest/Select: character $lName found in records")
                       avatar = new Avatar(charId, lName, lFaction, lGender, lHead, lVoice)
                       var faction : String = lFaction.toString.toLowerCase
-                      whenUsedLastMAXName(2) = faction + "hev_antipersonnel"
-                      whenUsedLastMAXName(3) = faction + "hev_antivehicular"
-                      whenUsedLastMAXName(1) = faction + "hev_antiaircraft"
+                      whenUsedLastMAXName(0) = faction + "hev"
+                      whenUsedLastMAXName(1) = faction + "hev_antipersonnel"
+                      whenUsedLastMAXName(2) = faction + "hev_antivehicular"
+                      whenUsedLastMAXName(3) = faction + "hev_antiaircraft"
                       avatar.FirstTimeEvents = ftes
                       accountPersistence ! AccountPersistenceService.Login(lName)
                     case _ =>
@@ -5550,88 +5634,86 @@ class WorldSessionActor extends Actor
           else if(!unk3 && player.isAlive) { //potential kit use
             ValidObject(item_used_guid) match {
               case Some(kit : Kit) =>
-                player.Find(kit) match {
-                  case Some(index) =>
-                    if(kit.Definition == GlobalDefinitions.medkit) {
-                      if(player.Health == player.MaxHealth) {
-                        sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", "@HealComplete", None))
-                      }
-                      else if(System.currentTimeMillis - whenUsedLastKit < 5000) {
-                        sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", s"@TimeUntilNextUse^${5 - (System.currentTimeMillis - whenUsedLastKit) / 1000}~", None))
-                      }
-                      else {
-                        whenUsedLastKit = System.currentTimeMillis
-                        player.Slot(index).Equipment = None //remove from slot immediately; must exist on client for next packet
-                        sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
-                        sendResponse(ObjectDeleteMessage(kit.GUID, 0))
-                        taskResolver ! GUIDTask.UnregisterEquipment(kit)(continent.GUID)
-                        player.History(HealFromKit(PlayerSource(player), 25, kit.Definition))
-                        player.Health = player.Health + 25
-                        sendResponse(PlanetsideAttributeMessage(avatar_guid, 0, player.Health))
-                        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(avatar_guid, 0, player.Health))
-                      }
-                    }
-                    else if(kit.Definition == GlobalDefinitions.super_medkit) {
-                      if(player.Health == player.MaxHealth) {
-                        sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", "@HealComplete", None))
-                      }
-                      else if(System.currentTimeMillis - whenUsedLastSMKit < 1200000) {
-                        sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", s"@TimeUntilNextUse^${1200 - (System.currentTimeMillis - whenUsedLastSMKit) / 1000}~", None))
-                      }
-                      else {
-                        whenUsedLastSMKit = System.currentTimeMillis
-                        player.Slot(index).Equipment = None //remove from slot immediately; must exist on client for next packet
-                        sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
-                        sendResponse(ObjectDeleteMessage(kit.GUID, 0))
-                        taskResolver ! GUIDTask.UnregisterEquipment(kit)(continent.GUID)
-                        player.History(HealFromKit(PlayerSource(player), 100, kit.Definition))
-                        player.Health = player.Health + 100
-                        sendResponse(PlanetsideAttributeMessage(avatar_guid, 0, player.Health))
-                        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(avatar_guid, 0, player.Health))
-                      }
-                    }
-                    else if(kit.Definition == GlobalDefinitions.super_armorkit) {
-                      if(player.Armor == player.MaxArmor) {
-                        sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", "Armor at maximum - No repairing required.", None))
-                      }
-                      else if(System.currentTimeMillis - whenUsedLastSAKit < 1200000) {
-                        sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", s"@TimeUntilNextUse^${1200 - (System.currentTimeMillis - whenUsedLastSAKit) / 1000}~", None))
-                      }
-                      else {
-                        whenUsedLastSAKit = System.currentTimeMillis
-                        player.Slot(index).Equipment = None //remove from slot immediately; must exist on client for next packet
-                        sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
-                        sendResponse(ObjectDeleteMessage(kit.GUID, 0))
-                        taskResolver ! GUIDTask.UnregisterEquipment(kit)(continent.GUID)
-                        player.History(RepairFromKit(PlayerSource(player), 200, kit.Definition))
-                        player.Armor = player.Armor + 200
-                        sendResponse(PlanetsideAttributeMessage(avatar_guid, 4, player.Armor))
-                        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(avatar_guid, 4, player.Armor))
-                      }
-                    }
-                    else if(kit.Definition == GlobalDefinitions.super_staminakit) {
-                      if(player.Stamina == player.MaxStamina) {
-                        sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", "Stamina at maximum - No recharge required.", None))
-                      }
-                      else if(System.currentTimeMillis - whenUsedLastSSKit < 1200000) {
-                        sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", s"@TimeUntilNextUse^${300 - (System.currentTimeMillis - whenUsedLastSSKit) / 1200}~", None))
-                      }
-                      else {
-                        whenUsedLastSSKit = System.currentTimeMillis
-                        player.Slot(index).Equipment = None //remove from slot immediately; must exist on client for next packet
-                        sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
-                        sendResponse(ObjectDeleteMessage(kit.GUID, 0))
-                        taskResolver ! GUIDTask.UnregisterEquipment(kit)(continent.GUID)
-                        player.Stamina = player.Stamina + 100
-                      }
-                    }
-                    else {
-                      log.warn(s"UseItem: $kit behavior not supported")
-                    }
-
-                  case None =>
-                    log.error(s"UseItem: anticipated a $kit, but can't find it")
+                val kid = kit.Definition.ObjectId
+                val time = System.currentTimeMillis
+                val lastUse = player.GetLastUsedTime(kid)
+                val delay = delayedGratificationEntries.getOrElse(kid, 0L)
+                if((time - lastUse) < delay) {
+                  sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", s"@TimeUntilNextUse^${((delay / 1000) - math.ceil((time - lastUse) / 1000))}~", None))
                 }
+                else {
+                  val indexOpt = player.Find(kit)
+                  val kitIsUsed = indexOpt match {
+                    case Some(index) =>
+                      if(kit.Definition == GlobalDefinitions.medkit) {
+                        if(player.Health == player.MaxHealth) {
+                          sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", "@HealComplete", None))
+                          false
+                        }
+                        else {
+                          player.History(HealFromKit(PlayerSource(player), 25, kit.Definition))
+                          player.Health = player.Health + 25
+                          sendResponse(PlanetsideAttributeMessage(avatar_guid, 0, player.Health))
+                          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(avatar_guid, 0, player.Health))
+                          true
+                        }
+                      }
+                      else if(kit.Definition == GlobalDefinitions.super_medkit) {
+                        if(player.Health == player.MaxHealth) {
+                          sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", "@HealComplete", None))
+                          false
+                        }
+                        else {
+                          player.History(HealFromKit(PlayerSource(player), 100, kit.Definition))
+                          player.Health = player.Health + 100
+                          sendResponse(PlanetsideAttributeMessage(avatar_guid, 0, player.Health))
+                          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(avatar_guid, 0, player.Health))
+                          true
+                        }
+                      }
+                      else if(kit.Definition == GlobalDefinitions.super_armorkit) {
+                        if(player.Armor == player.MaxArmor) {
+                          sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", "Armor at maximum - No repairing required.", None))
+                          false
+                        }
+                        else {
+                          player.History(RepairFromKit(PlayerSource(player), 200, kit.Definition))
+                          player.Armor = player.Armor + 200
+                          sendResponse(PlanetsideAttributeMessage(avatar_guid, 4, player.Armor))
+                          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(avatar_guid, 4, player.Armor))
+                          true
+                        }
+                      }
+                      else if(kit.Definition == GlobalDefinitions.super_staminakit) {
+                        if(player.Stamina == player.MaxStamina) {
+                          sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", "Stamina at maximum - No recharge required.", None))
+                          false
+                        }
+                        else {
+                          player.Stamina = player.Stamina + 100
+                          sendResponse(PlanetsideAttributeMessage(avatar_guid, 2, player.Stamina))
+                          true
+                        }
+                      }
+                      else {
+                        log.warn(s"UseItem: $kit behavior not supported")
+                        false
+                      }
+
+                    case None =>
+                      log.error(s"UseItem: anticipated a $kit, but can't find it")
+                      false
+                  }
+                  if(kitIsUsed) {
+                    //kit was found belonging to player and was used
+                    player.SetLastUsedTime(kid, time)
+                    player.Slot(indexOpt.get).Equipment = None //remove from slot immediately; must exist on client for next packet
+                    sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, 0, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+                    sendResponse(ObjectDeleteMessage(kit.GUID, 0))
+                    taskResolver ! GUIDTask.UnregisterEquipment(kit)(continent.GUID)
+                  }
+                }
+
               case Some(item) =>
                 log.warn(s"UseItem: looking for Kit to use, but found $item instead")
               case None =>
@@ -7854,7 +7936,7 @@ class WorldSessionActor extends Actor
     * @see `GetKnownVehicleAndSeat`
     * @see `LoadZoneTransferPassengerMessages`
     * @see `Player.Spawn`
-    * @see `ReloadUsedLastCoolDownTimes`
+    * @see `ReloadItemCoolDownTimes`
     * @see `Vehicles.Own`
     * @see `Vehicles.ReloadAccessPermissions`
     */
@@ -7941,19 +8023,7 @@ class WorldSessionActor extends Actor
     continent.Population ! Zone.Population.Spawn(avatar, player)
     //cautious redundancy
     deadState = DeadState.Alive
-    ReloadUsedLastCoolDownTimes()
-
-    val lTime = System.currentTimeMillis // PTS v3
-    for (i <- 0 to whenUsedLastItem.length-1) {
-      if (lTime - whenUsedLastItem(i) < 300000) {
-        sendResponse(AvatarVehicleTimerMessage(player.GUID, whenUsedLastItemName(i), 300 - ((lTime - whenUsedLastItem(i)) / 1000 toInt), true))
-      }
-    }
-    for (i <- 1 to 3) {
-      if (lTime - whenUsedLastMAX(i) < 300000) {
-        sendResponse(AvatarVehicleTimerMessage(player.GUID, whenUsedLastMAXName(i), 300 - ((lTime - whenUsedLastMAX(i)) / 1000 toInt), true))
-      }
-    }
+    ReloadItemCoolDownTimes()
   }
 
   /**
@@ -8086,7 +8156,7 @@ class WorldSessionActor extends Actor
     * @see `ObjectAttachMessage`
     * @see `ObjectCreateMessage`
     * @see `PlayerInfo.LoginInfo`
-    * @see `ReloadUsedLastCoolDownTimes`
+    * @see `ReloadItemCoolDownTimes`
     * @see `UpdateWeaponAtSeatPosition`
     * @see `Vehicles.ReloadAccessPermissions`
     */
@@ -8133,7 +8203,7 @@ class WorldSessionActor extends Actor
     }
     //cautious redundancy
     deadState = DeadState.Alive
-    ReloadUsedLastCoolDownTimes()
+    ReloadItemCoolDownTimes()
     setupAvatarFunc = AvatarCreate
   }
 
@@ -8145,10 +8215,10 @@ class WorldSessionActor extends Actor
     * and this routine's normal operation when it revisits the same code.
     * @see `avatarSetupFunc`
     * @see `AvatarCreate`
-    * @see `ReloadUsedLastCoolDownTimes`
+    * @see `ReloadItemCoolDownTimes`
     */
   def AvatarDeploymentPassOver() : Unit = {
-    ReloadUsedLastCoolDownTimes()
+    ReloadItemCoolDownTimes()
     setupAvatarFunc = AvatarCreate
   }
 
@@ -8157,16 +8227,31 @@ class WorldSessionActor extends Actor
     * This is called "skill".
     * @see `AvatarVehicleTimerMessage`
     */
-  def ReloadUsedLastCoolDownTimes() : Unit = {
-    val lTime = System.currentTimeMillis
-    for (i <- 0 to whenUsedLastItem.length-1) {
-      if (lTime - whenUsedLastItem(i) < 300000) {
-        sendResponse(AvatarVehicleTimerMessage(player.GUID, whenUsedLastItemName(i), 300 - ((lTime - whenUsedLastItem(i)) / 1000 toInt), true))
+  def ReloadItemCoolDownTimes() : Unit = {
+    val time = System.currentTimeMillis
+    //purchases
+    val lastPurchases = avatar.GetAllLastPurchaseTimes
+    delayedPurchaseEntries.collect { case (id, delay) if lastPurchases.contains(id) =>
+      val lastTime = lastPurchases.getOrElse(id, 0L)
+      val delay = delayedPurchaseEntries(id.toInt)
+      if (time - lastTime < delay) {
+        sendResponse(AvatarVehicleTimerMessage(player.GUID, objectTypeNameReference.getOrElse(id, ""), ((delay - (time - lastTime)) / 1000) toInt, true))
       }
     }
-    for (i <- 1 to 3) {
-      if (lTime - whenUsedLastMAX(i) < 300000) {
-        sendResponse(AvatarVehicleTimerMessage(player.GUID, whenUsedLastMAXName(i), 300 - ((lTime - whenUsedLastMAX(i)) / 1000 toInt), true))
+    //uses
+    val lastUses = avatar.GetAllLastUsedTimes
+    delayedGratificationEntries.collect { case (id, delay) if lastUses.contains(id) =>
+      val lastTime = lastUses.getOrElse(id, 0L)
+      val delay = delayedGratificationEntries(id.toInt)
+      if (time - lastTime < delay) {
+        sendResponse(AvatarVehicleTimerMessage(player.GUID, objectTypeNameReference.getOrElse(id, ""), ((delay - (time - lastTime)) / 1000) toInt, true))
+      }
+    }
+    //max exo-suits (specifically)
+    (1 to 3).foreach { subtype =>
+      val maxTime = player.GetLastUsedTime(ExoSuitType.MAX, subtype)
+      if (maxTime > 0 && time - maxTime < 300000) { //5min
+        sendResponse(AvatarVehicleTimerMessage(player.GUID, whenUsedLastMAXName(subtype), 300 - ((time - maxTime) / 1000 toInt), true))
       }
     }
   }
@@ -10839,6 +10924,57 @@ class WorldSessionActor extends Actor
 }
 
 object WorldSessionActor {
+  /** Object purchasing cooldowns.<br>
+    * key - object id<br>
+    * value - time last used (ms)
+    * */
+  val delayedPurchaseEntries : Map[Int, Long] = Map(
+    GlobalDefinitions.ams.ObjectId -> 300000, //5min
+    GlobalDefinitions.ant.ObjectId -> 300000, //5min
+    GlobalDefinitions.apc_nc.ObjectId -> 300000, //5min
+    GlobalDefinitions.apc_tr.ObjectId -> 300000, //5min
+    GlobalDefinitions.apc_vs.ObjectId -> 300000, //5min
+    GlobalDefinitions.aurora.ObjectId -> 300000, //5min
+    GlobalDefinitions.battlewagon.ObjectId -> 300000, //5min
+    GlobalDefinitions.dropship.ObjectId -> 300000, //5min
+    GlobalDefinitions.flail.ObjectId -> 300000, //5min
+    GlobalDefinitions.fury.ObjectId -> 300000, //5min
+    GlobalDefinitions.galaxy_gunship.ObjectId -> 600000, //10min
+    GlobalDefinitions.lodestar.ObjectId -> 300000, //5min
+    GlobalDefinitions.liberator.ObjectId -> 300000, //5min
+    GlobalDefinitions.lightgunship.ObjectId -> 300000, //5min
+    GlobalDefinitions.lightning.ObjectId -> 300000, //5min
+    GlobalDefinitions.magrider.ObjectId -> 300000, //5min
+    GlobalDefinitions.mediumtransport.ObjectId -> 300000, //5min
+    GlobalDefinitions.mosquito.ObjectId -> 300000, //5min
+    GlobalDefinitions.phantasm.ObjectId -> 300000, //5min
+    GlobalDefinitions.prowler.ObjectId -> 300000, //5min
+    GlobalDefinitions.quadassault.ObjectId -> 300000, //5min
+    GlobalDefinitions.quadstealth.ObjectId -> 300000, //5min
+    GlobalDefinitions.router.ObjectId -> 300000, //5min
+    GlobalDefinitions.switchblade.ObjectId -> 300000, //5min
+    GlobalDefinitions.skyguard.ObjectId -> 300000, //5min
+    GlobalDefinitions.threemanheavybuggy.ObjectId -> 300000, //5m
+    GlobalDefinitions.thunderer.ObjectId -> 300000, //5min
+    GlobalDefinitions.two_man_assault_buggy.ObjectId -> 300000, //5min
+    GlobalDefinitions.twomanhoverbuggy.ObjectId -> 300000, //5min
+    GlobalDefinitions.twomanheavybuggy.ObjectId -> 300000, //5min
+    GlobalDefinitions.vanguard.ObjectId -> 300000, //5min
+    GlobalDefinitions.vulture.ObjectId -> 300000, //5min
+    GlobalDefinitions.wasp.ObjectId -> 300000, //5min
+    GlobalDefinitions.flamethrower.ObjectId -> 180000 //3min
+  )
+  /** Object use cooldowns.<br>
+    * key - object id<br>
+    * value - time last used (ms)
+    * */
+  val delayedGratificationEntries : Map[Int, Long] = Map(
+    GlobalDefinitions.medkit.ObjectId -> 5000, //5s
+    GlobalDefinitions.super_armorkit.ObjectId -> 1200000, //20min
+    GlobalDefinitions.super_medkit.ObjectId -> 1200000, //20min
+    GlobalDefinitions.super_staminakit.ObjectId -> 1200000 //20min
+  )
+
   final case class ResponseToSelf(pkt : PlanetSideGamePacket)
 
   private final case class PokeClient()
