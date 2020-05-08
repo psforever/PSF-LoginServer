@@ -1,9 +1,12 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects
 
+import net.psforever.objects.definition.ExoSuitDefinition
 import net.psforever.objects.equipment.EquipmentSlot
 import net.psforever.objects.inventory.InventoryItem
+import net.psforever.objects.loadouts.InfantryLoadout
 import net.psforever.packet.game.{InventoryStateMessage, RepairMessage}
+import net.psforever.types.ExoSuitType
 import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 
@@ -102,6 +105,19 @@ object Players {
       else {
         fillEmptyHolsters(iter, list)
       }
+    }
+  }
+
+  def CertificationToUseExoSuit(player : Player, exosuit : ExoSuitType.Value, subtype : Int) : Boolean = {
+    ExoSuitDefinition.Select(exosuit, player.Faction).Permissions match {
+      case Nil =>
+        true
+      case permissions if subtype != 0 =>
+        val certs = player.Certifications
+        certs.intersect(permissions.toSet).nonEmpty &&
+          certs.intersect(InfantryLoadout.DetermineSubtypeC(subtype)).nonEmpty
+      case permissions =>
+        player.Certifications.intersect(permissions.toSet).nonEmpty
     }
   }
 }

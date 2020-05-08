@@ -2,12 +2,12 @@
 package net.psforever.objects.avatar
 
 import akka.actor.{Actor, ActorRef, Props}
-import net.psforever.objects._
+import net.psforever.objects.{Players, _}
 import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile}
-import net.psforever.objects.definition.{ExoSuitDefinition, ImplantDefinition}
+import net.psforever.objects.definition.ImplantDefinition
 import net.psforever.objects.equipment.{Ammo, Equipment, EquipmentSize, JammableBehavior, JammableUnit}
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
-import net.psforever.objects.loadouts.{InfantryLoadout, Loadout}
+import net.psforever.objects.loadouts.Loadout
 import net.psforever.objects.vital.{PlayerSuicide, Vitality}
 import net.psforever.objects.serverobject.{CommonMessages, Containable, PlanetSideServerObject}
 import net.psforever.objects.serverobject.damage.Damageable
@@ -227,16 +227,17 @@ class PlayerControl(player : Player) extends Actor
     case Terminal.TerminalMessage(_, msg, order) =>
       order match {
         case Terminal.BuyExosuit(exosuit, subtype) =>
-          var toDropOrDelete : List[InventoryItem] = Nil
+          var toDelete : List[InventoryItem] = Nil
           //TODO check exo-suit permissions
           val originalSuit = player.ExoSuit
           val originalSubtype = Loadout.DetermineSubtype(player)
-          var requestToChangeArmor = originalSuit != exosuit || originalSubtype != subtype
-          var allowedToChangeArmor : Boolean = true
+          val requestToChangeArmor = originalSuit != exosuit || originalSubtype != subtype
+          val allowedToChangeArmor = Players.CertificationToUseExoSuit(player, exosuit, subtype)
           val result = if(requestToChangeArmor && allowedToChangeArmor) {
             log.info(s"${player.Name} wants to change to a different exo-suit - $exosuit")
-            val beforeInventory = player.Inventory.Clear()
+            player.SetLastUsedTime(exosuit, subtype, System.currentTimeMillis())
             val beforeHolsters = Players.clearHolsters(player.Holsters().iterator)
+            val beforeInventory = player.Inventory.Clear()
             //change suit
             val originalArmor = player.Armor
             player.ExoSuit = exosuit //changes the value of MaxArmor to reflect the new exo-suit
@@ -254,7 +255,7 @@ class PlayerControl(player : Player) extends Actor
             }
             val normalHolsters = if (originalSuit == ExoSuitType.MAX) {
               val (maxWeapons, normalWeapons) = beforeHolsters.partition(elem => elem.obj.Size == EquipmentSize.Max)
-              toDropOrDelete = toDropOrDelete ++ maxWeapons
+              toDelete ++= maxWeapons
               normalWeapons
             }
             else {
@@ -292,7 +293,11 @@ class PlayerControl(player : Player) extends Actor
               player.Inventory.InsertQuickly(elem.start, elem.obj)
             }
             player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id,
-              AvatarAction.ChangeExosuit(player.GUID, exosuit, subtype, player.LastDrawnSlot, exosuit == ExoSuitType.MAX && requestToChangeArmor, afterHolsters, stow, toDropOrDelete ++ drop)
+              AvatarAction.ChangeExosuit(player.GUID, exosuit, subtype, player.LastDrawnSlot, exosuit == ExoSuitType.MAX && requestToChangeArmor,
+                beforeHolsters.map { case InventoryItem(obj, _) => (obj, obj.GUID) }, afterHolsters,
+                beforeInventory.map { case InventoryItem(obj, _) => (obj, obj.GUID) }, stow, drop,
+                toDelete.map { case InventoryItem(obj, _) => (obj, obj.GUID) }
+              )
             )
             true
           }
@@ -309,32 +314,63 @@ class PlayerControl(player : Player) extends Actor
           val originalSubtype = Loadout.DetermineSubtype(player)
           //sanitize exo-suit for change
           val dropPred = Containable.DropPredicate(player)
+          val oldHolsters = Players.clearHolsters(player.Holsters().iterator)
+          val dropHolsters = oldHolsters.filter(dropPred)
+          val oldInventory = player.Inventory.Clear()
+          val dropInventory = oldInventory.filter(dropPred)
           val toDeleteOrDrop : List[InventoryItem] = (player.FreeHand.Equipment match {
             case Some(obj) =>
+              val out = InventoryItem(obj, -1)
               player.FreeHand.Equipment = None
-              List(InventoryItem(obj, -1))
+              if(dropPred(out)) {
+                List(out)
+              }
+              else {
+                Nil
+              }
             case _ =>
               Nil
-          }) ++ Players.clearHolsters(player.Holsters().iterator) ++ player.Inventory.Clear()
+          }) ++ dropHolsters ++ dropInventory
           //a loadout with a prohibited exo-suit type will result in the fallback exo-suit type
-          val (nextSuit : ExoSuitType.Value, nextSubtype : Int) =
-            if(ExoSuitDefinition.Select(exosuit, player.Faction).Permissions match {
-              case Nil =>
+          //imposed 5min delay on mechanized exo-suit switches
+          //TODO other exo-suit switch delays?
+          val time = System.currentTimeMillis()
+          val (nextSuit, nextSubtype) = if(Players.CertificationToUseExoSuit(player, exosuit, subtype) &&
+            (if(exosuit == ExoSuitType.MAX) {
+              if(time - player.GetLastUsedTime(exosuit, subtype) < 30000L) {
+                false
+              }
+              else {
+                player.SetLastUsedTime(exosuit, subtype, time)
                 true
-              case permissions if subtype != 0 =>
-                val certs = player.Certifications
-                certs.intersect(permissions.toSet).nonEmpty &&
-                  certs.intersect(InfantryLoadout.DetermineSubtypeC(subtype)).nonEmpty
-              case permissions =>
-                player.Certifications.intersect(permissions.toSet).nonEmpty
-            }) {
+              }
+            }
+            else {
+              player.SetLastUsedTime(exosuit, subtype, time)
+              true
+            })) {
               (exosuit, subtype)
             }
             else {
-              log.warn(s"${player.Name} no longer has permission to wear the exo-suit type $exosuit; will wear $fallbackSuit instead")
+              log.warn(s"no longer has permission to wear the exo-suit type $exosuit; will wear $fallbackSuit instead")
+              player.SetLastUsedTime(fallbackSuit, fallbackSubtype, time)
               (fallbackSuit, fallbackSubtype)
             }
-          //update suit interally
+          //sanitize (incoming) inventory
+          //TODO equipment permissions; these loops may be expanded upon in future
+          val curatedHolsters = for {
+            item <- holsters
+            //id = item.obj.Definition.ObjectId
+            //lastTime = player.GetLastUsedTime(id)
+            if true
+          } yield item
+          val curatedInventory = for {
+            item <- inventory
+            //id = item.obj.Definition.ObjectId
+            //lastTime = player.GetLastUsedTime(id)
+            if true
+          } yield item
+          //update suit internally
           val originalArmor = player.Armor
           player.ExoSuit = nextSuit
           val toMaxArmor = player.MaxArmor
@@ -354,15 +390,22 @@ class PlayerControl(player : Player) extends Actor
           val (afterHolsters, afterInventory) = if(nextSuit == exosuit) {
             (
               //melee slot preservation for MAX
-              if(nextSuit == ExoSuitType.MAX) holsters.filter(_.start == 4)
-              else holsters.filterNot(dropPred),
-              inventory.filterNot(dropPred)
+              if(nextSuit == ExoSuitType.MAX) {
+                holsters.filter(_.start == 4)
+              }
+              else {
+                curatedHolsters.filterNot(dropPred)
+              },
+              curatedInventory.filterNot(dropPred)
             )
           }
           else {
             //our exo-suit type was hijacked by changing permissions; we shouldn't even be able to use that loadout(!)
             //holsters
-            val leftoversForInventory = Players.fillEmptyHolsters(player.Holsters().iterator, (holsters ++ inventory).filterNot(dropPred))
+            val leftoversForInventory = Players.fillEmptyHolsters(
+              player.Holsters().iterator,
+              (curatedHolsters ++ curatedInventory).filterNot(dropPred)
+            )
             val finalHolsters = player.Holsters()
               .zipWithIndex
               .collect { case (slot, index) if slot.Equipment.nonEmpty => InventoryItem(slot.Equipment.get, index) }
@@ -375,7 +418,9 @@ class PlayerControl(player : Player) extends Actor
           toDeleteOrDrop.foreach { entry => entry.obj.Faction = PlanetSideEmpire.NEUTRAL }
 
           player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id,
-            AvatarAction.ChangeLoadout(player.GUID, nextSuit, nextSubtype, player.LastDrawnSlot, exosuit == ExoSuitType.MAX, afterHolsters, afterInventory, toDeleteOrDrop)
+            AvatarAction.ChangeLoadout(player.GUID, nextSuit, nextSubtype, player.LastDrawnSlot, exosuit == ExoSuitType.MAX,
+              oldHolsters.map { case InventoryItem(obj, _) => (obj, obj.GUID) }, afterHolsters,
+              oldInventory.map { case InventoryItem(obj, _) => (obj, obj.GUID) }, afterInventory, toDeleteOrDrop)
           )
           player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, true))
 
@@ -430,22 +475,18 @@ class PlayerControl(player : Player) extends Actor
     * @param target an object that can be affected by the jammered status
     * @param dur the duration of the timer, in milliseconds
     */
-  override def StartJammeredStatus(target : Any, dur : Int) : Unit = target match {
-    case obj : Player =>
-      //TODO these features
-      val guid = obj.GUID
-      val zone = obj.Zone
-      val events = zone.AvatarEvents
+  override def StartJammeredStatus(target : Any, dur : Int) : Unit = {
+    //TODO these features
+    val zone = player.Zone
 
-      player.Implants.indices.foreach { slot => // Deactivate & uninitialize all implants
-        player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, player.Implant(slot).id * 2)) // Deactivation sound / effect
-        self ! Player.ImplantActivation(slot, 0)
-        PlayerControl.UninitializeImplant(player, slot)
-      }
+    player.Implants.indices.foreach { slot => // Deactivate & uninitialize all implants
+      zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, player.Implant(slot).id * 2)) // Deactivation sound / effect
+      self ! Player.ImplantActivation(slot, 0)
+      PlayerControl.UninitializeImplant(player, slot)
+    }
 
-      obj.skipStaminaRegenForTurns = math.max(obj.skipStaminaRegenForTurns, 10)
-      super.StartJammeredStatus(target, dur)
-    case _ => ;
+    player.skipStaminaRegenForTurns = math.max(player.skipStaminaRegenForTurns, 10)
+    super.StartJammeredStatus(target, dur)
   }
 
   override def CancelJammeredStatus(target: Any): Unit = {

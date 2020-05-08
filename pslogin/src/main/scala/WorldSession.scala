@@ -8,7 +8,7 @@ import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
 import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.serverobject.{Containable, PlanetSideServerObject}
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{ItemTransactionResultMessage, ObjectHeldMessage}
+import net.psforever.packet.game.ObjectHeldMessage
 import net.psforever.types.{PlanetSideGUID, TransactionType, Vector3}
 import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
@@ -218,17 +218,13 @@ object WorldSession {
     * na
     * @param dropOrDelete na
     */
-  def DropOrDeleteLeftovers(player : Player, taskResolver : ActorRef)(dropOrDelete : List[InventoryItem]) : Unit = {
+  def DropLeftovers(container : PlanetSideServerObject with Container)(dropOrDelete : List[InventoryItem]) : Unit = {
     //drop or retire
-    val zone = player.Zone
-    val pos = player.Position
-    val orient = Vector3.z(player.Orientation.z)
-    val (finalDroppedItems, retiredItems) = dropOrDelete.partition(Containable.DropPredicate(player))
-    //drop special items on ground
+    val zone = container.Zone
+    val pos = container.Position
+    val orient = Vector3.z(container.Orientation.z)
     //TODO make a sound when dropping stuff?
-    finalDroppedItems.foreach { entry => zone.Ground ! Zone.Ground.DropItem(entry.obj, pos, orient) }
-    //deconstruct normal items
-    retiredItems.foreach{ entry => taskResolver ! GUIDTask.UnregisterEquipment(entry.obj)(zone.GUID) }
+    dropOrDelete.foreach { entry => zone.Ground ! Zone.Ground.DropItem(entry.obj, pos, orient) }
   }
 
   /**

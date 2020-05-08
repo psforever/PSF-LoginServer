@@ -64,8 +64,8 @@ object AvatarAction {
   final case class SendResponseTargeted(target_guid: PlanetSideGUID, msg: PlanetSideGamePacket) extends Action
 
   final case class TerminalOrderResult(terminal_guid : PlanetSideGUID, action : TransactionType.Value, result : Boolean) extends Action
-  final case class ChangeExosuit(target_guid : PlanetSideGUID, exosuit : ExoSuitType.Value, subtype : Int, last_drawn_slot : Int, new_max_hand : Boolean, holsters : List[InventoryItem], inventory : List[InventoryItem], drop : List[InventoryItem]) extends Action
-  final case class ChangeLoadout(target_guid : PlanetSideGUID, exosuit : ExoSuitType.Value, subtype : Int, last_drawn_slot : Int, new_max_hand : Boolean, holsters : List[InventoryItem], inventory : List[InventoryItem], drop : List[InventoryItem]) extends Action
+  final case class ChangeExosuit(target_guid : PlanetSideGUID, exosuit : ExoSuitType.Value, subtype : Int, last_drawn_slot : Int, new_max_hand : Boolean, old_holsters : List[(Equipment, PlanetSideGUID)], holsters : List[InventoryItem], old_inventory : List[(Equipment, PlanetSideGUID)], inventory : List[InventoryItem], drop : List[InventoryItem], delete : List[(Equipment, PlanetSideGUID)]) extends Action
+  final case class ChangeLoadout(target_guid : PlanetSideGUID, exosuit : ExoSuitType.Value, subtype : Int, last_drawn_slot : Int, new_max_hand : Boolean, old_holsters : List[(Equipment, PlanetSideGUID)], holsters : List[InventoryItem], old_inventory : List[(Equipment, PlanetSideGUID)], inventory : List[InventoryItem], drop : List[InventoryItem]) extends Action
 
   final case class TeardownConnection() extends Action
   //  final case class PlayerStateShift(killer : PlanetSideGUID, victim : PlanetSideGUID) extends Action
