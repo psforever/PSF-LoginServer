@@ -634,6 +634,7 @@ class WorldSessionActor extends Actor
       }
       else if(state == DriveState.Deployed) {
         log.info(s"DeployRequest: $obj has been Deployed")
+        obj.Velocity = Some(Vector3.Zero)
         sendResponse(DeployRequestMessage(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
         continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.DeployRequest(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
         DeploymentActivities(obj)
@@ -4148,7 +4149,7 @@ class WorldSessionActor extends Actor
         sendResponse(DropSession(sessionId, "kick by GM"))
       }
 
-    case msg@VehicleStateMessage(vehicle_guid, unk1, pos, ang, vel, flying, unk6, unk7, wheels, unk9, is_cloaked) =>
+    case msg@VehicleStateMessage(vehicle_guid, unk1, pos, ang, vel, flying, unk6, unk7, wheels, is_decelerating, is_cloaked) =>
       if(deadState == DeadState.Alive) {
         GetVehicleAndSeat() match {
           case (Some(obj), Some(0)) =>
@@ -4161,7 +4162,11 @@ class WorldSessionActor extends Actor
             obj.Position = pos
             obj.Orientation = ang
             if(obj.MountedIn.isEmpty) {
-              obj.Velocity = vel
+              if(obj.DeploymentState != DriveState.Deployed) {
+                obj.Velocity = vel
+              } else {
+                obj.Velocity = Some(Vector3.Zero)
+              }
               if(obj.Definition.CanFly) {
                 obj.Flying = flying.nonEmpty //usually Some(7)
               }
@@ -4176,7 +4181,7 @@ class WorldSessionActor extends Actor
             }
             else {
               None
-            }, unk6, unk7, wheels, unk9, obj.Cloaked))
+            }, unk6, unk7, wheels, is_decelerating, obj.Cloaked))
             updateSquad()
           case (None, _) =>
           //log.error(s"VehicleState: no vehicle $vehicle_guid found in zone")

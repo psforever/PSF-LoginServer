@@ -80,7 +80,7 @@ trait RepairableEntity extends Repairable {
     val name = player.Name
     val tguid = target.GUID
     val originalHealth = target.Health
-    val updatedHealth = if(!(player.isMoving || target.isMoving)) { //only allow stationary repairs
+    val updatedHealth = if(!(player.isMoving(1f) || target.isMoving(1f))) { //only allow stationary repairs within margin of error
       val newHealth = target.Health = originalHealth + Repairable.Quality + RepairValue(item) + definition.RepairMod
       val zoneId = zone.Id
       val magazine = item.Discharge
