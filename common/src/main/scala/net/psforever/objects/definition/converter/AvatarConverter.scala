@@ -148,7 +148,7 @@ object AvatarConverter {
       None,
       MakeImplantEntries(obj),
       Nil, Nil,
-      firstTimeEvents = List.empty[String], //TODO fte list
+      obj.FirstTimeEvents,
       tutorials = List.empty[String], //TODO tutorial list
       0L, 0L, 0L, 0L, 0L,
       Some(DCDExtra2(0, 0)),

@@ -46,6 +46,9 @@ class Avatar(private val char_id : Long, val name : String, val faction : Planet
   }
 
   private val deployables : DeployableToolbox = new DeployableToolbox
+
+  private var firstTimeEvents : List[String] = List[String]()
+
   /**
     * Looking For Squad:<br>
     * Indicates both a player state and the text on the marquee under the player nameplate.
@@ -191,6 +194,15 @@ class Avatar(private val char_id : Long, val name : String, val faction : Planet
   }
 
   def Deployables : DeployableToolbox = deployables
+
+  def FirstTimeEvents : List[String] = firstTimeEvents
+
+  def FirstTimeEvents_=(event : String) : List[String] = FirstTimeEvents_=(List(event))
+
+  def FirstTimeEvents_=(events : List[String]) : List[String] = {
+    firstTimeEvents ++= events
+    FirstTimeEvents
+  }
 
   def LFS : Boolean = lfs
 

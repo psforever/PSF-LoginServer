@@ -591,6 +591,8 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
     isBackpack && (backpackAccess.isEmpty || backpackAccess.contains(player.GUID))
   }
 
+  def FirstTimeEvents : List[String] = core.FirstTimeEvents
+
   def VehicleSeated : Option[PlanetSideGUID] = vehicleSeated
 
   def VehicleSeated_=(guid : PlanetSideGUID) : Option[PlanetSideGUID] = VehicleSeated_=(Some(guid))
