@@ -17,7 +17,7 @@ import scodec.bits.ByteVector
 import csr.{CSRWarp, CSRZone, Traveler}
 import MDCContextAware.Implicits._
 import net.psforever.objects._
-import net.psforever.objects.avatar.{Certification, DeployableToolbox}
+import net.psforever.objects.avatar.{Certification, DeployableToolbox, FirstTimeEvents}
 import net.psforever.objects.ballistics.{PlayerSource, Projectile, ProjectileResolution, ResolvedProjectile, SourceEntry}
 import net.psforever.objects.ce.{ComplexDeployable, Deployable, DeployableCategory, DeployedItem, SimpleDeployable, TelepadLike}
 import net.psforever.objects.definition._
@@ -3736,6 +3736,7 @@ class WorldSessionActor extends Actor
                       whenUsedLastMAXName(2) = faction + "hev_antipersonnel"
                       whenUsedLastMAXName(3) = faction + "hev_antivehicular"
                       whenUsedLastMAXName(1) = faction + "hev_antiaircraft"
+                      avatar.FirstTimeEvents = ftes
                       accountPersistence ! AccountPersistenceService.Login(lName)
                     case _ =>
                       log.error(s"CharacterRequest/Select: no character for $charId found")
@@ -5990,7 +5991,8 @@ class WorldSessionActor extends Actor
       }
 
     case msg @ AvatarFirstTimeEventMessage(avatar_guid, object_guid, unk1, event_name) =>
-      log.info("AvatarFirstTimeEvent: " + msg)
+      log.info(s"AvatarFirstTimeEvent: $event_name")
+      avatar.FirstTimeEvents += event_name
 
     case msg @ WarpgateRequest(continent_guid, building_guid, dest_building_guid, dest_continent_guid, unk1, unk2) =>
       log.info(s"WarpgateRequest: $msg")
@@ -11226,6 +11228,13 @@ object WorldSessionActor {
   private final case class SetCurrentAvatar(tplayer : Player)
   private final case class VehicleLoaded(vehicle : Vehicle)
   private final case class ZoningReset()
+
+  final val ftes = (
+    FirstTimeEvents.Maps ++ FirstTimeEvents.Monoliths ++
+      FirstTimeEvents.Standard.All ++ FirstTimeEvents.Cavern.All ++
+      FirstTimeEvents.TR.All ++ FirstTimeEvents.NC.All ++ FirstTimeEvents.VS.All ++
+      FirstTimeEvents.Generic
+    ).toList
 
   /**
     * The message that progresses some form of user-driven activity with a certain eventual outcome
