@@ -1,6 +1,6 @@
-// Copyright (c) 2017-2020 PSForever
+// Copyright (c) 2020 PSForever
 import akka.actor.ActorRef
-import akka.pattern.ask
+import akka.pattern.{AskTimeoutException, ask}
 import akka.util.Timeout
 import net.psforever.objects._
 import net.psforever.objects.equipment.{Ammo, Equipment}
@@ -8,12 +8,11 @@ import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
 import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.serverobject.{Containable, PlanetSideServerObject}
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.ObjectHeldMessage
 import net.psforever.types.{PlanetSideGUID, TransactionType, Vector3}
-import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.implicitConversions
 
@@ -25,47 +24,64 @@ object WorldSession {
     * @return 1 for `true`; 0 for `false`
     */
   implicit def boolToInt(b : Boolean) : Int = if(b) 1 else 0
-  private implicit val timeout = new Timeout(1000 milliseconds)
+  private implicit val timeout = new Timeout(5000 milliseconds)
 
-  def PutEquipmentInInventorySlot(obj : PlanetSideServerObject with Container, taskResolver : ActorRef)(item : Equipment, slot : Int) : Unit = {
+  /**
+    * Use this for placing equipment that has yet to be registered into a container,
+    * such as in support of changing ammunition types in `Tool` objects (weapons).
+    * If the object can not be placed into the container, it will be dropped onto the ground.
+    * It will also be dropped if it takes too long to be placed.
+    * Item swapping during the placement is not allowed.
+    * @see `ask`
+    * @see `AskTimeoutException`
+    * @see `ChangeAmmoMessage`
+    * @see `Containable.CanNotPutItemInSlot`
+    * @see `Containable.PutItemAway`
+    * @see `Future.onComplete`
+    * @see `Future.recover`
+    * @see `tell`
+    * @see `Zone.Ground.DropItem`
+    * @param obj the container
+    * @param item the item being manipulated
+    * @return a `Future` that anticipates the resolution to this manipulation
+    */
+  def PutEquipmentInInventoryOrDrop(obj : PlanetSideServerObject with Container)(item : Equipment) : Future[Any] = {
     val localContainer = obj
     val localItem = item
-    val localResolver = taskResolver
-    implicit val timeout = new Timeout(1000 milliseconds)
-    ask(localContainer.Actor, Containable.PutItemInSlotOnly(localItem, slot)).onComplete {
+    val result = ask(localContainer.Actor, Containable.PutItemAway(localItem))
+    result.onComplete {
       case scala.util.Failure(_) | scala.util.Success(_ : Containable.CanNotPutItemInSlot) =>
-        localResolver ! GUIDTask.UnregisterEquipment(localItem)(localContainer.Zone.GUID)
+        localContainer.Zone.Ground.tell(Zone.Ground.DropItem(localItem, localContainer.Position, Vector3.z(localContainer.Orientation.z)), localContainer.Actor)
       case _ => ;
     }
+    result
   }
 
-  def PutEquipmentInInventoryOrDrop(obj : PlanetSideServerObject with Container, to : ActorRef)(item : Equipment, slot : Int) : Unit = {
-    val localContainer = obj
-    val localItem = item
-    val sendTo = to
-    ask(localContainer.Actor, Containable.PutItemAway(localItem)).onComplete {
-      case scala.util.Failure(_) | scala.util.Success(_ : Containable.CanNotPutItemInSlot) =>
-        localContainer.Zone.Ground.tell(Zone.Ground.DropItem(localItem, localContainer.Position, Vector3.z(localContainer.Orientation.z)), sendTo)
-      case _ => ;
-    }
-  }
-
-  def PutNewEquipmentInInventory(obj : PlanetSideServerObject with Container, taskResolver : ActorRef)(item : Equipment, slot : Int) : TaskResolver.GiveTask = {
+  /**
+    * Use this for placing equipment that has yet to be registered into a container,
+    * such as in support of changing ammunition types in `Tool` objects (weapons).
+    * Equipment will go wherever it fits in containing object, or be dropped if it fits nowhere.
+    * Item swapping during the placement is not allowed.
+    * @see `ChangeAmmoMessage`
+    * @see `GUIDTask.RegisterEquipment`
+    * @see `PutEquipmentInInventoryOrDrop`
+    * @see `Task`
+    * @see `TaskResolver.GiveTask`
+    * @param obj the container
+    * @param item the item being manipulated
+    * @return a `TaskResolver` object
+    */
+  def PutNewEquipmentInInventoryOrDrop(obj : PlanetSideServerObject with Container)(item : Equipment) : TaskResolver.GiveTask = {
     val localZone = obj.Zone
     TaskResolver.GiveTask(
       new Task() {
         private val localContainer = obj
         private val localItem = item
-        private val localResolver = taskResolver
 
         override def isComplete : Task.Resolution.Value = Task.Resolution.Success
 
         def Execute(resolver : ActorRef) : Unit = {
-          ask(localContainer.Actor, Containable.PutItemAway(localItem)).onComplete {
-            case scala.util.Failure(_) | scala.util.Success(_ : Containable.CanNotPutItemInSlot) =>
-              localResolver ! GUIDTask.UnregisterEquipment(localItem)(localContainer.Zone.GUID)
-            case _ => ;
-          }
+          PutEquipmentInInventoryOrDrop(localContainer)(localItem)
           resolver ! scala.util.Success(this)
         }
       },
@@ -73,6 +89,59 @@ object WorldSession {
     )
   }
 
+  /**
+    * Use this for obtaining new equipment from a loadout specification.
+    * The loadout specification contains a specific slot position for placing the item.
+    * This request will (probably) be  coincidental with a number of other such requests based on that loadout
+    * so items must be rigidly placed else cascade into a chaostic order.
+    * Item swapping during the placement is not allowed.
+    * @see `ask`
+    * @see `AskTimeoutException`
+    * @see `AvatarAction.ObjectDelete`
+    * @see `ChangeAmmoMessage`
+    * @see `Containable.CanNotPutItemInSlot`
+    * @see `Containable.PutItemAway`
+    * @see `Future.onComplete`
+    * @see `Future.recover`
+    * @see `GUIDTask.UnregisterEquipment`
+    * @see `tell`
+    * @see `Zone.AvatarEvents`
+    * @see `Zone.Ground.DropItem`
+    * @param obj the container
+    * @param taskResolver na
+    * @param item the item being manipulated
+    * @param slot na
+    * @return a `Future` that anticipates the resolution to this manipulation
+    */
+  def PutEquipmentInInventorySlot(obj : PlanetSideServerObject with Container, taskResolver : ActorRef)(item : Equipment, slot : Int) : Future[Any] = {
+    val localContainer = obj
+    val localItem = item
+    val localResolver = taskResolver
+    val result = ask(localContainer.Actor, Containable.PutItemInSlotOnly(localItem, slot))
+    result.onComplete {
+      case scala.util.Failure(_) | scala.util.Success(_ : Containable.CanNotPutItemInSlot) =>
+        localResolver ! GUIDTask.UnregisterEquipment(localItem)(localContainer.Zone.GUID)
+      case _ => ;
+    }
+    result
+  }
+
+  /**
+    * Use this for obtaining new equipment from a loadout specification.
+    * The loadout specification contains a specific slot position for placing the item.
+    * This request will (probably) be  coincidental with a number of other such requests based on that loadout
+    * so items must be rigidly placed else cascade into a chaostic order.
+    * Item swapping during the placement is not allowed.
+    * @see `GUIDTask.RegisterEquipment`
+    * @see `PutEquipmentInInventorySlot`
+    * @see `Task`
+    * @see `TaskResolver.GiveTask`
+    * @param obj the container
+    * @param taskResolver na
+    * @param item the item being manipulated
+    * @param slot where the item will be placed in the container
+    * @return a `TaskResolver` object
+    */
   def PutLoadoutEquipmentInInventory(obj : PlanetSideServerObject with Container, taskResolver : ActorRef)(item : Equipment, slot : Int) : TaskResolver.GiveTask = {
     val localZone = obj.Zone
     TaskResolver.GiveTask(
@@ -85,11 +154,7 @@ object WorldSession {
         override def isComplete : Task.Resolution.Value = Task.Resolution.Success
 
         def Execute(resolver : ActorRef) : Unit = {
-          ask(localContainer.Actor, Containable.PutItemInSlotOnly(localItem, localSlot)).onComplete {
-            case scala.util.Failure(_) | scala.util.Success(_ : Containable.CanNotPutItemInSlot) =>
-              localResolver ! GUIDTask.UnregisterEquipment(localItem)(localContainer.Zone.GUID)
-            case _ => ;
-          }
+          PutEquipmentInInventorySlot(localContainer, localResolver)(localItem, localSlot)
           resolver ! scala.util.Success(this)
         }
       },
@@ -97,6 +162,21 @@ object WorldSession {
     )
   }
 
+  /**
+    * Used for purchasing new equipment from a terminal and placing it somewhere in a player's loadout.
+    * Two levels of query are performed here based on the behavior expected of the item.
+    * First, an attempt is made to place the item anywhere in the target container as long as it does not cause swap items to be generated.
+    * Second, if it fails admission to the target container, an attempt is made to place it into the target player's free hand.
+    * If the container and the suggested player are the same, it will skip the second attempt.
+    * As a terminal operation, the player must receive a report regarding whether the transaction was successful.
+    * @see `PutEquipmentInInventorySlot`
+    * @param obj the container
+    * @param taskResolver na
+    * @param player na
+    * @param term na
+    * @param item the item being manipulated
+    * @return a `TaskResolver` object
+    */
   def BuyNewEquipmentPutInInventory(obj : PlanetSideServerObject with Container, taskResolver : ActorRef, player : Player, term : PlanetSideGUID)(item : Equipment) : TaskResolver.GiveTask = {
     val localZone = obj.Zone
     TaskResolver.GiveTask(
@@ -110,18 +190,31 @@ object WorldSession {
         override def isComplete : Task.Resolution.Value = Task.Resolution.Success
 
         def Execute(resolver : ActorRef) : Unit = {
-          ask(localContainer.Actor, Containable.PutItemAway(localItem)).onComplete {
-            case scala.util.Failure(_) | scala.util.Success(_ : Containable.CanNotPutItemInSlot) =>
-              ask(localPlayer.Actor, Containable.PutItemInSlotOnly(localItem, Player.FreeHandSlot)).onComplete {
-                case scala.util.Failure(_) | scala.util.Success(_ : Containable.CanNotPutItemInSlot) =>
+          TerminalMessageOnTimeout(
+            ask(localContainer.Actor, Containable.PutItemAway(localItem)),
+            localTermMsg
+          )
+            .onComplete {
+              case scala.util.Failure(_) | scala.util.Success(_ : Containable.CanNotPutItemInSlot) =>
+                if(localContainer != localPlayer) {
+                  TerminalMessageOnTimeout(
+                    PutEquipmentInInventorySlot(localPlayer, localResolver)(localItem, Player.FreeHandSlot),
+                    localTermMsg
+                  )
+                    .onComplete {
+                      case scala.util.Failure(_) | scala.util.Success(_ : Containable.CanNotPutItemInSlot) =>
+                        localTermMsg(false)
+                      case _ =>
+                        localTermMsg(true)
+                    }
+                }
+                else {
                   localResolver ! GUIDTask.UnregisterEquipment(localItem)(localContainer.Zone.GUID)
                   localTermMsg(false)
-                case _ =>
-                  localTermMsg(true)
-              }
-            case _ =>
-              localTermMsg(true)
-          }
+                }
+              case _ =>
+                localTermMsg(true)
+            }
           resolver ! scala.util.Success(this)
         }
       },
@@ -129,47 +222,21 @@ object WorldSession {
     )
   }
 
-  def SellEquipmentFromInventory(obj : PlanetSideServerObject with Container, taskResolver : ActorRef, player : Player, term : PlanetSideGUID)(slot : Int) : Unit = {
-    val localContainer = obj
-    val localPlayer = player
-    val localSlot = slot
-    val localResolver = taskResolver
-    val localTermMsg : Boolean=>Unit = TerminalResult(term, localPlayer, TransactionType.Sell)
-
-    ask(localContainer.Actor, Containable.RemoveItemFromSlot(localSlot)).onComplete {
-      case scala.util.Success(Containable.ItemFromSlot(_, Some(item), Some(_))) =>
-        localResolver ! GUIDTask.UnregisterEquipment(item)(localContainer.Zone.GUID)
-        localTermMsg(true)
-      case _ =>
-        localTermMsg(false)
-    }
-  }
-
-  def DropEquipmentFromInventory(obj : PlanetSideServerObject with Container, to : ActorRef)(item : Equipment, pos : Option[Vector3] = None) : Unit = {
-    val localContainer = obj
-    val localItem = item
-    val localPos = pos
-    val sendTo = to
-
-    ask(localContainer.Actor, Containable.RemoveItemFromSlot(localItem)).onComplete {
-      case scala.util.Success(Containable.ItemFromSlot(_, Some(_), Some(_))) =>
-        localContainer.Zone.Ground.tell(Zone.Ground.DropItem(localItem, localPos.getOrElse(localContainer.Position), Vector3.z(localContainer.Orientation.z)), sendTo)
-      case _ => ;
-    }
-  }
-
-  def RemoveOldEquipmentFromInventory(obj : PlanetSideServerObject with Container, taskResolver : ActorRef)(item : Equipment) : Unit = {
-    val localContainer = obj
-    val localItem = item
-    val localResolver = taskResolver
-
-    ask(localContainer.Actor, Containable.RemoveItemFromSlot(localItem)).onComplete {
-      case scala.util.Success(Containable.ItemFromSlot(_, Some(_), Some(_))) =>
-        localResolver ! GUIDTask.UnregisterEquipment(localItem)(localContainer.Zone.GUID)
-      case _ =>
-    }
-  }
-
+  /**
+    * The primary use is to register new mechanized assault exo-suit armaments,
+    * place the newly registered weapon in hand,
+    * and then raise that hand (draw that slot) so that the weapon is active.
+    * (Players in MAX suits can not manipulate their drawn slot manually.)
+    * In general, this can be used for any equipment that is to be equipped to a player's hand then immediately drawn.
+    * Do not allow the item to be (mis)placed in any available slot.
+    * Item swapping during the placement is not allowed and the possibility should be proactively avoided.
+    * @throws `RuntimeException` if slot is not a player visible slot (holsters)
+    * @param player the player whose visible slot will be equipped and drawn
+    * @param taskResolver na
+    * @param item the item to equip
+    * @param slot the slot in which the item will be equipped
+    * @return a `TaskResolver` object
+    */
   def HoldNewEquipmentUp(player : Player, taskResolver : ActorRef)(item : Equipment, slot : Int) : TaskResolver.GiveTask = {
     if(player.VisibleSlots.contains(slot)) {
       val localZone = player.Zone
@@ -184,18 +251,14 @@ object WorldSession {
           override def isComplete : Task.Resolution.Value = Task.Resolution.Success
 
           def Execute(resolver : ActorRef) : Unit = {
-            ask(localPlayer.Actor, Containable.PutItemInSlotOnly(localItem, localSlot)).onComplete {
-              case scala.util.Failure(_) | scala.util.Success(_ : Containable.CanNotPutItemInSlot) =>
-                localResolver ! GUIDTask.UnregisterEquipment(localItem)(localZone.GUID)
-              case _ =>
-                localPlayer.DrawnSlot = localSlot
-                localZone.AvatarEvents ! AvatarServiceMessage(localPlayer.Name,
-                  AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectHeldMessage(localGUID, localSlot, true))
-                )
-                localZone.AvatarEvents ! AvatarServiceMessage(localZone.Id,
-                  AvatarAction.ObjectHeld(localGUID, localSlot)
-                )
-            }
+            ask(localPlayer.Actor, Containable.PutItemInSlotOnly(localItem, localSlot))
+              .onComplete {
+                case scala.util.Failure(_) | scala.util.Success(_ : Containable.CanNotPutItemInSlot) =>
+                  localResolver ! GUIDTask.UnregisterEquipment(localItem)(localZone.GUID)
+                case _ =>
+                  localPlayer.DrawnSlot = localSlot
+                  localZone.AvatarEvents ! AvatarServiceMessage(localZone.Id, AvatarAction.ObjectHeld(localGUID, localSlot))
+              }
             resolver ! scala.util.Success(this)
           }
         },
@@ -205,26 +268,157 @@ object WorldSession {
     else {
       //TODO log.error rather than println
       println(s"HoldNewEquipmentUp: slot $slot is not visible for player model")
-      //TODO null is okay?
-      null
+      throw new RuntimeException(s"provided slot $slot is not a player visible slot (holsters)")
     }
   }
 
-  def TerminalResult(guid : PlanetSideGUID, player : Player, transaction : TransactionType.Value)(result : Boolean) : Unit = {
-    player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.TerminalOrderResult(guid, transaction, true))
+  /**
+    * Remove an item from a container and drop it on the ground.
+    * @see `ask`
+    * @see `AskTimeoutException`
+    * @see `AvatarAction.ObjectDelete`
+    * @see `Containable.ItemFromSlot`
+    * @see `Containable.RemoveItemFromSlot`
+    * @see `Future.onComplete`
+    * @see `Future.recover`
+    * @see `tell`
+    * @see `Zone.AvatarEvents`
+    * @see `Zone.Ground.DropItem`
+    * @param obj the container to search
+    * @param item the item to find and remove from the container
+    * @param pos an optional position where to drop the item on the ground;
+    *            expected override from original container's position
+    * @return a `Future` that anticipates the resolution to this manipulation
+    */
+  def DropEquipmentFromInventory(obj : PlanetSideServerObject with Container)(item : Equipment, pos : Option[Vector3] = None) : Future[Any] = {
+    val localContainer = obj
+    val localItem = item
+    val localPos = pos
+    val result = ask(localContainer.Actor, Containable.RemoveItemFromSlot(localItem))
+    result.onComplete {
+      case scala.util.Success(Containable.ItemFromSlot(_, Some(_), Some(_))) =>
+        localContainer.Zone.Ground.tell(Zone.Ground.DropItem(localItem, localPos.getOrElse(localContainer.Position), Vector3.z(localContainer.Orientation.z)), localContainer.Actor)
+      case _ => ;
+    }
+    result
   }
 
   /**
-    * na
-    * @param dropOrDelete na
+    * Remove an item from a container and delete it.
+    * @see `ask`
+    * @see `AskTimeoutException`
+    * @see `AvatarAction.ObjectDelete`
+    * @see `Containable.ItemFromSlot`
+    * @see `Containable.RemoveItemFromSlot`
+    * @see `Future.onComplete`
+    * @see `Future.recover`
+    * @see `GUIDTask.UnregisterEquipment`
+    * @see `Zone.AvatarEvents`
+    * @param obj the container to search
+    * @param taskResolver na
+    * @param item the item to find and remove from the container
+    * @return a `Future` that anticipates the resolution to this manipulation
     */
-  def DropLeftovers(container : PlanetSideServerObject with Container)(dropOrDelete : List[InventoryItem]) : Unit = {
+  def RemoveOldEquipmentFromInventory(obj : PlanetSideServerObject with Container, taskResolver : ActorRef)(item : Equipment) : Future[Any] = {
+    val localContainer = obj
+    val localItem = item
+    val localResolver = taskResolver
+    val result = ask(localContainer.Actor, Containable.RemoveItemFromSlot(localItem))
+    result.onComplete {
+      case scala.util.Success(Containable.ItemFromSlot(_, Some(_), Some(_))) =>
+        localResolver ! GUIDTask.UnregisterEquipment(localItem)(localContainer.Zone.GUID)
+      case _ =>
+    }
+    result
+  }
+
+  /**
+    * Primarily, remove an item from a container and delete it.
+    * As a terminal operation, the player must receive a report regarding whether the transaction was successful.
+    * At the end of a successful transaction, and only a successful transaction,
+    * the item that was removed is no longer considered a valid game object.
+    * Contrasting `RemoveOldEquipmentFromInventory` which identifies the actual item to be eliminated,
+    * this function uses the slot where the item is (should be) located.
+    * @see `ask`
+    * @see `AskTimeoutException`
+    * @see `Containable.ItemFromSlot`
+    * @see `Containable.RemoveItemFromSlot`
+    * @see `Future.onComplete`
+    * @see `Future.recover`
+    * @see `GUIDTask.UnregisterEquipment`
+    * @see `RemoveOldEquipmentFromInventory`
+    * @see `TerminalResult`
+    * @param obj the container to search
+    * @param taskResolver na
+    * @param player the player who used the terminal
+    * @param term the unique identifier number of the terminal
+    * @param slot from which slot the equipment is to be removed
+    * @return a `Future` that anticipates the resolution to this manipulation
+    */
+  def SellEquipmentFromInventory(obj : PlanetSideServerObject with Container, taskResolver : ActorRef, player : Player, term : PlanetSideGUID)(slot : Int) : Future[Any] = {
+    val localContainer = obj
+    val localPlayer = player
+    val localSlot = slot
+    val localResolver = taskResolver
+    val localTermMsg : Boolean=>Unit = TerminalResult(term, localPlayer, TransactionType.Sell)
+    val result = TerminalMessageOnTimeout(
+      ask(localContainer.Actor, Containable.RemoveItemFromSlot(localSlot)),
+      localTermMsg
+    )
+    result.onComplete {
+      case scala.util.Success(Containable.ItemFromSlot(_, Some(item), Some(_))) =>
+        localResolver ! GUIDTask.UnregisterEquipment(item)(localContainer.Zone.GUID)
+        localTermMsg(true)
+      case _ =>
+        localTermMsg(false)
+    }
+    result
+  }
+
+  /**
+    * If a timeout occurs on the manipulation, declare a terminal transaction failure.
+    * @see `AskTimeoutException`
+    * @see `recover`
+    * @param future the item manipulation's `Future` object
+    * @param terminalMessage how to call the terminal message
+    * @return a `Future` that anticipates the resolution to this manipulation
+    */
+  def TerminalMessageOnTimeout(future : Future[Any], terminalMessage : Boolean=>Unit) : Future[Any] = {
+    future.recover {
+      case _ : AskTimeoutException =>
+        terminalMessage(false)
+    }
+  }
+
+  /**
+    * Announced the result of this player's terminal use, to the player that used the terminal.
+    * This is a necessary step for regaining terminal use which is naturally blocked by the client after a transaction request.
+    * @see `AvatarAction.TerminalOrderResult`
+    * @see `ItemTransactionResultMessage`
+    * @see `TransactionType`
+    * @param guid the terminal's unique identifier
+    * @param player the player who used the terminal
+    * @param transaction what kind of transaction was involved in terminal use
+    * @param result the result of that transaction
+    */
+  def TerminalResult(guid : PlanetSideGUID, player : Player, transaction : TransactionType.Value)(result : Boolean) : Unit = {
+    player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.TerminalOrderResult(guid, transaction, result))
+  }
+
+  /**
+    * Drop some items on the ground is a given location.
+    * The location corresponds to the previous container for those items.
+    * @see `Zone.Ground.DropItem`
+    * @param container the original object that contained the items
+    * @param drops the items to be dropped on the ground
+    */
+  def DropLeftovers(container : PlanetSideServerObject with Container)(drops : List[InventoryItem]) : Unit = {
     //drop or retire
     val zone = container.Zone
     val pos = container.Position
     val orient = Vector3.z(container.Orientation.z)
     //TODO make a sound when dropping stuff?
-    dropOrDelete.foreach { entry => zone.Ground ! Zone.Ground.DropItem(entry.obj, pos, orient) }
+    drops.foreach { entry => zone.Ground ! Zone.Ground.DropItem(entry.obj, pos, orient) }
   }
 
   /**

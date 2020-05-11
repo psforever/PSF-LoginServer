@@ -244,7 +244,7 @@ class WorldSessionActor extends Actor
     case None if id.nonEmpty && id.get != PlanetSideGUID(0) =>
       //delete stale entity reference from client
       log.warn(s"Player ${player.Name} has an invalid reference to GUID ${id.get} in zone ${continent.Id}.")
-      //sendResponse(ObjectDeleteMessage(id.get, 0))
+      sendResponse(ObjectDeleteMessage(id.get, 0))
       None
     case _ =>
       None
@@ -863,15 +863,6 @@ class WorldSessionActor extends Actor
 
     case msg@Zone.Vehicle.CanNotDespawn(zone, vehicle, reason) =>
       log.warn(s"$msg")
-
-    case Zone.Ground.ItemOnGround(item : PlanetSideGameObject, pos, orient) =>
-      CancelZoningProcessWithDescriptiveReason("cancel_use")
-
-    case Zone.Ground.CanNotDropItem(zone, item, reason) =>
-      log.warn(s"DropItem: $player tried to drop a $item on the ground, but $reason")
-      if(!item.HasGUID) {
-        log.warn(s"DropItem: zone ${continent.Id} contents may be in disarray")
-      }
 
     case Zone.Ground.ItemInHand(item : BoomerTrigger) =>
       if(PutItemInHand(item)) {
@@ -4684,7 +4675,13 @@ class WorldSessionActor extends Actor
           player.FreeHand.Equipment match {
             case Some(item) =>
               if(item.GUID == item_guid) {
-                continent.Ground ! Zone.Ground.DropItem(item, player.Position, player.Orientation)
+                CancelZoningProcessWithDescriptiveReason("cancel_use")
+                continent.GUID(player.VehicleSeated) match {
+                  case Some(_) =>
+                    RemoveOldEquipmentFromInventory(player, taskResolver)(item)
+                  case None =>
+                    DropEquipmentFromInventory(player)(item)
+                }
               }
             case None =>
               log.warn(s"DropItem: $player wanted to drop a $anItem, but it wasn't at hand")
@@ -4702,6 +4699,7 @@ class WorldSessionActor extends Actor
         case Some(item : Equipment) =>
           player.Fit(item) match {
             case Some(_) =>
+              CancelZoningProcessWithDescriptiveReason("cancel_use")
               continent.Ground ! Zone.Ground.PickupItem(item_guid)
             case None => //skip
               sendResponse(ActionResultMessage.Fail(16)) //error code?
@@ -4723,7 +4721,7 @@ class WorldSessionActor extends Actor
               case Nil =>
                 log.warn(s"ReloadMessage: no ammunition could be found for $item_guid")
               case x :: xs =>
-                val (deleteFunc, modifyFunc) : (Equipment=>Unit, (AmmoBox, Int) => Unit) = obj match {
+                val (deleteFunc, modifyFunc) : (Equipment=>Future[Any], (AmmoBox, Int) => Unit) = obj match {
                   case (veh : Vehicle) =>
                     (RemoveOldEquipmentFromInventory(veh, taskResolver), ModifyAmmunitionInVehicle(veh))
                   case o : PlanetSideServerObject with Container =>
@@ -6687,7 +6685,7 @@ class WorldSessionActor extends Actor
         FindEquipmentStock(obj, FindAmmoBoxThatUses(requestedAmmoType), fullMagazine, CountAmmunition).reverse match {
           case Nil => ;
           case x :: xs =>
-            val (deleteFunc, modifyFunc) : (Equipment=>Unit, (AmmoBox, Int) => Unit) = obj match {
+            val (deleteFunc, modifyFunc) : (Equipment=>Future[Any], (AmmoBox, Int) => Unit) = obj match {
               case (veh : Vehicle) =>
                 (RemoveOldEquipmentFromInventory(veh, taskResolver), ModifyAmmunitionInVehicle(veh))
               case o : PlanetSideServerObject with Container =>
@@ -6695,9 +6693,9 @@ class WorldSessionActor extends Actor
               case _ =>
                 throw new Exception("PerformToolAmmoChange: (remove/modify) should be a server object, not a regular game object")
             }
-            val (stowNewFunc, stowFunc) : ((Equipment,Int)=>TaskResolver.GiveTask, (Equipment, Int)=>Unit) = obj match {
+            val (stowNewFunc, stowFunc) : (Equipment=>TaskResolver.GiveTask, Equipment=>Future[Any]) = obj match {
               case o : PlanetSideServerObject with Container =>
-                (PutNewEquipmentInInventory(o, taskResolver), PutEquipmentInInventoryOrDrop(o, self))
+                (PutNewEquipmentInInventoryOrDrop(o), PutEquipmentInInventoryOrDrop(o))
               case _ =>
                 throw new Exception("PerformToolAmmoChange: (new/put) should be a server object, not a regular game object")
             }
@@ -6735,7 +6733,7 @@ class WorldSessionActor extends Actor
               val splitReloadAmmo : Int = sumReloadValue - fullMagazine
               log.info(s"ChangeAmmo: taking ${originalBoxCapacity - splitReloadAmmo} from a box of ${originalBoxCapacity} $requestedAmmoType")
               val boxForInventory = AmmoBox(box.Definition, splitReloadAmmo)
-              taskResolver ! stowNewFunc(boxForInventory, x.start)
+              taskResolver ! stowNewFunc(boxForInventory)
               fullMagazine
             })
             sendResponse(InventoryStateMessage(box.GUID, tool.GUID, box.Capacity)) //should work for both players and vehicles
@@ -6769,8 +6767,8 @@ class WorldSessionActor extends Actor
             if(previousBox.Capacity > 0) {
               //split previousBox into AmmoBox objects of appropriate max capacity, e.g., 100 9mm -> 2 x 50 9mm
               obj.Inventory.Fit(previousBox) match {
-                case Some(index) =>
-                  stowFunc(previousBox, index)
+                case Some(_) =>
+                  stowFunc(previousBox)
                 case None =>
                   NormalItemDrop(player, continent)(previousBox)
               }
@@ -6778,7 +6776,7 @@ class WorldSessionActor extends Actor
                 case Nil  | List(_) => ; //done (the former case is technically not possible)
                 case _ :: xs =>
                   modifyFunc(previousBox, 0) //update to changed capacity value
-                  xs.foreach(box => { taskResolver ! stowNewFunc(box, -1) })
+                  xs.foreach(box => { taskResolver ! stowNewFunc(box) })
               }
             }
             else {
@@ -8448,7 +8446,7 @@ class WorldSessionActor extends Actor
     */
   def TryDropFDU(tool : ConstructionItem, index : Int, pos : Vector3) : Unit = {
     if(tool.Definition == GlobalDefinitions.advanced_ace) {
-      DropEquipmentFromInventory(player, self)(tool, Some(pos))
+      DropEquipmentFromInventory(player)(tool, Some(pos))
     }
   }
 

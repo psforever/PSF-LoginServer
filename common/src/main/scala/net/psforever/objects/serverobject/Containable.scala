@@ -2,7 +2,7 @@
 package net.psforever.objects.serverobject
 
 import akka.actor.{Actor, ActorRef}
-import akka.pattern.ask
+import akka.pattern.{AskTimeoutException, ask}
 import akka.util.Timeout
 import net.psforever.objects.{BoomerTrigger, GlobalDefinitions, Player}
 import net.psforever.objects.equipment.Equipment
@@ -81,7 +81,6 @@ trait Containable {
 
     case msg @ Containable.MoveItem(destination, equipment, destSlot) => /* can be deferred */
       if(Containable.TestPutItemInSlot(destination, equipment, destSlot).nonEmpty) { //test early, before we try to move the item
-        val to = sender
         val source = ContainerObject
         val item = equipment
         val dest = destSlot
@@ -95,7 +94,7 @@ trait Containable {
                   LocalPutItemInSlotOnlyOrAway(swapItem, slot) match {
                     case Containable.ItemPutInSlot(_, _, _, None) => ;
                     case _ =>
-                      source.Zone.Ground.tell(Zone.Ground.DropItem(swapItem, source.Position, Vector3.z(source.Orientation.z)), to) //drop it
+                      source.Zone.Ground.tell(Zone.Ground.DropItem(swapItem, source.Position, Vector3.z(source.Orientation.z)), source.Actor) //drop it
                   }
                 case _ : Containable.CanNotPutItemInSlot => //failure case ; try restore original item placement
                   LocalPutItemInSlot(item, originalSlot)
@@ -107,22 +106,22 @@ trait Containable {
               implicit val timeout = new Timeout(1000 milliseconds)
               val moveItemOver = ask(destination.Actor, Containable.MoveItemPutItemInSlot(item, dest))
               moveItemOver.onSuccess {
-                case Containable.ItemPutInSlot(_, _, _, None) => //successful
-                  destination.Actor ! Containable.Resume()
+                case Containable.ItemPutInSlot(_, _, _, None) => ; //successful
 
                 case Containable.ItemPutInSlot(_, _, _, Some(swapItem)) => //successful, but with swap item
-                  destination.Actor ! Containable.Resume()
-                  PutItBackOrDropIt(source, swapItem, slot, to)
+                  PutItBackOrDropIt(source, swapItem, slot, destination.Actor)
 
                 case _ : Containable.CanNotPutItemInSlot => //failure case ; try restore original item placement
-                  destination.Actor ! Containable.Resume()
-                  PutItBackOrDropIt(source, item, slot, to)
+                  PutItBackOrDropIt(source, item, slot, source.Actor)
               }
               moveItemOver.onFailure {
-                case _ =>
-                  destination.Actor ! Containable.Resume()
-                  PutItBackOrDropIt(source, item, slot, to)
+                case _ => //failure case ; try restore original item placement
+                  PutItBackOrDropIt(source, item, slot, source.Actor)
               }
+              //always do this
+              moveItemOver
+                .recover { case _ : AskTimeoutException => destination.Actor ! Containable.Resume() }
+                .onComplete { _ => destination.Actor ! Containable.Resume() }
             }
           case _ => ;
             //we could not find the item to be moved in the source location; trying to act on old data?
