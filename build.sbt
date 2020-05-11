@@ -25,6 +25,7 @@ lazy val commonSettings = Seq(
     "-sourcepath", baseDirectory.value.getAbsolutePath // needed for scaladoc relative source paths
     )
   },
+  classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
   resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
   libraryDependencies ++= Seq(
     "com.typesafe.akka"          %% "akka-actor"    % "2.4.4",
