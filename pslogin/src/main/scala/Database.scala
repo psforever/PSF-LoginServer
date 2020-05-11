@@ -1,4 +1,5 @@
 // Copyright (c) 2017 PSForever
+import net.psforever.WorldConfig
 import com.github.mauricio.async.db.postgresql.PostgreSQLConnection
 import com.github.mauricio.async.db.{Configuration, QueryResult, RowData, SSLConfiguration}
 import scala.util.{Try,Success,Failure}

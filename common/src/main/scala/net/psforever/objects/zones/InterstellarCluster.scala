@@ -64,6 +64,16 @@ class InterstellarCluster(zones : List[Zone]) extends Actor {
         case None => //zone_number does not exist
           sender ! Zone.Lattice.NoValidSpawnPoint(zone_number, None)
       }
+    case InterstellarCluster.ListPlayers() =>
+      var players : List[String] = List()
+
+      for(zone <- zones) {
+        val zonePlayers = zone.Players
+        for (player <- zonePlayers) {
+          players ::= player.name
+        }
+      }
+      sender ! InterstellarCluster.PlayerList(players)
 
     case msg @ Zone.Lattice.RequestSpecificSpawnPoint(zone_number, _, _, _) =>
       recursiveFindWorldInCluster(zones.iterator, _.Number == zone_number) match {
@@ -187,6 +197,9 @@ object InterstellarCluster {
     * @param zone the `Zone`
     */
   final case class GiveWorld(zoneId : String, zone : Zone)
+
+  final case class ListPlayers()
+  final case class PlayerList(players : List[String])
 
   /**
     * Signal to the cluster that a new client needs to be initialized for all listed `Zone` destinations.

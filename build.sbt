@@ -25,6 +25,7 @@ lazy val commonSettings = Seq(
     "-sourcepath", baseDirectory.value.getAbsolutePath // needed for scaladoc relative source paths
     )
   },
+  classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
   resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
   libraryDependencies ++= Seq(
     "com.typesafe.akka"          %% "akka-actor"    % "2.4.4",
@@ -46,9 +47,9 @@ lazy val commonSettings = Seq(
     "org.ini4j"                  % "ini4j"         % "0.5.4",
     "org.scala-graph"            %% "graph-core"    % "1.12.5",
     "io.kamon"                   %% "kamon-bundle" % "2.1.0",
-    "io.kamon"                   %% "kamon-apm-reporter" % "2.1.0"
+    "io.kamon"                   %% "kamon-apm-reporter" % "2.1.0",
+    "org.json4s"                 %% "json4s-native" % "3.6.8",
   ),
-  classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
 )
 
 lazy val pscryptoSettings = Seq(

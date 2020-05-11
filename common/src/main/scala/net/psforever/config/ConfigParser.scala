@@ -190,6 +190,10 @@ trait ConfigParser {
     config_map = map
   }
 
+  def GetRawConfig : Map[String, Any] = {
+    config_map
+  }
+
   def FormatErrors(invalidResult : Invalid) : Seq[String] = {
     var count = 0;
 
@@ -209,7 +213,7 @@ trait ConfigParser {
   }
 
   protected def parseSection(sectionIni : org.ini4j.Profile.Section, entry : ConfigEntry, map : Map[String, Any]) : ValidationResult = {
-    var rawValue = sectionIni.get(entry.key)
+    var rawValue = sectionIni.get(entry.key, 0)
     val full_key : String = sectionIni.getName + "." + entry.key
 
     val value = if (rawValue == null) {
