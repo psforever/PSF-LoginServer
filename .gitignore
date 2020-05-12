@@ -11,6 +11,7 @@ out/
 
 # User configs
 config/worldserver.ini
+pslogin/src/main/resources/user.conf
 
 # Log files
 *.log
