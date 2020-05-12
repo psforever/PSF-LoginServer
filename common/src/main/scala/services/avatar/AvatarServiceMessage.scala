@@ -35,7 +35,7 @@ object AvatarAction {
   final case class ActivateImplantSlot(player_guid : PlanetSideGUID, slot : Int) extends Action
   final case class Destroy(victim : PlanetSideGUID, killer : PlanetSideGUID, weapon : PlanetSideGUID, pos : Vector3) extends Action
   final case class DestroyDisplay(killer : SourceEntry, victim : SourceEntry, method : Int, unk : Int = 121) extends Action
-  final case class DropItem(player_guid : PlanetSideGUID, item : Equipment, zone : Zone) extends Action
+  final case class DropItem(player_guid : PlanetSideGUID, item : Equipment) extends Action
   final case class EquipmentInHand(player_guid : PlanetSideGUID, target_guid : PlanetSideGUID, slot : Int, item : Equipment) extends Action
   final case class GenericObjectAction(player_guid : PlanetSideGUID, object_guid : PlanetSideGUID, action_code : Int) extends Action
   final case class HitHint(source_guid : PlanetSideGUID, player_guid : PlanetSideGUID) extends Action
@@ -48,7 +48,7 @@ object AvatarAction {
   final case class PlanetsideAttributeToAll(player_guid : PlanetSideGUID, attribute_type : Int, attribute_value : Long) extends Action
   final case class PlanetsideAttributeSelf(player_guid : PlanetSideGUID, attribute_type : Int, attribute_value : Long) extends Action
   final case class PlayerState(player_guid : PlanetSideGUID, pos : Vector3, vel : Option[Vector3], facingYaw : Float, facingPitch : Float, facingYawUpper : Float, timestamp : Int, is_crouching : Boolean, is_jumping : Boolean, jump_thrust : Boolean, is_cloaked : Boolean, spectator : Boolean, weaponInHand : Boolean) extends Action
-  final case class PickupItem(player_guid : PlanetSideGUID, zone : Zone, target : PlanetSideGameObject with Container, slot : Int, item : Equipment, unk : Int = 0) extends Action
+  final case class PickupItem(player_guid : PlanetSideGUID, item : Equipment, unk : Int = 0) extends Action
   final case class ProjectileAutoLockAwareness(mode : Int) extends Action
   final case class ProjectileExplodes(player_guid : PlanetSideGUID, projectile_guid : PlanetSideGUID, projectile : Projectile) extends Action
   final case class ProjectileState(player_guid : PlanetSideGUID, projectile_guid : PlanetSideGUID, shot_pos : Vector3, shot_vel : Vector3, shot_orient : Vector3, sequence : Int, end : Boolean, hit_target : PlanetSideGUID) extends Action

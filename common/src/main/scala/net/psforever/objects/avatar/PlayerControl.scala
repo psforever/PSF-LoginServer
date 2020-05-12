@@ -18,9 +18,10 @@ import net.psforever.objects.vital._
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
-import net.psforever.types.{ExoSuitType, PlanetSideEmpire, Vector3}
-import services.Service
+import net.psforever.types.{ExoSuitType, PlanetSideEmpire, PlanetSideGUID, Vector3}
+import services.{RemoverActor, Service}
 import services.avatar.{AvatarAction, AvatarServiceMessage}
+import services.local.{LocalAction, LocalServiceMessage}
 
 import scala.concurrent.duration._
 import scala.collection.mutable
@@ -423,10 +424,46 @@ class PlayerControl(player : Player) extends Actor
           case _ => ; //terminal messages not handled here
         }
 
-      case Zone.Ground.ItemOnGround(item : PlanetSideGameObject, pos, orient) => ;
+      case Zone.Ground.ItemOnGround(item, _, _) => ;
+        val name = player.Name
+        val zone = player.Zone
+        val avatarEvents = zone.AvatarEvents
+        val localEvents = zone.LocalEvents
+        item match {
+          case trigger : BoomerTrigger =>
+            //dropped the trigger, no longer own the boomer; make certain whole faction is aware of that
+            (zone.GUID(trigger.Companion), zone.Players.find { _.name == name}) match {
+              case (Some(boomer : BoomerDeployable), Some(avatar)) =>
+                val guid = boomer.GUID
+                val factionChannel = boomer.Faction.toString
+                if(avatar.Deployables.Remove(boomer)) {
+                  boomer.Faction = PlanetSideEmpire.NEUTRAL
+                  boomer.AssignOwnership(None)
+                  avatar.Deployables.UpdateUIElement(boomer.Definition.Item).foreach { case (currElem, curr, maxElem, max) =>
+                    avatarEvents ! AvatarServiceMessage(name, AvatarAction.PlanetsideAttributeToAll(Service.defaultPlayerGUID, maxElem, max))
+                    avatarEvents ! AvatarServiceMessage(name, AvatarAction.PlanetsideAttributeToAll(Service.defaultPlayerGUID, currElem, curr))
+                  }
+                  localEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(boomer, zone))
+                  localEvents ! LocalServiceMessage(factionChannel,
+                    LocalAction.DeployableMapIcon(Service.defaultPlayerGUID, DeploymentAction.Dismiss,
+                      DeployableInfo(guid, DeployableIcon.Boomer, boomer.Position, PlanetSideGUID(0))
+                    )
+                  )
+                  avatarEvents ! AvatarServiceMessage(factionChannel, AvatarAction.SetEmpire(Service.defaultPlayerGUID, guid, PlanetSideEmpire.NEUTRAL))
+                }
+              case _ => ; //pointless trigger? or a trigger being deleted?
+            }
+          case _ => ;
+        }
 
-      case Zone.Ground.CanNotDropItem(zone, item, reason) =>
-        log.warn(s"DropItem: ${player.Name} tried to drop a ${item.Definition.Name} on the ground, but it $reason")
+
+      case Zone.Ground.CanNotDropItem(_, item, reason) =>
+        log.warn(s"${player.Name} tried to drop a ${item.Definition.Name} on the ground, but it $reason")
+
+      case Zone.Ground.ItemInHand(_) => ;
+
+      case Zone.Ground.CanNotPickupItem(_, item_guid, reason) =>
+        log.warn(s"${player.Name} failed to pick up an item ($item_guid) from the ground because $reason")
 
       case _ => ;
     }
@@ -537,11 +574,14 @@ class PlayerControl(player : Player) extends Actor
   def RemoveItemFromSlotCallback(item : Equipment, slot : Int) : Unit = {
     val obj = ContainerObject
     val zone = obj.Zone
-    val toChannel = if(obj.VisibleSlots.contains(slot) || obj.isBackpack) zone.Id else player.Name
+    val name = player.Name
+    val toChannel = if(obj.VisibleSlots.contains(slot) || obj.isBackpack) zone.Id else name
+    val events = zone.AvatarEvents
+    item.Faction = PlanetSideEmpire.NEUTRAL
     if(slot == obj.DrawnSlot) {
       obj.DrawnSlot = Player.HandsDownSlot
     }
-    zone.AvatarEvents ! AvatarServiceMessage(toChannel, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, item.GUID))
+    events ! AvatarServiceMessage(toChannel, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, item.GUID))
   }
 
   def PutItemInSlotCallback(item : Equipment, slot : Int) : Unit = {
@@ -549,6 +589,7 @@ class PlayerControl(player : Player) extends Actor
     val guid = obj.GUID
     val zone = obj.Zone
     val events = zone.AvatarEvents
+    val name = player.Name
     val definition = item.Definition
     val msg = AvatarAction.SendResponse(
       Service.defaultPlayerGUID,
@@ -564,10 +605,40 @@ class PlayerControl(player : Player) extends Actor
       events ! AvatarServiceMessage(zone.Id, msg)
     }
     else {
-      item.Faction = obj.Faction
-      events ! AvatarServiceMessage(player.Name, msg)
+      val faction = obj.Faction
+      item.Faction = faction
+      events ! AvatarServiceMessage(name, msg)
       if(obj.VisibleSlots.contains(slot)) {
         events ! AvatarServiceMessage(zone.Id, AvatarAction.EquipmentInHand(guid, guid, slot, item))
+      }
+      //handle specific types of items
+      item match {
+        case trigger : BoomerTrigger =>
+          //pick up the trigger, own the boomer; make certain whole faction is aware of that
+          (zone.GUID(trigger.Companion), zone.Players.find { _.name == name }) match {
+            case (Some(boomer : BoomerDeployable), Some(avatar))
+              if !boomer.OwnerName.contains(name) || boomer.Faction != faction =>
+              val bguid = boomer.GUID
+              val faction = player.Faction
+              val factionChannel = faction.toString
+              if(avatar.Deployables.Add(boomer)) {
+                boomer.Faction = faction
+                boomer.AssignOwnership(player)
+                avatar.Deployables.UpdateUIElement(boomer.Definition.Item).foreach { case (currElem, curr, maxElem, max) =>
+                  events ! AvatarServiceMessage(name, AvatarAction.PlanetsideAttributeToAll(Service.defaultPlayerGUID, maxElem, max))
+                  events ! AvatarServiceMessage(name, AvatarAction.PlanetsideAttributeToAll(Service.defaultPlayerGUID, currElem, curr))
+                }
+                zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(boomer), zone))
+                events ! AvatarServiceMessage(factionChannel, AvatarAction.SetEmpire(Service.defaultPlayerGUID, bguid, faction))
+                zone.LocalEvents ! LocalServiceMessage(factionChannel,
+                  LocalAction.DeployableMapIcon(Service.defaultPlayerGUID, DeploymentAction.Build,
+                    DeployableInfo(bguid, DeployableIcon.Boomer, boomer.Position, boomer.Owner.getOrElse(PlanetSideGUID(0)))
+                  )
+                )
+              }
+            case _ => ; //pointless trigger?
+          }
+        case _ => ;
       }
     }
   }

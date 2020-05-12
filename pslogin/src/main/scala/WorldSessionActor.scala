@@ -864,41 +864,6 @@ class WorldSessionActor extends Actor
     case msg@Zone.Vehicle.CanNotDespawn(zone, vehicle, reason) =>
       log.warn(s"$msg")
 
-    case Zone.Ground.ItemInHand(item : BoomerTrigger) =>
-      if(PutItemInHand(item)) {
-        //pick up the trigger, own the boomer; make certain whole faction is aware of that
-        continent.GUID(item.Companion) match {
-          case Some(obj : BoomerDeployable) =>
-            val guid = obj.GUID
-            val playerGUID = player.GUID
-            val faction = player.Faction
-            val factionChannel = s"$faction"
-            obj.AssignOwnership(player)
-            obj.Faction = faction
-            avatar.Deployables.Add(obj)
-            UpdateDeployableUIElements(avatar.Deployables.UpdateUIElement(obj.Definition.Item))
-            continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(obj), continent))
-            sendResponse(SetEmpireMessage(guid, faction))
-            continent.AvatarEvents ! AvatarServiceMessage(factionChannel, AvatarAction.SetEmpire(playerGUID, guid, faction))
-            val info = DeployableInfo(obj.GUID, DeployableIcon.Boomer, obj.Position, obj.Owner.getOrElse(PlanetSideGUID(0)))
-            sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, info))
-            continent.LocalEvents ! LocalServiceMessage(factionChannel, LocalAction.DeployableMapIcon(playerGUID, DeploymentAction.Build, info))
-          case Some(_) | None => ; //pointless trigger; see Zone.Ground.ItemOnGround(BoomerTrigger, ...)
-        }
-      }
-
-    case Zone.Ground.ItemInHand(item : Equipment) =>
-      PutItemInHand(item)
-
-    case Zone.Ground.CanNotPickupItem(zone, item_guid, _) =>
-      zone.GUID(item_guid) match {
-        case Some(item) =>
-          log.warn(s"DropItem: finding a $item on the ground was suggested, but $player can not reach it")
-        case None =>
-          log.warn(s"DropItem: finding an item ($item_guid) on the ground was suggested, but $player can not see it")
-          sendResponse(ObjectDeleteMessage(item_guid, 0))
-      }
-
     case Zone.Deployable.DeployableIsBuilt(obj, tool) =>
       val index = player.Find(tool) match {
         case Some(x) =>
@@ -4700,7 +4665,7 @@ class WorldSessionActor extends Actor
           player.Fit(item) match {
             case Some(_) =>
               CancelZoningProcessWithDescriptiveReason("cancel_use")
-              continent.Ground ! Zone.Ground.PickupItem(item_guid)
+              PickUpEquipmentFromGround(player)(item)
             case None => //skip
               sendResponse(ActionResultMessage.Fail(16)) //error code?
           }
@@ -6799,8 +6764,8 @@ class WorldSessionActor extends Actor
     *             curried for callback
     * @param item the item
     */
-  def NormalItemDrop(obj : PlanetSideGameObject with Container, zone : Zone)(item : Equipment) : Unit = {
-    zone.Ground ! Zone.Ground.DropItem(item, obj.Position, Vector3.z(obj.Orientation.z))
+  def NormalItemDrop(obj : PlanetSideServerObject with Container, zone : Zone)(item : Equipment) : Unit = {
+    zone.Ground.tell(Zone.Ground.DropItem(item, obj.Position, Vector3.z(obj.Orientation.z)), obj.Actor)
   }
 
   /**
@@ -6812,7 +6777,7 @@ class WorldSessionActor extends Actor
     *             curried for callback
     * @param item the item
     */
-  def NewItemDrop(obj : PlanetSideGameObject with Container, zone : Zone)(item : Equipment) : TaskResolver.GiveTask = {
+  def NewItemDrop(obj : PlanetSideServerObject with Container, zone : Zone)(item : Equipment) : TaskResolver.GiveTask = {
     TaskResolver.GiveTask(
       new Task() {
         private val localItem = item
@@ -6831,7 +6796,7 @@ class WorldSessionActor extends Actor
     * @param tool a weapon
     */
   def FireCycleCleanup(tool : Tool) : Unit = {
-    //TODO this is temporary and will be replaced by more appropriate functionality in the future.
+    //TODO replaced by more appropriate functionality in the future
     val tdef = tool.Definition
     if(GlobalDefinitions.isGrenade(tdef)) {
       val ammoType = tool.AmmoType
@@ -8603,7 +8568,6 @@ class WorldSessionActor extends Actor
           obj.Position = Vector3.Zero
           continent.Ground ! Zone.Ground.RemoveItem(object_guid)
           continent.AvatarEvents ! AvatarServiceMessage.Ground(RemoverActor.ClearSpecific(List(obj), continent))
-          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(PlanetSideGUID(0), object_guid))
           log.info(s"RequestDestroy: equipment $obj on ground")
           true
         }
@@ -9003,40 +8967,6 @@ class WorldSessionActor extends Actor
     Deployables.Disown(continent, avatar, self)
     drawDeloyableIcon = RedrawDeployableIcons //important for when SetCurrentAvatar initializes the UI next zone
     squadSetup = ZoneChangeSquadSetup
-  }
-
-  /**
-    * Primary functionality for tranferring a piece of equipment from the ground in a player's hands or his inventory.
-    * The final destination of the item in terms of slot position is not determined until the attempt is made.
-    * If it can not be placed in a slot correctly, the item will be returned to the ground in the same place.
-    * @see `Player.Fit`
-    * @param item the `Equipment` object on the ground
-    * @return `true`, if the object was properly picked up;
-    *        `false` if it was returned to the ground
-    */
-  def PutItemInHand(item : Equipment) : Boolean = {
-    player.Fit(item) match {
-      case Some(slotNum) =>
-        CancelZoningProcessWithDescriptiveReason("cancel_use")
-        item.Faction = player.Faction
-        val item_guid = item.GUID
-        val player_guid = player.GUID
-        player.Slot(slotNum).Equipment = item
-        val definition = item.Definition
-        sendResponse(
-          ObjectCreateDetailedMessage(
-            definition.ObjectId,
-            item_guid,
-            ObjectCreateMessageParent(player_guid, slotNum),
-            definition.Packet.DetailedConstructorData(item).get
-          )
-        )
-        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PickupItem(player_guid, continent, player, slotNum, item))
-        true
-      case None =>
-        continent.Ground ! Zone.Ground.DropItem(item, item.Position, item.Orientation) //restore previous state
-        false
-    }
   }
 
   /**
