@@ -64,7 +64,8 @@ lazy val psloginPackSettings = Seq(
   packExtraClasspath := Map("ps-login" -> Seq("${PROG_HOME}/pscrypto-lib",
     "${PROG_HOME}/config")),
   packResourceDir += (baseDirectory.value / "pscrypto-lib" -> "pscrypto-lib"),
-  packResourceDir += (baseDirectory.value / "config" -> "config")
+  packResourceDir += (baseDirectory.value / "config" -> "config"),
+  packResourceDir += (baseDirectory.value / "pslogin/src/main/resources" -> "config")
 )
 
 lazy val root = (project in file(".")).
