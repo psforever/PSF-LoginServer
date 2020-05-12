@@ -36,7 +36,6 @@ object PsLogin {
   private val logger = org.log4s.getLogger
 
   var args : Array[String] = Array()
-  var config : java.util.Map[String,Object] = null
   implicit var system : ActorSystem = null
   var loginRouter : Props = Props.empty
   var worldRouter : Props = Props.empty
@@ -214,17 +213,6 @@ object PsLogin {
       case _ =>
     }
 
-    /** Make sure we capture Akka messages (but only INFO and above)
-      *
-      * This same config can be specified in a configuration file, but that's more work at this point.
-      * In the future we will have a unified configuration file specific to this server
-      */
-    config = Map(
-      "akka.loggers" -> List("akka.event.slf4j.Slf4jLogger").asJava,
-      "akka.loglevel" -> "INFO",
-      "akka.logging-filter" -> "akka.event.slf4j.Slf4jLoggingFilter"
-    ).asJava
-
     WorldConfig.Get[Boolean]("kamon.Active") match {
       case true =>
         logger.info("Starting Kamon")
@@ -233,11 +221,10 @@ object PsLogin {
       case _ => ;
     }
 
-
     logger.info("Starting actor subsystems")
 
     /** Start up the main actor system. This "system" is the home for all actors running on this server */
-    system = ActorSystem("PsLogin", ConfigFactory.parseMap(config))
+    system = ActorSystem("PsLogin")
 
     logger.info("Starting actor pipelines")
     /** Create pipelines for the login and world servers
