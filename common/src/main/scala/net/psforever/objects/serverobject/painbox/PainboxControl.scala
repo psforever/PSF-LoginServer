@@ -18,6 +18,8 @@ class PainboxControl(painbox: Painbox) extends Actor {
   var bBoxMaxCorner = Vector3.Zero
   var bBoxMidPoint = Vector3.Zero
 
+  var disabled = false // Temporary to disable cavern non-radius fields
+
   def receive: Receive = {
     case "startup" =>
       if (painbox.Definition.HasNearestDoorDependency) {
@@ -35,14 +37,12 @@ class PainboxControl(painbox: Painbox) extends Actor {
           case _ =>
             log.error(s"Painbox ${painbox.GUID} on ${painbox.Owner.Continent} - ${painbox.Position} can not find a door that it is dependent on")
         }
-
-        context.become(Stopped)
-      }
-      else {
+      } else {
         if (painbox.Definition.Radius == 0f) {
           if (painbox.Owner.Continent.matches("c[0-9]")) {
             // todo: handle non-radius painboxes in caverns properly
             log.warn(s"Skipping initialization of ${painbox.GUID} on ${painbox.Owner.Continent} - ${painbox.Position}")
+            disabled = true
           } else {
             painbox.Owner match {
               case obj: Building =>
@@ -83,9 +83,13 @@ class PainboxControl(painbox: Painbox) extends Actor {
               case _ => None
             }
           }
-          context.become(Stopped)
         }
       }
+
+      if(!disabled) {
+        context.become(Stopped)
+      }
+
     case _ => ;
   }
 
