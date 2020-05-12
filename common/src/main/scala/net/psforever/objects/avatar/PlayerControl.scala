@@ -8,8 +8,9 @@ import net.psforever.objects.definition.ImplantDefinition
 import net.psforever.objects.equipment.{Ammo, Equipment, EquipmentSize, JammableBehavior, JammableUnit}
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
 import net.psforever.objects.loadouts.Loadout
+import net.psforever.objects.serverobject.containable.{Containable, ContainableBehavior}
 import net.psforever.objects.vital.{PlayerSuicide, Vitality}
-import net.psforever.objects.serverobject.{CommonMessages, Containable, PlanetSideServerObject}
+import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.repair.Repairable
@@ -31,7 +32,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class PlayerControl(player : Player) extends Actor
   with JammableBehavior
   with Damageable
-  with Containable {
+  with ContainableBehavior {
   def JammableObject = player
 
   def DamageableObject = player
@@ -311,7 +312,7 @@ class PlayerControl(player : Player) extends Actor
             val originalSuit = player.ExoSuit
             val originalSubtype = Loadout.DetermineSubtype(player)
             //sanitize exo-suit for change
-            val dropPred = Containable.DropPredicate(player)
+            val dropPred = ContainableBehavior.DropPredicate(player)
             val oldHolsters = Players.clearHolsters(player.Holsters().iterator)
             val dropHolsters = oldHolsters.filter(dropPred)
             val oldInventory = player.Inventory.Clear()

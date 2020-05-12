@@ -6,9 +6,10 @@ import net.psforever.objects._
 import net.psforever.objects.ballistics.{ResolvedProjectile, VehicleSource}
 import net.psforever.objects.equipment.{Equipment, JammableMountedWeapons}
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
-import net.psforever.objects.serverobject.{CommonMessages, Containable}
+import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
+import net.psforever.objects.serverobject.containable.{Containable, ContainableBehavior}
 import net.psforever.objects.serverobject.damage.DamageableVehicle
 import net.psforever.objects.serverobject.deploy.DeploymentBehavior
 import net.psforever.objects.serverobject.hackable.GenericHackables
@@ -43,7 +44,7 @@ class VehicleControl(vehicle : Vehicle) extends Actor
   with DamageableVehicle
   with RepairableVehicle
   with JammableMountedWeapons
-  with Containable {
+  with ContainableBehavior {
 
   //make control actors belonging to utilities when making control actor belonging to vehicle
   vehicle.Utilities.foreach({case (_, util) => util.Setup })
@@ -137,7 +138,7 @@ class VehicleControl(vehicle : Vehicle) extends Actor
             //remove old inventory
             val oldInventory = vehicle.Inventory.Clear().map { case InventoryItem(obj, _) => (obj, obj.GUID) }
             //"dropped" items are lost; if it doesn't go in the trunk, it vanishes into the nanite cloud
-            val (_, afterInventory) = inventory.partition(Containable.DropPredicate(player))
+            val (_, afterInventory) = inventory.partition(ContainableBehavior.DropPredicate(player))
             val (oldWeapons, newWeapons, finalInventory) = if(vehicle.Definition == definition) {
               //vehicles are the same type
               //TODO want to completely swap weapons, but holster icon vanishes temporarily after swap

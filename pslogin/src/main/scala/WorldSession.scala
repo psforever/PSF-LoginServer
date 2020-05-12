@@ -2,11 +2,12 @@
 import akka.actor.ActorRef
 import akka.pattern.{AskTimeoutException, ask}
 import akka.util.Timeout
-import net.psforever.objects._
+import net.psforever.objects.{AmmoBox, GlobalDefinitions, Player, Tool}
 import net.psforever.objects.equipment.{Ammo, Equipment}
 import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
 import net.psforever.objects.inventory.{Container, InventoryItem}
-import net.psforever.objects.serverobject.{Containable, PlanetSideServerObject}
+import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.containable.Containable
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.ObjectHeldMessage
 import net.psforever.types.{PlanetSideGUID, TransactionType, Vector3}

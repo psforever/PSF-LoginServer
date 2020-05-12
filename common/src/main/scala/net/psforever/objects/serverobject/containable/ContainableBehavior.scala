@@ -1,18 +1,24 @@
 // Copyright (c) 2020 PSForever
-package net.psforever.objects.serverobject
+package net.psforever.objects.serverobject.containable
 
 import akka.actor.{Actor, ActorRef}
 import akka.pattern.{AskTimeoutException, ask}
 import akka.util.Timeout
-import net.psforever.objects.{BoomerTrigger, GlobalDefinitions, Player}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.{Container, InventoryItem}
+import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.zones.Zone
+import net.psforever.objects.{BoomerTrigger, GlobalDefinitions, Player}
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.util.Success
+
+/** Parent of all standard (input) messages handled by a `ContainableBehavior` object for the purposes of item transfer */
+sealed trait ContainableMsg
+/** `ContainableBehavior` messages that are allowed to be temporarily blocked in event of a complicated item transfer */
+sealed trait DeferrableMsg extends ContainableMsg
 
 /**
   * A mixin for handling synchronized movement of `Equipment` items into or out from `Container` entities.
@@ -21,7 +27,7 @@ import scala.util.Success
   * without causing representation overlap, overwriting, or unintended stacking of other equipment
   * including equipment that has nort yet been inserted.
   */
-trait Containable {
+trait ContainableBehavior {
   _ : Actor =>
   def ContainerObject : PlanetSideServerObject with Container
 
@@ -38,26 +44,26 @@ trait Containable {
 
   final val containerBehavior : Receive = {
     /* messages that modify delivery order */
-    case Containable.Wait() => Wait()
+    case ContainableBehavior.Wait() => Wait()
 
-    case Containable.Resume() => Resume()
+    case ContainableBehavior.Resume() => Resume()
 
-    case repeatMsg @ Containable.Defer(msg, sentBy) =>
+    case repeatMsg @ ContainableBehavior.Defer(msg, sentBy) =>
       //received a previously blocked message; is it still blocked?
       msg match {
-        case _ : Containable.ContainableMsg if waitOnMoveItemOps == 2 => RepeatMessageLater(repeatMsg)
-        case _ : Containable.DeferrableMessage if waitOnMoveItemOps == 1 => RepeatMessageLater(repeatMsg)
+        case _ : ContainableMsg if waitOnMoveItemOps == 2 => RepeatMessageLater(repeatMsg)
+        case _ : DeferrableMsg if waitOnMoveItemOps == 1 => RepeatMessageLater(repeatMsg)
         case _ => self.tell(msg, sentBy)
       }
 
-    case msg : Containable.ContainableMsg if waitOnMoveItemOps == 2 =>
+    case msg : ContainableMsg if waitOnMoveItemOps == 2 =>
       //all standard messages are blocked
-      RepeatMessageLater(Containable.Defer(msg, sender))
+      RepeatMessageLater(ContainableBehavior.Defer(msg, sender))
       MessageDeferredCallback(msg)
 
-    case msg : Containable.DeferrableMessage if waitOnMoveItemOps == 1 =>
+    case msg : DeferrableMsg if waitOnMoveItemOps == 1 =>
       //insertion messages not related to an item move attempt are blocked
-      RepeatMessageLater(Containable.Defer(msg, sender))
+      RepeatMessageLater(ContainableBehavior.Defer(msg, sender))
       MessageDeferredCallback(msg)
 
     /* normal messages */
@@ -80,7 +86,7 @@ trait Containable {
       sender ! LocalPutItemInSlotOrAway(item, dest)
 
     case msg @ Containable.MoveItem(destination, equipment, destSlot) => /* can be deferred */
-      if(Containable.TestPutItemInSlot(destination, equipment, destSlot).nonEmpty) { //test early, before we try to move the item
+      if(ContainableBehavior.TestPutItemInSlot(destination, equipment, destSlot).nonEmpty) { //test early, before we try to move the item
         val source = ContainerObject
         val item = equipment
         val dest = destSlot
@@ -102,9 +108,9 @@ trait Containable {
             }
             else {
               //destination sync
-              destination.Actor ! Containable.Wait()
+              destination.Actor ! ContainableBehavior.Wait()
               implicit val timeout = new Timeout(1000 milliseconds)
-              val moveItemOver = ask(destination.Actor, Containable.MoveItemPutItemInSlot(item, dest))
+              val moveItemOver = ask(destination.Actor, ContainableBehavior.MoveItemPutItemInSlot(item, dest))
               moveItemOver.onSuccess {
                 case Containable.ItemPutInSlot(_, _, _, None) => ; //successful
 
@@ -120,8 +126,8 @@ trait Containable {
               }
               //always do this
               moveItemOver
-                .recover { case _ : AskTimeoutException => destination.Actor ! Containable.Resume() }
-                .onComplete { _ => destination.Actor ! Containable.Resume() }
+                .recover { case _ : AskTimeoutException => destination.Actor ! ContainableBehavior.Resume() }
+                .onComplete { _ => destination.Actor ! ContainableBehavior.Resume() }
             }
           case _ => ;
             //we could not find the item to be moved in the source location; trying to act on old data?
@@ -131,10 +137,10 @@ trait Containable {
         MessageDeferredCallback(msg)
       }
 
-      case Containable.MoveItemPutItemInSlot(item, dest) =>
+      case ContainableBehavior.MoveItemPutItemInSlot(item, dest) =>
         sender ! LocalPutItemInSlot(item, dest)
 
-      case Containable.MoveItemPutItemInSlotOrAway(item, dest) =>
+      case ContainableBehavior.MoveItemPutItemInSlotOrAway(item, dest) =>
         sender ! LocalPutItemInSlotOrAway(item, dest)
   }
 
@@ -142,8 +148,8 @@ trait Containable {
 
   /**
     * Defer a message until later.
-    * @see `Containable.Defer`
-    * @see `Containable.DeferrableMessage`
+    * @see `ContainableBehavior.Defer`
+    * @see `DeferrableMsg`
     * @param msg the message to defer
     */
   def RepeatMessageLater(msg : Any) : Unit = {
@@ -176,7 +182,7 @@ trait Containable {
 
   private def LocalRemoveItemFromSlot(slot : Int) : Any = {
     val source = ContainerObject
-    val (outSlot, item) = Containable.TryRemoveItemFromSlot(source, slot)
+    val (outSlot, item) = ContainableBehavior.TryRemoveItemFromSlot(source, slot)
     item match {
       case Some(thing) => RemoveItemFromSlotCallback(thing, outSlot.get)
       case None => ;
@@ -186,7 +192,7 @@ trait Containable {
 
   private def LocalRemoveItemFromSlot(item : Equipment) : Any = {
     val source = ContainerObject
-    val(slot, retItem) = Containable.TryRemoveItemFromSlot(source, item)
+    val(slot, retItem) = ContainableBehavior.TryRemoveItemFromSlot(source, item)
     retItem match {
       case Some(thing) => RemoveItemFromSlotCallback(thing, slot.get)
       case None => ;
@@ -196,7 +202,7 @@ trait Containable {
 
   private def LocalPutItemInSlot(item : Equipment, dest : Int) : Any = {
     val destination = ContainerObject
-    Containable.TryPutItemInSlot(destination, item, dest) match {
+    ContainableBehavior.TryPutItemInSlot(destination, item, dest) match {
       case (true, swapItem) =>
         swapItem match {
           case Some(thing) => SwapItemCallback(thing)
@@ -211,7 +217,7 @@ trait Containable {
 
   private def LocalPutItemInSlotOnly(item : Equipment, dest : Int) : Any = {
     val destination = ContainerObject
-    if(Containable.TryPutItemInSlotOnly(destination, item, dest)) {
+    if(ContainableBehavior.TryPutItemInSlotOnly(destination, item, dest)) {
       PutItemInSlotCallback(item, dest)
       Containable.ItemPutInSlot(destination, item, dest, None)
     }
@@ -222,7 +228,7 @@ trait Containable {
 
   private def LocalPutItemAway(item : Equipment) : Any = {
     val destination = ContainerObject
-    Containable.TryPutItemAway(destination, item) match {
+    ContainableBehavior.TryPutItemAway(destination, item) match {
       case Some(dest) =>
         PutItemInSlotCallback(item, dest)
         Containable.ItemPutInSlot(destination, item, dest, None)
@@ -233,7 +239,7 @@ trait Containable {
 
   private def LocalPutItemInSlotOrAway(item : Equipment, dest : Option[Int]) : Any = {
     val destination = ContainerObject
-    Containable.TryPutItemInSlotOrAway(destination, item, dest) match {
+    ContainableBehavior.TryPutItemInSlotOrAway(destination, item, dest) match {
       case (Some(slot), swapItem) =>
         swapItem match {
           case Some(thing) => SwapItemCallback(thing)
@@ -248,7 +254,7 @@ trait Containable {
 
   private def LocalPutItemInSlotOnlyOrAway(item : Equipment, dest : Option[Int]) : Any = {
     val destination = ContainerObject
-    Containable.TryPutItemInSlotOnlyOrAway(destination, item, dest) match {
+    ContainableBehavior.TryPutItemInSlotOnlyOrAway(destination, item, dest) match {
       case (Some(slot), None) =>
         PutItemInSlotCallback(item, slot)
         Containable.ItemPutInSlot(destination, item, slot, None)
@@ -271,7 +277,7 @@ trait Containable {
     * @param timeout how long the request has to complete before expiring
     */
   private def PutItBackOrDropIt(container : PlanetSideServerObject with Container, item : Equipment, slot : Option[Int], to : ActorRef)(implicit timeout : Timeout) : Unit = {
-    val restore = ask(container.Actor, Containable.MoveItemPutItemInSlotOrAway(item, slot))
+    val restore = ask(container.Actor, ContainableBehavior.MoveItemPutItemInSlotOrAway(item, slot))
     restore.onSuccess {
       case _ : Containable.CanNotPutItemInSlot =>
         container.Zone.Ground.tell(Zone.Ground.DropItem(item, container.Position, Vector3.z(container.Orientation.z)), to)
@@ -314,11 +320,7 @@ trait Containable {
   def SwapItemCallback(item : Equipment) : Unit
 }
 
-object Containable {
-  /** Parent of all standard (input) messages handled by a `Containable` object for the purposes of item transfer */
-  sealed trait ContainableMsg
-  /** `Containable` messages that are allowed to be temporarily blocked in event of a complicated item transfer */
-  sealed trait DeferrableMessage extends ContainableMsg
+object ContainableBehavior {
   /** Control message for temporarily blocking some messages to maintain integrity of underlying `Container` object */
   private case class Wait()
   /** Control message for unblocking all messages */
@@ -326,62 +328,9 @@ object Containable {
   /** Internal message for the purpose of refreshing a blocked message in the mailbox */
   private case class Defer(msg : Any, from : ActorRef)
 
-  final case class RemoveItemFromSlot(item : Option[Equipment], slot : Option[Int]) extends ContainableMsg
-
-  object RemoveItemFromSlot {
-    def apply(slot : Int) : RemoveItemFromSlot = RemoveItemFromSlot(None, Some(slot))
-
-    def apply(item : Equipment) : RemoveItemFromSlot = RemoveItemFromSlot(Some(item), None)
-  }
-
-  /**
-    * A response for the `RemoveItemFromSlot` message.
-    * It serves the dual purpose of reporting a missing item (by not reporting any slot information)
-    * and reporting no item ata given position (by not reporting any item information).
-    * @param obj the container
-    * @param item the equipment that was removed
-    * @param slot the index position from which any item was removed
-    */
-  final case class ItemFromSlot(obj : PlanetSideServerObject with Container, item : Option[Equipment], slot : Option[Int])
-
-  final case class PutItemInSlot(item : Equipment, slot : Int) extends DeferrableMessage
-
-  final case class PutItemInSlotOnly(item : Equipment, slot : Int) extends DeferrableMessage
-
-  final case class PutItemAway(item : Equipment) extends DeferrableMessage
-
-  final case class PutItemInSlotOrAway(item : Equipment, slot : Option[Int]) extends DeferrableMessage
-
-  /**
-    * A "successful insertion" response for the variety message of messages that attempt to insert an item into a container.
-    * @param obj the container
-    * @param item the equipment that was inserted
-    * @param slot the slot position into which the item was inserted
-    * @param swapped_item any other item, previously in the container, that was displaced to make room for this insertion
-    */
-  final case class ItemPutInSlot(obj : PlanetSideServerObject with Container, item : Equipment, slot : Int, swapped_item : Option[Equipment])
-
-  /**
-    * A "failed insertion" response for the variety message of messages that attempt to insert an item into a container.
-    * @param obj the container
-    * @param item the equipment that was not inserted
-    * @param slot the slot position into which the item should have been inserted;
-    *             `-1` if no insertion slot was reported in the original message or discovered in the process of inserting
-    */
-  final case class CanNotPutItemInSlot(obj : PlanetSideServerObject with Container, item : Equipment, slot : Int)
-
-  /**
-    * The item should already be contained by us.
-    * The item is being removed from our containment and placed into a fixed slot position in another container.
-    * `MoveItem` is a process that may be complicated and is one reason why `DeferrableMessage`s are employed.
-    * @param destination the container into which the item is being placed
-    * @param item the item
-    * @param destination_slot where in the destination container the item is being placed
-    */
-  final case class MoveItem(destination : PlanetSideServerObject with Container, item : Equipment, destination_slot : Int) extends DeferrableMessage
-  /* The same as `PutItemInSlot`, but is not a `DeferrableMessage` for the purposes of completing a `MoveItem` */
+  /* The same as `PutItemInSlot`, but is not a `DeferrableMsg` for the purposes of completing a `MoveItem` */
   private case class MoveItemPutItemInSlot(item : Equipment, slot : Int) extends ContainableMsg
-  /* The same as `PutItemInSlotOrAway`, but is not a `DeferrableMessage` for the purposes of completing a `MoveItem` */
+  /* The same as `PutItemInSlotOrAway`, but is not a `DeferrableMsg` for the purposes of completing a `MoveItem` */
   private case class MoveItemPutItemInSlotOrAway(item : Equipment, slot : Option[Int]) extends ContainableMsg
 
   /* Functions */
@@ -445,7 +394,7 @@ object Containable {
     * If another item occupies the expected region of insertion (collision of bounding regions),
     * the insertion can still be permitted with the assumption that
     * the displaced item ("swap item") will have to be put somewhere else.
-    * @see `Containable.PermitEquipmentStow`
+    * @see `ContainableBehavior.PermitEquipmentStow`
     * @see `Container.Collisions`
     * @see `InventoryTile`
     * @param destination the container
@@ -455,7 +404,7 @@ object Containable {
     *         `None`, otherwise, and the insertion is not permitted
     */
   def TestPutItemInSlot(destination : PlanetSideServerObject with Container, item : Equipment, dest : Int) : Option[List[InventoryItem]] = {
-    if(Containable.PermitEquipmentStow(destination, item)) {
+    if(ContainableBehavior.PermitEquipmentStow(destination, item)) {
       val tile = item.Definition.Tile
       val destinationCollisionTest = destination.Collisions(dest, tile.Width, tile.Height)
       destinationCollisionTest match {
@@ -481,7 +430,7 @@ object Containable {
     *         the second is an optional item that was removed from a coincidental position in the container ("swap item")
     */
   def TryPutItemInSlot(destination : PlanetSideServerObject with Container, item : Equipment, dest : Int) : (Boolean, Option[Equipment]) = {
-    Containable.TestPutItemInSlot(destination, item, dest) match {
+    ContainableBehavior.TestPutItemInSlot(destination, item, dest) match {
       case Some(results) =>
         //insert and swap, if applicable
         val (swapItem, swapSlot) = results match {
@@ -512,7 +461,7 @@ object Containable {
     *        `false`, otherwise
     */
   def TryPutItemInSlotOnly(destination : PlanetSideServerObject with Container, item : Equipment, dest : Int) : Boolean = {
-    Containable.TestPutItemInSlot(destination, item, dest).contains(Nil) && (destination.Slot(dest).Equipment = item).contains(item)
+    ContainableBehavior.TestPutItemInSlot(destination, item, dest).contains(Nil) && (destination.Slot(dest).Equipment = item).contains(item)
   }
 
   /**
@@ -526,7 +475,7 @@ object Containable {
   def TryPutItemAway(destination : PlanetSideServerObject with Container, item : Equipment) : Option[Int] = {
     destination.Fit(item) match {
       case out @ Some(dest)
-        if Containable.PermitEquipmentStow(destination, item) && (destination.Slot(dest).Equipment = item).contains(item) =>
+        if ContainableBehavior.PermitEquipmentStow(destination, item) && (destination.Slot(dest).Equipment = item).contains(item) =>
         out
       case _ =>
         None
@@ -545,13 +494,13 @@ object Containable {
     */
   def TryPutItemInSlotOrAway(destination : PlanetSideServerObject with Container, item : Equipment, dest : Option[Int]) : (Option[Int], Option[Equipment]) = {
     (dest match {
-      case Some(slot) => Containable.TryPutItemInSlot(destination, item, slot)
+      case Some(slot) => ContainableBehavior.TryPutItemInSlot(destination, item, slot)
       case None => (false, None)
     }) match {
       case (true, swapItem) =>
         (dest, swapItem)
       case _ =>
-        Containable.TryPutItemAway(destination, item) match {
+        ContainableBehavior.TryPutItemAway(destination, item) match {
           case out @ Some(_) => (out, None)
           case None => (None, None)
         }
@@ -570,13 +519,13 @@ object Containable {
     */
   def TryPutItemInSlotOnlyOrAway(destination : PlanetSideServerObject with Container, item : Equipment, dest : Option[Int]) : (Option[Int], Option[Equipment]) = {
     (dest match {
-      case Some(slot) if Containable.TestPutItemInSlot(destination, item, slot).contains(Nil) => Containable.TryPutItemInSlot(destination, item, slot)
+      case Some(slot) if ContainableBehavior.TestPutItemInSlot(destination, item, slot).contains(Nil) => ContainableBehavior.TryPutItemInSlot(destination, item, slot)
       case None => (false, None)
     }) match {
       case (true, swapItem) =>
         (dest, swapItem)
       case _ =>
-        Containable.TryPutItemAway(destination, item) match {
+        ContainableBehavior.TryPutItemAway(destination, item) match {
           case out @ Some(_) => (out, None)
           case None => (None, None)
         }
@@ -623,4 +572,60 @@ object Containable {
       entry.obj.isInstanceOf[BoomerTrigger] ||
       (faction != tplayer.Faction && faction != PlanetSideEmpire.NEUTRAL)
   }
+}
+
+object Containable {
+  final case class RemoveItemFromSlot(item : Option[Equipment], slot : Option[Int]) extends ContainableMsg
+
+  object RemoveItemFromSlot {
+    def apply(slot : Int) : RemoveItemFromSlot = RemoveItemFromSlot(None, Some(slot))
+
+    def apply(item : Equipment) : RemoveItemFromSlot = RemoveItemFromSlot(Some(item), None)
+  }
+
+  /**
+    * A response for the `RemoveItemFromSlot` message.
+    * It serves the dual purpose of reporting a missing item (by not reporting any slot information)
+    * and reporting no item ata given position (by not reporting any item information).
+    * @param obj the container
+    * @param item the equipment that was removed
+    * @param slot the index position from which any item was removed
+    */
+  final case class ItemFromSlot(obj : PlanetSideServerObject with Container, item : Option[Equipment], slot : Option[Int])
+
+  final case class PutItemInSlot(item : Equipment, slot : Int) extends DeferrableMsg
+
+  final case class PutItemInSlotOnly(item : Equipment, slot : Int) extends DeferrableMsg
+
+  final case class PutItemAway(item : Equipment) extends DeferrableMsg
+
+  final case class PutItemInSlotOrAway(item : Equipment, slot : Option[Int]) extends DeferrableMsg
+
+  /**
+    * A "successful insertion" response for the variety message of messages that attempt to insert an item into a container.
+    * @param obj the container
+    * @param item the equipment that was inserted
+    * @param slot the slot position into which the item was inserted
+    * @param swapped_item any other item, previously in the container, that was displaced to make room for this insertion
+    */
+  final case class ItemPutInSlot(obj : PlanetSideServerObject with Container, item : Equipment, slot : Int, swapped_item : Option[Equipment])
+
+  /**
+    * A "failed insertion" response for the variety message of messages that attempt to insert an item into a container.
+    * @param obj the container
+    * @param item the equipment that was not inserted
+    * @param slot the slot position into which the item should have been inserted;
+    *             `-1` if no insertion slot was reported in the original message or discovered in the process of inserting
+    */
+  final case class CanNotPutItemInSlot(obj : PlanetSideServerObject with Container, item : Equipment, slot : Int)
+
+  /**
+    * The item should already be contained by us.
+    * The item is being removed from our containment and placed into a fixed slot position in another container.
+    * `MoveItem` is a process that may be complicated and is one reason why `DeferrableMsg`s are employed.
+    * @param destination the container into which the item is being placed
+    * @param item the item
+    * @param destination_slot where in the destination container the item is being placed
+    */
+  final case class MoveItem(destination : PlanetSideServerObject with Container, item : Equipment, destination_slot : Int) extends DeferrableMsg
 }

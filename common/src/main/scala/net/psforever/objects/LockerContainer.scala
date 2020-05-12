@@ -5,7 +5,8 @@ import akka.actor.Actor
 import net.psforever.objects.definition.EquipmentDefinition
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.{Container, GridInventory}
-import net.psforever.objects.serverobject.{Containable, PlanetSideServerObject}
+import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.containable.{Containable, ContainableBehavior}
 import net.psforever.packet.game.{ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectDetachMessage}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
@@ -59,7 +60,7 @@ class LockerEquipment(locker : LockerContainer) extends Equipment
 }
 
 class LockerContainerControl(locker : LockerContainer, toChannel : String) extends Actor
-  with Containable {
+  with ContainableBehavior {
   def ContainerObject = locker
 
   def receive : Receive = containerBehavior

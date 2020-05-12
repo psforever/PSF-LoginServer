@@ -30,9 +30,10 @@ import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
 import net.psforever.objects.loadouts.{InfantryLoadout, Loadout, SquadLoadout, VehicleLoadout}
-import net.psforever.objects.serverobject.{CommonMessages, Containable, PlanetSideServerObject}
+import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.damage.Damageable
+import net.psforever.objects.serverobject.containable.{Containable, ContainableBehavior}
 import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.generator.Generator
