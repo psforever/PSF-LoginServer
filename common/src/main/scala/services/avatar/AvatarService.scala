@@ -94,7 +94,7 @@ class AvatarService(zone : Zone) extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", Service.defaultPlayerGUID, AvatarResponse.DestroyDisplay(killer, victim, method, unk))
           )
-        case AvatarAction.DropItem(player_guid, item, _) =>
+        case AvatarAction.DropItem(player_guid, item) =>
           val definition = item.Definition
           val objectData = DroppedItemData(
             PlacementData(item.Position, item.Orientation),
@@ -179,21 +179,10 @@ class AvatarService(zone : Zone) extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ProjectileState(projectile_guid, shot_pos, shot_vel, shot_orient, sequence, end, target))
           )
-        case AvatarAction.PickupItem(player_guid, _, target, slot, item, unk) =>
+        case AvatarAction.PickupItem(player_guid, item, unk) =>
           janitor forward RemoverActor.ClearSpecific(List(item), zone)
           AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, {
-              val itemGUID = item.GUID
-              if(target.VisibleSlots.contains(slot)) {
-                val definition = item.Definition
-                val containerData = ObjectCreateMessageParent(target.GUID, slot)
-                val objectData = definition.Packet.ConstructorData(item).get
-                AvatarResponse.EquipmentInHand(ObjectCreateMessage(definition.ObjectId, itemGUID, containerData, objectData))
-              }
-              else {
-                AvatarResponse.ObjectDelete(itemGUID, unk)
-              }
-            })
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ObjectDelete(item.GUID, unk))
           )
         case AvatarAction.PutDownFDU(player_guid) =>
           AvatarEvents.publish(

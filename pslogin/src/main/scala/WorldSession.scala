@@ -8,7 +8,9 @@ import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
 import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.serverobject.{Containable, PlanetSideServerObject}
 import net.psforever.objects.zones.Zone
+import net.psforever.packet.game.ObjectHeldMessage
 import net.psforever.types.{PlanetSideGUID, TransactionType, Vector3}
+import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -33,7 +35,6 @@ object WorldSession {
     * It will also be dropped if it takes too long to be placed.
     * Item swapping during the placement is not allowed.
     * @see `ask`
-    * @see `AskTimeoutException`
     * @see `ChangeAmmoMessage`
     * @see `Containable.CanNotPutItemInSlot`
     * @see `Containable.PutItemAway`
@@ -96,7 +97,6 @@ object WorldSession {
     * so items must be rigidly placed else cascade into a chaostic order.
     * Item swapping during the placement is not allowed.
     * @see `ask`
-    * @see `AskTimeoutException`
     * @see `AvatarAction.ObjectDelete`
     * @see `ChangeAmmoMessage`
     * @see `Containable.CanNotPutItemInSlot`
@@ -106,7 +106,6 @@ object WorldSession {
     * @see `GUIDTask.UnregisterEquipment`
     * @see `tell`
     * @see `Zone.AvatarEvents`
-    * @see `Zone.Ground.DropItem`
     * @param obj the container
     * @param taskResolver na
     * @param item the item being manipulated
@@ -169,7 +168,14 @@ object WorldSession {
     * Second, if it fails admission to the target container, an attempt is made to place it into the target player's free hand.
     * If the container and the suggested player are the same, it will skip the second attempt.
     * As a terminal operation, the player must receive a report regarding whether the transaction was successful.
+    * @see `ask`
+    * @see `Containable.CanNotPutItemInSlot`
+    * @see `Containable.PutItemInSlotOnly`
+    * @see `GUIDTask.RegisterEquipment`
+    * @see `GUIDTask.UnregisterEquipment`
+    * @see `Future.onComplete`
     * @see `PutEquipmentInInventorySlot`
+    * @see `TerminalMessageOnTimeout`
     * @param obj the container
     * @param taskResolver na
     * @param player na
@@ -231,6 +237,20 @@ object WorldSession {
     * Do not allow the item to be (mis)placed in any available slot.
     * Item swapping during the placement is not allowed and the possibility should be proactively avoided.
     * @throws `RuntimeException` if slot is not a player visible slot (holsters)
+    * @see `ask`
+    * @see `AvatarAction.ObjectDelete`
+    * @see `AvatarAction.SendResponse`
+    * @see `Containable.CanNotPutItemInSlot`
+    * @see `Containable.PutItemInSlotOnly`
+    * @see `GUIDTask.RegisterEquipment`
+    * @see `GUIDTask.UnregisterEquipment`
+    * @see `Future.onComplete`
+    * @see `ObjectHeldMessage`
+    * @see `Player.DrawnSlot`
+    * @see `Player.LastDrawnSlot`
+    * @see `Service.defaultPlayerGUID`
+    * @see `TaskResolver.GiveTask`
+    * @see `Zone.AvatarEvents`
     * @param player the player whose visible slot will be equipped and drawn
     * @param taskResolver na
     * @param item the item to equip
@@ -257,7 +277,10 @@ object WorldSession {
                   localResolver ! GUIDTask.UnregisterEquipment(localItem)(localZone.GUID)
                 case _ =>
                   localPlayer.DrawnSlot = localSlot
-                  localZone.AvatarEvents ! AvatarServiceMessage(localZone.Id, AvatarAction.ObjectHeld(localGUID, localSlot))
+                  localZone.AvatarEvents ! AvatarServiceMessage(localZone.Id, AvatarAction.ObjectHeld(localGUID, localPlayer.LastDrawnSlot))
+                  localZone.AvatarEvents ! AvatarServiceMessage(localPlayer.Name,
+                    AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectHeldMessage(localGUID, localSlot, false))
+                  )
               }
             resolver ! scala.util.Success(this)
           }
@@ -266,16 +289,51 @@ object WorldSession {
       )
     }
     else {
-      //TODO log.error rather than println
-      println(s"HoldNewEquipmentUp: slot $slot is not visible for player model")
+      //TODO log.error
       throw new RuntimeException(s"provided slot $slot is not a player visible slot (holsters)")
     }
   }
 
   /**
+    * Get an item from the ground and put it into the given container.
+    * The zone in which the item is found is expected to be the same in which the container object is located.
+    * If the object can not be placed into the container, it is put back on the ground.
+    * The item that was collected off the ground, if it is placed back on the ground,
+    * will be positioned with respect to the container object rather than its original location.
+    * @see `ask`
+    * @see `AvatarAction.ObjectDelete`
+    * @see `Future.onComplete`
+    * @see `Zone.AvatarEvents`
+    * @see `Zone.Ground.CanNotPickUpItem`
+    * @see `Zone.Ground.ItemInHand`
+    * @see `Zone.Ground.PickUpItem`
+    * @see `PutEquipmentInInventoryOrDrop`
+    * @param obj the container into which the item will be placed
+    * @param item the item being collected from off the ground of the container's zone
+    * @return a `Future` that anticipates the resolution to this manipulation
+    */
+  def PickUpEquipmentFromGround(obj : PlanetSideServerObject with Container)(item : Equipment) : Future[Any] = {
+    val localZone = obj.Zone
+    val localContainer = obj
+    val localItem = item
+    val future = ask(localZone.Ground, Zone.Ground.PickupItem(item.GUID))
+    future.onComplete {
+      case scala.util.Success(Zone.Ground.ItemInHand(_)) =>
+        PutEquipmentInInventoryOrDrop(localContainer)(localItem)
+      case scala.util.Success(Zone.Ground.CanNotPickupItem(_, item_guid, _)) =>
+        localZone.GUID(item_guid) match {
+          case Some(_) => ;
+          case None => //acting on old data?
+            localZone.AvatarEvents ! AvatarServiceMessage(localZone.Id, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, item_guid))
+        }
+      case _ => ;
+    }
+    future
+  }
+
+  /**
     * Remove an item from a container and drop it on the ground.
     * @see `ask`
-    * @see `AskTimeoutException`
     * @see `AvatarAction.ObjectDelete`
     * @see `Containable.ItemFromSlot`
     * @see `Containable.RemoveItemFromSlot`
@@ -306,7 +364,6 @@ object WorldSession {
   /**
     * Remove an item from a container and delete it.
     * @see `ask`
-    * @see `AskTimeoutException`
     * @see `AvatarAction.ObjectDelete`
     * @see `Containable.ItemFromSlot`
     * @see `Containable.RemoveItemFromSlot`
@@ -340,13 +397,13 @@ object WorldSession {
     * Contrasting `RemoveOldEquipmentFromInventory` which identifies the actual item to be eliminated,
     * this function uses the slot where the item is (should be) located.
     * @see `ask`
-    * @see `AskTimeoutException`
     * @see `Containable.ItemFromSlot`
     * @see `Containable.RemoveItemFromSlot`
     * @see `Future.onComplete`
     * @see `Future.recover`
     * @see `GUIDTask.UnregisterEquipment`
     * @see `RemoveOldEquipmentFromInventory`
+    * @see `TerminalMessageOnTimeout`
     * @see `TerminalResult`
     * @param obj the container to search
     * @param taskResolver na
@@ -418,7 +475,7 @@ object WorldSession {
     val pos = container.Position
     val orient = Vector3.z(container.Orientation.z)
     //TODO make a sound when dropping stuff?
-    drops.foreach { entry => zone.Ground ! Zone.Ground.DropItem(entry.obj, pos, orient) }
+    drops.foreach { entry => zone.Ground.tell(Zone.Ground.DropItem(entry.obj, pos, orient), container.Actor) }
   }
 
   /**

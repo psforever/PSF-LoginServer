@@ -163,7 +163,7 @@ class DroptItemTest extends ActorTest {
   "AvatarService" should {
     "pass DropItem" in {
       service ! Service.Join("test")
-      service ! AvatarServiceMessage("test", AvatarAction.DropItem(PlanetSideGUID(10), tool, Zone.Nowhere))
+      service ! AvatarServiceMessage("test", AvatarAction.DropItem(PlanetSideGUID(10), tool))
       expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.DropItem(pkt)))
     }
   }
@@ -284,7 +284,7 @@ class PickupItemATest extends ActorTest {
     ServiceManager.boot(system)
     val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
     service ! Service.Join("test")
-    service ! AvatarServiceMessage("test", AvatarAction.PickupItem(PlanetSideGUID(10), Zone.Nowhere, obj, 0, tool))
+    service ! AvatarServiceMessage("test", AvatarAction.PickupItem(PlanetSideGUID(10), tool))
     expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.EquipmentInHand(pkt)))
   }
 }
@@ -298,7 +298,7 @@ class PickupItemBTest extends ActorTest {
     ServiceManager.boot(system)
     val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
     service ! Service.Join("test")
-    service ! AvatarServiceMessage("test", AvatarAction.PickupItem(PlanetSideGUID(10), Zone.Nowhere, obj, 6, tool))
+    service ! AvatarServiceMessage("test", AvatarAction.PickupItem(PlanetSideGUID(10), tool))
     expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.ObjectDelete(tool.GUID, 0)))
   }
 }
