@@ -35,6 +35,8 @@ class LoginSessionActor extends Actor with MDCContextAware {
   import scala.concurrent.ExecutionContext.Implicits.global
   private case class UpdateServerList()
 
+  val usernameRegex = """[A-Za-z0-9]{3,}""".r
+
   var sessionId : Long = 0
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
@@ -213,46 +215,55 @@ class LoginSessionActor extends Actor with MDCContextAware {
   def createNewAccount : Receive = {
     case CreateNewAccount(connection, username, password, newToken) =>
       log.info(s"Account $username does not exist, creating new account...")
-      val bcryptPassword : String = password.bcrypt(numBcryptPasses)
 
-      connection.get.inTransaction {
-        c => c.sendPreparedStatement(
-          "INSERT INTO accounts (username, passhash) VALUES(?,?) RETURNING id",
-          Array(username, bcryptPassword)
-        )
-      }.onComplete {
-        case Success(insertResult) =>
-          insertResult match {
-            case result: QueryResult =>
-              if (result.rows.nonEmpty) {
-                val accountId = result.rows.get.head(0).asInstanceOf[Int]
-                accountIntermediary ! StoreAccountData(newToken, new Account(accountId, username))
-                log.info(s"Successfully created new account for $username")
-                context.become(logTheLoginOccurrence)
-                self ! LogTheLoginOccurrence(connection, username, newToken, true, accountId)
-              } else {
-                log.error(s"No result from account create insert for $username")
-                context.become(finishAccountLogin)
-                self ! FinishAccountLogin(connection, username, newToken, false)
+      username match {
+        case usernameRegex(_*) => ;
+          val bcryptPassword : String = password.bcrypt(numBcryptPasses)
+
+          connection.get.inTransaction {
+            c => c.sendPreparedStatement(
+              "INSERT INTO accounts (username, passhash) VALUES(?,?) RETURNING id",
+              Array(username, bcryptPassword)
+            )
+          }.onComplete {
+            case Success(insertResult) =>
+              insertResult match {
+                case result: QueryResult =>
+                  if (result.rows.nonEmpty) {
+                    val accountId = result.rows.get.head(0).asInstanceOf[Int]
+                    accountIntermediary ! StoreAccountData(newToken, new Account(accountId, username))
+                    log.info(s"Successfully created new account for $username")
+                    context.become(logTheLoginOccurrence)
+                    self ! LogTheLoginOccurrence(connection, username, newToken, true, accountId)
+                  } else {
+                    log.error(s"No result from account create insert for $username")
+                    context.become(finishAccountLogin)
+                    self ! FinishAccountLogin(connection, username, newToken, false)
+                  }
+                case default =>
+                  log.error(s"Error creating new account for $username - $default")
+                  context.become(finishAccountLogin)
+                  self ! FinishAccountLogin(connection, username, newToken, false)
               }
-            case default =>
-              log.error(s"Error creating new account for $username - $default")
+            case Failure(e : com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException) =>
+              log.error(s"Error creating new account - ${e.errorMessage.message}")
               context.become(finishAccountLogin)
               self ! FinishAccountLogin(connection, username, newToken, false)
+
+            case Failure(e : java.sql.SQLException) =>
+              log.error(s"Error creating new account - ${e.getMessage}")
+              context.become(finishAccountLogin)
+              self ! FinishAccountLogin(connection, username, newToken, false)
+
+            case _ =>
+              failWithError(s"Something to do?")
           }
-        case Failure(e : com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException) =>
-          log.error(s"Error creating new account - ${e.errorMessage.message}")
-          context.become(finishAccountLogin)
-          self ! FinishAccountLogin(connection, username, newToken, false)
-
-        case Failure(e : java.sql.SQLException) =>
-          log.error(s"Error creating new account - ${e.getMessage}")
-          context.become(finishAccountLogin)
-          self ! FinishAccountLogin(connection, username, newToken, false)
-
         case _ =>
-          failWithError(s"Something to do?")
+          log.warn(s"Account '$username' does not match regex")
+          context.become(finishAccountLogin)
+          self ! FinishAccountLogin(connection, username, newToken, false)
       }
+
     case default =>
       failWithError(s"Invalid message '$default' received in createNewAccount")
   }
