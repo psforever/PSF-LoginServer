@@ -43,6 +43,8 @@ object GUIDTask {
         private val localObject = obj
         private val localAccessor = guid
 
+        override def Description : String = s"register $localObject"
+
         override def isComplete : Task.Resolution.Value = if(localObject.HasGUID) {
           Task.Resolution.Success
         }
@@ -215,6 +217,8 @@ object GUIDTask {
       new Task() {
         private val localObject = obj
         private val localAccessor = guid
+
+        override def Description : String = s"unregister $localObject"
 
         override def isComplete : Task.Resolution.Value = if(!localObject.HasGUID) {
           Task.Resolution.Success
