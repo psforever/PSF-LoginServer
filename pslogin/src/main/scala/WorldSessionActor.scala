@@ -2438,12 +2438,16 @@ class WorldSessionActor extends Actor
     //depiction of packed equipment is handled through callbacks
     val loadoutEquipmentFunc : (Equipment, Int)=>TaskResolver.GiveTask = PutLoadoutEquipmentInInventory(target, taskResolver)
     val time = System.currentTimeMillis
-    slots.collect { case InventoryItem(obj, slot)
+    slots.collect { case _obj@InventoryItem(obj, slot)
       if {
         val id = obj.Definition.ObjectId
-        val lastUse = player.GetLastPurchaseTime(id)
-        val delay = delayedPurchaseEntries.getOrElse(id, 0L)
-        time - lastUse > delay
+        delayedPurchaseEntries.get(id) match {
+          case Some(delay) =>
+            val lastUse = player.GetLastPurchaseTime(id)
+            time - lastUse > delay
+          case None =>
+            true
+        }
       } =>
       val definition = obj.Definition
       val id = definition.ObjectId
@@ -6626,6 +6630,8 @@ class WorldSessionActor extends Actor
         private val localPlayer = tplayer
         private val localAnnounce = self
 
+        override def Description : String = s"register new player avatar ${localPlayer.Name}"
+
         override def isComplete : Task.Resolution.Value = {
           if(localPlayer.HasGUID) {
             Task.Resolution.Success
@@ -6660,6 +6666,8 @@ class WorldSessionActor extends Actor
         private val localPlayer = tplayer
         private val localAnnounce = self
 
+        override def Description : String = s"register player avatar ${localPlayer.Name}"
+
         override def isComplete : Task.Resolution.Value = {
           if(localPlayer.HasGUID) {
             Task.Resolution.Success
@@ -6693,6 +6701,8 @@ class WorldSessionActor extends Actor
     TaskResolver.GiveTask(
       new Task() {
         private val localVehicle = vehicle
+
+        override def Description : String = s"register a ${localVehicle.Definition.Name}"
 
         override def isComplete : Task.Resolution.Value = {
           if(localVehicle.HasGUID) {
@@ -6744,6 +6754,8 @@ class WorldSessionActor extends Actor
         private val localVehicle = vehicle
         private val localAnnounce = self
 
+        override def Description : String = s"register a ${localVehicle.Definition.Name} manned by ${localDriver.Name}"
+
         override def isComplete : Task.Resolution.Value = {
           if(localVehicle.HasGUID) {
             Task.Resolution.Success
@@ -6784,6 +6796,8 @@ class WorldSessionActor extends Actor
         private val localVehicleService = continent.VehicleEvents
         private val localZone = continent
 
+        override def Description : String = s"register a ${localVehicle.Definition.Name} for spawn pad"
+
         override def isComplete : Task.Resolution.Value = {
           if(localVehicle.HasGUID) {
             Task.Resolution.Success
@@ -6806,6 +6820,8 @@ class WorldSessionActor extends Actor
         private val localVehicle = obj
         private val localDriver = driver
         private val localAnnounce = self
+
+        override def Description : String = s"register a ${localVehicle.Definition.Name} driven by ${localDriver.Name}"
 
         override def isComplete : Task.Resolution.Value = {
           if(localVehicle.HasGUID && localDriver.HasGUID) {
@@ -6843,6 +6859,8 @@ class WorldSessionActor extends Actor
         private val globalProjectile = obj
         private val localAnnounce = self
 
+        override def Description : String = s"register a ${globalProjectile.profile.Name}"
+
         override def isComplete : Task.Resolution.Value = {
           if(globalProjectile.HasGUID) {
             Task.Resolution.Success
@@ -6865,6 +6883,8 @@ class WorldSessionActor extends Actor
       new Task() {
         private val localVehicle = obj
         private val localDriver = driver
+
+        override def Description : String = s"unregister a ${localVehicle.Definition.Name} driven by ${localDriver.Name}"
 
         override def isComplete : Task.Resolution.Value = {
           if(!localVehicle.HasGUID && !localDriver.HasGUID) {
@@ -6894,6 +6914,8 @@ class WorldSessionActor extends Actor
         private val globalProjectile = obj
         private val localAnnounce = continent.AvatarEvents
         private val localMsg = AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, obj.GUID, 2))
+
+        override def Description : String = s"unregister a ${globalProjectile.profile.Name}"
 
         override def isComplete : Task.Resolution.Value = {
           if(!globalProjectile.HasGUID) {
@@ -6936,45 +6958,6 @@ class WorldSessionActor extends Actor
     }
   }
 
-//  /**
-//    * After some subtasking is completed, draw a particular slot, as if an `ObjectHeldMessage` packet was sent/received.<br>
-//    * <br>
-//    * The resulting `Task` is most useful for sequencing MAX weaponry when combined with the proper subtasks.
-//    * @param player the player
-//    * @param index the slot to be drawn
-//    * @param priorTasking subtasks that needs to be accomplished first
-//    * @return a `TaskResolver.GiveTask` message
-//    */
-//  private def DelayedObjectHeld(player : Player, index : Int, priorTasking : List[TaskResolver.GiveTask]) : TaskResolver.GiveTask = {
-//    TaskResolver.GiveTask(
-//      new Task() {
-//        private val localPlayer = player
-//        private val localSlot = index
-//        private val localAnnounce = self
-//        private val localService = continent.AvatarEvents
-//
-//        override def isComplete : Task.Resolution.Value = {
-//          if(localPlayer.DrawnSlot == localSlot) {
-//            Task.Resolution.Success
-//          }
-//          else {
-//            Task.Resolution.Incomplete
-//          }
-//        }
-//
-//        def Execute(resolver : ActorRef) : Unit = {
-//          localPlayer.DrawnSlot = localSlot
-//          resolver ! scala.util.Success(this)
-//        }
-//
-//        override def onSuccess() : Unit = {
-//          localAnnounce ! ResponseToSelf( ObjectHeldMessage(localPlayer.GUID, localSlot, true))
-//          localService ! AvatarServiceMessage(localPlayer.Continent, AvatarAction.ObjectHeld(localPlayer.GUID, localSlot))
-//        }
-//      }, priorTasking
-//    )
-//  }
-
   /**
     * Before calling `Interstellar.GetWorld` to change zones, perform the following task (which can be a nesting of subtasks).
     * @param priorTask the tasks to perform
@@ -6985,9 +6968,12 @@ class WorldSessionActor extends Actor
     TaskResolver.GiveTask(
       new Task() {
         private val localZone = continent
+        private val localNewZone = zoneId
         private val localAvatarMsg = Zone.Population.Leave(avatar)
         private val localService = cluster
         private val localServiceMsg = InterstellarCluster.GetWorld(zoneId)
+
+        override def Description : String = s"additional tasking in zone ${localZone.Id} before switching to zone $localNewZone"
 
         override def isComplete : Task.Resolution.Value = priorTask.task.isComplete
 
@@ -7003,8 +6989,11 @@ class WorldSessionActor extends Actor
   def CallBackForTask(task : TaskResolver.GiveTask, sendTo : ActorRef, pass : Any) : TaskResolver.GiveTask = {
     TaskResolver.GiveTask(
       new Task() {
+        private val localDesc = task.task.Description
         private val destination = sendTo
         private val passMsg = pass
+
+        override def Description : String = s"callback for tasking $localDesc"
 
         def Execute(resolver : ActorRef) : Unit = {
           destination ! passMsg
@@ -7435,6 +7424,8 @@ class WorldSessionActor extends Actor
       new Task() {
         private val localItem = item
         private val localFunc : (Equipment)=>Unit = NormalItemDrop(obj, zone)
+
+        override def Description : String = s"dropping a new ${localItem.Definition.Name} on the ground"
 
         def Execute(resolver : ActorRef) : Unit = {
           localFunc(localItem)
