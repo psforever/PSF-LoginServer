@@ -32,10 +32,12 @@ class PlayerControlHealTest extends ActorTest {
   player1.Zone = zone
   player1.Spawn
   player1.Position = Vector3(2, 0, 0)
+  guid.register(player1.Locker, 5)
   player1.Actor = system.actorOf(Props(classOf[PlayerControl], player1), "player1-control")
   val player2 = Player(Avatar("TestCharacter2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=2
   player2.Zone = zone
   player2.Spawn
+  guid.register(player2.Locker, 6)
   player2.Actor = system.actorOf(Props(classOf[PlayerControl], player2), "player2-control")
 
   val tool = Tool(GlobalDefinitions.medicalapplicator) //guid=3 & 4
@@ -102,6 +104,7 @@ class PlayerControlHealSelfTest extends ActorTest {
   player1.Zone = zone
   player1.Spawn
   player1.Position = Vector3(2, 0, 0)
+  guid.register(player1.Locker, 5)
   player1.Actor = system.actorOf(Props(classOf[PlayerControl], player1), "player1-control")
 
   val tool = Tool(GlobalDefinitions.medicalapplicator) //guid=3 & 4
@@ -167,10 +170,12 @@ class PlayerControlRepairTest extends ActorTest {
   player1.Zone = zone
   player1.Spawn
   player1.Position = Vector3(2, 0, 0)
+  guid.register(player1.Locker, 5)
   player1.Actor = system.actorOf(Props(classOf[PlayerControl], player1), "player1-control")
   val player2 = Player(Avatar("TestCharacter2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=2
   player2.Zone = zone
   player2.Spawn
+  guid.register(player2.Locker, 6)
   player2.Actor = system.actorOf(Props(classOf[PlayerControl], player2), "player2-control")
 
   val tool = Tool(GlobalDefinitions.bank) //guid=3 & 4
@@ -243,6 +248,7 @@ class PlayerControlRepairSelfTest extends ActorTest {
   player1.Zone = zone
   player1.Spawn
   player1.Position = Vector3(2, 0, 0)
+  guid.register(player1.Locker, 5)
   player1.Actor = system.actorOf(Props(classOf[PlayerControl], player1), "player1-control")
 
   val tool = Tool(GlobalDefinitions.bank) //guid=3 & 4
@@ -309,10 +315,12 @@ class PlayerControlDamageTest extends ActorTest {
   player1.Zone = zone
   player1.Spawn
   player1.Position = Vector3(2, 0, 0)
+  guid.register(player1.Locker, 5)
   player1.Actor = system.actorOf(Props(classOf[PlayerControl], player1), "player1-control")
   val player2 = Player(Avatar("TestCharacter2", PlanetSideEmpire.NC, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=2
   player2.Zone = zone
   player2.Spawn
+  guid.register(player2.Locker, 6)
   player2.Actor = system.actorOf(Props(classOf[PlayerControl], player2), "player2-control")
   val tool = Tool(GlobalDefinitions.suppressor) //guid 3 & 4
   val projectile = tool.Projectile
@@ -385,10 +393,12 @@ class PlayerControlDeathStandingTest extends ActorTest {
   player1.Zone = zone
   player1.Spawn
   player1.Position = Vector3(2,0,0)
+  guid.register(player1.Locker, 5)
   player1.Actor = system.actorOf(Props(classOf[PlayerControl], player1), "player1-control")
   val player2 = Player(Avatar("TestCharacter2", PlanetSideEmpire.NC, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=2
   player2.Zone = zone
   player2.Spawn
+  guid.register(player2.Locker, 6)
   player2.Actor = system.actorOf(Props(classOf[PlayerControl], player2), "player2-control")
 
   val tool = Tool(GlobalDefinitions.suppressor) //guid 3 & 4
@@ -493,10 +503,12 @@ class PlayerControlDeathSeatedTest extends ActorTest {
   player1.Zone = zone
   player1.Spawn
   player1.Position = Vector3(2,0,0)
+  guid.register(player1.Locker, 6)
   player1.Actor = system.actorOf(Props(classOf[PlayerControl], player1), "player1-control")
   val player2 = Player(Avatar("TestCharacter2", PlanetSideEmpire.NC, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=2
   player2.Zone = zone
   player2.Spawn
+  guid.register(player2.Locker, 7)
   player2.Actor = system.actorOf(Props(classOf[PlayerControl], player2), "player2-control")
 
   val vehicle = Vehicle(GlobalDefinitions.quadstealth) //guid=5
@@ -594,6 +606,5 @@ class PlayerControlDeathSeatedTest extends ActorTest {
     }
   }
 }
-
 
 object PlayerControlTest { }
