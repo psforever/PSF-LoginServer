@@ -34,9 +34,7 @@ class PlayerControl(player : Player) extends Actor
   with Damageable
   with ContainableBehavior {
   def JammableObject = player
-
   def DamageableObject = player
-
   def ContainerObject = player
 
   private[this] val log = org.log4s.getLogger(player.Name)

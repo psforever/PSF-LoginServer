@@ -50,6 +50,12 @@ class LockerEquipment(locker : LockerContainer) extends Equipment
 
   override def GUID : PlanetSideGUID = obj.GUID
 
+  override def GUID_=(guid : PlanetSideGUID) : PlanetSideGUID = obj.GUID_=(guid)
+
+  override def HasGUID : Boolean = obj.HasGUID
+
+  override def Invalidate() : Unit = obj.Invalidate()
+
   override def Faction : PlanetSideEmpire.Value = obj.Faction
 
   def Inventory : GridInventory = obj.Inventory
