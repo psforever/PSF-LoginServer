@@ -2465,6 +2465,10 @@ class WorldSessionActor extends Actor
             msg.terminal_guid
           )(item)
         }
+        else {
+          lastTerminalOrderFulfillment = true
+          sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, false))
+        }
 
       case Terminal.SellEquipment() =>
         SellEquipmentFromInventory(tplayer, taskResolver, tplayer, msg.terminal_guid)(Player.FreeHandSlot)

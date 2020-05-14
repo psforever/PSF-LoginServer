@@ -149,8 +149,9 @@ object WorldSession {
         private val localContainer = obj
         private val localItem = item
         private val localSlot = slot
-        //private val localResolver = taskResolver
         private val localFunc : (Equipment,Int)=>Future[Any] = PutEquipmentInInventorySlot(obj, taskResolver)
+
+        override def Timeout : Long = 1000
 
         override def isComplete : Task.Resolution.Value = {
           if(localItem.HasGUID && localContainer.Find(localItem).nonEmpty)
@@ -201,6 +202,8 @@ object WorldSession {
         private val localPlayer = player
         private val localResolver = taskResolver
         private val localTermMsg : Boolean=>Unit = TerminalResult(term, localPlayer, TransactionType.Buy)
+
+        override def Timeout : Long = 1000
 
         override def isComplete : Task.Resolution.Value = {
           if(localItem.HasGUID && localContainer.Find(localItem).nonEmpty)
@@ -281,6 +284,8 @@ object WorldSession {
           private val localItem = item
           private val localSlot = slot
           private val localResolver = taskResolver
+
+          override def Timeout : Long = 1000
 
           override def isComplete : Task.Resolution.Value = {
             if(localPlayer.DrawnSlot == localSlot)
