@@ -3,6 +3,7 @@ package services.avatar.support
 
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
 import net.psforever.objects.Player
+import net.psforever.types.ExoSuitType
 import services.{RemoverActor, Service}
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 
@@ -28,6 +29,9 @@ class CorpseRemovalActor extends RemoverActor {
   def ClearanceTest(entry : RemoverActor.Entry) : Boolean = !entry.zone.Corpses.contains(entry.obj)
 
   def DeletionTask(entry : RemoverActor.Entry) : TaskResolver.GiveTask = {
-    GUIDTask.UnregisterPlayer(entry.obj.asInstanceOf[Player])(entry.zone.GUID)
+    val player = entry.obj.asInstanceOf[Player]
+    val task = GUIDTask.UnregisterPlayer(player)(entry.zone.GUID)
+    player.ExoSuit = ExoSuitType.Standard
+    task
   }
 }
