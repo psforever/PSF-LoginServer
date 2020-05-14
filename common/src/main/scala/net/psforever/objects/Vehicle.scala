@@ -606,6 +606,16 @@ object Vehicle {
   final case class UpdateShieldsCharge(vehicle : Vehicle)
 
   /**
+    * Change a vehicle's internal ownership property to match that of the target player.
+    * @param player the person who will own the vehicle, or `None` if the vehicle will go unowned
+    */
+  final case class Ownership(player : Option[Player])
+
+  object Ownership {
+    def apply(player : Player) : Ownership = Ownership(Some(player))
+  }
+
+  /**
     * Overloaded constructor.
     * @param vehicleDef the vehicle's definition entry
     * @return a `Vehicle` object

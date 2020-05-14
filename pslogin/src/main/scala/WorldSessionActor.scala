@@ -792,9 +792,6 @@ class WorldSessionActor extends Actor
           failWithError(s"ListAccountCharacters: no connection - ${e.getMessage}")
       }
 
-    case VehicleLoaded(_ /*vehicle*/) => ;
-    //currently being handled by VehicleSpawnPad.LoadVehicle during testing phase
-
     case Zone.ClientInitialization(zone) =>
       Thread.sleep(connectionState)
       val continentNumber = zone.Number
@@ -2291,19 +2288,6 @@ class WorldSessionActor extends Actor
           sendResponse(PlanetsideAttributeMessage(obj_guid, 113, capacitor))
         }
         if(seat_num == 0) {
-          //simplistic vehicle ownership management
-          obj.Owner match {
-            case Some(owner_guid) =>
-              continent.GUID(owner_guid) match {
-                case Some(previous_owner : Player) =>
-                  if(previous_owner.VehicleOwned.contains(obj_guid)) {
-                    previous_owner.VehicleOwned = None //simplistic ownership management, player loses vehicle ownership
-                  }
-                case _ => ;
-              }
-            case None => ;
-          }
-          Vehicles.Own(obj, tplayer)
           if(obj.Definition == GlobalDefinitions.quadstealth) {
             //wraith cloak state matches the cloak state of the driver
             //phantasm doesn't uncloak if the driver is uncloaked and no other vehicle cloaks
@@ -6488,7 +6472,6 @@ class WorldSessionActor extends Actor
     TaskResolver.GiveTask(
       new Task() {
         private val localVehicle = vehicle
-        private val localAnnounce = self
 
         override def isComplete : Task.Resolution.Value = {
           if(localVehicle.HasGUID) {
@@ -6502,7 +6485,6 @@ class WorldSessionActor extends Actor
         def Execute(resolver : ActorRef) : Unit = {
           log.info(s"Vehicle $localVehicle is registered")
           resolver ! scala.util.Success(this)
-          localAnnounce ! VehicleLoaded(localVehicle) //alerts WSA
         }
       }, List(GUIDTask.RegisterVehicle(vehicle)(continent.GUID))
     )
@@ -11226,7 +11208,6 @@ object WorldSessionActor {
   private final case class CreateCharacter(name : String, head : Int, voice : CharacterVoice.Value, gender : CharacterGender.Value, empire : PlanetSideEmpire.Value)
   private final case class ListAccountCharacters()
   private final case class SetCurrentAvatar(tplayer : Player)
-  private final case class VehicleLoaded(vehicle : Vehicle)
   private final case class ZoningReset()
 
   final val ftes = (

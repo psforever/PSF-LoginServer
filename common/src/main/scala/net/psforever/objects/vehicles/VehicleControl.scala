@@ -2,7 +2,7 @@
 package net.psforever.objects.vehicles
 
 import akka.actor.{Actor, ActorRef, Cancellable}
-import net.psforever.objects.{DefaultCancellable, GlobalDefinitions, SimpleItem, Vehicle, Vehicles}
+import net.psforever.objects._
 import net.psforever.objects.ballistics.{ResolvedProjectile, VehicleSource}
 import net.psforever.objects.equipment.JammableMountedWeapons
 import net.psforever.objects.serverobject.CommonMessages
@@ -73,11 +73,31 @@ class VehicleControl(vehicle : Vehicle) extends Actor
     .orElse(takesDamage)
     .orElse(canBeRepairedByNanoDispenser)
     .orElse {
-      case msg : Mountable.TryMount =>
+      case Vehicle.Ownership(None) =>
+        LoseOwnership()
+
+      case Vehicle.Ownership(Some(player)) =>
+        GainOwnership(player)
+
+      case msg @ Mountable.TryMount(player, seat_num) =>
         tryMountBehavior.apply(msg)
-        if(MountableObject.Seats.values.exists(_.isOccupied)) {
-          decaying = false
-          decayTimer.cancel
+        val obj = MountableObject
+        if(obj.Seats.values.exists(_.isOccupied)) {
+          if(seat_num == 0 && !obj.OwnerName.contains(player.Name)) {
+            //whatever vehicle was previously owned
+            vehicle.Zone.GUID(player.VehicleOwned) match {
+              case Some(v : Vehicle) =>
+                v.Actor ! Vehicle.Ownership(None)
+              case _ =>
+                player.VehicleOwned = None
+            }
+            LoseOwnership() //lose our current ownership
+            GainOwnership(player) //gain new ownership
+          }
+          else {
+            decaying = false
+            decayTimer.cancel
+          }
         }
 
       case msg : Mountable.TryDismount =>
@@ -88,7 +108,6 @@ class VehicleControl(vehicle : Vehicle) extends Actor
         if(!obj.Seats(0).isOccupied) {
           obj.Velocity = Some(Vector3.Zero)
         }
-
         if(!decaying && obj.Owner.isEmpty && obj.Seats.values.forall(!_.isOccupied)) {
           decaying = true
           decayTimer = context.system.scheduler.scheduleOnce(MountableObject.Definition.DeconstructionTime.getOrElse(5 minutes), self, VehicleControl.PrepareForDeletion())
@@ -219,6 +238,24 @@ class VehicleControl(vehicle : Vehicle) extends Actor
   override def TryJammerEffectActivate(target : Any, cause : ResolvedProjectile) : Unit = {
     if(vehicle.MountedIn.isEmpty) {
       super.TryJammerEffectActivate(target, cause)
+    }
+  }
+
+  def LoseOwnership() : Unit = {
+    val obj = MountableObject
+    Vehicles.Disown(obj.GUID, obj)
+    if(!decaying && obj.Seats.values.forall(!_.isOccupied)) {
+      decaying = true
+      decayTimer = context.system.scheduler.scheduleOnce(obj.Definition.DeconstructionTime.getOrElse(5 minutes), self, VehicleControl.PrepareForDeletion())
+    }
+  }
+
+  def GainOwnership(player : Player) : Unit = {
+    Vehicles.Own(MountableObject, player) match {
+      case Some(_) =>
+        decaying = false
+        decayTimer.cancel
+      case None => ;
     }
   }
 }
