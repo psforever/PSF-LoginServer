@@ -8608,7 +8608,7 @@ class WorldSessionActor extends Actor
   }
 
   /**
-    * If the corpse has been well-lootedP, it has no items in its primary holsters nor any items in its inventory.
+    * If the corpse has been well-looted, it has no items in its primary holsters nor any items in its inventory.
     * @param obj the corpse
     * @return `true`, if the `obj` is actually a corpse and has no objects in its holsters or backpack;
     *        `false`, otherwise

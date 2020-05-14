@@ -2,8 +2,9 @@
 package services.local.support
 
 import akka.actor.{Actor, Cancellable}
-import net.psforever.objects.DefaultCancellable
+import net.psforever.objects.{DefaultCancellable, Player}
 import net.psforever.objects.serverobject.doors.Door
+import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.zones.Zone
 import net.psforever.types.{PlanetSideGUID, Vector3}
 
@@ -37,9 +38,29 @@ class DoorCloseActor() extends Actor {
       val (doorsToClose2, doorsLeftOpen2) = doorsToClose1.partition(entry => {
         entry.door.Open match {
           case Some(player) =>
-            // If the player that opened the door is far enough away, or they're dead / backpacked, close the door
-            var playerIsBackpackInZone = entry.zone.Corpses.contains(player)
-            Vector3.MagnitudeSquared(entry.door.Position - player.Position) > 25.5 || playerIsBackpackInZone
+            // If the player that opened the door is far enough away, or they're dead,
+            var openerIsGone = Vector3.MagnitudeSquared(entry.door.Position - player.Position) > 25.5 || !player.isAlive
+
+            if(openerIsGone) {
+              // Check nobody else is nearby to hold the door opens
+              val playersToCheck : List[Player] = if(entry.door.Owner.isInstanceOf[Building] && entry.door.Owner.asInstanceOf[Building].Definition.SOIRadius > 0) {
+                entry.door.Owner.asInstanceOf[Building].PlayersInSOI
+              } else {
+                entry.zone.LivePlayers
+              }
+
+              playersToCheck
+                .filter(x => x.isAlive && Vector3.MagnitudeSquared(entry.door.Position - x.Position) < 25.5)
+                .headOption match {
+                case Some(newOpener) =>
+                  // Another player is near the door, keep it open
+                  entry.door.Open = newOpener
+                  openerIsGone = false
+                case _ => ;
+              }
+            }
+
+            openerIsGone
           case None =>
             // Door should not be open. Mark it to be closed.
             true
