@@ -92,8 +92,8 @@ trait ContainableBehavior {
         val dest = destSlot
         LocalRemoveItemFromSlot(item) match {
           case Containable.ItemFromSlot(_, Some(_), slot @ Some(originalSlot)) =>
-            if(source == destination) {
-              //when source == destination, moving the item can be performed in one pass
+            if(source eq destination) {
+              //when source and destination are the same, moving the item can be performed in one pass
               LocalPutItemInSlot(item, dest) match {
                 case Containable.ItemPutInSlot(_, _, _, None) => ; //success
                 case Containable.ItemPutInSlot(_, _, _, Some(swapItem)) => //success, but with swap item
