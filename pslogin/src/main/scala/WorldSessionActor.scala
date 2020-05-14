@@ -9889,6 +9889,14 @@ class WorldSessionActor extends Actor
     * It also sets up actions for the new zone loading process.
     */
   def LoadZoneCommonTransferActivity() : Unit = {
+    if(player.VehicleOwned.nonEmpty && player.VehicleSeated != player.VehicleOwned) {
+      continent.GUID(player.VehicleOwned) match {
+        case Some(vehicle : Vehicle) =>
+          vehicle.Actor ! Vehicle.Ownership(None)
+        case _ => ;
+      }
+      player.VehicleOwned = None
+    }
     RemoveBoomerTriggersFromInventory().foreach(obj => {
       taskResolver ! GUIDTask.UnregisterObjectTask(obj)(continent.GUID)
     })

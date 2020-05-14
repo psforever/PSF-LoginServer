@@ -277,7 +277,7 @@ class PersistenceMonitor(name : String, squadService : ActorRef, taskResolver : 
         AvatarLogout(avatar)
         inZone.GUID(avatar.VehicleOwned) match {
           case Some(obj : Vehicle) if obj.OwnerName.contains(avatar.name) =>
-            obj.AssignOwnership(None)
+            obj.Actor ! Vehicle.Ownership(None)
           case _ => ;
         }
         taskResolver.tell(GUIDTask.UnregisterLocker(avatar.Locker)(inZone.GUID), context.parent)
@@ -296,7 +296,6 @@ class PersistenceMonitor(name : String, squadService : ActorRef, taskResolver : 
     * @see `Avatar`
     * @see `AvatarAction.ObjectDelete`
     * @see `AvatarServiceMessage`
-    * @see `DisownVehicle`
     * @see `GUIDTask.UnregisterAvatar`
     * @see `Player`
     * @see `Zone.AvatarEvents`
@@ -309,7 +308,11 @@ class PersistenceMonitor(name : String, squadService : ActorRef, taskResolver : 
     val parent = context.parent
     player.Position = Vector3.Zero
     player.Health = 0
-    DisownVehicle(player)
+    inZone.GUID(player.VehicleOwned) match {
+      case Some(vehicle : Vehicle) if vehicle.OwnerName.contains(player.Name) =>
+        vehicle.Actor ! Vehicle.Ownership(None)
+      case _ => ;
+    }
     inZone.Population.tell(Zone.Population.Release(avatar), parent)
     inZone.AvatarEvents.tell(AvatarServiceMessage(inZone.Id, AvatarAction.ObjectDelete(pguid, pguid)), parent)
     AvatarLogout(avatar)
@@ -333,32 +336,6 @@ class PersistenceMonitor(name : String, squadService : ActorRef, taskResolver : 
     squadService.tell(Service.Leave(Some(charId.toString)), parent)
     Deployables.Disown(inZone, avatar, parent)
     inZone.Population.tell(Zone.Population.Leave(avatar), parent)
-  }
-
-  /**
-    * Vehicle cleanup that is specific to log out behavior.
-    * @see `Vehicles.Disown`
-    * @see `RemoverActor.AddTask`
-    * @see `RemoverActor.ClearSpecific`
-    * @see `Vehicle.Flying`
-    * @see `VehicleDefinition.DeconstructionTime`
-    * @see `VehicleServiceMessage.Decon`
-    * @see `Zone.VehicleEvents`
-    */
-  def DisownVehicle(player : Player) : Unit = {
-    Vehicles.Disown(player, inZone) match {
-      case Some(vehicle) if vehicle.Health == 0 || (vehicle.Seats.values.forall(seat => !seat.isOccupied) && vehicle.Owner.isEmpty) =>
-        vehicle.Actor ! Vehicle.Deconstruct(
-          if(vehicle.Flying) {
-            //TODO gravity
-            None //immediate deconstruction
-          }
-          else {
-            vehicle.Definition.DeconstructionTime //normal deconstruction
-          }
-        )
-      case _ => ;
-    }
   }
 }
 
