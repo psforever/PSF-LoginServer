@@ -1726,12 +1726,11 @@ class WorldSessionActor extends Actor
           player.Zone = inZone
           setupAvatarFunc = AvatarDeploymentPassOver
           beginZoningSetCurrentAvatarFunc = SetCurrentAvatarUponDeployment
-          p.Release
-          inZone.Population ! Zone.Population.Release(avatar)
           if(p.VehicleSeated.isEmpty) {
             PrepareToTurnPlayerIntoCorpse(p, inZone)
           }
           else {
+            inZone.Population ! Zone.Population.Release(avatar)
             inZone.GUID(p.VehicleSeated) match {
               case Some(v : Vehicle) if v.Destroyed =>
                 v.Actor ! Vehicle.Deconstruct(
@@ -4605,13 +4604,13 @@ class WorldSessionActor extends Actor
       log.info(s"ReleaseAvatarRequest: ${player.GUID} on ${continent.Id} has released")
       reviveTimer.cancel
       GoToDeploymentMap()
-      continent.Population ! Zone.Population.Release(avatar)
       player.VehicleSeated match {
         case None =>
           PrepareToTurnPlayerIntoCorpse(player, continent)
 
         case Some(_) =>
           val player_guid = player.GUID
+          continent.Population ! Zone.Population.Release(avatar)
           sendResponse(ObjectDeleteMessage(player_guid, 0))
           GetMountableAndSeat(None, player) match {
             case (Some(obj), Some(seatNum)) =>
@@ -5863,7 +5862,6 @@ class WorldSessionActor extends Actor
               CancelZoningProcessWithDescriptiveReason("cancel_use")
               PlayerActionsToCancel()
               CancelAllProximityUnits()
-              continent.Population ! Zone.Population.Release(avatar)
               GoToDeploymentMap()
             case _ => ;
           }
@@ -8281,7 +8279,7 @@ class WorldSessionActor extends Actor
     * @param obj the player to be turned into a corpse
     */
   def FriskDeadBody(obj : Player) : Unit = {
-    if(obj.isBackpack) {
+    if(!obj.isAlive) {
       obj.Slot(4).Equipment match {
         case None => ;
         case Some(knife) =>
@@ -8327,13 +8325,15 @@ class WorldSessionActor extends Actor
   def PrepareToTurnPlayerIntoCorpse(tplayer : Player, zone : Zone) : Unit = {
     FriskDeadBody(tplayer)
     if(!WellLootedDeadBody(tplayer)) {
-      TurnPlayerIntoCorpse(tplayer)
+      tplayer.Release
       zone.Population ! Zone.Corpse.Add(tplayer)
+      TurnPlayerIntoCorpse(tplayer)
       zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.Release(tplayer, zone))
     }
     else {
       //no items in inventory; leave no corpse
       val pguid = tplayer.GUID
+      zone.Population ! Zone.Population.Release(avatar)
       sendResponse(ObjectDeleteMessage(pguid, 0))
       zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.ObjectDelete(pguid, pguid, 0))
       taskResolver ! GUIDTask.UnregisterPlayer(tplayer)(zone.GUID)
@@ -8360,7 +8360,7 @@ class WorldSessionActor extends Actor
     *        `false`, otherwise
     */
   def WellLootedDeadBody(obj : Player) : Boolean = {
-    obj.isBackpack && obj.Holsters().count(_.Equipment.nonEmpty) == 0 && obj.Inventory.Size == 0
+    !obj.isAlive && obj.Holsters().count(_.Equipment.nonEmpty) == 0 && obj.Inventory.Size == 0
   }
 
   /**
@@ -8370,7 +8370,7 @@ class WorldSessionActor extends Actor
     *        `false`, otherwise
     */
   def TryDisposeOfLootedCorpse(obj : Player) : Boolean = {
-    if(WellLootedDeadBody(obj)) {
+    if(obj.isBackpack && WellLootedDeadBody(obj)) {
       continent.AvatarEvents ! AvatarServiceMessage.Corpse(RemoverActor.HurrySpecific(List(obj), continent))
       true
     }
@@ -9351,7 +9351,7 @@ class WorldSessionActor extends Actor
         case Some(vehicle : Vehicle) => //driver or passenger in vehicle using a warp gate, or a droppod
           LoadZoneInVehicle(vehicle, pos, ori, zone_id)
 
-        case _ if player.HasGUID => //player is deconstructing self
+        case _ if player.HasGUID => //player is deconstructing self or instant action
           val player_guid = player.GUID
           sendResponse(ObjectDeleteMessage(player_guid, 4))
           continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player_guid, player_guid, 4))
@@ -10466,8 +10466,7 @@ class WorldSessionActor extends Actor
     * @see `Player.Release`
     */
   def GoToDeploymentMap() : Unit = {
-    player.Release
-    deadState = DeadState.Release
+    deadState = DeadState.Release //we may be alive or dead, may or may not be a corpse
     sendResponse(AvatarDeadStateMessage(DeadState.Release, 0, 0, player.Position, player.Faction, true))
     DrawCurrentAmsSpawnPoint()
   }
