@@ -82,7 +82,9 @@ class VehicleControl(vehicle : Vehicle) extends Actor
       case msg @ Mountable.TryMount(player, seat_num) =>
         tryMountBehavior.apply(msg)
         val obj = MountableObject
-        if(obj.Seats.values.exists(_.isOccupied)) {
+        //check that the player has actually been sat in the expected seat
+        if(obj.PassengerInSeat(player).contains(seat_num)) {
+          //if the driver seat, change ownership
           if(seat_num == 0 && !obj.OwnerName.contains(player.Name)) {
             //whatever vehicle was previously owned
             vehicle.Zone.GUID(player.VehicleOwned) match {
@@ -108,6 +110,7 @@ class VehicleControl(vehicle : Vehicle) extends Actor
         if(!obj.Seats(0).isOccupied) {
           obj.Velocity = Some(Vector3.Zero)
         }
+        //are we already decaying? are we unowned? is no one seated anywhere?
         if(!decaying && obj.Owner.isEmpty && obj.Seats.values.forall(!_.isOccupied)) {
           decaying = true
           decayTimer = context.system.scheduler.scheduleOnce(MountableObject.Definition.DeconstructionTime.getOrElse(5 minutes), self, VehicleControl.PrepareForDeletion())
