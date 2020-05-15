@@ -639,6 +639,10 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
 
   def SetLastPurchaseTime(code : Int, time : Long) : Unit = core.SetLastPurchaseTime(code, time)
 
+  def ObjectTypeNameReference(id : Long) : String = core.ObjectTypeNameReference(id)
+
+  def ObjectTypeNameReference(id : Long, name : String) : String = core.ObjectTypeNameReference(id, name)
+
   def DamageModel = exosuit.asInstanceOf[DamageResistanceModel]
 
   def Definition : AvatarDefinition = core.Definition

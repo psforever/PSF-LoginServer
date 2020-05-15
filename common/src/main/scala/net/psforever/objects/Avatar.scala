@@ -75,6 +75,15 @@ class Avatar(private val char_id : Long, val name : String, val faction : Planet
     * value - time last acquired (from a terminal) (ms)
     * */
   private var lastPurchaseTimes : mutable.LongMap[Long] =  mutable.LongMap[Long]()
+  /**
+    * To reload purchase and use timers, a string representing the item must be produced.
+    * Point directly from the object id to the object definition and get the `Name` from that definition.
+    * Allocate only when an item is purchased or used.
+    * The keys match the keys for both `lastUsedEquipmentTimes` and `lastPurchaseTimes`.<br>
+    * key - object id<br>
+    * value - most basic object definition information
+    */
+  private val objectTypeNameReference : mutable.LongMap[String] = new mutable.LongMap[String]()
 
   def CharId : Long = char_id
 
@@ -289,6 +298,18 @@ class Avatar(private val char_id : Long, val name : String, val faction : Planet
 
   def SetLastPurchaseTime(code : Int, time : Long) : Unit = {
     lastPurchaseTimes += code.toLong -> time
+  }
+
+  def ObjectTypeNameReference(id : Long) : String = {
+    objectTypeNameReference.get(id) match {
+      case Some(name) => name
+      case None => ""
+    }
+  }
+
+  def ObjectTypeNameReference(id : Long, name : String) : String = {
+    objectTypeNameReference(id) = name
+    name
   }
 
   def Definition : AvatarDefinition = GlobalDefinitions.avatar
