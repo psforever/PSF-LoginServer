@@ -110,6 +110,20 @@ class ExoSuitDefinition(private val suitType : ExoSuitType.Value) extends BasicD
   }
 
   def Use : ExoSuitDefinition = this
+
+  def canEqual(other: Any): Boolean = other.isInstanceOf[ExoSuitDefinition]
+
+  override def equals(other: Any): Boolean = other match {
+    case that: ExoSuitDefinition =>
+      (that canEqual this) &&
+        suitType == that.suitType
+    case _ => false
+  }
+
+  override def hashCode(): Int = {
+    val state = Seq(suitType)
+    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+  }
 }
 
 class SpecialExoSuitDefinition(private val suitType : ExoSuitType.Value) extends ExoSuitDefinition(suitType) {

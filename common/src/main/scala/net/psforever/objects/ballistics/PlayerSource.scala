@@ -2,7 +2,7 @@
 package net.psforever.objects.ballistics
 
 import net.psforever.objects.Player
-import net.psforever.objects.definition.ObjectDefinition
+import net.psforever.objects.definition.{ExoSuitDefinition, ObjectDefinition}
 import net.psforever.objects.vital.resistance.ResistanceProfile
 import net.psforever.types.{ExoSuitType, PlanetSideEmpire, Vector3}
 
@@ -35,6 +35,7 @@ final case class PlayerSource(name : String,
 object PlayerSource {
   def apply(tplayer : Player) : PlayerSource = {
     PlayerSource(tplayer.Name, tplayer.CharId, tplayer.Definition, tplayer.Faction, tplayer.ExoSuit, tplayer.VehicleSeated.nonEmpty,
-      tplayer.Health, tplayer.Armor, tplayer.Position, tplayer.Orientation, tplayer.Velocity, tplayer.asInstanceOf[ResistanceProfile])
+      tplayer.Health, tplayer.Armor, tplayer.Position, tplayer.Orientation, tplayer.Velocity,
+      ExoSuitDefinition.Select(tplayer.ExoSuit, tplayer.Faction))
   }
 }
