@@ -113,7 +113,6 @@ class WorldSessionActor extends Actor
   var traveler : Traveler = null
   var deadState : DeadState.Value = DeadState.Dead
   var whenUsedLastMAXName : Array[String] = Array.fill[String](4)("")
-  val objectTypeNameReference : LongMap[String] = new LongMap[String]()
   val projectiles : Array[Option[Projectile]] = Array.fill[Option[Projectile]](Projectile.RangeUID - Projectile.BaseUID)(None)
   val projectilesToCleanUp : Array[Boolean] = Array.fill[Boolean](Projectile.RangeUID - Projectile.BaseUID)(false)
   var drawDeloyableIcon : PlanetSideGameObject with Deployable => Unit = RedrawDeployableIcons
@@ -1995,7 +1994,6 @@ class WorldSessionActor extends Actor
     * @see `Container`
     * @see `delayedPurchaseEntries`
     * @see `InventoryItem`
-    * @see `objectTypeNameReference`
     * @see `Player.GetLastUsedTime`
     * @see `Player.SetLastUsedTime`
     * @see `TaskResolver.GiveTask`
@@ -2022,7 +2020,7 @@ class WorldSessionActor extends Actor
       val definition = obj.Definition
       val id = definition.ObjectId
       player.SetLastPurchaseTime(id, time)
-      objectTypeNameReference += id.toLong -> definition.Name //may need to set Descriptor to be purchase name instead
+      player.ObjectTypeNameReference(id.toLong, definition.Name)
       delayedPurchaseEntries.get(id) match {
         case Some(delay) =>
           sendResponse(AvatarVehicleTimerMessage(player.GUID, definition.Name, delay / 1000, true))
@@ -2444,13 +2442,14 @@ class WorldSessionActor extends Actor
   def HandleTerminalMessage(tplayer : Player, msg : ItemTransactionMessage, order : Terminal.Exchange) : Unit = {
     order match {
       case Terminal.BuyEquipment(item) =>
-        val itemid = item.Definition.ObjectId
+        val definition = item.Definition
+        val itemid = definition.ObjectId
         val time = System.currentTimeMillis
         if(delayedPurchaseEntries.get(itemid) match {
           case Some(delay) if time - tplayer.GetLastPurchaseTime(itemid) > delay =>
             player.SetLastPurchaseTime(itemid, time)
-            objectTypeNameReference += itemid.toLong -> msg.item_name
-            sendResponse(AvatarVehicleTimerMessage(tplayer.GUID, msg.item_name, delay / 1000, true))
+            player.ObjectTypeNameReference(itemid.toLong, definition.Name)
+            sendResponse(AvatarVehicleTimerMessage(tplayer.GUID, definition.Name, delay / 1000, true))
             true
           case Some(_) =>
             false
@@ -2602,13 +2601,14 @@ class WorldSessionActor extends Actor
       case Terminal.BuyVehicle(vehicle, weapons, trunk) =>
         continent.Map.TerminalToSpawnPad.get(msg.terminal_guid.guid) match {
           case Some(pad_guid) =>
-            val vid = vehicle.Definition.ObjectId
+            val definition = vehicle.Definition
+            val vid = definition.ObjectId
             val time = System.currentTimeMillis
             if(delayedPurchaseEntries.get(vid) match {
               case Some(delay) if time - tplayer.GetLastPurchaseTime(vid) > delay =>
                 tplayer.SetLastPurchaseTime(vid, time)
-                objectTypeNameReference += vid.toLong -> msg.item_name
-                sendResponse(AvatarVehicleTimerMessage(tplayer.GUID, msg.item_name, delay / 1000, true))
+                tplayer.ObjectTypeNameReference(vid.toLong, definition.Name)
+                sendResponse(AvatarVehicleTimerMessage(tplayer.GUID, definition.Name, delay / 1000, true))
                 true
               case Some(_) =>
                 false
@@ -7584,7 +7584,7 @@ class WorldSessionActor extends Actor
       val lastTime = lastPurchases.getOrElse(id, 0L)
       val delay = delayedPurchaseEntries(id.toInt)
       if (time - lastTime < delay) {
-        sendResponse(AvatarVehicleTimerMessage(player.GUID, objectTypeNameReference.getOrElse(id, ""), ((delay - (time - lastTime)) / 1000) toInt, true))
+        sendResponse(AvatarVehicleTimerMessage(player.GUID, player.ObjectTypeNameReference(id), ((delay - (time - lastTime)) / 1000) toInt, true))
       }
     }
     //uses
@@ -7593,7 +7593,7 @@ class WorldSessionActor extends Actor
       val lastTime = lastUses.getOrElse(id, 0L)
       val delay = delayedGratificationEntries(id.toInt)
       if (time - lastTime < delay) {
-        sendResponse(AvatarVehicleTimerMessage(player.GUID, objectTypeNameReference.getOrElse(id, ""), ((delay - (time - lastTime)) / 1000) toInt, true))
+        sendResponse(AvatarVehicleTimerMessage(player.GUID, player.ObjectTypeNameReference(id), ((delay - (time - lastTime)) / 1000) toInt, true))
       }
     }
     //max exo-suits (specifically)

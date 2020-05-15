@@ -109,7 +109,7 @@ class GridInventory extends Container {
     * Test whether a given piece of `Equipment` would collide with any stowed content in the inventory.<br>
     * <br>
     * A "collision" is considered a situation where the stowed placards of two items would overlap in some way.
-    * The gridkeeps track of the location of items by storing the primitive of their GUID in one or more cells.
+    * The grid keeps track of the location of items by storing the primitive of their GUID in one or more cells.
     * Two primitives can not be stored in the same cell.
     * If placing two items into the same inventory leads to a situation where two primitive values might be in the same cell,
     * that is a collision.
@@ -187,17 +187,19 @@ class GridInventory extends Container {
     }
     else {
       val collisions : mutable.Set[InventoryItem] = mutable.Set[InventoryItem]()
-      items.values.foreach({ item : InventoryItem =>
-        val actualItemStart : Int = item.start - offset
-        val itemx : Int = actualItemStart % width
-        val itemy : Int = actualItemStart / width
-        val tile = item.obj.Tile
-        val clipsOnX : Boolean = if(itemx < startx) { itemx + tile.Width > startx } else { itemx <= startw }
-        val clipsOnY : Boolean = if(itemy < starty) { itemy + tile.Height > starty } else { itemy <= starth }
-        if(clipsOnX && clipsOnY) {
-          collisions += item
+      items
+        .map { case (_, item : InventoryItem) => item }
+        .foreach { item : InventoryItem =>
+          val actualItemStart : Int = item.start - offset
+          val itemx : Int = actualItemStart % width
+          val itemy : Int = actualItemStart / width
+          val tile = item.obj.Tile
+          val clipsOnX : Boolean = if(itemx < startx) { itemx + tile.Width > startx } else { itemx <= startw }
+          val clipsOnY : Boolean = if(itemy < starty) { itemy + tile.Height > starty } else { itemy <= starth }
+          if(clipsOnX && clipsOnY) {
+            collisions += item
+          }
         }
-      })
       Success(collisions.toList)
     }
   }
