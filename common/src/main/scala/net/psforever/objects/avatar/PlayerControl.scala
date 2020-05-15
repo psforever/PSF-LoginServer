@@ -222,12 +222,25 @@ class PlayerControl(player : Player) extends Actor
       case Terminal.TerminalMessage(_, msg, order) =>
         order match {
           case Terminal.BuyExosuit(exosuit, subtype) =>
+            val time = System.currentTimeMillis
             var toDelete : List[InventoryItem] = Nil
-            //TODO check exo-suit permissions
             val originalSuit = player.ExoSuit
             val originalSubtype = Loadout.DetermineSubtype(player)
             val requestToChangeArmor = originalSuit != exosuit || originalSubtype != subtype
-            val allowedToChangeArmor = Players.CertificationToUseExoSuit(player, exosuit, subtype)
+            val allowedToChangeArmor = Players.CertificationToUseExoSuit(player, exosuit, subtype) &&
+              (if (exosuit == ExoSuitType.MAX) {
+                if (time - player.GetLastUsedTime(exosuit, subtype) < 30000L) {
+                  false
+                }
+                else {
+                  player.SetLastUsedTime(exosuit, subtype, time)
+                  true
+                }
+              }
+              else {
+                player.SetLastUsedTime(exosuit, subtype, time)
+                true
+              })
             val result = if (requestToChangeArmor && allowedToChangeArmor) {
               log.info(s"${player.Name} wants to change to a different exo-suit - $exosuit")
               player.SetLastUsedTime(exosuit, subtype, System.currentTimeMillis())
@@ -330,7 +343,6 @@ class PlayerControl(player : Player) extends Actor
             }) ++ dropHolsters ++ dropInventory
             //a loadout with a prohibited exo-suit type will result in the fallback exo-suit type
             //imposed 5min delay on mechanized exo-suit switches
-            //TODO other exo-suit switch delays?
             val time = System.currentTimeMillis()
             val (nextSuit, nextSubtype) = if (Players.CertificationToUseExoSuit(player, exosuit, subtype) &&
               (if (exosuit == ExoSuitType.MAX) {

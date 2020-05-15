@@ -300,9 +300,15 @@ object WorldSession {
                 case scala.util.Failure(_) | scala.util.Success(_ : Containable.CanNotPutItemInSlot) =>
                   localResolver ! GUIDTask.UnregisterEquipment(localItem)(localZone.GUID)
                 case _ =>
+                  if(localPlayer.DrawnSlot != Player.HandsDownSlot) {
+                    localPlayer.DrawnSlot = Player.HandsDownSlot
+                    localZone.AvatarEvents ! AvatarServiceMessage(localPlayer.Name,
+                      AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectHeldMessage(localGUID, Player.HandsDownSlot, false))
+                    )
+                    localZone.AvatarEvents ! AvatarServiceMessage(localZone.Id, AvatarAction.ObjectHeld(localGUID, localPlayer.LastDrawnSlot))
+                  }
                   localPlayer.DrawnSlot = localSlot
-                  localZone.AvatarEvents ! AvatarServiceMessage(localZone.Id, AvatarAction.ObjectHeld(localGUID, localPlayer.LastDrawnSlot))
-                  localZone.AvatarEvents ! AvatarServiceMessage(localPlayer.Name,
+                  localZone.AvatarEvents ! AvatarServiceMessage(localZone.Id,
                     AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectHeldMessage(localGUID, localSlot, false))
                   )
               }
