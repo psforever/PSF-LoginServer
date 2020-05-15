@@ -1,4 +1,4 @@
-FROM hseeberger/scala-sbt
+FROM mozilla/sbt
 
 EXPOSE 51000
 EXPOSE 51001
