@@ -7490,7 +7490,7 @@ class WorldSessionActor extends Actor
                 case (Some(mountable : Amenity), Some(seat)) if mountable.Owner.GUID == capture_terminal.Owner.GUID =>
                   mountable.Seats(seat).Occupant = None
                   player.VehicleSeated = None
-                  continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(player.GUID, mountable.Seats.head._1, true, mountable.GUID))
+                  continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(player.GUID, seat, true, mountable.GUID))
                 case _ => ;
               }
             case _ => log.warn("HackCaptureTerminal: hack state monitor not defined")
