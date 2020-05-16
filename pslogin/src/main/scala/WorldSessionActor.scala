@@ -7486,11 +7486,11 @@ class WorldSessionActor extends Actor
               }
               value = start_num + deciseconds_remaining
               sendResponse(PlanetsideAttributeMessage(target_guid, 20, value))
-              continent.GUID(player.VehicleSeated) match {
-                case Some(mountable : Amenity with Mountable) =>
-                  if(mountable.Owner.GUID == capture_terminal.Owner.GUID) {
-                    continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(player.GUID, mountable.Seats.head._1, true, mountable.GUID))
-                  }
+              GetMountableAndSeat(None, player) match {
+                case (Some(mountable : Amenity), Some(seat)) if mountable.Owner.GUID == capture_terminal.Owner.GUID =>
+                  mountable.Seats(seat).Occupant = None
+                  player.VehicleSeated = None
+                  continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(player.GUID, mountable.Seats.head._1, true, mountable.GUID))
                 case _ => ;
               }
             case _ => log.warn("HackCaptureTerminal: hack state monitor not defined")
