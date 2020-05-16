@@ -8,6 +8,7 @@ import net.psforever.types.PlanetSideGUID
 
 import scala.annotation.tailrec
 import scala.collection.mutable
+import scala.collection.concurrent
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -32,7 +33,7 @@ class GridInventory extends Container {
   private var offset : Int = 0 //the effective index of the first cell in the inventory where offset >= 0
 
   /* key - an integer (not especially meaningful beyond being unique); value - the card that represents the stowed item */
-  private val items : mutable.HashMap[Int, InventoryItem] = mutable.HashMap[Int, InventoryItem]()
+  private val items : concurrent.TrieMap[Int, InventoryItem] = concurrent.TrieMap[Int, InventoryItem]()
   private val entryIndex : AtomicInteger = new AtomicInteger(0)
   private var grid : Array[Int] = Array.fill[Int](1)(-1)
 
