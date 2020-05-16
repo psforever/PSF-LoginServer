@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.terminals
 
-import akka.actor.Actor
+import akka.actor.{Actor, ActorRef}
 import net.psforever.objects.{GlobalDefinitions, SimpleItem}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
@@ -30,7 +30,10 @@ class TerminalControl(term : Terminal) extends Actor
     .orElse(canBeRepairedByNanoDispenser)
     .orElse {
       case Terminal.Request(player, msg) =>
-        sender ! Terminal.TerminalMessage(player, msg, term.Request(player, msg))
+        TerminalControl.Dispatch(
+          sender,
+          term,
+          Terminal.TerminalMessage(player, msg, term.Request(player, msg)))
 
       case CommonMessages.Use(player, Some(item : SimpleItem)) if item.Definition == GlobalDefinitions.remote_electronics_kit =>
         //TODO setup certifications check
@@ -46,5 +49,16 @@ class TerminalControl(term : Terminal) extends Actor
       case _ => ;
     }
 
+
   override def toString : String = term.Definition.Name
+}
+
+object TerminalControl {
+  def Dispatch(sender : ActorRef, terminal : Terminal, msg : Terminal.TerminalMessage) : Unit = {
+    msg.response match {
+      case Terminal.NoDeal() => sender ! msg
+      case _ =>
+        terminal.Definition.Dispatch(sender, terminal, msg)
+    }
+  }
 }

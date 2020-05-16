@@ -3,6 +3,7 @@ package services.vehicle
 
 import net.psforever.objects.{PlanetSideGameObject, Vehicle}
 import net.psforever.objects.equipment.Equipment
+import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.objectcreate.ConstructorData
@@ -47,4 +48,6 @@ object VehicleAction {
   final case class TransferPassengerChannel(player_guid : PlanetSideGUID, temp_channel : String, new_channel : String, vehicle : Vehicle, vehicle_to_delete : PlanetSideGUID) extends Action
 
   final case class KickCargo(player_guid : PlanetSideGUID, cargo : Vehicle, speed : Int, delay : Long) extends Action
+
+  final case class ChangeLoadout(target_guid : PlanetSideGUID, removed_weapons : List[(Equipment, PlanetSideGUID)], new_weapons : List[InventoryItem], old_inventory : List[(Equipment, PlanetSideGUID)], new_inventory : List[InventoryItem]) extends Action
 }

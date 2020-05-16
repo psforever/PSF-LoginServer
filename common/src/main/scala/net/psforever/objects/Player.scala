@@ -216,6 +216,8 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
 
   def Locker : LockerContainer = core.Locker
 
+  def FifthSlot : EquipmentSlot = core.FifthSlot
+
   override def Fit(obj : Equipment) : Option[Int] = {
     recursiveHolsterFit(holsters.iterator, obj.Size) match {
       case Some(index) =>
@@ -607,6 +609,30 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
   def VehicleOwned_=(guid : PlanetSideGUID) : Option[PlanetSideGUID] = core.VehicleOwned_=(Some(guid))
 
   def VehicleOwned_=(guid : Option[PlanetSideGUID]) : Option[PlanetSideGUID] = core.VehicleOwned_=(guid)
+
+  def GetLastUsedTime(code : Int) : Long = core.GetLastUsedTime(code)
+
+  def GetLastUsedTime(code : ExoSuitType.Value) : Long = core.GetLastUsedTime(code)
+
+  def GetLastUsedTime(code : ExoSuitType.Value, subtype : Int) : Long = core.GetLastUsedTime(code, subtype)
+
+  def SetLastUsedTime(code : Int, time : Long) : Unit = core.SetLastUsedTime(code, time)
+
+  def SetLastUsedTime(code : ExoSuitType.Value): Unit = core.SetLastUsedTime(code)
+
+  def SetLastUsedTime(code : ExoSuitType.Value, time : Long) : Unit = core.SetLastUsedTime(code, time)
+
+  def SetLastUsedTime(code : ExoSuitType.Value, subtype : Int): Unit = core.SetLastUsedTime(code, subtype)
+
+  def SetLastUsedTime(code : ExoSuitType.Value, subtype : Int, time : Long) : Unit = core.SetLastUsedTime(code, subtype, time)
+
+  def GetLastPurchaseTime(code : Int) : Long = core.GetLastPurchaseTime(code)
+
+  def SetLastPurchaseTime(code : Int, time : Long) : Unit = core.SetLastPurchaseTime(code, time)
+
+  def ObjectTypeNameReference(id : Long) : String = core.ObjectTypeNameReference(id)
+
+  def ObjectTypeNameReference(id : Long, name : String) : String = core.ObjectTypeNameReference(id, name)
 
   def DamageModel = exosuit.asInstanceOf[DamageResistanceModel]
 

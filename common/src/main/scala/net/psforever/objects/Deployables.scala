@@ -8,7 +8,7 @@ import net.psforever.objects.ce.{Deployable, DeployedItem}
 import net.psforever.objects.vehicles.{Utility, UtilityType}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{DeployableInfo, DeploymentAction}
-import net.psforever.types.PlanetSideGUID
+import net.psforever.types.{CertificationType, PlanetSideGUID}
 import services.RemoverActor
 import services.local.{LocalAction, LocalServiceMessage}
 
@@ -122,5 +122,49 @@ object Deployables {
         zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(telepad, zone, Some(0 seconds)))
       case _ => ;
     }
+  }
+
+
+
+  /**
+    * Initialize the deployables backend information.
+    * @param avatar the player's core
+    */
+  def InitializeDeployableQuantities(avatar : Avatar) : Boolean = {
+    log.info("Setting up combat engineering ...")
+    avatar.Deployables.Initialize(avatar.Certifications.toSet)
+  }
+
+  /**
+    * Initialize the UI elements for deployables.
+    * @param avatar the player's core
+    */
+  def InitializeDeployableUIElements(avatar : Avatar) : List[(Int,Int,Int,Int)] = {
+    log.info("Setting up combat engineering UI ...")
+    avatar.Deployables.UpdateUI()
+  }
+
+  /**
+    * The player learned a new certification.
+    * Update the deployables user interface elements if it was an "Engineering" certification.
+    * The certification "Advanced Hacking" also relates to an element.
+    * @param certification the certification that was added
+    * @param certificationSet all applicable certifications
+    */
+  def AddToDeployableQuantities(avatar : Avatar, certification : CertificationType.Value, certificationSet : Set[CertificationType.Value]) : List[(Int,Int,Int,Int)] = {
+    avatar.Deployables.AddToDeployableQuantities(certification, certificationSet)
+    avatar.Deployables.UpdateUI(certification)
+  }
+
+  /**
+    * The player forgot a certification he previously knew.
+    * Update the deployables user interface elements if it was an "Engineering" certification.
+    * The certification "Advanced Hacking" also relates to an element.
+    * @param certification the certification that was added
+    * @param certificationSet all applicable certifications
+    */
+  def RemoveFromDeployableQuantities(avatar : Avatar, certification : CertificationType.Value, certificationSet : Set[CertificationType.Value]) : List[(Int,Int,Int,Int)] = {
+    avatar.Deployables.RemoveFromDeployableQuantities(certification, certificationSet)
+    avatar.Deployables.UpdateUI(certification)
   }
 }

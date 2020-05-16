@@ -163,7 +163,7 @@ class DroptItemTest extends ActorTest {
   "AvatarService" should {
     "pass DropItem" in {
       service ! Service.Join("test")
-      service ! AvatarServiceMessage("test", AvatarAction.DropItem(PlanetSideGUID(10), tool, Zone.Nowhere))
+      service ! AvatarServiceMessage("test", AvatarAction.DropItem(PlanetSideGUID(10), tool))
       expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.DropItem(pkt)))
     }
   }
@@ -264,41 +264,16 @@ class PlayerStateTest extends ActorTest {
   }
 }
 
-class PickupItemATest extends ActorTest {
-  val obj = Player(Avatar("TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
-  obj.GUID = PlanetSideGUID(10)
-  obj.Slot(5).Equipment.get.GUID = PlanetSideGUID(11)
-
-  val toolDef = GlobalDefinitions.beamer
-  val tool = Tool(toolDef)
-  tool.GUID = PlanetSideGUID(40)
-  tool.AmmoSlots.head.Box.GUID = PlanetSideGUID(41)
-  val pkt = ObjectCreateMessage(
-    toolDef.ObjectId,
-    tool.GUID,
-    ObjectCreateMessageParent(PlanetSideGUID(10), 0),
-    toolDef.Packet.ConstructorData(tool).get
-  )
-
-  "pass PickUpItem as EquipmentInHand (visible pistol slot)" in {
-    ServiceManager.boot(system)
-    val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
-    service ! Service.Join("test")
-    service ! AvatarServiceMessage("test", AvatarAction.PickupItem(PlanetSideGUID(10), Zone.Nowhere, obj, 0, tool))
-    expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.EquipmentInHand(pkt)))
-  }
-}
-
-class PickupItemBTest extends ActorTest {
+class PickupItemTest extends ActorTest {
   val obj = Player(Avatar("TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
   val tool = Tool(GlobalDefinitions.beamer)
   tool.GUID = PlanetSideGUID(40)
 
-  "pass PickUpItem as ObjectDelete (not visible inventory space)" in {
+  "pass PickUpItem" in {
     ServiceManager.boot(system)
     val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
     service ! Service.Join("test")
-    service ! AvatarServiceMessage("test", AvatarAction.PickupItem(PlanetSideGUID(10), Zone.Nowhere, obj, 6, tool))
+    service ! AvatarServiceMessage("test", AvatarAction.PickupItem(PlanetSideGUID(10), tool))
     expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.ObjectDelete(tool.GUID, 0)))
   }
 }

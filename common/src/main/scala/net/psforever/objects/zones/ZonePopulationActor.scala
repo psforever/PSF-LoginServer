@@ -63,12 +63,25 @@ class ZonePopulationActor(zone : Zone, playerMap : TrieMap[Avatar, Option[Player
       }
 
     case Zone.Corpse.Add(player) =>
-      CorpseAdd(player, corpseList)
+        val (playerIsCorpse, playerInZone) = CorpseAdd(player, playerMap, corpseList)
+        if(playerIsCorpse) {
+          if(!playerInZone && player.Actor == ActorRef.noSender) {
+            player.Zone = zone
+            player.Actor = context.actorOf(Props(classOf[PlayerControl], player), s"corpse_of_${player.CharId}_${player.GUID.guid}_${System.currentTimeMillis}")
+          }
+        }
 
     case Zone.Corpse.Remove(player) =>
-      CorpseRemove(player, corpseList)
+      if(CorpseRemove(player, corpseList)) {
+        PlayerLeave(player)
+      }
 
     case _ => ;
+  }
+
+  def PlayerLeave(player : Player) : Unit = {
+    context.stop(player.Actor)
+    player.Actor = ActorRef.noSender
   }
 }
 
@@ -148,18 +161,33 @@ object ZonePopulationActor {
 
   /**
     * If the given `player` passes a condition check, add it to the list.
+    * Also, ensure that "this player" is not currently counted among the living.
     * @param player a `Player` object
+    * @param playerMap the mapping of `Avatar` objects to `Player` objects
     * @param corpseList a list of `Player` objects
-    * @return true, if the `player` was added to the list;
-    *         false, otherwise
+    * @return a `Tuple` of two flags;
+    *         the first is whether the player was turned into a corpse or not;
+    *         the second is whether the player was found in the zone before being turned into a corpse
     */
-  def CorpseAdd(player : Player, corpseList : ListBuffer[Player]) : Boolean = {
+  def CorpseAdd(player : Player, playerMap : TrieMap[Avatar, Option[Player]], corpseList : ListBuffer[Player]) : (Boolean, Boolean) = {
     if(player.isBackpack) {
-      corpseList += player
-      true
+      val playerFoundInZone = playerMap.find {
+        case (_, Some(p)) => p.CharId == player.CharId
+        case (_, None) => false
+      } match {
+        case Some((a, _)) => PopulationRelease(a, playerMap).nonEmpty
+        case _ => false
+      }
+      corpseList.find { _ eq player } match {
+        case None => ;
+          corpseList += player
+          (true, playerFoundInZone)
+        case _ =>
+          (false, false)
+      }
     }
     else {
-      false
+      (false, false)
     }
   }
 
@@ -167,18 +195,17 @@ object ZonePopulationActor {
     * Remove the given `player` from the list.
     * @param player a `Player` object
     * @param corpseList a list of `Player` objects
+    * @return `true`, if the corpse was found and removed;
+    *        `false`, otherwise
     */
-  def CorpseRemove(player : Player, corpseList : ListBuffer[Player]) : Unit = {
+  def CorpseRemove(player : Player, corpseList : ListBuffer[Player]) : Boolean = {
     recursiveFindCorpse(corpseList.iterator, player) match {
-      case None => ;
+      case None =>
+        false
       case Some(index) =>
         corpseList.remove(index)
+        true
     }
-  }
-
-  def PlayerLeave(player : Player) : Unit = {
-    player.Actor ! akka.actor.PoisonPill
-    player.Actor = ActorRef.noSender
   }
 
   /**
