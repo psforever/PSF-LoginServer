@@ -86,6 +86,7 @@ class PlayerControl(player : Player) extends Actor
 
               if (implant.ActivationStaminaCost >= 0) {
                 player.Stamina -= implant.ActivationStaminaCost // Activation stamina drain
+                UpdateStamina()
               }
 
               if(implant.StaminaCost > 0 && implant.GetCostIntervalByExoSuit(player.ExoSuit) > 0) { // Ongoing stamina drain, if applicable
@@ -131,22 +132,11 @@ class PlayerControl(player : Player) extends Actor
 
       case Player.DrainStamina(amount : Int) =>
         player.Stamina -= amount
+        UpdateStamina()
 
-      case Player.StaminaChanged(currentStamina : Int) =>
-        if(currentStamina == 0) {
-          player.Fatigued = true
-          player.skipStaminaRegenForTurns += 4
-          player.Implants.indices.foreach { slot => // Disable all implants
-            self ! Player.ImplantActivation(slot, 0)
-            player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.SendResponseTargeted(player.GUID, AvatarImplantMessage(player.GUID, ImplantAction.OutOfStamina, slot, 1)))
-          }
-        } else if (player.Fatigued && currentStamina >= 20) {
-          player.Fatigued = false
-          player.Implants.indices.foreach { slot => // Re-enable all implants
-            player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.SendResponseTargeted(player.GUID, AvatarImplantMessage(player.GUID, ImplantAction.OutOfStamina, slot, 0)))
-          }
-        }
-        player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
+      case Player.StaminaChanged(changeInStamina : Int) =>
+        player.Stamina += changeInStamina
+        UpdateStamina()
 
       case Player.Die() =>
         if(player.isAlive) {
@@ -668,6 +658,44 @@ class PlayerControl(player : Player) extends Actor
     val obj = ContainerObject
     val zone = obj.Zone
     zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectDetachMessage(obj.GUID, item.GUID, Vector3.Zero, 0f)))
+  }
+
+  def StaminaChange(changeInStamina : Int) : Unit = {
+    val currentStamina = player.Stamina += changeInStamina
+    if(currentStamina == 0) {
+      player.Fatigued = true
+      player.skipStaminaRegenForTurns += 4
+      player.Implants.indices.foreach { slot => // Disable all implants
+        self ! Player.ImplantActivation(slot, 0)
+        player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.SendResponseTargeted(player.GUID, AvatarImplantMessage(player.GUID, ImplantAction.OutOfStamina, slot, 1)))
+      }
+    }
+    else if (player.Fatigued && currentStamina >= 20) {
+      player.Fatigued = false
+      player.Implants.indices.foreach { slot => // Re-enable all implants
+        player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.SendResponseTargeted(player.GUID, AvatarImplantMessage(player.GUID, ImplantAction.OutOfStamina, slot, 0)))
+      }
+    }
+    player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
+  }
+
+  def UpdateStamina() : Unit = {
+    val currentStamina = player.Stamina
+    if(currentStamina == 0) {
+      player.Fatigued = true
+      player.skipStaminaRegenForTurns += 4
+      player.Implants.indices.foreach { slot => // Disable all implants
+        self ! Player.ImplantActivation(slot, 0)
+        player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.SendResponseTargeted(player.GUID, AvatarImplantMessage(player.GUID, ImplantAction.OutOfStamina, slot, 1)))
+      }
+    }
+    else if (player.Fatigued && currentStamina >= 20) {
+      player.Fatigued = false
+      player.Implants.indices.foreach { slot => // Re-enable all implants
+        player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.SendResponseTargeted(player.GUID, AvatarImplantMessage(player.GUID, ImplantAction.OutOfStamina, slot, 0)))
+      }
+    }
+    player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
   }
 }
 

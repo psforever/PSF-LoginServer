@@ -4181,7 +4181,7 @@ class WorldSessionActor extends Actor
           player.skipStaminaRegenForTurns -= 1
         }
         else if(!isMovingPlus && player.Stamina != player.MaxStamina) {
-          player.Stamina += 1
+          player.Actor ! Player.StaminaChanged(1)
         }
       }
       player.Position = pos
@@ -5118,7 +5118,7 @@ class WorldSessionActor extends Actor
 
     case msg@AvatarJumpMessage(state) =>
       //log.info("AvatarJump: " + msg)
-      player.Stamina = player.Stamina - 10
+      player.Actor ! Player.StaminaChanged(-10)
       player.skipStaminaRegenForTurns = math.max(player.skipStaminaRegenForTurns, 5)
 
     case msg@ZipLineMessage(player_guid, forwards, action, path_id, pos) =>
@@ -5416,7 +5416,7 @@ class WorldSessionActor extends Actor
                           false
                         }
                         else {
-                          player.Stamina = player.Stamina + 100
+                          player.Actor ! Player.StaminaChanged(100)
                           sendResponse(PlanetsideAttributeMessage(avatar_guid, 2, player.Stamina))
                           true
                         }
@@ -5907,7 +5907,7 @@ class WorldSessionActor extends Actor
           }
           else { //shooting
             if (tool.FireModeIndex == 1 && (tool.Definition.Name == "anniversary_guna" || tool.Definition.Name == "anniversary_gun" || tool.Definition.Name == "anniversary_gunb")) {
-              player.Stamina = 0
+              player.Actor ! Player.StaminaChanged(-player.Stamina)
             }
 
             prefire = shooting.orElse(Some(weapon_guid))

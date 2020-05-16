@@ -48,7 +48,7 @@ lazy val commonSettings = Seq(
     "io.kamon"                   %% "kamon-bundle"  % "2.1.0",
     "io.kamon"                   %% "kamon-apm-reporter" % "2.1.0",
     "org.json4s"                 %% "json4s-native" % "3.6.8",
-    "com.typesafe.akka"          %% "akka-stream"   % "2.6.5",
+    "com.typesafe.akka"          %% "akka-stream"   % "2.6.5"
   )
 )
 
