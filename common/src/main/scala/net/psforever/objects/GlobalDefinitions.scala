@@ -1703,11 +1703,11 @@ object GlobalDefinitions {
     plasma_grenade_ammo.Name = "plasma_grenade_ammo"
     plasma_grenade_ammo.Size = EquipmentSize.Blocked
 
-    bullet_9mm.Name = "9mmbullet"
+    bullet_9mm.Name = "bullet_9mm"
     bullet_9mm.Capacity = 50
     bullet_9mm.Tile = InventoryTile.Tile33
 
-    bullet_9mm_AP.Name="9mmbullet_AP"
+    bullet_9mm_AP.Name="bullet_9mm_AP"
     bullet_9mm_AP.Capacity = 50
     bullet_9mm_AP.Tile = InventoryTile.Tile33
 
@@ -1841,7 +1841,7 @@ object GlobalDefinitions {
     trek_ammo.Name = "trek_ammo"
     trek_ammo.Size = EquipmentSize.Blocked
 
-    bullet_35mm.Name = "35mmbullet"
+    bullet_35mm.Name = "bullet_35mm"
     bullet_35mm.Capacity = 100
     bullet_35mm.Tile = InventoryTile.Tile44
 
@@ -1889,11 +1889,11 @@ object GlobalDefinitions {
     liberator_bomb.Capacity = 20
     liberator_bomb.Tile = InventoryTile.Tile44
 
-    bullet_25mm.Name = "25mmbullet"
+    bullet_25mm.Name = "bullet_25mm"
     bullet_25mm.Capacity = 150
     bullet_25mm.Tile = InventoryTile.Tile44
 
-    bullet_75mm.Name = "75mmbullet"
+    bullet_75mm.Name = "bullet_75mm"
     bullet_75mm.Capacity = 100
     bullet_75mm.Tile = InventoryTile.Tile44
 
@@ -1913,11 +1913,11 @@ object GlobalDefinitions {
     reaver_rocket.Capacity = 12
     reaver_rocket.Tile = InventoryTile.Tile44
 
-    bullet_20mm.Name = "20mmbullet"
+    bullet_20mm.Name = "bullet_20mm"
     bullet_20mm.Capacity = 200
     bullet_20mm.Tile = InventoryTile.Tile44
 
-    bullet_12mm.Name = "12mmbullet"
+    bullet_12mm.Name = "bullet_12mm"
     bullet_12mm.Capacity = 300
     bullet_12mm.Tile = InventoryTile.Tile44
 
@@ -1929,7 +1929,7 @@ object GlobalDefinitions {
     wasp_gun_ammo.Capacity = 150
     wasp_gun_ammo.Tile = InventoryTile.Tile44
 
-    bullet_15mm.Name = "15mmbullet"
+    bullet_15mm.Name = "bullet_15mm"
     bullet_15mm.Capacity = 360
     bullet_15mm.Tile = InventoryTile.Tile44
 
@@ -1953,7 +1953,7 @@ object GlobalDefinitions {
     colossus_tank_cannon_ammo.Capacity = 110
     colossus_tank_cannon_ammo.Tile = InventoryTile.Tile44
 
-    bullet_105mm.Name = "105mmbullet"
+    bullet_105mm.Name = "bullet_105mm"
     bullet_105mm.Capacity = 100
     bullet_105mm.Tile = InventoryTile.Tile44
 
@@ -1981,7 +1981,7 @@ object GlobalDefinitions {
     peregrine_sparrow_ammo.Capacity = 150
     peregrine_sparrow_ammo.Tile = InventoryTile.Tile44
 
-    bullet_150mm.Name = "150mmbullet"
+    bullet_150mm.Name = "bullet_150mm"
     bullet_150mm.Capacity = 50
     bullet_150mm.Tile = InventoryTile.Tile44
 

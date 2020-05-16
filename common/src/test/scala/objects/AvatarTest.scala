@@ -389,10 +389,7 @@ class AvatarTest extends Specification {
 
   "the fifth slot is the locker wrapped in an EquipmentSlot" in {
     val (_, avatar) = CreatePlayer()
-    avatar.FifthSlot.Equipment match {
-      case Some(slot : LockerEquipment) => slot.Inventory mustEqual avatar.Locker.Inventory
-      case _ => ko
-    }
+    avatar.FifthSlot.Equipment.contains(avatar.Locker)
   }
 
   "toString" in {

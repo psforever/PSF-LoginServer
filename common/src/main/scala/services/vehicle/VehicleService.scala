@@ -141,11 +141,6 @@ class VehicleService(zone : Zone) extends Actor {
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.KickCargo(cargo, speed, delay))
           )
-
-          case VehicleAction.ChangeLoadout(target_guid, removed_weapons, new_weapons, old_inventory, new_inventory) =>
-            VehicleEvents.publish(
-              VehicleServiceResponse(s"/$forChannel/Vehicle", Service.defaultPlayerGUID, VehicleResponse.ChangeLoadout(target_guid, removed_weapons, new_weapons, old_inventory, new_inventory))
-            )
         case _ => ;
     }
 

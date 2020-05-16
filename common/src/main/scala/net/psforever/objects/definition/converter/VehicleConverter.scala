@@ -86,11 +86,12 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
   }
   
   private def MakeMountings(obj : Vehicle) : List[InventoryItemData.InventoryItem] = {
-    obj.Weapons.collect { case (index, slot) if slot.Equipment.nonEmpty =>
-      val equip : Equipment = slot.Equipment.get
-      val equipDef = equip.Definition
-      InventoryItemData(equipDef.ObjectId, equip.GUID, index, equipDef.Packet.ConstructorData(equip).get)
-    }.toList
+    obj.Weapons.map({
+      case(index, slot) =>
+        val equip : Equipment = slot.Equipment.get
+        val equipDef = equip.Definition
+        InventoryItemData(equipDef.ObjectId, equip.GUID, index, equipDef.Packet.ConstructorData(equip).get)
+    }).toList
   }
 
   protected def MakeUtilities(obj : Vehicle) : List[InventoryItemData.InventoryItem] = {

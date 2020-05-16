@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.terminals
 
-import akka.actor.{ActorContext, ActorRef}
+import akka.actor.ActorContext
 import net.psforever.objects.definition.ImplantDefinition
 import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.equipment.Equipment
@@ -92,14 +92,6 @@ class OrderTerminalDefinition(objId : Int) extends TerminalDefinition(objId) {
       }
     }
   }
-
-  override def Dispatch(sender : ActorRef, terminal : Terminal, msg : Terminal.TerminalMessage) : Unit = {
-    tabs.get(msg.msg.item_page) match {
-      case Some(page) =>
-        page.Dispatch(sender, terminal, msg)
-      case _ => ;
-    }
-  }
 }
 
 object OrderTerminalDefinition {
@@ -108,9 +100,8 @@ object OrderTerminalDefinition {
     * @see `ItemTransactionMessage`
     */
   sealed trait Tab {
-    def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange
+    def Buy(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = Terminal.NoDeal()
     def Sell(player : Player, msg : ItemTransactionMessage) : Terminal.Exchange = Terminal.NoDeal()
-    def Dispatch(sender : ActorRef, terminal : Terminal, msg : Terminal.TerminalMessage) : Unit
   }
 
   /**
@@ -127,10 +118,6 @@ object OrderTerminalDefinition {
         case _ =>
           Terminal.NoDeal()
       }
-    }
-
-    def Dispatch(sender : ActorRef, terminal : Terminal, msg : Terminal.TerminalMessage) : Unit = {
-      msg.player.Actor ! msg
     }
   }
 
@@ -155,13 +142,6 @@ object OrderTerminalDefinition {
             case _ =>
               Terminal.NoDeal()
           }
-      }
-    }
-
-    def Dispatch(sender : ActorRef, terminal : Terminal, msg : Terminal.TerminalMessage) : Unit = {
-      msg.response match {
-        case _ : Terminal.BuyExosuit => msg.player.Actor ! msg
-        case _ => sender ! msg
       }
     }
   }
@@ -191,10 +171,6 @@ object OrderTerminalDefinition {
           Terminal.NoDeal()
       }
     }
-
-    def Dispatch(sender : ActorRef, terminal : Terminal, msg : Terminal.TerminalMessage) : Unit = {
-      sender ! msg
-    }
   }
 
   /**
@@ -210,10 +186,6 @@ object OrderTerminalDefinition {
         case _ =>
           Terminal.NoDeal()
       }
-    }
-
-    def Dispatch(sender : ActorRef, terminal : Terminal, msg : Terminal.TerminalMessage) : Unit = {
-      sender ! msg
     }
   }
 
@@ -242,10 +214,6 @@ object OrderTerminalDefinition {
         case None =>
           Terminal.NoDeal()
       }
-    }
-
-    def Dispatch(sender : ActorRef, terminal : Terminal, msg : Terminal.TerminalMessage) : Unit = {
-      sender ! msg
     }
   }
 
@@ -304,10 +272,6 @@ object OrderTerminalDefinition {
           Terminal.NoDeal()
       }
     }
-
-    def Dispatch(sender : ActorRef, terminal : Terminal, msg : Terminal.TerminalMessage) : Unit = {
-      msg.player.Actor ! msg
-    }
   }
 
   /**
@@ -334,14 +298,6 @@ object OrderTerminalDefinition {
           Terminal.VehicleLoadout(loadout.vehicle_definition, weapons, inventory)
         case _ =>
           Terminal.NoDeal()
-      }
-    }
-
-    def Dispatch(sender : ActorRef, terminal : Terminal, msg : Terminal.TerminalMessage) : Unit = {
-      val player = msg.player
-      player.Zone.GUID(player.VehicleOwned) match {
-        case Some(vehicle : Vehicle) => vehicle.Actor ! msg
-        case _ => sender ! Terminal.TerminalMessage(player, msg.msg, Terminal.NoDeal())
       }
     }
   }
@@ -374,10 +330,6 @@ object OrderTerminalDefinition {
         case None =>
           Terminal.NoDeal()
       }
-    }
-
-    def Dispatch(sender : ActorRef, terminal : Terminal, msg : Terminal.TerminalMessage) : Unit = {
-      sender ! msg
     }
   }
 
