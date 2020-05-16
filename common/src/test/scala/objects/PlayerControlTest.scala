@@ -477,7 +477,7 @@ class PlayerControlDeathStandingTest extends ActorTest {
       assert(
         msg_avatar(7) match {
           case AvatarServiceMessage("test", AvatarAction.DestroyDisplay(killer, victim, _, _))
-            if killer == player1Source && victim == PlayerSource(player2) => true
+            if killer.Name.equals(player1.Name) && victim.Name.equals(player2.Name) => true
           case _ => false
         }
       )
@@ -597,7 +597,7 @@ class PlayerControlDeathSeatedTest extends ActorTest {
       assert(
         msg_avatar(8) match {
           case AvatarServiceMessage("test", AvatarAction.DestroyDisplay(killer, victim, _, _))
-            if killer == player1Source && victim == PlayerSource(player2) => true
+            if killer.Name.equals(player1.Name) && victim.Name.equals(player2.Name) => true
           case _ => false
         }
       )

@@ -42,6 +42,34 @@ object Vehicles {
   }
 
   /**
+    * Disassociate a vehicle fromthe player who owns it.
+    * @param guid the unique identifier for that vehicle
+    * @param vehicle the vehicle
+    * @return the vehicle, if it had a previous owner;
+    *         `None`, otherwise
+    */
+  def Disown(guid : PlanetSideGUID, vehicle : Vehicle) : Option[Vehicle] = vehicle.Zone.GUID(vehicle.Owner) match {
+    case Some(player : Player) =>
+      if(player.VehicleOwned.contains(guid)) {
+        player.VehicleOwned = None
+        vehicle.Zone.VehicleEvents ! VehicleServiceMessage(player.Name, VehicleAction.Ownership(player.GUID, PlanetSideGUID(0)))
+      }
+      vehicle.AssignOwnership(None)
+      val empire = VehicleLockState.Empire.id
+      val factionChannel = s"${vehicle.Faction}"
+      (0 to 2).foreach(group => {
+        vehicle.PermissionGroup(group, empire)
+        vehicle.Zone.VehicleEvents ! VehicleServiceMessage(factionChannel,
+          VehicleAction.SeatPermissions(Service.defaultPlayerGUID, guid, group, empire)
+        )
+      })
+      ReloadAccessPermissions(vehicle, player.Name)
+      Some(vehicle)
+    case _ =>
+      None
+  }
+
+  /**
     * Disassociate a player from a vehicle that he owns.
     * The vehicle must exist in the game world on the specified continent.
     * This is similar but unrelated to the natural exchange of ownership when someone else sits in the vehicle's driver seat.
@@ -82,13 +110,12 @@ object Vehicles {
     val pguid = player.GUID
     if(vehicle.Owner.contains(pguid)) {
       vehicle.AssignOwnership(None)
-      val factionChannel = s"${vehicle.Faction}"
-      vehicle.Zone.VehicleEvents ! VehicleServiceMessage(factionChannel, VehicleAction.Ownership(pguid, PlanetSideGUID(0)))
+      vehicle.Zone.VehicleEvents ! VehicleServiceMessage(player.Name, VehicleAction.Ownership(pguid, PlanetSideGUID(0)))
       val vguid = vehicle.GUID
       val empire = VehicleLockState.Empire.id
       (0 to 2).foreach(group => {
         vehicle.PermissionGroup(group, empire)
-        vehicle.Zone.VehicleEvents ! VehicleServiceMessage(factionChannel, VehicleAction.SeatPermissions(pguid, vguid, group, empire))
+        vehicle.Zone.VehicleEvents ! VehicleServiceMessage(s"${vehicle.Faction}", VehicleAction.SeatPermissions(pguid, vguid, group, empire))
       })
       ReloadAccessPermissions(vehicle, player.Name)
       Some(vehicle)

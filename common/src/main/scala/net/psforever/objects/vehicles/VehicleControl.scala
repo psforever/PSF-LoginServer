@@ -83,11 +83,33 @@ class VehicleControl(vehicle : Vehicle) extends Actor
     .orElse(canBeRepairedByNanoDispenser)
     .orElse(containerBehavior)
     .orElse {
-      case msg : Mountable.TryMount =>
+      case Vehicle.Ownership(None) =>
+        LoseOwnership()
+
+      case Vehicle.Ownership(Some(player)) =>
+        GainOwnership(player)
+
+      case msg @ Mountable.TryMount(player, seat_num) =>
         tryMountBehavior.apply(msg)
-        if(MountableObject.Seats.values.exists(_.isOccupied)) {
-          decaying = false
-          decayTimer.cancel
+        val obj = MountableObject
+        //check that the player has actually been sat in the expected seat
+        if(obj.PassengerInSeat(player).contains(seat_num)) {
+          //if the driver seat, change ownership
+          if(seat_num == 0 && !obj.OwnerName.contains(player.Name)) {
+            //whatever vehicle was previously owned
+            vehicle.Zone.GUID(player.VehicleOwned) match {
+              case Some(v : Vehicle) =>
+                v.Actor ! Vehicle.Ownership(None)
+              case _ =>
+                player.VehicleOwned = None
+            }
+            LoseOwnership() //lose our current ownership
+            GainOwnership(player) //gain new ownership
+          }
+          else {
+            decaying = false
+            decayTimer.cancel
+          }
         }
 
       case msg : Mountable.TryDismount =>
@@ -98,7 +120,7 @@ class VehicleControl(vehicle : Vehicle) extends Actor
         if(!obj.Seats(0).isOccupied) {
           obj.Velocity = Some(Vector3.Zero)
         }
-
+        //are we already decaying? are we unowned? is no one seated anywhere?
         if(!decaying && obj.Owner.isEmpty && obj.Seats.values.forall(!_.isOccupied)) {
           decaying = true
           decayTimer = context.system.scheduler.scheduleOnce(MountableObject.Definition.DeconstructionTime.getOrElse(5 minutes), self, VehicleControl.PrepareForDeletion())
@@ -343,6 +365,24 @@ class VehicleControl(vehicle : Vehicle) extends Actor
     val obj = ContainerObject
     val zone = obj.Zone
     zone.VehicleEvents ! VehicleServiceMessage(self.toString, VehicleAction.SendResponse(Service.defaultPlayerGUID, ObjectDetachMessage(obj.GUID, item.GUID, Vector3.Zero, 0f)))
+  }
+
+  def LoseOwnership() : Unit = {
+    val obj = MountableObject
+    Vehicles.Disown(obj.GUID, obj)
+    if(!decaying && obj.Seats.values.forall(!_.isOccupied)) {
+      decaying = true
+      decayTimer = context.system.scheduler.scheduleOnce(obj.Definition.DeconstructionTime.getOrElse(5 minutes), self, VehicleControl.PrepareForDeletion())
+    }
+  }
+
+  def GainOwnership(player : Player) : Unit = {
+    Vehicles.Own(MountableObject, player) match {
+      case Some(_) =>
+        decaying = false
+        decayTimer.cancel
+      case None => ;
+    }
   }
 }
 
