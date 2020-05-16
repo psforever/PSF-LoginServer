@@ -1093,6 +1093,314 @@ class WorldSessionActor extends Actor
       traveler = new Traveler(self, continent.Id)
       StartBundlingPackets()
       //PropertyOverrideMessage
+
+      /*
+         List Of all Changes
+         Super Stamina Kits Enabled
+         Super Stamina Kit Cooldown 20min -> 5min
+         AP Lasher Bug Fix for Lash
+         Lasher Balance Change (Lash start immediately instead of 5meters)
+         Disable ACE and FDU (bug prevention)
+         Equip/Holster Time Changes for Quality of Life
+         Ascension, Extinction, and Nexus Battle Island Event Rulesets, Desolation is just default continent ruleset
+       */
+      sendResponse(
+        PropertyOverrideMessage(List(
+          GamePropertyScope(0, List(
+            //Event Kits - Super Stamina Kit
+            GamePropertyTarget(ObjectClass.super_staminakit, "requirement_award0" -> "false"),
+            GamePropertyTarget(ObjectClass.super_staminakit, "allowed" -> "true"),
+            GamePropertyTarget(ObjectClass.super_staminakit, "nodrop" -> "false"),
+
+            //Super Stamina Kit -- Cooldown Timer (5 minutes)
+            GamePropertyTarget(ObjectClass.super_staminakit, "medkit_reuse_delay" -> "300"),
+
+            //Fixes bug preventing AP Lasher from Lashing
+            GamePropertyTarget(431, "lasher_projectile_ap" -> "false"),
+            GamePropertyTarget(431, "lasher_projectile" -> "true"),
+
+            //Lasher Balance Change (Time until Orb starts Lashing)
+            GamePropertyTarget(430, "lash_delay" -> "0.00"),
+
+            //Disable ACE and FDU (bug prevention)
+            GamePropertyTarget(ObjectClass.ace, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.ace_deployable, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.advanced_ace, "allowed" -> "false"),
+
+            //Equip/Holster Time Changes (Quality of Life)
+            //Heavy Items -- Equip/Holster Time Changes -- 0.75 seconds
+            GamePropertyTarget(ObjectClass.r_shotgun, "equiptime" -> "750"),
+            GamePropertyTarget(ObjectClass.r_shotgun, "holstertime" -> "750"),
+            GamePropertyTarget(ObjectClass.mini_chaingun, "equiptime" -> "750"),
+            GamePropertyTarget(ObjectClass.mini_chaingun, "holstertime" -> "750"),
+            GamePropertyTarget(ObjectClass.lasher, "equiptime" -> "750"),
+            GamePropertyTarget(ObjectClass.lasher, "holstertime" -> "750"),
+            GamePropertyTarget(ObjectClass.flamethrower, "equiptime" -> "750"),
+            GamePropertyTarget(ObjectClass.flamethrower, "holstertime" -> "750"),
+            GamePropertyTarget(ObjectClass.maelstrom, "equiptime" -> "750"),
+            GamePropertyTarget(ObjectClass.maelstrom, "holstertime" -> "750"),
+            GamePropertyTarget(ObjectClass.advanced_ace, "equiptime" -> "750"),
+            GamePropertyTarget(ObjectClass.advanced_ace, "holstertime" -> "750"),
+
+            //Medium Items -- Equip/Holster Time Changes -- 0.6 seconds
+            GamePropertyTarget(ObjectClass.suppressor, "equiptime" -> "600"),
+            GamePropertyTarget(ObjectClass.suppressor, "holstertime" -> "600"),
+            GamePropertyTarget(ObjectClass.punisher, "equiptime" -> "600"),
+            GamePropertyTarget(ObjectClass.punisher, "holstertime" -> "600"),
+            GamePropertyTarget(ObjectClass.gauss, "equiptime" -> "600"),
+            GamePropertyTarget(ObjectClass.gauss, "holstertime" -> "600"),
+            GamePropertyTarget(ObjectClass.cycler, "equiptime" -> "600"),
+            GamePropertyTarget(ObjectClass.cycler, "holstertime" -> "600"),
+            GamePropertyTarget(ObjectClass.cycler_v2, "equiptime" -> "600"),
+            GamePropertyTarget(ObjectClass.cycler_v2, "holstertime" -> "600"),
+            GamePropertyTarget(ObjectClass.cycler_v3, "equiptime" -> "600"),
+            GamePropertyTarget(ObjectClass.cycler_v3, "holstertime" -> "600"),
+            GamePropertyTarget(ObjectClass.cycler_v4, "equiptime" -> "600"),
+            GamePropertyTarget(ObjectClass.cycler_v4, "holstertime" -> "600"),
+            GamePropertyTarget(ObjectClass.pulsar, "equiptime" -> "600"),
+            GamePropertyTarget(ObjectClass.pulsar, "holstertime" -> "600"),
+            GamePropertyTarget(ObjectClass.radiator, "equiptime" -> "600"),
+            GamePropertyTarget(ObjectClass.radiator, "holstertime" -> "600"),
+            GamePropertyTarget(ObjectClass.nano_dispenser, "equiptime" -> "600"),
+            GamePropertyTarget(ObjectClass.nano_dispenser, "holstertime" -> "600"),
+            GamePropertyTarget(ObjectClass.flechette, "equiptime" -> "600"),
+            GamePropertyTarget(ObjectClass.flechette, "holstertime" -> "600"),
+            GamePropertyTarget(ObjectClass.oicw, "equiptime" -> "750"),
+            GamePropertyTarget(ObjectClass.oicw, "holstertime" -> "750"),
+            GamePropertyTarget(ObjectClass.pellet_gun, "equiptime" -> "750"),
+            GamePropertyTarget(ObjectClass.pellet_gun, "holstertime" -> "750"),
+
+            //Small Items -- Equip/Holster Time Changes -- 0.5s
+            GamePropertyTarget(ObjectClass.medicalapplicator, "equiptime" -> "500"),
+            GamePropertyTarget(ObjectClass.medicalapplicator, "holstertime" -> "500"),
+            GamePropertyTarget(ObjectClass.bank, "equiptime" -> "500"),
+            GamePropertyTarget(ObjectClass.bank, "holstertime" -> "500"),
+            GamePropertyTarget(ObjectClass.trek, "equiptime" -> "500"),
+            GamePropertyTarget(ObjectClass.trek, "holstertime" -> "500"),
+            GamePropertyTarget(ObjectClass.spiker, "equiptime" -> "500"),
+            GamePropertyTarget(ObjectClass.spiker, "holstertime" -> "500"),
+            GamePropertyTarget(ObjectClass.isp, "equiptime" -> "500"),
+            GamePropertyTarget(ObjectClass.isp, "holstertime" -> "500"),
+            GamePropertyTarget(ObjectClass.ilc9, "equiptime" -> "500"),
+            GamePropertyTarget(ObjectClass.ilc9, "holstertime" -> "500"),
+            GamePropertyTarget(ObjectClass.six_shooter, "equiptime" -> "500"),
+            GamePropertyTarget(ObjectClass.six_shooter, "holstertime" -> "500"),
+            GamePropertyTarget(ObjectClass.beamer, "equiptime" -> "500"),
+            GamePropertyTarget(ObjectClass.beamer, "holstertime" -> "500"),
+            GamePropertyTarget(ObjectClass.repeater, "equiptime" -> "500"),
+            GamePropertyTarget(ObjectClass.repeater, "holstertime" -> "500"),
+            GamePropertyTarget(ObjectClass.remote_electronics_kit, "equiptime" -> "500"),
+            GamePropertyTarget(ObjectClass.remote_electronics_kit, "holstertime" -> "500"),
+            GamePropertyTarget(ObjectClass.flail_targeting_laser, "equiptime" -> "500"),
+            GamePropertyTarget(ObjectClass.flail_targeting_laser, "holstertime" -> "500"),
+            GamePropertyTarget(ObjectClass.anniversary_gun, "equiptime" -> "500"),
+            GamePropertyTarget(ObjectClass.anniversary_gun, "holstertime" -> "500"),
+            GamePropertyTarget(ObjectClass.anniversary_guna, "equiptime" -> "500"),
+            GamePropertyTarget(ObjectClass.anniversary_guna, "holstertime" -> "500"),
+            GamePropertyTarget(ObjectClass.anniversary_gunb, "equiptime" -> "500"),
+            GamePropertyTarget(ObjectClass.anniversary_gunb, "holstertime" -> "500"),
+            GamePropertyTarget(ObjectClass.ace, "equiptime" -> "500"),
+            GamePropertyTarget(ObjectClass.ace, "holstertime" -> "500"),
+            GamePropertyTarget(ObjectClass.ace_deployable, "equiptime" -> "500"),
+            GamePropertyTarget(ObjectClass.ace_deployable, "holstertime" -> "500"),
+
+            //Knives -- Equip/Holster Time Changes -- 0.25 seconds
+            GamePropertyTarget(ObjectClass.katana, "equiptime" -> "250"),
+            GamePropertyTarget(ObjectClass.katana, "holstertime" -> "250"),
+            GamePropertyTarget(ObjectClass.forceblade, "equiptime" -> "250"),
+            GamePropertyTarget(ObjectClass.forceblade, "holstertime" -> "250"),
+            GamePropertyTarget(ObjectClass.magcutter, "equiptime" -> "250"),
+            GamePropertyTarget(ObjectClass.magcutter, "holstertime" -> "250"),
+            GamePropertyTarget(ObjectClass.chainblade, "equiptime" -> "250"),
+            GamePropertyTarget(ObjectClass.chainblade, "holstertime" -> "250")
+          )),
+
+          GamePropertyScope(29, List(
+            //Extinction (i1) - ground based bridge brawls! - Battle Island Event
+
+            //Free Certification Grants
+            GamePropertyTarget(ObjectClass.nano_dispenser, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.ams, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.quadstealth, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.quadassault, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.fury, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.two_man_assault_buggy, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.skyguard, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.twomanhoverbuggy, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.threemanheavybuggy, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.twomanheavybuggy, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.lightning, "requirement_certification0" -> "false"),
+
+            //No Air Vehicles
+            GamePropertyTarget(ObjectClass.dropship, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.galaxy_gunship, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.liberator, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.lightgunship, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.lodestar, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.mosquito, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.phantasm, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.vulture, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.wasp, "allowed" -> "false"),
+
+            //No Tanks, no BFRs, no Flails, no Deliverer Variants
+            GamePropertyTarget(ObjectClass.mediumtransport, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.aurora, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.battlewagon, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.flail, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.magrider, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.prowler, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.thunderer, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.vanguard, "allowed" -> "false"),
+
+            //A Tank, but commented out for population purposes
+            //          GamePropertyTarget(ObjectClass.lightning, "allowed" -> "false"),
+
+            //No BFRs
+            GamePropertyTarget(ObjectClass.aphelion_flight, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.aphelion_gunner, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.colossus_flight, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.colossus_gunner, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.peregrine_flight, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.peregrine_gunner, "allowed" -> "false")
+          )),
+          GamePropertyScope(30, List(
+            //Ascension (i2) - battle for air supremacy! - Battle Island Event
+            //No Skyguards, no Deliverer Variants, no AA MAX, no BFRs, no Tanks, no Flails Zone specific change – Everyone has access to Empire AV weapons and can pilot air vehicles
+
+            //Allow Galaxy Gunship and Lodestar at Vehicle Terminals on Ascension
+            GamePropertyTarget(952, "forsale_galaxy_gunship" -> "true"),
+            GamePropertyTarget(43, "forsale_galaxy_gunship" -> "true"),
+            GamePropertyTarget(952, "forsale_lodestar" -> "true"),
+            GamePropertyTarget(43, "forsale_lodestar" -> "true"),
+
+            //Allow Tech Benefit required Aircraft Vehicles at non Tech Benefited Bases
+            GamePropertyTarget(ObjectClass.liberator, "purchase_tech_plant" -> "false"),
+            GamePropertyTarget(ObjectClass.lightgunship, "purchase_tech_plant" -> "false"),
+            GamePropertyTarget(ObjectClass.vulture, "purchase_tech_plant" -> "false"),
+            GamePropertyTarget(ObjectClass.wasp, "purchase_tech_plant" -> "false"),
+
+            //Cert Grants
+            GamePropertyTarget(ObjectClass.dropship, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.galaxy_gunship, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.liberator, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.lightgunship, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.lodestar, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.mosquito, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.phantasm, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.vulture, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.wasp, "requirement_certification0" -> "false"),
+
+            GamePropertyTarget(ObjectClass.striker, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.lancer, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.phoenix, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.hunterseeker, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.nano_dispenser, "requirement_certification0" -> "false"),
+
+            //No AA MAXes
+            GamePropertyTarget(ObjectClass.order_terminal, "forsale_nchev_antiaircraft" -> "false"),
+            GamePropertyTarget(ObjectClass.order_terminal, "forsale_vshev_antiaircraft" -> "false"),
+            GamePropertyTarget(ObjectClass.order_terminal, "forsale_trhev_antiaircraft" -> "false"),
+
+            //Custom Setup: Only AMS, Router and ANT can be purchased at the Ground Vehicle Terminals. Take to the skies!
+            GamePropertyTarget(ObjectClass.apc_nc, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.apc_tr, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.apc_vs, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.aurora, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.battlewagon, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.flail, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.fury, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.lightning, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.magrider, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.mediumtransport, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.prowler, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.quadassault, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.quadstealth, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.skyguard, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.switchblade, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.threemanheavybuggy, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.thunderer, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.two_man_assault_buggy, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.twomanheavybuggy, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.twomanhoverbuggy, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.vanguard, "allowed" -> "false"),
+
+            //No BFRs
+            GamePropertyTarget(ObjectClass.aphelion_flight, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.aphelion_gunner, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.colossus_flight, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.colossus_gunner, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.peregrine_flight, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.peregrine_gunner, "allowed" -> "false")
+          )),
+
+          GamePropertyScope(32, List(
+            //Nexus (i4) - t3h footzerg! - Battle Island Event
+
+            //Free Vehicle Certification Grants
+            GamePropertyTarget(ObjectClass.dropship, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.phantasm, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.router, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.ams, "requirement_certification0" -> "false"),
+
+            //Free Weapon Certification Grants
+            GamePropertyTarget(ObjectClass.anniversary_gun, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.flechette, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.punisher, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.cycler, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.gauss, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.pulsar, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.mini_chaingun, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.r_shotgun, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.lasher, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.striker, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.lancer, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.phoenix, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.hunterseeker, "requirement_certification0" -> "false"),
+            GamePropertyTarget(ObjectClass.nano_dispenser, "requirement_certification0" -> "false"),
+
+            //Only Galaxies and Phantasms can be purchased at the Dropship Terminal
+            GamePropertyTarget(ObjectClass.galaxy_gunship, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.liberator, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.lightgunship, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.lodestar, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.mosquito, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.vulture, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.wasp, "allowed" -> "false"),
+
+            //Only Routers and ANTs can be purchased at the Ground Vehicle Terminal (also allowing the AMS for now)
+            //GamePropertyTarget(ObjectClass.ams, "allowed" -> "false"), //normally disabled
+            GamePropertyTarget(ObjectClass.apc_nc, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.apc_tr, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.apc_vs, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.aurora, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.battlewagon, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.flail, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.fury, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.lightning, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.magrider, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.mediumtransport, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.prowler, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.quadassault, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.quadstealth, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.skyguard, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.switchblade, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.threemanheavybuggy, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.thunderer, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.two_man_assault_buggy, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.twomanheavybuggy, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.twomanhoverbuggy, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.vanguard, "allowed" -> "false"),
+
+            //No BFRs
+            GamePropertyTarget(ObjectClass.aphelion_flight, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.aphelion_gunner, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.colossus_flight, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.colossus_gunner, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.peregrine_flight, "allowed" -> "false"),
+            GamePropertyTarget(ObjectClass.peregrine_gunner, "allowed" -> "false")
+          ))
+        ))
+      )
       sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 0)) // disable festive backpacks
       sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty)) //clear squad list
       sendResponse(FriendsResponse(FriendAction.InitializeFriendList, 0, true, true, Nil))
