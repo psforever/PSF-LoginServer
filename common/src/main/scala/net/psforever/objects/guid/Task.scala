@@ -4,7 +4,6 @@ package net.psforever.objects.guid
 import akka.actor.ActorRef
 
 trait Task {
-  def Description : String = "write_descriptive_task_message"
   def Execute(resolver : ActorRef) : Unit
   def isComplete : Task.Resolution.Value = Task.Resolution.Incomplete
   def Timeout : Long = 200L //milliseconds

@@ -53,9 +53,7 @@ object Loadout {
   def Create(vehicle : Vehicle, label : String) : Loadout = {
     VehicleLoadout(
       label,
-      packageSimplifications(vehicle.Weapons.collect { case (index, slot) if slot.Equipment.nonEmpty =>
-        InventoryItem(slot.Equipment.get, index) }.toList
-      ),
+      packageSimplifications(vehicle.Weapons.map({ case (index, weapon) => InventoryItem(weapon.Equipment.get, index) }).toList),
       packageSimplifications(vehicle.Trunk.Items),
       vehicle.Definition
     )

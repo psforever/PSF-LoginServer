@@ -5,11 +5,12 @@ import net.psforever.objects.{PlanetSideGameObject, Player}
 import net.psforever.objects.ballistics.{Projectile, SourceEntry}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.Equipment
-import net.psforever.objects.inventory.{Container, InventoryItem}
+import net.psforever.objects.inventory.Container
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSideGamePacket
+import net.psforever.packet.game.ImplantAction
 import net.psforever.packet.game.objectcreate.{ConstructorData, ObjectCreateMessageParent}
-import net.psforever.types.{ExoSuitType, PlanetSideEmpire, PlanetSideGUID, TransactionType, Vector3}
+import net.psforever.types.{ExoSuitType, PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -35,7 +36,7 @@ object AvatarAction {
   final case class ActivateImplantSlot(player_guid : PlanetSideGUID, slot : Int) extends Action
   final case class Destroy(victim : PlanetSideGUID, killer : PlanetSideGUID, weapon : PlanetSideGUID, pos : Vector3) extends Action
   final case class DestroyDisplay(killer : SourceEntry, victim : SourceEntry, method : Int, unk : Int = 121) extends Action
-  final case class DropItem(player_guid : PlanetSideGUID, item : Equipment) extends Action
+  final case class DropItem(player_guid : PlanetSideGUID, item : Equipment, zone : Zone) extends Action
   final case class EquipmentInHand(player_guid : PlanetSideGUID, target_guid : PlanetSideGUID, slot : Int, item : Equipment) extends Action
   final case class GenericObjectAction(player_guid : PlanetSideGUID, object_guid : PlanetSideGUID, action_code : Int) extends Action
   final case class HitHint(source_guid : PlanetSideGUID, player_guid : PlanetSideGUID) extends Action
@@ -48,7 +49,7 @@ object AvatarAction {
   final case class PlanetsideAttributeToAll(player_guid : PlanetSideGUID, attribute_type : Int, attribute_value : Long) extends Action
   final case class PlanetsideAttributeSelf(player_guid : PlanetSideGUID, attribute_type : Int, attribute_value : Long) extends Action
   final case class PlayerState(player_guid : PlanetSideGUID, pos : Vector3, vel : Option[Vector3], facingYaw : Float, facingPitch : Float, facingYawUpper : Float, timestamp : Int, is_crouching : Boolean, is_jumping : Boolean, jump_thrust : Boolean, is_cloaked : Boolean, spectator : Boolean, weaponInHand : Boolean) extends Action
-  final case class PickupItem(player_guid : PlanetSideGUID, item : Equipment, unk : Int = 0) extends Action
+  final case class PickupItem(player_guid : PlanetSideGUID, zone : Zone, target : PlanetSideGameObject with Container, slot : Int, item : Equipment, unk : Int = 0) extends Action
   final case class ProjectileAutoLockAwareness(mode : Int) extends Action
   final case class ProjectileExplodes(player_guid : PlanetSideGUID, projectile_guid : PlanetSideGUID, projectile : Projectile) extends Action
   final case class ProjectileState(player_guid : PlanetSideGUID, projectile_guid : PlanetSideGUID, shot_pos : Vector3, shot_vel : Vector3, shot_orient : Vector3, sequence : Int, end : Boolean, hit_target : PlanetSideGUID) extends Action
@@ -62,10 +63,6 @@ object AvatarAction {
 
   final case class SendResponse(player_guid: PlanetSideGUID, msg: PlanetSideGamePacket) extends Action
   final case class SendResponseTargeted(target_guid: PlanetSideGUID, msg: PlanetSideGamePacket) extends Action
-
-  final case class TerminalOrderResult(terminal_guid : PlanetSideGUID, action : TransactionType.Value, result : Boolean) extends Action
-  final case class ChangeExosuit(target_guid : PlanetSideGUID, exosuit : ExoSuitType.Value, subtype : Int, last_drawn_slot : Int, new_max_hand : Boolean, old_holsters : List[(Equipment, PlanetSideGUID)], holsters : List[InventoryItem], old_inventory : List[(Equipment, PlanetSideGUID)], inventory : List[InventoryItem], drop : List[InventoryItem], delete : List[(Equipment, PlanetSideGUID)]) extends Action
-  final case class ChangeLoadout(target_guid : PlanetSideGUID, exosuit : ExoSuitType.Value, subtype : Int, last_drawn_slot : Int, new_max_hand : Boolean, old_holsters : List[(Equipment, PlanetSideGUID)], holsters : List[InventoryItem], old_inventory : List[(Equipment, PlanetSideGUID)], inventory : List[InventoryItem], drop : List[InventoryItem]) extends Action
 
   final case class TeardownConnection() extends Action
   //  final case class PlayerStateShift(killer : PlanetSideGUID, victim : PlanetSideGUID) extends Action

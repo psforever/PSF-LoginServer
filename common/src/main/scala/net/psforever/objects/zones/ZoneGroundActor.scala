@@ -4,8 +4,6 @@ package net.psforever.objects.zones
 import akka.actor.Actor
 import net.psforever.objects.equipment.Equipment
 import net.psforever.types.PlanetSideGUID
-import services.Service
-import services.avatar.{AvatarAction, AvatarServiceMessage}
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
@@ -30,28 +28,19 @@ class ZoneGroundActor(zone : Zone, equipmentOnGround : ListBuffer[Equipment]) ex
       }
       else {
         equipmentOnGround += item
-        item.Position = pos
-        item.Orientation = orient
-        zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.DropItem(Service.defaultPlayerGUID, item))
         Zone.Ground.ItemOnGround(item, pos, orient)
       })
 
     case Zone.Ground.PickupItem(item_guid) =>
       sender ! (FindItemOnGround(item_guid) match {
         case Some(item) =>
-          zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.PickupItem(Service.defaultPlayerGUID, item, 0))
           Zone.Ground.ItemInHand(item)
         case None =>
           Zone.Ground.CanNotPickupItem(zone, item_guid, "can not find")
       })
 
     case Zone.Ground.RemoveItem(item_guid) =>
-      //intentionally no callback
-      FindItemOnGround(item_guid) match {
-        case Some(item) =>
-          zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.PickupItem(Service.defaultPlayerGUID, item, 0))
-        case None => ;
-      }
+      FindItemOnGround(item_guid) //intentionally no callback
 
     case _ => ;
   }

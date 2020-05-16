@@ -1,8 +1,6 @@
 // Copyright (c) 2017 PSForever
 package services.vehicle
 
-import net.psforever.objects.equipment.Equipment
-import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad.Reminders
 import net.psforever.objects.{PlanetSideGameObject, Vehicle}
@@ -55,6 +53,4 @@ object VehicleResponse {
   final case class TransferPassengerChannel(old_channel : String, temp_channel : String, vehicle : Vehicle, vehicle_to_delete : PlanetSideGUID) extends Response
 
   final case class KickCargo(cargo : Vehicle, speed : Int, delay : Long) extends Response
-
-  final case class ChangeLoadout(target_guid : PlanetSideGUID, removed_weapons : List[(Equipment, PlanetSideGUID)], new_weapons : List[InventoryItem], old_inventory : List[(Equipment, PlanetSideGUID)], new_inventory : List[InventoryItem]) extends Response
 }
