@@ -309,7 +309,7 @@ class PersistenceMonitor(name : String, squadService : ActorRef, taskResolver : 
     player.Position = Vector3.Zero
     player.Health = 0
     inZone.GUID(player.VehicleOwned) match {
-      case Some(vehicle : Vehicle) if vehicle.OwnerName.contains(player.Name) =>
+      case Some(vehicle : Vehicle) if vehicle.OwnerName.contains(player.Name) && vehicle.Actor != ActorRef.noSender =>
         vehicle.Actor ! Vehicle.Ownership(None)
       case _ => ;
     }

@@ -10199,7 +10199,7 @@ class WorldSessionActor extends Actor
   def LoadZoneCommonTransferActivity() : Unit = {
     if(player.VehicleOwned.nonEmpty && player.VehicleSeated != player.VehicleOwned) {
       continent.GUID(player.VehicleOwned) match {
-        case Some(vehicle : Vehicle) =>
+        case Some(vehicle : Vehicle) if vehicle.Actor != ActorRef.noSender =>
           vehicle.Actor ! Vehicle.Ownership(None)
         case _ => ;
       }
