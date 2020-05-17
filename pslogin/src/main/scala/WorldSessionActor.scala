@@ -9324,7 +9324,7 @@ class WorldSessionActor extends Actor
   def HandleDealingDamage(target : PlanetSideGameObject with Vitality, data : ResolvedProjectile) : Unit = {
     val func = data.damage_model.Calculate(data)
     target match {
-      case obj : Player if obj.CanDamage =>
+      case obj : Player if obj.CanDamage && obj.Actor != ActorRef.noSender =>
         if(obj.spectator) {
           player.death_by = -1 // little thing for auto kick
         }
