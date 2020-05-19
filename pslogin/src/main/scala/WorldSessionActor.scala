@@ -3466,12 +3466,21 @@ class WorldSessionActor extends Actor
     if(player.spectator) {
       sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, false, "", "on", None))
     }
+    if(player.Jammed) {
+      //TODO something better than just canceling?
+      player.Actor ! JammableUnit.ClearJammeredStatus()
+      player.Actor ! JammableUnit.ClearJammeredSound()
+    }
+    val fatigued = player.Fatigued
     (0 until DetailedCharacterData.numberOfImplantSlots(tplayer.BEP)).foreach(slot => {
       val implantSlot = player.ImplantSlot(slot)
-      if(implantSlot.Initialized) {
+      if (implantSlot.Initialized) {
         sendResponse(AvatarImplantMessage(guid, ImplantAction.Initialization, slot, 1))
+        if(fatigued) {
+          sendResponse(AvatarImplantMessage(guid, ImplantAction.OutOfStamina, slot, 1))
+        }
       }
-      else {
+      else if (!fatigued) {
         player.Actor ! Player.ImplantInitializationStart(slot)
       }
       //TODO if this implant is Installed but does not have shortcut, add to a free slot or write over slot 61/62/63
@@ -3558,6 +3567,11 @@ class WorldSessionActor extends Actor
         ))
       case (Some(vehicle), Some(0)) =>
         //summon any passengers and cargo vehicles left behind on previous continent
+        if(vehicle.Jammed) {
+          //TODO something better than just canceling?
+          vehicle.Actor ! JammableUnit.ClearJammeredStatus()
+          vehicle.Actor ! JammableUnit.ClearJammeredSound()
+        }
         LoadZoneTransferPassengerMessages(
           guid,
           continent.Id,
@@ -4175,12 +4189,14 @@ class WorldSessionActor extends Actor
         CancelZoningProcessWithDescriptiveReason("cancel_motion")
       }
 
-      if(deadState == DeadState.Alive && upstreamMessageCount % 2 == 0) { // Regen stamina roughly every 500ms
-        if(player.skipStaminaRegenForTurns > 0) {
+      if(deadState == DeadState.Alive) {
+        val regenTick = if(is_crouching) 2 else 3
+        if(player.skipStaminaRegenForTurns > 0 && upstreamMessageCount % 2 == 0) {
           //do not renew stamina for a while
           player.skipStaminaRegenForTurns -= 1
         }
-        else if(!isMovingPlus && player.Stamina != player.MaxStamina) {
+        else if(player.Stamina != player.MaxStamina && !isMovingPlus && playerStateMessageUpstreamCount % regenTick == 0) {
+          // Regen stamina roughly every 750ms when standing, 500ms when crouched
           player.Actor ! Player.StaminaChanged(1)
         }
       }
@@ -4265,6 +4281,15 @@ class WorldSessionActor extends Actor
 
     case msg@VehicleStateMessage(vehicle_guid, unk1, pos, ang, vel, flying, unk6, unk7, wheels, is_decelerating, is_cloaked) =>
       if(deadState == DeadState.Alive) {
+        playerStateMessageUpstreamCount += 1
+        if(player.skipStaminaRegenForTurns > 0 && playerStateMessageUpstreamCount % 2 == 0) {
+          //do not renew stamina for a while
+          player.skipStaminaRegenForTurns -= 1
+        }
+        else if(player.Stamina != player.MaxStamina && playerStateMessageUpstreamCount % 3 == 0) {
+          // Regen stamina roughly every 750ms
+          player.Actor ! Player.StaminaChanged(1)
+        }
         GetVehicleAndSeat() match {
           case (Some(obj), Some(0)) =>
             //we're driving the vehicle
@@ -9058,6 +9083,13 @@ class WorldSessionActor extends Actor
       LoadZoneAsPlayer(newPlayer, zone_id)
     }
     else {
+      //deactivate non-passive implants
+      player.Implants.indices.foreach { index =>
+        val implantSlot = player.ImplantSlot(index)
+        if(implantSlot.Active && implantSlot.Charge(player.ExoSuit) > 0) {
+          player.Actor ! Player.ImplantActivation(index, 0)
+        }
+      }
       interstellarFerry.orElse(continent.GUID(player.VehicleSeated)) match {
         case Some(vehicle : Vehicle) => //driver or passenger in vehicle using a warp gate, or a droppod
           LoadZoneInVehicle(vehicle, pos, ori, zone_id)
@@ -10443,8 +10475,11 @@ class WorldSessionActor extends Actor
   }
 
   def DeactivateImplants() : Unit = {
-    for(slot <- 0 to player.Implants.length - 1) {
-      player.Actor ! Player.ImplantActivation(slot, 0)
+    //TODO 3 implant slots?
+    player.Implants.indices.foreach { slot =>
+      if(player.ImplantSlot(slot).Active) {
+        player.Actor ! Player.ImplantActivation(slot, 0)
+      }
     }
   }
 

@@ -40,7 +40,7 @@ class PlayerControl(player : Player) extends Actor
   private [this] val damageLog = org.log4s.getLogger(Damageable.LogChannel)
 
   // A collection of timers for each slot to trigger stamina drain on an interval
-  val implantSlotStaminaDrainTimers = mutable.HashMap(0 -> Default.Cancellable, 1 -> Default.Cancellable, 2 -> Default.Cancellable)
+  val implantSlotTimers = mutable.HashMap(0 -> Default.Cancellable, 1 -> Default.Cancellable, 2 -> Default.Cancellable)
   // control agency for the player's locker container (dedicated inventory slot #5)
   val lockerControlAgent : ActorRef = {
     val locker = player.Locker
@@ -51,84 +51,24 @@ class PlayerControl(player : Player) extends Actor
   override def postStop() : Unit = {
     lockerControlAgent ! akka.actor.PoisonPill
     player.Locker.Actor = Default.Actor
-    implantSlotStaminaDrainTimers.values.foreach { _.cancel }
+    implantSlotTimers.values.foreach { _.cancel }
   }
 
   def receive : Receive = jammableBehavior
     .orElse(takesDamage)
     .orElse(containerBehavior)
     .orElse {
-      case Player.ImplantActivation(slot: Int, status : Int) =>
-        // todo: disable implants with stamina cost when changing armour type
-        val implantSlot = player.ImplantSlot(slot)
+      case Player.ImplantActivation(slot : Int, status : Int) =>
+        ImplantActivation(slot, status)
 
-        // Allow uninitialized implants to be deactivated in case they're stuck in a state where they are no longer active or initialized but still draining stamina (e.g. by EMP)
-        if(status == 0 && (implantSlot.Active || !implantSlot.Initialized)) {
-          // Cancel stamina drain timer
-          implantSlotStaminaDrainTimers(slot).cancel()
-          implantSlotStaminaDrainTimers(slot) = Default.Cancellable
+      case Player.UninitializeImplant(slot : Int) =>
+        UninitializeImplant(slot)
 
-          implantSlot.Active = false
-          player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, player.Implant(slot).id * 2)) // Deactivation sound / effect
-          player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.DeactivateImplantSlot(player.GUID, slot))
-        } else if (status == 1 && implantSlot.Initialized && !player.Fatigued) {
-          implantSlot.Installed match {
-            case Some(implant: ImplantDefinition) =>
-              if(implantSlot.Active) {
-                // Some events such as zoning will reset the implant on the client side without sending a deactivation packet
-                // But the implant will remain in an active state server side. For now, allow reactivation of the implant.
-                // todo: Deactivate implants server side when actions like zoning happen. (Other actions?)
-                log.warn(s"Implant $slot is already active, but activating again")
-                implantSlotStaminaDrainTimers(slot).cancel()
-                implantSlotStaminaDrainTimers(slot) = Default.Cancellable
-              }
-              implantSlot.Active = true
+      case Player.ImplantInitializationStart(slot : Int) =>
+        ImplantInitializationStart(slot)
 
-              if (implant.ActivationStaminaCost >= 0) {
-                player.Stamina -= implant.ActivationStaminaCost // Activation stamina drain
-                UpdateStamina()
-              }
-
-              if(implant.StaminaCost > 0 && implant.GetCostIntervalByExoSuit(player.ExoSuit) > 0) { // Ongoing stamina drain, if applicable
-                implantSlotStaminaDrainTimers(slot) = context.system.scheduler.scheduleWithFixedDelay(0 seconds, implant.GetCostIntervalByExoSuit(player.ExoSuit) milliseconds, self, Player.DrainStamina(implant.StaminaCost))
-              }
-
-              player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, player.Implant(slot).id * 2 + 1)) // Activation sound / effect
-              player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.ActivateImplantSlot(player.GUID, slot))
-            case _ => ;
-          }
-        }
-        else {
-          log.warn(s"Can't handle ImplantActivation: Player GUID: ${player.GUID} Slot $slot Status: $status Initialized: ${implantSlot.Initialized} Active: ${implantSlot.Active} Fatigued: ${player.Fatigued}")
-        }
-
-      case Player.UninitializeImplant(slot: Int) =>
-        PlayerControl.UninitializeImplant(player, slot)
-
-      case Player.ImplantInitializationStart(slot: Int) =>
-        val implantSlot = player.ImplantSlot(slot)
-        if(implantSlot.Installed.isDefined) {
-          if(implantSlot.Initialized) {
-            PlayerControl.UninitializeImplant(player, slot)
-          }
-
-          // Start client side initialization timer
-          player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.SendResponse(player.GUID, ActionProgressMessage(slot + 6, 0)))
-
-          // Callback after initialization timer to complete initialization
-          implantSlot.InitializeTimer = context.system.scheduler.scheduleOnce(implantSlot.MaxTimer seconds, self, Player.ImplantInitializationComplete(slot))
-        }
-
-      case Player.ImplantInitializationComplete(slot: Int) =>
-        val implantSlot = player.ImplantSlot(slot)
-        if(implantSlot.Installed.isDefined) {
-          player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.SendResponse(player.GUID, AvatarImplantMessage(player.GUID, ImplantAction.Initialization, slot, 1)))
-          implantSlot.Initialized = true
-          if(implantSlot.InitializeTimer != Default.Cancellable) {
-            implantSlot.InitializeTimer.cancel()
-            implantSlot.InitializeTimer = Default.Cancellable
-          }
-        }
+      case Player.ImplantInitializationComplete(slot : Int) =>
+        ImplantInitializationComplete(slot)
 
       case Player.DrainStamina(amount : Int) =>
         player.Stamina -= amount
@@ -298,6 +238,13 @@ class PlayerControl(player : Player) extends Actor
               stow.foreach { elem =>
                 player.Inventory.InsertQuickly(elem.start, elem.obj)
               }
+              //deactivate non-passive implants
+              implantSlotTimers.keys.foreach { index =>
+                val implantSlot = player.ImplantSlot(index)
+                if(implantSlot.Installed.nonEmpty && implantSlot.Active && (implantSlot.Charge(originalSuit) > 0 || implantSlot.Charge(exosuit) > 0)) {
+                  ImplantActivation(index,  status = 0)
+                }
+              }
               player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id,
                 AvatarAction.ChangeExosuit(player.GUID, exosuit, subtype, player.LastDrawnSlot, exosuit == ExoSuitType.MAX && requestToChangeArmor,
                   beforeHolsters.map { case InventoryItem(obj, _) => (obj, obj.GUID) }, afterHolsters,
@@ -421,6 +368,13 @@ class PlayerControl(player : Player) extends Actor
             }
             (afterHolsters ++ afterInventory).foreach { entry => entry.obj.Faction = player.Faction }
             toDeleteOrDrop.foreach { entry => entry.obj.Faction = PlanetSideEmpire.NEUTRAL }
+            //deactivate non-passive implants
+            implantSlotTimers.keys.foreach { index =>
+              val implantSlot = player.ImplantSlot(index)
+              if(implantSlot.Installed.nonEmpty && implantSlot.Active && (implantSlot.Charge(originalSuit) > 0 || implantSlot.Charge(nextSuit) > 0)) {
+                ImplantActivation(index, status = 0)
+              }
+            }
             player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id,
               AvatarAction.ChangeLoadout(player.GUID, nextSuit, nextSubtype, player.LastDrawnSlot, exosuit == ExoSuitType.MAX,
                 oldHolsters.map { case InventoryItem(obj, _) => (obj, obj.GUID) }, afterHolsters,
@@ -520,29 +474,23 @@ class PlayerControl(player : Player) extends Actor
     * @param target an object that can be affected by the jammered status
     * @param dur the duration of the timer, in milliseconds
     */
-  override def StartJammeredStatus(target : Any, dur : Int) : Unit = target match {
-    case obj : Player =>
-      //TODO these features
-//      val guid = obj.GUID
-//      val zone = obj.Zone
-//      val zoneId = zone.Id
-//      val events = zone.AvatarEvents
-      player.Implants.indices.foreach { slot => // Deactivate & uninitialize all implants
-        player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, player.Implant(slot).id * 2)) // Deactivation sound / effect
-        self ! Player.ImplantActivation(slot, 0)
-        PlayerControl.UninitializeImplant(player, slot)
-      }
-
-      obj.skipStaminaRegenForTurns = math.max(obj.skipStaminaRegenForTurns, 10)
-      super.StartJammeredStatus(target, dur)
-    case _ => ;
+  override def StartJammeredStatus(target : Any, dur : Int) : Unit = {
+    //TODO these features
+    val zone = player.Zone
+    player.Implants.indices.foreach { slot => // Deactivate & uninitialize all implants
+      zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, player.Implant(slot).id * 2)) // Deactivation sound / effect
+      ImplantActivation(slot, status = 0)
+      UninitializeImplant(slot)
+    }
+    player.skipStaminaRegenForTurns = math.max(player.skipStaminaRegenForTurns, 10)
+    super.StartJammeredStatus(target, dur)
   }
 
   override def CancelJammeredStatus(target: Any): Unit = {
     player.Implants.indices.foreach { slot => // Start reinitializing all implants
-      self ! Player.ImplantInitializationStart(slot)
+      player.ImplantSlot(slot).InitializeTime = 0 //setting time to 0 will restart implant initialization (eventually)
+      ImplantInitializationStart(slot)
     }
-
     super.CancelJammeredStatus(target)
   }
 
@@ -660,42 +608,134 @@ class PlayerControl(player : Player) extends Actor
     zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectDetachMessage(obj.GUID, item.GUID, Vector3.Zero, 0f)))
   }
 
-  def StaminaChange(changeInStamina : Int) : Unit = {
-    val currentStamina = player.Stamina += changeInStamina
-    if(currentStamina == 0) {
-      player.Fatigued = true
-      player.skipStaminaRegenForTurns += 4
-      player.Implants.indices.foreach { slot => // Disable all implants
-        self ! Player.ImplantActivation(slot, 0)
-        player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.SendResponseTargeted(player.GUID, AvatarImplantMessage(player.GUID, ImplantAction.OutOfStamina, slot, 1)))
-      }
-    }
-    else if (player.Fatigued && currentStamina >= 20) {
-      player.Fatigued = false
-      player.Implants.indices.foreach { slot => // Re-enable all implants
-        player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.SendResponseTargeted(player.GUID, AvatarImplantMessage(player.GUID, ImplantAction.OutOfStamina, slot, 0)))
-      }
-    }
-    player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
-  }
-
   def UpdateStamina() : Unit = {
     val currentStamina = player.Stamina
     if(currentStamina == 0) {
       player.Fatigued = true
       player.skipStaminaRegenForTurns += 4
       player.Implants.indices.foreach { slot => // Disable all implants
-        self ! Player.ImplantActivation(slot, 0)
-        player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.SendResponseTargeted(player.GUID, AvatarImplantMessage(player.GUID, ImplantAction.OutOfStamina, slot, 1)))
+        ImplantActivation(slot, status = 0)
+        player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.SendResponse(Service.defaultPlayerGUID, AvatarImplantMessage(player.GUID, ImplantAction.OutOfStamina, slot, 1)))
       }
     }
     else if (player.Fatigued && currentStamina >= 20) {
       player.Fatigued = false
       player.Implants.indices.foreach { slot => // Re-enable all implants
-        player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.SendResponseTargeted(player.GUID, AvatarImplantMessage(player.GUID, ImplantAction.OutOfStamina, slot, 0)))
+        player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.SendResponse(Service.defaultPlayerGUID, AvatarImplantMessage(player.GUID, ImplantAction.OutOfStamina, slot, 0)))
       }
     }
-    player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
+    player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.PlanetsideAttributeToAll(player.GUID, 2, player.Stamina))
+  }
+
+  def ImplantInitializationStart(slot : Int) : Unit = {
+    val implantSlot = player.ImplantSlot(slot)
+    if(implantSlot.Installed.isDefined) {
+      if(!implantSlot.Initialized) {
+        val time = System.currentTimeMillis
+        val initializationTime = if(implantSlot.InitializeTime == 0L) {
+          implantSlot.InitializeTime = time
+          time
+        }
+        else {
+          implantSlot.InitializeTime
+        }
+        val maxInitializationTime = implantSlot.MaxTimer * 1000
+        if (time - initializationTime > maxInitializationTime) {
+          //this implant should already have been initialized
+          ImplantInitializationComplete(slot)
+        }
+        else {
+          // Start client side initialization timer
+          //progress, left to its own accumulation, is tied to the client's knowledge of the implant initialization time
+          //what is normally a 60s timer that uses 120s on the server will still visually update as if 60s
+          val percent = (100 * (time - initializationTime) / maxInitializationTime.toFloat ).toInt
+          player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.SendResponse(Service.defaultPlayerGUID, ActionProgressMessage(slot + 6, percent)))
+          // Callback after initialization timer to complete initialization
+          implantSlotTimers(slot).cancel
+          implantSlotTimers(slot) = context.system.scheduler.scheduleOnce((maxInitializationTime - (time - initializationTime)) milliseconds, self, Player.ImplantInitializationComplete(slot))
+        }
+      }
+      else {
+        ImplantInitializationComplete(slot)
+      }
+    }
+  }
+
+  def ImplantInitializationComplete(slot : Int) : Unit = {
+    val implantSlot = player.ImplantSlot(slot)
+    if(implantSlot.Installed.isDefined) {
+      implantSlot.Initialized = true
+      player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.SendResponse(Service.defaultPlayerGUID, AvatarImplantMessage(player.GUID, ImplantAction.Initialization, slot, 1)))
+      implantSlotTimers(slot).cancel
+      implantSlotTimers(slot) = Default.Cancellable
+    }
+  }
+
+  def ImplantActivation(slot : Int, status : Int) : Unit = {
+    val implantSlot = player.ImplantSlot(slot)
+    if(!implantSlot.Initialized) {
+      log.warn(s"implant #${slot + 1} is trying to (de)activate when not even initialized!")
+      //we should not be activating or deactivataing, but initializing
+      implantSlotTimers(slot).cancel
+      implantSlotTimers(slot) = Default.Cancellable
+      implantSlot.Active = false
+      //normal deactivation
+      player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.DeactivateImplantSlot(player.GUID, slot))
+      if (status == 1) {
+        //initialization process (from scratch)
+        implantSlot.InitializeTime = System.currentTimeMillis
+        ImplantInitializationStart(slot)
+      }
+    }
+    else if(status == 0 && implantSlot.Active) {
+      // Cancel stamina drain timer
+      implantSlotTimers(slot).cancel
+      implantSlotTimers(slot) = Default.Cancellable
+      implantSlot.Active = false
+      player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, player.Implant(slot).id * 2)) // Deactivation sound / effect
+      player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.DeactivateImplantSlot(player.GUID, slot))
+    }
+    else if(status == 1 && implantSlot.Initialized && !player.Fatigued) {
+      implantSlot.Installed match {
+        case Some(implant : ImplantDefinition) =>
+          if (implantSlot.Active) {
+            // Some events such as zoning will reset the implant on the client side without sending a deactivation packet
+            // But the implant will remain in an active state server side. For now, allow reactivation of the implant.
+            // todo: Deactivate implants server side when actions like zoning happen. (Other actions?)
+            log.warn(s"implant $slot is already active, but activating again")
+            implantSlotTimers(slot).cancel
+            implantSlotTimers(slot) = Default.Cancellable
+          }
+          implantSlot.Active = true
+          if (implant.ActivationStaminaCost >= 0) {
+            player.Stamina -= implant.ActivationStaminaCost // Activation stamina drain
+            UpdateStamina()
+          }
+          val drainInterval = implant.GetCostIntervalByExoSuit(player.ExoSuit)
+          if (implant.StaminaCost > 0 && drainInterval > 0) { // Ongoing stamina drain, if applicable
+            implantSlotTimers(slot).cancel
+            implantSlotTimers(slot) = context.system.scheduler.schedule(0 seconds, drainInterval milliseconds, self, Player.DrainStamina(implant.StaminaCost))
+          }
+          player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, player.Implant(slot).id * 2 + 1)) // Activation sound / effect
+          player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.ActivateImplantSlot(player.GUID, slot))
+        case _ =>
+          //there should have been an implant here ...
+          implantSlot.Active = false
+          implantSlot.Initialized = false
+          implantSlot.InitializeTime = 0L
+        //todo: AvatarImplantMessage(tplayer.GUID, ImplantAction.Remove, slot, 0)?
+      }
+    }
+  }
+
+  def UninitializeImplant(slot: Int): Unit = {
+    val implantSlot = player.ImplantSlot(slot)
+    implantSlot.Active = false
+    implantSlot.Initialized = false
+    implantSlot.InitializeTime = 0L
+    implantSlotTimers(slot).cancel
+    implantSlotTimers(slot) = Default.Cancellable
+    player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.SendResponse(Service.defaultPlayerGUID, AvatarImplantMessage(player.GUID, ImplantAction.Initialization, slot, 0)))
   }
 }
 
@@ -788,6 +828,10 @@ object PlayerControl {
     target.Actor ! JammableUnit.ClearJammeredSound()
     target.Actor ! JammableUnit.ClearJammeredStatus()
     events ! AvatarServiceMessage(nameChannel, AvatarAction.Killed(player_guid, target.VehicleSeated)) //align client interface fields with state
+    //implants off
+    target.Actor ! Player.StaminaChanged(-target.Stamina)
+    target.Stamina = 0
+    target.ResetAllImplants()
     zone.GUID(target.VehicleSeated) match {
       case Some(obj : Mountable) =>
         //boot cadaver from seat internally (vehicle perspective)
@@ -856,16 +900,5 @@ object PlayerControl {
       case None =>
         events ! AvatarServiceMessage(zoneChannel, AvatarAction.DestroyDisplay(pentry, pentry, 0))
     }
-  }
-
-  def UninitializeImplant(player: Player, slot: Int): Unit = {
-    val implantSlot = player.ImplantSlot(slot)
-
-    implantSlot.Initialized = false
-    if(implantSlot.InitializeTimer != Default.Cancellable) {
-      implantSlot.InitializeTimer.cancel()
-      implantSlot.InitializeTimer = Default.Cancellable
-    }
-    player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.SendResponse(player.GUID, AvatarImplantMessage(player.GUID, ImplantAction.Initialization, slot, 0)))
   }
 }
