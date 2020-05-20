@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject
 
-import akka.actor.ActorRef
+import akka.actor.{ActorContext, ActorRef, Props}
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.entity.NoGUIDException
 import net.psforever.objects.serverobject.affinity.FactionAffinity
@@ -14,13 +14,20 @@ import net.psforever.objects.zones.ZoneAware
 abstract class PlanetSideServerObject extends PlanetSideGameObject
   with FactionAffinity
   with ZoneAware {
+  private var interim : ActorRef = ActorRef.noSender
   private var actor = ActorRef.noSender
+
+  def Interim(name : String)(implicit context : ActorContext) : Unit = {
+    if(interim == ActorRef.noSender) {
+      interim = context.system.actorOf(Props[InterimControlAgency], name)
+    }
+  }
 
   /**
     * Retrieve a reference to the internal `Actor`.
     * @return the internal `ActorRef`
     */
-  def Actor : ActorRef = actor
+  def Actor : ActorRef = if(actor == ActorRef.noSender) interim else actor
 
   /**
     * Assign an `Actor` to act for this server object.
@@ -29,9 +36,7 @@ abstract class PlanetSideServerObject extends PlanetSideGameObject
     * @return the current internal `ActorRef`
     */
   def Actor_=(control : ActorRef) : ActorRef =  {
-    if(actor == ActorRef.noSender || control == ActorRef.noSender) {
-      actor = control
-    }
+    actor = control
     actor
   }
 }

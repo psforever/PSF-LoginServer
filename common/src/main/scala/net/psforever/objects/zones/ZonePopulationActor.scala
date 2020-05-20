@@ -3,6 +3,7 @@ package net.psforever.objects.zones
 
 import akka.actor.{Actor, ActorRef, Props}
 import net.psforever.objects.avatar.PlayerControl
+import net.psforever.objects.serverobject.InterimControlAgency
 import net.psforever.objects.{Avatar, Player}
 
 import scala.annotation.tailrec
@@ -47,7 +48,11 @@ class ZonePopulationActor(zone : Zone, playerMap : TrieMap[Avatar, Option[Player
             sender ! Zone.Population.PlayerAlreadySpawned(zone, player)
           }
           else if(newToZone) {
-            player.Actor = context.actorOf(Props(classOf[PlayerControl], player),  s"${player.CharId}_${player.GUID.guid}_${System.currentTimeMillis}")
+            val name = s"${player.CharId}_${player.GUID.guid}_${System.currentTimeMillis}"
+            player.Interim(s"interim_of_$name")
+            val agency = context.actorOf(Props(classOf[PlayerControl], player),  name)
+            player.Actor ! InterimControlAgency.ControlAgency(agency)
+            player.Actor = agency
             player.Zone = zone
           }
         case None =>
