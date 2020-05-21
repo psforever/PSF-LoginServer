@@ -6213,6 +6213,13 @@ class WorldSessionActor extends Actor
         case Some(hitInfo) =>
           ValidObject(hitInfo.hitobject_guid) match {
             case Some(target : PlanetSideGameObject with FactionAffinity with Vitality) =>
+              val hitPositionDiscrepancy = Vector3.DistanceSquared(hitInfo.hit_pos, target.Position)
+              if(hitPositionDiscrepancy > 7500) {
+                // 7500 (500 units) was chosen as a very generous rough distance you can run at /speed 5 in 500ms.
+                // That *should* be enough whilst missing a single PlayerStateMessageUpstream / VehicleStateMessage packet to be hit and not raise a warning
+                // If the target position on the server does not match the position where the projectile landed within reason there may be foul play
+                log.warn(s"Shot guid ${projectile_guid} has hit location discrepancy with target location. Target: ${target.Position} Reported: ${hitInfo.hit_pos}, Origin: ${hitInfo.shot_origin} Distance: ${hitPositionDiscrepancy} / ${math.sqrt(hitPositionDiscrepancy).toFloat}; suspect")
+              }
               Some((target, hitInfo.shot_origin, hitInfo.hit_pos))
             case _ =>
               None
