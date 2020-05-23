@@ -1,9 +1,9 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, Props}
 import base.ActorTest
-import net.psforever.objects.{Avatar, Player}
+import net.psforever.objects.{Avatar, Default, Player}
 import net.psforever.objects.definition.{ObjectDefinition, SeatDefinition}
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.PlanetSideServerObject
@@ -17,7 +17,7 @@ class MountableControl1Test extends ActorTest {
     "construct" in {
       val obj = new MountableTest.MountableTestObject
       obj.Actor = system.actorOf(Props(classOf[MountableTest.MountableTestControl], obj), "mech")
-      assert(obj.Actor != ActorRef.noSender)
+      assert(obj.Actor != Default.Actor)
     }
   }
 }

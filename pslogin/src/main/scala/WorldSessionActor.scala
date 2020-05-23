@@ -174,7 +174,6 @@ class WorldSessionActor extends Actor
   lazy val unsignedIntMaxValue : Long = Int.MaxValue.toLong * 2L + 1L
   var serverTime : Long = 0
   var amsSpawnPoints : List[SpawnPoint] = Nil
-  var playerSpawnAttempt : Option[Int] = None
 
   var clientKeepAlive : Cancellable = DefaultCancellable.obj
   var progressBarUpdate : Cancellable = DefaultCancellable.obj
@@ -836,12 +835,10 @@ class WorldSessionActor extends Actor
         log.info(s"${tplayer.Name} has left zone ${zone.Id}")
       }
 
-    case Zone.Population.PlayerHasSpawned(zone, tplayer) =>
-      playerSpawnAttempt = None
+    case Zone.Population.PlayerHasSpawned(zone, tplayer) => ;
 
     case Zone.Population.PlayerAlreadySpawned(zone, tplayer) =>
       log.warn(s"${tplayer.Name} is already spawned on zone ${zone.Id}; a clerical error?")
-      playerSpawnAttempt = None
 
     case Zone.Population.PlayerCanNotSpawn(zone, tplayer) =>
       log.warn(s"${tplayer.Name} can not spawn in zone ${zone.Id}; why?")
@@ -1525,29 +1522,26 @@ class WorldSessionActor extends Actor
           failWithError(s"${tplayer.Name} failed to load anywhere")
       }
 
-    case SetCurrentAvatar(tplayer) =>
-      playerSpawnAttempt match {
-        case Some(300) => //30s later ...
-          //assume that we stalled; try to rejoin this zone from the start of the process
-          respawnTimer.cancel
-          val toZoneId = continent.Id
-          continent.Population ! Zone.Population.Leave(avatar) //does not matter if it doesn't work
-          continent = Zone.Nowhere
-          playerSpawnAttempt = Some(0)
-          LoadZonePhysicalSpawnPoint(
-            toZoneId,
-            shiftPosition.getOrElse(player.Position),
-            shiftOrientation.getOrElse(player.Orientation),
-            respawnTime = 0L
-          )
-        case Some(attempt) =>
-          playerSpawnAttempt = Some(attempt + 1)
-          respawnTimer.cancel
-          respawnTimer = context.system.scheduler.scheduleOnce(100 milliseconds, self, SetCurrentAvatar(tplayer))
-        case None =>
-          playerSpawnAttempt = None
-          respawnTimer.cancel
-          HandleSetCurrentAvatar(tplayer)
+    case SetCurrentAvatar(tplayer, attempt) =>
+      respawnTimer.cancel
+      if(tplayer.HasGUID && tplayer.Actor != Default.Actor) {
+        HandleSetCurrentAvatar(tplayer)
+      }
+      else if(attempt == 300) { //so many failures later ...
+        //assume that we stalled; try to rejoin this zone from the start of the process
+        val toZoneId = continent.Id
+        continent.Population ! Zone.Population.Leave(avatar) //does not matter if it doesn't work
+        continent = Zone.Nowhere
+        LoadZonePhysicalSpawnPoint(
+          toZoneId,
+          shiftPosition.getOrElse(player.Position),
+          shiftOrientation.getOrElse(player.Orientation),
+          respawnTime = 0L
+        )
+      }
+      else {
+        //wait a bit more
+        respawnTimer = context.system.scheduler.scheduleOnce(100 milliseconds, self, SetCurrentAvatar(tplayer, attempt + 1))
       }
 
     case NtuCharging(tplayer, vehicle) =>
@@ -8609,7 +8603,6 @@ class WorldSessionActor extends Actor
         log.trace(s"AvatarCreate: ${player.Name}")
     }
     continent.Population ! Zone.Population.Spawn(avatar, player)
-    playerSpawnAttempt = Some(0)
     //cautious redundancy
     deadState = DeadState.Alive
     ReloadUsedLastCoolDownTimes()
@@ -11573,7 +11566,7 @@ object WorldSessionActor {
   private final case class PlayerFailedToLoad(tplayer : Player)
   private final case class CreateCharacter(name : String, head : Int, voice : CharacterVoice.Value, gender : CharacterGender.Value, empire : PlanetSideEmpire.Value)
   private final case class ListAccountCharacters()
-  private final case class SetCurrentAvatar(tplayer : Player)
+  private final case class SetCurrentAvatar(tplayer : Player, attempt : Int = 0)
   private final case class ZoningReset()
 
   final val ftes = (

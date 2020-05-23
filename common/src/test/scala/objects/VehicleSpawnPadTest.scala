@@ -1,9 +1,8 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import akka.actor.ActorRef
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
-import net.psforever.objects.GlobalDefinitions
+import net.psforever.objects.{Default, GlobalDefinitions}
 import org.specs2.mutable.Specification
 
 class VehicleSpawnPadTest extends Specification {
@@ -16,7 +15,7 @@ class VehicleSpawnPadTest extends Specification {
   "VehicleSpawnPad" should {
     "construct" in {
       val obj = VehicleSpawnPad(GlobalDefinitions.mb_pad_creation)
-      obj.Actor mustEqual ActorRef.noSender
+      obj.Actor mustEqual Default.Actor
       obj.Definition mustEqual GlobalDefinitions.mb_pad_creation
     }
   }

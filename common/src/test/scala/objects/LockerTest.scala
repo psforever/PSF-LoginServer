@@ -1,9 +1,9 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import akka.actor.{ActorRef, Props}
+import akka.actor.Props
 import base.ActorTest
-import net.psforever.objects.GlobalDefinitions
+import net.psforever.objects.{Default, GlobalDefinitions}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.mblocker.{Locker, LockerControl}
 import net.psforever.types.PlanetSideEmpire
@@ -20,7 +20,7 @@ class LockerTest extends Specification {
   "Locker" should {
     "construct" in {
       val locker = new Locker()
-      locker.Actor mustEqual ActorRef.noSender
+      locker.Actor mustEqual Default.Actor
     }
   }
 }

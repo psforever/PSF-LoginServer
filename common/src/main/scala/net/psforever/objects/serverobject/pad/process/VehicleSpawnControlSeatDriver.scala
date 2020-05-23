@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.pad.process
 
-import akka.actor.{ActorRef, Props}
-import net.psforever.objects.Vehicle
+import akka.actor.Props
+import net.psforever.objects.{Default, Vehicle}
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -29,7 +29,7 @@ class VehicleSpawnControlSeatDriver(pad : VehicleSpawnPad) extends VehicleSpawnC
 
   def receive : Receive = {
     case order @ VehicleSpawnControl.Order(_, vehicle) =>
-      if(vehicle.Actor == ActorRef.noSender) { //wait for a necessary vehicle component to be loaded
+      if(vehicle.Actor == Default.Actor) { //wait for a necessary vehicle component to be loaded
         context.system.scheduler.scheduleOnce(50 milliseconds, self, order)
       }
       else {

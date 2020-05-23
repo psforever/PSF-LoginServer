@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vehicles
 
-import akka.actor.{ActorContext, ActorRef}
+import akka.actor.ActorContext
 import net.psforever.objects.definition.BaseDeployableDefinition
 import net.psforever.objects._
 import net.psforever.objects.ce.{DeployedItem, TelepadLike}
@@ -269,6 +269,6 @@ object InternalTelepadDefinition {
 
   def SimpleUninitialize(obj : PlanetSideServerObject, context : ActorContext) : Unit = {
     context.stop(obj.Actor)
-    obj.Actor = ActorRef.noSender
+    obj.Actor = Default.Actor
   }
 }

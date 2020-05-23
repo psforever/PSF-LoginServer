@@ -31,7 +31,7 @@ import scala.collection.JavaConverters._
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-import kamon.Kamon
+//import kamon.Kamon
 
 object PsLogin {
   private val logger = org.log4s.getLogger
@@ -218,7 +218,7 @@ object PsLogin {
       case true =>
         logger.info("Starting Kamon")
 
-        Kamon.init()
+//        Kamon.init()
       case _ => ;
     }
 

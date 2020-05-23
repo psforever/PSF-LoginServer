@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, Props}
 import akka.testkit.TestProbe
 import base.ActorTest
 import net.psforever.objects.ballistics._
@@ -361,7 +361,7 @@ class ExplosiveDeployableJammerTest extends ActorTest {
       )
       assert(
         msg_local(2) match {
-          case LocalServiceMessage.Deployables(SupportActor.ClearSpecific(List(target), _zone)) => (target eq j_mine) && (_zone eq zone)
+          case LocalServiceMessage.Deployables(SupportActor.ClearSpecific(List(target : PlanetSideGameObject), _zone)) => (target eq j_mine) && (_zone eq zone)
           case _ => false
         }
       )
@@ -455,7 +455,7 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
       )
       assert(
         msg_local(3) match {
-          case LocalServiceMessage.Deployables(SupportActor.ClearSpecific(List(target), _zone)) => (target eq h_mine) && (_zone eq zone)
+          case LocalServiceMessage.Deployables(SupportActor.ClearSpecific(List(target : PlanetSideGameObject), _zone)) => (target eq h_mine) && (_zone eq zone)
           case _ => false
         }
       )
@@ -551,7 +551,7 @@ class ExplosiveDeployableDestructionTest extends ActorTest {
       )
       assert(
         msg_local(2) match {
-          case LocalServiceMessage.Deployables(SupportActor.ClearSpecific(List(target), _zone)) => (target eq h_mine) && (_zone eq zone)
+          case LocalServiceMessage.Deployables(SupportActor.ClearSpecific(List(target : PlanetSideGameObject), _zone)) => (target eq h_mine) && (_zone eq zone)
           case _ => false
         }
       )
@@ -592,11 +592,11 @@ class TurretControlInitializeTest extends ActorTest {
     "initialize" in {
       val obj = new TurretDeployable(GlobalDefinitions.spitfire_turret)
       obj.GUID = PlanetSideGUID(1)
-      assert(obj.Actor == ActorRef.noSender)
+      assert(obj.Actor == Default.Actor)
       val init = system.actorOf(Props(classOf[DeployableTest.TurretInitializer], obj), "init_turret_test")
       init ! "initialize"
       expectNoMessage(200 milliseconds)
-      assert(obj.Actor != ActorRef.noSender)
+      assert(obj.Actor != Default.Actor)
     }
   }
 }
@@ -609,11 +609,11 @@ class TurretControlUninitializeTest extends ActorTest {
       obj.GUID = PlanetSideGUID(1)
       init ! "initialize"
       expectNoMessage(200 milliseconds)
-      assert(obj.Actor != ActorRef.noSender)
+      assert(obj.Actor != Default.Actor)
 
       init ! "uninitialize"
       expectNoMessage(200 milliseconds)
-      assert(obj.Actor == ActorRef.noSender)
+      assert(obj.Actor == Default.Actor)
     }
   }
 }

@@ -3,7 +3,7 @@ package net.psforever.objects.ce
 
 import akka.actor.ActorContext
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.{PlanetSideGameObject, TelepadDeployable, Vehicle}
+import net.psforever.objects.{Default, PlanetSideGameObject, TelepadDeployable, Vehicle}
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.vehicles.Utility
 import net.psforever.objects.zones.Zone
@@ -50,8 +50,8 @@ object TelepadLike {
     */
   def Setup(obj : Amenity, context : ActorContext) : Unit = {
     obj.asInstanceOf[TelepadLike].Router = obj.Owner.GUID
-    import akka.actor.{ActorRef, Props}
-    if(obj.Actor == ActorRef.noSender) {
+    import akka.actor.Props
+    if(obj.Actor == Default.Actor) {
       obj.Actor = context.actorOf(Props(classOf[TelepadControl], obj), PlanetSideServerObject.UniqueActorName(obj))
     }
   }

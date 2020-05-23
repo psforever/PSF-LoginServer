@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.zones
 
-import akka.actor.{Actor, ActorRef, Props}
-import net.psforever.objects.Vehicle
+import akka.actor.{Actor, Props}
+import net.psforever.objects.{Default, Vehicle}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.vehicles.VehicleControl
 
@@ -10,12 +10,9 @@ import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 
 /**
-  * Synchronize management of the list of `Vehicles` maintained by some `Zone`.
-  */
-//COMMENTS IMPORTED FROM FORMER VehicleContextActor:
-/**
-  * Provide a context for a `Vehicle` `Actor` - the `VehicleControl`.<br>
+  * Synchronize management of the list of `Vehicles` maintained by some `Zone`.<br>
   * <br>
+  * COMMENTS IMPORTED FROM FORMER VehicleContextActor:<br>
   * A vehicle can be passed between different zones and, therefore, does not belong to the zone.
   * A vehicle cna be given to different players and can persist and change though players have gone.
   * Therefore, also does not belong to `WorldSessionActor`.
@@ -38,7 +35,7 @@ class ZoneVehicleActor(zone : Zone, vehicleList : ListBuffer[Vehicle]) extends A
       else if(vehicleList.contains(vehicle)) {
         sender ! Zone.Vehicle.CanNotSpawn(zone, vehicle, "already in zone")
       }
-      else if(vehicle.Actor != ActorRef.noSender) {
+      else if(vehicle.Actor != Default.Actor) {
         sender ! Zone.Vehicle.CanNotSpawn(zone, vehicle, "already in another zone")
       }
       else {
@@ -52,7 +49,7 @@ class ZoneVehicleActor(zone : Zone, vehicleList : ListBuffer[Vehicle]) extends A
         case Some(index) =>
           vehicleList.remove(index)
           context.stop(vehicle.Actor)
-          vehicle.Actor = ActorRef.noSender
+          vehicle.Actor = Default.Actor
         case None => ;
           sender ! Zone.Vehicle.CanNotDespawn(zone, vehicle, "can not find")
       }

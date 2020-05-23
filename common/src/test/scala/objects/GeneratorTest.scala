@@ -1,11 +1,11 @@
 // Copyright (c) 2020 PSForever
 package objects
 
-import akka.actor.{ActorRef, Props}
+import akka.actor.Props
 import akka.testkit.TestProbe
 import base.ActorTest
 import net.psforever.objects.ballistics._
-import net.psforever.objects.{Avatar, GlobalDefinitions, Player, Tool}
+import net.psforever.objects._
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.LimitedNumberSource
 import net.psforever.objects.serverobject.CommonMessages
@@ -39,7 +39,7 @@ class GeneratorControlConstructTest extends ActorTest {
     "construct" in {
       val gen = Generator(GlobalDefinitions.generator)
       gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "gen-control")
-      assert(gen.Actor != ActorRef.noSender)
+      assert(gen.Actor != Default.Actor)
     }
   }
 }

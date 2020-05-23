@@ -3,8 +3,7 @@ package net.psforever.objects.zones
 
 import akka.actor.{Actor, ActorRef, Props}
 import net.psforever.objects.avatar.PlayerControl
-import net.psforever.objects.serverobject.InterimControlAgency
-import net.psforever.objects.{Avatar, Player}
+import net.psforever.objects.{Avatar, Default, Player}
 
 import scala.annotation.tailrec
 import scala.collection.concurrent.TrieMap
@@ -46,7 +45,7 @@ class ZonePopulationActor(zone : Zone, playerMap : TrieMap[Avatar, Option[Player
         case Some(tplayer) =>
           tplayer.Zone = Zone.Nowhere
           context.stop(tplayer.Actor)
-          tplayer.Actor = ActorRef.noSender
+          tplayer.Actor = Default.Actor
           if(playerMap.isEmpty) {
             zone.StopPlayerManagementSystems()
           }
@@ -64,7 +63,6 @@ class ZonePopulationActor(zone : Zone, playerMap : TrieMap[Avatar, Option[Player
               Props(classOf[PlayerControl], player),
               ZonePopulationActor.GetPlayerControlName(player, None)
             )
-            player.Actor ! InterimControlAgency.ControlAgency(control)
             player.Actor = control
             sender ! Zone.Population.PlayerHasSpawned(zone, player)
           }
@@ -88,11 +86,7 @@ class ZonePopulationActor(zone : Zone, playerMap : TrieMap[Avatar, Option[Player
       if(playerIsCorpse) {
         if(!playerInZone) {
           val name = ZonePopulationActor.GetPlayerControlName(player, None)
-          val control = context.actorOf(Props(classOf[PlayerControl], player), name = s"corpse_of_$name")
-          if(player.Actor != ActorRef.noSender) {
-            player.Actor ! InterimControlAgency.ControlAgency(control)
-          }
-          player.Actor = control
+          player.Actor = context.actorOf(Props(classOf[PlayerControl], player), name = s"corpse_of_$name")
           player.Zone = zone
         }
       }
@@ -107,10 +101,8 @@ class ZonePopulationActor(zone : Zone, playerMap : TrieMap[Avatar, Option[Player
   }
 
   def PlayerLeave(player : Player) : Unit = {
-    val name = s"interim_for_${ZonePopulationActor.GetPlayerControlName(player, Some(player.Actor))}"
-    val old = player.Actor
-    player.Actor = context.actorOf(Props[InterimControlAgency], name)
-    context.stop(old)
+    player.Actor ! akka.actor.PoisonPill
+    player.Actor = Default.Actor
   }
 }
 

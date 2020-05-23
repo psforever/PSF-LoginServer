@@ -55,13 +55,13 @@ import scala.util.Try
   */
 class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   /** Governs general synchronized external requests. */
-  private var actor = ActorRef.noSender
+  private var actor = Default.Actor
 
   /** Actor that handles SOI related functionality, for example if a player is in a SOI **/
-  private var soi = ActorRef.noSender
+  private var soi = Default.Actor
 
   /** Used by the globally unique identifier system to coordinate requests. */
-  private var accessor : ActorRef = ActorRef.noSender
+  private var accessor : ActorRef = Default.Actor
   /** The basic support structure for the globally unique number system used by this `Zone`. */
   private var guid : NumberPoolHub = new NumberPoolHub(new LimitedNumberSource(65536))
   /** A synchronized `List` of items (`Equipment`) dropped by players on the ground and can be collected again. */
@@ -69,19 +69,19 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   /** */
   private val vehicles : ListBuffer[Vehicle] = ListBuffer[Vehicle]()
   /** Used by the `Zone` to coordinate `Equipment` dropping and collection requests. */
-  private var ground : ActorRef = ActorRef.noSender
+  private var ground : ActorRef = Default.Actor
   /** */
   private val constructions : ListBuffer[PlanetSideGameObject with Deployable] = ListBuffer[PlanetSideGameObject with Deployable]()
   /** */
-  private var deployables : ActorRef = ActorRef.noSender
+  private var deployables : ActorRef = Default.Actor
   /** */
-  private var transport : ActorRef = ActorRef.noSender
+  private var transport : ActorRef = Default.Actor
   /** */
   private val players : TrieMap[Avatar, Option[Player]] = TrieMap[Avatar, Option[Player]]()
   /** */
   private val corpses : ListBuffer[Player] = ListBuffer[Player]()
   /** */
-  private var population : ActorRef = ActorRef.noSender
+  private var population : ActorRef = Default.Actor
 
   private var buildings : PairMap[Int, Building] = PairMap.empty[Int, Building]
 
@@ -92,7 +92,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   /** key - spawn zone id, value - buildings belonging to spawn zone */
   private var spawnGroups : Map[Building, List[SpawnPoint]] = PairMap[Building, List[SpawnPoint]]()
   /** */
-  private var projector : ActorRef = ActorRef.noSender
+  private var projector : ActorRef = Default.Actor
   /** */
   private var hotspots : ListBuffer[HotSpotInfo] = ListBuffer[HotSpotInfo]()
   /** */
@@ -102,11 +102,11 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   /** calculate a duration from a given interaction's participants */
   private var hotspotTimeFunc : (SourceEntry, SourceEntry)=>FiniteDuration = Zone.HotSpot.Rules.NoTime
   /** */
-  private var avatarEvents : ActorRef = ActorRef.noSender
+  private var avatarEvents : ActorRef = Default.Actor
   /** */
-  private var localEvents : ActorRef = ActorRef.noSender
+  private var localEvents : ActorRef = Default.Actor
   /** */
-  private var vehicleEvents : ActorRef = ActorRef.noSender
+  private var vehicleEvents : ActorRef = Default.Actor
 
   /**
     * Establish the basic accessible conditions necessary for a functional `Zone`.<br>
@@ -126,7 +126,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     * @param context a reference to an `ActorContext` necessary for `Props`
     */
   def Init(implicit context : ActorContext) : Unit = {
-    if(accessor == ActorRef.noSender) {
+    if(accessor == Default.Actor) {
       SetupNumberPools()
       accessor = context.actorOf(RandomPool(25).props(Props(classOf[UniqueNumberSystem], this.guid, UniqueNumberSystem.AllocateNumberPoolActors(this.guid))), s"$Id-uns")
       ground = context.actorOf(Props(classOf[ZoneGroundActor], this, equipmentOnGround), s"$Id-ground")
@@ -187,7 +187,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     * @see `ZoneActor`
     */
   def Actor_=(zoneActor : ActorRef) : ActorRef = {
-    if(actor == ActorRef.noSender) {
+    if(actor == Default.Actor) {
       actor = zoneActor
     }
     Actor
@@ -248,7 +248,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     *        `false`, if the new pool can not be created because the system has already been started
     */
   def AddPool(name : String, pool : Seq[Int]) : Boolean = {
-    if(accessor == ActorRef.noSender) {
+    if(accessor == Default.Actor) {
       guid.AddPool(name, pool.toList)
       true
     }
@@ -266,7 +266,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     *        `false`, if the new pool can not be removed because the system has already been started
     */
   def RemovePool(name : String) : Boolean = {
-    if(accessor == ActorRef.noSender) {
+    if(accessor == Default.Actor) {
       guid.RemovePool(name)
       true
     }

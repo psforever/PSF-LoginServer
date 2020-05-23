@@ -1,12 +1,12 @@
 // Copyright (c) 2017 PSForever
 package actor.objects
 
-import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.actor.{ActorSystem, Props}
 import akka.testkit.TestProbe
 import actor.base.ActorTest
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 import net.psforever.objects.serverobject.structures.StructureType
-import net.psforever.objects.{Avatar, GlobalDefinitions, Player, Vehicle}
+import net.psforever.objects._
 import net.psforever.objects.zones.Zone
 import net.psforever.types.{PlanetSideGUID, _}
 import services.RemoverActor
@@ -19,7 +19,7 @@ class VehicleSpawnControl1Test extends ActorTest {
     "construct" in {
       val obj = VehicleSpawnPad(GlobalDefinitions.mb_pad_creation)
       obj.Actor = system.actorOf(Props(classOf[VehicleSpawnControl], obj), "mb_pad_creation")
-      assert(obj.Actor != ActorRef.noSender)
+      assert(obj.Actor != Default.Actor)
     }
   }
 }

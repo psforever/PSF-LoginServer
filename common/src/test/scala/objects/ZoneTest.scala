@@ -3,7 +3,7 @@ package objects
 
 import java.util.concurrent.atomic.AtomicInteger
 
-import akka.actor.{ActorContext, ActorRef, Props}
+import akka.actor.{ActorContext, Props}
 import base.ActorTest
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.equipment.Equipment
@@ -92,9 +92,9 @@ class ZoneTest extends Specification {
   "Zone" should {
     "construct" in {
       val zone = new Zone("home3", map13, 13)
-      zone.GUID mustEqual ActorRef.noSender
-      zone.Ground mustEqual ActorRef.noSender
-      zone.Transport mustEqual ActorRef.noSender
+      zone.GUID mustEqual Default.Actor
+      zone.Ground mustEqual Default.Actor
+      zone.Transport mustEqual Default.Actor
       //zone also has a unique identifier system but it can't be accessed without its the Actor GUID being initialized
       zone.EquipmentOnGround mustEqual List.empty[Equipment]
       zone.Vehicles mustEqual List.empty[Vehicle]
@@ -124,7 +124,7 @@ class ZoneActorTest extends ActorTest {
       val zone = new Zone("test", new ZoneMap("map6"), 1) { override def SetupNumberPools() = { } }
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-actor")
       expectNoMessage(Duration.create(100, "ms"))
-      assert(zone.Actor != ActorRef.noSender)
+      assert(zone.Actor != Default.Actor)
     }
 
     "create new number pools before the Actor is started" in {
@@ -364,7 +364,8 @@ class ZonePopulationTest extends ActorTest {
       zone.Population ! Zone.Population.Join(avatar)
       expectNoMessage(Duration.create(100, "ms"))
       zone.Population ! Zone.Population.Spawn(avatar, player)
-      expectNoMessage(Duration.create(100, "ms"))
+      val spawnReply = receiveOne(Duration.create(500, "ms"))
+      assert(spawnReply.isInstanceOf[Zone.Population.PlayerHasSpawned])
 
       assert(zone.Players.size == 1)
       assert(zone.Players.head == avatar)

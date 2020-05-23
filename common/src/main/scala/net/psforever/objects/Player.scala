@@ -1,7 +1,6 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import akka.actor.ActorRef
 import net.psforever.objects.avatar.LoadoutManager
 import net.psforever.objects.definition.{AvatarDefinition, ExoSuitDefinition, SpecialExoSuitDefinition}
 import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot, JammableUnit}
@@ -124,7 +123,7 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
   def Stamina_=(assignStamina : Int) : Int = {
     stamina = if(isAlive) { math.min(math.max(0, assignStamina), MaxStamina) } else { 0 }
 
-    if(Actor != ActorRef.noSender) {
+    if(Actor != Default.Actor) {
       Actor ! Player.StaminaChanged(Stamina)
     }
 

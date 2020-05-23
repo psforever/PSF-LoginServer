@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vehicles
 
-import akka.actor.{Actor, ActorRef, Cancellable}
+import akka.actor.{Actor, Cancellable}
 import net.psforever.objects._
 import net.psforever.objects.ballistics.{ResolvedProjectile, VehicleSource}
 import net.psforever.objects.equipment.JammableMountedWeapons
@@ -62,7 +62,7 @@ class VehicleControl(vehicle : Vehicle) extends Actor
     decayTimer.cancel
     vehicle.Utilities.values.foreach { util =>
       context.stop(util().Actor)
-      util().Actor = ActorRef.noSender
+      util().Actor = Default.Actor
     }
   }
 
