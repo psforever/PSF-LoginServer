@@ -6,7 +6,6 @@ import net.psforever.objects.serverobject.structures.WarpGate
 import net.psforever.objects.zones.Zone
 import net.psforever.types.PlanetSideEmpire
 
-
 object Zones {
   val z1 = new Zone("z1", Maps.map1, 1) {
     override def Init(implicit context : ActorContext) : Unit = {
