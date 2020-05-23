@@ -1,33 +1,28 @@
  // Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject
 
-import akka.actor.{Actor, ActorRef, PoisonPill, Stash}
+import akka.actor.{Actor, ActorRef, Stash}
 
-class InterimControlAgency extends Actor with Stash {
-  private var heir : ActorRef = ActorRef.noSender
+class InterimControlAgency extends Actor
+  with Stash {
+  private var heir : ActorRef = context.system.deadLetters
 
-  def receive : Receive = Interim
-
-  def Interim : Receive = {
+  def receive : Receive = {
     case InterimControlAgency.ControlAgency(ActorRef.noSender) => ;
     case InterimControlAgency.ControlAgency(actor) =>
       heir = actor
       context.become(Inheritance)
       unstashAll() //restore stashed messages to (front of) mailbox
-      self ! InterimControlAgency.Interim() //last message
+      self ! akka.actor.PoisonPill //last message
     case _ =>
       stash()
   }
 
   def Inheritance : Receive = {
-    case InterimControlAgency.Interim() => context.become(Interim)
     case msg => heir forward msg
   }
 }
 
 object InterimControlAgency {
   final case class ControlAgency(actor : ActorRef)
-
-  private case class Interim()
-
 }

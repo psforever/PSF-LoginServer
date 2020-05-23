@@ -11,9 +11,8 @@ import net.psforever.objects._
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.zones.Zone
 import net.psforever.types.Vector3
-import services.{RemoverActor, Service, ServiceManager}
+import services.{Service, ServiceManager}
 import services.avatar.{AvatarAction, AvatarServiceMessage}
-import services.vehicle.VehicleServiceMessage
 
 /**
   * A global service that manages user behavior as divided into the following three categories:
@@ -313,7 +312,6 @@ class PersistenceMonitor(name : String, squadService : ActorRef, taskResolver : 
         vehicle.Actor ! Vehicle.Ownership(None)
       case _ => ;
     }
-    inZone.Population.tell(Zone.Population.Release(avatar), parent)
     inZone.AvatarEvents.tell(AvatarServiceMessage(inZone.Id, AvatarAction.ObjectDelete(pguid, pguid)), parent)
     AvatarLogout(avatar)
     taskResolver.tell(GUIDTask.UnregisterAvatar(player)(inZone.GUID), parent)
@@ -335,7 +333,7 @@ class PersistenceMonitor(name : String, squadService : ActorRef, taskResolver : 
     LivePlayerList.Remove(charId)
     squadService.tell(Service.Leave(Some(charId.toString)), parent)
     Deployables.Disown(inZone, avatar, parent)
-    inZone.Population.tell(Zone.Population.Leave(avatar), parent)
+    inZone.Population.tell(Zone.Population.Logout(avatar), parent)
   }
 }
 

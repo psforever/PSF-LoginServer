@@ -174,6 +174,7 @@ class WorldSessionActor extends Actor
   lazy val unsignedIntMaxValue : Long = Int.MaxValue.toLong * 2L + 1L
   var serverTime : Long = 0
   var amsSpawnPoints : List[SpawnPoint] = Nil
+  var playerSpawnAttempt : Option[Int] = None
 
   var clientKeepAlive : Cancellable = DefaultCancellable.obj
   var progressBarUpdate : Cancellable = DefaultCancellable.obj
@@ -832,14 +833,18 @@ class WorldSessionActor extends Actor
 
     case Zone.Population.PlayerHasLeft(zone, Some(tplayer)) =>
       if(tplayer.isAlive) {
-        log.info(s"$tplayer has left zone ${zone.Id}")
+        log.info(s"${tplayer.Name} has left zone ${zone.Id}")
       }
 
-    case Zone.Population.PlayerCanNotSpawn(zone, tplayer) =>
-      log.warn(s"$tplayer can not spawn in zone ${zone.Id}; why?")
+    case Zone.Population.PlayerHasSpawned(zone, tplayer) =>
+      playerSpawnAttempt = None
 
     case Zone.Population.PlayerAlreadySpawned(zone, tplayer) =>
-      log.warn(s"$tplayer is already spawned on zone ${zone.Id}; a clerical error?")
+      log.warn(s"${tplayer.Name} is already spawned on zone ${zone.Id}; a clerical error?")
+      playerSpawnAttempt = None
+
+    case Zone.Population.PlayerCanNotSpawn(zone, tplayer) =>
+      log.warn(s"${tplayer.Name} can not spawn in zone ${zone.Id}; why?")
 
     case Zone.Lattice.SpawnPoint(zone_id, spawn_tube) =>
       CancelZoningProcess()
@@ -917,7 +922,7 @@ class WorldSessionActor extends Actor
       PutItemOnGround(item, pos, orient)
 
     case Zone.Ground.CanNotDropItem(zone, item, reason) =>
-      log.warn(s"DropItem: $player tried to drop a $item on the ground, but $reason")
+      log.warn(s"DropItem: ${player.Name} tried to drop a $item on the ground, but $reason")
       if(!item.HasGUID) {
         log.warn(s"DropItem: zone ${continent.Id} contents may be in disarray")
       }
@@ -951,9 +956,9 @@ class WorldSessionActor extends Actor
     case Zone.Ground.CanNotPickupItem(zone, item_guid, _) =>
       zone.GUID(item_guid) match {
         case Some(item) =>
-          log.warn(s"DropItem: finding a $item on the ground was suggested, but $player can not reach it")
+          log.warn(s"DropItem: finding a $item on the ground was suggested, but ${player.Name} can not reach it")
         case None =>
-          log.warn(s"DropItem: finding an item ($item_guid) on the ground was suggested, but $player can not see it")
+          log.warn(s"DropItem: finding an item ($item_guid) on the ground was suggested, but ${player.Name} can not see it")
           sendResponse(ObjectDeleteMessage(item_guid, 0))
       }
 
@@ -1521,11 +1526,28 @@ class WorldSessionActor extends Actor
       }
 
     case SetCurrentAvatar(tplayer) =>
-      if(tplayer.Actor == ActorRef.noSender) {
-        respawnTimer = context.system.scheduler.scheduleOnce(100 milliseconds, self, SetCurrentAvatar(tplayer))
-      }
-      else {
-        HandleSetCurrentAvatar(tplayer)
+      playerSpawnAttempt match {
+        case Some(300) => //30s later ...
+          //assume that we stalled; try to rejoin this zone from the start of the process
+          respawnTimer.cancel
+          val toZoneId = continent.Id
+          continent.Population ! Zone.Population.Leave(avatar) //does not matter if it doesn't work
+          continent = Zone.Nowhere
+          playerSpawnAttempt = Some(0)
+          LoadZonePhysicalSpawnPoint(
+            toZoneId,
+            shiftPosition.getOrElse(player.Position),
+            shiftOrientation.getOrElse(player.Orientation),
+            respawnTime = 0L
+          )
+        case Some(attempt) =>
+          playerSpawnAttempt = Some(attempt + 1)
+          respawnTimer.cancel
+          respawnTimer = context.system.scheduler.scheduleOnce(100 milliseconds, self, SetCurrentAvatar(tplayer))
+        case None =>
+          playerSpawnAttempt = None
+          respawnTimer.cancel
+          HandleSetCurrentAvatar(tplayer)
       }
 
     case NtuCharging(tplayer, vehicle) =>
@@ -1677,7 +1699,7 @@ class WorldSessionActor extends Actor
     case PlayerToken.LoginInfo(playerName, inZone, pos) =>
       log.info(s"LoginInfo: player $playerName is already logged in zone ${inZone.Id}; rejoining that character")
       persist = UpdatePersistence(sender)
-      //tell the old WSA to kill itself by using its own subscriptions against itself
+      //tell the old WorldSessionActor to kill itself by using its own subscriptions against itself
       inZone.AvatarEvents ! AvatarServiceMessage(playerName, AvatarAction.TeardownConnection())
       //find and reload previous player
       (inZone.Players.find(p => p.name.equals(playerName)), inZone.LivePlayers.find(p => p.Name.equals(playerName))) match {
@@ -1697,12 +1719,11 @@ class WorldSessionActor extends Actor
           player.Zone = inZone
           setupAvatarFunc = AvatarDeploymentPassOver
           beginZoningSetCurrentAvatarFunc = SetCurrentAvatarUponDeployment
-          p.Release
-          inZone.Population ! Zone.Population.Release(avatar)
           if(p.VehicleSeated.isEmpty) {
             PrepareToTurnPlayerIntoCorpse(p, inZone)
           }
           else {
+            inZone.Population ! Zone.Population.Release(avatar)
             inZone.GUID(p.VehicleSeated) match {
               case Some(v : Vehicle) if v.Destroyed =>
                 v.Actor ! Vehicle.Deconstruct(
@@ -2658,16 +2679,16 @@ class WorldSessionActor extends Actor
         log.warn(s"DismountVehicleMsg: $obj is some generic mountable object and nothing will happen")
 
       case Mountable.CanNotMount(obj : Vehicle, seat_num) =>
-        log.warn(s"MountVehicleMsg: $tplayer attempted to mount $obj's seat $seat_num, but was not allowed")
+        log.warn(s"MountVehicleMsg: ${tplayer.Name} attempted to mount $obj's seat $seat_num, but was not allowed")
         if(obj.SeatPermissionGroup(seat_num).contains(AccessPermissionGroup.Driver)) {
           sendResponse(ChatMsg(ChatMessageType.CMT_OPEN, false, "", "You are not the driver of this vehicle.", None))
         }
 
       case Mountable.CanNotMount(obj : Mountable, seat_num) =>
-        log.warn(s"MountVehicleMsg: $tplayer attempted to mount $obj's seat $seat_num, but was not allowed")
+        log.warn(s"MountVehicleMsg: ${tplayer.Name} attempted to mount $obj's seat $seat_num, but was not allowed")
 
       case Mountable.CanNotDismount(obj, seat_num) =>
-        log.warn(s"DismountVehicleMsg: $tplayer attempted to dismount $obj's seat $seat_num, but was not allowed")
+        log.warn(s"DismountVehicleMsg: ${tplayer.Name} attempted to dismount $obj's seat $seat_num, but was not allowed")
     }
   }
 
@@ -2866,7 +2887,7 @@ class WorldSessionActor extends Actor
         lastTerminalOrderFulfillment = true
 
       case Terminal.InfantryLoadout(exosuit, subtype, holsters, inventory) =>
-        log.info(s"$tplayer wants to change equipment loadout to their option #${msg.unk1 + 1}")
+        log.info(s"${tplayer.Name} wants to change equipment loadout to their option #${msg.unk1 + 1}")
         sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Loadout, true))
         //sanitize exo-suit for change
         val originalSuit = player.ExoSuit
@@ -2906,7 +2927,7 @@ class WorldSessionActor extends Actor
             }
           }
           else {
-            log.warn(s"$tplayer no longer has permission to wear the exo-suit type $exosuit; will wear $fallbackSuit instead")
+            log.warn(s"${tplayer.Name} no longer has permission to wear the exo-suit type $exosuit; will wear $fallbackSuit instead")
             (fallbackSuit, fallbackSubtype)
           }
         //update suit interally (holsters must be empty before this point)
@@ -3014,7 +3035,7 @@ class WorldSessionActor extends Actor
         lastTerminalOrderFulfillment = true
 
       case Terminal.VehicleLoadout(definition, weapons, inventory) =>
-        log.info(s"$tplayer wants to change their vehicle equipment loadout to their option #${msg.unk1 + 1}")
+        log.info(s"${tplayer.Name} wants to change their vehicle equipment loadout to their option #${msg.unk1 + 1}")
         FindLocalVehicle match {
           case Some(vehicle) =>
             sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Loadout, true))
@@ -3112,7 +3133,7 @@ class WorldSessionActor extends Actor
       case Terminal.LearnImplant(implant) =>
         val terminal_guid = msg.terminal_guid
         val implant_type = implant.Type
-        val message = s"Implants: $tplayer wants to learn $implant_type"
+        val message = s"Implants: ${tplayer.Name} wants to learn $implant_type"
         val (interface, slotNumber) = tplayer.VehicleSeated match {
           case Some(mech_guid) =>
             (
@@ -3166,13 +3187,13 @@ class WorldSessionActor extends Actor
         }
         if(interface.contains(terminal_guid.guid) && slotNumber.isDefined) {
           val slot = slotNumber.get
-          log.info(s"$tplayer is selling $implant_type - take from slot $slot")
+          log.info(s"${tplayer.Name} is selling $implant_type - take from slot $slot")
           player.Actor ! Player.UninitializeImplant(slot)
           sendResponse(AvatarImplantMessage(tplayer.GUID, ImplantAction.Remove, slot, 0))
           sendResponse(ItemTransactionResultMessage(terminal_guid, TransactionType.Sell, true))
         }
         else {
-          val message = s"$tplayer can not sell $implant_type"
+          val message = s"${tplayer.Name} can not sell $implant_type"
           if(interface.isEmpty) {
             log.warn(s"$message - not interacting with a terminal")
           }
@@ -3230,7 +3251,7 @@ class WorldSessionActor extends Actor
             }
 
           case None =>
-            log.error(s"$tplayer wanted to spawn a vehicle, but there was no spawn pad associated with terminal ${msg.terminal_guid} to accept it")
+            log.error(s"${tplayer.Name} wanted to spawn a vehicle, but there was no spawn pad associated with terminal ${msg.terminal_guid} to accept it")
         }
         lastTerminalOrderFulfillment = true
 
@@ -4445,7 +4466,7 @@ class WorldSessionActor extends Actor
           log.warn(s"ChildObjectState: ${player.Name} can not find any controllable agent, let alone #${object_guid.guid}")
         case (None, _) => ;
         //TODO status condition of "playing getting out of vehicle to allow for late packets without warning
-        //log.warn(s"ChildObjectState: player $player not related to anything with a controllable agent")
+        //log.warn(s"ChildObjectState: player ${player.Name} not related to anything with a controllable agent")
       }
       if (player.death_by == -1) {
         sendResponse(ChatMsg(ChatMessageType.UNK_71, true, "", "Your account has been logged out by a Customer Service Representative.", None))
@@ -4525,13 +4546,13 @@ class WorldSessionActor extends Actor
       log.info(s"ReleaseAvatarRequest: ${player.GUID} on ${continent.Id} has released")
       reviveTimer.cancel
       GoToDeploymentMap()
-      continent.Population ! Zone.Population.Release(avatar)
       player.VehicleSeated match {
         case None =>
           PrepareToTurnPlayerIntoCorpse(player, continent)
 
         case Some(_) =>
           val player_guid = player.GUID
+          continent.Population ! Zone.Population.Release(avatar)
           sendResponse(ObjectDeleteMessage(player_guid, 0))
           GetMountableAndSeat(None, player) match {
             case (Some(obj), Some(seatNum)) =>
@@ -5207,13 +5228,13 @@ class WorldSessionActor extends Actor
                 continent.Ground ! Zone.Ground.DropItem(item, player.Position, player.Orientation)
               }
             case None =>
-              log.warn(s"DropItem: $player wanted to drop a $anItem, but it wasn't at hand")
+              log.warn(s"DropItem: ${player.Name} wanted to drop a $anItem, but it wasn't at hand")
           }
         case Some(obj) => //TODO LLU
-          log.warn(s"DropItem: $player wanted to drop a $obj, but that isn't possible")
+          log.warn(s"DropItem: ${player.Name} wanted to drop a $obj, but that isn't possible")
         case None =>
           sendResponse(ObjectDeleteMessage(item_guid, 0)) //this is fine; item doesn't exist to the server anyway
-          log.warn(s"DropItem: $player wanted to drop an item ($item_guid), but it was nowhere to be found")
+          log.warn(s"DropItem: ${player.Name} wanted to drop an item ($item_guid), but it was nowhere to be found")
       }
 
     case msg@PickupItemMessage(item_guid, player_guid, unk1, unk2) =>
@@ -5227,7 +5248,7 @@ class WorldSessionActor extends Actor
               sendResponse(ActionResultMessage.Fail(16)) //error code?
           }
         case _ =>
-          log.warn(s"PickupItem: $player requested an item that doesn't exist in this zone; assume client-side garbage data")
+          log.warn(s"PickupItem: ${player.Name} requested an item that doesn't exist in this zone; assume client-side garbage data")
           sendResponse(ObjectDeleteMessage(item_guid, 0))
       }
 
@@ -5288,7 +5309,7 @@ class WorldSessionActor extends Actor
       val before = player.DrawnSlot
       if(before != held_holsters) {
         if(player.ExoSuit == ExoSuitType.MAX && held_holsters != 0) {
-          log.info(s"ObjectHeld: $player is denied changing hands to $held_holsters as a MAX")
+          log.info(s"ObjectHeld: ${player.Name} is denied changing hands to $held_holsters as a MAX")
           player.DrawnSlot = 0
           sendResponse(ObjectHeldMessage(avatar_guid, 0, true))
         }
@@ -5603,7 +5624,7 @@ class WorldSessionActor extends Actor
           CancelZoningProcessWithDescriptiveReason("cancel_use")
           if(obj.isBackpack) {
             if(equipment.isEmpty) {
-              log.info(s"UseItem: $player looting the corpse of $obj")
+              log.info(s"UseItem: ${player.Name} looting the corpse of $obj")
               sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
               accessedContainer = Some(obj)
             }
@@ -5716,7 +5737,7 @@ class WorldSessionActor extends Actor
               CancelZoningProcessWithDescriptiveReason("cancel_use")
               locker.Actor ! CommonMessages.Use(player, Some(item))
             case None if locker.Faction == player.Faction || !locker.HackedBy.isEmpty =>
-              log.trace(s"UseItem: $player accessing a locker")
+              log.trace(s"UseItem: ${player.Name} accessing a locker")
               CancelZoningProcessWithDescriptiveReason("cancel_use")
               val container = player.Locker
               accessedContainer = Some(container)
@@ -5826,7 +5847,6 @@ class WorldSessionActor extends Actor
               CancelZoningProcessWithDescriptiveReason("cancel_use")
               PlayerActionsToCancel()
               CancelAllProximityUnits()
-              continent.Population ! Zone.Population.Release(avatar)
               GoToDeploymentMap()
             case _ => ;
           }
@@ -5975,7 +5995,7 @@ class WorldSessionActor extends Actor
           (None, GlobalDefinitions.bullet_9mm)
       }
       if(action == 15) { //max deployment
-        log.info(s"GenericObject: $player is anchored")
+        log.info(s"GenericObject: ${player.Name} is anchored")
         player.UsingSpecial = SpecialExoSuitDefinition.Mode.Anchored
         continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 19, 1))
         definition match {
@@ -5989,11 +6009,11 @@ class WorldSessionActor extends Actor
             tool.ToFireMode = convertFireModeIndex
             sendResponse(ChangeFireModeMessage(tool.GUID, convertFireModeIndex))
           case _ =>
-            log.warn(s"GenericObject: $player is MAX with an unexpected weapon - ${definition.Name}")
+            log.warn(s"GenericObject: ${player.Name} is MAX with an unexpected weapon - ${definition.Name}")
         }
       }
       else if(action == 16) { //max deployment
-        log.info(s"GenericObject: $player has released the anchors")
+        log.info(s"GenericObject: ${player.Name} has released the anchors")
         player.UsingSpecial = SpecialExoSuitDefinition.Mode.Normal
         continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 19, 0))
         definition match {
@@ -6007,7 +6027,7 @@ class WorldSessionActor extends Actor
             tool.ToFireMode = convertFireModeIndex
             sendResponse(ChangeFireModeMessage(tool.GUID, convertFireModeIndex))
           case _ =>
-            log.warn(s"GenericObject: $player is MAX with an unexpected weapon - ${definition.Name}")
+            log.warn(s"GenericObject: ${player.Name} is MAX with an unexpected weapon - ${definition.Name}")
         }
       }
       else if (action == 20) {
@@ -6193,7 +6213,7 @@ class WorldSessionActor extends Actor
               }
             }
             else {
-              log.warn(s"WeaponFireMessage: $player's ${tool.Definition.Name} projectile is too far from owner position at time of discharge ($distanceToOwner > $acceptableDistanceToOwner); suspect")
+              log.warn(s"WeaponFireMessage: ${player.Name}'s ${tool.Definition.Name} projectile is too far from owner position at time of discharge ($distanceToOwner > $acceptableDistanceToOwner); suspect")
             }
           }
         case _ => ;
@@ -6406,14 +6426,14 @@ class WorldSessionActor extends Actor
                     dismountWarning(s"DismountVehicleMsg: can not find where other player $player_guid is seated in mountable $obj_guid")
                 }
               case (None, _) => ;
-                log.warn(s"DismountVehicleMsg: $player can not find his vehicle")
+                log.warn(s"DismountVehicleMsg: ${player.Name} can not find his vehicle")
               case (_, None) => ;
                 log.warn(s"DismountVehicleMsg: player $player_guid could not be found to kick")
               case _ =>
                 log.warn(s"DismountVehicleMsg: object is either not a Mountable or not a Player")
             }
           case None =>
-            log.warn(s"DismountVehicleMsg: $player does not own a vehicle")
+            log.warn(s"DismountVehicleMsg: ${player.Name} does not own a vehicle")
         }
       }
 
@@ -6430,7 +6450,7 @@ class WorldSessionActor extends Actor
         }
       }
       else {
-        log.warn(s"DeployRequest: $player does not own the deploying $vehicle_guid object")
+        log.warn(s"DeployRequest: ${player.Name} does not own the deploying $vehicle_guid object")
       }
 
     case msg @ AvatarGrenadeStateMessage(player_guid, state) =>
@@ -6508,7 +6528,7 @@ class WorldSessionActor extends Actor
             }
           }
           else {
-            log.warn(s"Vehicle attributes: $player does not own vehicle ${vehicle.GUID} and can not change it")
+            log.warn(s"Vehicle attributes: ${player.Name} does not own vehicle ${vehicle.GUID} and can not change it")
           }
         case _ =>
           log.warn(s"echo unknown attributes behavior")
@@ -6772,7 +6792,6 @@ class WorldSessionActor extends Actor
 
         def Execute(resolver : ActorRef) : Unit = {
           log.info(s"Player $localPlayer is registered")
-          resolver ! scala.util.Success(this)
           localAnnounce ! PlayerLoaded(localPlayer) //alerts WSA
         }
 
@@ -6841,12 +6860,13 @@ class WorldSessionActor extends Actor
   def RegisterDroppod(vehicle : Vehicle, tplayer : Player) : TaskResolver.GiveTask = {
     TaskResolver.GiveTask(
       new Task() {
+        private val localLog = log
         private val localDriver = tplayer
         private val localVehicle = vehicle
         private val localAnnounce = self
 
         override def isComplete : Task.Resolution.Value = {
-          if(localVehicle.HasGUID) {
+          if(localVehicle.HasGUID && localVehicle.Owner.contains(localDriver.GUID)) {
             Task.Resolution.Success
           }
           else {
@@ -6855,11 +6875,14 @@ class WorldSessionActor extends Actor
         }
 
         def Execute(resolver : ActorRef) : Unit = {
-          log.info(s"Vehicle $localVehicle is registered")
+          localLog.info(s"Vehicle $localVehicle is registered")
           localDriver.VehicleSeated = localVehicle.GUID
           Vehicles.Own(localVehicle, localDriver)
+        }
+
+        override def onSuccess() : Unit = {
+          super.onSuccess()
           localAnnounce ! PlayerLoaded(localDriver)
-          resolver ! scala.util.Success(this)
         }
       }, List(GUIDTask.RegisterObjectTask(vehicle)(continent.GUID))
     )
@@ -6909,7 +6932,7 @@ class WorldSessionActor extends Actor
         private val localAnnounce = self
 
         override def isComplete : Task.Resolution.Value = {
-          if(localVehicle.HasGUID && localDriver.HasGUID) {
+          if(localVehicle.HasGUID && localDriver.HasGUID && localVehicle.Owner.contains(localDriver.GUID)) {
             Task.Resolution.Success
           }
           else {
@@ -6920,8 +6943,11 @@ class WorldSessionActor extends Actor
         def Execute(resolver : ActorRef) : Unit = {
           localDriver.VehicleSeated = localVehicle.GUID
           Vehicles.Own(localVehicle, localDriver)
+        }
+
+        override def onSuccess() : Unit = {
+          super.onSuccess()
           localAnnounce ! NewPlayerLoaded(localDriver) //alerts WSA
-          resolver ! scala.util.Success(this)
         }
 
         override def onFailure(ex : Throwable) : Unit = {
@@ -8583,6 +8609,7 @@ class WorldSessionActor extends Actor
         log.trace(s"AvatarCreate: ${player.Name}")
     }
     continent.Population ! Zone.Population.Spawn(avatar, player)
+    playerSpawnAttempt = Some(0)
     //cautious redundancy
     deadState = DeadState.Alive
     ReloadUsedLastCoolDownTimes()
@@ -8885,13 +8912,15 @@ class WorldSessionActor extends Actor
   def PrepareToTurnPlayerIntoCorpse(tplayer : Player, zone : Zone) : Unit = {
     FriskDeadBody(tplayer)
     if(!WellLootedDeadBody(tplayer)) {
-      TurnPlayerIntoCorpse(tplayer)
+      tplayer.Release
       zone.Population ! Zone.Corpse.Add(tplayer)
+      TurnPlayerIntoCorpse(tplayer)
       zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.Release(tplayer, zone))
     }
     else {
       //no items in inventory; leave no corpse
       val pguid = tplayer.GUID
+      zone.Population ! Zone.Population.Release(avatar)
       sendResponse(ObjectDeleteMessage(pguid, 0))
       zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.ObjectDelete(pguid, pguid, 0))
       taskResolver ! GUIDTask.UnregisterPlayer(tplayer)(zone.GUID)
@@ -8918,7 +8947,7 @@ class WorldSessionActor extends Actor
     *        `false`, otherwise
     */
   def WellLootedDeadBody(obj : Player) : Boolean = {
-    obj.isBackpack && obj.Holsters().count(_.Equipment.nonEmpty) == 0 && obj.Inventory.Size == 0
+    !obj.isAlive && obj.Holsters().count(_.Equipment.nonEmpty) == 0 && obj.Inventory.Size == 0
   }
 
   /**
@@ -8928,7 +8957,7 @@ class WorldSessionActor extends Actor
     *        `false`, otherwise
     */
   def TryDisposeOfLootedCorpse(obj : Player) : Boolean = {
-    if(WellLootedDeadBody(obj)) {
+    if(obj.isBackpack && WellLootedDeadBody(obj)) {
       continent.AvatarEvents ! AvatarServiceMessage.Corpse(RemoverActor.HurrySpecific(List(obj), continent))
       true
     }
@@ -9350,7 +9379,7 @@ class WorldSessionActor extends Actor
       case obj : ComplexDeployable if obj.CanDamage => obj.Actor ! Vitality.Damage(func)
 
       case obj : SimpleDeployable if obj.CanDamage =>
-        //damage is synchronized on `LSA` (results returned to and distributed from this `WSA`)
+        //damage is synchronized on `LSA` (results returned to and distributed from this WorldSessionActor)
         continent.LocalEvents ! Vitality.DamageOn(obj, func)
       case _ => ;
     }
@@ -11132,8 +11161,7 @@ class WorldSessionActor extends Actor
     * @see `Player.Release`
     */
   def GoToDeploymentMap() : Unit = {
-    player.Release
-    deadState = DeadState.Release
+    deadState = DeadState.Release //we may be alive or dead, may or may not be a corpse
     sendResponse(AvatarDeadStateMessage(DeadState.Release, 0, 0, player.Position, player.Faction, true))
     DrawCurrentAmsSpawnPoint()
   }

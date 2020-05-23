@@ -612,12 +612,21 @@ object Zone {
       */
     final case class Join(avatar : Avatar)
     /**
-      * Message that excuses a user, by their `Avatar`, into a `Zone`.
+      * Message that excuses a user, by their `Avatar`, from a `Zone`.
       * That user will not longer be counted as part of that zone's population.
       * @see `PlayerHasLeft`
       * @param avatar the `Avatar` object
       */
     final case class Leave(avatar : Avatar)
+
+    /**
+      * Message that signals that a user, by their `Avatar`, is leaving this game session.
+      * That user will not longer be counted as part of that zone's population.
+      * There is no callback.
+      * Any postproduction work performed to the `Avatar` or any lingering `Player` should be skipped.
+      * @param avatar the `Avatar` object
+      */
+    final case class Logout(avatar : Avatar)
     /**
       * Message that instructs the zone to disassociate a `Player` from this `Actor`.
       * @see `PlayerAlreadySpawned`<br>
@@ -643,6 +652,10 @@ object Zone {
       * @param player the `Player` object
       */
     final case class PlayerHasLeft(zone : Zone, player : Option[Player]) //Leave(avatar), but still has a player
+    /**
+      *
+      */
+    final case class PlayerHasSpawned(zone : Zone, player : Player)
     /**
       * Message that acts in reply to `Spawn(avatar, player)`, but the avatar already has a player.
       * @param player the `Player` object

@@ -17,6 +17,7 @@ import net.psforever.objects.zones._
 import net.psforever.objects.guid.TaskResolver
 import net.psforever.psadmin.PsAdminActor
 import net.psforever.WorldConfig
+import net.psforever.objects.Default
 import org.slf4j
 import org.fusesource.jansi.Ansi._
 import org.fusesource.jansi.Ansi.Color._
@@ -225,6 +226,7 @@ object PsLogin {
 
     /** Start up the main actor system. This "system" is the home for all actors running on this server */
     system = ActorSystem("PsLogin")
+    Default(system.deadLetters)
 
     logger.info("Starting actor pipelines")
     /** Create pipelines for the login and world servers
