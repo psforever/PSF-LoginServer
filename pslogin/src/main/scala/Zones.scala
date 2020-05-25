@@ -6,8 +6,11 @@ import net.psforever.objects.serverobject.structures.WarpGate
 import net.psforever.objects.zones.Zone
 import net.psforever.types.PlanetSideEmpire
 
+import scala.concurrent.duration._
+import scala.concurrent.Await
+
 object Zones {
-  val z1 = new Zone("z1", Maps.map1, 1) {
+  val z1 = new Zone("z1", Await.result(Maps.map01, 30 seconds), 1) {
     override def Init(implicit context : ActorContext) : Unit = {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
@@ -17,7 +20,7 @@ object Zones {
     }
   }
 
-  val z2 = new Zone("z2", Maps.map2, 2) {
+  val z2 = new Zone("z2", Await.result(Maps.map02, 30 seconds), 2) {
     override def Init(implicit context : ActorContext) : Unit = {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
@@ -27,7 +30,7 @@ object Zones {
     }
   }
 
-  val z3 = new Zone("z3", Maps.map3, 3) {
+  val z3 = new Zone("z3", Await.result(Maps.map03, 30 seconds), 3) {
     override def Init(implicit context : ActorContext) : Unit = {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
@@ -37,7 +40,7 @@ object Zones {
     }
   }
 
-  val z4 = new Zone("z4", Maps.map4, 4) {
+  val z4 = new Zone("z4", Await.result(Maps.map04, 30 seconds), 4) {
     override def Init(implicit context : ActorContext) : Unit = {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
@@ -109,7 +112,7 @@ object Zones {
     }
   }
 
-  val z5 = new Zone("z5", Maps.map5, 5) {
+  val z5 = new Zone("z5", Await.result(Maps.map05, 30 seconds), 5) {
     override def Init(implicit context : ActorContext) : Unit = {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
@@ -119,7 +122,7 @@ object Zones {
     }
   }
 
-  val z6 = new Zone("z6", Maps.map6, 6) {
+  val z6 = new Zone("z6", Await.result(Maps.map06, 30 seconds), 6) {
     override def Init(implicit context : ActorContext) : Unit = {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
@@ -134,7 +137,7 @@ object Zones {
     }
   }
 
-  val z7 = new Zone("z7", Maps.map7, 7) {
+  val z7 = new Zone("z7", Await.result(Maps.map07, 30 seconds), 7) {
     override def Init(implicit context : ActorContext) : Unit = {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
@@ -144,7 +147,7 @@ object Zones {
     }
   }
 
-  val z8 = new Zone("z8", Maps.map8, 8) {
+  val z8 = new Zone("z8", Await.result(Maps.map08, 30 seconds), 8) {
     override def Init(implicit context : ActorContext) : Unit = {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
@@ -154,7 +157,7 @@ object Zones {
     }
   }
 
-  val z9 = new Zone("z9", Maps.map9, 9) {
+  val z9 = new Zone("z9", Await.result(Maps.map09, 30 seconds), 9) {
     override def Init(implicit context : ActorContext) : Unit = {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
@@ -164,7 +167,7 @@ object Zones {
     }
   }
 
-  val z10 = new Zone("z10", Maps.map10, 10) {
+  val z10 = new Zone("z10", Await.result(Maps.map10, 30 seconds), 10) {
     override def Init(implicit context : ActorContext) : Unit = {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
@@ -174,7 +177,7 @@ object Zones {
     }
   }
 
-  val home1 = new Zone("home1", Maps.map11, 11){
+  val home1 = new Zone("home1", Await.result(Maps.map11, 30 seconds), 11){
     override def Init(implicit context : ActorContext) : Unit = {
       super.Init(context)
 
@@ -185,7 +188,7 @@ object Zones {
     }
   }
 
-  val home2 = new Zone("home2", Maps.map12, 12){
+  val home2 = new Zone("home2", Await.result(Maps.map12, 30 seconds), 12){
     override def Init(implicit context : ActorContext) : Unit = {
       super.Init(context)
 
@@ -196,7 +199,7 @@ object Zones {
     }
   }
 
-  val home3 = new Zone("home3", Maps.map13, 13) {
+  val home3 = new Zone("home3", Await.result(Maps.map13, 30 seconds), 13) {
     override def Init(implicit context : ActorContext) : Unit = {
       super.Init(context)
 
@@ -225,7 +228,7 @@ object Zones {
 
   val tzcovs = new Zone("tzcovs", Maps.map16, 22)
 
-  val c1 = new Zone("c1", Maps.ugd01, 23) {
+  val c1 = new Zone("c1", Await.result(Maps.ugd01, 30 seconds), 23) {
     override def Init(implicit context : ActorContext) : Unit = {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
@@ -235,7 +238,7 @@ object Zones {
     }
   }
 
-  val c2 = new Zone("c2", Maps.ugd02, 24) {
+  val c2 = new Zone("c2", Await.result(Maps.ugd02, 30 seconds), 24) {
     override def Init(implicit context : ActorContext) : Unit = {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
@@ -245,7 +248,7 @@ object Zones {
     }
   }
 
-  val c3 = new Zone("c3", Maps.ugd03, 25) {
+  val c3 = new Zone("c3", Await.result(Maps.ugd03, 30 seconds), 25) {
     override def Init(implicit context : ActorContext) : Unit = {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
@@ -255,7 +258,7 @@ object Zones {
     }
   }
 
-  val c4 = new Zone("c4", Maps.ugd04, 26) {
+  val c4 = new Zone("c4", Await.result(Maps.ugd04, 30 seconds), 26) {
     override def Init(implicit context : ActorContext) : Unit = {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
@@ -265,7 +268,7 @@ object Zones {
     }
   }
 
-  val c5 = new Zone("c5", Maps.ugd05, 27) {
+  val c5 = new Zone("c5", Await.result(Maps.ugd05, 30 seconds), 27) {
     override def Init(implicit context : ActorContext) : Unit = {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
@@ -275,7 +278,7 @@ object Zones {
     }
   }
 
-  val c6 = new Zone("c6", Maps.ugd06, 28) {
+  val c6 = new Zone("c6", Await.result(Maps.ugd06, 30 seconds), 28) {
     override def Init(implicit context : ActorContext) : Unit = {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
@@ -285,7 +288,7 @@ object Zones {
     }
   }
 
-  val i1 = new Zone("i1", Maps.map99, 29) {
+  val i1 = new Zone("i1", Await.result(Maps.map99, 30 seconds), 29) {
     override def Init(implicit context : ActorContext) : Unit = {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
@@ -295,7 +298,7 @@ object Zones {
     }
   }
 
-  val i2 = new Zone("i2", Maps.map98, 30) {
+  val i2 = new Zone("i2", Await.result(Maps.map98, 30 seconds), 30) {
     override def Init(implicit context : ActorContext) : Unit = {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
@@ -305,7 +308,7 @@ object Zones {
     }
   }
 
-  val i3 = new Zone("i3", Maps.map97, 31) {
+  val i3 = new Zone("i3", Await.result(Maps.map97, 30 seconds), 31) {
     override def Init(implicit context : ActorContext) : Unit = {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
@@ -315,7 +318,7 @@ object Zones {
     }
   }
 
-  val i4 = new Zone("i4", Maps.map96, 32) {
+  val i4 = new Zone("i4", Await.result(Maps.map96, 30 seconds), 32) {
     override def Init(implicit context : ActorContext) : Unit = {
       super.Init(context)
       HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
