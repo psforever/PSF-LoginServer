@@ -5,7 +5,10 @@ import com.github.mauricio.async.db.general.ArrayRowData
 import com.github.mauricio.async.db.{Connection, QueryResult}
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+
+import net.psforever.WorldConfig
 import org.log4s.{Logger, MDC}
+
 import scala.annotation.{switch, tailrec}
 import scala.collection.mutable.LongMap
 import scala.concurrent.{Await, Future, Promise}
@@ -6214,9 +6217,7 @@ class WorldSessionActor extends Actor
           ValidObject(hitInfo.hitobject_guid) match {
             case Some(target : PlanetSideGameObject with FactionAffinity with Vitality) =>
               val hitPositionDiscrepancy = Vector3.DistanceSquared(hitInfo.hit_pos, target.Position)
-              if(hitPositionDiscrepancy > 7500) {
-                // 7500 (500 units) was chosen as a very generous rough distance you can run at /speed 5 in 500ms.
-                // That *should* be enough whilst missing a single PlayerStateMessageUpstream / VehicleStateMessage packet to be hit and not raise a warning
+              if(hitPositionDiscrepancy > WorldConfig.Get[Int]("antihack.HitPositionDiscrepancyThreshold")) {
                 // If the target position on the server does not match the position where the projectile landed within reason there may be foul play
                 log.warn(s"Shot guid ${projectile_guid} has hit location discrepancy with target location. Target: ${target.Position} Reported: ${hitInfo.hit_pos}, Origin: ${hitInfo.shot_origin} Distance: ${hitPositionDiscrepancy} / ${math.sqrt(hitPositionDiscrepancy).toFloat}; suspect")
               }
