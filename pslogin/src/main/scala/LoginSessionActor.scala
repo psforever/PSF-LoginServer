@@ -153,7 +153,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
     Database.getConnection.connect.onComplete {
       case Success(connection) =>
         Database.query(connection.sendPreparedStatement(
-          "SELECT id, passhash, inactive, gm FROM accounts where username=?", Array(username)
+          "SELECT id, passhash, inactive, gm FROM accounts where username=?", List(username)
         )).onComplete {
           case Success(queryResult) =>
             context.become(startAccountAuthentication)
@@ -223,7 +223,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
           connection.get.inTransaction {
             c => c.sendPreparedStatement(
               "INSERT INTO accounts (username, passhash) VALUES(?,?) RETURNING id",
-              Array(username, bcryptPassword)
+              List(username, bcryptPassword)
             )
           }.onComplete {
             case Success(insertResult) =>
@@ -274,7 +274,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
       connection.get.inTransaction {
         c => c.sendPreparedStatement(
           "INSERT INTO logins (account_id, login_time, ip_address, canonical_hostName, hostname, port) VALUES(?,?,?,?,?,?)",
-          Array(accountId, new java.sql.Timestamp(System.currentTimeMillis), ipAddress, canonicalHostName, hostName, port)
+          List(accountId, new java.sql.Timestamp(System.currentTimeMillis), ipAddress, canonicalHostName, hostName, port)
         )
       }.onComplete {
         _ =>

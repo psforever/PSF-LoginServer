@@ -691,7 +691,7 @@ class WorldSessionActor extends Actor
             c =>
               c.sendPreparedStatement(
                 "INSERT INTO characters (name, account_id, faction_id, gender_id, head_id, voice_id) VALUES(?,?,?,?,?,?) RETURNING id",
-                Array(name, account.AccountId, empire.id, gender.id, head, voice.id)
+                List(name, account.AccountId, empire.id, gender.id, head, voice.id)
               )
           }.onComplete {
             case scala.util.Success(insertResult) =>
@@ -1786,7 +1786,7 @@ class WorldSessionActor extends Actor
     Database.getConnection.connect.onComplete {
       case scala.util.Success(connection) =>
         Database.query(connection.sendPreparedStatement(
-          "UPDATE characters SET last_login = ? where id=?", Array(new java.sql.Timestamp(System.currentTimeMillis), charId)
+          "UPDATE characters SET last_login = ? where id=?", List(new java.sql.Timestamp(System.currentTimeMillis), charId)
         )).onComplete {
           case _ =>
             if(connection.isConnected) connection.disconnect
@@ -3954,7 +3954,7 @@ class WorldSessionActor extends Actor
       Database.getConnection.connect.onComplete {
         case scala.util.Success(connection) =>
           Database.query(connection.sendPreparedStatement(
-            "SELECT account_id FROM characters where name ILIKE ? AND deleted = false", Array(name)
+            "SELECT account_id FROM characters where name ILIKE ? AND deleted = false", List(name)
           )).onComplete {
             case scala.util.Success(queryResult) =>
               if(connection.isConnected) connection.disconnect
@@ -10472,7 +10472,7 @@ class WorldSessionActor extends Actor
             queryResult match {
               case row: ArrayRowData => // Update
                 connection.sendPreparedStatement(
-                  "UPDATE loadouts SET exosuit_id=?, name=?, items=? where id=?", Array(exosuitId, label, clob.drop(1), row(0))
+                  "UPDATE loadouts SET exosuit_id=?, name=?, items=? where id=?", List(exosuitId, label, clob.drop(1), row(0))
                 ).onComplete {
                   case _ =>
                     if(connection.isConnected) connection.disconnect
@@ -10481,7 +10481,7 @@ class WorldSessionActor extends Actor
               case _ => // Save
                 connection.sendPreparedStatement(
                   "INSERT INTO loadouts (characters_id, loadout_number, exosuit_id, name, items) VALUES(?,?,?,?,?) RETURNING id",
-                  Array(charId, line, exosuitId, label, clob.drop(1))
+                  List(charId, line, exosuitId, label, clob.drop(1))
                 ).onComplete {
                   case _ =>
                     if(connection.isConnected) connection.disconnect

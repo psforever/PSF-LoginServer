@@ -10,6 +10,7 @@ import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
 import net.psforever.types._
 import services.{GenericEventBus, Service}
+import services.teamwork.SquadAction
 
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable
