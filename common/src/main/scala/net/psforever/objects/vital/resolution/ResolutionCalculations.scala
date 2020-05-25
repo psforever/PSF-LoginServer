@@ -10,6 +10,7 @@ import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.projectile.ProjectileCalculations
+import net.psforever.types.ImplantType
 
 /**
   * The base for the combining step of all projectile-induced damage calculation function literals.
@@ -135,7 +136,6 @@ object ResolutionCalculations {
       case player : Player =>
         var (a, b) = damageValues
         var result = (0, 0)
-        //TODO Personal Shield implant test should go here and modify the values a and b
         if(player.isAlive && !(a == 0 && b == 0)) {
           if(player.Capacitor.toInt > 0 && player.isShielded) {
             // Subtract armour damage from capacitor
@@ -147,6 +147,21 @@ object ResolutionCalculations {
             result = SubtractWithRemainder(player.Capacitor.toInt, a)
             player.Capacitor = result._1
             a = result._2
+          }
+
+          player.Implants.find(x => x._1 == ImplantType.PersonalShield) match {
+            case Some(x) if x._3 == true => {
+              // Subtract armour damage from stamina
+              result = SubtractWithRemainder(player.Stamina, b)
+              player.Stamina = result._1
+              b = result._2
+
+              // Then follow up with health damage if any stamina is left
+              result = SubtractWithRemainder(player.Stamina, a)
+              player.Stamina = result._1
+              a = result._2
+            }
+            case _ => ;
           }
 
           // Subtract any remaining armour damage from armour
