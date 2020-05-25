@@ -163,9 +163,13 @@ class WorldSessionActor extends Actor
   var squadSetup : () => Unit = FirstTimeSquadSetup
   var squadUpdateCounter : Int = 0
   val queuedSquadActions : Seq[() => Unit] = Seq(SquadUpdates, NoSquadUpdates, NoSquadUpdates, NoSquadUpdates)
-  /** Keeps track of the number of PlayerStateMessageUpstream messages received by the client
+  /** Upstream message counter<br>
+    * Checks for server acknowledgement of the following messages:<br>
+    *   `PlayerStateMessageUpstream`<br>
+    *   `VehicleStateMessage` (driver seat only)<br>
+    *   `ChildObjectStateMessage` (any seat but driver)<br>
     * As they should arrive roughly every 250 milliseconds this allows for a very crude method of scheduling tasks up to four times per second */
-  private var playerStateMessageUpstreamCount = 0
+  var upstreamMessageCount = 0
   var zoningType : Zoning.Method.Value = Zoning.Method.None
   var zoningChatMessageType : ChatMessageType.Value = ChatMessageType.CMT_QUIT
   var zoningStatus : Zoning.Status.Value = Zoning.Status.None
@@ -174,17 +178,18 @@ class WorldSessionActor extends Actor
   lazy val unsignedIntMaxValue : Long = Int.MaxValue.toLong * 2L + 1L
   var serverTime : Long = 0
   var amsSpawnPoints : List[SpawnPoint] = Nil
+  var zoneLoaded : Boolean = false
 
-  var clientKeepAlive : Cancellable = DefaultCancellable.obj
-  var progressBarUpdate : Cancellable = DefaultCancellable.obj
-  var reviveTimer : Cancellable = DefaultCancellable.obj
-  var respawnTimer : Cancellable = DefaultCancellable.obj
-  var cargoMountTimer : Cancellable = DefaultCancellable.obj
-  var cargoDismountTimer : Cancellable = DefaultCancellable.obj
-  var antChargingTick : Cancellable = DefaultCancellable.obj
-  var antDischargingTick : Cancellable = DefaultCancellable.obj
-  var zoningTimer : Cancellable = DefaultCancellable.obj
-  var zoningReset : Cancellable = DefaultCancellable.obj
+  var clientKeepAlive : Cancellable = Default.Cancellable
+  var progressBarUpdate : Cancellable = Default.Cancellable
+  var reviveTimer : Cancellable = Default.Cancellable
+  var respawnTimer : Cancellable = Default.Cancellable
+  var cargoMountTimer : Cancellable = Default.Cancellable
+  var cargoDismountTimer : Cancellable = Default.Cancellable
+  var antChargingTick : Cancellable = Default.Cancellable
+  var antDischargingTick : Cancellable = Default.Cancellable
+  var zoningTimer : Cancellable = Default.Cancellable
+  var zoningReset : Cancellable = Default.Cancellable
   /**
     * Convert a boolean value into an integer value.
     * Use: `true:Int` or `false:Int`
@@ -1502,6 +1507,8 @@ class WorldSessionActor extends Actor
       //new zone
       log.info(s"Player ${tplayer.Name} has been loaded")
       player = tplayer
+      respawnTimer.cancel
+      respawnTimer = context.system.scheduler.scheduleOnce(500 milliseconds, self, SetCurrentAvatar(tplayer))
       //LoadMapMessage causes the client to send BeginZoningMessage, eventually leading to SetCurrentAvatar
       val weaponsEnabled = (continent.Map.Name != "map11" && continent.Map.Name != "map12" && continent.Map.Name != "map13")
       sendResponse(LoadMapMessage(continent.Map.Name, continent.Id, 40100, 25, weaponsEnabled, continent.Map.Checksum))
@@ -1512,9 +1519,11 @@ class WorldSessionActor extends Actor
       //same zone
       log.info(s"Player ${tplayer.Name} will respawn")
       player = tplayer
+      respawnTimer.cancel
+      respawnTimer = context.system.scheduler.scheduleOnce(200 milliseconds, self, SetCurrentAvatar(tplayer))
       setupAvatarFunc()
+      upstreamMessageCount = 0 //reset
       persist()
-      self ! SetCurrentAvatar(tplayer)
 
     case PlayerFailedToLoad(tplayer) =>
       player.Continent match {
@@ -1522,16 +1531,14 @@ class WorldSessionActor extends Actor
           failWithError(s"${tplayer.Name} failed to load anywhere")
       }
 
-    case SetCurrentAvatar(tplayer, attempt) =>
+    case SetCurrentAvatar(tplayer, dispatch, attempt) =>
       respawnTimer.cancel
-      if(tplayer.HasGUID && tplayer.Actor != Default.Actor) {
-        HandleSetCurrentAvatar(tplayer)
-      }
-      else if(attempt == 300) { //so many failures later ...
-        //assume that we stalled; try to rejoin this zone from the start of the process
+      if(attempt >= 250) { /* after many failures ... */
+        //assume that we stalled for real; try to rejoin this zone from the start of the process
         val toZoneId = continent.Id
         continent.Population ! Zone.Population.Leave(avatar) //does not matter if it doesn't work
         continent = Zone.Nowhere
+        zoneLoaded = false
         LoadZonePhysicalSpawnPoint(
           toZoneId,
           shiftPosition.getOrElse(player.Position),
@@ -1539,9 +1546,26 @@ class WorldSessionActor extends Actor
           respawnTime = 0L
         )
       }
+      else if(zoneLoaded && tplayer.HasGUID && tplayer.Actor != Default.Actor) {
+        if(dispatch == 0) {
+          //the first time
+          beginZoningSetCurrentAvatarFunc(tplayer)
+          respawnTimer = context.system.scheduler.scheduleOnce(10 seconds, self, SetCurrentAvatar(tplayer, 1, attempt + 1))
+        }
+        else if(dispatch == 1 && attempt > 100 && upstreamMessageCount == 0) {
+          // no activity after first try; try again
+          beginZoningSetCurrentAvatarFunc(tplayer)
+          respawnTimer = context.system.scheduler.scheduleOnce(5 seconds, self, SetCurrentAvatar(tplayer, 2, attempt + 1))
+        }
+        else if(upstreamMessageCount == 0) {
+          //wait a bit more
+          respawnTimer = context.system.scheduler.scheduleOnce(250 milliseconds, self, SetCurrentAvatar(tplayer, dispatch, attempt + 1))
+        }
+        //zone and avatar loaded
+      }
       else {
         //wait a bit more
-        respawnTimer = context.system.scheduler.scheduleOnce(100 milliseconds, self, SetCurrentAvatar(tplayer, attempt + 1))
+        respawnTimer = context.system.scheduler.scheduleOnce(250 milliseconds, self, SetCurrentAvatar(tplayer, dispatch, attempt + 1))
       }
 
     case NtuCharging(tplayer, vehicle) =>
@@ -3779,6 +3803,7 @@ class WorldSessionActor extends Actor
       //player died during setup; probably a relog
       player.Actor ! Player.Die()
     }
+    upstreamMessageCount = 0 //reset
   }
 
   /**
@@ -3787,7 +3812,7 @@ class WorldSessionActor extends Actor
     * @param tplayer the target player
     */
   def SetCurrentAvatarNormally(tplayer : Player) : Unit = {
-    self ! SetCurrentAvatar(tplayer)
+    HandleSetCurrentAvatar(tplayer)
   }
 
   /**
@@ -3802,6 +3827,8 @@ class WorldSessionActor extends Actor
     */
   def SetCurrentAvatarUponDeployment(tplayer : Player) : Unit = {
     beginZoningSetCurrentAvatarFunc = SetCurrentAvatarNormally
+    respawnTimer.cancel
+    upstreamMessageCount = 0
     continent.Actor ! Zone.Lattice.RequestSpawnPoint(continent.Number, tplayer, 0)
   }
 
@@ -4076,6 +4103,7 @@ class WorldSessionActor extends Actor
 
     case msg@BeginZoningMessage() =>
       log.info("Reticulating splines ...")
+      zoneLoaded = false
       val continentId = continent.Id
       traveler.zone = continentId
       val faction = player.Faction
@@ -4373,7 +4401,8 @@ class WorldSessionActor extends Actor
           }
         }
       continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.UpdateAmsSpawnPoint(continent))
-      beginZoningSetCurrentAvatarFunc(player)
+      upstreamMessageCount = 0 //reset
+      zoneLoaded = true
 
     case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, yaw, pitch, yaw_upper, seq_time, unk3, is_crouching, is_jumping, jump_thrust, is_cloaking, unk5, unk6) =>
       if (player.death_by == -1) {
@@ -4381,14 +4410,14 @@ class WorldSessionActor extends Actor
         Thread.sleep(300)
         sendResponse(DropSession(sessionId, "kick by GM"))
       }
-      playerStateMessageUpstreamCount += 1
+      upstreamMessageCount = 1 + upstreamMessageCount % 65535
       val isMoving = WorldEntity.isMoving(vel)
       val isMovingPlus = isMoving || is_jumping || jump_thrust
       if(isMovingPlus) {
         CancelZoningProcessWithDescriptiveReason("cancel_motion")
       }
 
-      if(deadState == DeadState.Alive && playerStateMessageUpstreamCount % 2 == 0) { // Regen stamina roughly every 500ms
+      if(deadState == DeadState.Alive && upstreamMessageCount % 2 == 0) { // Regen stamina roughly every 500ms
         if(player.skipStaminaRegenForTurns > 0) {
           //do not renew stamina for a while
           player.skipStaminaRegenForTurns -= 1
@@ -4447,7 +4476,15 @@ class WorldSessionActor extends Actor
     case msg@ChildObjectStateMessage(object_guid, pitch, yaw) =>
       //the majority of the following check retrieves information to determine if we are in control of the child
       FindContainedWeapon match {
-        case (Some(_), Some(tool)) =>
+        case (Some(o), Some(tool)) =>
+          (o match {
+            case mount : Mountable => mount.PassengerInSeat(player)
+            case _ => None
+          }) match {
+            case None | Some(0) => ;
+            case Some(_) =>
+              upstreamMessageCount = 1 + upstreamMessageCount % 65535
+          }
           if(tool.GUID == object_guid) {
             //TODO set tool orientation?
             player.Orientation = Vector3(0f, pitch, yaw)
@@ -4472,6 +4509,7 @@ class WorldSessionActor extends Actor
       if(deadState == DeadState.Alive) {
         GetVehicleAndSeat() match {
           case (Some(obj), Some(0)) =>
+            upstreamMessageCount = 1 + upstreamMessageCount % 65535
             val seat = obj.Seats(0)
             //we're driving the vehicle
             player.Position = pos //convenient
@@ -10233,6 +10271,7 @@ class WorldSessionActor extends Actor
     * It also sets up actions for the new zone loading process.
     */
   def LoadZoneCommonTransferActivity() : Unit = {
+    zoneLoaded = false
     if(player.VehicleOwned.nonEmpty && player.VehicleSeated != player.VehicleOwned) {
       continent.GUID(player.VehicleOwned) match {
         case Some(vehicle : Vehicle) if vehicle.Actor != ActorRef.noSender =>
@@ -11566,7 +11605,7 @@ object WorldSessionActor {
   private final case class PlayerFailedToLoad(tplayer : Player)
   private final case class CreateCharacter(name : String, head : Int, voice : CharacterVoice.Value, gender : CharacterGender.Value, empire : PlanetSideEmpire.Value)
   private final case class ListAccountCharacters()
-  private final case class SetCurrentAvatar(tplayer : Player, attempt : Int = 0)
+  private final case class SetCurrentAvatar(tplayer : Player, dispatch : Int = 0, attempt : Int = 0)
   private final case class ZoningReset()
 
   final val ftes = (

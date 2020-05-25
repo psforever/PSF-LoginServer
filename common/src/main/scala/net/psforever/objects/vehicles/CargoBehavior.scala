@@ -15,8 +15,8 @@ import scala.concurrent.duration._
 
 trait CargoBehavior {
   _ : Actor =>
-  private var cargoMountTimer : Cancellable = DefaultCancellable.obj
-  private var cargoDismountTimer : Cancellable = DefaultCancellable.obj
+  private var cargoMountTimer : Cancellable = Default.Cancellable
+  private var cargoDismountTimer : Cancellable = Default.Cancellable
 
   /* gate-keep mounting behavior so that unit does not try to dismount as cargo, or mount different vehicle */
   private var isMounting : Option[PlanetSideGUID] = None

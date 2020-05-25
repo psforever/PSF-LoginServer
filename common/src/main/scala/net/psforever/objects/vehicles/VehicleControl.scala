@@ -52,7 +52,7 @@ class VehicleControl(vehicle : Vehicle) extends Actor
   /** cheap flag for whether the vehicle is decaying */
   var decaying : Boolean = false
   /** primary vehicle decay timer */
-  var decayTimer : Cancellable = DefaultCancellable.obj
+  var decayTimer : Cancellable = Default.Cancellable
 
   def receive : Receive = Enabled
 

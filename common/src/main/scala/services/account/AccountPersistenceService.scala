@@ -189,7 +189,7 @@ class PersistenceMonitor(name : String, squadService : ActorRef, taskResolver : 
   /** the last-reported game coordinate position of this player */
   var lastPosition : Vector3 = Vector3.Zero
   /** the ongoing amount of permissible inactivity */
-  var timer : Cancellable = DefaultCancellable.obj
+  var timer : Cancellable = Default.Cancellable
   /** the sparingly-used log */
   val log = org.log4s.getLogger
 

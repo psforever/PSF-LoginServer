@@ -3,7 +3,7 @@ package net.psforever.objects.serverobject.turret
 
 import akka.actor.Actor
 import net.psforever.objects.ballistics.ResolvedProjectile
-import net.psforever.objects.{DefaultCancellable, GlobalDefinitions, Player, Tool}
+import net.psforever.objects.{Default, GlobalDefinitions, Player, Tool}
 import net.psforever.objects.equipment.{Ammo, JammableMountedWeapons}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.mount.MountableBehavior
@@ -41,7 +41,7 @@ class FacilityTurretControl(turret : FacilityTurret) extends Actor
   def RepairableObject = turret
 
   // Used for timing ammo recharge for vanu turrets in caves
-  var weaponAmmoRechargeTimer = DefaultCancellable.obj
+  var weaponAmmoRechargeTimer = Default.Cancellable
 
   def receive : Receive = checkBehavior
     .orElse(jammableBehavior)
@@ -65,7 +65,7 @@ class FacilityTurretControl(turret : FacilityTurret) extends Actor
         }
 
       case FacilityTurret.WeaponDischarged() =>
-        if(weaponAmmoRechargeTimer != DefaultCancellable.obj) {
+        if(weaponAmmoRechargeTimer != Default.Cancellable) {
           weaponAmmoRechargeTimer.cancel()
         }
 
@@ -83,9 +83,9 @@ class FacilityTurretControl(turret : FacilityTurret) extends Actor
           }
         }
 
-        if(weapon.Magazine == weapon.MaxMagazine && weaponAmmoRechargeTimer != DefaultCancellable.obj) {
+        if(weapon.Magazine == weapon.MaxMagazine && weaponAmmoRechargeTimer != Default.Cancellable) {
           weaponAmmoRechargeTimer.cancel()
-          weaponAmmoRechargeTimer = DefaultCancellable.obj
+          weaponAmmoRechargeTimer = Default.Cancellable
         }
 
       case _ => ;

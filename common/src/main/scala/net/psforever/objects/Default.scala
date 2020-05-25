@@ -1,27 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import akka.actor.ActorRef
-
-/**
-  * Used to initialize the value of a re-usable `Cancellable` object.
-  * By convention, it always acts like it has been cancelled before and can be cancelled.
-  * Should be replaced with pertinent `Cancellable` logic through the initialization of an executor.
-  */
-object DefaultCancellable {
-  import akka.actor.Cancellable
-
-  protected class InternalCancellable extends Cancellable {
-    override def cancel : Boolean = true
-    override def isCancelled : Boolean = true
-  }
-
-  final val obj : Cancellable = new InternalCancellable
-}
-
 object Default {
   //cancellable
-  //TODO change all DefaultCancellable.obj with Default.Cancellable
+  //TODO change all Default.Cancellable with Default.Cancellable
   import akka.actor.Cancellable
   protected class InternalCancellable extends Cancellable {
     override def cancel : Boolean = true
@@ -29,9 +11,15 @@ object Default {
   }
   private val cancellable : Cancellable = new InternalCancellable
 
+  /**
+    * Used to initialize the value of a re-usable `Cancellable` object.
+    * By convention, it always acts like it has been cancelled before and can be cancelled.
+    * Should be replaced with pertinent `Cancellable` logic through the initialization of an executor.
+    */
   final def Cancellable : Cancellable = cancellable
 
   //actor
+  import akka.actor.ActorRef
   private var defaultRef : ActorRef = ActorRef.noSender
   /**
     * Set the default actor.

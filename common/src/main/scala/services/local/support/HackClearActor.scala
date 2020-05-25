@@ -4,7 +4,7 @@ package services.local.support
 import java.util.concurrent.TimeUnit
 
 import akka.actor.{Actor, Cancellable}
-import net.psforever.objects.DefaultCancellable
+import net.psforever.objects.Default
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.zones.Zone
@@ -20,7 +20,7 @@ import scala.concurrent.duration._
   */
 class HackClearActor() extends Actor {
   /** The periodic `Executor` that checks for server objects to be unhacked */
-  private var clearTrigger : Cancellable = DefaultCancellable.obj
+  private var clearTrigger : Cancellable = Default.Cancellable
   /** A `List` of currently hacked server objects */
   private var hackedObjects : List[HackClearActor.HackEntry] = Nil
   private[this] val log = org.log4s.getLogger
