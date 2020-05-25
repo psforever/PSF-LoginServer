@@ -6216,11 +6216,7 @@ class WorldSessionActor extends Actor
         case Some(hitInfo) =>
           ValidObject(hitInfo.hitobject_guid) match {
             case Some(target : PlanetSideGameObject with FactionAffinity with Vitality) =>
-              val hitPositionDiscrepancy = Vector3.DistanceSquared(hitInfo.hit_pos, target.Position)
-              if(hitPositionDiscrepancy > WorldConfig.Get[Int]("antihack.HitPositionDiscrepancyThreshold")) {
-                // If the target position on the server does not match the position where the projectile landed within reason there may be foul play
-                log.warn(s"Shot guid ${projectile_guid} has hit location discrepancy with target location. Target: ${target.Position} Reported: ${hitInfo.hit_pos}, Origin: ${hitInfo.shot_origin} Distance: ${hitPositionDiscrepancy} / ${math.sqrt(hitPositionDiscrepancy).toFloat}; suspect")
-              }
+              CheckForHitPositionDiscrepancy(projectile_guid, hitInfo.hit_pos, target)
               Some((target, hitInfo.shot_origin, hitInfo.hit_pos))
             case _ =>
               None
@@ -6246,6 +6242,7 @@ class WorldSessionActor extends Actor
           //direct_victim_uid
           ValidObject(direct_victim_uid) match {
             case Some(target : PlanetSideGameObject with FactionAffinity with Vitality) =>
+              CheckForHitPositionDiscrepancy(projectile_guid, explosion_pos, target)
               ResolveProjectileEntry(projectile, ProjectileResolution.Splash, target, target.Position) match {
                 case Some(projectile) =>
                   HandleDealingDamage(target, projectile)
@@ -6257,6 +6254,7 @@ class WorldSessionActor extends Actor
           targets.foreach(elem => {
             ValidObject(elem.uid) match {
               case Some(target : PlanetSideGameObject with FactionAffinity with Vitality) =>
+                CheckForHitPositionDiscrepancy(projectile_guid, explosion_pos, target)
                 ResolveProjectileEntry(projectile, ProjectileResolution.Splash, target, explosion_pos) match {
                   case Some(projectile) =>
                     HandleDealingDamage(target, projectile)
@@ -6278,11 +6276,12 @@ class WorldSessionActor extends Actor
         case None => ;
       }
 
-    case msg @ LashMessage(seq_time, killer_guid, victim_guid, projectile_guid, pos, unk1) =>
+    case msg @ LashMessage(seq_time, killer_guid, victim_guid, projectile_guid, hit_pos, unk1) =>
       log.info(s"Lash: $msg")
       ValidObject(victim_guid) match {
         case Some(target : PlanetSideGameObject with FactionAffinity with Vitality) =>
-          ResolveProjectileEntry(projectile_guid, ProjectileResolution.Lash, target, pos) match {
+          CheckForHitPositionDiscrepancy(projectile_guid, hit_pos, target)
+          ResolveProjectileEntry(projectile_guid, ProjectileResolution.Lash, target, hit_pos) match {
             case Some(projectile) =>
               HandleDealingDamage(target, projectile)
             case None => ;
@@ -11402,6 +11401,14 @@ class WorldSessionActor extends Actor
   def DeactivateImplants() : Unit = {
     for(slot <- 0 to player.Implants.length - 1) {
       player.Actor ! Player.ImplantActivation(slot, 0)
+    }
+  }
+
+  def CheckForHitPositionDiscrepancy(projectile_guid: PlanetSideGUID, hitPos : Vector3, target : PlanetSideGameObject with FactionAffinity with Vitality): Unit = {
+    val hitPositionDiscrepancy = Vector3.DistanceSquared(hitPos, target.Position)
+    if(hitPositionDiscrepancy > WorldConfig.Get[Int]("antihack.HitPositionDiscrepancyThreshold")) {
+      // If the target position on the server does not match the position where the projectile landed within reason there may be foul play
+      log.warn(s"Shot guid ${projectile_guid} has hit location discrepancy with target location. Target: ${target.Position} Reported: ${hitPos}, Distance: ${hitPositionDiscrepancy} / ${math.sqrt(hitPositionDiscrepancy).toFloat}; suspect")
     }
   }
 
