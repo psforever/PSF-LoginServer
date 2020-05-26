@@ -94,7 +94,7 @@ class ZonePopulationActor(zone : Zone, playerMap : TrieMap[Avatar, Option[Player
     case Zone.Corpse.Remove(player) =>
       if(CorpseRemove(player, corpseList)) {
         context.stop(player.Actor)
-        player.ResetControl()
+        player.Actor = Default.Actor
       }
 
     case _ => ;

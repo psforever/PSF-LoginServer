@@ -178,7 +178,12 @@ class WorldSessionActor extends Actor
   lazy val unsignedIntMaxValue : Long = Int.MaxValue.toLong * 2L + 1L
   var serverTime : Long = 0
   var amsSpawnPoints : List[SpawnPoint] = Nil
+  /** a flag for the zone having finished loading during zoning;
+    * used mainly during the periodic wait for SetCurrentAvatar
+    * */
   var zoneLoaded : Boolean = false
+  /** a flag that forces the current zone to reload itself during a zoning operation */
+  var zoneReload : Boolean = false
 
   var clientKeepAlive : Cancellable = Default.Cancellable
   var progressBarUpdate : Cancellable = Default.Cancellable
@@ -1530,29 +1535,52 @@ class WorldSessionActor extends Actor
         case _ =>
           failWithError(s"${tplayer.Name} failed to load anywhere")
       }
-
+    /*
+      During spawning, either the player is spawning into the same zone or switching between zones.
+      These correspond to the case classes PlayerLoaded or NewPlayerLoaded, respectively.
+      In the former case, zoneLoaded will already be true as the zone is already correct;
+      in the latter case, it will have been set to false
+      and will only become true after sending LoadMapMessage to the client
+      causes the BeginZoningMessage to be received and processed.
+      The avatar's player should already have been registered so it and all its contained objects should have GUID's.
+      Whichever flavor of creating the avatar the server follows contextually should produce its control agency,
+      tested by "tplayer.Actor != Default.Actor".
+      This is the first time that the SetCurrentAvatarMessage packet be attempted.
+      At this point, a successful condition is the reception of any of three packets
+      used by the client to tell the server about the player's behavior:
+      PlayerStateMessageUpstream, VehicleStateMessage, or ChildObjectStateMessage.
+      Once these messages are received under the given circumstances, the test has passed.
+      An extra attempt at sending SetCurrentAvatarMessage will be made at the half way point of the process
+      if the initial attempt, which had happened earlier, did not seem to work.
+      If the test fails by waiting too long (too many attempts), it runs some form of failure case code.
+     */
     case SetCurrentAvatar(tplayer, dispatch, attempt) =>
       respawnTimer.cancel
-      if(attempt >= 250) { /* after many failures ... */
-        //assume that we stalled for real; try to rejoin this zone from the start of the process
-        val toZoneId = continent.Id
-        continent.Population ! Zone.Population.Leave(avatar) //does not matter if it doesn't work
-        continent = Zone.Nowhere
-        zoneLoaded = false
-        LoadZonePhysicalSpawnPoint(
-          toZoneId,
-          shiftPosition.getOrElse(player.Position),
-          shiftOrientation.getOrElse(player.Orientation),
-          respawnTime = 0L
-        )
+      if(attempt >= 100) { /* after many failures ... */
+        log.warn(s"SetCurrentAvatar: client could not set ${tplayer.Name} as avatar within alloted wait time")
+        if(continent.Number == Zones.SanctuaryZoneNumber(player.Faction)) {
+          sendResponse(DisconnectMessage("Player failed to load on faction's sanctuary continent.  Oh no."))
+        }
+        else {
+          //try to rejoin this zone from the start of the process
+          val pos = shiftPosition.getOrElse(player.Position)
+          val orient = shiftOrientation.getOrElse(player.Orientation)
+          sendResponse(AvatarDeadStateMessage(DeadState.Release, 0, 0, pos, player.Faction, true))
+          val toZoneId = continent.Id
+          tplayer.Die
+          continent.Population ! Zone.Population.Leave(avatar) //does not matter if it doesn't work
+          zoneLoaded = false
+          zoneReload = true
+          LoadZonePhysicalSpawnPoint(toZoneId, pos, orient, respawnTime = 0L)
+        }
       }
       else if(zoneLoaded && tplayer.HasGUID && tplayer.Actor != Default.Actor) {
         if(dispatch == 0) {
           //the first time
           beginZoningSetCurrentAvatarFunc(tplayer)
-          respawnTimer = context.system.scheduler.scheduleOnce(10 seconds, self, SetCurrentAvatar(tplayer, 1, attempt + 1))
+          respawnTimer = context.system.scheduler.scheduleOnce(5 seconds, self, SetCurrentAvatar(tplayer, 1, attempt + 1))
         }
-        else if(dispatch == 1 && attempt > 100 && upstreamMessageCount == 0) {
+        else if(dispatch == 1 && attempt == 175 && upstreamMessageCount == 0) {
           // no activity after first try; try again
           beginZoningSetCurrentAvatarFunc(tplayer)
           respawnTimer = context.system.scheduler.scheduleOnce(5 seconds, self, SetCurrentAvatar(tplayer, 2, attempt + 1))
@@ -10051,7 +10079,7 @@ class WorldSessionActor extends Actor
     * @return a tuple composed of an `ActorRef` destination and a message to send to that destination
     */
   def LoadZoneAsPlayer(tplayer : Player, zone_id : String) : (ActorRef, Any) = {
-    if(zone_id == continent.Id) {
+    if(!zoneReload && zone_id == continent.Id) {
       if(player.isBackpack) { //important! test the actor-wide player ref, not the parameter
         //respawning from unregistered player
         (taskResolver, RegisterAvatar(tplayer))
@@ -10272,6 +10300,7 @@ class WorldSessionActor extends Actor
     */
   def LoadZoneCommonTransferActivity() : Unit = {
     zoneLoaded = false
+    zoneReload = false
     if(player.VehicleOwned.nonEmpty && player.VehicleSeated != player.VehicleOwned) {
       continent.GUID(player.VehicleOwned) match {
         case Some(vehicle : Vehicle) if vehicle.Actor != ActorRef.noSender =>
@@ -11605,6 +11634,13 @@ object WorldSessionActor {
   private final case class PlayerFailedToLoad(tplayer : Player)
   private final case class CreateCharacter(name : String, head : Int, voice : CharacterVoice.Value, gender : CharacterGender.Value, empire : PlanetSideEmpire.Value)
   private final case class ListAccountCharacters()
+  /**
+    * A message for testing whether the player has entered the stage of the process
+    * where the server should try and declare the avatar for that client.case Set
+    * @param tplayer the player
+    * @param dispatch how many times the player has attempted to establish himself as the avatar
+    * @param attempt the raw number of attempts at the current process
+    */
   private final case class SetCurrentAvatar(tplayer : Player, dispatch : Int = 0, attempt : Int = 0)
   private final case class ZoningReset()
 

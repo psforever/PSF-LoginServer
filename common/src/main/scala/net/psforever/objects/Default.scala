@@ -23,7 +23,7 @@ object Default {
   private var defaultRef : ActorRef = ActorRef.noSender
   /**
     * Set the default actor.
-    * It's recommended to set this to something else at the start of the akka universe.
+    * It's recommended to set this to something else at the start of the akka universe and never change it afterwards.
     * `system.deadLetters` is a decent recommendation
     * since it will exist for the duration of the said akka universe and is also a facet of it.
     * @param ref the new default actor

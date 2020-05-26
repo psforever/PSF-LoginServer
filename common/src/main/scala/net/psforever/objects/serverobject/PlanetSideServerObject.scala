@@ -24,12 +24,6 @@ abstract class PlanetSideServerObject extends PlanetSideGameObject
   def Actor : ActorRef = getActorFunc()
 
   /**
-    * Allow retrieving a reference to the internal `Actor`.
-    * @return the internal `ActorRef`
-    */
-  private def doGetActor() : ActorRef = actor
-
-  /**
     * Assign an `Actor` to act for this server object.
     * This reference is only set once, that is, as long as the internal `ActorRef` directs to `Actor.noSender` (`null`).
     * @param control the `Actor` whose functionality will govern this server object
@@ -37,7 +31,7 @@ abstract class PlanetSideServerObject extends PlanetSideGameObject
     */
   def Actor_=(control : ActorRef) : ActorRef =  {
     actor = control
-    getActorFunc = doGetActor
+    getActorFunc = PlanetSideServerObject.doGetLocalActor(this)
     actor
   }
 
@@ -56,6 +50,13 @@ object PlanetSideServerObject {
     * @return the value pointed to by `Default.Actor`
     */
   private def getDefaultActor() : ActorRef = { Default.Actor }
+
+  /**
+    * Allow retrieving a reference to the internal `Actor`.
+    * @see o the server object
+    * @return the internal `ActorRef`
+    */
+  private def doGetLocalActor(o : PlanetSideServerObject)() : ActorRef = o.actor
 
   /**
     * `Actor` entities require unique names over the course of the lifetime of the `ActorSystem` object.
