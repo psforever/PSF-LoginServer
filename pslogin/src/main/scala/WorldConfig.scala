@@ -45,6 +45,9 @@ object WorldConfig extends ConfigParser {
     ),
     ConfigSection("kamon",
       ConfigEntryBool("Active", false)
+    ),
+    ConfigSection("antihack",
+      ConfigEntryInt("HitPositionDiscrepancyThreshold", 10000, Constraints.min(1), Constraints.max(1000000))
     )
   )
 

@@ -248,3 +248,12 @@ NetSim.ReorderTime = 150 milliseconds
 #                     yes - (Enabled)
 
 Active = no
+
+[antihack]
+
+#    HitPositionDiscrepancyThreshold (int)
+#        Description: The distance (squared) threshold that triggers if the reported hit location of a shot does not match the object being hit's location on the server
+#        Range:       [1, 1000000]
+#        Default:     10000 (sqrt 10000 = ~100 ingame units)
+
+HitPositionDiscrepancyThreshold = 10000
