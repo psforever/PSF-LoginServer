@@ -74,32 +74,16 @@ class MultiPacketCollector() {
   /**
     * Retrieve the internal collection of packets.
     * Reset the internal list of packets by clearing it.
-    * @return a loaded `MultiPacketBundle` object
-    */
-  def Bundle : MultiPacketBundle =  {
-    try {
-      val out = MultiPacketBundle(bundle)
-      bundle = List.empty
-      out
-    }
-    catch {
-      case _ : Exception => //catch and rethrow the exception
-        throw new RuntimeException("no packets")
-    }
-  }
-
-  /**
-    * A safer `Bundle` that consumes any` Exceptions` that might be thrown in the process of producing output.
-    * @see `Bundle`
     * @return a loaded `MultiPacketBundle` object, or `None`
     */
-  def BundleOption : Option[MultiPacketBundle] = {
-    try {
-      Some(Bundle)
-    }
-    catch {
-      case _ : Exception =>
+  def Bundle : Option[MultiPacketBundle] = {
+    bundle match {
+      case Nil =>
         None
+      case list =>
+        val out = MultiPacketBundle(list)
+        bundle = List.empty
+        Some(out)
     }
   }
 }

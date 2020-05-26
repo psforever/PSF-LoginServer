@@ -3633,7 +3633,7 @@ class WorldSessionActor extends Actor
 
   /**
     * Instruct the client to treat this player as the avatar.
-    * Initialize all client-specific data that is dependent on some player beign decalred the "avatar".
+    * Initialize all client-specific data that is dependent on some player being declared the "avatar".
     * @param tplayer the target player
     */
   def HandleSetCurrentAvatar(tplayer : Player) : Unit = {
@@ -11429,7 +11429,7 @@ class WorldSessionActor extends Actor
   def StopBundlingPackets() : Unit = {
     log.trace("WORLD SEND: PACKET BUNDLING SUSPENDED")
     packetBundlingFunc = NoBundlingAction
-    packetBundlingCollector.BundleOption match {
+    packetBundlingCollector.Bundle match {
       case Some(bundle) =>
         sendResponse(bundle)
       case None => ;
@@ -11485,7 +11485,7 @@ class WorldSessionActor extends Actor
     */
   def sendResponse(cont : KeepAliveMessage) : Unit = {
     sendResponse(PacketCoding.CreateGamePacket(0, cont))
-    packetBundlingCollector.BundleOption match {
+    packetBundlingCollector.Bundle match {
       case Some(bundle) =>
         log.trace("WORLD SEND: INTERMITTENT PACKET BUNDLE")
         sendResponse(bundle)
