@@ -3494,8 +3494,8 @@ class WorldSessionActor extends Actor
   def HandleNtuCharging(tplayer : Player, vehicle : Vehicle) : Unit = {
     log.trace(s"NtuCharging: Vehicle ${vehicle.GUID} is charging NTU capacitor.")
     if(vehicle.NtuCapacitor < vehicle.Definition.MaxNtuCapacitor) {
-      // Charging
-      vehicle.NtuCapacitor += 100
+      // Charging - ANTs would charge from 0-100% in roughly 75s on live (https://www.youtube.com/watch?v=veOWToR2nSk&feature=youtu.be&t=1194)
+      vehicle.NtuCapacitor += vehicle.Definition.MaxNtuCapacitor / 75
       sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, scala.math.ceil((vehicle.NtuCapacitor.toFloat / vehicle.Definition.MaxNtuCapacitor.toFloat) * 10).toInt)) // set ntu on vehicle UI
       continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 52, 1L)) // panel glow on
       continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 49, 1L)) // orb particle effect on
@@ -3528,7 +3528,8 @@ class WorldSessionActor extends Actor
       if(vehicle.NtuCapacitor > 0 && silo.ChargeLevel < silo.MaximumCharge) {
 
         // Make sure we don't exceed the silo maximum charge or remove much NTU from ANT if maximum is reached, or try to make ANT go below 0 NTU
-        var chargeToDeposit = Math.min(Math.min(vehicle.NtuCapacitor, 100), (silo.MaximumCharge - silo.ChargeLevel))
+        // Silos would charge from 0-100% in roughly 105s on live (~20%-100% https://youtu.be/veOWToR2nSk?t=1402)
+        var chargeToDeposit = Math.min(Math.min(vehicle.NtuCapacitor, silo.MaximumCharge / 105), silo.MaximumCharge - silo.ChargeLevel)
         vehicle.NtuCapacitor -= chargeToDeposit
         silo.Actor ! ResourceSilo.UpdateChargeLevel(chargeToDeposit)
         continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(silo_guid, 49, 1L)) // panel glow on & orb particles on
