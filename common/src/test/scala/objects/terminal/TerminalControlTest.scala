@@ -26,7 +26,7 @@ class TerminalControl2Test extends ActorTest {
     val (_, terminal) = TerminalControlTest.SetUpAgents(GlobalDefinitions.cert_terminal, PlanetSideEmpire.TR)
 
     terminal.Actor !"hello"
-    expectNoMsg(Duration.create(500, "ms"))
+    expectNoMessage(Duration.create(500, "ms"))
   }
 }
 

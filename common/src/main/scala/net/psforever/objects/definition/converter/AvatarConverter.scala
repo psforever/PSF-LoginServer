@@ -122,7 +122,7 @@ object AvatarConverter {
       DressBattleRank(obj),
       0,
       DressCommandRank(obj),
-      MakeImplantEffectList(obj.Implants),
+      MakeImplantEffectList(obj.Implants.toIndexedSeq),
       MakeCosmetics(obj)
     )
   }

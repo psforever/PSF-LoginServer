@@ -20,7 +20,7 @@ import scala.concurrent.duration._
 //
 //  "RemoverActor" should {
 //    "handle a simple task" in {
-//      expectNoMsg(500 milliseconds)
+//      expectNoMessage(500 milliseconds)
 //      val remover = system.actorOf(
 //        Props(classOf[ActorTest.SupportActorInterface], Props[RemoverActorTest.TestRemover], self),
 //        "test-remover"
@@ -31,7 +31,7 @@ import scala.concurrent.duration._
 //      assert(reply1.isInstanceOf[RemoverActorTest.InclusionTestAlert])
 //      val reply2 = receiveOne(500 milliseconds)
 //      assert(reply2.isInstanceOf[RemoverActorTest.InitialJobAlert])
-//      expectNoMsg(1 seconds) //delay
+//      expectNoMessage(1 seconds) //delay
 //      val reply3 = receiveOne(500 milliseconds)
 //      assert(reply3.isInstanceOf[RemoverActorTest.FirstJobAlert])
 //      val reply4 = receiveOne(500 milliseconds)
@@ -51,7 +51,7 @@ import scala.concurrent.duration._
 //
 //  "RemoverActor" should {
 //    "handle a simple task (timed)" in {
-//      expectNoMsg(500 milliseconds)
+//      expectNoMessage(500 milliseconds)
 //      val remover = system.actorOf(
 //        Props(classOf[ActorTest.SupportActorInterface], Props[RemoverActorTest.TestRemover], self),
 //        "test-remover"
@@ -83,7 +83,7 @@ import scala.concurrent.duration._
 //
 //  "RemoverActor" should {
 //    "allow only specific objects" in {
-//      expectNoMsg(500 milliseconds)
+//      expectNoMessage(500 milliseconds)
 //      val probe = TestProbe()
 //      val remover = system.actorOf(
 //        Props(classOf[ActorTest.SupportActorInterface], Props[RemoverActorTest.TestRemover], self),
@@ -93,7 +93,7 @@ import scala.concurrent.duration._
 //
 //      val reply1 = probe.receiveOne(200 milliseconds)
 //      assert(reply1.isInstanceOf[RemoverActorTest.InclusionTestAlert])
-//      expectNoMsg(2 seconds)
+//      expectNoMessage(2 seconds)
 //      //RemoverActor is stalled because it received an object that it was not allowed to act upon
 //    }
 //  }
@@ -105,7 +105,7 @@ import scala.concurrent.duration._
 //
 //  "RemoverActor" should {
 //    "work on parallel tasks" in {
-//      expectNoMsg(500 milliseconds)
+//      expectNoMessage(500 milliseconds)
 //      val probe = TestProbe()
 //      val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
 //      remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere)
@@ -139,7 +139,7 @@ import scala.concurrent.duration._
 //
 //  "RemoverActor" should {
 //    "be able to hurry certain tasks" in {
-//      expectNoMsg(500 milliseconds)
+//      expectNoMessage(500 milliseconds)
 //      val probe = TestProbe()
 //      val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
 //      remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere, Some(10 minutes)) //TEN MINUTE WAIT
@@ -148,7 +148,7 @@ import scala.concurrent.duration._
 //      assert(reply1.isInstanceOf[RemoverActorTest.InclusionTestAlert])
 //      val reply2 = probe.receiveOne(200 milliseconds)
 //      assert(reply2.isInstanceOf[RemoverActorTest.InitialJobAlert])
-//      probe.expectNoMsg(3 seconds) //long delay, longer than standard but not yet 10 minutes
+//      probe.expectNoMessage(3 seconds) //long delay, longer than standard but not yet 10 minutes
 //      remover ! RemoverActor.HurrySpecific(List(RemoverActorTest.TestObject), Zone.Nowhere) //hurried
 //      val reply3 = probe.receiveOne(300 milliseconds)
 //      assert(reply3.isInstanceOf[RemoverActorTest.FirstJobAlert])
@@ -170,7 +170,7 @@ import scala.concurrent.duration._
 //
 //  "RemoverActor" should {
 //    "be able to hurry certain tasks, but let others finish normally" in {
-//      expectNoMsg(500 milliseconds)
+//      expectNoMessage(500 milliseconds)
 //      val probe = TestProbe()
 //      val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
 //      remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere, Some(5 seconds))
@@ -185,7 +185,7 @@ import scala.concurrent.duration._
 //        case msg => assert(false, s"$msg")
 //      }
 //      assert(ita == 2 && ija == 2)
-//      probe.expectNoMsg(3 seconds) //long delay, longer than standard but not yet 5 seconds
+//      probe.expectNoMessage(3 seconds) //long delay, longer than standard but not yet 5 seconds
 //      remover ! RemoverActor.HurrySpecific(List(RemoverActorTest.TestObject), Zone.Nowhere) //hurried
 //      //first
 //      val reply3a = probe.receiveOne(300 milliseconds)
@@ -221,7 +221,7 @@ import scala.concurrent.duration._
 //
 //  "RemoverActor" should {
 //    "be able to hurry certain tasks, but only valid ones" in {
-//      expectNoMsg(500 milliseconds)
+//      expectNoMessage(500 milliseconds)
 //      val probe = TestProbe()
 //      val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
 //      remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere, Some(5 seconds))
@@ -236,7 +236,7 @@ import scala.concurrent.duration._
 //        case msg => assert(false, s"$msg")
 //      }
 //      assert(ita == 2 && ija == 2)
-//      probe.expectNoMsg(3 seconds) //long delay, longer than standard but not yet 5 seconds
+//      probe.expectNoMessage(3 seconds) //long delay, longer than standard but not yet 5 seconds
 //      remover ! RemoverActor.HurrySpecific(List(RemoverActorTest.TestObject, TestObject3), Zone.Nowhere) //multiple hurried, only one valid
 //      //first
 //      val reply3a = probe.receiveOne(300 milliseconds)
@@ -273,7 +273,7 @@ import scala.concurrent.duration._
 //
 //  "RemoverActor" should {
 //    "be able to hurry certain tasks by their zone" in {
-//      expectNoMsg(500 milliseconds)
+//      expectNoMessage(500 milliseconds)
 //      val probe = TestProbe()
 //      val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
 //      remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere, Some(5 seconds))
@@ -289,7 +289,7 @@ import scala.concurrent.duration._
 //        case msg => assert(false, s"$msg")
 //      }
 //      assert(ita == 3 && ija == 3)
-//      probe.expectNoMsg(3 seconds) //long delay, longer than standard but not yet 5 seconds
+//      probe.expectNoMessage(3 seconds) //long delay, longer than standard but not yet 5 seconds
 //      remover ! RemoverActor.HurrySpecific(List(), Zone.Nowhere) //multiple hurried, only the two entries with Zone.Nowhere
 //      //
 //      val replies2 = probe.receiveN(10, 5 seconds)
@@ -332,7 +332,7 @@ import scala.concurrent.duration._
 //
 //  "RemoverActor" should {
 //    "be able to hurry all tasks to completion" in {
-//      expectNoMsg(500 milliseconds)
+//      expectNoMessage(500 milliseconds)
 //      val probe = TestProbe()
 //      val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
 //      remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere, Some(20 seconds))
@@ -348,7 +348,7 @@ import scala.concurrent.duration._
 //        case msg => assert(false, s"$msg")
 //      }
 //      assert(ita == 3 && ija == 3)
-//      probe.expectNoMsg(3 seconds) //long delay, longer than standard but not yet longer than any of the tasks
+//      probe.expectNoMessage(3 seconds) //long delay, longer than standard but not yet longer than any of the tasks
 //      remover ! RemoverActor.HurryAll() //all hurried
 //      //
 //      val replies2 = probe.receiveN(15, 5 seconds)
@@ -378,7 +378,7 @@ import scala.concurrent.duration._
 //
 //  "RemoverActor" should {
 //    "be able to clear certain tasks" in {
-//      expectNoMsg(500 milliseconds)
+//      expectNoMessage(500 milliseconds)
 //      val probe = TestProbe()
 //      val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
 //      remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere, Some(5 seconds))
@@ -393,7 +393,7 @@ import scala.concurrent.duration._
 //        case msg => assert(false, s"$msg")
 //      }
 //      assert(ita == 2 && ija == 2)
-//      probe.expectNoMsg(4 seconds) //long delay, longer than standard but not yet 5 seconds
+//      probe.expectNoMessage(4 seconds) //long delay, longer than standard but not yet 5 seconds
 //      remover ! RemoverActor.ClearSpecific(List(RemoverActorTest.TestObject), Zone.Nowhere) //cleared
 //      //
 //      val reply3 = probe.receiveOne(2 seconds)
@@ -407,7 +407,7 @@ import scala.concurrent.duration._
 //      val reply7 = probe.receiveOne(500 milliseconds)
 //      assert(reply7.isInstanceOf[RemoverActorTest.DeletionTaskRunAlert])
 //      //wait
-//      probe.expectNoMsg(2 seconds) //nothing more to do
+//      probe.expectNoMessage(2 seconds) //nothing more to do
 //    }
 //  }
 //}
@@ -418,7 +418,7 @@ import scala.concurrent.duration._
 //
 //  "RemoverActor" should {
 //    "be able to clear all tasks, with no more work on them" in {
-//      expectNoMsg(500 milliseconds)
+//      expectNoMessage(500 milliseconds)
 //      val probe = TestProbe()
 //      val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
 //      remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere, Some(5 seconds))
@@ -433,10 +433,10 @@ import scala.concurrent.duration._
 //        case msg => assert(false, s"$msg")
 //      }
 //      assert(ita == 2 && ija == 2)
-//      probe.expectNoMsg(4 seconds) //long delay, longer than standard but not yet 5 seconds
+//      probe.expectNoMessage(4 seconds) //long delay, longer than standard but not yet 5 seconds
 //      remover ! RemoverActor.ClearAll() //cleared
 //      //wait
-//      probe.expectNoMsg(3 seconds) //nothing more to do
+//      probe.expectNoMessage(3 seconds) //nothing more to do
 //    }
 //  }
 //}
@@ -447,7 +447,7 @@ import scala.concurrent.duration._
 //
 //  "RemoverActor" should {
 //    "be able to hurry certain tasks" in {
-//      expectNoMsg(500 milliseconds)
+//      expectNoMessage(500 milliseconds)
 //      val probe = TestProbe()
 //      val remover = system.actorOf(Props(classOf[RemoverActorTest.TestRemover], probe), "test-remover")
 //      remover ! RemoverActor.AddTask(RemoverActorTest.TestObject, Zone.Nowhere, Some(5 seconds))
@@ -462,7 +462,7 @@ import scala.concurrent.duration._
 //        case msg => assert(false, s"$msg")
 //      }
 //      assert(ita == 2 && ija == 2)
-//      probe.expectNoMsg(2 seconds)
+//      probe.expectNoMessage(2 seconds)
 //      remover ! akka.actor.PoisonPill
 //      //
 //      val replies2 = probe.receiveN(8, 5 seconds)

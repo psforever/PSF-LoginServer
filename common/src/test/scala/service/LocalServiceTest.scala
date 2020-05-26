@@ -69,7 +69,7 @@ class LocalService5Test extends ActorTest {
       val service = system.actorOf(Props(classOf[LocalService], Zone.Nowhere), "l_service")
       service ! Service.Join("test")
       service ! "hello"
-      expectNoMsg()
+      expectNoMessage()
     }
   }
 }

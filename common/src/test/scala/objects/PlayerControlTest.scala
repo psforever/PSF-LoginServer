@@ -83,7 +83,7 @@ class PlayerControlHealTest extends ActorTest {
 
       player1.Position = Vector3(10,0,0) //moved more than 5m away
       player2.Actor ! CommonMessages.Use(player1, Some(tool))
-      avatarProbe.expectNoMsg(500 milliseconds)
+      avatarProbe.expectNoMessage(500 milliseconds)
       assert(raisedHealth == player2.Health)
     }
   }
@@ -224,7 +224,7 @@ class PlayerControlRepairTest extends ActorTest {
       val fixedArmor = player2.Armor
       player1.Position = Vector3(10,0,0) //moved more than 5m away
       player2.Actor ! CommonMessages.Use(player1, Some(tool))
-      avatarProbe.expectNoMsg(500 milliseconds)
+      avatarProbe.expectNoMessage(500 milliseconds)
       assert(fixedArmor == player2.Armor)
     }
   }
@@ -329,7 +329,7 @@ class PlayerControlDamageTest extends ActorTest {
   guid.register(player2, 2)
   guid.register(tool, 3)
   guid.register(tool.AmmoSlot.Box, 4)
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
   "PlayerControl" should {
     "handle damage" in {
       assert(player2.Health == player2.Definition.DefaultHealth)
@@ -406,7 +406,7 @@ class PlayerControlDeathStandingTest extends ActorTest {
   guid.register(player2, 2)
   guid.register(tool, 3)
   guid.register(tool.AmmoSlot.Box, 4)
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
 
   "PlayerControl" should {
     "handle death" in {
@@ -421,7 +421,7 @@ class PlayerControlDeathStandingTest extends ActorTest {
 
       player2.Actor ! Vitality.Damage(applyDamageTo)
       val msg_avatar = avatarProbe.receiveN(8, 500 milliseconds)
-      activityProbe.expectNoMsg(200 milliseconds)
+      activityProbe.expectNoMessage(200 milliseconds)
       assert(
         msg_avatar.head match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 4, _)) => true
@@ -518,7 +518,7 @@ class PlayerControlDeathSeatedTest extends ActorTest {
   guid.register(tool, 3)
   guid.register(tool.AmmoSlot.Box, 4)
   guid.register(vehicle, 5)
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
 
   "PlayerControl" should {
     "handle death when seated (in something)" in {
@@ -531,7 +531,7 @@ class PlayerControlDeathSeatedTest extends ActorTest {
 
       player2.Actor ! Vitality.Damage(applyDamageTo)
       val msg_avatar = avatarProbe.receiveN(9, 500 milliseconds)
-      activityProbe.expectNoMsg(200 milliseconds)
+      activityProbe.expectNoMessage(200 milliseconds)
       assert(
         msg_avatar.head match {
           case AvatarServiceMessage("TestCharacter2", AvatarAction.Killed(PlanetSideGUID(2))) => true

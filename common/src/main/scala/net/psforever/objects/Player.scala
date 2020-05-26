@@ -150,7 +150,7 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
   def Capacitor : Float = capacitor
 
   def Capacitor_=(value : Float) : Float = {
-    val newValue = math.min(math.max(0, value), ExoSuitDef.MaxCapacitor)
+    val newValue = math.min(math.max(0, value), ExoSuitDef.MaxCapacitor.toFloat)
 
     if(newValue < capacitor) {
       capacitorLastUsedMillis = System.currentTimeMillis()

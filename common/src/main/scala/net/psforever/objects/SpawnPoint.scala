@@ -80,7 +80,7 @@ object SpawnPoint {
     val z = ori.z
     val zrot = (z + 90) % 360
     val zrad = math.toRadians(zrot)
-    val shift = Vector3(math.sin(zrad).toFloat, math.cos(zrad).toFloat, 0) * (3 * side) //x=sin, y=cos because compass-0 is East, not North
+    val shift = Vector3(math.sin(zrad).toFloat, math.cos(zrad).toFloat, 0) * (3 * side).toFloat //x=sin, y=cos because compass-0 is East, not North
     (
       obj.Position + shift + (if(x >= 330) { //ams leaning to the left
         Vector3.z(xsin)

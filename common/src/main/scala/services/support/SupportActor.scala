@@ -40,7 +40,7 @@ abstract class SupportActor[A <: SupportActor.Entry] extends Actor {
 
   def HurrySpecific(targets : List[PlanetSideGameObject], zone : Zone) : Unit
 
-  def HurryAll()
+  def HurryAll() : Unit
 
   def ClearSpecific(targets : List[PlanetSideGameObject], zone : Zone) : Unit
 

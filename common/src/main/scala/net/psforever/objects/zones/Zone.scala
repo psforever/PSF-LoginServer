@@ -10,6 +10,7 @@ import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.actor.UniqueNumberSystem
+import net.psforever.objects.guid.key.LoanedKey
 import net.psforever.objects.guid.selector.RandomSelector
 import net.psforever.objects.guid.source.LimitedNumberSource
 import net.psforever.objects.inventory.Container
@@ -30,6 +31,8 @@ import scala.concurrent.duration._
 import scalax.collection.Graph
 import scalax.collection.GraphPredef._
 import scalax.collection.GraphEdge._
+
+import scala.util.Try
 
 /**
   * A server object representing the one-landmass planets as well as the individual subterranean caverns.<br>
@@ -223,7 +226,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     * @return synchronized reference to the globally unique identifier system
     */
   def GUID(hub : NumberPoolHub) : Boolean = {
-    if(actor == ActorRef.noSender && guid.Pools.map({case (_, pool) => pool.Count}).sum == 0) {
+    if(actor == ActorRef.noSender && guid.Pools.values.foldLeft(0)(_ + _.Count) == 0) {
       import org.fusesource.jansi.Ansi.Color.RED
       import org.fusesource.jansi.Ansi.ansi
       println(ansi().fgBright(RED).a(s"""Caution: replacement of the number pool system for zone $Id; function is for testing purposes only""").reset())
@@ -408,9 +411,9 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
 
   private def MakeBuildings(implicit context : ActorContext) : PairMap[Int, Building] = {
     val buildingList = Map.LocalBuildings
-    val registrationKeys = buildingList.map {
-      case ((_, building_guid, _), _) =>
-        building_guid -> guid.register(building_guid)
+    val registrationKeys : Map[Int, Try[LoanedKey]] = buildingList.map {
+      case ((_, building_guid : Int, _), _) =>
+        (building_guid, guid.register(building_guid))
     }
     buildings = buildingList.map({
       case((name, building_guid, map_id), constructor) if registrationKeys(building_guid).isSuccess =>
@@ -448,19 +451,13 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
   }
 
   private def MakeLattice(): Unit = {
-    Map.LatticeLink.foreach({ case(source, target) =>
-      val sourceBuilding = Building(source) match {
-        case Some(building) => building
+    lattice ++= Map.LatticeLink.map { case(source, target) =>
+      val (sourceBuilding, targetBuilding) = (Building(source), Building(target)) match {
+        case (Some(sBuilding), Some(tBuilding)) => (sBuilding, tBuilding)
         case _ => throw new NoSuchElementException(s"Can't create lattice link between $source $target. Source is missing")
       }
-
-      val targetBuilding = Building(target) match {
-        case Some(building) => building
-        case _ => throw new NoSuchElementException(s"Can't create lattice link between $source $target. Target is missing")
-      }
-
-      lattice += sourceBuilding~targetBuilding
-    })
+      sourceBuilding~targetBuilding
+    }
   }
 
   private def CreateSpawnGroups() : Unit = {

@@ -229,7 +229,7 @@ object CSRZoneImpl {
     * Only the warpgate keys are searchable by the `/zone` command.
     */
   def setup() : Unit = {
-    zones("z1").gates += (
+    zones("z1").gates ++= Map(
       "gate1" -> Vector3(4150, 7341, 82),
       "gate2" -> Vector3(5698, 3404, 129),
       "gate3" -> Vector3(2650, 5363, 176),
@@ -237,7 +237,7 @@ object CSRZoneImpl {
       "geowarp1" -> Vector3(3678, 2895, 108),
       "geowarp2" -> Vector3(5672, 4750, 70)
     )
-    zones("z1").locations += (
+    zones("z1").locations ++= Map(
       "amun" -> Vector3(4337, 2278, 68),
       "aton" -> Vector3(3772, 5463, 54),
       "bastet" -> Vector3(5412, 5588, 56),
@@ -250,7 +250,7 @@ object CSRZoneImpl {
       "lake" -> Vector3(4317, 4008, 37),
       "monolith" -> Vector3(5551, 5047, 64)
     )
-    zones("z2").gates += (
+    zones("z2").gates ++= Map(
       "gate1" -> Vector3(1881, 4873, 19),
       "gate2" -> Vector3(4648, 4625, 28),
       "gate3" -> Vector3(3296, 2045, 21),
@@ -258,7 +258,7 @@ object CSRZoneImpl {
       "geowarp1" -> Vector3(5199, 4869, 39),
       "geowarp2" -> Vector3(3911, 2407, 15)
     )
-    zones("z2").locations += (
+    zones("z2").locations ++= Map(
       "acan" -> Vector3(3534, 4015, 30),
       "bitol" -> Vector3(4525, 2632, 30),
       "chac" -> Vector3(4111, 5950, 39),
@@ -272,7 +272,7 @@ object CSRZoneImpl {
       "zotz" -> Vector3(6677, 2342, 129),
       "monolith" -> Vector3(2938, 2485, 14)
     )
-    zones("z3").gates += (
+    zones("z3").gates ++= Map(
       "gate1" -> Vector3(2616, 6567, 58),
       "gate2" -> Vector3(6980, 5336, 57),
       "gate3" -> Vector3(1199, 1332, 66),
@@ -280,7 +280,7 @@ object CSRZoneImpl {
       "geowarp1" -> Vector3(2403, 4278, 60),
       "geowarp2" -> Vector3(4722, 2665, 78)
     )
-    zones("z3").locations += (
+    zones("z3").locations ++= Map(
       "aja" -> Vector3(754, 5435, 48),
       "chuku" -> Vector3(4208, 7021, 54),
       "bomazi" -> Vector3(1198, 4492, 58),
@@ -301,7 +301,7 @@ object CSRZoneImpl {
       "monolith" -> Vector3(4515, 4105, 38),
       "peak" -> Vector3(3215, 5063, 579)
     )
-    zones("z4").gates += (
+    zones("z4").gates ++= Map(
       "gate1" -> Vector3(4702, 6768, 30),
       "gate2" -> Vector3(5515, 3368, 69),
       "gate3" -> Vector3(1564, 3356, 46),
@@ -309,7 +309,7 @@ object CSRZoneImpl {
       "geowarp1" -> Vector3(4202, 4325, 68),
       "geowarp2" -> Vector3(2384, 1925, 37)
     )
-    zones("z4").locations += (
+    zones("z4").locations ++= Map(
       "akkan" -> Vector3(2746, 4260, 39),
       "baal" -> Vector3(825, 5470, 72),
       "dagon" -> Vector3(1739, 5681, 40),
@@ -325,7 +325,7 @@ object CSRZoneImpl {
       "monolith" -> Vector3(5165, 4083, 35),
       "stonehenge" -> Vector3(4992, 3776, 56)
     )
-    zones("z5").gates += (
+    zones("z5").gates ++= Map(
       "gate1" -> Vector3(3432, 6498, 73),
       "gate2" -> Vector3(7196, 3917, 47),
       "gate3" -> Vector3(1533, 3540, 56),
@@ -333,7 +333,7 @@ object CSRZoneImpl {
       "geowarp1" -> Vector3(4899, 5633, 38),
       "geowarp2" -> Vector3(5326, 2558, 54)
     )
-    zones("z5").locations += (
+    zones("z5").locations ++= Map(
       "anu" -> Vector3(3479, 2556, 56),
       "bel" -> Vector3(3665, 4626, 58),
       "caer" -> Vector3(4570, 2601, 56),
@@ -348,7 +348,7 @@ object CSRZoneImpl {
       "islands1" -> Vector3(6680, 6217, 125),
       "islands2" -> Vector3(1059, 6213, 120)
     )
-    zones("z6").gates += (
+    zones("z6").gates ++= Map(
       "gate1" -> Vector3(5040, 4327, 46),
       "gate2" -> Vector3(2187, 5338, 30),
       "gate3" -> Vector3(4960, 1922, 15),
@@ -356,7 +356,7 @@ object CSRZoneImpl {
       "geowarp1" -> Vector3(3221, 5328, 242),
       "geowarp2" -> Vector3(2237, 1783, 238)
     )
-    zones("z6").locations += (
+    zones("z6").locations ++= Map(
       "akna" -> Vector3(4509, 3732, 219),
       "anguta" -> Vector3(3999, 4170, 266),
       "igaluk" -> Vector3(3241, 5658, 235),
@@ -369,7 +369,7 @@ object CSRZoneImpl {
       "monolith" -> Vector3(4011, 4851, 32),
       "bridge" -> Vector3(3729, 4859, 234)
     )
-    zones("z7").gates += (
+    zones("z7").gates ++= Map(
       "gate1" -> Vector3(1516, 6448, 61),
       "gate2" -> Vector3(5249, 3819, 69),
       "gate3" -> Vector3(2763, 2961, 86),
@@ -377,7 +377,7 @@ object CSRZoneImpl {
       "geowarp1" -> Vector3(6345, 4802, 90),
       "geowarp2" -> Vector3(3800, 2197, 64)
     )
-    zones("z7").locations += (
+    zones("z7").locations ++= Map(
       "andvari" -> Vector3(3233, 7207, 78),
       "dagur" -> Vector3(4026, 6191, 60),
       "eisa" -> Vector3(3456, 4513, 75),
@@ -393,7 +393,7 @@ object CSRZoneImpl {
       "ymir" -> Vector3(1911, 4008, 69),
       "monolith" -> Vector3(6390, 1622, 63)
     )
-    zones("z8").gates += (
+    zones("z8").gates ++= Map(
       "gate1" -> Vector3(5437, 5272, 32),
       "gate2" -> Vector3(3251, 5650, 60),
       "gate3" -> Vector3(5112, 2616, 40),
@@ -401,7 +401,7 @@ object CSRZoneImpl {
       "geowarp1" -> Vector3(3979, 5370, 47),
       "geowarp2" -> Vector3(6018, 3136, 35)
     )
-    zones("z8").locations += (
+    zones("z8").locations ++= Map(
       "atar" -> Vector3(3609, 2730, 47),
       "dahaka" -> Vector3(4633, 5379, 54),
       "hvar" -> Vector3(3857, 4764, 49),
@@ -415,14 +415,14 @@ object CSRZoneImpl {
       "arch2" -> Vector3(4688, 5272, 68),
       "pride" -> Vector3(2913, 4412, 63)
     )
-    zones("z9").gates += (
+    zones("z9").gates ++= Map(
       "gate1" -> Vector3(1505, 6981, 65),
       "gate2" -> Vector3(6835, 3517, 56),
       "gate3" -> Vector3(1393, 1376, 53),
       "geowarp1" -> Vector3(7081, 5552, 46),
       "geowarp2" -> Vector3(3776, 1092, 49)
     )
-    zones("z9").locations += (
+    zones("z9").locations ++= Map(
       "akua" -> Vector3(5258, 4041, 346),
       "drakulu" -> Vector3(3806, 2647, 151),
       "hiro" -> Vector3(4618, 5761, 190),
@@ -439,7 +439,7 @@ object CSRZoneImpl {
       "wakea" -> Vector3(1785, 5241, 63),
       "monolith" -> Vector3(3246, 6507, 105)
     )
-    zones("z10").gates += (
+    zones("z10").gates ++= Map(
       "gate1" -> Vector3(6140, 6599, 71),
       "gate2" -> Vector3(4814, 4608, 59),
       "gate3" -> Vector3(3152, 3480, 54),
@@ -447,7 +447,7 @@ object CSRZoneImpl {
       "geowarp1" -> Vector3(3612, 6918, 38),
       "geowarp2" -> Vector3(3668, 3327, 55)
     )
-    zones("z10").locations += (
+    zones("z10").locations ++= Map(
       "azeban" -> Vector3(6316, 5160, 62),
       "cetan" -> Vector3(3587, 2522, 48),
       "heyoka" -> Vector3(4395, 2327, 47),
@@ -462,19 +462,19 @@ object CSRZoneImpl {
       "xelas" -> Vector3(6609, 4479, 56),
       "monolith" -> Vector3(5651, 6024, 38)
     )
-    zones("home1").gates += (
+    zones("home1").gates ++= Map(
       "gate1" -> Vector3(4158, 6344, 44),
       "gate2" -> Vector3(2214, 5797, 48),
       "gate3" -> Vector3(5032, 3241, 53)
     )
     zones("home1").locations += "hart_c" -> Vector3(2352, 5523, 66)
-    zones("home2").gates += (
+    zones("home2").gates ++= Map(
       "gate1" -> Vector3(5283, 4317, 44),
       "gate2" -> Vector3(3139, 4809, 40),
       "gate3" -> Vector3(3659, 2894, 26)
     )
     zones("home2").locations += "hart_c" -> Vector3(3125, 2864, 35)
-    zones("home3").gates += (
+    zones("home3").gates ++= Map(
       "gate1" -> Vector3(5657, 4681, 98),
       "gate2" -> Vector3(2639, 5366, 57),
       "gate3" -> Vector3(4079, 2467, 155)
@@ -482,93 +482,93 @@ object CSRZoneImpl {
     zones("home3").locations += "hart_c" -> Vector3(3675, 2727, 91)
     zones("tzshtr").locations += "roof" -> Vector3(499, 1568, 25)
     zones("tzcotr").locations += "spawn" -> Vector3(960, 1002, 32)
-    zones("tzdrtr").locations += (
+    zones("tzdrtr").locations ++= Map(
       "start" -> Vector3(2457, 1864, 23),
       "air_pad" -> Vector3(1700, 1900, 32)
     )
     zones("tzshvs").locations += "roof" -> Vector3(499, 1568, 25)
     zones("tzcovs").locations += "spawn" -> Vector3(960, 1002, 32)
-    zones("tzdrvs").locations += (
+    zones("tzdrvs").locations ++= Map(
       "start" -> Vector3(2457, 1864, 23),
       "air_pad" -> Vector3(1700, 1900, 32)
     )
     zones("tzshnc").locations += "roof" -> Vector3(499, 1568, 25)
     zones("tzconc").locations += "spawn" -> Vector3(960, 1002, 32)
-    zones("tzdrnc").locations += (
+    zones("tzdrnc").locations ++= Map(
       "start" -> Vector3(2457, 1864, 23),
       "air_pad" -> Vector3(1700, 1900, 32)
     )
-    zones("c1").gates += (
+    zones("c1").gates ++= Map(
       "geowarp1" -> Vector3(998, 2038, 103),
       "geowarp2" -> Vector3(231, 1026, 82),
       "geowarp3" -> Vector3(2071, 1405, 102),
       "geowarp4" -> Vector3(1051, 370, 103)
     )
-    zones("c2").gates += (
+    zones("c2").gates ++= Map(
       "geowarp1" -> Vector3(999, 2386, 243),
       "geowarp2" -> Vector3(283, 1249, 172),
       "geowarp3" -> Vector3(1887, 1307, 192),
       "geowarp4" -> Vector3(1039, 155, 143)
     )
-    zones("c3").gates += (
+    zones("c3").gates ++= Map(
       "geowarp1" -> Vector3(1095, 1725, 25),
       "geowarp2" -> Vector3(226, 832, 42),
       "geowarp3" -> Vector3(1832, 1026, 43),
       "geowarp4" -> Vector3(981, 320, 46)
     )
-    zones("c4").gates += (
+    zones("c4").gates ++= Map(
       "geowarp1" -> Vector3(902, 1811, 93),
       "geowarp2" -> Vector3(185, 922, 113),
       "geowarp3" -> Vector3(1696, 1188, 92),
       "geowarp4" -> Vector3(887, 227, 115)
     )
-    zones("c5").gates += (
+    zones("c5").gates ++= Map(
       "geowarp1" -> Vector3(1195, 1752, 244),
       "geowarp2" -> Vector3(290, 1104, 235),
       "geowarp3" -> Vector3(1803, 899, 243),
       "geowarp4" -> Vector3(1042, 225, 246)
     )
-    zones("c6").gates += (
+    zones("c6").gates ++= Map(
       "geowarp1" -> Vector3(1067, 2044, 95),
       "geowarp2" -> Vector3(290, 693, 73),
       "geowarp3" -> Vector3(1922, 928, 33),
       "geowarp4" -> Vector3(1174, 249, 114)
     )
-    zones("i3").gates += (
+    zones("i3").gates ++= Map(
       "gate1" -> Vector3(1219, 2580, 30),
       "gate2" -> Vector3(2889, 2919, 33),
       "gate3" -> Vector3(2886, 1235, 32)
     )
-    zones("i3").locations += (
+    zones("i3").locations ++= Map(
       "dahaka" -> Vector3(1421, 2216, 30),
       "jamshid" -> Vector3(2500, 2543, 30),
       "izha" -> Vector3(2569, 1544, 30),
       "oasis" -> Vector3(2084, 1935, 40)
     )
-    zones("i2").gates += (
+    zones("i2").gates ++= Map(
       "gate1" -> Vector3(1243, 1393, 12),
       "gate2" -> Vector3(2510, 2544, 12),
       "gate3" -> Vector3(2634, 1477, 12)
     )
-    zones("i2").locations += (
+    zones("i2").locations ++= Map(
       "rashnu" -> Vector3(1709, 1802, 91),
       "sraosha" -> Vector3(2729, 2349, 91),
       "zal" -> Vector3(1888, 2728, 91),
       "center" -> Vector3(2082, 2192, 160),
       "vpad" -> Vector3(1770, 2686, 92)
     )
-    zones("i1").gates += (
+    zones("i1").gates ++= Map(
       "gate1" -> Vector3(1225, 2036, 67),
       "gate2" -> Vector3(2548, 2801, 65),
       "gate3" -> Vector3(2481, 1194, 89)
     )
-    zones("i1").locations += (
+    zones("i1").locations ++= Map(
       "hvar" -> Vector3(1559, 1268, 88),
       "mithra" -> Vector3(2855, 2850, 89),
       "yazata" -> Vector3(1254, 2583, 88),
       "south_of_volcano" -> Vector3(2068, 1686, 88)
     )
-    zones("i4").gates += (
+    zones("i4").gates ++= Map(
       "gate1" -> Vector3(2359, 2717, 36),
       "gate2" -> Vector3(2732, 1355, 36),
       "geowarp" -> Vector3(1424, 1640, 45)

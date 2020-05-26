@@ -69,7 +69,7 @@ class FacilityTurretControl(turret : FacilityTurret) extends Actor
           weaponAmmoRechargeTimer.cancel()
         }
 
-        weaponAmmoRechargeTimer = context.system.scheduler.schedule(3 seconds, 200 milliseconds, self, FacilityTurret.RechargeAmmo())
+        weaponAmmoRechargeTimer = context.system.scheduler.scheduleWithFixedDelay(3 seconds, 200 milliseconds, self, FacilityTurret.RechargeAmmo())
 
       case FacilityTurret.RechargeAmmo() =>
         val weapon = turret.ControlledWeapon(1).get.asInstanceOf[net.psforever.objects.Tool]

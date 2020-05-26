@@ -69,9 +69,9 @@ class ResourceSiloControlStartupTest extends ActorTest {
 
   "Resource silo" should {
     "startup properly" in {
-      expectNoMsg(500 milliseconds)
+      expectNoMessage(500 milliseconds)
       system.actorOf(Props(classOf[ResourceSiloControl], obj), "test-silo")
-      expectNoMsg(1 seconds)
+      expectNoMessage(1 seconds)
     }
   }
 }
@@ -99,16 +99,16 @@ class ResourceSiloControlUseTest extends ActorTest {
   guid.register(obj, 2)
   guid.register(player, 3)
   guid.register(vehicle, 4)
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
   zone.Transport ! Zone.Vehicle.Spawn(vehicle)
   vehicle.Seats(0).Occupant = player
   player.VehicleSeated = vehicle.GUID
   val msg = UseItemMessage(PlanetSideGUID(1), PlanetSideGUID(0), PlanetSideGUID(2), 0L, false, Vector3.Zero,Vector3.Zero,0,0,0,0L) //faked
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
 
   "Resource silo" should {
     "respond when being used" in {
-      expectNoMsg(1 seconds)
+      expectNoMessage(1 seconds)
       obj.Actor ! ResourceSilo.Use(ResourceSiloTest.player, msg)
 
       val reply = receiveOne(500 milliseconds)
@@ -299,9 +299,9 @@ class ResourceSiloControlNoUpdateTest extends ActorTest {
       assert(!obj.LowNtuWarningOn)
       obj.Actor ! ResourceSilo.UpdateChargeLevel(50)
 
-      expectNoMsg(500 milliseconds)
-      zoneEvents.expectNoMsg(500 milliseconds)
-      buildingEvents.expectNoMsg(500 milliseconds)
+      expectNoMessage(500 milliseconds)
+      zoneEvents.expectNoMessage(500 milliseconds)
+      buildingEvents.expectNoMessage(500 milliseconds)
       assert(obj.ChargeLevel == 299 || obj.ChargeLevel == 300) // Just in case the capacitor level drops while waiting for the message check 299 & 300
       assert(obj.CapacitorDisplay == 3)
       assert(!obj.LowNtuWarningOn)

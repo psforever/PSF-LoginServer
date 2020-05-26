@@ -26,7 +26,7 @@ class PacketCodingActor2Test extends ActorTest {
       val pca : ActorRef = system.actorOf(Props[PacketCodingActor], "pca")
       within(200 millis) {
         pca ! HelloFriend(135, List.empty[ActorRef].iterator)
-        expectNoMsg
+        expectNoMessage
       }
     }
   }
@@ -382,7 +382,7 @@ class PacketCodingActorETest extends ActorTest {
       val reply = probe1.receiveN(2, 400 milli)
       assert(reply.head == string_obj1)
       assert(reply(1) == string_obj2)
-      probe1.expectNoMsg(300 milli)
+      probe1.expectNoMessage(300 milli)
     }
   }
 }
@@ -403,7 +403,7 @@ class PacketCodingActorFTest extends ActorTest {
       val reply = probe1.receiveN(1, 400 milli)
       assert(reply.head == string_obj)
       //the RelatedB message - 00 15 02 98 - is consumed by pca
-      probe1.expectNoMsg(300 milli)
+      probe1.expectNoMessage(300 milli)
     }
   }
 }
@@ -424,7 +424,7 @@ class PacketCodingActorGTest extends ActorTest {
       val reply = probe1.receiveN(1, 400 milli)
       assert(reply.head == string_obj)
       //the RelatedA message - 00 11 02 98 - is consumed by pca; should see error log message in console
-      probe1.expectNoMsg(300 milli)
+      probe1.expectNoMessage(300 milli)
     }
   }
 }
@@ -446,7 +446,7 @@ class PacketCodingActorHTest extends ActorTest {
       val reply = probe1.receiveN(2, 400 milli)
       assert(reply.head == string_obj1)
       assert(reply(1) == string_obj2)
-      probe1.expectNoMsg(300 milli)
+      probe1.expectNoMessage(300 milli)
     }
   }
 }

@@ -262,7 +262,7 @@ class DamageableEntityDamageTest extends ActorTest {
     Vector3(1,0,0)
   )
   val applyDamageTo = resolved.damage_model.Calculate(resolved)
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
 
   "DamageableEntity" should {
     "handle taking damage" in {
@@ -323,7 +323,7 @@ class DamageableEntityDestroyedTest extends ActorTest {
     Vector3(1, 0, 0)
   )
   val applyDamageTo = resolved.damage_model.Calculate(resolved)
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
   "DamageableEntity" should {
@@ -387,7 +387,7 @@ class DamageableEntityNotDestroyTwice extends ActorTest {
     Vector3(1, 0, 0)
   )
   val applyDamageTo = resolved.damage_model.Calculate(resolved)
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
   "DamageableEntity" should {
@@ -402,7 +402,7 @@ class DamageableEntityNotDestroyTwice extends ActorTest {
 
       gen.Actor ! Vitality.Damage(applyDamageTo)
       avatarProbe.receiveOne(500 milliseconds) //only one message
-      avatarProbe.expectNoMsg(500 milliseconds) //only one message
+      avatarProbe.expectNoMessage(500 milliseconds) //only one message
       activityProbe.receiveOne(500 milliseconds) //triggers activity hotspot, like it's not a killing blow
       assert(gen.Health < originalHealth)
       assert(gen.Destroyed)
@@ -448,7 +448,7 @@ class DamageableAmenityTest extends ActorTest {
     Vector3(1, 0, 0)
   )
   val applyDamageTo = resolved.damage_model.Calculate(resolved)
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
   "DamageableAmenity" should {
@@ -532,7 +532,7 @@ class DamageableMountableDamageTest extends ActorTest {
   val applyDamageTo = resolved.damage_model.Calculate(resolved)
   mech.Seats(0).Occupant = player2 //seat the player
   player2.VehicleSeated = Some(mech.GUID) //seat the player
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
   "DamageableMountable" should {
@@ -612,7 +612,7 @@ class DamageableMountableDestroyTest extends ActorTest {
   val applyDamageTo = resolved.damage_model.Calculate(resolved)
   mech.Seats(0).Occupant = player2 //seat the player
   player2.VehicleSeated = Some(mech.GUID) //seat the player
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
   "DamageableMountable" should {
@@ -623,7 +623,7 @@ class DamageableMountableDestroyTest extends ActorTest {
 
       mech.Actor ! Vitality.Damage(applyDamageTo)
       val msg12 = avatarProbe.receiveN(2, 500 milliseconds)
-      player1Probe.expectNoMsg(500 milliseconds)
+      player1Probe.expectNoMessage(500 milliseconds)
       val msg3 = player2Probe.receiveOne(200 milliseconds)
       assert(
         msg12.head match {
@@ -689,7 +689,7 @@ class DamageableWeaponTurretDamageTest extends ActorTest {
     Vector3(1, 0, 0)
   )
   val applyDamageTo = resolved.damage_model.Calculate(resolved)
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
   "DamageableWeaponTurret" should {
@@ -773,7 +773,7 @@ class DamageableWeaponTurretJammerTest extends ActorTest {
     Vector3(1, 0, 0)
   )
   val applyDamageTo = resolved.damage_model.Calculate(resolved)
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
   "DamageableWeaponTurret" should {
@@ -867,7 +867,7 @@ class DamageableWeaponTurretDestructionTest extends ActorTest {
     Vector3(1, 0, 0)
   )
   val applyDamageToB = resolvedB.damage_model.Calculate(resolvedB)
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
   "DamageableWeaponTurret" should {
@@ -886,7 +886,7 @@ class DamageableWeaponTurretDestructionTest extends ActorTest {
 
       turret.Actor ! Vitality.Damage(applyDamageToB) //destroy
       val msg12_4 = avatarProbe.receiveN(3, 500 milliseconds)
-      player1Probe.expectNoMsg(500 milliseconds)
+      player1Probe.expectNoMessage(500 milliseconds)
       val msg3 = player2Probe.receiveOne(200 milliseconds)
       val msg56 = vehicleProbe.receiveN(2, 200 milliseconds)
       assert(
@@ -977,7 +977,7 @@ class DamageableVehicleDamageTest extends ActorTest {
     Vector3(1, 0, 0)
   )
   val applyDamageTo = resolved.damage_model.Calculate(resolved)
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
   "DamageableVehicle" should {
@@ -1091,7 +1091,7 @@ class DamageableVehicleDamageMountedTest extends ActorTest {
     Vector3(1, 0, 0)
   )
   val applyDamageTo = resolved.damage_model.Calculate(resolved)
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
   "handle damage with mounted vehicles" in {
@@ -1217,7 +1217,7 @@ class DamageableVehicleJammeringMountedTest extends ActorTest {
     Vector3(1, 0, 0)
   )
   val applyDamageTo = resolved.damage_model.Calculate(resolved)
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
   "handle jammering with mounted vehicles" in {
@@ -1228,10 +1228,10 @@ class DamageableVehicleJammeringMountedTest extends ActorTest {
 
     lodestar.Actor ! Vitality.Damage(applyDamageTo)
     val msg12 = vehicleProbe.receiveOne(500 milliseconds)
-    avatarProbe.expectNoMsg(500 milliseconds)
-    player1Probe.expectNoMsg(200 milliseconds)
-    player2Probe.expectNoMsg(200 milliseconds)
-    player3Probe.expectNoMsg(200 milliseconds)
+    avatarProbe.expectNoMessage(500 milliseconds)
+    player1Probe.expectNoMessage(200 milliseconds)
+    player2Probe.expectNoMessage(200 milliseconds)
+    player3Probe.expectNoMessage(200 milliseconds)
     assert(
       msg12 match {
         case VehicleServiceMessage("test", VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, PlanetSideGUID(4), 27, 1))=> true
@@ -1293,7 +1293,7 @@ class DamageableVehicleDestroyTest extends ActorTest {
     Vector3(1, 0, 0)
   )
   val applyDamageTo = resolved.damage_model.Calculate(resolved)
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
   "DamageableVehicle" should {
@@ -1419,7 +1419,7 @@ class DamageableVehicleDestroyMountedTest extends ActorTest {
     Vector3(1, 0, 0)
   )
   val applyDamageToB = resolvedB.damage_model.Calculate(resolvedB)
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
   "handle jammering with mounted vehicles" in {
@@ -1435,10 +1435,10 @@ class DamageableVehicleDestroyMountedTest extends ActorTest {
 
     lodestar.Actor ! Vitality.Damage(applyDamageToA)
     vehicleProbe.receiveOne(500 milliseconds) //flush jammered message
-    avatarProbe.expectNoMsg(200 milliseconds)
-    player1Probe.expectNoMsg(200 milliseconds)
-    player2Probe.expectNoMsg(200 milliseconds)
-    player3Probe.expectNoMsg(200 milliseconds)
+    avatarProbe.expectNoMessage(200 milliseconds)
+    player1Probe.expectNoMessage(200 milliseconds)
+    player2Probe.expectNoMessage(200 milliseconds)
+    player3Probe.expectNoMessage(200 milliseconds)
     assert(lodestar.Health > lodestar.Definition.DamageDestroysAt)
     assert(lodestar.Jammed)
     assert(!lodestar.Destroyed)
@@ -1449,13 +1449,13 @@ class DamageableVehicleDestroyMountedTest extends ActorTest {
 
     lodestar.Actor ! Vitality.Damage(applyDamageToB)
     val msg_avatar = avatarProbe.receiveN(5, 500 milliseconds)
-    avatarProbe.expectNoMsg(10 milliseconds)
+    avatarProbe.expectNoMessage(10 milliseconds)
     val msg_player2 = player2Probe.receiveOne(200 milliseconds)
-    player2Probe.expectNoMsg(10 milliseconds)
+    player2Probe.expectNoMessage(10 milliseconds)
     val msg_player3 = player3Probe.receiveOne(200 milliseconds)
-    player3Probe.expectNoMsg(10 milliseconds)
+    player3Probe.expectNoMessage(10 milliseconds)
     val msg_vehicle = vehicleProbe.receiveN(2, 200 milliseconds)
-    vehicleProbe.expectNoMsg(10 milliseconds)
+    vehicleProbe.expectNoMessage(10 milliseconds)
     assert(
       msg_avatar.exists( {
         case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(4), 0, _)) => true

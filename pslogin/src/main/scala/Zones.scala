@@ -432,9 +432,9 @@ object Zones {
     def StandardRemapping(scale : MapScale, longDivNum : Int, latDivNum : Int)(pos : Vector3) : Vector3 = {
       Vector3(
         //x
-        FindClosestDivision(pos.x, scale.width, longDivNum),
+        FindClosestDivision(pos.x, scale.width, longDivNum.toFloat),
         //y
-        FindClosestDivision(pos.y, scale.height, latDivNum),
+        FindClosestDivision(pos.y, scale.height, latDivNum.toFloat),
         //z is always zero - maps are flat 2D planes
         0
       )

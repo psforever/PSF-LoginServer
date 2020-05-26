@@ -53,7 +53,7 @@ class RepairableEntityRepairTest extends ActorTest {
   val tool = Tool(GlobalDefinitions.nano_dispenser) //4 & 5
   guid.register(tool, 4)
   guid.register(tool.AmmoSlot.Box, 5)
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
   "RepairableEntity" should {
@@ -115,14 +115,14 @@ class RepairableEntityNotRepairTest extends ActorTest {
   val tool = Tool(GlobalDefinitions.nano_dispenser) //4 & 5
   guid.register(tool, 4)
   guid.register(tool.AmmoSlot.Box, 5)
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
   "RepairableEntity" should {
     "not repair if health is already full" in {
       assert(gen.Health == gen.Definition.DefaultHealth) //ideal
       gen.Actor ! CommonMessages.Use(player1, Some(tool)) //repair?
-      avatarProbe.expectNoMsg(1000 milliseconds) //no messages
+      avatarProbe.expectNoMessage(1000 milliseconds) //no messages
     }
   }
 }
@@ -155,7 +155,7 @@ class RepairableAmenityTest extends ActorTest {
   val tool = Tool(GlobalDefinitions.nano_dispenser) //4 & 5
   guid.register(tool, 4)
   guid.register(tool.AmmoSlot.Box, 5)
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
   "RepairableAmenity" should {
@@ -390,7 +390,7 @@ class RepairableVehicleRestoration extends ActorTest {
       assert(atv.Destroyed)
 
       atv.Actor ! CommonMessages.Use(player1, Some(tool))
-      avatarProbe.expectNoMsg(500 milliseconds)
+      avatarProbe.expectNoMessage(500 milliseconds)
       assert(atv.Health == 0) //set to zero explicitly
       assert(atv.Destroyed)
     }

@@ -23,8 +23,8 @@ object GenericHackables {
   def GetHackSpeed(player : Player, obj: PlanetSideServerObject): Float = {
     val playerHackLevel = Player.GetHackLevel(player)
     val timeToHack = obj match {
-      case vehicle : Vehicle => vehicle.JackingDuration(playerHackLevel)
-      case hackable : Hackable => hackable.HackDuration(playerHackLevel)
+      case vehicle : Vehicle => vehicle.JackingDuration(playerHackLevel).toFloat
+      case hackable : Hackable => hackable.HackDuration(playerHackLevel).toFloat
       case _ =>
         log.warn(s"${player.Name} tried to hack an object that has no hack time defined - ${obj.Definition.Name}#${obj.GUID} on ${obj.Zone.Id}")
         0f

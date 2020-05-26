@@ -165,7 +165,7 @@ class RouterTelepadActivationClearAllTest extends ActorTest {
       obj ! RouterTelepadActivation.AddTask(telepad2, Zone.Nowhere, Some(2 seconds))
       obj ! RouterTelepadActivation.AddTask(telepad3, Zone.Nowhere, Some(2 seconds))
       obj ! SupportActor.ClearAll()
-      expectNoMsg(4 seconds)
+      expectNoMessage(4 seconds)
     }
   }
 }

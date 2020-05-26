@@ -85,7 +85,7 @@ class GeneratorControlDamageTest extends ActorTest {
     Vector3(1, 0, 0)
   )
   val applyDamageTo = resolved.damage_model.Calculate(resolved)
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
   "GeneratorControl" should {
@@ -96,7 +96,7 @@ class GeneratorControlDamageTest extends ActorTest {
 
       gen.Actor ! Vitality.Damage(applyDamageTo)
       val msg_avatar = avatarProbe.receiveN(2, 500 milliseconds)
-      buildingProbe.expectNoMsg(200 milliseconds)
+      buildingProbe.expectNoMessage(200 milliseconds)
       assert(
         msg_avatar.head match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
@@ -158,7 +158,7 @@ class GeneratorControlCriticalTest extends ActorTest {
   )
   val applyDamageTo = resolved.damage_model.Calculate(resolved)
   val halfHealth = gen.Definition.MaxHealth / 2
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
   "GeneratorControl" should {
@@ -238,7 +238,7 @@ class GeneratorControlDestroyedTest extends ActorTest {
     Vector3(1, 0, 0)
   )
   val applyDamageTo = resolved.damage_model.Calculate(resolved)
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
   "GeneratorControl" should {
@@ -250,7 +250,7 @@ class GeneratorControlDestroyedTest extends ActorTest {
 
       gen.Actor ! Vitality.Damage(applyDamageTo)
       val msg_avatar1 = avatarProbe.receiveOne(500 milliseconds)
-      buildingProbe.expectNoMsg(200 milliseconds)
+      buildingProbe.expectNoMessage(200 milliseconds)
       assert(
         msg_avatar1 match {
           case AvatarServiceMessage("TestCharacter1", AvatarAction.GenericObjectAction(_, PlanetSideGUID(1), 16)) => true
@@ -261,8 +261,8 @@ class GeneratorControlDestroyedTest extends ActorTest {
       assert(!gen.Destroyed)
       assert(gen.Condition == PlanetSideGeneratorState.Normal)
 
-      avatarProbe.expectNoMsg(9 seconds)
-      buildingProbe.expectNoMsg(50 milliseconds) //no prior messages
+      avatarProbe.expectNoMessage(9 seconds)
+      buildingProbe.expectNoMessage(50 milliseconds) //no prior messages
       val msg_avatar2 = avatarProbe.receiveN(3, 1000 milliseconds) //see DamageableEntity test file
       val msg_building = buildingProbe.receiveOne(200 milliseconds)
       assert(
@@ -356,7 +356,7 @@ class GeneratorControlKillsTest extends ActorTest {
     Vector3(1, 0, 0)
   )
   val applyDamageTo = resolved.damage_model.Calculate(resolved)
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
   "GeneratorControl" should {
@@ -368,9 +368,9 @@ class GeneratorControlKillsTest extends ActorTest {
 
       gen.Actor ! Vitality.Damage(applyDamageTo)
       val msg_avatar1 = avatarProbe.receiveN(2, 500 milliseconds)
-      buildingProbe.expectNoMsg(200 milliseconds)
-      player1Probe.expectNoMsg(200 milliseconds)
-      player2Probe.expectNoMsg(200 milliseconds)
+      buildingProbe.expectNoMessage(200 milliseconds)
+      player1Probe.expectNoMessage(200 milliseconds)
+      player2Probe.expectNoMessage(200 milliseconds)
       assert(
         msg_avatar1.head match {
           case AvatarServiceMessage("TestCharacter1", AvatarAction.GenericObjectAction(_, PlanetSideGUID(1), 16)) => true
@@ -390,7 +390,7 @@ class GeneratorControlKillsTest extends ActorTest {
       val msg_building = buildingProbe.receiveOne(10500 milliseconds)
       val msg_avatar2 = avatarProbe.receiveN(3, 200 milliseconds)
       val msg_player1 = player1Probe.receiveOne(100 milliseconds)
-      player2Probe.expectNoMsg(200 milliseconds)
+      player2Probe.expectNoMessage(200 milliseconds)
       assert(
         msg_building match {
           case Building.AmenityStateChange(o) => o eq gen
@@ -465,7 +465,7 @@ class GeneratorControlNotDestroyTwice extends ActorTest {
     Vector3(1, 0, 0)
   )
   val applyDamageTo = resolved.damage_model.Calculate(resolved)
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
   "GeneratorControl" should {
@@ -480,9 +480,9 @@ class GeneratorControlNotDestroyTwice extends ActorTest {
       assert(originalHealth > gen.Definition.DamageDestroysAt)
 
       gen.Actor ! Vitality.Damage(applyDamageTo)
-      avatarProbe.expectNoMsg(500 milliseconds)
+      avatarProbe.expectNoMessage(500 milliseconds)
       activityProbe.receiveOne(500 milliseconds)
-      buildingProbe.expectNoMsg(1000 milliseconds)
+      buildingProbe.expectNoMessage(1000 milliseconds)
       assert(gen.Health < originalHealth)
       assert(gen.Destroyed)
       assert(originalHealth < gen.Definition.DefaultHealth)
@@ -494,9 +494,9 @@ class GeneratorControlNotDestroyTwice extends ActorTest {
       assert(gen.Health == 1)
       assert(gen.Destroyed)
       gen.Actor ! Vitality.Damage(applyDamageTo)
-      avatarProbe.expectNoMsg(500 milliseconds)
+      avatarProbe.expectNoMessage(500 milliseconds)
       activityProbe.receiveOne(500 milliseconds) //activity alert occurs because this was not a kill shot
-      buildingProbe.expectNoMsg(1000 milliseconds)
+      buildingProbe.expectNoMessage(1000 milliseconds)
       assert(gen.Health == 0)
       assert(gen.Destroyed)
     }
@@ -546,7 +546,7 @@ class GeneratorControlNotDamageIfExplodingTest extends ActorTest {
     Vector3(1, 0, 0)
   )
   val applyDamageTo = resolved.damage_model.Calculate(resolved)
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
   "GeneratorControl" should {
@@ -558,8 +558,8 @@ class GeneratorControlNotDamageIfExplodingTest extends ActorTest {
 
       gen.Actor ! Vitality.Damage(applyDamageTo)
       val msg_avatar = avatarProbe.receiveOne(500 milliseconds)
-      buildingProbe.expectNoMsg(200 milliseconds)
-      player1Probe.expectNoMsg(200 milliseconds)
+      buildingProbe.expectNoMessage(200 milliseconds)
+      player1Probe.expectNoMessage(200 milliseconds)
       assert(
         msg_avatar match {
           case AvatarServiceMessage("TestCharacter1", AvatarAction.GenericObjectAction(_, PlanetSideGUID(1), 16)) => true
@@ -573,15 +573,15 @@ class GeneratorControlNotDamageIfExplodingTest extends ActorTest {
 
       //once
       gen.Actor ! Vitality.Damage(applyDamageTo)
-      avatarProbe.expectNoMsg(500 milliseconds)
-      buildingProbe.expectNoMsg(200 milliseconds)
-      player1Probe.expectNoMsg(200 milliseconds)
+      avatarProbe.expectNoMessage(500 milliseconds)
+      buildingProbe.expectNoMessage(200 milliseconds)
+      player1Probe.expectNoMessage(200 milliseconds)
       assert(gen.Health == 1)
       //twice
       gen.Actor ! Vitality.Damage(applyDamageTo)
-      avatarProbe.expectNoMsg(500 milliseconds)
-      buildingProbe.expectNoMsg(200 milliseconds)
-      player1Probe.expectNoMsg(200 milliseconds)
+      avatarProbe.expectNoMessage(500 milliseconds)
+      buildingProbe.expectNoMessage(200 milliseconds)
+      player1Probe.expectNoMessage(200 milliseconds)
       assert(gen.Health == 1)
     }
   }
@@ -634,7 +634,7 @@ class GeneratorControlNotRepairIfExplodingTest extends ActorTest {
   val tool = Tool(GlobalDefinitions.nano_dispenser) //4 & 5
   guid.register(tool, 4)
   guid.register(tool.AmmoSlot.Box, 5)
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
   "GeneratorControl" should {
@@ -646,8 +646,8 @@ class GeneratorControlNotRepairIfExplodingTest extends ActorTest {
 
       gen.Actor ! Vitality.Damage(applyDamageTo)
       val msg_avatar1 = avatarProbe.receiveOne(500 milliseconds)
-      buildingProbe.expectNoMsg(200 milliseconds)
-      player1Probe.expectNoMsg(200 milliseconds)
+      buildingProbe.expectNoMessage(200 milliseconds)
+      player1Probe.expectNoMessage(200 milliseconds)
       assert(
         msg_avatar1 match {
           case AvatarServiceMessage("TestCharacter1", AvatarAction.GenericObjectAction(_, PlanetSideGUID(1), 16)) => true
@@ -661,15 +661,15 @@ class GeneratorControlNotRepairIfExplodingTest extends ActorTest {
 
       //once
       gen.Actor ! CommonMessages.Use(player1, Some(tool)) //repair?
-      avatarProbe.expectNoMsg(1000 milliseconds) //no messages
-      buildingProbe.expectNoMsg(200 milliseconds)
-      player1Probe.expectNoMsg(200 milliseconds)
+      avatarProbe.expectNoMessage(1000 milliseconds) //no messages
+      buildingProbe.expectNoMessage(200 milliseconds)
+      player1Probe.expectNoMessage(200 milliseconds)
       assert(gen.Health == 1)
       //twice
       gen.Actor ! CommonMessages.Use(player1, Some(tool)) //repair?
-      avatarProbe.expectNoMsg(1000 milliseconds) //no messages
-      buildingProbe.expectNoMsg(200 milliseconds)
-      player1Probe.expectNoMsg(200 milliseconds)
+      avatarProbe.expectNoMessage(1000 milliseconds) //no messages
+      buildingProbe.expectNoMessage(200 milliseconds)
+      player1Probe.expectNoMessage(200 milliseconds)
       assert(gen.Health == 1)
     }
   }
@@ -711,7 +711,7 @@ class GeneratorControlRepairPastRestorePoint extends ActorTest {
   guid.register(player1, 3)
   guid.register(tool, 4)
   guid.register(tool.AmmoSlot.Box, 5)
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
   "GeneratorControl" should {

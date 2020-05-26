@@ -5,7 +5,7 @@ import net.psforever.objects.zones.ZoneMap
 import zonemaps._
 
 import scala.concurrent.Future
-import scala.util.Success
+import scala.util.{Failure, Success}
 
 object Maps {
   import scala.concurrent.ExecutionContext.Implicits.global
@@ -57,8 +57,8 @@ object Maps {
   def InitZoneMap(future : Future[ZoneMap]): Future[ZoneMap] = {
     future onComplete {
       case Success(x) => Projectiles(x)
+      case Failure(_) => throw new RuntimeException("Maps: failure when setting up map") //should not fail?
     }
-
     future
   }
 }

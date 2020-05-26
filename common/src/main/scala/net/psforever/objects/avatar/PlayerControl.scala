@@ -69,7 +69,7 @@ class PlayerControl(player : Player) extends Actor
             }
 
             if(implant.StaminaCost > 0 && implant.GetCostIntervalByExoSuit(player.ExoSuit) > 0) { // Ongoing stamina drain, if applicable
-              implantSlotStaminaDrainTimers(slot) = context.system.scheduler.schedule(0 seconds, implant.GetCostIntervalByExoSuit(player.ExoSuit) milliseconds, self, Player.DrainStamina(implant.StaminaCost))
+              implantSlotStaminaDrainTimers(slot) = context.system.scheduler.scheduleWithFixedDelay(0 seconds, implant.GetCostIntervalByExoSuit(player.ExoSuit) milliseconds, self, Player.DrainStamina(implant.StaminaCost))
             }
 
             player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, player.Implant(slot).id * 2 + 1)) // Activation sound / effect

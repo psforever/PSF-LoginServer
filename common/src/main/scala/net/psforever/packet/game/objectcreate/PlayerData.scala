@@ -145,7 +145,7 @@ object PlayerData extends Marshallable[PlayerData] {
     * @return the number of bits needed to pad it
     */
   def ByteAlignmentPadding(length : Long) : Int = {
-    val pad = (length - math.floor(length / 8) * 8).toInt
+    val pad = (length - math.floor(length.toDouble / 8) * 8).toInt
       if(pad > 0) {
         8 - pad
       }
@@ -204,7 +204,7 @@ object PlayerData extends Marshallable[PlayerData] {
         PlayerData(None, app, data, inv, hand)(false)
     },
     {
-      case PlayerData(None, app, data, inv, hand) =>
+      case PlayerData(_, app, data, inv, hand) =>
         app :: data :: inv :: hand :: false :: HNil
     }
   )

@@ -288,7 +288,7 @@ class UniqueNumberSystemTest9 extends ActorTest() {
       guid.AddPool("pool3", (5001 to 6000).toList).Selector = new RandomSelector
       val uns = system.actorOf(Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystemTest.AllocateNumberPoolActors(guid)), "uns")
       val excp = new Exception("EXCEPTION MESSAGE")
-      expectNoMsg(Duration.create(200, "ms"))
+      expectNoMessage(Duration.create(200, "ms"))
 
       //GiveNumber
       uns ! NumberPoolActor.GiveNumber(1001, Some("test")) //no task associated with id="test"
@@ -319,7 +319,7 @@ class UniqueNumberSystemTestA extends ActorTest {
       val guid : NumberPoolHub = new NumberPoolHub(src)
       guid.AddPool("pool1", (0 until 10).toList).Selector = new RandomSelector
       val uns = system.actorOf(Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystemTest.AllocateNumberPoolActors(guid)), "uns")
-      expectNoMsg(Duration.create(200, "ms"))
+      expectNoMessage(Duration.create(200, "ms"))
 
       assert(src.CountUsed == 0)
       (0 to 4).foreach(i => { assert(guid.register(new EntityTestClass(), i).isSuccess) })

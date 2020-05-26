@@ -114,7 +114,7 @@ class ProximityTerminalControlStartTest extends ActorTest {
     avatar.GUID = PlanetSideGUID(1)
     terminal.GUID = PlanetSideGUID(2)
     terminal.Actor ! Service.Startup()
-    expectNoMsg(500 milliseconds) //spacer
+    expectNoMessage(500 milliseconds) //spacer
     val probe1 = new TestProbe(system, "local-events")
     val probe2 = new TestProbe(system, "target-callback")
     zone.LocalEvents = probe1.ref
@@ -160,7 +160,7 @@ class ProximityTerminalControlTwoUsersTest extends ActorTest {
     avatar2.GUID = PlanetSideGUID(2)
     terminal.GUID = PlanetSideGUID(3)
     terminal.Actor ! Service.Startup()
-    expectNoMsg(500 milliseconds) //spacer
+    expectNoMessage(500 milliseconds) //spacer
     val probe1 = new TestProbe(system, "local-events")
     val probe2 = new TestProbe(system, "target-callback-1")
     val probe3 = new TestProbe(system, "target-callback-2")
@@ -175,7 +175,7 @@ class ProximityTerminalControlTwoUsersTest extends ActorTest {
       probe2.expectMsgClass(1 second, classOf[ProximityUnit.Action])
 
       terminal.Actor.tell(CommonMessages.Use(avatar2, Some(avatar2)), probe3.ref)
-      probe1.expectNoMsg(1 second)
+      probe1.expectNoMessage(1 second)
       probe2.expectMsgClass(1 second, classOf[ProximityUnit.Action])
       probe3.expectMsgClass(1 second, classOf[ProximityUnit.Action])
       assert(terminal.NumberUsers == 2)
@@ -206,7 +206,7 @@ class ProximityTerminalControlStopTest extends ActorTest {
     avatar.GUID = PlanetSideGUID(1)
     terminal.GUID = PlanetSideGUID(2)
     terminal.Actor ! Service.Startup()
-    expectNoMsg(500 milliseconds) //spacer
+    expectNoMessage(500 milliseconds) //spacer
     val probe1 = new TestProbe(system, "local-events")
     val probe2 = new TestProbe(system, "target-callback-1")
     zone.LocalEvents = probe1.ref
@@ -255,7 +255,7 @@ class ProximityTerminalControlNotStopTest extends ActorTest {
     avatar2.GUID = PlanetSideGUID(2)
     terminal.GUID = PlanetSideGUID(3)
     terminal.Actor ! Service.Startup()
-    expectNoMsg(500 milliseconds) //spacer
+    expectNoMessage(500 milliseconds) //spacer
     val probe1 = new TestProbe(system, "local-events")
     val probe2 = new TestProbe(system, "target-callback-1")
     val probe3 = new TestProbe(system, "target-callback-2")
@@ -270,11 +270,11 @@ class ProximityTerminalControlNotStopTest extends ActorTest {
       assert(terminal.NumberUsers == 1)
 
       terminal.Actor.tell(CommonMessages.Use(avatar2, Some(avatar2)), probe3.ref)
-      probe1.expectNoMsg(100 millisecond)
+      probe1.expectNoMessage(100 millisecond)
       assert(terminal.NumberUsers == 2)
 
       terminal.Actor ! CommonMessages.Unuse(avatar, Some(avatar))
-      probe1.expectNoMsg(100 millisecond)
+      probe1.expectNoMessage(100 millisecond)
       assert(terminal.NumberUsers == 1)
 
       terminal.Actor ! CommonMessages.Unuse(avatar2, Some(avatar2))
