@@ -1,0 +1,36 @@
+version: "3"
+services:
+  loginserver:
+    image: mozilla/sbt:8u232_1.3.8
+    volumes:
+      - .:/PSF-Loginserver:z
+    working_dir: /PSF-Loginserver
+    depends_on:
+      - db
+    ports:
+      - 51000-51001:51000-51001/udp
+      - 51002:51002/tcp
+    command: >
+      sh -c '
+        if [ ! -f "config/worldserver.ini" ]; then
+          sed "s/Hostname = \"localhost\"/Hostname = \"db\"/g" config/worldserver.ini.dist > config/worldserver.ini
+        fi
+        if [ ! -d "pscrypto-lib" ]; then
+          wget https://github.com/psforever/PSCrypto/releases/download/v1.1/pscrypto-lib-1.1.zip
+          unzip pscrypto-lib-1.1.zip
+          rm pscrypto-lib-1.1.zip
+        fi
+        sbt pslogin/run
+      '
+  adminer:
+    image: adminer
+    ports:
+      - 51010:8080
+  db:
+    image: postgres
+    volumes:
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql:z
+    environment:
+      POSTGRES_USER: psforever
+      POSTGRES_PASSWORD: psforever
+      POSTGRES_DATABASE: psforever
