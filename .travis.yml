@@ -3,7 +3,7 @@ jdk: oraclejdk8
 dist: trusty
 
 scala:
-  - 2.11.8
+  - 2.13.2
 env:
   - SBT_COMMAND="test:compile quiet:test packArchiveZip"
   - SBT_COMMAND="coverage test:compile quiet:test coverageReport"
@@ -21,7 +21,7 @@ before_script:
   - wget https://github.com/psforever/PSCrypto/releases/download/v1.1/pscrypto-lib-1.1.zip
   - unzip pscrypto-lib-1.1.zip
 script:
-  - sbt ++$TRAVIS_SCALA_VERSION $SBT_COMMAND  
+  - sbt ++$TRAVIS_SCALA_VERSION $SBT_COMMAND
 after_success:
     - bash <(curl -s https://codecov.io/bash)
 

@@ -41,7 +41,7 @@ class ZoneTest extends Specification {
 
     "associates objects to bases (doesn't check numbers)" in {
       val map = new ZoneMap("map13")
-      map.ObjectToBuilding mustEqual Nil
+      map.ObjectToBuilding mustEqual Map.empty
       map.ObjectToBuilding(1, 2)
       map.ObjectToBuilding mustEqual Map(1 -> 2)
       map.ObjectToBuilding(3, 4)
