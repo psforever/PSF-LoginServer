@@ -10188,7 +10188,7 @@ class WorldSessionActor extends Actor
         continent.VehicleEvents ! VehicleServiceMessage(name, VehicleAction.TransferPassengerChannel(pguid, s"${cargo.Actor}", toChannel, cargo, topLevel))
     }
     //
-    if(zone_id == continent.Id) {
+    if(!zoneReload && zone_id == continent.Id) {
       if(vehicle.Definition == GlobalDefinitions.droppod) {
         //instant action droppod in the same zone
         (taskResolver, RegisterDroppod(vehicle, player))
