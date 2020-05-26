@@ -78,7 +78,7 @@ class MultiPacketCollectorTest extends Specification {
     "can retrieve a bundle packets" in {
       val obj = MultiPacketCollector(List(packet1, packet2))
       obj.Bundle match {
-        case MultiPacketBundle(list) =>
+        case Some(MultiPacketBundle(list)) =>
           list.size mustEqual 2
           list.head mustEqual packet1
           list(1) mustEqual packet2
@@ -87,21 +87,16 @@ class MultiPacketCollectorTest extends Specification {
       }
     }
 
-    "can not retrieve a bundle of non-existent packets" in {
-      val obj = new MultiPacketCollector()
-      obj.Bundle must throwA[RuntimeException]
-    }
-
-    "can safely retrieve a bundle of potential packets" in {
+    "can retrieve a bundle of potential packets" in {
       val obj1 = new MultiPacketCollector()
-      obj1.BundleOption match {
+      obj1.Bundle match {
         case Some(_) =>
           ko
         case _ => ;
       }
 
       val obj2 = MultiPacketCollector(List(packet1, packet2))
-      obj2.BundleOption match {
+      obj2.Bundle match {
         case None =>
           ko
         case Some(MultiPacketBundle(list)) =>
@@ -114,15 +109,27 @@ class MultiPacketCollectorTest extends Specification {
     "clear packets after being asked to bundle" in {
       val list = List(packet1, packet2)
       val obj = MultiPacketCollector(list)
-      obj.Bundle mustEqual MultiPacketBundle(list)
-      obj.Bundle must throwA[RuntimeException]
+
+      obj.Bundle match {
+        case Some(MultiPacketBundle(bundle)) =>
+          bundle mustEqual list
+        case _ =>
+          ko
+      }
+
+      obj.Bundle match {
+        case Some(MultiPacketBundle(_)) =>
+          ko
+        case _ =>
+          ok
+      }
     }
 
     "add a packet" in {
       val obj = new MultiPacketCollector()
       obj.Add(packet1)
       obj.Bundle match {
-        case MultiPacketBundle(list) =>
+        case Some(MultiPacketBundle(list)) =>
           list.size mustEqual 1
           list.head mustEqual packet1
         case _ =>
@@ -134,7 +141,7 @@ class MultiPacketCollectorTest extends Specification {
       val obj = new MultiPacketCollector()
       obj.Add(List(packet1, packet2))
       obj.Bundle match {
-        case MultiPacketBundle(list) =>
+        case Some(MultiPacketBundle(list)) =>
           list.size mustEqual 2
           list.head mustEqual packet1
           list(1) mustEqual packet2
@@ -147,38 +154,46 @@ class MultiPacketCollectorTest extends Specification {
 
       val obj1 = new MultiPacketCollector()
       obj1.Add(List(packet1, packet2))
-      val bundle1 = obj1.Bundle
-
-      val obj2 = MultiPacketCollector(bundle1)
-      obj2.Add(packet3)
-      obj2.Bundle match {
-        case MultiPacketBundle(list) =>
-          list.size mustEqual 3
-          list.head mustEqual packet1
-          list(1) mustEqual packet2
-          list(2) mustEqual packet3
+      obj1.Bundle match {
+        case Some(MultiPacketBundle(bundle1)) =>
+          val obj2 = MultiPacketCollector(bundle1)
+          obj2.Add(packet3)
+          obj2.Bundle match {
+            case Some(MultiPacketBundle(list)) =>
+              list.size mustEqual 3
+              list.head mustEqual packet1
+              list(1) mustEqual packet2
+              list(2) mustEqual packet3
+            case _ =>
+              ko
+          }
         case _ =>
           ko
       }
+
     }
 
     "concatenate bundles (2)" in {
       val obj1 = new MultiPacketCollector()
       obj1.Add(List(packet1, packet2))
-      val bundle1 = obj1.Bundle
-
-      val obj2 = new MultiPacketCollector()
-      obj2.Add(packet3)
-      obj2.Add(bundle1)
-      obj2.Bundle match {
-        case MultiPacketBundle(list) =>
-          list.size mustEqual 3
-          list.head mustEqual packet3
-          list(1) mustEqual packet1
-          list(2) mustEqual packet2
+      obj1.Bundle match {
+        case Some(MultiPacketBundle(bundle1)) =>
+          val obj2 = new MultiPacketCollector()
+          obj2.Add(packet3)
+          obj2.Add(bundle1)
+          obj2.Bundle match {
+            case Some(MultiPacketBundle(list))=>
+              list.size mustEqual 3
+              list.head mustEqual packet3
+              list(1) mustEqual packet1
+              list(2) mustEqual packet2
+            case _ =>
+              ko
+          }
         case _ =>
           ko
       }
+
     }
   }
 }
