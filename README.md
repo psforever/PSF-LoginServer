@@ -7,7 +7,7 @@ Welcome to the recreated login and world servers for PlanetSide 1. We are a comm
 The login and world servers (this repo runs both by default) are built to work with PlanetSide version 3.15.84.0. Anything older is not guaranteed to work.
 Currently there are no binary releases of the server as the state is pre-alpha. You will need to have a development environment set up in order to get it running.
 If you just want to play, you don't need to set up a development environment. Join the public test server
-by following the *[PSForever Server Connection Guide](https://docs.google.com/document/d/1ZMx1NUylVZCXJNRyhkuVWT0eUKSVYu0JXsU-y3f93BY/edit)*, which has the instructions on downloading the game and using the PSForever launcher to start the game. 
+by following the *[PSForever Server Connection Guide](https://docs.google.com/document/d/1ZMx1NUylVZCXJNRyhkuVWT0eUKSVYu0JXsU-y3f93BY/edit)*, which has the instructions on downloading the game and using the PSForever launcher to start the game.
 
 <p align="center">
   <kbd>
@@ -27,11 +27,17 @@ by following the *[PSForever Server Connection Guide](https://docs.google.com/do
 PSF-LoginServer is writen in [Scala](https://www.scala-lang.org/) and built using SBT, which allows it to be built on any platform. SBT is the Scala version of Make, but is more powerful as build definitions are written in Scala. SBT is distributed as a Java JAR and the only dependency it has is a JDK. [Follow the quick instructions on Scala's home page](https://www.scala-lang.org/download/) to get a working development environment and come back when you are done.
 
 In order to compile scala, `scalac` is used behind the scenes. This is equivalent to Java's `javac`, but for the Scala language.
-Scala runs on top of the Java Virtual Machine, meaning it generates `.class` and `.jar` files and uses the `java` executable. Essentially, Scala is just a compiler that targets the JVM, which is its runtime. All of this runs in the background and is packaged automatically by your IDE or SBT, which automatically downloads the right version of the Scala compiler for you.
+Scala runs on top of the Java Virtual Machine, meaning it generates `.class` and `.jar` files and
+uses the `java` executable. Essentially, Scala is just a compiler that targets the JVM, which is its
+runtime. All of this runs in the background and is packaged automatically by your IDE or SBT, which
+automatically downloads the right version of the Scala compiler for you.
+
+If you have Docker and docker-compose installed on your system, you can get a complete development
+environment up by running `docker-compose up` in the source code directory. Otherwise, keep reading.
 
 ### Using an IDE
 Scala code can be fairly complex and a good IDE helps you understand the code and what methods are available for certain types, especially as you are learning the language.
-IntelliJ IDEA has some of the most mature support for Scala of any IDE today. It has advanced type introspection and excellent code completion. It's recommended for those who are new to Scala in order to get familiar with the syntax. 
+IntelliJ IDEA has some of the most mature support for Scala of any IDE today. It has advanced type introspection and excellent code completion. It's recommended for those who are new to Scala in order to get familiar with the syntax.
 
 [Download the community edition of IDEA](https://www.jetbrains.com/idea/download/) directly from IntelliJ's website.
 [Then get the required Scala plugin for IDEA](https://www.jetbrains.com/help/idea/managing-plugins.html).
@@ -152,7 +158,7 @@ Current documentation is available at [https://psforever.github.io/docs/master/i
 If you get an error like below
 ```
 12:17:28.037 [main] ERROR PsLogin - Unable to initialize pscrypto
-java.lang.UnsatisfiedLinkError: Unable to load library 'pscrypto': Native library (win32-x86-64/pscrypto.dll) not found in resource path 
+java.lang.UnsatisfiedLinkError: Unable to load library 'pscrypto': Native library (win32-x86-64/pscrypto.dll) not found in resource path
 ```
 Then you are missing the native library required to provide cryptographic functions to the login server. To fix this, you need a binary build of [PSCrypto](#downloading-pscrypto).
 
