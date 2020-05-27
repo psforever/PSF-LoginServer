@@ -92,7 +92,7 @@ class TaskResolver() extends Actor {
     */
   private def StartTimeoutCheck() : Unit = {
     if(timeoutCleanup.isCancelled) {
-      timeoutCleanup = context.system.scheduler.schedule(500 milliseconds, 500 milliseconds, self, TaskResolver.TimeoutCleanup())
+      timeoutCleanup = context.system.scheduler.scheduleWithFixedDelay(500 milliseconds, 500 milliseconds, self, TaskResolver.TimeoutCleanup())
     }
   }
 

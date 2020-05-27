@@ -186,7 +186,7 @@ trait ConfigParser {
       Valid
   }
 
-  def ReplaceConfig(map : Map[String, Any]) {
+  def ReplaceConfig(map : Map[String, Any]) : Unit = {
     config_map = map
   }
 

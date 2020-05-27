@@ -134,7 +134,7 @@ class BuildingControl2Test extends ActorTest {
 
   "Building Control" should {
     "convert and assert faction affinity on convert request" in {
-      expectNoMsg(500 milliseconds)
+      expectNoMessage(500 milliseconds)
 
       assert(bldg.Faction == PlanetSideEmpire.TR)
       bldg.Actor ! FactionAffinity.ConvertFactionAffinity(PlanetSideEmpire.VS)
@@ -164,7 +164,7 @@ class BuildingControl3Test extends ActorTest {
 
   "Building Control" should {
     "convert and assert faction affinity on convert request, and for each of its amenities" in {
-      expectNoMsg(500 milliseconds)
+      expectNoMessage(500 milliseconds)
 
       assert(bldg.Faction == PlanetSideEmpire.TR)
       assert(bldg.Amenities.length == 2)

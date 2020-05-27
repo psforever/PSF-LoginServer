@@ -115,7 +115,7 @@ class VehicleSpawnControl4Test extends ActorTest {
           case _ => false
         }
       )
-      probe.expectNoMsg(5 seconds)
+      probe.expectNoMessage(5 seconds)
     }
   }
 }

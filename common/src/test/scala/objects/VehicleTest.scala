@@ -330,7 +330,7 @@ class VehicleControlPrepareForDeletionTest extends ActorTest {
   }
 
   vehicle.GUID = PlanetSideGUID(1)
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
 
   "VehicleControl" should {
     "submit for unregistering when marked for deconstruction" in {
@@ -369,7 +369,7 @@ class VehicleControlPrepareForDeletionPassengerTest extends ActorTest {
   player1.GUID = PlanetSideGUID(2)
   vehicle.Seats(1).Occupant = player1 //passenger seat
   player1.VehicleSeated = vehicle.GUID
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
 
   "VehicleControl" should {
     "kick all players when marked for deconstruction" in {
@@ -431,7 +431,7 @@ class VehicleControlPrepareForDeletionMountedInTest extends FreedContextActorTes
   val vehicleProbe = new TestProbe(system)
   zone.VehicleEvents = vehicleProbe.ref
   zone.Transport ! Zone.Vehicle.Spawn(lodestar) //can not fake this
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
 
   "VehicleControl" should {
     "if mounted as cargo, self-eject when marked for deconstruction" in {
@@ -534,7 +534,7 @@ class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActor
   val vehicleProbe = new TestProbe(system)
   zone.VehicleEvents = vehicleProbe.ref
   zone.Transport ! Zone.Vehicle.Spawn(lodestar) //can not fake this
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
 
   "VehicleControl" should {
     "if with mounted cargo, eject it when marked for deconstruction" in {
@@ -865,7 +865,7 @@ class VehicleControlShieldsNotChargingVehicleDeadTest extends ActorTest {
     assert(!vehicle.History.exists({p => p.isInstanceOf[VehicleShieldCharge]}))
     vehicle.Actor.tell(Vehicle.ChargeShields(15), probe.ref)
 
-    probe.expectNoMsg(1 seconds)
+    probe.expectNoMessage(1 seconds)
     assert(vehicle.Shields == 0)
     assert(!vehicle.History.exists({p => p.isInstanceOf[VehicleShieldCharge]}))
   }
@@ -887,7 +887,7 @@ class VehicleControlShieldsNotChargingVehicleShieldsFullTest extends ActorTest {
     assert(!vehicle.History.exists({p => p.isInstanceOf[VehicleShieldCharge]}))
     vehicle.Actor ! Vehicle.ChargeShields(15)
 
-    probe.expectNoMsg(1 seconds)
+    probe.expectNoMessage(1 seconds)
     assert(!vehicle.History.exists({p => p.isInstanceOf[VehicleShieldCharge]}))
   }
 }
@@ -914,7 +914,7 @@ class VehicleControlShieldsNotChargingTooEarlyTest extends ActorTest {
     assert(vehicle.Shields == 15)
 
     vehicle.Actor ! Vehicle.ChargeShields(15)
-    probe.expectNoMsg(200 milliseconds)
+    probe.expectNoMessage(200 milliseconds)
     assert(vehicle.Shields == 15)
   }
 }
@@ -944,7 +944,7 @@ class VehicleControlShieldsNotChargingTooEarlyTest extends ActorTest {
 //    assert(vehicle.Shields == 0)
 //    vehicle.Actor.tell(Vehicle.ChargeShields(15), probe.ref)
 //
-//    probe.expectNoMsg(200 milliseconds)
+//    probe.expectNoMessage(200 milliseconds)
 //    assert(vehicle.Shields == 0)
 //  }
 //}

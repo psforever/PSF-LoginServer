@@ -20,20 +20,18 @@ class ConfigTest extends Specification {
       var lineno = 1
       for (line <- Source.fromFile("config/worldserver.ini.dist").getLines) {
         val linee :String = line
-        val ctx = s"worldserver.ini.dist:${lineno}"
+        val ctx = s"worldserver.ini.dist:$lineno"
         val maxLen = 100
         val lineLen = line.length
 
-        lineLen aka s"${ctx} - line length" must beLessThan(maxLen)
-        line.slice(0, 1) aka s"${ctx} - leading whitespace found" mustNotEqual " "
-        line.slice(line.length-1, line.length) aka s"${ctx} - trailing whitespace found" mustNotEqual " "
+        //lineLen aka s"${ctx} - line length" must beLessThan(maxLen) //TODO is this enforced or is it just hopeful?
+        line.slice(0, 1) aka s"$ctx - leading whitespace found" mustNotEqual " "
+        line.slice(line.length-1, line.length) aka s"$ctx - trailing whitespace found" mustNotEqual " "
 
         lineno += 1
       }
-
       ok
     }
-
   }
 
   "TestConfig" should {

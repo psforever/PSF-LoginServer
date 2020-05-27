@@ -140,12 +140,12 @@ object ResolutionCalculations {
           if(player.Capacitor.toInt > 0 && player.isShielded) {
             // Subtract armour damage from capacitor
             result = SubtractWithRemainder(player.Capacitor.toInt, b)
-            player.Capacitor = result._1
+            player.Capacitor = result._1.toFloat
             b = result._2
 
             // Then follow up with health damage if any capacitor is left
             result = SubtractWithRemainder(player.Capacitor.toInt, a)
-            player.Capacitor = result._1
+            player.Capacitor = result._1.toFloat
             a = result._2
           }
 

@@ -12,7 +12,7 @@ object CmdInternal {
   }
 
   def cmdThreadDump(args : Array[String]) = {
-    import scala.collection.JavaConverters._
+    import scala.jdk.CollectionConverters._
 
     var data = Map[String,Any]()
     val traces = Thread.getAllStackTraces().asScala

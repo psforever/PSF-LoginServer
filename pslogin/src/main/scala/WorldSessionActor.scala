@@ -729,7 +729,7 @@ class WorldSessionActor extends Actor
         case scala.util.Success(connection) =>
           val accountUserName : String = account.Username
           connection.sendPreparedStatement(
-            "SELECT id, name, faction_id, gender_id, head_id, voice_id, deleted, last_login FROM characters where account_id=? ORDER BY last_login", Array(account.AccountId)
+            "SELECT id, name, faction_id, gender_id, head_id, voice_id, deleted, last_login FROM characters where account_id=? ORDER BY last_login", Array(account.AccountId).toIndexedSeq
           ).onComplete {
             case scala.util.Success(result : QueryResult) =>
               if(connection.isConnected) connection.disconnect
@@ -1558,7 +1558,7 @@ class WorldSessionActor extends Actor
       Database.getConnection.connect.onComplete {
         case scala.util.Success(connection) =>
           Database.query(connection.sendPreparedStatement(
-            "SELECT gm FROM accounts where id=?", Array(account.AccountId)
+            "SELECT gm FROM accounts where id=?", Array(account.AccountId).toIndexedSeq
           )).onComplete {
             case scala.util.Success(queryResult) =>
               if(connection.isConnected) connection.disconnect
@@ -1945,13 +1945,13 @@ class WorldSessionActor extends Actor
           targetBuildings = Nil
         case List(building) =>
           //blocked by a single soi; find space just outside of this soi and confirm no new overlap
-          val radius = Vector3(0, building.Definition.SOIRadius + 5, 0)
-          whereToDroppod = building.Position.xy + Vector3.Rz(radius, math.abs(scala.util.Random.nextInt() % 360))
+          val radius = Vector3(0, building.Definition.SOIRadius.toFloat + 5f, 0)
+          whereToDroppod = building.Position.xy + Vector3.Rz(radius, math.abs(scala.util.Random.nextInt() % 360).toFloat)
         case buildings =>
           //probably blocked by a facility and its tower (maximum overlap potential is 2?); find space outside of largest soi
           val largestBuilding = buildings.maxBy(_.Definition.SOIRadius)
-          val radius = Vector3(0, largestBuilding.Definition.SOIRadius + 5, 0)
-          whereToDroppod = largestBuilding.Position.xy + Vector3.Rz(radius, math.abs(scala.util.Random.nextInt() % 360))
+          val radius = Vector3(0, largestBuilding.Definition.SOIRadius.toFloat + 5f, 0)
+          whereToDroppod = largestBuilding.Position.xy + Vector3.Rz(radius, math.abs(scala.util.Random.nextInt() % 360).toFloat)
           targetBuildings = buildings
       }
     }
@@ -2191,8 +2191,8 @@ class WorldSessionActor extends Actor
           val now = System.currentTimeMillis()
           val (location, time, distanceSq) : (Vector3, Long, Float) = if(spectating) {
             val r = new scala.util.Random
-            val r1 = 2 + r.nextInt(30)
-            val r2 = 2 + r.nextInt(4000)
+            val r1 = 2 + r.nextInt(30).toFloat
+            val r2 = 2 + r.nextInt(4000).toFloat
             (Vector3(r2, r2, r1), 0L, 0f)
           }
           else {
@@ -3680,10 +3680,14 @@ class WorldSessionActor extends Actor
     inf.foreach {
       case (index, loadout : InfantryLoadout) =>
         sendResponse(FavoritesMessage(LoadoutType.Infantry, guid, index, loadout.label, InfantryLoadout.DetermineSubtypeB(loadout.exosuit, loadout.subtype)))
+      case (_, data) =>
+        log.warn(s"HandleSetCurrentAvatar: unknown loadout information $data in infantry list")
     }
     veh.foreach {
       case (index, loadout : VehicleLoadout) =>
         sendResponse(FavoritesMessage(LoadoutType.Vehicle, guid, index - 10, loadout.label))
+      case (_, data) =>
+        log.warn(s"HandleSetCurrentAvatar: unknown loadout information $data in vehicle list")
     }
     sendResponse(SetChatFilterMessage(ChatChannel.Platoon, false, ChatChannel.values.toList)) //TODO will not always be "on" like this
     deadState = DeadState.Alive
@@ -3798,6 +3802,8 @@ class WorldSessionActor extends Actor
     avatar.SquadLoadouts.Loadouts.foreach {
       case (index, loadout : SquadLoadout) =>
         sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), index, SquadAction.ListSquadFavorite(loadout.task)))
+      case (_, data) =>
+        log.warn(s"HandleSetCurrentAvatar: unknown loadout information $data in squad definition list")
     }
     //non-squad GUID-0 counts as the settings when not joined with a squad
     sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.AssociateWithSquad()))
@@ -3921,7 +3927,7 @@ class WorldSessionActor extends Actor
       Thread.sleep(40)
       import scala.concurrent.ExecutionContext.Implicits.global
       clientKeepAlive.cancel
-      clientKeepAlive = context.system.scheduler.schedule(0 seconds, 500 milliseconds, self, PokeClient())
+      clientKeepAlive = context.system.scheduler.scheduleWithFixedDelay(0 seconds, 500 milliseconds, self, PokeClient())
       accountIntermediary ! RetrieveAccountData(token)
 
     case msg@MountVehicleCargoMsg(player_guid, cargo_guid, carrier_guid, unk4) =>
@@ -3994,7 +4000,7 @@ class WorldSessionActor extends Actor
           Database.getConnection.connect.onComplete {
             case scala.util.Success(connection) =>
               Database.query(connection.sendPreparedStatement(
-                "UPDATE characters SET deleted = true where id=?", Array(charId)
+                "UPDATE characters SET deleted = true where id=?", Array(charId).toIndexedSeq
               )).onComplete {
                 case scala.util.Success(_) =>
                   if(connection.isConnected) connection.disconnect
@@ -4015,7 +4021,7 @@ class WorldSessionActor extends Actor
           Database.getConnection.connect.onComplete {
             case scala.util.Success(connection) =>
               Database.query(connection.sendPreparedStatement(
-                "SELECT id, name, faction_id, gender_id, head_id, voice_id FROM characters where id=?", Array(charId)
+                "SELECT id, name, faction_id, gender_id, head_id, voice_id FROM characters where id=?", Array(charId).toIndexedSeq
               )).onComplete {
                 case Success(queryResult) =>
                   if(connection.isConnected) connection.disconnect
@@ -6292,7 +6298,7 @@ class WorldSessionActor extends Actor
 
     case msg @ AvatarFirstTimeEventMessage(avatar_guid, object_guid, unk1, event_name) =>
       log.info(s"AvatarFirstTimeEvent: $event_name")
-      avatar.FirstTimeEvents += event_name
+      avatar.FirstTimeEvents = avatar.FirstTimeEvents :+ event_name
 
     case msg @ WarpgateRequest(continent_guid, building_guid, dest_building_guid, dest_continent_guid, unk1, unk2) =>
       log.info(s"WarpgateRequest: $msg")
@@ -10474,7 +10480,7 @@ class WorldSessionActor extends Actor
     Database.getConnection.connect.onComplete {
       case scala.util.Success(connection) =>
         Database.query(connection.sendPreparedStatement(
-          "SELECT id, exosuit_id, name, items FROM loadouts where characters_id = ? AND loadout_number = ?", Array(charId, line)
+          "SELECT id, exosuit_id, name, items FROM loadouts where characters_id = ? AND loadout_number = ?", Array(charId, line).toIndexedSeq
         )).onComplete {
           case scala.util.Success(queryResult) =>
             queryResult match {
@@ -10554,7 +10560,7 @@ class WorldSessionActor extends Actor
     Database.getConnection.connect.onComplete {
       case scala.util.Success(connection) =>
         connection.sendPreparedStatement(
-          "SELECT id, loadout_number, exosuit_id, name, items FROM loadouts where characters_id = ?", Array(owner.CharId)
+          "SELECT id, loadout_number, exosuit_id, name, items FROM loadouts where characters_id = ?", Array(owner.CharId).toIndexedSeq
         ).onComplete {
           case Success(queryResult) =>
             if(connection.isConnected) connection.disconnect

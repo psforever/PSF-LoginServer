@@ -123,7 +123,7 @@ class ZoneActorTest extends ActorTest {
     "have an Actor" in {
       val zone = new Zone("test", new ZoneMap("map6"), 1) { override def SetupNumberPools() = { } }
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-actor")
-      expectNoMsg(Duration.create(100, "ms"))
+      expectNoMessage(Duration.create(100, "ms"))
       assert(zone.Actor != ActorRef.noSender)
     }
 
@@ -152,7 +152,7 @@ class ZoneActorTest extends ActorTest {
       zone.GUID(new NumberPoolHub(new LimitedNumberSource(40150)))
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-add-pool-actor-init")
       zone.Actor ! Zone.Init()
-      expectNoMsg(Duration.create(500, "ms"))
+      expectNoMessage(Duration.create(500, "ms"))
 
       assert( !zone.AddPool("test1", 1 to 2) )
     }
@@ -164,7 +164,7 @@ class ZoneActorTest extends ActorTest {
       zone.AddPool("test", 1 to 2)
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-remove-pool-actor-init")
       zone.Actor ! Zone.Init()
-      expectNoMsg(Duration.create(300, "ms"))
+      expectNoMessage(Duration.create(300, "ms"))
 
       assert( !zone.RemovePool("test") )
     }
@@ -194,7 +194,7 @@ class ZoneActorTest extends ActorTest {
       val zone = new Zone("test", map6, 1) { override def SetupNumberPools() = { } }
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-init")
       zone.Actor ! Zone.Init()
-      expectNoMsg(Duration.create(1, "seconds"))
+      expectNoMessage(Duration.create(1, "seconds"))
 
       val groups = zone.SpawnGroups()
       assert(groups.size == 2)
@@ -232,7 +232,7 @@ class ZoneActorTest extends ActorTest {
       val zone = new Zone("test", map6, 1) { override def SetupNumberPools() = { } }
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-spawn")
       zone.Actor ! Zone.Init()
-      expectNoMsg(Duration.create(1, "seconds"))
+      expectNoMessage(Duration.create(1, "seconds"))
       val player = Player(Avatar("Chord", PlanetSideEmpire.NEUTRAL, CharacterGender.Male, 0, CharacterVoice.Voice5))
 
       val bldg1 = zone.Building(1).get
@@ -263,7 +263,7 @@ class ZoneActorTest extends ActorTest {
       val zone = new Zone("test", map6, 1) { override def SetupNumberPools() = { } }
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-no-spawn")
       zone.Actor ! Zone.Init()
-      expectNoMsg(Duration.create(300, "ms"))
+      expectNoMessage(Duration.create(300, "ms"))
       val player = Player(Avatar("Chord", PlanetSideEmpire.NEUTRAL, CharacterGender.Male, 0, CharacterVoice.Voice5))
 
       zone.Actor ! Zone.Lattice.RequestSpawnPoint(1, player, 7)
@@ -282,12 +282,12 @@ class ZonePopulationTest extends ActorTest {
       val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
       zone.Actor ! Zone.Init()
-      expectNoMsg(200 milliseconds)
+      expectNoMessage(200 milliseconds)
 
       assert(zone.Players.isEmpty)
       assert(zone.LivePlayers.isEmpty)
       zone.Population ! Zone.Population.Join(avatar)
-      expectNoMsg(Duration.create(100, "ms"))
+      expectNoMessage(Duration.create(100, "ms"))
       assert(zone.Players.size == 1)
       assert(zone.Players.head == avatar)
       assert(zone.LivePlayers.isEmpty)
@@ -300,12 +300,12 @@ class ZonePopulationTest extends ActorTest {
       zone.Actor ! Zone.Init()
       receiveOne(Duration.create(200, "ms")) //consume
       zone.Population ! Zone.Population.Join(avatar)
-      expectNoMsg(Duration.create(100, "ms"))
+      expectNoMessage(Duration.create(100, "ms"))
 
       assert(zone.Players.size == 1)
       assert(zone.Players.head == avatar)
       zone.Population ! Zone.Population.Leave(avatar)
-      expectNoMsg(Duration.create(100, "ms"))
+      expectNoMessage(Duration.create(100, "ms"))
       assert(zone.Players.isEmpty)
     }
 
@@ -315,15 +315,15 @@ class ZonePopulationTest extends ActorTest {
       val player = Player(avatar)
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
       zone.Actor ! Zone.Init()
-      expectNoMsg(200 milliseconds)
+      expectNoMessage(200 milliseconds)
       zone.Population ! Zone.Population.Join(avatar)
-      expectNoMsg(Duration.create(100, "ms"))
+      expectNoMessage(Duration.create(100, "ms"))
 
       assert(zone.Players.size == 1)
       assert(zone.Players.head == avatar)
       assert(zone.LivePlayers.isEmpty)
       zone.Population ! Zone.Population.Spawn(avatar, player)
-      expectNoMsg(Duration.create(100, "ms"))
+      expectNoMessage(Duration.create(100, "ms"))
       assert(zone.Players.size == 1)
       assert(zone.Players.head == avatar)
       assert(zone.LivePlayers.size == 1)
@@ -336,18 +336,18 @@ class ZonePopulationTest extends ActorTest {
       val player = Player(avatar)
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
       zone.Actor ! Zone.Init()
-      expectNoMsg(200 milliseconds)
+      expectNoMessage(200 milliseconds)
       zone.Population ! Zone.Population.Join(avatar)
-      expectNoMsg(Duration.create(100, "ms"))
+      expectNoMessage(Duration.create(100, "ms"))
       zone.Population ! Zone.Population.Spawn(avatar, player)
-      expectNoMsg(Duration.create(100, "ms"))
+      expectNoMessage(Duration.create(100, "ms"))
 
       assert(zone.Players.size == 1)
       assert(zone.Players.head == avatar)
       assert(zone.LivePlayers.size == 1)
       assert(zone.LivePlayers.head == player)
       zone.Population ! Zone.Population.Release(avatar)
-      expectNoMsg(Duration.create(100, "ms"))
+      expectNoMessage(Duration.create(100, "ms"))
       assert(zone.Players.size == 1)
       assert(zone.Players.head == avatar)
       assert(zone.LivePlayers.isEmpty)
@@ -360,11 +360,11 @@ class ZonePopulationTest extends ActorTest {
       player.GUID = PlanetSideGUID(1)
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
       zone.Actor ! Zone.Init()
-      expectNoMsg(200 milliseconds)
+      expectNoMessage(200 milliseconds)
       zone.Population ! Zone.Population.Join(avatar)
-      expectNoMsg(Duration.create(100, "ms"))
+      expectNoMessage(Duration.create(100, "ms"))
       zone.Population ! Zone.Population.Spawn(avatar, player)
-      expectNoMsg(Duration.create(100, "ms"))
+      expectNoMessage(Duration.create(100, "ms"))
 
       assert(zone.Players.size == 1)
       assert(zone.Players.head == avatar)
@@ -386,11 +386,11 @@ class ZonePopulationTest extends ActorTest {
       val player2 = Player(avatar)
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
       zone.Actor ! Zone.Init()
-      expectNoMsg(200 milliseconds)
+      expectNoMessage(200 milliseconds)
       zone.Population ! Zone.Population.Join(avatar)
-      expectNoMsg(Duration.create(100, "ms"))
+      expectNoMessage(Duration.create(100, "ms"))
       zone.Population ! Zone.Population.Spawn(avatar, player1)
-      expectNoMsg(Duration.create(100, "ms"))
+      expectNoMessage(Duration.create(100, "ms"))
 
       assert(zone.Players.size == 1)
       assert(zone.Players.head == avatar)
@@ -412,7 +412,7 @@ class ZonePopulationTest extends ActorTest {
       val player = Player(avatar)
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
       zone.Actor ! Zone.Init()
-      expectNoMsg(200 milliseconds)
+      expectNoMessage(200 milliseconds)
 
       assert(zone.Players.isEmpty)
       assert(zone.LivePlayers.isEmpty)
@@ -430,9 +430,9 @@ class ZonePopulationTest extends ActorTest {
       val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
       zone.Actor ! Zone.Init()
-      expectNoMsg(200 milliseconds)
+      expectNoMessage(200 milliseconds)
       zone.Population ! Zone.Population.Join(avatar)
-      expectNoMsg(Duration.create(100, "ms"))
+      expectNoMessage(Duration.create(100, "ms"))
 
       assert(zone.Players.size == 1)
       assert(zone.Players.head == avatar)
@@ -453,11 +453,11 @@ class ZonePopulationTest extends ActorTest {
       player.Release
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
       zone.Actor ! Zone.Init()
-      expectNoMsg(200 milliseconds)
+      expectNoMessage(200 milliseconds)
 
       assert(zone.Corpses.isEmpty)
       zone.Population ! Zone.Corpse.Add(player)
-      expectNoMsg(Duration.create(100, "ms"))
+      expectNoMessage(Duration.create(100, "ms"))
       assert(zone.Corpses.size == 1)
       assert(zone.Corpses.head == player)
     }
@@ -468,14 +468,14 @@ class ZonePopulationTest extends ActorTest {
       player.Release
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
       zone.Actor ! Zone.Init()
-      expectNoMsg(200 milliseconds)
+      expectNoMessage(200 milliseconds)
       zone.Population ! Zone.Corpse.Add(player)
-      expectNoMsg(Duration.create(100, "ms"))
+      expectNoMessage(Duration.create(100, "ms"))
 
       assert(zone.Corpses.size == 1)
       assert(zone.Corpses.head == player)
       zone.Population ! Zone.Corpse.Remove(player)
-      expectNoMsg(Duration.create(100, "ms"))
+      expectNoMessage(Duration.create(100, "ms"))
       assert(zone.Corpses.isEmpty)
     }
 
@@ -489,18 +489,18 @@ class ZonePopulationTest extends ActorTest {
       player3.Release
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
       zone.Actor ! Zone.Init()
-      expectNoMsg(200 milliseconds)
+      expectNoMessage(200 milliseconds)
       zone.Population ! Zone.Corpse.Add(player1)
       zone.Population ! Zone.Corpse.Add(player2)
       zone.Population ! Zone.Corpse.Add(player3)
-      expectNoMsg(Duration.create(100, "ms"))
+      expectNoMessage(Duration.create(100, "ms"))
 
       assert(zone.Corpses.size == 3)
       assert(zone.Corpses.head == player1)
       assert(zone.Corpses(1) == player2)
       assert(zone.Corpses(2) == player3)
       zone.Population ! Zone.Corpse.Remove(player2)
-      expectNoMsg(Duration.create(100, "ms"))
+      expectNoMessage(Duration.create(100, "ms"))
       assert(zone.Corpses.size == 2)
       assert(zone.Corpses.head == player1)
       assert(zone.Corpses(1) == player3)
@@ -512,11 +512,11 @@ class ZonePopulationTest extends ActorTest {
       //player.Release !!important
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
       zone.Actor ! Zone.Init()
-      expectNoMsg(200 milliseconds)
+      expectNoMessage(200 milliseconds)
 
       assert(zone.Corpses.isEmpty)
       zone.Population ! Zone.Corpse.Add(player)
-      expectNoMsg(Duration.create(100, "ms"))
+      expectNoMessage(Duration.create(100, "ms"))
       assert(zone.Corpses.isEmpty)
     }
   }
@@ -530,7 +530,7 @@ class ZoneGroundDropItemTest extends ActorTest {
   zone.GUID(hub)
   zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
   zone.Actor ! Zone.Init()
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
 
   "DropItem" should {
     "drop item on ground" in {
@@ -556,7 +556,7 @@ class ZoneGroundCanNotDropItem1Test extends ActorTest {
   zone.GUID(hub)
   zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
   zone.Actor ! Zone.Init()
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
 
   "DropItem" should {
     "not drop an item that is not registered" in {
@@ -582,7 +582,7 @@ class ZoneGroundCanNotDropItem2Test extends ActorTest {
   //zone.GUID(hub) //!important
   zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
   zone.Actor ! Zone.Init()
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
 
   "DropItem" should {
     "not drop an item that is not registered to the zone" in {
@@ -608,7 +608,7 @@ class ZoneGroundCanNotDropItem3Test extends ActorTest {
   zone.GUID(hub) //!important
   zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
   zone.Actor ! Zone.Init()
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
 
   "DropItem" should {
     "not drop an item that has already been dropped" in {
@@ -642,7 +642,7 @@ class ZoneGroundPickupItemTest extends ActorTest {
   zone.GUID(hub)
   zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
   zone.Actor ! Zone.Init()
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
 
   "PickupItem" should {
     "pickup an item from ground" in {
@@ -671,7 +671,7 @@ class ZoneGroundCanNotPickupItemTest extends ActorTest {
   zone.GUID(hub) //still registered to this zone
   zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
   zone.Actor ! Zone.Init()
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
 
   "PickupItem" should {
     "not pickup an item if it can not be found" in {
@@ -696,7 +696,7 @@ class ZoneGroundRemoveItemTest extends ActorTest {
   zone.GUID(hub) //still registered to this zone
   zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
   zone.Actor ! Zone.Init()
-  expectNoMsg(200 milliseconds)
+  expectNoMessage(200 milliseconds)
 
   "RemoveItem" should {
     "remove an item from the ground without callback (even if the item is not found)" in {
@@ -707,11 +707,11 @@ class ZoneGroundRemoveItemTest extends ActorTest {
       assert(zone.EquipmentOnGround.contains(item)) //dropped
 
       zone.Ground ! Zone.Ground.RemoveItem(item.GUID)
-      expectNoMsg(500 milliseconds)
+      expectNoMessage(500 milliseconds)
       assert(!zone.EquipmentOnGround.contains(item))
 
       zone.Ground ! Zone.Ground.RemoveItem(item.GUID) //repeat
-      expectNoMsg(500 milliseconds)
+      expectNoMessage(500 milliseconds)
       assert(!zone.EquipmentOnGround.contains(item))
     }
   }

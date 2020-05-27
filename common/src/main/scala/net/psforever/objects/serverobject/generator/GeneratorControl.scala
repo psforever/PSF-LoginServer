@@ -156,8 +156,8 @@ object GeneratorControl {
     */
   def DamageAwareness(target : Generator, cause : ResolvedProjectile, amount : Int) : Unit = {
     if(!target.Destroyed) {
-      val health : Float = target.Health
-      val max : Float = target.MaxHealth
+      val health : Float = target.Health.toFloat
+      val max : Float = target.MaxHealth.toFloat
       if(target.Condition != PlanetSideGeneratorState.Critical && health / max < 0.51f) { //becoming critical
         target.Condition = PlanetSideGeneratorState.Critical
         GeneratorControl.UpdateOwner(target)

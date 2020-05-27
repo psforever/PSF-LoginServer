@@ -66,7 +66,7 @@ class VehicleService5Test extends ActorTest {
       val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
       service ! Service.Join("test")
       service ! "hello"
-      expectNoMsg()
+      expectNoMessage()
     }
   }
 }

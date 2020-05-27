@@ -89,7 +89,7 @@ class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase
         case Some(entry) =>
           if(periodicReminder.isCancelled) {
             trace (s"the pad has become blocked by ${entry.vehicle.Definition.Name}")
-            periodicReminder = context.system.scheduler.schedule(
+            periodicReminder = context.system.scheduler.scheduleWithFixedDelay(
               VehicleSpawnControl.initialReminderDelay,
               VehicleSpawnControl.periodicReminderDelay,
               self, VehicleSpawnControl.ProcessControl.Reminder

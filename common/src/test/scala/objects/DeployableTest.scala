@@ -342,7 +342,7 @@ class ExplosiveDeployableJammerTest extends ActorTest {
       j_mine.Actor ! Vitality.Damage(applyDamageToJ)
       val msg_local = localProbe.receiveN(4, 200 milliseconds)
       val msg_avatar = avatarProbe.receiveOne(200 milliseconds)
-      activityProbe.expectNoMsg(200 milliseconds)
+      activityProbe.expectNoMessage(200 milliseconds)
       assert(
         msg_local.head match {
           case LocalServiceMessage("TestCharacter2", LocalAction.AlertDestroyDeployable(PlanetSideGUID(0), target)) => target eq j_mine
@@ -532,7 +532,7 @@ class ExplosiveDeployableDestructionTest extends ActorTest {
       h_mine.Actor ! Vitality.Damage(applyDamageTo)
       val msg_local = localProbe.receiveN(5, 200 milliseconds)
       val msg_avatar = avatarProbe.receiveOne(200 milliseconds)
-      activityProbe.expectNoMsg(200 milliseconds)
+      activityProbe.expectNoMessage(200 milliseconds)
       assert(
         msg_local.head match {
           case LocalServiceMessage("TestCharacter2", LocalAction.AlertDestroyDeployable(PlanetSideGUID(0), target)) => target eq h_mine
@@ -595,7 +595,7 @@ class TurretControlInitializeTest extends ActorTest {
       assert(obj.Actor == ActorRef.noSender)
       val init = system.actorOf(Props(classOf[DeployableTest.TurretInitializer], obj), "init_turret_test")
       init ! "initialize"
-      expectNoMsg(200 milliseconds)
+      expectNoMessage(200 milliseconds)
       assert(obj.Actor != ActorRef.noSender)
     }
   }
@@ -608,11 +608,11 @@ class TurretControlUninitializeTest extends ActorTest {
       val init = system.actorOf(Props(classOf[DeployableTest.TurretInitializer], obj), "init_turret_test")
       obj.GUID = PlanetSideGUID(1)
       init ! "initialize"
-      expectNoMsg(200 milliseconds)
+      expectNoMessage(200 milliseconds)
       assert(obj.Actor != ActorRef.noSender)
 
       init ! "uninitialize"
-      expectNoMsg(200 milliseconds)
+      expectNoMessage(200 milliseconds)
       assert(obj.Actor == ActorRef.noSender)
     }
   }

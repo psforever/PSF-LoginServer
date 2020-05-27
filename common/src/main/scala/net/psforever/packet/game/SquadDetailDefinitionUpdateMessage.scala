@@ -509,6 +509,8 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
                 Some(linkFields(member_list.collect { case SquadPositionEntry(_, Some(entry)) => entry }.reverse)) ::
                 HNil
             )
+          case data =>
+            Attempt.failure(Err(s"can not get squad detail definition from data $data"))
         }
       )
     }
@@ -637,6 +639,8 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
             Attempt.successful(SquadDetail(None, None, None, None, None, None, None, None, Some(ignoreTerminatingEntry(member_list.toList))))
           case false :: None :: Some(_ :: member_list :: HNil) :: HNil =>
             Attempt.successful(SquadDetail(None, None, None, None, None, None, None, None, Some(ignoreTerminatingEntry(member_list.toList))))
+          case data =>
+            Attempt.failure(Err(s"SquadDetail $data not encoded correctly"))
         },
         {
           case SquadDetail(_, _, _, _, _, _, _, _, Some(member_list)) =>
@@ -1108,18 +1112,22 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
           conditional(index < 255, bool :: squad_member_details_codec(bitsOverByte.Add(1))) ::
             conditional(index == 255, bits)
         }
-        ).xmap[SquadPositionEntry] (
+        ).exmap[SquadPositionEntry] (
         {
           case 255 :: _ :: _ :: HNil =>
-            SquadPositionEntry(255, None)
+            Attempt.Successful(SquadPositionEntry(255, None))
           case ndx :: Some(_ :: info :: HNil) :: _ :: HNil =>
-            SquadPositionEntry(ndx, Some(unlinkFields(Some(info))))
+            Attempt.Successful(SquadPositionEntry(ndx, Some(unlinkFields(Some(info)))))
+          case data =>
+            Attempt.Failure(Err(s"SquadPositionEntry: unsupported decoding format - $data"))
         },
         {
           case SquadPositionEntry(255, _) =>
-            255 :: None :: None :: HNil
+            Attempt.Successful(255 :: None :: None :: HNil)
           case SquadPositionEntry(ndx, Some(info)) =>
-            ndx :: Some(true :: linkFields(info) :: HNil) :: None :: HNil
+            Attempt.Successful(ndx :: Some(true :: linkFields(info) :: HNil) :: None :: HNil)
+          case data =>
+            Attempt.Failure(Err(s"SquadPositionEntry: unsupported encoding format - $data"))
         }
       )
     }
@@ -1223,18 +1231,20 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
             conditional(size - 1 > 0, subsequent_position_codec(size - 1)) ::
             conditional(index == 255, bits)
         }
-        ).xmap[LinkedFields](
+        ).exmap[LinkedFields](
         {
           case 255 :: _ :: _ :: _ :: HNil =>
-            LinkedFields(255, SquadPositionDetail.Blank, None)
+            Attempt.Successful(LinkedFields(255, SquadPositionDetail.Blank, None))
           case index :: Some(_ :: entry :: HNil) :: next :: _ :: HNil =>
-            LinkedFields(index, entry, next)
+            Attempt.Successful(LinkedFields(index, entry, next))
+          case data =>
+            Attempt.Failure(Err(s"LinkedFields: unsupported decoding format - $data"))
         },
         {
           case LinkedFields(255, _, _) =>
-            255 :: None :: None :: None :: HNil
+            Attempt.Successful(255 :: None :: None :: None :: HNil)
           case LinkedFields(index, entry, next) =>
-            index :: Some(true :: entry :: HNil) :: next :: None :: HNil
+            Attempt.Successful(index :: Some(true :: entry :: HNil) :: next :: None :: HNil)
         }
       )
     }
@@ -1255,18 +1265,20 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
             conditional(index < 255 && size - 1 > 0, subsequent_position_codec(size - 1)) ::
             conditional(index == 255, bits)
         }
-        ).xmap[LinkedFields](
+        ).exmap[LinkedFields](
         {
           case 255 :: _ :: _ :: _ :: HNil =>
-            LinkedFields(255, SquadPositionDetail.Blank, None)
+            Attempt.Successful(LinkedFields(255, SquadPositionDetail.Blank, None))
           case index :: Some(_ :: entry :: HNil) :: next :: _ :: HNil =>
-            LinkedFields(index, entry, next)
+            Attempt.Successful(LinkedFields(index, entry, next))
+          case data =>
+            Attempt.Failure(Err(s"LinkedFields: unsupported decoding format - $data"))
         },
         {
           case LinkedFields(255, _, _) =>
-            255 :: None :: None :: None :: HNil
+            Attempt.Successful(255 :: None :: None :: None :: HNil)
           case LinkedFields(index, entry, next) =>
-            index :: Some(true :: entry :: HNil) :: next :: None :: HNil
+            Attempt.Successful(index :: Some(true :: entry :: HNil) :: next :: None :: HNil)
         }
       )
     }
@@ -1355,6 +1367,8 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
       {
         case SquadPositionDetail(Some(closed), Some(role), Some(orders), Some(requirements), Some(char_id), Some(name)) =>
           Attempt.Successful(6 :: closed :: role :: orders :: char_id :: name :: CertificationType.toEncodedLong(defaultRequirements ++ requirements) :: HNil)
+        case data =>
+          Attempt.Failure(Err(s"can not encode a SquadDetailDefinitionUpdate member's data - $data"))
       }
     )
   }

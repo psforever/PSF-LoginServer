@@ -288,7 +288,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
     case FinishAccountLogin(connection, username, newToken, isSuccessfulLogin, isInactive) =>
       if(isSuccessfulLogin) { // Login OK
         loginSuccessfulResponse(username, newToken)
-        updateServerListTask = context.system.scheduler.schedule(0 seconds, 2 seconds, self, UpdateServerList())
+        updateServerListTask = context.system.scheduler.scheduleWithFixedDelay(0 seconds, 2 seconds, self, UpdateServerList())
       } else {
         if (!isInactive && connection.nonEmpty) { // Bad Password
           loginPwdFailureResponse(username, newToken)

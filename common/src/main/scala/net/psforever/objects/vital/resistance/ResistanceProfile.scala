@@ -22,11 +22,11 @@ trait ResistanceProfile {
 
   def Resist(dtype : DamageType.Value) : Float = {
     dtype match {
-      case DamageType.Direct => ResistanceDirectHit
-      case DamageType.Splash => ResistanceSplash
-      case DamageType.Aggravated => ResistanceAggravated
+      case DamageType.Direct => ResistanceDirectHit.toFloat
+      case DamageType.Splash => ResistanceSplash.toFloat
+      case DamageType.Aggravated => ResistanceAggravated.toFloat
       case DamageType.Radiation => RadiationShielding
-      case _ => 0
+      case _ => 0f
     }
   }
 }

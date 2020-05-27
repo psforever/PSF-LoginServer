@@ -42,7 +42,7 @@ class SessionRouter(role : String, pipeline : List[SessionPipeline]) extends Act
   private[this] val log = org.log4s.getLogger(self.path.name)
 
   import scala.concurrent.ExecutionContext.Implicits.global
-  val sessionReaper = context.system.scheduler.schedule(10 seconds, 5 seconds, self, SessionReaper())
+  val sessionReaper = context.system.scheduler.scheduleWithFixedDelay(10 seconds, 5 seconds, self, SessionReaper())
 
   val idBySocket = mutable.Map[InetSocketAddress, Long]()
   val sessionById = mutable.Map[Long, Session]()

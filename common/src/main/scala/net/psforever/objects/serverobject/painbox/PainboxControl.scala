@@ -150,7 +150,7 @@ class PainboxControl(painbox: Painbox) extends Actor {
     case Painbox.Start() =>
       context.become(Running)
       painboxTick.cancel
-      painboxTick = context.system.scheduler.schedule(0 seconds, 1 second, self, Painbox.Tick())
+      painboxTick = context.system.scheduler.scheduleWithFixedDelay(0 seconds, 1 second, self, Painbox.Tick())
 
     case _ => ;
   }

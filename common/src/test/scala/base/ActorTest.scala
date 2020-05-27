@@ -4,21 +4,23 @@ package base
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit}
 import com.typesafe.config.ConfigFactory
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 import org.specs2.specification.Scope
 
 import scala.collection.mutable
 import scala.concurrent.duration.FiniteDuration
 
 abstract class ActorTest(sys : ActorSystem = ActorSystem("system", ConfigFactory.parseMap(ActorTest.LoggingConfig)))
-  extends TestKit(sys) with Scope with ImplicitSender with WordSpecLike with Matchers with BeforeAndAfterAll {
-  override def afterAll {
+  extends TestKit(sys) with Scope with ImplicitSender with AnyWordSpecLike with Matchers with BeforeAndAfterAll {
+  override def afterAll : Unit = {
     TestKit.shutdownActorSystem(system)
   }
 }
 
 object ActorTest {
-  import scala.collection.JavaConverters._
+  import scala.jdk.CollectionConverters._
   private val LoggingConfig = Map(
     "akka.loggers" -> List("akka.testkit.TestEventListener").asJava,
     "akka.loglevel" -> "OFF",

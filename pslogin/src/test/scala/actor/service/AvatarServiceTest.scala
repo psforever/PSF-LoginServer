@@ -67,7 +67,7 @@ class AvatarService5Test extends ActorTest {
       val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
       service ! "hello"
-      expectNoMsg()
+      expectNoMessage()
     }
   }
 }
@@ -424,13 +424,13 @@ class AvatarReleaseTest extends ActorTest {
 
   "AvatarService" should {
     "pass Release" in {
-      expectNoMsg(100 milliseconds) //spacer
+      expectNoMessage(100 milliseconds) //spacer
 
       service ! Service.Join("test")
       taskResolver ! GUIDTask.RegisterObjectTask(obj)(zone.GUID)
       assert(zone.Corpses.isEmpty)
       zone.Population ! Zone.Corpse.Add(obj)
-      expectNoMsg(200 milliseconds) //spacer
+      expectNoMessage(200 milliseconds) //spacer
 
       assert(zone.Corpses.size == 1)
       assert(obj.HasGUID)
@@ -453,7 +453,7 @@ class AvatarReleaseTest extends ActorTest {
       assert(reply2msg.replyMessage.isInstanceOf[AvatarResponse.ObjectDelete])
       assert(reply2msg.replyMessage.asInstanceOf[AvatarResponse.ObjectDelete].item_guid == guid)
 
-      expectNoMsg(1 seconds)
+      expectNoMessage(1 seconds)
       assert(zone.Corpses.isEmpty)
       assert(!obj.HasGUID)
     }
@@ -473,13 +473,13 @@ class AvatarReleaseEarly1Test extends ActorTest {
 
   "AvatarService" should {
     "pass Release" in {
-      expectNoMsg(100 milliseconds) //spacer
+      expectNoMessage(100 milliseconds) //spacer
 
       service ! Service.Join("test")
       taskResolver ! GUIDTask.RegisterObjectTask(obj)(zone.GUID)
       assert(zone.Corpses.isEmpty)
       zone.Population ! Zone.Corpse.Add(obj)
-      expectNoMsg(200 milliseconds) //spacer
+      expectNoMessage(200 milliseconds) //spacer
 
       assert(zone.Corpses.size == 1)
       assert(obj.HasGUID)
@@ -503,7 +503,7 @@ class AvatarReleaseEarly1Test extends ActorTest {
       assert(reply2msg.replyMessage.isInstanceOf[AvatarResponse.ObjectDelete])
       assert(reply2msg.replyMessage.asInstanceOf[AvatarResponse.ObjectDelete].item_guid == guid)
 
-      expectNoMsg(1 seconds)
+      expectNoMessage(1 seconds)
       assert(zone.Corpses.isEmpty)
       assert(!obj.HasGUID)
     }
@@ -524,13 +524,13 @@ class AvatarReleaseEarly2Test extends ActorTest {
 
   "AvatarService" should {
     "pass Release" in {
-      expectNoMsg(100 milliseconds) //spacer
+      expectNoMessage(100 milliseconds) //spacer
 
       service ! Service.Join("test")
       taskResolver ! GUIDTask.RegisterObjectTask(obj)(zone.GUID)
       assert(zone.Corpses.isEmpty)
       zone.Population ! Zone.Corpse.Add(obj)
-      expectNoMsg(200 milliseconds) //spacer
+      expectNoMessage(200 milliseconds) //spacer
 
       assert(zone.Corpses.size == 1)
       assert(obj.HasGUID)
@@ -554,7 +554,7 @@ class AvatarReleaseEarly2Test extends ActorTest {
       assert(reply2msg.replyMessage.isInstanceOf[AvatarResponse.ObjectDelete])
       assert(reply2msg.replyMessage.asInstanceOf[AvatarResponse.ObjectDelete].item_guid == guid)
 
-      expectNoMsg(1 seconds)
+      expectNoMessage(1 seconds)
       assert(zone.Corpses.isEmpty)
       assert(!obj.HasGUID)
     }

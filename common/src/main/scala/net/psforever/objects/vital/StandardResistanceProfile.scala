@@ -25,5 +25,5 @@ trait StandardResistanceProfile extends ResistanceProfile {
 
   def ResistanceAggravated : Int = resistDef.ResistanceDirectHit
 
-  def RadiationShielding : Float = resistDef.ResistanceDirectHit
+  def RadiationShielding : Float = resistDef.ResistanceDirectHit.toFloat
 }

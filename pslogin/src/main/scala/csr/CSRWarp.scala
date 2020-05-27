@@ -64,7 +64,7 @@ object CSRWarp {
       CSRWarp.reply(traveler, CSRZoneImpl.listLocations(zone) + "; " + CSRZoneImpl.listWarpgates(zone))
       return (false, Vector3.Zero)
     }
-    val dest : Option[Vector3] = if(coords.nonEmpty) Some(Vector3(coords(0), coords(1), coords(2)))
+    val dest : Option[Vector3] = if(coords.nonEmpty) Some(Vector3(coords(0).toFloat, coords(1).toFloat, coords(2).toFloat))
     else CSRZoneImpl.getWarpLocation(zone, destId) //coords before destId
     if(dest.isEmpty) {
       CSRWarp.error(traveler, "Invalid location")

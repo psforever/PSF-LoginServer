@@ -33,7 +33,7 @@ final class QuantizedDoubleCodec(min: Double, max: Double, bits: Int) extends Co
   }
 
   def UnquantizeDouble(value : Int) : Double = {
-    return ((max - min) * value.toDouble / (1 << bitsL).toDouble + min)
+    return ((max - min) * value.toDouble / (1 << bitsL.toInt).toDouble + min)
   }
 
   override def encode(value: Double) = {
