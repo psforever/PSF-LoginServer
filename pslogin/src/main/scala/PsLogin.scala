@@ -226,7 +226,7 @@ object PsLogin {
 
     /** Start up the main actor system. This "system" is the home for all actors running on this server */
     system = ActorSystem("PsLogin")
-    Default(system.deadLetters)
+    Default(system)
 
     logger.info("Starting actor pipelines")
     /** Create pipelines for the login and world servers
