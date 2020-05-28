@@ -19,13 +19,16 @@ object Default {
   final def Cancellable : Cancellable = cancellable
 
   //actor
-  import akka.actor.{Actor => AkkaActor, ActorRef, ActorSystem, Props}
+  import akka.actor.{Actor => AkkaActor, ActorRef, ActorSystem, DeadLetter, Props}
   /**
-    * An actor designed to wrap around `deadLetters` and redirect all normal messages.
+    * An actor designed to wrap around `deadLetters` and redirect all normal messages to it.
+    * This measure is more to "protect" `deadLetters` than anything else.
+    * Even if it is stopped, it still fulfills exactly the same purpose!
+    * The original target to which the actor is assigned will not be implicitly accredited.
     */
   private class DefaultActor extends AkkaActor {
     def receive : Receive = {
-      case msg => context.system.deadLetters forward msg
+      case msg => context.system.deadLetters ! DeadLetter(msg, sender, self)
     }
   }
   private var defaultRef : ActorRef = ActorRef.noSender
@@ -35,7 +38,9 @@ object Default {
     * @return the new default actor
     */
   def apply(sys : ActorSystem) : ActorRef = {
-    defaultRef = sys.actorOf(Props[DefaultActor], "system-default-actor")
+    if(defaultRef == ActorRef.noSender) {
+      defaultRef = sys.actorOf(Props[DefaultActor], name = s"system-default-actor")
+    }
     defaultRef
   }
 
