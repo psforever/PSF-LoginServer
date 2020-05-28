@@ -2,7 +2,7 @@
 package net.psforever.objects.serverobject.tube
 
 import akka.actor.ActorContext
-import net.psforever.objects.SpawnPointDefinition
+import net.psforever.objects.{Default, SpawnPointDefinition}
 import net.psforever.objects.definition.converter.SpawnTubeConverter
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.structures.{Amenity, AmenityDefinition}
@@ -23,8 +23,8 @@ object SpawnTubeDefinition {
     * @param context hook to the local `Actor` system
     */
   def Setup(obj : Amenity, context : ActorContext) : Unit = {
-    import akka.actor.{ActorRef, Props}
-    if(obj.Actor == ActorRef.noSender) {
+    import akka.actor.Props
+    if(obj.Actor == Default.Actor) {
       obj.Actor = context.actorOf(Props(classOf[SpawnTubeControl], obj), PlanetSideServerObject.UniqueActorName(obj))
     }
   }

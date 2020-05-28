@@ -3,7 +3,7 @@ package net.psforever.objects.zones
 
 import akka.actor.{Actor, ActorRef, Props}
 import net.psforever.objects.avatar.PlayerControl
-import net.psforever.objects.{Avatar, Player}
+import net.psforever.objects.{Avatar, Default, Player}
 
 import scala.annotation.tailrec
 import scala.collection.concurrent.TrieMap
@@ -47,7 +47,7 @@ class ZonePopulationActor(zone : Zone, playerMap : TrieMap[Avatar, Option[Player
             sender ! Zone.Population.PlayerAlreadySpawned(zone, player)
           }
           else if(newToZone) {
-            player.Actor = context.actorOf(Props(classOf[PlayerControl], player),  s"${player.CharId}_${player.GUID.guid}_${System.currentTimeMillis}")
+            player.Actor = context.actorOf(Props(classOf[PlayerControl], player), name = GetPlayerControlName(player, None))
             player.Zone = zone
           }
         case None =>
@@ -63,10 +63,15 @@ class ZonePopulationActor(zone : Zone, playerMap : TrieMap[Avatar, Option[Player
       }
 
     case Zone.Corpse.Add(player) =>
-      CorpseAdd(player, corpseList)
+      if(CorpseAdd(player, corpseList)) {
+        player.Actor = context.actorOf(Props(classOf[PlayerControl], player), name = s"corpse_of_${GetPlayerControlName(player, None)}")
+        player.Zone = zone
+      }
 
     case Zone.Corpse.Remove(player) =>
-      CorpseRemove(player, corpseList)
+      if(CorpseRemove(player, corpseList)) {
+        PlayerLeave(player)
+      }
 
     case _ => ;
   }
@@ -168,17 +173,19 @@ object ZonePopulationActor {
     * @param player a `Player` object
     * @param corpseList a list of `Player` objects
     */
-  def CorpseRemove(player : Player, corpseList : ListBuffer[Player]) : Unit = {
+  def CorpseRemove(player : Player, corpseList : ListBuffer[Player]) : Boolean = {
     recursiveFindCorpse(corpseList.iterator, player) match {
-      case None => ;
+      case None =>
+        false
       case Some(index) =>
         corpseList.remove(index)
+        true
     }
   }
 
   def PlayerLeave(player : Player) : Unit = {
     player.Actor ! akka.actor.PoisonPill
-    player.Actor = ActorRef.noSender
+    player.Actor = Default.Actor
   }
 
   /**
@@ -200,6 +207,16 @@ object ZonePopulationActor {
       else {
         recursiveFindCorpse(iter, player, index + 1)
       }
+    }
+  }
+
+  def GetPlayerControlName(player : Player, old : Option[ActorRef]) : String = {
+    old match {
+      case Some(control) =>
+        val nameNumber = control.toString.split("/").last //split on '/'
+        nameNumber.split("#").head //split on '#'
+      case None => ;
+        s"${player.CharId}_${player.GUID.guid}_${System.currentTimeMillis}" //new
     }
   }
 }

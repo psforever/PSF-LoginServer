@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import akka.actor.ActorRef
+import net.psforever.objects.Default
 import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot, JammableUnit}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryTile}
@@ -546,14 +546,7 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends AmenityOwner
       false
   }
 
-  override def hashCode() : Int = {
-    Actor match {
-      case ActorRef.noSender =>
-        super.hashCode()
-      case actor =>
-        actor.hashCode()
-    }
-  }
+  override def hashCode() : Int = Actor.hashCode()
 
   /**
     * Override the string representation to provide additional information.

@@ -3,7 +3,7 @@ package net.psforever.objects.serverobject.terminals
 
 import akka.actor.ActorContext
 import net.psforever.objects.definition.ImplantDefinition
-import net.psforever.objects.{Player, Vehicle}
+import net.psforever.objects.{Default, Player, Vehicle}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.loadouts.{InfantryLoadout, VehicleLoadout}
 import net.psforever.objects.inventory.InventoryItem
@@ -340,8 +340,8 @@ object OrderTerminalDefinition {
     * @param context hook to the local `Actor` system
     */
   def Setup(obj : Amenity, context : ActorContext) : Unit = {
-    import akka.actor.{ActorRef, Props}
-    if(obj.Actor == ActorRef.noSender) {
+    import akka.actor.Props
+    if(obj.Actor == Default.Actor) {
       obj.Actor = context.actorOf(Props(classOf[TerminalControl], obj), PlanetSideServerObject.UniqueActorName(obj))
     }
   }

@@ -5,10 +5,7 @@ import com.github.mauricio.async.db.general.ArrayRowData
 import com.github.mauricio.async.db.{Connection, QueryResult}
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
-
-import net.psforever.WorldConfig
 import org.log4s.{Logger, MDC}
-
 import scala.annotation.{switch, tailrec}
 import scala.collection.mutable.LongMap
 import scala.concurrent.{Await, Future, Promise}
@@ -62,6 +59,7 @@ import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate.{ConstructorData, DetailedCharacterData, DroppedItemData, ObjectClass, ObjectCreateMessageParent, PlacementData}
 import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo}
 import net.psforever.types._
+import net.psforever.WorldConfig
 import services.{RemoverActor, Service, ServiceManager}
 import services.account.{AccountPersistenceService, PlayerToken, ReceiveAccountData, RetrieveAccountData}
 import services.avatar.{AvatarAction, AvatarResponse, AvatarServiceMessage, AvatarServiceResponse}
@@ -89,8 +87,8 @@ class WorldSessionActor extends Actor
   var chatService : ActorRef = ActorRef.noSender
   var galaxyService : ActorRef = ActorRef.noSender
   var squadService : ActorRef = ActorRef.noSender
-  var taskResolver : ActorRef = Actor.noSender
-  var cluster : ActorRef = Actor.noSender
+  var taskResolver : ActorRef = ActorRef.noSender
+  var cluster : ActorRef = ActorRef.noSender
   var continent : Zone = Zone.Nowhere
   var account : Account = null
   var player : Player = null
@@ -1521,7 +1519,7 @@ class WorldSessionActor extends Actor
       }
 
     case SetCurrentAvatar(tplayer) =>
-      if(tplayer.Actor == ActorRef.noSender) {
+      if(tplayer.Actor == Default.Actor) {
         respawnTimer = context.system.scheduler.scheduleOnce(100 milliseconds, self, SetCurrentAvatar(tplayer))
       }
       else {
@@ -9338,7 +9336,7 @@ class WorldSessionActor extends Actor
   def HandleDealingDamage(target : PlanetSideGameObject with Vitality, data : ResolvedProjectile) : Unit = {
     val func = data.damage_model.Calculate(data)
     target match {
-      case obj : Player if obj.CanDamage && obj.Actor != ActorRef.noSender =>
+      case obj : Player if obj.CanDamage && obj.Actor != Default.Actor =>
         if(obj.spectator) {
           player.death_by = -1 // little thing for auto kick
         }
@@ -10213,7 +10211,7 @@ class WorldSessionActor extends Actor
   def LoadZoneCommonTransferActivity() : Unit = {
     if(player.VehicleOwned.nonEmpty && player.VehicleSeated != player.VehicleOwned) {
       continent.GUID(player.VehicleOwned) match {
-        case Some(vehicle : Vehicle) if vehicle.Actor != ActorRef.noSender =>
+        case Some(vehicle : Vehicle) if vehicle.Actor != Default.Actor =>
           vehicle.Actor ! Vehicle.Ownership(None)
         case _ => ;
       }

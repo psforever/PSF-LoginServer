@@ -1,9 +1,9 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import akka.actor.{ActorRef, Props}
+import akka.actor.Props
 import base.ActorTest
-import net.psforever.objects.GlobalDefinitions
+import net.psforever.objects.{Default, GlobalDefinitions}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.doors.{Door, DoorControl}
 import net.psforever.objects.serverobject.structures._
@@ -72,7 +72,7 @@ class BuildingTest extends Specification {
     "construct" in {
       val bldg = Building("Building", 0, 10, Zone.Nowhere, StructureType.Building)
       bldg.MapId mustEqual 10
-      bldg.Actor mustEqual ActorRef.noSender
+      bldg.Actor mustEqual Default.Actor
       bldg.Amenities mustEqual Nil
       bldg.Zone mustEqual Zone.Nowhere
       bldg.Faction mustEqual PlanetSideEmpire.NEUTRAL
@@ -107,7 +107,7 @@ class WarpGateTest extends Specification {
     "construct" in {
       val bldg = WarpGate("WarpGate", 0, 10, Zone.Nowhere, GlobalDefinitions.warpgate)
       bldg.MapId mustEqual 10
-      bldg.Actor mustEqual ActorRef.noSender
+      bldg.Actor mustEqual Default.Actor
       bldg.Amenities mustEqual Nil
       bldg.Zone mustEqual Zone.Nowhere
       bldg.Faction mustEqual PlanetSideEmpire.NEUTRAL
@@ -120,7 +120,7 @@ class BuildingControl1Test extends ActorTest {
     "construct" in {
       val bldg = Building("Building", 0, 10, Zone.Nowhere, StructureType.Building)
       bldg.Actor = system.actorOf(Props(classOf[BuildingControl], bldg), "test")
-      assert(bldg.Actor != ActorRef.noSender)
+      assert(bldg.Actor != Default.Actor)
     }
   }
 }

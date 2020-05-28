@@ -62,7 +62,7 @@ class VehicleControl(vehicle : Vehicle) extends Actor
     decayTimer.cancel
     vehicle.Utilities.values.foreach { util =>
       context.stop(util().Actor)
-      util().Actor = ActorRef.noSender
+      util().Actor = Default.Actor
     }
   }
 
