@@ -4,7 +4,7 @@ package services
 import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects.guid.TaskResolver
 import net.psforever.objects.zones.Zone
-import net.psforever.objects.{DefaultCancellable, PlanetSideGameObject}
+import net.psforever.objects.{Default, PlanetSideGameObject}
 import net.psforever.types.Vector3
 import services.support.{SimilarityComparator, SupportActor, SupportActorCaseConversions}
 
@@ -33,7 +33,7 @@ abstract class RemoverActor extends SupportActor[RemoverActor.Entry] {
   /**
     * The timer that checks whether entries in the first pool are still eligible for that pool.
     */
-  var firstTask : Cancellable = DefaultCancellable.obj
+  var firstTask : Cancellable = Default.Cancellable
   /**
     * The first pool of objects waiting to be processed for removal.
     */
@@ -42,7 +42,7 @@ abstract class RemoverActor extends SupportActor[RemoverActor.Entry] {
   /**
     * The timer that checks whether entries in the second pool are still eligible for that pool.
     */
-  var secondTask : Cancellable = DefaultCancellable.obj
+  var secondTask : Cancellable = Default.Cancellable
   /**
     * The second pool of objects waiting to be processed for removal.
     */

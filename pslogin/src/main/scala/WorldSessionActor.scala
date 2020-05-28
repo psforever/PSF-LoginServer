@@ -175,16 +175,16 @@ class WorldSessionActor extends Actor
   var serverTime : Long = 0
   var amsSpawnPoints : List[SpawnPoint] = Nil
 
-  var clientKeepAlive : Cancellable = DefaultCancellable.obj
-  var progressBarUpdate : Cancellable = DefaultCancellable.obj
-  var reviveTimer : Cancellable = DefaultCancellable.obj
-  var respawnTimer : Cancellable = DefaultCancellable.obj
-  var cargoMountTimer : Cancellable = DefaultCancellable.obj
-  var cargoDismountTimer : Cancellable = DefaultCancellable.obj
-  var antChargingTick : Cancellable = DefaultCancellable.obj
-  var antDischargingTick : Cancellable = DefaultCancellable.obj
-  var zoningTimer : Cancellable = DefaultCancellable.obj
-  var zoningReset : Cancellable = DefaultCancellable.obj
+  var clientKeepAlive : Cancellable = Default.Cancellable
+  var progressBarUpdate : Cancellable = Default.Cancellable
+  var reviveTimer : Cancellable = Default.Cancellable
+  var respawnTimer : Cancellable = Default.Cancellable
+  var cargoMountTimer : Cancellable = Default.Cancellable
+  var cargoDismountTimer : Cancellable = Default.Cancellable
+  var antChargingTick : Cancellable = Default.Cancellable
+  var antDischargingTick : Cancellable = Default.Cancellable
+  var zoningTimer : Cancellable = Default.Cancellable
+  var zoningReset : Cancellable = Default.Cancellable
   /**
     * Convert a boolean value into an integer value.
     * Use: `true:Int` or `false:Int`

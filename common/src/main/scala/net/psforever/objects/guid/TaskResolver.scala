@@ -5,6 +5,7 @@ import java.util.concurrent.TimeoutException
 
 import akka.actor.{Actor, ActorRef, Cancellable}
 import akka.routing.Broadcast
+import net.psforever.objects.Default
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
@@ -16,7 +17,7 @@ class TaskResolver() extends Actor {
   /** list of all work currently managed by this resolver */
   private val tasks : ListBuffer[TaskResolver.TaskEntry] = new ListBuffer[TaskResolver.TaskEntry]
   /** scheduled termination of tardy managed work */
-  private var timeoutCleanup : Cancellable = TaskResolver.DefaultCancellable
+  private var timeoutCleanup : Cancellable = Default.Cancellable
   /** logging utilities; default to tracing */
   private[this] val log = org.log4s.getLogger
   private def trace(msg : String) = log.trace(msg)
@@ -366,14 +367,6 @@ object TaskResolver {
         task.Execute(ref)
       }
     }
-  }
-
-  /**
-    * A placeholder `Cancellable` object for the time-out checking functionality.
-    */
-  private final val DefaultCancellable = new Cancellable() {
-    def cancel : Boolean = true
-    def isCancelled() : Boolean = true
   }
 
   /**

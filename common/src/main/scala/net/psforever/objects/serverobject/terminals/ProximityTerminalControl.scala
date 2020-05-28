@@ -30,7 +30,7 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
   def DamageableObject = term
   def RepairableObject = term
 
-  var terminalAction : Cancellable = DefaultCancellable.obj
+  var terminalAction : Cancellable = Default.Cancellable
   val callbacks : mutable.ListBuffer[ActorRef] = new mutable.ListBuffer[ActorRef]()
   val log = org.log4s.getLogger
 

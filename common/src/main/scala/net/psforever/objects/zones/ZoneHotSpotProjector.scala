@@ -2,7 +2,7 @@
 package net.psforever.objects.zones
 
 import akka.actor.{Actor, ActorRef, Cancellable, Props}
-import net.psforever.objects.DefaultCancellable
+import net.psforever.objects.Default
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 import services.ServiceManager
 
@@ -59,7 +59,7 @@ class ZoneHotSpotProjector(zone : Zone, hotspots : ListBuffer[HotSpotInfo], blan
   /** a hook for the `GalaxyService` used to broadcast messages */
   var galaxy : ActorRef = ActorRef.noSender
   /** the timer for the blanking process */
-  var blanking : Cancellable = DefaultCancellable.obj
+  var blanking : Cancellable = Default.Cancellable
   /** how long to wait in between blanking periods while hotspots decay */
   var blankingDelay : FiniteDuration = blankingTime
 
