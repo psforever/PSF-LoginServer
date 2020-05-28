@@ -226,7 +226,7 @@ class Zone(private val zoneId : String, zoneMap : ZoneMap, zoneNumber : Int) {
     * @return synchronized reference to the globally unique identifier system
     */
   def GUID(hub : NumberPoolHub) : Boolean = {
-    if(actor == ActorRef.noSender && guid.Pools.values.foldLeft(0)(_ + _.Count) == 0) {
+    if(actor == Default.Actor && guid.Pools.values.foldLeft(0)(_ + _.Count) == 0) {
       import org.fusesource.jansi.Ansi.Color.RED
       import org.fusesource.jansi.Ansi.ansi
       println(ansi().fgBright(RED).a(s"""Caution: replacement of the number pool system for zone $Id; function is for testing purposes only""").reset())
