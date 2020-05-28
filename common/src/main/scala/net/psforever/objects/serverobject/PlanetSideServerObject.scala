@@ -25,7 +25,7 @@ abstract class PlanetSideServerObject extends PlanetSideGameObject
 
   /**
     * Assign an `Actor` to act for this server object.
-    * This reference is only set once, that is, as long as the internal `ActorRef` directs to `Actor.noSender` (`null`).
+    * This reference is only set once, that is, as long as the internal `ActorRef` directs to `ActorRef.noSender` (`null`).
     * @param control the `Actor` whose functionality will govern this server object
     * @return the current internal `ActorRef`
     */

@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package services
 
-import akka.actor.{Actor, ActorRef, Cancellable}
+import akka.actor.{ActorRef, Cancellable}
 import net.psforever.objects.guid.TaskResolver
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{Default, PlanetSideGameObject}
@@ -48,7 +48,7 @@ abstract class RemoverActor extends SupportActor[RemoverActor.Entry] {
     */
   var secondHeap : List[RemoverActor.Entry] = List()
 
-  protected var taskResolver : ActorRef = Actor.noSender
+  protected var taskResolver : ActorRef = ActorRef.noSender
 
   val sameEntryComparator = new SimilarityComparator[RemoverActor.Entry]() {
     def Test(entry1 : RemoverActor.Entry, entry2 : RemoverActor.Entry) : Boolean = {

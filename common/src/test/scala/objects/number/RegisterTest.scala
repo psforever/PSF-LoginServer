@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package objects.number
 
-import akka.actor.Actor
+import akka.actor.ActorRef
 import net.psforever.objects.guid.actor.Register
 import org.specs2.mutable.Specification
 
@@ -18,11 +18,11 @@ class RegisterTest extends Specification {
     }
 
     "construct (object, callback)" in {
-      val reg = Register(obj, Actor.noSender)
+      val reg = Register(obj, ActorRef.noSender)
       reg.obj mustEqual obj
       reg.number.isEmpty mustEqual true
       reg.name.isEmpty mustEqual true
-      reg.callback.contains(Actor.noSender) mustEqual true
+      reg.callback.contains(ActorRef.noSender) mustEqual true
     }
 
     "construct (object, suggested number)" in {
@@ -34,11 +34,11 @@ class RegisterTest extends Specification {
     }
 
     "construct (object, suggested number, callback)" in {
-      val reg = Register(obj, 5, Actor.noSender)
+      val reg = Register(obj, 5, ActorRef.noSender)
       reg.obj mustEqual obj
       reg.number.contains(5) mustEqual true
       reg.name.isEmpty mustEqual true
-      reg.callback.contains(Actor.noSender) mustEqual true
+      reg.callback.contains(ActorRef.noSender) mustEqual true
     }
 
     "construct (object, pool name)" in {
@@ -50,11 +50,11 @@ class RegisterTest extends Specification {
     }
 
     "construct (object, pool name, callback)" in {
-      val reg = Register(obj, "pool", Actor.noSender)
+      val reg = Register(obj, "pool", ActorRef.noSender)
       reg.obj mustEqual obj
       reg.number.isEmpty mustEqual true
       reg.name.contains("pool") mustEqual true
-      reg.callback.contains(Actor.noSender) mustEqual true
+      reg.callback.contains(ActorRef.noSender) mustEqual true
     }
   }
 }

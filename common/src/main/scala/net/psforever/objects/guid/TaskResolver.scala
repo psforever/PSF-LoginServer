@@ -110,7 +110,7 @@ class TaskResolver() extends Actor {
     * @param resolver the `TaskResolver` that distributed this work, thus determining that this work is a sub-task;
     *                 by default, no one, as the work is identified as a main task
     */
-  private def QueueSubtasks(task : Task, subtasks : List[TaskResolver.GiveTask], resolver : ActorRef = Actor.noSender) : Unit = {
+  private def QueueSubtasks(task : Task, subtasks : List[TaskResolver.GiveTask], resolver : ActorRef = ActorRef.noSender) : Unit = {
     val entry : TaskResolver.TaskEntry = TaskResolver.TaskEntry(task, subtasks.map(task => task.task), resolver)
     tasks += entry
     trace(s"enqueue task $task")
@@ -348,7 +348,7 @@ object TaskResolver {
     * //@param isASubtask whether this work is intermediary or the last in a dependency chain
     * @param supertaskRef the `TaskResolver` that will handle work that depends on the outcome of this work
     */
-  private final case class TaskEntry(task : Task, subtasks : List[Task] = Nil, supertaskRef : ActorRef = Actor.noSender) {
+  private final case class TaskEntry(task : Task, subtasks : List[Task] = Nil, supertaskRef : ActorRef = ActorRef.noSender) {
     private var start : Long = 0L
     private var isExecuting : Boolean = false
 

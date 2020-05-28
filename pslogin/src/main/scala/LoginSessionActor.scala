@@ -40,7 +40,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
   var sessionId : Long = 0
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
-  var accountIntermediary : ActorRef = Actor.noSender
+  var accountIntermediary : ActorRef = ActorRef.noSender
 
   var updateServerListTask : Cancellable = Default.Cancellable
 

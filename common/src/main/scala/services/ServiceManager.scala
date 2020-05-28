@@ -1,12 +1,12 @@
+// Copyright (c) 2017 PSForever
 package services
 
-// Copyright (c) 2017 PSForever
 import akka.actor.{Actor, ActorIdentity, ActorRef, ActorSystem, Identify, Props}
 
 import scala.collection.mutable
 
 object ServiceManager {
-  var serviceManager = Actor.noSender
+  var serviceManager = ActorRef.noSender
 
   def boot(implicit system : ActorSystem) = {
     serviceManager = system.actorOf(Props[ServiceManager], "service")
