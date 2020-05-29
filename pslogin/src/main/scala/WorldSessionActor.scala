@@ -176,8 +176,12 @@ class WorldSessionActor extends Actor
   lazy val unsignedIntMaxValue : Long = Int.MaxValue.toLong * 2L + 1L
   var serverTime : Long = 0
   var amsSpawnPoints : List[SpawnPoint] = Nil
-  /** a flag for the zone having finished loading during zoning */
-  var zoneLoaded : Boolean = false
+  /** a flag for the zone having finished loading during zoning
+    * `None` when no zone is loaded
+    * `Some(true)` when a zone has successfully loaded
+    * `Some(false)` when the loading process has failed or was executed but did not complete for some reason
+    * */
+  var zoneLoaded : Option[Boolean] = None
   /** a flag that forces the current zone to reload itself during a zoning operation */
   var zoneReload : Boolean = false
   var turnCounter : PlanetSideGUID=>Unit = TurnCounterDuringInterim
@@ -1512,7 +1516,7 @@ class WorldSessionActor extends Actor
       sendResponse(LoadMapMessage(continent.Map.Name, continent.Id, 40100, 25, weaponsEnabled, continent.Map.Checksum))
       setupAvatarFunc() //important! the LoadMapMessage must be processed by the client before the avatar is created
       turnCounter = TurnCounterDuringInterim
-      context.system.scheduler.scheduleOnce(delay = 2000 millisecond, self, SetCurrentAvatar(tplayer))
+      context.system.scheduler.scheduleOnce(delay = 2000 millisecond, self, SetCurrentAvatar(tplayer, 200))
       upstreamMessageCount = 0
       persist()
 
@@ -1523,7 +1527,7 @@ class WorldSessionActor extends Actor
       setupAvatarFunc()
       upstreamMessageCount = 0
       persist()
-      self ! SetCurrentAvatar(tplayer)
+      self ! SetCurrentAvatar(tplayer, 200)
 
     case PlayerFailedToLoad(tplayer) =>
       player.Continent match {
@@ -1531,18 +1535,65 @@ class WorldSessionActor extends Actor
           failWithError(s"${tplayer.Name} failed to load anywhere")
       }
 
-    case SetCurrentAvatar(tplayer) =>
+      /*
+      The user is either already in the current zone and merely transporting himself from one location to another,
+      also called "dying", or occasionally "deconstructing,"
+      or is completely switching in between zones.
+      These correspond to the message NewPlayerLoaded for the case of "dying" or the latter zone switching case,
+      and PlayerLoaded for "deconstruction."
+      In the latter case, the user must wait for the zone to be recognized as loaded for the server
+      and this is performed through the send LoadMapMessage, receive BeginZoningMessage exchange
+      The user's player should have already been registered into the new zone
+      and is at some stage of being added to the zone in which they will have control agency in that zone.
+      Whether or not the zone is loaded in the earlier case depends on the destination with respect to the current location.
+      Once all of the following is (assumed) accomplished,
+      the servwer will attempt to declare that user's player the avatar of the user's client.
+      Reception of certain packets that represent "reported user activity" after that marks the end of avatar loading.
+      If the maximum number of unsuccessful attempts is reached, some course of action is taken.
+      If the player dies, the process does not need to continue.
+      He may or may not be accompanied by a vehicle at any stage of this process.
+       */
+    case SetCurrentAvatar(tplayer, max_attempts, attempt) =>
       respawnTimer.cancel
-      if(tplayer.isAlive) {
-        if(tplayer.HasGUID && tplayer.Actor != Default.Actor && zoneLoaded) {
-          if(upstreamMessageCount == 0) {
+      val waitingOnUpstream = upstreamMessageCount == 0
+      if(attempt >= max_attempts && waitingOnUpstream) {
+        zoneLoaded match {
+          case None | Some(false) =>
+            log.warn("SetCurrentAvatar: failed to load intended destination zone; routing to faction sanctuary")
+            RequestSanctuaryZoneSpawn(tplayer, continent.Number)
+          case _ =>
+            log.warn("SetCurrentAvatar: the zone loaded but elements remain unready; restarting the process ...")
+            val pos = shiftPosition.getOrElse(player.Position)
+            val orient = shiftOrientation.getOrElse(player.Orientation)
+            sendResponse(AvatarDeadStateMessage(DeadState.Release, 0, 0, pos, player.Faction, true))
+            val toZoneId = continent.Id
+            tplayer.Die
+            continent.Population ! Zone.Population.Leave(avatar) //does not matter if it doesn't work
+            zoneLoaded = None
+            zoneReload = true
+            LoadZonePhysicalSpawnPoint(toZoneId, pos, orient, respawnTime = 0L)
+        }
+      }
+      else if(tplayer.isAlive) {
+        if(
+          zoneLoaded.contains(true) &&
+            tplayer.HasGUID && tplayer.Actor != Default.Actor && (continent.GUID(tplayer.VehicleSeated) match {
+            case Some(o : Vehicle) => o.HasGUID && o.Actor != Default.Actor && !o.Destroyed
+            case _ => true
+          })
+        ) {
+          if(waitingOnUpstream) {
             beginZoningSetCurrentAvatarFunc(tplayer)
-            respawnTimer = context.system.scheduler.scheduleOnce(10 seconds, self, SetCurrentAvatar(tplayer))
+            respawnTimer = context.system.scheduler.scheduleOnce(
+              delay = (if(attempt <= max_attempts / 2) 10 else 5) seconds,
+              self,
+              SetCurrentAvatar(tplayer, max_attempts, attempt + max_attempts / 3)
+            )
           }
-          //if not condition above, player start normally
+          //if not the condition above, player has started playing normally
         }
         else {
-          respawnTimer = context.system.scheduler.scheduleOnce(250 milliseconds, self, SetCurrentAvatar(tplayer))
+          respawnTimer = context.system.scheduler.scheduleOnce(500 milliseconds, self, SetCurrentAvatar(tplayer, max_attempts, attempt + 1))
         }
       }
 
@@ -4081,7 +4132,7 @@ class WorldSessionActor extends Actor
 
     case msg@BeginZoningMessage() =>
       log.info("Reticulating splines ...")
-      zoneLoaded = false
+      zoneLoaded = None
       val continentId = continent.Id
       traveler.zone = continentId
       val faction = player.Faction
@@ -4380,7 +4431,7 @@ class WorldSessionActor extends Actor
         }
       continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.UpdateAmsSpawnPoint(continent))
       upstreamMessageCount = 0
-      zoneLoaded = true
+      zoneLoaded = Some(true)
 
     case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, yaw, pitch, yaw_upper, seq_time, unk3, is_crouching, is_jumping, jump_thrust, is_cloaking, unk5, unk6) =>
       if (player.death_by == -1) {
@@ -10242,7 +10293,7 @@ class WorldSessionActor extends Actor
     * It also sets up actions for the new zone loading process.
     */
   def LoadZoneCommonTransferActivity() : Unit = {
-    zoneLoaded = false
+    zoneLoaded = None
     zoneReload = false
     if(player.VehicleOwned.nonEmpty && player.VehicleSeated != player.VehicleOwned) {
       continent.GUID(player.VehicleOwned) match {
@@ -11473,9 +11524,8 @@ class WorldSessionActor extends Actor
     * @param guid the player's globally unique identifier number
     */
   def TurnCounterDuringInterim(guid : PlanetSideGUID) : Unit = {
-    if(player.GUID == guid && player.Zone == continent.Id) {
+    if(player.GUID == guid && player.Zone == continent) {
       turnCounter = NormalTurnCounter
-      NormalTurnCounter(p)
     }
     else {
       upstreamMessageCount = 0
@@ -11608,7 +11658,7 @@ object WorldSessionActor {
   private final case class PlayerFailedToLoad(tplayer : Player)
   private final case class CreateCharacter(name : String, head : Int, voice : CharacterVoice.Value, gender : CharacterGender.Value, empire : PlanetSideEmpire.Value)
   private final case class ListAccountCharacters()
-  private final case class SetCurrentAvatar(tplayer : Player)
+  private final case class SetCurrentAvatar(tplayer : Player, max_attempts : Int, attempt : Int = 0)
   private final case class ZoningReset()
 
   final val ftes = (
