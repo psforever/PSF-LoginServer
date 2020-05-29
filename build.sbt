@@ -73,7 +73,7 @@ lazy val root = (project in file(".")).
   enablePlugins(PackPlugin).
   settings(commonSettings: _*).
   settings(psloginPackSettings: _*).
-  //enablePlugins(ScalaUnidocPlugin).
+  enablePlugins(ScalaUnidocPlugin).
   aggregate(pslogin, common).
   dependsOn(pslogin, common)
 
