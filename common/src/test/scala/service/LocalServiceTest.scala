@@ -6,6 +6,7 @@ import base.ActorTest
 import net.psforever.objects.{GlobalDefinitions, SensorDeployable, Vehicle}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.terminals.{ProximityTerminal, Terminal}
+import net.psforever.objects.vehicles.VehicleControl
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
@@ -206,6 +207,7 @@ class ToggleTeleportSystemTest extends ActorTest {
   "LocalService" should {
     "pass ToggleTeleportSystem" in {
       val router = Vehicle(GlobalDefinitions.router)
+      router.Actor = system.actorOf(Props(classOf[VehicleControl], router), "test-router")
       val service = system.actorOf(Props(classOf[LocalService], Zone.Nowhere), "l_service")
       service ! Service.Join("test")
       service ! LocalServiceMessage("test", LocalAction.ToggleTeleportSystem(PlanetSideGUID(10), router, None))

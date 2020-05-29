@@ -1,7 +1,7 @@
 // Copyright (c) 2020 PSForever
 package objects
 
-import akka.actor.{ActorRef, DeadLetter}
+import akka.actor.DeadLetter
 import akka.testkit.TestProbe
 import base.ActorTest
 import net.psforever.objects.Default
@@ -17,14 +17,6 @@ class DefaultTest extends Specification {
 
     "always act like it was cancelled successfully" in {
       Default.Cancellable.isCancelled mustEqual true
-    }
-  }
-}
-
-class DefaultActorTest extends Specification {
-  "Default.Actor" should {
-    "be equivalent to noSender (null) before being set" in {
-      DefaultTest.Original mustEqual ActorRef.noSender
     }
   }
 }
@@ -51,7 +43,7 @@ class DefaultActorStartedTest extends ActorTest {
   }
 }
 
-object DefaultTest {
+object DefaultActorTest {
   //due to being a singleton, the original original value of the Default.Actor is cached here
   val Original = Default.Actor
 }
