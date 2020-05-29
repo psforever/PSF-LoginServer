@@ -180,6 +180,7 @@ class WorldSessionActor extends Actor
   var zoneLoaded : Boolean = false
   /** a flag that forces the current zone to reload itself during a zoning operation */
   var zoneReload : Boolean = false
+  var turnCounter : PlanetSideGUID=>Unit = TurnCounterDuringInterim
 
   var clientKeepAlive : Cancellable = Default.Cancellable
   var progressBarUpdate : Cancellable = Default.Cancellable
@@ -1510,6 +1511,8 @@ class WorldSessionActor extends Actor
       val weaponsEnabled = (continent.Map.Name != "map11" && continent.Map.Name != "map12" && continent.Map.Name != "map13")
       sendResponse(LoadMapMessage(continent.Map.Name, continent.Id, 40100, 25, weaponsEnabled, continent.Map.Checksum))
       setupAvatarFunc() //important! the LoadMapMessage must be processed by the client before the avatar is created
+      turnCounter = TurnCounterDuringInterim
+      context.system.scheduler.scheduleOnce(delay = 2000 millisecond, self, SetCurrentAvatar(tplayer))
       upstreamMessageCount = 0
       persist()
 
@@ -1529,11 +1532,18 @@ class WorldSessionActor extends Actor
       }
 
     case SetCurrentAvatar(tplayer) =>
-      if(tplayer.Actor == Default.Actor) {
-        respawnTimer = context.system.scheduler.scheduleOnce(100 milliseconds, self, SetCurrentAvatar(tplayer))
-      }
-      else {
-        HandleSetCurrentAvatar(tplayer)
+      respawnTimer.cancel
+      if(tplayer.isAlive) {
+        if(tplayer.HasGUID && tplayer.Actor != Default.Actor && zoneLoaded) {
+          if(upstreamMessageCount == 0) {
+            beginZoningSetCurrentAvatarFunc(tplayer)
+            respawnTimer = context.system.scheduler.scheduleOnce(10 seconds, self, SetCurrentAvatar(tplayer))
+          }
+          //if not condition above, player start normally
+        }
+        else {
+          respawnTimer = context.system.scheduler.scheduleOnce(250 milliseconds, self, SetCurrentAvatar(tplayer))
+        }
       }
 
     case NtuCharging(tplayer, vehicle) =>
@@ -1683,7 +1693,7 @@ class WorldSessionActor extends Actor
       }
 
     case PlayerToken.LoginInfo(playerName, inZone, pos) =>
-      log.info(s"LoginInfo: player ${player.Name}Name is already logged in zone ${inZone.Id}; rejoining that character")
+      log.info(s"LoginInfo: player $playerName is already logged in zone ${inZone.Id}; rejoining that character")
       persist = UpdatePersistence(sender)
       //tell the old WSA to kill itself by using its own subscriptions against itself
       inZone.AvatarEvents ! AvatarServiceMessage(playerName, AvatarAction.TeardownConnection())
@@ -1906,7 +1916,7 @@ class WorldSessionActor extends Actor
 
   /**
     * Use the zoning process using some spawnable entity in the destination zone.
-    * @param zone          the destination zone
+    * @param zone the destination zone
     * @param spawnPosition the destination spawn position
     * @param spawnOrientation the destination spawn orientation
     */
@@ -3781,7 +3791,7 @@ class WorldSessionActor extends Actor
     * @param tplayer the target player
     */
   def SetCurrentAvatarNormally(tplayer : Player) : Unit = {
-    self ! SetCurrentAvatar(tplayer)
+    HandleSetCurrentAvatar(tplayer)
   }
 
   /**
@@ -4369,7 +4379,6 @@ class WorldSessionActor extends Actor
           }
         }
       continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.UpdateAmsSpawnPoint(continent))
-      beginZoningSetCurrentAvatarFunc(player)
       upstreamMessageCount = 0
       zoneLoaded = true
 
@@ -4379,7 +4388,7 @@ class WorldSessionActor extends Actor
         Thread.sleep(300)
         sendResponse(DropSession(sessionId, "kick by GM"))
       }
-      upstreamMessageCount = 1 + upstreamMessageCount % Int.MaxValue
+      turnCounter(avatar_guid)
       val isMoving = WorldEntity.isMoving(vel)
       val isMovingPlus = isMoving || is_jumping || jump_thrust
       if(isMovingPlus) {
@@ -4452,7 +4461,7 @@ class WorldSessionActor extends Actor
           }) match {
             case None | Some(0) => ;
             case Some(_) =>
-              upstreamMessageCount = 1 + upstreamMessageCount % Int.MaxValue
+              turnCounter(player.GUID)
           }
           if(tool.GUID == object_guid) {
             //TODO set tool orientation?
@@ -4479,7 +4488,7 @@ class WorldSessionActor extends Actor
         GetVehicleAndSeat() match {
           case (Some(obj), Some(0)) =>
             //we're driving the vehicle
-            upstreamMessageCount = 1 + upstreamMessageCount % Int.MaxValue
+            turnCounter(player.GUID)
             val seat = obj.Seats(0)
             player.Position = pos //convenient
             if(seat.ControlledWeapon.isEmpty) {
@@ -11440,6 +11449,36 @@ class WorldSessionActor extends Actor
     if(hitPositionDiscrepancy > WorldConfig.Get[Int]("antihack.HitPositionDiscrepancyThreshold")) {
       // If the target position on the server does not match the position where the projectile landed within reason there may be foul play
       log.warn(s"Shot guid ${projectile_guid} has hit location discrepancy with target location. Target: ${target.Position} Reported: ${hitPos}, Distance: ${hitPositionDiscrepancy} / ${math.sqrt(hitPositionDiscrepancy).toFloat}; suspect")
+    }
+  }
+
+  /**
+    * The upstream counter accumulates when the server receives sp[ecific messages from the client.
+    * It counts upwards until it reach maximum value, and then starts over.
+    * When it starts over, which should take an exceptionally long time to achieve,
+    * it starts counting at one rather than zero.
+    * @param p the player's globally unique identifier number
+    */
+  def NormalTurnCounter(p : PlanetSideGUID) : Unit = {
+    upstreamMessageCount = 1 + upstreamMessageCount % Int.MaxValue
+  }
+
+  /**
+    * During the interim period between the avatar being in one place/zone
+    * and completing the process of transitioning to another place/zone,
+    * the upstream message counter is zero'd
+    * awaiting new activity from the client.
+    * Until new upstream messages that pass some tests against their data start being reported,
+    * the counter does not accumulate properly.
+    * @param guid the player's globally unique identifier number
+    */
+  def TurnCounterDuringInterim(guid : PlanetSideGUID) : Unit = {
+    if(player.GUID == guid && player.Zone == continent.Id) {
+      turnCounter = NormalTurnCounter
+      NormalTurnCounter(p)
+    }
+    else {
+      upstreamMessageCount = 0
     }
   }
 
