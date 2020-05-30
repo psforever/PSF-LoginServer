@@ -2230,8 +2230,8 @@ class SquadService extends Actor {
     val leadPosition = squad.Membership(0)
     leadPosition.Name = name
     leadPosition.CharId = player.CharId
-    leadPosition.Health = player.Health
-    leadPosition.Armor = player.Armor
+    leadPosition.Health = StatConverter.Health(player.Health, player.MaxHealth, min=1, max=64)
+    leadPosition.Armor = StatConverter.Health(player.Armor, player.MaxArmor, min=1, max=64)
     leadPosition.Position = player.Position
     leadPosition.ZoneId = 1
     squadFeatures += squad.GUID -> new SquadFeatures(squad).Start
