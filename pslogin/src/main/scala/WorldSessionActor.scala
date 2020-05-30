@@ -5968,88 +5968,103 @@ class WorldSessionActor extends Actor
 
     case msg @ GenericActionMessage(action) =>
       log.info(s"GenericAction: $msg")
-      val (toolOpt, definition) = player.Slot(0).Equipment match {
-        case Some(tool : Tool) =>
-          (Some(tool), tool.Definition)
-        case _ =>
-          (None, GlobalDefinitions.bullet_9mm)
+      if(player == null) {
+        if(action == 29) {
+          log.info("AFK state reported during login")
+        }
       }
-      if(action == 15) { //max deployment
-        log.info(s"GenericObject: $player is anchored")
-        player.UsingSpecial = SpecialExoSuitDefinition.Mode.Anchored
-        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 19, 1))
-        definition match {
-          case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.trhev_burster =>
-            val tool = toolOpt.get
-            tool.ToFireMode = 1
-            sendResponse(ChangeFireModeMessage(tool.GUID, 1))
-          case GlobalDefinitions.trhev_pounder =>
-            val tool = toolOpt.get
-            val convertFireModeIndex = if(tool.FireModeIndex == 0) { 1 } else { 4 }
-            tool.ToFireMode = convertFireModeIndex
-            sendResponse(ChangeFireModeMessage(tool.GUID, convertFireModeIndex))
+      else {
+        val (toolOpt, definition) = player.Slot(0).Equipment match {
+          case Some(tool : Tool) =>
+            (Some(tool), tool.Definition)
           case _ =>
-            log.warn(s"GenericObject: $player is MAX with an unexpected weapon - ${definition.Name}")
+            (None, GlobalDefinitions.bullet_9mm)
         }
-      }
-      else if(action == 16) { //max deployment
-        log.info(s"GenericObject: $player has released the anchors")
-        player.UsingSpecial = SpecialExoSuitDefinition.Mode.Normal
-        continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 19, 0))
-        definition match {
-          case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.trhev_burster =>
-            val tool = toolOpt.get
-            tool.ToFireMode = 0
-            sendResponse(ChangeFireModeMessage(tool.GUID, 0))
-          case GlobalDefinitions.trhev_pounder =>
-            val tool = toolOpt.get
-            val convertFireModeIndex = if(tool.FireModeIndex == 1) { 0 } else { 3 }
-            tool.ToFireMode = convertFireModeIndex
-            sendResponse(ChangeFireModeMessage(tool.GUID, convertFireModeIndex))
-          case _ =>
-            log.warn(s"GenericObject: $player is MAX with an unexpected weapon - ${definition.Name}")
+        if(action == 29) {
+          log.info(s"${player.Name} is AFK")
+          player.AwayFromKeyboard = true
         }
-      }
-      else if (action == 20) {
-        if(player.ExoSuit == ExoSuitType.MAX) {
-          ToggleMaxSpecialState(enable = true)
-        } else {
-          log.warn("Got GenericActionMessage 20 but can't handle it")
+        else if(action == 30) {
+          log.info(s"${player.Name} is back")
+          player.AwayFromKeyboard = false
         }
-      }
-      else if (action == 21) {
-        if(player.ExoSuit == ExoSuitType.MAX) {
+        if(action == 15) { //max deployment
+          log.info(s"GenericObject: $player is anchored")
+          player.UsingSpecial = SpecialExoSuitDefinition.Mode.Anchored
+          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 19, 1))
+          definition match {
+            case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.trhev_burster =>
+              val tool = toolOpt.get
+              tool.ToFireMode = 1
+              sendResponse(ChangeFireModeMessage(tool.GUID, 1))
+            case GlobalDefinitions.trhev_pounder =>
+              val tool = toolOpt.get
+              val convertFireModeIndex = if(tool.FireModeIndex == 0) { 1 } else { 4 }
+              tool.ToFireMode = convertFireModeIndex
+              sendResponse(ChangeFireModeMessage(tool.GUID, convertFireModeIndex))
+            case _ =>
+              log.warn(s"GenericObject: $player is MAX with an unexpected weapon - ${definition.Name}")
+          }
+        }
+        else if(action == 16) { //max deployment
+          log.info(s"GenericObject: $player has released the anchors")
+          player.UsingSpecial = SpecialExoSuitDefinition.Mode.Normal
+          continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(player.GUID, 19, 0))
+          definition match {
+            case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.trhev_burster =>
+              val tool = toolOpt.get
+              tool.ToFireMode = 0
+              sendResponse(ChangeFireModeMessage(tool.GUID, 0))
+            case GlobalDefinitions.trhev_pounder =>
+              val tool = toolOpt.get
+              val convertFireModeIndex = if(tool.FireModeIndex == 1) { 0 } else { 3 }
+              tool.ToFireMode = convertFireModeIndex
+              sendResponse(ChangeFireModeMessage(tool.GUID, convertFireModeIndex))
+            case _ =>
+              log.warn(s"GenericObject: $player is MAX with an unexpected weapon - ${definition.Name}")
+          }
+        }
+        else if (action == 20) {
+          if(player.ExoSuit == ExoSuitType.MAX) {
+            ToggleMaxSpecialState(enable = true)
+          } else {
+            log.warn("Got GenericActionMessage 20 but can't handle it")
+          }
+        }
+        else if (action == 21) {
+          if(player.ExoSuit == ExoSuitType.MAX) {
             player.Faction match {
               case PlanetSideEmpire.NC =>
                 ToggleMaxSpecialState(enable = false)
               case _ => log.warn(s"Player ${player.Name} tried to cancel an uncancellable MAX special ability")
             }
-        } else {
-          log.warn("Got GenericActionMessage 21 but can't handle it")
+          } else {
+            log.warn("Got GenericActionMessage 21 but can't handle it")
+          }
         }
-      }
-      else if(action == 36) { //Looking For Squad ON
-        if(squadUI.nonEmpty) {
-          if(!lfsm && squadUI(player.CharId).index == 0) {
-            lfsm = true
+        else if(action == 36) { //Looking For Squad ON
+          if(squadUI.nonEmpty) {
+            if(!lfsm && squadUI(player.CharId).index == 0) {
+              lfsm = true
+              continent.AvatarEvents ! AvatarServiceMessage(s"${player.Faction}", AvatarAction.PlanetsideAttribute(player.GUID, 53, 1))
+            }
+          }
+          else if(!avatar.LFS) {
+            avatar.LFS = true
             continent.AvatarEvents ! AvatarServiceMessage(s"${player.Faction}", AvatarAction.PlanetsideAttribute(player.GUID, 53, 1))
           }
         }
-        else if(!avatar.LFS) {
-          avatar.LFS = true
-          continent.AvatarEvents ! AvatarServiceMessage(s"${player.Faction}", AvatarAction.PlanetsideAttribute(player.GUID, 53, 1))
-        }
-      }
-      else if(action == 37) { //Looking For Squad OFF
-        if(squadUI.nonEmpty) {
-          if(lfsm && squadUI(player.CharId).index == 0) {
-            lfsm = false
+        else if(action == 37) { //Looking For Squad OFF
+          if(squadUI.nonEmpty) {
+            if(lfsm && squadUI(player.CharId).index == 0) {
+              lfsm = false
+              continent.AvatarEvents ! AvatarServiceMessage(s"${player.Faction}", AvatarAction.PlanetsideAttribute(player.GUID, 53, 0))
+            }
+          }
+          else if(avatar.LFS) {
+            avatar.LFS = false
             continent.AvatarEvents ! AvatarServiceMessage(s"${player.Faction}", AvatarAction.PlanetsideAttribute(player.GUID, 53, 0))
           }
-        }
-        else if(avatar.LFS) {
-          avatar.LFS = false
-          continent.AvatarEvents ! AvatarServiceMessage(s"${player.Faction}", AvatarAction.PlanetsideAttribute(player.GUID, 53, 0))
         }
       }
 
