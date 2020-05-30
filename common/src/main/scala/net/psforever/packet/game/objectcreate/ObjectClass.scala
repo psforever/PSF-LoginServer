@@ -187,6 +187,7 @@ object ObjectClass {
   final val katana = 421
   final val lancer = 425
   final val lasher = 429
+  final val lasher_projectile_ap = 431
   final val liberator_25mm_cannon = 433
   final val liberator_bomb_bay = 435
   final val liberator_weapon_system = 440
@@ -397,6 +398,26 @@ object ObjectClass {
   final val portable_order_terminal = 690
   final val targeting_laser_dispenser = 851
   final val teleportpad_terminal = 853
+
+
+  final val objectClassMap = scala.collection.mutable.Map[String, Int]()
+
+  def ByName(name : String) : Int = {
+    // This whole thing is a dirty "temporary" hack so I don't have to make a huge map out of the above object vars by hand
+    // Forgive me.
+    if(objectClassMap.size == 0) {
+      val objectClassMethods = ObjectClass.getClass.getDeclaredMethods
+      objectClassMethods.foreach(x =>  {
+        if(x.getReturnType.getName == "int" && x.getParameterTypes.isEmpty) { // ints only & Ignore functions with parameters
+          val objectName = x.getName
+          val value = ObjectClass.getClass.getMethod(objectName).invoke(ObjectClass)
+          objectClassMap.put(objectName, value.asInstanceOf[Int])
+        }
+      })
+    }
+
+    objectClassMap(name.toLowerCase())
+  }
 
   //TODO refactor the following functions into another object later
   /**

@@ -75,6 +75,9 @@ class InterstellarCluster(zones : List[Zone]) extends Actor {
       }
       sender ! InterstellarCluster.PlayerList(players)
 
+    case InterstellarCluster.GetZoneIds() =>
+      sender ! InterstellarCluster.ZoneIds(zones.map(_.Number))
+
     case msg @ Zone.Lattice.RequestSpecificSpawnPoint(zone_number, _, _, _) =>
       recursiveFindWorldInCluster(zones.iterator, _.Number == zone_number) match {
         case Some(zone) =>
@@ -219,4 +222,7 @@ object InterstellarCluster {
     * @param zone_num the zone number to request building map updates for
     */
   final case class ZoneMapUpdate(zone_num : Int)
+
+  final case class GetZoneIds()
+  final case class ZoneIds(zoneIds : List[Int])
 }

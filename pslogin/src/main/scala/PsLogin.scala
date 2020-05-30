@@ -29,8 +29,8 @@ import services.teamwork.SquadService
 import scala.collection.JavaConverters._
 import scala.concurrent.Await
 import scala.concurrent.duration._
-
 import kamon.Kamon
+import services.properties.PropertyOverrideManager
 
 object PsLogin {
   private val logger = org.log4s.getLogger
@@ -277,6 +277,7 @@ object PsLogin {
     serviceManager ! ServiceManager.Register(Props[SquadService], "squad")
     serviceManager ! ServiceManager.Register(Props(classOf[InterstellarCluster], continentList), "cluster")
     serviceManager ! ServiceManager.Register(Props[AccountPersistenceService], "accountPersistence")
+    serviceManager ! ServiceManager.Register(Props[PropertyOverrideManager], "propertyOverrideManager")
 
     logger.info("Initializing loginRouter & worldRouter")
     /** Create two actors for handling the login and world server endpoints */
