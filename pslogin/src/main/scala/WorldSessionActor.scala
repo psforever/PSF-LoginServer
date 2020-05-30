@@ -10976,14 +10976,7 @@ class WorldSessionActor extends Actor
     squadService ! SquadServiceMessage(
       player,
       continent,
-      continent.GUID(player.VehicleSeated) match {
-        case Some(vehicle : Vehicle) =>
-          SquadServiceAction.Update(player.CharId, vehicle.Health, vehicle.MaxHealth, vehicle.Shields, vehicle.MaxShields, vehicle.Position, continent.Number)
-        case Some(obj : PlanetSideGameObject with WeaponTurret) =>
-          SquadServiceAction.Update(player.CharId, obj.Health, obj.MaxHealth, 0, 0, obj.Position, continent.Number)
-        case _ =>
-          SquadServiceAction.Update(player.CharId, player.Health, player.MaxHealth, player.Armor, player.MaxArmor, player.Position, continent.Number)
-      }
+      SquadServiceAction.Update(player.CharId, player.Health, player.MaxHealth, player.Armor, player.MaxArmor, player.Position, continent.Number)
     )
   }
 
