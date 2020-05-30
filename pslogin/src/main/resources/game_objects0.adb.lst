@@ -1,0 +1,14 @@
+add_property super_staminakit allowed false
+add_property super_staminakit nodrop false
+add_property super_staminakit requirement_award0 false
+add_property super_staminakit medkit_reuse_delay 300
+
+## add lash damage to AP lasher orbs
+add_property lasher_projectile_ap lasher_projectile_ap false
+add_property lasher_projectile_ap lasher_projectile true
+
+add_property lasher lash_delay 0.00
+
+add_property ace allowed false
+add_property ace_deployable allowed false
+add_property advanced_ace allowed false
