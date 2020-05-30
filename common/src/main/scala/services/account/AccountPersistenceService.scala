@@ -190,7 +190,7 @@ class PersistenceMonitor(name : String, squadService : ActorRef, taskResolver : 
   /** the last-reported game coordinate position of this player */
   var lastPosition : Vector3 = Vector3.Zero
   /** the ongoing amount of permissible inactivity */
-  var timer : Cancellable = DefaultCancellable.obj
+  var timer : Cancellable = Default.Cancellable
   /** the sparingly-used log */
   val log = org.log4s.getLogger
 
@@ -309,7 +309,7 @@ class PersistenceMonitor(name : String, squadService : ActorRef, taskResolver : 
     player.Position = Vector3.Zero
     player.Health = 0
     inZone.GUID(player.VehicleOwned) match {
-      case Some(vehicle : Vehicle) if vehicle.OwnerName.contains(player.Name) && vehicle.Actor != ActorRef.noSender =>
+      case Some(vehicle : Vehicle) if vehicle.OwnerName.contains(player.Name) && vehicle.Actor != Default.Actor =>
         vehicle.Actor ! Vehicle.Ownership(None)
       case _ => ;
     }

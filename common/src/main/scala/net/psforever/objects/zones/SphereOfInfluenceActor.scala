@@ -1,7 +1,7 @@
 package net.psforever.objects.zones
 
 import akka.actor.{Actor, Cancellable}
-import net.psforever.objects.{DefaultCancellable, Player}
+import net.psforever.objects.{Default, Player}
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.structures.{Building, SphereOfInfluence}
 import net.psforever.types.Vector3
@@ -12,7 +12,7 @@ import scala.concurrent.duration._
 
 class SphereOfInfluenceActor(zone: Zone) extends Actor {
   var sois : Iterable[(Building, Int)] = Nil
-  var populateTick : Cancellable = DefaultCancellable.obj
+  var populateTick : Cancellable = Default.Cancellable
   //private[this] val log = org.log4s.getLogger(s"${zone.Id.capitalize}-SphereOfInfluenceActor")
 
   def receive : Receive = Stopped

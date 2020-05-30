@@ -125,7 +125,7 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
   def Stamina_=(assignStamina : Int) : Int = {
     stamina = if(isAlive) { math.min(math.max(0, assignStamina), MaxStamina) } else { 0 }
 
-    if(Actor != ActorRef.noSender) {
+    if(Actor != Default.Actor) {
       Actor ! Player.StaminaChanged(Stamina)
     }
 

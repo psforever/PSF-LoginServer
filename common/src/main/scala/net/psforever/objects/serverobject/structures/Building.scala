@@ -3,8 +3,8 @@ package net.psforever.objects.serverobject.structures
 
 import java.util.concurrent.TimeUnit
 
-import akka.actor.{ActorContext, ActorRef}
-import net.psforever.objects.{GlobalDefinitions, Player}
+import akka.actor.ActorContext
+import net.psforever.objects.{Default, GlobalDefinitions, Player}
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.generator.Generator
 import net.psforever.objects.serverobject.hackable.Hackable
@@ -118,7 +118,7 @@ class Building(private val name: String,
   }
 
   def TriggerZoneMapUpdate(): Unit = {
-    if(Actor != ActorRef.noSender) Actor ! Building.TriggerZoneMapUpdate(Zone.Number)
+    if(Actor != Default.Actor) Actor ! Building.TriggerZoneMapUpdate(Zone.Number)
   }
 
   def UpdateForceDomeStatus() : Unit = {
@@ -141,7 +141,7 @@ class Building(private val name: String,
       }
 
       if(originalStatus != ForceDomeActive) {
-        if(Actor != ActorRef.noSender) {
+        if(Actor != Default.Actor) {
           Zone.LocalEvents ! LocalServiceMessage(Zone.Id, LocalAction.UpdateForceDomeStatus(Service.defaultPlayerGUID, GUID, ForceDomeActive))
           Actor ! Building.SendMapUpdate(all_clients = true)
         }

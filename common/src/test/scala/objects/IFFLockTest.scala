@@ -1,10 +1,10 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.actor.{ActorSystem, Props}
 import base.ActorTest
+import net.psforever.objects.{Avatar, Default, GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.CommonMessages
-import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.locks.{IFFLock, IFFLockControl}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.zones.Zone
@@ -48,7 +48,7 @@ class IFFLockControl1Test extends ActorTest {
     "construct" in {
       val lock = IFFLock(GlobalDefinitions.lock_external)
       lock.Actor = system.actorOf(Props(classOf[IFFLockControl], lock), "lock-control")
-      assert(lock.Actor != ActorRef.noSender)
+      assert(lock.Actor != Default.Actor)
     }
   }
 }

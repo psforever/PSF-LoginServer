@@ -592,11 +592,11 @@ class TurretControlInitializeTest extends ActorTest {
     "initialize" in {
       val obj = new TurretDeployable(GlobalDefinitions.spitfire_turret)
       obj.GUID = PlanetSideGUID(1)
-      assert(obj.Actor == ActorRef.noSender)
+      assert(obj.Actor == Default.Actor)
       val init = system.actorOf(Props(classOf[DeployableTest.TurretInitializer], obj), "init_turret_test")
       init ! "initialize"
       expectNoMessage(200 milliseconds)
-      assert(obj.Actor != ActorRef.noSender)
+      assert(obj.Actor != Default.Actor)
     }
   }
 }
@@ -609,11 +609,11 @@ class TurretControlUninitializeTest extends ActorTest {
       obj.GUID = PlanetSideGUID(1)
       init ! "initialize"
       expectNoMessage(200 milliseconds)
-      assert(obj.Actor != ActorRef.noSender)
+      assert(obj.Actor != Default.Actor)
 
       init ! "uninitialize"
       expectNoMessage(200 milliseconds)
-      assert(obj.Actor == ActorRef.noSender)
+      assert(obj.Actor == Default.Actor)
     }
   }
 }

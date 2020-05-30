@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import akka.actor.{Actor, ActorSystem, Props}
+import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import base.ActorTest
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.{GlobalDefinitions, Vehicle}
@@ -46,7 +46,7 @@ class DeploymentBehavior1Test extends ActorTest {
   "Deployment" should {
     "construct" in {
       val obj = DeploymentTest.SetUpAgent
-      assert(obj.Actor != Actor.noSender)
+      assert(obj.Actor != ActorRef.noSender)
       assert(obj.DeploymentState == DriveState.Mobile)
     }
   }

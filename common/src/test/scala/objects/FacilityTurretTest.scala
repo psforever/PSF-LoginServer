@@ -1,10 +1,10 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import akka.actor.{ActorRef, Props}
+import akka.actor.Props
 import akka.testkit.TestProbe
 import base.ActorTest
-import net.psforever.objects.{Avatar, GlobalDefinitions, Player, Tool}
+import net.psforever.objects.{Avatar, Default, GlobalDefinitions, Player, Tool}
 import net.psforever.objects.definition.ToolDefinition
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.LimitedNumberSource
@@ -94,7 +94,7 @@ class FacilityTurretControl1Test extends ActorTest {
     "construct" in {
       val obj = FacilityTurret(GlobalDefinitions.manned_turret)
       obj.Actor = system.actorOf(Props(classOf[FacilityTurretControl], obj), "turret-control")
-      assert(obj.Actor != ActorRef.noSender)
+      assert(obj.Actor != Default.Actor)
     }
   }
 }

@@ -2,7 +2,7 @@
 package net.psforever.objects.equipment
 
 import akka.actor.{Actor, Cancellable}
-import net.psforever.objects.{DefaultCancellable, PlanetSideGameObject, Tool}
+import net.psforever.objects.{Default, PlanetSideGameObject, Tool}
 import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.vehicles.MountedWeapons
@@ -111,9 +111,9 @@ trait JammableBehavior {
   /** flag for jammed sound */
   protected var jammedSound : Boolean = false
   /** the sound timer */
-  protected var jammeredSoundTimer : Cancellable = DefaultCancellable.obj
+  protected var jammeredSoundTimer : Cancellable = Default.Cancellable
   /** the effect timer */
-  protected var jammeredStatusTimer : Cancellable = DefaultCancellable.obj
+  protected var jammeredStatusTimer : Cancellable = Default.Cancellable
 
   /** `ZoneAware` is used for callback to the event systems */
   def JammableObject : PlanetSideServerObject with JammableUnit with ZoneAware

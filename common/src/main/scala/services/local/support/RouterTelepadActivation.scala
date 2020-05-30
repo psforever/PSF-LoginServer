@@ -9,7 +9,7 @@ import services.support.{SimilarityComparator, SupportActor}
 import scala.concurrent.duration._
 
 class RouterTelepadActivation extends SupportActor[RouterTelepadActivation.Entry] {
-  var activationTask : Cancellable = DefaultCancellable.obj
+  var activationTask : Cancellable = Default.Cancellable
   var telepadList : List[RouterTelepadActivation.Entry] = List()
   val sameEntryComparator = new SimilarityComparator[RouterTelepadActivation.Entry]() {
     def Test(entry1 : RouterTelepadActivation.Entry, entry2 : RouterTelepadActivation.Entry) : Boolean = {

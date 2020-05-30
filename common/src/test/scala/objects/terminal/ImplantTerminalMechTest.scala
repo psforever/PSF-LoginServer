@@ -1,8 +1,9 @@
 // Copyright (c) 2017 PSForever
 package objects.terminal
 
-import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.actor.{ActorSystem, Props}
 import base.ActorTest
+import net.psforever.objects.{Avatar, Default, GlobalDefinitions, Player}
 import net.psforever.objects.definition.SeatDefinition
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.LimitedNumberSource
@@ -12,7 +13,6 @@ import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.vehicles.Seat
 import net.psforever.objects.zones.{Zone, ZoneMap}
-import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, Vector3}
 import org.specs2.mutable.Specification
 
@@ -35,7 +35,7 @@ class ImplantTerminalMechTest extends Specification {
   "Implant_Terminal_Mech" should {
     "construct" in {
       val obj = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech)
-      obj.Actor mustEqual ActorRef.noSender
+      obj.Actor mustEqual Default.Actor
       obj.Definition mustEqual GlobalDefinitions.implant_terminal_mech
       obj.Seats.keySet mustEqual Set(0)
       obj.Seats(0).isInstanceOf[Seat] mustEqual true
@@ -65,7 +65,7 @@ class ImplantTerminalMechControl1Test extends ActorTest {
     "construct" in {
       val obj = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech)
       obj.Actor = system.actorOf(Props(classOf[ImplantTerminalMechControl], obj), "mech")
-      assert(obj.Actor != ActorRef.noSender)
+      assert(obj.Actor != Default.Actor)
     }
   }
 }

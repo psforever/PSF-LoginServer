@@ -13,6 +13,7 @@ import ch.qos.logback.core.util.StatusPrinter
 import com.typesafe.config.ConfigFactory
 import net.psforever.config.{Invalid, Valid}
 import net.psforever.crypto.CryptoInterface
+import net.psforever.objects.Default
 import net.psforever.objects.zones._
 import net.psforever.objects.guid.TaskResolver
 import net.psforever.psadmin.PsAdminActor
@@ -225,6 +226,7 @@ object PsLogin {
 
     /** Start up the main actor system. This "system" is the home for all actors running on this server */
     system = ActorSystem("PsLogin")
+    Default(system)
 
     logger.info("Starting actor pipelines")
     /** Create pipelines for the login and world servers

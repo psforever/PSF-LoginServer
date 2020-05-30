@@ -1,7 +1,7 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.objects.teamwork
 
-import akka.actor.{Actor, ActorContext, ActorRef, Props}
+import akka.actor.{ActorContext, ActorRef, Props}
 import net.psforever.types.SquadWaypoints
 import services.teamwork.SquadService.WaypointData
 import services.teamwork.SquadSwitchboard
@@ -74,7 +74,7 @@ class SquadFeatures(val Squad : Squad) {
 
   def Stop : SquadFeatures = {
     switchboard ! akka.actor.PoisonPill
-    switchboard = Actor.noSender
+    switchboard = ActorRef.noSender
     waypoints = Array.empty
     this
   }

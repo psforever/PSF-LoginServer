@@ -48,7 +48,7 @@ class SessionRouter(role : String, pipeline : List[SessionPipeline]) extends Act
   val sessionById = mutable.Map[Long, Session]()
   val sessionByActor = mutable.Map[ActorRef, Session]()
   val closePacket = PacketCoding.EncodePacket(ConnectionClose()).require.bytes
-  var accountIntermediary : ActorRef = Actor.noSender
+  var accountIntermediary : ActorRef = ActorRef.noSender
 
   var sessionId = 0L // this is a connection session, not an actual logged in session ID
   var inputRef : ActorRef = ActorRef.noSender

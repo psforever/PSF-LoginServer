@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.zones
 
-import akka.actor.{Actor, ActorRef, Props}
-import net.psforever.objects.Vehicle
+import akka.actor.{Actor, Props}
+import net.psforever.objects.{Default, Vehicle}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.vehicles.VehicleControl
 
@@ -38,7 +38,7 @@ class ZoneVehicleActor(zone : Zone, vehicleList : ListBuffer[Vehicle]) extends A
       else if(vehicleList.contains(vehicle)) {
         sender ! Zone.Vehicle.CanNotSpawn(zone, vehicle, "already in zone")
       }
-      else if(vehicle.Actor != ActorRef.noSender) {
+      else if(vehicle.Actor != Default.Actor) {
         sender ! Zone.Vehicle.CanNotSpawn(zone, vehicle, "already in another zone")
       }
       else {
@@ -52,7 +52,7 @@ class ZoneVehicleActor(zone : Zone, vehicleList : ListBuffer[Vehicle]) extends A
         case Some(index) =>
           vehicleList.remove(index)
           context.stop(vehicle.Actor)
-          vehicle.Actor = ActorRef.noSender
+          vehicle.Actor = Default.Actor
         case None => ;
           sender ! Zone.Vehicle.CanNotDespawn(zone, vehicle, "can not find")
       }

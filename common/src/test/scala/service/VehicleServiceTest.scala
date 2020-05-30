@@ -4,6 +4,7 @@ package service
 import akka.actor.Props
 import base.ActorTest
 import net.psforever.objects._
+import net.psforever.objects.vehicles.VehicleControl
 import net.psforever.objects.zones.Zone
 import net.psforever.types.{PlanetSideGUID, _}
 import services.{Service, ServiceManager}
@@ -171,6 +172,7 @@ class KickPassengerTest extends ActorTest {
 class LoadVehicleTest extends ActorTest {
   ServiceManager.boot(system)
   val vehicle = Vehicle(GlobalDefinitions.quadstealth)
+  vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "test-vehicle")
   val cdata = vehicle.Definition.Packet.ConstructorData(vehicle).get
 
   "VehicleService" should {
@@ -260,6 +262,7 @@ class TransferPassengerChannelTest extends ActorTest {
     "pass TransferPassengerChannel" in {
       val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
       val fury = Vehicle(GlobalDefinitions.fury)
+      fury.Actor = system.actorOf(Props(classOf[VehicleControl], fury), "test-fury")
       service ! Service.Join("test")
       service ! VehicleServiceMessage("test", VehicleAction.TransferPassengerChannel(PlanetSideGUID(10), "old_channel", "new_channel", fury, PlanetSideGUID(11)))
       expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.TransferPassengerChannel("old_channel", "new_channel", fury, PlanetSideGUID(11))))

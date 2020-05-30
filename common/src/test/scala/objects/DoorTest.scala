@@ -1,9 +1,9 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.actor.{ActorSystem, Props}
 import base.ActorTest
-import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
+import net.psforever.objects.{Avatar, Default, GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.doors.{Door, DoorControl}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.zones.Zone
@@ -59,7 +59,7 @@ class DoorControl1Test extends ActorTest {
     "construct" in {
       val door = Door(GlobalDefinitions.door)
       door.Actor = system.actorOf(Props(classOf[DoorControl], door), "door")
-      assert(door.Actor != ActorRef.noSender)
+      assert(door.Actor != Default.Actor)
     }
   }
 }
