@@ -50,6 +50,7 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
   private var jumping : Boolean = false
   private var cloaked : Boolean = false
   private var fatigued : Boolean = false // If stamina drops to 0, player is fatigued until regenerating at least 20 stamina
+  private var afk : Boolean = false
 
   private var vehicleSeated : Option[PlanetSideGUID] = None
 
@@ -402,9 +403,17 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
   }
 
   def Fatigued : Boolean = fatigued
+
   def Fatigued_=(isFatigued : Boolean) : Boolean = {
     fatigued = isFatigued
     Fatigued
+  }
+
+  def AwayFromKeyboard : Boolean = afk
+
+  def AwayFromKeyboard_=(away : Boolean) : Boolean = {
+    afk = away
+    AwayFromKeyboard
   }
 
   def PersonalStyleFeatures : Option[Cosmetics] = core.PersonalStyleFeatures
