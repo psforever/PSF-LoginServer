@@ -13,8 +13,8 @@ import services.galaxy.{GalaxyAction, GalaxyResponse, GalaxyServiceMessage, Gala
 
 class BuildingControl(building : Building) extends Actor with FactionAffinityBehavior.Check {
   def FactionObject : FactionAffinity = building
-  var galaxyService : ActorRef = Actor.noSender
-  var interstellarCluster : ActorRef = Actor.noSender
+  var galaxyService : ActorRef = ActorRef.noSender
+  var interstellarCluster : ActorRef = ActorRef.noSender
   private[this] val log = org.log4s.getLogger
 
   override def preStart = {

@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition
 
-import akka.actor.{ActorContext, ActorRef}
-import net.psforever.objects.PlanetSideGameObject
+import akka.actor.ActorContext
+import net.psforever.objects.{Default, PlanetSideGameObject}
 import net.psforever.objects.ce.{Deployable, DeployableCategory, DeployedItem}
 import net.psforever.objects.definition.converter.SmallDeployableConverter
 import net.psforever.objects.serverobject.PlanetSideServerObject
@@ -68,6 +68,6 @@ object SimpleDeployableDefinition {
 
   def SimpleUninitialize(obj : PlanetSideServerObject, context : ActorContext) : Unit = {
     context.stop(obj.Actor)
-    obj.Actor = ActorRef.noSender
+    obj.Actor = Default.Actor
   }
 }

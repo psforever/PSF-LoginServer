@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.terminals
 
-import net.psforever.objects.Player
+import net.psforever.objects.{Default, Player}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.types.Vector3
@@ -74,8 +74,8 @@ object ProximityTerminal {
     * @param context hook to the local `Actor` system
     */
   def Setup(obj : Amenity, context : ActorContext) : Unit = {
-    import akka.actor.{ActorRef, Props}
-    if(obj.Actor == ActorRef.noSender) {
+    import akka.actor.Props
+    if(obj.Actor == Default.Actor) {
       obj.Actor = context.actorOf(Props(classOf[ProximityTerminalControl], obj), PlanetSideServerObject.UniqueActorName(obj))
       obj.Actor ! Service.Startup()
     }

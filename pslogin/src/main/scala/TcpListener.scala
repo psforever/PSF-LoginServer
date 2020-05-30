@@ -25,7 +25,7 @@ class TcpListener[T <: Actor](actorClass : Class[T],
   var sessionId = 0L
   var bytesRecevied = 0L
   var bytesSent = 0L
-  var nextActor : ActorRef = Actor.noSender
+  var nextActor : ActorRef = ActorRef.noSender
 
   def receive = {
     case Tcp.Bound(local) =>

@@ -38,7 +38,7 @@ class UdpListener(nextActorProps : Props,
 
   var bytesRecevied = 0L
   var bytesSent = 0L
-  var nextActor : ActorRef = Actor.noSender
+  var nextActor : ActorRef = ActorRef.noSender
 
   def receive = {
     case Udp.Bound(local) =>

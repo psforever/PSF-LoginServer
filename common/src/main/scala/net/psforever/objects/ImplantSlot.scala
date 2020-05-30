@@ -20,7 +20,7 @@ class ImplantSlot {
   /** whether this implant is ready for use */
   private var initialized : Boolean = false
   /** a cancellable timer that can be used to set an implant as initialized once complete */
-  private var initializeTimer: Cancellable = DefaultCancellable.obj
+  private var initializeTimer: Cancellable = Default.Cancellable
 
   /** is this implant active */
   private var active : Boolean = false

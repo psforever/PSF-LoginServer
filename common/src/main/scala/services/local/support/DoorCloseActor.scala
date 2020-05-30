@@ -2,7 +2,7 @@
 package services.local.support
 
 import akka.actor.{Actor, Cancellable}
-import net.psforever.objects.{DefaultCancellable, Player}
+import net.psforever.objects.{Default, Player}
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.zones.Zone
@@ -18,7 +18,7 @@ import scala.concurrent.duration._
   */
 class DoorCloseActor() extends Actor {
   /** The periodic `Executor` that checks for doors to be closed */
-  private var doorCloserTrigger : Cancellable = DefaultCancellable.obj
+  private var doorCloserTrigger : Cancellable = Default.Cancellable
   /** A `List` of currently open doors */
   private var openDoors : List[DoorCloseActor.DoorEntry] = Nil
   //private[this] val log = org.log4s.getLogger

@@ -269,6 +269,6 @@ object InternalTelepadDefinition {
 
   def SimpleUninitialize(obj : PlanetSideServerObject, context : ActorContext) : Unit = {
     context.stop(obj.Actor)
-    obj.Actor = ActorRef.noSender
+    obj.Actor = Default.Actor
   }
 }

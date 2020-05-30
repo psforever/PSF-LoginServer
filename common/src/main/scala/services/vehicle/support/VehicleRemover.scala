@@ -7,7 +7,7 @@ import net.psforever.objects.guid.GUIDTask.UnregisterVehicle
 import services.{RemoverActor, ServiceManager}
 
 class VehicleRemover extends Actor {
-  var taskResolver : ActorRef = Actor.noSender
+  var taskResolver : ActorRef = ActorRef.noSender
 
   override def preStart() : Unit = {
     super.preStart()

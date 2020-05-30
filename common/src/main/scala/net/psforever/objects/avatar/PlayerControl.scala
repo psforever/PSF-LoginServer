@@ -2,7 +2,7 @@
 package net.psforever.objects.avatar
 
 import akka.actor.Actor
-import net.psforever.objects.{DefaultCancellable, GlobalDefinitions, ImplantSlot, Player, Players, Tool}
+import net.psforever.objects.{Default, GlobalDefinitions, ImplantSlot, Player, Players, Tool}
 import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile, SourceEntry}
 import net.psforever.objects.definition.ImplantDefinition
 import net.psforever.objects.equipment.{Ammo, JammableBehavior, JammableUnit}
@@ -33,7 +33,7 @@ class PlayerControl(player : Player) extends Actor
   private [this] val damageLog = org.log4s.getLogger(Damageable.LogChannel)
 
   // A collection of timers for each slot to trigger stamina drain on an interval
-  val implantSlotStaminaDrainTimers = mutable.HashMap(0 -> DefaultCancellable.obj, 1 -> DefaultCancellable.obj, 2 -> DefaultCancellable.obj)
+  val implantSlotStaminaDrainTimers = mutable.HashMap(0 -> Default.Cancellable, 1 -> Default.Cancellable, 2 -> Default.Cancellable)
 
   def receive : Receive = jammableBehavior
     .orElse(takesDamage)
@@ -46,7 +46,7 @@ class PlayerControl(player : Player) extends Actor
       if(status == 0 && (implantSlot.Active || !implantSlot.Initialized)) {
         // Cancel stamina drain timer
         implantSlotStaminaDrainTimers(slot).cancel()
-        implantSlotStaminaDrainTimers(slot) = DefaultCancellable.obj
+        implantSlotStaminaDrainTimers(slot) = Default.Cancellable
 
         implantSlot.Active = false
         player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, player.Implant(slot).id * 2)) // Deactivation sound / effect
@@ -60,7 +60,7 @@ class PlayerControl(player : Player) extends Actor
               // todo: Deactivate implants server side when actions like zoning happen. (Other actions?)
               log.warn(s"Implant ${slot} is already active, but activating again")
               implantSlotStaminaDrainTimers(slot).cancel()
-              implantSlotStaminaDrainTimers(slot) = DefaultCancellable.obj
+              implantSlotStaminaDrainTimers(slot) = Default.Cancellable
             }
             implantSlot.Active = true
 
@@ -104,9 +104,9 @@ class PlayerControl(player : Player) extends Actor
       if(implantSlot.Installed.isDefined) {
         player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.SendResponse(player.GUID, AvatarImplantMessage(player.GUID, ImplantAction.Initialization, slot, 1)))
         implantSlot.Initialized = true
-        if(implantSlot.InitializeTimer != DefaultCancellable.obj) {
+        if(implantSlot.InitializeTimer != Default.Cancellable) {
           implantSlot.InitializeTimer.cancel()
-          implantSlot.InitializeTimer = DefaultCancellable.obj
+          implantSlot.InitializeTimer = Default.Cancellable
         }
       }
 
@@ -463,9 +463,9 @@ object PlayerControl {
     val implantSlot = player.ImplantSlot(slot)
 
     implantSlot.Initialized = false
-    if(implantSlot.InitializeTimer != DefaultCancellable.obj) {
+    if(implantSlot.InitializeTimer != Default.Cancellable) {
       implantSlot.InitializeTimer.cancel()
-      implantSlot.InitializeTimer = DefaultCancellable.obj
+      implantSlot.InitializeTimer = Default.Cancellable
     }
     player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.SendResponse(player.GUID, AvatarImplantMessage(player.GUID, ImplantAction.Initialization, slot, 0)))
   }

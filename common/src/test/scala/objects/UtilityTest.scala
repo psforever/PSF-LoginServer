@@ -20,7 +20,7 @@ class UtilityTest extends Specification {
       obj.UtilType mustEqual UtilityType.order_terminala
       obj().isInstanceOf[Terminal] mustEqual true
       obj().asInstanceOf[Terminal].Definition.ObjectId mustEqual 613
-      obj().asInstanceOf[Terminal].Actor mustEqual ActorRef.noSender
+      obj().asInstanceOf[Terminal].Actor mustEqual Default.Actor
     }
 
     "create an order_terminalb object" in {
@@ -28,7 +28,7 @@ class UtilityTest extends Specification {
       obj.UtilType mustEqual UtilityType.order_terminalb
       obj().isInstanceOf[Terminal] mustEqual true
       obj().asInstanceOf[Terminal].Definition.ObjectId mustEqual 614
-      obj().asInstanceOf[Terminal].Actor mustEqual ActorRef.noSender
+      obj().asInstanceOf[Terminal].Actor mustEqual Default.Actor
     }
 
     "create a matrix_terminalc object" in {
@@ -36,7 +36,7 @@ class UtilityTest extends Specification {
       obj.UtilType mustEqual UtilityType.matrix_terminalc
       obj().isInstanceOf[Terminal] mustEqual true
       obj().asInstanceOf[Terminal].Definition.ObjectId mustEqual 519
-      obj().asInstanceOf[Terminal].Actor mustEqual ActorRef.noSender
+      obj().asInstanceOf[Terminal].Actor mustEqual Default.Actor
     }
 
     "create an ams_respawn_tube object" in {
@@ -44,7 +44,7 @@ class UtilityTest extends Specification {
       obj.UtilType mustEqual UtilityType.ams_respawn_tube
       obj().isInstanceOf[SpawnTube] mustEqual true
       obj().asInstanceOf[SpawnTube].Definition.ObjectId mustEqual 49
-      obj().asInstanceOf[SpawnTube].Actor mustEqual ActorRef.noSender
+      obj().asInstanceOf[SpawnTube].Actor mustEqual Default.Actor
     }
 
     "create a teleportpad_terminal object" in {
@@ -52,7 +52,7 @@ class UtilityTest extends Specification {
       obj.UtilType mustEqual UtilityType.teleportpad_terminal
       obj().isInstanceOf[Terminal] mustEqual true
       obj().asInstanceOf[Terminal].Definition.ObjectId mustEqual 853
-      obj().asInstanceOf[Terminal].Actor mustEqual ActorRef.noSender
+      obj().asInstanceOf[Terminal].Actor mustEqual Default.Actor
     }
 
     "produce a telepad object through the teleportpad_terminal" in {
@@ -78,7 +78,7 @@ class UtilityTest extends Specification {
       obj.UtilType mustEqual UtilityType.internal_router_telepad_deployable
       obj().isInstanceOf[Utility.InternalTelepad] mustEqual true
       obj().asInstanceOf[Utility.InternalTelepad].Definition.ObjectId mustEqual 744
-      obj().asInstanceOf[Utility.InternalTelepad].Actor mustEqual ActorRef.noSender
+      obj().asInstanceOf[Utility.InternalTelepad].Actor mustEqual Default.Actor
     }
 
     "internal_router_telepad_deployable can keep track of an object's GUID (presumedly, it's a Telepad)" in {
@@ -139,11 +139,11 @@ class UtilityTerminalATest extends ActorTest {
     "wire an order_terminala Actor" in {
       val obj = Utility(UtilityType.order_terminala, UtilityTest.vehicle)
       obj().GUID = PlanetSideGUID(1)
-      assert(obj().Actor == ActorRef.noSender)
+      assert(obj().Actor == Default.Actor)
 
       system.actorOf(Props(classOf[UtilityTest.SetupControl], obj), "test") ! ""
       receiveOne(Duration.create(500, "ms")) //consume and discard
-      assert(obj().Actor != ActorRef.noSender)
+      assert(obj().Actor != Default.Actor)
     }
   }
 }
@@ -153,11 +153,11 @@ class UtilityTerminalBTest extends ActorTest {
     "wire an order_terminalb Actor" in {
       val obj = Utility(UtilityType.order_terminalb, UtilityTest.vehicle)
       obj().GUID = PlanetSideGUID(1)
-      assert(obj().Actor == ActorRef.noSender)
+      assert(obj().Actor == Default.Actor)
 
       system.actorOf(Props(classOf[UtilityTest.SetupControl], obj), "test") ! ""
       receiveOne(Duration.create(500, "ms")) //consume and discard
-      assert(obj().Actor != ActorRef.noSender)
+      assert(obj().Actor != Default.Actor)
     }
   }
 }
@@ -167,11 +167,11 @@ class UtilityTerminalCTest extends ActorTest {
     "wire a matrix_terminalc Actor" in {
       val obj = Utility(UtilityType.matrix_terminalc, UtilityTest.vehicle)
       obj().GUID = PlanetSideGUID(1)
-      assert(obj().Actor == ActorRef.noSender)
+      assert(obj().Actor == Default.Actor)
 
       system.actorOf(Props(classOf[UtilityTest.SetupControl], obj), "test") ! ""
       receiveOne(Duration.create(500, "ms")) //consume and discard
-      assert(obj().Actor != ActorRef.noSender)
+      assert(obj().Actor != Default.Actor)
     }
   }
 }
@@ -181,11 +181,11 @@ class UtilityRespawnTubeTest extends ActorTest {
     "wire an ams_respawn_tube Actor" in {
       val obj = Utility(UtilityType.ams_respawn_tube, UtilityTest.vehicle)
       obj().GUID = PlanetSideGUID(1)
-      assert(obj().Actor == ActorRef.noSender)
+      assert(obj().Actor == Default.Actor)
 
       system.actorOf(Props(classOf[UtilityTest.SetupControl], obj), "test") ! ""
       receiveOne(Duration.create(500, "ms")) //consume and discard
-      assert(obj().Actor != ActorRef.noSender)
+      assert(obj().Actor != Default.Actor)
     }
   }
 }
@@ -195,11 +195,11 @@ class UtilityTelepadTerminalTest extends ActorTest {
     "wire a teleportpad_terminal Actor" in {
       val obj = Utility(UtilityType.teleportpad_terminal, UtilityTest.vehicle)
       obj().GUID = PlanetSideGUID(1)
-      assert(obj().Actor == ActorRef.noSender)
+      assert(obj().Actor == Default.Actor)
 
       system.actorOf(Props(classOf[UtilityTest.SetupControl], obj), "test") ! ""
       receiveOne(Duration.create(500, "ms")) //consume and discard
-      assert(obj().Actor != ActorRef.noSender)
+      assert(obj().Actor != Default.Actor)
     }
   }
 }
@@ -211,12 +211,12 @@ class UtilityInternalTelepadTest extends ActorTest {
       veh.GUID = PlanetSideGUID(101)
       val obj = Utility(UtilityType.internal_router_telepad_deployable, veh)
       obj().GUID = PlanetSideGUID(1)
-      assert(obj().Actor == ActorRef.noSender)
+      assert(obj().Actor == Default.Actor)
       assert(obj().asInstanceOf[Utility.InternalTelepad].Router.contains(veh.GUID))
 
       system.actorOf(Props(classOf[UtilityTest.SetupControl], obj), "test") ! ""
       receiveOne(Duration.create(500, "ms")) //consume and discard
-      assert(obj().Actor != ActorRef.noSender)
+      assert(obj().Actor != Default.Actor)
       assert(obj().asInstanceOf[Utility.InternalTelepad].Router.contains(veh.GUID))
     }
   }

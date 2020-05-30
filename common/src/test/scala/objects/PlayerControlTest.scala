@@ -187,7 +187,7 @@ class PlayerControlRepairTest extends ActorTest {
       assert(originalArmor < player2.MaxArmor)
 
       player2.Actor ! CommonMessages.Use(player1, Some(tool))
-      val msg_avatar = avatarProbe.receiveN(5, 500 milliseconds)
+      val msg_avatar = avatarProbe.receiveN(5, 1000 milliseconds)
       assert(
         msg_avatar.head match {
           case AvatarServiceMessage("TestCharacter1", AvatarAction.SendResponse(_, InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _))) => true

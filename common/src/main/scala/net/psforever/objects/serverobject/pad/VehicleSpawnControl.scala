@@ -5,7 +5,7 @@ import akka.actor.{ActorContext, Cancellable, Props}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.pad.process.{VehicleSpawnControlBase, VehicleSpawnControlConcealPlayer}
 import net.psforever.objects.zones.Zone
-import net.psforever.objects.{DefaultCancellable, Player, Vehicle}
+import net.psforever.objects.{Default, Player, Vehicle}
 import services.RemoverActor
 import services.vehicle.VehicleServiceMessage
 
@@ -32,7 +32,7 @@ import scala.concurrent.duration._
   */
 class VehicleSpawnControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase(pad) with FactionAffinityBehavior.Check {
   /** a reminder sent to future customers */
-  var periodicReminder : Cancellable = DefaultCancellable.obj
+  var periodicReminder : Cancellable = Default.Cancellable
   /** a list of vehicle orders that have been submitted for this spawn pad */
   var orders : List[VehicleSpawnControl.Order] = List.empty[VehicleSpawnControl.Order]
   /** the current vehicle order being acted upon;

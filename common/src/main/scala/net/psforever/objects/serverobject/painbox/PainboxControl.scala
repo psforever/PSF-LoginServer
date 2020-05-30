@@ -3,7 +3,7 @@ package net.psforever.objects.serverobject.painbox
 import akka.actor.{Actor, Cancellable}
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.structures.Building
-import net.psforever.objects.{DefaultCancellable, GlobalDefinitions}
+import net.psforever.objects.{Default, GlobalDefinitions}
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 
@@ -12,7 +12,7 @@ import scala.concurrent.duration._
 
 class PainboxControl(painbox: Painbox) extends Actor {
   private[this] val log = org.log4s.getLogger(s"Painbox")
-  var painboxTick: Cancellable = DefaultCancellable.obj
+  var painboxTick: Cancellable = Default.Cancellable
   var nearestDoor: Option[Door] = None
   var bBoxMinCorner = Vector3.Zero
   var bBoxMaxCorner = Vector3.Zero
@@ -97,7 +97,7 @@ class PainboxControl(painbox: Painbox) extends Actor {
     case Painbox.Stop() =>
       context.become(Stopped)
       painboxTick.cancel
-      painboxTick = DefaultCancellable.obj
+      painboxTick = Default.Cancellable
 
     case Painbox.Tick() =>
       //todo: Account for overlapping pain fields

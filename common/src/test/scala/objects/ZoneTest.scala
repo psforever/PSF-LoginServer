@@ -92,10 +92,6 @@ class ZoneTest extends Specification {
   "Zone" should {
     "construct" in {
       val zone = new Zone("home3", map13, 13)
-      zone.GUID mustEqual ActorRef.noSender
-      zone.Ground mustEqual ActorRef.noSender
-      zone.Transport mustEqual ActorRef.noSender
-      //zone also has a unique identifier system but it can't be accessed without its the Actor GUID being initialized
       zone.EquipmentOnGround mustEqual List.empty[Equipment]
       zone.Vehicles mustEqual List.empty[Vehicle]
       zone.Players mustEqual List.empty[Player]

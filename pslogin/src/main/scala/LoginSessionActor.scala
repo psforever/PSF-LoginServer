@@ -12,7 +12,7 @@ import MDCContextAware.Implicits._
 import com.github.mauricio.async.db.general.ArrayRowData
 import com.github.mauricio.async.db.{Connection, QueryResult}
 import net.psforever.objects.Account
-import net.psforever.objects.DefaultCancellable
+import net.psforever.objects.Default
 import net.psforever.types.PlanetSideEmpire
 import net.psforever.WorldConfig
 import services.ServiceManager
@@ -40,9 +40,9 @@ class LoginSessionActor extends Actor with MDCContextAware {
   var sessionId : Long = 0
   var leftRef : ActorRef = ActorRef.noSender
   var rightRef : ActorRef = ActorRef.noSender
-  var accountIntermediary : ActorRef = Actor.noSender
+  var accountIntermediary : ActorRef = ActorRef.noSender
 
-  var updateServerListTask : Cancellable = DefaultCancellable.obj
+  var updateServerListTask : Cancellable = Default.Cancellable
 
   var ipAddress : String = ""
   var hostName : String = ""

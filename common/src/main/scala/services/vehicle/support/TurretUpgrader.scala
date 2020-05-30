@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package services.vehicle.support
 
-import akka.actor.{Actor, ActorRef, Cancellable}
-import net.psforever.objects.{AmmoBox, DefaultCancellable, PlanetSideGameObject, Tool}
+import akka.actor.{ActorRef, Cancellable}
+import net.psforever.objects.{AmmoBox, Default, PlanetSideGameObject, Tool}
 import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade, WeaponTurret}
@@ -16,11 +16,11 @@ import services.{Service, ServiceManager}
 import scala.concurrent.duration._
 
 class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
-  var task : Cancellable = DefaultCancellable.obj
+  var task : Cancellable = Default.Cancellable
 
   var list : List[TurretUpgrader.Entry] = List()
 
-  private var taskResolver : ActorRef = Actor.noSender
+  private var taskResolver : ActorRef = ActorRef.noSender
 
   val sameEntryComparator = new SimilarityComparator[TurretUpgrader.Entry]() {
     def Test(entry1 : TurretUpgrader.Entry, entry2 : TurretUpgrader.Entry) : Boolean = {

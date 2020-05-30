@@ -5,7 +5,7 @@ import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
 import org.log4s.MDC
 import MDCContextAware.Implicits._
-import net.psforever.objects.DefaultCancellable
+import net.psforever.objects.Default
 import net.psforever.packet.control.{HandleGamePacket, _}
 
 import scala.annotation.tailrec
@@ -52,7 +52,7 @@ class PacketCodingActor extends Actor with MDCContextAware {
   // Due to the fact the client can send `RelatedA` packets out of order, we need to keep a buffer of which subslots arrived correctly, order them
   // and then act accordingly to send the missing subslot packet after a specified timeout
   private var relatedALog : ArrayBuffer[Int] = ArrayBuffer()
-  private var relatedABufferTimeout : Cancellable = DefaultCancellable.obj
+  private var relatedABufferTimeout : Cancellable = Default.Cancellable
 
   def AddSlottedPacketToLog(subslot: Int, packet : ByteVector): Unit = {
     val log_limit = 500 // Number of SlottedMetaPackets to keep in history
@@ -386,7 +386,7 @@ class PacketCodingActor extends Actor with MDCContextAware {
 
         // The client has indicated it's received up to a certain subslot, that means we can purge the log of any subslots prior to and including the confirmed subslot
         // Find where this subslot is stored in the packet log (if at all) and drop anything to the left of it, including itself
-        if(relatedABufferTimeout.isCancelled || relatedABufferTimeout == DefaultCancellable.obj) {
+        if(relatedABufferTimeout.isCancelled || relatedABufferTimeout == Default.Cancellable) {
           val pos = slottedPacketLog.keySet.toArray.indexOf(subslot)
           if(pos != -1) {
             slottedPacketLog = slottedPacketLog.drop(pos+1)

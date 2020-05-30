@@ -1,7 +1,7 @@
 package services.local.support
 
 import akka.actor.{Actor, Cancellable}
-import net.psforever.objects.DefaultCancellable
+import net.psforever.objects.Default
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.serverobject.terminals.CaptureTerminal
@@ -14,7 +14,7 @@ import scala.concurrent.duration.{FiniteDuration, _}
 class HackCaptureActor extends Actor {
   private [this] val log = org.log4s.getLogger
 
-  private var clearTrigger : Cancellable = DefaultCancellable.obj
+  private var clearTrigger : Cancellable = Default.Cancellable
 
   /** A `List` of currently hacked server objects */
   private var hackedObjects : List[HackCaptureActor.HackEntry] = Nil
