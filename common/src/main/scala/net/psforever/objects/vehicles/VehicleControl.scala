@@ -4,7 +4,7 @@ package net.psforever.objects.vehicles
 import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects._
 import net.psforever.objects.ballistics.{ResolvedProjectile, VehicleSource}
-import net.psforever.objects.equipment.{Equipment, JammableMountedWeapons}
+import net.psforever.objects.equipment.{Equipment, EquipmentSlot, JammableMountedWeapons}
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
@@ -174,7 +174,7 @@ class VehicleControl(vehicle : Vehicle) extends Actor
 //              (oldWeapons, weapons, afterInventory)
               //TODO for now, just refill ammo; assume weapons stay the same
               vehicle.Weapons
-                .collect { case (_, slot) if slot.Equipment.nonEmpty => slot.Equipment.get }
+                .collect { case (_, slot : EquipmentSlot) if slot.Equipment.nonEmpty => slot.Equipment.get }
                 .collect { case weapon : Tool =>
                   weapon.AmmoSlots.foreach { ammo => ammo.Box.Capacity = ammo.Box.Definition.Capacity }
                 }
@@ -316,6 +316,7 @@ class VehicleControl(vehicle : Vehicle) extends Actor
         decayTimer.cancel
       case None => ;
     }
+  }
 
   def MessageDeferredCallback(msg : Any) : Unit = {
     msg match {

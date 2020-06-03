@@ -39,7 +39,7 @@ object AvatarAction {
   final case class EquipmentInHand(player_guid : PlanetSideGUID, target_guid : PlanetSideGUID, slot : Int, item : Equipment) extends Action
   final case class GenericObjectAction(player_guid : PlanetSideGUID, object_guid : PlanetSideGUID, action_code : Int) extends Action
   final case class HitHint(source_guid : PlanetSideGUID, player_guid : PlanetSideGUID) extends Action
-  final case class Killed(player_guid : PlanetSideGUID) extends Action
+  final case class Killed(player_guid : PlanetSideGUID, mount_guid : Option[PlanetSideGUID]) extends Action
   final case class LoadPlayer(player_guid : PlanetSideGUID, object_id : Int, target_guid : PlanetSideGUID, cdata : ConstructorData, pdata : Option[ObjectCreateMessageParent]) extends Action
   final case class LoadProjectile(player_guid : PlanetSideGUID, object_id : Int, projectile_guid : PlanetSideGUID, cdata : ConstructorData) extends Action
   final case class ObjectDelete(player_guid : PlanetSideGUID, item_guid : PlanetSideGUID, unk : Int = 0) extends Action

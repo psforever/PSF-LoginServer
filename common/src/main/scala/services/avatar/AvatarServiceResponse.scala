@@ -34,7 +34,7 @@ object AvatarResponse {
   final case class EquipmentInHand(pkt : ObjectCreateMessage) extends Response
   final case class GenericObjectAction(object_guid : PlanetSideGUID, action_code : Int) extends Response
   final case class HitHint(source_guid : PlanetSideGUID) extends Response
-  final case class Killed() extends Response
+  final case class Killed(mount_guid : Option[PlanetSideGUID]) extends Response
   final case class LoadPlayer(pkt : ObjectCreateMessage) extends Response
   final case class LoadProjectile(pkt : ObjectCreateMessage) extends Response
   final case class ObjectDelete(item_guid : PlanetSideGUID, unk : Int) extends Response

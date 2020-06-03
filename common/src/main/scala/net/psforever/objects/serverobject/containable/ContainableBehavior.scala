@@ -13,7 +13,7 @@ import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.util.Success
+import scala.util.{Failure, Success}
 
 /** Parent of all standard (input) messages handled by a `ContainableBehavior` object for the purposes of item transfer */
 sealed trait ContainableMsg
@@ -111,18 +111,19 @@ trait ContainableBehavior {
               destination.Actor ! ContainableBehavior.Wait()
               implicit val timeout = new Timeout(1000 milliseconds)
               val moveItemOver = ask(destination.Actor, ContainableBehavior.MoveItemPutItemInSlot(item, dest))
-              moveItemOver.onSuccess {
-                case Containable.ItemPutInSlot(_, _, _, None) => ; //successful
+              moveItemOver.onComplete {
+                case Success(Containable.ItemPutInSlot(_, _, _, None)) => ; //successful
 
-                case Containable.ItemPutInSlot(_, _, _, Some(swapItem)) => //successful, but with swap item
+                case Success(Containable.ItemPutInSlot(_, _, _, Some(swapItem))) => //successful, but with swap item
                   PutItBackOrDropIt(source, swapItem, slot, destination.Actor)
 
-                case _ : Containable.CanNotPutItemInSlot => //failure case ; try restore original item placement
+                case Success(_ : Containable.CanNotPutItemInSlot) => //failure case ; try restore original item placement
                   PutItBackOrDropIt(source, item, slot, source.Actor)
-              }
-              moveItemOver.onFailure {
-                case _ => //failure case ; try restore original item placement
+
+                case Failure(_) => //failure case ; try restore original item placement
                   PutItBackOrDropIt(source, item, slot, source.Actor)
+
+                case _ => ; //TODO what?
               }
               //always do this
               moveItemOver
@@ -130,18 +131,18 @@ trait ContainableBehavior {
                 .onComplete { _ => destination.Actor ! ContainableBehavior.Resume() }
             }
           case _ => ;
-            //we could not find the item to be moved in the source location; trying to act on old data?
+          //we could not find the item to be moved in the source location; trying to act on old data?
         }
       }
       else {
         MessageDeferredCallback(msg)
       }
 
-      case ContainableBehavior.MoveItemPutItemInSlot(item, dest) =>
-        sender ! LocalPutItemInSlot(item, dest)
+    case ContainableBehavior.MoveItemPutItemInSlot(item, dest) =>
+      sender ! LocalPutItemInSlot(item, dest)
 
-      case ContainableBehavior.MoveItemPutItemInSlotOrAway(item, dest) =>
-        sender ! LocalPutItemInSlotOrAway(item, dest)
+    case ContainableBehavior.MoveItemPutItemInSlotOrAway(item, dest) =>
+      sender ! LocalPutItemInSlotOrAway(item, dest)
   }
 
   /* Functions (message control) */
@@ -278,14 +279,14 @@ trait ContainableBehavior {
     */
   private def PutItBackOrDropIt(container : PlanetSideServerObject with Container, item : Equipment, slot : Option[Int], to : ActorRef)(implicit timeout : Timeout) : Unit = {
     val restore = ask(container.Actor, ContainableBehavior.MoveItemPutItemInSlotOrAway(item, slot))
-    restore.onSuccess {
-      case _ : Containable.CanNotPutItemInSlot =>
+    restore.onComplete {
+      case Success(_ : Containable.CanNotPutItemInSlot) =>
         container.Zone.Ground.tell(Zone.Ground.DropItem(item, container.Position, Vector3.z(container.Orientation.z)), to)
-      case _ =>
-    }
-    restore.onFailure {
-      case _ =>
+
+      case Failure(_) =>
         container.Zone.Ground.tell(Zone.Ground.DropItem(item, container.Position, Vector3.z(container.Orientation.z)), to)
+
+      case _ => ; //normal success; //TODO what?
     }
   }
 

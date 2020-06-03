@@ -28,7 +28,6 @@ import scala.concurrent.duration._
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 
-
 class PlayerControl(player : Player) extends Actor
   with JammableBehavior
   with Damageable
@@ -46,17 +45,18 @@ class PlayerControl(player : Player) extends Actor
   val lockerControlAgent : ActorRef = {
     val locker = player.Locker
     locker.Zone = player.Zone
-    locker.Actor = context.actorOf(Props(classOf[LockerContainerControl], locker), PlanetSideServerObject.UniqueActorName(locker))
+    locker.Actor = context.actorOf(Props(classOf[LockerContainerControl], locker, player.Name), PlanetSideServerObject.UniqueActorName(locker))
   }
 
   override def postStop() : Unit = {
-    context.stop(lockerControlAgent)
+    lockerControlAgent ! akka.actor.PoisonPill
     player.Locker.Actor = Default.Actor
     implantSlotStaminaDrainTimers.values.foreach { _.cancel }
   }
 
   def receive : Receive = jammableBehavior
     .orElse(takesDamage)
+    .orElse(containerBehavior)
     .orElse {
       case Player.ImplantActivation(slot: Int, status : Int) =>
         // todo: disable implants with stamina cost when changing armour type
@@ -146,8 +146,8 @@ class PlayerControl(player : Player) extends Actor
             player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.SendResponseTargeted(player.GUID, AvatarImplantMessage(player.GUID, ImplantAction.OutOfStamina, slot, 0)))
           }
         }
-
         player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.PlanetsideAttributeSelf(player.GUID, 2, player.Stamina))
+
       case Player.Die() =>
         if(player.isAlive) {
           PlayerControl.DestructionAwareness(player, None)
@@ -533,10 +533,10 @@ class PlayerControl(player : Player) extends Actor
   override def StartJammeredStatus(target : Any, dur : Int) : Unit = target match {
     case obj : Player =>
       //TODO these features
-      //      val guid = obj.GUID
-      //      val zone = obj.Zone
-      //      val zoneId = zone.Id
-      //      val events = zone.AvatarEvents
+//      val guid = obj.GUID
+//      val zone = obj.Zone
+//      val zoneId = zone.Id
+//      val events = zone.AvatarEvents
       player.Implants.indices.foreach { slot => // Deactivate & uninitialize all implants
         player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, player.Implant(slot).id * 2)) // Deactivation sound / effect
         self ! Player.ImplantActivation(slot, 0)
@@ -759,19 +759,20 @@ object PlayerControl {
     //unjam
     target.Actor ! JammableUnit.ClearJammeredSound()
     target.Actor ! JammableUnit.ClearJammeredStatus()
-    events ! AvatarServiceMessage(nameChannel, AvatarAction.Killed(player_guid)) //align client interface fields with state
+    events ! AvatarServiceMessage(nameChannel, AvatarAction.Killed(player_guid, target.VehicleSeated)) //align client interface fields with state
     zone.GUID(target.VehicleSeated) match {
       case Some(obj : Mountable) =>
-        //boot cadaver from seat
-        events ! AvatarServiceMessage(nameChannel, AvatarAction.SendResponse(Service.defaultPlayerGUID,
-          ObjectDetachMessage(obj.GUID, player_guid, target.Position, Vector3.Zero))
-        )
+        //boot cadaver from seat internally (vehicle perspective)
         obj.PassengerInSeat(target) match {
           case Some(index) =>
             obj.Seats(index).Occupant = None
           case _ => ;
         }
-        //make player invisible
+        //boot cadaver from seat on client
+        events ! AvatarServiceMessage(nameChannel, AvatarAction.SendResponse(Service.defaultPlayerGUID,
+          ObjectDetachMessage(obj.GUID, player_guid, target.Position, Vector3.Zero))
+        )
+        //make player invisible on client
         events ! AvatarServiceMessage(nameChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 29, 1))
         //only the dead player should "see" their own body, so that the death camera has something to focus on
         events ! AvatarServiceMessage(zoneChannel, AvatarAction.ObjectDelete(player_guid, player_guid))

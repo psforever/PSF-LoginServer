@@ -123,9 +123,9 @@ class AvatarService(zone : Zone) extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.HitHint(source_guid))
           )
-        case AvatarAction.Killed(player_guid) =>
+        case AvatarAction.Killed(player_guid, mount_guid) =>
           AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.Killed())
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.Killed(mount_guid))
           )
         case AvatarAction.LoadPlayer(player_guid, object_id, target_guid, cdata, pdata) =>
           val pkt = pdata match {
