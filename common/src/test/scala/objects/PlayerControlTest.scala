@@ -440,7 +440,7 @@ class PlayerControlDeathStandingTest extends ActorTest {
       )
       assert(
         msg_avatar(1) match {
-          case AvatarServiceMessage("TestCharacter2", AvatarAction.Killed(PlanetSideGUID(2))) => true
+          case AvatarServiceMessage("TestCharacter2", AvatarAction.Killed(PlanetSideGUID(2), None)) => true
           case _ => false
         }
       )
@@ -546,7 +546,7 @@ class PlayerControlDeathSeatedTest extends ActorTest {
       activityProbe.expectNoMessage(200 milliseconds)
       assert(
         msg_avatar.head match {
-          case AvatarServiceMessage("TestCharacter2", AvatarAction.Killed(PlanetSideGUID(2))) => true
+          case AvatarServiceMessage("TestCharacter2", AvatarAction.Killed(PlanetSideGUID(2), Some(PlanetSideGUID(5)))) => true
           case _ => false
         }
       )

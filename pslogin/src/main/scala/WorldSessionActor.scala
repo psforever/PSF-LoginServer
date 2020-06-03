@@ -10650,7 +10650,7 @@ object WorldSessionActor {
     GlobalDefinitions.router.ObjectId -> 300000, //5min
     GlobalDefinitions.switchblade.ObjectId -> 300000, //5min
     GlobalDefinitions.skyguard.ObjectId -> 300000, //5min
-    GlobalDefinitions.threemanheavybuggy.ObjectId -> 300000, //5m
+    GlobalDefinitions.threemanheavybuggy.ObjectId -> 300000, //5min
     GlobalDefinitions.thunderer.ObjectId -> 300000, //5min
     GlobalDefinitions.two_man_assault_buggy.ObjectId -> 300000, //5min
     GlobalDefinitions.twomanhoverbuggy.ObjectId -> 300000, //5min

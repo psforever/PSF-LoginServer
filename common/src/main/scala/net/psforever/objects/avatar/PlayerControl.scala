@@ -235,7 +235,7 @@ class PlayerControl(player : Player) extends Actor
             val requestToChangeArmor = originalSuit != exosuit || originalSubtype != subtype
             val allowedToChangeArmor = Players.CertificationToUseExoSuit(player, exosuit, subtype) &&
               (if (exosuit == ExoSuitType.MAX) {
-                if (time - player.GetLastUsedTime(exosuit, subtype) < 30000L) {
+                if (time - player.GetLastUsedTime(exosuit, subtype) < 300000L) {
                   false
                 }
                 else {
@@ -352,7 +352,7 @@ class PlayerControl(player : Player) extends Actor
             val time = System.currentTimeMillis()
             val (nextSuit, nextSubtype) = if (Players.CertificationToUseExoSuit(player, exosuit, subtype) &&
               (if (exosuit == ExoSuitType.MAX) {
-                if (time - player.GetLastUsedTime(exosuit, subtype) < 30000L) {
+                if (time - player.GetLastUsedTime(exosuit, subtype) < 300000L) {
                   false
                 }
                 else {
