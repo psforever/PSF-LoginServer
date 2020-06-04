@@ -35,7 +35,6 @@ add_property cycler_v3 requirement_certification0 false # medium_assault
 add_property cycler_v4 requirement_certification0 false # medium_assault
 add_property delivererv requirement_certification0 false # ground_transport
 add_property dropship requirement_certification0 false # air_support
-add_property flail purchase_module false # vehicle
 add_property flail requirement_certification0 false # flail
 add_property flamethrower requirement_certification0 false # special_assault_2
 add_property flechette requirement_certification0 false # medium_assault
@@ -55,7 +54,6 @@ add_property lightgunship requirement_certification0 false # air_cavalry_assault
 add_property lightning requirement_certification0 false # armored_assault1
 add_property lite_armor requirement_certification0 false # agile_armor
 add_property lodestar requirement_certification0 false # air_support
-add_property maelstrom purchase_module false # weapon
 add_property maelstrom requirement_certification0 false # heavy_assault
 add_property magrider requirement_certification0 false # armored_assault2
 add_property med_armor requirement_certification0 false # reinforced_armor
@@ -83,7 +81,6 @@ add_property punisher requirement_certification0 false # medium_assault
 add_property quadassault requirement_certification0 false # quad_all
 add_property quadstealth requirement_certification0 false # quad_all
 add_property r_shotgun requirement_certification0 false # heavy_assault
-add_property radiator purchase_module false # weapon
 add_property radiator requirement_certification0 false # special_assault
 add_property repeater requirement_certification0 false # standard_assault
 add_property rocklet requirement_certification0 false # special_assault
@@ -91,7 +88,6 @@ add_property router requirement_certification0 false # ground_support
 add_property six_shooter requirement_certification0 false # standard_assault
 add_property skyguard requirement_certification0 false # assault_buggy
 add_property skyguard requirement_certification1 false # light_scout
-add_property spiker purchase_module false # weapon
 add_property spiker requirement_certification0 false # medium_assault
 add_property standard_issue_armor requirement_certification0 false # empire_issue
 add_property stealth_armor requirement_certification0 false # infiltration_suit
@@ -100,7 +96,6 @@ add_property super_armorkit requirement_award0 false # xmas_spirit
 add_property super_medkit requirement_award0 false # xmas_snowman
 add_property super_staminakit requirement_award0 false # xmas_gingerman
 add_property suppressor requirement_certification0 false # standard_assault
-add_property switchblade purchase_module false # vehicle
 add_property switchblade requirement_certification0 false # switchblade
 add_property threemanheavybuggy requirement_certification0 false # assault_buggy
 add_property threemanheavybuggy requirement_certification1 false # light_scout
