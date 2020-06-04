@@ -10,7 +10,6 @@ add_property colossus_flight allowed false
 add_property colossus_gunner allowed false
 add_property delivererv requirement_certification0 false
 add_property dropship allowed false
-add_property flail purchase_module false
 add_property flail requirement_certification0 false
 add_property fury requirement_certification0 false
 add_property galaxy_gunship allowed false
