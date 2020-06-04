@@ -38,7 +38,7 @@ add_property phantasm requirement_certification0 false
 add_property phoenix requirement_certification0 false
 add_property prowler allowed false
 add_property quadassault allowed false
-add_property quadassault allowed false
+add_property quadstealth allowed false
 add_property skyguard allowed false
 add_property striker requirement_certification0 false
 add_property switchblade allowed false
