@@ -25,6 +25,7 @@ add_property boomer_trigger equiptime 500
 add_property chainblade equiptime 250
 add_property chainblade holstertime 250
 add_property colossus_flight requirement_award0 false
+add_property command_detonater allowed false
 add_property command_detonater equiptime 500
 add_property command_detonater holstertime 500
 add_property cycler equiptime 600
@@ -35,7 +36,6 @@ add_property cycler_v3 equiptime 600
 add_property cycler_v3 holstertime 600
 add_property cycler_v4 equiptime 600
 add_property cycler_v4 holstertime 600
-add_property flail purchase_module false
 add_property flail_targeting_laser equiptime 500
 add_property flail_targeting_laser holstertime 500
 add_property flamethrower equiptime 1000
@@ -60,7 +60,6 @@ add_property lasher_projectile_ap lasher_projectile_ap false
 add_property lasher_projectile_ap lasher_projectile true
 add_property maelstrom equiptime 1000
 add_property maelstrom holstertime 1000
-add_property maelstrom purchase_module false
 add_property magcutter equiptime 250
 add_property magcutter holstertime 250
 add_property medicalapplicator equiptime 500
@@ -80,7 +79,6 @@ add_property punisher equiptime 600
 add_property punisher holstertime 600
 add_property r_shotgun equiptime 750
 add_property r_shotgun holstertime 750
-add_property radiator purchase_module false
 add_property remote_electronics_kit equiptime 500
 add_property remote_electronics_kit holstertime 500
 add_property repeater equiptime 500
@@ -89,14 +87,12 @@ add_property six_shooter equiptime 500
 add_property six_shooter holstertime 500
 add_property spiker equiptime 500
 add_property spiker holstertime 500
-add_property spiker purchase_module false
 add_property super_staminakit allowed true
 add_property super_staminakit medkit_reuse_delay 300
 add_property super_staminakit nodrop false
 add_property super_staminakit requirement_award0 false
 add_property suppressor equiptime 600
 add_property suppressor holstertime 600
-add_property switchblade purchase_module false
 add_property trek equiptime 500
 add_property trek holstertime 500
 add_property vulture requirement_award0 false
