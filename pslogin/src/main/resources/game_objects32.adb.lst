@@ -34,6 +34,9 @@ add_property mini_chaingun requirement_certification0 false
 add_property mosquito allowed false
 add_property nano_dispenser requirement_certification0 false
 add_property nchev allowed false
+add_property nchev_antiaircraft allowed false
+add_property nchev_antipersonnel allowed false
+add_property nchev_antivehicular allowed false
 add_property order_terminal forsale_nchev_antiaircraft false
 add_property order_terminal forsale_nchev_antipersonnel false
 add_property order_terminal forsale_nchev_antivehicular false
@@ -62,10 +65,16 @@ add_property switchblade allowed false
 add_property threemanheavybuggy allowed false
 add_property thunderer allowed false
 add_property trhev allowed false
+add_property trhev_antiaircraft allowed false
+add_property trhev_antipersonnel allowed false
+add_property trhev_antivehicular allowed false
 add_property two_man_assault_buggy allowed false
 add_property twomanheavybuggy allowed false
 add_property twomanhoverbuggy allowed false
 add_property vanguard allowed false
 add_property vshev allowed false
+add_property vshev_antiaircraft allowed false
+add_property vshev_antipersonnel allowed false
+add_property vshev_antivehicular allowed false
 add_property vulture allowed false
 add_property wasp allowed false
