@@ -86,10 +86,7 @@ add_property repeater holstertime 500
 add_property six_shooter equiptime 500
 add_property six_shooter holstertime 500
 add_property spiker equiptime 500
-add_property spiker ancient_weapon false
 add_property spiker holstertime 500
-add_property spiker holstertime 500
-add_property spiker purchase_module false
 add_property super_staminakit allowed true
 add_property super_staminakit medkit_reuse_delay 300
 add_property super_staminakit nodrop false
