@@ -18,7 +18,7 @@ class GUIDTaskRegisterPlayerTest extends ActorTest {
     obj.Slot(6).Equipment = obj_inv_ammo
     val obj_locker = obj.Slot(5).Equipment.get
     val obj_locker_ammo = AmmoBox(GlobalDefinitions.energy_cell)
-    obj_locker.asInstanceOf[LockerContainer].Inventory += 0 -> obj_locker_ammo
+    obj_locker.asInstanceOf[LockerEquipment].Inventory += 0 -> obj_locker_ammo
 
     assert(!obj.HasGUID)
     assert(!obj_wep.HasGUID)

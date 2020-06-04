@@ -4,10 +4,11 @@ package services.avatar
 import net.psforever.objects.Player
 import net.psforever.objects.ballistics.{Projectile, SourceEntry}
 import net.psforever.objects.equipment.Equipment
+import net.psforever.objects.inventory.InventoryItem
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.objectcreate.ConstructorData
-import net.psforever.packet.game.{ImplantAction, ObjectCreateMessage}
-import net.psforever.types.{ExoSuitType, PlanetSideEmpire, PlanetSideGUID, Vector3}
+import net.psforever.packet.game.ObjectCreateMessage
+import net.psforever.types.{ExoSuitType, PlanetSideEmpire, PlanetSideGUID, TransactionType, Vector3}
 import services.GenericEventBusMsg
 
 final case class AvatarServiceResponse(toChannel : String,
@@ -33,7 +34,7 @@ object AvatarResponse {
   final case class EquipmentInHand(pkt : ObjectCreateMessage) extends Response
   final case class GenericObjectAction(object_guid : PlanetSideGUID, action_code : Int) extends Response
   final case class HitHint(source_guid : PlanetSideGUID) extends Response
-  final case class Killed() extends Response
+  final case class Killed(mount_guid : Option[PlanetSideGUID]) extends Response
   final case class LoadPlayer(pkt : ObjectCreateMessage) extends Response
   final case class LoadProjectile(pkt : ObjectCreateMessage) extends Response
   final case class ObjectDelete(item_guid : PlanetSideGUID, unk : Int) extends Response
@@ -55,6 +56,10 @@ object AvatarResponse {
 
   final case class SendResponse(msg: PlanetSideGamePacket) extends Response
   final case class SendResponseTargeted(target_guid : PlanetSideGUID, msg: PlanetSideGamePacket) extends Response
+
+  final case class TerminalOrderResult(terminal_guid : PlanetSideGUID, action : TransactionType.Value, result : Boolean) extends Response
+  final case class ChangeExosuit(target_guid : PlanetSideGUID, exosuit : ExoSuitType.Value, subtype : Int, last_drawn_slot : Int, new_max_hand : Boolean, old_holsters : List[(Equipment, PlanetSideGUID)], holsters : List[InventoryItem], old_inventory : List[(Equipment, PlanetSideGUID)], inventory : List[InventoryItem], drop : List[InventoryItem], delete : List[(Equipment, PlanetSideGUID)]) extends Response
+  final case class ChangeLoadout(target_guid : PlanetSideGUID, exosuit : ExoSuitType.Value, subtype : Int, last_drawn_slot : Int, new_max_hand : Boolean, old_holsters : List[(Equipment, PlanetSideGUID)], holsters : List[InventoryItem], old_inventory : List[(Equipment, PlanetSideGUID)], inventory : List[InventoryItem], drop : List[InventoryItem]) extends Response
 
   final case class TeardownConnection() extends Response
   //  final case class PlayerStateShift(itemID : PlanetSideGUID) extends Response

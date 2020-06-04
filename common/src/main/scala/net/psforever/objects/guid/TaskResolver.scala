@@ -83,7 +83,7 @@ class TaskResolver() extends Actor {
   private def GiveTask(aTask : Task) : Unit = {
     val entry : TaskResolver.TaskEntry = TaskResolver.TaskEntry(aTask)
     tasks += entry
-    trace(s"enqueue and start task $aTask")
+    trace(s"enqueue and start task ${aTask.Description}")
     entry.Execute(self)
     StartTimeoutCheck()
   }
@@ -113,12 +113,13 @@ class TaskResolver() extends Actor {
   private def QueueSubtasks(task : Task, subtasks : List[TaskResolver.GiveTask], resolver : ActorRef = ActorRef.noSender) : Unit = {
     val entry : TaskResolver.TaskEntry = TaskResolver.TaskEntry(task, subtasks.map(task => task.task), resolver)
     tasks += entry
-    trace(s"enqueue task $task")
+    trace(s"enqueue task ${task.Description}")
     if(subtasks.isEmpty) { //a leaf in terms of task dependency; so, not dependent on any other work
-      trace(s"start task $task")
+      trace(s"start task ${task.Description}")
       entry.Execute(self)
     }
     else {
+      trace(s"enqueuing ${subtasks.length} substask(s) belonging to ${task.Description}")
       subtasks.foreach({subtask =>
         context.parent ! TaskResolver.GiveSubtask(subtask.task, subtask.subs, self) //route back to submit subtask to pool
       })
@@ -161,7 +162,7 @@ class TaskResolver() extends Actor {
   private def GeneralOnSuccess(index : Int) : Unit = {
     val entry = tasks(index)
     entry.task.onSuccess()
-    trace(s"success with this task ${entry.task}")
+    trace(s"success with task ${entry.task.Description}")
     if(entry.supertaskRef != ActorRef.noSender) {
       entry.supertaskRef ! TaskResolver.CompletedSubtask(entry.task) //alert our dependent task's resolver that we have completed
     }
@@ -178,7 +179,7 @@ class TaskResolver() extends Actor {
       case Some(index) =>
         val entry = tasks(index)
         if(TaskResolver.filterCompletionMatch(entry.subtasks.iterator, Task.Resolution.Success)) {
-          trace(s"start new task ${entry.task}")
+          trace(s"start new task ${entry.task.Description}")
           entry.Execute(self)
           StartTimeoutCheck()
         }
@@ -225,7 +226,7 @@ class TaskResolver() extends Actor {
   private def GeneralOnFailure(index : Int, ex  : Throwable) : Unit = {
     val entry = tasks(index)
     val task = entry.task
-    trace(s"failure with this task $task")
+    trace(s"failure with task ${task.Description}")
     task.onAbort(ex)
     task.onFailure(ex)
     if(entry.supertaskRef != ActorRef.noSender) {
@@ -268,7 +269,7 @@ class TaskResolver() extends Actor {
   private def PropagateAbort(index : Int, ex : Throwable) : Unit = {
     tasks(index).subtasks.foreach({subtask =>
       if(subtask.isComplete == Task.Resolution.Success) {
-        trace(s"aborting task $subtask")
+        trace(s"aborting task ${subtask.Description}")
         subtask.onAbort(ex)
       }
       context.parent ! Broadcast(TaskResolver.AbortTask(subtask, ex))

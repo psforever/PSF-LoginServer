@@ -631,7 +631,7 @@ class ConverterTest extends Specification {
 
   "LockerContainer" should {
     "convert to packet (empty)" in {
-      val obj = LockerContainer()
+      val obj = new LockerEquipment(LockerContainer())
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual DetailedLockerContainerData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), None)
@@ -648,7 +648,7 @@ class ConverterTest extends Specification {
 
     "convert to packet (occupied)" in {
       import GlobalDefinitions._
-      val obj = LockerContainer()
+      val obj = new LockerEquipment(LockerContainer())
       val rek = SimpleItem(remote_electronics_kit)
       rek.GUID = PlanetSideGUID(1)
       obj.Inventory += 0 -> rek

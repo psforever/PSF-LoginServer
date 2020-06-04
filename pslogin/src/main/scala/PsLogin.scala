@@ -273,7 +273,7 @@ object PsLogin {
     logger.info("Initializing ServiceManager")
     val serviceManager = ServiceManager.boot
     serviceManager ! ServiceManager.Register(Props[AccountIntermediaryService], "accountIntermediary")
-    serviceManager ! ServiceManager.Register(RandomPool(50).props(Props[TaskResolver]), "taskResolver")
+    serviceManager ! ServiceManager.Register(RandomPool(150).props(Props[TaskResolver]), "taskResolver")
     serviceManager ! ServiceManager.Register(Props[ChatService], "chat")
     serviceManager ! ServiceManager.Register(Props[GalaxyService], "galaxy")
     serviceManager ! ServiceManager.Register(Props[SquadService], "squad")

@@ -43,6 +43,8 @@ object GUIDTask {
         private val localObject = obj
         private val localAccessor = guid
 
+        override def Description : String = s"register $localObject"
+
         override def isComplete : Task.Resolution.Value = if(localObject.HasGUID) {
           Task.Resolution.Success
         }
@@ -90,6 +92,9 @@ object GUIDTask {
   def RegisterLocker(obj : LockerContainer)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
     TaskResolver.GiveTask(RegisterObjectTask(obj).task, RegisterInventory(obj))
   }
+  def RegisterLocker(obj : LockerEquipment)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
+    TaskResolver.GiveTask(RegisterObjectTask(obj).task, RegisterInventory(obj))
+  }
 
   /**
     * Construct tasking that registers the objects that are within the given container's inventory
@@ -124,8 +129,6 @@ object GUIDTask {
     obj match {
       case tool : Tool =>
         RegisterTool(tool)
-      case locker : LockerContainer =>
-        RegisterLocker(locker)
       case _ =>
         RegisterObjectTask(obj)
     }
@@ -215,6 +218,8 @@ object GUIDTask {
         private val localObject = obj
         private val localAccessor = guid
 
+        override def Description : String = s"unregister $localObject"
+
         override def isComplete : Task.Resolution.Value = if(!localObject.HasGUID) {
           Task.Resolution.Success
         }
@@ -254,6 +259,9 @@ object GUIDTask {
   def UnregisterLocker(obj : LockerContainer)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
     TaskResolver.GiveTask(UnregisterObjectTask(obj).task, UnregisterInventory(obj))
   }
+  def UnregisterLocker(obj : LockerEquipment)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
+    TaskResolver.GiveTask(RegisterObjectTask(obj).task, RegisterInventory(obj))
+  }
 
   /**
     * Construct tasking that unregisters the objects that are within the given container's inventory
@@ -282,8 +290,6 @@ object GUIDTask {
     obj match {
       case tool : Tool =>
         UnregisterTool(tool)
-      case locker : LockerContainer =>
-        UnregisterLocker(locker)
       case _ =>
         UnregisterObjectTask(obj)
     }
