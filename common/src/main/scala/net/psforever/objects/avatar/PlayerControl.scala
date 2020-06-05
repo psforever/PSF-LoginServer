@@ -71,12 +71,15 @@ class PlayerControl(player : Player) extends Actor
         ImplantInitializationComplete(slot)
 
       case Player.DrainStamina(amount : Int) =>
-        player.Stamina -= amount
+        player.Stamina += amount
         UpdateStamina()
 
       case Player.StaminaChanged(changeInStamina : Int) =>
-        player.Stamina += changeInStamina
-        UpdateStamina()
+        val beforeStamina = player.Stamina
+        val afterStamina = player.Stamina += changeInStamina
+        if(beforeStamina != afterStamina) {
+          UpdateStamina()
+        }
 
       case Player.Die() =>
         if(player.isAlive) {
@@ -714,7 +717,7 @@ class PlayerControl(player : Player) extends Actor
           val drainInterval = implant.GetCostIntervalByExoSuit(player.ExoSuit)
           if (implant.StaminaCost > 0 && drainInterval > 0) { // Ongoing stamina drain, if applicable
             implantSlotTimers(slot).cancel
-            implantSlotTimers(slot) = context.system.scheduler.schedule(0 seconds, drainInterval milliseconds, self, Player.DrainStamina(implant.StaminaCost))
+            implantSlotTimers(slot) = context.system.scheduler.scheduleWithFixedDelay(0 seconds, drainInterval milliseconds, self, Player.DrainStamina(implant.StaminaCost))
           }
           player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, player.Implant(slot).id * 2 + 1)) // Activation sound / effect
           player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.ActivateImplantSlot(player.GUID, slot))
