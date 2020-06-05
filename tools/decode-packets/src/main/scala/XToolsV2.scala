@@ -1,12 +1,10 @@
-package scripts
-
 import java.io.{BufferedWriter, File, FileWriter}
-import java.nio.file.{Files, Paths, StandardCopyOption}
 import java.nio.charset.CodingErrorAction
 
-import net.psforever.packet._
+import net.psforever.packet.PacketCoding
 import scodec.bits._
 import scodec.Attempt.{Failure, Successful}
+import java.nio.file.{Files, Paths, StandardCopyOption}
 
 import scala.io.{Codec, Source}
 import util.control.Breaks._
