@@ -108,7 +108,8 @@ lazy val decodePackets = (project in file("tools/decode-packets")).
     libraryDependencies ++= Seq(
       "org.scala-lang.modules"     %% "scala-parallel-collections" % "0.2.0"
     )
-  )
+  ).
+  dependsOn(pslogin, common)
 
 // Special test configuration for really quiet tests (used in CI)
 lazy val QuietTest = config("quiet") extend(Test)
