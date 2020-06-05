@@ -2877,86 +2877,6 @@ class WorldSessionActor extends Actor
         }
         lastTerminalOrderFulfillment = true
 
-      case Terminal.LearnImplant(implant) =>
-        val terminal_guid = msg.terminal_guid
-        val implant_type = implant.Type
-        val message = s"Implants: ${tplayer.Name} wants to learn $implant_type"
-        val (interface, slotNumber) = tplayer.VehicleSeated match {
-          case Some(mech_guid) =>
-            (
-              continent.Map.TerminalToInterface.get(mech_guid.guid),
-              if(!avatar.Implants.exists({ slot => slot.Implant == implant_type })) {
-                //no duplicates
-                avatar.InstallImplant(implant)
-              }
-              else {
-                None
-              }
-            )
-          case _ =>
-            (None, None)
-        }
-        if(interface.contains(terminal_guid.guid) && slotNumber.isDefined) {
-          val slot = slotNumber.get
-          log.info(s"$message - put in slot $slot")
-          sendResponse(AvatarImplantMessage(tplayer.GUID, ImplantAction.Add, slot, implant_type.id))
-          sendResponse(ItemTransactionResultMessage(terminal_guid, TransactionType.Learn, true))
-          player.Actor ! Player.ImplantInitializationStart(slot)
-        }
-        else {
-          if(interface.isEmpty) {
-            log.warn(s"$message - not interacting with a terminal")
-          }
-          else if(!interface.contains(terminal_guid.guid)) {
-            log.warn(s"$message - interacting with the wrong terminal, ${interface.get}")
-          }
-          else if(slotNumber.isEmpty) {
-            log.warn(s"$message - already knows that implant")
-          }
-          else {
-            log.warn(s"$message - forgot to sit at a terminal")
-          }
-          sendResponse(ItemTransactionResultMessage(terminal_guid, TransactionType.Learn, false))
-        }
-        lastTerminalOrderFulfillment = true
-
-      case Terminal.SellImplant(implant) =>
-        val terminal_guid = msg.terminal_guid
-        val implant_type = implant.Type
-        val (interface, slotNumber) = tplayer.VehicleSeated match {
-          case Some(mech_guid) =>
-            (
-              continent.Map.TerminalToInterface.get(mech_guid.guid),
-              avatar.UninstallImplant(implant_type)
-            )
-          case None =>
-            (None, None)
-        }
-        if(interface.contains(terminal_guid.guid) && slotNumber.isDefined) {
-          val slot = slotNumber.get
-          log.info(s"${tplayer.Name} is selling $implant_type - take from slot $slot")
-          player.Actor ! Player.UninitializeImplant(slot)
-          sendResponse(AvatarImplantMessage(tplayer.GUID, ImplantAction.Remove, slot, 0))
-          sendResponse(ItemTransactionResultMessage(terminal_guid, TransactionType.Sell, true))
-        }
-        else {
-          val message = s"${tplayer.Name} can not sell $implant_type"
-          if(interface.isEmpty) {
-            log.warn(s"$message - not interacting with a terminal")
-          }
-          else if(!interface.contains(terminal_guid.guid)) {
-            log.warn(s"$message - interacting with the wrong terminal, ${interface.get}")
-          }
-          else if(slotNumber.isEmpty) {
-            log.warn(s"$message - does not know that implant")
-          }
-          else {
-            log.warn(s"$message - forgot to sit at a terminal")
-          }
-          sendResponse(ItemTransactionResultMessage(terminal_guid, TransactionType.Sell, false))
-        }
-        lastTerminalOrderFulfillment = true
-
       case Terminal.BuyVehicle(vehicle, weapons, trunk) =>
         continent.Map.TerminalToSpawnPad.get(msg.terminal_guid.guid) match {
           case Some(pad_guid) =>
@@ -5943,6 +5863,7 @@ class WorldSessionActor extends Actor
           else { //shooting
             if (tool.FireModeIndex == 1 && (tool.Definition.Name == "anniversary_guna" || tool.Definition.Name == "anniversary_gun" || tool.Definition.Name == "anniversary_gunb")) {
               player.Actor ! Player.StaminaChanged(-player.Stamina)
+              player.skipStaminaRegenForTurns = 3
             }
 
             prefire = shooting.orElse(Some(weapon_guid))

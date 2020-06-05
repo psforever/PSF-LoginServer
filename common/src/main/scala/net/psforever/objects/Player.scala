@@ -1,9 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import akka.actor.ActorRef
 import net.psforever.objects.avatar.LoadoutManager
-import net.psforever.objects.definition.{AvatarDefinition, ExoSuitDefinition, SpecialExoSuitDefinition}
+import net.psforever.objects.definition.{AvatarDefinition, ExoSuitDefinition, ImplantDefinition, SpecialExoSuitDefinition}
 import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot, JammableUnit}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
 import net.psforever.objects.serverobject.PlanetSideServerObject
@@ -368,6 +367,10 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
   def Implants : Array[(ImplantType.Value, Long, Boolean)] = {
     core.Implants.takeWhile(_.Unlocked).map( implant => { (implant.Implant, implant.MaxTimer, implant.Active) })
   }
+
+  def InstallImplant(implant : ImplantDefinition) : Option[Int] = core.InstallImplant(implant)
+
+  def UninstallImplant(implant : ImplantType.Value) : Option[Int] = core.UninstallImplant(implant)
 
   def ResetAllImplants() : Unit = core.ResetAllImplants()
 

@@ -385,6 +385,92 @@ class PlayerControl(player : Player) extends Actor
             )
             player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, true))
 
+          case Terminal.LearnImplant(implant) =>
+            val zone = player.Zone
+            val events = zone.AvatarEvents
+            val playerChannel = player.Name
+            val terminal_guid = msg.terminal_guid
+            val implant_type = implant.Type
+            val message = s"wants to learn $implant_type"
+            val (interface, slotNumber) = player.VehicleSeated match {
+              case Some(mech_guid) =>
+                (
+                  zone.Map.TerminalToInterface.get(mech_guid.guid),
+                  if(!player.Implants.exists({ case (implantType, _, _) => implantType == implant_type })) {
+                    //no duplicates
+                    player.InstallImplant(implant)
+                  }
+                  else {
+                    None
+                  }
+                )
+              case _ =>
+                (None, None)
+            }
+            val result = if(interface.contains(terminal_guid.guid) && slotNumber.isDefined) {
+              val slot = slotNumber.get
+              log.info(s"$message - put in slot $slot")
+              events ! AvatarServiceMessage(playerChannel, AvatarAction.SendResponse(Service.defaultPlayerGUID, AvatarImplantMessage(player.GUID, ImplantAction.Add, slot, implant_type.id)))
+              ImplantInitializationStart(slot)
+              true
+            }
+            else {
+              if(interface.isEmpty) {
+                log.warn(s"$message - not interacting with a terminal")
+              }
+              else if(!interface.contains(terminal_guid.guid)) {
+                log.warn(s"$message - interacting with the wrong terminal, ${interface.get}")
+              }
+              else if(slotNumber.isEmpty) {
+                log.warn(s"$message - already knows that implant")
+              }
+              else {
+                log.warn(s"$message - forgot to sit at a terminal")
+              }
+              false
+            }
+            events ! AvatarServiceMessage(playerChannel, AvatarAction.TerminalOrderResult(terminal_guid, msg.transaction_type, result))
+
+          case Terminal.SellImplant(implant) =>
+            val zone = player.Zone
+            val events = zone.AvatarEvents
+            val playerChannel = player.Name
+            val terminal_guid = msg.terminal_guid
+            val implant_type = implant.Type
+            val (interface, slotNumber) = player.VehicleSeated match {
+              case Some(mech_guid) =>
+                (
+                  zone.Map.TerminalToInterface.get(mech_guid.guid),
+                  player.UninstallImplant(implant_type)
+                )
+              case None =>
+                (None, None)
+            }
+            val result = if(interface.contains(terminal_guid.guid) && slotNumber.isDefined) {
+              val slot = slotNumber.get
+              log.info(s"is uninstalling $implant_type - take from slot $slot")
+              UninitializeImplant(slot)
+              events ! AvatarServiceMessage(playerChannel, AvatarAction.SendResponse(Service.defaultPlayerGUID, AvatarImplantMessage(player.GUID, ImplantAction.Remove, slot, 0)))
+              true
+            }
+            else {
+              val message = s"${player.Name} can not sell $implant_type"
+              if(interface.isEmpty) {
+                log.warn(s"$message - not interacting with a terminal")
+              }
+              else if(!interface.contains(terminal_guid.guid)) {
+                log.warn(s"$message - interacting with the wrong terminal, ${interface.get}")
+              }
+              else if(slotNumber.isEmpty) {
+                log.warn(s"$message - does not know that implant")
+              }
+              else {
+                log.warn(s"$message - forgot to sit at a terminal")
+              }
+              false
+            }
+            events ! AvatarServiceMessage(playerChannel, AvatarAction.TerminalOrderResult(terminal_guid, msg.transaction_type, result))
+
           case _ => ; //terminal messages not handled here
         }
 
@@ -613,7 +699,7 @@ class PlayerControl(player : Player) extends Actor
 
   def UpdateStamina() : Unit = {
     val currentStamina = player.Stamina
-    if(currentStamina == 0) {
+    if(currentStamina == 0 && !player.Fatigued) {
       player.Fatigued = true
       player.skipStaminaRegenForTurns += 4
       player.Implants.indices.foreach { slot => // Disable all implants
@@ -621,10 +707,17 @@ class PlayerControl(player : Player) extends Actor
         player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.SendResponse(Service.defaultPlayerGUID, AvatarImplantMessage(player.GUID, ImplantAction.OutOfStamina, slot, 1)))
       }
     }
-    else if (player.Fatigued && currentStamina >= 20) {
+    else if(currentStamina >= 20) {
+      val wasFatigued = player.Fatigued
       player.Fatigued = false
-      player.Implants.indices.foreach { slot => // Re-enable all implants
-        player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.SendResponse(Service.defaultPlayerGUID, AvatarImplantMessage(player.GUID, ImplantAction.OutOfStamina, slot, 0)))
+      val implants = player.Implants
+      if(wasFatigued) {
+        player.Implants.indices.foreach { slot => // Re-enable all implants
+          player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.SendResponse(Service.defaultPlayerGUID, AvatarImplantMessage(player.GUID, ImplantAction.OutOfStamina, slot, 0)))
+          if(!player.ImplantSlot(slot).Initialized) {
+            ImplantInitializationStart(slot)
+          }
+        }
       }
     }
     player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.PlanetsideAttributeToAll(player.GUID, 2, player.Stamina))
@@ -644,7 +737,7 @@ class PlayerControl(player : Player) extends Actor
         }
         val maxInitializationTime = implantSlot.MaxTimer * 1000
         if (time - initializationTime > maxInitializationTime) {
-          //this implant should already have been initialized
+          //this implant should have already been initialized
           ImplantInitializationComplete(slot)
         }
         else {
