@@ -184,7 +184,7 @@ object ResolutionCalculations {
           // If any health damage was applied also drain an amount of stamina equal to half the health damage
           if(player.Health < originalHealth) {
             val delta = originalHealth - player.Health
-            player.Actor ! Player.StaminaChanged(-math.floor(delta / 2).toInt)
+            player.Stamina -= math.floor(delta / 2).toInt
           }
         }
       case _ =>

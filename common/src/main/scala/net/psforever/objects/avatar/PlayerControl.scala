@@ -526,17 +526,20 @@ class PlayerControl(player : Player) extends Actor
       if(player.isAlive) {
         val originalHealth = player.Health
         val originalArmor = player.Armor
+        val originalStamina = player.Stamina
         val originalCapacitor = player.Capacitor.toInt
         val cause = applyDamageTo(player)
         val health = player.Health
         val armor = player.Armor
+        val stamina = player.Stamina
         val capacitor = player.Capacitor.toInt
         val damageToHealth = originalHealth - health
         val damageToArmor = originalArmor - armor
+        val damageToStamina = originalStamina - stamina
         val damageToCapacitor = originalCapacitor - capacitor
-        PlayerControl.HandleDamage(player, cause, damageToHealth, damageToArmor, damageToCapacitor)
-        if(damageToHealth > 0 || damageToArmor > 0 || damageToCapacitor > 0) {
-          damageLog.info(s"${player.Name}-infantry: BEFORE=$originalHealth/$originalArmor/$originalCapacitor, AFTER=$health/$armor/$capacitor, CHANGE=$damageToHealth/$damageToArmor/$damageToCapacitor")
+        PlayerControl.HandleDamage(player, cause, damageToHealth, damageToArmor, damageToStamina, damageToCapacitor)
+        if(damageToHealth > 0 || damageToArmor > 0 || damageToStamina > 0 || damageToCapacitor > 0) {
+          damageLog.info(s"${player.Name}-infantry: BEFORE=$originalHealth/$originalArmor/$originalStamina/$originalCapacitor, AFTER=$health/$armor/$stamina/$capacitor, CHANGE=$damageToHealth/$damageToArmor/$damageToStamina/$damageToCapacitor")
         }
       }
   }
@@ -877,13 +880,16 @@ object PlayerControl {
     * na
     * @param target na
     */
-  def HandleDamage(target : Player, cause : ResolvedProjectile, damageToHealth : Int, damageToArmor : Int, damageToCapacitor : Int) : Unit = {
+  def HandleDamage(target : Player, cause : ResolvedProjectile, damageToHealth : Int, damageToArmor : Int, damageToStamina : Int, damageToCapacitor : Int) : Unit = {
     val targetGUID = target.GUID
     val zone = target.Zone
     val zoneId = zone.Id
     val events = zone.AvatarEvents
     val health = target.Health
     if(health > 0) {
+      if(damageToStamina > 0) {
+        target.Actor ! Player.DrainStamina(0)
+      }
       if(damageToCapacitor > 0) {
         events ! AvatarServiceMessage(target.Name, AvatarAction.PlanetsideAttributeSelf(targetGUID, 7, target.Capacitor.toLong))
       }
