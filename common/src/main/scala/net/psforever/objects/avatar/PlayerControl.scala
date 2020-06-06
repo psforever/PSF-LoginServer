@@ -74,7 +74,7 @@ class PlayerControl(player : Player) extends Actor
         ImplantInitializationComplete(slot)
 
       case Player.DrainStamina(amount : Int) =>
-        player.Stamina += amount
+        player.Stamina -= amount
         UpdateStamina()
 
       case Player.StaminaChanged(changeInStamina : Int) =>
@@ -732,7 +732,7 @@ class PlayerControl(player : Player) extends Actor
         }
       }
     }
-    player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.PlanetsideAttributeToAll(player.GUID, 2, player.Stamina))
+    player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.PlanetsideAttributeToAll(player.GUID, 2, currentStamina))
   }
 
   /**
