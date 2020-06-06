@@ -3392,29 +3392,36 @@ class WorldSessionActor extends Actor
       player.Actor ! JammableUnit.ClearJammeredSound()
     }
     val fatigued = player.Fatigued
-    (0 until DetailedCharacterData.numberOfImplantSlots(tplayer.BEP)).foreach(slot => {
+    (0 until DetailedCharacterData.numberOfImplantSlots(tplayer.BEP)).foreach {slot =>
       val implantSlot = player.ImplantSlot(slot)
-      if (implantSlot.Initialized) {
-        sendResponse(AvatarImplantMessage(guid, ImplantAction.Initialization, slot, 1))
-        if(fatigued) {
-          sendResponse(AvatarImplantMessage(guid, ImplantAction.OutOfStamina, slot, 1))
-        }
+      implantSlot.Installed match {
+        case Some(_) =>
+          if (implantSlot.Initialized) {
+            sendResponse(AvatarImplantMessage(guid, ImplantAction.Initialization, slot, 1))
+            if (fatigued) {
+              sendResponse(AvatarImplantMessage(guid, ImplantAction.OutOfStamina, slot, 1))
+            }
+          }
+          else if (!fatigued) {
+            player.Actor ! Player.ImplantInitializationStart(slot)
+          }
+          //TODO if this implant is Installed but does not have shortcut, add to a free slot or write over slot 61/62/63
+          // for now, just write into slots 2, 3 and 4
+          val implant = implantSlot.Implant
+          Shortcut.ImplantsMap(implant) match {
+            case shortcut @ Some(_) =>
+              sendResponse(CreateShortcutMessage(guid, slot + 2, 0, addShortcut = true, shortcut))
+            case None if implant != ImplantType.None =>
+              log.warn(s"could not find shortcut for implant $implant")
+            case _ => ;
+          }
+        case _ => ;
       }
-      else if (!fatigued) {
-        player.Actor ! Player.ImplantInitializationStart(slot)
-      }
-      //TODO if this implant is Installed but does not have shortcut, add to a free slot or write over slot 61/62/63
-      // for now, just write into slots 2, 3 and 4
-      Shortcut.ImplantsMap(implantSlot.Implant) match {
-        case Some(shortcut : Shortcut) =>
-          sendResponse(CreateShortcutMessage(guid, slot + 2, 0, addShortcut = true, Some(shortcut)))
-        case _ => log.warn(s"Could not find shortcut for implant ${implantSlot.Implant.toString()}")
-      }
-    })
+    }
 
     sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 82, 0))
     //TODO if Medkit does not have shortcut, add to a free slot or write over slot 64
-    sendResponse(CreateShortcutMessage(guid, 1, 0, true, Shortcut.MEDKIT))
+    sendResponse(CreateShortcutMessage(guid, 1, 0, true, Shortcut.Medkit))
     sendResponse(ChangeShortcutBankMessage(guid, 0))
     //Favorites lists
     val (inf, veh) = avatar.EquipmentLoadouts.Loadouts.partition { case (index, _) => index < 10 }

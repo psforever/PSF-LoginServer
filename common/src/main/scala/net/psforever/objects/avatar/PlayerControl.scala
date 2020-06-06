@@ -39,9 +39,12 @@ class PlayerControl(player : Player) extends Actor
   private [this] val log = org.log4s.getLogger(player.Name)
   private [this] val damageLog = org.log4s.getLogger(Damageable.LogChannel)
 
-  // A collection of timers for each slot to trigger stamina drain on an interval
+  /**
+    * A collection of timers indexed for the implant in each slot.
+    * Before an implant is ready, it serves as the initialization timer.
+    * After being initialized, it is used as the stamina drain interval when the implant is active. */
   val implantSlotTimers = mutable.HashMap(0 -> Default.Cancellable, 1 -> Default.Cancellable, 2 -> Default.Cancellable)
-  // control agency for the player's locker container (dedicated inventory slot #5)
+  /** control agency for the player's locker container (dedicated inventory slot #5) */
   val lockerControlAgent : ActorRef = {
     val locker = player.Locker
     locker.Zone = player.Zone
@@ -697,9 +700,16 @@ class PlayerControl(player : Player) extends Actor
     zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectDetachMessage(obj.GUID, item.GUID, Vector3.Zero, 0f)))
   }
 
+  /**
+    * Determine whether the current stamina value for this player requires a greater change in player states.
+    * Losing all stamina and not yet being fatigued deactivates implants.
+    * Having stamina of 20 points or greater and having previously been fatigued
+    * allows implants to operate once again.
+    * Initialization must be restarted manually for any implant that had not previously finished initializing.
+    */
   def UpdateStamina() : Unit = {
     val currentStamina = player.Stamina
-    if(currentStamina == 0 && !player.Fatigued) {
+    if(currentStamina == 0 && !player.Fatigued) { // Only be fatigued once even if loses all stamina again
       player.Fatigued = true
       player.skipStaminaRegenForTurns += 4
       player.Implants.indices.foreach { slot => // Disable all implants
@@ -710,8 +720,7 @@ class PlayerControl(player : Player) extends Actor
     else if(currentStamina >= 20) {
       val wasFatigued = player.Fatigued
       player.Fatigued = false
-      val implants = player.Implants
-      if(wasFatigued) {
+      if(wasFatigued) { //reactivate only if we were fatigued
         player.Implants.indices.foreach { slot => // Re-enable all implants
           player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.SendResponse(Service.defaultPlayerGUID, AvatarImplantMessage(player.GUID, ImplantAction.OutOfStamina, slot, 0)))
           if(!player.ImplantSlot(slot).Initialized) {
@@ -723,6 +732,12 @@ class PlayerControl(player : Player) extends Actor
     player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.PlanetsideAttributeToAll(player.GUID, 2, player.Stamina))
   }
 
+  /**
+    * The process of starting an implant so that it can be activated is one that requires a matter of time.
+    * If the implant should already have been started, then just switch to the proper state.
+    * Always (check to) initialize implants when setting up an avatar or becoming fatigued or when revived.
+    * @param slot the slot in which this implant is found
+    */
   def ImplantInitializationStart(slot : Int) : Unit = {
     val implantSlot = player.ImplantSlot(slot)
     if(implantSlot.Installed.isDefined) {
@@ -742,8 +757,9 @@ class PlayerControl(player : Player) extends Actor
         }
         else {
           // Start client side initialization timer
-          //progress, left to its own accumulation, is tied to the client's knowledge of the implant initialization time
-          //what is normally a 60s timer that uses 120s on the server will still visually update as if 60s
+          // Check this along the bottom of the character information window
+          //progress accumulates according to the client's knowledge of the implant initialization time
+          //what is normally a 60s timer that is set to 120s on the server will still visually update as if 60s
           val percent = (100 * (time - initializationTime) / maxInitializationTime.toFloat ).toInt
           player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.SendResponse(Service.defaultPlayerGUID, ActionProgressMessage(slot + 6, percent)))
           // Callback after initialization timer to complete initialization
@@ -757,6 +773,11 @@ class PlayerControl(player : Player) extends Actor
     }
   }
 
+  /**
+    * The implant is ready to be made available and active on selection.
+    * The end result of a timed process, occasionally an implant will become "already active".
+    * @param slot the slot in which this implant is found
+    */
   def ImplantInitializationComplete(slot : Int) : Unit = {
     val implantSlot = player.ImplantSlot(slot)
     if(implantSlot.Installed.isDefined) {
@@ -767,24 +788,28 @@ class PlayerControl(player : Player) extends Actor
     }
   }
 
+  /**
+    * Whether or not the implant is being used by the player who installed it.
+    * If the implant has no business having its activation state changed yet, it (re)starts its initialization phase.
+    * @param slot the slot in which this implant is found
+    * @param status `1`, if the implant should become active;
+    *              `0`, if it should be deactivated
+    */
   def ImplantActivation(slot : Int, status : Int) : Unit = {
     val implantSlot = player.ImplantSlot(slot)
-    if(!implantSlot.Initialized) {
-      log.warn(s"implant #${slot + 1} is trying to (de)activate when not even initialized!")
+    if(!implantSlot.Initialized && !player.Fatigued) {
+      log.warn(s"implant in slot $slot is trying to (de)activate when not even initialized!")
       //we should not be activating or deactivataing, but initializing
       implantSlotTimers(slot).cancel
       implantSlotTimers(slot) = Default.Cancellable
       implantSlot.Active = false
       //normal deactivation
       player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.DeactivateImplantSlot(player.GUID, slot))
-      if (status == 1) {
-        //initialization process (from scratch)
-        implantSlot.InitializeTime = System.currentTimeMillis
-        ImplantInitializationStart(slot)
-      }
+      //initialization process (from scratch)
+      implantSlot.InitializeTime = 0
+      ImplantInitializationStart(slot)
     }
     else if(status == 0 && implantSlot.Active) {
-      // Cancel stamina drain timer
       implantSlotTimers(slot).cancel
       implantSlotTimers(slot) = Default.Cancellable
       implantSlot.Active = false
@@ -797,7 +822,6 @@ class PlayerControl(player : Player) extends Actor
           if (implantSlot.Active) {
             // Some events such as zoning will reset the implant on the client side without sending a deactivation packet
             // But the implant will remain in an active state server side. For now, allow reactivation of the implant.
-            // todo: Deactivate implants server side when actions like zoning happen. (Other actions?)
             log.warn(s"implant $slot is already active, but activating again")
             implantSlotTimers(slot).cancel
             implantSlotTimers(slot) = Default.Cancellable
@@ -824,14 +848,27 @@ class PlayerControl(player : Player) extends Actor
     }
   }
 
+  /**
+    * The implant in this slot is no longer active and is no longer considered ready to activate.
+    * @param slot the slot in which an implant could be found
+    */
   def UninitializeImplant(slot: Int): Unit = {
+    implantSlotTimers(slot).cancel
+    implantSlotTimers(slot) = Default.Cancellable
+    val zone = player.Zone
+    val guid = player.GUID
+    val playerChannel = player.Name
+    val zoneChannel = zone.Id
     val implantSlot = player.ImplantSlot(slot)
+    if(implantSlot.Active) {
+      zone.AvatarEvents ! AvatarServiceMessage(zoneChannel, AvatarAction.PlanetsideAttribute(guid, 28, player.Implant(slot).id * 2)) // Deactivation sound / effect
+      zone.AvatarEvents ! AvatarServiceMessage(playerChannel, AvatarAction.DeactivateImplantSlot(guid, slot))
+    }
     implantSlot.Active = false
     implantSlot.Initialized = false
     implantSlot.InitializeTime = 0L
-    implantSlotTimers(slot).cancel
-    implantSlotTimers(slot) = Default.Cancellable
-    player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.SendResponse(Service.defaultPlayerGUID, AvatarImplantMessage(player.GUID, ImplantAction.Initialization, slot, 0)))
+    zone.AvatarEvents ! AvatarServiceMessage(playerChannel, AvatarAction.SendResponse(Service.defaultPlayerGUID, ActionProgressMessage(slot + 6, 100)))
+    zone.AvatarEvents ! AvatarServiceMessage(zoneChannel, AvatarAction.SendResponse(Service.defaultPlayerGUID, AvatarImplantMessage(guid, ImplantAction.Initialization, slot, 0)))
   }
 }
 

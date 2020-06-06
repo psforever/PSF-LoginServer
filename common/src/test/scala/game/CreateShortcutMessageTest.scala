@@ -89,27 +89,27 @@ class CreateShortcutMessageTest extends Specification {
   }
 
   "presets" in {
-    Shortcut.AUDIO_AMPLIFIER.get.purpose mustEqual 2
-    Shortcut.AUDIO_AMPLIFIER.get.tile mustEqual "audio_amplifier"
-    Shortcut.DARKLIGHT_VISION.get.purpose mustEqual 2
-    Shortcut.DARKLIGHT_VISION.get.tile mustEqual "darklight_vision"
-    Shortcut.ENHANCED_TARGETING.get.purpose mustEqual 2
-    Shortcut.ENHANCED_TARGETING.get.tile mustEqual "targeting"
-    Shortcut.MEDKIT.get.purpose mustEqual 0
-    Shortcut.MEDKIT.get.tile mustEqual "medkit"
-    Shortcut.MELEE_BOOSTER.get.purpose mustEqual 2
-    Shortcut.MELEE_BOOSTER.get.tile mustEqual "melee_booster"
-    Shortcut.PERSONAL_SHIELD.get.purpose mustEqual 2
-    Shortcut.PERSONAL_SHIELD.get.tile mustEqual "personal_shield"
-    Shortcut.RANGE_MAGNIFIER.get.purpose mustEqual 2
-    Shortcut.RANGE_MAGNIFIER.get.tile mustEqual "range_magnifier"
-    Shortcut.REGENERATION.get.purpose mustEqual 2
-    Shortcut.REGENERATION.get.tile mustEqual "advanced_regen"
-    Shortcut.SECOND_WIND.get.purpose mustEqual 2
-    Shortcut.SECOND_WIND.get.tile mustEqual "second_wind"
-    Shortcut.SENSOR_SHIELD.get.purpose mustEqual 2
-    Shortcut.SENSOR_SHIELD.get.tile mustEqual "silent_run"
-    Shortcut.SURGE.get.purpose mustEqual 2
-    Shortcut.SURGE.get.tile mustEqual "surge"
+    Shortcut.AudioAmplifier.get.purpose mustEqual 2
+    Shortcut.AudioAmplifier.get.tile mustEqual "audio_amplifier"
+    Shortcut.DartklightVision.get.purpose mustEqual 2
+    Shortcut.DartklightVision.get.tile mustEqual "darklight_vision"
+    Shortcut.EnhancedTargeting.get.purpose mustEqual 2
+    Shortcut.EnhancedTargeting.get.tile mustEqual "targeting"
+    Shortcut.Medkit.get.purpose mustEqual 0
+    Shortcut.Medkit.get.tile mustEqual "medkit"
+    Shortcut.MeleeBooster.get.purpose mustEqual 2
+    Shortcut.MeleeBooster.get.tile mustEqual "melee_booster"
+    Shortcut.PersonalShield.get.purpose mustEqual 2
+    Shortcut.PersonalShield.get.tile mustEqual "personal_shield"
+    Shortcut.RangeMagnifier.get.purpose mustEqual 2
+    Shortcut.RangeMagnifier.get.tile mustEqual "range_magnifier"
+    Shortcut.Regeneration.get.purpose mustEqual 2
+    Shortcut.Regeneration.get.tile mustEqual "advanced_regen"
+    Shortcut.SecondWind.get.purpose mustEqual 2
+    Shortcut.SecondWind.get.tile mustEqual "second_wind"
+    Shortcut.SensorShield.get.purpose mustEqual 2
+    Shortcut.SensorShield.get.tile mustEqual "silent_run"
+    Shortcut.Surge.get.purpose mustEqual 2
+    Shortcut.Surge.get.tile mustEqual "surge"
   }
 }
