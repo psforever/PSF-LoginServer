@@ -4111,13 +4111,12 @@ class WorldSessionActor extends Actor
       if(isMovingPlus) {
         CancelZoningProcessWithDescriptiveReason("cancel_motion")
       }
-      if(deadState == DeadState.Alive) {
-        val regenTick = if(is_crouching) 2 else 3
-        if(player.skipStaminaRegenForTurns > 0 && upstreamMessageCount % 2 == 0) {
+      if(deadState == DeadState.Alive && upstreamMessageCount % 2 == 0) {
+        if(player.skipStaminaRegenForTurns > 0) {
           //do not renew stamina for a while
           player.skipStaminaRegenForTurns -= 1
         }
-        else if(player.Stamina != player.MaxStamina && !isMovingPlus && upstreamMessageCount % regenTick == 0) {
+        else if(player.Stamina != player.MaxStamina && !isMovingPlus) {
           // Regen stamina roughly every 750ms when standing, 500ms when crouched
           player.Actor ! Player.StaminaChanged(1)
         }
@@ -4201,12 +4200,12 @@ class WorldSessionActor extends Actor
         //TODO status condition of "playing getting out of vehicle to allow for late packets without warning
         //log.warn(s"ChildObjectState: player ${player.Name} not related to anything with a controllable agent")
       }
-      if(deadState == DeadState.Alive) {
-        if(player.skipStaminaRegenForTurns > 0 && upstreamMessageCount % 2 == 0) {
+      if(deadState == DeadState.Alive && upstreamMessageCount % 2 == 0) {
+        if(player.skipStaminaRegenForTurns > 0) {
           //do not renew stamina for a while
           player.skipStaminaRegenForTurns -= 1
         }
-        else if(player.Stamina != player.MaxStamina && upstreamMessageCount % 3 == 0) {
+        else if(player.Stamina != player.MaxStamina) {
           // Regen stamina roughly every 750ms
           player.Actor ! Player.StaminaChanged(1)
         }
@@ -4259,12 +4258,12 @@ class WorldSessionActor extends Actor
           log.error(s"VehicleState: player should not be dispatching this kind of packet from vehicle#$vehicle_guid  when not the driver ($index)")
         case _ => ;
       }
-      if(deadState == DeadState.Alive) {
-        if (player.skipStaminaRegenForTurns > 0 && upstreamMessageCount % 2 == 0) {
+      if(deadState == DeadState.Alive && upstreamMessageCount % 2 == 0) {
+        if(player.skipStaminaRegenForTurns > 0) {
           //do not renew stamina for a while
           player.skipStaminaRegenForTurns -= 1
         }
-        else if (player.Stamina != player.MaxStamina && upstreamMessageCount % 3 == 0) {
+        else if(player.Stamina != player.MaxStamina) {
           // Regen stamina roughly every 750ms
           player.Actor ! Player.StaminaChanged(1)
         }
