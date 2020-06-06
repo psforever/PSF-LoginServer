@@ -860,10 +860,10 @@ class PlayerControl(player : Player) extends Actor
     val playerChannel = player.Name
     val zoneChannel = zone.Id
     val implantSlot = player.ImplantSlot(slot)
-    if(implantSlot.Active) {
-      zone.AvatarEvents ! AvatarServiceMessage(zoneChannel, AvatarAction.PlanetsideAttribute(guid, 28, player.Implant(slot).id * 2)) // Deactivation sound / effect
-      zone.AvatarEvents ! AvatarServiceMessage(playerChannel, AvatarAction.DeactivateImplantSlot(guid, slot))
-    }
+//    if(implantSlot.Active) {
+//      zone.AvatarEvents ! AvatarServiceMessage(zoneChannel, AvatarAction.PlanetsideAttribute(guid, 28, player.Implant(slot).id * 2)) // Deactivation sound / effect
+//      zone.AvatarEvents ! AvatarServiceMessage(playerChannel, AvatarAction.DeactivateImplantSlot(guid, slot))
+//    }
     implantSlot.Active = false
     implantSlot.Initialized = false
     implantSlot.InitializeTime = 0L
