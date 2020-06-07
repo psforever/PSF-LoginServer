@@ -21,37 +21,37 @@ object Ugd06 { // Drugaskan
 
     def Building10077(): Unit = { // Name: ceiling_bldg_a_10077 Type: ceiling_bldg_a GUID: 1, MapID: 10077
       LocalBuilding("ceiling_bldg_a_10077", 1, 10077, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1260.11f, 1049.16f, 170.44f), Vector3(0f, 0f, 211f), ceiling_bldg_a)))
-      LocalObject(666, Door.Constructor(Vector3(1241.352f, 1050.759f, 177.725f)), owning_building_guid = 1)
-      LocalObject(668, Door.Constructor(Vector3(1247.792f, 1037.129f, 172.219f)), owning_building_guid = 1)
-      LocalObject(669, Door.Constructor(Vector3(1253.713f, 1030.187f, 177.725f)), owning_building_guid = 1)
-      LocalObject(676, Door.Constructor(Vector3(1276.061f, 1049.765f, 172.219f)), owning_building_guid = 1)
+      LocalObject(665, Door.Constructor(Vector3(1241.352f, 1050.759f, 177.725f)), owning_building_guid = 1)
+      LocalObject(667, Door.Constructor(Vector3(1247.792f, 1037.129f, 172.219f)), owning_building_guid = 1)
+      LocalObject(668, Door.Constructor(Vector3(1253.713f, 1030.187f, 177.725f)), owning_building_guid = 1)
+      LocalObject(675, Door.Constructor(Vector3(1276.061f, 1049.765f, 172.219f)), owning_building_guid = 1)
     }
 
     Building10079()
 
     def Building10079(): Unit = { // Name: ceiling_bldg_b_10079 Type: ceiling_bldg_b GUID: 2, MapID: 10079
       LocalBuilding("ceiling_bldg_b_10079", 2, 10079, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1014.06f, 873.97f, 162.94f), Vector3(0f, 0f, 85f), ceiling_bldg_b)))
-      LocalObject(608, Door.Constructor(Vector3(997.8083f, 877.4145f, 164.719f)), owning_building_guid = 2)
-      LocalObject(611, Door.Constructor(Vector3(1015.59f, 879.8751f, 164.719f)), owning_building_guid = 2)
+      LocalObject(607, Door.Constructor(Vector3(997.8083f, 877.4145f, 164.719f)), owning_building_guid = 2)
+      LocalObject(610, Door.Constructor(Vector3(1015.59f, 879.8751f, 164.719f)), owning_building_guid = 2)
     }
 
     Building10241()
 
     def Building10241(): Unit = { // Name: ceiling_bldg_c_10241 Type: ceiling_bldg_c GUID: 3, MapID: 10241
       LocalBuilding("ceiling_bldg_c_10241", 3, 10241, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1125.87f, 1035.29f, 171.46f), Vector3(0f, 0f, 22f), ceiling_bldg_c)))
-      LocalObject(638, Door.Constructor(Vector3(1122.978f, 1038.418f, 173.239f)), owning_building_guid = 3)
-      LocalObject(649, Door.Constructor(Vector3(1161.197f, 1070.605f, 173.239f)), owning_building_guid = 3)
-      LocalObject(651, Door.Constructor(Vector3(1172.81f, 1041.863f, 173.239f)), owning_building_guid = 3)
+      LocalObject(637, Door.Constructor(Vector3(1122.978f, 1038.418f, 173.239f)), owning_building_guid = 3)
+      LocalObject(648, Door.Constructor(Vector3(1161.197f, 1070.605f, 173.239f)), owning_building_guid = 3)
+      LocalObject(650, Door.Constructor(Vector3(1172.81f, 1041.863f, 173.239f)), owning_building_guid = 3)
     }
 
     Building10006()
 
     def Building10006(): Unit = { // Name: ceiling_bldg_d_10006 Type: ceiling_bldg_d GUID: 4, MapID: 10006
       LocalBuilding("ceiling_bldg_d_10006", 4, 10006, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1196.16f, 965.32f, 165.44f), Vector3(0f, 0f, 36f), ceiling_bldg_d)))
-      LocalObject(653, Door.Constructor(Vector3(1182.001f, 955.0526f, 167.175f)), owning_building_guid = 4)
-      LocalObject(656, Door.Constructor(Vector3(1185.893f, 979.4791f, 167.175f)), owning_building_guid = 4)
-      LocalObject(659, Door.Constructor(Vector3(1206.465f, 951.1635f, 167.175f)), owning_building_guid = 4)
-      LocalObject(660, Door.Constructor(Vector3(1210.317f, 975.6251f, 167.175f)), owning_building_guid = 4)
+      LocalObject(652, Door.Constructor(Vector3(1182.001f, 955.0526f, 167.175f)), owning_building_guid = 4)
+      LocalObject(655, Door.Constructor(Vector3(1185.893f, 979.4791f, 167.175f)), owning_building_guid = 4)
+      LocalObject(658, Door.Constructor(Vector3(1206.465f, 951.1635f, 167.175f)), owning_building_guid = 4)
+      LocalObject(659, Door.Constructor(Vector3(1210.317f, 975.6251f, 167.175f)), owning_building_guid = 4)
       LocalObject(729, Painbox.Constructor(Vector3(1196.204f, 965.1011f, 173.748f), painbox_continuous), owning_building_guid = 4)
     }
 
@@ -59,377 +59,377 @@ object Ugd06 { // Drugaskan
 
     def Building10081(): Unit = { // Name: ceiling_bldg_e_10081 Type: ceiling_bldg_e GUID: 5, MapID: 10081
       LocalBuilding("ceiling_bldg_e_10081", 5, 10081, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1128.06f, 914.38f, 179.45f), Vector3(0f, 0f, 44f), ceiling_bldg_e)))
-      LocalObject(635, Door.Constructor(Vector3(1108.343f, 940.5333f, 186.729f)), owning_building_guid = 5)
-      LocalObject(636, Door.Constructor(Vector3(1120.104f, 905.3209f, 181.229f)), owning_building_guid = 5)
-      LocalObject(637, Door.Constructor(Vector3(1122.273f, 947.7385f, 181.229f)), owning_building_guid = 5)
-      LocalObject(642, Door.Constructor(Vector3(1140.482f, 937.5197f, 186.729f)), owning_building_guid = 5)
+      LocalObject(634, Door.Constructor(Vector3(1108.343f, 940.5333f, 186.729f)), owning_building_guid = 5)
+      LocalObject(635, Door.Constructor(Vector3(1120.104f, 905.3209f, 181.229f)), owning_building_guid = 5)
+      LocalObject(636, Door.Constructor(Vector3(1122.273f, 947.7385f, 181.229f)), owning_building_guid = 5)
+      LocalObject(641, Door.Constructor(Vector3(1140.482f, 937.5197f, 186.729f)), owning_building_guid = 5)
     }
 
     Building10080()
 
     def Building10080(): Unit = { // Name: ceiling_bldg_f_10080 Type: ceiling_bldg_f GUID: 6, MapID: 10080
       LocalBuilding("ceiling_bldg_f_10080", 6, 10080, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1059.44f, 1115.66f, 174.49f), Vector3(0f, 0f, 116f), ceiling_bldg_f)))
-      LocalObject(618, Door.Constructor(Vector3(1028.562f, 1113.933f, 176.269f)), owning_building_guid = 6)
-      LocalObject(633, Door.Constructor(Vector3(1086.384f, 1106.004f, 176.269f)), owning_building_guid = 6)
+      LocalObject(617, Door.Constructor(Vector3(1028.562f, 1113.933f, 176.269f)), owning_building_guid = 6)
+      LocalObject(632, Door.Constructor(Vector3(1086.384f, 1106.004f, 176.269f)), owning_building_guid = 6)
     }
 
     Building10078()
 
     def Building10078(): Unit = { // Name: ceiling_bldg_g_10078 Type: ceiling_bldg_g GUID: 7, MapID: 10078
       LocalBuilding("ceiling_bldg_g_10078", 7, 10078, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(828.34f, 1023.68f, 163.71f), Vector3(0f, 0f, 0f), ceiling_bldg_g)))
-      LocalObject(565, Door.Constructor(Vector3(820.356f, 1007.17f, 165.489f)), owning_building_guid = 7)
-      LocalObject(567, Door.Constructor(Vector3(828.356f, 1041.17f, 165.489f)), owning_building_guid = 7)
+      LocalObject(564, Door.Constructor(Vector3(820.356f, 1007.17f, 165.489f)), owning_building_guid = 7)
+      LocalObject(566, Door.Constructor(Vector3(828.356f, 1041.17f, 165.489f)), owning_building_guid = 7)
     }
 
     Building10007()
 
     def Building10007(): Unit = { // Name: ceiling_bldg_h_10007 Type: ceiling_bldg_h GUID: 8, MapID: 10007
       LocalBuilding("ceiling_bldg_h_10007", 8, 10007, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(904.92f, 964.1f, 173.54f), Vector3(0f, 0f, 0f), ceiling_bldg_h)))
-      LocalObject(581, Door.Constructor(Vector3(888.43f, 960.116f, 175.319f)), owning_building_guid = 8)
-      LocalObject(591, Door.Constructor(Vector3(908.904f, 980.61f, 175.319f)), owning_building_guid = 8)
-      LocalObject(593, Door.Constructor(Vector3(916.005f, 952.912f, 177.819f)), owning_building_guid = 8)
+      LocalObject(580, Door.Constructor(Vector3(888.43f, 960.116f, 175.319f)), owning_building_guid = 8)
+      LocalObject(590, Door.Constructor(Vector3(908.904f, 980.61f, 175.319f)), owning_building_guid = 8)
+      LocalObject(592, Door.Constructor(Vector3(916.005f, 952.912f, 177.819f)), owning_building_guid = 8)
     }
 
     Building10008()
 
     def Building10008(): Unit = { // Name: ceiling_bldg_i_10008 Type: ceiling_bldg_i GUID: 9, MapID: 10008
       LocalBuilding("ceiling_bldg_i_10008", 9, 10008, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(971.61f, 1193.75f, 179.41f), Vector3(0f, 0f, 188f), ceiling_bldg_i)))
-      LocalObject(597, Door.Constructor(Vector3(946.8376f, 1186.718f, 181.189f)), owning_building_guid = 9)
-      LocalObject(607, Door.Constructor(Vector3(996.351f, 1193.677f, 181.189f)), owning_building_guid = 9)
+      LocalObject(596, Door.Constructor(Vector3(946.8376f, 1186.718f, 181.189f)), owning_building_guid = 9)
+      LocalObject(606, Door.Constructor(Vector3(996.351f, 1193.677f, 181.189f)), owning_building_guid = 9)
     }
 
     Building10238()
 
     def Building10238(): Unit = { // Name: ceiling_bldg_z_10238 Type: ceiling_bldg_z GUID: 10, MapID: 10238
       LocalBuilding("ceiling_bldg_z_10238", 10, 10238, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(925.94f, 1113.67f, 188.72f), Vector3(0f, 0f, 223f), ceiling_bldg_z)))
-      LocalObject(590, Door.Constructor(Vector3(904.9026f, 1088.561f, 190.499f)), owning_building_guid = 10)
-      LocalObject(596, Door.Constructor(Vector3(946.5898f, 1127.435f, 190.499f)), owning_building_guid = 10)
+      LocalObject(589, Door.Constructor(Vector3(904.9026f, 1088.561f, 190.499f)), owning_building_guid = 10)
+      LocalObject(595, Door.Constructor(Vector3(946.5898f, 1127.435f, 190.499f)), owning_building_guid = 10)
     }
 
     Building10009()
 
-    def Building10009(): Unit = { // Name: ground_bldg_a_10009 Type: ground_bldg_a GUID: 34, MapID: 10009
-      LocalBuilding("ground_bldg_a_10009", 34, 10009, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1349.99f, 1151.14f, 89.94f), Vector3(0f, 0f, 340f), ground_bldg_a)))
-      LocalObject(681, Door.Constructor(Vector3(1339.435f, 1163.506f, 91.719f)), owning_building_guid = 34)
-      LocalObject(686, Door.Constructor(Vector3(1366.754f, 1149.312f, 91.719f)), owning_building_guid = 34)
+    def Building10009(): Unit = { // Name: ground_bldg_a_10009 Type: ground_bldg_a GUID: 33, MapID: 10009
+      LocalBuilding("ground_bldg_a_10009", 33, 10009, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1349.99f, 1151.14f, 89.94f), Vector3(0f, 0f, 340f), ground_bldg_a)))
+      LocalObject(680, Door.Constructor(Vector3(1339.435f, 1163.506f, 91.719f)), owning_building_guid = 33)
+      LocalObject(685, Door.Constructor(Vector3(1366.754f, 1149.312f, 91.719f)), owning_building_guid = 33)
     }
 
     Building10003()
 
-    def Building10003(): Unit = { // Name: ground_bldg_b_10003 Type: ground_bldg_b GUID: 35, MapID: 10003
-      LocalBuilding("ground_bldg_b_10003", 35, 10003, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(985.91f, 922.1f, 92.93f), Vector3(0f, 0f, 5f), ground_bldg_b)))
-      LocalObject(600, Door.Constructor(Vector3(986.4801f, 938.7028f, 94.709f)), owning_building_guid = 35)
-      LocalObject(603, Door.Constructor(Vector3(991.9911f, 921.6182f, 94.709f)), owning_building_guid = 35)
-      LocalObject(610, Door.Constructor(Vector3(1009.814f, 930.2303f, 100.209f)), owning_building_guid = 35)
+    def Building10003(): Unit = { // Name: ground_bldg_b_10003 Type: ground_bldg_b GUID: 34, MapID: 10003
+      LocalBuilding("ground_bldg_b_10003", 34, 10003, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(985.91f, 922.1f, 92.93f), Vector3(0f, 0f, 5f), ground_bldg_b)))
+      LocalObject(599, Door.Constructor(Vector3(986.4801f, 938.7028f, 94.709f)), owning_building_guid = 34)
+      LocalObject(602, Door.Constructor(Vector3(991.9911f, 921.6182f, 94.709f)), owning_building_guid = 34)
+      LocalObject(609, Door.Constructor(Vector3(1009.814f, 930.2303f, 100.209f)), owning_building_guid = 34)
     }
 
     Building10004()
 
-    def Building10004(): Unit = { // Name: ground_bldg_b_10004 Type: ground_bldg_b GUID: 36, MapID: 10004
-      LocalBuilding("ground_bldg_b_10004", 36, 10004, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1006.48f, 1145.29f, 91.97f), Vector3(0f, 0f, 227f), ground_bldg_b)))
-      LocalObject(604, Door.Constructor(Vector3(994.1558f, 1123.253f, 99.249f)), owning_building_guid = 36)
-      LocalObject(609, Door.Constructor(Vector3(1001.638f, 1141.579f, 93.749f)), owning_building_guid = 36)
-      LocalObject(612, Door.Constructor(Vector3(1017.166f, 1132.57f, 93.749f)), owning_building_guid = 36)
+    def Building10004(): Unit = { // Name: ground_bldg_b_10004 Type: ground_bldg_b GUID: 35, MapID: 10004
+      LocalBuilding("ground_bldg_b_10004", 35, 10004, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1006.48f, 1145.29f, 91.97f), Vector3(0f, 0f, 227f), ground_bldg_b)))
+      LocalObject(603, Door.Constructor(Vector3(994.1558f, 1123.253f, 99.249f)), owning_building_guid = 35)
+      LocalObject(608, Door.Constructor(Vector3(1001.638f, 1141.579f, 93.749f)), owning_building_guid = 35)
+      LocalObject(611, Door.Constructor(Vector3(1017.166f, 1132.57f, 93.749f)), owning_building_guid = 35)
     }
 
     Building10034()
 
-    def Building10034(): Unit = { // Name: ground_bldg_c_10034 Type: ground_bldg_c GUID: 37, MapID: 10034
-      LocalBuilding("ground_bldg_c_10034", 37, 10034, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(825.03f, 1055.17f, 89.45f), Vector3(0f, 0f, 19f), ground_bldg_c)))
-      LocalObject(566, Door.Constructor(Vector3(822.3052f, 1058.445f, 91.229f)), owning_building_guid = 37)
-      LocalObject(571, Door.Constructor(Vector3(862.1569f, 1088.588f, 91.229f)), owning_building_guid = 37)
-      LocalObject(576, Door.Constructor(Vector3(872.2495f, 1059.277f, 91.229f)), owning_building_guid = 37)
+    def Building10034(): Unit = { // Name: ground_bldg_c_10034 Type: ground_bldg_c GUID: 36, MapID: 10034
+      LocalBuilding("ground_bldg_c_10034", 36, 10034, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(825.03f, 1055.17f, 89.45f), Vector3(0f, 0f, 19f), ground_bldg_c)))
+      LocalObject(565, Door.Constructor(Vector3(822.3052f, 1058.445f, 91.229f)), owning_building_guid = 36)
+      LocalObject(570, Door.Constructor(Vector3(862.1569f, 1088.588f, 91.229f)), owning_building_guid = 36)
+      LocalObject(575, Door.Constructor(Vector3(872.2495f, 1059.277f, 91.229f)), owning_building_guid = 36)
     }
 
     Building10088()
 
-    def Building10088(): Unit = { // Name: ground_bldg_d_10088 Type: ground_bldg_d GUID: 38, MapID: 10088
-      LocalBuilding("ground_bldg_d_10088", 38, 10088, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(975.7f, 689.58f, 94.32f), Vector3(0f, 0f, 231f), ground_bldg_d)))
-      LocalObject(598, Door.Constructor(Vector3(962.0821f, 700.587f, 96.055f)), owning_building_guid = 38)
-      LocalObject(599, Door.Constructor(Vector3(964.6931f, 675.9621f, 96.055f)), owning_building_guid = 38)
-      LocalObject(601, Door.Constructor(Vector3(986.7192f, 703.1622f, 96.055f)), owning_building_guid = 38)
-      LocalObject(602, Door.Constructor(Vector3(989.2822f, 678.5608f, 96.055f)), owning_building_guid = 38)
+    def Building10088(): Unit = { // Name: ground_bldg_d_10088 Type: ground_bldg_d GUID: 37, MapID: 10088
+      LocalBuilding("ground_bldg_d_10088", 37, 10088, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(975.7f, 689.58f, 94.32f), Vector3(0f, 0f, 231f), ground_bldg_d)))
+      LocalObject(597, Door.Constructor(Vector3(962.0821f, 700.587f, 96.055f)), owning_building_guid = 37)
+      LocalObject(598, Door.Constructor(Vector3(964.6931f, 675.9621f, 96.055f)), owning_building_guid = 37)
+      LocalObject(600, Door.Constructor(Vector3(986.7192f, 703.1622f, 96.055f)), owning_building_guid = 37)
+      LocalObject(601, Door.Constructor(Vector3(989.2822f, 678.5608f, 96.055f)), owning_building_guid = 37)
     }
 
     Building10304()
 
-    def Building10304(): Unit = { // Name: ground_bldg_d_10304 Type: ground_bldg_d GUID: 39, MapID: 10304
-      LocalBuilding("ground_bldg_d_10304", 39, 10304, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1055.42f, 1071.61f, 100.3f), Vector3(0f, 0f, 190f), ground_bldg_d)))
-      LocalObject(620, Door.Constructor(Vector3(1038.179f, 1068.554f, 102.035f)), owning_building_guid = 39)
-      LocalObject(624, Door.Constructor(Vector3(1052.364f, 1088.851f, 102.035f)), owning_building_guid = 39)
-      LocalObject(627, Door.Constructor(Vector3(1058.441f, 1054.383f, 102.035f)), owning_building_guid = 39)
-      LocalObject(631, Door.Constructor(Vector3(1072.647f, 1074.631f, 102.035f)), owning_building_guid = 39)
+    def Building10304(): Unit = { // Name: ground_bldg_d_10304 Type: ground_bldg_d GUID: 38, MapID: 10304
+      LocalBuilding("ground_bldg_d_10304", 38, 10304, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1055.42f, 1071.61f, 100.3f), Vector3(0f, 0f, 190f), ground_bldg_d)))
+      LocalObject(619, Door.Constructor(Vector3(1038.179f, 1068.554f, 102.035f)), owning_building_guid = 38)
+      LocalObject(623, Door.Constructor(Vector3(1052.364f, 1088.851f, 102.035f)), owning_building_guid = 38)
+      LocalObject(626, Door.Constructor(Vector3(1058.441f, 1054.383f, 102.035f)), owning_building_guid = 38)
+      LocalObject(630, Door.Constructor(Vector3(1072.647f, 1074.631f, 102.035f)), owning_building_guid = 38)
     }
 
     Building10015()
 
-    def Building10015(): Unit = { // Name: ground_bldg_e_10015 Type: ground_bldg_e GUID: 40, MapID: 10015
-      LocalBuilding("ground_bldg_e_10015", 40, 10015, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1033.29f, 654.74f, 94.57f), Vector3(0f, 0f, 240f), ground_bldg_e)))
-      LocalObject(617, Door.Constructor(Vector3(1027.727f, 629.0727f, 101.849f)), owning_building_guid = 40)
-      LocalObject(621, Door.Constructor(Vector3(1038.441f, 665.6412f, 96.349f)), owning_building_guid = 40)
-      LocalObject(622, Door.Constructor(Vector3(1048.048f, 624.2689f, 96.349f)), owning_building_guid = 40)
-      LocalObject(628, Door.Constructor(Vector3(1059.453f, 635.0347f, 101.849f)), owning_building_guid = 40)
+    def Building10015(): Unit = { // Name: ground_bldg_e_10015 Type: ground_bldg_e GUID: 39, MapID: 10015
+      LocalBuilding("ground_bldg_e_10015", 39, 10015, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1033.29f, 654.74f, 94.57f), Vector3(0f, 0f, 240f), ground_bldg_e)))
+      LocalObject(616, Door.Constructor(Vector3(1027.727f, 629.0727f, 101.849f)), owning_building_guid = 39)
+      LocalObject(620, Door.Constructor(Vector3(1038.441f, 665.6412f, 96.349f)), owning_building_guid = 39)
+      LocalObject(621, Door.Constructor(Vector3(1048.048f, 624.2689f, 96.349f)), owning_building_guid = 39)
+      LocalObject(627, Door.Constructor(Vector3(1059.453f, 635.0347f, 101.849f)), owning_building_guid = 39)
     }
 
     Building10386()
 
-    def Building10386(): Unit = { // Name: ground_bldg_f_10386 Type: ground_bldg_f GUID: 41, MapID: 10386
-      LocalBuilding("ground_bldg_f_10386", 41, 10386, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1007.11f, 851.17f, 96.4f), Vector3(0f, 0f, 250f), ground_bldg_f)))
-      LocalObject(605, Door.Constructor(Vector3(995.3392f, 877.2592f, 98.179f)), owning_building_guid = 41)
-      LocalObject(619, Door.Constructor(Vector3(1029.802f, 830.1577f, 98.179f)), owning_building_guid = 41)
+    def Building10386(): Unit = { // Name: ground_bldg_f_10386 Type: ground_bldg_f GUID: 40, MapID: 10386
+      LocalBuilding("ground_bldg_f_10386", 40, 10386, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1007.11f, 851.17f, 96.4f), Vector3(0f, 0f, 250f), ground_bldg_f)))
+      LocalObject(604, Door.Constructor(Vector3(995.3392f, 877.2592f, 98.179f)), owning_building_guid = 40)
+      LocalObject(618, Door.Constructor(Vector3(1029.802f, 830.1577f, 98.179f)), owning_building_guid = 40)
     }
 
     Building10032()
 
-    def Building10032(): Unit = { // Name: ground_bldg_g_10032 Type: ground_bldg_g GUID: 42, MapID: 10032
-      LocalBuilding("ground_bldg_g_10032", 42, 10032, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1263.21f, 1006.27f, 98.33f), Vector3(0f, 0f, 0f), ground_bldg_g)))
-      LocalObject(671, Door.Constructor(Vector3(1255.226f, 989.76f, 100.109f)), owning_building_guid = 42)
-      LocalObject(673, Door.Constructor(Vector3(1263.226f, 1023.76f, 100.109f)), owning_building_guid = 42)
+    def Building10032(): Unit = { // Name: ground_bldg_g_10032 Type: ground_bldg_g GUID: 41, MapID: 10032
+      LocalBuilding("ground_bldg_g_10032", 41, 10032, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1263.21f, 1006.27f, 98.33f), Vector3(0f, 0f, 0f), ground_bldg_g)))
+      LocalObject(670, Door.Constructor(Vector3(1255.226f, 989.76f, 100.109f)), owning_building_guid = 41)
+      LocalObject(672, Door.Constructor(Vector3(1263.226f, 1023.76f, 100.109f)), owning_building_guid = 41)
     }
 
     Building10242()
 
-    def Building10242(): Unit = { // Name: ground_bldg_h_10242 Type: ground_bldg_h GUID: 43, MapID: 10242
-      LocalBuilding("ground_bldg_h_10242", 43, 10242, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1063.36f, 1197.96f, 104.38f), Vector3(0f, 0f, 190f), ground_bldg_h)))
-      LocalObject(623, Door.Constructor(Vector3(1050.501f, 1207.053f, 108.659f)), owning_building_guid = 43)
-      LocalObject(629, Door.Constructor(Vector3(1062.303f, 1181.009f, 106.159f)), owning_building_guid = 43)
-      LocalObject(632, Door.Constructor(Vector3(1078.908f, 1204.747f, 106.159f)), owning_building_guid = 43)
+    def Building10242(): Unit = { // Name: ground_bldg_h_10242 Type: ground_bldg_h GUID: 42, MapID: 10242
+      LocalBuilding("ground_bldg_h_10242", 42, 10242, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1063.36f, 1197.96f, 104.38f), Vector3(0f, 0f, 190f), ground_bldg_h)))
+      LocalObject(622, Door.Constructor(Vector3(1050.501f, 1207.053f, 108.659f)), owning_building_guid = 42)
+      LocalObject(628, Door.Constructor(Vector3(1062.303f, 1181.009f, 106.159f)), owning_building_guid = 42)
+      LocalObject(631, Door.Constructor(Vector3(1078.908f, 1204.747f, 106.159f)), owning_building_guid = 42)
     }
 
     Building10340()
 
-    def Building10340(): Unit = { // Name: ground_bldg_i_10340 Type: ground_bldg_i GUID: 44, MapID: 10340
-      LocalBuilding("ground_bldg_i_10340", 44, 10340, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(781.58f, 1112.31f, 97.55f), Vector3(0f, 0f, 208f), ground_bldg_i)))
-      LocalObject(558, Door.Constructor(Vector3(760.7067f, 1097.229f, 99.329f)), owning_building_guid = 44)
-      LocalObject(564, Door.Constructor(Vector3(804.8541f, 1120.703f, 99.329f)), owning_building_guid = 44)
+    def Building10340(): Unit = { // Name: ground_bldg_i_10340 Type: ground_bldg_i GUID: 43, MapID: 10340
+      LocalBuilding("ground_bldg_i_10340", 43, 10340, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(781.58f, 1112.31f, 97.55f), Vector3(0f, 0f, 208f), ground_bldg_i)))
+      LocalObject(557, Door.Constructor(Vector3(760.7067f, 1097.229f, 99.329f)), owning_building_guid = 43)
+      LocalObject(563, Door.Constructor(Vector3(804.8541f, 1120.703f, 99.329f)), owning_building_guid = 43)
     }
 
     Building10035()
 
-    def Building10035(): Unit = { // Name: ground_bldg_j_10035 Type: ground_bldg_j GUID: 45, MapID: 10035
-      LocalBuilding("ground_bldg_j_10035", 45, 10035, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(853.9f, 1131.82f, 87.35f), Vector3(0f, 0f, 78f), ground_bldg_j)))
-      LocalObject(568, Door.Constructor(Vector3(841.6863f, 1134.432f, 89.129f)), owning_building_guid = 45)
-      LocalObject(573, Door.Constructor(Vector3(866.14f, 1129.235f, 89.129f)), owning_building_guid = 45)
+    def Building10035(): Unit = { // Name: ground_bldg_j_10035 Type: ground_bldg_j GUID: 44, MapID: 10035
+      LocalBuilding("ground_bldg_j_10035", 44, 10035, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(853.9f, 1131.82f, 87.35f), Vector3(0f, 0f, 78f), ground_bldg_j)))
+      LocalObject(567, Door.Constructor(Vector3(841.6863f, 1134.432f, 89.129f)), owning_building_guid = 44)
+      LocalObject(572, Door.Constructor(Vector3(866.14f, 1129.235f, 89.129f)), owning_building_guid = 44)
     }
 
     Building10005()
 
-    def Building10005(): Unit = { // Name: ground_bldg_j_10005 Type: ground_bldg_j GUID: 46, MapID: 10005
-      LocalBuilding("ground_bldg_j_10005", 46, 10005, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1062.19f, 885.69f, 92.65f), Vector3(0f, 0f, 330f), ground_bldg_j)))
-      LocalObject(626, Door.Constructor(Vector3(1055.949f, 874.848f, 94.429f)), owning_building_guid = 46)
-      LocalObject(630, Door.Constructor(Vector3(1068.449f, 896.4987f, 94.429f)), owning_building_guid = 46)
+    def Building10005(): Unit = { // Name: ground_bldg_j_10005 Type: ground_bldg_j GUID: 45, MapID: 10005
+      LocalBuilding("ground_bldg_j_10005", 45, 10005, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1062.19f, 885.69f, 92.65f), Vector3(0f, 0f, 330f), ground_bldg_j)))
+      LocalObject(625, Door.Constructor(Vector3(1055.949f, 874.848f, 94.429f)), owning_building_guid = 45)
+      LocalObject(629, Door.Constructor(Vector3(1068.449f, 896.4987f, 94.429f)), owning_building_guid = 45)
     }
 
     Building10229()
 
-    def Building10229(): Unit = { // Name: ground_bldg_z_10229 Type: ground_bldg_z GUID: 47, MapID: 10229
-      LocalBuilding("ground_bldg_z_10229", 47, 10229, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(875.59f, 1275.13f, 89.54f), Vector3(0f, 0f, 300f), ground_bldg_z)))
-      LocalObject(569, Door.Constructor(Vector3(856.4307f, 1292.347f, 91.319f)), owning_building_guid = 47)
-      LocalObject(570, Door.Constructor(Vector3(856.5692f, 1271.095f, 102.319f)), owning_building_guid = 47)
-      LocalObject(572, Door.Constructor(Vector3(863.3589f, 1296.347f, 107.819f)), owning_building_guid = 47)
-      LocalObject(577, Door.Constructor(Vector3(874.7871f, 1292.553f, 96.819f)), owning_building_guid = 47)
-      LocalObject(578, Door.Constructor(Vector3(876.4307f, 1257.706f, 96.819f)), owning_building_guid = 47)
-      LocalObject(579, Door.Constructor(Vector3(887.8589f, 1253.912f, 107.819f)), owning_building_guid = 47)
-      LocalObject(585, Door.Constructor(Vector3(894.6122f, 1279.203f, 102.319f)), owning_building_guid = 47)
-      LocalObject(586, Door.Constructor(Vector3(894.7871f, 1257.912f, 91.319f)), owning_building_guid = 47)
+    def Building10229(): Unit = { // Name: ground_bldg_z_10229 Type: ground_bldg_z GUID: 46, MapID: 10229
+      LocalBuilding("ground_bldg_z_10229", 46, 10229, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(875.59f, 1275.13f, 89.54f), Vector3(0f, 0f, 300f), ground_bldg_z)))
+      LocalObject(568, Door.Constructor(Vector3(856.4307f, 1292.347f, 91.319f)), owning_building_guid = 46)
+      LocalObject(569, Door.Constructor(Vector3(856.5692f, 1271.095f, 102.319f)), owning_building_guid = 46)
+      LocalObject(571, Door.Constructor(Vector3(863.3589f, 1296.347f, 107.819f)), owning_building_guid = 46)
+      LocalObject(576, Door.Constructor(Vector3(874.7871f, 1292.553f, 96.819f)), owning_building_guid = 46)
+      LocalObject(577, Door.Constructor(Vector3(876.4307f, 1257.706f, 96.819f)), owning_building_guid = 46)
+      LocalObject(578, Door.Constructor(Vector3(887.8589f, 1253.912f, 107.819f)), owning_building_guid = 46)
+      LocalObject(584, Door.Constructor(Vector3(894.6122f, 1279.203f, 102.319f)), owning_building_guid = 46)
+      LocalObject(585, Door.Constructor(Vector3(894.7871f, 1257.912f, 91.319f)), owning_building_guid = 46)
     }
 
     Building10082()
 
-    def Building10082(): Unit = { // Name: ground_bldg_z_10082 Type: ground_bldg_z GUID: 48, MapID: 10082
-      LocalBuilding("ground_bldg_z_10082", 48, 10082, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1207.32f, 852.88f, 95.64f), Vector3(0f, 0f, 180f), ground_bldg_z)))
-      LocalObject(654, Door.Constructor(Vector3(1182.81f, 844.864f, 97.419f)), owning_building_guid = 48)
-      LocalObject(655, Door.Constructor(Vector3(1182.81f, 852.864f, 113.919f)), owning_building_guid = 48)
-      LocalObject(657, Door.Constructor(Vector3(1191.81f, 860.864f, 102.919f)), owning_building_guid = 48)
-      LocalObject(658, Door.Constructor(Vector3(1201.336f, 834.37f, 108.419f)), owning_building_guid = 48)
-      LocalObject(661, Door.Constructor(Vector3(1213.336f, 871.37f, 108.419f)), owning_building_guid = 48)
-      LocalObject(662, Door.Constructor(Vector3(1222.81f, 844.864f, 102.919f)), owning_building_guid = 48)
-      LocalObject(663, Door.Constructor(Vector3(1231.81f, 852.864f, 113.919f)), owning_building_guid = 48)
-      LocalObject(664, Door.Constructor(Vector3(1231.81f, 860.864f, 97.419f)), owning_building_guid = 48)
+    def Building10082(): Unit = { // Name: ground_bldg_z_10082 Type: ground_bldg_z GUID: 47, MapID: 10082
+      LocalBuilding("ground_bldg_z_10082", 47, 10082, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1207.32f, 852.88f, 95.64f), Vector3(0f, 0f, 180f), ground_bldg_z)))
+      LocalObject(653, Door.Constructor(Vector3(1182.81f, 844.864f, 97.419f)), owning_building_guid = 47)
+      LocalObject(654, Door.Constructor(Vector3(1182.81f, 852.864f, 113.919f)), owning_building_guid = 47)
+      LocalObject(656, Door.Constructor(Vector3(1191.81f, 860.864f, 102.919f)), owning_building_guid = 47)
+      LocalObject(657, Door.Constructor(Vector3(1201.336f, 834.37f, 108.419f)), owning_building_guid = 47)
+      LocalObject(660, Door.Constructor(Vector3(1213.336f, 871.37f, 108.419f)), owning_building_guid = 47)
+      LocalObject(661, Door.Constructor(Vector3(1222.81f, 844.864f, 102.919f)), owning_building_guid = 47)
+      LocalObject(662, Door.Constructor(Vector3(1231.81f, 852.864f, 113.919f)), owning_building_guid = 47)
+      LocalObject(663, Door.Constructor(Vector3(1231.81f, 860.864f, 97.419f)), owning_building_guid = 47)
     }
 
     Building10257()
 
-    def Building10257(): Unit = { // Name: N_Redoubt Type: redoubt GUID: 49, MapID: 10257
-      LocalBuilding("N_Redoubt", 49, 10257, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(760.72f, 1359.42f, 99.62f), Vector3(0f, 0f, 313f), redoubt)))
-      LocalObject(791, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 49)
-      LocalObject(557, Door.Constructor(Vector3(748.8035f, 1372.222f, 101.355f)), owning_building_guid = 49)
-      LocalObject(559, Door.Constructor(Vector3(761.1804f, 1376.637f, 111.399f)), owning_building_guid = 49)
-      LocalObject(560, Door.Constructor(Vector3(766.8094f, 1370.595f, 111.379f)), owning_building_guid = 49)
-      LocalObject(561, Door.Constructor(Vector3(772.3025f, 1364.752f, 111.379f)), owning_building_guid = 49)
-      LocalObject(562, Door.Constructor(Vector3(772.6735f, 1346.625f, 101.355f)), owning_building_guid = 49)
-      LocalObject(563, Door.Constructor(Vector3(777.9285f, 1358.726f, 111.399f)), owning_building_guid = 49)
-      LocalObject(799, Terminal.Constructor(Vector3(747.0984f, 1346.889f, 99.57581f), vanu_equipment_term), owning_building_guid = 49)
-      LocalObject(802, Terminal.Constructor(Vector3(774.4174f, 1372.171f, 99.5735f), vanu_equipment_term), owning_building_guid = 49)
-      LocalObject(739, SpawnTube.Constructor(Vector3(760.72f, 1359.42f, 99.62f), Vector3(0, 0, 227)), owning_building_guid = 49)
-      LocalObject(726, Painbox.Constructor(Vector3(760.9607f, 1359.588f, 107.409f), painbox_continuous), owning_building_guid = 49)
+    def Building10257(): Unit = { // Name: N_Redoubt Type: redoubt GUID: 48, MapID: 10257
+      LocalBuilding("N_Redoubt", 48, 10257, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(760.72f, 1359.42f, 99.62f), Vector3(0f, 0f, 313f), redoubt)))
+      LocalObject(791, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 48)
+      LocalObject(556, Door.Constructor(Vector3(748.8035f, 1372.222f, 101.355f)), owning_building_guid = 48)
+      LocalObject(558, Door.Constructor(Vector3(761.1804f, 1376.637f, 111.399f)), owning_building_guid = 48)
+      LocalObject(559, Door.Constructor(Vector3(766.8094f, 1370.595f, 111.379f)), owning_building_guid = 48)
+      LocalObject(560, Door.Constructor(Vector3(772.3025f, 1364.752f, 111.379f)), owning_building_guid = 48)
+      LocalObject(561, Door.Constructor(Vector3(772.6735f, 1346.625f, 101.355f)), owning_building_guid = 48)
+      LocalObject(562, Door.Constructor(Vector3(777.9285f, 1358.726f, 111.399f)), owning_building_guid = 48)
+      LocalObject(799, Terminal.Constructor(Vector3(747.0984f, 1346.889f, 99.57581f), vanu_equipment_term), owning_building_guid = 48)
+      LocalObject(802, Terminal.Constructor(Vector3(774.4174f, 1372.171f, 99.5735f), vanu_equipment_term), owning_building_guid = 48)
+      LocalObject(739, SpawnTube.Constructor(Vector3(760.72f, 1359.42f, 99.62f), Vector3(0, 0, 227)), owning_building_guid = 48)
+      LocalObject(726, Painbox.Constructor(Vector3(760.9607f, 1359.588f, 107.409f), painbox_continuous), owning_building_guid = 48)
     }
 
     Building10259()
 
-    def Building10259(): Unit = { // Name: S_Redoubt Type: redoubt GUID: 50, MapID: 10259
-      LocalBuilding("S_Redoubt", 50, 10259, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(1253.48f, 805.8f, 85.1f), Vector3(0f, 0f, 335f), redoubt)))
-      LocalObject(794, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 50)
-      LocalObject(665, Door.Constructor(Vector3(1237.635f, 813.2061f, 86.835f)), owning_building_guid = 50)
-      LocalObject(667, Door.Constructor(Vector3(1247.457f, 821.9362f, 96.879f)), owning_building_guid = 50)
-      LocalObject(670, Door.Constructor(Vector3(1254.94f, 818.4426f, 96.859f)), owning_building_guid = 50)
-      LocalObject(672, Door.Constructor(Vector3(1262.222f, 815.0822f, 96.859f)), owning_building_guid = 50)
-      LocalObject(674, Door.Constructor(Vector3(1269.356f, 798.4144f, 86.835f)), owning_building_guid = 50)
-      LocalObject(675, Door.Constructor(Vector3(1269.696f, 811.6027f, 96.879f)), owning_building_guid = 50)
-      LocalObject(839, Terminal.Constructor(Vector3(1245.545f, 789.0786f, 85.0558f), vanu_equipment_term), owning_building_guid = 50)
-      LocalObject(842, Terminal.Constructor(Vector3(1261.403f, 822.7539f, 85.0535f), vanu_equipment_term), owning_building_guid = 50)
-      LocalObject(740, SpawnTube.Constructor(Vector3(1253.48f, 805.8f, 85.1f), Vector3(0, 0, 205)), owning_building_guid = 50)
-      LocalObject(730, Painbox.Constructor(Vector3(1253.64f, 806.0459f, 92.889f), painbox_continuous), owning_building_guid = 50)
+    def Building10259(): Unit = { // Name: S_Redoubt Type: redoubt GUID: 49, MapID: 10259
+      LocalBuilding("S_Redoubt", 49, 10259, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(1253.48f, 805.8f, 85.1f), Vector3(0f, 0f, 335f), redoubt)))
+      LocalObject(794, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 49)
+      LocalObject(664, Door.Constructor(Vector3(1237.635f, 813.2061f, 86.835f)), owning_building_guid = 49)
+      LocalObject(666, Door.Constructor(Vector3(1247.457f, 821.9362f, 96.879f)), owning_building_guid = 49)
+      LocalObject(669, Door.Constructor(Vector3(1254.94f, 818.4426f, 96.859f)), owning_building_guid = 49)
+      LocalObject(671, Door.Constructor(Vector3(1262.222f, 815.0822f, 96.859f)), owning_building_guid = 49)
+      LocalObject(673, Door.Constructor(Vector3(1269.356f, 798.4144f, 86.835f)), owning_building_guid = 49)
+      LocalObject(674, Door.Constructor(Vector3(1269.696f, 811.6027f, 96.879f)), owning_building_guid = 49)
+      LocalObject(839, Terminal.Constructor(Vector3(1245.545f, 789.0786f, 85.0558f), vanu_equipment_term), owning_building_guid = 49)
+      LocalObject(842, Terminal.Constructor(Vector3(1261.403f, 822.7539f, 85.0535f), vanu_equipment_term), owning_building_guid = 49)
+      LocalObject(740, SpawnTube.Constructor(Vector3(1253.48f, 805.8f, 85.1f), Vector3(0, 0, 205)), owning_building_guid = 49)
+      LocalObject(730, Painbox.Constructor(Vector3(1253.64f, 806.0459f, 92.889f), painbox_continuous), owning_building_guid = 49)
     }
 
     Building10001()
 
-    def Building10001(): Unit = { // Name: S_Stasis Type: vanu_control_point GUID: 203, MapID: 10001
-      LocalBuilding("S_Stasis", 203, 10001, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(899.15f, 874.23f, 93.26f), Vector3(0f, 0f, 340f), vanu_control_point)))
-      LocalObject(792, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 203)
-      LocalObject(574, Door.Constructor(Vector3(867.9634f, 853.3779f, 95.039f)), owning_building_guid = 203)
-      LocalObject(575, Door.Constructor(Vector3(871.7762f, 899.1088f, 95.039f)), owning_building_guid = 203)
-      LocalObject(580, Door.Constructor(Vector3(888.4708f, 862.9407f, 125.039f)), owning_building_guid = 203)
-      LocalObject(582, Door.Constructor(Vector3(889.0839f, 875.7824f, 99.98f)), owning_building_guid = 203)
-      LocalObject(583, Door.Constructor(Vector3(891.4683f, 870.6323f, 125.019f)), owning_building_guid = 203)
-      LocalObject(584, Door.Constructor(Vector3(894.1799f, 878.179f, 125.019f)), owning_building_guid = 203)
-      LocalObject(587, Door.Constructor(Vector3(896.2295f, 860.4051f, 99.98f)), owning_building_guid = 203)
-      LocalObject(588, Door.Constructor(Vector3(896.8278f, 885.9948f, 125.039f)), owning_building_guid = 203)
-      LocalObject(589, Door.Constructor(Vector3(904.438f, 882.9578f, 99.98f)), owning_building_guid = 203)
-      LocalObject(592, Door.Constructor(Vector3(911.6068f, 867.5507f, 99.98f)), owning_building_guid = 203)
-      LocalObject(594, Door.Constructor(Vector3(933.7072f, 833.9666f, 95.039f)), owning_building_guid = 203)
-      LocalObject(595, Door.Constructor(Vector3(942.624f, 894.8666f, 95.039f)), owning_building_guid = 203)
-      LocalObject(808, Terminal.Constructor(Vector3(890.2345f, 869.1371f, 98.277f), vanu_equipment_term), owning_building_guid = 203)
-      LocalObject(809, Terminal.Constructor(Vector3(891.9105f, 865.5347f, 98.273f), vanu_equipment_term), owning_building_guid = 203)
-      LocalObject(810, Terminal.Constructor(Vector3(894.1234f, 880.0321f, 98.273f), vanu_equipment_term), owning_building_guid = 203)
-      LocalObject(811, Terminal.Constructor(Vector3(897.7258f, 881.7081f, 98.277f), vanu_equipment_term), owning_building_guid = 203)
-      LocalObject(813, Terminal.Constructor(Vector3(902.9813f, 861.585f, 98.277f), vanu_equipment_term), owning_building_guid = 203)
-      LocalObject(814, Terminal.Constructor(Vector3(906.5131f, 863.2601f, 98.273f), vanu_equipment_term), owning_building_guid = 203)
-      LocalObject(815, Terminal.Constructor(Vector3(908.7975f, 877.7581f, 98.273f), vanu_equipment_term), owning_building_guid = 203)
-      LocalObject(816, Terminal.Constructor(Vector3(910.4735f, 874.1556f, 98.277f), vanu_equipment_term), owning_building_guid = 203)
-      LocalObject(860, SpawnTube.Constructor(Vector3(900.3454f, 871.6666f, 98.399f), Vector3(0, 0, 200)), owning_building_guid = 203)
-      LocalObject(727, Painbox.Constructor(Vector3(899.9723f, 871.4819f, 107.6018f), painbox_continuous), owning_building_guid = 203)
-      LocalObject(731, Painbox.Constructor(Vector3(886.9322f, 876.6623f, 101.55f), painbox_door_radius_continuous), owning_building_guid = 203)
-      LocalObject(732, Painbox.Constructor(Vector3(895.3766f, 858.9249f, 102.15f), painbox_door_radius_continuous), owning_building_guid = 203)
-      LocalObject(733, Painbox.Constructor(Vector3(905.1611f, 884.7763f, 102.15f), painbox_door_radius_continuous), owning_building_guid = 203)
-      LocalObject(734, Painbox.Constructor(Vector3(914.3688f, 866.9739f, 102.15f), painbox_door_radius_continuous), owning_building_guid = 203)
+    def Building10001(): Unit = { // Name: S_Stasis Type: vanu_control_point GUID: 202, MapID: 10001
+      LocalBuilding("S_Stasis", 202, 10001, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(899.15f, 874.23f, 93.26f), Vector3(0f, 0f, 340f), vanu_control_point)))
+      LocalObject(792, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 202)
+      LocalObject(573, Door.Constructor(Vector3(867.9634f, 853.3779f, 95.039f)), owning_building_guid = 202)
+      LocalObject(574, Door.Constructor(Vector3(871.7762f, 899.1088f, 95.039f)), owning_building_guid = 202)
+      LocalObject(579, Door.Constructor(Vector3(888.4708f, 862.9407f, 125.039f)), owning_building_guid = 202)
+      LocalObject(581, Door.Constructor(Vector3(889.0839f, 875.7824f, 99.98f)), owning_building_guid = 202)
+      LocalObject(582, Door.Constructor(Vector3(891.4683f, 870.6323f, 125.019f)), owning_building_guid = 202)
+      LocalObject(583, Door.Constructor(Vector3(894.1799f, 878.179f, 125.019f)), owning_building_guid = 202)
+      LocalObject(586, Door.Constructor(Vector3(896.2295f, 860.4051f, 99.98f)), owning_building_guid = 202)
+      LocalObject(587, Door.Constructor(Vector3(896.8278f, 885.9948f, 125.039f)), owning_building_guid = 202)
+      LocalObject(588, Door.Constructor(Vector3(904.438f, 882.9578f, 99.98f)), owning_building_guid = 202)
+      LocalObject(591, Door.Constructor(Vector3(911.6068f, 867.5507f, 99.98f)), owning_building_guid = 202)
+      LocalObject(593, Door.Constructor(Vector3(933.7072f, 833.9666f, 95.039f)), owning_building_guid = 202)
+      LocalObject(594, Door.Constructor(Vector3(942.624f, 894.8666f, 95.039f)), owning_building_guid = 202)
+      LocalObject(808, Terminal.Constructor(Vector3(890.2345f, 869.1371f, 98.277f), vanu_equipment_term), owning_building_guid = 202)
+      LocalObject(809, Terminal.Constructor(Vector3(891.9105f, 865.5347f, 98.273f), vanu_equipment_term), owning_building_guid = 202)
+      LocalObject(810, Terminal.Constructor(Vector3(894.1234f, 880.0321f, 98.273f), vanu_equipment_term), owning_building_guid = 202)
+      LocalObject(811, Terminal.Constructor(Vector3(897.7258f, 881.7081f, 98.277f), vanu_equipment_term), owning_building_guid = 202)
+      LocalObject(813, Terminal.Constructor(Vector3(902.9813f, 861.585f, 98.277f), vanu_equipment_term), owning_building_guid = 202)
+      LocalObject(814, Terminal.Constructor(Vector3(906.5131f, 863.2601f, 98.273f), vanu_equipment_term), owning_building_guid = 202)
+      LocalObject(815, Terminal.Constructor(Vector3(908.7975f, 877.7581f, 98.273f), vanu_equipment_term), owning_building_guid = 202)
+      LocalObject(816, Terminal.Constructor(Vector3(910.4735f, 874.1556f, 98.277f), vanu_equipment_term), owning_building_guid = 202)
+      LocalObject(860, SpawnTube.Constructor(Vector3(900.3454f, 871.6666f, 98.399f), Vector3(0, 0, 200)), owning_building_guid = 202)
+      LocalObject(727, Painbox.Constructor(Vector3(899.9723f, 871.4819f, 107.6018f), painbox_continuous), owning_building_guid = 202)
+      LocalObject(731, Painbox.Constructor(Vector3(886.9322f, 876.6623f, 101.55f), painbox_door_radius_continuous), owning_building_guid = 202)
+      LocalObject(732, Painbox.Constructor(Vector3(895.3766f, 858.9249f, 102.15f), painbox_door_radius_continuous), owning_building_guid = 202)
+      LocalObject(733, Painbox.Constructor(Vector3(905.1611f, 884.7763f, 102.15f), painbox_door_radius_continuous), owning_building_guid = 202)
+      LocalObject(734, Painbox.Constructor(Vector3(914.3688f, 866.9739f, 102.15f), painbox_door_radius_continuous), owning_building_guid = 202)
     }
 
     Building10002()
 
-    def Building10002(): Unit = { // Name: N_Stasis Type: vanu_control_point GUID: 204, MapID: 10002
-      LocalBuilding("N_Stasis", 204, 10002, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1149.27f, 1132.96f, 107.22f), Vector3(0f, 0f, 236f), vanu_control_point)))
-      LocalObject(793, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 204)
-      LocalObject(634, Door.Constructor(Vector3(1101.842f, 1109.17f, 108.999f)), owning_building_guid = 204)
-      LocalObject(639, Door.Constructor(Vector3(1136.562f, 1139.138f, 113.94f)), owning_building_guid = 204)
-      LocalObject(640, Door.Constructor(Vector3(1136.582f, 1168.265f, 108.999f)), owning_building_guid = 204)
-      LocalObject(641, Door.Constructor(Vector3(1139.776f, 1122.489f, 113.94f)), owning_building_guid = 204)
-      LocalObject(643, Door.Constructor(Vector3(1140.9f, 1146.053f, 138.999f)), owning_building_guid = 204)
-      LocalObject(644, Door.Constructor(Vector3(1147.638f, 1141.284f, 138.979f)), owning_building_guid = 204)
-      LocalObject(645, Door.Constructor(Vector3(1153.212f, 1142.351f, 113.94f)), owning_building_guid = 204)
-      LocalObject(646, Door.Constructor(Vector3(1154.304f, 1136.827f, 138.979f)), owning_building_guid = 204)
-      LocalObject(647, Door.Constructor(Vector3(1156.459f, 1125.718f, 113.94f)), owning_building_guid = 204)
-      LocalObject(648, Door.Constructor(Vector3(1158.776f, 1085.785f, 108.999f)), owning_building_guid = 204)
-      LocalObject(650, Door.Constructor(Vector3(1161.247f, 1132.367f, 138.999f)), owning_building_guid = 204)
-      LocalObject(652, Door.Constructor(Vector3(1180.032f, 1153.502f, 108.999f)), owning_building_guid = 204)
-      LocalObject(826, Terminal.Constructor(Vector3(1136.074f, 1132.302f, 112.237f), vanu_equipment_term), owning_building_guid = 204)
-      LocalObject(827, Terminal.Constructor(Vector3(1136.845f, 1128.469f, 112.233f), vanu_equipment_term), owning_building_guid = 204)
-      LocalObject(828, Terminal.Constructor(Vector3(1142.584f, 1142.088f, 112.233f), vanu_equipment_term), owning_building_guid = 204)
-      LocalObject(829, Terminal.Constructor(Vector3(1146.458f, 1121.991f, 112.237f), vanu_equipment_term), owning_building_guid = 204)
-      LocalObject(830, Terminal.Constructor(Vector3(1146.485f, 1142.843f, 112.237f), vanu_equipment_term), owning_building_guid = 204)
-      LocalObject(831, Terminal.Constructor(Vector3(1150.359f, 1122.745f, 112.233f), vanu_equipment_term), owning_building_guid = 204)
-      LocalObject(832, Terminal.Constructor(Vector3(1156.116f, 1136.434f, 112.233f), vanu_equipment_term), owning_building_guid = 204)
-      LocalObject(833, Terminal.Constructor(Vector3(1156.87f, 1132.533f, 112.237f), vanu_equipment_term), owning_building_guid = 204)
-      LocalObject(861, SpawnTube.Constructor(Vector3(1146.494f, 1132.42f, 112.359f), Vector3(0, 0, 304)), owning_building_guid = 204)
-      LocalObject(728, Painbox.Constructor(Vector3(1146.405f, 1132.827f, 121.5618f), painbox_continuous), owning_building_guid = 204)
-      LocalObject(735, Painbox.Constructor(Vector3(1135.332f, 1140.324f, 116.11f), painbox_door_radius_continuous), owning_building_guid = 204)
-      LocalObject(736, Painbox.Constructor(Vector3(1138.548f, 1119.949f, 116.11f), painbox_door_radius_continuous), owning_building_guid = 204)
-      LocalObject(737, Painbox.Constructor(Vector3(1154.586f, 1144.226f, 115.51f), painbox_door_radius_continuous), owning_building_guid = 204)
-      LocalObject(738, Painbox.Constructor(Vector3(1158.049f, 1124.576f, 116.11f), painbox_door_radius_continuous), owning_building_guid = 204)
+    def Building10002(): Unit = { // Name: N_Stasis Type: vanu_control_point GUID: 203, MapID: 10002
+      LocalBuilding("N_Stasis", 203, 10002, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1149.27f, 1132.96f, 107.22f), Vector3(0f, 0f, 236f), vanu_control_point)))
+      LocalObject(793, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 203)
+      LocalObject(633, Door.Constructor(Vector3(1101.842f, 1109.17f, 108.999f)), owning_building_guid = 203)
+      LocalObject(638, Door.Constructor(Vector3(1136.562f, 1139.138f, 113.94f)), owning_building_guid = 203)
+      LocalObject(639, Door.Constructor(Vector3(1136.582f, 1168.265f, 108.999f)), owning_building_guid = 203)
+      LocalObject(640, Door.Constructor(Vector3(1139.776f, 1122.489f, 113.94f)), owning_building_guid = 203)
+      LocalObject(642, Door.Constructor(Vector3(1140.9f, 1146.053f, 138.999f)), owning_building_guid = 203)
+      LocalObject(643, Door.Constructor(Vector3(1147.638f, 1141.284f, 138.979f)), owning_building_guid = 203)
+      LocalObject(644, Door.Constructor(Vector3(1153.212f, 1142.351f, 113.94f)), owning_building_guid = 203)
+      LocalObject(645, Door.Constructor(Vector3(1154.304f, 1136.827f, 138.979f)), owning_building_guid = 203)
+      LocalObject(646, Door.Constructor(Vector3(1156.459f, 1125.718f, 113.94f)), owning_building_guid = 203)
+      LocalObject(647, Door.Constructor(Vector3(1158.776f, 1085.785f, 108.999f)), owning_building_guid = 203)
+      LocalObject(649, Door.Constructor(Vector3(1161.247f, 1132.367f, 138.999f)), owning_building_guid = 203)
+      LocalObject(651, Door.Constructor(Vector3(1180.032f, 1153.502f, 108.999f)), owning_building_guid = 203)
+      LocalObject(826, Terminal.Constructor(Vector3(1136.074f, 1132.302f, 112.237f), vanu_equipment_term), owning_building_guid = 203)
+      LocalObject(827, Terminal.Constructor(Vector3(1136.845f, 1128.469f, 112.233f), vanu_equipment_term), owning_building_guid = 203)
+      LocalObject(828, Terminal.Constructor(Vector3(1142.584f, 1142.088f, 112.233f), vanu_equipment_term), owning_building_guid = 203)
+      LocalObject(829, Terminal.Constructor(Vector3(1146.458f, 1121.991f, 112.237f), vanu_equipment_term), owning_building_guid = 203)
+      LocalObject(830, Terminal.Constructor(Vector3(1146.485f, 1142.843f, 112.237f), vanu_equipment_term), owning_building_guid = 203)
+      LocalObject(831, Terminal.Constructor(Vector3(1150.359f, 1122.745f, 112.233f), vanu_equipment_term), owning_building_guid = 203)
+      LocalObject(832, Terminal.Constructor(Vector3(1156.116f, 1136.434f, 112.233f), vanu_equipment_term), owning_building_guid = 203)
+      LocalObject(833, Terminal.Constructor(Vector3(1156.87f, 1132.533f, 112.237f), vanu_equipment_term), owning_building_guid = 203)
+      LocalObject(861, SpawnTube.Constructor(Vector3(1146.494f, 1132.42f, 112.359f), Vector3(0, 0, 304)), owning_building_guid = 203)
+      LocalObject(728, Painbox.Constructor(Vector3(1146.405f, 1132.827f, 121.5618f), painbox_continuous), owning_building_guid = 203)
+      LocalObject(735, Painbox.Constructor(Vector3(1135.332f, 1140.324f, 116.11f), painbox_door_radius_continuous), owning_building_guid = 203)
+      LocalObject(736, Painbox.Constructor(Vector3(1138.548f, 1119.949f, 116.11f), painbox_door_radius_continuous), owning_building_guid = 203)
+      LocalObject(737, Painbox.Constructor(Vector3(1154.586f, 1144.226f, 115.51f), painbox_door_radius_continuous), owning_building_guid = 203)
+      LocalObject(738, Painbox.Constructor(Vector3(1158.049f, 1124.576f, 116.11f), painbox_door_radius_continuous), owning_building_guid = 203)
     }
 
     Building10000()
 
-    def Building10000(): Unit = { // Name: Core Type: vanu_core GUID: 205, MapID: 10000
-      LocalBuilding("Core", 205, 10000, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1028.8f, 1012.78f, 165.78f), Vector3(0f, 0f, 0f), vanu_core)))
-      LocalObject(606, Door.Constructor(Vector3(996.3071f, 1000.802f, 172.568f)), owning_building_guid = 205)
-      LocalObject(613, Door.Constructor(Vector3(1024.778f, 972.287f, 172.568f)), owning_building_guid = 205)
-      LocalObject(614, Door.Constructor(Vector3(1024.778f, 972.287f, 177.568f)), owning_building_guid = 205)
-      LocalObject(615, Door.Constructor(Vector3(1024.822f, 1029.273f, 177.568f)), owning_building_guid = 205)
-      LocalObject(616, Door.Constructor(Vector3(1024.822f, 1029.273f, 182.568f)), owning_building_guid = 205)
-      LocalObject(625, Door.Constructor(Vector3(1053.293f, 1000.758f, 182.568f)), owning_building_guid = 205)
+    def Building10000(): Unit = { // Name: Core Type: vanu_core GUID: 204, MapID: 10000
+      LocalBuilding("Core", 204, 10000, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1028.8f, 1012.78f, 165.78f), Vector3(0f, 0f, 0f), vanu_core)))
+      LocalObject(605, Door.Constructor(Vector3(996.3071f, 1000.802f, 172.568f)), owning_building_guid = 204)
+      LocalObject(612, Door.Constructor(Vector3(1024.778f, 972.287f, 172.568f)), owning_building_guid = 204)
+      LocalObject(613, Door.Constructor(Vector3(1024.778f, 972.287f, 177.568f)), owning_building_guid = 204)
+      LocalObject(614, Door.Constructor(Vector3(1024.822f, 1029.273f, 177.568f)), owning_building_guid = 204)
+      LocalObject(615, Door.Constructor(Vector3(1024.822f, 1029.273f, 182.568f)), owning_building_guid = 204)
+      LocalObject(624, Door.Constructor(Vector3(1053.293f, 1000.758f, 182.568f)), owning_building_guid = 204)
     }
 
     Building10246()
 
-    def Building10246(): Unit = { // Name: N_ATPlant Type: vanu_vehicle_station GUID: 231, MapID: 10246
-      LocalBuilding("N_ATPlant", 231, 10246, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(739.86f, 1264.38f, 82.47f), Vector3(0f, 0f, 329f), vanu_vehicle_station)))
-      LocalObject(790, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 231)
-      LocalObject(549, Door.Constructor(Vector3(684.2806f, 1258.55f, 114.249f)), owning_building_guid = 231)
-      LocalObject(550, Door.Constructor(Vector3(688.5319f, 1265.615f, 114.229f)), owning_building_guid = 231)
-      LocalObject(551, Door.Constructor(Vector3(692.6342f, 1272.507f, 114.229f)), owning_building_guid = 231)
-      LocalObject(552, Door.Constructor(Vector3(696.8887f, 1279.533f, 114.249f)), owning_building_guid = 231)
-      LocalObject(553, Door.Constructor(Vector3(710.3329f, 1224.244f, 84.249f)), owning_building_guid = 231)
-      LocalObject(554, Door.Constructor(Vector3(714.447f, 1231.091f, 104.173f)), owning_building_guid = 231)
-      LocalObject(555, Door.Constructor(Vector3(718.8141f, 1284.958f, 104.161f)), owning_building_guid = 231)
-      LocalObject(556, Door.Constructor(Vector3(743.5565f, 1279.537f, 84.249f)), owning_building_guid = 231)
-      LocalObject(687, Door.Constructor(Vector3(675.4597f, 1282.781f, 89.103f)), owning_building_guid = 231)
-      LocalObject(785, Terminal.Constructor(Vector3(705.5295f, 1244.009f, 102.387f), vanu_air_vehicle_term), owning_building_guid = 231)
-      LocalObject(863, VehicleSpawnPad.Constructor(Vector3(713.2993f, 1248.321f, 102.386f), vanu_vehicle_creation_pad, Vector3(0, 0, 121)), owning_building_guid = 231, terminal_guid = 785)
-      LocalObject(786, Terminal.Constructor(Vector3(723.7557f, 1274.36f, 102.387f), vanu_air_vehicle_term), owning_building_guid = 231)
-      LocalObject(864, VehicleSpawnPad.Constructor(Vector3(723.6083f, 1265.478f, 102.386f), vanu_vehicle_creation_pad, Vector3(0, 0, 121)), owning_building_guid = 231, terminal_guid = 786)
-      LocalObject(796, Terminal.Constructor(Vector3(702.5449f, 1252.534f, 84.97f), vanu_equipment_term), owning_building_guid = 231)
-      LocalObject(797, Terminal.Constructor(Vector3(714.9058f, 1273.106f, 84.97f), vanu_equipment_term), owning_building_guid = 231)
-      LocalObject(868, Terminal.Constructor(Vector3(703.9712f, 1265.516f, 87.47f), vanu_vehicle_term), owning_building_guid = 231)
-      LocalObject(862, VehicleSpawnPad.Constructor(Vector3(691.0519f, 1273.405f, 84.875f), vanu_vehicle_creation_pad, Vector3(0, 0, -59)), owning_building_guid = 231, terminal_guid = 868)
+    def Building10246(): Unit = { // Name: N_ATPlant Type: vanu_vehicle_station GUID: 230, MapID: 10246
+      LocalBuilding("N_ATPlant", 230, 10246, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(739.86f, 1264.38f, 82.47f), Vector3(0f, 0f, 329f), vanu_vehicle_station)))
+      LocalObject(790, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 230)
+      LocalObject(548, Door.Constructor(Vector3(684.2806f, 1258.55f, 114.249f)), owning_building_guid = 230)
+      LocalObject(549, Door.Constructor(Vector3(688.5319f, 1265.615f, 114.229f)), owning_building_guid = 230)
+      LocalObject(550, Door.Constructor(Vector3(692.6342f, 1272.507f, 114.229f)), owning_building_guid = 230)
+      LocalObject(551, Door.Constructor(Vector3(696.8887f, 1279.533f, 114.249f)), owning_building_guid = 230)
+      LocalObject(552, Door.Constructor(Vector3(710.3329f, 1224.244f, 84.249f)), owning_building_guid = 230)
+      LocalObject(553, Door.Constructor(Vector3(714.447f, 1231.091f, 104.173f)), owning_building_guid = 230)
+      LocalObject(554, Door.Constructor(Vector3(718.8141f, 1284.958f, 104.161f)), owning_building_guid = 230)
+      LocalObject(555, Door.Constructor(Vector3(743.5565f, 1279.537f, 84.249f)), owning_building_guid = 230)
+      LocalObject(686, Door.Constructor(Vector3(675.4597f, 1282.781f, 89.103f)), owning_building_guid = 230)
+      LocalObject(785, Terminal.Constructor(Vector3(705.5295f, 1244.009f, 102.387f), vanu_air_vehicle_term), owning_building_guid = 230)
+      LocalObject(863, VehicleSpawnPad.Constructor(Vector3(713.2993f, 1248.321f, 102.386f), vanu_vehicle_creation_pad, Vector3(0, 0, 121)), owning_building_guid = 230, terminal_guid = 785)
+      LocalObject(786, Terminal.Constructor(Vector3(723.7557f, 1274.36f, 102.387f), vanu_air_vehicle_term), owning_building_guid = 230)
+      LocalObject(864, VehicleSpawnPad.Constructor(Vector3(723.6083f, 1265.478f, 102.386f), vanu_vehicle_creation_pad, Vector3(0, 0, 121)), owning_building_guid = 230, terminal_guid = 786)
+      LocalObject(796, Terminal.Constructor(Vector3(702.5449f, 1252.534f, 84.97f), vanu_equipment_term), owning_building_guid = 230)
+      LocalObject(797, Terminal.Constructor(Vector3(714.9058f, 1273.106f, 84.97f), vanu_equipment_term), owning_building_guid = 230)
+      LocalObject(868, Terminal.Constructor(Vector3(703.9712f, 1265.516f, 87.47f), vanu_vehicle_term), owning_building_guid = 230)
+      LocalObject(862, VehicleSpawnPad.Constructor(Vector3(691.0519f, 1273.405f, 84.875f), vanu_vehicle_creation_pad, Vector3(0, 0, -59)), owning_building_guid = 230, terminal_guid = 868)
     }
 
     Building10248()
 
-    def Building10248(): Unit = { // Name: S_ATPlant Type: vanu_vehicle_station GUID: 232, MapID: 10248
-      LocalBuilding("S_ATPlant", 232, 10248, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1304.12f, 799.11f, 83.07f), Vector3(0f, 0f, 142f), vanu_vehicle_station)))
-      LocalObject(795, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 232)
-      LocalObject(677, Door.Constructor(Vector3(1298.604f, 784.5164f, 84.849f)), owning_building_guid = 232)
-      LocalObject(678, Door.Constructor(Vector3(1322.501f, 776.121f, 104.761f)), owning_building_guid = 232)
-      LocalObject(679, Door.Constructor(Vector3(1333.401f, 829.0539f, 104.773f)), owning_building_guid = 232)
-      LocalObject(680, Door.Constructor(Vector3(1338.318f, 835.3486f, 84.849f)), owning_building_guid = 232)
-      LocalObject(682, Door.Constructor(Vector3(1344.924f, 778.8329f, 114.849f)), owning_building_guid = 232)
-      LocalObject(683, Door.Constructor(Vector3(1350.003f, 785.2883f, 114.829f)), owning_building_guid = 232)
-      LocalObject(684, Door.Constructor(Vector3(1354.915f, 791.6285f, 114.829f)), owning_building_guid = 232)
-      LocalObject(685, Door.Constructor(Vector3(1359.996f, 798.1234f, 114.849f)), owning_building_guid = 232)
-      LocalObject(688, Door.Constructor(Vector3(1365.798f, 772.9979f, 89.703f)), owning_building_guid = 232)
-      LocalObject(787, Terminal.Constructor(Vector3(1318.888f, 787.242f, 102.987f), vanu_air_vehicle_term), owning_building_guid = 232)
-      LocalObject(865, VehicleSpawnPad.Constructor(Vector3(1320.117f, 796.0395f, 102.986f), vanu_vehicle_creation_pad, Vector3(0, 0, -52)), owning_building_guid = 232, terminal_guid = 787)
-      LocalObject(788, Terminal.Constructor(Vector3(1340.677f, 815.1455f, 102.987f), vanu_air_vehicle_term), owning_building_guid = 232)
-      LocalObject(866, VehicleSpawnPad.Constructor(Vector3(1332.44f, 811.8123f, 102.986f), vanu_vehicle_creation_pad, Vector3(0, 0, -52)), owning_building_guid = 232, terminal_guid = 788)
-      LocalObject(846, Terminal.Constructor(Vector3(1327.825f, 787.4082f, 85.57f), vanu_equipment_term), owning_building_guid = 232)
-      LocalObject(847, Terminal.Constructor(Vector3(1342.601f, 806.3204f, 85.57f), vanu_equipment_term), owning_building_guid = 232)
-      LocalObject(869, Terminal.Constructor(Vector3(1339.603f, 793.6083f, 88.07f), vanu_vehicle_term), owning_building_guid = 232)
-      LocalObject(867, VehicleSpawnPad.Constructor(Vector3(1351.464f, 784.2039f, 85.475f), vanu_vehicle_creation_pad, Vector3(0, 0, 128)), owning_building_guid = 232, terminal_guid = 869)
+    def Building10248(): Unit = { // Name: S_ATPlant Type: vanu_vehicle_station GUID: 231, MapID: 10248
+      LocalBuilding("S_ATPlant", 231, 10248, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1304.12f, 799.11f, 83.07f), Vector3(0f, 0f, 142f), vanu_vehicle_station)))
+      LocalObject(795, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 231)
+      LocalObject(676, Door.Constructor(Vector3(1298.604f, 784.5164f, 84.849f)), owning_building_guid = 231)
+      LocalObject(677, Door.Constructor(Vector3(1322.501f, 776.121f, 104.761f)), owning_building_guid = 231)
+      LocalObject(678, Door.Constructor(Vector3(1333.401f, 829.0539f, 104.773f)), owning_building_guid = 231)
+      LocalObject(679, Door.Constructor(Vector3(1338.318f, 835.3486f, 84.849f)), owning_building_guid = 231)
+      LocalObject(681, Door.Constructor(Vector3(1344.924f, 778.8329f, 114.849f)), owning_building_guid = 231)
+      LocalObject(682, Door.Constructor(Vector3(1350.003f, 785.2883f, 114.829f)), owning_building_guid = 231)
+      LocalObject(683, Door.Constructor(Vector3(1354.915f, 791.6285f, 114.829f)), owning_building_guid = 231)
+      LocalObject(684, Door.Constructor(Vector3(1359.996f, 798.1234f, 114.849f)), owning_building_guid = 231)
+      LocalObject(687, Door.Constructor(Vector3(1365.798f, 772.9979f, 89.703f)), owning_building_guid = 231)
+      LocalObject(787, Terminal.Constructor(Vector3(1318.888f, 787.242f, 102.987f), vanu_air_vehicle_term), owning_building_guid = 231)
+      LocalObject(865, VehicleSpawnPad.Constructor(Vector3(1320.117f, 796.0395f, 102.986f), vanu_vehicle_creation_pad, Vector3(0, 0, -52)), owning_building_guid = 231, terminal_guid = 787)
+      LocalObject(788, Terminal.Constructor(Vector3(1340.677f, 815.1455f, 102.987f), vanu_air_vehicle_term), owning_building_guid = 231)
+      LocalObject(866, VehicleSpawnPad.Constructor(Vector3(1332.44f, 811.8123f, 102.986f), vanu_vehicle_creation_pad, Vector3(0, 0, -52)), owning_building_guid = 231, terminal_guid = 788)
+      LocalObject(846, Terminal.Constructor(Vector3(1327.825f, 787.4082f, 85.57f), vanu_equipment_term), owning_building_guid = 231)
+      LocalObject(847, Terminal.Constructor(Vector3(1342.601f, 806.3204f, 85.57f), vanu_equipment_term), owning_building_guid = 231)
+      LocalObject(869, Terminal.Constructor(Vector3(1339.603f, 793.6083f, 88.07f), vanu_vehicle_term), owning_building_guid = 231)
+      LocalObject(867, VehicleSpawnPad.Constructor(Vector3(1351.464f, 784.2039f, 85.475f), vanu_vehicle_creation_pad, Vector3(0, 0, 128)), owning_building_guid = 231, terminal_guid = 869)
     }
 
     Building10225()
 
-    def Building10225(): Unit = { // Name: GW_Cavern6_W Type: warpgate_cavern GUID: 233, MapID: 10225
-      LocalBuilding("GW_Cavern6_W", 233, 10225, FoundationBuilder(WarpGate.Structure(Vector3(281.98f, 637.77f, 60.83f))))
+    def Building10225(): Unit = { // Name: GW_Cavern6_W Type: warpgate_cavern GUID: 232, MapID: 10225
+      LocalBuilding("GW_Cavern6_W", 232, 10225, FoundationBuilder(WarpGate.Structure(Vector3(281.98f, 637.77f, 60.83f))))
     }
 
     Building10224()
 
-    def Building10224(): Unit = { // Name: GW_Cavern6_N Type: warpgate_cavern GUID: 234, MapID: 10224
-      LocalBuilding("GW_Cavern6_N", 234, 10224, FoundationBuilder(WarpGate.Structure(Vector3(1093.93f, 2082.3f, 80.82f))))
+    def Building10224(): Unit = { // Name: GW_Cavern6_N Type: warpgate_cavern GUID: 233, MapID: 10224
+      LocalBuilding("GW_Cavern6_N", 233, 10224, FoundationBuilder(WarpGate.Structure(Vector3(1093.93f, 2082.3f, 80.82f))))
     }
 
     Building10226()
 
-    def Building10226(): Unit = { // Name: GW_Cavern6_S Type: warpgate_cavern GUID: 235, MapID: 10226
-      LocalBuilding("GW_Cavern6_S", 235, 10226, FoundationBuilder(WarpGate.Structure(Vector3(1218.27f, 218.05f, 100.82f))))
+    def Building10226(): Unit = { // Name: GW_Cavern6_S Type: warpgate_cavern GUID: 234, MapID: 10226
+      LocalBuilding("GW_Cavern6_S", 234, 10226, FoundationBuilder(WarpGate.Structure(Vector3(1218.27f, 218.05f, 100.82f))))
     }
 
     Building10227()
 
-    def Building10227(): Unit = { // Name: GW_Cavern6_E Type: warpgate_cavern GUID: 236, MapID: 10227
-      LocalBuilding("GW_Cavern6_E", 236, 10227, FoundationBuilder(WarpGate.Structure(Vector3(1986.27f, 922.08f, 20.82f))))
+    def Building10227(): Unit = { // Name: GW_Cavern6_E Type: warpgate_cavern GUID: 235, MapID: 10227
+      LocalBuilding("GW_Cavern6_E", 235, 10227, FoundationBuilder(WarpGate.Structure(Vector3(1986.27f, 922.08f, 20.82f))))
     }
 
     ZoneOwnedObjects()
@@ -463,7 +463,7 @@ object Ugd06 { // Drugaskan
       LocalObject(843, Terminal.Constructor(Vector3(1263.08f, 997.75f, 100.83f), vanu_equipment_term), owning_building_guid = 0)
       LocalObject(844, Terminal.Constructor(Vector3(1263.42f, 1014.84f, 100.83f), vanu_equipment_term), owning_building_guid = 0)
       LocalObject(845, Terminal.Constructor(Vector3(1266.79f, 810.47f, 85.06f), vanu_equipment_term), owning_building_guid = 0)
-      LocalObject(12, ProximityTerminal.Constructor(Vector3(1172.58f, 709.8f, 81.4f), crystals_health_a), owning_building_guid = 0)
+      LocalObject(11, ProximityTerminal.Constructor(Vector3(1172.58f, 709.8f, 81.4f), crystals_health_a), owning_building_guid = 0)
       LocalObject(703, ProximityTerminal.Constructor(Vector3(857.28f, 1126.68f, 87.35f), crystals_health_a), owning_building_guid = 0)
       LocalObject(704, ProximityTerminal.Constructor(Vector3(978.1f, 685.44f, 96.28f), crystals_health_a), owning_building_guid = 0)
       LocalObject(705, ProximityTerminal.Constructor(Vector3(997.47f, 936.4f, 98.43f), crystals_health_a), owning_building_guid = 0)
@@ -475,56 +475,56 @@ object Ugd06 { // Drugaskan
       LocalObject(711, ProximityTerminal.Constructor(Vector3(887.15f, 1281.71f, 110.54f), crystals_health_b), owning_building_guid = 0)
       LocalObject(712, ProximityTerminal.Constructor(Vector3(1055.56f, 1071.61f, 102.26f), crystals_health_b), owning_building_guid = 0)
       LocalObject(713, ProximityTerminal.Constructor(Vector3(1069.99f, 1127.29f, 174.49f), crystals_health_b), owning_building_guid = 0)
-      LocalObject(206, FacilityTurret.Constructor(Vector3(740.28f, 1248.13f, 102.39f), vanu_sentry_turret), owning_building_guid = 0)
-      TurretToWeapon(206, 5000)
-      LocalObject(207, FacilityTurret.Constructor(Vector3(809.59f, 1107.17f, 106.13f), vanu_sentry_turret), owning_building_guid = 0)
-      TurretToWeapon(207, 5001)
-      LocalObject(208, FacilityTurret.Constructor(Vector3(850.2f, 1289.34f, 95.04f), vanu_sentry_turret), owning_building_guid = 0)
-      TurretToWeapon(208, 5002)
-      LocalObject(209, FacilityTurret.Constructor(Vector3(882.78f, 1056.81f, 89.36f), vanu_sentry_turret), owning_building_guid = 0)
-      TurretToWeapon(209, 5003)
-      LocalObject(210, FacilityTurret.Constructor(Vector3(883.18f, 900.09f, 123.26f), vanu_sentry_turret), owning_building_guid = 0)
-      TurretToWeapon(210, 5004)
-      LocalObject(211, FacilityTurret.Constructor(Vector3(897.52f, 1111.75f, 95.42f), vanu_sentry_turret), owning_building_guid = 0)
-      TurretToWeapon(211, 5005)
-      LocalObject(212, FacilityTurret.Constructor(Vector3(901.13f, 1260.92f, 95.04f), vanu_sentry_turret), owning_building_guid = 0)
-      TurretToWeapon(212, 5006)
-      LocalObject(213, FacilityTurret.Constructor(Vector3(933.25f, 896.94f, 108.78f), vanu_sentry_turret), owning_building_guid = 0)
-      TurretToWeapon(213, 5007)
-      LocalObject(214, FacilityTurret.Constructor(Vector3(980.25f, 1277.41f, 81.61f), vanu_sentry_turret), owning_building_guid = 0)
-      TurretToWeapon(214, 5008)
-      LocalObject(215, FacilityTurret.Constructor(Vector3(989.24f, 1112.19f, 97.47f), vanu_sentry_turret), owning_building_guid = 0)
-      TurretToWeapon(215, 5009)
-      LocalObject(216, FacilityTurret.Constructor(Vector3(1010.06f, 1207.81f, 100.65f), vanu_sentry_turret), owning_building_guid = 0)
-      TurretToWeapon(216, 5010)
-      LocalObject(217, FacilityTurret.Constructor(Vector3(1020.39f, 934.87f, 98.43f), vanu_sentry_turret), owning_building_guid = 0)
-      TurretToWeapon(217, 5011)
-      LocalObject(218, FacilityTurret.Constructor(Vector3(1024.5f, 824.39f, 109.9f), vanu_sentry_turret), owning_building_guid = 0)
-      TurretToWeapon(218, 5012)
-      LocalObject(219, FacilityTurret.Constructor(Vector3(1046.17f, 1093.7f, 100.3f), vanu_sentry_turret), owning_building_guid = 0)
-      TurretToWeapon(219, 5013)
-      LocalObject(220, FacilityTurret.Constructor(Vector3(1103.21f, 909.09f, 81.32f), vanu_sentry_turret), owning_building_guid = 0)
-      TurretToWeapon(220, 5014)
-      LocalObject(221, FacilityTurret.Constructor(Vector3(1106.4f, 1091.2f, 115.81f), vanu_sentry_turret), owning_building_guid = 0)
-      TurretToWeapon(221, 5015)
-      LocalObject(222, FacilityTurret.Constructor(Vector3(1143.93f, 1173.62f, 137.22f), vanu_sentry_turret), owning_building_guid = 0)
-      TurretToWeapon(222, 5016)
-      LocalObject(223, FacilityTurret.Constructor(Vector3(1158.52f, 731.05f, 90.93f), vanu_sentry_turret), owning_building_guid = 0)
-      TurretToWeapon(223, 5017)
-      LocalObject(224, FacilityTurret.Constructor(Vector3(1181.47f, 838.23f, 101.14f), vanu_sentry_turret), owning_building_guid = 0)
-      TurretToWeapon(224, 5018)
-      LocalObject(225, FacilityTurret.Constructor(Vector3(1212.43f, 868.94f, 120.92f), vanu_sentry_turret), owning_building_guid = 0)
-      TurretToWeapon(225, 5019)
-      LocalObject(226, FacilityTurret.Constructor(Vector3(1219.12f, 993.4f, 102.26f), vanu_sentry_turret), owning_building_guid = 0)
-      TurretToWeapon(226, 5020)
-      LocalObject(227, FacilityTurret.Constructor(Vector3(1232.83f, 867.35f, 101.14f), vanu_sentry_turret), owning_building_guid = 0)
-      TurretToWeapon(227, 5021)
-      LocalObject(228, FacilityTurret.Constructor(Vector3(1306.63f, 814.39f, 102.99f), vanu_sentry_turret), owning_building_guid = 0)
-      TurretToWeapon(228, 5022)
-      LocalObject(229, FacilityTurret.Constructor(Vector3(1338.8f, 750.12f, 102.99f), vanu_sentry_turret), owning_building_guid = 0)
-      TurretToWeapon(229, 5023)
-      LocalObject(230, FacilityTurret.Constructor(Vector3(1356.64f, 861.39f, 92.4f), vanu_sentry_turret), owning_building_guid = 0)
-      TurretToWeapon(230, 5024)
+      LocalObject(205, FacilityTurret.Constructor(Vector3(740.28f, 1248.13f, 102.39f), vanu_sentry_turret), owning_building_guid = 0)
+      TurretToWeapon(205, 5000)
+      LocalObject(206, FacilityTurret.Constructor(Vector3(809.59f, 1107.17f, 106.13f), vanu_sentry_turret), owning_building_guid = 0)
+      TurretToWeapon(206, 5001)
+      LocalObject(207, FacilityTurret.Constructor(Vector3(850.2f, 1289.34f, 95.04f), vanu_sentry_turret), owning_building_guid = 0)
+      TurretToWeapon(207, 5002)
+      LocalObject(208, FacilityTurret.Constructor(Vector3(882.78f, 1056.81f, 89.36f), vanu_sentry_turret), owning_building_guid = 0)
+      TurretToWeapon(208, 5003)
+      LocalObject(209, FacilityTurret.Constructor(Vector3(883.18f, 900.09f, 123.26f), vanu_sentry_turret), owning_building_guid = 0)
+      TurretToWeapon(209, 5004)
+      LocalObject(210, FacilityTurret.Constructor(Vector3(897.52f, 1111.75f, 95.42f), vanu_sentry_turret), owning_building_guid = 0)
+      TurretToWeapon(210, 5005)
+      LocalObject(211, FacilityTurret.Constructor(Vector3(901.13f, 1260.92f, 95.04f), vanu_sentry_turret), owning_building_guid = 0)
+      TurretToWeapon(211, 5006)
+      LocalObject(212, FacilityTurret.Constructor(Vector3(933.25f, 896.94f, 108.78f), vanu_sentry_turret), owning_building_guid = 0)
+      TurretToWeapon(212, 5007)
+      LocalObject(213, FacilityTurret.Constructor(Vector3(980.25f, 1277.41f, 81.61f), vanu_sentry_turret), owning_building_guid = 0)
+      TurretToWeapon(213, 5008)
+      LocalObject(214, FacilityTurret.Constructor(Vector3(989.24f, 1112.19f, 97.47f), vanu_sentry_turret), owning_building_guid = 0)
+      TurretToWeapon(214, 5009)
+      LocalObject(215, FacilityTurret.Constructor(Vector3(1010.06f, 1207.81f, 100.65f), vanu_sentry_turret), owning_building_guid = 0)
+      TurretToWeapon(215, 5010)
+      LocalObject(216, FacilityTurret.Constructor(Vector3(1020.39f, 934.87f, 98.43f), vanu_sentry_turret), owning_building_guid = 0)
+      TurretToWeapon(216, 5011)
+      LocalObject(217, FacilityTurret.Constructor(Vector3(1024.5f, 824.39f, 109.9f), vanu_sentry_turret), owning_building_guid = 0)
+      TurretToWeapon(217, 5012)
+      LocalObject(218, FacilityTurret.Constructor(Vector3(1046.17f, 1093.7f, 100.3f), vanu_sentry_turret), owning_building_guid = 0)
+      TurretToWeapon(218, 5013)
+      LocalObject(219, FacilityTurret.Constructor(Vector3(1103.21f, 909.09f, 81.32f), vanu_sentry_turret), owning_building_guid = 0)
+      TurretToWeapon(219, 5014)
+      LocalObject(220, FacilityTurret.Constructor(Vector3(1106.4f, 1091.2f, 115.81f), vanu_sentry_turret), owning_building_guid = 0)
+      TurretToWeapon(220, 5015)
+      LocalObject(221, FacilityTurret.Constructor(Vector3(1143.93f, 1173.62f, 137.22f), vanu_sentry_turret), owning_building_guid = 0)
+      TurretToWeapon(221, 5016)
+      LocalObject(222, FacilityTurret.Constructor(Vector3(1158.52f, 731.05f, 90.93f), vanu_sentry_turret), owning_building_guid = 0)
+      TurretToWeapon(222, 5017)
+      LocalObject(223, FacilityTurret.Constructor(Vector3(1181.47f, 838.23f, 101.14f), vanu_sentry_turret), owning_building_guid = 0)
+      TurretToWeapon(223, 5018)
+      LocalObject(224, FacilityTurret.Constructor(Vector3(1212.43f, 868.94f, 120.92f), vanu_sentry_turret), owning_building_guid = 0)
+      TurretToWeapon(224, 5019)
+      LocalObject(225, FacilityTurret.Constructor(Vector3(1219.12f, 993.4f, 102.26f), vanu_sentry_turret), owning_building_guid = 0)
+      TurretToWeapon(225, 5020)
+      LocalObject(226, FacilityTurret.Constructor(Vector3(1232.83f, 867.35f, 101.14f), vanu_sentry_turret), owning_building_guid = 0)
+      TurretToWeapon(226, 5021)
+      LocalObject(227, FacilityTurret.Constructor(Vector3(1306.63f, 814.39f, 102.99f), vanu_sentry_turret), owning_building_guid = 0)
+      TurretToWeapon(227, 5022)
+      LocalObject(228, FacilityTurret.Constructor(Vector3(1338.8f, 750.12f, 102.99f), vanu_sentry_turret), owning_building_guid = 0)
+      TurretToWeapon(228, 5023)
+      LocalObject(229, FacilityTurret.Constructor(Vector3(1356.64f, 861.39f, 92.4f), vanu_sentry_turret), owning_building_guid = 0)
+      TurretToWeapon(229, 5024)
     }
 
     def Lattice(): Unit = {
