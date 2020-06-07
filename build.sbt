@@ -48,7 +48,7 @@ lazy val commonSettings = Seq(
     "io.kamon"                   %% "kamon-bundle"  % "2.1.0",
     "io.kamon"                   %% "kamon-apm-reporter" % "2.1.0",
     "org.json4s"                 %% "json4s-native" % "3.6.8",
-    "com.typesafe.akka"          %% "akka-stream"   % "2.6.5",
+    "com.typesafe.akka"          %% "akka-stream"   % "2.6.5"
   )
 )
 
@@ -101,6 +101,15 @@ lazy val common = (project in file("common")).
     inConfig(QuietTest)(Defaults.testTasks)
   ).
   settings(pscryptoSettings: _*)
+
+lazy val decodePackets = (project in file("tools/decode-packets")).
+  settings(commonSettings: _*).
+  settings(
+    libraryDependencies ++= Seq(
+      "org.scala-lang.modules"     %% "scala-parallel-collections" % "0.2.0"
+    )
+  ).
+  dependsOn(common)
 
 // Special test configuration for really quiet tests (used in CI)
 lazy val QuietTest = config("quiet") extend(Test)
