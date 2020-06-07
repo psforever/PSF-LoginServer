@@ -1,7 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.avatar
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import net.psforever.objects._
 import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile}
 import net.psforever.objects.definition.ImplantDefinition
@@ -39,6 +39,8 @@ class PlayerControl(player : Player) extends Actor
   private [this] val log = org.log4s.getLogger(player.Name)
   private [this] val damageLog = org.log4s.getLogger(Damageable.LogChannel)
 
+  /** */
+  var staminaRegen : Cancellable = Default.Cancellable
   /**
     * A collection of timers indexed for the implant in each slot.
     * Before an implant is ready, it serves as the initialization timer.
@@ -54,6 +56,7 @@ class PlayerControl(player : Player) extends Actor
   override def postStop() : Unit = {
     lockerControlAgent ! akka.actor.PoisonPill
     player.Locker.Actor = Default.Actor
+    staminaRegen.cancel
     implantSlotTimers.values.foreach { _.cancel }
   }
 
@@ -73,16 +76,36 @@ class PlayerControl(player : Player) extends Actor
       case Player.ImplantInitializationComplete(slot : Int) =>
         ImplantInitializationComplete(slot)
 
+      case Player.StaminaRegen() =>
+        if(staminaRegen == Default.Cancellable) {
+          staminaRegen.cancel
+          staminaRegen = context.system.scheduler.scheduleOnce(delay = 250 milliseconds, self, PlayerControl.StaminaRegen(0))
+        }
+
+      case PlayerControl.StaminaRegen(counter) =>
+        staminaRegen.cancel
+        val next : Int = if (counter == 1) {
+          if (player.skipStaminaRegenForTurns > 0) {
+            // Do not renew stamina for a while
+            player.skipStaminaRegenForTurns -= 1
+          }
+          else if (!player.isMoving && player.Stamina < player.MaxStamina) {
+            // Regen stamina roughly every 500ms
+            StaminaChanged(changeInStamina = 1)
+          }
+          0
+        }
+        else {
+          1
+        }
+        staminaRegen = context.system.scheduler.scheduleOnce(delay = 250 milliseconds, self, PlayerControl.StaminaRegen(next))
+
       case Player.DrainStamina(amount : Int) =>
         player.Stamina -= amount
         UpdateStamina()
 
       case Player.StaminaChanged(changeInStamina : Int) =>
-        val beforeStamina = player.Stamina
-        val afterStamina = player.Stamina += changeInStamina
-        if(beforeStamina != afterStamina) {
-          UpdateStamina()
-        }
+        StaminaChanged(changeInStamina)
 
       case Player.Die() =>
         if(player.isAlive) {
@@ -704,6 +727,18 @@ class PlayerControl(player : Player) extends Actor
   }
 
   /**
+    * na
+    * @param changeInStamina na
+    */
+  def StaminaChanged(changeInStamina : Int) : Unit = {
+    val beforeStamina = player.Stamina
+    val afterStamina = player.Stamina += changeInStamina
+    if(beforeStamina != afterStamina) {
+      UpdateStamina()
+    }
+  }
+
+  /**
     * Determine whether the current stamina value for this player requires a greater change in player states.
     * Losing all stamina and not yet being fatigued deactivates implants.
     * Having stamina of 20 points or greater and having previously been fatigued
@@ -829,18 +864,22 @@ class PlayerControl(player : Player) extends Actor
             implantSlotTimers(slot).cancel
             implantSlotTimers(slot) = Default.Cancellable
           }
-          implantSlot.Active = true
-          if (implant.ActivationStaminaCost >= 0) {
-            player.Stamina -= implant.ActivationStaminaCost // Activation stamina drain
+          val activationStaminaCost = implant.ActivationStaminaCost
+          if (activationStaminaCost > 0) {
+            player.Stamina -= activationStaminaCost // Activation stamina drain
             UpdateStamina()
           }
-          val drainInterval = implant.GetCostIntervalByExoSuit(player.ExoSuit)
-          if (implant.StaminaCost > 0 && drainInterval > 0) { // Ongoing stamina drain, if applicable
-            implantSlotTimers(slot).cancel
-            implantSlotTimers(slot) = context.system.scheduler.scheduleWithFixedDelay(0 seconds, drainInterval milliseconds, self, Player.DrainStamina(implant.StaminaCost))
+          if (!player.Fatigued) {
+            implantSlot.Active = true
+            val zone = player.Zone
+            val drainInterval = implant.GetCostIntervalByExoSuit(player.ExoSuit)
+            if (drainInterval > 0) { // Ongoing stamina drain, if applicable
+              implantSlotTimers(slot).cancel
+              implantSlotTimers(slot) = context.system.scheduler.scheduleWithFixedDelay(initialDelay = 0 seconds, drainInterval milliseconds, self, Player.DrainStamina(implant.StaminaCost))
+            }
+            zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, player.Implant(slot).id * 2 + 1)) // Activation sound / effect
+            zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.ActivateImplantSlot(player.GUID, slot))
           }
-          player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, player.Implant(slot).id * 2 + 1)) // Activation sound / effect
-          player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.ActivateImplantSlot(player.GUID, slot))
         case _ =>
           //there should have been an implant here ...
           implantSlot.Active = false
@@ -876,6 +915,8 @@ class PlayerControl(player : Player) extends Actor
 }
 
 object PlayerControl {
+  /** */
+  private case class StaminaRegen(counter : Int)
   /**
     * na
     * @param target na

@@ -672,6 +672,7 @@ object Player {
   final case class ImplantInitializationStart(slot : Int)
   final case class UninitializeImplant(slot : Int)
   final case class ImplantInitializationComplete(slot : Int)
+  final case class StaminaRegen()
   final case class DrainStamina(amount : Int)
   final case class StaminaChanged(currentStamina : Int)
 

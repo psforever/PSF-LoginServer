@@ -2953,8 +2953,7 @@ class WorldSessionActor extends Actor
     * @param reply     na
     */
   def HandleVehicleServiceResponse(toChannel : String, guid : PlanetSideGUID, reply : VehicleResponse.Response) : Unit = {
-    val tplayer_guid = if(player.HasGUID) player.GUID
-    else PlanetSideGUID(0)
+    val tplayer_guid = if(player.HasGUID) player.GUID else PlanetSideGUID(0)
     reply match {
       case VehicleResponse.AttachToRails(vehicle_guid, pad_guid) =>
         sendResponse(ObjectAttachMessage(pad_guid, vehicle_guid, 3))
@@ -3081,6 +3080,17 @@ class WorldSessionActor extends Actor
           sendResponse(VehicleStateMessage(vehicle_guid, unk1, pos, ang, vel, unk2, unk3, unk4, wheel_direction, unk5, unk6))
           if(player.VehicleSeated.contains(vehicle_guid)) {
             player.Position = pos
+            GetVehicleAndSeat() match {
+              case (Some(_), Some(0)) => ;
+              case (Some(_), Some(_)) =>
+                turnCounter(guid)
+                if (player.death_by == -1) {
+                  sendResponse(ChatMsg(ChatMessageType.UNK_71, true, "", "Your account has been logged out by a Customer Service Representative.", None))
+                  Thread.sleep(300)
+                  sendResponse(DropSession(sessionId, "kick by GM"))
+                }
+              case _ => ;
+            }
           }
         }
       case VehicleResponse.SendResponse(msg) =>
@@ -3517,6 +3527,9 @@ class WorldSessionActor extends Actor
     else if(originalDeadState == DeadState.Dead || player.Health == 0) {
       //killed during spawn setup or possibly a relog into a corpse (by accident?)
       player.Actor ! Player.Die()
+    }
+    else {
+      tplayer.Actor ! Player.StaminaRegen()
     }
     upstreamMessageCount = 0
   }
@@ -4111,16 +4124,6 @@ class WorldSessionActor extends Actor
       if(isMovingPlus) {
         CancelZoningProcessWithDescriptiveReason("cancel_motion")
       }
-      if(deadState == DeadState.Alive && upstreamMessageCount % 2 == 0) {
-        if(player.skipStaminaRegenForTurns > 0) {
-          //do not renew stamina for a while
-          player.skipStaminaRegenForTurns -= 1
-        }
-        else if(player.Stamina != player.MaxStamina && !isMovingPlus) {
-          // Regen stamina roughly every 750ms when standing, 500ms when crouched
-          player.Actor ! Player.StaminaChanged(1)
-        }
-      }
       player.Position = pos
       player.Velocity = vel
       player.Orientation = Vector3(player.Orientation.x, pitch, yaw)
@@ -4200,16 +4203,6 @@ class WorldSessionActor extends Actor
         //TODO status condition of "playing getting out of vehicle to allow for late packets without warning
         //log.warn(s"ChildObjectState: player ${player.Name} not related to anything with a controllable agent")
       }
-      if(deadState == DeadState.Alive && upstreamMessageCount % 2 == 0) {
-        if(player.skipStaminaRegenForTurns > 0) {
-          //do not renew stamina for a while
-          player.skipStaminaRegenForTurns -= 1
-        }
-        else if(player.Stamina != player.MaxStamina) {
-          // Regen stamina roughly every 750ms
-          player.Actor ! Player.StaminaChanged(1)
-        }
-      }
       if (player.death_by == -1) {
         sendResponse(ChatMsg(ChatMessageType.UNK_71, true, "", "Your account has been logged out by a Customer Service Representative.", None))
         Thread.sleep(300)
@@ -4257,16 +4250,6 @@ class WorldSessionActor extends Actor
         case (_, Some(index)) =>
           log.error(s"VehicleState: player should not be dispatching this kind of packet from vehicle#$vehicle_guid  when not the driver ($index)")
         case _ => ;
-      }
-      if(deadState == DeadState.Alive && upstreamMessageCount % 2 == 0) {
-        if(player.skipStaminaRegenForTurns > 0) {
-          //do not renew stamina for a while
-          player.skipStaminaRegenForTurns -= 1
-        }
-        else if(player.Stamina != player.MaxStamina) {
-          // Regen stamina roughly every 750ms
-          player.Actor ! Player.StaminaChanged(1)
-        }
       }
       if (player.death_by == -1) {
         sendResponse(ChatMsg(ChatMessageType.UNK_71, true, "", "Your account has been logged out by a Customer Service Representative.", None))
@@ -8420,6 +8403,13 @@ class WorldSessionActor extends Actor
     val player_guid : PlanetSideGUID = tplayer.GUID
     val obj_guid : PlanetSideGUID = obj.GUID
     PlayerActionsToCancel()
+    //deactivate non-passive implants
+    tplayer.Implants.indices.foreach { index =>
+      val implantSlot = tplayer.ImplantSlot(index)
+      if(implantSlot.Active && implantSlot.Charge(tplayer.ExoSuit) > 0) {
+        tplayer.Actor ! Player.ImplantActivation(index, 0)
+      }
+    }
     log.info(s"MountVehicleMsg: ${player.Name}_guid mounts $obj @ $seatNum")
     sendResponse(ObjectAttachMessage(obj_guid, player_guid, seatNum))
     continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.MountVehicle(player_guid, obj_guid, seatNum))
