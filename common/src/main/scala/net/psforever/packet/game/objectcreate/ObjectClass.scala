@@ -187,6 +187,8 @@ object ObjectClass {
   final val katana = 421
   final val lancer = 425
   final val lasher = 429
+  final val lasher_projectile = 430
+  final val lasher_projectile_ap = 431
   final val liberator_25mm_cannon = 433
   final val liberator_bomb_bay = 435
   final val liberator_weapon_system = 440
@@ -397,6 +399,53 @@ object ObjectClass {
   final val portable_order_terminal = 690
   final val targeting_laser_dispenser = 851
   final val teleportpad_terminal = 853
+
+  // For property overrides
+  final val delivererv = 239
+  final val apc = 62
+  final val colossus = 179
+  final val peregrine = 632
+  final val aphelion = 79
+  final val vshev = 964
+  final val trhev = 884
+  final val nchev = 583
+  final val med_armor = 528
+  final val heavy_armor = 390
+  final val bfr_terminal = 143
+  final val vshev_antiaircraft = 965
+  final val vshev_antipersonnel = 966
+  final val vshev_antivehicular = 967
+  final val trhev_antiaircraft = 885
+  final val trhev_antipersonnel = 886
+  final val trhev_antivehicular = 887
+  final val nchev_antiaircraft = 584
+  final val nchev_antipersonnel = 585
+  final val nchev_antivehicular = 586
+  final val standard_issue_armor = 829
+  final val lite_armor = 449
+  final val air_vehicle_terminal = 43
+  final val generic_bfr = 353
+  final val stealth_armor = 837
+  final val vehicle_terminal_combined = 952
+
+  final val objectClassMap = scala.collection.mutable.Map[String, Int]()
+
+  def ByName(name : String) : Int = {
+    // This whole thing is a dirty "temporary" hack so I don't have to make a huge map out of the above object vars by hand
+    // Forgive me.
+    if(objectClassMap.size == 0) {
+      val objectClassMethods = ObjectClass.getClass.getDeclaredMethods
+      objectClassMethods.foreach(x =>  {
+        if(x.getReturnType.getName == "int" && x.getParameterTypes.isEmpty) { // ints only & Ignore functions with parameters
+          val objectName = x.getName
+          val value = ObjectClass.getClass.getMethod(objectName).invoke(ObjectClass)
+          objectClassMap.put(objectName, value.asInstanceOf[Int])
+        }
+      })
+    }
+
+    objectClassMap(name.toLowerCase())
+  }
 
   //TODO refactor the following functions into another object later
   /**

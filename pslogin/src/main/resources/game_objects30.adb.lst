@@ -1,0 +1,61 @@
+add_property air_vehicle_terminal forsale_dropship
+add_property air_vehicle_terminal forsale_galaxy_gunship
+add_property air_vehicle_terminal forsale_lodestar
+add_property apc allowed false
+add_property apc_nc allowed false
+add_property apc_tr allowed false
+add_property apc_vs allowed false
+add_property aphelion allowed false
+add_property aphelion_flight allowed false
+add_property aurora allowed false
+add_property battlewagon allowed false
+add_property colossus_flight allowed false
+add_property colossus_gunner allowed false
+add_property dropship requirement_certification0 false
+add_property flail allowed false
+add_property fury allowed false
+add_property galaxy_gunship requirement_certification0 false
+add_property hunterseeker requirement_certification0 false
+add_property lancer requirement_certification0 false
+add_property liberator requirement_certification0 false
+add_property liberator purchase_tech_plant false
+add_property lightgunship requirement_certification0 false
+add_property lightgunship purchase_tech_plant false
+add_property lightning allowed false
+add_property lodestar requirement_certification0 false
+add_property magrider allowed false
+add_property mediumtransport allowed false
+add_property mosquito requirement_certification0 false
+add_property mosquito requirement_certification1 false
+add_property nano_dispenser requirement_certification0 false
+add_property nchev_antiaircraft allowed false
+add_property order_terminal forsale_nchev_antiaircraft false
+add_property order_terminal forsale_trhev_antiaircraft false
+add_property order_terminal forsale_vshev_antiaircraft false
+add_property peregrine_flight allowed false
+add_property peregrine_gunner allowed false
+add_property phantasm requirement_certification0 false
+add_property phoenix requirement_certification0 false
+add_property prowler allowed false
+add_property quadassault allowed false
+add_property quadstealth allowed false
+add_property skyguard allowed false
+add_property striker requirement_certification0 false
+add_property switchblade allowed false
+add_property threemanheavybuggy allowed false
+add_property thunderer allowed false
+add_property trhev_antiaircraft allowed false
+add_property two_man_assault_buggy allowed false
+add_property twomanheavybuggy allowed false
+add_property twomanhoverbuggy allowed false
+add_property vanguard allowed false
+add_property vehicle_terminal_combined forsale_dropship
+add_property vehicle_terminal_combined forsale_galaxy_gunship
+add_property vehicle_terminal_combined forsale_lodestar
+add_property vshev_antiaircraft allowed false
+add_property vulture requirement_award0 false
+add_property vulture requirement_certification0 false
+add_property vulture purchase_tech_plant false
+add_property wasp purchase_tech_plant false
+add_property wasp requirement_certification0 false
+add_property wasp requirement_certification1 false
