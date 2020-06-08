@@ -2,7 +2,7 @@
 package net.psforever.objects.avatar
 
 import akka.actor.{Actor, ActorRef, Cancellable, Props}
-import net.psforever.objects._
+import net.psforever.objects.{Player, _}
 import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile}
 import net.psforever.objects.definition.ImplantDefinition
 import net.psforever.objects.equipment._
@@ -79,12 +79,12 @@ class PlayerControl(player : Player) extends Actor
       case Player.StaminaRegen() =>
         if(staminaRegen == Default.Cancellable) {
           staminaRegen.cancel
-          staminaRegen = context.system.scheduler.scheduleOnce(delay = 250 milliseconds, self, PlayerControl.StaminaRegen(0))
+          staminaRegen = context.system.scheduler.scheduleOnce(delay = 500 milliseconds, self, PlayerControl.StaminaRegen())
         }
 
-      case PlayerControl.StaminaRegen(counter) =>
+      case PlayerControl.StaminaRegen() =>
         staminaRegen.cancel
-        val next : Int = if (counter == 1) {
+        if (player.isAlive) {
           if (player.skipStaminaRegenForTurns > 0) {
             // Do not renew stamina for a while
             player.skipStaminaRegenForTurns -= 1
@@ -93,23 +93,18 @@ class PlayerControl(player : Player) extends Actor
             // Regen stamina roughly every 500ms
             StaminaChanged(changeInStamina = 1)
           }
-          0
         }
-        else {
-          1
-        }
-        staminaRegen = context.system.scheduler.scheduleOnce(delay = 250 milliseconds, self, PlayerControl.StaminaRegen(next))
+        staminaRegen = context.system.scheduler.scheduleOnce(delay = 500 milliseconds, self, PlayerControl.StaminaRegen())
 
-      case Player.DrainStamina(amount : Int) =>
-        player.Stamina -= amount
-        UpdateStamina()
-
-      case Player.StaminaChanged(changeInStamina : Int) =>
+      case Player.StaminaChanged(Some(changeInStamina)) =>
         StaminaChanged(changeInStamina)
+
+      case Player.StaminaChanged(None) =>
+        UpdateStamina()
 
       case Player.Die() =>
         if(player.isAlive) {
-          PlayerControl.DestructionAwareness(player, None)
+          DestructionAwareness(player, None)
         }
 
       case CommonMessages.Use(user, Some(item : Tool)) if item.Definition == GlobalDefinitions.medicalapplicator && player.isAlive =>
@@ -560,11 +555,180 @@ class PlayerControl(player : Player) extends Actor
         val damageToArmor = originalArmor - armor
         val damageToStamina = originalStamina - stamina
         val damageToCapacitor = originalCapacitor - capacitor
-        PlayerControl.HandleDamage(player, cause, damageToHealth, damageToArmor, damageToStamina, damageToCapacitor)
+        HandleDamage(player, cause, damageToHealth, damageToArmor, damageToStamina, damageToCapacitor)
         if(damageToHealth > 0 || damageToArmor > 0 || damageToStamina > 0 || damageToCapacitor > 0) {
           damageLog.info(s"${player.Name}-infantry: BEFORE=$originalHealth/$originalArmor/$originalStamina/$originalCapacitor, AFTER=$health/$armor/$stamina/$capacitor, CHANGE=$damageToHealth/$damageToArmor/$damageToStamina/$damageToCapacitor")
         }
       }
+  }
+
+  /**
+    * na
+    * @param target na
+    */
+  def HandleDamage(target : Player, cause : ResolvedProjectile, damageToHealth : Int, damageToArmor : Int, damageToStamina : Int, damageToCapacitor : Int) : Unit = {
+    val targetGUID = target.GUID
+    val zone = target.Zone
+    val zoneId = zone.Id
+    val events = zone.AvatarEvents
+    val health = target.Health
+    if(health > 0) {
+      if(damageToStamina > 0) {
+        UpdateStamina()
+      }
+      if(damageToCapacitor > 0) {
+        events ! AvatarServiceMessage(target.Name, AvatarAction.PlanetsideAttributeSelf(targetGUID, 7, target.Capacitor.toLong))
+      }
+      if(damageToHealth > 0 || damageToArmor > 0) {
+        target.History(cause)
+        if(damageToHealth > 0) {
+          events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(targetGUID, 0, health))
+        }
+        if(damageToArmor > 0) {
+          events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(targetGUID, 4, target.Armor))
+        }
+        //activity on map
+        zone.Activity ! Zone.HotSpot.Activity(cause.target, cause.projectile.owner, cause.hit_pos)
+        //alert damage source
+        DamageAwareness(target, cause)
+      }
+      if(Damageable.CanJammer(target, cause)) {
+        target.Actor ! JammableUnit.Jammered(cause)
+      }
+    }
+    else {
+      if(damageToArmor > 0) {
+        events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(targetGUID, 4, target.Armor))
+      }
+      DestructionAwareness(target, Some(cause))
+    }
+  }
+
+  /**
+    * na
+    * @param target na
+    * @param cause na
+    */
+  def DamageAwareness(target : Player, cause : ResolvedProjectile) : Unit = {
+    val zone = target.Zone
+    zone.AvatarEvents ! AvatarServiceMessage(
+      target.Name,
+      cause.projectile.owner match {
+        case pSource : PlayerSource => //player damage
+          val name = pSource.Name
+          zone.LivePlayers.find(_.Name == name).orElse(zone.Corpses.find(_.Name == name)) match {
+            case Some(tplayer) => AvatarAction.HitHint(tplayer.GUID, target.GUID)
+            case None => AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(10, pSource.Position))
+          }
+        case source => AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(10, source.Position))
+      }
+    )
+  }
+
+  /**
+    * The player has lost all his vitality and must be killed.<br>
+    * <br>
+    * Shift directly into a state of being dead on the client by setting health to zero points,
+    * whereupon the player will perform a dramatic death animation.
+    * Stamina is also set to zero points.
+    * If the player was in a vehicle at the time of demise, special conditions apply and
+    * the model must be manipulated so it behaves correctly.
+    * Do not move or completely destroy the `Player` object as its coordinates of death will be important.<br>
+    * <br>
+    * A maximum revive waiting timer is started.
+    * When this timer reaches zero, the avatar will attempt to spawn back on its faction-specific sanctuary continent.
+    * @param target na
+    * @param cause na
+    */
+  def DestructionAwareness(target : Player, cause : Option[ResolvedProjectile]) : Unit = {
+    val player_guid = target.GUID
+    val pos = target.Position
+    val respawnTimer = 300000 //milliseconds
+    val zone = target.Zone
+    val events = zone.AvatarEvents
+    val nameChannel = target.Name
+    val zoneChannel = zone.Id
+    target.Die
+    //unjam
+    CancelJammeredSound(target)
+    CancelJammeredStatus(target)
+    //implants off
+    target.Stamina = 0
+    UpdateStamina() //turn off implants / OutOfStamina
+    //uninitialize implants
+    target.Implants.indices.foreach { case slot if target.Implant(slot) != ImplantType.None =>
+      UninitializeImplant(slot)
+    }
+    target.ResetAllImplants() //anything else specific to the backend
+    events ! AvatarServiceMessage(nameChannel, AvatarAction.Killed(player_guid, target.VehicleSeated)) //align client interface fields with state
+    zone.GUID(target.VehicleSeated) match {
+      case Some(obj : Mountable) =>
+        //boot cadaver from seat internally (vehicle perspective)
+        obj.PassengerInSeat(target) match {
+          case Some(index) =>
+            obj.Seats(index).Occupant = None
+          case _ => ;
+        }
+        //boot cadaver from seat on client
+        events ! AvatarServiceMessage(nameChannel, AvatarAction.SendResponse(Service.defaultPlayerGUID,
+          ObjectDetachMessage(obj.GUID, player_guid, target.Position, Vector3.Zero))
+        )
+        //make player invisible on client
+        events ! AvatarServiceMessage(nameChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 29, 1))
+        //only the dead player should "see" their own body, so that the death camera has something to focus on
+        events ! AvatarServiceMessage(zoneChannel, AvatarAction.ObjectDelete(player_guid, player_guid))
+      case _ => ;
+    }
+    events ! AvatarServiceMessage(zoneChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 0, 0)) //health
+    events ! AvatarServiceMessage(nameChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 2, 0)) //stamina
+    if(target.Capacitor > 0) {
+      target.Capacitor = 0
+      events ! AvatarServiceMessage(nameChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 7, 0)) // capacitor
+    }
+    val attribute = cause match {
+      case Some(resolved) =>
+        resolved.projectile.owner match {
+          case pSource : PlayerSource =>
+            val name = pSource.Name
+            zone.LivePlayers.find(_.Name == name).orElse(zone.Corpses.find(_.Name == name)) match {
+              case Some(tplayer) => tplayer.GUID
+              case None => player_guid
+            }
+          case _ => player_guid
+        }
+      case _ => player_guid
+    }
+    events ! AvatarServiceMessage(
+      nameChannel,
+      AvatarAction.SendResponse(Service.defaultPlayerGUID, DestroyMessage(player_guid, attribute, Service.defaultPlayerGUID, pos)) //how many players get this message?
+    )
+    events ! AvatarServiceMessage(
+      nameChannel,
+      AvatarAction.SendResponse(Service.defaultPlayerGUID, AvatarDeadStateMessage(DeadState.Dead, respawnTimer, respawnTimer, pos, target.Faction, true))
+    )
+    //TODO other methods of death?
+    val pentry = PlayerSource(target)
+    (target.History.find({p => p.isInstanceOf[PlayerSuicide]}) match {
+      case Some(PlayerSuicide(_)) =>
+        None
+      case _ =>
+        cause.orElse { target.LastShot } match {
+          case out @ Some(shot) =>
+            if(System.nanoTime - shot.hit_time < (10 seconds).toNanos) {
+              out
+            }
+            else {
+              None //suicide
+            }
+          case None =>
+            None //suicide
+        }
+    }) match {
+      case Some(shot) =>
+        events ! AvatarServiceMessage(zoneChannel, AvatarAction.DestroyDisplay(shot.projectile.owner, pentry, shot.projectile.attribute_to))
+      case None =>
+        events ! AvatarServiceMessage(zoneChannel, AvatarAction.DestroyDisplay(pentry, pentry, 0))
+    }
   }
 
   /**
@@ -875,7 +1039,7 @@ class PlayerControl(player : Player) extends Actor
             val drainInterval = implant.GetCostIntervalByExoSuit(player.ExoSuit)
             if (drainInterval > 0) { // Ongoing stamina drain, if applicable
               implantSlotTimers(slot).cancel
-              implantSlotTimers(slot) = context.system.scheduler.scheduleWithFixedDelay(initialDelay = 0 seconds, drainInterval milliseconds, self, Player.DrainStamina(implant.StaminaCost))
+              implantSlotTimers(slot) = context.system.scheduler.scheduleWithFixedDelay(initialDelay = 0 seconds, drainInterval milliseconds, self, Player.StaminaChanged(-implant.StaminaCost))
             }
             zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttribute(player.GUID, 28, player.Implant(slot).id * 2 + 1)) // Activation sound / effect
             zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.ActivateImplantSlot(player.GUID, slot))
@@ -916,169 +1080,5 @@ class PlayerControl(player : Player) extends Actor
 
 object PlayerControl {
   /** */
-  private case class StaminaRegen(counter : Int)
-  /**
-    * na
-    * @param target na
-    */
-  def HandleDamage(target : Player, cause : ResolvedProjectile, damageToHealth : Int, damageToArmor : Int, damageToStamina : Int, damageToCapacitor : Int) : Unit = {
-    val targetGUID = target.GUID
-    val zone = target.Zone
-    val zoneId = zone.Id
-    val events = zone.AvatarEvents
-    val health = target.Health
-    if(health > 0) {
-      if(damageToStamina > 0) {
-        target.Actor ! Player.DrainStamina(0)
-      }
-      if(damageToCapacitor > 0) {
-        events ! AvatarServiceMessage(target.Name, AvatarAction.PlanetsideAttributeSelf(targetGUID, 7, target.Capacitor.toLong))
-      }
-      if(damageToHealth > 0 || damageToArmor > 0) {
-        target.History(cause)
-        if(damageToHealth > 0) {
-          events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(targetGUID, 0, health))
-        }
-        if(damageToArmor > 0) {
-          events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(targetGUID, 4, target.Armor))
-        }
-        //activity on map
-        zone.Activity ! Zone.HotSpot.Activity(cause.target, cause.projectile.owner, cause.hit_pos)
-        //alert damage source
-        DamageAwareness(target, cause)
-      }
-      if(Damageable.CanJammer(target, cause)) {
-        target.Actor ! JammableUnit.Jammered(cause)
-      }
-    }
-    else {
-      if(damageToArmor > 0) {
-        events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(targetGUID, 4, target.Armor))
-      }
-      DestructionAwareness(target, Some(cause))
-    }
-  }
-
-  /**
-    * na
-    * @param target na
-    * @param cause na
-    */
-  def DamageAwareness(target : Player, cause : ResolvedProjectile) : Unit = {
-    val zone = target.Zone
-    zone.AvatarEvents ! AvatarServiceMessage(
-      target.Name,
-      cause.projectile.owner match {
-        case pSource : PlayerSource => //player damage
-          val name = pSource.Name
-          zone.LivePlayers.find(_.Name == name).orElse(zone.Corpses.find(_.Name == name)) match {
-            case Some(player) => AvatarAction.HitHint(player.GUID, target.GUID)
-            case None => AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(10, pSource.Position))
-          }
-        case source => AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(10, source.Position))
-      }
-    )
-  }
-
-  /**
-    * The player has lost all his vitality and must be killed.<br>
-    * <br>
-    * Shift directly into a state of being dead on the client by setting health to zero points,
-    * whereupon the player will perform a dramatic death animation.
-    * Stamina is also set to zero points.
-    * If the player was in a vehicle at the time of demise, special conditions apply and
-    * the model must be manipulated so it behaves correctly.
-    * Do not move or completely destroy the `Player` object as its coordinates of death will be important.<br>
-    * <br>
-    * A maximum revive waiting timer is started.
-    * When this timer reaches zero, the avatar will attempt to spawn back on its faction-specific sanctuary continent.
-    * @param target na
-    * @param cause na
-    */
-  def DestructionAwareness(target : Player, cause : Option[ResolvedProjectile]) : Unit = {
-    val player_guid = target.GUID
-    val pos = target.Position
-    val respawnTimer = 300000 //milliseconds
-    val zone = target.Zone
-    val events = zone.AvatarEvents
-    val nameChannel = target.Name
-    val zoneChannel = zone.Id
-    target.Die
-    //unjam
-    target.Actor ! JammableUnit.ClearJammeredSound()
-    target.Actor ! JammableUnit.ClearJammeredStatus()
-    events ! AvatarServiceMessage(nameChannel, AvatarAction.Killed(player_guid, target.VehicleSeated)) //align client interface fields with state
-    //implants off
-    target.Actor ! Player.StaminaChanged(-target.Stamina)
-    target.Stamina = 0
-    target.ResetAllImplants()
-    zone.GUID(target.VehicleSeated) match {
-      case Some(obj : Mountable) =>
-        //boot cadaver from seat internally (vehicle perspective)
-        obj.PassengerInSeat(target) match {
-          case Some(index) =>
-            obj.Seats(index).Occupant = None
-          case _ => ;
-        }
-        //boot cadaver from seat on client
-        events ! AvatarServiceMessage(nameChannel, AvatarAction.SendResponse(Service.defaultPlayerGUID,
-          ObjectDetachMessage(obj.GUID, player_guid, target.Position, Vector3.Zero))
-        )
-        //make player invisible on client
-        events ! AvatarServiceMessage(nameChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 29, 1))
-        //only the dead player should "see" their own body, so that the death camera has something to focus on
-        events ! AvatarServiceMessage(zoneChannel, AvatarAction.ObjectDelete(player_guid, player_guid))
-      case _ => ;
-    }
-    events ! AvatarServiceMessage(zoneChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 0, 0)) //health
-    events ! AvatarServiceMessage(nameChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 2, 0)) //stamina
-    if(target.Capacitor > 0) {
-      target.Capacitor = 0
-      events ! AvatarServiceMessage(nameChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 7, 0)) // capacitor
-    }
-    val attribute = cause match {
-      case Some(resolved) =>
-        resolved.projectile.owner match {
-          case pSource : PlayerSource =>
-            val name = pSource.Name
-            zone.LivePlayers.find(_.Name == name).orElse(zone.Corpses.find(_.Name == name)) match {
-              case Some(player) => player.GUID
-              case None => player_guid
-            }
-          case _ => player_guid
-        }
-      case _ => player_guid
-    }
-    events ! AvatarServiceMessage(
-      nameChannel,
-      AvatarAction.SendResponse(Service.defaultPlayerGUID, DestroyMessage(player_guid, attribute, Service.defaultPlayerGUID, pos)) //how many players get this message?
-    )
-    events ! AvatarServiceMessage(
-      nameChannel,
-      AvatarAction.SendResponse(Service.defaultPlayerGUID, AvatarDeadStateMessage(DeadState.Dead, respawnTimer, respawnTimer, pos, target.Faction, true))
-    )
-    //TODO other methods of death?
-    val pentry = PlayerSource(target)
-    (target.History.find({p => p.isInstanceOf[PlayerSuicide]}) match {
-      case Some(PlayerSuicide(_)) =>
-        None
-      case _ =>
-        cause.orElse { target.LastShot } match {
-          case out @ Some(shot) =>
-            if(System.nanoTime - shot.hit_time < (10 seconds).toNanos) {
-              out
-            }
-            else {
-              None //suicide
-            }
-          case None =>
-            None //suicide
-        }
-    }) match {
-      case Some(shot) =>
-        events ! AvatarServiceMessage(zoneChannel, AvatarAction.DestroyDisplay(shot.projectile.owner, pentry, shot.projectile.attribute_to))
-      case None =>
-        events ! AvatarServiceMessage(zoneChannel, AvatarAction.DestroyDisplay(pentry, pentry, 0))
-    }
-  }
+  private case class StaminaRegen()
 }

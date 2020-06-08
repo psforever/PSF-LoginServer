@@ -673,8 +673,11 @@ object Player {
   final case class UninitializeImplant(slot : Int)
   final case class ImplantInitializationComplete(slot : Int)
   final case class StaminaRegen()
-  final case class DrainStamina(amount : Int)
-  final case class StaminaChanged(currentStamina : Int)
+  final case class StaminaChanged(currentStamina : Option[Int] = None)
+
+  object StaminaChanged {
+    def apply(amount : Int) : StaminaChanged = StaminaChanged(Some(amount))
+  }
 
   def apply(core : Avatar) : Player = {
     new Player(core)
