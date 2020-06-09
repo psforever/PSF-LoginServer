@@ -453,7 +453,7 @@ class ZonePopulationTest extends ActorTest {
 
       assert(zone.Corpses.isEmpty)
       zone.Population ! Zone.Corpse.Add(player)
-      expectNoMessage(Duration.create(100, "ms"))
+      expectNoMessage(Duration.create(500, "ms"))
       assert(zone.Corpses.size == 1)
       assert(zone.Corpses.head == player)
     }
@@ -466,12 +466,12 @@ class ZonePopulationTest extends ActorTest {
       zone.Actor ! Zone.Init()
       expectNoMessage(200 milliseconds)
       zone.Population ! Zone.Corpse.Add(player)
-      expectNoMessage(Duration.create(100, "ms"))
+      expectNoMessage(Duration.create(500, "ms"))
 
       assert(zone.Corpses.size == 1)
       assert(zone.Corpses.head == player)
       zone.Population ! Zone.Corpse.Remove(player)
-      expectNoMessage(Duration.create(100, "ms"))
+      expectNoMessage(Duration.create(200, "ms"))
       assert(zone.Corpses.isEmpty)
     }
 
@@ -489,14 +489,14 @@ class ZonePopulationTest extends ActorTest {
       zone.Population ! Zone.Corpse.Add(player1)
       zone.Population ! Zone.Corpse.Add(player2)
       zone.Population ! Zone.Corpse.Add(player3)
-      expectNoMessage(Duration.create(100, "ms"))
+      expectNoMessage(Duration.create(500, "ms"))
 
       assert(zone.Corpses.size == 3)
       assert(zone.Corpses.head == player1)
       assert(zone.Corpses(1) == player2)
       assert(zone.Corpses(2) == player3)
       zone.Population ! Zone.Corpse.Remove(player2)
-      expectNoMessage(Duration.create(100, "ms"))
+      expectNoMessage(Duration.create(200, "ms"))
       assert(zone.Corpses.size == 2)
       assert(zone.Corpses.head == player1)
       assert(zone.Corpses(1) == player3)
@@ -512,7 +512,7 @@ class ZonePopulationTest extends ActorTest {
 
       assert(zone.Corpses.isEmpty)
       zone.Population ! Zone.Corpse.Add(player)
-      expectNoMessage(Duration.create(100, "ms"))
+      expectNoMessage(Duration.create(200, "ms"))
       assert(zone.Corpses.isEmpty)
     }
   }

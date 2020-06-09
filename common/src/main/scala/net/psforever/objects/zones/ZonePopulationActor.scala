@@ -65,21 +65,15 @@ class ZonePopulationActor(zone : Zone, playerMap : TrieMap[Avatar, Option[Player
     case Zone.Corpse.Add(player) =>
       //player can be a corpse if they are in the current zone or are not in any zone
       //player is "found" if their avatar can be matched by name within this zone and it has a character
-      val (canBeCorpse, control) = if(player.Zone == zone) {
-        playerMap.find { case (a, _) => a.name == player.Name } match {
-          case Some((a, Some(p))) if p eq player =>
-            PopulationRelease(a, playerMap)
-            context.stop(player.Actor)
-            (true, Some(player.Actor))
-          case Some((_, None)) =>
-            (true, None)
-          case _ =>
-            (false, None)
-        }
-      }
-      else {
-        context.stop(player.Actor)
-        (player.Zone == Zone.Nowhere, None)
+      val (canBeCorpse, control) = playerMap.find { case (a, _) => a.name == player.Name } match {
+        case Some((a, Some(p))) if p eq player =>
+          PopulationRelease(a, playerMap)
+          context.stop(player.Actor)
+          (true, Some(player.Actor))
+        case Some((_, None)) =>
+          (true, None)
+        case _ =>
+          (player.Zone == Zone.Nowhere || player.Zone == zone, None)
       }
       if(canBeCorpse && CorpseAdd(player, corpseList)) {
         player.Actor = context.actorOf(Props(classOf[CorpseControl], player), name = s"corpse_of_${GetPlayerControlName(player, control)}")
