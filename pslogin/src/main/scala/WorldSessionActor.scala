@@ -5852,7 +5852,7 @@ class WorldSessionActor extends Actor
           else { //shooting
             if (tool.FireModeIndex == 1 && (tool.Definition.Name == "anniversary_guna" || tool.Definition.Name == "anniversary_gun" || tool.Definition.Name == "anniversary_gunb")) {
               player.Actor ! Player.StaminaChanged(-player.Stamina)
-              player.skipStaminaRegenForTurns = 3
+              player.skipStaminaRegenForTurns = math.max(player.skipStaminaRegenForTurns, 3)
             }
 
             prefire = shooting.orElse(Some(weapon_guid))
@@ -8410,6 +8410,8 @@ class WorldSessionActor extends Actor
         tplayer.Actor ! Player.ImplantActivation(index, 0)
       }
     }
+    //delay regen
+    player.skipStaminaRegenForTurns = math.max(player.skipStaminaRegenForTurns, 6)
     log.info(s"MountVehicleMsg: ${player.Name}_guid mounts $obj @ $seatNum")
     sendResponse(ObjectAttachMessage(obj_guid, player_guid, seatNum))
     continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.MountVehicle(player_guid, obj_guid, seatNum))

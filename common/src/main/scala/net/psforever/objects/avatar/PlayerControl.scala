@@ -89,7 +89,7 @@ class PlayerControl(player : Player) extends Actor
             // Do not renew stamina for a while
             player.skipStaminaRegenForTurns -= 1
           }
-          else if (!player.isMoving && player.Stamina < player.MaxStamina) {
+          else if ((player.VehicleSeated.nonEmpty || !player.isMoving && !player.Jumping) && player.Stamina < player.MaxStamina) {
             // Regen stamina roughly every 500ms
             StaminaChanged(changeInStamina = 1)
           }
@@ -909,7 +909,7 @@ class PlayerControl(player : Player) extends Actor
     val currentStamina = player.Stamina
     if(currentStamina == 0 && !player.Fatigued) { // Only be fatigued once even if loses all stamina again
       player.Fatigued = true
-      player.skipStaminaRegenForTurns += 4
+      player.skipStaminaRegenForTurns = math.max(player.skipStaminaRegenForTurns, 6)
       player.Implants.indices.foreach { slot => // Disable all implants
         ImplantActivation(slot, status = 0)
         player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.SendResponse(Service.defaultPlayerGUID, AvatarImplantMessage(player.GUID, ImplantAction.OutOfStamina, slot, 1)))
