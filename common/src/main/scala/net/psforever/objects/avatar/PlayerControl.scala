@@ -39,7 +39,7 @@ class PlayerControl(player : Player) extends Actor
   private [this] val log = org.log4s.getLogger(player.Name)
   private [this] val damageLog = org.log4s.getLogger(Damageable.LogChannel)
 
-  /** */
+  /** Stamina will be used.  Stamina will be restored. */
   var staminaRegen : Cancellable = Default.Cancellable
   /**
     * A collection of timers indexed for the implant in each slot.
@@ -572,20 +572,20 @@ class PlayerControl(player : Player) extends Actor
     val zoneId = zone.Id
     val events = zone.AvatarEvents
     val health = target.Health
+    if(damageToArmor > 0) {
+      events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(targetGUID, 4, target.Armor))
+    }
     if(health > 0) {
-      if(damageToStamina > 0) {
-        UpdateStamina()
-      }
       if(damageToCapacitor > 0) {
         events ! AvatarServiceMessage(target.Name, AvatarAction.PlanetsideAttributeSelf(targetGUID, 7, target.Capacitor.toLong))
       }
-      if(damageToHealth > 0 || damageToArmor > 0) {
+      if(damageToHealth > 0 || damageToStamina > 0) {
         target.History(cause)
         if(damageToHealth > 0) {
           events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(targetGUID, 0, health))
         }
-        if(damageToArmor > 0) {
-          events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(targetGUID, 4, target.Armor))
+        if(damageToStamina > 0) {
+          UpdateStamina()
         }
         //activity on map
         zone.Activity ! Zone.HotSpot.Activity(cause.target, cause.projectile.owner, cause.hit_pos)
@@ -597,9 +597,6 @@ class PlayerControl(player : Player) extends Actor
       }
     }
     else {
-      if(damageToArmor > 0) {
-        events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(targetGUID, 4, target.Armor))
-      }
       DestructionAwareness(target, Some(cause))
     }
   }
@@ -680,7 +677,6 @@ class PlayerControl(player : Player) extends Actor
       case _ => ;
     }
     events ! AvatarServiceMessage(zoneChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 0, 0)) //health
-    events ! AvatarServiceMessage(nameChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 2, 0)) //stamina
     if(target.Capacitor > 0) {
       target.Capacitor = 0
       events ! AvatarServiceMessage(nameChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 7, 0)) // capacitor
