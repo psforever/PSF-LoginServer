@@ -6,7 +6,7 @@ import net.psforever.objects.equipment.EquipmentSlot
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.loadouts.InfantryLoadout
 import net.psforever.packet.game.{InventoryStateMessage, RepairMessage}
-import net.psforever.types.ExoSuitType
+import net.psforever.types.{ExoSuitType, Vector3}
 import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 
@@ -28,7 +28,8 @@ object Players {
   def RevivingTickAction(target : Player, user : Player, item : Tool)(progress : Float) : Boolean = {
     if(!target.isAlive && !target.isBackpack &&
       user.isAlive && !user.isMoving &&
-      user.Slot(user.DrawnSlot).Equipment.contains(item) && item.Magazine > 0) {
+      user.Slot(user.DrawnSlot).Equipment.contains(item) && item.Magazine > 0 &&
+      Vector3.Distance(target.Position, user.Position) < target.Definition.RepairDistance) {
       val magazine = item.Discharge
       val events = target.Zone.AvatarEvents
       val uname = user.Name
