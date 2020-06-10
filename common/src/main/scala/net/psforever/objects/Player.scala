@@ -1,9 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import akka.actor.ActorRef
 import net.psforever.objects.avatar.LoadoutManager
-import net.psforever.objects.definition.{AvatarDefinition, ExoSuitDefinition, SpecialExoSuitDefinition}
+import net.psforever.objects.definition.{AvatarDefinition, ExoSuitDefinition, ImplantDefinition, SpecialExoSuitDefinition}
 import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot, JammableUnit}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
 import net.psforever.objects.serverobject.PlanetSideServerObject
@@ -124,11 +123,6 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
 
   def Stamina_=(assignStamina : Int) : Int = {
     stamina = if(isAlive) { math.min(math.max(0, assignStamina), MaxStamina) } else { 0 }
-
-    if(Actor != Default.Actor) {
-      Actor ! Player.StaminaChanged(Stamina)
-    }
-
     Stamina
   }
 
@@ -373,6 +367,10 @@ class Player(private val core : Avatar) extends PlanetSideServerObject
   def Implants : Array[(ImplantType.Value, Long, Boolean)] = {
     core.Implants.takeWhile(_.Unlocked).map( implant => { (implant.Implant, implant.MaxTimer, implant.Active) })
   }
+
+  def InstallImplant(implant : ImplantDefinition) : Option[Int] = core.InstallImplant(implant)
+
+  def UninstallImplant(implant : ImplantType.Value) : Option[Int] = core.UninstallImplant(implant)
 
   def ResetAllImplants() : Unit = core.ResetAllImplants()
 
@@ -674,8 +672,12 @@ object Player {
   final case class ImplantInitializationStart(slot : Int)
   final case class UninitializeImplant(slot : Int)
   final case class ImplantInitializationComplete(slot : Int)
-  final case class DrainStamina(amount : Int)
-  final case class StaminaChanged(currentStamina : Int)
+  final case class StaminaRegen()
+  final case class StaminaChanged(currentStamina : Option[Int] = None)
+
+  object StaminaChanged {
+    def apply(amount : Int) : StaminaChanged = StaminaChanged(Some(amount))
+  }
 
   def apply(core : Avatar) : Player = {
     new Player(core)

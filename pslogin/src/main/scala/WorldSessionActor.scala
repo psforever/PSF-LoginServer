@@ -2584,86 +2584,6 @@ class WorldSessionActor extends Actor
         }
         lastTerminalOrderFulfillment = true
 
-      case Terminal.LearnImplant(implant) =>
-        val terminal_guid = msg.terminal_guid
-        val implant_type = implant.Type
-        val message = s"Implants: ${tplayer.Name} wants to learn $implant_type"
-        val (interface, slotNumber) = tplayer.VehicleSeated match {
-          case Some(mech_guid) =>
-            (
-              continent.Map.TerminalToInterface.get(mech_guid.guid),
-              if(!avatar.Implants.exists({ slot => slot.Implant == implant_type })) {
-                //no duplicates
-                avatar.InstallImplant(implant)
-              }
-              else {
-                None
-              }
-            )
-          case _ =>
-            (None, None)
-        }
-        if(interface.contains(terminal_guid.guid) && slotNumber.isDefined) {
-          val slot = slotNumber.get
-          log.info(s"$message - put in slot $slot")
-          sendResponse(AvatarImplantMessage(tplayer.GUID, ImplantAction.Add, slot, implant_type.id))
-          sendResponse(ItemTransactionResultMessage(terminal_guid, TransactionType.Learn, true))
-          player.Actor ! Player.ImplantInitializationStart(slot)
-        }
-        else {
-          if(interface.isEmpty) {
-            log.warn(s"$message - not interacting with a terminal")
-          }
-          else if(!interface.contains(terminal_guid.guid)) {
-            log.warn(s"$message - interacting with the wrong terminal, ${interface.get}")
-          }
-          else if(slotNumber.isEmpty) {
-            log.warn(s"$message - already knows that implant")
-          }
-          else {
-            log.warn(s"$message - forgot to sit at a terminal")
-          }
-          sendResponse(ItemTransactionResultMessage(terminal_guid, TransactionType.Learn, false))
-        }
-        lastTerminalOrderFulfillment = true
-
-      case Terminal.SellImplant(implant) =>
-        val terminal_guid = msg.terminal_guid
-        val implant_type = implant.Type
-        val (interface, slotNumber) = tplayer.VehicleSeated match {
-          case Some(mech_guid) =>
-            (
-              continent.Map.TerminalToInterface.get(mech_guid.guid),
-              avatar.UninstallImplant(implant_type)
-            )
-          case None =>
-            (None, None)
-        }
-        if(interface.contains(terminal_guid.guid) && slotNumber.isDefined) {
-          val slot = slotNumber.get
-          log.info(s"${tplayer.Name} is selling $implant_type - take from slot $slot")
-          player.Actor ! Player.UninitializeImplant(slot)
-          sendResponse(AvatarImplantMessage(tplayer.GUID, ImplantAction.Remove, slot, 0))
-          sendResponse(ItemTransactionResultMessage(terminal_guid, TransactionType.Sell, true))
-        }
-        else {
-          val message = s"${tplayer.Name} can not sell $implant_type"
-          if(interface.isEmpty) {
-            log.warn(s"$message - not interacting with a terminal")
-          }
-          else if(!interface.contains(terminal_guid.guid)) {
-            log.warn(s"$message - interacting with the wrong terminal, ${interface.get}")
-          }
-          else if(slotNumber.isEmpty) {
-            log.warn(s"$message - does not know that implant")
-          }
-          else {
-            log.warn(s"$message - forgot to sit at a terminal")
-          }
-          sendResponse(ItemTransactionResultMessage(terminal_guid, TransactionType.Sell, false))
-        }
-        lastTerminalOrderFulfillment = true
-
       case Terminal.BuyVehicle(vehicle, weapons, trunk) =>
         continent.Map.TerminalToSpawnPad.get(msg.terminal_guid.guid) match {
           case Some(pad_guid) =>
@@ -2740,8 +2660,7 @@ class WorldSessionActor extends Actor
     * @param reply     na
     */
   def HandleVehicleServiceResponse(toChannel : String, guid : PlanetSideGUID, reply : VehicleResponse.Response) : Unit = {
-    val tplayer_guid = if(player.HasGUID) player.GUID
-    else PlanetSideGUID(0)
+    val tplayer_guid = if(player.HasGUID) player.GUID else PlanetSideGUID(0)
     reply match {
       case VehicleResponse.AttachToRails(vehicle_guid, pad_guid) =>
         sendResponse(ObjectAttachMessage(pad_guid, vehicle_guid, 3))
@@ -2868,6 +2787,17 @@ class WorldSessionActor extends Actor
           sendResponse(VehicleStateMessage(vehicle_guid, unk1, pos, ang, vel, unk2, unk3, unk4, wheel_direction, unk5, unk6))
           if(player.VehicleSeated.contains(vehicle_guid)) {
             player.Position = pos
+            GetVehicleAndSeat() match {
+              case (Some(_), Some(0)) => ;
+              case (Some(_), Some(_)) =>
+                turnCounter(guid)
+                if (player.death_by == -1) {
+                  sendResponse(ChatMsg(ChatMessageType.UNK_71, true, "", "Your account has been logged out by a Customer Service Representative.", None))
+                  Thread.sleep(300)
+                  sendResponse(DropSession(sessionId, "kick by GM"))
+                }
+              case _ => ;
+            }
           }
         }
       case VehicleResponse.SendResponse(msg) =>
@@ -3173,26 +3103,42 @@ class WorldSessionActor extends Actor
     if(player.spectator) {
       sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, false, "", "on", None))
     }
-    (0 until DetailedCharacterData.numberOfImplantSlots(tplayer.BEP)).foreach(slot => {
+    if(player.Jammed) {
+      //TODO something better than just canceling?
+      player.Actor ! JammableUnit.ClearJammeredStatus()
+      player.Actor ! JammableUnit.ClearJammeredSound()
+    }
+    val fatigued = player.Fatigued
+    (0 until DetailedCharacterData.numberOfImplantSlots(tplayer.BEP)).foreach {slot =>
       val implantSlot = player.ImplantSlot(slot)
-      if(implantSlot.Initialized) {
-        sendResponse(AvatarImplantMessage(guid, ImplantAction.Initialization, slot, 1))
+      implantSlot.Installed match {
+        case Some(_) =>
+          if (implantSlot.Initialized) {
+            sendResponse(AvatarImplantMessage(guid, ImplantAction.Initialization, slot, 1))
+            if (fatigued) {
+              sendResponse(AvatarImplantMessage(guid, ImplantAction.OutOfStamina, slot, 1))
+            }
+          }
+          else if (!fatigued) {
+            player.Actor ! Player.ImplantInitializationStart(slot)
+          }
+          //TODO if this implant is Installed but does not have shortcut, add to a free slot or write over slot 61/62/63
+          // for now, just write into slots 2, 3 and 4
+          val implant = implantSlot.Implant
+          Shortcut.ImplantsMap(implant) match {
+            case shortcut @ Some(_) =>
+              sendResponse(CreateShortcutMessage(guid, slot + 2, 0, addShortcut = true, shortcut))
+            case None if implant != ImplantType.None =>
+              log.warn(s"could not find shortcut for implant $implant")
+            case _ => ;
+          }
+        case _ => ;
       }
-      else {
-        player.Actor ! Player.ImplantInitializationStart(slot)
-      }
-      //TODO if this implant is Installed but does not have shortcut, add to a free slot or write over slot 61/62/63
-      // for now, just write into slots 2, 3 and 4
-      Shortcut.ImplantsMap(implantSlot.Implant) match {
-        case Some(shortcut : Shortcut) =>
-          sendResponse(CreateShortcutMessage(guid, slot + 2, 0, addShortcut = true, Some(shortcut)))
-        case _ => log.warn(s"Could not find shortcut for implant ${implantSlot.Implant.toString()}")
-      }
-    })
+    }
 
     sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 82, 0))
     //TODO if Medkit does not have shortcut, add to a free slot or write over slot 64
-    sendResponse(CreateShortcutMessage(guid, 1, 0, true, Shortcut.MEDKIT))
+    sendResponse(CreateShortcutMessage(guid, 1, 0, true, Shortcut.Medkit))
     sendResponse(ChangeShortcutBankMessage(guid, 0))
     //Favorites lists
     val (inf, veh) = avatar.EquipmentLoadouts.Loadouts.partition { case (index, _) => index < 10 }
@@ -3265,6 +3211,11 @@ class WorldSessionActor extends Actor
         ))
       case (Some(vehicle), Some(0)) =>
         //summon any passengers and cargo vehicles left behind on previous continent
+        if(vehicle.Jammed) {
+          //TODO something better than just canceling?
+          vehicle.Actor ! JammableUnit.ClearJammeredStatus()
+          vehicle.Actor ! JammableUnit.ClearJammeredSound()
+        }
         LoadZoneTransferPassengerMessages(
           guid,
           continent.Id,
@@ -3283,6 +3234,9 @@ class WorldSessionActor extends Actor
     else if(originalDeadState == DeadState.Dead || player.Health == 0) {
       //killed during spawn setup or possibly a relog into a corpse (by accident?)
       player.Actor ! Player.Die()
+    }
+    else {
+      tplayer.Actor ! Player.StaminaRegen()
     }
     upstreamMessageCount = 0
   }
@@ -3870,26 +3824,12 @@ class WorldSessionActor extends Actor
       zoneLoaded = Some(true)
 
     case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, yaw, pitch, yaw_upper, seq_time, unk3, is_crouching, is_jumping, jump_thrust, is_cloaking, unk5, unk6) =>
-      if (player.death_by == -1) {
-        sendResponse(ChatMsg(ChatMessageType.UNK_71, true, "", "Your account has been logged out by a Customer Service Representative.", None))
-        Thread.sleep(300)
-        sendResponse(DropSession(sessionId, "kick by GM"))
-      }
+      //log.info(s"$msg")
       turnCounter(avatar_guid)
       val isMoving = WorldEntity.isMoving(vel)
       val isMovingPlus = isMoving || is_jumping || jump_thrust
       if(isMovingPlus) {
         CancelZoningProcessWithDescriptiveReason("cancel_motion")
-      }
-
-      if(deadState == DeadState.Alive && upstreamMessageCount % 2 == 0) { // Regen stamina roughly every 500ms
-        if(player.skipStaminaRegenForTurns > 0) {
-          //do not renew stamina for a while
-          player.skipStaminaRegenForTurns -= 1
-        }
-        else if(!isMovingPlus && player.Stamina != player.MaxStamina) {
-          player.Stamina += 1
-        }
       }
       player.Position = pos
       player.Velocity = vel
@@ -3937,8 +3877,14 @@ class WorldSessionActor extends Actor
       }
       continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlayerState(avatar_guid, player.Position, player.Velocity, yaw, pitch, yaw_upper, seq_time, is_crouching, is_jumping, jump_thrust, is_cloaking, player.spectator, wepInHand))
       updateSquad()
+      if(player.death_by == -1) {
+        sendResponse(ChatMsg(ChatMessageType.UNK_71, true, "", "Your account has been logged out by a Customer Service Representative.", None))
+        Thread.sleep(300)
+        sendResponse(DropSession(sessionId, "kick by GM"))
+      }
 
     case msg@ChildObjectStateMessage(object_guid, pitch, yaw) =>
+      //log.info(s"$msg")
       //the majority of the following check retrieves information to determine if we are in control of the child
       FindContainedWeapon match {
         case (Some(o), Some(tool)) =>
@@ -3971,49 +3917,47 @@ class WorldSessionActor extends Actor
       }
 
     case msg@VehicleStateMessage(vehicle_guid, unk1, pos, ang, vel, flying, unk6, unk7, wheels, is_decelerating, is_cloaked) =>
-      if(deadState == DeadState.Alive) {
-        GetVehicleAndSeat() match {
-          case (Some(obj), Some(0)) =>
-            //we're driving the vehicle
-            turnCounter(player.GUID)
-            val seat = obj.Seats(0)
-            player.Position = pos //convenient
-            if(seat.ControlledWeapon.isEmpty) {
-              player.Orientation = Vector3.z(ang.z) //convenient
+      //log.info(s"$msg")
+      GetVehicleAndSeat() match {
+        case (Some(obj), Some(0)) =>
+          //we're driving the vehicle
+          turnCounter(player.GUID)
+          val seat = obj.Seats(0)
+          player.Position = pos //convenient
+          if(seat.ControlledWeapon.isEmpty) {
+            player.Orientation = Vector3.z(ang.z) //convenient
+          }
+          obj.Position = pos
+          obj.Orientation = ang
+          if(obj.MountedIn.isEmpty) {
+            if(obj.DeploymentState != DriveState.Deployed) {
+              obj.Velocity = vel
+            } else {
+              obj.Velocity = Some(Vector3.Zero)
             }
-            obj.Position = pos
-            obj.Orientation = ang
-            if(obj.MountedIn.isEmpty) {
-              if(obj.DeploymentState != DriveState.Deployed) {
-                obj.Velocity = vel
-              } else {
-                obj.Velocity = Some(Vector3.Zero)
-              }
-              if(obj.Definition.CanFly) {
-                obj.Flying = flying.nonEmpty //usually Some(7)
-              }
-              obj.Cloaked = obj.Definition.CanCloak && is_cloaked
+            if(obj.Definition.CanFly) {
+              obj.Flying = flying.nonEmpty //usually Some(7)
             }
-            else {
-              obj.Velocity = None
-              obj.Flying = false
-            }
-            continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.VehicleState(player.GUID, vehicle_guid, unk1, obj.Position, ang, obj.Velocity, if(obj.Flying) {
-              flying
-            }
-            else {
-              None
-            }, unk6, unk7, wheels, is_decelerating, obj.Cloaked))
-            updateSquad()
-          case (None, _) =>
-          //log.error(s"VehicleState: no vehicle $vehicle_guid found in zone")
-          //TODO placing a "not driving" warning here may trigger as we are disembarking the vehicle
-          case (_, Some(index)) =>
-            log.error(s"VehicleState: player should not be dispatching this kind of packet from vehicle#$vehicle_guid  when not the driver ($index)")
-          case _ => ;
-        }
+            obj.Cloaked = obj.Definition.CanCloak && is_cloaked
+          }
+          else {
+            obj.Velocity = None
+            obj.Flying = false
+          }
+          continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.VehicleState(player.GUID, vehicle_guid, unk1, obj.Position, ang, obj.Velocity, if(obj.Flying) {
+            flying
+          }
+          else {
+            None
+          }, unk6, unk7, wheels, is_decelerating, obj.Cloaked))
+          updateSquad()
+        case (None, _) =>
+        //log.error(s"VehicleState: no vehicle $vehicle_guid found in zone")
+        //TODO placing a "not driving" warning here may trigger as we are disembarking the vehicle
+        case (_, Some(index)) =>
+          log.error(s"VehicleState: player should not be dispatching this kind of packet from vehicle#$vehicle_guid  when not the driver ($index)")
+        case _ => ;
       }
-    //log.info(s"VehicleState: $msg")
       if (player.death_by == -1) {
         sendResponse(ChatMsg(ChatMessageType.UNK_71, true, "", "Your account has been logged out by a Customer Service Representative.", None))
         Thread.sleep(300)
@@ -4825,7 +4769,7 @@ class WorldSessionActor extends Actor
 
     case msg@AvatarJumpMessage(state) =>
       //log.info("AvatarJump: " + msg)
-      player.Stamina = player.Stamina - 10
+      player.Actor ! Player.StaminaChanged(-10)
       player.skipStaminaRegenForTurns = math.max(player.skipStaminaRegenForTurns, 5)
 
     case msg@ZipLineMessage(player_guid, forwards, action, path_id, pos) =>
@@ -5123,7 +5067,7 @@ class WorldSessionActor extends Actor
                           false
                         }
                         else {
-                          player.Stamina = player.Stamina + 100
+                          player.Actor ! Player.StaminaChanged(100)
                           sendResponse(PlanetsideAttributeMessage(avatar_guid, 2, player.Stamina))
                           true
                         }
@@ -5614,7 +5558,8 @@ class WorldSessionActor extends Actor
           }
           else { //shooting
             if (tool.FireModeIndex == 1 && (tool.Definition.Name == "anniversary_guna" || tool.Definition.Name == "anniversary_gun" || tool.Definition.Name == "anniversary_gunb")) {
-              player.Stamina = 0
+              player.Actor ! Player.StaminaChanged(-player.Stamina)
+              player.skipStaminaRegenForTurns = math.max(player.skipStaminaRegenForTurns, 3)
             }
 
             prefire = shooting.orElse(Some(weapon_guid))
@@ -8165,6 +8110,15 @@ class WorldSessionActor extends Actor
     val player_guid : PlanetSideGUID = tplayer.GUID
     val obj_guid : PlanetSideGUID = obj.GUID
     PlayerActionsToCancel()
+    //deactivate non-passive implants
+    tplayer.Implants.indices.foreach { index =>
+      val implantSlot = tplayer.ImplantSlot(index)
+      if(implantSlot.Active && implantSlot.Charge(tplayer.ExoSuit) > 0) {
+        tplayer.Actor ! Player.ImplantActivation(index, 0)
+      }
+    }
+    //delay regen
+    player.skipStaminaRegenForTurns = math.max(player.skipStaminaRegenForTurns, 6)
     log.info(s"MountVehicleMsg: ${player.Name}_guid mounts $obj @ $seatNum")
     sendResponse(ObjectAttachMessage(obj_guid, player_guid, seatNum))
     continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.MountVehicle(player_guid, obj_guid, seatNum))
@@ -8765,6 +8719,13 @@ class WorldSessionActor extends Actor
       LoadZoneAsPlayer(newPlayer, zone_id)
     }
     else {
+      //deactivate non-passive implants
+      player.Implants.indices.foreach { index =>
+        val implantSlot = player.ImplantSlot(index)
+        if(implantSlot.Active && implantSlot.Charge(player.ExoSuit) > 0) {
+          player.Actor ! Player.ImplantActivation(index, 0)
+        }
+      }
       interstellarFerry.orElse(continent.GUID(player.VehicleSeated)) match {
         case Some(vehicle : Vehicle) => //driver or passenger in vehicle using a warp gate, or a droppod
           LoadZoneInVehicle(vehicle, pos, ori, zone_id)
@@ -10150,8 +10111,11 @@ class WorldSessionActor extends Actor
   }
 
   def DeactivateImplants() : Unit = {
-    for(slot <- 0 to player.Implants.length - 1) {
-      player.Actor ! Player.ImplantActivation(slot, 0)
+    //TODO 3 implant slots?
+    player.Implants.indices.foreach { slot =>
+      if(player.ImplantSlot(slot).Active) {
+        player.Actor ! Player.ImplantActivation(slot, 0)
+      }
     }
   }
 

@@ -245,7 +245,7 @@ object OrderTerminalDefinition {
     }
 
     def Dispatch(sender : ActorRef, terminal : Terminal, msg : Terminal.TerminalMessage) : Unit = {
-      sender ! msg
+      msg.player.Actor ! msg
     }
   }
 

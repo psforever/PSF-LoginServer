@@ -202,7 +202,9 @@ class Avatar(private val char_id : Long, val name : String, val faction : Planet
     implants.foreach(slot => {
       slot.Installed match {
         case Some(_) =>
+          slot.Active = false
           slot.Initialized = false
+          slot.InitializeTime = 0L
         case None => ;
       }
     })
@@ -302,7 +304,7 @@ class Avatar(private val char_id : Long, val name : String, val faction : Planet
 
   def ObjectTypeNameReference(id : Long) : String = {
     objectTypeNameReference.get(id) match {
-      case Some(name) => name
+      case Some(objectName) => objectName
       case None => ""
     }
   }

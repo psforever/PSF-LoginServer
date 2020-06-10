@@ -1,7 +1,6 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import akka.actor.Cancellable
 import net.psforever.objects.definition.ImplantDefinition
 import net.psforever.types.{ExoSuitType, ImplantType}
 
@@ -19,19 +18,18 @@ class ImplantSlot {
   private var unlocked : Boolean = false
   /** whether this implant is ready for use */
   private var initialized : Boolean = false
-  /** a cancellable timer that can be used to set an implant as initialized once complete */
-  private var initializeTimer: Cancellable = Default.Cancellable
-
+  /**  */
+  private var initializeTime : Long = 0L
   /** is this implant active */
   private var active : Boolean = false
   /** what implant is currently installed in this slot; None if there is no implant currently installed */
   private var implant : Option[ImplantDefinition] = None
 
-  def InitializeTimer : Cancellable = initializeTimer
+  def InitializeTime : Long = initializeTime
 
-  def InitializeTimer_=(timer : Cancellable) : Cancellable = {
-    initializeTimer = timer
-    initializeTimer
+  def InitializeTime_=(time : Long) : Long = {
+    initializeTime = time
+    InitializeTime
   }
 
   def Unlocked : Boolean = unlocked
