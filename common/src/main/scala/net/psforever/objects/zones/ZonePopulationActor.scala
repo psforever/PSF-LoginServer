@@ -2,7 +2,7 @@
 package net.psforever.objects.zones
 
 import akka.actor.{Actor, ActorRef, Props}
-import net.psforever.objects.avatar.PlayerControl
+import net.psforever.objects.avatar.{CorpseControl, PlayerControl}
 import net.psforever.objects.{Avatar, Default, Player}
 
 import scala.annotation.tailrec
@@ -65,22 +65,18 @@ class ZonePopulationActor(zone : Zone, playerMap : TrieMap[Avatar, Option[Player
     case Zone.Corpse.Add(player) =>
       //player can be a corpse if they are in the current zone or are not in any zone
       //player is "found" if their avatar can be matched by name within this zone and it has a character
-      val (canBeCorpse, playerNotFound) = if(player.Zone == zone) {
-        playerMap.find { case (a, _) => a.name == player.Name } match {
-          case Some((a, Some(p))) if p eq player =>
-            PopulationRelease(a, playerMap)
-            (true, false)
-          case Some((a, None)) =>
-            (true, true)
-          case _ =>
-            (false, false)
-        }
+      val (canBeCorpse, control) = playerMap.find { case (a, _) => a.name == player.Name } match {
+        case Some((a, Some(p))) if p eq player =>
+          PopulationRelease(a, playerMap)
+          context.stop(player.Actor)
+          (true, Some(player.Actor))
+        case Some((_, None)) =>
+          (true, None)
+        case _ =>
+          (player.Zone == Zone.Nowhere || player.Zone == zone, None)
       }
-      else {
-        (player.Zone == Zone.Nowhere, true)
-      }
-      if(canBeCorpse && CorpseAdd(player, corpseList) && playerNotFound) {
-        player.Actor = context.actorOf(Props(classOf[PlayerControl], player), name = s"corpse_of_${GetPlayerControlName(player, None)}")
+      if(canBeCorpse && CorpseAdd(player, corpseList)) {
+        player.Actor = context.actorOf(Props(classOf[CorpseControl], player), name = s"corpse_of_${GetPlayerControlName(player, control)}")
         player.Zone = zone
       }
 
