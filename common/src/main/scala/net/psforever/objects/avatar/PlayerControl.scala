@@ -4,7 +4,6 @@ package net.psforever.objects.avatar
 import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import net.psforever.objects.{Player, _}
 import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile}
-import net.psforever.objects.definition.ImplantDefinition
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
 import net.psforever.objects.loadouts.Loadout
@@ -1016,7 +1015,11 @@ class PlayerControl(player : Player) extends Actor
     }
     else if(status == 1 && implantSlot.Initialized && !player.Fatigued) {
       implantSlot.Installed match {
-        case Some(implant : ImplantDefinition) =>
+        case Some(implant)
+          if(implant.Type == ImplantType.PersonalShield && player.ExoSuit == ExoSuitType.Infiltration) ||
+            (implant.Type == ImplantType.Surge && player.ExoSuit == ExoSuitType.MAX) =>
+          //TODO STILL NOT ALLOWED (but make it look normal)
+        case Some(implant) =>
           if (implantSlot.Active) {
             // Some events such as zoning will reset the implant on the client side without sending a deactivation packet
             // But the implant will remain in an active state server side. For now, allow reactivation of the implant.
