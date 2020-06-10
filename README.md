@@ -2,12 +2,12 @@
 
 <img src="https://psforever.net/index_files/logo_crop.png" align="left"
      title="PSForever" width="120">
-Welcome to the recreated login and world servers for PlanetSide 1. We are a community of players and developers who took it upon ourselves to preserve PlanetSide 1's unique gameplay and history *forever*.
+Welcome to the recreated login and world servers for PlanetSide 1. We are a community of players and developers who took it upon ourselves to preserve PlanetSide 1's unique gameplay and history _forever_.
 
 The login and world servers (this repo runs both by default) are built to work with PlanetSide version 3.15.84.0. Anything older is not guaranteed to work.
 Currently there are no binary releases of the server as the state is pre-alpha. You will need to have a development environment set up in order to get it running.
 If you just want to play, you don't need to set up a development environment. Join the public test server
-by following the *[PSForever Server Connection Guide](https://docs.google.com/document/d/1ZMx1NUylVZCXJNRyhkuVWT0eUKSVYu0JXsU-y3f93BY/edit)*, which has the instructions on downloading the game and using the PSForever launcher to start the game.
+by following the _[PSForever Server Connection Guide](https://docs.google.com/document/d/1ZMx1NUylVZCXJNRyhkuVWT0eUKSVYu0JXsU-y3f93BY/edit)_, which has the instructions on downloading the game and using the PSForever launcher to start the game.
 
 <p align="center">
   <kbd>
@@ -18,12 +18,13 @@ by following the *[PSForever Server Connection Guide](https://docs.google.com/do
 
 ## Server Requirements
 
-* SBT (Scala build tool)
-* Java Development Kit (JDK) 8.0
-* PSCrypto v1.1 - binary DLL (Windows) or Shared Library (Linux) placed in the root directory of the project. See [Downloading PSCrypto](#downloading-pscrypto) to get it set up.
-* PostgreSQL
+- SBT (Scala build tool)
+- Java Development Kit (JDK) 8.0
+- PSCrypto v1.1 - binary DLL (Windows) or Shared Library (Linux) placed in the root directory of the project. See [Downloading PSCrypto](#downloading-pscrypto) to get it set up.
+- PostgreSQL
 
 ## Setting up a Build Environment
+
 PSF-LoginServer is writen in [Scala](https://www.scala-lang.org/) and built using SBT, which allows it to be built on any platform. SBT is the Scala version of Make, but is more powerful as build definitions are written in Scala. SBT is distributed as a Java JAR and the only dependency it has is a JDK. [Follow the quick instructions on Scala's home page](https://www.scala-lang.org/download/) to get a working development environment and come back when you are done.
 
 In order to compile scala, `scalac` is used behind the scenes. This is equivalent to Java's `javac`, but for the Scala language.
@@ -36,6 +37,7 @@ If you have Docker and docker-compose installed on your system, you can get a co
 environment up by running `docker-compose up` in the source code directory. Otherwise, keep reading.
 
 ### Using an IDE
+
 Scala code can be fairly complex and a good IDE helps you understand the code and what methods are available for certain types, especially as you are learning the language.
 IntelliJ IDEA has some of the most mature support for Scala of any IDE today. It has advanced type introspection and excellent code completion. It's recommended for those who are new to Scala in order to get familiar with the syntax.
 
@@ -48,28 +50,33 @@ Once you have the code downloaded, you will need to import the project into the 
 Once you have successfully imported the project ([and setup the DB](#setting-up-the-database)), navigate to the `pslogin/src/main/scala/PsLogin.scala` file, right click on the `object PsLogin` and hit 'Run PsLogin' from the context menu. This will boot up the login+world server.
 
 ### Using SBT and a Text Editor
+
 If you are not a fan of big clunky IDEs (IDEA is definitely one of them), you can opt to use your favorite text editor (VSCode, Sublime, ViM, Notepad++, Atom, etc.) and use SBT to build the project. The only dependency you will need is SBT itself. [Download SBT](http://www.scala-sbt.org/download.html) for your platform, install or extract, and open up a command line (cmd.exe, bash, CYGWIN, Git Bash) that has the Java Development Kit in its path.
 
 At the command line run the following commands:
+
 ```
 git clone https://github.com/psforever/PSF-LoginServer.git
 cd PSF-LoginServer
 sbt pslogin/run
 ```
+
 This will clone the repository and SBT will compile and run the login server ([make sure you have set up the DB](#setting-up-the-database)). Note: SBT is quite slow at starting up (JVM/JIT warmup). It's recommended you have an open SBT console (just run `sbt` without any arguments) in order to avoid this startup time.
 With a SBT console you can run tests (and you should) using `sbt test`.
 
 ### Downloading PSCrypto
-**The server requires binary builds of PSCrypto in order to run.** [Download the latest release](https://github.com/psforever/PSCrypto/releases/download/v1.1/pscrypto-lib-1.1.zip) and extract the the approprate dll for your operating system.  If you are not comfortable with compiled binaries, you can [build the libraries yourself](https://github.com/psforever/PSCrypto).
 
-SBT, IDEA, and Java will automatically find the required libraries when running the server.  The build expects to find the library in a subdirectory of the root directory called /pscrypto-lib/.  Historically, we have recommended placing it directly into the root directory and that has worked as well.  If you still have issues with PSCrypto being detected, try adding `-Djava.library.path=` (no path necessary) to your preferred IDE's build configuration with the library in the root directory.  For example, with IDEA: Run -> Edit Configuration -> (select the configuration) -> Uncheck "Use SBT shell" -> VM Parameters
+**The server requires binary builds of PSCrypto in order to run.** [Download the latest release](https://github.com/psforever/PSCrypto/releases/download/v1.1/pscrypto-lib-1.1.zip) and extract the the approprate dll for your operating system. If you are not comfortable with compiled binaries, you can [build the libraries yourself](https://github.com/psforever/PSCrypto).
+
+SBT, IDEA, and Java will automatically find the required libraries when running the server. The build expects to find the library in a subdirectory of the root directory called /pscrypto-lib/. Historically, we have recommended placing it directly into the root directory and that has worked as well. If you still have issues with PSCrypto being detected, try adding `-Djava.library.path=` (no path necessary) to your preferred IDE's build configuration with the library in the root directory. For example, with IDEA: Run -> Edit Configuration -> (select the configuration) -> Uncheck "Use SBT shell" -> VM Parameters
 
 ## Setting up the Database
+
 The Login and World servers require PostgreSQL for persistence.
 
-* Windows - [Official Downloads](https://www.postgresql.org/download/windows/)
-* Linux - [Debian](https://www.postgresql.org/download/linux/debian/) or [Ubuntu](https://www.postgresql.org/download/linux/ubuntu/)
-* macOS - Application https://www.postgresql.org/download/ (or `brew install postgresql && brew services start postgresql`)
+- Windows - [Official Downloads](https://www.postgresql.org/download/windows/)
+- Linux - [Debian](https://www.postgresql.org/download/linux/debian/) or [Ubuntu](https://www.postgresql.org/download/linux/ubuntu/)
+- macOS - Application https://www.postgresql.org/download/ (or `brew install postgresql && brew services start postgresql`)
 
 The default database is named `psforever` and the credentials are `psforever:psforever`. To change these, make a copy of [`config/worldserver.ini.dist`](config/worldserver.ini.dist) to `config/worldserver.ini` and change the corresponding fields in the database section. This database user will need ALL access to tables, sequences, and functions.
 The permissions required can be summarized by the SQL below.
@@ -86,13 +93,14 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA PUBLIC GRANT ALL ON SEQUENCES TO psforever;
 ALTER DEFAULT PRIVILEGES IN SCHEMA PUBLIC GRANT ALL ON FUNCTIONS TO psforever;
 ```
 
-**NOTE:** applying default privileges *after* importing the schema will not apply them to existing objects. To fix this, you must drop all objects and try again or apply permissions manually using the Query Tool / `psql`.
+**NOTE:** applying default privileges _after_ importing the schema will not apply them to existing objects. To fix this, you must drop all objects and try again or apply permissions manually using the Query Tool / `psql`.
 
 Now you need to synchronize the schema. This is currently available in [`schema.sql`](schema.sql).
 To do this right click on the psforever database -> Query Tool... -> Copy and paste / Open the `schema.sql` file into the editor -> Hit the "Play/Run" button. The schema should be loaded into the database.
 Once you have the schema loaded in, the LoginServer will automatically create accounts on first login. If you'd like a nice account management interface, check out the [PSFPortal](https://github.com/psforever/PSFPortal) web interface.
 
 ### Becoming a GM
+
 By default users are not granted GM access. To grant a created user GM access execute the following query:
 
 ```sql
@@ -135,8 +143,8 @@ The REPL supports various useful commands. For example, to see the type of an ar
 
 ![image](https://cloud.githubusercontent.com/assets/16912082/18024371/e0b72f9e-6bcd-11e6-9de5-421ec3eff994.png)
 
-
 ## Creating a Release
+
 If you want to test the project without an IDE or deploy it to a server for run, you can use sbt-pack to create a release (included with the repository).
 First make sure you have the [SBT tool](http://www.scala-sbt.org/download.html) on your command line (or create a new task in IntelliJ IDEA). Then get a copy of the source directory (either in ZIP or cloned form). Then do the below
 
@@ -148,6 +156,7 @@ sbt packArchiveZip # creates a single zip with resources
 This will use the sbt-pack plugin to create a JAR file and some helper scripts to run the server. The output for this will be in the `PSF-LoginServer\target` directory. Now you can copy the ZIP file to a server you want to run it on. You will need the Java 8 runtime (JRE only) on the target to run this. In the ZIP file, there is a `bin/` directory with some helper scripts. Run the correct file for your platform (.BAT for Windows and shell script for Unix).
 
 ### Generating Documentation
+
 Using SBT, you can generate documentation for both the common and pslogin projects using `sbt unidoc`.
 
 Current documentation is available at [https://psforever.github.io/docs/master/index.html](https://psforever.github.io/docs/master/index.html)
@@ -155,25 +164,59 @@ Current documentation is available at [https://psforever.github.io/docs/master/i
 ## Troubleshooting
 
 #### Unable to initialize pscrypto
+
 If you get an error like below
+
 ```
 12:17:28.037 [main] ERROR PsLogin - Unable to initialize pscrypto
 java.lang.UnsatisfiedLinkError: Unable to load library 'pscrypto': Native library (win32-x86-64/pscrypto.dll) not found in resource path
 ```
+
 Then you are missing the native library required to provide cryptographic functions to the login server. To fix this, you need a binary build of [PSCrypto](#downloading-pscrypto).
 
 If you are still having trouble on Linux, try putting the library in `root directory/pscrypto-lib/libpscrypto.so`.
 
 ## Contributing
+
 Please fork the project and provide a pull request to contribute code. Coding guidelines and contribution checklists coming soon.
 
 ## Get in touch
 
-* Website: http://psforever.net
-* Discord (chat with us): https://discord.gg/0nRe5TNbTYoUruA4
+- Website: http://psforever.net
+- Discord (chat with us): https://discord.gg/0nRe5TNbTYoUruA4
   - Join the #code channel and ask any questions you have there
 
 Chord is the lead developer and you can contact him on Discord as Chord or by email [chord@tuta.io](mailto:chord@tuta.io). Discord is preferred.
 
+## Tools
+
+### decodePackets
+
+The decodePackets program can be used to decode GameLogger `.gcap` packet captures. Requires
+[gcapy](https://github.com/psforever/gcapy) to run, unless the `-p` flag is used.
+
+To build, run:
+
+```
+sbt decodePackets/pack
+```
+
+The output will be in `tools/decode-packets/target/pack`. The `bin` folder contains scripts to
+launch the program. On Linux, you can use the Makefile to install the files to any path:
+
+```
+make install PREFIX=$HOME/.local
+```
+
+Now you can run the program like that:
+
+```
+psf-decode-packets -o ./output-directory foo.gcap bar.gcap
+```
+
+By default, decodePackets takes in `.gcap` files, but it can also take gcapy ascii files with the
+`-p` option. Run `psf-decode-packets --help` to get usage info.
+
 ## License
+
 GNU GPLv3. See LICENSE.md for the full copy.

@@ -103,13 +103,21 @@ lazy val common = (project in file("common")).
   settings(pscryptoSettings: _*)
 
 lazy val decodePackets = (project in file("tools/decode-packets")).
+  enablePlugins(PackPlugin).
   settings(commonSettings: _*).
+  settings(decodePacketsPackSettings: _*).
   settings(
     libraryDependencies ++= Seq(
-      "org.scala-lang.modules"     %% "scala-parallel-collections" % "0.2.0"
+      "org.scala-lang.modules"      %% "scala-parallel-collections" % "0.2.0",
+      "com.github.scopt"            %% "scopt"                      % "4.0.0-RC2",
+      "commons-io"                   % "commons-io"                 % "2.6"
     )
   ).
   dependsOn(common)
+
+lazy val decodePacketsPackSettings = Seq(
+  packMain := Map("psf-decode-packets" -> "DecodePackets"),
+)
 
 // Special test configuration for really quiet tests (used in CI)
 lazy val QuietTest = config("quiet") extend(Test)
