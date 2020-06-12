@@ -491,11 +491,11 @@ object GamePacketOpcode extends Enumeration {
     case 0x90 => noDecoder(OutfitMemberEvent)
     case 0x91 => noDecoder(OutfitMemberUpdate)
     case 0x92 => game.PlanetsideStringAttributeMessage.decode
-    case 0x93 => noDecoder(DataChallengeMessage)
-    case 0x94 => noDecoder(DataChallengeMessageResp)
+    case 0x93 => game.DataChallengeMessage.decode
+    case 0x94 => game.DataChallengeMessageResp.decode
     case 0x95 => game.WeatherMessage.decode
-    case 0x96 => noDecoder(SimDataChallenge)
-    case 0x97 => noDecoder(SimDataChallengeResp)
+    case 0x96 => game.SimDataChallenge.decode
+    case 0x97 => game.SimDataChallengeResp.decode
     // 0x98
     case 0x98 => noDecoder(OutfitListEvent)
     case 0x99 => noDecoder(EmpireIncentivesMessage)
