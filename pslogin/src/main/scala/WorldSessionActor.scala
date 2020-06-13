@@ -2787,17 +2787,6 @@ class WorldSessionActor extends Actor
           sendResponse(VehicleStateMessage(vehicle_guid, unk1, pos, ang, vel, unk2, unk3, unk4, wheel_direction, unk5, unk6))
           if(player.VehicleSeated.contains(vehicle_guid)) {
             player.Position = pos
-            GetVehicleAndSeat() match {
-              case (Some(_), Some(0)) => ;
-              case (Some(_), Some(_)) =>
-                turnCounter(guid)
-                if (player.death_by == -1) {
-                  sendResponse(ChatMsg(ChatMessageType.UNK_71, true, "", "Your account has been logged out by a Customer Service Representative.", None))
-                  Thread.sleep(300)
-                  sendResponse(DropSession(sessionId, "kick by GM"))
-                }
-              case _ => ;
-            }
           }
         }
       case VehicleResponse.SendResponse(msg) =>
@@ -3878,9 +3867,7 @@ class WorldSessionActor extends Actor
       continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlayerState(avatar_guid, player.Position, player.Velocity, yaw, pitch, yaw_upper, seq_time, is_crouching, is_jumping, jump_thrust, is_cloaking, player.spectator, wepInHand))
       updateSquad()
       if(player.death_by == -1) {
-        sendResponse(ChatMsg(ChatMessageType.UNK_71, true, "", "Your account has been logged out by a Customer Service Representative.", None))
-        Thread.sleep(300)
-        sendResponse(DropSession(sessionId, "kick by GM"))
+        KickedByAdministration()
       }
 
     case msg@ChildObjectStateMessage(object_guid, pitch, yaw) =>
@@ -3911,9 +3898,7 @@ class WorldSessionActor extends Actor
         //log.warn(s"ChildObjectState: player ${player.Name} not related to anything with a controllable agent")
       }
       if (player.death_by == -1) {
-        sendResponse(ChatMsg(ChatMessageType.UNK_71, true, "", "Your account has been logged out by a Customer Service Representative.", None))
-        Thread.sleep(300)
-        sendResponse(DropSession(sessionId, "kick by GM"))
+        KickedByAdministration()
       }
 
     case msg@VehicleStateMessage(vehicle_guid, unk1, pos, ang, vel, flying, unk6, unk7, wheels, is_decelerating, is_cloaked) =>
@@ -3959,9 +3944,7 @@ class WorldSessionActor extends Actor
         case _ => ;
       }
       if (player.death_by == -1) {
-        sendResponse(ChatMsg(ChatMessageType.UNK_71, true, "", "Your account has been logged out by a Customer Service Representative.", None))
-        Thread.sleep(300)
-        sendResponse(DropSession(sessionId, "kick by GM"))
+        KickedByAdministration()
       }
 
     case msg@VehicleSubStateMessage(vehicle_guid, player_guid, vehicle_pos, vehicle_ang, vel, unk1, unk2) =>
@@ -4180,6 +4163,7 @@ class WorldSessionActor extends Actor
             self ! PacketCoding.CreateGamePacket(0, RequestDestroyMessage(PlanetSideGUID(guid)))
         }
       } else if(messagetype == ChatMessageType.CMT_QUIT) { // TODO: handle this appropriately
+        accountPersistence ! AccountPersistenceService.Logout(player.Name)
         sendResponse(DropCryptoSession())
         sendResponse(DropSession(sessionId, "user quit"))
       }
@@ -4362,11 +4346,12 @@ class WorldSessionActor extends Actor
           if(charID != player.CharId) {
             var charToKick = continent.LivePlayers.filter(_.CharId == charID)
             if (charToKick.nonEmpty) {
-              charToKick.head.death_by = -1
+              AdministrativeKick(charToKick.head)
             }
             else {
               charToKick = continent.Corpses.filter(_.CharId == charID)
-              if (charToKick.nonEmpty) charToKick.head.death_by = -1
+              if (charToKick.nonEmpty)
+                AdministrativeKick(charToKick.head)
             }
           }
         }
@@ -4374,7 +4359,8 @@ class WorldSessionActor extends Actor
           case _ : Throwable =>
           {
             val charToKick = continent.LivePlayers.filter(_.Name.equalsIgnoreCase(CharIDorName))
-            if(charToKick.nonEmpty) charToKick.head.death_by = -1
+            if(charToKick.nonEmpty)
+              AdministrativeKick(charToKick.head)
           }
         }
       }
@@ -8154,7 +8140,7 @@ class WorldSessionActor extends Actor
     target match {
       case obj : Player if obj.CanDamage && obj.Actor != Default.Actor =>
         if(obj.spectator) {
-          player.death_by = -1 // little thing for auto kick
+          AdministrativeKick(player, obj != player) // little thing for auto kick
         }
         else {
           obj.Actor ! Vitality.Damage(func)
@@ -10172,6 +10158,26 @@ class WorldSessionActor extends Actor
     else {
       upstreamMessageCount = 0
     }
+  }
+
+  def AdministrativeKick(tplayer : Player, permitKickSelf : Boolean = false) : Unit = {
+    if(permitKickSelf || tplayer != player) { //stop kicking yourself
+      tplayer.death_by = -1
+      //get out of that vehicle
+      GetMountableAndSeat(None, tplayer, continent) match {
+        case (Some(obj), Some(seatNum)) =>
+          tplayer.VehicleSeated = None
+          obj.Seats(seatNum).Occupant = None
+          continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(tplayer.GUID, seatNum, false, obj.GUID))
+        case _ => ;
+      }
+    }
+  }
+
+  def KickedByAdministration() : Unit = {
+    sendResponse(DisconnectMessage("Your account has been logged out by a Customer Service Representative."))
+    Thread.sleep(300)
+    sendResponse(DropSession(sessionId, "kick by GM"))
   }
 
   def failWithError(error : String) = {

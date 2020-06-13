@@ -11,9 +11,8 @@ import net.psforever.objects._
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.zones.Zone
 import net.psforever.types.Vector3
-import services.{RemoverActor, Service, ServiceManager}
+import services.{Service, ServiceManager}
 import services.avatar.{AvatarAction, AvatarServiceMessage}
-import services.vehicle.VehicleServiceMessage
 
 /**
   * A global service that manages user behavior as divided into the following three categories:
@@ -87,6 +86,13 @@ class AccountPersistenceService extends Actor {
         case None =>
           log.warn(s"tried to update a player entry ($name) that did not yet exist; rebuilding entry ...")
           CreateNewPlayerToken(name).tell(msg, sender)
+      }
+
+    case AccountPersistenceService.Logout(name) =>
+      accounts.remove(name) match {
+        case Some(ref) =>
+          ref ! Logout(name)
+        case _ => ;
       }
 
     case Logout(target) => //TODO use context.watch and Terminated?
@@ -166,6 +172,12 @@ object AccountPersistenceService {
     * @param position the location of the player in game world coordinates
     */
   final case class Update(name : String, zone : Zone, position : Vector3)
+
+  /**
+    * Message that indicates that persistence is no longer necessary for this player character.
+    * @param name the unique name of the player
+    */
+  final case class Logout(name : String)
 }
 
 /**
