@@ -5002,7 +5002,8 @@ class WorldSessionActor extends Actor
                 val lastUse = player.GetLastUsedTime(kid)
                 val delay = delayedGratificationEntries.getOrElse(kid, 0L)
                 if((time - lastUse) < delay) {
-                  sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", s"@TimeUntilNextUse^${((delay / 1000) - math.ceil((time - lastUse).toDouble) / 1000)}~", None))
+                  val presentedDelay = math.max(1, ((delay.toDouble / 1000) - math.ceil((time - lastUse).toDouble) / 1000)).toInt
+                  sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", s"@TimeUntilNextUse^$presentedDelay~", None))
                 }
                 else {
                   val indexOpt = player.Find(kit)
