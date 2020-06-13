@@ -1883,8 +1883,7 @@ class WorldSessionActor extends Actor
             val dist = Vector3.DistanceSquared(player.Position, pos)
             (pos, now - before, dist)
           }
-          if(distanceSq < 302500 ||
-            (distanceSq > 302500 && time > 5000)) { // Render distance seems to be approx 525m. Reduce update rate at ~550m to be safe
+          if(distanceSq < 302500 || time > 5000) { // Render distance seems to be approx 525m. Reduce update rate at ~550m to be safe
             sendResponse(
               PlayerStateMessage(
                 guid,
