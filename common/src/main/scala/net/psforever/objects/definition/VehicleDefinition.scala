@@ -35,6 +35,9 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId)
   private var deploymentTime_Undeploy : Int = 0 //ms
   private var trunkSize : InventoryTile = InventoryTile.None
   private var trunkOffset : Int = 0
+
+  /** The position offset of the trunk, orientation as East = 0  */
+  private var trunkLocation : Vector3 = Vector3.Zero
   private var canCloak : Boolean = false
   private var canFly : Boolean = false
   private var canBeOwned : Boolean = true
@@ -136,6 +139,13 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId)
   def TrunkOffset_=(offset : Int) : Int = {
     trunkOffset = offset
     TrunkOffset
+  }
+
+  def TrunkLocation : Vector3 = trunkLocation
+
+  def TrunkLocation_=(location : Vector3) : Vector3 = {
+    trunkLocation = location
+    TrunkLocation
   }
 
   def AutoPilotSpeeds : (Int, Int) = serverVehicleOverrideSpeeds

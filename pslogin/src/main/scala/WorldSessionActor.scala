@@ -3853,7 +3853,7 @@ class WorldSessionActor extends Actor
       }
       accessedContainer match {
         case Some(veh : Vehicle) =>
-          if(isMoving || Vector3.DistanceSquared(player.Position, veh.Position) > 100) {
+          if(isMoving || veh.isMoving(1) || Vector3.DistanceSquared(player.Position, veh.TrunkLocation) > 9) {
             val guid = player.GUID
             sendResponse(UnuseItemMessage(guid, veh.GUID))
             sendResponse(UnuseItemMessage(guid, guid))
