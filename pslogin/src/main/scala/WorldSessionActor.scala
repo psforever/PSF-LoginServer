@@ -3348,7 +3348,11 @@ class WorldSessionActor extends Actor
         sendResponse(ControlSyncResp(nextDiff, serverTick, fa, fb, fb, fa))
 
       case TeardownConnection(_) =>
-        log.info("Good bye")
+        if(avatar != null) {
+          accountPersistence ! AccountPersistenceService.Logout(avatar.name)
+        }
+        sendResponse(DropCryptoSession())
+        sendResponse(DropSession(sessionId, "user quit"))
 
       case default =>
         log.warn(s"Unhandled ControlPacket $default")
@@ -4163,7 +4167,9 @@ class WorldSessionActor extends Actor
             self ! PacketCoding.CreateGamePacket(0, RequestDestroyMessage(PlanetSideGUID(guid)))
         }
       } else if(messagetype == ChatMessageType.CMT_QUIT) { // TODO: handle this appropriately
-        accountPersistence ! AccountPersistenceService.Logout(player.Name)
+        if(avatar != null) {
+          accountPersistence ! AccountPersistenceService.Logout(avatar.name)
+        }
         sendResponse(DropCryptoSession())
         sendResponse(DropSession(sessionId, "user quit"))
       }
@@ -5002,8 +5008,8 @@ class WorldSessionActor extends Actor
                 val lastUse = player.GetLastUsedTime(kid)
                 val delay = delayedGratificationEntries.getOrElse(kid, 0L)
                 if((time - lastUse) < delay) {
-                  val presentedDelay = math.max(1, ((delay.toDouble / 1000) - math.ceil((time - lastUse).toDouble) / 1000)).toInt
-                  sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", s"@TimeUntilNextUse^$presentedDelay~", None))
+                  val displayedDelay = math.min(5, ((delay.toDouble / 1000) - math.ceil((time - lastUse).toDouble) / 1000) + 1).toInt
+                  sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", s"@TimeUntilNextUse^$displayedDelay~", None))
                 }
                 else {
                   val indexOpt = player.Find(kit)
