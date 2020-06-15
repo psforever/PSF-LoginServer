@@ -10133,16 +10133,17 @@ class WorldSessionActor extends Actor
     * @param zone na
     */
   def HandleReleaseAvatar(tplayer : Player, zone : Zone) : Unit = {
-    tplayer.Release
+    val guid = tplayer.GUID
+    tplayer.Release //neccessary to respawn properly
     tplayer.VehicleSeated match {
       case None =>
-        PrepareToTurnPlayerIntoCorpse(tplayer, zone)
+        zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.ObjectDelete(PlanetSideGUID(0), guid))
       case Some(_) =>
         tplayer.VehicleSeated = None
-        zone.Population ! Zone.Population.Release(avatar)
-        sendResponse(ObjectDeleteMessage(tplayer.GUID, 0))
-        taskResolver ! GUIDTask.UnregisterPlayer(tplayer)(zone.GUID)
     }
+    sendResponse(ObjectDeleteMessage(guid, 0))
+    zone.Population ! Zone.Population.Release(avatar)
+    taskResolver ! GUIDTask.UnregisterPlayer(tplayer)(zone.GUID)
   }
 
   /**
