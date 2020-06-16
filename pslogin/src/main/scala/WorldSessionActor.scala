@@ -2800,6 +2800,11 @@ class WorldSessionActor extends Actor
           sendResponse(VehicleStateMessage(vehicle_guid, unk1, pos, ang, vel, unk2, unk3, unk4, wheel_direction, unk5, unk6))
           if(player.VehicleSeated.contains(vehicle_guid)) {
             player.Position = pos
+            GetVehicleAndSeat() match {
+              case (Some(_), Some(seatNum)) if seatNum > 0 =>
+                turnCounter(guid)
+              case _ => ;
+            }
           }
         }
       case VehicleResponse.SendResponse(msg) =>
