@@ -84,15 +84,24 @@ class AccountPersistenceService extends Actor {
         case Some(ref) =>
           ref ! msg
         case None =>
-          log.warn(s"tried to update a player entry ($name) that did not yet exist; rebuilding entry ...")
+          log.warn(s"tried to update a player entry for $name that did not yet exist; rebuilding entry ...")
           CreateNewPlayerToken(name).tell(msg, sender)
+      }
+
+    case msg @ AccountPersistenceService.PersistDelay(name, _) =>
+      accounts.get(name) match {
+        case Some(ref) =>
+          ref ! msg
+        case _ =>
+          log.warn(s"player entry for $name not found; not logged in")
       }
 
     case AccountPersistenceService.Logout(name) =>
       accounts.remove(name) match {
         case Some(ref) =>
           ref ! Logout(name)
-        case _ => ;
+        case _ =>
+          log.warn(s"player entry for $name not found; not logged in")
       }
 
     case Logout(target) => //TODO use context.watch and Terminated?
@@ -120,7 +129,7 @@ class AccountPersistenceService extends Actor {
       }
 
     case msg =>
-      log.warn(s"Not yet started; received a $msg that will go unhandled")
+      log.warn(s"not yet started; received a $msg that will go unhandled")
   }
 
   /**
@@ -174,6 +183,14 @@ object AccountPersistenceService {
   final case class Update(name : String, zone : Zone, position : Vector3)
 
   /**
+    * Update the persistence monitor that was setup for a user for a custom persistence delay.
+    * If set to `None`, the default persistence time should assert itself.
+    * @param name the unique name of the player
+    * @param time the duration that this user's player characters will persist without update in seconds
+    */
+  final case class PersistDelay(name : String, time : Option[Long])
+
+  /**
     * Message that indicates that persistence is no longer necessary for this player character.
     * @param name the unique name of the player
     */
@@ -201,6 +218,8 @@ class PersistenceMonitor(name : String, squadService : ActorRef, taskResolver : 
   var inZone : Zone = Zone.Nowhere
   /** the last-reported game coordinate position of this player */
   var lastPosition : Vector3 = Vector3.Zero
+  /** a custom logout time for this player; 60s by default */
+  var countdown : Option[Long] = None
   /** the ongoing amount of permissible inactivity */
   var timer : Cancellable = Default.Cancellable
   /** the sparingly-used log */
@@ -224,6 +243,10 @@ class PersistenceMonitor(name : String, squadService : ActorRef, taskResolver : 
       lastPosition = p
       UpdateTimer()
 
+    case AccountPersistenceService.PersistDelay(_, delay) =>
+      countdown = delay
+      UpdateTimer()
+
     case Logout(_) =>
       context.parent ! Logout(name)
       context.stop(self)
@@ -236,7 +259,7 @@ class PersistenceMonitor(name : String, squadService : ActorRef, taskResolver : 
     */
   def UpdateTimer() : Unit = {
     timer.cancel
-    timer = context.system.scheduler.scheduleOnce(60 seconds, self, Logout(name))
+    timer = context.system.scheduler.scheduleOnce(countdown.getOrElse(60L) seconds, self, Logout(name))
   }
 
   /**

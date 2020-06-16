@@ -1381,6 +1381,10 @@ class WorldSessionActor extends Actor
       inZone.AvatarEvents ! AvatarServiceMessage(playerName, AvatarAction.TeardownConnection())
       //find and reload previous player
       (inZone.Players.find(p => p.name.equals(playerName)), inZone.LivePlayers.find(p => p.Name.equals(playerName))) match {
+        case (_, Some(p)) if p.death_by == -1 =>
+          //player is not allowed
+          KickedByAdministration()
+
         case (Some(a), Some(p)) if p.isAlive =>
           //rejoin current avatar/player
           log.info(s"LoginInfo: player $playerName is alive")
@@ -1421,7 +1425,7 @@ class WorldSessionActor extends Actor
 
         case _ =>
           //fall back to sanctuary/prior?
-          log.error(s"LoginInfo: player ${player.Name}Name could not be found in game world")
+          log.error(s"LoginInfo: player $playerName could not be found in game world")
           self ! PlayerToken.LoginInfo(playerName, Zone.Nowhere, pos)
       }
 
@@ -1839,8 +1843,11 @@ class WorldSessionActor extends Actor
           log.warn(s"KillPlayer/SHOTS_WHILE_DEAD: client of ${avatar.name} fired $shotsWhileDead rounds while character was dead on server")
           shotsWhileDead = 0
         }
-        import scala.concurrent.ExecutionContext.Implicits.global
-        reviveTimer = context.system.scheduler.scheduleOnce(respawnTimer milliseconds, cluster, Zone.Lattice.RequestSpawnPoint(Zones.SanctuaryZoneNumber(player.Faction), player, 7))
+        reviveTimer.cancel
+        if(player.death_by == 0) {
+          import scala.concurrent.ExecutionContext.Implicits.global
+          reviveTimer = context.system.scheduler.scheduleOnce(respawnTimer milliseconds, cluster, Zone.Lattice.RequestSpawnPoint(Zones.SanctuaryZoneNumber(player.Faction), player, 7))
+        }
 
       case AvatarResponse.LoadPlayer(pkt) =>
         if(tplayer_guid != guid) {
@@ -4099,10 +4106,6 @@ class WorldSessionActor extends Actor
       }
       else if(messagetype == ChatMessageType.CMT_QUIT) {
         makeReply = false
-        if(zoningType == Zoning.Method.InstantAction || zoningType == Zoning.Method.Recall) {
-          //priority given to quit over other zoning methods
-          CancelZoningProcessWithDescriptiveReason("cancel")
-        }
         if(zoningType == Zoning.Method.Quit) {
           sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noquit_quitting", None))
         }
@@ -4118,6 +4121,10 @@ class WorldSessionActor extends Actor
           sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noquit_invehicle", None))
         }
         else {
+          //priority to quitting is given to quit over other zoning methods
+          if(zoningType == Zoning.Method.InstantAction || zoningType == Zoning.Method.Recall) {
+            CancelZoningProcessWithDescriptiveReason("cancel")
+          }
           zoningType = Zoning.Method.Quit
           zoningChatMessageType = messagetype
           zoningStatus = Zoning.Status.Request
@@ -4384,27 +4391,26 @@ class WorldSessionActor extends Actor
         //        StopBundlingPackets()
       }
       else if (trimContents.contains("!kick") && admin) {
-        val CharIDorName : String = contents.drop(contents.indexOf(" ") + 1)
-        try {
-          val charID : Long = CharIDorName.toLong
-          if(charID != player.CharId) {
-            var charToKick = continent.LivePlayers.filter(_.CharId == charID)
-            if (charToKick.nonEmpty) {
-              AdministrativeKick(charToKick.head)
-            }
-            else {
-              charToKick = continent.Corpses.filter(_.CharId == charID)
-              if (charToKick.nonEmpty)
-                AdministrativeKick(charToKick.head)
-            }
+        val input = trimContents.split("\\s+").drop(1)
+        if(input.length > 0) {
+          val numRegex = raw"(\d+)".r
+          val id = input(0)
+          val determination : Player=>Boolean = id match {
+            case numRegex(_) => { _.CharId == id.toLong }
+            case _ => { _.Name.equals(id) }
           }
-        }
-        catch {
-          case _ : Throwable =>
-          {
-            val charToKick = continent.LivePlayers.filter(_.Name.equalsIgnoreCase(CharIDorName))
-            if(charToKick.nonEmpty)
-              AdministrativeKick(charToKick.head)
+          continent.LivePlayers.find(determination).orElse(continent.Corpses.find(determination)) match {
+            case Some(tplayer) if AdministrativeKick(tplayer) =>
+              if(input.length > 1) {
+                val time = input(1)
+                time match {
+                  case numRegex(_) =>
+                    accountPersistence ! AccountPersistenceService.PersistDelay(tplayer.Name, Some(time.toLong))
+                  case _ =>
+                    accountPersistence ! AccountPersistenceService.PersistDelay(tplayer.Name, None)
+                }
+              }
+            case _ => ;
           }
         }
       }
@@ -7652,6 +7658,7 @@ class WorldSessionActor extends Actor
     val obj = Player.Respawn(tplayer)
     obj.ResetAllImplants()
     LoadClassicDefault(obj)
+    obj.death_by = tplayer.death_by
     obj
   }
 
@@ -7711,7 +7718,7 @@ class WorldSessionActor extends Actor
     if(!WellLootedDeadBody(tplayer)) {
       TurnPlayerIntoCorpse(tplayer, zone)
     }
-    else {
+    else if(tplayer.death_by == 0) {
       //no items in inventory; leave no corpse
       val pguid = tplayer.GUID
       zone.Population ! Zone.Population.Release(avatar)
@@ -7724,14 +7731,25 @@ class WorldSessionActor extends Actor
   /**
     * Creates a player that has the characteristics of a corpse.
     * To the game, that is a backpack (or some pastry, festive graphical modification allowing).
+    * A player who has been kicked may not turn into a corpse.
+    * @see `AvatarAction.Release`
+    * @see `AvatarServiceMessage`
     * @see `CorpseConverter.converter`
+    * @see `DepictPlayerAsCorpse`
+    * @see `Player.death_by`
+    * @see `Player.Release`
+    * @see `Zone.AvatarEvents`
+    * @see `Zone.Corpse.Add`
+    * @see `Zone.Population`
     * @param tplayer the player
     */
   def TurnPlayerIntoCorpse(tplayer : Player, zone : Zone) : Unit = {
-    tplayer.Release
-    DepictPlayerAsCorpse(tplayer)
-    zone.Population ! Zone.Corpse.Add(tplayer)
-    zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.Release(tplayer, zone))
+    if(tplayer.death_by == 0) {
+      tplayer.Release
+      DepictPlayerAsCorpse(tplayer)
+      zone.Population ! Zone.Corpse.Add(tplayer)
+      zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.Release(tplayer, zone))
+    }
   }
 
   /**
@@ -7765,7 +7783,7 @@ class WorldSessionActor extends Actor
     */
   def TryDisposeOfLootedCorpse(obj : Player) : Boolean = {
     if(obj.isBackpack && WellLootedDeadBody(obj)) {
-      continent.AvatarEvents ! AvatarServiceMessage.Corpse(RemoverActor.HurrySpecific(List(obj), continent))
+      obj.Zone.AvatarEvents ! AvatarServiceMessage.Corpse(RemoverActor.HurrySpecific(List(obj), obj.Zone))
       true
     }
     else {
@@ -10205,7 +10223,7 @@ class WorldSessionActor extends Actor
     }
   }
 
-  def AdministrativeKick(tplayer : Player, permitKickSelf : Boolean = false) : Unit = {
+  def AdministrativeKick(tplayer : Player, permitKickSelf : Boolean = false) : Boolean = {
     if(permitKickSelf || tplayer != player) { //stop kicking yourself
       tplayer.death_by = -1
       //get out of that vehicle
@@ -10216,6 +10234,10 @@ class WorldSessionActor extends Actor
           continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(tplayer.GUID, seatNum, false, obj.GUID))
         case _ => ;
       }
+      true
+    }
+    else {
+      false
     }
   }
 
