@@ -1429,6 +1429,13 @@ class WorldSessionActor extends Actor
           self ! PlayerToken.LoginInfo(playerName, Zone.Nowhere, pos)
       }
 
+    case PlayerToken.CanNotLogin(playerName, reason) =>
+      log.warn(s"LoginInfo: player $playerName is denied login for reason: $reason")
+      reason match {
+        case PlayerToken.DeniedLoginReason.Kicked => KickedByAdministration()
+        case _ => sendResponse(DisconnectMessage("You will be logged out."))
+      }
+
     case msg @ Containable.ItemPutInSlot(_ : PlanetSideServerObject with Container, _ : Equipment, _ : Int, _ : Option[Equipment]) =>
       log.info(s"$msg")
 
@@ -1847,6 +1854,9 @@ class WorldSessionActor extends Actor
         if(player.death_by == 0) {
           import scala.concurrent.ExecutionContext.Implicits.global
           reviveTimer = context.system.scheduler.scheduleOnce(respawnTimer milliseconds, cluster, Zone.Lattice.RequestSpawnPoint(Zones.SanctuaryZoneNumber(player.Faction), player, 7))
+        }
+        else {
+          HandleReleaseAvatar(player, continent)
         }
 
       case AvatarResponse.LoadPlayer(pkt) =>
@@ -4410,9 +4420,9 @@ class WorldSessionActor extends Actor
                 val time = input(1)
                 time match {
                   case numRegex(_) =>
-                    accountPersistence ! AccountPersistenceService.PersistDelay(tplayer.Name, Some(time.toLong))
+                    accountPersistence ! AccountPersistenceService.Kick(tplayer.Name, Some(time.toLong))
                   case _ =>
-                    accountPersistence ! AccountPersistenceService.PersistDelay(tplayer.Name, None)
+                    accountPersistence ! AccountPersistenceService.Kick(tplayer.Name, None)
                 }
               }
             case _ => ;
@@ -7723,7 +7733,7 @@ class WorldSessionActor extends Actor
     if(!WellLootedDeadBody(tplayer)) {
       TurnPlayerIntoCorpse(tplayer, zone)
     }
-    else if(tplayer.death_by == 0) {
+    else {
       //no items in inventory; leave no corpse
       val pguid = tplayer.GUID
       zone.Population ! Zone.Population.Release(avatar)
@@ -7741,7 +7751,6 @@ class WorldSessionActor extends Actor
     * @see `AvatarServiceMessage`
     * @see `CorpseConverter.converter`
     * @see `DepictPlayerAsCorpse`
-    * @see `Player.death_by`
     * @see `Player.Release`
     * @see `Zone.AvatarEvents`
     * @see `Zone.Corpse.Add`
@@ -7749,12 +7758,10 @@ class WorldSessionActor extends Actor
     * @param tplayer the player
     */
   def TurnPlayerIntoCorpse(tplayer : Player, zone : Zone) : Unit = {
-    if(tplayer.death_by == 0) {
-      tplayer.Release
-      DepictPlayerAsCorpse(tplayer)
-      zone.Population ! Zone.Corpse.Add(tplayer)
-      zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.Release(tplayer, zone))
-    }
+    tplayer.Release
+    DepictPlayerAsCorpse(tplayer)
+    zone.Population ! Zone.Corpse.Add(tplayer)
+    zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.Release(tplayer, zone))
   }
 
   /**
@@ -10231,6 +10238,7 @@ class WorldSessionActor extends Actor
   def AdministrativeKick(tplayer : Player, permitKickSelf : Boolean = false) : Boolean = {
     if(permitKickSelf || tplayer != player) { //stop kicking yourself
       tplayer.death_by = -1
+      accountPersistence ! AccountPersistenceService.Kick(tplayer.Name)
       //get out of that vehicle
       GetMountableAndSeat(None, tplayer, continent) match {
         case (Some(obj), Some(seatNum)) =>
