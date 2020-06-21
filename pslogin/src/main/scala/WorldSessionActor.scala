@@ -5183,7 +5183,7 @@ class WorldSessionActor extends Actor
               CancelZoningProcessWithDescriptiveReason("cancel_use")
               terminal.Actor ! CommonMessages.Use(player, Some(item))
 
-            case None if terminal.Faction == player.Faction || terminal.HackedBy.nonEmpty =>
+            case None if terminal.Owner == Building.NoBuilding || terminal.Faction == player.Faction || terminal.HackedBy.nonEmpty =>
               val tdef = terminal.Definition
               if(tdef.isInstanceOf[MatrixTerminalDefinition]) {
                 //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
