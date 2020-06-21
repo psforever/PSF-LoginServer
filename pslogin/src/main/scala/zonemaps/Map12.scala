@@ -1340,6 +1340,35 @@ object Map12 { // HOME2 (TERRAN REPUBLIC SANCTUARY)
       LocalBuilding("WG_TRSanc_to_Forseral", 115, 2, FoundationBuilder(WarpGate.Structure(Vector3(5300f, 4504f, 40.2132f))))
     }
 
+    ZoneOwnedObjects()
+
+    def ZoneOwnedObjects(): Unit = {
+      LocalObject(4, ProximityTerminal.Constructor(Vector3(2880.28f, 5166.25f, 36.19f), repair_silo), owning_building_guid = 0)
+      LocalObject(5, Terminal.Constructor(Vector3(2880.28f, 5166.25f, 36.19f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(8, ProximityTerminal.Constructor(Vector3(2880.72f, 5277.02f, 36.17f), repair_silo), owning_building_guid = 0)
+      LocalObject(9, Terminal.Constructor(Vector3(2880.72f, 5277.02f, 36.17f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(12, ProximityTerminal.Constructor(Vector3(2963.38f, 5277.73f, 36.19f), repair_silo), owning_building_guid = 0)
+      LocalObject(13, Terminal.Constructor(Vector3(2963.38f, 5277.73f, 36.19f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(16, ProximityTerminal.Constructor(Vector3(2963.61f, 5166.41f, 36.09f), repair_silo), owning_building_guid = 0)
+      LocalObject(17, Terminal.Constructor(Vector3(2963.61f, 5166.41f, 36.09f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(20, ProximityTerminal.Constructor(Vector3(2964.83f, 2920.37f, 35.08f), repair_silo), owning_building_guid = 0)
+      LocalObject(21, Terminal.Constructor(Vector3(2964.83f, 2920.37f, 35.08f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(24, ProximityTerminal.Constructor(Vector3(2964.89f, 3031.69f, 35.04f), repair_silo), owning_building_guid = 0)
+      LocalObject(25, Terminal.Constructor(Vector3(2964.89f, 3031.69f, 35.04f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(28, ProximityTerminal.Constructor(Vector3(3047.44f, 3031.66f, 35.03f), repair_silo), owning_building_guid = 0)
+      LocalObject(29, Terminal.Constructor(Vector3(3047.44f, 3031.66f, 35.03f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(32, ProximityTerminal.Constructor(Vector3(3048.11f, 2920.91f, 35.08f), repair_silo), owning_building_guid = 0)
+      LocalObject(33, Terminal.Constructor(Vector3(3048.11f, 2920.91f, 35.08f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(36, ProximityTerminal.Constructor(Vector3(5190.58f, 3955.38f, 36.01f), repair_silo), owning_building_guid = 0)
+      LocalObject(37, Terminal.Constructor(Vector3(5190.58f, 3955.38f, 36.01f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(40, ProximityTerminal.Constructor(Vector3(5190.87f, 3843.73f, 36.08f), repair_silo), owning_building_guid = 0)
+      LocalObject(41, Terminal.Constructor(Vector3(5190.87f, 3843.73f, 36.08f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(44, ProximityTerminal.Constructor(Vector3(5273.65f, 3955.55f, 36.09f), repair_silo), owning_building_guid = 0)
+      LocalObject(45, Terminal.Constructor(Vector3(5273.65f, 3955.55f, 36.09f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(48, ProximityTerminal.Constructor(Vector3(5273.88f, 3844.68f, 36.02f), repair_silo), owning_building_guid = 0)
+      LocalObject(49, Terminal.Constructor(Vector3(5273.88f, 3844.68f, 36.02f), ground_rearm_terminal), owning_building_guid = 0)
+    }
+
     def Lattice(): Unit = {
     }
 
