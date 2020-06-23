@@ -158,12 +158,13 @@ class WorldSessionActor extends Actor
   var squadUpdateCounter : Int = 0
   val queuedSquadActions : Seq[() => Unit] = Seq(SquadUpdates, NoSquadUpdates, NoSquadUpdates, NoSquadUpdates)
   /** Upstream message counter<br>
-    * Checks for server acknowledgement of the following messages:<br>
-    *   `PlayerStateMessageUpstream`<br>
+    * Checks for server acknowledgement of the following messages in the following conditions:<br>
+    *   `PlayerStateMessageUpstream` (infantry)<br>
     *   `VehicleStateMessage` (driver seat only)<br>
-    *   `ChildObjectStateMessage` (any seat but driver)<br>
+    *   `ChildObjectStateMessage` (any gunner seat that is not the driver)<br>
+    *   `KeepAliveMessage` (any passenger seat that is not the driver)<br>
     * As they should arrive roughly every 250 milliseconds this allows for a very crude method of scheduling tasks up to four times per second */
-  private var upstreamMessageCount : Int = 0
+  var upstreamMessageCount : Int = 0
   var zoningType : Zoning.Method.Value = Zoning.Method.None
   var zoningChatMessageType : ChatMessageType.Value = ChatMessageType.CMT_QUIT
   var zoningStatus : Zoning.Status.Value = Zoning.Status.None
@@ -180,7 +181,10 @@ class WorldSessionActor extends Actor
   var zoneLoaded : Option[Boolean] = None
   /** a flag that forces the current zone to reload itself during a zoning operation */
   var zoneReload : Boolean = false
-  var turnCounter : PlanetSideGUID=>Unit = TurnCounterDuringInterim
+  var interimUngunnedVehicle : Option[PlanetSideGUID] = None
+  var interimUngunnedVehicleSeat : Option[Int] = None
+  var keepAliveFunc : ()=>Unit = NormalKeepAlive
+  var turnCounterFunc : PlanetSideGUID=>Unit = TurnCounterDuringInterim
 
   var clientKeepAlive : Cancellable = Default.Cancellable
   var progressBarUpdate : Cancellable = Default.Cancellable
@@ -299,7 +303,6 @@ class WorldSessionActor extends Actor
       handleGamePkt(pkt)
 
     case PokeClient() =>
-      persist()
       sendResponse(KeepAliveMessage())
 
     case AvatarServiceResponse(toChannel, guid, reply) =>
@@ -1136,7 +1139,14 @@ class WorldSessionActor extends Actor
       //important! the LoadMapMessage must be processed by the client before the avatar is created
       player = tplayer
       setupAvatarFunc()
-      turnCounter = TurnCounterDuringInterim
+      //interimUngunnedVehicle should have been setup by setupAvatarFunc, if it is applicable
+      turnCounterFunc = interimUngunnedVehicle match {
+        case Some(_) =>
+          TurnCounterDuringInterimWhileInPassengerSeat
+        case None =>
+          TurnCounterDuringInterim
+      }
+      keepAliveFunc = NormalKeepAlive
       upstreamMessageCount = 0
       persist()
 
@@ -1145,7 +1155,14 @@ class WorldSessionActor extends Actor
       log.info(s"Player ${tplayer.Name} will respawn")
       player = tplayer
       setupAvatarFunc()
-      turnCounter = TurnCounterDuringInterim
+      //interimUngunnedVehicle should have been setup by setupAvatarFunc, if it is applicable
+      turnCounterFunc = interimUngunnedVehicle match {
+        case Some(_) =>
+          TurnCounterDuringInterimWhileInPassengerSeat
+        case None =>
+          TurnCounterDuringInterim
+      }
+      keepAliveFunc = NormalKeepAlive
       upstreamMessageCount = 0
       persist()
 
@@ -2433,6 +2450,10 @@ class WorldSessionActor extends Actor
             obj.Cloaked = tplayer.Cloaked
           }
         }
+        else if(obj.Seats(seat_num).ControlledWeapon.isEmpty) {
+          //the player will receive no messages consistently except the KeepAliveMessage echo
+          keepAliveFunc = KeepAlivePersistence
+        }
         AccessContents(obj)
         UpdateWeaponAtSeatPosition(obj, seat_num)
         MountingAction(tplayer, obj, seat_num)
@@ -2790,7 +2811,6 @@ class WorldSessionActor extends Actor
             GetVehicleAndSeat() match {
               case (Some(_), Some(0)) => ;
               case (Some(_), Some(_)) =>
-                turnCounter(guid)
                 if (player.death_by == -1) {
                   sendResponse(ChatMsg(ChatMessageType.UNK_71, true, "", "Your account has been logged out by a Customer Service Representative.", None))
                   Thread.sleep(300)
@@ -3517,8 +3537,8 @@ class WorldSessionActor extends Actor
           log.error("Unsupported " + default + " in " + msg)
       }
 
-    case KeepAliveMessage(code) =>
-      sendResponse(KeepAliveMessage())
+    case KeepAliveMessage(_) =>
+      keepAliveFunc()
 
     case msg@BeginZoningMessage() =>
       log.info("Reticulating splines ...")
@@ -3825,7 +3845,8 @@ class WorldSessionActor extends Actor
 
     case msg @ PlayerStateMessageUpstream(avatar_guid, pos, vel, yaw, pitch, yaw_upper, seq_time, unk3, is_crouching, is_jumping, jump_thrust, is_cloaking, unk5, unk6) =>
       //log.info(s"$msg")
-      turnCounter(avatar_guid)
+      persist()
+      turnCounterFunc(avatar_guid)
       val isMoving = WorldEntity.isMoving(vel)
       val isMovingPlus = isMoving || is_jumping || jump_thrust
       if(isMovingPlus) {
@@ -3894,7 +3915,8 @@ class WorldSessionActor extends Actor
           }) match {
             case None | Some(0) => ;
             case Some(_) =>
-              turnCounter(player.GUID)
+              persist()
+              turnCounterFunc(player.GUID)
           }
           if(tool.GUID == object_guid) {
             //TODO set tool orientation?
@@ -3921,7 +3943,8 @@ class WorldSessionActor extends Actor
       GetVehicleAndSeat() match {
         case (Some(obj), Some(0)) =>
           //we're driving the vehicle
-          turnCounter(player.GUID)
+          persist()
+          turnCounterFunc(player.GUID)
           val seat = obj.Seats(0)
           player.Position = pos //convenient
           if(seat.ControlledWeapon.isEmpty) {
@@ -7327,6 +7350,8 @@ class WorldSessionActor extends Actor
         interstellarFerry = None
         val vdef = vehicle.Definition
         val vguid = vehicle.GUID
+        vehicle.Position = shiftPosition.getOrElse(vehicle.Position)
+        vehicle.Orientation = shiftOrientation.getOrElse(vehicle.Orientation)
         val vdata = if(seat == 0) {
           //driver
           continent.Transport ! Zone.Vehicle.Spawn(vehicle)
@@ -7472,9 +7497,15 @@ class WorldSessionActor extends Actor
     val pdata = pdef.Packet.DetailedConstructorData(tplayer).get
     tplayer.VehicleSeated = vguid
     sendResponse(ObjectCreateDetailedMessage(pdef.ObjectId, pguid, pdata))
-    sendResponse(ObjectAttachMessage(vguid, pguid, seat))
-    AccessContents(vehicle)
-    UpdateWeaponAtSeatPosition(vehicle, seat)
+    if(seat == 0 || vehicle.Seats(seat).ControlledWeapon.nonEmpty) {
+      sendResponse(ObjectAttachMessage(vguid, pguid, seat))
+      AccessContents(vehicle)
+      UpdateWeaponAtSeatPosition(vehicle, seat)
+    }
+    else {
+      interimUngunnedVehicle = Some(vguid)
+      interimUngunnedVehicleSeat = Some(seat)
+    }
     continent.AvatarEvents ! AvatarServiceMessage(
       continent.Id,
       AvatarAction.LoadPlayer(
@@ -8133,6 +8164,7 @@ class WorldSessionActor extends Actor
   def DismountAction(tplayer : Player, obj : PlanetSideGameObject with Mountable, seatNum : Int) : Unit = {
     val player_guid : PlanetSideGUID = tplayer.GUID
     log.info(s"DismountVehicleMsg: ${tplayer.Name} dismounts $obj from $seatNum")
+    keepAliveFunc = NormalKeepAlive
     sendResponse(DismountVehicleMsg(player_guid, BailType.Normal, false))
     continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.DismountVehicle(player_guid, BailType.Normal, false))
   }
@@ -10166,12 +10198,79 @@ class WorldSessionActor extends Actor
     * @param guid the player's globally unique identifier number
     */
   def TurnCounterDuringInterim(guid : PlanetSideGUID) : Unit = {
+    upstreamMessageCount = 0
     if(player.GUID == guid && player.Zone == continent) {
-      turnCounter = NormalTurnCounter
+      turnCounterFunc = NormalTurnCounter
     }
-    else {
-      upstreamMessageCount = 0
+  }
+
+  /**
+    * During the interim period between the avatar being in one place/zone
+    * and completing the process of transitioning to another place/zone,
+    * the upstream message counter is zero'd
+    * awaiting new activity from the client.
+    * Until new upstream messages that pass some tests against their data start being reported,
+    * the counter does not accumulate properly.<br>
+    * <br>
+    * In the case that the transitioning player is seated in a vehicle seat
+    * that is not the driver and does not have a mounted weapon under its control,
+    * no obvious feedback will be provided by the client.
+    * For example, when as infantry, a `PlayerStateMessageUpstream` packet is dispatched by the client.
+    * For example, when in the driver seat, a `VehicleStateMessage` is dispatched by the client.
+    * In the given case, the only packet that indicates the player is seated is a `KeepAliveMessage`.
+    * Detection of this `KeepALiveMessage`, for the purpose of transitioning logic,
+    * can not be instantaneous to the zoning process or other checks for proper zoning conditions that will be disrupted.
+    * To avoid complications, the player in such a seat is initially spawned as infantry on their own client,
+    * realizes the state transition confirmation for infantry (turn counter),
+    * and is forced to transition into being seated,
+    * and only at that time will begin registering `KeepAliveMessage` to mark the end of their interim period.
+    * @param guid the player's globally unique identifier number
+    */
+  def TurnCounterDuringInterimWhileInPassengerSeat(guid : PlanetSideGUID) : Unit = {
+    upstreamMessageCount = 0
+    val pguid = player.GUID
+    if(pguid == guid && player.Zone == continent) {
+      (continent.GUID(interimUngunnedVehicle), interimUngunnedVehicle, interimUngunnedVehicleSeat) match {
+        case (Some(vehicle : Vehicle), Some(vguid), Some(seat)) =>
+          //sit down
+          sendResponse(ObjectAttachMessage(vguid, pguid, seat))
+          AccessContents(vehicle)
+          keepAliveFunc = KeepAlivePersistence
+        case _ => ;
+          //we can't find a vehicle? and we're still here? that's bad
+          player.VehicleSeated = None
+      }
+      interimUngunnedVehicle = None
+      interimUngunnedVehicleSeat = None
+      turnCounterFunc = NormalTurnCounter
     }
+  }
+
+  /**
+    * The normal response to receiving a `KeepAliveMessage` packet from the client.<br>
+    * <br>
+    * Even though receiving a `KeepAliveMessage` outside of zoning is uncommon,
+    * the behavior should be configured to maintain a neutral action.
+    * @see `KeepAliveMessage`
+    * @see `keepAliveFunc`
+    */
+  def NormalKeepAlive() : Unit = { }
+
+  /**
+    * The atypical response to receiving a `KeepAliveMessage` packet from the client.<br>
+    * <br>
+    * `KeepAliveMessage` packets are the primary vehicle for persistence due to client reporting
+    * in the case where the player's avatar is riding in a vehicle in a seat with no vehicle.
+    * @see `KeepAliveMessage`
+    * @see `keepAliveFunc`
+    * @see `turnCounterFunc`
+    * @see `persist`
+    */
+  def KeepAlivePersistence() : Unit = {
+    //log.info(s"KeepAlive in a vehicle - $upstreamMessageCount")
+    interimUngunnedVehicle = None
+    persist()
+    turnCounterFunc(player.GUID)
   }
 
   def failWithError(error : String) = {
