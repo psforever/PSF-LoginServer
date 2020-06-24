@@ -1835,6 +1835,7 @@ class WorldSessionActor extends Actor
       case AvatarResponse.Killed(mount) =>
         val respawnTimer = 300000 //milliseconds
         ToggleMaxSpecialState(enable = false)
+        keepAliveFunc = NormalKeepAlive
         zoningStatus = Zoning.Status.None
         deadState = DeadState.Dead
         continent.GUID(mount) match {
@@ -1851,6 +1852,7 @@ class WorldSessionActor extends Actor
           shotsWhileDead = 0
         }
         import scala.concurrent.ExecutionContext.Implicits.global
+        reviveTimer.cancel
         reviveTimer = context.system.scheduler.scheduleOnce(respawnTimer milliseconds, cluster, Zone.Lattice.RequestSpawnPoint(Zones.SanctuaryZoneNumber(player.Faction), player, 7))
 
       case AvatarResponse.LoadPlayer(pkt) =>
@@ -7583,10 +7585,16 @@ class WorldSessionActor extends Actor
         val pdata = pdef.Packet.DetailedConstructorData(player).get
         player.VehicleSeated = vguid
         sendResponse(ObjectCreateDetailedMessage(pdef.ObjectId, pguid, pdata))
-        sendResponse(ObjectAttachMessage(vguid, pguid, seat))
         //log.info(s"AvatarRejoin: $vguid -> $vdata")
-        AccessContents(vehicle)
-        UpdateWeaponAtSeatPosition(vehicle, seat)
+        if(seat == 0 || vehicle.Seats(seat).ControlledWeapon.nonEmpty) {
+          sendResponse(ObjectAttachMessage(vguid, pguid, seat))
+          AccessContents(vehicle)
+          UpdateWeaponAtSeatPosition(vehicle, seat)
+        }
+        else {
+          interimUngunnedVehicle = Some(vguid)
+          interimUngunnedVehicleSeat = Some(seat)
+        }
         log.info(s"AvatarRejoin: ${player.Name} in ${vehicle.Definition.Name}")
 
       case _ =>
