@@ -11,9 +11,8 @@ import net.psforever.objects._
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.zones.Zone
 import net.psforever.types.Vector3
-import services.{RemoverActor, Service, ServiceManager}
+import services.{Service, ServiceManager}
 import services.avatar.{AvatarAction, AvatarServiceMessage}
-import services.vehicle.VehicleServiceMessage
 
 /**
   * A global service that manages user behavior as divided into the following three categories:
@@ -85,8 +84,32 @@ class AccountPersistenceService extends Actor {
         case Some(ref) =>
           ref ! msg
         case None =>
-          log.warn(s"tried to update a player entry ($name) that did not yet exist; rebuilding entry ...")
+          log.warn(s"tried to update a player entry for $name that did not yet exist; rebuilding entry ...")
           CreateNewPlayerToken(name).tell(msg, sender)
+      }
+
+    case msg @ AccountPersistenceService.PersistDelay(name, _) =>
+      accounts.get(name) match {
+        case Some(ref) =>
+          ref ! msg
+        case _ =>
+          log.warn(s"player entry for $name not found; not logged in")
+      }
+
+    case msg @ AccountPersistenceService.Kick(name, _) =>
+      accounts.get(name) match {
+        case Some(ref) =>
+          ref ! msg
+        case _ =>
+          log.warn(s"player entry for $name not found; not logged in")
+      }
+
+    case AccountPersistenceService.Logout(name) =>
+      accounts.remove(name) match {
+        case Some(ref) =>
+          ref ! Logout(name)
+        case _ =>
+          log.warn(s"player entry for $name not found; not logged in")
       }
 
     case Logout(target) => //TODO use context.watch and Terminated?
@@ -114,7 +137,7 @@ class AccountPersistenceService extends Actor {
       }
 
     case msg =>
-      log.warn(s"Not yet started; received a $msg that will go unhandled")
+      log.warn(s"not yet started; received a $msg that will go unhandled")
   }
 
   /**
@@ -166,6 +189,22 @@ object AccountPersistenceService {
     * @param position the location of the player in game world coordinates
     */
   final case class Update(name : String, zone : Zone, position : Vector3)
+
+  final case class Kick(name : String, time : Option[Long] = None)
+
+  /**
+    * Update the persistence monitor that was setup for a user for a custom persistence delay.
+    * If set to `None`, the default persistence time should assert itself.
+    * @param name the unique name of the player
+    * @param time the duration that this user's player characters will persist without update in seconds
+    */
+  final case class PersistDelay(name : String, time : Option[Long])
+
+  /**
+    * Message that indicates that persistence is no longer necessary for this player character.
+    * @param name the unique name of the player
+    */
+  final case class Logout(name : String)
 }
 
 /**
@@ -189,6 +228,12 @@ class PersistenceMonitor(name : String, squadService : ActorRef, taskResolver : 
   var inZone : Zone = Zone.Nowhere
   /** the last-reported game coordinate position of this player */
   var lastPosition : Vector3 = Vector3.Zero
+  /** */
+  var kicked : Boolean = false
+  /** */
+  var kickTime : Option[Long] = None
+  /** a custom logout time for this player; 60s by default */
+  var persistTime : Option[Long] = None
   /** the ongoing amount of permissible inactivity */
   var timer : Cancellable = Default.Cancellable
   /** the sparingly-used log */
@@ -204,17 +249,44 @@ class PersistenceMonitor(name : String, squadService : ActorRef, taskResolver : 
 
   def receive : Receive = {
     case AccountPersistenceService.Login(_) =>
-      sender ! PlayerToken.LoginInfo(name, inZone, lastPosition)
-      UpdateTimer()
+      sender ! (if(kicked) {
+        PlayerToken.CanNotLogin(name, PlayerToken.DeniedLoginReason.Kicked)
+      }
+      else {
+        UpdateTimer()
+        PlayerToken.LoginInfo(name, inZone, lastPosition)
+      })
 
-    case AccountPersistenceService.Update(_, z, p) =>
+    case AccountPersistenceService.Update(_, z, p) if !kicked =>
       inZone = z
       lastPosition = p
       UpdateTimer()
 
+    case AccountPersistenceService.PersistDelay(_, delay) if !kicked =>
+      persistTime = delay
+      UpdateTimer()
+
+    case AccountPersistenceService.Kick(_, time) =>
+      persistTime = None
+      kickTime match {
+        case None if kicked =>
+          UpdateTimer()
+        case _ => ;
+      }
+      kicked = true
+      kickTime = time.orElse(Some(300L))
+
     case Logout(_) =>
-      context.parent ! Logout(name)
-      context.stop(self)
+      kickTime match {
+        case Some(time) =>
+          PerformLogout()
+          kickTime = None
+          timer.cancel
+          timer = context.system.scheduler.scheduleOnce(time seconds, self, Logout(name))
+        case None =>
+          context.parent ! Logout(name)
+          context.stop(self)
+      }
 
     case _ => ;
   }
@@ -224,7 +296,7 @@ class PersistenceMonitor(name : String, squadService : ActorRef, taskResolver : 
     */
   def UpdateTimer() : Unit = {
     timer.cancel
-    timer = context.system.scheduler.scheduleOnce(60 seconds, self, Logout(name))
+    timer = context.system.scheduler.scheduleOnce(persistTime.getOrElse(60L) seconds, self, Logout(name))
   }
 
   /**
@@ -248,7 +320,6 @@ class PersistenceMonitor(name : String, squadService : ActorRef, taskResolver : 
     * but should be uncommon.
     */
   def PerformLogout() : Unit = {
-    log.info(s"logout of $name")
     (inZone.Players.find(p => p.name == name), inZone.LivePlayers.find(p => p.Name == name)) match {
       case (Some(avatar), Some(player)) if player.VehicleSeated.nonEmpty =>
         //alive or dead in a vehicle
@@ -336,6 +407,7 @@ class PersistenceMonitor(name : String, squadService : ActorRef, taskResolver : 
     squadService.tell(Service.Leave(Some(charId.toString)), parent)
     Deployables.Disown(inZone, avatar, parent)
     inZone.Population.tell(Zone.Population.Leave(avatar), parent)
+    log.info(s"logout of ${avatar.name}")
   }
 }
 
@@ -347,6 +419,13 @@ class PersistenceMonitor(name : String, squadService : ActorRef, taskResolver : 
 private[this] case class Logout(name : String)
 
 object PlayerToken {
+  object DeniedLoginReason extends Enumeration {
+    val
+    Denied, //generic
+    Kicked
+    = Value
+  }
+
   /**
     * Message dispatched to confirm that a player with given locational attributes exists.
     * Agencies outside of the `AccountPersistanceService`/`PlayerToken` system make use of this message.
@@ -356,4 +435,6 @@ object PlayerToken {
     * @param position where in the zone the player is located
     */
   final case class LoginInfo(name : String, zone : Zone, position : Vector3)
+
+  final case class CanNotLogin(name : String, reason : DeniedLoginReason.Value)
 }
