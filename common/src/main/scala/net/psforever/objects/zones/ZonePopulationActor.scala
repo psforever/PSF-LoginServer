@@ -76,7 +76,7 @@ class ZonePopulationActor(zone : Zone, playerMap : TrieMap[Avatar, Option[Player
           (player.Zone == Zone.Nowhere || player.Zone == zone, None)
       }
       if(canBeCorpse && CorpseAdd(player, corpseList)) {
-        player.Actor = context.actorOf(Props(classOf[CorpseControl], player), name = s"corpse_of_${GetPlayerControlName(player, control)}")
+//        player.Actor = context.actorOf(Props(classOf[CorpseControl], player), name = s"corpse_of_${GetPlayerControlName(player, control)}")
         player.Zone = zone
       }
 

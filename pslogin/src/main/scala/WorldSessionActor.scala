@@ -5048,11 +5048,11 @@ class WorldSessionActor extends Actor
         case Some(obj : Player) =>
           CancelZoningProcessWithDescriptiveReason("cancel_use")
           if(obj.isBackpack) {
-            if(equipment.isEmpty) {
-              log.info(s"UseItem: ${player.Name} looting the corpse of $obj")
-              sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
-              accessedContainer = Some(obj)
-            }
+//            if(equipment.isEmpty) {
+//              log.info(s"UseItem: ${player.Name} looting the corpse of $obj")
+//              sendResponse(UseItemMessage(avatar_guid, item_used_guid, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType))
+//              accessedContainer = Some(obj)
+//            }
           }
           else if(!unk3 && player.isAlive) { //potential kit use
             ValidObject(item_used_guid) match {
