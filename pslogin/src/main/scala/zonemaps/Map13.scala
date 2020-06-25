@@ -1340,6 +1340,23 @@ object Map13 { // HOME3 (VANU SOVREIGNTY SANCTUARY)
       LocalBuilding("WG_VSSanc_to_Hossin", 91, 2, FoundationBuilder(WarpGate.Structure(Vector3(5656f, 4868f, 97.27775f))))
     }
 
+    ZoneOwnedObjects()
+
+    def ZoneOwnedObjects(): Unit = {
+      LocalObject(4, ProximityTerminal.Constructor(Vector3(2936.77f, 4897.82f, 56.28f), repair_silo), owning_building_guid = 0)
+      LocalObject(5, Terminal.Constructor(Vector3(2936.77f, 4897.82f, 56.28f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(8, ProximityTerminal.Constructor(Vector3(3019.16f, 4897.24f, 56.23f), repair_silo), owning_building_guid = 0)
+      LocalObject(9, Terminal.Constructor(Vector3(3019.16f, 4897.24f, 56.23f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(12, ProximityTerminal.Constructor(Vector3(3646.24f, 2871.09f, 91.04f), repair_silo), owning_building_guid = 0)
+      LocalObject(13, Terminal.Constructor(Vector3(3646.24f, 2871.09f, 91.04f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(16, ProximityTerminal.Constructor(Vector3(3729.31f, 2871.99f, 91.01f), repair_silo), owning_building_guid = 0)
+      LocalObject(17, Terminal.Constructor(Vector3(3729.31f, 2871.99f, 91.01f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(20, ProximityTerminal.Constructor(Vector3(5568.43f, 4301.41f, 103.4f), repair_silo), owning_building_guid = 0)
+      LocalObject(21, Terminal.Constructor(Vector3(5568.43f, 4301.41f, 103.4f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(24, ProximityTerminal.Constructor(Vector3(5651.46f, 4301.03f, 103.41f), repair_silo), owning_building_guid = 0)
+      LocalObject(25, Terminal.Constructor(Vector3(5651.46f, 4301.03f, 103.41f), ground_rearm_terminal), owning_building_guid = 0)
+    }
+
     def Lattice(): Unit = {
     }
 

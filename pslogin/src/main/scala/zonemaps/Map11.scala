@@ -1451,6 +1451,23 @@ object Map11 { // HOME1 (NEW CONGLOMORATE SANCTUARY)
       LocalBuilding("WG_NCSanc_to_Esamir", 94, 3, FoundationBuilder(WarpGate.Structure(Vector3(5174f, 3174f, 56.06128f))))
     }
 
+    ZoneOwnedObjects()
+
+    def ZoneOwnedObjects(): Unit = {
+      LocalObject(4, ProximityTerminal.Constructor(Vector3(2215.26f, 5474.73f, 65.38f), repair_silo), owning_building_guid = 0)
+      LocalObject(5, Terminal.Constructor(Vector3(2215.26f, 5474.73f, 65.38f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(8, ProximityTerminal.Constructor(Vector3(2300.3f, 5585.29f, 65.29f), repair_silo), owning_building_guid = 0)
+      LocalObject(9, Terminal.Constructor(Vector3(2300.3f, 5585.29f, 65.29f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(12, ProximityTerminal.Constructor(Vector3(4109.72f, 6006.86f, 44.07f), repair_silo), owning_building_guid = 0)
+      LocalObject(13, Terminal.Constructor(Vector3(4109.72f, 6006.86f, 44.07f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(16, ProximityTerminal.Constructor(Vector3(4194.53f, 6116.86f, 44.19f), repair_silo), owning_building_guid = 0)
+      LocalObject(17, Terminal.Constructor(Vector3(4194.53f, 6116.86f, 44.19f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(20, ProximityTerminal.Constructor(Vector3(4800.67f, 3580.72f, 68.85f), repair_silo), owning_building_guid = 0)
+      LocalObject(21, Terminal.Constructor(Vector3(4800.67f, 3580.72f, 68.85f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(24, ProximityTerminal.Constructor(Vector3(4820.75f, 3442.89f, 68.87f), repair_silo), owning_building_guid = 0)
+      LocalObject(25, Terminal.Constructor(Vector3(4820.75f, 3442.89f, 68.87f), ground_rearm_terminal), owning_building_guid = 0)
+    }
+
     def Lattice(): Unit = {
     }
 
