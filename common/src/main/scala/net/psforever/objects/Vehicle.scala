@@ -12,7 +12,7 @@ import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.AmenityOwner
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vital.{DamageResistanceModel, StandardResistanceProfile, Vitality}
-import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 import scala.annotation.tailrec
 import scala.concurrent.duration.FiniteDuration
@@ -524,6 +524,15 @@ class Vehicle(private val vehicleDef : VehicleDefinition) extends AmenityOwner
     * @return the current access value for the `Vehicle` `Trunk`
     */
   def TrunkLockState :  VehicleLockState.Value = groupPermissions(3)
+
+  /**
+    * Trunk locations are stored as the orientation zero point being to the East. We need to convert that to a North = 0 orientation before returning the location
+    * @return A Vector3 of the current trunk location, orientated with North as the zero point
+    */
+  def TrunkLocation : Vector3 = {
+    val rotationRadians = -math.toRadians(Orientation.z - 90f).toFloat
+    Vector3.PlanarRotateAroundPoint(Position + Definition.TrunkLocation, Position, rotationRadians)
+  }
 
   def PrepareGatingManifest() : VehicleManifest = {
     val manifest = VehicleManifest(this)

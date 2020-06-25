@@ -5206,6 +5206,7 @@ object GlobalDefinitions {
     fury.MountPoints += 2 -> 0
     fury.TrunkSize = InventoryTile.Tile1111
     fury.TrunkOffset = 30
+    fury.TrunkLocation = Vector3(-1.71f, 0f, 0f)
     fury.AutoPilotSpeeds = (24, 10)
     fury.DestroyedModel = Some(DestroyedVehicle.QuadAssault)
     fury.JackingDuration = Array(0, 10, 3, 2)
@@ -5224,6 +5225,7 @@ object GlobalDefinitions {
     quadassault.MountPoints += 2 -> 0
     quadassault.TrunkSize = InventoryTile.Tile1111
     quadassault.TrunkOffset = 30
+    quadassault.TrunkLocation = Vector3(-1.71f, 0f, 0f)
     quadassault.AutoPilotSpeeds = (24, 10)
     quadassault.DestroyedModel = Some(DestroyedVehicle.QuadAssault)
     quadassault.JackingDuration = Array(0, 10, 3, 2)
@@ -5242,6 +5244,7 @@ object GlobalDefinitions {
     quadstealth.MountPoints += 2 -> 0
     quadstealth.TrunkSize = InventoryTile.Tile1111
     quadstealth.TrunkOffset = 30
+    quadstealth.TrunkLocation = Vector3(-1.71f, 0f, 0f)
     quadstealth.AutoPilotSpeeds = (24, 10)
     quadstealth.DestroyedModel = Some(DestroyedVehicle.QuadStealth)
     quadstealth.JackingDuration = Array(0, 10, 3, 2)
@@ -5262,6 +5265,7 @@ object GlobalDefinitions {
     two_man_assault_buggy.MountPoints += 2 -> 1
     two_man_assault_buggy.TrunkSize = InventoryTile.Tile1511
     two_man_assault_buggy.TrunkOffset = 30
+    two_man_assault_buggy.TrunkLocation = Vector3(-2.5f, 0f, 0f)
     two_man_assault_buggy.AutoPilotSpeeds = (22, 8)
     two_man_assault_buggy.DestroyedModel = Some(DestroyedVehicle.TwoManAssaultBuggy)
     two_man_assault_buggy.JackingDuration = Array(0, 15, 5, 3)
@@ -5283,6 +5287,7 @@ object GlobalDefinitions {
     skyguard.MountPoints += 3 -> 1
     skyguard.TrunkSize = InventoryTile.Tile1511
     skyguard.TrunkOffset = 30
+    skyguard.TrunkLocation = Vector3(2.5f, 0f, 0f)
     skyguard.AutoPilotSpeeds = (22, 8)
     skyguard.DestroyedModel = Some(DestroyedVehicle.Skyguard)
     skyguard.JackingDuration = Array(0, 15, 5, 3)
@@ -5308,6 +5313,7 @@ object GlobalDefinitions {
     threemanheavybuggy.MountPoints += 3 -> 2
     threemanheavybuggy.TrunkSize = InventoryTile.Tile1511
     threemanheavybuggy.TrunkOffset = 30
+    threemanheavybuggy.TrunkLocation = Vector3(3.01f, 0f, 0f)
     threemanheavybuggy.AutoPilotSpeeds = (22, 8)
     threemanheavybuggy.DestroyedModel = Some(DestroyedVehicle.ThreeManHeavyBuggy)
     threemanheavybuggy.Subtract.Damage1 = 5
@@ -5329,6 +5335,7 @@ object GlobalDefinitions {
     twomanheavybuggy.MountPoints += 2 -> 1
     twomanheavybuggy.TrunkSize = InventoryTile.Tile1511
     twomanheavybuggy.TrunkOffset = 30
+    twomanheavybuggy.TrunkLocation = Vector3(-0.23f, -2.05f, 0f)
     twomanheavybuggy.AutoPilotSpeeds = (22, 8)
     twomanheavybuggy.DestroyedModel = Some(DestroyedVehicle.TwoManHeavyBuggy)
     twomanheavybuggy.Subtract.Damage1 = 5
@@ -5350,6 +5357,7 @@ object GlobalDefinitions {
     twomanhoverbuggy.MountPoints += 2 -> 1
     twomanhoverbuggy.TrunkSize = InventoryTile.Tile1511
     twomanhoverbuggy.TrunkOffset = 30
+    twomanhoverbuggy.TrunkLocation = Vector3(-3.39f, 0f, 0f)
     twomanhoverbuggy.AutoPilotSpeeds = (22, 10)
     twomanhoverbuggy.DestroyedModel = Some(DestroyedVehicle.TwoManHoverBuggy)
     twomanhoverbuggy.Subtract.Damage1 = 5
@@ -5378,6 +5386,7 @@ object GlobalDefinitions {
     mediumtransport.MountPoints += 5 -> 4
     mediumtransport.TrunkSize = InventoryTile.Tile1515
     mediumtransport.TrunkOffset = 30
+    mediumtransport.TrunkLocation = Vector3(-3.46f, 0f, 0f)
     mediumtransport.AutoPilotSpeeds = (18, 6)
     mediumtransport.DestroyedModel = Some(DestroyedVehicle.MediumTransport)
     mediumtransport.Subtract.Damage1 = 7
@@ -5410,6 +5419,7 @@ object GlobalDefinitions {
     battlewagon.MountPoints += 5 -> 4
     battlewagon.TrunkSize = InventoryTile.Tile1515
     battlewagon.TrunkOffset = 30
+    battlewagon.TrunkLocation = Vector3(-3.46f, 0f, 0f)
     battlewagon.AutoPilotSpeeds = (18, 6)
     battlewagon.DestroyedModel = Some(DestroyedVehicle.MediumTransport)
     battlewagon.JackingDuration = Array(0, 25, 8, 5)
@@ -5437,6 +5447,7 @@ object GlobalDefinitions {
     thunderer.MountPoints += 5 -> 4
     thunderer.TrunkSize = InventoryTile.Tile1515
     thunderer.TrunkOffset = 30
+    thunderer.TrunkLocation = Vector3(-3.46f, 0f, 0f)
     thunderer.AutoPilotSpeeds = (18, 6)
     thunderer.DestroyedModel = Some(DestroyedVehicle.MediumTransport)
     thunderer.Subtract.Damage1 = 7
@@ -5465,6 +5476,7 @@ object GlobalDefinitions {
     aurora.MountPoints += 5 -> 4
     aurora.TrunkSize = InventoryTile.Tile1515
     aurora.TrunkOffset = 30
+    aurora.TrunkLocation = Vector3(-3.46f, 0f, 0f)
     aurora.AutoPilotSpeeds = (18, 6)
     aurora.DestroyedModel = Some(DestroyedVehicle.MediumTransport)
     aurora.Subtract.Damage1 = 7
@@ -5516,6 +5528,7 @@ object GlobalDefinitions {
     apc_tr.MountPoints += 12 -> 10
     apc_tr.TrunkSize = InventoryTile.Tile2016
     apc_tr.TrunkOffset = 30
+    apc_tr.TrunkLocation = Vector3(-5.82f, 0f, 0f)
     apc_tr.AutoPilotSpeeds = (16, 6)
     apc_tr.DestroyedModel = Some(DestroyedVehicle.Apc)
     apc_tr.JackingDuration = Array(0, 45, 15, 10)
@@ -5566,6 +5579,7 @@ object GlobalDefinitions {
     apc_nc.MountPoints += 12 -> 10
     apc_nc.TrunkSize = InventoryTile.Tile2016
     apc_nc.TrunkOffset = 30
+    apc_nc.TrunkLocation = Vector3(-5.82f, 0f, 0f)
     apc_nc.AutoPilotSpeeds = (16, 6)
     apc_nc.DestroyedModel = Some(DestroyedVehicle.Apc)
     apc_nc.JackingDuration = Array(0, 45, 15, 10)
@@ -5616,6 +5630,7 @@ object GlobalDefinitions {
     apc_vs.MountPoints += 12 -> 10
     apc_vs.TrunkSize = InventoryTile.Tile2016
     apc_vs.TrunkOffset = 30
+    apc_vs.TrunkLocation = Vector3(-5.82f, 0f, 0f)
     apc_vs.AutoPilotSpeeds = (16, 6)
     apc_vs.DestroyedModel = Some(DestroyedVehicle.Apc)
     apc_vs.JackingDuration = Array(0, 45, 15, 10)
@@ -5634,6 +5649,7 @@ object GlobalDefinitions {
     lightning.MountPoints += 2 -> 0
     lightning.TrunkSize = InventoryTile.Tile1511
     lightning.TrunkOffset = 30
+    lightning.TrunkLocation = Vector3(-3f, 0f, 0f)
     lightning.AutoPilotSpeeds = (20, 8)
     lightning.DestroyedModel = Some(DestroyedVehicle.Lightning)
     lightning.Subtract.Damage1 = 7
@@ -5658,6 +5674,7 @@ object GlobalDefinitions {
     prowler.MountPoints += 3 -> 2
     prowler.TrunkSize = InventoryTile.Tile1511
     prowler.TrunkOffset = 30
+    prowler.TrunkLocation = Vector3(-4.71f, 0f, 0f)
     prowler.AutoPilotSpeeds = (14, 6)
     prowler.DestroyedModel = Some(DestroyedVehicle.Prowler)
     prowler.Subtract.Damage1 = 9
@@ -5678,6 +5695,7 @@ object GlobalDefinitions {
     vanguard.MountPoints += 2 -> 1
     vanguard.TrunkSize = InventoryTile.Tile1511
     vanguard.TrunkOffset = 30
+    vanguard.TrunkLocation = Vector3(-4.84f, 0f, 0f)
     vanguard.AutoPilotSpeeds = (16, 6)
     vanguard.DestroyedModel = Some(DestroyedVehicle.Vanguard)
     vanguard.Subtract.Damage1 = 9
@@ -5700,6 +5718,7 @@ object GlobalDefinitions {
     magrider.MountPoints += 2 -> 1
     magrider.TrunkSize = InventoryTile.Tile1511
     magrider.TrunkOffset = 30
+    magrider.TrunkLocation = Vector3(5.06f, 0f, 0f)
     magrider.AutoPilotSpeeds = (18, 6)
     magrider.DestroyedModel = Some(DestroyedVehicle.Magrider)
     magrider.Subtract.Damage1 = 9
@@ -5763,6 +5782,7 @@ object GlobalDefinitions {
     router.Utilities += 2 -> UtilityType.internal_router_telepad_deployable
     router.TrunkSize = InventoryTile.Tile1511
     router.TrunkOffset = 30
+    router.TrunkLocation = Vector3(0f, 3.4f, 0f)
     router.Deployment = true
     router.DeployTime = 2000
     router.UndeployTime = 2000
@@ -5786,6 +5806,7 @@ object GlobalDefinitions {
     switchblade.MountPoints += 2 -> 0
     switchblade.TrunkSize = InventoryTile.Tile1511
     switchblade.TrunkOffset = 30
+    switchblade.TrunkLocation = Vector3(-2.5f, 0f, 0f)
     switchblade.Deployment = true
     switchblade.DeployTime = 2000
     switchblade.UndeployTime = 2000
@@ -5808,6 +5829,7 @@ object GlobalDefinitions {
     flail.MountPoints += 1 -> 0
     flail.TrunkSize = InventoryTile.Tile1511
     flail.TrunkOffset = 30
+    flail.TrunkLocation = Vector3(-3.75f, 0f, 0f)
     flail.Deployment = true
     flail.DeployTime = 2000
     flail.UndeployTime = 2000
@@ -5832,6 +5854,7 @@ object GlobalDefinitions {
     mosquito.MountPoints += 2 -> 0
     mosquito.TrunkSize = InventoryTile.Tile1111
     mosquito.TrunkOffset = 30
+    mosquito.TrunkLocation = Vector3(-4.6f, 0f, 0f)
     mosquito.AutoPilotSpeeds = (0, 6)
     mosquito.Packet = variantConverter
     mosquito.DestroyedModel = Some(DestroyedVehicle.Mosquito)
@@ -5852,6 +5875,7 @@ object GlobalDefinitions {
     lightgunship.MountPoints += 2 -> 0
     lightgunship.TrunkSize = InventoryTile.Tile1511
     lightgunship.TrunkOffset = 30
+    lightgunship.TrunkLocation = Vector3(-5.61f, 0f, 0f)
     lightgunship.AutoPilotSpeeds = (0, 4)
     lightgunship.Packet = variantConverter
     lightgunship.DestroyedModel = Some(DestroyedVehicle.LightGunship)
@@ -5873,6 +5897,7 @@ object GlobalDefinitions {
     wasp.MountPoints += 2 -> 0
     wasp.TrunkSize = InventoryTile.Tile1111
     wasp.TrunkOffset = 30
+    wasp.TrunkLocation = Vector3(-4.6f, 0f, 0f)
     wasp.AutoPilotSpeeds = (0, 6)
     wasp.Packet = variantConverter
     wasp.DestroyedModel = Some(DestroyedVehicle.Mosquito) //set_resource_parent wasp game_objects mosquito
@@ -5900,6 +5925,7 @@ object GlobalDefinitions {
     liberator.MountPoints += 4 -> 2
     liberator.TrunkSize = InventoryTile.Tile1515
     liberator.TrunkOffset = 30
+    liberator.TrunkLocation = Vector3(-0.76f, -1.88f, 0f)
     liberator.AutoPilotSpeeds = (0, 4)
     liberator.Packet = variantConverter
     liberator.DestroyedModel = Some(DestroyedVehicle.Liberator)
@@ -5928,6 +5954,7 @@ object GlobalDefinitions {
     vulture.MountPoints += 4 -> 2
     vulture.TrunkSize = InventoryTile.Tile1611
     vulture.TrunkOffset = 30
+    vulture.TrunkLocation = Vector3(-0.76f, -1.88f, 0f)
     vulture.AutoPilotSpeeds = (0, 4)
     vulture.Packet = variantConverter
     vulture.DestroyedModel = Some(DestroyedVehicle.Liberator) //add_property vulture destroyedphysics liberator_destroyed
@@ -5989,6 +6016,7 @@ object GlobalDefinitions {
     dropship.MountPoints += 13 -> 15
     dropship.TrunkSize = InventoryTile.Tile1612
     dropship.TrunkOffset = 30
+    dropship.TrunkLocation = Vector3(-7.39f, -4.96f, 0f)
     dropship.AutoPilotSpeeds = (0, 4)
     dropship.Packet = variantConverter
     dropship.DestroyedModel = Some(DestroyedVehicle.Dropship)
@@ -6027,6 +6055,7 @@ object GlobalDefinitions {
     galaxy_gunship.MountPoints += 6 -> 5
     galaxy_gunship.TrunkSize = InventoryTile.Tile1816
     galaxy_gunship.TrunkOffset = 30
+    galaxy_gunship.TrunkLocation = Vector3(-9.85f, 0f, 0f)
     galaxy_gunship.AutoPilotSpeeds = (0, 4)
     galaxy_gunship.Packet = variantConverter
     galaxy_gunship.DestroyedModel = Some(DestroyedVehicle.Dropship) //the adb calls out a galaxy_gunship_destroyed but no such asset exists
@@ -6055,6 +6084,7 @@ object GlobalDefinitions {
     lodestar.Utilities += 7 -> UtilityType.bfr_rearm_terminal
     lodestar.TrunkSize = InventoryTile.Tile1612
     lodestar.TrunkOffset = 30
+    lodestar.TrunkLocation = Vector3(6.85f, -6.8f, 0f)
     lodestar.AutoPilotSpeeds = (0, 4)
     lodestar.Packet = variantConverter
     lodestar.DestroyedModel = Some(DestroyedVehicle.Lodestar)
@@ -6085,6 +6115,7 @@ object GlobalDefinitions {
     phantasm.MountPoints += 5 -> 4
     phantasm.TrunkSize = InventoryTile.Tile1107
     phantasm.TrunkOffset = 30
+    phantasm.TrunkLocation = Vector3(-6.16f, 0f, 0f)
     phantasm.AutoPilotSpeeds = (0, 6)
     phantasm.Packet = variantConverter
     phantasm.DestroyedModel = None //the adb calls out a phantasm_destroyed but no such asset exists
