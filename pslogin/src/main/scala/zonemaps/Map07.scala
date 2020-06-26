@@ -24,7 +24,7 @@ object Map07 { // Esamir
 
     def Building8(): Unit = { // Name: Freyr Type: amp_station GUID: 1, MapID: 8
       LocalBuilding("Freyr", 1, 8, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(2908f, 3746f, 55.58336f), Vector3(0f, 0f, 72f), amp_station)))
-      LocalObject(213, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 1)
+      LocalObject(213, CaptureTerminal.Constructor(Vector3(2906.966f, 3742.828f, 67.09136f), capture_terminal), owning_building_guid = 1)
       LocalObject(164, Door.Constructor(Vector3(2901.594f, 3748.306f, 68.48537f)), owning_building_guid = 1)
       LocalObject(165, Door.Constructor(Vector3(2914.537f, 3744.098f, 68.48537f)), owning_building_guid = 1)
       LocalObject(379, Door.Constructor(Vector3(2808.43f, 3698.441f, 57.30436f)), owning_building_guid = 1)
@@ -108,7 +108,7 @@ object Map07 { // Esamir
       LocalObject(2581, Terminal.Constructor(Vector3(2914.252f, 3723.96f, 50.41736f), spawn_terminal), owning_building_guid = 1)
       LocalObject(2808, Terminal.Constructor(Vector3(2814.754f, 3725.906f, 57.68536f), vehicle_terminal_combined), owning_building_guid = 1)
       LocalObject(1728, VehicleSpawnPad.Constructor(Vector3(2827.752f, 3721.777f, 53.52836f), mb_pad_creation, Vector3(0, 0, 108)), owning_building_guid = 1, terminal_guid = 2808)
-      LocalObject(2426, ResourceSilo.Constructor, owning_building_guid = 1)
+      LocalObject(2426, ResourceSilo.Constructor(Vector3(3005.579f, 3769.649f, 62.81836f)), owning_building_guid = 1)
       LocalObject(2461, SpawnTube.Constructor(Vector3(2898.789f, 3728.208f, 48.28336f), Vector3(0, 0, 288)), owning_building_guid = 1)
       LocalObject(2462, SpawnTube.Constructor(Vector3(2905.721f, 3725.956f, 48.28336f), Vector3(0, 0, 288)), owning_building_guid = 1)
       LocalObject(2463, SpawnTube.Constructor(Vector3(2912.655f, 3723.703f, 48.28336f), Vector3(0, 0, 288)), owning_building_guid = 1)
@@ -152,7 +152,7 @@ object Map07 { // Esamir
 
     def Building11(): Unit = { // Name: Kvasir Type: amp_station GUID: 4, MapID: 11
       LocalBuilding("Kvasir", 4, 11, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(4016f, 1636f, 68.37366f), Vector3(0f, 0f, 278f), amp_station)))
-      LocalObject(218, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 4)
+      LocalObject(218, CaptureTerminal.Constructor(Vector3(4015.539f, 1639.304f, 79.88167f), capture_terminal), owning_building_guid = 4)
       LocalObject(166, Door.Constructor(Vector3(4009.291f, 1634.844f, 81.27567f)), owning_building_guid = 4)
       LocalObject(167, Door.Constructor(Vector3(4022.769f, 1636.735f, 81.27567f)), owning_building_guid = 4)
       LocalObject(479, Door.Constructor(Vector3(3935.038f, 1606.946f, 78.08867f)), owning_building_guid = 4)
@@ -236,7 +236,7 @@ object Map07 { // Esamir
       LocalObject(2616, Terminal.Constructor(Vector3(4048.353f, 1688.96f, 62.63066f), spawn_terminal), owning_building_guid = 4)
       LocalObject(2813, Terminal.Constructor(Vector3(4091f, 1694.937f, 70.47566f), vehicle_terminal_combined), owning_building_guid = 4)
       LocalObject(1737, VehicleSpawnPad.Constructor(Vector3(4077.508f, 1692.949f, 66.31866f), mb_pad_creation, Vector3(0, 0, 262)), owning_building_guid = 4, terminal_guid = 2813)
-      LocalObject(2431, ResourceSilo.Constructor, owning_building_guid = 4)
+      LocalObject(2431, ResourceSilo.Constructor(Vector3(3938.664f, 1571.969f, 75.60867f)), owning_building_guid = 4)
       LocalObject(2488, SpawnTube.Constructor(Vector3(4002.042f, 1654f, 61.07367f), Vector3(0, 0, 82)), owning_building_guid = 4)
       LocalObject(2489, SpawnTube.Constructor(Vector3(4009.262f, 1655.014f, 61.07367f), Vector3(0, 0, 82)), owning_building_guid = 4)
       LocalObject(2490, SpawnTube.Constructor(Vector3(4016.479f, 1656.029f, 61.07367f), Vector3(0, 0, 82)), owning_building_guid = 4)
@@ -280,7 +280,7 @@ object Map07 { // Esamir
 
     def Building13(): Unit = { // Name: Nott Type: amp_station GUID: 7, MapID: 13
       LocalBuilding("Nott", 7, 13, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(6822f, 4234f, 46.3271f), Vector3(0f, 0f, 62f), amp_station)))
-      LocalObject(221, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 7)
+      LocalObject(221, CaptureTerminal.Constructor(Vector3(6820.431f, 4231.056f, 57.8351f), capture_terminal), owning_building_guid = 7)
       LocalObject(168, Door.Constructor(Vector3(6816.092f, 4237.384f, 59.2291f)), owning_building_guid = 7)
       LocalObject(169, Door.Constructor(Vector3(6828.107f, 4230.992f, 59.2291f)), owning_building_guid = 7)
       LocalObject(576, Door.Constructor(Vector3(6715.685f, 4204.454f, 48.0481f)), owning_building_guid = 7)
@@ -364,7 +364,7 @@ object Map07 { // Esamir
       LocalObject(2636, Terminal.Constructor(Vector3(6824.33f, 4211.209f, 41.1611f), spawn_terminal), owning_building_guid = 7)
       LocalObject(2816, Terminal.Constructor(Vector3(6726.681f, 4230.403f, 48.4291f), vehicle_terminal_combined), owning_building_guid = 7)
       LocalObject(1742, VehicleSpawnPad.Constructor(Vector3(6738.765f, 4224.08f, 44.2721f), mb_pad_creation, Vector3(0, 0, 118)), owning_building_guid = 7, terminal_guid = 2816)
-      LocalObject(2434, ResourceSilo.Constructor, owning_building_guid = 7)
+      LocalObject(2434, ResourceSilo.Constructor(Vector3(6922.203f, 4240.345f, 53.5621f)), owning_building_guid = 7)
       LocalObject(2517, SpawnTube.Constructor(Vector3(6809.84f, 4218.078f, 39.0271f), Vector3(0, 0, 298)), owning_building_guid = 7)
       LocalObject(2518, SpawnTube.Constructor(Vector3(6816.275f, 4214.657f, 39.0271f), Vector3(0, 0, 298)), owning_building_guid = 7)
       LocalObject(2519, SpawnTube.Constructor(Vector3(6822.712f, 4211.234f, 39.0271f), Vector3(0, 0, 298)), owning_building_guid = 7)
@@ -496,7 +496,7 @@ object Map07 { // Esamir
 
     def Building16(): Unit = { // Name: Jarl Type: comm_station GUID: 22, MapID: 16
       LocalBuilding("Jarl", 22, 16, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(2012f, 5530f, 68.28211f), Vector3(0f, 0f, 289f), comm_station)))
-      LocalObject(211, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 22)
+      LocalObject(211, CaptureTerminal.Constructor(Vector3(2098.907f, 5513.295f, 50.98211f), capture_terminal), owning_building_guid = 22)
       LocalObject(340, Door.Constructor(Vector3(1933.992f, 5548.292f, 77.99712f)), owning_building_guid = 22)
       LocalObject(341, Door.Constructor(Vector3(1939.915f, 5531.091f, 70.03311f)), owning_building_guid = 22)
       LocalObject(342, Door.Constructor(Vector3(1951.4f, 5572.384f, 70.03311f)), owning_building_guid = 22)
@@ -577,7 +577,7 @@ object Map07 { // Esamir
       LocalObject(2568, Terminal.Constructor(Vector3(2049.573f, 5543.562f, 62.53911f), spawn_terminal), owning_building_guid = 22)
       LocalObject(2806, Terminal.Constructor(Vector3(2080.868f, 5498.232f, 71.16911f), vehicle_terminal_combined), owning_building_guid = 22)
       LocalObject(1726, VehicleSpawnPad.Constructor(Vector3(2076.287f, 5511.065f, 67.01111f), mb_pad_creation, Vector3(0, 0, -19)), owning_building_guid = 22, terminal_guid = 2806)
-      LocalObject(2424, ResourceSilo.Constructor, owning_building_guid = 22)
+      LocalObject(2424, ResourceSilo.Constructor(Vector3(1928.515f, 5560.237f, 75.49911f)), owning_building_guid = 22)
       LocalObject(2449, SpawnTube.Constructor(Vector3(2035.788f, 5499.87f, 58.48211f), Vector3(0, 0, 71)), owning_building_guid = 22)
       LocalObject(2450, SpawnTube.Constructor(Vector3(2042.682f, 5502.244f, 58.48211f), Vector3(0, 0, 71)), owning_building_guid = 22)
       LocalObject(2451, SpawnTube.Constructor(Vector3(2049.573f, 5504.617f, 58.48211f), Vector3(0, 0, 71)), owning_building_guid = 22)
@@ -615,7 +615,7 @@ object Map07 { // Esamir
 
     def Building14(): Unit = { // Name: Vidar Type: comm_station GUID: 25, MapID: 14
       LocalBuilding("Vidar", 25, 14, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3720f, 3102f, 66.58833f), Vector3(0f, 0f, 360f), comm_station)))
-      LocalObject(216, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 25)
+      LocalObject(216, CaptureTerminal.Constructor(Vector3(3764.089f, 3178.734f, 49.28833f), capture_terminal), owning_building_guid = 25)
       LocalObject(460, Door.Constructor(Vector3(3660.196f, 3058.5f, 68.33933f)), owning_building_guid = 25)
       LocalObject(461, Door.Constructor(Vector3(3660.196f, 3076.693f, 76.30333f)), owning_building_guid = 25)
       LocalObject(462, Door.Constructor(Vector3(3677.307f, 3034.197f, 76.30333f)), owning_building_guid = 25)
@@ -696,7 +696,7 @@ object Map07 { // Esamir
       LocalObject(2603, Terminal.Constructor(Vector3(3756.97f, 3127.823f, 58.92233f), spawn_terminal), owning_building_guid = 25)
       LocalObject(2811, Terminal.Constructor(Vector3(3772.458f, 3156.774f, 69.47533f), vehicle_terminal_combined), owning_building_guid = 25)
       LocalObject(1733, VehicleSpawnPad.Constructor(Vector3(3758.833f, 3156.62f, 65.31733f), mb_pad_creation, Vector3(0, 0, -90)), owning_building_guid = 25, terminal_guid = 2811)
-      LocalObject(2429, ResourceSilo.Constructor, owning_building_guid = 25)
+      LocalObject(2429, ResourceSilo.Constructor(Vector3(3664.23f, 3032.908f, 73.80534f)), owning_building_guid = 25)
       LocalObject(2482, SpawnTube.Constructor(Vector3(3756.233f, 3114.683f, 56.78833f), Vector3(0, 0, 0)), owning_building_guid = 25)
       LocalObject(2483, SpawnTube.Constructor(Vector3(3756.233f, 3121.974f, 56.78833f), Vector3(0, 0, 0)), owning_building_guid = 25)
       LocalObject(2484, SpawnTube.Constructor(Vector3(3756.233f, 3129.262f, 56.78833f), Vector3(0, 0, 0)), owning_building_guid = 25)
@@ -734,7 +734,7 @@ object Map07 { // Esamir
 
     def Building5(): Unit = { // Name: Andvari Type: comm_station_dsp GUID: 28, MapID: 5
       LocalBuilding("Andvari", 28, 5, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3172f, 7272f, 77.53838f), Vector3(0f, 0f, 360f), comm_station_dsp)))
-      LocalObject(214, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 28)
+      LocalObject(214, CaptureTerminal.Constructor(Vector3(3248.089f, 7252.734f, 60.13837f), capture_terminal), owning_building_guid = 28)
       LocalObject(261, Door.Constructor(Vector3(3240.339f, 7342.464f, 80.91637f)), owning_building_guid = 28)
       LocalObject(397, Door.Constructor(Vector3(3112.196f, 7228.501f, 79.18938f)), owning_building_guid = 28)
       LocalObject(398, Door.Constructor(Vector3(3112.196f, 7246.693f, 87.15337f)), owning_building_guid = 28)
@@ -827,7 +827,7 @@ object Map07 { // Esamir
       LocalObject(2590, Terminal.Constructor(Vector3(3252.058f, 7319.409f, 69.19537f), spawn_terminal), owning_building_guid = 28)
       LocalObject(2809, Terminal.Constructor(Vector3(3189.698f, 7380.044f, 80.32538f), ground_vehicle_terminal), owning_building_guid = 28)
       LocalObject(1729, VehicleSpawnPad.Constructor(Vector3(3189.786f, 7366.411f, 76.16737f), mb_pad_creation, Vector3(0, 0, 180)), owning_building_guid = 28, terminal_guid = 2809)
-      LocalObject(2427, ResourceSilo.Constructor, owning_building_guid = 28)
+      LocalObject(2427, ResourceSilo.Constructor(Vector3(3270.212f, 7437.642f, 84.65537f)), owning_building_guid = 28)
       LocalObject(2464, SpawnTube.Constructor(Vector3(3208.233f, 7284.683f, 67.63837f), Vector3(0, 0, 0)), owning_building_guid = 28)
       LocalObject(2465, SpawnTube.Constructor(Vector3(3208.233f, 7291.974f, 67.63837f), Vector3(0, 0, 0)), owning_building_guid = 28)
       LocalObject(2466, SpawnTube.Constructor(Vector3(3208.233f, 7299.262f, 67.63837f), Vector3(0, 0, 0)), owning_building_guid = 28)
@@ -875,7 +875,7 @@ object Map07 { // Esamir
 
     def Building15(): Unit = { // Name: ymir Type: cryo_facility GUID: 31, MapID: 15
       LocalBuilding("ymir", 31, 15, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(1860f, 3946f, 69.04202f), Vector3(0f, 0f, 360f), cryo_facility)))
-      LocalObject(210, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 31)
+      LocalObject(210, CaptureTerminal.Constructor(Vector3(1831.911f, 4005.266f, 59.04202f), capture_terminal), owning_building_guid = 31)
       LocalObject(325, Door.Constructor(Vector3(1801.023f, 3950.5f, 70.59303f)), owning_building_guid = 31)
       LocalObject(326, Door.Constructor(Vector3(1801.023f, 3968.693f, 78.55702f)), owning_building_guid = 31)
       LocalObject(327, Door.Constructor(Vector3(1817.674f, 4013.803f, 70.59303f)), owning_building_guid = 31)
@@ -975,7 +975,7 @@ object Map07 { // Esamir
       LocalObject(2562, Terminal.Constructor(Vector3(1864.97f, 3963.823f, 61.17602f), spawn_terminal), owning_building_guid = 31)
       LocalObject(2805, Terminal.Constructor(Vector3(1897.628f, 3882.814f, 71.34702f), vehicle_terminal_combined), owning_building_guid = 31)
       LocalObject(1725, VehicleSpawnPad.Constructor(Vector3(1883.989f, 3882.724f, 67.18903f), mb_pad_creation, Vector3(0, 0, -90)), owning_building_guid = 31, terminal_guid = 2805)
-      LocalObject(2423, ResourceSilo.Constructor, owning_building_guid = 31)
+      LocalObject(2423, ResourceSilo.Constructor(Vector3(1799.733f, 3996.852f, 76.05902f)), owning_building_guid = 31)
       LocalObject(2446, SpawnTube.Constructor(Vector3(1864.233f, 3950.683f, 59.04202f), Vector3(0, 0, 0)), owning_building_guid = 31)
       LocalObject(2447, SpawnTube.Constructor(Vector3(1864.233f, 3957.974f, 59.04202f), Vector3(0, 0, 0)), owning_building_guid = 31)
       LocalObject(2448, SpawnTube.Constructor(Vector3(1864.233f, 3965.262f, 59.04202f), Vector3(0, 0, 0)), owning_building_guid = 31)
@@ -1023,7 +1023,7 @@ object Map07 { // Esamir
 
     def Building17(): Unit = { // Name: Ran Type: cryo_facility GUID: 34, MapID: 17
       LocalBuilding("Ran", 34, 17, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(2342f, 1992f, 85.51286f), Vector3(0f, 0f, 246f), cryo_facility)))
-      LocalObject(212, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 34)
+      LocalObject(212, CaptureTerminal.Constructor(Vector3(2407.567f, 1993.555f, 75.51286f), capture_terminal), owning_building_guid = 34)
       LocalObject(358, Door.Constructor(Vector3(2244.938f, 2000.186f, 87.03387f)), owning_building_guid = 34)
       LocalObject(359, Door.Constructor(Vector3(2256.684f, 2004.261f, 87.06387f)), owning_building_guid = 34)
       LocalObject(360, Door.Constructor(Vector3(2264.084f, 2020.881f, 95.02786f)), owning_building_guid = 34)
@@ -1123,7 +1123,7 @@ object Map07 { // Esamir
       LocalObject(2575, Terminal.Constructor(Vector3(2400.708f, 1966.511f, 77.12586f), spawn_terminal), owning_building_guid = 34)
       LocalObject(2807, Terminal.Constructor(Vector3(2268.972f, 1983.325f, 87.81786f), vehicle_terminal_combined), owning_building_guid = 34)
       LocalObject(1727, VehicleSpawnPad.Constructor(Vector3(2274.437f, 1995.822f, 83.65987f), mb_pad_creation, Vector3(0, 0, 24)), owning_building_guid = 34, terminal_guid = 2807)
-      LocalObject(2425, ResourceSilo.Constructor, owning_building_guid = 34)
+      LocalObject(2425, ResourceSilo.Constructor(Vector3(2412.969f, 2026.373f, 92.52986f)), owning_building_guid = 34)
       LocalObject(2458, SpawnTube.Constructor(Vector3(2344.556f, 1986.228f, 75.51286f), Vector3(0, 0, 114)), owning_building_guid = 34)
       LocalObject(2459, SpawnTube.Constructor(Vector3(2351.217f, 1983.263f, 75.51286f), Vector3(0, 0, 114)), owning_building_guid = 34)
       LocalObject(2460, SpawnTube.Constructor(Vector3(2357.875f, 1980.298f, 75.51286f), Vector3(0, 0, 114)), owning_building_guid = 34)
@@ -1171,7 +1171,7 @@ object Map07 { // Esamir
 
     def Building12(): Unit = { // Name: Mani Type: cryo_facility GUID: 37, MapID: 12
       LocalBuilding("Mani", 37, 12, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(5008f, 4926f, 57.77154f), Vector3(0f, 0f, 360f), cryo_facility)))
-      LocalObject(219, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 37)
+      LocalObject(219, CaptureTerminal.Constructor(Vector3(4979.911f, 4985.266f, 47.77154f), capture_terminal), owning_building_guid = 37)
       LocalObject(525, Door.Constructor(Vector3(4949.023f, 4930.5f, 59.32254f)), owning_building_guid = 37)
       LocalObject(526, Door.Constructor(Vector3(4949.023f, 4948.693f, 67.28654f)), owning_building_guid = 37)
       LocalObject(527, Door.Constructor(Vector3(4965.674f, 4993.803f, 59.32254f)), owning_building_guid = 37)
@@ -1271,7 +1271,7 @@ object Map07 { // Esamir
       LocalObject(2623, Terminal.Constructor(Vector3(5012.97f, 4943.823f, 49.90554f), spawn_terminal), owning_building_guid = 37)
       LocalObject(2814, Terminal.Constructor(Vector3(5045.628f, 4862.814f, 60.07654f), vehicle_terminal_combined), owning_building_guid = 37)
       LocalObject(1738, VehicleSpawnPad.Constructor(Vector3(5031.989f, 4862.724f, 55.91854f), mb_pad_creation, Vector3(0, 0, -90)), owning_building_guid = 37, terminal_guid = 2814)
-      LocalObject(2432, ResourceSilo.Constructor, owning_building_guid = 37)
+      LocalObject(2432, ResourceSilo.Constructor(Vector3(4947.733f, 4976.852f, 64.78854f)), owning_building_guid = 37)
       LocalObject(2503, SpawnTube.Constructor(Vector3(5012.233f, 4930.683f, 47.77154f), Vector3(0, 0, 0)), owning_building_guid = 37)
       LocalObject(2504, SpawnTube.Constructor(Vector3(5012.233f, 4937.974f, 47.77154f), Vector3(0, 0, 0)), owning_building_guid = 37)
       LocalObject(2505, SpawnTube.Constructor(Vector3(5012.233f, 4945.262f, 47.77154f), Vector3(0, 0, 0)), owning_building_guid = 37)
@@ -1331,7 +1331,7 @@ object Map07 { // Esamir
 
     def Building9(): Unit = { // Name: Gjallar Type: tech_plant GUID: 44, MapID: 9
       LocalBuilding("Gjallar", 44, 9, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(958f, 2734f, 74.05927f), Vector3(0f, 0f, 360f), tech_plant)))
-      LocalObject(209, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 44)
+      LocalObject(209, CaptureTerminal.Constructor(Vector3(962.734f, 2689.911f, 89.15926f), capture_terminal), owning_building_guid = 44)
       LocalObject(300, Door.Constructor(Vector3(886.54f, 2663.929f, 75.60126f)), owning_building_guid = 44)
       LocalObject(301, Door.Constructor(Vector3(886.54f, 2682.121f, 83.56426f)), owning_building_guid = 44)
       LocalObject(302, Door.Constructor(Vector3(886.54f, 2737.673f, 75.60126f)), owning_building_guid = 44)
@@ -1409,7 +1409,7 @@ object Map07 { // Esamir
       LocalObject(2555, Terminal.Constructor(Vector3(995.242f, 2713.639f, 80.74126f), spawn_terminal), owning_building_guid = 44)
       LocalObject(2804, Terminal.Constructor(Vector3(909.996f, 2693.423f, 59.87326f), ground_vehicle_terminal), owning_building_guid = 44)
       LocalObject(1722, VehicleSpawnPad.Constructor(Vector3(909.945f, 2704.339f, 51.59627f), mb_pad_creation, Vector3(0, 0, 0)), owning_building_guid = 44, terminal_guid = 2804)
-      LocalObject(2422, ResourceSilo.Constructor, owning_building_guid = 44)
+      LocalObject(2422, ResourceSilo.Constructor(Vector3(1019.752f, 2766.555f, 81.06727f)), owning_building_guid = 44)
       LocalObject(2437, SpawnTube.Constructor(Vector3(970.233f, 2690.683f, 66.65926f), Vector3(0, 0, 0)), owning_building_guid = 44)
       LocalObject(2438, SpawnTube.Constructor(Vector3(970.233f, 2697.974f, 66.65926f), Vector3(0, 0, 0)), owning_building_guid = 44)
       LocalObject(2439, SpawnTube.Constructor(Vector3(970.233f, 2705.262f, 66.65926f), Vector3(0, 0, 0)), owning_building_guid = 44)
@@ -1457,7 +1457,7 @@ object Map07 { // Esamir
 
     def Building7(): Unit = { // Name: Eisa Type: tech_plant GUID: 47, MapID: 7
       LocalBuilding("Eisa", 47, 7, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3394f, 4622f, 75.30442f), Vector3(0f, 0f, 337f), tech_plant)))
-      LocalObject(215, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 47)
+      LocalObject(215, CaptureTerminal.Constructor(Vector3(3381.131f, 4579.566f, 90.40442f), capture_terminal), owning_building_guid = 47)
       LocalObject(431, Door.Constructor(Vector3(3300.842f, 4585.421f, 76.84642f)), owning_building_guid = 47)
       LocalObject(432, Door.Constructor(Vector3(3307.95f, 4602.167f, 84.80942f)), owning_building_guid = 47)
       LocalObject(433, Door.Constructor(Vector3(3318.107f, 4545.579f, 76.92542f)), owning_building_guid = 47)
@@ -1535,7 +1535,7 @@ object Map07 { // Esamir
       LocalObject(2597, Terminal.Constructor(Vector3(3420.326f, 4588.706f, 81.98642f), spawn_terminal), owning_building_guid = 47)
       LocalObject(2810, Terminal.Constructor(Vector3(3333.957f, 4603.405f, 61.11842f), ground_vehicle_terminal), owning_building_guid = 47)
       LocalObject(1730, VehicleSpawnPad.Constructor(Vector3(3338.176f, 4613.474f, 52.84142f), mb_pad_creation, Vector3(0, 0, 23)), owning_building_guid = 47, terminal_guid = 2810)
-      LocalObject(2428, ResourceSilo.Constructor, owning_building_guid = 47)
+      LocalObject(2428, ResourceSilo.Constructor(Vector3(3463.563f, 4627.838f, 82.31242f)), owning_building_guid = 47)
       LocalObject(2475, SpawnTube.Constructor(Vector3(3388.335f, 4577.347f, 67.90442f), Vector3(0, 0, 23)), owning_building_guid = 47)
       LocalObject(2476, SpawnTube.Constructor(Vector3(3391.184f, 4584.058f, 67.90442f), Vector3(0, 0, 23)), owning_building_guid = 47)
       LocalObject(2477, SpawnTube.Constructor(Vector3(3394.032f, 4590.767f, 67.90442f), Vector3(0, 0, 23)), owning_building_guid = 47)
@@ -1583,7 +1583,7 @@ object Map07 { // Esamir
 
     def Building6(): Unit = { // Name: Dagur Type: tech_plant GUID: 50, MapID: 6
       LocalBuilding("Dagur", 50, 6, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3936f, 6108f, 60.06042f), Vector3(0f, 0f, 79f), tech_plant)))
-      LocalObject(217, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 50)
+      LocalObject(217, CaptureTerminal.Constructor(Vector3(3980.182f, 6104.234f, 75.16042f), capture_terminal), owning_building_guid = 50)
       LocalObject(475, Door.Constructor(Vector3(3900.902f, 6042.025f, 69.56542f)), owning_building_guid = 50)
       LocalObject(476, Door.Constructor(Vector3(3909.995f, 6138.074f, 61.60242f)), owning_building_guid = 50)
       LocalObject(477, Door.Constructor(Vector3(3913.466f, 6155.932f, 69.56542f)), owning_building_guid = 50)
@@ -1661,7 +1661,7 @@ object Map07 { // Esamir
       LocalObject(2614, Terminal.Constructor(Vector3(4025.066f, 6066.179f, 54.21743f), spawn_terminal), owning_building_guid = 50)
       LocalObject(2812, Terminal.Constructor(Vector3(3966.672f, 6053.136f, 45.87442f), ground_vehicle_terminal), owning_building_guid = 50)
       LocalObject(1736, VehicleSpawnPad.Constructor(Vector3(3955.947f, 6055.168f, 37.59743f), mb_pad_creation, Vector3(0, 0, -79)), owning_building_guid = 50, terminal_guid = 2812)
-      LocalObject(2430, ResourceSilo.Constructor, owning_building_guid = 50)
+      LocalObject(2430, ResourceSilo.Constructor(Vector3(3915.826f, 6174.829f, 67.06843f)), owning_building_guid = 50)
       LocalObject(2485, SpawnTube.Constructor(Vector3(3966.544f, 6114.525f, 52.66042f), Vector3(0, 0, 281)), owning_building_guid = 50)
       LocalObject(2486, SpawnTube.Constructor(Vector3(3973.698f, 6113.134f, 52.66042f), Vector3(0, 0, 281)), owning_building_guid = 50)
       LocalObject(2487, SpawnTube.Constructor(Vector3(3980.855f, 6111.743f, 52.66042f), Vector3(0, 0, 281)), owning_building_guid = 50)
@@ -1709,7 +1709,7 @@ object Map07 { // Esamir
 
     def Building10(): Unit = { // Name: Helhiem Type: tech_plant GUID: 53, MapID: 10
       LocalBuilding("Helhiem", 53, 10, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(5448f, 2608f, 53.3311f), Vector3(0f, 0f, 360f), tech_plant)))
-      LocalObject(220, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 53)
+      LocalObject(220, CaptureTerminal.Constructor(Vector3(5452.734f, 2563.911f, 68.4311f), capture_terminal), owning_building_guid = 53)
       LocalObject(544, Door.Constructor(Vector3(5376.54f, 2537.929f, 54.8731f)), owning_building_guid = 53)
       LocalObject(545, Door.Constructor(Vector3(5376.54f, 2556.121f, 62.8361f)), owning_building_guid = 53)
       LocalObject(546, Door.Constructor(Vector3(5376.54f, 2611.673f, 54.8731f)), owning_building_guid = 53)
@@ -1787,7 +1787,7 @@ object Map07 { // Esamir
       LocalObject(2630, Terminal.Constructor(Vector3(5485.242f, 2587.639f, 60.0131f), spawn_terminal), owning_building_guid = 53)
       LocalObject(2815, Terminal.Constructor(Vector3(5399.996f, 2567.423f, 39.1451f), ground_vehicle_terminal), owning_building_guid = 53)
       LocalObject(1739, VehicleSpawnPad.Constructor(Vector3(5399.945f, 2578.339f, 30.8681f), mb_pad_creation, Vector3(0, 0, 0)), owning_building_guid = 53, terminal_guid = 2815)
-      LocalObject(2433, ResourceSilo.Constructor, owning_building_guid = 53)
+      LocalObject(2433, ResourceSilo.Constructor(Vector3(5509.752f, 2640.555f, 60.3391f)), owning_building_guid = 53)
       LocalObject(2506, SpawnTube.Constructor(Vector3(5460.233f, 2564.683f, 45.9311f), Vector3(0, 0, 0)), owning_building_guid = 53)
       LocalObject(2507, SpawnTube.Constructor(Vector3(5460.233f, 2571.974f, 45.9311f), Vector3(0, 0, 0)), owning_building_guid = 53)
       LocalObject(2508, SpawnTube.Constructor(Vector3(5460.233f, 2579.262f, 45.9311f), Vector3(0, 0, 0)), owning_building_guid = 53)
@@ -1835,7 +1835,7 @@ object Map07 { // Esamir
 
     def Building53(): Unit = { // Name: N_Gjallar_Tower Type: tower_a GUID: 56, MapID: 53
       LocalBuilding("N_Gjallar_Tower", 56, 53, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(986f, 3016f, 82.00085f), Vector3(0f, 0f, 347f), tower_a)))
-      LocalObject(2525, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 56)
+      LocalObject(2525, CaptureTerminal.Constructor(Vector3(1002.139f, 3012.168f, 91.99986f), secondary_capture), owning_building_guid = 56)
       LocalObject(311, Door.Constructor(Vector3(995.8928f, 3005.506f, 83.52186f)), owning_building_guid = 56)
       LocalObject(312, Door.Constructor(Vector3(995.8928f, 3005.506f, 103.5209f)), owning_building_guid = 56)
       LocalObject(313, Door.Constructor(Vector3(999.4921f, 3021.095f, 83.52186f)), owning_building_guid = 56)
@@ -1872,7 +1872,7 @@ object Map07 { // Esamir
 
     def Building31(): Unit = { // Name: N_Ymir_Tower Type: tower_a GUID: 57, MapID: 31
       LocalBuilding("N_Ymir_Tower", 57, 31, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(1810f, 4194f, 79.81811f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(2527, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 57)
+      LocalObject(2527, CaptureTerminal.Constructor(Vector3(1826.587f, 4193.897f, 89.81711f), secondary_capture), owning_building_guid = 57)
       LocalObject(328, Door.Constructor(Vector3(1822f, 4186f, 81.33911f)), owning_building_guid = 57)
       LocalObject(329, Door.Constructor(Vector3(1822f, 4186f, 101.3381f)), owning_building_guid = 57)
       LocalObject(330, Door.Constructor(Vector3(1822f, 4202f, 81.33911f)), owning_building_guid = 57)
@@ -1909,7 +1909,7 @@ object Map07 { // Esamir
 
     def Building52(): Unit = { // Name: E_Jarl_Tower Type: tower_a GUID: 58, MapID: 52
       LocalBuilding("E_Jarl_Tower", 58, 52, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2222f, 5656f, 67.37571f), Vector3(0f, 0f, 46f), tower_a)))
-      LocalObject(2528, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 58)
+      LocalObject(2528, CaptureTerminal.Constructor(Vector3(2233.596f, 5667.86f, 77.37471f), secondary_capture), owning_building_guid = 58)
       LocalObject(354, Door.Constructor(Vector3(2224.581f, 5670.189f, 68.89671f)), owning_building_guid = 58)
       LocalObject(355, Door.Constructor(Vector3(2224.581f, 5670.189f, 88.89571f)), owning_building_guid = 58)
       LocalObject(356, Door.Constructor(Vector3(2236.091f, 5659.075f, 68.89671f)), owning_building_guid = 58)
@@ -1946,7 +1946,7 @@ object Map07 { // Esamir
 
     def Building49(): Unit = { // Name: N_Ran_Tower Type: tower_a GUID: 59, MapID: 49
       LocalBuilding("N_Ran_Tower", 59, 49, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2298f, 2210f, 85.70513f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(2529, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 59)
+      LocalObject(2529, CaptureTerminal.Constructor(Vector3(2314.587f, 2209.897f, 95.70413f), secondary_capture), owning_building_guid = 59)
       LocalObject(364, Door.Constructor(Vector3(2310f, 2202f, 87.22614f)), owning_building_guid = 59)
       LocalObject(365, Door.Constructor(Vector3(2310f, 2202f, 107.2251f)), owning_building_guid = 59)
       LocalObject(366, Door.Constructor(Vector3(2310f, 2218f, 87.22614f)), owning_building_guid = 59)
@@ -1983,7 +1983,7 @@ object Map07 { // Esamir
 
     def Building21(): Unit = { // Name: W_Searhus_Warpgate_Tower Type: tower_a GUID: 60, MapID: 21
       LocalBuilding("W_Searhus_Warpgate_Tower", 60, 21, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2300f, 3034f, 88.18629f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(2530, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 60)
+      LocalObject(2530, CaptureTerminal.Constructor(Vector3(2316.587f, 3033.897f, 98.18529f), secondary_capture), owning_building_guid = 60)
       LocalObject(368, Door.Constructor(Vector3(2312f, 3026f, 89.70729f)), owning_building_guid = 60)
       LocalObject(369, Door.Constructor(Vector3(2312f, 3026f, 109.7063f)), owning_building_guid = 60)
       LocalObject(370, Door.Constructor(Vector3(2312f, 3042f, 89.70729f)), owning_building_guid = 60)
@@ -2020,7 +2020,7 @@ object Map07 { // Esamir
 
     def Building48(): Unit = { // Name: E_Freyr_Tower Type: tower_a GUID: 61, MapID: 48
       LocalBuilding("E_Freyr_Tower", 61, 48, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3276f, 3710f, 53.76141f), Vector3(0f, 0f, 0f), tower_a)))
-      LocalObject(2533, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 61)
+      LocalObject(2533, CaptureTerminal.Constructor(Vector3(3292.587f, 3709.897f, 63.76041f), secondary_capture), owning_building_guid = 61)
       LocalObject(426, Door.Constructor(Vector3(3288f, 3702f, 55.28241f)), owning_building_guid = 61)
       LocalObject(427, Door.Constructor(Vector3(3288f, 3702f, 75.2814f)), owning_building_guid = 61)
       LocalObject(428, Door.Constructor(Vector3(3288f, 3718f, 55.28241f)), owning_building_guid = 61)
@@ -2057,7 +2057,7 @@ object Map07 { // Esamir
 
     def Building22(): Unit = { // Name: S_Andvari_Tower Type: tower_a GUID: 62, MapID: 22
       LocalBuilding("S_Andvari_Tower", 62, 22, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3320f, 6550f, 91.44566f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(2534, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 62)
+      LocalObject(2534, CaptureTerminal.Constructor(Vector3(3336.587f, 6549.897f, 101.4447f), secondary_capture), owning_building_guid = 62)
       LocalObject(435, Door.Constructor(Vector3(3332f, 6542f, 92.96667f)), owning_building_guid = 62)
       LocalObject(436, Door.Constructor(Vector3(3332f, 6542f, 112.9657f)), owning_building_guid = 62)
       LocalObject(437, Door.Constructor(Vector3(3332f, 6558f, 92.96667f)), owning_building_guid = 62)
@@ -2094,7 +2094,7 @@ object Map07 { // Esamir
 
     def Building18(): Unit = { // Name: SE_Eisa_Tower Type: tower_a GUID: 63, MapID: 18
       LocalBuilding("SE_Eisa_Tower", 63, 18, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3644f, 4338f, 103.9521f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(2536, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 63)
+      LocalObject(2536, CaptureTerminal.Constructor(Vector3(3660.587f, 4337.897f, 113.9511f), secondary_capture), owning_building_guid = 63)
       LocalObject(456, Door.Constructor(Vector3(3656f, 4330f, 105.4732f)), owning_building_guid = 63)
       LocalObject(457, Door.Constructor(Vector3(3656f, 4330f, 125.4722f)), owning_building_guid = 63)
       LocalObject(458, Door.Constructor(Vector3(3656f, 4346f, 105.4732f)), owning_building_guid = 63)
@@ -2131,7 +2131,7 @@ object Map07 { // Esamir
 
     def Building32(): Unit = { // Name: S_Kvasir_Tower Type: tower_a GUID: 64, MapID: 32
       LocalBuilding("S_Kvasir_Tower", 64, 32, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4126f, 1362f, 62.56905f), Vector3(0f, 0f, 318f), tower_a)))
-      LocalObject(2537, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 64)
+      LocalObject(2537, CaptureTerminal.Constructor(Vector3(4138.258f, 1350.825f, 72.56805f), secondary_capture), owning_building_guid = 64)
       LocalObject(505, Door.Constructor(Vector3(4129.564f, 1348.025f, 64.09005f)), owning_building_guid = 64)
       LocalObject(506, Door.Constructor(Vector3(4129.564f, 1348.025f, 84.08905f)), owning_building_guid = 64)
       LocalObject(507, Door.Constructor(Vector3(4140.271f, 1359.916f, 64.09005f)), owning_building_guid = 64)
@@ -2168,7 +2168,7 @@ object Map07 { // Esamir
 
     def Building46(): Unit = { // Name: N_Mani_Tower Type: tower_a GUID: 65, MapID: 46
       LocalBuilding("N_Mani_Tower", 65, 46, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4968f, 5154f, 47.77367f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(2541, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 65)
+      LocalObject(2541, CaptureTerminal.Constructor(Vector3(4984.587f, 5153.897f, 57.77267f), secondary_capture), owning_building_guid = 65)
       LocalObject(528, Door.Constructor(Vector3(4980f, 5146f, 49.29467f)), owning_building_guid = 65)
       LocalObject(529, Door.Constructor(Vector3(4980f, 5146f, 69.29367f)), owning_building_guid = 65)
       LocalObject(530, Door.Constructor(Vector3(4980f, 5162f, 49.29467f)), owning_building_guid = 65)
@@ -2205,7 +2205,7 @@ object Map07 { // Esamir
 
     def Building50(): Unit = { // Name: E_Helhiem_Tower Type: tower_a GUID: 66, MapID: 50
       LocalBuilding("E_Helhiem_Tower", 66, 50, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5672f, 2702f, 52.44301f), Vector3(0f, 0f, 327f), tower_a)))
-      LocalObject(2543, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 66)
+      LocalObject(2543, CaptureTerminal.Constructor(Vector3(5685.855f, 2692.88f, 62.44201f), secondary_capture), owning_building_guid = 66)
       LocalObject(558, Door.Constructor(Vector3(5677.707f, 2688.755f, 53.96401f)), owning_building_guid = 66)
       LocalObject(559, Door.Constructor(Vector3(5677.707f, 2688.755f, 73.96301f)), owning_building_guid = 66)
       LocalObject(560, Door.Constructor(Vector3(5686.421f, 2702.174f, 53.96401f)), owning_building_guid = 66)
@@ -2242,7 +2242,7 @@ object Map07 { // Esamir
 
     def Building19(): Unit = { // Name: E_Oshur_Warpgate_Tower Type: tower_a GUID: 67, MapID: 19
       LocalBuilding("E_Oshur_Warpgate_Tower", 67, 19, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5916f, 3990f, 56.33412f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(2545, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 67)
+      LocalObject(2545, CaptureTerminal.Constructor(Vector3(5932.587f, 3989.897f, 66.33311f), secondary_capture), owning_building_guid = 67)
       LocalObject(568, Door.Constructor(Vector3(5928f, 3982f, 57.85512f)), owning_building_guid = 67)
       LocalObject(569, Door.Constructor(Vector3(5928f, 3982f, 77.85412f)), owning_building_guid = 67)
       LocalObject(570, Door.Constructor(Vector3(5928f, 3998f, 57.85512f)), owning_building_guid = 67)
@@ -2279,7 +2279,7 @@ object Map07 { // Esamir
 
     def Building23(): Unit = { // Name: Outpost_Tower Type: tower_a GUID: 68, MapID: 23
       LocalBuilding("Outpost_Tower", 68, 23, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(6334f, 5258f, 58.87936f), Vector3(0f, 0f, 346f), tower_a)))
-      LocalObject(2546, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 68)
+      LocalObject(2546, CaptureTerminal.Constructor(Vector3(6350.069f, 5253.887f, 68.87836f), secondary_capture), owning_building_guid = 68)
       LocalObject(572, Door.Constructor(Vector3(6343.708f, 5247.334f, 60.40036f)), owning_building_guid = 68)
       LocalObject(573, Door.Constructor(Vector3(6343.708f, 5247.334f, 80.39936f)), owning_building_guid = 68)
       LocalObject(574, Door.Constructor(Vector3(6347.579f, 5262.859f, 60.40036f)), owning_building_guid = 68)
@@ -2316,7 +2316,7 @@ object Map07 { // Esamir
 
     def Building20(): Unit = { // Name: NE_VSSanc_Warpgate_Tower Type: tower_a GUID: 69, MapID: 20
       LocalBuilding("NE_VSSanc_Warpgate_Tower", 69, 20, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(6928f, 1758f, 78.24335f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(2547, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 69)
+      LocalObject(2547, CaptureTerminal.Constructor(Vector3(6944.587f, 1757.897f, 88.24236f), secondary_capture), owning_building_guid = 69)
       LocalObject(593, Door.Constructor(Vector3(6940f, 1750f, 79.76436f)), owning_building_guid = 69)
       LocalObject(594, Door.Constructor(Vector3(6940f, 1750f, 99.76335f)), owning_building_guid = 69)
       LocalObject(595, Door.Constructor(Vector3(6940f, 1766f, 79.76436f)), owning_building_guid = 69)
@@ -2353,7 +2353,7 @@ object Map07 { // Esamir
 
     def Building47(): Unit = { // Name: SE_Nott_Tower Type: tower_a GUID: 70, MapID: 47
       LocalBuilding("SE_Nott_Tower", 70, 47, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(7018f, 4124f, 47.17856f), Vector3(0f, 0f, 338f), tower_a)))
-      LocalObject(2548, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 70)
+      LocalObject(2548, CaptureTerminal.Constructor(Vector3(7033.341f, 4117.691f, 57.17756f), secondary_capture), owning_building_guid = 70)
       LocalObject(597, Door.Constructor(Vector3(7026.129f, 4112.087f, 48.69956f)), owning_building_guid = 70)
       LocalObject(598, Door.Constructor(Vector3(7026.129f, 4112.087f, 68.69856f)), owning_building_guid = 70)
       LocalObject(599, Door.Constructor(Vector3(7032.123f, 4126.922f, 48.69956f)), owning_building_guid = 70)
@@ -2390,7 +2390,7 @@ object Map07 { // Esamir
 
     def Building41(): Unit = { // Name: N_NCSanc_Warpgate_Tower Type: tower_b GUID: 71, MapID: 41
       LocalBuilding("N_NCSanc_Warpgate_Tower", 71, 41, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(754f, 6932f, 44.69741f), Vector3(0f, 0f, 30f), tower_b)))
-      LocalObject(2524, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 71)
+      LocalObject(2524, CaptureTerminal.Constructor(Vector3(768.4163f, 6940.204f, 64.69641f), secondary_capture), owning_building_guid = 71)
       LocalObject(294, Door.Constructor(Vector3(760.3923f, 6944.928f, 46.21741f)), owning_building_guid = 71)
       LocalObject(295, Door.Constructor(Vector3(760.3923f, 6944.928f, 56.21741f)), owning_building_guid = 71)
       LocalObject(296, Door.Constructor(Vector3(760.3923f, 6944.928f, 76.21741f)), owning_building_guid = 71)
@@ -2427,7 +2427,7 @@ object Map07 { // Esamir
 
     def Building54(): Unit = { // Name: S_NCSanc_Tower Type: tower_b GUID: 72, MapID: 54
       LocalBuilding("S_NCSanc_Tower", 72, 54, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(1456f, 6060f, 120.4505f), Vector3(0f, 0f, 360f), tower_b)))
-      LocalObject(2526, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 72)
+      LocalObject(2526, CaptureTerminal.Constructor(Vector3(1472.587f, 6059.897f, 140.4495f), secondary_capture), owning_building_guid = 72)
       LocalObject(319, Door.Constructor(Vector3(1468f, 6052f, 121.9705f)), owning_building_guid = 72)
       LocalObject(320, Door.Constructor(Vector3(1468f, 6052f, 131.9705f)), owning_building_guid = 72)
       LocalObject(321, Door.Constructor(Vector3(1468f, 6052f, 151.9705f)), owning_building_guid = 72)
@@ -2464,7 +2464,7 @@ object Map07 { // Esamir
 
     def Building25(): Unit = { // Name: SE_Dagur_Tower Type: tower_b GUID: 73, MapID: 25
       LocalBuilding("SE_Dagur_Tower", 73, 25, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4248f, 5802f, 48.16736f), Vector3(0f, 0f, 360f), tower_b)))
-      LocalObject(2538, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 73)
+      LocalObject(2538, CaptureTerminal.Constructor(Vector3(4264.587f, 5801.897f, 68.16637f), secondary_capture), owning_building_guid = 73)
       LocalObject(509, Door.Constructor(Vector3(4260f, 5794f, 49.68736f)), owning_building_guid = 73)
       LocalObject(510, Door.Constructor(Vector3(4260f, 5794f, 59.68736f)), owning_building_guid = 73)
       LocalObject(511, Door.Constructor(Vector3(4260f, 5794f, 79.68736f)), owning_building_guid = 73)
@@ -2501,7 +2501,7 @@ object Map07 { // Esamir
 
     def Building28(): Unit = { // Name: SW_Mani_Tower Type: tower_b GUID: 74, MapID: 28
       LocalBuilding("SW_Mani_Tower", 74, 28, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4476f, 4308f, 70.25056f), Vector3(0f, 0f, 360f), tower_b)))
-      LocalObject(2539, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 74)
+      LocalObject(2539, CaptureTerminal.Constructor(Vector3(4492.587f, 4307.897f, 90.24956f), secondary_capture), owning_building_guid = 74)
       LocalObject(515, Door.Constructor(Vector3(4488f, 4300f, 71.77055f)), owning_building_guid = 74)
       LocalObject(516, Door.Constructor(Vector3(4488f, 4300f, 81.77055f)), owning_building_guid = 74)
       LocalObject(517, Door.Constructor(Vector3(4488f, 4300f, 101.7706f)), owning_building_guid = 74)
@@ -2538,7 +2538,7 @@ object Map07 { // Esamir
 
     def Building30(): Unit = { // Name: NW_VSSanc_Warpgate_Tower Type: tower_b GUID: 75, MapID: 30
       LocalBuilding("NW_VSSanc_Warpgate_Tower", 75, 30, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5736f, 1382f, 84.58815f), Vector3(0f, 0f, 360f), tower_b)))
-      LocalObject(2544, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 75)
+      LocalObject(2544, CaptureTerminal.Constructor(Vector3(5752.587f, 1381.897f, 104.5872f), secondary_capture), owning_building_guid = 75)
       LocalObject(562, Door.Constructor(Vector3(5748f, 1374f, 86.10815f)), owning_building_guid = 75)
       LocalObject(563, Door.Constructor(Vector3(5748f, 1374f, 96.10815f)), owning_building_guid = 75)
       LocalObject(564, Door.Constructor(Vector3(5748f, 1374f, 116.1082f)), owning_building_guid = 75)
@@ -2575,7 +2575,7 @@ object Map07 { // Esamir
 
     def Building29(): Unit = { // Name: SE_Searhus_Warpgate_Tower Type: tower_c GUID: 76, MapID: 29
       LocalBuilding("SE_Searhus_Warpgate_Tower", 76, 29, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3222f, 2488f, 89.08353f), Vector3(0f, 0f, 360f), tower_c)))
-      LocalObject(2531, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 76)
+      LocalObject(2531, CaptureTerminal.Constructor(Vector3(3238.587f, 2487.897f, 99.08253f), secondary_capture), owning_building_guid = 76)
       LocalObject(412, Door.Constructor(Vector3(3234f, 2480f, 90.60453f)), owning_building_guid = 76)
       LocalObject(413, Door.Constructor(Vector3(3234f, 2480f, 110.6035f)), owning_building_guid = 76)
       LocalObject(414, Door.Constructor(Vector3(3234f, 2496f, 90.60453f)), owning_building_guid = 76)
@@ -2616,7 +2616,7 @@ object Map07 { // Esamir
 
     def Building26(): Unit = { // Name: W_Vidar_Tower Type: tower_c GUID: 77, MapID: 26
       LocalBuilding("W_Vidar_Tower", 77, 26, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3270f, 3168f, 85.63189f), Vector3(0f, 0f, 360f), tower_c)))
-      LocalObject(2532, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 77)
+      LocalObject(2532, CaptureTerminal.Constructor(Vector3(3286.587f, 3167.897f, 95.63089f), secondary_capture), owning_building_guid = 77)
       LocalObject(422, Door.Constructor(Vector3(3282f, 3160f, 87.15289f)), owning_building_guid = 77)
       LocalObject(423, Door.Constructor(Vector3(3282f, 3160f, 107.1519f)), owning_building_guid = 77)
       LocalObject(424, Door.Constructor(Vector3(3282f, 3176f, 87.15289f)), owning_building_guid = 77)
@@ -2657,7 +2657,7 @@ object Map07 { // Esamir
 
     def Building51(): Unit = { // Name: NE_Andvari_Tower Type: tower_c GUID: 78, MapID: 51
       LocalBuilding("NE_Andvari_Tower", 78, 51, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3446f, 7598f, 50.04425f), Vector3(0f, 0f, 360f), tower_c)))
-      LocalObject(2535, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 78)
+      LocalObject(2535, CaptureTerminal.Constructor(Vector3(3462.587f, 7597.897f, 60.04325f), secondary_capture), owning_building_guid = 78)
       LocalObject(448, Door.Constructor(Vector3(3458f, 7590f, 51.56525f)), owning_building_guid = 78)
       LocalObject(449, Door.Constructor(Vector3(3458f, 7590f, 71.56425f)), owning_building_guid = 78)
       LocalObject(450, Door.Constructor(Vector3(3458f, 7606f, 51.56525f)), owning_building_guid = 78)
@@ -2698,7 +2698,7 @@ object Map07 { // Esamir
 
     def Building27(): Unit = { // Name: SW_Oshur_Warpgate_Tower Type: tower_c GUID: 79, MapID: 27
       LocalBuilding("SW_Oshur_Warpgate_Tower", 79, 27, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4872f, 3408f, 58.76949f), Vector3(0f, 0f, 360f), tower_c)))
-      LocalObject(2540, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 79)
+      LocalObject(2540, CaptureTerminal.Constructor(Vector3(4888.587f, 3407.897f, 68.76849f), secondary_capture), owning_building_guid = 79)
       LocalObject(521, Door.Constructor(Vector3(4884f, 3400f, 60.29049f)), owning_building_guid = 79)
       LocalObject(522, Door.Constructor(Vector3(4884f, 3400f, 80.28949f)), owning_building_guid = 79)
       LocalObject(523, Door.Constructor(Vector3(4884f, 3416f, 60.29049f)), owning_building_guid = 79)
@@ -2739,7 +2739,7 @@ object Map07 { // Esamir
 
     def Building24(): Unit = { // Name: E_Dagur_Tower Type: tower_c GUID: 80, MapID: 24
       LocalBuilding("E_Dagur_Tower", 80, 24, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4994f, 5868f, 50.79501f), Vector3(0f, 0f, 41f), tower_c)))
-      LocalObject(2542, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 80)
+      LocalObject(2542, CaptureTerminal.Constructor(Vector3(5006.586f, 5878.804f, 60.79401f), secondary_capture), owning_building_guid = 80)
       LocalObject(534, Door.Constructor(Vector3(4997.808f, 5881.91f, 52.31601f)), owning_building_guid = 80)
       LocalObject(535, Door.Constructor(Vector3(4997.808f, 5881.91f, 72.315f)), owning_building_guid = 80)
       LocalObject(536, Door.Constructor(Vector3(5008.305f, 5869.835f, 52.31601f)), owning_building_guid = 80)

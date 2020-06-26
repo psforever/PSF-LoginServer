@@ -24,7 +24,7 @@ object Map05 { // Forseral
 
     def Building13(): Unit = { // Name: Eadon Type: amp_station GUID: 1, MapID: 13
       LocalBuilding("Eadon", 1, 13, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(2716f, 2956f, 53.31126f), Vector3(0f, 0f, 228f), amp_station)))
-      LocalObject(156, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 1)
+      LocalObject(156, CaptureTerminal.Constructor(Vector3(2718.234f, 2958.477f, 64.81926f), capture_terminal), owning_building_guid = 1)
       LocalObject(122, Door.Constructor(Vector3(2710.802f, 2960.397f, 66.21326f)), owning_building_guid = 1)
       LocalObject(123, Door.Constructor(Vector3(2720.914f, 2951.288f, 66.21326f)), owning_building_guid = 1)
       LocalObject(240, Door.Constructor(Vector3(2629.126f, 2953.21f, 63.02626f)), owning_building_guid = 1)
@@ -108,7 +108,7 @@ object Map05 { // Forseral
       LocalObject(1916, Terminal.Constructor(Vector3(2777.366f, 2965.258f, 47.56826f), spawn_terminal), owning_building_guid = 1)
       LocalObject(2103, Terminal.Constructor(Vector3(2809.357f, 2936.43f, 55.41326f), vehicle_terminal_combined), owning_building_guid = 1)
       LocalObject(1309, VehicleSpawnPad.Constructor(Vector3(2799.162f, 2945.489f, 51.25626f), mb_pad_creation, Vector3(0, 0, -48)), owning_building_guid = 1, terminal_guid = 2103)
-      LocalObject(1820, ResourceSilo.Constructor, owning_building_guid = 1)
+      LocalObject(1820, ResourceSilo.Constructor(Vector3(2617.239f, 2974.084f, 60.54626f)), owning_building_guid = 1)
       LocalObject(1834, SpawnTube.Constructor(Vector3(2720.817f, 2978.262f, 46.01126f), Vector3(0, 0, 132)), owning_building_guid = 1)
       LocalObject(1835, SpawnTube.Constructor(Vector3(2726.235f, 2973.384f, 46.01126f), Vector3(0, 0, 132)), owning_building_guid = 1)
       LocalObject(1836, SpawnTube.Constructor(Vector3(2731.651f, 2968.507f, 46.01126f), Vector3(0, 0, 132)), owning_building_guid = 1)
@@ -152,7 +152,7 @@ object Map05 { // Forseral
 
     def Building10(): Unit = { // Name: Pwyll Type: amp_station GUID: 4, MapID: 10
       LocalBuilding("Pwyll", 4, 10, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(4738f, 4852f, 103.9842f), Vector3(0f, 0f, 191f), amp_station)))
-      LocalObject(162, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 4)
+      LocalObject(162, CaptureTerminal.Constructor(Vector3(4741.275f, 4852.634f, 115.4922f), capture_terminal), owning_building_guid = 4)
       LocalObject(124, Door.Constructor(Vector3(4736.495f, 4858.64f, 116.8862f)), owning_building_guid = 4)
       LocalObject(125, Door.Constructor(Vector3(4739.088f, 4845.279f, 116.8862f)), owning_building_guid = 4)
       LocalObject(365, Door.Constructor(Vector3(4666.941f, 4902.054f, 113.6992f)), owning_building_guid = 4)
@@ -236,7 +236,7 @@ object Map05 { // Forseral
       LocalObject(1958, Terminal.Constructor(Vector3(4792.581f, 4822.463f, 98.2412f), spawn_terminal), owning_building_guid = 4)
       LocalObject(2109, Terminal.Constructor(Vector3(4800.781f, 4780.187f, 106.0862f), vehicle_terminal_combined), owning_building_guid = 4)
       LocalObject(1317, VehicleSpawnPad.Constructor(Vector3(4798.09f, 4793.557f, 101.9292f), mb_pad_creation, Vector3(0, 0, -11)), owning_building_guid = 4, terminal_guid = 2109)
-      LocalObject(1826, ResourceSilo.Constructor, owning_building_guid = 4)
+      LocalObject(1826, ResourceSilo.Constructor(Vector3(4670.009f, 4925.879f, 111.2192f)), owning_building_guid = 4)
       LocalObject(1870, SpawnTube.Constructor(Vector3(4755.245f, 4866.881f, 96.68419f), Vector3(0, 0, 169)), owning_building_guid = 4)
       LocalObject(1871, SpawnTube.Constructor(Vector3(4756.636f, 4859.724f, 96.68419f), Vector3(0, 0, 169)), owning_building_guid = 4)
       LocalObject(1872, SpawnTube.Constructor(Vector3(4758.026f, 4852.57f, 96.68419f), Vector3(0, 0, 169)), owning_building_guid = 4)
@@ -353,7 +353,7 @@ object Map05 { // Forseral
 
     def Building36(): Unit = { // Name: Caer Type: comm_station GUID: 17, MapID: 36
       LocalBuilding("Caer", 17, 36, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(4658f, 2644f, 55.99231f), Vector3(0f, 0f, 255f), comm_station)))
-      LocalObject(161, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 17)
+      LocalObject(161, CaptureTerminal.Constructor(Vector3(4720.708f, 2581.553f, 38.69231f), capture_terminal), owning_building_guid = 17)
       LocalObject(356, Door.Constructor(Vector3(4598.849f, 2685.214f, 57.74331f)), owning_building_guid = 17)
       LocalObject(357, Door.Constructor(Vector3(4603.557f, 2702.787f, 65.70731f)), owning_building_guid = 17)
       LocalObject(358, Door.Constructor(Vector3(4631.46f, 2713.025f, 57.74331f)), owning_building_guid = 17)
@@ -434,7 +434,7 @@ object Map05 { // Forseral
       LocalObject(1952, Terminal.Constructor(Vector3(4696.734f, 2634.233f, 50.24931f), spawn_terminal), owning_building_guid = 17)
       LocalObject(2108, Terminal.Constructor(Vector3(4697.331f, 2579.153f, 58.87931f), vehicle_terminal_combined), owning_building_guid = 17)
       LocalObject(1316, VehicleSpawnPad.Constructor(Vector3(4700.708f, 2592.354f, 54.72131f), mb_pad_creation, Vector3(0, 0, 15)), owning_building_guid = 17, terminal_guid = 2108)
-      LocalObject(1825, ResourceSilo.Constructor, owning_building_guid = 17)
+      LocalObject(1825, ResourceSilo.Constructor(Vector3(4605.697f, 2715.752f, 63.20931f)), owning_building_guid = 17)
       LocalObject(1865, SpawnTube.Constructor(Vector3(4660.873f, 2605.719f, 46.19231f), Vector3(0, 0, 105)), owning_building_guid = 17)
       LocalObject(1866, SpawnTube.Constructor(Vector3(4667.916f, 2603.832f, 46.19231f), Vector3(0, 0, 105)), owning_building_guid = 17)
       LocalObject(1867, SpawnTube.Constructor(Vector3(4674.955f, 2601.946f, 46.19231f), Vector3(0, 0, 105)), owning_building_guid = 17)
@@ -472,7 +472,7 @@ object Map05 { // Forseral
 
     def Building9(): Unit = { // Name: Dagda Type: comm_station GUID: 20, MapID: 9
       LocalBuilding("Dagda", 20, 9, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(5912f, 4436f, 54.7319f), Vector3(0f, 0f, 219f), comm_station)))
-      LocalObject(164, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 20)
+      LocalObject(164, CaptureTerminal.Constructor(Vector3(5926.027f, 4348.621f, 37.4319f), capture_terminal), owning_building_guid = 20)
       LocalObject(417, Door.Constructor(Vector3(5858.486f, 4406.424f, 64.4469f)), owning_building_guid = 20)
       LocalObject(418, Door.Constructor(Vector3(5869.935f, 4392.286f, 56.48289f)), owning_building_guid = 20)
       LocalObject(419, Door.Constructor(Vector3(5888.37f, 4504.111f, 56.48289f)), owning_building_guid = 20)
@@ -553,7 +553,7 @@ object Map05 { // Forseral
       LocalObject(1971, Terminal.Constructor(Vector3(5937.596f, 4405.331f, 48.9889f), spawn_terminal), owning_building_guid = 20)
       LocalObject(2111, Terminal.Constructor(Vector3(5905.703f, 4360.42f, 57.6189f), vehicle_terminal_combined), owning_building_guid = 20)
       LocalObject(1321, VehicleSpawnPad.Constructor(Vector3(5916.194f, 4369.114f, 53.4609f), mb_pad_creation, Vector3(0, 0, 51)), owning_building_guid = 20, terminal_guid = 2111)
-      LocalObject(1828, ResourceSilo.Constructor, owning_building_guid = 20)
+      LocalObject(1828, ResourceSilo.Constructor(Vector3(5911.86f, 4524.792f, 61.94889f)), owning_building_guid = 20)
       LocalObject(1880, SpawnTube.Constructor(Vector3(5891.823f, 4403.341f, 44.9319f), Vector3(0, 0, 141)), owning_building_guid = 20)
       LocalObject(1881, SpawnTube.Constructor(Vector3(5896.412f, 4397.675f, 44.9319f), Vector3(0, 0, 141)), owning_building_guid = 20)
       LocalObject(1882, SpawnTube.Constructor(Vector3(5900.998f, 4392.011f, 44.9319f), Vector3(0, 0, 141)), owning_building_guid = 20)
@@ -591,7 +591,7 @@ object Map05 { // Forseral
 
     def Building12(): Unit = { // Name: Bel Type: comm_station_dsp GUID: 23, MapID: 12
       LocalBuilding("Bel", 23, 12, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3612f, 4694f, 57.91497f), Vector3(0f, 0f, 360f), comm_station_dsp)))
-      LocalObject(159, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 23)
+      LocalObject(159, CaptureTerminal.Constructor(Vector3(3688.089f, 4674.734f, 40.51498f), capture_terminal), owning_building_guid = 23)
       LocalObject(205, Door.Constructor(Vector3(3680.339f, 4764.464f, 61.29297f)), owning_building_guid = 23)
       LocalObject(280, Door.Constructor(Vector3(3552.196f, 4650.501f, 59.56598f)), owning_building_guid = 23)
       LocalObject(281, Door.Constructor(Vector3(3552.196f, 4668.693f, 67.52998f)), owning_building_guid = 23)
@@ -684,7 +684,7 @@ object Map05 { // Forseral
       LocalObject(1939, Terminal.Constructor(Vector3(3692.058f, 4741.409f, 49.57198f), spawn_terminal), owning_building_guid = 23)
       LocalObject(2106, Terminal.Constructor(Vector3(3629.698f, 4802.044f, 60.70197f), ground_vehicle_terminal), owning_building_guid = 23)
       LocalObject(1314, VehicleSpawnPad.Constructor(Vector3(3629.786f, 4788.411f, 56.54398f), mb_pad_creation, Vector3(0, 0, 180)), owning_building_guid = 23, terminal_guid = 2106)
-      LocalObject(1823, ResourceSilo.Constructor, owning_building_guid = 23)
+      LocalObject(1823, ResourceSilo.Constructor(Vector3(3710.212f, 4859.642f, 65.03197f)), owning_building_guid = 23)
       LocalObject(1849, SpawnTube.Constructor(Vector3(3648.233f, 4706.683f, 48.01498f), Vector3(0, 0, 0)), owning_building_guid = 23)
       LocalObject(1850, SpawnTube.Constructor(Vector3(3648.233f, 4713.974f, 48.01498f), Vector3(0, 0, 0)), owning_building_guid = 23)
       LocalObject(1851, SpawnTube.Constructor(Vector3(3648.233f, 4721.262f, 48.01498f), Vector3(0, 0, 0)), owning_building_guid = 23)
@@ -732,7 +732,7 @@ object Map05 { // Forseral
 
     def Building5(): Unit = { // Name: Ogma Type: cryo_facility GUID: 26, MapID: 5
       LocalBuilding("Ogma", 26, 5, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3538f, 3288f, 113.9927f), Vector3(0f, 0f, 260f), cryo_facility)))
-      LocalObject(158, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 26)
+      LocalObject(158, CaptureTerminal.Constructor(Vector3(3601.243f, 3305.371f, 103.9927f), capture_terminal), owning_building_guid = 26)
       LocalObject(274, Door.Constructor(Vector3(3441.841f, 3272.462f, 115.5137f)), owning_building_guid = 26)
       LocalObject(275, Door.Constructor(Vector3(3452.252f, 3279.257f, 115.5437f)), owning_building_guid = 26)
       LocalObject(276, Door.Constructor(Vector3(3455.411f, 3297.174f, 123.5077f)), owning_building_guid = 26)
@@ -832,7 +832,7 @@ object Map05 { // Forseral
       LocalObject(1930, Terminal.Constructor(Vector3(3601.131f, 3277.47f, 105.6057f), spawn_terminal), owning_building_guid = 26)
       LocalObject(2105, Terminal.Constructor(Vector3(3469.24f, 3261.916f, 116.2977f), vehicle_terminal_combined), owning_building_guid = 26)
       LocalObject(1313, VehicleSpawnPad.Constructor(Vector3(3471.52f, 3275.363f, 112.1397f), mb_pad_creation, Vector3(0, 0, 10)), owning_building_guid = 26, terminal_guid = 2105)
-      LocalObject(1822, ResourceSilo.Constructor, owning_building_guid = 26)
+      LocalObject(1822, ResourceSilo.Constructor(Vector3(3598.545f, 3338.521f, 121.0097f)), owning_building_guid = 26)
       LocalObject(1840, SpawnTube.Constructor(Vector3(3541.877f, 3283.018f, 103.9927f), Vector3(0, 0, 100)), owning_building_guid = 26)
       LocalObject(1841, SpawnTube.Constructor(Vector3(3549.057f, 3281.752f, 103.9927f), Vector3(0, 0, 100)), owning_building_guid = 26)
       LocalObject(1842, SpawnTube.Constructor(Vector3(3556.234f, 3280.487f, 103.9927f), Vector3(0, 0, 100)), owning_building_guid = 26)
@@ -880,7 +880,7 @@ object Map05 { // Forseral
 
     def Building6(): Unit = { // Name: Neit Type: cryo_facility GUID: 29, MapID: 6
       LocalBuilding("Neit", 29, 6, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(4350f, 4238f, 75.96667f), Vector3(0f, 0f, 42f), cryo_facility)))
-      LocalObject(160, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 29)
+      LocalObject(160, CaptureTerminal.Constructor(Vector3(4289.469f, 4263.248f, 65.96667f), capture_terminal), owning_building_guid = 29)
       LocalObject(332, Door.Constructor(Vector3(4273.177f, 4260.066f, 77.51768f)), owning_building_guid = 29)
       LocalObject(333, Door.Constructor(Vector3(4286.697f, 4272.239f, 85.48167f)), owning_building_guid = 29)
       LocalObject(334, Door.Constructor(Vector3(4290.987f, 4215.401f, 85.48167f)), owning_building_guid = 29)
@@ -980,7 +980,7 @@ object Map05 { // Forseral
       LocalObject(1946, Terminal.Constructor(Vector3(4375.909f, 4185.179f, 70.07967f), spawn_terminal), owning_building_guid = 29)
       LocalObject(2107, Terminal.Constructor(Vector3(4420.243f, 4216.222f, 78.27168f), vehicle_terminal_combined), owning_building_guid = 29)
       LocalObject(1315, VehicleSpawnPad.Constructor(Vector3(4410.167f, 4207.028f, 74.11368f), mb_pad_creation, Vector3(0, 0, 228)), owning_building_guid = 29, terminal_guid = 2107)
-      LocalObject(1824, ResourceSilo.Constructor, owning_building_guid = 29)
+      LocalObject(1824, ResourceSilo.Constructor(Vector3(4271.186f, 4235.464f, 82.98367f)), owning_building_guid = 29)
       LocalObject(1858, SpawnTube.Constructor(Vector3(4340.257f, 4255.147f, 65.96667f), Vector3(0, 0, 318)), owning_building_guid = 29)
       LocalObject(1859, SpawnTube.Constructor(Vector3(4345.134f, 4249.731f, 65.96667f), Vector3(0, 0, 318)), owning_building_guid = 29)
       LocalObject(1860, SpawnTube.Constructor(Vector3(4350.012f, 4244.312f, 65.96667f), Vector3(0, 0, 318)), owning_building_guid = 29)
@@ -1028,7 +1028,7 @@ object Map05 { // Forseral
 
     def Building7(): Unit = { // Name: Lugh Type: cryo_facility GUID: 32, MapID: 7
       LocalBuilding("Lugh", 32, 7, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(6148f, 5118f, 71.64068f), Vector3(0f, 0f, 165f), cryo_facility)))
-      LocalObject(165, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 32)
+      LocalObject(165, CaptureTerminal.Constructor(Vector3(6159.792f, 5053.483f, 61.64068f), capture_terminal), owning_building_guid = 32)
       LocalObject(444, Door.Constructor(Vector3(6107.22f, 5162.573f, 73.19168f)), owning_building_guid = 32)
       LocalObject(445, Door.Constructor(Vector3(6111.929f, 5180.146f, 81.15568f)), owning_building_guid = 32)
       LocalObject(446, Door.Constructor(Vector3(6140.902f, 5215.147f, 73.16168f)), owning_building_guid = 32)
@@ -1128,7 +1128,7 @@ object Map05 { // Forseral
       LocalObject(1978, Terminal.Constructor(Vector3(6186.791f, 5108.22f, 63.25368f), spawn_terminal), owning_building_guid = 32)
       LocalObject(2112, Terminal.Constructor(Vector3(6128.008f, 5188.772f, 73.94568f), vehicle_terminal_combined), owning_building_guid = 32)
       LocalObject(1322, VehicleSpawnPad.Constructor(Vector3(6141.206f, 5185.329f, 69.78768f), mb_pad_creation, Vector3(0, 0, 105)), owning_building_guid = 32, terminal_guid = 2112)
-      LocalObject(1829, ResourceSilo.Constructor, owning_building_guid = 32)
+      LocalObject(1829, ResourceSilo.Constructor(Vector3(6193.052f, 5053.283f, 78.65768f)), owning_building_guid = 32)
       LocalObject(1889, SpawnTube.Constructor(Vector3(6138.926f, 5100.49f, 61.64068f), Vector3(0, 0, 195)), owning_building_guid = 32)
       LocalObject(1890, SpawnTube.Constructor(Vector3(6140.812f, 5107.53f, 61.64068f), Vector3(0, 0, 195)), owning_building_guid = 32)
       LocalObject(1891, SpawnTube.Constructor(Vector3(6142.699f, 5114.572f, 61.64068f), Vector3(0, 0, 195)), owning_building_guid = 32)
@@ -1188,7 +1188,7 @@ object Map05 { // Forseral
 
     def Building11(): Unit = { // Name: Anu Type: tech_plant GUID: 39, MapID: 11
       LocalBuilding("Anu", 39, 11, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3360f, 2538f, 56.18457f), Vector3(0f, 0f, 47f), tech_plant)))
-      LocalObject(157, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 39)
+      LocalObject(157, CaptureTerminal.Constructor(Vector3(3395.473f, 2511.394f, 71.28458f), capture_terminal), owning_building_guid = 39)
       LocalObject(261, Door.Constructor(Vector3(3295.273f, 2500.649f, 65.68958f)), owning_building_guid = 39)
       LocalObject(262, Door.Constructor(Vector3(3308.578f, 2488.242f, 57.72657f)), owning_building_guid = 39)
       LocalObject(263, Door.Constructor(Vector3(3349.206f, 2450.356f, 65.68958f)), owning_building_guid = 39)
@@ -1266,7 +1266,7 @@ object Map05 { // Forseral
       LocalObject(1923, Terminal.Constructor(Vector3(3413.37f, 2455.336f, 50.34158f), spawn_terminal), owning_building_guid = 39)
       LocalObject(2104, Terminal.Constructor(Vector3(3356.938f, 2475.219f, 41.99857f), ground_vehicle_terminal), owning_building_guid = 39)
       LocalObject(1310, VehicleSpawnPad.Constructor(Vector3(3348.919f, 2482.626f, 33.72157f), mb_pad_creation, Vector3(0, 0, -47)), owning_building_guid = 39, terminal_guid = 2104)
-      LocalObject(1821, ResourceSilo.Constructor, owning_building_guid = 39)
+      LocalObject(1821, ResourceSilo.Constructor(Vector3(3378.306f, 2605.365f, 63.19257f)), owning_building_guid = 39)
       LocalObject(1837, SpawnTube.Constructor(Vector3(3389.361f, 2527.347f, 48.78457f), Vector3(0, 0, 313)), owning_building_guid = 39)
       LocalObject(1838, SpawnTube.Constructor(Vector3(3394.691f, 2522.377f, 48.78457f), Vector3(0, 0, 313)), owning_building_guid = 39)
       LocalObject(1839, SpawnTube.Constructor(Vector3(3400.023f, 2517.405f, 48.78457f), Vector3(0, 0, 313)), owning_building_guid = 39)
@@ -1314,7 +1314,7 @@ object Map05 { // Forseral
 
     def Building8(): Unit = { // Name: Gwydion Type: tech_plant GUID: 42, MapID: 8
       LocalBuilding("Gwydion", 42, 8, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(5548f, 3858f, 60.98056f), Vector3(0f, 0f, 316f), tech_plant)))
-      LocalObject(163, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 42)
+      LocalObject(163, CaptureTerminal.Constructor(Vector3(5520.778f, 3822.997f, 76.08056f), capture_terminal), owning_building_guid = 42)
       LocalObject(401, Door.Constructor(Vector3(5447.92f, 3857.235f, 62.52256f)), owning_building_guid = 42)
       LocalObject(402, Door.Constructor(Vector3(5449.761f, 3813.852f, 62.60156f)), owning_building_guid = 42)
       LocalObject(403, Door.Constructor(Vector3(5460.558f, 3870.322f, 70.48556f)), owning_building_guid = 42)
@@ -1392,7 +1392,7 @@ object Map05 { // Forseral
       LocalObject(1965, Terminal.Constructor(Vector3(5560.687f, 3850.218f, 73.00356f), spawn_terminal), owning_building_guid = 42)
       LocalObject(2110, Terminal.Constructor(Vector3(5485.282f, 3862.158f, 46.79456f), ground_vehicle_terminal), owning_building_guid = 42)
       LocalObject(1318, VehicleSpawnPad.Constructor(Vector3(5492.828f, 3870.045f, 38.51756f), mb_pad_creation, Vector3(0, 0, 44)), owning_building_guid = 42, terminal_guid = 2110)
-      LocalObject(1827, ResourceSilo.Constructor, owning_building_guid = 42)
+      LocalObject(1827, ResourceSilo.Constructor(Vector3(5615.035f, 3838.521f, 67.98856f)), owning_building_guid = 42)
       LocalObject(1877, SpawnTube.Constructor(Vector3(5526.709f, 3818.343f, 53.58056f), Vector3(0, 0, 44)), owning_building_guid = 42)
       LocalObject(1878, SpawnTube.Constructor(Vector3(5531.774f, 3823.587f, 53.58056f), Vector3(0, 0, 44)), owning_building_guid = 42)
       LocalObject(1879, SpawnTube.Constructor(Vector3(5536.836f, 3828.83f, 53.58056f), Vector3(0, 0, 44)), owning_building_guid = 42)
@@ -1440,7 +1440,7 @@ object Map05 { // Forseral
 
     def Building14(): Unit = { // Name: S_Solsar_Warpgate_Tower Type: tower_a GUID: 45, MapID: 14
       LocalBuilding("S_Solsar_Warpgate_Tower", 45, 14, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(1598f, 3414f, 49.07939f), Vector3(0f, 0f, 335f), tower_a)))
-      LocalObject(1894, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 45)
+      LocalObject(1894, CaptureTerminal.Constructor(Vector3(1612.989f, 3406.897f, 59.07839f), secondary_capture), owning_building_guid = 45)
       LocalObject(230, Door.Constructor(Vector3(1605.495f, 3401.678f, 50.60039f)), owning_building_guid = 45)
       LocalObject(231, Door.Constructor(Vector3(1605.495f, 3401.678f, 70.5994f)), owning_building_guid = 45)
       LocalObject(232, Door.Constructor(Vector3(1612.257f, 3416.179f, 50.60039f)), owning_building_guid = 45)
@@ -1477,7 +1477,7 @@ object Map05 { // Forseral
 
     def Building17(): Unit = { // Name: NE_TRSanc_Warpgate_Tower Type: tower_a GUID: 46, MapID: 17
       LocalBuilding("NE_TRSanc_Warpgate_Tower", 46, 17, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3612f, 1746f, 51.49541f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(1898, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 46)
+      LocalObject(1898, CaptureTerminal.Constructor(Vector3(3628.587f, 1745.897f, 61.49441f), secondary_capture), owning_building_guid = 46)
       LocalObject(305, Door.Constructor(Vector3(3624f, 1738f, 53.01641f)), owning_building_guid = 46)
       LocalObject(306, Door.Constructor(Vector3(3624f, 1738f, 73.01541f)), owning_building_guid = 46)
       LocalObject(307, Door.Constructor(Vector3(3624f, 1754f, 53.01641f)), owning_building_guid = 46)
@@ -1514,7 +1514,7 @@ object Map05 { // Forseral
 
     def Building37(): Unit = { // Name: N_Ogma_Tower Type: tower_a GUID: 47, MapID: 37
       LocalBuilding("N_Ogma_Tower", 47, 37, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3662f, 3532f, 101.2391f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(1899, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 47)
+      LocalObject(1899, CaptureTerminal.Constructor(Vector3(3678.587f, 3531.897f, 111.2381f), secondary_capture), owning_building_guid = 47)
       LocalObject(313, Door.Constructor(Vector3(3674f, 3524f, 102.7601f)), owning_building_guid = 47)
       LocalObject(314, Door.Constructor(Vector3(3674f, 3524f, 122.759f)), owning_building_guid = 47)
       LocalObject(315, Door.Constructor(Vector3(3674f, 3540f, 102.7601f)), owning_building_guid = 47)
@@ -1551,7 +1551,7 @@ object Map05 { // Forseral
 
     def Building27(): Unit = { // Name: S_Bel_Tower Type: tower_a GUID: 48, MapID: 27
       LocalBuilding("S_Bel_Tower", 48, 27, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3694f, 4482f, 48.92117f), Vector3(0f, 0f, 304f), tower_a)))
-      LocalObject(1900, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 48)
+      LocalObject(1900, CaptureTerminal.Constructor(Vector3(3703.19f, 4468.191f, 58.92017f), secondary_capture), owning_building_guid = 48)
       LocalObject(319, Door.Constructor(Vector3(3694.078f, 4467.578f, 50.44217f)), owning_building_guid = 48)
       LocalObject(320, Door.Constructor(Vector3(3694.078f, 4467.578f, 70.44117f)), owning_building_guid = 48)
       LocalObject(322, Door.Constructor(Vector3(3707.343f, 4476.525f, 50.44217f)), owning_building_guid = 48)
@@ -1588,7 +1588,7 @@ object Map05 { // Forseral
 
     def Building25(): Unit = { // Name: SE_Ceryshen_Warpgate_Tower Type: tower_a GUID: 49, MapID: 25
       LocalBuilding("SE_Ceryshen_Warpgate_Tower", 49, 25, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3832f, 6326f, 50.13886f), Vector3(0f, 0f, 314f), tower_a)))
-      LocalObject(1901, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 49)
+      LocalObject(1901, CaptureTerminal.Constructor(Vector3(3843.448f, 6313.997f, 60.13786f), secondary_capture), owning_building_guid = 49)
       LocalObject(328, Door.Constructor(Vector3(3834.581f, 6311.811f, 51.65986f)), owning_building_guid = 49)
       LocalObject(329, Door.Constructor(Vector3(3834.581f, 6311.811f, 71.65886f)), owning_building_guid = 49)
       LocalObject(330, Door.Constructor(Vector3(3846.091f, 6322.925f, 51.65986f)), owning_building_guid = 49)
@@ -1625,7 +1625,7 @@ object Map05 { // Forseral
 
     def Building39(): Unit = { // Name: W_Pwyll_Tower Type: tower_a GUID: 50, MapID: 39
       LocalBuilding("W_Pwyll_Tower", 50, 39, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4486f, 4862f, 90.87802f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(1903, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 50)
+      LocalObject(1903, CaptureTerminal.Constructor(Vector3(4502.587f, 4861.897f, 100.877f), secondary_capture), owning_building_guid = 50)
       LocalObject(352, Door.Constructor(Vector3(4498f, 4854f, 92.39902f)), owning_building_guid = 50)
       LocalObject(353, Door.Constructor(Vector3(4498f, 4854f, 112.398f)), owning_building_guid = 50)
       LocalObject(354, Door.Constructor(Vector3(4498f, 4870f, 92.39902f)), owning_building_guid = 50)
@@ -1662,7 +1662,7 @@ object Map05 { // Forseral
 
     def Building20(): Unit = { // Name: NW_Gwydion_Tower Type: tower_a GUID: 51, MapID: 20
       LocalBuilding("NW_Gwydion_Tower", 51, 20, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5410f, 4044f, 59.84832f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(1906, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 51)
+      LocalObject(1906, CaptureTerminal.Constructor(Vector3(5426.587f, 4043.897f, 69.84732f), secondary_capture), owning_building_guid = 51)
       LocalObject(397, Door.Constructor(Vector3(5422f, 4036f, 61.36932f)), owning_building_guid = 51)
       LocalObject(398, Door.Constructor(Vector3(5422f, 4036f, 81.36832f)), owning_building_guid = 51)
       LocalObject(399, Door.Constructor(Vector3(5422f, 4052f, 61.36932f)), owning_building_guid = 51)
@@ -1699,7 +1699,7 @@ object Map05 { // Forseral
 
     def Building22(): Unit = { // Name: NW_Lugh_Tower Type: tower_a GUID: 52, MapID: 22
       LocalBuilding("NW_Lugh_Tower", 52, 22, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5940f, 5298f, 87.00064f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(1908, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 52)
+      LocalObject(1908, CaptureTerminal.Constructor(Vector3(5956.587f, 5297.897f, 96.99964f), secondary_capture), owning_building_guid = 52)
       LocalObject(435, Door.Constructor(Vector3(5952f, 5290f, 88.52164f)), owning_building_guid = 52)
       LocalObject(436, Door.Constructor(Vector3(5952f, 5290f, 108.5206f)), owning_building_guid = 52)
       LocalObject(437, Door.Constructor(Vector3(5952f, 5306f, 88.52164f)), owning_building_guid = 52)
@@ -1736,7 +1736,7 @@ object Map05 { // Forseral
 
     def Building15(): Unit = { // Name: NW_Eadon_Tower Type: tower_b GUID: 53, MapID: 15
       LocalBuilding("NW_Eadon_Tower", 53, 15, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2588f, 3168f, 49.78637f), Vector3(0f, 0f, 318f), tower_b)))
-      LocalObject(1895, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 53)
+      LocalObject(1895, CaptureTerminal.Constructor(Vector3(2600.258f, 3156.825f, 69.78537f), secondary_capture), owning_building_guid = 53)
       LocalObject(234, Door.Constructor(Vector3(2591.565f, 3154.025f, 51.30637f)), owning_building_guid = 53)
       LocalObject(235, Door.Constructor(Vector3(2591.565f, 3154.025f, 61.30637f)), owning_building_guid = 53)
       LocalObject(236, Door.Constructor(Vector3(2591.565f, 3154.025f, 81.30637f)), owning_building_guid = 53)
@@ -1773,7 +1773,7 @@ object Map05 { // Forseral
 
     def Building26(): Unit = { // Name: N_Bel_Tower Type: tower_b GUID: 54, MapID: 26
       LocalBuilding("N_Bel_Tower", 54, 26, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3568f, 5310f, 53.99487f), Vector3(0f, 0f, 360f), tower_b)))
-      LocalObject(1897, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 54)
+      LocalObject(1897, CaptureTerminal.Constructor(Vector3(3584.587f, 5309.897f, 73.99387f), secondary_capture), owning_building_guid = 54)
       LocalObject(288, Door.Constructor(Vector3(3580f, 5302f, 55.51487f)), owning_building_guid = 54)
       LocalObject(289, Door.Constructor(Vector3(3580f, 5302f, 65.51488f)), owning_building_guid = 54)
       LocalObject(290, Door.Constructor(Vector3(3580f, 5302f, 85.51488f)), owning_building_guid = 54)
@@ -1810,7 +1810,7 @@ object Map05 { // Forseral
 
     def Building38(): Unit = { // Name: S_Neit_Tower Type: tower_b GUID: 55, MapID: 38
       LocalBuilding("S_Neit_Tower", 55, 38, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4440f, 3986f, 67.92352f), Vector3(0f, 0f, 360f), tower_b)))
-      LocalObject(1902, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 55)
+      LocalObject(1902, CaptureTerminal.Constructor(Vector3(4456.587f, 3985.897f, 87.92252f), secondary_capture), owning_building_guid = 55)
       LocalObject(346, Door.Constructor(Vector3(4452f, 3978f, 69.44352f)), owning_building_guid = 55)
       LocalObject(347, Door.Constructor(Vector3(4452f, 3978f, 79.44353f)), owning_building_guid = 55)
       LocalObject(348, Door.Constructor(Vector3(4452f, 3978f, 99.44353f)), owning_building_guid = 55)
@@ -1847,7 +1847,7 @@ object Map05 { // Forseral
 
     def Building18(): Unit = { // Name: E_TRSanc_Warpgate_Tower Type: tower_b GUID: 56, MapID: 18
       LocalBuilding("E_TRSanc_Warpgate_Tower", 56, 18, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4822f, 2820f, 67.8167f), Vector3(0f, 0f, 34f), tower_b)))
-      LocalObject(1905, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 56)
+      LocalObject(1905, CaptureTerminal.Constructor(Vector3(4835.809f, 2829.19f, 87.8157f), secondary_capture), owning_building_guid = 56)
       LocalObject(389, Door.Constructor(Vector3(4827.475f, 2833.343f, 69.3367f)), owning_building_guid = 56)
       LocalObject(390, Door.Constructor(Vector3(4827.475f, 2833.343f, 79.3367f)), owning_building_guid = 56)
       LocalObject(391, Door.Constructor(Vector3(4827.475f, 2833.343f, 99.3367f)), owning_building_guid = 56)
@@ -1884,7 +1884,7 @@ object Map05 { // Forseral
 
     def Building21(): Unit = { // Name: N_Dagda_Tower Type: tower_b GUID: 57, MapID: 21
       LocalBuilding("N_Dagda_Tower", 57, 21, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5896f, 4678f, 50.33113f), Vector3(0f, 0f, 14f), tower_b)))
-      LocalObject(1907, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 57)
+      LocalObject(1907, CaptureTerminal.Constructor(Vector3(5912.119f, 4681.913f, 70.33012f), secondary_capture), owning_building_guid = 57)
       LocalObject(421, Door.Constructor(Vector3(5905.708f, 4688.666f, 51.85113f)), owning_building_guid = 57)
       LocalObject(422, Door.Constructor(Vector3(5905.708f, 4688.666f, 61.85113f)), owning_building_guid = 57)
       LocalObject(423, Door.Constructor(Vector3(5905.708f, 4688.666f, 81.85113f)), owning_building_guid = 57)
@@ -1921,7 +1921,7 @@ object Map05 { // Forseral
 
     def Building16(): Unit = { // Name: NE_Anu_Tower Type: tower_c GUID: 58, MapID: 16
       LocalBuilding("NE_Anu_Tower", 58, 16, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3572f, 2702f, 43.39885f), Vector3(0f, 0f, 42f), tower_c)))
-      LocalObject(1896, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 58)
+      LocalObject(1896, CaptureTerminal.Constructor(Vector3(3584.396f, 2713.022f, 53.39785f), secondary_capture), owning_building_guid = 58)
       LocalObject(286, Door.Constructor(Vector3(3575.565f, 2715.975f, 44.91985f)), owning_building_guid = 58)
       LocalObject(287, Door.Constructor(Vector3(3575.565f, 2715.975f, 64.91885f)), owning_building_guid = 58)
       LocalObject(294, Door.Constructor(Vector3(3586.271f, 2704.084f, 44.91985f)), owning_building_guid = 58)
@@ -1962,7 +1962,7 @@ object Map05 { // Forseral
 
     def Building24(): Unit = { // Name: N_Pwyll_Tower Type: tower_c GUID: 59, MapID: 24
       LocalBuilding("N_Pwyll_Tower", 59, 24, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4728f, 5584f, 48.18415f), Vector3(0f, 0f, 360f), tower_c)))
-      LocalObject(1904, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 59)
+      LocalObject(1904, CaptureTerminal.Constructor(Vector3(4744.587f, 5583.897f, 58.18315f), secondary_capture), owning_building_guid = 59)
       LocalObject(377, Door.Constructor(Vector3(4740f, 5576f, 49.70515f)), owning_building_guid = 59)
       LocalObject(378, Door.Constructor(Vector3(4740f, 5576f, 69.70415f)), owning_building_guid = 59)
       LocalObject(379, Door.Constructor(Vector3(4740f, 5592f, 49.70515f)), owning_building_guid = 59)
@@ -2003,7 +2003,7 @@ object Map05 { // Forseral
 
     def Building19(): Unit = { // Name: S_Gwydion_Tower Type: tower_c GUID: 60, MapID: 19
       LocalBuilding("S_Gwydion_Tower", 60, 19, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(6018f, 2726f, 46.91305f), Vector3(0f, 0f, 308f), tower_c)))
-      LocalObject(1909, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 60)
+      LocalObject(1909, CaptureTerminal.Constructor(Vector3(6028.131f, 2712.866f, 56.91205f), secondary_capture), owning_building_guid = 60)
       LocalObject(440, Door.Constructor(Vector3(6019.084f, 2711.619f, 48.43405f)), owning_building_guid = 60)
       LocalObject(441, Door.Constructor(Vector3(6019.084f, 2711.619f, 68.43305f)), owning_building_guid = 60)
       LocalObject(442, Door.Constructor(Vector3(6031.692f, 2721.469f, 48.43405f)), owning_building_guid = 60)
@@ -2044,7 +2044,7 @@ object Map05 { // Forseral
 
     def Building23(): Unit = { // Name: W_Oshur_Warpgate_Tower Type: tower_c GUID: 61, MapID: 23
       LocalBuilding("W_Oshur_Warpgate_Tower", 61, 23, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(7008f, 3838f, 49.3027f), Vector3(0f, 0f, 106f), tower_c)))
-      LocalObject(1910, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 61)
+      LocalObject(1910, CaptureTerminal.Constructor(Vector3(7003.527f, 3853.973f, 59.3017f), secondary_capture), owning_building_guid = 61)
       LocalObject(455, Door.Constructor(Vector3(6997.002f, 3847.33f, 50.8237f)), owning_building_guid = 61)
       LocalObject(456, Door.Constructor(Vector3(6997.002f, 3847.33f, 70.8227f)), owning_building_guid = 61)
       LocalObject(457, Door.Constructor(Vector3(7012.382f, 3851.74f, 50.8237f)), owning_building_guid = 61)

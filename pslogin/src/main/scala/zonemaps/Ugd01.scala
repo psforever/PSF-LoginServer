@@ -374,7 +374,7 @@ object Ugd01 { // Supai
 
     def Building10425(): Unit = { // Name: N_Redoubt Type: redoubt GUID: 88, MapID: 10425
       LocalBuilding("N_Redoubt", 88, 10425, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(882.39f, 1471.4f, 90.88f), Vector3(0f, 0f, 335f), redoubt)))
-      LocalObject(832, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 88)
+      LocalObject(832, CaptureTerminal.Constructor(Vector3(891.3585f, 1490.68f, 101.364f), vanu_control_console), owning_building_guid = 88)
       LocalObject(582, Door.Constructor(Vector3(866.5455f, 1478.806f, 92.615f)), owning_building_guid = 88)
       LocalObject(585, Door.Constructor(Vector3(876.3672f, 1487.536f, 102.659f)), owning_building_guid = 88)
       LocalObject(587, Door.Constructor(Vector3(883.8498f, 1484.043f, 102.639f)), owning_building_guid = 88)
@@ -391,7 +391,7 @@ object Ugd01 { // Supai
 
     def Building10883(): Unit = { // Name: S_Redoubt Type: redoubt GUID: 89, MapID: 10883
       LocalBuilding("S_Redoubt", 89, 10883, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(1399.41f, 850.5f, 91.78f), Vector3(0f, 0f, 72f), redoubt)))
-      LocalObject(835, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 89)
+      LocalObject(835, CaptureTerminal.Constructor(Vector3(1379.181f, 857.0519f, 102.264f), vanu_control_console), owning_building_guid = 89)
       LocalObject(678, Door.Constructor(Vector3(1384.128f, 842.5555f, 103.559f)), owning_building_guid = 89)
       LocalObject(679, Door.Constructor(Vector3(1386.684f, 850.4081f, 103.539f)), owning_building_guid = 89)
       LocalObject(682, Door.Constructor(Vector3(1389.132f, 858.0455f, 103.539f)), owning_building_guid = 89)
@@ -408,7 +408,7 @@ object Ugd01 { // Supai
 
     def Building10175(): Unit = { // Name: S_Stasis Type: vanu_control_point GUID: 171, MapID: 10175
       LocalBuilding("S_Stasis", 171, 10175, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(983.99f, 1034.17f, 94.51f), Vector3(0f, 0f, 281f), vanu_control_point)))
-      LocalObject(833, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 171)
+      LocalObject(833, CaptureTerminal.Constructor(Vector3(982.6422f, 1030.68f, 124.994f), vanu_control_console), owning_building_guid = 171)
       LocalObject(594, Door.Constructor(Vector3(950.054f, 1050.163f, 96.289f)), owning_building_guid = 171)
       LocalObject(598, Door.Constructor(Vector3(967.2758f, 983.8116f, 96.289f)), owning_building_guid = 171)
       LocalObject(599, Door.Constructor(Vector3(968.8129f, 1037.51f, 126.289f)), owning_building_guid = 171)
@@ -441,7 +441,7 @@ object Ugd01 { // Supai
 
     def Building10000(): Unit = { // Name: N_Stasis Type: vanu_control_point GUID: 172, MapID: 10000
       LocalBuilding("N_Stasis", 172, 10000, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1316.27f, 1321.48f, 88.98f), Vector3(0f, 0f, 37f), vanu_control_point)))
-      LocalObject(834, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 172)
+      LocalObject(834, CaptureTerminal.Constructor(Vector3(1319.998f, 1321.799f, 119.464f), vanu_control_console), owning_building_guid = 172)
       LocalObject(646, Door.Constructor(Vector3(1280.496f, 1312.072f, 90.759f)), owning_building_guid = 172)
       LocalObject(652, Door.Constructor(Vector3(1305.138f, 1325.94f, 120.759f)), owning_building_guid = 172)
       LocalObject(654, Door.Constructor(Vector3(1309.486f, 1313.883f, 95.7f)), owning_building_guid = 172)
@@ -486,7 +486,7 @@ object Ugd01 { // Supai
 
     def Building10001(): Unit = { // Name: N_ATPlant Type: vanu_vehicle_station GUID: 216, MapID: 10001
       LocalBuilding("N_ATPlant", 216, 10001, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(851.77f, 1352.04f, 100.81f), Vector3(0f, 0f, 321f), vanu_vehicle_station)))
-      LocalObject(831, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 216)
+      LocalObject(831, CaptureTerminal.Constructor(Vector3(796.4887f, 1369.299f, 131.294f), vanu_control_console), owning_building_guid = 216)
       LocalObject(555, Door.Constructor(Vector3(795.9202f, 1354.002f, 132.589f)), owning_building_guid = 216)
       LocalObject(557, Door.Constructor(Vector3(801.1134f, 1360.407f, 132.569f)), owning_building_guid = 216)
       LocalObject(558, Door.Constructor(Vector3(806.1349f, 1366.66f, 132.569f)), owning_building_guid = 216)
@@ -510,7 +510,7 @@ object Ugd01 { // Supai
 
     def Building10314(): Unit = { // Name: S_ATPlant Type: vanu_vehicle_station GUID: 217, MapID: 10314
       LocalBuilding("S_ATPlant", 217, 10314, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1467.03f, 931.27f, 94.78f), Vector3(0f, 0f, 98f), vanu_vehicle_station)))
-      LocalObject(836, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 217)
+      LocalObject(836, CaptureTerminal.Constructor(Vector3(1495.69f, 880.9459f, 125.264f), vanu_control_console), owning_building_guid = 217)
       LocalObject(697, Door.Constructor(Vector3(1452.924f, 924.604f, 96.559f)), owning_building_guid = 217)
       LocalObject(699, Door.Constructor(Vector3(1464.283f, 901.9645f, 116.471f)), owning_building_guid = 217)
       LocalObject(704, Door.Constructor(Vector3(1482.297f, 888.3389f, 126.559f)), owning_building_guid = 217)

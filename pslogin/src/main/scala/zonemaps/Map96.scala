@@ -24,7 +24,7 @@ object Map96 { // Nexus
 
     def Building1(): Unit = { // Name: Nexus_Base Type: comm_station_dsp GUID: 1, MapID: 1
       LocalBuilding("Nexus_Base", 1, 1, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(1922f, 1940f, 35.71276f), Vector3(0f, 0f, 360f), comm_station_dsp)))
-      LocalObject(21, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 1)
+      LocalObject(21, CaptureTerminal.Constructor(Vector3(1998.089f, 1920.734f, 18.31276f), capture_terminal), owning_building_guid = 1)
       LocalObject(23, Door.Constructor(Vector3(1990.339f, 2010.464f, 39.09076f)), owning_building_guid = 1)
       LocalObject(36, Door.Constructor(Vector3(1862.196f, 1896.501f, 37.36376f)), owning_building_guid = 1)
       LocalObject(37, Door.Constructor(Vector3(1862.196f, 1914.693f, 45.32776f)), owning_building_guid = 1)
@@ -117,7 +117,7 @@ object Map96 { // Nexus
       LocalObject(298, Terminal.Constructor(Vector3(2002.058f, 1987.409f, 27.36976f), spawn_terminal), owning_building_guid = 1)
       LocalObject(318, Terminal.Constructor(Vector3(1939.698f, 2048.044f, 38.49976f), ground_vehicle_terminal), owning_building_guid = 1)
       LocalObject(200, VehicleSpawnPad.Constructor(Vector3(1939.786f, 2034.411f, 34.34176f), mb_pad_creation, Vector3(0, 0, 180)), owning_building_guid = 1, terminal_guid = 318)
-      LocalObject(271, ResourceSilo.Constructor, owning_building_guid = 1)
+      LocalObject(271, ResourceSilo.Constructor(Vector3(2020.212f, 2105.642f, 42.82976f)), owning_building_guid = 1)
       LocalObject(276, SpawnTube.Constructor(Vector3(1958.233f, 1952.683f, 25.81276f), Vector3(0, 0, 0)), owning_building_guid = 1)
       LocalObject(277, SpawnTube.Constructor(Vector3(1958.233f, 1959.974f, 25.81276f), Vector3(0, 0, 0)), owning_building_guid = 1)
       LocalObject(278, SpawnTube.Constructor(Vector3(1958.233f, 1967.262f, 25.81276f), Vector3(0, 0, 0)), owning_building_guid = 1)
@@ -171,7 +171,7 @@ object Map96 { // Nexus
 
     def Building2(): Unit = { // Name: North_Rim_Tower Type: tower_a GUID: 5, MapID: 2
       LocalBuilding("North_Rim_Tower", 5, 2, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(1740f, 2280f, 71.42857f), Vector3(0f, 0f, 10f), tower_a)))
-      LocalObject(285, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 5)
+      LocalObject(285, CaptureTerminal.Constructor(Vector3(1756.353f, 2282.779f, 81.42757f), secondary_capture), owning_building_guid = 5)
       LocalObject(28, Door.Constructor(Vector3(1750.428f, 2289.962f, 72.94958f)), owning_building_guid = 5)
       LocalObject(29, Door.Constructor(Vector3(1750.428f, 2289.962f, 92.94858f)), owning_building_guid = 5)
       LocalObject(30, Door.Constructor(Vector3(1753.207f, 2274.205f, 72.94958f)), owning_building_guid = 5)
@@ -208,7 +208,7 @@ object Map96 { // Nexus
 
     def Building4(): Unit = { // Name: South_Rim_Tower Type: tower_a GUID: 6, MapID: 4
       LocalBuilding("South_Rim_Tower", 6, 4, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(1756f, 1628f, 71.42857f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(286, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 6)
+      LocalObject(286, CaptureTerminal.Constructor(Vector3(1772.587f, 1627.897f, 81.42757f), secondary_capture), owning_building_guid = 6)
       LocalObject(32, Door.Constructor(Vector3(1768f, 1620f, 72.94958f)), owning_building_guid = 6)
       LocalObject(33, Door.Constructor(Vector3(1768f, 1620f, 92.94858f)), owning_building_guid = 6)
       LocalObject(34, Door.Constructor(Vector3(1768f, 1636f, 72.94958f)), owning_building_guid = 6)
@@ -245,7 +245,7 @@ object Map96 { // Nexus
 
     def Building3(): Unit = { // Name: East_Rim_Tower Type: tower_a GUID: 7, MapID: 3
       LocalBuilding("East_Rim_Tower", 7, 3, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2358f, 1940f, 71.42857f), Vector3(0f, 0f, 80f), tower_a)))
-      LocalObject(288, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 7)
+      LocalObject(288, CaptureTerminal.Constructor(Vector3(2360.982f, 1956.317f, 81.42757f), secondary_capture), owning_building_guid = 7)
       LocalObject(61, Door.Constructor(Vector3(2352.205f, 1953.207f, 72.94958f)), owning_building_guid = 7)
       LocalObject(62, Door.Constructor(Vector3(2352.205f, 1953.207f, 92.94858f)), owning_building_guid = 7)
       LocalObject(63, Door.Constructor(Vector3(2367.962f, 1950.428f, 72.94958f)), owning_building_guid = 7)
@@ -282,7 +282,7 @@ object Map96 { // Nexus
 
     def Building6(): Unit = { // Name: South_Gate_Tower Type: tower_b GUID: 8, MapID: 6
       LocalBuilding("South_Gate_Tower", 8, 6, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2242f, 1264f, 35.71276f), Vector3(0f, 0f, 360f), tower_b)))
-      LocalObject(287, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 8)
+      LocalObject(287, CaptureTerminal.Constructor(Vector3(2258.587f, 1263.897f, 55.71176f), secondary_capture), owning_building_guid = 8)
       LocalObject(55, Door.Constructor(Vector3(2254f, 1256f, 37.23276f)), owning_building_guid = 8)
       LocalObject(56, Door.Constructor(Vector3(2254f, 1256f, 47.23276f)), owning_building_guid = 8)
       LocalObject(57, Door.Constructor(Vector3(2254f, 1256f, 67.23276f)), owning_building_guid = 8)
@@ -319,7 +319,7 @@ object Map96 { // Nexus
 
     def Building5(): Unit = { // Name: North_Gate_Tower Type: tower_b GUID: 9, MapID: 5
       LocalBuilding("North_Gate_Tower", 9, 5, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2438f, 2486f, 35.71276f), Vector3(0f, 0f, 360f), tower_b)))
-      LocalObject(289, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 9)
+      LocalObject(289, CaptureTerminal.Constructor(Vector3(2454.587f, 2485.897f, 55.71176f), secondary_capture), owning_building_guid = 9)
       LocalObject(65, Door.Constructor(Vector3(2450f, 2478f, 37.23276f)), owning_building_guid = 9)
       LocalObject(66, Door.Constructor(Vector3(2450f, 2478f, 47.23276f)), owning_building_guid = 9)
       LocalObject(67, Door.Constructor(Vector3(2450f, 2478f, 67.23276f)), owning_building_guid = 9)

@@ -215,7 +215,7 @@ object Ugd05 { // Annwn
 
     def Building10209(): Unit = { // Name: NW_Redoubt Type: redoubt GUID: 32, MapID: 10209
       LocalBuilding("NW_Redoubt", 32, 10209, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(887.44f, 1064.63f, 163.23f), Vector3(0f, 0f, 4f), redoubt)))
-      LocalObject(552, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 32)
+      LocalObject(552, CaptureTerminal.Constructor(Vector3(885.9368f, 1085.841f, 173.714f), vanu_control_console), owning_building_guid = 32)
       LocalObject(362, Door.Constructor(Vector3(869.9915f, 1063.426f, 164.965f)), owning_building_guid = 32)
       LocalObject(363, Door.Constructor(Vector3(874.3493f, 1075.823f, 175.009f)), owning_building_guid = 32)
       LocalObject(364, Door.Constructor(Vector3(882.5875f, 1076.395f, 174.989f)), owning_building_guid = 32)
@@ -232,7 +232,7 @@ object Ugd05 { // Annwn
 
     def Building10210(): Unit = { // Name: SE_Redoubt Type: redoubt GUID: 33, MapID: 10210
       LocalBuilding("SE_Redoubt", 33, 10210, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(1157.92f, 849.04f, 158.73f), Vector3(0f, 0f, 310f), redoubt)))
-      LocalObject(555, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 33)
+      LocalObject(555, CaptureTerminal.Constructor(Vector3(1174.196f, 862.7235f, 169.214f), vanu_control_console), owning_building_guid = 33)
       LocalObject(432, Door.Constructor(Vector3(1146.69f, 862.4484f, 160.465f)), owning_building_guid = 33)
       LocalObject(433, Door.Constructor(Vector3(1159.281f, 866.2097f, 170.509f)), owning_building_guid = 33)
       LocalObject(434, Door.Constructor(Vector3(1164.586f, 859.8812f, 170.489f)), owning_building_guid = 33)
@@ -249,7 +249,7 @@ object Ugd05 { // Annwn
 
     def Building10012(): Unit = { // Name: NW_Stasis Type: vanu_control_point GUID: 67, MapID: 10012
       LocalBuilding("NW_Stasis", 67, 10012, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(995.33f, 1106.69f, 329.62f), Vector3(0f, 0f, 222f), vanu_control_point)))
-      LocalObject(554, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 67)
+      LocalObject(554, CaptureTerminal.Constructor(Vector3(991.6441f, 1106.048f, 360.104f), vanu_control_console), owning_building_guid = 67)
       LocalObject(374, Door.Constructor(Vector3(943.5559f, 1095.08f, 331.399f)), owning_building_guid = 67)
       LocalObject(391, Door.Constructor(Vector3(983.5845f, 1098.827f, 336.34f)), owning_building_guid = 67)
       LocalObject(392, Door.Constructor(Vector3(984.4945f, 1115.759f, 336.34f)), owning_building_guid = 67)
@@ -282,7 +282,7 @@ object Ugd05 { // Annwn
 
     def Building10003(): Unit = { // Name: SE_Stasis Type: vanu_control_point GUID: 68, MapID: 10003
       LocalBuilding("SE_Stasis", 68, 10003, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1232.73f, 922.42f, 322.62f), Vector3(0f, 0f, 224f), vanu_control_point)))
-      LocalObject(557, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 68)
+      LocalObject(557, CaptureTerminal.Constructor(Vector3(1229.069f, 921.6494f, 353.104f), vanu_control_console), owning_building_guid = 68)
       LocalObject(440, Door.Constructor(Vector3(1181.393f, 909.0106f, 324.399f)), owning_building_guid = 68)
       LocalObject(457, Door.Constructor(Vector3(1221.266f, 914.1519f, 329.34f)), owning_building_guid = 68)
       LocalObject(458, Door.Constructor(Vector3(1221.585f, 931.1053f, 329.34f)), owning_building_guid = 68)
@@ -327,7 +327,7 @@ object Ugd05 { // Annwn
 
     def Building10044(): Unit = { // Name: NW_ATPlant Type: vanu_vehicle_station GUID: 96, MapID: 10044
       LocalBuilding("NW_ATPlant", 96, 10044, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(930.3f, 1141.53f, 164.95f), Vector3(0f, 0f, 82f), vanu_vehicle_station)))
-      LocalObject(553, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 96)
+      LocalObject(553, CaptureTerminal.Constructor(Vector3(943.9782f, 1085.256f, 195.434f), vanu_control_console), owning_building_guid = 96)
       LocalObject(368, Door.Constructor(Vector3(914.9034f, 1139.01f, 166.729f)), owning_building_guid = 96)
       LocalObject(369, Door.Constructor(Vector3(919.5815f, 1114.117f, 186.641f)), owning_building_guid = 96)
       LocalObject(370, Door.Constructor(Vector3(933.1416f, 1096.054f, 196.729f)), owning_building_guid = 96)
@@ -351,7 +351,7 @@ object Ugd05 { // Annwn
 
     def Building10197(): Unit = { // Name: SE_ATPlant Type: vanu_vehicle_station GUID: 97, MapID: 10197
       LocalBuilding("SE_ATPlant", 97, 10197, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1244.82f, 841.97f, 159.95f), Vector3(0f, 0f, 274f), vanu_vehicle_station)))
-      LocalObject(556, CaptureTerminal.Constructor(vanu_control_console), owning_building_guid = 97)
+      LocalObject(556, CaptureTerminal.Constructor(Vector3(1219.74f, 894.1707f, 190.434f), vanu_control_console), owning_building_guid = 97)
       LocalObject(446, Door.Constructor(Vector3(1195.006f, 843.136f, 161.729f)), owning_building_guid = 97)
       LocalObject(448, Door.Constructor(Vector3(1202.975f, 843.6932f, 181.653f)), owning_building_guid = 97)
       LocalObject(450, Door.Constructor(Vector3(1208.165f, 884.1538f, 191.729f)), owning_building_guid = 97)
