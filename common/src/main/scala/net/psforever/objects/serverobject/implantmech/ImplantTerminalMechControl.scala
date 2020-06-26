@@ -40,7 +40,7 @@ class ImplantTerminalMechControl(mech : ImplantTerminalMech) extends Actor
       case CommonMessages.Use(player, Some(item : SimpleItem)) if item.Definition == GlobalDefinitions.remote_electronics_kit =>
         //TODO setup certifications check
         mech.Owner match {
-          case b : Building if (b.Faction != player.Faction || b.CaptureConsoleIsHacked) && mech.HackedBy.isEmpty =>
+          case b : Building if (b.Faction != player.Faction || b.CaptureTerminalIsHacked) && mech.HackedBy.isEmpty =>
             sender ! CommonMessages.Progress(
               GenericHackables.GetHackSpeed(player, mech),
               GenericHackables.FinishHacking(mech, player, 3212836864L),

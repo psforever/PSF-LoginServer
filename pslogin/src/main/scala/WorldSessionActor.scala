@@ -4470,14 +4470,14 @@ class WorldSessionActor extends Actor
             sendResponse(ChatMsg(ChatMessageType.UNK_229, true, "", "USE !hack tr|vs|nc|bo OR !hack BaseName tr|vs|nc|bo", None))
           }
           else {
-            continent.Buildings.foreach({
-              case (id, building) =>
-                if(!building.Name.isEmpty && args(1).equalsIgnoreCase(building.Name)) {
-                  log.info(s"Hack Base Name : ${args(1)} to empire : ${args(2)}")
-                  building.Faction = hackFaction
-                  continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.SetEmpire(building.GUID, hackFaction))
-                }
-            })
+            continent.Buildings.find(x => !x._2.Name.isEmpty && args(1).equalsIgnoreCase(x._2.Name) && x._2.CaptureTerminal.isDefined) match {
+              case Some((_, building)) =>
+                log.info(s"Setting Name: ${building.Name} / GUID: ${building.GUID} / MapId: ${building.MapId} to empire : ${args(1)}")
+                building.Faction = hackFaction
+                continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.SetEmpire(building.GUID, hackFaction))
+              case _ =>
+                sendResponse(ChatMsg(ChatMessageType.UNK_229, true, "", "Base not found or does not have control console", None))
+            }
           }
         } else if (args.length == 2) {
           var bad : Boolean = false
@@ -4491,13 +4491,9 @@ class WorldSessionActor extends Actor
           }
           else {
             continent.Buildings.foreach({
-              case (id, building) =>
-                if (!building.Name.isEmpty && !bad
-                  && building.BuildingType != StructureType.Bridge
-                  && building.BuildingType != StructureType.Bunker
-                  && building.BuildingType != StructureType.WarpGate
-                ) {
-                  log.info(s"Hack Bases to empire : ${args(1)}")
+              case (_, building) =>
+                if (!building.Name.isEmpty && building.CaptureTerminal.isDefined) {
+                  log.info(s"Setting Name: ${building.Name} / GUID: ${building.GUID} / MapId: ${building.MapId} to empire : ${args(1)}")
                   building.Faction = hackFaction
                   continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.SetEmpire(building.GUID, hackFaction))
                 }
@@ -5024,7 +5020,7 @@ class WorldSessionActor extends Actor
               // A base is neutral
               // todo: A base is out of power (generator down)
 
-              playerIsOnInside || lock.HackedBy.isDefined || owner.CaptureConsoleIsHacked || lock.Faction == PlanetSideEmpire.NEUTRAL
+              playerIsOnInside || lock.HackedBy.isDefined || owner.CaptureTerminalIsHacked || lock.Faction == PlanetSideEmpire.NEUTRAL
             case None => !door.isOpen // If there's no linked IFF lock just open the door if it's closed.
           })) {
             door.Actor ! Door.Use(player, msg)
