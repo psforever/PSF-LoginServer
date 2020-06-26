@@ -4,10 +4,13 @@ package net.psforever.objects.serverobject.resourcesilo
 import akka.actor.Actor
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.structures.Building
+import net.psforever.objects.vehicles.NtuBehavior
 import net.psforever.types.PlanetSideEmpire
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.local.{LocalAction, LocalServiceMessage}
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `Resource Silo`.
@@ -28,14 +31,14 @@ class ResourceSiloControl(resourceSilo: ResourceSilo) extends Actor with Faction
 
   def Processing: Receive =
     checkBehavior.orElse {
-      case ResourceSilo.Use(player, msg) =>
-        if (resourceSilo.Faction == PlanetSideEmpire.NEUTRAL || player.Faction == resourceSilo.Faction) {
-          resourceSilo.Zone.Vehicles.find(v => v.PassengerInSeat(player).contains(0)) match {
-            case Some(vehicle) =>
-              sender ! ResourceSilo.ResourceSiloMessage(player, msg, resourceSilo.Use(player, msg))
-            case _ =>
-          }
+    case ResourceSilo.Use(player, _) =>
+      if(resourceSilo.Faction == PlanetSideEmpire.NEUTRAL || player.Faction == resourceSilo.Faction) {
+        resourceSilo.Zone.Vehicles.find(v => v.PassengerInSeat(player).contains(0)) match {
+          case Some(vehicle) =>
+            context.system.scheduler.scheduleOnce(delay = 1000 milliseconds, vehicle.Actor, NtuBehavior.Discharging())
+          case _ =>
         }
+      }
 
       case ResourceSilo.LowNtuWarning(enabled: Boolean) =>
         resourceSilo.LowNtuWarningOn = enabled
