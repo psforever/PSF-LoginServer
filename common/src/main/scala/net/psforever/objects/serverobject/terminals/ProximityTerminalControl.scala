@@ -42,7 +42,7 @@ class ProximityTerminalControl(term : Terminal with ProximityUnit) extends Actor
       case CommonMessages.Use(player, Some(item : SimpleItem)) if item.Definition == GlobalDefinitions.remote_electronics_kit =>
         //TODO setup certifications check
         term.Owner match {
-          case b : Building if (b.Faction != player.Faction || b.CaptureConsoleIsHacked) && term.HackedBy.isEmpty =>
+          case b : Building if (b.Faction != player.Faction || b.CaptureTerminalIsHacked) && term.HackedBy.isEmpty =>
             sender ! CommonMessages.Progress(
               GenericHackables.GetHackSpeed(player, term),
               GenericHackables.FinishHacking(term, player, 3212836864L),

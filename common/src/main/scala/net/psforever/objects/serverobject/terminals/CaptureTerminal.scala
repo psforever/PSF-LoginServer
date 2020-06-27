@@ -4,6 +4,7 @@ package net.psforever.objects.serverobject.terminals
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.packet.game.TriggeredSound
+import net.psforever.types.Vector3
 
 class CaptureTerminal(private val idef : CaptureTerminalDefinition) extends Amenity with Hackable {
   def Definition : CaptureTerminalDefinition = idef
@@ -21,9 +22,10 @@ object CaptureTerminal {
   }
 
   import akka.actor.ActorContext
-  def Constructor(tdef: CaptureTerminalDefinition)(id : Int, context : ActorContext) : CaptureTerminal = {
+  def Constructor(pos: Vector3, tdef: CaptureTerminalDefinition)(id : Int, context : ActorContext) : CaptureTerminal = {
     import akka.actor.Props
     val obj = CaptureTerminal(tdef)
+    obj.Position = pos
     obj.Actor = context.actorOf(Props(classOf[CaptureTerminalControl], obj), s"${tdef.Name}_$id")
     obj
   }

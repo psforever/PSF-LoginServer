@@ -24,7 +24,7 @@ object Map01 { // Solsar
 
     def Building10(): Unit = { // Name: Mont Type: amp_station GUID: 1, MapID: 10
       LocalBuilding("Mont", 1, 10, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3380f, 4300f, 82.74789f), Vector3(0f, 0f, 209f), amp_station)))
-      LocalObject(153, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 1)
+      LocalObject(153, CaptureTerminal.Constructor(Vector3(3382.919f, 4301.615f, 94.25589f), capture_terminal), owning_building_guid = 1)
       LocalObject(121, Door.Constructor(Vector3(3376.516f, 4305.85f, 95.64989f)), owning_building_guid = 1)
       LocalObject(122, Door.Constructor(Vector3(3383.112f, 4293.944f, 95.64989f)), owning_building_guid = 1)
       LocalObject(268, Door.Constructor(Vector3(3296.951f, 4325.646f, 92.46289f)), owning_building_guid = 1)
@@ -108,7 +108,7 @@ object Map01 { // Solsar
       LocalObject(1911, Terminal.Constructor(Vector3(3441.037f, 4288.775f, 77.00488f), spawn_terminal), owning_building_guid = 1)
       LocalObject(2081, Terminal.Constructor(Vector3(3461.9f, 4251.102f, 84.84988f), vehicle_terminal_combined), owning_building_guid = 1)
       LocalObject(1285, VehicleSpawnPad.Constructor(Vector3(3455.209f, 4262.986f, 80.69289f), mb_pad_creation, Vector3(0, 0, -29)), owning_building_guid = 1, terminal_guid = 2081)
-      LocalObject(1802, ResourceSilo.Constructor, owning_building_guid = 1)
+      LocalObject(1802, ResourceSilo.Constructor(Vector3(3292.507f, 4349.253f, 89.98289f)), owning_building_guid = 1)
       LocalObject(1825, SpawnTube.Constructor(Vector3(3391.802f, 4319.481f, 75.44788f), Vector3(0, 0, 151)), owning_building_guid = 1)
       LocalObject(1826, SpawnTube.Constructor(Vector3(3395.337f, 4313.104f, 75.44788f), Vector3(0, 0, 151)), owning_building_guid = 1)
       LocalObject(1827, SpawnTube.Constructor(Vector3(3398.87f, 4306.73f, 75.44788f), Vector3(0, 0, 151)), owning_building_guid = 1)
@@ -152,7 +152,7 @@ object Map01 { // Solsar
 
     def Building6(): Unit = { // Name: Bastet Type: amp_station GUID: 4, MapID: 6
       LocalBuilding("Bastet", 4, 6, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(5346f, 5518f, 56.43483f), Vector3(0f, 0f, 360f), amp_station)))
-      LocalObject(160, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 4)
+      LocalObject(160, CaptureTerminal.Constructor(Vector3(5342.664f, 5518.003f, 67.94283f), capture_terminal), owning_building_guid = 4)
       LocalObject(123, Door.Constructor(Vector3(5346.211f, 5511.195f, 69.33682f)), owning_building_guid = 4)
       LocalObject(124, Door.Constructor(Vector3(5346.214f, 5524.805f, 69.33682f)), owning_building_guid = 4)
       LocalObject(420, Door.Constructor(Vector3(5270f, 5598f, 58.15583f)), owning_building_guid = 4)
@@ -236,7 +236,7 @@ object Map01 { // Solsar
       LocalObject(1958, Terminal.Constructor(Vector3(5340.496f, 5513.5f, 63.16283f), spawn_terminal), owning_building_guid = 4)
       LocalObject(2088, Terminal.Constructor(Vector3(5298.075f, 5600.473f, 58.53683f), vehicle_terminal_combined), owning_building_guid = 4)
       LocalObject(1296, VehicleSpawnPad.Constructor(Vector3(5298.165f, 5586.835f, 54.37983f), mb_pad_creation, Vector3(0, 0, 180)), owning_building_guid = 4, terminal_guid = 2088)
-      LocalObject(1809, ResourceSilo.Constructor, owning_building_guid = 4)
+      LocalObject(1809, ResourceSilo.Constructor(Vector3(5398.645f, 5432.505f, 63.66983f)), owning_building_guid = 4)
       LocalObject(1868, SpawnTube.Constructor(Vector3(5326.233f, 5506.683f, 49.13483f), Vector3(0, 0, 0)), owning_building_guid = 4)
       LocalObject(1869, SpawnTube.Constructor(Vector3(5326.233f, 5513.974f, 49.13483f), Vector3(0, 0, 0)), owning_building_guid = 4)
       LocalObject(1870, SpawnTube.Constructor(Vector3(5326.233f, 5521.262f, 49.13483f), Vector3(0, 0, 0)), owning_building_guid = 4)
@@ -346,7 +346,7 @@ object Map01 { // Solsar
 
     def Building8(): Unit = { // Name: Hapi Type: comm_station GUID: 16, MapID: 8
       LocalBuilding("Hapi", 16, 8, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(4276f, 4512f, 59.18149f), Vector3(0f, 0f, 300f), comm_station)))
-      LocalObject(156, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 16)
+      LocalObject(156, CaptureTerminal.Constructor(Vector3(4364.498f, 4512.185f, 41.88149f), capture_terminal), owning_building_guid = 16)
       LocalObject(332, Door.Constructor(Vector3(4195.935f, 4515.072f, 68.89649f)), owning_building_guid = 16)
       LocalObject(333, Door.Constructor(Vector3(4205.031f, 4499.316f, 60.93249f)), owning_building_guid = 16)
       LocalObject(334, Door.Constructor(Vector3(4208.426f, 4542.042f, 60.93249f)), owning_building_guid = 16)
@@ -427,7 +427,7 @@ object Map01 { // Solsar
       LocalObject(1931, Terminal.Constructor(Vector3(4316.848f, 4492.895f, 51.51549f), spawn_terminal), owning_building_guid = 16)
       LocalObject(2084, Terminal.Constructor(Vector3(4349.665f, 4493.957f, 62.06849f), vehicle_terminal_combined), owning_building_guid = 16)
       LocalObject(1288, VehicleSpawnPad.Constructor(Vector3(4342.719f, 4505.68f, 57.91049f), mb_pad_creation, Vector3(0, 0, -30)), owning_building_guid = 16, terminal_guid = 2084)
-      LocalObject(1805, ResourceSilo.Constructor, owning_building_guid = 16)
+      LocalObject(1805, ResourceSilo.Constructor(Vector3(4188.28f, 4525.752f, 66.39849f)), owning_building_guid = 16)
       LocalObject(1846, SpawnTube.Constructor(Vector3(4305.1f, 4486.963f, 49.38149f), Vector3(0, 0, 60)), owning_building_guid = 16)
       LocalObject(1847, SpawnTube.Constructor(Vector3(4311.415f, 4490.608f, 49.38149f), Vector3(0, 0, 60)), owning_building_guid = 16)
       LocalObject(1848, SpawnTube.Constructor(Vector3(4317.726f, 4494.252f, 49.38149f), Vector3(0, 0, 60)), owning_building_guid = 16)
@@ -465,7 +465,7 @@ object Map01 { // Solsar
 
     def Building13(): Unit = { // Name: Sobek Type: comm_station_dsp GUID: 19, MapID: 13
       LocalBuilding("Sobek", 19, 13, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3044f, 3086f, 74.5262f), Vector3(0f, 0f, 360f), comm_station_dsp)))
-      LocalObject(152, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 19)
+      LocalObject(152, CaptureTerminal.Constructor(Vector3(3120.089f, 3066.734f, 57.1262f), capture_terminal), owning_building_guid = 19)
       LocalObject(199, Door.Constructor(Vector3(3112.339f, 3156.464f, 77.9042f)), owning_building_guid = 19)
       LocalObject(230, Door.Constructor(Vector3(2984.196f, 3042.501f, 76.1772f)), owning_building_guid = 19)
       LocalObject(231, Door.Constructor(Vector3(2984.196f, 3060.693f, 84.1412f)), owning_building_guid = 19)
@@ -558,7 +558,7 @@ object Map01 { // Solsar
       LocalObject(1905, Terminal.Constructor(Vector3(3124.058f, 3133.409f, 66.1832f), spawn_terminal), owning_building_guid = 19)
       LocalObject(2080, Terminal.Constructor(Vector3(3061.698f, 3194.044f, 77.3132f), ground_vehicle_terminal), owning_building_guid = 19)
       LocalObject(1284, VehicleSpawnPad.Constructor(Vector3(3061.786f, 3180.411f, 73.1552f), mb_pad_creation, Vector3(0, 0, 180)), owning_building_guid = 19, terminal_guid = 2080)
-      LocalObject(1801, ResourceSilo.Constructor, owning_building_guid = 19)
+      LocalObject(1801, ResourceSilo.Constructor(Vector3(3142.212f, 3251.642f, 81.6432f)), owning_building_guid = 19)
       LocalObject(1814, SpawnTube.Constructor(Vector3(3080.233f, 3098.683f, 64.6262f), Vector3(0, 0, 0)), owning_building_guid = 19)
       LocalObject(1815, SpawnTube.Constructor(Vector3(3080.233f, 3105.974f, 64.6262f), Vector3(0, 0, 0)), owning_building_guid = 19)
       LocalObject(1816, SpawnTube.Constructor(Vector3(3080.233f, 3113.262f, 64.6262f), Vector3(0, 0, 0)), owning_building_guid = 19)
@@ -606,7 +606,7 @@ object Map01 { // Solsar
 
     def Building12(): Unit = { // Name: Horus Type: cryo_facility GUID: 22, MapID: 12
       LocalBuilding("Horus", 22, 12, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3690f, 2158f, 72.89651f), Vector3(0f, 0f, 265f), cryo_facility)))
-      LocalObject(154, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 22)
+      LocalObject(154, CaptureTerminal.Constructor(Vector3(3751.489f, 2180.817f, 62.89651f), capture_terminal), owning_building_guid = 22)
       LocalObject(290, Door.Constructor(Vector3(3595.561f, 2134.14f, 74.41752f)), owning_building_guid = 22)
       LocalObject(291, Door.Constructor(Vector3(3605.34f, 2141.817f, 74.44752f)), owning_building_guid = 22)
       LocalObject(292, Door.Constructor(Vector3(3606.926f, 2159.941f, 82.41151f)), owning_building_guid = 22)
@@ -706,7 +706,7 @@ object Map01 { // Solsar
       LocalObject(1918, Terminal.Constructor(Vector3(3753.808f, 2153.013f, 64.50951f), spawn_terminal), owning_building_guid = 22)
       LocalObject(2082, Terminal.Constructor(Vector3(3623.775f, 2126.022f, 75.20152f), vehicle_terminal_combined), owning_building_guid = 22)
       LocalObject(1286, VehicleSpawnPad.Constructor(Vector3(3624.874f, 2139.617f, 71.04352f), mb_pad_creation, Vector3(0, 0, 5)), owning_building_guid = 22, terminal_guid = 2082)
-      LocalObject(1803, ResourceSilo.Constructor, owning_building_guid = 22)
+      LocalObject(1803, ResourceSilo.Constructor(Vector3(3745.911f, 2213.606f, 79.91351f)), owning_building_guid = 22)
       LocalObject(1830, SpawnTube.Constructor(Vector3(3694.296f, 2153.375f, 62.89651f), Vector3(0, 0, 95)), owning_building_guid = 22)
       LocalObject(1831, SpawnTube.Constructor(Vector3(3701.56f, 2152.74f, 62.89651f), Vector3(0, 0, 95)), owning_building_guid = 22)
       LocalObject(1833, SpawnTube.Constructor(Vector3(3708.82f, 2152.104f, 62.89651f), Vector3(0, 0, 95)), owning_building_guid = 22)
@@ -754,7 +754,7 @@ object Map01 { // Solsar
 
     def Building7(): Unit = { // Name: Aton Type: cryo_facility GUID: 25, MapID: 7
       LocalBuilding("Aton", 25, 7, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3830f, 5418f, 54.14594f), Vector3(0f, 0f, 90f), cryo_facility)))
-      LocalObject(155, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 25)
+      LocalObject(155, CaptureTerminal.Constructor(Vector3(3770.734f, 5389.911f, 44.14594f), capture_terminal), owning_building_guid = 25)
       LocalObject(308, Door.Constructor(Vector3(3762.197f, 5375.674f, 55.69694f)), owning_building_guid = 25)
       LocalObject(309, Door.Constructor(Vector3(3762.197f, 5393.867f, 63.66094f)), owning_building_guid = 25)
       LocalObject(310, Door.Constructor(Vector3(3807.307f, 5359.023f, 63.66094f)), owning_building_guid = 25)
@@ -854,7 +854,7 @@ object Map01 { // Solsar
       LocalObject(1925, Terminal.Constructor(Vector3(3886.59f, 5401.91f, 48.25894f), spawn_terminal), owning_building_guid = 25)
       LocalObject(2083, Terminal.Constructor(Vector3(3893.186f, 5455.628f, 56.45094f), vehicle_terminal_combined), owning_building_guid = 25)
       LocalObject(1287, VehicleSpawnPad.Constructor(Vector3(3893.276f, 5441.989f, 52.29294f), mb_pad_creation, Vector3(0, 0, 180)), owning_building_guid = 25, terminal_guid = 2083)
-      LocalObject(1804, ResourceSilo.Constructor, owning_building_guid = 25)
+      LocalObject(1804, ResourceSilo.Constructor(Vector3(3779.148f, 5357.733f, 61.16294f)), owning_building_guid = 25)
       LocalObject(1835, SpawnTube.Constructor(Vector3(3810.738f, 5422.233f, 44.14594f), Vector3(0, 0, 270)), owning_building_guid = 25)
       LocalObject(1836, SpawnTube.Constructor(Vector3(3818.026f, 5422.233f, 44.14594f), Vector3(0, 0, 270)), owning_building_guid = 25)
       LocalObject(1837, SpawnTube.Constructor(Vector3(3825.317f, 5422.233f, 44.14594f), Vector3(0, 0, 270)), owning_building_guid = 25)
@@ -902,7 +902,7 @@ object Map01 { // Solsar
 
     def Building9(): Unit = { // Name: Thoth Type: cryo_facility GUID: 28, MapID: 9
       LocalBuilding("Thoth", 28, 9, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(4556f, 3338f, 53.19376f), Vector3(0f, 0f, 335f), cryo_facility)))
-      LocalObject(159, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 28)
+      LocalObject(159, CaptureTerminal.Constructor(Vector3(4555.59f, 3403.584f, 43.19376f), capture_terminal), owning_building_guid = 28)
       LocalObject(377, Door.Constructor(Vector3(4504.451f, 3367.003f, 54.74476f)), owning_building_guid = 28)
       LocalObject(387, Door.Constructor(Vector3(4512.139f, 3383.492f, 62.70876f)), owning_building_guid = 28)
       LocalObject(393, Door.Constructor(Vector3(4525.763f, 3260.6f, 62.70876f)), owning_building_guid = 28)
@@ -1002,7 +1002,7 @@ object Map01 { // Solsar
       LocalObject(1952, Terminal.Constructor(Vector3(4582.51f, 3396.254f, 44.80676f), spawn_terminal), owning_building_guid = 28)
       LocalObject(2087, Terminal.Constructor(Vector3(4563.399f, 3264.832f, 55.49876f), vehicle_terminal_combined), owning_building_guid = 28)
       LocalObject(1293, VehicleSpawnPad.Constructor(Vector3(4551f, 3270.514f, 51.34076f), mb_pad_creation, Vector3(0, 0, -65)), owning_building_guid = 28, terminal_guid = 2087)
-      LocalObject(1807, ResourceSilo.Constructor, owning_building_guid = 28)
+      LocalObject(1807, ResourceSilo.Constructor(Vector3(4522.871f, 3409.558f, 60.21076f)), owning_building_guid = 28)
       LocalObject(1861, SpawnTube.Constructor(Vector3(4561.815f, 3340.455f, 43.19376f), Vector3(0, 0, 25)), owning_building_guid = 28)
       LocalObject(1862, SpawnTube.Constructor(Vector3(4564.897f, 3347.063f, 43.19376f), Vector3(0, 0, 25)), owning_building_guid = 28)
       LocalObject(1863, SpawnTube.Constructor(Vector3(4567.977f, 3353.668f, 43.19376f), Vector3(0, 0, 25)), owning_building_guid = 28)
@@ -1062,7 +1062,7 @@ object Map01 { // Solsar
 
     def Building11(): Unit = { // Name: Amun Type: tech_plant GUID: 35, MapID: 11
       LocalBuilding("Amun", 35, 11, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(4428f, 2220f, 68.3462f), Vector3(0f, 0f, 179f), tech_plant)))
-      LocalObject(157, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 35)
+      LocalObject(157, CaptureTerminal.Constructor(Vector3(4424.036f, 2264.165f, 83.4462f), capture_terminal), owning_building_guid = 35)
       LocalObject(350, Door.Constructor(Vector3(4348.938f, 2218.272f, 69.8882f)), owning_building_guid = 35)
       LocalObject(351, Door.Constructor(Vector3(4349.255f, 2236.463f, 77.8512f)), owning_building_guid = 35)
       LocalObject(353, Door.Constructor(Vector3(4384.709f, 2189.485f, 77.8512f)), owning_building_guid = 35)
@@ -1140,7 +1140,7 @@ object Map01 { // Solsar
       LocalObject(1938, Terminal.Constructor(Vector3(4453.719f, 2314.975f, 62.5032f), spawn_terminal), owning_building_guid = 35)
       LocalObject(2085, Terminal.Constructor(Vector3(4476.705f, 2259.733f, 54.1602f), ground_vehicle_terminal), owning_building_guid = 35)
       LocalObject(1291, VehicleSpawnPad.Constructor(Vector3(4476.565f, 2248.818f, 45.8832f), mb_pad_creation, Vector3(0, 0, 181)), owning_building_guid = 35, terminal_guid = 2085)
-      LocalObject(1806, ResourceSilo.Constructor, owning_building_guid = 35)
+      LocalObject(1806, ResourceSilo.Constructor(Vector3(4365.689f, 2188.528f, 75.3542f)), owning_building_guid = 35)
       LocalObject(1849, SpawnTube.Constructor(Vector3(4416.271f, 2248.947f, 60.9462f), Vector3(0, 0, 181)), owning_building_guid = 35)
       LocalObject(1850, SpawnTube.Constructor(Vector3(4416.397f, 2256.234f, 60.9462f), Vector3(0, 0, 181)), owning_building_guid = 35)
       LocalObject(1851, SpawnTube.Constructor(Vector3(4416.525f, 2263.524f, 60.9462f), Vector3(0, 0, 181)), owning_building_guid = 35)
@@ -1188,7 +1188,7 @@ object Map01 { // Solsar
 
     def Building5(): Unit = { // Name: Seth Type: tech_plant GUID: 38, MapID: 5
       LocalBuilding("Seth", 38, 5, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(4566f, 6116f, 57.799f), Vector3(0f, 0f, 265f), tech_plant)))
-      LocalObject(158, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 38)
+      LocalObject(158, CaptureTerminal.Constructor(Vector3(4521.666f, 6115.126f, 72.899f), capture_terminal), owning_building_guid = 38)
       LocalObject(361, Door.Constructor(Vector3(4469.867f, 6164.563f, 59.42f)), owning_building_guid = 38)
       LocalObject(363, Door.Constructor(Vector3(4474.748f, 6119.361f, 59.45f)), owning_building_guid = 38)
       LocalObject(364, Door.Constructor(Vector3(4476.333f, 6137.485f, 67.413f)), owning_building_guid = 38)
@@ -1266,7 +1266,7 @@ object Map01 { // Solsar
       LocalObject(1950, Terminal.Constructor(Vector3(4567.936f, 6101.243f, 69.82201f), spawn_terminal), owning_building_guid = 38)
       LocalObject(2086, Terminal.Constructor(Vector3(4529.761f, 6167.358f, 43.613f), ground_vehicle_terminal), owning_building_guid = 38)
       LocalObject(1292, VehicleSpawnPad.Constructor(Vector3(4540.64f, 6166.457f, 35.33601f), mb_pad_creation, Vector3(0, 0, 95)), owning_building_guid = 38, terminal_guid = 2086)
-      LocalObject(1808, ResourceSilo.Constructor, owning_building_guid = 38)
+      LocalObject(1808, ResourceSilo.Constructor(Vector3(4593.049f, 6051.646f, 64.80701f)), owning_building_guid = 38)
       LocalObject(1858, SpawnTube.Constructor(Vector3(4521.782f, 6107.589f, 50.399f), Vector3(0, 0, 95)), owning_building_guid = 38)
       LocalObject(1859, SpawnTube.Constructor(Vector3(4529.045f, 6106.954f, 50.399f), Vector3(0, 0, 95)), owning_building_guid = 38)
       LocalObject(1860, SpawnTube.Constructor(Vector3(4536.305f, 6106.318f, 50.399f), Vector3(0, 0, 95)), owning_building_guid = 38)
@@ -1314,7 +1314,7 @@ object Map01 { // Solsar
 
     def Building20(): Unit = { // Name: W_Sobek_Tower Type: tower_a GUID: 41, MapID: 20
       LocalBuilding("W_Sobek_Tower", 41, 20, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2600f, 3180f, 73.48247f), Vector3(0f, 0f, 256f), tower_a)))
-      LocalObject(1877, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 41)
+      LocalObject(1877, CaptureTerminal.Constructor(Vector3(2595.887f, 3163.931f, 83.48147f), secondary_capture), owning_building_guid = 41)
       LocalObject(222, Door.Constructor(Vector3(2589.334f, 3170.292f, 75.00347f)), owning_building_guid = 41)
       LocalObject(223, Door.Constructor(Vector3(2589.334f, 3170.292f, 95.00247f)), owning_building_guid = 41)
       LocalObject(224, Door.Constructor(Vector3(2604.859f, 3166.421f, 75.00347f)), owning_building_guid = 41)
@@ -1351,7 +1351,7 @@ object Map01 { // Solsar
 
     def Building21(): Unit = { // Name: S_Mont_Tower Type: tower_a GUID: 42, MapID: 21
       LocalBuilding("S_Mont_Tower", 42, 21, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3124f, 3784f, 97.89117f), Vector3(0f, 0f, 5f), tower_a)))
-      LocalObject(1879, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 42)
+      LocalObject(1879, CaptureTerminal.Constructor(Vector3(3140.533f, 3785.343f, 107.8902f), secondary_capture), owning_building_guid = 42)
       LocalObject(246, Door.Constructor(Vector3(3135.257f, 3793.015f, 99.41218f)), owning_building_guid = 42)
       LocalObject(247, Door.Constructor(Vector3(3135.257f, 3793.015f, 119.4112f)), owning_building_guid = 42)
       LocalObject(248, Door.Constructor(Vector3(3136.652f, 3777.076f, 99.41218f)), owning_building_guid = 42)
@@ -1388,7 +1388,7 @@ object Map01 { // Solsar
 
     def Building14(): Unit = { // Name: NE_Amerish_Warpgate_Tower Type: tower_a GUID: 43, MapID: 14
       LocalBuilding("NE_Amerish_Warpgate_Tower", 43, 14, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3148f, 1398f, 56.7095f), Vector3(0f, 0f, 34f), tower_a)))
-      LocalObject(1880, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 43)
+      LocalObject(1880, CaptureTerminal.Constructor(Vector3(3161.809f, 1407.19f, 66.7085f), secondary_capture), owning_building_guid = 43)
       LocalObject(253, Door.Constructor(Vector3(3153.475f, 1411.343f, 58.2305f)), owning_building_guid = 43)
       LocalObject(254, Door.Constructor(Vector3(3153.475f, 1411.343f, 78.22949f)), owning_building_guid = 43)
       LocalObject(256, Door.Constructor(Vector3(3162.422f, 1398.078f, 58.2305f)), owning_building_guid = 43)
@@ -1425,7 +1425,7 @@ object Map01 { // Solsar
 
     def Building32(): Unit = { // Name: SW__Aton_Tower Type: tower_a GUID: 44, MapID: 32
       LocalBuilding("SW__Aton_Tower", 44, 32, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3572f, 4886f, 68.03491f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(1883, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 44)
+      LocalObject(1883, CaptureTerminal.Constructor(Vector3(3588.587f, 4885.897f, 78.03391f), secondary_capture), owning_building_guid = 44)
       LocalObject(286, Door.Constructor(Vector3(3584f, 4878f, 69.55592f)), owning_building_guid = 44)
       LocalObject(287, Door.Constructor(Vector3(3584f, 4878f, 89.55492f)), owning_building_guid = 44)
       LocalObject(288, Door.Constructor(Vector3(3584f, 4894f, 69.55592f)), owning_building_guid = 44)
@@ -1462,7 +1462,7 @@ object Map01 { // Solsar
 
     def Building38(): Unit = { // Name: NE_Horus_Tower Type: tower_a GUID: 45, MapID: 38
       LocalBuilding("NE_Horus_Tower", 45, 38, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3862f, 2326f, 72.06335f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(1885, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 45)
+      LocalObject(1885, CaptureTerminal.Constructor(Vector3(3878.587f, 2325.897f, 82.06236f), secondary_capture), owning_building_guid = 45)
       LocalObject(316, Door.Constructor(Vector3(3874f, 2318f, 73.58436f)), owning_building_guid = 45)
       LocalObject(317, Door.Constructor(Vector3(3874f, 2318f, 93.58336f)), owning_building_guid = 45)
       LocalObject(318, Door.Constructor(Vector3(3874f, 2334f, 73.58436f)), owning_building_guid = 45)
@@ -1499,7 +1499,7 @@ object Map01 { // Solsar
 
     def Building17(): Unit = { // Name: W_Thoth_Tower Type: tower_a GUID: 46, MapID: 17
       LocalBuilding("W_Thoth_Tower", 46, 17, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4290f, 3328f, 67.31162f), Vector3(0f, 0f, 25f), tower_a)))
-      LocalObject(1888, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 46)
+      LocalObject(1888, CaptureTerminal.Constructor(Vector3(4305.077f, 3334.917f, 77.31062f), secondary_capture), owning_building_guid = 46)
       LocalObject(342, Door.Constructor(Vector3(4297.495f, 3340.322f, 68.83263f)), owning_building_guid = 46)
       LocalObject(343, Door.Constructor(Vector3(4297.495f, 3340.322f, 88.83162f)), owning_building_guid = 46)
       LocalObject(344, Door.Constructor(Vector3(4304.257f, 3325.821f, 68.83263f)), owning_building_guid = 46)
@@ -1536,7 +1536,7 @@ object Map01 { // Solsar
 
     def Building36(): Unit = { // Name: E_Tower_Seth Type: tower_a GUID: 47, MapID: 36
       LocalBuilding("E_Tower_Seth", 47, 36, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4828f, 6192f, 67.78428f), Vector3(0f, 0f, 33f), tower_a)))
-      LocalObject(1892, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 47)
+      LocalObject(1892, CaptureTerminal.Constructor(Vector3(4841.967f, 6200.948f, 77.78328f), secondary_capture), owning_building_guid = 47)
       LocalObject(412, Door.Constructor(Vector3(4833.707f, 6205.245f, 69.30528f)), owning_building_guid = 47)
       LocalObject(413, Door.Constructor(Vector3(4833.707f, 6205.245f, 89.30428f)), owning_building_guid = 47)
       LocalObject(414, Door.Constructor(Vector3(4842.421f, 6191.826f, 69.30528f)), owning_building_guid = 47)
@@ -1573,7 +1573,7 @@ object Map01 { // Solsar
 
     def Building24(): Unit = { // Name: E_Bastet_Tower Type: tower_a GUID: 48, MapID: 24
       LocalBuilding("E_Bastet_Tower", 48, 24, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5524f, 5436f, 74.02264f), Vector3(0f, 0f, 332f), tower_a)))
-      LocalObject(1895, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 48)
+      LocalObject(1895, CaptureTerminal.Constructor(Vector3(5538.597f, 5428.122f, 84.02164f), secondary_capture), owning_building_guid = 48)
       LocalObject(441, Door.Constructor(Vector3(5530.839f, 5423.303f, 75.54365f)), owning_building_guid = 48)
       LocalObject(442, Door.Constructor(Vector3(5530.839f, 5423.303f, 95.54265f)), owning_building_guid = 48)
       LocalObject(443, Door.Constructor(Vector3(5538.351f, 5437.43f, 75.54365f)), owning_building_guid = 48)
@@ -1610,7 +1610,7 @@ object Map01 { // Solsar
 
     def Building25(): Unit = { // Name: NW_Cyssor_Warpgate_Tower Type: tower_a GUID: 49, MapID: 25
       LocalBuilding("NW_Cyssor_Warpgate_Tower", 49, 25, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5636f, 3622f, 162.7766f), Vector3(0f, 0f, 342f), tower_a)))
-      LocalObject(1896, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 49)
+      LocalObject(1896, CaptureTerminal.Constructor(Vector3(5651.743f, 3616.776f, 172.7756f), secondary_capture), owning_building_guid = 49)
       LocalObject(445, Door.Constructor(Vector3(5644.94f, 3610.683f, 164.2976f)), owning_building_guid = 49)
       LocalObject(446, Door.Constructor(Vector3(5644.94f, 3610.683f, 184.2966f)), owning_building_guid = 49)
       LocalObject(447, Door.Constructor(Vector3(5649.885f, 3625.9f, 164.2976f)), owning_building_guid = 49)
@@ -1647,7 +1647,7 @@ object Map01 { // Solsar
 
     def Building22(): Unit = { // Name: S_Sobek_Tower Type: tower_b GUID: 50, MapID: 22
       LocalBuilding("S_Sobek_Tower", 50, 22, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3162f, 2856f, 70.09491f), Vector3(0f, 0f, 51f), tower_b)))
-      LocalObject(1881, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 50)
+      LocalObject(1881, CaptureTerminal.Constructor(Vector3(3172.519f, 2868.826f, 90.09391f), secondary_capture), owning_building_guid = 50)
       LocalObject(258, Door.Constructor(Vector3(3163.335f, 2870.36f, 71.61491f)), owning_building_guid = 50)
       LocalObject(259, Door.Constructor(Vector3(3163.335f, 2870.36f, 81.61491f)), owning_building_guid = 50)
       LocalObject(260, Door.Constructor(Vector3(3163.335f, 2870.36f, 101.6149f)), owning_building_guid = 50)
@@ -1684,7 +1684,7 @@ object Map01 { // Solsar
 
     def Building37(): Unit = { // Name: N_Aton_Tower Type: tower_b GUID: 51, MapID: 37
       LocalBuilding("N_Aton_Tower", 51, 37, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3708f, 5656f, 81.34708f), Vector3(0f, 0f, 302f), tower_b)))
-      LocalObject(1884, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 51)
+      LocalObject(1884, CaptureTerminal.Constructor(Vector3(3716.702f, 5641.879f, 101.3461f), secondary_capture), owning_building_guid = 51)
       LocalObject(297, Door.Constructor(Vector3(3707.575f, 5641.584f, 82.86708f)), owning_building_guid = 51)
       LocalObject(298, Door.Constructor(Vector3(3707.575f, 5641.584f, 92.86708f)), owning_building_guid = 51)
       LocalObject(299, Door.Constructor(Vector3(3707.575f, 5641.584f, 112.8671f)), owning_building_guid = 51)
@@ -1721,7 +1721,7 @@ object Map01 { // Solsar
 
     def Building41(): Unit = { // Name: E_Hossin_Warpgate_Tower Type: tower_b GUID: 52, MapID: 41
       LocalBuilding("E_Hossin_Warpgate_Tower", 52, 41, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4484f, 7294f, 61.76336f), Vector3(0f, 0f, 337f), tower_b)))
-      LocalObject(1889, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 52)
+      LocalObject(1889, CaptureTerminal.Constructor(Vector3(4499.228f, 7287.424f, 81.76236f), secondary_capture), owning_building_guid = 52)
       LocalObject(365, Door.Constructor(Vector3(4491.92f, 7281.947f, 63.28336f)), owning_building_guid = 52)
       LocalObject(366, Door.Constructor(Vector3(4491.92f, 7281.947f, 73.28336f)), owning_building_guid = 52)
       LocalObject(367, Door.Constructor(Vector3(4491.92f, 7281.947f, 93.28336f)), owning_building_guid = 52)
@@ -1758,7 +1758,7 @@ object Map01 { // Solsar
 
     def Building18(): Unit = { // Name: N_Hapi_Tower Type: tower_b GUID: 53, MapID: 18
       LocalBuilding("N_Hapi_Tower", 53, 18, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4494f, 4884f, 74.691f), Vector3(0f, 0f, 5f), tower_b)))
-      LocalObject(1890, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 53)
+      LocalObject(1890, CaptureTerminal.Constructor(Vector3(4510.533f, 4885.343f, 94.69f), secondary_capture), owning_building_guid = 53)
       LocalObject(378, Door.Constructor(Vector3(4505.257f, 4893.016f, 76.211f)), owning_building_guid = 53)
       LocalObject(379, Door.Constructor(Vector3(4505.257f, 4893.016f, 86.211f)), owning_building_guid = 53)
       LocalObject(380, Door.Constructor(Vector3(4505.257f, 4893.016f, 106.211f)), owning_building_guid = 53)
@@ -1795,7 +1795,7 @@ object Map01 { // Solsar
 
     def Building15(): Unit = { // Name: S_Amun_Tower Type: tower_b GUID: 54, MapID: 15
       LocalBuilding("S_Amun_Tower", 54, 15, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4500f, 1912f, 76.47633f), Vector3(0f, 0f, 12f), tower_b)))
-      LocalObject(1891, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 54)
+      LocalObject(1891, CaptureTerminal.Constructor(Vector3(4516.246f, 1915.348f, 96.47533f), secondary_capture), owning_building_guid = 54)
       LocalObject(384, Door.Constructor(Vector3(4510.075f, 1922.32f, 77.99633f)), owning_building_guid = 54)
       LocalObject(385, Door.Constructor(Vector3(4510.075f, 1922.32f, 87.99634f)), owning_building_guid = 54)
       LocalObject(386, Door.Constructor(Vector3(4510.075f, 1922.32f, 107.9963f)), owning_building_guid = 54)
@@ -1832,7 +1832,7 @@ object Map01 { // Solsar
 
     def Building39(): Unit = { // Name: E_Forseral_Warpgate_Tower Type: tower_c GUID: 55, MapID: 39
       LocalBuilding("E_Forseral_Warpgate_Tower", 55, 39, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2826f, 5330f, 175.1091f), Vector3(0f, 0f, 346f), tower_c)))
-      LocalObject(1878, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 55)
+      LocalObject(1878, CaptureTerminal.Constructor(Vector3(2842.069f, 5325.887f, 185.1081f), secondary_capture), owning_building_guid = 55)
       LocalObject(226, Door.Constructor(Vector3(2835.708f, 5319.334f, 176.6301f)), owning_building_guid = 55)
       LocalObject(227, Door.Constructor(Vector3(2835.708f, 5319.334f, 196.6291f)), owning_building_guid = 55)
       LocalObject(228, Door.Constructor(Vector3(2839.579f, 5334.859f, 176.6301f)), owning_building_guid = 55)
@@ -1873,7 +1873,7 @@ object Map01 { // Solsar
 
     def Building23(): Unit = { // Name: NW_Mont_Tower Type: tower_c GUID: 56, MapID: 23
       LocalBuilding("NW_Mont_Tower", 56, 23, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3190f, 4412f, 105.591f), Vector3(0f, 0f, 323f), tower_c)))
-      LocalObject(1882, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 56)
+      LocalObject(1882, CaptureTerminal.Constructor(Vector3(3203.185f, 4401.936f, 115.59f), secondary_capture), owning_building_guid = 56)
       LocalObject(264, Door.Constructor(Vector3(3194.769f, 4398.389f, 107.112f)), owning_building_guid = 56)
       LocalObject(265, Door.Constructor(Vector3(3194.769f, 4398.389f, 127.111f)), owning_building_guid = 56)
       LocalObject(266, Door.Constructor(Vector3(3204.398f, 4411.167f, 107.112f)), owning_building_guid = 56)
@@ -1914,7 +1914,7 @@ object Map01 { // Solsar
 
     def Building42(): Unit = { // Name: E_Amerish_Warpgate_Tower Type: tower_c GUID: 57, MapID: 42
       LocalBuilding("E_Amerish_Warpgate_Tower", 57, 42, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4058f, 1262f, 68.20887f), Vector3(0f, 0f, 28f), tower_c)))
-      LocalObject(1886, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 57)
+      LocalObject(1886, CaptureTerminal.Constructor(Vector3(4072.694f, 1269.696f, 78.20787f), secondary_capture), owning_building_guid = 57)
       LocalObject(324, Door.Constructor(Vector3(4064.84f, 1274.697f, 69.72987f)), owning_building_guid = 57)
       LocalObject(325, Door.Constructor(Vector3(4064.84f, 1274.697f, 89.72887f)), owning_building_guid = 57)
       LocalObject(326, Door.Constructor(Vector3(4072.351f, 1260.57f, 69.72987f)), owning_building_guid = 57)
@@ -1955,7 +1955,7 @@ object Map01 { // Solsar
 
     def Building19(): Unit = { // Name: NW_Seth_Tower Type: tower_c GUID: 58, MapID: 19
       LocalBuilding("NW_Seth_Tower", 58, 19, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4148f, 6224f, 93.21268f), Vector3(0f, 0f, 31f), tower_c)))
-      LocalObject(1887, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 58)
+      LocalObject(1887, CaptureTerminal.Constructor(Vector3(4162.271f, 6232.455f, 103.2117f), secondary_capture), owning_building_guid = 58)
       LocalObject(328, Door.Constructor(Vector3(4154.166f, 6237.038f, 94.73369f)), owning_building_guid = 58)
       LocalObject(329, Door.Constructor(Vector3(4154.166f, 6237.038f, 114.7327f)), owning_building_guid = 58)
       LocalObject(330, Door.Constructor(Vector3(4162.406f, 6223.323f, 94.73369f)), owning_building_guid = 58)
@@ -1996,7 +1996,7 @@ object Map01 { // Solsar
 
     def Building16(): Unit = { // Name: E_Amun_Tower Type: tower_c GUID: 59, MapID: 16
       LocalBuilding("E_Amun_Tower", 59, 16, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5080f, 1796f, 76.71438f), Vector3(0f, 0f, 35f), tower_c)))
-      LocalObject(1893, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 59)
+      LocalObject(1893, CaptureTerminal.Constructor(Vector3(5093.646f, 1805.43f, 86.71338f), secondary_capture), owning_building_guid = 59)
       LocalObject(416, Door.Constructor(Vector3(5085.241f, 1809.436f, 78.23538f)), owning_building_guid = 59)
       LocalObject(417, Door.Constructor(Vector3(5085.241f, 1809.436f, 98.23438f)), owning_building_guid = 59)
       LocalObject(418, Door.Constructor(Vector3(5094.418f, 1796.33f, 78.23538f)), owning_building_guid = 59)
@@ -2037,7 +2037,7 @@ object Map01 { // Solsar
 
     def Building40(): Unit = { // Name: N_Bastet_Tower Type: tower_c GUID: 60, MapID: 40
       LocalBuilding("N_Bastet_Tower", 60, 40, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5514f, 5964f, 52.92538f), Vector3(0f, 0f, 353f), tower_c)))
-      LocalObject(1894, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 60)
+      LocalObject(1894, CaptureTerminal.Constructor(Vector3(5530.451f, 5961.876f, 62.92439f), secondary_capture), owning_building_guid = 60)
       LocalObject(437, Door.Constructor(Vector3(5524.936f, 5954.597f, 54.44638f)), owning_building_guid = 60)
       LocalObject(438, Door.Constructor(Vector3(5524.936f, 5954.597f, 74.44539f)), owning_building_guid = 60)
       LocalObject(439, Door.Constructor(Vector3(5526.886f, 5970.478f, 54.44638f)), owning_building_guid = 60)
