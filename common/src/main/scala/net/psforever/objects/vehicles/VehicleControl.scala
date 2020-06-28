@@ -26,7 +26,7 @@ import net.psforever.types.{DriveState, ExoSuitType, PlanetSideGUID, Vector3}
 import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.local.{LocalAction, LocalServiceMessage}
-import services.vehicle.{VehicleAction, VehicleServiceMessage}
+import services.vehicle.{VehicleAction, VehicleService, VehicleServiceMessage}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -274,6 +274,8 @@ class VehicleControl(vehicle: Vehicle)
     val zone   = vehicle.Zone
     val zoneId = zone.Id
     val events = zone.VehicleEvents
+    //miscellaneous changes
+    VehicleService.BeforeUnloadVehicle(vehicle, zone)
     //become disabled
     context.become(Disabled)
     //cancel jammed behavior
@@ -322,23 +324,21 @@ class VehicleControl(vehicle: Vehicle)
     events ! VehicleServiceMessage.Decon(RemoverActor.AddTask(vehicle, zone, Some(0 seconds)))
     //banished to the shadow realm
     vehicle.Position = Vector3.Zero
-    vehicle.DeploymentState = DriveState.Mobile
     //queue final deletion
     decayTimer = context.system.scheduler.scheduleOnce(5 seconds, self, VehicleControl.Deletion())
   }
 
-  def Disabled: Receive =
-    checkBehavior
-      .orElse {
-        case VehicleControl.Deletion() =>
-          val zone = vehicle.Zone
-          zone.VehicleEvents ! VehicleServiceMessage(
-            zone.Id,
-            VehicleAction.UnloadVehicle(Service.defaultPlayerGUID, zone, vehicle, vehicle.GUID)
-          )
-          zone.Transport ! Zone.Vehicle.Despawn(vehicle)
-        case _ =>
-      }
+  def Disabled : Receive = checkBehavior
+    .orElse {
+      case msg @ Deployment.TryUndeploy =>
+        deployBehavior.apply(msg)
+
+      case VehicleControl.Deletion() =>
+        val zone = vehicle.Zone
+        zone.VehicleEvents ! VehicleServiceMessage(zone.Id, VehicleAction.UnloadVehicle(Service.defaultPlayerGUID, zone, vehicle, vehicle.GUID))
+        zone.Transport ! Zone.Vehicle.Despawn(vehicle)
+      case _ =>
+    }
 
   override def TryJammerEffectActivate(target: Any, cause: ResolvedProjectile): Unit = {
     if (vehicle.MountedIn.isEmpty) {
@@ -506,7 +506,6 @@ class VehicleControl(vehicle: Vehicle)
       case vehicle : Vehicle =>
         val guid = vehicle.GUID
         val zone = vehicle.Zone
-        val zoneChannel = zone.Id
         val GUID0 = Service.defaultPlayerGUID
         val driverChannel = vehicle.Seats(0).Occupant match {
           case Some(tplayer) => tplayer.Name
@@ -525,33 +524,19 @@ class VehicleControl(vehicle: Vehicle)
         }
         //ant
         else if(vehicle.Definition == GlobalDefinitions.ant) {
-          val events = zone.VehicleEvents
           state match {
             case DriveState.Undeploying =>
-              TryStopDischarging(vehicle)
+              TryStopChargingEvent(vehicle)
             case _ => ;
           }
         }
         //router
         else if(vehicle.Definition == GlobalDefinitions.router) {
-          val events = zone.LocalEvents
           state match {
             case DriveState.Undeploying =>
               //deactivate internal router before trying to reset the system
-              vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
-                case Some(util : Utility.InternalTelepad) =>
-                  //any telepads linked with internal mechanism must be deconstructed
-                  zone.GUID(util.Telepad) match {
-                    case Some(telepad : TelepadDeployable) =>
-                      events ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(telepad), zone))
-                      events ! LocalServiceMessage.Deployables(RemoverActor.AddTask(telepad, zone, Some(0 milliseconds)))
-                    case Some(_) | None => ;
-                  }
-                  util.Active = false
-                  events ! LocalServiceMessage(zoneChannel, LocalAction.ToggleTeleportSystem(GUID0, vehicle, None))
-                case _ =>
-                //log.warn(s"DeploymentActivities: could not find internal telepad in router@${vehicle.GUID.guid} while $state")
-              }
+              VehicleService.RemoveTelepads(vehicle, zone)
+              zone.LocalEvents ! LocalServiceMessage(zone.Id, LocalAction.ToggleTeleportSystem(GUID0, vehicle, None))
             case _ => ;
           }
         }

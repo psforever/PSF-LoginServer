@@ -4,6 +4,7 @@ package services.vehicle
 import akka.actor.{Actor, ActorRef, Props}
 import net.psforever.objects.{GlobalDefinitions, TelepadDeployable, Vehicle}
 import net.psforever.objects.ballistics.VehicleSource
+import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.terminals.{MedicalTerminalDefinition, ProximityUnit}
 import net.psforever.objects.vehicles.{Utility, UtilityType}
@@ -414,9 +415,11 @@ object VehicleService {
   def BeforeUnloadVehicle(vehicle: Vehicle, zone: Zone): Unit = {
     vehicle.Definition match {
       case GlobalDefinitions.ams =>
-        zone.VehicleEvents ! VehicleServiceMessage.AMSDeploymentChange(zone)
+        vehicle.Actor ! Deployment.TryUndeploy(DriveState.Undeploying)
+      case GlobalDefinitions.ant =>
+        vehicle.Actor ! Deployment.TryUndeploy(DriveState.Undeploying)
       case GlobalDefinitions.router =>
-        RemoveTelepads(vehicle, zone)
+        vehicle.Actor ! Deployment.TryUndeploy(DriveState.Undeploying)
       case _ => ;
     }
   }
@@ -431,6 +434,7 @@ object VehicleService {
         None
     }) match {
       case Some(telepad: TelepadDeployable) =>
+        //any telepads linked with internal mechanism must be deconstructed
         telepad.Active = false
         zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(telepad), zone))
         zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(telepad, zone, Some(0 seconds)))

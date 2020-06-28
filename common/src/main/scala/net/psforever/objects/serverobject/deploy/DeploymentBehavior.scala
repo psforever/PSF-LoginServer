@@ -25,40 +25,55 @@ trait DeploymentBehavior {
 
   val deployBehavior: Receive = {
     case Deployment.TryDeploymentChange(state) =>
-      val obj = DeploymentObject
-      val prevState = obj.DeploymentState
-      if(TryDeploymentChange(obj, state)) {
-        if(Deployment.CheckForDeployState(state)) {
-          DeploymentAction(obj, state, prevState)
-          sender ! Deployment.CanDeploy(obj, state)
-        }
-        else {
-          UndeploymentAction(obj, state, prevState)
-          sender ! Deployment.CanUndeploy(obj, state)
-        }
-      } else {
-        sender ! Deployment.CanNotChangeDeployment(obj, state, "incorrect transition state")
-      }
+      sender ! TryDeploymentStateChange(state)
 
     case Deployment.TryDeploy(state) =>
-      val obj = DeploymentObject
-      val prevState = obj.DeploymentState
-      if(Deployment.CheckForDeployState(state) && TryDeploymentChange(obj, state)) {
-        DeploymentAction(obj, state, prevState)
-        sender ! Deployment.CanDeploy(obj, state)
-      } else {
-        sender ! Deployment.CanNotChangeDeployment(obj, state, "incorrect deploy transition state")
-      }
+      sender ! TryDeployStateChange(state)
 
     case Deployment.TryUndeploy(state) =>
-      val obj = DeploymentObject
-      val prevState = obj.DeploymentState
-      if(Deployment.CheckForUndeployState(state) && TryUndeploymentChange(obj, state)) {
-        UndeploymentAction(obj, state, prevState)
-        sender ! Deployment.CanUndeploy(obj, state)
-      } else {
-        sender ! Deployment.CanNotChangeDeployment(obj, state, "incorrect undeploy transition state")
+      sender ! TryUndeployStateChange(state)
+  }
+
+  def TryDeploymentStateChange(state : DriveState.Value) : Any = {
+    val obj = DeploymentObject
+    val prevState = obj.DeploymentState
+    if(TryDeploymentChange(obj, state)) {
+      if(Deployment.CheckForDeployState(state)) {
+        DeploymentAction(obj, state, prevState)
+        Deployment.CanDeploy(obj, state)
       }
+      else {
+        UndeploymentAction(obj, state, prevState)
+        Deployment.CanUndeploy(obj, state)
+      }
+    }
+    else {
+      Deployment.CanNotChangeDeployment(obj, state, "incorrect transition state")
+    }
+  }
+
+  def TryDeployStateChange(state : DriveState.Value) : Any = {
+    val obj = DeploymentObject
+    val prevState = obj.DeploymentState
+    if(Deployment.CheckForDeployState(state) && TryDeploymentChange(obj, state)) {
+      DeploymentAction(obj, state, prevState)
+      Deployment.CanDeploy(obj, state)
+    }
+    else {
+      Deployment.CanNotChangeDeployment(obj, state, "incorrect deploy transition state")
+    }
+  }
+
+  def TryUndeployStateChange(state : DriveState.Value) : Any = {
+    val obj = DeploymentObject
+    val prevState = obj.DeploymentState
+    if(Deployment.CheckForUndeployState(state) && TryUndeploymentChange(obj, state)) {
+      UndeploymentAction(obj, state, prevState)
+      Deployment.CanUndeploy(obj, state)
+    }
+    else {
+      Deployment.CanNotChangeDeployment(obj, state, "incorrect undeploy transition state")
+    }
   }
 
   def TryDeploymentChange(obj : Deployment.DeploymentObject, state : DriveState.Value) : Boolean = {
