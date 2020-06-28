@@ -3730,7 +3730,6 @@ class WorldSessionActor extends Actor
 
           // ANT capacitor
           if(vehicle.Definition.MaxNtuCapacitor > 0) {
-            log.warn(vehicle.NtuCapacitorScaled)
             sendResponse(PlanetsideAttributeMessage(vguid, 45, vehicle.NtuCapacitorScaled)) // set ntu on vehicle UI
           }
         case _ => ; //no vehicle
