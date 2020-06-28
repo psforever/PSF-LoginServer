@@ -1973,7 +1973,16 @@ class WorldSessionActor extends Actor
 
       case AvatarResponse.WeaponDryFire(weapon_guid) =>
         if(tplayer_guid != guid) {
-          sendResponse(WeaponDryFireMessage(weapon_guid))
+          // Check that the magazine is still empty before sending WeaponDryFireMessage
+          // As it could have been reloaded since the packet was dispatched, which would make other clients not see it firing
+          continent.GUID(weapon_guid) match {
+            case Some(tool : Tool) => {
+              if(tool.Magazine == 0) {
+                sendResponse(WeaponDryFireMessage(weapon_guid))
+              }
+            }
+            case _ => log.warn(s"Tried to send WeaponDryFire but GUID ${weapon_guid} does not seem to be a Tool")
+          }
         }
 
       case AvatarResponse.TerminalOrderResult(terminal_guid, action, result) =>
