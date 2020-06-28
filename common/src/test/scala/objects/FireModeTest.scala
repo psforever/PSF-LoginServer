@@ -58,10 +58,10 @@ class FireModeTest extends Specification {
       obj.FireMode.Chamber mustEqual 1
 
       obj.Magazine mustEqual 16
-      obj.Discharge
+      obj.Discharge()
       obj.Magazine mustEqual 15
-      obj.Discharge
-      obj.Discharge
+      obj.Discharge()
+      obj.Discharge()
       obj.Magazine mustEqual 13
     }
   }
@@ -84,17 +84,17 @@ class FireModeTest extends Specification {
       obj.FireMode.Chamber mustEqual 8
 
       obj.Magazine mustEqual 12
-      obj.Discharge //1
+      obj.Discharge() //1
       obj.Magazine mustEqual 12
-      obj.Discharge //2
-      obj.Discharge //3
+      obj.Discharge() //2
+      obj.Discharge() //3
       obj.Magazine mustEqual 12
-      obj.Discharge //4
-      obj.Discharge //5
-      obj.Discharge //6
-      obj.Discharge //7
+      obj.Discharge() //4
+      obj.Discharge() //5
+      obj.Discharge() //6
+      obj.Discharge() //7
       obj.Magazine mustEqual 12
-      obj.Discharge //8
+      obj.Discharge() //8
       obj.Magazine mustEqual 11
     }
   }
@@ -117,10 +117,10 @@ class FireModeTest extends Specification {
       obj.FireMode.Chamber mustEqual 1
 
       obj.Magazine mustEqual 1
-      obj.Discharge
+      obj.Discharge()
       obj.Magazine mustEqual 1
-      obj.Discharge
-      obj.Discharge
+      obj.Discharge()
+      obj.Discharge()
       obj.Magazine mustEqual 1
     }
   }

@@ -83,10 +83,15 @@ class FireModeDefinition {
   /**
     * Shoot a weapon, remove an anticipated amount of ammunition.
     * @param weapon the weapon
+    * @param rounds The number of rounds to remove, if specified
     * @return the size of the weapon's magazine after discharge
     */
-  def Discharge(weapon : Tool) : Int = {
-    weapon.Magazine - Rounds
+  def Discharge(weapon : Tool, rounds : Option[Int] = None) : Int = {
+    val dischargedAmount = rounds match {
+      case Some(rounds : Int) => rounds
+      case _ => Rounds
+    }
+    weapon.Magazine - dischargedAmount
   }
 }
 
@@ -100,7 +105,7 @@ class PelletFireModeDefinition extends FireModeDefinition {
     * @param weapon the weapon
     * @return the size of the weapon's magazine after discharge
     */
-  override def Discharge(weapon : Tool) : Int = {
+  override def Discharge(weapon : Tool, rounds : Option[Int] = None) : Int = {
     val ammoSlot = weapon.AmmoSlot
     val magazine = weapon.Magazine
     val chamber : Int = ammoSlot.Chamber = ammoSlot.Chamber - 1
@@ -128,7 +133,7 @@ class InfiniteFireModeDefinition extends FireModeDefinition {
     * @return the size of the weapon's magazine after discharge;
     *         will always return 1
     */
-  override def Discharge(weapon : Tool) : Int = 1
+  override def Discharge(weapon : Tool, rounds : Option[Int] = None) : Int = 1
 }
 
 class DamageModifiers extends DamageProfile {

@@ -308,10 +308,10 @@ class EquipmentTest extends Specification {
     "discharge (1)" in {
       val obj = Tool(GlobalDefinitions.punisher)
       obj.Magazine mustEqual 30
-      obj.Discharge
+      obj.Discharge()
       obj.Magazine mustEqual 29
-      obj.Discharge
-      obj.Discharge
+      obj.Discharge()
+      obj.Discharge()
       obj.Magazine mustEqual 27
     }
 
@@ -320,20 +320,20 @@ class EquipmentTest extends Specification {
       obj.Magazine mustEqual 12
       obj.AmmoSlot.Chamber mustEqual 8
 
-      obj.Discharge
+      obj.Discharge()
       obj.Magazine mustEqual 12
       obj.AmmoSlot.Chamber mustEqual 7
-      obj.Discharge
-      obj.Discharge
+      obj.Discharge()
+      obj.Discharge()
       obj.Magazine mustEqual 12
       obj.AmmoSlot.Chamber mustEqual 5
-      obj.Discharge
-      obj.Discharge
-      obj.Discharge
-      obj.Discharge
+      obj.Discharge()
+      obj.Discharge()
+      obj.Discharge()
+      obj.Discharge()
       obj.Magazine mustEqual 12
       obj.AmmoSlot.Chamber mustEqual 1
-      obj.Discharge
+      obj.Discharge()
       obj.Magazine mustEqual 11
       obj.AmmoSlot.Chamber mustEqual 8
     }
