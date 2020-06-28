@@ -3545,13 +3545,11 @@ class WorldSessionActor extends Actor
       continent.VehicleEvents ! Service.Join(avatar.name)
       continent.VehicleEvents ! Service.Join(continentId)
       continent.VehicleEvents ! Service.Join(factionChannel)
-      //zone config
-      StartBundlingPackets()
       if(connectionState != 100) configZone(continent)
       sendResponse(TimeOfDayMessage(1191182336))
+      //custom
       sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty)) //clear squad list
       sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 0)) // disable festive backpacks
-      StopBundlingPackets()
 
       //find and reclaim own deployables, if any
       val guid = player.GUID
