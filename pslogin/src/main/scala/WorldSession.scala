@@ -18,6 +18,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.implicitConversions
+import scala.util.{Success, Failure}
 
 object WorldSession {
   /**
@@ -52,7 +53,7 @@ object WorldSession {
     val localItem = item
     val result = ask(localContainer.Actor, Containable.PutItemAway(localItem))
     result.onComplete {
-      case scala.util.Failure(_) | scala.util.Success(_ : Containable.CanNotPutItemInSlot) =>
+      case Failure(_) | Success(_ : Containable.CanNotPutItemInSlot) =>
         localContainer.Zone.Ground.tell(Zone.Ground.DropItem(localItem, localContainer.Position, Vector3.z(localContainer.Orientation.z)), localContainer.Actor)
       case _ => ;
     }
@@ -84,7 +85,7 @@ object WorldSession {
 
         def Execute(resolver : ActorRef) : Unit = {
           PutEquipmentInInventoryOrDrop(localContainer)(localItem)
-          resolver ! scala.util.Success(this)
+          resolver ! Success(this)
         }
       },
       List(GUIDTask.RegisterEquipment(item)(localZone.GUID))
@@ -119,7 +120,7 @@ object WorldSession {
     val localResolver = taskResolver
     val result = ask(localContainer.Actor, Containable.PutItemInSlotOnly(localItem, slot))
     result.onComplete {
-      case scala.util.Failure(_) | scala.util.Success(_ : Containable.CanNotPutItemInSlot) =>
+      case Failure(_) | Success(_ : Containable.CanNotPutItemInSlot) =>
         localResolver ! GUIDTask.UnregisterEquipment(localItem)(localContainer.Zone.GUID)
       case _ => ;
     }
@@ -164,7 +165,7 @@ object WorldSession {
 
         def Execute(resolver : ActorRef) : Unit = {
           localFunc(localItem, localSlot)
-          resolver ! scala.util.Success(this)
+          resolver ! Success(this)
         }
       },
       List(GUIDTask.RegisterEquipment(item)(localZone.GUID))
@@ -218,14 +219,14 @@ object WorldSession {
             localTermMsg
           )
             .onComplete {
-              case scala.util.Failure(_) | scala.util.Success(_ : Containable.CanNotPutItemInSlot) =>
+              case Failure(_) | Success(_ : Containable.CanNotPutItemInSlot) =>
                 if(localContainer != localPlayer) {
                   TerminalMessageOnTimeout(
                     PutEquipmentInInventorySlot(localPlayer, localResolver)(localItem, Player.FreeHandSlot),
                     localTermMsg
                   )
                     .onComplete {
-                      case scala.util.Failure(_) | scala.util.Success(_ : Containable.CanNotPutItemInSlot) =>
+                      case Failure(_) | Success(_ : Containable.CanNotPutItemInSlot) =>
                         localTermMsg(false)
                       case _ =>
                         localTermMsg(true)
@@ -238,7 +239,7 @@ object WorldSession {
               case _ =>
                 localTermMsg(true)
             }
-          resolver ! scala.util.Success(this)
+          resolver ! Success(this)
         }
       },
       List(GUIDTask.RegisterEquipment(item)(localZone.GUID))
@@ -297,7 +298,7 @@ object WorldSession {
           def Execute(resolver : ActorRef) : Unit = {
             ask(localPlayer.Actor, Containable.PutItemInSlotOnly(localItem, localSlot))
               .onComplete {
-                case scala.util.Failure(_) | scala.util.Success(_ : Containable.CanNotPutItemInSlot) =>
+                case Failure(_) | Success(_ : Containable.CanNotPutItemInSlot) =>
                   localResolver ! GUIDTask.UnregisterEquipment(localItem)(localZone.GUID)
                 case _ =>
                   if(localPlayer.DrawnSlot != Player.HandsDownSlot) {
@@ -312,7 +313,7 @@ object WorldSession {
                     AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectHeldMessage(localGUID, localSlot, false))
                   )
               }
-            resolver ! scala.util.Success(this)
+            resolver ! Success(this)
           }
         },
         List(GUIDTask.RegisterEquipment(item)(localZone.GUID))
@@ -348,9 +349,9 @@ object WorldSession {
     val localItem = item
     val future = ask(localZone.Ground, Zone.Ground.PickupItem(item.GUID))
     future.onComplete {
-      case scala.util.Success(Zone.Ground.ItemInHand(_)) =>
+      case Success(Zone.Ground.ItemInHand(_)) =>
         PutEquipmentInInventoryOrDrop(localContainer)(localItem)
-      case scala.util.Success(Zone.Ground.CanNotPickupItem(_, item_guid, _)) =>
+      case Success(Zone.Ground.CanNotPickupItem(_, item_guid, _)) =>
         localZone.GUID(item_guid) match {
           case Some(_) => ;
           case None => //acting on old data?
@@ -384,7 +385,7 @@ object WorldSession {
     val localPos = pos
     val result = ask(localContainer.Actor, Containable.RemoveItemFromSlot(localItem))
     result.onComplete {
-      case scala.util.Success(Containable.ItemFromSlot(_, Some(_), Some(_))) =>
+      case Success(Containable.ItemFromSlot(_, Some(_), Some(_))) =>
         localContainer.Zone.Ground.tell(Zone.Ground.DropItem(localItem, localPos.getOrElse(localContainer.Position), Vector3.z(localContainer.Orientation.z)), localContainer.Actor)
       case _ => ;
     }
@@ -412,7 +413,7 @@ object WorldSession {
     val localResolver = taskResolver
     val result = ask(localContainer.Actor, Containable.RemoveItemFromSlot(localItem))
     result.onComplete {
-      case scala.util.Success(Containable.ItemFromSlot(_, Some(_), Some(_))) =>
+      case Success(Containable.ItemFromSlot(_, Some(_), Some(_))) =>
         localResolver ! GUIDTask.UnregisterEquipment(localItem)(localContainer.Zone.GUID)
       case _ =>
     }
@@ -453,7 +454,7 @@ object WorldSession {
       localTermMsg
     )
     result.onComplete {
-      case scala.util.Success(Containable.ItemFromSlot(_, Some(item), Some(_))) =>
+      case Success(Containable.ItemFromSlot(_, Some(item), Some(_))) =>
         localResolver ! GUIDTask.UnregisterEquipment(item)(localContainer.Zone.GUID)
         localTermMsg(true)
       case _ =>

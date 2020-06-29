@@ -2,7 +2,7 @@
 package objects.guidtask
 
 import java.util.logging.LogManager
-
+import scala.util.Success
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.TestProbe
 import net.psforever.objects.entity.IdentifiableEntity
@@ -16,8 +16,8 @@ object GUIDTaskTest {
 
   class RegisterTestTask(probe : ActorRef) extends Task {
     def Execute(resolver : ActorRef) : Unit = {
-      probe ! scala.util.Success
-      resolver ! scala.util.Success(this)
+      probe ! Success
+      resolver ! Success(this)
     }
   }
 

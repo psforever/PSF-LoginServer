@@ -9,6 +9,7 @@ import net.psforever.types.Vector3
 import services.support.{SimilarityComparator, SupportActor, SupportActorCaseConversions}
 
 import scala.concurrent.duration._
+import scala.util.Success
 
 /**
   * The base class for a type of "destruction `Actor`" intended to be used for delaying object cleanup activity.
@@ -273,7 +274,7 @@ abstract class RemoverActor extends SupportActor[RemoverActor.Entry] {
         }
 
         def Execute(resolver : ActorRef) : Unit = {
-          resolver ! scala.util.Success(this)
+          resolver ! Success(this)
         }
 
         override def onFailure(ex : Throwable): Unit = {

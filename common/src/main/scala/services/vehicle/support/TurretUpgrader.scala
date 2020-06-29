@@ -14,6 +14,7 @@ import services.vehicle.{VehicleAction, VehicleServiceMessage}
 import services.{Service, ServiceManager}
 
 import scala.concurrent.duration._
+import scala.util.Success
 
 class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
   var task : Cancellable = Default.Cancellable
@@ -191,7 +192,7 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
         override def isComplete = Task.Resolution.Success
 
         def Execute(resolver : ActorRef) : Unit = {
-          resolver ! scala.util.Success(this)
+          resolver ! Success(this)
         }
 
         override def onSuccess() : Unit = {
@@ -209,7 +210,7 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
 
         def Execute(resolver : ActorRef) : Unit = {
           tasks.foreach { resolver ! _ }
-          resolver ! scala.util.Success(this)
+          resolver ! Success(this)
         }
       }, List(newBoxesTask)
     )

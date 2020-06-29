@@ -5958,7 +5958,7 @@ class WorldSessionActor extends Actor
 
         def Execute(resolver : ActorRef) : Unit = {
           log.info(s"Player $localPlayer is registered")
-          resolver ! scala.util.Success(this)
+          resolver ! Success(this)
           localAnnounce ! NewPlayerLoaded(localPlayer) //alerts WorldSessionActor
         }
 
@@ -5994,7 +5994,7 @@ class WorldSessionActor extends Actor
 
         def Execute(resolver : ActorRef) : Unit = {
           log.info(s"Player $localPlayer is registered")
-          resolver ! scala.util.Success(this)
+          resolver ! Success(this)
           localAnnounce ! PlayerLoaded(localPlayer) //alerts WorldSessionActor
         }
 
@@ -6030,7 +6030,7 @@ class WorldSessionActor extends Actor
 
         def Execute(resolver : ActorRef) : Unit = {
           log.info(s"Vehicle $localVehicle is registered")
-          resolver ! scala.util.Success(this)
+          resolver ! Success(this)
         }
       }, List(GUIDTask.RegisterVehicle(vehicle)(continent.GUID))
     )
@@ -6085,7 +6085,7 @@ class WorldSessionActor extends Actor
           localDriver.VehicleSeated = localVehicle.GUID
           Vehicles.Own(localVehicle, localDriver)
           localAnnounce ! PlayerLoaded(localDriver)
-          resolver ! scala.util.Success(this)
+          resolver ! Success(this)
         }
       }, List(GUIDTask.RegisterObjectTask(vehicle)(continent.GUID))
     )
@@ -6124,7 +6124,7 @@ class WorldSessionActor extends Actor
 
         def Execute(resolver : ActorRef) : Unit = {
           localPad ! VehicleSpawnPad.VehicleOrder(localPlayer, localVehicle)
-          resolver ! scala.util.Success(this)
+          resolver ! Success(this)
         }
       }, List(RegisterVehicle(obj)))
   }
@@ -6151,7 +6151,7 @@ class WorldSessionActor extends Actor
           localDriver.VehicleSeated = localVehicle.GUID
           Vehicles.Own(localVehicle, localDriver)
           localAnnounce ! NewPlayerLoaded(localDriver) //alerts WorldSessionActor
-          resolver ! scala.util.Success(this)
+          resolver ! Success(this)
         }
 
         override def onFailure(ex : Throwable) : Unit = {
@@ -6187,7 +6187,7 @@ class WorldSessionActor extends Actor
 
         def Execute(resolver : ActorRef) : Unit = {
           localAnnounce ! LoadedRemoteProjectile(globalProjectile.GUID, Some(globalProjectile))
-          resolver ! scala.util.Success(this)
+          resolver ! Success(this)
         }
       }, List(GUIDTask.RegisterObjectTask(obj)(continent.GUID))
     )
@@ -6211,7 +6211,7 @@ class WorldSessionActor extends Actor
         }
 
         def Execute(resolver : ActorRef) : Unit = {
-          resolver ! scala.util.Success(this)
+          resolver ! Success(this)
         }
       }, List(GUIDTask.UnregisterAvatar(driver)(continent.GUID), GUIDTask.UnregisterVehicle(obj)(continent.GUID)))
   }
@@ -6243,7 +6243,7 @@ class WorldSessionActor extends Actor
 
         def Execute(resolver : ActorRef) : Unit = {
           localAnnounce ! localMsg
-          resolver ! scala.util.Success(this)
+          resolver ! Success(this)
         }
       }, List(GUIDTask.UnregisterObjectTask(obj)(continent.GUID))
     )
@@ -6295,7 +6295,7 @@ class WorldSessionActor extends Actor
         def Execute(resolver : ActorRef) : Unit = {
           localZone.Population ! localAvatarMsg
           localService ! localServiceMsg
-          resolver ! scala.util.Success(this)
+          resolver ! Success(this)
         }
       }, List(priorTask)
     )
@@ -6312,7 +6312,7 @@ class WorldSessionActor extends Actor
 
         def Execute(resolver : ActorRef) : Unit = {
           destination ! passMsg
-          resolver ! scala.util.Success(this)
+          resolver ! Success(this)
         }
       }, List(task)
     )
@@ -6744,7 +6744,7 @@ class WorldSessionActor extends Actor
 
         def Execute(resolver : ActorRef) : Unit = {
           localFunc(localItem)
-          resolver ! scala.util.Success(this)
+          resolver ! Success(this)
         }
       }, List(GUIDTask.RegisterEquipment(item)(zone.GUID))
     )

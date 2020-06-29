@@ -171,7 +171,7 @@ trait Container {
 //            true
 //          case Success(_ :: Nil) => //one item to swap
 //            true
-//          case Success(_) | scala.util.Failure(_) =>
+//          case Success(_) | Failure(_) =>
 //            false //abort when too many items at destination or other failure case
 //        }
 //      }) {

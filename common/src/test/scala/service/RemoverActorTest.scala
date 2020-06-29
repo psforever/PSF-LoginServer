@@ -14,6 +14,7 @@ import net.psforever.types.PlanetSideGUID
 import services.{RemoverActor, ServiceManager}
 
 import scala.concurrent.duration._
+import scala.util.Success
 
 //class StandardRemoverActorTest extends ActorTest {
 //  ServiceManager.boot ! ServiceManager.Register(RandomPool(2).props(Props[TaskResolver]), "taskResolver")
@@ -539,7 +540,7 @@ object RemoverActorTest {
 
         def Execute(resolver : ActorRef) : Unit = {
           context.parent ! DeletionTaskRunAlert()
-          resolver ! scala.util.Success(this)
+          resolver ! Success(this)
         }
       })
     }
