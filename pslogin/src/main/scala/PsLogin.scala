@@ -32,18 +32,19 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import kamon.Kamon
 import services.properties.PropertyOverrideManager
+import org.flywaydb.core.Flyway
 
 object PsLogin {
   private val logger = org.log4s.getLogger
 
-  var args : Array[String] = Array()
-  implicit var system : ActorSystem = null
-  var loginRouter : Props = Props.empty
-  var worldRouter : Props = Props.empty
-  var loginListener : ActorRef = ActorRef.noSender
-  var worldListener : ActorRef = ActorRef.noSender
+  var args: Array[String] = Array()
+  implicit var system: ActorSystem = null
+  var loginRouter: Props = Props.empty
+  var worldRouter: Props = Props.empty
+  var loginListener: ActorRef = ActorRef.noSender
+  var worldListener: ActorRef = ActorRef.noSender
 
-  def banner() : Unit = {
+  def banner(): Unit = {
     println(ansi().fgBright(BLUE).a("""   ___  ________"""))
     println(ansi().fgBright(BLUE).a("""  / _ \/ __/ __/__  _______ _  _____ ____"""))
     println(ansi().fgBright(MAGENTA).a(""" / ___/\ \/ _// _ \/ __/ -_) |/ / -_) __/"""))
@@ -54,12 +55,11 @@ object PsLogin {
   }
 
   /** Grabs the most essential system information and returns it as a preformatted string */
-  def systemInformation : String = {
+  def systemInformation: String = {
     val procNum = Runtime.getRuntime.availableProcessors();
-    val processorString = if(procNum == 1) {
+    val processorString = if (procNum == 1) {
       "Detected 1 available logical processor"
-    }
-    else {
+    } else {
       s"Detected $procNum available logical processors"
     }
 
@@ -73,16 +73,18 @@ object PsLogin {
        |SYS: ${System.getProperty("os.name")} (v. ${System.getProperty("os.version")}, ${System.getProperty("os.arch")})
        |CPU: $processorString
        |MEM: ${maxMemory}MB available to the JVM (tune with -Xmx flag)
-       |JVM: ${System.getProperty("java.vm.name")} (build ${System.getProperty("java.version")}), ${System.getProperty("java.vendor")} - ${System.getProperty("java.vendor.url")}
+       |JVM: ${System.getProperty("java.vm.name")} (build ${System.getProperty("java.version")}), ${System.getProperty(
+      "java.vendor"
+    )} - ${System.getProperty("java.vendor.url")}
     """.stripMargin
   }
 
   /** Used to enumerate all of the Java properties. Used in testing only */
-  def enumerateAllProperties() : Unit = {
+  def enumerateAllProperties(): Unit = {
     val props = System.getProperties
     val enums = props.propertyNames()
 
-    while(enums.hasMoreElements) {
+    while (enums.hasMoreElements) {
       val key = enums.nextElement.toString
       System.out.println(key + " : " + props.getProperty(key))
     }
@@ -93,14 +95,14 @@ object PsLogin {
     * @param context SLF4J logger context
     * @return Boolean return true if context has errors
     */
-  def loggerHasErrors(context : LoggerContext) = {
+  def loggerHasErrors(context: LoggerContext) = {
     val statusUtil = new StatusUtil(context)
 
     statusUtil.getHighestLevel(0) >= Status.WARN
   }
 
   /** Loads the logging configuration and starts logging */
-  def initializeLogging(logfile : String) : Unit = {
+  def initializeLogging(logfile: String): Unit = {
     // assume SLF4J is bound to logback in the current environment
     val lc = slf4j.LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
 
@@ -111,19 +113,18 @@ object PsLogin {
       // reset any loaded settings
       lc.reset()
       configurator.doConfigure(logfile)
-    }
-    catch {
-      case _ : JoranException => ;
+    } catch {
+      case _: JoranException => ;
     }
 
-    if(loggerHasErrors(lc)) {
+    if (loggerHasErrors(lc)) {
       println("Loading log settings failed")
       StatusPrinter.printInCaseOfErrorsOrWarnings(lc)
       sys.exit(1)
     }
   }
 
-  def loadConfig(configDirectory : String) = {
+  def loadConfig(configDirectory: String) = {
     val worldConfigFile = configDirectory + File.separator + "worldserver.ini"
     // For fallback when no user-specific config file has been created
     val worldDefaultConfigFile = configDirectory + File.separator + "worldserver.ini.dist"
@@ -143,23 +144,22 @@ object PsLogin {
     WorldConfig.Load(worldConfigToLoad) match {
       case Valid =>
         println("Loaded world config from " + worldConfigToLoad)
-      case i : Invalid =>
+      case i: Invalid =>
         println("FATAL: Error loading config from " + worldConfigToLoad)
         println(WorldConfig.FormatErrors(i).mkString("\n"))
         sys.exit(1)
     }
   }
 
-  def parseArgs(args : Array[String]) : Unit = {
-    if(args.length == 1) {
-      LoginConfig.serverIpAddress = InetAddress.getByName(args{0})
-    }
-    else {
+  def parseArgs(args: Array[String]): Unit = {
+    if (args.length == 1) {
+      LoginConfig.serverIpAddress = InetAddress.getByName(args { 0 })
+    } else {
       LoginConfig.serverIpAddress = InetAddress.getLocalHost
     }
   }
 
-  def run() : Unit = {
+  def run(): Unit = {
     // Early start up
     banner()
     println(systemInformation)
@@ -169,7 +169,7 @@ object PsLogin {
     var configDirectory = "config"
 
     // This is defined when we are running from SBT pack
-    if(System.getProperty("prog.home") != null) {
+    if (System.getProperty("prog.home") != null) {
       configDirectory = System.getProperty("prog.home") + File.separator + "config"
     }
 
@@ -192,17 +192,20 @@ object PsLogin {
       logger.info("Initializing PSCrypto")
       CryptoInterface.initialize()
       logger.info("PSCrypto initialized")
-    }
-    catch {
-      case e : UnsatisfiedLinkError =>
+    } catch {
+      case e: UnsatisfiedLinkError =>
         logger.error("Unable to initialize " + CryptoInterface.libName)
-        logger.error(e)("This means that your PSCrypto version is out of date. Get the latest version from the README" +
-          " https://github.com/psforever/PSF-LoginServer#downloading-pscrypto")
+        logger.error(e)(
+          "This means that your PSCrypto version is out of date. Get the latest version from the README" +
+            " https://github.com/psforever/PSF-LoginServer#downloading-pscrypto"
+        )
         sys.exit(1)
-      case e : IllegalArgumentException =>
+      case e: IllegalArgumentException =>
         logger.error("Unable to initialize " + CryptoInterface.libName)
-        logger.error(e)("This means that your PSCrypto version is out of date. Get the latest version from the README" +
-          " https://github.com/psforever/PSF-LoginServer#downloading-pscrypto")
+        logger.error(e)(
+          "This means that your PSCrypto version is out of date. Get the latest version from the README" +
+            " https://github.com/psforever/PSF-LoginServer#downloading-pscrypto"
+        )
         sys.exit(1)
     }
 
@@ -211,10 +214,22 @@ object PsLogin {
       import scala.concurrent.ExecutionContext.Implicits.global
       Await.result(Database.ctx.executeQuery("SELECT 0"), 2 seconds)
     } catch {
-      case e : Throwable =>
+      case e: Throwable =>
         logger.error(s"Unable to connect to the database: ${e.getMessage}")
         sys.exit(1)
     }
+
+    logger.info("Running database migrations")
+    val flyway = Flyway
+      .configure()
+      .dataSource(
+        s"jdbc:postgresql://${WorldConfig.Get[String]("database.Hostname")}:${WorldConfig
+          .Get[Int]("database.Port")}/${WorldConfig.Get[String]("database.Database")}",
+        WorldConfig.Get[String]("database.Username"),
+        WorldConfig.Get[String]("database.Password")
+      )
+      .load();
+    flyway.migrate();
 
     WorldConfig.Get[Boolean]("kamon.Active") match {
       case true =>
@@ -231,6 +246,7 @@ object PsLogin {
     Default(system)
 
     logger.info("Starting actor pipelines")
+
     /** Create pipelines for the login and world servers
       *
       * The first node in the pipe is an Actor that handles the crypto for protecting packets.
@@ -255,7 +271,7 @@ object PsLogin {
     val worldServerPort = WorldConfig.Get[Int]("worldserver.ListeningPort")
     val psAdminPort = WorldConfig.Get[Int]("psadmin.ListeningPort")
 
-    val netSim : Option[NetworkSimulatorParameters] = WorldConfig.Get[Boolean]("developer.NetSim.Active") match {
+    val netSim: Option[NetworkSimulatorParameters] = WorldConfig.Get[Boolean]("developer.NetSim.Active") match {
       case true =>
         val params = NetworkSimulatorParameters(
           WorldConfig.Get[Float]("developer.NetSim.Loss"),
@@ -284,13 +300,23 @@ object PsLogin {
     serviceManager ! ServiceManager.Register(Props[PropertyOverrideManager], "propertyOverrideManager")
 
     logger.info("Initializing loginRouter & worldRouter")
+
     /** Create two actors for handling the login and world server endpoints */
     loginRouter = Props(new SessionRouter("Login", loginTemplate))
     worldRouter = Props(new SessionRouter("World", worldTemplate))
-    loginListener = system.actorOf(Props(new UdpListener(loginRouter, "login-session-router", LoginConfig.serverIpAddress, loginServerPort, netSim)), "login-udp-endpoint")
-    worldListener = system.actorOf(Props(new UdpListener(worldRouter, "world-session-router", LoginConfig.serverIpAddress, worldServerPort, netSim)), "world-udp-endpoint")
+    loginListener = system.actorOf(
+      Props(new UdpListener(loginRouter, "login-session-router", LoginConfig.serverIpAddress, loginServerPort, netSim)),
+      "login-udp-endpoint"
+    )
+    worldListener = system.actorOf(
+      Props(new UdpListener(worldRouter, "world-session-router", LoginConfig.serverIpAddress, worldServerPort, netSim)),
+      "world-udp-endpoint"
+    )
 
-    val adminListener = system.actorOf(Props(new TcpListener(classOf[PsAdminActor], "psadmin-client-", InetAddress.getLoopbackAddress, psAdminPort)), "psadmin-tcp-endpoint")
+    val adminListener = system.actorOf(
+      Props(new TcpListener(classOf[PsAdminActor], "psadmin-client-", InetAddress.getLoopbackAddress, psAdminPort)),
+      "psadmin-tcp-endpoint"
+    )
 
     logger.info(s"NOTE: Set client.ini to point to ${LoginConfig.serverIpAddress.getHostAddress}:$loginServerPort")
 
@@ -301,20 +327,46 @@ object PsLogin {
     }
   }
 
-  def createContinents() : List[Zone] = {
+  def createContinents(): List[Zone] = {
     import Zones._
     List(
       Zone.Nowhere,
-      z1, z2, z3, z4, z5, z6, z7, z8, z9, z10,
-      home1, tzshtr, tzdrtr, tzcotr,
-      home2, tzshnc, tzdrnc, tzconc,
-      home3, tzshvs, tzdrvs, tzcovs,
-      c1, c2, c3, c4, c5, c6,
-      i1, i2, i3, i4
+      z1,
+      z2,
+      z3,
+      z4,
+      z5,
+      z6,
+      z7,
+      z8,
+      z9,
+      z10,
+      home1,
+      tzshtr,
+      tzdrtr,
+      tzcotr,
+      home2,
+      tzshnc,
+      tzdrnc,
+      tzconc,
+      home3,
+      tzshvs,
+      tzdrvs,
+      tzcovs,
+      c1,
+      c2,
+      c3,
+      c4,
+      c5,
+      c6,
+      i1,
+      i2,
+      i3,
+      i4
     )
   }
 
-  def main(args : Array[String]) : Unit = {
+  def main(args: Array[String]): Unit = {
     Locale.setDefault(Locale.US); // to have floats with dots, not comma...
     this.args = args
     run()

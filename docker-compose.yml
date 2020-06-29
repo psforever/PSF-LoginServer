@@ -28,8 +28,6 @@ services:
       - 51010:8080
   db:
     image: postgres
-    volumes:
-      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql:z
     environment:
       POSTGRES_USER: psforever
       POSTGRES_PASSWORD: psforever
