@@ -3225,6 +3225,17 @@ class WorldSessionActor extends Actor
           vehicle.Actor ! JammableUnit.ClearJammeredStatus()
           vehicle.Actor ! JammableUnit.ClearJammeredSound()
         }
+
+        //positive shield strength
+        if(vehicle.Shields > 0) {
+          sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 68, vehicle.Shields))
+        }
+
+        // ANT capacitor
+        if(vehicle.Definition.MaxNtuCapacitor > 0) {
+          sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, vehicle.NtuCapacitorScaled)) // set ntu on vehicle UI
+        }
+
         LoadZoneTransferPassengerMessages(
           guid,
           continent.Id,
@@ -3721,16 +3732,6 @@ class WorldSessionActor extends Actor
           //since we would have only subscribed recently, we need to reload seat access states
           (0 to 3).foreach { group =>
             sendResponse(PlanetsideAttributeMessage(vguid, group + 10, vehicle.PermissionGroup(group).get.id))
-          }
-
-          //positive shield strength
-          if(vehicle.Shields > 0) {
-            sendResponse(PlanetsideAttributeMessage(vguid, 68, vehicle.Shields))
-          }
-
-          // ANT capacitor
-          if(vehicle.Definition.MaxNtuCapacitor > 0) {
-            sendResponse(PlanetsideAttributeMessage(vguid, 45, vehicle.NtuCapacitorScaled)) // set ntu on vehicle UI
           }
         case _ => ; //no vehicle
       }
