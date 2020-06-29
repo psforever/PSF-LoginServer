@@ -3,8 +3,6 @@
 import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
 import akka.pattern.ask
 import akka.util.Timeout
-import com.github.mauricio.async.db.general.ArrayRowData
-import com.github.mauricio.async.db.{Connection, QueryResult}
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import org.log4s.{Logger, MDC}
@@ -13,9 +11,10 @@ import scala.collection.mutable.LongMap
 import scala.concurrent.{Await, Future, Promise}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.Success
+import scala.util.{Success, Failure}
 import scodec.bits.ByteVector
 import services.properties.PropertyOverrideManager
+import org.joda.time.{LocalDateTime, Period}
 //project imports
 import csr.{CSRWarp, CSRZone, Traveler}
 import MDCContextAware.Implicits._
@@ -62,6 +61,7 @@ import net.psforever.packet.control._
 import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate.{ConstructorData, DetailedCharacterData, DroppedItemData, ObjectClass, ObjectCreateMessageParent, PlacementData}
 import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo}
+import net.psforever.persistence
 import net.psforever.types._
 import net.psforever.WorldConfig
 import services.{RemoverActor, Service, ServiceManager}
@@ -75,6 +75,7 @@ import services.ServiceManager.LookupResult
 import services.support.SupportActor
 import services.teamwork.{SquadResponse, SquadService, SquadServiceMessage, SquadServiceResponse, SquadAction => SquadServiceAction}
 import services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
+import Database._
 
 class WorldSessionActor extends Actor
   with MDCContextAware {
@@ -689,113 +690,58 @@ class WorldSessionActor extends Actor
       }
 
     case CreateCharacter(name, head, voice, gender, empire) =>
-      log.info(s"Creating new character $name...")
-      Database.getConnection.connect.onComplete {
-        case scala.util.Success(connection) =>
-          val accountUserName : String = account.Username
-          connection.inTransaction {
-            c =>
-              c.sendPreparedStatement(
-                "INSERT INTO characters (name, account_id, faction_id, gender_id, head_id, voice_id) VALUES(?,?,?,?,?,?) RETURNING id",
-                List(name, account.AccountId, empire.id, gender.id, head, voice.id)
-              )
-          }.onComplete {
-            case scala.util.Success(insertResult) =>
-              if(connection.isConnected) connection.disconnect
-              insertResult match {
-                case result : QueryResult =>
-                  if(result.rows.nonEmpty) {
-                    log.info(s"CreateCharacter: successfully created new character for $accountUserName")
-                    sendResponse(ActionResultMessage.Pass)
-                    self ! ListAccountCharacters()
-                  }
-                  else {
-                    log.error(s"CreateCharacter: new character for $accountUserName was not created")
-                    sendResponse(ActionResultMessage.Fail(0))
-                    self ! ListAccountCharacters()
-                  }
-                case e =>
-                  log.error(s"CreateCharacter: unexpected error while creating new character for $accountUserName")
-                  sendResponse(ActionResultMessage.Fail(3))
-                  self ! ListAccountCharacters()
-              }
-            case scala.util.Failure(e) =>
-              if(connection.isConnected) connection.disconnect
-              failWithError(s"CreateCharacter: query failed - ${e.getMessage}")
-          }
-        case scala.util.Failure(e) =>
-          log.error(s"CreateCharacter: no connection - ${e.getMessage}?")
+      import ctx._
+      log.info(s"Creating new character $name")
+
+      val result = ctx.run(query[persistence.Character].insert(_.name -> lift(name), _.accountId -> lift(account.AccountId), _.factionId -> lift(empire.id), _.headId -> lift(head), _.voiceId -> lift(voice.id), _.genderId -> lift(gender.id)))
+      result.onComplete {
+        case Success(_) =>
+          log.info(s"CreateCharacter: successfully created new character for ${account.Username}")
+          sendResponse(ActionResultMessage.Pass)
+          self ! ListAccountCharacters()
+        case Failure(e) =>
+          failWithError(s"CreateCharacter: query failed - ${e.getMessage}")
       }
 
     case ListAccountCharacters() =>
-      Database.getConnection.connect.onComplete {
-        case scala.util.Success(connection) =>
-          val accountUserName : String = account.Username
-          connection.sendPreparedStatement(
-            "SELECT id, name, faction_id, gender_id, head_id, voice_id, deleted, last_login FROM characters where account_id=? ORDER BY last_login", Array(account.AccountId).toIndexedSeq
-          ).onComplete {
-            case scala.util.Success(result : QueryResult) =>
-              if(connection.isConnected) connection.disconnect
-              if(result.rows.nonEmpty) {
-                import net.psforever.objects.definition.converter.CharacterSelectConverter
-                val gen : AtomicInteger = new AtomicInteger(1)
-                val converter : CharacterSelectConverter = new CharacterSelectConverter
-                result.rows foreach { row =>
-                  log.trace(s"char list : ${row.toString()}")
-                  val nowTimeInSeconds = System.currentTimeMillis() / 1000
-                  var avatarArray : Array[Avatar] = Array.ofDim(row.length)
-                  var playerArray : Array[Player] = Array.ofDim(row.length)
-                  row.zipWithIndex.foreach { case (value, i) =>
-                    val lName : String = value(1).asInstanceOf[String]
-                    val lFaction : PlanetSideEmpire.Value = PlanetSideEmpire(value(2).asInstanceOf[Int])
-                    val lGender : CharacterGender.Value = CharacterGender(value(3).asInstanceOf[Int])
-                    val lHead : Int = value(4).asInstanceOf[Int]
-                    val lVoice : CharacterVoice.Value = CharacterVoice(value(5).asInstanceOf[Int])
-                    val lDeleted : Boolean = value(6).asInstanceOf[Boolean]
-                    val lTime = value(7).asInstanceOf[org.joda.time.LocalDateTime].toDateTime().getMillis() / 1000
-                    val secondsSinceLastLogin = nowTimeInSeconds - lTime
-                    if(!lDeleted) {
-                      avatarArray(i) = new Avatar(value(0).asInstanceOf[Int], lName, lFaction, lGender, lHead, lVoice)
-                      AwardCharacterSelectBattleExperiencePoints(avatarArray(i), 20000000L)
-                      avatarArray(i).CEP = 600000
-                      playerArray(i) = new Player(avatarArray(i))
-                      playerArray(i).ExoSuit = ExoSuitType.Reinforced
-                      playerArray(i).Slot(0).Equipment = Tool(GlobalDefinitions.StandardPistol(playerArray(i).Faction))
-                      playerArray(i).Slot(1).Equipment = Tool(GlobalDefinitions.MediumPistol(playerArray(i).Faction))
-                      playerArray(i).Slot(2).Equipment = Tool(GlobalDefinitions.HeavyRifle(playerArray(i).Faction))
-                      playerArray(i).Slot(3).Equipment = Tool(GlobalDefinitions.AntiVehicularLauncher(playerArray(i).Faction))
-                      playerArray(i).Slot(4).Equipment = Tool(GlobalDefinitions.katana)
-                      SetCharacterSelectScreenGUID(playerArray(i), gen)
-                      val health = playerArray(i).Health
-                      val stamina = playerArray(i).Stamina
-                      val armor = playerArray(i).Armor
-                      playerArray(i).Spawn
-                      sendResponse(ObjectCreateDetailedMessage(ObjectClass.avatar, playerArray(i).GUID, converter.DetailedConstructorData(playerArray(i)).get))
-                      if(health > 0) { //player can not be dead; stay spawned as alive
-                        playerArray(i).Health = health
-                        playerArray(i).Stamina = stamina
-                        playerArray(i).Armor = armor
-                      }
-                      sendResponse(CharacterInfoMessage(15, PlanetSideZoneID(4), value(0).asInstanceOf[Int], playerArray(i).GUID, false, secondsSinceLastLogin))
-                      RemoveCharacterSelectScreenGUID(playerArray(i))
-                    }
-                  }
-                  sendResponse(CharacterInfoMessage(0, PlanetSideZoneID(1), 0, PlanetSideGUID(0), true, 0))
-                }
-              }
-              Thread.sleep(50)
+      import ctx._
+      val result = ctx.run(query[persistence.Character].filter(c => c.accountId == lift(account.AccountId)))
+      result.onComplete {
+        case Success(characters) =>
+          import net.psforever.objects.definition.converter.CharacterSelectConverter
+          val gen : AtomicInteger = new AtomicInteger(1)
+          val converter : CharacterSelectConverter = new CharacterSelectConverter
 
-            case scala.util.Success(result) =>
-              if(connection.isConnected) connection.disconnect //pre-empt failWithError
-              failWithError(s"ListAccountCharacters: unexpected query result format - ${result.getClass}")
-
-            case scala.util.Failure(e) =>
-              if(connection.isConnected) connection.disconnect //pre-empt failWithError
-              failWithError(s"ListAccountCharacters: query failed - ${e.getMessage}")
+          characters.filter(!_.deleted) foreach { character =>
+            val secondsSinceLastLogin = new Period(character.lastLogin, LocalDateTime.now()).toStandardSeconds().getSeconds()
+            val avatar = character.toAvatar
+            AwardCharacterSelectBattleExperiencePoints(avatar, 20000000L)
+            avatar.CEP = 600000
+            val player = new Player(avatar)
+            player.ExoSuit = ExoSuitType.Reinforced
+            player.Slot(0).Equipment = Tool(GlobalDefinitions.StandardPistol(player.Faction))
+            player.Slot(1).Equipment = Tool(GlobalDefinitions.MediumPistol(player.Faction))
+            player.Slot(2).Equipment = Tool(GlobalDefinitions.HeavyRifle(player.Faction))
+            player.Slot(3).Equipment = Tool(GlobalDefinitions.AntiVehicularLauncher(player.Faction))
+            player.Slot(4).Equipment = Tool(GlobalDefinitions.katana)
+            SetCharacterSelectScreenGUID(player, gen)
+            val health = player.Health
+            val stamina = player.Stamina
+            val armor = player.Armor
+            player.Spawn
+            sendResponse(ObjectCreateDetailedMessage(ObjectClass.avatar, player.GUID, converter.DetailedConstructorData(player).get))
+            if(health > 0) { // player can not be dead; stay spawned as alive
+              player.Health = health
+              player.Stamina = stamina
+              player.Armor = armor
+            }
+            sendResponse(CharacterInfoMessage(15, PlanetSideZoneID(4), character.id, player.GUID, false, secondsSinceLastLogin))
+            RemoveCharacterSelectScreenGUID(player)
           }
 
-        case scala.util.Failure(e) =>
-          failWithError(s"ListAccountCharacters: no connection - ${e.getMessage}")
+          sendResponse(CharacterInfoMessage(0, PlanetSideZoneID(1), 0, PlanetSideGUID(0), true, 0))
+        case Failure(e) =>
+          failWithError(s"ListAccountCharacters: query failed - ${e.getMessage}")
       }
 
     case Zone.ClientInitialization(zone) =>
@@ -1268,32 +1214,22 @@ class WorldSessionActor extends Actor
       sendResponse(pkt)
 
     case ReceiveAccountData(account) =>
-      log.info(s"Retrieved account data for accountId = ${account.AccountId}")
+      import ctx._
+      log.info(s"Received account data for accountId = ${account.AccountId}")
       this.account = account
       admin = account.GM
-      Database.getConnection.connect.onComplete {
-        case scala.util.Success(connection) =>
-          Database.query(connection.sendPreparedStatement(
-            "SELECT gm FROM accounts where id=?", Array(account.AccountId).toIndexedSeq
-          )).onComplete {
-            case scala.util.Success(queryResult) =>
-              if(connection.isConnected) connection.disconnect
-              queryResult match {
-                case row : ArrayRowData => // If we got a row from the database
-                  log.info(s"ReceiveAccountData: ready to load character list for ${account.Username}")
-                  self ! ListAccountCharacters()
-                case _ => // If the account didn't exist in the database
-                  log.error(s"ReceiveAccountData: ${account.Username} data not found, or unexpected query result format - ${queryResult.getClass}")
-                  Thread.sleep(50)
-                  sendResponse(DropSession(sessionId, "You should not exist!"))
-              }
-            case scala.util.Failure(e) =>
-              if(connection.isConnected) connection.disconnect
-              log.error(s"ReceiveAccountData: ${e.getMessage}")
-              Thread.sleep(50)
+      ctx.run(query[persistence.Account].filter(_.id == lift(account.AccountId)).map(_.id)).onComplete {
+        case Success(accounts) =>
+          accounts.headOption match {
+            case Some(_) =>
+              log.info(s"ReceiveAccountData: ready to load character list for ${account.Username}")
+              self ! ListAccountCharacters()
+            case None =>
+              log.error(s"ReceiveAccountData: ${account.Username} data not found")
+              sendResponse(DropSession(sessionId, "You should not exist!"))
           }
-        case scala.util.Failure(e) =>
-          log.error(s"RetrieveAccountData: no connection ${e.getMessage}")
+        case Failure(e) =>
+          log.error(s"ReceiveAccountData: ${e.getMessage}")
       }
 
     case LoadedRemoteProjectile(projectile_guid, Some(projectile)) =>
@@ -1489,36 +1425,17 @@ class WorldSessionActor extends Actor
 
   /**
     * Updating the character login time is an important bookkeeping aspect of a player who is (re)joining the server.
-    * Logging into the server or relogging from an unexpected connection loss both qualify to update the time.<br>
-    * <br>
-    * The operation requires a database connection and completion of a database transaction,
-    * both of which must completed independently of any subsequent tasking,
-    * especially if that future tasking may require database use.
-    * @see `Connection.sendPreparedStatement`
-    * @see `Database.getConnection`
-    * @see `Future`
-    * @see `java.sql.Timestamp`
-    * @see `Promise`
-    * @param charId the character unique identifier number to update in the system
-    * @return a `Future` predicated by the "promise" of the task being completed
+    * Logging into the server or relogging from an unexpected connection loss both qualify to update the time.
     */
   def UpdateCharacterLoginTime(charId : Long) : Future[Any] = {
-    val result : Promise[Any] = Promise[Any]()
-    Database.getConnection.connect.onComplete {
-      case scala.util.Success(connection) =>
-        Database.query(connection.sendPreparedStatement(
-          "UPDATE characters SET last_login = ? where id=?", List(new java.sql.Timestamp(System.currentTimeMillis), charId)
-        )).onComplete {
-          case _ =>
-            if(connection.isConnected) connection.disconnect
-            result success true
-        }
-      case _ =>
-        val msg = s"UpdateCharacterLoginTime: could not update login time for $charId"
-        log.error(msg)
-        result failure new Throwable(msg)
+    import ctx._
+    val result = ctx.run(query[persistence.Character].filter(_.id == lift(charId)).update(_.lastLogin -> lift(LocalDateTime.now())))
+    result.onComplete {
+      case Success(_) =>
+      case Failure(e) =>
+        log.error(s"UpdateCharacterLoginTime: ${e.getMessage}")
     }
-    result.future
+    result
   }
 
   /**
@@ -3457,97 +3374,59 @@ class WorldSessionActor extends Actor
       }
 
     case msg@CharacterCreateRequestMessage(name, head, voice, gender, empire) =>
+      import ctx._
       log.info("Handling " + msg)
-      Database.getConnection.connect.onComplete {
-        case scala.util.Success(connection) =>
-          Database.query(connection.sendPreparedStatement(
-            "SELECT account_id FROM characters where name ILIKE ? AND deleted = false", List(name)
-          )).onComplete {
-            case scala.util.Success(queryResult) =>
-              if(connection.isConnected) connection.disconnect
-              queryResult match {
-                case row : ArrayRowData => // If we got a row from the database
-                  if(row(0).asInstanceOf[Int] == account.AccountId) { // create char
-                    self ! CreateCharacter(name, head, voice, gender, empire)
-                    sendResponse(ActionResultMessage.Fail(1))
-                    Thread.sleep(50)
-                  }
-                  else { // send "char already exist"
-                    sendResponse(ActionResultMessage.Fail(1))
-                    Thread.sleep(50)
-                  }
-                case _ => // If the char name didn't exist in the database, create char
-                  self ! CreateCharacter(name, head, voice, gender, empire)
-              }
-            case scala.util.Failure(e) =>
-              if(connection.isConnected) connection.disconnect
-              sendResponse(ActionResultMessage.Fail(4))
-              log.error("Returning to character list due to error " + e.getMessage)
-              self ! ListAccountCharacters()
+
+      ctx.run(query[persistence.Character].filter(_.name ilike lift(name)).filter(!_.deleted)).onComplete {
+        case Success(characters) =>
+          characters.headOption match {
+            case None =>
+              self ! CreateCharacter(name, head, voice, gender, empire)
+            case Some(_) =>
+              // send "char already exist"
+              sendResponse(ActionResultMessage.Fail(1))
           }
-        case scala.util.Failure(e) =>
-          log.error(s"CharacterCreateRequest: no connection - ${e.getMessage}")
-          sendResponse(ActionResultMessage.Fail(5))
+        case Failure(e) =>
+          log.error(s"CharacterCreateRequest: ${e.getMessage}")
+          sendResponse(ActionResultMessage.Fail(4))
+          self ! ListAccountCharacters()
       }
 
     case msg@CharacterRequestMessage(charId, action) =>
+      import ctx._
       log.info(s"Handling $msg")
       action match {
         case CharacterRequestAction.Delete =>
-          Database.getConnection.connect.onComplete {
-            case scala.util.Success(connection) =>
-              Database.query(connection.sendPreparedStatement(
-                "UPDATE characters SET deleted = true where id=?", Array(charId).toIndexedSeq
-              )).onComplete {
-                case scala.util.Success(_) =>
-                  if(connection.isConnected) connection.disconnect
-                  log.info(s"CharacterRequest/Delete: character id $charId deleted")
-                  sendResponse(ActionResultMessage.Pass)
-                  self ! ListAccountCharacters()
-                case scala.util.Failure(e) =>
-                  if(connection.isConnected) connection.disconnect
-                  log.info(s"CharacterRequest/Delete: character id $charId NOT deleted - ${e.getMessage}")
-                  sendResponse(ActionResultMessage.Fail(6))
-                  Thread.sleep(50)
-              }
-            case scala.util.Failure(e) =>
-              log.error(s"CharacterRequest/Delete: no connection - ${e.getMessage}")
+          ctx.run(query[persistence.Character].filter(_.id == lift(charId)).delete).onComplete {
+            case Success(_) =>
+              log.info(s"CharacterRequest/Delete: character id $charId deleted")
+              sendResponse(ActionResultMessage.Pass)
+              self ! ListAccountCharacters()
+            case Failure(e) =>
+              log.error(s"CharacterRequest/Delete: ${e.getMessage}")
           }
 
         case CharacterRequestAction.Select =>
-          Database.getConnection.connect.onComplete {
-            case scala.util.Success(connection) =>
-              Database.query(connection.sendPreparedStatement(
-                "SELECT id, name, faction_id, gender_id, head_id, voice_id FROM characters where id=?", Array(charId).toIndexedSeq
-              )).onComplete {
-                case Success(queryResult) =>
-                  if(connection.isConnected) connection.disconnect
-                  queryResult match {
-                    case row : ArrayRowData =>
-                      val lName : String = row(1).asInstanceOf[String]
-                      val lFaction : PlanetSideEmpire.Value = PlanetSideEmpire(row(2).asInstanceOf[Int])
-                      val lGender : CharacterGender.Value = CharacterGender(row(3).asInstanceOf[Int])
-                      val lHead : Int = row(4).asInstanceOf[Int]
-                      val lVoice : CharacterVoice.Value = CharacterVoice(row(5).asInstanceOf[Int])
-                      log.info(s"CharacterRequest/Select: character $lName found in records")
-                      avatar = new Avatar(charId, lName, lFaction, lGender, lHead, lVoice)
-                      var faction : String = lFaction.toString.toLowerCase
-                      whenUsedLastMAXName(0) = faction + "hev"
-                      whenUsedLastMAXName(1) = faction + "hev_antipersonnel"
-                      whenUsedLastMAXName(2) = faction + "hev_antivehicular"
-                      whenUsedLastMAXName(3) = faction + "hev_antiaircraft"
-                      avatar.FirstTimeEvents = ftes
-                      accountPersistence ! AccountPersistenceService.Login(lName)
-                    case _ =>
-                      log.error(s"CharacterRequest/Select: no character for $charId found")
-                  }
-                case e =>
-                  if(connection.isConnected) connection.disconnect
-                  log.error(s"CharacterRequest/Select: toto tata; unexpected query result format - ${e.getClass}")
+          ctx.run(query[persistence.Character].filter(_.id == lift(charId))).onComplete {
+            case Success(characters) =>
+              characters.headOption match {
+                case Some(character) =>
+                 log.info(s"CharacterRequest/Select: character ${character.name} found in records")
+                  avatar = character.toAvatar
+                  val faction : String = avatar.faction.toString.toLowerCase
+                  whenUsedLastMAXName(0) = faction + "hev"
+                  whenUsedLastMAXName(1) = faction + "hev_antipersonnel"
+                  whenUsedLastMAXName(2) = faction + "hev_antivehicular"
+                  whenUsedLastMAXName(3) = faction + "hev_antiaircraft"
+                  avatar.FirstTimeEvents = ftes
+                  accountPersistence ! AccountPersistenceService.Login(character.name)
+                case None =>
+                  log.error(s"CharacterRequest/Select: no character for $charId found")
               }
 
-            case scala.util.Failure(e) =>
-              log.error(s"CharacterRequest/Select: no connection - ${e.getMessage}")
+
+            case Failure(e) =>
+              log.error(s"CharacterRequest/Select: ${e.getMessage}")
           }
 
         case default =>
@@ -9268,9 +9147,9 @@ class WorldSessionActor extends Actor
   }
 
   def SaveLoadoutToDB(owner : Player, label : String, line : Int) = {
-    val charId = owner.CharId
-    val exosuitId = owner.ExoSuit.id
-    var clob : String = {
+    import ctx._
+
+    val items : String = {
       val clobber : StringBuilder = new StringBuilder()
       //encode holsters
       owner.Holsters()
@@ -9282,39 +9161,24 @@ class WorldSessionActor extends Actor
       owner.Inventory.Items.foreach { case InventoryItem(obj, index) =>
         clobber.append(EncodeLoadoutCLOBFragment(obj, index))
       }
-      clobber.mkString
+      clobber.mkString.drop(1)
     }
-    //database
-    Database.getConnection.connect.onComplete {
-      case scala.util.Success(connection) =>
-        Database.query(connection.sendPreparedStatement(
-          "SELECT id, exosuit_id, name, items FROM loadouts where characters_id = ? AND loadout_number = ?", Array(charId, line).toIndexedSeq
-        )).onComplete {
-          case scala.util.Success(queryResult) =>
-            queryResult match {
-              case row: ArrayRowData => // Update
-                connection.sendPreparedStatement(
-                  "UPDATE loadouts SET exosuit_id=?, name=?, items=? where id=?", List(exosuitId, label, clob.drop(1), row(0))
-                ).onComplete {
-                  case _ =>
-                    if(connection.isConnected) connection.disconnect
-                }
-                Thread.sleep(50)
-              case _ => // Save
-                connection.sendPreparedStatement(
-                  "INSERT INTO loadouts (characters_id, loadout_number, exosuit_id, name, items) VALUES(?,?,?,?,?) RETURNING id",
-                  List(charId, line, exosuitId, label, clob.drop(1))
-                ).onComplete {
-                  case _ =>
-                    if(connection.isConnected) connection.disconnect
-                }
-                Thread.sleep(50)
-            }
-          case scala.util.Failure(e) =>
-            if(connection.isConnected) connection.disconnect
-            log.error(s"SaveLoadoutToDB: query failed - ${e.getMessage}")
-        }
-      case scala.util.Failure(e) =>
+
+    val result = for {
+      loadouts <- ctx.run(query[persistence.Loadout].filter(_.charactersId == lift(owner.CharId)).filter(_.loadoutNumber == lift(line)))
+      loadout <- loadouts.headOption match {
+        case Some(loadout) =>
+          ctx.run(query[persistence.Loadout].filter(_.id == lift(loadout.id)).update(_.exosuitId -> lift(owner.ExoSuit.id), _.name -> lift(label), _.items -> lift(items)))
+        case None =>
+          // FIXME id is long in objects but int in schema
+          val charId: Int = owner.CharId.toInt
+          ctx.run(query[persistence.Loadout].insert(_.exosuitId -> lift(owner.ExoSuit.id), _.name -> lift(label), _.items -> lift(items), _.charactersId -> lift(charId), _.loadoutNumber -> lift(line)))
+      }
+    } yield loadout
+
+    result.onComplete {
+      case Success(_) =>
+      case Failure(e) =>
         log.error(s"SaveLoadoutToDB: no connection ${e.getMessage}")
     }
   }
@@ -9364,83 +9228,55 @@ class WorldSessionActor extends Actor
     * @return a `Future` predicated by the "promise" of the task being completed
     */
   def LoadDataBaseLoadouts(owner : Player) : Future[Any] = {
-    val result : Promise[Any] = Promise[Any]()
-    Database.getConnection.connect.onComplete {
-      case scala.util.Success(connection) =>
-        connection.sendPreparedStatement(
-          "SELECT id, loadout_number, exosuit_id, name, items FROM loadouts where characters_id = ?", Array(owner.CharId).toIndexedSeq
-        ).onComplete {
-          case Success(queryResult) =>
-            if(connection.isConnected) connection.disconnect
-            queryResult match {
-              case result: QueryResult =>
-                if (result.rows.nonEmpty) {
-                  val doll = new Player(Avatar("doll", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //play dress up
-                  log.debug(s"LoadDataBaseLoadouts: ${result.rows.size} saved loadout(s) for character with id ${owner.CharId}")
-                  result.rows foreach{ row  =>
-                    row.zipWithIndex.foreach{ case (value,i) =>
-                      val lLoadoutNumber : Int = value(1).asInstanceOf[Int]
-                      val lExosuitId : Int = value(2).asInstanceOf[Int]
-                      val lName : String = value(3).asInstanceOf[String]
-                      val lItems : String = value(4).asInstanceOf[String]
+    import ctx._
 
-                      doll.ExoSuit = ExoSuitType(lExosuitId)
+    val result = ctx.run(query[persistence.Loadout].filter(_.charactersId == lift(owner.CharId)))
 
-                      val args = lItems.split("/")
-                      args.indices.foreach(i => {
-                        val args2 = args(i).split(",")
-                        val lType = args2(0)
-                        val lIndex : Int = args2(1).toInt
-                        val lObjectId : Int = args2(2).toInt
+    result.onComplete {
+      case Success(loadouts) =>
+        loadouts foreach { loadout =>
+          val doll = new Player(Avatar("doll", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+          doll.ExoSuit = ExoSuitType(loadout.exosuitId)
 
-                        lType match {
-                          case "Tool" =>
-                            doll.Slot(lIndex).Equipment = Tool(GetToolDefFromObjectID(lObjectId).asInstanceOf[ToolDefinition])
-                          case "AmmoBox" =>
-                            doll.Slot(lIndex).Equipment = AmmoBox(GetToolDefFromObjectID(lObjectId).asInstanceOf[AmmoBoxDefinition])
-                          case "ConstructionItem" =>
-                            doll.Slot(lIndex).Equipment = ConstructionItem(GetToolDefFromObjectID(lObjectId).asInstanceOf[ConstructionItemDefinition])
-                          case "SimpleItem" =>
-                            doll.Slot(lIndex).Equipment = SimpleItem(GetToolDefFromObjectID(lObjectId).asInstanceOf[SimpleItemDefinition])
-                          case "Kit" =>
-                            doll.Slot(lIndex).Equipment = Kit(GetToolDefFromObjectID(lObjectId).asInstanceOf[KitDefinition])
-                          case thing =>
-                            log.warn(s"LoadDataBaseLoadouts: what's that $thing doing in the loadout?")
-                        }
-                        if (args2.length == 4) { //tool ammo info
-                          val args3 = args2(3).split("_")
-                          (1 until args3.length).foreach(j => {
-                            val args4 = args3(j).split("-")
-                            val lAmmoSlots = args4(0).toInt
-                            val lAmmoTypeIndex = args4(1).toInt
-                            val lAmmoBoxDefinition = args4(2).toInt
-                            doll.Slot(lIndex).Equipment.get.asInstanceOf[Tool].AmmoSlots(lAmmoSlots).AmmoTypeIndex = lAmmoTypeIndex
-                            doll.Slot(lIndex).Equipment.get.asInstanceOf[Tool].AmmoSlots(lAmmoSlots).Box = AmmoBox(AmmoBoxDefinition(lAmmoBoxDefinition))
-                          })
-                        }
-                      })
-                      owner.EquipmentLoadouts.SaveLoadout(doll, lName, lLoadoutNumber)
-                      ClearHolstersAndInventory(doll)
-                    }
-                    // something to do at end of loading ?
-                  }
-                }
-              case _ =>
-                log.debug(s"LoadDataBaseLoadouts: no saved loadout(s) for character with id ${owner.CharId}")
+          loadout.items.split("/").zipWithIndex foreach { case(value, i) =>
+            val (objectType, objectIndex, objectId, toolAmmo) = value.split(",") match {
+              case Array(a, b, c) => (a, b.toInt, c.toInt, None)
+              case Array(a, b, c, d) => (a, b.toInt, c.toInt, Some(d))
             }
-            result success queryResult
-          case scala.util.Failure(e) =>
-            if(connection.isConnected) connection.disconnect
-            val msg = s"LoadDataBaseLoadouts: unexpected query result - ${e.getMessage}"
-            log.error(msg)
-            result failure new Throwable(msg)
+
+            objectType match {
+              case "Tool" =>
+                doll.Slot(objectIndex).Equipment = Tool(GetToolDefFromObjectID(objectId).asInstanceOf[ToolDefinition])
+              case "AmmoBox" =>
+                doll.Slot(objectIndex).Equipment = AmmoBox(GetToolDefFromObjectID(objectId).asInstanceOf[AmmoBoxDefinition])
+              case "ConstructionItem" =>
+                doll.Slot(objectIndex).Equipment = ConstructionItem(GetToolDefFromObjectID(objectId).asInstanceOf[ConstructionItemDefinition])
+              case "SimpleItem" =>
+                doll.Slot(objectIndex).Equipment = SimpleItem(GetToolDefFromObjectID(objectId).asInstanceOf[SimpleItemDefinition])
+              case "Kit" =>
+                doll.Slot(objectIndex).Equipment = Kit(GetToolDefFromObjectID(objectId).asInstanceOf[KitDefinition])
+              case thing =>
+                log.warn(s"LoadDataBaseLoadouts: what's that $thing doing in the loadout?")
+            }
+
+            toolAmmo foreach { toolAmmo =>
+              toolAmmo.split("_").drop(1).foreach { value =>
+                val (ammoSlots, ammoTypeIndex, ammoBoxDefinition) = value.split("-") match { case Array(a, b, c) => (a.toInt, b.toInt, c.toInt) }
+                doll.Slot(objectIndex).Equipment.get.asInstanceOf[Tool].AmmoSlots(ammoSlots).AmmoTypeIndex = ammoTypeIndex
+                doll.Slot(objectIndex).Equipment.get.asInstanceOf[Tool].AmmoSlots(ammoSlots).Box = AmmoBox(AmmoBoxDefinition(ammoBoxDefinition))
+              }
+            }
+          }
+
+          owner.EquipmentLoadouts.SaveLoadout(doll, loadout.name, loadout.loadoutNumber)
+          ClearHolstersAndInventory(doll)
         }
-      case scala.util.Failure(e) =>
-        val msg = s"LoadDataBaseLoadouts: no connection - ${e.getMessage}"
-        log.error(msg)
-        result failure new Throwable(msg)
+
+      case Failure(e) =>
+        log.error(s"LoadDataBaseLoadouts: ${e.getMessage}")
     }
-    result.future
+
+    result
   }
 
   /**

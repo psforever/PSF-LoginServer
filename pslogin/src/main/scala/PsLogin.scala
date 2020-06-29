@@ -207,11 +207,13 @@ object PsLogin {
     }
 
     logger.info("Testing database connection")
-    Database.testConnection match {
-      case scala.util.Failure(e) =>
-        logger.error("Unable to connect to the database")
+    try {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      Await.result(Database.ctx.executeQuery("SELECT 0"), 2 seconds)
+    } catch {
+      case e : Throwable =>
+        logger.error(s"Unable to connect to the database: ${e.getMessage}")
         sys.exit(1)
-      case _ =>
     }
 
     WorldConfig.Get[Boolean]("kamon.Active") match {
