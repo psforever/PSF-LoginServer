@@ -120,7 +120,7 @@ class PlayerControl(player : Player) extends Actor
           val guid = player.GUID
           if(!(player.isMoving || user.isMoving)) { //only allow stationary heals
             val newHealth = player.Health = originalHealth + 10
-            val magazine = item.Discharge
+            val magazine = item.Discharge()
             events ! AvatarServiceMessage(uname, AvatarAction.SendResponse(Service.defaultPlayerGUID, InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong)))
             events ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttributeToAll(guid, 0, newHealth))
             player.History(HealFromEquipment(PlayerSource(player), PlayerSource(user), newHealth - originalHealth, GlobalDefinitions.medicalapplicator))
@@ -142,7 +142,7 @@ class PlayerControl(player : Player) extends Actor
           item.Magazine >= 25) {
           sender ! CommonMessages.Progress(
             4,
-            Players.FinishRevivingPlayer(player, user.Name),
+            Players.FinishRevivingPlayer(player, user.Name, item),
             Players.RevivingTickAction(player, user, item)
           )
         }
@@ -160,7 +160,7 @@ class PlayerControl(player : Player) extends Actor
           val guid = player.GUID
           if(!(player.isMoving || user.isMoving)) { //only allow stationary repairs
             val newArmor = player.Armor = originalArmor + Repairable.Quality + RepairValue(item) + definition.RepairMod
-            val magazine = item.Discharge
+            val magazine = item.Discharge()
             events ! AvatarServiceMessage(uname, AvatarAction.SendResponse(Service.defaultPlayerGUID, InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong)))
             events ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttributeToAll(guid, 4, player.Armor))
             player.History(RepairFromEquipment(PlayerSource(player), PlayerSource(user), newArmor - originalArmor, GlobalDefinitions.bank))

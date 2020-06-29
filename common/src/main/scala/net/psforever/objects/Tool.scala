@@ -97,9 +97,9 @@ class Tool(private val toolDef : ToolDefinition) extends Equipment
     }
   }
 
-  def Discharge : Int = {
+  def Discharge(rounds : Option[Int] = None) : Int = {
     lastDischarge = System.nanoTime()
-    Magazine = FireMode.Discharge(this)
+    Magazine = FireMode.Discharge(this, rounds)
   }
 
   def LastDischarge : Long = {

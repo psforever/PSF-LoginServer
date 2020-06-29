@@ -83,7 +83,7 @@ trait RepairableEntity extends Repairable {
     val updatedHealth = if(!(player.isMoving(1f) || target.isMoving(1f))) { //only allow stationary repairs within margin of error
       val newHealth = target.Health = originalHealth + Repairable.Quality + RepairValue(item) + definition.RepairMod
       val zoneId = zone.Id
-      val magazine = item.Discharge
+      val magazine = item.Discharge()
       events ! AvatarServiceMessage(name, AvatarAction.SendResponse(Service.defaultPlayerGUID, InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong)))
       if(target.Destroyed) {
         if(newHealth >= definition.RepairRestoresAt) {

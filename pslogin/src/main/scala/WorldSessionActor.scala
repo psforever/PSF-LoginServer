@@ -5595,7 +5595,7 @@ class WorldSessionActor extends Actor
           }
           else if(!player.isAlive) { //proper internal accounting, but no projectile
             prefire = shooting.orElse(Some(weapon_guid))
-            tool.Discharge
+            tool.Discharge()
             projectiles(projectile_guid.guid - Projectile.BaseUID) = None
             shotsWhileDead += 1
           }
@@ -5606,7 +5606,7 @@ class WorldSessionActor extends Actor
             }
 
             prefire = shooting.orElse(Some(weapon_guid))
-            tool.Discharge //always
+            tool.Discharge() //always
             val projectileIndex = projectile_guid.guid - Projectile.BaseUID
             val projectilePlace = projectiles(projectileIndex)
             if(projectilePlace match {
