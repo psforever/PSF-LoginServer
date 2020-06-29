@@ -340,7 +340,7 @@ object Map12 { // HOME2 (TERRAN REPUBLIC SANCTUARY)
 
     def Building58(): Unit = { // Name: NW_Ishundar_WG_tower Type: tower_a GUID: 52, MapID: 58
       LocalBuilding("NW_Ishundar_WG_tower", 52, 58, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2620f, 5418f, 35.99397f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(1037, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 52)
+      LocalObject(1037, CaptureTerminal.Constructor(Vector3(2636.587f, 5417.897f, 45.99297f), secondary_capture), owning_building_guid = 52)
       LocalObject(336, Door.Constructor(Vector3(2632f, 5410f, 37.51497f)), owning_building_guid = 52)
       LocalObject(337, Door.Constructor(Vector3(2632f, 5410f, 57.51397f)), owning_building_guid = 52)
       LocalObject(338, Door.Constructor(Vector3(2632f, 5426f, 37.51497f)), owning_building_guid = 52)
@@ -377,7 +377,7 @@ object Map12 { // HOME2 (TERRAN REPUBLIC SANCTUARY)
 
     def Building66(): Unit = { // Name: W_Cyssor_WG_tower Type: tower_a GUID: 53, MapID: 66
       LocalBuilding("W_Cyssor_WG_tower", 53, 66, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2806f, 3292f, 32.44872f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(1039, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 53)
+      LocalObject(1039, CaptureTerminal.Constructor(Vector3(2822.587f, 3291.897f, 42.44772f), secondary_capture), owning_building_guid = 53)
       LocalObject(346, Door.Constructor(Vector3(2818f, 3284f, 33.96972f)), owning_building_guid = 53)
       LocalObject(347, Door.Constructor(Vector3(2818f, 3284f, 53.96872f)), owning_building_guid = 53)
       LocalObject(348, Door.Constructor(Vector3(2818f, 3300f, 33.96972f)), owning_building_guid = 53)
@@ -414,7 +414,7 @@ object Map12 { // HOME2 (TERRAN REPUBLIC SANCTUARY)
 
     def Building60(): Unit = { // Name: W_Forseral_WG_tower Type: tower_a GUID: 54, MapID: 60
       LocalBuilding("W_Forseral_WG_tower", 54, 60, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4564f, 4572f, 54.12079f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(1044, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 54)
+      LocalObject(1044, CaptureTerminal.Constructor(Vector3(4580.587f, 4571.897f, 64.11979f), secondary_capture), owning_building_guid = 54)
       LocalObject(368, Door.Constructor(Vector3(4576f, 4564f, 55.64179f)), owning_building_guid = 54)
       LocalObject(369, Door.Constructor(Vector3(4576f, 4564f, 75.64079f)), owning_building_guid = 54)
       LocalObject(370, Door.Constructor(Vector3(4576f, 4580f, 55.64179f)), owning_building_guid = 54)
@@ -451,7 +451,7 @@ object Map12 { // HOME2 (TERRAN REPUBLIC SANCTUARY)
 
     def Building63(): Unit = { // Name: SW_Forseral_WG_tower Type: tower_a GUID: 55, MapID: 63
       LocalBuilding("SW_Forseral_WG_tower", 55, 63, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4972f, 3678f, 35.9291f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(1045, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 55)
+      LocalObject(1045, CaptureTerminal.Constructor(Vector3(4988.587f, 3677.897f, 45.9281f), secondary_capture), owning_building_guid = 55)
       LocalObject(372, Door.Constructor(Vector3(4984f, 3670f, 37.4501f)), owning_building_guid = 55)
       LocalObject(373, Door.Constructor(Vector3(4984f, 3670f, 57.4491f)), owning_building_guid = 55)
       LocalObject(374, Door.Constructor(Vector3(4984f, 3686f, 37.4501f)), owning_building_guid = 55)
@@ -488,7 +488,7 @@ object Map12 { // HOME2 (TERRAN REPUBLIC SANCTUARY)
 
     def Building65(): Unit = { // Name: SW_Ishundar_WG_tower Type: tower_b GUID: 56, MapID: 65
       LocalBuilding("SW_Ishundar_WG_tower", 56, 65, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2794f, 4210f, 36.31348f), Vector3(0f, 0f, 360f), tower_b)))
-      LocalObject(1038, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 56)
+      LocalObject(1038, CaptureTerminal.Constructor(Vector3(2810.587f, 4209.897f, 56.31248f), secondary_capture), owning_building_guid = 56)
       LocalObject(340, Door.Constructor(Vector3(2806f, 4202f, 37.83348f)), owning_building_guid = 56)
       LocalObject(341, Door.Constructor(Vector3(2806f, 4202f, 47.83348f)), owning_building_guid = 56)
       LocalObject(342, Door.Constructor(Vector3(2806f, 4202f, 67.83348f)), owning_building_guid = 56)
@@ -525,7 +525,7 @@ object Map12 { // HOME2 (TERRAN REPUBLIC SANCTUARY)
 
     def Building64(): Unit = { // Name: E_Cyssor_WG_tower Type: tower_b GUID: 57, MapID: 64
       LocalBuilding("E_Cyssor_WG_tower", 57, 64, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4484f, 3080f, 50.39579f), Vector3(0f, 0f, 360f), tower_b)))
-      LocalObject(1043, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 57)
+      LocalObject(1043, CaptureTerminal.Constructor(Vector3(4500.587f, 3079.897f, 70.39479f), secondary_capture), owning_building_guid = 57)
       LocalObject(362, Door.Constructor(Vector3(4496f, 3072f, 51.91579f)), owning_building_guid = 57)
       LocalObject(363, Door.Constructor(Vector3(4496f, 3072f, 61.91579f)), owning_building_guid = 57)
       LocalObject(364, Door.Constructor(Vector3(4496f, 3072f, 81.91579f)), owning_building_guid = 57)
@@ -562,7 +562,7 @@ object Map12 { // HOME2 (TERRAN REPUBLIC SANCTUARY)
 
     def Building59(): Unit = { // Name: N_Ishundar_WG_tower Type: tower_c GUID: 58, MapID: 59
       LocalBuilding("N_Ishundar_WG_tower", 58, 59, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3236f, 5040f, 37.58544f), Vector3(0f, 0f, 360f), tower_c)))
-      LocalObject(1040, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 58)
+      LocalObject(1040, CaptureTerminal.Constructor(Vector3(3252.587f, 5039.897f, 47.58444f), secondary_capture), owning_building_guid = 58)
       LocalObject(350, Door.Constructor(Vector3(3248f, 5032f, 39.10644f)), owning_building_guid = 58)
       LocalObject(351, Door.Constructor(Vector3(3248f, 5032f, 59.10544f)), owning_building_guid = 58)
       LocalObject(352, Door.Constructor(Vector3(3248f, 5048f, 39.10644f)), owning_building_guid = 58)
@@ -603,7 +603,7 @@ object Map12 { // HOME2 (TERRAN REPUBLIC SANCTUARY)
 
     def Building67(): Unit = { // Name: SW_Cyssor_WG_tower Type: tower_c GUID: 59, MapID: 67
       LocalBuilding("SW_Cyssor_WG_tower", 59, 67, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3260f, 2758f, 34.92906f), Vector3(0f, 0f, 360f), tower_c)))
-      LocalObject(1041, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 59)
+      LocalObject(1041, CaptureTerminal.Constructor(Vector3(3276.587f, 2757.897f, 44.92806f), secondary_capture), owning_building_guid = 59)
       LocalObject(354, Door.Constructor(Vector3(3272f, 2750f, 36.45006f)), owning_building_guid = 59)
       LocalObject(355, Door.Constructor(Vector3(3272f, 2750f, 56.44906f)), owning_building_guid = 59)
       LocalObject(356, Door.Constructor(Vector3(3272f, 2766f, 36.45006f)), owning_building_guid = 59)
@@ -644,7 +644,7 @@ object Map12 { // HOME2 (TERRAN REPUBLIC SANCTUARY)
 
     def Building61(): Unit = { // Name: N_Cyssor_WG_tower Type: tower_c GUID: 60, MapID: 61
       LocalBuilding("N_Cyssor_WG_tower", 60, 61, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3906f, 3832f, 46.40522f), Vector3(0f, 0f, 360f), tower_c)))
-      LocalObject(1042, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 60)
+      LocalObject(1042, CaptureTerminal.Constructor(Vector3(3922.587f, 3831.897f, 56.40422f), secondary_capture), owning_building_guid = 60)
       LocalObject(358, Door.Constructor(Vector3(3918f, 3824f, 47.92622f)), owning_building_guid = 60)
       LocalObject(359, Door.Constructor(Vector3(3918f, 3824f, 67.92522f)), owning_building_guid = 60)
       LocalObject(360, Door.Constructor(Vector3(3918f, 3840f, 47.92622f)), owning_building_guid = 60)
@@ -685,7 +685,7 @@ object Map12 { // HOME2 (TERRAN REPUBLIC SANCTUARY)
 
     def Building62(): Unit = { // Name: SE_Forseral_WG_tower Type: tower_c GUID: 61, MapID: 62
       LocalBuilding("SE_Forseral_WG_tower", 61, 62, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5488f, 4168f, 35.9291f), Vector3(0f, 0f, 360f), tower_c)))
-      LocalObject(1046, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 61)
+      LocalObject(1046, CaptureTerminal.Constructor(Vector3(5504.587f, 4167.897f, 45.9281f), secondary_capture), owning_building_guid = 61)
       LocalObject(376, Door.Constructor(Vector3(5500f, 4160f, 37.4501f)), owning_building_guid = 61)
       LocalObject(377, Door.Constructor(Vector3(5500f, 4160f, 57.4491f)), owning_building_guid = 61)
       LocalObject(378, Door.Constructor(Vector3(5500f, 4176f, 37.4501f)), owning_building_guid = 61)
@@ -1338,6 +1338,35 @@ object Map12 { // HOME2 (TERRAN REPUBLIC SANCTUARY)
 
     def Building2(): Unit = { // Name: WG_TRSanc_to_Forseral Type: warpgate GUID: 115, MapID: 2
       LocalBuilding("WG_TRSanc_to_Forseral", 115, 2, FoundationBuilder(WarpGate.Structure(Vector3(5300f, 4504f, 40.2132f))))
+    }
+
+    ZoneOwnedObjects()
+
+    def ZoneOwnedObjects(): Unit = {
+      LocalObject(4, ProximityTerminal.Constructor(Vector3(2880.28f, 5166.25f, 36.19f), repair_silo), owning_building_guid = 0)
+      LocalObject(5, Terminal.Constructor(Vector3(2880.28f, 5166.25f, 36.19f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(8, ProximityTerminal.Constructor(Vector3(2880.72f, 5277.02f, 36.17f), repair_silo), owning_building_guid = 0)
+      LocalObject(9, Terminal.Constructor(Vector3(2880.72f, 5277.02f, 36.17f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(12, ProximityTerminal.Constructor(Vector3(2963.38f, 5277.73f, 36.19f), repair_silo), owning_building_guid = 0)
+      LocalObject(13, Terminal.Constructor(Vector3(2963.38f, 5277.73f, 36.19f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(16, ProximityTerminal.Constructor(Vector3(2963.61f, 5166.41f, 36.09f), repair_silo), owning_building_guid = 0)
+      LocalObject(17, Terminal.Constructor(Vector3(2963.61f, 5166.41f, 36.09f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(20, ProximityTerminal.Constructor(Vector3(2964.83f, 2920.37f, 35.08f), repair_silo), owning_building_guid = 0)
+      LocalObject(21, Terminal.Constructor(Vector3(2964.83f, 2920.37f, 35.08f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(24, ProximityTerminal.Constructor(Vector3(2964.89f, 3031.69f, 35.04f), repair_silo), owning_building_guid = 0)
+      LocalObject(25, Terminal.Constructor(Vector3(2964.89f, 3031.69f, 35.04f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(28, ProximityTerminal.Constructor(Vector3(3047.44f, 3031.66f, 35.03f), repair_silo), owning_building_guid = 0)
+      LocalObject(29, Terminal.Constructor(Vector3(3047.44f, 3031.66f, 35.03f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(32, ProximityTerminal.Constructor(Vector3(3048.11f, 2920.91f, 35.08f), repair_silo), owning_building_guid = 0)
+      LocalObject(33, Terminal.Constructor(Vector3(3048.11f, 2920.91f, 35.08f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(36, ProximityTerminal.Constructor(Vector3(5190.58f, 3955.38f, 36.01f), repair_silo), owning_building_guid = 0)
+      LocalObject(37, Terminal.Constructor(Vector3(5190.58f, 3955.38f, 36.01f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(40, ProximityTerminal.Constructor(Vector3(5190.87f, 3843.73f, 36.08f), repair_silo), owning_building_guid = 0)
+      LocalObject(41, Terminal.Constructor(Vector3(5190.87f, 3843.73f, 36.08f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(44, ProximityTerminal.Constructor(Vector3(5273.65f, 3955.55f, 36.09f), repair_silo), owning_building_guid = 0)
+      LocalObject(45, Terminal.Constructor(Vector3(5273.65f, 3955.55f, 36.09f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(48, ProximityTerminal.Constructor(Vector3(5273.88f, 3844.68f, 36.02f), repair_silo), owning_building_guid = 0)
+      LocalObject(49, Terminal.Constructor(Vector3(5273.88f, 3844.68f, 36.02f), ground_rearm_terminal), owning_building_guid = 0)
     }
 
     def Lattice(): Unit = {

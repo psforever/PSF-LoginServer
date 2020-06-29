@@ -72,14 +72,6 @@ class Building(private val name: String,
     Faction
   }
 
-  def CaptureConsoleIsHacked : Boolean = {
-    Amenities.find(x => x.isInstanceOf[CaptureTerminal]).asInstanceOf[Option[CaptureTerminal]] match {
-      case Some(obj: CaptureTerminal) =>
-        obj.HackedBy.isDefined
-      case None => false
-    }
-  }
-
   def PlayersInSOI : List[Player] = playersInSOI
 
   def PlayersInSOI_=(list : List[Player]) : List[Player] = {
@@ -114,6 +106,21 @@ class Building(private val name: String,
         obj.CapacitorDisplay.toInt
       case _ => //we have no silo; we have unlimited power
         10
+    }
+  }
+
+  def CaptureTerminal : Option[CaptureTerminal] = {
+    Amenities.find(_.isInstanceOf[CaptureTerminal]) match {
+      case Some(term) => Some(term.asInstanceOf[CaptureTerminal])
+      case _ => None
+    }
+  }
+
+  def CaptureTerminalIsHacked : Boolean = {
+    CaptureTerminal match {
+      case Some(obj: CaptureTerminal) =>
+        obj.HackedBy.isDefined
+      case None => false
     }
   }
 
@@ -171,7 +178,7 @@ class Building(private val name: String,
     ) = {
     val ntuLevel : Int = NtuLevel
     //if we have a capture terminal, get the hack status & time (in milliseconds) from control console if it exists
-    val (hacking, hackingFaction, hackTime) : (Boolean, PlanetSideEmpire.Value, Long) = Amenities.find(x => x.isInstanceOf[CaptureTerminal]) match {
+    val (hacking, hackingFaction, hackTime) : (Boolean, PlanetSideEmpire.Value, Long) = CaptureTerminal match {
       case Some(obj: CaptureTerminal with Hackable) =>
         obj.HackedBy match {
           case Some(Hackable.HackInfo(_, _, hfaction, _, start, length)) =>
@@ -221,7 +228,7 @@ class Building(private val name: String,
         zone.Lattice find this match {
           case Some(_) =>
             // todo: generator destruction state
-            val subGraph = Zone.Lattice filter ((b: Building) => b.Faction == this.Faction && !b.CaptureConsoleIsHacked && b.NtuLevel > 0)
+            val subGraph = Zone.Lattice filter ((b: Building) => b.Faction == this.Faction && !b.CaptureTerminalIsHacked && b.NtuLevel > 0)
 
             var stackedBenefit = 0
             if (FindLatticeBenefit(GlobalDefinitions.amp_station, subGraph)) stackedBenefit |= 1

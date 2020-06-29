@@ -340,7 +340,7 @@ object Map11 { // HOME1 (NEW CONGLOMORATE SANCTUARY)
 
     def Building50(): Unit = { // Name: nc_SW_Cyssor_Warpgate_Tower Type: tower_a GUID: 28, MapID: 50
       LocalBuilding("nc_SW_Cyssor_Warpgate_Tower", 28, 50, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(1980f, 5718f, 55.22141f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(1094, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 28)
+      LocalObject(1094, CaptureTerminal.Constructor(Vector3(1996.587f, 5717.897f, 65.22041f), secondary_capture), owning_building_guid = 28)
       LocalObject(316, Door.Constructor(Vector3(1992f, 5710f, 56.74241f)), owning_building_guid = 28)
       LocalObject(317, Door.Constructor(Vector3(1992f, 5710f, 76.74141f)), owning_building_guid = 28)
       LocalObject(318, Door.Constructor(Vector3(1992f, 5726f, 56.74241f)), owning_building_guid = 28)
@@ -377,7 +377,7 @@ object Map11 { // HOME1 (NEW CONGLOMORATE SANCTUARY)
 
     def Building54(): Unit = { // Name: nc_Far_Cyssor_Tower Type: tower_a GUID: 29, MapID: 54
       LocalBuilding("nc_Far_Cyssor_Tower", 29, 54, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2940f, 5192f, 47.96524f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(1096, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 29)
+      LocalObject(1096, CaptureTerminal.Constructor(Vector3(2956.587f, 5191.897f, 57.96424f), secondary_capture), owning_building_guid = 29)
       LocalObject(326, Door.Constructor(Vector3(2952f, 5184f, 49.48624f)), owning_building_guid = 29)
       LocalObject(327, Door.Constructor(Vector3(2952f, 5184f, 69.48524f)), owning_building_guid = 29)
       LocalObject(328, Door.Constructor(Vector3(2952f, 5200f, 49.48624f)), owning_building_guid = 29)
@@ -414,7 +414,7 @@ object Map11 { // HOME1 (NEW CONGLOMORATE SANCTUARY)
 
     def Building55(): Unit = { // Name: nc_Far_Amerish_Tower Type: tower_a GUID: 30, MapID: 55
       LocalBuilding("nc_Far_Amerish_Tower", 30, 55, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4206f, 5296f, 67.51106f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(1100, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 30)
+      LocalObject(1100, CaptureTerminal.Constructor(Vector3(4222.587f, 5295.897f, 77.51006f), secondary_capture), owning_building_guid = 30)
       LocalObject(344, Door.Constructor(Vector3(4218f, 5288f, 69.03207f)), owning_building_guid = 30)
       LocalObject(345, Door.Constructor(Vector3(4218f, 5288f, 89.03107f)), owning_building_guid = 30)
       LocalObject(346, Door.Constructor(Vector3(4218f, 5304f, 69.03207f)), owning_building_guid = 30)
@@ -451,7 +451,7 @@ object Map11 { // HOME1 (NEW CONGLOMORATE SANCTUARY)
 
     def Building44(): Unit = { // Name: nc_Far_Esamir_Tower Type: tower_a GUID: 31, MapID: 44
       LocalBuilding("nc_Far_Esamir_Tower", 31, 44, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4228f, 3982f, 63.52824f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(1101, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 31)
+      LocalObject(1101, CaptureTerminal.Constructor(Vector3(4244.587f, 3981.897f, 73.52724f), secondary_capture), owning_building_guid = 31)
       LocalObject(348, Door.Constructor(Vector3(4240f, 3974f, 65.04925f)), owning_building_guid = 31)
       LocalObject(349, Door.Constructor(Vector3(4240f, 3974f, 85.04825f)), owning_building_guid = 31)
       LocalObject(350, Door.Constructor(Vector3(4240f, 3990f, 65.04925f)), owning_building_guid = 31)
@@ -488,7 +488,7 @@ object Map11 { // HOME1 (NEW CONGLOMORATE SANCTUARY)
 
     def Building48(): Unit = { // Name: nc_SE_Amerish_Warpgate_Tower Type: tower_a GUID: 32, MapID: 48
       LocalBuilding("nc_SE_Amerish_Warpgate_Tower", 32, 48, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4458f, 6256f, 43.92254f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(1102, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 32)
+      LocalObject(1102, CaptureTerminal.Constructor(Vector3(4474.587f, 6255.897f, 53.92154f), secondary_capture), owning_building_guid = 32)
       LocalObject(352, Door.Constructor(Vector3(4470f, 6248f, 45.44354f)), owning_building_guid = 32)
       LocalObject(353, Door.Constructor(Vector3(4470f, 6248f, 65.44254f)), owning_building_guid = 32)
       LocalObject(354, Door.Constructor(Vector3(4470f, 6264f, 45.44354f)), owning_building_guid = 32)
@@ -525,7 +525,7 @@ object Map11 { // HOME1 (NEW CONGLOMORATE SANCTUARY)
 
     def Building46(): Unit = { // Name: nc_W_Esamir_Warpgate_Tower Type: tower_a GUID: 33, MapID: 46
       LocalBuilding("nc_W_Esamir_Warpgate_Tower", 33, 46, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4886f, 3164f, 48.7764f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(1103, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 33)
+      LocalObject(1103, CaptureTerminal.Constructor(Vector3(4902.587f, 3163.897f, 58.7754f), secondary_capture), owning_building_guid = 33)
       LocalObject(356, Door.Constructor(Vector3(4898f, 3156f, 50.2974f)), owning_building_guid = 33)
       LocalObject(357, Door.Constructor(Vector3(4898f, 3156f, 70.2964f)), owning_building_guid = 33)
       LocalObject(358, Door.Constructor(Vector3(4898f, 3172f, 50.2974f)), owning_building_guid = 33)
@@ -562,7 +562,7 @@ object Map11 { // HOME1 (NEW CONGLOMORATE SANCTUARY)
 
     def Building49(): Unit = { // Name: nc_SE_Cyssor_Warpgate_Tower Type: tower_b GUID: 34, MapID: 49
       LocalBuilding("nc_SE_Cyssor_Warpgate_Tower", 34, 49, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2506f, 5776f, 63.62667f), Vector3(0f, 0f, 360f), tower_b)))
-      LocalObject(1095, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 34)
+      LocalObject(1095, CaptureTerminal.Constructor(Vector3(2522.587f, 5775.897f, 83.62567f), secondary_capture), owning_building_guid = 34)
       LocalObject(320, Door.Constructor(Vector3(2518f, 5768f, 65.14667f)), owning_building_guid = 34)
       LocalObject(321, Door.Constructor(Vector3(2518f, 5768f, 75.14667f)), owning_building_guid = 34)
       LocalObject(322, Door.Constructor(Vector3(2518f, 5768f, 95.14667f)), owning_building_guid = 34)
@@ -599,7 +599,7 @@ object Map11 { // HOME1 (NEW CONGLOMORATE SANCTUARY)
 
     def Building47(): Unit = { // Name: nc_SW_Amerish_Warpgate_Tower Type: tower_b GUID: 35, MapID: 47
       LocalBuilding("nc_SW_Amerish_Warpgate_Tower", 35, 47, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3844f, 5888f, 44.39456f), Vector3(0f, 0f, 360f), tower_b)))
-      LocalObject(1098, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 35)
+      LocalObject(1098, CaptureTerminal.Constructor(Vector3(3860.587f, 5887.897f, 64.39356f), secondary_capture), owning_building_guid = 35)
       LocalObject(334, Door.Constructor(Vector3(3856f, 5880f, 45.91456f)), owning_building_guid = 35)
       LocalObject(335, Door.Constructor(Vector3(3856f, 5880f, 55.91456f)), owning_building_guid = 35)
       LocalObject(336, Door.Constructor(Vector3(3856f, 5880f, 75.91457f)), owning_building_guid = 35)
@@ -636,7 +636,7 @@ object Map11 { // HOME1 (NEW CONGLOMORATE SANCTUARY)
 
     def Building45(): Unit = { // Name: nc_N_Esamir_Warpgate_Tower Type: tower_b GUID: 36, MapID: 45
       LocalBuilding("nc_N_Esamir_Warpgate_Tower", 36, 45, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5020f, 3810f, 65.63448f), Vector3(0f, 0f, 360f), tower_b)))
-      LocalObject(1104, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 36)
+      LocalObject(1104, CaptureTerminal.Constructor(Vector3(5036.587f, 3809.897f, 85.63348f), secondary_capture), owning_building_guid = 36)
       LocalObject(360, Door.Constructor(Vector3(5032f, 3802f, 67.15448f)), owning_building_guid = 36)
       LocalObject(361, Door.Constructor(Vector3(5032f, 3802f, 77.15448f)), owning_building_guid = 36)
       LocalObject(362, Door.Constructor(Vector3(5032f, 3802f, 97.15448f)), owning_building_guid = 36)
@@ -673,7 +673,7 @@ object Map11 { // HOME1 (NEW CONGLOMORATE SANCTUARY)
 
     def Building58(): Unit = { // Name: nc_Cyssor_Outpost_Tower Type: tower_c GUID: 37, MapID: 58
       LocalBuilding("nc_Cyssor_Outpost_Tower", 37, 58, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(1978f, 4802f, 62.46139f), Vector3(0f, 0f, 360f), tower_c)))
-      LocalObject(1093, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 37)
+      LocalObject(1093, CaptureTerminal.Constructor(Vector3(1994.587f, 4801.897f, 72.46039f), secondary_capture), owning_building_guid = 37)
       LocalObject(312, Door.Constructor(Vector3(1990f, 4794f, 63.98239f)), owning_building_guid = 37)
       LocalObject(313, Door.Constructor(Vector3(1990f, 4794f, 83.98139f)), owning_building_guid = 37)
       LocalObject(314, Door.Constructor(Vector3(1990f, 4810f, 63.98239f)), owning_building_guid = 37)
@@ -714,7 +714,7 @@ object Map11 { // HOME1 (NEW CONGLOMORATE SANCTUARY)
 
     def Building51(): Unit = { // Name: nc_Central_Tower Type: tower_c GUID: 38, MapID: 51
       LocalBuilding("nc_Central_Tower", 38, 51, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3340f, 4668f, 61.79601f), Vector3(0f, 0f, 360f), tower_c)))
-      LocalObject(1097, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 38)
+      LocalObject(1097, CaptureTerminal.Constructor(Vector3(3356.587f, 4667.897f, 71.79501f), secondary_capture), owning_building_guid = 38)
       LocalObject(330, Door.Constructor(Vector3(3352f, 4660f, 63.31701f)), owning_building_guid = 38)
       LocalObject(331, Door.Constructor(Vector3(3352f, 4660f, 83.31601f)), owning_building_guid = 38)
       LocalObject(332, Door.Constructor(Vector3(3352f, 4676f, 63.31701f)), owning_building_guid = 38)
@@ -755,7 +755,7 @@ object Map11 { // HOME1 (NEW CONGLOMORATE SANCTUARY)
 
     def Building56(): Unit = { // Name: nc_Esamir_Outpost_Tower Type: tower_c GUID: 39, MapID: 56
       LocalBuilding("nc_Esamir_Outpost_Tower", 39, 56, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4140f, 2924f, 39.29424f), Vector3(0f, 0f, 360f), tower_c)))
-      LocalObject(1099, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 39)
+      LocalObject(1099, CaptureTerminal.Constructor(Vector3(4156.587f, 2923.897f, 49.29324f), secondary_capture), owning_building_guid = 39)
       LocalObject(340, Door.Constructor(Vector3(4152f, 2916f, 40.81524f)), owning_building_guid = 39)
       LocalObject(341, Door.Constructor(Vector3(4152f, 2916f, 60.81424f)), owning_building_guid = 39)
       LocalObject(342, Door.Constructor(Vector3(4152f, 2932f, 40.81524f)), owning_building_guid = 39)
@@ -796,7 +796,7 @@ object Map11 { // HOME1 (NEW CONGLOMORATE SANCTUARY)
 
     def Building57(): Unit = { // Name: nc_Amerish_Outpost_Tower Type: tower_c GUID: 40, MapID: 57
       LocalBuilding("nc_Amerish_Outpost_Tower", 40, 57, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5290f, 6160f, 39.10642f), Vector3(0f, 0f, 360f), tower_c)))
-      LocalObject(1105, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 40)
+      LocalObject(1105, CaptureTerminal.Constructor(Vector3(5306.587f, 6159.897f, 49.10542f), secondary_capture), owning_building_guid = 40)
       LocalObject(366, Door.Constructor(Vector3(5302f, 6152f, 40.62742f)), owning_building_guid = 40)
       LocalObject(367, Door.Constructor(Vector3(5302f, 6152f, 60.62642f)), owning_building_guid = 40)
       LocalObject(368, Door.Constructor(Vector3(5302f, 6168f, 40.62742f)), owning_building_guid = 40)
@@ -1449,6 +1449,23 @@ object Map11 { // HOME1 (NEW CONGLOMORATE SANCTUARY)
 
     def Building3(): Unit = { // Name: WG_NCSanc_to_Esamir Type: warpgate GUID: 94, MapID: 3
       LocalBuilding("WG_NCSanc_to_Esamir", 94, 3, FoundationBuilder(WarpGate.Structure(Vector3(5174f, 3174f, 56.06128f))))
+    }
+
+    ZoneOwnedObjects()
+
+    def ZoneOwnedObjects(): Unit = {
+      LocalObject(4, ProximityTerminal.Constructor(Vector3(2215.26f, 5474.73f, 65.38f), repair_silo), owning_building_guid = 0)
+      LocalObject(5, Terminal.Constructor(Vector3(2215.26f, 5474.73f, 65.38f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(8, ProximityTerminal.Constructor(Vector3(2300.3f, 5585.29f, 65.29f), repair_silo), owning_building_guid = 0)
+      LocalObject(9, Terminal.Constructor(Vector3(2300.3f, 5585.29f, 65.29f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(12, ProximityTerminal.Constructor(Vector3(4109.72f, 6006.86f, 44.07f), repair_silo), owning_building_guid = 0)
+      LocalObject(13, Terminal.Constructor(Vector3(4109.72f, 6006.86f, 44.07f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(16, ProximityTerminal.Constructor(Vector3(4194.53f, 6116.86f, 44.19f), repair_silo), owning_building_guid = 0)
+      LocalObject(17, Terminal.Constructor(Vector3(4194.53f, 6116.86f, 44.19f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(20, ProximityTerminal.Constructor(Vector3(4800.67f, 3580.72f, 68.85f), repair_silo), owning_building_guid = 0)
+      LocalObject(21, Terminal.Constructor(Vector3(4800.67f, 3580.72f, 68.85f), ground_rearm_terminal), owning_building_guid = 0)
+      LocalObject(24, ProximityTerminal.Constructor(Vector3(4820.75f, 3442.89f, 68.87f), repair_silo), owning_building_guid = 0)
+      LocalObject(25, Terminal.Constructor(Vector3(4820.75f, 3442.89f, 68.87f), ground_rearm_terminal), owning_building_guid = 0)
     }
 
     def Lattice(): Unit = {

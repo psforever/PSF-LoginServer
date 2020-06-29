@@ -10,7 +10,8 @@ object Zoning {
     val
     None,
     InstantAction,
-    Recall
+    Recall,
+    Quit
     = Value
   }
 
@@ -34,6 +35,8 @@ object Zoning {
     final val None = TimeType(20, "None")
     final val Enemy = TimeType(30, "Enemy")
   }
+
+  final case class Quit()
 
   object InstantAction {
     final case class Request(faction : PlanetSideEmpire.Value)

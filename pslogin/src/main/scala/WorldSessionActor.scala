@@ -1095,7 +1095,7 @@ class WorldSessionActor extends Actor
     case msg@Zoning.InstantAction.Located(zone, _, spawn_point) =>
       //in between subsequent reply messages, it does not matter if the destination changes
       //so long as there is at least one destination at all (including the fallback)
-      if(ContemplateZoningResponse(Zoning.InstantAction.Request(player.Faction))) {
+      if(ContemplateZoningResponse(Zoning.InstantAction.Request(player.Faction), cluster)) {
         val (pos, ori) = spawn_point.SpecificPoint(player)
         SpawnThroughZoningProcess(zone, pos, ori)
       }
@@ -1106,7 +1106,7 @@ class WorldSessionActor extends Actor
     case Zoning.InstantAction.NotLocated() =>
       instantActionFallbackDestination match {
         case Some(Zoning.InstantAction.Located(zone, _, spawn_point)) if spawn_point.Owner.Faction == player.Faction && !spawn_point.Offline =>
-          if(ContemplateZoningResponse(Zoning.InstantAction.Request(player.Faction))) {
+          if(ContemplateZoningResponse(Zoning.InstantAction.Request(player.Faction), cluster)) {
             val (pos, ori) = spawn_point.SpecificPoint(player)
             SpawnThroughZoningProcess(zone, pos, ori)
           }
@@ -1119,13 +1119,19 @@ class WorldSessionActor extends Actor
       }
 
     case Zoning.Recall.Located(zone, spawn_point) =>
-      if(ContemplateZoningResponse(Zoning.Recall.Request(player.Faction, zone.Id))) {
+      if(ContemplateZoningResponse(Zoning.Recall.Request(player.Faction, zone.Id), cluster)) {
         val (pos, ori) = spawn_point.SpecificPoint(player)
         SpawnThroughZoningProcess(zone, pos, ori)
       }
 
     case Zoning.Recall.Denied(reason) =>
       CancelZoningProcessWithReason(s"@norecall_sanctuary_$reason", Some(ChatMessageType.CMT_QUIT))
+
+    case Zoning.Quit() =>
+      if(ContemplateZoningResponse(Zoning.Quit(), self)) {
+        log.info("Good-bye")
+        ImmediateDisconnect()
+      }
 
     case ZoningReset() =>
       CancelZoningProcess()
@@ -1392,6 +1398,10 @@ class WorldSessionActor extends Actor
       inZone.AvatarEvents ! AvatarServiceMessage(playerName, AvatarAction.TeardownConnection())
       //find and reload previous player
       (inZone.Players.find(p => p.name.equals(playerName)), inZone.LivePlayers.find(p => p.Name.equals(playerName))) match {
+        case (_, Some(p)) if p.death_by == -1 =>
+          //player is not allowed
+          KickedByAdministration()
+
         case (Some(a), Some(p)) if p.isAlive =>
           //rejoin current avatar/player
           log.info(s"LoginInfo: player $playerName is alive")
@@ -1432,8 +1442,15 @@ class WorldSessionActor extends Actor
 
         case _ =>
           //fall back to sanctuary/prior?
-          log.error(s"LoginInfo: player ${player.Name}Name could not be found in game world")
+          log.error(s"LoginInfo: player $playerName could not be found in game world")
           self ! PlayerToken.LoginInfo(playerName, Zone.Nowhere, pos)
+      }
+
+    case PlayerToken.CanNotLogin(playerName, reason) =>
+      log.warn(s"LoginInfo: player $playerName is denied login for reason: $reason")
+      reason match {
+        case PlayerToken.DeniedLoginReason.Kicked => KickedByAdministration()
+        case _ => sendResponse(DisconnectMessage("You will be logged out."))
       }
 
     case msg @ Containable.ItemPutInSlot(_ : PlanetSideServerObject with Container, _ : Equipment, _ : Int, _ : Option[Equipment]) =>
@@ -1523,7 +1540,7 @@ class WorldSessionActor extends Actor
     * @return `true`, if the zoning transportation process should start;
     *         `false`, otherwise
     */
-  def ContemplateZoningResponse(nextStepMsg : Any) : Boolean = {
+  def ContemplateZoningResponse(nextStepMsg : Any, to : ActorRef) : Boolean = {
     val descriptor = zoningType.toString.toLowerCase
     if(zoningStatus == Zoning.Status.Request) {
       DeactivateImplants()
@@ -1535,7 +1552,7 @@ class WorldSessionActor extends Actor
       zoningReset.cancel
       zoningTimer.cancel
       zoningReset = context.system.scheduler.scheduleOnce(10 seconds, self, ZoningReset())
-      zoningTimer = context.system.scheduler.scheduleOnce(5 seconds, cluster, nextStepMsg)
+      zoningTimer = context.system.scheduler.scheduleOnce(5 seconds, to, nextStepMsg)
       false
     }
     else if(zoningStatus == Zoning.Status.Countdown) {
@@ -1548,7 +1565,7 @@ class WorldSessionActor extends Actor
         }
         //again
         zoningReset = context.system.scheduler.scheduleOnce(10 seconds, self, ZoningReset())
-        zoningTimer = context.system.scheduler.scheduleOnce(5 seconds, cluster, nextStepMsg)
+        zoningTimer = context.system.scheduler.scheduleOnce(5 seconds, to, nextStepMsg)
         false
       }
       else {
@@ -1853,7 +1870,13 @@ class WorldSessionActor extends Actor
         }
         import scala.concurrent.ExecutionContext.Implicits.global
         reviveTimer.cancel
-        reviveTimer = context.system.scheduler.scheduleOnce(respawnTimer milliseconds, cluster, Zone.Lattice.RequestSpawnPoint(Zones.SanctuaryZoneNumber(player.Faction), player, 7))
+        if(player.death_by == 0) {
+          import scala.concurrent.ExecutionContext.Implicits.global
+          reviveTimer = context.system.scheduler.scheduleOnce(respawnTimer milliseconds, cluster, Zone.Lattice.RequestSpawnPoint(Zones.SanctuaryZoneNumber(player.Faction), player, 7))
+        }
+        else {
+          HandleReleaseAvatar(player, continent)
+        }
 
       case AvatarResponse.LoadPlayer(pkt) =>
         if(tplayer_guid != guid) {
@@ -1902,14 +1925,7 @@ class WorldSessionActor extends Actor
             val dist = Vector3.DistanceSquared(player.Position, pos)
             (pos, now - before, dist)
           }
-          if(spectating ||
-            ((distanceSq < 900 || weaponInHand) && time > 200) ||
-            (distanceSq < 10000 && time > 500) ||
-            (distanceSq < 160000 && (
-              (is_jumping || time < 200)) ||
-              (!WorldEntity.isMoving(vel) && time > 2000) ||
-              (time > 1000)) ||
-            (distanceSq > 160000 && time > 5000)) {
+          if(distanceSq < 302500 || time > 5000) { // Render distance seems to be approx 525m. Reduce update rate at ~550m to be safe
             sendResponse(
               PlayerStateMessage(
                 guid,
@@ -1976,7 +1992,16 @@ class WorldSessionActor extends Actor
 
       case AvatarResponse.WeaponDryFire(weapon_guid) =>
         if(tplayer_guid != guid) {
-          sendResponse(WeaponDryFireMessage(weapon_guid))
+          // Check that the magazine is still empty before sending WeaponDryFireMessage
+          // As it could have been reloaded since the packet was dispatched, which would make other clients not see it firing
+          continent.GUID(weapon_guid) match {
+            case Some(tool : Tool) => {
+              if(tool.Magazine == 0) {
+                sendResponse(WeaponDryFireMessage(weapon_guid))
+              }
+            }
+            case _ => log.warn(s"Tried to send WeaponDryFire but GUID ${weapon_guid} does not seem to be a Tool")
+          }
         }
 
       case AvatarResponse.TerminalOrderResult(terminal_guid, action, result) =>
@@ -2810,16 +2835,6 @@ class WorldSessionActor extends Actor
           sendResponse(VehicleStateMessage(vehicle_guid, unk1, pos, ang, vel, unk2, unk3, unk4, wheel_direction, unk5, unk6))
           if(player.VehicleSeated.contains(vehicle_guid)) {
             player.Position = pos
-            GetVehicleAndSeat() match {
-              case (Some(_), Some(0)) => ;
-              case (Some(_), Some(_)) =>
-                if (player.death_by == -1) {
-                  sendResponse(ChatMsg(ChatMessageType.UNK_71, true, "", "Your account has been logged out by a Customer Service Representative.", None))
-                  Thread.sleep(300)
-                  sendResponse(DropSession(sessionId, "kick by GM"))
-                }
-              case _ => ;
-            }
           }
         }
       case VehicleResponse.SendResponse(msg) =>
@@ -3874,7 +3889,7 @@ class WorldSessionActor extends Actor
       }
       accessedContainer match {
         case Some(veh : Vehicle) =>
-          if(isMoving || Vector3.DistanceSquared(player.Position, veh.Position) > 100) {
+          if(isMoving || veh.isMoving(1) || Vector3.DistanceSquared(player.Position, veh.TrunkLocation) > 9) {
             val guid = player.GUID
             sendResponse(UnuseItemMessage(guid, veh.GUID))
             sendResponse(UnuseItemMessage(guid, guid))
@@ -3901,9 +3916,7 @@ class WorldSessionActor extends Actor
       continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlayerState(avatar_guid, player.Position, player.Velocity, yaw, pitch, yaw_upper, seq_time, is_crouching, is_jumping, jump_thrust, is_cloaking, player.spectator, wepInHand))
       updateSquad()
       if(player.death_by == -1) {
-        sendResponse(ChatMsg(ChatMessageType.UNK_71, true, "", "Your account has been logged out by a Customer Service Representative.", None))
-        Thread.sleep(300)
-        sendResponse(DropSession(sessionId, "kick by GM"))
+        KickedByAdministration()
       }
 
     case msg@ChildObjectStateMessage(object_guid, pitch, yaw) =>
@@ -3935,9 +3948,7 @@ class WorldSessionActor extends Actor
         //log.warn(s"ChildObjectState: player ${player.Name} not related to anything with a controllable agent")
       }
       if (player.death_by == -1) {
-        sendResponse(ChatMsg(ChatMessageType.UNK_71, true, "", "Your account has been logged out by a Customer Service Representative.", None))
-        Thread.sleep(300)
-        sendResponse(DropSession(sessionId, "kick by GM"))
+        KickedByAdministration()
       }
 
     case msg@VehicleStateMessage(vehicle_guid, unk1, pos, ang, vel, flying, unk6, unk7, wheels, is_decelerating, is_cloaked) =>
@@ -3984,9 +3995,7 @@ class WorldSessionActor extends Actor
         case _ => ;
       }
       if (player.death_by == -1) {
-        sendResponse(ChatMsg(ChatMessageType.UNK_71, true, "", "Your account has been logged out by a Customer Service Representative.", None))
-        Thread.sleep(300)
-        sendResponse(DropSession(sessionId, "kick by GM"))
+        KickedByAdministration()
       }
 
     case msg@VehicleSubStateMessage(vehicle_guid, player_guid, vehicle_pos, vehicle_ang, vel, unk1, unk2) =>
@@ -4071,18 +4080,26 @@ class WorldSessionActor extends Actor
       else if(messagetype == ChatMessageType.CMT_RECALL) {
         makeReply = false
         val sanctuary = Zones.SanctuaryZoneId(player.Faction)
-        if(zoningType == Zoning.Method.InstantAction) {
-          sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noinstantaction_instantactionting", None))
+        if(zoningType == Zoning.Method.Quit) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "You can't recall to your sanctuary continent while quitting", None))
+        }
+        else if(zoningType == Zoning.Method.InstantAction) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "You can't recall to your sanctuary continent while instant actioning", None))
         }
         else if(zoningType == Zoning.Method.Recall) {
-          sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "You already requested to recall to your sanctuary continent.", None))
+          sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "You already requested to recall to your sanctuary continent", None))
         }
         else if(continent.Id.equals(sanctuary)) {
-          //nonstandard message
-          sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "You can't recall when you are already on your faction's sanctuary continent.", None))
+          sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "You can't recall to your sanctuary continent when you are already on your faction's sanctuary continent", None))
         }
-        else if(deadState != DeadState.Alive) {
-          sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@norecall_dead", None))
+        else if(!player.isAlive || deadState != DeadState.Alive) {
+          if (player.isAlive) {
+            sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@norecall_deconstructing", None))
+            //sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "You can't recall to your sanctuary continent while deconstructing.", None))
+          }
+          else {
+            sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@norecall_dead", None))
+          }
         }
         else if(player.VehicleSeated.nonEmpty) {
           sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@norecall_invehicle", None))
@@ -4097,15 +4114,22 @@ class WorldSessionActor extends Actor
       }
       else if(messagetype == ChatMessageType.CMT_INSTANTACTION) {
         makeReply = false
-        if(zoningType == Zoning.Method.InstantAction) {
+        if(zoningType == Zoning.Method.Quit) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "You can't instant action while quitting.", None))
+        }
+        else if(zoningType == Zoning.Method.InstantAction) {
           sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noinstantaction_instantactionting", None))
         }
         else if(zoningType == Zoning.Method.Recall) {
-          //nonstandard message
-          sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "You already requested to recall to your sanctuary continent.", None))
+          sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "You won't instant action.  You already requested to recall to your sanctuary continent", None))
         }
-        else if(deadState != DeadState.Alive) {
-          sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noinstantaction_dead", None))
+        else if(!player.isAlive || deadState != DeadState.Alive) {
+          if(player.isAlive) {
+            sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noinstantaction_deconstructing", None))
+          }
+          else {
+            sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noinstantaction_dead", None))
+          }
         }
         else if(player.VehicleSeated.nonEmpty) {
           sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noinstantaction_invehicle", None))
@@ -4116,6 +4140,33 @@ class WorldSessionActor extends Actor
           zoningStatus = Zoning.Status.Request
           zoningReset = context.system.scheduler.scheduleOnce(10 seconds, self, ZoningReset())
           cluster ! Zoning.InstantAction.Request(player.Faction)
+        }
+      }
+      else if(messagetype == ChatMessageType.CMT_QUIT) {
+        makeReply = false
+        if(zoningType == Zoning.Method.Quit) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noquit_quitting", None))
+        }
+        else if(!player.isAlive || deadState != DeadState.Alive) {
+          if(player.isAlive) {
+            sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noquit_deconstructing", None))
+          }
+          else {
+            sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noquit_dead", None))
+          }
+        }
+        else if(player.VehicleSeated.nonEmpty) {
+          sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noquit_invehicle", None))
+        }
+        else {
+          //priority to quitting is given to quit over other zoning methods
+          if(zoningType == Zoning.Method.InstantAction || zoningType == Zoning.Method.Recall) {
+            CancelZoningProcessWithDescriptiveReason("cancel")
+          }
+          zoningType = Zoning.Method.Quit
+          zoningChatMessageType = messagetype
+          zoningStatus = Zoning.Status.Request
+          self ! Zoning.Quit()
         }
       }
       CSRZone.read(traveler, msg) match {
@@ -4204,9 +4255,6 @@ class WorldSessionActor extends Actor
           case _ =>
             self ! PacketCoding.CreateGamePacket(0, RequestDestroyMessage(PlanetSideGUID(guid)))
         }
-      } else if(messagetype == ChatMessageType.CMT_QUIT) { // TODO: handle this appropriately
-        sendResponse(DropCryptoSession())
-        sendResponse(DropSession(sessionId, "user quit"))
       }
       //dev hack; consider bang-commands to complement slash-commands in future
       if(trimContents.equals("!loc")) {
@@ -4381,25 +4429,26 @@ class WorldSessionActor extends Actor
         //        StopBundlingPackets()
       }
       else if (trimContents.contains("!kick") && admin) {
-        val CharIDorName : String = contents.drop(contents.indexOf(" ") + 1)
-        try {
-          val charID : Long = CharIDorName.toLong
-          if(charID != player.CharId) {
-            var charToKick = continent.LivePlayers.filter(_.CharId == charID)
-            if (charToKick.nonEmpty) {
-              charToKick.head.death_by = -1
-            }
-            else {
-              charToKick = continent.Corpses.filter(_.CharId == charID)
-              if (charToKick.nonEmpty) charToKick.head.death_by = -1
-            }
+        val input = trimContents.split("\\s+").drop(1)
+        if(input.length > 0) {
+          val numRegex = raw"(\d+)".r
+          val id = input(0)
+          val determination : Player=>Boolean = id match {
+            case numRegex(_) => { _.CharId == id.toLong }
+            case _ => { _.Name.equals(id) }
           }
-        }
-        catch {
-          case _ : Throwable =>
-          {
-            val charToKick = continent.LivePlayers.filter(_.Name.equalsIgnoreCase(CharIDorName))
-            if(charToKick.nonEmpty) charToKick.head.death_by = -1
+          continent.LivePlayers.find(determination).orElse(continent.Corpses.find(determination)) match {
+            case Some(tplayer) if AdministrativeKick(tplayer) =>
+              if(input.length > 1) {
+                val time = input(1)
+                time match {
+                  case numRegex(_) =>
+                    accountPersistence ! AccountPersistenceService.Kick(tplayer.Name, Some(time.toLong))
+                  case _ =>
+                    accountPersistence ! AccountPersistenceService.Kick(tplayer.Name, None)
+                }
+              }
+            case _ => ;
           }
         }
       }
@@ -4449,14 +4498,14 @@ class WorldSessionActor extends Actor
             sendResponse(ChatMsg(ChatMessageType.UNK_229, true, "", "USE !hack tr|vs|nc|bo OR !hack BaseName tr|vs|nc|bo", None))
           }
           else {
-            continent.Buildings.foreach({
-              case (id, building) =>
-                if(!building.Name.isEmpty && args(1).equalsIgnoreCase(building.Name)) {
-                  log.info(s"Hack Base Name : ${args(1)} to empire : ${args(2)}")
-                  building.Faction = hackFaction
-                  continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.SetEmpire(building.GUID, hackFaction))
-                }
-            })
+            continent.Buildings.find(x => !x._2.Name.isEmpty && args(1).equalsIgnoreCase(x._2.Name) && x._2.CaptureTerminal.isDefined) match {
+              case Some((_, building)) =>
+                log.info(s"Setting Name: ${building.Name} / GUID: ${building.GUID} / MapId: ${building.MapId} to empire : ${args(1)}")
+                building.Faction = hackFaction
+                continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.SetEmpire(building.GUID, hackFaction))
+              case _ =>
+                sendResponse(ChatMsg(ChatMessageType.UNK_229, true, "", "Base not found or does not have control console", None))
+            }
           }
         } else if (args.length == 2) {
           var bad : Boolean = false
@@ -4470,13 +4519,9 @@ class WorldSessionActor extends Actor
           }
           else {
             continent.Buildings.foreach({
-              case (id, building) =>
-                if (!building.Name.isEmpty && !bad
-                  && building.BuildingType != StructureType.Bridge
-                  && building.BuildingType != StructureType.Bunker
-                  && building.BuildingType != StructureType.WarpGate
-                ) {
-                  log.info(s"Hack Bases to empire : ${args(1)}")
+              case (_, building) =>
+                if (!building.Name.isEmpty && building.CaptureTerminal.isDefined) {
+                  log.info(s"Setting Name: ${building.Name} / GUID: ${building.GUID} / MapId: ${building.MapId} to empire : ${args(1)}")
                   building.Faction = hackFaction
                   continent.LocalEvents ! LocalServiceMessage(continent.Id, LocalAction.SetEmpire(building.GUID, hackFaction))
                 }
@@ -5003,7 +5048,7 @@ class WorldSessionActor extends Actor
               // A base is neutral
               // todo: A base is out of power (generator down)
 
-              playerIsOnInside || lock.HackedBy.isDefined || owner.CaptureConsoleIsHacked || lock.Faction == PlanetSideEmpire.NEUTRAL
+              playerIsOnInside || lock.HackedBy.isDefined || owner.CaptureTerminalIsHacked || lock.Faction == PlanetSideEmpire.NEUTRAL
             case None => !door.isOpen // If there's no linked IFF lock just open the door if it's closed.
           })) {
             door.Actor ! Door.Use(player, msg)
@@ -5041,7 +5086,8 @@ class WorldSessionActor extends Actor
                 val lastUse = player.GetLastUsedTime(kid)
                 val delay = delayedGratificationEntries.getOrElse(kid, 0L)
                 if((time - lastUse) < delay) {
-                  sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", s"@TimeUntilNextUse^${((delay / 1000) - math.ceil((time - lastUse).toDouble) / 1000)}~", None))
+                  val displayedDelay = math.min(5, ((delay.toDouble / 1000) - math.ceil((time - lastUse).toDouble) / 1000) + 1).toInt
+                  sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", s"@TimeUntilNextUse^$displayedDelay~", None))
                 }
                 else {
                   val indexOpt = player.Find(kit)
@@ -5206,7 +5252,7 @@ class WorldSessionActor extends Actor
               CancelZoningProcessWithDescriptiveReason("cancel_use")
               terminal.Actor ! CommonMessages.Use(player, Some(item))
 
-            case None if terminal.Faction == player.Faction || terminal.HackedBy.nonEmpty =>
+            case None if terminal.Owner == Building.NoBuilding || terminal.Faction == player.Faction || terminal.HackedBy.nonEmpty =>
               val tdef = terminal.Definition
               if(tdef.isInstanceOf[MatrixTerminalDefinition]) {
                 //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
@@ -5577,7 +5623,7 @@ class WorldSessionActor extends Actor
           }
           else if(!player.isAlive) { //proper internal accounting, but no projectile
             prefire = shooting.orElse(Some(weapon_guid))
-            tool.Discharge
+            tool.Discharge()
             projectiles(projectile_guid.guid - Projectile.BaseUID) = None
             shotsWhileDead += 1
           }
@@ -5588,7 +5634,7 @@ class WorldSessionActor extends Actor
             }
 
             prefire = shooting.orElse(Some(weapon_guid))
-            tool.Discharge //always
+            tool.Discharge() //always
             val projectileIndex = projectile_guid.guid - Projectile.BaseUID
             val projectilePlace = projectiles(projectileIndex)
             if(projectilePlace match {
@@ -7660,6 +7706,7 @@ class WorldSessionActor extends Actor
     val obj = Player.Respawn(tplayer)
     obj.ResetAllImplants()
     LoadClassicDefault(obj)
+    obj.death_by = tplayer.death_by
     obj
   }
 
@@ -7732,7 +7779,15 @@ class WorldSessionActor extends Actor
   /**
     * Creates a player that has the characteristics of a corpse.
     * To the game, that is a backpack (or some pastry, festive graphical modification allowing).
+    * A player who has been kicked may not turn into a corpse.
+    * @see `AvatarAction.Release`
+    * @see `AvatarServiceMessage`
     * @see `CorpseConverter.converter`
+    * @see `DepictPlayerAsCorpse`
+    * @see `Player.Release`
+    * @see `Zone.AvatarEvents`
+    * @see `Zone.Corpse.Add`
+    * @see `Zone.Population`
     * @param tplayer the player
     */
   def TurnPlayerIntoCorpse(tplayer : Player, zone : Zone) : Unit = {
@@ -7773,7 +7828,7 @@ class WorldSessionActor extends Actor
     */
   def TryDisposeOfLootedCorpse(obj : Player) : Boolean = {
     if(obj.isBackpack && WellLootedDeadBody(obj)) {
-      continent.AvatarEvents ! AvatarServiceMessage.Corpse(RemoverActor.HurrySpecific(List(obj), continent))
+      obj.Zone.AvatarEvents ! AvatarServiceMessage.Corpse(RemoverActor.HurrySpecific(List(obj), obj.Zone))
       true
     }
     else {
@@ -8194,7 +8249,7 @@ class WorldSessionActor extends Actor
     target match {
       case obj : Player if obj.CanDamage && obj.Actor != Default.Actor =>
         if(obj.spectator) {
-          player.death_by = -1 // little thing for auto kick
+          AdministrativeKick(player, obj != player) // little thing for auto kick
         }
         else {
           obj.Actor ! Vitality.Damage(func)
@@ -10279,6 +10334,39 @@ class WorldSessionActor extends Actor
     interimUngunnedVehicle = None
     persist()
     turnCounterFunc(player.GUID)
+  }
+
+  def AdministrativeKick(tplayer : Player, permitKickSelf : Boolean = false) : Boolean = {
+    if(permitKickSelf || tplayer != player) { //stop kicking yourself
+      tplayer.death_by = -1
+      accountPersistence ! AccountPersistenceService.Kick(tplayer.Name)
+      //get out of that vehicle
+      GetMountableAndSeat(None, tplayer, continent) match {
+        case (Some(obj), Some(seatNum)) =>
+          tplayer.VehicleSeated = None
+          obj.Seats(seatNum).Occupant = None
+          continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.KickPassenger(tplayer.GUID, seatNum, false, obj.GUID))
+        case _ => ;
+      }
+      true
+    }
+    else {
+      false
+    }
+  }
+
+  def KickedByAdministration() : Unit = {
+    sendResponse(DisconnectMessage("Your account has been logged out by a Customer Service Representative."))
+    Thread.sleep(300)
+    sendResponse(DropSession(sessionId, "kick by GM"))
+  }
+
+  def ImmediateDisconnect() : Unit = {
+    if(avatar != null) {
+      accountPersistence ! AccountPersistenceService.Logout(avatar.name)
+    }
+    sendResponse(DropCryptoSession())
+    sendResponse(DropSession(sessionId, "user quit"))
   }
 
   def failWithError(error : String) = {

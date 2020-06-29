@@ -28,12 +28,10 @@ object Players {
   def RevivingTickAction(target : Player, user : Player, item : Tool)(progress : Float) : Boolean = {
     if(!target.isAlive && !target.isBackpack &&
       user.isAlive && !user.isMoving &&
-      user.Slot(user.DrawnSlot).Equipment.contains(item) && item.Magazine > 0 &&
+      user.Slot(user.DrawnSlot).Equipment.contains(item) && item.Magazine >= 25 &&
       Vector3.Distance(target.Position, user.Position) < target.Definition.RepairDistance) {
-      val magazine = item.Discharge
       val events = target.Zone.AvatarEvents
       val uname = user.Name
-      events ! AvatarServiceMessage(uname, AvatarAction.SendResponse(Service.defaultPlayerGUID, InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine)))
       events ! AvatarServiceMessage(uname, AvatarAction.SendResponse(Service.defaultPlayerGUID, RepairMessage(target.GUID, progress.toInt)))
       true
     }
@@ -48,10 +46,13 @@ object Players {
     * @see `AvatarResponse.Revive`
     * @param target the player being revived
     * @param medic the name of the player doing the reviving
+    * @param item the tool being used to revive the target player
     */
-  def FinishRevivingPlayer(target : Player, medic : String)() : Unit = {
+  def FinishRevivingPlayer(target : Player, medic : String, item : Tool)() : Unit = {
     val name = target.Name
     log.info(s"$medic had revived $name")
+    val magazine = item.Discharge(Some(25))
+    target.Zone.AvatarEvents ! AvatarServiceMessage(medic, AvatarAction.SendResponse(Service.defaultPlayerGUID, InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine)))
     target.Zone.AvatarEvents ! AvatarServiceMessage(name, AvatarAction.Revive(target.GUID))
   }
 

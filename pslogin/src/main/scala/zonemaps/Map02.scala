@@ -24,7 +24,7 @@ object Map02 { // Hossin
 
     def Building12(): Unit = { // Name: Ixtab Type: amp_station GUID: 1, MapID: 12
       LocalBuilding("Ixtab", 1, 12, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3390f, 3150f, 39.97925f), Vector3(0f, 0f, 315f), amp_station)))
-      LocalObject(186, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 1)
+      LocalObject(186, CaptureTerminal.Constructor(Vector3(3387.643f, 3152.361f, 51.48725f), capture_terminal), owning_building_guid = 1)
       LocalObject(148, Door.Constructor(Vector3(3385.337f, 3145.039f, 52.88125f)), owning_building_guid = 1)
       LocalObject(149, Door.Constructor(Vector3(3394.963f, 3154.661f, 52.88125f)), owning_building_guid = 1)
       LocalObject(334, Door.Constructor(Vector3(3302.688f, 3158.823f, 41.73025f)), owning_building_guid = 1)
@@ -108,7 +108,7 @@ object Map02 { // Hossin
       LocalObject(2307, Terminal.Constructor(Vector3(3383.966f, 3211.767f, 34.23625f), spawn_terminal), owning_building_guid = 1)
       LocalObject(2509, Terminal.Constructor(Vector3(3414.429f, 3242.205f, 42.08125f), vehicle_terminal_combined), owning_building_guid = 1)
       LocalObject(1543, VehicleSpawnPad.Constructor(Vector3(3404.849f, 3232.498f, 37.92425f), mb_pad_creation, Vector3(0, 0, 225)), owning_building_guid = 1, terminal_guid = 2509)
-      LocalObject(2170, ResourceSilo.Constructor, owning_building_guid = 1)
+      LocalObject(2170, ResourceSilo.Constructor(Vector3(3366.771f, 3052.32f, 47.21425f)), owning_building_guid = 1)
       LocalObject(2203, SpawnTube.Constructor(Vector3(3368.02f, 3155.975f, 32.67925f), Vector3(0, 0, 45)), owning_building_guid = 1)
       LocalObject(2204, SpawnTube.Constructor(Vector3(3373.176f, 3161.131f, 32.67925f), Vector3(0, 0, 45)), owning_building_guid = 1)
       LocalObject(2205, SpawnTube.Constructor(Vector3(3378.329f, 3166.284f, 32.67925f), Vector3(0, 0, 45)), owning_building_guid = 1)
@@ -247,7 +247,7 @@ object Map02 { // Hossin
 
     def Building48(): Unit = { // Name: Hurakan Type: comm_station GUID: 17, MapID: 48
       LocalBuilding("Hurakan", 17, 48, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(1904f, 2988f, 38.46553f), Vector3(0f, 0f, 270f), comm_station)))
-      LocalObject(183, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 17)
+      LocalObject(183, CaptureTerminal.Constructor(Vector3(1980.734f, 2943.911f, 21.16553f), capture_terminal), owning_building_guid = 17)
       LocalObject(266, Door.Constructor(Vector3(1836.197f, 3012.5f, 40.21653f)), owning_building_guid = 17)
       LocalObject(267, Door.Constructor(Vector3(1836.197f, 3030.693f, 48.18053f)), owning_building_guid = 17)
       LocalObject(268, Door.Constructor(Vector3(1860.5f, 3047.804f, 40.21653f)), owning_building_guid = 17)
@@ -328,7 +328,7 @@ object Map02 { // Hossin
       LocalObject(2288, Terminal.Constructor(Vector3(1943.942f, 2988.591f, 32.72253f), spawn_terminal), owning_building_guid = 17)
       LocalObject(2505, Terminal.Constructor(Vector3(1958.774f, 2935.542f, 41.35253f), vehicle_terminal_combined), owning_building_guid = 17)
       LocalObject(1538, VehicleSpawnPad.Constructor(Vector3(1958.62f, 2949.167f, 37.19453f), mb_pad_creation, Vector3(0, 0, 0)), owning_building_guid = 17, terminal_guid = 2505)
-      LocalObject(2167, ResourceSilo.Constructor, owning_building_guid = 17)
+      LocalObject(2167, ResourceSilo.Constructor(Vector3(1834.908f, 3043.77f, 45.68253f)), owning_building_guid = 17)
       LocalObject(2180, SpawnTube.Constructor(Vector3(1916.683f, 2951.767f, 28.66553f), Vector3(0, 0, 90)), owning_building_guid = 17)
       LocalObject(2181, SpawnTube.Constructor(Vector3(1923.974f, 2951.767f, 28.66553f), Vector3(0, 0, 90)), owning_building_guid = 17)
       LocalObject(2182, SpawnTube.Constructor(Vector3(1931.262f, 2951.767f, 28.66553f), Vector3(0, 0, 90)), owning_building_guid = 17)
@@ -366,7 +366,7 @@ object Map02 { // Hossin
 
     def Building13(): Unit = { // Name: Kisin Type: comm_station GUID: 20, MapID: 13
       LocalBuilding("Kisin", 20, 13, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3296f, 5426f, 31.04343f), Vector3(0f, 0f, 360f), comm_station)))
-      LocalObject(185, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 20)
+      LocalObject(185, CaptureTerminal.Constructor(Vector3(3340.089f, 5502.734f, 13.74343f), capture_terminal), owning_building_guid = 20)
       LocalObject(326, Door.Constructor(Vector3(3236.196f, 5382.5f, 32.79443f)), owning_building_guid = 20)
       LocalObject(327, Door.Constructor(Vector3(3236.196f, 5400.693f, 40.75843f)), owning_building_guid = 20)
       LocalObject(328, Door.Constructor(Vector3(3253.307f, 5358.197f, 40.75843f)), owning_building_guid = 20)
@@ -447,7 +447,7 @@ object Map02 { // Hossin
       LocalObject(2301, Terminal.Constructor(Vector3(3332.97f, 5451.823f, 23.37743f), spawn_terminal), owning_building_guid = 20)
       LocalObject(2507, Terminal.Constructor(Vector3(3348.458f, 5480.774f, 33.93043f), vehicle_terminal_combined), owning_building_guid = 20)
       LocalObject(1542, VehicleSpawnPad.Constructor(Vector3(3334.833f, 5480.62f, 29.77243f), mb_pad_creation, Vector3(0, 0, -90)), owning_building_guid = 20, terminal_guid = 2507)
-      LocalObject(2169, ResourceSilo.Constructor, owning_building_guid = 20)
+      LocalObject(2169, ResourceSilo.Constructor(Vector3(3240.23f, 5356.908f, 38.26043f)), owning_building_guid = 20)
       LocalObject(2200, SpawnTube.Constructor(Vector3(3332.233f, 5438.683f, 21.24343f), Vector3(0, 0, 0)), owning_building_guid = 20)
       LocalObject(2201, SpawnTube.Constructor(Vector3(3332.233f, 5445.974f, 21.24343f), Vector3(0, 0, 0)), owning_building_guid = 20)
       LocalObject(2202, SpawnTube.Constructor(Vector3(3332.233f, 5453.262f, 21.24343f), Vector3(0, 0, 0)), owning_building_guid = 20)
@@ -485,7 +485,7 @@ object Map02 { // Hossin
 
     def Building5(): Unit = { // Name: Voltan Type: comm_station GUID: 23, MapID: 5
       LocalBuilding("Voltan", 23, 5, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(4484f, 3482f, 28.31507f), Vector3(0f, 0f, 360f), comm_station)))
-      LocalObject(190, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 23)
+      LocalObject(190, CaptureTerminal.Constructor(Vector3(4528.089f, 3558.734f, 11.01507f), capture_terminal), owning_building_guid = 23)
       LocalObject(418, Door.Constructor(Vector3(4424.196f, 3438.5f, 30.06607f)), owning_building_guid = 23)
       LocalObject(419, Door.Constructor(Vector3(4424.196f, 3456.693f, 38.03008f)), owning_building_guid = 23)
       LocalObject(421, Door.Constructor(Vector3(4441.307f, 3414.197f, 38.03008f)), owning_building_guid = 23)
@@ -566,7 +566,7 @@ object Map02 { // Hossin
       LocalObject(2334, Terminal.Constructor(Vector3(4520.97f, 3507.823f, 20.64907f), spawn_terminal), owning_building_guid = 23)
       LocalObject(2512, Terminal.Constructor(Vector3(4536.458f, 3536.774f, 31.20207f), vehicle_terminal_combined), owning_building_guid = 23)
       LocalObject(1549, VehicleSpawnPad.Constructor(Vector3(4522.833f, 3536.62f, 27.04407f), mb_pad_creation, Vector3(0, 0, -90)), owning_building_guid = 23, terminal_guid = 2512)
-      LocalObject(2174, ResourceSilo.Constructor, owning_building_guid = 23)
+      LocalObject(2174, ResourceSilo.Constructor(Vector3(4428.23f, 3412.908f, 35.53207f)), owning_building_guid = 23)
       LocalObject(2231, SpawnTube.Constructor(Vector3(4520.233f, 3494.683f, 18.51507f), Vector3(0, 0, 0)), owning_building_guid = 23)
       LocalObject(2232, SpawnTube.Constructor(Vector3(4520.233f, 3501.974f, 18.51507f), Vector3(0, 0, 0)), owning_building_guid = 23)
       LocalObject(2233, SpawnTube.Constructor(Vector3(4520.233f, 3509.262f, 18.51507f), Vector3(0, 0, 0)), owning_building_guid = 23)
@@ -604,7 +604,7 @@ object Map02 { // Hossin
 
     def Building6(): Unit = { // Name: Naum Type: comm_station_dsp GUID: 26, MapID: 6
       LocalBuilding("Naum", 26, 6, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(5408f, 3536f, 27.71691f), Vector3(0f, 0f, 315f), comm_station_dsp)))
-      LocalObject(191, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 26)
+      LocalObject(191, CaptureTerminal.Constructor(Vector3(5448.18f, 3468.574f, 10.31691f), capture_terminal), owning_building_guid = 26)
       LocalObject(234, Door.Constructor(Vector3(5506.148f, 3537.503f, 31.09491f)), owning_building_guid = 26)
       LocalObject(471, Door.Constructor(Vector3(5329.868f, 3518.245f, 37.33191f)), owning_building_guid = 26)
       LocalObject(472, Door.Constructor(Vector3(5334.954f, 3547.529f, 29.36791f)), owning_building_guid = 26)
@@ -697,7 +697,7 @@ object Map02 { // Hossin
       LocalObject(2343, Terminal.Constructor(Vector3(5514.072f, 3564.145f, 34.36491f), spawn_terminal), owning_building_guid = 26)
       LocalObject(2513, Terminal.Constructor(Vector3(5496.913f, 3599.884f, 30.50391f), ground_vehicle_terminal), owning_building_guid = 26)
       LocalObject(1550, VehicleSpawnPad.Constructor(Vector3(5487.335f, 3590.182f, 26.34591f), mb_pad_creation, Vector3(0, 0, 225)), owning_building_guid = 26, terminal_guid = 2513)
-      LocalObject(2175, ResourceSilo.Constructor, owning_building_guid = 26)
+      LocalObject(2175, ResourceSilo.Constructor(Vector3(5594.573f, 3583.68f, 34.83391f)), owning_building_guid = 26)
       LocalObject(2244, SpawnTube.Constructor(Vector3(5442.589f, 3519.348f, 17.81691f), Vector3(0, 0, 45)), owning_building_guid = 26)
       LocalObject(2245, SpawnTube.Constructor(Vector3(5447.744f, 3524.503f, 17.81691f), Vector3(0, 0, 45)), owning_building_guid = 26)
       LocalObject(2246, SpawnTube.Constructor(Vector3(5452.898f, 3529.656f, 17.81691f), Vector3(0, 0, 45)), owning_building_guid = 26)
@@ -745,7 +745,7 @@ object Map02 { // Hossin
 
     def Building8(): Unit = { // Name: Acan Type: cryo_facility GUID: 29, MapID: 8
       LocalBuilding("Acan", 29, 8, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3478f, 4056f, 29.82269f), Vector3(0f, 0f, 269f), cryo_facility)))
-      LocalObject(187, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 29)
+      LocalObject(187, CaptureTerminal.Constructor(Vector3(3537.747f, 4083.05f, 19.82269f), capture_terminal), owning_building_guid = 29)
       LocalObject(353, Door.Constructor(Vector3(3385.456f, 4025.611f, 31.34369f)), owning_building_guid = 29)
       LocalObject(357, Door.Constructor(Vector3(3394.676f, 4033.951f, 31.37369f)), owning_building_guid = 29)
       LocalObject(358, Door.Constructor(Vector3(3394.993f, 4052.141f, 39.33769f)), owning_building_guid = 29)
@@ -845,7 +845,7 @@ object Map02 { // Hossin
       LocalObject(2314, Terminal.Constructor(Vector3(3542f, 4055.476f, 21.43569f), spawn_terminal), owning_building_guid = 29)
       LocalObject(2508, Terminal.Constructor(Vector3(3414.167f, 4019.48f, 32.12769f), vehicle_terminal_combined), owning_building_guid = 29)
       LocalObject(1544, VehicleSpawnPad.Constructor(Vector3(3414.315f, 4033.119f, 27.96969f), mb_pad_creation, Vector3(0, 0, 1)), owning_building_guid = 29, terminal_guid = 2508)
-      LocalObject(2171, ResourceSilo.Constructor, owning_building_guid = 29)
+      LocalObject(2171, ResourceSilo.Constructor(Vector3(3529.896f, 4115.37f, 36.83969f)), owning_building_guid = 29)
       LocalObject(2210, SpawnTube.Constructor(Vector3(3482.608f, 4051.686f, 19.82269f), Vector3(0, 0, 91)), owning_building_guid = 29)
       LocalObject(2211, SpawnTube.Constructor(Vector3(3489.898f, 4051.559f, 19.82269f), Vector3(0, 0, 91)), owning_building_guid = 29)
       LocalObject(2212, SpawnTube.Constructor(Vector3(3497.185f, 4051.431f, 19.82269f), Vector3(0, 0, 91)), owning_building_guid = 29)
@@ -893,7 +893,7 @@ object Map02 { // Hossin
 
     def Building9(): Unit = { // Name: Bitol Type: cryo_facility GUID: 32, MapID: 9
       LocalBuilding("Bitol", 32, 9, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(4480f, 2570f, 30.43306f), Vector3(0f, 0f, 360f), cryo_facility)))
-      LocalObject(189, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 32)
+      LocalObject(189, CaptureTerminal.Constructor(Vector3(4451.911f, 2629.266f, 20.43306f), capture_terminal), owning_building_guid = 32)
       LocalObject(416, Door.Constructor(Vector3(4421.023f, 2574.5f, 31.98406f)), owning_building_guid = 32)
       LocalObject(417, Door.Constructor(Vector3(4421.023f, 2592.693f, 39.94806f)), owning_building_guid = 32)
       LocalObject(420, Door.Constructor(Vector3(4437.674f, 2637.803f, 31.98406f)), owning_building_guid = 32)
@@ -993,7 +993,7 @@ object Map02 { // Hossin
       LocalObject(2331, Terminal.Constructor(Vector3(4484.97f, 2587.823f, 22.56706f), spawn_terminal), owning_building_guid = 32)
       LocalObject(2511, Terminal.Constructor(Vector3(4517.628f, 2506.814f, 32.73806f), vehicle_terminal_combined), owning_building_guid = 32)
       LocalObject(1548, VehicleSpawnPad.Constructor(Vector3(4503.989f, 2506.724f, 28.58006f), mb_pad_creation, Vector3(0, 0, -90)), owning_building_guid = 32, terminal_guid = 2511)
-      LocalObject(2173, ResourceSilo.Constructor, owning_building_guid = 32)
+      LocalObject(2173, ResourceSilo.Constructor(Vector3(4419.733f, 2620.852f, 37.45006f)), owning_building_guid = 32)
       LocalObject(2224, SpawnTube.Constructor(Vector3(4484.233f, 2574.683f, 20.43306f), Vector3(0, 0, 0)), owning_building_guid = 32)
       LocalObject(2225, SpawnTube.Constructor(Vector3(4484.233f, 2581.974f, 20.43306f), Vector3(0, 0, 0)), owning_building_guid = 32)
       LocalObject(2226, SpawnTube.Constructor(Vector3(4484.233f, 2589.262f, 20.43306f), Vector3(0, 0, 0)), owning_building_guid = 32)
@@ -1041,7 +1041,7 @@ object Map02 { // Hossin
 
     def Building7(): Unit = { // Name: Zotz Type: cryo_facility GUID: 35, MapID: 7
       LocalBuilding("Zotz", 35, 7, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(6730f, 2292f, 129.2093f), Vector3(0f, 0f, 90f), cryo_facility)))
-      LocalObject(193, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 35)
+      LocalObject(193, CaptureTerminal.Constructor(Vector3(6670.734f, 2263.911f, 119.2093f), capture_terminal), owning_building_guid = 35)
       LocalObject(521, Door.Constructor(Vector3(6662.197f, 2249.674f, 130.7603f)), owning_building_guid = 35)
       LocalObject(522, Door.Constructor(Vector3(6662.197f, 2267.867f, 138.7243f)), owning_building_guid = 35)
       LocalObject(527, Door.Constructor(Vector3(6707.307f, 2233.023f, 138.7243f)), owning_building_guid = 35)
@@ -1141,7 +1141,7 @@ object Map02 { // Hossin
       LocalObject(2357, Terminal.Constructor(Vector3(6786.59f, 2275.91f, 123.3223f), spawn_terminal), owning_building_guid = 35)
       LocalObject(2515, Terminal.Constructor(Vector3(6793.186f, 2329.628f, 131.5143f), vehicle_terminal_combined), owning_building_guid = 35)
       LocalObject(1554, VehicleSpawnPad.Constructor(Vector3(6793.276f, 2315.989f, 127.3563f), mb_pad_creation, Vector3(0, 0, 180)), owning_building_guid = 35, terminal_guid = 2515)
-      LocalObject(2177, ResourceSilo.Constructor, owning_building_guid = 35)
+      LocalObject(2177, ResourceSilo.Constructor(Vector3(6679.148f, 2231.733f, 136.2263f)), owning_building_guid = 35)
       LocalObject(2256, SpawnTube.Constructor(Vector3(6710.738f, 2296.233f, 119.2093f), Vector3(0, 0, 270)), owning_building_guid = 35)
       LocalObject(2257, SpawnTube.Constructor(Vector3(6718.026f, 2296.233f, 119.2093f), Vector3(0, 0, 270)), owning_building_guid = 35)
       LocalObject(2258, SpawnTube.Constructor(Vector3(6725.317f, 2296.233f, 119.2093f), Vector3(0, 0, 270)), owning_building_guid = 35)
@@ -1201,7 +1201,7 @@ object Map02 { // Hossin
 
     def Building11(): Unit = { // Name: Ghanon Type: tech_plant GUID: 42, MapID: 11
       LocalBuilding("Ghanon", 42, 11, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(2482f, 3762f, 41.20609f), Vector3(0f, 0f, 360f), tech_plant)))
-      LocalObject(184, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 42)
+      LocalObject(184, CaptureTerminal.Constructor(Vector3(2486.734f, 3717.911f, 56.30609f), capture_terminal), owning_building_guid = 42)
       LocalObject(290, Door.Constructor(Vector3(2410.54f, 3691.929f, 42.74809f)), owning_building_guid = 42)
       LocalObject(291, Door.Constructor(Vector3(2410.54f, 3710.121f, 50.71109f)), owning_building_guid = 42)
       LocalObject(292, Door.Constructor(Vector3(2410.54f, 3765.673f, 42.74809f)), owning_building_guid = 42)
@@ -1279,7 +1279,7 @@ object Map02 { // Hossin
       LocalObject(2295, Terminal.Constructor(Vector3(2519.242f, 3741.639f, 47.88809f), spawn_terminal), owning_building_guid = 42)
       LocalObject(2506, Terminal.Constructor(Vector3(2433.996f, 3721.423f, 27.02009f), ground_vehicle_terminal), owning_building_guid = 42)
       LocalObject(1539, VehicleSpawnPad.Constructor(Vector3(2433.945f, 3732.339f, 18.74309f), mb_pad_creation, Vector3(0, 0, 0)), owning_building_guid = 42, terminal_guid = 2506)
-      LocalObject(2168, ResourceSilo.Constructor, owning_building_guid = 42)
+      LocalObject(2168, ResourceSilo.Constructor(Vector3(2543.752f, 3794.555f, 48.21409f)), owning_building_guid = 42)
       LocalObject(2187, SpawnTube.Constructor(Vector3(2494.233f, 3718.683f, 33.80609f), Vector3(0, 0, 0)), owning_building_guid = 42)
       LocalObject(2188, SpawnTube.Constructor(Vector3(2494.233f, 3725.974f, 33.80609f), Vector3(0, 0, 0)), owning_building_guid = 42)
       LocalObject(2189, SpawnTube.Constructor(Vector3(2494.233f, 3733.262f, 33.80609f), Vector3(0, 0, 0)), owning_building_guid = 42)
@@ -1327,7 +1327,7 @@ object Map02 { // Hossin
 
     def Building10(): Unit = { // Name: Chac Type: tech_plant GUID: 45, MapID: 10
       LocalBuilding("Chac", 45, 10, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(4020f, 6012f, 39.28953f), Vector3(0f, 0f, 360f), tech_plant)))
-      LocalObject(188, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 45)
+      LocalObject(188, CaptureTerminal.Constructor(Vector3(4024.734f, 5967.911f, 54.38953f), capture_terminal), owning_building_guid = 45)
       LocalObject(398, Door.Constructor(Vector3(3948.54f, 5941.929f, 40.83153f)), owning_building_guid = 45)
       LocalObject(399, Door.Constructor(Vector3(3948.54f, 5960.121f, 48.79453f)), owning_building_guid = 45)
       LocalObject(400, Door.Constructor(Vector3(3948.54f, 6015.673f, 40.83153f)), owning_building_guid = 45)
@@ -1405,7 +1405,7 @@ object Map02 { // Hossin
       LocalObject(2321, Terminal.Constructor(Vector3(4057.242f, 5991.639f, 45.97153f), spawn_terminal), owning_building_guid = 45)
       LocalObject(2510, Terminal.Constructor(Vector3(3971.996f, 5971.423f, 25.10353f), ground_vehicle_terminal), owning_building_guid = 45)
       LocalObject(1545, VehicleSpawnPad.Constructor(Vector3(3971.945f, 5982.339f, 16.82653f), mb_pad_creation, Vector3(0, 0, 0)), owning_building_guid = 45, terminal_guid = 2510)
-      LocalObject(2172, ResourceSilo.Constructor, owning_building_guid = 45)
+      LocalObject(2172, ResourceSilo.Constructor(Vector3(4081.752f, 6044.555f, 46.29753f)), owning_building_guid = 45)
       LocalObject(2219, SpawnTube.Constructor(Vector3(4032.233f, 5968.683f, 31.88953f), Vector3(0, 0, 0)), owning_building_guid = 45)
       LocalObject(2220, SpawnTube.Constructor(Vector3(4032.233f, 5975.974f, 31.88953f), Vector3(0, 0, 0)), owning_building_guid = 45)
       LocalObject(2221, SpawnTube.Constructor(Vector3(4032.233f, 5983.262f, 31.88953f), Vector3(0, 0, 0)), owning_building_guid = 45)
@@ -1453,7 +1453,7 @@ object Map02 { // Hossin
 
     def Building14(): Unit = { // Name: Mulac Type: tech_plant GUID: 48, MapID: 14
       LocalBuilding("Mulac", 48, 14, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(5668f, 2824f, 36.97623f), Vector3(0f, 0f, 268f), tech_plant)))
-      LocalObject(192, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 48)
+      LocalObject(192, CaptureTerminal.Constructor(Vector3(5623.772f, 2820.808f, 52.07623f), capture_terminal), owning_building_guid = 48)
       LocalObject(496, Door.Constructor(Vector3(5569.457f, 2867.466f, 38.59723f)), owning_building_guid = 48)
       LocalObject(498, Door.Constructor(Vector3(5576.697f, 2822.581f, 38.62723f)), owning_building_guid = 48)
       LocalObject(499, Door.Constructor(Vector3(5577.332f, 2840.762f, 46.59023f)), owning_building_guid = 48)
@@ -1531,7 +1531,7 @@ object Map02 { // Hossin
       LocalObject(2350, Terminal.Constructor(Vector3(5670.706f, 2809.365f, 48.99923f), spawn_terminal), owning_building_guid = 48)
       LocalObject(2514, Terminal.Constructor(Vector3(5629.123f, 2873.391f, 22.79023f), ground_vehicle_terminal), owning_building_guid = 48)
       LocalObject(1551, VehicleSpawnPad.Constructor(Vector3(5640.034f, 2873.061f, 14.51323f), mb_pad_creation, Vector3(0, 0, 92)), owning_building_guid = 48, terminal_guid = 2514)
-      LocalObject(2176, ResourceSilo.Constructor, owning_building_guid = 48)
+      LocalObject(2176, ResourceSilo.Constructor(Vector3(5698.38f, 2761.149f, 43.98423f)), owning_building_guid = 48)
       LocalObject(2247, SpawnTube.Constructor(Vector3(5624.282f, 2813.286f, 29.57623f), Vector3(0, 0, 92)), owning_building_guid = 48)
       LocalObject(2248, SpawnTube.Constructor(Vector3(5631.569f, 2813.032f, 29.57623f), Vector3(0, 0, 92)), owning_building_guid = 48)
       LocalObject(2249, SpawnTube.Constructor(Vector3(5638.853f, 2812.777f, 29.57623f), Vector3(0, 0, 92)), owning_building_guid = 48)
@@ -1579,7 +1579,7 @@ object Map02 { // Hossin
 
     def Building15(): Unit = { // Name: S_Ceryshen_Warpgate_Tower Type: tower_a GUID: 51, MapID: 15
       LocalBuilding("S_Ceryshen_Warpgate_Tower", 51, 15, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(1816f, 4282f, 45.38713f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(2259, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 51)
+      LocalObject(2259, CaptureTerminal.Constructor(Vector3(1832.587f, 4281.897f, 55.38613f), secondary_capture), owning_building_guid = 51)
       LocalObject(262, Door.Constructor(Vector3(1828f, 4274f, 46.90813f)), owning_building_guid = 51)
       LocalObject(263, Door.Constructor(Vector3(1828f, 4274f, 66.90713f)), owning_building_guid = 51)
       LocalObject(264, Door.Constructor(Vector3(1828f, 4290f, 46.90813f)), owning_building_guid = 51)
@@ -1616,7 +1616,7 @@ object Map02 { // Hossin
 
     def Building17(): Unit = { // Name: NE_Ceryshen_Warpgate_Tower Type: tower_a GUID: 52, MapID: 17
       LocalBuilding("NE_Ceryshen_Warpgate_Tower", 52, 17, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2196f, 5162f, 30.38423f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(2261, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 52)
+      LocalObject(2261, CaptureTerminal.Constructor(Vector3(2212.587f, 5161.897f, 40.38323f), secondary_capture), owning_building_guid = 52)
       LocalObject(285, Door.Constructor(Vector3(2208f, 5154f, 31.90523f)), owning_building_guid = 52)
       LocalObject(286, Door.Constructor(Vector3(2208f, 5154f, 51.90423f)), owning_building_guid = 52)
       LocalObject(287, Door.Constructor(Vector3(2208f, 5170f, 31.90523f)), owning_building_guid = 52)
@@ -1653,7 +1653,7 @@ object Map02 { // Hossin
 
     def Building28(): Unit = { // Name: W_Oshur_Warpgate_Tower Type: tower_a GUID: 53, MapID: 28
       LocalBuilding("W_Oshur_Warpgate_Tower", 53, 28, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2506f, 2050f, 30.77677f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(2262, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 53)
+      LocalObject(2262, CaptureTerminal.Constructor(Vector3(2522.587f, 2049.897f, 40.77577f), secondary_capture), owning_building_guid = 53)
       LocalObject(300, Door.Constructor(Vector3(2518f, 2042f, 32.29778f)), owning_building_guid = 53)
       LocalObject(301, Door.Constructor(Vector3(2518f, 2042f, 52.29678f)), owning_building_guid = 53)
       LocalObject(302, Door.Constructor(Vector3(2518f, 2058f, 32.29778f)), owning_building_guid = 53)
@@ -1690,7 +1690,7 @@ object Map02 { // Hossin
 
     def Building49(): Unit = { // Name: Ixtab_tower Type: tower_a GUID: 54, MapID: 49
       LocalBuilding("Ixtab_tower", 54, 49, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3652f, 3042f, 38.52847f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(2269, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 54)
+      LocalObject(2269, CaptureTerminal.Constructor(Vector3(3668.587f, 3041.897f, 48.52747f), secondary_capture), owning_building_guid = 54)
       LocalObject(385, Door.Constructor(Vector3(3664f, 3034f, 40.04947f)), owning_building_guid = 54)
       LocalObject(386, Door.Constructor(Vector3(3664f, 3034f, 60.04847f)), owning_building_guid = 54)
       LocalObject(387, Door.Constructor(Vector3(3664f, 3050f, 40.04947f)), owning_building_guid = 54)
@@ -1727,7 +1727,7 @@ object Map02 { // Hossin
 
     def Building32(): Unit = { // Name: S_Acan_Tower Type: tower_a GUID: 55, MapID: 32
       LocalBuilding("S_Acan_Tower", 55, 32, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3834f, 4050f, 25.81256f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(2271, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 55)
+      LocalObject(2271, CaptureTerminal.Constructor(Vector3(3850.587f, 4049.897f, 35.81155f), secondary_capture), owning_building_guid = 55)
       LocalObject(394, Door.Constructor(Vector3(3846f, 4042f, 27.33356f)), owning_building_guid = 55)
       LocalObject(395, Door.Constructor(Vector3(3846f, 4042f, 47.33256f)), owning_building_guid = 55)
       LocalObject(396, Door.Constructor(Vector3(3846f, 4058f, 27.33356f)), owning_building_guid = 55)
@@ -1764,7 +1764,7 @@ object Map02 { // Hossin
 
     def Building50(): Unit = { // Name: WG_Hossin_to_VSSanc_Tower Type: tower_a GUID: 56, MapID: 50
       LocalBuilding("WG_Hossin_to_VSSanc_Tower", 56, 50, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5238f, 1902f, 40.67507f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(2277, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 56)
+      LocalObject(2277, CaptureTerminal.Constructor(Vector3(5254.587f, 1901.897f, 50.67407f), secondary_capture), owning_building_guid = 56)
       LocalObject(463, Door.Constructor(Vector3(5250f, 1894f, 42.19607f)), owning_building_guid = 56)
       LocalObject(464, Door.Constructor(Vector3(5250f, 1894f, 62.19507f)), owning_building_guid = 56)
       LocalObject(465, Door.Constructor(Vector3(5250f, 1910f, 42.19607f)), owning_building_guid = 56)
@@ -1801,7 +1801,7 @@ object Map02 { // Hossin
 
     def Building23(): Unit = { // Name: N_Kisin_Tower Type: tower_a GUID: 57, MapID: 23
       LocalBuilding("N_Kisin_Tower", 57, 23, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5332f, 4112f, 18.44539f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(2279, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 57)
+      LocalObject(2279, CaptureTerminal.Constructor(Vector3(5348.587f, 4111.897f, 28.44439f), secondary_capture), owning_building_guid = 57)
       LocalObject(474, Door.Constructor(Vector3(5344f, 4104f, 19.96639f)), owning_building_guid = 57)
       LocalObject(475, Door.Constructor(Vector3(5344f, 4104f, 39.96539f)), owning_building_guid = 57)
       LocalObject(476, Door.Constructor(Vector3(5344f, 4120f, 19.96639f)), owning_building_guid = 57)
@@ -1838,7 +1838,7 @@ object Map02 { // Hossin
 
     def Building52(): Unit = { // Name: E_Naum_Tower Type: tower_a GUID: 58, MapID: 52
       LocalBuilding("E_Naum_Tower", 58, 52, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(6472f, 3562f, 46.96188f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(2281, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 58)
+      LocalObject(2281, CaptureTerminal.Constructor(Vector3(6488.587f, 3561.897f, 56.96088f), secondary_capture), owning_building_guid = 58)
       LocalObject(516, Door.Constructor(Vector3(6484f, 3554f, 48.48288f)), owning_building_guid = 58)
       LocalObject(517, Door.Constructor(Vector3(6484f, 3554f, 68.48189f)), owning_building_guid = 58)
       LocalObject(518, Door.Constructor(Vector3(6484f, 3570f, 48.48288f)), owning_building_guid = 58)
@@ -1875,7 +1875,7 @@ object Map02 { // Hossin
 
     def Building31(): Unit = { // Name: SW_Ghanon_Tower Type: tower_b GUID: 59, MapID: 31
       LocalBuilding("SW_Ghanon_Tower", 59, 31, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(1994f, 3310f, 25.44633f), Vector3(0f, 0f, 360f), tower_b)))
-      LocalObject(2260, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 59)
+      LocalObject(2260, CaptureTerminal.Constructor(Vector3(2010.587f, 3309.897f, 45.44534f), secondary_capture), owning_building_guid = 59)
       LocalObject(279, Door.Constructor(Vector3(2006f, 3302f, 26.96633f)), owning_building_guid = 59)
       LocalObject(280, Door.Constructor(Vector3(2006f, 3302f, 36.96633f)), owning_building_guid = 59)
       LocalObject(281, Door.Constructor(Vector3(2006f, 3302f, 56.96633f)), owning_building_guid = 59)
@@ -1912,7 +1912,7 @@ object Map02 { // Hossin
 
     def Building30(): Unit = { // Name: SW_Ixtab_Tower Type: tower_b GUID: 60, MapID: 30
       LocalBuilding("SW_Ixtab_Tower", 60, 30, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2950f, 2648f, 21.2714f), Vector3(0f, 0f, 360f), tower_b)))
-      LocalObject(2264, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 60)
+      LocalObject(2264, CaptureTerminal.Constructor(Vector3(2966.587f, 2647.897f, 41.2704f), secondary_capture), owning_building_guid = 60)
       LocalObject(313, Door.Constructor(Vector3(2962f, 2640f, 22.7914f)), owning_building_guid = 60)
       LocalObject(314, Door.Constructor(Vector3(2962f, 2640f, 32.7914f)), owning_building_guid = 60)
       LocalObject(315, Door.Constructor(Vector3(2962f, 2640f, 52.7914f)), owning_building_guid = 60)
@@ -1949,7 +1949,7 @@ object Map02 { // Hossin
 
     def Building16(): Unit = { // Name: NW_Acan_Tower Type: tower_b GUID: 61, MapID: 16
       LocalBuilding("NW_Acan_Tower", 61, 16, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3086f, 4562f, 22.34565f), Vector3(0f, 0f, 360f), tower_b)))
-      LocalObject(2265, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 61)
+      LocalObject(2265, CaptureTerminal.Constructor(Vector3(3102.587f, 4561.897f, 42.34465f), secondary_capture), owning_building_guid = 61)
       LocalObject(319, Door.Constructor(Vector3(3098f, 4554f, 23.86565f)), owning_building_guid = 61)
       LocalObject(320, Door.Constructor(Vector3(3098f, 4554f, 33.86565f)), owning_building_guid = 61)
       LocalObject(321, Door.Constructor(Vector3(3098f, 4554f, 53.86565f)), owning_building_guid = 61)
@@ -1986,7 +1986,7 @@ object Map02 { // Hossin
 
     def Building19(): Unit = { // Name: N_Naum_Tower Type: tower_b GUID: 62, MapID: 19
       LocalBuilding("N_Naum_Tower", 62, 19, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3306f, 5924f, 24.897f), Vector3(0f, 0f, 360f), tower_b)))
-      LocalObject(2266, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 62)
+      LocalObject(2266, CaptureTerminal.Constructor(Vector3(3322.587f, 5923.897f, 44.896f), secondary_capture), owning_building_guid = 62)
       LocalObject(338, Door.Constructor(Vector3(3318f, 5916f, 26.417f)), owning_building_guid = 62)
       LocalObject(339, Door.Constructor(Vector3(3318f, 5916f, 36.417f)), owning_building_guid = 62)
       LocalObject(340, Door.Constructor(Vector3(3318f, 5916f, 56.417f)), owning_building_guid = 62)
@@ -2023,7 +2023,7 @@ object Map02 { // Hossin
 
     def Building22(): Unit = { // Name: SW_Solsar_Warpgate_Tower Type: tower_b GUID: 63, MapID: 22
       LocalBuilding("SW_Solsar_Warpgate_Tower", 63, 22, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4494f, 4096f, 26.09943f), Vector3(0f, 0f, 360f), tower_b)))
-      LocalObject(2274, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 63)
+      LocalObject(2274, CaptureTerminal.Constructor(Vector3(4510.587f, 4095.897f, 46.09843f), secondary_capture), owning_building_guid = 63)
       LocalObject(438, Door.Constructor(Vector3(4506f, 4088f, 27.61943f)), owning_building_guid = 63)
       LocalObject(439, Door.Constructor(Vector3(4506f, 4088f, 37.61943f)), owning_building_guid = 63)
       LocalObject(440, Door.Constructor(Vector3(4506f, 4088f, 57.61943f)), owning_building_guid = 63)
@@ -2060,7 +2060,7 @@ object Map02 { // Hossin
 
     def Building42(): Unit = { // Name: Voltan_Tower Type: tower_b GUID: 64, MapID: 42
       LocalBuilding("Voltan_Tower", 64, 42, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4780f, 3522f, 21.20083f), Vector3(0f, 0f, 360f), tower_b)))
-      LocalObject(2276, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 64)
+      LocalObject(2276, CaptureTerminal.Constructor(Vector3(4796.587f, 3521.897f, 41.19983f), secondary_capture), owning_building_guid = 64)
       LocalObject(457, Door.Constructor(Vector3(4792f, 3514f, 22.72083f)), owning_building_guid = 64)
       LocalObject(458, Door.Constructor(Vector3(4792f, 3514f, 32.72083f)), owning_building_guid = 64)
       LocalObject(459, Door.Constructor(Vector3(4792f, 3514f, 52.72083f)), owning_building_guid = 64)
@@ -2097,7 +2097,7 @@ object Map02 { // Hossin
 
     def Building24(): Unit = { // Name: NE_Mulac_Tower Type: tower_b GUID: 65, MapID: 24
       LocalBuilding("NE_Mulac_Tower", 65, 24, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5784f, 3474f, 24.29884f), Vector3(0f, 0f, 360f), tower_b)))
-      LocalObject(2280, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 65)
+      LocalObject(2280, CaptureTerminal.Constructor(Vector3(5800.587f, 3473.897f, 44.29784f), secondary_capture), owning_building_guid = 65)
       LocalObject(510, Door.Constructor(Vector3(5796f, 3466f, 25.81884f)), owning_building_guid = 65)
       LocalObject(511, Door.Constructor(Vector3(5796f, 3466f, 35.81884f)), owning_building_guid = 65)
       LocalObject(512, Door.Constructor(Vector3(5796f, 3466f, 55.81884f)), owning_building_guid = 65)
@@ -2134,7 +2134,7 @@ object Map02 { // Hossin
 
     def Building33(): Unit = { // Name: SE_Ghanon_Tower Type: tower_c GUID: 66, MapID: 33
       LocalBuilding("SE_Ghanon_Tower", 66, 33, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2638f, 3496f, 35.68224f), Vector3(0f, 0f, 360f), tower_c)))
-      LocalObject(2263, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 66)
+      LocalObject(2263, CaptureTerminal.Constructor(Vector3(2654.587f, 3495.897f, 45.68124f), secondary_capture), owning_building_guid = 66)
       LocalObject(309, Door.Constructor(Vector3(2650f, 3488f, 37.20324f)), owning_building_guid = 66)
       LocalObject(310, Door.Constructor(Vector3(2650f, 3488f, 57.20224f)), owning_building_guid = 66)
       LocalObject(311, Door.Constructor(Vector3(2650f, 3504f, 37.20324f)), owning_building_guid = 66)
@@ -2175,7 +2175,7 @@ object Map02 { // Hossin
 
     def Building29(): Unit = { // Name: NE_Oshur_Warpgate_Tower Type: tower_c GUID: 67, MapID: 29
       LocalBuilding("NE_Oshur_Warpgate_Tower", 67, 29, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3434f, 2144f, 25.65386f), Vector3(0f, 0f, 360f), tower_c)))
-      LocalObject(2267, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 67)
+      LocalObject(2267, CaptureTerminal.Constructor(Vector3(3450.587f, 2143.897f, 35.65286f), secondary_capture), owning_building_guid = 67)
       LocalObject(366, Door.Constructor(Vector3(3446f, 2136f, 27.17486f)), owning_building_guid = 67)
       LocalObject(367, Door.Constructor(Vector3(3446f, 2136f, 47.17386f)), owning_building_guid = 67)
       LocalObject(368, Door.Constructor(Vector3(3446f, 2152f, 27.17486f)), owning_building_guid = 67)
@@ -2216,7 +2216,7 @@ object Map02 { // Hossin
 
     def Building18(): Unit = { // Name: SE_Naum_Tower Type: tower_c GUID: 68, MapID: 18
       LocalBuilding("SE_Naum_Tower", 68, 18, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3456f, 5278f, 21.2775f), Vector3(0f, 0f, 360f), tower_c)))
-      LocalObject(2268, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 68)
+      LocalObject(2268, CaptureTerminal.Constructor(Vector3(3472.587f, 5277.897f, 31.2765f), secondary_capture), owning_building_guid = 68)
       LocalObject(373, Door.Constructor(Vector3(3468f, 5270f, 22.7985f)), owning_building_guid = 68)
       LocalObject(374, Door.Constructor(Vector3(3468f, 5270f, 42.7975f)), owning_building_guid = 68)
       LocalObject(375, Door.Constructor(Vector3(3468f, 5286f, 22.7985f)), owning_building_guid = 68)
@@ -2257,7 +2257,7 @@ object Map02 { // Hossin
 
     def Building27(): Unit = { // Name: SE_Oshur_Warpgate_Tower Type: tower_c GUID: 69, MapID: 27
       LocalBuilding("SE_Oshur_Warpgate_Tower", 69, 27, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3716f, 1182f, 34.80941f), Vector3(0f, 0f, 360f), tower_c)))
-      LocalObject(2270, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 69)
+      LocalObject(2270, CaptureTerminal.Constructor(Vector3(3732.587f, 1181.897f, 44.80841f), secondary_capture), owning_building_guid = 69)
       LocalObject(389, Door.Constructor(Vector3(3728f, 1174f, 36.33041f)), owning_building_guid = 69)
       LocalObject(390, Door.Constructor(Vector3(3728f, 1174f, 56.32941f)), owning_building_guid = 69)
       LocalObject(391, Door.Constructor(Vector3(3728f, 1190f, 36.33041f)), owning_building_guid = 69)
@@ -2298,7 +2298,7 @@ object Map02 { // Hossin
 
     def Building20(): Unit = { // Name: E_Chac_Tower Type: tower_c GUID: 70, MapID: 20
       LocalBuilding("E_Chac_Tower", 70, 20, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4288f, 5776f, 26.28254f), Vector3(0f, 0f, 360f), tower_c)))
-      LocalObject(2272, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 70)
+      LocalObject(2272, CaptureTerminal.Constructor(Vector3(4304.587f, 5775.897f, 36.28154f), secondary_capture), owning_building_guid = 70)
       LocalObject(412, Door.Constructor(Vector3(4300f, 5768f, 27.80354f)), owning_building_guid = 70)
       LocalObject(413, Door.Constructor(Vector3(4300f, 5768f, 47.80254f)), owning_building_guid = 70)
       LocalObject(414, Door.Constructor(Vector3(4300f, 5784f, 27.80354f)), owning_building_guid = 70)
@@ -2339,7 +2339,7 @@ object Map02 { // Hossin
 
     def Building21(): Unit = { // Name: NW_Solsar_Warpgate_Tower Type: tower_c GUID: 71, MapID: 21
       LocalBuilding("NW_Solsar_Warpgate_Tower", 71, 21, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4480f, 4726f, 35.56017f), Vector3(0f, 0f, 360f), tower_c)))
-      LocalObject(2273, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 71)
+      LocalObject(2273, CaptureTerminal.Constructor(Vector3(4496.587f, 4725.897f, 45.55917f), secondary_capture), owning_building_guid = 71)
       LocalObject(432, Door.Constructor(Vector3(4492f, 4718f, 37.08117f)), owning_building_guid = 71)
       LocalObject(433, Door.Constructor(Vector3(4492f, 4718f, 57.08017f)), owning_building_guid = 71)
       LocalObject(434, Door.Constructor(Vector3(4492f, 4734f, 37.08117f)), owning_building_guid = 71)
@@ -2380,7 +2380,7 @@ object Map02 { // Hossin
 
     def Building26(): Unit = { // Name: E_Bitol_Tower Type: tower_c GUID: 72, MapID: 26
       LocalBuilding("E_Bitol_Tower", 72, 26, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4702f, 2460f, 28.31507f), Vector3(0f, 0f, 360f), tower_c)))
-      LocalObject(2275, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 72)
+      LocalObject(2275, CaptureTerminal.Constructor(Vector3(4718.587f, 2459.897f, 38.31407f), secondary_capture), owning_building_guid = 72)
       LocalObject(453, Door.Constructor(Vector3(4714f, 2452f, 29.83607f)), owning_building_guid = 72)
       LocalObject(454, Door.Constructor(Vector3(4714f, 2452f, 49.83508f)), owning_building_guid = 72)
       LocalObject(455, Door.Constructor(Vector3(4714f, 2468f, 29.83607f)), owning_building_guid = 72)
@@ -2421,7 +2421,7 @@ object Map02 { // Hossin
 
     def Building25(): Unit = { // Name: NW_Mulac_Tower Type: tower_c GUID: 73, MapID: 25
       LocalBuilding("NW_Mulac_Tower", 73, 25, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5308f, 2976f, 27.19199f), Vector3(0f, 0f, 360f), tower_c)))
-      LocalObject(2278, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 73)
+      LocalObject(2278, CaptureTerminal.Constructor(Vector3(5324.587f, 2975.897f, 37.19099f), secondary_capture), owning_building_guid = 73)
       LocalObject(467, Door.Constructor(Vector3(5320f, 2968f, 28.71299f)), owning_building_guid = 73)
       LocalObject(468, Door.Constructor(Vector3(5320f, 2968f, 48.71199f)), owning_building_guid = 73)
       LocalObject(469, Door.Constructor(Vector3(5320f, 2984f, 28.71299f)), owning_building_guid = 73)
@@ -2462,7 +2462,7 @@ object Map02 { // Hossin
 
     def Building51(): Unit = { // Name: Zotz_Tower Type: tower_c GUID: 74, MapID: 51
       LocalBuilding("Zotz_Tower", 74, 51, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(6680f, 2510f, 181.3593f), Vector3(0f, 0f, 360f), tower_c)))
-      LocalObject(2282, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 74)
+      LocalObject(2282, CaptureTerminal.Constructor(Vector3(6696.587f, 2509.897f, 191.3583f), secondary_capture), owning_building_guid = 74)
       LocalObject(523, Door.Constructor(Vector3(6692f, 2502f, 182.8803f)), owning_building_guid = 74)
       LocalObject(524, Door.Constructor(Vector3(6692f, 2502f, 202.8793f)), owning_building_guid = 74)
       LocalObject(525, Door.Constructor(Vector3(6692f, 2518f, 182.8803f)), owning_building_guid = 74)

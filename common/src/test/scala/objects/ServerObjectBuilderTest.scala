@@ -213,7 +213,7 @@ class ResourceSiloObjectBuilderTest extends ActorTest {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
       val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
-        ResourceSilo.Constructor), hub), "spawn-tube")
+        ResourceSilo.Constructor(Vector3(0f, 0f, 0f))), hub), "resource-silo")
       actor ! "startup"
 
       val reply = receiveOne(Duration.create(1000, "ms"))

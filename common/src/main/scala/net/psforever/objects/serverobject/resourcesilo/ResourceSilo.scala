@@ -5,6 +5,7 @@ import akka.actor.{ActorContext, Props}
 import net.psforever.objects.{GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.packet.game.UseItemMessage
+import net.psforever.types.Vector3
 
 class ResourceSilo extends Amenity {
   private var chargeLevel : Int = 0
@@ -74,8 +75,9 @@ object ResourceSilo {
     *                not necessary for this object, but required by signature
     * @return the `ResourceSilo` object
     */
-  def Constructor(id : Int, context : ActorContext) : ResourceSilo = {
+  def Constructor(pos: Vector3)(id : Int, context : ActorContext) : ResourceSilo = {
     val obj = ResourceSilo()
+    obj.Position = pos
     obj.Actor = context.actorOf(Props(classOf[ResourceSiloControl], obj), s"${obj.Definition.Name}_$id")
     obj
   }

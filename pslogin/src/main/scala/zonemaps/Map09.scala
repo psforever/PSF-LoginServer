@@ -24,7 +24,7 @@ object Map09 { // Searhus
 
     def Building14(): Unit = { // Name: Rehua Type: amp_station GUID: 1, MapID: 14
       LocalBuilding("Rehua", 1, 14, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3736f, 2160f, 59.77203f), Vector3(0f, 0f, 333f), amp_station)))
-      LocalObject(213, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 1)
+      LocalObject(213, CaptureTerminal.Constructor(Vector3(3733.029f, 2161.517f, 71.28003f), capture_terminal), owning_building_guid = 1)
       LocalObject(163, Door.Constructor(Vector3(3733.099f, 2153.841f, 72.67403f)), owning_building_guid = 1)
       LocalObject(164, Door.Constructor(Vector3(3739.28f, 2165.966f, 72.67403f)), owning_building_guid = 1)
       LocalObject(389, Door.Constructor(Vector3(3650.236f, 2141.41f, 61.52303f)), owning_building_guid = 1)
@@ -108,7 +108,7 @@ object Map09 { // Searhus
       LocalObject(2661, Terminal.Constructor(Vector3(3729.053f, 2158.489f, 66.50002f), spawn_terminal), owning_building_guid = 1)
       LocalObject(2911, Terminal.Constructor(Vector3(3730.74f, 2255.241f, 61.87403f), vehicle_terminal_combined), owning_building_guid = 1)
       LocalObject(1801, VehicleSpawnPad.Constructor(Vector3(3724.629f, 2243.049f, 57.71703f), mb_pad_creation, Vector3(0, 0, 207)), owning_building_guid = 1, terminal_guid = 2911)
-      LocalObject(2519, ResourceSilo.Constructor, owning_building_guid = 1)
+      LocalObject(2519, ResourceSilo.Constructor(Vector3(3744.093f, 2059.923f, 67.00703f)), owning_building_guid = 1)
       LocalObject(2557, SpawnTube.Constructor(Vector3(3713.25f, 2158.891f, 52.47203f), Vector3(0, 0, 27)), owning_building_guid = 1)
       LocalObject(2558, SpawnTube.Constructor(Vector3(3716.56f, 2165.387f, 52.47203f), Vector3(0, 0, 27)), owning_building_guid = 1)
       LocalObject(2559, SpawnTube.Constructor(Vector3(3719.868f, 2171.881f, 52.47203f), Vector3(0, 0, 27)), owning_building_guid = 1)
@@ -152,7 +152,7 @@ object Map09 { // Searhus
 
     def Building13(): Unit = { // Name: Pele Type: amp_station GUID: 4, MapID: 13
       LocalBuilding("Pele", 4, 13, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(4440f, 3688f, 208.002f), Vector3(0f, 0f, 327f), amp_station)))
-      LocalObject(217, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 4)
+      LocalObject(217, CaptureTerminal.Constructor(Vector3(4437.204f, 3689.819f, 219.5099f), capture_terminal), owning_building_guid = 4)
       LocalObject(165, Door.Constructor(Vector3(4436.471f, 3682.178f, 220.904f)), owning_building_guid = 4)
       LocalObject(166, Door.Constructor(Vector3(4443.886f, 3693.591f, 220.904f)), owning_building_guid = 4)
       LocalObject(455, Door.Constructor(Vector3(4352.762f, 3678.477f, 209.753f)), owning_building_guid = 4)
@@ -236,7 +236,7 @@ object Map09 { // Searhus
       LocalObject(2687, Terminal.Constructor(Vector3(4432.933f, 3687.224f, 214.7299f), spawn_terminal), owning_building_guid = 4)
       LocalObject(2914, Terminal.Constructor(Vector3(4444.725f, 3783.27f, 210.104f), vehicle_terminal_combined), owning_building_guid = 4)
       LocalObject(1808, VehicleSpawnPad.Constructor(Vector3(4437.373f, 3771.783f, 205.947f), mb_pad_creation, Vector3(0, 0, 213)), owning_building_guid = 4, terminal_guid = 2914)
-      LocalObject(2523, ResourceSilo.Constructor, owning_building_guid = 4)
+      LocalObject(2523, ResourceSilo.Constructor(Vector3(4437.588f, 3587.625f, 215.237f)), owning_building_guid = 4)
       LocalObject(2575, SpawnTube.Constructor(Vector3(4417.258f, 3689.275f, 200.702f), Vector3(0, 0, 33)), owning_building_guid = 4)
       LocalObject(2576, SpawnTube.Constructor(Vector3(4421.229f, 3695.389f, 200.702f), Vector3(0, 0, 33)), owning_building_guid = 4)
       LocalObject(2577, SpawnTube.Constructor(Vector3(4425.199f, 3701.502f, 200.702f), Vector3(0, 0, 33)), owning_building_guid = 4)
@@ -280,7 +280,7 @@ object Map09 { // Searhus
 
     def Building10(): Unit = { // Name: Matagi Type: amp_station GUID: 7, MapID: 10
       LocalBuilding("Matagi", 7, 10, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(5268f, 5004f, 239.1049f), Vector3(0f, 0f, 21f), amp_station)))
-      LocalObject(222, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 7)
+      LocalObject(222, CaptureTerminal.Constructor(Vector3(5264.884f, 5002.807f, 250.6129f), capture_terminal), owning_building_guid = 7)
       LocalObject(167, Door.Constructor(Vector3(5265.761f, 5010.43f, 252.0069f)), owning_building_guid = 7)
       LocalObject(168, Door.Constructor(Vector3(5270.636f, 4997.723f, 252.0069f)), owning_building_guid = 7)
       LocalObject(534, Door.Constructor(Vector3(5168.378f, 5051.451f, 240.8259f)), owning_building_guid = 7)
@@ -364,7 +364,7 @@ object Map09 { // Searhus
       LocalObject(2715, Terminal.Constructor(Vector3(5264.474f, 4997.827f, 245.8329f), spawn_terminal), owning_building_guid = 7)
       LocalObject(2918, Terminal.Constructor(Vector3(5193.703f, 5063.82f, 241.2069f), vehicle_terminal_combined), owning_building_guid = 7)
       LocalObject(1812, VehicleSpawnPad.Constructor(Vector3(5198.674f, 5051.121f, 237.0499f), mb_pad_creation, Vector3(0, 0, 159)), owning_building_guid = 7, terminal_guid = 2918)
-      LocalObject(2528, ResourceSilo.Constructor, owning_building_guid = 7)
+      LocalObject(2528, ResourceSilo.Constructor(Vector3(5347.787f, 4943.05f, 246.3399f)), owning_building_guid = 7)
       LocalObject(2595, SpawnTube.Constructor(Vector3(5248.377f, 4999.961f, 231.8049f), Vector3(0, 0, 339)), owning_building_guid = 7)
       LocalObject(2596, SpawnTube.Constructor(Vector3(5250.989f, 4993.158f, 231.8049f), Vector3(0, 0, 339)), owning_building_guid = 7)
       LocalObject(2597, SpawnTube.Constructor(Vector3(5253.602f, 4986.351f, 231.8049f), Vector3(0, 0, 339)), owning_building_guid = 7)
@@ -504,7 +504,7 @@ object Map09 { // Searhus
 
     def Building17(): Unit = { // Name: Wakea Type: comm_station GUID: 23, MapID: 17
       LocalBuilding("Wakea", 23, 17, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(1738f, 5314f, 62.99478f), Vector3(0f, 0f, 360f), comm_station)))
-      LocalObject(212, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 23)
+      LocalObject(212, CaptureTerminal.Constructor(Vector3(1782.089f, 5390.734f, 45.69478f), capture_terminal), owning_building_guid = 23)
       LocalObject(337, Door.Constructor(Vector3(1678.196f, 5270.5f, 64.74578f)), owning_building_guid = 23)
       LocalObject(338, Door.Constructor(Vector3(1678.196f, 5288.693f, 72.70978f)), owning_building_guid = 23)
       LocalObject(339, Door.Constructor(Vector3(1695.307f, 5246.197f, 72.70978f)), owning_building_guid = 23)
@@ -585,7 +585,7 @@ object Map09 { // Searhus
       LocalObject(2654, Terminal.Constructor(Vector3(1774.97f, 5339.823f, 55.32878f), spawn_terminal), owning_building_guid = 23)
       LocalObject(2909, Terminal.Constructor(Vector3(1790.458f, 5368.774f, 65.88178f), vehicle_terminal_combined), owning_building_guid = 23)
       LocalObject(1799, VehicleSpawnPad.Constructor(Vector3(1776.833f, 5368.62f, 61.72378f), mb_pad_creation, Vector3(0, 0, -90)), owning_building_guid = 23, terminal_guid = 2909)
-      LocalObject(2518, ResourceSilo.Constructor, owning_building_guid = 23)
+      LocalObject(2518, ResourceSilo.Constructor(Vector3(1682.23f, 5244.908f, 70.21178f)), owning_building_guid = 23)
       LocalObject(2538, SpawnTube.Constructor(Vector3(1774.233f, 5326.683f, 53.19478f), Vector3(0, 0, 0)), owning_building_guid = 23)
       LocalObject(2539, SpawnTube.Constructor(Vector3(1774.233f, 5333.974f, 53.19478f), Vector3(0, 0, 0)), owning_building_guid = 23)
       LocalObject(2540, SpawnTube.Constructor(Vector3(1774.233f, 5341.262f, 53.19478f), Vector3(0, 0, 0)), owning_building_guid = 23)
@@ -623,7 +623,7 @@ object Map09 { // Searhus
 
     def Building9(): Unit = { // Name: Laka Type: comm_station GUID: 26, MapID: 9
       LocalBuilding("Laka", 26, 9, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(4632f, 6704f, 48.95818f), Vector3(0f, 0f, 66f), comm_station)))
-      LocalObject(219, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 26)
+      LocalObject(219, CaptureTerminal.Constructor(Vector3(4579.833f, 6775.488f, 31.65818f), capture_terminal), owning_building_guid = 26)
       LocalObject(483, Door.Constructor(Vector3(4570.104f, 6732.105f, 50.70918f)), owning_building_guid = 26)
       LocalObject(486, Door.Constructor(Vector3(4575.586f, 6764.146f, 50.67918f)), owning_building_guid = 26)
       LocalObject(487, Door.Constructor(Vector3(4577.502f, 6748.725f, 58.67218f)), owning_building_guid = 26)
@@ -704,7 +704,7 @@ object Map09 { // Searhus
       LocalObject(2700, Terminal.Constructor(Vector3(4653.347f, 6692.865f, 55.77518f), spawn_terminal), owning_building_guid = 26)
       LocalObject(2915, Terminal.Constructor(Vector3(4603.298f, 6774.201f, 51.84518f), vehicle_terminal_combined), owning_building_guid = 26)
       LocalObject(1810, VehicleSpawnPad.Constructor(Vector3(4597.897f, 6761.692f, 47.68718f), mb_pad_creation, Vector3(0, 0, 204)), owning_building_guid = 26, terminal_guid = 2915)
-      LocalObject(2525, ResourceSilo.Constructor, owning_building_guid = 26)
+      LocalObject(2525, ResourceSilo.Constructor(Vector3(4672.435f, 6624.949f, 56.17518f)), owning_building_guid = 26)
       LocalObject(2581, SpawnTube.Constructor(Vector3(4621.832f, 6748.189f, 39.15818f), Vector3(0, 0, 294)), owning_building_guid = 26)
       LocalObject(2582, SpawnTube.Constructor(Vector3(4628.49f, 6745.225f, 39.15818f), Vector3(0, 0, 294)), owning_building_guid = 26)
       LocalObject(2583, SpawnTube.Constructor(Vector3(4635.151f, 6742.259f, 39.15818f), Vector3(0, 0, 294)), owning_building_guid = 26)
@@ -742,7 +742,7 @@ object Map09 { // Searhus
 
     def Building12(): Unit = { // Name: Oro Type: comm_station GUID: 29, MapID: 12
       LocalBuilding("Oro", 29, 12, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(4896f, 4538f, 208.002f), Vector3(0f, 0f, 295f), comm_station)))
-      LocalObject(220, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 29)
+      LocalObject(220, CaptureTerminal.Constructor(Vector3(4984.177f, 4530.471f, 190.702f), capture_terminal), owning_building_guid = 29)
       LocalObject(511, Door.Constructor(Vector3(4816.507f, 4548.038f, 217.7169f)), owning_building_guid = 29)
       LocalObject(512, Door.Constructor(Vector3(4824.195f, 4531.55f, 209.753f)), owning_building_guid = 29)
       LocalObject(513, Door.Constructor(Vector3(4831.301f, 4573.817f, 209.753f)), owning_building_guid = 29)
@@ -823,7 +823,7 @@ object Map09 { // Searhus
       LocalObject(2706, Terminal.Constructor(Vector3(4935.028f, 4515.407f, 200.336f), spawn_terminal), owning_building_guid = 29)
       LocalObject(2917, Terminal.Constructor(Vector3(4967.812f, 4513.605f, 210.8889f), vehicle_terminal_combined), owning_building_guid = 29)
       LocalObject(1811, VehicleSpawnPad.Constructor(Vector3(4961.914f, 4525.889f, 206.731f), mb_pad_creation, Vector3(0, 0, -25)), owning_building_guid = 29, terminal_guid = 2917)
-      LocalObject(2526, ResourceSilo.Constructor, owning_building_guid = 29)
+      LocalObject(2526, ResourceSilo.Constructor(Vector3(4809.812f, 4559.345f, 215.2189f)), owning_building_guid = 29)
       LocalObject(2592, SpawnTube.Constructor(Vector3(4922.808f, 4510.522f, 198.202f), Vector3(0, 0, 65)), owning_building_guid = 29)
       LocalObject(2593, SpawnTube.Constructor(Vector3(4929.416f, 4513.603f, 198.202f), Vector3(0, 0, 65)), owning_building_guid = 29)
       LocalObject(2594, SpawnTube.Constructor(Vector3(4936.021f, 4516.683f, 198.202f), Vector3(0, 0, 65)), owning_building_guid = 29)
@@ -861,7 +861,7 @@ object Map09 { // Searhus
 
     def Building15(): Unit = { // Name: Sina Type: comm_station_dsp GUID: 32, MapID: 15
       LocalBuilding("Sina", 32, 15, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(5838f, 2198f, 90.95889f), Vector3(0f, 0f, 39f), comm_station_dsp)))
-      LocalObject(223, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 32)
+      LocalObject(223, CaptureTerminal.Constructor(Vector3(5909.257f, 2230.912f, 73.55889f), capture_terminal), owning_building_guid = 32)
       LocalObject(277, Door.Constructor(Vector3(5846.765f, 2295.768f, 94.33689f)), owning_building_guid = 32)
       LocalObject(572, Door.Constructor(Vector3(5756.884f, 2286.67f, 92.60989f)), owning_building_guid = 32)
       LocalObject(573, Door.Constructor(Vector3(5758.785f, 2304.764f, 100.5729f)), owning_building_guid = 32)
@@ -954,7 +954,7 @@ object Map09 { // Searhus
       LocalObject(2728, Terminal.Constructor(Vector3(5895.554f, 2254.14f, 82.61589f), spawn_terminal), owning_building_guid = 32)
       LocalObject(2920, Terminal.Constructor(Vector3(5783.76f, 2293.104f, 93.7459f), ground_vehicle_terminal), owning_building_guid = 32)
       LocalObject(1814, VehicleSpawnPad.Constructor(Vector3(5792.408f, 2282.564f, 89.58789f), mb_pad_creation, Vector3(0, 0, 141)), owning_building_guid = 32, terminal_guid = 2920)
-      LocalObject(2529, ResourceSilo.Constructor, owning_building_guid = 32)
+      LocalObject(2529, ResourceSilo.Constructor(Vector3(5810.083f, 2388.535f, 98.07589f)), owning_building_guid = 32)
       LocalObject(2605, SpawnTube.Constructor(Vector3(5849.002f, 2241.989f, 81.05889f), Vector3(0, 0, 321)), owning_building_guid = 32)
       LocalObject(2606, SpawnTube.Constructor(Vector3(5853.588f, 2236.325f, 81.05889f), Vector3(0, 0, 321)), owning_building_guid = 32)
       LocalObject(2607, SpawnTube.Constructor(Vector3(5858.177f, 2230.659f, 81.05889f), Vector3(0, 0, 321)), owning_building_guid = 32)
@@ -1002,7 +1002,7 @@ object Map09 { // Searhus
 
     def Building5(): Unit = { // Name: Drakulu Type: cryo_facility GUID: 35, MapID: 5
       LocalBuilding("Drakulu", 35, 5, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3746f, 2702f, 151.0666f), Vector3(0f, 0f, 266f), cryo_facility)))
-      LocalObject(215, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 35)
+      LocalObject(215, CaptureTerminal.Constructor(Vector3(3807.081f, 2725.886f, 141.0666f), capture_terminal), owning_building_guid = 35)
       LocalObject(390, Door.Constructor(Vector3(3651.992f, 2676.496f, 152.5876f)), owning_building_guid = 35)
       LocalObject(393, Door.Constructor(Vector3(3661.636f, 2684.342f, 152.6176f)), owning_building_guid = 35)
       LocalObject(394, Door.Constructor(Vector3(3662.905f, 2702.491f, 160.5816f)), owning_building_guid = 35)
@@ -1102,7 +1102,7 @@ object Map09 { // Searhus
       LocalObject(2674, Terminal.Constructor(Vector3(3809.885f, 2698.127f, 142.6796f), spawn_terminal), owning_building_guid = 35)
       LocalObject(2910, Terminal.Constructor(Vector3(3680.343f, 2668.871f, 153.3716f), vehicle_terminal_combined), owning_building_guid = 35)
       LocalObject(1800, VehicleSpawnPad.Constructor(Vector3(3681.205f, 2682.483f, 149.2136f), mb_pad_creation, Vector3(0, 0, 4)), owning_building_guid = 35, terminal_guid = 2910)
-      LocalObject(2521, ResourceSilo.Constructor, owning_building_guid = 35)
+      LocalObject(2521, ResourceSilo.Constructor(Vector3(3800.932f, 2758.573f, 158.0836f)), owning_building_guid = 35)
       LocalObject(2560, SpawnTube.Constructor(Vector3(3750.376f, 2697.451f, 141.0666f), Vector3(0, 0, 94)), owning_building_guid = 35)
       LocalObject(2561, SpawnTube.Constructor(Vector3(3757.65f, 2696.942f, 141.0666f), Vector3(0, 0, 94)), owning_building_guid = 35)
       LocalObject(2562, SpawnTube.Constructor(Vector3(3764.92f, 2696.434f, 141.0666f), Vector3(0, 0, 94)), owning_building_guid = 35)
@@ -1150,7 +1150,7 @@ object Map09 { // Searhus
 
     def Building6(): Unit = { // Name: Hiro Type: cryo_facility GUID: 38, MapID: 6
       LocalBuilding("Hiro", 38, 6, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(4570f, 5696f, 190.0754f), Vector3(0f, 0f, 360f), cryo_facility)))
-      LocalObject(218, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 38)
+      LocalObject(218, CaptureTerminal.Constructor(Vector3(4541.911f, 5755.266f, 180.0754f), capture_terminal), owning_building_guid = 38)
       LocalObject(477, Door.Constructor(Vector3(4511.023f, 5700.5f, 191.6264f)), owning_building_guid = 38)
       LocalObject(478, Door.Constructor(Vector3(4511.023f, 5718.693f, 199.5904f)), owning_building_guid = 38)
       LocalObject(479, Door.Constructor(Vector3(4527.674f, 5763.803f, 191.6264f)), owning_building_guid = 38)
@@ -1250,7 +1250,7 @@ object Map09 { // Searhus
       LocalObject(2694, Terminal.Constructor(Vector3(4574.97f, 5713.823f, 182.2094f), spawn_terminal), owning_building_guid = 38)
       LocalObject(2916, Terminal.Constructor(Vector3(4607.628f, 5632.814f, 192.3804f), vehicle_terminal_combined), owning_building_guid = 38)
       LocalObject(1809, VehicleSpawnPad.Constructor(Vector3(4593.989f, 5632.724f, 188.2224f), mb_pad_creation, Vector3(0, 0, -90)), owning_building_guid = 38, terminal_guid = 2916)
-      LocalObject(2524, ResourceSilo.Constructor, owning_building_guid = 38)
+      LocalObject(2524, ResourceSilo.Constructor(Vector3(4509.733f, 5746.852f, 197.0924f)), owning_building_guid = 38)
       LocalObject(2578, SpawnTube.Constructor(Vector3(4574.233f, 5700.683f, 180.0754f), Vector3(0, 0, 0)), owning_building_guid = 38)
       LocalObject(2579, SpawnTube.Constructor(Vector3(4574.233f, 5707.974f, 180.0754f), Vector3(0, 0, 0)), owning_building_guid = 38)
       LocalObject(2580, SpawnTube.Constructor(Vector3(4574.233f, 5715.262f, 180.0754f), Vector3(0, 0, 0)), owning_building_guid = 38)
@@ -1298,7 +1298,7 @@ object Map09 { // Searhus
 
     def Building4(): Unit = { // Name: Akua Type: cryo_facility GUID: 41, MapID: 4
       LocalBuilding("Akua", 41, 4, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(5274f, 3958f, 346.1272f), Vector3(0f, 0f, 50f), cryo_facility)))
-      LocalObject(221, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 41)
+      LocalObject(221, CaptureTerminal.Constructor(Vector3(5210.544f, 3974.578f, 336.1272f), capture_terminal), owning_building_guid = 41)
       LocalObject(537, Door.Constructor(Vector3(5194.853f, 3969.159f, 347.6782f)), owning_building_guid = 41)
       LocalObject(538, Door.Constructor(Vector3(5206.547f, 3983.096f, 355.6422f)), owning_building_guid = 41)
       LocalObject(541, Door.Constructor(Vector3(5218.707f, 3927.408f, 355.6422f)), owning_building_guid = 41)
@@ -1398,7 +1398,7 @@ object Map09 { // Searhus
       LocalObject(2719, Terminal.Constructor(Vector3(5307.008f, 3909.299f, 340.2402f), spawn_terminal), owning_building_guid = 41)
       LocalObject(2919, Terminal.Constructor(Vector3(5346.59f, 3946.209f, 348.4322f), vehicle_terminal_combined), owning_building_guid = 41)
       LocalObject(1813, VehicleSpawnPad.Constructor(Vector3(5337.892f, 3935.704f, 344.2742f), mb_pad_creation, Vector3(0, 0, 220)), owning_building_guid = 41, terminal_guid = 2919)
-      LocalObject(2527, ResourceSilo.Constructor, owning_building_guid = 41)
+      LocalObject(2527, ResourceSilo.Constructor(Vector3(5196.306f, 3944.52f, 353.1442f)), owning_building_guid = 41)
       LocalObject(2598, SpawnTube.Constructor(Vector3(5261.965f, 3973.624f, 336.1272f), Vector3(0, 0, 310)), owning_building_guid = 41)
       LocalObject(2599, SpawnTube.Constructor(Vector3(5267.548f, 3968.939f, 336.1272f), Vector3(0, 0, 310)), owning_building_guid = 41)
       LocalObject(2600, SpawnTube.Constructor(Vector3(5273.133f, 3964.253f, 336.1272f), Vector3(0, 0, 310)), owning_building_guid = 41)
@@ -1446,7 +1446,7 @@ object Map09 { // Searhus
 
     def Building7(): Unit = { // Name: Iva Type: cryo_facility GUID: 44, MapID: 7
       LocalBuilding("Iva", 44, 7, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(6452f, 5150f, 55.30717f), Vector3(0f, 0f, 91f), cryo_facility)))
-      LocalObject(224, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 44)
+      LocalObject(224, CaptureTerminal.Constructor(Vector3(6393.233f, 5120.881f, 45.30717f), capture_terminal), owning_building_guid = 44)
       LocalObject(598, Door.Constructor(Vector3(6384.628f, 5124.688f, 64.82217f)), owning_building_guid = 44)
       LocalObject(599, Door.Constructor(Vector3(6384.946f, 5106.497f, 56.85817f)), owning_building_guid = 44)
       LocalObject(601, Door.Constructor(Vector3(6430.34f, 5090.636f, 64.82217f)), owning_building_guid = 44)
@@ -1546,7 +1546,7 @@ object Map09 { // Searhus
       LocalObject(2735, Terminal.Constructor(Vector3(6508.862f, 5134.9f, 49.42017f), spawn_terminal), owning_building_guid = 44)
       LocalObject(2921, Terminal.Constructor(Vector3(6514.52f, 5188.725f, 57.61217f), vehicle_terminal_combined), owning_building_guid = 44)
       LocalObject(1815, VehicleSpawnPad.Constructor(Vector3(6514.848f, 5175.09f, 53.45417f), mb_pad_creation, Vector3(0, 0, 179)), owning_building_guid = 44, terminal_guid = 2921)
-      LocalObject(2530, ResourceSilo.Constructor, owning_building_guid = 44)
+      LocalObject(2530, ResourceSilo.Constructor(Vector3(6402.208f, 5088.854f, 62.32417f)), owning_building_guid = 44)
       LocalObject(2610, SpawnTube.Constructor(Vector3(6432.667f, 5153.896f, 45.30717f), Vector3(0, 0, 269)), owning_building_guid = 44)
       LocalObject(2612, SpawnTube.Constructor(Vector3(6439.954f, 5154.023f, 45.30717f), Vector3(0, 0, 269)), owning_building_guid = 44)
       LocalObject(2613, SpawnTube.Constructor(Vector3(6447.244f, 5154.15f, 45.30717f), Vector3(0, 0, 269)), owning_building_guid = 44)
@@ -1606,7 +1606,7 @@ object Map09 { // Searhus
 
     def Building16(): Unit = { // Name: Tara Type: tech_plant GUID: 50, MapID: 16
       LocalBuilding("Tara", 50, 16, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(1172f, 4140f, 59.97345f), Vector3(0f, 0f, 175f), tech_plant)))
-      LocalObject(211, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 50)
+      LocalObject(211, CaptureTerminal.Constructor(Vector3(1171.127f, 4184.334f, 75.07345f), capture_terminal), owning_building_guid = 50)
       LocalObject(313, Door.Constructor(Vector3(1093.01f, 4143.792f, 61.51545f)), owning_building_guid = 50)
       LocalObject(314, Door.Constructor(Vector3(1094.596f, 4161.916f, 69.47845f)), owning_building_guid = 50)
       LocalObject(315, Door.Constructor(Vector3(1126.686f, 4112.579f, 69.47845f)), owning_building_guid = 50)
@@ -1684,7 +1684,7 @@ object Map09 { // Searhus
       LocalObject(2648, Terminal.Constructor(Vector3(1204.282f, 4232.949f, 54.13045f), spawn_terminal), owning_building_guid = 50)
       LocalObject(2908, Terminal.Constructor(Vector3(1223.358f, 4176.239f, 45.78745f), ground_vehicle_terminal), owning_building_guid = 50)
       LocalObject(1798, VehicleSpawnPad.Constructor(Vector3(1222.457f, 4165.36f, 37.51045f), mb_pad_creation, Vector3(0, 0, 185)), owning_building_guid = 50, terminal_guid = 2908)
-      LocalObject(2517, ResourceSilo.Constructor, owning_building_guid = 50)
+      LocalObject(2517, ResourceSilo.Constructor(Vector3(1107.646f, 4112.951f, 66.98145f)), owning_building_guid = 50)
       LocalObject(2533, SpawnTube.Constructor(Vector3(1162.318f, 4169.695f, 52.57345f), Vector3(0, 0, 185)), owning_building_guid = 50)
       LocalObject(2534, SpawnTube.Constructor(Vector3(1162.953f, 4176.955f, 52.57345f), Vector3(0, 0, 185)), owning_building_guid = 50)
       LocalObject(2535, SpawnTube.Constructor(Vector3(1163.589f, 4184.218f, 52.57345f), Vector3(0, 0, 185)), owning_building_guid = 50)
@@ -1732,7 +1732,7 @@ object Map09 { // Searhus
 
     def Building8(): Unit = { // Name: Karihi Type: tech_plant GUID: 53, MapID: 8
       LocalBuilding("Karihi", 53, 8, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(3756f, 5592f, 236.1003f), Vector3(0f, 0f, 31f), tech_plant)))
-      LocalObject(214, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 53)
+      LocalObject(214, CaptureTerminal.Constructor(Vector3(3782.765f, 5556.646f, 251.2003f), capture_terminal), owning_building_guid = 53)
       LocalObject(396, Door.Constructor(Vector3(3683.486f, 5573.938f, 245.6053f)), owning_building_guid = 53)
       LocalObject(398, Door.Constructor(Vector3(3692.855f, 5558.344f, 237.6423f)), owning_building_guid = 53)
       LocalObject(406, Door.Constructor(Vector3(3721.467f, 5510.727f, 245.6053f)), owning_building_guid = 53)
@@ -1810,7 +1810,7 @@ object Map09 { // Searhus
       LocalObject(2673, Terminal.Constructor(Vector3(3798.409f, 5593.728f, 242.7823f), spawn_terminal), owning_building_guid = 53)
       LocalObject(2912, Terminal.Constructor(Vector3(3735.751f, 5532.495f, 221.9143f), ground_vehicle_terminal), owning_building_guid = 53)
       LocalObject(1802, VehicleSpawnPad.Constructor(Vector3(3730.085f, 5541.825f, 213.6373f), mb_pad_creation, Vector3(0, 0, -31)), owning_building_guid = 53, terminal_guid = 2912)
-      LocalObject(2520, ResourceSilo.Constructor, owning_building_guid = 53)
+      LocalObject(2520, ResourceSilo.Constructor(Vector3(3792.165f, 5651.709f, 243.1083f)), owning_building_guid = 53)
       LocalObject(2563, SpawnTube.Constructor(Vector3(3781.287f, 5573.667f, 228.7003f), Vector3(0, 0, 329)), owning_building_guid = 53)
       LocalObject(2564, SpawnTube.Constructor(Vector3(3785.041f, 5567.42f, 228.7003f), Vector3(0, 0, 329)), owning_building_guid = 53)
       LocalObject(2565, SpawnTube.Constructor(Vector3(3788.796f, 5561.17f, 228.7003f), Vector3(0, 0, 329)), owning_building_guid = 53)
@@ -1858,7 +1858,7 @@ object Map09 { // Searhus
 
     def Building11(): Unit = { // Name: Ngaru Type: tech_plant GUID: 56, MapID: 11
       LocalBuilding("Ngaru", 56, 11, FoundationBuilder(Building.Structure(StructureType.Facility, Vector3(4100f, 4200f, 204.9974f), Vector3(0f, 0f, 309f), tech_plant)))
-      LocalObject(216, CaptureTerminal.Constructor(capture_terminal), owning_building_guid = 56)
+      LocalObject(216, CaptureTerminal.Constructor(Vector3(4068.716f, 4168.575f, 220.0974f), capture_terminal), owning_building_guid = 56)
       LocalObject(433, Door.Constructor(Vector3(3997.113f, 4168.154f, 206.6184f)), owning_building_guid = 56)
       LocalObject(434, Door.Constructor(Vector3(4000.573f, 4211.438f, 206.5394f)), owning_building_guid = 56)
       LocalObject(439, Door.Constructor(Vector3(4014.711f, 4222.886f, 214.5024f)), owning_building_guid = 56)
@@ -1936,7 +1936,7 @@ object Map09 { // Searhus
       LocalObject(2681, Terminal.Constructor(Vector3(4111.644f, 4190.73f, 217.0204f), spawn_terminal), owning_building_guid = 56)
       LocalObject(2913, Terminal.Constructor(Vector3(4038.256f, 4211.77f, 190.8114f), ground_vehicle_terminal), owning_building_guid = 56)
       LocalObject(1805, VehicleSpawnPad.Constructor(Vector3(4046.707f, 4218.68f, 182.5344f), mb_pad_creation, Vector3(0, 0, 51)), owning_building_guid = 56, terminal_guid = 2913)
-      LocalObject(2522, ResourceSilo.Constructor, owning_building_guid = 56)
+      LocalObject(2522, ResourceSilo.Constructor(Vector3(4164.162f, 4172.497f, 212.0054f)), owning_building_guid = 56)
       LocalObject(2568, SpawnTube.Constructor(Vector3(4074.035f, 4163.233f, 197.5974f), Vector3(0, 0, 51)), owning_building_guid = 56)
       LocalObject(2569, SpawnTube.Constructor(Vector3(4079.701f, 4167.821f, 197.5974f), Vector3(0, 0, 51)), owning_building_guid = 56)
       LocalObject(2570, SpawnTube.Constructor(Vector3(4085.365f, 4172.408f, 197.5974f), Vector3(0, 0, 51)), owning_building_guid = 56)
@@ -1984,7 +1984,7 @@ object Map09 { // Searhus
 
     def Building47(): Unit = { // Name: N_Tara_Tower Type: tower_a GUID: 59, MapID: 47
       LocalBuilding("N_Tara_Tower", 59, 47, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(1134f, 4500f, 60.84628f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(2619, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 59)
+      LocalObject(2619, CaptureTerminal.Constructor(Vector3(1150.587f, 4499.897f, 70.84528f), secondary_capture), owning_building_guid = 59)
       LocalObject(317, Door.Constructor(Vector3(1146f, 4492f, 62.36728f)), owning_building_guid = 59)
       LocalObject(318, Door.Constructor(Vector3(1146f, 4492f, 82.36628f)), owning_building_guid = 59)
       LocalObject(319, Door.Constructor(Vector3(1146f, 4508f, 62.36728f)), owning_building_guid = 59)
@@ -2021,7 +2021,7 @@ object Map09 { // Searhus
 
     def Building20(): Unit = { // Name: SE_Wakea_Tower Type: tower_a GUID: 60, MapID: 20
       LocalBuilding("SE_Wakea_Tower", 60, 20, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(1934f, 5188f, 54.91245f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(2622, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 60)
+      LocalObject(2622, CaptureTerminal.Constructor(Vector3(1950.587f, 5187.897f, 64.91145f), secondary_capture), owning_building_guid = 60)
       LocalObject(354, Door.Constructor(Vector3(1946f, 5180f, 56.43345f)), owning_building_guid = 60)
       LocalObject(355, Door.Constructor(Vector3(1946f, 5180f, 76.43245f)), owning_building_guid = 60)
       LocalObject(356, Door.Constructor(Vector3(1946f, 5196f, 56.43345f)), owning_building_guid = 60)
@@ -2058,7 +2058,7 @@ object Map09 { // Searhus
 
     def Building18(): Unit = { // Name: E_Esamir_Warpgate_Tower Type: tower_a GUID: 61, MapID: 18
       LocalBuilding("E_Esamir_Warpgate_Tower", 61, 18, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2544f, 1462f, 53.86364f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(2624, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 61)
+      LocalObject(2624, CaptureTerminal.Constructor(Vector3(2560.587f, 1461.897f, 63.86264f), secondary_capture), owning_building_guid = 61)
       LocalObject(364, Door.Constructor(Vector3(2556f, 1454f, 55.38464f)), owning_building_guid = 61)
       LocalObject(365, Door.Constructor(Vector3(2556f, 1454f, 75.38364f)), owning_building_guid = 61)
       LocalObject(366, Door.Constructor(Vector3(2556f, 1470f, 55.38464f)), owning_building_guid = 61)
@@ -2095,7 +2095,7 @@ object Map09 { // Searhus
 
     def Building26(): Unit = { // Name: W_Ngaru_Tower Type: tower_a GUID: 62, MapID: 26
       LocalBuilding("W_Ngaru_Tower", 62, 26, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3398f, 4100f, 357.944f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(2627, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 62)
+      LocalObject(2627, CaptureTerminal.Constructor(Vector3(3414.587f, 4099.897f, 367.943f), secondary_capture), owning_building_guid = 62)
       LocalObject(380, Door.Constructor(Vector3(3410f, 4092f, 359.465f)), owning_building_guid = 62)
       LocalObject(381, Door.Constructor(Vector3(3410f, 4092f, 379.464f)), owning_building_guid = 62)
       LocalObject(382, Door.Constructor(Vector3(3410f, 4108f, 359.465f)), owning_building_guid = 62)
@@ -2132,7 +2132,7 @@ object Map09 { // Searhus
 
     def Building46(): Unit = { // Name: NW_Karihi_Tower Type: tower_a GUID: 63, MapID: 46
       LocalBuilding("NW_Karihi_Tower", 63, 46, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3578f, 5818f, 215.015f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(2628, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 63)
+      LocalObject(2628, CaptureTerminal.Constructor(Vector3(3594.587f, 5817.897f, 225.014f), secondary_capture), owning_building_guid = 63)
       LocalObject(384, Door.Constructor(Vector3(3590f, 5810f, 216.536f)), owning_building_guid = 63)
       LocalObject(385, Door.Constructor(Vector3(3590f, 5810f, 236.535f)), owning_building_guid = 63)
       LocalObject(386, Door.Constructor(Vector3(3590f, 5826f, 216.536f)), owning_building_guid = 63)
@@ -2169,7 +2169,7 @@ object Map09 { // Searhus
 
     def Building48(): Unit = { // Name: E_Drakulu_Tower Type: tower_a GUID: 64, MapID: 48
       LocalBuilding("E_Drakulu_Tower", 64, 48, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3992f, 2634f, 157.9653f), Vector3(0f, 0f, 16f), tower_a)))
-      LocalObject(2629, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 64)
+      LocalObject(2629, CaptureTerminal.Constructor(Vector3(4007.973f, 2638.473f, 167.9643f), secondary_capture), owning_building_guid = 64)
       LocalObject(435, Door.Constructor(Vector3(4001.33f, 2644.998f, 159.4863f)), owning_building_guid = 64)
       LocalObject(436, Door.Constructor(Vector3(4001.33f, 2644.998f, 179.4853f)), owning_building_guid = 64)
       LocalObject(437, Door.Constructor(Vector3(4005.74f, 2629.618f, 159.4863f)), owning_building_guid = 64)
@@ -2206,7 +2206,7 @@ object Map09 { // Searhus
 
     def Building51(): Unit = { // Name: N_Ngaru_Tower Type: tower_a GUID: 65, MapID: 51
       LocalBuilding("N_Ngaru_Tower", 65, 51, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4212f, 4846f, 220.0201f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(2630, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 65)
+      LocalObject(2630, CaptureTerminal.Constructor(Vector3(4228.587f, 4845.897f, 230.0191f), secondary_capture), owning_building_guid = 65)
       LocalObject(451, Door.Constructor(Vector3(4224f, 4838f, 221.5411f)), owning_building_guid = 65)
       LocalObject(452, Door.Constructor(Vector3(4224f, 4838f, 241.5401f)), owning_building_guid = 65)
       LocalObject(453, Door.Constructor(Vector3(4224f, 4854f, 221.5411f)), owning_building_guid = 65)
@@ -2243,7 +2243,7 @@ object Map09 { // Searhus
 
     def Building44(): Unit = { // Name: S_Laka_Tower Type: tower_a GUID: 66, MapID: 44
       LocalBuilding("S_Laka_Tower", 66, 44, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4362f, 6216f, 53.49857f), Vector3(0f, 0f, 306f), tower_a)))
-      LocalObject(2631, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 66)
+      LocalObject(2631, CaptureTerminal.Constructor(Vector3(4371.667f, 6202.521f, 63.49757f), secondary_capture), owning_building_guid = 66)
       LocalObject(456, Door.Constructor(Vector3(4362.581f, 6201.589f, 55.01957f)), owning_building_guid = 66)
       LocalObject(457, Door.Constructor(Vector3(4362.581f, 6201.589f, 75.01857f)), owning_building_guid = 66)
       LocalObject(459, Door.Constructor(Vector3(4375.525f, 6210.994f, 55.01957f)), owning_building_guid = 66)
@@ -2280,7 +2280,7 @@ object Map09 { // Searhus
 
     def Building52(): Unit = { // Name: NW_Oro_Tower Type: tower_a GUID: 67, MapID: 52
       LocalBuilding("NW_Oro_Tower", 67, 52, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4744f, 4694f, 211.0904f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(2633, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 67)
+      LocalObject(2633, CaptureTerminal.Constructor(Vector3(4760.587f, 4693.897f, 221.0894f), secondary_capture), owning_building_guid = 67)
       LocalObject(506, Door.Constructor(Vector3(4756f, 4686f, 212.6114f)), owning_building_guid = 67)
       LocalObject(507, Door.Constructor(Vector3(4756f, 4686f, 232.6104f)), owning_building_guid = 67)
       LocalObject(508, Door.Constructor(Vector3(4756f, 4702f, 212.6114f)), owning_building_guid = 67)
@@ -2317,7 +2317,7 @@ object Map09 { // Searhus
 
     def Building45(): Unit = { // Name: E_Hiro_Tower Type: tower_a GUID: 68, MapID: 45
       LocalBuilding("E_Hiro_Tower", 68, 45, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4852f, 5700f, 177.862f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(2635, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 68)
+      LocalObject(2635, CaptureTerminal.Constructor(Vector3(4868.587f, 5699.897f, 187.861f), secondary_capture), owning_building_guid = 68)
       LocalObject(521, Door.Constructor(Vector3(4864f, 5692f, 179.383f)), owning_building_guid = 68)
       LocalObject(522, Door.Constructor(Vector3(4864f, 5692f, 199.382f)), owning_building_guid = 68)
       LocalObject(523, Door.Constructor(Vector3(4864f, 5708f, 179.383f)), owning_building_guid = 68)
@@ -2354,7 +2354,7 @@ object Map09 { // Searhus
 
     def Building19(): Unit = { // Name: NE_Iva_Tower Type: tower_a GUID: 69, MapID: 19
       LocalBuilding("NE_Iva_Tower", 69, 19, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(7004f, 5834f, 43.82611f), Vector3(0f, 0f, 360f), tower_a)))
-      LocalObject(2641, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 69)
+      LocalObject(2641, CaptureTerminal.Constructor(Vector3(7020.587f, 5833.897f, 53.82511f), secondary_capture), owning_building_guid = 69)
       LocalObject(619, Door.Constructor(Vector3(7016f, 5826f, 45.34711f)), owning_building_guid = 69)
       LocalObject(620, Door.Constructor(Vector3(7016f, 5826f, 65.34611f)), owning_building_guid = 69)
       LocalObject(621, Door.Constructor(Vector3(7016f, 5842f, 45.34711f)), owning_building_guid = 69)
@@ -2391,7 +2391,7 @@ object Map09 { // Searhus
 
     def Building53(): Unit = { // Name: S_Ishundar_Warpgate_Tower Type: tower_b GUID: 70, MapID: 53
       LocalBuilding("S_Ishundar_Warpgate_Tower", 70, 53, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(1258f, 6332f, 41.90735f), Vector3(0f, 0f, 5f), tower_b)))
-      LocalObject(2620, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 70)
+      LocalObject(2620, CaptureTerminal.Constructor(Vector3(1274.533f, 6333.343f, 61.90635f), secondary_capture), owning_building_guid = 70)
       LocalObject(331, Door.Constructor(Vector3(1269.257f, 6341.016f, 43.42735f)), owning_building_guid = 70)
       LocalObject(332, Door.Constructor(Vector3(1269.257f, 6341.016f, 53.42735f)), owning_building_guid = 70)
       LocalObject(333, Door.Constructor(Vector3(1269.257f, 6341.016f, 73.42735f)), owning_building_guid = 70)
@@ -2428,7 +2428,7 @@ object Map09 { // Searhus
 
     def Building28(): Unit = { // Name: NE_Esamir_Warpgate_Tower Type: tower_b GUID: 71, MapID: 28
       LocalBuilding("NE_Esamir_Warpgate_Tower", 71, 28, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2312f, 2572f, 47.95525f), Vector3(0f, 0f, 334f), tower_b)))
-      LocalObject(2623, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 71)
+      LocalObject(2623, CaptureTerminal.Constructor(Vector3(2326.863f, 2564.636f, 67.95425f), secondary_capture), owning_building_guid = 71)
       LocalObject(358, Door.Constructor(Vector3(2319.279f, 2559.549f, 49.47525f)), owning_building_guid = 71)
       LocalObject(359, Door.Constructor(Vector3(2319.279f, 2559.549f, 59.47525f)), owning_building_guid = 71)
       LocalObject(360, Door.Constructor(Vector3(2319.279f, 2559.549f, 79.47525f)), owning_building_guid = 71)
@@ -2465,7 +2465,7 @@ object Map09 { // Searhus
 
     def Building24(): Unit = { // Name: E_Ishundar_Warpgate_Tower Type: tower_b GUID: 72, MapID: 24
       LocalBuilding("E_Ishundar_Warpgate_Tower", 72, 24, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(2552f, 6916f, 52.0414f), Vector3(0f, 0f, 360f), tower_b)))
-      LocalObject(2625, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 72)
+      LocalObject(2625, CaptureTerminal.Constructor(Vector3(2568.587f, 6915.897f, 72.04041f), secondary_capture), owning_building_guid = 72)
       LocalObject(368, Door.Constructor(Vector3(2564f, 6908f, 53.56141f)), owning_building_guid = 72)
       LocalObject(369, Door.Constructor(Vector3(2564f, 6908f, 63.56141f)), owning_building_guid = 72)
       LocalObject(370, Door.Constructor(Vector3(2564f, 6908f, 83.5614f)), owning_building_guid = 72)
@@ -2502,7 +2502,7 @@ object Map09 { // Searhus
 
     def Building49(): Unit = { // Name: W_Rehua_Tower Type: tower_b GUID: 73, MapID: 49
       LocalBuilding("W_Rehua_Tower", 73, 49, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(3354f, 1956f, 54.89647f), Vector3(0f, 0f, 360f), tower_b)))
-      LocalObject(2626, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 73)
+      LocalObject(2626, CaptureTerminal.Constructor(Vector3(3370.587f, 1955.897f, 74.89546f), secondary_capture), owning_building_guid = 73)
       LocalObject(374, Door.Constructor(Vector3(3366f, 1948f, 56.41647f)), owning_building_guid = 73)
       LocalObject(375, Door.Constructor(Vector3(3366f, 1948f, 66.41647f)), owning_building_guid = 73)
       LocalObject(376, Door.Constructor(Vector3(3366f, 1948f, 86.41647f)), owning_building_guid = 73)
@@ -2539,7 +2539,7 @@ object Map09 { // Searhus
 
     def Building22(): Unit = { // Name: W_Sina_Tower Type: tower_b GUID: 74, MapID: 22
       LocalBuilding("W_Sina_Tower", 74, 22, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4834f, 1886f, 56.61641f), Vector3(0f, 0f, 16f), tower_b)))
-      LocalObject(2634, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 74)
+      LocalObject(2634, CaptureTerminal.Constructor(Vector3(4849.973f, 1890.473f, 76.61542f), secondary_capture), owning_building_guid = 74)
       LocalObject(514, Door.Constructor(Vector3(4843.33f, 1896.998f, 58.13641f)), owning_building_guid = 74)
       LocalObject(515, Door.Constructor(Vector3(4843.33f, 1896.998f, 68.13641f)), owning_building_guid = 74)
       LocalObject(516, Door.Constructor(Vector3(4843.33f, 1896.998f, 88.13641f)), owning_building_guid = 74)
@@ -2576,7 +2576,7 @@ object Map09 { // Searhus
 
     def Building23(): Unit = { // Name: SE_Tara_Tower Type: tower_c GUID: 75, MapID: 23
       LocalBuilding("SE_Tara_Tower", 75, 23, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(1772f, 3744f, 43.52397f), Vector3(0f, 0f, 55f), tower_c)))
-      LocalObject(2621, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 75)
+      LocalObject(2621, CaptureTerminal.Constructor(Vector3(1781.598f, 3757.528f, 53.52297f), secondary_capture), owning_building_guid = 75)
       LocalObject(348, Door.Constructor(Vector3(1772.33f, 3758.418f, 45.04497f)), owning_building_guid = 75)
       LocalObject(349, Door.Constructor(Vector3(1772.33f, 3758.418f, 65.04398f)), owning_building_guid = 75)
       LocalObject(350, Door.Constructor(Vector3(1785.436f, 3749.241f, 45.04497f)), owning_building_guid = 75)
@@ -2617,7 +2617,7 @@ object Map09 { // Searhus
 
     def Building21(): Unit = { // Name: NE_Pele_Tower Type: tower_c GUID: 76, MapID: 21
       LocalBuilding("NE_Pele_Tower", 76, 21, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4686f, 3958f, 193.4062f), Vector3(0f, 0f, 360f), tower_c)))
-      LocalObject(2632, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 76)
+      LocalObject(2632, CaptureTerminal.Constructor(Vector3(4702.587f, 3957.897f, 203.4052f), secondary_capture), owning_building_guid = 76)
       LocalObject(502, Door.Constructor(Vector3(4698f, 3950f, 194.9272f)), owning_building_guid = 76)
       LocalObject(503, Door.Constructor(Vector3(4698f, 3950f, 214.9262f)), owning_building_guid = 76)
       LocalObject(504, Door.Constructor(Vector3(4698f, 3966f, 194.9272f)), owning_building_guid = 76)
@@ -2658,7 +2658,7 @@ object Map09 { // Searhus
 
     def Building25(): Unit = { // Name: SE_Laka_Tower Type: tower_c GUID: 77, MapID: 25
       LocalBuilding("SE_Laka_Tower", 77, 25, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5268f, 6372f, 48.24061f), Vector3(0f, 0f, 11f), tower_c)))
-      LocalObject(2636, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 77)
+      LocalObject(2636, CaptureTerminal.Constructor(Vector3(5284.302f, 6375.064f, 58.23961f), secondary_capture), owning_building_guid = 77)
       LocalObject(552, Door.Constructor(Vector3(5278.253f, 6382.143f, 49.76161f)), owning_building_guid = 77)
       LocalObject(553, Door.Constructor(Vector3(5278.253f, 6382.143f, 69.7606f)), owning_building_guid = 77)
       LocalObject(555, Door.Constructor(Vector3(5281.306f, 6366.437f, 49.76161f)), owning_building_guid = 77)
@@ -2699,7 +2699,7 @@ object Map09 { // Searhus
 
     def Building29(): Unit = { // Name: NE_Matagi_Tower Type: tower_c GUID: 78, MapID: 29
       LocalBuilding("NE_Matagi_Tower", 78, 29, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(5380f, 5216f, 236.7046f), Vector3(0f, 0f, 33f), tower_c)))
-      LocalObject(2637, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 78)
+      LocalObject(2637, CaptureTerminal.Constructor(Vector3(5393.967f, 5224.948f, 246.7036f), secondary_capture), owning_building_guid = 78)
       LocalObject(567, Door.Constructor(Vector3(5385.707f, 5229.245f, 238.2256f)), owning_building_guid = 78)
       LocalObject(568, Door.Constructor(Vector3(5385.707f, 5229.245f, 258.2246f)), owning_building_guid = 78)
       LocalObject(569, Door.Constructor(Vector3(5394.421f, 5215.826f, 238.2256f)), owning_building_guid = 78)
@@ -2740,7 +2740,7 @@ object Map09 { // Searhus
 
     def Building37(): Unit = { // Name: NE_Sina_Tower Type: tower_c GUID: 79, MapID: 37
       LocalBuilding("NE_Sina_Tower", 79, 37, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(6202f, 2442f, 49.96948f), Vector3(0f, 0f, 296f), tower_c)))
-      LocalObject(2638, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 79)
+      LocalObject(2638, CaptureTerminal.Constructor(Vector3(6209.179f, 2427.047f, 59.96848f), secondary_capture), owning_building_guid = 79)
       LocalObject(593, Door.Constructor(Vector3(6200.07f, 2427.708f, 51.49048f)), owning_building_guid = 79)
       LocalObject(594, Door.Constructor(Vector3(6200.07f, 2427.708f, 71.48949f)), owning_building_guid = 79)
       LocalObject(595, Door.Constructor(Vector3(6214.451f, 2434.721f, 51.49048f)), owning_building_guid = 79)
@@ -2781,7 +2781,7 @@ object Map09 { // Searhus
 
     def Building27(): Unit = { // Name: S_Iva_Tower Type: tower_c GUID: 80, MapID: 27
       LocalBuilding("S_Iva_Tower", 80, 27, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(6438f, 4958f, 63.71655f), Vector3(0f, 0f, 324f), tower_c)))
-      LocalObject(2639, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 80)
+      LocalObject(2639, CaptureTerminal.Constructor(Vector3(6451.358f, 4948.167f, 73.71555f), secondary_capture), owning_building_guid = 80)
       LocalObject(603, Door.Constructor(Vector3(6443.006f, 4944.475f, 65.23755f)), owning_building_guid = 80)
       LocalObject(604, Door.Constructor(Vector3(6443.006f, 4944.475f, 85.23654f)), owning_building_guid = 80)
       LocalObject(607, Door.Constructor(Vector3(6452.411f, 4957.419f, 65.23755f)), owning_building_guid = 80)
@@ -2822,7 +2822,7 @@ object Map09 { // Searhus
 
     def Building50(): Unit = { // Name: W_Cyssor_Warpgate_Tower Type: tower_c GUID: 81, MapID: 50
       LocalBuilding("W_Cyssor_Warpgate_Tower", 81, 50, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(6630f, 3188f, 51.50481f), Vector3(0f, 0f, 15f), tower_c)))
-      LocalObject(2640, CaptureTerminal.Constructor(secondary_capture), owning_building_guid = 81)
+      LocalObject(2640, CaptureTerminal.Constructor(Vector3(6646.048f, 3192.194f, 61.50381f), secondary_capture), owning_building_guid = 81)
       LocalObject(615, Door.Constructor(Vector3(6639.521f, 3198.833f, 53.02581f)), owning_building_guid = 81)
       LocalObject(616, Door.Constructor(Vector3(6639.521f, 3198.833f, 73.02481f)), owning_building_guid = 81)
       LocalObject(617, Door.Constructor(Vector3(6643.662f, 3183.378f, 53.02581f)), owning_building_guid = 81)
