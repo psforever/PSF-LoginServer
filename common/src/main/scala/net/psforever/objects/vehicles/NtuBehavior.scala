@@ -37,6 +37,21 @@ trait NtuBehavior {
       TryStopChargingEvent(NtuChargeableObject)
 
     case NtuBehavior.Charging() | NtuBehavior.Discharging() => ; //message while in wrong state
+
+    case Ntu.Grant(0) | Ntu.Request(0, 0) =>
+      TryStopChargingEvent(NtuChargeableObject)
+
+    case Ntu.Request(0, max)
+      if ntuChargingEvent == NtuBehavior.ChargeEvent.Discharging =>
+      sender ! WithdrawAndTransmit(NtuChargeableObject, max)
+
+    case Ntu.Grant(amount)
+      if ntuChargingEvent == NtuBehavior.ChargeEvent.Charging =>
+      val obj = NtuChargeableObject
+      if(ReceiveAndDeposit(obj, amount)) {
+        TryStopChargingEvent(obj)
+        sender ! Ntu.Request(0,0)
+      }
   }
 
   /** Charging */
@@ -93,9 +108,8 @@ trait NtuBehavior {
       //charging
       ntuChargingTarget = Some(target)
       ntuChargingEvent = NtuBehavior.ChargeEvent.Charging
-      val nextChargeTime = if((vehicle.NtuCapacitor += 100) == vehicle.Definition.MaxNtuCapacitor) 50 else 1000
-      UpdateNtuUI(vehicle)
-      ntuChargingTick = context.system.scheduler.scheduleOnce(nextChargeTime milliseconds, self, NtuBehavior.Charging()) // Repeat until fully charged, or minor delay
+      target.Actor ! Ntu.Request(0, vehicle.Definition.MaxNtuCapacitor - vehicle.NtuCapacitor)
+      ntuChargingTick = context.system.scheduler.scheduleOnce(delay = 1000 milliseconds, self, NtuBehavior.Charging()) // Repeat until fully charged, or minor delay
       true
     }
     else {
@@ -103,6 +117,12 @@ trait NtuBehavior {
       TryStopChargingEvent(vehicle)
       false
     }
+  }
+
+  def ReceiveAndDeposit(vehicle : Vehicle, amount : Int) : Boolean = {
+    val isFull = (vehicle.NtuCapacitor += amount) == vehicle.Definition.MaxNtuCapacitor
+    UpdateNtuUI(vehicle)
+    isFull
   }
 
   /** Discharging */
@@ -126,6 +146,31 @@ trait NtuBehavior {
   }
 
   def HandleNtuDischarging(vehicle : Vehicle, target : PlanetSideServerObject) : Boolean = {
+    //log.trace(s"NtuDischarging: Vehicle $guid is discharging NTU into silo $silo_guid")
+    if(vehicle.NtuCapacitor > 0) {
+      // Make sure we don't exceed the silo maximum charge or remove much NTU from ANT if maximum is reached, or try to make ANT go below 0 NTU
+      ntuChargingTarget = Some(target)
+      ntuChargingEvent = NtuBehavior.ChargeEvent.Discharging
+      target.Actor ! Ntu.Offer()
+      ntuChargingTick.cancel
+      ntuChargingTick = context.system.scheduler.scheduleOnce(delay = 1000 milliseconds, self, NtuBehavior.Discharging())
+      true
+    }
+    else {
+      TryStopChargingEvent(vehicle)
+      false
+    }
+  }
+
+  def WithdrawAndTransmit(vehicle : Vehicle, maxRequested : Int) : Any = {
+    val chargeable = NtuChargeableObject
+    var chargeToDeposit = Math.min(Math.min(chargeable.NtuCapacitor, 100), maxRequested)
+    chargeable.NtuCapacitor -= chargeToDeposit
+    UpdateNtuUI(chargeable)
+    Ntu.Grant(chargeToDeposit)
+  }
+
+  def _HandleNtuDischarging(vehicle : Vehicle, target : PlanetSideServerObject) : Boolean = {
     val zone = vehicle.Zone
     //log.trace(s"NtuDischarging: Vehicle $guid is discharging NTU into silo $silo_guid")
     val silo = target.asInstanceOf[ResourceSilo]
@@ -176,7 +221,7 @@ trait NtuBehavior {
           events ! VehicleServiceMessage(zoneId, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, vguid, 52, 0L)) // panel glow off
           ntuChargingTarget match {
             case Some(obj : ResourceSilo) =>
-              events ! VehicleServiceMessage(zoneId, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, obj.GUID, 49, 0L)) // panel glow off & orb particles off
+              obj.Actor ! Ntu.Grant(0)
             case _ => ;
           }
         }
@@ -252,9 +297,23 @@ object NtuBehavior {
   }
 }
 
+object Ntu {
+  final case class Offer()
+  final case class Request(min : Int, max : Int)
+  final case class Grant(amount : Int)
+}
+
 trait NtuContainer extends Identifiable
   with ZoneAware
   with WorldEntity {
+  def NtuCapacitor : Int
+
+  def NtuCapacitor_=(value: Int) : Int
+
+  def Definition : NtuContainerDefinition
+}
+
+trait CommonNtuContainer extends NtuContainer {
   private var ntuCapacitor : Int = 0
 
   def NtuCapacitor : Int = ntuCapacitor

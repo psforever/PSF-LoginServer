@@ -421,8 +421,8 @@ object Zones {
       // todo: load silo charge from database
       zone.Buildings.values.flatMap {
         _.Amenities.collect {
-          case silo: ResourceSilo =>
-            silo.Actor ! ResourceSilo.UpdateChargeLevel(silo.MaximumCharge)
+          case silo : ResourceSilo =>
+            silo.Actor ! ResourceSilo.UpdateChargeLevel(200)//silo.MaximumCharge)
         }
       }
     }

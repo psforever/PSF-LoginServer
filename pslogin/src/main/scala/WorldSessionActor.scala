@@ -227,6 +227,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var interimUngunnedVehicle: Option[PlanetSideGUID] = None
   var interimUngunnedVehicleSeat: Option[Int]        = None
   var keepAliveFunc: () => Unit                      = NormalKeepAlive
+  var setAvatar: Boolean                             = false
   var turnCounterFunc: PlanetSideGUID => Unit        = TurnCounterDuringInterim
 
   var clientKeepAlive: Cancellable    = Default.Cancellable
@@ -1235,6 +1236,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
       keepAliveFunc = NormalKeepAlive
       upstreamMessageCount = 0
+      setAvatar = false
       persist()
 
     case PlayerLoaded(tplayer) =>
@@ -1251,6 +1253,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
       keepAliveFunc = NormalKeepAlive
       upstreamMessageCount = 0
+      setAvatar = false
       persist()
 
     case PlayerFailedToLoad(tplayer) =>
@@ -1317,7 +1320,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case _                => true
           })
         ) {
-          if (waitingOnUpstream) {
+          if(!setAvatar || waitingOnUpstream) {
             setCurrentAvatarFunc(tplayer)
             respawnTimer = context.system.scheduler.scheduleOnce(
               delay = (if (attempt <= max_attempts / 2) 10 else 5) seconds,
@@ -3612,6 +3615,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       tplayer.Actor ! Player.StaminaRegen()
     }
     upstreamMessageCount = 0
+    setAvatar = true
   }
 
   /**

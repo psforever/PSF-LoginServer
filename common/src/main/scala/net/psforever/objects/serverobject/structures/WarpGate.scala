@@ -178,7 +178,7 @@ object WarpGate {
   def Structure(name: String, guid: Int, map_id: Int, zone: Zone, context: ActorContext): WarpGate = {
     import akka.actor.Props
     val obj = new WarpGate(name, guid, map_id, zone, GlobalDefinitions.warpgate)
-    obj.Actor = context.actorOf(Props(classOf[BuildingControl], obj), s"$map_id-gate")
+    obj.Actor = context.actorOf(Props(classOf[WarpGateControl], obj), name = s"$map_id-$guid-gate")
     obj
   }
 
@@ -188,7 +188,7 @@ object WarpGate {
     import akka.actor.Props
     val obj = new WarpGate(name, guid, map_id, zone, GlobalDefinitions.warpgate)
     obj.Position = location
-    obj.Actor = context.actorOf(Props(classOf[BuildingControl], obj), s"$map_id-gate")
+    obj.Actor = context.actorOf(Props(classOf[WarpGateControl], obj), name = s"$map_id-$guid-gate")
     obj
   }
 
@@ -199,7 +199,7 @@ object WarpGate {
     import akka.actor.Props
     val obj = new WarpGate(name, guid, map_id, zone, buildingDefinition)
     obj.Position = location
-    obj.Actor = context.actorOf(Props(classOf[BuildingControl], obj), s"$map_id-gate")
+    obj.Actor = context.actorOf(Props(classOf[WarpGateControl], obj), name = s"$map_id-$guid-gate")
     obj
   }
 }

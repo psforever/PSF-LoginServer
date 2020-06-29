@@ -4,10 +4,12 @@ package net.psforever.objects.serverobject.resourcesilo
 import akka.actor.Actor
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.structures.Building
-import net.psforever.objects.vehicles.NtuBehavior
+import net.psforever.objects.vehicles.{Ntu, NtuBehavior}
 import net.psforever.types.PlanetSideEmpire
+import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.local.{LocalAction, LocalServiceMessage}
+import services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -50,56 +52,77 @@ class ResourceSiloControl(resourceSilo: ResourceSilo) extends Actor with Faction
           AvatarAction.PlanetsideAttribute(building.GUID, 47, if (resourceSilo.LowNtuWarningOn) 1 else 0)
         )
 
-      case ResourceSilo.UpdateChargeLevel(amount: Int) =>
-        val siloChargeBeforeChange  = resourceSilo.ChargeLevel
-        val siloDisplayBeforeChange = resourceSilo.CapacitorDisplay
-        val building                = resourceSilo.Owner.asInstanceOf[Building]
-        val zone                    = building.Zone
+    case ResourceSilo.UpdateChargeLevel(amount: Int) =>
+      UpdateChargeLevel(amount)
 
-        // Increase if positive passed in or decrease charge level if negative number is passed in
-        resourceSilo.ChargeLevel += amount
-        if (resourceSilo.ChargeLevel > 0) {
-          log.trace(s"UpdateChargeLevel: Silo ${resourceSilo.GUID} set to ${resourceSilo.ChargeLevel}")
-        }
+    case Ntu.Offer() =>
+      sender ! (if(resourceSilo.ChargeLevel < resourceSilo.MaximumCharge) {
+        Ntu.Request(0, resourceSilo.MaximumCharge - resourceSilo.ChargeLevel)
+      }
+      else {
+        UpdateChargeLevel(amount = 0)
+        Ntu.Request(0, 0)
+      })
 
-        // Only send updated capacitor display value to all clients if it has actually changed
-        if (resourceSilo.CapacitorDisplay != siloDisplayBeforeChange) {
-          log.trace(
-            s"Silo ${resourceSilo.GUID} NTU bar level has changed from $siloDisplayBeforeChange to ${resourceSilo.CapacitorDisplay}"
-          )
-          resourceSilo.Owner.Actor ! Building.SendMapUpdate(all_clients = true)
-          zone.AvatarEvents ! AvatarServiceMessage(
-            zone.Id,
-            AvatarAction.PlanetsideAttribute(resourceSilo.GUID, 45, resourceSilo.CapacitorDisplay)
-          )
-          building.Actor ! Building.SendMapUpdate(all_clients = true)
-        }
+    case Ntu.Request(min, _) =>
+      val originalAmount = resourceSilo.ChargeLevel
+      UpdateChargeLevel(-min)
+      sender ! Ntu.Grant(originalAmount - resourceSilo.ChargeLevel)
 
-        val ntuIsLow = resourceSilo.ChargeLevel.toFloat / resourceSilo.MaximumCharge.toFloat < 0.2f
-        if (resourceSilo.LowNtuWarningOn && !ntuIsLow) {
-          self ! ResourceSilo.LowNtuWarning(enabled = false)
-        } else if (!resourceSilo.LowNtuWarningOn && ntuIsLow) {
-          self ! ResourceSilo.LowNtuWarning(enabled = true)
-        }
+    case Ntu.Grant(amount) =>
+      UpdateChargeLevel(amount)
 
-        if (resourceSilo.ChargeLevel == 0 && siloChargeBeforeChange > 0) {
-          // Oops, someone let the base run out of power. Shut it all down.
-          zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttribute(building.GUID, 48, 1))
-          building.Faction = PlanetSideEmpire.NEUTRAL
-          zone.LocalEvents ! LocalServiceMessage(
-            zone.Id,
-            LocalAction.SetEmpire(building.GUID, PlanetSideEmpire.NEUTRAL)
-          )
-          building.TriggerZoneMapUpdate()
-        } else if (siloChargeBeforeChange == 0 && resourceSilo.ChargeLevel > 0) {
-          // Power restored. Reactor Online. Sensors Online. Weapons Online. All systems nominal.
-          //todo: Check generator is online before starting up
-          zone.AvatarEvents ! AvatarServiceMessage(
-            zone.Id,
-            AvatarAction.PlanetsideAttribute(building.GUID, 48, 0)
-          )
-          building.TriggerZoneMapUpdate()
-        }
-      case _ => ;
+    case _ => ;
+  }
+
+  def UpdateChargeLevel(amount: Int) : Unit = {
+    val siloChargeBeforeChange = resourceSilo.ChargeLevel
+    val siloDisplayBeforeChange = resourceSilo.CapacitorDisplay
+    val building = resourceSilo.Owner.asInstanceOf[Building]
+    val zone = building.Zone
+
+    // Increase if positive passed in or decrease charge level if negative number is passed in
+    resourceSilo.ChargeLevel += amount
+    zone.VehicleEvents ! VehicleServiceMessage(
+      zone.Id,
+      VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, resourceSilo.GUID, 49, if(amount != 0) 1 else 0)
+    ) // panel glow on & orb particles on
+    if (resourceSilo.ChargeLevel > 0) {
+      log.trace(s"UpdateChargeLevel: Silo ${resourceSilo.GUID} set to ${resourceSilo.ChargeLevel}")
     }
+
+    // Only send updated capacitor display value to all clients if it has actually changed
+    if (resourceSilo.CapacitorDisplay != siloDisplayBeforeChange) {
+      log.trace(s"Silo ${resourceSilo.GUID} NTU bar level has changed from $siloDisplayBeforeChange to ${resourceSilo.CapacitorDisplay}")
+      resourceSilo.Owner.Actor ! Building.SendMapUpdate(all_clients = true)
+      zone.AvatarEvents ! AvatarServiceMessage(
+        zone.Id,
+        AvatarAction.PlanetsideAttribute(resourceSilo.GUID, 45, resourceSilo.CapacitorDisplay)
+      )
+      building.Actor ! Building.SendMapUpdate(all_clients = true)
+    }
+    val ntuIsLow = resourceSilo.ChargeLevel.toFloat / resourceSilo.MaximumCharge.toFloat < 0.2f
+    if (resourceSilo.LowNtuWarningOn && !ntuIsLow) {
+      self ! ResourceSilo.LowNtuWarning(enabled = false)
+    }
+    else if (!resourceSilo.LowNtuWarningOn && ntuIsLow) {
+      self ! ResourceSilo.LowNtuWarning(enabled = true)
+    }
+    if (resourceSilo.ChargeLevel == 0 && siloChargeBeforeChange > 0) {
+      // Oops, someone let the base run out of power. Shut it all down.
+      zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttribute(building.GUID, 48, 1))
+      building.Faction = PlanetSideEmpire.NEUTRAL
+      zone.LocalEvents ! LocalServiceMessage(zone.Id, LocalAction.SetEmpire(building.GUID, PlanetSideEmpire.NEUTRAL))
+      building.TriggerZoneMapUpdate()
+    }
+    else if (siloChargeBeforeChange == 0 && resourceSilo.ChargeLevel > 0) {
+      // Power restored. Reactor Online. Sensors Online. Weapons Online. All systems nominal.
+      //todo: Check generator is online before starting up
+      zone.AvatarEvents ! AvatarServiceMessage(
+        zone.Id,
+        AvatarAction.PlanetsideAttribute(building.GUID, 48, 0)
+      )
+      building.TriggerZoneMapUpdate()
+    }
+  }
 }
