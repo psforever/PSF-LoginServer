@@ -154,7 +154,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
       accountsExact <- ctx.run(query[persistence.Account].filter(_.username == lift(username)))
       accountsLower <- accountsExact.headOption match {
         case None =>
-          ctx.run(query[persistence.Account].filter(_.username == lift(username.toLowerCase)))
+          ctx.run(query[persistence.Account].filter(_.username.toLowerCase == lift(username).toLowerCase))
         case Some(_) =>
           Future.successful(Seq())
       }
@@ -166,7 +166,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
               val passhash: String = password.bcrypt(numBcryptPasses)
               ctx.run(
                 query[persistence.Account]
-                  .insert(_.passhash -> lift(passhash), _.username -> lift(username.toLowerCase))
+                  .insert(_.passhash -> lift(passhash), _.username -> lift(username).toLowerCase)
                   .returningGenerated(_.id)
               ) flatMap { id => ctx.run(query[persistence.Account].filter(_.id == lift(id))) } map { accounts =>
                 Some(accounts.head)
