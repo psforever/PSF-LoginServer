@@ -74,7 +74,9 @@ import net.psforever.objects.vehicles.{
   MountedWeapons,
   Utility,
   UtilityType,
-  VehicleLockState
+  VehicleControl,
+  VehicleLockState,
+  VehicleNtuTransferBehavior
 }
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.vital.{
@@ -3891,8 +3893,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
         //find and reclaim own deployables, if any
         val guid = player.GUID
-        val foundDeployables =
-          continent.DeployableList.filter(obj => obj.OwnerName.contains(player.Name) && obj.Health > 0)
+        val foundDeployables = continent.DeployableList.filter(obj => obj.OwnerName.contains(player.Name) && obj.Health > 0)
         continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(foundDeployables, continent))
         foundDeployables.foreach(obj => {
           if(avatar.Deployables.Add(obj)) {
@@ -3925,10 +3926,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             )
           )
           //seated players
-          obj
-            .asInstanceOf[Mountable]
-            .Seats
-            .values
+          obj.asInstanceOf[Mountable].Seats.values
             .map(_.Occupant)
             .collect {
               case Some(occupant) =>
@@ -3952,7 +3950,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
               !obj.Destroyed &&
               (obj match {
                 case jObj : JammableUnit => !jObj.Jammed;
-                case _                   => true
+                case _ => true
               })
           )
           .foreach(obj => {
@@ -3966,12 +3964,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             if(obj.Health != obj.DefaultHealth) {
               sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))
             }
-            val deployInfo = DeployableInfo(
-              obj.GUID,
-              Deployable.Icon(obj.Definition.Item),
-              obj.Position,
-              obj.Owner.getOrElse(PlanetSideGUID(0))
-            )
+            val deployInfo = DeployableInfo(obj.GUID, Deployable.Icon(obj.Definition.Item), obj.Position, obj.Owner.getOrElse(PlanetSideGUID(0)))
             sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, deployInfo))
           })
         //render Equipment that was dropped into zone before the player arrived
@@ -3981,24 +3974,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
             ObjectCreateMessage(
               definition.ObjectId,
               item.GUID,
-              DroppedItemData(
-                PlacementData(item.Position, item.Orientation),
-                definition.Packet.ConstructorData(item).get
-              )
+              DroppedItemData(PlacementData(item.Position, item.Orientation), definition.Packet.ConstructorData(item).get)
             )
           )
         })
         //load active players in zone (excepting players who are seated or players who are us)
         val live = continent.LivePlayers
-        live
-          .filterNot(tplayer => {
-            tplayer.GUID == player.GUID || tplayer.VehicleSeated.nonEmpty
-          })
+        live.filterNot(tplayer => {
+          tplayer.GUID == player.GUID || tplayer.VehicleSeated.nonEmpty
+        })
           .foreach(char => {
             val tdefintion = char.Definition
-            sendResponse(
-              ObjectCreateMessage(tdefintion.ObjectId, char.GUID, char.Definition.Packet.ConstructorData(char).get)
-            )
+            sendResponse(ObjectCreateMessage(tdefintion.ObjectId, char.GUID, char.Definition.Packet.ConstructorData(char).get))
             if(char.UsingSpecial == SpecialExoSuitDefinition.Mode.Anchored) {
               sendResponse(PlanetsideAttributeMessage(char.GUID, 19, 1))
             }
@@ -4012,52 +3999,45 @@ class WorldSessionActor extends Actor with MDCContextAware {
           val (a, b) = continent.Vehicles.partition(vehicle => {
             vehicle.Destroyed && vehicle.Definition.DestroyedModel.nonEmpty
           })
-          (
-            a,
-            (continent.GUID(player.VehicleSeated) match {
-              case Some(vehicle : Vehicle) if vehicle.PassengerInSeat(player).isDefined =>
-                b.partition {
-                  _.GUID != vehicle.GUID
-                }
-              case Some(_) =>
-                //vehicle, but we're not seated in it
-                player.VehicleSeated = None
-                (b, List.empty[Vehicle])
-              case None =>
-                //throw error since VehicleSeated didn't point to a vehicle?
-                player.VehicleSeated = None
-                (b, List.empty[Vehicle])
-            })
-          )
+          (a, (continent.GUID(player.VehicleSeated) match {
+            case Some(vehicle : Vehicle) if vehicle.PassengerInSeat(player).isDefined =>
+              b.partition {
+                _.GUID != vehicle.GUID
+              }
+            case Some(_) =>
+              //vehicle, but we're not seated in it
+              player.VehicleSeated = None
+              (b, List.empty[Vehicle])
+            case None =>
+              //throw error since VehicleSeated didn't point to a vehicle?
+              player.VehicleSeated = None
+              (b, List.empty[Vehicle])
+          }))
         }
         val allActiveVehicles = vehicles ++ usedVehicle
         //active vehicles (and some wreckage)
         vehicles.foreach(vehicle => {
           val vguid = vehicle.GUID
           val vdefinition = vehicle.Definition
-          sendResponse(
-            ObjectCreateMessage(vdefinition.ObjectId, vguid, vdefinition.Packet.ConstructorData(vehicle).get)
-          )
+          sendResponse(ObjectCreateMessage(vdefinition.ObjectId, vguid, vdefinition.Packet.ConstructorData(vehicle).get))
           //occupants other than driver
           vehicle.Seats
             .filter({ case (index, seat) => seat.isOccupied && live.contains(seat.Occupant.get) && index > 0 })
-            .foreach({
-              case (index, seat) =>
-                val tplayer = seat.Occupant.get
-                val tdefintion = tplayer.Definition
-                sendResponse(
-                  ObjectCreateMessage(
-                    tdefintion.ObjectId,
-                    tplayer.GUID,
-                    ObjectCreateMessageParent(vguid, index),
-                    tdefintion.Packet.ConstructorData(tplayer).get
-                  )
+            .foreach({ case (index, seat) =>
+              val tplayer = seat.Occupant.get
+              val tdefintion = tplayer.Definition
+              sendResponse(
+                ObjectCreateMessage(
+                  tdefintion.ObjectId,
+                  tplayer.GUID,
+                  ObjectCreateMessageParent(vguid, index),
+                  tdefintion.Packet.ConstructorData(tplayer).get
                 )
+              )
             })
         })
-        vehicles.collect {
-          case vehicle if vehicle.Faction == faction =>
-            Vehicles.ReloadAccessPermissions(vehicle, player.Name)
+        vehicles.collect { case vehicle if vehicle.Faction == faction =>
+          Vehicles.ReloadAccessPermissions(vehicle, player.Name)
         }
         //our vehicle would have already been loaded; see NewPlayerLoaded/AvatarCreate
         usedVehicle.headOption match {
@@ -4065,10 +4045,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             //depict any other passengers already in this zone
             val vguid = vehicle.GUID
             vehicle.Seats
-              .filter({
-                case (index, seat) =>
-                  seat.isOccupied && !seat.Occupant.contains(player) && live.contains(seat.Occupant.get) && index > 0
-              })
+              .filter({ case (index, seat) => seat.isOccupied && !seat.Occupant.contains(player) && live.contains(seat.Occupant.get) && index > 0 })
               .foreach({ case (index, seat) =>
                 val tplayer = seat.Occupant.get
                 val tdefintion = tplayer.Definition
@@ -4746,7 +4723,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
               case Some((buildings, pos)) => (buildings, pos)
               case None                   => (None, None)
             }
-
             val (timerOption, timerPos) = args.zipWithIndex
               .map {
                 case (_, pos)
@@ -7878,8 +7854,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
         //silo capacity
         sendResponse(PlanetsideAttributeMessage(amenityId, 45, silo.CapacitorDisplay))
         //warning lights
-        sendResponse(PlanetsideAttributeMessage(silo.Owner.GUID, 47, if (silo.LowNtuWarningOn) 1 else 0))
-        if (silo.ChargeLevel == 0) {
+        sendResponse(PlanetsideAttributeMessage(silo.Owner.GUID, 47, if(silo.LowNtuWarningOn) 1 else 0))
+        if(silo.NtuCapacitor == 0) {
           sendResponse(PlanetsideAttributeMessage(silo.Owner.GUID, 48, 1))
         }
       case door: Door if door.isOpen =>

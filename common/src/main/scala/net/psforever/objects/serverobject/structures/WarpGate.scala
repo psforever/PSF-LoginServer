@@ -3,7 +3,7 @@ package net.psforever.objects.serverobject.structures
 
 import akka.actor.ActorContext
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.{GlobalDefinitions, SpawnPoint}
+import net.psforever.objects.{GlobalDefinitions, NtuContainer, SpawnPoint}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{Additional1, Additional2, Additional3}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGeneratorState, Vector3}
@@ -12,8 +12,8 @@ import scala.collection.mutable
 
 class WarpGate(name: String, building_guid: Int, map_id: Int, zone: Zone, buildingDefinition: WarpGateDefinition)
     extends Building(name, building_guid, map_id, zone, StructureType.WarpGate, buildingDefinition)
+    with NtuContainer
     with SpawnPoint {
-
   /** can this building be used as an active warp gate */
   private var active: Boolean = true
 
@@ -166,8 +166,11 @@ class WarpGate(name: String, building_guid: Int, map_id: Int, zone: Zone, buildi
 
   def Owner: PlanetSideServerObject = this
 
+  def NtuCapacitor: Int = Definition.MaxNtuCapacitor
+
+  def NtuCapacitor_=(value: Int): Int = NtuCapacitor
+
   override def Definition: WarpGateDefinition = buildingDefinition
-  //TODO stuff later
 }
 
 object WarpGate {

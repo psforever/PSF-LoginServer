@@ -422,7 +422,7 @@ object Zones {
       zone.Buildings.values.flatMap {
         _.Amenities.collect {
           case silo : ResourceSilo =>
-            silo.Actor ! ResourceSilo.UpdateChargeLevel(200)//silo.MaximumCharge)
+            silo.Actor ! ResourceSilo.UpdateChargeLevel(silo.MaxNtuCapacitor)
         }
       }
     }

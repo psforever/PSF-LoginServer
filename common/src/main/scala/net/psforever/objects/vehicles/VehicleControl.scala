@@ -15,6 +15,7 @@ import net.psforever.objects.serverobject.damage.DamageableVehicle
 import net.psforever.objects.serverobject.deploy.Deployment.DeploymentObject
 import net.psforever.objects.serverobject.deploy.{Deployment, DeploymentBehavior}
 import net.psforever.objects.serverobject.hackable.GenericHackables
+import net.psforever.objects.serverobject.ntutransfer.NtuTransferBehavior
 import net.psforever.objects.serverobject.repair.RepairableVehicle
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.vital.VehicleShieldCharge
@@ -49,7 +50,7 @@ class VehicleControl(vehicle: Vehicle)
     with RepairableVehicle
     with JammableMountedWeapons
     with ContainableBehavior
-    with NtuBehavior {
+      with VehicleNtuTransferBehavior {
 
   //make control actors belonging to utilities when making control actor belonging to vehicle
   vehicle.Utilities.foreach({ case (_, util) => util.Setup })
@@ -63,6 +64,10 @@ class VehicleControl(vehicle: Vehicle)
   def RepairableObject = vehicle
   def ContainerObject  = vehicle
   def NtuChargeableObject = vehicle
+  if(vehicle.Definition == GlobalDefinitions.ant) {
+    findChargeTargetFunc = Vehicles.FindANTChargingSource
+    findDischargeTargetFunc = Vehicles.FindANTDischargingTarget
+  }
 
   /** cheap flag for whether the vehicle is decaying */
   var decaying: Boolean = false
@@ -474,7 +479,7 @@ class VehicleControl(vehicle: Vehicle)
             case DriveState.Deployed =>
               // Start ntu regeneration
               // If vehicle sends UseItemMessage with silo as target NTU regeneration will be disabled and orb particles will be disabled
-              context.system.scheduler.scheduleOnce(delay = 1000 milliseconds, vehicle.Actor, NtuBehavior.Charging())
+              context.system.scheduler.scheduleOnce(delay = 1000 milliseconds, vehicle.Actor, NtuTransferBehavior.Charging())
             case _ => ;
           }
         }

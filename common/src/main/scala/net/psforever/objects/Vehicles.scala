@@ -2,10 +2,11 @@
 package net.psforever.objects
 
 import net.psforever.objects.serverobject.CommonMessages
+import net.psforever.objects.serverobject.structures.{StructureType, WarpGate}
 import net.psforever.objects.vehicles.{CargoBehavior, VehicleLockState}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.TriggeredSound
-import net.psforever.types.{DriveState, PlanetSideGUID}
+import net.psforever.types.{DriveState, PlanetSideGUID, Vector3}
 import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.local.{LocalAction, LocalServiceMessage}
@@ -226,7 +227,7 @@ object Vehicles {
       cargoHold.Occupant match {
         case Some(cargo: Vehicle) => {
           cargo.Seats(0).Occupant match {
-            case Some(cargoDriver: Player) =>
+            case Some(cargoDriver : Player) =>
               CargoBehavior.HandleVehicleCargoDismount(
                 target.Zone,
                 cargo.GUID,
@@ -306,6 +307,54 @@ object Vehicles {
       case GlobalDefinitions.ams if target.DeploymentState == DriveState.Deployed =>
         zone.VehicleEvents ! VehicleServiceMessage.AMSDeploymentChange(zone)
       case _ => ;
+    }
+  }
+
+  def FindANTChargingSource(obj : NtuContainer, ntuChargingTarget : Option[NtuContainer]) : Option[NtuContainer] = {
+    //determine if we are close enough to charge from something
+    (ntuChargingTarget match {
+      case Some(target : WarpGate) if {
+        val soiRadius = target.Definition.SOIRadius
+        Vector3.DistanceSquared(obj.Position.xy, target.Position.xy) < soiRadius * soiRadius
+      } =>
+        Some(target.asInstanceOf[NtuContainer])
+      case None =>
+        None
+    }).orElse {
+      val position = obj.Position.xy
+      obj.Zone.Buildings.values
+        .collectFirst { case gate : WarpGate
+          if { val soiRadius = gate.Definition.SOIRadius
+            Vector3.DistanceSquared(position, gate.Position.xy) < soiRadius * soiRadius } => gate }
+        .asInstanceOf[Option[NtuContainer]]
+    }
+  }
+
+  def FindANTDischargingTarget(obj : NtuContainer, ntuChargingTarget : Option[NtuContainer]) : Option[NtuContainer] = {
+    (ntuChargingTarget match {
+      case out @ Some(target : NtuContainer) if {
+        Vector3.DistanceSquared(obj.Position.xy, target.Position.xy) < 400 //20m is generous ...
+      } =>
+        out
+      case _ =>
+        None
+    }).orElse {
+      val position = obj.Position.xy
+      obj.Zone.Buildings.values
+        .find { building =>
+          building.BuildingType == StructureType.Facility && {
+            val soiRadius = building.Definition.SOIRadius
+            Vector3.DistanceSquared(position, building.Position.xy) < soiRadius * soiRadius
+          }
+        } match {
+        case Some(building) =>
+          building.Amenities
+            .collect { case obj : NtuContainer => obj }
+            .sortBy {o => Vector3.DistanceSquared(position, o.Position.xy) < 400 } //20m is generous ...
+            .headOption
+        case None =>
+          None
+      }
     }
   }
 }

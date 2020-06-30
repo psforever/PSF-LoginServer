@@ -29,27 +29,27 @@ class ResourceSiloTest extends Specification {
     "construct" in {
       val obj = ResourceSilo()
       obj.Definition mustEqual GlobalDefinitions.resource_silo
-      obj.MaximumCharge mustEqual 1000
-      obj.ChargeLevel mustEqual 0
+      obj.MaxNtuCapacitor mustEqual 1000
+      obj.NtuCapacitor mustEqual 0
       obj.LowNtuWarningOn mustEqual true
       obj.CapacitorDisplay mustEqual 0
       //
-      obj.ChargeLevel = 50
+      obj.NtuCapacitor = 50
       obj.LowNtuWarningOn = false
-      obj.ChargeLevel mustEqual 50
+      obj.NtuCapacitor mustEqual 50
       obj.LowNtuWarningOn mustEqual false
       obj.CapacitorDisplay mustEqual 1
     }
 
     "charge level can not exceed limits(0 to maximum)" in {
       val obj = ResourceSilo()
-      obj.ChargeLevel mustEqual 0
-      obj.ChargeLevel = -5
-      obj.ChargeLevel mustEqual 0
+      obj.NtuCapacitor mustEqual 0
+      obj.NtuCapacitor = -5
+      obj.NtuCapacitor mustEqual 0
 
-      obj.ChargeLevel = obj.MaximumCharge + 100
-      obj.ChargeLevel mustEqual 1000
-      obj.ChargeLevel mustEqual obj.MaximumCharge
+      obj.NtuCapacitor = obj.MaxNtuCapacitor + 100
+      obj.NtuCapacitor mustEqual 1000
+      obj.NtuCapacitor mustEqual obj.MaxNtuCapacitor
     }
 
     "using the silo generates a charge event" in {
@@ -218,13 +218,13 @@ class ResourceSiloControlUpdate1Test extends ActorTest {
       zone.AvatarEvents = zoneEvents.ref
       bldg.Actor = buildingEvents.ref
 
-      assert(obj.ChargeLevel == 0)
+      assert(obj.NtuCapacitor == 0)
       assert(obj.CapacitorDisplay == 0)
       obj.Actor ! ResourceSilo.UpdateChargeLevel(305)
 
       val reply1 = zoneEvents.receiveOne(500 milliseconds)
       val reply2 = buildingEvents.receiveOne(500 milliseconds)
-      assert(obj.ChargeLevel == 305)
+      assert(obj.NtuCapacitor == 305)
       assert(obj.CapacitorDisplay == 4)
       assert(reply1.isInstanceOf[AvatarServiceMessage])
       assert(reply1.asInstanceOf[AvatarServiceMessage].forChannel == "nowhere")
@@ -327,16 +327,16 @@ class ResourceSiloControlUpdate2Test extends ActorTest {
       zone.AvatarEvents = zoneEvents.ref
       bldg.Actor = buildingEvents.ref
 
-      obj.ChargeLevel = 100
+      obj.NtuCapacitor = 100
       obj.LowNtuWarningOn = true
-      assert(obj.ChargeLevel == 100)
+      assert(obj.NtuCapacitor == 100)
       assert(obj.CapacitorDisplay == 1)
       assert(obj.LowNtuWarningOn)
       obj.Actor ! ResourceSilo.UpdateChargeLevel(105)
 
       val reply1 = zoneEvents.receiveOne(1000 milliseconds)
       val reply2 = buildingEvents.receiveOne(1000 milliseconds)
-      assert(obj.ChargeLevel == 205)
+      assert(obj.NtuCapacitor == 205)
       assert(obj.CapacitorDisplay == 3)
       assert(reply1.isInstanceOf[AvatarServiceMessage])
       assert(reply1.asInstanceOf[AvatarServiceMessage].forChannel == "nowhere")
@@ -413,9 +413,9 @@ class ResourceSiloControlNoUpdateTest extends ActorTest {
       zone.AvatarEvents = zoneEvents.ref
       bldg.Actor = buildingEvents.ref
 
-      obj.ChargeLevel = 250
+      obj.NtuCapacitor = 250
       obj.LowNtuWarningOn = false
-      assert(obj.ChargeLevel == 250)
+      assert(obj.NtuCapacitor == 250)
       assert(obj.CapacitorDisplay == 3)
       assert(!obj.LowNtuWarningOn)
       obj.Actor ! ResourceSilo.UpdateChargeLevel(50)
@@ -423,9 +423,7 @@ class ResourceSiloControlNoUpdateTest extends ActorTest {
       expectNoMessage(500 milliseconds)
       zoneEvents.expectNoMessage(500 milliseconds)
       buildingEvents.expectNoMessage(500 milliseconds)
-      assert(
-        obj.ChargeLevel == 299 || obj.ChargeLevel == 300
-      ) // Just in case the capacitor level drops while waiting for the message check 299 & 300
+      assert(obj.NtuCapacitor == 299 || obj.NtuCapacitor == 300) // Just in case the capacitor level drops while waiting for the message check 299 & 300
       assert(obj.CapacitorDisplay == 3)
       assert(!obj.LowNtuWarningOn)
     }

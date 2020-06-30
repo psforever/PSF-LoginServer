@@ -6741,6 +6741,7 @@ object GlobalDefinitions {
     resource_silo.Name = "resource_silo"
     resource_silo.Damageable = false
     resource_silo.Repairable = false
+    resource_silo.MaxNtuCapacitor = 1000
 
     capture_terminal.Name = "capture_terminal"
     capture_terminal.Damageable = false
