@@ -95,9 +95,9 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA PUBLIC GRANT ALL ON FUNCTIONS TO psforever;
 
 **NOTE:** applying default privileges _after_ importing the schema will not apply them to existing objects. To fix this, you must drop all objects and try again or apply permissions manually using the Query Tool / `psql`.
 
-Now you need to synchronize the schema. This is currently available in [`schema.sql`](schema.sql).
-To do this right click on the psforever database -> Query Tool... -> Copy and paste / Open the `schema.sql` file into the editor -> Hit the "Play/Run" button. The schema should be loaded into the database.
-Once you have the schema loaded in, the LoginServer will automatically create accounts on first login. If you'd like a nice account management interface, check out the [PSFPortal](https://github.com/psforever/PSFPortal) web interface.
+The server will automatically apply the latest schema. Migrations can also be applied manually using
+the [Flyway CLI](https://flywaydb.org/documentation/commandline/). Existing databases before the
+introduction of migrations must be baselined using the `flyway baseline` command.
 
 ### Becoming a GM
 
