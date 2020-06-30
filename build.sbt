@@ -55,7 +55,9 @@ lazy val commonSettings = Seq(
     "com.typesafe.akka" %% "akka-stream" % "2.6.5",
     "io.getquill" %% "quill-jasync-postgres" % "3.5.2",
     "org.flywaydb" % "flyway-core" % "6.5.0",
-    "org.postgresql" % "postgresql" % "42.2.14"
+    "org.postgresql" % "postgresql" % "42.2.14",
+    "com.typesafe" % "config" % "1.4.0",
+    "joda-time" % "joda-time" % "2.10.6"
   )
 )
 
