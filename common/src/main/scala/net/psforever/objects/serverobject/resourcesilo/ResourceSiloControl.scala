@@ -8,8 +8,6 @@ import net.psforever.types.PlanetSideEmpire
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.local.{LocalAction, LocalServiceMessage}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `Resource Silo`.

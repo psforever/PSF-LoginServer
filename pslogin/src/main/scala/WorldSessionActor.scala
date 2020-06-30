@@ -1,14 +1,11 @@
 // Copyright (c) 2017-2020 PSForever
 //language imports
 import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
-import akka.pattern.ask
-import akka.util.Timeout
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
-import org.log4s.{Logger, MDC}
-import scala.annotation.{switch, tailrec}
+import org.log4s.MDC
 import scala.collection.mutable.LongMap
-import scala.concurrent.{Await, Future, Promise}
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Success, Failure}
@@ -39,53 +36,45 @@ import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter.{CorpseConverter, DestroyedVehicleConverter}
 import net.psforever.objects.entity.{SimpleWorldEntity, WorldEntity}
 import net.psforever.objects.equipment.{
-  Ammo,
-  CItem,
   EffectTarget,
   Equipment,
-  EquipmentSize,
-  EquipmentSlot,
   FireModeSwitch,
   JammableUnit
 }
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
-import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
-import net.psforever.objects.loadouts.{InfantryLoadout, Loadout, SquadLoadout, VehicleLoadout}
+import net.psforever.objects.inventory.{Container, InventoryItem}
+import net.psforever.objects.loadouts.{InfantryLoadout, SquadLoadout, VehicleLoadout}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.damage.Damageable
-import net.psforever.objects.serverobject.containable.{Containable, ContainableBehavior}
+import net.psforever.objects.serverobject.containable.Containable
 import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.generator.Generator
-import net.psforever.objects.serverobject.hackable.{Hackable, GenericHackables}
+import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
-import net.psforever.objects.serverobject.locks.{IFFLock, IFFLocks}
+import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 import net.psforever.objects.serverobject.painbox.Painbox
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
-import net.psforever.objects.serverobject.structures.{Amenity, Building, SphereOfInfluence, StructureType, WarpGate}
+import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals.{
   CaptureTerminal,
-  CaptureTerminals,
   MatrixTerminalDefinition,
   MedicalTerminalDefinition,
   ProximityDefinition,
-  ProximityTerminal,
   ProximityUnit,
   Terminal
 }
-import net.psforever.objects.serverobject.terminals.Terminal.TerminalMessage
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade, WeaponTurret, WeaponTurrets}
 import net.psforever.objects.serverobject.zipline.ZipLinePath
 import net.psforever.objects.teamwork.Squad
 import net.psforever.objects.vehicles.{
   AccessPermissionGroup,
-  Cargo,
   CargoBehavior,
   MountedWeapons,
   Utility,
@@ -95,20 +84,17 @@ import net.psforever.objects.vehicles.{
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.vital.{
   DamageFromPainbox,
-  HealFromExoSuitChange,
   HealFromKit,
   HealFromTerm,
   PlayerSuicide,
   RepairFromKit,
-  Vitality,
-  VitalityDefinition
+  Vitality
 }
 import net.psforever.objects.zones.{InterstellarCluster, Zone, ZoneHotSpotProjector, Zoning}
 import net.psforever.packet._
 import net.psforever.packet.control._
 import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate.{
-  ConstructorData,
   DetailedCharacterData,
   DroppedItemData,
   ObjectClass,
@@ -122,15 +108,14 @@ import net.psforever.WorldConfig
 import services.{RemoverActor, Service, ServiceManager}
 import services.account.{AccountPersistenceService, PlayerToken, ReceiveAccountData, RetrieveAccountData}
 import services.avatar.{AvatarAction, AvatarResponse, AvatarServiceMessage, AvatarServiceResponse}
-import services.chat.{ChatAction, ChatResponse, ChatServiceMessage, ChatServiceResponse}
+import services.chat.{ChatAction, ChatServiceMessage, ChatServiceResponse}
 import services.galaxy.{GalaxyAction, GalaxyResponse, GalaxyServiceMessage, GalaxyServiceResponse}
 import services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
-import services.local.support.{HackCaptureActor, RouterTelepadActivation}
+import services.local.support.RouterTelepadActivation
 import services.ServiceManager.LookupResult
 import services.support.SupportActor
 import services.teamwork.{
   SquadResponse,
-  SquadService,
   SquadServiceMessage,
   SquadServiceResponse,
   SquadAction => SquadServiceAction
@@ -2047,7 +2032,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
           )
           shotsWhileDead = 0
         }
-        import scala.concurrent.ExecutionContext.Implicits.global
         reviveTimer.cancel
         if (player.death_by == 0) {
           import scala.concurrent.ExecutionContext.Implicits.global

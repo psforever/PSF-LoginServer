@@ -2,7 +2,7 @@
 package net.psforever.objects.definition.converter
 
 import net.psforever.objects.{Player, Tool}
-import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
+import net.psforever.objects.equipment.EquipmentSlot
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types.{PlanetSideGUID, _}
 

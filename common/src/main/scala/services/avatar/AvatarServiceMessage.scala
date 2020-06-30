@@ -5,7 +5,7 @@ import net.psforever.objects.{PlanetSideGameObject, Player}
 import net.psforever.objects.ballistics.{Projectile, SourceEntry}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.Equipment
-import net.psforever.objects.inventory.{Container, InventoryItem}
+import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.objectcreate.{ConstructorData, ObjectCreateMessageParent}

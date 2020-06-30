@@ -3,7 +3,6 @@
 import java.net.InetSocketAddress
 
 import akka.actor._
-import org.log4s.MDC
 import scodec.bits._
 
 import akka.actor.{ActorContext, ActorRef, PoisonPill}

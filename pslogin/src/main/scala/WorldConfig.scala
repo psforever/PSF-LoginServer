@@ -1,7 +1,6 @@
 // Copyright (c) 2019 PSForever
 package net.psforever
 
-import scala.util.matching.Regex
 import net.psforever.config._
 import scala.concurrent.duration._
 import net.psforever.packet.game._

@@ -3,7 +3,7 @@ package net.psforever.objects.definition.converter
 
 import net.psforever.objects.SimpleItem
 import net.psforever.packet.game.objectcreate.{CommonFieldData, DetailedCommandDetonaterData, HandheldData}
-import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
+import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Success, Try}
 

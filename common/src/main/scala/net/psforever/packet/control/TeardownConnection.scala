@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.control
 
-import net.psforever.packet.{ControlPacketOpcode, Marshallable, PacketHelpers, PlanetSideControlPacket}
+import net.psforever.packet.{ControlPacketOpcode, Marshallable, PlanetSideControlPacket}
 import scodec.Codec
 import scodec.codecs._
 

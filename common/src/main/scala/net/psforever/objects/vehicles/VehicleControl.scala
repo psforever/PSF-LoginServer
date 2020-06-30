@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 PSForever
 package net.psforever.objects.vehicles
 
-import akka.actor.{Actor, ActorRef, Cancellable}
+import akka.actor.{Actor, Cancellable}
 import net.psforever.objects._
 import net.psforever.objects.ballistics.{ResolvedProjectile, VehicleSource}
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot, JammableMountedWeapons}

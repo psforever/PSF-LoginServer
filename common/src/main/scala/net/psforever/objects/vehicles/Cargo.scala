@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vehicles
 
-import net.psforever.objects.{Player, Vehicle}
+import net.psforever.objects.Vehicle
 import net.psforever.objects.definition.{CargoDefinition}
 
 /**

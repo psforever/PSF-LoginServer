@@ -1,12 +1,10 @@
 package net.psforever.objects.zones
 
 import akka.actor.{Actor, Cancellable}
-import net.psforever.objects.{Default, Player}
-import net.psforever.objects.definition.ObjectDefinition
-import net.psforever.objects.serverobject.structures.{Building, SphereOfInfluence}
+import net.psforever.objects.Default
+import net.psforever.objects.serverobject.structures.Building
 import net.psforever.types.Vector3
 
-import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 

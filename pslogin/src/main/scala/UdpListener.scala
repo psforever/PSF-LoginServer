@@ -6,7 +6,6 @@ import akka.actor.{Actor, ActorRef, OneForOneStrategy, Props, Terminated}
 import akka.io._
 import scodec.bits._
 import scodec.interop.akka._
-import akka.util.ByteString
 
 final case class ReceivedPacket(msg: ByteVector, from: InetSocketAddress)
 final case class SendPacket(msg: ByteVector, to: InetSocketAddress)

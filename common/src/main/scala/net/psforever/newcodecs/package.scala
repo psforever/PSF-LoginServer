@@ -2,9 +2,7 @@
 package net.psforever.newcodecs
 
 import scodec.Attempt
-import scodec.Attempt.{Failure, Successful}
 import scodec._
-import scodec.bits.BitVector
 
 package object newcodecs {
   def q_double(min: Double, max: Double, bits: Int): Codec[Double] = new QuantizedDoubleCodec(min, max, bits)

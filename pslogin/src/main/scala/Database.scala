@@ -1,12 +1,7 @@
 // Copyright (c) 2017 PSForever
 import net.psforever.WorldConfig
-import io.getquill.{PostgresJAsyncContext, PostgresJAsyncContextConfig}
-import scala.util.{Try, Success, Failure}
-import scala.concurrent._
-import scala.concurrent.duration._
-import ExecutionContext.Implicits.global
-import com.typesafe.config.{ConfigFactory, ConfigValueFactory, Config}
-import scala.concurrent.Future
+import io.getquill.PostgresJAsyncContext
+import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import io.getquill.SnakeCase
 import net.psforever.persistence
 

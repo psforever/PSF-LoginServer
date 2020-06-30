@@ -4,7 +4,7 @@ package net.psforever.crypto
 import com.sun.jna.ptr.IntByReference
 import net.psforever.IFinalizable
 import sna.Library
-import com.sun.jna.{NativeLibrary, Pointer}
+import com.sun.jna.Pointer
 import scodec.bits.ByteVector
 
 object CryptoInterface {

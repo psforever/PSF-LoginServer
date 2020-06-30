@@ -220,7 +220,6 @@ object Vehicles {
     */
   def FinishHackingVehicle(target: Vehicle, hacker: Player, unk: Long)(): Unit = {
     log.info(s"Vehicle guid: ${target.GUID} has been jacked")
-    import scala.concurrent.duration._
     val zone = target.Zone
     // Forcefully dismount any cargo
     target.CargoHolds.values.foreach(cargoHold => {

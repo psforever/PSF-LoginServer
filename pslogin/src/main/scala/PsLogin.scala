@@ -10,7 +10,6 @@ import ch.qos.logback.classic.joran.JoranConfigurator
 import ch.qos.logback.core.joran.spi.JoranException
 import ch.qos.logback.core.status._
 import ch.qos.logback.core.util.StatusPrinter
-import com.typesafe.config.ConfigFactory
 import net.psforever.config.{Invalid, Valid}
 import net.psforever.crypto.CryptoInterface
 import net.psforever.objects.Default
@@ -27,7 +26,6 @@ import services.chat.ChatService
 import services.galaxy.GalaxyService
 import services.teamwork.SquadService
 
-import scala.collection.JavaConverters._
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import kamon.Kamon

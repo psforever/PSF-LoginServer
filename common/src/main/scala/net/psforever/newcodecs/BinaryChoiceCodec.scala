@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.newcodecs
 
-import scodec.{Codec, SizeBound}
+import scodec.Codec
 import scodec.bits.BitVector
 
 private[newcodecs] final class BinaryChoiceCodec[A](choice: Boolean, codec_true: => Codec[A], codec_false: => Codec[A])

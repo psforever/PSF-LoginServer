@@ -1,7 +1,6 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.config
 
-import org.ini4j
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.TypeTag
 import scala.annotation.implicitNotFound
@@ -13,7 +12,6 @@ case class ConfigValueMapper[T](name: String)(f: (String => Option[T])) {
 }
 
 object ConfigValueMapper {
-  import scala.language.implicitConversions
 
   implicit val toInt: ConfigValueMapper[Int] = ConfigValueMapper[Int]("toInt") { e =>
     try {

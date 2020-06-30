@@ -1,9 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.structures
 
-import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.vital.{DamageResistanceModel, StandardResistanceProfile, Vitality, VitalsActivity}
+import net.psforever.objects.vital.{DamageResistanceModel, StandardResistanceProfile, Vitality}
 import net.psforever.objects.zones.{Zone, ZoneAware}
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 import net.psforever.objects.zones.{Zone => World}

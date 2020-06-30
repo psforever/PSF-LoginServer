@@ -2,7 +2,6 @@
 package net.psforever.objects.avatar
 
 import net.psforever.objects.loadouts.Loadout
-import net.psforever.types.LoadoutType
 
 import scala.util.Success
 

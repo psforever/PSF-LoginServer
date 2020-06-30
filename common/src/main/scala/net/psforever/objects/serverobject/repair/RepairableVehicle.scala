@@ -1,7 +1,6 @@
 //Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.repair
 
-import net.psforever.objects.Tool
 
 /**
   * The "control" `Actor` mixin for repair-handling code for `Vehicle` objects.

@@ -2,11 +2,8 @@
 import java.net.{InetAddress, InetSocketAddress}
 
 import akka.actor.SupervisorStrategy.Stop
-import akka.actor.{Actor, ActorRef, OneForOneStrategy, Props, Terminated}
+import akka.actor.{Actor, ActorRef, OneForOneStrategy, Props}
 import akka.io._
-import scodec.bits._
-import scodec.interop.akka._
-import akka.util.ByteString
 
 class TcpListener[T <: Actor](actorClass: Class[T], nextActorName: String, listenAddress: InetAddress, port: Int)
     extends Actor {

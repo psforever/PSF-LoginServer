@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vehicles
 
-import akka.actor.{ActorContext, ActorRef}
+import akka.actor.ActorContext
 import net.psforever.objects.definition.BaseDeployableDefinition
 import net.psforever.objects._
 import net.psforever.objects.ce.{DeployedItem, TelepadLike}
