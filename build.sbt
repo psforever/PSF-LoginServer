@@ -4,7 +4,17 @@ lazy val commonSettings = Seq(
   organization := "net.psforever",
   version := "1.0.2-SNAPSHOT",
   scalaVersion := "2.13.2",
-  scalacOptions := Seq("-unchecked", "-feature", "-deprecation", "-encoding", "utf8", "-language:postfixOps"),
+  semanticdbEnabled := true,
+  semanticdbVersion := scalafixSemanticdb.revision,
+  scalacOptions := Seq(
+    "-unchecked",
+    "-feature",
+    "-deprecation",
+    "-encoding",
+    "utf8",
+    "-language:postfixOps",
+    "-Wunused:imports"
+  ),
   // Quiet test options
   // https://github.com/etorreborre/specs2/blob/8305db76c5084e4b3ce5827ce23117f6fb6beee4/common/shared/src/main/scala/org/specs2/main/Report.scala#L94
   // https://etorreborre.github.io/specs2/guide/SPECS2-2.4.17/org.specs2.guide.Runners.html
@@ -13,23 +23,21 @@ lazy val commonSettings = Seq(
   testOptions in QuietTest += Tests.Argument(TestFrameworks.ScalaTest, "-oCEHILMNOPQRX"),
   // Trick taken from https://groups.google.com/d/msg/scala-user/mxV9ok7J_Eg/kt-LnsrD0bkJ
   // scaladoc flags: https://github.com/scala/scala/blob/2.11.x/src/scaladoc/scala/tools/nsc/doc/Settings.scala
-  scalacOptions in (Compile, doc) := {
-    Seq(
-      "-groups",
-      "-implicits",
-      "-doc-title",
-      "PSF-LoginServer - ",
-      "-doc-version",
-      "master",
-      "-doc-footer",
-      "Copyright PSForever",
-      // For non unidoc builds, you may need bd.getName before the template parameter
-      "-doc-source-url",
-      "https://github.com/psforever/PSF-LoginServer/blob/master/€{FILE_PATH}.scala",
-      "-sourcepath",
-      baseDirectory.value.getAbsolutePath // needed for scaladoc relative source paths
-    )
-  },
+  scalacOptions in (Compile, doc) ++= Seq(
+    "-groups",
+    "-implicits",
+    "-doc-title",
+    "PSF-LoginServer - ",
+    "-doc-version",
+    "master",
+    "-doc-footer",
+    "Copyright PSForever",
+    // For non unidoc builds, you may need bd.getName before the template parameter
+    "-doc-source-url",
+    "https://github.com/psforever/PSF-LoginServer/blob/master/€{FILE_PATH}.scala",
+    "-sourcepath",
+    baseDirectory.value.getAbsolutePath // needed for scaladoc relative source paths
+  ),
   classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
   resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
   libraryDependencies ++= Seq(
