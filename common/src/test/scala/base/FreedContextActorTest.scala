@@ -21,20 +21,20 @@ abstract class FreedContextActorTest extends ActorTest {
   various bizarre mechanisms have to be developed to use any methods that would pass in a context object.
   We create a middleman Actor whose main purpose is to surrender its context object to the test environment directly
   and then direct all messages sent to that object to the test environment.
-  */
-  private val _testContextHandler = system.actorOf(Props(classOf[ContextSensitive]), "actor-test-cs")
-  private implicit val timeout = Timeout(5 seconds)
+   */
+  private val _testContextHandler       = system.actorOf(Props(classOf[ContextSensitive]), "actor-test-cs")
+  private implicit val timeout          = Timeout(5 seconds)
   private val _testContextHandlerResult = ask(_testContextHandler, message = "", self)
-  implicit val context = Await.result(_testContextHandlerResult, timeout.duration).asInstanceOf[ActorContext]
+  implicit val context                  = Await.result(_testContextHandlerResult, timeout.duration).asInstanceOf[ActorContext]
 }
 
 /**
   * Surrender your `context` object for a greater good!
   */
 private class ContextSensitive extends Actor {
-  var output : ActorRef = ActorRef.noSender
+  var output: ActorRef = ActorRef.noSender
 
-  def receive : Receive = {
+  def receive: Receive = {
     case _ =>
       context.become(PassThroughBehavior)
       output = sender
@@ -48,7 +48,7 @@ private class ContextSensitive extends Actor {
     * will now refer to whatever was the contact to gain access to it - the test environment.
     * @return something to `become`
     */
-  def PassThroughBehavior : Receive = {
+  def PassThroughBehavior: Receive = {
     case msg => output forward msg
   }
 }

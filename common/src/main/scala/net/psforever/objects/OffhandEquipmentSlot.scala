@@ -8,7 +8,7 @@ import net.psforever.objects.equipment.{EquipmentSize, EquipmentSlot}
   * Unlike conventional `EquipmentSlot` space, this size of allowable `Equipment` is fixed.
   * @param size the permanent size of the `Equipment` allowed in this slot
   */
-class OffhandEquipmentSlot(size : EquipmentSize.Value) extends EquipmentSlot {
+class OffhandEquipmentSlot(size: EquipmentSize.Value) extends EquipmentSlot {
   super.Size_=(size)
 
   /**
@@ -16,10 +16,11 @@ class OffhandEquipmentSlot(size : EquipmentSize.Value) extends EquipmentSlot {
     * @param assignSize the changed in capacity for this slot
     * @return the capacity for this slot
     */
-  override def Size_=(assignSize : EquipmentSize.Value) : EquipmentSize.Value = Size
+  override def Size_=(assignSize: EquipmentSize.Value): EquipmentSize.Value = Size
 }
 
 object OffhandEquipmentSlot {
+
   /**
     * An `EquipmentSlot` that can not be manipulated because its size is `Blocked` permanently.
     */

@@ -13,6 +13,7 @@ import net.psforever.types.PlanetSideGUID
   * @see `DetailedAmmoBoxData`
   */
 object AmmoBoxData {
+
   /**
     * An abbreviated constructor for creating `AmmoBoxData` while masking use of `InternalSlot`.
     * @param cls the code for the type of object being constructed
@@ -21,6 +22,6 @@ object AmmoBoxData {
     * @param ammo the ammunition object
     * @return an `InternalSlot` object that encapsulates `CommonFieldData`
     */
-  def apply(cls : Int, guid : PlanetSideGUID, parentSlot : Int, ammo : CommonFieldData) : InternalSlot =
+  def apply(cls: Int, guid: PlanetSideGUID, parentSlot: Int, ammo: CommonFieldData): InternalSlot =
     new InternalSlot(cls, guid, parentSlot, ammo)
 }

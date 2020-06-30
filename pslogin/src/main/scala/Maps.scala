@@ -54,7 +54,7 @@ object Maps {
     }
   }
 
-  def InitZoneMap(future : Future[ZoneMap]): Future[ZoneMap] = {
+  def InitZoneMap(future: Future[ZoneMap]): Future[ZoneMap] = {
     future onComplete {
       case Success(x) => Projectiles(x)
       case Failure(_) => throw new RuntimeException("Maps: failure when setting up map") //should not fail?

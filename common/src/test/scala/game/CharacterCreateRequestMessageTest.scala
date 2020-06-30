@@ -24,10 +24,10 @@ class CharacterCreateRequestMessageTest extends Specification {
   }
 
   "encode" in {
-    val msg = CharacterCreateRequestMessage("TestChar", 50, CharacterVoice.Voice5, CharacterGender.Female, PlanetSideEmpire.NC)
+    val msg =
+      CharacterCreateRequestMessage("TestChar", 50, CharacterVoice.Voice5, CharacterGender.Female, PlanetSideEmpire.NC)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }
 }
-

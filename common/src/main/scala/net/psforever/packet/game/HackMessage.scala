@@ -19,16 +19,7 @@ import scodec.codecs._
 object HackState extends Enumeration {
   type Type = Value
 
-  val
-  Unknown0,
-  Start,
-  Cancelled,
-  Ongoing,
-  Finished,
-  Unknown5,
-  Hacked,
-  HackCleared
-  = Value
+  val Unknown0, Start, Cancelled, Ongoing, Finished, Unknown5, Hacked, HackCleared = Value
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uint8L)
 }
@@ -70,21 +61,22 @@ object HackState extends Enumeration {
   *             5 - boost pain field at matrixing terminal?
   *             usually, 8?
   */
-final case class HackMessage(unk1 : Int,
-                             target_guid : PlanetSideGUID,
-                             player_guid : PlanetSideGUID,
-                             progress : Int,
-                             unk5 : Long,
-                             hack_state : HackState.Value,
-                             unk7 : Long)
-  extends PlanetSideGamePacket {
+final case class HackMessage(
+    unk1: Int,
+    target_guid: PlanetSideGUID,
+    player_guid: PlanetSideGUID,
+    progress: Int,
+    unk5: Long,
+    hack_state: HackState.Value,
+    unk7: Long
+) extends PlanetSideGamePacket {
   type Packet = HackMessage
   def opcode = GamePacketOpcode.HackMessage
   def encode = HackMessage.encode(this)
 }
 
 object HackMessage extends Marshallable[HackMessage] {
-  implicit val codec : Codec[HackMessage] = (
+  implicit val codec: Codec[HackMessage] = (
     ("unk1" | uint2L) ::
       ("object_guid" | PlanetSideGUID.codec) ::
       ("player_guid" | PlanetSideGUID.codec) ::

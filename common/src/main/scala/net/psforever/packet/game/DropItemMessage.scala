@@ -18,15 +18,14 @@ import scodec.codecs._
   * This packet is complemented by an `ObjectDetachMessage` packet from the server that performs the actual "dropping."
   * @param item_guid the item to be dropped
   */
-final case class DropItemMessage(item_guid : PlanetSideGUID)
-  extends PlanetSideGamePacket {
+final case class DropItemMessage(item_guid: PlanetSideGUID) extends PlanetSideGamePacket {
   type Packet = DropItemMessage
   def opcode = GamePacketOpcode.DropItemMessage
   def encode = DropItemMessage.encode(this)
 }
 
 object DropItemMessage extends Marshallable[DropItemMessage] {
-  implicit val codec : Codec[DropItemMessage] = (
-      "item_guid" | PlanetSideGUID.codec
-    ).as[DropItemMessage]
+  implicit val codec: Codec[DropItemMessage] = (
+    "item_guid" | PlanetSideGUID.codec
+  ).as[DropItemMessage]
 }

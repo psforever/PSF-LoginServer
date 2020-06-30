@@ -14,13 +14,12 @@ import scodec.codecs._
   *
   * @param weapon_guid the weapon that is dry firing
   */
-final case class WeaponDryFireMessage(weapon_guid : PlanetSideGUID)
-  extends PlanetSideGamePacket {
+final case class WeaponDryFireMessage(weapon_guid: PlanetSideGUID) extends PlanetSideGamePacket {
   type Packet = WeaponDryFireMessage
   def opcode = GamePacketOpcode.WeaponDryFireMessage
   def encode = WeaponDryFireMessage.encode(this)
 }
 
 object WeaponDryFireMessage extends Marshallable[WeaponDryFireMessage] {
-  implicit val codec : Codec[WeaponDryFireMessage] = ("weapon_guid" | PlanetSideGUID.codec).as[WeaponDryFireMessage]
+  implicit val codec: Codec[WeaponDryFireMessage] = ("weapon_guid" | PlanetSideGUID.codec).as[WeaponDryFireMessage]
 }

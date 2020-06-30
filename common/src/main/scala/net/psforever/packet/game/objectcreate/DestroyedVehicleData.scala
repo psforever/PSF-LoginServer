@@ -12,10 +12,10 @@ import scodec.Codec
   * @param pos where and how the object is oriented;
   *            `pos.vel` existing is fine
   */
-final case class DestroyedVehicleData(pos : PlacementData) extends ConstructorData {
-  override def bitsize : Long = pos.bitsize
+final case class DestroyedVehicleData(pos: PlacementData) extends ConstructorData {
+  override def bitsize: Long = pos.bitsize
 }
 
 object DestroyedVehicleData extends Marshallable[DestroyedVehicleData] {
-  implicit val codec : Codec[DestroyedVehicleData] = ("pos" | PlacementData.codec).as[DestroyedVehicleData]
+  implicit val codec: Codec[DestroyedVehicleData] = ("pos" | PlacementData.codec).as[DestroyedVehicleData]
 }

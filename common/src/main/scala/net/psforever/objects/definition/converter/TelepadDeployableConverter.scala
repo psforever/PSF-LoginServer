@@ -8,13 +8,13 @@ import net.psforever.types.PlanetSideGUID
 import scala.util.{Failure, Success, Try}
 
 class TelepadDeployableConverter extends ObjectCreateConverter[TelepadDeployable]() {
-  override def ConstructorData(obj : TelepadDeployable) : Try[DroppedItemData[TelepadDeployableData]] = {
+  override def ConstructorData(obj: TelepadDeployable): Try[DroppedItemData[TelepadDeployableData]] = {
     obj.Router match {
       case Some(PlanetSideGUID(0)) =>
         Failure(new IllegalStateException("TelepadDeployableConverter: knowledge of associated Router is null"))
 
       case Some(router) =>
-        if(obj.Health > 0) {
+        if (obj.Health > 0) {
           Success(
             DroppedItemData(
               PlacementData(obj.Position, obj.Orientation),
@@ -35,8 +35,7 @@ class TelepadDeployableConverter extends ObjectCreateConverter[TelepadDeployable
               )
             )
           )
-        }
-        else {
+        } else {
           Success(
             DroppedItemData(
               PlacementData(obj.Position, obj.Orientation),
@@ -60,7 +59,9 @@ class TelepadDeployableConverter extends ObjectCreateConverter[TelepadDeployable
         }
 
       case None =>
-        Failure(new IllegalStateException("TelepadDeployableConverter: telepad needs to know id of its associated Router"))
+        Failure(
+          new IllegalStateException("TelepadDeployableConverter: telepad needs to know id of its associated Router")
+        )
     }
   }
 }

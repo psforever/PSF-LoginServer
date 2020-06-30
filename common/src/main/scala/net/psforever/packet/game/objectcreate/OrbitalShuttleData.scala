@@ -34,17 +34,18 @@ import shapeless.{::, HNil}
   * @see `DroppodLaunchResponseMessage`
   * @see `OrbitalShuttleTimeMsg`
   */
-final case class OrbitalShuttleData(faction : PlanetSideEmpire.Value,
-                                    pos : Option[PlacementData] = None) extends ConstructorData {
-  override def bitsize : Long = if(pos.isDefined) {
-    54L + pos.get.bitsize
-  }
-  else {
-    46L
-  }
+final case class OrbitalShuttleData(faction: PlanetSideEmpire.Value, pos: Option[PlacementData] = None)
+    extends ConstructorData {
+  override def bitsize: Long =
+    if (pos.isDefined) {
+      54L + pos.get.bitsize
+    } else {
+      46L
+    }
 }
 
 object OrbitalShuttleData extends Marshallable[OrbitalShuttleData] {
+
   /**
     * Overloaded constructor that requires defining a position.
     * The fields are arranged in the standard order for most vehicles (position data first).
@@ -52,17 +53,17 @@ object OrbitalShuttleData extends Marshallable[OrbitalShuttleData] {
     * @param faction empire the object is affiliated with
     * @return an `OrbitalShuttleData` object
     */
-  def apply(pos : PlacementData, faction : PlanetSideEmpire.Value) : OrbitalShuttleData =
+  def apply(pos: PlacementData, faction: PlanetSideEmpire.Value): OrbitalShuttleData =
     OrbitalShuttleData(faction, Some(pos))
 
-  implicit val codec : Codec[OrbitalShuttleData] = (
+  implicit val codec: Codec[OrbitalShuttleData] = (
     ("faction" | PlanetSideEmpire.codec) ::
       uintL(25) ::
       uint8L :: //255
       uintL(5) ::
       uint4L :: //7
       uint2L
-    ).exmap[OrbitalShuttleData] (
+  ).exmap[OrbitalShuttleData](
     {
       case faction :: 0 :: 255 :: 0 :: 7 :: 0 :: HNil =>
         Attempt.successful(OrbitalShuttleData(faction))
@@ -75,10 +76,11 @@ object OrbitalShuttleData extends Marshallable[OrbitalShuttleData] {
         Attempt.successful(faction :: 0 :: 255 :: 0 :: 7 :: 0 :: HNil)
     }
   )
+
   /**
     * Used when the shuttle is not attached to something else.
     */
-  val codec_pos : Codec[OrbitalShuttleData] = (
+  val codec_pos: Codec[OrbitalShuttleData] = (
     ("pos" | PlacementData.codec) ::
       ("faction" | PlanetSideEmpire.codec) ::
       uintL(22) ::
@@ -88,7 +90,7 @@ object OrbitalShuttleData extends Marshallable[OrbitalShuttleData] {
       uintL(6) ::
       uint4L :: //15
       bool
-    ).exmap[OrbitalShuttleData] (
+  ).exmap[OrbitalShuttleData](
     {
       case pos :: faction :: 0 :: 255 :: 0 :: 255 :: 0 :: 15 :: false :: HNil =>
         Attempt.successful(OrbitalShuttleData(faction, Some(pos)))

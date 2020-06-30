@@ -39,18 +39,20 @@ import shapeless.{::, HNil}
   * @param label the identifier for this entry
   * @param armor the type of exo-suit, if an Infantry loadout
   */
-final case class FavoritesMessage(list : LoadoutType.Value,
-                                  player_guid : PlanetSideGUID,
-                                  line : Int,
-                                  label : String,
-                                  armor : Option[Int])
-  extends PlanetSideGamePacket {
+final case class FavoritesMessage(
+    list: LoadoutType.Value,
+    player_guid: PlanetSideGUID,
+    line: Int,
+    label: String,
+    armor: Option[Int]
+) extends PlanetSideGamePacket {
   type Packet = FavoritesMessage
   def opcode = GamePacketOpcode.FavoritesMessage
   def encode = FavoritesMessage.encode(this)
 }
 
 object FavoritesMessage extends Marshallable[FavoritesMessage] {
+
   /**
     * Overloaded constructor, for infantry loadouts specifically.
     * @param list the destination list
@@ -60,7 +62,13 @@ object FavoritesMessage extends Marshallable[FavoritesMessage] {
     * @param armor the type of exo-suit, if an Infantry loadout
     * @return a `FavoritesMessage` object
     */
-  def apply(list : LoadoutType.Value, player_guid : PlanetSideGUID, line : Int, label : String, armor : Int) : FavoritesMessage = {
+  def apply(
+      list: LoadoutType.Value,
+      player_guid: PlanetSideGUID,
+      line: Int,
+      label: String,
+      armor: Int
+  ): FavoritesMessage = {
     FavoritesMessage(list, player_guid, line, label, Some(armor))
   }
 
@@ -72,23 +80,23 @@ object FavoritesMessage extends Marshallable[FavoritesMessage] {
     * @param label the identifier for this entry
     * @return a `FavoritesMessage` object
     */
-  def apply(list : LoadoutType.Value, player_guid : PlanetSideGUID, line : Int, label : String) : FavoritesMessage = {
+  def apply(list: LoadoutType.Value, player_guid: PlanetSideGUID, line: Int, label: String): FavoritesMessage = {
     FavoritesMessage(list, player_guid, line, label, None)
   }
-implicit val codec : Codec[FavoritesMessage] = (
-    ("list" | LoadoutType.codec) >>:~ { value =>
-      ("player_guid" | PlanetSideGUID.codec) ::
-        ("line" | uint4L) ::
-        ("label" | PacketHelpers.encodedWideStringAligned(2)) ::
-        conditional(value == LoadoutType.Infantry, "armor" | uintL(3))
-    }).xmap[FavoritesMessage] (
+  implicit val codec: Codec[FavoritesMessage] = (("list" | LoadoutType.codec) >>:~ { value =>
+    ("player_guid" | PlanetSideGUID.codec) ::
+      ("line" | uint4L) ::
+      ("label" | PacketHelpers.encodedWideStringAligned(2)) ::
+      conditional(value == LoadoutType.Infantry, "armor" | uintL(3))
+  }).xmap[FavoritesMessage](
     {
       case lst :: guid :: ln :: str :: arm :: HNil =>
         FavoritesMessage(lst, guid, ln, str, arm)
     },
     {
       case FavoritesMessage(lst, guid, ln, str, arm) =>
-        val armset : Option[Int] = if(lst == LoadoutType.Infantry && arm.isEmpty) { Some(0) } else { arm }
+        val armset: Option[Int] = if (lst == LoadoutType.Infantry && arm.isEmpty) { Some(0) }
+        else { arm }
         lst :: guid :: ln :: str :: armset :: HNil
     }
   )

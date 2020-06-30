@@ -9,8 +9,8 @@ import scodec.bits._
 
 class HotSpotUpdateMessageTest extends Specification {
   val stringClear = hex"9F 0500 1 000"
-  val stringOne = hex"9F 0500 1 010 002E9 00145 80000 0"
-  val stringTwo = hex"9F 0500 5 020 00D07 008CA 80000 00BEA 004C4 80000"
+  val stringOne   = hex"9F 0500 1 010 002E9 00145 80000 0"
+  val stringTwo   = hex"9F 0500 5 020 00D07 008CA 80000 00BEA 004C4 80000"
   val stringThree = hex"9F 0A00 4 030 00FC8 00F0A 80000 002E9 00BEA 80000 00FC8 00BEA 80000 0"
 
   "decode (clear)" in {
@@ -64,25 +64,34 @@ class HotSpotUpdateMessageTest extends Specification {
   }
 
   "encode (clear)" in {
-    val msg = HotSpotUpdateMessage(5,1, Nil)
+    val msg = HotSpotUpdateMessage(5, 1, Nil)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
     pkt mustEqual stringClear
   }
 
   "encode (one)" in {
-    val msg = HotSpotUpdateMessage(5,1, List(HotSpotInfo(4700.0f, 2600.0f, 64.0f)))
+    val msg = HotSpotUpdateMessage(5, 1, List(HotSpotInfo(4700.0f, 2600.0f, 64.0f)))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
     pkt mustEqual stringOne
   }
 
   "encode (two)" in {
-    val msg = HotSpotUpdateMessage(5,5, List(HotSpotInfo(4000.0f, 5400.0f, 64.0f), HotSpotInfo(5500.0f, 2200.0f, 64.0f)))
+    val msg =
+      HotSpotUpdateMessage(5, 5, List(HotSpotInfo(4000.0f, 5400.0f, 64.0f), HotSpotInfo(5500.0f, 2200.0f, 64.0f)))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
     pkt mustEqual stringTwo
   }
 
   "encode (three)" in {
-    val msg = HotSpotUpdateMessage(10,4, List(HotSpotInfo(4600.0f, 5600.0f, 64.0f), HotSpotInfo(4700.0f, 5500.0f, 64.0f), HotSpotInfo(4600.0f, 5500.0f, 64.0f)))
+    val msg = HotSpotUpdateMessage(
+      10,
+      4,
+      List(
+        HotSpotInfo(4600.0f, 5600.0f, 64.0f),
+        HotSpotInfo(4700.0f, 5500.0f, 64.0f),
+        HotSpotInfo(4600.0f, 5500.0f, 64.0f)
+      )
+    )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
     pkt mustEqual stringThree
   }

@@ -8,20 +8,25 @@ import org.specs2.mutable._
 import scodec.bits._
 
 class SquadDetailDefinitionUpdateMessageTest extends Specification {
-  val string_unk1 = hex"e80300818800015c5189004603408c000000012000ff"
+  val string_unk1           = hex"e80300818800015c5189004603408c000000012000ff"
   val string_leader_char_id = hex"e8050080904d56b808"
   val string_unk3LeaderName = hex"e80300821104145011b9be840024284a00610061006b006f008c008118000000024000ff"
-  val string_task = hex"e8050080ac6041006c006c002000570065006c0063006f006d0065002000"
-  val string_zone = hex"e8030080b0a8000000"
-  val string_taskZone = hex"e80200812ce05c002300460046003000300030003000200054006800650020005c002300660066006600660066006600200042006c0061006400650073006040000000"
-  val string_unk7 = hex"e8030081ac8054006800650020004b0069006e00670027007300200053007100750061006400788c09808c4854006800650020004700750061007200640008808c5054006800650020004b006e00690067006800740007808c4054006800650020004500610072006c0006808c4054006800650020004c006f007200640005808c405400680065002000440075006b00650004808c4854006800650020004200610072006f006e0003808c6054006800650020005000720069006e00630065007300730002808c5054006800650020005000720069006e006300650001808c48540068006500200051007500650065006e0000808c4054006800650020004b0069006e006700ff"
-  val string_member_closed = hex"e8030080c602c043fe"
-  val string_member_role = hex"e8070080c60040462443006f006d006d0061006e00640065007200ff"
+  val string_task           = hex"e8050080ac6041006c006c002000570065006c0063006f006d0065002000"
+  val string_zone           = hex"e8030080b0a8000000"
+  val string_taskZone =
+    hex"e80200812ce05c002300460046003000300030003000200054006800650020005c002300660066006600660066006600200042006c0061006400650073006040000000"
+  val string_unk7 =
+    hex"e8030081ac8054006800650020004b0069006e00670027007300200053007100750061006400788c09808c4854006800650020004700750061007200640008808c5054006800650020004b006e00690067006800740007808c4054006800650020004500610072006c0006808c4054006800650020004c006f007200640005808c405400680065002000440075006b00650004808c4854006800650020004200610072006f006e0003808c6054006800650020005000720069006e00630065007300730002808c5054006800650020005000720069006e006300650001808c48540068006500200051007500650065006e0000808c4054006800650020004b0069006e006700ff"
+  val string_member_closed           = hex"e8030080c602c043fe"
+  val string_member_role             = hex"e8070080c60040462443006f006d006d0061006e00640065007200ff"
   val string_member_roleRequirements = hex"e8010080c60340862841004400560020004800610063006b00650072005000000002003fc0"
-  val string_member_charIdName = hex"e8030080c602c08f2658480123004400750063006b006d006100730074006500720034003300ff"
-  val string_task_memberEtc = hex"e80100812ce05c002300460046003000300030003000200054006800650020005c002300660066006600660066006600200042006c0061006400650073008c09810c005000000000000220230007808c0006808c0005808c0004808c0003808c0002808c0001808c0000808c00ff"
-  val string_full = hex"e80300848180038021514601288a8400420048006f0066004400bf5c0023006600660064006300300030002a002a002a005c0023003900360034003000660066003d004b004f004b002b005300500043002b0046004c0059003d005c0023006600660064006300300030002a002a002a005c002300460046003400300034003000200041006c006c002000570065006c0063006f006d006500070000009814010650005c00230066006600300030003000300020007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c008000000000800100000c00020c8c5c00230066006600640063003000300020002000200043008000000000800100000c00020c8c5c002300660066006400630030003000200020002000480080eab58a02854f0070006f006c0045000100000c00020c8d5c002300660066006400630030003000200020002000200049008072d47a028b42006f006200610046003300740074003900300037000100000c00020c8c5c0023006600660064006300300030002000200020004e008000000000800100000c00020c8c5c00230066006600640063003000300020002000200041008000000000800100000c00020ca05c00230066006600300030003000300020007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c008000000000800100000c00020c8c5c0023003900360034003000660066002000200020004b008000000000800100000c00020c8c5c0023003900360034003000660066002000200020004f008042a28c028448006f00660044000100000c00020c8c5c0023003900360034003000660066002000200020004b008000000000800100000c0000"
-  val string_mixed = hex"e80300812cd85000530046006f007200650076006500720020005000610063006b0065007400200043006f006c006c0065006300740069006f006e00841400000181306400800000000080000000000000220c808000000000800000000000001e0c808000000000800000000000001a0c80800000000080000000000000160c80800000000080000000000000120c808000000000800000000000000e0c808000000000800000000000000a0c80800000000080000000000000060c80800000000080000000000000020c80800000000080000000000003fc"
+  val string_member_charIdName       = hex"e8030080c602c08f2658480123004400750063006b006d006100730074006500720034003300ff"
+  val string_task_memberEtc =
+    hex"e80100812ce05c002300460046003000300030003000200054006800650020005c002300660066006600660066006600200042006c0061006400650073008c09810c005000000000000220230007808c0006808c0005808c0004808c0003808c0002808c0001808c0000808c00ff"
+  val string_full =
+    hex"e80300848180038021514601288a8400420048006f0066004400bf5c0023006600660064006300300030002a002a002a005c0023003900360034003000660066003d004b004f004b002b005300500043002b0046004c0059003d005c0023006600660064006300300030002a002a002a005c002300460046003400300034003000200041006c006c002000570065006c0063006f006d006500070000009814010650005c00230066006600300030003000300020007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c008000000000800100000c00020c8c5c00230066006600640063003000300020002000200043008000000000800100000c00020c8c5c002300660066006400630030003000200020002000480080eab58a02854f0070006f006c0045000100000c00020c8d5c002300660066006400630030003000200020002000200049008072d47a028b42006f006200610046003300740074003900300037000100000c00020c8c5c0023006600660064006300300030002000200020004e008000000000800100000c00020c8c5c00230066006600640063003000300020002000200041008000000000800100000c00020ca05c00230066006600300030003000300020007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c007c008000000000800100000c00020c8c5c0023003900360034003000660066002000200020004b008000000000800100000c00020c8c5c0023003900360034003000660066002000200020004f008042a28c028448006f00660044000100000c00020c8c5c0023003900360034003000660066002000200020004b008000000000800100000c0000"
+  val string_mixed =
+    hex"e80300812cd85000530046006f007200650076006500720020005000610063006b0065007400200043006f006c006c0065006300740069006f006e00841400000181306400800000000080000000000000220c808000000000800000000000001e0c808000000000800000000000001a0c80800000000080000000000000160c80800000000080000000000000120c808000000000800000000000000e0c808000000000800000000000000a0c80800000000080000000000000060c80800000000080000000000000020c80800000000080000000000003fc"
 
   "SquadDetailDefinitionUpdateMessage" should {
     "decode (unk1 + members)" in {
@@ -32,7 +37,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
             case SquadDetail(Some(unk1), None, Some(char_id), None, None, None, None, None, Some(_)) =>
               unk1 mustEqual 0
               char_id mustEqual 1221560L
-              //members tests follow ...
+            //members tests follow ...
             case _ =>
               ko
           }
@@ -66,7 +71,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
               char_id mustEqual 42631712L
               unk3 mustEqual 556403L
               leader mustEqual "Jaako"
-              //members tests follow ...
+            //members tests follow ...
             case _ =>
               ko
           }
@@ -123,22 +128,22 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
       ok
     }
 
-      "decode (unk7 + members)" in {
-        PacketCoding.DecodePacket(string_unk7).require match {
-          case SquadDetailDefinitionUpdateMessage(guid, detail) =>
-            guid mustEqual PlanetSideGUID(3)
-            detail match {
-              case SquadDetail(None, None, None, None, None, Some(task), None, Some(unk7), Some(_)) =>
-                task mustEqual "The King's Squad"
-                unk7 mustEqual 8
-                //members tests follow ...
-              case _ =>
-                ko
-            }
-          case _ =>
-            ko
-        }
+    "decode (unk7 + members)" in {
+      PacketCoding.DecodePacket(string_unk7).require match {
+        case SquadDetailDefinitionUpdateMessage(guid, detail) =>
+          guid mustEqual PlanetSideGUID(3)
+          detail match {
+            case SquadDetail(None, None, None, None, None, Some(task), None, Some(unk7), Some(_)) =>
+              task mustEqual "The King's Squad"
+              unk7 mustEqual 8
+            //members tests follow ...
+            case _ =>
+              ko
+          }
+        case _ =>
+          ko
       }
+    }
 
     "decode (member closed)" in {
       PacketCoding.DecodePacket(string_member_closed).require match {
@@ -276,7 +281,17 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
         case SquadDetailDefinitionUpdateMessage(guid, detail) =>
           guid mustEqual PlanetSideGUID(3)
           detail match {
-            case SquadDetail(Some(u1), Some(u2), Some(char_id), Some(u3), Some(leader), Some(task), Some(zone), Some(unk7), Some(member_list)) =>
+            case SquadDetail(
+                  Some(u1),
+                  Some(u2),
+                  Some(char_id),
+                  Some(u3),
+                  Some(leader),
+                  Some(task),
+                  Some(zone),
+                  Some(unk7),
+                  Some(member_list)
+                ) =>
               u1 mustEqual 3
               u2 mustEqual 1792
               char_id mustEqual 42771010L
@@ -286,104 +301,196 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
               zone mustEqual PlanetSideZoneID(7)
               unk7 mustEqual 4983296
               member_list.size mustEqual 10
-              member_list.head mustEqual SquadPositionEntry(0,Some(
-                SquadPositionDetail(
-                  Some(false),
-                  Some("\\#ff0000 |||||||||||||||||||||||"),
-                  Some(""),
-                  Some(Set(CertificationType.StandardAssault, CertificationType.StandardExoSuit, CertificationType.AgileExoSuit)),
-                  Some(0),
-                  Some("")))
+              member_list.head mustEqual SquadPositionEntry(
+                0,
+                Some(
+                  SquadPositionDetail(
+                    Some(false),
+                    Some("\\#ff0000 |||||||||||||||||||||||"),
+                    Some(""),
+                    Some(
+                      Set(
+                        CertificationType.StandardAssault,
+                        CertificationType.StandardExoSuit,
+                        CertificationType.AgileExoSuit
+                      )
+                    ),
+                    Some(0),
+                    Some("")
+                  )
+                )
               )
-              member_list(1) mustEqual SquadPositionEntry(1,Some(
-                SquadPositionDetail(
-                  Some(false),
-                  Some("\\#ffdc00   C"),
-                  Some(""),
-                  Some(Set(CertificationType.StandardAssault, CertificationType.StandardExoSuit, CertificationType.AgileExoSuit)),
-                  Some(0),
-                  Some("")))
+              member_list(1) mustEqual SquadPositionEntry(
+                1,
+                Some(
+                  SquadPositionDetail(
+                    Some(false),
+                    Some("\\#ffdc00   C"),
+                    Some(""),
+                    Some(
+                      Set(
+                        CertificationType.StandardAssault,
+                        CertificationType.StandardExoSuit,
+                        CertificationType.AgileExoSuit
+                      )
+                    ),
+                    Some(0),
+                    Some("")
+                  )
+                )
               )
-              member_list(2) mustEqual SquadPositionEntry(2,Some(
-                SquadPositionDetail(
-                  Some(false),
-                  Some("\\#ffdc00   H"),
-                  Some(""),
-                  Some(Set(CertificationType.StandardAssault, CertificationType.StandardExoSuit, CertificationType.AgileExoSuit)),
-                  Some(42644970L),
-                  Some("OpolE")
+              member_list(2) mustEqual SquadPositionEntry(
+                2,
+                Some(
+                  SquadPositionDetail(
+                    Some(false),
+                    Some("\\#ffdc00   H"),
+                    Some(""),
+                    Some(
+                      Set(
+                        CertificationType.StandardAssault,
+                        CertificationType.StandardExoSuit,
+                        CertificationType.AgileExoSuit
+                      )
+                    ),
+                    Some(42644970L),
+                    Some("OpolE")
+                  )
                 )
-              ))
-              member_list(3) mustEqual SquadPositionEntry(3,Some(
-                SquadPositionDetail(
-                  Some(false),
-                  Some("\\#ffdc00    I"),
-                  Some(""),
-                  Some(Set(CertificationType.StandardAssault, CertificationType.StandardExoSuit, CertificationType.AgileExoSuit)),
-                  Some(41604210L),
-                  Some("BobaF3tt907")
+              )
+              member_list(3) mustEqual SquadPositionEntry(
+                3,
+                Some(
+                  SquadPositionDetail(
+                    Some(false),
+                    Some("\\#ffdc00    I"),
+                    Some(""),
+                    Some(
+                      Set(
+                        CertificationType.StandardAssault,
+                        CertificationType.StandardExoSuit,
+                        CertificationType.AgileExoSuit
+                      )
+                    ),
+                    Some(41604210L),
+                    Some("BobaF3tt907")
+                  )
                 )
-              ))
-              member_list(4) mustEqual SquadPositionEntry(4,Some(
-                SquadPositionDetail(
-                  Some(false),
-                  Some("\\#ffdc00   N"),
-                  Some(""),
-                  Some(Set(CertificationType.StandardAssault, CertificationType.StandardExoSuit, CertificationType.AgileExoSuit)),
-                  Some(0),
-                  Some("")
+              )
+              member_list(4) mustEqual SquadPositionEntry(
+                4,
+                Some(
+                  SquadPositionDetail(
+                    Some(false),
+                    Some("\\#ffdc00   N"),
+                    Some(""),
+                    Some(
+                      Set(
+                        CertificationType.StandardAssault,
+                        CertificationType.StandardExoSuit,
+                        CertificationType.AgileExoSuit
+                      )
+                    ),
+                    Some(0),
+                    Some("")
+                  )
                 )
-              ))
-              member_list(5) mustEqual SquadPositionEntry(5,Some(
-                SquadPositionDetail(
-                  Some(false),
-                  Some("\\#ffdc00   A"),
-                  Some(""),
-                  Some(Set(CertificationType.StandardAssault, CertificationType.StandardExoSuit, CertificationType.AgileExoSuit)),
-                  Some(0),
-                  Some("")
+              )
+              member_list(5) mustEqual SquadPositionEntry(
+                5,
+                Some(
+                  SquadPositionDetail(
+                    Some(false),
+                    Some("\\#ffdc00   A"),
+                    Some(""),
+                    Some(
+                      Set(
+                        CertificationType.StandardAssault,
+                        CertificationType.StandardExoSuit,
+                        CertificationType.AgileExoSuit
+                      )
+                    ),
+                    Some(0),
+                    Some("")
+                  )
                 )
-              ))
-              member_list(6) mustEqual SquadPositionEntry(6,Some(
-                SquadPositionDetail(
-                  Some(false),
-                  Some("\\#ff0000 |||||||||||||||||||||||"),
-                  Some(""),
-                  Some(Set(CertificationType.StandardAssault, CertificationType.StandardExoSuit, CertificationType.AgileExoSuit)),
-                  Some(0),
-                  Some("")
+              )
+              member_list(6) mustEqual SquadPositionEntry(
+                6,
+                Some(
+                  SquadPositionDetail(
+                    Some(false),
+                    Some("\\#ff0000 |||||||||||||||||||||||"),
+                    Some(""),
+                    Some(
+                      Set(
+                        CertificationType.StandardAssault,
+                        CertificationType.StandardExoSuit,
+                        CertificationType.AgileExoSuit
+                      )
+                    ),
+                    Some(0),
+                    Some("")
+                  )
                 )
-              ))
-              member_list(7) mustEqual SquadPositionEntry(7,Some(
-                SquadPositionDetail(
-                  Some(false),
-                  Some("\\#9640ff   K"),
-                  Some(""),
-                  Some(Set(CertificationType.StandardAssault, CertificationType.StandardExoSuit, CertificationType.AgileExoSuit)),
-                  Some(0),
-                  Some("")
+              )
+              member_list(7) mustEqual SquadPositionEntry(
+                7,
+                Some(
+                  SquadPositionDetail(
+                    Some(false),
+                    Some("\\#9640ff   K"),
+                    Some(""),
+                    Some(
+                      Set(
+                        CertificationType.StandardAssault,
+                        CertificationType.StandardExoSuit,
+                        CertificationType.AgileExoSuit
+                      )
+                    ),
+                    Some(0),
+                    Some("")
+                  )
                 )
-              ))
-              member_list(8) mustEqual SquadPositionEntry(8,Some(
-                SquadPositionDetail(
-                  Some(false),
-                  Some("\\#9640ff   O"),
-                  Some(""),
-                  Some(Set(CertificationType.StandardAssault, CertificationType.StandardExoSuit, CertificationType.AgileExoSuit)),
-                  Some(42771010L),
-                  Some("HofD")
+              )
+              member_list(8) mustEqual SquadPositionEntry(
+                8,
+                Some(
+                  SquadPositionDetail(
+                    Some(false),
+                    Some("\\#9640ff   O"),
+                    Some(""),
+                    Some(
+                      Set(
+                        CertificationType.StandardAssault,
+                        CertificationType.StandardExoSuit,
+                        CertificationType.AgileExoSuit
+                      )
+                    ),
+                    Some(42771010L),
+                    Some("HofD")
+                  )
                 )
-              ))
-              member_list(9) mustEqual SquadPositionEntry(9,Some(
-                SquadPositionDetail(
-                  Some(false),
-                  Some("\\#9640ff   K"),
-                  Some(""),
-                  Some(Set(CertificationType.StandardAssault, CertificationType.StandardExoSuit, CertificationType.AgileExoSuit)),
-                  Some(0),
-                  Some("")
+              )
+              member_list(9) mustEqual SquadPositionEntry(
+                9,
+                Some(
+                  SquadPositionDetail(
+                    Some(false),
+                    Some("\\#9640ff   K"),
+                    Some(""),
+                    Some(
+                      Set(
+                        CertificationType.StandardAssault,
+                        CertificationType.StandardExoSuit,
+                        CertificationType.AgileExoSuit
+                      )
+                    ),
+                    Some(0),
+                    Some("")
+                  )
                 )
-              ))
+              )
             case _ =>
               ko
           }
@@ -400,106 +507,136 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
             case SquadDetail(None, None, None, None, None, Some(task), None, None, Some(member_list)) =>
               task mustEqual "PSForever Packet Collection"
               member_list.size mustEqual 10
-              member_list.head mustEqual SquadPositionEntry(9,Some(
-                SquadPositionDetail(
-                  Some(false),
-                  Some(""),
-                  Some(""),
-                  Some(Set.empty),
-                  Some(0),
-                  Some("")
-                ))
+              member_list.head mustEqual SquadPositionEntry(
+                9,
+                Some(
+                  SquadPositionDetail(
+                    Some(false),
+                    Some(""),
+                    Some(""),
+                    Some(Set.empty),
+                    Some(0),
+                    Some("")
+                  )
+                )
               )
-              member_list(1) mustEqual SquadPositionEntry(8,Some(
-                SquadPositionDetail(
-                  Some(false),
-                  Some(""),
-                  Some(""),
-                  Some(Set.empty),
-                  Some(0),
-                  Some("")
-                ))
+              member_list(1) mustEqual SquadPositionEntry(
+                8,
+                Some(
+                  SquadPositionDetail(
+                    Some(false),
+                    Some(""),
+                    Some(""),
+                    Some(Set.empty),
+                    Some(0),
+                    Some("")
+                  )
+                )
               )
-              member_list(2) mustEqual SquadPositionEntry(7,Some(
-                SquadPositionDetail(
-                  Some(false),
-                  Some(""),
-                  Some(""),
-                  Some(Set.empty),
-                  Some(0),
-                  Some("")
+              member_list(2) mustEqual SquadPositionEntry(
+                7,
+                Some(
+                  SquadPositionDetail(
+                    Some(false),
+                    Some(""),
+                    Some(""),
+                    Some(Set.empty),
+                    Some(0),
+                    Some("")
+                  )
                 )
-              ))
-              member_list(3) mustEqual SquadPositionEntry(6,Some(
-                SquadPositionDetail(
-                  Some(false),
-                  Some(""),
-                  Some(""),
-                  Some(Set.empty),
-                  Some(0),
-                  Some("")
+              )
+              member_list(3) mustEqual SquadPositionEntry(
+                6,
+                Some(
+                  SquadPositionDetail(
+                    Some(false),
+                    Some(""),
+                    Some(""),
+                    Some(Set.empty),
+                    Some(0),
+                    Some("")
+                  )
                 )
-              ))
-              member_list(4) mustEqual SquadPositionEntry(5,Some(
-                SquadPositionDetail(
-                  Some(false),
-                  Some(""),
-                  Some(""),
-                  Some(Set.empty),
-                  Some(0),
-                  Some("")
+              )
+              member_list(4) mustEqual SquadPositionEntry(
+                5,
+                Some(
+                  SquadPositionDetail(
+                    Some(false),
+                    Some(""),
+                    Some(""),
+                    Some(Set.empty),
+                    Some(0),
+                    Some("")
+                  )
                 )
-              ))
-              member_list(5) mustEqual SquadPositionEntry(4,Some(
-                SquadPositionDetail(
-                  Some(false),
-                  Some(""),
-                  Some(""),
-                  Some(Set.empty),
-                  Some(0),
-                  Some("")
+              )
+              member_list(5) mustEqual SquadPositionEntry(
+                4,
+                Some(
+                  SquadPositionDetail(
+                    Some(false),
+                    Some(""),
+                    Some(""),
+                    Some(Set.empty),
+                    Some(0),
+                    Some("")
+                  )
                 )
-              ))
-              member_list(6) mustEqual SquadPositionEntry(3,Some(
-                SquadPositionDetail(
-                  Some(false),
-                  Some(""),
-                  Some(""),
-                  Some(Set.empty),
-                  Some(0),
-                  Some("")
+              )
+              member_list(6) mustEqual SquadPositionEntry(
+                3,
+                Some(
+                  SquadPositionDetail(
+                    Some(false),
+                    Some(""),
+                    Some(""),
+                    Some(Set.empty),
+                    Some(0),
+                    Some("")
+                  )
                 )
-              ))
-              member_list(7) mustEqual SquadPositionEntry(2,Some(
-                SquadPositionDetail(
-                  Some(false),
-                  Some(""),
-                  Some(""),
-                  Some(Set.empty),
-                  Some(0),
-                  Some("")
+              )
+              member_list(7) mustEqual SquadPositionEntry(
+                2,
+                Some(
+                  SquadPositionDetail(
+                    Some(false),
+                    Some(""),
+                    Some(""),
+                    Some(Set.empty),
+                    Some(0),
+                    Some("")
+                  )
                 )
-              ))
-              member_list(8) mustEqual SquadPositionEntry(1,Some(
-                SquadPositionDetail(
-                  Some(false),
-                  Some(""),
-                  Some(""),
-                  Some(Set.empty),
-                  Some(0),
-                  Some("")
+              )
+              member_list(8) mustEqual SquadPositionEntry(
+                1,
+                Some(
+                  SquadPositionDetail(
+                    Some(false),
+                    Some(""),
+                    Some(""),
+                    Some(Set.empty),
+                    Some(0),
+                    Some("")
+                  )
                 )
-              ))
-              member_list(9) mustEqual SquadPositionEntry(0,Some(
-                SquadPositionDetail(
-                  Some(false),
-                  Some(""),
-                  Some(""),
-                  Some(Set.empty),
-                  Some(0),
-                  Some("")
+              )
+              member_list(9) mustEqual SquadPositionEntry(
+                0,
+                Some(
+                  SquadPositionDetail(
+                    Some(false),
+                    Some(""),
+                    Some(""),
+                    Some(Set.empty),
+                    Some(0),
+                    Some("")
+                  )
                 )
-              ))
+              )
             case _ =>
               ko
           }
@@ -515,9 +652,11 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
         SquadDetail()
           .Field1(0)
           .LeaderCharId(1221560L)
-          .Members(List(
-            SquadPositionEntry(6, SquadPositionDetail().Player(0L, ""))
-          ))
+          .Members(
+            List(
+              SquadPositionEntry(6, SquadPositionDetail().Player(0L, ""))
+            )
+          )
       )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
       pkt mustEqual string_unk1
@@ -538,9 +677,11 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
         SquadDetail()
           .Leader(42631712L, "Jaako")
           .Field3(556403L)
-          .Members(List(
-            SquadPositionEntry(0, SquadPositionDetail().Player(0L, ""))
-          ))
+          .Members(
+            List(
+              SquadPositionEntry(0, SquadPositionDetail().Player(0L, ""))
+            )
+          )
       )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
       pkt mustEqual string_unk3LeaderName
@@ -581,18 +722,20 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
         SquadDetail()
           .Task("The King's Squad")
           .Field7(8)
-          .Members(List(
-            SquadPositionEntry(9, SquadPositionDetail().Role("The Guard")),
-            SquadPositionEntry(8, SquadPositionDetail().Role("The Knight")),
-            SquadPositionEntry(7, SquadPositionDetail().Role("The Earl")),
-            SquadPositionEntry(6, SquadPositionDetail().Role("The Lord")),
-            SquadPositionEntry(5, SquadPositionDetail().Role("The Duke")),
-            SquadPositionEntry(4, SquadPositionDetail().Role("The Baron")),
-            SquadPositionEntry(3, SquadPositionDetail().Role("The Princess")),
-            SquadPositionEntry(2, SquadPositionDetail().Role("The Prince")),
-            SquadPositionEntry(1, SquadPositionDetail().Role("The Queen")),
-            SquadPositionEntry(0, SquadPositionDetail().Role("The King"))
-          ))
+          .Members(
+            List(
+              SquadPositionEntry(9, SquadPositionDetail().Role("The Guard")),
+              SquadPositionEntry(8, SquadPositionDetail().Role("The Knight")),
+              SquadPositionEntry(7, SquadPositionDetail().Role("The Earl")),
+              SquadPositionEntry(6, SquadPositionDetail().Role("The Lord")),
+              SquadPositionEntry(5, SquadPositionDetail().Role("The Duke")),
+              SquadPositionEntry(4, SquadPositionDetail().Role("The Baron")),
+              SquadPositionEntry(3, SquadPositionDetail().Role("The Princess")),
+              SquadPositionEntry(2, SquadPositionDetail().Role("The Prince")),
+              SquadPositionEntry(1, SquadPositionDetail().Role("The Queen")),
+              SquadPositionEntry(0, SquadPositionDetail().Role("The King"))
+            )
+          )
       )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
       pkt mustEqual string_unk7
@@ -602,22 +745,25 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
       val msg = SquadDetailDefinitionUpdateMessage(
         PlanetSideGUID(3),
         SquadDetail()
-          .Members(List(
-            SquadPositionEntry(5, SquadPositionDetail.Closed)
-          ))
+          .Members(
+            List(
+              SquadPositionEntry(5, SquadPositionDetail.Closed)
+            )
+          )
       )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
       pkt mustEqual string_member_closed
     }
 
-
     "encode (member role)" in {
       val msg = SquadDetailDefinitionUpdateMessage(
         PlanetSideGUID(7),
         SquadDetail()
-          .Members(List(
-            SquadPositionEntry(0, SquadPositionDetail().Role("Commander"))
-          ))
+          .Members(
+            List(
+              SquadPositionEntry(0, SquadPositionDetail().Role("Commander"))
+            )
+          )
       )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
       pkt mustEqual string_member_role
@@ -627,11 +773,16 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
       val msg = SquadDetailDefinitionUpdateMessage(
         PlanetSideGUID(1),
         SquadDetail()
-          .Members(List(
-            SquadPositionEntry(6, SquadPositionDetail()
-              .Role("ADV Hacker")
-              .Requirements(Set(CertificationType.AdvancedHacking)))
-          ))
+          .Members(
+            List(
+              SquadPositionEntry(
+                6,
+                SquadPositionDetail()
+                  .Role("ADV Hacker")
+                  .Requirements(Set(CertificationType.AdvancedHacking))
+              )
+            )
+          )
       )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
       pkt mustEqual string_member_roleRequirements
@@ -641,9 +792,11 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
       val msg = SquadDetailDefinitionUpdateMessage(
         PlanetSideGUID(3),
         SquadDetail()
-          .Members(List(
-          SquadPositionEntry(5, SquadPositionDetail().Player(1218249L, "Duckmaster43"))
-        ))
+          .Members(
+            List(
+              SquadPositionEntry(5, SquadPositionDetail().Player(1218249L, "Duckmaster43"))
+            )
+          )
       )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
       pkt mustEqual string_member_charIdName
@@ -654,18 +807,20 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
         PlanetSideGUID(1),
         SquadDetail()
           .Task("\\#FF0000 The \\#ffffff Blades")
-          .Members(List(
-            SquadPositionEntry(9, SquadPositionDetail().Role("").Requirements(Set())),
-            SquadPositionEntry(8, SquadPositionDetail().Role("")),
-            SquadPositionEntry(7, SquadPositionDetail().Role("")),
-            SquadPositionEntry(6, SquadPositionDetail().Role("")),
-            SquadPositionEntry(5, SquadPositionDetail().Role("")),
-            SquadPositionEntry(4, SquadPositionDetail().Role("")),
-            SquadPositionEntry(3, SquadPositionDetail().Role("")),
-            SquadPositionEntry(2, SquadPositionDetail().Role("")),
-            SquadPositionEntry(1, SquadPositionDetail().Role("")),
-            SquadPositionEntry(0, SquadPositionDetail().Role(""))
-          ))
+          .Members(
+            List(
+              SquadPositionEntry(9, SquadPositionDetail().Role("").Requirements(Set())),
+              SquadPositionEntry(8, SquadPositionDetail().Role("")),
+              SquadPositionEntry(7, SquadPositionDetail().Role("")),
+              SquadPositionEntry(6, SquadPositionDetail().Role("")),
+              SquadPositionEntry(5, SquadPositionDetail().Role("")),
+              SquadPositionEntry(4, SquadPositionDetail().Role("")),
+              SquadPositionEntry(3, SquadPositionDetail().Role("")),
+              SquadPositionEntry(2, SquadPositionDetail().Role("")),
+              SquadPositionEntry(1, SquadPositionDetail().Role("")),
+              SquadPositionEntry(0, SquadPositionDetail().Role(""))
+            )
+          )
       )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
       pkt mustEqual string_task_memberEtc
@@ -692,7 +847,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
             SquadPositionEntry(5, SquadPositionDetail("\\#ffdc00   A", "", Set(), 0, "")),
             SquadPositionEntry(6, SquadPositionDetail("\\#ff0000 |||||||||||||||||||||||", "", Set(), 0, "")),
             SquadPositionEntry(7, SquadPositionDetail("\\#9640ff   K", "", Set(), 0, "")),
-            SquadPositionEntry(8, SquadPositionDetail("\\#9640ff   O", "", Set(), 42771010L ,"HofD")),
+            SquadPositionEntry(8, SquadPositionDetail("\\#9640ff   O", "", Set(), 42771010L, "HofD")),
             SquadPositionEntry(9, SquadPositionDetail("\\#9640ff   K", "", Set(), 0, ""))
           )
         )

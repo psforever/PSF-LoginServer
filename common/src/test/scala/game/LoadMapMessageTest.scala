@@ -24,7 +24,7 @@ class LoadMapMessageTest extends Specification {
   }
 
   "encode" in {
-    val msg = LoadMapMessage("map10","z10",40975,25,true,230810349)
+    val msg = LoadMapMessage("map10", "z10", 40975, 25, true, 230810349)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
     pkt mustEqual string
   }

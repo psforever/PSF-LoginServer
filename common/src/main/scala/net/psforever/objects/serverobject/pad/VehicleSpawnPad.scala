@@ -16,18 +16,19 @@ import net.psforever.types.PlanetSideGUID
   * @see `VehicleSpawnControl`
   * @param spDef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
-class VehicleSpawnPad(spDef : VehicleSpawnPadDefinition) extends Amenity {
-  def Definition : VehicleSpawnPadDefinition = spDef
+class VehicleSpawnPad(spDef: VehicleSpawnPadDefinition) extends Amenity {
+  def Definition: VehicleSpawnPadDefinition = spDef
 }
 
 object VehicleSpawnPad {
+
   /**
     * Message to the spawn pad to enqueue the following vehicle order.
     * This is the entry point to vehicle spawn pad functionality.
     * @param player the player who submitted the order (the "owner")
     * @param vehicle the vehicle produced from the order
     */
-  final case class VehicleOrder(player : Player, vehicle : Vehicle)
+  final case class VehicleOrder(player: Player, vehicle: Vehicle)
 
   /**
     * Message to indicate that a certain player should be made transparent.
@@ -80,7 +81,7 @@ object VehicleSpawnPad {
     * @param vehicle the vehicle being spawned
     * @param pad the spawn pad
     */
-  final case class StartPlayerSeatedInVehicle(driver_name : String, vehicle : Vehicle, pad : VehicleSpawnPad)
+  final case class StartPlayerSeatedInVehicle(driver_name: String, vehicle: Vehicle, pad: VehicleSpawnPad)
 
   /**
     * Message that acts as callback to the driver that the process of sitting in the driver seat should be finished.
@@ -89,7 +90,11 @@ object VehicleSpawnPad {
     * @param vehicle the vehicle being spawned
     * @param pad the spawn pad
     */
-  final case class PlayerSeatedInVehicle(driver_name : String, vehicle : Vehicle, pad : VehicleSpawnPad) //TODO while using fake rails
+  final case class PlayerSeatedInVehicle(
+      driver_name: String,
+      vehicle: Vehicle,
+      pad: VehicleSpawnPad
+  ) //TODO while using fake rails
 
   /**
     * Message that starts the newly-spawned vehicle to begin driving away from the spawn pad.
@@ -100,7 +105,7 @@ object VehicleSpawnPad {
     * @param vehicle the vehicle
     * @param pad the spawn pad
     */
-  final case class ServerVehicleOverrideStart(driver_name : String, vehicle : Vehicle, pad : VehicleSpawnPad)
+  final case class ServerVehicleOverrideStart(driver_name: String, vehicle: Vehicle, pad: VehicleSpawnPad)
 
   /**
     * Message that transitions the newly-spawned vehicle into a cancellable auto-drive state.
@@ -111,7 +116,7 @@ object VehicleSpawnPad {
     * @param vehicle the vehicle
     * @param pad the spawn pad
     */
-  final case class ServerVehicleOverrideEnd(driver_name : String, vehicle : Vehicle, pad : VehicleSpawnPad)
+  final case class ServerVehicleOverrideEnd(driver_name: String, vehicle: Vehicle, pad: VehicleSpawnPad)
 
   /**
     * Message to initiate the process of properly disposing of the vehicle that may have been or was spawned into the game world.
@@ -125,17 +130,15 @@ object VehicleSpawnPad {
     * @param reason the nature of the message
     * @param data optional information for rendering the message to the client
     */
-  final case class PeriodicReminder(driver_name : String, reason : Reminders.Value, data : Option[Any] = None)
+  final case class PeriodicReminder(driver_name: String, reason: Reminders.Value, data: Option[Any] = None)
 
   /**
     * An `Enumeration` of reasons for sending a periodic reminder to the user.
     */
   object Reminders extends Enumeration {
-    val
-    Queue, //optional data is the numeric position in the queue
-    Blocked, //optional data is a message regarding the blockage
-    Cancelled
-    = Value
+    val Queue, //optional data is the numeric position in the queue
+    Blocked,   //optional data is a message regarding the blockage
+    Cancelled = Value
   }
 
   /**
@@ -143,12 +146,13 @@ object VehicleSpawnPad {
     * @param spDef the spawn pad's definition entry
     * @return a `VehicleSpawnPad` object
     */
-  def apply(spDef : VehicleSpawnPadDefinition) : VehicleSpawnPad = {
+  def apply(spDef: VehicleSpawnPadDefinition): VehicleSpawnPad = {
     new VehicleSpawnPad(spDef)
   }
 
   import akka.actor.ActorContext
   import net.psforever.types.Vector3
+
   /**
     * Instantiate and configure a `VehicleSpawnPad` object
     * @param pdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
@@ -158,7 +162,10 @@ object VehicleSpawnPad {
     * @param context a context to allow the object to properly set up `ActorSystem` functionality
     * @return the `VehicleSpawnPad` object
     */
-  def Constructor(pos : Vector3, pdef: VehicleSpawnPadDefinition, orient : Vector3)(id : Int, context : ActorContext) : VehicleSpawnPad = {
+  def Constructor(pos: Vector3, pdef: VehicleSpawnPadDefinition, orient: Vector3)(
+      id: Int,
+      context: ActorContext
+  ): VehicleSpawnPad = {
     import akka.actor.Props
 
     val obj = VehicleSpawnPad(pdef)

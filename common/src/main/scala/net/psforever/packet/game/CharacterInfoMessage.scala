@@ -6,7 +6,7 @@ import net.psforever.types.PlanetSideGUID
 import scodec.Codec
 import scodec.codecs._
 
-case class PlanetSideZoneID(zoneId : Long)
+case class PlanetSideZoneID(zoneId: Long)
 
 object PlanetSideZoneID {
   implicit val codec = uint32L.as[PlanetSideZoneID]
@@ -20,25 +20,26 @@ object PlanetSideZoneID {
   *
   * @param finished True when there are no more characters to give info on
   */
-final case class CharacterInfoMessage(unk : Long,
-                                      zoneId : PlanetSideZoneID,
-                                      charId : Long,
-                                      guid : PlanetSideGUID,
-                                      finished : Boolean,
-                                      secondsSinceLastLogin : Long)
-  extends PlanetSideGamePacket {
+final case class CharacterInfoMessage(
+    unk: Long,
+    zoneId: PlanetSideZoneID,
+    charId: Long,
+    guid: PlanetSideGUID,
+    finished: Boolean,
+    secondsSinceLastLogin: Long
+) extends PlanetSideGamePacket {
   type Packet = CharacterInfoMessage
   def opcode = GamePacketOpcode.CharacterInfoMessage
   def encode = CharacterInfoMessage.encode(this)
 }
 
 object CharacterInfoMessage extends Marshallable[CharacterInfoMessage] {
-  implicit val codec : Codec[CharacterInfoMessage] = (
-      ("unk" | uint32L) ::
-        ("zoneId" | PlanetSideZoneID.codec) ::
-        ("charId" | uint32L) ::
-        ("charGUID" | PlanetSideGUID.codec) ::
-        ("finished" | bool) ::
-        ("seconds_since_last_login" | uint32L)
-    ).as[CharacterInfoMessage]
+  implicit val codec: Codec[CharacterInfoMessage] = (
+    ("unk" | uint32L) ::
+      ("zoneId" | PlanetSideZoneID.codec) ::
+      ("charId" | uint32L) ::
+      ("charGUID" | PlanetSideGUID.codec) ::
+      ("finished" | bool) ::
+      ("seconds_since_last_login" | uint32L)
+  ).as[CharacterInfoMessage]
 }

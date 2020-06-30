@@ -25,32 +25,33 @@ import net.psforever.objects.vital.resolution.ResolutionCalculations
   * @see `Vitality`
   */
 trait DamageResistanceModel {
+
   /** the functionality that processes damage; required */
-  private var damageUsing : DamageSelection = NoDamageSelection
+  private var damageUsing: DamageSelection = NoDamageSelection
 
   /** the functionality that processes resistance; optional */
-  private var resistUsing : ResistanceSelection = NoResistanceSelection
+  private var resistUsing: ResistanceSelection = NoResistanceSelection
 
   /** the functionality that prepares for damage application actions; required */
-  private var model : ResolutionCalculations.Form = NoResolutions.Calculate
+  private var model: ResolutionCalculations.Form = NoResolutions.Calculate
 
-  def DamageUsing : DamageSelection = damageUsing
+  def DamageUsing: DamageSelection = damageUsing
 
-  def DamageUsing_=(selector : DamageSelection) : DamageSelection = {
+  def DamageUsing_=(selector: DamageSelection): DamageSelection = {
     damageUsing = selector
     DamageUsing
   }
 
-  def ResistUsing : ResistanceSelection = resistUsing
+  def ResistUsing: ResistanceSelection = resistUsing
 
-  def ResistUsing_=(selector : ResistanceSelection) : ResistanceSelection = {
+  def ResistUsing_=(selector: ResistanceSelection): ResistanceSelection = {
     resistUsing = selector
     ResistUsing
   }
 
-  def Model : ResolutionCalculations.Form = model
+  def Model: ResolutionCalculations.Form = model
 
-  def Model_=(selector : ResolutionCalculations.Form) : ResolutionCalculations.Form = {
+  def Model_=(selector: ResolutionCalculations.Form): ResolutionCalculations.Form = {
     model = selector
     Model
   }
@@ -60,9 +61,9 @@ trait DamageResistanceModel {
     * @param data the historical `ResolvedProjectile` information
     * @return a function literal that encapsulates delayed modification instructions for certain objects
     */
-  def Calculate(data : ResolvedProjectile) : ResolutionCalculations.Output = {
-    val dam : ProjectileCalculations.Form = DamageUsing(data)
-    val res : ProjectileCalculations.Form = ResistUsing(data)
+  def Calculate(data: ResolvedProjectile): ResolutionCalculations.Output = {
+    val dam: ProjectileCalculations.Form = DamageUsing(data)
+    val res: ProjectileCalculations.Form = ResistUsing(data)
     Model(dam, res, data)
   }
 
@@ -72,9 +73,9 @@ trait DamageResistanceModel {
     * @param resolution an explicit damage resolution overriding the one in the `ResolvedProjectile` object
     * @return a function literal that encapsulates delayed modification instructions for certain objects
     */
-  def Calculate(data : ResolvedProjectile, resolution : ProjectileResolution.Value) : ResolutionCalculations.Output = {
-    val dam : ProjectileCalculations.Form = DamageUsing(resolution)
-    val res : ProjectileCalculations.Form = ResistUsing(resolution)
+  def Calculate(data: ResolvedProjectile, resolution: ProjectileResolution.Value): ResolutionCalculations.Output = {
+    val dam: ProjectileCalculations.Form = DamageUsing(resolution)
+    val res: ProjectileCalculations.Form = ResistUsing(resolution)
     Model(dam, res, data)
   }
 }

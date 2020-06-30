@@ -8,9 +8,9 @@ import net.psforever.types.PlanetSideGUID
 import scala.util.{Failure, Success, Try}
 
 class TRAPConverter extends ObjectCreateConverter[TrapDeployable]() {
-  override def ConstructorData(obj : TrapDeployable) : Try[TRAPData] = {
+  override def ConstructorData(obj: TrapDeployable): Try[TRAPData] = {
     val health = StatConverter.Health(obj.Health, obj.MaxHealth)
-    if(health > 0) {
+    if (health > 0) {
       Success(
         TRAPData(
           CommonFieldDataWithPlacement(
@@ -26,15 +26,14 @@ class TRAPConverter extends ObjectCreateConverter[TrapDeployable]() {
               None,
               obj.Owner match {
                 case Some(owner) => owner
-                case None => PlanetSideGUID(0)
+                case None        => PlanetSideGUID(0)
               }
             )
           ),
           health
         )
       )
-    }
-    else {
+    } else {
       Success(
         TRAPData(
           CommonFieldDataWithPlacement(
@@ -57,6 +56,6 @@ class TRAPConverter extends ObjectCreateConverter[TrapDeployable]() {
     }
   }
 
-  override def DetailedConstructorData(obj : TrapDeployable) : Try[TRAPData] =
+  override def DetailedConstructorData(obj: TrapDeployable): Try[TRAPData] =
     Failure(new Exception("converter should not be used to generate detailed TRAPData"))
 }

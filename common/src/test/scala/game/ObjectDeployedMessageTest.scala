@@ -11,7 +11,7 @@ class ObjectDeployedMessageTest extends Specification {
 
   "decode" in {
     PacketCoding.DecodePacket(string_boomer).require match {
-      case ObjectDeployedMessage(unk : Int, desc : String, act : DeployOutcome.Value, count : Long, max : Long) =>
+      case ObjectDeployedMessage(unk: Int, desc: String, act: DeployOutcome.Value, count: Long, max: Long) =>
         unk mustEqual 0
         desc mustEqual "boomer"
         act mustEqual DeployOutcome.Success

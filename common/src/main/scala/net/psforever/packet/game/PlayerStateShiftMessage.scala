@@ -32,10 +32,7 @@ import shapeless.{::, HNil}
   * @see `PlayerStateMessageUpstream.facingYawUpper`
   * @see `PlayerStateMessage.facingYawUpper`
   */
-final case class ShiftState(unk : Int,
-                            pos : Vector3,
-                            viewYawLim : Float,
-                            vel : Option[Vector3])
+final case class ShiftState(unk: Int, pos: Vector3, viewYawLim: Float, vel: Option[Vector3])
 
 /**
   * Push specific motion-based stimuli on a specific character.<br>
@@ -49,15 +46,15 @@ final case class ShiftState(unk : Int,
   * @param state if defined, the behaviors to influence the character
   * @param unk na
   */
-final case class PlayerStateShiftMessage(state : Option[ShiftState],
-                                         unk : Option[Int] = None)
-  extends PlanetSideGamePacket {
+final case class PlayerStateShiftMessage(state: Option[ShiftState], unk: Option[Int] = None)
+    extends PlanetSideGamePacket {
   type Packet = PlayerStateShiftMessage
   def opcode = GamePacketOpcode.PlayerStateShiftMessage
   def encode = PlayerStateShiftMessage.encode(this)
 }
 
 object ShiftState {
+
   /**
     * An abbreviated constructor for creating `ShiftState`, assuming velocity is not applied.
     * @param unk na
@@ -66,7 +63,7 @@ object ShiftState {
     * @param vel the velocity to apply to to the character at the given position
     * @return a `ShiftState` object
     */
-  def apply(unk : Int, pos : Vector3, viewYawLim : Float, vel : Vector3) : ShiftState =
+  def apply(unk: Int, pos: Vector3, viewYawLim: Float, vel: Vector3): ShiftState =
     ShiftState(unk, pos, viewYawLim, Some(vel))
 
   /**
@@ -76,18 +73,19 @@ object ShiftState {
     * @param viewYawLim an angle with respect to the horizon towards which the avatar is looking (to some respect)
     * @return a `ShiftState` object
     */
-  def apply(unk : Int, pos : Vector3, viewYawLim : Float) : ShiftState =
+  def apply(unk: Int, pos: Vector3, viewYawLim: Float): ShiftState =
     ShiftState(unk, pos, viewYawLim, None)
 }
 
 object PlayerStateShiftMessage extends Marshallable[PlayerStateShiftMessage] {
+
   /**
     * An abbreviated constructor for creating `PlayerStateShiftMessage`, removing the optional condition of `state`.
     * @param state the behaviors to influence the character
     * @param unk na
     * @return a `PlayerStateShiftMessage` packet
     */
-  def apply(state : ShiftState, unk : Int) : PlayerStateShiftMessage =
+  def apply(state: ShiftState, unk: Int): PlayerStateShiftMessage =
     PlayerStateShiftMessage(Some(state), Some(unk))
 
   /**
@@ -95,7 +93,7 @@ object PlayerStateShiftMessage extends Marshallable[PlayerStateShiftMessage] {
     * @param state the behaviors to influence the character
     * @return a `PlayerStateShiftMessage` packet
     */
-  def apply(state : ShiftState) : PlayerStateShiftMessage =
+  def apply(state: ShiftState): PlayerStateShiftMessage =
     PlayerStateShiftMessage(Some(state), None)
 
   /**
@@ -103,10 +101,10 @@ object PlayerStateShiftMessage extends Marshallable[PlayerStateShiftMessage] {
     * @param unk na
     * @return a `PlayerStateShiftMessage` packet
     */
-  def apply(unk : Int) : PlayerStateShiftMessage =
+  def apply(unk: Int): PlayerStateShiftMessage =
     PlayerStateShiftMessage(None, Some(unk))
 
-  private val shift_codec : Codec[ShiftState] = (
+  private val shift_codec: Codec[ShiftState] = (
     /*
     IMPORTANT:
     Packet data indicates that viewYawLimit is an 8u value.
@@ -117,7 +115,7 @@ object PlayerStateShiftMessage extends Marshallable[PlayerStateShiftMessage] {
       ("pos" | Vector3.codec_pos) ::
       ("viewYawLim" | Angular.codec_yaw()) ::
       optional(bool, "pos" | Vector3.codec_vel)
-    ).xmap[ShiftState] (
+  ).xmap[ShiftState](
     {
       case a :: b :: c :: d :: HNil =>
         ShiftState(a, b, c, d)
@@ -128,17 +126,17 @@ object PlayerStateShiftMessage extends Marshallable[PlayerStateShiftMessage] {
     }
   ).as[ShiftState]
 
-  implicit val codec : Codec[PlayerStateShiftMessage] = (
+  implicit val codec: Codec[PlayerStateShiftMessage] = (
     optional(bool, "state" | shift_codec) ::
       optional(bool, "unk" | uintL(3))
-    ).xmap[PlayerStateShiftMessage] (
-      {
-        case a :: b :: HNil =>
-          PlayerStateShiftMessage(a, b)
-      },
-      {
-        case PlayerStateShiftMessage(a, b) =>
-          a :: b :: HNil
-      }
-    ).as[PlayerStateShiftMessage]
+  ).xmap[PlayerStateShiftMessage](
+    {
+      case a :: b :: HNil =>
+        PlayerStateShiftMessage(a, b)
+    },
+    {
+      case PlayerStateShiftMessage(a, b) =>
+        a :: b :: HNil
+    }
+  ).as[PlayerStateShiftMessage]
 }

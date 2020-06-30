@@ -26,4 +26,3 @@ class FacilityBenefitShieldChargeRequestMessageTest extends Specification {
     pkt mustEqual string
   }
 }
-

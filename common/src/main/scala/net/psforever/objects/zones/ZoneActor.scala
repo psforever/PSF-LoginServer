@@ -15,12 +15,12 @@ import org.log4s.Logger
   * na
   * @param zone the `Zone` governed by this `Actor`
   */
-class ZoneActor(zone : Zone) extends Actor {
+class ZoneActor(zone: Zone) extends Actor {
   private[this] val log = org.log4s.getLogger
 
-  def receive : Receive = Init
+  def receive: Receive = Init
 
-  def Init : Receive = {
+  def Init: Receive = {
     case Zone.Init() =>
       zone.Init
       ZoneSetupCheck()
@@ -29,7 +29,7 @@ class ZoneActor(zone : Zone) extends Actor {
     case _ => ;
   }
 
-  def Processing : Receive = {
+  def Processing: Receive = {
     //frwd to Population Actor
     case msg @ Zone.Population.Join =>
       zone.Population forward msg
@@ -70,7 +70,7 @@ class ZoneActor(zone : Zone) extends Actor {
     case msg @ Zone.Vehicle.Despawn =>
       zone.Transport forward msg
 
-      //frwd to Projector actor
+    //frwd to Projector actor
     case msg @ Zone.HotSpot.Activity =>
       zone.Activity forward msg
 
@@ -82,7 +82,7 @@ class ZoneActor(zone : Zone) extends Actor {
 
     //own
     case Zone.Lattice.RequestSpawnPoint(zone_number, position, faction, spawn_group) =>
-      if(zone_number == zone.Number) {
+      if (zone_number == zone.Number) {
         ZoneActor.FindLocalSpawnPointsInZone(zone, position, faction, spawn_group) match {
           case Some(Nil) | None =>
             sender ! Zone.Lattice.NoValidSpawnPoint(zone_number, Some(spawn_group))
@@ -94,55 +94,55 @@ class ZoneActor(zone : Zone) extends Actor {
             val tube = scala.util.Random.shuffle(tubes).head
             sender ! Zone.Lattice.SpawnPoint(zone.Id, tube)
         }
-      }
-      else { //wrong zone_number
+      } else { //wrong zone_number
         sender ! Zone.Lattice.NoValidSpawnPoint(zone_number, None)
       }
 
     case Zone.Lattice.RequestSpecificSpawnPoint(zone_number, _, faction, target) =>
-      if(zone_number == zone.Number) {
+      if (zone_number == zone.Number) {
         //is our spawn point some other privileged vehicle?
-        zone.Vehicles.collectFirst({
-          case vehicle : SpawnPoint if vehicle.Faction == faction && vehicle.GUID == target =>
-            Some(vehicle) //the vehicle itself is the spawn point
-          case vehicle if vehicle.Faction == faction && vehicle.GUID == target =>
-            vehicle.Utilities.values.find {
-              util =>
+        zone.Vehicles
+          .collectFirst({
+            case vehicle: SpawnPoint if vehicle.Faction == faction && vehicle.GUID == target =>
+              Some(vehicle) //the vehicle itself is the spawn point
+            case vehicle if vehicle.Faction == faction && vehicle.GUID == target =>
+              vehicle.Utilities.values.find { util =>
                 util().isInstanceOf[SpawnPoint]
-            } match {
-              case None =>
-                None
-              case Some(util) =>
-                Some(util().asInstanceOf[SpawnTube]) //the vehicle's utility is the spawn point
-            }
-        }).orElse( {
-          //is our spawn point a building itself (like a warp gate)?
-          val friendlySpawnGroups = zone.SpawnGroups().filter {
-            case(building, _) =>
-              building match {
-                case wg : WarpGate =>
-                  building.Faction == faction || building.Faction == PlanetSideEmpire.NEUTRAL || wg.Broadcast
-                case _ =>
-                  building.Faction == faction
+              } match {
+                case None =>
+                  None
+                case Some(util) =>
+                  Some(util().asInstanceOf[SpawnTube]) //the vehicle's utility is the spawn point
               }
-          }
-          friendlySpawnGroups.collectFirst({
-            case (building, points) if building.MapId == target.guid && points.nonEmpty =>
-              scala.util.Random.shuffle(points).head
           })
-            .orElse {
-              //is our spawn a conventional amenity?
-              friendlySpawnGroups.values.flatten.find { point => point.GUID == target}
+          .orElse({
+            //is our spawn point a building itself (like a warp gate)?
+            val friendlySpawnGroups = zone.SpawnGroups().filter {
+              case (building, _) =>
+                building match {
+                  case wg: WarpGate =>
+                    building.Faction == faction || building.Faction == PlanetSideEmpire.NEUTRAL || wg.Broadcast
+                  case _ =>
+                    building.Faction == faction
+                }
             }
-        }) match {
-          case Some(point : SpawnPoint) =>
+            friendlySpawnGroups
+              .collectFirst({
+                case (building, points) if building.MapId == target.guid && points.nonEmpty =>
+                  scala.util.Random.shuffle(points).head
+              })
+              .orElse {
+                //is our spawn a conventional amenity?
+                friendlySpawnGroups.values.flatten.find { point => point.GUID == target }
+              }
+          }) match {
+          case Some(point: SpawnPoint) =>
             sender ! Zone.Lattice.SpawnPoint(zone.Id, point)
 
           case _ =>
             sender ! Zone.Lattice.NoValidSpawnPoint(zone_number, Some(target.guid))
         }
-      }
-      else { //wrong zone_number
+      } else { //wrong zone_number
         sender ! Zone.Lattice.NoValidSpawnPoint(zone_number, None)
       }
 
@@ -150,62 +150,67 @@ class ZoneActor(zone : Zone) extends Actor {
       log.warn(s"Received unexpected message - $msg")
   }
 
-  def ZoneSetupCheck() : Int = {
+  def ZoneSetupCheck(): Int = {
     import ZoneActor._
-    val map = zone.Map
-    def guid(id : Int) = zone.GUID(id)
-    val slog = org.log4s.getLogger(s"zone/${zone.Id}/sanity")
-    val errors = new AtomicInteger(0)
-    val validateObject : (Int, PlanetSideGameObject=>Boolean, String) => Boolean = ValidateObject(guid, slog, errors)
+    val map                                                                       = zone.Map
+    def guid(id: Int)                                                             = zone.GUID(id)
+    val slog                                                                      = org.log4s.getLogger(s"zone/${zone.Id}/sanity")
+    val errors                                                                    = new AtomicInteger(0)
+    val validateObject: (Int, PlanetSideGameObject => Boolean, String) => Boolean = ValidateObject(guid, slog, errors)
 
     //check bases
-    map.ObjectToBuilding.values.toSet[Int].foreach(building_id => {
-      val target = zone.Building(building_id)
-      if(target.isEmpty) {
-        slog.error(s"expected a building for id #$building_id")
-        errors.incrementAndGet()
-      }
-      else if(!target.get.HasGUID) {
-        slog.error(s"building #$building_id was not registered")
-        errors.incrementAndGet()
-      }
-    })
+    map.ObjectToBuilding.values
+      .toSet[Int]
+      .foreach(building_id => {
+        val target = zone.Building(building_id)
+        if (target.isEmpty) {
+          slog.error(s"expected a building for id #$building_id")
+          errors.incrementAndGet()
+        } else if (!target.get.HasGUID) {
+          slog.error(s"building #$building_id was not registered")
+          errors.incrementAndGet()
+        }
+      })
 
     //check base to object associations
     map.ObjectToBuilding.keys.foreach(object_guid =>
-      if(guid(object_guid).isEmpty) {
+      if (guid(object_guid).isEmpty) {
         slog.error(s"expected object id $object_guid to exist, but it did not")
         errors.incrementAndGet()
       }
     )
 
     //check door to lock association
-    map.DoorToLock.foreach({ case(door_guid, lock_guid) =>
-      validateObject(door_guid, DoorCheck, "door")
-      validateObject(lock_guid, LockCheck, "IFF lock")
+    map.DoorToLock.foreach({
+      case (door_guid, lock_guid) =>
+        validateObject(door_guid, DoorCheck, "door")
+        validateObject(lock_guid, LockCheck, "IFF lock")
     })
 
     //check vehicle terminal to spawn pad association
-    map.TerminalToSpawnPad.foreach({ case (term_guid, pad_guid) =>
-      validateObject(term_guid, TerminalCheck, "vehicle terminal")
-      validateObject(pad_guid, VehicleSpawnPadCheck, "vehicle spawn pad")
+    map.TerminalToSpawnPad.foreach({
+      case (term_guid, pad_guid) =>
+        validateObject(term_guid, TerminalCheck, "vehicle terminal")
+        validateObject(pad_guid, VehicleSpawnPadCheck, "vehicle spawn pad")
     })
 
     //check implant terminal mech to implant terminal interface association
-    map.TerminalToInterface.foreach({case (mech_guid, interface_guid) =>
-      validateObject(mech_guid, ImplantMechCheck, "implant terminal mech")
-      validateObject(interface_guid, TerminalCheck, "implant terminal interface")
+    map.TerminalToInterface.foreach({
+      case (mech_guid, interface_guid) =>
+        validateObject(mech_guid, ImplantMechCheck, "implant terminal mech")
+        validateObject(interface_guid, TerminalCheck, "implant terminal interface")
     })
 
     //check manned turret to weapon association
-    map.TurretToWeapon.foreach({ case (turret_guid, weapon_guid) =>
-      validateObject(turret_guid, FacilityTurretCheck, "facility turret mount")
-      if(validateObject(weapon_guid, WeaponCheck, "facility turret weapon")) {
-        if(guid(weapon_guid).get.asInstanceOf[Tool].AmmoSlots.count(!_.Box.HasGUID) > 0) {
-          slog.error(s"expected weapon $weapon_guid has an unregistered ammunition unit")
-          errors.incrementAndGet()
+    map.TurretToWeapon.foreach({
+      case (turret_guid, weapon_guid) =>
+        validateObject(turret_guid, FacilityTurretCheck, "facility turret mount")
+        if (validateObject(weapon_guid, WeaponCheck, "facility turret weapon")) {
+          if (guid(weapon_guid).get.asInstanceOf[Tool].AmmoSlots.count(!_.Box.HasGUID) > 0) {
+            slog.error(s"expected weapon $weapon_guid has an unregistered ammunition unit")
+            errors.incrementAndGet()
+          }
         }
-      }
     })
 
     //output number of errors
@@ -214,6 +219,7 @@ class ZoneActor(zone : Zone) extends Actor {
 }
 
 object ZoneActor {
+
   /**
     * na
     * @param zone na
@@ -222,20 +228,24 @@ object ZoneActor {
     * @param spawn_group na
     * @return na
     */
-  def FindLocalSpawnPointsInZone(zone : Zone, position : Vector3, faction : PlanetSideEmpire.Value, spawn_group : Int) : Option[List[SpawnPoint]] = {
-    (if(spawn_group == 2) {
-      FindVehicleSpawnPointsInZone(zone, position, faction)
+  def FindLocalSpawnPointsInZone(
+      zone: Zone,
+      position: Vector3,
+      faction: PlanetSideEmpire.Value,
+      spawn_group: Int
+  ): Option[List[SpawnPoint]] = {
+    (if (spawn_group == 2) {
+       FindVehicleSpawnPointsInZone(zone, position, faction)
+     } else {
+       FindBuildingSpawnPointsInZone(zone, position, faction, spawn_group)
+     }).headOption match {
+      case None | Some((_, Nil)) =>
+        None
+      case Some((_, tubes)) =>
+        Some(tubes toList)
     }
-    else {
-      FindBuildingSpawnPointsInZone(zone, position, faction, spawn_group)
-    })
-      .headOption match {
-        case None | Some((_, Nil)) =>
-          None
-        case Some((_, tubes)) =>
-          Some(tubes toList)
-      }
-    }
+  }
+
   /**
     * na
     * @param zone na
@@ -243,7 +253,11 @@ object ZoneActor {
     * @param faction na
     * @return na
     */
-  private def FindVehicleSpawnPointsInZone(zone : Zone, position : Vector3, faction : PlanetSideEmpire.Value) : List[(AmenityOwner, Iterable[SpawnTube])] = {
+  private def FindVehicleSpawnPointsInZone(
+      zone: Zone,
+      position: Vector3,
+      faction: PlanetSideEmpire.Value
+  ): List[(AmenityOwner, Iterable[SpawnTube])] = {
     val xy = position.xy
     //ams
     zone.Vehicles
@@ -272,36 +286,40 @@ object ZoneActor {
     * @param spawn_group na
     * @return na
     */
-  private def FindBuildingSpawnPointsInZone(zone : Zone, position : Vector3, faction : PlanetSideEmpire.Value, spawn_group : Int) : List[(AmenityOwner, Iterable[SpawnPoint])] = {
+  private def FindBuildingSpawnPointsInZone(
+      zone: Zone,
+      position: Vector3,
+      faction: PlanetSideEmpire.Value,
+      spawn_group: Int
+  ): List[(AmenityOwner, Iterable[SpawnPoint])] = {
     val xy = position.xy
     //facilities, towers, warp gates, and other buildings
-    val buildingTypeSet = if(spawn_group == 0) {
+    val buildingTypeSet = if (spawn_group == 0) {
       Set(StructureType.Facility, StructureType.Tower, StructureType.Building)
-    }
-    else if(spawn_group == 6) {
+    } else if (spawn_group == 6) {
       Set(StructureType.Tower)
-    }
-    else if(spawn_group == 7) {
+    } else if (spawn_group == 7) {
       Set(StructureType.Facility, StructureType.Building)
-    }
-    else if(spawn_group == 12) {
+    } else if (spawn_group == 12) {
       Set(StructureType.WarpGate)
-    }
-    else {
+    } else {
       Set.empty[StructureType.Value]
     }
-    zone.SpawnGroups()
-      .collect({ case (building, spawns) if
-        buildingTypeSet.contains(building.BuildingType) && (building match {
-          case wg : WarpGate =>
-            building.Faction == faction || building.Faction == PlanetSideEmpire.NEUTRAL || wg.Broadcast
-          case _ =>
-            building.Faction == faction && spawns.nonEmpty && spawns.exists(_.Offline == false)
-        }) => (building, spawns.filter(_.Offline == false))
+    zone
+      .SpawnGroups()
+      .collect({
+        case (building, spawns) if buildingTypeSet.contains(building.BuildingType) && (building match {
+              case wg: WarpGate =>
+                building.Faction == faction || building.Faction == PlanetSideEmpire.NEUTRAL || wg.Broadcast
+              case _ =>
+                building.Faction == faction && spawns.nonEmpty && spawns.exists(_.Offline == false)
+            }) =>
+          (building, spawns.filter(_.Offline == false))
       })
       .toSeq
-      .sortBy({ case (building, _) =>
-        Vector3.DistanceSquared(xy, building.Position.xy)
+      .sortBy({
+        case (building, _) =>
+          Vector3.DistanceSquared(xy, building.Position.xy)
       })
       .toList
   }
@@ -319,57 +337,58 @@ object ZoneActor {
     * @return `true` if the object was discovered and validates correctly;
     *        `false` if the object failed any tests
     */
-  def ValidateObject(guid : Int=>Option[PlanetSideGameObject], elog : Logger, errorCounter : AtomicInteger)
-                    (object_guid : Int, test : PlanetSideGameObject=>Boolean, description : String) : Boolean = {
+  def ValidateObject(
+      guid: Int => Option[PlanetSideGameObject],
+      elog: Logger,
+      errorCounter: AtomicInteger
+  )(object_guid: Int, test: PlanetSideGameObject => Boolean, description: String): Boolean = {
     try {
-      if(!test(guid(object_guid).get)) {
+      if (!test(guid(object_guid).get)) {
         elog.error(s"expected id $object_guid to be a $description, but it was not")
         errorCounter.incrementAndGet()
         false
-      }
-      else {
+      } else {
         true
       }
-    }
-    catch {
-      case e : Exception =>
+    } catch {
+      case e: Exception =>
         elog.error(s"expected a $description at id $object_guid but no object is initialized - $e")
         errorCounter.incrementAndGet()
         false
     }
   }
 
-  def LockCheck(obj : PlanetSideGameObject) : Boolean = {
+  def LockCheck(obj: PlanetSideGameObject): Boolean = {
     import net.psforever.objects.serverobject.locks.IFFLock
     obj.isInstanceOf[IFFLock]
   }
 
-  def DoorCheck(obj : PlanetSideGameObject) : Boolean = {
+  def DoorCheck(obj: PlanetSideGameObject): Boolean = {
     import net.psforever.objects.serverobject.doors.Door
     obj.isInstanceOf[Door]
   }
 
-  def TerminalCheck(obj : PlanetSideGameObject) : Boolean = {
+  def TerminalCheck(obj: PlanetSideGameObject): Boolean = {
     import net.psforever.objects.serverobject.terminals.Terminal
     obj.isInstanceOf[Terminal]
   }
 
-  def ImplantMechCheck(obj : PlanetSideGameObject) : Boolean = {
+  def ImplantMechCheck(obj: PlanetSideGameObject): Boolean = {
     import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
     obj.isInstanceOf[ImplantTerminalMech]
   }
 
-  def VehicleSpawnPadCheck(obj : PlanetSideGameObject) : Boolean = {
+  def VehicleSpawnPadCheck(obj: PlanetSideGameObject): Boolean = {
     import net.psforever.objects.serverobject.pad.VehicleSpawnPad
     obj.isInstanceOf[VehicleSpawnPad]
   }
 
-  def FacilityTurretCheck(obj : PlanetSideGameObject) : Boolean = {
+  def FacilityTurretCheck(obj: PlanetSideGameObject): Boolean = {
     import net.psforever.objects.serverobject.turret.FacilityTurret
     obj.isInstanceOf[FacilityTurret]
   }
 
-  def WeaponCheck(obj : PlanetSideGameObject) : Boolean = {
+  def WeaponCheck(obj: PlanetSideGameObject): Boolean = {
     import net.psforever.objects.Tool
     obj.isInstanceOf[Tool]
   }

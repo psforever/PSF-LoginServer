@@ -31,13 +31,13 @@ class MultiPacketExTest extends Specification {
 
   "decode" in {
     Fragment.foreach(strings.indices) { i =>
-      "test "+i ! {  MultiPacketEx.decode(strings{i}.bits).require.value mustEqual packets{i} }
+      "test " + i ! { MultiPacketEx.decode(strings { i }.bits).require.value mustEqual packets { i } }
     }
   }
 
   "encode" in {
     Fragment.foreach(packets.indices) { i =>
-      "test "+i ! {  MultiPacketEx.encode(packets{i}).require.toByteVector mustEqual strings{i} }
+      "test " + i ! { MultiPacketEx.encode(packets { i }).require.toByteVector mustEqual strings { i } }
     }
   }
 

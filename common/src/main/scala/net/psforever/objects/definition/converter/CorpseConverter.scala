@@ -10,13 +10,13 @@ import scala.annotation.tailrec
 import scala.util.{Failure, Success, Try}
 
 class CorpseConverter extends AvatarConverter {
-  override def ConstructorData(obj : Player) : Try[PlayerData] =
+  override def ConstructorData(obj: Player): Try[PlayerData] =
     Failure(new Exception("CorpseConverter should not be used to generate CharacterData"))
 
-  override def DetailedConstructorData(obj : Player) : Try[DetailedPlayerData] = {
+  override def DetailedConstructorData(obj: Player): Try[DetailedPlayerData] = {
     Success(
       DetailedPlayerData.apply(
-        PlacementData(obj.Position, Vector3(0,0, obj.Orientation.z)),
+        PlacementData(obj.Position, Vector3(0, 0, obj.Orientation.z)),
         MakeAppearanceData(obj),
         MakeDetailedCharacterData(obj),
         InventoryData((MakeHolsters(obj) ++ MakeInventory(obj)).sortBy(_.parentSlot)),
@@ -30,8 +30,8 @@ class CorpseConverter extends AvatarConverter {
     * @param obj the `Player` game object
     * @return the resulting `CharacterAppearanceData`
     */
-  private def MakeAppearanceData(obj : Player) : Int=>CharacterAppearanceData = {
-    val aa : Int=>CharacterAppearanceA = CharacterAppearanceA(
+  private def MakeAppearanceData(obj: Player): Int => CharacterAppearanceData = {
+    val aa: Int => CharacterAppearanceA = CharacterAppearanceA(
       BasicCharacterData(obj.Name, obj.Faction, CharacterGender.Male, 0, CharacterVoice.Mute),
       CommonFieldData(
         obj.Faction,
@@ -52,7 +52,7 @@ class CorpseConverter extends AvatarConverter {
       0,
       0
     )
-    val ab : (Boolean,Int)=>CharacterAppearanceB = CharacterAppearanceB(
+    val ab: (Boolean, Int) => CharacterAppearanceB = CharacterAppearanceB(
       0L,
       outfit_name = "",
       outfit_logo = 0,
@@ -75,34 +75,48 @@ class CorpseConverter extends AvatarConverter {
     CharacterAppearanceData(aa, ab, RibbonBars())
   }
 
-  private def MakeDetailedCharacterData(obj : Player) : Option[Int]=>DetailedCharacterData = {
-    val maxOpt : Option[Long] = if(obj.ExoSuit == ExoSuitType.MAX) { Some(0L) } else { None }
-    val ba : DetailedCharacterA = DetailedCharacterA(
+  private def MakeDetailedCharacterData(obj: Player): Option[Int] => DetailedCharacterData = {
+    val maxOpt: Option[Long] = if (obj.ExoSuit == ExoSuitType.MAX) { Some(0L) }
+    else { None }
+    val ba: DetailedCharacterA = DetailedCharacterA(
       bep = 0L,
       cep = 0L,
-      0L, 0L, 0L,
-      0, 0,
+      0L,
+      0L,
+      0L,
+      0,
+      0,
       false,
       0,
       0L,
-      0, 0,
+      0,
+      0,
       maxOpt,
-      0, 0, 0L,
+      0,
+      0,
+      0L,
       List(0, 0, 0, 0, 0, 0),
       certs = List.empty[CertificationType.Value]
     )
-    val bb : (Long, Option[Int])=>DetailedCharacterB = DetailedCharacterB(
+    val bb: (Long, Option[Int]) => DetailedCharacterB = DetailedCharacterB(
       None,
       implants = List.empty[ImplantEntry],
-      Nil, Nil,
+      Nil,
+      Nil,
       firstTimeEvents = List.empty[String],
       tutorials = List.empty[String],
-      0L, 0L, 0L, 0L, 0L,
+      0L,
+      0L,
+      0L,
+      0L,
+      0L,
       Some(DCDExtra2(0, 0)),
-      Nil, Nil, false,
+      Nil,
+      Nil,
+      false,
       cosmetics = None
     )
-    (pad_length : Option[Int]) => DetailedCharacterData(ba, bb(0, pad_length))(pad_length)
+    (pad_length: Option[Int]) => DetailedCharacterData(ba, bb(0, pad_length))(pad_length)
   }
 
   /**
@@ -112,11 +126,11 @@ class CorpseConverter extends AvatarConverter {
     * @param obj the `Player` game object
     * @return a list of all items that were in the inventory in decoded packet form
     */
-  private def MakeInventory(obj : Player) : List[InternalSlot] = {
+  private def MakeInventory(obj: Player): List[InternalSlot] = {
     obj.Inventory.Items
       .map(item => {
-          val equip : Equipment = item.obj
-          BuildEquipment(item.start, equip)
+        val equip: Equipment = item.obj
+        BuildEquipment(item.start, equip)
       })
   }
 
@@ -128,7 +142,7 @@ class CorpseConverter extends AvatarConverter {
     * @param obj the `Player` game object
     * @return a list of all items that were in the holsters in decoded packet form
     */
-  private def MakeHolsters(obj : Player) : List[InternalSlot] = {
+  private def MakeHolsters(obj: Player): List[InternalSlot] = {
     recursiveMakeHolsters(obj.Holsters().iterator)
   }
 
@@ -139,21 +153,23 @@ class CorpseConverter extends AvatarConverter {
     * @param index which holster is currently being explored
     * @return the `List` of inventory data created from the holsters
     */
-  @tailrec private def recursiveMakeHolsters(iter : Iterator[EquipmentSlot], list : List[InternalSlot] = Nil, index : Int = 0) : List[InternalSlot] = {
-    if(!iter.hasNext) {
+  @tailrec private def recursiveMakeHolsters(
+      iter: Iterator[EquipmentSlot],
+      list: List[InternalSlot] = Nil,
+      index: Int = 0
+  ): List[InternalSlot] = {
+    if (!iter.hasNext) {
       list
-    }
-    else {
-      val slot : EquipmentSlot = iter.next
-      if(slot.Equipment.isDefined) {
-        val equip : Equipment = slot.Equipment.get
+    } else {
+      val slot: EquipmentSlot = iter.next
+      if (slot.Equipment.isDefined) {
+        val equip: Equipment = slot.Equipment.get
         recursiveMakeHolsters(
           iter,
           list :+ BuildEquipment(index, equip),
           index + 1
         )
-      }
-      else {
+      } else {
         recursiveMakeHolsters(iter, list, index + 1)
       }
     }
@@ -165,8 +181,13 @@ class CorpseConverter extends AvatarConverter {
     * @param equip the game object
     * @return the game object in decoded packet form
     */
-  private def BuildEquipment(index : Int, equip : Equipment) : InternalSlot = {
-    InternalSlot(equip.Definition.ObjectId, equip.GUID, index, equip.Definition.Packet.DetailedConstructorData(equip).get)
+  private def BuildEquipment(index: Int, equip: Equipment): InternalSlot = {
+    InternalSlot(
+      equip.Definition.ObjectId,
+      equip.GUID,
+      index,
+      equip.Definition.Packet.DetailedConstructorData(equip).get
+    )
   }
 }
 

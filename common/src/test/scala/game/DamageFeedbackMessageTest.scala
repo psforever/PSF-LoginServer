@@ -8,7 +8,7 @@ import net.psforever.types.PlanetSideGUID
 import scodec.bits._
 
 class DamageFeedbackMessageTest extends Specification {
-  val string = hex"7b 3d842f610b2040000000"
+  val string   = hex"7b 3d842f610b2040000000"
   val string_2 = hex"7B 5E5826D8001DC0400000"
 
   "decode (string 1)" in {
@@ -54,14 +54,42 @@ class DamageFeedbackMessageTest extends Specification {
   }
 
   "encode (string 1)" in {
-    val msg = DamageFeedbackMessage(3, true, Some(PlanetSideGUID(2913)), None, None, true, Some(PlanetSideGUID(2913)), None, None, None, 1, 2, 0)
+    val msg = DamageFeedbackMessage(
+      3,
+      true,
+      Some(PlanetSideGUID(2913)),
+      None,
+      None,
+      true,
+      Some(PlanetSideGUID(2913)),
+      None,
+      None,
+      None,
+      1,
+      2,
+      0
+    )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }
 
   "encode (string 2)" in {
-    val msg = DamageFeedbackMessage(5, true, Some(PlanetSideGUID(2454)), None, None, false, Some(PlanetSideGUID(216)), None, None, None, 0, 750, 0)
+    val msg = DamageFeedbackMessage(
+      5,
+      true,
+      Some(PlanetSideGUID(2454)),
+      None,
+      None,
+      false,
+      Some(PlanetSideGUID(216)),
+      None,
+      None,
+      None,
+      0,
+      750,
+      0
+    )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_2
@@ -69,30 +97,254 @@ class DamageFeedbackMessageTest extends Specification {
 
   "assert catches" in {
     //unk2: no parameters
-    DamageFeedbackMessage(3, true, None, None, None, true, Some(PlanetSideGUID(2913)), None, None, None, 1, 2, 0) must throwA[AssertionError]
+    DamageFeedbackMessage(
+      3,
+      true,
+      None,
+      None,
+      None,
+      true,
+      Some(PlanetSideGUID(2913)),
+      None,
+      None,
+      None,
+      1,
+      2,
+      0
+    ) must throwA[AssertionError]
     //unk2: two exclusive parameters
-    DamageFeedbackMessage(3, true, Some(PlanetSideGUID(2913)), Some("error"), None, true, Some(PlanetSideGUID(2913)), None, None, None, 1, 2, 0) must throwA[AssertionError]
-    DamageFeedbackMessage(3, true, Some(PlanetSideGUID(2913)), None, Some(5), true, Some(PlanetSideGUID(2913)), None, None, None, 1, 2, 0) must throwA[AssertionError]
-    DamageFeedbackMessage(3, true, None, Some("error"), Some(5), true, Some(PlanetSideGUID(2913)), None, None, None, 1, 2, 0) must throwA[AssertionError]
+    DamageFeedbackMessage(
+      3,
+      true,
+      Some(PlanetSideGUID(2913)),
+      Some("error"),
+      None,
+      true,
+      Some(PlanetSideGUID(2913)),
+      None,
+      None,
+      None,
+      1,
+      2,
+      0
+    ) must throwA[AssertionError]
+    DamageFeedbackMessage(
+      3,
+      true,
+      Some(PlanetSideGUID(2913)),
+      None,
+      Some(5),
+      true,
+      Some(PlanetSideGUID(2913)),
+      None,
+      None,
+      None,
+      1,
+      2,
+      0
+    ) must throwA[AssertionError]
+    DamageFeedbackMessage(
+      3,
+      true,
+      None,
+      Some("error"),
+      Some(5),
+      true,
+      Some(PlanetSideGUID(2913)),
+      None,
+      None,
+      None,
+      1,
+      2,
+      0
+    ) must throwA[AssertionError]
     //unk2: all parameters
-    DamageFeedbackMessage(3, true, Some(PlanetSideGUID(2913)), Some("error"), Some(5), true, Some(PlanetSideGUID(2913)), None, None, None, 1, 2, 0) must throwA[AssertionError]
+    DamageFeedbackMessage(
+      3,
+      true,
+      Some(PlanetSideGUID(2913)),
+      Some("error"),
+      Some(5),
+      true,
+      Some(PlanetSideGUID(2913)),
+      None,
+      None,
+      None,
+      1,
+      2,
+      0
+    ) must throwA[AssertionError]
     //unk2: mismatched flag for strings
-    DamageFeedbackMessage(3, true, None, None, Some(5), true, Some(PlanetSideGUID(2913)), None, None, None, 1, 2, 0) must throwA[AssertionError]
-    DamageFeedbackMessage(3, false, None, Some("error"), None, true, Some(PlanetSideGUID(2913)), None, None, None, 1, 2, 0) must throwA[AssertionError]
+    DamageFeedbackMessage(
+      3,
+      true,
+      None,
+      None,
+      Some(5),
+      true,
+      Some(PlanetSideGUID(2913)),
+      None,
+      None,
+      None,
+      1,
+      2,
+      0
+    ) must throwA[AssertionError]
+    DamageFeedbackMessage(
+      3,
+      false,
+      None,
+      Some("error"),
+      None,
+      true,
+      Some(PlanetSideGUID(2913)),
+      None,
+      None,
+      None,
+      1,
+      2,
+      0
+    ) must throwA[AssertionError]
 
     //unk3: no parameters
-    DamageFeedbackMessage(3, true, Some(PlanetSideGUID(2913)), None, None, true, None, None, None, None, 1, 2, 0) must throwA[AssertionError]
+    DamageFeedbackMessage(
+      3,
+      true,
+      Some(PlanetSideGUID(2913)),
+      None,
+      None,
+      true,
+      None,
+      None,
+      None,
+      None,
+      1,
+      2,
+      0
+    ) must throwA[AssertionError]
     //unk3: two exclusive parameters
-    DamageFeedbackMessage(3, true, Some(PlanetSideGUID(2913)), None, None, true, Some(PlanetSideGUID(2913)), Some("error"), None, None, 1, 2, 0) must throwA[AssertionError]
-    DamageFeedbackMessage(3, true, Some(PlanetSideGUID(2913)), None, None, true, Some(PlanetSideGUID(2913)), None, Some(5), None, 1, 2, 0) must throwA[AssertionError]
-    DamageFeedbackMessage(3, true, Some(PlanetSideGUID(2913)), None, None, true, None, Some("error"), Some(5), Some(1), 1, 2, 0) must throwA[AssertionError]
+    DamageFeedbackMessage(
+      3,
+      true,
+      Some(PlanetSideGUID(2913)),
+      None,
+      None,
+      true,
+      Some(PlanetSideGUID(2913)),
+      Some("error"),
+      None,
+      None,
+      1,
+      2,
+      0
+    ) must throwA[AssertionError]
+    DamageFeedbackMessage(
+      3,
+      true,
+      Some(PlanetSideGUID(2913)),
+      None,
+      None,
+      true,
+      Some(PlanetSideGUID(2913)),
+      None,
+      Some(5),
+      None,
+      1,
+      2,
+      0
+    ) must throwA[AssertionError]
+    DamageFeedbackMessage(
+      3,
+      true,
+      Some(PlanetSideGUID(2913)),
+      None,
+      None,
+      true,
+      None,
+      Some("error"),
+      Some(5),
+      Some(1),
+      1,
+      2,
+      0
+    ) must throwA[AssertionError]
     //unk3: all parameters
-    DamageFeedbackMessage(3, true, Some(PlanetSideGUID(2913)), None, None, true, Some(PlanetSideGUID(2913)), Some("error"), Some(5), None, 1, 2, 0) must throwA[AssertionError]
+    DamageFeedbackMessage(
+      3,
+      true,
+      Some(PlanetSideGUID(2913)),
+      None,
+      None,
+      true,
+      Some(PlanetSideGUID(2913)),
+      Some("error"),
+      Some(5),
+      None,
+      1,
+      2,
+      0
+    ) must throwA[AssertionError]
     //unk3: mismatched fields
-    DamageFeedbackMessage(3, true, Some(PlanetSideGUID(2913)), None, None, true, Some(PlanetSideGUID(2913)), None, None, Some(5), 1, 2, 0) must throwA[AssertionError]
-    DamageFeedbackMessage(3, true, Some(PlanetSideGUID(2913)), None, None, true, None, Some("Error"), None, None, 1, 2, 0) must throwA[AssertionError]
+    DamageFeedbackMessage(
+      3,
+      true,
+      Some(PlanetSideGUID(2913)),
+      None,
+      None,
+      true,
+      Some(PlanetSideGUID(2913)),
+      None,
+      None,
+      Some(5),
+      1,
+      2,
+      0
+    ) must throwA[AssertionError]
+    DamageFeedbackMessage(
+      3,
+      true,
+      Some(PlanetSideGUID(2913)),
+      None,
+      None,
+      true,
+      None,
+      Some("Error"),
+      None,
+      None,
+      1,
+      2,
+      0
+    ) must throwA[AssertionError]
     //unk3: mismatched flag for strings
-    DamageFeedbackMessage(3, true, Some(PlanetSideGUID(2913)), None, None, true, None, None, Some(5), None, 1, 2, 0) must throwA[AssertionError]
-    DamageFeedbackMessage(3, true, Some(PlanetSideGUID(2913)), None, None, false, None, Some("error"), None, None, 1, 2, 0) must throwA[AssertionError]
+    DamageFeedbackMessage(
+      3,
+      true,
+      Some(PlanetSideGUID(2913)),
+      None,
+      None,
+      true,
+      None,
+      None,
+      Some(5),
+      None,
+      1,
+      2,
+      0
+    ) must throwA[AssertionError]
+    DamageFeedbackMessage(
+      3,
+      true,
+      Some(PlanetSideGUID(2913)),
+      None,
+      None,
+      false,
+      None,
+      Some("error"),
+      None,
+      None,
+      1,
+      2,
+      0
+    ) must throwA[AssertionError]
   }
 }

@@ -42,20 +42,18 @@ import shapeless.{::, HNil}
   *             56 - Sets vehicle or player to be black ops
   *             57 - Reverts player from black ops
   */
-final case class GenericObjectActionMessage(object_guid : PlanetSideGUID,
-                                            code : Int)
-  extends PlanetSideGamePacket {
+final case class GenericObjectActionMessage(object_guid: PlanetSideGUID, code: Int) extends PlanetSideGamePacket {
   type Packet = GenericObjectActionMessage
   def opcode = GamePacketOpcode.GenericObjectActionMessage
   def encode = GenericObjectActionMessage.encode(this)
 }
 
 object GenericObjectActionMessage extends Marshallable[GenericObjectActionMessage] {
-  implicit val codec : Codec[GenericObjectActionMessage] = (
+  implicit val codec: Codec[GenericObjectActionMessage] = (
     ("object_guid" | PlanetSideGUID.codec) ::
       ("code" | uint(bits = 6)) ::
       ("ex" | bits) //"code" may extract at odd sizes
-    ).exmap[GenericObjectActionMessage] (
+  ).exmap[GenericObjectActionMessage](
     {
       case guid :: code :: _ :: HNil =>
         Attempt.Successful(GenericObjectActionMessage(guid, code))

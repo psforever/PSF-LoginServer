@@ -8,14 +8,15 @@ import scala.collection.concurrent.{Map, TrieMap}
   * `LivePlayerList` is a singleton and this private class lacks exposure.
   */
 private class LivePlayerList {
-  /** key - the session id; value - a `Player` object */
-  private val sessionMap : Map[Long, Avatar] = new TrieMap[Long, Avatar]
 
-  def WorldPopulation(predicate : ((_, Avatar)) => Boolean) : List[Avatar] = {
+  /** key - the session id; value - a `Player` object */
+  private val sessionMap: Map[Long, Avatar] = new TrieMap[Long, Avatar]
+
+  def WorldPopulation(predicate: ((_, Avatar)) => Boolean): List[Avatar] = {
     sessionMap.filter(predicate).values.toList
   }
 
-  def Add(sessionId : Long, avatar : Avatar) : Boolean = {
+  def Add(sessionId: Long, avatar: Avatar): Boolean = {
     sessionMap.values.find(char => char.equals(avatar)) match {
       case None =>
         sessionMap.putIfAbsent(sessionId, avatar).isEmpty
@@ -24,11 +25,11 @@ private class LivePlayerList {
     }
   }
 
-  def Remove(sessionId : Long) : Option[Avatar] = {
+  def Remove(sessionId: Long): Option[Avatar] = {
     sessionMap.remove(sessionId)
   }
 
-  def Shutdown : List[Avatar] = {
+  def Shutdown: List[Avatar] = {
     val list = sessionMap.values.toList
     sessionMap.clear
     list
@@ -48,8 +49,9 @@ private class LivePlayerList {
   * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`LivePlayerList.Remove(session)`
   */
 object LivePlayerList {
+
   /** As `LivePlayerList` is a singleton, an object of `LivePlayerList` is automatically instantiated. */
-  private val Instance : LivePlayerList = new LivePlayerList
+  private val Instance: LivePlayerList = new LivePlayerList
 
   /**
     * Given some criteria, examine the mapping of user characters and find the ones that fulfill the requirements.<br>
@@ -61,7 +63,7 @@ object LivePlayerList {
     * @param predicate the conditions for filtering the live `Player`s
     * @return a list of users's `Player`s that fit the criteria
     */
-  def WorldPopulation(predicate : ((_, Avatar)) => Boolean) : List[Avatar] = Instance.WorldPopulation(predicate)
+  def WorldPopulation(predicate: ((_, Avatar)) => Boolean): List[Avatar] = Instance.WorldPopulation(predicate)
 
   /**
     * Create a mapped entry between the user's session and a user's character.
@@ -70,7 +72,7 @@ object LivePlayerList {
     * @param avatar the character
     * @return `true`, if the session was association was made; `false`, otherwise
     */
-  def Add(sessionId : Long, avatar : Avatar) : Boolean = Instance.Add(sessionId, avatar)
+  def Add(sessionId: Long, avatar: Avatar): Boolean = Instance.Add(sessionId, avatar)
 
   /**
     * Remove all entries related to the given session identifier from the mappings.
@@ -78,11 +80,11 @@ object LivePlayerList {
     * @param sessionId the session
     * @return any character that was afffected by the mapping removal
     */
-  def Remove(sessionId : Long) : Option[Avatar] = Instance.Remove(sessionId)
+  def Remove(sessionId: Long): Option[Avatar] = Instance.Remove(sessionId)
 
   /**
     * Hastily remove all mappings and ids.
     * @return an unsorted list of the characters that were still online
     */
-  def Shutdown : List[Avatar] = Instance.Shutdown
+  def Shutdown: List[Avatar] = Instance.Shutdown
 }

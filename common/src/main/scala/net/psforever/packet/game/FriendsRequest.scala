@@ -31,18 +31,15 @@ import scodec.codecs._
   * @param friend the player name that was entered;
   *               blank in certain situations
   */
-final case class FriendsRequest(action : Int,
-                                friend : String)
-  extends PlanetSideGamePacket {
+final case class FriendsRequest(action: Int, friend: String) extends PlanetSideGamePacket {
   type Packet = FriendsRequest
   def opcode = GamePacketOpcode.FriendsRequest
   def encode = FriendsRequest.encode(this)
 }
 
 object FriendsRequest extends Marshallable[FriendsRequest] {
-  implicit val codec : Codec[FriendsRequest] = (
+  implicit val codec: Codec[FriendsRequest] = (
     ("action" | uintL(3)) ::
       ("friend" | PacketHelpers.encodedWideStringAligned(5))
-    ).as[FriendsRequest]
+  ).as[FriendsRequest]
 }
-

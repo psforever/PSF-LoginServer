@@ -24,11 +24,13 @@ import net.psforever.types.{CertificationType, ExoSuitType}
   *                anti-infantry (1), anti-vehicular (2), or anti-air work (3);
   *                the default value is 0
   */
-final case class InfantryLoadout(label : String,
-                                 visible_slots : List[Loadout.SimplifiedEntry],
-                                 inventory : List[Loadout.SimplifiedEntry],
-                                 exosuit : ExoSuitType.Value,
-                                 subtype : Int) extends EquipmentLoadout(label, visible_slots, inventory)
+final case class InfantryLoadout(
+    label: String,
+    visible_slots: List[Loadout.SimplifiedEntry],
+    inventory: List[Loadout.SimplifiedEntry],
+    exosuit: ExoSuitType.Value,
+    subtype: Int
+) extends EquipmentLoadout(label, visible_slots, inventory)
 
 object InfantryLoadout {
   import net.psforever.objects.Player
@@ -43,7 +45,7 @@ object InfantryLoadout {
     * @param player the player
     * @return the numeric subtype
     */
-  def DetermineSubtype(player : Player) : Int = {
+  def DetermineSubtype(player: Player): Int = {
     DetermineSubtypeA(player.ExoSuit, player.Slot(0).Equipment)
   }
 
@@ -58,12 +60,13 @@ object InfantryLoadout {
     *               to a MAX, that is its "primary weapon slot"
     * @return the numeric subtype
     */
-  def DetermineSubtypeA(suit : ExoSuitType.Value, weapon : Option[Equipment]) : Int = {
-    if(suit == ExoSuitType.MAX) {
+  def DetermineSubtypeA(suit: ExoSuitType.Value, weapon: Option[Equipment]): Int = {
+    if (suit == ExoSuitType.MAX) {
       weapon match {
         case Some(item) =>
           item.Definition match {
-            case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.nchev_scattercannon | GlobalDefinitions.vshev_quasar =>
+            case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.nchev_scattercannon |
+                GlobalDefinitions.vshev_quasar =>
               1
             case GlobalDefinitions.trhev_pounder | GlobalDefinitions.nchev_falcon | GlobalDefinitions.vshev_comet =>
               2
@@ -75,8 +78,7 @@ object InfantryLoadout {
         case None =>
           0
       }
-    }
-    else {
+    } else {
       0
     }
   }
@@ -90,12 +92,12 @@ object InfantryLoadout {
     * @param subtype the mechanized assault exo-suit subtype as determined by their arm weapons
     * @return the numeric subtype
     */
-  def DetermineSubtypeB(suit : ExoSuitType.Value, subtype : Int) : Int = {
+  def DetermineSubtypeB(suit: ExoSuitType.Value, subtype: Int): Int = {
     suit match {
-      case ExoSuitType.Standard => 0
-      case ExoSuitType.Agile => 1
-      case ExoSuitType.Reinforced => 2
-      case ExoSuitType.MAX => 3 + subtype //4, 5, 6
+      case ExoSuitType.Standard     => 0
+      case ExoSuitType.Agile        => 1
+      case ExoSuitType.Reinforced   => 2
+      case ExoSuitType.MAX          => 3 + subtype //4, 5, 6
       case ExoSuitType.Infiltration => 7
     }
   }
@@ -108,10 +110,11 @@ object InfantryLoadout {
     * @param subtype the numeric subtype
     * @return a `Set` of all certifications that would grant access to the mechanized assault exo-suit subtype
     */
-  def DetermineSubtypeC(subtype : Int) : Set[CertificationType.Value] = subtype match {
-    case 1 => Set(CertificationType.AIMAX, CertificationType.UniMAX)
-    case 2 => Set(CertificationType.AVMAX, CertificationType.UniMAX)
-    case 3 => Set(CertificationType.AAMAX, CertificationType.UniMAX)
-    case _ => Set.empty[CertificationType.Value]
-  }
+  def DetermineSubtypeC(subtype: Int): Set[CertificationType.Value] =
+    subtype match {
+      case 1 => Set(CertificationType.AIMAX, CertificationType.UniMAX)
+      case 2 => Set(CertificationType.AVMAX, CertificationType.UniMAX)
+      case 3 => Set(CertificationType.AAMAX, CertificationType.UniMAX)
+      case _ => Set.empty[CertificationType.Value]
+    }
 }

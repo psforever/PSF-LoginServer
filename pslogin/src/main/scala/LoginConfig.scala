@@ -2,5 +2,5 @@
 import java.net.InetAddress
 
 object LoginConfig {
-  var serverIpAddress : InetAddress = InetAddress.getLoopbackAddress
+  var serverIpAddress: InetAddress = InetAddress.getLoopbackAddress
 }

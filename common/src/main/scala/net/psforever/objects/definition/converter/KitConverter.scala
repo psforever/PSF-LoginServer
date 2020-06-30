@@ -7,11 +7,11 @@ import net.psforever.packet.game.objectcreate.{CommonFieldData, DetailedAmmoBoxD
 import scala.util.{Success, Try}
 
 class KitConverter extends ObjectCreateConverter[Kit]() {
-  override def ConstructorData(obj : Kit) : Try[CommonFieldData] = {
+  override def ConstructorData(obj: Kit): Try[CommonFieldData] = {
     Success(CommonFieldData()(false))
   }
 
-  override def DetailedConstructorData(obj : Kit) : Try[DetailedAmmoBoxData] = {
+  override def DetailedConstructorData(obj: Kit): Try[DetailedAmmoBoxData] = {
     Success(DetailedAmmoBoxData(0, 1))
   }
 }

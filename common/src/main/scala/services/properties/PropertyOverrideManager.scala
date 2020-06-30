@@ -13,10 +13,10 @@ import scala.collection.mutable.ListBuffer
 class PropertyOverrideManager extends Actor with Stash {
   private[this] val log = org.log4s.getLogger("PropertyOverrideManager")
 
-  private var overrides: Map[Int, Map[String, List[(String, String)]]] = Map()
+  private var overrides: Map[Int, Map[String, List[(String, String)]]]            = Map()
   private var gamePropertyScopes: List[PropertyOverrideMessage.GamePropertyScope] = List()
-  private var interstellarCluster: ActorRef = Actor.noSender
-  private var zoneIds: List[Int] = List()
+  private var interstellarCluster: ActorRef                                       = Actor.noSender
+  private var zoneIds: List[Int]                                                  = List()
 
   override def preStart = {
     log.info(s"Starting PropertyOverrideManager")
@@ -74,14 +74,14 @@ class PropertyOverrideManager extends Actor with Stash {
     val scopesBuffer: ListBuffer[GamePropertyScope] = ListBuffer()
 
     for (over <- overrides) {
-      val zoneId = over._1
+      val zoneId      = over._1
       val overrideMap = over._2
 
       val gamePropertyTargets: ListBuffer[PropertyOverrideMessage.GamePropertyTarget] = ListBuffer()
 
       for (propOverride <- overrideMap) {
         val objectId = ObjectClass.ByName(propOverride._1)
-        val props = GamePropertyTarget(objectId, propOverride._2)
+        val props    = GamePropertyTarget(objectId, propOverride._2)
         gamePropertyTargets += props
       }
 
@@ -99,14 +99,14 @@ class PropertyOverrideManager extends Actor with Stash {
       return null
     }
 
-    val content = scala.io.Source.fromInputStream(stream).getLines().filter(x => x.startsWith("add_property"))
+    val content                                    = scala.io.Source.fromInputStream(stream).getLines().filter(x => x.startsWith("add_property"))
     var data: ListBuffer[(String, String, String)] = ListBuffer()
 
     for (line <- content) {
       val splitLine = line.split(" ")
       if (splitLine.length >= 3) {
         val objectName = splitLine(1)
-        val property = splitLine(2)
+        val property   = splitLine(2)
 
         var propertyValue = ""
         for (i <- 3 to splitLine.length - 1) {

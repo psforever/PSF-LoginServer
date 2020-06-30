@@ -1,12 +1,12 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.psadmin
 
-import akka.actor.{Actor,ActorRef}
+import akka.actor.{Actor, ActorRef}
 import scala.collection.mutable.Map
 
-class CmdShutdown(args : Array[String], services : Map[String,ActorRef]) extends Actor {
+class CmdShutdown(args: Array[String], services: Map[String, ActorRef]) extends Actor {
   override def preStart = {
-    var data = Map[String,Any]()
+    var data = Map[String, Any]()
     context.parent ! CommandGoodResponse("Shutting down", data)
     context.system.terminate()
   }

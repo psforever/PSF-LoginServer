@@ -12,9 +12,14 @@ import org.specs2.specification.Scope
 import scala.collection.mutable
 import scala.concurrent.duration.FiniteDuration
 
-abstract class ActorTest(sys : ActorSystem = ActorSystem("system", ConfigFactory.parseMap(ActorTest.LoggingConfig)))
-  extends TestKit(sys) with Scope with ImplicitSender with AnyWordSpecLike with Matchers with BeforeAndAfterAll {
-  override def afterAll : Unit = {
+abstract class ActorTest(sys: ActorSystem = ActorSystem("system", ConfigFactory.parseMap(ActorTest.LoggingConfig)))
+    extends TestKit(sys)
+    with Scope
+    with ImplicitSender
+    with AnyWordSpecLike
+    with Matchers
+    with BeforeAndAfterAll {
+  override def afterAll: Unit = {
     TestKit.shutdownActorSystem(system)
   }
 }
@@ -22,9 +27,9 @@ abstract class ActorTest(sys : ActorSystem = ActorSystem("system", ConfigFactory
 object ActorTest {
   import scala.jdk.CollectionConverters._
   private val LoggingConfig = Map(
-    "akka.loggers" -> List("akka.testkit.TestEventListener").asJava,
-    "akka.loglevel" -> "OFF",
-    "akka.stdout-loglevel" -> "OFF",
+    "akka.loggers"          -> List("akka.testkit.TestEventListener").asJava,
+    "akka.loglevel"         -> "OFF",
+    "akka.stdout-loglevel"  -> "OFF",
     "akka.log-dead-letters" -> "OFF"
   ).asJava
 
@@ -39,7 +44,7 @@ object ActorTest {
     * @param sys what to poll
     * @return a list of messages
     */
-  def receiveMultiple(n : Int, timeout : FiniteDuration, sys : TestKit) : List[Any] = {
+  def receiveMultiple(n: Int, timeout: FiniteDuration, sys: TestKit): List[Any] = {
     assert(0 < n, s"number of expected messages must be positive non-zero integer - $n")
     val out = {
       val msgs = mutable.ListBuffer[Any]()
@@ -61,17 +66,16 @@ object ActorTest {
     * @param sendTo where to send mesages that have originated from an `actorProps` object;
     *               typically should point back to the test environment constructed by `TestKit`
     */
-  class SupportActorInterface(actorProps : Props, sendTo : ActorRef) extends Actor {
+  class SupportActorInterface(actorProps: Props, sendTo: ActorRef) extends Actor {
     val test = context.actorOf(actorProps, "support-actor")
 
-    def receive : Receive = {
+    def receive: Receive = {
       case msg =>
-        (if(sender == test) {
-          sendTo
-        }
-        else {
-          test
-        }) ! msg
+        (if (sender == test) {
+           sendTo
+         } else {
+           test
+         }) ! msg
     }
   }
 }

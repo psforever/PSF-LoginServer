@@ -10,12 +10,13 @@ import shapeless.{::, HNil}
 /**
   * Is sent by the PlanetSide client on character selection completion.
   */
-final case class CharacterCreateRequestMessage(name : String,
-                                               headId : Int,
-                                               voiceId : CharacterVoice.Value,
-                                               gender : CharacterGender.Value,
-                                               empire : PlanetSideEmpire.Value)
-  extends PlanetSideGamePacket {
+final case class CharacterCreateRequestMessage(
+    name: String,
+    headId: Int,
+    voiceId: CharacterVoice.Value,
+    gender: CharacterGender.Value,
+    empire: PlanetSideEmpire.Value
+) extends PlanetSideGamePacket {
   type Packet = CharacterCreateRequestMessage
   def opcode = GamePacketOpcode.CharacterCreateRequestMessage
   def encode = CharacterCreateRequestMessage.encode(this)
@@ -24,13 +25,13 @@ final case class CharacterCreateRequestMessage(name : String,
 object CharacterCreateRequestMessage extends Marshallable[CharacterCreateRequestMessage] {
   private val character_voice_codec = PacketHelpers.createEnumerationCodec(CharacterVoice, uint8)
 
-  implicit val codec : Codec[CharacterCreateRequestMessage] = (
+  implicit val codec: Codec[CharacterCreateRequestMessage] = (
     ("name" | PacketHelpers.encodedWideString) ::
       ("headId" | uint8L) ::
       ("voiceId" | character_voice_codec) ::
       ("gender" | CharacterGender.codec) ::
       ("empire" | PlanetSideEmpire.codec)
-    ).exmap[CharacterCreateRequestMessage] (
+  ).exmap[CharacterCreateRequestMessage](
     {
       case name :: headId :: voiceId :: gender :: empire :: HNil =>
         Attempt.successful(CharacterCreateRequestMessage(name, headId, voiceId, gender, empire))

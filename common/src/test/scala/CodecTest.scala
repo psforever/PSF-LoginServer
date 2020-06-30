@@ -61,8 +61,8 @@ class CodecTest extends Specification {
 
   "Angular" should {
     "roll" should {
-      val string_roll_0 = hex"00"
-      val string_roll_90 = hex"20"
+      val string_roll_0   = hex"00"
+      val string_roll_90  = hex"20"
       val string_roll_180 = hex"40"
       val string_roll_270 = hex"60"
 
@@ -100,8 +100,8 @@ class CodecTest extends Specification {
     }
 
     "pitch" should {
-      val string_pitch_0 = hex"00"
-      val string_pitch_90 = hex"60"
+      val string_pitch_0   = hex"00"
+      val string_pitch_90  = hex"60"
       val string_pitch_180 = hex"40"
       val string_pitch_270 = hex"20"
 
@@ -139,14 +139,14 @@ class CodecTest extends Specification {
     }
 
     "yaw, normal" should {
-      val string_pitch_0 = hex"00"
-      val string_pitch_90 = hex"60"
+      val string_pitch_0   = hex"00"
+      val string_pitch_90  = hex"60"
       val string_pitch_180 = hex"40"
       val string_pitch_270 = hex"20"
-      val string_yaw_0 = hex"20"
-      val string_yaw_90 = hex"00"
-      val string_yaw_180 = hex"60"
-      val string_yaw_270 = hex"40"
+      val string_yaw_0     = hex"20"
+      val string_yaw_90    = hex"00"
+      val string_yaw_180   = hex"60"
+      val string_yaw_270   = hex"40"
 
       "decode (0)" in {
         Angular.codec_yaw(0f).decode(string_yaw_0.bits).require.value mustEqual 270f
@@ -182,8 +182,8 @@ class CodecTest extends Specification {
     }
 
     "yaw, North-corrected" should {
-      val string_yaw_0 = hex"20"
-      val string_yaw_90 = hex"00"
+      val string_yaw_0   = hex"20"
+      val string_yaw_90  = hex"00"
       val string_yaw_180 = hex"60"
       val string_yaw_270 = hex"40"
 

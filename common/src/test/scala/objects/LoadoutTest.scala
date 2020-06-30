@@ -10,7 +10,7 @@ import org.specs2.mutable._
 class LoadoutTest extends Specification {
   val avatar = Avatar("TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 41, CharacterVoice.Voice1)
 
-  def CreatePlayer() : Player = {
+  def CreatePlayer(): Player = {
     new Player(avatar) {
       Slot(0).Equipment = Tool(beamer)
       Slot(2).Equipment = Tool(suppressor)
@@ -37,7 +37,7 @@ class LoadoutTest extends Specification {
 
   "create a loadout that contains a player's inventory" in {
     val player = CreatePlayer()
-    val obj = Loadout.Create(player, "test").asInstanceOf[InfantryLoadout]
+    val obj    = Loadout.Create(player, "test").asInstanceOf[InfantryLoadout]
 
     obj.label mustEqual "test"
     obj.exosuit mustEqual ExoSuitType.Standard
@@ -92,7 +92,7 @@ class LoadoutTest extends Specification {
 
   "distinguish MAX subtype information" in {
     val player = CreatePlayer()
-    val slot = player.Slot(0)
+    val slot   = player.Slot(0)
     slot.Equipment = None //only an unequipped slot can have its Equipment Size changed (Rifle -> Max)
     player.ExoSuit = ExoSuitType.MAX
 
@@ -115,7 +115,7 @@ class LoadoutTest extends Specification {
 
   "players have additional uniform subtype" in {
     val player = CreatePlayer()
-    val slot = player.Slot(0)
+    val slot   = player.Slot(0)
     slot.Equipment = None //only an unequipped slot can have its Equipment Size changed (Rifle -> Max)
 
     player.ExoSuit = ExoSuitType.Standard

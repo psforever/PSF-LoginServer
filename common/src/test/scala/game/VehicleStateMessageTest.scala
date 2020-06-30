@@ -44,8 +44,11 @@ class VehicleStateMessageTest extends Specification {
       Vector3(359.29688f, 1.0546875f, 90.35156f),
       Some(Vector3(0.0f, 0.0f, 0.03125f)),
       None,
-      0, 0, 15,
-      false, false
+      0,
+      0,
+      15,
+      false,
+      false
     )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 

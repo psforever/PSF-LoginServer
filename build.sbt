@@ -33,31 +33,31 @@ lazy val commonSettings = Seq(
   classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
   resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
   libraryDependencies ++= Seq(
-    "com.typesafe.akka" %% "akka-actor" % "2.6.5",
-    "com.typesafe.akka" %% "akka-testkit" % "2.6.5" % "test",
-    "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
-    "org.specs2" %% "specs2-core" % "4.9.4" % "test",
-    "org.scalatest" %% "scalatest" % "3.1.2" % "test",
-    "org.scodec" %% "scodec-core" % "1.11.7",
-    "net.java.dev.jna" % "jna" % "5.5.0",
-    "com.typesafe.akka" %% "akka-slf4j" % "2.6.5",
-    "ch.qos.logback" % "logback-classic" % "1.2.3",
-    "org.log4s" %% "log4s" % "1.8.2",
-    "org.fusesource.jansi" % "jansi" % "1.12",
-    "org.scoverage" %% "scalac-scoverage-plugin" % "1.4.1",
-    "com.github.nscala-time" %% "nscala-time" % "2.24.0",
-    "com.github.t3hnar" %% "scala-bcrypt" % "4.1",
-    "org.ini4j" % "ini4j" % "0.5.4",
-    "org.scala-graph" %% "graph-core" % "1.13.1",
-    "io.kamon" %% "kamon-bundle" % "2.1.0",
-    "io.kamon" %% "kamon-apm-reporter" % "2.1.0",
-    "org.json4s" %% "json4s-native" % "3.6.8",
-    "com.typesafe.akka" %% "akka-stream" % "2.6.5",
-    "io.getquill" %% "quill-jasync-postgres" % "3.5.2",
-    "org.flywaydb" % "flyway-core" % "6.5.0",
-    "org.postgresql" % "postgresql" % "42.2.14",
-    "com.typesafe" % "config" % "1.4.0",
-    "joda-time" % "joda-time" % "2.10.6"
+    "com.typesafe.akka"          %% "akka-actor"              % "2.6.5",
+    "com.typesafe.akka"          %% "akka-testkit"            % "2.6.5" % "test",
+    "com.typesafe.scala-logging" %% "scala-logging"           % "3.9.2",
+    "org.specs2"                 %% "specs2-core"             % "4.9.4" % "test",
+    "org.scalatest"              %% "scalatest"               % "3.1.2" % "test",
+    "org.scodec"                 %% "scodec-core"             % "1.11.7",
+    "net.java.dev.jna"            % "jna"                     % "5.5.0",
+    "com.typesafe.akka"          %% "akka-slf4j"              % "2.6.5",
+    "ch.qos.logback"              % "logback-classic"         % "1.2.3",
+    "org.log4s"                  %% "log4s"                   % "1.8.2",
+    "org.fusesource.jansi"        % "jansi"                   % "1.12",
+    "org.scoverage"              %% "scalac-scoverage-plugin" % "1.4.1",
+    "com.github.nscala-time"     %% "nscala-time"             % "2.24.0",
+    "com.github.t3hnar"          %% "scala-bcrypt"            % "4.1",
+    "org.ini4j"                   % "ini4j"                   % "0.5.4",
+    "org.scala-graph"            %% "graph-core"              % "1.13.1",
+    "io.kamon"                   %% "kamon-bundle"            % "2.1.0",
+    "io.kamon"                   %% "kamon-apm-reporter"      % "2.1.0",
+    "org.json4s"                 %% "json4s-native"           % "3.6.8",
+    "com.typesafe.akka"          %% "akka-stream"             % "2.6.5",
+    "io.getquill"                %% "quill-jasync-postgres"   % "3.5.2",
+    "org.flywaydb"                % "flyway-core"             % "6.5.0",
+    "org.postgresql"              % "postgresql"              % "42.2.14",
+    "com.typesafe"                % "config"                  % "1.4.0",
+    "joda-time"                   % "joda-time"               % "2.10.6"
   )
 )
 
@@ -71,8 +71,8 @@ lazy val psloginPackSettings = Seq(
   packMain := Map("ps-login" -> "PsLogin"),
   packArchivePrefix := "pslogin",
   packExtraClasspath := Map("ps-login" -> Seq("${PROG_HOME}/pscrypto-lib", "${PROG_HOME}/config")),
-  packResourceDir += (baseDirectory.value / "pscrypto-lib" -> "pscrypto-lib"),
-  packResourceDir += (baseDirectory.value / "config" -> "config"),
+  packResourceDir += (baseDirectory.value / "pscrypto-lib"               -> "pscrypto-lib"),
+  packResourceDir += (baseDirectory.value / "config"                     -> "config"),
   packResourceDir += (baseDirectory.value / "pslogin/src/main/resources" -> "config")
 )
 
@@ -117,8 +117,8 @@ lazy val decodePackets = (project in file("tools/decode-packets"))
   .settings(
     libraryDependencies ++= Seq(
       "org.scala-lang.modules" %% "scala-parallel-collections" % "0.2.0",
-      "com.github.scopt" %% "scopt" % "4.0.0-RC2",
-      "commons-io" % "commons-io" % "2.6"
+      "com.github.scopt"       %% "scopt"                      % "4.0.0-RC2",
+      "commons-io"              % "commons-io"                 % "2.6"
     )
   )
   .dependsOn(common)

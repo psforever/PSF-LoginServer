@@ -35,13 +35,12 @@ import scodec.codecs._
   * @param slot a parent-defined slot identifier that explains where the child is to be attached to the parent;
   *             encoded as the length field of a Pascal string
   */
-final case class ObjectCreateMessageParent(guid : PlanetSideGUID,
-                                           slot : Int)
+final case class ObjectCreateMessageParent(guid: PlanetSideGUID, slot: Int)
 
 object ObjectCreateBase {
   private[this] val log = org.log4s.getLogger("ObjectCreate")
 
-  private type basePattern = Long :: Int :: PlanetSideGUID :: Option[ObjectCreateMessageParent] :: BitVector :: HNil
+  private type basePattern   = Long :: Int :: PlanetSideGUID :: Option[ObjectCreateMessageParent] :: BitVector :: HNil
   private type parentPattern = Int :: PlanetSideGUID :: Option[ObjectCreateMessageParent] :: HNil
 
   /**
@@ -62,12 +61,11 @@ object ObjectCreateBase {
     *             note: the type is `StreamBitSize` as opposed to `ConstructorData`
     * @return the total length of the resulting data stream in bits
     */
-  def streamLen(parentInfo : Option[ObjectCreateMessageParent], data : StreamBitSize) : Long = {
+  def streamLen(parentInfo: Option[ObjectCreateMessageParent], data: StreamBitSize): Long = {
     //knowable length
-    val base : Long = if(parentInfo.isDefined) {
-      if(parentInfo.get.slot > 127) 92L else 84L //(32u + 1u + 11u + 16u) ?+ (16u + (8u | 16u))
-    }
-    else {
+    val base: Long = if (parentInfo.isDefined) {
+      if (parentInfo.get.slot > 127) 92L else 84L //(32u + 1u + 11u + 16u) ?+ (16u + (8u | 16u))
+    } else {
       60L
     }
     base + data.bitsize
@@ -84,7 +82,11 @@ object ObjectCreateBase {
     * @return the optional constructed object
     * @see `ObjectClass`
     */
-  def decodeData(objectClass : Int, data : BitVector, getCodecFunc : Int => Codec[ConstructorData]) : Attempt[ConstructorData] = {
+  def decodeData(
+      objectClass: Int,
+      data: BitVector,
+      getCodecFunc: Int => Codec[ConstructorData]
+  ): Attempt[ConstructorData] = {
     try {
       getCodecFunc(objectClass).decode(data) match {
         case Attempt.Successful(decode) =>
@@ -94,9 +96,8 @@ object ObjectCreateBase {
           log.debug(s"object type: $objectClass, input: ${data.toString}, problem: ${err.toString}")
           result
       }
-    }
-    catch {
-      case ex : Exception =>
+    } catch {
+      case ex: Exception =>
         log.error(s"Decoding error - ${ex.getClass.toString} - ${ex.toString} ($objectClass)")
         Attempt.failure(Err(ex.getMessage))
     }
@@ -112,7 +113,11 @@ object ObjectCreateBase {
     * @return the bitstream data
     * @see `ObjectClass`
     */
-  def encodeData(objectClass : Int, obj : ConstructorData, getCodecFunc : Int => Codec[ConstructorData]) : Attempt[BitVector] = {
+  def encodeData(
+      objectClass: Int,
+      obj: ConstructorData,
+      getCodecFunc: Int => Codec[ConstructorData]
+  ): Attempt[BitVector] = {
     try {
       getCodecFunc(objectClass).encode(obj.asInstanceOf[ConstructorData]) match {
         case result @ Attempt.Successful(encode) =>
@@ -123,9 +128,8 @@ object ObjectCreateBase {
           result
 
       }
-    }
-    catch {
-      case ex : Exception =>
+    } catch {
+      case ex: Exception =>
         log.error(s"Encoding error - ${ex.getClass.toString} - ${ex.toString} ($objectClass)")
         Attempt.failure(Err(ex.getMessage))
     }
@@ -134,31 +138,34 @@ object ObjectCreateBase {
   /**
     * `Codec` for formatting around the lack of parent data in the stream.
     */
-  private val noParent : Codec[parentPattern] = (
-    ("objectClass" | uintL(0xb)) :: //11u
+  private val noParent: Codec[parentPattern] = (
+    ("objectClass" | uintL(0xb)) ::   //11u
       ("guid" | PlanetSideGUID.codec) //16u
-    ).xmap[parentPattern](
+  ).xmap[parentPattern](
     {
       case cls :: guid :: HNil =>
         cls :: guid :: None :: HNil
-    }, {
+    },
+    {
       case cls :: guid :: None :: HNil =>
         cls :: guid :: HNil
     }
   )
+
   /**
     * `Codec` for reading and formatting parent data from the stream.
     */
-  private val parent : Codec[parentPattern] = (
-    ("parentGuid" | PlanetSideGUID.codec) :: //16u
-      ("objectClass" | uintL(0xb)) :: //11u
-      ("guid" | PlanetSideGUID.codec) :: //16u
+  private val parent: Codec[parentPattern] = (
+    ("parentGuid" | PlanetSideGUID.codec) ::                //16u
+      ("objectClass" | uintL(0xb)) ::                       //11u
+      ("guid" | PlanetSideGUID.codec) ::                    //16u
       ("parentSlotIndex" | PacketHelpers.encodedStringSize) //8u or 16u
-    ).xmap[parentPattern](
+  ).xmap[parentPattern](
     {
       case pguid :: cls :: guid :: slot :: HNil =>
         cls :: guid :: Some(ObjectCreateMessageParent(pguid, slot)) :: HNil
-    }, {
+    },
+    {
       case cls :: guid :: Some(ObjectCreateMessageParent(pguid, slot)) :: HNil =>
         pguid :: cls :: guid :: slot :: HNil
     }
@@ -167,9 +174,9 @@ object ObjectCreateBase {
   /**
     * `Codec` for handling the primary fields of both `ObjectCreateMessage` packets and `ObjectCreateDetailedMessage` packets.
     */
-  val baseCodec : Codec[basePattern] =
+  val baseCodec: Codec[basePattern] =
     ("streamLength" | uint32L) ::
-      (either(bool, parent, noParent).exmap[parentPattern] (
+      (either(bool, parent, noParent).exmap[parentPattern](
         {
           case Left(a :: b :: Some(c) :: HNil) =>
             Attempt.successful(a :: b :: Some(c) :: HNil) //true, _, _, Some(c)
@@ -180,12 +187,13 @@ object ObjectCreateBase {
             Attempt.failure(Err("missing parent structure")) //true, _, _, None
           case Right(_ :: _ :: Some(_) :: HNil) =>
             Attempt.failure(Err("unexpected parent structure")) //false, _, _, Some(c)
-        }, {
+        },
+        {
           case a :: b :: Some(c) :: HNil =>
             Attempt.successful(Left(a :: b :: Some(c) :: HNil))
           case a :: b :: None :: HNil =>
             Attempt.successful(Right(a :: b :: None :: HNil))
         }
       ) :+
-        ("data" | bits)) //greed is good
+      ("data" | bits)) //greed is good
 }

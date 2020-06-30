@@ -10,8 +10,8 @@ import scodec.bits._
 
 object CommonFieldDataTest extends Specification {
   val string_shotgunshell_dropped = hex"17 A5000000 F9A7D0D 5E269 BED5A F114 0000596000000"
-  val string_implant_interface = hex"17 6C000000 01014C93304818000000"
-  val string_order_terminala = hex"17 A5000000 B2AF30EACF1889F7A3D1200007D2000000"
+  val string_implant_interface    = hex"17 6C000000 01014C93304818000000"
+  val string_order_terminala      = hex"17 A5000000 B2AF30EACF1889F7A3D1200007D2000000"
 
   "AmmoBoxData" should {
     "decode (shotgun shells, dropped)" in {
@@ -58,7 +58,6 @@ object CommonFieldDataTest extends Specification {
       pkt mustEqual string_shotgunshell_dropped
     }
   }
-
 
   "TerminalData" should {
     "decode (implant interface)" in {
@@ -116,7 +115,12 @@ object CommonFieldDataTest extends Specification {
     }
 
     "InternalSlot" in {
-      TerminalData(ObjectClass.order_terminala, PlanetSideGUID(1), 1, CommonFieldData(PlanetSideEmpire.NC)(false)) mustEqual
+      TerminalData(
+        ObjectClass.order_terminala,
+        PlanetSideGUID(1),
+        1,
+        CommonFieldData(PlanetSideEmpire.NC)(false)
+      ) mustEqual
         InternalSlot(ObjectClass.order_terminala, PlanetSideGUID(1), 1, CommonFieldData(PlanetSideEmpire.NC)(false))
     }
   }

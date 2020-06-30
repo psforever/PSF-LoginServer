@@ -4,20 +4,20 @@ package net.psforever.config
 import scala.reflect.runtime.universe._
 
 /**
- * Scala [[Enumeration]] helpers implementing Scala versions of
- * Java's [[java.lang.Enum.valueOf(Class[Enum], String)]].
- * @author Dmitriy Yefremov (http://yefremov.net/blog/scala-enum-by-name/)
- */
+  * Scala [[Enumeration]] helpers implementing Scala versions of
+  * Java's [[java.lang.Enum.valueOf(Class[Enum], String)]].
+  * @author Dmitriy Yefremov (http://yefremov.net/blog/scala-enum-by-name/)
+  */
 object EnumReflector {
 
   private val mirror: Mirror = runtimeMirror(getClass.getClassLoader)
 
   /**
-   * Returns a value of the specified enumeration with the given name.
-   * @param name value name
-   * @tparam T enumeration type
-   * @return enumeration value, see [[scala.Enumeration.withName(String)]]
-   */
+    * Returns a value of the specified enumeration with the given name.
+    * @param name value name
+    * @tparam T enumeration type
+    * @return enumeration value, see [[scala.Enumeration.withName(String)]]
+    */
   def withName[T <: Enumeration#Value: TypeTag](name: String): T = {
     typeOf[T] match {
       case valueType @ TypeRef(enumType, _, _) =>
@@ -28,10 +28,10 @@ object EnumReflector {
   }
 
   /**
-   * Returns the set of values of an enumeration
-   * @tparam T enumeration type
-   * @return possible enumeration values, see [[scala.Enumeration.values()]]
-   */
+    * Returns the set of values of an enumeration
+    * @tparam T enumeration type
+    * @return possible enumeration values, see [[scala.Enumeration.values()]]
+    */
   def values[T <: Enumeration#ValueSet: TypeTag]: T = {
     typeOf[T] match {
       case valueType @ TypeRef(enumType, _, _) =>
@@ -41,14 +41,14 @@ object EnumReflector {
     }
   }
 
-  private def factoryMethodSymbol(enumType: Type, name : String): MethodSymbol = {
+  private def factoryMethodSymbol(enumType: Type, name: String): MethodSymbol = {
     enumType.member(TermName(name)).asMethod
   }
 
   private def reflect(module: ModuleSymbol, method: MethodSymbol)(args: Any*): Any = {
-    val moduleMirror = mirror.reflectModule(module)
+    val moduleMirror   = mirror.reflectModule(module)
     val instanceMirror = mirror.reflect(moduleMirror.instance)
-    instanceMirror.reflectMethod(method)(args:_*)
+    instanceMirror.reflectMethod(method)(args: _*)
   }
 
 }

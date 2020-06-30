@@ -11,9 +11,9 @@ import services.avatar.{AvatarAction, AvatarServiceMessage}
   * with specific exceptions for the `ImplantTerminalMech` and the `Generator`.
   */
 trait DamageableAmenity extends DamageableEntity {
-  def DamageableObject : Amenity
+  def DamageableObject: Amenity
 
-  override protected def DestructionAwareness(target : Damageable.Target, cause : ResolvedProjectile) : Unit = {
+  override protected def DestructionAwareness(target: Damageable.Target, cause: ResolvedProjectile): Unit = {
     super.DestructionAwareness(target, cause)
     DamageableAmenity.DestructionAwareness(target, cause)
     target.ClearHistory()
@@ -21,6 +21,7 @@ trait DamageableAmenity extends DamageableEntity {
 }
 
 object DamageableAmenity {
+
   /**
     * A destroyed `Amenity` target dispatches two messages to chance its model and operational states.
     * The common manifestation is a sparking entity that will no longer report being accessible.
@@ -31,10 +32,10 @@ object DamageableAmenity {
     * @param target the entity being destroyed
     * @param cause historical information about the damage
     */
-  def DestructionAwareness(target : Damageable.Target, cause : ResolvedProjectile) : Unit = {
-    val zone = target.Zone
-    val zoneId = zone.Id
-    val events = zone.AvatarEvents
+  def DestructionAwareness(target: Damageable.Target, cause: ResolvedProjectile): Unit = {
+    val zone       = target.Zone
+    val zoneId     = zone.Id
+    val events     = zone.AvatarEvents
     val targetGUID = target.GUID
     events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(targetGUID, 50, 1))
     events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(targetGUID, 51, 1))

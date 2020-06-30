@@ -16,16 +16,16 @@ object CharacterRequestAction extends Enumeration(0) {
   * Is sent by the PlanetSide client when selecting a character to play from the character selection
   * menu.
   */
-final case class CharacterRequestMessage(charId : Long, action: CharacterRequestAction.Type)
-  extends PlanetSideGamePacket {
+final case class CharacterRequestMessage(charId: Long, action: CharacterRequestAction.Type)
+    extends PlanetSideGamePacket {
   type Packet = CharacterRequestMessage
   def opcode = GamePacketOpcode.CharacterRequestMessage
   def encode = CharacterRequestMessage.encode(this)
 }
 
 object CharacterRequestMessage extends Marshallable[CharacterRequestMessage] {
-  implicit val codec : Codec[CharacterRequestMessage] = (
-      ("charId" | uint32L) ::
-        ("action" | CharacterRequestAction.codec)
-    ).as[CharacterRequestMessage]
+  implicit val codec: Codec[CharacterRequestMessage] = (
+    ("charId" | uint32L) ::
+      ("action" | CharacterRequestAction.codec)
+  ).as[CharacterRequestMessage]
 }

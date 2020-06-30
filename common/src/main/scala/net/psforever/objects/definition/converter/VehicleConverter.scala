@@ -9,12 +9,12 @@ import net.psforever.types.{DriveState, PlanetSideGUID}
 import scala.util.{Failure, Success, Try}
 
 class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
-  override def DetailedConstructorData(obj : Vehicle) : Try[VehicleData] =
+  override def DetailedConstructorData(obj: Vehicle): Try[VehicleData] =
     Failure(new Exception("VehicleConverter should not be used to generate detailed VehicleData (nothing should)"))
 
-  override def ConstructorData(obj : Vehicle) : Try[VehicleData] = {
+  override def ConstructorData(obj: Vehicle): Try[VehicleData] = {
     val health = StatConverter.Health(obj.Health, obj.MaxHealth)
-    if(health > 0) { //active
+    if (health > 0) { //active
       Success(
         VehicleData(
           PlacementData(obj.Position, obj.Orientation, obj.Velocity),
@@ -29,7 +29,7 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
             v5 = None,
             obj.Owner match {
               case Some(owner) => owner
-              case None => PlanetSideGUID(0)
+              case None        => PlanetSideGUID(0)
             }
           ),
           unk3 = false,
@@ -44,8 +44,7 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
           Some(InventoryData(MakeDriverSeat(obj) ++ MakeUtilities(obj) ++ MakeMountings(obj)))
         )(SpecificFormatModifier)
       )
-    }
-    else { //destroyed
+    } else { //destroyed
       Success(
         VehicleData(
           PlacementData(obj.Position, obj.Orientation),
@@ -75,8 +74,8 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
     }
   }
 
-  private def MakeDriverSeat(obj : Vehicle) : List[InventoryItemData.InventoryItem] = {
-    val offset : Long = VehicleData.InitialStreamLengthToSeatEntries(obj.Velocity.nonEmpty, SpecificFormatModifier)
+  private def MakeDriverSeat(obj: Vehicle): List[InventoryItemData.InventoryItem] = {
+    val offset: Long = VehicleData.InitialStreamLengthToSeatEntries(obj.Velocity.nonEmpty, SpecificFormatModifier)
     obj.Seats(0).Occupant match {
       case Some(player) =>
         List(InventoryItemData(ObjectClass.avatar, player.GUID, 0, SeatConverter.MakeSeat(player, offset)))
@@ -84,25 +83,29 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
         Nil
     }
   }
-  
-  private def MakeMountings(obj : Vehicle) : List[InventoryItemData.InventoryItem] = {
-    obj.Weapons.collect { case (index, slot) if slot.Equipment.nonEmpty =>
-      val equip : Equipment = slot.Equipment.get
-      val equipDef = equip.Definition
-      InventoryItemData(equipDef.ObjectId, equip.GUID, index, equipDef.Packet.ConstructorData(equip).get)
+
+  private def MakeMountings(obj: Vehicle): List[InventoryItemData.InventoryItem] = {
+    obj.Weapons.collect {
+      case (index, slot) if slot.Equipment.nonEmpty =>
+        val equip: Equipment = slot.Equipment.get
+        val equipDef         = equip.Definition
+        InventoryItemData(equipDef.ObjectId, equip.GUID, index, equipDef.Packet.ConstructorData(equip).get)
     }.toList
   }
 
-  protected def MakeUtilities(obj : Vehicle) : List[InventoryItemData.InventoryItem] = {
-    Vehicle.EquipmentUtilities(obj.Utilities).map({
-      case(index, utilContainer) =>
-        val util = utilContainer()
-        val utilDef = util.Definition
-        InventoryItemData(utilDef.ObjectId, util.GUID, index, utilDef.Packet.ConstructorData(util).get)
-    }).toList
+  protected def MakeUtilities(obj: Vehicle): List[InventoryItemData.InventoryItem] = {
+    Vehicle
+      .EquipmentUtilities(obj.Utilities)
+      .map({
+        case (index, utilContainer) =>
+          val util    = utilContainer()
+          val utilDef = util.Definition
+          InventoryItemData(utilDef.ObjectId, util.GUID, index, utilDef.Packet.ConstructorData(util).get)
+      })
+      .toList
   }
 
-  protected def SpecificFormatModifier : VehicleFormat.Value = VehicleFormat.Normal
+  protected def SpecificFormatModifier: VehicleFormat.Value = VehicleFormat.Normal
 
-  protected def SpecificFormatData(obj : Vehicle) : Option[SpecificVehicleData] = None
+  protected def SpecificFormatData(obj: Vehicle): Option[SpecificVehicleData] = None
 }

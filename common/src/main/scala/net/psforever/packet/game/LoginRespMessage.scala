@@ -27,26 +27,27 @@ import scodec.codecs._
   * @param username The login username
   * @param privilege If set above 10000, then the user has access to GM commands. Not sure of other values.
   */
-final case class LoginRespMessage(token : String,
-                                  error : LoginRespMessage.LoginError.Type,
-                                  stationError : LoginRespMessage.StationError.Type,
-                                  subscriptionStatus : LoginRespMessage.StationSubscriptionStatus.Type,
-                                  unkUIRelated : Long,
-                                  username : String,
-                                  privilege : Long) extends PlanetSideGamePacket {
+final case class LoginRespMessage(
+    token: String,
+    error: LoginRespMessage.LoginError.Type,
+    stationError: LoginRespMessage.StationError.Type,
+    subscriptionStatus: LoginRespMessage.StationSubscriptionStatus.Type,
+    unkUIRelated: Long,
+    username: String,
+    privilege: Long
+) extends PlanetSideGamePacket {
   def opcode = GamePacketOpcode.LoginRespMessage
   def encode = LoginRespMessage.encode(this)
 }
-
 
 object LoginRespMessage extends Marshallable[LoginRespMessage] {
 
   object LoginError extends Enumeration {
     type Type = Value
-    val Success = Value(0)
-    val unk1 = Value(1)
+    val Success               = Value(0)
+    val unk1                  = Value(1)
     val BadUsernameOrPassword = Value(5)
-    val BadVersion = Value(0xf)
+    val BadVersion            = Value(0xf)
 
     implicit val codec = PacketHelpers.createLongEnumerationCodec(this, uint32L)
   }
@@ -61,25 +62,25 @@ object LoginRespMessage extends Marshallable[LoginRespMessage] {
 
   object StationSubscriptionStatus extends Enumeration {
     type Type = Value
-    val None = Value(1) // "You do not have a PlanetSide subscription"
-    val Active = Value(2) /// Not sure about this one (guessing) (no ingame error message)
-    val unk3 = Value(3)
-    val Closed = Value(4) // "Your PlanetSide subscription is currently closed"
-    val Trial = Value(5) /// Not sure about this one either (no ingame error message)
+    val None         = Value(1) // "You do not have a PlanetSide subscription"
+    val Active       = Value(2) /// Not sure about this one (guessing) (no ingame error message)
+    val unk3         = Value(3)
+    val Closed       = Value(4) // "Your PlanetSide subscription is currently closed"
+    val Trial        = Value(5) /// Not sure about this one either (no ingame error message)
     val TrialExpired = Value(6) // "Your trial PlanetSide subscription has expired"
 
     implicit val codec = PacketHelpers.createLongEnumerationCodec(this, uint32L)
   }
 
-  implicit val codec : Codec[LoginRespMessage] = (
+  implicit val codec: Codec[LoginRespMessage] = (
     ("token" | LoginMessage.tokenCodec) ::
-    ("error" | LoginError.codec) ::
-    ("station_error" | StationError.codec) ::
-    ("subscription_status" | StationSubscriptionStatus.codec) ::
-    ("unknown" | uint32L) ::
-    ("username" | PacketHelpers.encodedString) ::
-    ("privilege" | uint32L)
-      .flatZip(_ => bool) // really not so sure about this bool part. client gets just a single bit
-      .xmap[Long]({case (a, _) => a}, priv => (priv, (priv & 1) == 1))
-    ).as[LoginRespMessage]
+      ("error" | LoginError.codec) ::
+      ("station_error" | StationError.codec) ::
+      ("subscription_status" | StationSubscriptionStatus.codec) ::
+      ("unknown" | uint32L) ::
+      ("username" | PacketHelpers.encodedString) ::
+      ("privilege" | uint32L)
+        .flatZip(_ => bool) // really not so sure about this bool part. client gets just a single bit
+        .xmap[Long]({ case (a, _) => a }, priv => (priv, (priv & 1) == 1))
+  ).as[LoginRespMessage]
 }

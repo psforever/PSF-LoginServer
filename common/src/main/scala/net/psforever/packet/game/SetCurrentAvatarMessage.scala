@@ -6,7 +6,7 @@ import net.psforever.types.PlanetSideGUID
 import scodec.Codec
 import scodec.codecs._
 
-final case class SetCurrentAvatarMessage(guid: PlanetSideGUID, unk1 : Int, unk2 : Int) extends PlanetSideGamePacket {
+final case class SetCurrentAvatarMessage(guid: PlanetSideGUID, unk1: Int, unk2: Int) extends PlanetSideGamePacket {
   type Packet = SetCurrentAvatarMessage
   def opcode = GamePacketOpcode.SetCurrentAvatarMessage
   def encode = SetCurrentAvatarMessage.encode(this)
@@ -17,5 +17,5 @@ object SetCurrentAvatarMessage extends Marshallable[SetCurrentAvatarMessage] {
     ("guid" | PlanetSideGUID.codec) ::
       ("unk1" | uint(3)) ::
       ("unk2" | uint(3))
-    ).as[SetCurrentAvatarMessage]
+  ).as[SetCurrentAvatarMessage]
 }

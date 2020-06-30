@@ -17,13 +17,12 @@ import scodec.codecs._
   * Is `state` ever not `true`?
   * @param state true
   */
-final case class AvatarJumpMessage(state : Boolean)
-  extends PlanetSideGamePacket {
+final case class AvatarJumpMessage(state: Boolean) extends PlanetSideGamePacket {
   type Packet = AvatarJumpMessage
   def opcode = GamePacketOpcode.AvatarJumpMessage
   def encode = AvatarJumpMessage.encode(this)
 }
 
 object AvatarJumpMessage extends Marshallable[AvatarJumpMessage] {
-  implicit val codec : Codec[AvatarJumpMessage] = ("state" | bool).as[AvatarJumpMessage]
+  implicit val codec: Codec[AvatarJumpMessage] = ("state" | bool).as[AvatarJumpMessage]
 }

@@ -15,15 +15,16 @@ import net.psforever.types.Vector3
   * The `IFFLock` is ideally associated with a server map object - a `Door` - to which it acts as a gatekeeper.
   * @param idef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
-class IFFLock(private val idef : IFFLockDefinition) extends Amenity with Hackable {
-  def Definition : IFFLockDefinition = idef
+class IFFLock(private val idef: IFFLockDefinition) extends Amenity with Hackable {
+  def Definition: IFFLockDefinition = idef
   HackSound = TriggeredSound.HackDoor
   HackEffectDuration = Array(60, 180, 300, 360)
   HackDuration = Array(5, 3, 1, 1)
 
   /** a vector in the direction of the "outside" of a room;
-    * typically, any locking utility is on that same "outside" */
-  private var outwards : Vector3 = Vector3.Zero
+    * typically, any locking utility is on that same "outside"
+    */
+  private var outwards: Vector3 = Vector3.Zero
 
   /**
     * While setting the normal rotation angle for the IFF lock for a door (?),
@@ -35,7 +36,7 @@ class IFFLock(private val idef : IFFLockDefinition) extends Amenity with Hackabl
     * @param orient the orientation of the door
     * @return the clamped orientation of the door
     */
-  override def Orientation_=(orient : Vector3) : Vector3 = {
+  override def Orientation_=(orient: Vector3): Vector3 = {
     val ret = super.Orientation_=(orient)
     //transform angular data into unit circle components
     val rang = math.toRadians(orient.z + 90)
@@ -43,19 +44,21 @@ class IFFLock(private val idef : IFFLockDefinition) extends Amenity with Hackabl
     ret
   }
 
-  def Outwards : Vector3 = outwards
+  def Outwards: Vector3 = outwards
 }
 
 object IFFLock {
+
   /**
     * Overloaded constructor.
     * @param idef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
     */
-  def apply(idef : IFFLockDefinition) : IFFLock = {
+  def apply(idef: IFFLockDefinition): IFFLock = {
     new IFFLock(idef)
   }
 
   import akka.actor.ActorContext
+
   /**
     * Instantiate an configure a `IFFLock` object
     *
@@ -65,7 +68,7 @@ object IFFLock {
     * @param outwards_direction a vector used to determine which direction is inside/outside for the linked door
     * @return the `IFFLock` object
     */
-  def Constructor(pos: Vector3, outwards_direction : Vector3)(id : Int, context : ActorContext) : IFFLock = {
+  def Constructor(pos: Vector3, outwards_direction: Vector3)(id: Int, context: ActorContext): IFFLock = {
     import akka.actor.Props
     import net.psforever.objects.GlobalDefinitions
 

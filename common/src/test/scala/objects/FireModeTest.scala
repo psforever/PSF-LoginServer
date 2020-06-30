@@ -3,7 +3,12 @@ package objects
 
 import net.psforever.objects.definition.ToolDefinition
 import net.psforever.objects.{GlobalDefinitions, Tool}
-import net.psforever.objects.equipment.{EquipmentSize, FireModeDefinition, InfiniteFireModeDefinition, PelletFireModeDefinition}
+import net.psforever.objects.equipment.{
+  EquipmentSize,
+  FireModeDefinition,
+  InfiniteFireModeDefinition,
+  PelletFireModeDefinition
+}
 import org.specs2.mutable._
 
 class FireModeTest extends Specification {

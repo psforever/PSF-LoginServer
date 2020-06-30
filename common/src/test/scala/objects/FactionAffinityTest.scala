@@ -43,7 +43,14 @@ class FactionAffinityTest extends Specification {
 
     "inherits affinity from owner 2" in {
       val obj = new Door(GlobalDefinitions.door)
-      val bldg = new Building("Building", building_guid = 0, map_id = 1, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
+      val bldg = new Building(
+        "Building",
+        building_guid = 0,
+        map_id = 1,
+        Zone.Nowhere,
+        StructureType.Building,
+        GlobalDefinitions.building
+      )
       obj.Owner = bldg
       obj.Faction mustEqual PlanetSideEmpire.NEUTRAL
 
@@ -108,25 +115,27 @@ class FactionAffinity3Test extends ActorTest {
 object FactionAffinityTest {
   import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 
-  private class AffinityControl(obj : FactionAffinity) extends Actor
-    with FactionAffinityBehavior.Check
-    with FactionAffinityBehavior.Convert {
+  private class AffinityControl(obj: FactionAffinity)
+      extends Actor
+      with FactionAffinityBehavior.Check
+      with FactionAffinityBehavior.Convert {
     override def FactionObject = obj
-    def receive = checkBehavior.orElse(convertBehavior).orElse { case _ => }
+    def receive                = checkBehavior.orElse(convertBehavior).orElse { case _ => }
   }
 
-  def SetUpAgent(implicit system : ActorSystem) = {
+  def SetUpAgent(implicit system: ActorSystem) = {
     val obj = new Vehicle(GlobalDefinitions.quadstealth)
     obj.Actor = system.actorOf(Props(classOf[FactionAffinityTest.AffinityControl], obj), "test")
     obj
   }
 
-  def FreeFactionObject : FactionAffinity = new FactionAffinity() {
-    private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
-    def Faction : PlanetSideEmpire.Value = faction
-    override def Faction_=(fac : PlanetSideEmpire.Value) : PlanetSideEmpire.Value = {
-      faction = fac
-      faction
+  def FreeFactionObject: FactionAffinity =
+    new FactionAffinity() {
+      private var faction: PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
+      def Faction: PlanetSideEmpire.Value         = faction
+      override def Faction_=(fac: PlanetSideEmpire.Value): PlanetSideEmpire.Value = {
+        faction = fac
+        faction
+      }
     }
-  }
 }

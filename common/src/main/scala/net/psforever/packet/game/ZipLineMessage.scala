@@ -22,18 +22,20 @@ import scodec.codecs._
   * @param pos the coordinates of the point where the player is interacting with the zip line;
   *            "optional," in theory
   */
-final case class ZipLineMessage(player_guid : PlanetSideGUID,
-                                forwards : Boolean,
-                                action : Int,
-                                path_id : Long,
-                                pos : Option[Vector3] = None)
-  extends PlanetSideGamePacket {
+final case class ZipLineMessage(
+    player_guid: PlanetSideGUID,
+    forwards: Boolean,
+    action: Int,
+    path_id: Long,
+    pos: Option[Vector3] = None
+) extends PlanetSideGamePacket {
   type Packet = ZipLineMessage
   def opcode = GamePacketOpcode.ZipLineMessage
   def encode = ZipLineMessage.encode(this)
 }
 
 object ZipLineMessage extends Marshallable[ZipLineMessage] {
+
   /**
     * Alternate constructor for `ZipLineMessage` that requirement for the last field.
     *
@@ -44,16 +46,22 @@ object ZipLineMessage extends Marshallable[ZipLineMessage] {
     * @param pos               the coordinates of the point where the player is interacting with the zip line
     * @return a `ZipLineMessage` object
     */
-  def apply(player_guid : PlanetSideGUID, forwards : Boolean, action : Int, path_id : Long, pos : Vector3) : ZipLineMessage = {
+  def apply(
+      player_guid: PlanetSideGUID,
+      forwards: Boolean,
+      action: Int,
+      path_id: Long,
+      pos: Vector3
+  ): ZipLineMessage = {
     ZipLineMessage(player_guid, forwards, action, path_id, Some(pos))
   }
 
-  implicit val codec : Codec[ZipLineMessage] = (
+  implicit val codec: Codec[ZipLineMessage] = (
     ("player_guid" | PlanetSideGUID.codec) >>:~ { player =>
       ("forwards" | bool) ::
         ("action" | uint2) ::
         ("id" | uint32L) ::
         conditional(player.guid > 0, Vector3.codec_float) // !(player.guid == 0)
     }
-    ).as[ZipLineMessage]
+  ).as[ZipLineMessage]
 }

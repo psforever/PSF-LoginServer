@@ -26,7 +26,7 @@ class MountableControl2Test extends ActorTest {
   "MountableControl" should {
     "let a player mount" in {
       val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
-      val obj = new MountableTest.MountableTestObject
+      val obj    = new MountableTest.MountableTestObject
       obj.Actor = system.actorOf(Props(classOf[MountableTest.MountableTestControl], obj), "mountable")
       val msg = Mountable.TryMount(player, 0)
 
@@ -48,7 +48,7 @@ class MountableControl3Test extends ActorTest {
     "block a player from mounting" in {
       val player1 = Player(Avatar("test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       val player2 = Player(Avatar("test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
-      val obj = new MountableTest.MountableTestObject
+      val obj     = new MountableTest.MountableTestObject
       obj.Actor = system.actorOf(Props(classOf[MountableTest.MountableTestControl], obj), "mountable")
       obj.Actor ! Mountable.TryMount(player1, 0)
       receiveOne(Duration.create(100, "ms")) //consume reply
@@ -68,28 +68,30 @@ class MountableControl3Test extends ActorTest {
 
 object MountableTest {
   class MountableTestObject extends PlanetSideServerObject with Mountable {
-    private val seats : Map[Int, Seat] = Map( 0 -> new Seat(new SeatDefinition()) )
-    def Seats : Map[Int, Seat] = seats
-    def Seat(seatNum : Int) : Option[Seat] = seats.get(seatNum)
-    def MountPoints : Map[Int, Int] = Map(1 -> 0)
-    def GetSeatFromMountPoint(mount : Int) : Option[Int] = MountPoints.get(mount)
-    def PassengerInSeat(user : Player) : Option[Int] = {
-      if(seats(0).Occupant.contains(user)) {
+    private val seats: Map[Int, Seat]                  = Map(0 -> new Seat(new SeatDefinition()))
+    def Seats: Map[Int, Seat]                          = seats
+    def Seat(seatNum: Int): Option[Seat]               = seats.get(seatNum)
+    def MountPoints: Map[Int, Int]                     = Map(1 -> 0)
+    def GetSeatFromMountPoint(mount: Int): Option[Int] = MountPoints.get(mount)
+    def PassengerInSeat(user: Player): Option[Int] = {
+      if (seats(0).Occupant.contains(user)) {
         Some(0)
-      }
-      else {
+      } else {
         None
       }
     }
     GUID = PlanetSideGUID(1)
     //eh whatever
-    def Faction = PlanetSideEmpire.TR
-    def Definition : ObjectDefinition = null
+    def Faction                      = PlanetSideEmpire.TR
+    def Definition: ObjectDefinition = null
   }
 
-  class MountableTestControl(obj : PlanetSideServerObject with Mountable) extends Actor with MountableBehavior.Mount with MountableBehavior.Dismount {
+  class MountableTestControl(obj: PlanetSideServerObject with Mountable)
+      extends Actor
+      with MountableBehavior.Mount
+      with MountableBehavior.Dismount {
     override def MountableObject = obj
 
-    def receive : Receive = mountBehavior.orElse(dismountBehavior)
+    def receive: Receive = mountBehavior.orElse(dismountBehavior)
   }
 }

@@ -21,7 +21,9 @@ import net.psforever.objects.definition._
   *              field gets inherited
   * @param vehicle_definition the original type of vehicle whose state is being populated
   */
-final case class VehicleLoadout(label : String,
-                                visible_slots : List[Loadout.SimplifiedEntry],
-                                inventory : List[Loadout.SimplifiedEntry],
-                                vehicle_definition : VehicleDefinition) extends EquipmentLoadout(label, visible_slots, inventory)
+final case class VehicleLoadout(
+    label: String,
+    visible_slots: List[Loadout.SimplifiedEntry],
+    inventory: List[Loadout.SimplifiedEntry],
+    vehicle_definition: VehicleDefinition
+) extends EquipmentLoadout(label, visible_slots, inventory)

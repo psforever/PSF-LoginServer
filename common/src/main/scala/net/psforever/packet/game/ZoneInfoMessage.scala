@@ -20,19 +20,16 @@ import scodec.codecs._
   *                  only applicable to caverns
   * @see `ZonePopulationUpdateMessage` for information on population and queues
   */
-final case class ZoneInfoMessage(zone : Int,
-                                 empire_status : Boolean,
-                                 lock_time : Long)
-  extends PlanetSideGamePacket {
+final case class ZoneInfoMessage(zone: Int, empire_status: Boolean, lock_time: Long) extends PlanetSideGamePacket {
   type Packet = ZoneInfoMessage
   def opcode = GamePacketOpcode.ZoneInfoMessage
   def encode = ZoneInfoMessage.encode(this)
 }
 
 object ZoneInfoMessage extends Marshallable[ZoneInfoMessage] {
-  implicit val codec : Codec[ZoneInfoMessage] = (
+  implicit val codec: Codec[ZoneInfoMessage] = (
     ("zone" | uint16L) ::
       ("empire_status" | bool) ::
       ("lock_time" | uint32L)
-    ).as[ZoneInfoMessage]
+  ).as[ZoneInfoMessage]
 }

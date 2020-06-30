@@ -9,7 +9,7 @@ object FactionAffinityBehavior {
     * A `trait` for inheritance of common implementable methods.
     */
   sealed trait BasicAffinity {
-    def FactionObject : FactionAffinity
+    def FactionObject: FactionAffinity
   }
 
   /**
@@ -17,9 +17,9 @@ object FactionAffinityBehavior {
     * This is a mix-in trait for combining with existing `Receive` logic.
     */
   trait Convert extends BasicAffinity {
-    this : Actor =>
+    this: Actor =>
 
-    val convertBehavior : Receive = {
+    val convertBehavior: Receive = {
       case FactionAffinity.ConvertFactionAffinity(faction) =>
         FactionObject.Faction = faction
         sender ! FactionAffinity.AssertFactionAffinity(FactionObject, faction)
@@ -32,9 +32,9 @@ object FactionAffinityBehavior {
     * This is a mix-in trait for combining with existing `Receive` logic.
     */
   trait Check extends BasicAffinity {
-    this : Actor =>
+    this: Actor =>
 
-    val checkBehavior : Receive = {
+    val checkBehavior: Receive = {
       case FactionAffinity.ConfirmFactionAffinity() | FactionAffinity.AssertFactionAffinity(_, _) =>
         sender ! FactionAffinity.AssertFactionAffinity(FactionObject, FactionObject.Faction)
     }

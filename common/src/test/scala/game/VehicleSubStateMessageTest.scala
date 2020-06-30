@@ -27,7 +27,15 @@ class VehicleSubStateMessageTest extends Specification {
   }
 
   "encode" in {
-    val msg = VehicleSubStateMessage(PlanetSideGUID(7385), PlanetSideGUID(3376), Vector3(3465.9575f, 2873.3635f, 91.05253f), Vector3(11.6015625f, 0.0f, 3.515625f), Some(Vector3(-0.40625f, 0.03125f, -0.8125f)), false, None)
+    val msg = VehicleSubStateMessage(
+      PlanetSideGUID(7385),
+      PlanetSideGUID(3376),
+      Vector3(3465.9575f, 2873.3635f, 91.05253f),
+      Vector3(11.6015625f, 0.0f, 3.515625f),
+      Some(Vector3(-0.40625f, 0.03125f, -0.8125f)),
+      false,
+      None
+    )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string

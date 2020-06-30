@@ -3,11 +3,11 @@ import akka.actor.{ActorRef, MDCContextAware}
 import akka.testkit.TestProbe
 import net.psforever.packet.{ControlPacket, GamePacket}
 
-final case class MDCGamePacket(packet : GamePacket)
+final case class MDCGamePacket(packet: GamePacket)
 
-final case class MDCControlPacket(packet : ControlPacket)
+final case class MDCControlPacket(packet: ControlPacket)
 
-class MDCTestProbe(probe : TestProbe) extends MDCContextAware {
+class MDCTestProbe(probe: TestProbe) extends MDCContextAware {
   /*
   The way this test mediator works needs to be explained.
 
@@ -25,10 +25,10 @@ class MDCTestProbe(probe : TestProbe) extends MDCContextAware {
   The r-output is a normal message that can be polled on that TestProbe.
   Pass r-input into this MDCTestProbe directly.
   The l-output is an MdcMsg that can be treated just as r-output, sending it to this Actor and polling the TestProbe.
-  */
-  private var left : ActorRef = ActorRef.noSender
+   */
+  private var left: ActorRef = ActorRef.noSender
 
-  def receive : Receive = {
+  def receive: Receive = {
     case msg @ HelloFriend(_, _) =>
       left = sender()
       probe.ref ! msg

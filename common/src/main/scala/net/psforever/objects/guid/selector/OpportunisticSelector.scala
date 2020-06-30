@@ -8,18 +8,18 @@ package net.psforever.objects.guid.selector
   * The search wraps back around to the zero index to the same start index if necessary.
   */
 class OpportunisticSelector extends NumberSelector {
-  override def Get(ary : Array[Int]) : Int = {
-    val start : Int = selectionIndex
-    if(ary(selectionIndex) == -1) {
-      val len : Int = ary.length
+  override def Get(ary: Array[Int]): Int = {
+    val start: Int = selectionIndex
+    if (ary(selectionIndex) == -1) {
+      val len: Int = ary.length
       do {
         selectionIndex = (selectionIndex + 1) % len
-      }
-      while(ary(selectionIndex) == -1 && selectionIndex != start)
+      } while (ary(selectionIndex) == -1 && selectionIndex != start)
     }
-    val out : Int = ary(selectionIndex)
+    val out: Int = ary(selectionIndex)
     ary(selectionIndex) = -1
-    selectionIndex = (selectionIndex + (out >> 31) + 1) % ary.length //(out >> 31): 0 if positive or zero, -1 if negative
+    selectionIndex =
+      (selectionIndex + (out >> 31) + 1) % ary.length //(out >> 31): 0 if positive or zero, -1 if negative
     out
   }
 }

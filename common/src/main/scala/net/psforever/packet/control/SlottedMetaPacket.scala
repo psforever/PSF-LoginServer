@@ -6,8 +6,7 @@ import scodec.Codec
 import scodec.bits.{BitVector, ByteVector}
 import scodec.codecs._
 
-final case class SlottedMetaPacket(slot : Int, subslot : Int, packet : ByteVector)
-  extends PlanetSideControlPacket {
+final case class SlottedMetaPacket(slot: Int, subslot: Int, packet: ByteVector) extends PlanetSideControlPacket {
   type Packet = SlottedMetaPacket
 
   assert(slot >= 0 && slot <= 7, s"Slot number ($slot) is out of range")
@@ -24,13 +23,13 @@ final case class SlottedMetaPacket(slot : Int, subslot : Int, packet : ByteVecto
 }
 
 object SlottedMetaPacket extends Marshallable[SlottedMetaPacket] {
-  implicit val codec : Codec[SlottedMetaPacket] = (
-    ("slot" | uint8L.xmap[Int](a => a - ControlPacketOpcode.SlottedMetaPacket0.id, a=>a) ) ::
-    ("subslot" | uint16) :: // the slot is big endian. see 0x00A42F76
-    ("rest" | bytes)
+  implicit val codec: Codec[SlottedMetaPacket] = (
+    ("slot" | uint8L.xmap[Int](a => a - ControlPacketOpcode.SlottedMetaPacket0.id, a => a)) ::
+      ("subslot" | uint16) :: // the slot is big endian. see 0x00A42F76
+      ("rest" | bytes)
   ).as[SlottedMetaPacket]
 
-  def decodeWithOpcode(slot : ControlPacketOpcode.Value)(bits : BitVector) = {
+  def decodeWithOpcode(slot: ControlPacketOpcode.Value)(bits: BitVector) = {
     decode(ControlPacketOpcode.codec.encode(slot).require ++ bits)
   }
 }

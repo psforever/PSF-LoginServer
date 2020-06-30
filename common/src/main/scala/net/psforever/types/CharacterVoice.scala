@@ -15,13 +15,11 @@ import scodec.codecs.uint
 object CharacterVoice extends Enumeration {
   type Type = Value
 
-  val
-  Mute,
-  Voice1, //grizzled, tough
-  Voice2, //greenhorn, clueless
-  Voice3, //roughneck, gruff
-  Voice4, //stalwart, smooth
-  Voice5 //daredevil, calculating
+  val Mute, Voice1, //grizzled, tough
+  Voice2,           //greenhorn, clueless
+  Voice3,           //roughneck, gruff
+  Voice4,           //stalwart, smooth
+  Voice5            //daredevil, calculating
   = Value
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uint(3))

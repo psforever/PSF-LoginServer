@@ -143,13 +143,13 @@ class EquipmentTest extends Specification {
     }
 
     "construct" in {
-      val obj : Tool = Tool(fury_weapon_systema)
+      val obj: Tool = Tool(fury_weapon_systema)
       obj.Definition.ObjectId mustEqual fury_weapon_systema.ObjectId
     }
 
     "fire mode" in {
       //explanation: fury_weapon_systema has one fire mode and that fire mode is our only option
-      val obj : Tool = Tool(fury_weapon_systema)
+      val obj: Tool = Tool(fury_weapon_systema)
       obj.Magazine = obj.MaxMagazine
       obj.Magazine mustEqual obj.Definition.FireModes.head.Magazine
       //fmode = 0
@@ -188,7 +188,7 @@ class EquipmentTest extends Specification {
 
     "multiple fire modes" in {
       //explanation: sample_weapon has two fire modes; each fire mode has a different ammunition type
-      val obj : Tool = Tool(punisher)
+      val obj: Tool = Tool(punisher)
       //fmode = 0
       obj.FireModeIndex mustEqual 0
       obj.FireMode.Magazine mustEqual 30
@@ -207,7 +207,7 @@ class EquipmentTest extends Specification {
 
     "multiple types of ammunition" in {
       //explanation: obj has one fire mode and two ammunitions; adjusting the AmmoType changes between them
-      val obj : Tool = Tool(flechette)
+      val obj: Tool = Tool(flechette)
       //ammo = 0
       obj.AmmoTypeIndex mustEqual 0
       obj.AmmoType mustEqual Ammo.shotgun_shell
@@ -348,19 +348,19 @@ class EquipmentTest extends Specification {
     }
 
     "construct" in {
-      val obj : Kit = Kit(medkit)
+      val obj: Kit = Kit(medkit)
       obj.Definition.ObjectId mustEqual medkit.ObjectId
     }
   }
 
   "ConstructionItem" should {
     "construct" in {
-      val obj : ConstructionItem = ConstructionItem(GlobalDefinitions.ace)
+      val obj: ConstructionItem = ConstructionItem(GlobalDefinitions.ace)
       obj.Definition.ObjectId mustEqual GlobalDefinitions.ace.ObjectId
     }
 
     "fire modes" in {
-      val obj : ConstructionItem = ConstructionItem(GlobalDefinitions.ace)
+      val obj: ConstructionItem = ConstructionItem(GlobalDefinitions.ace)
       obj.AmmoType mustEqual DeployedItem.boomer
       obj.NextFireMode
       obj.AmmoType mustEqual DeployedItem.he_mine
@@ -373,7 +373,7 @@ class EquipmentTest extends Specification {
     }
 
     "ammo types" in {
-      val obj : ConstructionItem = ConstructionItem(GlobalDefinitions.ace)
+      val obj: ConstructionItem = ConstructionItem(GlobalDefinitions.ace)
       obj.NextFireMode
       obj.AmmoType mustEqual DeployedItem.he_mine
       obj.NextAmmoType
@@ -383,7 +383,7 @@ class EquipmentTest extends Specification {
     }
 
     "when switching fire modes, ammo mode resets to the first entry" in {
-      val obj : ConstructionItem = ConstructionItem(GlobalDefinitions.ace)
+      val obj: ConstructionItem = ConstructionItem(GlobalDefinitions.ace)
       obj.NextFireMode
       obj.AmmoType mustEqual DeployedItem.he_mine
       obj.NextAmmoType
@@ -396,7 +396,7 @@ class EquipmentTest extends Specification {
     }
 
     "qualify certifications that must be met before ammo types may be used" in {
-      val obj : ConstructionItem = ConstructionItem(GlobalDefinitions.ace)
+      val obj: ConstructionItem = ConstructionItem(GlobalDefinitions.ace)
       obj.AmmoType mustEqual DeployedItem.boomer
       obj.ModePermissions mustEqual Set(CertificationType.CombatEngineering)
       obj.NextFireMode
@@ -415,20 +415,20 @@ class EquipmentTest extends Specification {
     }
 
     "construct" in {
-      val obj : SimpleItem = SimpleItem(remote_electronics_kit)
+      val obj: SimpleItem = SimpleItem(remote_electronics_kit)
       obj.Definition.ObjectId mustEqual remote_electronics_kit.ObjectId
     }
   }
 
   "BoomerTrigger" should {
     "construct" in {
-      val obj : BoomerTrigger = new BoomerTrigger
+      val obj: BoomerTrigger = new BoomerTrigger
       obj.Definition.ObjectId mustEqual boomer_trigger.ObjectId
       obj.Companion mustEqual None
     }
 
     "boomer trigger has a companion object referenced by GUID" in {
-      val obj : BoomerTrigger = new BoomerTrigger
+      val obj: BoomerTrigger = new BoomerTrigger
       obj.Companion mustEqual None
       obj.Companion = PlanetSideGUID(1)
       obj.Companion.contains(PlanetSideGUID(1)) mustEqual true

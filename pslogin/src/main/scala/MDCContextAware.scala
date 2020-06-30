@@ -7,7 +7,7 @@ import org.slf4j.MDC
 
 import scala.concurrent.Future
 
-trait MDCContextAware extends Actor with ActorLogging  {
+trait MDCContextAware extends Actor with ActorLogging {
   import MDCContextAware._
 
   // This is why this needs to be in package akka.actor
@@ -52,7 +52,7 @@ object MDCContextAware {
         * the current MDC values. Note: we MUST capture the ActorContext in order for senders
         * to be correct! This was a bug from the original author.
         */
-      def !>(msg: Any)(implicit context: ActorContext) : Unit =
+      def !>(msg: Any)(implicit context: ActorContext): Unit =
         ref.tell(MdcMsg(MDC.getCopyOfContextMap, msg), context.self)
 
       /**

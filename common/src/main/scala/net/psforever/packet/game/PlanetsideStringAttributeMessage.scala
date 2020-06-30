@@ -14,19 +14,17 @@ import scodec.codecs._
   * @param string_type na
   * @param string_value na
   */
-final case class PlanetsideStringAttributeMessage(guid : PlanetSideGUID,
-                                                  string_type : Int,
-                                                  string_value : String)
-  extends PlanetSideGamePacket {
+final case class PlanetsideStringAttributeMessage(guid: PlanetSideGUID, string_type: Int, string_value: String)
+    extends PlanetSideGamePacket {
   type Packet = PlanetsideStringAttributeMessage
   def opcode = GamePacketOpcode.PlanetsideStringAttributeMessage
   def encode = PlanetsideStringAttributeMessage.encode(this)
 }
 
 object PlanetsideStringAttributeMessage extends Marshallable[PlanetsideStringAttributeMessage] {
-  implicit val codec : Codec[PlanetsideStringAttributeMessage] = (
+  implicit val codec: Codec[PlanetsideStringAttributeMessage] = (
     ("guid" | PlanetSideGUID.codec) ::
       ("string_type" | uint8L) ::
       ("string_value" | PacketHelpers.encodedWideString)
-    ).as[PlanetsideStringAttributeMessage]
+  ).as[PlanetsideStringAttributeMessage]
 }

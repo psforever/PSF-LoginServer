@@ -37,12 +37,12 @@ import org.flywaydb.core.Flyway
 object PsLogin {
   private val logger = org.log4s.getLogger
 
-  var args: Array[String] = Array()
+  var args: Array[String]          = Array()
   implicit var system: ActorSystem = null
-  var loginRouter: Props = Props.empty
-  var worldRouter: Props = Props.empty
-  var loginListener: ActorRef = ActorRef.noSender
-  var worldListener: ActorRef = ActorRef.noSender
+  var loginRouter: Props           = Props.empty
+  var worldRouter: Props           = Props.empty
+  var loginListener: ActorRef      = ActorRef.noSender
+  var worldListener: ActorRef      = ActorRef.noSender
 
   def banner(): Unit = {
     println(ansi().fgBright(BLUE).a("""   ___  ________"""))
@@ -269,7 +269,7 @@ object PsLogin {
 
     val loginServerPort = WorldConfig.Get[Int]("loginserver.ListeningPort")
     val worldServerPort = WorldConfig.Get[Int]("worldserver.ListeningPort")
-    val psAdminPort = WorldConfig.Get[Int]("psadmin.ListeningPort")
+    val psAdminPort     = WorldConfig.Get[Int]("psadmin.ListeningPort")
 
     val netSim: Option[NetworkSimulatorParameters] = WorldConfig.Get[Boolean]("developer.NetSim.Active") match {
       case true =>

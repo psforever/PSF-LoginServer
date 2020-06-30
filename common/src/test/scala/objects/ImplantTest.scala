@@ -8,11 +8,11 @@ import org.specs2.mutable._
 
 class ImplantTest extends Specification {
   val sample = new ImplantDefinition(8) //variant of sensor shield/silent run
-      sample.InitializationDuration = 90 //1:30
-      sample.ActivationStaminaCost = 3
-      sample.StaminaCost = 1
-      sample.CostIntervalDefault = 1000
-      sample.CostIntervalByExoSuitHashMap += ExoSuitType.Agile -> 500
+  sample.InitializationDuration = 90 //1:30
+  sample.ActivationStaminaCost = 3
+  sample.StaminaCost = 1
+  sample.CostIntervalDefault = 1000
+  sample.CostIntervalByExoSuitHashMap += ExoSuitType.Agile -> 500
 
   "ImplantDefinition" should {
     "define" in {
@@ -20,7 +20,7 @@ class ImplantTest extends Specification {
       sample.ActivationStaminaCost mustEqual 3
       sample.StaminaCost mustEqual 1
       sample.GetCostIntervalByExoSuit(ExoSuitType.Reinforced) mustEqual 1000 // Default value
-      sample.GetCostIntervalByExoSuit(ExoSuitType.Agile) mustEqual 500 // Overridden value
+      sample.GetCostIntervalByExoSuit(ExoSuitType.Agile) mustEqual 500       // Overridden value
       sample.Type mustEqual ImplantType.SilentRun
     }
   }

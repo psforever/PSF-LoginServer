@@ -121,11 +121,16 @@ class TurretDeployableTest extends Specification {
   "TurretDeployable" should {
     "define (valid turret objects)" in {
       List(
-        DeployedItem.spitfire_turret.id, DeployedItem.spitfire_cloaked.id, DeployedItem.spitfire_aa.id,
-        DeployedItem.portable_manned_turret.id, DeployedItem.portable_manned_turret_tr.id,
-        DeployedItem.portable_manned_turret_nc.id, DeployedItem.portable_manned_turret_vs.id
+        DeployedItem.spitfire_turret.id,
+        DeployedItem.spitfire_cloaked.id,
+        DeployedItem.spitfire_aa.id,
+        DeployedItem.portable_manned_turret.id,
+        DeployedItem.portable_manned_turret_tr.id,
+        DeployedItem.portable_manned_turret_nc.id,
+        DeployedItem.portable_manned_turret_vs.id
       ).foreach(id => {
-        try { new TurretDeployableDefinition(id) } catch { case _ : Exception => ko }
+        try { new TurretDeployableDefinition(id) }
+        catch { case _: Exception => ko }
       })
       ok
     }
@@ -158,120 +163,120 @@ class DeployableMake extends Specification {
     "construct a boomer" in {
       val func = Deployables.Make(DeployedItem.boomer)
       func() match {
-        case _ : BoomerDeployable => ok
-        case _ => ko
+        case _: BoomerDeployable => ok
+        case _                   => ko
       }
     }
 
     "construct an he mine" in {
       val func = Deployables.Make(DeployedItem.he_mine)
       func() match {
-        case obj : ExplosiveDeployable if obj.Definition == GlobalDefinitions.he_mine => ok
-        case _ => ko
+        case obj: ExplosiveDeployable if obj.Definition == GlobalDefinitions.he_mine => ok
+        case _                                                                       => ko
       }
     }
 
     "construct a disruptor mine" in {
       val func = Deployables.Make(DeployedItem.jammer_mine)
       func() match {
-        case obj : ExplosiveDeployable if obj.Definition == GlobalDefinitions.jammer_mine => ok
-        case _ => ko
+        case obj: ExplosiveDeployable if obj.Definition == GlobalDefinitions.jammer_mine => ok
+        case _                                                                           => ko
       }
     }
 
     "construct a spitfire turret" in {
       val func = Deployables.Make(DeployedItem.spitfire_turret)
       func() match {
-        case obj : TurretDeployable if obj.Definition == GlobalDefinitions.spitfire_turret => ok
-        case _ => ko
+        case obj: TurretDeployable if obj.Definition == GlobalDefinitions.spitfire_turret => ok
+        case _                                                                            => ko
       }
     }
 
     "construct a shadow turret" in {
       val func = Deployables.Make(DeployedItem.spitfire_cloaked)
       func() match {
-        case obj : TurretDeployable if obj.Definition == GlobalDefinitions.spitfire_cloaked => ok
-        case _ => ko
+        case obj: TurretDeployable if obj.Definition == GlobalDefinitions.spitfire_cloaked => ok
+        case _                                                                             => ko
       }
     }
 
     "construct a cerebus turret" in {
       val func = Deployables.Make(DeployedItem.spitfire_aa)
       func() match {
-        case obj : TurretDeployable if obj.Definition == GlobalDefinitions.spitfire_aa => ok
-        case _ => ko
+        case obj: TurretDeployable if obj.Definition == GlobalDefinitions.spitfire_aa => ok
+        case _                                                                        => ko
       }
     }
 
     "construct a motion sensor" in {
       val func = Deployables.Make(DeployedItem.motionalarmsensor)
       func() match {
-        case obj : SensorDeployable if obj.Definition == GlobalDefinitions.motionalarmsensor => ok
-        case _ => ko
+        case obj: SensorDeployable if obj.Definition == GlobalDefinitions.motionalarmsensor => ok
+        case _                                                                              => ko
       }
     }
 
     "construct a sensor disruptor" in {
       val func = Deployables.Make(DeployedItem.sensor_shield)
       func() match {
-        case obj : SensorDeployable if obj.Definition == GlobalDefinitions.sensor_shield => ok
-        case _ => ko
+        case obj: SensorDeployable if obj.Definition == GlobalDefinitions.sensor_shield => ok
+        case _                                                                          => ko
       }
     }
 
     "construct three metal i-beams so huge that a driver must be blind to drive into them but does anyway" in {
       val func = Deployables.Make(DeployedItem.tank_traps)
       func() match {
-        case obj : TrapDeployable if obj.Definition == GlobalDefinitions.tank_traps => ok
-        case _ => ko
+        case obj: TrapDeployable if obj.Definition == GlobalDefinitions.tank_traps => ok
+        case _                                                                     => ko
       }
     }
 
     "construct a generic field turret" in {
       val func = Deployables.Make(DeployedItem.portable_manned_turret)
       func() match {
-        case obj : TurretDeployable if obj.Definition == GlobalDefinitions.portable_manned_turret => ok
-        case _ => ko
+        case obj: TurretDeployable if obj.Definition == GlobalDefinitions.portable_manned_turret => ok
+        case _                                                                                   => ko
       }
     }
 
     "construct an avenger turret" in {
       val func = Deployables.Make(DeployedItem.portable_manned_turret_tr)
       func() match {
-        case obj : TurretDeployable if obj.Definition == GlobalDefinitions.portable_manned_turret_tr => ok
-        case _ => ko
+        case obj: TurretDeployable if obj.Definition == GlobalDefinitions.portable_manned_turret_tr => ok
+        case _                                                                                      => ko
       }
     }
 
     "construct an aegis shield generator" in {
       val func = Deployables.Make(DeployedItem.deployable_shield_generator)
       func() match {
-        case obj : ShieldGeneratorDeployable if obj.Definition == GlobalDefinitions.deployable_shield_generator => ok
-        case _ => ko
+        case obj: ShieldGeneratorDeployable if obj.Definition == GlobalDefinitions.deployable_shield_generator => ok
+        case _                                                                                                 => ko
       }
     }
 
     "construct a telepad" in {
       val func = Deployables.Make(DeployedItem.router_telepad_deployable)
       func() match {
-        case obj : TelepadDeployable if obj.Definition == GlobalDefinitions.router_telepad_deployable => ok
-        case _ => ko
+        case obj: TelepadDeployable if obj.Definition == GlobalDefinitions.router_telepad_deployable => ok
+        case _                                                                                       => ko
       }
     }
 
     "construct an osprey turret" in {
       val func = Deployables.Make(DeployedItem.portable_manned_turret_nc)
       func() match {
-        case obj : TurretDeployable if obj.Definition == GlobalDefinitions.portable_manned_turret_nc => ok
-        case _ => ko
+        case obj: TurretDeployable if obj.Definition == GlobalDefinitions.portable_manned_turret_nc => ok
+        case _                                                                                      => ko
       }
     }
 
     "construct an orion turret" in {
       val func = Deployables.Make(DeployedItem.portable_manned_turret_vs)
       func() match {
-        case obj : TurretDeployable if obj.Definition == GlobalDefinitions.portable_manned_turret_vs => ok
-        case _ => ko
+        case obj: TurretDeployable if obj.Definition == GlobalDefinitions.portable_manned_turret_vs => ok
+        case _                                                                                      => ko
       }
     }
   }
@@ -293,7 +298,6 @@ class ShieldGeneratorDeployableTest extends Specification {
   }
 }
 
-
 class ExplosiveDeployableJammerTest extends ActorTest {
   val guid = new NumberPoolHub(new LimitedNumberSource(10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
@@ -301,16 +305,18 @@ class ExplosiveDeployableJammerTest extends ActorTest {
     GUID(guid)
   }
   val activityProbe = TestProbe()
-  val avatarProbe = TestProbe()
-  val localProbe = TestProbe()
+  val avatarProbe   = TestProbe()
+  val localProbe    = TestProbe()
   zone.Activity = activityProbe.ref
   zone.AvatarEvents = avatarProbe.ref
   zone.LocalEvents = localProbe.ref
 
   val j_mine = Deployables.Make(DeployedItem.jammer_mine)().asInstanceOf[ExplosiveDeployable] //guid=1
-  val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
+  val player1 =
+    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
   player1.Spawn
-  val player2 = Player(Avatar("TestCharacter2", PlanetSideEmpire.NC, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=4
+  val player2 =
+    Player(Avatar("TestCharacter2", PlanetSideEmpire.NC, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=4
   player2.Spawn
   val weapon = Tool(GlobalDefinitions.jammer_grenade) //guid=5
   guid.register(j_mine, 1)
@@ -324,8 +330,8 @@ class ExplosiveDeployableJammerTest extends ActorTest {
   j_mine.Actor = system.actorOf(Props(classOf[ExplosiveDeployableControl], j_mine), "j-mine-control")
 
   val jMineSource = SourceEntry(j_mine)
-  val pSource = PlayerSource(player1)
-  val projectile = weapon.Projectile
+  val pSource     = PlayerSource(player1)
+  val projectile  = weapon.Projectile
   val resolved = ResolvedProjectile(
     ProjectileResolution.Splash,
     Projectile(projectile, weapon.Definition, weapon.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
@@ -340,40 +346,48 @@ class ExplosiveDeployableJammerTest extends ActorTest {
       assert(!j_mine.Destroyed)
 
       j_mine.Actor ! Vitality.Damage(applyDamageToJ)
-      val msg_local = localProbe.receiveN(4, 200 milliseconds)
+      val msg_local  = localProbe.receiveN(4, 200 milliseconds)
       val msg_avatar = avatarProbe.receiveOne(200 milliseconds)
       activityProbe.expectNoMessage(200 milliseconds)
       assert(
         msg_local.head match {
-          case LocalServiceMessage("TestCharacter2", LocalAction.AlertDestroyDeployable(PlanetSideGUID(0), target)) => target eq j_mine
+          case LocalServiceMessage("TestCharacter2", LocalAction.AlertDestroyDeployable(PlanetSideGUID(0), target)) =>
+            target eq j_mine
           case _ => false
         }
       )
       assert(
         msg_local(1) match {
-          case LocalServiceMessage("NC", LocalAction.DeployableMapIcon(
-            PlanetSideGUID(0),
-            DeploymentAction.Dismiss,
-            DeployableInfo(PlanetSideGUID(1), DeployableIcon.DisruptorMine, _, PlanetSideGUID(0))
-            )) => true
+          case LocalServiceMessage(
+                "NC",
+                LocalAction.DeployableMapIcon(
+                  PlanetSideGUID(0),
+                  DeploymentAction.Dismiss,
+                  DeployableInfo(PlanetSideGUID(1), DeployableIcon.DisruptorMine, _, PlanetSideGUID(0))
+                )
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_local(2) match {
-          case LocalServiceMessage.Deployables(SupportActor.ClearSpecific(List(target), _zone)) => (target eq j_mine) && (_zone eq zone)
+          case LocalServiceMessage.Deployables(SupportActor.ClearSpecific(List(target), _zone)) =>
+            (target eq j_mine) && (_zone eq zone)
           case _ => false
         }
       )
       assert(
         msg_local(3) match {
-          case LocalServiceMessage.Deployables(RemoverActor.AddTask(target, _zone, _)) => (target eq j_mine) && (_zone eq zone)
+          case LocalServiceMessage.Deployables(RemoverActor.AddTask(target, _zone, _)) =>
+            (target eq j_mine) && (_zone eq zone)
           case _ => false
         }
       )
       assert(
         msg_avatar match {
-          case AvatarServiceMessage("test", AvatarAction.Destroy(PlanetSideGUID(1), _, Service.defaultPlayerGUID, _)) => true
+          case AvatarServiceMessage("test", AvatarAction.Destroy(PlanetSideGUID(1), _, Service.defaultPlayerGUID, _)) =>
+            true
           case _ => false
         }
       )
@@ -389,16 +403,18 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
     GUID(guid)
   }
   val activityProbe = TestProbe()
-  val avatarProbe = TestProbe()
-  val localProbe = TestProbe()
+  val avatarProbe   = TestProbe()
+  val localProbe    = TestProbe()
   zone.Activity = activityProbe.ref
   zone.AvatarEvents = avatarProbe.ref
   zone.LocalEvents = localProbe.ref
 
   val h_mine = Deployables.Make(DeployedItem.he_mine)().asInstanceOf[ExplosiveDeployable] //guid=2
-  val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
+  val player1 =
+    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
   player1.Spawn
-  val player2 = Player(Avatar("TestCharacter2", PlanetSideEmpire.NC, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=4
+  val player2 =
+    Player(Avatar("TestCharacter2", PlanetSideEmpire.NC, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=4
   player2.Spawn
   val weapon = Tool(GlobalDefinitions.jammer_grenade) //guid=5
   guid.register(h_mine, 2)
@@ -412,8 +428,8 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
   h_mine.Actor = system.actorOf(Props(classOf[ExplosiveDeployableControl], h_mine), "h-mine-control")
 
   val hMineSource = SourceEntry(h_mine)
-  val pSource = PlayerSource(player1)
-  val projectile = weapon.Projectile
+  val pSource     = PlayerSource(player1)
+  val projectile  = weapon.Projectile
   val resolved = ResolvedProjectile(
     ProjectileResolution.Splash,
     Projectile(projectile, weapon.Definition, weapon.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
@@ -428,53 +444,61 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
       assert(!h_mine.Destroyed)
 
       h_mine.Actor ! Vitality.Damage(applyDamageToH)
-      val msg_local = localProbe.receiveN(5, 200 milliseconds)
-      val msg_avatar = avatarProbe.receiveOne(200 milliseconds)
+      val msg_local    = localProbe.receiveN(5, 200 milliseconds)
+      val msg_avatar   = avatarProbe.receiveOne(200 milliseconds)
       val msg_activity = activityProbe.receiveOne(200 milliseconds)
       assert(
         msg_local.head match {
           case LocalServiceMessage("test", LocalAction.Detonate(PlanetSideGUID(2), target)) => target eq h_mine
-          case _ => false
+          case _                                                                            => false
         }
       )
       assert(
         msg_local(1) match {
-          case LocalServiceMessage("TestCharacter2", LocalAction.AlertDestroyDeployable(PlanetSideGUID(0), target)) => target eq h_mine
+          case LocalServiceMessage("TestCharacter2", LocalAction.AlertDestroyDeployable(PlanetSideGUID(0), target)) =>
+            target eq h_mine
           case _ => false
         }
       )
       assert(
         msg_local(2) match {
-          case LocalServiceMessage("NC", LocalAction.DeployableMapIcon(
-          PlanetSideGUID(0),
-          DeploymentAction.Dismiss,
-          DeployableInfo(PlanetSideGUID(2), DeployableIcon.HEMine, _, PlanetSideGUID(0))
-          )) => true
+          case LocalServiceMessage(
+                "NC",
+                LocalAction.DeployableMapIcon(
+                  PlanetSideGUID(0),
+                  DeploymentAction.Dismiss,
+                  DeployableInfo(PlanetSideGUID(2), DeployableIcon.HEMine, _, PlanetSideGUID(0))
+                )
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_local(3) match {
-          case LocalServiceMessage.Deployables(SupportActor.ClearSpecific(List(target), _zone)) => (target eq h_mine) && (_zone eq zone)
+          case LocalServiceMessage.Deployables(SupportActor.ClearSpecific(List(target), _zone)) =>
+            (target eq h_mine) && (_zone eq zone)
           case _ => false
         }
       )
       assert(
         msg_local(4) match {
-          case LocalServiceMessage.Deployables(RemoverActor.AddTask(target, _zone, _)) => (target eq h_mine) && (_zone eq zone)
+          case LocalServiceMessage.Deployables(RemoverActor.AddTask(target, _zone, _)) =>
+            (target eq h_mine) && (_zone eq zone)
           case _ => false
         }
       )
       assert(
         msg_avatar match {
-          case AvatarServiceMessage("test", AvatarAction.Destroy(PlanetSideGUID(2), _, Service.defaultPlayerGUID, _)) => true
+          case AvatarServiceMessage("test", AvatarAction.Destroy(PlanetSideGUID(2), _, Service.defaultPlayerGUID, _)) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_activity match {
           case Zone.HotSpot.Activity(target, attacker, _) => (target eq hMineSource) && (attacker eq pSource)
-          case _ => false
+          case _                                          => false
         }
       )
       assert(h_mine.Destroyed)
@@ -489,16 +513,18 @@ class ExplosiveDeployableDestructionTest extends ActorTest {
     GUID(guid)
   }
   val activityProbe = TestProbe()
-  val avatarProbe = TestProbe()
-  val localProbe = TestProbe()
+  val avatarProbe   = TestProbe()
+  val localProbe    = TestProbe()
   zone.Activity = activityProbe.ref
   zone.AvatarEvents = avatarProbe.ref
   zone.LocalEvents = localProbe.ref
 
   val h_mine = Deployables.Make(DeployedItem.he_mine)().asInstanceOf[ExplosiveDeployable] //guid=2
-  val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
+  val player1 =
+    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
   player1.Spawn
-  val player2 = Player(Avatar("TestCharacter2", PlanetSideEmpire.NC, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=4
+  val player2 =
+    Player(Avatar("TestCharacter2", PlanetSideEmpire.NC, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=4
   player2.Spawn
   val weapon = Tool(GlobalDefinitions.suppressor) //guid=5
   guid.register(h_mine, 2)
@@ -512,8 +538,8 @@ class ExplosiveDeployableDestructionTest extends ActorTest {
   h_mine.Actor = system.actorOf(Props(classOf[ExplosiveDeployableControl], h_mine), "h-mine-control")
 
   val hMineSource = SourceEntry(h_mine)
-  val pSource = PlayerSource(player1)
-  val projectile = weapon.Projectile
+  val pSource     = PlayerSource(player1)
+  val projectile  = weapon.Projectile
   val resolved = ResolvedProjectile(
     ProjectileResolution.Splash,
     Projectile(projectile, weapon.Definition, weapon.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
@@ -530,46 +556,55 @@ class ExplosiveDeployableDestructionTest extends ActorTest {
       assert(!h_mine.Destroyed)
 
       h_mine.Actor ! Vitality.Damage(applyDamageTo)
-      val msg_local = localProbe.receiveN(5, 200 milliseconds)
+      val msg_local  = localProbe.receiveN(5, 200 milliseconds)
       val msg_avatar = avatarProbe.receiveOne(200 milliseconds)
       activityProbe.expectNoMessage(200 milliseconds)
       assert(
         msg_local.head match {
-          case LocalServiceMessage("TestCharacter2", LocalAction.AlertDestroyDeployable(PlanetSideGUID(0), target)) => target eq h_mine
+          case LocalServiceMessage("TestCharacter2", LocalAction.AlertDestroyDeployable(PlanetSideGUID(0), target)) =>
+            target eq h_mine
           case _ => false
         }
       )
       assert(
         msg_local(1) match {
-          case LocalServiceMessage("NC", LocalAction.DeployableMapIcon(
-          PlanetSideGUID(0),
-          DeploymentAction.Dismiss,
-          DeployableInfo(PlanetSideGUID(2), DeployableIcon.HEMine, _, PlanetSideGUID(0))
-          )) => true
+          case LocalServiceMessage(
+                "NC",
+                LocalAction.DeployableMapIcon(
+                  PlanetSideGUID(0),
+                  DeploymentAction.Dismiss,
+                  DeployableInfo(PlanetSideGUID(2), DeployableIcon.HEMine, _, PlanetSideGUID(0))
+                )
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_local(2) match {
-          case LocalServiceMessage.Deployables(SupportActor.ClearSpecific(List(target), _zone)) => (target eq h_mine) && (_zone eq zone)
+          case LocalServiceMessage.Deployables(SupportActor.ClearSpecific(List(target), _zone)) =>
+            (target eq h_mine) && (_zone eq zone)
           case _ => false
         }
       )
       assert(
         msg_local(3) match {
-          case LocalServiceMessage.Deployables(RemoverActor.AddTask(target, _zone, _)) => (target eq h_mine) && (_zone eq zone)
+          case LocalServiceMessage.Deployables(RemoverActor.AddTask(target, _zone, _)) =>
+            (target eq h_mine) && (_zone eq zone)
           case _ => false
         }
       )
       assert(
         msg_local(4) match {
-          case LocalServiceMessage("test", LocalAction.TriggerEffect(_, "detonate_damaged_mine", PlanetSideGUID(2))) => true
+          case LocalServiceMessage("test", LocalAction.TriggerEffect(_, "detonate_damaged_mine", PlanetSideGUID(2))) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_avatar match {
-          case AvatarServiceMessage("test", AvatarAction.Destroy(PlanetSideGUID(2), _, Service.defaultPlayerGUID, _)) => true
+          case AvatarServiceMessage("test", AvatarAction.Destroy(PlanetSideGUID(2), _, Service.defaultPlayerGUID, _)) =>
+            true
           case _ => false
         }
       )
@@ -604,7 +639,7 @@ class TurretControlInitializeTest extends ActorTest {
 class TurretControlUninitializeTest extends ActorTest {
   "TurretControl" should {
     "uninitialize" in {
-      val obj = new TurretDeployable(GlobalDefinitions.spitfire_turret)
+      val obj  = new TurretDeployable(GlobalDefinitions.spitfire_turret)
       val init = system.actorOf(Props(classOf[DeployableTest.TurretInitializer], obj), "init_turret_test")
       obj.GUID = PlanetSideGUID(1)
       init ! "initialize"
@@ -770,8 +805,8 @@ class TelepadDeployableTest extends Specification {
 }
 
 object DeployableTest {
-  class TurretInitializer(obj : TurretDeployable) extends Actor {
-    def receive : Receive = {
+  class TurretInitializer(obj: TurretDeployable) extends Actor {
+    def receive: Receive = {
       case "initialize" =>
         obj.Definition.Initialize(obj, context)
       case "uninitialize" =>

@@ -19,21 +19,22 @@ import scodec.codecs._
   * @param unk1 na
   * @param unk2 na
   */
-final case class VehicleSubStateMessage(vehicle_guid : PlanetSideGUID,
-                                        player_guid : PlanetSideGUID,
-                                        vehicle_pos : Vector3,
-                                        vehicle_ang : Vector3,
-                                        vel : Option[Vector3],
-                                        unk1 : Boolean,
-                                        unk2 : Option[List[Boolean]])
-  extends PlanetSideGamePacket {
+final case class VehicleSubStateMessage(
+    vehicle_guid: PlanetSideGUID,
+    player_guid: PlanetSideGUID,
+    vehicle_pos: Vector3,
+    vehicle_ang: Vector3,
+    vel: Option[Vector3],
+    unk1: Boolean,
+    unk2: Option[List[Boolean]]
+) extends PlanetSideGamePacket {
   type Packet = VehicleSubStateMessage
   def opcode = GamePacketOpcode.VehicleSubStateMessage
   def encode = VehicleSubStateMessage.encode(this)
 }
 
 object VehicleSubStateMessage extends Marshallable[VehicleSubStateMessage] {
-  implicit val codec : Codec[VehicleSubStateMessage] = (
+  implicit val codec: Codec[VehicleSubStateMessage] = (
     ("vehicle_guid" | PlanetSideGUID.codec) ::
       ("player_guid" | PlanetSideGUID.codec) ::
       ("vehicle_pos" | Vector3.codec_float) ::
@@ -41,5 +42,5 @@ object VehicleSubStateMessage extends Marshallable[VehicleSubStateMessage] {
       optional(bool, "vel" | Vector3.codec_vel) ::
       ("unk1" | bool) ::
       optional(bool, "unk2" | PacketHelpers.listOfNSized(4, bool))
-    ).as[VehicleSubStateMessage]
+  ).as[VehicleSubStateMessage]
 }

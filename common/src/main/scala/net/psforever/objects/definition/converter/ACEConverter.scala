@@ -8,7 +8,7 @@ import net.psforever.types.PlanetSideGUID
 import scala.util.{Success, Try}
 
 class ACEConverter extends ObjectCreateConverter[ConstructionItem]() {
-  override def ConstructorData(obj : ConstructionItem) : Try[HandheldData] = {
+  override def ConstructorData(obj: ConstructionItem): Try[HandheldData] = {
     Success(
       HandheldData(
         CommonFieldData(
@@ -27,7 +27,7 @@ class ACEConverter extends ObjectCreateConverter[ConstructionItem]() {
     )
   }
 
-  override def DetailedConstructorData(obj : ConstructionItem) : Try[DetailedConstructionToolData] = {
+  override def DetailedConstructorData(obj: ConstructionItem): Try[DetailedConstructionToolData] = {
     Success(
       DetailedConstructionToolData(
         CommonFieldData(

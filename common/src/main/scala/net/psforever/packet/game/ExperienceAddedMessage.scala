@@ -19,17 +19,15 @@ import scodec.codecs._
   * @param unk defaults to `true` for effect;
   *            if `false`, the number of experience points in the message will be blanked
   */
-final case class ExperienceAddedMessage(exp : Int,
-                                        unk : Boolean = true)
-  extends PlanetSideGamePacket {
+final case class ExperienceAddedMessage(exp: Int, unk: Boolean = true) extends PlanetSideGamePacket {
   type Packet = ExperienceAddedMessage
   def opcode = GamePacketOpcode.ExperienceAddedMessage
   def encode = ExperienceAddedMessage.encode(this)
 }
 
 object ExperienceAddedMessage extends Marshallable[ExperienceAddedMessage] {
-  implicit val codec : Codec[ExperienceAddedMessage] = (
+  implicit val codec: Codec[ExperienceAddedMessage] = (
     ("cep" | uintL(15)) ::
       ("unk" | bool)
-    ).as[ExperienceAddedMessage]
+  ).as[ExperienceAddedMessage]
 }

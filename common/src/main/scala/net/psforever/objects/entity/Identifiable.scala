@@ -7,7 +7,7 @@ import net.psforever.types.PlanetSideGUID
   * Identifiable represents anything that has its own globally unique identifier (GUID).
   */
 trait Identifiable {
-  def GUID : PlanetSideGUID
+  def GUID: PlanetSideGUID
 
-  def GUID_=(guid : PlanetSideGUID) : PlanetSideGUID
+  def GUID_=(guid: PlanetSideGUID): PlanetSideGUID
 }

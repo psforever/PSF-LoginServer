@@ -13,112 +13,112 @@ import net.psforever.types.{CertificationType, ExoSuitType, PlanetSideEmpire}
   * Players are influenced by the exo-suit they wear in a variety of ways, with speed and available equipment slots being major differences.
   * @param suitType the `Enumeration` corresponding to this exo-suit
   */
-class ExoSuitDefinition(private val suitType : ExoSuitType.Value) extends BasicDefinition
-  with ResistanceProfileMutators
-  with DamageResistanceModel {
-  protected var permissions : List[CertificationType.Value] = List.empty
-  protected var maxArmor : Int = 0
-  protected val holsters : Array[EquipmentSize.Value] = Array.fill[EquipmentSize.Value](5)(EquipmentSize.Blocked)
-  protected var inventoryScale : InventoryTile = InventoryTile.Tile11 //override with custom InventoryTile
-  protected var inventoryOffset : Int = 0
-  protected var maxCapacitor : Int = 0
-  protected var capacitorRechargeDelayMillis : Int = 0
-  protected var capacitorRechargePerSecond : Int = 0
-  protected var capacitorDrainPerSecond : Int = 0
+class ExoSuitDefinition(private val suitType: ExoSuitType.Value)
+    extends BasicDefinition
+    with ResistanceProfileMutators
+    with DamageResistanceModel {
+  protected var permissions: List[CertificationType.Value] = List.empty
+  protected var maxArmor: Int                              = 0
+  protected val holsters: Array[EquipmentSize.Value]       = Array.fill[EquipmentSize.Value](5)(EquipmentSize.Blocked)
+  protected var inventoryScale: InventoryTile              = InventoryTile.Tile11 //override with custom InventoryTile
+  protected var inventoryOffset: Int                       = 0
+  protected var maxCapacitor: Int                          = 0
+  protected var capacitorRechargeDelayMillis: Int          = 0
+  protected var capacitorRechargePerSecond: Int            = 0
+  protected var capacitorDrainPerSecond: Int               = 0
   Name = "exo-suit"
   DamageUsing = StandardInfantryDamage
   ResistUsing = StandardInfantryResistance
   Model = StandardResolutions.Infantry
 
-  def SuitType : ExoSuitType.Value = suitType
+  def SuitType: ExoSuitType.Value = suitType
 
-  def MaxArmor : Int = maxArmor
+  def MaxArmor: Int = maxArmor
 
-  def MaxArmor_=(armor : Int) : Int = {
+  def MaxArmor_=(armor: Int): Int = {
     maxArmor = math.min(math.max(0, armor), 65535)
     MaxArmor
   }
 
-  def MaxCapacitor : Int = maxCapacitor
+  def MaxCapacitor: Int = maxCapacitor
 
-  def MaxCapacitor_=(value : Int) : Int = {
+  def MaxCapacitor_=(value: Int): Int = {
     maxCapacitor = value
     maxCapacitor
   }
 
-  def CapacitorRechargeDelayMillis : Int = capacitorRechargeDelayMillis
+  def CapacitorRechargeDelayMillis: Int = capacitorRechargeDelayMillis
 
-  def CapacitorRechargeDelayMillis_=(value : Int) : Int = {
+  def CapacitorRechargeDelayMillis_=(value: Int): Int = {
     capacitorRechargeDelayMillis = value
     capacitorRechargeDelayMillis
   }
 
-  def CapacitorRechargePerSecond : Int = capacitorRechargePerSecond
+  def CapacitorRechargePerSecond: Int = capacitorRechargePerSecond
 
-  def CapacitorRechargePerSecond_=(value : Int) : Int = {
+  def CapacitorRechargePerSecond_=(value: Int): Int = {
     capacitorRechargePerSecond = value
     capacitorRechargePerSecond
   }
 
-  def CapacitorDrainPerSecond : Int = capacitorDrainPerSecond
+  def CapacitorDrainPerSecond: Int = capacitorDrainPerSecond
 
-  def CapacitorDrainPerSecond_=(value : Int) : Int = {
+  def CapacitorDrainPerSecond_=(value: Int): Int = {
     capacitorDrainPerSecond = value
     capacitorDrainPerSecond
   }
 
-  def InventoryScale : InventoryTile = inventoryScale
+  def InventoryScale: InventoryTile = inventoryScale
 
-  def InventoryScale_=(scale : InventoryTile) : InventoryTile = {
+  def InventoryScale_=(scale: InventoryTile): InventoryTile = {
     inventoryScale = scale
     InventoryScale
   }
 
-  def InventoryOffset : Int = inventoryOffset
+  def InventoryOffset: Int = inventoryOffset
 
-  def InventoryOffset_=(offset : Int) : Int = {
+  def InventoryOffset_=(offset: Int): Int = {
     inventoryOffset = math.min(math.max(0, offset), 65535)
     InventoryOffset
   }
 
-  def Holsters : Array[EquipmentSize.Value] = holsters
+  def Holsters: Array[EquipmentSize.Value] = holsters
 
-  def Holster(slot : Int) : EquipmentSize.Value = {
-    if(slot >= 0 && slot < 5) {
+  def Holster(slot: Int): EquipmentSize.Value = {
+    if (slot >= 0 && slot < 5) {
       holsters(slot)
-    }
-    else {
+    } else {
       EquipmentSize.Blocked
     }
   }
 
-  def Holster(slot : Int, value : EquipmentSize.Value) : EquipmentSize.Value = {
-    if(slot >= 0 && slot < 5) {
+  def Holster(slot: Int, value: EquipmentSize.Value): EquipmentSize.Value = {
+    if (slot >= 0 && slot < 5) {
       holsters(slot) = value
       holsters(slot)
-    }
-    else {
+    } else {
       EquipmentSize.Blocked
     }
   }
 
-  def Permissions : List[CertificationType.Value] = permissions
+  def Permissions: List[CertificationType.Value] = permissions
 
-  def Permissions_=(certs : List[CertificationType.Value]) : List[CertificationType.Value] = {
+  def Permissions_=(certs: List[CertificationType.Value]): List[CertificationType.Value] = {
     permissions = certs
     Permissions
   }
 
-  def Use : ExoSuitDefinition = this
+  def Use: ExoSuitDefinition = this
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[ExoSuitDefinition]
 
-  override def equals(other: Any): Boolean = other match {
-    case that: ExoSuitDefinition =>
-      (that canEqual this) &&
-        suitType == that.suitType
-    case _ => false
-  }
+  override def equals(other: Any): Boolean =
+    other match {
+      case that: ExoSuitDefinition =>
+        (that canEqual this) &&
+          suitType == that.suitType
+      case _ => false
+    }
 
   override def hashCode(): Int = {
     val state = Seq(suitType)
@@ -126,20 +126,20 @@ class ExoSuitDefinition(private val suitType : ExoSuitType.Value) extends BasicD
   }
 }
 
-class SpecialExoSuitDefinition(private val suitType : ExoSuitType.Value) extends ExoSuitDefinition(suitType) {
+class SpecialExoSuitDefinition(private val suitType: ExoSuitType.Value) extends ExoSuitDefinition(suitType) {
   Name = "heavy_armor"
   Descriptor = "heavy_armor"
 
-  private var activatedSpecial : SpecialExoSuitDefinition.Mode.Value = SpecialExoSuitDefinition.Mode.Normal
+  private var activatedSpecial: SpecialExoSuitDefinition.Mode.Value = SpecialExoSuitDefinition.Mode.Normal
 
-  def UsingSpecial : SpecialExoSuitDefinition.Mode.Value = activatedSpecial
+  def UsingSpecial: SpecialExoSuitDefinition.Mode.Value = activatedSpecial
 
-  def UsingSpecial_=(state : SpecialExoSuitDefinition.Mode.Value) : SpecialExoSuitDefinition.Mode.Value = {
+  def UsingSpecial_=(state: SpecialExoSuitDefinition.Mode.Value): SpecialExoSuitDefinition.Mode.Value = {
     activatedSpecial = state
     UsingSpecial
   }
 
-  override def Use : ExoSuitDefinition = {
+  override def Use: ExoSuitDefinition = {
     val obj = new SpecialExoSuitDefinition(SuitType)
     obj.Permissions = Permissions
     obj.MaxArmor = MaxArmor
@@ -165,24 +165,19 @@ class SpecialExoSuitDefinition(private val suitType : ExoSuitType.Value) extends
 }
 
 object SpecialExoSuitDefinition {
-  def apply(suitType : ExoSuitType.Value) : SpecialExoSuitDefinition = {
+  def apply(suitType: ExoSuitType.Value): SpecialExoSuitDefinition = {
     new SpecialExoSuitDefinition(suitType)
   }
 
   object Mode extends Enumeration {
     type Type = Value
 
-    val
-    Normal,
-    Anchored,
-    Overdrive,
-    Shielded
-    = Value
+    val Normal, Anchored, Overdrive, Shielded = Value
   }
 }
 
 object ExoSuitDefinition {
-  def apply(suitType : ExoSuitType.Value) : ExoSuitDefinition = {
+  def apply(suitType: ExoSuitType.Value): ExoSuitDefinition = {
     new ExoSuitDefinition(suitType)
   }
 
@@ -192,16 +187,17 @@ object ExoSuitDefinition {
     * @param faction the faction the player belongs to for this exosuit
     * @return the exo-suit definition
     */
-  def Select(suit : ExoSuitType.Value, faction : PlanetSideEmpire.Value) : ExoSuitDefinition = {
+  def Select(suit: ExoSuitType.Value, faction: PlanetSideEmpire.Value): ExoSuitDefinition = {
     suit match {
       case ExoSuitType.Infiltration => GlobalDefinitions.Infiltration.Use
-      case ExoSuitType.Agile => GlobalDefinitions.Agile.Use
-      case ExoSuitType.Reinforced => GlobalDefinitions.Reinforced.Use
-      case ExoSuitType.MAX => faction match {
-        case PlanetSideEmpire.TR => GlobalDefinitions.TRMAX.Use
-        case PlanetSideEmpire.NC => GlobalDefinitions.NCMAX.Use
-        case PlanetSideEmpire.VS => GlobalDefinitions.VSMAX.Use
-      }
+      case ExoSuitType.Agile        => GlobalDefinitions.Agile.Use
+      case ExoSuitType.Reinforced   => GlobalDefinitions.Reinforced.Use
+      case ExoSuitType.MAX =>
+        faction match {
+          case PlanetSideEmpire.TR => GlobalDefinitions.TRMAX.Use
+          case PlanetSideEmpire.NC => GlobalDefinitions.NCMAX.Use
+          case PlanetSideEmpire.VS => GlobalDefinitions.VSMAX.Use
+        }
       case _ => GlobalDefinitions.Standard.Use
     }
   }

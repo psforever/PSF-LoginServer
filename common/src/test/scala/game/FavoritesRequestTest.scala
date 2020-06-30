@@ -31,4 +31,3 @@ class FavoritesRequestTest extends Specification {
     pkt mustEqual stringInfantry
   }
 }
-

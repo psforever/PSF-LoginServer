@@ -20,15 +20,16 @@ import scodec.codecs._
   * @param contents the textual contents of the message
   * @param note only used when the message is of note type
   */
-final case class ChatMsg(messageType : ChatMessageType.Value,
-                         wideContents : Boolean,
-                         recipient : String,
-                         contents : String,
-                         note : Option[String])
-  extends PlanetSideGamePacket {
+final case class ChatMsg(
+    messageType: ChatMessageType.Value,
+    wideContents: Boolean,
+    recipient: String,
+    contents: String,
+    note: Option[String]
+) extends PlanetSideGamePacket {
 
   // Prevent usage of the Note field unless the message is of type note
-  if(messageType == ChatMessageType.CMT_NOTE)
+  if (messageType == ChatMessageType.CMT_NOTE)
     assert(note.isDefined, "Note contents required")
   else
     assert(note.isEmpty, "Note contents found, but message type isnt Note")
@@ -39,15 +40,15 @@ final case class ChatMsg(messageType : ChatMessageType.Value,
 }
 
 object ChatMsg extends Marshallable[ChatMsg] {
-  implicit val codec : Codec[ChatMsg] = (
-    ("messagetype" | ChatMessageType.codec) >>:~ { messagetype_value =>
-      (("has_wide_contents" | bool) >>:~ { isWide =>
-        ("recipient" | PacketHelpers.encodedWideStringAligned(7)) ::
-        newcodecs.binary_choice(isWide,
+  implicit val codec: Codec[ChatMsg] = (("messagetype" | ChatMessageType.codec) >>:~ { messagetype_value =>
+    (("has_wide_contents" | bool) >>:~ { isWide =>
+      ("recipient" | PacketHelpers.encodedWideStringAligned(7)) ::
+        newcodecs.binary_choice(
+          isWide,
           "contents" | PacketHelpers.encodedWideString,
-          "contents" | PacketHelpers.encodedString)
-      }) :+
-      conditional(messagetype_value == ChatMessageType.CMT_NOTE,
-        "note_contents" | PacketHelpers.encodedWideString)
-    }).as[ChatMsg]
+          "contents" | PacketHelpers.encodedString
+        )
+    }) :+
+      conditional(messagetype_value == ChatMessageType.CMT_NOTE, "note_contents" | PacketHelpers.encodedWideString)
+  }).as[ChatMsg]
 }

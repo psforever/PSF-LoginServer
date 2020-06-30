@@ -307,7 +307,8 @@ class SquadMembershipResponseTest extends Specification {
     }
 
     "encode (0-2)" in {
-      val msg = SquadMembershipResponse(SquadResponseType.Invite, 0, 0, 1176612L, Some(1004937L), "SPOILERS", true, None)
+      val msg =
+        SquadMembershipResponse(SquadResponseType.Invite, 0, 0, 1176612L, Some(1004937L), "SPOILERS", true, None)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
       pkt mustEqual string_02
@@ -328,49 +329,96 @@ class SquadMembershipResponseTest extends Specification {
     }
 
     "encode (2-1)" in {
-      val msg = SquadMembershipResponse(SquadResponseType.Accept, 0, 0, 1300870L, Some(42771010L), "VirusGiver", true, Some(None))
+      val msg = SquadMembershipResponse(
+        SquadResponseType.Accept,
+        0,
+        0,
+        1300870L,
+        Some(42771010L),
+        "VirusGiver",
+        true,
+        Some(None)
+      )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
       pkt mustEqual string_21
     }
 
     "encode (2-2)" in {
-      val msg = SquadMembershipResponse(SquadResponseType.Accept, 0, 0, 1300870L, Some(30736877L), "VirusGiver", true, Some(None))
+      val msg = SquadMembershipResponse(
+        SquadResponseType.Accept,
+        0,
+        0,
+        1300870L,
+        Some(30736877L),
+        "VirusGiver",
+        true,
+        Some(None)
+      )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
       pkt mustEqual string_22
     }
 
     "encode (3-1)" in {
-      val msg = SquadMembershipResponse(SquadResponseType.Reject, 0, 3, 31035057L, Some(42771010L), "HMFIC", false, Some(None))
+      val msg =
+        SquadMembershipResponse(SquadResponseType.Reject, 0, 3, 31035057L, Some(42771010L), "HMFIC", false, Some(None))
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
       pkt mustEqual string_31
     }
 
     "encode (3-2)" in {
-      val msg = SquadMembershipResponse(SquadResponseType.Reject, 0, 2, 31106913L, Some(42771010L), "DAN1111", false, Some(None))
+      val msg = SquadMembershipResponse(
+        SquadResponseType.Reject,
+        0,
+        2,
+        31106913L,
+        Some(42771010L),
+        "DAN1111",
+        false,
+        Some(None)
+      )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
       pkt mustEqual string_32
     }
 
     "encode (4-1)" in {
-      val msg = SquadMembershipResponse(SquadResponseType.Cancel, 0, 2, 41578085L, Some(41607133L), "SAraisVanu", false, Some(None))
+      val msg = SquadMembershipResponse(
+        SquadResponseType.Cancel,
+        0,
+        2,
+        41578085L,
+        Some(41607133L),
+        "SAraisVanu",
+        false,
+        Some(None)
+      )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
       pkt mustEqual string_41
     }
 
     "encode (4-2)" in {
-      val msg = SquadMembershipResponse(SquadResponseType.Cancel, 0, 2, 41607396L, Some(41324011L), "AirInjector", false, Some(None))
+      val msg = SquadMembershipResponse(
+        SquadResponseType.Cancel,
+        0,
+        2,
+        41607396L,
+        Some(41324011L),
+        "AirInjector",
+        false,
+        Some(None)
+      )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
       pkt mustEqual string_42
     }
 
     "encode (5-1)" in {
-      val msg = SquadMembershipResponse(SquadResponseType.Leave, 0, 1, 1176612L, Some(1176612L), "CCRIDER", true, Some(None))
+      val msg =
+        SquadMembershipResponse(SquadResponseType.Leave, 0, 1, 1176612L, Some(1176612L), "CCRIDER", true, Some(None))
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
       pkt mustEqual string_51
@@ -384,35 +432,72 @@ class SquadMembershipResponseTest extends Specification {
     }
 
     "encode (7-2)" in {
-      val msg = SquadMembershipResponse(SquadResponseType.PlatoonInvite, 0, 0, 41578085L, Some(30910985L), "Wizkid45", true, Some(None))
+      val msg = SquadMembershipResponse(
+        SquadResponseType.PlatoonInvite,
+        0,
+        0,
+        41578085L,
+        Some(30910985L),
+        "Wizkid45",
+        true,
+        Some(None)
+      )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
       pkt mustEqual string_72
     }
 
     "encode (8-1)" in {
-      val msg = SquadMembershipResponse(SquadResponseType.PlatoonAccept, 0, 0, 30910985L, Some(41578085L), "Wizkid45", false, Some(None))
+      val msg = SquadMembershipResponse(
+        SquadResponseType.PlatoonAccept,
+        0,
+        0,
+        30910985L,
+        Some(41578085L),
+        "Wizkid45",
+        false,
+        Some(None)
+      )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
       pkt mustEqual string_81
     }
 
     "encode (9-1)" in {
-      val msg = SquadMembershipResponse(SquadResponseType.PlatoonReject, 0, 0, 297025L, Some(41605002L), "", true, Some(None))
+      val msg =
+        SquadMembershipResponse(SquadResponseType.PlatoonReject, 0, 0, 297025L, Some(41605002L), "", true, Some(None))
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
       pkt mustEqual string_91
     }
 
     "encode (9-2)" in {
-      val msg = SquadMembershipResponse(SquadResponseType.PlatoonReject, 0, 0, 30910985L, Some(41578085L), "Wizkid45", false, Some(None))
+      val msg = SquadMembershipResponse(
+        SquadResponseType.PlatoonReject,
+        0,
+        0,
+        30910985L,
+        Some(41578085L),
+        "Wizkid45",
+        false,
+        Some(None)
+      )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
       pkt mustEqual string_92
     }
 
     "encode (b-1)" in {
-      val msg = SquadMembershipResponse(SquadResponseType.PlatoonLeave, 0, 1, 30910985L, Some(41578085L), "SAraisVanu", false, Some(None))
+      val msg = SquadMembershipResponse(
+        SquadResponseType.PlatoonLeave,
+        0,
+        1,
+        30910985L,
+        Some(41578085L),
+        "SAraisVanu",
+        false,
+        Some(None)
+      )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
       pkt mustEqual string_b1

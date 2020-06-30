@@ -5,9 +5,9 @@ import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.guid.AvailabilityPolicy
 
 trait Monitor {
-  def Policy : AvailabilityPolicy.Value
+  def Policy: AvailabilityPolicy.Value
 
-  def Object : Option[IdentifiableEntity]
+  def Object: Option[IdentifiableEntity]
 
-  def Object_=(objct : Option[IdentifiableEntity]) : Option[IdentifiableEntity]
+  def Object_=(objct: Option[IdentifiableEntity]): Option[IdentifiableEntity]
 }

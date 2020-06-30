@@ -12,7 +12,19 @@ class WeaponFireMessageTest extends Specification {
 
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
-      case WeaponFireMessage(seq_time, weapon_guid, projectile_guid, shot_origin, unk1, unk2, unk3, unk4, unk5, unk6, unk7) =>
+      case WeaponFireMessage(
+            seq_time,
+            weapon_guid,
+            projectile_guid,
+            shot_origin,
+            unk1,
+            unk2,
+            unk3,
+            unk4,
+            unk5,
+            unk6,
+            unk7
+          ) =>
         seq_time mustEqual 68
         weapon_guid mustEqual PlanetSideGUID(76)
         projectile_guid mustEqual PlanetSideGUID(40100)
@@ -30,7 +42,19 @@ class WeaponFireMessageTest extends Specification {
   }
 
   "encode" in {
-    val msg = WeaponFireMessage(68, PlanetSideGUID(76), PlanetSideGUID(40100), Vector3(3675.4688f, 2726.9922f, 92.921875f), 0, 64294, 1502, 200, 255, 0, None)
+    val msg = WeaponFireMessage(
+      68,
+      PlanetSideGUID(76),
+      PlanetSideGUID(40100),
+      Vector3(3675.4688f, 2726.9922f, 92.921875f),
+      0,
+      64294,
+      1502,
+      200,
+      255,
+      0,
+      None
+    )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string

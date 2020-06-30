@@ -17,21 +17,20 @@ import DamageCalculations._
   * @param extractor function that recovers damage information
   * @param distanceFunc a function to calculate the distance for scaling the damage, if valid
   */
-abstract class DamageCalculations(damages : DamagesType,
-                                  extractor : DamageWithModifiersType,
-                                  distanceFunc : DistanceType) extends ProjectileCalculations {
+abstract class DamageCalculations(damages: DamagesType, extractor: DamageWithModifiersType, distanceFunc: DistanceType)
+    extends ProjectileCalculations {
+
   /**
     * Combine the damage and distance data extracted from the `ResolvedProjectile` entry.
     * @param data the historical `ResolvedProjectile` information
     * @return the damage value
     */
-  def Calculate(data : ResolvedProjectile) : Int = {
+  def Calculate(data: ResolvedProjectile): Int = {
     val projectile = data.projectile
-    val profile = projectile.profile
-    val modifiers = if(profile.UseDamage1Subtract) {
+    val profile    = projectile.profile
+    val modifiers = if (profile.UseDamage1Subtract) {
       List(projectile.fire_mode.Modifiers, data.target.Modifiers.Subtract)
-    }
-    else {
+    } else {
       List(projectile.fire_mode.Modifiers)
     }
     damages(
@@ -44,22 +43,22 @@ abstract class DamageCalculations(damages : DamagesType,
 
 object DamageCalculations {
   //types
-  type DamagesType = (Projectile, Int, Float)=>Int
-  type DamageWithModifiersType = (DamageProfile, List[DamageProfile])=>Int
-  type DistanceType = ResolvedProjectile=>Float
+  type DamagesType             = (Projectile, Int, Float) => Int
+  type DamageWithModifiersType = (DamageProfile, List[DamageProfile]) => Int
+  type DistanceType            = ResolvedProjectile => Float
 
   //raw damage selectors
-  def NoDamageAgainst(profile : DamageProfile) : Int = 0
+  def NoDamageAgainst(profile: DamageProfile): Int = 0
 
-  def DamageAgainstExoSuit(profile : DamageProfile) : Int = profile.Damage0
+  def DamageAgainstExoSuit(profile: DamageProfile): Int = profile.Damage0
 
-  def DamageAgainstVehicle(profile : DamageProfile) : Int = profile.Damage1
+  def DamageAgainstVehicle(profile: DamageProfile): Int = profile.Damage1
 
-  def DamageAgainstAircraft(profile : DamageProfile) : Int = profile.Damage2
+  def DamageAgainstAircraft(profile: DamageProfile): Int = profile.Damage2
 
-  def DamageAgainstMaxSuit(profile : DamageProfile) : Int = profile.Damage3
+  def DamageAgainstMaxSuit(profile: DamageProfile): Int = profile.Damage3
 
-  def DamageAgainstBFR(profile : DamageProfile) : Int = profile.Damage4
+  def DamageAgainstBFR(profile: DamageProfile): Int = profile.Damage4
 
   //raw damage selection functions
   /**
@@ -70,12 +69,12 @@ object DamageCalculations {
     * @return the accumulated damage value
     */
   //TODO modifiers come from various sources; expand this part of the calculation model in the future
-  def DamageWithModifiers(extractor : DamageProfile=>Int)(base : DamageProfile, modifiers : List[DamageProfile]) : Int = {
+  def DamageWithModifiers(extractor: DamageProfile => Int)(base: DamageProfile, modifiers: List[DamageProfile]): Int = {
     extractor(base) + modifiers.foldLeft(0)(_ + extractor(_))
   }
 
   //damage calculation functions
-  def NoDamage(projectile : Projectile, rawDamage : Int, distance : Float) : Int = 0
+  def NoDamage(projectile: Projectile, rawDamage: Int, distance: Float): Int = 0
 
   /**
     * Use an unmodified damage value.
@@ -86,7 +85,7 @@ object DamageCalculations {
     *                 unused
     * @return the rawDamage value
     */
-  def SameHit(projectile : Projectile, rawDamage : Int, distance : Float) : Int = rawDamage
+  def SameHit(projectile: Projectile, rawDamage: Int, distance: Float): Int = rawDamage
 
   /**
     * Modify the base damage based on the degrade distance of the projectile type
@@ -97,17 +96,15 @@ object DamageCalculations {
     * @param distance how far the source was from the target
     * @return the modified damage value
     */
-  def DirectHitDamageWithDegrade(projectile : Projectile, rawDamage: Int, distance: Float): Int = {
+  def DirectHitDamageWithDegrade(projectile: Projectile, rawDamage: Int, distance: Float): Int = {
     val profile = projectile.profile
-    if(distance <= profile.DistanceMax) {
-      if(profile.DistanceNoDegrade == profile.DistanceMax || distance <= profile.DistanceNoDegrade) {
+    if (distance <= profile.DistanceMax) {
+      if (profile.DistanceNoDegrade == profile.DistanceMax || distance <= profile.DistanceNoDegrade) {
         rawDamage
-      }
-      else {
+      } else {
         rawDamage - ((rawDamage - profile.DegradeMultiplier * rawDamage) * ((distance - profile.DistanceNoDegrade) / (profile.DistanceMax - profile.DistanceNoDegrade))).toInt
       }
-    }
-    else {
+    } else {
       0
     }
   }
@@ -120,14 +117,13 @@ object DamageCalculations {
     * @param distance how far the origin of the explosion was from the target
     * @return the modified damage value
     */
-  def SplashDamageWithRadialDegrade(projectile : Projectile, rawDamage : Int, distance : Float) : Int = {
+  def SplashDamageWithRadialDegrade(projectile: Projectile, rawDamage: Int, distance: Float): Int = {
     val radius = projectile.profile.DamageRadius
-    if(distance <= radius) {
-      val base : Float = projectile.profile.DamageAtEdge
-      val degrade : Float = (1 - base) * ((radius - distance)/radius) + base
+    if (distance <= radius) {
+      val base: Float    = projectile.profile.DamageAtEdge
+      val degrade: Float = (1 - base) * ((radius - distance) / radius) + base
       (rawDamage * degrade).toInt
-    }
-    else {
+    } else {
       0
     }
   }
@@ -142,31 +138,30 @@ object DamageCalculations {
     * @param distance how far the source was from the target
     * @return the modified damage value
     */
-  def LashDamage(projectile : Projectile, rawDamage : Int, distance : Float) : Int = {
-    if(distance > 5) {
+  def LashDamage(projectile: Projectile, rawDamage: Int, distance: Float): Int = {
+    if (distance > 5) {
       (DirectHitDamageWithDegrade(projectile, rawDamage, math.max(distance - 5, 0f)) * 0.2f) toInt
-    }
-    else {
+    } else {
       0
     }
   }
 
   //distance functions
-  def NoDistance(data : ResolvedProjectile) : Float = 0
+  def NoDistance(data: ResolvedProjectile): Float = 0
 
-  def TooFar(data : ResolvedProjectile) : Float = Float.MaxValue
+  def TooFar(data: ResolvedProjectile): Float = Float.MaxValue
 
-  def DistanceBetweenTargetandSource(data : ResolvedProjectile) : Float = {
+  def DistanceBetweenTargetandSource(data: ResolvedProjectile): Float = {
     //Vector3.Distance(data.target.Position, data.projectile.owner.Position)
     DistanceBetweenOriginAndImpact(data)
   }
 
-  def DistanceFromExplosionToTarget(data : ResolvedProjectile) : Float = {
+  def DistanceFromExplosionToTarget(data: ResolvedProjectile): Float = {
     math.max(Vector3.Distance(data.target.Position, data.hit_pos) - 1, 0)
     //DistanceBetweenOriginAndImpact(data)
   }
 
-  def DistanceBetweenOriginAndImpact(data : ResolvedProjectile) : Float = {
+  def DistanceBetweenOriginAndImpact(data: ResolvedProjectile): Float = {
     math.max(Vector3.Distance(data.projectile.shot_origin, data.hit_pos) - 0.5f, 0)
   }
 }

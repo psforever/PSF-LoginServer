@@ -18,20 +18,20 @@ import scala.concurrent.duration._
   * It has failure cases should the driver be in an incorrect state.
   * @param pad the `VehicleSpawnPad` object being governed
   */
-class VehicleSpawnControlConcealPlayer(pad : VehicleSpawnPad) extends VehicleSpawnControlBase(pad) {
+class VehicleSpawnControlConcealPlayer(pad: VehicleSpawnPad) extends VehicleSpawnControlBase(pad) {
   def LogId = "-concealer"
 
-  val loadVehicle = context.actorOf(Props(classOf[VehicleSpawnControlLoadVehicle], pad), s"${context.parent.path.name}-load")
+  val loadVehicle =
+    context.actorOf(Props(classOf[VehicleSpawnControlLoadVehicle], pad), s"${context.parent.path.name}-load")
 
-  def receive : Receive = {
+  def receive: Receive = {
     case order @ VehicleSpawnControl.Order(driver, _) =>
       //TODO how far can the driver stray from the Terminal before his order is cancelled?
-      if(driver.Continent == pad.Continent && driver.VehicleSeated.isEmpty && driver.isAlive) {
+      if (driver.Continent == pad.Continent && driver.VehicleSeated.isEmpty && driver.isAlive) {
         trace(s"hiding ${driver.Name}")
         pad.Zone.VehicleEvents ! VehicleSpawnPad.ConcealPlayer(driver.GUID)
         context.system.scheduler.scheduleOnce(2000 milliseconds, loadVehicle, order)
-      }
-      else {
+      } else {
         trace(s"integral component lost; abort order fulfillment")
         VehicleSpawnControl.DisposeVehicle(order.vehicle, pad.Zone)
         context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder

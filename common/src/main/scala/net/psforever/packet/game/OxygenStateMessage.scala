@@ -18,9 +18,7 @@ import shapeless.{::, HNil}
   *               clear any active countdowns if `false`;
   *               defaults to `true`
   */
-final case class WaterloggedVehicleState(vehicle_guid : PlanetSideGUID,
-                                         progress : Float,
-                                         active : Boolean = true)
+final case class WaterloggedVehicleState(vehicle_guid: PlanetSideGUID, progress: Float, active: Boolean = true)
 
 /**
   * Dispatched by the server to cause the player to slowly drown.
@@ -49,17 +47,19 @@ final case class WaterloggedVehicleState(vehicle_guid : PlanetSideGUID,
   *               clear any active countdowns if `false`
   * @param vehicle_state optional state of the vehicle the player is driving
   */
-final case class OxygenStateMessage(player_guid : PlanetSideGUID,
-                                    progress : Float,
-                                    active : Boolean,
-                                    vehicle_state : Option[WaterloggedVehicleState] = None)
-  extends PlanetSideGamePacket {
+final case class OxygenStateMessage(
+    player_guid: PlanetSideGUID,
+    progress: Float,
+    active: Boolean,
+    vehicle_state: Option[WaterloggedVehicleState] = None
+) extends PlanetSideGamePacket {
   type Packet = OxygenStateMessage
   def opcode = GamePacketOpcode.OxygenStateMessage
   def encode = OxygenStateMessage.encode(this)
 }
 
 object OxygenStateMessage extends Marshallable[OxygenStateMessage] {
+
   /**
     * Overloaded constructor that removes the optional state of the `WaterloggedVehicleState` parameter.
     * @param player_guid the player
@@ -68,7 +68,12 @@ object OxygenStateMessage extends Marshallable[OxygenStateMessage] {
     * @param vehicle_state state of the vehicle the player is driving
     * @return
     */
-  def apply(player_guid : PlanetSideGUID, progress : Float, active : Boolean, vehicle_state : WaterloggedVehicleState) : OxygenStateMessage =
+  def apply(
+      player_guid: PlanetSideGUID,
+      progress: Float,
+      active: Boolean,
+      vehicle_state: WaterloggedVehicleState
+  ): OxygenStateMessage =
     OxygenStateMessage(player_guid, progress, active, Some(vehicle_state))
 
   /**
@@ -80,13 +85,17 @@ object OxygenStateMessage extends Marshallable[OxygenStateMessage] {
     * A `Codec` for the repeated processing of three values.
     * This `Codec` is the basis for the packet's data.
     */
-  private val base_codec : Codec[basePattern] =
+  private val base_codec: Codec[basePattern] =
     PlanetSideGUID.codec ::
-      newcodecs.q_float(0.0f, 204.8f, 11) :: //hackish: 2^11 == 2047, so it should be 204.7; but, 204.8 allows decode == encode
+      newcodecs.q_float(
+        0.0f,
+        204.8f,
+        11
+      ) :: //hackish: 2^11 == 2047, so it should be 204.7; but, 204.8 allows decode == encode
       bool
 
-  implicit val codec : Codec[OxygenStateMessage] = (
-    base_codec.exmap[basePattern] (
+  implicit val codec: Codec[OxygenStateMessage] = (
+    base_codec.exmap[basePattern](
       {
         case guid :: time :: active :: HNil =>
           Attempt.successful(guid :: time :: active :: HNil)
@@ -96,17 +105,20 @@ object OxygenStateMessage extends Marshallable[OxygenStateMessage] {
           Attempt.successful(guid :: time :: active :: HNil)
       }
     ) :+
-      optional(bool,
-        "vehicle_state" | base_codec.exmap[WaterloggedVehicleState] (
-          {
-            case guid :: time :: active :: HNil =>
-              Attempt.successful(WaterloggedVehicleState(guid, time, active))
-          },
-          {
-            case WaterloggedVehicleState(guid, time, active) =>
-              Attempt.successful(guid :: time :: active :: HNil)
-          }
-        ).as[WaterloggedVehicleState]
+      optional(
+        bool,
+        "vehicle_state" | base_codec
+          .exmap[WaterloggedVehicleState](
+            {
+              case guid :: time :: active :: HNil =>
+                Attempt.successful(WaterloggedVehicleState(guid, time, active))
+            },
+            {
+              case WaterloggedVehicleState(guid, time, active) =>
+                Attempt.successful(guid :: time :: active :: HNil)
+            }
+          )
+          .as[WaterloggedVehicleState]
       )
-    ).as[OxygenStateMessage]
+  ).as[OxygenStateMessage]
 }

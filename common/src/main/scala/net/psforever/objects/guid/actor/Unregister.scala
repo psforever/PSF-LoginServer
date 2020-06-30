@@ -14,10 +14,10 @@ import net.psforever.objects.entity.IdentifiableEntity
   * @param obj the mandatory object
   * @param callback the optional custom callback for the messages from the success or failure conditions
   */
-final case class Unregister(obj : IdentifiableEntity, callback : Option[ActorRef] = None)
+final case class Unregister(obj: IdentifiableEntity, callback: Option[ActorRef] = None)
 
 object Unregister {
-  def apply(obj : IdentifiableEntity, callback : ActorRef) : Unregister = {
+  def apply(obj: IdentifiableEntity, callback: ActorRef): Unregister = {
     Unregister(obj, Some(callback))
   }
 }

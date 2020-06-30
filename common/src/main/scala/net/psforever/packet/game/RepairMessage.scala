@@ -17,17 +17,15 @@ import scodec.codecs._
   *                     at 100, the progress window does not display anymore;
   *                     above 100, the progress window stays displayed unless the underlying process is interrupted
   */
-final case class RepairMessage(item_guid : PlanetSideGUID,
-                               repair_value : Long)
-  extends PlanetSideGamePacket {
+final case class RepairMessage(item_guid: PlanetSideGUID, repair_value: Long) extends PlanetSideGamePacket {
   type Packet = RepairMessage
   def opcode = GamePacketOpcode.RepairMessage
   def encode = RepairMessage.encode(this)
 }
 
 object RepairMessage extends Marshallable[RepairMessage] {
-  implicit val codec : Codec[RepairMessage] = (
+  implicit val codec: Codec[RepairMessage] = (
     ("item_guid" | PlanetSideGUID.codec) ::
       ("repair_value" | uint32L)
-    ).as[RepairMessage]
+  ).as[RepairMessage]
 }

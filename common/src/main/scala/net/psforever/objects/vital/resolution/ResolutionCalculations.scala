@@ -16,6 +16,7 @@ import net.psforever.types.ImplantType
   * The base for the combining step of all projectile-induced damage calculation function literals.
   */
 trait ResolutionCalculations {
+
   /**
     * The exposed entry for the calculation function literal defined by this base.
     * @param damages the function literal that accumulates and calculates damages
@@ -23,71 +24,68 @@ trait ResolutionCalculations {
     * @param data the historical `ResolvedProjectile` information
     * @return a function literal that encapsulates delayed modification instructions for certain objects
     */
-  def Calculate(damages : ProjectileCalculations.Form, resistances : ProjectileCalculations.Form, data : ResolvedProjectile) : ResolutionCalculations.Output
+  def Calculate(
+      damages: ProjectileCalculations.Form,
+      resistances: ProjectileCalculations.Form,
+      data: ResolvedProjectile
+  ): ResolutionCalculations.Output
 }
 
 object ResolutionCalculations {
-  type Output = Any=>ResolvedProjectile
-  type Form = (ProjectileCalculations.Form, ProjectileCalculations.Form, ResolvedProjectile)=>Output
+  type Output = Any => ResolvedProjectile
+  type Form   = (ProjectileCalculations.Form, ProjectileCalculations.Form, ResolvedProjectile) => Output
 
-  def NoDamage(data : ResolvedProjectile)(a : Int, b : Int) : Int = 0
+  def NoDamage(data: ResolvedProjectile)(a: Int, b: Int): Int = 0
 
-  def InfantryDamageAfterResist(data : ResolvedProjectile) : (Int, Int)=>(Int, Int) = {
+  def InfantryDamageAfterResist(data: ResolvedProjectile): (Int, Int) => (Int, Int) = {
     data.target match {
-      case target : PlayerSource =>
+      case target: PlayerSource =>
         InfantryDamageAfterResist(target.health, target.armor)
       case _ =>
         InfantryDamageAfterResist(0, 0)
     }
   }
 
-  def InfantryDamageAfterResist(currentHP : Int, currentArmor : Int)(damages : Int, resistance : Int) : (Int, Int) = {
-    if(damages > 0 && currentHP > 0) {
-      if(currentArmor <= 0) {
+  def InfantryDamageAfterResist(currentHP: Int, currentArmor: Int)(damages: Int, resistance: Int): (Int, Int) = {
+    if (damages > 0 && currentHP > 0) {
+      if (currentArmor <= 0) {
         (damages, 0) //no armor; health damage
-      }
-      else if(damages > resistance) {
+      } else if (damages > resistance) {
         val resistedDam = damages - resistance
         //(resistedDam, resistance)
-        if(resistance <= currentArmor) {
+        if (resistance <= currentArmor) {
           (resistedDam, resistance) //armor and health damage
-        }
-        else {
+        } else {
           (resistedDam + (resistance - currentArmor), currentArmor) //deplete armor; health damage + bonus
         }
-      }
-      else {
+      } else {
         (0, damages) //too weak; armor damage (less than resistance)
       }
-    }
-    else {
+    } else {
       (0, 0) //no damage
     }
   }
 
-  def MaxDamageAfterResist(data : ResolvedProjectile) : (Int, Int)=>(Int, Int) = {
+  def MaxDamageAfterResist(data: ResolvedProjectile): (Int, Int) => (Int, Int) = {
     data.target match {
-      case target : PlayerSource =>
+      case target: PlayerSource =>
         MaxDamageAfterResist(target.health, target.armor)
       case _ =>
         MaxDamageAfterResist(0, 0)
     }
   }
 
-  def MaxDamageAfterResist(currentHP : Int, currentArmor : Int)(damages : Int, resistance : Int) : (Int, Int) = {
+  def MaxDamageAfterResist(currentHP: Int, currentArmor: Int)(damages: Int, resistance: Int): (Int, Int) = {
     val resistedDam = damages - resistance
-    if(resistedDam > 0 && currentHP > 0) {
-      if(currentArmor <= 0) {
+    if (resistedDam > 0 && currentHP > 0) {
+      if (currentArmor <= 0) {
         (resistedDam, 0) //no armor; health damage
-      }
-      else if(resistedDam >= currentArmor) {
+      } else if (resistedDam >= currentArmor) {
         (resistedDam - currentArmor, currentArmor) //deplete armor; health damage
-      }
-      else {
+      } else {
         (0, resistedDam) //too weak; armor damage (less than resistance)
       }
-    }
-    else {
+    } else {
       (0, 0) //no damage
     }
   }
@@ -99,28 +97,27 @@ object ResolutionCalculations {
     * @param data the historical `ResolvedProjectile` information
     * @return a function literal for dealing with damage values and resistance values together
     */
-  def VehicleDamageAfterResist(data : ResolvedProjectile) : (Int, Int)=>Int = {
+  def VehicleDamageAfterResist(data: ResolvedProjectile): (Int, Int) => Int = {
     VehicleDamageAfterResist
   }
 
-  def VehicleDamageAfterResist(damages : Int, resistance : Int) : Int = {
-    if(damages > resistance) {
+  def VehicleDamageAfterResist(damages: Int, resistance: Int): Int = {
+    if (damages > resistance) {
       damages - resistance
-    }
-    else {
+    } else {
       damages
     }
   }
 
-  def NoApplication(damageValue : Int, data : ResolvedProjectile)(target : Any) : ResolvedProjectile = data
+  def NoApplication(damageValue: Int, data: ResolvedProjectile)(target: Any): ResolvedProjectile = data
 
-  def SubtractWithRemainder(current : Int, damage : Int) : (Int, Int) = {
-    val a = Math.max(0, current - damage)
+  def SubtractWithRemainder(current: Int, damage: Int): (Int, Int) = {
+    val a               = Math.max(0, current - damage)
     val remainingDamage = Math.abs(current - damage - a)
     (a, remainingDamage)
   }
 
-  private def CanDamage(obj : Vitality with FactionAffinity, damage : Int, data : ResolvedProjectile) : Boolean = {
+  private def CanDamage(obj: Vitality with FactionAffinity, damage: Int, data: ResolvedProjectile): Boolean = {
     obj.Health > 0 && Damageable.CanDamage(obj, damage, data)
   }
 
@@ -131,13 +128,13 @@ object ResolutionCalculations {
     * @param data the historical `ResolvedProjectile` information
     * @param target the `Player` object to be affected by these damage values (at some point)
     */
-  def InfantryApplication(damageValues : (Int, Int), data : ResolvedProjectile)(target : Any) : ResolvedProjectile = {
+  def InfantryApplication(damageValues: (Int, Int), data: ResolvedProjectile)(target: Any): ResolvedProjectile = {
     target match {
-      case player : Player =>
+      case player: Player =>
         var (a, b) = damageValues
         var result = (0, 0)
-        if(player.isAlive && !(a == 0 && b == 0)) {
-          if(player.Capacitor.toInt > 0 && player.isShielded) {
+        if (player.isAlive && !(a == 0 && b == 0)) {
+          if (player.Capacitor.toInt > 0 && player.isShielded) {
             // Subtract armour damage from capacitor
             result = SubtractWithRemainder(player.Capacitor.toInt, b)
             player.Capacitor = result._1.toFloat
@@ -169,7 +166,6 @@ object ResolutionCalculations {
           player.Armor = result._1
           b = result._2
 
-
           val originalHealth = player.Health
           // Then bleed through to health if armour ran out
           result = SubtractWithRemainder(player.Health, b)
@@ -182,7 +178,7 @@ object ResolutionCalculations {
           a = result._2
 
           // If any health damage was applied also drain an amount of stamina equal to half the health damage
-          if(player.Health < originalHealth) {
+          if (player.Health < originalHealth) {
             val delta = originalHealth - player.Health
             player.Stamina -= math.floor(delta / 2).toInt
           }
@@ -199,18 +195,16 @@ object ResolutionCalculations {
     * @param data the historical `ResolvedProjectile` information
     * @param target the `Vehicle` object to be affected by these damage values (at some point)
     */
-  def VehicleApplication(damage : Int, data : ResolvedProjectile)(target : Any) : ResolvedProjectile = {
+  def VehicleApplication(damage: Int, data: ResolvedProjectile)(target: Any): ResolvedProjectile = {
     target match {
-      case vehicle : Vehicle if CanDamage(vehicle, damage, data) =>
+      case vehicle: Vehicle if CanDamage(vehicle, damage, data) =>
         val shields = vehicle.Shields
-        if(shields > damage) {
+        if (shields > damage) {
           vehicle.Shields = shields - damage
-        }
-        else if(shields > 0) {
+        } else if (shields > 0) {
           vehicle.Health = vehicle.Health - (damage - shields)
           vehicle.Shields = 0
-        }
-        else {
+        } else {
           vehicle.Health = vehicle.Health - damage
         }
       case _ => ;
@@ -218,46 +212,42 @@ object ResolutionCalculations {
     data
   }
 
-  def SimpleApplication(damage : Int, data : ResolvedProjectile)(target : Any) : ResolvedProjectile = {
+  def SimpleApplication(damage: Int, data: ResolvedProjectile)(target: Any): ResolvedProjectile = {
     target match {
-      case obj : Deployable if CanDamage(obj, damage, data) =>
+      case obj: Deployable if CanDamage(obj, damage, data) =>
         obj.Health -= damage
-      case turret : FacilityTurret if CanDamage(turret, damage, data) =>
+      case turret: FacilityTurret if CanDamage(turret, damage, data) =>
         turret.Health -= damage
-      case amenity : Amenity if CanDamage(amenity, damage, data) =>
+      case amenity: Amenity if CanDamage(amenity, damage, data) =>
         amenity.Health -= damage
       case _ => ;
     }
     data
   }
 
-  def ComplexDeployableApplication(damage : Int, data : ResolvedProjectile)(target : Any) : ResolvedProjectile = {
+  def ComplexDeployableApplication(damage: Int, data: ResolvedProjectile)(target: Any): ResolvedProjectile = {
     target match {
-      case ce : ComplexDeployable if CanDamage(ce, damage, data) =>
-        if(ce.Shields > 0) {
-          if(damage > ce.Shields) {
+      case ce: ComplexDeployable if CanDamage(ce, damage, data) =>
+        if (ce.Shields > 0) {
+          if (damage > ce.Shields) {
             ce.Health -= (damage - ce.Shields)
             ce.Shields = 0
-          }
-          else {
+          } else {
             ce.Shields -= damage
           }
-        }
-        else {
+        } else {
           ce.Health -= damage
         }
 
-      case ce : TurretDeployable if CanDamage(ce, damage, data) =>
-        if(ce.Shields > 0) {
-          if(damage > ce.Shields) {
+      case ce: TurretDeployable if CanDamage(ce, damage, data) =>
+        if (ce.Shields > 0) {
+          if (damage > ce.Shields) {
             ce.Health -= (damage - ce.Shields)
             ce.Shields = 0
-          }
-          else {
+          } else {
             ce.Shields -= damage
           }
-        }
-        else {
+        } else {
           ce.Health -= damage
         }
 

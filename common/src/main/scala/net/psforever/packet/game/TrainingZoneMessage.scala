@@ -30,17 +30,15 @@ import scodec.codecs._
   * @param zone the virtual reality zone to send the player
   * @param unk na; always 0?
   */
-final case class TrainingZoneMessage(zone : PlanetSideGUID,
-                                     unk : Int = 0)
-  extends PlanetSideGamePacket {
+final case class TrainingZoneMessage(zone: PlanetSideGUID, unk: Int = 0) extends PlanetSideGamePacket {
   type Packet = TrainingZoneMessage
   def opcode = GamePacketOpcode.TrainingZoneMessage
   def encode = TrainingZoneMessage.encode(this)
 }
 
 object TrainingZoneMessage extends Marshallable[TrainingZoneMessage] {
-  implicit val codec : Codec[TrainingZoneMessage] = (
+  implicit val codec: Codec[TrainingZoneMessage] = (
     ("zone" | PlanetSideGUID.codec) ::
       ("unk" | uint16L)
-    ).as[TrainingZoneMessage]
+  ).as[TrainingZoneMessage]
 }

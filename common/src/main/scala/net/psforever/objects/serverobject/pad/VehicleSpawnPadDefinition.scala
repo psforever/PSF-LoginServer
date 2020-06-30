@@ -6,7 +6,7 @@ import net.psforever.objects.serverobject.structures.AmenityDefinition
 /**
   * The definition for any `VehicleSpawnPad`.
   */
-class VehicleSpawnPadDefinition(objectId : Int) extends AmenityDefinition(objectId) {
+class VehicleSpawnPadDefinition(objectId: Int) extends AmenityDefinition(objectId) {
 
   // Different pads require a Z offset to stop vehicles falling through the world after the pad rises from the floor, these values are found in game_objects.adb.lst
   private var vehicle_creation_z_offset = 0f
@@ -16,8 +16,8 @@ class VehicleSpawnPadDefinition(objectId : Int) extends AmenityDefinition(object
   // However, it seems these values need to be reversed to turn CCW to CW rotation (e.g. +90 to -90)
   private var vehicle_creation_z_orient_offset = 0f
 
-  def VehicleCreationZOffset : Float = vehicle_creation_z_offset
-  def VehicleCreationZOrientOffset : Float = vehicle_creation_z_orient_offset
+  def VehicleCreationZOffset: Float       = vehicle_creation_z_offset
+  def VehicleCreationZOrientOffset: Float = vehicle_creation_z_orient_offset
 
   objectId match {
     case 141 =>
@@ -37,6 +37,6 @@ class VehicleSpawnPadDefinition(objectId : Int) extends AmenityDefinition(object
       vehicle_creation_z_offset = 1.70982f
     case 816 => Name = "spawnpoint_vehicle"
     case 947 => Name = "vanu_vehicle_creation_pad"
-    case _ => throw new IllegalArgumentException("Not a valid object id with the type vehicle_creation_pad")
+    case _   => throw new IllegalArgumentException("Not a valid object id with the type vehicle_creation_pad")
   }
 }

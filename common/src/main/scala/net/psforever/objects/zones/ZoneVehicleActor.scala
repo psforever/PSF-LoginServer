@@ -27,24 +27,22 @@ import scala.collection.mutable.ListBuffer
   * <br>
   * This `Actor` is intended to sit on top of the event system that handles broadcast messaging.
   */
-class ZoneVehicleActor(zone : Zone, vehicleList : ListBuffer[Vehicle]) extends Actor {
+class ZoneVehicleActor(zone: Zone, vehicleList: ListBuffer[Vehicle]) extends Actor {
   //private[this] val log = org.log4s.getLogger
 
-  def receive : Receive = {
+  def receive: Receive = {
     case Zone.Vehicle.Spawn(vehicle) =>
-      if(!vehicle.HasGUID) {
+      if (!vehicle.HasGUID) {
         sender ! Zone.Vehicle.CanNotSpawn(zone, vehicle, "not registered yet")
-      }
-      else if(vehicleList.contains(vehicle)) {
+      } else if (vehicleList.contains(vehicle)) {
         sender ! Zone.Vehicle.CanNotSpawn(zone, vehicle, "already in zone")
-      }
-      else if(vehicle.Actor != Default.Actor) {
+      } else if (vehicle.Actor != Default.Actor) {
         sender ! Zone.Vehicle.CanNotSpawn(zone, vehicle, "already in another zone")
-      }
-      else {
+      } else {
         vehicleList += vehicle
         vehicle.Zone = zone
-        vehicle.Actor = context.actorOf(Props(classOf[VehicleControl], vehicle), PlanetSideServerObject.UniqueActorName(vehicle))
+        vehicle.Actor =
+          context.actorOf(Props(classOf[VehicleControl], vehicle), PlanetSideServerObject.UniqueActorName(vehicle))
       }
 
     case Zone.Vehicle.Despawn(vehicle) =>
@@ -62,15 +60,13 @@ class ZoneVehicleActor(zone : Zone, vehicleList : ListBuffer[Vehicle]) extends A
 }
 
 object ZoneVehicleActor {
-  @tailrec final def recursiveFindVehicle(iter : Iterator[Vehicle], target : Vehicle, index : Int = 0) : Option[Int] = {
-    if(!iter.hasNext) {
+  @tailrec final def recursiveFindVehicle(iter: Iterator[Vehicle], target: Vehicle, index: Int = 0): Option[Int] = {
+    if (!iter.hasNext) {
       None
-    }
-    else {
-      if(iter.next.equals(target)) {
+    } else {
+      if (iter.next.equals(target)) {
         Some(index)
-      }
-      else {
+      } else {
         recursiveFindVehicle(iter, target, index + 1)
       }
     }

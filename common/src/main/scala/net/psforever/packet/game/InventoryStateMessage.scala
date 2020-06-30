@@ -22,17 +22,19 @@ import scodec.codecs._
   * @param container_guid the object in which `object_guid` is contained
   * @param value an amount with which to update `object_guid`
   */
-final case class InventoryStateMessage(object_guid : PlanetSideGUID,
-                                       unk : Int,
-                                       container_guid : PlanetSideGUID,
-                                       value : Long)
-  extends PlanetSideGamePacket {
+final case class InventoryStateMessage(
+    object_guid: PlanetSideGUID,
+    unk: Int,
+    container_guid: PlanetSideGUID,
+    value: Long
+) extends PlanetSideGamePacket {
   type Packet = InventoryStateMessage
   def opcode = GamePacketOpcode.InventoryStateMessage
   def encode = InventoryStateMessage.encode(this)
 }
 
 object InventoryStateMessage extends Marshallable[InventoryStateMessage] {
+
   /**
     * Overloaded constructor that ignores the unknown field.
     * @param object_guid the object being affected
@@ -40,13 +42,13 @@ object InventoryStateMessage extends Marshallable[InventoryStateMessage] {
     * @param value an amount with which to update `object_guid`
     * @return an `InventoryStateMessage` object
     */
-  def apply(object_guid : PlanetSideGUID, container_guid : PlanetSideGUID, value : Long) : InventoryStateMessage =
+  def apply(object_guid: PlanetSideGUID, container_guid: PlanetSideGUID, value: Long): InventoryStateMessage =
     InventoryStateMessage(object_guid, 0, container_guid, value)
 
-  implicit val codec : Codec[InventoryStateMessage] = (
+  implicit val codec: Codec[InventoryStateMessage] = (
     ("object_guid" | PlanetSideGUID.codec) ::
       ("unk" | uintL(10)) ::
       ("container_guid" | PlanetSideGUID.codec) ::
       ("value" | uint32L)
-    ).as[InventoryStateMessage]
+  ).as[InventoryStateMessage]
 }

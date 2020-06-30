@@ -13,17 +13,16 @@ import shapeless.{::, HNil}
   * @param orient the ijk-orientation around the object's center
   * @param vel optional movement data (that occurs upon placement)
   */
-final case class PlacementData(coord : Vector3,
-                               orient : Vector3,
-                               vel : Option[Vector3] = None
-                              ) extends StreamBitSize {
-  override def bitsize : Long = {
-    val moveLength = if(vel.isDefined) { 42 } else { 0 }
+final case class PlacementData(coord: Vector3, orient: Vector3, vel: Option[Vector3] = None) extends StreamBitSize {
+  override def bitsize: Long = {
+    val moveLength = if (vel.isDefined) { 42 }
+    else { 0 }
     81L + moveLength
   }
 }
 
 object PlacementData extends Marshallable[PlacementData] {
+
   /**
     * An abbreviated constructor for creating `PlacementData`, ignoring the `Vector3` for position data.
     * @param x the x-coordinate location in the world
@@ -31,8 +30,8 @@ object PlacementData extends Marshallable[PlacementData] {
     * @param z the z-coordinate location in the world
     * @return a `PlacementData` object
     */
-  def apply(x : Float, y : Float, z : Float) : PlacementData =
-    new PlacementData(Vector3(x, y, z), Vector3(0f,0f,0f))
+  def apply(x: Float, y: Float, z: Float): PlacementData =
+    new PlacementData(Vector3(x, y, z), Vector3(0f, 0f, 0f))
 
   /**
     * An abbreviated constructor for creating `PlacementData`, ignoring the `Vector3` for position data, supplying other important fields.
@@ -44,7 +43,7 @@ object PlacementData extends Marshallable[PlacementData] {
     * @param yaw the amount of yaw that affects orientation
     * @return a `PlacementData` object
     */
-  def apply(x : Float, y : Float, z : Float, roll : Float, pitch : Float, yaw : Float) : PlacementData =
+  def apply(x: Float, y: Float, z: Float, roll: Float, pitch: Float, yaw: Float): PlacementData =
     new PlacementData(Vector3(x, y, z), Vector3(roll, pitch, yaw))
 
   /**
@@ -58,16 +57,16 @@ object PlacementData extends Marshallable[PlacementData] {
     * @param vel optional movement data that occurs upon placement
     * @return a `PlacementData` object
     */
-  def apply(x : Float, y : Float, z : Float, roll : Float, pitch : Float, yaw : Float, vel : Vector3) : PlacementData =
+  def apply(x: Float, y: Float, z: Float, roll: Float, pitch: Float, yaw: Float, vel: Vector3): PlacementData =
     new PlacementData(Vector3(x, y, z), Vector3(roll, pitch, yaw), Some(vel))
 
-  implicit val codec : Codec[PlacementData] = (
+  implicit val codec: Codec[PlacementData] = (
     ("coord" | Vector3.codec_pos) ::
       ("roll" | Angular.codec_roll) ::
       ("pitch" | Angular.codec_pitch) ::
       ("yaw" | Angular.codec_yaw()) ::
       optional(bool, "vel" | Vector3.codec_vel)
-    ).xmap[PlacementData] (
+  ).xmap[PlacementData](
     {
       case xyz :: i :: j :: k :: vel :: HNil =>
         PlacementData(xyz, Vector3(i, j, k), vel)

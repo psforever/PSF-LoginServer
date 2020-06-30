@@ -10,14 +10,12 @@ import scodec.bits.BitVector
   * @param attribute na
   * @param value na
   */
-final case class DataChallengeMessageResp(attribute : String,
-                                          value : Long)
-  extends PlanetSideGamePacket {
+final case class DataChallengeMessageResp(attribute: String, value: Long) extends PlanetSideGamePacket {
   type Packet = DataChallengeMessageResp
-  def opcode : GamePacketOpcode.Value = GamePacketOpcode.DataChallengeMessageResp
-  def encode : Attempt[BitVector] = DataChallengeMessageResp.encode(this)
+  def opcode: GamePacketOpcode.Value = GamePacketOpcode.DataChallengeMessageResp
+  def encode: Attempt[BitVector]     = DataChallengeMessageResp.encode(this)
 }
 
 object DataChallengeMessageResp extends Marshallable[DataChallengeMessageResp] {
-  implicit val codec : Codec[DataChallengeMessageResp] = DataChallenge.codec.as[DataChallengeMessageResp]
+  implicit val codec: Codec[DataChallengeMessageResp] = DataChallenge.codec.as[DataChallengeMessageResp]
 }

@@ -12,7 +12,13 @@ import org.specs2.mutable._
 import scala.util.Success
 
 class PlayerTest extends Specification {
-  def TestPlayer(name : String, faction : PlanetSideEmpire.Value, sex : CharacterGender.Value, head : Int, voice : CharacterVoice.Value) : Player = {
+  def TestPlayer(
+      name: String,
+      faction: PlanetSideEmpire.Value,
+      sex: CharacterGender.Value,
+      head: Int,
+      voice: CharacterVoice.Value
+  ): Player = {
     new Player(Avatar(name, faction, sex, head, voice))
   }
 
@@ -158,13 +164,13 @@ class PlayerTest extends Specification {
 
     "has visible slots" in {
       val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      obj.VisibleSlots mustEqual Set(0,2,4) //Standard
+      obj.VisibleSlots mustEqual Set(0, 2, 4) //Standard
       obj.ExoSuit = ExoSuitType.Agile
-      obj.VisibleSlots mustEqual Set(0,1,2,4)
+      obj.VisibleSlots mustEqual Set(0, 1, 2, 4)
       obj.ExoSuit = ExoSuitType.Reinforced
-      obj.VisibleSlots mustEqual Set(0,1,2,3,4)
+      obj.VisibleSlots mustEqual Set(0, 1, 2, 3, 4)
       obj.ExoSuit = ExoSuitType.Infiltration
-      obj.VisibleSlots mustEqual Set(0,4)
+      obj.VisibleSlots mustEqual Set(0, 4)
       obj.ExoSuit = ExoSuitType.MAX
       obj.VisibleSlots mustEqual Set(0)
     }
@@ -197,12 +203,12 @@ class PlayerTest extends Specification {
     "remember the last drawn holster" in {
       val wep1 = SimpleItem(SimpleItemDefinition(149))
       val wep2 = SimpleItem(SimpleItemDefinition(149))
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+      val obj  = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.Slot(0).Size = EquipmentSize.Pistol
       obj.Slot(0).Equipment = wep1
       obj.Slot(1).Size = EquipmentSize.Pistol
       obj.Slot(1).Equipment = wep2
-      obj.DrawnSlot mustEqual Player.HandsDownSlot //default value
+      obj.DrawnSlot mustEqual Player.HandsDownSlot     //default value
       obj.LastDrawnSlot mustEqual Player.HandsDownSlot //default value
 
       obj.DrawnSlot = 1
@@ -252,13 +258,13 @@ class PlayerTest extends Specification {
 
     "search for the smallest available slot in which to store equipment" in {
       val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      obj.Inventory.Resize(3,3) //fits one item
+      obj.Inventory.Resize(3, 3) //fits one item
 
       obj.Fit(Tool(GlobalDefinitions.beamer)).contains(0) mustEqual true
 
       obj.Fit(Tool(GlobalDefinitions.suppressor)).contains(2) mustEqual true
 
-      val ammo = AmmoBox(GlobalDefinitions.bullet_9mm)
+      val ammo  = AmmoBox(GlobalDefinitions.bullet_9mm)
       val ammo2 = AmmoBox(GlobalDefinitions.bullet_9mm)
       val ammo3 = AmmoBox(GlobalDefinitions.bullet_9mm)
       obj.Fit(ammo).contains(6) mustEqual true
@@ -269,7 +275,7 @@ class PlayerTest extends Specification {
     }
 
     "can use their free hand to hold things" in {
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+      val obj  = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val ammo = AmmoBox(GlobalDefinitions.bullet_9mm)
       obj.FreeHand.Equipment.isEmpty mustEqual true
 
@@ -310,16 +316,16 @@ class PlayerTest extends Specification {
         item
       }
 
-      obj.Find(PlanetSideGUID(1)).contains(0) mustEqual true //holsters
-      obj.Find(PlanetSideGUID(2)).contains(4) mustEqual true //holsters, melee
-      obj.Find(PlanetSideGUID(3)).contains(6) mustEqual true //inventory
-      obj.Find(PlanetSideGUID(4)).isEmpty mustEqual true //can not find in locker-space
+      obj.Find(PlanetSideGUID(1)).contains(0) mustEqual true                   //holsters
+      obj.Find(PlanetSideGUID(2)).contains(4) mustEqual true                   //holsters, melee
+      obj.Find(PlanetSideGUID(3)).contains(6) mustEqual true                   //inventory
+      obj.Find(PlanetSideGUID(4)).isEmpty mustEqual true                       //can not find in locker-space
       obj.Find(PlanetSideGUID(5)).contains(Player.FreeHandSlot) mustEqual true //free hand
-      obj.Find(PlanetSideGUID(6)).isEmpty mustEqual true //not here
+      obj.Find(PlanetSideGUID(6)).isEmpty mustEqual true                       //not here
     }
 
     "does equipment collision checking (are we already holding something there?)" in {
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+      val obj   = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val item1 = Tool(beamer)
       val item2 = Kit(medkit)
       val item3 = AmmoBox(GlobalDefinitions.bullet_9mm)
@@ -341,7 +347,7 @@ class PlayerTest extends Specification {
           ko
       } //holsters, nothing
 
-      obj.Collisions(6, 1, 1)match {
+      obj.Collisions(6, 1, 1) match {
         case Success(List(item)) =>
           item.obj mustEqual item2
           item.start mustEqual 6
@@ -349,7 +355,7 @@ class PlayerTest extends Specification {
           ko
       } //inventory
 
-      obj.Collisions(Player.FreeHandSlot, 1, 1)match {
+      obj.Collisions(Player.FreeHandSlot, 1, 1) match {
         case Success(List(item)) =>
           item.obj mustEqual item3
           item.start mustEqual Player.FreeHandSlot
@@ -386,7 +392,7 @@ class PlayerTest extends Specification {
     "can get a quick summary of implant slots (two unlocked, one installed)" in {
       val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val player = Player(avatar)
-      val temp = new ImplantDefinition(1)
+      val temp   = new ImplantDefinition(1)
       avatar.Implants(0).Unlocked = true
       avatar.InstallImplant(new ImplantDefinition(1))
       avatar.Implants(1).Unlocked = true
@@ -525,12 +531,18 @@ class PlayerTest extends Specification {
     }
 
     "start with a nonexistent cosmetic state" in {
-      TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5).PersonalStyleFeatures.isEmpty mustEqual true
+      TestPlayer(
+        "Chord",
+        PlanetSideEmpire.TR,
+        CharacterGender.Male,
+        0,
+        CharacterVoice.Voice5
+      ).PersonalStyleFeatures.isEmpty mustEqual true
     }
 
     "will not gain cosmetic state if player does not have a certain amount of BEP" in {
       val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      val obj = Player(avatar)
+      val obj    = Player(avatar)
       obj.PersonalStyleFeatures.isEmpty mustEqual true
       val (a1, b1) = obj.AddToPersonalStyle(PersonalStyle.Beret)
       a1.isEmpty mustEqual true
@@ -541,7 +553,7 @@ class PlayerTest extends Specification {
       val (a2, b2) = obj.AddToPersonalStyle(PersonalStyle.Beret)
       a2.isEmpty mustEqual true
       b2 match {
-        case Some(c : Cosmetics) =>
+        case Some(c: Cosmetics) =>
           c.Styles mustEqual Set(PersonalStyle.Beret)
         case _ =>
           ko
@@ -551,19 +563,19 @@ class PlayerTest extends Specification {
 
     "will lose cosmetic state" in {
       val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      val obj = Player(avatar)
+      val obj    = Player(avatar)
       avatar.BEP = 2286231 //BR24
       obj.AddToPersonalStyle(PersonalStyle.Beret)
       obj.PersonalStyleFeatures.contains(Cosmetics(Set(PersonalStyle.Beret))) mustEqual true
       val (a2, b2) = obj.RemoveFromPersonalStyle(PersonalStyle.Beret)
       a2 match {
-        case Some(c : Cosmetics) =>
+        case Some(c: Cosmetics) =>
           c.Styles mustEqual Set(PersonalStyle.Beret)
         case _ =>
           ko
       }
       b2 match {
-        case Some(c : Cosmetics) =>
+        case Some(c: Cosmetics) =>
           c.Styles mustEqual Set.empty
         case _ =>
           ko
@@ -572,7 +584,7 @@ class PlayerTest extends Specification {
 
     "will not lose cosmetic state if the player doesn't have any cosmetic state to begin with" in {
       val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      val obj = Player(avatar)
+      val obj    = Player(avatar)
       obj.PersonalStyleFeatures.isEmpty mustEqual true
       val (a1, b1) = obj.RemoveFromPersonalStyle(PersonalStyle.Beret)
       a1.isEmpty mustEqual true
@@ -581,7 +593,7 @@ class PlayerTest extends Specification {
 
     "toggle helmet" in {
       val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      val obj = Player(avatar)
+      val obj    = Player(avatar)
       avatar.BEP = 2286231
       obj.PersonalStyleFeatures.isEmpty mustEqual true
       obj.ToggleHelmet
@@ -594,7 +606,7 @@ class PlayerTest extends Specification {
 
     "toggle suglasses" in {
       val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      val obj = Player(avatar)
+      val obj    = Player(avatar)
       avatar.BEP = 2286231
       obj.PersonalStyleFeatures.isEmpty mustEqual true
       obj.ToggleShades
@@ -607,7 +619,7 @@ class PlayerTest extends Specification {
 
     "toggle earpiece" in {
       val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      val obj = Player(avatar)
+      val obj    = Player(avatar)
       avatar.BEP = 2286231
       obj.PersonalStyleFeatures.isEmpty mustEqual true
       obj.ToggleEarpiece
@@ -620,7 +632,7 @@ class PlayerTest extends Specification {
 
     "toggle between brimmed cap and beret" in {
       val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      val obj = Player(avatar)
+      val obj    = Player(avatar)
       avatar.BEP = 2286231
       obj.PersonalStyleFeatures.isEmpty mustEqual true
       obj.ToggleHat

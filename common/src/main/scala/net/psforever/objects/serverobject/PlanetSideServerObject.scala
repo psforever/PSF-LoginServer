@@ -11,17 +11,15 @@ import net.psforever.objects.zones.ZoneAware
   * An object layered on top of the standard game object class that maintains an internal `ActorRef`.
   * A measure of synchronization can be managed using this `Actor` as a "controlling agent."
   */
-abstract class PlanetSideServerObject extends PlanetSideGameObject
-  with FactionAffinity
-  with ZoneAware {
-  private var actor : ActorRef = ActorRef.noSender
-  private var getActorFunc : ()=>ActorRef = PlanetSideServerObject.getDefaultActor
+abstract class PlanetSideServerObject extends PlanetSideGameObject with FactionAffinity with ZoneAware {
+  private var actor: ActorRef              = ActorRef.noSender
+  private var getActorFunc: () => ActorRef = PlanetSideServerObject.getDefaultActor
 
   /**
     * Retrieve a reference to the internal `Actor`.
     * @return the internal `ActorRef`
     */
-  def Actor : ActorRef = getActorFunc()
+  def Actor: ActorRef = getActorFunc()
 
   /**
     * Assign an `Actor` to act for this server object.
@@ -29,18 +27,17 @@ abstract class PlanetSideServerObject extends PlanetSideGameObject
     * @param control the `Actor` whose functionality will govern this server object
     * @return the current internal `ActorRef`
     */
-  def Actor_=(control : ActorRef) : ActorRef =  {
-    if(control == Default.Actor) {
+  def Actor_=(control: ActorRef): ActorRef = {
+    if (control == Default.Actor) {
       ResetControl()
-    }
-    else {
+    } else {
       actor = control
       getActorFunc = PlanetSideServerObject.doGetLocalActor(this)
       actor
     }
   }
 
-  def ResetControl() : ActorRef = {
+  def ResetControl(): ActorRef = {
     getActorFunc = PlanetSideServerObject.getDefaultActor
     val out = actor
     actor = ActorRef.noSender
@@ -49,19 +46,20 @@ abstract class PlanetSideServerObject extends PlanetSideGameObject
 }
 
 object PlanetSideServerObject {
+
   /**
     * Before the internal control agency of a respective server object is ever set,
     * a default control agency will be produced.
     * @return the value pointed to by `Default.Actor`
     */
-  private def getDefaultActor() : ActorRef = { Default.Actor }
+  private def getDefaultActor(): ActorRef = { Default.Actor }
 
   /**
     * Allow retrieving a reference to the internal `Actor`.
     * @see o the server object
     * @return the internal `ActorRef`
     */
-  private def doGetLocalActor(o : PlanetSideServerObject)() : ActorRef = o.actor
+  private def doGetLocalActor(o: PlanetSideServerObject)(): ActorRef = o.actor
 
   /**
     * `Actor` entities require unique names over the course of the lifetime of the `ActorSystem` object.
@@ -80,7 +78,7 @@ object PlanetSideServerObject {
     * @param obj the entity for whom the `Actor` object will be created
     * @return the unique name
     */
-  def UniqueActorName(obj : PlanetSideGameObject) : String = {
+  def UniqueActorName(obj: PlanetSideGameObject): String = {
     s"${obj.Definition.Name}_${obj.GUID.guid}_${System.currentTimeMillis}"
   }
 }

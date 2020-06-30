@@ -19,7 +19,7 @@ object CaptureTerminals {
     * @see `HackMessage`
     */
   //TODO add params here depending on which params in HackMessage are important
-  def FinishHackingCaptureConsole(target : CaptureTerminal, user : Player, unk : Long)() : Unit = {
+  def FinishHackingCaptureConsole(target: CaptureTerminal, user: Player, unk: Long)(): Unit = {
     import akka.pattern.ask
     import scala.concurrent.duration._
     log.info(s"Hacked a $target")
@@ -28,13 +28,18 @@ object CaptureTerminals {
     val tplayer = user
     ask(target.Actor, CommonMessages.Hack(tplayer, target))(1 second).mapTo[Boolean].onComplete {
       case Success(_) =>
-        val zone = target.Zone
+        val zone   = target.Zone
         val zoneId = zone.Id
-        val pguid = tplayer.GUID
-        zone.LocalEvents ! LocalServiceMessage(zoneId, LocalAction.TriggerSound(pguid, target.HackSound, tplayer.Position, 30, 0.49803925f))
-        zone.LocalEvents ! LocalServiceMessage(zoneId, LocalAction.HackCaptureTerminal(pguid, zone, target, unk, 8L, tplayer.Faction == target.Faction))
+        val pguid  = tplayer.GUID
+        zone.LocalEvents ! LocalServiceMessage(
+          zoneId,
+          LocalAction.TriggerSound(pguid, target.HackSound, tplayer.Position, 30, 0.49803925f)
+        )
+        zone.LocalEvents ! LocalServiceMessage(
+          zoneId,
+          LocalAction.HackCaptureTerminal(pguid, zone, target, unk, 8L, tplayer.Faction == target.Faction)
+        )
       case Failure(_) => log.warn(s"Hack message failed on target guid: ${target.GUID}")
     }
   }
 }
-

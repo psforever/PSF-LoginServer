@@ -16,11 +16,11 @@ import shapeless.{::, HNil}
 object ImplantEffects extends Enumeration {
   type Type = Value
 
-  val SurgeEffects = Value(9)
+  val SurgeEffects          = Value(9)
   val PersonalShieldEffects = Value(5)
-  val DarklightEffects = Value(3)
-  val RegenEffects = Value(0)
-  val NoEffects = Value(1)
+  val DarklightEffects      = Value(3)
+  val RegenEffects          = Value(0)
+  val NoEffects             = Value(1)
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uint4L)
 }
@@ -33,12 +33,12 @@ object ImplantEffects extends Enumeration {
 object UniformStyle extends Enumeration {
   type Type = Value
 
-  val Normal = Value(0)
-  val FirstUpgrade = Value(1)
-  val SecondUpgrade = Value(2)
+  val Normal          = Value(0)
+  val FirstUpgrade    = Value(1)
+  val SecondUpgrade   = Value(2)
   val SecondUpgradeEx = Value(3)
-  val ThirdUpgrade = Value(4)
-  val ThirdUpgradeEx = Value(5)
+  val ThirdUpgrade    = Value(4)
+  val ThirdUpgradeEx  = Value(5)
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uint(3))
 }
@@ -79,25 +79,31 @@ object UniformStyle extends Enumeration {
   * @param is_seated this player character is seated in a vehicle or mounted to some other object;
   *                  alternate format for data parsing applies
   */
-final case class CharacterData(health : Int,
-                               armor : Int,
-                               uniform_upgrade : UniformStyle.Value,
-                               unk : Int,
-                               command_rank : Int,
-                               implant_effects : List[ImplantEffects.Value],
-                               cosmetics : Option[Cosmetics])
-                              (is_backpack : Boolean,
-                               is_seated : Boolean) extends ConstructorData {
+final case class CharacterData(
+    health: Int,
+    armor: Int,
+    uniform_upgrade: UniformStyle.Value,
+    unk: Int,
+    command_rank: Int,
+    implant_effects: List[ImplantEffects.Value],
+    cosmetics: Option[Cosmetics]
+)(
+    is_backpack: Boolean,
+    is_seated: Boolean
+) extends ConstructorData {
 
-  override def bitsize : Long = {
-    val seatedSize = if(is_seated) { 0 } else { 16 }
-    val effectsSize : Long = implant_effects.length * 4L
-    val cosmeticsSize : Long = if(cosmetics.isDefined) { cosmetics.get.bitsize } else { 0L }
+  override def bitsize: Long = {
+    val seatedSize = if (is_seated) { 0 }
+    else { 16 }
+    val effectsSize: Long = implant_effects.length * 4L
+    val cosmeticsSize: Long = if (cosmetics.isDefined) { cosmetics.get.bitsize }
+    else { 0L }
     11L + seatedSize + effectsSize + cosmeticsSize
   }
 }
 
 object CharacterData extends Marshallable[CharacterData] {
+
   /**
     * An overloaded constructor for `CharacterData`.
     * @param health the amount of health the player has, as a percentage of a filled bar
@@ -108,60 +114,73 @@ object CharacterData extends Marshallable[CharacterData] {
     * @param cosmetics optional decorative features that are added to the player's head model by console/chat commands
     * @return a `CharacterData` object
     */
-  def apply(health : Int, armor : Int, uniform : UniformStyle.Value, cr : Int, implant_effects : List[ImplantEffects.Value], cosmetics : Option[Cosmetics]) : (Boolean,Boolean)=>CharacterData =
+  def apply(
+      health: Int,
+      armor: Int,
+      uniform: UniformStyle.Value,
+      cr: Int,
+      implant_effects: List[ImplantEffects.Value],
+      cosmetics: Option[Cosmetics]
+  ): (Boolean, Boolean) => CharacterData =
     CharacterData(health, armor, uniform, 0, cr, implant_effects, cosmetics)
 
-  def codec(is_backpack : Boolean) : Codec[CharacterData] = (
-    ("health" | uint8L) :: //dead state when health == 0
-      ("armor" | uint8L) ::
-      (("uniform_upgrade" | UniformStyle.codec) >>:~ { style =>
+  def codec(is_backpack: Boolean): Codec[CharacterData] =
+    (
+      ("health" | uint8L) :: //dead state when health == 0
+        ("armor" | uint8L) ::
+        (("uniform_upgrade" | UniformStyle.codec) >>:~ { style =>
         uint(3) :: //uniform_upgrade is actually interpreted as a 6u field, but the lower 3u seems to be discarded
           ("command_rank" | uintL(3)) ::
           listOfN(uint2, "implant_effects" | ImplantEffects.codec) ::
-          conditional(style.id > UniformStyle.SecondUpgrade.id,"cosmetics" | Cosmetics.codec)
+          conditional(style.id > UniformStyle.SecondUpgrade.id, "cosmetics" | Cosmetics.codec)
       })
-    ).exmap[CharacterData] (
-    {
-      case health :: armor :: uniform :: unk :: cr :: implant_effects :: cosmetics :: HNil =>
-        val newHealth = if(is_backpack) { 0 } else { health }
-        Attempt.Successful(CharacterData(newHealth, armor, uniform, unk, cr, implant_effects, cosmetics)(is_backpack, false))
+    ).exmap[CharacterData](
+      {
+        case health :: armor :: uniform :: unk :: cr :: implant_effects :: cosmetics :: HNil =>
+          val newHealth = if (is_backpack) { 0 }
+          else { health }
+          Attempt.Successful(
+            CharacterData(newHealth, armor, uniform, unk, cr, implant_effects, cosmetics)(is_backpack, false)
+          )
 
-      case _ =>
-        Attempt.Failure(Err("invalid character data; can not encode"))
-    },
-    {
-      case CharacterData(health, armor, uniform, unk, cr, implant_effects, cosmetics) =>
-        val newHealth = if(is_backpack) { 0 } else { health }
-        Attempt.Successful(newHealth :: armor :: uniform :: unk :: cr :: implant_effects :: cosmetics :: HNil)
+        case _ =>
+          Attempt.Failure(Err("invalid character data; can not encode"))
+      },
+      {
+        case CharacterData(health, armor, uniform, unk, cr, implant_effects, cosmetics) =>
+          val newHealth = if (is_backpack) { 0 }
+          else { health }
+          Attempt.Successful(newHealth :: armor :: uniform :: unk :: cr :: implant_effects :: cosmetics :: HNil)
 
-      case _ =>
-        Attempt.Failure(Err("invalid character data; can not decode"))
-    }
-  )
+        case _ =>
+          Attempt.Failure(Err("invalid character data; can not decode"))
+      }
+    )
 
-  def codec_seated(is_backpack : Boolean) : Codec[CharacterData] = (
-    ("uniform_upgrade" | UniformStyle.codec) >>:~ { style =>
-      uint(3) :: //uniform_upgrade is actually interpreted as a 6u field, but the lower 3u seems to be discarded
-        ("command_rank" | uintL(3)) ::
-        listOfN(uint2, "implant_effects" | ImplantEffects.codec) ::
-        conditional(style.id > UniformStyle.SecondUpgrade.id, "cosmetics" | Cosmetics.codec)
-    }
-    ).exmap[CharacterData] (
-    {
-      case uniform :: unk :: cr :: implant_effects :: cosmetics :: HNil =>
-        Attempt.Successful(new CharacterData(100, 0, uniform, unk, cr, implant_effects, cosmetics)(is_backpack, true))
+  def codec_seated(is_backpack: Boolean): Codec[CharacterData] =
+    (
+      ("uniform_upgrade" | UniformStyle.codec) >>:~ { style =>
+        uint(3) :: //uniform_upgrade is actually interpreted as a 6u field, but the lower 3u seems to be discarded
+          ("command_rank" | uintL(3)) ::
+          listOfN(uint2, "implant_effects" | ImplantEffects.codec) ::
+          conditional(style.id > UniformStyle.SecondUpgrade.id, "cosmetics" | Cosmetics.codec)
+      }
+    ).exmap[CharacterData](
+      {
+        case uniform :: unk :: cr :: implant_effects :: cosmetics :: HNil =>
+          Attempt.Successful(new CharacterData(100, 0, uniform, unk, cr, implant_effects, cosmetics)(is_backpack, true))
 
-      case _ =>
-        Attempt.Failure(Err("invalid character data; can not encode"))
-    },
-    {
-      case CharacterData(_, _, uniform, unk, cr, implant_effects, cosmetics) =>
-        Attempt.Successful(uniform :: unk :: cr :: implant_effects :: cosmetics :: HNil)
+        case _ =>
+          Attempt.Failure(Err("invalid character data; can not encode"))
+      },
+      {
+        case CharacterData(_, _, uniform, unk, cr, implant_effects, cosmetics) =>
+          Attempt.Successful(uniform :: unk :: cr :: implant_effects :: cosmetics :: HNil)
 
-      case _ =>
-        Attempt.Failure(Err("invalid character data; can not decode"))
-    }
-  )
+        case _ =>
+          Attempt.Failure(Err("invalid character data; can not decode"))
+      }
+    )
 
-  implicit val codec : Codec[CharacterData] = codec(false)
+  implicit val codec: Codec[CharacterData] = codec(false)
 }

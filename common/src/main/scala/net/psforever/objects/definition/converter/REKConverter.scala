@@ -8,7 +8,7 @@ import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 import scala.util.{Success, Try}
 
 class REKConverter extends ObjectCreateConverter[SimpleItem]() {
-  override def ConstructorData(obj : SimpleItem) : Try[REKData] = {
+  override def ConstructorData(obj: SimpleItem): Try[REKData] = {
     Success(
       REKData(
         CommonFieldData(
@@ -20,12 +20,13 @@ class REKConverter extends ObjectCreateConverter[SimpleItem]() {
           false,
           Some(false),
           None,
-          PlanetSideGUID(0))
+          PlanetSideGUID(0)
+        )
       )
     )
   }
 
-  override def DetailedConstructorData(obj : SimpleItem) : Try[DetailedREKData] = {
+  override def DetailedConstructorData(obj: SimpleItem): Try[DetailedREKData] = {
     Success(
       DetailedREKData(
         CommonFieldData(

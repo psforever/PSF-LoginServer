@@ -12,11 +12,8 @@ import scodec.codecs._
 object RibbonBarsSlot extends Enumeration {
   type Type = Value
 
-  val Top,
-      Middle,
-      Bottom,
-      TermOfService //technically,the slot above "Top"
-      = Value
+  val Top, Middle, Bottom, TermOfService //technically,the slot above "Top"
+  = Value
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uint4L)
 }
@@ -42,19 +39,20 @@ object RibbonBarsSlot extends Enumeration {
   * @see `RibbonBars`
   * @see `MeritCommendation`
   */
-final case class DisplayedAwardMessage(player_guid : PlanetSideGUID,
-                                       ribbon : MeritCommendation.Value = MeritCommendation.None,
-                                       bar : RibbonBarsSlot.Value = RibbonBarsSlot.TermOfService)
-  extends PlanetSideGamePacket {
+final case class DisplayedAwardMessage(
+    player_guid: PlanetSideGUID,
+    ribbon: MeritCommendation.Value = MeritCommendation.None,
+    bar: RibbonBarsSlot.Value = RibbonBarsSlot.TermOfService
+) extends PlanetSideGamePacket {
   type Packet = DisplayedAwardMessage
   def opcode = GamePacketOpcode.DisplayedAwardMessage
   def encode = DisplayedAwardMessage.encode(this)
 }
 
 object DisplayedAwardMessage extends Marshallable[DisplayedAwardMessage] {
-  implicit val codec : Codec[DisplayedAwardMessage] = (
+  implicit val codec: Codec[DisplayedAwardMessage] = (
     ("player_guid" | PlanetSideGUID.codec) ::
       ("ribbon" | MeritCommendation.codec) ::
       ("bar" | RibbonBarsSlot.codec)
-    ).as[DisplayedAwardMessage]
+  ).as[DisplayedAwardMessage]
 }

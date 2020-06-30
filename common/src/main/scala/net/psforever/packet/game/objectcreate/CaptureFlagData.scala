@@ -22,18 +22,19 @@ import shapeless.{::, HNil}
   * @param unk3 na
   * @param unk4 na
   */
-final case class CaptureFlagData(pos : PlacementData,
-                                 faction : PlanetSideEmpire.Value,
-                                 unk1 : Int,
-                                 unk2 : Int,
-                                 unk3 : Int,
-                                 unk4 : Int
-                                ) extends ConstructorData {
-  override def bitsize : Long = 88L + pos.bitsize
+final case class CaptureFlagData(
+    pos: PlacementData,
+    faction: PlanetSideEmpire.Value,
+    unk1: Int,
+    unk2: Int,
+    unk3: Int,
+    unk4: Int
+) extends ConstructorData {
+  override def bitsize: Long = 88L + pos.bitsize
 }
 
 object CaptureFlagData extends Marshallable[CaptureFlagData] {
-  implicit val codec : Codec[CaptureFlagData] = (
+  implicit val codec: Codec[CaptureFlagData] = (
     ("pos" | PlacementData.codec) ::
       ("faction" | PlanetSideEmpire.codec) ::
       bool ::
@@ -46,7 +47,7 @@ object CaptureFlagData extends Marshallable[CaptureFlagData] {
       ("unk3" | uint16L) :: //probably a PlanetSideGUID
       ("unk4" | uint8L) ::
       uint(9)
-  ).exmap[CaptureFlagData] (
+  ).exmap[CaptureFlagData](
     {
       case pos :: fac :: false :: 4 :: 0 :: unk1 :: 0 :: unk2 :: 0 :: unk3 :: unk4 :: 0 :: HNil =>
         Attempt.Successful(CaptureFlagData(pos, fac, unk1, unk2, unk3, unk4))

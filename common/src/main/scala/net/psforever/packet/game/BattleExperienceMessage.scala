@@ -33,19 +33,17 @@ import scodec.codecs._
   * @param experience the current total experience
   * @param msg modifies the awarded experience message
   */
-final case class BattleExperienceMessage(player_guid : PlanetSideGUID,
-                                         experience : Long,
-                                         msg : Int)
-  extends PlanetSideGamePacket {
+final case class BattleExperienceMessage(player_guid: PlanetSideGUID, experience: Long, msg: Int)
+    extends PlanetSideGamePacket {
   type Packet = BattleExperienceMessage
   def opcode = GamePacketOpcode.BattleExperienceMessage
   def encode = BattleExperienceMessage.encode(this)
 }
 
 object BattleExperienceMessage extends Marshallable[BattleExperienceMessage] {
-  implicit val codec : Codec[BattleExperienceMessage] = (
+  implicit val codec: Codec[BattleExperienceMessage] = (
     ("player_guid" | PlanetSideGUID.codec) ::
       ("experience" | uint32L) ::
       ("msg" | uintL(3))
-    ).as[BattleExperienceMessage]
+  ).as[BattleExperienceMessage]
 }

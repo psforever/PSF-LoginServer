@@ -26,7 +26,7 @@ class ContainerTest extends Specification {
     }
 
     "Collisions can Find items in Inventory (default behavior)" in {
-      val obj = new ContainerTest.CObject
+      val obj    = new ContainerTest.CObject
       val weapon = Tool(GlobalDefinitions.beamer)
       weapon.GUID = PlanetSideGUID(1)
 
@@ -37,11 +37,11 @@ class ContainerTest extends Specification {
         case None =>
           ko
       }
-      obj.Collisions(1,1,1) match {
+      obj.Collisions(1, 1, 1) match {
         case Success(items) =>
           items.length mustEqual 1
           items.head.obj mustEqual weapon
-        case _ =>;
+        case _ => ;
           ko
       }
     }
@@ -52,8 +52,8 @@ object ContainerTest {
   class CObject extends Container {
     private val inv = GridInventory(3, 3)
 
-    def Inventory : GridInventory = inv
+    def Inventory: GridInventory = inv
 
-    def VisibleSlots :Set[Int] = Set[Int](0,1,2, 3,4,5, 6,7,8)
+    def VisibleSlots: Set[Int] = Set[Int](0, 1, 2, 3, 4, 5, 6, 7, 8)
   }
 }

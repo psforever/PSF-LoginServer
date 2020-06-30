@@ -48,11 +48,9 @@ class ChatMsgTest extends Specification {
   }
 
   "allow and disallow note" in {
-    ChatMsg(ChatMessageType.CMT_ARMOR,
-      false,
-      "DontCare", "DontCare", Some("Should be here")) must throwA[AssertionError]
-    ChatMsg(ChatMessageType.CMT_NOTE,
-      false,
-      "DontCare", "DontCare", None) must throwA[AssertionError]
+    ChatMsg(ChatMessageType.CMT_ARMOR, false, "DontCare", "DontCare", Some("Should be here")) must throwA[
+      AssertionError
+    ]
+    ChatMsg(ChatMessageType.CMT_NOTE, false, "DontCare", "DontCare", None) must throwA[AssertionError]
   }
 }

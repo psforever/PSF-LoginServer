@@ -11,15 +11,14 @@ import net.psforever.types.{PlanetSideEmpire, Vector3}
 import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 
-class CorpseControl(player : Player) extends Actor
-  with ContainableBehavior {
+class CorpseControl(player: Player) extends Actor with ContainableBehavior {
   def ContainerObject = player
 
   //private [this] val log = org.log4s.getLogger(player.Name)
 
-  def receive : Receive = containerBehavior.orElse { case _ => ; }
+  def receive: Receive = containerBehavior.orElse { case _ => ; }
 
-  def MessageDeferredCallback(msg : Any) : Unit = {
+  def MessageDeferredCallback(msg: Any): Unit = {
     msg match {
       case Containable.MoveItem(_, item, _) =>
         //momentarily put item back where it was originally
@@ -36,18 +35,18 @@ class CorpseControl(player : Player) extends Actor
     }
   }
 
-  def RemoveItemFromSlotCallback(item : Equipment, slot : Int) : Unit = {
-    val obj = ContainerObject
-    val zone = obj.Zone
+  def RemoveItemFromSlotCallback(item: Equipment, slot: Int): Unit = {
+    val obj    = ContainerObject
+    val zone   = obj.Zone
     val events = zone.AvatarEvents
     item.Faction = PlanetSideEmpire.NEUTRAL
     events ! AvatarServiceMessage(zone.Id, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, item.GUID))
   }
 
-  def PutItemInSlotCallback(item : Equipment, slot : Int) : Unit = {
-    val obj = ContainerObject
-    val zone = obj.Zone
-    val events = zone.AvatarEvents
+  def PutItemInSlotCallback(item: Equipment, slot: Int): Unit = {
+    val obj        = ContainerObject
+    val zone       = obj.Zone
+    val events     = zone.AvatarEvents
     val definition = item.Definition
     events ! AvatarServiceMessage(
       zone.Id,
@@ -63,10 +62,11 @@ class CorpseControl(player : Player) extends Actor
     )
   }
 
-  def SwapItemCallback(item : Equipment) : Unit = {
-    val obj = ContainerObject
+  def SwapItemCallback(item: Equipment): Unit = {
+    val obj  = ContainerObject
     val zone = obj.Zone
-    zone.AvatarEvents ! AvatarServiceMessage(zone.Id,
+    zone.AvatarEvents ! AvatarServiceMessage(
+      zone.Id,
       AvatarAction.SendResponse(
         Service.defaultPlayerGUID,
         ObjectDetachMessage(obj.GUID, item.GUID, Vector3.Zero, 0f)

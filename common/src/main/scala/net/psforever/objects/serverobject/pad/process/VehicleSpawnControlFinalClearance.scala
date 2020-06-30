@@ -19,27 +19,35 @@ import scala.concurrent.duration._
   * A long call is made to the root of this `Actor` object chain to start work on any subsequent vehicle order.
   * @param pad the `VehicleSpawnPad` object being governed
   */
-class VehicleSpawnControlFinalClearance(pad : VehicleSpawnPad) extends VehicleSpawnControlBase(pad) {
+class VehicleSpawnControlFinalClearance(pad: VehicleSpawnPad) extends VehicleSpawnControlBase(pad) {
   def LogId = "-clearer"
 
-  def receive : Receive = {
+  def receive: Receive = {
     case order @ VehicleSpawnControl.Order(driver, vehicle) =>
-      if(vehicle.PassengerInSeat(driver).isEmpty) {
+      if (vehicle.PassengerInSeat(driver).isEmpty) {
         //ensure the vacant vehicle is above the trench and doors
         vehicle.Position = pad.Position + Vector3.z(pad.Definition.VehicleCreationZOffset)
         val definition = vehicle.Definition
-        pad.Zone.VehicleEvents ! VehicleServiceMessage(s"${pad.Continent}", VehicleAction.LoadVehicle(PlanetSideGUID(0), vehicle, definition.ObjectId, vehicle.GUID, definition.Packet.ConstructorData(vehicle).get))
+        pad.Zone.VehicleEvents ! VehicleServiceMessage(
+          s"${pad.Continent}",
+          VehicleAction.LoadVehicle(
+            PlanetSideGUID(0),
+            vehicle,
+            definition.ObjectId,
+            vehicle.GUID,
+            definition.Packet.ConstructorData(vehicle).get
+          )
+        )
       }
       context.parent ! VehicleSpawnControl.ProcessControl.Reminder
       self ! VehicleSpawnControlFinalClearance.Test(order)
 
     case test @ VehicleSpawnControlFinalClearance.Test(entry) =>
-      if(Vector3.DistanceSquared(entry.vehicle.Position, pad.Position) > 100.0f) { //10m away from pad
+      if (Vector3.DistanceSquared(entry.vehicle.Position, pad.Position) > 100.0f) { //10m away from pad
         trace("pad cleared")
         pad.Zone.VehicleEvents ! VehicleSpawnPad.ResetSpawnPad(pad)
         context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
-      }
-      else {
+      } else {
         context.system.scheduler.scheduleOnce(2000 milliseconds, self, test)
       }
 
@@ -48,5 +56,5 @@ class VehicleSpawnControlFinalClearance(pad : VehicleSpawnPad) extends VehicleSp
 }
 
 object VehicleSpawnControlFinalClearance {
-  private final case class Test(entry : VehicleSpawnControl.Order)
+  private final case class Test(entry: VehicleSpawnControl.Order)
 }

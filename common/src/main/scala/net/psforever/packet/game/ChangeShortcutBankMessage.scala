@@ -20,17 +20,15 @@ import scodec.codecs._
   * @param bank the shortcut bank (zero-indexed);
   *             0-7 are the valid banks
   */
-final case class ChangeShortcutBankMessage(player_guid : PlanetSideGUID,
-                                           bank : Int)
-  extends PlanetSideGamePacket {
+final case class ChangeShortcutBankMessage(player_guid: PlanetSideGUID, bank: Int) extends PlanetSideGamePacket {
   type Packet = ChangeShortcutBankMessage
   def opcode = GamePacketOpcode.ChangeShortcutBankMessage
   def encode = ChangeShortcutBankMessage.encode(this)
 }
 
 object ChangeShortcutBankMessage extends Marshallable[ChangeShortcutBankMessage] {
-  implicit val codec : Codec[ChangeShortcutBankMessage] = (
+  implicit val codec: Codec[ChangeShortcutBankMessage] = (
     ("player_guid" | PlanetSideGUID.codec) ::
       ("bank" | uint4L)
-    ).as[ChangeShortcutBankMessage]
+  ).as[ChangeShortcutBankMessage]
 }

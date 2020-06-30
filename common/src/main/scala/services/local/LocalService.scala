@@ -21,13 +21,14 @@ import services.support.SupportActor
 
 import scala.concurrent.duration.Duration
 
-class LocalService(zone : Zone) extends Actor {
-  private val doorCloser = context.actorOf(Props[DoorCloseActor], s"${zone.Id}-local-door-closer")
-  private val hackClearer = context.actorOf(Props[HackClearActor], s"${zone.Id}-local-hack-clearer")
+class LocalService(zone: Zone) extends Actor {
+  private val doorCloser   = context.actorOf(Props[DoorCloseActor], s"${zone.Id}-local-door-closer")
+  private val hackClearer  = context.actorOf(Props[HackClearActor], s"${zone.Id}-local-hack-clearer")
   private val hackCapturer = context.actorOf(Props[HackCaptureActor], s"${zone.Id}-local-hack-capturer")
-  private val engineer = context.actorOf(Props[DeployableRemover], s"${zone.Id}-deployable-remover-agent")
-  private val teleportDeployment : ActorRef = context.actorOf(Props[RouterTelepadActivation], s"${zone.Id}-telepad-activate-agent")
-  private [this] val log = org.log4s.getLogger
+  private val engineer     = context.actorOf(Props[DeployableRemover], s"${zone.Id}-deployable-remover-agent")
+  private val teleportDeployment: ActorRef =
+    context.actorOf(Props[RouterTelepadActivation], s"${zone.Id}-telepad-activate-agent")
+  private[this] val log = org.log4s.getLogger
 
   override def preStart = {
     log.trace(s"Awaiting ${zone.Id} local events ...")
@@ -35,10 +36,10 @@ class LocalService(zone : Zone) extends Actor {
 
   val LocalEvents = new GenericEventBus[LocalServiceResponse]
 
-  def receive : Receive = {
+  def receive: Receive = {
     case Service.Join(channel) =>
       val path = s"/$channel/Local"
-      val who = sender()
+      val who  = sender()
       log.info(s"$who has joined $path")
       LocalEvents.subscribe(who, path)
 
@@ -47,7 +48,7 @@ class LocalService(zone : Zone) extends Actor {
 
     case Service.Leave(Some(channel)) =>
       val path = s"/$channel/Local"
-      val who = sender()
+      val who  = sender()
       log.info(s"$who has left $path")
       LocalEvents.unsubscribe(who, path)
 
@@ -58,11 +59,19 @@ class LocalService(zone : Zone) extends Actor {
       action match {
         case LocalAction.AlertDestroyDeployable(_, obj) =>
           LocalEvents.publish(
-            LocalServiceResponse(s"/$forChannel/Local", Service.defaultPlayerGUID, LocalResponse.AlertDestroyDeployable(obj))
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              Service.defaultPlayerGUID,
+              LocalResponse.AlertDestroyDeployable(obj)
+            )
           )
         case LocalAction.DeployableMapIcon(player_guid, behavior, deployInfo) =>
           LocalEvents.publish(
-            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.DeployableMapIcon(behavior, deployInfo))
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              player_guid,
+              LocalResponse.DeployableMapIcon(behavior, deployInfo)
+            )
           )
         case LocalAction.Detonate(guid, obj) =>
           LocalEvents.publish(
@@ -91,12 +100,13 @@ class LocalService(zone : Zone) extends Actor {
         case LocalAction.HackCaptureTerminal(player_guid, _, target, unk1, unk2, isResecured) =>
           // When a CC is hacked (or resecured) all amenities for the base should be unhacked
           val building = target.Owner.asInstanceOf[Building]
-          val hackableAmenities = building.Amenities.filter(x => x.isInstanceOf[Hackable]).map(x => x.asInstanceOf[Amenity with Hackable])
+          val hackableAmenities =
+            building.Amenities.filter(x => x.isInstanceOf[Hackable]).map(x => x.asInstanceOf[Amenity with Hackable])
           hackableAmenities.foreach(amenity =>
-            if(amenity.HackedBy.isDefined) { hackClearer ! HackClearActor.ObjectIsResecured(amenity) }
+            if (amenity.HackedBy.isDefined) { hackClearer ! HackClearActor.ObjectIsResecured(amenity) }
           )
 
-          if(isResecured){
+          if (isResecured) {
             hackCapturer ! HackCaptureActor.ClearHack(target, zone)
           } else {
             target.Definition match {
@@ -112,25 +122,41 @@ class LocalService(zone : Zone) extends Actor {
           }
 
           LocalEvents.publish(
-            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.HackCaptureTerminal(target.GUID, unk1, unk2, isResecured))
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              player_guid,
+              LocalResponse.HackCaptureTerminal(target.GUID, unk1, unk2, isResecured)
+            )
           )
 
           // If the owner of this capture terminal is on the lattice trigger a zone wide map update to update lattice benefits
           zone.Lattice find building match {
             case Some(_) => building.TriggerZoneMapUpdate()
-            case None => ;
+            case None    => ;
           }
         case LocalAction.RouterTelepadTransport(player_guid, passenger_guid, src_guid, dest_guid) =>
           LocalEvents.publish(
-            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.RouterTelepadTransport(passenger_guid, src_guid, dest_guid))
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              player_guid,
+              LocalResponse.RouterTelepadTransport(passenger_guid, src_guid, dest_guid)
+            )
           )
         case LocalAction.SetEmpire(object_guid, empire) =>
           LocalEvents.publish(
-            LocalServiceResponse(s"/$forChannel/Local", Service.defaultPlayerGUID, LocalResponse.SetEmpire(object_guid, empire))
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              Service.defaultPlayerGUID,
+              LocalResponse.SetEmpire(object_guid, empire)
+            )
           )
         case LocalAction.ToggleTeleportSystem(player_guid, router, system_plan) =>
           LocalEvents.publish(
-            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.ToggleTeleportSystem(router, system_plan))
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              player_guid,
+              LocalResponse.ToggleTeleportSystem(router, system_plan)
+            )
           )
         case LocalAction.TriggerEffect(player_guid, effect, target) =>
           LocalEvents.publish(
@@ -138,24 +164,44 @@ class LocalService(zone : Zone) extends Actor {
           )
         case LocalAction.TriggerEffectLocation(player_guid, effect, pos, orient) =>
           LocalEvents.publish(
-            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.TriggerEffect(PlanetSideGUID(0), effect, None, Some(TriggeredEffectLocation(pos, orient))))
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              player_guid,
+              LocalResponse.TriggerEffect(PlanetSideGUID(0), effect, None, Some(TriggeredEffectLocation(pos, orient)))
+            )
           )
         case LocalAction.TriggerEffectInfo(player_guid, effect, target, unk1, unk2) =>
           LocalEvents.publish(
-            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.TriggerEffect(target, effect, Some(TriggeredEffect(unk1, unk2))))
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              player_guid,
+              LocalResponse.TriggerEffect(target, effect, Some(TriggeredEffect(unk1, unk2)))
+            )
           )
         case LocalAction.TriggerSound(player_guid, sound, pos, unk, volume) =>
           LocalEvents.publish(
-            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.TriggerSound(sound, pos, unk, volume))
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              player_guid,
+              LocalResponse.TriggerSound(sound, pos, unk, volume)
+            )
           )
         case LocalAction.UpdateForceDomeStatus(player_guid, building_guid, activated) => {
           LocalEvents.publish(
-            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.UpdateForceDomeStatus(building_guid, activated))
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              player_guid,
+              LocalResponse.UpdateForceDomeStatus(building_guid, activated)
+            )
           )
         }
         case LocalAction.RechargeVehicleWeapon(player_guid, vehicle_guid, weapon_guid) =>
           LocalEvents.publish(
-            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.RechargeVehicleWeapon(vehicle_guid, weapon_guid))
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              player_guid,
+              LocalResponse.RechargeVehicleWeapon(vehicle_guid, weapon_guid)
+            )
           )
         case _ => ;
       }
@@ -170,24 +216,36 @@ class LocalService(zone : Zone) extends Actor {
     case HackClearActor.ClearTheHack(target_guid, _, unk1, unk2) =>
       log.warn(s"Clearing hack for $target_guid")
       LocalEvents.publish(
-        LocalServiceResponse(s"/${zone.Id}/Local", Service.defaultPlayerGUID, LocalResponse.HackClear(target_guid, unk1, unk2))
+        LocalServiceResponse(
+          s"/${zone.Id}/Local",
+          Service.defaultPlayerGUID,
+          LocalResponse.HackClear(target_guid, unk1, unk2)
+        )
       )
 
     //message from ProximityTerminalControl
     case Terminal.StartProximityEffect(terminal) =>
       LocalEvents.publish(
-        LocalServiceResponse(s"/${zone.Id}/Local", PlanetSideGUID(0), LocalResponse.ProximityTerminalEffect(terminal.GUID, true))
+        LocalServiceResponse(
+          s"/${zone.Id}/Local",
+          PlanetSideGUID(0),
+          LocalResponse.ProximityTerminalEffect(terminal.GUID, true)
+        )
       )
     case Terminal.StopProximityEffect(terminal) =>
       LocalEvents.publish(
-        LocalServiceResponse(s"/${zone.Id}/Local", PlanetSideGUID(0), LocalResponse.ProximityTerminalEffect(terminal.GUID, false))
+        LocalServiceResponse(
+          s"/${zone.Id}/Local",
+          PlanetSideGUID(0),
+          LocalResponse.ProximityTerminalEffect(terminal.GUID, false)
+        )
       )
 
     case HackCaptureActor.HackTimeoutReached(capture_terminal_guid, _, _, _, hackedByFaction) =>
       val terminal = zone.GUID(capture_terminal_guid).get.asInstanceOf[CaptureTerminal]
       val building = terminal.Owner.asInstanceOf[Building]
 
-      if(building.NtuLevel > 0) {
+      if (building.NtuLevel > 0) {
         log.info(s"Setting base ${building.GUID} / MapId: ${building.MapId} as owned by $hackedByFaction")
 
         building.Faction = hackedByFaction
@@ -197,7 +255,10 @@ class LocalService(zone : Zone) extends Actor {
       }
 
       // Reset CC back to normal operation
-      self ! LocalServiceMessage(zone.Id, LocalAction.HackCaptureTerminal(PlanetSideGUID(-1), zone, terminal, 0, 8L, isResecured = true))
+      self ! LocalServiceMessage(
+        zone.Id,
+        LocalAction.HackCaptureTerminal(PlanetSideGUID(-1), zone, terminal, 0, 8L, isResecured = true)
+      )
       //todo: this appears to be the way to reset the base warning lights after the hack finishes but it doesn't seem to work. The attribute above is a workaround
       self ! HackClearActor.ClearTheHack(building.GUID, zone.Id, 3212836864L, 8L)
 
@@ -206,27 +267,29 @@ class LocalService(zone : Zone) extends Actor {
       engineer forward msg
 
     //message(s) from Engineer
-    case msg @ DeployableRemover.EliminateDeployable(obj : TurretDeployable, guid, pos, _) =>
+    case msg @ DeployableRemover.EliminateDeployable(obj: TurretDeployable, guid, pos, _) =>
       val seats = obj.Seats.values
-      if(seats.count(_.isOccupied) > 0) {
+      if (seats.count(_.isOccupied) > 0) {
         val wasKickedByDriver = false //TODO yeah, I don't know
         seats.foreach(seat => {
           seat.Occupant match {
             case Some(tplayer) =>
               seat.Occupant = None
               tplayer.VehicleSeated = None
-              zone.VehicleEvents ! VehicleServiceMessage(zone.Id, VehicleAction.KickPassenger(tplayer.GUID, 4, wasKickedByDriver, obj.GUID))
+              zone.VehicleEvents ! VehicleServiceMessage(
+                zone.Id,
+                VehicleAction.KickPassenger(tplayer.GUID, 4, wasKickedByDriver, obj.GUID)
+              )
             case None => ;
           }
         })
         import scala.concurrent.ExecutionContext.Implicits.global
         context.system.scheduler.scheduleOnce(Duration.create(2, "seconds"), self, msg)
-      }
-      else {
+      } else {
         EliminateDeployable(obj, guid, pos)
       }
 
-    case DeployableRemover.EliminateDeployable(obj : BoomerDeployable, guid, pos, _) =>
+    case DeployableRemover.EliminateDeployable(obj: BoomerDeployable, guid, pos, _) =>
       EliminateDeployable(obj, guid, pos)
       obj.Trigger match {
         case Some(trigger) =>
@@ -234,7 +297,7 @@ class LocalService(zone : Zone) extends Actor {
         case _ => ;
       }
 
-    case DeployableRemover.EliminateDeployable(obj : TelepadDeployable, guid, pos, _) =>
+    case DeployableRemover.EliminateDeployable(obj: TelepadDeployable, guid, pos, _) =>
       obj.Active = false
       //ClearSpecific will also remove objects that do not have GUID's; we may not have a GUID at this time
       teleportDeployment ! SupportActor.ClearSpecific(List(obj), zone)
@@ -245,7 +308,11 @@ class LocalService(zone : Zone) extends Actor {
 
     case DeployableRemover.DeleteTrigger(trigger_guid, _) =>
       LocalEvents.publish(
-        LocalServiceResponse(s"/${zone.Id}/Local", Service.defaultPlayerGUID, LocalResponse.ObjectDelete(trigger_guid, 0))
+        LocalServiceResponse(
+          s"/${zone.Id}/Local",
+          Service.defaultPlayerGUID,
+          LocalResponse.ObjectDelete(trigger_guid, 0)
+        )
       )
 
     //message to RouterTelepadActivation
@@ -257,30 +324,41 @@ class LocalService(zone : Zone) extends Actor {
       val remoteTelepad = telepad.asInstanceOf[TelepadDeployable]
       remoteTelepad.Active = true
       zone.GUID(remoteTelepad.Router) match {
-        case Some(router : Vehicle) =>
+        case Some(router: Vehicle) =>
           router.Utility(UtilityType.internal_router_telepad_deployable) match {
-            case Some(internalTelepad : Utility.InternalTelepad) =>
+            case Some(internalTelepad: Utility.InternalTelepad) =>
               //get rid of previous linked remote telepad (if any)
               zone.GUID(internalTelepad.Telepad) match {
-                case Some(old : TelepadDeployable) =>
-                  log.info(s"ActivateTeleportSystem: old remote telepad@${old.GUID.guid} linked to internal@${internalTelepad.GUID.guid} will be deconstructed")
+                case Some(old: TelepadDeployable) =>
+                  log.info(
+                    s"ActivateTeleportSystem: old remote telepad@${old.GUID.guid} linked to internal@${internalTelepad.GUID.guid} will be deconstructed"
+                  )
                   old.Active = false
                   engineer ! SupportActor.ClearSpecific(List(old), zone)
                   engineer ! RemoverActor.AddTask(old, zone, Some(0 seconds))
                 case _ => ;
               }
               internalTelepad.Telepad = remoteTelepad.GUID
-              if(internalTelepad.Active) {
-                log.info(s"ActivateTeleportSystem: fully deployed router@${router.GUID.guid} in ${zone.Id} will link internal@${internalTelepad.GUID.guid} and remote@${remoteTelepad.GUID.guid}")
-                LocalEvents.publish(
-                  LocalServiceResponse(s"/${zone.Id}/Local", Service.defaultPlayerGUID, LocalResponse.ToggleTeleportSystem(router, Some((internalTelepad, remoteTelepad))))
+              if (internalTelepad.Active) {
+                log.info(
+                  s"ActivateTeleportSystem: fully deployed router@${router.GUID.guid} in ${zone.Id} will link internal@${internalTelepad.GUID.guid} and remote@${remoteTelepad.GUID.guid}"
                 )
-              }
-              else {
+                LocalEvents.publish(
+                  LocalServiceResponse(
+                    s"/${zone.Id}/Local",
+                    Service.defaultPlayerGUID,
+                    LocalResponse.ToggleTeleportSystem(router, Some((internalTelepad, remoteTelepad)))
+                  )
+                )
+              } else {
                 remoteTelepad.OwnerName match {
                   case Some(name) =>
                     LocalEvents.publish(
-                      LocalServiceResponse(s"/$name/Local", Service.defaultPlayerGUID, LocalResponse.RouterTelepadMessage("@Teleport_NotDeployed"))
+                      LocalServiceResponse(
+                        s"/$name/Local",
+                        Service.defaultPlayerGUID,
+                        LocalResponse.RouterTelepadMessage("@Teleport_NotDeployed")
+                      )
                     )
                   case None => ;
                 }
@@ -297,7 +375,7 @@ class LocalService(zone : Zone) extends Actor {
       }
 
     //synchronized damage calculations
-    case Vitality.DamageOn(target : Deployable, damage_func) =>
+    case Vitality.DamageOn(target: Deployable, damage_func) =>
       val cause = damage_func(target)
       sender ! Vitality.DamageResolution(target, cause)
 
@@ -310,7 +388,7 @@ class LocalService(zone : Zone) extends Actor {
     * @param telepad na
     * @param msg na
     */
-  def RouterTelepadError(telepad : TelepadDeployable, msg : String) : Unit = {
+  def RouterTelepadError(telepad: TelepadDeployable, msg: String): Unit = {
     telepad.OwnerName match {
       case Some(name) =>
         LocalEvents.publish(
@@ -337,9 +415,13 @@ class LocalService(zone : Zone) extends Actor {
     *             may be a former identifier
     * @param position the deployable's position
     */
-  def EliminateDeployable(obj : PlanetSideGameObject with Deployable, guid : PlanetSideGUID, position : Vector3) : Unit = {
+  def EliminateDeployable(obj: PlanetSideGameObject with Deployable, guid: PlanetSideGUID, position: Vector3): Unit = {
     LocalEvents.publish(
-      LocalServiceResponse(s"/${zone.Id}/Local", Service.defaultPlayerGUID, LocalResponse.EliminateDeployable(obj, guid, position))
+      LocalServiceResponse(
+        s"/${zone.Id}/Local",
+        Service.defaultPlayerGUID,
+        LocalResponse.EliminateDeployable(obj, guid, position)
+      )
     )
     obj.OwnerName match {
       case Some(name) =>

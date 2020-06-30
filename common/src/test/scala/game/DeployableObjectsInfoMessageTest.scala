@@ -30,7 +30,12 @@ class DeployableObjectsInfoMessageTest extends Specification {
   "encode" in {
     val msg = DeployableObjectsInfoMessage(
       DeploymentAction.Dismiss,
-      DeployableInfo(PlanetSideGUID(2659), DeployableIcon.TRAP, Vector3(3572.4453f, 3277.9766f, 114.0f), PlanetSideGUID(2502))
+      DeployableInfo(
+        PlanetSideGUID(2659),
+        DeployableIcon.TRAP,
+        Vector3(3572.4453f, 3277.9766f, 114.0f),
+        PlanetSideGUID(2502)
+      )
     )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 

@@ -11,12 +11,12 @@ import net.psforever.objects.serverobject.structures.AmenityDefinition
   */
 class ImplantTerminalMechDefinition extends AmenityDefinition(410) {
   /* key - seat index, value - seat object */
-  private val seats : Map[Int, SeatDefinition] = Map(0 -> new SeatDefinition)
+  private val seats: Map[Int, SeatDefinition] = Map(0 -> new SeatDefinition)
   /* key - entry point index, value - seat index */
-  private val mountPoints : Map[Int, Int] = Map(1 -> 0)
+  private val mountPoints: Map[Int, Int] = Map(1 -> 0)
   Name = "implant_terminal_mech"
 
-  def Seats : Map[Int, SeatDefinition] = seats
+  def Seats: Map[Int, SeatDefinition] = seats
 
-  def MountPoints : Map[Int, Int] = mountPoints
+  def MountPoints: Map[Int, Int] = mountPoints
 }

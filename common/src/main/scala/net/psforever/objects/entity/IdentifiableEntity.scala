@@ -28,16 +28,20 @@ import net.psforever.types.{PlanetSideGUID, StalePlanetSideGUID}
   * @throws `NoGUIDException` if a GUID has not yet been assigned
   */
 abstract class IdentifiableEntity extends Identifiable {
-  /** storage for the GUID information; starts as a `StalePlanetSideGUID` */
-  private var current : PlanetSideGUID = StalePlanetSideGUID(0)
-  /** indicate the validity of the current GUID */
-  private var guidValid : Boolean = false
-  /** the current accessor; can be re-assigned */
-  private var guidAccessor : IdentifiableEntity=>PlanetSideGUID = IdentifiableEntity.getWhenNoGUID
-  /** the current mutator; can be re-assigned */
-  private var guidMutator : (IdentifiableEntity, PlanetSideGUID)=>PlanetSideGUID = IdentifiableEntity.setWhenNoGUID
 
-  def GUID : PlanetSideGUID = guidAccessor(this)
+  /** storage for the GUID information; starts as a `StalePlanetSideGUID` */
+  private var current: PlanetSideGUID = StalePlanetSideGUID(0)
+
+  /** indicate the validity of the current GUID */
+  private var guidValid: Boolean = false
+
+  /** the current accessor; can be re-assigned */
+  private var guidAccessor: IdentifiableEntity => PlanetSideGUID = IdentifiableEntity.getWhenNoGUID
+
+  /** the current mutator; can be re-assigned */
+  private var guidMutator: (IdentifiableEntity, PlanetSideGUID) => PlanetSideGUID = IdentifiableEntity.setWhenNoGUID
+
+  def GUID: PlanetSideGUID = guidAccessor(this)
 
   /**
     * Always intercept `StalePlanetSideGUID` references when attempting to mutate the GUID value.
@@ -45,17 +49,17 @@ abstract class IdentifiableEntity extends Identifiable {
     * @throws `AssigningGUIDException` always
     * @return never returns
     */
-  def GUID_=(guid : StalePlanetSideGUID) : PlanetSideGUID = {
+  def GUID_=(guid: StalePlanetSideGUID): PlanetSideGUID = {
     throw new AssigningGUIDException(s"attempting to assign a stale global identifier to an entity", this, guid)
   }
 
-  def GUID_=(guid : PlanetSideGUID) : PlanetSideGUID = guidMutator(this, guid)
+  def GUID_=(guid: PlanetSideGUID): PlanetSideGUID = guidMutator(this, guid)
 
   /**
     * Flag when the object has no GUID (initial condition) or is considered stale.
     * @return whether the value of the GUID is a valid representation for this object
     */
-  def HasGUID : Boolean = guidValid
+  def HasGUID: Boolean = guidValid
 
   /**
     * Indicate that the current GUID is no longer a valid representation of the object.
@@ -63,7 +67,7 @@ abstract class IdentifiableEntity extends Identifiable {
     * Doing this restores the object to its default mutation option ("the ability to set a new valid GUID").
     * The current GUID will still be accessed as if it were valid, but it will be wrapped in the new stale object.
     */
-  def Invalidate() : Unit = {
+  def Invalidate(): Unit = {
     guidValid = false
     current = StalePlanetSideGUID(current.guid)
     guidMutator = IdentifiableEntity.setWhenNoGUID
@@ -71,13 +75,14 @@ abstract class IdentifiableEntity extends Identifiable {
 }
 
 object IdentifiableEntity {
+
   /**
     * Raise an `Exception` because the entity is never considered having a GUID to give.
     * @param o the any entity with a GUID
     * @throws `NoGUIDException` always
     * @return never returns
     */
-  def getWhenNoGUID(o : IdentifiableEntity) : PlanetSideGUID = {
+  def getWhenNoGUID(o: IdentifiableEntity): PlanetSideGUID = {
     throw new NoGUIDException(s"did not initialize this object $o with a valid global identifier")
   }
 
@@ -90,7 +95,7 @@ object IdentifiableEntity {
     * @param guid the valid GUID to assign
     * @return the GUID
     */
-  def setWhenNoGUID(o : IdentifiableEntity, guid : PlanetSideGUID) : PlanetSideGUID = {
+  def setWhenNoGUID(o: IdentifiableEntity, guid: PlanetSideGUID): PlanetSideGUID = {
     o.current = guid
     o.guidValid = true
     o.guidAccessor = getWhenValidGUID
@@ -103,7 +108,7 @@ object IdentifiableEntity {
     * @param o the entity
     * @return the entity's GUID
     */
-  def getWhenValidGUID(o : IdentifiableEntity) : PlanetSideGUID = o.current
+  def getWhenValidGUID(o: IdentifiableEntity): PlanetSideGUID = o.current
 
   /**
     * The entity is in a condition where it can not be assigned the new valid GUID.
@@ -114,7 +119,7 @@ object IdentifiableEntity {
     * @throws `AssigningGUIDException` always
     * @return never returns
     */
-  def setWhenValidGUID(o : IdentifiableEntity, guid : PlanetSideGUID) : PlanetSideGUID = {
+  def setWhenValidGUID(o: IdentifiableEntity, guid: PlanetSideGUID): PlanetSideGUID = {
     throw new AssigningGUIDException("attempting to set GUID to already valid object; try invalidating it", o, guid)
   }
 }

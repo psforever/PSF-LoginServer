@@ -17,10 +17,10 @@ import scodec.Codec
   */
 object PersonalStyle extends Enumeration {
   val BrimmedCap = Value(1)
-  val Earpiece = Value(2)
+  val Earpiece   = Value(2)
   val Sunglasses = Value(4)
-  val Beret = Value(8)
-  val NoHelmet = Value(16)
+  val Beret      = Value(8)
+  val NoHelmet   = Value(16)
 }
 
 /**
@@ -35,14 +35,14 @@ object PersonalStyle extends Enumeration {
   * @see `UniformStyle`
   * @see `PersonalStyleFeatures`
   */
-final case class Cosmetics(pstyles : Int) extends StreamBitSize {
-  override def bitsize : Long = 5L
+final case class Cosmetics(pstyles: Int) extends StreamBitSize {
+  override def bitsize: Long = 5L
 
   /**
     * Transform the accumulated bitwise cosmetic feature integer into a group of all valid cosmetic feature values.
     * @return a group of all valid cosmetic feature values
     */
-  def Styles : Set[PersonalStyle.Value] = {
+  def Styles: Set[PersonalStyle.Value] = {
     (for {
       style <- PersonalStyle.values.toList
       if (pstyles & style.id) == style.id
@@ -55,7 +55,7 @@ final case class Cosmetics(pstyles : Int) extends StreamBitSize {
     * @param pstyle the cosmetic feature value
     * @return a new `Cosmetics` object, potentially including the new cosmetic feature
     */
-  def +(pstyle : PersonalStyle.Value) : Cosmetics = {
+  def +(pstyle: PersonalStyle.Value): Cosmetics = {
     Cosmetics(pstyles | pstyle.id)
   }
 
@@ -65,7 +65,7 @@ final case class Cosmetics(pstyles : Int) extends StreamBitSize {
     * @param pstyle the cosmetic feature value
     * @return a new `Cosmetics` object, excluding the new cosmetic feature
     */
-  def -(pstyle : PersonalStyle.Value) : Cosmetics = {
+  def -(pstyle: PersonalStyle.Value): Cosmetics = {
     Cosmetics(pstyles - (pstyles & pstyle.id))
   }
 
@@ -74,29 +74,30 @@ final case class Cosmetics(pstyles : Int) extends StreamBitSize {
     * @param pstyle the cosmetic feature value
     * @return `true`, if the feature is included; `false`, otherwise
     */
-  def contains(pstyle : PersonalStyle.Value) : Boolean = (pstyles & pstyle.id) == pstyle.id
+  def contains(pstyle: PersonalStyle.Value): Boolean = (pstyles & pstyle.id) == pstyle.id
 }
 
 object Cosmetics {
+
   /**
     * Overloaded constructor for `Cosmetics` that loads no option.
     * @return a `Cosmetics` object
     */
-  def apply() : Cosmetics = Cosmetics(0)
+  def apply(): Cosmetics = Cosmetics(0)
 
   /**
     * Overloaded constructor for `Cosmetics` that loads a single option.
     * @param pstyle the cosmetic feature that will be valid
     * @return a `Cosmetics` object
     */
-  def apply(pstyle : PersonalStyle.Value) : Cosmetics = Cosmetics(pstyle.id)
+  def apply(pstyle: PersonalStyle.Value): Cosmetics = Cosmetics(pstyle.id)
 
   /**
     * Overloaded constructor for `Cosmetics` that loads all options listed.
     * @param pstyle all of the cosmetic feature that will be valid
     * @return a `Cosmetics` object
     */
-  def apply(pstyle : Set[PersonalStyle.Value]) : Cosmetics = {
+  def apply(pstyle: Set[PersonalStyle.Value]): Cosmetics = {
     Cosmetics(pstyle.foldLeft(0)(_ + _.id))
   }
 
@@ -109,13 +110,15 @@ object Cosmetics {
     * @param brimmed_cap player dons a cap
     * @return a `Cosmetics` object
     */
-  def apply(no_helmet : Boolean,
-            beret : Boolean,
-            sunglasses : Boolean,
-            earpiece : Boolean,
-            brimmed_cap : Boolean) : Cosmetics = {
+  def apply(
+      no_helmet: Boolean,
+      beret: Boolean,
+      sunglasses: Boolean,
+      earpiece: Boolean,
+      brimmed_cap: Boolean
+  ): Cosmetics = {
     import scala.language.implicitConversions
-    implicit def bool2int(b : Boolean) : Int = if(b) 1 else 0
+    implicit def bool2int(b: Boolean): Int = if (b) 1 else 0
     Cosmetics(
       (no_helmet * 16) +
         (beret * 8) +
@@ -125,5 +128,5 @@ object Cosmetics {
     )
   }
 
-  implicit val codec : Codec[Cosmetics] = uint(5).hlist.as[Cosmetics]
+  implicit val codec: Codec[Cosmetics] = uint(5).hlist.as[Cosmetics]
 }

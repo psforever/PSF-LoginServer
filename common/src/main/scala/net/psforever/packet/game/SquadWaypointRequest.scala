@@ -13,14 +13,10 @@ import shapeless.{::, HNil}
 object WaypointEventAction extends Enumeration {
   type Type = Value
 
-  val
-  Add,
-  Unknown1,
-  Remove,
-  Unknown3 //unconfirmed
+  val Add, Unknown1, Remove, Unknown3 //unconfirmed
   = Value
 
-  implicit val codec : Codec[WaypointEventAction.Value] = PacketHelpers.createEnumerationCodec(enum = this, uint2)
+  implicit val codec: Codec[WaypointEventAction.Value] = PacketHelpers.createEnumerationCodec(enum = this, uint2)
 }
 
 /**
@@ -29,8 +25,7 @@ object WaypointEventAction extends Enumeration {
   * @param pos the continental map coordinate location of the waypoint;
   *            the z-coordinate is almost always 0.0
   */
-final case class WaypointInfo(zone_number : Int,
-                              pos : Vector3)
+final case class WaypointInfo(zone_number: Int, pos: Vector3)
 
 /**
   * na
@@ -44,31 +39,32 @@ final case class WaypointInfo(zone_number : Int,
   * @param unk4 na
   * @param waypoint_info essential data about the waypoint
   */
-final case class SquadWaypointRequest(request_type : WaypointEventAction.Value,
-                                      char_id : Long,
-                                      waypoint_type : SquadWaypoints.Value,
-                                      unk4 : Option[Long],
-                                      waypoint_info : Option[WaypointInfo])
-  extends PlanetSideGamePacket {
+final case class SquadWaypointRequest(
+    request_type: WaypointEventAction.Value,
+    char_id: Long,
+    waypoint_type: SquadWaypoints.Value,
+    unk4: Option[Long],
+    waypoint_info: Option[WaypointInfo]
+) extends PlanetSideGamePacket {
   type Packet = SquadWaypointRequest
   def opcode = GamePacketOpcode.SquadWaypointRequest
   def encode = SquadWaypointRequest.encode(this)
 }
 
 object SquadWaypointRequest extends Marshallable[SquadWaypointRequest] {
-  def Add(char_id : Long, waypoint_type : SquadWaypoints.Value, waypoint : WaypointInfo) : SquadWaypointRequest =
+  def Add(char_id: Long, waypoint_type: SquadWaypoints.Value, waypoint: WaypointInfo): SquadWaypointRequest =
     SquadWaypointRequest(WaypointEventAction.Add, char_id, waypoint_type, None, Some(waypoint))
 
-  def Unknown1(char_id : Long, waypoint_type : SquadWaypoints.Value, unk_a : Long) : SquadWaypointRequest =
+  def Unknown1(char_id: Long, waypoint_type: SquadWaypoints.Value, unk_a: Long): SquadWaypointRequest =
     SquadWaypointRequest(WaypointEventAction.Unknown1, char_id, waypoint_type, Some(unk_a), None)
 
-  def Remove(char_id : Long, waypoint_type : SquadWaypoints.Value) : SquadWaypointRequest =
+  def Remove(char_id: Long, waypoint_type: SquadWaypoints.Value): SquadWaypointRequest =
     SquadWaypointRequest(WaypointEventAction.Remove, char_id, waypoint_type, None, None)
 
-  private val waypoint_codec : Codec[WaypointInfo] = (
+  private val waypoint_codec: Codec[WaypointInfo] = (
     ("zone_number" | uint16L) ::
       ("pos" | Vector3.codec_pos)
-    ).xmap[WaypointInfo] (
+  ).xmap[WaypointInfo](
     {
       case zone_number :: pos :: HNil => WaypointInfo(zone_number, pos)
     },
@@ -77,14 +73,14 @@ object SquadWaypointRequest extends Marshallable[SquadWaypointRequest] {
     }
   )
 
-  implicit val codec : Codec[SquadWaypointRequest] = (
+  implicit val codec: Codec[SquadWaypointRequest] = (
     ("request_type" | WaypointEventAction.codec) >>:~ { request_type =>
       ("char_id" | uint32L) ::
         ("waypoint_type" | SquadWaypoints.codec) ::
         ("unk4" | conditional(request_type == WaypointEventAction.Unknown1, uint32L)) ::
         ("waypoint" | conditional(request_type == WaypointEventAction.Add, waypoint_codec))
     }
-    ).exmap[SquadWaypointRequest] (
+  ).exmap[SquadWaypointRequest](
     {
       case WaypointEventAction.Add :: char_id :: waypoint_type :: None :: Some(waypoint) :: HNil =>
         Attempt.Successful(SquadWaypointRequest(WaypointEventAction.Add, char_id, waypoint_type, None, Some(waypoint)))
@@ -108,7 +104,7 @@ object SquadWaypointRequest extends Marshallable[SquadWaypointRequest] {
       case SquadWaypointRequest(request_type, char_id, waypoint_type, None, None) =>
         Attempt.Successful(request_type :: char_id :: waypoint_type :: None :: None :: HNil)
 
-      case data : SquadWaypointRequest =>
+      case data: SquadWaypointRequest =>
         Attempt.Failure(Err(s"unexpected format while encoding - $data"))
     }
   )

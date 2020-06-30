@@ -20,7 +20,7 @@ class AmenityTest extends Specification {
     //intentionally blank
   }
   class AmenityObject extends Amenity {
-    def Definition : AmenityDefinition = definition
+    def Definition: AmenityDefinition = definition
   }
 
   "Amenity" should {
@@ -30,7 +30,7 @@ class AmenityTest extends Specification {
     }
 
     "can be owned by a building" in {
-      val ao = new AmenityObject()
+      val ao   = new AmenityObject()
       val bldg = Building("Building", 0, 10, Zone.Nowhere, StructureType.Building)
 
       ao.Owner = bldg
@@ -39,7 +39,7 @@ class AmenityTest extends Specification {
 
     "be owned by a vehicle" in {
       import net.psforever.objects.Vehicle
-      val ao = new AmenityObject()
+      val ao  = new AmenityObject()
       val veh = Vehicle(GlobalDefinitions.quadstealth)
 
       ao.Owner = veh
@@ -54,7 +54,7 @@ class AmenityTest extends Specification {
 
     "confer faction allegiance through ownership" in {
       //see FactionAffinityTest
-      val ao = new AmenityObject()
+      val ao   = new AmenityObject()
       val bldg = Building("Building", 0, 10, Zone.Nowhere, StructureType.Building)
       ao.Owner = bldg
       bldg.Faction mustEqual PlanetSideEmpire.NEUTRAL
@@ -87,7 +87,7 @@ class BuildingTest extends Specification {
     }
 
     "keep track of amenities" in {
-      val bldg = Building("Building", 0, 10, Zone.Nowhere, StructureType.Building)
+      val bldg  = Building("Building", 0, 10, Zone.Nowhere, StructureType.Building)
       val door1 = Door(GlobalDefinitions.door)
       val door2 = Door(GlobalDefinitions.door)
 
@@ -176,14 +176,14 @@ class BuildingControl3Test extends ActorTest {
       //val reply = receiveN(3, Duration.create(5000, "ms"))
       assert(reply.length == 3)
       var building_count = 0
-      var door_count = 0
+      var door_count     = 0
       reply.foreach(item => {
         assert(item.isInstanceOf[FactionAffinity.AssertFactionAffinity])
         val item2 = item.asInstanceOf[FactionAffinity.AssertFactionAffinity]
         item2.obj match {
-          case _ : Building =>
+          case _: Building =>
             building_count += 1
-          case _ : Door =>
+          case _: Door =>
             door_count += 1
           case _ =>
             assert(false)

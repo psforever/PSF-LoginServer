@@ -58,17 +58,19 @@ class UtilityTest extends Specification {
     "produce a telepad object through the teleportpad_terminal" in {
       val veh = Vehicle(GlobalDefinitions.quadstealth)
       veh.Faction = PlanetSideEmpire.TR
-      val obj = Utility(UtilityType.teleportpad_terminal, UtilityTest.vehicle)
+      val obj    = Utility(UtilityType.teleportpad_terminal, UtilityTest.vehicle)
       val player = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       veh.GUID = PlanetSideGUID(101)
       obj().Owner = veh //hack
       obj().GUID = PlanetSideGUID(1)
       player.GUID = PlanetSideGUID(2)
 
-      val msg = obj().asInstanceOf[Terminal].Request(
-        player,
-        ItemTransactionMessage(PlanetSideGUID(853), TransactionType.Buy, 0, "router_telepad", 0, PlanetSideGUID(0))
-      )
+      val msg = obj()
+        .asInstanceOf[Terminal]
+        .Request(
+          player,
+          ItemTransactionMessage(PlanetSideGUID(853), TransactionType.Buy, 0, "router_telepad", 0, PlanetSideGUID(0))
+        )
       msg.isInstanceOf[Terminal.BuyEquipment] mustEqual true
       msg.asInstanceOf[Terminal.BuyEquipment].item.isInstanceOf[Telepad] mustEqual true
     }
@@ -82,7 +84,7 @@ class UtilityTest extends Specification {
     }
 
     "internal_router_telepad_deployable can keep track of an object's GUID (presumedly, it's a Telepad)" in {
-      val obj = Utility(UtilityType.internal_router_telepad_deployable, UtilityTest.vehicle)
+      val obj   = Utility(UtilityType.internal_router_telepad_deployable, UtilityTest.vehicle)
       val inpad = obj().asInstanceOf[Utility.InternalTelepad]
 
       inpad.Telepad.isEmpty mustEqual true
@@ -225,8 +227,8 @@ class UtilityInternalTelepadTest extends ActorTest {
 object UtilityTest {
   val vehicle = Vehicle(GlobalDefinitions.quadstealth)
 
-  class SetupControl(obj : Utility) extends Actor {
-    def receive : Receive = {
+  class SetupControl(obj: Utility) extends Actor {
+    def receive: Receive = {
       case _ =>
         obj.Setup(context)
         sender ! ""

@@ -9,7 +9,7 @@ import scodec.bits._
 
 class HitMessageTest extends Specification {
   val string_hitgeneric = hex"09 09E9A70200"
-  val string_hitobj = hex"09 99292705F4B1FB9514585F08BDD3D454CC5EE80300"
+  val string_hitobj     = hex"09 99292705F4B1FB9514585F08BDD3D454CC5EE80300"
 
   "decode (generic)" in {
     PacketCoding.DecodePacket(string_hitgeneric).require match {
@@ -32,7 +32,13 @@ class HitMessageTest extends Specification {
         seq_time mustEqual 153
         projectile_guid mustEqual PlanetSideGUID(40100)
         unk1 mustEqual 0
-        hit_info mustEqual Some(HitInfo(Vector3(3672.9766f, 2729.8594f, 92.34375f), Vector3(3679.5156f, 2722.6172f, 92.796875f), Some(PlanetSideGUID(372))))
+        hit_info mustEqual Some(
+          HitInfo(
+            Vector3(3672.9766f, 2729.8594f, 92.34375f),
+            Vector3(3679.5156f, 2722.6172f, 92.796875f),
+            Some(PlanetSideGUID(372))
+          )
+        )
         unk2 mustEqual true
         unk3 mustEqual false
         unk4 mustEqual None
@@ -48,7 +54,21 @@ class HitMessageTest extends Specification {
   }
 
   "encode (object)" in {
-    val msg_hitobj = HitMessage(153, PlanetSideGUID(40100), 0, Some(HitInfo(Vector3(3672.9766f, 2729.8594f, 92.34375f), Vector3(3679.5156f, 2722.6172f, 92.796875f), Some(PlanetSideGUID(372)))), true, false, None)
+    val msg_hitobj = HitMessage(
+      153,
+      PlanetSideGUID(40100),
+      0,
+      Some(
+        HitInfo(
+          Vector3(3672.9766f, 2729.8594f, 92.34375f),
+          Vector3(3679.5156f, 2722.6172f, 92.796875f),
+          Some(PlanetSideGUID(372))
+        )
+      ),
+      true,
+      false,
+      None
+    )
     val pkt_hitobj = PacketCoding.EncodePacket(msg_hitobj).require.toByteVector
 
     pkt_hitobj mustEqual string_hitobj

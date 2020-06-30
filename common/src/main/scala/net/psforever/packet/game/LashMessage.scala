@@ -15,25 +15,26 @@ import scodec.codecs._
   * @param hit_pos na
   * @param unk1 na
   */
-final case class LashMessage(seq_time : Int,
-                             player : PlanetSideGUID,
-                             victim : PlanetSideGUID,
-                             bullet : PlanetSideGUID,
-                             hit_pos : Vector3,
-                             unk1 : Int)
-  extends PlanetSideGamePacket {
+final case class LashMessage(
+    seq_time: Int,
+    player: PlanetSideGUID,
+    victim: PlanetSideGUID,
+    bullet: PlanetSideGUID,
+    hit_pos: Vector3,
+    unk1: Int
+) extends PlanetSideGamePacket {
   type Packet = LashMessage
   def opcode = GamePacketOpcode.LashMessage
   def encode = LashMessage.encode(this)
 }
 
 object LashMessage extends Marshallable[LashMessage] {
-  implicit val codec : Codec[LashMessage] = (
+  implicit val codec: Codec[LashMessage] = (
     ("seq_time" | uintL(10)) ::
       ("player" | PlanetSideGUID.codec) ::
       ("victim" | PlanetSideGUID.codec) ::
       ("bullet" | PlanetSideGUID.codec) ::
       ("hit_pos" | Vector3.codec_pos) ::
       ("unk1" | uintL(3))
-    ).as[LashMessage]
+  ).as[LashMessage]
 }

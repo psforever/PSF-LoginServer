@@ -20,19 +20,17 @@ import scodec.codecs._
   * @param vehicle_guid the vehicle
   * @param entry_point the entry index that maps to a seat index, specific to the selected vehicle
   */
-final case class MountVehicleMsg(player_guid : PlanetSideGUID,
-                                 vehicle_guid : PlanetSideGUID,
-                                 entry_point : Int)
-  extends PlanetSideGamePacket {
+final case class MountVehicleMsg(player_guid: PlanetSideGUID, vehicle_guid: PlanetSideGUID, entry_point: Int)
+    extends PlanetSideGamePacket {
   type Packet = MountVehicleMsg
   def opcode = GamePacketOpcode.MountVehicleMsg
   def encode = MountVehicleMsg.encode(this)
 }
 
 object MountVehicleMsg extends Marshallable[MountVehicleMsg] {
-  implicit val codec : Codec[MountVehicleMsg] = (
+  implicit val codec: Codec[MountVehicleMsg] = (
     ("player_guid" | PlanetSideGUID.codec) ::
       ("vehicle_guid" | PlanetSideGUID.codec) ::
       ("entry_point" | uint8L)
-    ).as[MountVehicleMsg]
+  ).as[MountVehicleMsg]
 }

@@ -108,7 +108,7 @@ class MultiPacketCollectorTest extends Specification {
 
     "clear packets after being asked to bundle" in {
       val list = List(packet1, packet2)
-      val obj = MultiPacketCollector(list)
+      val obj  = MultiPacketCollector(list)
 
       obj.Bundle match {
         case Some(MultiPacketBundle(bundle)) =>
@@ -182,7 +182,7 @@ class MultiPacketCollectorTest extends Specification {
           obj2.Add(packet3)
           obj2.Add(bundle1)
           obj2.Bundle match {
-            case Some(MultiPacketBundle(list))=>
+            case Some(MultiPacketBundle(list)) =>
               list.size mustEqual 3
               list.head mustEqual packet3
               list(1) mustEqual packet1

@@ -508,37 +508,37 @@ object RemoverActorTest {
 
     val SecondStandardDuration = 100 milliseconds
 
-    def InclusionTest(entry : RemoverActor.Entry) : Boolean = {
+    def InclusionTest(entry: RemoverActor.Entry): Boolean = {
       context.parent ! InclusionTestAlert()
       true
     }
 
-    def InitialJob(entry : RemoverActor.Entry) : Unit = {
+    def InitialJob(entry: RemoverActor.Entry): Unit = {
       context.parent ! InitialJobAlert()
     }
 
-    def FirstJob(entry : RemoverActor.Entry) : Unit = {
+    def FirstJob(entry: RemoverActor.Entry): Unit = {
       context.parent ! FirstJobAlert()
     }
 
-    override def SecondJob(entry : RemoverActor.Entry) : Unit = {
+    override def SecondJob(entry: RemoverActor.Entry): Unit = {
       context.parent ! SecondJobAlert()
       super.SecondJob(entry)
     }
 
-    def ClearanceTest(entry : RemoverActor.Entry) : Boolean = {
+    def ClearanceTest(entry: RemoverActor.Entry): Boolean = {
       context.parent ! ClearanceTestAlert()
       true
     }
 
-    def DeletionTask(entry : RemoverActor.Entry) : TaskResolver.GiveTask = {
+    def DeletionTask(entry: RemoverActor.Entry): TaskResolver.GiveTask = {
       context.parent ! DeletionTaskAlert()
       TaskResolver.GiveTask(new Task() {
         private val localProbe = context.parent
 
         override def isComplete = Task.Resolution.Success
 
-        def Execute(resolver : ActorRef) : Unit = {
+        def Execute(resolver: ActorRef): Unit = {
           context.parent ! DeletionTaskRunAlert()
           resolver ! Success(this)
         }

@@ -15,13 +15,12 @@ import scodec.Codec
   * - ... and so forth<br>
   * Afterwards, an avatar POV is declared and the remaining details about the said avatar are assigned.
   */
-final case class BeginZoningMessage()
-  extends PlanetSideGamePacket {
+final case class BeginZoningMessage() extends PlanetSideGamePacket {
   type Packet = BeginZoningMessage
   def opcode = GamePacketOpcode.BeginZoningMessage
   def encode = BeginZoningMessage.encode(this)
 }
 
 object BeginZoningMessage extends Marshallable[BeginZoningMessage] {
-  implicit val codec : Codec[BeginZoningMessage] = PacketHelpers.emptyCodec(BeginZoningMessage())
+  implicit val codec: Codec[BeginZoningMessage] = PacketHelpers.emptyCodec(BeginZoningMessage())
 }

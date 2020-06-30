@@ -7,36 +7,37 @@ import net.psforever.objects.loadouts.VehicleLoadout
 
 object VehicleTerminalDefinition {
   import net.psforever.objects.GlobalDefinitions._
+
   /**
     * A `Map` of operations for producing a ground-based `Vehicle`.
     * key - an identification string sent by the client
     * value - a curried function that builds the object
     */
-  val groundVehicles : Map[String, () => Vehicle] = Map(
-    "quadassault" -> MakeVehicle(quadassault),
-    "fury" -> MakeVehicle(fury),
-    "quadstealth" -> MakeVehicle(quadstealth),
-    "ant" -> MakeVehicle(ant),
-    "ams" -> MakeVehicle(ams),
-    "mediumtransport" -> MakeVehicle(mediumtransport),
+  val groundVehicles: Map[String, () => Vehicle] = Map(
+    "quadassault"           -> MakeVehicle(quadassault),
+    "fury"                  -> MakeVehicle(fury),
+    "quadstealth"           -> MakeVehicle(quadstealth),
+    "ant"                   -> MakeVehicle(ant),
+    "ams"                   -> MakeVehicle(ams),
+    "mediumtransport"       -> MakeVehicle(mediumtransport),
     "two_man_assault_buggy" -> MakeVehicle(two_man_assault_buggy),
-    "skyguard" -> MakeVehicle(skyguard),
-    "lightning" -> MakeVehicle(lightning),
-    "threemanheavybuggy" -> MakeVehicle(threemanheavybuggy),
-    "battlewagon" -> MakeVehicle(battlewagon),
-    "apc_tr" -> MakeVehicle(apc_tr),
-    "prowler" -> MakeVehicle(prowler),
-    "twomanheavybuggy" -> MakeVehicle(twomanheavybuggy),
-    "thunderer" -> MakeVehicle(thunderer),
-    "apc_nc" -> MakeVehicle(apc_nc),
-    "vanguard" -> MakeVehicle(vanguard),
-    "twomanhoverbuggy" -> MakeVehicle(twomanhoverbuggy),
-    "aurora" -> MakeVehicle(aurora),
-    "apc_vs" -> MakeVehicle(apc_vs),
-    "magrider" -> MakeVehicle(magrider),
-    "flail" -> MakeVehicle(flail),
-    "switchblade" -> MakeVehicle(switchblade),
-    "router" -> MakeVehicle(router)
+    "skyguard"              -> MakeVehicle(skyguard),
+    "lightning"             -> MakeVehicle(lightning),
+    "threemanheavybuggy"    -> MakeVehicle(threemanheavybuggy),
+    "battlewagon"           -> MakeVehicle(battlewagon),
+    "apc_tr"                -> MakeVehicle(apc_tr),
+    "prowler"               -> MakeVehicle(prowler),
+    "twomanheavybuggy"      -> MakeVehicle(twomanheavybuggy),
+    "thunderer"             -> MakeVehicle(thunderer),
+    "apc_nc"                -> MakeVehicle(apc_nc),
+    "vanguard"              -> MakeVehicle(vanguard),
+    "twomanhoverbuggy"      -> MakeVehicle(twomanhoverbuggy),
+    "aurora"                -> MakeVehicle(aurora),
+    "apc_vs"                -> MakeVehicle(apc_vs),
+    "magrider"              -> MakeVehicle(magrider),
+    "flail"                 -> MakeVehicle(flail),
+    "switchblade"           -> MakeVehicle(switchblade),
+    "router"                -> MakeVehicle(router)
   )
 
   /**
@@ -44,13 +45,13 @@ object VehicleTerminalDefinition {
     * key - an identification string sent by the client
     * value - a curried function that builds the object
     */
-  val flight1Vehicles : Map[String, ()=>Vehicle] = Map(
-    "mosquito" -> MakeVehicle(mosquito),
+  val flight1Vehicles: Map[String, () => Vehicle] = Map(
+    "mosquito"     -> MakeVehicle(mosquito),
     "lightgunship" -> MakeVehicle(lightgunship),
-    "wasp" -> MakeVehicle(wasp),
-    "phantasm" -> MakeVehicle(phantasm),
-    "vulture" -> MakeVehicle(vulture),
-    "liberator" -> MakeVehicle(liberator)
+    "wasp"         -> MakeVehicle(wasp),
+    "phantasm"     -> MakeVehicle(phantasm),
+    "vulture"      -> MakeVehicle(vulture),
+    "liberator"    -> MakeVehicle(liberator)
   )
 
   /**
@@ -58,10 +59,10 @@ object VehicleTerminalDefinition {
     * key - an identification string sent by the client
     * value - a curried function that builds the object
     */
-  val flight2Vehicles : Map[String, ()=>Vehicle] = Map(
-    "dropship" -> MakeVehicle(dropship),
+  val flight2Vehicles: Map[String, () => Vehicle] = Map(
+    "dropship"       -> MakeVehicle(dropship),
     "galaxy_gunship" -> MakeVehicle(galaxy_gunship),
-    "lodestar" -> MakeVehicle(lodestar)
+    "lodestar"       -> MakeVehicle(lodestar)
   )
 
   /**
@@ -69,7 +70,7 @@ object VehicleTerminalDefinition {
     * key - an identification string sent by the client
     * value - a curried function that builds the object
     */
-  val bfrVehicles : Map[String, ()=>Vehicle] = Map(
+  val bfrVehicles: Map[String, () => Vehicle] = Map(
     //    "colossus_gunner" -> (()=>Unit),
     //    "colossus_flight" -> (()=>Unit),
     //    "peregrine_gunner" -> (()=>Unit),
@@ -80,24 +81,27 @@ object VehicleTerminalDefinition {
 
   import net.psforever.objects.loadouts.{Loadout => _Loadout} //distinguish from Terminal.Loadout message
   import _Loadout._
+
   /**
     * A `Map` of the default contents of a `Vehicle` inventory, called the trunk.
     * key - an identification string sent by the client (for the vehicle)
     * value - a curried function that builds the object
     */
-  val trunk : Map[String, _Loadout] = {
-    val ammo_12mm = ShorthandAmmoBox(bullet_12mm, bullet_12mm.Capacity)
-    val ammo_15mm = ShorthandAmmoBox(bullet_15mm, bullet_15mm.Capacity)
-    val ammo_25mm = ShorthandAmmoBox(bullet_25mm, bullet_25mm.Capacity)
-    val ammo_35mm = ShorthandAmmoBox(bullet_35mm, bullet_35mm.Capacity)
-    val ammo_20mm = ShorthandAmmoBox(bullet_20mm, bullet_20mm.Capacity)
-    val ammo_75mm = ShorthandAmmoBox(bullet_75mm, bullet_75mm.Capacity)
+  val trunk: Map[String, _Loadout] = {
+    val ammo_12mm   = ShorthandAmmoBox(bullet_12mm, bullet_12mm.Capacity)
+    val ammo_15mm   = ShorthandAmmoBox(bullet_15mm, bullet_15mm.Capacity)
+    val ammo_25mm   = ShorthandAmmoBox(bullet_25mm, bullet_25mm.Capacity)
+    val ammo_35mm   = ShorthandAmmoBox(bullet_35mm, bullet_35mm.Capacity)
+    val ammo_20mm   = ShorthandAmmoBox(bullet_20mm, bullet_20mm.Capacity)
+    val ammo_75mm   = ShorthandAmmoBox(bullet_75mm, bullet_75mm.Capacity)
     val ammo_mortar = ShorthandAmmoBox(heavy_grenade_mortar, heavy_grenade_mortar.Capacity)
-    val ammo_flux = ShorthandAmmoBox(flux_cannon_thresher_battery, flux_cannon_thresher_battery.Capacity)
-    val ammo_bomb = ShorthandAmmoBox(liberator_bomb, liberator_bomb.Capacity)
+    val ammo_flux   = ShorthandAmmoBox(flux_cannon_thresher_battery, flux_cannon_thresher_battery.Capacity)
+    val ammo_bomb   = ShorthandAmmoBox(liberator_bomb, liberator_bomb.Capacity)
     Map(
       //"quadstealth" -> VehicleLoadout("default_quadstealth", List(), List(), quadstealth),
-      "quadassault" -> VehicleLoadout("default_quadassault", List(),
+      "quadassault" -> VehicleLoadout(
+        "default_quadassault",
+        List(),
         List(
           SimplifiedEntry(ammo_12mm, 30),
           SimplifiedEntry(ammo_12mm, 34),
@@ -105,10 +109,11 @@ object VehicleTerminalDefinition {
           SimplifiedEntry(ammo_12mm, 78)
         ),
         quadassault
-      ),
-      {
+      ), {
         val ammo = ShorthandAmmoBox(hellfire_ammo, hellfire_ammo.Capacity)
-        "fury" -> VehicleLoadout("default_fury", List(),
+        "fury" -> VehicleLoadout(
+          "default_fury",
+          List(),
           List(
             SimplifiedEntry(ammo, 30),
             SimplifiedEntry(ammo, 34),
@@ -120,7 +125,9 @@ object VehicleTerminalDefinition {
       },
       //"ant" -> VehicleLoadout("default_ant", List(), List(), ant),
       //"ams" -> VehicleLoadout("default_ams", List(), List(), ams),
-      "two_man_assault_buggy" -> VehicleLoadout("default_two_man_assault_buggy", List(),
+      "two_man_assault_buggy" -> VehicleLoadout(
+        "default_two_man_assault_buggy",
+        List(),
         List(
           SimplifiedEntry(ammo_12mm, 30),
           SimplifiedEntry(ammo_12mm, 34),
@@ -130,10 +137,11 @@ object VehicleTerminalDefinition {
           SimplifiedEntry(ammo_12mm, 98)
         ),
         two_man_assault_buggy
-      ),
-      {
+      ), {
         val ammo = ShorthandAmmoBox(skyguard_flak_cannon_ammo, skyguard_flak_cannon_ammo.Capacity)
-        "skyguard" -> VehicleLoadout("default_skyguard", List(),
+        "skyguard" -> VehicleLoadout(
+          "default_skyguard",
+          List(),
           List(
             SimplifiedEntry(ammo_12mm, 30),
             SimplifiedEntry(ammo_12mm, 34),
@@ -145,7 +153,9 @@ object VehicleTerminalDefinition {
           skyguard
         )
       },
-      "threemanheavybuggy" -> VehicleLoadout("default_threemanheavybuggy", List(),
+      "threemanheavybuggy" -> VehicleLoadout(
+        "default_threemanheavybuggy",
+        List(),
         List(
           SimplifiedEntry(ammo_12mm, 30),
           SimplifiedEntry(ammo_12mm, 34),
@@ -155,10 +165,11 @@ object VehicleTerminalDefinition {
           SimplifiedEntry(ammo_mortar, 98)
         ),
         threemanheavybuggy
-      ),
-      {
+      ), {
         val ammo = ShorthandAmmoBox(firebird_missile, firebird_missile.Capacity)
-        "twomanheavybuggy" -> VehicleLoadout("default_twomanheavybuggy", List(),
+        "twomanheavybuggy" -> VehicleLoadout(
+          "default_twomanheavybuggy",
+          List(),
           List(
             SimplifiedEntry(ammo, 30),
             SimplifiedEntry(ammo, 34),
@@ -170,7 +181,9 @@ object VehicleTerminalDefinition {
           twomanheavybuggy
         )
       },
-      "twomanhoverbuggy" -> VehicleLoadout("default_twomanhoverbuggy", List(),
+      "twomanhoverbuggy" -> VehicleLoadout(
+        "default_twomanhoverbuggy",
+        List(),
         List(
           SimplifiedEntry(ammo_flux, 30),
           SimplifiedEntry(ammo_flux, 34),
@@ -181,7 +194,9 @@ object VehicleTerminalDefinition {
         ),
         twomanhoverbuggy
       ),
-      "mediumtransport" -> VehicleLoadout("default_mediumtransport", List(),
+      "mediumtransport" -> VehicleLoadout(
+        "default_mediumtransport",
+        List(),
         List(
           SimplifiedEntry(ammo_20mm, 30),
           SimplifiedEntry(ammo_20mm, 34),
@@ -195,7 +210,9 @@ object VehicleTerminalDefinition {
         ),
         mediumtransport
       ),
-      "battlewagon" -> VehicleLoadout("default_battlewagon", List(),
+      "battlewagon" -> VehicleLoadout(
+        "default_battlewagon",
+        List(),
         List(
           SimplifiedEntry(ammo_15mm, 30),
           SimplifiedEntry(ammo_15mm, 34),
@@ -208,10 +225,11 @@ object VehicleTerminalDefinition {
           SimplifiedEntry(ammo_15mm, 158)
         ),
         battlewagon
-      ),
-      {
+      ), {
         val ammo = ShorthandAmmoBox(gauss_cannon_ammo, gauss_cannon_ammo.Capacity)
-        "thunderer" -> VehicleLoadout("default_thunderer", List(),
+        "thunderer" -> VehicleLoadout(
+          "default_thunderer",
+          List(),
           List(
             SimplifiedEntry(ammo, 30),
             SimplifiedEntry(ammo, 34),
@@ -225,10 +243,11 @@ object VehicleTerminalDefinition {
           ),
           thunderer
         )
-      },
-      {
+      }, {
         val ammo = ShorthandAmmoBox(fluxpod_ammo, fluxpod_ammo.Capacity)
-        "aurora" -> VehicleLoadout("default_aurora", List(),
+        "aurora" -> VehicleLoadout(
+          "default_aurora",
+          List(),
           List(
             SimplifiedEntry(ammo, 30),
             SimplifiedEntry(ammo, 34),
@@ -243,7 +262,9 @@ object VehicleTerminalDefinition {
           aurora
         )
       },
-      "apc_tr" -> VehicleLoadout("default_apc_tr", List(),
+      "apc_tr" -> VehicleLoadout(
+        "default_apc_tr",
+        List(),
         List(
           SimplifiedEntry(ammo_75mm, 30),
           SimplifiedEntry(ammo_75mm, 34),
@@ -268,7 +289,9 @@ object VehicleTerminalDefinition {
         ),
         apc_tr
       ),
-      "apc_nc" -> VehicleLoadout("default_apc_nc", List(),
+      "apc_nc" -> VehicleLoadout(
+        "default_apc_nc",
+        List(),
         List(
           SimplifiedEntry(ammo_75mm, 30),
           SimplifiedEntry(ammo_75mm, 34),
@@ -293,7 +316,9 @@ object VehicleTerminalDefinition {
         ),
         apc_nc
       ),
-      "apc_vs" -> VehicleLoadout("default_apc_vs", List(),
+      "apc_vs" -> VehicleLoadout(
+        "default_apc_vs",
+        List(),
         List(
           SimplifiedEntry(ammo_75mm, 30),
           SimplifiedEntry(ammo_75mm, 34),
@@ -318,7 +343,9 @@ object VehicleTerminalDefinition {
         ),
         apc_vs
       ),
-      "lightning" -> VehicleLoadout("default_lightning", List(),
+      "lightning" -> VehicleLoadout(
+        "default_lightning",
+        List(),
         List(
           SimplifiedEntry(ammo_12mm, 30),
           SimplifiedEntry(ammo_12mm, 34),
@@ -328,10 +355,11 @@ object VehicleTerminalDefinition {
           SimplifiedEntry(ammo_75mm, 98)
         ),
         lightning
-      ),
-      {
+      ), {
         val ammo = ShorthandAmmoBox(bullet_105mm, bullet_105mm.Capacity)
-        "prowler" -> VehicleLoadout("default_prowler", List(),
+        "prowler" -> VehicleLoadout(
+          "default_prowler",
+          List(),
           List(
             SimplifiedEntry(ammo_15mm, 30),
             SimplifiedEntry(ammo_15mm, 34),
@@ -342,10 +370,11 @@ object VehicleTerminalDefinition {
           ),
           prowler
         )
-      },
-      {
+      }, {
         val ammo = ShorthandAmmoBox(bullet_150mm, bullet_150mm.Capacity)
-        "vanguard" -> VehicleLoadout("default_vanguard", List(),
+        "vanguard" -> VehicleLoadout(
+          "default_vanguard",
+          List(),
           List(
             SimplifiedEntry(ammo_20mm, 30),
             SimplifiedEntry(ammo_20mm, 34),
@@ -356,11 +385,12 @@ object VehicleTerminalDefinition {
           ),
           vanguard
         )
-      },
-      {
+      }, {
         val ammo1 = ShorthandAmmoBox(pulse_battery, pulse_battery.Capacity)
         val ammo2 = ShorthandAmmoBox(heavy_rail_beam_battery, heavy_rail_beam_battery.Capacity)
-        "magrider" -> VehicleLoadout("default_magrider", List(),
+        "magrider" -> VehicleLoadout(
+          "default_magrider",
+          List(),
           List(
             SimplifiedEntry(ammo1, 30),
             SimplifiedEntry(ammo1, 34),
@@ -375,7 +405,9 @@ object VehicleTerminalDefinition {
       //"flail" -> VehicleLoadout("default_flail", List(), List(), flail),
       //"switchblade" -> VehicleLoadout("default_switchblade", List(), List(), switchblade),
       //"router" -> VehicleLoadout("default_router", List(), List(), router),
-      "mosquito" -> VehicleLoadout("default_mosquito", List(),
+      "mosquito" -> VehicleLoadout(
+        "default_mosquito",
+        List(),
         List(
           SimplifiedEntry(ammo_12mm, 30),
           SimplifiedEntry(ammo_12mm, 34),
@@ -383,10 +415,11 @@ object VehicleTerminalDefinition {
           SimplifiedEntry(ammo_12mm, 78)
         ),
         mosquito
-      ),
-      {
+      ), {
         val ammo = ShorthandAmmoBox(reaver_rocket, reaver_rocket.Capacity)
-        "lightgunship" -> VehicleLoadout("default_lightgunship", List(),
+        "lightgunship" -> VehicleLoadout(
+          "default_lightgunship",
+          List(),
           List(
             SimplifiedEntry(ammo, 30),
             SimplifiedEntry(ammo, 34),
@@ -397,11 +430,12 @@ object VehicleTerminalDefinition {
           ),
           lightgunship
         )
-      },
-      {
+      }, {
         val ammo1 = ShorthandAmmoBox(wasp_rocket_ammo, wasp_rocket_ammo.Capacity)
         val ammo2 = ShorthandAmmoBox(wasp_gun_ammo, wasp_gun_ammo.Capacity)
-        "wasp" -> VehicleLoadout("default_wasp", List(),
+        "wasp" -> VehicleLoadout(
+          "default_wasp",
+          List(),
           List(
             SimplifiedEntry(ammo1, 30),
             SimplifiedEntry(ammo1, 34),
@@ -411,7 +445,9 @@ object VehicleTerminalDefinition {
           wasp
         )
       },
-      "liberator" -> VehicleLoadout("default_liberator", List(),
+      "liberator" -> VehicleLoadout(
+        "default_liberator",
+        List(),
         List(
           SimplifiedEntry(ammo_35mm, 30),
           SimplifiedEntry(ammo_35mm, 34),
@@ -425,7 +461,9 @@ object VehicleTerminalDefinition {
         ),
         liberator
       ),
-      "vulture" -> VehicleLoadout("default_vulture", List(),
+      "vulture" -> VehicleLoadout(
+        "default_vulture",
+        List(),
         List(
           SimplifiedEntry(ammo_35mm, 30),
           SimplifiedEntry(ammo_35mm, 34),
@@ -438,7 +476,9 @@ object VehicleTerminalDefinition {
         ), //TODO confirm
         vulture
       ),
-      "dropship" -> VehicleLoadout("default_dropship", List(),
+      "dropship" -> VehicleLoadout(
+        "default_dropship",
+        List(),
         List(
           SimplifiedEntry(ammo_20mm, 30),
           SimplifiedEntry(ammo_20mm, 34),
@@ -455,7 +495,9 @@ object VehicleTerminalDefinition {
         ),
         dropship
       ),
-      "galaxy_gunship" -> VehicleLoadout("galaxy_gunship", List(),
+      "galaxy_gunship" -> VehicleLoadout(
+        "galaxy_gunship",
+        List(),
         List(
           SimplifiedEntry(ammo_35mm, 30),
           SimplifiedEntry(ammo_35mm, 34),
@@ -483,5 +525,5 @@ object VehicleTerminalDefinition {
     * @return a curried function that, when called, creates the `Vehicle`
     * @see `GlobalDefinitions`
     */
-  protected def MakeVehicle(vdef : VehicleDefinition)() : Vehicle = Vehicle(vdef)
+  protected def MakeVehicle(vdef: VehicleDefinition)(): Vehicle = Vehicle(vdef)
 }

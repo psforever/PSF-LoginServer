@@ -5,12 +5,13 @@ package net.psforever.objects.guid.selector
   * Get a specific number from a pool of numbers.
   */
 class SpecificSelector extends NumberSelector {
+
   /**
     * Change the future selection index to match the number the user wants.
     * Call `Get` to complete process.
     * @param number the number
     */
-  def SelectionIndex_=(number : Int) : Unit = {
+  def SelectionIndex_=(number: Int): Unit = {
     selectionIndex = number
   }
 
@@ -19,13 +20,12 @@ class SpecificSelector extends NumberSelector {
     * @param ary the `Array` of `Int` numbers from which to draw a new number
     * @return an `Int` number
     */
-  override def Get(ary : Array[Int]) : Int = {
-    if(-1 < selectionIndex && selectionIndex < ary.length) {
+  override def Get(ary: Array[Int]): Int = {
+    if (-1 < selectionIndex && selectionIndex < ary.length) {
       val out = ary(selectionIndex)
       ary(selectionIndex) = -1
       out
-    }
-    else {
+    } else {
       -1
     }
   }
@@ -40,10 +40,10 @@ class SpecificSelector extends NumberSelector {
     * The `ret` index is set to index zero.
     * @param ary the `Array` of `Int` numbers
     */
-  override def Format(ary : Array[Int]) : Unit = {
+  override def Format(ary: Array[Int]): Unit = {
     val sorted = Array.fill(ary.length)(-1)
     ary.foreach(n => {
-      if(n > -1) {
+      if (n > -1) {
         sorted(n) = n
       }
     })

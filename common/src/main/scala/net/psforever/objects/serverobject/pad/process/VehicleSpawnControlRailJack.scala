@@ -19,12 +19,13 @@ import scala.concurrent.duration._
   * It has failure cases should the driver be in an incorrect state.
   * @param pad the `VehicleSpawnPad` object being governed
   */
-class VehicleSpawnControlRailJack(pad : VehicleSpawnPad) extends VehicleSpawnControlBase(pad) {
+class VehicleSpawnControlRailJack(pad: VehicleSpawnPad) extends VehicleSpawnControlBase(pad) {
   def LogId = "-lifter"
 
-  val seatDriver = context.actorOf(Props(classOf[VehicleSpawnControlSeatDriver], pad), s"${context.parent.path.name}-seat")
+  val seatDriver =
+    context.actorOf(Props(classOf[VehicleSpawnControlSeatDriver], pad), s"${context.parent.path.name}-seat")
 
-  def receive : Receive = {
+  def receive: Receive = {
     case order @ VehicleSpawnControl.Order(_, vehicle) =>
       vehicle.MountedIn = pad.GUID
       pad.Zone.VehicleEvents ! VehicleSpawnPad.AttachToRails(vehicle, pad)

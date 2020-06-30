@@ -22,21 +22,18 @@ import scodec.codecs._
   *             frequently, though that does not produce a coherent message,
   *             the avatar's own name is supplied in the event message instead of the name of another player
   */
-final case class SquadInvitationRequestMessage(squad_guid : PlanetSideGUID,
-                                               slot : Int,
-                                               char_id : Long,
-                                               name : String)
-  extends PlanetSideGamePacket {
+final case class SquadInvitationRequestMessage(squad_guid: PlanetSideGUID, slot: Int, char_id: Long, name: String)
+    extends PlanetSideGamePacket {
   type Packet = SquadInvitationRequestMessage
   def opcode = GamePacketOpcode.SquadInvitationRequestMessage
   def encode = SquadInvitationRequestMessage.encode(this)
 }
 
 object SquadInvitationRequestMessage extends Marshallable[SquadInvitationRequestMessage] {
-  implicit val codec : Codec[SquadInvitationRequestMessage] = (
+  implicit val codec: Codec[SquadInvitationRequestMessage] = (
     ("squad_guid" | PlanetSideGUID.codec) ::
       ("slot" | uint4) ::
       ("char_id" | uint32L) ::
       ("name" | PacketHelpers.encodedWideStringAligned(adjustment = 4))
-    ).as[SquadInvitationRequestMessage]
+  ).as[SquadInvitationRequestMessage]
 }

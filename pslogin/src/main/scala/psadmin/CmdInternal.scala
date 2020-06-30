@@ -5,17 +5,17 @@ import scala.collection.mutable.Map
 
 object CmdInternal {
 
-  def cmdDumpConfig(args : Array[String]) = {
+  def cmdDumpConfig(args: Array[String]) = {
     val config = WorldConfig.GetRawConfig
 
     CommandGoodResponse(s"Dump of WorldConfig", config)
   }
 
-  def cmdThreadDump(args : Array[String]) = {
+  def cmdThreadDump(args: Array[String]) = {
     import scala.jdk.CollectionConverters._
 
-    var data = Map[String,Any]()
-    val traces = Thread.getAllStackTraces().asScala
+    var data       = Map[String, Any]()
+    val traces     = Thread.getAllStackTraces().asScala
     var traces_fmt = List[String]()
 
     for ((thread, trace) <- traces) {
@@ -23,7 +23,7 @@ object CmdInternal {
       traces_fmt = traces_fmt ++ List(info + trace.mkString("\n"))
     }
 
-    data{"trace"} = traces_fmt
+    data { "trace" } = traces_fmt
 
     CommandGoodResponse(s"Dump of ${traces.size} threads", data)
   }

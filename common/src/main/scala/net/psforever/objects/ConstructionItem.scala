@@ -20,47 +20,48 @@ import net.psforever.types.CertificationType
   * indicate whether the current output product is something the player is permitted to utilize.
   * @param cItemDef the `ObjectDefinition` that constructs this item and maintains some of its immutable fields
   */
-class ConstructionItem(private val cItemDef : ConstructionItemDefinition) extends Equipment
-  with FireModeSwitch[ConstructionFireMode] {
-  private var fireModeIndex : Int = 0
-  private var ammoTypeIndex : Int = 0
+class ConstructionItem(private val cItemDef: ConstructionItemDefinition)
+    extends Equipment
+    with FireModeSwitch[ConstructionFireMode] {
+  private var fireModeIndex: Int = 0
+  private var ammoTypeIndex: Int = 0
 
-  def FireModeIndex : Int = fireModeIndex
+  def FireModeIndex: Int = fireModeIndex
 
-  def FireModeIndex_=(index : Int) : Int = {
+  def FireModeIndex_=(index: Int): Int = {
     fireModeIndex = index % Definition.Modes.length
     FireModeIndex
   }
 
-  def FireMode : ConstructionFireMode = Definition.Modes(fireModeIndex)
+  def FireMode: ConstructionFireMode = Definition.Modes(fireModeIndex)
 
-  def NextFireMode : ConstructionFireMode = {
+  def NextFireMode: ConstructionFireMode = {
     FireModeIndex = FireModeIndex + 1
     ammoTypeIndex = 0
     FireMode
   }
 
-  def AmmoTypeIndex : Int = ammoTypeIndex
+  def AmmoTypeIndex: Int = ammoTypeIndex
 
-  def AmmoTypeIndex_=(index : Int) : Int =  {
+  def AmmoTypeIndex_=(index: Int): Int = {
     ammoTypeIndex = index % FireMode.Deployables.length
     AmmoTypeIndex
   }
 
-  def AmmoType : DeployedItem.Value = FireMode.Deployables(ammoTypeIndex)
+  def AmmoType: DeployedItem.Value = FireMode.Deployables(ammoTypeIndex)
 
-  def NextAmmoType : DeployedItem.Value = {
+  def NextAmmoType: DeployedItem.Value = {
     AmmoTypeIndex = AmmoTypeIndex + 1
     FireMode.Deployables(ammoTypeIndex)
   }
 
-  def ModePermissions : Set[CertificationType.Value] = FireMode.Permissions(ammoTypeIndex)
+  def ModePermissions: Set[CertificationType.Value] = FireMode.Permissions(ammoTypeIndex)
 
-  def Definition : ConstructionItemDefinition = cItemDef
+  def Definition: ConstructionItemDefinition = cItemDef
 }
 
 object ConstructionItem {
-  def apply(cItemDef : ConstructionItemDefinition) : ConstructionItem = {
+  def apply(cItemDef: ConstructionItemDefinition): ConstructionItem = {
     new ConstructionItem(cItemDef)
   }
 }

@@ -33,11 +33,13 @@ class CertificationTest extends Specification {
     }
 
     "find all certifications dependent on a given certification (multiple)" in {
-      Certification.Dependencies.FromAll(MediumAssault) mustEqual Set(AntiVehicular, HeavyAssault, Sniping, SpecialAssault, EliteAssault)
+      Certification.Dependencies
+        .FromAll(MediumAssault) mustEqual Set(AntiVehicular, HeavyAssault, Sniping, SpecialAssault, EliteAssault)
     }
 
     "find all certifications dependent on a given certification (intermediate)" in {
-      Certification.Dependencies.FromAll(ArmoredAssault2) mustEqual Set(BattleFrameRobotics, Flail, BFRAntiInfantry, BFRAntiAircraft)
+      Certification.Dependencies
+        .FromAll(ArmoredAssault2) mustEqual Set(BattleFrameRobotics, Flail, BFRAntiInfantry, BFRAntiAircraft)
     }
     //For
     "find any certifications that are immediate dependencies for a given certification (nothing)" in {
@@ -103,7 +105,9 @@ class CertificationTest extends Specification {
     }
 
     "calculate the sum-point-value of all certifications (large collection)" in {
-      Certification.Cost.Of(Set(StandardAssault, MediumAssault, StandardExoSuit, AgileExoSuit, ReinforcedExoSuit, ATV, Harasser)) mustEqual 7
+      Certification.Cost.Of(
+        Set(StandardAssault, MediumAssault, StandardExoSuit, AgileExoSuit, ReinforcedExoSuit, ATV, Harasser)
+      ) mustEqual 7
     }
 
     "calculate the sum-point-value of all unique certifications (no value)" in {
@@ -122,8 +126,17 @@ class CertificationTest extends Specification {
     "calculate the sum-point-value of all unique certifications (large collection)" in {
       Certification.Cost.Of(
         List(
-          StandardAssault, MediumAssault, StandardExoSuit, AgileExoSuit, ReinforcedExoSuit, ATV, Harasser,
-          MediumAssault, StandardExoSuit, ReinforcedExoSuit, ATV
+          StandardAssault,
+          MediumAssault,
+          StandardExoSuit,
+          AgileExoSuit,
+          ReinforcedExoSuit,
+          ATV,
+          Harasser,
+          MediumAssault,
+          StandardExoSuit,
+          ReinforcedExoSuit,
+          ATV
         )
       ) mustEqual 7
     }
@@ -131,8 +144,17 @@ class CertificationTest extends Specification {
     "calculate the sum-point-value of all certifications (count duplicates)" in {
       Certification.Cost.OfAll(
         List(
-          StandardAssault, MediumAssault, StandardExoSuit, AgileExoSuit, ReinforcedExoSuit, ATV, Harasser,
-          MediumAssault, StandardExoSuit, ReinforcedExoSuit, ATV
+          StandardAssault,
+          MediumAssault,
+          StandardExoSuit,
+          AgileExoSuit,
+          ReinforcedExoSuit,
+          ATV,
+          Harasser,
+          MediumAssault,
+          StandardExoSuit,
+          ReinforcedExoSuit,
+          ATV
         )
       ) mustEqual 13
     }

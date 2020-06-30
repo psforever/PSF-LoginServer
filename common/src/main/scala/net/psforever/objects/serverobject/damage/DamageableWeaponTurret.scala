@@ -13,16 +13,16 @@ import services.vehicle.VehicleServiceMessage
   * The "control" `Actor` mixin for damage-handling code for `WeaponTurret` objects.
   */
 trait DamageableWeaponTurret extends DamageableEntity {
-  def DamageableObject : Damageable.Target with WeaponTurret
+  def DamageableObject: Damageable.Target with WeaponTurret
 
-  override protected def DamageAwareness(target : Damageable.Target, cause : ResolvedProjectile, amount : Int) : Unit = {
+  override protected def DamageAwareness(target: Damageable.Target, cause: ResolvedProjectile, amount: Int): Unit = {
     super.DamageAwareness(target, cause, amount)
-    if(amount > 0) {
+    if (amount > 0) {
       DamageableMountable.DamageAwareness(DamageableObject, cause)
     }
   }
 
-  override protected def DestructionAwareness(target : Damageable.Target, cause : ResolvedProjectile) : Unit = {
+  override protected def DestructionAwareness(target: Damageable.Target, cause: ResolvedProjectile): Unit = {
     super.DestructionAwareness(target, cause)
     val obj = DamageableObject
     DamageableWeaponTurret.DestructionAwareness(obj, cause)
@@ -31,6 +31,7 @@ trait DamageableWeaponTurret extends DamageableEntity {
 }
 
 object DamageableWeaponTurret {
+
   /**
     * A destroyed target dispatches a message to conceal (delete) its weapons from users.
     * If affected by a jammer property, the jammer propoerty will be removed.
@@ -52,10 +53,10 @@ object DamageableWeaponTurret {
     *               but the handling code closely associates with the former
     * @param cause historical information about the damage
     */
-  def DestructionAwareness(target : Damageable.Target with MountedWeapons, cause : ResolvedProjectile) : Unit = {
+  def DestructionAwareness(target: Damageable.Target with MountedWeapons, cause: ResolvedProjectile): Unit = {
     //wreckage has no (visible) mounted weapons
-    val zone = target.Zone
-    val zoneId = zone.Id
+    val zone         = target.Zone
+    val zoneId       = zone.Id
     val avatarEvents = zone.AvatarEvents
     target.Weapons.values
       .filter {
@@ -66,8 +67,8 @@ object DamageableWeaponTurret {
         avatarEvents ! AvatarServiceMessage(zoneId, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, wep.GUID))
       })
     target match {
-      case turret : WeaponTurret =>
-        if(turret.Upgrade != TurretUpgrade.None) {
+      case turret: WeaponTurret =>
+        if (turret.Upgrade != TurretUpgrade.None) {
           val vehicleEvents = zone.VehicleEvents
           vehicleEvents ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.ClearSpecific(List(turret), zone))
           vehicleEvents ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.AddTask(turret, zone, TurretUpgrade.None))

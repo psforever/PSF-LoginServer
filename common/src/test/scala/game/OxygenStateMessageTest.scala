@@ -8,7 +8,7 @@ import net.psforever.types.PlanetSideGUID
 import scodec.bits._
 
 class OxygenStateMessageTest extends Specification {
-  val string_self = hex"78 4b00f430"
+  val string_self    = hex"78 4b00f430"
   val string_vehicle = hex"78 4b00f4385037a180"
 
   "decode (self)" in {
@@ -46,7 +46,8 @@ class OxygenStateMessageTest extends Specification {
   }
 
   "encode (vehicle)" in {
-    val msg = OxygenStateMessage(PlanetSideGUID(75), 50.0f, true, WaterloggedVehicleState(PlanetSideGUID(1546), 50.0f, true))
+    val msg =
+      OxygenStateMessage(PlanetSideGUID(75), 50.0f, true, WaterloggedVehicleState(PlanetSideGUID(1546), 50.0f, true))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_vehicle

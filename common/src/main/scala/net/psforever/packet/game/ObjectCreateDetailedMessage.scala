@@ -1,7 +1,12 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game
 
-import net.psforever.packet.game.objectcreate.{ConstructorData, ObjectClass, ObjectCreateBase, ObjectCreateMessageParent}
+import net.psforever.packet.game.objectcreate.{
+  ConstructorData,
+  ObjectClass,
+  ObjectCreateBase,
+  ObjectCreateMessageParent
+}
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
 import net.psforever.types.PlanetSideGUID
 import scodec.bits.BitVector
@@ -36,18 +41,20 @@ import shapeless.{::, HNil}
   * @param data the data used to construct this type of object;
   *             on decoding, set to `None` if the process failed
   */
-final case class ObjectCreateDetailedMessage(streamLength : Long,
-                                             objectClass : Int,
-                                             guid : PlanetSideGUID,
-                                             parentInfo : Option[ObjectCreateMessageParent],
-                                             data : ConstructorData)
-  extends PlanetSideGamePacket {
+final case class ObjectCreateDetailedMessage(
+    streamLength: Long,
+    objectClass: Int,
+    guid: PlanetSideGUID,
+    parentInfo: Option[ObjectCreateMessageParent],
+    data: ConstructorData
+) extends PlanetSideGamePacket {
   type Packet = ObjectCreateDetailedMessage
   def opcode = GamePacketOpcode.ObjectCreateMessage
   def encode = ObjectCreateDetailedMessage.encode(this)
 }
 
 object ObjectCreateDetailedMessage extends Marshallable[ObjectCreateDetailedMessage] {
+
   /**
     * An abbreviated constructor for creating `ObjectCreateMessages`, ignoring the optional aspect of some fields.
     * @param objectClass the code for the type of object being constructed
@@ -56,8 +63,13 @@ object ObjectCreateDetailedMessage extends Marshallable[ObjectCreateDetailedMess
     * @param data the data used to construct this type of object
     * @return an ObjectCreateMessage
     */
-  def apply(objectClass : Int, guid : PlanetSideGUID, parentInfo : ObjectCreateMessageParent, data : ConstructorData) : ObjectCreateDetailedMessage = {
-    val parentInfoOpt : Option[ObjectCreateMessageParent] = Some(parentInfo)
+  def apply(
+      objectClass: Int,
+      guid: PlanetSideGUID,
+      parentInfo: ObjectCreateMessageParent,
+      data: ConstructorData
+  ): ObjectCreateDetailedMessage = {
+    val parentInfoOpt: Option[ObjectCreateMessageParent] = Some(parentInfo)
     ObjectCreateDetailedMessage(ObjectCreateBase.streamLen(parentInfoOpt, data), objectClass, guid, parentInfoOpt, data)
   }
 
@@ -68,46 +80,53 @@ object ObjectCreateDetailedMessage extends Marshallable[ObjectCreateDetailedMess
     * @param data the data used to construct this type of object
     * @return an ObjectCreateMessage
     */
-  def apply(objectClass : Int, guid : PlanetSideGUID, data : ConstructorData) : ObjectCreateDetailedMessage = {
+  def apply(objectClass: Int, guid: PlanetSideGUID, data: ConstructorData): ObjectCreateDetailedMessage = {
     ObjectCreateDetailedMessage(ObjectCreateBase.streamLen(None, data), objectClass, guid, None, data)
   }
 
-  implicit val codec : Codec[ObjectCreateDetailedMessage] = ObjectCreateBase.baseCodec.exmap[ObjectCreateDetailedMessage] (
-    {
-      case _ :: _ :: _ :: _ :: BitVector.empty :: HNil =>
-        Attempt.failure(Err("no data to decode"))
+  implicit val codec: Codec[ObjectCreateDetailedMessage] =
+    ObjectCreateBase.baseCodec.exmap[ObjectCreateDetailedMessage](
+      {
+        case _ :: _ :: _ :: _ :: BitVector.empty :: HNil =>
+          Attempt.failure(Err("no data to decode"))
 
-      case len :: cls :: guid :: par :: data :: HNil =>
-        ObjectCreateBase.decodeData(cls, data,
-          if(par.isDefined) {
-            ObjectClass.selectDataDetailedCodec
+        case len :: cls :: guid :: par :: data :: HNil =>
+          ObjectCreateBase.decodeData(
+            cls,
+            data,
+            if (par.isDefined) {
+              ObjectClass.selectDataDetailedCodec
+            } else {
+              ObjectClass.selectDataDroppedDetailedCodec
+            }
+          ) match {
+            case Attempt.Successful(obj) =>
+              Attempt.successful(ObjectCreateDetailedMessage(len, cls, guid, par, obj))
+            case Attempt.Failure(err) =>
+              Attempt.failure(err)
           }
-          else {
-            ObjectClass.selectDataDroppedDetailedCodec
+      },
+      {
+        case ObjectCreateDetailedMessage(_, cls, guid, par, obj) =>
+          val len =
+            ObjectCreateBase.streamLen(
+              par,
+              obj
+            ) //even if a stream length has been assigned, it can not be trusted during encoding
+          ObjectCreateBase.encodeData(
+            cls,
+            obj,
+            if (par.isDefined) {
+              ObjectClass.selectDataDetailedCodec
+            } else {
+              ObjectClass.selectDataDroppedDetailedCodec
+            }
+          ) match {
+            case Attempt.Successful(bvec) =>
+              Attempt.successful(len :: cls :: guid :: par :: bvec :: HNil)
+            case Attempt.Failure(err) =>
+              Attempt.failure(err)
           }
-        ) match {
-          case Attempt.Successful(obj) =>
-            Attempt.successful(ObjectCreateDetailedMessage(len, cls, guid, par, obj))
-          case Attempt.Failure(err) =>
-            Attempt.failure(err)
-        }
-    },
-    {
-      case ObjectCreateDetailedMessage(_, cls, guid, par, obj) =>
-        val len = ObjectCreateBase.streamLen(par, obj) //even if a stream length has been assigned, it can not be trusted during encoding
-        ObjectCreateBase.encodeData(cls, obj,
-          if(par.isDefined) {
-            ObjectClass.selectDataDetailedCodec
-          }
-          else {
-            ObjectClass.selectDataDroppedDetailedCodec
-          }
-        ) match {
-          case Attempt.Successful(bvec) =>
-            Attempt.successful(len :: cls :: guid :: par :: bvec :: HNil)
-          case Attempt.Failure(err) =>
-            Attempt.failure(err)
-        }
-    }
-  )
+      }
+    )
 }

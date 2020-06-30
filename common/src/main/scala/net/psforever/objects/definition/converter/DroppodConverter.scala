@@ -8,12 +8,12 @@ import net.psforever.types.PlanetSideGUID
 import scala.util.{Failure, Success, Try}
 
 class DroppodConverter extends ObjectCreateConverter[Vehicle]() {
-  override def DetailedConstructorData(obj : Vehicle) : Try[DroppodData] =
+  override def DetailedConstructorData(obj: Vehicle): Try[DroppodData] =
     Failure(new Exception("DroppodConverter should not be used to generate detailed DroppodData (nothing should)"))
 
-  override def ConstructorData(obj : Vehicle) : Try[DroppodData] = {
+  override def ConstructorData(obj: Vehicle): Try[DroppodData] = {
     val health = StatConverter.Health(obj.Health, obj.MaxHealth)
-    if(health > 0) { //active
+    if (health > 0) { //active
       Success(
         DroppodData(
           CommonFieldDataWithPlacement(
@@ -29,7 +29,7 @@ class DroppodConverter extends ObjectCreateConverter[Vehicle]() {
               v5 = None,
               obj.Owner match {
                 case Some(owner) => owner
-                case None => PlanetSideGUID(0)
+                case None        => PlanetSideGUID(0)
               }
             )
           ),
@@ -38,8 +38,7 @@ class DroppodConverter extends ObjectCreateConverter[Vehicle]() {
           unk = false
         )
       )
-    }
-    else { //destroyed
+    } else { //destroyed
       Success(
         DroppodData(
           CommonFieldDataWithPlacement(

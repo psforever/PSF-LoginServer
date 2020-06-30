@@ -9,11 +9,7 @@ import scodec.codecs._
 object FavoritesAction extends Enumeration {
   type Type = Value
 
-  val
-  Unknown,
-  Save,
-  Delete
-  = Value
+  val Unknown, Save, Delete = Value
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uint2L)
 }
@@ -27,24 +23,25 @@ object FavoritesAction extends Enumeration {
   * @param label applicable when a load out is being saved;
   *              this is the string that will be displayed in the list of loadouts on that line
   */
-final case class FavoritesRequest(player_guid : PlanetSideGUID,
-                                  list : LoadoutType.Value,
-                                  action : FavoritesAction.Value,
-                                  line : Int,
-                                  label : Option[String])
-  extends PlanetSideGamePacket {
+final case class FavoritesRequest(
+    player_guid: PlanetSideGUID,
+    list: LoadoutType.Value,
+    action: FavoritesAction.Value,
+    line: Int,
+    label: Option[String]
+) extends PlanetSideGamePacket {
   type Packet = FavoritesRequest
   def opcode = GamePacketOpcode.FavoritesRequest
   def encode = FavoritesRequest.encode(this)
 }
 
 object FavoritesRequest extends Marshallable[FavoritesRequest] {
-  implicit val codec : Codec[FavoritesRequest] = (
+  implicit val codec: Codec[FavoritesRequest] = (
     ("player_guid" | PlanetSideGUID.codec) ::
       ("list" | LoadoutType.codec) ::
       (("action" | FavoritesAction.codec) >>:~ { action =>
-        ("line" | uint4L) ::
-          conditional(action == FavoritesAction.Save, "label" | PacketHelpers.encodedWideString)
-      })
-    ).as[FavoritesRequest]
+      ("line" | uint4L) ::
+        conditional(action == FavoritesAction.Save, "label" | PacketHelpers.encodedWideString)
+    })
+  ).as[FavoritesRequest]
 }

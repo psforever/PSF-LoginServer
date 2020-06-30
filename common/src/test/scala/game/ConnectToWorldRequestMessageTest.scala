@@ -7,7 +7,8 @@ import org.specs2.mutable._
 import scodec.bits._
 
 class ConnectToWorldRequestMessageTest extends Specification {
-  val string = hex"03 8667656D696E69 0000000000000000 00000000 00000000 00000000 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  80 00 00 "
+  val string =
+    hex"03 8667656D696E69 0000000000000000 00000000 00000000 00000000 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  80 00 00 "
 
   "decode" in {
     PacketCoding.DecodePacket(string).require match {

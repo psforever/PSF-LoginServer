@@ -16,15 +16,16 @@ import net.psforever.objects.vital.Vitality
   * All of these should be affected by the damage where applicable.
   */
 trait Damageable {
+
   /**
     * Contextual access to the object being the target of this damage.
     * Needs declaration in lowest implementing code.
     * @return the entity controlled by this actor
     */
-  def DamageableObject : Damageable.Target
+  def DamageableObject: Damageable.Target
 
   /** the official mixin hook; `orElse` onto the "control" `Actor` `receive` */
-  final val takesDamage : Receive = TakesDamage
+  final val takesDamage: Receive = TakesDamage
 
   /**
     * Implementation of the mixin hook will be provided by a child class.
@@ -32,7 +33,7 @@ trait Damageable {
     * @see `takesDamage`
     * @see `DamageableAmenity.PerformDamage`
     */
-  protected def TakesDamage : Receive
+  protected def TakesDamage: Receive
 }
 
 object Damageable {
@@ -44,7 +45,7 @@ object Damageable {
    * ... where before1 - change1 = after1, and so forth, for each field that matters
    * the fields do not have to be labeled but the first (if not only) should always be Health
    */
-  final val LogChannel : String = "DamageResolution"
+  final val LogChannel: String = "DamageResolution"
 
   /**
     * Does the possibility exist that the designated target can be affected by this projectile's damage?
@@ -56,18 +57,16 @@ object Damageable {
     * @return `true`, if the target can be affected;
     *        `false`, otherwise
     */
-  def CanDamage(obj : Vitality with FactionAffinity, damage : Int, data : ResolvedProjectile) : Boolean = {
+  def CanDamage(obj: Vitality with FactionAffinity, damage: Int, data: ResolvedProjectile): Boolean = {
     val definition = obj.Definition
     damage > 0 &&
-      definition.Damageable &&
-      (definition.DamageableByFriendlyFire ||
-        (data.projectile.owner.Faction != obj.Faction ||
-          (obj match {
-            case hobj : Hackable => hobj.HackedBy.nonEmpty
-            case _ => false
-          })
-        )
-      )
+    definition.Damageable &&
+    (definition.DamageableByFriendlyFire ||
+    (data.projectile.owner.Faction != obj.Faction ||
+    (obj match {
+      case hobj: Hackable => hobj.HackedBy.nonEmpty
+      case _              => false
+    })))
   }
 
   /**
@@ -79,16 +78,15 @@ object Damageable {
     * @return `true`, if the target can be affected;
     *        `false`, otherwise
     */
-  def CanJammer(obj : Vitality with FactionAffinity, data : ResolvedProjectile) : Boolean = {
+  def CanJammer(obj: Vitality with FactionAffinity, data: ResolvedProjectile): Boolean = {
     val projectile = data.projectile
     projectile.profile.JammerProjectile &&
-      obj.isInstanceOf[JammableUnit] &&
-      (projectile.owner.Faction != obj.Faction ||
-        (obj match {
-          case hobj : Hackable => hobj.HackedBy.nonEmpty
-          case _ => false
-        })
-      )
+    obj.isInstanceOf[JammableUnit] &&
+    (projectile.owner.Faction != obj.Faction ||
+    (obj match {
+      case hobj: Hackable => hobj.HackedBy.nonEmpty
+      case _              => false
+    }))
   }
 
   /**
@@ -99,7 +97,7 @@ object Damageable {
     * @return `true`, if the target can be affected;
     *        `false`, otherwise
     */
-  def CanDamageOrJammer(obj : Vitality with FactionAffinity, damage : Int, data : ResolvedProjectile) : Boolean = {
+  def CanDamageOrJammer(obj: Vitality with FactionAffinity, damage: Int, data: ResolvedProjectile): Boolean = {
     CanDamage(obj, damage, data) || CanJammer(obj, data)
   }
 
@@ -108,7 +106,7 @@ object Damageable {
     * @param target the entity being damaged
     * @param cause historical information about the damage
     */
-  def DestructionAwareness(target : Damageable.Target, cause : ResolvedProjectile) : Unit = {
+  def DestructionAwareness(target: Damageable.Target, cause: ResolvedProjectile): Unit = {
     target.Destroyed = true
   }
 }

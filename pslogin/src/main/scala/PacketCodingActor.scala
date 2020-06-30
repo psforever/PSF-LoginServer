@@ -35,32 +35,32 @@ import scala.concurrent.duration._
   * It resets to 0 each time this `Actor` starts up and the client reflects this functionality.
   */
 class PacketCodingActor extends Actor with MDCContextAware {
-  private var sessionId : Long = 0
-  private var subslotOutbound : Int = 0
-  private var subslotInbound : Int = 0
-  private var leftRef : ActorRef = ActorRef.noSender
-  private var rightRef : ActorRef = ActorRef.noSender
-  private[this] val log = org.log4s.getLogger
+  private var sessionId: Long      = 0
+  private var subslotOutbound: Int = 0
+  private var subslotInbound: Int  = 0
+  private var leftRef: ActorRef    = ActorRef.noSender
+  private var rightRef: ActorRef   = ActorRef.noSender
+  private[this] val log            = org.log4s.getLogger
 
   /*
     Since the client can indicate missing packets when sending SlottedMetaPackets we should keep a history of them to resend to the client when requested with a RelatedA packet
     Since the subslot counter can wrap around, we need to use a LinkedHashMap to maintain the order packets are inserted, then we can drop older entries as required
     For example when a RelatedB packet arrives we can remove any entries to the left of the received ones without risking removing newer entries if the subslot counter wraps around back to 0
-  */
-  private var slottedPacketLog : mutable.LinkedHashMap[Int, ByteVector] = mutable.LinkedHashMap()
+   */
+  private var slottedPacketLog: mutable.LinkedHashMap[Int, ByteVector] = mutable.LinkedHashMap()
 
   // Due to the fact the client can send `RelatedA` packets out of order, we need to keep a buffer of which subslots arrived correctly, order them
   // and then act accordingly to send the missing subslot packet after a specified timeout
-  private var relatedALog : ArrayBuffer[Int] = ArrayBuffer()
-  private var relatedABufferTimeout : Cancellable = Default.Cancellable
+  private var relatedALog: ArrayBuffer[Int]      = ArrayBuffer()
+  private var relatedABufferTimeout: Cancellable = Default.Cancellable
 
-  def AddSlottedPacketToLog(subslot: Int, packet : ByteVector): Unit = {
+  def AddSlottedPacketToLog(subslot: Int, packet: ByteVector): Unit = {
     val log_limit = 500 // Number of SlottedMetaPackets to keep in history
-    if(slottedPacketLog.size > log_limit) {
+    if (slottedPacketLog.size > log_limit) {
       slottedPacketLog = slottedPacketLog.drop(slottedPacketLog.size - log_limit)
     }
 
-    slottedPacketLog{subslot} = packet
+    slottedPacketLog { subslot } = packet
   }
 
   override def postStop() = {
@@ -70,16 +70,15 @@ class PacketCodingActor extends Actor with MDCContextAware {
 
   def receive = Initializing
 
-  def Initializing : Receive = {
+  def Initializing: Receive = {
     case HelloFriend(sharedSessionId, pipe) =>
       import MDCContextAware.Implicits._
       this.sessionId = sharedSessionId
       leftRef = sender()
-      if(pipe.hasNext) {
+      if (pipe.hasNext) {
         rightRef = pipe.next
         rightRef !> HelloFriend(sessionId, pipe)
-      }
-      else {
+      } else {
         rightRef = sender()
       }
       log.trace(s"Left sender ${leftRef.path.name}")
@@ -90,7 +89,7 @@ class PacketCodingActor extends Actor with MDCContextAware {
       context.stop(self)
   }
 
-  def Established : Receive = {
+  def Established: Receive = {
     case PacketCodingActor.SubslotResend() => {
       log.trace(s"Subslot resend timeout reached, session: ${sessionId}")
       relatedABufferTimeout.cancel()
@@ -99,22 +98,22 @@ class PacketCodingActor extends Actor with MDCContextAware {
       // If a non-contiguous range of RelatedA packets were received we may need to send multiple missing packets, thus split the array into contiguous ranges
       val sorted_log = relatedALog.sortBy(x => x)
 
-      val split_logs : ArrayBuffer[ArrayBuffer[Int]] = new ArrayBuffer[ArrayBuffer[Int]]()
-      var curr : ArrayBuffer[Int] = ArrayBuffer()
-      for(i <- 0 to sorted_log.size - 1) {
-        if(i == 0 || (sorted_log(i) != sorted_log(i-1)+1)) {
+      val split_logs: ArrayBuffer[ArrayBuffer[Int]] = new ArrayBuffer[ArrayBuffer[Int]]()
+      var curr: ArrayBuffer[Int]                    = ArrayBuffer()
+      for (i <- 0 to sorted_log.size - 1) {
+        if (i == 0 || (sorted_log(i) != sorted_log(i - 1) + 1)) {
           curr = new ArrayBuffer()
           split_logs.append(curr)
         }
         curr.append(sorted_log(i))
       }
 
-      if(split_logs.size > 1) log.trace(s"Split successful subslots into ${split_logs.size} contiguous chunks")
+      if (split_logs.size > 1) log.trace(s"Split successful subslots into ${split_logs.size} contiguous chunks")
 
       for (range <- split_logs) {
         log.trace(s"Processing chunk ${range.mkString(" ")}")
         val first_accepted_subslot = range.min
-        val missing_subslot = first_accepted_subslot - 1
+        val missing_subslot        = first_accepted_subslot - 1
         slottedPacketLog.get(missing_subslot) match {
           case Some(packet: ByteVector) =>
             log.info(s"Resending packet with subslot: $missing_subslot to session: ${sessionId}")
@@ -127,38 +126,35 @@ class PacketCodingActor extends Actor with MDCContextAware {
       relatedALog.clear()
     }
     case RawPacket(msg) =>
-      if(sender == rightRef) { //from LSA, WSA, etc., to network - encode
+      if (sender == rightRef) { //from LSA, WSA, etc., to network - encode
         mtuLimit(msg)
-      }
-      else {//from network, to LSA, WSA, etc. - decode
+      } else { //from network, to LSA, WSA, etc. - decode
         UnmarshalInnerPacket(msg, "a packet")
       }
     //known elevated packet type
     case ctrl @ ControlPacket(_, packet) =>
-      if(sender == rightRef) { //from LSA, WSA, to network - encode
+      if (sender == rightRef) { //from LSA, WSA, to network - encode
         PacketCoding.EncodePacket(packet) match {
           case Successful(data) =>
             mtuLimit(data.toByteVector)
           case Failure(ex) =>
             log.error(s"Failed to encode a ControlPacket: $ex")
         }
-      }
-      else { //deprecated; ControlPackets should not be coming from this direction
+      } else { //deprecated; ControlPackets should not be coming from this direction
         log.warn(s"DEPRECATED CONTROL PACKET SEND: $ctrl")
         MDC("sessionId") = sessionId.toString
         handlePacketContainer(ctrl) //sendResponseRight
       }
     //known elevated packet type
     case game @ GamePacket(_, _, packet) =>
-      if(sender == rightRef) { //from LSA, WSA, etc., to network - encode
+      if (sender == rightRef) { //from LSA, WSA, etc., to network - encode
         PacketCoding.EncodePacket(packet) match {
           case Successful(data) =>
             mtuLimit(data.toByteVector)
           case Failure(ex) =>
             log.error(s"Failed to encode a GamePacket: $ex")
         }
-      }
-      else { //deprecated; GamePackets should not be coming from this direction
+      } else { //deprecated; GamePackets should not be coming from this direction
         log.warn(s"DEPRECATED GAME PACKET SEND: $game")
         MDC("sessionId") = sessionId.toString
         sendResponseRight(game)
@@ -169,12 +165,11 @@ class PacketCodingActor extends Actor with MDCContextAware {
       handleBundlePacket(list)
     //etc
     case msg =>
-      if(sender == rightRef) {
+      if (sender == rightRef) {
         log.trace(s"BASE CASE PACKET SEND, LEFT: $msg")
         MDC("sessionId") = sessionId.toString
         leftRef !> msg
-      }
-      else {
+      } else {
         log.trace(s"BASE CASE PACKET SEND, RIGHT: $msg")
         MDC("sessionId") = sessionId.toString
         rightRef !> msg
@@ -186,8 +181,8 @@ class PacketCodingActor extends Actor with MDCContextAware {
     * Increment the `subslot` for the next time it is needed.
     * @return a `16u` number starting at 0
     */
-  def Subslot : Int = {
-    if(subslotOutbound == 65536) { //TODO what is the actual wrap number?
+  def Subslot: Int = {
+    if (subslotOutbound == 65536) { //TODO what is the actual wrap number?
       subslotOutbound = 0
       subslotOutbound
     } else {
@@ -203,11 +198,10 @@ class PacketCodingActor extends Actor with MDCContextAware {
     * Otherwise, send the data out like normal.
     * @param msg the encoded packet data
     */
-  def mtuLimit(msg : ByteVector) : Unit = {
-    if(msg.length > PacketCodingActor.MTU_LIMIT_BYTES) {
+  def mtuLimit(msg: ByteVector): Unit = {
+    if (msg.length > PacketCodingActor.MTU_LIMIT_BYTES) {
       handleSplitPacket(PacketCoding.CreateControlPacket(HandleGamePacket(msg)))
-    }
-    else {
+    } else {
       sendResponseLeft(msg)
     }
   }
@@ -216,7 +210,7 @@ class PacketCodingActor extends Actor with MDCContextAware {
     * Transform a `ControlPacket` into `ByteVector` data for splitting.
     * @param cont the original `ControlPacket`
     */
-  def handleSplitPacket(cont : ControlPacket) : Unit = {
+  def handleSplitPacket(cont: ControlPacket): Unit = {
     PacketCoding.getPacketDataForEncryption(cont) match {
       case Successful((_, data)) =>
         handleSplitPacket(data)
@@ -231,18 +225,20 @@ class PacketCodingActor extends Actor with MDCContextAware {
     * Send each chunk (towards the network) as it is converted.
     * @param data `ByteVector` data to be split
     */
-  def handleSplitPacket(data : ByteVector) : Unit = {
+  def handleSplitPacket(data: ByteVector): Unit = {
     val lim = PacketCodingActor.MTU_LIMIT_BYTES - 4 //4 bytes is the base size of SlottedMetaPacket
-    data.grouped(lim).foreach(bvec => {
-      val subslot = Subslot
-      PacketCoding.EncodePacket(SlottedMetaPacket(4, subslot, bvec)) match {
-        case Successful(bdata) =>
-          AddSlottedPacketToLog(subslot, bdata.toByteVector)
-          sendResponseLeft(bdata.toByteVector)
-        case f : Failure =>
-          log.error(s"$f")
-      }
-    })
+    data
+      .grouped(lim)
+      .foreach(bvec => {
+        val subslot = Subslot
+        PacketCoding.EncodePacket(SlottedMetaPacket(4, subslot, bvec)) match {
+          case Successful(bdata) =>
+            AddSlottedPacketToLog(subslot, bdata.toByteVector)
+            sendResponseLeft(bdata.toByteVector)
+          case f: Failure =>
+            log.error(s"$f")
+        }
+      })
   }
 
   /**
@@ -254,10 +250,10 @@ class PacketCodingActor extends Actor with MDCContextAware {
     * less by the base sizes of `MultiPacketEx` (2) and of `SlottedMetaPacket` (4).
     * @param bundle the packets to be bundled
     */
-  def handleBundlePacket(bundle : List[PlanetSidePacket]) : Unit = {
-    val packets : List[ByteVector] = recursiveEncode(bundle.iterator)
+  def handleBundlePacket(bundle: List[PlanetSidePacket]): Unit = {
+    val packets: List[ByteVector] = recursiveEncode(bundle.iterator)
     recursiveFillPacketBuckets(packets.iterator, PacketCodingActor.MTU_LIMIT_BYTES - 6)
-      .foreach( list => {
+      .foreach(list => {
         handleBundlePacket(list.toVector)
       })
   }
@@ -270,17 +266,15 @@ class PacketCodingActor extends Actor with MDCContextAware {
     * Splitting should preserve `Subslot` ordering with the rest of the bundling.
     * @param vec a specific number of byte streams
     */
-  def handleBundlePacket(vec : Vector[ByteVector]) : Unit = {
-    if(vec.size == 1) {
+  def handleBundlePacket(vec: Vector[ByteVector]): Unit = {
+    if (vec.size == 1) {
       val elem = vec.head
-      if(elem.length > PacketCodingActor.MTU_LIMIT_BYTES - 4) {
+      if (elem.length > PacketCodingActor.MTU_LIMIT_BYTES - 4) {
         handleSplitPacket(PacketCoding.CreateControlPacket(HandleGamePacket(elem)))
-      }
-      else {
+      } else {
         handleBundlePacket(elem)
       }
-    }
-    else {
+    } else {
       PacketCoding.EncodePacket(MultiPacketEx(vec)) match {
         case Successful(bdata) =>
           handleBundlePacket(bdata.toByteVector)
@@ -295,7 +289,7 @@ class PacketCodingActor extends Actor with MDCContextAware {
     * Send it (towards the network) upon successful encoding.
     * @param data an encoded packet
     */
-  def handleBundlePacket(data : ByteVector) : Unit = {
+  def handleBundlePacket(data: ByteVector): Unit = {
     val subslot = Subslot
     PacketCoding.EncodePacket(SlottedMetaPacket(0, subslot, data)) match {
       case Successful(bdata) =>
@@ -310,7 +304,7 @@ class PacketCodingActor extends Actor with MDCContextAware {
     * Encoded sequence of data going towards the network.
     * @param cont the data
     */
-  def sendResponseLeft(cont : ByteVector) : Unit = {
+  def sendResponseLeft(cont: ByteVector): Unit = {
     log.trace("PACKET SEND, LEFT: " + cont)
     MDC("sessionId") = sessionId.toString
     leftRef !> RawPacket(cont)
@@ -321,7 +315,7 @@ class PacketCodingActor extends Actor with MDCContextAware {
     * @param data the packet data
     * @param description an explanation of the input `data`
     */
-  def UnmarshalInnerPacket(data : ByteVector, description : String) : Unit = {
+  def UnmarshalInnerPacket(data: ByteVector, description: String): Unit = {
     PacketCoding.unmarshalPayload(0, data) match { //TODO is it safe for this to always be 0?
       case Successful(packet) =>
         handlePacketContainer(packet)
@@ -337,9 +331,9 @@ class PacketCodingActor extends Actor with MDCContextAware {
     *  All other container types are invalid.
     * @param container the container packet
     */
-  def handlePacketContainer(container : PlanetSidePacketContainer) : Unit = {
+  def handlePacketContainer(container: PlanetSidePacketContainer): Unit = {
     container match {
-      case _ : GamePacket =>
+      case _: GamePacket =>
         sendResponseRight(container)
       case ControlPacket(_, ctrlPkt) =>
         handleControlPacket(container, ctrlPkt)
@@ -358,7 +352,7 @@ class PacketCodingActor extends Actor with MDCContextAware {
     * @param container the original container packet
     * @param packet the packet that was extracted from the container
     */
-  def handleControlPacket(container : PlanetSidePacketContainer, packet : PlanetSideControlPacket) = {
+  def handleControlPacket(container: PlanetSidePacketContainer, packet: PlanetSideControlPacket) = {
     packet match {
       case SlottedMetaPacket(slot, subslot, innerPacket) =>
         subslotInbound = subslot
@@ -379,17 +373,18 @@ class PacketCodingActor extends Actor with MDCContextAware {
         // (re)start the timeout period, if no more RelatedA packets are sent before the timeout period elapses the missing packet(s) will be resent
         import scala.concurrent.ExecutionContext.Implicits.global
         relatedABufferTimeout.cancel()
-        relatedABufferTimeout = context.system.scheduler.scheduleOnce(100 milliseconds, self, PacketCodingActor.SubslotResend())
+        relatedABufferTimeout =
+          context.system.scheduler.scheduleOnce(100 milliseconds, self, PacketCodingActor.SubslotResend())
 
       case RelatedB(slot, subslot) =>
         log.trace(s"result $slot: subslot $subslot accepted, session: ${sessionId}")
 
         // The client has indicated it's received up to a certain subslot, that means we can purge the log of any subslots prior to and including the confirmed subslot
         // Find where this subslot is stored in the packet log (if at all) and drop anything to the left of it, including itself
-        if(relatedABufferTimeout.isCancelled || relatedABufferTimeout == Default.Cancellable) {
+        if (relatedABufferTimeout.isCancelled || relatedABufferTimeout == Default.Cancellable) {
           val pos = slottedPacketLog.keySet.toArray.indexOf(subslot)
-          if(pos != -1) {
-            slottedPacketLog = slottedPacketLog.drop(pos+1)
+          if (pos != -1) {
+            slottedPacketLog = slottedPacketLog.drop(pos + 1)
             log.trace(s"Subslots left in log: ${slottedPacketLog.keySet.toString()}")
           }
         }
@@ -402,7 +397,7 @@ class PacketCodingActor extends Actor with MDCContextAware {
     * Decoded packet going towards the simulation.
     * @param cont the packet
     */
-  def sendResponseRight(cont : PlanetSidePacketContainer) : Unit = {
+  def sendResponseRight(cont: PlanetSidePacketContainer): Unit = {
     log.trace("PACKET SEND, RIGHT: " + cont)
     MDC("sessionId") = sessionId.toString
     rightRef !> cont
@@ -417,14 +412,16 @@ class PacketCodingActor extends Actor with MDCContextAware {
     *            defaults to an empty list
     * @return a series of byte stream data produced through successful packet encoding
     */
-  @tailrec private def recursiveEncode(iter : Iterator[PlanetSidePacket], out : List[ByteVector] = List()) : List[ByteVector] = {
-    if(!iter.hasNext) {
+  @tailrec private def recursiveEncode(
+      iter: Iterator[PlanetSidePacket],
+      out: List[ByteVector] = List()
+  ): List[ByteVector] = {
+    if (!iter.hasNext) {
       out
-    }
-    else {
+    } else {
       import net.psforever.packet.{PlanetSideControlPacket, PlanetSideGamePacket}
       iter.next match {
-        case msg : PlanetSideGamePacket =>
+        case msg: PlanetSideGamePacket =>
           PacketCoding.EncodePacket(msg) match {
             case Successful(bytecode) =>
               recursiveEncode(iter, out :+ bytecode.toByteVector)
@@ -432,7 +429,7 @@ class PacketCodingActor extends Actor with MDCContextAware {
               log.warn(s"game packet $msg, part of a bundle, did not encode - $e")
               recursiveEncode(iter, out)
           }
-        case msg : PlanetSideControlPacket =>
+        case msg: PlanetSideControlPacket =>
           PacketCoding.EncodePacket(msg) match {
             case Successful(bytecode) =>
               recursiveEncode(iter, out :+ bytecode.toByteVector)
@@ -455,18 +452,23 @@ class PacketCodingActor extends Actor with MDCContextAware {
     * @param out updated series of byte stream data stored in buckets
     * @return a series of byte stream data stored in buckets
     */
-  @tailrec private def recursiveFillPacketBuckets(iter : Iterator[ByteVector], lim : Int, curr : Int = 0, out : List[mutable.ListBuffer[ByteVector]] = List(mutable.ListBuffer())) : List[mutable.ListBuffer[ByteVector]] = {
-    if(!iter.hasNext) {
+  @tailrec private def recursiveFillPacketBuckets(
+      iter: Iterator[ByteVector],
+      lim: Int,
+      curr: Int = 0,
+      out: List[mutable.ListBuffer[ByteVector]] = List(mutable.ListBuffer())
+  ): List[mutable.ListBuffer[ByteVector]] = {
+    if (!iter.hasNext) {
       out
-    }
-    else {
+    } else {
       val data = iter.next
-      var len = data.length.toInt
-      len = len + (if(len < 256) { 1 } else if(len < 65536) { 2 } else { 4 }) //space for the prefixed length byte(s)
-      if(curr + len > lim && out.last.nonEmpty) { //bucket must have something in it before swapping
+      var len  = data.length.toInt
+      len = len + (if (len < 256) { 1 }
+                   else if (len < 65536) { 2 }
+                   else { 4 })                     //space for the prefixed length byte(s)
+      if (curr + len > lim && out.last.nonEmpty) { //bucket must have something in it before swapping
         recursiveFillPacketBuckets(iter, lim, len, out :+ mutable.ListBuffer(data))
-      }
-      else {
+      } else {
         out.last += data
         recursiveFillPacketBuckets(iter, lim, curr + len, out)
       }
@@ -475,7 +477,7 @@ class PacketCodingActor extends Actor with MDCContextAware {
 }
 
 object PacketCodingActor {
-  final val MTU_LIMIT_BYTES : Int = 467
+  final val MTU_LIMIT_BYTES: Int = 467
 
   private final case class SubslotResend()
 }

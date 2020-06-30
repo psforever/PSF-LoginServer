@@ -25,32 +25,32 @@ import net.psforever.objects.serverobject.{PlanetSideServerObject, ServerObjectB
   * @see `ServerObjectBuilder`<br>
   *      `LoadMapMessage`
   */
-class ZoneMap(private val name : String) {
-  private var scale : MapScale = MapScale.Dim8192
-  private var localObjects : List[ServerObjectBuilder[_]] = List()
-  private var linkTurretWeapon : Map[Int, Int] = Map()
-  private var linkTerminalPad : Map[Int, Int] = Map()
-  private var linkTerminalInterface : Map[Int, Int] = Map()
-  private var linkDoorLock : Map[Int, Int] = Map()
-  private var linkObjectBase : Map[Int, Int] = Map()
-  private var buildings : Map[(String, Int, Int), FoundationBuilder] = Map()
-  private var lattice: Set[(String, String)] = Set()
-  private var checksum : Long = 0
-  private var zipLinePaths : List[ZipLinePath] = List()
-  private var cavern : Boolean = false
+class ZoneMap(private val name: String) {
+  private var scale: MapScale                                       = MapScale.Dim8192
+  private var localObjects: List[ServerObjectBuilder[_]]            = List()
+  private var linkTurretWeapon: Map[Int, Int]                       = Map()
+  private var linkTerminalPad: Map[Int, Int]                        = Map()
+  private var linkTerminalInterface: Map[Int, Int]                  = Map()
+  private var linkDoorLock: Map[Int, Int]                           = Map()
+  private var linkObjectBase: Map[Int, Int]                         = Map()
+  private var buildings: Map[(String, Int, Int), FoundationBuilder] = Map()
+  private var lattice: Set[(String, String)]                        = Set()
+  private var checksum: Long                                        = 0
+  private var zipLinePaths: List[ZipLinePath]                       = List()
+  private var cavern: Boolean                                       = false
 
-  def Name : String = name
+  def Name: String = name
 
-  def Scale : MapScale = scale
+  def Scale: MapScale = scale
 
-  def Scale_=(dim : MapScale) : MapScale = {
+  def Scale_=(dim: MapScale): MapScale = {
     scale = dim
     Scale
   }
 
-  def Checksum : Long = checksum
+  def Checksum: Long = checksum
 
-  def Checksum_=(value : Long) : Long = {
+  def Checksum_=(value: Long): Long = {
     checksum = value
     Checksum
   }
@@ -59,7 +59,7 @@ class ZoneMap(private val name : String) {
     * The list of all server object builder wrappers that have been assigned to this `ZoneMap`.
     * @return the `List` of all `ServerObjectBuilders` known to this `ZoneMap`
     */
-  def LocalObjects : List[ServerObjectBuilder[_]] =  {
+  def LocalObjects: List[ServerObjectBuilder[_]] = {
     localObjects
   }
 
@@ -72,80 +72,86 @@ class ZoneMap(private val name : String) {
     * @param terminal_guid The guid of the terminal this object (typically a spawn pad) should be linked to, if specified
     * @return the current number of builders
     */
-  def LocalObject[A <: PlanetSideServerObject](id : Int, constructor : ServerObjectBuilder.ConstructorType[A], owning_building_guid : Int = 0, door_guid : Int = 0, terminal_guid: Int = 0) : Int = {
-    if(id > 0) {
+  def LocalObject[A <: PlanetSideServerObject](
+      id: Int,
+      constructor: ServerObjectBuilder.ConstructorType[A],
+      owning_building_guid: Int = 0,
+      door_guid: Int = 0,
+      terminal_guid: Int = 0
+  ): Int = {
+    if (id > 0) {
       localObjects = localObjects :+ ServerObjectBuilder[A](id, constructor)
 
-      if(owning_building_guid > 0) {
+      if (owning_building_guid > 0) {
         ObjectToBuilding(id, owning_building_guid)
       }
 
-      if(door_guid > 0) {
+      if (door_guid > 0) {
         DoorToLock(door_guid, id)
       }
 
-      if(terminal_guid > 0) {
+      if (terminal_guid > 0) {
         TerminalToSpawnPad(terminal_guid, id)
       }
     }
     localObjects.size
   }
 
-  def ZipLinePaths : List[ZipLinePath] = zipLinePaths
+  def ZipLinePaths: List[ZipLinePath] = zipLinePaths
 
   def ZipLinePaths(path: ZipLinePath): Int = {
     zipLinePaths = zipLinePaths :+ path
     zipLinePaths.size
   }
 
-  def LocalBuildings : Map[(String, Int, Int), FoundationBuilder] = buildings
+  def LocalBuildings: Map[(String, Int, Int), FoundationBuilder] = buildings
 
-  def LocalBuilding(name : String, building_guid : Int, map_id : Int, constructor : FoundationBuilder) : Int = {
-    if(building_guid > 0) {
+  def LocalBuilding(name: String, building_guid: Int, map_id: Int, constructor: FoundationBuilder): Int = {
+    if (building_guid > 0) {
       buildings = buildings ++ Map((name, building_guid, map_id) -> constructor)
     }
     buildings.size
   }
 
-  def ObjectToBuilding : Map[Int, Int] = linkObjectBase
+  def ObjectToBuilding: Map[Int, Int] = linkObjectBase
 
-  def ObjectToBuilding(object_guid : Int, building_id : Int) : Unit = {
+  def ObjectToBuilding(object_guid: Int, building_id: Int): Unit = {
     linkObjectBase = linkObjectBase ++ Map(object_guid -> building_id)
   }
 
-  def DoorToLock : Map[Int, Int] = linkDoorLock
+  def DoorToLock: Map[Int, Int] = linkDoorLock
 
-  def DoorToLock(door_guid : Int, lock_guid : Int) : Unit = {
+  def DoorToLock(door_guid: Int, lock_guid: Int): Unit = {
     linkDoorLock = linkDoorLock ++ Map(door_guid -> lock_guid)
   }
 
-  def TerminalToSpawnPad : Map[Int, Int] = linkTerminalPad
+  def TerminalToSpawnPad: Map[Int, Int] = linkTerminalPad
 
-  def TerminalToSpawnPad(terminal_guid : Int, pad_guid : Int) : Unit = {
+  def TerminalToSpawnPad(terminal_guid: Int, pad_guid: Int): Unit = {
     linkTerminalPad = linkTerminalPad ++ Map(terminal_guid -> pad_guid)
   }
 
-  def TerminalToInterface : Map[Int, Int] = linkTerminalInterface
+  def TerminalToInterface: Map[Int, Int] = linkTerminalInterface
 
-  def TerminalToInterface(terminal_guid : Int, interface_guid : Int) : Unit = {
+  def TerminalToInterface(terminal_guid: Int, interface_guid: Int): Unit = {
     linkTerminalInterface = linkTerminalInterface ++ Map(terminal_guid -> interface_guid)
   }
 
-  def TurretToWeapon : Map[Int, Int] = linkTurretWeapon
+  def TurretToWeapon: Map[Int, Int] = linkTurretWeapon
 
-  def TurretToWeapon(turret_guid : Int, weapon_guid : Int) : Unit = {
+  def TurretToWeapon(turret_guid: Int, weapon_guid: Int): Unit = {
     linkTurretWeapon = linkTurretWeapon ++ Map(turret_guid -> weapon_guid)
   }
 
-  def LatticeLink : Set[(String, String)] = lattice
+  def LatticeLink: Set[(String, String)] = lattice
 
-  def LatticeLink(source : String, target: String) : Unit = {
+  def LatticeLink(source: String, target: String): Unit = {
     lattice = lattice ++ Set((source, target))
   }
 
-  def Cavern : Boolean = cavern
+  def Cavern: Boolean = cavern
 
-  def Cavern_=(cave : Boolean) : Boolean = {
+  def Cavern_=(cave: Boolean): Boolean = {
     cavern = cave
     Cavern
   }

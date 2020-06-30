@@ -7,7 +7,7 @@ import net.psforever.packet.game._
 import scodec.bits._
 
 class ZoneInfoMessageTest extends Specification {
-  val string = hex"C6 0C 00 80 00 00 00 00"
+  val string        = hex"C6 0C 00 80 00 00 00 00"
   val string_cavern = hex"C6 1B 00 1D F9 F3 00 00"
 
   "decode (normal)" in {

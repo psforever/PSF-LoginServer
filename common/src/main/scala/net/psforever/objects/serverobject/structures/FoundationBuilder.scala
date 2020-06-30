@@ -11,20 +11,21 @@ import net.psforever.objects.zones.Zone
   * @see `Building`
   * @param constructor a curried function that eventually constructs a `Building` object
   */
-class FoundationBuilder(private val constructor : (String, Int, Int, Zone, ActorContext)=>Building) {
-  def Build(name: String, guid : Int, map_id: Int, zone : Zone)(implicit context : ActorContext = null) : Building = {
-    val obj : Building = constructor(name, guid, map_id, zone, context)
+class FoundationBuilder(private val constructor: (String, Int, Int, Zone, ActorContext) => Building) {
+  def Build(name: String, guid: Int, map_id: Int, zone: Zone)(implicit context: ActorContext = null): Building = {
+    val obj: Building = constructor(name, guid, map_id, zone, context)
     obj
   }
 }
 
 object FoundationBuilder {
+
   /**
     * Overloaded constructor.
     * @param constructor a curried function that eventually constructs a `Building` object
     * @return a `FoundationBuilder` object
     */
-  def apply(constructor : (String, Int, Int, Zone, ActorContext)=>Building) : FoundationBuilder = {
+  def apply(constructor: (String, Int, Int, Zone, ActorContext) => Building): FoundationBuilder = {
     new FoundationBuilder(constructor)
   }
 }

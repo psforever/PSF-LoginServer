@@ -14,6 +14,7 @@ import services.avatar.{AvatarAction, AvatarServiceMessage}
   * @see `Tool`
   */
 trait RepairableEntity extends Repairable {
+
   /**
     * Catch the expected repair message and
     * apply further checks to the combination of the target, the equipment, and tis user.
@@ -21,9 +22,9 @@ trait RepairableEntity extends Repairable {
     * @param player the user of the nano dispenser tool
     * @param item the nano dispenser tool
     */
-  def CanBeRepairedByNanoDispenser(player : Player, item : Tool) : Unit = {
+  def CanBeRepairedByNanoDispenser(player: Player, item: Tool): Unit = {
     val obj = RepairableObject
-    if(CanPerformRepairs(obj, player, item)) {
+    if (CanPerformRepairs(obj, player, item)) {
       PerformRepairs(obj, player, item)
     }
   }
@@ -49,11 +50,11 @@ trait RepairableEntity extends Repairable {
     * @return `true`, if the target entity can be repaired;
     *        `false`, otherwise
     */
-  protected def CanPerformRepairs(target : Repairable.Target, player : Player, item : Tool) : Boolean = {
+  protected def CanPerformRepairs(target: Repairable.Target, player: Player, item: Tool): Boolean = {
     val definition = target.Definition
     definition.Repairable && target.Health < definition.MaxHealth && (definition.RepairIfDestroyed || !target.Destroyed) &&
-      (target.Faction == player.Faction || target.Faction == PlanetSideEmpire.NEUTRAL) && item.Magazine > 0 &&
-      player.isAlive && Vector3.Distance(target.Position, player.Position) < definition.RepairDistance
+    (target.Faction == player.Faction || target.Faction == PlanetSideEmpire.NEUTRAL) && item.Magazine > 0 &&
+    player.isAlive && Vector3.Distance(target.Position, player.Position) < definition.RepairDistance
   }
 
   /**
@@ -73,36 +74,47 @@ trait RepairableEntity extends Repairable {
     * @param player the user of the nano dispenser tool
     * @param item the nano dispenser tool
     */
-  protected def PerformRepairs(target : Repairable.Target, player : Player, item : Tool) : Unit = {
-    val definition = target.Definition
-    val zone = target.Zone
-    val events = zone.AvatarEvents
-    val name = player.Name
-    val tguid = target.GUID
+  protected def PerformRepairs(target: Repairable.Target, player: Player, item: Tool): Unit = {
+    val definition     = target.Definition
+    val zone           = target.Zone
+    val events         = zone.AvatarEvents
+    val name           = player.Name
+    val tguid          = target.GUID
     val originalHealth = target.Health
-    val updatedHealth = if(!(player.isMoving(1f) || target.isMoving(1f))) { //only allow stationary repairs within margin of error
-      val newHealth = target.Health = originalHealth + Repairable.Quality + RepairValue(item) + definition.RepairMod
-      val zoneId = zone.Id
-      val magazine = item.Discharge()
-      events ! AvatarServiceMessage(name, AvatarAction.SendResponse(Service.defaultPlayerGUID, InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong)))
-      if(target.Destroyed) {
-        if(newHealth >= definition.RepairRestoresAt) {
+    val updatedHealth =
+      if (!(player.isMoving(1f) || target.isMoving(1f))) { //only allow stationary repairs within margin of error
+        val newHealth = target.Health = originalHealth + Repairable.Quality + RepairValue(item) + definition.RepairMod
+        val zoneId    = zone.Id
+        val magazine  = item.Discharge()
+        events ! AvatarServiceMessage(
+          name,
+          AvatarAction.SendResponse(
+            Service.defaultPlayerGUID,
+            InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong)
+          )
+        )
+        if (target.Destroyed) {
+          if (newHealth >= definition.RepairRestoresAt) {
+            events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 0, newHealth))
+            Restoration(target)
+          }
+        } else {
           events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 0, newHealth))
-          Restoration(target)
         }
+        newHealth
+      } else {
+        originalHealth
       }
-      else {
-        events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 0, newHealth))
-      }
-      newHealth
-    }
-    else {
-      originalHealth
-    }
     //progress bar remains visible
-    events ! AvatarServiceMessage(name, AvatarAction.SendResponse(Service.defaultPlayerGUID, RepairMessage(tguid, updatedHealth * 100 / definition.MaxHealth)))
+    events ! AvatarServiceMessage(
+      name,
+      AvatarAction.SendResponse(
+        Service.defaultPlayerGUID,
+        RepairMessage(tguid, updatedHealth * 100 / definition.MaxHealth)
+      )
+    )
   }
 
   /* random object repair modifier */
-  override def RepairValue(item : Tool) : Int = item.FireMode.Modifiers.Damage1
+  override def RepairValue(item: Tool): Int = item.FireMode.Modifiers.Damage1
 }

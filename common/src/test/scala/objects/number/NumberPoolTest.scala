@@ -25,10 +25,10 @@ class NumberPoolTest extends Specification {
     }
 
     "get a number" in {
-      val min = 10
-      val max = 20
+      val min    = 10
+      val max    = 20
       val domain = (min to max).toList
-      val obj = new SimplePool(domain)
+      val obj    = new SimplePool(domain)
       obj.Get() match {
         case Success(number) =>
           (min <= number && number <= max) mustEqual true
@@ -74,10 +74,10 @@ class NumberPoolTest extends Specification {
     }
 
     "get a number" in {
-      val min = 10
-      val max = 20
+      val min    = 10
+      val max    = 20
       val domain = (min to max).toList
-      val obj = new ExclusivePool(domain)
+      val obj    = new ExclusivePool(domain)
       obj.Get() match {
         case Success(number) =>
           (min <= number && number <= max) mustEqual true
@@ -88,10 +88,10 @@ class NumberPoolTest extends Specification {
     }
 
     "get all the numbers" in {
-      val min = 10
-      val max = 20
+      val min    = 10
+      val max    = 20
       val domain = (min to max).toList
-      val obj = new ExclusivePool(domain)
+      val obj    = new ExclusivePool(domain)
       domain.foreach(_ => {
         obj.Get() match {
           case Success(number) =>
@@ -107,16 +107,17 @@ class NumberPoolTest extends Specification {
       val obj = new ExclusivePool((0 to 10).toList)
       obj.Get() match {
         case Success(number) =>
-          try { obj.Return(number) mustEqual true } catch { case _ : Exception => ko }
+          try { obj.Return(number) mustEqual true }
+          catch { case _: Exception => ko }
         case _ =>
           ko
       }
     }
 
     "return all the numbers" in {
-      val range = 0 to 10
-      val obj = new ExclusivePool((0 to 10).toList)
-      val list : ListBuffer[Int] = ListBuffer[Int]()
+      val range                 = 0 to 10
+      val obj                   = new ExclusivePool((0 to 10).toList)
+      val list: ListBuffer[Int] = ListBuffer[Int]()
       range.foreach(_ => {
         obj.Get() match {
           case Success(number) =>
@@ -125,7 +126,8 @@ class NumberPoolTest extends Specification {
         }
       })
       list.foreach(number => {
-        try { obj.Return(number) mustEqual true } catch { case _ : Exception => ko }
+        try { obj.Return(number) mustEqual true }
+        catch { case _: Exception => ko }
       })
       ok
     }

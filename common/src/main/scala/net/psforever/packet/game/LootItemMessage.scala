@@ -19,17 +19,16 @@ import scodec.codecs._
   * @param destination_guid where the item will be placed;
   *                         generally, the player is taking the item
   */
-final case class LootItemMessage(item_guid : PlanetSideGUID,
-                                 destination_guid : PlanetSideGUID
-                                ) extends PlanetSideGamePacket {
+final case class LootItemMessage(item_guid: PlanetSideGUID, destination_guid: PlanetSideGUID)
+    extends PlanetSideGamePacket {
   type Packet = LootItemMessage
   def opcode = GamePacketOpcode.LootItemMessage
   def encode = LootItemMessage.encode(this)
 }
 
 object LootItemMessage extends Marshallable[LootItemMessage] {
-  implicit val codec : Codec[LootItemMessage] = (
+  implicit val codec: Codec[LootItemMessage] = (
     ("item_guid" | PlanetSideGUID.codec) ::
       ("destination_guid" | PlanetSideGUID.codec)
-    ).as[LootItemMessage]
+  ).as[LootItemMessage]
 }

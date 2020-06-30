@@ -17,6 +17,7 @@ import scala.util.Try
   * lockers (contents of the player's fifth slot).
   */
 trait Container {
+
   /**
     * A(n imperfect) reference to a generalized pool of the contained objects.
     * Having access to all of the available positions is not required.
@@ -24,7 +25,7 @@ trait Container {
     * The `GridInventory` returned by this accessor is also an implementation of `Container`.
     * @see `VisibleSlots`
     */
-  def Inventory : GridInventory
+  def Inventory: GridInventory
 
   /**
     * Given an object, attempt to locate its slot.
@@ -32,7 +33,7 @@ trait Container {
     * @param obj the `Equipment` object
     * @return the index of the `EquipmentSlot`, or `None`
     */
-  def Find(obj : Equipment) : Option[Int] = Find(obj.GUID)
+  def Find(obj: Equipment): Option[Int] = Find(obj.GUID)
 
   /**
     * Given globally unique identifier, if the object using it is stowed, attempt to locate its slot.
@@ -40,11 +41,11 @@ trait Container {
     * @param guid the GUID of the `Equipment`
     * @return the index of the `EquipmentSlot`, or `None`
     */
-  def Find(guid : PlanetSideGUID) : Option[Int] = Inventory.Find(guid)
+  def Find(guid: PlanetSideGUID): Option[Int] = Inventory.Find(guid)
 
-  def Fit(obj : Equipment) : Option[Int] = Fit(obj.Definition.Tile)
+  def Fit(obj: Equipment): Option[Int] = Fit(obj.Definition.Tile)
 
-  def Fit(tile : InventoryTile) : Option[Int] = Inventory.Fit(tile)
+  def Fit(tile: InventoryTile): Option[Int] = Inventory.Fit(tile)
 
   /**
     * A(n imperfect) reference to a generalized pool of the contained objects.<br>
@@ -54,7 +55,7 @@ trait Container {
     * @see `Inventory`
     * @return all of the affected slot indices
     */
-  def VisibleSlots : Set[Int]
+  def VisibleSlots: Set[Int]
 
   /**
     * Access to all stowable positions on this object by index.<br>
@@ -67,11 +68,10 @@ trait Container {
     * @param slotNum an index
     * @return the searchable position identified by that index
     */
-  def Slot(slotNum : Int) : EquipmentSlot = {
-    if(Inventory.Offset <= slotNum && slotNum <= Inventory.LastIndex) {
+  def Slot(slotNum: Int): EquipmentSlot = {
+    if (Inventory.Offset <= slotNum && slotNum <= Inventory.LastIndex) {
       Inventory.Slot(slotNum)
-    }
-    else {
+    } else {
       OffhandEquipmentSlot.BlockedSlot
     }
   }
@@ -95,7 +95,7 @@ trait Container {
     * @param height the height of the serachable space
     * @return a list of objects that have been encountered within the searchable space
     */
-  def Collisions(index : Int, width : Int, height : Int) : Try[List[InventoryItem]] =
+  def Collisions(index: Int, width: Int, height: Int): Try[List[InventoryItem]] =
     Inventory.CheckCollisionsVar(index, width, height)
 }
 

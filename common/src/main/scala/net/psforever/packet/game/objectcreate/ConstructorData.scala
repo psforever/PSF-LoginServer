@@ -15,6 +15,7 @@ import scodec.{Attempt, Codec, Err}
 abstract class ConstructorData extends StreamBitSize
 
 object ConstructorData {
+
   /**
     * Transform a `Codec[T]` for object type `T` into `ConstructorData`.
     * @param objCodec a `Codec` that satisfies the transformation `Codec[T] -> T`
@@ -23,23 +24,21 @@ object ConstructorData {
     * @tparam T a subclass of `ConstructorData` that indicates what type the object is
     * @return `Codec[ConstructorData]`
     */
-  def apply[T <: ConstructorData](objCodec : Codec[T], objType : String = "object") : Codec[ConstructorData] =
-    objCodec.exmap[ConstructorData] (
+  def apply[T <: ConstructorData](objCodec: Codec[T], objType: String = "object"): Codec[ConstructorData] =
+    objCodec.exmap[ConstructorData](
       x => {
         try {
           Attempt.successful(x.asInstanceOf[ConstructorData])
-        }
-        catch {
-          case ex : Exception =>
+        } catch {
+          case ex: Exception =>
             Attempt.failure(Err(s"can not cast decode of $x to $objType - $ex"))
         }
       },
       x => {
         try {
           Attempt.successful(x.asInstanceOf[T]) //why does this work? shouldn't type erasure be a problem?
-        }
-        catch {
-          case ex : Exception =>
+        } catch {
+          case ex: Exception =>
             Attempt.failure(Err(s"can not cast encode $x to $objType - $ex"))
         }
       }

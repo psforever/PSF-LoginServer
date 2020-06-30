@@ -24,17 +24,9 @@ import scodec.codecs._
 object ImplantType extends Enumeration {
   type Type = Value
 
-  val
-  AdvancedRegen,
-  Targeting,
-  AudioAmplifier,
-  DarklightVision,
-  MeleeBooster,
-  PersonalShield,
-  RangeMagnifier,
-  SecondWind, //technically
-  SilentRun,
-  Surge = Value
+  val AdvancedRegen, Targeting, AudioAmplifier, DarklightVision, MeleeBooster, PersonalShield, RangeMagnifier,
+      SecondWind, //technically
+  SilentRun, Surge = Value
 
   val None = Value(15) //TODO unconfirmed
 

@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever
 
-class ObjectFinalizedException(msg : String) extends Exception(msg)
+class ObjectFinalizedException(msg: String) extends Exception(msg)
 
 trait IFinalizable {
   var closed = false
@@ -11,12 +11,14 @@ trait IFinalizable {
   }
 
   def assertNotClosed = {
-    if(closed)
-      throw new ObjectFinalizedException(this.getClass.getCanonicalName + ": already finalized. Cannot interact with object")
+    if (closed)
+      throw new ObjectFinalizedException(
+        this.getClass.getCanonicalName + ": already finalized. Cannot interact with object"
+      )
   }
 
   override def finalize() = {
-    if(!closed)
+    if (!closed)
       println(this.getClass.getCanonicalName + ": class not closed. memory leaked")
   }
 }

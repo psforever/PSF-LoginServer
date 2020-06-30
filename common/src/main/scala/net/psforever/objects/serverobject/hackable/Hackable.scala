@@ -7,11 +7,12 @@ import net.psforever.packet.game.TriggeredSound
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 trait Hackable {
-  _ : FactionAffinity =>
+  _: FactionAffinity =>
+
   /** inportant information regarding the hack and how it was started */
-  private var hackedBy : Option[HackInfo] = None
-  def HackedBy : Option[HackInfo] = hackedBy
-  def HackedBy_=(agent : Player) : Option[HackInfo] = HackedBy_=(Some(agent))
+  private var hackedBy: Option[HackInfo]          = None
+  def HackedBy: Option[HackInfo]                  = hackedBy
+  def HackedBy_=(agent: Player): Option[HackInfo] = HackedBy_=(Some(agent))
 
   /**
     * Set the hack state of this object by recording important information about the player who caused it.
@@ -20,16 +21,15 @@ trait Hackable {
     * @param agent a `Player`, or no player
     * @return the player hack entry
     */
-  def HackedBy_=(agent : Option[Player]) : Option[HackInfo] = {
+  def HackedBy_=(agent: Option[Player]): Option[HackInfo] = {
     (hackedBy, agent) match {
       case (None, Some(actor)) =>
         hackedBy = Some(HackInfo(actor.Name, actor.GUID, actor.Faction, actor.Position, System.nanoTime, 0L))
       case (Some(info), Some(actor)) =>
-        if(actor.Faction == this.Faction) {
+        if (actor.Faction == this.Faction) {
           //hack cleared
           hackedBy = None
-        }
-        else if(actor.Faction != info.hackerFaction) {
+        } else if (actor.Faction != info.hackerFaction) {
           //override the hack state with a new hack state if the new user has different faction affiliation
           hackedBy = Some(HackInfo(actor.Name, actor.GUID, actor.Faction, actor.Position, System.nanoTime, 0L))
         }
@@ -39,31 +39,31 @@ trait Hackable {
     HackedBy
   }
 
-  def HackedBy_=(hackInfo : HackInfo) : Option[HackInfo] = {
+  def HackedBy_=(hackInfo: HackInfo): Option[HackInfo] = {
     hackedBy = Some(hackInfo)
     HackedBy
   }
 
   /** The sound made when the object is hacked */
-  private var hackSound : TriggeredSound.Value = TriggeredSound.HackDoor
-  def HackSound : TriggeredSound.Value = hackSound
-  def HackSound_=(sound : TriggeredSound.Value) : TriggeredSound.Value = {
+  private var hackSound: TriggeredSound.Value = TriggeredSound.HackDoor
+  def HackSound: TriggeredSound.Value         = hackSound
+  def HackSound_=(sound: TriggeredSound.Value): TriggeredSound.Value = {
     hackSound = sound
     hackSound
   }
 
   /** The duration in seconds a hack lasts for, based on the hacker's certification level */
-  private var hackEffectDuration = Array(0, 0, 0 , 0)
+  private var hackEffectDuration     = Array(0, 0, 0, 0)
   def HackEffectDuration: Array[Int] = hackEffectDuration
-  def HackEffectDuration_=(arr: Array[Int]) : Array[Int] = {
+  def HackEffectDuration_=(arr: Array[Int]): Array[Int] = {
     hackEffectDuration = arr
     arr
   }
 
   /** How long it takes to hack the object in seconds, based on the hacker's certification level */
-  private var hackDuration = Array(0, 0, 0, 0)
+  private var hackDuration     = Array(0, 0, 0, 0)
   def HackDuration: Array[Int] = hackDuration
-  def HackDuration_=(arr: Array[Int]) : Array[Int] = {
+  def HackDuration_=(arr: Array[Int]): Array[Int] = {
     hackDuration = arr
     arr
   }
@@ -82,13 +82,15 @@ trait Hackable {
 }
 
 object Hackable {
-  final case class HackInfo(hackerName : String,
-                            hackerGUID : PlanetSideGUID,
-                            hackerFaction : PlanetSideEmpire.Value,
-                            hackerPos : Vector3,
-                            hackStartTime : Long,
-                            hackDuration : Long) {
-    def Duration(time : Long) : HackInfo =
+  final case class HackInfo(
+      hackerName: String,
+      hackerGUID: PlanetSideGUID,
+      hackerFaction: PlanetSideEmpire.Value,
+      hackerPos: Vector3,
+      hackStartTime: Long,
+      hackDuration: Long
+  ) {
+    def Duration(time: Long): HackInfo =
       HackInfo(hackerName, hackerGUID, hackerFaction, hackerPos, hackStartTime, time)
   }
 }

@@ -12,23 +12,21 @@ import shapeless.{::, HNil}
   * @param unk1 na
   * @param unk2 na
   */
-final case class TelepadDeployableData(data : CommonFieldData,
-                                       unk1 : Int,
-                                       unk2 : Int) extends ConstructorData {
-  override def bitsize : Long = {
+final case class TelepadDeployableData(data: CommonFieldData, unk1: Int, unk2: Int) extends ConstructorData {
+  override def bitsize: Long = {
     20L + data.bitsize
   }
 }
 
 object TelepadDeployableData extends Marshallable[TelepadDeployableData] {
-  implicit val codec : Codec[TelepadDeployableData] = (
+  implicit val codec: Codec[TelepadDeployableData] = (
     ("deploy" | CommonFieldData.codec) ::
       ("unk1" | uint8) ::
       uint8 ::
       ("unk2" | uint4)
-    ).exmap[TelepadDeployableData] (
+  ).exmap[TelepadDeployableData](
     {
-      case data :: unk1 :: 0 :: unk2 :: HNil  =>
+      case data :: unk1 :: 0 :: unk2 :: HNil =>
         Attempt.successful(TelepadDeployableData(data, unk1, unk2))
 
       case data =>

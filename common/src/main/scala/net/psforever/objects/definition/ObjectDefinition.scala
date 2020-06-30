@@ -17,26 +17,28 @@ import net.psforever.objects.definition.converter.{ObjectCreateConverter, Packet
   * So long as it is an `ObjectCreatePacket`, those methods can be called correctly for a game object of the desired type.
   * @param objectId the object's identifier number
   */
-abstract class ObjectDefinition(private val objectId : Int) extends BasicDefinition {
+abstract class ObjectDefinition(private val objectId: Int) extends BasicDefinition {
+
   /** a data converter for this type of object */
-  protected var packet : PacketConverter = new ObjectCreateConverter[PlanetSideGameObject]() { }
+  protected var packet: PacketConverter = new ObjectCreateConverter[PlanetSideGameObject]() {}
   Name = "object definition"
 
   /**
     * Get the conversion object.
     * @return
     */
-  final def Packet : ObjectCreateConverter[PlanetSideGameObject] = packet.asInstanceOf[ObjectCreateConverter[PlanetSideGameObject]]
+  final def Packet: ObjectCreateConverter[PlanetSideGameObject] =
+    packet.asInstanceOf[ObjectCreateConverter[PlanetSideGameObject]]
 
   /**
     * Assign this definition a conversion object.
     * @param pkt the new converter
     * @return the current converter, after assignment
     */
-  final def Packet_=(pkt : ObjectCreateConverter[_]) : PacketConverter = {
+  final def Packet_=(pkt: ObjectCreateConverter[_]): PacketConverter = {
     packet = pkt
     Packet
   }
 
-  def ObjectId : Int = objectId
+  def ObjectId: Int = objectId
 }

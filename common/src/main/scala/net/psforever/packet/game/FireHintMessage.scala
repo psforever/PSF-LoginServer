@@ -17,14 +17,15 @@ import scodec.codecs._
   * @param u5 na; vel of what ?!
   */
 
-final case class FireHintMessage(weapon_guid : PlanetSideGUID,
-                                 pos : Vector3,
-                                 u1 : Int,
-                                 u2 : Int,
-                                 u3 : Int,
-                                 u4 : Int,
-                                 u5 : Option[Vector3] = None)
-  extends PlanetSideGamePacket {
+final case class FireHintMessage(
+    weapon_guid: PlanetSideGUID,
+    pos: Vector3,
+    u1: Int,
+    u2: Int,
+    u3: Int,
+    u4: Int,
+    u5: Option[Vector3] = None
+) extends PlanetSideGamePacket {
   type Packet = FireHintMessage
   def opcode = GamePacketOpcode.FireHintMessage
   def encode = FireHintMessage.encode(this)
@@ -32,7 +33,7 @@ final case class FireHintMessage(weapon_guid : PlanetSideGUID,
 
 object FireHintMessage extends Marshallable[FireHintMessage] {
 
-  implicit val codec : Codec[FireHintMessage] = (
+  implicit val codec: Codec[FireHintMessage] = (
     ("weapon_guid" | PlanetSideGUID.codec) ::
       ("pos" | Vector3.codec_pos) ::
       ("u1" | uint16L) ::
@@ -40,5 +41,5 @@ object FireHintMessage extends Marshallable[FireHintMessage] {
       ("u3" | uint16L) ::
       ("u4" | uintL(3)) ::
       optional(bool, "u5" | Vector3.codec_vel)
-    ).as[FireHintMessage]
+  ).as[FireHintMessage]
 }

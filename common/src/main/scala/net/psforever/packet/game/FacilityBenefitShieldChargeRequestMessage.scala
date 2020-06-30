@@ -12,14 +12,13 @@ import scodec.codecs._
   * The vehicle that is being driven will not have perfect fully-charged shields at the time.
   * @param vehicle_guid the vehicle whose shield is being charged
   */
-final case class FacilityBenefitShieldChargeRequestMessage(vehicle_guid : PlanetSideGUID)
-  extends PlanetSideGamePacket {
+final case class FacilityBenefitShieldChargeRequestMessage(vehicle_guid: PlanetSideGUID) extends PlanetSideGamePacket {
   type Packet = FacilityBenefitShieldChargeRequestMessage
   def opcode = GamePacketOpcode.FacilityBenefitShieldChargeRequestMessage
   def encode = FacilityBenefitShieldChargeRequestMessage.encode(this)
 }
 
 object FacilityBenefitShieldChargeRequestMessage extends Marshallable[FacilityBenefitShieldChargeRequestMessage] {
-  implicit val codec : Codec[FacilityBenefitShieldChargeRequestMessage] =
+  implicit val codec: Codec[FacilityBenefitShieldChargeRequestMessage] =
     ("vehicle_guid" | PlanetSideGUID.codec).as[FacilityBenefitShieldChargeRequestMessage]
 }

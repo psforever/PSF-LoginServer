@@ -25,7 +25,7 @@ import scala.concurrent.duration._
 the generator is used to test basic entity repair
 essentially, treat it more as a generic entity whose object type is repairable
 see GeneratorTest in relation to what the generator does above and beyond that during repair
-*/
+ */
 class RepairableEntityRepairTest extends ActorTest {
   val guid = new NumberPoolHub(new LimitedNumberSource(10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
@@ -33,8 +33,9 @@ class RepairableEntityRepairTest extends ActorTest {
     GUID(guid)
   }
   val building = Building("test-building", 1, 1, zone, StructureType.Facility) //guid=1
-  val gen = Generator(GlobalDefinitions.generator) //guid=2
-  val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
+  val gen      = Generator(GlobalDefinitions.generator)                        //guid=2
+  val player1 =
+    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
   player1.Spawn
   guid.register(building, 1)
   guid.register(gen, 2)
@@ -45,7 +46,7 @@ class RepairableEntityRepairTest extends ActorTest {
   gen.Position = Vector3(1, 0, 0)
   gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "generator-control")
   val activityProbe = TestProbe()
-  val avatarProbe = TestProbe()
+  val avatarProbe   = TestProbe()
   val buildingProbe = TestProbe()
   zone.Activity = activityProbe.ref
   zone.AvatarEvents = avatarProbe.ref
@@ -60,26 +61,34 @@ class RepairableEntityRepairTest extends ActorTest {
     "handle repairs" in {
       assert(gen.Health == gen.Definition.DefaultHealth) //ideal
       val originalHealth = gen.Health -= 50
-      assert(gen.Health < gen.Definition.DefaultHealth) //damage
+      assert(gen.Health < gen.Definition.DefaultHealth)   //damage
       gen.Actor ! CommonMessages.Use(player1, Some(tool)) //repair
 
       val msg123 = avatarProbe.receiveN(3, 500 milliseconds)
       assert(
         msg123.head match {
-          case AvatarServiceMessage("TestCharacter1",
-          AvatarAction.SendResponse(PlanetSideGUID(0), InventoryStateMessage(PlanetSideGUID(5), _, PlanetSideGUID(4), _))) => true
+          case AvatarServiceMessage(
+                "TestCharacter1",
+                AvatarAction
+                  .SendResponse(PlanetSideGUID(0), InventoryStateMessage(PlanetSideGUID(5), _, PlanetSideGUID(4), _))
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg123(1) match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
-          case _ => false
+          case _                                                                                            => false
         }
       )
       assert(
         msg123(2) match {
-          case AvatarServiceMessage("TestCharacter1", AvatarAction.SendResponse(PlanetSideGUID(0), RepairMessage(PlanetSideGUID(2), _))) => true
+          case AvatarServiceMessage(
+                "TestCharacter1",
+                AvatarAction.SendResponse(PlanetSideGUID(0), RepairMessage(PlanetSideGUID(2), _))
+              ) =>
+            true
           case _ => false
         }
       )
@@ -95,8 +104,9 @@ class RepairableEntityNotRepairTest extends ActorTest {
     GUID(guid)
   }
   val building = Building("test-building", 1, 1, zone, StructureType.Facility) //guid=1
-  val gen = Generator(GlobalDefinitions.generator) //guid=2
-  val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
+  val gen      = Generator(GlobalDefinitions.generator)                        //guid=2
+  val player1 =
+    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
   player1.Spawn
   guid.register(building, 1)
   guid.register(gen, 2)
@@ -107,7 +117,7 @@ class RepairableEntityNotRepairTest extends ActorTest {
   gen.Position = Vector3(1, 0, 0)
   gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "generator-control")
   val activityProbe = TestProbe()
-  val avatarProbe = TestProbe()
+  val avatarProbe   = TestProbe()
   val buildingProbe = TestProbe()
   zone.Activity = activityProbe.ref
   zone.AvatarEvents = avatarProbe.ref
@@ -120,9 +130,9 @@ class RepairableEntityNotRepairTest extends ActorTest {
 
   "RepairableEntity" should {
     "not repair if health is already full" in {
-      assert(gen.Health == gen.Definition.DefaultHealth) //ideal
+      assert(gen.Health == gen.Definition.DefaultHealth)  //ideal
       gen.Actor ! CommonMessages.Use(player1, Some(tool)) //repair?
-      avatarProbe.expectNoMessage(1000 milliseconds) //no messages
+      avatarProbe.expectNoMessage(1000 milliseconds)      //no messages
     }
   }
 }
@@ -134,8 +144,9 @@ class RepairableAmenityTest extends ActorTest {
     GUID(guid)
   }
   val building = Building("test-building", 1, 1, zone, StructureType.Facility) //guid=1
-  val term = Terminal(GlobalDefinitions.order_terminal) //guid=2
-  val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
+  val term     = Terminal(GlobalDefinitions.order_terminal)                    //guid=2
+  val player1 =
+    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
   player1.Spawn
   guid.register(building, 1)
   guid.register(term, 2)
@@ -146,7 +157,7 @@ class RepairableAmenityTest extends ActorTest {
   term.Position = Vector3(1, 0, 0)
   term.Actor = system.actorOf(Props(classOf[TerminalControl], term), "terminal-control")
   val activityProbe = TestProbe()
-  val avatarProbe = TestProbe()
+  val avatarProbe   = TestProbe()
   val buildingProbe = TestProbe()
   zone.Activity = activityProbe.ref
   zone.AvatarEvents = avatarProbe.ref
@@ -170,32 +181,40 @@ class RepairableAmenityTest extends ActorTest {
       val msg12345 = avatarProbe.receiveN(5, 500 milliseconds)
       assert(
         msg12345.head match {
-          case AvatarServiceMessage("TestCharacter1",
-          AvatarAction.SendResponse(PlanetSideGUID(0), InventoryStateMessage(PlanetSideGUID(5), _, PlanetSideGUID(4), _))) => true
+          case AvatarServiceMessage(
+                "TestCharacter1",
+                AvatarAction
+                  .SendResponse(PlanetSideGUID(0), InventoryStateMessage(PlanetSideGUID(5), _, PlanetSideGUID(4), _))
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg12345(1) match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
-          case _ => false
+          case _                                                                                            => false
         }
       )
       assert(
         msg12345(2) match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 50, 0)) => true
-          case _ => false
+          case _                                                                                             => false
         }
       )
       assert(
         msg12345(3) match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 51, 0)) => true
-          case _ => false
+          case _                                                                                             => false
         }
       )
       assert(
         msg12345(4) match {
-          case AvatarServiceMessage("TestCharacter1", AvatarAction.SendResponse(PlanetSideGUID(0), RepairMessage(PlanetSideGUID(2), _))) => true
+          case AvatarServiceMessage(
+                "TestCharacter1",
+                AvatarAction.SendResponse(PlanetSideGUID(0), RepairMessage(PlanetSideGUID(2), _))
+              ) =>
+            true
           case _ => false
         }
       )
@@ -211,10 +230,10 @@ class RepairableTurretWeapon extends ActorTest {
     override def SetupNumberPools() = {}
     GUID(guid)
   }
-  val building = Building("test-building", 1, 1, zone, StructureType.Facility) //guid=1
+  val building      = Building("test-building", 1, 1, zone, StructureType.Facility) //guid=1
   val activityProbe = TestProbe()
-  val avatarProbe = TestProbe()
-  val vehicleProbe = TestProbe()
+  val avatarProbe   = TestProbe()
+  val vehicleProbe  = TestProbe()
   val buildingProbe = TestProbe()
   zone.Activity = activityProbe.ref
   zone.AvatarEvents = avatarProbe.ref
@@ -227,7 +246,8 @@ class RepairableTurretWeapon extends ActorTest {
   turret.Position = Vector3(1, 0, 0)
   val turretWeapon = turret.Weapons.values.head.Equipment.get.asInstanceOf[Tool]
 
-  val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
+  val player1 =
+    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
   player1.Spawn
   player1.Position = Vector3(2, 2, 2)
   val player1Probe = TestProbe()
@@ -249,36 +269,46 @@ class RepairableTurretWeapon extends ActorTest {
   "RepairableTurretWeapon" should {
     "handle repairs and restoration" in {
       turret.Health = turret.Definition.RepairRestoresAt - 1 //initial state manip
-      turret.Destroyed = true //initial state manip
+      turret.Destroyed = true                                //initial state manip
       assert(turret.Health < turret.Definition.RepairRestoresAt)
       assert(turret.Destroyed)
 
       turret.Actor ! CommonMessages.Use(player1, Some(tool))
       val msg12345 = avatarProbe.receiveN(5, 500 milliseconds)
-      val msg4 = vehicleProbe.receiveOne(500 milliseconds)
+      val msg4     = vehicleProbe.receiveOne(500 milliseconds)
       assert(
         msg12345.head match {
-          case AvatarServiceMessage("TestCharacter1",
-            AvatarAction.SendResponse(PlanetSideGUID(0), InventoryStateMessage(PlanetSideGUID(8), _, PlanetSideGUID(7), _))) => true
+          case AvatarServiceMessage(
+                "TestCharacter1",
+                AvatarAction
+                  .SendResponse(PlanetSideGUID(0), InventoryStateMessage(PlanetSideGUID(8), _, PlanetSideGUID(7), _))
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg12345(1) match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
-          case _ => false
+          case _                                                                                            => false
         }
       )
       //msg12345(2) and msg12345(3) are related to RepairableAmenity
       assert(
         msg12345(4) match {
-          case AvatarServiceMessage("TestCharacter1", AvatarAction.SendResponse(PlanetSideGUID(0), RepairMessage(PlanetSideGUID(2), _))) => true
+          case AvatarServiceMessage(
+                "TestCharacter1",
+                AvatarAction.SendResponse(PlanetSideGUID(0), RepairMessage(PlanetSideGUID(2), _))
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg4 match {
-          case VehicleServiceMessage("test", VehicleAction.EquipmentInSlot(_, PlanetSideGUID(2), 1, t)) if t eq turretWeapon => true
+          case VehicleServiceMessage("test", VehicleAction.EquipmentInSlot(_, PlanetSideGUID(2), 1, t))
+              if t eq turretWeapon =>
+            true
           case _ => false
         }
       )
@@ -299,10 +329,11 @@ class RepairableVehicleRepair extends ActorTest {
 
   val atv = Vehicle(GlobalDefinitions.quadassault) //guid=1, 2, 3
   atv.Actor = system.actorOf(Props(classOf[VehicleControl], atv), "vehicle-control")
-  atv.Position = Vector3(1,0,0)
+  atv.Position = Vector3(1, 0, 0)
   val atvWeapon = atv.Weapons(1).Equipment.get.asInstanceOf[Tool]
 
-  val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=4
+  val player1 =
+    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=4
   player1.Spawn
   player1.Position = Vector3(2, 2, 2)
   val player1Probe = TestProbe()
@@ -327,20 +358,28 @@ class RepairableVehicleRepair extends ActorTest {
       val msg123 = avatarProbe.receiveN(3, 500 milliseconds)
       assert(
         msg123.head match {
-          case AvatarServiceMessage("TestCharacter1",
-          AvatarAction.SendResponse(PlanetSideGUID(0), InventoryStateMessage(PlanetSideGUID(6), _, PlanetSideGUID(5), _))) => true
+          case AvatarServiceMessage(
+                "TestCharacter1",
+                AvatarAction
+                  .SendResponse(PlanetSideGUID(0), InventoryStateMessage(PlanetSideGUID(6), _, PlanetSideGUID(5), _))
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg123(1) match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(1), 0, _)) => true
-          case _ => false
+          case _                                                                                            => false
         }
       )
       assert(
         msg123(2) match {
-          case AvatarServiceMessage("TestCharacter1", AvatarAction.SendResponse(PlanetSideGUID(0), RepairMessage(PlanetSideGUID(1), _))) => true
+          case AvatarServiceMessage(
+                "TestCharacter1",
+                AvatarAction.SendResponse(PlanetSideGUID(0), RepairMessage(PlanetSideGUID(1), _))
+              ) =>
+            true
           case _ => false
         }
       )
@@ -352,7 +391,7 @@ class RepairableVehicleRepair extends ActorTest {
 class RepairableVehicleRestoration extends ActorTest {
   /*
   no messages are dispatched, in this case, because most vehicles are flagged to not be repairable if destroyed
-  */
+   */
   val guid = new NumberPoolHub(new LimitedNumberSource(10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
@@ -363,10 +402,11 @@ class RepairableVehicleRestoration extends ActorTest {
 
   val atv = Vehicle(GlobalDefinitions.quadassault) //guid=1, 2, 3
   atv.Actor = system.actorOf(Props(classOf[VehicleControl], atv), "vehicle-control")
-  atv.Position = Vector3(1,0,0)
+  atv.Position = Vector3(1, 0, 0)
   val atvWeapon = atv.Weapons(1).Equipment.get.asInstanceOf[Tool]
 
-  val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=4
+  val player1 =
+    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=4
   player1.Spawn
   player1.Position = Vector3(2, 2, 2)
   val player1Probe = TestProbe()
@@ -385,7 +425,7 @@ class RepairableVehicleRestoration extends ActorTest {
   "RepairableVehicle" should {
     "will not restore a destroyed vehicle to working order" in {
       atv.Health = atv.Definition.DamageDestroysAt - 1 //initial state manip
-      atv.Destroyed = true //initial state manip
+      atv.Destroyed = true                             //initial state manip
       assert(atv.Health <= atv.Definition.DamageDestroysAt)
       assert(atv.Destroyed)
 
@@ -397,4 +437,4 @@ class RepairableVehicleRestoration extends ActorTest {
   }
 }
 
-object RepairableTest { }
+object RepairableTest {}

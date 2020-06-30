@@ -21,26 +21,24 @@ import scodec.codecs._
   *             usually 5L
   */
 
-  /*
+/*
     BETA CLIENT DEBUG INFO:
     Message type:   %d (%s)\n        length: %d\n
         Environment Type: %u (%s)\n
         Guid: %d\n
         Damage Amount: %u\n
-   */
-final case class TriggerEnvironmentalDamageMessage(unk1 : Int,
-                                                   target_guid : PlanetSideGUID,
-                                                   unk2 : Long)
-  extends PlanetSideGamePacket {
+ */
+final case class TriggerEnvironmentalDamageMessage(unk1: Int, target_guid: PlanetSideGUID, unk2: Long)
+    extends PlanetSideGamePacket {
   type Packet = TriggerEnvironmentalDamageMessage
   def opcode = GamePacketOpcode.TriggerEnvironmentalDamageMessage
   def encode = TriggerEnvironmentalDamageMessage.encode(this)
 }
 
 object TriggerEnvironmentalDamageMessage extends Marshallable[TriggerEnvironmentalDamageMessage] {
-  implicit val codec : Codec[TriggerEnvironmentalDamageMessage] = (
+  implicit val codec: Codec[TriggerEnvironmentalDamageMessage] = (
     ("unk1" | uint2L) ::
       ("target_guid" | PlanetSideGUID.codec) ::
       ("unk2" | uint32L)
-    ).as[TriggerEnvironmentalDamageMessage]
+  ).as[TriggerEnvironmentalDamageMessage]
 }

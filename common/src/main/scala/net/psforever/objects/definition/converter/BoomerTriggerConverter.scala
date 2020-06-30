@@ -8,13 +8,15 @@ import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 import scala.util.{Success, Try}
 
 class BoomerTriggerConverter extends ObjectCreateConverter[SimpleItem]() {
-  override def ConstructorData(obj : SimpleItem) : Try[HandheldData] = {
+  override def ConstructorData(obj: SimpleItem): Try[HandheldData] = {
     Success(HandheldData(CommonFieldData()))
   }
 
-  override def DetailedConstructorData(obj : SimpleItem) : Try[DetailedConstructionToolData] = {
-    Success(DetailedConstructionToolData(
-      CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0))
-    ))
+  override def DetailedConstructorData(obj: SimpleItem): Try[DetailedConstructionToolData] = {
+    Success(
+      DetailedConstructionToolData(
+        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0))
+      )
+    )
   }
 }

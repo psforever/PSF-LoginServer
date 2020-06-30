@@ -12,16 +12,16 @@ import scala.collection.mutable
   * For example, the cavern crystals are considered owner-neutral elements that are not attached to a `Building` object.
   */
 trait ProximityUnit {
-  this : Terminal =>
+  this: Terminal =>
 
   /**
     * A list of targets that are currently affected by this proximity unit.
     */
-  private var targets : mutable.ListBuffer[PlanetSideGameObject] = mutable.ListBuffer[PlanetSideGameObject]()
+  private var targets: mutable.ListBuffer[PlanetSideGameObject] = mutable.ListBuffer[PlanetSideGameObject]()
 
-  def Targets : Seq[PlanetSideGameObject] = targets toList
+  def Targets: Seq[PlanetSideGameObject] = targets toList
 
-  def NumberUsers : Int = targets.size
+  def NumberUsers: Int = targets.size
 
   /**
     * Accept a new target for this unit.
@@ -29,13 +29,12 @@ trait ProximityUnit {
     * @return `true`, if the entrant has been added and is new to the list;
     *        `false` if the entrant is already in the list or can not be added
     */
-  def AddUser(target : PlanetSideGameObject) : Boolean = {
+  def AddUser(target: PlanetSideGameObject): Boolean = {
     val alreadyContains = targets.contains(target)
-    if(!alreadyContains) {
+    if (!alreadyContains) {
       targets += target
       targets.contains(target)
-    }
-    else {
+    } else {
       false
     }
   }
@@ -46,13 +45,12 @@ trait ProximityUnit {
     * @return `true`, if the submitted entity was previously in the list but is not longer in the list;
     *        `false`, if the submitted entity was never in the list or can not be removed
     */
-  def RemoveUser(target : PlanetSideGameObject) : Boolean = {
+  def RemoveUser(target: PlanetSideGameObject): Boolean = {
     val alreadyContains = targets.contains(target)
-    if(alreadyContains) {
+    if (alreadyContains) {
       targets -= target
       !targets.contains(target)
-    }
-    else {
+    } else {
       false
     }
   }
@@ -63,9 +61,9 @@ trait ProximityUnit {
     * @return `true`, if the entity passes the validation tests;
     *        `false`, otherwise
     */
-  def Validate(target : PlanetSideGameObject) : Boolean = {
-    val proxDef = Definition.asInstanceOf[ProximityDefinition]
-    val radius = proxDef.UseRadius * proxDef.UseRadius
+  def Validate(target: PlanetSideGameObject): Boolean = {
+    val proxDef    = Definition.asInstanceOf[ProximityDefinition]
+    val radius     = proxDef.UseRadius * proxDef.UseRadius
     val validation = proxDef.Validations
     Validate(radius, validation)(target)
   }
@@ -83,12 +81,16 @@ trait ProximityUnit {
     * @return `true`, if the entity passes the validation tests;
     *        `false`, otherwise
     */
-  def Validate(radius : Float, validations : Seq[(PlanetSideGameObject)=>Boolean])(target : PlanetSideGameObject) : Boolean = {
+  def Validate(radius: Float, validations: Seq[(PlanetSideGameObject) => Boolean])(
+      target: PlanetSideGameObject
+  ): Boolean = {
     //org.log4s.getLogger("ProximityUnit").info(s"vehicle: ${Owner.Position}, terminal: $Position, target: ${target.Position}, toOwner: ${Vector3.Distance(Position, Owner.Position)}, toTarget: ${Vector3.Distance(Position, target.Position)}")
-    targets.contains(target) && Vector3.DistanceSquared(Position, target.Position) <= radius && validations.exists(p => p(target))
+    targets.contains(target) && Vector3.DistanceSquared(Position, target.Position) <= radius && validations.exists(p =>
+      p(target)
+    )
   }
 }
 
 object ProximityUnit {
-  final case class Action(terminal : Terminal with ProximityUnit, target : PlanetSideGameObject)
+  final case class Action(terminal: Terminal with ProximityUnit, target: PlanetSideGameObject)
 }

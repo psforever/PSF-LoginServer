@@ -28,13 +28,15 @@ class PlayerControlHealTest extends ActorTest {
   val avatarProbe = TestProbe()
   zone.AvatarEvents = avatarProbe.ref
 
-  val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
+  val player1 =
+    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
   player1.Zone = zone
   player1.Spawn
   player1.Position = Vector3(2, 0, 0)
   guid.register(player1.Locker, 5)
   player1.Actor = system.actorOf(Props(classOf[PlayerControl], player1), "player1-control")
-  val player2 = Player(Avatar("TestCharacter2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=2
+  val player2 =
+    Player(Avatar("TestCharacter2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=2
   player2.Zone = zone
   player2.Spawn
   guid.register(player2.Locker, 6)
@@ -49,7 +51,7 @@ class PlayerControlHealTest extends ActorTest {
 
   "PlayerControl" should {
     "handle being healed by another player" in {
-      val originalHealth = player2.Health = 0 //initial state manip
+      val originalHealth   = player2.Health = 0 //initial state manip
       val originalMagazine = tool.Magazine
       assert(originalHealth < player2.MaxHealth)
 
@@ -57,25 +59,37 @@ class PlayerControlHealTest extends ActorTest {
       val msg_avatar = avatarProbe.receiveN(4, 500 milliseconds)
       assert(
         msg_avatar.head match {
-          case AvatarServiceMessage("TestCharacter1", AvatarAction.SendResponse(_, InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _))) => true
+          case AvatarServiceMessage(
+                "TestCharacter1",
+                AvatarAction.SendResponse(_, InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _))
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_avatar(1) match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
-          case _ => false
+          case _                                                                                            => false
         }
       )
       assert(
         msg_avatar(2) match {
-          case AvatarServiceMessage("TestCharacter2", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 55, 1)) => true
+          case AvatarServiceMessage(
+                "TestCharacter2",
+                AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 55, 1)
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_avatar(3) match {
-          case AvatarServiceMessage("TestCharacter1", AvatarAction.SendResponse(_, RepairMessage(PlanetSideGUID(2), _))) => true
+          case AvatarServiceMessage(
+                "TestCharacter1",
+                AvatarAction.SendResponse(_, RepairMessage(PlanetSideGUID(2), _))
+              ) =>
+            true
           case _ => false
         }
       )
@@ -83,7 +97,7 @@ class PlayerControlHealTest extends ActorTest {
       assert(raisedHealth > originalHealth)
       assert(tool.Magazine < originalMagazine)
 
-      player1.Position = Vector3(10,0,0) //moved more than 5m away
+      player1.Position = Vector3(10, 0, 0) //moved more than 5m away
       player2.Actor ! CommonMessages.Use(player1, Some(tool))
       avatarProbe.expectNoMessage(500 milliseconds)
       assert(raisedHealth == player2.Health)
@@ -100,7 +114,8 @@ class PlayerControlHealSelfTest extends ActorTest {
   val avatarProbe = TestProbe()
   zone.AvatarEvents = avatarProbe.ref
 
-  val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
+  val player1 =
+    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
   player1.Zone = zone
   player1.Spawn
   player1.Position = Vector3(2, 0, 0)
@@ -115,7 +130,7 @@ class PlayerControlHealSelfTest extends ActorTest {
 
   "PlayerControl" should {
     "handle healing own self" in {
-      val originalHealth = player1.Health = 1 //initial state manip
+      val originalHealth   = player1.Health = 1 //initial state manip
       val originalMagazine = tool.Magazine
       assert(originalHealth < player1.MaxHealth)
 
@@ -123,33 +138,41 @@ class PlayerControlHealSelfTest extends ActorTest {
       val msg_avatar1 = avatarProbe.receiveN(2, 500 milliseconds)
       assert(
         msg_avatar1.head match {
-          case AvatarServiceMessage("TestCharacter1", AvatarAction.SendResponse(_, InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _))) => true
+          case AvatarServiceMessage(
+                "TestCharacter1",
+                AvatarAction.SendResponse(_, InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _))
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_avatar1(1) match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(1), 0, _)) => true
-          case _ => false
+          case _                                                                                            => false
         }
       )
       val raisedHealth = player1.Health
       assert(raisedHealth > originalHealth)
       assert(tool.Magazine < originalMagazine)
 
-      player1.Position = Vector3(10,0,0) //trying to move away from oneself doesn't work
+      player1.Position = Vector3(10, 0, 0) //trying to move away from oneself doesn't work
       player1.Actor ! CommonMessages.Use(player1, Some(tool))
       val msg_avatar2 = avatarProbe.receiveN(2, 500 milliseconds)
       assert(
         msg_avatar2.head match {
-          case AvatarServiceMessage("TestCharacter1", AvatarAction.SendResponse(_, InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _))) => true
+          case AvatarServiceMessage(
+                "TestCharacter1",
+                AvatarAction.SendResponse(_, InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _))
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_avatar2(1) match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(1), 0, _)) => true
-          case _ => false
+          case _                                                                                            => false
         }
       )
       assert(player1.Health > raisedHealth)
@@ -166,13 +189,15 @@ class PlayerControlRepairTest extends ActorTest {
   val avatarProbe = TestProbe()
   zone.AvatarEvents = avatarProbe.ref
 
-  val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
+  val player1 =
+    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
   player1.Zone = zone
   player1.Spawn
   player1.Position = Vector3(2, 0, 0)
   guid.register(player1.Locker, 5)
   player1.Actor = system.actorOf(Props(classOf[PlayerControl], player1), "player1-control")
-  val player2 = Player(Avatar("TestCharacter2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=2
+  val player2 =
+    Player(Avatar("TestCharacter2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=2
   player2.Zone = zone
   player2.Spawn
   guid.register(player2.Locker, 6)
@@ -187,7 +212,7 @@ class PlayerControlRepairTest extends ActorTest {
 
   "PlayerControl" should {
     "handle being repaired by another player" in {
-      val originalArmor = player2.Armor = 0 //initial state manip
+      val originalArmor    = player2.Armor = 0 //initial state manip
       val originalMagazine = tool.Magazine
       assert(originalArmor < player2.MaxArmor)
 
@@ -195,31 +220,47 @@ class PlayerControlRepairTest extends ActorTest {
       val msg_avatar = avatarProbe.receiveN(5, 1000 milliseconds)
       assert(
         msg_avatar.head match {
-          case AvatarServiceMessage("TestCharacter1", AvatarAction.SendResponse(_, InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _))) => true
+          case AvatarServiceMessage(
+                "TestCharacter1",
+                AvatarAction.SendResponse(_, InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _))
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_avatar(1) match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 4, _)) => true
-          case _ => false
+          case _                                                                                            => false
         }
       )
       assert(
         msg_avatar(2) match {
-          case AvatarServiceMessage("TestCharacter2", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 56, 1)) => true
+          case AvatarServiceMessage(
+                "TestCharacter2",
+                AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 56, 1)
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_avatar(3) match {
-          case AvatarServiceMessage("TestCharacter1", AvatarAction.SendResponse(_, RepairMessage(PlanetSideGUID(2), _))) => true
+          case AvatarServiceMessage(
+                "TestCharacter1",
+                AvatarAction.SendResponse(_, RepairMessage(PlanetSideGUID(2), _))
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_avatar(4) match {
-          case AvatarServiceMessage("TestCharacter2", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 56, 1)) => true
+          case AvatarServiceMessage(
+                "TestCharacter2",
+                AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 56, 1)
+              ) =>
+            true
           case _ => false
         }
       )
@@ -227,7 +268,7 @@ class PlayerControlRepairTest extends ActorTest {
       assert(tool.Magazine < originalMagazine)
 
       val fixedArmor = player2.Armor
-      player1.Position = Vector3(10,0,0) //moved more than 5m away
+      player1.Position = Vector3(10, 0, 0) //moved more than 5m away
       player2.Actor ! CommonMessages.Use(player1, Some(tool))
       avatarProbe.expectNoMessage(500 milliseconds)
       assert(fixedArmor == player2.Armor)
@@ -244,7 +285,8 @@ class PlayerControlRepairSelfTest extends ActorTest {
   val avatarProbe = TestProbe()
   zone.AvatarEvents = avatarProbe.ref
 
-  val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
+  val player1 =
+    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
   player1.Zone = zone
   player1.Spawn
   player1.Position = Vector3(2, 0, 0)
@@ -259,7 +301,7 @@ class PlayerControlRepairSelfTest extends ActorTest {
 
   "PlayerControl" should {
     "handle repairing own self" in {
-      val originalArmor = player1.Armor = 0 //initial state manip
+      val originalArmor    = player1.Armor = 0 //initial state manip
       val originalMagazine = tool.Magazine
       assert(originalArmor < player1.MaxArmor)
 
@@ -267,33 +309,41 @@ class PlayerControlRepairSelfTest extends ActorTest {
       val msg_avatar1 = avatarProbe.receiveN(2, 500 milliseconds)
       assert(
         msg_avatar1.head match {
-          case AvatarServiceMessage("TestCharacter1", AvatarAction.SendResponse(_, InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _))) => true
+          case AvatarServiceMessage(
+                "TestCharacter1",
+                AvatarAction.SendResponse(_, InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _))
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_avatar1(1) match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(1), 4, _)) => true
-          case _ => false
+          case _                                                                                            => false
         }
       )
       val fixedArmor = player1.Armor
       assert(fixedArmor > originalArmor)
       assert(tool.Magazine < originalMagazine)
 
-      player1.Position = Vector3(10,0,0) //trying to move away from oneself doesn't work
+      player1.Position = Vector3(10, 0, 0) //trying to move away from oneself doesn't work
       player1.Actor ! CommonMessages.Use(player1, Some(tool))
       val msg_avatar2 = avatarProbe.receiveN(2, 500 milliseconds)
       assert(
         msg_avatar2.head match {
-          case AvatarServiceMessage("TestCharacter1", AvatarAction.SendResponse(_, InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _))) => true
+          case AvatarServiceMessage(
+                "TestCharacter1",
+                AvatarAction.SendResponse(_, InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _))
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_avatar2(1) match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(1), 4, _)) => true
-          case _ => false
+          case _                                                                                            => false
         }
       )
       assert(player1.Armor > fixedArmor)
@@ -308,26 +358,36 @@ class PlayerControlDamageTest extends ActorTest {
     GUID(guid)
   }
   val activityProbe = TestProbe()
-  val avatarProbe = TestProbe()
+  val avatarProbe   = TestProbe()
   zone.Activity = activityProbe.ref
   zone.AvatarEvents = avatarProbe.ref
-  val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
+  val player1 =
+    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
   player1.Zone = zone
   player1.Spawn
   player1.Position = Vector3(2, 0, 0)
   guid.register(player1.Locker, 5)
   player1.Actor = system.actorOf(Props(classOf[PlayerControl], player1), "player1-control")
-  val player2 = Player(Avatar("TestCharacter2", PlanetSideEmpire.NC, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=2
+  val player2 =
+    Player(Avatar("TestCharacter2", PlanetSideEmpire.NC, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=2
   player2.Zone = zone
   player2.Spawn
   guid.register(player2.Locker, 6)
   player2.Actor = system.actorOf(Props(classOf[PlayerControl], player2), "player2-control")
-  val tool = Tool(GlobalDefinitions.suppressor) //guid 3 & 4
-  val projectile = tool.Projectile
+  val tool         = Tool(GlobalDefinitions.suppressor) //guid 3 & 4
+  val projectile   = tool.Projectile
   val playerSource = SourceEntry(player2)
   val resolved = ResolvedProjectile(
     ProjectileResolution.Hit,
-    Projectile(projectile, tool.Definition, tool.FireMode, PlayerSource(player1), 0, Vector3(2, 0, 0), Vector3(-1, 0, 0)),
+    Projectile(
+      projectile,
+      tool.Definition,
+      tool.FireMode,
+      PlayerSource(player1),
+      0,
+      Vector3(2, 0, 0),
+      Vector3(-1, 0, 0)
+    ),
     playerSource,
     player1.DamageModel,
     Vector3(1, 0, 0)
@@ -343,29 +403,30 @@ class PlayerControlDamageTest extends ActorTest {
       assert(player2.Health == player2.Definition.DefaultHealth)
       assert(player2.Armor == player2.MaxArmor)
       player2.Actor ! Vitality.Damage(applyDamageTo)
-      val msg_avatar = avatarProbe.receiveN(4, 500 milliseconds)
+      val msg_avatar   = avatarProbe.receiveN(4, 500 milliseconds)
       val msg_activity = activityProbe.receiveOne(200 milliseconds)
       assert(
         msg_avatar.head match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 4, _)) => true
-          case _ => false
+          case _                                                                                            => false
         }
       )
       assert(
         msg_avatar(1) match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
-          case _ => false
+          case _                                                                                            => false
         }
       )
       assert(
         msg_avatar(2) match {
-          case AvatarServiceMessage("TestCharacter2", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 2, _)) => true
+          case AvatarServiceMessage("TestCharacter2", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 2, _)) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_activity match {
-          case activity : Zone.HotSpot.Activity =>
+          case activity: Zone.HotSpot.Activity =>
             activity.attacker == PlayerSource(player1) &&
               activity.defender == playerSource &&
               activity.location == Vector3(1, 0, 0)
@@ -374,7 +435,11 @@ class PlayerControlDamageTest extends ActorTest {
       )
       assert(
         msg_avatar(3) match {
-          case AvatarServiceMessage("TestCharacter2", AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(10, Vector3(2, 0, 0)))) => true
+          case AvatarServiceMessage(
+                "TestCharacter2",
+                AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(10, Vector3(2, 0, 0)))
+              ) =>
+            true
           case _ => false
         }
       )
@@ -395,20 +460,22 @@ class PlayerControlDeathStandingTest extends ActorTest {
   val activityProbe = TestProbe()
   zone.Activity = activityProbe.ref
 
-  val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
+  val player1 =
+    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
   player1.Zone = zone
   player1.Spawn
-  player1.Position = Vector3(2,0,0)
+  player1.Position = Vector3(2, 0, 0)
   guid.register(player1.Locker, 5)
   player1.Actor = system.actorOf(Props(classOf[PlayerControl], player1), "player1-control")
-  val player2 = Player(Avatar("TestCharacter2", PlanetSideEmpire.NC, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=2
+  val player2 =
+    Player(Avatar("TestCharacter2", PlanetSideEmpire.NC, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=2
   player2.Zone = zone
   player2.Spawn
   guid.register(player2.Locker, 6)
   player2.Actor = system.actorOf(Props(classOf[PlayerControl], player2), "player2-control")
 
-  val tool = Tool(GlobalDefinitions.suppressor) //guid 3 & 4
-  val projectile = tool.Projectile
+  val tool          = Tool(GlobalDefinitions.suppressor) //guid 3 & 4
+  val projectile    = tool.Projectile
   val player1Source = SourceEntry(player1)
   val resolved = ResolvedProjectile(
     ProjectileResolution.Hit,
@@ -428,7 +495,7 @@ class PlayerControlDeathStandingTest extends ActorTest {
     "handle death" in {
       player2.Health = player2.Definition.DamageDestroysAt + 1 //initial state manip
       player2.ExoSuit = ExoSuitType.MAX
-      player2.Armor = 1 //initial state manip
+      player2.Armor = 1     //initial state manip
       player2.Capacitor = 1 //initial state manip
       assert(player2.Health > player2.Definition.DamageDestroysAt)
       assert(player2.Armor == 1)
@@ -441,49 +508,63 @@ class PlayerControlDeathStandingTest extends ActorTest {
       assert(
         msg_avatar.head match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 4, _)) => true
-          case _ => false
+          case _                                                                                            => false
         }
       )
       assert(
         msg_avatar(1) match {
-          case AvatarServiceMessage("TestCharacter2", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 2, _)) => true
+          case AvatarServiceMessage("TestCharacter2", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 2, _)) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_avatar(2) match {
           case AvatarServiceMessage("TestCharacter2", AvatarAction.Killed(PlanetSideGUID(2), None)) => true
-          case _ => false
+          case _                                                                                    => false
         }
       )
       assert(
         msg_avatar(3) match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
-          case _ => false
+          case _                                                                                            => false
         }
       )
       assert(
         msg_avatar(4) match {
-          case AvatarServiceMessage("TestCharacter2", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 7, _)) => true
+          case AvatarServiceMessage("TestCharacter2", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 7, _)) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_avatar(5) match {
-          case AvatarServiceMessage("TestCharacter2", AvatarAction.SendResponse(_, DestroyMessage(PlanetSideGUID(2), PlanetSideGUID(2), _, Vector3.Zero))) => true
+          case AvatarServiceMessage(
+                "TestCharacter2",
+                AvatarAction.SendResponse(_, DestroyMessage(PlanetSideGUID(2), PlanetSideGUID(2), _, Vector3.Zero))
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_avatar(6) match {
-          case AvatarServiceMessage("TestCharacter2", AvatarAction.SendResponse(_, AvatarDeadStateMessage(DeadState.Dead, 300000, 300000, Vector3.Zero, PlanetSideEmpire.NC, true))) => true
+          case AvatarServiceMessage(
+                "TestCharacter2",
+                AvatarAction.SendResponse(
+                  _,
+                  AvatarDeadStateMessage(DeadState.Dead, 300000, 300000, Vector3.Zero, PlanetSideEmpire.NC, true)
+                )
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_avatar(7) match {
           case AvatarServiceMessage("test", AvatarAction.DestroyDisplay(killer, victim, _, _))
-            if killer.Name.equals(player1.Name) && victim.Name.equals(player2.Name) => true
+              if killer.Name.equals(player1.Name) && victim.Name.equals(player2.Name) =>
+            true
           case _ => false
         }
       )
@@ -505,13 +586,15 @@ class PlayerControlDeathSeatedTest extends ActorTest {
   val activityProbe = TestProbe()
   zone.Activity = activityProbe.ref
 
-  val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
+  val player1 =
+    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
   player1.Zone = zone
   player1.Spawn
-  player1.Position = Vector3(2,0,0)
+  player1.Position = Vector3(2, 0, 0)
   guid.register(player1.Locker, 6)
   player1.Actor = system.actorOf(Props(classOf[PlayerControl], player1), "player1-control")
-  val player2 = Player(Avatar("TestCharacter2", PlanetSideEmpire.NC, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=2
+  val player2 =
+    Player(Avatar("TestCharacter2", PlanetSideEmpire.NC, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=2
   player2.Zone = zone
   player2.Spawn
   guid.register(player2.Locker, 7)
@@ -520,8 +603,8 @@ class PlayerControlDeathSeatedTest extends ActorTest {
   val vehicle = Vehicle(GlobalDefinitions.quadstealth) //guid=5
   vehicle.Faction = player2.Faction
 
-  val tool = Tool(GlobalDefinitions.suppressor) //guid 3 & 4
-  val projectile = tool.Projectile
+  val tool          = Tool(GlobalDefinitions.suppressor) //guid 3 & 4
+  val projectile    = tool.Projectile
   val player1Source = SourceEntry(player1)
   val resolved = ResolvedProjectile(
     ProjectileResolution.Hit,
@@ -541,7 +624,7 @@ class PlayerControlDeathSeatedTest extends ActorTest {
   "PlayerControl" should {
     "handle death when seated (in something)" in {
       player2.Health = player2.Definition.DamageDestroysAt + 1 //initial state manip
-      player2.VehicleSeated = vehicle.GUID //initial state manip, anything
+      player2.VehicleSeated = vehicle.GUID                     //initial state manip, anything
       vehicle.Seats(0).Occupant = player2
       player2.Armor = 0 //initial state manip
       assert(player2.Health > player2.Definition.DamageDestroysAt)
@@ -552,58 +635,81 @@ class PlayerControlDeathSeatedTest extends ActorTest {
       activityProbe.expectNoMessage(200 milliseconds)
       assert(
         msg_avatar.head match {
-          case AvatarServiceMessage("TestCharacter2", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 2, _)) => true
+          case AvatarServiceMessage("TestCharacter2", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 2, _)) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_avatar(1) match {
-          case AvatarServiceMessage("TestCharacter2", AvatarAction.Killed(PlanetSideGUID(2), Some(PlanetSideGUID(5)))) => true
+          case AvatarServiceMessage(
+                "TestCharacter2",
+                AvatarAction.Killed(PlanetSideGUID(2), Some(PlanetSideGUID(5)))
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_avatar(2) match {
-          case AvatarServiceMessage("TestCharacter2", AvatarAction.SendResponse(_,
-          ObjectDetachMessage(PlanetSideGUID(5), PlanetSideGUID(2), _, _, _, _))
-          ) => true
+          case AvatarServiceMessage(
+                "TestCharacter2",
+                AvatarAction.SendResponse(_, ObjectDetachMessage(PlanetSideGUID(5), PlanetSideGUID(2), _, _, _, _))
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_avatar(3) match {
-          case AvatarServiceMessage("TestCharacter2", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 29, 1)) => true
+          case AvatarServiceMessage(
+                "TestCharacter2",
+                AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 29, 1)
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_avatar(4) match {
           case AvatarServiceMessage("test", AvatarAction.ObjectDelete(PlanetSideGUID(2), PlanetSideGUID(2), _)) => true
-          case _ => false
+          case _                                                                                                => false
         }
       )
       assert(
         msg_avatar(5) match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
-          case _ => false
+          case _                                                                                            => false
         }
       )
       assert(
         msg_avatar(6) match {
-          case AvatarServiceMessage("TestCharacter2", AvatarAction.SendResponse(_, DestroyMessage(PlanetSideGUID(2), PlanetSideGUID(2), _, Vector3.Zero))) => true
+          case AvatarServiceMessage(
+                "TestCharacter2",
+                AvatarAction.SendResponse(_, DestroyMessage(PlanetSideGUID(2), PlanetSideGUID(2), _, Vector3.Zero))
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_avatar(7) match {
-          case AvatarServiceMessage("TestCharacter2", AvatarAction.SendResponse(_, AvatarDeadStateMessage(DeadState.Dead, 300000, 300000, Vector3.Zero, PlanetSideEmpire.NC, true))) => true
+          case AvatarServiceMessage(
+                "TestCharacter2",
+                AvatarAction.SendResponse(
+                  _,
+                  AvatarDeadStateMessage(DeadState.Dead, 300000, 300000, Vector3.Zero, PlanetSideEmpire.NC, true)
+                )
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_avatar(8) match {
           case AvatarServiceMessage("test", AvatarAction.DestroyDisplay(killer, victim, _, _))
-            if killer.Name.equals(player1.Name) && victim.Name.equals(player2.Name) => true
+              if killer.Name.equals(player1.Name) && victim.Name.equals(player2.Name) =>
+            true
           case _ => false
         }
       )
@@ -613,4 +719,4 @@ class PlayerControlDeathSeatedTest extends ActorTest {
   }
 }
 
-object PlayerControlTest { }
+object PlayerControlTest {}

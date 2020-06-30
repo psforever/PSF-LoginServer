@@ -28,14 +28,15 @@ import scala.util.{Failure, Success}
   * 'r' is the corner of any 2x2 item that can be removed ('x' is a potential affected edge),
   * and 'i' is the region checked for a 2x2 insertion into `slot`.
   */
-class InventoryEquipmentSlot(private val slot : Int, private val inv : GridInventory) extends OffhandEquipmentSlot(EquipmentSize.Inventory) {
-  override def Equipment_=(assignEquipment : Option[Equipment]) : Option[Equipment] = {
+class InventoryEquipmentSlot(private val slot: Int, private val inv: GridInventory)
+    extends OffhandEquipmentSlot(EquipmentSize.Inventory) {
+  override def Equipment_=(assignEquipment: Option[Equipment]): Option[Equipment] = {
     assignEquipment match {
       case Some(equip) =>
         val tile = equip.Definition.Tile
         inv.CheckCollisionsVar(slot, tile.Width, tile.Height) match {
           case Success(Nil) => inv.InsertQuickly(slot, equip)
-          case _ => ; //TODO we should handle the exception
+          case _            => ; //TODO we should handle the exception
         }
 
       case None =>
@@ -44,8 +45,8 @@ class InventoryEquipmentSlot(private val slot : Int, private val inv : GridInven
     Equipment
   }
 
-  override def Equipment : Option[Equipment] = {
-    inv.CheckCollisionsAsGrid(slot,1,1) match {
+  override def Equipment: Option[Equipment] = {
+    inv.CheckCollisionsAsGrid(slot, 1, 1) match {
       case Success(list) =>
         list.headOption match {
           case Some(found) =>

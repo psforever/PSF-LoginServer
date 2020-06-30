@@ -47,21 +47,22 @@ import shapeless.{::, HNil}
   * @param hit_target_guid the global unique identifier of the object the projwectile collided with;
   *                        will be 0 if it reached the end of its life naturally, without colliding with anything
   */
-final case class ProjectileStateMessage(projectile_guid : PlanetSideGUID,
-                                        shot_pos : Vector3,
-                                        shot_vel : Vector3,
-                                        shot_original_orient : Vector3,
-                                        sequence_num : Int,
-                                        end : Boolean,
-                                        hit_target_guid : PlanetSideGUID)
-  extends PlanetSideGamePacket {
+final case class ProjectileStateMessage(
+    projectile_guid: PlanetSideGUID,
+    shot_pos: Vector3,
+    shot_vel: Vector3,
+    shot_original_orient: Vector3,
+    sequence_num: Int,
+    end: Boolean,
+    hit_target_guid: PlanetSideGUID
+) extends PlanetSideGamePacket {
   type Packet = ProjectileStateMessage
   def opcode = GamePacketOpcode.ProjectileStateMessage
   def encode = ProjectileStateMessage.encode(this)
 }
 
 object ProjectileStateMessage extends Marshallable[ProjectileStateMessage] {
-  implicit val codec : Codec[ProjectileStateMessage] = (
+  implicit val codec: Codec[ProjectileStateMessage] = (
     ("projectile_guid" | PlanetSideGUID.codec) ::
       ("shot_pos" | Vector3.codec_pos) ::
       ("shot_vel" | Vector3.codec_float) ::
@@ -71,10 +72,10 @@ object ProjectileStateMessage extends Marshallable[ProjectileStateMessage] {
       ("sequence_num" | uint8) ::
       ("end" | bool) ::
       ("hit_target" | PlanetSideGUID.codec)
-    ).xmap[ProjectileStateMessage] (
+  ).xmap[ProjectileStateMessage](
     {
       case guid :: pos :: vel :: roll :: pitch :: yaw :: sequence_num :: explode :: unk :: HNil =>
-        ProjectileStateMessage(guid, pos, vel, Vector3(roll, pitch, yaw), sequence_num , explode, unk)
+        ProjectileStateMessage(guid, pos, vel, Vector3(roll, pitch, yaw), sequence_num, explode, unk)
     },
     {
       case ProjectileStateMessage(guid, pos, vel, Vector3(roll, pitch, yaw), sequence_num, explode, unk) =>

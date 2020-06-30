@@ -5,6 +5,7 @@ import net.psforever.packet.PacketHelpers
 import scodec.codecs._
 
 import scala.annotation.tailrec
+
 /**
   * An `Enumeration` of the available certifications.<br>
   * <br>
@@ -26,55 +27,21 @@ object CertificationType extends Enumeration {
   val
   //0
   StandardAssault, //always listed
-  MediumAssault,
-  HeavyAssault,
-  SpecialAssault,
-  AntiVehicular,
-  Sniping,
-  EliteAssault,
-  AirCavalryScout,
-  AirCavalryInterceptor,
-  AirCavalryAssault,
-  //10
-  AirSupport,
-  ATV,
-  LightScout,
-  AssaultBuggy,
-  ArmoredAssault1,
-  ArmoredAssault2,
-  GroundTransport,
-  GroundSupport,
-  BattleFrameRobotics,
-  Flail,
-  //20
-  Switchblade,
-  Harasser,
-  Phantasm,
-  GalaxyGunship,
-  BFRAntiAircraft,
-  BFRAntiInfantry,
-  StandardExoSuit, //always listed
-  AgileExoSuit, //always listed
-  ReinforcedExoSuit,
-  InfiltrationSuit,
-  //30
-  AAMAX,
-  AIMAX,
-  AVMAX,
-  UniMAX,
-  Medical,
-  AdvancedMedical,
-  Hacking,
-  AdvancedHacking,
-  ExpertHacking,
-  DataCorruption,
-  //40
+  MediumAssault, HeavyAssault, SpecialAssault, AntiVehicular, Sniping, EliteAssault, AirCavalryScout,
+      AirCavalryInterceptor, AirCavalryAssault,
+      //10
+  AirSupport, ATV, LightScout, AssaultBuggy, ArmoredAssault1, ArmoredAssault2, GroundTransport, GroundSupport,
+      BattleFrameRobotics, Flail,
+      //20
+  Switchblade, Harasser, Phantasm, GalaxyGunship, BFRAntiAircraft, BFRAntiInfantry, StandardExoSuit, //always listed
+  AgileExoSuit,                                                                                      //always listed
+  ReinforcedExoSuit, InfiltrationSuit,
+      //30
+  AAMAX, AIMAX, AVMAX, UniMAX, Medical, AdvancedMedical, Hacking, AdvancedHacking, ExpertHacking, DataCorruption,
+      //40
   ElectronicsExpert, //requires Hacking and AdvancedHacking
-  Engineering,
-  CombatEngineering,
-  FortificationEngineering,
-  AssaultEngineering,
-  AdvancedEngineering //requires Engineering and CombatEngineering
+  Engineering, CombatEngineering, FortificationEngineering, AssaultEngineering,
+      AdvancedEngineering //requires Engineering and CombatEngineering
   = Value
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uint8L)
@@ -87,9 +54,9 @@ object CertificationType extends Enumeration {
     * @param certs the certifications, as a sequence of values
     * @return the certifications, as a single value
     */
-  def toEncodedLong(certs : Set[CertificationType.Value]) : Long = {
+  def toEncodedLong(certs: Set[CertificationType.Value]): Long = {
     certs
-      .map{ cert => math.pow(2, cert.id).toLong }
+      .map { cert => math.pow(2, cert.id).toLong }
       .foldLeft(0L)(_ + _)
   }
 
@@ -102,10 +69,10 @@ object CertificationType extends Enumeration {
     * @param certs the certifications, as a single value
     * @return the certifications, as a sequence of values
     */
-  def fromEncodedLong(certs : Long) : Set[CertificationType.Value] = {
+  def fromEncodedLong(certs: Long): Set[CertificationType.Value] = {
     recursiveFromEncodedLong(
       certs,
-      CertificationType.values.map{ cert => math.pow(2, cert.id).toLong }.toSeq.sorted
+      CertificationType.values.map { cert => math.pow(2, cert.id).toLong }.toSeq.sorted
     )
   }
 
@@ -124,11 +91,14 @@ object CertificationType extends Enumeration {
     * @return the certifications, as a sequence of values
     */
   @tailrec
-  private def recursiveFromEncodedLong(certs : Long, splitList : Iterable[Long], out : Set[CertificationType.Value] = Set.empty) : Set[CertificationType.Value] = {
-    if(certs == 0 || splitList.isEmpty) {
+  private def recursiveFromEncodedLong(
+      certs: Long,
+      splitList: Iterable[Long],
+      out: Set[CertificationType.Value] = Set.empty
+  ): Set[CertificationType.Value] = {
+    if (certs == 0 || splitList.isEmpty) {
       out
-    }
-    else {
+    } else {
       val (less, _) = splitList.partition(_ <= certs)
       recursiveFromEncodedLong(certs - less.last, less, out ++ Set(CertificationType(less.size - 1)))
     }

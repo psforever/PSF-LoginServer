@@ -23,27 +23,26 @@ import shapeless.{::, HNil}
   * @see `ObjectClass.selectDataCodec`
   * @see `ObjectClass.selectDataDetailedCodec`
   */
-final case class InternalSlot(objectClass : Int,
-                              guid : PlanetSideGUID,
-                              parentSlot : Int,
-                              obj : ConstructorData) extends StreamBitSize {
-  override def bitsize : Long = {
-    val base : Long = if(parentSlot > 127) 43L else 35L
+final case class InternalSlot(objectClass: Int, guid: PlanetSideGUID, parentSlot: Int, obj: ConstructorData)
+    extends StreamBitSize {
+  override def bitsize: Long = {
+    val base: Long = if (parentSlot > 127) 43L else 35L
     base + obj.bitsize
   }
 }
 
 object InternalSlot {
+
   /**
     * Used for `0x18` `ObjectCreateDetailedMessage` packets
     */
-  val codec_detailed : Codec[InternalSlot] = (
+  val codec_detailed: Codec[InternalSlot] = (
     ("objectClass" | uintL(11)) >>:~ { obj_cls =>
       ("guid" | PlanetSideGUID.codec) ::
         ("parentSlot" | PacketHelpers.encodedStringSize) ::
         ("obj" | ObjectClass.selectDataDetailedCodec(obj_cls)) //it's fine for this call to fail
-      }
-    ).xmap[InternalSlot] (
+    }
+  ).xmap[InternalSlot](
     {
       case cls :: guid :: slot :: obj :: HNil =>
         InternalSlot(cls, guid, slot, obj)
@@ -57,13 +56,13 @@ object InternalSlot {
   /**
     * Used for `0x17` `ObjectCreateMessage` packets
     */
-  val codec : Codec[InternalSlot] = (
+  val codec: Codec[InternalSlot] = (
     ("objectClass" | uintL(11)) >>:~ { obj_cls =>
       ("guid" | PlanetSideGUID.codec) ::
         ("parentSlot" | PacketHelpers.encodedStringSize) ::
         ("obj" | ObjectClass.selectDataCodec(obj_cls)) //it's fine for this call to fail
     }
-    ).xmap[InternalSlot] (
+  ).xmap[InternalSlot](
     {
       case cls :: guid :: slot :: obj :: HNil =>
         InternalSlot(cls, guid, slot, obj)

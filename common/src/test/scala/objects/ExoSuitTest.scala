@@ -17,7 +17,7 @@ class ExoSuitTest extends Specification {
       obj.InventoryOffset mustEqual 0
       obj.SuitType mustEqual ExoSuitType.Standard
       obj.Holsters.length mustEqual 5
-      obj.Holsters.foreach(slot => { if(slot != EquipmentSize.Blocked) { ko } })
+      obj.Holsters.foreach(slot => { if (slot != EquipmentSize.Blocked) { ko } })
       ok
     }
 
@@ -89,7 +89,7 @@ class ExoSuitTest extends Specification {
     }
 
     "produce a copy of the definition" in {
-      val obj = ExoSuitDefinition(ExoSuitType.Standard)
+      val obj  = ExoSuitDefinition(ExoSuitType.Standard)
       val obj2 = obj.Use
       obj eq obj2
     }
@@ -103,7 +103,7 @@ class ExoSuitTest extends Specification {
       obj.InventoryOffset mustEqual 0
       obj.SuitType mustEqual ExoSuitType.Standard
       obj.Holsters.length mustEqual 5
-      obj.Holsters.foreach(slot => { if(slot != EquipmentSize.Blocked) { ko } })
+      obj.Holsters.foreach(slot => { if (slot != EquipmentSize.Blocked) { ko } })
       obj.UsingSpecial mustEqual SpecialExoSuitDefinition.Mode.Normal
     }
 
@@ -120,7 +120,7 @@ class ExoSuitTest extends Specification {
     }
 
     "produce a separate copy of the definition" in {
-      val obj = SpecialExoSuitDefinition(ExoSuitType.Standard)
+      val obj  = SpecialExoSuitDefinition(ExoSuitType.Standard)
       val obj2 = obj.Use
       obj ne obj2
     }
@@ -128,24 +128,60 @@ class ExoSuitTest extends Specification {
 
   "ExoSuitDefinition.Select" should {
     "produce common, shared instances of exo suits" in {
-      ExoSuitDefinition.Select(ExoSuitType.Standard, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(ExoSuitType.Standard, PlanetSideEmpire.VS)
-      ExoSuitDefinition.Select(ExoSuitType.Agile, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(ExoSuitType.Agile, PlanetSideEmpire.VS)
-      ExoSuitDefinition.Select(ExoSuitType.Reinforced, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(ExoSuitType.Reinforced, PlanetSideEmpire.VS)
-      ExoSuitDefinition.Select(ExoSuitType.Infiltration, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(ExoSuitType.Infiltration, PlanetSideEmpire.VS)
+      ExoSuitDefinition.Select(ExoSuitType.Standard, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(
+        ExoSuitType.Standard,
+        PlanetSideEmpire.VS
+      )
+      ExoSuitDefinition.Select(ExoSuitType.Agile, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(
+        ExoSuitType.Agile,
+        PlanetSideEmpire.VS
+      )
+      ExoSuitDefinition.Select(ExoSuitType.Reinforced, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(
+        ExoSuitType.Reinforced,
+        PlanetSideEmpire.VS
+      )
+      ExoSuitDefinition.Select(ExoSuitType.Infiltration, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(
+        ExoSuitType.Infiltration,
+        PlanetSideEmpire.VS
+      )
     }
 
     "produce common, shared instances of exo suits across factions" in {
-      ExoSuitDefinition.Select(ExoSuitType.Standard, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(ExoSuitType.Standard, PlanetSideEmpire.TR)
-      ExoSuitDefinition.Select(ExoSuitType.Standard, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(ExoSuitType.Standard, PlanetSideEmpire.NC)
+      ExoSuitDefinition.Select(ExoSuitType.Standard, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(
+        ExoSuitType.Standard,
+        PlanetSideEmpire.TR
+      )
+      ExoSuitDefinition.Select(ExoSuitType.Standard, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(
+        ExoSuitType.Standard,
+        PlanetSideEmpire.NC
+      )
 
-      ExoSuitDefinition.Select(ExoSuitType.Agile, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(ExoSuitType.Agile, PlanetSideEmpire.TR)
-      ExoSuitDefinition.Select(ExoSuitType.Agile, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(ExoSuitType.Agile, PlanetSideEmpire.NC)
+      ExoSuitDefinition.Select(ExoSuitType.Agile, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(
+        ExoSuitType.Agile,
+        PlanetSideEmpire.TR
+      )
+      ExoSuitDefinition.Select(ExoSuitType.Agile, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(
+        ExoSuitType.Agile,
+        PlanetSideEmpire.NC
+      )
 
-      ExoSuitDefinition.Select(ExoSuitType.Reinforced, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(ExoSuitType.Reinforced, PlanetSideEmpire.TR)
-      ExoSuitDefinition.Select(ExoSuitType.Reinforced, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(ExoSuitType.Reinforced, PlanetSideEmpire.NC)
+      ExoSuitDefinition.Select(ExoSuitType.Reinforced, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(
+        ExoSuitType.Reinforced,
+        PlanetSideEmpire.TR
+      )
+      ExoSuitDefinition.Select(ExoSuitType.Reinforced, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(
+        ExoSuitType.Reinforced,
+        PlanetSideEmpire.NC
+      )
 
-      ExoSuitDefinition.Select(ExoSuitType.Infiltration, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(ExoSuitType.Infiltration, PlanetSideEmpire.TR)
-      ExoSuitDefinition.Select(ExoSuitType.Infiltration, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(ExoSuitType.Infiltration, PlanetSideEmpire.NC)
+      ExoSuitDefinition.Select(ExoSuitType.Infiltration, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(
+        ExoSuitType.Infiltration,
+        PlanetSideEmpire.TR
+      )
+      ExoSuitDefinition.Select(ExoSuitType.Infiltration, PlanetSideEmpire.VS) eq ExoSuitDefinition.Select(
+        ExoSuitType.Infiltration,
+        PlanetSideEmpire.NC
+      )
     }
 
     "can select max for TR" in {

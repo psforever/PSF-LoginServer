@@ -32,7 +32,7 @@ class PacketCodingTest extends Specification {
       val serverNonce = 848483
 
       val packetUnderTest = ServerStart(clientNonce, serverNonce)
-      val pkt = PacketCoding.MarshalPacket(ControlPacket(packetUnderTest.opcode, packetUnderTest)).require
+      val pkt             = PacketCoding.MarshalPacket(ControlPacket(packetUnderTest.opcode, packetUnderTest)).require
 
       val decoded = PacketCoding.UnmarshalPacket(pkt.toByteVector).require.asInstanceOf[ControlPacket]
       val recvPkt = decoded.packet.asInstanceOf[ServerStart]

@@ -13,10 +13,5 @@ package net.psforever.objects.vehicles
 object AccessPermissionGroup extends Enumeration {
   type Type = Value
 
-  val
-  Driver,
-  Gunner,
-  Passenger,
-  Trunk
-  = Value
+  val Driver, Gunner, Passenger, Trunk = Value
 }

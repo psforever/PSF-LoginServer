@@ -43,24 +43,25 @@ import scodec.codecs._
   * @param bo_queue the maximum number of Black OPs players that can join this zone
   * @param bo_pop the current Black OPs population in this zone
   */
-final case class ZonePopulationUpdateMessage(zone_id : Int,
-                                             zone_queue : Long,
-                                             tr_queue : Long,
-                                             tr_pop : Long,
-                                             nc_queue : Long,
-                                             nc_pop : Long,
-                                             vs_queue : Long,
-                                             vs_pop : Long,
-                                             bo_queue : Long = 0L,
-                                             bo_pop : Long = 0L)
-  extends PlanetSideGamePacket {
+final case class ZonePopulationUpdateMessage(
+    zone_id: Int,
+    zone_queue: Long,
+    tr_queue: Long,
+    tr_pop: Long,
+    nc_queue: Long,
+    nc_pop: Long,
+    vs_queue: Long,
+    vs_pop: Long,
+    bo_queue: Long = 0L,
+    bo_pop: Long = 0L
+) extends PlanetSideGamePacket {
   type Packet = ZonePopulationUpdateMessage
   def opcode = GamePacketOpcode.ZonePopulationUpdateMessage
   def encode = ZonePopulationUpdateMessage.encode(this)
 }
 
 object ZonePopulationUpdateMessage extends Marshallable[ZonePopulationUpdateMessage] {
-  implicit val codec : Codec[ZonePopulationUpdateMessage] = (
+  implicit val codec: Codec[ZonePopulationUpdateMessage] = (
     ("zone_id" | uint16L) ::
       ("zone_queue" | uint32L) ::
       ("tr_queue" | uint32L) :: ("tr_pop" | uint32L) ::

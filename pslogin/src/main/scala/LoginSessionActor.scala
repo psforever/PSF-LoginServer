@@ -32,17 +32,17 @@ class LoginSessionActor extends Actor with MDCContextAware {
 
   val usernameRegex = """[A-Za-z0-9]{3,}""".r
 
-  var sessionId: Long = 0
-  var leftRef: ActorRef = ActorRef.noSender
-  var rightRef: ActorRef = ActorRef.noSender
+  var sessionId: Long               = 0
+  var leftRef: ActorRef             = ActorRef.noSender
+  var rightRef: ActorRef            = ActorRef.noSender
   var accountIntermediary: ActorRef = ActorRef.noSender
 
   var updateServerListTask: Cancellable = Default.Cancellable
 
-  var ipAddress: String = ""
-  var hostName: String = ""
+  var ipAddress: String         = ""
+  var hostName: String          = ""
   var canonicalHostName: String = ""
-  var port: Int = 0
+  var port: Int                 = 0
 
   val serverName = WorldConfig.Get[String]("worldserver.ServerName")
 
@@ -184,11 +184,11 @@ class LoginSessionActor extends Actor with MDCContextAware {
               accountIntermediary ! StoreAccountData(newToken, new Account(account.id, account.username, account.gm))
               val future = ctx.run(
                 query[persistence.Login].insert(
-                  _.accountId -> lift(account.id),
-                  _.ipAddress -> lift(ipAddress),
+                  _.accountId         -> lift(account.id),
+                  _.ipAddress         -> lift(ipAddress),
                   _.canonicalHostname -> lift(canonicalHostName),
-                  _.hostname -> lift(hostName),
-                  _.port -> lift(port)
+                  _.hostname          -> lift(hostName),
+                  _.port              -> lift(port)
                 )
               )
               loginSuccessfulResponse(username, newToken)
@@ -284,7 +284,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
   }
 
   def generateToken() = {
-    val r = new scala.util.Random
+    val r  = new scala.util.Random
     val sb = new StringBuilder
     for (_ <- 1 to 31) {
       sb.append(r.nextPrintableChar)

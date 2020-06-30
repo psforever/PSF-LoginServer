@@ -9,8 +9,8 @@ import scodec.bits._
 
 class TriggerEffectMessageTest extends Specification {
   val string_motionalarmsensor = hex"51 970B 82 6F6E FA00C00000"
-  val string_boomer = hex"51 0000 93 737061776E5F6F626A6563745F656666656374 417BB2CB3B4F8E00000000"
-  val string_boomer_explode = hex"51 DF09 8F 6465746F6E6174655F626F6F6D6572 00"
+  val string_boomer            = hex"51 0000 93 737061776E5F6F626A6563745F656666656374 417BB2CB3B4F8E00000000"
+  val string_boomer_explode    = hex"51 DF09 8F 6465746F6E6174655F626F6F6D6572 00"
 
   "decode (motion alarm sensor)" in {
     PacketCoding.DecodePacket(string_motionalarmsensor).require match {
@@ -60,7 +60,8 @@ class TriggerEffectMessageTest extends Specification {
   }
 
   "encode (boomer)" in {
-    val msg = TriggerEffectMessage("spawn_object_effect", Vector3(3567.0156f, 3278.6953f, 114.484375f), Vector3(0, 0, 90))
+    val msg =
+      TriggerEffectMessage("spawn_object_effect", Vector3(3567.0156f, 3278.6953f, 114.484375f), Vector3(0, 0, 90))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_boomer
@@ -73,4 +74,3 @@ class TriggerEffectMessageTest extends Specification {
     pkt mustEqual string_boomer_explode
   }
 }
-

@@ -14,7 +14,7 @@ class ControlSyncRespTest extends Specification {
       case ControlSyncResp(a, b, c, d, e, f) =>
         a mustEqual 21096
 
-        b mustEqual 0x21392D92
+        b mustEqual 0x21392d92
         c mustEqual 0x276
         d mustEqual 0x275
         e mustEqual 0x275
@@ -25,7 +25,7 @@ class ControlSyncRespTest extends Specification {
   }
 
   "encode" in {
-    val encoded = PacketCoding.EncodePacket(ControlSyncResp(21096, 0x21392D92, 0x276, 0x275, 0x275, 0x276)).require
+    val encoded = PacketCoding.EncodePacket(ControlSyncResp(21096, 0x21392d92, 0x276, 0x275, 0x275, 0x276)).require
 
     encoded.toByteVector mustEqual string
   }

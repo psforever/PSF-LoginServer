@@ -16,7 +16,7 @@ class UseItemMessageTest extends Specification {
         avatar_guid mustEqual PlanetSideGUID(75)
         unk1 mustEqual PlanetSideGUID(0)
         object_guid mustEqual PlanetSideGUID(372)
-        unk2 mustEqual 0xFFFFFFFFL
+        unk2 mustEqual 0xffffffffL
         unk3 mustEqual false
         unk4 mustEqual Vector3(5.0f, 0.0f, 0.0f)
         unk5 mustEqual Vector3(0.0f, 0.0f, 0.0f)
@@ -30,7 +30,19 @@ class UseItemMessageTest extends Specification {
   }
 
   "encode" in {
-    val msg = UseItemMessage(PlanetSideGUID(75), PlanetSideGUID(0), PlanetSideGUID(372), 0xFFFFFFFFL, false, Vector3(5.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 0.0f), 11, 25, 0, 364)
+    val msg = UseItemMessage(
+      PlanetSideGUID(75),
+      PlanetSideGUID(0),
+      PlanetSideGUID(372),
+      0xffffffffL,
+      false,
+      Vector3(5.0f, 0.0f, 0.0f),
+      Vector3(0.0f, 0.0f, 0.0f),
+      11,
+      25,
+      0,
+      364
+    )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string

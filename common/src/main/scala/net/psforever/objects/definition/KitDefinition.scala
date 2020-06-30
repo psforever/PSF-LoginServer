@@ -8,7 +8,7 @@ import net.psforever.objects.equipment.Kits
   * The definition for a personal one-time-use recovery item.
   * @param objectId the object's identifier number
   */
-class KitDefinition(objectId : Int) extends EquipmentDefinition(objectId) {
+class KitDefinition(objectId: Int) extends EquipmentDefinition(objectId) {
   import net.psforever.objects.equipment.EquipmentSize
   import net.psforever.objects.inventory.InventoryTile
   Kits(objectId) //let throw NoSuchElementException
@@ -21,11 +21,11 @@ class KitDefinition(objectId : Int) extends EquipmentDefinition(objectId) {
 object KitDefinition {
   private val converter = new KitConverter()
 
-  def apply(objectId: Int) : KitDefinition = {
+  def apply(objectId: Int): KitDefinition = {
     new KitDefinition(objectId)
   }
 
-  def apply(kit : Kits.Value) : KitDefinition = {
+  def apply(kit: Kits.Value): KitDefinition = {
     new KitDefinition(kit.id)
   }
 }

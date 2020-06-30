@@ -12,7 +12,7 @@ import net.psforever.packet.PlanetSidePacket
   *                this list is effectively immutable;
   *                the only way to access these packets is through pattern matching
   */
-final case class MultiPacketBundle(private var packets : List[PlanetSidePacket]) {
+final case class MultiPacketBundle(private var packets: List[PlanetSidePacket]) {
   MultiPacketBundle.collectValidPackets(packets) match {
     case Nil =>
       throw new IllegalArgumentException("can not create with zero packets")
@@ -20,15 +20,17 @@ final case class MultiPacketBundle(private var packets : List[PlanetSidePacket])
       packets = list
   }
 
-  def +(t : MultiPacketBundle) : MultiPacketBundle = t match {
-    case MultiPacketBundle(list) =>
-      MultiPacketBundle(packets ++ list)
-    case _ =>
-      MultiPacketBundle(packets)
-  }
+  def +(t: MultiPacketBundle): MultiPacketBundle =
+    t match {
+      case MultiPacketBundle(list) =>
+        MultiPacketBundle(packets ++ list)
+      case _ =>
+        MultiPacketBundle(packets)
+    }
 }
 
 object MultiPacketBundle {
+
   /**
     * Accept a series of packets of a specific supertype (`PlanetSidePacket`)
     * and filter out subtypes that should be excluded.
@@ -37,15 +39,16 @@ object MultiPacketBundle {
     * @param packets a series of packets
     * @return the accepted packets from the original group
     */
-  def collectValidPackets(packets : List[PlanetSidePacket]) : List[PlanetSidePacket] = {
+  def collectValidPackets(packets: List[PlanetSidePacket]): List[PlanetSidePacket] = {
     import net.psforever.packet.{PlanetSideGamePacket, PlanetSideControlPacket}
-    val (good, bad) = packets.partition( {
-      case _ : PlanetSideGamePacket => true
-      case _ : PlanetSideControlPacket => true
-      case _ => false
+    val (good, bad) = packets.partition({
+      case _: PlanetSideGamePacket    => true
+      case _: PlanetSideControlPacket => true
+      case _                          => false
     })
-    if(bad.nonEmpty) {
-      org.log4s.getLogger("MultiPacketBundle")
+    if (bad.nonEmpty) {
+      org.log4s
+        .getLogger("MultiPacketBundle")
         .warn(s"attempted to include packet types that are not in the whitelist; ${bad.size} items have been excluded")
     }
     good
@@ -56,17 +59,18 @@ object MultiPacketBundle {
   * Accumulator for packets that will eventually be bundled and submitted for composing a `MultiPacketEx` packet.
   */
 class MultiPacketCollector() {
-  private var bundle : List[PlanetSidePacket] = List.empty
+  private var bundle: List[PlanetSidePacket] = List.empty
 
-  def Add(t : PlanetSidePacket) : Unit = Add(List(t))
+  def Add(t: PlanetSidePacket): Unit = Add(List(t))
 
-  def Add(t : MultiPacketBundle) : Unit = t match {
-    case MultiPacketBundle(list) =>
-      Add(list)
-  }
+  def Add(t: MultiPacketBundle): Unit =
+    t match {
+      case MultiPacketBundle(list) =>
+        Add(list)
+    }
 
-  def Add(t : List[PlanetSidePacket]) : Unit = {
-    if(t.nonEmpty) {
+  def Add(t: List[PlanetSidePacket]): Unit = {
+    if (t.nonEmpty) {
       bundle = bundle ++ t
     }
   }
@@ -76,7 +80,7 @@ class MultiPacketCollector() {
     * Reset the internal list of packets by clearing it.
     * @return a loaded `MultiPacketBundle` object, or `None`
     */
-  def Bundle : Option[MultiPacketBundle] = {
+  def Bundle: Option[MultiPacketBundle] = {
     bundle match {
       case Nil =>
         None
@@ -89,12 +93,13 @@ class MultiPacketCollector() {
 }
 
 object MultiPacketCollector {
+
   /**
     * Overload constructor that accepts initial packets.
     * @param bundle previously bundled packets
     * @return a `MultiPacketCollector` object
     */
-  def apply(bundle : MultiPacketBundle) : MultiPacketCollector = {
+  def apply(bundle: MultiPacketBundle): MultiPacketCollector = {
     val obj = new MultiPacketCollector()
     obj.Add(bundle)
     obj
@@ -105,7 +110,7 @@ object MultiPacketCollector {
     * @param packets a series of packets
     * @return a `MultiPacketCollector` object
     */
-  def apply(packets : List[PlanetSidePacket]) : MultiPacketCollector = {
+  def apply(packets: List[PlanetSidePacket]): MultiPacketCollector = {
     val obj = new MultiPacketCollector()
     obj.Add(packets)
     obj

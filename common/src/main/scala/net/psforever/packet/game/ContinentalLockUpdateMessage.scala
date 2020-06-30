@@ -15,17 +15,16 @@ import scodec.codecs._
   * @param continent_id identifies the zone (continent)
   * @param empire identifies the empire
   */
-final case class ContinentalLockUpdateMessage(continent_id : Int,
-                                              empire : PlanetSideEmpire.Value)
-  extends PlanetSideGamePacket {
+final case class ContinentalLockUpdateMessage(continent_id: Int, empire: PlanetSideEmpire.Value)
+    extends PlanetSideGamePacket {
   type Packet = ContinentalLockUpdateMessage
   def opcode = GamePacketOpcode.ContinentalLockUpdateMessage
   def encode = ContinentalLockUpdateMessage.encode(this)
 }
 
 object ContinentalLockUpdateMessage extends Marshallable[ContinentalLockUpdateMessage] {
-  implicit val codec : Codec[ContinentalLockUpdateMessage] = (
+  implicit val codec: Codec[ContinentalLockUpdateMessage] = (
     ("continent_id" | uint16L) ::
       ("empire" | PlanetSideEmpire.codec)
-    ).as[ContinentalLockUpdateMessage]
+  ).as[ContinentalLockUpdateMessage]
 }

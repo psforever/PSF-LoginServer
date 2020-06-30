@@ -49,7 +49,7 @@ class SquadWaypointEventTest extends Specification {
         unk3 mustEqual 41581052L
         unk4 mustEqual SquadWaypoints.Two
         unk5.isEmpty mustEqual true
-        unk6.contains( WaypointEvent(10, Vector3(3457.9688f, 5514.4688f, 0.0f), 1) ) mustEqual true
+        unk6.contains(WaypointEvent(10, Vector3(3457.9688f, 5514.4688f, 0.0f), 1)) mustEqual true
       case _ =>
         ko
     }
@@ -62,7 +62,7 @@ class SquadWaypointEventTest extends Specification {
         unk2 mustEqual 3
         unk3 mustEqual 41581052L
         unk4 mustEqual SquadWaypoints.Two
-        unk5.contains( 4L ) mustEqual true
+        unk5.contains(4L) mustEqual true
         unk6.isEmpty mustEqual true
       case _ =>
         ko
@@ -84,7 +84,12 @@ class SquadWaypointEventTest extends Specification {
   }
 
   "encode (3)" in {
-    val msg = SquadWaypointEvent.Add(3, 41581052L, SquadWaypoints.Two, WaypointEvent(10, Vector3(3457.9688f, 5514.4688f, 0.0f), 1))
+    val msg = SquadWaypointEvent.Add(
+      3,
+      41581052L,
+      SquadWaypoints.Two,
+      WaypointEvent(10, Vector3(3457.9688f, 5514.4688f, 0.0f), 1)
+    )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_3

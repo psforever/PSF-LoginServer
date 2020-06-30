@@ -10,27 +10,30 @@ import services.avatar.{AvatarAction, AvatarServiceMessage}
 import scala.concurrent.duration._
 
 class CorpseRemovalActor extends RemoverActor {
-  final val FirstStandardDuration : FiniteDuration = 1 minute
+  final val FirstStandardDuration: FiniteDuration = 1 minute
 
-  final val SecondStandardDuration : FiniteDuration = 500 milliseconds
+  final val SecondStandardDuration: FiniteDuration = 500 milliseconds
 
-  def InclusionTest(entry : RemoverActor.Entry) : Boolean = {
+  def InclusionTest(entry: RemoverActor.Entry): Boolean = {
     entry.obj.isInstanceOf[Player] && entry.obj.asInstanceOf[Player].isBackpack
   }
 
-  def InitialJob(entry : RemoverActor.Entry) : Unit = { }
+  def InitialJob(entry: RemoverActor.Entry): Unit = {}
 
-  def FirstJob(entry : RemoverActor.Entry) : Unit = {
+  def FirstJob(entry: RemoverActor.Entry): Unit = {
     import net.psforever.objects.zones.Zone
     entry.zone.Population ! Zone.Corpse.Remove(entry.obj.asInstanceOf[Player])
-    context.parent ! AvatarServiceMessage(entry.zone.Id, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, entry.obj.GUID))
+    context.parent ! AvatarServiceMessage(
+      entry.zone.Id,
+      AvatarAction.ObjectDelete(Service.defaultPlayerGUID, entry.obj.GUID)
+    )
   }
 
-  def ClearanceTest(entry : RemoverActor.Entry) : Boolean = !entry.zone.Corpses.contains(entry.obj)
+  def ClearanceTest(entry: RemoverActor.Entry): Boolean = !entry.zone.Corpses.contains(entry.obj)
 
-  def DeletionTask(entry : RemoverActor.Entry) : TaskResolver.GiveTask = {
+  def DeletionTask(entry: RemoverActor.Entry): TaskResolver.GiveTask = {
     val player = entry.obj.asInstanceOf[Player]
-    val task = GUIDTask.UnregisterPlayer(player)(entry.zone.GUID)
+    val task   = GUIDTask.UnregisterPlayer(player)(entry.zone.GUID)
     player.ExoSuit = ExoSuitType.Standard
     task
   }

@@ -29,4 +29,3 @@ class InventoryStateMessageTest extends Specification {
     pkt mustEqual string
   }
 }
-

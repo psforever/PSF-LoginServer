@@ -6,15 +6,15 @@ import net.psforever.objects.guid.selector.NumberSelector
 import scala.util.Try
 
 trait NumberPool {
-  def Numbers : List[Int]
+  def Numbers: List[Int]
 
-  def Count : Int
+  def Count: Int
 
-  def Selector : NumberSelector
+  def Selector: NumberSelector
 
-  def Selector_=(slctr : NumberSelector) : Unit
+  def Selector_=(slctr: NumberSelector): Unit
 
-  def Get() : Try[Int]
+  def Get(): Try[Int]
 
-  def Return(number : Int) : Boolean
+  def Return(number: Int): Boolean
 }

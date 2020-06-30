@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.newcodecs
 
-import scodec.{ Attempt, Codec, DecodeResult, Err, SizeBound }
-import scodec.bits.{ BitVector, ByteOrdering }
+import scodec.{Attempt, Codec, DecodeResult, Err, SizeBound}
+import scodec.bits.{BitVector, ByteOrdering}
 
 final class QuantizedDoubleCodec(min: Double, max: Double, bits: Int) extends Codec[Double] {
 
@@ -14,14 +14,14 @@ final class QuantizedDoubleCodec(min: Double, max: Double, bits: Int) extends Co
 
   override def sizeBound = SizeBound.exact(bitsL)
 
-  def QuantizeDouble(value : Double) : Int = {
-    val range : Double = max - min;
+  def QuantizeDouble(value: Double): Int = {
+    val range: Double = max - min;
 
     if (range == 0.0)
       return 0
 
-    val bit_max : Int = 1 << bits;
-    val rounded_quantized : Int = math.floor((value - min) * bit_max.toDouble / range + 0.5).toInt
+    val bit_max: Int           = 1 << bits;
+    val rounded_quantized: Int = math.floor((value - min) * bit_max.toDouble / range + 0.5).toInt
 
     if (rounded_quantized < 0)
       return 0
@@ -32,7 +32,7 @@ final class QuantizedDoubleCodec(min: Double, max: Double, bits: Int) extends Co
     return rounded_quantized
   }
 
-  def UnquantizeDouble(value : Int) : Double = {
+  def UnquantizeDouble(value: Int): Double = {
     return ((max - min) * value.toDouble / (1 << bitsL.toInt).toDouble + min)
   }
 
@@ -42,7 +42,9 @@ final class QuantizedDoubleCodec(min: Double, max: Double, bits: Int) extends Co
 
   override def decode(buffer: BitVector) = {
     if (buffer.sizeGreaterThanOrEqual(bitsL))
-      Attempt.successful(DecodeResult(UnquantizeDouble(buffer.take(bitsL).toInt(false, ByteOrdering.LittleEndian)), buffer.drop(bitsL)))
+      Attempt.successful(
+        DecodeResult(UnquantizeDouble(buffer.take(bitsL).toInt(false, ByteOrdering.LittleEndian)), buffer.drop(bitsL))
+      )
     else
       Attempt.failure(Err.insufficientBits(bitsL, buffer.size))
   }

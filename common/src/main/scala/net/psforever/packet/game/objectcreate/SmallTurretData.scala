@@ -20,11 +20,12 @@ import shapeless.{::, HNil}
   * @param health the amount of health the object has, as a percentage of a filled bar
   * @param internals data regarding the mounted weapon
   */
-final case class SmallTurretData(deploy : CommonFieldDataWithPlacement,
-                                 health : Int,
-                                 internals : Option[InventoryData] = None
-                                ) extends ConstructorData {
-  override def bitsize : Long = {
+final case class SmallTurretData(
+    deploy: CommonFieldDataWithPlacement,
+    health: Int,
+    internals: Option[InventoryData] = None
+) extends ConstructorData {
+  override def bitsize: Long = {
     val deploySize = deploy.bitsize
     val internalSize = internals match {
       case Some(inv) =>
@@ -37,6 +38,7 @@ final case class SmallTurretData(deploy : CommonFieldDataWithPlacement,
 }
 
 object SmallTurretData extends Marshallable[SmallTurretData] {
+
   /**
     * Overloaded constructor that mandates information about the internal weapon of the small turret.
     * @param deploy data common to objects spawned by the (advanced) adaptive construction engine
@@ -44,23 +46,22 @@ object SmallTurretData extends Marshallable[SmallTurretData] {
     * @param internals data regarding the mounted weapon
     * @return a `SmallTurretData` object
     */
-  def apply(deploy : CommonFieldDataWithPlacement, health : Int, internals : InventoryData) : SmallTurretData =
+  def apply(deploy: CommonFieldDataWithPlacement, health: Int, internals: InventoryData): SmallTurretData =
     new SmallTurretData(deploy, health, Some(internals))
 
-  implicit val codec : Codec[SmallTurretData] = (
+  implicit val codec: Codec[SmallTurretData] = (
     ("deploy" | CommonFieldDataWithPlacement.codec2) ::
       ("health" | uint8L) ::
       uintL(7) ::
       uint4L ::
       uint2L ::
       optional(bool, "internals" | InventoryData.codec)
-  ).exmap[SmallTurretData] (
+  ).exmap[SmallTurretData](
     {
-      case deploy :: health :: 0 :: 0xF :: 0 :: internals :: HNil =>
-        val (newHealth, newInternals) = if(health == 0 || internals.isEmpty || internals.get.contents.isEmpty) {
+      case deploy :: health :: 0 :: 0xf :: 0 :: internals :: HNil =>
+        val (newHealth, newInternals) = if (health == 0 || internals.isEmpty || internals.get.contents.isEmpty) {
           (0, None)
-        }
-        else {
+        } else {
           (health, internals)
         }
         Attempt.successful(SmallTurretData(deploy, newHealth, newInternals))
@@ -70,13 +71,12 @@ object SmallTurretData extends Marshallable[SmallTurretData] {
     },
     {
       case SmallTurretData(deploy, health, internals) =>
-        val (newHealth, newInternals) = if(health == 0 || internals.isEmpty || internals.get.contents.isEmpty) {
+        val (newHealth, newInternals) = if (health == 0 || internals.isEmpty || internals.get.contents.isEmpty) {
           (0, None)
-        }
-        else {
+        } else {
           (health, internals)
         }
-        Attempt.successful(deploy :: newHealth :: 0 :: 0xF :: 0 :: newInternals :: HNil)
+        Attempt.successful(deploy :: newHealth :: 0 :: 0xf :: 0 :: newInternals :: HNil)
     }
   )
 }

@@ -8,26 +8,29 @@ import scodec.bits._
 import scodec.interop.akka._
 import akka.util.ByteString
 
-final case class ReceivedPacket(msg : ByteVector, from : InetSocketAddress)
-final case class SendPacket(msg : ByteVector, to : InetSocketAddress)
+final case class ReceivedPacket(msg: ByteVector, from: InetSocketAddress)
+final case class SendPacket(msg: ByteVector, to: InetSocketAddress)
 final case class Hello()
-final case class HelloFriend(sessionId : Long, next: Iterator[ActorRef])
+final case class HelloFriend(sessionId: Long, next: Iterator[ActorRef])
 
-class UdpListener(nextActorProps : Props,
-                  nextActorName : String,
-                  listenAddress : InetAddress,
-                  port : Int,
-                  netParams : Option[NetworkSimulatorParameters]) extends Actor {
+class UdpListener(
+    nextActorProps: Props,
+    nextActorName: String,
+    listenAddress: InetAddress,
+    port: Int,
+    netParams: Option[NetworkSimulatorParameters]
+) extends Actor {
   private val log = org.log4s.getLogger(self.path.name)
 
-  override def supervisorStrategy = OneForOneStrategy() {
-    case _ => Stop
-  }
+  override def supervisorStrategy =
+    OneForOneStrategy() {
+      case _ => Stop
+    }
 
   import context.system
 
   // If we have network parameters, start the network simulator
-  if(netParams.isDefined) {
+  if (netParams.isDefined) {
     // See http://www.cakesolutions.net/teamblogs/understanding-akkas-recommended-practice-for-actor-creation-in-scala
     // For why we cant do Props(new Actor) here
     val sim = context.actorOf(Props(classOf[UdpNetworkSimulator], self, netParams.get))
@@ -36,9 +39,9 @@ class UdpListener(nextActorProps : Props,
     IO(Udp) ! Udp.Bind(self, new InetSocketAddress(listenAddress, port))
   }
 
-  var bytesRecevied = 0L
-  var bytesSent = 0L
-  var nextActor : ActorRef = ActorRef.noSender
+  var bytesRecevied       = 0L
+  var bytesSent           = 0L
+  var nextActor: ActorRef = ActorRef.noSender
 
   def receive = {
     case Udp.Bound(local) =>

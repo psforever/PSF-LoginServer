@@ -15,19 +15,17 @@ import scodec.codecs._
   * @param player_guid the player who sent this request
   * @param data everything else
   */
-final case class VoiceHostRequest(unk : Boolean,
-                                  player_guid : PlanetSideGUID,
-                                  data : ByteVector)
-  extends PlanetSideGamePacket {
+final case class VoiceHostRequest(unk: Boolean, player_guid: PlanetSideGUID, data: ByteVector)
+    extends PlanetSideGamePacket {
   type Packet = VoiceHostRequest
   def opcode = GamePacketOpcode.VoiceHostRequest
   def encode = VoiceHostRequest.encode(this)
 }
 
 object VoiceHostRequest extends Marshallable[VoiceHostRequest] {
-  implicit val codec : Codec[VoiceHostRequest] = (
+  implicit val codec: Codec[VoiceHostRequest] = (
     ("unk" | bool) ::
       ("player_guid" | PlanetSideGUID.codec) ::
       ("data" | bytes)
-    ).as[VoiceHostRequest]
+  ).as[VoiceHostRequest]
 }

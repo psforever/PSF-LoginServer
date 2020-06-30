@@ -10,10 +10,10 @@ import scala.annotation.tailrec
 import scala.util.{Success, Try}
 
 class AvatarConverter extends ObjectCreateConverter[Player]() {
-  override def ConstructorData(obj : Player) : Try[PlayerData] = {
+  override def ConstructorData(obj: Player): Try[PlayerData] = {
     import AvatarConverter._
     Success(
-      if(obj.VehicleSeated.isEmpty) {
+      if (obj.VehicleSeated.isEmpty) {
         PlayerData(
           PlacementData(obj.Position, obj.Orientation, obj.Velocity),
           MakeAppearanceData(obj),
@@ -21,8 +21,7 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
           MakeInventoryData(obj),
           GetDrawnSlot(obj)
         )
-      }
-      else {
+      } else {
         PlayerData(
           MakeAppearanceData(obj),
           MakeCharacterData(obj),
@@ -33,10 +32,10 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     )
   }
 
-  override def DetailedConstructorData(obj : Player) : Try[DetailedPlayerData] = {
+  override def DetailedConstructorData(obj: Player): Try[DetailedPlayerData] = {
     import AvatarConverter._
     Success(
-      if(obj.VehicleSeated.isEmpty) {
+      if (obj.VehicleSeated.isEmpty) {
         DetailedPlayerData.apply(
           PlacementData(obj.Position, obj.Orientation, obj.Velocity),
           MakeAppearanceData(obj),
@@ -44,8 +43,7 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
           MakeDetailedInventoryData(obj),
           GetDrawnSlot(obj)
         )
-      }
-      else {
+      } else {
         DetailedPlayerData.apply(
           MakeAppearanceData(obj),
           MakeDetailedCharacterData(obj),
@@ -58,14 +56,15 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
 }
 
 object AvatarConverter {
+
   /**
     * Compose some data from a `Player` into a representation common to both `CharacterData` and `DetailedCharacterData`.
     * @param obj the `Player` game object
     * @return the resulting `CharacterAppearanceData`
     */
-  def MakeAppearanceData(obj : Player) : Int=>CharacterAppearanceData = {
-    val alt_model_flag : Boolean = obj.isBackpack
-    val aa : Int=>CharacterAppearanceA = CharacterAppearanceA(
+  def MakeAppearanceData(obj: Player): Int => CharacterAppearanceData = {
+    val alt_model_flag: Boolean = obj.isBackpack
+    val aa: Int => CharacterAppearanceA = CharacterAppearanceA(
       BasicCharacterData(obj.Name, obj.Faction, obj.Sex, obj.Head, obj.Voice),
       CommonFieldData(
         obj.Faction,
@@ -86,7 +85,7 @@ object AvatarConverter {
       0,
       0
     )
-    val ab : (Boolean,Int)=>CharacterAppearanceB = CharacterAppearanceB(
+    val ab: (Boolean, Int) => CharacterAppearanceB = CharacterAppearanceB(
       0L,
       outfit_name = "",
       outfit_logo = 0,
@@ -109,14 +108,13 @@ object AvatarConverter {
     CharacterAppearanceData(aa, ab, RibbonBars())
   }
 
-  def MakeCharacterData(obj : Player) : (Boolean,Boolean)=>CharacterData = {
+  def MakeCharacterData(obj: Player): (Boolean, Boolean) => CharacterData = {
     val MaxArmor = obj.MaxArmor
     CharacterData(
       StatConverter.Health(obj.Health, obj.MaxHealth),
-      if(MaxArmor == 0) {
+      if (MaxArmor == 0) {
         0
-      }
-      else {
+      } else {
         StatConverter.Health(obj.Armor, MaxArmor)
       },
       DressBattleRank(obj),
@@ -127,43 +125,59 @@ object AvatarConverter {
     )
   }
 
-  def MakeDetailedCharacterData(obj : Player) : Option[Int]=>DetailedCharacterData = {
-    val bep : Long = obj.BEP
-    val maxOpt : Option[Long] = if(obj.ExoSuit == ExoSuitType.MAX) { Some(0L) } else { None }
-    val ba : DetailedCharacterA = DetailedCharacterA(
+  def MakeDetailedCharacterData(obj: Player): Option[Int] => DetailedCharacterData = {
+    val bep: Long = obj.BEP
+    val maxOpt: Option[Long] = if (obj.ExoSuit == ExoSuitType.MAX) { Some(0L) }
+    else { None }
+    val ba: DetailedCharacterA = DetailedCharacterA(
       bep,
       obj.CEP,
-      0L, 0L, 0L,
-      obj.MaxHealth, obj.Health,
+      0L,
+      0L,
+      0L,
+      obj.MaxHealth,
+      obj.Health,
       false,
       obj.Armor,
       0L,
-      obj.MaxStamina, obj.Stamina,
+      obj.MaxStamina,
+      obj.Stamina,
       maxOpt,
-      0, 0, 0L,
+      0,
+      0,
+      0L,
       List(0, 0, 0, 0, 0, 0),
       obj.Certifications.toList.sortBy(_.id) //TODO is sorting necessary?
     )
-    val bb : (Long, Option[Int])=>DetailedCharacterB = DetailedCharacterB(
+    val bb: (Long, Option[Int]) => DetailedCharacterB = DetailedCharacterB(
       None,
       MakeImplantEntries(obj),
-      Nil, Nil,
+      Nil,
+      Nil,
       obj.FirstTimeEvents,
       tutorials = List.empty[String], //TODO tutorial list
-      0L, 0L, 0L, 0L, 0L,
+      0L,
+      0L,
+      0L,
+      0L,
+      0L,
       Some(DCDExtra2(0, 0)),
-      Nil, Nil, false,
+      Nil,
+      Nil,
+      false,
       MakeCosmetics(obj)
     )
-    pad_length : Option[Int] => DetailedCharacterData(ba, bb(bep, pad_length))(pad_length)
+    pad_length: Option[Int] => DetailedCharacterData(ba, bb(bep, pad_length))(pad_length)
   }
 
-  def MakeInventoryData(obj : Player) : InventoryData = {
+  def MakeInventoryData(obj: Player): InventoryData = {
     InventoryData(MakeHolsters(obj, BuildEquipment).sortBy(_.parentSlot))
   }
 
-  def MakeDetailedInventoryData(obj : Player) : InventoryData = {
-    InventoryData((MakeHolsters(obj, BuildDetailedEquipment) ++ MakeFifthSlot(obj) ++ MakeInventory(obj)).sortBy(_.parentSlot))
+  def MakeDetailedInventoryData(obj: Player): InventoryData = {
+    InventoryData(
+      (MakeHolsters(obj, BuildDetailedEquipment) ++ MakeFifthSlot(obj) ++ MakeInventory(obj)).sortBy(_.parentSlot)
+    )
   }
 
   /**
@@ -172,18 +186,15 @@ object AvatarConverter {
     * @param obj the `Player` game object
     * @return the resulting uniform upgrade level
     */
-  private def DressBattleRank(obj : Player) : UniformStyle.Value = {
-    val bep : Long = obj.BEP
-    if(bep > 2583440) { //BR25+
+  private def DressBattleRank(obj: Player): UniformStyle.Value = {
+    val bep: Long = obj.BEP
+    if (bep > 2583440) { //BR25+
       UniformStyle.ThirdUpgrade
-    }
-    else if(bep > 308989) { //BR14+
+    } else if (bep > 308989) { //BR14+
       UniformStyle.SecondUpgrade
-    }
-    else if(bep > 44999) { //BR7+
+    } else if (bep > 44999) { //BR7+
       UniformStyle.FirstUpgrade
-    }
-    else { //BR1+
+    } else { //BR1+
       UniformStyle.Normal
     }
   }
@@ -194,24 +205,19 @@ object AvatarConverter {
     * @param obj the `Player` game object
     * @return the resulting uniform upgrade level
     */
-  private def DressCommandRank(obj : Player) : Int = {
+  private def DressCommandRank(obj: Player): Int = {
     val cep = obj.CEP
-    if(cep > 599999) {
+    if (cep > 599999) {
       5
-    }
-    else if(cep > 299999) {
+    } else if (cep > 299999) {
       4
-    }
-    else if(cep > 149999) {
+    } else if (cep > 149999) {
       3
-    }
-    else if(cep > 49999) {
+    } else if (cep > 49999) {
       2
-    }
-    else if(cep > 9999) {
+    } else if (cep > 9999) {
       1
-    }
-    else {
+    } else {
       0
     }
   }
@@ -222,17 +228,19 @@ object AvatarConverter {
     * @return the resulting implant `List`
     * @see `ImplantEntry` in `DetailedCharacterData`
     */
-  private def MakeImplantEntries(obj : Player) : List[ImplantEntry] = {
+  private def MakeImplantEntries(obj: Player): List[ImplantEntry] = {
     //val numImplants : Int = DetailedCharacterData.numberOfImplantSlots(obj.BEP)
     //val implants = obj.Implants
-    obj.Implants.map({ case(implant, initialization, _) =>
-      if(initialization == 0) {
-        ImplantEntry(implant, None)
-      }
-      else {
-        ImplantEntry(implant, Some(math.max(0,initialization).toInt))
-      }
-    }).toList
+    obj.Implants
+      .map({
+        case (implant, initialization, _) =>
+          if (initialization == 0) {
+            ImplantEntry(implant, None)
+          } else {
+            ImplantEntry(implant, Some(math.max(0, initialization).toInt))
+          }
+      })
+      .toList
   }
 
   /**
@@ -240,12 +248,12 @@ object AvatarConverter {
     * @param implants a `Sequence` of `ImplantSlot` objects
     * @return the effect of an active implant
     */
-  private def MakeImplantEffectList(implants : Seq[(ImplantType.Value, Long, Boolean)]) : List[ImplantEffects.Value] = {
+  private def MakeImplantEffectList(implants: Seq[(ImplantType.Value, Long, Boolean)]): List[ImplantEffects.Value] = {
     implants.collect {
-      case (ImplantType.AdvancedRegen,_,true) => ImplantEffects.RegenEffects
-      case (ImplantType.DarklightVision,_,true) => ImplantEffects.DarklightEffects
-      case (ImplantType.PersonalShield,_,true) => ImplantEffects.PersonalShieldEffects
-      case (ImplantType.Surge,_,true) => ImplantEffects.SurgeEffects
+      case (ImplantType.AdvancedRegen, _, true)   => ImplantEffects.RegenEffects
+      case (ImplantType.DarklightVision, _, true) => ImplantEffects.DarklightEffects
+      case (ImplantType.PersonalShield, _, true)  => ImplantEffects.PersonalShieldEffects
+      case (ImplantType.Surge, _, true)           => ImplantEffects.SurgeEffects
     }.toList
   }
 
@@ -257,11 +265,10 @@ object AvatarConverter {
     * @see `Cosmetics`
     * @return the `Cosmetics` options
     */
-  def MakeCosmetics(obj : Player) : Option[Cosmetics] =
-    if(DetailedCharacterData.isBR24(obj.BEP)) {
+  def MakeCosmetics(obj: Player): Option[Cosmetics] =
+    if (DetailedCharacterData.isBR24(obj.BEP)) {
       obj.PersonalStyleFeatures.orElse(Some(Cosmetics()))
-    }
-    else {
+    } else {
       None
     }
 
@@ -272,11 +279,16 @@ object AvatarConverter {
     * @param obj the `Player` game object
     * @return a list of all items that were in the inventory in decoded packet form
     */
-  private def MakeInventory(obj : Player) : List[InternalSlot] = {
+  private def MakeInventory(obj: Player): List[InternalSlot] = {
     obj.Inventory.Items
       .map(item => {
-          val equip : Equipment = item.obj
-          InternalSlot(equip.Definition.ObjectId, equip.GUID, item.start, equip.Definition.Packet.DetailedConstructorData(equip).get)
+        val equip: Equipment = item.obj
+        InternalSlot(
+          equip.Definition.ObjectId,
+          equip.GUID,
+          item.start,
+          equip.Definition.Packet.DetailedConstructorData(equip).get
+        )
       })
   }
 
@@ -289,7 +301,7 @@ object AvatarConverter {
     * @param builder the function used to transform to the decoded packet form
     * @return a list of all items that were in the holsters in decoded packet form
     */
-  private def MakeHolsters(obj : Player, builder : (Int, Equipment) => InternalSlot) : List[InternalSlot] = {
+  private def MakeHolsters(obj: Player, builder: (Int, Equipment) => InternalSlot): List[InternalSlot] = {
     recursiveMakeHolsters(obj.Holsters().iterator, builder)
   }
 
@@ -300,7 +312,7 @@ object AvatarConverter {
     * @param obj the `Player` game object
     * @return a list of any item that was in the fifth holster in decoded packet form
     */
-  private def MakeFifthSlot(obj : Player) : List[InternalSlot] = {
+  private def MakeFifthSlot(obj: Player): List[InternalSlot] = {
     obj.Slot(5).Equipment match {
       case Some(equip) =>
         BuildDetailedEquipment(5, equip) :: Nil
@@ -315,7 +327,7 @@ object AvatarConverter {
     * @param equip the game object
     * @return the game object in decoded packet form
     */
-  private def BuildEquipment(index : Int, equip : Equipment) : InternalSlot = {
+  private def BuildEquipment(index: Int, equip: Equipment): InternalSlot = {
     InternalSlot(equip.Definition.ObjectId, equip.GUID, index, equip.Definition.Packet.ConstructorData(equip).get)
   }
 
@@ -325,8 +337,13 @@ object AvatarConverter {
     * @param equip the game object
     * @return the game object in decoded packet form
     */
-  def BuildDetailedEquipment(index : Int, equip : Equipment) : InternalSlot = {
-    InternalSlot(equip.Definition.ObjectId, equip.GUID, index, equip.Definition.Packet.DetailedConstructorData(equip).get)
+  def BuildDetailedEquipment(index: Int, equip: Equipment): InternalSlot = {
+    InternalSlot(
+      equip.Definition.ObjectId,
+      equip.GUID,
+      index,
+      equip.Definition.Packet.DetailedConstructorData(equip).get
+    )
   }
 
   /**
@@ -337,22 +354,25 @@ object AvatarConverter {
     * @param index which holster is currently being explored
     * @return the `List` of inventory data created from the holsters
     */
-  @tailrec private def recursiveMakeHolsters(iter : Iterator[EquipmentSlot], builder : (Int, Equipment) => InternalSlot, list : List[InternalSlot] = Nil, index : Int = 0) : List[InternalSlot] = {
-    if(!iter.hasNext) {
+  @tailrec private def recursiveMakeHolsters(
+      iter: Iterator[EquipmentSlot],
+      builder: (Int, Equipment) => InternalSlot,
+      list: List[InternalSlot] = Nil,
+      index: Int = 0
+  ): List[InternalSlot] = {
+    if (!iter.hasNext) {
       list
-    }
-    else {
-      val slot : EquipmentSlot = iter.next
-      if(slot.Equipment.isDefined) {
-        val equip : Equipment = slot.Equipment.get
+    } else {
+      val slot: EquipmentSlot = iter.next
+      if (slot.Equipment.isDefined) {
+        val equip: Equipment = slot.Equipment.get
         recursiveMakeHolsters(
           iter,
           builder,
           list :+ builder(index, equip),
           index + 1
         )
-      }
-      else {
+      } else {
         recursiveMakeHolsters(iter, builder, list, index + 1)
       }
     }
@@ -363,10 +383,10 @@ object AvatarConverter {
     * @param obj the `Player` game object
     * @return the holster's Enumeration value
     */
-  def GetDrawnSlot(obj : Player) : DrawnSlot.Value = {
+  def GetDrawnSlot(obj: Player): DrawnSlot.Value = {
     obj.DrawnSlot match {
       case Player.HandsDownSlot | Player.FreeHandSlot => DrawnSlot.None
-      case n => DrawnSlot(n)
+      case n                                          => DrawnSlot(n)
     }
   }
 }

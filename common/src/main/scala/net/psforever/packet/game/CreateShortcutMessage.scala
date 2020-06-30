@@ -44,10 +44,7 @@ import scodec.codecs._
   * @param effect1 for macros, a three letter acronym displayed in the hotbar
   * @param effect2 for macros, the chat message content
   */
-final case class Shortcut(purpose : Int,
-                          tile : String,
-                          effect1 : String = "",
-                          effect2 : String = "")
+final case class Shortcut(purpose: Int, tile: String, effect1: String = "", effect2: String = "")
 
 /**
   * Facilitate a quick-use button for the hotbar.<br>
@@ -72,12 +69,13 @@ final case class Shortcut(purpose : Int,
   * @param shortcut optional; details about the shortcut to be created
   * @see ChangeShortcutBankMessage
   */
-final case class CreateShortcutMessage(player_guid : PlanetSideGUID,
-                                       slot : Int,
-                                       unk : Int,
-                                       addShortcut : Boolean,
-                                       shortcut : Option[Shortcut] = None)
-  extends PlanetSideGamePacket {
+final case class CreateShortcutMessage(
+    player_guid: PlanetSideGUID,
+    slot: Int,
+    unk: Int,
+    addShortcut: Boolean,
+    shortcut: Option[Shortcut] = None
+) extends PlanetSideGamePacket {
   type Packet = CreateShortcutMessage
   def opcode = GamePacketOpcode.CreateShortcutMessage
   def encode = CreateShortcutMessage.encode(this)
@@ -87,66 +85,77 @@ object Shortcut extends Marshallable[Shortcut] {
   // Convenient predefined Shortcuts for the Medkit and Implants
 
   /**
-    A map to convert between ImplantTypes and Implant Shortcuts
-   */
-  final lazy val ImplantsMap : Map[ImplantType.Value, Option[Shortcut]] = Map(
-    ImplantType.AdvancedRegen->Regeneration,
-    ImplantType.Targeting->EnhancedTargeting,
-    ImplantType.AudioAmplifier->AudioAmplifier,
-    ImplantType.DarklightVision->DartklightVision,
-    ImplantType.MeleeBooster->MeleeBooster,
-    ImplantType.PersonalShield->PersonalShield,
-    ImplantType.RangeMagnifier->RangeMagnifier,
-    ImplantType.SecondWind->SecondWind,
-    ImplantType.SilentRun->SensorShield,
-    ImplantType.Surge->Surge
+    *    A map to convert between ImplantTypes and Implant Shortcuts
+    */
+  final lazy val ImplantsMap: Map[ImplantType.Value, Option[Shortcut]] = Map(
+    ImplantType.AdvancedRegen   -> Regeneration,
+    ImplantType.Targeting       -> EnhancedTargeting,
+    ImplantType.AudioAmplifier  -> AudioAmplifier,
+    ImplantType.DarklightVision -> DartklightVision,
+    ImplantType.MeleeBooster    -> MeleeBooster,
+    ImplantType.PersonalShield  -> PersonalShield,
+    ImplantType.RangeMagnifier  -> RangeMagnifier,
+    ImplantType.SecondWind      -> SecondWind,
+    ImplantType.SilentRun       -> SensorShield,
+    ImplantType.Surge           -> Surge
   ).withDefaultValue(None)
 
   /** Preset for the Audio Amplifier implant. */
-  final val AudioAmplifier : Some[Shortcut] = Some(Shortcut(2, "audio_amplifier"))
+  final val AudioAmplifier: Some[Shortcut] = Some(Shortcut(2, "audio_amplifier"))
+
   /** Preset for the Darklight Vision implant. */
-  final val DartklightVision : Some[Shortcut] = Some(Shortcut(2, "darklight_vision"))
+  final val DartklightVision: Some[Shortcut] = Some(Shortcut(2, "darklight_vision"))
+
   /** Preset for the Enhanced Targeting implant. */
-  final val EnhancedTargeting : Some[Shortcut] = Some(Shortcut(2, "targeting"))
+  final val EnhancedTargeting: Some[Shortcut] = Some(Shortcut(2, "targeting"))
+
   /** Preset for the medkit quick-use option. */
-  final val Medkit : Some[Shortcut] = Some(Shortcut(0, "medkit"))
+  final val Medkit: Some[Shortcut] = Some(Shortcut(0, "medkit"))
+
   /** Preset for the Melee Booster implant. */
-  final val MeleeBooster : Some[Shortcut] = Some(Shortcut(2, "melee_booster"))
+  final val MeleeBooster: Some[Shortcut] = Some(Shortcut(2, "melee_booster"))
+
   /** Preset for the Personal Shield implant. */
-  final val PersonalShield : Some[Shortcut] = Some(Shortcut(2, "personal_shield"))
+  final val PersonalShield: Some[Shortcut] = Some(Shortcut(2, "personal_shield"))
+
   /** Preset for the Range Magnifier implant. */
-  final val RangeMagnifier : Some[Shortcut] = Some(Shortcut(2, "range_magnifier"))
+  final val RangeMagnifier: Some[Shortcut] = Some(Shortcut(2, "range_magnifier"))
+
   /** Preset for the Regeneration implant. */
-  final val Regeneration : Some[Shortcut] = Some(Shortcut(2, "advanced_regen"))
+  final val Regeneration: Some[Shortcut] = Some(Shortcut(2, "advanced_regen"))
+
   /** Preset for the Second Wind implant. */
-  final val SecondWind : Some[Shortcut] = Some(Shortcut(2, "second_wind"))
+  final val SecondWind: Some[Shortcut] = Some(Shortcut(2, "second_wind"))
+
   /** Preset for the Sensor Shield implant. */
-  final val SensorShield : Some[Shortcut] = Some(Shortcut(2, "silent_run"))
+  final val SensorShield: Some[Shortcut] = Some(Shortcut(2, "silent_run"))
+
   /** Preset for the Surge implant. */
-  final val Surge : Some[Shortcut] = Some(Shortcut(2, "surge"))
+  final val Surge: Some[Shortcut] = Some(Shortcut(2, "surge"))
+
   /**
     * Converter for text macro parameters that acts like a preset.
     * @param effect1 a three letter acronym displayed in the hotbar
     * @param effect2 the chat message content
     * @return `Some` shortcut that represents a voice macro command
     */
-  def MACRO(effect1 : String, effect2 : String) : Some[Shortcut] = Some(Shortcut(1, "shortcut_macro", effect1, effect2))
+  def MACRO(effect1: String, effect2: String): Some[Shortcut] = Some(Shortcut(1, "shortcut_macro", effect1, effect2))
 
-  implicit val codec : Codec[Shortcut] = (
+  implicit val codec: Codec[Shortcut] = (
     ("purpose" | uint2L) ::
       ("tile" | PacketHelpers.encodedStringAligned(5)) ::
       ("effect1" | PacketHelpers.encodedWideString) ::
       ("effect2" | PacketHelpers.encodedWideString)
-    ).as[Shortcut]
+  ).as[Shortcut]
 }
 
 object CreateShortcutMessage extends Marshallable[CreateShortcutMessage] {
-  implicit val codec : Codec[CreateShortcutMessage] = (
+  implicit val codec: Codec[CreateShortcutMessage] = (
     ("player_guid" | PlanetSideGUID.codec) ::
       ("slot" | uint8L) ::
       ("unk" | uint8L) ::
       (("addShortcut" | bool) >>:~ { value =>
-        conditional(value, "shortcut" | Shortcut.codec).hlist
-      })
-    ).as[CreateShortcutMessage]
+      conditional(value, "shortcut" | Shortcut.codec).hlist
+    })
+  ).as[CreateShortcutMessage]
 }

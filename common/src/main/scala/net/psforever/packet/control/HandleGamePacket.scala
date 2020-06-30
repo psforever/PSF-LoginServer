@@ -6,22 +6,19 @@ import scodec.Codec
 import scodec.bits.{BitVector, ByteVector}
 import scodec.codecs._
 
-final case class HandleGamePacket(len : Int,
-                                  stream : ByteVector,
-                                  rest : BitVector = BitVector.empty)
-  extends PlanetSideControlPacket {
+final case class HandleGamePacket(len: Int, stream: ByteVector, rest: BitVector = BitVector.empty)
+    extends PlanetSideControlPacket {
   def opcode = ControlPacketOpcode.HandleGamePacket
   def encode = HandleGamePacket.encode(this)
 }
 
 object HandleGamePacket extends Marshallable[HandleGamePacket] {
-  def apply(stream : ByteVector) : HandleGamePacket = {
+  def apply(stream: ByteVector): HandleGamePacket = {
     new HandleGamePacket(stream.length.toInt, stream)
   }
 
-  implicit val codec : Codec[HandleGamePacket] = (
-    ("len" | uint16) >>:~ { len =>
-      ("stream" | bytes(len)) ::
-        ("rest" | bits)
-    }).as[HandleGamePacket]
+  implicit val codec: Codec[HandleGamePacket] = (("len" | uint16) >>:~ { len =>
+    ("stream" | bytes(len)) ::
+      ("rest" | bits)
+  }).as[HandleGamePacket]
 }

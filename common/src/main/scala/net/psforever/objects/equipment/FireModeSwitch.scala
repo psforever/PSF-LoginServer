@@ -11,11 +11,11 @@ package net.psforever.objects.equipment
   * @tparam Mode the type parameter representing the fire mode
   */
 trait FireModeSwitch[Mode] {
-  def FireModeIndex : Int
+  def FireModeIndex: Int
 
-  def FireModeIndex_=(index : Int) : Int
+  def FireModeIndex_=(index: Int): Int
 
-  def FireMode : Mode
+  def FireMode: Mode
 
-  def NextFireMode : Mode
+  def NextFireMode: Mode
 }

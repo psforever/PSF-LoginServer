@@ -49,8 +49,8 @@ class TRAPDataTest extends Specification {
         ),
         255
       )
-      val msg = ObjectCreateMessage(ObjectClass.tank_traps, PlanetSideGUID(2659), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val msg      = ObjectCreateMessage(ObjectClass.tank_traps, PlanetSideGUID(2659), obj)
+      val pkt      = PacketCoding.EncodePacket(msg).require.toByteVector
       val pkt_bitv = pkt.toBitVector
       val ori_bitv = string_trap.toBitVector
       pkt_bitv.take(173) mustEqual ori_bitv.take(173)

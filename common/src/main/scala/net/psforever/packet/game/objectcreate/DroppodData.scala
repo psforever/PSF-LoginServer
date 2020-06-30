@@ -31,33 +31,30 @@ import shapeless.{::, HNil}
   * @see `DroppodLaunchRequestMessage`
   * @see `DroppodLaunchResponseMessage`
   */
-final case class DroppodData(basic : CommonFieldDataWithPlacement,
-                             health : Int,
-                             burn : Boolean,
-                             unk : Boolean
-                            ) extends ConstructorData {
-  override def bitsize : Long = {
+final case class DroppodData(basic: CommonFieldDataWithPlacement, health: Int, burn: Boolean, unk: Boolean)
+    extends ConstructorData {
+  override def bitsize: Long = {
     val basicSize = basic.bitsize
     29L + basicSize
   }
 }
 
 object DroppodData extends Marshallable[DroppodData] {
-  def apply(basic : CommonFieldDataWithPlacement) : DroppodData = DroppodData(basic, 255, burn = false, unk = false)
+  def apply(basic: CommonFieldDataWithPlacement): DroppodData = DroppodData(basic, 255, burn = false, unk = false)
 
-  implicit val  codec : Codec[DroppodData] = (
+  implicit val codec: Codec[DroppodData] = (
     ("basic" | CommonFieldDataWithPlacement.codec) ::
       bool ::
-      ("health" | uint8L) :: //health
-      uintL(5) :: //0x0
-      uint4L :: //0xF
-      uintL(6) :: //0x0
+      ("health" | uint8L) ::   //health
+      uintL(5) ::              //0x0
+      uint4L ::                //0xF
+      uintL(6) ::              //0x0
       ("boosters" | uint4L) :: //0x9 on standby, 0x0 when burning and occupied (basic.player_guid?)
       ("unk" | bool)
-    ).exmap[DroppodData] (
+  ).exmap[DroppodData](
     {
-      case basic :: false :: health :: 0 :: 0xF :: 0 :: boosters :: unk :: HNil =>
-        val burn : Boolean = boosters == 0
+      case basic :: false :: health :: 0 :: 0xf :: 0 :: boosters :: unk :: HNil =>
+        val burn: Boolean = boosters == 0
         Attempt.successful(DroppodData(basic, health, burn, unk))
 
       case data =>
@@ -65,8 +62,9 @@ object DroppodData extends Marshallable[DroppodData] {
     },
     {
       case DroppodData(basic, health, burn, unk) =>
-        val boosters : Int = if(burn) { 0 } else { 9 }
-        Attempt.successful(basic :: false :: health :: 0 :: 0xF :: 0 :: boosters :: unk :: HNil)
+        val boosters: Int = if (burn) { 0 }
+        else { 9 }
+        Attempt.successful(basic :: false :: health :: 0 :: 0xf :: 0 :: boosters :: unk :: HNil)
     }
   )
 }

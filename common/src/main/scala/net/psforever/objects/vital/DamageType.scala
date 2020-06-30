@@ -9,11 +9,5 @@ package net.psforever.objects.vital
 object DamageType extends Enumeration(1) {
   type Type = Value
 
-  final val Direct,
-  Splash,
-  Radiation,
-  Aggravated,
-  Plasma,
-  Comet,
-  None = Value
+  final val Direct, Splash, Radiation, Aggravated, Plasma, Comet, None = Value
 }

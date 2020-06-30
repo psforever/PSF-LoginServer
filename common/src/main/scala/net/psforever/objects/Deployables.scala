@@ -16,26 +16,36 @@ object Deployables {
   private val log = org.log4s.getLogger("Deployables")
 
   object Make {
-    def apply(item : DeployedItem.Value) : ()=>PlanetSideGameObject with Deployable = cemap(item)
+    def apply(item: DeployedItem.Value): () => PlanetSideGameObject with Deployable = cemap(item)
 
-    private val cemap : Map[DeployedItem.Value, ()=>PlanetSideGameObject with Deployable] = Map(
-      DeployedItem.boomer -> { ()=> new BoomerDeployable(GlobalDefinitions.boomer) },
-      DeployedItem.he_mine -> { ()=> new ExplosiveDeployable(GlobalDefinitions.he_mine) },
-      DeployedItem.jammer_mine -> { ()=> new ExplosiveDeployable(GlobalDefinitions.jammer_mine) },
-      DeployedItem.spitfire_turret -> { ()=> new TurretDeployable(GlobalDefinitions.spitfire_turret) },
-      DeployedItem.spitfire_cloaked -> { ()=> new TurretDeployable(GlobalDefinitions.spitfire_cloaked) },
-      DeployedItem.spitfire_aa -> { ()=> new TurretDeployable(GlobalDefinitions.spitfire_aa) },
-      DeployedItem.motionalarmsensor -> { ()=> new SensorDeployable(GlobalDefinitions.motionalarmsensor) },
-      DeployedItem.sensor_shield -> { ()=> new SensorDeployable(GlobalDefinitions.sensor_shield) },
-      DeployedItem.tank_traps -> { ()=> new TrapDeployable(GlobalDefinitions.tank_traps) },
-      DeployedItem.portable_manned_turret -> { ()=> new TurretDeployable(GlobalDefinitions.portable_manned_turret) },
-      DeployedItem.portable_manned_turret -> { ()=> new TurretDeployable(GlobalDefinitions.portable_manned_turret) },
-      DeployedItem.portable_manned_turret_nc -> { ()=> new TurretDeployable(GlobalDefinitions.portable_manned_turret_nc) },
-      DeployedItem.portable_manned_turret_tr -> { ()=> new TurretDeployable(GlobalDefinitions.portable_manned_turret_tr) },
-      DeployedItem.portable_manned_turret_vs -> { ()=> new TurretDeployable(GlobalDefinitions.portable_manned_turret_vs) },
-      DeployedItem.deployable_shield_generator -> { ()=> new ShieldGeneratorDeployable(GlobalDefinitions.deployable_shield_generator) },
-      DeployedItem.router_telepad_deployable -> { () => new TelepadDeployable(GlobalDefinitions.router_telepad_deployable) }
-    ).withDefaultValue( { ()=> new ExplosiveDeployable(GlobalDefinitions.boomer) } )
+    private val cemap: Map[DeployedItem.Value, () => PlanetSideGameObject with Deployable] = Map(
+      DeployedItem.boomer                 -> { () => new BoomerDeployable(GlobalDefinitions.boomer) },
+      DeployedItem.he_mine                -> { () => new ExplosiveDeployable(GlobalDefinitions.he_mine) },
+      DeployedItem.jammer_mine            -> { () => new ExplosiveDeployable(GlobalDefinitions.jammer_mine) },
+      DeployedItem.spitfire_turret        -> { () => new TurretDeployable(GlobalDefinitions.spitfire_turret) },
+      DeployedItem.spitfire_cloaked       -> { () => new TurretDeployable(GlobalDefinitions.spitfire_cloaked) },
+      DeployedItem.spitfire_aa            -> { () => new TurretDeployable(GlobalDefinitions.spitfire_aa) },
+      DeployedItem.motionalarmsensor      -> { () => new SensorDeployable(GlobalDefinitions.motionalarmsensor) },
+      DeployedItem.sensor_shield          -> { () => new SensorDeployable(GlobalDefinitions.sensor_shield) },
+      DeployedItem.tank_traps             -> { () => new TrapDeployable(GlobalDefinitions.tank_traps) },
+      DeployedItem.portable_manned_turret -> { () => new TurretDeployable(GlobalDefinitions.portable_manned_turret) },
+      DeployedItem.portable_manned_turret -> { () => new TurretDeployable(GlobalDefinitions.portable_manned_turret) },
+      DeployedItem.portable_manned_turret_nc -> { () =>
+        new TurretDeployable(GlobalDefinitions.portable_manned_turret_nc)
+      },
+      DeployedItem.portable_manned_turret_tr -> { () =>
+        new TurretDeployable(GlobalDefinitions.portable_manned_turret_tr)
+      },
+      DeployedItem.portable_manned_turret_vs -> { () =>
+        new TurretDeployable(GlobalDefinitions.portable_manned_turret_vs)
+      },
+      DeployedItem.deployable_shield_generator -> { () =>
+        new ShieldGeneratorDeployable(GlobalDefinitions.deployable_shield_generator)
+      },
+      DeployedItem.router_telepad_deployable -> { () =>
+        new TelepadDeployable(GlobalDefinitions.router_telepad_deployable)
+      }
+    ).withDefaultValue({ () => new ExplosiveDeployable(GlobalDefinitions.boomer) })
   }
 
   /**
@@ -60,7 +70,7 @@ object Deployables {
     * @param time length of time that the deployable is allowed to exist in the game world;
     *             `None` indicates the normal un-owned existence time (180 seconds)
     */
-  def AnnounceDestroyDeployable(target : PlanetSideGameObject with Deployable, time : Option[FiniteDuration]) : Unit = {
+  def AnnounceDestroyDeployable(target: PlanetSideGameObject with Deployable, time: Option[FiniteDuration]): Unit = {
     val zone = target.Zone
     target.OwnerName match {
       case Some(owner) =>
@@ -68,10 +78,13 @@ object Deployables {
         zone.LocalEvents ! LocalServiceMessage(owner, LocalAction.AlertDestroyDeployable(PlanetSideGUID(0), target))
       case None => ;
     }
-    zone.LocalEvents ! LocalServiceMessage(s"${target.Faction}", LocalAction.DeployableMapIcon(
-      PlanetSideGUID(0),
-      DeploymentAction.Dismiss,
-      DeployableInfo(target.GUID, Deployable.Icon(target.Definition.Item), target.Position, PlanetSideGUID(0)))
+    zone.LocalEvents ! LocalServiceMessage(
+      s"${target.Faction}",
+      LocalAction.DeployableMapIcon(
+        PlanetSideGUID(0),
+        DeploymentAction.Dismiss,
+        DeployableInfo(target.GUID, Deployable.Icon(target.Definition.Item), target.Position, PlanetSideGUID(0))
+      )
     )
     zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(target), zone))
     zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(target, zone, time))
@@ -86,17 +99,22 @@ object Deployables {
     * @return all previously-owned deployables after they have been processed;
     *         boomers are listed before all other deployable types
     */
-  def Disown(zone : Zone, avatar : Avatar, replyTo : ActorRef) : List[PlanetSideGameObject with Deployable] = {
+  def Disown(zone: Zone, avatar: Avatar, replyTo: ActorRef): List[PlanetSideGameObject with Deployable] = {
     val (boomers, deployables) =
-      avatar.Deployables.Clear()
+      avatar.Deployables
+        .Clear()
         .map(zone.GUID)
         .collect { case Some(obj) => obj.asInstanceOf[PlanetSideGameObject with Deployable] }
         .partition(_.isInstanceOf[BoomerDeployable])
     //do not change the OwnerName field at this time
-    boomers.collect({ case obj : BoomerDeployable =>
-      zone.LocalEvents.tell(LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, zone, Some(0 seconds))), replyTo) //near-instant
-      obj.Owner = None
-      obj.Trigger = None
+    boomers.collect({
+      case obj: BoomerDeployable =>
+        zone.LocalEvents.tell(
+          LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, zone, Some(0 seconds))),
+          replyTo
+        ) //near-instant
+        obj.Owner = None
+        obj.Trigger = None
     })
     deployables.foreach(obj => {
       zone.LocalEvents.tell(LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, zone)), replyTo) //normal decay
@@ -105,17 +123,17 @@ object Deployables {
     boomers ++ deployables
   }
 
-  def RemoveTelepad(vehicle: Vehicle) : Unit = {
+  def RemoveTelepad(vehicle: Vehicle): Unit = {
     val zone = vehicle.Zone
     (vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
-      case Some(util : Utility.InternalTelepad) =>
+      case Some(util: Utility.InternalTelepad) =>
         val telepad = util.Telepad
         util.Telepad = None
         zone.GUID(telepad)
       case _ =>
         None
     }) match {
-      case Some(telepad : TelepadDeployable) =>
+      case Some(telepad: TelepadDeployable) =>
         log.info(s"BeforeUnload: deconstructing telepad $telepad that was linked to router $vehicle ...")
         telepad.Active = false
         zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(telepad), zone))
@@ -124,13 +142,11 @@ object Deployables {
     }
   }
 
-
-
   /**
     * Initialize the deployables backend information.
     * @param avatar the player's core
     */
-  def InitializeDeployableQuantities(avatar : Avatar) : Boolean = {
+  def InitializeDeployableQuantities(avatar: Avatar): Boolean = {
     log.info("Setting up combat engineering ...")
     avatar.Deployables.Initialize(avatar.Certifications.toSet)
   }
@@ -139,7 +155,7 @@ object Deployables {
     * Initialize the UI elements for deployables.
     * @param avatar the player's core
     */
-  def InitializeDeployableUIElements(avatar : Avatar) : List[(Int,Int,Int,Int)] = {
+  def InitializeDeployableUIElements(avatar: Avatar): List[(Int, Int, Int, Int)] = {
     log.info("Setting up combat engineering UI ...")
     avatar.Deployables.UpdateUI()
   }
@@ -151,7 +167,11 @@ object Deployables {
     * @param certification the certification that was added
     * @param certificationSet all applicable certifications
     */
-  def AddToDeployableQuantities(avatar : Avatar, certification : CertificationType.Value, certificationSet : Set[CertificationType.Value]) : List[(Int,Int,Int,Int)] = {
+  def AddToDeployableQuantities(
+      avatar: Avatar,
+      certification: CertificationType.Value,
+      certificationSet: Set[CertificationType.Value]
+  ): List[(Int, Int, Int, Int)] = {
     avatar.Deployables.AddToDeployableQuantities(certification, certificationSet)
     avatar.Deployables.UpdateUI(certification)
   }
@@ -163,7 +183,11 @@ object Deployables {
     * @param certification the certification that was added
     * @param certificationSet all applicable certifications
     */
-  def RemoveFromDeployableQuantities(avatar : Avatar, certification : CertificationType.Value, certificationSet : Set[CertificationType.Value]) : List[(Int,Int,Int,Int)] = {
+  def RemoveFromDeployableQuantities(
+      avatar: Avatar,
+      certification: CertificationType.Value,
+      certificationSet: Set[CertificationType.Value]
+  ): List[(Int, Int, Int, Int)] = {
     avatar.Deployables.RemoveFromDeployableQuantities(certification, certificationSet)
     avatar.Deployables.UpdateUI(certification)
   }

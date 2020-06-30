@@ -13,10 +13,7 @@ import scodec.codecs._
   * @param unk1 na
   * @param unk2 na
   */
-final case class SplashedTarget(uid : PlanetSideGUID,
-                                pos : Vector3,
-                                unk1 : Long,
-                                unk2 : Option[Int])
+final case class SplashedTarget(uid: PlanetSideGUID, pos: Vector3, unk1: Long, unk2: Option[Int])
 
 /**
   * Dispatched to the server when a type of effect that influence multiple targets activates.<br>
@@ -51,22 +48,23 @@ final case class SplashedTarget(uid : PlanetSideGUID,
   * @param unk4 na
   * @param targets a `List` of all targets influenced by the splash
   */
-final case class SplashHitMessage(unk1 : Int,
-                                  projectile_uid : PlanetSideGUID,
-                                  projectile_pos : Vector3,
-                                  unk2 : Int,
-                                  unk3 : Int,
-                                  projectile_vel : Option[Vector3],
-                                  unk4 : Option[Int],
-                                  targets : List[SplashedTarget])
-  extends PlanetSideGamePacket {
+final case class SplashHitMessage(
+    unk1: Int,
+    projectile_uid: PlanetSideGUID,
+    projectile_pos: Vector3,
+    unk2: Int,
+    unk3: Int,
+    projectile_vel: Option[Vector3],
+    unk4: Option[Int],
+    targets: List[SplashedTarget]
+) extends PlanetSideGamePacket {
   type Packet = SplashHitMessage
   def opcode = GamePacketOpcode.SplashHitMessage
   def encode = SplashHitMessage.encode(this)
 }
 
 object SplashedTarget extends Marshallable[SplashedTarget] {
-  implicit val codec : Codec[SplashedTarget] = (
+  implicit val codec: Codec[SplashedTarget] = (
     ("uid" | PlanetSideGUID.codec) ::
       ("pos" | Vector3.codec_pos) ::
       ("unk1" | uint32L) ::
@@ -75,7 +73,7 @@ object SplashedTarget extends Marshallable[SplashedTarget] {
 }
 
 object SplashHitMessage extends Marshallable[SplashHitMessage] {
-  implicit val codec : Codec[SplashHitMessage] = (
+  implicit val codec: Codec[SplashHitMessage] = (
     ("unk1" | uintL(10)) ::
       ("projectile_uid" | PlanetSideGUID.codec) ::
       ("projectile_pos" | Vector3.codec_pos) ::
@@ -84,5 +82,5 @@ object SplashHitMessage extends Marshallable[SplashHitMessage] {
       optional(bool, "projectile_vel" | Vector3.codec_vel) ::
       optional(bool, "unk4" | uint16L) ::
       ("targets" | PacketHelpers.listOfNAligned(uint32L, 0, SplashedTarget.codec))
-    ).as[SplashHitMessage]
+  ).as[SplashHitMessage]
 }

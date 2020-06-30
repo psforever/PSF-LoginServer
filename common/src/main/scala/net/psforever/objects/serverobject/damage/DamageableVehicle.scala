@@ -18,70 +18,77 @@ import scala.concurrent.duration._
   * The "control" `Actor` mixin for damage-handling code for `Vehicle` objects.
   */
 trait DamageableVehicle extends DamageableEntity {
+
   /** vehicles (may) have shields; they need to be handled */
-  private var handleDamageToShields : Boolean = false
+  private var handleDamageToShields: Boolean = false
+
   /** whether or not the vehicle has been damaged directly, report that damage has occurred */
-  private var reportDamageToVehicle : Boolean = false
+  private var reportDamageToVehicle: Boolean = false
 
-  def DamageableObject : Vehicle
+  def DamageableObject: Vehicle
 
-  override protected def TakesDamage : Receive =
+  override protected def TakesDamage: Receive =
     super.TakesDamage.orElse {
       case DamageableVehicle.Damage(cause, damage) =>
-      //cargo vehicles inherit feedback from carrier
-      reportDamageToVehicle = damage > 0
-      DamageAwareness(DamageableObject, cause, amount = 0)
+        //cargo vehicles inherit feedback from carrier
+        reportDamageToVehicle = damage > 0
+        DamageAwareness(DamageableObject, cause, amount = 0)
 
-    case DamageableVehicle.Destruction(cause) =>
-      //cargo vehicles are destroyed when carrier is destroyed
-      val obj = DamageableObject
-      obj.Health = 0
-      obj.History(cause)
-      DestructionAwareness(obj, cause)
-  }
+      case DamageableVehicle.Destruction(cause) =>
+        //cargo vehicles are destroyed when carrier is destroyed
+        val obj = DamageableObject
+        obj.Health = 0
+        obj.History(cause)
+        DestructionAwareness(obj, cause)
+    }
 
   /**
     * Vehicles may have charged shields that absorb damage before the vehicle's own health is affected.
     * @param target the entity to be damaged
     * @param applyDamageTo the function that applies the damage to the target in a target-tailored fashion
     */
-  override protected def PerformDamage(target : Damageable.Target, applyDamageTo : ResolutionCalculations.Output) : Unit = {
-    val obj = DamageableObject
-    val originalHealth = obj.Health
+  override protected def PerformDamage(
+      target: Damageable.Target,
+      applyDamageTo: ResolutionCalculations.Output
+  ): Unit = {
+    val obj             = DamageableObject
+    val originalHealth  = obj.Health
     val originalShields = obj.Shields
-    val cause = applyDamageTo(obj)
-    val health = obj.Health
-    val shields = obj.Shields
-    val damageToHealth = originalHealth - health
+    val cause           = applyDamageTo(obj)
+    val health          = obj.Health
+    val shields         = obj.Shields
+    val damageToHealth  = originalHealth - health
     val damageToShields = originalShields - shields
-    if(WillAffectTarget(target, damageToHealth + damageToShields, cause)) {
+    if (WillAffectTarget(target, damageToHealth + damageToShields, cause)) {
       target.History(cause)
-      DamageLog(target, s"BEFORE=$originalHealth/$originalShields, AFTER=$health/$shields, CHANGE=$damageToHealth/$damageToShields")
+      DamageLog(
+        target,
+        s"BEFORE=$originalHealth/$originalShields, AFTER=$health/$shields, CHANGE=$damageToHealth/$damageToShields"
+      )
       handleDamageToShields = damageToShields > 0
       HandleDamage(target, cause, damageToHealth + damageToShields)
-    }
-    else {
+    } else {
       obj.Health = originalHealth
       obj.Shields = originalShields
     }
   }
 
-  override protected def DamageAwareness(target : Target, cause : ResolvedProjectile, amount : Int) : Unit = {
-    val obj = DamageableObject
+  override protected def DamageAwareness(target: Target, cause: ResolvedProjectile, amount: Int): Unit = {
+    val obj           = DamageableObject
     val handleShields = handleDamageToShields
     handleDamageToShields = false
     val handleReport = reportDamageToVehicle || amount > 0
     reportDamageToVehicle = false
-    if(Damageable.CanDamageOrJammer(target, amount, cause)) {
+    if (Damageable.CanDamageOrJammer(target, amount, cause)) {
       super.DamageAwareness(target, cause, amount)
     }
-    if(handleReport) {
+    if (handleReport) {
       DamageableMountable.DamageAwareness(obj, cause)
     }
     DamageableVehicle.DamageAwareness(obj, cause, amount, handleShields)
   }
 
-  override protected def DestructionAwareness(target : Target, cause : ResolvedProjectile) : Unit = {
+  override protected def DestructionAwareness(target: Target, cause: ResolvedProjectile): Unit = {
     super.DestructionAwareness(target, cause)
     val obj = DamageableObject
     DamageableMountable.DestructionAwareness(obj, cause)
@@ -91,17 +98,19 @@ trait DamageableVehicle extends DamageableEntity {
 }
 
 object DamageableVehicle {
+
   /**
     * Message for instructing the target's cargo vehicles about a damage source affecting their carrier.
     * @param cause historical information about damage
     */
-  private case class Damage(cause : ResolvedProjectile, amount : Int)
+  private case class Damage(cause: ResolvedProjectile, amount: Int)
+
   /**
     * Message for instructing the target's cargo vehicles that their carrier is destroyed,
     * and they should be destroyed too.
     * @param cause historical information about damage
     */
-  private case class Destruction(cause : ResolvedProjectile)
+  private case class Destruction(cause: ResolvedProjectile)
 
   /**
     * Most all vehicles and the weapons mounted to them can jam
@@ -118,19 +127,22 @@ object DamageableVehicle {
     * @param damage how much damage was performed
     * @param damageToShields dispatch a shield strength update
     */
-  def DamageAwareness(target : Vehicle, cause : ResolvedProjectile, damage : Int, damageToShields : Boolean) : Unit = {
+  def DamageAwareness(target: Vehicle, cause: ResolvedProjectile, damage: Int, damageToShields: Boolean): Unit = {
     //alert cargo occupants to damage source
     target.CargoHolds.values.foreach(hold => {
       hold.Occupant match {
         case Some(cargo) =>
-          cargo.Actor ! DamageableVehicle.Damage(cause, damage + (if(damageToShields) 1 else 0))
+          cargo.Actor ! DamageableVehicle.Damage(cause, damage + (if (damageToShields) 1 else 0))
         case None => ;
       }
     })
     //shields
-    if(damageToShields) {
+    if (damageToShields) {
       val zone = target.Zone
-      zone.VehicleEvents ! VehicleServiceMessage(s"${target.Actor}", VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 68, target.Shields))
+      zone.VehicleEvents ! VehicleServiceMessage(
+        s"${target.Actor}",
+        VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 68, target.Shields)
+      )
     }
   }
 
@@ -155,7 +167,7 @@ object DamageableVehicle {
     * @param target the entity being destroyed
     * @param cause historical information about the damage
     */
-  def DestructionAwareness(target : Vehicle, cause : ResolvedProjectile) : Unit = {
+  def DestructionAwareness(target: Vehicle, cause: ResolvedProjectile): Unit = {
     val zone = target.Zone
     //cargo vehicles die with us
     target.CargoHolds.values.foreach(hold => {
@@ -172,13 +184,19 @@ object DamageableVehicle {
       case GlobalDefinitions.router =>
         target.Actor ! Deployment.TryDeploymentChange(DriveState.Undeploying)
         VehicleService.BeforeUnloadVehicle(target, zone)
-        zone.LocalEvents ! LocalServiceMessage(zone.Id, LocalAction.ToggleTeleportSystem(PlanetSideGUID(0), target, None))
+        zone.LocalEvents ! LocalServiceMessage(
+          zone.Id,
+          LocalAction.ToggleTeleportSystem(PlanetSideGUID(0), target, None)
+        )
       case _ => ;
     }
     //shields
-    if(target.Shields > 0) {
+    if (target.Shields > 0) {
       target.Shields = 0
-      zone.VehicleEvents ! VehicleServiceMessage(zone.Id, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 68, 0))
+      zone.VehicleEvents ! VehicleServiceMessage(
+        zone.Id,
+        VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 68, 0)
+      )
     }
     target.Actor ! Vehicle.Deconstruct(Some(1 minute))
     target.ClearHistory()

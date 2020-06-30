@@ -9,15 +9,8 @@ import shapeless.{::, HNil}
 object FriendAction extends Enumeration {
   type Type = Value
 
-  val
-  InitializeFriendList,
-  AddFriend,
-  RemoveFriend,
-  UpdateFriend,
-  InitializeIgnoreList,
-  AddIgnoredPlayer,
-  RemoveIgnoredPlayer
-  = Value
+  val InitializeFriendList, AddFriend, RemoveFriend, UpdateFriend, InitializeIgnoreList, AddIgnoredPlayer,
+      RemoveIgnoredPlayer = Value
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uint(3))
 }
@@ -28,8 +21,7 @@ object FriendAction extends Enumeration {
   * @param name the name of the player
   * @param online the player's current state of activity; defaults to `false`, or offline
   */
-final case class Friend(name : String,
-                        online : Boolean = false)
+final case class Friend(name: String, online: Boolean = false)
 
 /**
   * Manage the lists of other players whose names are retained by the given player.<br>
@@ -53,54 +45,56 @@ final case class Friend(name : String,
   * @param unk3 na; always `true`?
   * @param friends a list of `Friend`s
   */
-final case class FriendsResponse(action : FriendAction.Value,
-                                 unk1 : Int,
-                                 unk2 : Boolean,
-                                 unk3 : Boolean,
-                                 friends : List[Friend] = Nil)
-  extends PlanetSideGamePacket {
+final case class FriendsResponse(
+    action: FriendAction.Value,
+    unk1: Int,
+    unk2: Boolean,
+    unk3: Boolean,
+    friends: List[Friend] = Nil
+) extends PlanetSideGamePacket {
   type Packet = FriendsResponse
   def opcode = GamePacketOpcode.FriendsResponse
   def encode = FriendsResponse.encode(this)
 }
 
 object Friend extends Marshallable[Friend] {
-  implicit val codec : Codec[Friend] = (
+  implicit val codec: Codec[Friend] = (
     ("name" | PacketHelpers.encodedWideStringAligned(3)) ::
       ("online" | bool)
-    ).as[Friend]
+  ).as[Friend]
 
   /**
     * This codec is used for the "`List` of other `Friends`."
     * Initial byte-alignment creates padding differences which requires a second `Codec`.
     */
-  implicit val codec_list : Codec[Friend] = (
+  implicit val codec_list: Codec[Friend] = (
     ("name" | PacketHelpers.encodedWideStringAligned(7)) ::
       ("online" | bool)
-    ).as[Friend]
+  ).as[Friend]
 }
 
 object FriendsResponse extends Marshallable[FriendsResponse] {
-  implicit val codec : Codec[FriendsResponse] = (
+  implicit val codec: Codec[FriendsResponse] = (
     ("action" | FriendAction.codec) ::
       ("unk1" | uint4L) ::
       ("unk2" | bool) ::
       ("unk3" | bool) ::
       (("number_of_friends" | uint4L) >>:~ { len =>
-        conditional(len > 0, "friend" | Friend.codec) ::
-        ("friends" | PacketHelpers.listOfNSized(len-1, Friend.codec_list))
-      })
-    ).xmap[FriendsResponse] (
+      conditional(len > 0, "friend" | Friend.codec) ::
+        ("friends" | PacketHelpers.listOfNSized(len - 1, Friend.codec_list))
+    })
+  ).xmap[FriendsResponse](
     {
       case act :: u1 :: u2 :: u3 :: _ :: friend1 :: friends :: HNil =>
-        val friendList : List[Friend] = if(friend1.isDefined) { friend1.get +: friends } else { friends }
+        val friendList: List[Friend] = if (friend1.isDefined) { friend1.get +: friends }
+        else { friends }
         FriendsResponse(act, u1, u2, u3, friendList)
     },
     {
       case FriendsResponse(act, u1, u2, u3, friends) =>
-        var friend1 : Option[Friend] = None
-        var friendList : List[Friend] = Nil
-        if(friends.nonEmpty) {
+        var friend1: Option[Friend]  = None
+        var friendList: List[Friend] = Nil
+        if (friends.nonEmpty) {
           friend1 = Some(friends.head)
           friendList = friends.drop(1)
         }

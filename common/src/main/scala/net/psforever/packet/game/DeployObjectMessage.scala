@@ -19,26 +19,21 @@ import shapeless.{::, HNil}
   * @param orient the angle of orientation
   * @param unk2 na
   */
-final case class DeployObjectMessage(object_guid : PlanetSideGUID,
-                                     unk1 : Long,
-                                     pos : Vector3,
-                                     orient : Vector3,
-                                     unk2 : Long)
-  extends PlanetSideGamePacket {
+final case class DeployObjectMessage(object_guid: PlanetSideGUID, unk1: Long, pos: Vector3, orient: Vector3, unk2: Long)
+    extends PlanetSideGamePacket {
   type Packet = DeployObjectMessage
   def opcode = GamePacketOpcode.DeployObjectMessage
   def encode = DeployObjectMessage.encode(this)
 }
 
 object DeployObjectMessage extends Marshallable[DeployObjectMessage] {
-  implicit val codec : Codec[DeployObjectMessage] = (
+  implicit val codec: Codec[DeployObjectMessage] = (
     ("object_guid" | PlanetSideGUID.codec) ::
       ("unk1" | uint32L) ::
       ("pos" | Vector3.codec_pos) ::
       (("roll" | Angular.codec_roll) ::
         ("pitch" | Angular.codec_pitch) ::
-        ("yaw" | Angular.codec_yaw())
-        ).xmap[Vector3] (
+        ("yaw" | Angular.codec_yaw())).xmap[Vector3](
         {
           case x :: y :: z :: HNil =>
             Vector3(x, y, z)
@@ -47,7 +42,7 @@ object DeployObjectMessage extends Marshallable[DeployObjectMessage] {
           case Vector3(x, y, z) =>
             x :: y :: z :: HNil
         }
-        ) ::
+      ) ::
       ("unk2" | uint32L)
-    ).as[DeployObjectMessage]
+  ).as[DeployObjectMessage]
 }

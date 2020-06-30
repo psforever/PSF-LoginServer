@@ -11,11 +11,11 @@ import org.specs2.mutable.Specification
 import scala.util.Success
 
 class NumberPoolHubTest extends Specification {
-  val numberList = 0 :: 1 :: 2 :: 3 :: 5 :: 8 :: 13 :: 21 :: Nil
+  val numberList  = 0 :: 1 :: 2 :: 3 :: 5 :: 8 :: 13 :: 21 :: Nil
   val numberList1 = 0 :: 1 :: 2 :: 3 :: 5 :: Nil
   val numberList2 = 8 :: 13 :: 21 :: 34 :: Nil
-  val numberSet1 = numberList1.toSet
-  val numberSet2 = numberList2.toSet
+  val numberSet1  = numberList1.toSet
+  val numberSet2  = numberList2.toSet
   class EntityTestClass extends IdentifiableEntity
 
   "NumberPoolHub" should {

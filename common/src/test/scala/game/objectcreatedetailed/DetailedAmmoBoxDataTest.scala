@@ -29,7 +29,12 @@ class DetailedAmmoBoxDataTest extends Specification {
 
     "encode (9mm)" in {
       val obj = DetailedAmmoBoxData(8, 50)
-      val msg = ObjectCreateDetailedMessage(ObjectClass.bullet_9mm, PlanetSideGUID(1280), ObjectCreateMessageParent(PlanetSideGUID(75), 33), obj)
+      val msg = ObjectCreateDetailedMessage(
+        ObjectClass.bullet_9mm,
+        PlanetSideGUID(1280),
+        ObjectCreateMessageParent(PlanetSideGUID(75), 33),
+        obj
+      )
       val out = PacketCoding.EncodePacket(msg)
       val pkt = out.require.toByteVector
 

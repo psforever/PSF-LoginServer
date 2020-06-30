@@ -5,7 +5,8 @@ import net.psforever.crypto.CryptoInterface
 import net.psforever.crypto.CryptoInterface.CryptoDHState
 import scodec.bits._
 
-class CryptoInterfaceTest extends Specification { args(stopOnFail = true)
+class CryptoInterfaceTest extends Specification {
+  args(stopOnFail = true)
   "Crypto interface" should {
     "correctly initialize" in {
       CryptoInterface.initialize()
@@ -13,13 +14,13 @@ class CryptoInterfaceTest extends Specification { args(stopOnFail = true)
     }
 
     "encrypt and decrypt" in {
-      val key = hex"41414141"
+      val key       = hex"41414141"
       val plaintext = ByteVector.fill(16)(0x42)
 
       val crypto = new CryptoInterface.CryptoState(key, key)
 
       val ciphertext = crypto.encrypt(plaintext)
-      val decrypted = crypto.decrypt(ciphertext)
+      val decrypted  = crypto.decrypt(ciphertext)
 
       crypto.close
       decrypted mustEqual plaintext
@@ -27,13 +28,13 @@ class CryptoInterfaceTest extends Specification { args(stopOnFail = true)
     }
 
     "encrypt and decrypt must handle no bytes" in {
-      val key = hex"41414141"
+      val key   = hex"41414141"
       val empty = ByteVector.empty
 
       val crypto = new CryptoInterface.CryptoState(key, key)
 
       val ciphertext = crypto.encrypt(empty)
-      val decrypted = crypto.decrypt(ciphertext)
+      val decrypted  = crypto.decrypt(ciphertext)
 
       crypto.close
 
@@ -42,8 +43,8 @@ class CryptoInterfaceTest extends Specification { args(stopOnFail = true)
     }
 
     "encrypt and decrypt must only accept block aligned inputs" in {
-      val key = hex"41414141"
-      val badPad = ByteVector.fill(CryptoInterface.RC5_BLOCK_SIZE-1)('a')
+      val key    = hex"41414141"
+      val badPad = ByteVector.fill(CryptoInterface.RC5_BLOCK_SIZE - 1)('a')
 
       val crypto = new CryptoInterface.CryptoState(key, key)
 
@@ -109,7 +110,7 @@ class CryptoInterfaceTest extends Specification { args(stopOnFail = true)
 
     "safely handle multiple starts" in {
       val dontCare = ByteVector.fill(16)(0x42)
-      val dh = new CryptoDHState()
+      val dh       = new CryptoDHState()
 
       dh.start()
       dh.start() must throwA[IllegalStateException]
@@ -120,7 +121,7 @@ class CryptoInterfaceTest extends Specification { args(stopOnFail = true)
 
     "prevent function calls before initialization" in {
       val dontCare = ByteVector.fill(16)(0x42)
-      val dh = new CryptoDHState()
+      val dh       = new CryptoDHState()
 
       dh.getGenerator must throwA[IllegalStateException]
       dh.getModulus must throwA[IllegalStateException]

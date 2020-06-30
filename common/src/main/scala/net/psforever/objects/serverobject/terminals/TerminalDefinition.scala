@@ -10,7 +10,7 @@ import net.psforever.objects.serverobject.structures.AmenityDefinition
   * The basic definition for any `Terminal` object.
   * @param objectId the object's identifier number
   */
-abstract class TerminalDefinition(objectId : Int) extends AmenityDefinition(objectId) {
+abstract class TerminalDefinition(objectId: Int) extends AmenityDefinition(objectId) {
   Name = "terminal"
   Packet = new TerminalConverter
 
@@ -22,7 +22,7 @@ abstract class TerminalDefinition(objectId : Int) extends AmenityDefinition(obje
     * @param msg the request message
     * @return a message that resolves the transaction
     */
-  def Request(player : Player, msg : Any) : Terminal.Exchange
+  def Request(player: Player, msg: Any): Terminal.Exchange
 
-  def Dispatch(sender : ActorRef, terminal : Terminal, msg : Terminal.TerminalMessage) : Unit = { }
+  def Dispatch(sender: ActorRef, terminal: Terminal, msg: Terminal.TerminalMessage): Unit = {}
 }

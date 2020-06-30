@@ -9,7 +9,8 @@ import org.specs2.mutable._
 import scodec.bits._
 
 class LockerContainerDataTest extends Specification {
-  val string_locker_container = hex"17 AF010000 E414C0C00000000000000000000600000818829DC2E030000000202378620D80C00000378FA0FADC000006F1FC199D800000"
+  val string_locker_container =
+    hex"17 AF010000 E414C0C00000000000000000000600000818829DC2E030000000202378620D80C00000378FA0FADC000006F1FC199D800000"
 
   "LockerContainerData" should {
     "decode" in {
@@ -63,17 +64,32 @@ class LockerContainerDataTest extends Specification {
 
     "encode" in {
       val obj = LockerContainerData(
-        InventoryData(List(
-          InventoryItemData(ObjectClass.nano_dispenser, PlanetSideGUID(2935), 0,
-            WeaponData(
-              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)),
+        InventoryData(
+          List(
+            InventoryItemData(
+              ObjectClass.nano_dispenser,
+              PlanetSideGUID(2935),
               0,
-              List(InternalSlot(ObjectClass.armor_canister, PlanetSideGUID(3426), 0, CommonFieldData()(false)))
-            )
-          ),
-          InventoryItemData(ObjectClass.armor_canister, PlanetSideGUID(4090), 45, CommonFieldData()(false)),
-          InventoryItemData(ObjectClass.armor_canister, PlanetSideGUID(3326), 78, CommonFieldData()(false))
-        ))
+              WeaponData(
+                CommonFieldData(
+                  PlanetSideEmpire.NEUTRAL,
+                  false,
+                  false,
+                  false,
+                  None,
+                  false,
+                  None,
+                  None,
+                  PlanetSideGUID(0)
+                ),
+                0,
+                List(InternalSlot(ObjectClass.armor_canister, PlanetSideGUID(3426), 0, CommonFieldData()(false)))
+              )
+            ),
+            InventoryItemData(ObjectClass.armor_canister, PlanetSideGUID(4090), 45, CommonFieldData()(false)),
+            InventoryItemData(ObjectClass.armor_canister, PlanetSideGUID(3326), 78, CommonFieldData()(false))
+          )
+        )
       )
       val msg = ObjectCreateMessage(ObjectClass.locker_container, PlanetSideGUID(3148), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector

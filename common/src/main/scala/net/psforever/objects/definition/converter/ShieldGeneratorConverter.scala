@@ -8,9 +8,9 @@ import net.psforever.types.PlanetSideGUID
 import scala.util.{Failure, Success, Try}
 
 class ShieldGeneratorConverter extends ObjectCreateConverter[ShieldGeneratorDeployable]() {
-  override def ConstructorData(obj : ShieldGeneratorDeployable) : Try[AegisShieldGeneratorData] = {
+  override def ConstructorData(obj: ShieldGeneratorDeployable): Try[AegisShieldGeneratorData] = {
     val health = StatConverter.Health(obj.Health, obj.MaxHealth)
-    if(health > 0) {
+    if (health > 0) {
       Success(
         AegisShieldGeneratorData(
           CommonFieldDataWithPlacement(
@@ -26,15 +26,14 @@ class ShieldGeneratorConverter extends ObjectCreateConverter[ShieldGeneratorDepl
               None,
               obj.Owner match {
                 case Some(owner) => owner
-                case None => PlanetSideGUID(0)
+                case None        => PlanetSideGUID(0)
               }
             )
           ),
           health
         )
       )
-    }
-    else {
+    } else {
       Success(
         AegisShieldGeneratorData(
           CommonFieldDataWithPlacement(
@@ -57,6 +56,6 @@ class ShieldGeneratorConverter extends ObjectCreateConverter[ShieldGeneratorDepl
     }
   }
 
-  override def DetailedConstructorData(obj : ShieldGeneratorDeployable) : Try[AegisShieldGeneratorData] =
+  override def DetailedConstructorData(obj: ShieldGeneratorDeployable): Try[AegisShieldGeneratorData] =
     Failure(new Exception("converter should not be used to generate detailed ShieldGeneratorDdata"))
 }

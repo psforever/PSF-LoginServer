@@ -20,10 +20,11 @@ class DeployableToolboxTest extends Specification {
       obj.Initialize(Set())
       val list = obj.UpdateUI()
       list.size mustEqual DeployedItem.values.size - 3 //extra field turrets
-      val (routers, allOthers) = list.partition({ case((_,_,_,max)) => max == 1024 })
-      allOthers.foreach({case(_,curr,_,max) =>
-        curr mustEqual 0
-        max mustEqual 0
+      val (routers, allOthers) = list.partition({ case ((_, _, _, max)) => max == 1024 })
+      allOthers.foreach({
+        case (_, curr, _, max) =>
+          curr mustEqual 0
+          max mustEqual 0
       })
       routers.length mustEqual 1
       ok
@@ -428,7 +429,9 @@ class DeployableToolboxTest extends Specification {
 
     "change accessible fields by removing by certification types (all)" in {
       val obj = new DeployableToolbox
-      obj.Initialize(Set(CombatEngineering, AssaultEngineering, FortificationEngineering, AdvancedHacking, GroundSupport))
+      obj.Initialize(
+        Set(CombatEngineering, AssaultEngineering, FortificationEngineering, AdvancedHacking, GroundSupport)
+      )
       obj.CountDeployable(DeployedItem.boomer)._2 mustEqual 25
       obj.CountDeployable(DeployedItem.he_mine)._2 mustEqual 25
       obj.CountDeployable(DeployedItem.spitfire_turret)._2 mustEqual 15
@@ -601,7 +604,7 @@ class DeployableToolboxTest extends Specification {
       val boomer = new BoomerDeployable(GlobalDefinitions.boomer)
       obj.CountDeployable(DeployedItem.boomer)._2 mustEqual 20
       obj.Add(boomer) mustEqual true
-      obj.CountDeployable(DeployedItem.boomer).productIterator.toList  mustEqual List(1,20)
+      obj.CountDeployable(DeployedItem.boomer).productIterator.toList mustEqual List(1, 20)
       obj.CountDeployable(DeployedItem.boomer).productIterator.toList mustEqual List(1, 20)
       obj.Remove(boomer) mustEqual true
       obj.CountDeployable(DeployedItem.boomer)._2 mustEqual 20
@@ -648,7 +651,7 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.he_mine)._2 mustEqual 20
       (1 to 19).foreach(_ => {
         val o1 = new ExplosiveDeployable(GlobalDefinitions.he_mine)
-        obj.Accept(o1)mustEqual true
+        obj.Accept(o1) mustEqual true
         obj.Add(o1) mustEqual true
       })
       obj.CountDeployable(DeployedItem.he_mine).productIterator.toList mustEqual List(19, 20)
@@ -678,22 +681,22 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.sensor_shield)._2 mustEqual 20
       (1 to 10).foreach(_ => {
         val o = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
-        obj.Accept(o)mustEqual true
+        obj.Accept(o) mustEqual true
         obj.Add(o) mustEqual true
       })
       (1 to 10).foreach(_ => {
         val o = new SensorDeployable(GlobalDefinitions.sensor_shield)
-        obj.Accept(o)mustEqual true
+        obj.Accept(o) mustEqual true
         obj.Add(o) mustEqual true
       })
       obj.CountDeployable(DeployedItem.motionalarmsensor).productIterator.toList mustEqual List(10, 20)
       obj.CountDeployable(DeployedItem.sensor_shield).productIterator.toList mustEqual List(10, 20)
 
       val o1 = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
-      obj.Accept(o1)mustEqual false
+      obj.Accept(o1) mustEqual false
       obj.Add(o1) mustEqual false
       val o2 = new SensorDeployable(GlobalDefinitions.sensor_shield)
-      obj.Accept(o2)mustEqual false
+      obj.Accept(o2) mustEqual false
       obj.Add(o2) mustEqual false
     }
 
@@ -703,30 +706,34 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.motionalarmsensor)._2 mustEqual 20
       obj.CountDeployable(DeployedItem.sensor_shield)._2 mustEqual 20
       val o1 = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
-      obj.Accept(o1)mustEqual true
+      obj.Accept(o1) mustEqual true
       obj.Add(o1) mustEqual true
       val o2 = new SensorDeployable(GlobalDefinitions.sensor_shield)
-      obj.Accept(o2)mustEqual true
+      obj.Accept(o2) mustEqual true
       obj.Add(o2) mustEqual true
       obj.CountDeployable(DeployedItem.motionalarmsensor).productIterator.toList mustEqual List(1, 20)
       obj.CountDeployable(DeployedItem.sensor_shield).productIterator.toList mustEqual List(1, 20)
 
-      val o3 = new SensorDeployable(GlobalDefinitions.sensor_shield)
+      val o3          = new SensorDeployable(GlobalDefinitions.sensor_shield)
       val displaced1a = obj.DisplaceFirst(o3) //remove the first sensor_shield's deployable
       displaced1a.nonEmpty mustEqual true
       displaced1a.get.Definition == o3.Definition mustEqual true
-      obj.CountDeployable(DeployedItem.motionalarmsensor).productIterator.toList  mustEqual List(1, 20)
+      obj.CountDeployable(DeployedItem.motionalarmsensor).productIterator.toList mustEqual List(1, 20)
       obj.CountDeployable(DeployedItem.sensor_shield).productIterator.toList mustEqual List(0, 20)
       //test: add o2 again and try to remove the motionalarmsensor
       obj.Add(o2)
-      val displaced1b = obj.DisplaceFirst(o3, {(d) => d.Definition.Item != DeployedItem.sensor_shield}) //remove the first sensor_shield's deployable
+      val displaced1b =
+        obj.DisplaceFirst(
+          o3,
+          { (d) => d.Definition.Item != DeployedItem.sensor_shield }
+        ) //remove the first sensor_shield's deployable
       displaced1b.nonEmpty mustEqual true
       displaced1b.get.Definition == o3.Definition mustEqual false
       displaced1b.get.Definition mustEqual GlobalDefinitions.motionalarmsensor
-      obj.CountDeployable(DeployedItem.motionalarmsensor).productIterator.toList  mustEqual List(0, 20)
+      obj.CountDeployable(DeployedItem.motionalarmsensor).productIterator.toList mustEqual List(0, 20)
       obj.CountDeployable(DeployedItem.sensor_shield).productIterator.toList mustEqual List(1, 20)
 
-      val o4 = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
+      val o4         = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
       val displaced2 = obj.DisplaceFirst(o3) //remove the first deployable of motionalarmsensor's category
       displaced2.nonEmpty mustEqual true
       displaced2.get.Definition == o4.Definition mustEqual false
@@ -793,7 +800,7 @@ class DeployableToolboxTest extends Specification {
 
       val test1 = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
       val test2 = new SensorDeployable(GlobalDefinitions.sensor_shield)
-      obj.Category(test1) mustEqual List(PlanetSideGUID(1),PlanetSideGUID(3),PlanetSideGUID(4),PlanetSideGUID(2))
+      obj.Category(test1) mustEqual List(PlanetSideGUID(1), PlanetSideGUID(3), PlanetSideGUID(4), PlanetSideGUID(2))
       obj.Category(test1) mustEqual obj.Category(test2)
     }
 
@@ -819,8 +826,8 @@ class DeployableToolboxTest extends Specification {
 
       val test1 = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
       val test2 = new SensorDeployable(GlobalDefinitions.sensor_shield)
-      obj.Deployables(test1) mustEqual List(PlanetSideGUID(1),PlanetSideGUID(4))
-      obj.Deployables(test2) mustEqual List(PlanetSideGUID(3),PlanetSideGUID(2))
+      obj.Deployables(test1) mustEqual List(PlanetSideGUID(1), PlanetSideGUID(4))
+      obj.Deployables(test2) mustEqual List(PlanetSideGUID(3), PlanetSideGUID(2))
     }
 
     "three tests: 'contains' detects same deployable" in {
@@ -842,63 +849,63 @@ class DeployableToolboxTest extends Specification {
 
       val cerebus = new TurretDeployable(GlobalDefinitions.spitfire_aa) //cerebus turret
       obj.Valid(cerebus) mustEqual false
-      obj.CountDeployable(DeployedItem.spitfire_aa).productIterator.toList mustEqual List(0,0)
+      obj.CountDeployable(DeployedItem.spitfire_aa).productIterator.toList mustEqual List(0, 0)
 
       obj.AddToDeployableQuantities(AdvancedEngineering, Set(CombatEngineering, AdvancedEngineering))
       obj.Valid(cerebus) mustEqual true
-      obj.CountDeployable(DeployedItem.spitfire_aa).productIterator.toList mustEqual List(0,5)
+      obj.CountDeployable(DeployedItem.spitfire_aa).productIterator.toList mustEqual List(0, 5)
     }
 
     "three tests: 'available' tests whether there is enough space to add more deployables of a type" in {
       val obj = new DeployableToolbox
       obj.Initialize(Set(CombatEngineering))
-      obj.CountDeployable(DeployedItem.boomer).productIterator.toList mustEqual List(0,20)
+      obj.CountDeployable(DeployedItem.boomer).productIterator.toList mustEqual List(0, 20)
 
       (1 to 20).foreach(_ => {
         val boomer = new BoomerDeployable(GlobalDefinitions.boomer)
         obj.Available(boomer) mustEqual true
         obj.Add(boomer) mustEqual true
       })
-      obj.CountDeployable(DeployedItem.boomer).productIterator.toList mustEqual List(20,20)
+      obj.CountDeployable(DeployedItem.boomer).productIterator.toList mustEqual List(20, 20)
       val boomer = new BoomerDeployable(GlobalDefinitions.boomer)
       obj.Available(boomer) mustEqual false
       obj.Add(boomer) mustEqual false
     }
 
     "three tests: 'accept' ensures that all three of the previous tests are passable" in {
-      val obj = new DeployableToolbox
+      val obj    = new DeployableToolbox
       val boomer = new BoomerDeployable(GlobalDefinitions.boomer)
 
       obj.Initialize(Set())
-      obj.CountDeployable(DeployedItem.boomer).productIterator.toList mustEqual List(0,0)
+      obj.CountDeployable(DeployedItem.boomer).productIterator.toList mustEqual List(0, 0)
       obj.Accept(boomer) mustEqual false
       obj.Available(boomer) mustEqual false
       obj.Contains(boomer) mustEqual false //false is being passable
       obj.Valid(boomer) mustEqual false
 
       obj.AddToDeployableQuantities(CombatEngineering, Set(CombatEngineering))
-      obj.CountDeployable(DeployedItem.boomer).productIterator.toList mustEqual List(0,20)
+      obj.CountDeployable(DeployedItem.boomer).productIterator.toList mustEqual List(0, 20)
       obj.Accept(boomer) mustEqual true
       obj.Available(boomer) mustEqual true //true is being passable
       obj.Contains(boomer) mustEqual false //false is being passable
-      obj.Valid(boomer) mustEqual true //true is being passable
+      obj.Valid(boomer) mustEqual true     //true is being passable
 
       obj.Add(boomer)
-      obj.CountDeployable(DeployedItem.boomer).productIterator.toList mustEqual List(1,20)
+      obj.CountDeployable(DeployedItem.boomer).productIterator.toList mustEqual List(1, 20)
       obj.Accept(boomer) mustEqual false
       obj.Available(boomer) mustEqual true //true is being passable
       obj.Contains(boomer) mustEqual true
       obj.Valid(boomer) mustEqual true //true is being passable
 
       (1 to 20).foreach(_ => { obj.Add(new BoomerDeployable(GlobalDefinitions.boomer)) })
-      obj.CountDeployable(DeployedItem.boomer).productIterator.toList mustEqual List(20,20)
+      obj.CountDeployable(DeployedItem.boomer).productIterator.toList mustEqual List(20, 20)
       obj.Accept(boomer) mustEqual false
       obj.Available(boomer) mustEqual false
       obj.Contains(boomer) mustEqual true
       obj.Valid(boomer) mustEqual true //true is being passable
 
       obj.RemoveFromDeployableQuantities(CombatEngineering, Set())
-      obj.CountDeployable(DeployedItem.boomer).productIterator.toList mustEqual List(20,0)
+      obj.CountDeployable(DeployedItem.boomer).productIterator.toList mustEqual List(20, 0)
       obj.Accept(boomer) mustEqual false
       obj.Available(boomer) mustEqual false
       obj.Contains(boomer) mustEqual true
@@ -943,9 +950,11 @@ class DeployableToolboxTest extends Specification {
       val obj = new DeployableToolbox
       obj.Initialize(Set(CombatEngineering, AdvancedEngineering, AdvancedHacking))
 
-      obj.UpdateUI(
-        List(AssaultEngineering, FortificationEngineering)
-      ).flatMap(tuple => tuple.productIterator.toList) mustEqual
+      obj
+        .UpdateUI(
+          List(AssaultEngineering, FortificationEngineering)
+        )
+        .flatMap(tuple => tuple.productIterator.toList) mustEqual
         obj.UpdateUI(AdvancedEngineering).flatMap(tuple => tuple.productIterator.toList)
     }
 
@@ -955,16 +964,16 @@ class DeployableToolboxTest extends Specification {
       (obj.UpdateUIElement(DeployedItem.portable_manned_turret) ++
         obj.UpdateUIElement(DeployedItem.portable_manned_turret_nc) ++
         obj.UpdateUIElement(DeployedItem.portable_manned_turret_tr) ++
-        obj.UpdateUIElement(DeployedItem.portable_manned_turret_vs)
-        ).toSet mustEqual Set((103, 0, 92, 0)) //note: four elements become one common element
+        obj.UpdateUIElement(DeployedItem.portable_manned_turret_vs)).toSet mustEqual Set(
+        (103, 0, 92, 0)
+      ) //note: four elements become one common element
 
       //initialized state
       obj.Initialize(Set(CombatEngineering, AdvancedEngineering))
       (obj.UpdateUIElement(DeployedItem.portable_manned_turret) ++
         obj.UpdateUIElement(DeployedItem.portable_manned_turret_nc) ++
         obj.UpdateUIElement(DeployedItem.portable_manned_turret_tr) ++
-        obj.UpdateUIElement(DeployedItem.portable_manned_turret_vs)
-        ).toSet mustEqual Set((103, 0, 92, 1))
+        obj.UpdateUIElement(DeployedItem.portable_manned_turret_vs)).toSet mustEqual Set((103, 0, 92, 1))
 
       //portable_manned_turret_vs added
       val obj1 = new TurretDeployable(GlobalDefinitions.portable_manned_turret_vs)
@@ -975,8 +984,7 @@ class DeployableToolboxTest extends Specification {
       (obj.UpdateUIElement(DeployedItem.portable_manned_turret) ++
         obj.UpdateUIElement(DeployedItem.portable_manned_turret_nc) ++
         obj.UpdateUIElement(DeployedItem.portable_manned_turret_tr) ++
-        obj.UpdateUIElement(DeployedItem.portable_manned_turret_vs)
-        ).toSet mustEqual Set((103, 1, 92, 1))
+        obj.UpdateUIElement(DeployedItem.portable_manned_turret_vs)).toSet mustEqual Set((103, 1, 92, 1))
 
       //portable_manned_turret_nc fails to add
       val obj2 = new TurretDeployable(GlobalDefinitions.portable_manned_turret_nc)
@@ -993,8 +1001,7 @@ class DeployableToolboxTest extends Specification {
       (obj.UpdateUIElement(DeployedItem.portable_manned_turret) ++
         obj.UpdateUIElement(DeployedItem.portable_manned_turret_nc) ++
         obj.UpdateUIElement(DeployedItem.portable_manned_turret_tr) ++
-        obj.UpdateUIElement(DeployedItem.portable_manned_turret_vs)
-        ).toSet mustEqual Set((103, 1, 92, 1))
+        obj.UpdateUIElement(DeployedItem.portable_manned_turret_vs)).toSet mustEqual Set((103, 1, 92, 1))
       obj.Category(DeployableCategory.FieldTurrets).contains(PlanetSideGUID(1)) mustEqual false
       obj.Category(DeployableCategory.FieldTurrets).contains(PlanetSideGUID(2)) mustEqual true //included
     }

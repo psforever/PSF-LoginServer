@@ -20,16 +20,30 @@ class LoginRespMessageTest extends Specification {
     hex"00000000 01000000 02000000 6B7BD828 8C4169666671756F7469656E74 11270000 80"
 
   "encode" in {
-    val msg = LoginRespMessage("HaHLdYzs0VASjksR", LoginError.Success, StationError.AccountActive,
-      StationSubscriptionStatus.Active, 685276011, "Aiffquotient", 0)
+    val msg = LoginRespMessage(
+      "HaHLdYzs0VASjksR",
+      LoginError.Success,
+      StationError.AccountActive,
+      StationSubscriptionStatus.Active,
+      685276011,
+      "Aiffquotient",
+      0
+    )
 
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
     pkt mustEqual string
   }
 
   "encode with privilege" in {
-    val msg = LoginRespMessage("HaHLdYzs0VASjksR", LoginError.Success, StationError.AccountActive,
-      StationSubscriptionStatus.Active, 685276011, "Aiffquotient", 10001)
+    val msg = LoginRespMessage(
+      "HaHLdYzs0VASjksR",
+      LoginError.Success,
+      StationError.AccountActive,
+      StationSubscriptionStatus.Active,
+      685276011,
+      "Aiffquotient",
+      10001
+    )
 
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
     pkt mustEqual string_priv

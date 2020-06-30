@@ -8,11 +8,11 @@ import net.psforever.objects.guid.AvailabilityPolicy
   * @param guid the number (globally unique identifier)
   * @param key a reference to the monitor
   */
-final class SecureKey(private val guid : Int, private val key : Monitor) {
-  def GUID : Int = guid
+final class SecureKey(private val guid: Int, private val key: Monitor) {
+  def GUID: Int = guid
 
-  def Policy : AvailabilityPolicy.Value = key.Policy
+  def Policy: AvailabilityPolicy.Value = key.Policy
 
   import net.psforever.objects.entity.IdentifiableEntity
-  def Object : Option[IdentifiableEntity] = key.Object
+  def Object: Option[IdentifiableEntity] = key.Object
 }

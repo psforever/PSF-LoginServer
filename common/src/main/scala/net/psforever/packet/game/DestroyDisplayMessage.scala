@@ -43,25 +43,25 @@ import scodec.codecs._
   * @param victim_empire the empire affiliation of the victim
   * @param victim_in_vehicle true, if the victim was in a vehicle when he was killed; false, otherwise
   */
-final case class DestroyDisplayMessage(killer : String,
-                                       killer_charId : Long,
-                                       killer_empire : PlanetSideEmpire.Value,
-                                       killer_in_vehicle : Boolean,
-                                       unk : Int,
-                                       method : Int,
-                                       victim : String,
-                                       victim_charId : Long,
-                                       victim_empire : PlanetSideEmpire.Value,
-                                       victim_in_vehicle : Boolean
-)
-  extends PlanetSideGamePacket {
+final case class DestroyDisplayMessage(
+    killer: String,
+    killer_charId: Long,
+    killer_empire: PlanetSideEmpire.Value,
+    killer_in_vehicle: Boolean,
+    unk: Int,
+    method: Int,
+    victim: String,
+    victim_charId: Long,
+    victim_empire: PlanetSideEmpire.Value,
+    victim_in_vehicle: Boolean
+) extends PlanetSideGamePacket {
   type Packet = DestroyDisplayMessage
   def opcode = GamePacketOpcode.DestroyDisplayMessage
   def encode = DestroyDisplayMessage.encode(this)
 }
 
 object DestroyDisplayMessage extends Marshallable[DestroyDisplayMessage] {
-  implicit val codec : Codec[DestroyDisplayMessage] = (
+  implicit val codec: Codec[DestroyDisplayMessage] = (
     ("killer" | PacketHelpers.encodedWideString) ::
       ("killer_charId" | ulongL(32)) ::
       ("killer_empire" | PlanetSideEmpire.codec) ::
@@ -72,5 +72,5 @@ object DestroyDisplayMessage extends Marshallable[DestroyDisplayMessage] {
       ("victim_charId" | ulongL(32)) ::
       ("victim_empire" | PlanetSideEmpire.codec) ::
       ("victim_in_vehicle" | bool)
-    ).as[DestroyDisplayMessage]
+  ).as[DestroyDisplayMessage]
 }

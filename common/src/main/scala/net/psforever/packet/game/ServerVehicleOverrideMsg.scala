@@ -49,15 +49,16 @@ import scodec.codecs._
   * @param unk8 na;
   *             set `lock_wheel` to `true` to expose this value
   */
-final case class ServerVehicleOverrideMsg(lock_accelerator : Boolean,
-                                          lock_wheel : Boolean,
-                                          reverse : Boolean,
-                                          unk4 : Boolean,
-                                          lock_vthrust : Int,
-                                          lock_strafe : Int,
-                                          movement_speed : Int,
-                                          unk8 : Option[Long]
-                                         ) extends PlanetSideGamePacket {
+final case class ServerVehicleOverrideMsg(
+    lock_accelerator: Boolean,
+    lock_wheel: Boolean,
+    reverse: Boolean,
+    unk4: Boolean,
+    lock_vthrust: Int,
+    lock_strafe: Int,
+    movement_speed: Int,
+    unk8: Option[Long]
+) extends PlanetSideGamePacket {
   type Packet = ServerVehicleOverrideMsg
   def opcode = GamePacketOpcode.ServerVehicleOverrideMsg
   def encode = ServerVehicleOverrideMsg.encode(this)
@@ -67,12 +68,12 @@ object ServerVehicleOverrideMsg extends Marshallable[ServerVehicleOverrideMsg] {
   implicit val codec: Codec[ServerVehicleOverrideMsg] = (
     ("lock_accelerator" | bool) ::
       (("lock_wheel" | bool) >>:~ { test =>
-        ("reverse" | bool) ::
-          ("unk4" | bool) ::
-          ("lock_vthrust" | uint2L) ::
-          ("lock_strafe" | uint2L) ::
-          ("movement_speed" | uintL(9)) ::
-          conditional(test, "unk8" | uint32L)
-      })
-    ).as[ServerVehicleOverrideMsg]
+      ("reverse" | bool) ::
+        ("unk4" | bool) ::
+        ("lock_vthrust" | uint2L) ::
+        ("lock_strafe" | uint2L) ::
+        ("movement_speed" | uintL(9)) ::
+        conditional(test, "unk8" | uint32L)
+    })
+  ).as[ServerVehicleOverrideMsg]
 }

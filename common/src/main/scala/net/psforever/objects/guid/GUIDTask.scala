@@ -28,6 +28,7 @@ import scala.annotation.tailrec
   * Almost all tasks have an explicit registering and an unregistering activity defined for it.
   */
 object GUIDTask {
+
   /**
     * Construct tasking that registers an object with a globally unique identifier selected from a pool of numbers.<br>
     * <br>
@@ -37,26 +38,25 @@ object GUIDTask {
     * @param guid implicit reference to a unique number system
     * @return a `TaskResolver.GiveTask` message
     */
-  def RegisterObjectTask(obj : IdentifiableEntity)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
-    TaskResolver.GiveTask(
-      new Task() {
-        private val localObject = obj
-        private val localAccessor = guid
+  def RegisterObjectTask(obj: IdentifiableEntity)(implicit guid: ActorRef): TaskResolver.GiveTask = {
+    TaskResolver.GiveTask(new Task() {
+      private val localObject   = obj
+      private val localAccessor = guid
 
-        override def Description : String = s"register $localObject"
+      override def Description: String = s"register $localObject"
 
-        override def isComplete : Task.Resolution.Value = if(localObject.HasGUID) {
+      override def isComplete: Task.Resolution.Value =
+        if (localObject.HasGUID) {
           Task.Resolution.Success
-        }
-        else {
+        } else {
           Task.Resolution.Incomplete
         }
 
-        def Execute(resolver : ActorRef) : Unit = {
-          import net.psforever.objects.guid.actor.Register
-          localAccessor ! Register(localObject, "dynamic", resolver) //TODO pool should not be hardcoded
-        }
-      })
+      def Execute(resolver: ActorRef): Unit = {
+        import net.psforever.objects.guid.actor.Register
+        localAccessor ! Register(localObject, "dynamic", resolver) //TODO pool should not be hardcoded
+      }
+    })
   }
 
   /**
@@ -76,8 +76,9 @@ object GUIDTask {
     * @see `GUIDTask.RegisterEquipment`
     * @return a `TaskResolver.GiveTask` message
     */
-  def RegisterTool(obj : Tool)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
-    val ammoTasks : List[TaskResolver.GiveTask] = (0 until obj.MaxAmmoSlot).map(ammoIndex => RegisterObjectTask(obj.AmmoSlots(ammoIndex).Box)).toList
+  def RegisterTool(obj: Tool)(implicit guid: ActorRef): TaskResolver.GiveTask = {
+    val ammoTasks: List[TaskResolver.GiveTask] =
+      (0 until obj.MaxAmmoSlot).map(ammoIndex => RegisterObjectTask(obj.AmmoSlots(ammoIndex).Box)).toList
     TaskResolver.GiveTask(RegisterObjectTask(obj).task, ammoTasks)
   }
 
@@ -89,10 +90,10 @@ object GUIDTask {
     * @see `GUIDTask.UnregisterLocker`
     * @return a `TaskResolver.GiveTask` message
     */
-  def RegisterLocker(obj : LockerContainer)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
+  def RegisterLocker(obj: LockerContainer)(implicit guid: ActorRef): TaskResolver.GiveTask = {
     TaskResolver.GiveTask(RegisterObjectTask(obj).task, RegisterInventory(obj))
   }
-  def RegisterLocker(obj : LockerEquipment)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
+  def RegisterLocker(obj: LockerEquipment)(implicit guid: ActorRef): TaskResolver.GiveTask = {
     TaskResolver.GiveTask(RegisterObjectTask(obj).task, RegisterInventory(obj))
   }
 
@@ -105,8 +106,8 @@ object GUIDTask {
     *       `Container`
     * @return a list of `TaskResolver.GiveTask` messages
     */
-  def RegisterInventory(container : Container)(implicit guid : ActorRef) : List[TaskResolver.GiveTask] = {
-    container.Inventory.Items.map(entry => { RegisterEquipment(entry.obj)})
+  def RegisterInventory(container: Container)(implicit guid: ActorRef): List[TaskResolver.GiveTask] = {
+    container.Inventory.Items.map(entry => { RegisterEquipment(entry.obj) })
   }
 
   /**
@@ -125,9 +126,9 @@ object GUIDTask {
     * @param guid implicit reference to a unique number system
     * @return a `TaskResolver.GiveTask` message
     */
-  def RegisterEquipment(obj : Equipment)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
+  def RegisterEquipment(obj: Equipment)(implicit guid: ActorRef): TaskResolver.GiveTask = {
     obj match {
-      case tool : Tool =>
+      case tool: Tool =>
         RegisterTool(tool)
       case _ =>
         RegisterObjectTask(obj)
@@ -150,9 +151,9 @@ object GUIDTask {
     * @param guid implicit reference to a unique number system
     * @return a `TaskResolver.GiveTask` message
     */
-  def RegisterAvatar(tplayer : Player)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
-    val holsterTasks = VisibleSlotTaskBuilding(tplayer.Holsters(), RegisterEquipment)
-    val lockerTask = List(RegisterLocker(tplayer.Locker))
+  def RegisterAvatar(tplayer: Player)(implicit guid: ActorRef): TaskResolver.GiveTask = {
+    val holsterTasks   = VisibleSlotTaskBuilding(tplayer.Holsters(), RegisterEquipment)
+    val lockerTask     = List(RegisterLocker(tplayer.Locker))
     val inventoryTasks = RegisterInventory(tplayer)
     TaskResolver.GiveTask(RegisterObjectTask(tplayer).task, holsterTasks ++ lockerTask ++ inventoryTasks)
   }
@@ -165,8 +166,8 @@ object GUIDTask {
     * @param guid implicit reference to a unique number system
     * @return a `TaskResolver.GiveTask` message
     */
-  def RegisterPlayer(tplayer : Player)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
-    val holsterTasks = VisibleSlotTaskBuilding(tplayer.Holsters(), RegisterEquipment)
+  def RegisterPlayer(tplayer: Player)(implicit guid: ActorRef): TaskResolver.GiveTask = {
+    val holsterTasks   = VisibleSlotTaskBuilding(tplayer.Holsters(), RegisterEquipment)
     val inventoryTasks = RegisterInventory(tplayer)
     TaskResolver.GiveTask(GUIDTask.RegisterObjectTask(tplayer)(guid).task, holsterTasks ++ inventoryTasks)
   }
@@ -188,14 +189,17 @@ object GUIDTask {
     * @param guid implicit reference to a unique number system
     * @return a `TaskResolver.GiveTask` message
     */
-  def RegisterVehicle(vehicle : Vehicle)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
+  def RegisterVehicle(vehicle: Vehicle)(implicit guid: ActorRef): TaskResolver.GiveTask = {
     val weaponTasks = VisibleSlotTaskBuilding(vehicle.Weapons.values, RegisterEquipment)
-    val utilTasks = Vehicle.EquipmentUtilities(vehicle.Utilities).values.map(util => { RegisterObjectTask(util())}).toList
+    val utilTasks =
+      Vehicle.EquipmentUtilities(vehicle.Utilities).values.map(util => { RegisterObjectTask(util()) }).toList
     val inventoryTasks = RegisterInventory(vehicle)
     TaskResolver.GiveTask(RegisterObjectTask(vehicle).task, weaponTasks ++ utilTasks ++ inventoryTasks)
   }
 
-  def RegisterDeployableTurret(obj : PlanetSideGameObject with WeaponTurret)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
+  def RegisterDeployableTurret(
+      obj: PlanetSideGameObject with WeaponTurret
+  )(implicit guid: ActorRef): TaskResolver.GiveTask = {
     TaskResolver.GiveTask(
       RegisterObjectTask(obj).task,
       VisibleSlotTaskBuilding(obj.Weapons.values, GUIDTask.RegisterEquipment) ++ RegisterInventory(obj)
@@ -212,22 +216,22 @@ object GUIDTask {
     * @see `GUIDTask.RegisterObjectTask`
     * @return a `TaskResolver.GiveTask` message
     */
-  def UnregisterObjectTask(obj : IdentifiableEntity)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
+  def UnregisterObjectTask(obj: IdentifiableEntity)(implicit guid: ActorRef): TaskResolver.GiveTask = {
     TaskResolver.GiveTask(
       new Task() {
-        private val localObject = obj
+        private val localObject   = obj
         private val localAccessor = guid
 
-        override def Description : String = s"unregister $localObject"
+        override def Description: String = s"unregister $localObject"
 
-        override def isComplete : Task.Resolution.Value = if(!localObject.HasGUID) {
-          Task.Resolution.Success
-        }
-        else {
-          Task.Resolution.Incomplete
-        }
+        override def isComplete: Task.Resolution.Value =
+          if (!localObject.HasGUID) {
+            Task.Resolution.Success
+          } else {
+            Task.Resolution.Incomplete
+          }
 
-        def Execute(resolver : ActorRef) : Unit = {
+        def Execute(resolver: ActorRef): Unit = {
           import net.psforever.objects.guid.actor.Unregister
           localAccessor ! Unregister(localObject, resolver)
         }
@@ -244,8 +248,9 @@ object GUIDTask {
     * @see `GUIDTask.RegisterTool`
     * @return a `TaskResolver.GiveTask` message
     */
-  def UnregisterTool(obj : Tool)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
-    val ammoTasks : List[TaskResolver.GiveTask] = (0 until obj.MaxAmmoSlot).map(ammoIndex => UnregisterObjectTask(obj.AmmoSlots(ammoIndex).Box)).toList
+  def UnregisterTool(obj: Tool)(implicit guid: ActorRef): TaskResolver.GiveTask = {
+    val ammoTasks: List[TaskResolver.GiveTask] =
+      (0 until obj.MaxAmmoSlot).map(ammoIndex => UnregisterObjectTask(obj.AmmoSlots(ammoIndex).Box)).toList
     TaskResolver.GiveTask(UnregisterObjectTask(obj).task, ammoTasks)
   }
 
@@ -256,10 +261,10 @@ object GUIDTask {
     * @see `GUIDTask.RegisterLocker`
     * @return a `TaskResolver.GiveTask` message
     */
-  def UnregisterLocker(obj : LockerContainer)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
+  def UnregisterLocker(obj: LockerContainer)(implicit guid: ActorRef): TaskResolver.GiveTask = {
     TaskResolver.GiveTask(UnregisterObjectTask(obj).task, UnregisterInventory(obj))
   }
-  def UnregisterLocker(obj : LockerEquipment)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
+  def UnregisterLocker(obj: LockerEquipment)(implicit guid: ActorRef): TaskResolver.GiveTask = {
     TaskResolver.GiveTask(RegisterObjectTask(obj).task, RegisterInventory(obj))
   }
 
@@ -272,8 +277,8 @@ object GUIDTask {
     *       `Container`
     * @return a list of `TaskResolver.GiveTask` messages
     */
-  def UnregisterInventory(container : Container)(implicit guid : ActorRef) : List[TaskResolver.GiveTask] = {
-    container.Inventory.Items.map(entry => { UnregisterEquipment(entry.obj)})
+  def UnregisterInventory(container: Container)(implicit guid: ActorRef): List[TaskResolver.GiveTask] = {
+    container.Inventory.Items.map(entry => { UnregisterEquipment(entry.obj) })
   }
 
   /**
@@ -286,9 +291,9 @@ object GUIDTask {
     * @see `GUIDTask.RegisterEquipment`
     * @return a `TaskResolver.GiveTask` message
     */
-  def UnregisterEquipment(obj : Equipment)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
+  def UnregisterEquipment(obj: Equipment)(implicit guid: ActorRef): TaskResolver.GiveTask = {
     obj match {
-      case tool : Tool =>
+      case tool: Tool =>
         UnregisterTool(tool)
       case _ =>
         UnregisterObjectTask(obj)
@@ -304,9 +309,9 @@ object GUIDTask {
     * @see `GUIDTask.RegisterAvatar`
     * @return a `TaskResolver.GiveTask` message
     */
-  def UnregisterAvatar(tplayer : Player)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
-    val holsterTasks = VisibleSlotTaskBuilding(tplayer.Holsters(), UnregisterEquipment)
-    val lockerTask = List(UnregisterLocker(tplayer.Locker))
+  def UnregisterAvatar(tplayer: Player)(implicit guid: ActorRef): TaskResolver.GiveTask = {
+    val holsterTasks   = VisibleSlotTaskBuilding(tplayer.Holsters(), UnregisterEquipment)
+    val lockerTask     = List(UnregisterLocker(tplayer.Locker))
     val inventoryTasks = UnregisterInventory(tplayer)
     TaskResolver.GiveTask(UnregisterObjectTask(tplayer).task, holsterTasks ++ lockerTask ++ inventoryTasks)
   }
@@ -321,8 +326,8 @@ object GUIDTask {
     * @see `GUIDTask.RegisterAvatar`
     * @return a `TaskResolver.GiveTask` message
     */
-  def UnregisterPlayer(tplayer : Player)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
-    val holsterTasks = VisibleSlotTaskBuilding(tplayer.Holsters(), UnregisterEquipment)
+  def UnregisterPlayer(tplayer: Player)(implicit guid: ActorRef): TaskResolver.GiveTask = {
+    val holsterTasks   = VisibleSlotTaskBuilding(tplayer.Holsters(), UnregisterEquipment)
     val inventoryTasks = UnregisterInventory(tplayer)
     TaskResolver.GiveTask(GUIDTask.UnregisterObjectTask(tplayer).task, holsterTasks ++ inventoryTasks)
   }
@@ -336,14 +341,17 @@ object GUIDTask {
     * @see `GUIDTask.RegisterVehicle`
     * @return a `TaskResolver.GiveTask` message
     */
-  def UnregisterVehicle(vehicle : Vehicle)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
+  def UnregisterVehicle(vehicle: Vehicle)(implicit guid: ActorRef): TaskResolver.GiveTask = {
     val weaponTasks = VisibleSlotTaskBuilding(vehicle.Weapons.values, UnregisterEquipment)
-    val utilTasks = Vehicle.EquipmentUtilities(vehicle.Utilities).values.map(util => { UnregisterObjectTask(util())}).toList
+    val utilTasks =
+      Vehicle.EquipmentUtilities(vehicle.Utilities).values.map(util => { UnregisterObjectTask(util()) }).toList
     val inventoryTasks = UnregisterInventory(vehicle)
     TaskResolver.GiveTask(UnregisterObjectTask(vehicle).task, weaponTasks ++ utilTasks ++ inventoryTasks)
   }
 
-  def UnregisterDeployableTurret(obj : PlanetSideGameObject with WeaponTurret)(implicit guid : ActorRef) : TaskResolver.GiveTask = {
+  def UnregisterDeployableTurret(
+      obj: PlanetSideGameObject with WeaponTurret
+  )(implicit guid: ActorRef): TaskResolver.GiveTask = {
     TaskResolver.GiveTask(
       UnregisterObjectTask(obj).task,
       VisibleSlotTaskBuilding(obj.Weapons.values, GUIDTask.UnregisterEquipment) ++ UnregisterInventory(obj)
@@ -360,7 +368,9 @@ object GUIDTask {
     * @param guid implicit reference to a unique number system
     * @return a list of `TaskResolver.GiveTask` messages
     */
-  def VisibleSlotTaskBuilding(list : Iterable[EquipmentSlot], func : ((Equipment)=>TaskResolver.GiveTask))(implicit guid : ActorRef) : List[TaskResolver.GiveTask] = {
+  def VisibleSlotTaskBuilding(list: Iterable[EquipmentSlot], func: ((Equipment) => TaskResolver.GiveTask))(implicit
+      guid: ActorRef
+  ): List[TaskResolver.GiveTask] = {
     recursiveVisibleSlotTaskBuilding(list.iterator, func)
   }
 
@@ -374,11 +384,14 @@ object GUIDTask {
     * @see `VisibleSlotTaskBuilding`
     * @return a `List` of `Equipment` tasking
     */
-  @tailrec private def recursiveVisibleSlotTaskBuilding(iter : Iterator[EquipmentSlot], func : ((Equipment)=>TaskResolver.GiveTask), list : List[TaskResolver.GiveTask] = Nil)(implicit guid : ActorRef) : List[TaskResolver.GiveTask] = {
-    if(!iter.hasNext) {
+  @tailrec private def recursiveVisibleSlotTaskBuilding(
+      iter: Iterator[EquipmentSlot],
+      func: ((Equipment) => TaskResolver.GiveTask),
+      list: List[TaskResolver.GiveTask] = Nil
+  )(implicit guid: ActorRef): List[TaskResolver.GiveTask] = {
+    if (!iter.hasNext) {
       list
-    }
-    else {
+    } else {
       iter.next.Equipment match {
         case Some(item) =>
           recursiveVisibleSlotTaskBuilding(iter, func, list :+ func(item))

@@ -12,9 +12,7 @@ import scodec.codecs._
 object DeploymentAction extends Enumeration {
   type Type = Value
 
-  val Dismiss,
-      Build
-      = Value
+  val Dismiss, Build = Value
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uint(1)) //no bool overload
 }
@@ -25,19 +23,8 @@ object DeploymentAction extends Enumeration {
 object DeployableIcon extends Enumeration {
   type Type = Value
 
-  val Boomer,
-      HEMine,
-      MotionAlarmSensor,
-      SpitfireTurret,
-      RouterTelepad,
-      DisruptorMine,
-      ShadowTurret,
-      CerebusTurret,
-      TRAP,
-      AegisShieldGenerator,
-      FieldTurret,
-      SensorDisruptor
-      = Value
+  val Boomer, HEMine, MotionAlarmSensor, SpitfireTurret, RouterTelepad, DisruptorMine, ShadowTurret, CerebusTurret,
+      TRAP, AegisShieldGenerator, FieldTurret, SensorDisruptor = Value
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uint4L)
 }
@@ -49,10 +36,12 @@ object DeployableIcon extends Enumeration {
   * @param pos the position of the deployable in the world (and on the map)
   * @param player_guid the player who is the owner
   */
-final case class DeployableInfo(object_guid : PlanetSideGUID,
-                                icon : DeployableIcon.Value,
-                                pos : Vector3,
-                                player_guid : PlanetSideGUID)
+final case class DeployableInfo(
+    object_guid: PlanetSideGUID,
+    icon: DeployableIcon.Value,
+    pos: Vector3,
+    player_guid: PlanetSideGUID
+)
 
 /**
   * Dispatched by the server to inform the client of a change in deployable items and that the map should be updated.<br>
@@ -74,36 +63,36 @@ final case class DeployableInfo(object_guid : PlanetSideGUID,
   * @param action how the entries in the following `List` are affected
   * @param deployables a `List` of information regarding deployable items
   */
-final case class DeployableObjectsInfoMessage(action : DeploymentAction.Value,
-                                              deployables : List[DeployableInfo]
-                                             ) extends PlanetSideGamePacket {
+final case class DeployableObjectsInfoMessage(action: DeploymentAction.Value, deployables: List[DeployableInfo])
+    extends PlanetSideGamePacket {
   type Packet = DeployableObjectsInfoMessage
   def opcode = GamePacketOpcode.DeployableObjectsInfoMessage
   def encode = DeployableObjectsInfoMessage.encode(this)
 }
 
 object DeployableObjectsInfoMessage extends Marshallable[DeployableObjectsInfoMessage] {
+
   /**
     * Overloaded constructor that accepts a single `DeployableInfo` entry (and turns it into a `List`).
     * @param action how the following entry is affected
     * @param info the singular entry of a deployable item
     * @return a `DeployableObjectsInfoMessage` object
     */
-  def apply(action : DeploymentAction.Type, info : DeployableInfo) : DeployableObjectsInfoMessage =
+  def apply(action: DeploymentAction.Type, info: DeployableInfo): DeployableObjectsInfoMessage =
     new DeployableObjectsInfoMessage(action, info :: Nil)
 
   /**
     * `Codec` for `DeployableInfo` data.
     */
-  private val info_codec : Codec[DeployableInfo] = (
+  private val info_codec: Codec[DeployableInfo] = (
     ("object_guid" | PlanetSideGUID.codec) ::
       ("icon" | DeployableIcon.codec) ::
       ("pos" | Vector3.codec_pos) ::
       ("player_guid" | PlanetSideGUID.codec)
   ).as[DeployableInfo]
 
-  implicit val codec : Codec[DeployableObjectsInfoMessage] = (
+  implicit val codec: Codec[DeployableObjectsInfoMessage] = (
     ("action" | DeploymentAction.codec) ::
       ("deployables" | PacketHelpers.listOfNAligned(uint32L, 0, info_codec))
-    ).as[DeployableObjectsInfoMessage]
+  ).as[DeployableObjectsInfoMessage]
 }

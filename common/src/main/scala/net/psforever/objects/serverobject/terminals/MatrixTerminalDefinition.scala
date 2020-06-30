@@ -16,20 +16,21 @@ import net.psforever.objects.serverobject.structures.Amenity
   * @see `Zone.SpawnGroups`
   * @param objectId the object's identifier number
   */
-class MatrixTerminalDefinition(objectId : Int) extends TerminalDefinition(objectId) {
-  def Request(player : Player, msg : Any) : Terminal.Exchange = Terminal.NoDeal()
+class MatrixTerminalDefinition(objectId: Int) extends TerminalDefinition(objectId) {
+  def Request(player: Player, msg: Any): Terminal.Exchange = Terminal.NoDeal()
 }
 
 object MatrixTerminalDefinition {
+
   /**
     * Assemble some logic for a provided object.
     * @param obj an `Amenity` object;
     *            anticipating a `Terminal` object using this same definition
     * @param context hook to the local `Actor` system
     */
-  def Setup(obj : Amenity, context : ActorContext) : Unit = {
+  def Setup(obj: Amenity, context: ActorContext): Unit = {
     import akka.actor.Props
-    if(obj.Actor == Default.Actor) {
+    if (obj.Actor == Default.Actor) {
       obj.Actor = context.actorOf(Props(classOf[TerminalControl], obj), PlanetSideServerObject.UniqueActorName(obj))
     }
   }

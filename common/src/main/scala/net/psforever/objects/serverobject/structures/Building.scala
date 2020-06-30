@@ -19,51 +19,54 @@ import scalax.collection.{Graph, GraphEdge}
 import services.Service
 import services.local.{LocalAction, LocalServiceMessage}
 
-class Building(private val name: String,
-               private val building_guid : Int,
-               private val map_id : Int,
-               private val zone : Zone,
-               private val buildingType : StructureType.Value,
-               private val buildingDefinition : BuildingDefinition) extends AmenityOwner {
+class Building(
+    private val name: String,
+    private val building_guid: Int,
+    private val map_id: Int,
+    private val zone: Zone,
+    private val buildingType: StructureType.Value,
+    private val buildingDefinition: BuildingDefinition
+) extends AmenityOwner {
+
   /**
     * The map_id is the identifier number used in BuildingInfoUpdateMessage. This is the index that the building appears in the MPO file starting from index 1
     * The GUID is the identifier number used in SetEmpireMessage / Facility hacking / PlanetSideAttributeMessage.
-  */
-  private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
-  private var playersInSOI : List[Player] = List.empty
-  private val capitols = List("Thoth", "Voltan", "Neit", "Anguta", "Eisa", "Verica")
-  private var forceDomeActive : Boolean = false
+    */
+  private var faction: PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
+  private var playersInSOI: List[Player]      = List.empty
+  private val capitols                        = List("Thoth", "Voltan", "Neit", "Anguta", "Eisa", "Verica")
+  private var forceDomeActive: Boolean        = false
   super.Zone_=(zone)
   super.GUID_=(PlanetSideGUID(building_guid)) //set
-  Invalidate() //unset; guid can be used during setup, but does not stop being registered properly later
+  Invalidate()                                //unset; guid can be used during setup, but does not stop being registered properly later
 
   override def toString = name
 
-  def Name : String = name
+  def Name: String = name
 
-  def MapId : Int = map_id
+  def MapId: Int = map_id
 
-  def IsCapitol : Boolean = capitols.contains(name)
-  def IsSubCapitol : Boolean =  {
+  def IsCapitol: Boolean = capitols.contains(name)
+  def IsSubCapitol: Boolean = {
     Neighbours match {
       case Some(buildings: Set[Building]) => buildings.exists(x => capitols.contains(x.name))
-      case None => false
+      case None                           => false
     }
   }
-  def ForceDomeActive : Boolean = forceDomeActive
-  def ForceDomeActive_=(activated : Boolean) : Boolean = {
+  def ForceDomeActive: Boolean = forceDomeActive
+  def ForceDomeActive_=(activated: Boolean): Boolean = {
     forceDomeActive = activated
     forceDomeActive
   }
 
-  def Faction : PlanetSideEmpire.Value = faction
+  def Faction: PlanetSideEmpire.Value = faction
 
-  override def Faction_=(fac : PlanetSideEmpire.Value) : PlanetSideEmpire.Value = {
+  override def Faction_=(fac: PlanetSideEmpire.Value): PlanetSideEmpire.Value = {
     faction = fac
-    if(IsSubCapitol) {
+    if (IsSubCapitol) {
       Neighbours match {
         case Some(buildings: Set[Building]) => buildings.filter(x => x.IsCapitol).head.UpdateForceDomeStatus()
-        case None => ;
+        case None                           => ;
       }
     } else if (IsCapitol) {
       UpdateForceDomeStatus()
@@ -72,18 +75,17 @@ class Building(private val name: String,
     Faction
   }
 
-  def PlayersInSOI : List[Player] = playersInSOI
+  def PlayersInSOI: List[Player] = playersInSOI
 
-  def PlayersInSOI_=(list : List[Player]) : List[Player] = {
-    if(playersInSOI.isEmpty && list.nonEmpty) {
+  def PlayersInSOI_=(list: List[Player]): List[Player] = {
+    if (playersInSOI.isEmpty && list.nonEmpty) {
       Amenities.collect {
-        case box : Painbox =>
+        case box: Painbox =>
           box.Actor ! Painbox.Start()
       }
-    }
-    else if(playersInSOI.nonEmpty && list.isEmpty) {
+    } else if (playersInSOI.nonEmpty && list.isEmpty) {
       Amenities.collect {
-        case box : Painbox =>
+        case box: Painbox =>
           box.Actor ! Painbox.Stop()
       }
     }
@@ -95,11 +97,11 @@ class Building(private val name: String,
   def Neighbours: Option[Set[Building]] = {
     zone.Lattice find this match {
       case Some(x) => Some(x.diSuccessors.map(x => x.toOuter))
-      case None => None;
+      case None    => None;
     }
   }
 
-  def NtuLevel : Int = {
+  def NtuLevel: Int = {
     //if we have a silo, get the NTU level
     Amenities.find(_.Definition == GlobalDefinitions.resource_silo) match {
       case Some(obj: ResourceSilo) =>
@@ -109,14 +111,14 @@ class Building(private val name: String,
     }
   }
 
-  def CaptureTerminal : Option[CaptureTerminal] = {
+  def CaptureTerminal: Option[CaptureTerminal] = {
     Amenities.find(_.isInstanceOf[CaptureTerminal]) match {
       case Some(term) => Some(term.asInstanceOf[CaptureTerminal])
-      case _ => None
+      case _          => None
     }
   }
 
-  def CaptureTerminalIsHacked : Boolean = {
+  def CaptureTerminalIsHacked: Boolean = {
     CaptureTerminal match {
       case Some(obj: CaptureTerminal) =>
         obj.HackedBy.isDefined
@@ -125,31 +127,34 @@ class Building(private val name: String,
   }
 
   def TriggerZoneMapUpdate(): Unit = {
-    if(Actor != Default.Actor) Actor ! Building.TriggerZoneMapUpdate(Zone.Number)
+    if (Actor != Default.Actor) Actor ! Building.TriggerZoneMapUpdate(Zone.Number)
   }
 
-  def UpdateForceDomeStatus() : Unit = {
-    if(IsCapitol) {
+  def UpdateForceDomeStatus(): Unit = {
+    if (IsCapitol) {
       val originalStatus = ForceDomeActive
 
-      if(Faction == PlanetSideEmpire.NEUTRAL) {
+      if (Faction == PlanetSideEmpire.NEUTRAL) {
         ForceDomeActive = false
       } else {
         val ownedSubCapitols = Neighbours(Faction) match {
           case Some(buildings: Set[Building]) => buildings.size
-          case None => 0
+          case None                           => 0
         }
 
-        if(ForceDomeActive && ownedSubCapitols <= 1) {
+        if (ForceDomeActive && ownedSubCapitols <= 1) {
           ForceDomeActive = false
-        } else if(!ForceDomeActive && ownedSubCapitols > 1) {
+        } else if (!ForceDomeActive && ownedSubCapitols > 1) {
           ForceDomeActive = true
         }
       }
 
-      if(originalStatus != ForceDomeActive) {
-        if(Actor != Default.Actor) {
-          Zone.LocalEvents ! LocalServiceMessage(Zone.Id, LocalAction.UpdateForceDomeStatus(Service.defaultPlayerGUID, GUID, ForceDomeActive))
+      if (originalStatus != ForceDomeActive) {
+        if (Actor != Default.Actor) {
+          Zone.LocalEvents ! LocalServiceMessage(
+            Zone.Id,
+            LocalAction.UpdateForceDomeStatus(Service.defaultPlayerGUID, GUID, ForceDomeActive)
+          )
           Actor ! Building.SendMapUpdate(all_clients = true)
         }
       }
@@ -161,28 +166,40 @@ class Building(private val name: String,
     this.Neighbours match {
       case Some(x: Set[Building]) =>
         val matching = x.filter(b => b.Faction == faction)
-        if(matching.isEmpty) None else Some(matching)
+        if (matching.isEmpty) None else Some(matching)
       case None => None
     }
   }
 
-  def Info : (
-    Int,
-      Boolean, PlanetSideEmpire.Value, Long, PlanetSideEmpire.Value,
-      Long, Option[Additional1],
-      PlanetSideGeneratorState.Value, Boolean, Boolean,
-      Int, Int,
-      List[Additional2], Long, Boolean,
-      Int, Option[Additional3],
-      Boolean, Boolean
-    ) = {
-    val ntuLevel : Int = NtuLevel
+  def Info: (
+      Int,
+      Boolean,
+      PlanetSideEmpire.Value,
+      Long,
+      PlanetSideEmpire.Value,
+      Long,
+      Option[Additional1],
+      PlanetSideGeneratorState.Value,
+      Boolean,
+      Boolean,
+      Int,
+      Int,
+      List[Additional2],
+      Long,
+      Boolean,
+      Int,
+      Option[Additional3],
+      Boolean,
+      Boolean
+  ) = {
+    val ntuLevel: Int = NtuLevel
     //if we have a capture terminal, get the hack status & time (in milliseconds) from control console if it exists
-    val (hacking, hackingFaction, hackTime) : (Boolean, PlanetSideEmpire.Value, Long) = CaptureTerminal match {
+    val (hacking, hackingFaction, hackTime): (Boolean, PlanetSideEmpire.Value, Long) = CaptureTerminal match {
       case Some(obj: CaptureTerminal with Hackable) =>
         obj.HackedBy match {
           case Some(Hackable.HackInfo(_, _, hfaction, _, start, length)) =>
-            val hack_time_remaining_ms = TimeUnit.MILLISECONDS.convert(math.max(0, start + length - System.nanoTime), TimeUnit.NANOSECONDS)
+            val hack_time_remaining_ms =
+              TimeUnit.MILLISECONDS.convert(math.max(0, start + length - System.nanoTime), TimeUnit.NANOSECONDS)
             (true, hfaction, hack_time_remaining_ms)
           case _ =>
             (false, PlanetSideEmpire.NEUTRAL, 0L)
@@ -192,21 +209,24 @@ class Building(private val name: String,
     }
     //if we have no generator, assume the state is "Normal"
     val (generatorState, boostGeneratorPain) = Amenities.find(x => x.isInstanceOf[Generator]) match {
-      case Some(obj : Generator) =>
+      case Some(obj: Generator) =>
         (obj.Condition, false) // todo: poll pain field strength
       case _ =>
         (PlanetSideGeneratorState.Normal, false)
     }
     //if we have spawn tubes, determine if any of them are active
-    val (spawnTubesNormal, boostSpawnPain) : (Boolean, Boolean) = {
-      val o = Amenities.collect({ case tube : SpawnTube if !tube.Destroyed => tube })
+    val (spawnTubesNormal, boostSpawnPain): (Boolean, Boolean) = {
+      val o = Amenities.collect({ case tube: SpawnTube if !tube.Destroyed => tube })
       (o.nonEmpty, false) //TODO poll pain field strength
     }
 
-    val latticeBenefit : Int = {
-      if(Faction == PlanetSideEmpire.NEUTRAL) 0
+    val latticeBenefit: Int = {
+      if (Faction == PlanetSideEmpire.NEUTRAL) 0
       else {
-        def FindLatticeBenefit(wantedBenefit: ObjectDefinition, subGraph: Graph[Building, GraphEdge.UnDiEdge]): Boolean = {
+        def FindLatticeBenefit(
+            wantedBenefit: ObjectDefinition,
+            subGraph: Graph[Building, GraphEdge.UnDiEdge]
+        ): Boolean = {
           var found = false
 
           subGraph find this match {
@@ -215,7 +235,7 @@ class Building(private val name: String,
               else {
                 self pathUntil (_.Definition == wantedBenefit) match {
                   case Some(_) => found = true
-                  case None => ;
+                  case None    => ;
                 }
               }
             case None => ;
@@ -228,7 +248,9 @@ class Building(private val name: String,
         zone.Lattice find this match {
           case Some(_) =>
             // todo: generator destruction state
-            val subGraph = Zone.Lattice filter ((b: Building) => b.Faction == this.Faction && !b.CaptureTerminalIsHacked && b.NtuLevel > 0)
+            val subGraph = Zone.Lattice filter ((b: Building) =>
+              b.Faction == this.Faction && !b.CaptureTerminalIsHacked && b.NtuLevel > 0
+            )
 
             var stackedBenefit = 0
             if (FindLatticeBenefit(GlobalDefinitions.amp_station, subGraph)) stackedBenefit |= 1
@@ -248,47 +270,53 @@ class Building(private val name: String,
       hacking,
       hackingFaction,
       hackTime,
-      if(ntuLevel > 0) Faction else PlanetSideEmpire.NEUTRAL,
+      if (ntuLevel > 0) Faction else PlanetSideEmpire.NEUTRAL,
       0, //!! Field != 0 will cause malformed packet. See class def.
       None,
       generatorState,
       spawnTubesNormal,
       ForceDomeActive,
       latticeBenefit,
-      0, //cavern_benefit; !! Field > 0 will cause malformed packet. See class def.
-      Nil, //unk4
-      0, //unk5
-      false, //unk6
-      8, //!! unk7 Field != 8 will cause malformed packet. See class def.
-      None, //unk7x
-      boostSpawnPain, //boost_spawn_pain
+      0,                 //cavern_benefit; !! Field > 0 will cause malformed packet. See class def.
+      Nil,               //unk4
+      0,                 //unk5
+      false,             //unk6
+      8,                 //!! unk7 Field != 8 will cause malformed packet. See class def.
+      None,              //unk7x
+      boostSpawnPain,    //boost_spawn_pain
       boostGeneratorPain //boost_generator_pain
     )
   }
 
-  def BuildingType : StructureType.Value = buildingType
+  def BuildingType: StructureType.Value = buildingType
 
-  override def Zone_=(zone : Zone) : Zone = Zone //building never leaves zone after being set in constructor
+  override def Zone_=(zone: Zone): Zone = Zone //building never leaves zone after being set in constructor
 
-  override def Continent : String = Zone.Id
+  override def Continent: String = Zone.Id
 
-  override def Continent_=(zone : String) : String = Continent //building never leaves zone after being set in constructor
+  override def Continent_=(zone: String): String = Continent //building never leaves zone after being set in constructor
 
   def Definition: BuildingDefinition = buildingDefinition
 }
 
 object Building {
-  final val NoBuilding : Building = new Building(name = "", 0, map_id = 0, Zone.Nowhere, StructureType.Platform, GlobalDefinitions.building) {
-    override def Faction_=(faction : PlanetSideEmpire.Value) : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
-    override def Amenities_=(obj : Amenity) : List[Amenity] = Nil
-    GUID = net.psforever.types.PlanetSideGUID(0)
-  }
+  final val NoBuilding: Building =
+    new Building(name = "", 0, map_id = 0, Zone.Nowhere, StructureType.Platform, GlobalDefinitions.building) {
+      override def Faction_=(faction: PlanetSideEmpire.Value): PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
+      override def Amenities_=(obj: Amenity): List[Amenity]                           = Nil
+      GUID = net.psforever.types.PlanetSideGUID(0)
+    }
 
-  def apply(name : String, guid : Int, map_id : Int, zone : Zone, buildingType : StructureType.Value) : Building = {
+  def apply(name: String, guid: Int, map_id: Int, zone: Zone, buildingType: StructureType.Value): Building = {
     new Building(name, guid, map_id, zone, buildingType, GlobalDefinitions.building)
   }
 
-  def Structure(buildingType : StructureType.Value, location : Vector3, rotation : Vector3, definition: BuildingDefinition)(name : String, guid : Int, map_id : Int, zone : Zone, context : ActorContext) : Building = {
+  def Structure(
+      buildingType: StructureType.Value,
+      location: Vector3,
+      rotation: Vector3,
+      definition: BuildingDefinition
+  )(name: String, guid: Int, map_id: Int, zone: Zone, context: ActorContext): Building = {
     import akka.actor.Props
     val obj = new Building(name, guid, map_id, zone, buildingType, definition)
     obj.Position = location
@@ -297,7 +325,10 @@ object Building {
     obj
   }
 
-  def Structure(buildingType : StructureType.Value, location : Vector3)(name : String, guid : Int, map_id : Int, zone : Zone, context : ActorContext) : Building = {
+  def Structure(
+      buildingType: StructureType.Value,
+      location: Vector3
+  )(name: String, guid: Int, map_id: Int, zone: Zone, context: ActorContext): Building = {
     import akka.actor.Props
 
     val obj = new Building(name, guid, map_id, zone, buildingType, GlobalDefinitions.building)
@@ -306,14 +337,20 @@ object Building {
     obj
   }
 
-  def Structure(buildingType : StructureType.Value)(name : String, guid: Int, map_id : Int, zone : Zone, context : ActorContext) : Building = {
+  def Structure(
+      buildingType: StructureType.Value
+  )(name: String, guid: Int, map_id: Int, zone: Zone, context: ActorContext): Building = {
     import akka.actor.Props
     val obj = new Building(name, guid, map_id, zone, buildingType, GlobalDefinitions.building)
     obj.Actor = context.actorOf(Props(classOf[BuildingControl], obj), s"$map_id-$buildingType-building")
     obj
   }
 
-  def Structure(buildingType : StructureType.Value, buildingDefinition : BuildingDefinition, location : Vector3)(name: String, guid: Int, id : Int, zone : Zone, context : ActorContext) : Building = {
+  def Structure(
+      buildingType: StructureType.Value,
+      buildingDefinition: BuildingDefinition,
+      location: Vector3
+  )(name: String, guid: Int, id: Int, zone: Zone, context: ActorContext): Building = {
     import akka.actor.Props
     val obj = new Building(name, guid, id, zone, buildingType, buildingDefinition)
     obj.Position = location
@@ -321,7 +358,7 @@ object Building {
     obj
   }
 
-  final case class AmenityStateChange(obj : Amenity)
+  final case class AmenityStateChange(obj: Amenity)
   final case class SendMapUpdate(all_clients: Boolean)
   final case class TriggerZoneMapUpdate(zone_num: Int)
 }
