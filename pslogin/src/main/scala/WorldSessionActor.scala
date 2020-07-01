@@ -35,12 +35,7 @@ import net.psforever.objects.ce.{
 import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter.{CorpseConverter, DestroyedVehicleConverter}
 import net.psforever.objects.entity.{SimpleWorldEntity, WorldEntity}
-import net.psforever.objects.equipment.{
-  EffectTarget,
-  Equipment,
-  FireModeSwitch,
-  JammableUnit
-}
+import net.psforever.objects.equipment.{EffectTarget, Equipment, FireModeSwitch, JammableUnit}
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
 import net.psforever.objects.inventory.{Container, InventoryItem}
@@ -114,12 +109,7 @@ import services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalSer
 import services.local.support.RouterTelepadActivation
 import services.ServiceManager.LookupResult
 import services.support.SupportActor
-import services.teamwork.{
-  SquadResponse,
-  SquadServiceMessage,
-  SquadServiceResponse,
-  SquadAction => SquadServiceAction
-}
+import services.teamwork.{SquadResponse, SquadServiceMessage, SquadServiceResponse, SquadAction => SquadServiceAction}
 import services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
 import Database._
 
@@ -3327,12 +3317,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
         AvatarAction.PlanetsideAttribute(vehicle.GUID, 49, 1L)
       ) // orb particle effect on
 
-      antChargingTick =
-        context.system.scheduler.scheduleOnce(
-          1000 milliseconds,
-          self,
-          NtuCharging(player, vehicle)
-        ) // Repeat until fully charged
+      antChargingTick = context.system.scheduler.scheduleOnce(
+        1000 milliseconds,
+        self,
+        NtuCharging(player, vehicle)
+      ) // Repeat until fully charged
     } else {
       // Fully charged
       sendResponse(
@@ -4530,157 +4519,465 @@ class WorldSessionActor extends Actor with MDCContextAware {
       //log.info("SetChatFilters: " + msg)
 
       case msg @ ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents) =>
-        var makeReply: Boolean   = false
-        var echoContents: String = contents
-        val trimContents         = contents.trim
-        val trimRecipient        = recipient.trim
-        //TODO messy on/off strings may work
-        if (messagetype == ChatMessageType.CMT_FLY && admin) {
-          makeReply = false
-          if (!flying) {
-            flying = true
-            sendResponse(ChatMsg(ChatMessageType.CMT_FLY, msg.wideContents, msg.recipient, "on", msg.note))
-          } else {
-            flying = false
-            sendResponse(ChatMsg(ChatMessageType.CMT_FLY, msg.wideContents, msg.recipient, "off", msg.note))
-          }
-        } else if (messagetype == ChatMessageType.CMT_SPEED && admin) {
-          makeReply = true
-          speed = {
-            try {
-              trimContents.toFloat
-            } catch {
-              case _: Exception =>
-                echoContents = "1.000"
-                1f
+        import ChatMessageType._
+        log.info("Chat: " + msg)
+
+        (messagetype, admin, recipient.trim, contents.trim) match {
+          case (CMT_FLY, true, _, _) =>
+            flying = !flying
+            sendResponse(
+              ChatMsg(CMT_FLY, msg.wideContents, recipient, if (flying) "on" else "off", msg.note)
+            )
+
+          case (CMT_SPEED, true, _, _) =>
+            speed =
+              try {
+                contents.toFloat
+              } catch {
+                case _: Throwable =>
+                  1f
+              }
+            sendResponse(ChatMsg(messagetype, has_wide_contents, recipient, f"$speed%.3f", note_contents))
+
+          case (CMT_TOGGLESPECTATORMODE, true, _, _) =>
+            player.spectator = !player.spectator
+            sendResponse(
+              ChatMsg(
+                CMT_TOGGLESPECTATORMODE,
+                msg.wideContents,
+                msg.recipient,
+                if (player.spectator) "on" else "off",
+                msg.note
+              )
+            )
+
+          case (CMT_RECALL, _, _, _) =>
+            val sanctuary = Zones.SanctuaryZoneId(player.Faction)
+            val errorMessage = zoningType match {
+              case Zoning.Method.Quit => Some("You can't recall to your sanctuary continent while quitting")
+              case Zoning.Method.InstantAction =>
+                Some("You can't recall to your sanctuary continent while instant actioning")
+              case Zoning.Method.Recall => Some("You already requested to recall to your sanctuary continent")
+              case _ if continent.Id == sanctuary =>
+                Some("You can't recall to your sanctuary when you are already in your sanctuary")
+              case _$msg if !player.isAlive || deadState != DeadState.Alive =>
+                Some(if (player.isAlive) "@norecall_deconstructing" else "@norecall_dead")
+              case _ if player.VehicleSeated.nonEmpty => Some("@norecall_invehicle")
+              case _                                  => None
             }
-          }
-        } else if (messagetype == ChatMessageType.CMT_TOGGLESPECTATORMODE && admin) {
-          makeReply = false
-          if (!player.spectator) {
-            player.spectator = true
-            sendResponse(
-              ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, msg.wideContents, msg.recipient, "on", msg.note)
-            )
-          } else {
-            player.spectator = false
-            sendResponse(
-              ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, msg.wideContents, msg.recipient, "off", msg.note)
-            )
-          }
-        } else if (messagetype == ChatMessageType.CMT_RECALL) {
-          makeReply = false
-          val sanctuary = Zones.SanctuaryZoneId(player.Faction)
-          if (zoningType == Zoning.Method.Quit) {
-            sendResponse(
-              ChatMsg(
-                ChatMessageType.CMT_QUIT,
-                false,
-                "",
-                "You can't recall to your sanctuary continent while quitting",
-                None
+            errorMessage match {
+              case Some(errorMessage) =>
+                sendResponse(
+                  ChatMsg(
+                    CMT_QUIT,
+                    false,
+                    "",
+                    errorMessage,
+                    None
+                  )
+                )
+              case None =>
+                zoningType = Zoning.Method.Recall
+                zoningChatMessageType = messagetype
+                zoningStatus = Zoning.Status.Request
+                zoningReset = context.system.scheduler.scheduleOnce(10 seconds, self, ZoningReset())
+                cluster ! Zoning.Recall.Request(player.Faction, sanctuary)
+            }
+
+          case (CMT_INSTANTACTION, _, _, _) =>
+            if (zoningType == Zoning.Method.Quit) {
+              sendResponse(
+                ChatMsg(CMT_QUIT, false, "", "You can't instant action while quitting.", None)
               )
-            )
-          } else if (zoningType == Zoning.Method.InstantAction) {
-            sendResponse(
-              ChatMsg(
-                ChatMessageType.CMT_QUIT,
-                false,
-                "",
-                "You can't recall to your sanctuary continent while instant actioning",
-                None
+            } else if (zoningType == Zoning.Method.InstantAction) {
+              sendResponse(ChatMsg(CMT_QUIT, false, "", "@noinstantaction_instantactionting", None))
+            } else if (zoningType == Zoning.Method.Recall) {
+              sendResponse(
+                ChatMsg(
+                  CMT_QUIT,
+                  false,
+                  "",
+                  "You won't instant action. You already requested to recall to your sanctuary continent",
+                  None
+                )
               )
-            )
-          } else if (zoningType == Zoning.Method.Recall) {
-            sendResponse(
-              ChatMsg(
-                ChatMessageType.CMT_QUIT,
-                false,
-                "",
-                "You already requested to recall to your sanctuary continent",
-                None
-              )
-            )
-          } else if (continent.Id.equals(sanctuary)) {
-            sendResponse(
-              ChatMsg(
-                ChatMessageType.CMT_QUIT,
-                false,
-                "",
-                "You can't recall to your sanctuary continent when you are already on your faction's sanctuary continent",
-                None
-              )
-            )
-          } else if (!player.isAlive || deadState != DeadState.Alive) {
-            if (player.isAlive) {
-              sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@norecall_deconstructing", None))
-              //sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "You can't recall to your sanctuary continent while deconstructing.", None))
+            } else if (!player.isAlive || deadState != DeadState.Alive) {
+              if (player.isAlive) {
+                sendResponse(ChatMsg(CMT_QUIT, false, "", "@noinstantaction_deconstructing", None))
+              } else {
+                sendResponse(ChatMsg(CMT_QUIT, false, "", "@noinstantaction_dead", None))
+              }
+            } else if (player.VehicleSeated.nonEmpty) {
+              sendResponse(ChatMsg(CMT_QUIT, false, "", "@noinstantaction_invehicle", None))
             } else {
-              sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@norecall_dead", None))
+              zoningType = Zoning.Method.InstantAction
+              zoningChatMessageType = messagetype
+              zoningStatus = Zoning.Status.Request
+              zoningReset = context.system.scheduler.scheduleOnce(10 seconds, self, ZoningReset())
+              cluster ! Zoning.InstantAction.Request(player.Faction)
             }
-          } else if (player.VehicleSeated.nonEmpty) {
-            sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@norecall_invehicle", None))
-          } else {
-            zoningType = Zoning.Method.Recall
-            zoningChatMessageType = messagetype
-            zoningStatus = Zoning.Status.Request
-            zoningReset = context.system.scheduler.scheduleOnce(10 seconds, self, ZoningReset())
-            cluster ! Zoning.Recall.Request(player.Faction, sanctuary)
-          }
-        } else if (messagetype == ChatMessageType.CMT_INSTANTACTION) {
-          makeReply = false
-          if (zoningType == Zoning.Method.Quit) {
-            sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "You can't instant action while quitting.", None))
-          } else if (zoningType == Zoning.Method.InstantAction) {
-            sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noinstantaction_instantactionting", None))
-          } else if (zoningType == Zoning.Method.Recall) {
+
+          case (CMT_QUIT, _, _, _) =>
+            if (zoningType == Zoning.Method.Quit) {
+              sendResponse(ChatMsg(CMT_QUIT, false, "", "@noquit_quitting", None))
+            } else if (!player.isAlive || deadState != DeadState.Alive) {
+              if (player.isAlive) {
+                sendResponse(ChatMsg(CMT_QUIT, false, "", "@noquit_deconstructing", None))
+              } else {
+                sendResponse(ChatMsg(CMT_QUIT, false, "", "@noquit_dead", None))
+              }
+            } else if (player.VehicleSeated.nonEmpty) {
+              sendResponse(ChatMsg(CMT_QUIT, false, "", "@noquit_invehicle", None))
+            } else {
+              //priority to quitting is given to quit over other zoning methods
+              if (zoningType == Zoning.Method.InstantAction || zoningType == Zoning.Method.Recall) {
+                CancelZoningProcessWithDescriptiveReason("cancel")
+              }
+              zoningType = Zoning.Method.Quit
+              zoningChatMessageType = messagetype
+              zoningStatus = Zoning.Status.Request
+              self ! Zoning.Quit()
+            }
+
+          case (CMT_SUICIDE, _, _, _) =>
+            if (player.isAlive && deadState != DeadState.Release) {
+              Suicide(player)
+            }
+
+          case (CMT_CULLWATERMARK, _, _, contents) =>
+            if (contents.contains("40 80")) connectionState = 100
+            else if (contents.contains("120 200")) connectionState = 25
+            else connectionState = 50
+
+          case (CMT_DESTROY, _, _, contents) =>
+            val guid = contents.toInt
+            continent.GUID(continent.Map.TerminalToSpawnPad.getOrElse(guid, guid)) match {
+              case Some(pad: VehicleSpawnPad) =>
+                pad.Actor ! VehicleSpawnControl.ProcessControl.Flush
+              case Some(turret: FacilityTurret) if turret.isUpgrading =>
+                WeaponTurrets.FinishUpgradingMannedTurret(turret, TurretUpgrade.None)
+              case _ =>
+                self ! PacketCoding.CreateGamePacket(0, RequestDestroyMessage(PlanetSideGUID(guid)))
+            }
+            sendResponse(ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents))
+
+          case (_, _, _, "!loc") =>
+            val loc =
+              s"zone=${continent.Id} pos=${player.Position.x},${player.Position.y},${player.Position.z}; ori=${player.Orientation.x},${player.Orientation.y},${player.Orientation.z}"
+            log.info(loc)
+            sendResponse(ChatMsg(messagetype, has_wide_contents, recipient, loc, note_contents))
+
+          case (_, _, _, contents) if contents.startsWith("!list") =>
+            val localString: String = contents.drop(contents.indexOf(" ") + 1)
+            val zone = contents.split(" ").lift(1) match {
+              case None =>
+                Some(continent)
+              case Some(id) =>
+                Zones.zones.get(id)
+            }
+
+            zone match {
+              case Some(zone) =>
+                sendResponse(
+                  ChatMsg(
+                    CMT_GMOPEN,
+                    has_wide_contents,
+                    "Server",
+                    "\\#8Name (Faction) [ID] at PosX PosY PosZ",
+                    note_contents
+                  )
+                )
+
+                (zone.LivePlayers ++ zone.Corpses)
+                  .filter(_.CharId != player.CharId)
+                  .sortBy(_.Name)
+                  .foreach(player => {
+                    sendResponse(
+                      ChatMsg(
+                        CMT_GMOPEN,
+                        has_wide_contents,
+                        "Server",
+                        s"\\#7${player.Name} (${player.Faction}) [${player.CharId}] at ${player.Position.x.toInt} ${player.Position.y.toInt} ${player.Position.z.toInt}",
+                        note_contents
+                      )
+                    )
+                  })
+              case None =>
+                sendResponse(
+                  ChatMsg(
+                    CMT_GMOPEN,
+                    has_wide_contents,
+                    "Server",
+                    "Invalid zone ID",
+                    note_contents
+                  )
+                )
+            }
+
+          case (_, true, _, contents) if contents.startsWith("!kick") =>
+            val input = contents.split("\\s+").drop(1)
+            if (input.length > 0) {
+              val numRegex = raw"(\d+)".r
+              val id       = input(0)
+              val determination: Player => Boolean = id match {
+                case numRegex(_) => { _.CharId == id.toLong }
+                case _           => { _.Name.equals(id) }
+              }
+              continent.LivePlayers.find(determination).orElse(continent.Corpses.find(determination)) match {
+                case Some(tplayer) if AdministrativeKick(tplayer) =>
+                  if (input.length > 1) {
+                    val time = input(1)
+                    time match {
+                      case numRegex(_) =>
+                        accountPersistence ! AccountPersistenceService.Kick(tplayer.Name, Some(time.toLong))
+                      case _ =>
+                        accountPersistence ! AccountPersistenceService.Kick(tplayer.Name, None)
+                    }
+                  }
+                case None =>
+                  sendResponse(
+                    ChatMsg(
+                      CMT_GMOPEN,
+                      has_wide_contents,
+                      "Server",
+                      "Invalid player",
+                      note_contents
+                    )
+                  )
+              }
+            }
+
+          case (CMT_CAPTUREBASE, true, _, contents) =>
+            val args = contents.split(" ").filter(_ != "")
+
+            val (faction, factionPos) = args.zipWithIndex
+              .map { case (faction, pos) => (faction.toLowerCase, pos) }
+              .map {
+                case ("tr", pos)   => Some(PlanetSideEmpire.TR, pos)
+                case ("nc", pos)   => Some(PlanetSideEmpire.NC, pos)
+                case ("vs", pos)   => Some(PlanetSideEmpire.VS, pos)
+                case ("none", pos) => Some(PlanetSideEmpire.NEUTRAL, pos)
+                case _             => None
+              }
+              .flatten
+              .headOption match {
+              case Some((faction, pos)) => (faction, Some(pos))
+              case None                 => (player.Faction, None)
+            }
+
+            val (buildingsOption, buildingPos) = args.zipWithIndex
+              .map {
+                case (_, pos) if (factionPos.isDefined && factionPos.get == pos) => None
+                case ("all", pos) =>
+                  Some(
+                    Some(
+                      continent.Buildings
+                        .filter {
+                          case (_, building) => building.CaptureTerminal.isDefined
+                        }
+                        .values
+                        .toSeq
+                    ),
+                    Some(pos)
+                  )
+                case (name, pos) =>
+                  continent.Buildings.find {
+                    case (_, building) => name.equalsIgnoreCase(building.Name) && building.CaptureTerminal.isDefined
+                  } match {
+                    case Some((_, building)) => Some(Some(Seq(building)), Some(pos))
+                    case None                =>
+                      try {
+                        // check if we have a timer
+                        name.toInt
+                        None
+                      } catch {
+                        case _: Throwable =>
+                          Some(None, Some(pos))
+                      }
+                  }
+              }
+              .flatten
+              .headOption match {
+              case Some((buildings, pos)) => (buildings, pos)
+              case None                   => (None, None)
+            }
+
+            val (timerOption, timerPos) = args.zipWithIndex
+              .map {
+                case (_, pos)
+                    if (factionPos.isDefined && factionPos.get == pos || buildingPos.isDefined && buildingPos.get == pos) =>
+                  None
+                case (timer, pos) =>
+                  try {
+                    val t = timer.toInt // TODO what is the timer format supposed to be?
+                    Some(Some(t), Some(pos))
+                  } catch {
+                    case _: Throwable =>
+                      Some(None, Some(pos))
+                  }
+              }
+              .flatten
+              .headOption match {
+              case Some((timer, posOption)) => (timer, posOption)
+              case None                     => (None, None)
+            }
+
+            (factionPos, buildingPos, timerPos, buildingsOption, timerOption) match {
+              case // [[<empire>|none [<timer>]]
+                  (Some(0), None, Some(1), None, Some(_)) | (Some(0), None, None, None, None) | (None, None, None, None, None) |
+                  // [<building name> [<empire>|none [timer]]]
+                  (None | Some(1), Some(0), None, Some(_), None) | (Some(1), Some(0), Some(2), Some(_), Some(_)) |
+                  // [all [<empire>|none]]
+                  (Some(1) | None, Some(0), None, Some(_), None) =>
+                val buildings = buildingsOption.getOrElse(
+                  continent.Buildings
+                    .filter {
+                      case (_, building) =>
+                        building.PlayersInSOI.find { soiPlayer =>
+                          player.CharId == soiPlayer.CharId
+                        }.isDefined
+                    }
+                    .map { case (_, building) => building }
+                )
+                buildings foreach { building =>
+                  // TODO implement timer
+                  building.Faction = faction
+                  continent.LocalEvents ! LocalServiceMessage(
+                    continent.Id,
+                    LocalAction.SetEmpire(building.GUID, faction)
+                  )
+                }
+              case (_, Some(0), _, None, _) =>
+                sendResponse(
+                  ChatMsg(
+                    UNK_229,
+                    true,
+                    "",
+                    s"\\#FF4040ERROR - \'${args(0)}\' is not a valid building name.",
+                    None
+                  )
+                )
+              case (Some(0), _, Some(1), _, None) | (Some(1), Some(0), Some(2), _, None) =>
+                sendResponse(
+                  ChatMsg(
+                    UNK_229,
+                    true,
+                    "",
+                    s"\\#FF4040ERROR - \'${args(timerPos.get)}\' is not a valid timer value.",
+                    None
+                  )
+                )
+              case _ =>
+                sendResponse(
+                  ChatMsg(
+                    UNK_229,
+                    true,
+                    "",
+                    "usage: /capturebase [[<empire>|none [<timer>]] | [<building name> [<empire>|none [timer]]] | [all [<empire>|none]]",
+                    None
+                  )
+                )
+            }
+
+          case (_, _, "tr", _) =>
             sendResponse(
-              ChatMsg(
-                ChatMessageType.CMT_QUIT,
-                false,
-                "",
-                "You won't instant action.  You already requested to recall to your sanctuary continent",
-                None
+              ZonePopulationUpdateMessage(4, 414, 138, contents.toInt, 138, contents.toInt / 2, 138, 0, 138, 0)
+            )
+
+          case (_, _, "nc", _) =>
+            sendResponse(
+              ZonePopulationUpdateMessage(4, 414, 138, 0, 138, contents.toInt, 138, contents.toInt / 3, 138, 0)
+            )
+
+          case (_, _, "vs", _) =>
+            ZonePopulationUpdateMessage(4, 414, 138, contents.toInt * 2, 138, 0, 138, contents.toInt, 138, 0)
+
+          case (_, _, "bo", _) =>
+            sendResponse(ZonePopulationUpdateMessage(4, 414, 138, 0, 138, 0, 138, 0, 138, contents.toInt))
+
+          case (_, _, _, contents) if contents.startsWith("!ntu") =>
+            continent.Buildings.values.foreach(building =>
+              building.Amenities.foreach(amenity =>
+                amenity.Definition match {
+                  case GlobalDefinitions.resource_silo =>
+                    val r        = new scala.util.Random
+                    val silo     = amenity.asInstanceOf[ResourceSilo]
+                    val ntu: Int = 900 + r.nextInt(100) - silo.ChargeLevel
+                    //                val ntu: Int = 0 + r.nextInt(100) - silo.ChargeLevel
+                    silo.Actor ! ResourceSilo.UpdateChargeLevel(ntu)
+
+                  case _ => ;
+                }
               )
             )
-          } else if (!player.isAlive || deadState != DeadState.Alive) {
-            if (player.isAlive) {
-              sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noinstantaction_deconstructing", None))
-            } else {
-              sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noinstantaction_dead", None))
+
+          case (CMT_OPEN, _, _, _) if !player.silenced =>
+            chatService ! ChatServiceMessage(
+              "local",
+              ChatAction.Local(player.GUID, player.Name, continent, player.Position, player.Faction, msg)
+            )
+
+          case (CMT_VOICE, _, _, _) =>
+            chatService ! ChatServiceMessage(
+              "voice",
+              ChatAction.Voice(player.GUID, player.Name, continent, player.Position, player.Faction, msg)
+            )
+          case (CMT_TELL, _, _, _) if !player.silenced =>
+            chatService ! ChatServiceMessage("tell", ChatAction.Tell(player.GUID, player.Name, msg))
+
+          case (CMT_BROADCAST, _, _, _) if !player.silenced =>
+            chatService ! ChatServiceMessage(
+              "broadcast",
+              ChatAction.Broadcast(player.GUID, player.Name, continent, player.Position, player.Faction, msg)
+            )
+
+          case (CMT_NOTE, _, _, _) =>
+            chatService ! ChatServiceMessage("note", ChatAction.Note(player.GUID, player.Name, msg))
+
+          case (CMT_SILENCE, true, _, _) =>
+            chatService ! ChatServiceMessage("gm", ChatAction.GM(player.GUID, player.Name, msg))
+
+          case (CMT_SQUAD, _, _, _) =>
+            if (squadChannel.nonEmpty) {
+              chatService ! ChatServiceMessage(
+                squadChannel.get,
+                ChatAction.Squad(player.GUID, player.Name, continent, player.Position, player.Faction, msg)
+              )
             }
-          } else if (player.VehicleSeated.nonEmpty) {
-            sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noinstantaction_invehicle", None))
-          } else {
-            zoningType = Zoning.Method.InstantAction
-            zoningChatMessageType = messagetype
-            zoningStatus = Zoning.Status.Request
-            zoningReset = context.system.scheduler.scheduleOnce(10 seconds, self, ZoningReset())
-            cluster ! Zoning.InstantAction.Request(player.Faction)
-          }
-        } else if (messagetype == ChatMessageType.CMT_QUIT) {
-          makeReply = false
-          if (zoningType == Zoning.Method.Quit) {
-            sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noquit_quitting", None))
-          } else if (!player.isAlive || deadState != DeadState.Alive) {
-            if (player.isAlive) {
-              sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noquit_deconstructing", None))
-            } else {
-              sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noquit_dead", None))
-            }
-          } else if (player.VehicleSeated.nonEmpty) {
-            sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "@noquit_invehicle", None))
-          } else {
-            //priority to quitting is given to quit over other zoning methods
-            if (zoningType == Zoning.Method.InstantAction || zoningType == Zoning.Method.Recall) {
-              CancelZoningProcessWithDescriptiveReason("cancel")
-            }
-            zoningType = Zoning.Method.Quit
-            zoningChatMessageType = messagetype
-            zoningStatus = Zoning.Status.Request
-            self ! Zoning.Quit()
-          }
+
+          case (CMT_PLATOON, _, _, _) if !player.silenced =>
+            chatService ! ChatServiceMessage(
+              "platoon",
+              ChatAction.Platoon(player.GUID, player.Name, continent, player.Position, player.Faction, msg)
+            )
+
+          case (CMT_COMMAND, true, _, _) =>
+            chatService ! ChatServiceMessage(
+              "command",
+              ChatAction.Command(player.GUID, player.Name, continent, player.Position, player.Faction, msg)
+            )
+
+          case (
+                CMT_WHO | CMT_WHO_CSR | CMT_WHO_CR | CMT_WHO_PLATOONLEADERS | CMT_WHO_SQUADLEADERS | CMT_WHO_TEAMS,
+                _,
+                _,
+                _
+              ) =>
+            val poplist  = continent.Players
+            val popTR    = poplist.count(_.faction == PlanetSideEmpire.TR)
+            val popNC    = poplist.count(_.faction == PlanetSideEmpire.NC)
+            val popVS    = poplist.count(_.faction == PlanetSideEmpire.VS)
+            val contName = continent.Map.Name
+            StartBundlingPackets()
+            sendResponse(ChatMsg(ChatMessageType.CMT_WHO, true, "", "That command doesn't work for now, but : ", None))
+            sendResponse(ChatMsg(ChatMessageType.CMT_WHO, true, "", "NC online : " + popNC + " on " + contName, None))
+            sendResponse(ChatMsg(ChatMessageType.CMT_WHO, true, "", "TR online : " + popTR + " on " + contName, None))
+            sendResponse(ChatMsg(ChatMessageType.CMT_WHO, true, "", "VS online : " + popVS + " on " + contName, None))
+            StopBundlingPackets()
+
+          case _ =>
         }
+
         CSRZone.read(traveler, msg) match {
           case (true, zone, pos) =>
             if (
@@ -4740,716 +5037,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
               }
             }
           case (_, _) => ;
-        }
-
-        // TODO: Prevents log spam, but should be handled correctly
-        if (messagetype != ChatMessageType.CMT_TOGGLE_GM) {
-          log.info("Chat: " + msg)
-        } else {
-          log.info("Chat: " + msg)
-          makeReply = false
-        }
-        if (messagetype == ChatMessageType.CMT_SUICIDE) {
-          if (player.isAlive && deadState != DeadState.Release) {
-            Suicide(player)
-          }
-        } else if (messagetype == ChatMessageType.CMT_CULLWATERMARK) {
-          if (trimContents.contains("40 80")) connectionState = 100
-          else if (trimContents.contains("120 200")) connectionState = 25
-          else connectionState = 50
-        } else if (messagetype == ChatMessageType.CMT_DESTROY) {
-          makeReply = true
-          val guid = contents.toInt
-          continent.GUID(continent.Map.TerminalToSpawnPad.getOrElse(guid, guid)) match {
-            case Some(pad: VehicleSpawnPad) =>
-              pad.Actor ! VehicleSpawnControl.ProcessControl.Flush
-            case Some(turret: FacilityTurret) if turret.isUpgrading =>
-              WeaponTurrets.FinishUpgradingMannedTurret(turret, TurretUpgrade.None)
-            case _ =>
-              self ! PacketCoding.CreateGamePacket(0, RequestDestroyMessage(PlanetSideGUID(guid)))
-          }
-        }
-        //dev hack; consider bang-commands to complement slash-commands in future
-        if (trimContents.equals("!loc")) {
-          makeReply = true
-          echoContents =
-            s"zone=${continent.Id} pos=${player.Position.x},${player.Position.y},${player.Position.z}; ori=${player.Orientation.x},${player.Orientation.y},${player.Orientation.z}"
-          log.info(echoContents)
-        } else if (trimContents.contains("!list") && admin) {
-          //        StartBundlingPackets()
-          val localString: String = contents.drop(contents.indexOf(" ") + 1)
-
-          if (localString.equalsIgnoreCase("!list")) {
-            sendResponse(
-              ChatMsg(
-                ChatMessageType.CMT_GMOPEN,
-                has_wide_contents,
-                "Server",
-                "\\#8Name (Faction) [ID] at PosX PosY PosZ",
-                note_contents
-              )
-            )
-            continent.LivePlayers
-              .filterNot(_.GUID == player.GUID)
-              .sortBy(_.Name)
-              .foreach(char => {
-                sendResponse(
-                  ChatMsg(
-                    ChatMessageType.CMT_GMOPEN,
-                    has_wide_contents,
-                    "Server",
-                    char.Name + " (" + char.Faction + ") [" + char.CharId + "] at " + char.Position.x.toInt + " " + char.Position.y.toInt + " " + char.Position.z.toInt,
-                    note_contents
-                  )
-                )
-              })
-            continent.Corpses
-              .filterNot(_.GUID == player.GUID)
-              .sortBy(_.Name)
-              .foreach(char => {
-                sendResponse(
-                  ChatMsg(
-                    ChatMessageType.CMT_GMOPEN,
-                    has_wide_contents,
-                    "Server",
-                    "\\#7" + char.Name + " (" + char.Faction + ") [" + char.CharId + "] at " + char.Position.x.toInt + " " + char.Position.y.toInt + " " + char.Position.z.toInt,
-                    note_contents
-                  )
-                )
-              })
-          } else if (localString.equalsIgnoreCase("z1")) {
-            sendResponse(
-              ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents)
-            )
-            Zones.z1.Players
-              .filterNot(_.CharId == player.CharId)
-              .sortBy(_.name)
-              .foreach(char => {
-                sendResponse(
-                  ChatMsg(
-                    ChatMessageType.CMT_GMOPEN,
-                    has_wide_contents,
-                    "Server",
-                    char.name + " (" + char.faction + ") [" + char.CharId + "]",
-                    note_contents
-                  )
-                )
-              })
-          } else if (localString.equalsIgnoreCase("z2")) {
-            sendResponse(
-              ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents)
-            )
-            Zones.z2.Players
-              .filterNot(_.CharId == player.CharId)
-              .sortBy(_.name)
-              .foreach(char => {
-                sendResponse(
-                  ChatMsg(
-                    ChatMessageType.CMT_GMOPEN,
-                    has_wide_contents,
-                    "Server",
-                    char.name + " (" + char.faction + ") [" + char.CharId + "]",
-                    note_contents
-                  )
-                )
-              })
-          } else if (localString.equalsIgnoreCase("z3")) {
-            sendResponse(
-              ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents)
-            )
-            Zones.z3.Players
-              .filterNot(_.CharId == player.CharId)
-              .sortBy(_.name)
-              .foreach(char => {
-                sendResponse(
-                  ChatMsg(
-                    ChatMessageType.CMT_GMOPEN,
-                    has_wide_contents,
-                    "Server",
-                    char.name + " (" + char.faction + ") [" + char.CharId + "]",
-                    note_contents
-                  )
-                )
-              })
-          } else if (localString.equalsIgnoreCase("z4")) {
-            sendResponse(
-              ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents)
-            )
-            Zones.z4.Players
-              .filterNot(_.CharId == player.CharId)
-              .sortBy(_.name)
-              .foreach(char => {
-                sendResponse(
-                  ChatMsg(
-                    ChatMessageType.CMT_GMOPEN,
-                    has_wide_contents,
-                    "Server",
-                    char.name + " (" + char.faction + ") [" + char.CharId + "]",
-                    note_contents
-                  )
-                )
-              })
-          } else if (localString.equalsIgnoreCase("z5")) {
-            sendResponse(
-              ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents)
-            )
-            Zones.z5.Players
-              .filterNot(_.CharId == player.CharId)
-              .sortBy(_.name)
-              .foreach(char => {
-                sendResponse(
-                  ChatMsg(
-                    ChatMessageType.CMT_GMOPEN,
-                    has_wide_contents,
-                    "Server",
-                    char.name + " (" + char.faction + ") [" + char.CharId + "]",
-                    note_contents
-                  )
-                )
-              })
-          } else if (localString.equalsIgnoreCase("z6")) {
-            sendResponse(
-              ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents)
-            )
-            Zones.z6.Players
-              .filterNot(_.CharId == player.CharId)
-              .sortBy(_.name)
-              .foreach(char => {
-                sendResponse(
-                  ChatMsg(
-                    ChatMessageType.CMT_GMOPEN,
-                    has_wide_contents,
-                    "Server",
-                    char.name + " (" + char.faction + ") [" + char.CharId + "]",
-                    note_contents
-                  )
-                )
-              })
-          } else if (localString.equalsIgnoreCase("z7")) {
-            sendResponse(
-              ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents)
-            )
-            Zones.z7.Players
-              .filterNot(_.CharId == player.CharId)
-              .sortBy(_.name)
-              .foreach(char => {
-                sendResponse(
-                  ChatMsg(
-                    ChatMessageType.CMT_GMOPEN,
-                    has_wide_contents,
-                    "Server",
-                    char.name + " (" + char.faction + ") [" + char.CharId + "]",
-                    note_contents
-                  )
-                )
-              })
-          } else if (localString.equalsIgnoreCase("z8")) {
-            sendResponse(
-              ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents)
-            )
-            Zones.z8.Players
-              .filterNot(_.CharId == player.CharId)
-              .sortBy(_.name)
-              .foreach(char => {
-                sendResponse(
-                  ChatMsg(
-                    ChatMessageType.CMT_GMOPEN,
-                    has_wide_contents,
-                    "Server",
-                    char.name + " (" + char.faction + ") [" + char.CharId + "]",
-                    note_contents
-                  )
-                )
-              })
-          } else if (localString.equalsIgnoreCase("z9")) {
-            sendResponse(
-              ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents)
-            )
-            Zones.z9.Players
-              .filterNot(_.CharId == player.CharId)
-              .sortBy(_.name)
-              .foreach(char => {
-                sendResponse(
-                  ChatMsg(
-                    ChatMessageType.CMT_GMOPEN,
-                    has_wide_contents,
-                    "Server",
-                    char.name + " (" + char.faction + ") [" + char.CharId + "]",
-                    note_contents
-                  )
-                )
-              })
-          } else if (localString.equalsIgnoreCase("z10")) {
-            sendResponse(
-              ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents)
-            )
-            Zones.z10.Players
-              .filterNot(_.CharId == player.CharId)
-              .sortBy(_.name)
-              .foreach(char => {
-                sendResponse(
-                  ChatMsg(
-                    ChatMessageType.CMT_GMOPEN,
-                    has_wide_contents,
-                    "Server",
-                    char.name + " (" + char.faction + ") [" + char.CharId + "]",
-                    note_contents
-                  )
-                )
-              })
-          } else if (localString.equalsIgnoreCase("home1")) {
-            sendResponse(
-              ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents)
-            )
-            Zones.home1.Players
-              .filterNot(_.CharId == player.CharId)
-              .sortBy(_.name)
-              .foreach(char => {
-                sendResponse(
-                  ChatMsg(
-                    ChatMessageType.CMT_GMOPEN,
-                    has_wide_contents,
-                    "Server",
-                    char.name + " (" + char.faction + ") [" + char.CharId + "]",
-                    note_contents
-                  )
-                )
-              })
-          } else if (localString.equalsIgnoreCase("home2")) {
-            sendResponse(
-              ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents)
-            )
-            Zones.home2.Players
-              .filterNot(_.CharId == player.CharId)
-              .sortBy(_.name)
-              .foreach(char => {
-                sendResponse(
-                  ChatMsg(
-                    ChatMessageType.CMT_GMOPEN,
-                    has_wide_contents,
-                    "Server",
-                    char.name + " (" + char.faction + ") [" + char.CharId + "]",
-                    note_contents
-                  )
-                )
-              })
-          } else if (localString.equalsIgnoreCase("home3")) {
-            sendResponse(
-              ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents)
-            )
-            Zones.home3.Players
-              .filterNot(_.CharId == player.CharId)
-              .sortBy(_.name)
-              .foreach(char => {
-                sendResponse(
-                  ChatMsg(
-                    ChatMessageType.CMT_GMOPEN,
-                    has_wide_contents,
-                    "Server",
-                    char.name + " (" + char.faction + ") [" + char.CharId + "]",
-                    note_contents
-                  )
-                )
-              })
-          } else if (localString.equalsIgnoreCase("c1")) {
-            sendResponse(
-              ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents)
-            )
-            Zones.c1.Players
-              .filterNot(_.CharId == player.CharId)
-              .sortBy(_.name)
-              .foreach(char => {
-                sendResponse(
-                  ChatMsg(
-                    ChatMessageType.CMT_GMOPEN,
-                    has_wide_contents,
-                    "Server",
-                    char.name + " (" + char.faction + ") [" + char.CharId + "]",
-                    note_contents
-                  )
-                )
-              })
-          } else if (localString.equalsIgnoreCase("c2")) {
-            sendResponse(
-              ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents)
-            )
-            Zones.c2.Players
-              .filterNot(_.CharId == player.CharId)
-              .sortBy(_.name)
-              .foreach(char => {
-                sendResponse(
-                  ChatMsg(
-                    ChatMessageType.CMT_GMOPEN,
-                    has_wide_contents,
-                    "Server",
-                    char.name + " (" + char.faction + ") [" + char.CharId + "]",
-                    note_contents
-                  )
-                )
-              })
-          } else if (localString.equalsIgnoreCase("c3")) {
-            sendResponse(
-              ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents)
-            )
-            Zones.c3.Players
-              .filterNot(_.CharId == player.CharId)
-              .sortBy(_.name)
-              .foreach(char => {
-                sendResponse(
-                  ChatMsg(
-                    ChatMessageType.CMT_GMOPEN,
-                    has_wide_contents,
-                    "Server",
-                    char.name + " (" + char.faction + ") [" + char.CharId + "]",
-                    note_contents
-                  )
-                )
-              })
-          } else if (localString.equalsIgnoreCase("c4")) {
-            sendResponse(
-              ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents)
-            )
-            Zones.c4.Players
-              .filterNot(_.CharId == player.CharId)
-              .sortBy(_.name)
-              .foreach(char => {
-                sendResponse(
-                  ChatMsg(
-                    ChatMessageType.CMT_GMOPEN,
-                    has_wide_contents,
-                    "Server",
-                    char.name + " (" + char.faction + ") [" + char.CharId + "]",
-                    note_contents
-                  )
-                )
-              })
-          } else if (localString.equalsIgnoreCase("c5")) {
-            sendResponse(
-              ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents)
-            )
-            Zones.c5.Players
-              .filterNot(_.CharId == player.CharId)
-              .sortBy(_.name)
-              .foreach(char => {
-                sendResponse(
-                  ChatMsg(
-                    ChatMessageType.CMT_GMOPEN,
-                    has_wide_contents,
-                    "Server",
-                    char.name + " (" + char.faction + ") [" + char.CharId + "]",
-                    note_contents
-                  )
-                )
-              })
-          } else if (localString.equalsIgnoreCase("c6")) {
-            sendResponse(
-              ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents)
-            )
-            Zones.c6.Players
-              .filterNot(_.CharId == player.CharId)
-              .sortBy(_.name)
-              .foreach(char => {
-                sendResponse(
-                  ChatMsg(
-                    ChatMessageType.CMT_GMOPEN,
-                    has_wide_contents,
-                    "Server",
-                    char.name + " (" + char.faction + ") [" + char.CharId + "]",
-                    note_contents
-                  )
-                )
-              })
-          } else if (localString.equalsIgnoreCase("i1")) {
-            sendResponse(
-              ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents)
-            )
-            Zones.i1.Players
-              .filterNot(_.CharId == player.CharId)
-              .sortBy(_.name)
-              .foreach(char => {
-                sendResponse(
-                  ChatMsg(
-                    ChatMessageType.CMT_GMOPEN,
-                    has_wide_contents,
-                    "Server",
-                    char.name + " (" + char.faction + ") [" + char.CharId + "]",
-                    note_contents
-                  )
-                )
-              })
-          } else if (localString.equalsIgnoreCase("i2")) {
-            sendResponse(
-              ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents)
-            )
-            Zones.i2.Players
-              .filterNot(_.CharId == player.CharId)
-              .sortBy(_.name)
-              .foreach(char => {
-                sendResponse(
-                  ChatMsg(
-                    ChatMessageType.CMT_GMOPEN,
-                    has_wide_contents,
-                    "Server",
-                    char.name + " (" + char.faction + ") [" + char.CharId + "]",
-                    note_contents
-                  )
-                )
-              })
-          } else if (localString.equalsIgnoreCase("i3")) {
-            sendResponse(
-              ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents)
-            )
-            Zones.i3.Players
-              .filterNot(_.CharId == player.CharId)
-              .sortBy(_.name)
-              .foreach(char => {
-                sendResponse(
-                  ChatMsg(
-                    ChatMessageType.CMT_GMOPEN,
-                    has_wide_contents,
-                    "Server",
-                    char.name + " (" + char.faction + ") [" + char.CharId + "]",
-                    note_contents
-                  )
-                )
-              })
-          } else if (localString.equalsIgnoreCase("i4")) {
-            sendResponse(
-              ChatMsg(ChatMessageType.CMT_GMOPEN, has_wide_contents, "Server", "\\#8Name (Faction) [ID]", note_contents)
-            )
-            Zones.i4.Players
-              .filterNot(_.CharId == player.CharId)
-              .sortBy(_.name)
-              .foreach(char => {
-                sendResponse(
-                  ChatMsg(
-                    ChatMessageType.CMT_GMOPEN,
-                    has_wide_contents,
-                    "Server",
-                    char.name + " (" + char.faction + ") [" + char.CharId + "]",
-                    note_contents
-                  )
-                )
-              })
-          } else {
-            sendResponse(
-              ChatMsg(
-                ChatMessageType.CMT_GMOPEN,
-                has_wide_contents,
-                "Server",
-                "\\#8Name (Faction) [ID] in Zone at PosX PosY PosZ",
-                note_contents
-              )
-            )
-            continent.LivePlayers
-              .filter(_.Name.contains(localString))
-              .sortBy(_.Name)
-              .foreach(char => {
-                sendResponse(
-                  ChatMsg(
-                    ChatMessageType.CMT_GMOPEN,
-                    has_wide_contents,
-                    "Server",
-                    char.Name + " (" + char.Faction + ") [" + char.CharId + "] in " + char.Continent + " at " + char.Position.x.toInt + " " + char.Position.y.toInt + " " + char.Position.z.toInt,
-                    note_contents
-                  )
-                )
-              })
-            continent.Corpses
-              .filter(_.Name.contains(localString))
-              .sortBy(_.Name)
-              .foreach(char => {
-                sendResponse(
-                  ChatMsg(
-                    ChatMessageType.CMT_GMOPEN,
-                    has_wide_contents,
-                    "Server",
-                    "\\#7" + char.Name + " (" + char.Faction + ") [" + char.CharId + "] in " + char.Continent + " at " + char.Position.x.toInt + " " + char.Position.y.toInt + " " + char.Position.z.toInt,
-                    note_contents
-                  )
-                )
-              })
-          }
-          //        StopBundlingPackets()
-        } else if (trimContents.contains("!kick") && admin) {
-          val input = trimContents.split("\\s+").drop(1)
-          if (input.length > 0) {
-            val numRegex = raw"(\d+)".r
-            val id       = input(0)
-            val determination: Player => Boolean = id match {
-              case numRegex(_) => { _.CharId == id.toLong }
-              case _           => { _.Name.equals(id) }
-            }
-            continent.LivePlayers.find(determination).orElse(continent.Corpses.find(determination)) match {
-              case Some(tplayer) if AdministrativeKick(tplayer) =>
-                if (input.length > 1) {
-                  val time = input(1)
-                  time match {
-                    case numRegex(_) =>
-                      accountPersistence ! AccountPersistenceService.Kick(tplayer.Name, Some(time.toLong))
-                    case _ =>
-                      accountPersistence ! AccountPersistenceService.Kick(tplayer.Name, None)
-                  }
-                }
-              case _ => ;
-            }
-          }
-        } else if (trimRecipient.equals("tr")) {
-          sendResponse(
-            ZonePopulationUpdateMessage(4, 414, 138, contents.toInt, 138, contents.toInt / 2, 138, 0, 138, 0)
-          )
-        } else if (trimRecipient.equals("nc")) {
-          sendResponse(
-            ZonePopulationUpdateMessage(4, 414, 138, 0, 138, contents.toInt, 138, contents.toInt / 3, 138, 0)
-          )
-        } else if (trimRecipient.equals("vs")) {
-          sendResponse(
-            ZonePopulationUpdateMessage(4, 414, 138, contents.toInt * 2, 138, 0, 138, contents.toInt, 138, 0)
-          )
-        } else if (trimRecipient.equals("bo")) {
-          sendResponse(ZonePopulationUpdateMessage(4, 414, 138, 0, 138, 0, 138, 0, 138, contents.toInt))
-
-          //          sendResponse(ZoneInfoMessage(contents.toInt, true, 25200000))
-          //          sendResponse(ZoneInfoMessage(contents.toInt-1, false, 25200000))
-          //          sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", "@cavern_switched^@c1~^@c5~", None))
-        } else if (trimContents.startsWith("!ntu") && admin) {
-          continent.Buildings.values.foreach(building =>
-            building.Amenities.foreach(amenity =>
-              amenity.Definition match {
-                case GlobalDefinitions.resource_silo =>
-                  val r        = new scala.util.Random
-                  val silo     = amenity.asInstanceOf[ResourceSilo]
-                  val ntu: Int = 900 + r.nextInt(100) - silo.ChargeLevel
-                  //                val ntu: Int = 0 + r.nextInt(100) - silo.ChargeLevel
-                  silo.Actor ! ResourceSilo.UpdateChargeLevel(ntu)
-
-                case _ => ;
-              }
-            )
-          )
-        } else if (trimContents.startsWith("!hack") && admin) {
-          var hackFaction = PlanetSideEmpire.NEUTRAL
-          val args        = trimContents.split(" ")
-          if (args.length == 3) {
-            var bad: Boolean = false
-            if (args(2).equalsIgnoreCase("tr")) hackFaction = PlanetSideEmpire.TR
-            else if (args(2).equalsIgnoreCase("nc")) hackFaction = PlanetSideEmpire.NC
-            else if (args(2).equalsIgnoreCase("vs")) hackFaction = PlanetSideEmpire.VS
-            else if (args(2).equalsIgnoreCase("bo")) hackFaction = PlanetSideEmpire.NEUTRAL
-            else bad = true
-            if (bad) {
-              sendResponse(
-                ChatMsg(ChatMessageType.UNK_229, true, "", "USE !hack tr|vs|nc|bo OR !hack BaseName tr|vs|nc|bo", None)
-              )
-            } else {
-              continent.Buildings.find(x =>
-                !x._2.Name.isEmpty && args(1).equalsIgnoreCase(x._2.Name) && x._2.CaptureTerminal.isDefined
-              ) match {
-                case Some((_, building)) =>
-                  log.info(
-                    s"Setting Name: ${building.Name} / GUID: ${building.GUID} / MapId: ${building.MapId} to empire : ${args(1)}"
-                  )
-                  building.Faction = hackFaction
-                  continent.LocalEvents ! LocalServiceMessage(
-                    continent.Id,
-                    LocalAction.SetEmpire(building.GUID, hackFaction)
-                  )
-                case _ =>
-                  sendResponse(
-                    ChatMsg(ChatMessageType.UNK_229, true, "", "Base not found or does not have control console", None)
-                  )
-              }
-            }
-          } else if (args.length == 2) {
-            var bad: Boolean = false
-            if (args(1).equalsIgnoreCase("tr")) hackFaction = PlanetSideEmpire.TR
-            else if (args(1).equalsIgnoreCase("nc")) hackFaction = PlanetSideEmpire.NC
-            else if (args(1).equalsIgnoreCase("vs")) hackFaction = PlanetSideEmpire.VS
-            else if (args(1).equalsIgnoreCase("bo")) hackFaction = PlanetSideEmpire.NEUTRAL
-            else bad = true
-            if (bad) {
-              sendResponse(
-                ChatMsg(ChatMessageType.UNK_229, true, "", "USE !hack tr|vs|nc|bo OR !hack BaseName tr|vs|nc|bo", None)
-              )
-            } else {
-              continent.Buildings.foreach({
-                case (_, building) =>
-                  if (!building.Name.isEmpty && building.CaptureTerminal.isDefined) {
-                    log.info(
-                      s"Setting Name: ${building.Name} / GUID: ${building.GUID} / MapId: ${building.MapId} to empire : ${args(1)}"
-                    )
-                    building.Faction = hackFaction
-                    continent.LocalEvents ! LocalServiceMessage(
-                      continent.Id,
-                      LocalAction.SetEmpire(building.GUID, hackFaction)
-                    )
-                  }
-              })
-            }
-          } else {
-            sendResponse(
-              ChatMsg(ChatMessageType.UNK_229, true, "", "USE !hack tr|vs|nc|bo OR !hack BaseName tr|vs|nc|bo", None)
-            )
-          }
-        }
-        // TODO: Depending on messagetype, may need to prepend sender's name to contents with proper spacing
-        // TODO: Just replays the packet straight back to sender; actually needs to be routed to recipients!
-        if (makeReply) {
-          sendResponse(ChatMsg(messagetype, has_wide_contents, recipient, echoContents, note_contents))
-        }
-        if (messagetype == ChatMessageType.CMT_OPEN && !player.silenced) {
-          chatService ! ChatServiceMessage(
-            "local",
-            ChatAction.Local(player.GUID, player.Name, continent, player.Position, player.Faction, msg)
-          )
-        } else if (messagetype == ChatMessageType.CMT_VOICE) {
-          chatService ! ChatServiceMessage(
-            "voice",
-            ChatAction.Voice(player.GUID, player.Name, continent, player.Position, player.Faction, msg)
-          )
-        } else if (messagetype == ChatMessageType.CMT_TELL && !player.silenced) {
-          chatService ! ChatServiceMessage("tell", ChatAction.Tell(player.GUID, player.Name, msg))
-        } else if (messagetype == ChatMessageType.CMT_BROADCAST && !player.silenced) {
-          chatService ! ChatServiceMessage(
-            "broadcast",
-            ChatAction.Broadcast(player.GUID, player.Name, continent, player.Position, player.Faction, msg)
-          )
-        } else if (messagetype == ChatMessageType.CMT_NOTE) {
-          chatService ! ChatServiceMessage("note", ChatAction.Note(player.GUID, player.Name, msg))
-        } else if (messagetype == ChatMessageType.CMT_SILENCE && admin) {
-          chatService ! ChatServiceMessage("gm", ChatAction.GM(player.GUID, player.Name, msg))
-        } else if (messagetype == ChatMessageType.CMT_SQUAD && !player.silenced) {
-          if (squadChannel.nonEmpty) {
-            chatService ! ChatServiceMessage(
-              squadChannel.get,
-              ChatAction.Squad(player.GUID, player.Name, continent, player.Position, player.Faction, msg)
-            )
-          }
-        } else if (messagetype == ChatMessageType.CMT_PLATOON && !player.silenced) {
-          chatService ! ChatServiceMessage(
-            "platoon",
-            ChatAction.Platoon(player.GUID, player.Name, continent, player.Position, player.Faction, msg)
-          )
-        } else if (messagetype == ChatMessageType.CMT_COMMAND && admin) {
-          chatService ! ChatServiceMessage(
-            "command",
-            ChatAction.Command(player.GUID, player.Name, continent, player.Position, player.Faction, msg)
-          )
-        } else if (
-          messagetype == ChatMessageType.CMT_WHO || messagetype == ChatMessageType.CMT_WHO_CSR || messagetype == ChatMessageType.CMT_WHO_CR ||
-          messagetype == ChatMessageType.CMT_WHO_PLATOONLEADERS || messagetype == ChatMessageType.CMT_WHO_SQUADLEADERS || messagetype == ChatMessageType.CMT_WHO_TEAMS
-        ) {
-          val poplist  = continent.Players
-          val popTR    = poplist.count(_.faction == PlanetSideEmpire.TR)
-          val popNC    = poplist.count(_.faction == PlanetSideEmpire.NC)
-          val popVS    = poplist.count(_.faction == PlanetSideEmpire.VS)
-          val contName = continent.Map.Name
-          StartBundlingPackets()
-          sendResponse(ChatMsg(ChatMessageType.CMT_WHO, true, "", "That command doesn't work for now, but : ", None))
-          sendResponse(ChatMsg(ChatMessageType.CMT_WHO, true, "", "NC online : " + popNC + " on " + contName, None))
-          sendResponse(ChatMsg(ChatMessageType.CMT_WHO, true, "", "TR online : " + popTR + " on " + contName, None))
-          sendResponse(ChatMsg(ChatMessageType.CMT_WHO, true, "", "VS online : " + popVS + " on " + contName, None))
-          StopBundlingPackets()
         }
 
       case msg @ VoiceHostRequest(unk, PlanetSideGUID(player_guid), data) =>
