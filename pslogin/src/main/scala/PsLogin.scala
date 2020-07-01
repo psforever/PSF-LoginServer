@@ -214,16 +214,6 @@ object PsLogin {
         sys.exit(1)
     }
 
-    logger.info("Testing database connection")
-    try {
-      import scala.concurrent.ExecutionContext.Implicits.global
-      Await.result(Database.ctx.executeQuery("SELECT 0"), 2 seconds)
-    } catch {
-      case e: Throwable =>
-        logger.error(s"Unable to connect to the database: ${e.getMessage}")
-        sys.exit(1)
-    }
-
     logger.info("Running database migrations")
     val flyway = Flyway
       .configure()
