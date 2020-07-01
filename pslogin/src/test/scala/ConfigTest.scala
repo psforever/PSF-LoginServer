@@ -94,7 +94,7 @@ object TestEnum extends Enumeration {
 }
 
 object TestConfig extends ConfigParser {
-  protected val config_template = Seq(
+  protected val configTemplate = Seq(
     ConfigSection(
       "default",
       ConfigEntryString("string", ""),
@@ -112,7 +112,7 @@ object TestConfig extends ConfigParser {
 }
 
 object TestBadConfig extends ConfigParser {
-  protected val config_template = Seq(
+  protected val configTemplate = Seq(
     ConfigSection(
       "bad",
       ConfigEntryInt("bad_int", 0),

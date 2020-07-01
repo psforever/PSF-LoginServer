@@ -127,14 +127,14 @@ object ConfigTypeRequired {
 }
 
 trait ConfigParser {
-  protected var config_map: Map[String, Any] = Map()
-  protected val config_template: Seq[ConfigSection]
+  protected var configMap: Map[String, Any] = Map()
+  protected val configTemplate: Seq[ConfigSection]
 
   // Misuse of this function can lead to run time exceptions when the types don't match
   // ClassTag is needed due to type erasure on T
   // https://dzone.com/articles/scala-classtag-a-simple-use-case
   def Get[T: ConfigTypeRequired](key: String)(implicit m: ClassTag[T]): T = {
-    config_map.get(key) match {
+    configMap.get(key) match {
       case Some(value: T) => value
       case None =>
         throw new NoSuchElementException(s"Config key '${key}' not found")
@@ -175,7 +175,7 @@ trait ConfigParser {
         return Invalid(e.getMessage)
     }
 
-    val result: Seq[ValidationResult] = config_template
+    val result: Seq[ValidationResult] = configTemplate
       .map { section =>
         val sectionIni = ini.get(section.name)
 
@@ -195,11 +195,11 @@ trait ConfigParser {
   }
 
   def ReplaceConfig(map: Map[String, Any]): Unit = {
-    config_map = map
+    configMap = map
   }
 
   def GetRawConfig: Map[String, Any] = {
-    config_map
+    configMap
   }
 
   def FormatErrors(invalidResult: Invalid): Seq[String] = {

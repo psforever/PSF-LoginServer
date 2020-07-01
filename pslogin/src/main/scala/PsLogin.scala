@@ -149,11 +149,11 @@ object PsLogin {
     }
   }
 
-  def parseArgs(args: Array[String]): Unit = {
+  def parseArgs(args: Array[String]) = {
     if (args.length == 1) {
-      LoginConfig.serverIpAddress = InetAddress.getByName(args { 0 })
+      (Some(InetAddress.getByName(args { 0 })))
     } else {
-      LoginConfig.serverIpAddress = InetAddress.getLocalHost
+      (None)
     }
   }
 
@@ -171,14 +171,21 @@ object PsLogin {
       configDirectory = System.getProperty("prog.home") + File.separator + "config"
     }
 
-    parseArgs(this.args)
-
     val loggingConfigFile = configDirectory + File.separator + "logback.xml"
 
     loadConfig(configDirectory)
 
     println(s"Initializing logging from $loggingConfigFile")
     initializeLogging(loggingConfigFile)
+
+    val (addressArg) = parseArgs(this.args)
+
+    val serverAddress: InetAddress =
+      (addressArg, WorldConfig.Get[String]("worldserver.Hostname")) match {
+        case (Some(address), _)               => address
+        case (None, address) if address != "" => InetAddress.getByName(WorldConfig.Get[String]("worldserver.Hostname"))
+        case _                                => InetAddress.getLoopbackAddress
+      }
 
     /** Initialize the PSCrypto native library
       *
@@ -257,7 +264,7 @@ object PsLogin {
     val loginTemplate = List(
       SessionPipeline("crypto-session-", Props[CryptoSessionActor]),
       SessionPipeline("packet-session-", Props[PacketCodingActor]),
-      SessionPipeline("login-session-", Props[LoginSessionActor])
+      SessionPipeline("login-session-", Props(classOf[LoginSessionActor], serverAddress))
     )
     val worldTemplate = List(
       SessionPipeline("crypto-session-", Props[CryptoSessionActor]),
@@ -303,11 +310,11 @@ object PsLogin {
     loginRouter = Props(new SessionRouter("Login", loginTemplate))
     worldRouter = Props(new SessionRouter("World", worldTemplate))
     loginListener = system.actorOf(
-      Props(new UdpListener(loginRouter, "login-session-router", LoginConfig.serverIpAddress, loginServerPort, netSim)),
+      Props(new UdpListener(loginRouter, "login-session-router", serverAddress, loginServerPort, netSim)),
       "login-udp-endpoint"
     )
     worldListener = system.actorOf(
-      Props(new UdpListener(worldRouter, "world-session-router", LoginConfig.serverIpAddress, worldServerPort, netSim)),
+      Props(new UdpListener(worldRouter, "world-session-router", serverAddress, worldServerPort, netSim)),
       "world-udp-endpoint"
     )
 
@@ -316,7 +323,7 @@ object PsLogin {
       "psadmin-tcp-endpoint"
     )
 
-    logger.info(s"NOTE: Set client.ini to point to ${LoginConfig.serverIpAddress.getHostAddress}:$loginServerPort")
+    logger.info(s"NOTE: Set client.ini to point to ${serverAddress.getHostAddress}:$loginServerPort")
 
     // Add our shutdown hook (this works for Control+C as well, but not in Cygwin)
     sys addShutdownHook {

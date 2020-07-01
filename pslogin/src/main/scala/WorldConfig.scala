@@ -12,7 +12,7 @@ object WorldConfig extends ConfigParser {
     "hostname"
   )
 
-  protected val config_template = Seq(
+  protected val configTemplate = Seq(
     ConfigSection(
       "database",
       ConfigEntryString("Hostname", "localhost", hostname_pattern, Constraints.minLength(1)),

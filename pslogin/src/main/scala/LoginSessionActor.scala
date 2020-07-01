@@ -24,7 +24,7 @@ import scala.util.{Failure, Success}
 import scala.concurrent.Future
 import Database._
 
-class LoginSessionActor extends Actor with MDCContextAware {
+class LoginSessionActor(serverAddress: InetAddress) extends Actor with MDCContextAware {
   private[this] val log = org.log4s.getLogger
 
   import scala.concurrent.ExecutionContext.Implicits.global
@@ -46,14 +46,8 @@ class LoginSessionActor extends Actor with MDCContextAware {
 
   val serverName = WorldConfig.Get[String]("worldserver.ServerName")
 
-  // This MUST be an IP address. The client DOES NOT do name resolution
-  var serverHost: String =
-    if (WorldConfig.Get[String]("worldserver.Hostname") != "")
-      InetAddress.getByName(WorldConfig.Get[String]("worldserver.Hostname")).getHostAddress
-    else
-      LoginConfig.serverIpAddress.getHostAddress
-
-  val serverAddress = new InetSocketAddress(serverHost, WorldConfig.Get[Int]("worldserver.ListeningPort"))
+  val socketAddress =
+    new InetSocketAddress(serverAddress, WorldConfig.Get[Int]("worldserver.ListeningPort"))
 
   // Reference: https://stackoverflow.com/a/50470009
   private val numBcryptPasses = 10
@@ -137,7 +131,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
 
       case ConnectToWorldRequestMessage(name, _, _, _, _, _, _) =>
         log.info(s"Connect to world request for '$name'")
-        val response = ConnectToWorldMessage(serverName, serverAddress.getHostString, serverAddress.getPort)
+        val response = ConnectToWorldMessage(serverName, socketAddress.getHostString, socketAddress.getPort)
         sendResponse(PacketCoding.CreateGamePacket(0, response))
         sendResponse(DropSession(sessionId, "user transferring to world"))
 
@@ -300,7 +294,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
           serverName,
           WorldStatus.Up,
           WorldConfig.Get[ServerType.Value]("worldserver.ServerType"),
-          Vector(WorldConnectionInfo(serverAddress)),
+          Vector(WorldConnectionInfo(socketAddress)),
           PlanetSideEmpire.VS
         )
       )
