@@ -212,8 +212,16 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     NtuCapacitor
   }
 
-  def Capacitor: Int = capacitor
+  def NtuCapacitorScaled : Int = {
+    if(Definition.MaxNtuCapacitor > 0) {
+      scala.math.ceil((NtuCapacitor.toFloat / Definition.MaxNtuCapacitor.toFloat) * 10).toInt
+    } else {
+      0
+    }
+  }
 
+  def Capacitor : Int = capacitor
+      
   def Capacitor_=(value: Int): Int = {
     if (value > Definition.MaxCapacitor) {
       capacitor = Definition.MaxCapacitor

@@ -2728,10 +2728,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
         CancelAllProximityUnits()
         sendResponse(PlanetsideAttributeMessage(obj_guid, 0, obj.Health))
         sendResponse(PlanetsideAttributeMessage(obj_guid, 68, obj.Shields)) //shield health
-        if (obj.Definition.MaxNtuCapacitor > 0) {
-          val ntuCapacitor =
-            scala.math.ceil((obj.NtuCapacitor.toFloat / obj.Definition.MaxNtuCapacitor.toFloat) * 10).toInt
-          sendResponse(PlanetsideAttributeMessage(obj_guid, 45, ntuCapacitor))
+        if(obj.Definition.MaxNtuCapacitor > 0) {
+          sendResponse(PlanetsideAttributeMessage(obj_guid, 45, obj.NtuCapacitorScaled))
         }
         if (obj.Definition.MaxCapacitor > 0) {
           val capacitor = scala.math.ceil((obj.Capacitor.toFloat / obj.Definition.MaxCapacitor.toFloat) * 10).toInt
@@ -3305,7 +3303,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         PlanetsideAttributeMessage(
           vehicle.GUID,
           45,
-          scala.math.ceil((vehicle.NtuCapacitor.toFloat / vehicle.Definition.MaxNtuCapacitor.toFloat) * 10).toInt
+          vehicle.NtuCapacitorScaled
         )
       ) // set ntu on vehicle UI
       continent.AvatarEvents ! AvatarServiceMessage(
@@ -3377,7 +3375,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           PlanetsideAttributeMessage(
             vehicle.GUID,
             45,
-            scala.math.ceil((vehicle.NtuCapacitor.toFloat / vehicle.Definition.MaxNtuCapacitor.toFloat) * 10).toInt
+            vehicle.NtuCapacitorScaled
           )
         ) // set ntu on vehicle UI
 
@@ -3651,6 +3649,17 @@ class WorldSessionActor extends Actor with MDCContextAware {
           vehicle.Actor ! JammableUnit.ClearJammeredStatus()
           vehicle.Actor ! JammableUnit.ClearJammeredSound()
         }
+
+        //positive shield strength
+        if(vehicle.Shields > 0) {
+          sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 68, vehicle.Shields))
+        }
+
+        // ANT capacitor
+        if(vehicle.Definition.MaxNtuCapacitor > 0) {
+          sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, vehicle.NtuCapacitorScaled)) // set ntu on vehicle UI
+        }
+
         LoadZoneTransferPassengerMessages(
           guid,
           continent.Id,
@@ -4140,10 +4149,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
             //since we would have only subscribed recently, we need to reload seat access states
             (0 to 3).foreach { group =>
               sendResponse(PlanetsideAttributeMessage(vguid, group + 10, vehicle.PermissionGroup(group).get.id))
-            }
-            //positive shield strength
-            if (vehicle.Shields > 0) {
-              sendResponse(PlanetsideAttributeMessage(vguid, 68, vehicle.Shields))
             }
           case _ => ; //no vehicle
         }
