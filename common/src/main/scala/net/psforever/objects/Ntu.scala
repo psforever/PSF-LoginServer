@@ -2,25 +2,16 @@
 package net.psforever.objects
 
 import akka.actor.{Actor, ActorRef}
-import net.psforever.objects.entity.{Identifiable, WorldEntity}
-import net.psforever.objects.zones.ZoneAware
+import net.psforever.objects.serverobject.transfer.{TransferBehavior, TransferContainer}
 
 object Ntu {
-  /**
-    * The different states of the process of transferring NTU in reference to the transfer entity.
-    */
-  object ChargeEvent extends Enumeration {
-    val
-    None,
-    Charging,
-    Discharging
-    = Value
-  }
+  object Nanites extends TransferContainer.TransferMaterial
 
   /**
     * Message for a `sender` announcing it has nanites it can offer the recipient.
+    * @param src the nanite container recognized as the sender
     */
-  final case class Offer()
+  final case class Offer(src : NtuContainer)
 
   /**
     * Message for a `sender` asking for nanites from the recipient.
@@ -33,16 +24,13 @@ object Ntu {
 
   /**
     * Message for transferring nanites to a recipient.
+    * @param src the nanite container recognized as the sender
     * @param amount the nanites transferred in this package
     */
-  final case class Grant(amount : Int)
+  final case class Grant(src : NtuContainer, amount : Int)
 }
 
-trait NtuContainer extends Identifiable
-  with ZoneAware
-  with WorldEntity {
-  def Actor : ActorRef
-
+trait NtuContainer extends TransferContainer {
   def NtuCapacitor : Int
 
   def NtuCapacitor_=(value: Int) : Int
@@ -78,20 +66,20 @@ trait NtuStorageBehavior extends Actor {
   def NtuStorageObject : NtuContainer = null
 
   def storageBehavior : Receive = {
-    case Ntu.Offer() => HandleNtuOffer(sender)
+    case Ntu.Offer(src) => HandleNtuOffer(sender, src)
 
-    case Ntu.Grant(0) | Ntu.Request(0, 0) => StopNtuBehavior(sender)
+    case Ntu.Grant(_, 0) | Ntu.Request(0, 0) | TransferBehavior.Stopping() => StopNtuBehavior(sender)
 
     case Ntu.Request(min, max) => HandleNtuRequest(sender, min, max)
 
-    case Ntu.Grant(amount) => HandleNtuGrant(sender, amount)
+    case Ntu.Grant(src, amount) => HandleNtuGrant(sender, src, amount)
   }
 
-  def HandleNtuOffer(sender : ActorRef) : Unit
+  def HandleNtuOffer(sender : ActorRef, src : NtuContainer) : Unit
 
   def StopNtuBehavior(sender : ActorRef) : Unit
 
   def HandleNtuRequest(sender : ActorRef, min : Int, max : Int) : Unit
 
-  def HandleNtuGrant(sender : ActorRef, amount : Int) : Unit
+  def HandleNtuGrant(sender : ActorRef, src : NtuContainer, amount : Int) : Unit
 }

@@ -2,6 +2,7 @@
 package net.psforever.objects
 
 import net.psforever.objects.serverobject.CommonMessages
+import net.psforever.objects.serverobject.transfer.TransferContainer
 import net.psforever.objects.serverobject.structures.{StructureType, WarpGate}
 import net.psforever.objects.vehicles.{CargoBehavior, VehicleLockState}
 import net.psforever.objects.zones.Zone
@@ -310,7 +311,7 @@ object Vehicles {
     }
   }
 
-  def FindANTChargingSource(obj : NtuContainer, ntuChargingTarget : Option[NtuContainer]) : Option[NtuContainer] = {
+  def FindANTChargingSource(obj : TransferContainer, ntuChargingTarget : Option[TransferContainer]) : Option[TransferContainer] = {
     //determine if we are close enough to charge from something
     (ntuChargingTarget match {
       case Some(target : WarpGate) if {
@@ -330,7 +331,7 @@ object Vehicles {
     }
   }
 
-  def FindANTDischargingTarget(obj : NtuContainer, ntuChargingTarget : Option[NtuContainer]) : Option[NtuContainer] = {
+  def FindANTDischargingTarget(obj : TransferContainer, ntuChargingTarget : Option[TransferContainer]) : Option[TransferContainer] = {
     (ntuChargingTarget match {
       case out @ Some(target : NtuContainer) if {
         Vector3.DistanceSquared(obj.Position.xy, target.Position.xy) < 400 //20m is generous ...

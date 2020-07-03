@@ -3,9 +3,9 @@ package net.psforever.objects.serverobject.resourcesilo
 
 import akka.actor.{Actor, ActorRef}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
-import net.psforever.objects.serverobject.ntutransfer.NtuTransferBehavior
+import net.psforever.objects.serverobject.transfer.TransferBehavior
 import net.psforever.objects.serverobject.structures.Building
-import net.psforever.objects.{Ntu, NtuStorageBehavior}
+import net.psforever.objects.{Ntu, NtuContainer, NtuStorageBehavior}
 import net.psforever.types.PlanetSideEmpire
 import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
@@ -40,7 +40,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo) extends Actor with Faction
         if(resourceSilo.Faction == PlanetSideEmpire.NEUTRAL || player.Faction == resourceSilo.Faction) {
           resourceSilo.Zone.Vehicles.find(v => v.PassengerInSeat(player).contains(0)) match {
             case Some(vehicle) =>
-              context.system.scheduler.scheduleOnce(delay = 1000 milliseconds, vehicle.Actor, NtuTransferBehavior.Discharging())
+              context.system.scheduler.scheduleOnce(delay = 1000 milliseconds, vehicle.Actor, TransferBehavior.Discharging(Ntu.Nanites))
             case _ =>
           }
         }
@@ -108,7 +108,10 @@ class ResourceSiloControl(resourceSilo: ResourceSilo) extends Actor with Faction
     }
   }
 
-  def HandleNtuOffer(sender : ActorRef) : Unit = {
+  /**
+    * The silo will accept offers until its nanite capacitor is completely full.
+    */
+  def HandleNtuOffer(sender : ActorRef, src : NtuContainer) : Unit = {
     sender ! (if(resourceSilo.NtuCapacitor < resourceSilo.MaxNtuCapacitor) {
       Ntu.Request(0, resourceSilo.MaxNtuCapacitor - resourceSilo.NtuCapacitor)
     }
@@ -118,24 +121,45 @@ class ResourceSiloControl(resourceSilo: ResourceSilo) extends Actor with Faction
     })
   }
 
+  /**
+    * Reset the animation trigger and attempt the stop animation.
+    */
   def StopNtuBehavior(sender : ActorRef) : Unit = {
     panelAnimationFunc = PanelAnimation
     panelAnimationFunc(0)
   }
 
+  /**
+    * na
+    * @param sender na
+    * @param min a minimum amount of nanites requested;
+    * @param max the amount of nanites required to not make further requests;
+    */
   def HandleNtuRequest(sender : ActorRef, min : Int, max : Int) : Unit = {
     val originalAmount = resourceSilo.NtuCapacitor
     UpdateChargeLevel(-min)
-    sender ! Ntu.Grant(originalAmount - resourceSilo.NtuCapacitor)
+    sender ! Ntu.Grant(resourceSilo, originalAmount - resourceSilo.NtuCapacitor)
   }
 
-  def HandleNtuGrant(sender : ActorRef, amount : Int) : Unit = {
-    val originalAmount = resourceSilo.NtuCapacitor
-    UpdateChargeLevel(amount)
-    panelAnimationFunc(resourceSilo.NtuCapacitor - originalAmount)
-    panelAnimationFunc = SkipPanelAnimation
+  /**
+    * Accept nanites into the silo capacitor and set the animation state.
+    */
+  def HandleNtuGrant(sender : ActorRef, src : NtuContainer, amount : Int) : Unit = {
+    if(amount != 0) {
+      val originalAmount = resourceSilo.NtuCapacitor
+      UpdateChargeLevel(amount)
+      panelAnimationFunc(resourceSilo.NtuCapacitor - originalAmount)
+      panelAnimationFunc = SkipPanelAnimation
+    }
   }
 
+  /**
+    * When charging from another source of nanites, the silo's panels will glow
+    * and a particle affect will traverse towards the panels from about ten meters in front of the silo.
+    * These effects are both controlled by thee same packet.
+    * @param trigger if positive, activate the animation;
+    *                if negative or zero, disable the animation
+    */
   def PanelAnimation(trigger : Int) : Unit = {
     val zone = resourceSilo.Zone
     zone.VehicleEvents ! VehicleServiceMessage(
@@ -144,5 +168,8 @@ class ResourceSiloControl(resourceSilo: ResourceSilo) extends Actor with Faction
     ) // panel glow on & orb particles on
   }
 
+  /**
+    * Do nothing this turn.
+    */
   def SkipPanelAnimation(trigger : Int) : Unit = { }
 }

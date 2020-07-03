@@ -15,7 +15,7 @@ import net.psforever.objects.serverobject.damage.DamageableVehicle
 import net.psforever.objects.serverobject.deploy.Deployment.DeploymentObject
 import net.psforever.objects.serverobject.deploy.{Deployment, DeploymentBehavior}
 import net.psforever.objects.serverobject.hackable.GenericHackables
-import net.psforever.objects.serverobject.ntutransfer.NtuTransferBehavior
+import net.psforever.objects.serverobject.transfer.TransferBehavior
 import net.psforever.objects.serverobject.repair.RepairableVehicle
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.vital.VehicleShieldCharge
@@ -50,7 +50,7 @@ class VehicleControl(vehicle: Vehicle)
     with RepairableVehicle
     with JammableMountedWeapons
     with ContainableBehavior
-      with VehicleNtuTransferBehavior {
+    with AntTransferBehavior {
 
   //make control actors belonging to utilities when making control actor belonging to vehicle
   vehicle.Utilities.foreach({ case (_, util) => util.Setup })
@@ -63,7 +63,7 @@ class VehicleControl(vehicle: Vehicle)
   def DamageableObject = vehicle
   def RepairableObject = vehicle
   def ContainerObject  = vehicle
-  def NtuChargeableObject = vehicle
+  def ChargeTransferObject = vehicle
   if(vehicle.Definition == GlobalDefinitions.ant) {
     findChargeTargetFunc = Vehicles.FindANTChargingSource
     findDischargeTargetFunc = Vehicles.FindANTDischargingTarget
@@ -95,7 +95,7 @@ class VehicleControl(vehicle: Vehicle)
       .orElse(takesDamage)
       .orElse(canBeRepairedByNanoDispenser)
       .orElse(containerBehavior)
-      .orElse(ntuBehavior)
+      .orElse(antBehavior)
       .orElse {
         case Vehicle.Ownership(None) =>
           LoseOwnership()
@@ -479,7 +479,7 @@ class VehicleControl(vehicle: Vehicle)
             case DriveState.Deployed =>
               // Start ntu regeneration
               // If vehicle sends UseItemMessage with silo as target NTU regeneration will be disabled and orb particles will be disabled
-              context.system.scheduler.scheduleOnce(delay = 1000 milliseconds, vehicle.Actor, NtuTransferBehavior.Charging())
+              context.system.scheduler.scheduleOnce(delay = 1000 milliseconds, vehicle.Actor, TransferBehavior.Charging(Ntu.Nanites))
             case _ => ;
           }
         }

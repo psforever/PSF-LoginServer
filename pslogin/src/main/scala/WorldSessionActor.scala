@@ -69,14 +69,14 @@ import net.psforever.objects.serverobject.zipline.ZipLinePath
 import net.psforever.objects.teamwork.Squad
 import net.psforever.objects.vehicles.{
   AccessPermissionGroup,
+  AntTransferBehavior,
   Cargo,
   CargoBehavior,
   MountedWeapons,
   Utility,
   UtilityType,
   VehicleControl,
-  VehicleLockState,
-  VehicleNtuTransferBehavior
+  VehicleLockState
 }
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.vital.{

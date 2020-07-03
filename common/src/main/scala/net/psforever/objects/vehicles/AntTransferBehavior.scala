@@ -3,8 +3,7 @@ package net.psforever.objects.vehicles
 
 import akka.actor.{ActorRef, Cancellable}
 import net.psforever.objects.serverobject.deploy.Deployment
-import net.psforever.objects.serverobject.ntutransfer.NtuTransferBehavior
-import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
+import net.psforever.objects.serverobject.transfer.{TransferBehavior, TransferContainer}
 import net.psforever.objects.{NtuContainer, _}
 import net.psforever.types.DriveState
 import services.Service
@@ -13,10 +12,15 @@ import services.vehicle.{VehicleAction, VehicleServiceMessage}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
-trait VehicleNtuTransferBehavior extends NtuTransferBehavior {
+trait AntTransferBehavior extends TransferBehavior
+  with NtuStorageBehavior {
   var ntuChargingTick : Cancellable = Default.Cancellable
+  var panelAnimationFunc : ()=>Unit = NoCharge
 
-  def NtuChargeableObject : Vehicle with NtuContainer
+  def TransferMaterial = Ntu.Nanites
+  def ChargeTransferObject : Vehicle with NtuContainer
+
+  def antBehavior : Receive = storageBehavior.orElse(transferBehavior)
 
   def ActivatePanelsForChargingEvent(vehicle : NtuContainer) : Unit = {
     val zone = vehicle.Zone
@@ -45,83 +49,84 @@ trait VehicleNtuTransferBehavior extends NtuTransferBehavior {
     }
   }
 
-  def HandleNtuCharging(vehicle : NtuContainer, target : NtuContainer) : Boolean = {
+  def HandleChargingEvent(target : TransferContainer) : Boolean = {
     ntuChargingTick.cancel
+    val obj = ChargeTransferObject
     //log.trace(s"NtuCharging: Vehicle $guid is charging NTU capacitor.")
-    if(vehicle.NtuCapacitor < vehicle.Definition.MaxNtuCapacitor) {
+    if(obj.NtuCapacitor < obj.Definition.MaxNtuCapacitor) {
       //charging
-      ntuChargingTarget = Some(target)
-      ntuChargingEvent = Ntu.ChargeEvent.Charging
-      val max = vehicle.Definition.MaxNtuCapacitor - vehicle.NtuCapacitor
+      panelAnimationFunc = InitialCharge
+      transferTarget = Some(target)
+      transferEvent = TransferBehavior.Event.Charging
+      val max = obj.Definition.MaxNtuCapacitor - obj.NtuCapacitor
       target.Actor ! Ntu.Request(scala.math.min(0, max), max) //warp gates only?
-      ntuChargingTick = context.system.scheduler.scheduleOnce(delay = 1000 milliseconds, self, NtuTransferBehavior.Charging()) // Repeat until fully charged, or minor delay
+      ntuChargingTick = context.system.scheduler.scheduleOnce(delay = 1000 milliseconds, self, TransferBehavior.Charging(TransferMaterial)) // Repeat until fully charged, or minor delay
       true
     }
     else {
       // Fully charged
-      TryStopChargingEvent(vehicle)
+      TryStopChargingEvent(obj)
       false
     }
   }
 
-  def InitialCharge(container : NtuContainer) : Unit = {
-    ActivatePanelsForChargingEvent(container)
-    StartNtuChargingEvent(container)
-  }
-
-  def IncrementalCharge(container : NtuContainer) : Unit = {}
-
-  def FinalCharge(container : NtuContainer) : Unit = {}
-
-  def ReceiveAndDeposit(vehicle : Vehicle, amount : Int) : Boolean = {
-    val isFull = (vehicle.NtuCapacitor += amount) == vehicle.Definition.MaxNtuCapacitor
+  def ReceiveAndDepositUntilFull(vehicle : Vehicle, amount : Int) : Boolean = {
+    val isNotFull = (vehicle.NtuCapacitor += amount) < vehicle.Definition.MaxNtuCapacitor
     UpdateNtuUI(vehicle)
-    isFull
+    isNotFull
   }
 
   /** Discharging */
-  def HandleNtuDischarging(vehicle : NtuContainer, target : NtuContainer) : Boolean = {
+  def HandleDischargingEvent(target : TransferContainer) : Boolean = {
     //log.trace(s"NtuDischarging: Vehicle $guid is discharging NTU into silo $silo_guid")
-    if(vehicle.NtuCapacitor > 0) {
+    val obj = ChargeTransferObject
+    if(obj.NtuCapacitor > 0) {
       // Make sure we don't exceed the silo maximum charge or remove much NTU from ANT if maximum is reached, or try to make ANT go below 0 NTU
-      ntuChargingTarget = Some(target)
-      ntuChargingEvent = Ntu.ChargeEvent.Discharging
-      target.Actor ! Ntu.Offer()
+      panelAnimationFunc = InitialDischarge
+      transferTarget = Some(target)
+      transferEvent = TransferBehavior.Event.Discharging
+      target.Actor ! Ntu.Offer(obj)
       ntuChargingTick.cancel
-      ntuChargingTick = context.system.scheduler.scheduleOnce(delay = 1000 milliseconds, self, NtuTransferBehavior.Discharging())
+      ntuChargingTick = context.system.scheduler.scheduleOnce(delay = 1000 milliseconds, self, TransferBehavior.Discharging(TransferMaterial))
       true
     }
     else {
-      TryStopChargingEvent(vehicle)
+      TryStopChargingEvent(obj)
       false
     }
   }
 
-  def InitialDischarge(container : NtuContainer) : Unit = {
-    ActivatePanelsForChargingEvent(container)
+  def NoCharge() : Unit = {}
+
+  def InitialCharge() : Unit = {
+    panelAnimationFunc = NoCharge
+    val obj = ChargeTransferObject
+    ActivatePanelsForChargingEvent(obj)
+    StartNtuChargingEvent(obj)
   }
 
-  def IncrementalDischarge(container : NtuContainer) : Unit = {}
-
-  def FinalDischarge(container : NtuContainer) : Unit = {}
+  def InitialDischarge() : Unit = {
+    panelAnimationFunc = NoCharge
+    ActivatePanelsForChargingEvent(ChargeTransferObject)
+  }
 
   def WithdrawAndTransmit(vehicle : Vehicle, maxRequested : Int) : Any = {
-    val chargeable = NtuChargeableObject
+    val chargeable = ChargeTransferObject
     var chargeToDeposit = Math.min(Math.min(chargeable.NtuCapacitor, 100), maxRequested)
     chargeable.NtuCapacitor -= chargeToDeposit
     UpdateNtuUI(chargeable)
-    Ntu.Grant(chargeToDeposit)
+    Ntu.Grant(chargeable, chargeToDeposit)
   }
 
   /** Stopping */
-  override def TryStopChargingEvent(container : NtuContainer) : Unit = {
-    val vehicle = NtuChargeableObject
+  override def TryStopChargingEvent(container : TransferContainer) : Unit = {
+    val vehicle = ChargeTransferObject
     ntuChargingTick.cancel
-    if(ntuChargingEvent != Ntu.ChargeEvent.None) {
+    if(transferEvent != TransferBehavior.Event.None) {
       if(vehicle.DeploymentState == DriveState.Deployed) {
         //turning off glow/orb effects on ANT doesn't seem to work when deployed. Try to undeploy ANT first
         vehicle.Actor ! Deployment.TryUndeploy(DriveState.Undeploying)
-        ntuChargingTick = context.system.scheduler.scheduleOnce(250 milliseconds, self, NtuTransferBehavior.Stopping())
+        ntuChargingTick = context.system.scheduler.scheduleOnce(250 milliseconds, self, TransferBehavior.Stopping())
       }
       else {
         //vehicle is not deployed; just do cleanup
@@ -129,37 +134,36 @@ trait VehicleNtuTransferBehavior extends NtuTransferBehavior {
         val zone = vehicle.Zone
         val zoneId = zone.Id
         val events = zone.VehicleEvents
-        if(ntuChargingEvent == Ntu.ChargeEvent.Charging) {
+        if(transferEvent == TransferBehavior.Event.Charging) {
           events ! VehicleServiceMessage(zoneId, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, vguid, 52, 0L)) // panel glow off
           events ! VehicleServiceMessage(zoneId, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, vguid, 49, 0L)) // orb particle effect off
         }
-        else if(ntuChargingEvent == Ntu.ChargeEvent.Discharging) {
+        else if(transferEvent == TransferBehavior.Event.Discharging) {
           events ! VehicleServiceMessage(zoneId, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, vguid, 52, 0L)) // panel glow off
-          ntuChargingTarget match {
-            case Some(obj : ResourceSilo) =>
-              obj.Actor ! Ntu.Grant(0)
-            case _ => ;
-          }
         }
-        super.TryStopChargingEvent(vehicle)
       }
+      panelAnimationFunc = NoCharge
+      super.TryStopChargingEvent(vehicle)
     }
   }
 
-  def HandleNtuOffer(sender : ActorRef) : Unit = {}
+  def StopNtuBehavior(sender : ActorRef) : Unit = TryStopChargingEvent(ChargeTransferObject)
 
-  def StopNtuBehavior(sender : ActorRef) : Unit = TryStopChargingEvent(NtuChargeableObject)
+  def HandleNtuOffer(sender : ActorRef, src : NtuContainer) : Unit = { }
 
   def HandleNtuRequest(sender : ActorRef, min : Int, max : Int) : Unit = {
-    if(ntuChargingEvent == Ntu.ChargeEvent.Discharging) {
-      sender ! WithdrawAndTransmit(NtuChargeableObject, max)
+    if(transferEvent == TransferBehavior.Event.Discharging) {
+      sender ! WithdrawAndTransmit(ChargeTransferObject, max)
     }
   }
 
-  def HandleNtuGrant(sender : ActorRef, amount : Int) : Unit = {
-    if(ntuChargingEvent == Ntu.ChargeEvent.Charging) {
-      val obj = NtuChargeableObject
-      if(ReceiveAndDeposit(obj, amount)) {
+  def HandleNtuGrant(sender : ActorRef, src : NtuContainer, amount : Int) : Unit = {
+    if(transferEvent == TransferBehavior.Event.Charging) {
+      val obj = ChargeTransferObject
+      if(ReceiveAndDepositUntilFull(obj, amount)) {
+        panelAnimationFunc()
+      }
+      else {
         TryStopChargingEvent(obj)
         sender ! Ntu.Request(0, 0)
       }
