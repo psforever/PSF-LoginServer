@@ -3,6 +3,8 @@ package net.psforever.objects.vehicles
 
 import akka.actor.{ActorRef, Cancellable}
 import net.psforever.objects.serverobject.deploy.Deployment
+import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
+import net.psforever.objects.serverobject.structures.WarpGate
 import net.psforever.objects.serverobject.transfer.{TransferBehavior, TransferContainer}
 import net.psforever.objects.{NtuContainer, _}
 import net.psforever.types.DriveState
@@ -41,7 +43,7 @@ trait AntTransferBehavior extends TransferBehavior
 
   def UpdateNtuUI(vehicle : Vehicle with NtuContainer) : Unit = {
     if(vehicle.Seats.values.exists(_.isOccupied)) {
-      val display = scala.math.ceil((vehicle.NtuCapacitor.toFloat / vehicle.Definition.MaxNtuCapacitor.toFloat) * 10).toLong
+      val display = scala.math.ceil(vehicle.NtuCapacitorScaled).toLong
       vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
         vehicle.Actor.toString,
         VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, vehicle.GUID, 45, display)
@@ -58,8 +60,16 @@ trait AntTransferBehavior extends TransferBehavior
       panelAnimationFunc = InitialCharge
       transferTarget = Some(target)
       transferEvent = TransferBehavior.Event.Charging
-      val max = obj.Definition.MaxNtuCapacitor - obj.NtuCapacitor
-      target.Actor ! Ntu.Request(scala.math.min(0, max), max) //warp gates only?
+      val (min, max) = target match {
+        case _ : WarpGate =>
+          //ANTs would charge from 0-100% in roughly 75s on live (https://www.youtube.com/watch?v=veOWToR2nSk&feature=youtu.be&t=1194)
+          val ntuMax = obj.Definition.MaxNtuCapacitor - obj.NtuCapacitor
+          val ntuMin = scala.math.min(obj.Definition.MaxNtuCapacitor/75, ntuMax)
+          (ntuMin, ntuMax)
+        case _ =>
+          (0, 0)
+      }
+      target.Actor ! Ntu.Request(min, max)
       ntuChargingTick = context.system.scheduler.scheduleOnce(delay = 1000 milliseconds, self, TransferBehavior.Charging(TransferMaterial)) // Repeat until fully charged, or minor delay
       true
     }
@@ -81,7 +91,6 @@ trait AntTransferBehavior extends TransferBehavior
     //log.trace(s"NtuDischarging: Vehicle $guid is discharging NTU into silo $silo_guid")
     val obj = ChargeTransferObject
     if(obj.NtuCapacitor > 0) {
-      // Make sure we don't exceed the silo maximum charge or remove much NTU from ANT if maximum is reached, or try to make ANT go below 0 NTU
       panelAnimationFunc = InitialDischarge
       transferTarget = Some(target)
       transferEvent = TransferBehavior.Event.Discharging
@@ -153,7 +162,23 @@ trait AntTransferBehavior extends TransferBehavior
 
   def HandleNtuRequest(sender : ActorRef, min : Int, max : Int) : Unit = {
     if(transferEvent == TransferBehavior.Event.Discharging) {
-      sender ! WithdrawAndTransmit(ChargeTransferObject, max)
+      val chargeable = ChargeTransferObject
+      val chargeToDeposit = if(min == 0) {
+        transferTarget match {
+          case Some(silo : ResourceSilo) =>
+            // Silos would charge from 0-100% in roughly 105s on live (~20%-100% https://youtu.be/veOWToR2nSk?t=1402)
+            scala.math.min(scala.math.min(silo.MaxNtuCapacitor / 105, chargeable.NtuCapacitor), max)
+          case _ =>
+            0
+        }
+      }
+      else {
+        scala.math.min(min, chargeable.NtuCapacitor)
+      }
+//      var chargeToDeposit = Math.min(Math.min(chargeable.NtuCapacitor, 100), max)
+      chargeable.NtuCapacitor -= chargeToDeposit
+      UpdateNtuUI(chargeable)
+      sender ! Ntu.Grant(chargeable, chargeToDeposit)
     }
   }
 

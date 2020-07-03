@@ -109,7 +109,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo) extends Actor with Faction
   }
 
   /**
-    * The silo will accept offers until its nanite capacitor is completely full.
+    * The silo will agree to offers until its nanite capacitor is completely full.
     */
   def HandleNtuOffer(sender : ActorRef, src : NtuContainer) : Unit = {
     sender ! (if(resourceSilo.NtuCapacitor < resourceSilo.MaxNtuCapacitor) {

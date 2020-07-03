@@ -25,7 +25,7 @@ class WarpGateControl(gate : WarpGate) extends BuildingControl(gate)
     * @param max the amount of nanites required to not make further requests;
     */
   def HandleNtuRequest(sender : ActorRef, min : Int, max : Int) : Unit = {
-    sender ! Ntu.Grant(gate, if (gate.Active) 100 else 0)
+    sender ! Ntu.Grant(gate, if (gate.Active) min else 0)
   }
 
   /**
