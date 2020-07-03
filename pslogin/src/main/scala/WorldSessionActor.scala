@@ -2463,8 +2463,7 @@ class WorldSessionActor extends Actor
         sendResponse(PlanetsideAttributeMessage(obj_guid, 0, obj.Health))
         sendResponse(PlanetsideAttributeMessage(obj_guid, 68, obj.Shields)) //shield health
         if(obj.Definition.MaxNtuCapacitor > 0) {
-          val ntuCapacitor = scala.math.ceil((obj.NtuCapacitor.toFloat / obj.Definition.MaxNtuCapacitor.toFloat) * 10).toInt
-          sendResponse(PlanetsideAttributeMessage(obj_guid, 45, ntuCapacitor))
+          sendResponse(PlanetsideAttributeMessage(obj_guid, 45, obj.NtuCapacitorScaled))
         }
         if(obj.Definition.MaxCapacitor > 0) {
           val capacitor = scala.math.ceil((obj.Capacitor.toFloat / obj.Definition.MaxCapacitor.toFloat) * 10).toInt
@@ -2979,7 +2978,7 @@ class WorldSessionActor extends Actor
     if(vehicle.NtuCapacitor < vehicle.Definition.MaxNtuCapacitor) {
       // Charging - ANTs would charge from 0-100% in roughly 75s on live (https://www.youtube.com/watch?v=veOWToR2nSk&feature=youtu.be&t=1194)
       vehicle.NtuCapacitor += vehicle.Definition.MaxNtuCapacitor / 75
-      sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, scala.math.ceil((vehicle.NtuCapacitor.toFloat / vehicle.Definition.MaxNtuCapacitor.toFloat) * 10).toInt)) // set ntu on vehicle UI
+      sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, vehicle.NtuCapacitorScaled)) // set ntu on vehicle UI
       continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 52, 1L)) // panel glow on
       continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 49, 1L)) // orb particle effect on
 
@@ -2987,7 +2986,7 @@ class WorldSessionActor extends Actor
     }
     else {
       // Fully charged
-      sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, scala.math.ceil((vehicle.NtuCapacitor.toFloat / vehicle.Definition.MaxNtuCapacitor.toFloat) * 10).toInt)) // set ntu on vehicle UI
+      sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, vehicle.NtuCapacitorScaled)) // set ntu on vehicle UI
 
       // Turning off glow/orb effects on ANT doesn't seem to work when deployed. Try to undeploy ANT from server side
       context.system.scheduler.scheduleOnce(vehicle.UndeployTime milliseconds, vehicle.Actor, Deployment.TryUndeploy(DriveState.Undeploying))
@@ -3016,7 +3015,7 @@ class WorldSessionActor extends Actor
         vehicle.NtuCapacitor -= chargeToDeposit
         silo.Actor ! ResourceSilo.UpdateChargeLevel(chargeToDeposit)
         continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.PlanetsideAttribute(silo_guid, 49, 1L)) // panel glow on & orb particles on
-        sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, scala.math.ceil((vehicle.NtuCapacitor.toFloat / vehicle.Definition.MaxNtuCapacitor.toFloat) * 10).toInt)) // set ntu on vehicle UI
+        sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, vehicle.NtuCapacitorScaled)) // set ntu on vehicle UI
 
         //todo: grant BEP to user
         //todo: grant BEP to squad in range
@@ -3253,6 +3252,17 @@ class WorldSessionActor extends Actor
           vehicle.Actor ! JammableUnit.ClearJammeredStatus()
           vehicle.Actor ! JammableUnit.ClearJammeredSound()
         }
+
+        //positive shield strength
+        if(vehicle.Shields > 0) {
+          sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 68, vehicle.Shields))
+        }
+
+        // ANT capacitor
+        if(vehicle.Definition.MaxNtuCapacitor > 0) {
+          sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, vehicle.NtuCapacitorScaled)) // set ntu on vehicle UI
+        }
+
         LoadZoneTransferPassengerMessages(
           guid,
           continent.Id,
@@ -3747,10 +3757,6 @@ class WorldSessionActor extends Actor
           //since we would have only subscribed recently, we need to reload seat access states
           (0 to 3).foreach { group =>
             sendResponse(PlanetsideAttributeMessage(vguid, group + 10, vehicle.PermissionGroup(group).get.id))
-          }
-          //positive shield strength
-          if(vehicle.Shields > 0) {
-            sendResponse(PlanetsideAttributeMessage(vguid, 68, vehicle.Shields))
           }
         case _ => ; //no vehicle
       }
