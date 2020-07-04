@@ -2,16 +2,19 @@
 package net.psforever.objects
 
 import net.psforever.objects.serverobject.CommonMessages
+import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.transfer.TransferContainer
 import net.psforever.objects.serverobject.structures.{StructureType, WarpGate}
-import net.psforever.objects.vehicles.{CargoBehavior, VehicleLockState}
+import net.psforever.objects.vehicles.{CargoBehavior, Utility, UtilityType, VehicleLockState}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.TriggeredSound
 import net.psforever.types.{DriveState, PlanetSideGUID, Vector3}
-import services.Service
+import services.{RemoverActor, Service}
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.local.{LocalAction, LocalServiceMessage}
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
+
+import scala.concurrent.duration._
 
 object Vehicles {
   private val log = org.log4s.getLogger("Vehicles")
@@ -303,8 +306,7 @@ object Vehicles {
     // If AMS is deployed, swap it to the new faction
     target.Definition match {
       case GlobalDefinitions.router =>
-        log.info("FinishHackingVehicle: cleaning up after a router ...")
-        Deployables.RemoveTelepad(target)
+        Vehicles.RemoveTelepads(target)
       case GlobalDefinitions.ams if target.DeploymentState == DriveState.Deployed =>
         zone.VehicleEvents ! VehicleServiceMessage.AMSDeploymentChange(zone)
       case _ => ;
@@ -356,6 +358,41 @@ object Vehicles {
         case None =>
           None
       }
+    }
+  }
+
+  /**
+    * Before a vehicle is removed from the game world, the following actions must be performed.
+    * @param vehicle the vehicle
+    */
+  def BeforeUnloadVehicle(vehicle : Vehicle, zone : Zone) : Unit = {
+    vehicle.Definition match {
+      case GlobalDefinitions.ams =>
+        vehicle.Actor ! Deployment.TryUndeploy(DriveState.Undeploying)
+      case GlobalDefinitions.ant =>
+        vehicle.Actor ! Deployment.TryUndeploy(DriveState.Undeploying)
+      case GlobalDefinitions.router =>
+        vehicle.Actor ! Deployment.TryUndeploy(DriveState.Undeploying)
+      case _ => ;
+    }
+  }
+
+  def RemoveTelepads(vehicle: Vehicle) : Unit = {
+    val zone = vehicle.Zone
+    (vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
+      case Some(util : Utility.InternalTelepad) =>
+        val telepad = util.Telepad
+        util.Telepad = None
+        zone.GUID(telepad)
+      case _ =>
+        None
+    }) match {
+      case Some(telepad : TelepadDeployable) =>
+        log.debug(s"BeforeUnload: deconstructing telepad $telepad that was linked to router $vehicle ...")
+        telepad.Active = false
+        zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(telepad), zone))
+        zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(telepad, zone, Some(0 seconds)))
+      case _ => ;
     }
   }
 }

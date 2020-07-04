@@ -27,7 +27,7 @@ import net.psforever.types.{DriveState, ExoSuitType, PlanetSideGUID, Vector3}
 import services.Service
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 import services.local.{LocalAction, LocalServiceMessage}
-import services.vehicle.{VehicleAction, VehicleService, VehicleServiceMessage}
+import services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -280,7 +280,7 @@ class VehicleControl(vehicle: Vehicle)
     val zoneId = zone.Id
     val events = zone.VehicleEvents
     //miscellaneous changes
-    VehicleService.BeforeUnloadVehicle(vehicle, zone)
+    Vehicles.BeforeUnloadVehicle(vehicle, zone)
     //become disabled
     context.become(Disabled)
     //cancel jammed behavior
@@ -335,7 +335,7 @@ class VehicleControl(vehicle: Vehicle)
 
   def Disabled : Receive = checkBehavior
     .orElse {
-      case msg @ Deployment.TryUndeploy =>
+      case msg : Deployment.TryUndeploy =>
         deployBehavior.apply(msg)
 
       case VehicleControl.Deletion() =>
@@ -506,7 +506,7 @@ class VehicleControl(vehicle: Vehicle)
   }
 
   override def UndeploymentAction(obj : DeploymentObject, state : DriveState.Value, prevState : DriveState.Value) : DriveState.Value = {
-    val out = super.UndeploymentAction(obj, state, prevState)
+    val out = if(decaying) state else super.UndeploymentAction(obj, state, prevState)
     obj match {
       case vehicle : Vehicle =>
         val guid = vehicle.GUID
@@ -540,7 +540,7 @@ class VehicleControl(vehicle: Vehicle)
           state match {
             case DriveState.Undeploying =>
               //deactivate internal router before trying to reset the system
-              VehicleService.RemoveTelepads(vehicle, zone)
+              Vehicles.RemoveTelepads(vehicle)
               zone.LocalEvents ! LocalServiceMessage(zone.Id, LocalAction.ToggleTeleportSystem(GUID0, vehicle, None))
             case _ => ;
           }

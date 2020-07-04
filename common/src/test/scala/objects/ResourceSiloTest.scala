@@ -7,9 +7,11 @@ import akka.testkit.TestProbe
 import base.ActorTest
 import net.psforever.objects.guid.{NumberPoolHub, TaskResolver}
 import net.psforever.objects.guid.source.LimitedNumberSource
-import net.psforever.objects.{Avatar, GlobalDefinitions, Player, Vehicle}
+import net.psforever.objects.serverobject.CommonMessages
+import net.psforever.objects.{Avatar, GlobalDefinitions, Ntu, Player, Vehicle}
 import net.psforever.objects.serverobject.resourcesilo.{ResourceSilo, ResourceSiloControl, ResourceSiloDefinition}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
+import net.psforever.objects.serverobject.transfer.TransferBehavior
 import net.psforever.objects.zones.{Zone, ZoneActor, ZoneMap}
 import net.psforever.packet.game.UseItemMessage
 import net.psforever.types._
@@ -115,6 +117,7 @@ class ResourceSiloControlUseTest extends ActorTest {
     new Avatar(0L, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
   ) //guid=3
   val vehicle = Vehicle(GlobalDefinitions.ant) //guid=4
+  val probe = new TestProbe(system)
 
   guid.register(building, 1)
   guid.register(obj, 2)
@@ -124,31 +127,20 @@ class ResourceSiloControlUseTest extends ActorTest {
   zone.Transport ! Zone.Vehicle.Spawn(vehicle)
   vehicle.Seats(0).Occupant = player
   player.VehicleSeated = vehicle.GUID
-  val msg = UseItemMessage(
-    PlanetSideGUID(1),
-    PlanetSideGUID(0),
-    PlanetSideGUID(2),
-    0L,
-    false,
-    Vector3.Zero,
-    Vector3.Zero,
-    0,
-    0,
-    0,
-    0L
-  ) //faked
   expectNoMessage(200 milliseconds)
+  system.stop(vehicle.Actor)
+  vehicle.Actor = probe.ref
 
   "Resource silo" should {
     "respond when being used" in {
       expectNoMessage(1 seconds)
-      obj.Actor ! ResourceSilo.Use(ResourceSiloTest.player, msg)
+      obj.Actor ! CommonMessages.Use(ResourceSiloTest.player)
 
-      val reply = receiveOne(500 milliseconds)
-      assert(reply.isInstanceOf[ResourceSilo.ResourceSiloMessage])
-      assert(reply.asInstanceOf[ResourceSilo.ResourceSiloMessage].player == ResourceSiloTest.player)
-      assert(reply.asInstanceOf[ResourceSilo.ResourceSiloMessage].msg == msg)
-      assert(reply.asInstanceOf[ResourceSilo.ResourceSiloMessage].response == ResourceSilo.ChargeEvent())
+      val reply = probe.receiveOne(2000 milliseconds)
+      assert(reply match {
+        case TransferBehavior.Discharging(Ntu.Nanites) => true
+        case _ => false
+      })
     }
   }
 }

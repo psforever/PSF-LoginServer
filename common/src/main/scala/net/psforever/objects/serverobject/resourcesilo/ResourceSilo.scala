@@ -34,7 +34,6 @@ class ResourceSilo extends Amenity with CommonNtuContainer {
 }
 
 object ResourceSilo {
-  final case class Use(player: Player, msg : UseItemMessage)
   final case class UpdateChargeLevel(amount: Int)
   final case class LowNtuWarning(enabled: Boolean)
   sealed trait Exchange

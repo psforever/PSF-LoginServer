@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.resourcesilo
 
 import akka.actor.{Actor, ActorRef}
+import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.transfer.TransferBehavior
 import net.psforever.objects.serverobject.structures.Building
@@ -36,7 +37,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo) extends Actor with Faction
   def Processing : Receive = checkBehavior
     .orElse(storageBehavior)
     .orElse {
-      case ResourceSilo.Use(player, _) =>
+      case CommonMessages.Use(player, _) =>
         if(resourceSilo.Faction == PlanetSideEmpire.NEUTRAL || player.Faction == resourceSilo.Faction) {
           resourceSilo.Zone.Vehicles.find(v => v.PassengerInSeat(player).contains(0)) match {
             case Some(vehicle) =>

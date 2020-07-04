@@ -3042,10 +3042,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
 
       case VehicleResponse.UnloadVehicle(vehicle, vehicle_guid) =>
-        //if(tplayer_guid != guid) {
-        BeforeUnloadVehicle(vehicle)
         sendResponse(ObjectDeleteMessage(vehicle_guid, 0))
-      //}
 
       case VehicleResponse.UnstowEquipment(item_guid) =>
         if (tplayer_guid != guid) {
@@ -5365,8 +5362,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
               sendResponse(GenericObjectStateMsg(object_guid, 16))
             }
 
-          case Some(resourceSilo: ResourceSilo) =>
-            resourceSilo.Actor ! ResourceSilo.Use(player, msg)
+          case Some(resourceSilo : ResourceSilo) =>
+            resourceSilo.Actor ! CommonMessages.Use(player)
 
           case Some(panel: IFFLock) =>
             equipment match {
@@ -9901,23 +9898,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     sendResponse(PlanetsideAttributeMessage(playerGUID, 64, 1)) //what does this do?
     sendResponse(GenericObjectActionMessage(srcGUID, 31))
     sendResponse(GenericObjectActionMessage(destGUID, 32))
-  }
-
-  /**
-    * Before a vehicle is removed from the game world, the following actions must be performed.
-    * @param vehicle the vehicle
-    */
-  def BeforeUnloadVehicle(vehicle: Vehicle): Unit = {
-    vehicle.Definition match {
-      case GlobalDefinitions.ams if vehicle.Faction == player.Faction =>
-        log.info("BeforeUnload: cleaning up after a mobile spawn vehicle ...")
-        continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.UpdateAmsSpawnPoint(continent))
-      case GlobalDefinitions.router =>
-        //this may repeat for multiple players on the same continent but that's okay(?)
-        log.info("BeforeUnload: cleaning up after a router ...")
-        Deployables.RemoveTelepad(vehicle)
-      case _ => ;
-    }
   }
 
   /**

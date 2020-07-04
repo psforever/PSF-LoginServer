@@ -2,12 +2,12 @@
 package net.psforever.objects.serverobject.damage
 
 import akka.actor.Actor.Receive
-import net.psforever.objects.Vehicle
+import net.psforever.objects.{Vehicle, Vehicles}
 import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.vital.resolution.ResolutionCalculations
 import services.Service
-import services.vehicle.{VehicleAction, VehicleService, VehicleServiceMessage}
+import services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.duration._
 
@@ -175,7 +175,7 @@ object DamageableVehicle {
       }
     })
     //special considerations for certain vehicles
-    VehicleService.BeforeUnloadVehicle(target, zone)
+    Vehicles.BeforeUnloadVehicle(target, zone)
     //shields
     if (target.Shields > 0) {
       target.Shields = 0

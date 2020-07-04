@@ -2,19 +2,16 @@
 package services.vehicle
 
 import akka.actor.{Actor, ActorRef, Props}
-import net.psforever.objects.{GlobalDefinitions, TelepadDeployable, Vehicle}
+import net.psforever.objects.Vehicle
 import net.psforever.objects.ballistics.VehicleSource
-import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.terminals.{MedicalTerminalDefinition, ProximityUnit}
-import net.psforever.objects.vehicles.{Utility, UtilityType}
 import net.psforever.objects.vital.RepairFromTerm
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.ObjectCreateMessage
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import services.vehicle.support.{TurretUpgrader, VehicleRemover}
 import net.psforever.types.{DriveState, PlanetSideGUID}
-import services.local.LocalServiceMessage
 import services.{GenericEventBus, RemoverActor, Service}
 
 import scala.concurrent.duration._
@@ -403,42 +400,5 @@ class VehicleService(zone: Zone) extends Actor {
       )
       .flatMap(veh => veh.Utilities.values.filter(util => util.UtilType == UtilityType.ams_respawn_tube))
       .map(util => util().asInstanceOf[SpawnTube])
-  }
-}
-
-object VehicleService {
-
-  /**
-    * Before a vehicle is removed from the game world, the following actions must be performed.
-    * @param vehicle the vehicle
-    */
-  def BeforeUnloadVehicle(vehicle: Vehicle, zone: Zone): Unit = {
-    vehicle.Definition match {
-      case GlobalDefinitions.ams =>
-        vehicle.Actor ! Deployment.TryUndeploy(DriveState.Undeploying)
-      case GlobalDefinitions.ant =>
-        vehicle.Actor ! Deployment.TryUndeploy(DriveState.Undeploying)
-      case GlobalDefinitions.router =>
-        vehicle.Actor ! Deployment.TryUndeploy(DriveState.Undeploying)
-      case _ => ;
-    }
-  }
-
-  def RemoveTelepads(vehicle: Vehicle, zone: Zone): Unit = {
-    (vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
-      case Some(util: Utility.InternalTelepad) =>
-        val telepad = util.Telepad
-        util.Telepad = None
-        zone.GUID(telepad)
-      case _ =>
-        None
-    }) match {
-      case Some(telepad: TelepadDeployable) =>
-        //any telepads linked with internal mechanism must be deconstructed
-        telepad.Active = false
-        zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(telepad), zone))
-        zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(telepad, zone, Some(0 seconds)))
-      case _ => ;
-    }
   }
 }
