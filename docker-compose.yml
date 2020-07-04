@@ -28,6 +28,8 @@ services:
       - 51010:8080
   db:
     image: postgres
+    ports:
+      - 5432:5432
     environment:
       POSTGRES_USER: psforever
       POSTGRES_PASSWORD: psforever
