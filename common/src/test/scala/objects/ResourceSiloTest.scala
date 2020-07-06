@@ -212,91 +212,31 @@ class ResourceSiloControlUpdate1Test extends ActorTest {
 
       assert(obj.NtuCapacitor == 0)
       assert(obj.CapacitorDisplay == 0)
+      assert(obj.LowNtuWarningOn)
       obj.Actor ! ResourceSilo.UpdateChargeLevel(305)
 
       val reply1 = zoneEvents.receiveOne(500 milliseconds)
       val reply2 = buildingEvents.receiveOne(500 milliseconds)
       assert(obj.NtuCapacitor == 305)
       assert(obj.CapacitorDisplay == 4)
-      assert(reply1.isInstanceOf[AvatarServiceMessage])
-      assert(reply1.asInstanceOf[AvatarServiceMessage].forChannel == "nowhere")
-      assert(reply1.asInstanceOf[AvatarServiceMessage].actionMessage.isInstanceOf[AvatarAction.PlanetsideAttribute])
-      assert(
-        reply1
-          .asInstanceOf[AvatarServiceMessage]
-          .actionMessage
-          .asInstanceOf[AvatarAction.PlanetsideAttribute]
-          .player_guid == PlanetSideGUID(1)
-      )
-      assert(
-        reply1
-          .asInstanceOf[AvatarServiceMessage]
-          .actionMessage
-          .asInstanceOf[AvatarAction.PlanetsideAttribute]
-          .attribute_type == 45
-      )
-      assert(
-        reply1
-          .asInstanceOf[AvatarServiceMessage]
-          .actionMessage
-          .asInstanceOf[AvatarAction.PlanetsideAttribute]
-          .attribute_value == 4
-      )
-
+      assert(reply1 match {
+        case AvatarServiceMessage("nowhere", AvatarAction.PlanetsideAttribute(PlanetSideGUID(1), 45, 4)) => true
+        case _ => false
+      })
       assert(reply2.isInstanceOf[Building.SendMapUpdate])
 
       val reply3 = zoneEvents.receiveOne(500 milliseconds)
-      assert(reply3.isInstanceOf[AvatarServiceMessage])
-      assert(reply3.asInstanceOf[AvatarServiceMessage].forChannel == "nowhere")
-      assert(reply3.asInstanceOf[AvatarServiceMessage].actionMessage.isInstanceOf[AvatarAction.PlanetsideAttribute])
-      assert(
-        reply3
-          .asInstanceOf[AvatarServiceMessage]
-          .actionMessage
-          .asInstanceOf[AvatarAction.PlanetsideAttribute]
-          .player_guid == PlanetSideGUID(6)
-      )
-      assert(
-        reply3
-          .asInstanceOf[AvatarServiceMessage]
-          .actionMessage
-          .asInstanceOf[AvatarAction.PlanetsideAttribute]
-          .attribute_type == 48
-      )
-      assert(
-        reply3
-          .asInstanceOf[AvatarServiceMessage]
-          .actionMessage
-          .asInstanceOf[AvatarAction.PlanetsideAttribute]
-          .attribute_value == 0
-      )
+      assert(!obj.LowNtuWarningOn)
+      assert(reply3 match {
+        case AvatarServiceMessage("nowhere", AvatarAction.PlanetsideAttribute(PlanetSideGUID(6), 47, 0)) => true
+        case _ => false
+      })
 
       val reply4 = zoneEvents.receiveOne(500 milliseconds)
-      assert(!obj.LowNtuWarningOn)
-      assert(reply4.isInstanceOf[AvatarServiceMessage])
-      assert(reply4.asInstanceOf[AvatarServiceMessage].forChannel == "nowhere")
-      assert(reply4.asInstanceOf[AvatarServiceMessage].actionMessage.isInstanceOf[AvatarAction.PlanetsideAttribute])
-      assert(
-        reply4
-          .asInstanceOf[AvatarServiceMessage]
-          .actionMessage
-          .asInstanceOf[AvatarAction.PlanetsideAttribute]
-          .player_guid == PlanetSideGUID(6)
-      )
-      assert(
-        reply4
-          .asInstanceOf[AvatarServiceMessage]
-          .actionMessage
-          .asInstanceOf[AvatarAction.PlanetsideAttribute]
-          .attribute_type == 47
-      )
-      assert(
-        reply4
-          .asInstanceOf[AvatarServiceMessage]
-          .actionMessage
-          .asInstanceOf[AvatarAction.PlanetsideAttribute]
-          .attribute_value == 0
-      )
+      assert(reply4 match {
+        case AvatarServiceMessage("nowhere", AvatarAction.PlanetsideAttribute(PlanetSideGUID(6), 48, 0)) => true
+        case _ => false
+      })
     }
   }
 }
