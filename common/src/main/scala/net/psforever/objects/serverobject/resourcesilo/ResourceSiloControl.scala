@@ -47,20 +47,24 @@ class ResourceSiloControl(resourceSilo: ResourceSilo) extends Actor with Faction
         }
 
       case ResourceSilo.LowNtuWarning(enabled: Boolean) =>
-        resourceSilo.LowNtuWarningOn = enabled
-        log.trace(s"LowNtuWarning: Silo ${resourceSilo.GUID} low ntu warning set to $enabled")
-        val building = resourceSilo.Owner
-        val zone = building.Zone
-        building.Zone.AvatarEvents ! AvatarServiceMessage(
-          zone.Id,
-          AvatarAction.PlanetsideAttribute(building.GUID, 47, if(resourceSilo.LowNtuWarningOn) 1 else 0)
-        )
+        LowNtuWarning(enabled)
 
       case ResourceSilo.UpdateChargeLevel(amount: Int) =>
         UpdateChargeLevel(amount)
 
       case _ => ;
     }
+
+  def LowNtuWarning(enabled : Boolean) : Unit = {
+    resourceSilo.LowNtuWarningOn = enabled
+    log.trace(s"LowNtuWarning: Silo ${resourceSilo.GUID} low ntu warning set to $enabled")
+    val building = resourceSilo.Owner
+    val zone = building.Zone
+    building.Zone.AvatarEvents ! AvatarServiceMessage(
+      zone.Id,
+      AvatarAction.PlanetsideAttribute(building.GUID, 47, if(resourceSilo.LowNtuWarningOn) 1 else 0)
+    )
+  }
 
   def UpdateChargeLevel(amount: Int) : Unit = {
     val siloChargeBeforeChange = resourceSilo.NtuCapacitor
@@ -86,10 +90,10 @@ class ResourceSiloControl(resourceSilo: ResourceSilo) extends Actor with Faction
     }
     val ntuIsLow = resourceSilo.NtuCapacitor.toFloat / resourceSilo.Definition.MaxNtuCapacitor.toFloat < 0.2f
     if (resourceSilo.LowNtuWarningOn && !ntuIsLow) {
-      self ! ResourceSilo.LowNtuWarning(enabled = false)
+      LowNtuWarning(enabled = false)
     }
     else if (!resourceSilo.LowNtuWarningOn && ntuIsLow) {
-      self ! ResourceSilo.LowNtuWarning(enabled = true)
+      LowNtuWarning(enabled = true)
     }
     if (resourceSilo.NtuCapacitor == 0 && siloChargeBeforeChange > 0) {
       // Oops, someone let the base run out of power. Shut it all down.
