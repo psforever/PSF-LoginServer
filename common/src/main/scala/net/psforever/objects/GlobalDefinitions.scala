@@ -5767,7 +5767,7 @@ object GlobalDefinitions {
     ams.Packet = utilityConverter
     ams.DestroyedModel = Some(DestroyedVehicle.Ams)
     ams.Subtract.Damage1 = 10
-    ams.JackingDuration = Array(0, 0, 0, 0)
+    ams.JackingDuration = Array(0, 60, 20, 15)
 
     val variantConverter = new VariantVehicleConverter
     router.Name = "router"
