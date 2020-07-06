@@ -5746,11 +5746,11 @@ object GlobalDefinitions {
     ant.JackingDuration = Array (0, 60, 20, 15)
 
     ams.Name = "ams"
-    ams.MaxHealth = 3000
+    ams.MaxHealth = 5000 //TempChanges1 (original value is 3000)
     ams.Damageable = true
     ams.Repairable = true
     ams.RepairIfDestroyed = false
-    ams.MaxShields = 600 + 1
+    ams.MaxShields = 1000 + 1 //TempChanges1 (original value is 600 + 1)
     ams.Seats += 0 -> new SeatDefinition()
     ams.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     ams.MountPoints += 1 -> 0
@@ -5767,7 +5767,7 @@ object GlobalDefinitions {
     ams.Packet = utilityConverter
     ams.DestroyedModel = Some(DestroyedVehicle.Ams)
     ams.Subtract.Damage1 = 10
-    ams.JackingDuration = Array(0, 60, 20, 15)
+    ams.JackingDuration = Array(0, 60, 40, 30) //TempChanges1 (original values are 0, 60, 20, 15)
 
     val variantConverter = new VariantVehicleConverter
     router.Name = "router"
@@ -6024,7 +6024,7 @@ object GlobalDefinitions {
     dropship.JackingDuration = Array(0, 60, 20, 10)
 
     galaxy_gunship.Name = "galaxy_gunship"
-    galaxy_gunship.MaxHealth = 6000
+    galaxy_gunship.MaxHealth = 9500 //TempChanges1 (original value is 6000)
     galaxy_gunship.Damageable = true
     galaxy_gunship.Repairable = true
     galaxy_gunship.RepairDistance = 20
