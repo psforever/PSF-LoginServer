@@ -6,6 +6,8 @@ add_property ace_deployable equiptime 500
 add_property ace_deployable holstertime 500
 add_property advanced_ace equiptime 750
 add_property advanced_ace holstertime 750
+add_property ams jacking_duration 0 0 0 0
+add_property ams maxhealth 5000
 add_property anniversary_gun equiptime 500
 add_property anniversary_gun holstertime 500
 add_property anniversary_guna equiptime 500
@@ -44,6 +46,7 @@ add_property flechette equiptime 600
 add_property flechette holstertime 600
 add_property forceblade equiptime 250
 add_property forceblade holstertime 250
+add_property galaxy_gunship maxhealth 9500
 add_property gauss equiptime 600
 add_property gauss holstertime 600
 add_property ilc9 equiptime 500
