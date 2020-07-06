@@ -6,7 +6,7 @@ add_property ace_deployable equiptime 500
 add_property ace_deployable holstertime 500
 add_property advanced_ace equiptime 750
 add_property advanced_ace holstertime 750
-add_property ams jacking_duration 0 0 0 0
+add_property ams jacking_duration 0 60 40 30
 add_property ams maxhealth 5000
 add_property anniversary_gun equiptime 500
 add_property anniversary_gun holstertime 500
