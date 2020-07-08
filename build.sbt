@@ -47,6 +47,8 @@ lazy val commonSettings = Seq(
     "com.typesafe.akka"          %% "akka-protobuf-v3"        % "2.6.6",
     "com.typesafe.akka"          %% "akka-stream"             % "2.6.6",
     "com.typesafe.akka"          %% "akka-testkit"            % "2.6.6" % "test",
+    "com.typesafe.akka"          %% "akka-actor-typed"        % "2.6.6",
+    "com.typesafe.akka"          %% "akka-cluster-typed"      % "2.6.6",
     "com.typesafe.scala-logging" %% "scala-logging"           % "3.9.2",
     "org.specs2"                 %% "specs2-core"             % "4.9.4" % "test",
     "org.scalatest"              %% "scalatest"               % "3.1.2" % "test",
@@ -106,7 +108,7 @@ lazy val pslogin = (project in file("pslogin"))
     // ActorTests have specific timing requirements and will be flaky if run in parallel
     parallelExecution in Test := false,
     // TODO(chord): remove exclusion when WorldSessionActor is refactored: https://github.com/psforever/PSF-LoginServer/issues/279
-    coverageExcludedPackages := "WorldSessionActor.*;zonemaps.*",
+    coverageExcludedPackages := "net.psforever.pslogin.WorldSessionActor.*;net.psforever.pslogin.zonemaps.*",
     // Copy all tests from Test -> QuietTest (we're only changing the run options)
     inConfig(QuietTest)(Defaults.testTasks)
   )
