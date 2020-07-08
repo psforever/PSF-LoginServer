@@ -1,11 +1,9 @@
-// Copyright (c) 2020 PSForever
-package net.psforever.psadmin
+package net.psforever.pslogin.psadmin
 
 import akka.actor.ActorRef
 import akka.actor.Actor
 import scala.collection.mutable.Map
 import net.psforever.objects.zones.InterstellarCluster
-
 
 class CmdListPlayers(args: Array[String], services: Map[String, ActorRef]) extends Actor {
   private[this] val log = org.log4s.getLogger(self.path.name)

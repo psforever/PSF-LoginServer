@@ -1,6 +1,5 @@
-package csr
+package net.psforever.pslogin.csr
 
-// Copyright (c) 2017 PSForever
 import net.psforever.types.Vector3
 
 import scala.collection.mutable

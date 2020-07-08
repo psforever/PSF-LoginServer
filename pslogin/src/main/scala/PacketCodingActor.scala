@@ -1,4 +1,5 @@
-// Copyright (c) 2017 PSForever
+package net.psforever.pslogin
+
 import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
 import net.psforever.packet._
 import scodec.Attempt.{Failure, Successful}

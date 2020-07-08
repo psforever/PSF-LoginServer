@@ -1,7 +1,6 @@
-// Copyright (c) 2017 PSForever
-import java.net.InetSocketAddress
-import java.net.InetAddress
+package net.psforever.pslogin
 
+import java.net.InetSocketAddress
 import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
 import net.psforever.packet.{PlanetSideGamePacket, _}
 import net.psforever.packet.control._
@@ -12,7 +11,6 @@ import MDCContextAware.Implicits._
 import net.psforever.objects.Account
 import net.psforever.objects.Default
 import net.psforever.types.PlanetSideEmpire
-import net.psforever.WorldConfig
 import services.ServiceManager
 import services.ServiceManager.Lookup
 import services.account.{ReceiveIPAddress, RetrieveIPAddress, StoreAccountData}
@@ -23,8 +21,9 @@ import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 import scala.concurrent.Future
 import Database._
+import java.net.InetAddress
 
-class LoginSessionActor(serverAddress: InetAddress) extends Actor with MDCContextAware {
+class LoginSessionActor extends Actor with MDCContextAware {
   private[this] val log = org.log4s.getLogger
 
   import scala.concurrent.ExecutionContext.Implicits.global
@@ -44,10 +43,8 @@ class LoginSessionActor(serverAddress: InetAddress) extends Actor with MDCContex
   var canonicalHostName: String = ""
   var port: Int                 = 0
 
-  val serverName = WorldConfig.Get[String]("worldserver.ServerName")
-
-  val socketAddress =
-    new InetSocketAddress(serverAddress, WorldConfig.Get[Int]("worldserver.ListeningPort"))
+  val serverName    = Config.app.world.serverName
+  val publicAddress = new InetSocketAddress(InetAddress.getByName(Config.app.public), Config.app.world.port)
 
   // Reference: https://stackoverflow.com/a/50470009
   private val numBcryptPasses = 10
@@ -131,7 +128,7 @@ class LoginSessionActor(serverAddress: InetAddress) extends Actor with MDCContex
 
       case ConnectToWorldRequestMessage(name, _, _, _, _, _, _) =>
         log.info(s"Connect to world request for '$name'")
-        val response = ConnectToWorldMessage(serverName, socketAddress.getHostString, socketAddress.getPort)
+        val response = ConnectToWorldMessage(serverName, publicAddress.getHostString, publicAddress.getPort)
         sendResponse(PacketCoding.CreateGamePacket(0, response))
         sendResponse(DropSession(sessionId, "user transferring to world"))
 
@@ -155,7 +152,7 @@ class LoginSessionActor(serverAddress: InetAddress) extends Actor with MDCContex
       accountOption <- accountsExact.headOption orElse accountsLower.headOption match {
         case Some(account) => Future.successful(Some(account))
         case None => {
-          WorldConfig.Get[Boolean]("loginserver.CreateMissingAccounts") match {
+          Config.app.login.createMissingAccounts match {
             case true =>
               val passhash: String = password.bcrypt(numBcryptPasses)
               ctx.run(
@@ -293,8 +290,8 @@ class LoginSessionActor(serverAddress: InetAddress) extends Actor with MDCContex
         WorldInformation(
           serverName,
           WorldStatus.Up,
-          WorldConfig.Get[ServerType.Value]("worldserver.ServerType"),
-          Vector(WorldConnectionInfo(socketAddress)),
+          Config.app.world.serverType,
+          Vector(WorldConnectionInfo(publicAddress)),
           PlanetSideEmpire.VS
         )
       )

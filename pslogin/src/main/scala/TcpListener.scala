@@ -1,4 +1,5 @@
-// Copyright (c) 2020 PSForever
+package net.psforever.pslogin
+
 import java.net.{InetAddress, InetSocketAddress}
 
 import akka.actor.SupervisorStrategy.Stop

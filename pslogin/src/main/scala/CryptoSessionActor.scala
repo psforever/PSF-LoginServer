@@ -1,4 +1,5 @@
-// Copyright (c) 2017 PSForever
+package net.psforever.pslogin
+
 import akka.actor.{Actor, ActorRef, MDCContextAware}
 import net.psforever.crypto.CryptoInterface.CryptoStateWithMAC
 import net.psforever.crypto.CryptoInterface

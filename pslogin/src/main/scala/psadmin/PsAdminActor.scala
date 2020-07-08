@@ -1,5 +1,4 @@
-// Copyright (c) 2020 PSForever
-package net.psforever.psadmin
+package net.psforever.pslogin.psadmin
 
 import java.net.InetSocketAddress
 import akka.actor.{ActorRef, Props}

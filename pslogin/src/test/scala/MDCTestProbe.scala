@@ -1,4 +1,5 @@
-// Copyright (c) 2019 PSForever
+package net.psforever.pslogin
+
 import akka.actor.{ActorRef, MDCContextAware}
 import akka.testkit.TestProbe
 import net.psforever.packet.{ControlPacket, GamePacket}

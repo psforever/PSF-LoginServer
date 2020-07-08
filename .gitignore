@@ -13,8 +13,7 @@ out/
 project/metals.sbt
 
 # User configs
-config/worldserver.ini
-pslogin/src/main/resources/user.conf
+config/psforever.conf
 
 # Log files
 *.log

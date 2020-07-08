@@ -93,7 +93,7 @@ class VNLWorldStatusMessageTest extends Specification {
       WorldInformation("ABCDABCD1", WorldStatus.Up, ServerType.Released, Vector(), PlanetSideEmpire.NC),
       WorldInformation("ABCDABCD2", WorldStatus.Down, ServerType.Beta, Vector(), PlanetSideEmpire.TR),
       WorldInformation("ABCDABCD3", WorldStatus.Locked, ServerType.Development, Vector(), PlanetSideEmpire.VS),
-      WorldInformation("ABCDABCD4", WorldStatus.Full, ServerType.Released_Gemini, Vector(), PlanetSideEmpire.NEUTRAL)
+      WorldInformation("ABCDABCD4", WorldStatus.Full, ServerType.ReleasedGemini, Vector(), PlanetSideEmpire.NEUTRAL)
     )
 
     val msg = VNLWorldStatusMessage("Welcome to PlanetSide! ", worlds)

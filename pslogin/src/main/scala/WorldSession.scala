@@ -1,4 +1,5 @@
-// Copyright (c) 2020 PSForever
+package net.psforever.pslogin
+
 import akka.actor.ActorRef
 import akka.pattern.{AskTimeoutException, ask}
 import akka.util.Timeout

@@ -3,7 +3,8 @@ package net.psforever.packet
 
 import java.nio.charset.Charset
 
-import scodec.{DecodeResult, Err, Codec, Attempt}
+import enumeratum.values.{IntEnum, IntEnumEntry}
+import scodec.{Attempt, Codec, DecodeResult, Err}
 import scodec.bits._
 import scodec.codecs._
 import scodec._
@@ -119,11 +120,33 @@ object PacketHelpers {
 
   /** Same as [[createEnumerationCodec]] but with a Codec type of Long
     *
-    * NOTE: enumerations in scala can't be represented by more than an Int anyways, so this conversion shouldnt matter.
+    * NOTE: enumerations in scala can't be represented by more than an Int anyways, so this conversion shouldn't matter.
     * This is only to overload createEnumerationCodec to work with uint32[L] codecs (which are Long)
     */
   def createLongEnumerationCodec[E <: Enumeration](enum: E, storageCodec: Codec[Long]): Codec[E#Value] = {
     createEnumerationCodec(enum, storageCodec.xmap[Int](_.toInt, _.toLong))
+  }
+
+  /** Create a Codec for enumeratum's Enum type */
+  def createEnumCodec[E <: IntEnumEntry](enum: IntEnum[E], storageCodec: Codec[Int]): Codec[E] = {
+    type Struct = Int :: HNil
+    val struct: Codec[Struct] = storageCodec.hlist
+
+    def to(pkt: E): Struct = {
+      pkt.value :: HNil
+    }
+
+    def from(struct: Struct): Attempt[E] =
+      struct match {
+        case enumVal :: HNil =>
+          enum.withValueOpt(enumVal) match {
+            case Some(v) => Attempt.successful(v)
+            case None =>
+              Attempt.failure(Err(s"Enum value '${enumVal}' not found in values '${enum.values.toString()}'"))
+          }
+      }
+
+    struct.narrow[E](from, to)
   }
 
   /** Common codec for how PlanetSide stores string sizes

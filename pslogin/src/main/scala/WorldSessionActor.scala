@@ -1,5 +1,5 @@
-// Copyright (c) 2017-2020 PSForever
-//language imports
+package net.psforever.pslogin
+
 import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
@@ -12,7 +12,6 @@ import scala.util.{Success, Failure}
 import scodec.bits.ByteVector
 import services.properties.PropertyOverrideManager
 import org.joda.time.{LocalDateTime, Period}
-//project imports
 import csr.{CSRWarp, CSRZone, Traveler}
 import MDCContextAware.Implicits._
 import net.psforever.objects._
@@ -99,7 +98,6 @@ import net.psforever.packet.game.objectcreate.{
 import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo}
 import net.psforever.persistence
 import net.psforever.types._
-import net.psforever.WorldConfig
 import services.{RemoverActor, Service, ServiceManager}
 import services.account.{AccountPersistenceService, PlayerToken, ReceiveAccountData, RetrieveAccountData}
 import services.avatar.{AvatarAction, AvatarResponse, AvatarServiceMessage, AvatarServiceResponse}
@@ -2728,7 +2726,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         CancelAllProximityUnits()
         sendResponse(PlanetsideAttributeMessage(obj_guid, 0, obj.Health))
         sendResponse(PlanetsideAttributeMessage(obj_guid, 68, obj.Shields)) //shield health
-        if(obj.Definition.MaxNtuCapacitor > 0) {
+        if (obj.Definition.MaxNtuCapacitor > 0) {
           sendResponse(PlanetsideAttributeMessage(obj_guid, 45, obj.NtuCapacitorScaled))
         }
         if (obj.Definition.MaxCapacitor > 0) {
@@ -3651,13 +3649,15 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
 
         //positive shield strength
-        if(vehicle.Shields > 0) {
+        if (vehicle.Shields > 0) {
           sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 68, vehicle.Shields))
         }
 
         // ANT capacitor
-        if(vehicle.Definition.MaxNtuCapacitor > 0) {
-          sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, vehicle.NtuCapacitorScaled)) // set ntu on vehicle UI
+        if (vehicle.Definition.MaxNtuCapacitor > 0) {
+          sendResponse(
+            PlanetsideAttributeMessage(vehicle.GUID, 45, vehicle.NtuCapacitorScaled)
+          ) // set ntu on vehicle UI
         }
 
         LoadZoneTransferPassengerMessages(
@@ -4790,7 +4790,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                     case (_, building) => name.equalsIgnoreCase(building.Name) && building.CaptureTerminal.isDefined
                   } match {
                     case Some((_, building)) => Some(Some(Seq(building)), Some(pos))
-                    case None                =>
+                    case None =>
                       try {
                         // check if we have a timer
                         name.toInt
@@ -4829,7 +4829,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
             (factionPos, buildingPos, timerPos, buildingsOption, timerOption) match {
               case // [[<empire>|none [<timer>]]
-                  (Some(0), None, Some(1), None, Some(_)) | (Some(0), None, None, None, None) | (None, None, None, None, None) |
+                  (Some(0), None, Some(1), None, Some(_)) | (Some(0), None, None, None, None) |
+                  (None, None, None, None, None) |
                   // [<building name> [<empire>|none [timer]]]
                   (None | Some(1), Some(0), None, Some(_), None) | (Some(1), Some(0), Some(2), Some(_), Some(_)) |
                   // [all [<empire>|none]]
@@ -11275,7 +11276,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       target: PlanetSideGameObject with FactionAffinity with Vitality
   ): Unit = {
     val hitPositionDiscrepancy = Vector3.DistanceSquared(hitPos, target.Position)
-    if (hitPositionDiscrepancy > WorldConfig.Get[Int]("antihack.HitPositionDiscrepancyThreshold")) {
+    if (hitPositionDiscrepancy > Config.app.antiCheat.hitPositionDiscrepancyThreshold) {
       // If the target position on the server does not match the position where the projectile landed within reason there may be foul play
       log.warn(
         s"Shot guid ${projectile_guid} has hit location discrepancy with target location. Target: ${target.Position} Reported: ${hitPos}, Distance: ${hitPositionDiscrepancy} / ${math.sqrt(hitPositionDiscrepancy).toFloat}; suspect"

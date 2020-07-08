@@ -1,4 +1,5 @@
-// Copyright (c) 2017 PSForever
+package net.psforever.pslogin
+
 import net.psforever.objects.LocalProjectile
 import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.zones.ZoneMap

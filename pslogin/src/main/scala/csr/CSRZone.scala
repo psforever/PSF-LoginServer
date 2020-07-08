@@ -1,4 +1,4 @@
-package csr
+package net.psforever.pslogin.csr
 
 import net.psforever.packet.PacketCoding
 import net.psforever.packet.game.ChatMsg

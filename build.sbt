@@ -13,7 +13,8 @@ lazy val commonSettings = Seq(
     "-encoding",
     "utf8",
     "-language:postfixOps",
-    "-Wunused:imports"
+    "-Wunused:imports",
+    "-Xmacro-settings:materialize-derivations"
   ),
   // Quiet test options
   // https://github.com/etorreborre/specs2/blob/8305db76c5084e4b3ce5827ce23117f6fb6beee4/common/shared/src/main/scala/org/specs2/main/Report.scala#L94
@@ -41,8 +42,11 @@ lazy val commonSettings = Seq(
   classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
   resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
   libraryDependencies ++= Seq(
-    "com.typesafe.akka"          %% "akka-actor"              % "2.6.5",
-    "com.typesafe.akka"          %% "akka-testkit"            % "2.6.5" % "test",
+    "com.typesafe.akka"          %% "akka-actor"              % "2.6.6",
+    "com.typesafe.akka"          %% "akka-slf4j"              % "2.6.6",
+    "com.typesafe.akka"          %% "akka-protobuf-v3"        % "2.6.6",
+    "com.typesafe.akka"          %% "akka-stream"             % "2.6.6",
+    "com.typesafe.akka"          %% "akka-testkit"            % "2.6.6" % "test",
     "com.typesafe.scala-logging" %% "scala-logging"           % "3.9.2",
     "org.specs2"                 %% "specs2-core"             % "4.9.4" % "test",
     "org.scalatest"              %% "scalatest"               % "3.1.2" % "test",
@@ -55,7 +59,6 @@ lazy val commonSettings = Seq(
     "org.scoverage"              %% "scalac-scoverage-plugin" % "1.4.1",
     "com.github.nscala-time"     %% "nscala-time"             % "2.24.0",
     "com.github.t3hnar"          %% "scala-bcrypt"            % "4.1",
-    "org.ini4j"                   % "ini4j"                   % "0.5.4",
     "org.scala-graph"            %% "graph-core"              % "1.13.1",
     "io.kamon"                   %% "kamon-bundle"            % "2.1.0",
     "io.kamon"                   %% "kamon-apm-reporter"      % "2.1.0",
@@ -65,7 +68,10 @@ lazy val commonSettings = Seq(
     "org.flywaydb"                % "flyway-core"             % "6.5.0",
     "org.postgresql"              % "postgresql"              % "42.2.14",
     "com.typesafe"                % "config"                  % "1.4.0",
-    "joda-time"                   % "joda-time"               % "2.10.6"
+    "com.github.pureconfig"      %% "pureconfig"              % "0.13.0",
+    "com.beachape"               %% "enumeratum"              % "1.6.1",
+    "joda-time"                   % "joda-time"               % "2.10.6",
+    "commons-io"                  % "commons-io"              % "2.6"
   )
 )
 
@@ -91,7 +97,6 @@ lazy val root = (project in file("."))
   .settings(psloginPackSettings: _*)
   .enablePlugins(ScalaUnidocPlugin)
   .aggregate(pslogin, common)
-  .dependsOn(pslogin, common)
 
 lazy val pslogin = (project in file("pslogin"))
   .configs(QuietTest)
@@ -125,8 +130,7 @@ lazy val decodePackets = (project in file("tools/decode-packets"))
   .settings(
     libraryDependencies ++= Seq(
       "org.scala-lang.modules" %% "scala-parallel-collections" % "0.2.0",
-      "com.github.scopt"       %% "scopt"                      % "4.0.0-RC2",
-      "commons-io"              % "commons-io"                 % "2.6"
+      "com.github.scopt"       %% "scopt"                      % "4.0.0-RC2"
     )
   )
   .dependsOn(common)

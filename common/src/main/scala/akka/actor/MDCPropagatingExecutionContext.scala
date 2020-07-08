@@ -1,5 +1,6 @@
-// Copyright (c) 2017 PSForever
-// Taken from http://code.hootsuite.com/logging-contextual-info-in-an-asynchronous-scala-application/
+package akka.actor
+
+// Taken from https://medium.com/hootsuite-engineering/logging-contextual-info-in-an-asynchronous-scala-application-8ea33bfec9b3
 
 import org.slf4j.MDC
 

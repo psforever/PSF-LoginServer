@@ -1,4 +1,5 @@
-// Copyright (c) 2017 PSForever
+package net.psforever.pslogin
+
 import java.net.InetSocketAddress
 
 import akka.actor._
@@ -9,7 +10,6 @@ import scala.collection.mutable
 import akka.actor.SupervisorStrategy.Stop
 import net.psforever.packet.PacketCoding
 import net.psforever.packet.control.ConnectionClose
-import net.psforever.WorldConfig
 import services.ServiceManager
 import services.ServiceManager.Lookup
 import services.account.{IPAddress, StoreIPAddress}
@@ -117,8 +117,8 @@ class SessionRouter(role: String, pipeline: List[SessionPipeline]) extends Actor
         log.error(s"Requested to drop non-existent session ID=$id from ${sender()}")
       }
     case SessionReaper() =>
-      val inboundGrace  = WorldConfig.Get[Duration]("network.Session.InboundGraceTime").toMillis
-      val outboundGrace = WorldConfig.Get[Duration]("network.Session.OutboundGraceTime").toMillis
+      val inboundGrace  = Config.app.network.session.inboundGraceTime.toMillis
+      val outboundGrace = Config.app.network.session.outboundGraceTime.toMillis
 
       sessionById.foreach {
         case (id, session) =>

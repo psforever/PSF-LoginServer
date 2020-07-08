@@ -78,7 +78,11 @@ The Login and World servers require PostgreSQL for persistence.
 - Linux - [Debian](https://www.postgresql.org/download/linux/debian/) or [Ubuntu](https://www.postgresql.org/download/linux/ubuntu/)
 - macOS - Application https://www.postgresql.org/download/ (or `brew install postgresql && brew services start postgresql`)
 
-The default database is named `psforever` and the credentials are `psforever:psforever`. To change these, make a copy of [`config/worldserver.ini.dist`](config/worldserver.ini.dist) to `config/worldserver.ini` and change the corresponding fields in the database section. This database user will need ALL access to tables, sequences, and functions.
+The default database is named `psforever` and the credentials are
+`psforever:psforever`. To change these, create a configuration file at
+`config/psforever.conf`. For configuration options and their defaults, see
+[`pslogin/src/main/resources/application.conf`]. This database user will need
+ALL access to tables, sequences, and functions.
 The permissions required can be summarized by the SQL below.
 Loading this in requires access to a graphical tool such as [pgAdmin](https://www.pgadmin.org/download/) (highly recommended) or a PostgreSQL terminal (`psql`) for advanced users.
 
@@ -161,33 +165,6 @@ Using SBT, you can generate documentation for both the common and pslogin projec
 
 Current documentation is available at [https://psforever.github.io/docs/master/index.html](https://psforever.github.io/docs/master/index.html)
 
-## Troubleshooting
-
-#### Unable to initialize pscrypto
-
-If you get an error like below
-
-```
-12:17:28.037 [main] ERROR PsLogin - Unable to initialize pscrypto
-java.lang.UnsatisfiedLinkError: Unable to load library 'pscrypto': Native library (win32-x86-64/pscrypto.dll) not found in resource path
-```
-
-Then you are missing the native library required to provide cryptographic functions to the login server. To fix this, you need a binary build of [PSCrypto](#downloading-pscrypto).
-
-If you are still having trouble on Linux, try putting the library in `root directory/pscrypto-lib/libpscrypto.so`.
-
-## Contributing
-
-Please fork the project and provide a pull request to contribute code. Coding guidelines and contribution checklists coming soon.
-
-## Get in touch
-
-- Website: http://psforever.net
-- Discord (chat with us): https://discord.gg/0nRe5TNbTYoUruA4
-  - Join the #code channel and ask any questions you have there
-
-Chord is the lead developer and you can contact him on Discord as Chord or by email [chord@tuta.io](mailto:chord@tuta.io). Discord is preferred.
-
 ## Tools
 
 ### decodePackets
@@ -216,6 +193,33 @@ psf-decode-packets -o ./output-directory foo.gcap bar.gcap
 
 By default, decodePackets takes in `.gcap` files, but it can also take gcapy ascii files with the
 `-p` option. Run `psf-decode-packets --help` to get usage info.
+
+## Troubleshooting
+
+#### Unable to initialize pscrypto
+
+If you get an error like below
+
+```
+12:17:28.037 [main] ERROR PsLogin - Unable to initialize pscrypto
+java.lang.UnsatisfiedLinkError: Unable to load library 'pscrypto': Native library (win32-x86-64/pscrypto.dll) not found in resource path
+```
+
+Then you are missing the native library required to provide cryptographic functions to the login server. To fix this, you need a binary build of [PSCrypto](#downloading-pscrypto).
+
+If you are still having trouble on Linux, try putting the library in `root directory/pscrypto-lib/libpscrypto.so`.
+
+## Contributing
+
+Please fork the project and provide a pull request to contribute code. Coding guidelines and contribution checklists coming soon.
+
+## Get in touch
+
+- Website: http://psforever.net
+- Discord (chat with us): https://discord.gg/0nRe5TNbTYoUruA4
+  - Join the #code channel and ask any questions you have there
+
+Chord is the lead developer and you can contact him on Discord as Chord or by email [chord@tuta.io](mailto:chord@tuta.io). Discord is preferred.
 
 ## License
 

@@ -30,7 +30,7 @@ class NumberPoolHub(private val source: NumberSource) {
   ) //these numbers can never be pooled; the source can no longer restrict numbers
 
   /**
-    * Given a globally unique identifier, rweturn any object registered to it.<br>
+    * Given a globally unique identifier, return any object registered to it.<br>
     * <br>
     * Use:<br>
     * For `val obj = new NumberPoolHub(...)` use `obj(number)`.
@@ -40,7 +40,7 @@ class NumberPoolHub(private val source: NumberSource) {
   def apply(number: PlanetSideGUID): Option[IdentifiableEntity] = this(number.guid)
 
   /**
-    * Given a globally unique identifier, rweturn any object registered to it.<br>
+    * Given a globally unique identifier, return any object registered to it.<br>
     * <br>
     * Use:<br>
     * For `val obj = new NumberPoolHub(...)` use `obj(number)`.

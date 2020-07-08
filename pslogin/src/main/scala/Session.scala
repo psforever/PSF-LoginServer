@@ -1,4 +1,4 @@
-// Copyright (c) 2017 PSForever
+package net.psforever.pslogin
 
 import java.net.InetSocketAddress
 

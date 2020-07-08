@@ -1,6 +1,5 @@
-package csr
+package net.psforever.pslogin.csr
 
-// Copyright (c) 2017 PSForever
 import akka.actor.ActorRef
 import net.psforever.packet.PlanetSidePacketContainer
 

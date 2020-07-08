@@ -8,12 +8,12 @@ package net.psforever.objects.serverobject.structures
 object StructureType extends Enumeration {
   type Type = Value
 
-  val Bridge, //technically, a "bridge section"
-  Building,   //generic
-  Bunker,     //low accessible ground cover
-  Facility,   //large base
-  Platform,   //outdoor amenities disconnected froma proper base like the vehicle spawn pads in sanctuary
-  Tower,      //also called field towers: watchtower, air tower, gun tower
-  WarpGate    //transport point between zones
+  val Bridge, // technically, a "bridge section"
+  Building,   // generic
+  Bunker,     // low accessible ground cover
+  Facility,   // large base
+  Platform,   // outdoor amenities disconnected from a proper base like the vehicle spawn pads in sanctuary
+  Tower,      // also called field towers: watchtower, air tower, gun tower
+  WarpGate    // transport point between zones
   = Value
 }

@@ -12,7 +12,7 @@ import scala.util.{Failure, Success, Try}
   * <br>
   * Wrapping around the pool like this forces a FIFO order to requests for numbers from the pool.
   * This synchronization only lasts as long as this `Actor` is the only one for the given pool.
-  * In the distribution of globaly unique identifiers, this is extremely important.
+  * In the distribution of globally unique identifiers, this is extremely important.
   * `NumberPool`s are used as the primary determination of whether a number is available at any given moment.
   * The categorization of the pool is also important, though for a contextually-sensitive reason.
   * @param pool the `NumberPool` being manipulated

@@ -10,18 +10,23 @@ import scodec._
 import scodec.bits._
 import scodec.codecs._
 import shapeless._
+import enumeratum.values.{IntEnum, IntEnumEntry}
 
 object WorldStatus extends Enumeration {
   type Type = Value
   val Up, Down, Locked, Full = Value
 }
 
-// this enumeration starts from one and is subtracted from before processing (0x005FF12A)
-object ServerType extends Enumeration(1) {
-  type Type = Value
-  val Development, Beta, Released, Released_Gemini = Value
+sealed abstract class ServerType(val value: Int, val name: String) extends IntEnumEntry
 
-  implicit val codec = PacketHelpers.createEnumerationCodec(this, uint8L)
+object ServerType extends IntEnum[ServerType] {
+  case object Development    extends ServerType(1, "development")
+  case object Beta           extends ServerType(2, "beta")
+  case object Released       extends ServerType(3, "released")
+  case object ReleasedGemini extends ServerType(4, "released_gemini")
+
+  val values         = findValues
+  implicit val codec = PacketHelpers.createEnumCodec(this, uint8L)
 }
 
 // This MUST be an IP address. The client DOES NOT do name resolution properly
@@ -30,7 +35,7 @@ final case class WorldConnectionInfo(address: InetSocketAddress)
 final case class WorldInformation(
     name: String,
     status: WorldStatus.Value,
-    serverType: ServerType.Value,
+    serverType: ServerType,
     connections: Vector[WorldConnectionInfo],
     empireNeed: PlanetSideEmpire.Value
 )
@@ -43,8 +48,8 @@ final case class VNLWorldStatusMessage(welcomeMessage: String, worlds: Vector[Wo
 }
 
 object VNLWorldStatusMessage extends Marshallable[VNLWorldStatusMessage] {
-  type InStruct  = WorldStatus.Value :: ServerType.Value :: HNil
-  type OutStruct = Int :: ServerType.Value :: Int :: HNil
+  type InStruct  = WorldStatus.Value :: ServerType :: HNil
+  type OutStruct = Int :: ServerType :: Int :: HNil
 
   implicit val statusCodec: Codec[InStruct] = {
     def from(a: InStruct): OutStruct =

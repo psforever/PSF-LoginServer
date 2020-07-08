@@ -1,4 +1,4 @@
-package zonemaps
+package net.psforever.pslogin.zonemaps
 
 import net.psforever.objects.GlobalDefinitions._
 import net.psforever.objects.serverobject.doors.Door

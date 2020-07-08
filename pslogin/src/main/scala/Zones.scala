@@ -1,4 +1,5 @@
-// Copyright (c) 2017 PSForever
+package net.psforever.pslogin
+
 import akka.actor.ActorContext
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo

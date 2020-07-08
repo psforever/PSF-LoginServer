@@ -1,5 +1,4 @@
-// Copyright (c) 2020 PSForever
-package net.psforever.psadmin
+package net.psforever.pslogin.psadmin
 
 import akka.actor.{Actor, ActorRef}
 import scala.collection.mutable.Map

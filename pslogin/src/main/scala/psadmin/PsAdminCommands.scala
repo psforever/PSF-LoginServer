@@ -1,11 +1,10 @@
-// Copyright (c) 2020 PSForever
-package net.psforever.psadmin
+package net.psforever.pslogin.psadmin
 
-import scala.collection.mutable.Map
+import scala.collection.mutable
 
 sealed trait CommandResponse
-case class CommandGoodResponse(message: String, data: Map[String, Any])  extends CommandResponse
-case class CommandErrorResponse(message: String, data: Map[String, Any]) extends CommandResponse
+case class CommandGoodResponse(message: String, data: mutable.Map[String, Any])  extends CommandResponse
+case class CommandErrorResponse(message: String, data: mutable.Map[String, Any]) extends CommandResponse
 
 object PsAdminCommands {
   import CmdInternal._
