@@ -744,7 +744,7 @@ class SessionActor extends Actor with MDCContextAware {
                     unk7 = 0
                   )
                 ) //repeat of our entry
-                val playerGuid = player.GUID
+              val playerGuid = player.GUID
                 //turn lfs off
                 val factionChannel = s"${player.Faction}"
                 if (avatar.lookingForSquad) {
@@ -897,7 +897,7 @@ class SessionActor extends Actor with MDCContextAware {
                     SquadUIElement(element.name, element.index, entry.zone_number, entry.health, entry.armor, entry.pos)
                   entry
                 case (entry, element)
-                    if entry.health != element.health || entry.armor != element.armor || entry.pos != element.position =>
+                  if entry.health != element.health || entry.armor != element.armor || entry.pos != element.position =>
                   //other elements that need to be updated
                   squadUI(entry.char_id) =
                     SquadUIElement(element.name, element.index, entry.zone_number, entry.health, entry.armor, entry.pos)
@@ -1291,6 +1291,49 @@ class SessionActor extends Actor with MDCContextAware {
           taskResolver ! RegisterNewAvatar(player)
       }
 
+    case msg @ Zoning.InstantAction.Located(zone, _, spawn_point) =>
+      //in between subsequent reply messages, it does not matter if the destination changes
+      //so long as there is at least one destination at all (including the fallback)
+      if (ContemplateZoningResponse(Zoning.InstantAction.Request(player.Faction), cluster)) {
+        val (pos, ori) = spawn_point.SpecificPoint(player)
+        SpawnThroughZoningProcess(zone, pos, ori)
+      } else if (zoningStatus != Zoning.Status.None) {
+        instantActionFallbackDestination = Some(msg)
+      }
+
+    case Zoning.InstantAction.NotLocated() =>
+      instantActionFallbackDestination match {
+        case Some(Zoning.InstantAction.Located(zone, _, spawn_point))
+          if spawn_point.Owner.Faction == player.Faction && !spawn_point.Offline =>
+          if (ContemplateZoningResponse(Zoning.InstantAction.Request(player.Faction), cluster)) {
+            val (pos, ori) = spawn_point.SpecificPoint(player)
+            SpawnThroughZoningProcess(zone, pos, ori)
+          } else if (zoningCounter == 0) {
+            CancelZoningProcessWithReason("@InstantActionNoHotspotsAvailable")
+          }
+        case _ =>
+          //no instant action available
+          CancelZoningProcessWithReason("@InstantActionNoHotspotsAvailable")
+      }
+
+    case Zoning.Recall.Located(zone, spawn_point) =>
+      if (ContemplateZoningResponse(Zoning.Recall.Request(player.Faction, zone.Id), cluster)) {
+        val (pos, ori) = spawn_point.SpecificPoint(player)
+        SpawnThroughZoningProcess(zone, pos, ori)
+      }
+
+    case Zoning.Recall.Denied(reason) =>
+      CancelZoningProcessWithReason(s"@norecall_sanctuary_$reason", Some(ChatMessageType.CMT_QUIT))
+
+    case Zoning.Quit() =>
+      if (ContemplateZoningResponse(Zoning.Quit(), self)) {
+        log.info("Good-bye")
+        ImmediateDisconnect()
+      }
+
+    case ZoningReset() =>
+      CancelZoningProcess()
+
     case NewPlayerLoaded(tplayer) =>
       //new zone
       log.info(s"Player ${tplayer.Name} has been loaded")
@@ -1402,7 +1445,7 @@ class SessionActor extends Actor with MDCContextAware {
       } else if (tplayer.isAlive) {
         if (
           zoneLoaded.contains(true) &&
-          tplayer.HasGUID && tplayer.Actor != Default.Actor && (continent.GUID(tplayer.VehicleSeated) match {
+            tplayer.HasGUID && tplayer.Actor != Default.Actor && (continent.GUID(tplayer.VehicleSeated) match {
             case Some(o: Vehicle) => o.HasGUID && o.Actor != Default.Actor && !o.Destroyed
             case _                => true
           })
@@ -1566,11 +1609,11 @@ class SessionActor extends Actor with MDCContextAware {
       }
 
     case msg @ Containable.ItemPutInSlot(
-          _: PlanetSideServerObject with Container,
-          _: Equipment,
-          _: Int,
-          _: Option[Equipment]
-        ) =>
+    _: PlanetSideServerObject with Container,
+    _: Equipment,
+    _: Int,
+    _: Option[Equipment]
+    ) =>
       log.info(s"$msg")
 
     case msg @ Containable.CanNotPutItemInSlot(_: PlanetSideServerObject with Container, _: Equipment, _: Int) =>
@@ -1972,19 +2015,19 @@ class SessionActor extends Actor with MDCContextAware {
         }
 
       case AvatarResponse.PlayerState(
-            pos,
-            vel,
-            yaw,
-            pitch,
-            yaw_upper,
-            seq_time,
-            is_crouching,
-            is_jumping,
-            jump_thrust,
-            is_cloaking,
-            spectating,
-            weaponInHand
-          ) =>
+      pos,
+      vel,
+      yaw,
+      pitch,
+      yaw_upper,
+      seq_time,
+      is_crouching,
+      is_jumping,
+      jump_thrust,
+      is_cloaking,
+      spectating,
+      weaponInHand
+      ) =>
         if (tplayer_guid != guid) {
           val now = System.currentTimeMillis()
           val (location, time, distanceSq): (Vector3, Long, Float) = if (spectating) {
@@ -2815,18 +2858,18 @@ class SessionActor extends Actor with MDCContextAware {
         }
 
       case VehicleResponse.VehicleState(
-            vehicle_guid,
-            unk1,
-            pos,
-            ang,
-            vel,
-            unk2,
-            unk3,
-            unk4,
-            wheel_direction,
-            unk5,
-            unk6
-          ) =>
+      vehicle_guid,
+      unk1,
+      pos,
+      ang,
+      vel,
+      unk2,
+      unk3,
+      unk4,
+      wheel_direction,
+      unk5,
+      unk6
+      ) =>
         if (tplayer_guid != guid) {
           sendResponse(
             VehicleStateMessage(vehicle_guid, unk1, pos, ang, vel, unk2, unk3, unk4, wheel_direction, unk5, unk6)
@@ -2960,10 +3003,10 @@ class SessionActor extends Actor with MDCContextAware {
     * @return a tuple composed of an `ObjectAttachMessage` packet and a `CargoMountPointStatusMessage` packet
     */
   def CargoMountBehaviorForUs(
-      carrier: Vehicle,
-      cargo: Vehicle,
-      mountPoint: Int
-  ): (ObjectAttachMessage, CargoMountPointStatusMessage) = {
+                               carrier: Vehicle,
+                               cargo: Vehicle,
+                               mountPoint: Int
+                             ): (ObjectAttachMessage, CargoMountPointStatusMessage) = {
     val msgs @ (attachMessage, mountPointStatusMessage) = CargoBehavior.CargoMountMessages(carrier, cargo, mountPoint)
     CargoMountMessagesForUs(attachMessage, mountPointStatusMessage)
     msgs
@@ -2977,9 +3020,9 @@ class SessionActor extends Actor with MDCContextAware {
     * @param mountPointStatusMessage a `CargoMountPointStatusMessage` packet suitable for initializing cargo operations
     */
   def CargoMountMessagesForUs(
-      attachMessage: ObjectAttachMessage,
-      mountPointStatusMessage: CargoMountPointStatusMessage
-  ): Unit = {
+                               attachMessage: ObjectAttachMessage,
+                               mountPointStatusMessage: CargoMountPointStatusMessage
+                             ): Unit = {
     sendResponse(attachMessage)
     sendResponse(mountPointStatusMessage)
   }
@@ -3743,21 +3786,21 @@ class SessionActor extends Actor with MDCContextAware {
         zoneLoaded = Some(true)
 
       case msg @ PlayerStateMessageUpstream(
-            avatar_guid,
-            pos,
-            vel,
-            yaw,
-            pitch,
-            yaw_upper,
-            seq_time,
-            unk3,
-            is_crouching,
-            is_jumping,
-            jump_thrust,
-            is_cloaking,
-            unk5,
-            unk6
-          ) =>
+      avatar_guid,
+      pos,
+      vel,
+      yaw,
+      pitch,
+      yaw_upper,
+      seq_time,
+      unk3,
+      is_crouching,
+      is_jumping,
+      jump_thrust,
+      is_cloaking,
+      unk5,
+      unk6
+      ) =>
         //log.info(s"$msg")
         persist()
         turnCounterFunc(avatar_guid)
@@ -3872,18 +3915,18 @@ class SessionActor extends Actor with MDCContextAware {
         }
 
       case msg @ VehicleStateMessage(
-            vehicle_guid,
-            unk1,
-            pos,
-            ang,
-            vel,
-            flying,
-            unk6,
-            unk7,
-            wheels,
-            is_decelerating,
-            is_cloaked
-          ) =>
+      vehicle_guid,
+      unk1,
+      pos,
+      ang,
+      vel,
+      flying,
+      unk6,
+      unk7,
+      wheels,
+      is_decelerating,
+      is_cloaked
+      ) =>
         //log.info(s"$msg")
         GetVehicleAndSeat() match {
           case (Some(obj), Some(0)) =>
@@ -4107,7 +4150,7 @@ class SessionActor extends Actor with MDCContextAware {
               //the decimator does not send a ChangeFireState_Start on the last shot
               if (
                 tool.Definition == GlobalDefinitions.phoenix &&
-                tool.Projectile != GlobalDefinitions.phoenix_missile_guided_projectile
+                  tool.Projectile != GlobalDefinitions.phoenix_missile_guided_projectile
               ) {
                 //suppress the decimator's alternate fire mode, however
                 continent.AvatarEvents ! AvatarServiceMessage(
@@ -4232,12 +4275,12 @@ class SessionActor extends Actor with MDCContextAware {
                   }
                   val sumReloadValue: Int = box.Capacity + tailReloadValue
                   val actualReloadValue = (if (sumReloadValue <= reloadValue) {
-                                             deleteFunc(box)
-                                             sumReloadValue
-                                           } else {
-                                             modifyFunc(box, reloadValue - tailReloadValue)
-                                             reloadValue
-                                           }) + currentMagazine
+                    deleteFunc(box)
+                    sumReloadValue
+                  } else {
+                    modifyFunc(box, reloadValue - tailReloadValue)
+                    reloadValue
+                  }) + currentMagazine
                   log.info(s"ReloadMessage: success, $tool <- $actualReloadValue ${tool.AmmoType}")
                   tool.Magazine = actualReloadValue
                   sendResponse(ReloadMessage(item_guid, actualReloadValue, unk1))
@@ -4450,10 +4493,10 @@ class SessionActor extends Actor with MDCContextAware {
         log.info(s"MoveItem: $msg")
         (continent.GUID(source_guid), continent.GUID(destination_guid), ValidObject(item_guid)) match {
           case (
-                Some(source: PlanetSideServerObject with Container),
-                Some(destination: PlanetSideServerObject with Container),
-                Some(item: Equipment)
-              ) =>
+            Some(source: PlanetSideServerObject with Container),
+            Some(destination: PlanetSideServerObject with Container),
+            Some(item: Equipment)
+            ) =>
             source.Actor ! Containable.MoveItem(destination, item, dest)
           case (None, _, _) =>
             log.error(s"MoveItem: wanted to move $item_guid from $source_guid, but could not find source object")
@@ -4524,18 +4567,18 @@ class SessionActor extends Actor with MDCContextAware {
         }
 
       case msg @ UseItemMessage(
-            avatar_guid,
-            item_used_guid,
-            object_guid,
-            unk2,
-            unk3,
-            unk4,
-            unk5,
-            unk6,
-            unk7,
-            unk8,
-            itemType
-          ) =>
+      avatar_guid,
+      item_used_guid,
+      object_guid,
+      unk2,
+      unk3,
+      unk4,
+      unk5,
+      unk6,
+      unk7,
+      unk8,
+      itemType
+      ) =>
         //log.info("UseItem: " + msg)
         // TODO: Not all fields in the response are identical to source in real packet logs (but seems to be ok)
         // TODO: Not all incoming UseItemMessage's respond with another UseItemMessage (i.e. doors only send out GenericObjectStateMsg)
@@ -4812,8 +4855,8 @@ class SessionActor extends Actor with MDCContextAware {
                 //access to trunk
                 if (
                   obj.AccessingTrunk.isEmpty &&
-                  (!obj.PermissionGroup(AccessPermissionGroup.Trunk.id).contains(VehicleLockState.Locked) || obj.Owner
-                    .contains(player.GUID))
+                    (!obj.PermissionGroup(AccessPermissionGroup.Trunk.id).contains(VehicleLockState.Locked) || obj.Owner
+                      .contains(player.GUID))
                 ) {
                   CancelZoningProcessWithDescriptiveReason("cancel_use")
                   obj.AccessingTrunk = player.GUID
@@ -4846,7 +4889,7 @@ class SessionActor extends Actor with MDCContextAware {
                 terminal.Actor ! CommonMessages.Use(player, Some(item))
 
               case None
-                  if terminal.Owner == Building.NoBuilding || terminal.Faction == player.Faction || terminal.HackedBy.nonEmpty =>
+                if terminal.Owner == Building.NoBuilding || terminal.Faction == player.Faction || terminal.HackedBy.nonEmpty =>
                 val tdef = terminal.Definition
                 if (tdef.isInstanceOf[MatrixTerminalDefinition]) {
                   //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
@@ -4856,7 +4899,7 @@ class SessionActor extends Actor with MDCContextAware {
                   )
                 } else if (
                   tdef == GlobalDefinitions.multivehicle_rearm_terminal || tdef == GlobalDefinitions.bfr_rearm_terminal ||
-                  tdef == GlobalDefinitions.air_rearm_terminal || tdef == GlobalDefinitions.ground_rearm_terminal
+                    tdef == GlobalDefinitions.air_rearm_terminal || tdef == GlobalDefinitions.ground_rearm_terminal
                 ) {
                   FindLocalVehicle match {
                     case Some(vehicle) =>
@@ -5225,7 +5268,6 @@ class SessionActor extends Actor with MDCContextAware {
       case msg @ FavoritesRequest(player_guid, loadoutType, action, line, label) =>
         CancelZoningProcessWithDescriptiveReason("cancel_use")
         log.info(s"FavoritesRequest: $msg")
-
         action match {
           case FavoritesAction.Save    => avatarActor ! AvatarActor.SaveLoadout(player, loadoutType, label, line)
           case FavoritesAction.Delete  => avatarActor ! AvatarActor.DeleteLoadout(player, loadoutType, line)
@@ -5247,18 +5289,18 @@ class SessionActor extends Actor with MDCContextAware {
         }
 
       case msg @ WeaponFireMessage(
-            seq_time,
-            weapon_guid,
-            projectile_guid,
-            shot_origin,
-            unk1,
-            unk2,
-            unk3,
-            unk4,
-            unk5,
-            unk6,
-            unk7
-          ) =>
+      seq_time,
+      weapon_guid,
+      projectile_guid,
+      shot_origin,
+      unk1,
+      unk2,
+      unk3,
+      unk4,
+      unk5,
+      unk6,
+      unk7
+      ) =>
         //log.info(s"WeaponFire: $msg")
         HandleWeaponFire(weapon_guid, projectile_guid, shot_origin)
 
@@ -5347,15 +5389,15 @@ class SessionActor extends Actor with MDCContextAware {
         }
 
       case msg @ SplashHitMessage(
-            seq_time,
-            projectile_guid,
-            explosion_pos,
-            direct_victim_uid,
-            unk3,
-            projectile_vel,
-            unk4,
-            targets
-          ) =>
+      seq_time,
+      projectile_guid,
+      explosion_pos,
+      direct_victim_uid,
+      unk3,
+      projectile_vel,
+      unk4,
+      targets
+      ) =>
         log.info(s"Splash: $msg")
         FindProjectileEntry(projectile_guid) match {
           case Some(projectile) =>
@@ -5426,11 +5468,11 @@ class SessionActor extends Actor with MDCContextAware {
         if (deadState != DeadState.RespawnTime) {
           continent.Buildings.values.find(building => building.GUID == building_guid) match {
             case Some(wg: WarpGate) if (wg.Active && (GetKnownVehicleAndSeat() match {
-                  case (Some(vehicle), _) =>
-                    wg.Definition.VehicleAllowance && !wg.Definition.NoWarp.contains(vehicle.Definition)
-                  case _ =>
-                    true
-                })) =>
+              case (Some(vehicle), _) =>
+                wg.Definition.VehicleAllowance && !wg.Definition.NoWarp.contains(vehicle.Definition)
+              case _ =>
+                true
+            })) =>
               deadState = DeadState.RespawnTime
               cluster ! InterstellarClusterService.GetSpawnPoint(
                 destinationZoneGuid.guid,
@@ -5588,17 +5630,17 @@ class SessionActor extends Actor with MDCContextAware {
         log.debug("Ouch! " + msg)
 
       case msg @ BugReportMessage(
-            version_major,
-            version_minor,
-            version_date,
-            bug_type,
-            repeatable,
-            location,
-            zone,
-            pos,
-            summary,
-            desc
-          ) =>
+      version_major,
+      version_minor,
+      version_date,
+      bug_type,
+      repeatable,
+      location,
+      zone,
+      pos,
+      summary,
+      desc
+      ) =>
         log.info("BugReportMessage: " + msg)
 
       case msg @ BindPlayerMessage(action, bindDesc, unk1, logging, unk2, unk3, unk4, pos) =>
@@ -6305,7 +6347,7 @@ class SessionActor extends Actor with MDCContextAware {
             sendResponse(ObjectDetachMessage(tool.GUID, previousBox.GUID, Vector3.Zero, 0f))
             sendResponse(ObjectDetachMessage(player.GUID, box.GUID, Vector3.Zero, 0f))
             obj.Inventory -= x.start //remove replacement ammo from inventory
-            val ammoSlotIndex = tool.FireMode.AmmoSlotIndex
+          val ammoSlotIndex = tool.FireMode.AmmoSlotIndex
             tool.AmmoSlots(ammoSlotIndex).Box = box //put replacement ammo in tool
             sendResponse(ObjectAttachMessage(tool.GUID, box.GUID, ammoSlotIndex))
 
@@ -6330,16 +6372,16 @@ class SessionActor extends Actor with MDCContextAware {
 
             //handle inventory contents
             box.Capacity = (if (sumReloadValue <= fullMagazine) {
-                              sumReloadValue
-                            } else {
-                              val splitReloadAmmo: Int = sumReloadValue - fullMagazine
-                              log.info(
-                                s"ChangeAmmo: taking ${originalBoxCapacity - splitReloadAmmo} from a box of ${originalBoxCapacity} $requestedAmmoType"
-                              )
-                              val boxForInventory = AmmoBox(box.Definition, splitReloadAmmo)
-                              taskResolver ! stowNewFunc(boxForInventory)
-                              fullMagazine
-                            })
+              sumReloadValue
+            } else {
+              val splitReloadAmmo: Int = sumReloadValue - fullMagazine
+              log.info(
+                s"ChangeAmmo: taking ${originalBoxCapacity - splitReloadAmmo} from a box of ${originalBoxCapacity} $requestedAmmoType"
+              )
+              val boxForInventory = AmmoBox(box.Definition, splitReloadAmmo)
+              taskResolver ! stowNewFunc(boxForInventory)
+              fullMagazine
+            })
             sendResponse(
               InventoryStateMessage(box.GUID, tool.GUID, box.Capacity)
             ) //should work for both players and vehicles
@@ -6453,12 +6495,12 @@ class SessionActor extends Actor with MDCContextAware {
           else { xs.map(_.obj.asInstanceOf[Tool].Magazine).reduce(_ + _) }
           val sumReloadValue: Int = box.Magazine + tailReloadValue
           val actualReloadValue = (if (sumReloadValue <= 3) {
-                                     RemoveOldEquipmentFromInventory(player, taskResolver)(x.obj)
-                                     sumReloadValue
-                                   } else {
-                                     ModifyAmmunition(player)(box.AmmoSlot.Box, 3 - tailReloadValue)
-                                     3
-                                   })
+            RemoveOldEquipmentFromInventory(player, taskResolver)(x.obj)
+            sumReloadValue
+          } else {
+            ModifyAmmunition(player)(box.AmmoSlot.Box, 3 - tailReloadValue)
+            3
+          })
           log.info(s"found $actualReloadValue more $ammoType grenades to throw")
           ModifyAmmunition(player)(
             tool.AmmoSlot.Box,
@@ -6480,8 +6522,8 @@ class SessionActor extends Actor with MDCContextAware {
     *         the second value is the slot position of the object
     */
   def FindInLocalContainer(
-      object_guid: PlanetSideGUID
-  )(parent: PlanetSideServerObject with Container): Option[(PlanetSideServerObject with Container, Option[Int])] = {
+                            object_guid: PlanetSideGUID
+                          )(parent: PlanetSideServerObject with Container): Option[(PlanetSideServerObject with Container, Option[Int])] = {
     val slot: Option[Int] = parent.Find(object_guid)
     slot match {
       case place @ Some(_) =>
@@ -6498,10 +6540,10 @@ class SessionActor extends Actor with MDCContextAware {
     * @param reason a string explaining why the state can not or will not change
     */
   def CanNotChangeDeployment(
-      obj: PlanetSideServerObject with Deployment,
-      state: DriveState.Value,
-      reason: String
-  ): Unit = {
+                              obj: PlanetSideServerObject with Deployment,
+                              state: DriveState.Value,
+                              reason: String
+                            ): Unit = {
     val mobileShift: String = if (obj.DeploymentState != DriveState.Mobile) {
       obj.DeploymentState = DriveState.Mobile
       sendResponse(DeployRequestMessage(player.GUID, obj.GUID, DriveState.Mobile, 0, false, Vector3.Zero))
@@ -6943,10 +6985,10 @@ class SessionActor extends Actor with MDCContextAware {
     *         `(None, None)`, otherwise (even if the vehicle can be determined)
     */
   def GetMountableAndSeat(
-      direct: Option[PlanetSideGameObject with Mountable],
-      occupant: Player,
-      zone: Zone
-  ): (Option[PlanetSideGameObject with Mountable], Option[Int]) =
+                           direct: Option[PlanetSideGameObject with Mountable],
+                           occupant: Player,
+                           zone: Zone
+                         ): (Option[PlanetSideGameObject with Mountable], Option[Int]) =
     direct.orElse(zone.GUID(occupant.VehicleSeated)) match {
       case Some(obj: PlanetSideGameObject with Mountable) =>
         obj.PassengerInSeat(occupant) match {
@@ -7623,11 +7665,11 @@ class SessionActor extends Actor with MDCContextAware {
     * @return the projectile
     */
   def ResolveProjectileEntry(
-      projectile_guid: PlanetSideGUID,
-      resolution: ProjectileResolution.Value,
-      target: PlanetSideGameObject with FactionAffinity with Vitality,
-      pos: Vector3
-  ): Option[ResolvedProjectile] = {
+                              projectile_guid: PlanetSideGUID,
+                              resolution: ProjectileResolution.Value,
+                              target: PlanetSideGameObject with FactionAffinity with Vitality,
+                              pos: Vector3
+                            ): Option[ResolvedProjectile] = {
     FindProjectileEntry(projectile_guid) match {
       case Some(projectile) =>
         ResolveProjectileEntry(projectile, resolution, target, pos)
@@ -7645,12 +7687,12 @@ class SessionActor extends Actor with MDCContextAware {
     * @return a copy of the projectile
     */
   def ResolveProjectileEntry(
-      projectile: Projectile,
-      index: Int,
-      resolution: ProjectileResolution.Value,
-      target: PlanetSideGameObject with FactionAffinity with Vitality,
-      pos: Vector3
-  ): Option[ResolvedProjectile] = {
+                              projectile: Projectile,
+                              index: Int,
+                              resolution: ProjectileResolution.Value,
+                              target: PlanetSideGameObject with FactionAffinity with Vitality,
+                              pos: Vector3
+                            ): Option[ResolvedProjectile] = {
     if (!projectiles(index).contains(projectile)) {
       log.error(s"expected projectile could not be found at $index; can not resolve")
       None
@@ -7666,11 +7708,11 @@ class SessionActor extends Actor with MDCContextAware {
     * @return a copy of the projectile
     */
   def ResolveProjectileEntry(
-      projectile: Projectile,
-      resolution: ProjectileResolution.Value,
-      target: PlanetSideGameObject with FactionAffinity with Vitality,
-      pos: Vector3
-  ): Option[ResolvedProjectile] = {
+                              projectile: Projectile,
+                              resolution: ProjectileResolution.Value,
+                              target: PlanetSideGameObject with FactionAffinity with Vitality,
+                              pos: Vector3
+                            ): Option[ResolvedProjectile] = {
     if (projectile.isMiss) {
       log.error("expected projectile was already counted as a missed shot; can not resolve any further")
       None
@@ -7762,11 +7804,11 @@ class SessionActor extends Actor with MDCContextAware {
     * @return a `DestroyDisplayMessage` packet that is properly formatted
     */
   def DestroyDisplayMessage(
-      killer: SourceEntry,
-      victim: SourceEntry,
-      method: Int,
-      unk: Int = 121
-  ): DestroyDisplayMessage = {
+                             killer: SourceEntry,
+                             victim: SourceEntry,
+                             method: Int,
+                             unk: Int = 121
+                           ): DestroyDisplayMessage = {
     val killer_seated = killer match {
       case obj: PlayerSource => obj.Seated
       case _                 => false
@@ -7926,12 +7968,12 @@ class SessionActor extends Actor with MDCContextAware {
     * @return `true`, if the desired certification requirements are met; `false`, otherwise
     */
   def ConstructionItemPermissionComparison(
-      sample: Set[Certification],
-      test: Set[Certification]
-  ): Boolean = {
-    import Certification._
-    val engineeringCerts: Set[Certification] = Set(AssaultEngineering, FortificationEngineering)
-    val testDiff: Set[Certification]         = test diff (engineeringCerts ++ Set(AdvancedEngineering))
+                                            sample: Set[CertificationType.Value],
+                                            test: Set[CertificationType.Value]
+                                          ): Boolean = {
+    import CertificationType._
+    val engineeringCerts: Set[CertificationType.Value] = Set(AssaultEngineering, FortificationEngineering)
+    val testDiff: Set[CertificationType.Value]         = test diff (engineeringCerts ++ Set(AdvancedEngineering))
     //substitute `AssaultEngineering` and `FortificationEngineering` for `AdvancedEngineering`
     val sampleIntersect = if (sample contains AdvancedEngineering) {
       engineeringCerts
@@ -8073,10 +8115,10 @@ class SessionActor extends Actor with MDCContextAware {
     *        `false`, otherwise
     */
   def SafelyRemoveConstructionItemFromSlot(
-      tool: ConstructionItem,
-      index: Int,
-      logDecorator: String = "SafelyRemoveConstructionItemFromSlot"
-  ): Boolean = {
+                                            tool: ConstructionItem,
+                                            index: Int,
+                                            logDecorator: String = "SafelyRemoveConstructionItemFromSlot"
+                                          ): Boolean = {
     if ({
       val holster = player.Slot(index)
       if (holster.Equipment.contains(tool)) {
@@ -8175,7 +8217,7 @@ class SessionActor extends Actor with MDCContextAware {
     */
   def FindEquipmentToDelete(object_guid: PlanetSideGUID, obj: Equipment): Boolean = {
     val findFunc
-        : PlanetSideServerObject with Container => Option[(PlanetSideServerObject with Container, Option[Int])] =
+    : PlanetSideServerObject with Container => Option[(PlanetSideServerObject with Container, Option[Int])] =
       FindInLocalContainer(object_guid)
 
     findFunc(player.avatar.locker)
@@ -8242,12 +8284,12 @@ class SessionActor extends Actor with MDCContextAware {
     * @param deletionType the value passed to `ObjectDeleteMessage` concerning the deconstruction animation
     */
   def DeconstructDeployable(
-      obj: PlanetSideGameObject with Deployable,
-      guid: PlanetSideGUID,
-      pos: Vector3,
-      orient: Vector3,
-      deletionType: Int
-  ): Unit = {
+                             obj: PlanetSideGameObject with Deployable,
+                             guid: PlanetSideGUID,
+                             pos: Vector3,
+                             orient: Vector3,
+                             deletionType: Int
+                           ): Unit = {
     StartBundlingPackets()
     sendResponse(SetEmpireMessage(guid, PlanetSideEmpire.NEUTRAL)) //for some, removes the green marker circle
     sendResponse(TriggerEffectMessage("spawn_object_failed_effect", pos, orient))
@@ -8511,17 +8553,17 @@ class SessionActor extends Actor with MDCContextAware {
       player.Continent = zoneId //forward-set the continent id to perform a test
       interstellarFerryTopLevelGUID =
         (if (
-           manifest.passengers.isEmpty && manifest.cargo.count { case (name, _) => !name.equals("MISSING_DRIVER") } == 0
-         ) {
-           //do not delete if vehicle has passengers or cargo
-           continent.VehicleEvents ! VehicleServiceMessage(
-             continent.id,
-             VehicleAction.UnloadVehicle(pguid, continent, vehicle, topLevel)
-           )
-           None
-         } else {
-           Some(topLevel)
-         })
+          manifest.passengers.isEmpty && manifest.cargo.count { case (name, _) => !name.equals("MISSING_DRIVER") } == 0
+        ) {
+          //do not delete if vehicle has passengers or cargo
+          continent.VehicleEvents ! VehicleServiceMessage(
+            continent.Id,
+            VehicleAction.UnloadVehicle(pguid, continent, vehicle, topLevel)
+          )
+          None
+        } else {
+          Some(topLevel)
+        })
       //unregister vehicle and driver whole + GiveWorld
       continent.Transport ! Zone.Vehicle.Despawn(vehicle)
       taskThenZoneChange(
@@ -8685,10 +8727,10 @@ class SessionActor extends Actor with MDCContextAware {
     * @param remoteTelepad the endpoint of the teleportation system that exists in the environment
     */
   def LinkRouterToRemoteTelepad(
-      router: Vehicle,
-      internalTelepad: Utility.InternalTelepad,
-      remoteTelepad: TelepadDeployable
-  ): Unit = {
+                                 router: Vehicle,
+                                 internalTelepad: Utility.InternalTelepad,
+                                 remoteTelepad: TelepadDeployable
+                               ): Unit = {
     internalTelepad.Telepad = remoteTelepad.GUID //necessary; backwards link to the (new) telepad
     CreateRouterInternalTelepad(router, internalTelepad)
     LinkRemoteTelepad(remoteTelepad.GUID)
@@ -8749,12 +8791,12 @@ class SessionActor extends Actor with MDCContextAware {
     * @param dest the destination of the teleportation (where the player is going)
     */
   def UseRouterTelepadSystem(
-      router: Vehicle,
-      internalTelepad: InternalTelepad,
-      remoteTelepad: TelepadDeployable,
-      src: PlanetSideGameObject with TelepadLike,
-      dest: PlanetSideGameObject with TelepadLike
-  ) = {
+                              router: Vehicle,
+                              internalTelepad: InternalTelepad,
+                              remoteTelepad: TelepadDeployable,
+                              src: PlanetSideGameObject with TelepadLike,
+                              dest: PlanetSideGameObject with TelepadLike
+                            ) = {
     val time = System.nanoTime
     if (
       time - recentTeleportAttempt > (2 seconds).toNanos && router.DeploymentState == DriveState.Deployed && internalTelepad.Active && remoteTelepad.Active
@@ -9003,7 +9045,7 @@ class SessionActor extends Actor with MDCContextAware {
       // Charge
       else if (
         player.Capacitor < player.ExoSuitDef.MaxCapacitor
-        && (player.CapacitorState == CapacitorStateType.Idle || player.CapacitorState == CapacitorStateType.Charging || (player.CapacitorState == CapacitorStateType.ChargeDelay && System
+          && (player.CapacitorState == CapacitorStateType.Idle || player.CapacitorState == CapacitorStateType.Charging || (player.CapacitorState == CapacitorStateType.ChargeDelay && System
           .currentTimeMillis() - player.CapacitorLastUsedMillis > player.ExoSuitDef.CapacitorRechargeDelayMillis))
       ) {
         if (player.CapacitorState == CapacitorStateType.Charging) {
@@ -9137,10 +9179,10 @@ class SessionActor extends Actor with MDCContextAware {
   }
 
   def CheckForHitPositionDiscrepancy(
-      projectile_guid: PlanetSideGUID,
-      hitPos: Vector3,
-      target: PlanetSideGameObject with FactionAffinity with Vitality
-  ): Unit = {
+                                      projectile_guid: PlanetSideGUID,
+                                      hitPos: Vector3,
+                                      target: PlanetSideGameObject with FactionAffinity with Vitality
+                                    ): Unit = {
     val hitPositionDiscrepancy = Vector3.DistanceSquared(hitPos, target.Position)
     if (hitPositionDiscrepancy > Config.app.antiCheat.hitPositionDiscrepancyThreshold) {
       // If the target position on the server does not match the position where the projectile landed within reason there may be foul play
@@ -9350,18 +9392,18 @@ class SessionActor extends Actor with MDCContextAware {
               s"WeaponFireMessage: ${projectile_info.Name} is a remote projectile"
             )
             taskResolver ! (if (projectile.HasGUID) {
-                              continent.AvatarEvents ! AvatarServiceMessage(
-                                continent.id,
-                                AvatarAction.ProjectileExplodes(
-                                  player.GUID,
-                                  projectile.GUID,
-                                  projectile
-                                )
-                              )
-                              ReregisterProjectile(projectile)
-                            } else {
-                              RegisterProjectile(projectile)
-                            })
+              continent.AvatarEvents ! AvatarServiceMessage(
+                continent.Id,
+                AvatarAction.ProjectileExplodes(
+                  player.GUID,
+                  projectile.GUID,
+                  projectile
+                )
+              )
+              ReregisterProjectile(projectile)
+            } else {
+              RegisterProjectile(projectile)
+            })
           }
           projectilesToCleanUp(projectileIndex) = false
 

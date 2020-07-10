@@ -378,7 +378,6 @@ class PlayerControlDamageTest extends ActorTest {
   val projectile   = tool.Projectile
   val playerSource = SourceEntry(player2)
   val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
     Projectile(
       projectile,
       tool.Definition,
@@ -478,7 +477,6 @@ class PlayerControlDeathStandingTest extends ActorTest {
   val projectile    = tool.Projectile
   val player1Source = SourceEntry(player1)
   val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
     Projectile(projectile, tool.Definition, tool.FireMode, player1Source, 0, Vector3(2, 0, 0), Vector3(-1, 0, 0)),
     SourceEntry(player2),
     player2.DamageModel,
@@ -607,7 +605,6 @@ class PlayerControlDeathSeatedTest extends ActorTest {
   val projectile    = tool.Projectile
   val player1Source = SourceEntry(player1)
   val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
     Projectile(projectile, tool.Definition, tool.FireMode, player1Source, 0, Vector3(2, 0, 0), Vector3(-1, 0, 0)),
     SourceEntry(player2),
     player2.DamageModel,

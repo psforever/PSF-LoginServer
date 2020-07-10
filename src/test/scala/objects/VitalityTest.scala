@@ -21,7 +21,6 @@ class VitalityTest extends Specification {
       val pSource    = PlayerSource(player)
       val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
       val resprojectile = ResolvedProjectile(
-        ProjectileResolution.Splash,
         projectile,
         SourceEntry(player),
         player.DamageModel,
@@ -69,7 +68,6 @@ class VitalityTest extends Specification {
       val pSource    = PlayerSource(player)
       val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
       val resprojectile = ResolvedProjectile(
-        ProjectileResolution.Splash,
         projectile,
         SourceEntry(player),
         player.DamageModel,

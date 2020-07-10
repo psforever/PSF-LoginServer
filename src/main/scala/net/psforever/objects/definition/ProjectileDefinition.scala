@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition
 
-import net.psforever.objects.ballistics.Projectiles
+import net.psforever.objects.ballistics.{AggravatedDamage, Projectiles}
 import net.psforever.objects.equipment.JammingUnit
 import net.psforever.objects.vital.damage.DamageModifiers
 import net.psforever.objects.vital.{DamageType, StandardDamageProfile}
@@ -36,6 +36,7 @@ class ProjectileDefinition(objectId: Int)
   private var autoLock: Boolean         = false
   private var additionalEffect: Boolean = false
   private var jammerProjectile: Boolean = false
+  private var aggravated_damage : Option[AggravatedDamage] = None
   //derived calculations
   private var distanceMax: Float              = 0f
   private var distanceFromAcceleration: Float = 0f
@@ -174,7 +175,16 @@ class ProjectileDefinition(objectId: Int)
     JammerProjectile
   }
 
-  def DistanceMax: Float = distanceMax //accessor only
+  def Aggravated : Option[AggravatedDamage] = aggravated_damage
+
+  def Aggravated_=(damage : AggravatedDamage) : Option[AggravatedDamage] = Aggravated_=(Some(damage))
+
+  def Aggravated_=(damage : Option[AggravatedDamage]) : Option[AggravatedDamage] = {
+    aggravated_damage = damage
+    Aggravated
+  }
+
+  def DistanceMax : Float = distanceMax //accessor only
 
   def DistanceFromAcceleration: Float = distanceFromAcceleration //accessor only
 
