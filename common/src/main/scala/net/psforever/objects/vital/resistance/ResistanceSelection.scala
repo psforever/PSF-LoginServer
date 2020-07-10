@@ -2,7 +2,7 @@
 package net.psforever.objects.vital.resistance
 
 import net.psforever.objects.ballistics._
-import net.psforever.objects.vital.NoResistance
+import net.psforever.objects.vital.{DamageType, NoResistance}
 import net.psforever.objects.vital.projectile.ProjectileCalculations
 
 /**
@@ -17,19 +17,19 @@ trait ResistanceSelection {
   def Lash: ProjectileCalculations.Form
   def Aggravated: ProjectileCalculations.Form
 
-  def apply(data: ResolvedProjectile): ProjectileCalculations.Form =
-    data.resolution match {
-      case ProjectileResolution.Hit    => Direct
-      case ProjectileResolution.Splash => Splash
-      case ProjectileResolution.Lash   => Lash
-      case _                           => None
-    }
+  def apply(data : ResolvedProjectile) : ProjectileCalculations.Form = data.projectile.profile.ProjectileDamageType match {
+    case DamageType.Direct =>     Direct
+    case DamageType.Splash =>     Splash
+    case DamageType.Lash =>       Lash
+    case DamageType.Aggravated => Aggravated
+    case _ => None
+  }
 
-  def apply(res: ProjectileResolution.Value): ProjectileCalculations.Form =
-    res match {
-      case ProjectileResolution.Hit    => Direct
-      case ProjectileResolution.Splash => Splash
-      case ProjectileResolution.Lash   => Lash
-      case _                           => None
-    }
+  def apply(res : DamageType.Value) : ProjectileCalculations.Form = res match {
+    case DamageType.Direct =>     Direct
+    case DamageType.Splash =>     Splash
+    case DamageType.Lash =>       Lash
+    case DamageType.Aggravated => Aggravated
+    case _ => None
+  }
 }

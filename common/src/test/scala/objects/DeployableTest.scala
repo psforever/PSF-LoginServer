@@ -334,7 +334,6 @@ class ExplosiveDeployableJammerTest extends ActorTest {
   val pSource     = PlayerSource(player1)
   val projectile  = weapon.Projectile
   val resolved = ResolvedProjectile(
-    ProjectileResolution.Splash,
     Projectile(projectile, weapon.Definition, weapon.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
     jMineSource,
     j_mine.DamageModel,
@@ -432,7 +431,6 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
   val pSource     = PlayerSource(player1)
   val projectile  = weapon.Projectile
   val resolved = ResolvedProjectile(
-    ProjectileResolution.Splash,
     Projectile(projectile, weapon.Definition, weapon.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
     hMineSource,
     h_mine.DamageModel,
@@ -542,7 +540,6 @@ class ExplosiveDeployableDestructionTest extends ActorTest {
   val pSource     = PlayerSource(player1)
   val projectile  = weapon.Projectile
   val resolved = ResolvedProjectile(
-    ProjectileResolution.Splash,
     Projectile(projectile, weapon.Definition, weapon.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
     hMineSource,
     h_mine.DamageModel,

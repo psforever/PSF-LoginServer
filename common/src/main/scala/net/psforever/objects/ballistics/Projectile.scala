@@ -10,11 +10,11 @@ import net.psforever.types.Vector3
 
 /**
   * A summation of weapon (`Tool`) discharge.
-  * @see `ProjectileDefinition`<br>
-  *       `ToolDefinition`<br>
-  *       `FireModeDefinition`<br>
-  *       `SourceEntry`<br>
-  *       `PlayerSource`
+  * @see `ProjectileDefinition`
+  * @see `ToolDefinition`
+  * @see `FireModeDefinition`
+  * @see `SourceEntry`
+  * @see `PlayerSource`
   * @param profile an explanation of the damage that can be performed by this discharge
   * @param tool_def the weapon that caused this discharge
   * @param fire_mode the current fire mode of the tool used
