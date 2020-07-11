@@ -151,7 +151,7 @@ object GamePacketOpcode extends Enumeration {
       // OPCODES 0x10-1f
       case 0x10 => game.UseItemMessage.decode
       case 0x11 => game.MoveItemMessage.decode
-      case 0x12 => game.ChatMsg.decode
+      case 0x12 => game.ChatMessage.decode
       case 0x13 => game.CharacterNoRecordMessage.decode
       case 0x14 => game.CharacterInfoMessage.decode
       case 0x15 => noDecoder(UnknownMessage21)

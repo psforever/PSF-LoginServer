@@ -4,6 +4,7 @@ lazy val commonSettings = Seq(
   organization := "net.psforever",
   version := "1.0.2-SNAPSHOT",
   scalaVersion := "2.13.2",
+  Global / cancelable := false,
   semanticdbEnabled := true,
   semanticdbVersion := scalafixSemanticdb.revision,
   scalacOptions := Seq(
@@ -108,7 +109,7 @@ lazy val pslogin = (project in file("pslogin"))
     // ActorTests have specific timing requirements and will be flaky if run in parallel
     parallelExecution in Test := false,
     // TODO(chord): remove exclusion when WorldSessionActor is refactored: https://github.com/psforever/PSF-LoginServer/issues/279
-    coverageExcludedPackages := "net.psforever.pslogin.WorldSessionActor.*;net.psforever.pslogin.zonemaps.*",
+    coverageExcludedPackages := "net.psforever.actors.session.SessionActor.*;net.psforever.zones.zonemaps.*",
     // Copy all tests from Test -> QuietTest (we're only changing the run options)
     inConfig(QuietTest)(Defaults.testTasks)
   )

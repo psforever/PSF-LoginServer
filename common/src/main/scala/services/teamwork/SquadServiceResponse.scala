@@ -2,12 +2,11 @@
 package services.teamwork
 
 import net.psforever.objects.teamwork.Squad
-import net.psforever.packet.game._
+import net.psforever.packet.game.{SquadDetail, SquadInfo, WaypointEventAction, WaypointInfo}
 import net.psforever.types.{PlanetSideGUID, SquadResponseType, SquadWaypoints}
 import services.GenericEventBusMsg
-import services.teamwork.SquadAction
 
-final case class SquadServiceResponse(toChannel: String, exclude: Iterable[Long], response: SquadResponse.Response)
+final case class SquadServiceResponse(channel: String, exclude: Iterable[Long], response: SquadResponse.Response)
     extends GenericEventBusMsg
 
 object SquadServiceResponse {

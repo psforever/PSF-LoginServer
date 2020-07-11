@@ -2,6 +2,7 @@ package net.psforever.pslogin
 
 import akka.actor.{ActorRef, MDCContextAware}
 import akka.testkit.TestProbe
+import net.psforever.login.HelloFriend
 import net.psforever.packet.{ControlPacket, GamePacket}
 
 final case class MDCGamePacket(packet: GamePacket)

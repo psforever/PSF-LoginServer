@@ -3,7 +3,8 @@ package net.psforever.pslogin
 import java.net.InetAddress
 import java.util.Locale
 
-import akka.actor.{ActorSystem, Props}
+import akka.{actor => classic}
+import akka.actor.typed.ActorSystem
 import akka.routing.RandomPool
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.joran.JoranConfigurator
@@ -11,7 +12,6 @@ import net.psforever.crypto.CryptoInterface
 import net.psforever.objects.Default
 import net.psforever.objects.zones._
 import net.psforever.objects.guid.TaskResolver
-import net.psforever.pslogin.psadmin.PsAdminActor
 import org.slf4j
 import org.fusesource.jansi.Ansi._
 import org.fusesource.jansi.Ansi.Color._
@@ -25,6 +25,22 @@ import org.apache.commons.io.FileUtils
 import services.properties.PropertyOverrideManager
 import org.flywaydb.core.Flyway
 import java.nio.file.Paths
+
+import akka.actor.typed.scaladsl.adapter._
+import net.psforever.actors.session.SessionActor
+import net.psforever.login.psadmin.PsAdminActor
+import net.psforever.login.{
+  CryptoSessionActor,
+  LoginSessionActor,
+  NetworkSimulatorParameters,
+  PacketCodingActor,
+  SessionPipeline,
+  SessionRouter,
+  TcpListener,
+  UdpListener
+}
+import net.psforever.util.Config
+import net.psforever.zones.Zones
 
 object PsLogin {
   private val logger = org.log4s.getLogger
@@ -121,8 +137,10 @@ object PsLogin {
     }
 
     /** Start up the main actor system. This "system" is the home for all actors running on this server */
-    implicit val system = ActorSystem("PsLogin")
+    implicit val system = classic.ActorSystem("PsLogin")
     Default(system)
+
+    val typedSystem: ActorSystem[Nothing] = system.toTyped
 
     /** Create pipelines for the login and world servers
       *
@@ -134,14 +152,14 @@ object PsLogin {
       * See SessionRouter.scala for a diagram
       */
     val loginTemplate = List(
-      SessionPipeline("crypto-session-", Props[CryptoSessionActor]),
-      SessionPipeline("packet-session-", Props[PacketCodingActor]),
-      SessionPipeline("login-session-", Props[LoginSessionActor])
+      SessionPipeline("crypto-session-", classic.Props[CryptoSessionActor]),
+      SessionPipeline("packet-session-", classic.Props[PacketCodingActor]),
+      SessionPipeline("login-session-", classic.Props[LoginSessionActor])
     )
     val worldTemplate = List(
-      SessionPipeline("crypto-session-", Props[CryptoSessionActor]),
-      SessionPipeline("packet-session-", Props[PacketCodingActor]),
-      SessionPipeline("world-session-", Props[WorldSessionActor])
+      SessionPipeline("crypto-session-", classic.Props[CryptoSessionActor]),
+      SessionPipeline("packet-session-", classic.Props[PacketCodingActor]),
+      SessionPipeline("world-session-", classic.Props[SessionActor])
     )
 
     val netSim: Option[NetworkSimulatorParameters] = Config.app.developer.netSim.enable match {
@@ -160,37 +178,38 @@ object PsLogin {
 
     val continents = Zones.zones.values ++ Seq(Zone.Nowhere)
 
-    val serviceManager = ServiceManager.boot
-    serviceManager ! ServiceManager.Register(Props[AccountIntermediaryService], "accountIntermediary")
-    serviceManager ! ServiceManager.Register(RandomPool(150).props(Props[TaskResolver]), "taskResolver")
-    serviceManager ! ServiceManager.Register(Props[ChatService], "chat")
-    serviceManager ! ServiceManager.Register(Props[GalaxyService], "galaxy")
-    serviceManager ! ServiceManager.Register(Props[SquadService], "squad")
-    serviceManager ! ServiceManager.Register(Props(classOf[InterstellarCluster], continents), "cluster")
-    serviceManager ! ServiceManager.Register(Props[AccountPersistenceService], "accountPersistence")
-    serviceManager ! ServiceManager.Register(Props[PropertyOverrideManager], "propertyOverrideManager")
+    system.spawnAnonymous(ChatService())
 
-    val loginRouter = Props(new SessionRouter("Login", loginTemplate))
-    val worldRouter = Props(new SessionRouter("World", worldTemplate))
+    val serviceManager = ServiceManager.boot
+    serviceManager ! ServiceManager.Register(classic.Props[AccountIntermediaryService], "accountIntermediary")
+    serviceManager ! ServiceManager.Register(RandomPool(150).props(classic.Props[TaskResolver]), "taskResolver")
+    serviceManager ! ServiceManager.Register(classic.Props[GalaxyService], "galaxy")
+    serviceManager ! ServiceManager.Register(classic.Props[SquadService], "squad")
+    serviceManager ! ServiceManager.Register(classic.Props(classOf[InterstellarCluster], continents), "cluster")
+    serviceManager ! ServiceManager.Register(classic.Props[AccountPersistenceService], "accountPersistence")
+    serviceManager ! ServiceManager.Register(classic.Props[PropertyOverrideManager], "propertyOverrideManager")
+
+    val loginRouter = classic.Props(new SessionRouter("Login", loginTemplate))
+    val worldRouter = classic.Props(new SessionRouter("World", worldTemplate))
     val loginListener = system.actorOf(
-      Props(new UdpListener(loginRouter, "login-session-router", bindAddress, Config.app.login.port, netSim)),
+      classic.Props(new UdpListener(loginRouter, "login-session-router", bindAddress, Config.app.login.port, netSim)),
       "login-udp-endpoint"
     )
     val worldListener = system.actorOf(
-      Props(new UdpListener(worldRouter, "world-session-router", bindAddress, Config.app.world.port, netSim)),
+      classic.Props(new UdpListener(worldRouter, "world-session-router", bindAddress, Config.app.world.port, netSim)),
       "world-udp-endpoint"
     )
 
     val adminListener = system.actorOf(
-      Props(
+      classic.Props(
         new TcpListener(
           classOf[PsAdminActor],
-          "psadmin-client-",
+          "net.psforever.login.psadmin-client-",
           InetAddress.getByName(Config.app.admin.bind),
           Config.app.admin.port
         )
       ),
-      "psadmin-tcp-endpoint"
+      "net.psforever.login.psadmin-tcp-endpoint"
     )
 
     logger.info(
