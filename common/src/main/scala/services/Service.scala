@@ -15,14 +15,14 @@ object Service {
 }
 
 trait GenericEventBusMsg {
-  def toChannel: String
+  def channel: String
 }
 
 class GenericEventBus[A <: GenericEventBusMsg] extends ActorEventBus with SubchannelClassification {
   type Event      = A
   type Classifier = String
 
-  protected def classify(event: Event): Classifier = event.toChannel
+  protected def classify(event: Event): Classifier = event.channel
 
   protected def subclassification =
     new Subclassification[Classifier] {

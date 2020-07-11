@@ -3,6 +3,7 @@ package net.psforever.pslogin
 import actor.base.ActorTest
 import akka.actor.{ActorRef, Props}
 import akka.testkit.TestProbe
+import net.psforever.login.{HelloFriend, PacketCodingActor, RawPacket}
 import net.psforever.packet.control.{ControlSync, MultiPacketBundle, SlottedMetaPacket}
 import net.psforever.packet.{ControlPacket, GamePacket, GamePacketOpcode, PacketCoding}
 import net.psforever.packet.game._
