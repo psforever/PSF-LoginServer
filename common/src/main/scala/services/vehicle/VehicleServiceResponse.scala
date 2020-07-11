@@ -14,7 +14,7 @@ import net.psforever.types.{BailType, DriveState, PlanetSideGUID, Vector3}
 import services.GenericEventBusMsg
 
 final case class VehicleServiceResponse(
-    toChannel: String,
+    channel: String,
     avatar_guid: PlanetSideGUID,
     replyMessage: VehicleResponse.Response
 ) extends GenericEventBusMsg

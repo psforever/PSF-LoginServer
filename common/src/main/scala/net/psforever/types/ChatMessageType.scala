@@ -63,8 +63,8 @@ object ChatMessageType extends Enumeration {
   CMT_GMTELL,                 // /gmtell (actually causes normal /tell 0x20 when not a gm???)
   CMT_NOTE,                   // /note
   CMT_GMBROADCASTPOPUP,       // /gmpopup
-  U_CMT_GMTELLFROM,           // ??? Recipient of /gmtell?
-  U_CMT_TELLFROM,             // ??? Recipient of /t?
+  U_CMT_GMTELLFROM,           // Acknowledgement of /gmtell for sender
+  U_CMT_TELLFROM,             // Acknowledgement of /tell for sender
   UNK_45,                     // ??? empty
   CMT_CULLWATERMARK,          // ??? This actually causes the client to ping back to the server with some stringified numbers "80 120" (with the same 46 chatmsg causing infinite loop?) - may be incorrect decoding
   CMT_INSTANTACTION,          // /instantaction OR /ia
