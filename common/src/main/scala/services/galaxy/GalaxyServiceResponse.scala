@@ -8,7 +8,7 @@ import net.psforever.packet.game.BuildingInfoUpdateMessage
 import net.psforever.types.PlanetSideGUID
 import services.GenericEventBusMsg
 
-final case class GalaxyServiceResponse(toChannel: String, replyMessage: GalaxyResponse.Response)
+final case class GalaxyServiceResponse(channel: String, replyMessage: GalaxyResponse.Response)
     extends GenericEventBusMsg
 
 object GalaxyResponse {

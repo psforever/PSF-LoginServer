@@ -12,7 +12,7 @@ import net.psforever.types.{ExoSuitType, PlanetSideEmpire, PlanetSideGUID, Trans
 import services.GenericEventBusMsg
 
 final case class AvatarServiceResponse(
-    toChannel: String,
+    channel: String,
     avatar_guid: PlanetSideGUID,
     replyMessage: AvatarResponse.Response
 ) extends GenericEventBusMsg

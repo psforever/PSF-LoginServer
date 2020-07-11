@@ -534,7 +534,7 @@ class AvatarReleaseTest extends ActorTest {
       val reply1 = receiveOne(200 milliseconds)
       assert(reply1.isInstanceOf[AvatarServiceResponse])
       val reply1msg = reply1.asInstanceOf[AvatarServiceResponse]
-      assert(reply1msg.toChannel == "/test/Avatar")
+      assert(reply1msg.channel == "/test/Avatar")
       assert(reply1msg.avatar_guid == guid)
       assert(reply1msg.replyMessage.isInstanceOf[AvatarResponse.Release])
       assert(reply1msg.replyMessage.asInstanceOf[AvatarResponse.Release].player == obj)
@@ -542,7 +542,7 @@ class AvatarReleaseTest extends ActorTest {
       val reply2 = receiveOne(2 seconds)
       assert(reply2.isInstanceOf[AvatarServiceResponse])
       val reply2msg = reply2.asInstanceOf[AvatarServiceResponse]
-      assert(reply2msg.toChannel.equals("/test/Avatar"))
+      assert(reply2msg.channel.equals("/test/Avatar"))
       assert(reply2msg.avatar_guid == Service.defaultPlayerGUID)
       assert(reply2msg.replyMessage.isInstanceOf[AvatarResponse.ObjectDelete])
       assert(reply2msg.replyMessage.asInstanceOf[AvatarResponse.ObjectDelete].item_guid == guid)
@@ -585,7 +585,7 @@ class AvatarReleaseEarly1Test extends ActorTest {
       val reply1 = receiveOne(200 milliseconds)
       assert(reply1.isInstanceOf[AvatarServiceResponse])
       val reply1msg = reply1.asInstanceOf[AvatarServiceResponse]
-      assert(reply1msg.toChannel == "/test/Avatar")
+      assert(reply1msg.channel == "/test/Avatar")
       assert(reply1msg.avatar_guid == guid)
       assert(reply1msg.replyMessage.isInstanceOf[AvatarResponse.Release])
       assert(reply1msg.replyMessage.asInstanceOf[AvatarResponse.Release].player == obj)
@@ -594,7 +594,7 @@ class AvatarReleaseEarly1Test extends ActorTest {
       val reply2 = receiveOne(200 milliseconds)
       assert(reply2.isInstanceOf[AvatarServiceResponse])
       val reply2msg = reply2.asInstanceOf[AvatarServiceResponse]
-      assert(reply2msg.toChannel.equals("/test/Avatar"))
+      assert(reply2msg.channel.equals("/test/Avatar"))
       assert(reply2msg.avatar_guid == Service.defaultPlayerGUID)
       assert(reply2msg.replyMessage.isInstanceOf[AvatarResponse.ObjectDelete])
       assert(reply2msg.replyMessage.asInstanceOf[AvatarResponse.ObjectDelete].item_guid == guid)
@@ -641,7 +641,7 @@ class AvatarReleaseEarly2Test extends ActorTest {
       val reply1 = receiveOne(200 milliseconds)
       assert(reply1.isInstanceOf[AvatarServiceResponse])
       val reply1msg = reply1.asInstanceOf[AvatarServiceResponse]
-      assert(reply1msg.toChannel == "/test/Avatar")
+      assert(reply1msg.channel == "/test/Avatar")
       assert(reply1msg.avatar_guid == guid)
       assert(reply1msg.replyMessage.isInstanceOf[AvatarResponse.Release])
       assert(reply1msg.replyMessage.asInstanceOf[AvatarResponse.Release].player == obj)
@@ -652,7 +652,7 @@ class AvatarReleaseEarly2Test extends ActorTest {
       val reply2 = receiveOne(100 milliseconds)
       assert(reply2.isInstanceOf[AvatarServiceResponse])
       val reply2msg = reply2.asInstanceOf[AvatarServiceResponse]
-      assert(reply2msg.toChannel.equals("/test/Avatar"))
+      assert(reply2msg.channel.equals("/test/Avatar"))
       assert(reply2msg.avatar_guid == Service.defaultPlayerGUID)
       assert(reply2msg.replyMessage.isInstanceOf[AvatarResponse.ObjectDelete])
       assert(reply2msg.replyMessage.asInstanceOf[AvatarResponse.ObjectDelete].item_guid == guid)

@@ -10,7 +10,7 @@ import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 import services.GenericEventBusMsg
 
 final case class LocalServiceResponse(
-    toChannel: String,
+    channel: String,
     avatar_guid: PlanetSideGUID,
     replyMessage: LocalResponse.Response
 ) extends GenericEventBusMsg
