@@ -10,46 +10,6 @@ import scala.util.{Failure, Success}
 
 object Maps {
   import scala.concurrent.ExecutionContext.Implicits.global
-  /*
-
-  val maps = Await.result(
-    Seq(
-      Future { Map01.zoneMap },
-      Future { ("z02", Map02.zoneMap) },
-      Future { ("z03", Map03.zoneMap) },
-      Future { ("z04", Map04.zoneMap) },
-      Future { ("z05", Map05.zoneMap) },
-      Future { ("z06", Map06.zoneMap) },
-      Future { ("z07", Map07.zoneMap) },
-      Future { ("z08", Map08.zoneMap) },
-      Future { ("z09", Map09.zoneMap) },
-      Future { ("z10", Map10.zoneMap) },
-      Future { ("home1", Map11.zoneMap) },
-      Future { ("home2", Map12.zoneMap) },
-      Future { ("home3", Map13.zoneMap) },
-      Future { new ZoneMap("map14", ZoneMapType.VirtualReality) { projectiles(this) } },
-      Future { new ZoneMap("map15", ZoneMapType.VirtualReality) { projectiles(this) } },
-      Future { new ZoneMap("map16", ZoneMapType.VirtualReality) { projectiles(this) } },
-      Future { Ugd01.zoneMap },
-      Future { Ugd02.zoneMap },
-      Future { Ugd03.zoneMap },
-      Future { Ugd04.zoneMap },
-      Future { Ugd05.zoneMap },
-      Future { Ugd06.zoneMap },
-      Future { Map96.zoneMap },
-      Future { Map97.zoneMap },
-      Future { Map98.zoneMap },
-      Future { Map99.zoneMap }
-    ).flatMap {
-      case (_, zonemap) =>
-        (Projectile.BaseUID until Projectile.RangeUID) foreach {
-          zonemap.LocalObject(_, LocalProjectile.Constructor)
-        }
-        map
-    },
-    30 seconds
-  )
-   */
 
   val map01 = InitZoneMap(Future { Map01.ZoneMap })
   val map02 = InitZoneMap(Future { Map02.ZoneMap })

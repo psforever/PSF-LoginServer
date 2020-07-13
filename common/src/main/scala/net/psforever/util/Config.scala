@@ -6,6 +6,7 @@ import com.typesafe.config.{Config => TypesafeConfig}
 import enumeratum.values.{IntEnum, IntEnumEntry}
 import net.psforever.packet.game.ServerType
 import pureconfig.ConfigConvert.viaNonEmptyStringOpt
+import pureconfig.ConfigReader.Result
 import pureconfig.{ConfigConvert, ConfigSource}
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
@@ -15,9 +16,9 @@ object Config {
   // prog.home is defined when we are running from SBT pack
   val directory: String = System.getProperty("prog.home") match {
     case null =>
-      Paths.get("config").toAbsolutePath().toString()
+      Paths.get("config").toAbsolutePath.toString
     case home =>
-      Paths.get(home, "config").toAbsolutePath().toString()
+      Paths.get(home, "config").toAbsolutePath.toString
   }
 
   implicit def enumeratumIntConfigConvert[A <: IntEnumEntry](implicit
@@ -40,7 +41,7 @@ object Config {
       ConfigSource.defaultApplication
   }
 
-  val result = source.load[AppConfig]
+  val result: Result[AppConfig] = source.load[AppConfig]
 
   // Raw config object - prefer app when possible
   lazy val config: TypesafeConfig = source.config().toOption.get
@@ -86,7 +87,7 @@ case class DatabaseConfig(
     database: String,
     sslmode: String
 ) {
-  def toJdbc = s"jdbc:postgresql://${host}:${port}/${database}"
+  def toJdbc = s"jdbc:postgresql://$host:$port/$database"
 }
 
 case class AntiCheatConfig(

@@ -6,10 +6,10 @@ import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import net.psforever.objects.Session
 import net.psforever.packet.game.ChatMessage
-import net.psforever.types.{ChatMessageType, PlanetSideGUID}
+import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID}
 
 object ChatService {
-  val ChatServiceKey = ServiceKey[ChatService.Command]("chatService")
+  val ChatServiceKey: ServiceKey[Command] = ServiceKey[ChatService.Command]("chatService")
 
   def apply(): Behavior[Command] =
     Behaviors.setup { context =>
@@ -36,11 +36,12 @@ object ChatService {
 }
 
 class ChatService(context: ActorContext[ChatService.Command]) extends AbstractBehavior[ChatService.Command](context) {
+
   import ChatService._
   import ChatMessageType._
 
-  private[this] val log = org.log4s.getLogger
-  var subscriptions     = List[JoinChannel]()
+  private[this] val log                = org.log4s.getLogger
+  var subscriptions: List[JoinChannel] = List[JoinChannel]()
 
   override def onMessage(msg: Command): Behavior[Command] = {
     msg match {
@@ -70,33 +71,17 @@ class ChatService(context: ActorContext[ChatService.Command]) extends AbstractBe
         }
         val subs = subscriptions.filter(_.channel == channel)
         message.messageType match {
-          case CMT_TELL =>
+          case CMT_TELL | CMT_GMTELL =>
             subs.find(_.session.player.Name == session.player.Name).foreach {
               case JoinChannel(sender, _, _) =>
                 sender ! MessageResponse(
                   session,
-                  ChatMessage(
-                    ChatMessageType.U_CMT_TELLFROM,
-                    message.wideContents,
-                    message.recipient,
-                    message.contents,
-                    None
-                  ),
+                  message.copy(messageType = if (message.messageType == CMT_TELL) U_CMT_TELLFROM else U_CMT_GMTELLFROM),
                   channel
                 )
                 subs.find(_.session.player.Name == message.recipient) match {
                   case Some(JoinChannel(receiver, _, _)) =>
-                    receiver ! MessageResponse(
-                      session,
-                      ChatMessage(
-                        ChatMessageType.CMT_TELL,
-                        message.wideContents,
-                        session.player.Name,
-                        message.contents,
-                        None
-                      ),
-                      channel
-                    )
+                    receiver ! MessageResponse(session, message, channel)
                   case None =>
                     sender ! MessageResponse(
                       session,
@@ -173,14 +158,29 @@ class ChatService(context: ActorContext[ChatService.Command]) extends AbstractBe
               case JoinChannel(actor, _, _) => actor ! MessageResponse(session, message, channel)
             }
 
+          case CMT_GMBROADCAST_NC =>
+            subs.filter(_.session.player.Faction == PlanetSideEmpire.NC).foreach {
+              case JoinChannel(actor, _, _) => actor ! MessageResponse(session, message, channel)
+            }
+
+          case CMT_GMBROADCAST_TR =>
+            subs.filter(_.session.player.Faction == PlanetSideEmpire.TR).foreach {
+              case JoinChannel(actor, _, _) => actor ! MessageResponse(session, message, channel)
+            }
+
+          case CMT_GMBROADCAST_VS =>
+            subs.filter(_.session.player.Faction == PlanetSideEmpire.VS).foreach {
+              case JoinChannel(actor, _, _) => actor ! MessageResponse(session, message, channel)
+            }
+
           // cross faction commands
-          case CMT_BROADCAST | CMT_VOICE =>
+          case CMT_BROADCAST | CMT_VOICE | CMT_GMBROADCAST | CMT_GMBROADCASTPOPUP | UNK_227 =>
             subs.foreach {
               case JoinChannel(actor, _, _) => actor ! MessageResponse(session, message, channel)
             }
 
           case _ =>
-            log.warn(s"unhandled chat message, should possibly add a case for ${message}")
+            log.warn(s"unhandled chat message, add a case for $message")
         }
         this
     }

@@ -2,7 +2,7 @@ package net.psforever.actors.session
 
 import akka.actor.Cancellable
 import akka.actor.typed.receptionist.Receptionist
-import akka.actor.typed.{ActorRef, Behavior, PostStop}
+import akka.actor.typed.{ActorRef, Behavior, PostStop, Signal}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 import net.psforever.objects.{Default, GlobalDefinitions, Player, Session}
@@ -46,11 +46,11 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
   var chatService: Option[ActorRef[ChatService.Command]] = None
   var silenceTimer: Cancellable                          = Default.Cancellable
 
-  val chatServiceAdapter = context.messageAdapter[ChatService.MessageResponse] {
+  val chatServiceAdapter: ActorRef[ChatService.MessageResponse] = context.messageAdapter[ChatService.MessageResponse] {
     case ChatService.MessageResponse(session, message, channel) => IncomingMessage(session, message, channel)
   }
 
-  override def onSignal = {
+  override def onSignal: PartialFunction[Signal, Behavior[Command]] = {
     case PostStop =>
       silenceTimer.cancel()
       if (chatService.isDefined) chatService.get ! ChatService.LeaveAllChannels(chatServiceAdapter)
@@ -69,7 +69,7 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
 
       case SetSession(newSession) =>
         session = Some(newSession)
-        if (!chatService.isDefined && newSession.player != null) { // TODO the player check sucks...
+        if (chatService.isEmpty && newSession.player != null) { // TODO the player check sucks...
           context.system.receptionist ! Receptionist.Find(
             ChatService.ChatServiceKey,
             context.messageAdapter[Receptionist.Listing](ListingResponse)
@@ -152,7 +152,7 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
                   case Zoning.Method.Recall => Some("You already requested to recall to your sanctuary continent")
                   case _ if session.zone.Id == sanctuary =>
                     Some("You can't recall to your sanctuary when you are already in your sanctuary")
-                  case _$msg if !session.player.isAlive || session.deadState != DeadState.Alive =>
+                  case _ if !session.player.isAlive || session.deadState != DeadState.Alive =>
                     Some(if (session.player.isAlive) "@norecall_deconstructing" else "@norecall_dead")
                   case _ if session.player.VehicleSeated.nonEmpty => Some("@norecall_invehicle")
                   case _                                          => None
@@ -305,8 +305,8 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
                   val numRegex = raw"(\d+)".r
                   val id       = input(0)
                   val determination: Player => Boolean = id match {
-                    case numRegex(_) => { _.CharId == id.toLong }
-                    case _           => { _.Name.equals(id) }
+                    case numRegex(_) => _.CharId == id.toLong
+                    case _           => _.Name.equals(id)
                   }
                   session.zone.LivePlayers
                     .find(determination)
@@ -331,7 +331,7 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
                   }
                 }
 
-              case (CMT_CAPTUREBASE, _, contents) =>
+              case (CMT_CAPTUREBASE, _, contents) if session.admin =>
                 val args = contents.split(" ").filter(_ != "")
 
                 val (faction, factionPos) = args.zipWithIndex
@@ -349,7 +349,7 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
                 }
 
                 val (buildingsOption, buildingPos) = args.zipWithIndex.flatMap {
-                  case (_, pos) if (factionPos.isDefined && factionPos.get == pos) => None
+                  case (_, pos) if factionPos.isDefined && factionPos.get == pos => None
                   case ("all", pos) =>
                     Some(
                       Some(
@@ -384,7 +384,7 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
 
                 val (timerOption, timerPos) = args.zipWithIndex.flatMap {
                   case (_, pos)
-                      if (factionPos.isDefined && factionPos.get == pos || buildingPos.isDefined && buildingPos.get == pos) =>
+                      if factionPos.isDefined && factionPos.get == pos || buildingPos.isDefined && buildingPos.get == pos =>
                     None
                   case (timer, pos) =>
                     try {
@@ -456,6 +456,35 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
                       )
                     )
                 }
+
+              case (CMT_GMBROADCAST | CMT_GMBROADCAST_NC | CMT_GMBROADCAST_VS | CMT_GMBROADCAST_TR, _, _)
+                  if session.admin =>
+                chatService ! ChatService.Message(
+                  session,
+                  message.copy(recipient = session.player.Name),
+                  ChatChannel.Default()
+                )
+
+              case (CMT_GMTELL, _, _) if session.admin =>
+                chatService ! ChatService.Message(
+                  session,
+                  message.copy(recipient = session.player.Name),
+                  ChatChannel.Default()
+                )
+
+              case (CMT_GMBROADCASTPOPUP, _, _) if session.admin =>
+                chatService ! ChatService.Message(
+                  session,
+                  message.copy(recipient = session.player.Name),
+                  ChatChannel.Default()
+                )
+
+              case (_, _, contents) if contents.startsWith("!whitetext ") && session.admin =>
+                chatService ! ChatService.Message(
+                  session,
+                  ChatMessage(UNK_227, true, "", contents.replace("!whitetext ", ""), None),
+                  ChatChannel.Default()
+                )
 
               case (_, "tr", contents) =>
                 sessionActor ! SessionActor.SendResponse(
@@ -629,7 +658,7 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
                       case Some(location) => sessionActor ! SessionActor.SetPosition(location)
                       case None =>
                         sessionActor ! SessionActor.SendResponse(
-                          ChatMessage(UNK_229, true, "", s"unknown location '${waypoint}", None)
+                          ChatMessage(UNK_229, true, "", s"unknown location '$waypoint", None)
                         )
                     }
                   case _ =>
@@ -657,24 +686,21 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
           case Some(session) =>
             message.messageType match {
               case CMT_TELL | U_CMT_TELLFROM | CMT_BROADCAST | CMT_SQUAD | CMT_PLATOON | CMT_COMMAND | UNK_45 | UNK_71 |
-                  CMT_NOTE =>
+                  CMT_NOTE | CMT_GMBROADCAST | CMT_GMBROADCAST_NC | CMT_GMBROADCAST_TR | CMT_GMBROADCAST_VS |
+                  CMT_GMBROADCASTPOPUP | CMT_GMTELL | U_CMT_GMTELLFROM | UNK_227 =>
                 sessionActor ! SessionActor.SendResponse(message)
               case CMT_OPEN =>
                 if (
-                  session.zone == fromSession.zone && Vector3.Distance(
-                    session.player.Position,
-                    fromSession.player.Position
-                  ) < 25 &&
+                  session.zone == fromSession.zone &&
+                  Vector3.Distance(session.player.Position, fromSession.player.Position) < 25 &&
                   session.player.Faction == fromSession.player.Faction
                 ) {
                   sessionActor ! SessionActor.SendResponse(message)
                 }
               case CMT_VOICE =>
                 if (
-                  session.zone == fromSession.zone && Vector3.Distance(
-                    session.player.Position,
-                    fromSession.player.Position
-                  ) < 25
+                  session.zone == fromSession.zone &&
+                  Vector3.Distance(session.player.Position, fromSession.player.Position) < 25
                 ) {
                   sessionActor ! SessionActor.SendResponse(message)
                 }
@@ -718,7 +744,7 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
               case _ =>
                 log.error(s"unexpected messageType $message")
             }
-          case (None) =>
+          case None =>
             log.error("failed to handle incoming message because dependencies are missing")
         }
         this
