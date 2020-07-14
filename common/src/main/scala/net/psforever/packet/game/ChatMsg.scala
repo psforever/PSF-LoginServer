@@ -20,7 +20,7 @@ import scodec.codecs._
   * @param contents the textual contents of the message
   * @param note only used when the message is of note type
   */
-final case class ChatMessage(
+final case class ChatMsg(
     messageType: ChatMessageType.Value,
     wideContents: Boolean,
     recipient: String,
@@ -34,13 +34,13 @@ final case class ChatMessage(
   else
     assert(note.isEmpty, "Note contents found, but message type isnt Note")
 
-  type Packet = ChatMessage
+  type Packet = ChatMsg
   def opcode = GamePacketOpcode.ChatMsg
-  def encode = ChatMessage.encode(this)
+  def encode = ChatMsg.encode(this)
 }
 
-object ChatMessage extends Marshallable[ChatMessage] {
-  implicit val codec: Codec[ChatMessage] = (("messagetype" | ChatMessageType.codec) >>:~ { messagetype_value =>
+object ChatMsg extends Marshallable[ChatMsg] {
+  implicit val codec: Codec[ChatMsg] = (("messagetype" | ChatMessageType.codec) >>:~ { messagetype_value =>
     (("has_wide_contents" | bool) >>:~ { isWide =>
       ("recipient" | PacketHelpers.encodedWideStringAligned(7)) ::
         newcodecs.binary_choice(
@@ -50,5 +50,5 @@ object ChatMessage extends Marshallable[ChatMessage] {
         )
     }) :+
       conditional(messagetype_value == ChatMessageType.CMT_NOTE, "note_contents" | PacketHelpers.encodedWideString)
-  }).as[ChatMessage]
+  }).as[ChatMsg]
 }

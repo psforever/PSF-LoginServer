@@ -10,7 +10,7 @@ import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade, WeaponTurrets}
 import net.psforever.objects.zones.Zoning
 import net.psforever.packet.PacketCoding
-import net.psforever.packet.game.{ChatMessage, DeadState, RequestDestroyMessage, ZonePopulationUpdateMessage}
+import net.psforever.packet.game.{ChatMsg, DeadState, RequestDestroyMessage, ZonePopulationUpdateMessage}
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID, Vector3}
 import net.psforever.util.PointOfInterest
 import net.psforever.zones.Zones
@@ -29,11 +29,11 @@ object ChatActor {
 
   final case class JoinChannel(channel: ChatChannel)  extends Command
   final case class LeaveChannel(channel: ChatChannel) extends Command
-  final case class Message(message: ChatMessage)      extends Command
+  final case class Message(message: ChatMsg)          extends Command
   final case class SetSession(session: Session)       extends Command
 
-  private case class ListingResponse(listing: Receptionist.Listing)                                extends Command
-  private case class IncomingMessage(session: Session, message: ChatMessage, channel: ChatChannel) extends Command
+  private case class ListingResponse(listing: Receptionist.Listing)                            extends Command
+  private case class IncomingMessage(session: Session, message: ChatMsg, channel: ChatChannel) extends Command
 }
 
 class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef[SessionActor.Command])
@@ -90,7 +90,7 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
       /** Some messages are sent during login so we handle them prematurely because main message handler requires the
         * session object and chat service and they may not be set yet
         */
-      case Message(ChatMessage(CMT_CULLWATERMARK, _, _, contents, _)) =>
+      case Message(ChatMsg(CMT_CULLWATERMARK, _, _, contents, _)) =>
         val connectionState =
           if (contents.contains("40 80")) 100
           else if (contents.contains("120 200")) 25
@@ -98,11 +98,11 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
         sessionActor ! SessionActor.SetConnectionState(connectionState)
         this
 
-      case Message(ChatMessage(CMT_ANONYMOUS, _, _, _, _)) =>
+      case Message(ChatMsg(CMT_ANONYMOUS, _, _, _, _)) =>
         // ??
         this
 
-      case Message(ChatMessage(CMT_TOGGLE_GM, _, _, _, _)) =>
+      case Message(ChatMsg(CMT_TOGGLE_GM, _, _, _, _)) =>
         // ??
         this
 
@@ -120,7 +120,7 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
                 }
                 sessionActor ! SessionActor.SetFlying(flying)
                 sessionActor ! SessionActor.SendResponse(
-                  ChatMessage(CMT_FLY, false, recipient, if (flying) "on" else "off", None)
+                  ChatMsg(CMT_FLY, false, recipient, if (flying) "on" else "off", None)
                 )
 
               case (CMT_SPEED, recipient, contents) =>
@@ -160,7 +160,7 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
                 errorMessage match {
                   case Some(errorMessage) =>
                     sessionActor ! SessionActor.SendResponse(
-                      ChatMessage(
+                      ChatMsg(
                         CMT_QUIT,
                         false,
                         "",
@@ -175,15 +175,15 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
               case (CMT_INSTANTACTION, _, _) =>
                 if (session.zoningType == Zoning.Method.Quit) {
                   sessionActor ! SessionActor.SendResponse(
-                    ChatMessage(CMT_QUIT, false, "", "You can't instant action while quitting.", None)
+                    ChatMsg(CMT_QUIT, false, "", "You can't instant action while quitting.", None)
                   )
                 } else if (session.zoningType == Zoning.Method.InstantAction) {
                   sessionActor ! SessionActor.SendResponse(
-                    ChatMessage(CMT_QUIT, false, "", "@noinstantaction_instantactionting", None)
+                    ChatMsg(CMT_QUIT, false, "", "@noinstantaction_instantactionting", None)
                   )
                 } else if (session.zoningType == Zoning.Method.Recall) {
                   sessionActor ! SessionActor.SendResponse(
-                    ChatMessage(
+                    ChatMsg(
                       CMT_QUIT,
                       false,
                       "",
@@ -194,16 +194,16 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
                 } else if (!session.player.isAlive || session.deadState != DeadState.Alive) {
                   if (session.player.isAlive) {
                     sessionActor ! SessionActor.SendResponse(
-                      ChatMessage(CMT_QUIT, false, "", "@noinstantaction_deconstructing", None)
+                      ChatMsg(CMT_QUIT, false, "", "@noinstantaction_deconstructing", None)
                     )
                   } else {
                     sessionActor ! SessionActor.SendResponse(
-                      ChatMessage(CMT_QUIT, false, "", "@noinstantaction_dead", None)
+                      ChatMsg(CMT_QUIT, false, "", "@noinstantaction_dead", None)
                     )
                   }
                 } else if (session.player.VehicleSeated.nonEmpty) {
                   sessionActor ! SessionActor.SendResponse(
-                    ChatMessage(CMT_QUIT, false, "", "@noinstantaction_invehicle", None)
+                    ChatMsg(CMT_QUIT, false, "", "@noinstantaction_invehicle", None)
                   )
                 } else {
                   sessionActor ! SessionActor.InstantAction()
@@ -211,17 +211,17 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
 
               case (CMT_QUIT, _, _) =>
                 if (session.zoningType == Zoning.Method.Quit) {
-                  sessionActor ! SessionActor.SendResponse(ChatMessage(CMT_QUIT, false, "", "@noquit_quitting", None))
+                  sessionActor ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, false, "", "@noquit_quitting", None))
                 } else if (!session.player.isAlive || session.deadState != DeadState.Alive) {
                   if (session.player.isAlive) {
                     sessionActor ! SessionActor.SendResponse(
-                      ChatMessage(CMT_QUIT, false, "", "@noquit_deconstructing", None)
+                      ChatMsg(CMT_QUIT, false, "", "@noquit_deconstructing", None)
                     )
                   } else {
-                    sessionActor ! SessionActor.SendResponse(ChatMessage(CMT_QUIT, false, "", "@noquit_dead", None))
+                    sessionActor ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, false, "", "@noquit_dead", None))
                   }
                 } else if (session.player.VehicleSeated.nonEmpty) {
-                  sessionActor ! SessionActor.SendResponse(ChatMessage(CMT_QUIT, false, "", "@noquit_invehicle", None))
+                  sessionActor ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, false, "", "@noquit_invehicle", None))
                 } else {
                   sessionActor ! SessionActor.Quit()
                 }
@@ -264,7 +264,7 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
                 zone match {
                   case Some(zone) =>
                     sessionActor ! SessionActor.SendResponse(
-                      ChatMessage(
+                      ChatMsg(
                         CMT_GMOPEN,
                         message.wideContents,
                         "Server",
@@ -278,7 +278,7 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
                       .sortBy(_.Name)
                       .foreach(player => {
                         sessionActor ! SessionActor.SendResponse(
-                          ChatMessage(
+                          ChatMsg(
                             CMT_GMOPEN,
                             message.wideContents,
                             "Server",
@@ -289,7 +289,7 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
                       })
                   case None =>
                     sessionActor ! SessionActor.SendResponse(
-                      ChatMessage(
+                      ChatMsg(
                         CMT_GMOPEN,
                         message.wideContents,
                         "Server",
@@ -320,7 +320,7 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
                       }
                     case None =>
                       sessionActor ! SessionActor.SendResponse(
-                        ChatMessage(
+                        ChatMsg(
                           CMT_GMOPEN,
                           message.wideContents,
                           "Server",
@@ -427,7 +427,7 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
                     }
                   case (_, Some(0), _, None, _) =>
                     sessionActor ! SessionActor.SendResponse(
-                      ChatMessage(
+                      ChatMsg(
                         UNK_229,
                         true,
                         "",
@@ -437,7 +437,7 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
                     )
                   case (Some(0), _, Some(1), _, None) | (Some(1), Some(0), Some(2), _, None) =>
                     sessionActor ! SessionActor.SendResponse(
-                      ChatMessage(
+                      ChatMsg(
                         UNK_229,
                         true,
                         "",
@@ -447,7 +447,7 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
                     )
                   case _ =>
                     sessionActor ! SessionActor.SendResponse(
-                      ChatMessage(
+                      ChatMsg(
                         UNK_229,
                         true,
                         "",
@@ -482,7 +482,7 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
               case (_, _, contents) if contents.startsWith("!whitetext ") && session.admin =>
                 chatService ! ChatService.Message(
                   session,
-                  ChatMessage(UNK_227, true, "", contents.replace("!whitetext ", ""), None),
+                  ChatMsg(UNK_227, true, "", contents.replace("!whitetext ", ""), None),
                   ChatChannel.Default()
                 )
 
@@ -589,16 +589,16 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
                 val contName = session.zone.Map.Name
 
                 sessionActor ! SessionActor.SendResponse(
-                  ChatMessage(ChatMessageType.CMT_WHO, true, "", "That command doesn't work for now, but : ", None)
+                  ChatMsg(ChatMessageType.CMT_WHO, true, "", "That command doesn't work for now, but : ", None)
                 )
                 sessionActor ! SessionActor.SendResponse(
-                  ChatMessage(ChatMessageType.CMT_WHO, true, "", "NC online : " + popNC + " on " + contName, None)
+                  ChatMsg(ChatMessageType.CMT_WHO, true, "", "NC online : " + popNC + " on " + contName, None)
                 )
                 sessionActor ! SessionActor.SendResponse(
-                  ChatMessage(ChatMessageType.CMT_WHO, true, "", "TR online : " + popTR + " on " + contName, None)
+                  ChatMsg(ChatMessageType.CMT_WHO, true, "", "TR online : " + popTR + " on " + contName, None)
                 )
                 sessionActor ! SessionActor.SendResponse(
-                  ChatMessage(ChatMessageType.CMT_WHO, true, "", "VS online : " + popVS + " on " + contName, None)
+                  ChatMsg(ChatMessageType.CMT_WHO, true, "", "VS online : " + popVS + " on " + contName, None)
                 )
 
               case (CMT_ZONE, _, contents) if session.admin =>
@@ -621,20 +621,20 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
                 }
                 (zone, gate, list) match {
                   case (None, None, true) =>
-                    sessionActor ! SessionActor.SendResponse(ChatMessage(UNK_229, true, "", PointOfInterest.list, None))
+                    sessionActor ! SessionActor.SendResponse(ChatMsg(UNK_229, true, "", PointOfInterest.list, None))
                   case (Some(zone), None, true) =>
                     sessionActor ! SessionActor.SendResponse(
-                      ChatMessage(UNK_229, true, "", PointOfInterest.listWarpgates(zone), None)
+                      ChatMsg(UNK_229, true, "", PointOfInterest.listWarpgates(zone), None)
                     )
                   case (Some(zone), Some(gate), false) =>
                     sessionActor ! SessionActor.SetZone(zone.zonename, gate)
                   case (_, None, false) =>
                     sessionActor ! SessionActor.SendResponse(
-                      ChatMessage(UNK_229, true, "", "Gate id not defined (use '/zone <zone> -list')", None)
+                      ChatMsg(UNK_229, true, "", "Gate id not defined (use '/zone <zone> -list')", None)
                     )
                   case (_, _, _) if buffer.isEmpty || buffer(0).equals("-help") =>
                     sessionActor ! SessionActor.SendResponse(
-                      ChatMessage(UNK_229, true, "", "usage: /zone <zone> [gatename] | [-list]", None)
+                      ChatMsg(UNK_229, true, "", "usage: /zone <zone> [gatename] | [-list]", None)
                     )
                 }
 
@@ -658,12 +658,12 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
                       case Some(location) => sessionActor ! SessionActor.SetPosition(location)
                       case None =>
                         sessionActor ! SessionActor.SendResponse(
-                          ChatMessage(UNK_229, true, "", s"unknown location '$waypoint", None)
+                          ChatMsg(UNK_229, true, "", s"unknown location '$waypoint", None)
                         )
                     }
                   case _ =>
                     sessionActor ! SessionActor.SendResponse(
-                      ChatMessage(
+                      ChatMsg(
                         UNK_229,
                         true,
                         "",
@@ -719,20 +719,20 @@ class ChatActor(context: ActorContext[ChatActor.Command], sessionActor: ActorRef
                     if (session.player.silenced) {
                       sessionActor ! SessionActor.SetSilenced(false)
                       sessionActor ! SessionActor.SendResponse(
-                        ChatMessage(ChatMessageType.UNK_71, true, "", "@silence_off", None)
+                        ChatMsg(ChatMessageType.UNK_71, true, "", "@silence_off", None)
                       )
                       if (!silenceTimer.isCancelled) silenceTimer.cancel()
                     } else {
                       sessionActor ! SessionActor.SetSilenced(true)
                       sessionActor ! SessionActor.SendResponse(
-                        ChatMessage(ChatMessageType.UNK_71, true, "", "@silence_on", None)
+                        ChatMsg(ChatMessageType.UNK_71, true, "", "@silence_on", None)
                       )
                       silenceTimer = context.system.scheduler.scheduleOnce(
                         time minutes,
                         () => {
                           sessionActor ! SessionActor.SetSilenced(false)
                           sessionActor ! SessionActor.SendResponse(
-                            ChatMessage(ChatMessageType.UNK_71, true, "", "@silence_timeout", None)
+                            ChatMsg(ChatMessageType.UNK_71, true, "", "@silence_timeout", None)
                           )
                         }
                       )

@@ -5,7 +5,7 @@ import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import net.psforever.objects.Session
-import net.psforever.packet.game.ChatMessage
+import net.psforever.packet.game.ChatMsg
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID}
 
 object ChatService {
@@ -23,8 +23,8 @@ object ChatService {
   final case class LeaveChannel(actor: ActorRef[MessageResponse], channel: ChatChannel)                  extends Command
   final case class LeaveAllChannels(actor: ActorRef[MessageResponse])                                    extends Command
 
-  final case class Message(session: Session, message: ChatMessage, channel: ChatChannel) extends Command
-  final case class MessageResponse(session: Session, message: ChatMessage, channel: ChatChannel)
+  final case class Message(session: Session, message: ChatMsg, channel: ChatChannel) extends Command
+  final case class MessageResponse(session: Session, message: ChatMsg, channel: ChatChannel)
 
   trait ChatChannel
   object ChatChannel {
@@ -85,7 +85,7 @@ class ChatService(context: ActorContext[ChatService.Command]) extends AbstractBe
                   case None =>
                     sender ! MessageResponse(
                       session,
-                      ChatMessage(ChatMessageType.UNK_45, false, "", "@NoTell_Target", None),
+                      ChatMsg(ChatMessageType.UNK_45, false, "", "@NoTell_Target", None),
                       channel
                     )
                 }
@@ -116,13 +116,13 @@ class ChatService(context: ActorContext[ChatService.Command]) extends AbstractBe
                     if (recipient.session.player.silenced) {
                       sender.actor ! MessageResponse(
                         session,
-                        ChatMessage(UNK_71, true, "", "@silence_disabled_ack", None),
+                        ChatMsg(UNK_71, true, "", "@silence_disabled_ack", None),
                         channel
                       )
                     } else {
                       sender.actor ! MessageResponse(
                         session,
-                        ChatMessage(UNK_71, true, "", "@silence_enabled_ack", None),
+                        ChatMsg(UNK_71, true, "", "@silence_enabled_ack", None),
                         channel
                       )
                     }
@@ -130,14 +130,14 @@ class ChatService(context: ActorContext[ChatService.Command]) extends AbstractBe
                   case None =>
                     sender.actor ! MessageResponse(
                       session,
-                      ChatMessage(UNK_71, true, "", s"unknown player '$name'", None),
+                      ChatMsg(UNK_71, true, "", s"unknown player '$name'", None),
                       channel
                     )
                 }
               case (Some(sender), _, _, error) =>
                 sender.actor ! MessageResponse(
                   session,
-                  ChatMessage(UNK_71, false, "", error.getOrElse("usage: /silence <name> [<time>]"), None),
+                  ChatMsg(UNK_71, false, "", error.getOrElse("usage: /silence <name> [<time>]"), None),
                   channel
                 )
 

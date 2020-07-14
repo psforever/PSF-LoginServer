@@ -669,7 +669,7 @@ class SessionActor extends Actor with MDCContextAware {
 
           case SquadResponse.WantsSquadPosition(_, name) =>
             sendResponse(
-              ChatMessage(
+              ChatMsg(
                 ChatMessageType.CMT_SQUAD,
                 true,
                 name,
@@ -1173,7 +1173,7 @@ class SessionActor extends Actor with MDCContextAware {
       reviveTimer.cancel
       if (spawn_group == 2) {
         sendResponse(
-          ChatMessage(ChatMessageType.CMT_OPEN, false, "", "No friendly AMS is deployed in this region.", None)
+          ChatMsg(ChatMessageType.CMT_OPEN, false, "", "No friendly AMS is deployed in this region.", None)
         )
         cluster ! Zone.Lattice.RequestSpawnPoint(zone_number, player, 0)
       } else {
@@ -1286,7 +1286,7 @@ class SessionActor extends Actor with MDCContextAware {
             val routerGUID = router.get
             if (vehicle.Destroyed) {
               //the Telepad was successfully deployed; but, before it could configure, its Router was destroyed
-              sendResponse(ChatMessage(ChatMessageType.UNK_229, false, "", "@Telepad_NoDeploy_RouterLost", None))
+              sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", "@Telepad_NoDeploy_RouterLost", None))
               continent.LocalEvents ! LocalServiceMessage.Deployables(
                 RemoverActor.AddTask(obj, continent, Some(0 seconds))
               )
@@ -1302,7 +1302,7 @@ class SessionActor extends Actor with MDCContextAware {
 
           case _ =>
             //the Telepad was successfully deployed; but, before it could configure, its Router was deconstructed
-            sendResponse(ChatMessage(ChatMessageType.UNK_229, false, "", "@Telepad_NoDeploy_RouterLost", None))
+            sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", "@Telepad_NoDeploy_RouterLost", None))
             continent.LocalEvents ! LocalServiceMessage.Deployables(
               RemoverActor.AddTask(obj, continent, Some(0 seconds))
             )
@@ -1862,7 +1862,7 @@ class SessionActor extends Actor with MDCContextAware {
       zoningStatus = Zoning.Status.Countdown
       val (time, origin) = ZoningStartInitialMessageAndTimer()
       zoningCounter = time
-      sendResponse(ChatMessage(ChatMessageType.CMT_QUIT, false, "", s"@${descriptor}_$origin", None))
+      sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", s"@${descriptor}_$origin", None))
       import scala.concurrent.ExecutionContext.Implicits.global
       zoningReset.cancel
       zoningTimer.cancel
@@ -1875,7 +1875,7 @@ class SessionActor extends Actor with MDCContextAware {
       zoningTimer.cancel
       if (zoningCounter > 0) {
         if (zoningCountdownMessages.contains(zoningCounter)) {
-          sendResponse(ChatMessage(zoningChatMessageType, false, "", s"@${descriptor}_$zoningCounter", None))
+          sendResponse(ChatMsg(zoningChatMessageType, false, "", s"@${descriptor}_$zoningCounter", None))
         }
         //again
         zoningReset = context.system.scheduler.scheduleOnce(10 seconds, self, ZoningReset())
@@ -2015,7 +2015,7 @@ class SessionActor extends Actor with MDCContextAware {
     */
   def CancelZoningProcessWithReason(msg: String, msgType: Option[ChatMessageType.Value] = None): Unit = {
     if (zoningStatus > Zoning.Status.None) {
-      sendResponse(ChatMessage(msgType.getOrElse(zoningChatMessageType), false, "", msg, None))
+      sendResponse(ChatMsg(msgType.getOrElse(zoningChatMessageType), false, "", msg, None))
     }
     CancelZoningProcess()
   }
@@ -2702,7 +2702,7 @@ class SessionActor extends Actor with MDCContextAware {
         ForgetAllProximityTerminals(object_guid)
 
       case LocalResponse.RouterTelepadMessage(msg) =>
-        sendResponse(ChatMessage(ChatMessageType.UNK_229, false, "", msg, None))
+        sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", msg, None))
 
       case LocalResponse.RouterTelepadTransport(passenger_guid, src_guid, dest_guid) =>
         StartBundlingPackets()
@@ -2848,7 +2848,7 @@ class SessionActor extends Actor with MDCContextAware {
         log.warn(s"MountVehicleMsg: ${tplayer.Name} attempted to mount $obj's seat $seat_num, but was not allowed")
         if (obj.SeatPermissionGroup(seat_num).contains(AccessPermissionGroup.Driver)) {
           sendResponse(
-            ChatMessage(ChatMessageType.CMT_OPEN, false, "", "You are not the driver of this vehicle.", None)
+            ChatMsg(ChatMessageType.CMT_OPEN, false, "", "You are not the driver of this vehicle.", None)
           )
         }
 
@@ -3265,7 +3265,7 @@ class SessionActor extends Actor with MDCContextAware {
           case VehicleSpawnPad.Reminders.Cancelled =>
             "Your vehicle order has been cancelled."
         })
-        sendResponse(ChatMessage(ChatMessageType.CMT_OPEN, true, "", msg, None))
+        sendResponse(ChatMsg(ChatMessageType.CMT_OPEN, true, "", msg, None))
 
       case VehicleResponse.ChangeLoadout(target, old_weapons, added_weapons, old_inventory, new_inventory) =>
         //TODO when vehicle weapons can be changed without visual glitches, rewrite this
@@ -3558,14 +3558,14 @@ class SessionActor extends Actor with MDCContextAware {
     UpdateDeployableUIElements(Deployables.InitializeDeployableUIElements(avatar))
     sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 75, 0))
     sendResponse(SetCurrentAvatarMessage(guid, 0, 0))
-    sendResponse(ChatMessage(ChatMessageType.CMT_EXPANSIONS, true, "", "1 on", None)) //CC on //TODO once per respawn?
+    sendResponse(ChatMsg(ChatMessageType.CMT_EXPANSIONS, true, "", "1 on", None)) //CC on //TODO once per respawn?
     val pos    = player.Position = shiftPosition.getOrElse(tplayer.Position)
     val orient = player.Orientation = shiftOrientation.getOrElse(tplayer.Orientation)
     sendResponse(PlayerStateShiftMessage(ShiftState(1, pos, orient.z)))
     shiftPosition = None
     shiftOrientation = None
     if (player.spectator) {
-      sendResponse(ChatMessage(ChatMessageType.CMT_TOGGLESPECTATORMODE, false, "", "on", None))
+      sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, false, "", "on", None))
     }
     if (player.Jammed) {
       //TODO something better than just canceling?
@@ -3878,7 +3878,7 @@ class SessionActor extends Actor with MDCContextAware {
       case ConnectToWorldRequestMessage(server, token, majorVersion, minorVersion, revision, buildDate, unk) =>
         val clientVersion = s"Client Version: $majorVersion.$minorVersion.$revision, $buildDate"
         log.info(s"New world login to $server with Token:$token. $clientVersion")
-        sendResponse(ChatMessage(ChatMessageType.CMT_CULLWATERMARK, false, "", "", None))
+        sendResponse(ChatMsg(ChatMessageType.CMT_CULLWATERMARK, false, "", "", None))
         Thread.sleep(40)
         import scala.concurrent.ExecutionContext.Implicits.global
         clientKeepAlive.cancel
@@ -4570,7 +4570,7 @@ class SessionActor extends Actor with MDCContextAware {
       case msg @ SetChatFilterMessage(send_channel, origin, whitelist) =>
       //log.info("SetChatFilters: " + msg)
 
-      case msg: ChatMessage =>
+      case msg: ChatMsg =>
         chatActor ! ChatActor.Message(msg)
 
       case msg @ VoiceHostRequest(unk, PlanetSideGUID(player_guid), data) =>
@@ -5172,7 +5172,7 @@ class SessionActor extends Actor with MDCContextAware {
                     val displayedDelay =
                       math.min(5, ((delay.toDouble / 1000) - math.ceil((time - lastUse).toDouble) / 1000) + 1).toInt
                     sendResponse(
-                      ChatMessage(ChatMessageType.UNK_225, false, "", s"@TimeUntilNextUse^$displayedDelay~", None)
+                      ChatMsg(ChatMessageType.UNK_225, false, "", s"@TimeUntilNextUse^$displayedDelay~", None)
                     )
                   } else {
                     val indexOpt = player.Find(kit)
@@ -5180,7 +5180,7 @@ class SessionActor extends Actor with MDCContextAware {
                       case Some(index) =>
                         if (kit.Definition == GlobalDefinitions.medkit) {
                           if (player.Health == player.MaxHealth) {
-                            sendResponse(ChatMessage(ChatMessageType.UNK_225, false, "", "@HealComplete", None))
+                            sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", "@HealComplete", None))
                             false
                           } else {
                             player.History(HealFromKit(PlayerSource(player), 25, kit.Definition))
@@ -5194,7 +5194,7 @@ class SessionActor extends Actor with MDCContextAware {
                           }
                         } else if (kit.Definition == GlobalDefinitions.super_medkit) {
                           if (player.Health == player.MaxHealth) {
-                            sendResponse(ChatMessage(ChatMessageType.UNK_225, false, "", "@HealComplete", None))
+                            sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", "@HealComplete", None))
                             false
                           } else {
                             player.History(HealFromKit(PlayerSource(player), 100, kit.Definition))
@@ -5209,7 +5209,7 @@ class SessionActor extends Actor with MDCContextAware {
                         } else if (kit.Definition == GlobalDefinitions.super_armorkit) {
                           if (player.Armor == player.MaxArmor) {
                             sendResponse(
-                              ChatMessage(
+                              ChatMsg(
                                 ChatMessageType.UNK_225,
                                 false,
                                 "",
@@ -5231,7 +5231,7 @@ class SessionActor extends Actor with MDCContextAware {
                         } else if (kit.Definition == GlobalDefinitions.super_staminakit) {
                           if (player.Stamina == player.MaxStamina) {
                             sendResponse(
-                              ChatMessage(
+                              ChatMsg(
                                 ChatMessageType.UNK_225,
                                 false,
                                 "",
@@ -7732,10 +7732,10 @@ class SessionActor extends Actor with MDCContextAware {
       case None => ;
     }
     if (session.flying) {
-      chatActor ! ChatActor.Message(ChatMessage(ChatMessageType.CMT_FLY, false, "", "off", None))
+      chatActor ! ChatActor.Message(ChatMsg(ChatMessageType.CMT_FLY, false, "", "off", None))
     }
     if (session.speed > 1) {
-      chatActor ! ChatActor.Message(ChatMessage(ChatMessageType.CMT_SPEED, false, "", "1.000", None))
+      chatActor ! ChatActor.Message(ChatMsg(ChatMessageType.CMT_SPEED, false, "", "1.000", None))
     }
   }
 
@@ -8993,7 +8993,7 @@ class SessionActor extends Actor with MDCContextAware {
           continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(old, continent, Some(0 seconds)))
           if (msg) { //max test
             sendResponse(
-              ChatMessage(ChatMessageType.UNK_229, false, "", s"@${definition.Descriptor}OldestDestroyed", None)
+              ChatMsg(ChatMessageType.UNK_229, false, "", s"@${definition.Descriptor}OldestDestroyed", None)
             )
           }
         case None => ; //should be an invalid case
@@ -9008,7 +9008,7 @@ class SessionActor extends Actor with MDCContextAware {
       sendResponse(ObjectDeployedMessage.Success(definition.Name, curr + 1, max))
       val (catCurr, catMax) = deployables.CountCategory(item)
       if ((max > 1 && curr + 1 == max) || (catMax > 1 && catCurr + 1 == catMax)) {
-        sendResponse(ChatMessage(ChatMessageType.UNK_229, false, "", s"@${definition.Descriptor}LimitReached", None))
+        sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", s"@${definition.Descriptor}LimitReached", None))
       }
     }
     avatar.Deployables.Add(obj)
