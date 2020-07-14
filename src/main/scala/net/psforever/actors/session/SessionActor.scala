@@ -3807,9 +3807,6 @@ class SessionActor extends Actor with MDCContextAware {
         //log.info(s"$msg")
         persist()
         turnCounterFunc(avatar_guid)
-        if(is_crouching && !player.Crouching) {
-          //sendResponse(PlanetsideAttributeMessage(player.GUID, 54, 2))
-        }
         val isMoving = WorldEntity.isMoving(vel)
         val isMovingPlus = isMoving || is_jumping || jump_thrust
         if (isMovingPlus) {
