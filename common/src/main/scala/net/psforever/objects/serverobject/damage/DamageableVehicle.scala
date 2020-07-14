@@ -2,15 +2,12 @@
 package net.psforever.objects.serverobject.damage
 
 import akka.actor.Actor.Receive
-import net.psforever.objects.{GlobalDefinitions, Vehicle}
+import net.psforever.objects.{Vehicle, Vehicles}
 import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.serverobject.damage.Damageable.Target
-import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.vital.resolution.ResolutionCalculations
-import net.psforever.types.{DriveState, PlanetSideGUID}
 import services.Service
-import services.local.{LocalAction, LocalServiceMessage}
-import services.vehicle.{VehicleAction, VehicleService, VehicleServiceMessage}
+import services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.duration._
 
@@ -178,18 +175,7 @@ object DamageableVehicle {
       }
     })
     //special considerations for certain vehicles
-    target.Definition match {
-      case GlobalDefinitions.ams =>
-        target.Actor ! Deployment.TryDeploymentChange(DriveState.Undeploying)
-      case GlobalDefinitions.router =>
-        target.Actor ! Deployment.TryDeploymentChange(DriveState.Undeploying)
-        VehicleService.BeforeUnloadVehicle(target, zone)
-        zone.LocalEvents ! LocalServiceMessage(
-          zone.Id,
-          LocalAction.ToggleTeleportSystem(PlanetSideGUID(0), target, None)
-        )
-      case _ => ;
-    }
+    Vehicles.BeforeUnloadVehicle(target, zone)
     //shields
     if (target.Shields > 0) {
       target.Shields = 0

@@ -1,17 +1,24 @@
 // Copyright (c) 2017 PSForever
 package service
 
-import akka.actor.{ActorRef, Props}
-import akka.routing.RandomPool
-import akka.testkit.TestProbe
-import base.ActorTest
-import net.psforever.objects.{GlobalDefinitions, PlanetSideGameObject, Tool}
-import net.psforever.objects.definition.{EquipmentDefinition, ObjectDefinition}
+/* Temporary imports */
+import akka.actor.ActorRef
+import net.psforever.objects.definition.EquipmentDefinition
 import net.psforever.objects.equipment.Equipment
-import net.psforever.objects.guid.TaskResolver
-import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.types.PlanetSideGUID
-import services.{RemoverActor, ServiceManager}
+import services.RemoverActor
+
+//import akka.actor.{ActorRef, Props}
+//import akka.routing.RandomPool
+//import akka.testkit.TestProbe
+//import base.ActorTest
+//import net.psforever.objects.{GlobalDefinitions, PlanetSideGameObject, Tool}
+//import net.psforever.objects.definition.{EquipmentDefinition, ObjectDefinition}
+//import net.psforever.objects.equipment.Equipment
+//import net.psforever.objects.guid.TaskResolver
+//import net.psforever.objects.zones.{Zone, ZoneMap}
+//import net.psforever.types.PlanetSideGUID
+//import services.{RemoverActor, ServiceManager}
 
 import scala.concurrent.duration._
 import scala.util.Success

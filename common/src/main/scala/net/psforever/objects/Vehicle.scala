@@ -77,6 +77,7 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     with OwnableByPlayer
     with StandardResistanceProfile
     with JammableUnit
+    with CommonNtuContainer
     with Container {
   private var faction: PlanetSideEmpire.Value     = PlanetSideEmpire.NEUTRAL
   private var shields: Int                        = 0
@@ -85,7 +86,6 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
   private var jammered: Boolean                   = false
   private var cloaked: Boolean                    = false
   private var flying: Boolean                     = false
-  private var ntuCapacitor: Int                   = 0
   private var capacitor: Int                      = 0
 
   /**
@@ -197,19 +197,6 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
   def Flying_=(isFlying: Boolean): Boolean = {
     flying = isFlying
     Flying
-  }
-
-  def NtuCapacitor: Int = ntuCapacitor
-
-  def NtuCapacitor_=(value: Int): Int = {
-    if (value > Definition.MaxNtuCapacitor) {
-      ntuCapacitor = Definition.MaxNtuCapacitor
-    } else if (value < 0) {
-      ntuCapacitor = 0
-    } else {
-      ntuCapacitor = value
-    }
-    NtuCapacitor
   }
 
   def NtuCapacitorScaled : Int = {

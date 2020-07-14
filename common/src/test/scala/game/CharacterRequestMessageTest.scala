@@ -4,7 +4,6 @@ package game
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
-import net.psforever.types.{CharacterGender, PlanetSideEmpire}
 import scodec.bits._
 
 class CharacterRequestMessageTest extends Specification {

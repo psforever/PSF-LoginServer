@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, Props}
 import akka.testkit.TestProbe
 import base.ActorTest
 import net.psforever.objects.ballistics._

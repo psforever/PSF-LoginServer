@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package game
 
-import net.psforever.types.{MeritCommendation, Vector3}
+import net.psforever.types.Vector3
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._

@@ -73,6 +73,7 @@ import net.psforever.objects.vehicles.{
   MountedWeapons,
   Utility,
   UtilityType,
+  VehicleControl,
   VehicleLockState
 }
 import net.psforever.objects.vehicles.Utility.InternalTelepad
@@ -226,16 +227,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
   var interimUngunnedVehicle: Option[PlanetSideGUID] = None
   var interimUngunnedVehicleSeat: Option[Int]        = None
   var keepAliveFunc: () => Unit                      = NormalKeepAlive
+  var setAvatar: Boolean                             = false
   var turnCounterFunc: PlanetSideGUID => Unit        = TurnCounterDuringInterim
 
   var clientKeepAlive: Cancellable    = Default.Cancellable
   var progressBarUpdate: Cancellable  = Default.Cancellable
   var reviveTimer: Cancellable        = Default.Cancellable
   var respawnTimer: Cancellable       = Default.Cancellable
-  var cargoMountTimer: Cancellable    = Default.Cancellable
-  var cargoDismountTimer: Cancellable = Default.Cancellable
-  var antChargingTick: Cancellable    = Default.Cancellable
-  var antDischargingTick: Cancellable = Default.Cancellable
   var zoningTimer: Cancellable        = Default.Cancellable
   var zoningReset: Cancellable        = Default.Cancellable
 
@@ -245,10 +243,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     progressBarUpdate.cancel
     reviveTimer.cancel
     respawnTimer.cancel
-    cargoMountTimer.cancel
-    cargoDismountTimer.cancel
-    antChargingTick.cancel
-    antDischargingTick.cancel
     chatService ! Service.Leave()
     galaxyService ! Service.Leave()
     continent.AvatarEvents ! Service.Leave()
@@ -756,89 +750,33 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
 
     case Deployment.CanDeploy(obj, state) =>
-      val vehicle_guid = obj.GUID
-      //TODO remove this arbitrary allowance angle when no longer helpful
-      if (obj.Orientation.x > 30 && obj.Orientation.x < 330) {
-        obj.DeploymentState = DriveState.Mobile
-        CanNotChangeDeployment(obj, state, "ground too steep")
-      } else if (state == DriveState.Deploying) {
+      if (state == DriveState.Deploying) {
         log.info(s"DeployRequest: $obj transitioning to deploy state")
-        obj.Velocity = Some(Vector3.Zero) //no velocity
-        sendResponse(DeployRequestMessage(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
-        continent.VehicleEvents ! VehicleServiceMessage(
-          continent.Id,
-          VehicleAction.DeployRequest(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero)
-        )
-        DeploymentActivities(obj)
-        import scala.concurrent.ExecutionContext.Implicits.global
-        context.system.scheduler.scheduleOnce(
-          obj.DeployTime milliseconds,
-          obj.Actor,
-          Deployment.TryDeploy(DriveState.Deployed)
-        )
-      } else if (state == DriveState.Deployed) {
+      }
+      else if (state == DriveState.Deployed) {
         log.info(s"DeployRequest: $obj has been Deployed")
-        obj.Velocity = Some(Vector3.Zero)
-        sendResponse(DeployRequestMessage(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
-        continent.VehicleEvents ! VehicleServiceMessage(
-          continent.Id,
-          VehicleAction.DeployRequest(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero)
-        )
-        DeploymentActivities(obj)
-        //...
-      } else {
+      }
+      else {
         CanNotChangeDeployment(obj, state, "incorrect deploy state")
       }
 
     case Deployment.CanUndeploy(obj, state) =>
-      val vehicle_guid = obj.GUID
       if (state == DriveState.Undeploying) {
         log.info(s"DeployRequest: $obj transitioning to undeploy state")
-        sendResponse(DeployRequestMessage(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
-        continent.VehicleEvents ! VehicleServiceMessage(
-          continent.Id,
-          VehicleAction.DeployRequest(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero)
-        )
-        DeploymentActivities(obj)
-        import scala.concurrent.ExecutionContext.Implicits.global
-        context.system.scheduler.scheduleOnce(
-          obj.UndeployTime milliseconds,
-          obj.Actor,
-          Deployment.TryUndeploy(DriveState.Mobile)
-        )
-      } else if (state == DriveState.Mobile) {
+      }
+      else if (state == DriveState.Mobile) {
         log.info(s"DeployRequest: $obj is Mobile")
-        sendResponse(DeployRequestMessage(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero))
-        continent.VehicleEvents ! VehicleServiceMessage(
-          continent.Id,
-          VehicleAction.DeployRequest(player.GUID, vehicle_guid, state, 0, false, Vector3.Zero)
-        )
-        DeploymentActivities(obj)
-        //...
-      } else {
+      }
+      else {
         CanNotChangeDeployment(obj, state, "incorrect undeploy state")
       }
 
     case Deployment.CanNotChangeDeployment(obj, state, reason) =>
-      CanNotChangeDeployment(obj, state, reason)
-
-    case ResourceSilo.ResourceSiloMessage(tplayer, msg, order) =>
-      continent.GUID(msg.avatar_guid) match {
-        case Some(vehicle: Vehicle) =>
-          val silo_guid = msg.object_guid
-          order match {
-            case ResourceSilo.ChargeEvent() =>
-              antChargingTick
-                .cancel() // If an ANT is refilling an NTU silo it isn't in a warpgate, so disable NTU regeneration
-              antDischargingTick.cancel()
-              antDischargingTick = context.system.scheduler.scheduleOnce(
-                1000 milliseconds,
-                self,
-                NtuDischarging(player, vehicle, msg.object_guid)
-              )
-            case _ => ;
-          }
-        case _ => ;
+      if (Deployment.CheckForDeployState(state) && !VehicleControl.DeploymentAngleCheck(obj)) {
+        CanNotChangeDeployment(obj, state, "ground too steep")
+      }
+      else {
+        CanNotChangeDeployment(obj, state, reason)
       }
 
     case CreateCharacter(name, head, voice, gender, empire) =>
@@ -1298,6 +1236,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
       keepAliveFunc = NormalKeepAlive
       upstreamMessageCount = 0
+      setAvatar = false
       persist()
 
     case PlayerLoaded(tplayer) =>
@@ -1314,6 +1253,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       }
       keepAliveFunc = NormalKeepAlive
       upstreamMessageCount = 0
+      setAvatar = false
       persist()
 
     case PlayerFailedToLoad(tplayer) =>
@@ -1380,7 +1320,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             case _                => true
           })
         ) {
-          if (waitingOnUpstream) {
+          if(!setAvatar || waitingOnUpstream) {
             setCurrentAvatarFunc(tplayer)
             respawnTimer = context.system.scheduler.scheduleOnce(
               delay = (if (attempt <= max_attempts / 2) 10 else 5) seconds,
@@ -1398,13 +1338,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
       }
 
-    case NtuCharging(tplayer, vehicle) =>
-      HandleNtuCharging(tplayer, vehicle)
-
-    case NtuDischarging(tplayer, vehicle, silo_guid) =>
-      HandleNtuDischarging(tplayer, vehicle, silo_guid)
-
-    case Vitality.DamageResolution(target: TelepadDeployable, _) =>
+    case Vitality.DamageResolution(target : TelepadDeployable, _) =>
       //telepads
       if (target.Health <= 0) {
         //update if destroyed
@@ -2726,7 +2660,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         CancelAllProximityUnits()
         sendResponse(PlanetsideAttributeMessage(obj_guid, 0, obj.Health))
         sendResponse(PlanetsideAttributeMessage(obj_guid, 68, obj.Shields)) //shield health
-        if (obj.Definition.MaxNtuCapacitor > 0) {
+        if(obj.Definition == GlobalDefinitions.ant) {
           sendResponse(PlanetsideAttributeMessage(obj_guid, 45, obj.NtuCapacitorScaled))
         }
         if (obj.Definition.MaxCapacitor > 0) {
@@ -3106,10 +3040,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         }
 
       case VehicleResponse.UnloadVehicle(vehicle, vehicle_guid) =>
-        //if(tplayer_guid != guid) {
-        BeforeUnloadVehicle(vehicle)
         sendResponse(ObjectDeleteMessage(vehicle_guid, 0))
-      //}
 
       case VehicleResponse.UnstowEquipment(item_guid) =>
         if (tplayer_guid != guid) {
@@ -3285,152 +3216,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
   ): Unit = {
     sendResponse(attachMessage)
     sendResponse(mountPointStatusMessage)
-  }
-
-  /**
-    * na
-    * @param tplayer na
-    * @param vehicle na
-    */
-  def HandleNtuCharging(tplayer: Player, vehicle: Vehicle): Unit = {
-    log.trace(s"NtuCharging: Vehicle ${vehicle.GUID} is charging NTU capacitor.")
-    if (vehicle.NtuCapacitor < vehicle.Definition.MaxNtuCapacitor) {
-      // Charging - ANTs would charge from 0-100% in roughly 75s on live (https://www.youtube.com/watch?v=veOWToR2nSk&feature=youtu.be&t=1194)
-      vehicle.NtuCapacitor += vehicle.Definition.MaxNtuCapacitor / 75
-      sendResponse(
-        PlanetsideAttributeMessage(
-          vehicle.GUID,
-          45,
-          vehicle.NtuCapacitorScaled
-        )
-      ) // set ntu on vehicle UI
-      continent.AvatarEvents ! AvatarServiceMessage(
-        continent.Id,
-        AvatarAction.PlanetsideAttribute(vehicle.GUID, 52, 1L)
-      ) // panel glow on
-      continent.AvatarEvents ! AvatarServiceMessage(
-        continent.Id,
-        AvatarAction.PlanetsideAttribute(vehicle.GUID, 49, 1L)
-      ) // orb particle effect on
-
-      antChargingTick = context.system.scheduler.scheduleOnce(
-        1000 milliseconds,
-        self,
-        NtuCharging(player, vehicle)
-      ) // Repeat until fully charged
-    } else {
-      // Fully charged
-      sendResponse(
-        PlanetsideAttributeMessage(
-          vehicle.GUID,
-          45,
-          scala.math.ceil((vehicle.NtuCapacitor.toFloat / vehicle.Definition.MaxNtuCapacitor.toFloat) * 10).toInt
-        )
-      ) // set ntu on vehicle UI
-
-      // Turning off glow/orb effects on ANT doesn't seem to work when deployed. Try to undeploy ANT from server side
-      context.system.scheduler.scheduleOnce(
-        vehicle.UndeployTime milliseconds,
-        vehicle.Actor,
-        Deployment.TryUndeploy(DriveState.Undeploying)
-      )
-    }
-  }
-
-  /**
-    * na
-    * @param tplayer   na
-    * @param vehicle   na
-    * @param silo_guid na
-    */
-  def HandleNtuDischarging(tplayer: Player, vehicle: Vehicle, silo_guid: PlanetSideGUID): Unit = {
-    log.trace(s"NtuDischarging: Vehicle ${vehicle.GUID} is discharging NTU into silo $silo_guid")
-    continent.AvatarEvents ! AvatarServiceMessage(
-      continent.Id,
-      AvatarAction.PlanetsideAttribute(vehicle.GUID, 49, 0L)
-    ) // orb particle effect off
-    continent.AvatarEvents ! AvatarServiceMessage(
-      continent.Id,
-      AvatarAction.PlanetsideAttribute(vehicle.GUID, 52, 1L)
-    ) // panel glow on
-
-    var silo = continent.GUID(silo_guid).get.asInstanceOf[ResourceSilo]
-    // Check vehicle is still deployed before continuing. User can undeploy manually or vehicle may not longer be present.
-    if (vehicle.DeploymentState == DriveState.Deployed) {
-      if (vehicle.NtuCapacitor > 0 && silo.ChargeLevel < silo.MaximumCharge) {
-
-        // Make sure we don't exceed the silo maximum charge or remove much NTU from ANT if maximum is reached, or try to make ANT go below 0 NTU
-        // Silos would charge from 0-100% in roughly 105s on live (~20%-100% https://youtu.be/veOWToR2nSk?t=1402)
-        var chargeToDeposit =
-          Math.min(Math.min(vehicle.NtuCapacitor, silo.MaximumCharge / 105), silo.MaximumCharge - silo.ChargeLevel)
-        vehicle.NtuCapacitor -= chargeToDeposit
-        silo.Actor ! ResourceSilo.UpdateChargeLevel(chargeToDeposit)
-        continent.AvatarEvents ! AvatarServiceMessage(
-          continent.Id,
-          AvatarAction.PlanetsideAttribute(silo_guid, 49, 1L)
-        ) // panel glow on & orb particles on
-        sendResponse(
-          PlanetsideAttributeMessage(
-            vehicle.GUID,
-            45,
-            vehicle.NtuCapacitorScaled
-          )
-        ) // set ntu on vehicle UI
-
-        //todo: grant BEP to user
-        //todo: grant BEP to squad in range
-
-        //todo: handle silo orb / panel glow properly if more than one person is refilling silo and one player stops. effects should stay on until all players stop
-
-        if (vehicle.NtuCapacitor > 0 && silo.ChargeLevel < silo.MaximumCharge) {
-          log.trace(s"NtuDischarging: ANT not empty and Silo not full. Scheduling another discharge")
-          // Silo still not full and ant still has charge left - keep rescheduling ticks
-          antDischargingTick =
-            context.system.scheduler.scheduleOnce(1000 milliseconds, self, NtuDischarging(player, vehicle, silo_guid))
-        } else {
-          log.trace(s"NtuDischarging: ANT NTU empty or Silo NTU full.")
-          // Turning off glow/orb effects on ANT doesn't seem to work when deployed. Try to undeploy ANT from server side
-          context.system.scheduler.scheduleOnce(
-            vehicle.UndeployTime milliseconds,
-            vehicle.Actor,
-            Deployment.TryUndeploy(DriveState.Undeploying)
-          )
-          continent.AvatarEvents ! AvatarServiceMessage(
-            continent.Id,
-            AvatarAction.PlanetsideAttribute(silo_guid, 49, 0L)
-          ) // panel glow off & orb particles off
-          antDischargingTick.cancel()
-        }
-      } else {
-        // This shouldn't normally be run, only if the client thinks the ANT has capacitor charge when it doesn't, or thinks the silo isn't full when it is.
-        log.warn(
-          s"NtuDischarging: Invalid discharge state. ANT Capacitor: ${vehicle.NtuCapacitor} Silo Capacitor: ${silo.ChargeLevel}"
-        )
-        // Turning off glow/orb effects on ANT doesn't seem to work when deployed. Try to undeploy ANT from server side
-        context.system.scheduler.scheduleOnce(
-          vehicle.UndeployTime milliseconds,
-          vehicle.Actor,
-          Deployment.TryUndeploy(DriveState.Undeploying)
-        )
-        continent.AvatarEvents ! AvatarServiceMessage(
-          continent.Id,
-          AvatarAction.PlanetsideAttribute(silo_guid, 49, 0L)
-        ) // panel glow off & orb particles off
-        antDischargingTick.cancel()
-      }
-    } else {
-      log.trace(s"NtuDischarging: Vehicle is no longer deployed. Removing effects")
-      // Vehicle has changed from deployed and this should be the last timer tick sent
-      continent.AvatarEvents ! AvatarServiceMessage(
-        continent.Id,
-        AvatarAction.PlanetsideAttribute(vehicle.GUID, 52, 0L)
-      ) // panel glow off
-      continent.AvatarEvents ! AvatarServiceMessage(
-        continent.Id,
-        AvatarAction.PlanetsideAttribute(silo_guid, 49, 0L)
-      ) // panel glow off & orb particles off
-      antDischargingTick.cancel()
-    }
   }
 
   /**
@@ -3647,19 +3432,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
           vehicle.Actor ! JammableUnit.ClearJammeredStatus()
           vehicle.Actor ! JammableUnit.ClearJammeredSound()
         }
-
         //positive shield strength
         if (vehicle.Shields > 0) {
           sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 68, vehicle.Shields))
         }
-
         // ANT capacitor
-        if (vehicle.Definition.MaxNtuCapacitor > 0) {
-          sendResponse(
-            PlanetsideAttributeMessage(vehicle.GUID, 45, vehicle.NtuCapacitorScaled)
-          ) // set ntu on vehicle UI
+        if(vehicle.Definition == GlobalDefinitions.ant) {
+          sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, vehicle.NtuCapacitorScaled)) // set ntu on vehicle UI
         }
-
         LoadZoneTransferPassengerMessages(
           guid,
           continent.Id,
@@ -3681,6 +3461,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
       tplayer.Actor ! Player.StaminaRegen()
     }
     upstreamMessageCount = 0
+    setAvatar = true
   }
 
   /**
@@ -3933,12 +3714,12 @@ class WorldSessionActor extends Actor with MDCContextAware {
       case KeepAliveMessage(_) =>
         keepAliveFunc()
 
-      case msg @ BeginZoningMessage() =>
+      case msg@BeginZoningMessage() =>
         log.info("Reticulating splines ...")
         zoneLoaded = None
         val continentId = continent.Id
         traveler.zone = continentId
-        val faction        = player.Faction
+        val faction = player.Faction
         val factionChannel = s"$faction"
         continent.AvatarEvents ! Service.Join(continentId)
         continent.AvatarEvents ! Service.Join(factionChannel)
@@ -3948,19 +3729,18 @@ class WorldSessionActor extends Actor with MDCContextAware {
         continent.VehicleEvents ! Service.Join(avatar.name)
         continent.VehicleEvents ! Service.Join(continentId)
         continent.VehicleEvents ! Service.Join(factionChannel)
-        if (connectionState != 100) configZone(continent)
+        if(connectionState != 100) configZone(continent)
         sendResponse(TimeOfDayMessage(1191182336))
         //custom
-        sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty))    //clear squad list
+        sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty)) //clear squad list
         sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 0)) // disable festive backpacks
 
         //find and reclaim own deployables, if any
         val guid = player.GUID
-        val foundDeployables =
-          continent.DeployableList.filter(obj => obj.OwnerName.contains(player.Name) && obj.Health > 0)
+        val foundDeployables = continent.DeployableList.filter(obj => obj.OwnerName.contains(player.Name) && obj.Health > 0)
         continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(foundDeployables, continent))
         foundDeployables.foreach(obj => {
-          if (avatar.Deployables.Add(obj)) {
+          if(avatar.Deployables.Add(obj)) {
             obj.Owner = guid
             log.info(s"Found a ${obj.Definition.Name} of ours while loading the zone")
           }
@@ -3980,7 +3760,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           )
         })
         turrets.foreach(obj => {
-          val objGUID    = obj.GUID
+          val objGUID = obj.GUID
           val definition = obj.Definition
           sendResponse(
             ObjectCreateMessage(
@@ -3990,14 +3770,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
             )
           )
           //seated players
-          obj
-            .asInstanceOf[Mountable]
-            .Seats
-            .values
+          obj.asInstanceOf[Mountable].Seats.values
             .map(_.Occupant)
             .collect {
               case Some(occupant) =>
-                if (occupant.isAlive) {
+                if(occupant.isAlive) {
                   val tdefintion = occupant.Definition
                   sendResponse(
                     ObjectCreateMessage(
@@ -4016,8 +3793,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
             obj.Definition.DeployCategory == DeployableCategory.Sensors &&
               !obj.Destroyed &&
               (obj match {
-                case jObj: JammableUnit => !jObj.Jammed;
-                case _                  => true
+                case jObj : JammableUnit => !jObj.Jammed;
+                case _ => true
               })
           )
           .foreach(obj => {
@@ -4028,15 +3805,10 @@ class WorldSessionActor extends Actor with MDCContextAware {
         continent.DeployableList
           .filter(obj => obj.Faction == faction && !obj.Destroyed)
           .foreach(obj => {
-            if (obj.Health != obj.DefaultHealth) {
+            if(obj.Health != obj.DefaultHealth) {
               sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))
             }
-            val deployInfo = DeployableInfo(
-              obj.GUID,
-              Deployable.Icon(obj.Definition.Item),
-              obj.Position,
-              obj.Owner.getOrElse(PlanetSideGUID(0))
-            )
+            val deployInfo = DeployableInfo(obj.GUID, Deployable.Icon(obj.Definition.Item), obj.Position, obj.Owner.getOrElse(PlanetSideGUID(0)))
             sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, deployInfo))
           })
         //render Equipment that was dropped into zone before the player arrived
@@ -4046,25 +3818,19 @@ class WorldSessionActor extends Actor with MDCContextAware {
             ObjectCreateMessage(
               definition.ObjectId,
               item.GUID,
-              DroppedItemData(
-                PlacementData(item.Position, item.Orientation),
-                definition.Packet.ConstructorData(item).get
-              )
+              DroppedItemData(PlacementData(item.Position, item.Orientation), definition.Packet.ConstructorData(item).get)
             )
           )
         })
         //load active players in zone (excepting players who are seated or players who are us)
         val live = continent.LivePlayers
-        live
-          .filterNot(tplayer => {
-            tplayer.GUID == player.GUID || tplayer.VehicleSeated.nonEmpty
-          })
+        live.filterNot(tplayer => {
+          tplayer.GUID == player.GUID || tplayer.VehicleSeated.nonEmpty
+        })
           .foreach(char => {
             val tdefintion = char.Definition
-            sendResponse(
-              ObjectCreateMessage(tdefintion.ObjectId, char.GUID, char.Definition.Packet.ConstructorData(char).get)
-            )
-            if (char.UsingSpecial == SpecialExoSuitDefinition.Mode.Anchored) {
+            sendResponse(ObjectCreateMessage(tdefintion.ObjectId, char.GUID, char.Definition.Packet.ConstructorData(char).get))
+            if(char.UsingSpecial == SpecialExoSuitDefinition.Mode.Anchored) {
               sendResponse(PlanetsideAttributeMessage(char.GUID, 19, 1))
             }
           })
@@ -4077,37 +3843,55 @@ class WorldSessionActor extends Actor with MDCContextAware {
           val (a, b) = continent.Vehicles.partition(vehicle => {
             vehicle.Destroyed && vehicle.Definition.DestroyedModel.nonEmpty
           })
-          (
-            a,
-            (continent.GUID(player.VehicleSeated) match {
-              case Some(vehicle: Vehicle) if vehicle.PassengerInSeat(player).isDefined =>
-                b.partition {
-                  _.GUID != vehicle.GUID
-                }
-              case Some(_) =>
-                //vehicle, but we're not seated in it
-                player.VehicleSeated = None
-                (b, List.empty[Vehicle])
-              case None =>
-                //throw error since VehicleSeated didn't point to a vehicle?
-                player.VehicleSeated = None
-                (b, List.empty[Vehicle])
-            })
-          )
+          (a, (continent.GUID(player.VehicleSeated) match {
+            case Some(vehicle : Vehicle) if vehicle.PassengerInSeat(player).isDefined =>
+              b.partition {
+                _.GUID != vehicle.GUID
+              }
+            case Some(_) =>
+              //vehicle, but we're not seated in it
+              player.VehicleSeated = None
+              (b, List.empty[Vehicle])
+            case None =>
+              //throw error since VehicleSeated didn't point to a vehicle?
+              player.VehicleSeated = None
+              (b, List.empty[Vehicle])
+          }))
         }
+        val allActiveVehicles = vehicles ++ usedVehicle
         //active vehicles (and some wreckage)
         vehicles.foreach(vehicle => {
-          val vguid       = vehicle.GUID
+          val vguid = vehicle.GUID
           val vdefinition = vehicle.Definition
-          sendResponse(
-            ObjectCreateMessage(vdefinition.ObjectId, vguid, vdefinition.Packet.ConstructorData(vehicle).get)
-          )
+          sendResponse(ObjectCreateMessage(vdefinition.ObjectId, vguid, vdefinition.Packet.ConstructorData(vehicle).get))
           //occupants other than driver
           vehicle.Seats
             .filter({ case (index, seat) => seat.isOccupied && live.contains(seat.Occupant.get) && index > 0 })
-            .foreach({
-              case (index, seat) =>
-                val tplayer    = seat.Occupant.get
+            .foreach({ case (index, seat) =>
+              val tplayer = seat.Occupant.get
+              val tdefintion = tplayer.Definition
+              sendResponse(
+                ObjectCreateMessage(
+                  tdefintion.ObjectId,
+                  tplayer.GUID,
+                  ObjectCreateMessageParent(vguid, index),
+                  tdefintion.Packet.ConstructorData(tplayer).get
+                )
+              )
+            })
+        })
+        vehicles.collect { case vehicle if vehicle.Faction == faction =>
+          Vehicles.ReloadAccessPermissions(vehicle, player.Name)
+        }
+        //our vehicle would have already been loaded; see NewPlayerLoaded/AvatarCreate
+        usedVehicle.headOption match {
+          case Some(vehicle) =>
+            //depict any other passengers already in this zone
+            val vguid = vehicle.GUID
+            vehicle.Seats
+              .filter({ case (index, seat) => seat.isOccupied && !seat.Occupant.contains(player) && live.contains(seat.Occupant.get) && index > 0 })
+              .foreach({ case (index, seat) =>
+                val tplayer = seat.Occupant.get
                 val tdefintion = tplayer.Definition
                 sendResponse(
                   ObjectCreateMessage(
@@ -4117,38 +3901,14 @@ class WorldSessionActor extends Actor with MDCContextAware {
                     tdefintion.Packet.ConstructorData(tplayer).get
                   )
                 )
-            })
-        })
-        vehicles.collect {
-          case vehicle if vehicle.Faction == faction =>
-            Vehicles.ReloadAccessPermissions(vehicle, player.Name)
-        }
-        //our vehicle would have already been loaded; see NewPlayerLoaded/AvatarCreate
-        usedVehicle.headOption match {
-          case Some(vehicle) =>
-            //depict any other passengers already in this zone
-            val vguid = vehicle.GUID
-            vehicle.Seats
-              .filter({
-                case (index, seat) =>
-                  seat.isOccupied && !seat.Occupant.contains(player) && live.contains(seat.Occupant.get) && index > 0
-              })
-              .foreach({
-                case (index, seat) =>
-                  val tplayer    = seat.Occupant.get
-                  val tdefintion = tplayer.Definition
-                  sendResponse(
-                    ObjectCreateMessage(
-                      tdefintion.ObjectId,
-                      tplayer.GUID,
-                      ObjectCreateMessageParent(vguid, index),
-                      tdefintion.Packet.ConstructorData(tplayer).get
-                    )
-                  )
               })
             //since we would have only subscribed recently, we need to reload seat access states
             (0 to 3).foreach { group =>
               sendResponse(PlanetsideAttributeMessage(vguid, group + 10, vehicle.PermissionGroup(group).get.id))
+            }
+            //positive shield strength
+            if(vehicle.Shields > 0) {
+              sendResponse(PlanetsideAttributeMessage(vguid, 68, vehicle.Shields))
             }
           case _ => ; //no vehicle
         }
@@ -4163,108 +3923,109 @@ class WorldSessionActor extends Actor with MDCContextAware {
           )
         })
         //cargo occupants (including our own vehicle as cargo)
-        vehicles.collect {
-          case vehicle if vehicle.CargoHolds.nonEmpty =>
-            vehicle.CargoHolds.collect({
-              case (index, hold) if hold.isOccupied => {
-                CargoBehavior.CargoMountBehaviorForAll(
-                  vehicle,
-                  hold.Occupant.get,
-                  index
-                ) //CargoMountBehaviorForUs can fail to attach the cargo vehicle on some clients
-              }
-            })
+        allActiveVehicles.collect { case vehicle if vehicle.CargoHolds.nonEmpty =>
+          vehicle.CargoHolds.collect({ case (index, hold) if hold.isOccupied => {
+            CargoBehavior.CargoMountBehaviorForAll(vehicle, hold.Occupant.get, index) //CargoMountBehaviorForUs can fail to attach the cargo vehicle on some clients
+          }
+          })
         }
         //special deploy states
-        val deployedVehicles = vehicles.filter(_.DeploymentState == DriveState.Deployed)
-        deployedVehicles
-          .filter(_.Definition == GlobalDefinitions.ams)
-          .foreach(obj => {
-            sendResponse(PlanetsideAttributeMessage(obj.GUID, 81, 1))
-          })
-        deployedVehicles
-          .filter(_.Definition == GlobalDefinitions.router)
-          .foreach(obj => {
-            sendResponse(DeployRequestMessage(player.GUID, obj.GUID, DriveState.Deploying, 0, false, Vector3.Zero))
-            sendResponse(DeployRequestMessage(player.GUID, obj.GUID, DriveState.Deployed, 0, false, Vector3.Zero))
-            ToggleTeleportSystem(obj, TelepadLike.AppraiseTeleportationSystem(obj, continent))
-          })
+        val deployedVehicles = allActiveVehicles.filter(_.DeploymentState == DriveState.Deployed)
+        deployedVehicles.filter(_.Definition == GlobalDefinitions.ams).foreach { obj =>
+          //???
+          sendResponse(PlanetsideAttributeMessage(obj.GUID, 81, 1))
+        }
+        deployedVehicles.filter(_.Definition == GlobalDefinitions.ant).foreach { obj =>
+          //special effects
+          sendResponse(PlanetsideAttributeMessage(obj.GUID, 52, 1)) // ant panel glow
+          Vehicles.FindANTChargingSource(obj, None).orElse(Vehicles.FindANTDischargingTarget(obj, None)) match {
+            case Some(silo : ResourceSilo) =>
+              sendResponse(PlanetsideAttributeMessage(silo.GUID, 49, 1)) // silo orb particle effect
+            case Some(_ : WarpGate) =>
+              sendResponse(PlanetsideAttributeMessage(obj.GUID, 49, 1)) // ant orb particle effect
+            case _ => ;
+          }
+        }
+        deployedVehicles.filter(_.Definition == GlobalDefinitions.router).foreach { obj =>
+          //the router won't work if it doesn't completely deploy
+          sendResponse(DeployRequestMessage(player.GUID, obj.GUID, DriveState.Deploying, 0, false, Vector3.Zero))
+          sendResponse(DeployRequestMessage(player.GUID, obj.GUID, DriveState.Deployed, 0, false, Vector3.Zero))
+          ToggleTeleportSystem(obj, TelepadLike.AppraiseTeleportationSystem(obj, continent))
+        }
 
         //implant terminals
-        continent.Map.TerminalToInterface.foreach({
-          case ((terminal_guid, interface_guid)) =>
-            val parent_guid = PlanetSideGUID(terminal_guid)
-            continent.GUID(interface_guid) match {
-              case Some(obj: Terminal) =>
-                val objDef = obj.Definition
-                sendResponse(
-                  ObjectCreateMessage(
-                    objDef.ObjectId,
-                    PlanetSideGUID(interface_guid),
-                    ObjectCreateMessageParent(parent_guid, 1),
-                    objDef.Packet.ConstructorData(obj).get
-                  )
+        continent.Map.TerminalToInterface.foreach({ case ((terminal_guid, interface_guid)) =>
+          val parent_guid = PlanetSideGUID(terminal_guid)
+          continent.GUID(interface_guid) match {
+            case Some(obj : Terminal) =>
+              val objDef = obj.Definition
+              sendResponse(
+                ObjectCreateMessage(
+                  objDef.ObjectId,
+                  PlanetSideGUID(interface_guid),
+                  ObjectCreateMessageParent(parent_guid, 1),
+                  objDef.Packet.ConstructorData(obj).get
                 )
-              case _ => ;
-            }
-            //seat terminal occupants
-            continent.GUID(terminal_guid) match {
-              case Some(obj: Mountable) =>
-                obj.Seats(0).Occupant match {
-                  case Some(tplayer) =>
-                    val tdefintion = tplayer.Definition
-                    sendResponse(
-                      ObjectCreateMessage(
-                        tdefintion.ObjectId,
-                        tplayer.GUID,
-                        ObjectCreateMessageParent(parent_guid, 0),
-                        tdefintion.Packet.ConstructorData(tplayer).get
-                      )
-                    )
-                  case None => ;
-                }
-              case _ => ;
-            }
-        })
-
-        //base turrets
-        continent.Map.TurretToWeapon
-          .map { case ((turret_guid, _)) => continent.GUID(turret_guid) }
-          .collect {
-            case Some(turret: FacilityTurret) =>
-              val pguid = turret.GUID
-              //attached weapon
-              if (!turret.isUpgrading) {
-                turret.ControlledWeapon(wepNumber = 1) match {
-                  case Some(obj: Tool) =>
-                    val objDef = obj.Definition
-                    sendResponse(
-                      ObjectCreateMessage(
-                        objDef.ObjectId,
-                        obj.GUID,
-                        ObjectCreateMessageParent(pguid, 1),
-                        objDef.Packet.ConstructorData(obj).get
-                      )
-                    )
-                  case _ => ;
-                }
-              }
-              //reserved ammunition?
-              //TODO need to register if it exists
-              //seat turret occupant
-              turret.Seats(0).Occupant match {
+              )
+            case _ => ;
+          }
+          //seat terminal occupants
+          continent.GUID(terminal_guid) match {
+            case Some(obj : Mountable) =>
+              obj.Seats(0).Occupant match {
                 case Some(tplayer) =>
                   val tdefintion = tplayer.Definition
                   sendResponse(
                     ObjectCreateMessage(
                       tdefintion.ObjectId,
                       tplayer.GUID,
-                      ObjectCreateMessageParent(pguid, 0),
+                      ObjectCreateMessageParent(parent_guid, 0),
                       tdefintion.Packet.ConstructorData(tplayer).get
                     )
                   )
                 case None => ;
               }
+            case _ => ;
+          }
+        })
+
+        //base turrets
+        continent.Map.TurretToWeapon
+          .map { case ((turret_guid, _)) => continent.GUID(turret_guid) }
+          .collect { case Some(turret : FacilityTurret) =>
+            val pguid = turret.GUID
+            //attached weapon
+            if(!turret.isUpgrading) {
+              turret.ControlledWeapon(wepNumber = 1) match {
+                case Some(obj : Tool) =>
+                  val objDef = obj.Definition
+                  sendResponse(
+                    ObjectCreateMessage(
+                      objDef.ObjectId,
+                      obj.GUID,
+                      ObjectCreateMessageParent(pguid, 1),
+                      objDef.Packet.ConstructorData(obj).get
+                    )
+                  )
+                case _ => ;
+              }
+            }
+            //reserved ammunition?
+            //TODO need to register if it exists
+            //seat turret occupant
+            turret.Seats(0).Occupant match {
+              case Some(tplayer) =>
+                val tdefintion = tplayer.Definition
+                sendResponse(
+                  ObjectCreateMessage(
+                    tdefintion.ObjectId,
+                    tplayer.GUID,
+                    ObjectCreateMessageParent(pguid, 0),
+                    tdefintion.Packet.ConstructorData(tplayer).get
+                  )
+                )
+              case None => ;
+            }
           }
         continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.UpdateAmsSpawnPoint(continent))
         upstreamMessageCount = 0
@@ -4806,7 +4567,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
               case Some((buildings, pos)) => (buildings, pos)
               case None                   => (None, None)
             }
-
             val (timerOption, timerPos) = args.zipWithIndex
               .map {
                 case (_, pos)
@@ -4908,8 +4668,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   case GlobalDefinitions.resource_silo =>
                     val r        = new scala.util.Random
                     val silo     = amenity.asInstanceOf[ResourceSilo]
-                    val ntu: Int = 900 + r.nextInt(100) - silo.ChargeLevel
-                    //                val ntu: Int = 0 + r.nextInt(100) - silo.ChargeLevel
+                    val ntu: Int = 900 + r.nextInt(100) - silo.NtuCapacitor
                     silo.Actor ! ResourceSilo.UpdateChargeLevel(ntu)
 
                   case _ => ;
@@ -5600,8 +5359,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
               sendResponse(GenericObjectStateMsg(object_guid, 16))
             }
 
-          case Some(resourceSilo: ResourceSilo) =>
-            resourceSilo.Actor ! ResourceSilo.Use(player, msg)
+          case Some(resourceSilo : ResourceSilo) =>
+            resourceSilo.Actor ! CommonMessages.Use(player)
 
           case Some(panel: IFFLock) =>
             equipment match {
@@ -7727,119 +7486,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   /**
-    * Perform specific operations depending on the target of deployment.
-    * @param obj the object that has had its deployment state changed
-    */
-  def DeploymentActivities(obj: Deployment.DeploymentObject): Unit = {
-    DeploymentActivities(obj, obj.DeploymentState)
-  }
-
-  /**
-    * Perform specific operations depending on the target of deployment.
-    * @param obj the object that has had its deployment state changed
-    * @param state the new deployment state
-    */
-  def DeploymentActivities(obj: Deployment.DeploymentObject, state: DriveState.Value): Unit = {
-    obj match {
-      case vehicle: Vehicle =>
-        Vehicles.ReloadAccessPermissions(vehicle, player.Name) //TODO we should not have to do this imho
-        //ams
-        if (vehicle.Definition == GlobalDefinitions.ams) {
-          state match {
-            case DriveState.Deployed =>
-              continent.VehicleEvents ! VehicleServiceMessage.AMSDeploymentChange(continent)
-              sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 81, 1))
-            case DriveState.Undeploying =>
-              continent.VehicleEvents ! VehicleServiceMessage.AMSDeploymentChange(continent)
-              sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 81, 0))
-            case DriveState.Mobile | DriveState.State7 =>
-            case _                                     => ;
-          }
-        }
-        //ant
-        else if (vehicle.Definition == GlobalDefinitions.ant) {
-          state match {
-            case DriveState.Deployed =>
-              // We only want this WorldSessionActor (not other player's WorldSessionActor) to manage timers
-              if (vehicle.Seats(0).Occupant.contains(player)) {
-                // Start ntu regeneration
-                // If vehicle sends UseItemMessage with silo as target NTU regeneration will be disabled and orb particles will be disabled
-                antChargingTick =
-                  context.system.scheduler.scheduleOnce(1000 milliseconds, self, NtuCharging(player, vehicle))
-              }
-            case DriveState.Undeploying =>
-              // We only want this WorldSessionActor (not other player's WorldSessionActor) to manage timers
-              if (vehicle.Seats(0).Occupant.contains(player)) {
-                antChargingTick.cancel() // Stop charging NTU if charging
-              }
-
-              continent.AvatarEvents ! AvatarServiceMessage(
-                continent.Id,
-                AvatarAction.PlanetsideAttribute(vehicle.GUID, 52, 0L)
-              ) // panel glow off
-              continent.AvatarEvents ! AvatarServiceMessage(
-                continent.Id,
-                AvatarAction.PlanetsideAttribute(vehicle.GUID, 49, 0L)
-              ) // orb particles off
-            case DriveState.Mobile | DriveState.State7 | DriveState.Deploying =>
-            case _                                                            => ;
-          }
-        }
-        //router
-        else if (vehicle.Definition == GlobalDefinitions.router) {
-          state match {
-            case DriveState.Deploying =>
-              vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
-                case Some(util: Utility.InternalTelepad) =>
-                  util.Active = true
-                case _ =>
-                  log.warn(
-                    s"DeploymentActivities: could not find internal telepad in router@${vehicle.GUID.guid} while $state"
-                  )
-              }
-            case DriveState.Deployed =>
-              //let the timer do all the work
-              continent.LocalEvents ! LocalServiceMessage(
-                continent.Id,
-                LocalAction.ToggleTeleportSystem(
-                  PlanetSideGUID(0),
-                  vehicle,
-                  TelepadLike.AppraiseTeleportationSystem(vehicle, continent)
-                )
-              )
-            case DriveState.Undeploying =>
-              //deactivate internal router before trying to reset the system
-              vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
-                case Some(util: Utility.InternalTelepad) =>
-                  //any telepads linked with internal mechanism must be deconstructed
-                  continent.GUID(util.Telepad) match {
-                    case Some(telepad: TelepadDeployable) =>
-                      continent.LocalEvents ! LocalServiceMessage.Deployables(
-                        RemoverActor.ClearSpecific(List(telepad), continent)
-                      )
-                      continent.LocalEvents ! LocalServiceMessage.Deployables(
-                        RemoverActor.AddTask(telepad, continent, Some(0 milliseconds))
-                      )
-                    case Some(_) | None => ;
-                  }
-                  util.Active = false
-                  continent.LocalEvents ! LocalServiceMessage(
-                    continent.Id,
-                    LocalAction.ToggleTeleportSystem(PlanetSideGUID(0), vehicle, None)
-                  )
-                case _ =>
-                  log.warn(
-                    s"DeploymentActivities: could not find internal telepad in router@${vehicle.GUID.guid} while $state"
-                  )
-              }
-            case _ => ;
-          }
-        }
-      case _ => ;
-    }
-  }
-
-  /**
     * Common reporting behavior when a `Deployment` object fails to properly transition between states.
     * @param obj the game object that could not
     * @param state the `DriveState` that could not be promoted
@@ -8051,8 +7697,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
         //silo capacity
         sendResponse(PlanetsideAttributeMessage(amenityId, 45, silo.CapacitorDisplay))
         //warning lights
-        sendResponse(PlanetsideAttributeMessage(silo.Owner.GUID, 47, if (silo.LowNtuWarningOn) 1 else 0))
-        if (silo.ChargeLevel == 0) {
+        sendResponse(PlanetsideAttributeMessage(silo.Owner.GUID, 47, if(silo.LowNtuWarningOn) 1 else 0))
+        if(silo.NtuCapacitor == 0) {
           sendResponse(PlanetsideAttributeMessage(silo.Owner.GUID, 48, 1))
         }
       case door: Door if door.isOpen =>
@@ -10252,23 +9898,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   /**
-    * Before a vehicle is removed from the game world, the following actions must be performed.
-    * @param vehicle the vehicle
-    */
-  def BeforeUnloadVehicle(vehicle: Vehicle): Unit = {
-    vehicle.Definition match {
-      case GlobalDefinitions.ams if vehicle.Faction == player.Faction =>
-        log.info("BeforeUnload: cleaning up after a mobile spawn vehicle ...")
-        continent.VehicleEvents ! VehicleServiceMessage(continent.Id, VehicleAction.UpdateAmsSpawnPoint(continent))
-      case GlobalDefinitions.router =>
-        //this may repeat for multiple players on the same continent but that's okay(?)
-        log.info("BeforeUnload: cleaning up after a router ...")
-        Deployables.RemoveTelepad(vehicle)
-      case _ => ;
-    }
-  }
-
-  /**
     * For a certain weapon that cna load ammunition, enforce that its magazine is empty.
     * @param weapon_guid the weapon
     */
@@ -11649,10 +11278,6 @@ object WorldSessionActor {
       armor: Int,
       position: Vector3
   )
-
-  private final case class NtuCharging(tplayer: Player, vehicle: Vehicle)
-
-  private final case class NtuDischarging(tplayer: Player, vehicle: Vehicle, silo_guid: PlanetSideGUID)
 
   private final case class FinalizeDeployable(
       obj: PlanetSideGameObject with Deployable,

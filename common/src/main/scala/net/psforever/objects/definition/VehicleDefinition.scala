@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition
 
+import net.psforever.objects.NtuContainerDefinition
 import net.psforever.objects.definition.converter.VehicleConverter
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.vehicles.{DestroyedVehicle, UtilityType}
@@ -18,9 +19,9 @@ import scala.concurrent.duration._
 class VehicleDefinition(objectId: Int)
     extends ObjectDefinition(objectId)
     with VitalityDefinition
+    with NtuContainerDefinition
     with ResistanceProfileMutators
     with DamageResistanceModel {
-
   /** vehicle shields offered through amp station facility benefits (generally: 20% of health + 1) */
   private var maxShields: Int = 0
   /* key - seat index, value - seat object */
@@ -46,7 +47,6 @@ class VehicleDefinition(objectId: Int)
   private var serverVehicleOverrideSpeeds: (Int, Int)        = (0, 0)
   private var deconTime: Option[FiniteDuration]              = None
   private var maxCapacitor: Int                              = 0
-  private var maxNtuCapacitor: Int                           = 0
   private var destroyedModel: Option[DestroyedVehicle.Value] = None
   Name = "vehicle"
   Packet = VehicleDefinition.converter
@@ -161,16 +161,9 @@ class VehicleDefinition(objectId: Int)
 
   def AutoPilotSpeed2: Int = serverVehicleOverrideSpeeds._2
 
-  def MaxNtuCapacitor: Int = maxNtuCapacitor
+  def MaxCapacitor : Int = maxCapacitor
 
-  def MaxNtuCapacitor_=(max: Int): Int = {
-    maxNtuCapacitor = max
-    MaxNtuCapacitor
-  }
-
-  def MaxCapacitor: Int = maxCapacitor
-
-  def MaxCapacitor_=(max: Int): Int = {
+  def MaxCapacitor_=(max: Int) : Int = {
     maxCapacitor = max
     MaxCapacitor
   }
