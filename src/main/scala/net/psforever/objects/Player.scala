@@ -1,8 +1,16 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.avatar.{Avatar, LoadoutManager}
-import net.psforever.objects.definition.{AvatarDefinition, ExoSuitDefinition, SpecialExoSuitDefinition}
+import net.psforever.objects.avatar.{
+  Avatar,
+  Aura => AuraEffect,
+  LoadoutManager
+}
+import net.psforever.objects.definition.{
+  AvatarDefinition,
+  ExoSuitDefinition,
+  SpecialExoSuitDefinition
+}
 import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot, JammableUnit}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
 import net.psforever.objects.serverobject.PlanetSideServerObject
@@ -48,6 +56,8 @@ class Player(var avatar: Avatar)
   private var afk: Boolean          = false
 
   private var vehicleSeated: Option[PlanetSideGUID] = None
+
+  private var aura : Set[AuraEffect.Value] = Set.empty[AuraEffect.Value]
 
   Continent = "home2" //the zone id
 
@@ -344,6 +354,18 @@ class Player(var avatar: Avatar)
   def AwayFromKeyboard_=(away: Boolean): Boolean = {
     afk = away
     AwayFromKeyboard
+  }
+  
+  def Aura : Set[AuraEffect.Value] = aura
+
+  def AddEffectToAura(effect : AuraEffect.Value) : Set[AuraEffect.Value] = {
+    aura = aura + effect
+    Aura
+  }
+
+  def RemoveEffectFromAura(effect : AuraEffect.Value) : Set[AuraEffect.Value] = {
+    aura = aura - effect
+    Aura
   }
 
   private var usingSpecial: SpecialExoSuitDefinition.Mode.Value => SpecialExoSuitDefinition.Mode.Value =
