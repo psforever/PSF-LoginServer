@@ -355,7 +355,7 @@ class Player(var avatar: Avatar)
     afk = away
     AwayFromKeyboard
   }
-  
+
   def Aura : Set[AuraEffect.Value] = aura
 
   def AddEffectToAura(effect : AuraEffect.Value) : Set[AuraEffect.Value] = {
