@@ -2,7 +2,8 @@
 package net.psforever.objects
 
 import net.psforever.objects.avatar.Certification
-import net.psforever.objects.ballistics.{AggravatedDamage, AggravatedEffect, AggravatedInfo, Projectiles}
+import net.psforever.objects.avatar.Aura
+import net.psforever.objects.ballistics.{AggravatedDamage, AggravatedInfo, Projectiles}
 import net.psforever.objects.ce.{DeployableCategory, DeployedItem}
 import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter._
@@ -2312,7 +2313,7 @@ object GlobalDefinitions {
     aphelion_starfire_projectile.ProjectileDamageType = DamageType.Aggravated
     aphelion_starfire_projectile.Aggravated = AggravatedDamage(
       AggravatedInfo(DamageType.Direct, 0.25f, 250),
-      AggravatedEffect.None,
+      Aura.None,
       0,
       0f,
       true
@@ -2443,7 +2444,7 @@ object GlobalDefinitions {
     comet_projectile.ProjectileDamageType = DamageType.Aggravated
     comet_projectile.Aggravated = AggravatedDamage(
       AggravatedInfo(DamageType.Direct, 0.2f, 500),
-      AggravatedEffect.Comet,
+      Aura.Comet,
       0,
       10f
     )
@@ -2594,7 +2595,7 @@ object GlobalDefinitions {
     flamethrower_fireball.ProjectileDamageType = DamageType.Aggravated
     flamethrower_fireball.Aggravated = AggravatedDamage(
       List(AggravatedInfo(DamageType.Direct, 0.9f, 500), AggravatedInfo(DamageType.Splash, 0.9f, 500)),
-      AggravatedEffect.Fire,
+      Aura.Fire,
       5000,
       0.1f,
       false,
@@ -2615,7 +2616,7 @@ object GlobalDefinitions {
     flamethrower_projectile.ProjectileDamageType = DamageType.Aggravated
     flamethrower_projectile.Aggravated = AggravatedDamage(
       List(AggravatedInfo(DamageType.Direct, 0.5f, 500)),
-      AggravatedEffect.Fire,
+      Aura.Fire,
       5000,
       0.5f,
       false,
@@ -3451,7 +3452,7 @@ object GlobalDefinitions {
     plasma_cartridge_projectile.ProjectileDamageType = DamageType.Aggravated
     plasma_cartridge_projectile.Aggravated = AggravatedDamage(
       List(AggravatedInfo(DamageType.Direct, 0.25f, 750), AggravatedInfo(DamageType.Splash, 0.25f, 1000)),
-      AggravatedEffect.Plasma,
+      Aura.Plasma,
       0,
       1.5f,
       true,
@@ -3470,7 +3471,7 @@ object GlobalDefinitions {
     plasma_cartridge_projectile_b.ProjectileDamageType = DamageType.Aggravated
     plasma_cartridge_projectile_b.Aggravated = AggravatedDamage(
       List(AggravatedInfo(DamageType.Direct, 0.25f, 750), AggravatedInfo(DamageType.Splash, 0.25f, 1000)),
-      AggravatedEffect.Plasma,
+      Aura.Plasma,
       0,
       1.5f,
       true,
@@ -3488,7 +3489,7 @@ object GlobalDefinitions {
     plasma_grenade_projectile.ProjectileDamageType = DamageType.Aggravated
     plasma_grenade_projectile.Aggravated = AggravatedDamage(
       List(AggravatedInfo(DamageType.Direct, 0.25f, 750), AggravatedInfo(DamageType.Splash, 0.25f, 1000)),
-      AggravatedEffect.Plasma,
+      Aura.Plasma,
       0,
       1.5f,
       true,
@@ -3507,7 +3508,7 @@ object GlobalDefinitions {
     plasma_grenade_projectile_B.ProjectileDamageType = DamageType.Aggravated
     plasma_grenade_projectile_B.Aggravated = AggravatedDamage(
       List(AggravatedInfo(DamageType.Direct, 0.25f, 750), AggravatedInfo(DamageType.Splash, 0.25f, 1000)),
-      AggravatedEffect.Plasma,
+      Aura.Plasma,
       0,
       1.5f,
       true,
@@ -3816,7 +3817,7 @@ object GlobalDefinitions {
     starfire_projectile.ProjectileDamageType = DamageType.Aggravated
     starfire_projectile.Aggravated = AggravatedDamage(
       AggravatedInfo(DamageType.Direct, 0.25f, 250),
-      AggravatedEffect.Comet,
+      Aura.Comet,
       0,
       0f,
       true
