@@ -2,7 +2,6 @@ package net.psforever.pslogin
 
 import java.net.InetAddress
 import java.util.Locale
-
 import akka.actor.{ActorSystem, Props}
 import akka.routing.RandomPool
 import ch.qos.logback.classic.LoggerContext
@@ -25,9 +24,17 @@ import org.apache.commons.io.FileUtils
 import services.properties.PropertyOverrideManager
 import org.flywaydb.core.Flyway
 import java.nio.file.Paths
+import scopt.OParser
 
 object PsLogin {
   private val logger = org.log4s.getLogger
+
+  case class CliConfig(
+      command: String = "run",
+      noAutoMigrate: Boolean = false,
+      baselineOnMigrate: Boolean = false,
+      bind: Option[String] = None
+  )
 
   def printBanner(): Unit = {
     println(ansi().fgBright(BLUE).a("""   ___  ________"""))
@@ -44,84 +51,30 @@ object PsLogin {
     val maxMemory  = FileUtils.byteCountToDisplaySize(Runtime.getRuntime.maxMemory())
 
     s"""|~~~ System Information ~~~
-       |SYS: ${System.getProperty("os.name")} (v. ${System.getProperty("os.version")}, ${System.getProperty("os.arch")})
-       |CPU: Detected $processors available logical processor${if (processors != 1) "s" else ""}
-       |MEM: ${maxMemory} available to the JVM (tune with -Xmx flag)
-       |JVM: ${System.getProperty("java.vm.name")} (build ${System.getProperty("java.version")}), ${System.getProperty(
+        |SYS: ${System.getProperty("os.name")} (v. ${System.getProperty("os.version")}, ${System
+      .getProperty("os.arch")})
+        |CPU: Detected $processors available logical processor${if (processors != 1) "s" else ""}
+        |MEM: $maxMemory available to the JVM (tune with -Xmx flag)
+        |JVM: ${System.getProperty("java.vm.name")} (build ${System.getProperty("java.version")}), ${System.getProperty(
       "java.vendor"
     )} - ${System.getProperty("java.vendor.url")}
     """.stripMargin
   }
 
-  def main(args: Array[String]): Unit = {
-    Locale.setDefault(Locale.US); // to have floats with dots, not comma
-
-    printBanner()
-    println(systemInformation)
-
-    val loggerConfigPath = Paths.get(Config.directory, "logback.xml").toAbsolutePath().toString()
-    val loggerContext    = slf4j.LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
-    val configurator     = new JoranConfigurator()
-    configurator.setContext(loggerContext)
-    loggerContext.reset()
-    configurator.doConfigure(loggerConfigPath)
-
-    Config.result match {
-      case Left(failures) =>
-        logger.error("Loading config failed")
-        failures.toList.foreach { failure =>
-          logger.error(failure.toString)
-        }
-        sys.exit(1)
-      case Right(_) =>
-    }
-
+  def run(args: CliConfig): Unit = {
     val bindAddress: InetAddress =
-      args.lift(0) match {
+      args.bind match {
         case Some(address) => InetAddress.getByName(address)         // address from first argument
         case None          => InetAddress.getByName(Config.app.bind) // address from config
       }
 
-    /** Initialize the PSCrypto native library
-      *
-      * PSCrypto provides PlanetSide specific crypto that is required to communicate with it.
-      * It has to be distributed as a native library because there is no Scala version of the required
-      * cryptographic primitives (MD5MAC). See https://github.com/psforever/PSCrypto for more information.
-      */
-    try {
-      CryptoInterface.initialize()
-    } catch {
-      case e: UnsatisfiedLinkError =>
-        logger.error("Unable to initialize " + CryptoInterface.libName)
-        logger.error(e)(
-          "This means that your PSCrypto version is out of date. Get the latest version from the README" +
-            " https://github.com/psforever/PSF-LoginServer#downloading-pscrypto"
-        )
-        sys.exit(1)
-      case e: IllegalArgumentException =>
-        logger.error("Unable to initialize " + CryptoInterface.libName)
-        logger.error(e)(
-          "This means that your PSCrypto version is out of date. Get the latest version from the README" +
-            " https://github.com/psforever/PSF-LoginServer#downloading-pscrypto"
-        )
-        sys.exit(1)
-    }
-
-    val flyway = Flyway
-      .configure()
-      .dataSource(Config.app.database.toJdbc, Config.app.database.username, Config.app.database.password)
-      .load();
-    flyway.migrate();
-
-    Config.app.kamon.enable match {
-      case true =>
-        logger.info("Starting Kamon")
-        Kamon.init()
-      case _ => ;
+    if (Config.app.kamon.enable) {
+      logger.info("Starting Kamon")
+      Kamon.init()
     }
 
     /** Start up the main actor system. This "system" is the home for all actors running on this server */
-    implicit val system = ActorSystem("PsLogin")
+    implicit val system: ActorSystem = ActorSystem("PsLogin")
     Default(system)
 
     /** Create pipelines for the login and world servers
@@ -144,18 +97,18 @@ object PsLogin {
       SessionPipeline("world-session-", Props[WorldSessionActor])
     )
 
-    val netSim: Option[NetworkSimulatorParameters] = Config.app.developer.netSim.enable match {
-      case true =>
-        val params = NetworkSimulatorParameters(
-          Config.app.developer.netSim.loss,
-          Config.app.developer.netSim.delay.toMillis,
-          Config.app.developer.netSim.reorderChance,
-          Config.app.developer.netSim.reorderTime.toMillis
-        )
-        logger.warn("NetSim is active")
-        logger.warn(params.toString)
-        Some(params)
-      case false => None
+    val netSim: Option[NetworkSimulatorParameters] = if (Config.app.developer.netSim.enable) {
+      val params = NetworkSimulatorParameters(
+        Config.app.developer.netSim.loss,
+        Config.app.developer.netSim.delay.toMillis,
+        Config.app.developer.netSim.reorderChance,
+        Config.app.developer.netSim.reorderTime.toMillis
+      )
+      logger.warn("NetSim is active")
+      logger.warn(params.toString)
+      Some(params)
+    } else {
+      None
     }
 
     val continents = Zones.zones.values ++ Seq(Zone.Nowhere)
@@ -202,5 +155,110 @@ object PsLogin {
       // TODO: clean up active sessions and close resources safely
       logger.info("Login server now shutting down...")
     }
+  }
+
+  def flyway(args: CliConfig): Flyway = {
+    Flyway
+      .configure()
+      .dataSource(Config.app.database.toJdbc, Config.app.database.username, Config.app.database.password)
+      .baselineOnMigrate(args.baselineOnMigrate)
+      .load()
+  }
+
+  def migrate(args: CliConfig): Unit = {
+    flyway(args).migrate()
+  }
+
+  def main(args: Array[String]): Unit = {
+    Locale.setDefault(Locale.US); // to have floats with dots, not comma
+
+    printBanner()
+    println(systemInformation)
+
+    val loggerConfigPath = Paths.get(Config.directory, "logback.xml").toAbsolutePath.toString
+    val loggerContext    = slf4j.LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
+    val configurator     = new JoranConfigurator()
+    configurator.setContext(loggerContext)
+    loggerContext.reset()
+    configurator.doConfigure(loggerConfigPath)
+
+    Config.result match {
+      case Left(failures) =>
+        logger.error("Loading config failed")
+        failures.toList.foreach { failure =>
+          logger.error(failure.toString)
+        }
+        sys.exit(1)
+      case Right(_) =>
+    }
+
+    /** Initialize the PSCrypto native library
+      *
+      * PSCrypto provides PlanetSide specific crypto that is required to communicate with it.
+      * It has to be distributed as a native library because there is no Scala version of the required
+      * cryptographic primitives (MD5MAC). See https://github.com/psforever/PSCrypto for more information.
+      */
+    try {
+      CryptoInterface.initialize()
+    } catch {
+      case e: UnsatisfiedLinkError =>
+        logger.error("Unable to initialize " + CryptoInterface.libName)
+        logger.error(e)(
+          "This means that your PSCrypto version is out of date. Get the latest version from the README" +
+            " https://github.com/psforever/PSF-LoginServer#downloading-pscrypto"
+        )
+        sys.exit(1)
+      case e: IllegalArgumentException =>
+        logger.error("Unable to initialize " + CryptoInterface.libName)
+        logger.error(e)(
+          "This means that your PSCrypto version is out of date. Get the latest version from the README" +
+            " https://github.com/psforever/PSF-LoginServer#downloading-pscrypto"
+        )
+        sys.exit(1)
+    }
+
+    val builder = OParser.builder[CliConfig]
+
+    val parser = {
+      import builder._
+      OParser.sequence(
+        programName("ps-login"),
+        opt[Unit]("no-auto-migrate")
+          .action((_, c) => c.copy(noAutoMigrate = true))
+          .text("Do not auto migrate database."),
+        opt[Unit]("baseline-on-migrate")
+          .action((_, c) => c.copy(baselineOnMigrate = true))
+          .text("Automatically baseline existing databases."),
+        cmd("run")
+          .action((_, c) => c.copy(command = "run"))
+          .text("Run server.")
+          .children(
+            opt[String]("bind")
+              .action((x, c) => c.copy(bind = Some(x)))
+              .text("Bind address")
+          ),
+        cmd("migrate")
+          .action((_, c) => c.copy(command = "migrate"))
+          .text("Apply database migrations.")
+      )
+    }
+
+    OParser.parse(parser, args, CliConfig()) match {
+      case Some(config) =>
+        config.command match {
+          case "run" =>
+            if (config.noAutoMigrate) {
+              flyway(config).validate()
+            } else {
+              migrate(config)
+            }
+            run(config)
+          case "migrate" =>
+            migrate(config)
+        }
+      case _ =>
+        sys.exit(1)
+    }
+
   }
 }

@@ -73,7 +73,8 @@ lazy val commonSettings = Seq(
     "com.github.pureconfig"      %% "pureconfig"              % "0.13.0",
     "com.beachape"               %% "enumeratum"              % "1.6.1",
     "joda-time"                   % "joda-time"               % "2.10.6",
-    "commons-io"                  % "commons-io"              % "2.6"
+    "commons-io"                  % "commons-io"              % "2.6",
+    "com.github.scopt"           %% "scopt"                   % "4.0.0-RC2"
   )
 )
 
@@ -131,8 +132,7 @@ lazy val decodePackets = (project in file("tools/decode-packets"))
   .settings(decodePacketsPackSettings: _*)
   .settings(
     libraryDependencies ++= Seq(
-      "org.scala-lang.modules" %% "scala-parallel-collections" % "0.2.0",
-      "com.github.scopt"       %% "scopt"                      % "4.0.0-RC2"
+      "org.scala-lang.modules" %% "scala-parallel-collections" % "0.2.0"
     )
   )
   .dependsOn(common)
