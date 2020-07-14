@@ -23,29 +23,36 @@ import scala.collection.mutable
   * these structures are updated to reflect proper count.
   */
 class DeployableToolbox {
+
   /**
     * a map of bins for keeping track of the quantities of deployables in a category
     * keys: categories, values: quantity storage object
     */
-  private val categoryCounts = DeployableCategory.values.toSeq.map(value => { value -> new DeployableToolbox.Bin }).toMap
+  private val categoryCounts =
+    DeployableCategory.values.toSeq.map(value => { value -> new DeployableToolbox.Bin }).toMap
   categoryCounts(DeployableCategory.Telepads).Max = 1024
+
   /**
     * a map of bins for keeping track of the quantities of individual deployables
     * keys: deployable types, values: quantity storage object
     */
   private val deployableCounts = DeployedItem.values.toSeq.map(value => { value -> new DeployableToolbox.Bin }).toMap
   deployableCounts(DeployedItem.router_telepad_deployable).Max = 1024
+
   /**
     * a map of tracked/owned individual deployables
     * keys: categories, values: deployable objects
     */
   private val deployableLists =
-    DeployableCategory.values.toSeq.map(value => { value -> mutable.ListBuffer[DeployableToolbox.AcceptableDeployable]() }).toMap
+    DeployableCategory.values.toSeq
+      .map(value => { value -> mutable.ListBuffer[DeployableToolbox.AcceptableDeployable]() })
+      .toMap
+
   /**
     * can only be initialized once
     * set during the `Initialization` method primarily, and in `Add` and in `Remove` if not
     */
-  private var initialized : Boolean = false
+  private var initialized: Boolean = false
 
   /**
     * Set up the initial deployable counts by providing certification values to be used in category and unit selection.
@@ -53,13 +60,12 @@ class DeployableToolbox {
     * @return `true`, if this is the first time and actual "initialization" is performed;
     *        `false`, otherwise
     */
-  def Initialize(certifications : Set[CertificationType.Value]) : Boolean = {
-    if(!initialized) {
+  def Initialize(certifications: Set[CertificationType.Value]): Boolean = {
+    if (!initialized) {
       DeployableToolbox.Initialize(deployableCounts, categoryCounts, certifications)
       initialized = true
       true
-    }
-    else {
+    } else {
       false
     }
   }
@@ -72,7 +78,10 @@ class DeployableToolbox {
     *                         occasionally, important former certification values are required for additional configuration;
     *                         the new certification should already have been added to this group
     */
-  def AddToDeployableQuantities(certification : CertificationType.Value, certificationSet : Set[CertificationType.Value]) : Unit = {
+  def AddToDeployableQuantities(
+      certification: CertificationType.Value,
+      certificationSet: Set[CertificationType.Value]
+  ): Unit = {
     initialized = true
     DeployableToolbox.AddToDeployableQuantities(deployableCounts, categoryCounts, certification, certificationSet)
   }
@@ -86,7 +95,10 @@ class DeployableToolbox {
     *                         occasionally, important former certification values are required for additional configuration;
     *                         the new certification should already have been excluded from this group
     */
-  def RemoveFromDeployableQuantities(certification : CertificationType.Value, certificationSet : Set[CertificationType.Value]) : Unit = {
+  def RemoveFromDeployableQuantities(
+      certification: CertificationType.Value,
+      certificationSet: Set[CertificationType.Value]
+  ): Unit = {
     initialized = true
     DeployableToolbox.RemoveFromDeployablesQuantities(deployableCounts, categoryCounts, certification, certificationSet)
   }
@@ -100,7 +112,7 @@ class DeployableToolbox {
     * @return `true`, if it can be managed under the current conditions;
     *        `false`, otherwise
     */
-  def Accept(obj : DeployableToolbox.AcceptableDeployable) : Boolean = {
+  def Accept(obj: DeployableToolbox.AcceptableDeployable): Boolean = {
     Valid(obj) && Available(obj) && !Contains(obj)
   }
 
@@ -111,9 +123,9 @@ class DeployableToolbox {
     * @return `true`, if both category maximum and deployable type maximum are positive non-zero integers;
     *        `false`, otherwise
     */
-  def Valid(obj : DeployableToolbox.AcceptableDeployable) : Boolean = {
+  def Valid(obj: DeployableToolbox.AcceptableDeployable): Boolean = {
     deployableCounts(DeployableToolbox.UnifiedType(obj.Definition.Item)).Max > 0 &&
-      categoryCounts(obj.Definition.DeployCategory).Max > 0
+    categoryCounts(obj.Definition.DeployCategory).Max > 0
   }
 
   /**
@@ -124,9 +136,9 @@ class DeployableToolbox {
     * @return `true`, if the deployable can be added to the support lists and counted;
     *        `false`, otherwise
     */
-  def Available(obj : DeployableToolbox.AcceptableDeployable) : Boolean = {
-      deployableCounts(DeployableToolbox.UnifiedType(obj.Definition.Item)).Available &&
-      categoryCounts(obj.Definition.DeployCategory).Available
+  def Available(obj: DeployableToolbox.AcceptableDeployable): Boolean = {
+    deployableCounts(DeployableToolbox.UnifiedType(obj.Definition.Item)).Available &&
+    categoryCounts(obj.Definition.DeployCategory).Available
   }
 
   /**
@@ -136,7 +148,7 @@ class DeployableToolbox {
     * @return `true`, if the deployable can be found in one of the lists;
     *        `false`, otherwise
     */
-  def Contains(obj : DeployableToolbox.AcceptableDeployable) : Boolean = {
+  def Contains(obj: DeployableToolbox.AcceptableDeployable): Boolean = {
     deployableLists(obj.Definition.DeployCategory).contains(obj)
   }
 
@@ -152,18 +164,17 @@ class DeployableToolbox {
     * @return `true`, if the deployable is added;
     *        `false`, otherwise
     */
-  def Add(obj : DeployableToolbox.AcceptableDeployable) : Boolean = {
-    val category = obj.Definition.DeployCategory
+  def Add(obj: DeployableToolbox.AcceptableDeployable): Boolean = {
+    val category  = obj.Definition.DeployCategory
     val dCategory = categoryCounts(category)
-    val dType = deployableCounts(DeployableToolbox.UnifiedType(obj.Definition.Item))
-    val dList = deployableLists(category)
-    if(dCategory.Available() && dType.Available() && !dList.contains(obj)) {
+    val dType     = deployableCounts(DeployableToolbox.UnifiedType(obj.Definition.Item))
+    val dList     = deployableLists(category)
+    if (dCategory.Available() && dType.Available() && !dList.contains(obj)) {
       dCategory.Current += 1
       dType.Current += 1
       dList += obj
       true
-    }
-    else {
+    } else {
       false
     }
   }
@@ -179,16 +190,15 @@ class DeployableToolbox {
     * @return `true`, if the deployable is added;
     *        `false`, otherwise
     */
-  def Remove(obj : DeployableToolbox.AcceptableDeployable) : Boolean = {
-    val category = obj.Definition.DeployCategory
+  def Remove(obj: DeployableToolbox.AcceptableDeployable): Boolean = {
+    val category    = obj.Definition.DeployCategory
     val deployables = deployableLists(category)
-    if(deployables.contains(obj)) {
+    if (deployables.contains(obj)) {
       categoryCounts(category).Current -= 1
       deployableCounts(DeployableToolbox.UnifiedType(obj.Definition.Item)).Current -= 1
       deployables -= obj
       true
-    }
-    else {
+    } else {
       false
     }
   }
@@ -199,7 +209,7 @@ class DeployableToolbox {
     * @param obj the example deployable
     * @return any deployable that is found
     */
-  def DisplaceFirst(obj : DeployableToolbox.AcceptableDeployable) : Option[DeployableToolbox.AcceptableDeployable] = {
+  def DisplaceFirst(obj: DeployableToolbox.AcceptableDeployable): Option[DeployableToolbox.AcceptableDeployable] = {
     DisplaceFirst(obj, { d => d.Definition.Item == obj.Definition.Item })
   }
 
@@ -213,11 +223,14 @@ class DeployableToolbox {
     * @param rule the testing rule for determining a valid deployable
     * @return any deployable that is found
     */
-  def DisplaceFirst(obj : DeployableToolbox.AcceptableDeployable, rule : (Deployable)=> Boolean) : Option[DeployableToolbox.AcceptableDeployable] = {
-    val definition = obj.Definition
-    val category = definition.DeployCategory
+  def DisplaceFirst(
+      obj: DeployableToolbox.AcceptableDeployable,
+      rule: (Deployable) => Boolean
+  ): Option[DeployableToolbox.AcceptableDeployable] = {
+    val definition   = obj.Definition
+    val category     = definition.DeployCategory
     val categoryList = deployableLists(category)
-    if(categoryList.nonEmpty) {
+    if (categoryList.nonEmpty) {
       val found = categoryList.find(rule) match {
         case Some(target) =>
           categoryList.remove(categoryList.indexOf(target))
@@ -227,8 +240,7 @@ class DeployableToolbox {
       categoryCounts(category).Current -= 1
       deployableCounts(DeployableToolbox.UnifiedType(found.Definition.Item)).Current -= 1
       Some(found)
-    }
-    else {
+    } else {
       None
     }
   }
@@ -239,15 +251,14 @@ class DeployableToolbox {
     * @param category the target category
     * @return any deployable that is found
     */
-  def DisplaceFirst(category : DeployableCategory.Value) : Option[DeployableToolbox.AcceptableDeployable] = {
+  def DisplaceFirst(category: DeployableCategory.Value): Option[DeployableToolbox.AcceptableDeployable] = {
     val categoryList = deployableLists(category)
-    if(categoryList.nonEmpty) {
+    if (categoryList.nonEmpty) {
       val found = categoryList.remove(0)
       categoryCounts(category).Current -= 1
       deployableCounts(DeployableToolbox.UnifiedType(found.Definition.Item)).Current -= 1
       Some(found)
-    }
-    else {
+    } else {
       None
     }
   }
@@ -257,7 +268,7 @@ class DeployableToolbox {
     * @param filter the example deployable
     * @return a list of globally unique identifiers that should be valid for the current zone
     */
-  def Deployables(filter : DeployableToolbox.AcceptableDeployable) : List[PlanetSideGUID] = {
+  def Deployables(filter: DeployableToolbox.AcceptableDeployable): List[PlanetSideGUID] = {
     Deployables(filter.Definition.Item)
   }
 
@@ -266,10 +277,11 @@ class DeployableToolbox {
     * @param filter the type of deployable
     * @return a list of globally unique identifiers that should be valid for the current zone
     */
-  def Deployables(filter : DeployedItem.Value) : List[PlanetSideGUID] = {
+  def Deployables(filter: DeployedItem.Value): List[PlanetSideGUID] = {
     deployableLists(Deployable.Category.Of(filter))
       .filter(entry => { entry.Definition.Item == filter })
-      .map(_.GUID).toList
+      .map(_.GUID)
+      .toList
   }
 
   /**
@@ -277,7 +289,7 @@ class DeployableToolbox {
     * @param filter the example deployable
     * @return a list of globally unique identifiers that should be valid for the current zone
     */
-  def Category(filter : DeployableToolbox.AcceptableDeployable) : List[PlanetSideGUID] = {
+  def Category(filter: DeployableToolbox.AcceptableDeployable): List[PlanetSideGUID] = {
     Category(filter.Definition.DeployCategory)
   }
 
@@ -286,7 +298,7 @@ class DeployableToolbox {
     * @param filter the type of deployable
     * @return a list of globally unique identifiers that should be valid for the current zone
     */
-  def Category(filter : DeployableCategory.Value) : List[PlanetSideGUID] = {
+  def Category(filter: DeployableCategory.Value): List[PlanetSideGUID] = {
     deployableLists(filter).map(_.GUID).toList
   }
 
@@ -295,7 +307,7 @@ class DeployableToolbox {
     * @param item the example deployable
     * @return the current quantity of deployables and the maximum number
     */
-  def CountDeployable(item : DeployedItem.Value) : (Int, Int) = {
+  def CountDeployable(item: DeployedItem.Value): (Int, Int) = {
     val dType = deployableCounts(DeployableToolbox.UnifiedType(item))
     (dType.Current, dType.Max)
   }
@@ -305,21 +317,21 @@ class DeployableToolbox {
     * @param item the example deployable
     * @return the current quantity of deployables and the maximum number
     */
-  def CountCategory(item : DeployedItem.Value) : (Int, Int) = {
+  def CountCategory(item: DeployedItem.Value): (Int, Int) = {
     val dCat = categoryCounts(Deployable.Category.Of(DeployableToolbox.UnifiedType(item)))
     (dCat.Current, dCat.Max)
   }
 
-  def UpdateUIElement(entry : DeployedItem.Value) : List[(Int,Int,Int,Int)] = {
-    val toEntry = DeployableToolbox.UnifiedType(entry)
+  def UpdateUIElement(entry: DeployedItem.Value): List[(Int, Int, Int, Int)] = {
+    val toEntry     = DeployableToolbox.UnifiedType(entry)
     val (curr, max) = Deployable.UI(toEntry)
-    val dType = deployableCounts(toEntry)
+    val dType       = deployableCounts(toEntry)
     List((curr, dType.Current, max, dType.Max))
   }
 
-  def UpdateUI() : List[(Int,Int,Int,Int)] = DeployedItem.values flatMap UpdateUIElement toList
+  def UpdateUI(): List[(Int, Int, Int, Int)] = DeployedItem.values flatMap UpdateUIElement toList
 
-  def UpdateUI(entry : CertificationType.Value) : List[(Int,Int,Int,Int)] = {
+  def UpdateUI(entry: CertificationType.Value): List[(Int, Int, Int, Int)] = {
     import CertificationType._
     entry match {
       case AdvancedHacking =>
@@ -327,19 +339,26 @@ class DeployableToolbox {
 
       case CombatEngineering =>
         List(
-          DeployedItem.boomer, DeployedItem.he_mine, DeployedItem.spitfire_turret, DeployedItem.motionalarmsensor
+          DeployedItem.boomer,
+          DeployedItem.he_mine,
+          DeployedItem.spitfire_turret,
+          DeployedItem.motionalarmsensor
         ) flatMap UpdateUIElement
 
       case AssaultEngineering =>
         List(
-          DeployedItem.jammer_mine, DeployedItem.portable_manned_turret, DeployedItem.deployable_shield_generator
+          DeployedItem.jammer_mine,
+          DeployedItem.portable_manned_turret,
+          DeployedItem.deployable_shield_generator
         ) flatMap UpdateUIElement
 
       case FortificationEngineering =>
         List(
           DeployedItem.boomer,
           DeployedItem.he_mine,
-          DeployedItem.spitfire_turret, DeployedItem.spitfire_cloaked, DeployedItem.spitfire_aa,
+          DeployedItem.spitfire_turret,
+          DeployedItem.spitfire_cloaked,
+          DeployedItem.spitfire_aa,
           DeployedItem.motionalarmsensor,
           DeployedItem.tank_traps
         ) flatMap UpdateUIElement
@@ -352,7 +371,7 @@ class DeployableToolbox {
     }
   }
 
-  def UpdateUI(certifications : List[CertificationType.Value]) : List[(Int,Int,Int,Int)] = {
+  def UpdateUI(certifications: List[CertificationType.Value]): List[(Int, Int, Int, Int)] = {
     certifications flatMap UpdateUI
   }
 
@@ -361,11 +380,11 @@ class DeployableToolbox {
     * @param item the deployable type
     * @return a list of globally unique identifiers that should be valid for the current zone
     */
-  def ClearDeployable(item : DeployedItem.Value) : List[PlanetSideGUID] = {
-    val uitem = DeployableToolbox.UnifiedType(item)
-    val category = Deployable.Category.Of(uitem)
+  def ClearDeployable(item: DeployedItem.Value): List[PlanetSideGUID] = {
+    val uitem        = DeployableToolbox.UnifiedType(item)
+    val category     = Deployable.Category.Of(uitem)
     val categoryList = deployableLists(category)
-    val (out, in) = categoryList.partition(_.Definition.Item == item)
+    val (out, in)    = categoryList.partition(_.Definition.Item == item)
 
     categoryList.clear()
     categoryList ++= in
@@ -379,13 +398,13 @@ class DeployableToolbox {
     * @param item the deployable type belonging to a category
     * @return a list of globally unique identifiers that should be valid for the current zone
     */
-  def ClearCategory(item : DeployedItem.Value) : List[PlanetSideGUID] = {
+  def ClearCategory(item: DeployedItem.Value): List[PlanetSideGUID] = {
     val category = Deployable.Category.Of(DeployableToolbox.UnifiedType(item))
-    val out = deployableLists(category).map(_.GUID).toList
+    val out      = deployableLists(category).map(_.GUID).toList
     deployableLists(category).clear()
     categoryCounts(category).Current = 0
     (Deployable.Category.Includes(category) map DeployableToolbox.UnifiedType toSet)
-      .foreach({item : DeployedItem.Value => deployableCounts(item).Current = 0 })
+      .foreach({ item: DeployedItem.Value => deployableCounts(item).Current = 0 })
     out
   }
 
@@ -393,7 +412,7 @@ class DeployableToolbox {
     * Remove all managed deployables.
     * @return a list of globally unique identifiers that should be valid for the current zone
     */
-  def Clear() : List[PlanetSideGUID] = {
+  def Clear(): List[PlanetSideGUID] = {
     val out = deployableLists.values.flatten.map(_.GUID).toList
     deployableLists.values.foreach(_.clear())
     deployableCounts.values.foreach(_.Current = 0)
@@ -403,6 +422,7 @@ class DeployableToolbox {
 }
 
 object DeployableToolbox {
+
   /**
     * A `type` intended to properly define the minimum acceptable conditions for a `Deployable` object.
     */
@@ -413,26 +433,28 @@ object DeployableToolbox {
     * There are deployable numbers organized by deploybale type and by deployable category.
     */
   private class Bin {
+
     /** the maximum number of deployables for this criteria that can be managed */
-    private var max : Int = 0
+    private var max: Int = 0
+
     /** the current number of deployables for this criteria that are being managed */
-    private var current : Int = 0
+    private var current: Int = 0
 
-    def Current : Int = current
+    def Current: Int = current
 
-    def Current_=(curr : Int) : Int = {
+    def Current_=(curr: Int): Int = {
       current = curr
       Current
     }
 
-    def Max : Int = max
+    def Max: Int = max
 
-    def Max_=(mx : Int) : Int = {
+    def Max_=(mx: Int): Int = {
       max = mx
       Max
     }
 
-    def Available() : Boolean = current < max
+    def Available(): Boolean = current < max
   }
 
   /**
@@ -441,12 +463,14 @@ object DeployableToolbox {
     * @param item the type of deployable
     * @return the corrected deployable type
     */
-  def UnifiedType(item : DeployedItem.Value) : DeployedItem.Value = item match {
-    case DeployedItem.portable_manned_turret_nc | DeployedItem.portable_manned_turret_tr | DeployedItem.portable_manned_turret_vs =>
-      DeployedItem.portable_manned_turret
-    case _ =>
-      item
-  }
+  def UnifiedType(item: DeployedItem.Value): DeployedItem.Value =
+    item match {
+      case DeployedItem.portable_manned_turret_nc | DeployedItem.portable_manned_turret_tr |
+          DeployedItem.portable_manned_turret_vs =>
+        DeployedItem.portable_manned_turret
+      case _ =>
+        item
+    }
 
   /**
     * Hardcoded maximum values for the category and type initialization.
@@ -454,9 +478,13 @@ object DeployableToolbox {
     * @param categories a reference to the category `Bin` object
     * @param certifications a group of certifications for the initial values
     */
-  private def Initialize(counts : Map[DeployedItem.Value, DeployableToolbox.Bin], categories : Map[DeployableCategory.Value, DeployableToolbox.Bin], certifications : Set[CertificationType.Value]) : Unit = {
+  private def Initialize(
+      counts: Map[DeployedItem.Value, DeployableToolbox.Bin],
+      categories: Map[DeployableCategory.Value, DeployableToolbox.Bin],
+      certifications: Set[CertificationType.Value]
+  ): Unit = {
     import CertificationType._
-    if(certifications.contains(AdvancedEngineering)) {
+    if (certifications.contains(AdvancedEngineering)) {
       counts(DeployedItem.boomer).Max = 25
       counts(DeployedItem.he_mine).Max = 25
       counts(DeployedItem.jammer_mine).Max = 20
@@ -478,12 +506,11 @@ object DeployableToolbox {
       categories(DeployableCategory.FieldTurrets).Max = 1
       categories(DeployableCategory.ShieldGenerators).Max = 1
 
-      if(certifications.contains(AdvancedHacking)) {
+      if (certifications.contains(AdvancedHacking)) {
         counts(DeployedItem.sensor_shield).Max = 25
       }
-    }
-    else if(certifications.contains(CombatEngineering)) {
-      if(certifications.contains(AssaultEngineering)) {
+    } else if (certifications.contains(CombatEngineering)) {
+      if (certifications.contains(AssaultEngineering)) {
         counts(DeployedItem.jammer_mine).Max = 20
         counts(DeployedItem.portable_manned_turret).Max = 1 //the below turret types are unified
         //counts(DeployedItem.portable_manned_turret_nc).Max = 1
@@ -493,7 +520,7 @@ object DeployableToolbox {
         categories(DeployableCategory.FieldTurrets).Max = 1
         categories(DeployableCategory.ShieldGenerators).Max = 1
       }
-      if(certifications.contains(FortificationEngineering)) {
+      if (certifications.contains(FortificationEngineering)) {
         counts(DeployedItem.boomer).Max = 25
         counts(DeployedItem.he_mine).Max = 25
         counts(DeployedItem.spitfire_turret).Max = 15
@@ -506,8 +533,7 @@ object DeployableToolbox {
         categories(DeployableCategory.SmallTurrets).Max = 15
         categories(DeployableCategory.Sensors).Max = 25
         categories(DeployableCategory.TankTraps).Max = 5
-      }
-      else {
+      } else {
         counts(DeployedItem.boomer).Max = 20
         counts(DeployedItem.he_mine).Max = 20
         counts(DeployedItem.spitfire_turret).Max = 10
@@ -518,11 +544,11 @@ object DeployableToolbox {
         categories(DeployableCategory.Sensors).Max = 20
       }
 
-      if(certifications.contains(AdvancedHacking)) {
+      if (certifications.contains(AdvancedHacking)) {
         counts(DeployedItem.sensor_shield).Max = 20
       }
     }
-    if(certifications.contains(CertificationType.GroundSupport)) {
+    if (certifications.contains(CertificationType.GroundSupport)) {
       counts(DeployedItem.router_telepad_deployable).Max = 1024
       categories(DeployableCategory.Telepads).Max = 1024
     }
@@ -535,12 +561,17 @@ object DeployableToolbox {
     * @param certification the new certification
     * @param certificationSet the group of previous certifications being tracked
     */
-  def AddToDeployableQuantities(counts : Map[DeployedItem.Value, DeployableToolbox.Bin], categories : Map[DeployableCategory.Value, DeployableToolbox.Bin], certification : CertificationType.Value, certificationSet : Set[CertificationType.Value]) : Unit = {
+  def AddToDeployableQuantities(
+      counts: Map[DeployedItem.Value, DeployableToolbox.Bin],
+      categories: Map[DeployableCategory.Value, DeployableToolbox.Bin],
+      certification: CertificationType.Value,
+      certificationSet: Set[CertificationType.Value]
+  ): Unit = {
     import CertificationType._
-    if(certificationSet contains certification) {
+    if (certificationSet contains certification) {
       certification match {
         case AdvancedHacking =>
-          if(certificationSet contains CombatEngineering) {
+          if (certificationSet contains CombatEngineering) {
             counts(DeployedItem.sensor_shield).Max = 20
           }
 
@@ -553,7 +584,7 @@ object DeployableToolbox {
           categories(DeployableCategory.Mines).Max = 20
           categories(DeployableCategory.SmallTurrets).Max = 10
           categories(DeployableCategory.Sensors).Max = 20
-          if(certificationSet contains AdvancedHacking) {
+          if (certificationSet contains AdvancedHacking) {
             counts(DeployedItem.sensor_shield).Max = 20
           }
 
@@ -582,11 +613,21 @@ object DeployableToolbox {
           categories(DeployableCategory.TankTraps).Max = 5
 
         case AdvancedEngineering =>
-          if(!certificationSet.contains(AssaultEngineering)) {
-            AddToDeployableQuantities(counts, categories, AssaultEngineering, certificationSet ++ Set(AssaultEngineering))
+          if (!certificationSet.contains(AssaultEngineering)) {
+            AddToDeployableQuantities(
+              counts,
+              categories,
+              AssaultEngineering,
+              certificationSet ++ Set(AssaultEngineering)
+            )
           }
-          if(!certificationSet.contains(FortificationEngineering)) {
-            AddToDeployableQuantities(counts, categories, FortificationEngineering, certificationSet ++ Set(FortificationEngineering))
+          if (!certificationSet.contains(FortificationEngineering)) {
+            AddToDeployableQuantities(
+              counts,
+              categories,
+              FortificationEngineering,
+              certificationSet ++ Set(FortificationEngineering)
+            )
           }
 
 //        case GroundSupport =>
@@ -605,9 +646,14 @@ object DeployableToolbox {
     * @param certification the new certification
     * @param certificationSet the group of previous certifications being tracked
     */
-  def RemoveFromDeployablesQuantities(counts : Map[DeployedItem.Value, DeployableToolbox.Bin], categories : Map[DeployableCategory.Value, DeployableToolbox.Bin], certification : CertificationType.Value, certificationSet : Set[CertificationType.Value]) : Unit = {
+  def RemoveFromDeployablesQuantities(
+      counts: Map[DeployedItem.Value, DeployableToolbox.Bin],
+      categories: Map[DeployableCategory.Value, DeployableToolbox.Bin],
+      certification: CertificationType.Value,
+      certificationSet: Set[CertificationType.Value]
+  ): Unit = {
     import CertificationType._
-    if(!certificationSet.contains(certification)) {
+    if (!certificationSet.contains(certification)) {
       certification match {
         case AdvancedHacking =>
           counts(DeployedItem.sensor_shield).Max = 0
@@ -625,17 +671,17 @@ object DeployableToolbox {
 
         case AssaultEngineering =>
           counts(DeployedItem.jammer_mine).Max = 0
-          counts(DeployedItem.portable_manned_turret).Max = 0  //the below turret types are unified
+          counts(DeployedItem.portable_manned_turret).Max = 0 //the below turret types are unified
           //counts(DeployedItem.portable_manned_turret_nc).Max = 0
           //counts(DeployedItem.portable_manned_turret_tr).Max = 0
           //counts(DeployedItem.portable_manned_turret_vs).Max = 0
           counts(DeployedItem.deployable_shield_generator).Max = 0
-          categories(DeployableCategory.Sensors).Max = if(certificationSet contains CombatEngineering) 20 else 0
+          categories(DeployableCategory.Sensors).Max = if (certificationSet contains CombatEngineering) 20 else 0
           categories(DeployableCategory.FieldTurrets).Max = 0
           categories(DeployableCategory.ShieldGenerators).Max = 0
 
         case FortificationEngineering =>
-          val ce : Int = if(certificationSet contains CombatEngineering) 1 else 0 //true = 1, false = 0
+          val ce: Int = if (certificationSet contains CombatEngineering) 1 else 0 //true = 1, false = 0
           counts(DeployedItem.boomer).Max = ce * 20
           counts(DeployedItem.he_mine).Max = ce * 20
           counts(DeployedItem.spitfire_turret).Max = ce * 10
@@ -650,10 +696,10 @@ object DeployableToolbox {
           categories(DeployableCategory.TankTraps).Max = 0
 
         case AdvancedEngineering =>
-          if(!certificationSet.contains(AssaultEngineering)) {
+          if (!certificationSet.contains(AssaultEngineering)) {
             RemoveFromDeployablesQuantities(counts, categories, AssaultEngineering, certificationSet)
           }
-          if(!certificationSet.contains(FortificationEngineering)) {
+          if (!certificationSet.contains(FortificationEngineering)) {
             RemoveFromDeployablesQuantities(counts, categories, FortificationEngineering, certificationSet)
           }
 

@@ -18,9 +18,9 @@ import com.sun.jna.{Function => JNAFunction}
 import scala.collection.mutable
 import scala.language.dynamics
 
-class Library (val libName: String) extends Dynamic {
+class Library(val libName: String) extends Dynamic {
 
-  class Invocation (val jnaFunction: JNAFunction, val args: Array[Object]) {
+  class Invocation(val jnaFunction: JNAFunction, val args: Array[Object]) {
 
     // TODO: this does not call without a passed type parameter
     def apply[R](implicit m: Manifest[R]): R = {
@@ -32,7 +32,7 @@ class Library (val libName: String) extends Dynamic {
       }
     }
 
-    def as[R](implicit m: Manifest[R]) = apply[R](m)
+    def as[R](implicit m: Manifest[R])           = apply[R](m)
     def asInstanceOf[R](implicit m: Manifest[R]) = apply[R](m)
   }
 
@@ -40,7 +40,7 @@ class Library (val libName: String) extends Dynamic {
     new Invocation(loadFunction(functionName), args.map(_.asInstanceOf[Object]).toArray[Object])
   }
 
-  private def loadFunction(functionName : String) : JNAFunction = {
+  private def loadFunction(functionName: String): JNAFunction = {
     var jnaFunction: JNAFunction = null
     if (functionCache.contains(functionName)) {
       jnaFunction = functionCache(functionName)
@@ -52,7 +52,7 @@ class Library (val libName: String) extends Dynamic {
     jnaFunction
   }
 
-  def prefetch(functionName : String) : Unit = {
+  def prefetch(functionName: String): Unit = {
     loadFunction(functionName)
   }
 

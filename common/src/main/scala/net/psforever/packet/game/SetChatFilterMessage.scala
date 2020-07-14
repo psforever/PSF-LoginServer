@@ -12,17 +12,7 @@ import shapeless.{::, HNil}
 object ChatChannel extends Enumeration {
   type Type = Value
 
-  val
-  Unknown,
-  Tells,
-  Local,
-  Squad,
-  Outfit,
-  Command,
-  Platoon,
-  Broadcast,
-  SquadLeader
-  = Value
+  val Unknown, Tells, Local, Squad, Outfit, Command, Platoon, Broadcast, SquadLeader = Value
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uint(7))
 }
@@ -45,22 +35,24 @@ object ChatChannel extends Enumeration {
   * @param whitelist each channel permitted to post its messages;
   *                  when evaluated from a packet, always in original order
   */
-final case class SetChatFilterMessage(send_channel : ChatChannel.Value,
-                                      origin : Boolean,
-                                      whitelist : List[ChatChannel.Value])
-  extends PlanetSideGamePacket {
+final case class SetChatFilterMessage(
+    send_channel: ChatChannel.Value,
+    origin: Boolean,
+    whitelist: List[ChatChannel.Value]
+) extends PlanetSideGamePacket {
   type Packet = SetChatFilterMessage
   def opcode = GamePacketOpcode.SetChatFilterMessage
   def encode = SetChatFilterMessage.encode(this)
 }
 
 object SetChatFilterMessage extends Marshallable[SetChatFilterMessage] {
+
   /**
     * Transform a `List` of `Boolean` values into a `List` of `ChatChannel` values.
     * @param filters the boolean values representing ordered channel filters
     * @return the names of the channels permitted
     */
-  private def stateArrayToChannelFilters(filters : List[Boolean]) : List[ChatChannel.Value] = {
+  private def stateArrayToChannelFilters(filters: List[Boolean]): List[ChatChannel.Value] = {
     (0 until 9)
       .filter(channel => { filters(channel) })
       .map(channel => ChatChannel(channel))
@@ -72,18 +64,18 @@ object SetChatFilterMessage extends Marshallable[SetChatFilterMessage] {
     * @param filters the names of the channels permitted
     * @return the boolean values representing ordered channel filters
     */
-  private def channelFiltersToStateArray(filters : List[ChatChannel.Value]) : List[Boolean] = {
+  private def channelFiltersToStateArray(filters: List[ChatChannel.Value]): List[Boolean] = {
     import scala.collection.mutable.ListBuffer
     val list = ListBuffer.fill(9)(false)
     filters.foreach(channel => { list(channel.id) = true })
     list.toList
   }
 
-  implicit val codec : Codec[SetChatFilterMessage] = (
+  implicit val codec: Codec[SetChatFilterMessage] = (
     ("send_channel" | ChatChannel.codec) ::
       ("origin" | bool) ::
       ("whitelist" | PacketHelpers.listOfNSized(9, bool))
-    ).exmap[SetChatFilterMessage] (
+  ).exmap[SetChatFilterMessage](
     {
       case a :: b :: c :: HNil =>
         Attempt.Successful(SetChatFilterMessage(a, b, stateArrayToChannelFilters(c)))

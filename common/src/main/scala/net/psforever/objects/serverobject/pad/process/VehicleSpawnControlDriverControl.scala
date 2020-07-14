@@ -14,18 +14,18 @@ import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawn
   * It has failure cases should the driver be in an incorrect state.
   * @param pad the `VehicleSpawnPad` object being governed
   */
-class VehicleSpawnControlDriverControl(pad : VehicleSpawnPad) extends VehicleSpawnControlBase(pad) {
+class VehicleSpawnControlDriverControl(pad: VehicleSpawnPad) extends VehicleSpawnControlBase(pad) {
   def LogId = "-overrider"
 
-  val finalClear = context.actorOf(Props(classOf[VehicleSpawnControlFinalClearance], pad), s"${context.parent.path.name}-final")
+  val finalClear =
+    context.actorOf(Props(classOf[VehicleSpawnControlFinalClearance], pad), s"${context.parent.path.name}-final")
 
-  def receive : Receive = {
+  def receive: Receive = {
     case order @ VehicleSpawnControl.Order(driver, vehicle) =>
-      if(vehicle.Health > 0 && vehicle.PassengerInSeat(driver).contains(0)) {
+      if (vehicle.Health > 0 && vehicle.PassengerInSeat(driver).contains(0)) {
         trace(s"returning control of ${vehicle.Definition.Name} to ${driver.Name}")
         pad.Zone.VehicleEvents ! VehicleSpawnPad.ServerVehicleOverrideEnd(driver.Name, vehicle, pad)
-      }
-      else {
+      } else {
         trace(s"${driver.Name} is not seated in ${vehicle.Definition.Name}; vehicle controls might have been locked")
       }
       vehicle.MountedIn = None

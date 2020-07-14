@@ -3,11 +3,11 @@ package net.psforever.objects.serverobject.painbox
 import net.psforever.objects.serverobject.structures.AmenityDefinition
 import net.psforever.types.Vector3
 
-class PainboxDefinition(objectId : Int) extends AmenityDefinition(objectId) {
-  private var alwaysOn : Boolean = true
-  private var radius : Float = 0f
-  private var damage : Int = 5
-  private var sphereOffset = Vector3(0f, 0f, -0.4f)
+class PainboxDefinition(objectId: Int) extends AmenityDefinition(objectId) {
+  private var alwaysOn: Boolean        = true
+  private var radius: Float            = 0f
+  private var damage: Int              = 5
+  private var sphereOffset             = Vector3(0f, 0f, -0.4f)
   private var hasNearestDoorDependency = false
 
   objectId match {
@@ -40,9 +40,9 @@ class PainboxDefinition(objectId : Int) extends AmenityDefinition(objectId) {
       throw new IllegalArgumentException(s"$objectId is not a valid painbox object id")
   }
 
-  def Radius : Float = radius
-  def AlwaysOn : Boolean = alwaysOn
-  def Damage : Int = damage
-  def SphereOffset : Vector3 = sphereOffset
-  def HasNearestDoorDependency : Boolean = hasNearestDoorDependency
+  def Radius: Float                     = radius
+  def AlwaysOn: Boolean                 = alwaysOn
+  def Damage: Int                       = damage
+  def SphereOffset: Vector3             = sphereOffset
+  def HasNearestDoorDependency: Boolean = hasNearestDoorDependency
 }

@@ -27,7 +27,7 @@ class EquipmentSlotTest extends Specification {
     }
 
     "hold equipment" in {
-      val obj = new EquipmentSlot()
+      val obj       = new EquipmentSlot()
       val equipment = Tool(beamer)
       obj.Equipment = None
 
@@ -68,7 +68,7 @@ class EquipmentSlotTest extends Specification {
       obj.Equipment = Tool(beamer)
       obj.Equipment match {
         case Some(_) => ;
-        case None => ko
+        case None    => ko
       }
 
       obj.Size mustEqual EquipmentSize.Pistol
@@ -77,7 +77,7 @@ class EquipmentSlotTest extends Specification {
     }
 
     "not hold wrong-sized equipment" in {
-      val obj = new EquipmentSlot()
+      val obj       = new EquipmentSlot()
       val equipment = Tool(suppressor)
       obj.Equipment = None
 
@@ -116,7 +116,7 @@ class EquipmentSlotTest extends Specification {
     }
 
     "hold equipment" in {
-      val obj = new OffhandEquipmentSlot(EquipmentSize.Pistol)
+      val obj       = new OffhandEquipmentSlot(EquipmentSize.Pistol)
       val equipment = Tool(beamer)
       obj.Equipment = None
 

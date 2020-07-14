@@ -25,17 +25,21 @@ object Players {
     * @return `true`, if the next cycle of progress should occur;
     *         `false`, otherwise
     */
-  def RevivingTickAction(target : Player, user : Player, item : Tool)(progress : Float) : Boolean = {
-    if(!target.isAlive && !target.isBackpack &&
+  def RevivingTickAction(target: Player, user: Player, item: Tool)(progress: Float): Boolean = {
+    if (
+      !target.isAlive && !target.isBackpack &&
       user.isAlive && !user.isMoving &&
       user.Slot(user.DrawnSlot).Equipment.contains(item) && item.Magazine >= 25 &&
-      Vector3.Distance(target.Position, user.Position) < target.Definition.RepairDistance) {
+      Vector3.Distance(target.Position, user.Position) < target.Definition.RepairDistance
+    ) {
       val events = target.Zone.AvatarEvents
-      val uname = user.Name
-      events ! AvatarServiceMessage(uname, AvatarAction.SendResponse(Service.defaultPlayerGUID, RepairMessage(target.GUID, progress.toInt)))
+      val uname  = user.Name
+      events ! AvatarServiceMessage(
+        uname,
+        AvatarAction.SendResponse(Service.defaultPlayerGUID, RepairMessage(target.GUID, progress.toInt))
+      )
       true
-    }
-    else {
+    } else {
       false
     }
   }
@@ -48,11 +52,17 @@ object Players {
     * @param medic the name of the player doing the reviving
     * @param item the tool being used to revive the target player
     */
-  def FinishRevivingPlayer(target : Player, medic : String, item : Tool)() : Unit = {
+  def FinishRevivingPlayer(target: Player, medic: String, item: Tool)(): Unit = {
     val name = target.Name
     log.info(s"$medic had revived $name")
     val magazine = item.Discharge(Some(25))
-    target.Zone.AvatarEvents ! AvatarServiceMessage(medic, AvatarAction.SendResponse(Service.defaultPlayerGUID, InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine)))
+    target.Zone.AvatarEvents ! AvatarServiceMessage(
+      medic,
+      AvatarAction.SendResponse(
+        Service.defaultPlayerGUID,
+        InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine)
+      )
+    )
     target.Zone.AvatarEvents ! AvatarServiceMessage(name, AvatarAction.Revive(target.GUID))
   }
 
@@ -64,11 +74,14 @@ object Players {
     * @param list a persistent `List` of `Equipment` in the holster slots
     * @return a `List` of `Equipment` in the holster slots
     */
-  @tailrec def clearHolsters(iter : Iterator[EquipmentSlot], index : Int = 0, list : List[InventoryItem] = Nil) : List[InventoryItem] = {
-    if(!iter.hasNext) {
+  @tailrec def clearHolsters(
+      iter: Iterator[EquipmentSlot],
+      index: Int = 0,
+      list: List[InventoryItem] = Nil
+  ): List[InventoryItem] = {
+    if (!iter.hasNext) {
       list
-    }
-    else {
+    } else {
       val slot = iter.next
       slot.Equipment match {
         case Some(equipment) =>
@@ -88,13 +101,12 @@ object Players {
     * @param list a `List` of all `Equipment` that is not yet assigned to a holster slot or an inventory slot
     * @return the `List` of all `Equipment` not yet assigned to a holster slot or an inventory slot
     */
-  @tailrec def fillEmptyHolsters(iter : Iterator[EquipmentSlot], list : List[InventoryItem]) : List[InventoryItem] = {
-    if(!iter.hasNext) {
+  @tailrec def fillEmptyHolsters(iter: Iterator[EquipmentSlot], list: List[InventoryItem]): List[InventoryItem] = {
+    if (!iter.hasNext) {
       list
-    }
-    else {
+    } else {
       val slot = iter.next
-      if(slot.Equipment.isEmpty) {
+      if (slot.Equipment.isEmpty) {
         list.find(item => item.obj.Size == slot.Size) match {
           case Some(obj) =>
             val index = list.indexOf(obj)
@@ -103,21 +115,20 @@ object Players {
           case None =>
             fillEmptyHolsters(iter, list)
         }
-      }
-      else {
+      } else {
         fillEmptyHolsters(iter, list)
       }
     }
   }
 
-  def CertificationToUseExoSuit(player : Player, exosuit : ExoSuitType.Value, subtype : Int) : Boolean = {
+  def CertificationToUseExoSuit(player: Player, exosuit: ExoSuitType.Value, subtype: Int): Boolean = {
     ExoSuitDefinition.Select(exosuit, player.Faction).Permissions match {
       case Nil =>
         true
       case permissions if subtype != 0 =>
         val certs = player.Certifications
         certs.intersect(permissions.toSet).nonEmpty &&
-          certs.intersect(InfantryLoadout.DetermineSubtypeC(subtype)).nonEmpty
+        certs.intersect(InfantryLoadout.DetermineSubtypeC(subtype)).nonEmpty
       case permissions =>
         player.Certifications.intersect(permissions.toSet).nonEmpty
     }

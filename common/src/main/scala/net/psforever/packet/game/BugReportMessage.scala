@@ -11,13 +11,7 @@ import scodec.codecs._
   */
 object BugType extends Enumeration {
   type Type = Value
-  val CRASH,
-      GAMEPLAY,
-      ART,
-      SOUND,
-      HARDWARE,
-      OTHER
-      = Value
+  val CRASH, GAMEPLAY, ART, SOUND, HARDWARE, OTHER = Value
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uint4L)
 }
@@ -40,24 +34,25 @@ object BugType extends Enumeration {
   * @param summary a short explanation of the bug
   * @param desc a detailed explanation of the bug
   */
-final case class BugReportMessage(version_major : Long,
-                                  version_minor : Long,
-                                  version_date : String,
-                                  bug_type : BugType.Value,
-                                  repeatable : Boolean,
-                                  location : Int,
-                                  zone : Int,
-                                  pos : Vector3,
-                                  summary : String,
-                                  desc : String)
-  extends PlanetSideGamePacket {
+final case class BugReportMessage(
+    version_major: Long,
+    version_minor: Long,
+    version_date: String,
+    bug_type: BugType.Value,
+    repeatable: Boolean,
+    location: Int,
+    zone: Int,
+    pos: Vector3,
+    summary: String,
+    desc: String
+) extends PlanetSideGamePacket {
   type Packet = BugReportMessage
   def opcode = GamePacketOpcode.BugReportMessage
   def encode = BugReportMessage.encode(this)
 }
 
 object BugReportMessage extends Marshallable[BugReportMessage] {
-  implicit val codec : Codec[BugReportMessage] = (
+  implicit val codec: Codec[BugReportMessage] = (
     ("versionMajor" | uint32L) ::
       ("versionMinor" | uint32L) ::
       ("versionDate" | PacketHelpers.encodedString) ::
@@ -69,5 +64,5 @@ object BugReportMessage extends Marshallable[BugReportMessage] {
       ("pos" | Vector3.codec_pos) ::
       ("summary" | PacketHelpers.encodedWideStringAligned(4)) ::
       ("desc" | PacketHelpers.encodedWideString)
-    ).as[BugReportMessage]
+  ).as[BugReportMessage]
 }

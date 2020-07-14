@@ -34,21 +34,22 @@ import scodec.codecs._
   * @param unk2 na
   * @param unk3 na
   */
-final case class PlayerStateMessageUpstream(avatar_guid : PlanetSideGUID,
-                                            pos : Vector3,
-                                            vel : Option[Vector3],
-                                            facingYaw : Float,
-                                            facingPitch : Float,
-                                            facingYawUpper : Float,
-                                            seq_time : Int,
-                                            unk1 : Int,
-                                            is_crouching : Boolean,
-                                            is_jumping : Boolean,
-                                            jump_thrust : Boolean,
-                                            is_cloaked : Boolean,
-                                            unk2 : Int,
-                                            unk3 : Int)
-  extends PlanetSideGamePacket {
+final case class PlayerStateMessageUpstream(
+    avatar_guid: PlanetSideGUID,
+    pos: Vector3,
+    vel: Option[Vector3],
+    facingYaw: Float,
+    facingPitch: Float,
+    facingYawUpper: Float,
+    seq_time: Int,
+    unk1: Int,
+    is_crouching: Boolean,
+    is_jumping: Boolean,
+    jump_thrust: Boolean,
+    is_cloaked: Boolean,
+    unk2: Int,
+    unk3: Int
+) extends PlanetSideGamePacket {
   assert(seq_time > -1 && seq_time < 1024)
 
   type Packet = PlayerStateMessageUpstream
@@ -57,7 +58,7 @@ final case class PlayerStateMessageUpstream(avatar_guid : PlanetSideGUID,
 }
 
 object PlayerStateMessageUpstream extends Marshallable[PlayerStateMessageUpstream] {
-  implicit val codec : Codec[PlayerStateMessageUpstream] = (
+  implicit val codec: Codec[PlayerStateMessageUpstream] = (
     ("avatar_guid" | PlanetSideGUID.codec) ::
       ("pos" | Vector3.codec_pos) ::
       ("vel" | optional(bool, Vector3.codec_vel)) ::
@@ -72,5 +73,5 @@ object PlayerStateMessageUpstream extends Marshallable[PlayerStateMessageUpstrea
       ("is_cloaked" | bool) ::
       ("unk2" | uint8L) ::
       ("unk3" | uint16L)
-    ).as[PlayerStateMessageUpstream]
+  ).as[PlayerStateMessageUpstream]
 }

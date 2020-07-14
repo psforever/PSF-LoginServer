@@ -24,25 +24,26 @@ import scodec.codecs._
   * @param unk1 na; always zero?
   * @param unk2 na; always zero?
   */
-final case class WarpgateRequest(from_zone : PlanetSideGUID,
-                                 from_gate_guid : PlanetSideGUID,
-                                 to_gate_mapid : PlanetSideGUID,
-                                 to_zone : PlanetSideGUID,
-                                 unk1 : Int,
-                                 unk2 : Int)
-  extends PlanetSideGamePacket {
+final case class WarpgateRequest(
+    from_zone: PlanetSideGUID,
+    from_gate_guid: PlanetSideGUID,
+    to_gate_mapid: PlanetSideGUID,
+    to_zone: PlanetSideGUID,
+    unk1: Int,
+    unk2: Int
+) extends PlanetSideGamePacket {
   type Packet = WarpgateRequest
   def opcode = GamePacketOpcode.WarpgateRequest
   def encode = WarpgateRequest.encode(this)
 }
 
 object WarpgateRequest extends Marshallable[WarpgateRequest] {
-  implicit val codec : Codec[WarpgateRequest] = (
+  implicit val codec: Codec[WarpgateRequest] = (
     ("from_zone" | PlanetSideGUID.codec) ::
       ("from_gate_guid" | PlanetSideGUID.codec) ::
       ("to_gate_mapid" | PlanetSideGUID.codec) ::
       ("to_zone" | PlanetSideGUID.codec) ::
       ("unk1" | uint8L) ::
       ("unk2" | uint8L)
-    ).as[WarpgateRequest]
+  ).as[WarpgateRequest]
 }

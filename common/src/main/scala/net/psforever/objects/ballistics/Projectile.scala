@@ -28,51 +28,57 @@ import net.psforever.types.Vector3
   * @param fire_time when the weapon discharged was recorded;
   *                  defaults to `System.nanoTime`
   */
-final case class Projectile(profile : ProjectileDefinition,
-                            tool_def : ToolDefinition,
-                            fire_mode : FireModeDefinition,
-                            owner : SourceEntry,
-                            attribute_to : Int,
-                            shot_origin : Vector3,
-                            shot_angle : Vector3,
-                            fire_time: Long = System.nanoTime) extends PlanetSideGameObject {
+final case class Projectile(
+    profile: ProjectileDefinition,
+    tool_def: ToolDefinition,
+    fire_mode: FireModeDefinition,
+    owner: SourceEntry,
+    attribute_to: Int,
+    shot_origin: Vector3,
+    shot_angle: Vector3,
+    fire_time: Long = System.nanoTime
+) extends PlanetSideGameObject {
   Position = shot_origin
   Orientation = shot_angle
   Velocity = {
-    val initVel : Int = profile.InitialVelocity //initial velocity
-    val radAngle : Double = math.toRadians(shot_angle.y) //angle of elevation
-    val rise : Float = initVel * math.sin(radAngle).toFloat //z
-    val ground : Float = initVel * math.cos(radAngle).toFloat //base
+    val initVel: Int     = profile.InitialVelocity              //initial velocity
+    val radAngle: Double = math.toRadians(shot_angle.y)         //angle of elevation
+    val rise: Float      = initVel * math.sin(radAngle).toFloat //z
+    val ground: Float    = initVel * math.cos(radAngle).toFloat //base
     Vector3.Rz(Vector3(0, -ground, 0), shot_angle.z) + Vector3.z(rise)
   }
+
   /** Information about the current world coordinates and orientation of the projectile */
-  val current : SimpleWorldEntity = new SimpleWorldEntity()
-  private var resolved : ProjectileResolution.Value = ProjectileResolution.Unresolved
+  val current: SimpleWorldEntity                   = new SimpleWorldEntity()
+  private var resolved: ProjectileResolution.Value = ProjectileResolution.Unresolved
 
   /**
     * Mark the projectile as being "encountered" or "managed" at least once.
     */
-  def Resolve() : Unit = {
+  def Resolve(): Unit = {
     resolved = ProjectileResolution.Resolved
   }
 
-  def Miss() : Unit = {
+  def Miss(): Unit = {
     resolved = ProjectileResolution.MissedShot
   }
 
-  def isResolved : Boolean = resolved == ProjectileResolution.Resolved || resolved == ProjectileResolution.MissedShot
+  def isResolved: Boolean = resolved == ProjectileResolution.Resolved || resolved == ProjectileResolution.MissedShot
 
-  def isMiss : Boolean = resolved == ProjectileResolution.MissedShot
+  def isMiss: Boolean = resolved == ProjectileResolution.MissedShot
 
   def Definition = profile
 }
 
 object Projectile {
+
   /** the first projectile GUID used by all clients internally */
-  final val BaseUID : Int = 40100
+  final val BaseUID: Int = 40100
+
   /** all clients progress through 40100 to 40124 normally, skipping only for long-lived projectiles
-    * 40125 to 40149 are being reserved as a guard against undetected overflow */
-  final val RangeUID : Int = 40150
+    * 40125 to 40149 are being reserved as a guard against undetected overflow
+    */
+  final val RangeUID: Int = 40150
 
   /**
     * Overloaded constructor for an `Unresolved` projectile.
@@ -84,7 +90,14 @@ object Projectile {
     * @param shot_angle in which direction the projectile was aimed when it was discharged
     * @return the `Projectile` object
     */
-  def apply(profile : ProjectileDefinition, tool_def : ToolDefinition, fire_mode : FireModeDefinition, owner : PlanetSideGameObject with FactionAffinity, shot_origin : Vector3, shot_angle : Vector3) : Projectile = {
+  def apply(
+      profile: ProjectileDefinition,
+      tool_def: ToolDefinition,
+      fire_mode: FireModeDefinition,
+      owner: PlanetSideGameObject with FactionAffinity,
+      shot_origin: Vector3,
+      shot_angle: Vector3
+  ): Projectile = {
     Projectile(profile, tool_def, fire_mode, SourceEntry(owner), tool_def.ObjectId, shot_origin, shot_angle)
   }
 
@@ -99,7 +112,15 @@ object Projectile {
     * @param shot_angle in which direction the projectile was aimed when it was discharged
     * @return the `Projectile` object
     */
-  def apply(profile : ProjectileDefinition, tool_def : ToolDefinition, fire_mode : FireModeDefinition, owner : PlanetSideGameObject with FactionAffinity, attribute_to : Int, shot_origin : Vector3, shot_angle : Vector3) : Projectile = {
+  def apply(
+      profile: ProjectileDefinition,
+      tool_def: ToolDefinition,
+      fire_mode: FireModeDefinition,
+      owner: PlanetSideGameObject with FactionAffinity,
+      attribute_to: Int,
+      shot_origin: Vector3,
+      shot_angle: Vector3
+  ): Projectile = {
     Projectile(profile, tool_def, fire_mode, SourceEntry(owner), attribute_to, shot_origin, shot_angle)
   }
 }

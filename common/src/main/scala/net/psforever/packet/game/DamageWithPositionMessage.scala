@@ -17,16 +17,14 @@ import scodec.codecs._
   * @param pos the position
   * @see `HitHint`
   */
-final case class DamageWithPositionMessage(unk : Int,
-                                           pos : Vector3)
-  extends PlanetSideGamePacket {
+final case class DamageWithPositionMessage(unk: Int, pos: Vector3) extends PlanetSideGamePacket {
   type Packet = DamageWithPositionMessage
   def opcode = GamePacketOpcode.DamageWithPositionMessage
   def encode = DamageWithPositionMessage.encode(this)
 }
 
 object DamageWithPositionMessage extends Marshallable[DamageWithPositionMessage] {
-  implicit val codec : Codec[DamageWithPositionMessage] = (
+  implicit val codec: Codec[DamageWithPositionMessage] = (
     ("unk" | uint8L) ::
       ("pos" | Vector3.codec_pos)
   ).as[DamageWithPositionMessage]

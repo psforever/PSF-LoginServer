@@ -14,30 +14,29 @@ import net.psforever.types.PlanetSideEmpire
   * and, special carried (like a lattice logic unit);
   * and, dropped on the ground in the game world and render where it was deposited.
   */
-abstract class Equipment extends PlanetSideGameObject
-  with FactionAffinity {
-  private var faction : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
+abstract class Equipment extends PlanetSideGameObject with FactionAffinity {
+  private var faction: PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
 
-  def Faction : PlanetSideEmpire.Value = faction
+  def Faction: PlanetSideEmpire.Value = faction
 
-  override def Faction_=(fact : PlanetSideEmpire.Value) : PlanetSideEmpire.Value = {
+  override def Faction_=(fact: PlanetSideEmpire.Value): PlanetSideEmpire.Value = {
     faction = fact
     Faction
   }
 
-  def Size : EquipmentSize.Value = Definition.Size
+  def Size: EquipmentSize.Value = Definition.Size
 
-  def Tile : InventoryTile = Definition.Tile
+  def Tile: InventoryTile = Definition.Tile
 
-  def Definition : EquipmentDefinition
+  def Definition: EquipmentDefinition
 
-  override def toString : String = {
+  override def toString: String = {
     Equipment.toString(this)
   }
 }
 
 object Equipment {
-  def toString(obj : Equipment) : String = {
+  def toString(obj: Equipment): String = {
     obj.Definition.Name
   }
 }

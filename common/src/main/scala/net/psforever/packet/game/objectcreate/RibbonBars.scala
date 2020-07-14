@@ -16,19 +16,20 @@ import scodec.codecs._
   * @see `MeritCommendation`
   * @see `DisplayedAwardMessage`
   */
-final case class RibbonBars(upper : MeritCommendation.Value = MeritCommendation.None,
-                            middle : MeritCommendation.Value = MeritCommendation.None,
-                            lower : MeritCommendation.Value = MeritCommendation.None,
-                            tos : MeritCommendation.Value = MeritCommendation.None
-                           ) extends StreamBitSize {
-  override def bitsize : Long = 128L
+final case class RibbonBars(
+    upper: MeritCommendation.Value = MeritCommendation.None,
+    middle: MeritCommendation.Value = MeritCommendation.None,
+    lower: MeritCommendation.Value = MeritCommendation.None,
+    tos: MeritCommendation.Value = MeritCommendation.None
+) extends StreamBitSize {
+  override def bitsize: Long = 128L
 }
 
 object RibbonBars extends Marshallable[RibbonBars] {
-  implicit val codec : Codec[RibbonBars] = (
+  implicit val codec: Codec[RibbonBars] = (
     ("upper" | MeritCommendation.codec) ::
       ("middle" | MeritCommendation.codec) ::
       ("lower" | MeritCommendation.codec) ::
       ("tos" | MeritCommendation.codec)
-    ).as[RibbonBars]
+  ).as[RibbonBars]
 }

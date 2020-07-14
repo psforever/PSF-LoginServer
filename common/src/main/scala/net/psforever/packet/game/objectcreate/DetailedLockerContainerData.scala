@@ -17,23 +17,24 @@ import shapeless.{::, HNil}
   * @param data na
   * @param inventory the items in this inventory
   */
-final case class DetailedLockerContainerData(data : CommonFieldData,
-                                             inventory : Option[InventoryData]
-                                            ) extends ConstructorData {
-  override def bitsize : Long = {
-    val base : Long = 40L
-    val invSize : Long = if(inventory.isDefined) { inventory.get.bitsize } else { 0L }
+final case class DetailedLockerContainerData(data: CommonFieldData, inventory: Option[InventoryData])
+    extends ConstructorData {
+  override def bitsize: Long = {
+    val base: Long = 40L
+    val invSize: Long = if (inventory.isDefined) { inventory.get.bitsize }
+    else { 0L }
     base + invSize
   }
 }
 
 object DetailedLockerContainerData extends Marshallable[DetailedLockerContainerData] {
+
   /**
     * Overloaded constructor for creating `DetailedLockerContainerData` without a list of contents.
     * @param unk na
     * @return a `DetailedLockerContainerData` object
     */
-  def apply(unk : Int) : DetailedLockerContainerData =
+  def apply(unk: Int): DetailedLockerContainerData =
     new DetailedLockerContainerData(CommonFieldData(PlanetSideEmpire.NEUTRAL, unk), None)
 
   /**
@@ -42,7 +43,7 @@ object DetailedLockerContainerData extends Marshallable[DetailedLockerContainerD
     * @param inventory the items in the inventory
     * @return a `DetailedLockerContainerData` object
     */
-  def apply(unk : Int, inventory : List[InternalSlot]) : DetailedLockerContainerData =
+  def apply(unk: Int, inventory: List[InternalSlot]): DetailedLockerContainerData =
     new DetailedLockerContainerData(CommonFieldData(PlanetSideEmpire.NEUTRAL, unk), Some(InventoryData(inventory)))
 
   /**
@@ -53,14 +54,14 @@ object DetailedLockerContainerData extends Marshallable[DetailedLockerContainerD
     * @param locker the `DetailedLockerContainerData`
     * @return an `InternalSlot` object that encapsulates `DetailedLockerContainerData`
     */
-  def apply(cls : Int, guid : PlanetSideGUID, parentSlot : Int, locker : DetailedLockerContainerData) : InternalSlot =
+  def apply(cls: Int, guid: PlanetSideGUID, parentSlot: Int, locker: DetailedLockerContainerData): InternalSlot =
     new InternalSlot(cls, guid, parentSlot, locker)
 
-  implicit val codec : Codec[DetailedLockerContainerData] = (
+  implicit val codec: Codec[DetailedLockerContainerData] = (
     ("data" | CommonFieldData.codec) ::
       uint16L :: //always 1
       optional(bool, InventoryData.codec_detailed)
-    ).exmap[DetailedLockerContainerData] (
+  ).exmap[DetailedLockerContainerData](
     {
       case data :: 1 :: None :: HNil =>
         Attempt.successful(DetailedLockerContainerData(data, None))

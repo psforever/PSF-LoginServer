@@ -16,8 +16,11 @@ import scala.concurrent.duration.Duration
 class BuildingBuilderTest extends ActorTest {
   "Building object" should {
     "build" in {
-      val structure : (String, Int,Int,Zone,ActorContext)=>Building = Building.Structure(StructureType.Building)
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuildingTestActor], structure, "Building", 10, 10, Zone.Nowhere), "building")
+      val structure: (String, Int, Int, Zone, ActorContext) => Building = Building.Structure(StructureType.Building)
+      val actor = system.actorOf(
+        Props(classOf[ServerObjectBuilderTest.BuildingTestActor], structure, "Building", 10, 10, Zone.Nowhere),
+        "building"
+      )
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
@@ -31,8 +34,11 @@ class BuildingBuilderTest extends ActorTest {
 class WarpGateBuilderTest extends ActorTest {
   "WarpGate object" should {
     "build" in {
-      val structure : (String,Int,Int,Zone,ActorContext)=>Building = WarpGate.Structure
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuildingTestActor], structure, "wgate", 10, 10, Zone.Nowhere), "wgate")
+      val structure: (String, Int, Int, Zone, ActorContext) => Building = WarpGate.Structure
+      val actor = system.actorOf(
+        Props(classOf[ServerObjectBuilderTest.BuildingTestActor], structure, "wgate", 10, 10, Zone.Nowhere),
+        "wgate"
+      )
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
@@ -48,7 +54,10 @@ class DoorObjectBuilderTest1 extends ActorTest {
   "Door object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1, Door.Constructor), hub), "door")
+      val actor = system.actorOf(
+        Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1, Door.Constructor), hub),
+        "door"
+      )
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
@@ -65,7 +74,14 @@ class DoorObjectBuilderTest2 extends ActorTest {
   "Door object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1, Door.Constructor(Vector3(1, 2, 3))), hub), "door")
+      val actor = system.actorOf(
+        Props(
+          classOf[ServerObjectBuilderTest.BuilderTestActor],
+          ServerObjectBuilder(1, Door.Constructor(Vector3(1, 2, 3))),
+          hub
+        ),
+        "door"
+      )
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
@@ -83,7 +99,14 @@ class IFFLockObjectBuilderTest extends ActorTest {
   "IFFLock object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1, IFFLock.Constructor(Vector3(0f, 0f, 0f), Vector3(0f, 0f, 0f))), hub), "lock")
+      val actor = system.actorOf(
+        Props(
+          classOf[ServerObjectBuilderTest.BuilderTestActor],
+          ServerObjectBuilder(1, IFFLock.Constructor(Vector3(0f, 0f, 0f), Vector3(0f, 0f, 0f))),
+          hub
+        ),
+        "lock"
+      )
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
@@ -100,7 +123,14 @@ class ImplantTerminalMechObjectBuilderTest extends ActorTest {
   "Implant terminal mech object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1, ImplantTerminalMech.Constructor(Vector3.Zero)), hub), "mech")
+      val actor = system.actorOf(
+        Props(
+          classOf[ServerObjectBuilderTest.BuilderTestActor],
+          ServerObjectBuilder(1, ImplantTerminalMech.Constructor(Vector3.Zero)),
+          hub
+        ),
+        "mech"
+      )
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
@@ -118,7 +148,14 @@ class TerminalObjectBuilderTest extends ActorTest {
   "Terminal object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1, Terminal.Constructor(Vector3(1.1f, 2.2f, 3.3f), order_terminal)), hub), "term")
+      val actor = system.actorOf(
+        Props(
+          classOf[ServerObjectBuilderTest.BuilderTestActor],
+          ServerObjectBuilder(1, Terminal.Constructor(Vector3(1.1f, 2.2f, 3.3f), order_terminal)),
+          hub
+        ),
+        "term"
+      )
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
@@ -137,8 +174,14 @@ class ProximityTerminalObjectBuilderTest extends ActorTest {
   "Terminal object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
-        ProximityTerminal.Constructor(medical_terminal)), hub), "term")
+      val actor = system.actorOf(
+        Props(
+          classOf[ServerObjectBuilderTest.BuilderTestActor],
+          ServerObjectBuilder(1, ProximityTerminal.Constructor(medical_terminal)),
+          hub
+        ),
+        "term"
+      )
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
@@ -155,9 +198,18 @@ class VehicleSpawnPadObjectBuilderTest extends ActorTest {
   "Vehicle spawn pad object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
-        VehicleSpawnPad.Constructor(Vector3(1.1f, 2.2f, 3.3f), GlobalDefinitions.mb_pad_creation, Vector3(4.4f, 5.5f, 6.6f))
-      ), hub), "pad")
+      val actor = system.actorOf(
+        Props(
+          classOf[ServerObjectBuilderTest.BuilderTestActor],
+          ServerObjectBuilder(
+            1,
+            VehicleSpawnPad
+              .Constructor(Vector3(1.1f, 2.2f, 3.3f), GlobalDefinitions.mb_pad_creation, Vector3(4.4f, 5.5f, 6.6f))
+          ),
+          hub
+        ),
+        "pad"
+      )
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
@@ -176,8 +228,14 @@ class LocalProjectileBuilderTest extends ActorTest {
   "Local projectile object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
-        LocalProjectile.Constructor), hub), "locker")
+      val actor = system.actorOf(
+        Props(
+          classOf[ServerObjectBuilderTest.BuilderTestActor],
+          ServerObjectBuilder(1, LocalProjectile.Constructor),
+          hub
+        ),
+        "locker"
+      )
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
@@ -194,8 +252,10 @@ class LockerObjectBuilderTest extends ActorTest {
   "Locker object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
-        Locker.Constructor), hub), "locker")
+      val actor = system.actorOf(
+        Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1, Locker.Constructor), hub),
+        "locker"
+      )
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
@@ -212,8 +272,14 @@ class ResourceSiloObjectBuilderTest extends ActorTest {
   "Resource silo object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
-        ResourceSilo.Constructor(Vector3(0f, 0f, 0f))), hub), "resource-silo")
+      val actor = system.actorOf(
+        Props(
+          classOf[ServerObjectBuilderTest.BuilderTestActor],
+          ServerObjectBuilder(1, ResourceSilo.Constructor(Vector3(0f, 0f, 0f))),
+          hub
+        ),
+        "resource-silo"
+      )
       actor ! "startup"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
@@ -230,8 +296,14 @@ class SpawnTubeObjectBuilderTest extends ActorTest {
   "Spawn tube object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
-        SpawnTube.Constructor(Vector3(3980.4062f, 4267.3047f, 257.5625f), Vector3(0, 0, 90))), hub), "spawn-tube")
+      val actor = system.actorOf(
+        Props(
+          classOf[ServerObjectBuilderTest.BuilderTestActor],
+          ServerObjectBuilder(1, SpawnTube.Constructor(Vector3(3980.4062f, 4267.3047f, 257.5625f), Vector3(0, 0, 90))),
+          hub
+        ),
+        "spawn-tube"
+      )
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
@@ -251,8 +323,14 @@ class FacilityTurretObjectBuilderTest extends ActorTest {
   "FacilityTurretObjectBuilder" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
-      val actor = system.actorOf(Props(classOf[ServerObjectBuilderTest.BuilderTestActor], ServerObjectBuilder(1,
-        FacilityTurret.Constructor(manned_turret)), hub), "manned-turret")
+      val actor = system.actorOf(
+        Props(
+          classOf[ServerObjectBuilderTest.BuilderTestActor],
+          ServerObjectBuilder(1, FacilityTurret.Constructor(manned_turret)),
+          hub
+        ),
+        "manned-turret"
+      )
       actor ! "!"
 
       val reply = receiveOne(Duration.create(1000, "ms"))
@@ -266,20 +344,26 @@ class FacilityTurretObjectBuilderTest extends ActorTest {
 
 object ServerObjectBuilderTest {
   import net.psforever.objects.guid.source.LimitedNumberSource
-  def NumberPoolHub : NumberPoolHub = {
+  def NumberPoolHub: NumberPoolHub = {
     val obj = new NumberPoolHub(new LimitedNumberSource(2))
     obj
   }
 
-  class BuilderTestActor(builder : ServerObjectBuilder[_], hub : NumberPoolHub) extends Actor {
-    def receive : Receive = {
+  class BuilderTestActor(builder: ServerObjectBuilder[_], hub: NumberPoolHub) extends Actor {
+    def receive: Receive = {
       case _ =>
         sender ! builder.Build(context, hub)
     }
   }
 
-  class BuildingTestActor(structure_con : (String,Int,Int,Zone,ActorContext)=>Building, name: String, building_guid : Int, map_id : Int, zone : Zone) extends Actor {
-    def receive : Receive = {
+  class BuildingTestActor(
+      structure_con: (String, Int, Int, Zone, ActorContext) => Building,
+      name: String,
+      building_guid: Int,
+      map_id: Int,
+      zone: Zone
+  ) extends Actor {
+    def receive: Receive = {
       case _ =>
         sender ! FoundationBuilder(structure_con).Build(name, building_guid, map_id, zone)(context)
     }

@@ -13,7 +13,14 @@ class OrderTerminalTest extends Specification {
   val avatar = Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
   val player = Player(avatar)
 
-  val building = new Building("Building", building_guid = 0, map_id = 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
+  val building = new Building(
+    "Building",
+    building_guid = 0,
+    map_id = 0,
+    Zone.Nowhere,
+    StructureType.Building,
+    GlobalDefinitions.building
+  )
   building.Faction = PlanetSideEmpire.TR
   val infantryTerminal = Terminal(GlobalDefinitions.order_terminal)
   infantryTerminal.Owner = building
@@ -28,7 +35,7 @@ class OrderTerminalTest extends Specification {
 
   "Infantry Order Terminal" should {
     "player can buy a box of ammunition ('9mmbullet_AP')" in {
-      val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 0, "9mmbullet_AP", 0, PlanetSideGUID(0))
+      val msg   = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 0, "9mmbullet_AP", 0, PlanetSideGUID(0))
       val reply = infantryTerminal.Request(player, msg)
       reply.isInstanceOf[Terminal.BuyEquipment] mustEqual true
       val reply2 = reply.asInstanceOf[Terminal.BuyEquipment]
@@ -37,7 +44,7 @@ class OrderTerminalTest extends Specification {
     }
 
     "player can buy a weapon ('suppressor')" in {
-      val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 0, "suppressor", 0, PlanetSideGUID(0))
+      val msg   = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 0, "suppressor", 0, PlanetSideGUID(0))
       val reply = infantryTerminal.Request(player, msg)
       reply.isInstanceOf[Terminal.BuyEquipment] mustEqual true
       val reply2 = reply.asInstanceOf[Terminal.BuyEquipment]
@@ -52,7 +59,8 @@ class OrderTerminalTest extends Specification {
     }
 
     "player can buy a box of ammunition belonging to a special armor type ('dualcycler_ammo')" in {
-      val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 1, "dualcycler_ammo", 0, PlanetSideGUID(0))
+      val msg =
+        ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 1, "dualcycler_ammo", 0, PlanetSideGUID(0))
       val reply = infantryTerminal.Request(player, msg)
       reply.isInstanceOf[Terminal.BuyEquipment] mustEqual true
       val reply2 = reply.asInstanceOf[Terminal.BuyEquipment]
@@ -61,7 +69,7 @@ class OrderTerminalTest extends Specification {
     }
 
     "player can buy a support tool ('bank')" in {
-      val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 2, "bank", 0, PlanetSideGUID(0))
+      val msg   = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 2, "bank", 0, PlanetSideGUID(0))
       val reply = infantryTerminal.Request(player, msg)
       reply.isInstanceOf[Terminal.BuyEquipment] mustEqual true
       val reply2 = reply.asInstanceOf[Terminal.BuyEquipment]
@@ -70,7 +78,7 @@ class OrderTerminalTest extends Specification {
     }
 
     "player can buy a box of vehicle ammunition ('105mmbullet')" in {
-      val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 3, "105mmbullet", 0, PlanetSideGUID(0))
+      val msg   = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 3, "105mmbullet", 0, PlanetSideGUID(0))
       val reply = infantryTerminal.Request(player, msg)
       reply.isInstanceOf[Terminal.BuyEquipment] mustEqual true
       val reply2 = reply.asInstanceOf[Terminal.BuyEquipment]
@@ -89,7 +97,10 @@ class OrderTerminalTest extends Specification {
       player.Slot(6).Equipment = Tool(GlobalDefinitions.beamer)
       avatar.EquipmentLoadouts.SaveLoadout(player, "test", 0)
 
-      val msg = infantryTerminal.Request(player, ItemTransactionMessage(PlanetSideGUID(10), TransactionType.Loadout, 4, "", 0, PlanetSideGUID(0)))
+      val msg = infantryTerminal.Request(
+        player,
+        ItemTransactionMessage(PlanetSideGUID(10), TransactionType.Loadout, 4, "", 0, PlanetSideGUID(0))
+      )
       msg.isInstanceOf[Terminal.InfantryLoadout] mustEqual true
       val loadout = msg.asInstanceOf[Terminal.InfantryLoadout]
       loadout.exosuit mustEqual ExoSuitType.Agile
@@ -102,7 +113,10 @@ class OrderTerminalTest extends Specification {
     }
 
     "player can not retrieve an infantry loadout from the wrong line" in {
-      val msg = infantryTerminal.Request(player, ItemTransactionMessage(PlanetSideGUID(10), TransactionType.Loadout, 4, "", 1, PlanetSideGUID(0)))
+      val msg = infantryTerminal.Request(
+        player,
+        ItemTransactionMessage(PlanetSideGUID(10), TransactionType.Loadout, 4, "", 1, PlanetSideGUID(0))
+      )
       msg.isInstanceOf[Terminal.NoDeal] mustEqual true
     }
   }
@@ -112,7 +126,8 @@ class OrderTerminalTest extends Specification {
     terminal.Owner = building
 
     "player can spawn a vehicle and its default trunk contents" in {
-      val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 46769, "quadassault", 0, PlanetSideGUID(0))
+      val msg =
+        ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 46769, "quadassault", 0, PlanetSideGUID(0))
       terminal.Request(player, msg) match {
         case Terminal.BuyVehicle(vehicle, weapons, trunk) =>
           vehicle.Definition mustEqual GlobalDefinitions.quadassault
@@ -162,7 +177,8 @@ class OrderTerminalTest extends Specification {
     terminal.Owner = building
 
     "player can learn a certification ('medium_assault')" in {
-      val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Learn, 0, "medium_assault", 0, PlanetSideGUID(0))
+      val msg =
+        ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Learn, 0, "medium_assault", 0, PlanetSideGUID(0))
       terminal.Request(player, msg) mustEqual Terminal.LearnCertification(CertificationType.MediumAssault)
     }
 
@@ -172,7 +188,8 @@ class OrderTerminalTest extends Specification {
     }
 
     "player can forget a certification ('medium_assault')" in {
-      val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Sell, 0, "medium_assault", 0, PlanetSideGUID(0))
+      val msg =
+        ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Sell, 0, "medium_assault", 0, PlanetSideGUID(0))
       terminal.Request(player, msg) mustEqual Terminal.SellCertification(CertificationType.MediumAssault)
     }
 
@@ -187,7 +204,8 @@ class OrderTerminalTest extends Specification {
     terminal.Owner = building
 
     "player can learn an implant ('darklight_vision')" in {
-      val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 0, "darklight_vision", 0, PlanetSideGUID(0))
+      val msg =
+        ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 0, "darklight_vision", 0, PlanetSideGUID(0))
 
       val reply = terminal.Request(player, msg)
       reply.isInstanceOf[Terminal.LearnImplant] mustEqual true
@@ -202,7 +220,8 @@ class OrderTerminalTest extends Specification {
     }
 
     "player can un-learn an implant ('darklight_vision')" in {
-      val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Sell, 0, "darklight_vision", 0, PlanetSideGUID(0))
+      val msg =
+        ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Sell, 0, "darklight_vision", 0, PlanetSideGUID(0))
 
       val reply = terminal.Request(player, msg)
       reply.isInstanceOf[Terminal.SellImplant] mustEqual true
@@ -212,7 +231,7 @@ class OrderTerminalTest extends Specification {
 
     "player can not un-learn a fake implant ('aimbot')" in {
       val terminal = Terminal(GlobalDefinitions.implant_terminal_interface)
-      val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Sell, 0, "aimbot", 0, PlanetSideGUID(0))
+      val msg      = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Sell, 0, "aimbot", 0, PlanetSideGUID(0))
 
       terminal.Request(player, msg) mustEqual Terminal.NoDeal()
     }

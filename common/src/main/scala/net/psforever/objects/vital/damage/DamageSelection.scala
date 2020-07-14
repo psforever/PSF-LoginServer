@@ -10,23 +10,25 @@ import net.psforever.objects.vital.projectile.ProjectileCalculations
   * and a means to test which calculation is valid in a given situation.
   */
 trait DamageSelection {
-  final def None : ProjectileCalculations.Form = NoDamage.Calculate
+  final def None: ProjectileCalculations.Form = NoDamage.Calculate
 
-  def Direct : ProjectileCalculations.Form
-  def Splash : ProjectileCalculations.Form
-  def Lash : ProjectileCalculations.Form
+  def Direct: ProjectileCalculations.Form
+  def Splash: ProjectileCalculations.Form
+  def Lash: ProjectileCalculations.Form
 
-  def apply(data : ResolvedProjectile) : ProjectileCalculations.Form = data.resolution match {
-    case ProjectileResolution.Hit => Direct
-    case ProjectileResolution.Splash => Splash
-    case ProjectileResolution.Lash => Lash
-    case _ => None
-  }
+  def apply(data: ResolvedProjectile): ProjectileCalculations.Form =
+    data.resolution match {
+      case ProjectileResolution.Hit    => Direct
+      case ProjectileResolution.Splash => Splash
+      case ProjectileResolution.Lash   => Lash
+      case _                           => None
+    }
 
-  def apply(res : ProjectileResolution.Value) : ProjectileCalculations.Form = res match {
-    case ProjectileResolution.Hit => Direct
-    case ProjectileResolution.Splash => Splash
-    case ProjectileResolution.Lash => Lash
-    case _ => None
-  }
+  def apply(res: ProjectileResolution.Value): ProjectileCalculations.Form =
+    res match {
+      case ProjectileResolution.Hit    => Direct
+      case ProjectileResolution.Splash => Splash
+      case ProjectileResolution.Lash   => Lash
+      case _                           => None
+    }
 }

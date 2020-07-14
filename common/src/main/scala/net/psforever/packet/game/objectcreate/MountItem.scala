@@ -8,6 +8,7 @@ import scodec.Codec
   * Mask the use of `InternalSlot` using a fake class called a `MountItem`.
   */
 object MountItem {
+
   /**
     * Constructor for creating a `MountItem`.
     * @param guid the GUID this object will be assigned
@@ -15,7 +16,7 @@ object MountItem {
     * @param obj the data used as representation of the object to be constructed
     * @return an `InventoryItemData` object
     */
-  def apply(objClass : Int, guid : PlanetSideGUID, slot : Int, obj : ConstructorData) : MountItem =
+  def apply(objClass: Int, guid: PlanetSideGUID, slot: Int, obj: ConstructorData): MountItem =
     InternalSlot(objClass, guid, slot, obj)
 
   /**
@@ -26,5 +27,5 @@ object MountItem {
   /**
     * A `Codec` for `0x17` `ObjectCreateMessage` data.
     */
-  val codec : Codec[MountItem] = InternalSlot.codec
+  val codec: Codec[MountItem] = InternalSlot.codec
 }

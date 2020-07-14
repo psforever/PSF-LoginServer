@@ -53,7 +53,19 @@ class ResourceSiloTest extends Specification {
     }
 
     "using the silo generates a charge event" in {
-      val msg = UseItemMessage(PlanetSideGUID(1), PlanetSideGUID(0), PlanetSideGUID(2), 0L, false, Vector3(0f,0f,0f),Vector3(0f,0f,0f),0,0,0,0L) //faked
+      val msg = UseItemMessage(
+        PlanetSideGUID(1),
+        PlanetSideGUID(0),
+        PlanetSideGUID(2),
+        0L,
+        false,
+        Vector3(0f, 0f, 0f),
+        Vector3(0f, 0f, 0f),
+        0,
+        0,
+        0,
+        0L
+      ) //faked
       ResourceSilo().Use(ResourceSiloTest.player, msg) mustEqual ResourceSilo.ChargeEvent()
     }
   }
@@ -78,21 +90,30 @@ class ResourceSiloControlStartupTest extends ActorTest {
 
 class ResourceSiloControlUseTest extends ActorTest {
   val guid = new NumberPoolHub(new LimitedNumberSource(10))
-  val map = new ZoneMap("test")
+  val map  = new ZoneMap("test")
   val zone = new Zone("test", map, 0) {
     override def SetupNumberPools() = {}
     GUID(guid)
   }
   zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-zone-actor")
   zone.Actor ! Zone.Init()
-  val building = new Building("Building", building_guid = 0, map_id = 0, zone, StructureType.Building, GlobalDefinitions.building) //guid=1
+  val building = new Building(
+    "Building",
+    building_guid = 0,
+    map_id = 0,
+    zone,
+    StructureType.Building,
+    GlobalDefinitions.building
+  ) //guid=1
 
   val obj = ResourceSilo() //guid=2
   obj.Actor = system.actorOf(Props(classOf[ResourceSiloControl], obj), "test-silo")
   obj.Owner = building
   obj.Actor ! "startup"
 
-  val player = Player(new Avatar(0L, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
+  val player = Player(
+    new Avatar(0L, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
+  ) //guid=3
   val vehicle = Vehicle(GlobalDefinitions.ant) //guid=4
 
   guid.register(building, 1)
@@ -103,7 +124,19 @@ class ResourceSiloControlUseTest extends ActorTest {
   zone.Transport ! Zone.Vehicle.Spawn(vehicle)
   vehicle.Seats(0).Occupant = player
   player.VehicleSeated = vehicle.GUID
-  val msg = UseItemMessage(PlanetSideGUID(1), PlanetSideGUID(0), PlanetSideGUID(2), 0L, false, Vector3.Zero,Vector3.Zero,0,0,0,0L) //faked
+  val msg = UseItemMessage(
+    PlanetSideGUID(1),
+    PlanetSideGUID(0),
+    PlanetSideGUID(2),
+    0L,
+    false,
+    Vector3.Zero,
+    Vector3.Zero,
+    0,
+    0,
+    0,
+    0L
+  ) //faked
   expectNoMessage(200 milliseconds)
 
   "Resource silo" should {
@@ -126,7 +159,8 @@ class ResourceSiloControlNtuWarningTest extends ActorTest {
   obj.Actor = system.actorOf(Props(classOf[ResourceSiloControl], obj), "test-silo")
   obj.Actor ! "startup"
   val zone = new Zone("nowhere", new ZoneMap("nowhere-map"), 0)
-  obj.Owner = new Building("Building", building_guid = 6, map_id = 0, zone, StructureType.Building, GlobalDefinitions.building)
+  obj.Owner =
+    new Building("Building", building_guid = 6, map_id = 0, zone, StructureType.Building, GlobalDefinitions.building)
   obj.Owner.GUID = PlanetSideGUID(6)
   val zoneEvents = TestProbe("zone-events")
 
@@ -140,14 +174,28 @@ class ResourceSiloControlNtuWarningTest extends ActorTest {
       assert(!obj.LowNtuWarningOn)
       assert(reply.isInstanceOf[AvatarServiceMessage])
       assert(reply.asInstanceOf[AvatarServiceMessage].forChannel == "nowhere")
-      assert(reply.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.isInstanceOf[AvatarAction.PlanetsideAttribute])
-      assert(reply.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].player_guid == PlanetSideGUID(6))
-      assert(reply.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_type == 47)
-      assert(reply.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_value == 0)
+      assert(reply.asInstanceOf[AvatarServiceMessage].actionMessage.isInstanceOf[AvatarAction.PlanetsideAttribute])
+      assert(
+        reply
+          .asInstanceOf[AvatarServiceMessage]
+          .actionMessage
+          .asInstanceOf[AvatarAction.PlanetsideAttribute]
+          .player_guid == PlanetSideGUID(6)
+      )
+      assert(
+        reply
+          .asInstanceOf[AvatarServiceMessage]
+          .actionMessage
+          .asInstanceOf[AvatarAction.PlanetsideAttribute]
+          .attribute_type == 47
+      )
+      assert(
+        reply
+          .asInstanceOf[AvatarServiceMessage]
+          .actionMessage
+          .asInstanceOf[AvatarAction.PlanetsideAttribute]
+          .attribute_value == 0
+      )
     }
   }
 }
@@ -158,10 +206,11 @@ class ResourceSiloControlUpdate1Test extends ActorTest {
   obj.Actor = system.actorOf(Props(classOf[ResourceSiloControl], obj), "test-silo")
   obj.Actor ! "startup"
   val zone = new Zone("nowhere", new ZoneMap("nowhere-map"), 0)
-  val bldg = new Building("Building", building_guid = 6, map_id = 0, zone, StructureType.Building, GlobalDefinitions.building)
+  val bldg =
+    new Building("Building", building_guid = 6, map_id = 0, zone, StructureType.Building, GlobalDefinitions.building)
   bldg.GUID = PlanetSideGUID(6)
   obj.Owner = bldg
-  val zoneEvents = TestProbe("zone-events")
+  val zoneEvents     = TestProbe("zone-events")
   val buildingEvents = TestProbe("building-events")
 
   "Resource silo" should {
@@ -179,41 +228,83 @@ class ResourceSiloControlUpdate1Test extends ActorTest {
       assert(obj.CapacitorDisplay == 4)
       assert(reply1.isInstanceOf[AvatarServiceMessage])
       assert(reply1.asInstanceOf[AvatarServiceMessage].forChannel == "nowhere")
-      assert(reply1.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.isInstanceOf[AvatarAction.PlanetsideAttribute])
-      assert(reply1.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].player_guid == PlanetSideGUID(1))
-      assert(reply1.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_type == 45)
-      assert(reply1.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_value == 4)
+      assert(reply1.asInstanceOf[AvatarServiceMessage].actionMessage.isInstanceOf[AvatarAction.PlanetsideAttribute])
+      assert(
+        reply1
+          .asInstanceOf[AvatarServiceMessage]
+          .actionMessage
+          .asInstanceOf[AvatarAction.PlanetsideAttribute]
+          .player_guid == PlanetSideGUID(1)
+      )
+      assert(
+        reply1
+          .asInstanceOf[AvatarServiceMessage]
+          .actionMessage
+          .asInstanceOf[AvatarAction.PlanetsideAttribute]
+          .attribute_type == 45
+      )
+      assert(
+        reply1
+          .asInstanceOf[AvatarServiceMessage]
+          .actionMessage
+          .asInstanceOf[AvatarAction.PlanetsideAttribute]
+          .attribute_value == 4
+      )
 
       assert(reply2.isInstanceOf[Building.SendMapUpdate])
 
       val reply3 = zoneEvents.receiveOne(500 milliseconds)
       assert(reply3.isInstanceOf[AvatarServiceMessage])
       assert(reply3.asInstanceOf[AvatarServiceMessage].forChannel == "nowhere")
-      assert(reply3.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.isInstanceOf[AvatarAction.PlanetsideAttribute])
-      assert(reply3.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].player_guid == PlanetSideGUID(6))
-      assert(reply3.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_type == 48)
-      assert(reply3.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_value == 0)
+      assert(reply3.asInstanceOf[AvatarServiceMessage].actionMessage.isInstanceOf[AvatarAction.PlanetsideAttribute])
+      assert(
+        reply3
+          .asInstanceOf[AvatarServiceMessage]
+          .actionMessage
+          .asInstanceOf[AvatarAction.PlanetsideAttribute]
+          .player_guid == PlanetSideGUID(6)
+      )
+      assert(
+        reply3
+          .asInstanceOf[AvatarServiceMessage]
+          .actionMessage
+          .asInstanceOf[AvatarAction.PlanetsideAttribute]
+          .attribute_type == 48
+      )
+      assert(
+        reply3
+          .asInstanceOf[AvatarServiceMessage]
+          .actionMessage
+          .asInstanceOf[AvatarAction.PlanetsideAttribute]
+          .attribute_value == 0
+      )
 
       val reply4 = zoneEvents.receiveOne(500 milliseconds)
       assert(!obj.LowNtuWarningOn)
       assert(reply4.isInstanceOf[AvatarServiceMessage])
       assert(reply4.asInstanceOf[AvatarServiceMessage].forChannel == "nowhere")
-      assert(reply4.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.isInstanceOf[AvatarAction.PlanetsideAttribute])
-      assert(reply4.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].player_guid == PlanetSideGUID(6))
-      assert(reply4.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_type == 47)
-      assert(reply4.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_value == 0)
+      assert(reply4.asInstanceOf[AvatarServiceMessage].actionMessage.isInstanceOf[AvatarAction.PlanetsideAttribute])
+      assert(
+        reply4
+          .asInstanceOf[AvatarServiceMessage]
+          .actionMessage
+          .asInstanceOf[AvatarAction.PlanetsideAttribute]
+          .player_guid == PlanetSideGUID(6)
+      )
+      assert(
+        reply4
+          .asInstanceOf[AvatarServiceMessage]
+          .actionMessage
+          .asInstanceOf[AvatarAction.PlanetsideAttribute]
+          .attribute_type == 47
+      )
+      assert(
+        reply4
+          .asInstanceOf[AvatarServiceMessage]
+          .actionMessage
+          .asInstanceOf[AvatarAction.PlanetsideAttribute]
+          .attribute_value == 0
+      )
     }
   }
 }
@@ -224,10 +315,11 @@ class ResourceSiloControlUpdate2Test extends ActorTest {
   obj.Actor = system.actorOf(Props(classOf[ResourceSiloControl], obj), "test-silo")
   obj.Actor ! "startup"
   val zone = new Zone("nowhere", new ZoneMap("nowhere-map"), 0)
-  val bldg = new Building("Building", building_guid = 6, map_id = 0, zone, StructureType.Building, GlobalDefinitions.building)
+  val bldg =
+    new Building("Building", building_guid = 6, map_id = 0, zone, StructureType.Building, GlobalDefinitions.building)
   bldg.GUID = PlanetSideGUID(6)
   obj.Owner = bldg
-  val zoneEvents = TestProbe("zone-events")
+  val zoneEvents     = TestProbe("zone-events")
   val buildingEvents = TestProbe("building-events")
 
   "Resource silo" should {
@@ -248,14 +340,28 @@ class ResourceSiloControlUpdate2Test extends ActorTest {
       assert(obj.CapacitorDisplay == 3)
       assert(reply1.isInstanceOf[AvatarServiceMessage])
       assert(reply1.asInstanceOf[AvatarServiceMessage].forChannel == "nowhere")
-      assert(reply1.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.isInstanceOf[AvatarAction.PlanetsideAttribute])
-      assert(reply1.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].player_guid == PlanetSideGUID(1))
-      assert(reply1.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_type == 45)
-      assert(reply1.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_value == 3)
+      assert(reply1.asInstanceOf[AvatarServiceMessage].actionMessage.isInstanceOf[AvatarAction.PlanetsideAttribute])
+      assert(
+        reply1
+          .asInstanceOf[AvatarServiceMessage]
+          .actionMessage
+          .asInstanceOf[AvatarAction.PlanetsideAttribute]
+          .player_guid == PlanetSideGUID(1)
+      )
+      assert(
+        reply1
+          .asInstanceOf[AvatarServiceMessage]
+          .actionMessage
+          .asInstanceOf[AvatarAction.PlanetsideAttribute]
+          .attribute_type == 45
+      )
+      assert(
+        reply1
+          .asInstanceOf[AvatarServiceMessage]
+          .actionMessage
+          .asInstanceOf[AvatarAction.PlanetsideAttribute]
+          .attribute_value == 3
+      )
 
       assert(reply2.isInstanceOf[Building.SendMapUpdate])
 
@@ -263,14 +369,28 @@ class ResourceSiloControlUpdate2Test extends ActorTest {
       assert(!obj.LowNtuWarningOn)
       assert(reply3.isInstanceOf[AvatarServiceMessage])
       assert(reply3.asInstanceOf[AvatarServiceMessage].forChannel == "nowhere")
-      assert(reply3.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.isInstanceOf[AvatarAction.PlanetsideAttribute])
-      assert(reply3.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].player_guid == PlanetSideGUID(6))
-      assert(reply3.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_type == 47)
-      assert(reply3.asInstanceOf[AvatarServiceMessage]
-        .actionMessage.asInstanceOf[AvatarAction.PlanetsideAttribute].attribute_value == 0)
+      assert(reply3.asInstanceOf[AvatarServiceMessage].actionMessage.isInstanceOf[AvatarAction.PlanetsideAttribute])
+      assert(
+        reply3
+          .asInstanceOf[AvatarServiceMessage]
+          .actionMessage
+          .asInstanceOf[AvatarAction.PlanetsideAttribute]
+          .player_guid == PlanetSideGUID(6)
+      )
+      assert(
+        reply3
+          .asInstanceOf[AvatarServiceMessage]
+          .actionMessage
+          .asInstanceOf[AvatarAction.PlanetsideAttribute]
+          .attribute_type == 47
+      )
+      assert(
+        reply3
+          .asInstanceOf[AvatarServiceMessage]
+          .actionMessage
+          .asInstanceOf[AvatarAction.PlanetsideAttribute]
+          .attribute_value == 0
+      )
     }
   }
 }
@@ -281,10 +401,11 @@ class ResourceSiloControlNoUpdateTest extends ActorTest {
   obj.Actor = system.actorOf(Props(classOf[ResourceSiloControl], obj), "test-silo")
   obj.Actor ! "startup"
   val zone = new Zone("nowhere", new ZoneMap("nowhere-map"), 0)
-  val bldg = new Building("Building", building_guid = 6, map_id = 0, zone, StructureType.Building, GlobalDefinitions.building)
+  val bldg =
+    new Building("Building", building_guid = 6, map_id = 0, zone, StructureType.Building, GlobalDefinitions.building)
   bldg.GUID = PlanetSideGUID(6)
   obj.Owner = bldg
-  val zoneEvents = TestProbe("zone-events")
+  val zoneEvents     = TestProbe("zone-events")
   val buildingEvents = TestProbe("building-events")
 
   "Resource silo" should {
@@ -302,7 +423,9 @@ class ResourceSiloControlNoUpdateTest extends ActorTest {
       expectNoMessage(500 milliseconds)
       zoneEvents.expectNoMessage(500 milliseconds)
       buildingEvents.expectNoMessage(500 milliseconds)
-      assert(obj.ChargeLevel == 299 || obj.ChargeLevel == 300) // Just in case the capacitor level drops while waiting for the message check 299 & 300
+      assert(
+        obj.ChargeLevel == 299 || obj.ChargeLevel == 300
+      ) // Just in case the capacitor level drops while waiting for the message check 299 & 300
       assert(obj.CapacitorDisplay == 3)
       assert(!obj.LowNtuWarningOn)
     }
@@ -310,27 +433,29 @@ class ResourceSiloControlNoUpdateTest extends ActorTest {
 }
 
 object ResourceSiloTest {
-  val player = Player(new Avatar(0L, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val player = Player(
+    new Avatar(0L, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
+  )
 
-  class ProbedAvatarService(probe : TestProbe) extends Actor {
-    override def receive : Receive = {
+  class ProbedAvatarService(probe: TestProbe) extends Actor {
+    override def receive: Receive = {
       case msg =>
         probe.ref ! msg
     }
   }
 
-  class ProbedBuildingControl(probe : TestProbe) extends Actor {
-    override def receive : Receive = {
+  class ProbedBuildingControl(probe: TestProbe) extends Actor {
+    override def receive: Receive = {
       case msg =>
         probe.ref ! msg
     }
   }
 
-  class ProbedResourceSiloControl(silo : ResourceSilo, probe : TestProbe) extends ResourceSiloControl(silo) {
-    override def receive : Receive = {
+  class ProbedResourceSiloControl(silo: ResourceSilo, probe: TestProbe) extends ResourceSiloControl(silo) {
+    override def receive: Receive = {
       case msg =>
-          super.receive.apply(msg)
-          probe.ref ! msg
-      }
+        super.receive.apply(msg)
+        probe.ref ! msg
+    }
   }
 }

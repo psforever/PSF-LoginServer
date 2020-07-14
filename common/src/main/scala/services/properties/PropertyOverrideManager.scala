@@ -1,6 +1,5 @@
 package services.properties
 
-
 import akka.actor.{Actor, ActorRef, Stash}
 import net.psforever.objects.zones.InterstellarCluster
 import net.psforever.packet.game.{GamePropertyTarget, PropertyOverrideMessage}
@@ -14,10 +13,10 @@ import scala.collection.mutable.ListBuffer
 class PropertyOverrideManager extends Actor with Stash {
   private[this] val log = org.log4s.getLogger("PropertyOverrideManager")
 
-  private var overrides : Map[Int, Map[String, List[(String, String)]]] = Map()
-  private var gamePropertyScopes : List[PropertyOverrideMessage.GamePropertyScope] = List()
-  private var interstellarCluster : ActorRef = Actor.noSender
-  private var zoneIds : List[Int] = List()
+  private var overrides: Map[Int, Map[String, List[(String, String)]]]            = Map()
+  private var gamePropertyScopes: List[PropertyOverrideMessage.GamePropertyScope] = List()
+  private var interstellarCluster: ActorRef                                       = Actor.noSender
+  private var zoneIds: List[Int]                                                  = List()
 
   override def preStart = {
     log.info(s"Starting PropertyOverrideManager")
@@ -26,7 +25,7 @@ class PropertyOverrideManager extends Actor with Stash {
 
   override def receive = ServiceLookup
 
-  def ServiceLookup : Receive = {
+  def ServiceLookup: Receive = {
     case ServiceManager.LookupResult("cluster", endpoint) =>
       interstellarCluster = endpoint
 
@@ -39,7 +38,7 @@ class PropertyOverrideManager extends Actor with Stash {
 
       unstashAll()
       LoadOverridesFromFile(zoneId = 0) // Global overrides
-      for(zoneId <- zoneIds) {
+      for (zoneId <- zoneIds) {
         LoadOverridesFromFile(zoneId)
       }
 
@@ -57,32 +56,32 @@ class PropertyOverrideManager extends Actor with Stash {
     case _ => ;
   }
 
-  private def LoadOverridesFromFile(zoneId : Int): Unit = {
-    val zoneOverrides = LoadFile(s"game_objects${zoneId}.adb.lst")
+  private def LoadOverridesFromFile(zoneId: Int): Unit = {
+    val zoneOverrides = LoadFile(s"overrides/game_objects${zoneId}.adb.lst")
 
-    if(zoneOverrides == null) {
-      log.info(s"No overrides found for zone ${zoneId} using filename game_objects${zoneId}.adb.lst")
+    if (zoneOverrides == null) {
+      log.debug(s"No overrides found for zone ${zoneId} using filename game_objects${zoneId}.adb.lst")
       return
     }
 
     val grouped = zoneOverrides.groupBy(_._1).view.mapValues(_.map(x => (x._2, x._3)).toList).toMap
 
-    log.info(s"Loaded property overrides for zone $zoneId: ${grouped.toString}")
+    log.debug(s"Loaded property overrides for zone $zoneId: ${grouped.toString}")
     overrides += (zoneId -> grouped)
   }
 
   private def ProcessGamePropertyScopes(): Unit = {
-    val scopesBuffer : ListBuffer[GamePropertyScope] = ListBuffer()
+    val scopesBuffer: ListBuffer[GamePropertyScope] = ListBuffer()
 
-    for(over <- overrides) {
-      val zoneId = over._1
+    for (over <- overrides) {
+      val zoneId      = over._1
       val overrideMap = over._2
 
-      val gamePropertyTargets : ListBuffer[PropertyOverrideMessage.GamePropertyTarget] = ListBuffer()
+      val gamePropertyTargets: ListBuffer[PropertyOverrideMessage.GamePropertyTarget] = ListBuffer()
 
-      for(propOverride <- overrideMap) {
+      for (propOverride <- overrideMap) {
         val objectId = ObjectClass.ByName(propOverride._1)
-        val props = GamePropertyTarget(objectId,propOverride._2)
+        val props    = GamePropertyTarget(objectId, propOverride._2)
         gamePropertyTargets += props
       }
 
@@ -94,23 +93,23 @@ class PropertyOverrideManager extends Actor with Stash {
     gamePropertyScopes = scopesBuffer.toList
   }
 
-  def LoadFile(path : String): ListBuffer[(String, String, String)] = {
+  def LoadFile(path: String): ListBuffer[(String, String, String)] = {
     val stream = getClass.getClassLoader.getResourceAsStream(path)
-    if(stream == null) {
+    if (stream == null) {
       return null
     }
 
-    val content = scala.io.Source.fromInputStream(stream).getLines().filter(x => x.startsWith("add_property"))
-    var data : ListBuffer[(String, String, String)] = ListBuffer()
+    val content                                    = scala.io.Source.fromInputStream(stream).getLines().filter(x => x.startsWith("add_property"))
+    var data: ListBuffer[(String, String, String)] = ListBuffer()
 
-    for(line <- content) {
+    for (line <- content) {
       val splitLine = line.split(" ")
-      if(splitLine.length >= 3) {
+      if (splitLine.length >= 3) {
         val objectName = splitLine(1)
-        val property = splitLine(2)
+        val property   = splitLine(2)
 
         var propertyValue = ""
-        for(i <- 3 to splitLine.length - 1) {
+        for (i <- 3 to splitLine.length - 1) {
           propertyValue += splitLine(i) + " "
         }
         propertyValue = propertyValue.trim

@@ -27,11 +27,12 @@ import net.psforever.objects.guid.NumberPoolHub
   * @tparam A any object that extends from PlanetSideServerObject that will be produced by this class;
   *           can be inferred from the output of `constructor`
   */
-class ServerObjectBuilder[A <: PlanetSideServerObject](private val id : Int,
-                                                       private val constructor : ServerObjectBuilder.ConstructorType[A]
-                                                      ) {
+class ServerObjectBuilder[A <: PlanetSideServerObject](
+    private val id: Int,
+    private val constructor: ServerObjectBuilder.ConstructorType[A]
+) {
 
-  def Id : Int = id
+  def Id: Int = id
 
   /**
     * Instantiate and configure the given server object.
@@ -44,15 +45,15 @@ class ServerObjectBuilder[A <: PlanetSideServerObject](private val id : Int,
     *             defaults to `null`
     * @return the object that was created and integrated into the `Zone`
     */
-  def Build(implicit context : ActorContext = null, guid : NumberPoolHub = null) : A = {
-    val obj : A = constructor(id, context)
+  def Build(implicit context: ActorContext = null, guid: NumberPoolHub = null): A = {
+    val obj: A = constructor(id, context)
     guid.register(obj, id)
     obj
   }
 }
 
 object ServerObjectBuilder {
-  type ConstructorType[A <: PlanetSideServerObject] = (Int, ActorContext)=>A
+  type ConstructorType[A <: PlanetSideServerObject] = (Int, ActorContext) => A
 
   /**
     * Overloaded constructor.
@@ -61,7 +62,7 @@ object ServerObjectBuilder {
     * @tparam A any object that extends from PlanetSideServerObject that will be produced by this class
     * @return a `ServerObjectBuilder` object
     */
-  def apply[A <: PlanetSideServerObject](id : Int, constructor : ConstructorType[A]) : ServerObjectBuilder[A] = {
+  def apply[A <: PlanetSideServerObject](id: Int, constructor: ConstructorType[A]): ServerObjectBuilder[A] = {
     new ServerObjectBuilder[A](id, constructor)
   }
 }

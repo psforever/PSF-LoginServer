@@ -12,18 +12,18 @@ import net.psforever.objects.vital.resistance.ResistanceProfile
   * based on the assumption that the implementing object's `Definition` is the primary `ResistanceProfile`.
   */
 trait StandardResistanceProfile extends ResistanceProfile {
-  this : PlanetSideGameObject =>
+  this: PlanetSideGameObject =>
   //actually check that this will work for this implementing class
   assert(Definition.isInstanceOf[ResistanceProfile], s"$this object definition must extend ResistanceProfile")
   private val resistDef = Definition.asInstanceOf[ResistanceProfile] //cast only once
 
-  def Subtract : DamageProfile = resistDef.Subtract
+  def Subtract: DamageProfile = resistDef.Subtract
 
-  def ResistanceDirectHit : Int = resistDef.ResistanceDirectHit
+  def ResistanceDirectHit: Int = resistDef.ResistanceDirectHit
 
-  def ResistanceSplash : Int = resistDef.ResistanceDirectHit
+  def ResistanceSplash: Int = resistDef.ResistanceDirectHit
 
-  def ResistanceAggravated : Int = resistDef.ResistanceDirectHit
+  def ResistanceAggravated: Int = resistDef.ResistanceDirectHit
 
-  def RadiationShielding : Float = resistDef.ResistanceDirectHit.toFloat
+  def RadiationShielding: Float = resistDef.ResistanceDirectHit.toFloat
 }

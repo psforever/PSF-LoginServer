@@ -9,10 +9,10 @@ import org.specs2.mutable._
 import scodec.bits._
 
 class DetailedConstructionToolDataTest extends Specification {
-  val string_ace = hex"18 87000000 1006 100 C70B 80 8800000200008"
+  val string_ace            = hex"18 87000000 1006 100 C70B 80 8800000200008"
   val string_boomer_trigger = hex"18 87000000 6304CA8760B 80 C800000200008"
-  val string_telepad = hex"18 97000000 4f00 f3a e301 80 4a680400000200008"
-  val string_telepad_short = hex"18 87000000 2a00 f3a 5d01 89 8000000200008"
+  val string_telepad        = hex"18 97000000 4f00 f3a e301 80 4a680400000200008"
+  val string_telepad_short  = hex"18 87000000 2a00 f3a 5d01 89 8000000200008"
 
   "ACE (detailed)" should {
     "decode" in {
@@ -47,7 +47,12 @@ class DetailedConstructionToolDataTest extends Specification {
       val obj = DetailedConstructionToolData(
         CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, None, PlanetSideGUID(0))
       )
-      val msg = ObjectCreateDetailedMessage(ObjectClass.ace, PlanetSideGUID(3015), ObjectCreateMessageParent(PlanetSideGUID(3104), 0), obj)
+      val msg = ObjectCreateDetailedMessage(
+        ObjectClass.ace,
+        PlanetSideGUID(3015),
+        ObjectCreateMessageParent(PlanetSideGUID(3104), 0),
+        obj
+      )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
       pkt mustEqual string_ace
@@ -87,7 +92,12 @@ class DetailedConstructionToolDataTest extends Specification {
       val obj = DetailedConstructionToolData(
         CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0))
       )
-      val msg = ObjectCreateDetailedMessage(ObjectClass.boomer_trigger, PlanetSideGUID(2934), ObjectCreateMessageParent(PlanetSideGUID(2502), 0), obj)
+      val msg = ObjectCreateDetailedMessage(
+        ObjectClass.boomer_trigger,
+        PlanetSideGUID(2934),
+        ObjectCreateMessageParent(PlanetSideGUID(2502), 0),
+        obj
+      )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
       pkt mustEqual string_boomer_trigger
@@ -155,7 +165,12 @@ class DetailedConstructionToolDataTest extends Specification {
       val obj = DetailedConstructionToolData(
         CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, Some(564), PlanetSideGUID(0))
       )
-      val msg = ObjectCreateDetailedMessage(ObjectClass.router_telepad, PlanetSideGUID(483), ObjectCreateMessageParent(PlanetSideGUID(414), 0), obj)
+      val msg = ObjectCreateDetailedMessage(
+        ObjectClass.router_telepad,
+        PlanetSideGUID(483),
+        ObjectCreateMessageParent(PlanetSideGUID(414), 0),
+        obj
+      )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
       pkt mustEqual string_telepad
@@ -163,7 +178,12 @@ class DetailedConstructionToolDataTest extends Specification {
 
     "encode (short)" in {
       val obj = DetailedConstructionToolData(CommonFieldData(PlanetSideEmpire.VS))
-      val msg = ObjectCreateDetailedMessage(ObjectClass.router_telepad, PlanetSideGUID(349), ObjectCreateMessageParent(PlanetSideGUID(340), 9), obj)
+      val msg = ObjectCreateDetailedMessage(
+        ObjectClass.router_telepad,
+        PlanetSideGUID(349),
+        ObjectCreateMessageParent(PlanetSideGUID(340), 9),
+        obj
+      )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
       pkt mustEqual string_telepad_short

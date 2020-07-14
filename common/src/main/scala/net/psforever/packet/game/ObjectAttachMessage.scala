@@ -38,19 +38,17 @@ import scodec.codecs._
   * @param slot a codified location within the parent object's inventory;
   *             8u (0 - 127 or `0x80 - 0xFF`) or 16u (128 - 32767 or `0x0080 - 0x7FFF`)
   */
-final case class ObjectAttachMessage(parent_guid : PlanetSideGUID,
-                                     child_guid : PlanetSideGUID,
-                                     slot : Int)
-  extends PlanetSideGamePacket {
+final case class ObjectAttachMessage(parent_guid: PlanetSideGUID, child_guid: PlanetSideGUID, slot: Int)
+    extends PlanetSideGamePacket {
   type Packet = ObjectAttachMessage
   def opcode = GamePacketOpcode.ObjectAttachMessage
   def encode = ObjectAttachMessage.encode(this)
 }
 
 object ObjectAttachMessage extends Marshallable[ObjectAttachMessage] {
-  implicit val codec : Codec[ObjectAttachMessage] = (
+  implicit val codec: Codec[ObjectAttachMessage] = (
     ("parent_guid" | PlanetSideGUID.codec) ::
       ("child_guid" | PlanetSideGUID.codec) ::
       ("slot" | PacketHelpers.encodedStringSize)
-    ).as[ObjectAttachMessage]
+  ).as[ObjectAttachMessage]
 }

@@ -9,7 +9,7 @@ import scodec.bits._
 
 class ObjectAttachMessageTest extends Specification {
   val stringToInventory = hex"2A 9F05 D405 86"
-  val stringToCursor = hex"2A 9F05 D405 00FA"
+  val stringToCursor    = hex"2A 9F05 D405 00FA"
 
   "decode (inventory 1,1)" in {
     PacketCoding.DecodePacket(stringToInventory).require match {

@@ -11,7 +11,18 @@ class ZonePopulationUpdateMessageTest extends Specification {
 
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
-      case ZonePopulationUpdateMessage(continent_guid, zone_queue, tr_queue, tr_pop, nc_queue, nc_pop, vs_queue, vs_pop, bo_queue, bo_pop) =>
+      case ZonePopulationUpdateMessage(
+            continent_guid,
+            zone_queue,
+            tr_queue,
+            tr_pop,
+            nc_queue,
+            nc_pop,
+            vs_queue,
+            vs_pop,
+            bo_queue,
+            bo_pop
+          ) =>
         continent_guid mustEqual 4
         zone_queue mustEqual 414
         tr_queue mustEqual 138

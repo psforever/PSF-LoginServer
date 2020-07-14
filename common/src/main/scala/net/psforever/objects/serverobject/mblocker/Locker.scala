@@ -8,18 +8,19 @@ import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.packet.game.TriggeredSound
 
 class Locker extends Amenity with Hackable {
-  def Definition : LockerDefinition = GlobalDefinitions.mb_locker
+  def Definition: LockerDefinition = GlobalDefinitions.mb_locker
   HackSound = TriggeredSound.HackTerminal
   HackEffectDuration = Array(0, 30, 60, 90)
   HackDuration = Array(0, 10, 5, 3)
 }
 
 object Locker {
+
   /**
     * Overloaded constructor.
     * @return the `Locker` object
     */
-  def apply() : Locker = {
+  def apply(): Locker = {
     new Locker()
   }
 
@@ -30,14 +31,14 @@ object Locker {
     *                not necessary for this object, but required by signature
     * @return the `Locker` object
     */
-  def Constructor(id : Int, context : ActorContext) : Locker = {
+  def Constructor(id: Int, context: ActorContext): Locker = {
     val obj = Locker()
     obj.Actor = context.actorOf(Props(classOf[LockerControl], obj), s"${obj.Definition.Name}_$id")
     obj
   }
 
   import net.psforever.types.Vector3
-  def Constructor(pos: Vector3)(id : Int, context : ActorContext) : Locker = {
+  def Constructor(pos: Vector3)(id: Int, context: ActorContext): Locker = {
     val obj = Locker()
     obj.Position = pos
     obj.Actor = context.actorOf(Props(classOf[LockerControl], obj), s"${obj.Definition.Name}_$id")

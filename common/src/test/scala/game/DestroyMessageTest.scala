@@ -24,7 +24,12 @@ class DestroyMessageTest extends Specification {
     }
 
     "encode" in {
-      val msg = DestroyMessage(PlanetSideGUID(2420), PlanetSideGUID(2420), PlanetSideGUID(0), Vector3(1642.0469f, 4091.6172f, 32.59375f))
+      val msg = DestroyMessage(
+        PlanetSideGUID(2420),
+        PlanetSideGUID(2420),
+        PlanetSideGUID(0),
+        Vector3(1642.0469f, 4091.6172f, 32.59375f)
+      )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
       pkt mustEqual string

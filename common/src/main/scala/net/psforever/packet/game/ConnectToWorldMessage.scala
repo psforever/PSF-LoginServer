@@ -11,17 +11,16 @@ import scodec.codecs._
   * @param serverAddress The IP or hostname of the server to connect to
   * @param port The 16-bit port number to connect on
   */
-final case class ConnectToWorldMessage(server : String, serverAddress : String, port : Int)
-  extends PlanetSideGamePacket {
+final case class ConnectToWorldMessage(server: String, serverAddress: String, port: Int) extends PlanetSideGamePacket {
   type Packet = ConnectToWorldMessage
   def opcode = GamePacketOpcode.ConnectToWorldMessage
   def encode = ConnectToWorldMessage.encode(this)
 }
 
 object ConnectToWorldMessage extends Marshallable[ConnectToWorldMessage] {
-  implicit val codec : Codec[ConnectToWorldMessage] = (
-      ("server_name" | PacketHelpers.encodedString) ::
+  implicit val codec: Codec[ConnectToWorldMessage] = (
+    ("server_name" | PacketHelpers.encodedString) ::
       ("server_address" | PacketHelpers.encodedString) ::
       ("server_port" | uint16L)
-    ).as[ConnectToWorldMessage]
+  ).as[ConnectToWorldMessage]
 }

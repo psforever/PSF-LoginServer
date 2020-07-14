@@ -4,8 +4,7 @@ package net.psforever.packet.control
 import net.psforever.packet._
 import scodec.Codec
 
-final case class ConnectionClose()
-  extends PlanetSideControlPacket {
+final case class ConnectionClose() extends PlanetSideControlPacket {
   type Packet = ConnectionClose
   def opcode = ControlPacketOpcode.ConnectionClose
   def encode = ConnectionClose.encode(this)

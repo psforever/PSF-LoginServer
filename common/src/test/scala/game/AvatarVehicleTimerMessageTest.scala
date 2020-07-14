@@ -8,7 +8,7 @@ import net.psforever.types.PlanetSideGUID
 import scodec.bits._
 
 class AvatarVehicleTimerMessageTest extends Specification {
-  val string = hex"57bd16866d65646b69740500000000"
+  val string  = hex"57bd16866d65646b69740500000000"
   val string2 = hex"57971b84667572794800000080"
 
   "decode medkit" in {
@@ -35,13 +35,13 @@ class AvatarVehicleTimerMessageTest extends Specification {
   }
 
   "encode medkit" in {
-    val msg = AvatarVehicleTimerMessage(PlanetSideGUID(5821),"medkit",5,false)
+    val msg = AvatarVehicleTimerMessage(PlanetSideGUID(5821), "medkit", 5, false)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }
   "encode fury" in {
-    val msg = AvatarVehicleTimerMessage(PlanetSideGUID(7063),"fury",72,true)
+    val msg = AvatarVehicleTimerMessage(PlanetSideGUID(7063), "fury", 72, true)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string2

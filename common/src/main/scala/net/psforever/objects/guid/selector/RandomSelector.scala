@@ -22,7 +22,7 @@ package net.psforever.objects.guid.selector
   * @see `RandomSequenceSelector`
   */
 class RandomSelector extends NumberSelector {
-  private val rand : scala.util.Random = new scala.util.Random(System.currentTimeMillis())
+  private val rand: scala.util.Random = new scala.util.Random(System.currentTimeMillis())
 
   /**
     * Accept a provided `pool` and select the next number.<br>
@@ -31,16 +31,15 @@ class RandomSelector extends NumberSelector {
     * @param ary the `Array` of `Int` numbers from which to draw a new number
     * @return an `Int` number
     */
-  override def Get(ary : Array[Int]) : Int = {
-    if(ary.length > selectionIndex) {
-      val selection : Int = rand.nextInt(ary.length - selectionIndex) + selectionIndex
-      val out : Int = ary(selection)
+  override def Get(ary: Array[Int]): Int = {
+    if (ary.length > selectionIndex) {
+      val selection: Int = rand.nextInt(ary.length - selectionIndex) + selectionIndex
+      val out: Int       = ary(selection)
       ary(selection) = ary(selectionIndex)
       ary(selectionIndex) = -1
       selectionIndex = selectionIndex + (out >> 31) + 1 //(out >> 31): 0 if positive or zero, -1 if negative
       out
-    }
-    else {
+    } else {
       -1
     }
   }
@@ -55,13 +54,12 @@ class RandomSelector extends NumberSelector {
     * @param ary the `Array` of `Int` numbers to which the number is to be returned
     * @return `true`, if this return was successful; `false`, otherwise
     */
-  override def Return(number : Int, ary : Array[Int]) : Boolean = {
-    if(selectionIndex > 0) {
+  override def Return(number: Int, ary: Array[Int]): Boolean = {
+    if (selectionIndex > 0) {
       ary(selectionIndex - 1) = number
       selectionIndex -= 1
       true
-    }
-    else {
+    } else {
       false
     }
   }

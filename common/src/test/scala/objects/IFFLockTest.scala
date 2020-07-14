@@ -21,7 +21,7 @@ class IFFLockTest extends Specification {
     //TODO internal hacking logic will be re-written later
 
     "keep track of its orientation as a North-corrected vector" in {
-      val ulp = math.ulp(1)
+      val ulp  = math.ulp(1)
       val lock = IFFLock(GlobalDefinitions.lock_external)
 
       lock.Orientation = Vector3(0, 0, 0) //face North
@@ -61,7 +61,7 @@ class IFFLockControl2Test extends ActorTest {
       assert(lock.HackedBy.isEmpty)
 
       lock.Actor ! CommonMessages.Hack(player, lock)
-      Thread.sleep(500L) //blocking
+      Thread.sleep(500L)             //blocking
       assert(lock.HackedBy.nonEmpty) //TODO rewrite later
     }
   }
@@ -75,20 +75,27 @@ class IFFLockControl3Test extends ActorTest {
       assert(lock.HackedBy.isEmpty)
 
       lock.Actor ! CommonMessages.Hack(player, lock)
-      Thread.sleep(500L) //blocking
+      Thread.sleep(500L)             //blocking
       assert(lock.HackedBy.nonEmpty) //TODO rewrite later
       lock.Actor ! CommonMessages.ClearHack()
-      Thread.sleep(500L) //blocking
+      Thread.sleep(500L)            //blocking
       assert(lock.HackedBy.isEmpty) //TODO rewrite
     }
   }
 }
 
 object IFFLockControlTest {
-  def SetUpAgents(faction : PlanetSideEmpire.Value)(implicit system : ActorSystem) : (Player, IFFLock) = {
+  def SetUpAgents(faction: PlanetSideEmpire.Value)(implicit system: ActorSystem): (Player, IFFLock) = {
     val lock = IFFLock(GlobalDefinitions.lock_external)
     lock.Actor = system.actorOf(Props(classOf[IFFLockControl], lock), "lock-control")
-    lock.Owner = new Building("Building", building_guid = 0, map_id = 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
+    lock.Owner = new Building(
+      "Building",
+      building_guid = 0,
+      map_id = 0,
+      Zone.Nowhere,
+      StructureType.Building,
+      GlobalDefinitions.building
+    )
     lock.Owner.Faction = faction
     (Player(Avatar("test", faction, CharacterGender.Male, 0, CharacterVoice.Mute)), lock)
   }

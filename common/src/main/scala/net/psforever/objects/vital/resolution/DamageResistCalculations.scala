@@ -14,10 +14,15 @@ import net.psforever.objects.vital.projectile.ProjectileCalculations
   * @tparam A an internal type that converts between `calcFunc`'s output and `applyFunc`'s input;
   *           never has to be defined explicitly, but will be checked upon object definition
   */
-abstract class DamageResistCalculations[A](calcFunc : ResolvedProjectile=>(Int, Int)=>A,
-                                           applyFunc : (A, ResolvedProjectile)=>ResolutionCalculations.Output)
-  extends ResolutionCalculations {
-  def Calculate(damages : ProjectileCalculations.Form, resistances : ProjectileCalculations.Form, data : ResolvedProjectile) : ResolutionCalculations.Output = {
+abstract class DamageResistCalculations[A](
+    calcFunc: ResolvedProjectile => (Int, Int) => A,
+    applyFunc: (A, ResolvedProjectile) => ResolutionCalculations.Output
+) extends ResolutionCalculations {
+  def Calculate(
+      damages: ProjectileCalculations.Form,
+      resistances: ProjectileCalculations.Form,
+      data: ResolvedProjectile
+  ): ResolutionCalculations.Output = {
     val modDam = Sample(damages, resistances, data)
     applyFunc(modDam, data)
   }
@@ -31,10 +36,14 @@ abstract class DamageResistCalculations[A](calcFunc : ResolvedProjectile=>(Int, 
     * @return the transitory form of the modified damage(s);
     *         usually, a single `Int` value or a tuple of `Int` values
     */
-  def Sample(damages : ProjectileCalculations.Form, resistances : ProjectileCalculations.Form, data : ResolvedProjectile) : A = {
-    val dam : Int = damages(data)
-    val res : Int = resistances(data)
-    val mod = calcFunc(data)
+  def Sample(
+      damages: ProjectileCalculations.Form,
+      resistances: ProjectileCalculations.Form,
+      data: ResolvedProjectile
+  ): A = {
+    val dam: Int = damages(data)
+    val res: Int = resistances(data)
+    val mod      = calcFunc(data)
     mod(dam, res)
   }
 }

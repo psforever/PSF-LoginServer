@@ -1,4 +1,5 @@
-// Copyright (c) 2017 PSForever
+package net.psforever.pslogin
+
 import akka.actor.{Actor, ActorRef}
 import akka.io._
 
@@ -14,37 +15,43 @@ import scala.concurrent.duration._
   * @param packetReorderingTime The absolute adjustment in milliseconds that a packet can have (either
   *                             forward or backwards in time)
   */
-case class NetworkSimulatorParameters(packetLoss : Double,
-                                      packetDelay : Long,
-                                      packetReorderingChance : Double,
-                                      packetReorderingTime : Long) {
+case class NetworkSimulatorParameters(
+    packetLoss: Double,
+    packetDelay: Long,
+    packetReorderingChance: Double,
+    packetReorderingTime: Long
+) {
   assert(packetLoss >= 0.0 && packetLoss <= 1.0)
   assert(packetDelay >= 0)
   assert(packetReorderingChance >= 0.0 && packetReorderingChance <= 1.0)
   assert(packetReorderingTime >= 0)
 
-  override def toString = "NetSimParams: loss %.2f%% / delay %dms / reorder %.2f%% / reorder +/- %dms".format(
-    packetLoss*100, packetDelay, packetReorderingChance*100, packetReorderingTime)
+  override def toString =
+    "NetSimParams: loss %.2f%% / delay %dms / reorder %.2f%% / reorder +/- %dms".format(
+      packetLoss * 100,
+      packetDelay,
+      packetReorderingChance * 100,
+      packetReorderingTime
+    )
 }
 
-
-class UdpNetworkSimulator(server : ActorRef, params : NetworkSimulatorParameters) extends Actor {
+class UdpNetworkSimulator(server: ActorRef, params: NetworkSimulatorParameters) extends Actor {
   private val log = org.log4s.getLogger
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
   //******* Variables
-  val packetDelayDuration = (params.packetDelay/2).milliseconds
+  val packetDelayDuration = (params.packetDelay / 2).milliseconds
 
   type QueueItem = (Udp.Message, Long)
 
   // sort in ascending order (older things get dequeued first)
   implicit val QueueItem = Ordering.by[QueueItem, Long](_._2).reverse
 
-  val inPacketQueue = mutable.PriorityQueue[QueueItem]()
+  val inPacketQueue  = mutable.PriorityQueue[QueueItem]()
   val outPacketQueue = mutable.PriorityQueue[QueueItem]()
 
-  val chaos = new Random()
+  val chaos     = new Random()
   var interface = ActorRef.noSender
 
   def receive = {
@@ -52,7 +59,7 @@ class UdpNetworkSimulator(server : ActorRef, params : NetworkSimulatorParameters
       val time = System.nanoTime()
       var exit = false
 
-      while(inPacketQueue.nonEmpty && !exit) {
+      while (inPacketQueue.nonEmpty && !exit) {
         val lastTime = time - inPacketQueue.head._2
 
         // this packet needs to be sent within 20 milliseconds or more
@@ -67,7 +74,7 @@ class UdpNetworkSimulator(server : ActorRef, params : NetworkSimulatorParameters
       val time = System.nanoTime()
       var exit = false
 
-      while(outPacketQueue.nonEmpty && !exit) {
+      while (outPacketQueue.nonEmpty && !exit) {
         val lastTime = time - outPacketQueue.head._2
 
         // this packet needs to be sent within 20 milliseconds or more
@@ -91,29 +98,29 @@ class UdpNetworkSimulator(server : ActorRef, params : NetworkSimulatorParameters
     case default =>
       val from = sender()
 
-      if(from == server)
+      if (from == server)
         interface.tell(default, server)
-      else if(from == interface)
+      else if (from == interface)
         server.tell(default, interface)
       else
         log.error("Unexpected sending Actor " + from.path)
   }
 
-  def handlePacket(message : Udp.Message, queue : mutable.PriorityQueue[QueueItem], outbound : Boolean) = {
-    val name : String = if(outbound) "OUT" else "IN"
-    val queue : mutable.PriorityQueue[QueueItem] = if(outbound) outPacketQueue else inPacketQueue
+  def handlePacket(message: Udp.Message, queue: mutable.PriorityQueue[QueueItem], outbound: Boolean) = {
+    val name: String                            = if (outbound) "OUT" else "IN"
+    val queue: mutable.PriorityQueue[QueueItem] = if (outbound) outPacketQueue else inPacketQueue
 
-    if(chaos.nextDouble() > params.packetLoss) {
+    if (chaos.nextDouble() > params.packetLoss) {
       // if the message queue is empty, then we need to reschedule our task
-      if(queue.isEmpty)
+      if (queue.isEmpty)
         schedule(packetDelayDuration, outbound)
 
       // perform a reordering
-      if(chaos.nextDouble() <= params.packetReorderingChance) {
+      if (chaos.nextDouble() <= params.packetReorderingChance) {
         // creates the range (-1.0, 1.0)
         // time adjustment to move the packet (forward or backwards in time)
-        val adj = (2*(chaos.nextDouble()-0.5)*params.packetReorderingTime).toLong
-        queue += ((message, System.nanoTime() + adj*1000000))
+        val adj = (2 * (chaos.nextDouble() - 0.5) * params.packetReorderingTime).toLong
+        queue += ((message, System.nanoTime() + adj * 1000000))
 
         log.debug(s"Reordered $name by ${adj}ms - $message")
       } else { // normal message
@@ -124,11 +131,12 @@ class UdpNetworkSimulator(server : ActorRef, params : NetworkSimulatorParameters
     }
   }
 
-  def schedule(duration : FiniteDuration, outbound : Boolean) = context.system.scheduler.scheduleOnce(
-    packetDelayDuration,
-    self,
-    if(outbound) UdpNetworkSimulator.ProcessOutputQueue() else UdpNetworkSimulator.ProcessInputQueue()
-  )
+  def schedule(duration: FiniteDuration, outbound: Boolean) =
+    context.system.scheduler.scheduleOnce(
+      packetDelayDuration,
+      self,
+      if (outbound) UdpNetworkSimulator.ProcessOutputQueue() else UdpNetworkSimulator.ProcessInputQueue()
+    )
 }
 
 object UdpNetworkSimulator {

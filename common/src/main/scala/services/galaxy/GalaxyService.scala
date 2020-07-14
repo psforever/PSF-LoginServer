@@ -7,7 +7,7 @@ import net.psforever.packet.game.BuildingInfoUpdateMessage
 import services.{GenericEventBus, Service}
 
 class GalaxyService extends Actor {
-  private [this] val log = org.log4s.getLogger
+  private[this] val log = org.log4s.getLogger
 
   override def preStart = {
     log.info("Starting...")
@@ -15,22 +15,22 @@ class GalaxyService extends Actor {
 
   val GalaxyEvents = new GenericEventBus[GalaxyServiceResponse]
 
-  def receive : Receive = {
+  def receive: Receive = {
     case Service.Join(faction) if "TRNCVS".containsSlice(faction) =>
       val path = s"/$faction/Galaxy"
-      val who = sender()
+      val who  = sender()
       log.trace(s"$who has joined $path")
       GalaxyEvents.subscribe(who, path)
 
     case Service.Join("galaxy") =>
       val path = s"/Galaxy"
-      val who = sender()
+      val who  = sender()
       log.trace(s"$who has joined $path")
       GalaxyEvents.subscribe(who, path)
 
     case Service.Join(channel) =>
       val path = s"/$channel/Galaxy"
-      val who = sender()
+      val who  = sender()
       log.trace(s"$who has joined $path")
       GalaxyEvents.subscribe(who, path)
 
@@ -39,7 +39,7 @@ class GalaxyService extends Actor {
 
     case Service.Leave(Some(channel)) =>
       val path = s"/$channel/Galaxy"
-      val who = sender()
+      val who  = sender()
       log.trace(s"$who has left $path")
       GalaxyEvents.unsubscribe(sender(), path)
 
@@ -55,7 +55,10 @@ class GalaxyService extends Actor {
 
         case GalaxyAction.TransferPassenger(player_guid, temp_channel, vehicle, vehicle_to_delete, manifest) =>
           GalaxyEvents.publish(
-            GalaxyServiceResponse(s"/$forChannel/Galaxy", GalaxyResponse.TransferPassenger(temp_channel, vehicle, vehicle_to_delete, manifest))
+            GalaxyServiceResponse(
+              s"/$forChannel/Galaxy",
+              GalaxyResponse.TransferPassenger(temp_channel, vehicle, vehicle_to_delete, manifest)
+            )
           )
         case _ => ;
       }

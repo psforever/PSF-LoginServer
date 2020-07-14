@@ -2,7 +2,7 @@
 package net.psforever.objects.definition.converter
 
 import net.psforever.objects.{Player, Tool}
-import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
+import net.psforever.objects.equipment.EquipmentSlot
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types.{PlanetSideGUID, _}
 
@@ -15,9 +15,10 @@ import scala.util.{Failure, Success, Try}
   * Details that would not be apparent on that screen such as implants or certifications are ignored.
   */
 class CharacterSelectConverter extends AvatarConverter {
-  override def ConstructorData(obj : Player) : Try[PlayerData] = Failure(new Exception("CharacterSelectConverter should not be used to generate CharacterData"))
+  override def ConstructorData(obj: Player): Try[PlayerData] =
+    Failure(new Exception("CharacterSelectConverter should not be used to generate CharacterData"))
 
-  override def DetailedConstructorData(obj : Player) : Try[DetailedPlayerData] = {
+  override def DetailedConstructorData(obj: Player): Try[DetailedPlayerData] = {
     Success(
       DetailedPlayerData.apply(
         PlacementData(0, 0, 0),
@@ -35,8 +36,8 @@ class CharacterSelectConverter extends AvatarConverter {
     * @see `AvatarConverter.MakeAppearanceData`
     * @return the resulting `CharacterAppearanceData`
     */
-  private def MakeAppearanceData(obj : Player) : Int=>CharacterAppearanceData = {
-    val aa : Int=>CharacterAppearanceA = CharacterAppearanceA(
+  private def MakeAppearanceData(obj: Player): Int => CharacterAppearanceData = {
+    val aa: Int => CharacterAppearanceA = CharacterAppearanceA(
       BasicCharacterData(obj.Name, obj.Faction, obj.Sex, obj.Head, CharacterVoice.Mute),
       CommonFieldData(
         obj.Faction,
@@ -57,7 +58,7 @@ class CharacterSelectConverter extends AvatarConverter {
       0,
       0
     )
-    val ab : (Boolean,Int)=>CharacterAppearanceB = CharacterAppearanceB(
+    val ab: (Boolean, Int) => CharacterAppearanceB = CharacterAppearanceB(
       0L,
       outfit_name = "",
       outfit_logo = 0,
@@ -80,35 +81,49 @@ class CharacterSelectConverter extends AvatarConverter {
     CharacterAppearanceData(aa, ab, RibbonBars())
   }
 
-  private def MakeDetailedCharacterData(obj : Player) : Option[Int]=>DetailedCharacterData = {
-    val bep : Long = obj.BEP
-    val maxOpt : Option[Long] = if(obj.ExoSuit == ExoSuitType.MAX) { Some(0L) } else { None }
-    val ba : DetailedCharacterA = DetailedCharacterA(
+  private def MakeDetailedCharacterData(obj: Player): Option[Int] => DetailedCharacterData = {
+    val bep: Long = obj.BEP
+    val maxOpt: Option[Long] = if (obj.ExoSuit == ExoSuitType.MAX) { Some(0L) }
+    else { None }
+    val ba: DetailedCharacterA = DetailedCharacterA(
       bep,
       obj.CEP,
-      0L, 0L, 0L,
-      1, 1,
+      0L,
+      0L,
+      0L,
+      1,
+      1,
       false,
       0,
       0L,
-      1, 1,
+      1,
+      1,
       maxOpt,
-      0, 0, 0L,
+      0,
+      0,
+      0L,
       List(0, 0, 0, 0, 0, 0),
       certs = List.empty[CertificationType.Value]
     )
-    val bb : (Long, Option[Int])=>DetailedCharacterB = DetailedCharacterB(
+    val bb: (Long, Option[Int]) => DetailedCharacterB = DetailedCharacterB(
       None,
       MakeImplantEntries(obj), //necessary for correct stream length
-      Nil, Nil,
+      Nil,
+      Nil,
       firstTimeEvents = List.empty[String],
       tutorials = List.empty[String],
-      0L, 0L, 0L, 0L, 0L,
+      0L,
+      0L,
+      0L,
+      0L,
+      0L,
       Some(DCDExtra2(0, 0)),
-      Nil, Nil, false,
+      Nil,
+      Nil,
+      false,
       AvatarConverter.MakeCosmetics(obj)
     )
-    pad_length : Option[Int] => DetailedCharacterData(ba, bb(bep, pad_length))(pad_length)
+    pad_length: Option[Int] => DetailedCharacterData(ba, bb(bep, pad_length))(pad_length)
   }
 
   /**
@@ -117,7 +132,7 @@ class CharacterSelectConverter extends AvatarConverter {
     * @return the resulting implant `List`
     * @see `ImplantEntry` in `DetailedCharacterData`
     */
-  private def MakeImplantEntries(obj : Player) : List[ImplantEntry] = {
+  private def MakeImplantEntries(obj: Player): List[ImplantEntry] = {
     List.fill[ImplantEntry](DetailedCharacterData.numberOfImplantSlots(obj.BEP))(ImplantEntry(ImplantType.None, None))
   }
 
@@ -129,14 +144,17 @@ class CharacterSelectConverter extends AvatarConverter {
     * @see `AvatarConverter.recursiveMakeHolsters`
     * @return the `List` of inventory data created from the holsters
     */
-  @tailrec private def recursiveMakeHolsters(iter : Iterator[EquipmentSlot], list : List[InternalSlot] = Nil, index : Int = 0) : List[InternalSlot] = {
-    if(!iter.hasNext) {
+  @tailrec private def recursiveMakeHolsters(
+      iter: Iterator[EquipmentSlot],
+      list: List[InternalSlot] = Nil,
+      index: Int = 0
+  ): List[InternalSlot] = {
+    if (!iter.hasNext) {
       list
-    }
-    else {
-      val slot : EquipmentSlot = iter.next
+    } else {
+      val slot: EquipmentSlot = iter.next
       slot.Equipment match {
-        case Some(equip : Tool) =>
+        case Some(equip: Tool) =>
           val jammed = equip.Jammed
           equip.Jammed = false
           val slot = AvatarConverter.BuildDetailedEquipment(index, equip)

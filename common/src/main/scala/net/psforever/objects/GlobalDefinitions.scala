@@ -35,17 +35,17 @@ object GlobalDefinitions {
   exo-suits
    */
   val Standard = ExoSuitDefinition(ExoSuitType.Standard)
-  
+
   val Agile = ExoSuitDefinition(ExoSuitType.Agile)
-  
+
   val Reinforced = ExoSuitDefinition(ExoSuitType.Reinforced)
-  
+
   val Infiltration = ExoSuitDefinition(ExoSuitType.Infiltration)
-  
+
   val VSMAX = SpecialExoSuitDefinition(ExoSuitType.MAX)
-  
+
   val TRMAX = SpecialExoSuitDefinition(ExoSuitType.MAX)
-  
+
   val NCMAX = SpecialExoSuitDefinition(ExoSuitType.MAX)
   init_exosuit()
 
@@ -242,7 +242,9 @@ object GlobalDefinitions {
 
   val lasher_projectile_ap = ProjectileDefinition(Projectiles.lasher_projectile_ap)
 
-  val liberator_bomb_cluster_bomblet_projectile = ProjectileDefinition(Projectiles.liberator_bomb_cluster_bomblet_projectile)
+  val liberator_bomb_cluster_bomblet_projectile = ProjectileDefinition(
+    Projectiles.liberator_bomb_cluster_bomblet_projectile
+  )
 
   val liberator_bomb_cluster_projectile = ProjectileDefinition(Projectiles.liberator_bomb_cluster_projectile)
 
@@ -644,36 +646,32 @@ object GlobalDefinitions {
   val dynomite = ToolDefinition(ObjectClass.dynomite)
 
   val trhev_dualcycler = new ToolDefinition(ObjectClass.trhev_dualcycler) {
-    override def NextFireModeIndex(index : Int) : Int = index
+    override def NextFireModeIndex(index: Int): Int = index
   }
 
   val trhev_pounder = new ToolDefinition(ObjectClass.trhev_pounder) {
-    override def NextFireModeIndex(index : Int) : Int = {
+    override def NextFireModeIndex(index: Int): Int = {
       //TODO other modes
-      if(index == 0 || index == 3) {
-        if(index == 0) {
+      if (index == 0 || index == 3) {
+        if (index == 0) {
           3 //3-second fuse
-        }
-        else {
+        } else {
           0 //explode on contact
         }
-      }
-      else if(index == 1 || index == 4) {
-        if(index == 1) {
+      } else if (index == 1 || index == 4) {
+        if (index == 1) {
           4 //3-second fuse, anchored
-        }
-        else {
+        } else {
           1 //explode on contact, anchored
         }
-      }
-      else {
+      } else {
         index
       }
     }
   }
 
   val trhev_burster = new ToolDefinition(ObjectClass.trhev_burster) {
-    override def NextFireModeIndex(index : Int) : Int = index
+    override def NextFireModeIndex(index: Int): Int = index
   }
 
   val nchev_scattercannon = ToolDefinition(ObjectClass.nchev_scattercannon)
@@ -1057,11 +1055,11 @@ object GlobalDefinitions {
   /*
   Buildings
    */
-  val building = new BuildingDefinition(474) { Name = "building" } //borrows object id of entity mainbase1
-  val amp_station = new BuildingDefinition(45) { Name = "amp_station"; SOIRadius = 300 }
-  val comm_station = new BuildingDefinition(211) { Name = "comm_station"; SOIRadius = 300 }
+  val building         = new BuildingDefinition(474) { Name = "building" } //borrows object id of entity mainbase1
+  val amp_station      = new BuildingDefinition(45) { Name = "amp_station"; SOIRadius = 300 }
+  val comm_station     = new BuildingDefinition(211) { Name = "comm_station"; SOIRadius = 300 }
   val comm_station_dsp = new BuildingDefinition(212) { Name = "comm_station_dsp"; SOIRadius = 300 }
-  val cryo_facility = new BuildingDefinition(215) { Name = "cryo_facility"; SOIRadius = 300 }
+  val cryo_facility    = new BuildingDefinition(215) { Name = "cryo_facility"; SOIRadius = 300 }
 
   val vanu_core = new BuildingDefinition(932) { Name = "vanu_core" }
 
@@ -1105,21 +1103,21 @@ object GlobalDefinitions {
   //hst.NoWarp += peregrine_flight
   hst.SpecificPointFunc = SpawnPoint.Gate
 
-  val mainbase1 = new BuildingDefinition(474) { Name = "mainbase1" }
-  val mainbase2 = new BuildingDefinition(475) { Name = "mainbase2" }
-  val mainbase3 = new BuildingDefinition(476) { Name = "mainbase3" }
-  val meeting_center_nc = new BuildingDefinition(537) { Name = "meeting_center_nc" }
-  val meeting_center_tr = new BuildingDefinition(538) { Name = "meeting_center_tr" }
-  val meeting_center_vs = new BuildingDefinition(539) { Name = "meeting_center_vs" }
-  val minibase1 = new BuildingDefinition(557) { Name = "minibase1" }
-  val minibase2 = new BuildingDefinition(558) { Name = "minibase2" }
-  val minibase3 = new BuildingDefinition(559) { Name = "minibase3" }
-  val redoubt = new BuildingDefinition(726) { Name = "redoubt"; SOIRadius = 187 }
-  val tech_plant = new BuildingDefinition(852) { Name = "tech_plant"; SOIRadius = 300 }
-  val tower_a = new BuildingDefinition(869) { Name = "tower_a"; SOIRadius = 50 }
-  val tower_b = new BuildingDefinition(870) { Name = "tower_b"; SOIRadius = 50 }
-  val tower_c = new BuildingDefinition(871) { Name = "tower_c"; SOIRadius = 50 }
-  val vanu_control_point = new BuildingDefinition(931) { Name = "vanu_control_point"; SOIRadius = 187 }
+  val mainbase1            = new BuildingDefinition(474) { Name = "mainbase1" }
+  val mainbase2            = new BuildingDefinition(475) { Name = "mainbase2" }
+  val mainbase3            = new BuildingDefinition(476) { Name = "mainbase3" }
+  val meeting_center_nc    = new BuildingDefinition(537) { Name = "meeting_center_nc" }
+  val meeting_center_tr    = new BuildingDefinition(538) { Name = "meeting_center_tr" }
+  val meeting_center_vs    = new BuildingDefinition(539) { Name = "meeting_center_vs" }
+  val minibase1            = new BuildingDefinition(557) { Name = "minibase1" }
+  val minibase2            = new BuildingDefinition(558) { Name = "minibase2" }
+  val minibase3            = new BuildingDefinition(559) { Name = "minibase3" }
+  val redoubt              = new BuildingDefinition(726) { Name = "redoubt"; SOIRadius = 187 }
+  val tech_plant           = new BuildingDefinition(852) { Name = "tech_plant"; SOIRadius = 300 }
+  val tower_a              = new BuildingDefinition(869) { Name = "tower_a"; SOIRadius = 50 }
+  val tower_b              = new BuildingDefinition(870) { Name = "tower_b"; SOIRadius = 50 }
+  val tower_c              = new BuildingDefinition(871) { Name = "tower_c"; SOIRadius = 50 }
+  val vanu_control_point   = new BuildingDefinition(931) { Name = "vanu_control_point"; SOIRadius = 187 }
   val vanu_vehicle_station = new BuildingDefinition(948) { Name = "vanu_vehicle_station"; SOIRadius = 187 }
 
   val warpgate = new WarpGateDefinition(993)
@@ -1144,30 +1142,29 @@ object GlobalDefinitions {
   warpgate_small.SpecificPointFunc = SpawnPoint.Gate
 
   val bunker_gauntlet = new BuildingDefinition(150) { Name = "bunker_gauntlet" }
-  val bunker_lg = new BuildingDefinition(151) { Name = "bunker_lg" }
-  val bunker_sm = new BuildingDefinition(152) { Name = "bunker_sm" }
+  val bunker_lg       = new BuildingDefinition(151) { Name = "bunker_lg" }
+  val bunker_sm       = new BuildingDefinition(152) { Name = "bunker_sm" }
 
   val orbital_building_nc = new BuildingDefinition(605) { Name = "orbital_building_nc" }
   val orbital_building_tr = new BuildingDefinition(606) { Name = "orbital_building_tr" }
   val orbital_building_vs = new BuildingDefinition(607) { Name = "orbital_building_vs" }
-  val VT_building_nc = new BuildingDefinition(978) { Name = "VT_building_nc" }
-  val VT_building_tr = new BuildingDefinition(979) { Name = "VT_building_tr" }
-  val VT_building_vs = new BuildingDefinition(980) { Name = "VT_building_vs" }
-  val vt_dropship = new BuildingDefinition(981) { Name = "vt_dropship" }
-  val vt_spawn = new BuildingDefinition(984) { Name = "vt_spawn" }
-  val vt_vehicle = new BuildingDefinition(985) { Name = "vt_vehicle" }
-
+  val VT_building_nc      = new BuildingDefinition(978) { Name = "VT_building_nc" }
+  val VT_building_tr      = new BuildingDefinition(979) { Name = "VT_building_tr" }
+  val VT_building_vs      = new BuildingDefinition(980) { Name = "VT_building_vs" }
+  val vt_dropship         = new BuildingDefinition(981) { Name = "vt_dropship" }
+  val vt_spawn            = new BuildingDefinition(984) { Name = "vt_spawn" }
+  val vt_vehicle          = new BuildingDefinition(985) { Name = "vt_vehicle" }
 
   /**
     * Given a faction, provide the standard assault melee weapon.
     * @param faction the faction
     * @return the `ToolDefinition` for the melee weapon
     */
-  def StandardMelee(faction : PlanetSideEmpire.Value) : ToolDefinition = {
+  def StandardMelee(faction: PlanetSideEmpire.Value): ToolDefinition = {
     faction match {
-      case PlanetSideEmpire.TR => chainblade
-      case PlanetSideEmpire.NC => magcutter
-      case PlanetSideEmpire.VS => forceblade
+      case PlanetSideEmpire.TR      => chainblade
+      case PlanetSideEmpire.NC      => magcutter
+      case PlanetSideEmpire.VS      => forceblade
       case PlanetSideEmpire.NEUTRAL => chainblade //do NOT hand out the katana
     }
   }
@@ -1177,11 +1174,11 @@ object GlobalDefinitions {
     * @param faction the faction
     * @return the `ToolDefinition` for the pistol
     */
-  def StandardPistol(faction : PlanetSideEmpire.Value) : ToolDefinition = {
+  def StandardPistol(faction: PlanetSideEmpire.Value): ToolDefinition = {
     faction match {
-      case PlanetSideEmpire.TR => repeater
-      case PlanetSideEmpire.NC => isp
-      case PlanetSideEmpire.VS => beamer
+      case PlanetSideEmpire.TR      => repeater
+      case PlanetSideEmpire.NC      => isp
+      case PlanetSideEmpire.VS      => beamer
       case PlanetSideEmpire.NEUTRAL => ilc9
     }
   }
@@ -1193,11 +1190,11 @@ object GlobalDefinitions {
     * @return thr `AmmoBoxDefinition` for the pistol's ammo
     * @see `GlobalDefinitions.StandardPistol`
     */
-  def StandardPistolAmmo(faction : PlanetSideEmpire.Value) : AmmoBoxDefinition = {
+  def StandardPistolAmmo(faction: PlanetSideEmpire.Value): AmmoBoxDefinition = {
     faction match {
-      case PlanetSideEmpire.TR => bullet_9mm
-      case PlanetSideEmpire.NC => shotgun_shell
-      case PlanetSideEmpire.VS => energy_cell
+      case PlanetSideEmpire.TR      => bullet_9mm
+      case PlanetSideEmpire.NC      => shotgun_shell
+      case PlanetSideEmpire.VS      => energy_cell
       case PlanetSideEmpire.NEUTRAL => bullet_9mm
     }
   }
@@ -1208,11 +1205,11 @@ object GlobalDefinitions {
     * @param faction the faction
     * @return the `ToolDefinition` for the pistol
     */
-  def MediumPistol(faction : PlanetSideEmpire.Value) : ToolDefinition = {
+  def MediumPistol(faction: PlanetSideEmpire.Value): ToolDefinition = {
     faction match {
-      case PlanetSideEmpire.TR => anniversary_guna
-      case PlanetSideEmpire.NC => anniversary_gun
-      case PlanetSideEmpire.VS => anniversary_gunb
+      case PlanetSideEmpire.TR      => anniversary_guna
+      case PlanetSideEmpire.NC      => anniversary_gun
+      case PlanetSideEmpire.VS      => anniversary_gunb
       case PlanetSideEmpire.NEUTRAL => ilc9 //do not hand out the spiker
     }
   }
@@ -1223,11 +1220,11 @@ object GlobalDefinitions {
     * @param faction the faction
     * @return the `ToolDefinition` for the rifle
     */
-  def MediumRifle(faction : PlanetSideEmpire.Value) : ToolDefinition = {
+  def MediumRifle(faction: PlanetSideEmpire.Value): ToolDefinition = {
     faction match {
-      case PlanetSideEmpire.TR => cycler
-      case PlanetSideEmpire.NC => gauss
-      case PlanetSideEmpire.VS => pulsar
+      case PlanetSideEmpire.TR      => cycler
+      case PlanetSideEmpire.NC      => gauss
+      case PlanetSideEmpire.VS      => pulsar
       case PlanetSideEmpire.NEUTRAL => suppressor //the Punisher would be messy to have to code for
     }
   }
@@ -1239,14 +1236,15 @@ object GlobalDefinitions {
     * @return thr `AmmoBoxDefinition` for the rifle's ammo
     * @see `GlobalDefinitions.MediumRifle`
     */
-  def MediumRifleAmmo(faction : PlanetSideEmpire.Value) : AmmoBoxDefinition = {
+  def MediumRifleAmmo(faction: PlanetSideEmpire.Value): AmmoBoxDefinition = {
     faction match {
-      case PlanetSideEmpire.TR => bullet_9mm
-      case PlanetSideEmpire.NC => bullet_9mm
-      case PlanetSideEmpire.VS => energy_cell
+      case PlanetSideEmpire.TR      => bullet_9mm
+      case PlanetSideEmpire.NC      => bullet_9mm
+      case PlanetSideEmpire.VS      => energy_cell
       case PlanetSideEmpire.NEUTRAL => bullet_9mm
     }
   }
+
   /**
     * For a given faction, provide the AP ammunition for the medium assault rifle.
     * The ammunition value here must work with the result of obtaining the rifle using the faction.
@@ -1254,11 +1252,11 @@ object GlobalDefinitions {
     * @return thr `AmmoBoxDefinition` for the rifle's ammo
     * @see `GlobalDefinitions.MediumRifle`
     */
-  def MediumRifleAPAmmo(faction : PlanetSideEmpire.Value) : AmmoBoxDefinition = {
+  def MediumRifleAPAmmo(faction: PlanetSideEmpire.Value): AmmoBoxDefinition = {
     faction match {
-      case PlanetSideEmpire.TR => bullet_9mm_AP
-      case PlanetSideEmpire.NC => bullet_9mm_AP
-      case PlanetSideEmpire.VS => energy_cell
+      case PlanetSideEmpire.TR      => bullet_9mm_AP
+      case PlanetSideEmpire.NC      => bullet_9mm_AP
+      case PlanetSideEmpire.VS      => energy_cell
       case PlanetSideEmpire.NEUTRAL => bullet_9mm_AP
     }
   }
@@ -1269,11 +1267,11 @@ object GlobalDefinitions {
     * @param faction the faction
     * @return the `ToolDefinition` for the rifle
     */
-  def HeavyRifle(faction : PlanetSideEmpire.Value) : ToolDefinition = {
+  def HeavyRifle(faction: PlanetSideEmpire.Value): ToolDefinition = {
     faction match {
-      case PlanetSideEmpire.TR => mini_chaingun
-      case PlanetSideEmpire.NC => r_shotgun
-      case PlanetSideEmpire.VS => lasher
+      case PlanetSideEmpire.TR      => mini_chaingun
+      case PlanetSideEmpire.NC      => r_shotgun
+      case PlanetSideEmpire.VS      => lasher
       case PlanetSideEmpire.NEUTRAL => suppressor //do not hand out the maelstrom
     }
   }
@@ -1285,11 +1283,11 @@ object GlobalDefinitions {
     * @return thr `AmmoBoxDefinition` for the rifle's ammo
     * @see `GlobalDefinitions.HeavyRifle`
     */
-  def HeavyRifleAmmo(faction : PlanetSideEmpire.Value) : AmmoBoxDefinition = {
+  def HeavyRifleAmmo(faction: PlanetSideEmpire.Value): AmmoBoxDefinition = {
     faction match {
-      case PlanetSideEmpire.TR => bullet_9mm
-      case PlanetSideEmpire.NC => shotgun_shell
-      case PlanetSideEmpire.VS => energy_cell
+      case PlanetSideEmpire.TR      => bullet_9mm
+      case PlanetSideEmpire.NC      => shotgun_shell
+      case PlanetSideEmpire.VS      => energy_cell
       case PlanetSideEmpire.NEUTRAL => bullet_9mm
     }
   }
@@ -1301,11 +1299,11 @@ object GlobalDefinitions {
     * @return thr `AmmoBoxDefinition` for the rifle's ammo
     * @see `GlobalDefinitions.HeavyRifle`
     */
-  def HeavyRifleAPAmmo(faction : PlanetSideEmpire.Value) : AmmoBoxDefinition = {
+  def HeavyRifleAPAmmo(faction: PlanetSideEmpire.Value): AmmoBoxDefinition = {
     faction match {
-      case PlanetSideEmpire.TR => bullet_9mm_AP
-      case PlanetSideEmpire.NC => shotgun_shell_AP
-      case PlanetSideEmpire.VS => energy_cell
+      case PlanetSideEmpire.TR      => bullet_9mm_AP
+      case PlanetSideEmpire.NC      => shotgun_shell_AP
+      case PlanetSideEmpire.VS      => energy_cell
       case PlanetSideEmpire.NEUTRAL => bullet_9mm_AP
     }
   }
@@ -1315,11 +1313,11 @@ object GlobalDefinitions {
     * @param faction the faction
     * @return the `ToolDefinition` for the launcher
     */
-  def AntiVehicularLauncher(faction : PlanetSideEmpire.Value) : ToolDefinition = {
+  def AntiVehicularLauncher(faction: PlanetSideEmpire.Value): ToolDefinition = {
     faction match {
-      case PlanetSideEmpire.TR => striker
-      case PlanetSideEmpire.NC => hunterseeker
-      case PlanetSideEmpire.VS => lancer
+      case PlanetSideEmpire.TR      => striker
+      case PlanetSideEmpire.NC      => hunterseeker
+      case PlanetSideEmpire.VS      => lancer
       case PlanetSideEmpire.NEUTRAL => phoenix
     }
   }
@@ -1331,100 +1329,96 @@ object GlobalDefinitions {
     * @return thr `AmmoBoxDefinition` for the launcher's ammo
     * @see `GlobalDefinitions.AntiVehicular`
     */
-  def AntiVehicularAmmo(faction : PlanetSideEmpire.Value) : AmmoBoxDefinition = {
+  def AntiVehicularAmmo(faction: PlanetSideEmpire.Value): AmmoBoxDefinition = {
     faction match {
-      case PlanetSideEmpire.TR => striker_missile_ammo
-      case PlanetSideEmpire.NC => hunter_seeker_missile
-      case PlanetSideEmpire.VS => lancer_cartridge
+      case PlanetSideEmpire.TR      => striker_missile_ammo
+      case PlanetSideEmpire.NC      => hunter_seeker_missile
+      case PlanetSideEmpire.VS      => lancer_cartridge
       case PlanetSideEmpire.NEUTRAL => phoenix_missile //careful - does not exist as an AmmoBox normally
     }
   }
 
-  def MAXArms(subtype : Int, faction : PlanetSideEmpire.Value) : ToolDefinition = {
-    if(subtype == 1) {
+  def MAXArms(subtype: Int, faction: PlanetSideEmpire.Value): ToolDefinition = {
+    if (subtype == 1) {
       AI_MAX(faction)
-    }
-    else if(subtype == 2) {
+    } else if (subtype == 2) {
       AV_MAX(faction)
-    }
-    else if(subtype == 3) {
+    } else if (subtype == 3) {
       AA_MAX(faction)
-    }
-    else {
+    } else {
       suppressor //there are no common pool MAX arms
     }
   }
 
-  def isMaxArms(tdef : ToolDefinition) : Boolean = {
+  def isMaxArms(tdef: ToolDefinition): Boolean = {
     tdef match {
-      case `trhev_dualcycler` | `nchev_scattercannon` | `vshev_quasar`
-           | `trhev_pounder` | `nchev_falcon` | `vshev_comet`
-           | `trhev_burster` | `nchev_sparrow` | `vshev_starfire` =>
+      case `trhev_dualcycler` | `nchev_scattercannon` | `vshev_quasar` | `trhev_pounder` | `nchev_falcon` |
+          `vshev_comet` | `trhev_burster` | `nchev_sparrow` | `vshev_starfire` =>
         true
       case _ =>
         false
     }
   }
 
-  def AI_MAX(faction : PlanetSideEmpire.Value) : ToolDefinition = {
+  def AI_MAX(faction: PlanetSideEmpire.Value): ToolDefinition = {
     faction match {
-      case PlanetSideEmpire.TR => trhev_dualcycler
-      case PlanetSideEmpire.NC => nchev_scattercannon
-      case PlanetSideEmpire.VS => vshev_quasar
+      case PlanetSideEmpire.TR      => trhev_dualcycler
+      case PlanetSideEmpire.NC      => nchev_scattercannon
+      case PlanetSideEmpire.VS      => vshev_quasar
       case PlanetSideEmpire.NEUTRAL => suppressor //there are no common pool MAX arms
     }
   }
 
-  def AI_MAXAmmo(faction : PlanetSideEmpire.Value) : AmmoBoxDefinition = {
+  def AI_MAXAmmo(faction: PlanetSideEmpire.Value): AmmoBoxDefinition = {
     faction match {
-      case PlanetSideEmpire.TR => dualcycler_ammo
-      case PlanetSideEmpire.NC => scattercannon_ammo
-      case PlanetSideEmpire.VS => quasar_ammo
+      case PlanetSideEmpire.TR      => dualcycler_ammo
+      case PlanetSideEmpire.NC      => scattercannon_ammo
+      case PlanetSideEmpire.VS      => quasar_ammo
       case PlanetSideEmpire.NEUTRAL => bullet_9mm //there are no common pool MAX arms
     }
   }
 
-  def AV_MAX(faction : PlanetSideEmpire.Value) : ToolDefinition = {
+  def AV_MAX(faction: PlanetSideEmpire.Value): ToolDefinition = {
     faction match {
-      case PlanetSideEmpire.TR => trhev_pounder
-      case PlanetSideEmpire.NC => nchev_falcon
-      case PlanetSideEmpire.VS => vshev_comet
+      case PlanetSideEmpire.TR      => trhev_pounder
+      case PlanetSideEmpire.NC      => nchev_falcon
+      case PlanetSideEmpire.VS      => vshev_comet
       case PlanetSideEmpire.NEUTRAL => suppressor //there are no common pool MAX arms
     }
   }
 
-  def AV_MAXAmmo(faction : PlanetSideEmpire.Value) : AmmoBoxDefinition = {
+  def AV_MAXAmmo(faction: PlanetSideEmpire.Value): AmmoBoxDefinition = {
     faction match {
-      case PlanetSideEmpire.TR => pounder_ammo
-      case PlanetSideEmpire.NC => falcon_ammo
-      case PlanetSideEmpire.VS => comet_ammo
+      case PlanetSideEmpire.TR      => pounder_ammo
+      case PlanetSideEmpire.NC      => falcon_ammo
+      case PlanetSideEmpire.VS      => comet_ammo
       case PlanetSideEmpire.NEUTRAL => bullet_9mm //there are no common pool MAX arms
     }
   }
 
-  def AA_MAX(faction : PlanetSideEmpire.Value) : ToolDefinition = {
+  def AA_MAX(faction: PlanetSideEmpire.Value): ToolDefinition = {
     faction match {
-      case PlanetSideEmpire.TR => trhev_burster
-      case PlanetSideEmpire.NC => nchev_sparrow
-      case PlanetSideEmpire.VS => vshev_starfire
+      case PlanetSideEmpire.TR      => trhev_burster
+      case PlanetSideEmpire.NC      => nchev_sparrow
+      case PlanetSideEmpire.VS      => vshev_starfire
       case PlanetSideEmpire.NEUTRAL => suppressor //there are no common pool MAX arms
     }
   }
 
-  def AA_MAXAmmo(faction : PlanetSideEmpire.Value) : AmmoBoxDefinition = {
+  def AA_MAXAmmo(faction: PlanetSideEmpire.Value): AmmoBoxDefinition = {
     faction match {
-      case PlanetSideEmpire.TR => burster_ammo
-      case PlanetSideEmpire.NC => sparrow_ammo
-      case PlanetSideEmpire.VS => starfire_ammo
+      case PlanetSideEmpire.TR      => burster_ammo
+      case PlanetSideEmpire.NC      => sparrow_ammo
+      case PlanetSideEmpire.VS      => starfire_ammo
       case PlanetSideEmpire.NEUTRAL => bullet_9mm //there are no common pool MAX arms
     }
   }
 
-  def PortableMannedTurret(faction :PlanetSideEmpire.Value) : TurretDeployableDefinition = {
+  def PortableMannedTurret(faction: PlanetSideEmpire.Value): TurretDeployableDefinition = {
     faction match {
-      case PlanetSideEmpire.TR => portable_manned_turret_tr
-      case PlanetSideEmpire.NC => portable_manned_turret_nc
-      case PlanetSideEmpire.VS => portable_manned_turret_vs
+      case PlanetSideEmpire.TR      => portable_manned_turret_tr
+      case PlanetSideEmpire.NC      => portable_manned_turret_nc
+      case PlanetSideEmpire.VS      => portable_manned_turret_vs
       case PlanetSideEmpire.NEUTRAL => portable_manned_turret
     }
   }
@@ -1435,7 +1429,7 @@ object GlobalDefinitions {
     * @param edef the `EquipmentDefinition` of the item
     * @return `true`, if it is a grenade-type weapon; `false`, otherwise
     */
-  def isGrenade(edef : EquipmentDefinition) : Boolean = {
+  def isGrenade(edef: EquipmentDefinition): Boolean = {
     edef match {
       case `frag_grenade` | `jammer_grenade` | `plasma_grenade` | `dynomite` =>
         true
@@ -1450,7 +1444,7 @@ object GlobalDefinitions {
     * @param edef the `EquipmentDefinition` of the item
     * @return `true`, if it is a grenade-type weapon; `false`, otherwise
     */
-  def isGrenadePack(edef : EquipmentDefinition) : Boolean = {
+  def isGrenadePack(edef: EquipmentDefinition): Boolean = {
     edef match {
       case `frag_cartridge` | `jammer_cartridge` | `plasma_cartridge` =>
         true
@@ -1466,13 +1460,16 @@ object GlobalDefinitions {
     * @param edef the `EquipmentDefinition` of the item
     * @return the faction alignment, or `Neutral`
     */
-  def isFactionWeapon(edef : EquipmentDefinition) : PlanetSideEmpire.Value = {
+  def isFactionWeapon(edef: EquipmentDefinition): PlanetSideEmpire.Value = {
     edef match {
-      case `chainblade` | `repeater` | `anniversary_guna` | `cycler` | `mini_chaingun` | `striker` | `trhev_dualcycler` | `trhev_pounder` | `trhev_burster` =>
+      case `chainblade` | `repeater` | `anniversary_guna` | `cycler` | `mini_chaingun` | `striker` |
+          `trhev_dualcycler` | `trhev_pounder` | `trhev_burster` =>
         PlanetSideEmpire.TR
-      case `magcutter` | `isp` | `anniversary_gun` | `gauss` | `r_shotgun` | `hunterseeker` | `nchev_scattercannon` | `nchev_falcon` | `nchev_sparrow` =>
+      case `magcutter` | `isp` | `anniversary_gun` | `gauss` | `r_shotgun` | `hunterseeker` | `nchev_scattercannon` |
+          `nchev_falcon` | `nchev_sparrow` =>
         PlanetSideEmpire.NC
-      case `forceblade` | `beamer` | `anniversary_gunb` | `pulsar` | `lasher` | `lancer` | `vshev_quasar` | `vshev_comet` | `vshev_starfire` =>
+      case `forceblade` | `beamer` | `anniversary_gunb` | `pulsar` | `lasher` | `lancer` | `vshev_quasar` |
+          `vshev_comet` | `vshev_starfire` =>
         PlanetSideEmpire.VS
       case _ =>
         PlanetSideEmpire.NEUTRAL
@@ -1485,13 +1482,19 @@ object GlobalDefinitions {
     * @param edef the `EquipmentDefinition` of the item
     * @return the faction alignment, or `Neutral`
     */
-  def isFactionEquipment(edef : EquipmentDefinition) : PlanetSideEmpire.Value = {
+  def isFactionEquipment(edef: EquipmentDefinition): PlanetSideEmpire.Value = {
     edef match {
-      case `chainblade` | `repeater` | `anniversary_guna` | `cycler` | `mini_chaingun` | `striker` | `striker_missile_ammo` | `trhev_dualcycler` | `trhev_pounder` | `trhev_burster` | `dualcycler_ammo` | `pounder_ammo` | `burster_ammo` =>
+      case `chainblade` | `repeater` | `anniversary_guna` | `cycler` | `mini_chaingun` | `striker` |
+          `striker_missile_ammo` | `trhev_dualcycler` | `trhev_pounder` | `trhev_burster` | `dualcycler_ammo` |
+          `pounder_ammo` | `burster_ammo` =>
         PlanetSideEmpire.TR
-      case `magcutter` | `isp` | `anniversary_gun` | `gauss` | `r_shotgun` | `hunterseeker` | `hunter_seeker_missile` | `nchev_scattercannon` | `nchev_falcon` | `nchev_sparrow` | `scattercannon_ammo` | `falcon_ammo` | `sparrow_ammo` =>
+      case `magcutter` | `isp` | `anniversary_gun` | `gauss` | `r_shotgun` | `hunterseeker` | `hunter_seeker_missile` |
+          `nchev_scattercannon` | `nchev_falcon` | `nchev_sparrow` | `scattercannon_ammo` | `falcon_ammo` |
+          `sparrow_ammo` =>
         PlanetSideEmpire.NC
-      case `forceblade` | `beamer` | `anniversary_gunb` | `pulsar` | `lasher` | `lancer` | `energy_cell` | `lancer_cartridge` | `vshev_quasar` | `vshev_comet` | `vshev_starfire` | `quasar_ammo` | `comet_ammo` | `starfire_ammo` =>
+      case `forceblade` | `beamer` | `anniversary_gunb` | `pulsar` | `lasher` | `lancer` | `energy_cell` |
+          `lancer_cartridge` | `vshev_quasar` | `vshev_comet` | `vshev_starfire` | `quasar_ammo` | `comet_ammo` |
+          `starfire_ammo` =>
         PlanetSideEmpire.VS
       case _ =>
         PlanetSideEmpire.NEUTRAL
@@ -1504,10 +1507,10 @@ object GlobalDefinitions {
     * @param edef the `EquipmentDefinition` of the item
     * @return `true`, if it is; otherwise, `false`
     */
-  def isCavernWeapon(edef : EquipmentDefinition) : Boolean = {
+  def isCavernWeapon(edef: EquipmentDefinition): Boolean = {
     edef match {
       case `spiker` | `maelstrom` | `radiator` => true
-      case _ => false
+      case _                                   => false
     }
   }
 
@@ -1516,10 +1519,10 @@ object GlobalDefinitions {
     * @param edef the `EquipmentDefinition` of the item
     * @return `true`, if it is; otherwise, `false`
     */
-  def isCavernEquipment(edef : EquipmentDefinition) : Boolean = {
+  def isCavernEquipment(edef: EquipmentDefinition): Boolean = {
     edef match {
       case `spiker` | `maelstrom` | `radiator` | `ancient_ammo_combo` | `maelstrom_ammo` => true
-      case _ => false
+      case _                                                                             => false
     }
   }
 
@@ -1530,7 +1533,7 @@ object GlobalDefinitions {
     * @param edef the `EquipmentDefinition` of the item
     * @return `true`, if it is; otherwise, `false`
     */
-  def isSpecialEquipment(edef : EquipmentDefinition) : Boolean = {
+  def isSpecialEquipment(edef: EquipmentDefinition): Boolean = {
     edef match {
       case `super_medkit` | `super_armorkit` | `super_staminakit` | `katana` =>
         true
@@ -1544,9 +1547,10 @@ object GlobalDefinitions {
     * @param vdef the `VehicleDefinition` of the vehicle
     * @return `true`, if it is; `false`, otherwise
     */
-  def isFlightVehicle(vdef : VehicleDefinition) : Boolean = {
+  def isFlightVehicle(vdef: VehicleDefinition): Boolean = {
     vdef match {
-      case `mosquito` | `lightgunship` | `wasp` | `liberator` | `vulture` | `phantasm` | `lodestar` | `dropship` | `galaxy_gunship` =>
+      case `mosquito` | `lightgunship` | `wasp` | `liberator` | `vulture` | `phantasm` | `lodestar` | `dropship` |
+          `galaxy_gunship` =>
         true
       case _ =>
         false
@@ -1558,7 +1562,7 @@ object GlobalDefinitions {
     * @param vdef the `VehicleDefinition` of the vehicle
     * @return `true`, if it can; `false`, otherwise
     */
-  def isHoverVehicle(vdef : VehicleDefinition) : Boolean = {
+  def isHoverVehicle(vdef: VehicleDefinition): Boolean = {
     vdef match {
       case `twomanhoverbuggy` | `magrider` | `router` | `flail` =>
         true
@@ -1572,11 +1576,10 @@ object GlobalDefinitions {
     * @param vdef the `VehicleDefinition` of the vehicle
     * @return `true`, if it is; `false`, otherwise
     */
-  def canStationaryRotate(vdef : VehicleDefinition) : Boolean = {
-    if(isFlightVehicle(vdef) || isHoverVehicle(vdef)) {
+  def canStationaryRotate(vdef: VehicleDefinition): Boolean = {
+    if (isFlightVehicle(vdef) || isHoverVehicle(vdef)) {
       true
-    }
-    else {
+    } else {
       vdef match {
         case `lightning` | `prowler` | `vanguard` =>
           true
@@ -1589,7 +1592,7 @@ object GlobalDefinitions {
   /**
     * Initialize `KitDefinition` globals.
     */
-  private def init_kit() : Unit = {
+  private def init_kit(): Unit = {
     medkit.Name = "medkit"
 
     super_medkit.Name = "super_medkit"
@@ -1602,7 +1605,7 @@ object GlobalDefinitions {
   /**
     * Initialize `ExoSuitType` globals.
     */
-  private def init_exosuit() : Unit = {
+  private def init_exosuit(): Unit = {
     Standard.Name = "standard"
     Standard.MaxArmor = 50
     Standard.InventoryScale = InventoryTile.Tile96
@@ -1650,8 +1653,9 @@ object GlobalDefinitions {
     Infiltration.Holster(0, EquipmentSize.Pistol)
     Infiltration.Holster(4, EquipmentSize.Melee)
 
-    def CommonMaxConfig(max : SpecialExoSuitDefinition): Unit = {
-      max.Permissions = List(CertificationType.AIMAX,CertificationType.AVMAX, CertificationType.AAMAX, CertificationType.UniMAX)
+    def CommonMaxConfig(max: SpecialExoSuitDefinition): Unit = {
+      max.Permissions =
+        List(CertificationType.AIMAX, CertificationType.AVMAX, CertificationType.AAMAX, CertificationType.UniMAX)
       max.MaxArmor = 650
       max.InventoryScale = InventoryTile.Tile1612
       max.InventoryOffset = 6
@@ -1687,10 +1691,11 @@ object GlobalDefinitions {
     NCMAX.CapacitorDrainPerSecond = 4
 
   }
+
   /**
     * Initialize `AmmoBoxDefinition` globals.
     */
-  private def init_ammo() : Unit = {
+  private def init_ammo(): Unit = {
     melee_ammo.Name = "melee_ammo"
     melee_ammo.Size = EquipmentSize.Blocked
 
@@ -1707,11 +1712,11 @@ object GlobalDefinitions {
     bullet_9mm.Capacity = 50
     bullet_9mm.Tile = InventoryTile.Tile33
 
-    bullet_9mm_AP.Name="9mmbullet_AP"
+    bullet_9mm_AP.Name = "9mmbullet_AP"
     bullet_9mm_AP.Capacity = 50
     bullet_9mm_AP.Tile = InventoryTile.Tile33
 
-    shotgun_shell.Name ="shotgun_shell"
+    shotgun_shell.Name = "shotgun_shell"
     shotgun_shell.Capacity = 16
     shotgun_shell.Tile = InventoryTile.Tile33
 
@@ -2001,8 +2006,8 @@ object GlobalDefinitions {
   /**
     * Initialize `ProjectileDefinition` globals.
     */
-  private def init_projectile() : Unit = {
-    val projectileConverter : ProjectileConverter = new ProjectileConverter
+  private def init_projectile(): Unit = {
+    val projectileConverter: ProjectileConverter = new ProjectileConverter
 
     no_projectile.Name = "none"
     ProjectileDefinition.CalculateDerivedFields(no_projectile)
@@ -2020,7 +2025,7 @@ object GlobalDefinitions {
     bullet_105mm_projectile.Lifespan = 4f
     ProjectileDefinition.CalculateDerivedFields(bullet_105mm_projectile)
 
-    bullet_12mm_projectile.Name= "12mmbullet_projectile"
+    bullet_12mm_projectile.Name = "12mmbullet_projectile"
     bullet_12mm_projectile.Damage0 = 25
     bullet_12mm_projectile.Damage1 = 10
     bullet_12mm_projectile.Damage2 = 25
@@ -2772,12 +2777,30 @@ object GlobalDefinitions {
     jammer_cartridge_projectile.Lifespan = 15f
     jammer_cartridge_projectile.AdditionalEffect = true
     jammer_cartridge_projectile.JammerProjectile = true
-    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player) -> 1000
-    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.AMS) -> 5000
-    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.MotionSensor) -> 30000
-    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.Spitfire) -> 30000
-    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Turret, EffectTarget.Validation.Turret) -> 30000
-    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.VehicleNotAMS) -> 10000
+    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Player,
+      EffectTarget.Validation.Player
+    ) -> 1000
+    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Vehicle,
+      EffectTarget.Validation.AMS
+    ) -> 5000
+    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Deployable,
+      EffectTarget.Validation.MotionSensor
+    ) -> 30000
+    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Deployable,
+      EffectTarget.Validation.Spitfire
+    ) -> 30000
+    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Turret,
+      EffectTarget.Validation.Turret
+    ) -> 30000
+    jammer_cartridge_projectile.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Vehicle,
+      EffectTarget.Validation.VehicleNotAMS
+    ) -> 10000
     ProjectileDefinition.CalculateDerivedFields(jammer_cartridge_projectile)
 
     jammer_cartridge_projectile_b.Name = "jammer_cartridge_projectile_b"
@@ -2791,12 +2814,30 @@ object GlobalDefinitions {
     jammer_cartridge_projectile_b.Lifespan = 2f
     jammer_cartridge_projectile_b.AdditionalEffect = true
     jammer_cartridge_projectile_b.JammerProjectile = true
-    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player) -> 1000
-    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.AMS) -> 5000
-    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.MotionSensor) -> 30000
-    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.Spitfire) -> 30000
-    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(EffectTarget.Category.Turret, EffectTarget.Validation.Turret) -> 30000
-    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.VehicleNotAMS) -> 10000
+    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Player,
+      EffectTarget.Validation.Player
+    ) -> 1000
+    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Vehicle,
+      EffectTarget.Validation.AMS
+    ) -> 5000
+    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Deployable,
+      EffectTarget.Validation.MotionSensor
+    ) -> 30000
+    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Deployable,
+      EffectTarget.Validation.Spitfire
+    ) -> 30000
+    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Turret,
+      EffectTarget.Validation.Turret
+    ) -> 30000
+    jammer_cartridge_projectile_b.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Vehicle,
+      EffectTarget.Validation.VehicleNotAMS
+    ) -> 10000
     ProjectileDefinition.CalculateDerivedFields(jammer_cartridge_projectile_b)
 
     jammer_grenade_projectile.Name = "jammer_grenade_projectile"
@@ -2809,12 +2850,30 @@ object GlobalDefinitions {
     jammer_grenade_projectile.Lifespan = 15f
     jammer_grenade_projectile.AdditionalEffect = true
     jammer_grenade_projectile.JammerProjectile = true
-    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player) -> 1000
-    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.AMS) -> 5000
-    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.MotionSensor) -> 30000
-    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.Spitfire) -> 30000
-    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Turret, EffectTarget.Validation.Turret) -> 30000
-    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.VehicleNotAMS) -> 10000
+    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Player,
+      EffectTarget.Validation.Player
+    ) -> 1000
+    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Vehicle,
+      EffectTarget.Validation.AMS
+    ) -> 5000
+    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Deployable,
+      EffectTarget.Validation.MotionSensor
+    ) -> 30000
+    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Deployable,
+      EffectTarget.Validation.Spitfire
+    ) -> 30000
+    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Turret,
+      EffectTarget.Validation.Turret
+    ) -> 30000
+    jammer_grenade_projectile.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Vehicle,
+      EffectTarget.Validation.VehicleNotAMS
+    ) -> 10000
     ProjectileDefinition.CalculateDerivedFields(jammer_grenade_projectile)
 
     jammer_grenade_projectile_enh.Name = "jammer_grenade_projectile_enh"
@@ -2828,12 +2887,30 @@ object GlobalDefinitions {
     jammer_grenade_projectile_enh.Lifespan = 3f
     jammer_grenade_projectile_enh.AdditionalEffect = true
     jammer_grenade_projectile_enh.JammerProjectile = true
-    jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player) -> 1000
-    jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.AMS) -> 5000
-    jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.MotionSensor) -> 30000
-    jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(EffectTarget.Category.Deployable, EffectTarget.Validation.Spitfire) -> 30000
-    jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(EffectTarget.Category.Turret, EffectTarget.Validation.Turret) -> 30000
-    jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.VehicleNotAMS) -> 10000
+    jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Player,
+      EffectTarget.Validation.Player
+    ) -> 1000
+    jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Vehicle,
+      EffectTarget.Validation.AMS
+    ) -> 5000
+    jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Deployable,
+      EffectTarget.Validation.MotionSensor
+    ) -> 30000
+    jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Deployable,
+      EffectTarget.Validation.Spitfire
+    ) -> 30000
+    jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Turret,
+      EffectTarget.Validation.Turret
+    ) -> 30000
+    jammer_grenade_projectile_enh.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Vehicle,
+      EffectTarget.Validation.VehicleNotAMS
+    ) -> 10000
     ProjectileDefinition.CalculateDerivedFields(jammer_grenade_projectile_enh)
 
     katana_projectile.Name = "katana_projectile"
@@ -3228,7 +3305,7 @@ object GlobalDefinitions {
     phoenix_missile_guided_projectile.Lifespan = 3f
     //not naturally a remote projectile, but being governed as one for convenience
     phoenix_missile_guided_projectile.ExistsOnRemoteClients = true
-    phoenix_missile_guided_projectile.RemoteClientData = (0,63)
+    phoenix_missile_guided_projectile.RemoteClientData = (0, 63)
     phoenix_missile_guided_projectile.Packet = projectileConverter
     //
     ProjectileDefinition.CalculateDerivedFields(phoenix_missile_guided_projectile)
@@ -3727,7 +3804,7 @@ object GlobalDefinitions {
   /**
     * Initialize `ToolDefinition` globals.
     */
-  private def init_tools() : Unit = {
+  private def init_tools(): Unit = {
     chainblade.Name = "chainblade"
     chainblade.Size = EquipmentSize.Melee
     chainblade.AmmoTypes += melee_ammo
@@ -4561,15 +4638,17 @@ object GlobalDefinitions {
     ace.Modes += new ConstructionFireMode
     ace.Modes.head.Item(DeployedItem.boomer -> Set(CertificationType.CombatEngineering))
     ace.Modes += new ConstructionFireMode
-    ace.Modes(1).Item(DeployedItem.he_mine -> Set(CertificationType.CombatEngineering))
+    ace.Modes(1).Item(DeployedItem.he_mine     -> Set(CertificationType.CombatEngineering))
     ace.Modes(1).Item(DeployedItem.jammer_mine -> Set(CertificationType.AssaultEngineering))
     ace.Modes += new ConstructionFireMode
-    ace.Modes(2).Item(DeployedItem.spitfire_turret -> Set(CertificationType.CombatEngineering))
+    ace.Modes(2).Item(DeployedItem.spitfire_turret  -> Set(CertificationType.CombatEngineering))
     ace.Modes(2).Item(DeployedItem.spitfire_cloaked -> Set(CertificationType.FortificationEngineering))
-    ace.Modes(2).Item(DeployedItem.spitfire_aa -> Set(CertificationType.FortificationEngineering))
+    ace.Modes(2).Item(DeployedItem.spitfire_aa      -> Set(CertificationType.FortificationEngineering))
     ace.Modes += new ConstructionFireMode
     ace.Modes(3).Item(DeployedItem.motionalarmsensor -> Set(CertificationType.CombatEngineering))
-    ace.Modes(3).Item(DeployedItem.sensor_shield -> Set(CertificationType.AdvancedHacking, CertificationType.CombatEngineering))
+    ace
+      .Modes(3)
+      .Item(DeployedItem.sensor_shield -> Set(CertificationType.AdvancedHacking, CertificationType.CombatEngineering))
     ace.Tile = InventoryTile.Tile33
 
     advanced_ace.Name = "advanced_ace"
@@ -4619,7 +4698,8 @@ object GlobalDefinitions {
     scythe.FireModes += new FireModeDefinition
     scythe.FireModes(1).AmmoTypeIndices += 0
     scythe.FireModes(1).ProjectileTypeIndices += 0
-    scythe.FireModes(1).AmmoSlotIndex = 1 //note: the scythe has two magazines using a single pool; however, it can not ammo-switch or mode-switch
+    scythe.FireModes(1).AmmoSlotIndex =
+      1 //note: the scythe has two magazines using a single pool; however, it can not ammo-switch or mode-switch
     scythe.FireModes(1).Magazine = 250
 
     chaingun_p.Name = "chaingun_p"
@@ -5191,7 +5271,7 @@ object GlobalDefinitions {
   /**
     * Initialize `VehicleDefinition` globals.
     */
-  private def init_vehicles() : Unit = {
+  private def init_vehicles(): Unit = {
     fury.Name = "fury"
     fury.MaxHealth = 650
     fury.Damageable = true
@@ -5201,7 +5281,7 @@ object GlobalDefinitions {
     fury.Seats += 0 -> new SeatDefinition()
     fury.Seats(0).Bailable = true
     fury.Seats(0).ControlledWeapon = 1
-    fury.Weapons += 1 -> fury_weapon_systema
+    fury.Weapons += 1     -> fury_weapon_systema
     fury.MountPoints += 1 -> 0
     fury.MountPoints += 2 -> 0
     fury.TrunkSize = InventoryTile.Tile1111
@@ -5220,7 +5300,7 @@ object GlobalDefinitions {
     quadassault.Seats += 0 -> new SeatDefinition()
     quadassault.Seats(0).Bailable = true
     quadassault.Seats(0).ControlledWeapon = 1
-    quadassault.Weapons += 1 -> quadassault_weapon_system
+    quadassault.Weapons += 1     -> quadassault_weapon_system
     quadassault.MountPoints += 1 -> 0
     quadassault.MountPoints += 2 -> 0
     quadassault.TrunkSize = InventoryTile.Tile1111
@@ -5260,7 +5340,7 @@ object GlobalDefinitions {
     two_man_assault_buggy.Seats += 1 -> new SeatDefinition()
     two_man_assault_buggy.Seats(1).Bailable = true
     two_man_assault_buggy.Seats(1).ControlledWeapon = 2
-    two_man_assault_buggy.Weapons += 2 -> chaingun_p
+    two_man_assault_buggy.Weapons += 2     -> chaingun_p
     two_man_assault_buggy.MountPoints += 1 -> 0
     two_man_assault_buggy.MountPoints += 2 -> 1
     two_man_assault_buggy.TrunkSize = InventoryTile.Tile1511
@@ -5281,7 +5361,7 @@ object GlobalDefinitions {
     skyguard.Seats += 1 -> new SeatDefinition()
     skyguard.Seats(1).Bailable = true
     skyguard.Seats(1).ControlledWeapon = 2
-    skyguard.Weapons += 2 -> skyguard_weapon_system
+    skyguard.Weapons += 2     -> skyguard_weapon_system
     skyguard.MountPoints += 1 -> 0
     skyguard.MountPoints += 2 -> 0
     skyguard.MountPoints += 3 -> 1
@@ -5306,8 +5386,8 @@ object GlobalDefinitions {
     threemanheavybuggy.Seats += 2 -> new SeatDefinition()
     threemanheavybuggy.Seats(2).Bailable = true
     threemanheavybuggy.Seats(2).ControlledWeapon = 4
-    threemanheavybuggy.Weapons += 3 -> chaingun_p
-    threemanheavybuggy.Weapons += 4 -> grenade_launcher_marauder
+    threemanheavybuggy.Weapons += 3     -> chaingun_p
+    threemanheavybuggy.Weapons += 4     -> grenade_launcher_marauder
     threemanheavybuggy.MountPoints += 1 -> 0
     threemanheavybuggy.MountPoints += 2 -> 1
     threemanheavybuggy.MountPoints += 3 -> 2
@@ -5330,7 +5410,7 @@ object GlobalDefinitions {
     twomanheavybuggy.Seats += 1 -> new SeatDefinition()
     twomanheavybuggy.Seats(1).Bailable = true
     twomanheavybuggy.Seats(1).ControlledWeapon = 2
-    twomanheavybuggy.Weapons += 2 -> advanced_missile_launcher_t
+    twomanheavybuggy.Weapons += 2     -> advanced_missile_launcher_t
     twomanheavybuggy.MountPoints += 1 -> 0
     twomanheavybuggy.MountPoints += 2 -> 1
     twomanheavybuggy.TrunkSize = InventoryTile.Tile1511
@@ -5352,7 +5432,7 @@ object GlobalDefinitions {
     twomanhoverbuggy.Seats += 1 -> new SeatDefinition()
     twomanhoverbuggy.Seats(1).Bailable = true
     twomanhoverbuggy.Seats(1).ControlledWeapon = 2
-    twomanhoverbuggy.Weapons += 2 -> flux_cannon_thresher
+    twomanhoverbuggy.Weapons += 2     -> flux_cannon_thresher
     twomanhoverbuggy.MountPoints += 1 -> 0
     twomanhoverbuggy.MountPoints += 2 -> 1
     twomanhoverbuggy.TrunkSize = InventoryTile.Tile1511
@@ -5375,10 +5455,10 @@ object GlobalDefinitions {
     mediumtransport.Seats(1).ControlledWeapon = 5
     mediumtransport.Seats += 2 -> new SeatDefinition()
     mediumtransport.Seats(2).ControlledWeapon = 6
-    mediumtransport.Seats += 3 -> new SeatDefinition()
-    mediumtransport.Seats += 4 -> new SeatDefinition()
-    mediumtransport.Weapons += 5 -> mediumtransport_weapon_systemA
-    mediumtransport.Weapons += 6 -> mediumtransport_weapon_systemB
+    mediumtransport.Seats += 3       -> new SeatDefinition()
+    mediumtransport.Seats += 4       -> new SeatDefinition()
+    mediumtransport.Weapons += 5     -> mediumtransport_weapon_systemA
+    mediumtransport.Weapons += 6     -> mediumtransport_weapon_systemB
     mediumtransport.MountPoints += 1 -> 0
     mediumtransport.MountPoints += 2 -> 1
     mediumtransport.MountPoints += 3 -> 2
@@ -5408,10 +5488,10 @@ object GlobalDefinitions {
     battlewagon.Seats(3).ControlledWeapon = 7
     battlewagon.Seats += 4 -> new SeatDefinition()
     battlewagon.Seats(4).ControlledWeapon = 8
-    battlewagon.Weapons += 5 -> battlewagon_weapon_systema
-    battlewagon.Weapons += 6 -> battlewagon_weapon_systemb
-    battlewagon.Weapons += 7 -> battlewagon_weapon_systemc
-    battlewagon.Weapons += 8 -> battlewagon_weapon_systemd
+    battlewagon.Weapons += 5     -> battlewagon_weapon_systema
+    battlewagon.Weapons += 6     -> battlewagon_weapon_systemb
+    battlewagon.Weapons += 7     -> battlewagon_weapon_systemc
+    battlewagon.Weapons += 8     -> battlewagon_weapon_systemd
     battlewagon.MountPoints += 1 -> 0
     battlewagon.MountPoints += 2 -> 1
     battlewagon.MountPoints += 3 -> 2
@@ -5436,10 +5516,10 @@ object GlobalDefinitions {
     thunderer.Seats(1).ControlledWeapon = 5
     thunderer.Seats += 2 -> new SeatDefinition()
     thunderer.Seats(2).ControlledWeapon = 6
-    thunderer.Seats += 3 -> new SeatDefinition()
-    thunderer.Seats += 4 -> new SeatDefinition()
-    thunderer.Weapons += 5 -> thunderer_weapon_systema
-    thunderer.Weapons += 6 -> thunderer_weapon_systemb
+    thunderer.Seats += 3       -> new SeatDefinition()
+    thunderer.Seats += 4       -> new SeatDefinition()
+    thunderer.Weapons += 5     -> thunderer_weapon_systema
+    thunderer.Weapons += 6     -> thunderer_weapon_systemb
     thunderer.MountPoints += 1 -> 0
     thunderer.MountPoints += 2 -> 1
     thunderer.MountPoints += 3 -> 2
@@ -5465,10 +5545,10 @@ object GlobalDefinitions {
     aurora.Seats(1).ControlledWeapon = 5
     aurora.Seats += 2 -> new SeatDefinition()
     aurora.Seats(2).ControlledWeapon = 6
-    aurora.Seats += 3 -> new SeatDefinition()
-    aurora.Seats += 4 -> new SeatDefinition()
-    aurora.Weapons += 5 -> aurora_weapon_systema
-    aurora.Weapons += 6 -> aurora_weapon_systemb
+    aurora.Seats += 3       -> new SeatDefinition()
+    aurora.Seats += 4       -> new SeatDefinition()
+    aurora.Weapons += 5     -> aurora_weapon_systema
+    aurora.Weapons += 6     -> aurora_weapon_systemb
     aurora.MountPoints += 1 -> 0
     aurora.MountPoints += 2 -> 1
     aurora.MountPoints += 3 -> 2
@@ -5480,7 +5560,7 @@ object GlobalDefinitions {
     aurora.AutoPilotSpeeds = (18, 6)
     aurora.DestroyedModel = Some(DestroyedVehicle.MediumTransport)
     aurora.Subtract.Damage1 = 7
-    aurora.JackingDuration = Array(0, 25, 8 ,5)
+    aurora.JackingDuration = Array(0, 25, 8, 5)
 
     apc_tr.Name = "apc_tr" // Juggernaut
     apc_tr.MaxHealth = 6000
@@ -5508,21 +5588,21 @@ object GlobalDefinitions {
     apc_tr.Seats(9).ArmorRestriction = SeatArmorRestriction.MaxOnly
     apc_tr.Seats += 10 -> new SeatDefinition()
     apc_tr.Seats(10).ArmorRestriction = SeatArmorRestriction.MaxOnly
-    apc_tr.Weapons += 11 -> apc_weapon_systemc_tr
-    apc_tr.Weapons += 12 -> apc_weapon_systemb
-    apc_tr.Weapons += 13 -> apc_weapon_systema
-    apc_tr.Weapons += 14 -> apc_weapon_systemd_tr
-    apc_tr.Weapons += 15 -> apc_ballgun_r
-    apc_tr.Weapons += 16 -> apc_ballgun_l
-    apc_tr.MountPoints += 1 -> 0
-    apc_tr.MountPoints += 2 -> 0
-    apc_tr.MountPoints += 3 -> 1
-    apc_tr.MountPoints += 4 -> 2
-    apc_tr.MountPoints += 5 -> 3
-    apc_tr.MountPoints += 6 -> 4
-    apc_tr.MountPoints += 7 -> 5
-    apc_tr.MountPoints += 8 -> 6
-    apc_tr.MountPoints += 9 -> 7
+    apc_tr.Weapons += 11     -> apc_weapon_systemc_tr
+    apc_tr.Weapons += 12     -> apc_weapon_systemb
+    apc_tr.Weapons += 13     -> apc_weapon_systema
+    apc_tr.Weapons += 14     -> apc_weapon_systemd_tr
+    apc_tr.Weapons += 15     -> apc_ballgun_r
+    apc_tr.Weapons += 16     -> apc_ballgun_l
+    apc_tr.MountPoints += 1  -> 0
+    apc_tr.MountPoints += 2  -> 0
+    apc_tr.MountPoints += 3  -> 1
+    apc_tr.MountPoints += 4  -> 2
+    apc_tr.MountPoints += 5  -> 3
+    apc_tr.MountPoints += 6  -> 4
+    apc_tr.MountPoints += 7  -> 5
+    apc_tr.MountPoints += 8  -> 6
+    apc_tr.MountPoints += 9  -> 7
     apc_tr.MountPoints += 10 -> 8
     apc_tr.MountPoints += 11 -> 9
     apc_tr.MountPoints += 12 -> 10
@@ -5559,21 +5639,21 @@ object GlobalDefinitions {
     apc_nc.Seats(9).ArmorRestriction = SeatArmorRestriction.MaxOnly
     apc_nc.Seats += 10 -> new SeatDefinition()
     apc_nc.Seats(10).ArmorRestriction = SeatArmorRestriction.MaxOnly
-    apc_nc.Weapons += 11 -> apc_weapon_systemc_nc
-    apc_nc.Weapons += 12 -> apc_weapon_systemb
-    apc_nc.Weapons += 13 -> apc_weapon_systema
-    apc_nc.Weapons += 14 -> apc_weapon_systemd_nc
-    apc_nc.Weapons += 15 -> apc_ballgun_r
-    apc_nc.Weapons += 16 -> apc_ballgun_l
-    apc_nc.MountPoints += 1 -> 0
-    apc_nc.MountPoints += 2 -> 0
-    apc_nc.MountPoints += 3 -> 1
-    apc_nc.MountPoints += 4 -> 2
-    apc_nc.MountPoints += 5 -> 3
-    apc_nc.MountPoints += 6 -> 4
-    apc_nc.MountPoints += 7 -> 5
-    apc_nc.MountPoints += 8 -> 6
-    apc_nc.MountPoints += 9 -> 7
+    apc_nc.Weapons += 11     -> apc_weapon_systemc_nc
+    apc_nc.Weapons += 12     -> apc_weapon_systemb
+    apc_nc.Weapons += 13     -> apc_weapon_systema
+    apc_nc.Weapons += 14     -> apc_weapon_systemd_nc
+    apc_nc.Weapons += 15     -> apc_ballgun_r
+    apc_nc.Weapons += 16     -> apc_ballgun_l
+    apc_nc.MountPoints += 1  -> 0
+    apc_nc.MountPoints += 2  -> 0
+    apc_nc.MountPoints += 3  -> 1
+    apc_nc.MountPoints += 4  -> 2
+    apc_nc.MountPoints += 5  -> 3
+    apc_nc.MountPoints += 6  -> 4
+    apc_nc.MountPoints += 7  -> 5
+    apc_nc.MountPoints += 8  -> 6
+    apc_nc.MountPoints += 9  -> 7
     apc_nc.MountPoints += 10 -> 8
     apc_nc.MountPoints += 11 -> 9
     apc_nc.MountPoints += 12 -> 10
@@ -5610,21 +5690,21 @@ object GlobalDefinitions {
     apc_vs.Seats(9).ArmorRestriction = SeatArmorRestriction.MaxOnly
     apc_vs.Seats += 10 -> new SeatDefinition()
     apc_vs.Seats(10).ArmorRestriction = SeatArmorRestriction.MaxOnly
-    apc_vs.Weapons += 11 -> apc_weapon_systemc_vs
-    apc_vs.Weapons += 12 -> apc_weapon_systemb
-    apc_vs.Weapons += 13 -> apc_weapon_systema
-    apc_vs.Weapons += 14 -> apc_weapon_systemd_vs
-    apc_vs.Weapons += 15 -> apc_ballgun_r
-    apc_vs.Weapons += 16 -> apc_ballgun_l
-    apc_vs.MountPoints += 1 -> 0
-    apc_vs.MountPoints += 2 -> 0
-    apc_vs.MountPoints += 3 -> 1
-    apc_vs.MountPoints += 4 -> 2
-    apc_vs.MountPoints += 5 -> 3
-    apc_vs.MountPoints += 6 -> 4
-    apc_vs.MountPoints += 7 -> 5
-    apc_vs.MountPoints += 8 -> 6
-    apc_vs.MountPoints += 9 -> 7
+    apc_vs.Weapons += 11     -> apc_weapon_systemc_vs
+    apc_vs.Weapons += 12     -> apc_weapon_systemb
+    apc_vs.Weapons += 13     -> apc_weapon_systema
+    apc_vs.Weapons += 14     -> apc_weapon_systemd_vs
+    apc_vs.Weapons += 15     -> apc_ballgun_r
+    apc_vs.Weapons += 16     -> apc_ballgun_l
+    apc_vs.MountPoints += 1  -> 0
+    apc_vs.MountPoints += 2  -> 0
+    apc_vs.MountPoints += 3  -> 1
+    apc_vs.MountPoints += 4  -> 2
+    apc_vs.MountPoints += 5  -> 3
+    apc_vs.MountPoints += 6  -> 4
+    apc_vs.MountPoints += 7  -> 5
+    apc_vs.MountPoints += 8  -> 6
+    apc_vs.MountPoints += 9  -> 7
     apc_vs.MountPoints += 10 -> 8
     apc_vs.MountPoints += 11 -> 9
     apc_vs.MountPoints += 12 -> 10
@@ -5644,7 +5724,7 @@ object GlobalDefinitions {
     lightning.Seats += 0 -> new SeatDefinition()
     lightning.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     lightning.Seats(0).ControlledWeapon = 1
-    lightning.Weapons += 1 -> lightning_weapon_system
+    lightning.Weapons += 1     -> lightning_weapon_system
     lightning.MountPoints += 1 -> 0
     lightning.MountPoints += 2 -> 0
     lightning.TrunkSize = InventoryTile.Tile1511
@@ -5653,7 +5733,7 @@ object GlobalDefinitions {
     lightning.AutoPilotSpeeds = (20, 8)
     lightning.DestroyedModel = Some(DestroyedVehicle.Lightning)
     lightning.Subtract.Damage1 = 7
-    lightning.JackingDuration = Array(0, 20, 7 ,5)
+    lightning.JackingDuration = Array(0, 20, 7, 5)
 
     prowler.Name = "prowler"
     prowler.MaxHealth = 4800
@@ -5667,8 +5747,8 @@ object GlobalDefinitions {
     prowler.Seats(1).ControlledWeapon = 3
     prowler.Seats += 2 -> new SeatDefinition()
     prowler.Seats(2).ControlledWeapon = 4
-    prowler.Weapons += 3 -> prowler_weapon_systemA
-    prowler.Weapons += 4 -> prowler_weapon_systemB
+    prowler.Weapons += 3     -> prowler_weapon_systemA
+    prowler.Weapons += 4     -> prowler_weapon_systemB
     prowler.MountPoints += 1 -> 0
     prowler.MountPoints += 2 -> 1
     prowler.MountPoints += 3 -> 2
@@ -5690,7 +5770,7 @@ object GlobalDefinitions {
     vanguard.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     vanguard.Seats += 1 -> new SeatDefinition()
     vanguard.Seats(1).ControlledWeapon = 2
-    vanguard.Weapons += 2 -> vanguard_weapon_system
+    vanguard.Weapons += 2     -> vanguard_weapon_system
     vanguard.MountPoints += 1 -> 0
     vanguard.MountPoints += 2 -> 1
     vanguard.TrunkSize = InventoryTile.Tile1511
@@ -5712,8 +5792,8 @@ object GlobalDefinitions {
     magrider.Seats(0).ControlledWeapon = 2
     magrider.Seats += 1 -> new SeatDefinition()
     magrider.Seats(1).ControlledWeapon = 3
-    magrider.Weapons += 2 -> particle_beam_magrider
-    magrider.Weapons += 3 -> heavy_rail_beam_magrider
+    magrider.Weapons += 2     -> particle_beam_magrider
+    magrider.Weapons += 3     -> heavy_rail_beam_magrider
     magrider.MountPoints += 1 -> 0
     magrider.MountPoints += 2 -> 1
     magrider.TrunkSize = InventoryTile.Tile1511
@@ -5743,7 +5823,7 @@ object GlobalDefinitions {
     ant.Packet = utilityConverter
     ant.DestroyedModel = Some(DestroyedVehicle.Ant)
     ant.Subtract.Damage1 = 5
-    ant.JackingDuration = Array (0, 60, 20, 15)
+    ant.JackingDuration = Array(0, 60, 20, 15)
 
     ams.Name = "ams"
     ams.MaxHealth = 3000
@@ -5755,10 +5835,10 @@ object GlobalDefinitions {
     ams.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     ams.MountPoints += 1 -> 0
     ams.MountPoints += 2 -> 0
-    ams.Utilities += 1 -> UtilityType.matrix_terminalc
-    ams.Utilities += 2 -> UtilityType.ams_respawn_tube
-    ams.Utilities += 3 -> UtilityType.order_terminala
-    ams.Utilities += 4 -> UtilityType.order_terminalb
+    ams.Utilities += 1   -> UtilityType.matrix_terminalc
+    ams.Utilities += 2   -> UtilityType.ams_respawn_tube
+    ams.Utilities += 3   -> UtilityType.order_terminala
+    ams.Utilities += 4   -> UtilityType.order_terminalb
     ams.Deployment = true
     ams.DeployTime = 2000
     ams.UndeployTime = 2000
@@ -5776,10 +5856,10 @@ object GlobalDefinitions {
     router.Repairable = true
     router.RepairIfDestroyed = false
     router.MaxShields = 800 + 1
-    router.Seats += 0 -> new SeatDefinition()
+    router.Seats += 0       -> new SeatDefinition()
     router.MountPoints += 1 -> 0
-    router.Utilities += 1 -> UtilityType.teleportpad_terminal
-    router.Utilities += 2 -> UtilityType.internal_router_telepad_deployable
+    router.Utilities += 1   -> UtilityType.teleportpad_terminal
+    router.Utilities += 2   -> UtilityType.internal_router_telepad_deployable
     router.TrunkSize = InventoryTile.Tile1511
     router.TrunkOffset = 30
     router.TrunkLocation = Vector3(0f, 3.4f, 0f)
@@ -5801,7 +5881,7 @@ object GlobalDefinitions {
     switchblade.MaxShields = 350 + 1
     switchblade.Seats += 0 -> new SeatDefinition()
     switchblade.Seats(0).ControlledWeapon = 1
-    switchblade.Weapons += 1 -> scythe
+    switchblade.Weapons += 1     -> scythe
     switchblade.MountPoints += 1 -> 0
     switchblade.MountPoints += 2 -> 0
     switchblade.TrunkSize = InventoryTile.Tile1511
@@ -5825,7 +5905,7 @@ object GlobalDefinitions {
     flail.MaxShields = 480 + 1
     flail.Seats += 0 -> new SeatDefinition()
     flail.Seats(0).ControlledWeapon = 1
-    flail.Weapons += 1 -> flail_weapon
+    flail.Weapons += 1     -> flail_weapon
     flail.MountPoints += 1 -> 0
     flail.TrunkSize = InventoryTile.Tile1511
     flail.TrunkOffset = 30
@@ -5849,7 +5929,7 @@ object GlobalDefinitions {
     mosquito.Seats += 0 -> new SeatDefinition()
     mosquito.Seats(0).Bailable = true
     mosquito.Seats(0).ControlledWeapon = 1
-    mosquito.Weapons += 1 -> rotarychaingun_mosquito
+    mosquito.Weapons += 1     -> rotarychaingun_mosquito
     mosquito.MountPoints += 1 -> 0
     mosquito.MountPoints += 2 -> 0
     mosquito.TrunkSize = InventoryTile.Tile1111
@@ -5870,7 +5950,7 @@ object GlobalDefinitions {
     lightgunship.Seats += 0 -> new SeatDefinition()
     lightgunship.Seats(0).Bailable = true
     lightgunship.Seats(0).ControlledWeapon = 1
-    lightgunship.Weapons += 1 -> lightgunship_weapon_system
+    lightgunship.Weapons += 1     -> lightgunship_weapon_system
     lightgunship.MountPoints += 1 -> 0
     lightgunship.MountPoints += 2 -> 0
     lightgunship.TrunkSize = InventoryTile.Tile1511
@@ -5892,7 +5972,7 @@ object GlobalDefinitions {
     wasp.Seats += 0 -> new SeatDefinition()
     wasp.Seats(0).Bailable = true
     wasp.Seats(0).ControlledWeapon = 1
-    wasp.Weapons += 1 -> wasp_weapon_system
+    wasp.Weapons += 1     -> wasp_weapon_system
     wasp.MountPoints += 1 -> 0
     wasp.MountPoints += 2 -> 0
     wasp.TrunkSize = InventoryTile.Tile1111
@@ -5916,9 +5996,9 @@ object GlobalDefinitions {
     liberator.Seats(1).ControlledWeapon = 4
     liberator.Seats += 2 -> new SeatDefinition()
     liberator.Seats(2).ControlledWeapon = 5
-    liberator.Weapons += 3 -> liberator_weapon_system
-    liberator.Weapons += 4 -> liberator_bomb_bay
-    liberator.Weapons += 5 -> liberator_25mm_cannon
+    liberator.Weapons += 3     -> liberator_weapon_system
+    liberator.Weapons += 4     -> liberator_bomb_bay
+    liberator.Weapons += 5     -> liberator_25mm_cannon
     liberator.MountPoints += 1 -> 0
     liberator.MountPoints += 2 -> 1
     liberator.MountPoints += 3 -> 1
@@ -5945,9 +6025,9 @@ object GlobalDefinitions {
     vulture.Seats(1).ControlledWeapon = 4
     vulture.Seats += 2 -> new SeatDefinition()
     vulture.Seats(2).ControlledWeapon = 5
-    vulture.Weapons += 3 -> vulture_nose_weapon_system
-    vulture.Weapons += 4 -> vulture_bomb_bay
-    vulture.Weapons += 5 -> vulture_tail_cannon
+    vulture.Weapons += 3     -> vulture_nose_weapon_system
+    vulture.Weapons += 4     -> vulture_bomb_bay
+    vulture.Weapons += 5     -> vulture_tail_cannon
     vulture.MountPoints += 1 -> 0
     vulture.MountPoints += 2 -> 1
     vulture.MountPoints += 3 -> 1
@@ -5957,7 +6037,8 @@ object GlobalDefinitions {
     vulture.TrunkLocation = Vector3(-0.76f, -1.88f, 0f)
     vulture.AutoPilotSpeeds = (0, 4)
     vulture.Packet = variantConverter
-    vulture.DestroyedModel = Some(DestroyedVehicle.Liberator) //add_property vulture destroyedphysics liberator_destroyed
+    vulture.DestroyedModel =
+      Some(DestroyedVehicle.Liberator) //add_property vulture destroyedphysics liberator_destroyed
     vulture.Subtract.Damage1 = 5
     vulture.JackingDuration = Array(0, 30, 10, 5)
 
@@ -5997,19 +6078,19 @@ object GlobalDefinitions {
     dropship.Seats += 11 -> new SeatDefinition()
     dropship.Seats(11).Bailable = true
     dropship.Seats(11).ControlledWeapon = 14
-    dropship.Weapons += 12 -> cannon_dropship_20mm
-    dropship.Weapons += 13 -> cannon_dropship_20mm
-    dropship.Weapons += 14 -> dropship_rear_turret
-    dropship.Cargo += 15 -> new CargoDefinition()
-    dropship.MountPoints += 1 -> 0
-    dropship.MountPoints += 2 -> 11
-    dropship.MountPoints += 3 -> 1
-    dropship.MountPoints += 4 -> 2
-    dropship.MountPoints += 5 -> 3
-    dropship.MountPoints += 6 -> 4
-    dropship.MountPoints += 7 -> 5
-    dropship.MountPoints += 8 -> 6
-    dropship.MountPoints += 9 -> 7
+    dropship.Weapons += 12     -> cannon_dropship_20mm
+    dropship.Weapons += 13     -> cannon_dropship_20mm
+    dropship.Weapons += 14     -> dropship_rear_turret
+    dropship.Cargo += 15       -> new CargoDefinition()
+    dropship.MountPoints += 1  -> 0
+    dropship.MountPoints += 2  -> 11
+    dropship.MountPoints += 3  -> 1
+    dropship.MountPoints += 4  -> 2
+    dropship.MountPoints += 5  -> 3
+    dropship.MountPoints += 6  -> 4
+    dropship.MountPoints += 7  -> 5
+    dropship.MountPoints += 8  -> 6
+    dropship.MountPoints += 9  -> 7
     dropship.MountPoints += 10 -> 8
     dropship.MountPoints += 11 -> 9
     dropship.MountPoints += 12 -> 10
@@ -6042,11 +6123,11 @@ object GlobalDefinitions {
     galaxy_gunship.Seats(4).ControlledWeapon = 9
     galaxy_gunship.Seats += 5 -> new SeatDefinition()
     galaxy_gunship.Seats(5).ControlledWeapon = 10
-    galaxy_gunship.Weapons += 6 -> galaxy_gunship_cannon
-    galaxy_gunship.Weapons += 7 -> galaxy_gunship_cannon
-    galaxy_gunship.Weapons += 8 -> galaxy_gunship_tailgun
-    galaxy_gunship.Weapons += 9 -> galaxy_gunship_gun
-    galaxy_gunship.Weapons += 10 -> galaxy_gunship_gun
+    galaxy_gunship.Weapons += 6     -> galaxy_gunship_cannon
+    galaxy_gunship.Weapons += 7     -> galaxy_gunship_cannon
+    galaxy_gunship.Weapons += 8     -> galaxy_gunship_tailgun
+    galaxy_gunship.Weapons += 9     -> galaxy_gunship_gun
+    galaxy_gunship.Weapons += 10    -> galaxy_gunship_gun
     galaxy_gunship.MountPoints += 1 -> 0
     galaxy_gunship.MountPoints += 2 -> 3
     galaxy_gunship.MountPoints += 3 -> 1
@@ -6058,7 +6139,8 @@ object GlobalDefinitions {
     galaxy_gunship.TrunkLocation = Vector3(-9.85f, 0f, 0f)
     galaxy_gunship.AutoPilotSpeeds = (0, 4)
     galaxy_gunship.Packet = variantConverter
-    galaxy_gunship.DestroyedModel = Some(DestroyedVehicle.Dropship) //the adb calls out a galaxy_gunship_destroyed but no such asset exists
+    galaxy_gunship.DestroyedModel =
+      Some(DestroyedVehicle.Dropship) //the adb calls out a galaxy_gunship_destroyed but no such asset exists
     galaxy_gunship.Subtract.Damage1 = 7
     galaxy_gunship.JackingDuration = Array(0, 60, 20, 10)
 
@@ -6070,18 +6152,18 @@ object GlobalDefinitions {
     lodestar.RepairIfDestroyed = false
     lodestar.MaxShields = 1000 + 1
     lodestar.CanFly = true
-    lodestar.Seats += 0 -> new SeatDefinition()
-    lodestar.MountPoints += 1 -> 0
-    lodestar.MountPoints += 2 -> 1
-    lodestar.Cargo += 1 -> new CargoDefinition()
-    lodestar.Utilities += 2 -> UtilityType.lodestar_repair_terminal
+    lodestar.Seats += 0         -> new SeatDefinition()
+    lodestar.MountPoints += 1   -> 0
+    lodestar.MountPoints += 2   -> 1
+    lodestar.Cargo += 1         -> new CargoDefinition()
+    lodestar.Utilities += 2     -> UtilityType.lodestar_repair_terminal
     lodestar.UtilityOffset += 2 -> Vector3(0, 20, 0)
-    lodestar.Utilities += 3 -> UtilityType.lodestar_repair_terminal
+    lodestar.Utilities += 3     -> UtilityType.lodestar_repair_terminal
     lodestar.UtilityOffset += 3 -> Vector3(0, -20, 0)
-    lodestar.Utilities += 4 -> UtilityType.multivehicle_rearm_terminal
-    lodestar.Utilities += 5 -> UtilityType.multivehicle_rearm_terminal
-    lodestar.Utilities += 6 -> UtilityType.bfr_rearm_terminal
-    lodestar.Utilities += 7 -> UtilityType.bfr_rearm_terminal
+    lodestar.Utilities += 4     -> UtilityType.multivehicle_rearm_terminal
+    lodestar.Utilities += 5     -> UtilityType.multivehicle_rearm_terminal
+    lodestar.Utilities += 6     -> UtilityType.bfr_rearm_terminal
+    lodestar.Utilities += 7     -> UtilityType.bfr_rearm_terminal
     lodestar.TrunkSize = InventoryTile.Tile1612
     lodestar.TrunkOffset = 30
     lodestar.TrunkLocation = Vector3(6.85f, -6.8f, 0f)
@@ -6125,7 +6207,7 @@ object GlobalDefinitions {
     droppod.MaxHealth = 20000
     //droppod.Damageable = false
     droppod.CanFly = true
-    droppod.Seats += 0 -> new SeatDefinition
+    droppod.Seats += 0       -> new SeatDefinition
     droppod.MountPoints += 1 -> 0
     droppod.TrunkSize = InventoryTile.None
     droppod.Packet = new DroppodConverter()
@@ -6136,7 +6218,7 @@ object GlobalDefinitions {
   /**
     * Initialize `Deployable` globals.
     */
-  private def init_deployables() : Unit = {
+  private def init_deployables(): Unit = {
     boomer.Name = "boomer"
     boomer.Descriptor = "Boomers"
     boomer.MaxHealth = 100
@@ -6169,7 +6251,7 @@ object GlobalDefinitions {
     spitfire_turret.Damageable = true
     spitfire_turret.Repairable = true
     spitfire_turret.RepairIfDestroyed = false
-    spitfire_turret.Weapons += 1 -> new mutable.HashMap()
+    spitfire_turret.Weapons += 1                     -> new mutable.HashMap()
     spitfire_turret.Weapons(1) += TurretUpgrade.None -> spitfire_weapon
     spitfire_turret.ReserveAmmunition = false
     spitfire_turret.DeployCategory = DeployableCategory.SmallTurrets
@@ -6182,7 +6264,7 @@ object GlobalDefinitions {
     spitfire_cloaked.Damageable = true
     spitfire_cloaked.Repairable = true
     spitfire_cloaked.RepairIfDestroyed = false
-    spitfire_cloaked.Weapons += 1 -> new mutable.HashMap()
+    spitfire_cloaked.Weapons += 1                     -> new mutable.HashMap()
     spitfire_cloaked.Weapons(1) += TurretUpgrade.None -> spitfire_weapon
     spitfire_cloaked.ReserveAmmunition = false
     spitfire_cloaked.DeployCategory = DeployableCategory.SmallTurrets
@@ -6195,7 +6277,7 @@ object GlobalDefinitions {
     spitfire_aa.Damageable = true
     spitfire_aa.Repairable = true
     spitfire_aa.RepairIfDestroyed = false
-    spitfire_aa.Weapons += 1 -> new mutable.HashMap()
+    spitfire_aa.Weapons += 1                     -> new mutable.HashMap()
     spitfire_aa.Weapons(1) += TurretUpgrade.None -> spitfire_aa_weapon
     spitfire_aa.ReserveAmmunition = false
     spitfire_aa.DeployCategory = DeployableCategory.SmallTurrets
@@ -6235,9 +6317,9 @@ object GlobalDefinitions {
     portable_manned_turret.Damageable = true
     portable_manned_turret.Repairable = true
     portable_manned_turret.RepairIfDestroyed = false
-    portable_manned_turret.MountPoints += 1 -> 0
-    portable_manned_turret.MountPoints += 2 -> 0
-    portable_manned_turret.Weapons += 1 -> new mutable.HashMap()
+    portable_manned_turret.MountPoints += 1                 -> 0
+    portable_manned_turret.MountPoints += 2                 -> 0
+    portable_manned_turret.Weapons += 1                     -> new mutable.HashMap()
     portable_manned_turret.Weapons(1) += TurretUpgrade.None -> energy_gun
     portable_manned_turret.ReserveAmmunition = true
     portable_manned_turret.FactionLocked = true
@@ -6252,9 +6334,9 @@ object GlobalDefinitions {
     portable_manned_turret_nc.Damageable = true
     portable_manned_turret_nc.Repairable = true
     portable_manned_turret_nc.RepairIfDestroyed = false
-    portable_manned_turret_nc.MountPoints += 1 -> 0
-    portable_manned_turret_nc.MountPoints += 2 -> 0
-    portable_manned_turret_nc.Weapons += 1 -> new mutable.HashMap()
+    portable_manned_turret_nc.MountPoints += 1                 -> 0
+    portable_manned_turret_nc.MountPoints += 2                 -> 0
+    portable_manned_turret_nc.Weapons += 1                     -> new mutable.HashMap()
     portable_manned_turret_nc.Weapons(1) += TurretUpgrade.None -> energy_gun_nc
     portable_manned_turret_nc.ReserveAmmunition = true
     portable_manned_turret_nc.FactionLocked = true
@@ -6269,9 +6351,9 @@ object GlobalDefinitions {
     portable_manned_turret_tr.Damageable = true
     portable_manned_turret_tr.Repairable = true
     portable_manned_turret_tr.RepairIfDestroyed = false
-    portable_manned_turret_tr.MountPoints += 1 -> 0
-    portable_manned_turret_tr.MountPoints += 2 -> 0
-    portable_manned_turret_tr.Weapons += 1 -> new mutable.HashMap()
+    portable_manned_turret_tr.MountPoints += 1                 -> 0
+    portable_manned_turret_tr.MountPoints += 2                 -> 0
+    portable_manned_turret_tr.Weapons += 1                     -> new mutable.HashMap()
     portable_manned_turret_tr.Weapons(1) += TurretUpgrade.None -> energy_gun_tr
     portable_manned_turret_tr.ReserveAmmunition = true
     portable_manned_turret_tr.FactionLocked = true
@@ -6286,9 +6368,9 @@ object GlobalDefinitions {
     portable_manned_turret_vs.Damageable = true
     portable_manned_turret_vs.Repairable = true
     portable_manned_turret_vs.RepairIfDestroyed = false
-    portable_manned_turret_vs.MountPoints += 1 -> 0
-    portable_manned_turret_vs.MountPoints += 2 -> 0
-    portable_manned_turret_vs.Weapons += 1 -> new mutable.HashMap()
+    portable_manned_turret_vs.MountPoints += 1                 -> 0
+    portable_manned_turret_vs.MountPoints += 2                 -> 0
+    portable_manned_turret_vs.Weapons += 1                     -> new mutable.HashMap()
     portable_manned_turret_vs.Weapons(1) += TurretUpgrade.None -> energy_gun_vs
     portable_manned_turret_vs.ReserveAmmunition = true
     portable_manned_turret_vs.FactionLocked = true
@@ -6305,7 +6387,7 @@ object GlobalDefinitions {
     deployable_shield_generator.RepairIfDestroyed = false
     deployable_shield_generator.DeployTime = Duration.create(6000, "ms")
     deployable_shield_generator.Model = StandardResolutions.ComplexDeployables
-    
+
     router_telepad_deployable.Name = "router_telepad_deployable"
     router_telepad_deployable.MaxHealth = 100
     router_telepad_deployable.Damageable = true
@@ -6327,7 +6409,7 @@ object GlobalDefinitions {
   /**
     * Initialize `Miscellaneous` globals.
     */
-  private def initMiscellaneous() : Unit = {
+  private def initMiscellaneous(): Unit = {
     ams_respawn_tube.Name = "ams_respawn_tube"
     ams_respawn_tube.Delay = 5
     ams_respawn_tube.SpecificPointFunc = SpawnPoint.AMS
@@ -6351,9 +6433,16 @@ object GlobalDefinitions {
     spawn_terminal.Repairable = false
 
     order_terminal.Name = "order_terminal"
-    order_terminal.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons)
-    order_terminal.Tab += 1 -> OrderTerminalDefinition.ArmorWithAmmoPage(EquipmentTerminalDefinition.suits ++ EquipmentTerminalDefinition.maxSuits, EquipmentTerminalDefinition.maxAmmo)
-    order_terminal.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.supportAmmunition ++ EquipmentTerminalDefinition.supportWeapons)
+    order_terminal.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(
+      EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons
+    )
+    order_terminal.Tab += 1 -> OrderTerminalDefinition.ArmorWithAmmoPage(
+      EquipmentTerminalDefinition.suits ++ EquipmentTerminalDefinition.maxSuits,
+      EquipmentTerminalDefinition.maxAmmo
+    )
+    order_terminal.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(
+      EquipmentTerminalDefinition.supportAmmunition ++ EquipmentTerminalDefinition.supportWeapons
+    )
     order_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
     order_terminal.Tab += 4 -> OrderTerminalDefinition.InfantryLoadoutPage()
     order_terminal.SellEquipmentByDefault = true
@@ -6364,9 +6453,16 @@ object GlobalDefinitions {
     order_terminal.Subtract.Damage1 = 8
 
     order_terminala.Name = "order_terminala"
-    order_terminala.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons)
-    order_terminala.Tab += 1 -> OrderTerminalDefinition.ArmorWithAmmoPage(EquipmentTerminalDefinition.suits, EquipmentTerminalDefinition.maxAmmo)
-    order_terminala.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.supportAmmunition ++ EquipmentTerminalDefinition.supportWeapons)
+    order_terminala.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(
+      EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons
+    )
+    order_terminala.Tab += 1 -> OrderTerminalDefinition.ArmorWithAmmoPage(
+      EquipmentTerminalDefinition.suits,
+      EquipmentTerminalDefinition.maxAmmo
+    )
+    order_terminala.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(
+      EquipmentTerminalDefinition.supportAmmunition ++ EquipmentTerminalDefinition.supportWeapons
+    )
     order_terminala.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
     order_terminala.Tab += 4 -> OrderTerminalDefinition.InfantryLoadoutPage()
     order_terminala.Tab(4).asInstanceOf[OrderTerminalDefinition.InfantryLoadoutPage].Exclude = ExoSuitType.MAX
@@ -6375,9 +6471,16 @@ object GlobalDefinitions {
     order_terminala.Repairable = false
 
     order_terminalb.Name = "order_terminalb"
-    order_terminalb.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons)
-    order_terminalb.Tab += 1 -> OrderTerminalDefinition.ArmorWithAmmoPage(EquipmentTerminalDefinition.suits, EquipmentTerminalDefinition.maxAmmo)
-    order_terminalb.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.supportAmmunition ++ EquipmentTerminalDefinition.supportWeapons)
+    order_terminalb.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(
+      EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons
+    )
+    order_terminalb.Tab += 1 -> OrderTerminalDefinition.ArmorWithAmmoPage(
+      EquipmentTerminalDefinition.suits,
+      EquipmentTerminalDefinition.maxAmmo
+    )
+    order_terminalb.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(
+      EquipmentTerminalDefinition.supportAmmunition ++ EquipmentTerminalDefinition.supportWeapons
+    )
     order_terminalb.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
     order_terminalb.Tab += 4 -> OrderTerminalDefinition.InfantryLoadoutPage()
     order_terminalb.Tab(4).asInstanceOf[OrderTerminalDefinition.InfantryLoadoutPage].Exclude = ExoSuitType.MAX
@@ -6386,9 +6489,16 @@ object GlobalDefinitions {
     order_terminalb.Repairable = false
 
     vanu_equipment_term.Name = "vanu_equipment_term"
-    vanu_equipment_term.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons)
-    vanu_equipment_term.Tab += 1 -> OrderTerminalDefinition.ArmorWithAmmoPage(EquipmentTerminalDefinition.suits ++ EquipmentTerminalDefinition.maxSuits, EquipmentTerminalDefinition.maxAmmo)
-    vanu_equipment_term.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.supportAmmunition ++ EquipmentTerminalDefinition.supportWeapons)
+    vanu_equipment_term.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(
+      EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons
+    )
+    vanu_equipment_term.Tab += 1 -> OrderTerminalDefinition.ArmorWithAmmoPage(
+      EquipmentTerminalDefinition.suits ++ EquipmentTerminalDefinition.maxSuits,
+      EquipmentTerminalDefinition.maxAmmo
+    )
+    vanu_equipment_term.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(
+      EquipmentTerminalDefinition.supportAmmunition ++ EquipmentTerminalDefinition.supportWeapons
+    )
     vanu_equipment_term.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
     vanu_equipment_term.Tab += 4 -> OrderTerminalDefinition.InfantryLoadoutPage()
     vanu_equipment_term.SellEquipmentByDefault = true
@@ -6417,7 +6527,10 @@ object GlobalDefinitions {
     implant_terminal_interface.RepairIfDestroyed = true
 
     ground_vehicle_terminal.Name = "ground_vehicle_terminal"
-    ground_vehicle_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.groundVehicles, VehicleTerminalDefinition.trunk)
+    ground_vehicle_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(
+      VehicleTerminalDefinition.groundVehicles,
+      VehicleTerminalDefinition.trunk
+    )
     ground_vehicle_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
     ground_vehicle_terminal.MaxHealth = 500
     ground_vehicle_terminal.Damageable = true
@@ -6426,7 +6539,10 @@ object GlobalDefinitions {
     ground_vehicle_terminal.Subtract.Damage1 = 8
 
     air_vehicle_terminal.Name = "air_vehicle_terminal"
-    air_vehicle_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.flight1Vehicles, VehicleTerminalDefinition.trunk)
+    air_vehicle_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(
+      VehicleTerminalDefinition.flight1Vehicles,
+      VehicleTerminalDefinition.trunk
+    )
     air_vehicle_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
     air_vehicle_terminal.MaxHealth = 500
     air_vehicle_terminal.Damageable = true
@@ -6435,7 +6551,10 @@ object GlobalDefinitions {
     air_vehicle_terminal.Subtract.Damage1 = 8
 
     dropship_vehicle_terminal.Name = "dropship_vehicle_terminal"
-    dropship_vehicle_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.flight1Vehicles ++ VehicleTerminalDefinition.flight2Vehicles, VehicleTerminalDefinition.trunk)
+    dropship_vehicle_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(
+      VehicleTerminalDefinition.flight1Vehicles ++ VehicleTerminalDefinition.flight2Vehicles,
+      VehicleTerminalDefinition.trunk
+    )
     dropship_vehicle_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
     dropship_vehicle_terminal.MaxHealth = 500
     dropship_vehicle_terminal.Damageable = true
@@ -6444,7 +6563,10 @@ object GlobalDefinitions {
     dropship_vehicle_terminal.Subtract.Damage1 = 8
 
     vehicle_terminal_combined.Name = "vehicle_terminal_combined"
-    vehicle_terminal_combined.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.flight1Vehicles ++ VehicleTerminalDefinition.groundVehicles, VehicleTerminalDefinition.trunk)
+    vehicle_terminal_combined.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(
+      VehicleTerminalDefinition.flight1Vehicles ++ VehicleTerminalDefinition.groundVehicles,
+      VehicleTerminalDefinition.trunk
+    )
     vehicle_terminal_combined.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
     vehicle_terminal_combined.MaxHealth = 500
     vehicle_terminal_combined.Damageable = true
@@ -6453,7 +6575,10 @@ object GlobalDefinitions {
     vehicle_terminal_combined.Subtract.Damage1 = 8
 
     vanu_air_vehicle_term.Name = "vanu_air_vehicle_term"
-    vanu_air_vehicle_term.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.flight1Vehicles, VehicleTerminalDefinition.trunk)
+    vanu_air_vehicle_term.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(
+      VehicleTerminalDefinition.flight1Vehicles,
+      VehicleTerminalDefinition.trunk
+    )
     vanu_air_vehicle_term.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
     vanu_air_vehicle_term.MaxHealth = 500
     vanu_air_vehicle_term.Damageable = true
@@ -6462,7 +6587,10 @@ object GlobalDefinitions {
     vanu_air_vehicle_term.Subtract.Damage1 = 8
 
     vanu_vehicle_term.Name = "vanu_vehicle_term"
-    vanu_vehicle_term.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.groundVehicles, VehicleTerminalDefinition.trunk)
+    vanu_vehicle_term.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(
+      VehicleTerminalDefinition.groundVehicles,
+      VehicleTerminalDefinition.trunk
+    )
     vanu_vehicle_term.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
     vanu_vehicle_term.MaxHealth = 500
     vanu_vehicle_term.Damageable = true
@@ -6471,7 +6599,10 @@ object GlobalDefinitions {
     vanu_vehicle_term.Subtract.Damage1 = 8
 
     bfr_terminal.Name = "bfr_terminal"
-    bfr_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.bfrVehicles, VehicleTerminalDefinition.trunk)
+    bfr_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(
+      VehicleTerminalDefinition.bfrVehicles,
+      VehicleTerminalDefinition.trunk
+    )
     bfr_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
     bfr_terminal.MaxHealth = 500
     bfr_terminal.Damageable = true
@@ -6632,14 +6763,18 @@ object GlobalDefinitions {
     lodestar_repair_terminal.Repairable = false
 
     multivehicle_rearm_terminal.Name = "multivehicle_rearm_terminal"
-    multivehicle_rearm_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    multivehicle_rearm_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(
+      EquipmentTerminalDefinition.vehicleAmmunition
+    )
     multivehicle_rearm_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
     multivehicle_rearm_terminal.SellEquipmentByDefault = true //TODO ?
     multivehicle_rearm_terminal.Damageable = false
     multivehicle_rearm_terminal.Repairable = false
 
     bfr_rearm_terminal.Name = "bfr_rearm_terminal"
-    bfr_rearm_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(Map.empty[String, ()=>Equipment]) //TODO add stock to page
+    bfr_rearm_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(
+      Map.empty[String, () => Equipment]
+    ) //TODO add stock to page
     bfr_rearm_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
     bfr_rearm_terminal.SellEquipmentByDefault = true //TODO ?
     bfr_rearm_terminal.Damageable = false
@@ -6653,7 +6788,9 @@ object GlobalDefinitions {
     air_rearm_terminal.Repairable = false
 
     ground_rearm_terminal.Name = "ground_rearm_terminal"
-    ground_rearm_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    ground_rearm_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(
+      EquipmentTerminalDefinition.vehicleAmmunition
+    )
     ground_rearm_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
     ground_rearm_terminal.SellEquipmentByDefault = true //TODO ?
     ground_rearm_terminal.Damageable = false
@@ -6665,11 +6802,11 @@ object GlobalDefinitions {
     manned_turret.DamageDisablesAt = 0
     manned_turret.Repairable = true
     manned_turret.RepairIfDestroyed = true
-    manned_turret.Weapons += 1 -> new mutable.HashMap()
-    manned_turret.Weapons(1) += TurretUpgrade.None -> phalanx_sgl_hevgatcan
-    manned_turret.Weapons(1) += TurretUpgrade.AVCombo -> phalanx_avcombo
+    manned_turret.Weapons += 1                          -> new mutable.HashMap()
+    manned_turret.Weapons(1) += TurretUpgrade.None      -> phalanx_sgl_hevgatcan
+    manned_turret.Weapons(1) += TurretUpgrade.AVCombo   -> phalanx_avcombo
     manned_turret.Weapons(1) += TurretUpgrade.FlakCombo -> phalanx_flakcombo
-    manned_turret.MountPoints += 1 -> 0
+    manned_turret.MountPoints += 1                      -> 0
     manned_turret.FactionLocked = true
     manned_turret.ReserveAmmunition = false
 
@@ -6679,10 +6816,10 @@ object GlobalDefinitions {
     vanu_sentry_turret.DamageDisablesAt = 0
     vanu_sentry_turret.Repairable = true
     vanu_sentry_turret.RepairIfDestroyed = true
-    vanu_sentry_turret.Weapons += 1 -> new mutable.HashMap()
+    vanu_sentry_turret.Weapons += 1                     -> new mutable.HashMap()
     vanu_sentry_turret.Weapons(1) += TurretUpgrade.None -> vanu_sentry_turret_weapon
-    vanu_sentry_turret.MountPoints += 1 -> 0
-    vanu_sentry_turret.MountPoints += 2 -> 0
+    vanu_sentry_turret.MountPoints += 1                 -> 0
+    vanu_sentry_turret.MountPoints += 2                 -> 0
     vanu_sentry_turret.FactionLocked = false
     vanu_sentry_turret.ReserveAmmunition = false
 

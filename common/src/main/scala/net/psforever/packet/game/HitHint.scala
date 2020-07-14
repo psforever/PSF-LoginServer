@@ -17,17 +17,15 @@ import scodec.codecs._
   * @param source_guid the source of implied damage
   * @param player_guid the player
   */
-final case class HitHint(source_guid : PlanetSideGUID,
-                         player_guid : PlanetSideGUID)
-  extends PlanetSideGamePacket {
+final case class HitHint(source_guid: PlanetSideGUID, player_guid: PlanetSideGUID) extends PlanetSideGamePacket {
   type Packet = HitHint
   def opcode = GamePacketOpcode.HitHint
   def encode = HitHint.encode(this)
 }
 
 object HitHint extends Marshallable[HitHint] {
-  implicit val codec : Codec[HitHint] = (
+  implicit val codec: Codec[HitHint] = (
     ("source_guid" | PlanetSideGUID.codec) ::
       ("player_guid" | PlanetSideGUID.codec)
-    ).as[HitHint]
+  ).as[HitHint]
 }

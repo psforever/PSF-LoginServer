@@ -10,16 +10,28 @@ import net.psforever.types._
 import scala.annotation.tailrec
 import scala.collection.mutable
 
-class Avatar(private val char_id : Long, val name : String, val faction : PlanetSideEmpire.Value, val sex : CharacterGender.Value, val head : Int, val voice : CharacterVoice.Value) {
+class Avatar(
+    private val char_id: Long,
+    val name: String,
+    val faction: PlanetSideEmpire.Value,
+    val sex: CharacterGender.Value,
+    val head: Int,
+    val voice: CharacterVoice.Value
+) {
+
   /** char_id, Character ID; a unique identifier corresponding to a database table row index */
   /** Battle Experience Points */
-  private var bep : Long = 0
+  private var bep: Long = 0
+
   /** Command Experience Points */
-  private var cep : Long = 0
-  /** Cosmetics **/
-  private var pStyle : Option[Cosmetics] = None
+  private var cep: Long = 0
+
+  /** Cosmetics * */
+  private var pStyle: Option[Cosmetics] = None
+
   /** Certifications */
-  private val certs : mutable.Set[CertificationType.Value] = mutable.Set[CertificationType.Value]()
+  private val certs: mutable.Set[CertificationType.Value] = mutable.Set[CertificationType.Value]()
+
   /** Implants<br>
     * Unlike other objects, all `ImplantSlot` objects are already built into the `Avatar`.
     * Additionally, implants do not have tightly-coupled "`Definition` objects" that explain a formal implant object.
@@ -28,53 +40,60 @@ class Avatar(private val char_id : Long, val name : String, val faction : Planet
     * @see `ImplantSlot`
     * @see `DetailedCharacterData.implants`
     */
-  private val implants : Array[ImplantSlot] = Array.fill[ImplantSlot](3)(new ImplantSlot)
+  private val implants: Array[ImplantSlot] = Array.fill[ImplantSlot](3)(new ImplantSlot)
+
   /** Equipment Loadouts<br>
     * 0-9 are Infantry loadouts<br>
     * 10-14 are Vehicle loadouts
     */
-  private val equipmentLoadouts : LoadoutManager = new LoadoutManager(15)
+  private val equipmentLoadouts: LoadoutManager = new LoadoutManager(15)
+
   /**
     * Squad Loadouts
     */
-  private val squadLoadouts : LoadoutManager = new LoadoutManager(10)
+  private val squadLoadouts: LoadoutManager = new LoadoutManager(10)
+
   /** Locker */
-  private val locker : LockerContainer = new LockerContainer() {
-    override def toString : String = {
+  private val locker: LockerContainer = new LockerContainer() {
+    override def toString: String = {
       s"$name's ${Definition.Name}"
     }
   }
 
-  private val deployables : DeployableToolbox = new DeployableToolbox
+  private val deployables: DeployableToolbox = new DeployableToolbox
 
-  private var firstTimeEvents : List[String] = List[String]()
+  private var firstTimeEvents: List[String] = List[String]()
 
   /**
     * Looking For Squad:<br>
     * Indicates both a player state and the text on the marquee under the player nameplate.
     * Should only be valid when the player is not in a squad.
     */
-  private var lfs : Boolean = false
+  private var lfs: Boolean = false
 
-  private var vehicleOwned : Option[PlanetSideGUID] = None
+  private var vehicleOwned: Option[PlanetSideGUID] = None
+
   /** key - object id<br>
     * value - time last used (ms)
-    * */
-  private var lastUsedEquipmentTimes : mutable.LongMap[Long] =  mutable.LongMap[Long]()
+    */
+  private var lastUsedEquipmentTimes: mutable.LongMap[Long] = mutable.LongMap[Long]()
+
   /** exo-suit times are sorted by `Enumeration` order, which was determined by packet process<br>
     * key - exo-suit id<br>
     * value - time last used (ms)
-    * */
-  private val lastUsedExoSuitTimes : Array[Long] = Array.fill[Long](ExoSuitType.values.size)(0L)
+    */
+  private val lastUsedExoSuitTimes: Array[Long] = Array.fill[Long](ExoSuitType.values.size)(0L)
+
   /** mechanized exo-suit times are sorted by subtype distinction, which was determined by packet process<br>
     * key - subtype id<br>
     * value - time last used (ms)
-    * */
-  private val lastUsedMaxExoSuitTimes : Array[Long] = Array.fill[Long](4)(0L) //invalid, ai, av, aa
+    */
+  private val lastUsedMaxExoSuitTimes: Array[Long] = Array.fill[Long](4)(0L) //invalid, ai, av, aa
   /** key - object id<br>
     * value - time last acquired (from a terminal) (ms)
-    * */
-  private var lastPurchaseTimes : mutable.LongMap[Long] =  mutable.LongMap[Long]()
+    */
+  private var lastPurchaseTimes: mutable.LongMap[Long] = mutable.LongMap[Long]()
+
   /**
     * To reload purchase and use timers, a string representing the item must be produced.
     * Point directly from the object id to the object definition and get the `Name` from that definition.
@@ -83,29 +102,29 @@ class Avatar(private val char_id : Long, val name : String, val faction : Planet
     * key - object id<br>
     * value - most basic object definition information
     */
-  private val objectTypeNameReference : mutable.LongMap[String] = new mutable.LongMap[String]()
+  private val objectTypeNameReference: mutable.LongMap[String] = new mutable.LongMap[String]()
 
-  def CharId : Long = char_id
+  def CharId: Long = char_id
 
-  def BEP : Long = bep
+  def BEP: Long = bep
 
-  def BEP_=(battleExperiencePoints : Long) : Long = {
+  def BEP_=(battleExperiencePoints: Long): Long = {
     bep = math.max(0L, math.min(battleExperiencePoints, 4294967295L))
     BEP
   }
 
-  def Certifications : mutable.Set[CertificationType.Value] = certs
+  def Certifications: mutable.Set[CertificationType.Value] = certs
 
-  def CEP : Long = cep
+  def CEP: Long = cep
 
-  def CEP_=(commandExperiencePoints : Long) : Long = {
+  def CEP_=(commandExperiencePoints: Long): Long = {
     cep = math.max(0L, math.min(commandExperiencePoints, 4294967295L))
     CEP
   }
 
-  def PersonalStyleFeatures : Option[Cosmetics] = pStyle
+  def PersonalStyleFeatures: Option[Cosmetics] = pStyle
 
-  def PersonalStyleFeatures_=(app : Cosmetics) : Option[Cosmetics] = {
+  def PersonalStyleFeatures_=(app: Cosmetics): Option[Cosmetics] = {
     pStyle = Some(app)
     pStyle
   }
@@ -114,7 +133,7 @@ class Avatar(private val char_id : Long, val name : String, val faction : Planet
     * Retrieve the three implant slots for this player.
     * @return an `Array` of `ImplantSlot` objects
     */
-  def Implants : Array[ImplantSlot] = implants
+  def Implants: Array[ImplantSlot] = implants
 
   /**
     * What kind of implant is installed into the given slot number?
@@ -122,8 +141,9 @@ class Avatar(private val char_id : Long, val name : String, val faction : Planet
     * @param slot the slot number
     * @return the tye of implant
     */
-  def Implant(slot : Int) : ImplantType.Value = {
-    if(-1 < slot && slot < implants.length) { implants(slot).Implant } else { ImplantType.None }
+  def Implant(slot: Int): ImplantType.Value = {
+    if (-1 < slot && slot < implants.length) { implants(slot).Implant }
+    else { ImplantType.None }
   }
 
   /**
@@ -136,8 +156,9 @@ class Avatar(private val char_id : Long, val name : String, val faction : Planet
     * @param implant the implant being installed
     * @return the index of the `ImplantSlot` where the implant was installed
     */
-  def InstallImplant(implant : ImplantDefinition) : Option[Int] = {
-    implants.find({p => p.Installed.contains(implant) || p.Implant == implant.Type}) match { //try to find the installed implant
+  def InstallImplant(implant: ImplantDefinition): Option[Int] = {
+    implants
+      .find({ p => p.Installed.contains(implant) || p.Implant == implant.Type }) match { //try to find the installed implant
       case None =>
         recursiveFindImplantInSlot(implants.iterator, ImplantType.None) match { //install in a free slot
           case Some(slot) =>
@@ -164,7 +185,7 @@ class Avatar(private val char_id : Long, val name : String, val faction : Planet
     * @param implantType the type of implant being uninstalled
     * @return the index of the `ImplantSlot` where the implant was found and uninstalled
     */
-  def UninstallImplant(implantType : ImplantType.Value) : Option[Int] = {
+  def UninstallImplant(implantType: ImplantType.Value): Option[Int] = {
     recursiveFindImplantInSlot(implants.iterator, implantType) match {
       case Some(slot) =>
         implants(slot).Implant = None
@@ -183,22 +204,24 @@ class Avatar(private val char_id : Long, val name : String, val faction : Planet
     * @param index a defaulted index value representing the structure underlying the `Iterator` param
     * @return the index where the target implant is installed
     */
-  @tailrec private def recursiveFindImplantInSlot(iter : Iterator[ImplantSlot], implantType : ImplantType.Value, index : Int = 0) : Option[Int] = {
-    if(!iter.hasNext) {
+  @tailrec private def recursiveFindImplantInSlot(
+      iter: Iterator[ImplantSlot],
+      implantType: ImplantType.Value,
+      index: Int = 0
+  ): Option[Int] = {
+    if (!iter.hasNext) {
       None
-    }
-    else {
+    } else {
       val slot = iter.next
-      if(slot.Unlocked && slot.Implant == implantType) {
+      if (slot.Unlocked && slot.Implant == implantType) {
         Some(index)
-      }
-      else {
+      } else {
         recursiveFindImplantInSlot(iter, implantType, index + 1)
       }
     }
   }
 
-  def ResetAllImplants() : Unit = {
+  def ResetAllImplants(): Unit = {
     implants.foreach(slot => {
       slot.Installed match {
         case Some(_) =>
@@ -210,111 +233,110 @@ class Avatar(private val char_id : Long, val name : String, val faction : Planet
     })
   }
 
-  def EquipmentLoadouts : LoadoutManager = equipmentLoadouts
+  def EquipmentLoadouts: LoadoutManager = equipmentLoadouts
 
-  def SquadLoadouts : LoadoutManager = squadLoadouts
+  def SquadLoadouts: LoadoutManager = squadLoadouts
 
-  def Locker : LockerContainer = locker
+  def Locker: LockerContainer = locker
 
-  def FifthSlot : EquipmentSlot = {
+  def FifthSlot: EquipmentSlot = {
     new OffhandEquipmentSlot(EquipmentSize.Inventory) {
       val obj = new LockerEquipment(locker)
       Equipment = obj
     }
   }
 
-  def Deployables : DeployableToolbox = deployables
+  def Deployables: DeployableToolbox = deployables
 
-  def FirstTimeEvents : List[String] = firstTimeEvents
+  def FirstTimeEvents: List[String] = firstTimeEvents
 
-  def FirstTimeEvents_=(event : String) : List[String] = FirstTimeEvents_=(List(event))
+  def FirstTimeEvents_=(event: String): List[String] = FirstTimeEvents_=(List(event))
 
-  def FirstTimeEvents_=(events : List[String]) : List[String] = {
+  def FirstTimeEvents_=(events: List[String]): List[String] = {
     firstTimeEvents ++= events
     FirstTimeEvents
   }
 
-  def LFS : Boolean = lfs
+  def LFS: Boolean = lfs
 
-  def LFS_=(looking : Boolean) : Boolean = {
+  def LFS_=(looking: Boolean): Boolean = {
     lfs = looking
     LFS
   }
 
-  def VehicleOwned : Option[PlanetSideGUID] = vehicleOwned
+  def VehicleOwned: Option[PlanetSideGUID] = vehicleOwned
 
-  def VehicleOwned_=(guid : PlanetSideGUID) : Option[PlanetSideGUID] = VehicleOwned_=(Some(guid))
+  def VehicleOwned_=(guid: PlanetSideGUID): Option[PlanetSideGUID] = VehicleOwned_=(Some(guid))
 
-  def VehicleOwned_=(guid : Option[PlanetSideGUID]) : Option[PlanetSideGUID] = {
+  def VehicleOwned_=(guid: Option[PlanetSideGUID]): Option[PlanetSideGUID] = {
     vehicleOwned = guid
     VehicleOwned
   }
 
-  def GetLastUsedTime(code : Int) : Long = {
+  def GetLastUsedTime(code: Int): Long = {
     lastUsedEquipmentTimes.get(code) match {
       case Some(time) => time
-      case None => 0
+      case None       => 0
     }
   }
 
-  def GetLastUsedTime(code : ExoSuitType.Value) : Long = {
+  def GetLastUsedTime(code: ExoSuitType.Value): Long = {
     lastUsedExoSuitTimes(code.id)
   }
 
-  def GetLastUsedTime(code : ExoSuitType.Value, subtype : Int) : Long = {
-    if(code == ExoSuitType.MAX) {
+  def GetLastUsedTime(code: ExoSuitType.Value, subtype: Int): Long = {
+    if (code == ExoSuitType.MAX) {
       lastUsedMaxExoSuitTimes(subtype)
-    }
-    else {
+    } else {
       GetLastUsedTime(code)
     }
   }
 
-  def GetAllLastUsedTimes : Map[Long, Long] = lastUsedEquipmentTimes.toMap
+  def GetAllLastUsedTimes: Map[Long, Long] = lastUsedEquipmentTimes.toMap
 
-  def SetLastUsedTime(code : Int, time : Long) : Unit = {
+  def SetLastUsedTime(code: Int, time: Long): Unit = {
     lastUsedEquipmentTimes += code.toLong -> time
   }
 
-  def SetLastUsedTime(code : ExoSuitType.Value) : Unit = SetLastUsedTime(code, System.currentTimeMillis())
+  def SetLastUsedTime(code: ExoSuitType.Value): Unit = SetLastUsedTime(code, System.currentTimeMillis())
 
-  def SetLastUsedTime(code : ExoSuitType.Value, time : Long) : Unit = {
+  def SetLastUsedTime(code: ExoSuitType.Value, time: Long): Unit = {
     lastUsedExoSuitTimes(code.id) = time
   }
 
-  def SetLastUsedTime(code : ExoSuitType.Value, subtype : Int, time : Long) : Unit = {
-    if(code == ExoSuitType.MAX) {
+  def SetLastUsedTime(code: ExoSuitType.Value, subtype: Int, time: Long): Unit = {
+    if (code == ExoSuitType.MAX) {
       lastUsedMaxExoSuitTimes(subtype) = time
     }
     SetLastUsedTime(code, time)
   }
 
-  def GetLastPurchaseTime(code : Int) : Long = {
+  def GetLastPurchaseTime(code: Int): Long = {
     lastPurchaseTimes.get(code) match {
       case Some(time) => time
-      case None => 0
+      case None       => 0
     }
   }
 
-  def GetAllLastPurchaseTimes : Map[Long, Long] = lastPurchaseTimes.toMap
+  def GetAllLastPurchaseTimes: Map[Long, Long] = lastPurchaseTimes.toMap
 
-  def SetLastPurchaseTime(code : Int, time : Long) : Unit = {
+  def SetLastPurchaseTime(code: Int, time: Long): Unit = {
     lastPurchaseTimes += code.toLong -> time
   }
 
-  def ObjectTypeNameReference(id : Long) : String = {
+  def ObjectTypeNameReference(id: Long): String = {
     objectTypeNameReference.get(id) match {
       case Some(objectName) => objectName
-      case None => ""
+      case None             => ""
     }
   }
 
-  def ObjectTypeNameReference(id : Long, name : String) : String = {
+  def ObjectTypeNameReference(id: Long, name: String): String = {
     objectTypeNameReference(id) = name
     name
   }
 
-  def Definition : AvatarDefinition = GlobalDefinitions.avatar
+  def Definition: AvatarDefinition = GlobalDefinitions.avatar
 
   /*
   Merit Commendations and Ribbons
@@ -326,19 +348,20 @@ class Avatar(private val char_id : Long, val name : String, val faction : Planet
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[Avatar]
 
-  override def equals(other : Any) : Boolean = other match {
-    case that: Avatar =>
-      (that canEqual this) &&
-        name == that.name &&
-        faction == that.faction &&
-        sex == that.sex &&
-        head == that.head &&
-        voice == that.voice
-    case _ =>
-      false
-  }
+  override def equals(other: Any): Boolean =
+    other match {
+      case that: Avatar =>
+        (that canEqual this) &&
+          name == that.name &&
+          faction == that.faction &&
+          sex == that.sex &&
+          head == that.head &&
+          voice == that.voice
+      case _ =>
+        false
+    }
 
-  override def hashCode() : Int = {
+  override def hashCode(): Int = {
     val state = Seq(name, faction, sex, head, voice)
     state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
   }
@@ -347,9 +370,15 @@ class Avatar(private val char_id : Long, val name : String, val faction : Planet
 }
 
 object Avatar {
-  def apply(name : String, faction : PlanetSideEmpire.Value, sex : CharacterGender.Value, head : Int, voice : CharacterVoice.Value) : Avatar = {
+  def apply(
+      name: String,
+      faction: PlanetSideEmpire.Value,
+      sex: CharacterGender.Value,
+      head: Int,
+      voice: CharacterVoice.Value
+  ): Avatar = {
     new Avatar(0L, name, faction, sex, head, voice)
   }
 
-  def toString(avatar : Avatar) : String = s"${avatar.faction} ${avatar.name}"
+  def toString(avatar: Avatar): String = s"${avatar.faction} ${avatar.name}"
 }

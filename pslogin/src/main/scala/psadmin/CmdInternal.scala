@@ -1,21 +1,22 @@
-package net.psforever.psadmin
+package net.psforever.pslogin.psadmin
 
-import net.psforever.WorldConfig
-import scala.collection.mutable.Map
+import scala.collection.mutable
+import net.psforever.pslogin.Config
+
+import scala.jdk.CollectionConverters._
 
 object CmdInternal {
 
-  def cmdDumpConfig(args : Array[String]) = {
-    val config = WorldConfig.GetRawConfig
-
-    CommandGoodResponse(s"Dump of WorldConfig", config)
+  def cmdDumpConfig(args: Array[String]) = {
+    val config =
+      Config.config.root.keySet.asScala.map(key => key -> Config.config.getAnyRef(key).asInstanceOf[Any]).toMap
+    CommandGoodResponse(s"Dump of WorldConfig", mutable.Map(config.toSeq: _*))
   }
 
-  def cmdThreadDump(args : Array[String]) = {
-    import scala.jdk.CollectionConverters._
+  def cmdThreadDump(args: Array[String]) = {
 
-    var data = Map[String,Any]()
-    val traces = Thread.getAllStackTraces().asScala
+    var data       = mutable.Map[String, Any]()
+    val traces     = Thread.getAllStackTraces().asScala
     var traces_fmt = List[String]()
 
     for ((thread, trace) <- traces) {
@@ -23,7 +24,7 @@ object CmdInternal {
       traces_fmt = traces_fmt ++ List(info + trace.mkString("\n"))
     }
 
-    data{"trace"} = traces_fmt
+    data { "trace" } = traces_fmt
 
     CommandGoodResponse(s"Dump of ${traces.size} threads", data)
   }

@@ -15,21 +15,22 @@ import scala.collection.mutable
   * between the server and client using `ProximityTerminalUseMessage` game packets.
   */
 trait ProximityDefinition {
-  this : ObjectDefinition =>
+  this: ObjectDefinition =>
 
-  private var useRadius : Float = 0f //TODO belongs on a wider range of object definitions
-  private val targetValidation : mutable.HashMap[EffectTarget.Category.Value, PlanetSideGameObject=>Boolean] = new mutable.HashMap[EffectTarget.Category.Value, PlanetSideGameObject=>Boolean]()
+  private var useRadius: Float = 0f //TODO belongs on a wider range of object definitions
+  private val targetValidation: mutable.HashMap[EffectTarget.Category.Value, PlanetSideGameObject => Boolean] =
+    new mutable.HashMap[EffectTarget.Category.Value, PlanetSideGameObject => Boolean]()
 
-  def UseRadius : Float = useRadius
+  def UseRadius: Float = useRadius
 
-  def UseRadius_=(radius : Float) : Float = {
+  def UseRadius_=(radius: Float): Float = {
     useRadius = radius
     UseRadius
   }
 
-  def TargetValidation : mutable.HashMap[EffectTarget.Category.Value, PlanetSideGameObject=>Boolean] = targetValidation
+  def TargetValidation: mutable.HashMap[EffectTarget.Category.Value, PlanetSideGameObject => Boolean] = targetValidation
 
-  def Validations : Seq[PlanetSideGameObject=>Boolean] = {
+  def Validations: Seq[PlanetSideGameObject => Boolean] = {
     targetValidation.headOption match {
       case Some(_) =>
         targetValidation.values.toSeq

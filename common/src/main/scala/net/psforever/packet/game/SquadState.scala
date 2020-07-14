@@ -25,16 +25,18 @@ import shapeless.{::, HNil}
   * @param unk9 na;
   *             if defined, will be defined with unk8
   */
-final case class SquadStateInfo(char_id : Long,
-                                health : Int,
-                                armor : Int,
-                                pos : Vector3,
-                                unk4 : Int,
-                                unk5 : Int,
-                                unk6 : Boolean,
-                                unk7 : Int,
-                                unk8 : Option[Int],
-                                unk9 : Option[Boolean])
+final case class SquadStateInfo(
+    char_id: Long,
+    health: Int,
+    armor: Int,
+    pos: Vector3,
+    unk4: Int,
+    unk5: Int,
+    unk6: Boolean,
+    unk7: Int,
+    unk8: Option[Int],
+    unk9: Option[Boolean]
+)
 
 /**
   * Dispatched by the server to update a squad member's representative icons on the continental maps and the interstellar map.<br>
@@ -49,24 +51,34 @@ final case class SquadStateInfo(char_id : Long,
   *             does not have to be the global uid of the squad as according to the server
   * @param info_list information about the members in this squad who will be updated
   */
-final case class SquadState(guid : PlanetSideGUID,
-                            info_list : List[SquadStateInfo])
-  extends PlanetSideGamePacket {
+final case class SquadState(guid: PlanetSideGUID, info_list: List[SquadStateInfo]) extends PlanetSideGamePacket {
   type Packet = SquadState
   def opcode = GamePacketOpcode.SquadState
   def encode = SquadState.encode(this)
 }
 
 object SquadStateInfo {
-  def apply(unk1 : Long, unk2 : Int, unk3 : Int, pos : Vector3, unk4 : Int, unk5 : Int, unk6 : Boolean, unk7 : Int) : SquadStateInfo =
+  def apply(unk1: Long, unk2: Int, unk3: Int, pos: Vector3, unk4: Int, unk5: Int, unk6: Boolean, unk7: Int)
+      : SquadStateInfo =
     SquadStateInfo(unk1, unk2, unk3, pos, unk4, unk5, unk6, unk7, None, None)
 
-  def apply(unk1 : Long, unk2 : Int, unk3 : Int, pos : Vector3, unk4 : Int, unk5 : Int, unk6 : Boolean, unk7 : Int, unk8 : Int, unk9 : Boolean) : SquadStateInfo =
+  def apply(
+      unk1: Long,
+      unk2: Int,
+      unk3: Int,
+      pos: Vector3,
+      unk4: Int,
+      unk5: Int,
+      unk6: Boolean,
+      unk7: Int,
+      unk8: Int,
+      unk9: Boolean
+  ): SquadStateInfo =
     SquadStateInfo(unk1, unk2, unk3, pos, unk4, unk5, unk6, unk7, Some(unk8), Some(unk9))
 }
 
 object SquadState extends Marshallable[SquadState] {
-  private val info_codec : Codec[SquadStateInfo] = (
+  private val info_codec: Codec[SquadStateInfo] = (
     ("char_id" | uint32L) ::
       ("health" | uint(7)) ::
       ("armor" | uint(7)) ::
@@ -76,26 +88,31 @@ object SquadState extends Marshallable[SquadState] {
       ("unk6" | bool) ::
       ("unk7" | uint16L) ::
       (bool >>:~ { out =>
-        conditional(out, "unk8" | uint16L) ::
-          conditional(out, "unk9" | bool)
-      })
-    ).exmap[SquadStateInfo] (
+      conditional(out, "unk8" | uint16L) ::
+        conditional(out, "unk9" | bool)
+    })
+  ).exmap[SquadStateInfo](
     {
       case char_id :: health :: armor :: pos :: u4 :: u5 :: u6 :: u7 :: _ :: u8 :: u9 :: HNil =>
         Attempt.Successful(SquadStateInfo(char_id, health, armor, pos, u4, u5, u6, u7, u8, u9))
     },
     {
       case SquadStateInfo(char_id, health, armor, pos, u4, u5, u6, u7, Some(u8), Some(u9)) =>
-        Attempt.Successful(char_id :: health :: armor :: pos :: u4 :: u5 :: u6 :: u7 :: true :: Some(u8) :: Some(u9) :: HNil)
+        Attempt.Successful(
+          char_id :: health :: armor :: pos :: u4 :: u5 :: u6 :: u7 :: true :: Some(u8) :: Some(u9) :: HNil
+        )
       case SquadStateInfo(char_id, health, armor, pos, u4, u5, u6, u7, None, None) =>
         Attempt.Successful(char_id :: health :: armor :: pos :: u4 :: u5 :: u6 :: u7 :: false :: None :: None :: HNil)
-      case data @ (SquadStateInfo(_, _, _, _, _, _, _, _, Some(_), None) | SquadStateInfo(_, _, _, _, _, _, _, _, None, Some(_))) =>
-        Attempt.Failure(Err(s"SquadStateInfo requires both unk8 and unk9 to be either defined or undefined at the same time - $data"))
+      case data @ (SquadStateInfo(_, _, _, _, _, _, _, _, Some(_), None) |
+          SquadStateInfo(_, _, _, _, _, _, _, _, None, Some(_))) =>
+        Attempt.Failure(
+          Err(s"SquadStateInfo requires both unk8 and unk9 to be either defined or undefined at the same time - $data")
+        )
     }
   )
 
-  implicit val codec : Codec[SquadState] = (
+  implicit val codec: Codec[SquadState] = (
     ("guid" | PlanetSideGUID.codec) ::
       ("info_list" | listOfN(uint4, info_codec))
-    ).as[SquadState]
+  ).as[SquadState]
 }

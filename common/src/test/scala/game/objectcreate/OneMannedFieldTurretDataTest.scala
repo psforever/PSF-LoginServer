@@ -9,7 +9,8 @@ import org.specs2.mutable._
 import scodec.bits._
 
 class OneMannedFieldTurretDataTest extends Specification {
-  val string_orion = hex"17 5E010000 D82640B 92F76 01D65 F611 00 00 5E 4400006304BFC1E4041826E1503900000010104CE704C06400000"
+  val string_orion =
+    hex"17 5E010000 D82640B 92F76 01D65 F611 00 00 5E 4400006304BFC1E4041826E1503900000010104CE704C06400000"
 
   "OneMannedFieldTurretData" should {
     "decode (orion)" in {
@@ -20,7 +21,11 @@ class OneMannedFieldTurretDataTest extends Specification {
           guid mustEqual PlanetSideGUID(2916)
           parent.isDefined mustEqual false
           data match {
-            case OneMannedFieldTurretData(CommonFieldDataWithPlacement(pos, deploy), health, Some(InventoryData(inv))) =>
+            case OneMannedFieldTurretData(
+                  CommonFieldDataWithPlacement(pos, deploy),
+                  health,
+                  Some(InventoryData(inv))
+                ) =>
               pos.coord mustEqual Vector3(3567.1406f, 2988.0078f, 71.84375f)
               pos.orient mustEqual Vector3.z(185.625f)
               deploy.faction mustEqual PlanetSideEmpire.VS
@@ -39,7 +44,12 @@ class OneMannedFieldTurretDataTest extends Specification {
               inv.head.guid mustEqual PlanetSideGUID(2615)
               inv.head.parentSlot mustEqual 1
               inv.head.obj match {
-                case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, List(ammo), _) =>
+                case WeaponData(
+                      CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid),
+                      fmode,
+                      List(ammo),
+                      _
+                    ) =>
                   wfaction mustEqual PlanetSideEmpire.NEUTRAL
                   wbops mustEqual false
                   walternate mustEqual false
@@ -87,17 +97,47 @@ class OneMannedFieldTurretDataTest extends Specification {
           CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, Some(false), None, PlanetSideGUID(2502))
         ),
         255,
-        InventoryData(List(
-          InternalSlot(ObjectClass.energy_gun_vs, PlanetSideGUID(2615), 1,
-            WeaponData(
-              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
-              0,
-              List(InternalSlot(ObjectClass.energy_gun_ammo, PlanetSideGUID(2510), 0,
-                CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)))
+        InventoryData(
+          List(
+            InternalSlot(
+              ObjectClass.energy_gun_vs,
+              PlanetSideGUID(2615),
+              1,
+              WeaponData(
+                CommonFieldData(
+                  PlanetSideEmpire.NEUTRAL,
+                  false,
+                  false,
+                  true,
+                  None,
+                  false,
+                  None,
+                  None,
+                  PlanetSideGUID(0)
+                ),
+                0,
+                List(
+                  InternalSlot(
+                    ObjectClass.energy_gun_ammo,
+                    PlanetSideGUID(2510),
+                    0,
+                    CommonFieldData(
+                      PlanetSideEmpire.NEUTRAL,
+                      false,
+                      false,
+                      true,
+                      None,
+                      false,
+                      Some(false),
+                      None,
+                      PlanetSideGUID(0)
+                    )
+                  )
+                )
               )
             )
           )
-        ))
+        )
       )
       val msg = ObjectCreateMessage(ObjectClass.portable_manned_turret_vs, PlanetSideGUID(2916), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector

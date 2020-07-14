@@ -8,21 +8,21 @@ import net.psforever.packet.game.UseItemMessage
 import net.psforever.types.Vector3
 
 class ResourceSilo extends Amenity {
-  private var chargeLevel : Int = 0
-  private val maximumCharge : Int = 1000
+  private var chargeLevel: Int   = 0
+  private val maximumCharge: Int = 1000
 
   // For the flashing red light on top of the NTU silo on.
   // Default to true until charge level can be persisted across restarts as default charge level is 0
-  private var lowNtuWarningOn : Boolean = true
+  private var lowNtuWarningOn: Boolean = true
 
   // For the NTU display bar
-  private var capacitorDisplay : Long = 0
+  private var capacitorDisplay: Long = 0
 
-  def ChargeLevel : Int = chargeLevel
+  def ChargeLevel: Int = chargeLevel
 
   // Do not call directly. Use ResourceSilo.UpdateChargeLevel message to handle logic such as low ntu warnings
-  def ChargeLevel_=(charge: Int) : Int = {
-    if(charge < 0 ) {
+  def ChargeLevel_=(charge: Int): Int = {
+    if (charge < 0) {
       chargeLevel = 0
     } else if (charge > maximumCharge) {
       chargeLevel = maximumCharge
@@ -32,39 +32,37 @@ class ResourceSilo extends Amenity {
     ChargeLevel
   }
 
-  def MaximumCharge : Int = maximumCharge
+  def MaximumCharge: Int = maximumCharge
 
-  def LowNtuWarningOn : Boolean = lowNtuWarningOn
-  def LowNtuWarningOn_=(enabled: Boolean) : Boolean = {
+  def LowNtuWarningOn: Boolean = lowNtuWarningOn
+  def LowNtuWarningOn_=(enabled: Boolean): Boolean = {
     lowNtuWarningOn = enabled
     LowNtuWarningOn
   }
 
-  def CapacitorDisplay : Long = scala.math.ceil((ChargeLevel.toFloat / MaximumCharge.toFloat) * 10).toInt
+  def CapacitorDisplay: Long = scala.math.ceil((ChargeLevel.toFloat / MaximumCharge.toFloat) * 10).toInt
 
-  def Definition : ResourceSiloDefinition = GlobalDefinitions.resource_silo
+  def Definition: ResourceSiloDefinition = GlobalDefinitions.resource_silo
 
-  def Use(player: Player, msg : UseItemMessage) : ResourceSilo.Exchange = {
+  def Use(player: Player, msg: UseItemMessage): ResourceSilo.Exchange = {
     ResourceSilo.ChargeEvent()
   }
 }
 
-
 object ResourceSilo {
 
-  final case class Use(player: Player, msg : UseItemMessage)
+  final case class Use(player: Player, msg: UseItemMessage)
   final case class UpdateChargeLevel(amount: Int)
   final case class LowNtuWarning(enabled: Boolean)
   sealed trait Exchange
   final case class ChargeEvent() extends Exchange
-  final case class ResourceSiloMessage(player: Player, msg : UseItemMessage, response : Exchange)
-
+  final case class ResourceSiloMessage(player: Player, msg: UseItemMessage, response: Exchange)
 
   /**
     * Overloaded constructor.
     * @return the `Resource Silo` object
     */
-  def apply() : ResourceSilo = {
+  def apply(): ResourceSilo = {
     new ResourceSilo()
   }
 
@@ -75,7 +73,7 @@ object ResourceSilo {
     *                not necessary for this object, but required by signature
     * @return the `ResourceSilo` object
     */
-  def Constructor(pos: Vector3)(id : Int, context : ActorContext) : ResourceSilo = {
+  def Constructor(pos: Vector3)(id: Int, context: ActorContext): ResourceSilo = {
     val obj = ResourceSilo()
     obj.Position = pos
     obj.Actor = context.actorOf(Props(classOf[ResourceSiloControl], obj), s"${obj.Definition.Name}_$id")

@@ -18,7 +18,7 @@ import scala.util.{Failure, Success}
 class ConverterTest extends Specification {
   "AmmoBox" should {
     val bullet_9mm = AmmoBoxDefinition(28)
-        bullet_9mm.Capacity = 50
+    bullet_9mm.Capacity = 50
 
     "convert to packet" in {
       val obj = AmmoBox(bullet_9mm)
@@ -62,7 +62,7 @@ class ConverterTest extends Specification {
 
   "Tool" should {
     "convert to packet (1 fire mode slot)" in {
-      val obj : Tool = Tool(GlobalDefinitions.flechette)
+      val obj: Tool = Tool(GlobalDefinitions.flechette)
       obj.AmmoSlot.Box.GUID = PlanetSideGUID(90)
 
       obj.Definition.Packet.DetailedConstructorData(obj) match {
@@ -80,8 +80,23 @@ class ConverterTest extends Specification {
           pkt mustEqual WeaponData(
             CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
             0,
-            List(InternalSlot(Ammo.shotgun_shell.id, PlanetSideGUID(90), 0,
-              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, Some(false), None, PlanetSideGUID(0)))
+            List(
+              InternalSlot(
+                Ammo.shotgun_shell.id,
+                PlanetSideGUID(90),
+                0,
+                CommonFieldData(
+                  PlanetSideEmpire.NEUTRAL,
+                  false,
+                  false,
+                  false,
+                  None,
+                  false,
+                  Some(false),
+                  None,
+                  PlanetSideGUID(0)
+                )
+              )
             )
           )
         case _ =>
@@ -90,7 +105,7 @@ class ConverterTest extends Specification {
     }
 
     "convert to packet (2 fire mode slots)" in {
-      val obj : Tool = Tool(GlobalDefinitions.punisher)
+      val obj: Tool = Tool(GlobalDefinitions.punisher)
       obj.AmmoSlots.head.Box.GUID = PlanetSideGUID(90)
       obj.AmmoSlots(1).Box.GUID = PlanetSideGUID(91)
 
@@ -136,7 +151,7 @@ class ConverterTest extends Specification {
   "Kit" should {
     "convert to packet" in {
       val kdef = KitDefinition(Kits.medkit)
-      val obj = Kit(kdef)
+      val obj  = Kit(kdef)
       obj.GUID = PlanetSideGUID(90)
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
@@ -281,7 +296,17 @@ class ConverterTest extends Specification {
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual DetailedConstructionToolData(
-            CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, Some(1001), PlanetSideGUID(0))
+            CommonFieldData(
+              PlanetSideEmpire.NEUTRAL,
+              false,
+              false,
+              true,
+              None,
+              false,
+              None,
+              Some(1001),
+              PlanetSideGUID(0)
+            )
           )
         case _ =>
           ko
@@ -292,7 +317,6 @@ class ConverterTest extends Specification {
       val obj = new Telepad(GlobalDefinitions.router_telepad)
       //obj.Router = PlanetSideGUID(1001)
       obj.Definition.Packet.ConstructorData(obj).isFailure mustEqual true
-
 
       obj.Definition.Packet.DetailedConstructorData(obj).isFailure mustEqual true
     }
@@ -340,17 +364,57 @@ class ConverterTest extends Specification {
           pkt mustEqual SmallTurretData(
             CommonFieldDataWithPlacement(
               PlacementData(Vector3.Zero, Vector3.Zero),
-              CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, Some(true), None, PlanetSideGUID(0))
+              CommonFieldData(
+                PlanetSideEmpire.TR,
+                false,
+                false,
+                false,
+                None,
+                false,
+                Some(true),
+                None,
+                PlanetSideGUID(0)
+              )
             ),
             255,
             InventoryData(
-              List(InternalSlot(ObjectClass.spitfire_weapon, PlanetSideGUID(91), 1,
-                WeaponData(
-                  CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
-                  0,
-                  List(InternalSlot(Ammo.spitfire_ammo.id, PlanetSideGUID(92), 0,
-                    CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, Some(false), None, PlanetSideGUID(0)))
-                  ))
+              List(
+                InternalSlot(
+                  ObjectClass.spitfire_weapon,
+                  PlanetSideGUID(91),
+                  1,
+                  WeaponData(
+                    CommonFieldData(
+                      PlanetSideEmpire.NEUTRAL,
+                      false,
+                      false,
+                      true,
+                      None,
+                      false,
+                      None,
+                      None,
+                      PlanetSideGUID(0)
+                    ),
+                    0,
+                    List(
+                      InternalSlot(
+                        Ammo.spitfire_ammo.id,
+                        PlanetSideGUID(92),
+                        0,
+                        CommonFieldData(
+                          PlanetSideEmpire.NEUTRAL,
+                          false,
+                          false,
+                          false,
+                          None,
+                          false,
+                          Some(false),
+                          None,
+                          PlanetSideGUID(0)
+                        )
+                      )
+                    )
+                  )
                 )
               )
             )
@@ -375,17 +439,57 @@ class ConverterTest extends Specification {
           pkt mustEqual OneMannedFieldTurretData(
             CommonFieldDataWithPlacement(
               PlacementData(Vector3.Zero, Vector3.Zero),
-              CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, Some(false), None, PlanetSideGUID(0))
+              CommonFieldData(
+                PlanetSideEmpire.TR,
+                false,
+                false,
+                true,
+                None,
+                false,
+                Some(false),
+                None,
+                PlanetSideGUID(0)
+              )
             ),
             255,
             InventoryData(
-              List(InternalSlot(ObjectClass.energy_gun_tr, PlanetSideGUID(91), 1,
-                WeaponData(
-                  CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
-                  0,
-                  List(InternalSlot(Ammo.energy_gun_ammo.id, PlanetSideGUID(92), 0,
-                    CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, Some(false), None, PlanetSideGUID(0)))
-                  ))
+              List(
+                InternalSlot(
+                  ObjectClass.energy_gun_tr,
+                  PlanetSideGUID(91),
+                  1,
+                  WeaponData(
+                    CommonFieldData(
+                      PlanetSideEmpire.NEUTRAL,
+                      false,
+                      false,
+                      true,
+                      None,
+                      false,
+                      None,
+                      None,
+                      PlanetSideGUID(0)
+                    ),
+                    0,
+                    List(
+                      InternalSlot(
+                        Ammo.energy_gun_ammo.id,
+                        PlanetSideGUID(92),
+                        0,
+                        CommonFieldData(
+                          PlanetSideEmpire.NEUTRAL,
+                          false,
+                          false,
+                          false,
+                          None,
+                          false,
+                          Some(false),
+                          None,
+                          PlanetSideGUID(0)
+                        )
+                      )
+                    )
+                  )
                 )
               )
             )
@@ -542,7 +646,7 @@ class ConverterTest extends Specification {
 
   "Player" should {
     val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-    val obj : Player = {
+    val obj: Player = {
       /*
       Create an AmmoBoxDefinition with which to build two AmmoBoxes
       Create a ToolDefinition with which to create a Tool
@@ -634,7 +738,10 @@ class ConverterTest extends Specification {
       val obj = new LockerEquipment(LockerContainer())
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual DetailedLockerContainerData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)), None)
+          pkt mustEqual DetailedLockerContainerData(
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+            None
+          )
         case _ =>
           ko
       }
@@ -655,13 +762,54 @@ class ConverterTest extends Specification {
 
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual DetailedLockerContainerData(8, InternalSlot(remote_electronics_kit.ObjectId, PlanetSideGUID(1), 0, DetailedREKData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)))) :: Nil)
+          pkt mustEqual DetailedLockerContainerData(
+            8,
+            InternalSlot(
+              remote_electronics_kit.ObjectId,
+              PlanetSideGUID(1),
+              0,
+              DetailedREKData(
+                CommonFieldData(
+                  PlanetSideEmpire.NEUTRAL,
+                  false,
+                  false,
+                  true,
+                  None,
+                  false,
+                  Some(false),
+                  None,
+                  PlanetSideGUID(0)
+                )
+              )
+            ) :: Nil
+          )
         case _ =>
           ko
       }
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual LockerContainerData(InventoryData(InternalSlot(remote_electronics_kit.ObjectId, PlanetSideGUID(1), 0, REKData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)))) :: Nil))
+          pkt mustEqual LockerContainerData(
+            InventoryData(
+              InternalSlot(
+                remote_electronics_kit.ObjectId,
+                PlanetSideGUID(1),
+                0,
+                REKData(
+                  CommonFieldData(
+                    PlanetSideEmpire.NEUTRAL,
+                    false,
+                    false,
+                    true,
+                    None,
+                    false,
+                    Some(false),
+                    None,
+                    PlanetSideGUID(0)
+                  )
+                )
+              ) :: Nil
+            )
+          )
         case _ =>
           ko
       }
@@ -713,41 +861,40 @@ class ConverterTest extends Specification {
       val hellfire_ammo = AmmoBoxDefinition(Ammo.hellfire_ammo.id)
 
       val fury_weapon_systema_def = ToolDefinition(ObjectClass.fury_weapon_systema)
-          fury_weapon_systema_def.Size = EquipmentSize.VehicleWeapon
-          fury_weapon_systema_def.AmmoTypes += GlobalDefinitions.hellfire_ammo
-          fury_weapon_systema_def.FireModes += new FireModeDefinition
-          fury_weapon_systema_def.FireModes.head.AmmoTypeIndices += 0
-          fury_weapon_systema_def.FireModes.head.AmmoSlotIndex = 0
-          fury_weapon_systema_def.FireModes.head.Magazine = 2
+      fury_weapon_systema_def.Size = EquipmentSize.VehicleWeapon
+      fury_weapon_systema_def.AmmoTypes += GlobalDefinitions.hellfire_ammo
+      fury_weapon_systema_def.FireModes += new FireModeDefinition
+      fury_weapon_systema_def.FireModes.head.AmmoTypeIndices += 0
+      fury_weapon_systema_def.FireModes.head.AmmoSlotIndex = 0
+      fury_weapon_systema_def.FireModes.head.Magazine = 2
 
       val fury_def = VehicleDefinition(ObjectClass.fury)
-          fury_def.Seats += 0 -> new SeatDefinition()
-          fury_def.Seats(0).Bailable = true
-          fury_def.Seats(0).ControlledWeapon = Some(1)
-          fury_def.MountPoints += 0 -> 0
-          fury_def.MountPoints += 2 -> 0
-          fury_def.Weapons += 1 -> fury_weapon_systema_def
-          fury_def.TrunkSize = InventoryTile(11, 11)
-          fury_def.TrunkOffset = 30
+      fury_def.Seats += 0 -> new SeatDefinition()
+      fury_def.Seats(0).Bailable = true
+      fury_def.Seats(0).ControlledWeapon = Some(1)
+      fury_def.MountPoints += 0 -> 0
+      fury_def.MountPoints += 2 -> 0
+      fury_def.Weapons += 1     -> fury_weapon_systema_def
+      fury_def.TrunkSize = InventoryTile(11, 11)
+      fury_def.TrunkOffset = 30
 
       val hellfire_ammo_box = AmmoBox(hellfire_ammo)
-          hellfire_ammo_box.GUID = PlanetSideGUID(432)
+      hellfire_ammo_box.GUID = PlanetSideGUID(432)
 
       val fury = Vehicle(fury_def)
-          fury.GUID = PlanetSideGUID(413)
-          fury.Faction = PlanetSideEmpire.VS
-          fury.Position = Vector3(3674.8438f, 2732f, 91.15625f)
-          fury.Orientation = Vector3(0.0f, 0.0f, 90.0f)
-          fury.WeaponControlledFromSeat(0).get.GUID = PlanetSideGUID(400)
-          fury.WeaponControlledFromSeat(0).get.asInstanceOf[Tool].AmmoSlots.head.Box = hellfire_ammo_box
+      fury.GUID = PlanetSideGUID(413)
+      fury.Faction = PlanetSideEmpire.VS
+      fury.Position = Vector3(3674.8438f, 2732f, 91.15625f)
+      fury.Orientation = Vector3(0.0f, 0.0f, 90.0f)
+      fury.WeaponControlledFromSeat(0).get.GUID = PlanetSideGUID(400)
+      fury.WeaponControlledFromSeat(0).get.asInstanceOf[Tool].AmmoSlots.head.Box = hellfire_ammo_box
 
       fury.Definition.Packet.ConstructorData(fury).isSuccess mustEqual true
       ok //TODO write more of this test
     }
 
     "convert to packet (2)" in {
-      val
-      ams = Vehicle(GlobalDefinitions.ams)
+      val ams = Vehicle(GlobalDefinitions.ams)
       ams.GUID = PlanetSideGUID(413)
       ams.Utilities(1)().GUID = PlanetSideGUID(414)
       ams.Utilities(2)().GUID = PlanetSideGUID(415)
@@ -758,8 +905,7 @@ class ConverterTest extends Specification {
     }
 
     "convert to packet (3)" in {
-      val
-      ams = Vehicle(GlobalDefinitions.ams)
+      val ams = Vehicle(GlobalDefinitions.ams)
       ams.GUID = PlanetSideGUID(413)
       ams.Health = 0 //destroyed vehicle
 
@@ -768,8 +914,7 @@ class ConverterTest extends Specification {
     }
 
     "convert to packet (4)" in {
-      val
-      router = Vehicle(GlobalDefinitions.router)
+      val router = Vehicle(GlobalDefinitions.router)
       router.GUID = PlanetSideGUID(413)
       router.Utility(UtilityType.teleportpad_terminal).get.GUID = PlanetSideGUID(1413)
       router.Utility(UtilityType.internal_router_telepad_deployable).get.GUID = PlanetSideGUID(2413)

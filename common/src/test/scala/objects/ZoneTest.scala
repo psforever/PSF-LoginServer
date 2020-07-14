@@ -21,7 +21,7 @@ import org.specs2.mutable.Specification
 import scala.concurrent.duration._
 
 class ZoneTest extends Specification {
-  def test(a: String, b: Int, c: Int, d : Zone, e : ActorContext) : Building = { Building.NoBuilding }
+  def test(a: String, b: Int, c: Int, d: Zone, e: ActorContext): Building = { Building.NoBuilding }
 
   "ZoneMap" should {
     "construct" in {
@@ -99,8 +99,8 @@ class ZoneTest extends Specification {
     }
 
     "can have its unique identifier system changed if no objects were added to it" in {
-      val zone = new Zone("home3", map13, 13)
-      val guid1 : NumberPoolHub = new NumberPoolHub(new LimitedNumberSource(100))
+      val zone                 = new Zone("home3", map13, 13)
+      val guid1: NumberPoolHub = new NumberPoolHub(new LimitedNumberSource(100))
       zone.GUID(guid1) mustEqual true
       zone.AddPool("pool1", (0 to 50).toList)
       zone.AddPool("pool2", (51 to 75).toList)
@@ -117,44 +117,44 @@ class ZoneTest extends Specification {
 class ZoneActorTest extends ActorTest {
   "Zone" should {
     "have an Actor" in {
-      val zone = new Zone("test", new ZoneMap("map6"), 1) { override def SetupNumberPools() = { } }
+      val zone = new Zone("test", new ZoneMap("map6"), 1) { override def SetupNumberPools() = {} }
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-actor")
       expectNoMessage(Duration.create(100, "ms"))
       assert(zone.Actor != ActorRef.noSender)
     }
 
     "create new number pools before the Actor is started" in {
-      val zone = new Zone("test", new ZoneMap("map6"), 1) { override def SetupNumberPools() = { } }
+      val zone = new Zone("test", new ZoneMap("map6"), 1) { override def SetupNumberPools() = {} }
       zone.GUID(new NumberPoolHub(new LimitedNumberSource(10)))
-      assert( zone.AddPool("test1", 1 to 2) )
+      assert(zone.AddPool("test1", 1 to 2))
 
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-add-pool-actor") //note: not Init'd yet
-      assert( zone.AddPool("test2", 3 to 4) )
+      assert(zone.AddPool("test2", 3 to 4))
     }
 
     "remove existing number pools before the Actor is started" in {
-      val zone = new Zone("test", new ZoneMap("map6"), 1) { override def SetupNumberPools() = { } }
+      val zone = new Zone("test", new ZoneMap("map6"), 1) { override def SetupNumberPools() = {} }
       zone.GUID(new NumberPoolHub(new LimitedNumberSource(10)))
-      assert( zone.AddPool("test1", 1 to 2) )
-      assert( zone.RemovePool("test1") )
+      assert(zone.AddPool("test1", 1 to 2))
+      assert(zone.RemovePool("test1"))
 
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-remove-pool-actor") //note: not Init'd yet
-      assert( zone.AddPool("test2", 3 to 4) )
-      assert( zone.RemovePool("test2") )
+      assert(zone.AddPool("test2", 3 to 4))
+      assert(zone.RemovePool("test2"))
     }
 
     "refuse new number pools after the Actor is started" in {
-      val zone = new Zone("test", new ZoneMap("map6"), 1) { override def SetupNumberPools() = { } }
+      val zone = new Zone("test", new ZoneMap("map6"), 1) { override def SetupNumberPools() = {} }
       zone.GUID(new NumberPoolHub(new LimitedNumberSource(40150)))
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-add-pool-actor-init")
       zone.Actor ! Zone.Init()
       expectNoMessage(Duration.create(500, "ms"))
 
-      assert( !zone.AddPool("test1", 1 to 2) )
+      assert(!zone.AddPool("test1", 1 to 2))
     }
 
     "refuse to remove number pools after the Actor is started" in {
-      val zone = new Zone("test", new ZoneMap("map6"), 1) { override def SetupNumberPools() = { } }
+      val zone = new Zone("test", new ZoneMap("map6"), 1) { override def SetupNumberPools() = {} }
 
       zone.GUID(new NumberPoolHub(new LimitedNumberSource(10)))
       zone.AddPool("test", 1 to 2)
@@ -162,70 +162,96 @@ class ZoneActorTest extends ActorTest {
       zone.Actor ! Zone.Init()
       expectNoMessage(Duration.create(300, "ms"))
 
-      assert( !zone.RemovePool("test") )
+      assert(!zone.RemovePool("test"))
     }
 
     "set up spawn groups based on buildings" in {
       val map6 = new ZoneMap("map6") {
-        LocalBuilding("Building", building_guid = 1, map_id = 1, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1,1,1))))
-        LocalObject(2, SpawnTube.Constructor(Vector3(1,0,0), Vector3.Zero))
+        LocalBuilding(
+          "Building",
+          building_guid = 1,
+          map_id = 1,
+          FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1, 1, 1)))
+        )
+        LocalObject(2, SpawnTube.Constructor(Vector3(1, 0, 0), Vector3.Zero))
         LocalObject(3, Terminal.Constructor(Vector3.Zero, GlobalDefinitions.dropship_vehicle_terminal))
-        LocalObject(4, SpawnTube.Constructor(Vector3(1,0,0), Vector3.Zero))
+        LocalObject(4, SpawnTube.Constructor(Vector3(1, 0, 0), Vector3.Zero))
         ObjectToBuilding(2, 1)
         ObjectToBuilding(3, 1)
         ObjectToBuilding(4, 1)
 
-        LocalBuilding("Building", building_guid = 5, map_id = 2, FoundationBuilder(Building.Structure(StructureType.Building)))
+        LocalBuilding(
+          "Building",
+          building_guid = 5,
+          map_id = 2,
+          FoundationBuilder(Building.Structure(StructureType.Building))
+        )
         LocalObject(6, SpawnTube.Constructor(Vector3.Zero, Vector3.Zero))
         ObjectToBuilding(6, 5)
 
-        LocalBuilding("Building", building_guid = 7, map_id = 3, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1,1,1))))
+        LocalBuilding(
+          "Building",
+          building_guid = 7,
+          map_id = 3,
+          FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1, 1, 1)))
+        )
         LocalObject(8, Terminal.Constructor(Vector3.Zero, GlobalDefinitions.dropship_vehicle_terminal))
-        LocalObject(9, SpawnTube.Constructor(Vector3(1,0,0), Vector3.Zero))
+        LocalObject(9, SpawnTube.Constructor(Vector3(1, 0, 0), Vector3.Zero))
         LocalObject(10, Terminal.Constructor(Vector3.Zero, GlobalDefinitions.dropship_vehicle_terminal))
         ObjectToBuilding(8, 7)
         ObjectToBuilding(9, 7)
         ObjectToBuilding(10, 7)
       }
-      val zone = new Zone("test", map6, 1) { override def SetupNumberPools() = { } }
+      val zone = new Zone("test", map6, 1) { override def SetupNumberPools() = {} }
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-init")
       zone.Actor ! Zone.Init()
       expectNoMessage(Duration.create(1, "seconds"))
 
       val groups = zone.SpawnGroups()
       assert(groups.size == 2)
-      zone.SpawnGroups().foreach({ case(building, tubes) =>
-        if(building.MapId == 1) {
-          val building1 = zone.SpawnGroups(building)
-          assert(tubes.length == 2)
-          assert(tubes.head == building1.head)
-          assert(tubes.head.GUID == PlanetSideGUID(2))
-          assert(tubes(1) == building1(1))
-          assert(tubes(1).GUID == PlanetSideGUID(4))
-        }
-        else if(building.MapId == 3) {
-          val building2 = zone.SpawnGroups(building)
-          assert(tubes.length == 1)
-          assert(tubes.head == building2.head)
-          assert(tubes.head.GUID == PlanetSideGUID(9))
-        }
-        else {
-          assert(false)
-        }
-      })
+      zone
+        .SpawnGroups()
+        .foreach({
+          case (building, tubes) =>
+            if (building.MapId == 1) {
+              val building1 = zone.SpawnGroups(building)
+              assert(tubes.length == 2)
+              assert(tubes.head == building1.head)
+              assert(tubes.head.GUID == PlanetSideGUID(2))
+              assert(tubes(1) == building1(1))
+              assert(tubes(1).GUID == PlanetSideGUID(4))
+            } else if (building.MapId == 3) {
+              val building2 = zone.SpawnGroups(building)
+              assert(tubes.length == 1)
+              assert(tubes.head == building2.head)
+              assert(tubes.head.GUID == PlanetSideGUID(9))
+            } else {
+              assert(false)
+            }
+        })
     }
 
     "select spawn points based on the position of the player in reference to buildings" in {
       val map6 = new ZoneMap("map6") {
-        LocalBuilding("Building", building_guid = 1, map_id = 1, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1,1,1))))
-        LocalObject(2, SpawnTube.Constructor(Vector3(1,0,0), Vector3.Zero))
+        LocalBuilding(
+          "Building",
+          building_guid = 1,
+          map_id = 1,
+          FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1, 1, 1)))
+        )
+        LocalObject(2, SpawnTube.Constructor(Vector3(1, 0, 0), Vector3.Zero))
         ObjectToBuilding(2, 1)
 
-        LocalBuilding("Building", building_guid = 3, map_id = 3, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(4,4,4))))
-        LocalObject(4, SpawnTube.Constructor(Vector3(1,0,0), Vector3.Zero))
+        LocalBuilding(
+          "Building",
+          building_guid = 3,
+          map_id = 3,
+          FoundationBuilder(Building.Structure(StructureType.Building, Vector3(4, 4, 4)))
+        )
+        LocalObject(4, SpawnTube.Constructor(Vector3(1, 0, 0), Vector3.Zero))
         ObjectToBuilding(4, 3)
       }
-      val zone = new Zone("test", map6, 1) { override def SetupNumberPools() = { } }
+      val zone = new Zone("test", map6, 1) { override def SetupNumberPools() = {} }
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-spawn")
       zone.Actor ! Zone.Init()
       expectNoMessage(Duration.create(1, "seconds"))
@@ -233,14 +259,14 @@ class ZoneActorTest extends ActorTest {
 
       val bldg1 = zone.Building(1).get
       val bldg3 = zone.Building(3).get
-      player.Position = Vector3(1,1,1) //closer to bldg1
+      player.Position = Vector3(1, 1, 1) //closer to bldg1
       zone.Actor ! Zone.Lattice.RequestSpawnPoint(1, player, 7)
       val reply1 = receiveOne(Duration.create(200, "ms"))
       assert(reply1.isInstanceOf[Zone.Lattice.SpawnPoint])
       assert(reply1.asInstanceOf[Zone.Lattice.SpawnPoint].zone_id == "test")
       assert(reply1.asInstanceOf[Zone.Lattice.SpawnPoint].spawn_point.Owner == bldg1)
 
-      player.Position = Vector3(3,3,3) //closer to bldg3
+      player.Position = Vector3(3, 3, 3) //closer to bldg3
       zone.Actor ! Zone.Lattice.RequestSpawnPoint(1, player, 7)
       val reply3 = receiveOne(Duration.create(200, "ms"))
       assert(reply3.isInstanceOf[Zone.Lattice.SpawnPoint])
@@ -250,13 +276,23 @@ class ZoneActorTest extends ActorTest {
 
     "will report if no spawn points have been found in a zone" in {
       val map6 = new ZoneMap("map6") {
-        LocalBuilding("Building", building_guid = 1, map_id = 1, FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1,1,1))))
+        LocalBuilding(
+          "Building",
+          building_guid = 1,
+          map_id = 1,
+          FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1, 1, 1)))
+        )
 
-        LocalBuilding("Building", building_guid = 3, map_id = 3, FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4,4,4))))
+        LocalBuilding(
+          "Building",
+          building_guid = 3,
+          map_id = 3,
+          FoundationBuilder(Building.Structure(StructureType.Tower, Vector3(4, 4, 4)))
+        )
         LocalObject(5, SpawnTube.Constructor(Vector3.Zero, Vector3.Zero))
         ObjectToBuilding(5, 3)
       }
-      val zone = new Zone("test", map6, 1) { override def SetupNumberPools() = { } }
+      val zone = new Zone("test", map6, 1) { override def SetupNumberPools() = {} }
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-no-spawn")
       zone.Actor ! Zone.Init()
       expectNoMessage(Duration.create(300, "ms"))
@@ -274,7 +310,7 @@ class ZoneActorTest extends ActorTest {
 class ZonePopulationTest extends ActorTest {
   "ZonePopulationActor" should {
     "add new user to zones" in {
-      val zone = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = { } }
+      val zone   = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = {} }
       val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
       zone.Actor ! Zone.Init()
@@ -290,7 +326,7 @@ class ZonePopulationTest extends ActorTest {
     }
 
     "remove user from zones" in {
-      val zone = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = { } }
+      val zone   = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = {} }
       val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
       zone.Actor ! Zone.Init()
@@ -306,7 +342,7 @@ class ZonePopulationTest extends ActorTest {
     }
 
     "associate user with a character" in {
-      val zone = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = { } }
+      val zone   = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = {} }
       val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val player = Player(avatar)
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
@@ -327,7 +363,7 @@ class ZonePopulationTest extends ActorTest {
     }
 
     "disassociate character from a user" in {
-      val zone = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = { } }
+      val zone   = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = {} }
       val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val player = Player(avatar)
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
@@ -350,7 +386,7 @@ class ZonePopulationTest extends ActorTest {
     }
 
     "user tries to Leave, but still has an associated character" in {
-      val zone = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = { } }
+      val zone   = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = {} }
       val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val player = Player(avatar)
       player.GUID = PlanetSideGUID(1)
@@ -376,8 +412,8 @@ class ZonePopulationTest extends ActorTest {
     }
 
     "user tries to Spawn a character, but an associated character already exists" in {
-      val zone = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = { } }
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+      val zone    = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = {} }
+      val avatar  = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val player1 = Player(avatar)
       val player2 = Player(avatar)
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
@@ -403,7 +439,7 @@ class ZonePopulationTest extends ActorTest {
     }
 
     "user tries to Spawn a character, but did not Join first" in {
-      val zone = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = { } }
+      val zone   = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = {} }
       val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val player = Player(avatar)
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
@@ -422,7 +458,7 @@ class ZonePopulationTest extends ActorTest {
     }
 
     "user tries to Release a character, but did not Spawn a character first" in {
-      val zone = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = { } }
+      val zone   = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = {} }
       val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
       zone.Actor ! Zone.Init()
@@ -444,7 +480,7 @@ class ZonePopulationTest extends ActorTest {
     }
 
     "user adds character to list of retired characters" in {
-      val zone = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = { } }
+      val zone   = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = {} }
       val player = Player(Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5))
       player.Release
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
@@ -459,7 +495,7 @@ class ZonePopulationTest extends ActorTest {
     }
 
     "user removes character from the list of retired characters" in {
-      val zone = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = { } }
+      val zone   = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = {} }
       val player = Player(Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5))
       player.Release
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
@@ -476,7 +512,7 @@ class ZonePopulationTest extends ActorTest {
     }
 
     "user removes THE CORRECT character from the list of retired characters" in {
-      val zone = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = { } }
+      val zone    = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = {} }
       val player1 = Player(Avatar("Chord1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5))
       player1.Release
       val player2 = Player(Avatar("Chord2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5))
@@ -503,7 +539,7 @@ class ZonePopulationTest extends ActorTest {
     }
 
     "user tries to add character to list of retired characters, but is not in correct state" in {
-      val zone = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = { } }
+      val zone   = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = {} }
       val player = Player(Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5))
       //player.Release !!important
       zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
@@ -520,9 +556,9 @@ class ZonePopulationTest extends ActorTest {
 
 class ZoneGroundDropItemTest extends ActorTest {
   val item = AmmoBox(GlobalDefinitions.bullet_9mm)
-  val hub = new NumberPoolHub(new LimitedNumberSource(20))
+  val hub  = new NumberPoolHub(new LimitedNumberSource(20))
   hub.register(item, 10)
-  val zone = new Zone("test", new ZoneMap("test-map"), 0) { override def SetupNumberPools() = { } }
+  val zone = new Zone("test", new ZoneMap("test-map"), 0) { override def SetupNumberPools() = {} }
   zone.GUID(hub)
   zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
   zone.Actor ! Zone.Init()
@@ -546,9 +582,9 @@ class ZoneGroundDropItemTest extends ActorTest {
 
 class ZoneGroundCanNotDropItem1Test extends ActorTest {
   val item = AmmoBox(GlobalDefinitions.bullet_9mm)
-  val hub = new NumberPoolHub(new LimitedNumberSource(20))
+  val hub  = new NumberPoolHub(new LimitedNumberSource(20))
   //hub.register(item, 10) //!important
-  val zone = new Zone("test", new ZoneMap("test-map"), 0) { override def SetupNumberPools() = { } }
+  val zone = new Zone("test", new ZoneMap("test-map"), 0) { override def SetupNumberPools() = {} }
   zone.GUID(hub)
   zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
   zone.Actor ! Zone.Init()
@@ -572,9 +608,9 @@ class ZoneGroundCanNotDropItem1Test extends ActorTest {
 
 class ZoneGroundCanNotDropItem2Test extends ActorTest {
   val item = AmmoBox(GlobalDefinitions.bullet_9mm)
-  val hub = new NumberPoolHub(new LimitedNumberSource(20))
+  val hub  = new NumberPoolHub(new LimitedNumberSource(20))
   hub.register(item, 10) //!important
-  val zone = new Zone("test", new ZoneMap("test-map"), 0) { override def SetupNumberPools() = { } }
+  val zone = new Zone("test", new ZoneMap("test-map"), 0) { override def SetupNumberPools() = {} }
   //zone.GUID(hub) //!important
   zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
   zone.Actor ! Zone.Init()
@@ -598,9 +634,9 @@ class ZoneGroundCanNotDropItem2Test extends ActorTest {
 
 class ZoneGroundCanNotDropItem3Test extends ActorTest {
   val item = AmmoBox(GlobalDefinitions.bullet_9mm)
-  val hub = new NumberPoolHub(new LimitedNumberSource(20))
+  val hub  = new NumberPoolHub(new LimitedNumberSource(20))
   hub.register(item, 10) //!important
-  val zone = new Zone("test", new ZoneMap("test-map"), 0) { override def SetupNumberPools() = { } }
+  val zone = new Zone("test", new ZoneMap("test-map"), 0) { override def SetupNumberPools() = {} }
   zone.GUID(hub) //!important
   zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
   zone.Actor ! Zone.Init()
@@ -632,9 +668,9 @@ class ZoneGroundCanNotDropItem3Test extends ActorTest {
 
 class ZoneGroundPickupItemTest extends ActorTest {
   val item = AmmoBox(GlobalDefinitions.bullet_9mm)
-  val hub = new NumberPoolHub(new LimitedNumberSource(20))
+  val hub  = new NumberPoolHub(new LimitedNumberSource(20))
   hub.register(item, 10)
-  val zone = new Zone("test", new ZoneMap("test-map"), 0) { override def SetupNumberPools() = { } }
+  val zone = new Zone("test", new ZoneMap("test-map"), 0) { override def SetupNumberPools() = {} }
   zone.GUID(hub)
   zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
   zone.Actor ! Zone.Init()
@@ -661,9 +697,9 @@ class ZoneGroundPickupItemTest extends ActorTest {
 
 class ZoneGroundCanNotPickupItemTest extends ActorTest {
   val item = AmmoBox(GlobalDefinitions.bullet_9mm)
-  val hub = new NumberPoolHub(new LimitedNumberSource(20))
+  val hub  = new NumberPoolHub(new LimitedNumberSource(20))
   hub.register(item, 10)
-  val zone = new Zone("test", new ZoneMap("test-map"), 0) { override def SetupNumberPools() = { } }
+  val zone = new Zone("test", new ZoneMap("test-map"), 0) { override def SetupNumberPools() = {} }
   zone.GUID(hub) //still registered to this zone
   zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
   zone.Actor ! Zone.Init()
@@ -686,9 +722,9 @@ class ZoneGroundCanNotPickupItemTest extends ActorTest {
 
 class ZoneGroundRemoveItemTest extends ActorTest {
   val item = AmmoBox(GlobalDefinitions.bullet_9mm)
-  val hub = new NumberPoolHub(new LimitedNumberSource(20))
+  val hub  = new NumberPoolHub(new LimitedNumberSource(20))
   hub.register(item, 10)
-  val zone = new Zone("test", new ZoneMap("test-map"), 0) { override def SetupNumberPools() = { } }
+  val zone = new Zone("test", new ZoneMap("test-map"), 0) { override def SetupNumberPools() = {} }
   zone.GUID(hub) //still registered to this zone
   zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), ZoneTest.TestName)
   zone.Actor ! Zone.Init()
@@ -714,6 +750,6 @@ class ZoneGroundRemoveItemTest extends ActorTest {
 }
 
 object ZoneTest {
-  val testNum = new AtomicInteger(1)
-  def TestName : String = s"test${testNum.getAndIncrement()}"
+  val testNum          = new AtomicInteger(1)
+  def TestName: String = s"test${testNum.getAndIncrement()}"
 }

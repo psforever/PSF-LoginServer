@@ -8,7 +8,8 @@ import net.psforever.types.{PlanetSideGUID, Vector3}
 import scodec.bits._
 
 class SplashHitMessageTest extends Specification {
-  val string = hex"62 7129e72b0c1dd1516ec58000051e01d8371f0100000025803616bb2a9ae50b000008889d00644bdd35454c45c000000400"
+  val string =
+    hex"62 7129e72b0c1dd1516ec58000051e01d8371f0100000025803616bb2a9ae50b000008889d00644bdd35454c45c000000400"
 
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
@@ -46,10 +47,15 @@ class SplashHitMessageTest extends Specification {
   }
 
   "encode" in {
-    val msg = SplashHitMessage(113, PlanetSideGUID(40103),
-      Vector3(3681.3438f, 2728.9062f, 90.921875f), 0, 0,
-      Some(Vector3(2.21875f, 0.90625f, -1.125f)), None,
-        SplashedTarget(PlanetSideGUID(75), Vector3(3674.8438f, 2726.789f, 91.15625f), 286326784L, None) ::
+    val msg = SplashHitMessage(
+      113,
+      PlanetSideGUID(40103),
+      Vector3(3681.3438f, 2728.9062f, 90.921875f),
+      0,
+      0,
+      Some(Vector3(2.21875f, 0.90625f, -1.125f)),
+      None,
+      SplashedTarget(PlanetSideGUID(75), Vector3(3674.8438f, 2726.789f, 91.15625f), 286326784L, None) ::
         SplashedTarget(PlanetSideGUID(372), Vector3(3679.1328f, 2722.6016f, 92.765625f), 268435456L, None) ::
         Nil
     )

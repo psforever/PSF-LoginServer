@@ -9,7 +9,7 @@ import org.specs2.mutable._
 import scodec.bits._
 
 class HandheldDataTest extends Specification {
-  val string_ace_held = hex"17 76000000 0406900650C80480000000"
+  val string_ace_held    = hex"17 76000000 0406900650C80480000000"
   val string_ace_dropped = hex"17 AF000000 90024113B329C5D5A2D1200005B440000000"
 
   "ACE" should {
@@ -50,7 +50,10 @@ class HandheldDataTest extends Specification {
           parent.isDefined mustEqual false
           data.isInstanceOf[DroppedItemData[_]] mustEqual true
           data match {
-            case DroppedItemData(pos, HandheldData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), mode, unk)) =>
+            case DroppedItemData(
+                  pos,
+                  HandheldData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), mode, unk)
+                ) =>
               pos.coord mustEqual Vector3(4708.461f, 5547.539f, 72.703125f)
               pos.orient mustEqual Vector3.z(194.0625f)
 
@@ -72,8 +75,15 @@ class HandheldDataTest extends Specification {
     }
 
     "encode (held)" in {
-      val obj = HandheldData(CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, None, PlanetSideGUID(0)))
-      val msg = ObjectCreateMessage(ObjectClass.ace, PlanetSideGUID(3173), ObjectCreateMessageParent(PlanetSideGUID(3336), 0), obj)
+      val obj = HandheldData(
+        CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, None, PlanetSideGUID(0))
+      )
+      val msg = ObjectCreateMessage(
+        ObjectClass.ace,
+        PlanetSideGUID(3173),
+        ObjectCreateMessageParent(PlanetSideGUID(3336), 0),
+        obj
+      )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
       pkt mustEqual string_ace_held
     }
@@ -81,7 +91,9 @@ class HandheldDataTest extends Specification {
     "encode (dropped)" in {
       val obj = DroppedItemData(
         PlacementData(4708.461f, 5547.539f, 72.703125f, 0f, 0f, 194.0625f),
-        HandheldData(CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, None, PlanetSideGUID(0)))
+        HandheldData(
+          CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, None, PlanetSideGUID(0))
+        )
       )
       val msg = ObjectCreateMessage(ObjectClass.ace, PlanetSideGUID(4388), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
@@ -121,8 +133,15 @@ class HandheldDataTest extends Specification {
     }
 
     "encode" in {
-      val obj = HandheldData(CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, None, Some(385), PlanetSideGUID(0)))
-      val msg = ObjectCreateMessage(ObjectClass.router_telepad, PlanetSideGUID(418), ObjectCreateMessageParent(PlanetSideGUID(430), 0), obj)
+      val obj = HandheldData(
+        CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, None, Some(385), PlanetSideGUID(0))
+      )
+      val msg = ObjectCreateMessage(
+        ObjectClass.router_telepad,
+        PlanetSideGUID(418),
+        ObjectCreateMessageParent(PlanetSideGUID(430), 0),
+        obj
+      )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
       pkt mustEqual string_telepad
@@ -161,14 +180,21 @@ class HandheldDataTest extends Specification {
     }
 
     "encode" in {
-      val obj = HandheldData(CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)))
-      val msg = ObjectCreateMessage(ObjectClass.boomer_trigger, PlanetSideGUID(3600), ObjectCreateMessageParent(PlanetSideGUID(4272), 0), obj)
+      val obj = HandheldData(
+        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0))
+      )
+      val msg = ObjectCreateMessage(
+        ObjectClass.boomer_trigger,
+        PlanetSideGUID(3600),
+        ObjectCreateMessageParent(PlanetSideGUID(4272), 0),
+        obj
+      )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
       pkt mustEqual string_boomertrigger
     }
   }
 
-  val string_detonater_held = hex"17 76000000 1A886A8421080400000000"
+  val string_detonater_held    = hex"17 76000000 1A886A8421080400000000"
   val string_detonater_dropped = hex"17 AF000000 EA8620ED1549B4B6A741500001B000000000"
 
   "Command Detonater" should {
@@ -208,7 +234,10 @@ class HandheldDataTest extends Specification {
           guid mustEqual PlanetSideGUID(3682)
           parent.isDefined mustEqual false
           data match {
-            case DroppedItemData(pos, HandheldData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), mode, unk)) =>
+            case DroppedItemData(
+                  pos,
+                  HandheldData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), mode, unk)
+                ) =>
               pos.coord mustEqual Vector3(4777.633f, 5485.4062f, 85.8125f)
               pos.orient mustEqual Vector3.z(14.0625f)
 
@@ -230,8 +259,15 @@ class HandheldDataTest extends Specification {
     }
 
     "encode (held)" in {
-      val obj = HandheldData(CommonFieldData(PlanetSideEmpire.NC, false, false, false, None, false, None, None, PlanetSideGUID(0)))
-      val msg = ObjectCreateMessage(ObjectClass.command_detonater, PlanetSideGUID(4162), ObjectCreateMessageParent(PlanetSideGUID(4149), 0), obj)
+      val obj = HandheldData(
+        CommonFieldData(PlanetSideEmpire.NC, false, false, false, None, false, None, None, PlanetSideGUID(0))
+      )
+      val msg = ObjectCreateMessage(
+        ObjectClass.command_detonater,
+        PlanetSideGUID(4162),
+        ObjectCreateMessageParent(PlanetSideGUID(4149), 0),
+        obj
+      )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
       pkt mustEqual string_detonater_held
     }
@@ -239,7 +275,9 @@ class HandheldDataTest extends Specification {
     "encode (dropped)" in {
       val obj = DroppedItemData(
         PlacementData(4777.633f, 5485.4062f, 85.8125f, 0f, 0f, 14.0625f),
-        HandheldData(CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, None, None, PlanetSideGUID(0)))
+        HandheldData(
+          CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, None, None, PlanetSideGUID(0))
+        )
       )
       val msg = ObjectCreateMessage(ObjectClass.command_detonater, PlanetSideGUID(3682), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector

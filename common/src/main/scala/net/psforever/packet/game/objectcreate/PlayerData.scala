@@ -35,23 +35,28 @@ import shapeless.{::, HNil}
   * @param drawn_slot the holster that is initially drawn
   * @param position_defined used by the `Codec` to seed the state of the optional `pos` field
   */
-final case class PlayerData(pos : Option[PlacementData],
-                            basic_appearance : CharacterAppearanceData,
-                            character_data : CharacterData,
-                            inventory : Option[InventoryData],
-                            drawn_slot : DrawnSlot.Value)
-                           (position_defined : Boolean) extends ConstructorData {
-  override def bitsize : Long = {
+final case class PlayerData(
+    pos: Option[PlacementData],
+    basic_appearance: CharacterAppearanceData,
+    character_data: CharacterData,
+    inventory: Option[InventoryData],
+    drawn_slot: DrawnSlot.Value
+)(position_defined: Boolean)
+    extends ConstructorData {
+  override def bitsize: Long = {
     //factor guard bool values into the base size, not its corresponding optional field
-    val posSize : Long = if(pos.isDefined) { pos.get.bitsize } else { 0L }
-    val appSize : Long = basic_appearance.bitsize
-    val charSize = character_data.bitsize
-    val inventorySize : Long = if(inventory.isDefined) { inventory.get.bitsize } else { 0L }
+    val posSize: Long = if (pos.isDefined) { pos.get.bitsize }
+    else { 0L }
+    val appSize: Long = basic_appearance.bitsize
+    val charSize      = character_data.bitsize
+    val inventorySize: Long = if (inventory.isDefined) { inventory.get.bitsize }
+    else { 0L }
     5L + posSize + appSize + charSize + inventorySize
   }
 }
 
 object PlayerData extends Marshallable[PlayerData] {
+
   /**
     * Overloaded constructor that ignores the coordinate information but includes the inventory.
     * It passes information between the three major divisions for the purposes of offset calculations.
@@ -63,10 +68,18 @@ object PlayerData extends Marshallable[PlayerData] {
     *                   technically, always `DrawnSlot.None`, but the field is preserved to maintain similarity
     * @return a `PlayerData` object
     */
-  def apply(basic_appearance : Int=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, inventory : InventoryData, drawn_slot : DrawnSlot.Type) : PlayerData = {
+  def apply(
+      basic_appearance: Int => CharacterAppearanceData,
+      character_data: (Boolean, Boolean) => CharacterData,
+      inventory: InventoryData,
+      drawn_slot: DrawnSlot.Type
+  ): PlayerData = {
     val appearance = basic_appearance(5)
-    PlayerData(None, appearance, character_data(appearance.altModelBit.isDefined, true), Some(inventory), drawn_slot)(false)
+    PlayerData(None, appearance, character_data(appearance.altModelBit.isDefined, true), Some(inventory), drawn_slot)(
+      false
+    )
   }
+
   /**
     * Overloaded constructor that ignores the coordinate information and the inventory.
     * It passes information between the three major divisions for the purposes of offset calculations.
@@ -77,7 +90,11 @@ object PlayerData extends Marshallable[PlayerData] {
     *                   technically, always `DrawnSlot.None`, but the field is preserved to maintain similarity
     * @return a `PlayerData` object
     */
-  def apply(basic_appearance : Int=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, drawn_slot : DrawnSlot.Type) : PlayerData = {
+  def apply(
+      basic_appearance: Int => CharacterAppearanceData,
+      character_data: (Boolean, Boolean) => CharacterData,
+      drawn_slot: DrawnSlot.Type
+  ): PlayerData = {
     val appearance = basic_appearance(5)
     PlayerData(None, appearance, character_data(appearance.altModelBit.isDefined, true), None, drawn_slot)(false)
   }
@@ -93,10 +110,23 @@ object PlayerData extends Marshallable[PlayerData] {
     * @param drawn_slot the holster that is initially drawn
     * @return a `PlayerData` object
     */
-  def apply(pos : PlacementData, basic_appearance : Int=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, inventory : InventoryData, drawn_slot : DrawnSlot.Type) : PlayerData = {
-    val appearance = basic_appearance( PaddingOffset(Some(pos)) )
-    PlayerData(Some(pos), appearance, character_data(appearance.altModelBit.isDefined, false), Some(inventory), drawn_slot)(true)
+  def apply(
+      pos: PlacementData,
+      basic_appearance: Int => CharacterAppearanceData,
+      character_data: (Boolean, Boolean) => CharacterData,
+      inventory: InventoryData,
+      drawn_slot: DrawnSlot.Type
+  ): PlayerData = {
+    val appearance = basic_appearance(PaddingOffset(Some(pos)))
+    PlayerData(
+      Some(pos),
+      appearance,
+      character_data(appearance.altModelBit.isDefined, false),
+      Some(inventory),
+      drawn_slot
+    )(true)
   }
+
   /**
     * Overloaded constructor that includes the coordinate information but ignores the inventory.
     * It passes information between the three major divisions for the purposes of offset calculations.
@@ -107,8 +137,13 @@ object PlayerData extends Marshallable[PlayerData] {
     * @param drawn_slot the holster that is initially drawn
     * @return a `PlayerData` object
     */
-  def apply(pos : PlacementData, basic_appearance : Int=>CharacterAppearanceData, character_data : (Boolean,Boolean)=>CharacterData, drawn_slot : DrawnSlot.Type) : PlayerData = {
-    val appearance = basic_appearance( PaddingOffset(Some(pos)) )
+  def apply(
+      pos: PlacementData,
+      basic_appearance: Int => CharacterAppearanceData,
+      character_data: (Boolean, Boolean) => CharacterData,
+      drawn_slot: DrawnSlot.Type
+  ): PlayerData = {
+    val appearance = basic_appearance(PaddingOffset(Some(pos)))
     PlayerData(Some(pos), appearance, character_data(appearance.altModelBit.isDefined, false), None, drawn_slot)(true)
   }
 
@@ -124,7 +159,7 @@ object PlayerData extends Marshallable[PlayerData] {
     * @param pos the optional `PlacementData` object that creates the shift in bits
     * @return the pad length in bits
     */
-  def PaddingOffset(pos : Option[PlacementData]) : Int = {
+  def PaddingOffset(pos: Option[PlacementData]): Int = {
     /*
     The `ObjectCreateMessage` length is either 32 + 12 + 16 + 81 - 141 - with `PlacementData`,
     with an additional +42 - 183 - with the optional velocity field,
@@ -133,7 +168,8 @@ object PlayerData extends Marshallable[PlayerData] {
      */
     pos match {
       case Some(place) =>
-        if(place.vel.isDefined) { 2 } else { 4 }
+        if (place.vel.isDefined) { 2 }
+        else { 4 }
       case None =>
         5 //with ObjectCreateMessageParent data
     }
@@ -144,14 +180,13 @@ object PlayerData extends Marshallable[PlayerData] {
     * @param length the current length of a stream
     * @return the number of bits needed to pad it
     */
-  def ByteAlignmentPadding(length : Long) : Int = {
+  def ByteAlignmentPadding(length: Long): Int = {
     val pad = (length - math.floor(length.toDouble / 8) * 8).toInt
-      if(pad > 0) {
-        8 - pad
-      }
-      else {
-        0
-      }
+    if (pad > 0) {
+      8 - pad
+    } else {
+      0
+    }
   }
 
   /**
@@ -162,26 +197,28 @@ object PlayerData extends Marshallable[PlayerData] {
     * @param position_defined this entry has `PlacementData` that defines position, orientation, and, optionally, motion
     * @return a `Codec` that translates a `PlayerData` object
     */
-  def codec(position_defined : Boolean) : Codec[PlayerData] = (
-    conditional(position_defined, "pos" | PlacementData.codec) >>:~ { pos =>
+  def codec(position_defined: Boolean): Codec[PlayerData] =
+    (conditional(position_defined, "pos" | PlacementData.codec) >>:~ { pos =>
       ("basic_appearance" | CharacterAppearanceData.codec(PaddingOffset(pos))) >>:~ { app =>
-        ("character_data" | newcodecs.binary_choice(position_defined,
+        ("character_data" | newcodecs.binary_choice(
+          position_defined,
           CharacterData.codec(app.b.backpack),
-          CharacterData.codec_seated(app.b.backpack))) ::
+          CharacterData.codec_seated(app.b.backpack)
+        )) ::
           optional(bool, "inventory" | InventoryData.codec) ::
           ("drawn_slot" | DrawnSlot.codec) ::
           bool //usually false
       }
-    }).xmap[PlayerData] (
-    {
-      case pos :: app :: data :: inv :: hand :: _ :: HNil =>
-        PlayerData(pos, app, data, inv, hand)(pos.isDefined)
-    },
-    {
-      case PlayerData(pos, app, data, inv, hand) =>
-        pos :: app :: data :: inv :: hand :: false :: HNil
-    }
-  )
+    }).xmap[PlayerData](
+      {
+        case pos :: app :: data :: inv :: hand :: _ :: HNil =>
+          PlayerData(pos, app, data, inv, hand)(pos.isDefined)
+      },
+      {
+        case PlayerData(pos, app, data, inv, hand) =>
+          pos :: app :: data :: inv :: hand :: false :: HNil
+      }
+    )
 
   /**
     * This `Codec` is exclusively for translating a `Player` object
@@ -191,23 +228,24 @@ object PlayerData extends Marshallable[PlayerData] {
     * @param offset the padding for the player's name field
     * @return a `Codec` that translates a `PlayerData` object
     */
-  def codec(offset : Int) : Codec[PlayerData] = (
-    ("basic_appearance" | CharacterAppearanceData.codec(offset)) >>:~ { app =>
-      ("character_data" | CharacterData.codec_seated(app.b.backpack)) ::
-        optional(bool, "inventory" | InventoryData.codec) ::
-        ("drawn_slot" | DrawnSlot.codec) ::
-        bool //usually false
+  def codec(offset: Int): Codec[PlayerData] =
+    (
+      ("basic_appearance" | CharacterAppearanceData.codec(offset)) >>:~ { app =>
+        ("character_data" | CharacterData.codec_seated(app.b.backpack)) ::
+          optional(bool, "inventory" | InventoryData.codec) ::
+          ("drawn_slot" | DrawnSlot.codec) ::
+          bool //usually false
       }
-    ).xmap[PlayerData] (
-    {
-      case app :: data :: inv :: hand :: _ :: HNil =>
-        PlayerData(None, app, data, inv, hand)(false)
-    },
-    {
-      case PlayerData(_, app, data, inv, hand) =>
-        app :: data :: inv :: hand :: false :: HNil
-    }
-  )
+    ).xmap[PlayerData](
+      {
+        case app :: data :: inv :: hand :: _ :: HNil =>
+          PlayerData(None, app, data, inv, hand)(false)
+      },
+      {
+        case PlayerData(_, app, data, inv, hand) =>
+          app :: data :: inv :: hand :: false :: HNil
+      }
+    )
 
-  implicit val codec : Codec[PlayerData] = codec(false)
+  implicit val codec: Codec[PlayerData] = codec(false)
 }

@@ -20,9 +20,7 @@ import shapeless.{::, HNil}
   * @param unk2 na;
   *            the z-component is always `0.0f`
   */
-final case class CloudInfo(id : Int,
-                           unk1 : Vector3,
-                           unk2 : Vector3)
+final case class CloudInfo(id: Int, unk1: Vector3, unk2: Vector3)
 
 /**
   * Storm data.
@@ -32,9 +30,7 @@ final case class CloudInfo(id : Int,
   * @param radius na;
   *               100 is about 819.2
   */
-final case class StormInfo(loc : Vector3,
-                           intensity : Int,
-                           radius : Int)
+final case class StormInfo(loc: Vector3, intensity: Int, radius: Int)
 
 /**
   * Dispatched by the server to update weather conditions.
@@ -60,25 +56,24 @@ final case class StormInfo(loc : Vector3,
   * @param storms a list of storm data;
   *               typically, fluctuates between nine and eleven entries
   */
-final case class WeatherMessage(clouds : List[CloudInfo],
-                                storms : List[StormInfo])
-  extends PlanetSideGamePacket {
+final case class WeatherMessage(clouds: List[CloudInfo], storms: List[StormInfo]) extends PlanetSideGamePacket {
   type Packet = WeatherMessage
   def opcode = GamePacketOpcode.WeatherMessage
   def encode = WeatherMessage.encode(this)
 }
 
 object WeatherMessage extends Marshallable[WeatherMessage] {
+
   /**
     * `Codec` for `CloudInfo` data.
     */
-  private val cloudCodec : Codec[CloudInfo] = (
+  private val cloudCodec: Codec[CloudInfo] = (
     ("id" | uint8L) ::
       ("unk1x" | floatL) ::
       ("unk1y" | floatL) ::
       ("unk2x" | floatL) ::
       ("unk2y" | floatL)
-    ).xmap[CloudInfo] (
+  ).xmap[CloudInfo](
     {
       case id :: x1 :: y1 :: x2 :: y2 :: HNil =>
         CloudInfo(id, Vector3(x1, y1, 0.0f), Vector3(x2, y2, 0.0f))
@@ -92,12 +87,12 @@ object WeatherMessage extends Marshallable[WeatherMessage] {
   /**
     * `Codec` for `StormInfo` data.
     */
-  private val stormCodec : Codec[StormInfo] = (
+  private val stormCodec: Codec[StormInfo] = (
     ("unkx" | floatL) ::
       ("unky" | floatL) ::
       ("i" | uint8L) ::
       ("r" | uint8L)
-    ).xmap[StormInfo] (
+  ).xmap[StormInfo](
     {
       case x :: y :: i :: r :: HNil =>
         StormInfo(Vector3(x, y, 0.0f), i, r)
@@ -108,8 +103,8 @@ object WeatherMessage extends Marshallable[WeatherMessage] {
     }
   )
 
-  implicit val codec : Codec[WeatherMessage] = (
+  implicit val codec: Codec[WeatherMessage] = (
     ("clouds" | PacketHelpers.listOfNAligned(uint32L, 0, cloudCodec)) ::
       ("storms" | PacketHelpers.listOfNAligned(uint32L, 0, stormCodec))
-    ).as[WeatherMessage]
+  ).as[WeatherMessage]
 }

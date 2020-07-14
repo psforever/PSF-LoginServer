@@ -5,6 +5,7 @@ package net.psforever.packet.game.objectcreate
   * Apply this `trait` to a class that needs to have its size in bits calculated.
   */
 trait StreamBitSize {
+
   /**
     * Performs a "sizeof()" analysis of the given object.<br>
     * <br>
@@ -15,10 +16,11 @@ trait StreamBitSize {
     * @return the number of bits necessary to measure an object of this class;
     *         defaults to `0L`
     */
-  def bitsize : Long = 0L
+  def bitsize: Long = 0L
 }
 
 object StreamBitSize {
+
   /**
     * Calculate the bit size of a Pascal string.
     * @param str a length-prefixed string
@@ -26,9 +28,9 @@ object StreamBitSize {
     *              defaults to 8 bits
     * @return the size in bits
     */
-  def stringBitSize(str : String, width : Int = 8) : Long = {
-    val strlen = str.length
-    val lenSize = if(strlen > 127) 16L else 8L
-    lenSize  + (strlen * width)
+  def stringBitSize(str: String, width: Int = 8): Long = {
+    val strlen  = str.length
+    val lenSize = if (strlen > 127) 16L else 8L
+    lenSize + (strlen * width)
   }
 }

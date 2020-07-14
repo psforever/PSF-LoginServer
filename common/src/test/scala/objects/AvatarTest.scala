@@ -9,10 +9,9 @@ import net.psforever.types.{CharacterGender, CharacterVoice, ImplantType, Planet
 import org.specs2.mutable._
 
 class AvatarTest extends Specification {
-  def CreatePlayer() : (Player, Avatar) = {
+  def CreatePlayer(): (Player, Avatar) = {
     val avatar = Avatar("TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 41, CharacterVoice.Voice1)
-    val
-    player = Player(avatar)
+    val player = Player(avatar)
     player.Slot(0).Equipment = Tool(beamer)
     player.Slot(2).Equipment = Tool(suppressor)
     player.Slot(4).Equipment = Tool(forceblade)
@@ -139,11 +138,11 @@ class AvatarTest extends Specification {
   }
 
   "can install an implant" in {
-    val testplant : ImplantDefinition = ImplantDefinition(1)
-    val obj = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+    val testplant: ImplantDefinition = ImplantDefinition(1)
+    val obj                          = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
     obj.Implants(0).Unlocked = true
     obj.InstallImplant(testplant).contains(0) mustEqual true
-    obj.Implants.find({p => p.Implant == ImplantType(1)}) match { //find the installed implant
+    obj.Implants.find({ p => p.Implant == ImplantType(1) }) match { //find the installed implant
       case Some(slot) =>
         slot.Installed.contains(testplant) mustEqual true
       case _ =>
@@ -153,9 +152,9 @@ class AvatarTest extends Specification {
   }
 
   "can install implants in sequential slots" in {
-    val testplant1 : ImplantDefinition = ImplantDefinition(1)
-    val testplant2 : ImplantDefinition = ImplantDefinition(2)
-    val obj = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+    val testplant1: ImplantDefinition = ImplantDefinition(1)
+    val testplant2: ImplantDefinition = ImplantDefinition(2)
+    val obj                           = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
     obj.Implants(0).Unlocked = true
     obj.Implants(1).Unlocked = true
 
@@ -164,9 +163,9 @@ class AvatarTest extends Specification {
   }
 
   "can not install the same type of implant twice" in {
-    val testplant1 : ImplantDefinition = ImplantDefinition(1)
-    val testplant2 : ImplantDefinition = ImplantDefinition(1)
-    val obj = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+    val testplant1: ImplantDefinition = ImplantDefinition(1)
+    val testplant2: ImplantDefinition = ImplantDefinition(1)
+    val obj                           = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
     obj.Implants(0).Unlocked = true
     obj.Implants(1).Unlocked = true
 
@@ -175,10 +174,10 @@ class AvatarTest extends Specification {
   }
 
   "can not install more implants than slots available (two unlocked)" in {
-    val testplant1 : ImplantDefinition = ImplantDefinition(1)
-    val testplant2 : ImplantDefinition = ImplantDefinition(2)
-    val testplant3 : ImplantDefinition = ImplantDefinition(3)
-    val obj = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+    val testplant1: ImplantDefinition = ImplantDefinition(1)
+    val testplant2: ImplantDefinition = ImplantDefinition(2)
+    val testplant3: ImplantDefinition = ImplantDefinition(3)
+    val obj                           = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
     obj.Implants(0).Unlocked = true
     obj.Implants(1).Unlocked = true
 
@@ -188,11 +187,11 @@ class AvatarTest extends Specification {
   }
 
   "can not install more implants than slots available (four implants)" in {
-    val testplant1 : ImplantDefinition = ImplantDefinition(1)
-    val testplant2 : ImplantDefinition = ImplantDefinition(2)
-    val testplant3 : ImplantDefinition = ImplantDefinition(3)
-    val testplant4 : ImplantDefinition = ImplantDefinition(4)
-    val obj = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+    val testplant1: ImplantDefinition = ImplantDefinition(1)
+    val testplant2: ImplantDefinition = ImplantDefinition(2)
+    val testplant3: ImplantDefinition = ImplantDefinition(3)
+    val testplant4: ImplantDefinition = ImplantDefinition(4)
+    val obj                           = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
     obj.Implants(0).Unlocked = true
     obj.Implants(1).Unlocked = true
     obj.Implants(2).Unlocked = true
@@ -204,8 +203,8 @@ class AvatarTest extends Specification {
   }
 
   "can uninstall an implant" in {
-    val testplant : ImplantDefinition = ImplantDefinition(1)
-    val obj = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+    val testplant: ImplantDefinition = ImplantDefinition(1)
+    val obj                          = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
     obj.Implants(0).Unlocked = true
     obj.InstallImplant(testplant).contains(0) mustEqual true
     obj.Implants(0).Installed.contains(testplant) mustEqual true
@@ -215,10 +214,10 @@ class AvatarTest extends Specification {
   }
 
   "can uninstall just a specific implant" in {
-    val testplant1 : ImplantDefinition = ImplantDefinition(1)
-    val testplant2 : ImplantDefinition = ImplantDefinition(2)
-    val testplant3 : ImplantDefinition = ImplantDefinition(3)
-    val obj = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+    val testplant1: ImplantDefinition = ImplantDefinition(1)
+    val testplant2: ImplantDefinition = ImplantDefinition(2)
+    val testplant3: ImplantDefinition = ImplantDefinition(3)
+    val obj                           = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
     obj.Implants(0).Unlocked = true
     obj.Implants(1).Unlocked = true
     obj.Implants(2).Unlocked = true
@@ -236,10 +235,10 @@ class AvatarTest extends Specification {
   }
 
   "can install implants to any available slot" in {
-    val testplant1 : ImplantDefinition = ImplantDefinition(1)
-    val testplant2 : ImplantDefinition = ImplantDefinition(2)
-    val testplant3 : ImplantDefinition = ImplantDefinition(3)
-    val obj = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+    val testplant1: ImplantDefinition = ImplantDefinition(1)
+    val testplant2: ImplantDefinition = ImplantDefinition(2)
+    val testplant3: ImplantDefinition = ImplantDefinition(3)
+    val obj                           = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
     obj.Implants(0).Unlocked = true
     obj.Implants(1).Unlocked = true
     obj.Implants(2).Unlocked = true
@@ -251,7 +250,7 @@ class AvatarTest extends Specification {
     obj.Implant(1) mustEqual ImplantType.None
     obj.Implant(2) mustEqual testplant3.Type
 
-    val testplant4 : ImplantDefinition = ImplantDefinition(4)
+    val testplant4: ImplantDefinition = ImplantDefinition(4)
     obj.InstallImplant(testplant4).contains(1) mustEqual true
     obj.Implant(0) mustEqual testplant1.Type
     obj.Implant(1) mustEqual testplant4.Type
@@ -259,9 +258,9 @@ class AvatarTest extends Specification {
   }
 
   "can reset implants to uninitialized state" in {
-    val testplant1 : ImplantDefinition = ImplantDefinition(1)
-    val testplant2 : ImplantDefinition = ImplantDefinition(2)
-    val obj = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+    val testplant1: ImplantDefinition = ImplantDefinition(1)
+    val testplant2: ImplantDefinition = ImplantDefinition(2)
+    val obj                           = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
     obj.Implants(0).Unlocked = true
     obj.Implants(1).Unlocked = true
     obj.InstallImplant(testplant1).contains(0) mustEqual true
@@ -287,12 +286,12 @@ class AvatarTest extends Specification {
 
   "save player's current inventory as a loadout" in {
     val (obj, avatar) = CreatePlayer()
-    obj.Slot(0).Equipment.get.asInstanceOf[Tool].Magazine = 1 //non-standard but legal
+    obj.Slot(0).Equipment.get.asInstanceOf[Tool].Magazine = 1            //non-standard but legal
     obj.Slot(2).Equipment.get.asInstanceOf[Tool].AmmoSlot.Magazine = 100 //non-standard (and out of range, real=25)
     avatar.EquipmentLoadouts.SaveLoadout(obj, "test", 0)
 
     avatar.EquipmentLoadouts.LoadLoadout(0) match {
-      case Some(items : InfantryLoadout) =>
+      case Some(items: InfantryLoadout) =>
         items.label mustEqual "test"
         items.exosuit mustEqual obj.ExoSuit
         items.subtype mustEqual 0
@@ -348,7 +347,7 @@ class AvatarTest extends Specification {
     avatar.EquipmentLoadouts.SaveLoadout(obj, "test", 0)
 
     avatar.EquipmentLoadouts.LoadLoadout(0) match {
-      case Some(items : InfantryLoadout) =>
+      case Some(items: InfantryLoadout) =>
         items.label mustEqual "test"
         items.exosuit mustEqual obj.ExoSuit
         items.subtype mustEqual 0
@@ -367,7 +366,7 @@ class AvatarTest extends Specification {
     avatar.EquipmentLoadouts.SaveLoadout(obj, "test", 0)
 
     avatar.EquipmentLoadouts.LoadLoadout(0) match {
-      case Some(items : InfantryLoadout) =>
+      case Some(items: InfantryLoadout) =>
         items.label mustEqual "test"
         items.exosuit mustEqual obj.ExoSuit
         items.subtype mustEqual 0
@@ -390,8 +389,8 @@ class AvatarTest extends Specification {
   "the fifth slot is the locker wrapped in an EquipmentSlot" in {
     val (_, avatar) = CreatePlayer()
     avatar.FifthSlot.Equipment match {
-      case Some(slot : LockerEquipment) => slot.Inventory mustEqual avatar.Locker.Inventory
-      case _ => ko
+      case Some(slot: LockerEquipment) => slot.Inventory mustEqual avatar.Locker.Inventory
+      case _                           => ko
     }
   }
 

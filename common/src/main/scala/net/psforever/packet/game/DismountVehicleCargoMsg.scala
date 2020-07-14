@@ -14,8 +14,13 @@ import scodec.codecs._
   * @param requestedByPassenger If a passenger of the vehicle in the cargo bay requests dismount this bit will be set
   * @param kicked If the vehicle was kicked by the cargo vehicle pilot
   */
-final case class DismountVehicleCargoMsg(player_guid : PlanetSideGUID, vehicle_guid: PlanetSideGUID, bailed: Boolean, requestedByPassenger: Boolean, kicked: Boolean)
-  extends PlanetSideGamePacket {
+final case class DismountVehicleCargoMsg(
+    player_guid: PlanetSideGUID,
+    vehicle_guid: PlanetSideGUID,
+    bailed: Boolean,
+    requestedByPassenger: Boolean,
+    kicked: Boolean
+) extends PlanetSideGamePacket {
   type Packet = DismountVehicleCargoMsg
 
   def opcode = GamePacketOpcode.DismountVehicleCargoMsg
@@ -24,11 +29,11 @@ final case class DismountVehicleCargoMsg(player_guid : PlanetSideGUID, vehicle_g
 }
 
 object DismountVehicleCargoMsg extends Marshallable[DismountVehicleCargoMsg] {
-  implicit val codec : Codec[DismountVehicleCargoMsg] = (
+  implicit val codec: Codec[DismountVehicleCargoMsg] = (
     ("player_guid" | PlanetSideGUID.codec) ::
       ("vehicle_guid" | PlanetSideGUID.codec) ::
       ("unk3" | bool) :: // bailed?
       ("unk4" | bool) ::
       ("unk5" | bool)
-    ).as[DismountVehicleCargoMsg]
+  ).as[DismountVehicleCargoMsg]
 }

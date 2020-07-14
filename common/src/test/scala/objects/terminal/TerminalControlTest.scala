@@ -25,7 +25,7 @@ class TerminalControl2Test extends ActorTest {
   "TerminalControl can not process wrong messages" in {
     val (_, terminal) = TerminalControlTest.SetUpAgents(GlobalDefinitions.cert_terminal, PlanetSideEmpire.TR)
 
-    terminal.Actor !"hello"
+    terminal.Actor ! "hello"
     expectNoMessage(Duration.create(500, "ms"))
   }
 }
@@ -35,7 +35,8 @@ class TerminalControl2Test extends ActorTest {
 class CertTerminalControl1Test extends ActorTest {
   "TerminalControl can be used to learn a certification ('medium_assault')" in {
     val (player, terminal) = TerminalControlTest.SetUpAgents(GlobalDefinitions.cert_terminal, PlanetSideEmpire.TR)
-    val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Learn, 0, "medium_assault", 0, PlanetSideGUID(0))
+    val msg =
+      ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Learn, 0, "medium_assault", 0, PlanetSideGUID(0))
 
     terminal.Actor ! Terminal.Request(player, msg)
     val reply = receiveOne(Duration.create(500, "ms"))
@@ -50,7 +51,7 @@ class CertTerminalControl1Test extends ActorTest {
 class CertTerminalControl2Test extends ActorTest {
   "TerminalControl can be used to warn about not learning a fake certification ('juggling')" in {
     val (player, terminal) = TerminalControlTest.SetUpAgents(GlobalDefinitions.cert_terminal, PlanetSideEmpire.TR)
-    val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Learn, 0, "juggling", 0, PlanetSideGUID(0))
+    val msg                = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Learn, 0, "juggling", 0, PlanetSideGUID(0))
 
     terminal.Actor ! Terminal.Request(player, msg)
     val reply = receiveOne(Duration.create(500, "ms"))
@@ -65,7 +66,7 @@ class CertTerminalControl2Test extends ActorTest {
 class CertTerminalControl3Test extends ActorTest {
   "TerminalControl can be used to forget a certification ('medium_assault')" in {
     val (player, terminal) = TerminalControlTest.SetUpAgents(GlobalDefinitions.cert_terminal, PlanetSideEmpire.TR)
-    val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Sell, 0, "medium_assault", 0, PlanetSideGUID(0))
+    val msg                = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Sell, 0, "medium_assault", 0, PlanetSideGUID(0))
 
     terminal.Actor ! Terminal.Request(player, msg)
     val reply = receiveOne(Duration.create(500, "ms"))
@@ -79,8 +80,16 @@ class CertTerminalControl3Test extends ActorTest {
 
 class VehicleTerminalControl1Test extends ActorTest {
   "TerminalControl can be used to buy a vehicle ('two_man_assault_buggy')" in {
-    val (player, terminal) = TerminalControlTest.SetUpAgents(GlobalDefinitions.ground_vehicle_terminal, PlanetSideEmpire.TR)
-    val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 46769, "two_man_assault_buggy", 0, PlanetSideGUID(0))
+    val (player, terminal) =
+      TerminalControlTest.SetUpAgents(GlobalDefinitions.ground_vehicle_terminal, PlanetSideEmpire.TR)
+    val msg = ItemTransactionMessage(
+      PlanetSideGUID(1),
+      TransactionType.Buy,
+      46769,
+      "two_man_assault_buggy",
+      0,
+      PlanetSideGUID(0)
+    )
 
     terminal.Actor ! Terminal.Request(player, msg)
     val reply = receiveOne(Duration.create(500, "ms"))
@@ -104,7 +113,8 @@ class VehicleTerminalControl1Test extends ActorTest {
 
 class VehicleTerminalControl2Test extends ActorTest {
   "TerminalControl can be used to warn about not buy a vehicle ('harasser')" in {
-    val (player, terminal) = TerminalControlTest.SetUpAgents(GlobalDefinitions.ground_vehicle_terminal, PlanetSideEmpire.TR)
+    val (player, terminal) =
+      TerminalControlTest.SetUpAgents(GlobalDefinitions.ground_vehicle_terminal, PlanetSideEmpire.TR)
     val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 0, "harasser", 0, PlanetSideGUID(0))
 
     terminal.Actor ! Terminal.Request(player, msg)
@@ -118,10 +128,19 @@ class VehicleTerminalControl2Test extends ActorTest {
 }
 
 object TerminalControlTest {
-  def SetUpAgents(tdef : TerminalDefinition, faction : PlanetSideEmpire.Value)(implicit system : ActorSystem) : (Player, Terminal) = {
+  def SetUpAgents(tdef: TerminalDefinition, faction: PlanetSideEmpire.Value)(implicit
+      system: ActorSystem
+  ): (Player, Terminal) = {
     val terminal = Terminal(tdef)
     terminal.Actor = system.actorOf(Props(classOf[TerminalControl], terminal), "test-term")
-    terminal.Owner = new Building("Building", building_guid = 0, map_id = 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
+    terminal.Owner = new Building(
+      "Building",
+      building_guid = 0,
+      map_id = 0,
+      Zone.Nowhere,
+      StructureType.Building,
+      GlobalDefinitions.building
+    )
     terminal.Owner.Faction = faction
     (Player(Avatar("test", faction, CharacterGender.Male, 0, CharacterVoice.Mute)), terminal)
   }

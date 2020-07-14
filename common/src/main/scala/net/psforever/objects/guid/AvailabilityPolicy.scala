@@ -12,10 +12,5 @@ object AvailabilityPolicy extends Enumeration {
     * A `LEASED` GUID has been issued and is currently being used.
     * A `RESTRICTED` GUID can never be freed.  It is allowed, however, to be assigned once as if it were `LEASED`.
     */
-  val
-  Available,
-  Leased,
-  Restricted
-  = Value
+  val Available, Leased, Restricted = Value
 }
-

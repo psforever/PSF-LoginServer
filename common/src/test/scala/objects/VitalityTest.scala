@@ -9,17 +9,23 @@ import org.specs2.mutable.Specification
 
 class VitalityTest extends Specification {
   "Vitality" should {
-    val wep = GlobalDefinitions.galaxy_gunship_cannon
+    val wep       = GlobalDefinitions.galaxy_gunship_cannon
     val wep_fmode = Tool(wep).FireMode
-    val proj = wep.ProjectileTypes.head
-    val vehicle = Vehicle(GlobalDefinitions.fury)
-    val vSource = VehicleSource(vehicle)
+    val proj      = wep.ProjectileTypes.head
+    val vehicle   = Vehicle(GlobalDefinitions.fury)
+    val vSource   = VehicleSource(vehicle)
 
     "accept a variety of events" in {
-      val player = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
-      val pSource = PlayerSource(player)
+      val player     = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+      val pSource    = PlayerSource(player)
       val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
-      val resprojectile = ResolvedProjectile(ProjectileResolution.Splash, projectile, SourceEntry(player), player.DamageModel, Vector3(50, 50, 0))
+      val resprojectile = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        projectile,
+        SourceEntry(player),
+        player.DamageModel,
+        Vector3(50, 50, 0)
+      )
 
       player.History(resprojectile) //ResolvedProjectile, straight-up
       player.History(DamageFromProjectile(resprojectile))
@@ -34,7 +40,7 @@ class VitalityTest extends Specification {
     }
 
     "return and clear the former list of vital activities" in {
-      val player = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+      val player  = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       val pSource = PlayerSource(player)
 
       player.History(HealFromKit(pSource, 10, GlobalDefinitions.medkit))
@@ -58,10 +64,16 @@ class VitalityTest extends Specification {
     }
 
     "get exactly one entry that was caused by projectile damage" in {
-      val player = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
-      val pSource = PlayerSource(player)
+      val player     = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+      val pSource    = PlayerSource(player)
       val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
-      val resprojectile = ResolvedProjectile(ProjectileResolution.Splash, projectile, SourceEntry(player), player.DamageModel, Vector3(50, 50, 0))
+      val resprojectile = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        projectile,
+        SourceEntry(player),
+        player.DamageModel,
+        Vector3(50, 50, 0)
+      )
 
       player.History(DamageFromProjectile(resprojectile))
       player.History(HealFromKit(pSource, 10, GlobalDefinitions.medkit))

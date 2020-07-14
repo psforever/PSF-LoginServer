@@ -13,20 +13,15 @@ import shapeless.{::, HNil}
   * All behaviors have a "code" that indicates how the rest of the data is parsed.
   * @param code the action behavior code
   */
-abstract class SquadAction(val code : Int)
+abstract class SquadAction(val code: Int)
 
-object SquadAction{
+object SquadAction {
   object SearchMode extends Enumeration {
     type Type = Value
 
-    val
-    AnyPositions,
-    AvailablePositions,
-    SomeCertifications,
-    AllCertifications
-    = Value
+    val AnyPositions, AvailablePositions, SomeCertifications, AllCertifications = Value
 
-    implicit val codec : Codec[SearchMode.Value] = PacketHelpers.createEnumerationCodec(enum = this, uint(bits = 3))
+    implicit val codec: Codec[SearchMode.Value] = PacketHelpers.createEnumerationCodec(enum = this, uint(bits = 3))
   }
 
   final case class DisplaySquad() extends SquadAction(0)
@@ -43,13 +38,13 @@ object SquadAction{
 
   final case class DeleteSquadFavorite() extends SquadAction(5)
 
-  final case class ListSquadFavorite(name : String) extends SquadAction(7)
+  final case class ListSquadFavorite(name: String) extends SquadAction(7)
 
   final case class RequestListSquad() extends SquadAction(8)
 
   final case class StopListSquad() extends SquadAction(9)
 
-  final case class SelectRoleForYourself(state : Int) extends SquadAction(10)
+  final case class SelectRoleForYourself(state: Int) extends SquadAction(10)
 
   final case class CancelSelectRoleForYourself(value: Long = 0) extends SquadAction(15)
 
@@ -57,45 +52,51 @@ object SquadAction{
 
   final case class SetListSquad() extends SquadAction(17)
 
-  final case class ChangeSquadPurpose(purpose : String) extends SquadAction(19)
+  final case class ChangeSquadPurpose(purpose: String) extends SquadAction(19)
 
-  final case class ChangeSquadZone(zone : PlanetSideZoneID) extends SquadAction(20)
+  final case class ChangeSquadZone(zone: PlanetSideZoneID) extends SquadAction(20)
 
-  final case class CloseSquadMemberPosition(position : Int) extends SquadAction(21)
+  final case class CloseSquadMemberPosition(position: Int) extends SquadAction(21)
 
-  final case class AddSquadMemberPosition(position : Int) extends SquadAction(22)
+  final case class AddSquadMemberPosition(position: Int) extends SquadAction(22)
 
-  final case class ChangeSquadMemberRequirementsRole(u1 : Int, role : String) extends SquadAction(23)
+  final case class ChangeSquadMemberRequirementsRole(u1: Int, role: String) extends SquadAction(23)
 
-  final case class ChangeSquadMemberRequirementsDetailedOrders(u1 : Int, orders : String) extends SquadAction(24)
+  final case class ChangeSquadMemberRequirementsDetailedOrders(u1: Int, orders: String) extends SquadAction(24)
 
-  final case class ChangeSquadMemberRequirementsCertifications(u1 : Int, certs : Set[CertificationType.Value]) extends SquadAction(25)
+  final case class ChangeSquadMemberRequirementsCertifications(u1: Int, certs: Set[CertificationType.Value])
+      extends SquadAction(25)
 
   final case class ResetAll() extends SquadAction(26)
 
-  final case class AutoApproveInvitationRequests(state : Boolean) extends SquadAction(28)
+  final case class AutoApproveInvitationRequests(state: Boolean) extends SquadAction(28)
 
-  final case class LocationFollowsSquadLead(state : Boolean) extends SquadAction(31)
+  final case class LocationFollowsSquadLead(state: Boolean) extends SquadAction(31)
 
-  final case class SearchForSquadsWithParticularRole(role: String, requirements : Set[CertificationType.Value], zone_id: Int, mode : SearchMode.Value) extends SquadAction(34)
+  final case class SearchForSquadsWithParticularRole(
+      role: String,
+      requirements: Set[CertificationType.Value],
+      zone_id: Int,
+      mode: SearchMode.Value
+  ) extends SquadAction(34)
 
   final case class CancelSquadSearch() extends SquadAction(35)
 
-  final case class AssignSquadMemberToRole(position : Int, char_id : Long) extends SquadAction(38)
+  final case class AssignSquadMemberToRole(position: Int, char_id: Long) extends SquadAction(38)
 
   final case class NoSquadSearchResults() extends SquadAction(39)
 
-  final case class FindLfsSoldiersForRole(state : Int) extends SquadAction(40)
+  final case class FindLfsSoldiersForRole(state: Int) extends SquadAction(40)
 
   final case class CancelFind() extends SquadAction(41)
 
-  final case class Unknown(badCode : Int, data : BitVector) extends SquadAction(badCode)
+  final case class Unknown(badCode: Int, data: BitVector) extends SquadAction(badCode)
 
   object Unknown {
     import scodec.bits._
-    val StandardBits : BitVector = hex"00".toBitVector.take(6)
+    val StandardBits: BitVector = hex"00".toBitVector.take(6)
 
-    def apply(badCode : Int) : Unknown = Unknown(badCode, StandardBits)
+    def apply(badCode: Int): Unknown = Unknown(badCode, StandardBits)
   }
 
   /**
@@ -105,189 +106,197 @@ object SquadAction{
   object Codecs {
     private val everFailCondition = conditional(included = false, bool)
 
-    val displaySquadCodec = everFailCondition.xmap[DisplaySquad] (
+    val displaySquadCodec = everFailCondition.xmap[DisplaySquad](
       _ => DisplaySquad(),
       {
         case DisplaySquad() => None
       }
     )
 
-    val squadMemberInitializationIssueCodec = everFailCondition.xmap[SquadMemberInitializationIssue] (
+    val squadMemberInitializationIssueCodec = everFailCondition.xmap[SquadMemberInitializationIssue](
       _ => SquadMemberInitializationIssue(),
       {
         case SquadMemberInitializationIssue() => None
       }
     )
 
-    val saveSquadFavoriteCodec = everFailCondition.xmap[SaveSquadFavorite] (
+    val saveSquadFavoriteCodec = everFailCondition.xmap[SaveSquadFavorite](
       _ => SaveSquadFavorite(),
       {
         case SaveSquadFavorite() => None
       }
     )
 
-    val loadSquadFavoriteCodec = everFailCondition.xmap[LoadSquadFavorite] (
+    val loadSquadFavoriteCodec = everFailCondition.xmap[LoadSquadFavorite](
       _ => LoadSquadFavorite(),
       {
         case LoadSquadFavorite() => None
       }
     )
 
-    val deleteSquadFavoriteCodec = everFailCondition.xmap[DeleteSquadFavorite] (
+    val deleteSquadFavoriteCodec = everFailCondition.xmap[DeleteSquadFavorite](
       _ => DeleteSquadFavorite(),
       {
         case DeleteSquadFavorite() => None
       }
     )
 
-    val listSquadFavoriteCodec = PacketHelpers.encodedWideStringAligned(6).xmap[ListSquadFavorite] (
-      text => ListSquadFavorite(text),
-      {
-        case ListSquadFavorite(text) => text
-      }
-    )
+    val listSquadFavoriteCodec = PacketHelpers
+      .encodedWideStringAligned(6)
+      .xmap[ListSquadFavorite](
+        text => ListSquadFavorite(text),
+        {
+          case ListSquadFavorite(text) => text
+        }
+      )
 
-    val requestListSquadCodec = everFailCondition.xmap[RequestListSquad] (
+    val requestListSquadCodec = everFailCondition.xmap[RequestListSquad](
       _ => RequestListSquad(),
       {
         case RequestListSquad() => None
       }
     )
 
-    val stopListSquadCodec = everFailCondition.xmap[StopListSquad] (
+    val stopListSquadCodec = everFailCondition.xmap[StopListSquad](
       _ => StopListSquad(),
       {
         case StopListSquad() => None
       }
     )
 
-    val selectRoleForYourselfCodec = uint4.xmap[SelectRoleForYourself] (
+    val selectRoleForYourselfCodec = uint4.xmap[SelectRoleForYourself](
       value => SelectRoleForYourself(value),
       {
         case SelectRoleForYourself(value) => value
       }
     )
 
-    val cancelSelectRoleForYourselfCodec = uint32.xmap[CancelSelectRoleForYourself] (
+    val cancelSelectRoleForYourselfCodec = uint32.xmap[CancelSelectRoleForYourself](
       value => CancelSelectRoleForYourself(value),
       {
         case CancelSelectRoleForYourself(value) => value
       }
     )
 
-    val associateWithSquadCodec = everFailCondition.xmap[AssociateWithSquad] (
+    val associateWithSquadCodec = everFailCondition.xmap[AssociateWithSquad](
       _ => AssociateWithSquad(),
       {
         case AssociateWithSquad() => None
       }
     )
 
-    val setListSquadCodec = everFailCondition.xmap[SetListSquad] (
+    val setListSquadCodec = everFailCondition.xmap[SetListSquad](
       _ => SetListSquad(),
       {
         case SetListSquad() => None
       }
     )
 
-    val changeSquadPurposeCodec = PacketHelpers.encodedWideStringAligned(6).xmap[ChangeSquadPurpose] (
-      purpose => ChangeSquadPurpose(purpose),
-      {
-        case ChangeSquadPurpose(purpose) => purpose
-      }
-    )
+    val changeSquadPurposeCodec = PacketHelpers
+      .encodedWideStringAligned(6)
+      .xmap[ChangeSquadPurpose](
+        purpose => ChangeSquadPurpose(purpose),
+        {
+          case ChangeSquadPurpose(purpose) => purpose
+        }
+      )
 
-    val changeSquadZoneCodec = uint16L.xmap[ChangeSquadZone] (
+    val changeSquadZoneCodec = uint16L.xmap[ChangeSquadZone](
       value => ChangeSquadZone(PlanetSideZoneID(value)),
       {
         case ChangeSquadZone(value) => value.zoneId.toInt
       }
     )
 
-    val closeSquadMemberPositionCodec = uint4.xmap[CloseSquadMemberPosition] (
+    val closeSquadMemberPositionCodec = uint4.xmap[CloseSquadMemberPosition](
       position => CloseSquadMemberPosition(position),
       {
         case CloseSquadMemberPosition(position) => position
       }
     )
 
-    val addSquadMemberPositionCodec = uint4.xmap[AddSquadMemberPosition] (
+    val addSquadMemberPositionCodec = uint4.xmap[AddSquadMemberPosition](
       position => AddSquadMemberPosition(position),
       {
         case AddSquadMemberPosition(position) => position
       }
     )
 
-    val changeSquadMemberRequirementsRoleCodec = (uint4L :: PacketHelpers.encodedWideStringAligned(2)).xmap[ChangeSquadMemberRequirementsRole] (
-      {
-        case u1 :: role :: HNil => ChangeSquadMemberRequirementsRole(u1, role)
-      },
-      {
-        case ChangeSquadMemberRequirementsRole(u1, role) => u1 :: role :: HNil
-      }
-    )
+    val changeSquadMemberRequirementsRoleCodec =
+      (uint4L :: PacketHelpers.encodedWideStringAligned(2)).xmap[ChangeSquadMemberRequirementsRole](
+        {
+          case u1 :: role :: HNil => ChangeSquadMemberRequirementsRole(u1, role)
+        },
+        {
+          case ChangeSquadMemberRequirementsRole(u1, role) => u1 :: role :: HNil
+        }
+      )
 
-    val changeSquadMemberRequirementsDetailedOrdersCodec = (uint4L :: PacketHelpers.encodedWideStringAligned(2)).xmap[ChangeSquadMemberRequirementsDetailedOrders] (
-      {
-        case u1 :: role :: HNil => ChangeSquadMemberRequirementsDetailedOrders(u1, role)
-      },
-      {
-        case ChangeSquadMemberRequirementsDetailedOrders(u1, role) => u1 :: role :: HNil
-      }
-    )
+    val changeSquadMemberRequirementsDetailedOrdersCodec =
+      (uint4L :: PacketHelpers.encodedWideStringAligned(2)).xmap[ChangeSquadMemberRequirementsDetailedOrders](
+        {
+          case u1 :: role :: HNil => ChangeSquadMemberRequirementsDetailedOrders(u1, role)
+        },
+        {
+          case ChangeSquadMemberRequirementsDetailedOrders(u1, role) => u1 :: role :: HNil
+        }
+      )
 
-    val changeSquadMemberRequirementsCertificationsCodec = (uint4 :: ulongL(46)).xmap[ChangeSquadMemberRequirementsCertifications] (
-      {
-        case u1 :: u2 :: HNil =>
-          ChangeSquadMemberRequirementsCertifications(u1, CertificationType.fromEncodedLong(u2))
-      },
-      {
-        case ChangeSquadMemberRequirementsCertifications(u1, u2) =>
-          u1 :: CertificationType.toEncodedLong(u2) :: HNil
-      }
-    )
+    val changeSquadMemberRequirementsCertificationsCodec =
+      (uint4 :: ulongL(46)).xmap[ChangeSquadMemberRequirementsCertifications](
+        {
+          case u1 :: u2 :: HNil =>
+            ChangeSquadMemberRequirementsCertifications(u1, CertificationType.fromEncodedLong(u2))
+        },
+        {
+          case ChangeSquadMemberRequirementsCertifications(u1, u2) =>
+            u1 :: CertificationType.toEncodedLong(u2) :: HNil
+        }
+      )
 
-    val resetAllCodec = everFailCondition.xmap[ResetAll] (
+    val resetAllCodec = everFailCondition.xmap[ResetAll](
       _ => ResetAll(),
       {
         case ResetAll() => None
       }
     )
 
-    val autoApproveInvitationRequestsCodec = bool.xmap[AutoApproveInvitationRequests] (
+    val autoApproveInvitationRequestsCodec = bool.xmap[AutoApproveInvitationRequests](
       state => AutoApproveInvitationRequests(state),
       {
         case AutoApproveInvitationRequests(state) => state
       }
     )
 
-    val locationFollowsSquadLeadCodec = bool.xmap[LocationFollowsSquadLead] (
+    val locationFollowsSquadLeadCodec = bool.xmap[LocationFollowsSquadLead](
       state => LocationFollowsSquadLead(state),
       {
         case LocationFollowsSquadLead(state) => state
       }
     )
 
-    val searchForSquadsWithParticularRoleCodec = (
-      PacketHelpers.encodedWideStringAligned(6) ::
-        ulongL(46) ::
-        uint16L ::
-        SearchMode.codec).xmap[SearchForSquadsWithParticularRole] (
+    val searchForSquadsWithParticularRoleCodec = (PacketHelpers.encodedWideStringAligned(6) ::
+      ulongL(46) ::
+      uint16L ::
+      SearchMode.codec).xmap[SearchForSquadsWithParticularRole](
       {
-        case u1 :: u2 :: u3 :: u4 :: HNil => SearchForSquadsWithParticularRole(u1, CertificationType.fromEncodedLong(u2), u3, u4)
+        case u1 :: u2 :: u3 :: u4 :: HNil =>
+          SearchForSquadsWithParticularRole(u1, CertificationType.fromEncodedLong(u2), u3, u4)
       },
       {
-        case SearchForSquadsWithParticularRole(u1, u2, u3, u4) => u1 :: CertificationType.toEncodedLong(u2) :: u3 :: u4 :: HNil
+        case SearchForSquadsWithParticularRole(u1, u2, u3, u4) =>
+          u1 :: CertificationType.toEncodedLong(u2) :: u3 :: u4 :: HNil
       }
     )
 
-    val cancelSquadSearchCodec = everFailCondition.xmap[CancelSquadSearch] (
+    val cancelSquadSearchCodec = everFailCondition.xmap[CancelSquadSearch](
       _ => CancelSquadSearch(),
       {
         case CancelSquadSearch() => None
       }
     )
 
-    val assignSquadMemberToRoleCodec = (uint4 :: uint32L).xmap[AssignSquadMemberToRole] (
+    val assignSquadMemberToRoleCodec = (uint4 :: uint32L).xmap[AssignSquadMemberToRole](
       {
         case u1 :: u2 :: HNil => AssignSquadMemberToRole(u1, u2)
       },
@@ -296,21 +305,21 @@ object SquadAction{
       }
     )
 
-    val noSquadSearchResultsCodec = everFailCondition.xmap[NoSquadSearchResults] (
+    val noSquadSearchResultsCodec = everFailCondition.xmap[NoSquadSearchResults](
       _ => NoSquadSearchResults(),
       {
         case NoSquadSearchResults() => None
       }
     )
 
-    val findLfsSoldiersForRoleCodec = uint4.xmap[FindLfsSoldiersForRole] (
+    val findLfsSoldiersForRoleCodec = uint4.xmap[FindLfsSoldiersForRole](
       state => FindLfsSoldiersForRole(state),
       {
         case FindLfsSoldiersForRole(state) => state
       }
     )
 
-    val cancelFindCodec = everFailCondition.xmap[CancelFind] (
+    val cancelFindCodec = everFailCondition.xmap[CancelFind](
       _ => CancelFind(),
       {
         case CancelFind() => None
@@ -322,22 +331,24 @@ object SquadAction{
       * @param action the action behavior code
       * @return a transformation between the action code and the unknown bit data
       */
-    def unknownCodec(action : Int) = bits.xmap[Unknown] (
-     data => Unknown(action, data),
-      {
-        case Unknown(_, data) => data
-      }
-    )
+    def unknownCodec(action: Int) =
+      bits.xmap[Unknown](
+        data => Unknown(action, data),
+        {
+          case Unknown(_, data) => data
+        }
+      )
 
     /**
       * The action code was completely unanticipated!
       * @param action the action behavior code
       * @return nothing; always fail
       */
-    def failureCodec(action : Int)= everFailCondition.exmap[SquadAction] (
-      _ => Attempt.failure(Err(s"can not match a codec pattern for decoding $action")),
-      _ => Attempt.failure(Err(s"can not match a codec pattern for encoding $action"))
-    )
+    def failureCodec(action: Int) =
+      everFailCondition.exmap[SquadAction](
+        _ => Attempt.failure(Err(s"can not match a codec pattern for decoding $action")),
+        _ => Attempt.failure(Err(s"can not match a codec pattern for encoding $action"))
+      )
   }
 }
 
@@ -403,16 +414,15 @@ object SquadAction{
   * @param action the purpose of this packet;
   *               also decides the content of the parameter fields
   */
-final case class SquadDefinitionActionMessage(squad_guid : PlanetSideGUID,
-                                              line : Int,
-                                              action : SquadAction)
-  extends PlanetSideGamePacket {
+final case class SquadDefinitionActionMessage(squad_guid: PlanetSideGUID, line: Int, action: SquadAction)
+    extends PlanetSideGamePacket {
   type Packet = SquadDefinitionActionMessage
   def opcode = GamePacketOpcode.SquadDefinitionActionMessage
   def encode = SquadDefinitionActionMessage.encode(this)
 }
 
 object SquadDefinitionActionMessage extends Marshallable[SquadDefinitionActionMessage] {
+
   /**
     * Use the action code to transform between
     * the specific action object and its field data
@@ -420,20 +430,20 @@ object SquadDefinitionActionMessage extends Marshallable[SquadDefinitionActionMe
     * @param code the action behavior code
     * @return the `SquadAction` `Codec` to use for the given `code`
     */
-  def selectFromActionCode(code : Int) : Codec[SquadAction] = {
+  def selectFromActionCode(code: Int): Codec[SquadAction] = {
     import SquadAction.Codecs._
     import scala.annotation.switch
-    ((code : @switch) match {
-      case 0 => displaySquadCodec
-      case 1 => squadMemberInitializationIssueCodec
-      case 2 => unknownCodec(action = 2)
-      case 3 => saveSquadFavoriteCodec
-      case 4 => loadSquadFavoriteCodec
-      case 5 => deleteSquadFavoriteCodec
-      case 6 => unknownCodec(action = 6)
-      case 7 => listSquadFavoriteCodec
-      case 8 => requestListSquadCodec
-      case 9 => stopListSquadCodec
+    ((code: @switch) match {
+      case 0  => displaySquadCodec
+      case 1  => squadMemberInitializationIssueCodec
+      case 2  => unknownCodec(action = 2)
+      case 3  => saveSquadFavoriteCodec
+      case 4  => loadSquadFavoriteCodec
+      case 5  => deleteSquadFavoriteCodec
+      case 6  => unknownCodec(action = 6)
+      case 7  => listSquadFavoriteCodec
+      case 8  => requestListSquadCodec
+      case 9  => stopListSquadCodec
       case 10 => selectRoleForYourselfCodec
       case 11 => unknownCodec(action = 11)
       case 12 => unknownCodec(action = 12)
@@ -468,17 +478,17 @@ object SquadDefinitionActionMessage extends Marshallable[SquadDefinitionActionMe
       case 41 => cancelFindCodec
       case 42 => unknownCodec(action = 42)
       case 43 => unknownCodec(action = 43)
-      case _ => failureCodec(code)
+      case _  => failureCodec(code)
     }).asInstanceOf[Codec[SquadAction]]
   }
 
-  implicit val codec : Codec[SquadDefinitionActionMessage] = (
+  implicit val codec: Codec[SquadDefinitionActionMessage] = (
     uintL(6) >>:~ { code =>
       ("squad_guid" | PlanetSideGUID.codec) ::
         ("line" | uint4L) ::
         ("action" | selectFromActionCode(code))
     }
-    ).xmap[SquadDefinitionActionMessage] (
+  ).xmap[SquadDefinitionActionMessage](
     {
       case _ :: guid :: line :: action :: HNil =>
         SquadDefinitionActionMessage(guid, line, action)

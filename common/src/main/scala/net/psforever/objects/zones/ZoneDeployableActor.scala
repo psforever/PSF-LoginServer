@@ -13,14 +13,14 @@ import scala.collection.mutable.ListBuffer
   * na
   * @param zone the `Zone` object
   */
-class ZoneDeployableActor(zone : Zone, deployableList : ListBuffer[PlanetSideGameObject with Deployable]) extends Actor {
+class ZoneDeployableActor(zone: Zone, deployableList: ListBuffer[PlanetSideGameObject with Deployable]) extends Actor {
   import ZoneDeployableActor._
 
-  def receive : Receive = {
+  def receive: Receive = {
     case Zone.Deployable.Build(obj, tool) =>
-      if(DeployableBuild(obj, deployableList)) {
+      if (DeployableBuild(obj, deployableList)) {
         obj match {
-          case o : PlanetSideServerObject =>
+          case o: PlanetSideServerObject =>
             obj.Definition.Initialize(o, context)
           case _ =>
             obj.Definition.Initialize(obj, context)
@@ -30,9 +30,9 @@ class ZoneDeployableActor(zone : Zone, deployableList : ListBuffer[PlanetSideGam
       }
 
     case Zone.Deployable.Dismiss(obj) =>
-      if(DeployableDismiss(obj, deployableList)) {
+      if (DeployableDismiss(obj, deployableList)) {
         obj match {
-          case o : PlanetSideServerObject =>
+          case o: PlanetSideServerObject =>
             obj.Definition.Uninitialize(o, context)
           case _ =>
             obj.Definition.Uninitialize(obj, context)
@@ -45,7 +45,10 @@ class ZoneDeployableActor(zone : Zone, deployableList : ListBuffer[PlanetSideGam
 }
 
 object ZoneDeployableActor {
-  def DeployableBuild(obj : PlanetSideGameObject with Deployable, deployableList : ListBuffer[PlanetSideGameObject with Deployable]) : Boolean = {
+  def DeployableBuild(
+      obj: PlanetSideGameObject with Deployable,
+      deployableList: ListBuffer[PlanetSideGameObject with Deployable]
+  ): Boolean = {
     deployableList.find(d => d == obj) match {
       case Some(_) =>
         false
@@ -55,8 +58,10 @@ object ZoneDeployableActor {
     }
   }
 
-
-  def DeployableDismiss(obj : PlanetSideGameObject with Deployable, deployableList : ListBuffer[PlanetSideGameObject with Deployable]) : Boolean = {
+  def DeployableDismiss(
+      obj: PlanetSideGameObject with Deployable,
+      deployableList: ListBuffer[PlanetSideGameObject with Deployable]
+  ): Boolean = {
     recursiveFindDeployable(deployableList.iterator, obj) match {
       case None =>
         false
@@ -66,15 +71,17 @@ object ZoneDeployableActor {
     }
   }
 
-  @tailrec final def recursiveFindDeployable(iter : Iterator[PlanetSideGameObject with Deployable], target : PlanetSideGameObject with Deployable, index : Int = 0) : Option[Int] = {
-    if(!iter.hasNext) {
+  @tailrec final def recursiveFindDeployable(
+      iter: Iterator[PlanetSideGameObject with Deployable],
+      target: PlanetSideGameObject with Deployable,
+      index: Int = 0
+  ): Option[Int] = {
+    if (!iter.hasNext) {
       None
-    }
-    else {
-      if(iter.next == target) {
+    } else {
+      if (iter.next == target) {
         Some(index)
-      }
-      else {
+      } else {
         recursiveFindDeployable(iter, target, index + 1)
       }
     }

@@ -30,7 +30,7 @@ import scodec.codecs._
   * @see `PlacementData`
   */
 
-  /*
+/*
     BETA CLIENT DEBUG INFO:
       Guid
       Agreement Id
@@ -43,38 +43,40 @@ import scodec.codecs._
       Path Number
       Has Damage Info %d (%d %d %d %d)
       Cloaking
-   */
-final case class VehicleStateMessage(vehicle_guid : PlanetSideGUID,
-                                     unk1 : Int,
-                                     pos : Vector3,
-                                     ang : Vector3,
-                                     vel : Option[Vector3],
-                                     flying : Option[Int],
-                                     unk3 : Int,
-                                     unk4 : Int,
-                                     wheel_direction : Int,
-                                     is_decelerating : Boolean,
-                                     is_cloaked : Boolean
-                                    ) extends PlanetSideGamePacket {
+ */
+final case class VehicleStateMessage(
+    vehicle_guid: PlanetSideGUID,
+    unk1: Int,
+    pos: Vector3,
+    ang: Vector3,
+    vel: Option[Vector3],
+    flying: Option[Int],
+    unk3: Int,
+    unk4: Int,
+    wheel_direction: Int,
+    is_decelerating: Boolean,
+    is_cloaked: Boolean
+) extends PlanetSideGamePacket {
   type Packet = VehicleStateMessage
   def opcode = GamePacketOpcode.VehicleStateMessage
   def encode = VehicleStateMessage.encode(this)
 }
 
 object VehicleStateMessage extends Marshallable[VehicleStateMessage] {
+
   /**
     * Calculate common orientation from little-endian bit data.
     * @see `Angular.codec_roll`
     * @see `Angular.codec_pitch`
     * @see `Angular.codec_yaw`
     */
-  val codec_orient : Codec[Vector3] = (
-    ("roll"    | Angular.codec_roll(10)) ::
+  val codec_orient: Codec[Vector3] = (
+    ("roll" | Angular.codec_roll(10)) ::
       ("pitch" | Angular.codec_pitch(10)) ::
-      ("yaw"   | Angular.codec_yaw(10, 90f))
-    ).as[Vector3]
+      ("yaw" | Angular.codec_yaw(10, 90f))
+  ).as[Vector3]
 
-  implicit val codec : Codec[VehicleStateMessage] = (
+  implicit val codec: Codec[VehicleStateMessage] = (
     ("vehicle_guid" | PlanetSideGUID.codec) ::
       ("unk1" | uintL(3)) ::
       ("pos" | Vector3.codec_pos) ::
@@ -86,5 +88,5 @@ object VehicleStateMessage extends Marshallable[VehicleStateMessage] {
       ("wheel_direction" | uintL(5)) ::
       ("int5" | bool) ::
       ("is_cloaked" | bool)
-    ).as[VehicleStateMessage]
+  ).as[VehicleStateMessage]
 }

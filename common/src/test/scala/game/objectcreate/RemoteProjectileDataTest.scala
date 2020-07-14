@@ -9,7 +9,7 @@ import org.specs2.mutable._
 import scodec.bits._
 
 class RemoteProjectileDataTest extends Specification {
-  val string_striker_projectile = hex"17 C5000000 A4B 009D 4C129 0CB0A 9814 00 F5 E3 040000666686400"
+  val string_striker_projectile               = hex"17 C5000000 A4B 009D 4C129 0CB0A 9814 00 F5 E3 040000666686400"
   val string_hunter_seeker_missile_projectile = hex"17 c5000000 ca9 ab9e af127 ec465 3723 00 15 c4 2400009a99c9400"
 
   "RemoteProjectileData" should {
@@ -87,7 +87,11 @@ class RemoteProjectileDataTest extends Specification {
           PlacementData(4644.5938f, 5472.0938f, 82.375f, 0f, 30.9375f, 171.5625f),
           CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, None, None, PlanetSideGUID(0))
         ),
-        26214, 134, FlightPhysics.State4, 0, 0
+        26214,
+        134,
+        FlightPhysics.State4,
+        0,
+        0
       )
       val msg = ObjectCreateMessage(ObjectClass.striker_missile_targeting_projectile, PlanetSideGUID(40192), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
@@ -105,7 +109,11 @@ class RemoteProjectileDataTest extends Specification {
         PlacementData(3621.3672f, 2701.8438f, 140.85938f, 0, 300.9375f, 258.75f),
         CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, None, PlanetSideGUID(0))
       ),
-      39577, 201, FlightPhysics.State4, 0, 0
+      39577,
+      201,
+      FlightPhysics.State4,
+      0,
+      0
     )
     val msg = ObjectCreateMessage(ObjectClass.hunter_seeker_missile_projectile, PlanetSideGUID(40619), obj)
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector

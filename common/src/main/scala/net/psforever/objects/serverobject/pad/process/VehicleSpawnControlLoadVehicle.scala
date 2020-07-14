@@ -4,7 +4,6 @@ package net.psforever.objects.serverobject.pad.process
 import akka.actor.Props
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
-import net.psforever.objects.zones.Zone
 import net.psforever.types.Vector3
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -21,21 +20,22 @@ import scala.concurrent.duration._
   * It has failure cases should the driver be in an incorrect state.
   * @param pad the `VehicleSpawnPad` object being governed
   */
-class VehicleSpawnControlLoadVehicle(pad : VehicleSpawnPad) extends VehicleSpawnControlBase(pad) {
+class VehicleSpawnControlLoadVehicle(pad: VehicleSpawnPad) extends VehicleSpawnControlBase(pad) {
   def LogId = "-loader"
 
   val railJack = context.actorOf(Props(classOf[VehicleSpawnControlRailJack], pad), s"${context.parent.path.name}-rails")
 
-  def receive : Receive = {
+  def receive: Receive = {
     case order @ VehicleSpawnControl.Order(driver, vehicle) =>
-      if(driver.Continent == pad.Continent && vehicle.Health > 0 && driver.isAlive) {
+      if (driver.Continent == pad.Continent && vehicle.Health > 0 && driver.isAlive) {
         trace(s"loading the ${vehicle.Definition.Name}")
-        vehicle.Position = vehicle.Position - Vector3.z(if(GlobalDefinitions.isFlightVehicle(vehicle.Definition)) 9 else 5) //appear below the trench and doors
+        vehicle.Position = vehicle.Position - Vector3.z(
+          if (GlobalDefinitions.isFlightVehicle(vehicle.Definition)) 9 else 5
+        ) //appear below the trench and doors
         vehicle.Cloaked = vehicle.Definition.CanCloak && driver.Cloaked
         pad.Zone.VehicleEvents ! VehicleSpawnPad.LoadVehicle(vehicle)
         context.system.scheduler.scheduleOnce(100 milliseconds, railJack, order)
-      }
-      else {
+      } else {
         trace("owner lost or vehicle in poor condition; abort order fulfillment")
         VehicleSpawnControl.DisposeVehicle(order.vehicle, pad.Zone)
         context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder

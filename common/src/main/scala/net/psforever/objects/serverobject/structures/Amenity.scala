@@ -1,9 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.structures
 
-import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.vital.{DamageResistanceModel, StandardResistanceProfile, Vitality, VitalsActivity}
+import net.psforever.objects.vital.{DamageResistanceModel, StandardResistanceProfile, Vitality}
 import net.psforever.objects.zones.{Zone, ZoneAware}
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 import net.psforever.objects.zones.{Zone => World}
@@ -19,24 +18,23 @@ import net.psforever.objects.zones.{Zone => World}
   * @see `AmenityOwner`
   * @see `FactionAffinity`
   */
-abstract class Amenity extends PlanetSideServerObject
-  with Vitality
-  with ZoneAware
-  with StandardResistanceProfile {
+abstract class Amenity extends PlanetSideServerObject with Vitality with ZoneAware with StandardResistanceProfile {
   private[this] val log = org.log4s.getLogger("Amenity")
-  /** what other entity has authority over this amenity; usually either a building or a vehicle */
-  private var owner : AmenityOwner = Building.NoBuilding
-  /** if the entity exists at a specific position relative to the owner's position */
-  private var offset : Option[Vector3] = None
 
-  def Faction : PlanetSideEmpire.Value = Owner.Faction
+  /** what other entity has authority over this amenity; usually either a building or a vehicle */
+  private var owner: AmenityOwner = Building.NoBuilding
+
+  /** if the entity exists at a specific position relative to the owner's position */
+  private var offset: Option[Vector3] = None
+
+  def Faction: PlanetSideEmpire.Value = Owner.Faction
 
   /**
     * Reference the object that is in direct association with (is superior to) this one.
     * @return the object associated as this object's "owner"
     */
-  def Owner : AmenityOwner = {
-    if(owner == Building.NoBuilding) {
+  def Owner: AmenityOwner = {
+    if (owner == Building.NoBuilding) {
       log.warn(s"Amenity $GUID in zone ${Zone.Id} tried to access owner, but doesn't have one.")
     }
     owner
@@ -48,15 +46,15 @@ abstract class Amenity extends PlanetSideServerObject
     * @param obj the object trying to become associated as this object's "owner"
     * @return the object associated as this object's "owner"
     */
-  def Owner_=(obj : AmenityOwner) : AmenityOwner = {
+  def Owner_=(obj: AmenityOwner): AmenityOwner = {
     owner = obj
     Owner
   }
 
-  override def Zone : Zone = {
-    if(super.Zone != World.Nowhere) {
+  override def Zone: Zone = {
+    if (super.Zone != World.Nowhere) {
       super.Zone
-    } else if(Owner.Zone != World.Nowhere) {
+    } else if (Owner.Zone != World.Nowhere) {
       Owner.Zone
     } else {
       log.warn(s"Amenity $GUID tried to access it's Zone, but doesn't have one.")
@@ -64,11 +62,11 @@ abstract class Amenity extends PlanetSideServerObject
     }
   }
 
-  def LocationOffset : Vector3 = offset.getOrElse(Vector3.Zero)
+  def LocationOffset: Vector3 = offset.getOrElse(Vector3.Zero)
 
-  def LocationOffset_=(off : Vector3) : Vector3 = LocationOffset_=(Some(off))
+  def LocationOffset_=(off: Vector3): Vector3 = LocationOffset_=(Some(off))
 
-  def LocationOffset_=(off : Option[Vector3]) : Vector3 = {
+  def LocationOffset_=(off: Option[Vector3]): Vector3 = {
     off match {
       case Some(Vector3.Zero) =>
         offset = None
@@ -80,5 +78,5 @@ abstract class Amenity extends PlanetSideServerObject
 
   def DamageModel = Definition.asInstanceOf[DamageResistanceModel]
 
-  def Definition : AmenityDefinition
+  def Definition: AmenityDefinition
 }

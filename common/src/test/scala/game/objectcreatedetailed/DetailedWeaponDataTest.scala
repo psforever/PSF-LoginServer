@@ -9,7 +9,7 @@ import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 import scodec.bits._
 
 class DetailedWeaponDataTest extends Specification {
-  val string_gauss = hex"18 DC000000 2580 2C9 B905 82 480000020000C04 1C00C0B0190000078000"
+  val string_gauss    = hex"18 DC000000 2580 2C9 B905 82 480000020000C04 1C00C0B0190000078000"
   val string_punisher = hex"18 27010000 2580 612 a706 82 080000020000c08 1c13a0d01900000780 13a4701a072000000800"
 
   "DetailedWeaponData" should {
@@ -105,7 +105,12 @@ class DetailedWeaponDataTest extends Specification {
         0,
         List(InternalSlot(ObjectClass.bullet_9mm, PlanetSideGUID(1286), 0, DetailedAmmoBoxData(8, 30)))
       )
-      val msg = ObjectCreateDetailedMessage(ObjectClass.gauss, PlanetSideGUID(1465), ObjectCreateMessageParent(PlanetSideGUID(75), 2), obj)
+      val msg = ObjectCreateDetailedMessage(
+        ObjectClass.gauss,
+        PlanetSideGUID(1465),
+        ObjectCreateMessageParent(PlanetSideGUID(75), 2),
+        obj
+      )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
       pkt mustEqual string_gauss
@@ -130,7 +135,12 @@ class DetailedWeaponDataTest extends Specification {
           DetailedAmmoBoxData(ObjectClass.jammer_cartridge, PlanetSideGUID(1564), 1, DetailedAmmoBoxData(8, 1))
         )
       )
-      val msg = ObjectCreateDetailedMessage(ObjectClass.punisher, PlanetSideGUID(1703), ObjectCreateMessageParent(PlanetSideGUID(75), 2), obj)
+      val msg = ObjectCreateDetailedMessage(
+        ObjectClass.punisher,
+        PlanetSideGUID(1703),
+        ObjectCreateMessageParent(PlanetSideGUID(75), 2),
+        obj
+      )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
       pkt mustEqual string_punisher

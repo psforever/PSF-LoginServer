@@ -11,8 +11,5 @@ package net.psforever.objects.vehicles
 object CargoVehicleRestriction extends Enumeration {
   type Type = Value
 
-  val
-  Small,
-  Large
-  = Value
+  val Small, Large = Value
 }

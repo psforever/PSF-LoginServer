@@ -47,18 +47,20 @@ import shapeless.{::, HNil}
   * @see ObjectCreateDetailedMessage
   * @see ObjectCreateMessageParent
   */
-final case class ObjectCreateMessage(streamLength : Long,
-                                     objectClass : Int,
-                                     guid : PlanetSideGUID,
-                                     parentInfo : Option[ObjectCreateMessageParent],
-                                     data : ConstructorData)
-  extends PlanetSideGamePacket {
+final case class ObjectCreateMessage(
+    streamLength: Long,
+    objectClass: Int,
+    guid: PlanetSideGUID,
+    parentInfo: Option[ObjectCreateMessageParent],
+    data: ConstructorData
+) extends PlanetSideGamePacket {
   type Packet = ObjectCreateMessage
   def opcode = GamePacketOpcode.ObjectCreateMessage_Duplicate
   def encode = ObjectCreateMessage.encode(this)
 }
 
 object ObjectCreateMessage extends Marshallable[ObjectCreateMessage] {
+
   /**
     * An abbreviated constructor for creating `ObjectCreateMessage`s, ignoring the optional aspect of some fields.
     * @param objectClass the code for the type of object being constructed
@@ -67,8 +69,13 @@ object ObjectCreateMessage extends Marshallable[ObjectCreateMessage] {
     * @param data the data used to construct this type of object
     * @return an `ObjectCreateMessage`
     */
-  def apply(objectClass : Int, guid : PlanetSideGUID, parentInfo : ObjectCreateMessageParent, data : ConstructorData) : ObjectCreateMessage = {
-    val parentInfoOpt : Option[ObjectCreateMessageParent] = Some(parentInfo)
+  def apply(
+      objectClass: Int,
+      guid: PlanetSideGUID,
+      parentInfo: ObjectCreateMessageParent,
+      data: ConstructorData
+  ): ObjectCreateMessage = {
+    val parentInfoOpt: Option[ObjectCreateMessageParent] = Some(parentInfo)
     ObjectCreateMessage(ObjectCreateBase.streamLen(parentInfoOpt, data), objectClass, guid, parentInfoOpt, data)
   }
 
@@ -79,20 +86,22 @@ object ObjectCreateMessage extends Marshallable[ObjectCreateMessage] {
     * @param data the data used to construct this type of object
     * @return an `ObjectCreateMessage`
     */
-  def apply(objectClass : Int, guid : PlanetSideGUID, data : ConstructorData) : ObjectCreateMessage = {
+  def apply(objectClass: Int, guid: PlanetSideGUID, data: ConstructorData): ObjectCreateMessage = {
     ObjectCreateMessage(ObjectCreateBase.streamLen(None, data), objectClass, guid, None, data)
   }
 
-  implicit val codec : Codec[ObjectCreateMessage] = ObjectCreateBase.baseCodec.exmap[ObjectCreateMessage] (
+  implicit val codec: Codec[ObjectCreateMessage] = ObjectCreateBase.baseCodec.exmap[ObjectCreateMessage](
     {
       case _ :: _ :: _ :: _ :: BitVector.empty :: HNil =>
         Attempt.failure(Err("no data to decode"))
 
       case len :: cls :: guid :: par :: data :: HNil =>
-        ObjectCreateBase.decodeData(cls, data, if(par.isDefined) {
-          ObjectClass.selectDataCodec
-          }
-          else {
+        ObjectCreateBase.decodeData(
+          cls,
+          data,
+          if (par.isDefined) {
+            ObjectClass.selectDataCodec
+          } else {
             ObjectClass.selectDataDroppedCodec
           }
         ) match {
@@ -104,12 +113,17 @@ object ObjectCreateMessage extends Marshallable[ObjectCreateMessage] {
     },
     {
       case ObjectCreateMessage(_, cls, guid, par, obj) =>
-        val len = ObjectCreateBase.streamLen(par, obj) //even if a stream length has been assigned, it can not be trusted during encoding
-        ObjectCreateBase.encodeData(cls, obj,
-          if(par.isDefined) {
+        val len =
+          ObjectCreateBase.streamLen(
+            par,
+            obj
+          ) //even if a stream length has been assigned, it can not be trusted during encoding
+        ObjectCreateBase.encodeData(
+          cls,
+          obj,
+          if (par.isDefined) {
             ObjectClass.selectDataCodec
-          }
-          else {
+          } else {
             ObjectClass.selectDataDroppedCodec
           }
         ) match {

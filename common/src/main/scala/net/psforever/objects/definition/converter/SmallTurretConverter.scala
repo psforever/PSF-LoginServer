@@ -10,9 +10,9 @@ import net.psforever.types.PlanetSideGUID
 import scala.util.{Failure, Success, Try}
 
 class SmallTurretConverter extends ObjectCreateConverter[TurretDeployable]() {
-  override def ConstructorData(obj : TurretDeployable) : Try[SmallTurretData] = {
+  override def ConstructorData(obj: TurretDeployable): Try[SmallTurretData] = {
     val health = StatConverter.Health(obj.Health, obj.MaxHealth)
-    if(health > 0) {
+    if (health > 0) {
       Success(
         SmallTurretData(
           CommonFieldDataWithPlacement(
@@ -28,7 +28,7 @@ class SmallTurretConverter extends ObjectCreateConverter[TurretDeployable]() {
               None,
               obj.Owner match {
                 case Some(owner) => owner
-                case None => PlanetSideGUID(0)
+                case None        => PlanetSideGUID(0)
               }
             )
           ),
@@ -36,8 +36,7 @@ class SmallTurretConverter extends ObjectCreateConverter[TurretDeployable]() {
           Some(InventoryData(SmallTurretConverter.MakeMountings(obj)))
         )
       )
-    }
-    else {
+    } else {
       Success(
         SmallTurretData(
           CommonFieldDataWithPlacement(
@@ -60,17 +59,19 @@ class SmallTurretConverter extends ObjectCreateConverter[TurretDeployable]() {
     }
   }
 
-  override def DetailedConstructorData(obj : TurretDeployable) : Try[SmallTurretData] =
+  override def DetailedConstructorData(obj: TurretDeployable): Try[SmallTurretData] =
     Failure(new Exception("converter should not be used to generate detailed SmallTurretData"))
 }
 
 object SmallTurretConverter {
-  private def MakeMountings(obj : WeaponTurret) : List[InventoryItemData.InventoryItem] = {
-    obj.Weapons.map({
-      case((index, slot)) =>
-        val equip : Equipment = slot.Equipment.get
-        val equipDef = equip.Definition
-        InventoryItemData(equipDef.ObjectId, equip.GUID, index, equipDef.Packet.ConstructorData(equip).get)
-    }).toList
+  private def MakeMountings(obj: WeaponTurret): List[InventoryItemData.InventoryItem] = {
+    obj.Weapons
+      .map({
+        case ((index, slot)) =>
+          val equip: Equipment = slot.Equipment.get
+          val equipDef         = equip.Definition
+          InventoryItemData(equipDef.ObjectId, equip.GUID, index, equipDef.Packet.ConstructorData(equip).get)
+      })
+      .toList
   }
 }

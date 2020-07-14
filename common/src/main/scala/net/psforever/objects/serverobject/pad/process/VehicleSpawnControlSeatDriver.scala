@@ -22,41 +22,41 @@ import scala.concurrent.duration._
   * @see `ZonePopulationActor`
   * @param pad the `VehicleSpawnPad` object being governed
   */
-class VehicleSpawnControlSeatDriver(pad : VehicleSpawnPad) extends VehicleSpawnControlBase(pad) {
+class VehicleSpawnControlSeatDriver(pad: VehicleSpawnPad) extends VehicleSpawnControlBase(pad) {
   def LogId = "-usher"
 
-  val vehicleOverride = context.actorOf(Props(classOf[VehicleSpawnControlServerVehicleOverride], pad), s"${context.parent.path.name}-override")
+  val vehicleOverride = context.actorOf(
+    Props(classOf[VehicleSpawnControlServerVehicleOverride], pad),
+    s"${context.parent.path.name}-override"
+  )
 
-  def receive : Receive = {
+  def receive: Receive = {
     case order @ VehicleSpawnControl.Order(_, vehicle) =>
-      if(vehicle.Actor == Default.Actor) { //wait for a necessary vehicle component to be loaded
+      if (vehicle.Actor == Default.Actor) { //wait for a necessary vehicle component to be loaded
         context.system.scheduler.scheduleOnce(50 milliseconds, self, order)
-      }
-      else {
+      } else {
         trace("vehicle ready")
         self ! VehicleSpawnControlSeatDriver.BeginDriverInSeat(order)
       }
 
     case VehicleSpawnControlSeatDriver.BeginDriverInSeat(entry) =>
-      val driver = entry.driver
+      val driver  = entry.driver
       val vehicle = entry.vehicle
       //avoid unattended vehicle blocking the pad; user should mount (and does so normally) to reset decon timer
       vehicle.Actor ! Vehicle.Deconstruct(Some(30 seconds))
-      if(vehicle.Health > 0 && driver.isAlive && driver.Continent == pad.Continent && driver.VehicleSeated.isEmpty) {
+      if (vehicle.Health > 0 && driver.isAlive && driver.Continent == pad.Continent && driver.VehicleSeated.isEmpty) {
         trace("driver to be made seated in vehicle")
         pad.Zone.VehicleEvents ! VehicleSpawnPad.StartPlayerSeatedInVehicle(driver.Name, vehicle, pad)
-      }
-      else{
+      } else {
         trace("driver lost; vehicle stranded on pad")
       }
       context.system.scheduler.scheduleOnce(2500 milliseconds, self, VehicleSpawnControlSeatDriver.DriverInSeat(entry))
 
     case VehicleSpawnControlSeatDriver.DriverInSeat(entry) =>
-      if(entry.vehicle.Health > 0 && entry.driver.isAlive && entry.vehicle.PassengerInSeat(entry.driver).contains(0)) {
+      if (entry.vehicle.Health > 0 && entry.driver.isAlive && entry.vehicle.PassengerInSeat(entry.driver).contains(0)) {
         trace(s"driver ${entry.driver.Name} has taken the wheel")
         pad.Zone.VehicleEvents ! VehicleSpawnPad.PlayerSeatedInVehicle(entry.driver.Name, entry.vehicle, pad)
-      }
-      else {
+      } else {
         trace("driver lost, but operations can continue")
       }
       context.system.scheduler.scheduleOnce(250 milliseconds, vehicleOverride, entry)
@@ -69,7 +69,7 @@ class VehicleSpawnControlSeatDriver(pad : VehicleSpawnPad) extends VehicleSpawnC
 }
 
 object VehicleSpawnControlSeatDriver {
-  final case class BeginDriverInSeat(entry : VehicleSpawnControl.Order)
+  final case class BeginDriverInSeat(entry: VehicleSpawnControl.Order)
 
-  final case class DriverInSeat(entry : VehicleSpawnControl.Order)
+  final case class DriverInSeat(entry: VehicleSpawnControl.Order)
 }

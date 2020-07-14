@@ -26,7 +26,9 @@ class ImplantTerminalMechTest extends Specification {
       implant_terminal_mech.MountPoints mustEqual Map(1 -> 0)
       implant_terminal_mech.Seats.keySet mustEqual Set(0)
       implant_terminal_mech.Seats(0).isInstanceOf[SeatDefinition] mustEqual true
-      implant_terminal_mech.Seats(0).ArmorRestriction mustEqual net.psforever.objects.vehicles.SeatArmorRestriction.NoMax
+      implant_terminal_mech
+        .Seats(0)
+        .ArmorRestriction mustEqual net.psforever.objects.vehicles.SeatArmorRestriction.NoMax
       implant_terminal_mech.Seats(0).Bailable mustEqual false
       implant_terminal_mech.Seats(0).ControlledWeapon.isEmpty mustEqual true
     }
@@ -50,7 +52,7 @@ class ImplantTerminalMechTest extends Specification {
 
     "get passenger in a seat" in {
       val player = Player(Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
-      val obj = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech)
+      val obj    = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech)
       obj.PassengerInSeat(player).isEmpty mustEqual true
       obj.Seats(0).Occupant = player
       obj.PassengerInSeat(player).contains(0) mustEqual true
@@ -74,7 +76,7 @@ class ImplantTerminalMechControl2Test extends ActorTest {
   "ImplantTerminalMechControl" should {
     "let a player mount" in {
       val (player, mech) = ImplantTerminalMechTest.SetUpAgents(PlanetSideEmpire.TR)
-      val msg = Mountable.TryMount(player, 0)
+      val msg            = Mountable.TryMount(player, 0)
 
       mech.Actor ! msg
       val reply = receiveOne(Duration.create(200, "ms"))
@@ -94,7 +96,7 @@ class ImplantTerminalMechControl3Test extends ActorTest {
   "ImplantTerminalMechControl" should {
     "block a player from mounting" in {
       val (player1, mech) = ImplantTerminalMechTest.SetUpAgents(PlanetSideEmpire.TR)
-      val player2 = Player(Avatar("test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+      val player2         = Player(Avatar("test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
 
       mech.Actor ! Mountable.TryMount(player1, 0)
       receiveOne(Duration.create(100, "ms")) //consume reply
@@ -142,7 +144,7 @@ class ImplantTerminalMechControl5Test extends ActorTest {
       receiveOne(Duration.create(100, "ms")) //consume reply
       assert(mech.Seat(0).get.isOccupied)
 
-      mech.Velocity = Vector3(1,0,0) //makes no sense, but it works as the "seat" is not bailable
+      mech.Velocity = Vector3(1, 0, 0) //makes no sense, but it works as the "seat" is not bailable
       mech.Actor ! Mountable.TryDismount(player, 0)
       val reply = receiveOne(Duration.create(100, "ms"))
       assert(reply.isInstanceOf[Mountable.MountMessages])
@@ -158,14 +160,21 @@ class ImplantTerminalMechControl5Test extends ActorTest {
 }
 
 object ImplantTerminalMechTest {
-  def SetUpAgents(faction : PlanetSideEmpire.Value)(implicit system : ActorSystem) : (Player, ImplantTerminalMech) = {
+  def SetUpAgents(faction: PlanetSideEmpire.Value)(implicit system: ActorSystem): (Player, ImplantTerminalMech) = {
     val guid = new NumberPoolHub(new LimitedNumberSource(10))
-    val map = new ZoneMap("test")
+    val map  = new ZoneMap("test")
     val zone = new Zone("test", map, 0) {
       override def SetupNumberPools() = {}
       GUID(guid)
     }
-    val building = new Building("Building", building_guid = 0, map_id = 0, zone, StructureType.Building, GlobalDefinitions.building) //guid=3
+    val building = new Building(
+      "Building",
+      building_guid = 0,
+      map_id = 0,
+      zone,
+      StructureType.Building,
+      GlobalDefinitions.building
+    ) //guid=3
     building.Faction = faction
 
     val interface = Terminal(GlobalDefinitions.implant_terminal_interface) //guid=2

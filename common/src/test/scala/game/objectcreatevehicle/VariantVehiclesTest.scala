@@ -9,7 +9,8 @@ import org.specs2.mutable._
 import scodec.bits._
 
 class VariantVehiclesTest extends Specification {
-  val string_switchblade = hex"17 93010000 A7B A201 FBC1C12A832F06000021 4400003FC00001013AD3180C0E4000000408330DC03019000006620406072000000"
+  val string_switchblade =
+    hex"17 93010000 A7B A201 FBC1C12A832F06000021 4400003FC00001013AD3180C0E4000000408330DC03019000006620406072000000"
 
   "Variant vehicles" should {
     "decode (switchblade)" in {
@@ -39,7 +40,12 @@ class VariantVehiclesTest extends Specification {
           weapon.guid mustEqual PlanetSideGUID(355)
           weapon.parentSlot mustEqual 1
           weapon.obj match {
-            case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, ammo, _) =>
+            case WeaponData(
+                  CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid),
+                  fmode,
+                  ammo,
+                  _
+                ) =>
               wfaction mustEqual PlanetSideEmpire.NEUTRAL
               wbops mustEqual false
               walternate mustEqual false
@@ -102,22 +108,52 @@ class VariantVehiclesTest extends Specification {
         CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)),
         false,
         255,
-        false, false,
+        false,
+        false,
         DriveState.Mobile,
-        false, false, false,
+        false,
+        false,
+        false,
         Some(VariantVehicleData(0)),
-        Some(InventoryData(List(
-          InventoryItemData(ObjectClass.scythe, PlanetSideGUID(355), 1,
-            WeaponData(
-              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
-              0,
-              List(
-                InternalSlot(ObjectClass.ancient_ammo_vehicle, PlanetSideGUID(366), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false)),
-                InternalSlot(ObjectClass.ancient_ammo_vehicle, PlanetSideGUID(385), 1, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false))
+        Some(
+          InventoryData(
+            List(
+              InventoryItemData(
+                ObjectClass.scythe,
+                PlanetSideGUID(355),
+                1,
+                WeaponData(
+                  CommonFieldData(
+                    PlanetSideEmpire.NEUTRAL,
+                    false,
+                    false,
+                    true,
+                    None,
+                    false,
+                    None,
+                    None,
+                    PlanetSideGUID(0)
+                  ),
+                  0,
+                  List(
+                    InternalSlot(
+                      ObjectClass.ancient_ammo_vehicle,
+                      PlanetSideGUID(366),
+                      0,
+                      CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false)
+                    ),
+                    InternalSlot(
+                      ObjectClass.ancient_ammo_vehicle,
+                      PlanetSideGUID(385),
+                      1,
+                      CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false)
+                    )
+                  )
+                )
               )
             )
           )
-        )))
+        )
       )(VehicleFormat.Variant)
       val msg = ObjectCreateMessage(ObjectClass.switchblade, PlanetSideGUID(418), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector

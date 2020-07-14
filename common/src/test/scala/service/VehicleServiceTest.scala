@@ -80,7 +80,9 @@ class OwnershipTest extends ActorTest {
       val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
       service ! Service.Join("test")
       service ! VehicleServiceMessage("test", VehicleAction.Ownership(PlanetSideGUID(10), PlanetSideGUID(11)))
-      expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.Ownership(PlanetSideGUID(11))))
+      expectMsg(
+        VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.Ownership(PlanetSideGUID(11)))
+      )
     }
   }
 }
@@ -92,8 +94,17 @@ class ChildObjectStateTest extends ActorTest {
     "pass ChildObjectState" in {
       val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
       service ! Service.Join("test")
-      service ! VehicleServiceMessage("test", VehicleAction.ChildObjectState(PlanetSideGUID(10), PlanetSideGUID(11), 1.2f, 3.4f))
-      expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.ChildObjectState(PlanetSideGUID(11), 1.2f, 3.4f)))
+      service ! VehicleServiceMessage(
+        "test",
+        VehicleAction.ChildObjectState(PlanetSideGUID(10), PlanetSideGUID(11), 1.2f, 3.4f)
+      )
+      expectMsg(
+        VehicleServiceResponse(
+          "/test/Vehicle",
+          PlanetSideGUID(10),
+          VehicleResponse.ChildObjectState(PlanetSideGUID(11), 1.2f, 3.4f)
+        )
+      )
     }
   }
 }
@@ -105,8 +116,24 @@ class DeployRequestTest extends ActorTest {
     "pass DeployRequest" in {
       val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
       service ! Service.Join("test")
-      service ! VehicleServiceMessage("test", VehicleAction.DeployRequest(PlanetSideGUID(10), PlanetSideGUID(11), DriveState.Mobile, 0, false, Vector3(1.2f, 3.4f, 5.6f)))
-      expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.DeployRequest(PlanetSideGUID(11), DriveState.Mobile, 0, false, Vector3(1.2f, 3.4f, 5.6f))))
+      service ! VehicleServiceMessage(
+        "test",
+        VehicleAction.DeployRequest(
+          PlanetSideGUID(10),
+          PlanetSideGUID(11),
+          DriveState.Mobile,
+          0,
+          false,
+          Vector3(1.2f, 3.4f, 5.6f)
+        )
+      )
+      expectMsg(
+        VehicleServiceResponse(
+          "/test/Vehicle",
+          PlanetSideGUID(10),
+          VehicleResponse.DeployRequest(PlanetSideGUID(11), DriveState.Mobile, 0, false, Vector3(1.2f, 3.4f, 5.6f))
+        )
+      )
     }
   }
 }
@@ -119,7 +146,13 @@ class DismountVehicleTest extends ActorTest {
       val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
       service ! Service.Join("test")
       service ! VehicleServiceMessage("test", VehicleAction.DismountVehicle(PlanetSideGUID(10), BailType.Normal, false))
-      expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.DismountVehicle(BailType.Normal, false)))
+      expectMsg(
+        VehicleServiceResponse(
+          "/test/Vehicle",
+          PlanetSideGUID(10),
+          VehicleResponse.DismountVehicle(BailType.Normal, false)
+        )
+      )
     }
   }
 }
@@ -134,8 +167,17 @@ class InventoryStateTest extends ActorTest {
     "pass InventoryState" in {
       val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
       service ! Service.Join("test")
-      service ! VehicleServiceMessage("test", VehicleAction.InventoryState(PlanetSideGUID(10), tool, PlanetSideGUID(11), 0, cdata))
-      expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.InventoryState(tool, PlanetSideGUID(11), 0, cdata)))
+      service ! VehicleServiceMessage(
+        "test",
+        VehicleAction.InventoryState(PlanetSideGUID(10), tool, PlanetSideGUID(11), 0, cdata)
+      )
+      expectMsg(
+        VehicleServiceResponse(
+          "/test/Vehicle",
+          PlanetSideGUID(10),
+          VehicleResponse.InventoryState(tool, PlanetSideGUID(11), 0, cdata)
+        )
+      )
     }
   }
 }
@@ -150,8 +192,17 @@ class InventoryState2Test extends ActorTest {
     "pass InventoryState2" in {
       val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
       service ! Service.Join("test")
-      service ! VehicleServiceMessage("test", VehicleAction.InventoryState2(PlanetSideGUID(10), PlanetSideGUID(11), PlanetSideGUID(12), 13))
-      expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.InventoryState2(PlanetSideGUID(11), PlanetSideGUID(12), 13)))
+      service ! VehicleServiceMessage(
+        "test",
+        VehicleAction.InventoryState2(PlanetSideGUID(10), PlanetSideGUID(11), PlanetSideGUID(12), 13)
+      )
+      expectMsg(
+        VehicleServiceResponse(
+          "/test/Vehicle",
+          PlanetSideGUID(10),
+          VehicleResponse.InventoryState2(PlanetSideGUID(11), PlanetSideGUID(12), 13)
+        )
+      )
     }
   }
 }
@@ -163,8 +214,17 @@ class KickPassengerTest extends ActorTest {
     "pass KickPassenger" in {
       val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
       service ! Service.Join("test")
-      service ! VehicleServiceMessage("test", VehicleAction.KickPassenger(PlanetSideGUID(10), 0, false, PlanetSideGUID(11)))
-      expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.KickPassenger(0, false, PlanetSideGUID(11))))
+      service ! VehicleServiceMessage(
+        "test",
+        VehicleAction.KickPassenger(PlanetSideGUID(10), 0, false, PlanetSideGUID(11))
+      )
+      expectMsg(
+        VehicleServiceResponse(
+          "/test/Vehicle",
+          PlanetSideGUID(10),
+          VehicleResponse.KickPassenger(0, false, PlanetSideGUID(11))
+        )
+      )
     }
   }
 }
@@ -179,8 +239,17 @@ class LoadVehicleTest extends ActorTest {
     "pass LoadVehicle" in {
       val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
       service ! Service.Join("test")
-      service ! VehicleServiceMessage("test", VehicleAction.LoadVehicle(PlanetSideGUID(10), vehicle, 12, PlanetSideGUID(11), cdata))
-      expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.LoadVehicle(vehicle, 12, PlanetSideGUID(11), cdata)))
+      service ! VehicleServiceMessage(
+        "test",
+        VehicleAction.LoadVehicle(PlanetSideGUID(10), vehicle, 12, PlanetSideGUID(11), cdata)
+      )
+      expectMsg(
+        VehicleServiceResponse(
+          "/test/Vehicle",
+          PlanetSideGUID(10),
+          VehicleResponse.LoadVehicle(vehicle, 12, PlanetSideGUID(11), cdata)
+        )
+      )
     }
   }
 }
@@ -193,7 +262,9 @@ class MountVehicleTest extends ActorTest {
       val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
       service ! Service.Join("test")
       service ! VehicleServiceMessage("test", VehicleAction.MountVehicle(PlanetSideGUID(10), PlanetSideGUID(11), 0))
-      expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.MountVehicle(PlanetSideGUID(11), 0)))
+      expectMsg(
+        VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.MountVehicle(PlanetSideGUID(11), 0))
+      )
     }
   }
 }
@@ -205,8 +276,17 @@ class SeatPermissionsTest extends ActorTest {
     "pass SeatPermissions" in {
       val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
       service ! Service.Join("test")
-      service ! VehicleServiceMessage("test", VehicleAction.SeatPermissions(PlanetSideGUID(10), PlanetSideGUID(11), 0, 12L))
-      expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.SeatPermissions(PlanetSideGUID(11), 0, 12L)))
+      service ! VehicleServiceMessage(
+        "test",
+        VehicleAction.SeatPermissions(PlanetSideGUID(10), PlanetSideGUID(11), 0, 12L)
+      )
+      expectMsg(
+        VehicleServiceResponse(
+          "/test/Vehicle",
+          PlanetSideGUID(10),
+          VehicleResponse.SeatPermissions(PlanetSideGUID(11), 0, 12L)
+        )
+      )
     }
   }
 }
@@ -217,14 +297,23 @@ class StowEquipmentTest extends ActorTest {
   tool.GUID = PlanetSideGUID(12)
   tool.AmmoSlots.head.Box.GUID = PlanetSideGUID(13)
   val toolDef = tool.Definition
-  val cdata = tool.Definition.Packet.DetailedConstructorData(tool).get
+  val cdata   = tool.Definition.Packet.DetailedConstructorData(tool).get
 
   "StowEquipment" should {
     "pass StowEquipment" in {
       val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
       service ! Service.Join("test")
-      service ! VehicleServiceMessage("test", VehicleAction.StowEquipment(PlanetSideGUID(10), PlanetSideGUID(11), 0, tool))
-      expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.StowEquipment(PlanetSideGUID(11), 0, toolDef.ObjectId, tool.GUID, cdata)))
+      service ! VehicleServiceMessage(
+        "test",
+        VehicleAction.StowEquipment(PlanetSideGUID(10), PlanetSideGUID(11), 0, tool)
+      )
+      expectMsg(
+        VehicleServiceResponse(
+          "/test/Vehicle",
+          PlanetSideGUID(10),
+          VehicleResponse.StowEquipment(PlanetSideGUID(11), 0, toolDef.ObjectId, tool.GUID, cdata)
+        )
+      )
     }
   }
 }
@@ -237,7 +326,9 @@ class UnstowEquipmentTest extends ActorTest {
       val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
       service ! Service.Join("test")
       service ! VehicleServiceMessage("test", VehicleAction.UnstowEquipment(PlanetSideGUID(10), PlanetSideGUID(11)))
-      expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.UnstowEquipment(PlanetSideGUID(11))))
+      expectMsg(
+        VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.UnstowEquipment(PlanetSideGUID(11)))
+      )
     }
   }
 }
@@ -249,8 +340,42 @@ class VehicleStateTest extends ActorTest {
     "pass VehicleState" in {
       val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
       service ! Service.Join("test")
-      service ! VehicleServiceMessage("test", VehicleAction.VehicleState(PlanetSideGUID(10), PlanetSideGUID(11), 0, Vector3(1.2f, 3.4f, 5.6f), Vector3(7.8f, 9.1f, 2.3f), Some(Vector3(4.5f, 6.7f, 8.9f)), Option(1), 2, 3, 4, false, true))
-      expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.VehicleState(PlanetSideGUID(11), 0, Vector3(1.2f, 3.4f, 5.6f), Vector3(7.8f, 9.1f, 2.3f), Some(Vector3(4.5f, 6.7f, 8.9f)), Option(1), 2, 3, 4, false, true)))
+      service ! VehicleServiceMessage(
+        "test",
+        VehicleAction.VehicleState(
+          PlanetSideGUID(10),
+          PlanetSideGUID(11),
+          0,
+          Vector3(1.2f, 3.4f, 5.6f),
+          Vector3(7.8f, 9.1f, 2.3f),
+          Some(Vector3(4.5f, 6.7f, 8.9f)),
+          Option(1),
+          2,
+          3,
+          4,
+          false,
+          true
+        )
+      )
+      expectMsg(
+        VehicleServiceResponse(
+          "/test/Vehicle",
+          PlanetSideGUID(10),
+          VehicleResponse.VehicleState(
+            PlanetSideGUID(11),
+            0,
+            Vector3(1.2f, 3.4f, 5.6f),
+            Vector3(7.8f, 9.1f, 2.3f),
+            Some(Vector3(4.5f, 6.7f, 8.9f)),
+            Option(1),
+            2,
+            3,
+            4,
+            false,
+            true
+          )
+        )
+      )
     }
   }
 }
@@ -261,11 +386,26 @@ class TransferPassengerChannelTest extends ActorTest {
   "VehicleService" should {
     "pass TransferPassengerChannel" in {
       val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
-      val fury = Vehicle(GlobalDefinitions.fury)
+      val fury    = Vehicle(GlobalDefinitions.fury)
       fury.Actor = system.actorOf(Props(classOf[VehicleControl], fury), "test-fury")
       service ! Service.Join("test")
-      service ! VehicleServiceMessage("test", VehicleAction.TransferPassengerChannel(PlanetSideGUID(10), "old_channel", "new_channel", fury, PlanetSideGUID(11)))
-      expectMsg(VehicleServiceResponse("/test/Vehicle", PlanetSideGUID(10), VehicleResponse.TransferPassengerChannel("old_channel", "new_channel", fury, PlanetSideGUID(11))))
+      service ! VehicleServiceMessage(
+        "test",
+        VehicleAction.TransferPassengerChannel(
+          PlanetSideGUID(10),
+          "old_channel",
+          "new_channel",
+          fury,
+          PlanetSideGUID(11)
+        )
+      )
+      expectMsg(
+        VehicleServiceResponse(
+          "/test/Vehicle",
+          PlanetSideGUID(10),
+          VehicleResponse.TransferPassengerChannel("old_channel", "new_channel", fury, PlanetSideGUID(11))
+        )
+      )
     }
   }
 }

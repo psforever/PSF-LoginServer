@@ -43,8 +43,15 @@ class DetailedCommandDetonaterDataTest extends Specification {
     }
 
     "encode" in {
-      val obj = DetailedCommandDetonaterData(CommonFieldData(PlanetSideEmpire.VS, false, false, false, None, false, None, None, PlanetSideGUID(0)))
-      val msg = ObjectCreateDetailedMessage(ObjectClass.command_detonater, PlanetSideGUID(8308), ObjectCreateMessageParent(PlanetSideGUID(3530), 0), obj)
+      val obj = DetailedCommandDetonaterData(
+        CommonFieldData(PlanetSideEmpire.VS, false, false, false, None, false, None, None, PlanetSideGUID(0))
+      )
+      val msg = ObjectCreateDetailedMessage(
+        ObjectClass.command_detonater,
+        PlanetSideGUID(8308),
+        ObjectCreateMessageParent(PlanetSideGUID(3530), 0),
+        obj
+      )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
       pkt mustEqual string_detonater
     }

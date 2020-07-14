@@ -15,12 +15,8 @@ import scodec.codecs._
   * @param unk4 na
   * @param zone_number when defined, the continent number
   */
-final case class SpawnRequestMessage(unk1 : Int,
-                                     spawn_type : SpawnGroup.Value,
-                                     unk3 : Int,
-                                     unk4 : Int,
-                                     zone_number : Int)
-  extends PlanetSideGamePacket {
+final case class SpawnRequestMessage(unk1: Int, spawn_type: SpawnGroup.Value, unk3: Int, unk4: Int, zone_number: Int)
+    extends PlanetSideGamePacket {
   type Packet = SpawnRequestMessage
   def opcode = GamePacketOpcode.SpawnRequestMessage
   def encode = SpawnRequestMessage.encode(this)
@@ -29,11 +25,11 @@ final case class SpawnRequestMessage(unk1 : Int,
 object SpawnRequestMessage extends Marshallable[SpawnRequestMessage] {
   private val spawnGroupCodec = PacketHelpers.createLongEnumerationCodec(SpawnGroup, uint32L)
 
-  implicit val codec : Codec[SpawnRequestMessage] = (
+  implicit val codec: Codec[SpawnRequestMessage] = (
     ("unk1" | uint16L) ::
       ("spawn_type" | spawnGroupCodec) ::
       ("unk3" | uint16L) ::
       ("unk4" | uint16L) ::
       ("zone_number" | uintL(10))
-    ).as[SpawnRequestMessage]
+  ).as[SpawnRequestMessage]
 }

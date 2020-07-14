@@ -20,19 +20,21 @@ import shapeless.{::, HNil}
   * @see `DetailedAmmoBoxData`
   * @see `WeaponData`
   */
-final case class DetailedWeaponData(data : CommonFieldData,
-                                    fire_mode : Int,
-                                    ammo : List[InternalSlot],
-                                    unk : Boolean = false
-                                   ) extends ConstructorData {
-  override def bitsize : Long = {
-    val dataSize = data.bitsize
-    val ammoSize : Long = ammo.foldLeft(0L)(_ + _.bitsize)
+final case class DetailedWeaponData(
+    data: CommonFieldData,
+    fire_mode: Int,
+    ammo: List[InternalSlot],
+    unk: Boolean = false
+) extends ConstructorData {
+  override def bitsize: Long = {
+    val dataSize       = data.bitsize
+    val ammoSize: Long = ammo.foldLeft(0L)(_ + _.bitsize)
     38L + dataSize + ammoSize //28 + 10 (from InventoryData) + ammo
   }
 }
 
 object DetailedWeaponData extends Marshallable[DetailedWeaponData] {
+
   /**
     * Overloaded constructor for creating `DetailedWeaponData` while masking use of `InternalSlot` for its `DetailedAmmoBoxData`.
     * @param unk1 na
@@ -43,7 +45,14 @@ object DetailedWeaponData extends Marshallable[DetailedWeaponData] {
     * @param ammo the constructor data for the ammunition
     * @return a `DetailedWeaponData` object
     */
-  def apply(unk1 : Int, unk2 : Int, cls : Int, guid : PlanetSideGUID, parentSlot : Int, ammo : DetailedAmmoBoxData) : DetailedWeaponData = {
+  def apply(
+      unk1: Int,
+      unk2: Int,
+      cls: Int,
+      guid: PlanetSideGUID,
+      parentSlot: Int,
+      ammo: DetailedAmmoBoxData
+  ): DetailedWeaponData = {
     DetailedWeaponData(
       CommonFieldData(
         PlanetSideEmpire(unk1 & 3),
@@ -61,7 +70,6 @@ object DetailedWeaponData extends Marshallable[DetailedWeaponData] {
     )
   }
 
-
   /**
     * Overloaded constructor for creating `DetailedWeaponData` while masking use of `InternalSlot` for its `DetailedAmmoBoxData`.
     * @param unk1 na
@@ -72,7 +80,15 @@ object DetailedWeaponData extends Marshallable[DetailedWeaponData] {
     * @param ammo the constructor data for the ammunition
     * @return a `DetailedWeaponData` object
     */
-  def apply(unk1 : Int, unk2 : Int, fire_mode : Int, cls : Int, guid : PlanetSideGUID, parentSlot : Int, ammo : DetailedAmmoBoxData) : DetailedWeaponData = {
+  def apply(
+      unk1: Int,
+      unk2: Int,
+      fire_mode: Int,
+      cls: Int,
+      guid: PlanetSideGUID,
+      parentSlot: Int,
+      ammo: DetailedAmmoBoxData
+  ): DetailedWeaponData = {
     DetailedWeaponData(
       CommonFieldData(
         PlanetSideEmpire(unk1 & 3),
@@ -90,7 +106,7 @@ object DetailedWeaponData extends Marshallable[DetailedWeaponData] {
     )
   }
 
-  implicit val codec : Codec[DetailedWeaponData] = (
+  implicit val codec: Codec[DetailedWeaponData] = (
     ("data" | CommonFieldData.codec) ::
       uint8 ::
       uint8 ::
@@ -98,14 +114,13 @@ object DetailedWeaponData extends Marshallable[DetailedWeaponData] {
       uint2 ::
       optional(bool, "ammo" | InventoryData.codec_detailed) ::
       ("unk" | bool)
-    ).exmap[DetailedWeaponData] (
+  ).exmap[DetailedWeaponData](
     {
       case data :: 1 :: 0 :: fmode :: 1 :: Some(InventoryData(ammo)) :: unk :: HNil =>
         val magSize = ammo.size
-        if(magSize == 0) {
+        if (magSize == 0) {
           Attempt.failure(Err("weapon must decode some ammunition"))
-        }
-        else {
+        } else {
           Attempt.successful(DetailedWeaponData(data, fmode, ammo, unk))
         }
 
@@ -115,13 +130,11 @@ object DetailedWeaponData extends Marshallable[DetailedWeaponData] {
     {
       case DetailedWeaponData(data, fmode, ammo, unk) =>
         val magSize = ammo.size
-        if(magSize == 0) {
+        if (magSize == 0) {
           Attempt.failure(Err("weapon must encode some ammunition"))
-        }
-        else if(magSize >= 255) {
+        } else if (magSize >= 255) {
           Attempt.failure(Err("weapon encodes too much ammunition (255+ types!)"))
-        }
-        else {
+        } else {
           Attempt.successful(data :: 1 :: 0 :: fmode :: 1 :: Some(InventoryData(ammo)) :: unk :: HNil)
         }
     }

@@ -21,11 +21,11 @@ import shapeless.{::, HNil}
   * @param contents the items in the inventory
   * @see `InventoryItemData`
   */
-final case class InventoryData(contents : List[InventoryItem] = List.empty) extends StreamBitSize {
-  override def bitsize : Long = {
-    val base : Long = InventoryData.BaseSize
-    var invSize : Long = 0L //length of all items in inventory
-    for(item <- contents) {
+final case class InventoryData(contents: List[InventoryItem] = List.empty) extends StreamBitSize {
+  override def bitsize: Long = {
+    val base: Long    = InventoryData.BaseSize
+    var invSize: Long = 0L //length of all items in inventory
+    for (item <- contents) {
       invSize += item.bitsize
     }
     base + invSize
@@ -33,36 +33,37 @@ final case class InventoryData(contents : List[InventoryItem] = List.empty) exte
 }
 
 object InventoryData {
-  final val BaseSize : Long = 10L //8u + 1u + 1u
+  final val BaseSize: Long = 10L //8u + 1u + 1u
 
   /**
     * The primary `Codec` that parses the common format for an inventory `List`.
     * @param itemCodec a `Codec` that describes each of the contents of the list
     * @return an `InventoryData` object, or a `BitVector`
     */
-  def codec(itemCodec : Codec[InventoryItem]) : Codec[InventoryData] = (
-    uint8L >>:~ { len =>
-      uint2L ::
-        ("contents" | PacketHelpers.listOfNSized(len, itemCodec))
-    }
-  ).xmap[InventoryData] (
-    {
-      case _ :: 0 :: c :: HNil =>
-        InventoryData(c)
-    },
-    {
-      case InventoryData(c) =>
-        c.size :: 0 :: c :: HNil
-    }
-  )
+  def codec(itemCodec: Codec[InventoryItem]): Codec[InventoryData] =
+    (
+      uint8L >>:~ { len =>
+        uint2L ::
+          ("contents" | PacketHelpers.listOfNSized(len, itemCodec))
+      }
+    ).xmap[InventoryData](
+      {
+        case _ :: 0 :: c :: HNil =>
+          InventoryData(c)
+      },
+      {
+        case InventoryData(c) =>
+          c.size :: 0 :: c :: HNil
+      }
+    )
 
   /**
     * A `Codec` for `0x17` `ObjectCreateMessage` data.
     */
-  val codec : Codec[InventoryData] = codec(InventoryItemData.codec)
+  val codec: Codec[InventoryData] = codec(InventoryItemData.codec)
 
   /**
     * A `Codec` for `0x18` `ObjectCreateDetailedMessage` data.
     */
-  val codec_detailed : Codec[InventoryData] = codec(InventoryItemData.codec_detailed)
+  val codec_detailed: Codec[InventoryData] = codec(InventoryItemData.codec_detailed)
 }

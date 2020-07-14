@@ -30,7 +30,7 @@ object LocalProjectile {
     * @param context a context to allow the object to properly set up `ActorSystem` functionality
     * @return the `LocalProjectile` object
     */
-  def Constructor(id : Int, context : ActorContext) : LocalProjectile = {
+  def Constructor(id: Int, context: ActorContext): LocalProjectile = {
     new LocalProjectile()
   }
 }

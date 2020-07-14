@@ -24,7 +24,7 @@ class MountedVehiclesTest extends Specification {
         guid mustEqual PlanetSideGUID(4308)
         parent.isEmpty mustEqual true
         data match {
-          case vdata : VehicleData =>
+          case vdata: VehicleData =>
             vdata.pos.coord mustEqual Vector3(4571.6875f, 5602.1875f, 93)
             vdata.pos.orient mustEqual Vector3(11.25f, 2.8125f, 92.8125f)
             vdata.pos.vel.contains(Vector3(31.71875f, 8.875f, -0.03125f)) mustEqual true
@@ -53,7 +53,13 @@ class MountedVehiclesTest extends Specification {
                   case PlayerData(None, app, char, Some(InventoryData(inv)), DrawnSlot.None) =>
                     app match {
                       case CharacterAppearanceData(a, b, ribbons) =>
-                        a.app mustEqual BasicCharacterData("ScrawnyRonnie", PlanetSideEmpire.TR, CharacterGender.Male, 5, CharacterVoice.Voice5)
+                        a.app mustEqual BasicCharacterData(
+                          "ScrawnyRonnie",
+                          PlanetSideEmpire.TR,
+                          CharacterGender.Male,
+                          5,
+                          CharacterVoice.Voice5
+                        )
                         a.data.bops mustEqual false
                         a.data.v1 mustEqual false
                         a.data.v2.isEmpty mustEqual true
@@ -131,7 +137,7 @@ class MountedVehiclesTest extends Specification {
   }
 
   "encode (Scrawny Ronnie's mosquito)" in {
-    val a : Int=>CharacterAppearanceA = CharacterAppearanceA(
+    val a: Int => CharacterAppearanceA = CharacterAppearanceA(
       BasicCharacterData(
         "ScrawnyRonnie",
         PlanetSideEmpire.TR,
@@ -158,7 +164,7 @@ class MountedVehiclesTest extends Specification {
       0,
       0
     )
-    val b : (Boolean,Int)=>CharacterAppearanceB = CharacterAppearanceB(
+    val b: (Boolean, Int) => CharacterAppearanceB = CharacterAppearanceB(
       316554L,
       "Black Beret Armoured Corps",
       23,
@@ -167,7 +173,8 @@ class MountedVehiclesTest extends Specification {
       false,
       false,
       false,
-      -11.25f, 0,
+      -11.25f,
+      0,
       false,
       GrenadeState.None,
       false,
@@ -178,8 +185,9 @@ class MountedVehiclesTest extends Specification {
       None
     )
 
-    val app : Int=>CharacterAppearanceData = CharacterAppearanceData(
-      a, b,
+    val app: Int => CharacterAppearanceData = CharacterAppearanceData(
+      a,
+      b,
       RibbonBars(
         MeritCommendation.MarkovVeteran,
         MeritCommendation.HeavyInfantry4,
@@ -187,31 +195,66 @@ class MountedVehiclesTest extends Specification {
         MeritCommendation.SixYearTR
       )
     )
-    val char : (Boolean,Boolean)=>CharacterData = CharacterData(
-      100, 0,
+    val char: (Boolean, Boolean) => CharacterData = CharacterData(
+      100,
+      0,
       UniformStyle.ThirdUpgrade,
       7,
       5,
       Nil,
       Some(Cosmetics(true, true, true, true, false))
     )
-    val inv : InventoryData = InventoryData(
+    val inv: InventoryData = InventoryData(
       List(
-        InternalSlot(ObjectClass.medicalapplicator, PlanetSideGUID(4201), 0,
-          WeaponData(CommonFieldData(PlanetSideEmpire.TR), 0, List(InternalSlot(ObjectClass.health_canister, PlanetSideGUID(3472), 0, CommonFieldData()(false))))
+        InternalSlot(
+          ObjectClass.medicalapplicator,
+          PlanetSideGUID(4201),
+          0,
+          WeaponData(
+            CommonFieldData(PlanetSideEmpire.TR),
+            0,
+            List(InternalSlot(ObjectClass.health_canister, PlanetSideGUID(3472), 0, CommonFieldData()(false)))
+          )
         ),
-        InternalSlot(ObjectClass.bank, PlanetSideGUID(2952), 1,
-          WeaponData(CommonFieldData(PlanetSideEmpire.TR), 0, List(InternalSlot(ObjectClass.armor_canister, PlanetSideGUID(3758), 0, CommonFieldData()(false))))
+        InternalSlot(
+          ObjectClass.bank,
+          PlanetSideGUID(2952),
+          1,
+          WeaponData(
+            CommonFieldData(PlanetSideEmpire.TR),
+            0,
+            List(InternalSlot(ObjectClass.armor_canister, PlanetSideGUID(3758), 0, CommonFieldData()(false)))
+          )
         ),
-        InternalSlot(ObjectClass.mini_chaingun, PlanetSideGUID(2929), 2,
-          WeaponData(CommonFieldData(PlanetSideEmpire.TR), 0, List(InternalSlot(ObjectClass.bullet_9mm, PlanetSideGUID(3292), 0, CommonFieldData()(false))))
+        InternalSlot(
+          ObjectClass.mini_chaingun,
+          PlanetSideGUID(2929),
+          2,
+          WeaponData(
+            CommonFieldData(PlanetSideEmpire.TR),
+            0,
+            List(InternalSlot(ObjectClass.bullet_9mm, PlanetSideGUID(3292), 0, CommonFieldData()(false)))
+          )
         ),
-        InternalSlot(ObjectClass.chainblade, PlanetSideGUID(3222), 4,
-          WeaponData(CommonFieldData(PlanetSideEmpire.TR), 0, List(InternalSlot(ObjectClass.melee_ammo, PlanetSideGUID(3100), 0, CommonFieldData()(false))))
+        InternalSlot(
+          ObjectClass.chainblade,
+          PlanetSideGUID(3222),
+          4,
+          WeaponData(
+            CommonFieldData(PlanetSideEmpire.TR),
+            0,
+            List(InternalSlot(ObjectClass.melee_ammo, PlanetSideGUID(3100), 0, CommonFieldData()(false)))
+          )
         )
       )
     )
-    val player = VehicleData.PlayerData(app, char, inv, DrawnSlot.None, VehicleData.InitialStreamLengthToSeatEntries(true, VehicleFormat.Variant))
+    val player = VehicleData.PlayerData(
+      app,
+      char,
+      inv,
+      DrawnSlot.None,
+      VehicleData.InitialStreamLengthToSeatEntries(true, VehicleFormat.Variant)
+    )
     val obj = VehicleData(
       PlacementData(
         Vector3(4571.6875f, 5602.1875f, 93),
@@ -221,16 +264,26 @@ class MountedVehiclesTest extends Specification {
       CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, Some(false), None, PlanetSideGUID(3776)),
       false,
       255,
-      false, false,
+      false,
+      false,
       DriveState.Mobile,
-      false, false, false,
+      false,
+      false,
+      false,
       Some(VariantVehicleData(7)),
       Some(
         InventoryData(
           List(
             InternalSlot(ObjectClass.avatar, PlanetSideGUID(3776), 0, player),
-            InternalSlot(ObjectClass.rotarychaingun_mosquito, PlanetSideGUID(3602), 1,
-              WeaponData(CommonFieldData(), 0, List(InternalSlot(ObjectClass.bullet_12mm, PlanetSideGUID(3538), 0, CommonFieldData()(false))))
+            InternalSlot(
+              ObjectClass.rotarychaingun_mosquito,
+              PlanetSideGUID(3602),
+              1,
+              WeaponData(
+                CommonFieldData(),
+                0,
+                List(InternalSlot(ObjectClass.bullet_12mm, PlanetSideGUID(3538), 0, CommonFieldData()(false)))
+              )
             )
           )
         )
@@ -241,4 +294,3 @@ class MountedVehiclesTest extends Specification {
     pkt mustEqual string_mosquito_seated
   }
 }
-

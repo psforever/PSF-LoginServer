@@ -12,27 +12,29 @@ class BuildingInfoUpdateMessageTest extends Specification {
 
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
-      case BuildingInfoUpdateMessage(continent_guid,
-      building_guid,
-      ntu_level,
-      is_hacked,
-      empire_hack,
-      hack_time_remaining,
-      empire_own,
-      unk1,
-      unk1x,
-      generator_state,
-      spawn_tubes_normal,
-      force_dome_active,
-      lattice_benefit,
-      unk3,
-      unk4,
-      unk5,
-      unk6,
-      unk7,
-      unk7x,
-      boost_spawn_pain,
-      boost_generator_pain) =>
+      case BuildingInfoUpdateMessage(
+            continent_guid,
+            building_guid,
+            ntu_level,
+            is_hacked,
+            empire_hack,
+            hack_time_remaining,
+            empire_own,
+            unk1,
+            unk1x,
+            generator_state,
+            spawn_tubes_normal,
+            force_dome_active,
+            lattice_benefit,
+            unk3,
+            unk4,
+            unk5,
+            unk6,
+            unk7,
+            unk7x,
+            boost_spawn_pain,
+            boost_generator_pain
+          ) =>
         continent_guid mustEqual 4
         building_guid mustEqual 9
         ntu_level mustEqual 1
@@ -61,7 +63,8 @@ class BuildingInfoUpdateMessageTest extends Specification {
   }
 
   "encode" in {
-    val msg = BuildingInfoUpdateMessage(4,
+    val msg = BuildingInfoUpdateMessage(
+      4,
       9,
       1,
       false,
@@ -81,7 +84,8 @@ class BuildingInfoUpdateMessageTest extends Specification {
       8,
       None,
       false,
-      false)
+      false
+    )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string

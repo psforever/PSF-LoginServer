@@ -6,7 +6,12 @@ import akka.testkit.TestProbe
 import base.ActorTest
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
-import net.psforever.objects.serverobject.terminals.{ProximityTerminal, ProximityTerminalControl, ProximityUnit, Terminal}
+import net.psforever.objects.serverobject.terminals.{
+  ProximityTerminal,
+  ProximityTerminalControl,
+  ProximityUnit,
+  Terminal
+}
 import net.psforever.objects.zones.{Zone, ZoneActor, ZoneMap}
 import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, PlanetSideGUID}
@@ -24,10 +29,12 @@ class ProximityTest extends Specification {
     }
 
     "keep track of users (add)" in {
-      val avatar1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
+      val avatar1 =
+        Player(Avatar("TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
       avatar1.Spawn
       avatar1.Health = 50
-      val avatar2 = Player(Avatar("TestCharacter2", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
+      val avatar2 =
+        Player(Avatar("TestCharacter2", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
       avatar2.Spawn
       avatar2.Health = 50
 
@@ -40,10 +47,12 @@ class ProximityTest extends Specification {
     }
 
     "keep track of users (remove)" in {
-      val avatar1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
+      val avatar1 =
+        Player(Avatar("TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
       avatar1.Spawn
       avatar1.Health = 50
-      val avatar2 = Player(Avatar("TestCharacter2", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
+      val avatar2 =
+        Player(Avatar("TestCharacter2", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
       avatar2.Spawn
       avatar2.Health = 50
 
@@ -61,19 +70,21 @@ class ProximityTest extends Specification {
     }
 
     "can not add a user twice" in {
-      val avatar = Player(Avatar("TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
+      val avatar =
+        Player(Avatar("TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
       avatar.Spawn
       avatar.Health = 50
 
       val obj = new ProximityTerminal(GlobalDefinitions.medical_terminal)
       obj.AddUser(avatar) mustEqual true
       obj.NumberUsers mustEqual 1
-      obj.AddUser(avatar)// mustEqual false
+      obj.AddUser(avatar) // mustEqual false
       obj.NumberUsers mustEqual 1
     }
 
     "can not remove a user that was not added" in {
-      val avatar = Player(Avatar("TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
+      val avatar =
+        Player(Avatar("TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
       avatar.Spawn
       avatar.Health = 50
 
@@ -94,7 +105,7 @@ class ProximityTest extends Specification {
 class ProximityTerminalControlStartTest extends ActorTest {
   "ProximityTerminalControl" should {
     //setup
-    val zone : Zone = new Zone("test", new ZoneMap("test-map"), 0) {
+    val zone: Zone = new Zone("test", new ZoneMap("test-map"), 0) {
       Actor = system.actorOf(Props(classOf[ZoneActor], this), "test-zone")
       override def SetupNumberPools() = {
         AddPool("dynamic", 1 to 10)
@@ -134,7 +145,7 @@ class ProximityTerminalControlStartTest extends ActorTest {
 class ProximityTerminalControlTwoUsersTest extends ActorTest {
   "ProximityTerminalControl" should {
     //setup
-    val zone : Zone = new Zone("test", new ZoneMap("test-map"), 0) {
+    val zone: Zone = new Zone("test", new ZoneMap("test-map"), 0) {
       Actor = system.actorOf(Props(classOf[ZoneActor], this), "test-zone")
       override def SetupNumberPools() = {
         AddPool("dynamic", 1 to 10)
@@ -151,7 +162,8 @@ class ProximityTerminalControlTwoUsersTest extends ActorTest {
     avatar.Continent = "test"
     avatar.Spawn
     avatar.Health = 50
-    val avatar2 = Player(Avatar("TestCharacter2", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
+    val avatar2 =
+      Player(Avatar("TestCharacter2", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
     avatar2.Continent = "test"
     avatar2.Spawn
     avatar2.Health = 50
@@ -186,7 +198,7 @@ class ProximityTerminalControlTwoUsersTest extends ActorTest {
 class ProximityTerminalControlStopTest extends ActorTest {
   "ProximityTerminalControl" should {
     //setup
-    val zone : Zone = new Zone("test", new ZoneMap("test-map"), 0) {
+    val zone: Zone = new Zone("test", new ZoneMap("test-map"), 0) {
       Actor = system.actorOf(Props(classOf[ZoneActor], this), "test-zone")
       override def SetupNumberPools() = {
         AddPool("dynamic", 1 to 10)
@@ -229,7 +241,7 @@ class ProximityTerminalControlStopTest extends ActorTest {
 class ProximityTerminalControlNotStopTest extends ActorTest {
   "ProximityTerminalControl" should {
     //setup
-    val zone : Zone = new Zone("test", new ZoneMap("test-map"), 0) {
+    val zone: Zone = new Zone("test", new ZoneMap("test-map"), 0) {
       Actor = system.actorOf(Props(classOf[ZoneActor], this), "test-zone")
       override def SetupNumberPools() = {
         AddPool("dynamic", 1 to 10)
@@ -246,7 +258,8 @@ class ProximityTerminalControlNotStopTest extends ActorTest {
     avatar.Continent = "test"
     avatar.Spawn
     avatar.Health = 50
-    val avatar2 = Player(Avatar("TestCharacter2", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
+    val avatar2 =
+      Player(Avatar("TestCharacter2", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
     avatar2.Continent = "test"
     avatar2.Spawn
     avatar2.Health = 50
@@ -287,7 +300,7 @@ class ProximityTerminalControlNotStopTest extends ActorTest {
 object ProximityTest {
   class SampleTerminal extends Terminal(GlobalDefinitions.dropship_vehicle_terminal) with ProximityUnit
 
-  class ProbedLocalService(probe : TestProbe, zone : Zone) extends LocalService(zone) {
+  class ProbedLocalService(probe: TestProbe, zone: Zone) extends LocalService(zone) {
     self.tell(Service.Join("test"), probe.ref)
   }
 }

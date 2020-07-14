@@ -19,27 +19,27 @@ import scala.concurrent.duration._
   * It has failure cases should the driver be in an incorrect state.
   * @param pad the `VehicleSpawnPad` object being governed
   */
-class VehicleSpawnControlServerVehicleOverride(pad : VehicleSpawnPad) extends VehicleSpawnControlBase(pad) {
+class VehicleSpawnControlServerVehicleOverride(pad: VehicleSpawnPad) extends VehicleSpawnControlBase(pad) {
   def LogId = "-overrider"
 
-  val driverControl = context.actorOf(Props(classOf[VehicleSpawnControlDriverControl], pad), s"${context.parent.path.name}-driver")
+  val driverControl =
+    context.actorOf(Props(classOf[VehicleSpawnControlDriverControl], pad), s"${context.parent.path.name}-driver")
 
-  def receive : Receive = {
+  def receive: Receive = {
     case order @ VehicleSpawnControl.Order(driver, vehicle) =>
       val vehicleFailState = vehicle.Health == 0 || vehicle.Position == Vector3.Zero
-      val driverFailState = !driver.isAlive || driver.Continent != pad.Continent || !vehicle.PassengerInSeat(driver).contains(0)
+      val driverFailState =
+        !driver.isAlive || driver.Continent != pad.Continent || !vehicle.PassengerInSeat(driver).contains(0)
       pad.Zone.VehicleEvents ! VehicleSpawnPad.DetachFromRails(vehicle, pad)
-      if(vehicleFailState || driverFailState) {
-        if(vehicleFailState) {
+      if (vehicleFailState || driverFailState) {
+        if (vehicleFailState) {
           trace(s"vehicle was already destroyed")
-        }
-        else {
+        } else {
           trace(s"driver is not ready")
         }
         pad.Zone.VehicleEvents ! VehicleSpawnPad.RevealPlayer(order.DriverGUID)
         driverControl ! order
-      }
-      else {
+      } else {
         trace(s"telling ${driver.Name} that the server is assuming control of the ${vehicle.Definition.Name}")
         pad.Zone.VehicleEvents ! VehicleSpawnPad.ServerVehicleOverrideStart(driver.Name, vehicle, pad)
         context.system.scheduler.scheduleOnce(4000 milliseconds, driverControl, order)

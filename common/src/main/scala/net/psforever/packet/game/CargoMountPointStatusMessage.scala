@@ -25,14 +25,15 @@ import scodec.codecs._
   *                           0 is "normal," front facing forward;
   *                           1 is "sideways," front facing the side of the carrier vehicle, e.g. `router`
   */
-final case class CargoMountPointStatusMessage(cargo_vehicle_guid : PlanetSideGUID,
-                                              requesting_vehicle: PlanetSideGUID,
-                                              mounted_vehicle: PlanetSideGUID,
-                                              dismounted_vehicle: PlanetSideGUID,
-                                              slot: Int,
-                                              mount_status: CargoStatus.Value,
-                                              orientation: Int)
-  extends PlanetSideGamePacket {
+final case class CargoMountPointStatusMessage(
+    cargo_vehicle_guid: PlanetSideGUID,
+    requesting_vehicle: PlanetSideGUID,
+    mounted_vehicle: PlanetSideGUID,
+    dismounted_vehicle: PlanetSideGUID,
+    slot: Int,
+    mount_status: CargoStatus.Value,
+    orientation: Int
+) extends PlanetSideGamePacket {
   type Packet = CargoMountPointStatusMessage
 
   def opcode = GamePacketOpcode.CargoMountPointStatusMessage
@@ -41,14 +42,13 @@ final case class CargoMountPointStatusMessage(cargo_vehicle_guid : PlanetSideGUI
 }
 
 object CargoMountPointStatusMessage extends Marshallable[CargoMountPointStatusMessage] {
-  implicit val codec : Codec[CargoMountPointStatusMessage] = (
+  implicit val codec: Codec[CargoMountPointStatusMessage] = (
     ("cargo_vehicle_guid" | PlanetSideGUID.codec) ::
-    ("requesting_vehicle" | PlanetSideGUID.codec) ::
-    ("mounted_vehicle" | PlanetSideGUID.codec) ::
-    ("dismounted_vehicle" | PlanetSideGUID.codec) ::
-    ("slot" | uint8L) ::
-    ("mount_status" | CargoStatus.codec) ::
-    ("orientation" | uint2L)
-    ).as[CargoMountPointStatusMessage]
+      ("requesting_vehicle" | PlanetSideGUID.codec) ::
+      ("mounted_vehicle" | PlanetSideGUID.codec) ::
+      ("dismounted_vehicle" | PlanetSideGUID.codec) ::
+      ("slot" | uint8L) ::
+      ("mount_status" | CargoStatus.codec) ::
+      ("orientation" | uint2L)
+  ).as[CargoMountPointStatusMessage]
 }
-

@@ -8,8 +8,8 @@ import net.psforever.types.Vector3
 import scodec.bits._
 
 class PlayerStateShiftMessageTest extends Specification {
-  val string_short = hex"BE 68"
-  val string_pos = hex"BE 95 A0 89 13 91 B8 B0 B7 F0" //orig: ... B0 BF F0
+  val string_short     = hex"BE 68"
+  val string_pos       = hex"BE 95 A0 89 13 91 B8 B0 B7 F0" //orig: ... B0 BF F0
   val string_posAndVel = hex"BE AE 01 29 CD 59 B9 40 C0 EA D4 00 0F 86 40"
 
   "decode (short)" in {
@@ -73,7 +73,9 @@ class PlayerStateShiftMessageTest extends Specification {
   }
 
   "encode (pos and vel)" in {
-    val msg = PlayerStateShiftMessage(ShiftState(2, Vector3(4645.75f, 5811.6016f, 50.3125f), 50.625f, Vector3(2.8125f, -8.0f, 0.375f)))
+    val msg = PlayerStateShiftMessage(
+      ShiftState(2, Vector3(4645.75f, 5811.6016f, 50.3125f), 50.625f, Vector3(2.8125f, -8.0f, 0.375f))
+    )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_posAndVel

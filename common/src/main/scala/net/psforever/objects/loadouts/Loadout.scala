@@ -16,15 +16,15 @@ import scala.util.{Failure, Success, Try}
   * by reconstructing any items (if warranted and permitted) or restoring any appropriate fields.
   * @param label the name by which this inventory will be known when displayed in a Favorites list
   */
-abstract class Loadout(label : String)
+abstract class Loadout(label: String)
 
 object Loadout {
-  def Create(owner : Any, label : String) : Try[Loadout] = {
+  def Create(owner: Any, label: String): Try[Loadout] = {
     owner match {
-      case p : Player => Success(Create(p, label))
-      case v : Vehicle => Success(Create(v, label))
-      case s : Squad => Success(Create(s, s.Task))
-      case _ => Failure(new MatchError(s"can not create a loadout based on the (current status of) $owner"))
+      case p: Player  => Success(Create(p, label))
+      case v: Vehicle => Success(Create(v, label))
+      case s: Squad   => Success(Create(s, s.Task))
+      case _          => Failure(new MatchError(s"can not create a loadout based on the (current status of) $owner"))
     }
   }
 
@@ -34,7 +34,7 @@ object Loadout {
     * @param label the name of this loadout
     * @return an `InfantryLoadout` object populated with appropriate information about the current state of the player
     */
-  def Create(player : Player, label : String) : Loadout = {
+  def Create(player: Player, label: String): Loadout = {
     InfantryLoadout(
       label,
       packageSimplifications(player.Holsters()),
@@ -50,12 +50,13 @@ object Loadout {
     * @param label the name of this loadout
     * @return a `VehicleLoadout` object populated with appropriate information about the current state of the vehicle
     */
-  def Create(vehicle : Vehicle, label : String) : Loadout = {
+  def Create(vehicle: Vehicle, label: String): Loadout = {
     VehicleLoadout(
       label,
-      packageSimplifications(vehicle.Weapons.collect { case (index, slot) if slot.Equipment.nonEmpty =>
-        InventoryItem(slot.Equipment.get, index) }.toList
-      ),
+      packageSimplifications(vehicle.Weapons.collect {
+        case (index, slot) if slot.Equipment.nonEmpty =>
+          InventoryItem(slot.Equipment.get, index)
+      }.toList),
       packageSimplifications(vehicle.Trunk.Items),
       vehicle.Definition
     )
@@ -64,17 +65,19 @@ object Loadout {
   /**
     *  na
     */
-  def Create(squad : Squad, label : String) : Loadout = {
+  def Create(squad: Squad, label: String): Loadout = {
     SquadLoadout(
       label,
-      if(squad.CustomZoneId) { Some(squad.ZoneId) } else { None },
-      squad.Membership
-        .zipWithIndex
-        .filter { case (_, index) =>
-          squad.Availability(index)
+      if (squad.CustomZoneId) { Some(squad.ZoneId) }
+      else { None },
+      squad.Membership.zipWithIndex
+        .filter {
+          case (_, index) =>
+            squad.Availability(index)
         }
-        .map {case (member, index) =>
-          SquadPositionLoadout(index, member.Role, member.Orders, member.Requirements)
+        .map {
+          case (member, index) =>
+            SquadPositionLoadout(index, member.Role, member.Orders, member.Requirements)
         }
         .toList
     )
@@ -84,7 +87,7 @@ object Loadout {
     * A basic `Trait` connecting all of the `Equipment` blueprints.
     */
   sealed trait Simplification {
-    def definition : ObjectDefinition
+    def definition: ObjectDefinition
   }
 
   /**
@@ -101,40 +104,46 @@ object Loadout {
     * @param capacity the amount of ammunition, if any, to initialize;
     *                 if `None`, then the previous `AmmoBoxDefinition` will be referenced for the amount later
     */
-  final case class ShorthandAmmoBox(definition : AmmoBoxDefinition, capacity : Int) extends Simplification
+  final case class ShorthandAmmoBox(definition: AmmoBoxDefinition, capacity: Int) extends Simplification
+
   /**
     * The simplified form of a `Tool`.
     * @param definition the `ToolDefinition` that describes this future object
     * @param ammo the blueprints to construct the correct number of ammunition slots in the `Tool`
     */
-  final case class ShorthandTool(definition : ToolDefinition, ammo : List[ShorthandAmmoSlot]) extends Simplification
+  final case class ShorthandTool(definition: ToolDefinition, ammo: List[ShorthandAmmoSlot]) extends Simplification
+
   /**
     * The simplified form of a `Tool` `FireMode`
     * @param ammoIndex the index that points to the type of ammunition this slot currently uses
     * @param ammo a `ShorthandAmmoBox` object to load into that slot
     */
-  final case class ShorthandAmmoSlot(ammoIndex : Int, ammo : ShorthandAmmoBox)
+  final case class ShorthandAmmoSlot(ammoIndex: Int, ammo: ShorthandAmmoBox)
+
   /**
     * The simplified form of a `ConstructionItem`.
     * @param definition the `ConstructionItemDefinition` that describes this future object
     */
-  final case class ShorthandConstructionItem(definition : ConstructionItemDefinition) extends Simplification
+  final case class ShorthandConstructionItem(definition: ConstructionItemDefinition) extends Simplification
+
   /**
     * The simplified form of a `BoomerTrigger`, a unique kind of `SimpleItem`.
     * @param definition the `SimpleItemDefinition` that describes this future object;
     *                   actually ignored, but retained for function definition consistency
     */
-  final case class ShorthandTriggerItem(definition : SimpleItemDefinition) extends Simplification
+  final case class ShorthandTriggerItem(definition: SimpleItemDefinition) extends Simplification
+
   /**
     * The simplified form of a `SimpleItem`.
     * @param definition the `SimpleItemDefinition` that describes this future object
     */
-  final case class ShorthandSimpleItem(definition : SimpleItemDefinition) extends Simplification
+  final case class ShorthandSimpleItem(definition: SimpleItemDefinition) extends Simplification
+
   /**
     * The simplified form of a `Kit`.
     * @param definition the `KitDefinition` that describes this future object
     */
-  final case class ShorthandKit(definition : KitDefinition) extends Simplification
+  final case class ShorthandKit(definition: KitDefinition) extends Simplification
 
   /**
     * The sub-type of the player's uniform.
@@ -144,7 +153,7 @@ object Loadout {
     * @param player the player
     * @return the numeric subtype
     */
-  def DetermineSubtype(player : Player) : Int = {
+  def DetermineSubtype(player: Player): Int = {
     InfantryLoadout.DetermineSubtype(player)
   }
 
@@ -154,14 +163,14 @@ object Loadout {
     * @param vehicle the vehicle
     * @return the numeric subtype, always 0
     */
-  def DetermineSubtype(vehicle : Vehicle) : Int = 0
+  def DetermineSubtype(vehicle: Vehicle): Int = 0
 
   /**
     * Overloaded entry point for constructing simplified blueprints from holster slot equipment.
     * @param equipment the holster slots
     * @return a `List` of simplified `Equipment`
     */
-  protected def packageSimplifications(equipment : Array[EquipmentSlot]) : List[SimplifiedEntry] = {
+  protected def packageSimplifications(equipment: Array[EquipmentSlot]): List[SimplifiedEntry] = {
     recursiveHolsterSimplifications(equipment.iterator)
   }
 
@@ -170,10 +179,9 @@ object Loadout {
     * @param equipment the enumerated contents of the inventory
     * @return a `List` of simplified `Equipment`
     */
-  protected def packageSimplifications(equipment : List[InventoryItem]) : List[SimplifiedEntry] = {
+  protected def packageSimplifications(equipment: List[InventoryItem]): List[SimplifiedEntry] = {
     equipment.map(entry => { SimplifiedEntry(buildSimplification(entry.obj), entry.start) })
   }
-
 
   /**
     * Traverse a `Player`'s holsters and transform occupied slots into simplified blueprints for the contents of that slot.
@@ -187,11 +195,14 @@ object Loadout {
     *             empty, by default
     * @return a `List` of simplified `Equipment` blueprints
     */
-  @tailrec private def recursiveHolsterSimplifications(iter : Iterator[EquipmentSlot], index : Int = 0, list : List[SimplifiedEntry] = Nil) : List[SimplifiedEntry] = {
-    if(!iter.hasNext) {
+  @tailrec private def recursiveHolsterSimplifications(
+      iter: Iterator[EquipmentSlot],
+      index: Int = 0,
+      list: List[SimplifiedEntry] = Nil
+  ): List[SimplifiedEntry] = {
+    if (!iter.hasNext) {
       list
-    }
-    else {
+    } else {
       val entry = iter.next
       entry.Equipment match {
         case Some(obj) =>
@@ -213,19 +224,20 @@ object Loadout {
     * @return a `List` of simplified ammo slot blueprints
     * @see `Tool.FireModeSlot`
     */
-  @tailrec private def recursiveFireModeSimplications(iter : Iterator[Tool.FireModeSlot], list : List[ShorthandAmmoSlot] = Nil) : List[ShorthandAmmoSlot] = {
-    if(!iter.hasNext) {
+  @tailrec private def recursiveFireModeSimplications(
+      iter: Iterator[Tool.FireModeSlot],
+      list: List[ShorthandAmmoSlot] = Nil
+  ): List[ShorthandAmmoSlot] = {
+    if (!iter.hasNext) {
       list
-    }
-    else {
+    } else {
       val entry = iter.next
-      val fmodeSimp = if(entry.Box.AmmoType == entry.AmmoType) {
+      val fmodeSimp = if (entry.Box.AmmoType == entry.AmmoType) {
         ShorthandAmmoSlot(
           entry.AmmoTypeIndex,
           ShorthandAmmoBox(entry.Box.Definition, entry.Box.Capacity)
         )
-      }
-      else {
+      } else {
         ShorthandAmmoSlot(
           entry.AmmoTypeIndex,
           ShorthandAmmoBox(entry.Tool.AmmoTypes(entry.Definition.AmmoTypeIndices.head), 1)
@@ -240,20 +252,20 @@ object Loadout {
     * @param obj the `Equipment`
     * @return the simplified blueprint
     */
-  private def buildSimplification(obj : Equipment) : Simplification = {
+  private def buildSimplification(obj: Equipment): Simplification = {
     obj match {
-      case obj : Tool =>
+      case obj: Tool =>
         val flist = recursiveFireModeSimplications(obj.AmmoSlots.iterator)
         ShorthandTool(obj.Definition, flist)
-      case obj : AmmoBox =>
+      case obj: AmmoBox =>
         ShorthandAmmoBox(obj.Definition, obj.Capacity)
-      case obj : ConstructionItem =>
+      case obj: ConstructionItem =>
         ShorthandConstructionItem(obj.Definition)
-      case obj : BoomerTrigger =>
+      case obj: BoomerTrigger =>
         ShorthandTriggerItem(obj.Definition)
-      case obj : SimpleItem =>
+      case obj: SimpleItem =>
         ShorthandSimpleItem(obj.Definition)
-      case obj : Kit =>
+      case obj: Kit =>
         ShorthandKit(obj.Definition)
     }
   }

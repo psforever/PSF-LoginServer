@@ -10,21 +10,21 @@ import net.psforever.objects.serverobject.structures.{Amenity, AmenityDefinition
 /**
   * The definition for any spawn point in the game world.
   */
-class SpawnTubeDefinition(object_id : Int) extends AmenityDefinition(object_id)
-  with SpawnPointDefinition {
+class SpawnTubeDefinition(object_id: Int) extends AmenityDefinition(object_id) with SpawnPointDefinition {
   Packet = new SpawnTubeConverter
 }
 
 object SpawnTubeDefinition {
+
   /**
     * Assemble some logic for a provided object.
     * @param obj an `Amenity` object;
     *            anticipating a `Terminal` object using this same definition
     * @param context hook to the local `Actor` system
     */
-  def Setup(obj : Amenity, context : ActorContext) : Unit = {
+  def Setup(obj: Amenity, context: ActorContext): Unit = {
     import akka.actor.Props
-    if(obj.Actor == Default.Actor) {
+    if (obj.Actor == Default.Actor) {
       obj.Actor = context.actorOf(Props(classOf[SpawnTubeControl], obj), PlanetSideServerObject.UniqueActorName(obj))
     }
   }

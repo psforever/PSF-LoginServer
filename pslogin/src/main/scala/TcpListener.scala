@@ -1,31 +1,28 @@
-// Copyright (c) 2020 PSForever
+package net.psforever.pslogin
+
 import java.net.{InetAddress, InetSocketAddress}
 
 import akka.actor.SupervisorStrategy.Stop
-import akka.actor.{Actor, ActorRef, OneForOneStrategy, Props, Terminated}
+import akka.actor.{Actor, ActorRef, OneForOneStrategy, Props}
 import akka.io._
-import scodec.bits._
-import scodec.interop.akka._
-import akka.util.ByteString
 
-class TcpListener[T <: Actor](actorClass : Class[T],
-                  nextActorName : String,
-                  listenAddress : InetAddress,
-                  port : Int) extends Actor {
+class TcpListener[T <: Actor](actorClass: Class[T], nextActorName: String, listenAddress: InetAddress, port: Int)
+    extends Actor {
   private val log = org.log4s.getLogger(self.path.name)
 
-  override def supervisorStrategy = OneForOneStrategy() {
-    case _ => Stop
-  }
+  override def supervisorStrategy =
+    OneForOneStrategy() {
+      case _ => Stop
+    }
 
   import context.system
 
   IO(Tcp) ! Tcp.Bind(self, new InetSocketAddress(listenAddress, port))
 
-  var sessionId = 0L
-  var bytesRecevied = 0L
-  var bytesSent = 0L
-  var nextActor : ActorRef = ActorRef.noSender
+  var sessionId           = 0L
+  var bytesRecevied       = 0L
+  var bytesSent           = 0L
+  var nextActor: ActorRef = ActorRef.noSender
 
   def receive = {
     case Tcp.Bound(local) =>
@@ -42,12 +39,12 @@ class TcpListener[T <: Actor](actorClass : Class[T],
   def ready(socket: ActorRef): Receive = {
     case Tcp.Connected(remote, local) =>
       val connection = sender()
-      val session = sessionId
-      val handler = context.actorOf(Props(actorClass, remote, connection), nextActorName + session)
+      val session    = sessionId
+      val handler    = context.actorOf(Props(actorClass, remote, connection), nextActorName + session)
       connection ! Tcp.Register(handler)
       sessionId += 1
     case Tcp.Unbind  => socket ! Tcp.Unbind
     case Tcp.Unbound => context.stop(self)
-    case default => log.error(s"Unhandled message: $default")
+    case default     => log.error(s"Unhandled message: $default")
   }
 }

@@ -32,23 +32,28 @@ import shapeless.{::, HNil}
   * @param inventory the player's full or partial (holsters-only) inventory
   * @param drawn_slot the holster that is depicted as exposed, or "drawn"
   */
-final case class DetailedPlayerData(pos : Option[PlacementData],
-                                    basic_appearance : CharacterAppearanceData,
-                                    character_data : DetailedCharacterData,
-                                    inventory : Option[InventoryData],
-                                    drawn_slot : DrawnSlot.Value)
-                                   (position_defined : Boolean) extends ConstructorData {
-  override def bitsize : Long = {
+final case class DetailedPlayerData(
+    pos: Option[PlacementData],
+    basic_appearance: CharacterAppearanceData,
+    character_data: DetailedCharacterData,
+    inventory: Option[InventoryData],
+    drawn_slot: DrawnSlot.Value
+)(position_defined: Boolean)
+    extends ConstructorData {
+  override def bitsize: Long = {
     //factor guard bool values into the base size, not its corresponding optional field
-    val posSize : Long = if(pos.isDefined) { pos.get.bitsize } else { 0L }
-    val appSize : Long = basic_appearance.bitsize
-    val charSize = character_data.bitsize
-    val inventorySize : Long = if(inventory.isDefined) { inventory.get.bitsize } else { 0L }
+    val posSize: Long = if (pos.isDefined) { pos.get.bitsize }
+    else { 0L }
+    val appSize: Long = basic_appearance.bitsize
+    val charSize      = character_data.bitsize
+    val inventorySize: Long = if (inventory.isDefined) { inventory.get.bitsize }
+    else { 0L }
     5L + posSize + appSize + charSize + inventorySize
   }
 }
 
 object DetailedPlayerData extends Marshallable[DetailedPlayerData] {
+
   /**
     * Overloaded constructor that ignores the coordinate information but includes the inventory.
     * It passes information between the three major divisions for the purposes of offset calculations.
@@ -60,7 +65,12 @@ object DetailedPlayerData extends Marshallable[DetailedPlayerData] {
     *                   technically, always `DrawnSlot.None`, but the field is preserved to maintain similarity
     * @return a `DetailedPlayerData` object
     */
-  def apply(basic_appearance : Int=>CharacterAppearanceData, character_data : Option[Int]=>DetailedCharacterData, inventory : InventoryData, drawn_slot : DrawnSlot.Value) : DetailedPlayerData = {
+  def apply(
+      basic_appearance: Int => CharacterAppearanceData,
+      character_data: Option[Int] => DetailedCharacterData,
+      inventory: InventoryData,
+      drawn_slot: DrawnSlot.Value
+  ): DetailedPlayerData = {
     val appearance = basic_appearance(5)
     DetailedPlayerData(None, appearance, character_data(appearance.altModelBit), Some(inventory), drawn_slot)(false)
   }
@@ -75,7 +85,11 @@ object DetailedPlayerData extends Marshallable[DetailedPlayerData] {
     *                   technically, always `DrawnSlot.None`, but the field is preserved to maintain similarity
     * @return a `DetailedPlayerData` object
     */
-  def apply(basic_appearance : Int=>CharacterAppearanceData, character_data : Option[Int]=>DetailedCharacterData, drawn_slot : DrawnSlot.Value) : DetailedPlayerData = {
+  def apply(
+      basic_appearance: Int => CharacterAppearanceData,
+      character_data: Option[Int] => DetailedCharacterData,
+      drawn_slot: DrawnSlot.Value
+  ): DetailedPlayerData = {
     val appearance = basic_appearance(5)
     DetailedPlayerData(None, appearance, character_data(appearance.altModelBit), None, drawn_slot)(false)
   }
@@ -91,7 +105,13 @@ object DetailedPlayerData extends Marshallable[DetailedPlayerData] {
     * @param drawn_slot the holster that is depicted as exposed, or "drawn"
     * @return a `DetailedPlayerData` object
     */
-  def apply(pos : PlacementData, basic_appearance : Int=>CharacterAppearanceData, character_data : Option[Int]=>DetailedCharacterData, inventory : InventoryData, drawn_slot : DrawnSlot.Value) : DetailedPlayerData = {
+  def apply(
+      pos: PlacementData,
+      basic_appearance: Int => CharacterAppearanceData,
+      character_data: Option[Int] => DetailedCharacterData,
+      inventory: InventoryData,
+      drawn_slot: DrawnSlot.Value
+  ): DetailedPlayerData = {
     val appearance = basic_appearance(PlayerData.PaddingOffset(Some(pos)))
     DetailedPlayerData(Some(pos), appearance, character_data(appearance.altModelBit), Some(inventory), drawn_slot)(true)
   }
@@ -106,29 +126,34 @@ object DetailedPlayerData extends Marshallable[DetailedPlayerData] {
     * @param drawn_slot the holster that is depicted as exposed, or "drawn"
     * @return a `DetailedPlayerData` object
     */
-  def apply(pos : PlacementData, basic_appearance : Int=>CharacterAppearanceData, character_data : Option[Int]=>DetailedCharacterData, drawn_slot : DrawnSlot.Value) : DetailedPlayerData = {
+  def apply(
+      pos: PlacementData,
+      basic_appearance: Int => CharacterAppearanceData,
+      character_data: Option[Int] => DetailedCharacterData,
+      drawn_slot: DrawnSlot.Value
+  ): DetailedPlayerData = {
     val appearance = basic_appearance(PlayerData.PaddingOffset(Some(pos)))
     DetailedPlayerData(Some(pos), appearance, character_data(appearance.altModelBit), None, drawn_slot)(true)
   }
 
-  def codec(position_defined : Boolean) : Codec[DetailedPlayerData] = (
-    conditional(position_defined, "pos" | PlacementData.codec) >>:~ { pos =>
+  def codec(position_defined: Boolean): Codec[DetailedPlayerData] =
+    (conditional(position_defined, "pos" | PlacementData.codec) >>:~ { pos =>
       ("basic_appearance" | CharacterAppearanceData.codec(PlayerData.PaddingOffset(pos))) >>:~ { app =>
         ("character_data" | DetailedCharacterData.codec(app.a.exosuit, app.altModelBit)) ::
           optional(bool, "inventory" | InventoryData.codec_detailed) ::
           ("drawn_slot" | DrawnSlot.codec) ::
           bool //usually false
       }
-    }).xmap[DetailedPlayerData] (
-    {
-      case pos :: app :: data :: inv :: hand :: _ :: HNil =>
-        DetailedPlayerData(pos, app, data, inv, hand)(pos.isDefined)
-    },
-    {
-      case DetailedPlayerData(pos, app, data, inv, hand) =>
-        pos :: app :: data :: inv :: hand :: false :: HNil
-    }
-  )
+    }).xmap[DetailedPlayerData](
+      {
+        case pos :: app :: data :: inv :: hand :: _ :: HNil =>
+          DetailedPlayerData(pos, app, data, inv, hand)(pos.isDefined)
+      },
+      {
+        case DetailedPlayerData(pos, app, data, inv, hand) =>
+          pos :: app :: data :: inv :: hand :: false :: HNil
+      }
+    )
 
-  implicit val codec : Codec[DetailedPlayerData] = codec(false)
+  implicit val codec: Codec[DetailedPlayerData] = codec(false)
 }

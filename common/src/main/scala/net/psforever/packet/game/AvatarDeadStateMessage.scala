@@ -13,12 +13,7 @@ import scodec.codecs._
 object DeadState extends Enumeration {
   type Type = Value
 
-  val
-  Alive,
-  Dead,
-  Release,
-  RespawnTime
-    = Value
+  val Alive, Dead, Release, RespawnTime = Value
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uintL(3))
 }
@@ -54,19 +49,21 @@ object DeadState extends Enumeration {
   * @param faction spawn points available for this faction on redeployment map
   * @param unk5 na
   */
-final case class AvatarDeadStateMessage(state : DeadState.Value,
-                                        timer_max : Long,
-                                        timer : Long,
-                                        pos : Vector3,
-                                        faction : PlanetSideEmpire.Value,
-                                        unk5 : Boolean)
-  extends PlanetSideGamePacket {
+final case class AvatarDeadStateMessage(
+    state: DeadState.Value,
+    timer_max: Long,
+    timer: Long,
+    pos: Vector3,
+    faction: PlanetSideEmpire.Value,
+    unk5: Boolean
+) extends PlanetSideGamePacket {
   type Packet = AvatarDeadStateMessage
   def opcode = GamePacketOpcode.AvatarDeadStateMessage
   def encode = AvatarDeadStateMessage.encode(this)
 }
 
 object AvatarDeadStateMessage extends Marshallable[AvatarDeadStateMessage] {
+
   /**
     * allocate all values from the `PlanetSideEmpire` `Enumeration`
     */
@@ -75,24 +72,22 @@ object AvatarDeadStateMessage extends Marshallable[AvatarDeadStateMessage] {
   /**
     * `Codec` for converting between the limited `PlanetSideEmpire` `Enumeration` and a `Long` value.
     */
-  private val factionLongCodec = uint32L.exmap[PlanetSideEmpire.Value] (
+  private val factionLongCodec = uint32L.exmap[PlanetSideEmpire.Value](
     fv =>
-      if(factionLongValues.contains(fv)) {
+      if (factionLongValues.contains(fv)) {
         Successful(PlanetSideEmpire(fv.toInt))
-      }
-      else {
+      } else {
         Failure(Err(s"$fv is not mapped to a PlanetSideEmpire value"))
       },
-    f =>
-      Successful(f.id.toLong)
+    f => Successful(f.id.toLong)
   )
 
-  implicit val codec : Codec[AvatarDeadStateMessage] = (
+  implicit val codec: Codec[AvatarDeadStateMessage] = (
     ("state" | DeadState.codec) ::
       ("timer_max" | uint32L) ::
       ("timer" | uint32L) ::
       ("pos" | Vector3.codec_pos) ::
       ("faction" | factionLongCodec) ::
       ("unk5" | bool)
-    ).as[AvatarDeadStateMessage]
+  ).as[AvatarDeadStateMessage]
 }

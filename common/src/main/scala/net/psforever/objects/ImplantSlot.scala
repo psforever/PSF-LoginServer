@@ -14,61 +14,68 @@ import net.psforever.types.{ExoSuitType, ImplantType}
   * Being jammed de-activates the implant, put it into a state of "not being ready," and causes the initialization to repeat.
   */
 class ImplantSlot {
+
   /** is this slot available for holding an implant */
-  private var unlocked : Boolean = false
+  private var unlocked: Boolean = false
+
   /** whether this implant is ready for use */
-  private var initialized : Boolean = false
-  /**  */
-  private var initializeTime : Long = 0L
+  private var initialized: Boolean = false
+
+  /**
+    */
+  private var initializeTime: Long = 0L
+
   /** is this implant active */
-  private var active : Boolean = false
+  private var active: Boolean = false
+
   /** what implant is currently installed in this slot; None if there is no implant currently installed */
-  private var implant : Option[ImplantDefinition] = None
+  private var implant: Option[ImplantDefinition] = None
 
-  def InitializeTime : Long = initializeTime
+  def InitializeTime: Long = initializeTime
 
-  def InitializeTime_=(time : Long) : Long = {
+  def InitializeTime_=(time: Long): Long = {
     initializeTime = time
     InitializeTime
   }
 
-  def Unlocked : Boolean = unlocked
+  def Unlocked: Boolean = unlocked
 
-  def Unlocked_=(lock : Boolean) : Boolean = {
+  def Unlocked_=(lock: Boolean): Boolean = {
     unlocked = lock || unlocked //do not let re-lock
     Unlocked
   }
 
-  def Initialized : Boolean = initialized
+  def Initialized: Boolean = initialized
 
-  def Initialized_=(init : Boolean) : Boolean = {
+  def Initialized_=(init: Boolean): Boolean = {
     initialized = Installed.isDefined && init
     Active = Active && initialized //can not be active just yet
     Initialized
   }
 
-  def Active : Boolean = active
+  def Active: Boolean = active
 
-  def Active_=(state : Boolean) : Boolean = {
+  def Active_=(state: Boolean): Boolean = {
     active = Initialized && state
     Active
   }
 
-  def Implant : ImplantType.Value = Installed match {
-    case Some(idef) =>
-      idef.Type
-    case None =>
-      Active = false
-      Initialized = false
-      ImplantType.None
-  }
+  def Implant: ImplantType.Value =
+    Installed match {
+      case Some(idef) =>
+        idef.Type
+      case None =>
+        Active = false
+        Initialized = false
+        ImplantType.None
+    }
 
-  def Implant_=(anImplant : ImplantDefinition) : ImplantType.Value = {
+  def Implant_=(anImplant: ImplantDefinition): ImplantType.Value = {
     Implant_=(Some(anImplant))
   }
 
-  def Implant_=(anImplant : Option[ImplantDefinition]) : ImplantType.Value = {
-    if(Unlocked) {
+  def Implant_=(anImplant: Option[ImplantDefinition]): ImplantType.Value = {
+    if (Unlocked) {
       anImplant match {
         case Some(_) =>
           implant = anImplant
@@ -81,20 +88,20 @@ class ImplantSlot {
     Implant
   }
 
-  def Installed : Option[ImplantDefinition] = implant
+  def Installed: Option[ImplantDefinition] = implant
 
-  def MaxTimer : Long = Implant match {
-    case ImplantType.None =>
-      -1L
-    case _ =>
-      Installed.get.InitializationDuration
-  }
-
-  def ActivationCharge : Int =  {
-    if(Active) {
-      Installed.get.ActivationStaminaCost
+  def MaxTimer: Long =
+    Implant match {
+      case ImplantType.None =>
+        -1L
+      case _ =>
+        Installed.get.InitializationDuration
     }
-    else {
+
+  def ActivationCharge: Int = {
+    if (Active) {
+      Installed.get.ActivationStaminaCost
+    } else {
       0
     }
   }
@@ -104,24 +111,23 @@ class ImplantSlot {
     * @param suit the exo-suit being worn
     * @return the amount of stamina (energy) that is consumed
     */
-  def Charge(suit : ExoSuitType.Value) : Int = {
-    if(Active) {
+  def Charge(suit: ExoSuitType.Value): Int = {
+    if (Active) {
       val inst = Installed.get
       inst.StaminaCost
-    }
-    else {
+    } else {
       0
     }
   }
 
-  def Jammed() : Unit = {
+  def Jammed(): Unit = {
     Active = false
     Initialized = false
   }
 }
 
 object ImplantSlot {
-  def apply() : ImplantSlot = {
+  def apply(): ImplantSlot = {
     new ImplantSlot()
   }
 }

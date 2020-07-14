@@ -11,15 +11,16 @@ import services.vehicle.{VehicleAction, VehicleServiceMessage}
   * The "control" `Actor` mixin for repair-handling code for `WeaponTurret` objects.
   */
 trait RepairableWeaponTurret extends RepairableEntity {
-  def RepairableObject : Repairable.Target with WeaponTurret
+  def RepairableObject: Repairable.Target with WeaponTurret
 
-  override def Restoration(target : Repairable.Target) : Unit = {
+  override def Restoration(target: Repairable.Target): Unit = {
     super.Restoration(target)
     RepairableWeaponTurret.Restoration(RepairableObject)
   }
 }
 
 object RepairableWeaponTurret {
+
   /**
     * A restored target dispatches messages to reconstruct the weapons that were previously mounted to the turret
     * and may have been concealed/deleted when the target was destroyed.
@@ -34,18 +35,19 @@ object RepairableWeaponTurret {
     *               note: `MountedWeapons` is a parent of `WeaponTurret`
     *               but the handling code closely associates with the former
     */
-  def Restoration(target : Repairable.Target with MountedWeapons) : Unit = {
-    val zone = target.Zone
+  def Restoration(target: Repairable.Target with MountedWeapons): Unit = {
+    val zone   = target.Zone
     val zoneId = zone.Id
-    val tguid = target.GUID
+    val tguid  = target.GUID
     val events = zone.VehicleEvents
     target.Weapons
       .map({ case (index, slot) => (index, slot.Equipment) })
-      .collect { case (index, Some(tool : Tool)) =>
-        events ! VehicleServiceMessage(
-          zoneId,
-          VehicleAction.EquipmentInSlot(Service.defaultPlayerGUID, tguid, index, tool)
-        )
+      .collect {
+        case (index, Some(tool: Tool)) =>
+          events ! VehicleServiceMessage(
+            zoneId,
+            VehicleAction.EquipmentInSlot(Service.defaultPlayerGUID, tguid, index, tool)
+          )
       }
   }
 }

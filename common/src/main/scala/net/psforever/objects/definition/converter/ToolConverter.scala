@@ -8,11 +8,13 @@ import net.psforever.types.PlanetSideGUID
 import scala.util.{Success, Try}
 
 class ToolConverter extends ObjectCreateConverter[Tool]() {
-  override def ConstructorData(obj : Tool) : Try[WeaponData] = {
-    val slots : List[InternalSlot] = (0 until obj.MaxAmmoSlot).map(index => {
-      val box = obj.AmmoSlots(index).Box
-      InternalSlot(box.Definition.ObjectId, box.GUID, index, box.Definition.Packet.ConstructorData(box).get)
-    }).toList
+  override def ConstructorData(obj: Tool): Try[WeaponData] = {
+    val slots: List[InternalSlot] = (0 until obj.MaxAmmoSlot)
+      .map(index => {
+        val box = obj.AmmoSlots(index).Box
+        InternalSlot(box.Definition.ObjectId, box.GUID, index, box.Definition.Packet.ConstructorData(box).get)
+      })
+      .toList
     Success(
       WeaponData(
         CommonFieldData(
@@ -32,11 +34,13 @@ class ToolConverter extends ObjectCreateConverter[Tool]() {
     )
   }
 
-  override def DetailedConstructorData(obj : Tool) : Try[DetailedWeaponData] = {
-    val slots : List[InternalSlot] = (0 until obj.MaxAmmoSlot).map(index => {
-      val box = obj.AmmoSlots(index).Box
-      InternalSlot(box.Definition.ObjectId, box.GUID, index, box.Definition.Packet.DetailedConstructorData(box).get)
-    }).toList
+  override def DetailedConstructorData(obj: Tool): Try[DetailedWeaponData] = {
+    val slots: List[InternalSlot] = (0 until obj.MaxAmmoSlot)
+      .map(index => {
+        val box = obj.AmmoSlots(index).Box
+        InternalSlot(box.Definition.ObjectId, box.GUID, index, box.Definition.Packet.DetailedConstructorData(box).get)
+      })
+      .toList
     Success(
       DetailedWeaponData(
         CommonFieldData(

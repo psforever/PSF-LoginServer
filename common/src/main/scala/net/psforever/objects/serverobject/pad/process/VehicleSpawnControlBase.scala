@@ -12,9 +12,10 @@ import org.log4s.Logger
   * Additional functionality that recovers the `Zone` of the owned amenity `VehicleSpawnPad`.
   * @param pad a `VehicleSpawnPad` object
   */
-abstract class VehicleSpawnControlBase(pad : VehicleSpawnPad) extends Actor {
+abstract class VehicleSpawnControlBase(pad: VehicleSpawnPad) extends Actor {
+
   /** the log reference */
-  private var baseLogger : Option[Logger] = None
+  private var baseLogger: Option[Logger] = None
 
   /**
     * Initialize, if appropriate, and provide a log-keeping agent for the requested task.
@@ -23,30 +24,30 @@ abstract class VehicleSpawnControlBase(pad : VehicleSpawnPad) extends Actor {
     * @param logid a special identifier that distinguishes a logger whose name is built of common features
     * @return a `Logger` object
     */
-  private def GetLogger(logid : String) : Logger = baseLogger match {
-    case None =>
-      if(!pad.HasGUID || pad.Zone == Zone.Nowhere) {
-        org.log4s.getLogger(s"uninitialized_${pad.Definition.Name}$logid")
-      }
-      else {
-        baseLogger = Some(org.log4s.getLogger(s"${pad.Continent}-${pad.Definition.Name}-${pad.GUID.guid}$logid"))
-        baseLogger.get
-      }
-    case Some(logger) =>
-      logger
-  }
+  private def GetLogger(logid: String): Logger =
+    baseLogger match {
+      case None =>
+        if (!pad.HasGUID || pad.Zone == Zone.Nowhere) {
+          org.log4s.getLogger(s"uninitialized_${pad.Definition.Name}$logid")
+        } else {
+          baseLogger = Some(org.log4s.getLogger(s"${pad.Continent}-${pad.Definition.Name}-${pad.GUID.guid}$logid"))
+          baseLogger.get
+        }
+      case Some(logger) =>
+        logger
+    }
 
   /**
     * Implement this to add a suffix to the identifying name of the logger.
     * @return a special identifier that distinguishes a logger whose name is built of common features
     */
-  def LogId : String
+  def LogId: String
 
   /**
     * Act as if a variable for the logging agent.
     * @return a `Logger` object
     */
-  def log : Logger = GetLogger(LogId)
+  def log: Logger = GetLogger(LogId)
 
   /**
     * A common manner of utilizing the logging agent such that all messages have the same logging level.
@@ -54,5 +55,5 @@ abstract class VehicleSpawnControlBase(pad : VehicleSpawnPad) extends Actor {
     * No important messages should processed by this agent; only consume general vehicle spawn status.
     * @param msg the message
     */
-  def trace(msg : String) : Unit = log.trace(msg)
+  def trace(msg: String): Unit = log.trace(msg)
 }

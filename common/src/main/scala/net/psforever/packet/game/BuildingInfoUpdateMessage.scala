@@ -13,25 +13,21 @@ import shapeless.{::, HNil}
   * @param unk2 na
   * @param unk3 na
   */
-final case class Additional1(unk1 : String,
-                             unk2 : Int,
-                             unk3 : Long)
+final case class Additional1(unk1: String, unk2: Int, unk3: Long)
 
 /**
   * na
   * @param unk1 na
   * @param unk2 na
   */
-final case class Additional2(unk1 : Int,
-                             unk2 : Long)
+final case class Additional2(unk1: Int, unk2: Long)
 
 /**
   * na
   * @param unk1 na
   * @param unk2 na
   */
-final case class Additional3(unk1 : Boolean,
-                             unk2 : Int)
+final case class Additional3(unk1: Boolean, unk2: Int)
 
 /**
   * Update the state of map asset for a client's specific building's state.
@@ -103,84 +99,86 @@ final case class Additional3(unk1 : Boolean,
   * @param boost_spawn_pain if the building has spawn tubes, the (boosted) strength of its enemy pain field
   * @param boost_generator_pain if the building has a generator, the (boosted) strength of its enemy pain field
   */
-final case class BuildingInfoUpdateMessage(continent_id : Int,
-                                           building_map_id : Int,
-                                           ntu_level : Int,
-                                           is_hacked : Boolean,
-                                           empire_hack : PlanetSideEmpire.Value,
-                                           hack_time_remaining : Long,
-                                           empire_own : PlanetSideEmpire.Value,
-                                           unk1 : Long,
-                                           unk1x : Option[Additional1],
-                                           generator_state : PlanetSideGeneratorState.Value,
-                                           spawn_tubes_normal : Boolean,
-                                           force_dome_active : Boolean,
-                                           lattice_benefit : Int,
-                                           cavern_benefit : Int,
-                                           unk4 : List[Additional2],
-                                           unk5 : Long,
-                                           unk6 : Boolean,
-                                           unk7 : Int,
-                                           unk7x : Option[Additional3],
-                                           boost_spawn_pain : Boolean,
-                                           boost_generator_pain : Boolean)
-  extends PlanetSideGamePacket {
+final case class BuildingInfoUpdateMessage(
+    continent_id: Int,
+    building_map_id: Int,
+    ntu_level: Int,
+    is_hacked: Boolean,
+    empire_hack: PlanetSideEmpire.Value,
+    hack_time_remaining: Long,
+    empire_own: PlanetSideEmpire.Value,
+    unk1: Long,
+    unk1x: Option[Additional1],
+    generator_state: PlanetSideGeneratorState.Value,
+    spawn_tubes_normal: Boolean,
+    force_dome_active: Boolean,
+    lattice_benefit: Int,
+    cavern_benefit: Int,
+    unk4: List[Additional2],
+    unk5: Long,
+    unk6: Boolean,
+    unk7: Int,
+    unk7x: Option[Additional3],
+    boost_spawn_pain: Boolean,
+    boost_generator_pain: Boolean
+) extends PlanetSideGamePacket {
   type Packet = BuildingInfoUpdateMessage
   def opcode = GamePacketOpcode.BuildingInfoUpdateMessage
   def encode = BuildingInfoUpdateMessage.encode(this)
 }
 
 object BuildingInfoUpdateMessage extends Marshallable[BuildingInfoUpdateMessage] {
+
   /**
     * A `Codec` for a set of additional fields.
     */
-  private val additional1_codec : Codec[Additional1] = (
+  private val additional1_codec: Codec[Additional1] = (
     ("unk1" | PacketHelpers.encodedWideStringAligned(3)) ::
       ("unk2" | uint8L) ::
       ("unk3" | uint32L)
-    ).as[Additional1]
+  ).as[Additional1]
 
   /**
     * A `Codec` for a set of additional fields.
     */
-  private val additional2_codec : Codec[Additional2] = (
+  private val additional2_codec: Codec[Additional2] = (
     ("unk1" | uint4L) ::
       ("unk2" | uint32L)
-    ).as[Additional2]
+  ).as[Additional2]
 
   /**
     * A `Codec` for a set of additional fields.
     */
-  private val additional3_codec : Codec[Additional3] = (
+  private val additional3_codec: Codec[Additional3] = (
     ("unk1" | bool) ::
       ("unk2" | uint2L)
-    ).as[Additional3]
+  ).as[Additional3]
 
-  implicit val codec : Codec[BuildingInfoUpdateMessage] = (
-      ("continent_id" | uint16L) ::
+  implicit val codec: Codec[BuildingInfoUpdateMessage] = (
+    ("continent_id" | uint16L) ::
       ("building_id" | uint16L) ::
       ("ntu_level" | uint4L) ::
-      ("is_hacked" | bool ) ::
+      ("is_hacked" | bool) ::
       ("empire_hack" | PlanetSideEmpire.codec) ::
-      ("hack_time_remaining" | uint32L ) ::
+      ("hack_time_remaining" | uint32L) ::
       ("empire_own" | PlanetSideEmpire.codec) ::
       (("unk1" | uint32L) >>:~ { unk1 =>
-        conditional(unk1 != 0L, "unk1x" | additional1_codec) ::
-          ("generator_state" | PlanetSideGeneratorState.codec) ::
-          ("spawn_tubes_normal" | bool) ::
-          ("force_dome_active" | bool) ::
-          ("lattice_benefit" | uintL(5)) ::
-          ("cavern_benefit" | uintL(10)) ::
-          ("unk4" | listOfN(uint4L, additional2_codec)) ::
-          ("unk5" | uint32L) ::
-          ("unk6" | bool) ::
-          (("unk7" | uint4L) >>:~ { unk7 =>
-            conditional(unk7 != 8, "unk7x" | additional3_codec) ::
-              ("boost_spawn_pain" | bool) ::
-              ("boost_generator_pain" | bool)
-            })
+      conditional(unk1 != 0L, "unk1x" | additional1_codec) ::
+        ("generator_state" | PlanetSideGeneratorState.codec) ::
+        ("spawn_tubes_normal" | bool) ::
+        ("force_dome_active" | bool) ::
+        ("lattice_benefit" | uintL(5)) ::
+        ("cavern_benefit" | uintL(10)) ::
+        ("unk4" | listOfN(uint4L, additional2_codec)) ::
+        ("unk5" | uint32L) ::
+        ("unk6" | bool) ::
+        (("unk7" | uint4L) >>:~ { unk7 =>
+        conditional(unk7 != 8, "unk7x" | additional3_codec) ::
+          ("boost_spawn_pain" | bool) ::
+          ("boost_generator_pain" | bool)
       })
-    ).exmap[BuildingInfoUpdateMessage] (
+    })
+  ).exmap[BuildingInfoUpdateMessage](
     {
       case a :: b :: c :: d :: e :: f :: g :: h :: i :: j :: k :: l :: m :: n :: o :: p :: q :: r :: s :: t :: u :: HNil =>
         Attempt.successful(BuildingInfoUpdateMessage(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u))
@@ -193,18 +191,22 @@ object BuildingInfoUpdateMessage extends Marshallable[BuildingInfoUpdateMessage]
         Attempt.failure(Err("invalid properties when value == 8"))
 
       case BuildingInfoUpdateMessage(a, b, c, d, e, f, g, h, i, j, k, l, m, n, lst, p, q, r, s, t, u) =>
-        if(h != 0 && i.isEmpty) {
-          Attempt.failure(Err(s"missing properties when value != 0 (actual: $h)")) //TODO can we recover by forcing value -> 0?
-        }
-        else if(r != 8 && s.isEmpty) {
-          Attempt.failure(Err(s"missing properties when value != 8 (actual: $r)")) //TODO can we recover by forcing value -> 8?
+        if (h != 0 && i.isEmpty) {
+          Attempt.failure(
+            Err(s"missing properties when value != 0 (actual: $h)")
+          ) //TODO can we recover by forcing value -> 0?
+        } else if (r != 8 && s.isEmpty) {
+          Attempt.failure(
+            Err(s"missing properties when value != 8 (actual: $r)")
+          ) //TODO can we recover by forcing value -> 8?
         }
         val size = lst.size
-        if(size > 15) {
+        if (size > 15) {
           Attempt.failure(Err(s"too many elements in list (max: 15, actual: $size)"))
-        }
-        else {
-          Attempt.successful(a :: b :: c :: d :: e :: f :: g :: h :: i :: j :: k :: l :: m :: n :: lst :: p :: q :: r :: s :: t :: u :: HNil)
+        } else {
+          Attempt.successful(
+            a :: b :: c :: d :: e :: f :: g :: h :: i :: j :: k :: l :: m :: n :: lst :: p :: q :: r :: s :: t :: u :: HNil
+          )
         }
     }
   )

@@ -6,10 +6,10 @@ import net.psforever.objects.vehicles.VehicleManifest
 import net.psforever.packet.game.BuildingInfoUpdateMessage
 import net.psforever.types.PlanetSideGUID
 
-final case class GalaxyServiceMessage(forChannel : String, actionMessage : GalaxyAction.Action)
+final case class GalaxyServiceMessage(forChannel: String, actionMessage: GalaxyAction.Action)
 
 object GalaxyServiceMessage {
-  def apply(actionMessage : GalaxyAction.Action) : GalaxyServiceMessage = GalaxyServiceMessage("", actionMessage)
+  def apply(actionMessage: GalaxyAction.Action): GalaxyServiceMessage = GalaxyServiceMessage("", actionMessage)
 }
 
 object GalaxyAction {
@@ -17,5 +17,11 @@ object GalaxyAction {
 
   final case class MapUpdate(msg: BuildingInfoUpdateMessage) extends Action
 
-  final case class TransferPassenger(player_guid : PlanetSideGUID, temp_channel : String, vehicle : Vehicle, vehicle_to_delete : PlanetSideGUID, manifest : VehicleManifest) extends Action
+  final case class TransferPassenger(
+      player_guid: PlanetSideGUID,
+      temp_channel: String,
+      vehicle: Vehicle,
+      vehicle_to_delete: PlanetSideGUID,
+      manifest: VehicleManifest
+  ) extends Action
 }

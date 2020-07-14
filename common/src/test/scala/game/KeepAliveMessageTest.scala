@@ -25,4 +25,3 @@ class KeepAliveMessageTest extends Specification {
     pkt mustEqual string
   }
 }
-

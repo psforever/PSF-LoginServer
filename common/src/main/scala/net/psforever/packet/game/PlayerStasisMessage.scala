@@ -26,17 +26,15 @@ import scodec.codecs._
   * @param stasis `true` by default;
   *               nothing when `false` (?)
   */
-final case class PlayerStasisMessage(player_guid : PlanetSideGUID,
-                                     stasis : Boolean = true)
-  extends PlanetSideGamePacket {
+final case class PlayerStasisMessage(player_guid: PlanetSideGUID, stasis: Boolean = true) extends PlanetSideGamePacket {
   type Packet = PlayerStasisMessage
   def opcode = GamePacketOpcode.PlayerStasisMessage
   def encode = PlayerStasisMessage.encode(this)
 }
 
 object PlayerStasisMessage extends Marshallable[PlayerStasisMessage] {
-  implicit val codec : Codec[PlayerStasisMessage] = (
+  implicit val codec: Codec[PlayerStasisMessage] = (
     ("player_guid" | PlanetSideGUID.codec) ::
       ("stasis" | bool)
-    ).as[PlayerStasisMessage]
+  ).as[PlayerStasisMessage]
 }

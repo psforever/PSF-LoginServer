@@ -7,16 +7,16 @@ import scodec.codecs._
 import shapeless.{::, HNil}
 
 object RemoteProjectiles {
-  abstract class Data(val a : Int, val b : Int)
+  abstract class Data(val a: Int, val b: Int)
 
-  final case object Meteor extends Data(0, 32)
-  final case object Wasp extends Data(0, 208)
-  final case object Sparrow extends Data(13107, 187)
-  final case object OICW extends Data(13107, 195)
-  final case object Striker extends Data(26214, 134)
-  final case object HunterSeeker extends Data(39577, 201)
-  final case object Starfire extends Data(39577, 249)
-  class OICWLittleBuddy(x : Int, y : Int) extends Data(x, y)
+  final case object Meteor              extends Data(0, 32)
+  final case object Wasp                extends Data(0, 208)
+  final case object Sparrow             extends Data(13107, 187)
+  final case object OICW                extends Data(13107, 195)
+  final case object Striker             extends Data(26214, 134)
+  final case object HunterSeeker        extends Data(39577, 201)
+  final case object Starfire            extends Data(39577, 249)
+  class OICWLittleBuddy(x: Int, y: Int) extends Data(x, y)
 }
 
 object FlightPhysics extends Enumeration {
@@ -50,25 +50,26 @@ object FlightPhysics extends Enumeration {
   * @param unk4 na
   * @param unk5 na
   */
-final case class RemoteProjectileData(common_data : CommonFieldDataWithPlacement,
-                                      u1 : Int,
-                                      u2 : Int,
-                                      unk3 : FlightPhysics.Value,
-                                      unk4 : Int,
-                                      unk5 : Int
-                                      ) extends ConstructorData {
-  override def bitsize : Long = 33L + common_data.bitsize
+final case class RemoteProjectileData(
+    common_data: CommonFieldDataWithPlacement,
+    u1: Int,
+    u2: Int,
+    unk3: FlightPhysics.Value,
+    unk4: Int,
+    unk5: Int
+) extends ConstructorData {
+  override def bitsize: Long = 33L + common_data.bitsize
 }
 
 object RemoteProjectileData extends Marshallable[RemoteProjectileData] {
-  implicit val codec : Codec[RemoteProjectileData] = (
+  implicit val codec: Codec[RemoteProjectileData] = (
     ("data" | CommonFieldDataWithPlacement.codec) ::
       ("u1" | uint16) ::
       ("u2" | uint8) ::
       ("unk3" | FlightPhysics.codec) ::
       ("unk4" | uint(3)) ::
       ("unk5" | uint2)
-    ).exmap[RemoteProjectileData] (
+  ).exmap[RemoteProjectileData](
     {
       case data :: u1 :: u2 :: unk3 :: unk4 :: unk5 :: HNil =>
         Attempt.successful(RemoteProjectileData(data, u1, u2, unk3, unk4, unk5))

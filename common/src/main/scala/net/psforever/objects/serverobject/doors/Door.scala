@@ -9,43 +9,43 @@ import net.psforever.packet.game.UseItemMessage
   * A structure-owned server object that is a "door" that can open and can close.
   * @param ddef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
-class Door(private val ddef : DoorDefinition) extends Amenity {
-  private var openState : Option[Player] = None
+class Door(private val ddef: DoorDefinition) extends Amenity {
+  private var openState: Option[Player] = None
 
-  def isOpen : Boolean = openState.isDefined
+  def isOpen: Boolean = openState.isDefined
 
-  def Open : Option[Player] = openState
+  def Open: Option[Player] = openState
 
-  def Open_=(player : Player) : Option[Player] = {
+  def Open_=(player: Player): Option[Player] = {
     Open_=(Some(player))
   }
 
-  def Open_=(open : Option[Player]) : Option[Player] = {
+  def Open_=(open: Option[Player]): Option[Player] = {
     openState = open
     Open
   }
 
-  def Use(player : Player, msg : UseItemMessage) : Door.Exchange = {
-    if(openState.isEmpty) {
+  def Use(player: Player, msg: UseItemMessage): Door.Exchange = {
+    if (openState.isEmpty) {
       openState = Some(player)
       Door.OpenEvent()
-    }
-    else {
+    } else {
       openState = None
       Door.CloseEvent()
     }
   }
 
-  def Definition : DoorDefinition = ddef
+  def Definition: DoorDefinition = ddef
 }
 
 object Door {
+
   /**
     * Entry message into this `Door` that carries the request.
     * @param player the player who sent this request message
     * @param msg the original packet carrying the request
     */
-  final case class Use(player : Player, msg : UseItemMessage)
+  final case class Use(player: Player, msg: UseItemMessage)
 
   /**
     * A basic `Trait` connecting all of the actionable `Door` response messages.
@@ -58,7 +58,7 @@ object Door {
     * @param msg the original packet carrying the request
     * @param response the result of the processed request
     */
-  final case class DoorMessage(player : Player, msg : UseItemMessage, response : Exchange)
+  final case class DoorMessage(player: Player, msg: UseItemMessage, response: Exchange)
 
   /**
     * This door will open.
@@ -79,18 +79,19 @@ object Door {
     * Overloaded constructor.
     * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
     */
-  def apply(tdef : DoorDefinition) : Door = {
+  def apply(tdef: DoorDefinition): Door = {
     new Door(tdef)
   }
 
   import akka.actor.ActorContext
+
   /**
     * Instantiate and configure a `Door` object.
     * @param id the unique id that will be assigned to this entity
     * @param context a context to allow the object to properly set up `ActorSystem` functionality
     * @return the `Door` object
     */
-  def Constructor(id : Int, context : ActorContext) : Door = {
+  def Constructor(id: Int, context: ActorContext): Door = {
     import akka.actor.Props
     import net.psforever.objects.GlobalDefinitions
 
@@ -100,6 +101,7 @@ object Door {
   }
 
   import net.psforever.types.Vector3
+
   /**
     * Instantiate and configure a `Door` object that has knowledge of both its position and outwards-facing direction.
     * The assumption is that this door will be paired with an IFF Lock, thus, has conditions for opening.
@@ -108,7 +110,7 @@ object Door {
     * @param context a context to allow the object to properly set up `ActorSystem` functionality
     * @return the `Door` object
     */
-  def Constructor(pos : Vector3)(id : Int, context : ActorContext) : Door = {
+  def Constructor(pos: Vector3)(id: Int, context: ActorContext): Door = {
     import akka.actor.Props
     import net.psforever.objects.GlobalDefinitions
 

@@ -1,4 +1,5 @@
-// Copyright (c) 2020 PSForever
+package net.psforever.pslogin
+
 import akka.actor.ActorRef
 import akka.pattern.{AskTimeoutException, ask}
 import akka.util.Timeout
@@ -18,16 +19,18 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.implicitConversions
+import scala.util.{Success, Failure}
 
 object WorldSession {
+
   /**
     * Convert a boolean value into an integer value.
     * Use: `true:Int` or `false:Int`
     * @param b `true` or `false` (or `null`)
     * @return 1 for `true`; 0 for `false`
     */
-  implicit def boolToInt(b : Boolean) : Int = if(b) 1 else 0
-  private implicit val timeout = new Timeout(5000 milliseconds)
+  implicit def boolToInt(b: Boolean): Int = if (b) 1 else 0
+  private implicit val timeout            = new Timeout(5000 milliseconds)
 
   /**
     * Use this for placing equipment that has yet to be registered into a container,
@@ -47,13 +50,16 @@ object WorldSession {
     * @param item the item being manipulated
     * @return a `Future` that anticipates the resolution to this manipulation
     */
-  def PutEquipmentInInventoryOrDrop(obj : PlanetSideServerObject with Container)(item : Equipment) : Future[Any] = {
+  def PutEquipmentInInventoryOrDrop(obj: PlanetSideServerObject with Container)(item: Equipment): Future[Any] = {
     val localContainer = obj
-    val localItem = item
-    val result = ask(localContainer.Actor, Containable.PutItemAway(localItem))
+    val localItem      = item
+    val result         = ask(localContainer.Actor, Containable.PutItemAway(localItem))
     result.onComplete {
-      case scala.util.Failure(_) | scala.util.Success(_ : Containable.CanNotPutItemInSlot) =>
-        localContainer.Zone.Ground.tell(Zone.Ground.DropItem(localItem, localContainer.Position, Vector3.z(localContainer.Orientation.z)), localContainer.Actor)
+      case Failure(_) | Success(_: Containable.CanNotPutItemInSlot) =>
+        localContainer.Zone.Ground.tell(
+          Zone.Ground.DropItem(localItem, localContainer.Position, Vector3.z(localContainer.Orientation.z)),
+          localContainer.Actor
+        )
       case _ => ;
     }
     result
@@ -73,18 +79,20 @@ object WorldSession {
     * @param item the item being manipulated
     * @return a `TaskResolver` object
     */
-  def PutNewEquipmentInInventoryOrDrop(obj : PlanetSideServerObject with Container)(item : Equipment) : TaskResolver.GiveTask = {
+  def PutNewEquipmentInInventoryOrDrop(
+      obj: PlanetSideServerObject with Container
+  )(item: Equipment): TaskResolver.GiveTask = {
     val localZone = obj.Zone
     TaskResolver.GiveTask(
       new Task() {
         private val localContainer = obj
-        private val localItem = item
+        private val localItem      = item
 
-        override def isComplete : Task.Resolution.Value = Task.Resolution.Success
+        override def isComplete: Task.Resolution.Value = Task.Resolution.Success
 
-        def Execute(resolver : ActorRef) : Unit = {
+        def Execute(resolver: ActorRef): Unit = {
           PutEquipmentInInventoryOrDrop(localContainer)(localItem)
-          resolver ! scala.util.Success(this)
+          resolver ! Success(this)
         }
       },
       List(GUIDTask.RegisterEquipment(item)(localZone.GUID))
@@ -113,13 +121,16 @@ object WorldSession {
     * @param slot na
     * @return a `Future` that anticipates the resolution to this manipulation
     */
-  def PutEquipmentInInventorySlot(obj : PlanetSideServerObject with Container, taskResolver : ActorRef)(item : Equipment, slot : Int) : Future[Any] = {
+  def PutEquipmentInInventorySlot(
+      obj: PlanetSideServerObject with Container,
+      taskResolver: ActorRef
+  )(item: Equipment, slot: Int): Future[Any] = {
     val localContainer = obj
-    val localItem = item
-    val localResolver = taskResolver
-    val result = ask(localContainer.Actor, Containable.PutItemInSlotOnly(localItem, slot))
+    val localItem      = item
+    val localResolver  = taskResolver
+    val result         = ask(localContainer.Actor, Containable.PutItemInSlotOnly(localItem, slot))
     result.onComplete {
-      case scala.util.Failure(_) | scala.util.Success(_ : Containable.CanNotPutItemInSlot) =>
+      case Failure(_) | Success(_: Containable.CanNotPutItemInSlot) =>
         localResolver ! GUIDTask.UnregisterEquipment(localItem)(localContainer.Zone.GUID)
       case _ => ;
     }
@@ -142,29 +153,32 @@ object WorldSession {
     * @param slot where the item will be placed in the container
     * @return a `TaskResolver` object
     */
-  def PutLoadoutEquipmentInInventory(obj : PlanetSideServerObject with Container, taskResolver : ActorRef)(item : Equipment, slot : Int) : TaskResolver.GiveTask = {
+  def PutLoadoutEquipmentInInventory(
+      obj: PlanetSideServerObject with Container,
+      taskResolver: ActorRef
+  )(item: Equipment, slot: Int): TaskResolver.GiveTask = {
     val localZone = obj.Zone
     TaskResolver.GiveTask(
       new Task() {
-        private val localContainer = obj
-        private val localItem = item
-        private val localSlot = slot
-        private val localFunc : (Equipment,Int)=>Future[Any] = PutEquipmentInInventorySlot(obj, taskResolver)
+        private val localContainer                             = obj
+        private val localItem                                  = item
+        private val localSlot                                  = slot
+        private val localFunc: (Equipment, Int) => Future[Any] = PutEquipmentInInventorySlot(obj, taskResolver)
 
-        override def Timeout : Long = 1000
+        override def Timeout: Long = 1000
 
-        override def isComplete : Task.Resolution.Value = {
-          if(localItem.HasGUID && localContainer.Find(localItem).nonEmpty)
+        override def isComplete: Task.Resolution.Value = {
+          if (localItem.HasGUID && localContainer.Find(localItem).nonEmpty)
             Task.Resolution.Success
           else
             Task.Resolution.Incomplete
         }
 
-        override def Description : String = s"PutEquipmentInInventorySlot - ${localItem.Definition.Name}"
+        override def Description: String = s"PutEquipmentInInventorySlot - ${localItem.Definition.Name}"
 
-        def Execute(resolver : ActorRef) : Unit = {
+        def Execute(resolver: ActorRef): Unit = {
           localFunc(localItem, localSlot)
-          resolver ! scala.util.Success(this)
+          resolver ! Success(this)
         }
       },
       List(GUIDTask.RegisterEquipment(item)(localZone.GUID))
@@ -193,52 +207,56 @@ object WorldSession {
     * @param item the item being manipulated
     * @return a `TaskResolver` object
     */
-  def BuyNewEquipmentPutInInventory(obj : PlanetSideServerObject with Container, taskResolver : ActorRef, player : Player, term : PlanetSideGUID)(item : Equipment) : TaskResolver.GiveTask = {
+  def BuyNewEquipmentPutInInventory(
+      obj: PlanetSideServerObject with Container,
+      taskResolver: ActorRef,
+      player: Player,
+      term: PlanetSideGUID
+  )(item: Equipment): TaskResolver.GiveTask = {
     val localZone = obj.Zone
     TaskResolver.GiveTask(
       new Task() {
-        private val localContainer = obj
-        private val localItem = item
-        private val localPlayer = player
-        private val localResolver = taskResolver
-        private val localTermMsg : Boolean=>Unit = TerminalResult(term, localPlayer, TransactionType.Buy)
+        private val localContainer                = obj
+        private val localItem                     = item
+        private val localPlayer                   = player
+        private val localResolver                 = taskResolver
+        private val localTermMsg: Boolean => Unit = TerminalResult(term, localPlayer, TransactionType.Buy)
 
-        override def Timeout : Long = 1000
+        override def Timeout: Long = 1000
 
-        override def isComplete : Task.Resolution.Value = {
-          if(localItem.HasGUID && localContainer.Find(localItem).nonEmpty)
+        override def isComplete: Task.Resolution.Value = {
+          if (localItem.HasGUID && localContainer.Find(localItem).nonEmpty)
             Task.Resolution.Success
           else
             Task.Resolution.Incomplete
         }
 
-        def Execute(resolver : ActorRef) : Unit = {
+        def Execute(resolver: ActorRef): Unit = {
           TerminalMessageOnTimeout(
             ask(localContainer.Actor, Containable.PutItemAway(localItem)),
             localTermMsg
           )
             .onComplete {
-              case scala.util.Failure(_) | scala.util.Success(_ : Containable.CanNotPutItemInSlot) =>
-                if(localContainer != localPlayer) {
+              case Failure(_) | Success(_: Containable.CanNotPutItemInSlot) =>
+                if (localContainer != localPlayer) {
                   TerminalMessageOnTimeout(
                     PutEquipmentInInventorySlot(localPlayer, localResolver)(localItem, Player.FreeHandSlot),
                     localTermMsg
                   )
                     .onComplete {
-                      case scala.util.Failure(_) | scala.util.Success(_ : Containable.CanNotPutItemInSlot) =>
+                      case Failure(_) | Success(_: Containable.CanNotPutItemInSlot) =>
                         localTermMsg(false)
                       case _ =>
                         localTermMsg(true)
                     }
-                }
-                else {
+                } else {
                   localResolver ! GUIDTask.UnregisterEquipment(localItem)(localContainer.Zone.GUID)
                   localTermMsg(false)
                 }
               case _ =>
                 localTermMsg(true)
             }
-          resolver ! scala.util.Success(this)
+          resolver ! Success(this)
         }
       },
       List(GUIDTask.RegisterEquipment(item)(localZone.GUID))
@@ -274,51 +292,58 @@ object WorldSession {
     * @param slot the slot in which the item will be equipped
     * @return a `TaskResolver` object
     */
-  def HoldNewEquipmentUp(player : Player, taskResolver : ActorRef)(item : Equipment, slot : Int) : TaskResolver.GiveTask = {
-    if(player.VisibleSlots.contains(slot)) {
+  def HoldNewEquipmentUp(player: Player, taskResolver: ActorRef)(item: Equipment, slot: Int): TaskResolver.GiveTask = {
+    if (player.VisibleSlots.contains(slot)) {
       val localZone = player.Zone
       TaskResolver.GiveTask(
         new Task() {
-          private val localPlayer = player
-          private val localGUID = player.GUID
-          private val localItem = item
-          private val localSlot = slot
+          private val localPlayer   = player
+          private val localGUID     = player.GUID
+          private val localItem     = item
+          private val localSlot     = slot
           private val localResolver = taskResolver
 
-          override def Timeout : Long = 1000
+          override def Timeout: Long = 1000
 
-          override def isComplete : Task.Resolution.Value = {
-            if(localPlayer.DrawnSlot == localSlot)
+          override def isComplete: Task.Resolution.Value = {
+            if (localPlayer.DrawnSlot == localSlot)
               Task.Resolution.Success
             else
               Task.Resolution.Incomplete
           }
 
-          def Execute(resolver : ActorRef) : Unit = {
+          def Execute(resolver: ActorRef): Unit = {
             ask(localPlayer.Actor, Containable.PutItemInSlotOnly(localItem, localSlot))
               .onComplete {
-                case scala.util.Failure(_) | scala.util.Success(_ : Containable.CanNotPutItemInSlot) =>
+                case Failure(_) | Success(_: Containable.CanNotPutItemInSlot) =>
                   localResolver ! GUIDTask.UnregisterEquipment(localItem)(localZone.GUID)
                 case _ =>
-                  if(localPlayer.DrawnSlot != Player.HandsDownSlot) {
+                  if (localPlayer.DrawnSlot != Player.HandsDownSlot) {
                     localPlayer.DrawnSlot = Player.HandsDownSlot
-                    localZone.AvatarEvents ! AvatarServiceMessage(localPlayer.Name,
-                      AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectHeldMessage(localGUID, Player.HandsDownSlot, false))
+                    localZone.AvatarEvents ! AvatarServiceMessage(
+                      localPlayer.Name,
+                      AvatarAction.SendResponse(
+                        Service.defaultPlayerGUID,
+                        ObjectHeldMessage(localGUID, Player.HandsDownSlot, false)
+                      )
                     )
-                    localZone.AvatarEvents ! AvatarServiceMessage(localZone.Id, AvatarAction.ObjectHeld(localGUID, localPlayer.LastDrawnSlot))
+                    localZone.AvatarEvents ! AvatarServiceMessage(
+                      localZone.Id,
+                      AvatarAction.ObjectHeld(localGUID, localPlayer.LastDrawnSlot)
+                    )
                   }
                   localPlayer.DrawnSlot = localSlot
-                  localZone.AvatarEvents ! AvatarServiceMessage(localZone.Id,
+                  localZone.AvatarEvents ! AvatarServiceMessage(
+                    localZone.Id,
                     AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectHeldMessage(localGUID, localSlot, false))
                   )
               }
-            resolver ! scala.util.Success(this)
+            resolver ! Success(this)
           }
         },
         List(GUIDTask.RegisterEquipment(item)(localZone.GUID))
       )
-    }
-    else {
+    } else {
       //TODO log.error
       throw new RuntimeException(s"provided slot $slot is not a player visible slot (holsters)")
     }
@@ -342,19 +367,22 @@ object WorldSession {
     * @param item the item being collected from off the ground of the container's zone
     * @return a `Future` that anticipates the resolution to this manipulation
     */
-  def PickUpEquipmentFromGround(obj : PlanetSideServerObject with Container)(item : Equipment) : Future[Any] = {
-    val localZone = obj.Zone
+  def PickUpEquipmentFromGround(obj: PlanetSideServerObject with Container)(item: Equipment): Future[Any] = {
+    val localZone      = obj.Zone
     val localContainer = obj
-    val localItem = item
-    val future = ask(localZone.Ground, Zone.Ground.PickupItem(item.GUID))
+    val localItem      = item
+    val future         = ask(localZone.Ground, Zone.Ground.PickupItem(item.GUID))
     future.onComplete {
-      case scala.util.Success(Zone.Ground.ItemInHand(_)) =>
+      case Success(Zone.Ground.ItemInHand(_)) =>
         PutEquipmentInInventoryOrDrop(localContainer)(localItem)
-      case scala.util.Success(Zone.Ground.CanNotPickupItem(_, item_guid, _)) =>
+      case Success(Zone.Ground.CanNotPickupItem(_, item_guid, _)) =>
         localZone.GUID(item_guid) match {
           case Some(_) => ;
           case None => //acting on old data?
-            localZone.AvatarEvents ! AvatarServiceMessage(localZone.Id, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, item_guid))
+            localZone.AvatarEvents ! AvatarServiceMessage(
+              localZone.Id,
+              AvatarAction.ObjectDelete(Service.defaultPlayerGUID, item_guid)
+            )
         }
       case _ => ;
     }
@@ -378,14 +406,20 @@ object WorldSession {
     *            expected override from original container's position
     * @return a `Future` that anticipates the resolution to this manipulation
     */
-  def DropEquipmentFromInventory(obj : PlanetSideServerObject with Container)(item : Equipment, pos : Option[Vector3] = None) : Future[Any] = {
+  def DropEquipmentFromInventory(
+      obj: PlanetSideServerObject with Container
+  )(item: Equipment, pos: Option[Vector3] = None): Future[Any] = {
     val localContainer = obj
-    val localItem = item
-    val localPos = pos
-    val result = ask(localContainer.Actor, Containable.RemoveItemFromSlot(localItem))
+    val localItem      = item
+    val localPos       = pos
+    val result         = ask(localContainer.Actor, Containable.RemoveItemFromSlot(localItem))
     result.onComplete {
-      case scala.util.Success(Containable.ItemFromSlot(_, Some(_), Some(_))) =>
-        localContainer.Zone.Ground.tell(Zone.Ground.DropItem(localItem, localPos.getOrElse(localContainer.Position), Vector3.z(localContainer.Orientation.z)), localContainer.Actor)
+      case Success(Containable.ItemFromSlot(_, Some(_), Some(_))) =>
+        localContainer.Zone.Ground.tell(
+          Zone.Ground
+            .DropItem(localItem, localPos.getOrElse(localContainer.Position), Vector3.z(localContainer.Orientation.z)),
+          localContainer.Actor
+        )
       case _ => ;
     }
     result
@@ -406,13 +440,15 @@ object WorldSession {
     * @param item the item to find and remove from the container
     * @return a `Future` that anticipates the resolution to this manipulation
     */
-  def RemoveOldEquipmentFromInventory(obj : PlanetSideServerObject with Container, taskResolver : ActorRef)(item : Equipment) : Future[Any] = {
+  def RemoveOldEquipmentFromInventory(obj: PlanetSideServerObject with Container, taskResolver: ActorRef)(
+      item: Equipment
+  ): Future[Any] = {
     val localContainer = obj
-    val localItem = item
-    val localResolver = taskResolver
-    val result = ask(localContainer.Actor, Containable.RemoveItemFromSlot(localItem))
+    val localItem      = item
+    val localResolver  = taskResolver
+    val result         = ask(localContainer.Actor, Containable.RemoveItemFromSlot(localItem))
     result.onComplete {
-      case scala.util.Success(Containable.ItemFromSlot(_, Some(_), Some(_))) =>
+      case Success(Containable.ItemFromSlot(_, Some(_), Some(_))) =>
         localResolver ! GUIDTask.UnregisterEquipment(localItem)(localContainer.Zone.GUID)
       case _ =>
     }
@@ -442,18 +478,23 @@ object WorldSession {
     * @param slot from which slot the equipment is to be removed
     * @return a `Future` that anticipates the resolution to this manipulation
     */
-  def SellEquipmentFromInventory(obj : PlanetSideServerObject with Container, taskResolver : ActorRef, player : Player, term : PlanetSideGUID)(slot : Int) : Future[Any] = {
-    val localContainer = obj
-    val localPlayer = player
-    val localSlot = slot
-    val localResolver = taskResolver
-    val localTermMsg : Boolean=>Unit = TerminalResult(term, localPlayer, TransactionType.Sell)
+  def SellEquipmentFromInventory(
+      obj: PlanetSideServerObject with Container,
+      taskResolver: ActorRef,
+      player: Player,
+      term: PlanetSideGUID
+  )(slot: Int): Future[Any] = {
+    val localContainer                = obj
+    val localPlayer                   = player
+    val localSlot                     = slot
+    val localResolver                 = taskResolver
+    val localTermMsg: Boolean => Unit = TerminalResult(term, localPlayer, TransactionType.Sell)
     val result = TerminalMessageOnTimeout(
       ask(localContainer.Actor, Containable.RemoveItemFromSlot(localSlot)),
       localTermMsg
     )
     result.onComplete {
-      case scala.util.Success(Containable.ItemFromSlot(_, Some(item), Some(_))) =>
+      case Success(Containable.ItemFromSlot(_, Some(item), Some(_))) =>
         localResolver ! GUIDTask.UnregisterEquipment(item)(localContainer.Zone.GUID)
         localTermMsg(true)
       case _ =>
@@ -470,9 +511,9 @@ object WorldSession {
     * @param terminalMessage how to call the terminal message
     * @return a `Future` that anticipates the resolution to this manipulation
     */
-  def TerminalMessageOnTimeout(future : Future[Any], terminalMessage : Boolean=>Unit) : Future[Any] = {
+  def TerminalMessageOnTimeout(future: Future[Any], terminalMessage: Boolean => Unit): Future[Any] = {
     future.recover {
-      case _ : AskTimeoutException =>
+      case _: AskTimeoutException =>
         terminalMessage(false)
     }
   }
@@ -488,8 +529,13 @@ object WorldSession {
     * @param transaction what kind of transaction was involved in terminal use
     * @param result the result of that transaction
     */
-  def TerminalResult(guid : PlanetSideGUID, player : Player, transaction : TransactionType.Value)(result : Boolean) : Unit = {
-    player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.TerminalOrderResult(guid, transaction, result))
+  def TerminalResult(guid: PlanetSideGUID, player: Player, transaction: TransactionType.Value)(
+      result: Boolean
+  ): Unit = {
+    player.Zone.AvatarEvents ! AvatarServiceMessage(
+      player.Name,
+      AvatarAction.TerminalOrderResult(guid, transaction, result)
+    )
   }
 
   /**
@@ -499,10 +545,10 @@ object WorldSession {
     * @param container the original object that contained the items
     * @param drops the items to be dropped on the ground
     */
-  def DropLeftovers(container : PlanetSideServerObject with Container)(drops : List[InventoryItem]) : Unit = {
+  def DropLeftovers(container: PlanetSideServerObject with Container)(drops: List[InventoryItem]): Unit = {
     //drop or retire
-    val zone = container.Zone
-    val pos = container.Position
+    val zone   = container.Zone
+    val pos    = container.Position
     val orient = Vector3.z(container.Orientation.z)
     //TODO make a sound when dropping stuff?
     drops.foreach { entry => zone.Ground.tell(Zone.Ground.DropItem(entry.obj, pos, orient), container.Actor) }
@@ -521,11 +567,13 @@ object WorldSession {
     *                 defaults to one per entry
     * @return a `List` of all discovered entries totaling approximately the amount requested
     */
-  def FindEquipmentStock(obj : Container,
-                         filterTest : Equipment=>Boolean,
-                         desiredAmount : Int,
-                         counting : Equipment=>Int = DefaultCount) : List[InventoryItem] = {
-    var currentAmount : Int = 0
+  def FindEquipmentStock(
+      obj: Container,
+      filterTest: Equipment => Boolean,
+      desiredAmount: Int,
+      counting: Equipment => Int = DefaultCount
+  ): List[InventoryItem] = {
+    var currentAmount: Int = 0
     obj.Inventory.Items
       .filter(item => filterTest(item.obj))
       .sortBy(_.start)
@@ -536,7 +584,6 @@ object WorldSession {
       })
   }
 
-
   /**
     * The default counting function for an item.
     * Counts the number of item(s).
@@ -544,7 +591,7 @@ object WorldSession {
     * @return the quantity;
     *         always one
     */
-  def DefaultCount(e : Equipment) : Int = 1
+  def DefaultCount(e: Equipment): Int = 1
 
   /**
     * The counting function for an item of `AmmoBox`.
@@ -552,10 +599,10 @@ object WorldSession {
     * @param e the `Equipment` object
     * @return the quantity
     */
-  def CountAmmunition(e : Equipment) : Int = {
+  def CountAmmunition(e: Equipment): Int = {
     e match {
-      case a : AmmoBox => a.Capacity
-      case _ => 0
+      case a: AmmoBox => a.Capacity
+      case _          => 0
     }
   }
 
@@ -566,10 +613,10 @@ object WorldSession {
     * @param e the `Equipment` object
     * @return the quantity
     */
-  def CountGrenades(e : Equipment) : Int = {
+  def CountGrenades(e: Equipment): Int = {
     e match {
-      case t : Tool => (GlobalDefinitions.isGrenade(t.Definition):Int) * t.Magazine
-      case _ => 0
+      case t: Tool => (GlobalDefinitions.isGrenade(t.Definition): Int) * t.Magazine
+      case _       => 0
     }
   }
 
@@ -579,10 +626,10 @@ object WorldSession {
     * @param e the `Equipment` object
     * @return `true`, if the object is an `AmmoBox` of the correct ammunition type; `false`, otherwise
     */
-  def FindAmmoBoxThatUses(ammo : Ammo.Value)(e : Equipment) : Boolean = {
+  def FindAmmoBoxThatUses(ammo: Ammo.Value)(e: Equipment): Boolean = {
     e match {
-      case t : AmmoBox => t.AmmoType == ammo
-      case _ => false
+      case t: AmmoBox => t.AmmoType == ammo
+      case _          => false
     }
   }
 
@@ -592,9 +639,9 @@ object WorldSession {
     * @param e the `Equipment` object
     * @return `true`, if the object is a `Tool` that loads the correct ammunition type; `false`, otherwise
     */
-  def FindToolThatUses(ammo : Ammo.Value)(e : Equipment) : Boolean = {
+  def FindToolThatUses(ammo: Ammo.Value)(e: Equipment): Boolean = {
     e match {
-      case t : Tool =>
+      case t: Tool =>
         t.Definition.AmmoTypes.map { _.AmmoType }.contains(ammo)
       case _ =>
         false

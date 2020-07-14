@@ -28,37 +28,37 @@ import scodec.codecs._
   * @param unk3 na
   * @param pos the position where the object will deploy itself
   */
-final case class DeployRequestMessage(player_guid : PlanetSideGUID,
-                                      vehicle_guid : PlanetSideGUID,
-                                      deploy_state : DriveState.Value,
-                                      unk2 : Int,
-                                      unk3 : Boolean,
-                                      pos : Vector3)
-  extends PlanetSideGamePacket {
+final case class DeployRequestMessage(
+    player_guid: PlanetSideGUID,
+    vehicle_guid: PlanetSideGUID,
+    deploy_state: DriveState.Value,
+    unk2: Int,
+    unk3: Boolean,
+    pos: Vector3
+) extends PlanetSideGamePacket {
   type Packet = DeployRequestMessage
   def opcode = GamePacketOpcode.DeployRequestMessage
   def encode = DeployRequestMessage.encode(this)
 }
 
 object DeployRequestMessage extends Marshallable[DeployRequestMessage] {
-  private val driveState3u = uint(3).xmap[DriveState.Value] (
+  private val driveState3u = uint(3).xmap[DriveState.Value](
     n => DriveState(n),
     n => {
-      if(n.id > 7) {
+      if (n.id > 7) {
         0
-      }
-      else {
+      } else {
         n.id
       }
     }
   )
 
-  implicit val codec : Codec[DeployRequestMessage] = (
+  implicit val codec: Codec[DeployRequestMessage] = (
     ("player_guid" | PlanetSideGUID.codec) ::
       ("vehicle_guid" | PlanetSideGUID.codec) ::
       ("deploy_state" | driveState3u) ::
       ("unk2" | uint(5)) ::
       ("unk3" | bool) ::
       ("pos" | Vector3.codec_pos)
-    ).as[DeployRequestMessage]
+  ).as[DeployRequestMessage]
 }

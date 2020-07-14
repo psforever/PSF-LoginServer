@@ -21,23 +21,19 @@ import scodec.codecs._
   * @param nc players belonging to the New Conglomerate interact with this warp gate as a "broadcast gate"
   * @param vs players belonging to the Vanu Sovereignty interact with this warp gate as a "broadcast gate"
   */
-final case class BroadcastWarpgateUpdateMessage(zone_id : Int,
-                                                building_id : Int,
-                                                tr : Boolean,
-                                                nc : Boolean,
-                                                vs : Boolean)
-  extends PlanetSideGamePacket {
+final case class BroadcastWarpgateUpdateMessage(zone_id: Int, building_id: Int, tr: Boolean, nc: Boolean, vs: Boolean)
+    extends PlanetSideGamePacket {
   type Packet = BroadcastWarpgateUpdateMessage
   def opcode = GamePacketOpcode.BroadcastWarpgateUpdateMessage
   def encode = BroadcastWarpgateUpdateMessage.encode(this)
 }
 
 object BroadcastWarpgateUpdateMessage extends Marshallable[BroadcastWarpgateUpdateMessage] {
-  implicit val codec : Codec[BroadcastWarpgateUpdateMessage] = (
+  implicit val codec: Codec[BroadcastWarpgateUpdateMessage] = (
     ("zone_id" | uint16L) ::
       ("building_id" | uint16L) ::
       ("tr" | bool) ::
       ("nc" | bool) ::
       ("vs" | bool)
-    ).as[BroadcastWarpgateUpdateMessage]
+  ).as[BroadcastWarpgateUpdateMessage]
 }

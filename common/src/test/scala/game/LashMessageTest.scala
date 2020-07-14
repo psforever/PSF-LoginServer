@@ -12,12 +12,12 @@ class LashMessageTest extends Specification {
 
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
-      case LashMessage(seq_time,player,victim,bullet,pos,unk1) =>
+      case LashMessage(seq_time, player, victim, bullet, pos, unk1) =>
         seq_time mustEqual 356
         player mustEqual PlanetSideGUID(2858)
         victim mustEqual PlanetSideGUID(2699)
         bullet mustEqual PlanetSideGUID(40030)
-        pos mustEqual Vector3(5903.7656f,3456.5156f,111.53125f)
+        pos mustEqual Vector3(5903.7656f, 3456.5156f, 111.53125f)
         unk1 mustEqual 0
       case _ =>
         ko
@@ -25,7 +25,14 @@ class LashMessageTest extends Specification {
   }
 
   "encode" in {
-    val msg = LashMessage(356, PlanetSideGUID(2858), PlanetSideGUID(2699), PlanetSideGUID(40030), Vector3(5903.7656f,3456.5156f,111.53125f), 0)
+    val msg = LashMessage(
+      356,
+      PlanetSideGUID(2858),
+      PlanetSideGUID(2699),
+      PlanetSideGUID(40030),
+      Vector3(5903.7656f, 3456.5156f, 111.53125f),
+      0
+    )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string

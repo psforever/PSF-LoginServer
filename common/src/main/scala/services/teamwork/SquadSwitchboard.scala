@@ -13,6 +13,7 @@ import scala.collection.mutable
   * or can just vanish without having to properly clean itself up.
   */
 class SquadSwitchboard extends Actor {
+
   /**
     * This collection contains the message-sending contact reference for squad members.
     * Users are added to this collection via the `SquadSwitchboard.Join` message, or a
@@ -21,7 +22,8 @@ class SquadSwitchboard extends Actor {
     * The message `SquadSwitchboard.Leave` removes the user from this collection.
     * key - unique character id; value - `Actor` reference for that character
     */
-  val UserActorMap : mutable.LongMap[ActorRef] = mutable.LongMap[ActorRef]()
+  val UserActorMap: mutable.LongMap[ActorRef] = mutable.LongMap[ActorRef]()
+
   /**
     * This collection contains the message-sending contact information for would-be squad members.
     * Users are added to this collection via the `SquadSwitchboard.DelayJoin` message
@@ -29,7 +31,8 @@ class SquadSwitchboard extends Actor {
     * The message `SquadSwitchboard.Leave` removes the user from this collection.
     * key - unique character id; value - `Actor` reference for that character
     */
-  val DelayedJoin : mutable.LongMap[ActorRef] = mutable.LongMap[ActorRef]()
+  val DelayedJoin: mutable.LongMap[ActorRef] = mutable.LongMap[ActorRef]()
+
   /**
     * This collection contains the message-sending contact information for squad observers.
     * Squad observers only get "details" messages as opposed to the sort of messages squad members receive.
@@ -38,17 +41,17 @@ class SquadSwitchboard extends Actor {
     * The message `SquadSwitchboard.Unwatch` also removes the user from this collection.
     * key - unique character id; value - `Actor` reference for that character
     */
-  val Watchers : mutable.LongMap[ActorRef] = mutable.LongMap[ActorRef]()
+  val Watchers: mutable.LongMap[ActorRef] = mutable.LongMap[ActorRef]()
 
-  override def postStop() : Unit = {
+  override def postStop(): Unit = {
     UserActorMap.clear()
     DelayedJoin.clear()
     Watchers.clear()
   }
 
-  def receive : Receive = {
+  def receive: Receive = {
     case SquadSwitchboard.Join(char_id, Some(actor)) =>
-      UserActorMap(char_id) = DelayedJoin.remove(char_id).orElse( Watchers.remove(char_id)) match {
+      UserActorMap(char_id) = DelayedJoin.remove(char_id).orElse(Watchers.remove(char_id)) match {
         case Some(_actor) =>
           context.watch(_actor)
           _actor
@@ -58,7 +61,7 @@ class SquadSwitchboard extends Actor {
       }
 
     case SquadSwitchboard.Join(char_id, None) =>
-      DelayedJoin.remove(char_id).orElse( Watchers.remove(char_id)) match {
+      DelayedJoin.remove(char_id).orElse(Watchers.remove(char_id)) match {
         case Some(actor) =>
           UserActorMap(char_id) = actor
         case None => ;
@@ -69,9 +72,10 @@ class SquadSwitchboard extends Actor {
       DelayedJoin(char_id) = actor
 
     case SquadSwitchboard.Leave(char_id) =>
-      UserActorMap.find { case(charId, _) => charId == char_id }
-        .orElse(DelayedJoin.find { case(charId, _) => charId == char_id })
-        .orElse(Watchers.find { case(charId, _) => charId == char_id }) match {
+      UserActorMap
+        .find { case (charId, _) => charId == char_id }
+        .orElse(DelayedJoin.find { case (charId, _) => charId == char_id })
+        .orElse(Watchers.find { case (charId, _) => charId == char_id }) match {
         case Some((member, actor)) =>
           context.unwatch(actor)
           UserActorMap.remove(member)
@@ -96,21 +100,24 @@ class SquadSwitchboard extends Actor {
 
     case SquadSwitchboard.ToAll(msg) =>
       UserActorMap
-        .foreach { case (_, actor) =>
-          actor ! msg
+        .foreach {
+          case (_, actor) =>
+            actor ! msg
         }
 
     case SquadSwitchboard.Except(excluded, msg) =>
       UserActorMap
         .filterNot { case (char_id, _) => char_id == excluded }
-        .foreach { case (_, actor) =>
-          actor ! msg
+        .foreach {
+          case (_, actor) =>
+            actor ! msg
         }
 
     case Terminated(actorRef) =>
-      UserActorMap.find { case(_, ref) => ref == actorRef }
-        .orElse(DelayedJoin.find { case(_, ref) => ref == actorRef })
-        .orElse(Watchers.find { case(_, ref) => ref == actorRef }) match {
+      UserActorMap
+        .find { case (_, ref) => ref == actorRef }
+        .orElse(DelayedJoin.find { case (_, ref) => ref == actorRef })
+        .orElse(Watchers.find { case (_, ref) => ref == actorRef }) match {
         case Some((member, actor)) =>
           context.unwatch(actor)
           UserActorMap.remove(member)
@@ -124,19 +131,19 @@ class SquadSwitchboard extends Actor {
 }
 
 object SquadSwitchboard {
-  final case class Join(char_id : Long, actor : Option[ActorRef])
+  final case class Join(char_id: Long, actor: Option[ActorRef])
 
-  final case class DelayJoin(char_id : Long, actor : ActorRef)
+  final case class DelayJoin(char_id: Long, actor: ActorRef)
 
-  final case class Leave(char_id : Long)
+  final case class Leave(char_id: Long)
 
-  final case class Watch(char_id : Long, actor : ActorRef)
+  final case class Watch(char_id: Long, actor: ActorRef)
 
-  final case class Unwatch(char_id : Long)
+  final case class Unwatch(char_id: Long)
 
-  final case class To(member : Long, msg : SquadServiceResponse)
+  final case class To(member: Long, msg: SquadServiceResponse)
 
-  final case class ToAll(msg : SquadServiceResponse)
+  final case class ToAll(msg: SquadServiceResponse)
 
-  final case class Except(excluded_member : Long, msg : SquadServiceResponse)
+  final case class Except(excluded_member: Long, msg: SquadServiceResponse)
 }

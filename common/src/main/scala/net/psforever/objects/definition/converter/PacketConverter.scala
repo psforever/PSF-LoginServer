@@ -17,17 +17,22 @@ sealed trait PacketConverter
   * @tparam A the type of game object
   */
 abstract class ObjectCreateConverter[A <: PlanetSideGameObject] extends PacketConverter {
+
   /**
     * Take a game object and transform it into its equivalent data for an `0x17` packet.
     * @param obj the game object
     * @return the specific `ConstructorData` that is equivalent to this object
     */
-  def ConstructorData(obj : A) : Try[ConstructorData] = { Failure(new NoSuchMethodException(s"method not defined for object $obj")) }
+  def ConstructorData(obj: A): Try[ConstructorData] = {
+    Failure(new NoSuchMethodException(s"method not defined for object $obj"))
+  }
 
   /**
     * Take a game object and transform it into its equivalent data for an `0x18` packet.
     * @param obj the game object
     * @return the specific `ConstructorData` that is equivalent to this object
     */
-  def DetailedConstructorData(obj : A) : Try[ConstructorData] = { Failure(new NoSuchMethodException(s"method not defined for object $obj")) }
+  def DetailedConstructorData(obj: A): Try[ConstructorData] = {
+    Failure(new NoSuchMethodException(s"method not defined for object $obj"))
+  }
 }

@@ -212,7 +212,9 @@ class VehicleTest extends Specification {
     "set new permission level" in {
       val fury_vehicle = Vehicle(GlobalDefinitions.fury)
       fury_vehicle.PermissionGroup(AccessPermissionGroup.Driver.id).contains(VehicleLockState.Locked)
-      fury_vehicle.PermissionGroup(AccessPermissionGroup.Driver.id, VehicleLockState.Group.id).contains(VehicleLockState.Group)
+      fury_vehicle
+        .PermissionGroup(AccessPermissionGroup.Driver.id, VehicleLockState.Group.id)
+        .contains(VehicleLockState.Group)
     }
 
     "set the same permission level" in {
@@ -229,7 +231,9 @@ class VehicleTest extends Specification {
       fury_vehicle.PermissionGroup(AccessPermissionGroup.Trunk.id) mustEqual fury_vehicle.PermissionGroup(13)
 
       (AccessPermissionGroup.Driver.id + 10) mustEqual 10
-      fury_vehicle.PermissionGroup(AccessPermissionGroup.Driver.id, VehicleLockState.Group.id).contains(VehicleLockState.Group)
+      fury_vehicle
+        .PermissionGroup(AccessPermissionGroup.Driver.id, VehicleLockState.Group.id)
+        .contains(VehicleLockState.Group)
       fury_vehicle.PermissionGroup(AccessPermissionGroup.Driver.id) mustEqual fury_vehicle.PermissionGroup(10)
     }
 
@@ -243,7 +247,7 @@ class VehicleTest extends Specification {
 
     "can find a passenger in a seat" in {
       val harasser_vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
-      val player1 = Player(avatar1)
+      val player1          = Player(avatar1)
       player1.GUID = PlanetSideGUID(1)
       val player2 = Player(avatar2)
       player2.GUID = PlanetSideGUID(2)
@@ -259,7 +263,7 @@ class VehicleTest extends Specification {
 
     "can find a weapon controlled from seat" in {
       val harasser_vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
-      val chaingun_p = harasser_vehicle.Weapons(2).Equipment
+      val chaingun_p       = harasser_vehicle.Weapons(2).Equipment
       chaingun_p.isDefined mustEqual true
 
       harasser_vehicle.WeaponControlledFromSeat(0).isEmpty mustEqual true
@@ -269,8 +273,8 @@ class VehicleTest extends Specification {
     "can filter utilities with indices that are natural numbers" in {
       val objDef = VehicleDefinition(1)
       objDef.Utilities += -1 -> UtilityType.order_terminala
-      objDef.Utilities += 0 -> UtilityType.order_terminalb
-      objDef.Utilities += 2 -> UtilityType.order_terminalb
+      objDef.Utilities += 0  -> UtilityType.order_terminalb
+      objDef.Utilities += 2  -> UtilityType.order_terminalb
       val obj = Vehicle(objDef)
 
       obj.Utilities.size mustEqual 3
@@ -295,7 +299,7 @@ class VehicleTest extends Specification {
 
     "access its trunk by Slot" in {
       val harasser_vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
-      val ammobox = AmmoBox(GlobalDefinitions.armor_canister)
+      val ammobox          = AmmoBox(GlobalDefinitions.armor_canister)
       ammobox.GUID = PlanetSideGUID(10)
       harasser_vehicle.Inventory += 30 -> ammobox
 
@@ -311,7 +315,7 @@ class VehicleTest extends Specification {
 
     "find items in its trunk by GUID" in {
       val harasser_vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
-      val ammobox = AmmoBox(GlobalDefinitions.armor_canister)
+      val ammobox          = AmmoBox(GlobalDefinitions.armor_canister)
       ammobox.GUID = PlanetSideGUID(10)
       harasser_vehicle.Inventory += 30 -> ammobox
 
@@ -340,14 +344,15 @@ class VehicleControlPrepareForDeletionTest extends ActorTest {
       assert(
         vehicle_msg.head match {
           case VehicleServiceMessage.Decon(RemoverActor.AddTask(v, z, _)) => (v eq vehicle) && (z == vehicle.Zone)
-          case _ => false
+          case _                                                          => false
         }
       )
 
       val vehicle_msg_final = vehicleProbe.receiveN(1, 6 seconds)
       assert(
         vehicle_msg_final.head match {
-          case VehicleServiceMessage("test", VehicleAction.UnloadVehicle(_, z, v, PlanetSideGUID(1))) => (v eq vehicle) && (z == vehicle.Zone)
+          case VehicleServiceMessage("test", VehicleAction.UnloadVehicle(_, z, v, PlanetSideGUID(1))) =>
+            (v eq vehicle) && (z == vehicle.Zone)
           case _ => false
         }
       )
@@ -378,7 +383,11 @@ class VehicleControlPrepareForDeletionPassengerTest extends ActorTest {
       val vehicle_msg = vehicleProbe.receiveN(2, 500 milliseconds)
       assert(
         vehicle_msg.head match {
-          case VehicleServiceMessage("test", VehicleAction.KickPassenger(PlanetSideGUID(2), 4, false, PlanetSideGUID(1))) => true
+          case VehicleServiceMessage(
+                "test",
+                VehicleAction.KickPassenger(PlanetSideGUID(2), 4, false, PlanetSideGUID(1))
+              ) =>
+            true
           case _ => false
         }
       )
@@ -387,7 +396,7 @@ class VehicleControlPrepareForDeletionPassengerTest extends ActorTest {
       assert(
         vehicle_msg(1) match {
           case VehicleServiceMessage.Decon(RemoverActor.AddTask(v, z, _)) => (v eq vehicle) && (z == vehicle.Zone)
-          case _ => false
+          case _                                                          => false
         }
       )
     }
@@ -399,7 +408,7 @@ class VehicleControlPrepareForDeletionMountedInTest extends FreedContextActorTes
   val guid = new NumberPoolHub(new LimitedNumberSource(10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     GUID(guid)
-    override def SetupNumberPools() : Unit = { }
+    override def SetupNumberPools(): Unit = {}
   }
   zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-zone-actor")
   zone.Init(context)
@@ -441,37 +450,57 @@ class VehicleControlPrepareForDeletionMountedInTest extends FreedContextActorTes
       //dismounting as cargo messages
       assert(
         vehicle_msg.head match {
-          case VehicleServiceMessage(_, VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 0, _))) => true
+          case VehicleServiceMessage(
+                _,
+                VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 0, _))
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         vehicle_msg(1) match {
-          case VehicleServiceMessage(_, VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 68, _))) => true
+          case VehicleServiceMessage(
+                _,
+                VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 68, _))
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         vehicle_msg(2) match {
-          case VehicleServiceMessage("test", VehicleAction.SendResponse(_,
-          CargoMountPointStatusMessage(PlanetSideGUID(2), _, PlanetSideGUID(1), _, 1, CargoStatus.InProgress, 0)
-          )) => true
+          case VehicleServiceMessage(
+                "test",
+                VehicleAction.SendResponse(
+                  _,
+                  CargoMountPointStatusMessage(PlanetSideGUID(2), _, PlanetSideGUID(1), _, 1, CargoStatus.InProgress, 0)
+                )
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         vehicle_msg(3) match {
-          case VehicleServiceMessage("test", VehicleAction.SendResponse(_,
-          ObjectDetachMessage(PlanetSideGUID(2), PlanetSideGUID(1), _, _, _, _)
-          )) => true
+          case VehicleServiceMessage(
+                "test",
+                VehicleAction.SendResponse(_, ObjectDetachMessage(PlanetSideGUID(2), PlanetSideGUID(1), _, _, _, _))
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         vehicle_msg(4) match {
-          case VehicleServiceMessage("test", VehicleAction.SendResponse(_,
-          CargoMountPointStatusMessage(PlanetSideGUID(2), _, _, PlanetSideGUID(1), 1, CargoStatus.Empty, 0)
-          )) => true
+          case VehicleServiceMessage(
+                "test",
+                VehicleAction.SendResponse(
+                  _,
+                  CargoMountPointStatusMessage(PlanetSideGUID(2), _, _, PlanetSideGUID(1), 1, CargoStatus.Empty, 0)
+                )
+              ) =>
+            true
           case _ => false
         }
       )
@@ -479,7 +508,11 @@ class VehicleControlPrepareForDeletionMountedInTest extends FreedContextActorTes
       //TODO: does not actually kick out the cargo, but instigates the process
       assert(
         vehicle_msg(5) match {
-          case VehicleServiceMessage("test", VehicleAction.KickPassenger(PlanetSideGUID(3), 4, false, PlanetSideGUID(1))) => true
+          case VehicleServiceMessage(
+                "test",
+                VehicleAction.KickPassenger(PlanetSideGUID(3), 4, false, PlanetSideGUID(1))
+              ) =>
+            true
           case _ => false
         }
       )
@@ -488,7 +521,7 @@ class VehicleControlPrepareForDeletionMountedInTest extends FreedContextActorTes
       assert(
         vehicle_msg(6) match {
           case VehicleServiceMessage.Decon(RemoverActor.AddTask(v, z, _)) => (v eq vehicle) && (z == vehicle.Zone)
-          case _ => false
+          case _                                                          => false
         }
       )
     }
@@ -500,7 +533,7 @@ class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActor
   ServiceManager.boot
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     GUID(guid)
-    override def SetupNumberPools() : Unit = { }
+    override def SetupNumberPools(): Unit = {}
   }
   zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-zone-actor")
   zone.Init(context)
@@ -543,7 +576,11 @@ class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActor
       val vehicle_msg = vehicleProbe.receiveN(7, 500 milliseconds)
       assert(
         vehicle_msg.head match {
-          case VehicleServiceMessage("test", VehicleAction.KickPassenger(PlanetSideGUID(4), 4, false, PlanetSideGUID(2))) => true
+          case VehicleServiceMessage(
+                "test",
+                VehicleAction.KickPassenger(PlanetSideGUID(4), 4, false, PlanetSideGUID(2))
+              ) =>
+            true
           case _ => false
         }
       )
@@ -552,37 +589,57 @@ class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActor
       //cargo dismounting messages
       assert(
         vehicle_msg(1) match {
-          case VehicleServiceMessage(_, VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 0, _))) => true
+          case VehicleServiceMessage(
+                _,
+                VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 0, _))
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         vehicle_msg(2) match {
-          case VehicleServiceMessage(_, VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 68, _))) => true
+          case VehicleServiceMessage(
+                _,
+                VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 68, _))
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         vehicle_msg(3) match {
-          case VehicleServiceMessage("test", VehicleAction.SendResponse(_,
-              CargoMountPointStatusMessage(PlanetSideGUID(2), _, PlanetSideGUID(1), _, 1, CargoStatus.InProgress, 0)
-            )) => true
+          case VehicleServiceMessage(
+                "test",
+                VehicleAction.SendResponse(
+                  _,
+                  CargoMountPointStatusMessage(PlanetSideGUID(2), _, PlanetSideGUID(1), _, 1, CargoStatus.InProgress, 0)
+                )
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         vehicle_msg(4) match {
-          case VehicleServiceMessage("test", VehicleAction.SendResponse(_,
-              ObjectDetachMessage(PlanetSideGUID(2), PlanetSideGUID(1), _, _, _, _)
-            )) => true
+          case VehicleServiceMessage(
+                "test",
+                VehicleAction.SendResponse(_, ObjectDetachMessage(PlanetSideGUID(2), PlanetSideGUID(1), _, _, _, _))
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         vehicle_msg(5) match {
-          case VehicleServiceMessage("test", VehicleAction.SendResponse(_,
-              CargoMountPointStatusMessage(PlanetSideGUID(2), _, _, PlanetSideGUID(1), 1, CargoStatus.Empty, 0)
-            )) => true
+          case VehicleServiceMessage(
+                "test",
+                VehicleAction.SendResponse(
+                  _,
+                  CargoMountPointStatusMessage(PlanetSideGUID(2), _, _, PlanetSideGUID(1), 1, CargoStatus.Empty, 0)
+                )
+              ) =>
+            true
           case _ => false
         }
       )
@@ -590,7 +647,7 @@ class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActor
       assert(
         vehicle_msg(6) match {
           case VehicleServiceMessage.Decon(RemoverActor.AddTask(v, z, _)) => (v eq lodestar) && (z == vehicle.Zone)
-          case _ => false
+          case _                                                          => false
         }
       )
     }
@@ -599,20 +656,20 @@ class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActor
 
 class VehicleControlMountingBlockedExosuitTest extends ActorTest {
   val probe = new TestProbe(system)
-  def checkCanNotMount() : Unit = {
+  def checkCanNotMount(): Unit = {
     val reply = probe.receiveOne(Duration.create(100, "ms"))
     reply match {
-      case msg : Mountable.MountMessages =>
+      case msg: Mountable.MountMessages =>
         assert(msg.response.isInstanceOf[Mountable.CanNotMount])
       case _ =>
         assert(false)
     }
   }
 
-  def checkCanMount() : Unit = {
+  def checkCanMount(): Unit = {
     val reply = probe.receiveOne(Duration.create(100, "ms"))
     reply match {
-      case msg : Mountable.MountMessages =>
+      case msg: Mountable.MountMessages =>
         assert(msg.response.isInstanceOf[Mountable.CanMount])
       case _ =>
         assert(false)
@@ -660,20 +717,20 @@ class VehicleControlMountingBlockedExosuitTest extends ActorTest {
 
 class VehicleControlMountingBlockedSeatPermissionTest extends ActorTest {
   val probe = new TestProbe(system)
-  def checkCanNotMount() : Unit = {
+  def checkCanNotMount(): Unit = {
     val reply = probe.receiveOne(Duration.create(100, "ms"))
     reply match {
-      case msg : Mountable.MountMessages =>
+      case msg: Mountable.MountMessages =>
         assert(msg.response.isInstanceOf[Mountable.CanNotMount])
       case _ =>
         assert(false)
     }
   }
 
-  def checkCanMount() : Unit = {
+  def checkCanMount(): Unit = {
     val reply = probe.receiveOne(Duration.create(100, "ms"))
     reply match {
-      case msg : Mountable.MountMessages =>
+      case msg: Mountable.MountMessages =>
         assert(msg.response.isInstanceOf[Mountable.CanMount])
       case _ =>
         assert(false)
@@ -693,10 +750,10 @@ class VehicleControlMountingBlockedSeatPermissionTest extends ActorTest {
     //11 June 2018: Group is not supported yet so do not bother testing it
     "block players from sitting if the seat does not allow it" in {
 
-      vehicle.PermissionGroup(2,3) //passenger group -> empire
+      vehicle.PermissionGroup(2, 3)                                 //passenger group -> empire
       vehicle.Actor.tell(Mountable.TryMount(player1, 3), probe.ref) //passenger seat
       checkCanMount()
-      vehicle.PermissionGroup(2,0) //passenger group -> locked
+      vehicle.PermissionGroup(2, 0)                                 //passenger group -> locked
       vehicle.Actor.tell(Mountable.TryMount(player2, 4), probe.ref) //passenger seat
       checkCanNotMount()
     }
@@ -705,10 +762,10 @@ class VehicleControlMountingBlockedSeatPermissionTest extends ActorTest {
 
 class VehicleControlMountingDriverSeatTest extends ActorTest {
   val probe = new TestProbe(system)
-  def checkCanMount() : Unit = {
+  def checkCanMount(): Unit = {
     val reply = probe.receiveOne(Duration.create(100, "ms"))
     reply match {
-      case msg : Mountable.MountMessages =>
+      case msg: Mountable.MountMessages =>
         assert(msg.response.isInstanceOf[Mountable.CanMount])
       case _ =>
         assert(false)
@@ -735,20 +792,20 @@ class VehicleControlMountingDriverSeatTest extends ActorTest {
 
 class VehicleControlMountingOwnedLockedDriverSeatTest extends ActorTest {
   val probe = new TestProbe(system)
-  def checkCanNotMount() : Unit = {
+  def checkCanNotMount(): Unit = {
     val reply = probe.receiveOne(Duration.create(100, "ms"))
     reply match {
-      case msg : Mountable.MountMessages =>
+      case msg: Mountable.MountMessages =>
         assert(msg.response.isInstanceOf[Mountable.CanNotMount])
       case _ =>
         assert(false)
     }
   }
 
-  def checkCanMount() : Unit = {
+  def checkCanMount(): Unit = {
     val reply = probe.receiveOne(Duration.create(100, "ms"))
     reply match {
-      case msg : Mountable.MountMessages =>
+      case msg: Mountable.MountMessages =>
         assert(msg.response.isInstanceOf[Mountable.CanMount])
       case _ =>
         assert(false)
@@ -785,10 +842,10 @@ class VehicleControlMountingOwnedLockedDriverSeatTest extends ActorTest {
 
 class VehicleControlMountingOwnedUnlockedDriverSeatTest extends ActorTest {
   val probe = new TestProbe(system)
-  def checkCanMount() : Unit = {
+  def checkCanMount(): Unit = {
     val reply = probe.receiveOne(Duration.create(100, "ms"))
     reply match {
-      case msg : Mountable.MountMessages =>
+      case msg: Mountable.MountMessages =>
         assert(msg.response.isInstanceOf[Mountable.CanMount])
       case _ =>
         assert(false)
@@ -805,7 +862,7 @@ class VehicleControlMountingOwnedUnlockedDriverSeatTest extends ActorTest {
 
   "Vehicle Control" should {
     "allow players that are not the current owner to sit in the driver seat (empire)" in {
-      vehicle.PermissionGroup(0,3) //passenger group -> empire
+      vehicle.PermissionGroup(0, 3)                                        //passenger group -> empire
       assert(vehicle.PermissionGroup(0).contains(VehicleLockState.Empire)) //driver group -> empire
       assert(vehicle.Seats(0).Occupant.isEmpty)
       vehicle.Owner = player1.GUID //owner set
@@ -825,7 +882,7 @@ class VehicleControlMountingOwnedUnlockedDriverSeatTest extends ActorTest {
 }
 
 class VehicleControlShieldsChargingTest extends ActorTest {
-  val probe = new TestProbe(system)
+  val probe   = new TestProbe(system)
   val vehicle = Vehicle(GlobalDefinitions.fury)
   vehicle.GUID = PlanetSideGUID(10)
   vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
@@ -835,21 +892,21 @@ class VehicleControlShieldsChargingTest extends ActorTest {
 
   "charge vehicle shields" in {
     assert(vehicle.Shields == 0)
-    assert(!vehicle.History.exists({p => p.isInstanceOf[VehicleShieldCharge]}))
+    assert(!vehicle.History.exists({ p => p.isInstanceOf[VehicleShieldCharge] }))
 
     vehicle.Actor ! Vehicle.ChargeShields(15)
     val msg = probe.receiveOne(500 milliseconds)
     assert(msg match {
       case VehicleServiceMessage(_, VehicleAction.PlanetsideAttribute(_, PlanetSideGUID(10), 68, 15)) => true
-      case _ => false
+      case _                                                                                          => false
     })
     assert(vehicle.Shields == 15)
-    assert(vehicle.History.exists({p => p.isInstanceOf[VehicleShieldCharge]}))
+    assert(vehicle.History.exists({ p => p.isInstanceOf[VehicleShieldCharge] }))
   }
 }
 
 class VehicleControlShieldsNotChargingVehicleDeadTest extends ActorTest {
-  val probe = new TestProbe(system)
+  val probe   = new TestProbe(system)
   val vehicle = Vehicle(GlobalDefinitions.fury)
   vehicle.GUID = PlanetSideGUID(10)
   vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
@@ -862,17 +919,17 @@ class VehicleControlShieldsNotChargingVehicleDeadTest extends ActorTest {
     vehicle.Health = 0
     assert(vehicle.Health == 0)
     assert(vehicle.Shields == 0)
-    assert(!vehicle.History.exists({p => p.isInstanceOf[VehicleShieldCharge]}))
+    assert(!vehicle.History.exists({ p => p.isInstanceOf[VehicleShieldCharge] }))
     vehicle.Actor.tell(Vehicle.ChargeShields(15), probe.ref)
 
     probe.expectNoMessage(1 seconds)
     assert(vehicle.Shields == 0)
-    assert(!vehicle.History.exists({p => p.isInstanceOf[VehicleShieldCharge]}))
+    assert(!vehicle.History.exists({ p => p.isInstanceOf[VehicleShieldCharge] }))
   }
 }
 
 class VehicleControlShieldsNotChargingVehicleShieldsFullTest extends ActorTest {
-  val probe = new TestProbe(system)
+  val probe   = new TestProbe(system)
   val vehicle = Vehicle(GlobalDefinitions.fury)
   vehicle.GUID = PlanetSideGUID(10)
   vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
@@ -884,16 +941,16 @@ class VehicleControlShieldsNotChargingVehicleShieldsFullTest extends ActorTest {
     assert(vehicle.Shields == 0)
     vehicle.Shields = vehicle.MaxShields
     assert(vehicle.Shields == vehicle.MaxShields)
-    assert(!vehicle.History.exists({p => p.isInstanceOf[VehicleShieldCharge]}))
+    assert(!vehicle.History.exists({ p => p.isInstanceOf[VehicleShieldCharge] }))
     vehicle.Actor ! Vehicle.ChargeShields(15)
 
     probe.expectNoMessage(1 seconds)
-    assert(!vehicle.History.exists({p => p.isInstanceOf[VehicleShieldCharge]}))
+    assert(!vehicle.History.exists({ p => p.isInstanceOf[VehicleShieldCharge] }))
   }
 }
 
 class VehicleControlShieldsNotChargingTooEarlyTest extends ActorTest {
-  val probe = new TestProbe(system)
+  val probe   = new TestProbe(system)
   val vehicle = Vehicle(GlobalDefinitions.fury)
   vehicle.GUID = PlanetSideGUID(10)
   vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
@@ -909,7 +966,7 @@ class VehicleControlShieldsNotChargingTooEarlyTest extends ActorTest {
     //assert(msg.isInstanceOf[Vehicle.UpdateShieldsCharge])
     assert(msg match {
       case VehicleServiceMessage(_, VehicleAction.PlanetsideAttribute(_, PlanetSideGUID(10), 68, 15)) => true
-      case _ => false
+      case _                                                                                          => false
     })
     assert(vehicle.Shields == 15)
 

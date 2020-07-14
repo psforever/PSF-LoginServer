@@ -5,16 +5,15 @@ import net.psforever.newcodecs._
 import scodec.Codec
 import scodec.codecs._
 
-final case class Vector3(x : Float,
-                         y : Float,
-                         z : Float) {
+final case class Vector3(x: Float, y: Float, z: Float) {
+
   /**
     * Operator for vector addition, treating `Vector3` objects as actual mathematical vectors.
     * The application of this definition is "vector1 + vector2."
     * @param vec the other `Vector3` object
     * @return a new `Vector3` object with the summed values
     */
-  def +(vec : Vector3) : Vector3 = {
+  def +(vec: Vector3): Vector3 = {
     Vector3(x + vec.x, y + vec.y, z + vec.z)
   }
 
@@ -24,7 +23,7 @@ final case class Vector3(x : Float,
     * @param vec the other `Vector3` object
     * @return a new `Vector3` object with the difference values
     */
-  def -(vec : Vector3) : Vector3 = {
+  def -(vec: Vector3): Vector3 = {
     Vector3(x - vec.x, y - vec.y, z - vec.z)
   }
 
@@ -35,8 +34,8 @@ final case class Vector3(x : Float,
     * @param scalar the value to multiply this vector
     * @return a new `Vector3` object
     */
-  def *(scalar : Float) : Vector3 = {
-    Vector3(x*scalar, y*scalar, z*scalar)
+  def *(scalar: Float): Vector3 = {
+    Vector3(x * scalar, y * scalar, z * scalar)
   }
 
   /**
@@ -45,7 +44,7 @@ final case class Vector3(x : Float,
     * The application of this definition is "vector.xy" or "vector xy."
     * @return a new `Vector3` object with only two of the components of the original
     */
-  def xy : Vector3 = Vector3(x, y, 0)
+  def xy: Vector3 = Vector3(x, y, 0)
 
   /**
     * Perform the x-axis rotation of this `Vector3` element where the angle of rotation is assumed in degrees.
@@ -54,7 +53,8 @@ final case class Vector3(x : Float,
     * @param ang a rotation angle
     * @return the rotated vector
     */
-  def Rx(ang : Float) : Vector3 = Vector3.Rx(this, ang)
+  def Rx(ang: Float): Vector3 = Vector3.Rx(this, ang)
+
   /**
     * Perform the y-axis rotation of this `Vector3` element where the angle of rotation is assumed in degrees.
     * For chaining rotations.
@@ -62,7 +62,8 @@ final case class Vector3(x : Float,
     * @param ang a rotation angle
     * @return the rotated vector
     */
-  def Ry(ang : Float) : Vector3 = Vector3.Ry(this, ang)
+  def Ry(ang: Float): Vector3 = Vector3.Ry(this, ang)
+
   /**
     * Perform the z-axis rotation of this `Vector3` element where the angle of rotation is assumed in degrees.
     * For chaining rotations.
@@ -70,42 +71,42 @@ final case class Vector3(x : Float,
     * @param ang a rotation angle
     * @return the rotated vector
     */
-  def Rz(ang : Float) : Vector3 = Vector3.Rz(this, ang)
+  def Rz(ang: Float): Vector3 = Vector3.Rz(this, ang)
 }
 
 object Vector3 {
-  final val Zero : Vector3 = Vector3(0f, 0f, 0f)
+  final val Zero: Vector3 = Vector3(0f, 0f, 0f)
 
-  private def closeToInsignificance(d : Float, epsilon : Float = 10f) : Float = {
+  private def closeToInsignificance(d: Float, epsilon: Float = 10f): Float = {
     val ulp = math.ulp(epsilon)
     math.signum(d) match {
       case -1f =>
         val n = math.abs(d)
         val p = math.abs(n - n.toInt)
-        if(p < ulp || d > ulp) d + p else d
+        if (p < ulp || d > ulp) d + p else d
       case _ =>
         val p = math.abs(d - d.toInt)
-        if(p < ulp || d < ulp) d - p else d
+        if (p < ulp || d < ulp) d - p else d
     }
   }
 
-  implicit val codec_pos : Codec[Vector3] = (
-      ("x" | newcodecs.q_float(0.0, 8192.0, 20)) ::
+  implicit val codec_pos: Codec[Vector3] = (
+    ("x" | newcodecs.q_float(0.0, 8192.0, 20)) ::
       ("y" | newcodecs.q_float(0.0, 8192.0, 20)) ::
       ("z" | newcodecs.q_float(0.0, 1024.0, 16))
-    ).as[Vector3]
+  ).as[Vector3]
 
-  implicit val codec_vel : Codec[Vector3] = (
-      ("x" | newcodecs.q_float(-256.0, 256.0, 14)) ::
+  implicit val codec_vel: Codec[Vector3] = (
+    ("x" | newcodecs.q_float(-256.0, 256.0, 14)) ::
       ("y" | newcodecs.q_float(-256.0, 256.0, 14)) ::
       ("z" | newcodecs.q_float(-256.0, 256.0, 14))
-    ).as[Vector3]
+  ).as[Vector3]
 
-  implicit val codec_float : Codec[Vector3] = (
-      ("x" | floatL) ::
+  implicit val codec_float: Codec[Vector3] = (
+    ("x" | floatL) ::
       ("y" | floatL) ::
       ("z" | floatL)
-    ).as[Vector3]
+  ).as[Vector3]
 
   /**
     * A common vector object that only concerns itself
@@ -114,7 +115,7 @@ object Vector3 {
     * @param value the third coordinate
     * @return a `Vector3` object
     */
-  def z(value : Float) : Vector3 = Vector3(0, 0, value)
+  def z(value: Float): Vector3 = Vector3(0, 0, value)
 
   /**
     * Calculate the actual distance between two points.
@@ -122,7 +123,7 @@ object Vector3 {
     * @param pos2 the second point
     * @return the distance
     */
-  def Distance(pos1 : Vector3, pos2 : Vector3) : Float = {
+  def Distance(pos1: Vector3, pos2: Vector3): Float = {
     math.sqrt(DistanceSquared(pos1, pos2)).toFloat
   }
 
@@ -133,8 +134,8 @@ object Vector3 {
     * @param pos2 the second point
     * @return the distance
     */
-  def DistanceSquared(pos1 : Vector3, pos2 : Vector3) : Float = {
-    val dvec : Vector3 = pos1 - pos2
+  def DistanceSquared(pos1: Vector3, pos2: Vector3): Float = {
+    val dvec: Vector3 = pos1 - pos2
     (dvec.x * dvec.x) + (dvec.y * dvec.y) + (dvec.z * dvec.z)
   }
 
@@ -143,7 +144,7 @@ object Vector3 {
     * @param vec the vector
     * @return the magnitude
     */
-  def Magnitude(vec : Vector3) : Float = {
+  def Magnitude(vec: Vector3): Float = {
     math.sqrt(MagnitudeSquared(vec)).toFloat
   }
 
@@ -153,10 +154,10 @@ object Vector3 {
     * @param vec the vector
     * @return the magnitude
     */
-  def MagnitudeSquared(vec : Vector3) : Float = {
-    val dx : Float = vec.x
-    val dy : Float = vec.y
-    val dz : Float = vec.z
+  def MagnitudeSquared(vec: Vector3): Float = {
+    val dx: Float = vec.x
+    val dy: Float = vec.y
+    val dz: Float = vec.z
     (dx * dx) + (dy * dy) + (dz * dz)
   }
 
@@ -168,12 +169,11 @@ object Vector3 {
     * @return the unit vector;
     *         if the original vector has no magnitude, a zero-vector is returned
     */
-  def Unit(vec : Vector3) : Vector3 = {
-    val mag : Float = Magnitude(vec)
-    if(mag == 0) {
+  def Unit(vec: Vector3): Vector3 = {
+    val mag: Float = Magnitude(vec)
+    if (mag == 0) {
       Vector3.Zero
-    }
-    else {
+    } else {
       Vector3(vec.x / mag, vec.y / mag, vec.z / mag)
     }
   }
@@ -188,7 +188,7 @@ object Vector3 {
     * @param vec2 the second vector
     * @return the dot product
     */
-  def DotProduct(vec1 : Vector3, vec2 : Vector3) : Float = {
+  def DotProduct(vec1: Vector3, vec2: Vector3): Float = {
     vec1.x * vec2.x + vec1.y * vec2.y + vec1.z * vec2.z
   }
 
@@ -204,7 +204,7 @@ object Vector3 {
     * @param vec2 the second vector
     * @return the cross product
     */
-  def CrossProduct(vec1 : Vector3, vec2 : Vector3) : Vector3 = {
+  def CrossProduct(vec1: Vector3, vec2: Vector3): Vector3 = {
     Vector3(
       vec1.y * vec2.z - vec2.y * vec1.z,
       vec2.x * vec1.z - vec1.x * vec2.z,
@@ -224,12 +224,11 @@ object Vector3 {
     * @param vec2 the vector projected onto
     * @return the magnitude of the resulting projected vector
     */
-  def ScalarProjection(vec1 : Vector3, vec2 : Vector3) : Float = {
-    val mag : Float = Magnitude(vec2)
-    if(mag == 0f) {
+  def ScalarProjection(vec1: Vector3, vec2: Vector3): Float = {
+    val mag: Float = Magnitude(vec2)
+    if (mag == 0f) {
       0f
-    }
-    else {
+    } else {
       DotProduct(vec1, vec2) / mag
     }
   }
@@ -245,7 +244,7 @@ object Vector3 {
     * @param vec2 the vector projected onto
     * @return the resulting projected vector
     */
-  def VectorProjection(vec1 : Vector3, vec2 : Vector3) : Vector3 = {
+  def VectorProjection(vec1: Vector3, vec2: Vector3): Vector3 = {
     Unit(vec2) * ScalarProjection(vec1, vec2)
   }
 
@@ -256,7 +255,8 @@ object Vector3 {
     * @param ang a rotation angle, in degrees
     * @return the rotated vector
     */
-  def Rx(vec : Vector3, ang : Float) : Vector3 = Rx(vec, math.toRadians(ang))
+  def Rx(vec: Vector3, ang: Float): Vector3 = Rx(vec, math.toRadians(ang))
+
   /**
     * Perform the x-axis rotation of a `Vector3` element where the angle of rotation is assumed in radians.
     * @see `Vector3.Rx(Vector3, Float)`
@@ -264,9 +264,9 @@ object Vector3 {
     * @param ang a rotation angle, in radians
     * @return the rotated vector
     */
-  def Rx(vec : Vector3, ang : Double) : Vector3 = {
-    val cos = math.cos(ang).toFloat
-    val sin = math.sin(ang).toFloat
+  def Rx(vec: Vector3, ang: Double): Vector3 = {
+    val cos       = math.cos(ang).toFloat
+    val sin       = math.sin(ang).toFloat
     val (x, y, z) = (vec.x, vec.y, vec.z)
     Vector3(
       x,
@@ -282,7 +282,8 @@ object Vector3 {
     * @param ang a rotation angle, in degrees
     * @return the rotated vector
     */
-  def Ry(vec : Vector3, ang : Float) : Vector3 = Ry(vec, math.toRadians(ang))
+  def Ry(vec: Vector3, ang: Float): Vector3 = Ry(vec, math.toRadians(ang))
+
   /**
     * Perform the y-axis rotation of a `Vector3` element where the angle of rotation is assumed in radians.
     * @see `Vector3.Ry(Vector3, Float)`
@@ -290,9 +291,9 @@ object Vector3 {
     * @param ang a rotation angle, in radians
     * @return the rotated vector
     */
-  def Ry(vec : Vector3, ang : Double) : Vector3 = {
-    val cos = math.cos(ang).toFloat
-    val sin = math.sin(ang).toFloat
+  def Ry(vec: Vector3, ang: Double): Vector3 = {
+    val cos       = math.cos(ang).toFloat
+    val sin       = math.sin(ang).toFloat
     val (x, y, z) = (vec.x, vec.y, vec.z)
     Vector3(
       closeToInsignificance(x * cos + z * sin),
@@ -308,7 +309,8 @@ object Vector3 {
     * @param ang a rotation angle, in degrees
     * @return the rotated vector
     */
-  def Rz(vec : Vector3, ang : Float) : Vector3 = Rz(vec, math.toRadians(ang))
+  def Rz(vec: Vector3, ang: Float): Vector3 = Rz(vec, math.toRadians(ang))
+
   /**
     * Perform the z-axis rotation of a `Vector3` element where the angle of rotation is assumed in radians.
     * @see `Vector3.Rz(Vector3, Float)`
@@ -316,9 +318,9 @@ object Vector3 {
     * @param ang a rotation angle, in radians
     * @return the rotation vector
     */
-  def Rz(vec : Vector3, ang : Double) : Vector3 = {
-    val cos = math.cos(ang).toFloat
-    val sin = math.sin(ang).toFloat
+  def Rz(vec: Vector3, ang: Double): Vector3 = {
+    val cos       = math.cos(ang).toFloat
+    val sin       = math.sin(ang).toFloat
     val (x, y, z) = (vec.x, vec.y, vec.z)
     Vector3(
       closeToInsignificance(x * cos - y * sin),
@@ -327,7 +329,7 @@ object Vector3 {
     )
   }
 
-  def PlanarRotateAroundPoint(point: Vector3, center: Vector3, radians : Float) : Vector3 = {
+  def PlanarRotateAroundPoint(point: Vector3, center: Vector3, radians: Float): Vector3 = {
     val x = (Math.cos(radians) * (point.x - center.x) - Math.sin(radians) * (point.y - center.y) + center.x).toFloat
     val y = (Math.sin(radians) * (point.x - center.x) + Math.cos(radians) * (point.y - center.y) + center.y).toFloat
 

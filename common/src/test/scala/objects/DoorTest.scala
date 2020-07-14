@@ -43,7 +43,19 @@ class DoorTest extends Specification {
     }
 
     "be opened and closed (2; toggle)" in {
-      val msg = UseItemMessage(PlanetSideGUID(6585), PlanetSideGUID(0), PlanetSideGUID(372), 4294967295L, false, Vector3(5.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 0.0f), 11, 25, 0, 364)
+      val msg = UseItemMessage(
+        PlanetSideGUID(6585),
+        PlanetSideGUID(0),
+        PlanetSideGUID(372),
+        4294967295L,
+        false,
+        Vector3(5.0f, 0.0f, 0.0f),
+        Vector3(0.0f, 0.0f, 0.0f),
+        11,
+        25,
+        0,
+        364
+      )
       val door = Door(GlobalDefinitions.door)
       door.Open mustEqual None
       door.Use(player, msg)
@@ -68,7 +80,19 @@ class DoorControl2Test extends ActorTest {
   "DoorControl" should {
     "open on use" in {
       val (player, door) = DoorControlTest.SetUpAgents(PlanetSideEmpire.TR)
-      val msg = UseItemMessage(PlanetSideGUID(1), PlanetSideGUID(0), PlanetSideGUID(2), 0L, false, Vector3(0f,0f,0f),Vector3(0f,0f,0f),0,0,0,0L) //faked
+      val msg = UseItemMessage(
+        PlanetSideGUID(1),
+        PlanetSideGUID(0),
+        PlanetSideGUID(2),
+        0L,
+        false,
+        Vector3(0f, 0f, 0f),
+        Vector3(0f, 0f, 0f),
+        0,
+        0,
+        0,
+        0L
+      ) //faked
       assert(door.Open.isEmpty)
 
       door.Actor ! Door.Use(player, msg)
@@ -98,10 +122,17 @@ class DoorControl3Test extends ActorTest {
 }
 
 object DoorControlTest {
-  def SetUpAgents(faction : PlanetSideEmpire.Value)(implicit system : ActorSystem) : (Player, Door) = {
+  def SetUpAgents(faction: PlanetSideEmpire.Value)(implicit system: ActorSystem): (Player, Door) = {
     val door = Door(GlobalDefinitions.door)
     door.Actor = system.actorOf(Props(classOf[DoorControl], door), "door")
-    door.Owner = new Building("Building", building_guid = 0, map_id = 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building)
+    door.Owner = new Building(
+      "Building",
+      building_guid = 0,
+      map_id = 0,
+      Zone.Nowhere,
+      StructureType.Building,
+      GlobalDefinitions.building
+    )
     door.Owner.Faction = faction
     (Player(Avatar("test", faction, CharacterGender.Male, 0, CharacterVoice.Mute)), door)
   }

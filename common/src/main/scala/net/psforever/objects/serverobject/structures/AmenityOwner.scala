@@ -9,11 +9,11 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
   * @see `PlanetSideServerObject`
   */
 abstract class AmenityOwner extends PlanetSideServerObject {
-  private var amenities : List[Amenity] = List.empty
+  private var amenities: List[Amenity] = List.empty
 
-  def Amenities : List[Amenity] = amenities
+  def Amenities: List[Amenity] = amenities
 
-  def Amenities_=(obj : Amenity) : List[Amenity] = {
+  def Amenities_=(obj: Amenity): List[Amenity] = {
     amenities = amenities :+ obj
     obj.Owner = this
     amenities

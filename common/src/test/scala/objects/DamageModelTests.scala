@@ -15,16 +15,22 @@ import org.specs2.mutable.Specification
 
 class DamageCalculationsTests extends Specification {
   "DamageCalculations" should {
-    val wep = GlobalDefinitions.galaxy_gunship_cannon
-    val wep_fmode = Tool(wep).FireMode
-    val wep_prof = wep_fmode.Modifiers.asInstanceOf[DamageProfile]
-    val proj = wep.ProjectileTypes.head
-    val proj_prof = proj.asInstanceOf[DamageProfile]
-    val player = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+    val wep        = GlobalDefinitions.galaxy_gunship_cannon
+    val wep_fmode  = Tool(wep).FireMode
+    val wep_prof   = wep_fmode.Modifiers.asInstanceOf[DamageProfile]
+    val proj       = wep.ProjectileTypes.head
+    val proj_prof  = proj.asInstanceOf[DamageProfile]
+    val player     = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
     val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
-    val target = Vehicle(GlobalDefinitions.fury)
+    val target     = Vehicle(GlobalDefinitions.fury)
     target.Position = Vector3(10, 0, 0)
-    val resprojectile = ResolvedProjectile(ProjectileResolution.Splash, projectile, SourceEntry(target), target.DamageModel, Vector3(50, 50, 0))
+    val resprojectile = ResolvedProjectile(
+      ProjectileResolution.Splash,
+      projectile,
+      SourceEntry(target),
+      target.DamageModel,
+      Vector3(50, 50, 0)
+    )
     "extract no damage numbers" in {
       NoDamageAgainst(proj_prof) mustEqual 0
     }
@@ -50,14 +56,14 @@ class DamageCalculationsTests extends Specification {
     }
 
     "extract a complete damage profile (1)" in {
-      val result = DamageAgainstVehicle(proj_prof) + DamageAgainstVehicle(wep_prof)
-      val func : (DamageProfile, List[DamageProfile]) => Int = DamageWithModifiers(DamageAgainstVehicle)
+      val result                                            = DamageAgainstVehicle(proj_prof) + DamageAgainstVehicle(wep_prof)
+      val func: (DamageProfile, List[DamageProfile]) => Int = DamageWithModifiers(DamageAgainstVehicle)
       func(proj_prof, List(wep_prof)) mustEqual result
     }
 
     "extract a complete damage profile (2)" in {
-      val result = 2 * DamageAgainstVehicle(proj_prof) + DamageAgainstVehicle(wep_prof)
-      val func : (DamageProfile, List[DamageProfile]) => Int = DamageWithModifiers(DamageAgainstVehicle)
+      val result                                            = 2 * DamageAgainstVehicle(proj_prof) + DamageAgainstVehicle(wep_prof)
+      val func: (DamageProfile, List[DamageProfile]) => Int = DamageWithModifiers(DamageAgainstVehicle)
       func(proj_prof, List(proj_prof, wep_prof)) mustEqual result
     }
 
@@ -78,28 +84,46 @@ class DamageCalculationsTests extends Specification {
     }
 
     "calculate no damage from components" in {
-      val result = DamageWithModifiers(DamageAgainstVehicle)(proj_prof, List(wep_prof))
+      val result   = DamageWithModifiers(DamageAgainstVehicle)(proj_prof, List(wep_prof))
       val distance = DistanceFromExplosionToTarget(resprojectile)
       DamageCalculations.NoDamage(projectile, result, distance) mustEqual 0
     }
 
     "calculate degraded damage from components (near)" in {
-      val projectile_alt = Projectile(GlobalDefinitions.galaxy_gunship_gun_projectile, //need projectile with degrade
-        wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
+      val projectile_alt = Projectile(
+        GlobalDefinitions.galaxy_gunship_gun_projectile, //need projectile with degrade
+        wep,
+        wep_fmode,
+        player,
+        Vector3(2, 2, 0),
+        Vector3.Zero
+      )
       val result = DamageWithModifiers(DamageAgainstVehicle)(proj_prof, List(wep_prof))
       DirectHitDamageWithDegrade(projectile_alt, result, 0) mustEqual 132
     }
 
     "calculate degraded damage from components (medium)" in {
-      val projectile_alt = Projectile(GlobalDefinitions.galaxy_gunship_gun_projectile, //need projectile with degrade
-        wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
+      val projectile_alt = Projectile(
+        GlobalDefinitions.galaxy_gunship_gun_projectile, //need projectile with degrade
+        wep,
+        wep_fmode,
+        player,
+        Vector3(2, 2, 0),
+        Vector3.Zero
+      )
       val result = DamageWithModifiers(DamageAgainstVehicle)(proj_prof, List(wep_prof))
       DirectHitDamageWithDegrade(projectile_alt, result, 250) mustEqual 103
     }
 
     "calculate degraded damage from components (far)" in {
-      val projectile_alt = Projectile(GlobalDefinitions.galaxy_gunship_gun_projectile, //need projectile with degrade
-        wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
+      val projectile_alt = Projectile(
+        GlobalDefinitions.galaxy_gunship_gun_projectile, //need projectile with degrade
+        wep,
+        wep_fmode,
+        player,
+        Vector3(2, 2, 0),
+        Vector3.Zero
+      )
       val result = DamageWithModifiers(DamageAgainstVehicle)(proj_prof, List(wep_prof))
       DirectHitDamageWithDegrade(projectile_alt, result, 1000) mustEqual 0
     }
@@ -122,22 +146,34 @@ class DamageCalculationsTests extends Specification {
 }
 
 class ResistanceCalculationsTests extends Specification {
-  val wep = GlobalDefinitions.galaxy_gunship_cannon
-  val wep_fmode = Tool(wep).FireMode
-  val proj = wep.ProjectileTypes.head //GlobalDefinitions.heavy_grenade_projectile
-  val player = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
-  val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2,2,0), Vector3.Zero)
+  val wep        = GlobalDefinitions.galaxy_gunship_cannon
+  val wep_fmode  = Tool(wep).FireMode
+  val proj       = wep.ProjectileTypes.head //GlobalDefinitions.heavy_grenade_projectile
+  val player     = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
 
   "ResistanceCalculations" should {
     "ignore all targets" in {
       val target = Vehicle(GlobalDefinitions.fury)
-      val resprojectile = ResolvedProjectile(ProjectileResolution.Splash, projectile, SourceEntry(target), target.DamageModel, Vector3.Zero)
+      val resprojectile = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        projectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3.Zero
+      )
       InvalidTarget(resprojectile).isFailure mustEqual true
     }
 
     "discern standard infantry targets" in {
       val target = player
-      val resprojectile = ResolvedProjectile(ProjectileResolution.Splash, projectile, SourceEntry(target), target.DamageModel, Vector3.Zero)
+      val resprojectile = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        projectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3.Zero
+      )
       ValidInfantryTarget(resprojectile).isSuccess mustEqual true
       ValidMaxTarget(resprojectile).isSuccess mustEqual false
       ValidVehicleTarget(resprojectile).isSuccess mustEqual false
@@ -147,7 +183,13 @@ class ResistanceCalculationsTests extends Specification {
     "discern mechanized infantry targets" in {
       val target = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       target.ExoSuit = ExoSuitType.MAX
-      val resprojectile = ResolvedProjectile(ProjectileResolution.Splash, projectile, SourceEntry(target), target.DamageModel, Vector3.Zero)
+      val resprojectile = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        projectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3.Zero
+      )
       ValidInfantryTarget(resprojectile).isSuccess mustEqual false
       ValidMaxTarget(resprojectile).isSuccess mustEqual true
       ValidVehicleTarget(resprojectile).isSuccess mustEqual false
@@ -156,7 +198,13 @@ class ResistanceCalculationsTests extends Specification {
 
     "discern ground vehicle targets" in {
       val target = Vehicle(GlobalDefinitions.fury)
-      val resprojectile = ResolvedProjectile(ProjectileResolution.Splash, projectile, SourceEntry(target), target.DamageModel, Vector3.Zero)
+      val resprojectile = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        projectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3.Zero
+      )
       ValidInfantryTarget(resprojectile).isSuccess mustEqual false
       ValidMaxTarget(resprojectile).isSuccess mustEqual false
       ValidVehicleTarget(resprojectile).isSuccess mustEqual true
@@ -165,7 +213,13 @@ class ResistanceCalculationsTests extends Specification {
 
     "discern flying vehicle targets" in {
       val target = Vehicle(GlobalDefinitions.mosquito)
-      val resprojectile = ResolvedProjectile(ProjectileResolution.Splash, projectile, SourceEntry(target), target.DamageModel, Vector3.Zero)
+      val resprojectile = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        projectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3.Zero
+      )
       ValidInfantryTarget(resprojectile).isSuccess mustEqual false
       ValidMaxTarget(resprojectile).isSuccess mustEqual false
       ValidVehicleTarget(resprojectile).isSuccess mustEqual false
@@ -195,47 +249,65 @@ class ResistanceCalculationsTests extends Specification {
 }
 
 class ResolutionCalculationsTests extends Specification {
-  val wep = GlobalDefinitions.suppressor
+  val wep       = GlobalDefinitions.suppressor
   val wep_fmode = Tool(wep).FireMode
-  val proj = wep.ProjectileTypes.head
-  val player = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val proj      = wep.ProjectileTypes.head
+  val player    = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
   player.Spawn
-  val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2,2,0), Vector3.Zero)
+  val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
 
   "ResolutionCalculations" should {
     "calculate no damage" in {
       val target = player
-      val resprojectile = ResolvedProjectile(ProjectileResolution.Splash, projectile, SourceEntry(target), target.DamageModel, Vector3.Zero)
-      ResolutionCalculations.NoDamage(resprojectile)(50,50) mustEqual 0
+      val resprojectile = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        projectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3.Zero
+      )
+      ResolutionCalculations.NoDamage(resprojectile)(50, 50) mustEqual 0
     }
 
     "calculate no infantry damage for vehicles" in {
       val target1 = Vehicle(GlobalDefinitions.fury) //!
-      val resprojectile1 = ResolvedProjectile(ProjectileResolution.Splash, projectile, SourceEntry(target1), target1.DamageModel, Vector3.Zero)
-      InfantryDamageAfterResist(resprojectile1)(50, 10) mustEqual (0,0)
+      val resprojectile1 = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        projectile,
+        SourceEntry(target1),
+        target1.DamageModel,
+        Vector3.Zero
+      )
+      InfantryDamageAfterResist(resprojectile1)(50, 10) mustEqual (0, 0)
 
       val target2 = player
-      val resprojectile2 = ResolvedProjectile(ProjectileResolution.Splash, projectile, SourceEntry(target2), target2.DamageModel, Vector3.Zero)
-      InfantryDamageAfterResist(resprojectile2)(50, 10) mustEqual (40,10)
+      val resprojectile2 = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        projectile,
+        SourceEntry(target2),
+        target2.DamageModel,
+        Vector3.Zero
+      )
+      InfantryDamageAfterResist(resprojectile2)(50, 10) mustEqual (40, 10)
     }
 
     "calculate health and armor damage for infantry target" in {
-      InfantryDamageAfterResist(100,100)(50, 10) mustEqual (40,10)
+      InfantryDamageAfterResist(100, 100)(50, 10) mustEqual (40, 10)
     }
 
     "calculate health and armor damage, with bleed through damage, for infantry target" in {
       //health = 100, armor = 5 -> resist 10 but only have 5, so rollover extra -> damages (40+5, 5)
-      InfantryDamageAfterResist(100,5)(50, 10) mustEqual (45,5)
+      InfantryDamageAfterResist(100, 5)(50, 10) mustEqual (45, 5)
     }
 
     "calculate health damage for infantry target" in {
       //health = 100, armor = 0
-      InfantryDamageAfterResist(100,0)(50, 10) mustEqual (50,0)
+      InfantryDamageAfterResist(100, 0)(50, 10) mustEqual (50, 0)
     }
 
     "calculate armor damage for infantry target" in {
       //resistance > damage
-      InfantryDamageAfterResist(100,100)(50, 60) mustEqual (0,50)
+      InfantryDamageAfterResist(100, 100)(50, 60) mustEqual (0, 50)
     }
 
     val player2 = Player(Avatar("TestCharacter2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
@@ -243,35 +315,59 @@ class ResolutionCalculationsTests extends Specification {
     player2.Spawn
     "calculate no max damage for vehicles" in {
       val target1 = Vehicle(GlobalDefinitions.fury) //!
-      val resprojectile1 = ResolvedProjectile(ProjectileResolution.Splash, projectile, SourceEntry(target1), target1.DamageModel, Vector3.Zero)
-      MaxDamageAfterResist(resprojectile1)(50, 10) mustEqual (0,0)
+      val resprojectile1 = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        projectile,
+        SourceEntry(target1),
+        target1.DamageModel,
+        Vector3.Zero
+      )
+      MaxDamageAfterResist(resprojectile1)(50, 10) mustEqual (0, 0)
 
       val target2 = player2
-      val resprojectile2 = ResolvedProjectile(ProjectileResolution.Splash, projectile, SourceEntry(target2), target2.DamageModel, Vector3.Zero)
-      MaxDamageAfterResist(resprojectile2)(50, 10) mustEqual (0,40)
+      val resprojectile2 = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        projectile,
+        SourceEntry(target2),
+        target2.DamageModel,
+        Vector3.Zero
+      )
+      MaxDamageAfterResist(resprojectile2)(50, 10) mustEqual (0, 40)
     }
 
     "calculate health and armor damage for max target" in {
-      MaxDamageAfterResist(100,5)(50, 10) mustEqual (35,5)
+      MaxDamageAfterResist(100, 5)(50, 10) mustEqual (35, 5)
     }
 
     "calculate health damage for max target" in {
       //health = 100, armor = 0
-      MaxDamageAfterResist(100,0)(50, 10) mustEqual (40,0)
+      MaxDamageAfterResist(100, 0)(50, 10) mustEqual (40, 0)
     }
 
     "calculate armor damage for max target" in {
       //resistance > damage
-      MaxDamageAfterResist(100,100)(50, 10) mustEqual (0,40)
+      MaxDamageAfterResist(100, 100)(50, 10) mustEqual (0, 40)
     }
 
     "do not care if target is infantry for vehicle calculations" in {
       val target1 = player
-      val resprojectile1 = ResolvedProjectile(ProjectileResolution.Splash, projectile, SourceEntry(target1), target1.DamageModel, Vector3.Zero)
+      val resprojectile1 = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        projectile,
+        SourceEntry(target1),
+        target1.DamageModel,
+        Vector3.Zero
+      )
       VehicleDamageAfterResist(resprojectile1)(50, 10) mustEqual 40
 
       val target2 = Vehicle(GlobalDefinitions.fury) //!
-      val resprojectile2 = ResolvedProjectile(ProjectileResolution.Splash, projectile, SourceEntry(target2), target2.DamageModel, Vector3.Zero)
+      val resprojectile2 = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        projectile,
+        SourceEntry(target2),
+        target2.DamageModel,
+        Vector3.Zero
+      )
       VehicleDamageAfterResist(resprojectile2)(50, 10) mustEqual 40
     }
   }
@@ -286,22 +382,21 @@ class ResolutionCalculationsTests extends Specification {
 }
 
 class DamageModelTests extends Specification {
-  val wep = GlobalDefinitions.suppressor
-  val wep_tool = Tool(wep)
+  val wep       = GlobalDefinitions.suppressor
+  val wep_tool  = Tool(wep)
   val wep_fmode = wep_tool.FireMode
-  val proj = wep.ProjectileTypes.head
-  val player = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val proj      = wep.ProjectileTypes.head
+  val player    = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
   player.Spawn
-  val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2,2,0), Vector3.Zero)
+  val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
 
   "DamageModel" should {
     "be a part of vitality" in {
       player.isInstanceOf[Vitality] mustEqual true
       try {
         player.getClass.getDeclaredMethod("DamageModel").hashCode()
-      }
-      catch {
-        case _ : Exception =>
+      } catch {
+        case _: Exception =>
           ko //the method doesn't exist
       }
 
@@ -309,9 +404,8 @@ class DamageModelTests extends Specification {
       try {
         wep_tool.getClass.getDeclaredMethod("DamageModel").hashCode()
         ko
-      }
-      catch {
-        case _ : Exception =>
+      } catch {
+        case _: Exception =>
           ok //the method doesn't exist
       }
       ok
@@ -323,8 +417,14 @@ class DamageModelTests extends Specification {
       tplayer.Health mustEqual 100
       tplayer.Armor mustEqual 50
 
-      val resprojectile = ResolvedProjectile(ProjectileResolution.Hit, projectile, SourceEntry(tplayer), tplayer.DamageModel, Vector3.Zero)
-      val func : Any=>ResolvedProjectile = resprojectile.damage_model.Calculate(resprojectile)
+      val resprojectile = ResolvedProjectile(
+        ProjectileResolution.Hit,
+        projectile,
+        SourceEntry(tplayer),
+        tplayer.DamageModel,
+        Vector3.Zero
+      )
+      val func: Any => ResolvedProjectile = resprojectile.damage_model.Calculate(resprojectile)
 
       func(tplayer)
       tplayer.Health mustEqual 87
@@ -337,8 +437,15 @@ class DamageModelTests extends Specification {
       tplayer.Health mustEqual 100
       tplayer.Armor mustEqual 50
 
-      val resprojectile = ResolvedProjectile(ProjectileResolution.Hit, projectile, SourceEntry(tplayer), tplayer.DamageModel, Vector3.Zero)
-      val func : Any=>ResolvedProjectile = resprojectile.damage_model.Calculate(resprojectile, ProjectileResolution.Splash)
+      val resprojectile = ResolvedProjectile(
+        ProjectileResolution.Hit,
+        projectile,
+        SourceEntry(tplayer),
+        tplayer.DamageModel,
+        Vector3.Zero
+      )
+      val func: Any => ResolvedProjectile =
+        resprojectile.damage_model.Calculate(resprojectile, ProjectileResolution.Splash)
 
       func(tplayer)
       tplayer.Health mustEqual 98
@@ -351,8 +458,14 @@ class DamageModelTests extends Specification {
       tplayer.Health mustEqual 100
       tplayer.Armor mustEqual 50
 
-      val resprojectile = ResolvedProjectile(ProjectileResolution.Hit, projectile, SourceEntry(tplayer), tplayer.DamageModel, Vector3.Zero)
-      val func : Any=>ResolvedProjectile = resprojectile.damage_model.Calculate(resprojectile)
+      val resprojectile = ResolvedProjectile(
+        ProjectileResolution.Hit,
+        projectile,
+        SourceEntry(tplayer),
+        tplayer.DamageModel,
+        Vector3.Zero
+      )
+      val func: Any => ResolvedProjectile = resprojectile.damage_model.Calculate(resprojectile)
       tplayer.Armor = 0
 
       func(tplayer)
@@ -364,8 +477,14 @@ class DamageModelTests extends Specification {
       val vehicle = Vehicle(GlobalDefinitions.fury)
       vehicle.Health mustEqual 650
 
-      val resprojectile = ResolvedProjectile(ProjectileResolution.Hit, projectile, SourceEntry(vehicle), vehicle.DamageModel, Vector3.Zero)
-      val func : Any=>ResolvedProjectile = resprojectile.damage_model.Calculate(resprojectile)
+      val resprojectile = ResolvedProjectile(
+        ProjectileResolution.Hit,
+        projectile,
+        SourceEntry(vehicle),
+        vehicle.DamageModel,
+        Vector3.Zero
+      )
+      val func: Any => ResolvedProjectile = resprojectile.damage_model.Calculate(resprojectile)
 
       func(vehicle)
       vehicle.Health mustEqual 641
@@ -377,8 +496,14 @@ class DamageModelTests extends Specification {
       vehicle.Health mustEqual 650
       vehicle.Shields mustEqual 10
 
-      val resprojectile = ResolvedProjectile(ProjectileResolution.Hit, projectile, SourceEntry(vehicle), vehicle.DamageModel, Vector3.Zero)
-      val func : Any=>ResolvedProjectile = resprojectile.damage_model.Calculate(resprojectile)
+      val resprojectile = ResolvedProjectile(
+        ProjectileResolution.Hit,
+        projectile,
+        SourceEntry(vehicle),
+        vehicle.DamageModel,
+        Vector3.Zero
+      )
+      val func: Any => ResolvedProjectile = resprojectile.damage_model.Calculate(resprojectile)
 
       func(vehicle)
       vehicle.Health mustEqual 650
@@ -391,8 +516,14 @@ class DamageModelTests extends Specification {
       vehicle.Health mustEqual 650
       vehicle.Shields mustEqual 10
 
-      val resprojectile = ResolvedProjectile(ProjectileResolution.Hit, projectile, SourceEntry(vehicle), vehicle.DamageModel, Vector3.Zero)
-      val func : Any=>ResolvedProjectile = resprojectile.damage_model.Calculate(resprojectile)
+      val resprojectile = ResolvedProjectile(
+        ProjectileResolution.Hit,
+        projectile,
+        SourceEntry(vehicle),
+        vehicle.DamageModel,
+        Vector3.Zero
+      )
+      val func: Any => ResolvedProjectile = resprojectile.damage_model.Calculate(resprojectile)
 
       func(vehicle)
       vehicle.Health mustEqual 650
@@ -406,8 +537,15 @@ class DamageModelTests extends Specification {
       val vehicle = Vehicle(GlobalDefinitions.fury)
       vehicle.Health mustEqual 650
 
-      val resprojectile = ResolvedProjectile(ProjectileResolution.Hit, projectile, SourceEntry(vehicle), vehicle.DamageModel, Vector3.Zero)
-      val func : Any=>ResolvedProjectile = resprojectile.damage_model.Calculate(resprojectile, ProjectileResolution.Splash)
+      val resprojectile = ResolvedProjectile(
+        ProjectileResolution.Hit,
+        projectile,
+        SourceEntry(vehicle),
+        vehicle.DamageModel,
+        Vector3.Zero
+      )
+      val func: Any => ResolvedProjectile =
+        resprojectile.damage_model.Calculate(resprojectile, ProjectileResolution.Splash)
 
       func(vehicle)
       vehicle.Health mustEqual 641

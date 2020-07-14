@@ -14,15 +14,21 @@ import net.psforever.objects.entity.IdentifiableEntity
   * @param number the optional number pre-selected for registering this object
   * @param callback the optional custom callback for the messages from the success or failure conditions
   */
-final case class Register(obj : IdentifiableEntity, name : Option[String], number : Option[Int], callback : Option[ActorRef])
+final case class Register(
+    obj: IdentifiableEntity,
+    name: Option[String],
+    number: Option[Int],
+    callback: Option[ActorRef]
+)
 
 object Register {
+
   /**
     * Overloaded constructor, accepting just the object.
     * @param obj the object to be registered
     * @return a `Register` object
     */
-  def apply(obj : IdentifiableEntity) : Register = {
+  def apply(obj: IdentifiableEntity): Register = {
     new Register(obj, None, None, None)
   }
 
@@ -32,7 +38,7 @@ object Register {
     * @param callback the custom callback for the messages from the success or failure conditions
     * @return a `Register` object
     */
-  def apply(obj : IdentifiableEntity, callback : ActorRef) : Register = {
+  def apply(obj: IdentifiableEntity, callback: ActorRef): Register = {
     new Register(obj, None, None, Some(callback))
   }
 
@@ -42,7 +48,7 @@ object Register {
     * @param number the pre-selected number
     * @return a `Register` object
     */
-  def apply(obj : IdentifiableEntity, number : Int) : Register = {
+  def apply(obj: IdentifiableEntity, number: Int): Register = {
     new Register(obj, None, Some(number), None)
   }
 
@@ -53,7 +59,7 @@ object Register {
     * @param callback the custom callback for the messages from the success or failure conditions
     * @return a `Register` object
     */
-  def apply(obj : IdentifiableEntity, number : Int, callback : ActorRef) : Register = {
+  def apply(obj: IdentifiableEntity, number: Int, callback: ActorRef): Register = {
     new Register(obj, None, Some(number), Some(callback))
   }
 
@@ -63,7 +69,7 @@ object Register {
     * @param name the number pool name
     * @return a `Register` object
     */
-  def apply(obj : IdentifiableEntity, name : String) : Register = {
+  def apply(obj: IdentifiableEntity, name: String): Register = {
     new Register(obj, Some(name), None, None)
   }
 
@@ -74,7 +80,7 @@ object Register {
     * @param callback the custom callback for the messages from the success or failure conditions
     * @return a `Register` object
     */
-  def apply(obj : IdentifiableEntity, name : String, callback : ActorRef) : Register = {
+  def apply(obj: IdentifiableEntity, name: String, callback: ActorRef): Register = {
     new Register(obj, Some(name), None, Some(callback))
   }
 }

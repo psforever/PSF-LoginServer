@@ -10,13 +10,12 @@ import scodec.Codec
   * As a precaution, all attempts at sending `VoiceHostRequest` should be replied to with a `VoiceHostKill`.
   * This packet seems to publish no data.
   */
-final case class VoiceHostKill()
-  extends PlanetSideGamePacket {
+final case class VoiceHostKill() extends PlanetSideGamePacket {
   type Packet = VoiceHostKill
   def opcode = GamePacketOpcode.VoiceHostKill
   def encode = VoiceHostKill.encode(this)
 }
 
 object VoiceHostKill extends Marshallable[VoiceHostKill] {
-  implicit val codec : Codec[VoiceHostKill] = PacketHelpers.emptyCodec(VoiceHostKill())
+  implicit val codec: Codec[VoiceHostKill] = PacketHelpers.emptyCodec(VoiceHostKill())
 }

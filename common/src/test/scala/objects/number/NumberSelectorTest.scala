@@ -5,9 +5,9 @@ import net.psforever.objects.guid.selector.{RandomSequenceSelector, _}
 import org.specs2.mutable.Specification
 
 class NumberSelectorTest extends Specification {
-  def randArrayGen(n : Int = 26, dx : Int = 0) : Array[Int] = {
+  def randArrayGen(n: Int = 26, dx: Int = 0): Array[Int] = {
     val obj = Array.ofDim[Int](n)
-    (0 to 25).foreach(x => { obj(x) = x + dx } )
+    (0 to 25).foreach(x => { obj(x) = x + dx })
     obj
   }
 
@@ -18,15 +18,15 @@ class NumberSelectorTest extends Specification {
     }
 
     "get a number" in {
-      val n : Int = 26
-      val obj = new RandomSequenceSelector
+      val n: Int = 26
+      val obj    = new RandomSequenceSelector
       obj.Get(randArrayGen(n)) mustNotEqual -1
     }
 
     "return a number" in {
-      val n : Int = 26
-      val obj = new RandomSequenceSelector
-      val ary = randArrayGen(n)
+      val n: Int = 26
+      val obj    = new RandomSequenceSelector
+      val ary    = randArrayGen(n)
       val number = obj.Get(ary)
       number mustNotEqual -1
       ary.head mustEqual -1 //regardless of which number we actually got, the head of the array is now -1
@@ -35,29 +35,29 @@ class NumberSelectorTest extends Specification {
     }
 
     "get all numbers" in {
-      val n = 26
+      val n   = 26
       val obj = new RandomSequenceSelector
       val ary = randArrayGen(n)
-      (0 until n).foreach(_ => { obj.Get(ary) mustNotEqual -1 } )
+      (0 until n).foreach(_ => { obj.Get(ary) mustNotEqual -1 })
       ok
     }
 
     "return all numbers" in {
-      val n = 26
-      val obj = new RandomSequenceSelector
+      val n    = 26
+      val obj  = new RandomSequenceSelector
       val ary1 = randArrayGen(n)
       val ary2 = randArrayGen(n)
-      (0 until n).foreach(index => { ary2(index) = obj.Get(ary1) } ) //move numbers from ary1 to ary2
-      ary2.toSet.diff(ary1.toSet).size mustEqual n //no numbers between ary2 and ary1 match
-      (0 until n).foreach(index => { obj.Return(ary2(index), ary1) mustEqual true } ) //return numbers from ary2 to ary1
-      ary2.toSet.diff(ary1.toSet).size mustEqual 0 //no difference in the content between ary2 and ary1
+      (0 until n).foreach(index => { ary2(index) = obj.Get(ary1) })                  //move numbers from ary1 to ary2
+      ary2.toSet.diff(ary1.toSet).size mustEqual n                                   //no numbers between ary2 and ary1 match
+      (0 until n).foreach(index => { obj.Return(ary2(index), ary1) mustEqual true }) //return numbers from ary2 to ary1
+      ary2.toSet.diff(ary1.toSet).size mustEqual 0                                   //no difference in the content between ary2 and ary1
     }
 
     "gets invalid index when exhausted" in {
-      val n = 26
+      val n   = 26
       val obj = new RandomSequenceSelector
       val ary = randArrayGen(n)
-      (0 until n).foreach(_ => { obj.Get(ary) mustNotEqual -1 } )
+      (0 until n).foreach(_ => { obj.Get(ary) mustNotEqual -1 })
       obj.Get(ary) mustEqual -1
     }
 
@@ -80,8 +80,8 @@ class NumberSelectorTest extends Specification {
     }
 
     "return a number" in {
-      val obj = new RandomSelector
-      val ary = randArrayGen()
+      val obj    = new RandomSelector
+      val ary    = randArrayGen()
       val number = obj.Get(ary)
       number mustNotEqual -1
       ary.head mustEqual -1 //regardless of which number we actually got, the head of the array is now -1
@@ -90,29 +90,29 @@ class NumberSelectorTest extends Specification {
     }
 
     "get all numbers" in {
-      val n = 26
+      val n   = 26
       val obj = new RandomSelector
       val ary = randArrayGen(n)
-      (0 until n).foreach(_ => { obj.Get(ary) mustNotEqual -1 } )
+      (0 until n).foreach(_ => { obj.Get(ary) mustNotEqual -1 })
       ok
     }
 
     "return all numbers" in {
-      val n = 26
-      val obj = new RandomSelector
+      val n    = 26
+      val obj  = new RandomSelector
       val ary1 = randArrayGen(n)
       val ary2 = randArrayGen(n)
-      (0 until n).foreach(index => { ary2(index) = obj.Get(ary1) } ) //move numbers from ary1 to ary2
-      ary2.toSet.diff(ary1.toSet).size mustEqual n //no numbers between ary2 and ary1 match
-      (0 until n).foreach(index => { obj.Return(ary2(index), ary1) mustEqual true } ) //return numbers from ary2 to ary1
-      ary2.toSet.diff(ary1.toSet).size mustEqual 0 //no difference in the content between ary2 and ary1
+      (0 until n).foreach(index => { ary2(index) = obj.Get(ary1) })                  //move numbers from ary1 to ary2
+      ary2.toSet.diff(ary1.toSet).size mustEqual n                                   //no numbers between ary2 and ary1 match
+      (0 until n).foreach(index => { obj.Return(ary2(index), ary1) mustEqual true }) //return numbers from ary2 to ary1
+      ary2.toSet.diff(ary1.toSet).size mustEqual 0                                   //no difference in the content between ary2 and ary1
     }
 
     "gets invalid index when exhausted" in {
-      val n = 26
+      val n   = 26
       val obj = new RandomSelector
       val ary = randArrayGen(n)
-      (0 until n).foreach(_ => { obj.Get(ary) mustNotEqual -1 } )
+      (0 until n).foreach(_ => { obj.Get(ary) mustNotEqual -1 })
       obj.Get(ary) mustEqual -1
     }
 
@@ -135,8 +135,8 @@ class NumberSelectorTest extends Specification {
     }
 
     "return a number" in {
-      val obj = new StrictInOrderSelector
-      val ary = randArrayGen()
+      val obj    = new StrictInOrderSelector
+      val ary    = randArrayGen()
       val number = obj.Get(ary)
       number mustNotEqual -1
       ary.head mustEqual -1 //regardless of which number we actually got, the head of the array is now -1
@@ -145,37 +145,37 @@ class NumberSelectorTest extends Specification {
     }
 
     "get all numbers" in {
-      val n = 26
+      val n   = 26
       val obj = new StrictInOrderSelector
       val ary = randArrayGen()
-      (0 until n).foreach(_ => { obj.Get(ary) mustNotEqual -1 } )
+      (0 until n).foreach(_ => { obj.Get(ary) mustNotEqual -1 })
       ok
     }
 
     "return all numbers" in {
-      val n = 26
-      val obj = new StrictInOrderSelector
+      val n    = 26
+      val obj  = new StrictInOrderSelector
       val ary1 = randArrayGen(n)
       val ary2 = randArrayGen(n)
-      (0 until n).foreach(index => { ary2(index) = obj.Get(ary1) } ) //move numbers from ary1 to ary2
-      ary2.toSet.diff(ary1.toSet).size mustEqual n //no numbers between ary2 and ary1 match
-      (0 until n).foreach(index => { obj.Return(ary2(index), ary1) mustEqual true } ) //return numbers from ary2 to ary1
-      ary2.toSet.diff(ary1.toSet).size mustEqual 0 //no difference in the content between ary2 and ary1
+      (0 until n).foreach(index => { ary2(index) = obj.Get(ary1) })                  //move numbers from ary1 to ary2
+      ary2.toSet.diff(ary1.toSet).size mustEqual n                                   //no numbers between ary2 and ary1 match
+      (0 until n).foreach(index => { obj.Return(ary2(index), ary1) mustEqual true }) //return numbers from ary2 to ary1
+      ary2.toSet.diff(ary1.toSet).size mustEqual 0                                   //no difference in the content between ary2 and ary1
     }
 
     "gets invalid index when exhausted" in {
-      val n = 26
+      val n   = 26
       val obj = new StrictInOrderSelector
       val ary = randArrayGen(n)
-      (0 until n).foreach(_ => { obj.Get(ary) mustNotEqual -1 } )
+      (0 until n).foreach(_ => { obj.Get(ary) mustNotEqual -1 })
       obj.Get(ary) mustEqual -1
     }
 
     "wait until number is available" in {
-      val n = 26
+      val n   = 26
       val obj = new StrictInOrderSelector
       val ary = randArrayGen(n)
-      (0 until n).foreach(_ => { obj.Get(ary) mustNotEqual -1 } )
+      (0 until n).foreach(_ => { obj.Get(ary) mustNotEqual -1 })
       obj.Get(ary) mustEqual -1
       obj.Return(1, ary) //return a number that isn't the one StrictOrder is waiting on
       obj.Get(ary) mustEqual -1
@@ -203,8 +203,8 @@ class NumberSelectorTest extends Specification {
     }
 
     "return a number" in {
-      val obj = new OpportunisticSelector
-      val ary = randArrayGen()
+      val obj    = new OpportunisticSelector
+      val ary    = randArrayGen()
       val number = obj.Get(ary)
       number mustNotEqual -1
       ary.head mustEqual -1 //regardless of which number we actually got, the head of the array is now -1
@@ -215,26 +215,26 @@ class NumberSelectorTest extends Specification {
     "get all numbers" in {
       val obj = new OpportunisticSelector
       val ary = randArrayGen()
-      (0 to 25).foreach(_ => { obj.Get(ary) mustNotEqual -1 } )
+      (0 to 25).foreach(_ => { obj.Get(ary) mustNotEqual -1 })
       ok
     }
 
     "return all numbers" in {
-      val n = 26
-      val obj = new OpportunisticSelector
+      val n    = 26
+      val obj  = new OpportunisticSelector
       val ary1 = randArrayGen(n)
       val ary2 = randArrayGen(n)
-      (0 until n).foreach(index => { ary2(index) = obj.Get(ary1) } ) //move numbers from ary1 to ary2
-      ary2.toSet.diff(ary1.toSet).size mustEqual n //no numbers between ary2 and ary1 match
-      (0 until n).foreach(index => { obj.Return(ary2(index), ary1) mustEqual true } ) //return numbers from ary2 to ary1
-      ary2.toSet.diff(ary1.toSet).size mustEqual 0 //no difference in the content between ary2 and ary1
+      (0 until n).foreach(index => { ary2(index) = obj.Get(ary1) })                  //move numbers from ary1 to ary2
+      ary2.toSet.diff(ary1.toSet).size mustEqual n                                   //no numbers between ary2 and ary1 match
+      (0 until n).foreach(index => { obj.Return(ary2(index), ary1) mustEqual true }) //return numbers from ary2 to ary1
+      ary2.toSet.diff(ary1.toSet).size mustEqual 0                                   //no difference in the content between ary2 and ary1
     }
 
     "gets invalid index when exhausted" in {
-      val n = 26
+      val n   = 26
       val obj = new OpportunisticSelector
       val ary = randArrayGen(n)
-      (0 until n).foreach(_ => { obj.Get(ary) mustNotEqual -1 } )
+      (0 until n).foreach(_ => { obj.Get(ary) mustNotEqual -1 })
       obj.Get(ary) mustEqual -1
     }
 
@@ -282,11 +282,13 @@ class NumberSelectorTest extends Specification {
       obj.SelectionIndex = 10 //even if we move the selection index, the number will return to its last position
       obj.Return(number, ary)
       ary(number) mustEqual number //the returned number at the original index
-      obj.Get(ary) mustEqual 10 //of course, with the selection index changed, we will not get the same position next time
+      obj.Get(
+        ary
+      ) mustEqual 10 //of course, with the selection index changed, we will not get the same position next time
     }
 
     "get all numbers" in {
-      val n = 26
+      val n   = 26
       val obj = new SpecificSelector
       val ary = randArrayGen(n)
       (0 until n).foreach(i => {
@@ -297,17 +299,17 @@ class NumberSelectorTest extends Specification {
     }
 
     "return all numbers" in {
-      val n = 26
-      val obj = new SpecificSelector
+      val n    = 26
+      val obj  = new SpecificSelector
       val ary1 = randArrayGen(n)
       val ary2 = randArrayGen(n)
       (0 until n).foreach(index => {
         obj.SelectionIndex = index
         ary2(index) = obj.Get(ary1)
-      }) //move numbers from ary1 to ary2
-      ary2.toSet.diff(ary1.toSet).size mustEqual n //no numbers between ary2 and ary1 match
-      (0 until n).foreach(index => { obj.Return(ary2(index), ary1) mustEqual true } ) //return numbers from ary2 to ary1
-      ary2.toSet.diff(ary1.toSet).size mustEqual 0 //no difference in the content between ary2 and ary1
+      })                                                                             //move numbers from ary1 to ary2
+      ary2.toSet.diff(ary1.toSet).size mustEqual n                                   //no numbers between ary2 and ary1 match
+      (0 until n).foreach(index => { obj.Return(ary2(index), ary1) mustEqual true }) //return numbers from ary2 to ary1
+      ary2.toSet.diff(ary1.toSet).size mustEqual 0                                   //no difference in the content between ary2 and ary1
     }
 
     "gets invalid index when exhausted" in {

@@ -14,31 +14,28 @@ import scala.annotation.switch
   * @param unk2 na
   * @param unk3 na
   */
-final case class Statistics(unk1 : Option[Int],
-                            unk2 : Option[Int],
-                            unk3 : List[Long])
+final case class Statistics(unk1: Option[Int], unk2: Option[Int], unk3: List[Long])
 
 /**
   * na
   * @param unk na
   * @param stats na
   */
-final case class AvatarStatisticsMessage(unk : Int,
-                                         stats : Statistics)
-  extends PlanetSideGamePacket {
+final case class AvatarStatisticsMessage(unk: Int, stats: Statistics) extends PlanetSideGamePacket {
   type Packet = AvatarStatisticsMessage
   def opcode = GamePacketOpcode.AvatarStatisticsMessage
   def encode = AvatarStatisticsMessage.encode(this)
 }
 
 object AvatarStatisticsMessage extends Marshallable[AvatarStatisticsMessage] {
+
   /**
     * na
     */
-  private val longCodec : Codec[Statistics] = ulong(32).hlist.exmap (
+  private val longCodec: Codec[Statistics] = ulong(32).hlist.exmap(
     {
       case n :: HNil =>
-        Attempt.Successful(Statistics(None,None, List(n)))
+        Attempt.Successful(Statistics(None, None, List(n)))
     },
     {
       case Statistics(_, _, Nil) =>
@@ -52,11 +49,11 @@ object AvatarStatisticsMessage extends Marshallable[AvatarStatisticsMessage] {
   /**
     * na
     */
-  private val complexCodec : Codec[Statistics] = (
+  private val complexCodec: Codec[Statistics] = (
     uint(5) ::
-    uintL(11) ::
-    PacketHelpers.listOfNSized(8, uint32L)
-  ).exmap[Statistics] (
+      uintL(11) ::
+      PacketHelpers.listOfNSized(8, uint32L)
+  ).exmap[Statistics](
     {
       case a :: b :: c :: HNil =>
         Attempt.Successful(Statistics(Some(a), Some(b), c))
@@ -69,10 +66,9 @@ object AvatarStatisticsMessage extends Marshallable[AvatarStatisticsMessage] {
         Attempt.Failure(Err("missing value (11-bit)"))
 
       case Statistics(a, b, c) =>
-        if(c.length != 8) {
+        if (c.length != 8) {
           Attempt.Failure(Err("list must have 8 entries"))
-        }
-        else {
+        } else {
           Attempt.Successful(a.get :: b.get :: c :: HNil)
         }
     }
@@ -83,23 +79,23 @@ object AvatarStatisticsMessage extends Marshallable[AvatarStatisticsMessage] {
     * @param n na
     * @return na
     */
-  private def selectCodec(n : Int) : Codec[Statistics] = (n : @switch) match {
-    case 2 | 3 =>
-      longCodec
-    case _ =>
-      complexCodec
-  }
+  private def selectCodec(n: Int): Codec[Statistics] =
+    (n: @switch) match {
+      case 2 | 3 =>
+        longCodec
+      case _ =>
+        complexCodec
+    }
 
-  implicit val codec : Codec[AvatarStatisticsMessage] = (
-    ("unk" | uint(3)) >>:~ { unk =>
-      ("stats" | selectCodec(unk)).hlist
-    }).as[AvatarStatisticsMessage]
+  implicit val codec: Codec[AvatarStatisticsMessage] = (("unk" | uint(3)) >>:~ { unk =>
+    ("stats" | selectCodec(unk)).hlist
+  }).as[AvatarStatisticsMessage]
 }
 
 object Statistics {
-  def apply(unk : Long) : Statistics =
+  def apply(unk: Long): Statistics =
     Statistics(None, None, List(unk))
 
-  def apply(unk1 : Int, unk2 : Int, unk3 : List[Long]) : Statistics =
+  def apply(unk1: Int, unk2: Int, unk3: List[Long]): Statistics =
     Statistics(Some(unk1), Some(unk2), unk3)
 }

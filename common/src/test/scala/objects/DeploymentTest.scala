@@ -36,7 +36,7 @@ class DeploymentTest extends Specification {
 
     "have custom deployment time by object" in {
       val ams = Vehicle(GlobalDefinitions.ams)
-      (ams.DeployTime == 0) mustEqual false //not default
+      (ams.DeployTime == 0) mustEqual false   //not default
       (ams.UndeployTime == 0) mustEqual false //not default
     }
   }
@@ -180,17 +180,16 @@ class DeploymentBehavior6Test extends ActorTest {
 
 object DeploymentTest {
   class DeploymentObject extends PlanetSideServerObject with Deployment {
-    def Faction : PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
-    def Definition = null
+    def Faction: PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
+    def Definition                      = null
   }
 
-  private class DeploymentControl(obj : Deployment.DeploymentObject) extends Actor
-    with DeploymentBehavior {
+  private class DeploymentControl(obj: Deployment.DeploymentObject) extends Actor with DeploymentBehavior {
     override def DeploymentObject = obj
-    def receive = deployBehavior.orElse { case _ => }
+    def receive                   = deployBehavior.orElse { case _ => }
   }
 
-  def SetUpAgent(implicit system : ActorSystem) = {
+  def SetUpAgent(implicit system: ActorSystem) = {
     val obj = new DeploymentObject()
     obj.Actor = system.actorOf(Props(classOf[DeploymentControl], obj), "test")
     obj

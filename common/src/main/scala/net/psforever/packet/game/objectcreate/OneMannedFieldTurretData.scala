@@ -21,11 +21,12 @@ import shapeless.{::, HNil}
   * @param health the amount of health the object has, as a percentage of a filled bar
   * @param internals data regarding the mountable weapon
   */
-final case class OneMannedFieldTurretData(deploy : CommonFieldDataWithPlacement,
-                                          health : Int,
-                                          internals : Option[InventoryData] = None
-                                         ) extends ConstructorData {
-  override def bitsize : Long = {
+final case class OneMannedFieldTurretData(
+    deploy: CommonFieldDataWithPlacement,
+    health: Int,
+    internals: Option[InventoryData] = None
+) extends ConstructorData {
+  override def bitsize: Long = {
     val deploySize = deploy.bitsize
     val internalSize = internals match {
       case Some(inv) =>
@@ -38,6 +39,7 @@ final case class OneMannedFieldTurretData(deploy : CommonFieldDataWithPlacement,
 }
 
 object OneMannedFieldTurretData extends Marshallable[OneMannedFieldTurretData] {
+
   /**
     * Overloaded constructor that mandates information about the internal weapon of the field turret.
     * @param deploy data common to objects spawned by the (advanced) adaptive construction engine
@@ -45,10 +47,10 @@ object OneMannedFieldTurretData extends Marshallable[OneMannedFieldTurretData] {
     * @param internals data regarding the mountable weapon
     * @return a `OneMannedFieldTurretData` object
     */
-  def apply(deploy : CommonFieldDataWithPlacement, health : Int, internals : InventoryData) : OneMannedFieldTurretData =
+  def apply(deploy: CommonFieldDataWithPlacement, health: Int, internals: InventoryData): OneMannedFieldTurretData =
     new OneMannedFieldTurretData(deploy, health, Some(internals))
 
-  implicit val codec : Codec[OneMannedFieldTurretData] = (
+  implicit val codec: Codec[OneMannedFieldTurretData] = (
     ("deploy" | CommonFieldDataWithPlacement.codec2) ::
       PlanetSideGUID.codec :: //hoist/extract with the deploy.owner_guid in field above
       bool ::
@@ -57,13 +59,12 @@ object OneMannedFieldTurretData extends Marshallable[OneMannedFieldTurretData] {
       uint4 ::
       uint2 ::
       optional(bool, "internals" | InventoryData.codec)
-    ).exmap[OneMannedFieldTurretData] (
+  ).exmap[OneMannedFieldTurretData](
     {
-      case deploy :: player :: false :: health :: 0 :: 0xF :: 0 :: internals :: HNil =>
-        val (newHealth, newInternals) = if(health == 0 || internals.isEmpty || internals.get.contents.isEmpty) {
+      case deploy :: player :: false :: health :: 0 :: 0xf :: 0 :: internals :: HNil =>
+        val (newHealth, newInternals) = if (health == 0 || internals.isEmpty || internals.get.contents.isEmpty) {
           (0, None)
-        }
-        else {
+        } else {
           (health, internals)
         }
         val data = deploy.data
@@ -71,7 +72,17 @@ object OneMannedFieldTurretData extends Marshallable[OneMannedFieldTurretData] {
           OneMannedFieldTurretData(
             CommonFieldDataWithPlacement(
               deploy.pos,
-              CommonFieldData(data.faction, data.bops, data.alternate, data.v1, data.v2, data.jammered, data.v4, data.v5, player)
+              CommonFieldData(
+                data.faction,
+                data.bops,
+                data.alternate,
+                data.v1,
+                data.v2,
+                data.jammered,
+                data.v4,
+                data.v5,
+                player
+              )
             ),
             newHealth,
             newInternals
@@ -83,17 +94,26 @@ object OneMannedFieldTurretData extends Marshallable[OneMannedFieldTurretData] {
     },
     {
       case OneMannedFieldTurretData(CommonFieldDataWithPlacement(pos, data), health, internals) =>
-        val (newHealth, newInternals) = if(health == 0 || internals.isEmpty || internals.get.contents.isEmpty) {
+        val (newHealth, newInternals) = if (health == 0 || internals.isEmpty || internals.get.contents.isEmpty) {
           (0, None)
-        }
-        else {
+        } else {
           (health, internals)
         }
         Attempt.successful(
           CommonFieldDataWithPlacement(
             pos,
-            CommonFieldData(data.faction, data.bops, data.alternate, data.v1, data.v2, data.jammered, data.v4, data.v5, PlanetSideGUID(0))
-          ) :: data.guid :: false :: newHealth :: 0 :: 0xF :: 0 :: newInternals :: HNil
+            CommonFieldData(
+              data.faction,
+              data.bops,
+              data.alternate,
+              data.v1,
+              data.v2,
+              data.jammered,
+              data.v4,
+              data.v5,
+              PlanetSideGUID(0)
+            )
+          ) :: data.guid :: false :: newHealth :: 0 :: 0xf :: 0 :: newInternals :: HNil
         )
     }
   )

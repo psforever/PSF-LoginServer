@@ -18,37 +18,38 @@ import net.psforever.objects.guid.key.{LoanedKey, SecureKey}
   * The purpose of a `NumberSource` is to help facilitate globally unique identifiers (GUID, pl. GUIDs).
   */
 trait NumberSource {
+
   /**
     * The count of numbers allocated to this source.
     * @return the count
     */
-  def Size : Int
+  def Size: Int
 
   /**
     * The count of numbers that can still be drawn.
     * @return the count
     */
-  def CountAvailable : Int
+  def CountAvailable: Int
 
   /**
     * The count of numbers that can not be drawn.
     * @return the count
     */
-  def CountUsed : Int
+  def CountUsed: Int
 
   /**
     * Is this number a member of this number source?
     * @param number the number
     * @return `true`, if it is a member; `false`, otherwise
     */
-  def Test(number : Int) : Boolean = -1 < number && number < Size
+  def Test(number: Int): Boolean = -1 < number && number < Size
 
   /**
     * Produce an un-modifiable wrapper for the `Monitor` for this number.
     * @param number the number
     * @return the wrapped `Monitor`
     */
-  def Get(number : Int) : Option[SecureKey]
+  def Get(number: Int): Option[SecureKey]
 
   //def GetAll(list : List[Int]) : List[SecureKey]
 
@@ -60,14 +61,14 @@ trait NumberSource {
     * @param number the number
     * @return the wrapped `Monitor`, or `None`
     */
-  def Available(number : Int) : Option[LoanedKey]
+  def Available(number: Int): Option[LoanedKey]
 
   /**
     * Consume a wrapped `Monitor` and release its number from its previous assignment/use.
     * @param monitor the `Monitor`
     * @return any object previously using this `Monitor`
     */
-  def Return(monitor : SecureKey) : Option[IdentifiableEntity] = {
+  def Return(monitor: SecureKey): Option[IdentifiableEntity] = {
     Return(monitor.GUID)
   }
 
@@ -76,7 +77,7 @@ trait NumberSource {
     * @param monitor the `Monitor`
     * @return any object previously using this `Monitor`
     */
-  def Return(monitor : LoanedKey) : Option[IdentifiableEntity] = {
+  def Return(monitor: LoanedKey): Option[IdentifiableEntity] = {
     Return(monitor.GUID)
   }
 
@@ -85,7 +86,7 @@ trait NumberSource {
     * @param number the number
     * @return any object previously using this number
     */
-  def Return(number : Int) : Option[IdentifiableEntity]
+  def Return(number: Int): Option[IdentifiableEntity]
 
   /**
     * Produce a modifiable wrapper for the `Monitor` for this number, only if the number has not been used.
@@ -93,20 +94,21 @@ trait NumberSource {
     * @param number the number
     * @return the wrapped `Monitor`
     */
-  def Restrict(number : Int) : Option[LoanedKey]
+  def Restrict(number: Int): Option[LoanedKey]
 
   /**
     * Numbers from this source may not longer be marked as `Restricted`.
     * @return the `List` of all numbers that have been restricted
     */
-  def FinalizeRestrictions : List[Int]
+  def FinalizeRestrictions: List[Int]
 
   import net.psforever.objects.entity.IdentifiableEntity
+
   /**
     * Reset all number `Monitor`s so that their underlying number is not longer treated as assigned.
     * Perform some level of housecleaning to ensure that all dependencies are resolved in some manner.
     * This is the only way to free `Monitors` that are marked as `Restricted`.
     * @return a `List` of assignments maintained by all the currently-used number `Monitors`
     */
-  def Clear() : List[IdentifiableEntity]
+  def Clear(): List[IdentifiableEntity]
 }

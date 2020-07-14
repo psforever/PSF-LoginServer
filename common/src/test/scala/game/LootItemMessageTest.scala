@@ -21,7 +21,7 @@ class LootItemMessageTest extends Specification {
   }
 
   "encode" in {
-    val msg = LootItemMessage(PlanetSideGUID(3549),PlanetSideGUID(5212))
+    val msg = LootItemMessage(PlanetSideGUID(3549), PlanetSideGUID(5212))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
     pkt mustEqual string
   }

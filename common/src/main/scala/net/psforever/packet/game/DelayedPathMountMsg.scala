@@ -13,21 +13,18 @@ import scodec.codecs._
   * @param u1 na - maybe a delay ?
   * @param u2 na
   */
-final case class DelayedPathMountMsg(player_guid : PlanetSideGUID,
-                                     vehicle_guid : PlanetSideGUID,
-                                     u1 : Int,
-                                     u2 : Boolean)
-  extends PlanetSideGamePacket {
+final case class DelayedPathMountMsg(player_guid: PlanetSideGUID, vehicle_guid: PlanetSideGUID, u1: Int, u2: Boolean)
+    extends PlanetSideGamePacket {
   type Packet = DelayedPathMountMsg
   def opcode = GamePacketOpcode.DelayedPathMountMsg
   def encode = DelayedPathMountMsg.encode(this)
 }
 
 object DelayedPathMountMsg extends Marshallable[DelayedPathMountMsg] {
-  implicit val codec : Codec[DelayedPathMountMsg] = (
+  implicit val codec: Codec[DelayedPathMountMsg] = (
     ("player_guid" | PlanetSideGUID.codec) ::
       ("vehicle_guid" | PlanetSideGUID.codec) ::
       ("u1" | uint8L) ::
       ("u2" | bool)
-    ).as[DelayedPathMountMsg]
+  ).as[DelayedPathMountMsg]
 }

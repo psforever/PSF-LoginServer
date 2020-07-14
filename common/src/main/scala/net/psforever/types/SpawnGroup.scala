@@ -22,19 +22,6 @@ package net.psforever.types
 object SpawnGroup extends Enumeration {
   type Type = Value
 
-  val
-  Sanctuary,
-  BoundAMS,
-  AMS,
-  Unknown3,
-  BoundTower, //unused?
-  BoundFacility,
-  Tower,
-  Facility,
-  Unknown8,
-  Unknown9,
-  Unknown10,
-  Unknown11,
-  Unknown12
-  = Value
+  val Sanctuary, BoundAMS, AMS, Unknown3, BoundTower, //unused?
+  BoundFacility, Tower, Facility, Unknown8, Unknown9, Unknown10, Unknown11, Unknown12 = Value
 }

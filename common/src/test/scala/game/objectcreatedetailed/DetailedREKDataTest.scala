@@ -42,8 +42,15 @@ class DetailedREKDataTest extends Specification {
     }
 
     "encode" in {
-      val obj = DetailedREKData(CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)))
-      val msg = ObjectCreateDetailedMessage(ObjectClass.remote_electronics_kit, PlanetSideGUID(1439), ObjectCreateMessageParent(PlanetSideGUID(75), 1), obj)
+      val obj = DetailedREKData(
+        CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, Some(false), None, PlanetSideGUID(0))
+      )
+      val msg = ObjectCreateDetailedMessage(
+        ObjectClass.remote_electronics_kit,
+        PlanetSideGUID(1439),
+        ObjectCreateMessageParent(PlanetSideGUID(75), 1),
+        obj
+      )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
       pkt mustEqual string_rek

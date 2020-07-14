@@ -27,19 +27,17 @@ import scodec.codecs._
   * @param armor the type of exo-suit
   * @param subtype the exo-suit subtype, if any
   */
-final case class ArmorChangedMessage(player_guid : PlanetSideGUID,
-                                    armor : ExoSuitType.Value,
-                                    subtype : Int)
-  extends PlanetSideGamePacket {
+final case class ArmorChangedMessage(player_guid: PlanetSideGUID, armor: ExoSuitType.Value, subtype: Int)
+    extends PlanetSideGamePacket {
   type Packet = ArmorChangedMessage
   def opcode = GamePacketOpcode.ArmorChangedMessage
   def encode = ArmorChangedMessage.encode(this)
 }
 
 object ArmorChangedMessage extends Marshallable[ArmorChangedMessage] {
-  implicit val codec : Codec[ArmorChangedMessage] = (
+  implicit val codec: Codec[ArmorChangedMessage] = (
     ("player_guid" | PlanetSideGUID.codec) ::
       ("armor" | ExoSuitType.codec) ::
       ("subtype" | uintL(3))
-    ).as[ArmorChangedMessage]
+  ).as[ArmorChangedMessage]
 }

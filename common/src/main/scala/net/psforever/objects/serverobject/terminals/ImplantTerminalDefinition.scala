@@ -12,16 +12,16 @@ import net.psforever.objects.definition.ImplantDefinition
   * attached as a child of the visible implant terminal component - the "implant_terminal_mech."
   */
 object ImplantTerminalDefinition {
-  val implants : Map[String, ImplantDefinition] = Map (
-    "advanced_regen" -> GlobalDefinitions.advanced_regen,
-    "targeting" -> GlobalDefinitions.targeting,
-    "audio_amplifier" -> GlobalDefinitions.audio_amplifier,
+  val implants: Map[String, ImplantDefinition] = Map(
+    "advanced_regen"   -> GlobalDefinitions.advanced_regen,
+    "targeting"        -> GlobalDefinitions.targeting,
+    "audio_amplifier"  -> GlobalDefinitions.audio_amplifier,
     "darklight_vision" -> GlobalDefinitions.darklight_vision,
-    "melee_booster" -> GlobalDefinitions.melee_booster,
-    "personal_shield" -> GlobalDefinitions.personal_shield,
-    "range_magnifier" -> GlobalDefinitions.range_magnifier,
-    "second_wind" -> GlobalDefinitions.second_wind,
-    "silent_run" -> GlobalDefinitions.silent_run,
-    "surge" -> GlobalDefinitions.surge
+    "melee_booster"    -> GlobalDefinitions.melee_booster,
+    "personal_shield"  -> GlobalDefinitions.personal_shield,
+    "range_magnifier"  -> GlobalDefinitions.range_magnifier,
+    "second_wind"      -> GlobalDefinitions.second_wind,
+    "silent_run"       -> GlobalDefinitions.silent_run,
+    "surge"            -> GlobalDefinitions.surge
   )
 }

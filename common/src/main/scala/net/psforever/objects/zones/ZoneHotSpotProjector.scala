@@ -28,15 +28,21 @@ import scala.concurrent.duration._
   * @param dataList an external list used for storing activity for prolonged periods of time
   * @param dataBlanking the period of decay time before prolonged activity information is forgotten
   */
-class ZoneHotSpotDisplay(zone : Zone,
-                         outputList : ListBuffer[HotSpotInfo],
-                         outputBlanking : FiniteDuration,
-                         dataList : ListBuffer[HotSpotInfo],
-                         dataBlanking : FiniteDuration) extends Actor {
-  val projector = context.actorOf(Props(classOf[ZoneHotSpotProjector], zone, outputList, outputBlanking), s"${zone.Id}-hotspot-projector")
-  val backup = context.actorOf(Props(classOf[ZoneHotSpotHistory], zone, dataList, dataBlanking), s"${zone.Id}-hotspot-backup")
+class ZoneHotSpotDisplay(
+    zone: Zone,
+    outputList: ListBuffer[HotSpotInfo],
+    outputBlanking: FiniteDuration,
+    dataList: ListBuffer[HotSpotInfo],
+    dataBlanking: FiniteDuration
+) extends Actor {
+  val projector = context.actorOf(
+    Props(classOf[ZoneHotSpotProjector], zone, outputList, outputBlanking),
+    s"${zone.Id}-hotspot-projector"
+  )
+  val backup =
+    context.actorOf(Props(classOf[ZoneHotSpotHistory], zone, dataList, dataBlanking), s"${zone.Id}-hotspot-backup")
 
-  def receive : Receive = {
+  def receive: Receive = {
     case _ if sender == projector || sender == backup => ; //catch and disrupt cyclic messaging paths
     case msg =>
       projector ! msg
@@ -55,13 +61,16 @@ class ZoneHotSpotDisplay(zone : Zone,
   * @param hotspots the data structure of hot spot information that this projector will be leveraging
   * @param blankingTime how long to wait in between blanking periods
   */
-class ZoneHotSpotProjector(zone : Zone, hotspots : ListBuffer[HotSpotInfo], blankingTime : FiniteDuration) extends Actor {
+class ZoneHotSpotProjector(zone: Zone, hotspots: ListBuffer[HotSpotInfo], blankingTime: FiniteDuration) extends Actor {
+
   /** a hook for the `GalaxyService` used to broadcast messages */
-  var galaxy : ActorRef = ActorRef.noSender
+  var galaxy: ActorRef = ActorRef.noSender
+
   /** the timer for the blanking process */
-  var blanking : Cancellable = Default.Cancellable
+  var blanking: Cancellable = Default.Cancellable
+
   /** how long to wait in between blanking periods while hotspots decay */
-  var blankingDelay : FiniteDuration = blankingTime
+  var blankingDelay: FiniteDuration = blankingTime
 
   private[this] val log = org.log4s.getLogger(s"${zone.Id.capitalize}HotSpotProjector")
 
@@ -71,7 +80,7 @@ class ZoneHotSpotProjector(zone : Zone, hotspots : ListBuffer[HotSpotInfo], blan
     * @see `ServiceManager`
     * @see `ServiceManager.Lookup`
     */
-  override def preStart() : Unit = {
+  override def preStart(): Unit = {
     super.preStart()
     ServiceManager.serviceManager ! ServiceManager.Lookup("galaxy")
   }
@@ -80,13 +89,13 @@ class ZoneHotSpotProjector(zone : Zone, hotspots : ListBuffer[HotSpotInfo], blan
     * Actions that occur after this `Actor` is formally stopped.
     * Cancel all future blanking actions and release the `GalaxyService` hook.
     */
-  override def postStop() : Unit = {
+  override def postStop(): Unit = {
     blanking.cancel
     galaxy = ActorRef.noSender
     super.postStop()
   }
 
-  def receive : Receive = Initializing
+  def receive: Receive = Initializing
 
   /**
     * Accept the `GalaxyService` hook and switch to active message processing when it arrives.
@@ -97,7 +106,7 @@ class ZoneHotSpotProjector(zone : Zone, hotspots : ListBuffer[HotSpotInfo], blan
     * @see `ZoneHotSpotProjector.UpdateMappingFunction`
     * @return a partial function
     */
-  def Initializing : Receive = {
+  def Initializing: Receive = {
     case ServiceManager.LookupResult("galaxy", galaxyRef) =>
       galaxy = galaxyRef
       context.become(Established)
@@ -125,7 +134,7 @@ class ZoneHotSpotProjector(zone : Zone, hotspots : ListBuffer[HotSpotInfo], blan
     * @see `ZoneHotSpotProjector.UpdateMappingFunction`
     * @return a partial function
     */
-  def Established : Receive = {
+  def Established: Receive = {
     case ZoneHotSpotProjector.UpdateDurationFunction() =>
       blanking.cancel
       UpdateDurationFunction()
@@ -147,10 +156,12 @@ class ZoneHotSpotProjector(zone : Zone, hotspots : ListBuffer[HotSpotInfo], blan
       val defenderFaction = defender.Faction
       val attackerFaction = attacker.Faction
       val noPriorHotSpots = hotspots.isEmpty
-      val duration = zone.HotSpotTimeFunction(defender, attacker)
-      if(duration.toNanos > 0) {
-        val hotspot = TryHotSpot( zone.HotSpotCoordinateFunction(location) )
-        log.trace(s"updating activity status for ${zone.Id} hotspot x=${hotspot.DisplayLocation.x} y=${hotspot.DisplayLocation.y}")
+      val duration        = zone.HotSpotTimeFunction(defender, attacker)
+      if (duration.toNanos > 0) {
+        val hotspot = TryHotSpot(zone.HotSpotCoordinateFunction(location))
+        log.trace(
+          s"updating activity status for ${zone.Id} hotspot x=${hotspot.DisplayLocation.x} y=${hotspot.DisplayLocation.y}"
+        )
         val noPriorActivity = !(hotspot.ActivityBy(defenderFaction) && hotspot.ActivityBy(attackerFaction))
         //update the activity report for these factions
         val affectedFactions = Seq(attackerFaction, defenderFaction)
@@ -163,9 +174,9 @@ class ZoneHotSpotProjector(zone : Zone, hotspots : ListBuffer[HotSpotInfo], blan
           }
         }
         //if the level of activity changed for one of the participants or the number of hotspots was zero
-        if(noPriorActivity || noPriorHotSpots) {
+        if (noPriorActivity || noPriorHotSpots) {
           UpdateHotSpots(affectedFactions, hotspots)
-          if(noPriorHotSpots) {
+          if (noPriorHotSpots) {
             import scala.concurrent.ExecutionContext.Implicits.global
             blanking.cancel
             blanking = context.system.scheduler.scheduleOnce(blankingDelay, self, ZoneHotSpotProjector.BlankingPhase())
@@ -179,7 +190,7 @@ class ZoneHotSpotProjector(zone : Zone, hotspots : ListBuffer[HotSpotInfo], blan
 
     case ZoneHotSpotProjector.BlankingPhase() | Zone.HotSpot.Cleanup() =>
       blanking.cancel
-      val curr : Long = System.nanoTime
+      val curr: Long = System.nanoTime
       //blanking dated activity reports
       val changed = hotspots.flatMap(spot => {
         spot.Activity.collect {
@@ -190,28 +201,27 @@ class ZoneHotSpotProjector(zone : Zone, hotspots : ListBuffer[HotSpotInfo], blan
       })
       //collect and re-assign still-relevant hotspots
       val spots = hotspots.filter(spot => {
-        spot.Activity
-          .values
+        spot.Activity.values
           .collect {
             case a if a.Heat > 0 =>
               true
           }
           .foldLeft(false)(_ || _)
       })
-      val newSize = spots.size
+      val newSize      = spots.size
       val changesOnMap = hotspots.size - newSize
       log.trace(s"blanking out $changesOnMap hotspots from zone ${zone.Id}; $newSize remain active")
       hotspots.clear
       hotspots.insertAll(0, spots)
       //other hotspots still need to be blanked later
-      if(spots.nonEmpty) {
+      if (spots.nonEmpty) {
         import scala.concurrent.ExecutionContext.Implicits.global
         blanking.cancel
         blanking = context.system.scheduler.scheduleOnce(blankingDelay, self, ZoneHotSpotProjector.BlankingPhase())
       }
       //if hotspots changed, redraw the remaining ones for the groups that changed
-      if(changed.nonEmpty && changesOnMap > 0) {
-        UpdateHotSpots(changed.map( { case (a : PlanetSideEmpire.Value, _) => a } ).toSet, spots)
+      if (changed.nonEmpty && changesOnMap > 0) {
+        UpdateHotSpots(changed.map({ case (a: PlanetSideEmpire.Value, _) => a }).toSet, spots)
       }
 
     case Zone.HotSpot.ClearAll() =>
@@ -230,7 +240,7 @@ class ZoneHotSpotProjector(zone : Zone, hotspots : ListBuffer[HotSpotInfo], blan
     * @param displayLoc the location for the hotpot that was normalized by the coordinate mapping function
     * @return the hotspot data that corresponds to this location
     */
-  def TryHotSpot(displayLoc : Vector3) : HotSpotInfo = {
+  def TryHotSpot(displayLoc: Vector3): HotSpotInfo = {
     hotspots.find(spot => spot.DisplayLocation == displayLoc) match {
       case Some(spot) =>
         //hotspot already exists
@@ -263,12 +273,12 @@ class ZoneHotSpotProjector(zone : Zone, hotspots : ListBuffer[HotSpotInfo], blan
     * Assign new functionality for determining where to depict howspots on a given zone map.
     * Recalculate all current hotspot information.
     */
-  def UpdateMappingFunction() : Unit = {
+  def UpdateMappingFunction(): Unit = {
     val redoneSpots = hotspots.map { spot =>
-      val newSpot = new HotSpotInfo( zone.HotSpotCoordinateFunction(spot.DisplayLocation) )
+      val newSpot = new HotSpotInfo(zone.HotSpotCoordinateFunction(spot.DisplayLocation))
       PlanetSideEmpire.values.foreach { faction =>
-        if(spot.ActivityBy(faction)) {
-          newSpot.Activity(faction).Report( spot.Activity(faction).Heat )
+        if (spot.ActivityBy(faction)) {
+          newSpot.Activity(faction).Report(spot.Activity(faction).Heat)
           newSpot.Activity(faction).Duration = spot.Activity(faction).Duration
         }
       }
@@ -288,8 +298,8 @@ class ZoneHotSpotProjector(zone : Zone, hotspots : ListBuffer[HotSpotInfo], blan
     *                     if empty or contains no information for a selected group,
     *                     that group's hotspots will be eliminated (blanked) as a result
     */
-  def UpdateHotSpots(affectedFactions : Iterable[PlanetSideEmpire.Value], hotSpotInfos : Iterable[HotSpotInfo]) : Unit = {
-    val zoneNumber = zone.Number
+  def UpdateHotSpots(affectedFactions: Iterable[PlanetSideEmpire.Value], hotSpotInfos: Iterable[HotSpotInfo]): Unit = {
+    val zoneNumber      = zone.Number
     val hotSpotInfoList = hotSpotInfos.toList
     affectedFactions.foreach(faction =>
       galaxy ! Zone.HotSpot.Update(
@@ -314,23 +324,30 @@ class ZoneHotSpotProjector(zone : Zone, hotspots : ListBuffer[HotSpotInfo], blan
   * @param hotspots the data structure of hot spot information that this projector will be leveraging
   * @param blankingTime how long to wait in between blanking periods
   */
-class ZoneHotSpotHistory(zone : Zone, hotspots : ListBuffer[HotSpotInfo], blankingTime : FiniteDuration) extends ZoneHotSpotProjector(zone, hotspots, blankingTime) {
+class ZoneHotSpotHistory(zone: Zone, hotspots: ListBuffer[HotSpotInfo], blankingTime: FiniteDuration)
+    extends ZoneHotSpotProjector(zone, hotspots, blankingTime) {
   /* the galaxy service is unnecessary */
-  override def preStart() : Unit = { context.become(Established) }
+  override def preStart(): Unit = { context.become(Established) }
   /* this component does not actually the visible hotspots
    * a duplicate of the projector device otherwise */
-  override def UpdateHotSpots(affectedFactions : Iterable[PlanetSideEmpire.Value], hotSpotInfos : Iterable[HotSpotInfo]) : Unit = { }
+  override def UpdateHotSpots(
+      affectedFactions: Iterable[PlanetSideEmpire.Value],
+      hotSpotInfos: Iterable[HotSpotInfo]
+  ): Unit = {}
 }
 
 object ZoneHotSpotProjector {
+
   /**
     * Reload the current hotspots for one more blanking phase.
     */
   final case class UpdateDurationFunction()
+
   /**
     * Reload the current hotspots by directly mapping the current ones to new positions.
     */
   final case class UpdateMappingFunction()
+
   /**
     * The internal message for eliminating hotspot data whose lifespan has exceeded its set duration.
     */
@@ -342,7 +359,7 @@ object ZoneHotSpotProjector {
     * @param hotSpotInfos the total activity information
     * @return the discovered activity information that aligns with `faction`
     */
-  def SpecificHotSpotInfo(faction : PlanetSideEmpire.Value, hotSpotInfos : List[HotSpotInfo]) : List[HotSpotInfo] = {
+  def SpecificHotSpotInfo(faction: PlanetSideEmpire.Value, hotSpotInfos: List[HotSpotInfo]): List[HotSpotInfo] = {
     hotSpotInfos.filter { spot => spot.ActivityBy(faction) }
   }
 }

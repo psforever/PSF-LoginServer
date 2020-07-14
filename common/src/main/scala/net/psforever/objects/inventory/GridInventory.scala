@@ -28,22 +28,22 @@ import scala.util.{Failure, Success, Try}
   * Use of the `Array` only is hitherto referred as "using the inventory as a grid."
   */
 class GridInventory extends Container {
-  private var width : Int = 1
-  private var height : Int = 1
-  private var offset : Int = 0 //the effective index of the first cell in the inventory where offset >= 0
+  private var width: Int  = 1
+  private var height: Int = 1
+  private var offset: Int = 0 //the effective index of the first cell in the inventory where offset >= 0
 
   /* key - an integer (not especially meaningful beyond being unique); value - the card that represents the stowed item */
-  private val items : concurrent.TrieMap[Int, InventoryItem] = concurrent.TrieMap[Int, InventoryItem]()
-  private val entryIndex : AtomicInteger = new AtomicInteger(0)
-  private var grid : Array[Int] = Array.fill[Int](1)(-1)
+  private val items: concurrent.TrieMap[Int, InventoryItem] = concurrent.TrieMap[Int, InventoryItem]()
+  private val entryIndex: AtomicInteger                     = new AtomicInteger(0)
+  private var grid: Array[Int]                              = Array.fill[Int](1)(-1)
 
-  def Items : List[InventoryItem] = items.values.toList
+  def Items: List[InventoryItem] = items.values.toList
 
-  def Width : Int = width
+  def Width: Int = width
 
-  def Height : Int = height
+  def Height: Int = height
 
-  def Offset : Int = offset
+  def Offset: Int = offset
 
   /**
     * Change the grid index offset value.
@@ -51,22 +51,22 @@ class GridInventory extends Container {
     * @return the current offset value
     * @throws IndexOutOfBoundsException if the index is negative
     */
-  def Offset_=(fset : Int) : Int = {
-    if(fset < 0) {
+  def Offset_=(fset: Int): Int = {
+    if (fset < 0) {
       throw new IndexOutOfBoundsException(s"can not set index offset to negative number - $fset")
     }
     offset = fset
     Offset
   }
 
-  def Size : Int = items.size
+  def Size: Int = items.size
 
   /**
     * Capacity is a measure how many squares in the grid inventory are unused (value of -1).
     * It does not guarantee the cells are distributed in any configuration conductive to item stowing.
     * @return the number of free cells
     */
-  def Capacity : Int = {
+  def Capacity: Int = {
     TotalCapacity - items.values.foldLeft(0)((cnt, item) => cnt + (item.obj.Tile.Width * item.obj.Tile.Height))
   }
 
@@ -74,16 +74,16 @@ class GridInventory extends Container {
     * The total number of cells in this inventory.
     * @return the width multiplied by the height (`grid.length`, which is the same thing)
     */
-  def TotalCapacity : Int = grid.length
+  def TotalCapacity: Int = grid.length
 
   /**
     * The index of the last cell in this inventory.
     * @return same as `Offset` plus the total number of cells in this inventory minus 1
     */
-  def LastIndex : Int = Offset + TotalCapacity - 1
+  def LastIndex: Int = Offset + TotalCapacity - 1
 
-  override def Find(guid : PlanetSideGUID) : Option[Int] = {
-    items.values.find({ case InventoryItem(obj, _) => obj.HasGUID && obj.GUID == guid}) match {
+  override def Find(guid: PlanetSideGUID): Option[Int] = {
+    items.values.find({ case InventoryItem(obj, _) => obj.HasGUID && obj.GUID == guid }) match {
       case Some(InventoryItem(_, index)) =>
         Some(index)
       case None =>
@@ -96,12 +96,11 @@ class GridInventory extends Container {
     * @param slot the cell index
     * @return an `EquipmentSlot` that contains whatever `Equipment` was stored in `slot`
     */
-  override def Slot(slot : Int) : EquipmentSlot = {
+  override def Slot(slot: Int): EquipmentSlot = {
     val actualSlot = slot - offset
-    if(actualSlot < 0 || actualSlot > grid.length) {
+    if (actualSlot < 0 || actualSlot > grid.length) {
       throw new IndexOutOfBoundsException(s"requested indices not in bounds of grid inventory - $actualSlot")
-    }
-    else {
+    } else {
       new InventoryEquipmentSlot(slot, this)
     }
   }
@@ -118,8 +117,8 @@ class GridInventory extends Container {
     * @param item the `Equipment` to be tested
     * @return a `List` of GUID values for all existing contents that this item would overlap if inserted
     */
-  def CheckCollisions(start : Int, item : Equipment) : Try[List[Int]] = {
-    val tile : InventoryTile = item.Tile
+  def CheckCollisions(start: Int, item: Equipment): Try[List[Int]] = {
+    val tile: InventoryTile = item.Tile
     CheckCollisions(start, tile.Width, tile.Height)
   }
 
@@ -130,11 +129,10 @@ class GridInventory extends Container {
     * @param h the height of the `Equipment` to be tested
     * @return a `List` of GUID values for all existing contents that this item would overlap if inserted
     */
-  def CheckCollisions(start : Int, w : Int, h : Int) : Try[List[Int]] = {
-    if(items.isEmpty) {
+  def CheckCollisions(start: Int, w: Int, h: Int): Try[List[Int]] = {
+    if (items.isEmpty) {
       Success(List.empty[Int])
-    }
-    else {
+    } else {
       CheckCollisionsVar(start, w, h) match {
         case Success(list) =>
           Success(list.map({ f => f.obj.GUID.guid }))
@@ -156,11 +154,10 @@ class GridInventory extends Container {
     * @param h the height of the `Equipment` to be tested
     * @return a `List` of existing items that an item of this scale would overlap if inserted
     */
-  def CheckCollisionsVar(start : Int, w : Int, h : Int) : Try[List[InventoryItem]] = {
-    if(items.size < w * h) {
+  def CheckCollisionsVar(start: Int, w: Int, h: Int): Try[List[InventoryItem]] = {
+    if (items.size < w * h) {
       CheckCollisionsAsList(start, w, h)
-    }
-    else {
+    } else {
       CheckCollisionsAsGrid(start, w, h)
     }
   }
@@ -176,28 +173,35 @@ class GridInventory extends Container {
     * @return a `List` of existing items that an item of this scale would overlap if inserted
     * @throws IndexOutOfBoundsException if the region extends outside of the grid boundaries
     */
-  def CheckCollisionsAsList(start : Int, w : Int, h : Int) : Try[List[InventoryItem]] = {
-    val actualSlot = start - offset
-    val startx : Int = actualSlot % width
-    val starty : Int = actualSlot / width
-    val startw : Int = startx + w - 1
-    val starth : Int = starty + h - 1
-    if(actualSlot < 0 || actualSlot >= grid.length || startw >= width || starth >= height) {
-      val bounds : String = if(startx < 0) { "left" } else if(startw >= width) { "right" } else { "bottom" }
-      Failure(new IndexOutOfBoundsException(s"requested region escapes the $bounds edge of the grid inventory - $startx + $w, $starty + $h"))
-    }
-    else {
-      val collisions : mutable.Set[InventoryItem] = mutable.Set[InventoryItem]()
+  def CheckCollisionsAsList(start: Int, w: Int, h: Int): Try[List[InventoryItem]] = {
+    val actualSlot  = start - offset
+    val startx: Int = actualSlot % width
+    val starty: Int = actualSlot / width
+    val startw: Int = startx + w - 1
+    val starth: Int = starty + h - 1
+    if (actualSlot < 0 || actualSlot >= grid.length || startw >= width || starth >= height) {
+      val bounds: String = if (startx < 0) { "left" }
+      else if (startw >= width) { "right" }
+      else { "bottom" }
+      Failure(
+        new IndexOutOfBoundsException(
+          s"requested region escapes the $bounds edge of the grid inventory - $startx + $w, $starty + $h"
+        )
+      )
+    } else {
+      val collisions: mutable.Set[InventoryItem] = mutable.Set[InventoryItem]()
       items
-        .map { case (_, item : InventoryItem) => item }
-        .foreach { item : InventoryItem =>
-          val actualItemStart : Int = item.start - offset
-          val itemx : Int = actualItemStart % width
-          val itemy : Int = actualItemStart / width
-          val tile = item.obj.Tile
-          val clipsOnX : Boolean = if(itemx < startx) { itemx + tile.Width > startx } else { itemx <= startw }
-          val clipsOnY : Boolean = if(itemy < starty) { itemy + tile.Height > starty } else { itemy <= starth }
-          if(clipsOnX && clipsOnY) {
+        .map { case (_, item: InventoryItem) => item }
+        .foreach { item: InventoryItem =>
+          val actualItemStart: Int = item.start - offset
+          val itemx: Int           = actualItemStart % width
+          val itemy: Int           = actualItemStart / width
+          val tile                 = item.obj.Tile
+          val clipsOnX: Boolean = if (itemx < startx) { itemx + tile.Width > startx }
+          else { itemx <= startw }
+          val clipsOnY: Boolean = if (itemy < starty) { itemy + tile.Height > starty }
+          else { itemy <= starth }
+          if (clipsOnX && clipsOnY) {
             collisions += item
           }
         }
@@ -216,36 +220,42 @@ class GridInventory extends Container {
     * @return a `List` of existing items that an item of this scale would overlap if inserted
     * @throws IndexOutOfBoundsException if the region extends outside of the grid boundaries
     */
-  def CheckCollisionsAsGrid(start : Int, w : Int, h : Int) : Try[List[InventoryItem]] = {
+  def CheckCollisionsAsGrid(start: Int, w: Int, h: Int): Try[List[InventoryItem]] = {
     val actualSlot = start - offset
-    if(actualSlot < 0 || actualSlot >= grid.length || (actualSlot % width) + w > width || (actualSlot / width) + h > height) {
-      val startx : Int = actualSlot % width
-      val starty : Int = actualSlot / width
-      val startw : Int = startx + w - 1
-      val bounds : String = if(startx < 0) { "left" } else if(startw >= width) { "right" } else { "bottom" }
-      Failure(new IndexOutOfBoundsException(s"requested region escapes the $bounds edge of the grid inventory - $startx + $w, $starty + $h"))
-    }
-    else {
-      val collisions : mutable.Set[InventoryItem] = mutable.Set[InventoryItem]()
-      var curr = actualSlot
-      val fixedItems = items.toMap
-      val fixedGrid = grid.toList
+    if (
+      actualSlot < 0 || actualSlot >= grid.length || (actualSlot % width) + w > width || (actualSlot / width) + h > height
+    ) {
+      val startx: Int = actualSlot % width
+      val starty: Int = actualSlot / width
+      val startw: Int = startx + w - 1
+      val bounds: String = if (startx < 0) { "left" }
+      else if (startw >= width) { "right" }
+      else { "bottom" }
+      Failure(
+        new IndexOutOfBoundsException(
+          s"requested region escapes the $bounds edge of the grid inventory - $startx + $w, $starty + $h"
+        )
+      )
+    } else {
+      val collisions: mutable.Set[InventoryItem] = mutable.Set[InventoryItem]()
+      var curr                                   = actualSlot
+      val fixedItems                             = items.toMap
+      val fixedGrid                              = grid.toList
       try {
-        for(_ <- 0 until h) {
-          for(col <- 0 until w) {
+        for (_ <- 0 until h) {
+          for (col <- 0 until w) {
             val itemIndex = fixedGrid(curr + col)
-            if(itemIndex > -1) {
+            if (itemIndex > -1) {
               collisions += fixedItems(itemIndex)
             }
           }
           curr += width
         }
         Success(collisions.toList)
-      }
-      catch {
-        case e : NoSuchElementException =>
+      } catch {
+        case e: NoSuchElementException =>
           Failure(InventoryDisarrayException(s"inventory contained old item data", e))
-        case e : Exception =>
+        case e: Exception =>
           Failure(e)
       }
     }
@@ -257,11 +267,11 @@ class GridInventory extends Container {
     * @param tile the dimensions of the blank space
     * @return the grid index of the upper left corner where equipment to which the `tile` belongs should be placed
     */
-  override def Fit(tile : InventoryTile) : Option[Int] = {
-    val tWidth = tile.Width
+  override def Fit(tile: InventoryTile): Option[Int] = {
+    val tWidth  = tile.Width
     val tHeight = tile.Height
     val gridIter = (0 until (grid.length - (tHeight - 1) * width))
-      .filter(cell => grid(cell) == -1 && (width - cell%width >= tWidth))
+      .filter(cell => grid(cell) == -1 && (width - cell % width >= tWidth))
       .iterator
     recursiveFitTest(gridIter, tWidth, tHeight)
   }
@@ -273,11 +283,10 @@ class GridInventory extends Container {
     * @param tHeight the height of the blank space
     * @return the grid index of the upper left corner where equipment to which the `tile` belongs should be placed
     */
-  @tailrec private def recursiveFitTest(cells : Iterator[Int], tWidth : Int, tHeight : Int) : Option[Int] = {
-    if(!cells.hasNext) {
+  @tailrec private def recursiveFitTest(cells: Iterator[Int], tWidth: Int, tHeight: Int): Option[Int] = {
+    if (!cells.hasNext) {
       None
-    }
-    else {
+    } else {
       val index = cells.next + offset
       CheckCollisionsAsGrid(index, tWidth, tHeight) match {
         case Success(Nil) =>
@@ -299,7 +308,7 @@ class GridInventory extends Container {
     * @param value the value to set all the cells in the defined region;
     *              defaults to -1 (which is "nothing")
     */
-  def SetCells(start : Int, w : Int, h : Int, value : Int = -1) : Unit = {
+  def SetCells(start: Int, w: Int, h: Int, value: Int = -1): Unit = {
     grid = SetCellsNoOffset(start - offset, w, h, value)
   }
 
@@ -315,13 +324,17 @@ class GridInventory extends Container {
     * @return a copy of the inventory as a grid, with the anticipated modifications
     * @throws IndexOutOfBoundsException if the region extends outside of the grid boundaries
     */
-  def SetCellsNoOffset(start : Int, w : Int, h : Int, value : Int = -1) : Array[Int] = {
-    if(start < 0 || start > grid.length || (start % width) + w - 1 > width || (start / width) + h- 1 > height) {
-      val startx : Int = start % width
-      val starty : Int = start / width
-      val startw : Int = startx + w - 1
-      val bounds : String = if(startx < 0) { "left" } else if(startw >= width) { "right" } else { "bottom" }
-      throw new IndexOutOfBoundsException(s"requested region escapes the $bounds of the grid inventory - $startx + $w, $starty + $h")
+  def SetCellsNoOffset(start: Int, w: Int, h: Int, value: Int = -1): Array[Int] = {
+    if (start < 0 || start > grid.length || (start % width) + w - 1 > width || (start / width) + h - 1 > height) {
+      val startx: Int = start % width
+      val starty: Int = start / width
+      val startw: Int = startx + w - 1
+      val bounds: String = if (startx < 0) { "left" }
+      else if (startw >= width) { "right" }
+      else { "bottom" }
+      throw new IndexOutOfBoundsException(
+        s"requested region escapes the $bounds of the grid inventory - $startx + $w, $starty + $h"
+      )
     }
     SetCellsOnlyNoOffset(start, w, h, value)
   }
@@ -337,11 +350,11 @@ class GridInventory extends Container {
     *              defaults to -1 (which is "nothing")
     * @return a copy of the inventory as a grid, with the anticipated modifications
     */
-  private def SetCellsOnlyNoOffset(start : Int, w : Int, h : Int, value : Int = -1) : Array[Int] = {
-    val out : Array[Int] = grid.clone()
-    var curr = start
-    for(_ <- 0 until h) {
-      for(col <- 0 until w) {
+  private def SetCellsOnlyNoOffset(start: Int, w: Int, h: Int, value: Int = -1): Array[Int] = {
+    val out: Array[Int] = grid.clone()
+    var curr            = start
+    for (_ <- 0 until h) {
+      for (col <- 0 until w) {
         out(curr + col) = value
       }
       curr += width
@@ -349,8 +362,8 @@ class GridInventory extends Container {
     out
   }
 
-  def Insert(start : Int, obj : Equipment) : Boolean = {
-    val key : Int = entryIndex.getAndIncrement()
+  def Insert(start: Int, obj: Equipment): Boolean = {
+    val key: Int = entryIndex.getAndIncrement()
     items.get(key) match {
       case None => //no redundant insertions
         Insertion_CheckCollisions(start, obj, key)
@@ -366,7 +379,7 @@ class GridInventory extends Container {
     * @param key the internal numeric identifier for this item
     * @return the success or the failure of the insertion process
     */
-  def Insertion_CheckCollisions(start : Int, obj : Equipment, key : Int) : Boolean = {
+  def Insertion_CheckCollisions(start: Int, obj: Equipment, key: Int): Boolean = {
     CheckCollisions(start, obj) match {
       case Success(Nil) =>
         val tile = obj.Tile
@@ -385,7 +398,7 @@ class GridInventory extends Container {
     * @param obj the `Equipment` item to be inserted
     * @return whether the insertion succeeded
     */
-  def InsertQuickly(start : Int, obj : Equipment) : Boolean = InsertQuickly(start, obj, entryIndex.getAndIncrement())
+  def InsertQuickly(start: Int, obj: Equipment): Boolean = InsertQuickly(start, obj, entryIndex.getAndIncrement())
 
   /**
     * Just insert an item into the inventory without checking for item collisions.
@@ -396,30 +409,29 @@ class GridInventory extends Container {
     * @param key the internal numeric identifier for this item
     * @return whether the insertion succeeded
     */
-  private def InsertQuickly(start : Int, obj : Equipment, key : Int) : Boolean = {
+  private def InsertQuickly(start: Int, obj: Equipment, key: Int): Boolean = {
     try {
-      val tile = obj.Tile
+      val tile    = obj.Tile
       val updated = SetCellsNoOffset(start - offset, tile.Width, tile.Height, key)
-      val card = InventoryItem(obj, start)
+      val card    = InventoryItem(obj, start)
       items += key -> card
       grid = updated
       true
-    }
-    catch {
-      case _ : Exception =>
+    } catch {
+      case _: Exception =>
         false
     }
   }
 
-  def +=(kv : (Int, Equipment)) : Boolean = Insert(kv._1, kv._2)
+  def +=(kv: (Int, Equipment)): Boolean = Insert(kv._1, kv._2)
 
-  def Remove(index : Int) : Boolean = {
+  def Remove(index: Int): Boolean = {
     val keyVal = index - offset
-    if(keyVal > -1 && keyVal < grid.length) {
+    if (keyVal > -1 && keyVal < grid.length) {
       val key = grid(index - offset)
       items.get(key) match {
         case Some(item) =>
-          val tile = item.obj.Tile
+          val tile    = item.obj.Tile
           val updated = SetCellsNoOffset(item.start - offset, tile.Width, tile.Height)
           items.remove(key)
           grid = updated
@@ -427,19 +439,18 @@ class GridInventory extends Container {
         case None =>
           false
       }
-    }
-    else {
+    } else {
       false
     }
   }
 
-  def -=(index : Int) : Boolean = Remove(index)
+  def -=(index: Int): Boolean = Remove(index)
 
-  def Remove(guid : PlanetSideGUID) : Boolean = {
+  def Remove(guid: PlanetSideGUID): Boolean = {
     recursiveFindIdentifiedObject(items.keys.iterator, guid) match {
       case Some(key) =>
-        val item = items(key)
-        val tile = item.obj.Tile
+        val item    = items(key)
+        val tile    = item.obj.Tile
         val updated = SetCellsNoOffset(item.start - offset, tile.Width, tile.Height)
         items.remove(key)
         grid = updated
@@ -449,18 +460,16 @@ class GridInventory extends Container {
     }
   }
 
-  def -=(guid : PlanetSideGUID) : Boolean = Remove(guid)
+  def -=(guid: PlanetSideGUID): Boolean = Remove(guid)
 
-  @tailrec private def recursiveFindIdentifiedObject(iter : Iterator[Int], guid : PlanetSideGUID) : Option[Int] = {
-    if(!iter.hasNext) {
+  @tailrec private def recursiveFindIdentifiedObject(iter: Iterator[Int], guid: PlanetSideGUID): Option[Int] = {
+    if (!iter.hasNext) {
       None
-    }
-    else {
+    } else {
       val index = iter.next
-      if(items(index).obj.GUID == guid) {
+      if (items(index).obj.GUID == guid) {
         Some(index)
-      }
-      else {
+      } else {
         recursiveFindIdentifiedObject(iter, guid)
       }
     }
@@ -471,7 +480,7 @@ class GridInventory extends Container {
     * @param guid the GUID
     * @return the discovered object, or `None`
     */
-  def hasItem(guid : PlanetSideGUID) : Option[Equipment] = {
+  def hasItem(guid: PlanetSideGUID): Option[Equipment] = {
     recursiveFindIdentifiedObject(items.keys.iterator, guid) match {
       case Some(index) =>
         Some(items(index).obj)
@@ -491,11 +500,11 @@ class GridInventory extends Container {
     * @see `InventoryDisarrayException`
     * @return the number of stale object references found and corrected
     */
-  def ElementsOnGridMatchList() : Int = {
-    var misses : Int = 0
+  def ElementsOnGridMatchList(): Int = {
+    var misses: Int = 0
     grid = grid.map {
       case n if items.get(n).nonEmpty => n
-      case -1 => -1
+      case -1                         => -1
       case _ =>
         misses += 1
         -1
@@ -513,14 +522,14 @@ class GridInventory extends Container {
     * @see `recursiveRelatedListCollisions`
     * @return a list of item overlap collision combinations
     */
-  def ElementsInListCollideInGrid() : List[List[InventoryItem]] = {
-    val testGrid : mutable.Map[Int, List[Int]] = mutable.Map[Int, List[Int]]()
+  def ElementsInListCollideInGrid(): List[List[InventoryItem]] = {
+    val testGrid: mutable.Map[Int, List[Int]] = mutable.Map[Int, List[Int]]()
     //on average this will run the same number of times as capacity
     items.foreach {
       case (itemId, item) =>
         var start = item.start
-        val wide = item.obj.Tile.Width
-        val high = item.obj.Tile.Height
+        val wide  = item.obj.Tile.Width
+        val high  = item.obj.Tile.Height
         //allocate all of the slots that comprise this item's tile
         (0 until high).foreach { _ =>
           (0 until wide).foreach { w =>
@@ -553,22 +562,22 @@ class GridInventory extends Container {
     * @param updated an list of overlapping elements not filtered out of the original list
     * @return the final list of unique overlapping element combinations
     */
-  @tailrec private def recursiveRelatedListCollisions(original : Iterator[List[Int]], updated : List[List[Int]]) : List[List[Int]] = {
-    if(original.hasNext) {
-      val target = original.next
+  @tailrec private def recursiveRelatedListCollisions(
+      original: Iterator[List[Int]],
+      updated: List[List[Int]]
+  ): List[List[Int]] = {
+    if (original.hasNext) {
+      val target   = original.next
       val filtered = updated.filterNot(item => item.equals(target))
-      val newupdated = if(filtered.size == updated.size) {
+      val newupdated = if (filtered.size == updated.size) {
         updated //the lists are the same size, nothing was filtered
-      }
-      else if(updated.exists(test => test.containsSlice(target) && !test.equals(target))) {
+      } else if (updated.exists(test => test.containsSlice(target) && !test.equals(target))) {
         filtered //some element that is not the target element contains the target element as a subset
-      }
-      else {
+      } else {
         filtered :+ target //restore one entry for the target element
       }
       recursiveRelatedListCollisions(original, newupdated)
-    }
-    else {
+    } else {
       updated
     }
   }
@@ -577,7 +586,7 @@ class GridInventory extends Container {
     * Clear the inventory by removing all of its items.
     * @return a `List` of the previous items in the inventory as their `InventoryItemData` tiles
     */
-  def Clear() : List[InventoryItem] = {
+  def Clear(): List[InventoryItem] = {
     val list = items.values.toList
     items.clear
     entryIndex.set(0)
@@ -592,8 +601,8 @@ class GridInventory extends Container {
     * @param h the new height
     * @throws IllegalArgumentException if the new size to be set is zero or less
     */
-  def Resize(w : Int, h : Int) : Unit = {
-    if(w < 1 || h < 1) {
+  def Resize(w: Int, h: Int): Unit = {
+    if (w < 1 || h < 1) {
       throw new IllegalArgumentException("area of inventory space must not be < 1")
     }
     width = w
@@ -601,17 +610,18 @@ class GridInventory extends Container {
     grid = Array.fill[Int](w * h)(-1)
   }
 
-  def VisibleSlots : Set[Int] = Set.empty[Int]
+  def VisibleSlots: Set[Int] = Set.empty[Int]
 
   def Inventory = this
 }
 
 object GridInventory {
+
   /**
     * Overloaded constructor.
     * @return a `GridInventory` object
     */
-  def apply() : GridInventory = {
+  def apply(): GridInventory = {
     new GridInventory()
   }
 
@@ -621,7 +631,7 @@ object GridInventory {
     * @param height the vertical size of the inventory
     * @return a `GridInventory` object
     */
-  def apply(width : Int, height : Int) : GridInventory = {
+  def apply(width: Int, height: Int): GridInventory = {
     val obj = new GridInventory()
     obj.Resize(width, height)
     obj
@@ -634,7 +644,7 @@ object GridInventory {
     * @param offset the effective index of the first cell in the inventory
     * @return a `GridInventory` object
     */
-  def apply(width : Int, height : Int, offset : Int) : GridInventory = {
+  def apply(width: Int, height: Int, offset: Int): GridInventory = {
     val obj = new GridInventory()
     obj.Resize(width, height)
     obj.Offset = offset
@@ -652,7 +662,11 @@ object GridInventory {
     *         the first `List` is composed of `InventoryItemData`s that will be reinserted at the new `start` index;
     *         the second list is composed of `Equipment` that will not be put back into the inventory
     */
-  def recoverInventory(list : List[InventoryItem], inv : GridInventory, predicate : (InventoryItem, InventoryItem) => Boolean = StandardScaleSort) : (List[InventoryItem], List[Equipment]) = {
+  def recoverInventory(
+      list: List[InventoryItem],
+      inv: GridInventory,
+      predicate: (InventoryItem, InventoryItem) => Boolean = StandardScaleSort
+  ): (List[InventoryItem], List[Equipment]) = {
     sortKnapsack(
       list.sortWith(predicate),
       inv.width,
@@ -666,14 +680,13 @@ object GridInventory {
   /**
     * The default predicate used by the knapsack sort algorithm.
     */
-  final val StandardScaleSort : (InventoryItem, InventoryItem) => Boolean =
+  final val StandardScaleSort: (InventoryItem, InventoryItem) => Boolean =
     (a, b) => {
       val aTile = a.obj.Tile
       val bTile = b.obj.Tile
-      if(aTile.Width == bTile.Width) {
+      if (aTile.Width == bTile.Width) {
         aTile.Height > bTile.Height
-      }
-      else {
+      } else {
         aTile.Width > bTile.Width
       }
     }
@@ -688,7 +701,7 @@ object GridInventory {
     * @param width the horizontal length of the inventory
     * @param height the vertical length of the inventory
     */
-  private def sortKnapsack(list : List[InventoryItem], width : Int, height : Int) : Unit = {
+  private def sortKnapsack(list: List[InventoryItem], width: Int, height: Int): Unit = {
     val root = new KnapsackNode(0, 0, width, height)
     list.foreach(item => {
       findKnapsackSpace(root, item.obj.Tile.Width, item.obj.Tile.Height) match {
@@ -714,20 +727,20 @@ object GridInventory {
     * @param width the width
     * @param height the height
     */
-  private class KnapsackNode(var x : Int, var y : Int, var width : Int, var height : Int) {
-    private var used : Boolean = false
-    var down : Option[KnapsackNode] = None
-    var right : Option[KnapsackNode] = None
+  private class KnapsackNode(var x: Int, var y: Int, var width: Int, var height: Int) {
+    private var used: Boolean       = false
+    var down: Option[KnapsackNode]  = None
+    var right: Option[KnapsackNode] = None
 
-    def Used : Boolean = used
+    def Used: Boolean = used
 
     /**
       * Initialize the `down` and `right` children of this node.
       */
-    def Split() : Unit = {
+    def Split(): Unit = {
       used = true
-      down = Some(new KnapsackNode(0,0,0,0))
-      right = Some(new KnapsackNode(0,0,0,0))
+      down = Some(new KnapsackNode(0, 0, 0, 0))
+      right = Some(new KnapsackNode(0, 0, 0, 0))
     }
 
     /**
@@ -739,7 +752,7 @@ object GridInventory {
       * @param nw the new width
       * @param nh the new height
       */
-    def apply(nx : Int, ny : Int, nw : Int, nh : Int) : Unit = {
+    def apply(nx: Int, ny: Int, nw: Int, nh: Int): Unit = {
       x = nx
       y = ny
       width = nw
@@ -754,14 +767,12 @@ object GridInventory {
     * @param height height of the element
     * @return the selected node
     */
-  private def findKnapsackSpace(node : KnapsackNode, width : Int, height : Int) : Option[KnapsackNode] = {
-    if(node.Used) {
+  private def findKnapsackSpace(node: KnapsackNode, width: Int, height: Int): Option[KnapsackNode] = {
+    if (node.Used) {
       findKnapsackSpace(node.right.get, width, height).orElse(findKnapsackSpace(node.down.get, width, height))
-    }
-    else if(width <= node.width && height <= node.height) {
+    } else if (width <= node.width && height <= node.height) {
       Some(node)
-    }
-    else {
+    } else {
       None
     }
   }
@@ -776,22 +787,23 @@ object GridInventory {
     * @param width width of the element
     * @param height height of the element
     */
-  private def splitKnapsackSpace(node : KnapsackNode, width : Int, height : Int) : Unit = {
+  private def splitKnapsackSpace(node: KnapsackNode, width: Int, height: Int): Unit = {
     node.Split()
     node.down.get(node.x, node.y + height, node.width, node.height - height)
     node.right.get(node.x + width, node.y, node.width - width, height)
   }
 
-  def toPrintedList(inv : GridInventory) : String = {
+  def toPrintedList(inv: GridInventory): String = {
     val list = new StringBuilder
     list.append("\n")
-    inv.Items.zipWithIndex.foreach { case (InventoryItem(obj, start), index) =>
-      list.append(s"${index+1}: ${obj.Definition.Name}@${obj.GUID} -> $start\n")
+    inv.Items.zipWithIndex.foreach {
+      case (InventoryItem(obj, start), index) =>
+        list.append(s"${index + 1}: ${obj.Definition.Name}@${obj.GUID} -> $start\n")
     }
     list.toString
   }
 
-  def toPrintedGrid(inv : GridInventory) : String = {
+  def toPrintedGrid(inv: GridInventory): String = {
     new StringBuilder().append("\n").append(inv.grid.toSeq.grouped(inv.width).mkString("\n")).toString
   }
 }

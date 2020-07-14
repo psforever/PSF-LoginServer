@@ -30,14 +30,14 @@ class FacilityTurretTest extends Specification {
       obj.ReserveAmmunition mustEqual false
       obj.FactionLocked mustEqual true
       obj.MaxHealth mustEqual 0
-      obj.MountPoints mustEqual mutable.HashMap.empty[Int,Int]
+      obj.MountPoints mustEqual mutable.HashMap.empty[Int, Int]
     }
 
     "construct" in {
       val obj = FacilityTurret(GlobalDefinitions.manned_turret)
       obj.Weapons.size mustEqual 1
       obj.Weapons(1).Equipment match {
-        case Some(tool : Tool) =>
+        case Some(tool: Tool) =>
           tool.Definition mustEqual GlobalDefinitions.phalanx_sgl_hevgatcan
         case _ =>
           ko
@@ -56,7 +56,7 @@ class FacilityTurretTest extends Specification {
       val obj = FacilityTurret(GlobalDefinitions.manned_turret)
       obj.Upgrade = TurretUpgrade.None
       obj.Weapons(1).Equipment match {
-        case Some(tool : Tool) =>
+        case Some(tool: Tool) =>
           tool.Definition mustEqual GlobalDefinitions.phalanx_sgl_hevgatcan
           tool.FireModeIndex mustEqual 0
           tool.NextFireMode
@@ -67,7 +67,7 @@ class FacilityTurretTest extends Specification {
       //upgrade
       obj.Upgrade = TurretUpgrade.AVCombo
       obj.Weapons(1).Equipment match {
-        case Some(tool : Tool) =>
+        case Some(tool: Tool) =>
           tool.Definition mustEqual GlobalDefinitions.phalanx_avcombo
           tool.FireModeIndex mustEqual 0
           tool.ProjectileType mustEqual GlobalDefinitions.phalanx_projectile.ProjectileType
@@ -80,7 +80,7 @@ class FacilityTurretTest extends Specification {
       //revert
       obj.Upgrade = TurretUpgrade.None
       obj.Weapons(1).Equipment match {
-        case Some(tool : Tool) =>
+        case Some(tool: Tool) =>
           tool.Definition mustEqual GlobalDefinitions.phalanx_sgl_hevgatcan
         case _ =>
           ko
@@ -101,7 +101,7 @@ class FacilityTurretControl1Test extends ActorTest {
 
 class FacilityTurretControl2Test extends ActorTest {
   val player = Player(Avatar("", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
-  val obj = FacilityTurret(GlobalDefinitions.manned_turret)
+  val obj    = FacilityTurret(GlobalDefinitions.manned_turret)
   obj.GUID = PlanetSideGUID(1)
   obj.Actor = system.actorOf(Props(classOf[FacilityTurretControl], obj), "turret-control")
   val bldg = Building("Building", guid = 0, map_id = 0, Zone.Nowhere, StructureType.Building)
@@ -117,7 +117,7 @@ class FacilityTurretControl2Test extends ActorTest {
       obj.Actor ! Mountable.TryMount(player, 0)
       val reply = receiveOne(300 milliseconds)
       reply match {
-        case msg : Mountable.MountMessages =>
+        case msg: Mountable.MountMessages =>
           assert(msg.response.isInstanceOf[Mountable.CanMount])
         case _ =>
           assert(false)
@@ -128,7 +128,7 @@ class FacilityTurretControl2Test extends ActorTest {
 
 class FacilityTurretControl3Test extends ActorTest {
   val player = Player(Avatar("", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
-  val obj = FacilityTurret(GlobalDefinitions.manned_turret)
+  val obj    = FacilityTurret(GlobalDefinitions.manned_turret)
   obj.GUID = PlanetSideGUID(1)
   obj.Actor = system.actorOf(Props(classOf[FacilityTurretControl], obj), "turret-control")
   val bldg = Building("Building", guid = 0, map_id = 0, Zone.Nowhere, StructureType.Building)
@@ -143,7 +143,7 @@ class FacilityTurretControl3Test extends ActorTest {
       obj.Actor ! Mountable.TryMount(player, 0)
       val reply = receiveOne(300 milliseconds)
       reply match {
-        case msg : Mountable.MountMessages =>
+        case msg: Mountable.MountMessages =>
           assert(msg.response.isInstanceOf[Mountable.CanNotMount])
         case _ =>
           assert(false)
@@ -171,7 +171,7 @@ class FacilityTurretControl4Test extends ActorTest {
       obj.Actor ! Mountable.TryMount(player, 0)
       val reply = receiveOne(300 milliseconds)
       reply match {
-        case msg : Mountable.MountMessages =>
+        case msg: Mountable.MountMessages =>
           assert(msg.response.isInstanceOf[Mountable.CanMount])
         case _ =>
           assert(false)
@@ -186,10 +186,10 @@ class FacilityTurretControlRestorationTest extends ActorTest {
     override def SetupNumberPools() = {}
     GUID(guid)
   }
-  val building = Building("test-building", 1, 1, zone, StructureType.Facility) //guid=1
+  val building      = Building("test-building", 1, 1, zone, StructureType.Facility) //guid=1
   val activityProbe = TestProbe()
-  val avatarProbe = TestProbe()
-  val vehicleProbe = TestProbe()
+  val avatarProbe   = TestProbe()
+  val vehicleProbe  = TestProbe()
   val buildingProbe = TestProbe()
   zone.Activity = activityProbe.ref
   zone.AvatarEvents = avatarProbe.ref
@@ -202,7 +202,8 @@ class FacilityTurretControlRestorationTest extends ActorTest {
   turret.Position = Vector3(1, 0, 0)
   val turretWeapon = turret.Weapons.values.head.Equipment.get.asInstanceOf[Tool]
 
-  val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
+  val player1 =
+    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
   player1.Spawn
   player1.Position = Vector3(2, 2, 2)
   val player1Probe = TestProbe()
@@ -224,47 +225,57 @@ class FacilityTurretControlRestorationTest extends ActorTest {
   "RepairableTurretWeapon" should {
     "handle repairs and restoration" in {
       turret.Health = turret.Definition.RepairRestoresAt - 1 //initial state manip
-      turret.Destroyed = true //initial state manip
+      turret.Destroyed = true                                //initial state manip
       assert(turret.Health < turret.Definition.RepairRestoresAt)
       assert(turret.Destroyed)
 
       turret.Actor ! CommonMessages.Use(player1, Some(tool))
       val msg12345 = avatarProbe.receiveN(5, 500 milliseconds)
-      val msg4 = vehicleProbe.receiveOne(500 milliseconds)
+      val msg4     = vehicleProbe.receiveOne(500 milliseconds)
       assert(
         msg12345.head match {
-          case AvatarServiceMessage("TestCharacter1",
-          AvatarAction.SendResponse(PlanetSideGUID(0), InventoryStateMessage(PlanetSideGUID(8), _, PlanetSideGUID(7), _))) => true
+          case AvatarServiceMessage(
+                "TestCharacter1",
+                AvatarAction
+                  .SendResponse(PlanetSideGUID(0), InventoryStateMessage(PlanetSideGUID(8), _, PlanetSideGUID(7), _))
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg12345(1) match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
-          case _ => false
+          case _                                                                                            => false
         }
       )
       assert(
         msg12345(2) match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 50, 0)) => true
-          case _ => false
+          case _                                                                                             => false
         }
       )
       assert(
         msg12345(3) match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 51, 0)) => true
-          case _ => false
+          case _                                                                                             => false
         }
       )
       assert(
         msg12345(4) match {
-          case AvatarServiceMessage("TestCharacter1", AvatarAction.SendResponse(PlanetSideGUID(0), RepairMessage(PlanetSideGUID(2), _))) => true
+          case AvatarServiceMessage(
+                "TestCharacter1",
+                AvatarAction.SendResponse(PlanetSideGUID(0), RepairMessage(PlanetSideGUID(2), _))
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg4 match {
-          case VehicleServiceMessage("test", VehicleAction.EquipmentInSlot(_, PlanetSideGUID(2), 1, t)) if t eq turretWeapon => true
+          case VehicleServiceMessage("test", VehicleAction.EquipmentInSlot(_, PlanetSideGUID(2), 1, t))
+              if t eq turretWeapon =>
+            true
           case _ => false
         }
       )

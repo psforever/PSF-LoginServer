@@ -14,24 +14,22 @@ import shapeless.{::, HNil}
   * @param data na
   * @param unk na
   */
-final case class DetailedREKData(data : CommonFieldData,
-                                 unk : Int = 0
-                                ) extends ConstructorData {
-  override def bitsize : Long = {
+final case class DetailedREKData(data: CommonFieldData, unk: Int = 0) extends ConstructorData {
+  override def bitsize: Long = {
     val dataSize = data.bitsize
     43L + dataSize
   }
 }
 
 object DetailedREKData extends Marshallable[DetailedREKData] {
-  implicit val codec : Codec[DetailedREKData] = (
+  implicit val codec: Codec[DetailedREKData] = (
     ("data" | CommonFieldData.codec2) ::
       uint8 ::
       uint16L ::
       uint4L ::
       ("unk" | uint8) ::
       uint(7)
-    ).exmap[DetailedREKData] (
+  ).exmap[DetailedREKData](
     {
       case data :: 2 :: 0 :: 8 :: unk :: 0 :: HNil =>
         Attempt.successful(DetailedREKData(data, unk))

@@ -9,15 +9,15 @@ import net.psforever.objects.Player
   * (Players can sit in it.)
   * @param seatDef the Definition that constructs this item and maintains some of its unchanging fields
   */
-class Seat(private val seatDef : SeatDefinition) {
-  private var occupant : Option[Player] = None
+class Seat(private val seatDef: SeatDefinition) {
+  private var occupant: Option[Player] = None
 //  private var lockState : VehicleLockState.Value = VehicleLockState.Empire
 
   /**
     * Is this seat occupied?
     * @return the Player object of the player sitting in this seat, or `None` if it is left vacant
     */
-  def Occupant : Option[Player] = {
+  def Occupant: Option[Player] = {
     this.occupant
   }
 
@@ -27,15 +27,14 @@ class Seat(private val seatDef : SeatDefinition) {
     * @param player the player who wants to sit, or `None` if the occupant is getting up
     * @return the Player object of the player sitting in this seat, or `None` if it is left vacant
     */
-  def Occupant_=(player : Player) : Option[Player] = Occupant_=(Some(player))
+  def Occupant_=(player: Player): Option[Player] = Occupant_=(Some(player))
 
-  def Occupant_=(player : Option[Player]) : Option[Player] = {
-    if(player.isDefined) {
-      if(this.occupant.isEmpty) {
+  def Occupant_=(player: Option[Player]): Option[Player] = {
+    if (player.isDefined) {
+      if (this.occupant.isEmpty) {
         this.occupant = player
       }
-    }
-    else {
+    } else {
       this.occupant = None
     }
     this.occupant
@@ -45,7 +44,7 @@ class Seat(private val seatDef : SeatDefinition) {
     * Is this seat occupied?
     * @return `true`, if it is occupied; `false`, otherwise
     */
-  def isOccupied : Boolean = {
+  def isOccupied: Boolean = {
     this.occupant.isDefined
   }
 
@@ -58,15 +57,15 @@ class Seat(private val seatDef : SeatDefinition) {
 //    SeatLockState
 //  }
 
-  def ArmorRestriction : SeatArmorRestriction.Value = {
+  def ArmorRestriction: SeatArmorRestriction.Value = {
     seatDef.ArmorRestriction
   }
 
-  def Bailable : Boolean = {
+  def Bailable: Boolean = {
     seatDef.Bailable
   }
 
-  def ControlledWeapon : Option[Int] = {
+  def ControlledWeapon: Option[Int] = {
     seatDef.ControlledWeapon
   }
 
@@ -74,17 +73,18 @@ class Seat(private val seatDef : SeatDefinition) {
     * Override the string representation to provide additional information.
     * @return the string output
     */
-  override def toString : String = {
+  override def toString: String = {
     Seat.toString(this)
   }
 }
 
 object Seat {
+
   /**
     * Overloaded constructor.
     * @return a `Seat` object
     */
-  def apply(seatDef : SeatDefinition) : Seat = {
+  def apply(seatDef: SeatDefinition): Seat = {
     new Seat(seatDef)
   }
 
@@ -92,11 +92,10 @@ object Seat {
     * Provide a fixed string representation.
     * @return the string output
     */
-  def toString(obj : Seat) : String = {
-    val seatStr = if(obj.isOccupied) {
+  def toString(obj: Seat): String = {
+    val seatStr = if (obj.isOccupied) {
       s", occupied by player ${obj.Occupant.get.GUID}"
-    }
-    else {
+    } else {
       ""
     }
     s"seat$seatStr"

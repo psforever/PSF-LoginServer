@@ -8,7 +8,7 @@ import net.psforever.types.PlanetSideGUID
 import scala.util.{Failure, Success, Try}
 
 class TelepadConverter extends ObjectCreateConverter[Telepad]() {
-  override def ConstructorData(obj : Telepad) : Try[HandheldData] = {
+  override def ConstructorData(obj: Telepad): Try[HandheldData] = {
     obj.Router match {
       case Some(router) =>
         Success(
@@ -31,7 +31,7 @@ class TelepadConverter extends ObjectCreateConverter[Telepad]() {
     }
   }
 
-  override def DetailedConstructorData(obj : Telepad) : Try[DetailedConstructionToolData] = {
+  override def DetailedConstructorData(obj: Telepad): Try[DetailedConstructionToolData] = {
     obj.Router match {
       case Some(router) =>
         Success(

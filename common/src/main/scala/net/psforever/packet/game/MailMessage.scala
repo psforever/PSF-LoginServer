@@ -17,19 +17,16 @@ import scodec.codecs._
   * @param subject the subject
   * @param message the message
   */
-final case class MailMessage(sender : String,
-                             subject : String,
-                             message : String
-                            ) extends PlanetSideGamePacket {
+final case class MailMessage(sender: String, subject: String, message: String) extends PlanetSideGamePacket {
   type Packet = MailMessage
   def opcode = GamePacketOpcode.MailMessage
   def encode = MailMessage.encode(this)
 }
 
 object MailMessage extends Marshallable[MailMessage] {
-  implicit val codec : Codec[MailMessage] = (
+  implicit val codec: Codec[MailMessage] = (
     ("sender" | PacketHelpers.encodedString) ::
       ("subject" | PacketHelpers.encodedString) ::
       ("message" | PacketHelpers.encodedString)
-    ).as[MailMessage]
+  ).as[MailMessage]
 }

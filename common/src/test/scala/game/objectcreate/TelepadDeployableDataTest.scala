@@ -27,7 +27,11 @@ class TelepadDeployableDataTest extends Specification {
               pos.vel.isDefined mustEqual false
 
               telepad match {
-                case TelepadDeployableData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), u1, u2) =>
+                case TelepadDeployableData(
+                      CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid),
+                      u1,
+                      u2
+                    ) =>
                   faction mustEqual PlanetSideEmpire.TR
                   bops mustEqual false
                   alternate mustEqual false
@@ -69,7 +73,8 @@ class TelepadDeployableDataTest extends Specification {
             Some(385),
             PlanetSideGUID(430)
           ),
-          87, 12
+          87,
+          12
         )
       )
       val msg = ObjectCreateMessage(ObjectClass.router_telepad_deployable, PlanetSideGUID(353), obj)

@@ -16,20 +16,21 @@ import scodec.codecs._
   * @param player_name  name of the player being affected, if applicable
   * @param unk5         na
   */
-final case class SquadMembershipRequest(request_type : SquadRequestType.Value,
-                                        char_id : Long,
-                                        unk3 : Option[Long],
-                                        player_name : String,
-                                        unk5 : Option[Option[String]])
-  extends PlanetSideGamePacket {
+final case class SquadMembershipRequest(
+    request_type: SquadRequestType.Value,
+    char_id: Long,
+    unk3: Option[Long],
+    player_name: String,
+    unk5: Option[Option[String]]
+) extends PlanetSideGamePacket {
   request_type match {
-    case SquadRequestType.Accept | SquadRequestType.Reject | SquadRequestType.Disband |
-         SquadRequestType.PlatoonAccept | SquadRequestType.PlatoonReject | SquadRequestType.PlatoonDisband =>
+    case SquadRequestType.Accept | SquadRequestType.Reject | SquadRequestType.Disband | SquadRequestType.PlatoonAccept |
+        SquadRequestType.PlatoonReject | SquadRequestType.PlatoonDisband =>
       assert(unk3.isEmpty, s"a $request_type request requires the unk3 field be undefined")
     case _ =>
       assert(unk3.nonEmpty, s"a $request_type request requires the unk3 field be defined")
   }
-  if(request_type == SquadRequestType.Invite) {
+  if (request_type == SquadRequestType.Invite) {
     assert(unk5.nonEmpty, "an Invite request requires the unk5 field be defined")
   }
 
@@ -39,19 +40,22 @@ final case class SquadMembershipRequest(request_type : SquadRequestType.Value,
 }
 
 object SquadMembershipRequest extends Marshallable[SquadMembershipRequest] {
-  implicit val codec : Codec[SquadMembershipRequest] = (
-    ("request_type" | SquadRequestType.codec) >>:~ { request_type =>
-      ("unk2" | uint32L) ::
-        conditional(request_type != SquadRequestType.Accept &&
+  implicit val codec: Codec[SquadMembershipRequest] = (("request_type" | SquadRequestType.codec) >>:~ { request_type =>
+    ("unk2" | uint32L) ::
+      conditional(
+        request_type != SquadRequestType.Accept &&
           request_type != SquadRequestType.Reject &&
           request_type != SquadRequestType.Disband &&
           request_type != SquadRequestType.PlatoonAccept &&
           request_type != SquadRequestType.PlatoonReject &&
-          request_type != SquadRequestType.PlatoonDisband, "unk3" | uint32L) ::
-        (("player_name" | PacketHelpers.encodedWideStringAligned(4)) >>:~ { pname =>
-          conditional(request_type == SquadRequestType.Invite,
-            "unk5" | optional(bool, PacketHelpers.encodedWideStringAligned({if(pname.length == 0) 3 else 7}))
-          ).hlist
-        })
-    }).as[SquadMembershipRequest]
+          request_type != SquadRequestType.PlatoonDisband,
+        "unk3" | uint32L
+      ) ::
+      (("player_name" | PacketHelpers.encodedWideStringAligned(4)) >>:~ { pname =>
+      conditional(
+        request_type == SquadRequestType.Invite,
+        "unk5" | optional(bool, PacketHelpers.encodedWideStringAligned({ if (pname.length == 0) 3 else 7 }))
+      ).hlist
+    })
+  }).as[SquadMembershipRequest]
 }

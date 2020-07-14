@@ -45,18 +45,19 @@ import shapeless.{::, HNil}
   * @param jump_thrust provide a measure of vertical stability when really close to the avatar character
   * @param is_cloaked avatar is cloaked by virtue of an Infiltration Suit
   */
-final case class PlayerStateMessage(guid : PlanetSideGUID,
-                                    pos : Vector3,
-                                    vel : Option[Vector3],
-                                    facingYaw : Float,
-                                    facingPitch : Float,
-                                    facingYawUpper : Float,
-                                    timestamp : Int,
-                                    is_crouching : Boolean = false,
-                                    is_jumping : Boolean = false,
-                                    jump_thrust : Boolean = false,
-                                    is_cloaked : Boolean = false)
-  extends PlanetSideGamePacket {
+final case class PlayerStateMessage(
+    guid: PlanetSideGUID,
+    pos: Vector3,
+    vel: Option[Vector3],
+    facingYaw: Float,
+    facingPitch: Float,
+    facingYawUpper: Float,
+    timestamp: Int,
+    is_crouching: Boolean = false,
+    is_jumping: Boolean = false,
+    jump_thrust: Boolean = false,
+    is_cloaked: Boolean = false
+) extends PlanetSideGamePacket {
   type Packet = PlayerStateMessage
   def opcode = GamePacketOpcode.PlayerStateMessage
   def encode = PlayerStateMessage.encode(this)
@@ -68,28 +69,30 @@ object PlayerStateMessage extends Marshallable[PlayerStateMessage] {
   /**
     * A `Codec` for reading out the four `Boolean` values near the end of the formal packet.
     */
-  val booleanCodec : Codec[fourBoolPattern] = (
+  val booleanCodec: Codec[fourBoolPattern] = (
     ("is_crouching" | bool) ::
       ("is_jumping" | bool) ::
       ("jump_thrust" | bool) ::
       ("is_cloaked" | bool)
-    ).as[fourBoolPattern]
+  ).as[fourBoolPattern]
 
   /**
     * A `Codec` for ignoring the four values at the end of the formal packet (all set to `false`).
     */
-  val defaultCodec : Codec[fourBoolPattern] = ignore(0).hlist.xmap[fourBoolPattern] (
-    {
-      case _ :: HNil =>
-        false :: false :: false :: false :: HNil
-    },
-    {
-      case _ :: _ :: _ :: _ :: HNil =>
-        () :: HNil
-    }
-  ).as[fourBoolPattern]
+  val defaultCodec: Codec[fourBoolPattern] = ignore(0).hlist
+    .xmap[fourBoolPattern](
+      {
+        case _ :: HNil =>
+          false :: false :: false :: false :: HNil
+      },
+      {
+        case _ :: _ :: _ :: _ :: HNil =>
+          () :: HNil
+      }
+    )
+    .as[fourBoolPattern]
 
-  implicit val codec : Codec[PlayerStateMessage] = (
+  implicit val codec: Codec[PlayerStateMessage] = (
     ("guid" | PlanetSideGUID.codec) ::
       ("pos" | Vector3.codec_pos) ::
       optional(bool, "vel" | Vector3.codec_vel) ::
@@ -98,16 +101,16 @@ object PlayerStateMessage extends Marshallable[PlayerStateMessage] {
       ("facingYawUpper" | Angular.codec_zero_centered) ::
       ("unk1" | uintL(10)) ::
       (bool >>:~ { fourBools =>
-        newcodecs.binary_choice(!fourBools, booleanCodec, defaultCodec)
-      })
-    ).xmap[PlayerStateMessage] (
+      newcodecs.binary_choice(!fourBools, booleanCodec, defaultCodec)
+    })
+  ).xmap[PlayerStateMessage](
     {
       case uid :: pos :: vel :: f1 :: f2 :: f3 :: u :: _ :: b1 :: b2 :: b3 :: b4 :: HNil =>
         PlayerStateMessage(uid, pos, vel, f1, f2, f3, u, b1, b2, b3, b4)
     },
     {
       case PlayerStateMessage(uid, pos, vel, f1, f2, f3, u, b1, b2, b3, b4) =>
-        val b : Boolean = !(b1 || b2 || b3 || b4)
+        val b: Boolean = !(b1 || b2 || b3 || b4)
         uid :: pos :: vel :: f1 :: f2 :: f3 :: u :: b :: b1 :: b2 :: b3 :: b4 :: HNil
     }
   )

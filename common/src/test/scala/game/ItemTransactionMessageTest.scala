@@ -8,8 +8,8 @@ import net.psforever.types.{PlanetSideGUID, TransactionType}
 import scodec.bits._
 
 class ItemTransactionMessageTest extends Specification {
-  val string_buy = hex"44 4C03 4000110070756E6973686572000000"
-  val string_sell = hex"44 5303 60001000004E00"
+  val string_buy    = hex"44 4C03 4000110070756E6973686572000000"
+  val string_sell   = hex"44 5303 60001000004E00"
   val string_forget = hex"44 BA00 600011006861726173736572000000"
 
   "decode (buy)" in {
@@ -68,7 +68,8 @@ class ItemTransactionMessageTest extends Specification {
   }
 
   "encode (forget)" in {
-    val msg_forget = ItemTransactionMessage(PlanetSideGUID(186), TransactionType.Sell, 0, "harasser", 0, PlanetSideGUID(0))
+    val msg_forget =
+      ItemTransactionMessage(PlanetSideGUID(186), TransactionType.Sell, 0, "harasser", 0, PlanetSideGUID(0))
     val pkt_forget = PacketCoding.EncodePacket(msg_forget).require.toByteVector
 
     pkt_forget mustEqual string_forget

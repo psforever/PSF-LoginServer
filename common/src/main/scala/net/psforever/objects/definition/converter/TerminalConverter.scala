@@ -7,5 +7,5 @@ import net.psforever.packet.game.objectcreate.CommonFieldData
 import scala.util.{Success, Try}
 
 class TerminalConverter extends ObjectCreateConverter[Terminal]() {
-  override def ConstructorData(obj : Terminal) : Try[CommonFieldData] = { Success(CommonFieldData(obj.Faction)(false)) }
+  override def ConstructorData(obj: Terminal): Try[CommonFieldData] = { Success(CommonFieldData(obj.Faction)(false)) }
 }

@@ -1,21 +1,15 @@
-// Copyright (c) 2020 PSForever
-package net.psforever.psadmin
+package net.psforever.pslogin.psadmin
 
-import java.net.InetAddress
 import java.net.InetSocketAddress
-import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.actor.{ActorRef, Props}
 import akka.actor.{Actor, Stash}
 import akka.io.Tcp
 import scodec.bits._
 import scodec.interop.akka._
 import scala.collection.mutable.Map
 import akka.util.ByteString
-import com.typesafe.config.ConfigFactory
-import scala.collection.JavaConverters._
-import net.psforever.objects.zones.InterstellarCluster
 
 import org.json4s._
-import org.json4s.Formats._
 import org.json4s.native.Serialization.write
 
 import services.ServiceManager.Lookup
@@ -25,16 +19,16 @@ object PsAdminActor {
   val whiteSpaceRegex = """\s+""".r
 }
 
-class PsAdminActor(peerAddress : InetSocketAddress, connection : ActorRef) extends Actor with Stash {
-  private [this] val log = org.log4s.getLogger(self.path.name)
+class PsAdminActor(peerAddress: InetSocketAddress, connection: ActorRef) extends Actor with Stash {
+  private[this] val log = org.log4s.getLogger(self.path.name)
 
-  val services = Map[String,ActorRef]()
+  val services          = Map[String, ActorRef]()
   val servicesToResolve = Array("cluster")
-  var buffer = ByteString()
+  var buffer            = ByteString()
 
   implicit val formats = DefaultFormats // for JSON serialization
 
-  case class CommandCall(operation : String, args : Array[String])
+  case class CommandCall(operation: String, args: Array[String])
 
   override def preStart() = {
     log.trace(s"PsAdmin connection started $peerAddress")
@@ -46,9 +40,9 @@ class PsAdminActor(peerAddress : InetSocketAddress, connection : ActorRef) exten
 
   override def receive = ServiceLookup
 
-  def ServiceLookup : Receive = {
+  def ServiceLookup: Receive = {
     case ServiceManager.LookupResult(service, endpoint) =>
-      services{service} = endpoint
+      services { service } = endpoint
 
       if (services.size == servicesToResolve.size) {
         unstashAll()
@@ -58,11 +52,11 @@ class PsAdminActor(peerAddress : InetSocketAddress, connection : ActorRef) exten
     case default => stash()
   }
 
-  def ReceiveCommand : Receive = {
+  def ReceiveCommand: Receive = {
     case Tcp.Received(data) =>
       buffer ++= data
 
-      var pos = -1;
+      var pos    = -1;
       var amount = 0
       do {
         pos = buffer.indexOf('\n')
@@ -75,9 +69,8 @@ class PsAdminActor(peerAddress : InetSocketAddress, connection : ActorRef) exten
 
           if (line != "") {
             val tokens = PsAdminActor.whiteSpaceRegex.split(line)
-            val cmd = tokens.head
-            val args = tokens.tail
-
+            val cmd    = tokens.head
+            val args   = tokens.tail
 
             amount += 1
             self ! CommandCall(cmd, args)
@@ -96,8 +89,8 @@ class PsAdminActor(peerAddress : InetSocketAddress, connection : ActorRef) exten
   }
 
   /// Process all buffered commands and stash other ones
-  def ProcessCommands : Receive = {
-    case c : CommandCall =>
+  def ProcessCommands: Receive = {
+    case c: CommandCall =>
       stash()
       unstashAll()
       context.become(ProcessCommand)
@@ -109,9 +102,9 @@ class PsAdminActor(peerAddress : InetSocketAddress, connection : ActorRef) exten
   }
 
   /// Process a single command
-  def ProcessCommand : Receive = {
+  def ProcessCommand: Receive = {
     case CommandCall(cmd, args) =>
-      val data = Map[String,Any]()
+      val data = Map[String, Any]()
 
       if (cmd == "help" || cmd == "?") {
         if (args.size == 0) {
@@ -121,21 +114,21 @@ class PsAdminActor(peerAddress : InetSocketAddress, connection : ActorRef) exten
             resp += s"${command} - ${info.usage}\n"
           }
 
-          data{"message"} = resp
+          data { "message" } = resp
         } else {
           if (PsAdminCommands.commands.contains(args(0))) {
-            val info = PsAdminCommands.commands{args(0)}
+            val info = PsAdminCommands.commands { args(0) }
 
-            data{"message"} = s"${args(0)} - ${info.usage}"
+            data { "message" } = s"${args(0)} - ${info.usage}"
           } else {
-            data{"message"} = s"Unknown command ${args(0)}"
-            data{"error"} = true
+            data { "message" } = s"Unknown command ${args(0)}"
+            data { "error" } = true
           }
         }
 
         sendLine(write(data.toMap))
       } else if (PsAdminCommands.commands.contains(cmd)) {
-        val cmd_template = PsAdminCommands.commands{cmd}
+        val cmd_template = PsAdminCommands.commands { cmd }
 
         cmd_template match {
           case PsAdminCommands.Command(usage, handler) =>
@@ -146,33 +139,33 @@ class PsAdminActor(peerAddress : InetSocketAddress, connection : ActorRef) exten
 
             resp match {
               case CommandGoodResponse(msg, data) =>
-                data{"message"} = msg
+                data { "message" } = msg
                 sendLine(write(data.toMap))
 
               case CommandErrorResponse(msg, data) =>
-                data{"message"} = msg
-                data{"error"} = true
+                data { "message" } = msg
+                data { "error" } = true
                 sendLine(write(data.toMap))
             }
 
             context.become(ProcessCommands)
         }
       } else {
-        data{"message"} = "Unknown command"
-        data{"error"} = true
+        data { "message" } = "Unknown command"
+        data { "error" } = true
         sendLine(write(data.toMap))
         context.become(ProcessCommands)
       }
 
-    case resp : CommandResponse =>
+    case resp: CommandResponse =>
       resp match {
         case CommandGoodResponse(msg, data) =>
-          data{"message"} = msg
+          data { "message" } = msg
           sendLine(write(data.toMap))
 
         case CommandErrorResponse(msg, data) =>
-          data{"message"} = msg
-          data{"error"} = true
+          data { "message" } = msg
+          data { "error" } = true
           sendLine(write(data.toMap))
       }
 
@@ -184,7 +177,7 @@ class PsAdminActor(peerAddress : InetSocketAddress, connection : ActorRef) exten
       context.become(ProcessCommands)
   }
 
-  def sendLine(line : String) = {
+  def sendLine(line: String) = {
     ByteVector.encodeUtf8(line + "\n") match {
       case Left(e) =>
         log.error(s"Message encoding failure: $e")

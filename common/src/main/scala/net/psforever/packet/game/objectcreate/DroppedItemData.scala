@@ -11,11 +11,12 @@ import shapeless.{::, HNil}
   * @param obj the object on the ground
   * @tparam T a subclass of `ConstructorData` that indicates what type the object is
   */
-final case class DroppedItemData[T <: ConstructorData](pos : PlacementData, obj : T) extends ConstructorData {
-  override def bitsize : Long = pos.bitsize + obj.bitsize
+final case class DroppedItemData[T <: ConstructorData](pos: PlacementData, obj: T) extends ConstructorData {
+  override def bitsize: Long = pos.bitsize + obj.bitsize
 }
 
 object DroppedItemData {
+
   /**
     * Transform `DroppedItemData[T]` for object type `T` into `ConstructorData`.<br>
     * <br>
@@ -35,36 +36,36 @@ object DroppedItemData {
     * @return `Codec[ConstructorData]`
     * @see `ConstructorData` (function)
     */
-  def apply[T <: ConstructorData](objCodec : Codec[T], objType : String = "object") : Codec[ConstructorData] = (
-    ("pos" | PlacementData.codec) ::
-      ("obj" | objCodec)
-    ).xmap[DroppedItemData[T]] (
-    {
-      case pos :: obj :: HNil =>
-        DroppedItemData[T](pos, obj)
-    },
-    {
-      case DroppedItemData(pos, obj) =>
-        pos :: obj :: HNil
-    }
-  ).exmap[ConstructorData] (
-    x => {
-      try {
-        Attempt.successful(x.asInstanceOf[ConstructorData])
+  def apply[T <: ConstructorData](objCodec: Codec[T], objType: String = "object"): Codec[ConstructorData] =
+    (
+      ("pos" | PlacementData.codec) ::
+        ("obj" | objCodec)
+    ).xmap[DroppedItemData[T]](
+      {
+        case pos :: obj :: HNil =>
+          DroppedItemData[T](pos, obj)
+      },
+      {
+        case DroppedItemData(pos, obj) =>
+          pos :: obj :: HNil
       }
-      catch {
-        case ex : Exception =>
-          Attempt.failure(Err(s"can not cast decode of $x to dropped $objType - $ex"))
+    ).exmap[ConstructorData](
+      x => {
+        try {
+          Attempt.successful(x.asInstanceOf[ConstructorData])
+        } catch {
+          case ex: Exception =>
+            Attempt.failure(Err(s"can not cast decode of $x to dropped $objType - $ex"))
+        }
+      },
+      x => {
+        try {
+          Attempt
+            .successful(x.asInstanceOf[DroppedItemData[T]]) //why does this work? shouldn't type erasure be a problem?
+        } catch {
+          case ex: Exception =>
+            Attempt.failure(Err(s"can not cast encode $x to dropped $objType - $ex"))
+        }
       }
-    },
-    x => {
-      try {
-        Attempt.successful(x.asInstanceOf[DroppedItemData[T]]) //why does this work? shouldn't type erasure be a problem?
-      }
-      catch {
-        case ex : Exception =>
-          Attempt.failure(Err(s"can not cast encode $x to dropped $objType - $ex"))
-      }
-    }
-  )
+    )
 }

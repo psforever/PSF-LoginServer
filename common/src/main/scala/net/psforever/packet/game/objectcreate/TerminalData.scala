@@ -8,6 +8,7 @@ import net.psforever.types.PlanetSideGUID
   * This object is generally invisible.
   */
 object TerminalData {
+
   /**
     * Overloaded constructor for a type of common terminal.
     * @param cls the code for the type of object being constructed
@@ -16,6 +17,6 @@ object TerminalData {
     * @param terminal the `TerminalData`
     * @return an `InternalSlot` object
     */
-  def apply(cls : Int, guid : PlanetSideGUID, parentSlot : Int, terminal : CommonFieldData) : InternalSlot =
+  def apply(cls: Int, guid: PlanetSideGUID, parentSlot: Int, terminal: CommonFieldData): InternalSlot =
     InternalSlot(cls, guid, parentSlot, terminal)
 }

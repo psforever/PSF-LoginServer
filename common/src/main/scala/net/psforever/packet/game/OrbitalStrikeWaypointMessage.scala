@@ -14,8 +14,7 @@ import shapeless.{::, HNil}
   * @param x the x-coordinate of the waypoint
   * @param y the y-coordinate of the waypoint
   */
-final case class Waypoint(x : Float,
-                          y : Float)
+final case class Waypoint(x: Float, y: Float)
 
 /**
   * Dispatched by the server to tell the client to display an orbital strike waypoint somewhere in the game world.<br>
@@ -37,15 +36,15 @@ final case class Waypoint(x : Float,
   * @param coords the coordinates of the waypoint;
   *               `None` if clearing a waypoint (use the same `guid` as to create it)
   */
-final case class OrbitalStrikeWaypointMessage(guid : PlanetSideGUID,
-                                              coords : Option[Waypoint] = None)
-  extends PlanetSideGamePacket {
+final case class OrbitalStrikeWaypointMessage(guid: PlanetSideGUID, coords: Option[Waypoint] = None)
+    extends PlanetSideGamePacket {
   type Packet = OrbitalStrikeWaypointMessage
   def opcode = GamePacketOpcode.OrbitalStrikeWaypointMessage
   def encode = OrbitalStrikeWaypointMessage.encode(this)
 }
 
 object OrbitalStrikeWaypointMessage extends Marshallable[OrbitalStrikeWaypointMessage] {
+
   /**
     * An abbreviated constructor for creating `OrbitalStrikeWaypointMessage`, assuming mandatory coordinates.
     * @param guid na
@@ -53,16 +52,16 @@ object OrbitalStrikeWaypointMessage extends Marshallable[OrbitalStrikeWaypointMe
     * @param y the y-coordinate of the waypoint
     * @return an `OrbitalStrikeWaypointMessage` object
     */
-  def apply(guid : PlanetSideGUID, x : Float, y : Float) : OrbitalStrikeWaypointMessage =
+  def apply(guid: PlanetSideGUID, x: Float, y: Float): OrbitalStrikeWaypointMessage =
     new OrbitalStrikeWaypointMessage(guid, Option(Waypoint(x, y)))
 
   /**
     * A `Codec` for recording the two coordinates of the waypoint map position, if they are present.
     */
-  private val coords_value : Codec[Waypoint] = (
+  private val coords_value: Codec[Waypoint] = (
     ("x" | newcodecs.q_float(0.0, 8192.0, 20)) ::
       ("y" | newcodecs.q_float(0.0, 8192.0, 20))
-    ).xmap[Waypoint] (
+  ).xmap[Waypoint](
     {
       case x :: y :: HNil =>
         Waypoint(x, y)
@@ -73,10 +72,10 @@ object OrbitalStrikeWaypointMessage extends Marshallable[OrbitalStrikeWaypointMe
     }
   )
 
-  implicit val codec : Codec[OrbitalStrikeWaypointMessage] = (
+  implicit val codec: Codec[OrbitalStrikeWaypointMessage] = (
     ("guid" | PlanetSideGUID.codec) ::
       optional(bool, coords_value)
-    ).xmap[OrbitalStrikeWaypointMessage] (
+  ).xmap[OrbitalStrikeWaypointMessage](
     {
       case u :: coords :: HNil =>
         OrbitalStrikeWaypointMessage(u, coords)

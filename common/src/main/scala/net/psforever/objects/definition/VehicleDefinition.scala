@@ -15,37 +15,39 @@ import scala.concurrent.duration._
   * An object definition system used to construct and retain the parameters of various vehicles.
   * @param objectId the object id that is associated with this sort of `Vehicle`
   */
-class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId)
-  with VitalityDefinition
-  with ResistanceProfileMutators
-  with DamageResistanceModel {
-  /** vehicle shields offered through amp station facility benefits (generally: 20% of health + 1) */
-  private var maxShields : Int = 0
-  /* key - seat index, value - seat object */
-  private val seats : mutable.HashMap[Int, SeatDefinition] = mutable.HashMap[Int, SeatDefinition]()
-  private val cargo : mutable.HashMap[Int, CargoDefinition] = mutable.HashMap[Int, CargoDefinition]()
-  /* key - entry point index, value - seat index */
-  private val mountPoints : mutable.HashMap[Int, Int] = mutable.HashMap()
-  /* key - seat index (where this weapon attaches during object construction), value - the weapon on an EquipmentSlot */
-  private val weapons : mutable.HashMap[Int, ToolDefinition] = mutable.HashMap[Int, ToolDefinition]()
-  private var deployment : Boolean = false
-  private val utilities : mutable.HashMap[Int, UtilityType.Value] = mutable.HashMap()
-  private val utilityOffsets : mutable.HashMap[Int, Vector3] = mutable.HashMap()
-  private var deploymentTime_Deploy : Int = 0 //ms
-  private var deploymentTime_Undeploy : Int = 0 //ms
-  private var trunkSize : InventoryTile = InventoryTile.None
-  private var trunkOffset : Int = 0
+class VehicleDefinition(objectId: Int)
+    extends ObjectDefinition(objectId)
+    with VitalityDefinition
+    with ResistanceProfileMutators
+    with DamageResistanceModel {
 
-  /** The position offset of the trunk, orientation as East = 0  */
-  private var trunkLocation : Vector3 = Vector3.Zero
-  private var canCloak : Boolean = false
-  private var canFly : Boolean = false
-  private var canBeOwned : Boolean = true
-  private var serverVehicleOverrideSpeeds : (Int, Int) = (0, 0)
-  private var deconTime : Option[FiniteDuration] = None
-  private var maxCapacitor : Int = 0
-  private var maxNtuCapacitor : Int = 0
-  private var destroyedModel : Option[DestroyedVehicle.Value] = None
+  /** vehicle shields offered through amp station facility benefits (generally: 20% of health + 1) */
+  private var maxShields: Int = 0
+  /* key - seat index, value - seat object */
+  private val seats: mutable.HashMap[Int, SeatDefinition]  = mutable.HashMap[Int, SeatDefinition]()
+  private val cargo: mutable.HashMap[Int, CargoDefinition] = mutable.HashMap[Int, CargoDefinition]()
+  /* key - entry point index, value - seat index */
+  private val mountPoints: mutable.HashMap[Int, Int] = mutable.HashMap()
+  /* key - seat index (where this weapon attaches during object construction), value - the weapon on an EquipmentSlot */
+  private val weapons: mutable.HashMap[Int, ToolDefinition]      = mutable.HashMap[Int, ToolDefinition]()
+  private var deployment: Boolean                                = false
+  private val utilities: mutable.HashMap[Int, UtilityType.Value] = mutable.HashMap()
+  private val utilityOffsets: mutable.HashMap[Int, Vector3]      = mutable.HashMap()
+  private var deploymentTime_Deploy: Int                         = 0 //ms
+  private var deploymentTime_Undeploy: Int                       = 0 //ms
+  private var trunkSize: InventoryTile                           = InventoryTile.None
+  private var trunkOffset: Int                                   = 0
+
+  /** The position offset of the trunk, orientation as East = 0 */
+  private var trunkLocation: Vector3                         = Vector3.Zero
+  private var canCloak: Boolean                              = false
+  private var canFly: Boolean                                = false
+  private var canBeOwned: Boolean                            = true
+  private var serverVehicleOverrideSpeeds: (Int, Int)        = (0, 0)
+  private var deconTime: Option[FiniteDuration]              = None
+  private var maxCapacitor: Int                              = 0
+  private var maxNtuCapacitor: Int                           = 0
+  private var destroyedModel: Option[DestroyedVehicle.Value] = None
   Name = "vehicle"
   Packet = VehicleDefinition.converter
   DamageUsing = StandardVehicleDamage
@@ -54,135 +56,135 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId)
   RepairDistance = 10
   RepairRestoresAt = 1
 
-  def MaxShields : Int = maxShields
+  def MaxShields: Int = maxShields
 
-  def MaxShields_=(shields : Int) : Int = {
+  def MaxShields_=(shields: Int): Int = {
     maxShields = shields
     MaxShields
   }
 
-  def Seats : mutable.HashMap[Int, SeatDefinition] = seats
+  def Seats: mutable.HashMap[Int, SeatDefinition] = seats
 
-  def Cargo : mutable.HashMap[Int, CargoDefinition] = cargo
+  def Cargo: mutable.HashMap[Int, CargoDefinition] = cargo
 
-  def MountPoints : mutable.HashMap[Int, Int] = mountPoints
+  def MountPoints: mutable.HashMap[Int, Int] = mountPoints
 
-  def CanBeOwned : Boolean = canBeOwned
+  def CanBeOwned: Boolean = canBeOwned
 
-  def CanBeOwned_=(ownable : Boolean) : Boolean =  {
+  def CanBeOwned_=(ownable: Boolean): Boolean = {
     canBeOwned = ownable
     CanBeOwned
   }
 
-  def CanCloak : Boolean = canCloak
+  def CanCloak: Boolean = canCloak
 
-  def CanCloak_=(cloakable : Boolean) : Boolean =  {
+  def CanCloak_=(cloakable: Boolean): Boolean = {
     canCloak = cloakable
     CanCloak
   }
 
-  def CanFly : Boolean = canFly
+  def CanFly: Boolean = canFly
 
-  def CanFly_=(flying : Boolean) : Boolean =  {
+  def CanFly_=(flying: Boolean): Boolean = {
     canFly = flying
     CanFly
   }
 
-  def Weapons : mutable.HashMap[Int, ToolDefinition] = weapons
+  def Weapons: mutable.HashMap[Int, ToolDefinition] = weapons
 
-  def Deployment : Boolean = deployment
+  def Deployment: Boolean = deployment
 
-  def Deployment_=(deployable : Boolean) : Boolean = {
+  def Deployment_=(deployable: Boolean): Boolean = {
     deployment = deployable
     Deployment
   }
 
-  def Utilities : mutable.HashMap[Int, UtilityType.Value] = utilities
+  def Utilities: mutable.HashMap[Int, UtilityType.Value] = utilities
 
-  def UtilityOffset : mutable.HashMap[Int, Vector3] = utilityOffsets
+  def UtilityOffset: mutable.HashMap[Int, Vector3] = utilityOffsets
 
-  def DeployTime : Int = deploymentTime_Deploy
+  def DeployTime: Int = deploymentTime_Deploy
 
-  def DeployTime_=(dtime : Int) : Int =  {
+  def DeployTime_=(dtime: Int): Int = {
     deploymentTime_Deploy = dtime
     DeployTime
   }
 
-  def DeconstructionTime : Option[FiniteDuration] = deconTime
+  def DeconstructionTime: Option[FiniteDuration] = deconTime
 
-  def DeconstructionTime_=(time : FiniteDuration) : Option[FiniteDuration] = {
+  def DeconstructionTime_=(time: FiniteDuration): Option[FiniteDuration] = {
     deconTime_=(Some(time))
     DeconstructionTime
   }
 
-  def DeconstructionTime_=(time : Option[FiniteDuration]) : Option[FiniteDuration] = {
+  def DeconstructionTime_=(time: Option[FiniteDuration]): Option[FiniteDuration] = {
     deconTime = time
     DeconstructionTime
   }
 
-  def UndeployTime : Int = deploymentTime_Undeploy
+  def UndeployTime: Int = deploymentTime_Undeploy
 
-  def UndeployTime_=(dtime : Int) : Int =  {
+  def UndeployTime_=(dtime: Int): Int = {
     deploymentTime_Undeploy = dtime
     UndeployTime
   }
 
-  def TrunkSize : InventoryTile = trunkSize
+  def TrunkSize: InventoryTile = trunkSize
 
-  def TrunkSize_=(tile : InventoryTile) : InventoryTile = {
+  def TrunkSize_=(tile: InventoryTile): InventoryTile = {
     trunkSize = tile
     TrunkSize
   }
 
-  def TrunkOffset : Int = trunkOffset
+  def TrunkOffset: Int = trunkOffset
 
-  def TrunkOffset_=(offset : Int) : Int = {
+  def TrunkOffset_=(offset: Int): Int = {
     trunkOffset = offset
     TrunkOffset
   }
 
-  def TrunkLocation : Vector3 = trunkLocation
+  def TrunkLocation: Vector3 = trunkLocation
 
-  def TrunkLocation_=(location : Vector3) : Vector3 = {
+  def TrunkLocation_=(location: Vector3): Vector3 = {
     trunkLocation = location
     TrunkLocation
   }
 
-  def AutoPilotSpeeds : (Int, Int) = serverVehicleOverrideSpeeds
+  def AutoPilotSpeeds: (Int, Int) = serverVehicleOverrideSpeeds
 
-  def AutoPilotSpeeds_=(speeds : (Int, Int)) : (Int, Int) = {
+  def AutoPilotSpeeds_=(speeds: (Int, Int)): (Int, Int) = {
     serverVehicleOverrideSpeeds = speeds
     AutoPilotSpeeds
   }
 
-  def AutoPilotSpeed1 : Int = serverVehicleOverrideSpeeds._1
+  def AutoPilotSpeed1: Int = serverVehicleOverrideSpeeds._1
 
-  def AutoPilotSpeed2 : Int = serverVehicleOverrideSpeeds._2
+  def AutoPilotSpeed2: Int = serverVehicleOverrideSpeeds._2
 
-  def MaxNtuCapacitor : Int = maxNtuCapacitor
+  def MaxNtuCapacitor: Int = maxNtuCapacitor
 
-  def MaxNtuCapacitor_=(max: Int) : Int = {
+  def MaxNtuCapacitor_=(max: Int): Int = {
     maxNtuCapacitor = max
     MaxNtuCapacitor
   }
 
-  def MaxCapacitor : Int = maxCapacitor
+  def MaxCapacitor: Int = maxCapacitor
 
-  def MaxCapacitor_=(max: Int) : Int = {
+  def MaxCapacitor_=(max: Int): Int = {
     maxCapacitor = max
     MaxCapacitor
   }
 
-  private var jackDuration = Array(0, 0, 0, 0)
+  private var jackDuration        = Array(0, 0, 0, 0)
   def JackingDuration: Array[Int] = jackDuration
-  def JackingDuration_=(arr: Array[Int]) : Array[Int] = {
+  def JackingDuration_=(arr: Array[Int]): Array[Int] = {
     jackDuration = arr
     arr
   }
 
-  def DestroyedModel : Option[DestroyedVehicle.Value] = destroyedModel
+  def DestroyedModel: Option[DestroyedVehicle.Value] = destroyedModel
 
-  def DestroyedModel_=(model : Option[DestroyedVehicle.Value]) : Option[DestroyedVehicle.Value] = {
+  def DestroyedModel_=(model: Option[DestroyedVehicle.Value]): Option[DestroyedVehicle.Value] = {
     destroyedModel = model
     DestroyedModel
   }
@@ -191,7 +193,7 @@ class VehicleDefinition(objectId : Int) extends ObjectDefinition(objectId)
 object VehicleDefinition {
   private val converter = new VehicleConverter
 
-  def apply(objectId: Int) : VehicleDefinition = {
+  def apply(objectId: Int): VehicleDefinition = {
     new VehicleDefinition(objectId)
   }
 }

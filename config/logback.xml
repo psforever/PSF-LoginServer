@@ -38,6 +38,5 @@
   </root>
 
   <!-- Logger specific overrides -->
-  <logger name="com.github.mauricio.async" level="OFF"/>
   <logger name="oshi" level="OFF"/>
 </configuration>

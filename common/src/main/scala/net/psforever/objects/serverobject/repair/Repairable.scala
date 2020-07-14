@@ -15,12 +15,13 @@ import net.psforever.objects.vital.Vitality
   * shield, armor, etc., `Repairable` only affects `Vitality.Health`.
   */
 trait Repairable {
+
   /**
     * Contextual access to the object being the target of this damage.
     * Needs declaration in lowest implementing code.
     * @return the entity controlled by this actor
     */
-  def RepairableObject : Repairable.Target
+  def RepairableObject: Repairable.Target
 
   /**
     * The official mixin hook; `orElse` onto the "control" `Actor` `receive`;
@@ -31,9 +32,9 @@ trait Repairable {
     * @see `GlobalDefinitions`
     * @see `Tool.AmmoType`
     */
-  final val canBeRepairedByNanoDispenser : Receive = {
-    case CommonMessages.Use(player, Some(item : Tool))
-      if item.Definition == GlobalDefinitions.nano_dispenser && item.AmmoType == Ammo.armor_canister =>
+  final val canBeRepairedByNanoDispenser: Receive = {
+    case CommonMessages.Use(player, Some(item: Tool))
+        if item.Definition == GlobalDefinitions.nano_dispenser && item.AmmoType == Ammo.armor_canister =>
       CanBeRepairedByNanoDispenser(player, item)
   }
 
@@ -42,7 +43,7 @@ trait Repairable {
     * Override this method only when directly implementing.
     * @see `canBeRepairedByNanoDispenser`
     */
-  def CanBeRepairedByNanoDispenser(player : Player, item : Tool) : Unit
+  def CanBeRepairedByNanoDispenser(player: Player, item: Tool): Unit
 
   /**
     * The amount of repair that any specific tool provides.
@@ -50,13 +51,13 @@ trait Repairable {
     * @param item the tool in question
     * @return an amount to add to the repair attempt progress
     */
-  def RepairValue(item : Tool) : Int = 0
+  def RepairValue(item: Tool): Int = 0
 
   /**
     * The entity is no longer destroyed.
     * @param obj the entity
     */
-  def Restoration(obj : Repairable.Target) : Unit = {
+  def Restoration(obj: Repairable.Target): Unit = {
     Repairable.Restoration(obj)
   }
 }
@@ -65,13 +66,13 @@ object Repairable {
   /* the type of all entities governed by this mixin; see Damageable.Target */
   final type Target = PlanetSideServerObject with Vitality
   /* the basic repair value; originally found on the `armor_canister` object definition */
-  final val Quality : Int = 12
+  final val Quality: Int = 12
 
   /**
     * The entity is no longer destroyed.
     * @param target the entity
     */
-  def Restoration(target : Repairable.Target) : Unit = {
+  def Restoration(target: Repairable.Target): Unit = {
     target.Destroyed = false
   }
 }

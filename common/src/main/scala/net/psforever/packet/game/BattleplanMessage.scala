@@ -16,23 +16,10 @@ import scala.annotation.tailrec
 object DiagramActionCode extends Enumeration {
   type Type = Value
 
-  val Action0,
-      Style,
-      Vertex,
-      Action3,
-      Action4,
-      Action5,
-      DrawString,
-      Action7,
-      Action8,
-      Action9,
-      ActionA,
-      ActionB,
+  val Action0, Style, Vertex, Action3, Action4, Action5, DrawString, Action7, Action8, Action9, ActionA, ActionB,
       ActionC, //clear?
-      ActionD, //opposite of clear?
-      StartDrawing,
-      StopDrawing
-      = Value //TODO replace all these with descriptive words
+  ActionD,     //opposite of clear?
+  StartDrawing, StopDrawing = Value //TODO replace all these with descriptive words
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uint4L)
 }
@@ -55,8 +42,7 @@ sealed trait DiagramStroke
   *              2 is green;
   *              3 is blue
   */
-final case class Style(thickness : Float,
-                       color : Int) extends DiagramStroke
+final case class Style(thickness: Float, color: Int) extends DiagramStroke
 
 /**
   * Indicate coordinates on the tactical map.
@@ -64,8 +50,7 @@ final case class Style(thickness : Float,
   * @param x the x-coordinate of this point
   * @param y the y-coordinate of this point
   */
-final case class Vertex(x : Float,
-                        y : Float) extends DiagramStroke
+final case class Vertex(x: Float, y: Float) extends DiagramStroke
 
 /**
   * na
@@ -74,9 +59,7 @@ final case class Vertex(x : Float,
   * @param unk na;
   *            1024.0f - 0.0f
   */
-final case class StrokeFive(x : Float,
-                            y : Float,
-                            unk : Float) extends DiagramStroke
+final case class StrokeFive(x: Float, y: Float, unk: Float) extends DiagramStroke
 
 /**
   * Draw a string message on the tactical map.
@@ -93,17 +76,13 @@ final case class StrokeFive(x : Float,
   *                no two messages may inhabit the same channel
   * @param message the text to display
   */
-final case class DrawString(x : Float,
-                            y : Float,
-                            color : Int,
-                            channel : Int,
-                            message : String) extends DiagramStroke
+final case class DrawString(x: Float, y: Float, color: Int, channel: Int, message: String) extends DiagramStroke
 
 /**
   * na
   * @param unk na
   */
-final case class StrokeSeven(unk : Int) extends DiagramStroke
+final case class StrokeSeven(unk: Int) extends DiagramStroke
 
 /**
   * A particular instruction in the rendering of this battleplan's diagram entry.
@@ -112,8 +91,7 @@ final case class StrokeSeven(unk : Int) extends DiagramStroke
   * @param stroke the data;
   *               defaults to `None`
   */
-final case class BattleDiagramAction(action : DiagramActionCode.Value,
-                                     stroke : Option[DiagramStroke] = None)
+final case class BattleDiagramAction(action: DiagramActionCode.Value, stroke: Option[DiagramStroke] = None)
 
 /**
   * Share drawn images and words on the tactical map among a group of players.<br>
@@ -152,24 +130,26 @@ final case class BattleDiagramAction(action : DiagramActionCode.Value,
   *                can identify as "no zone" 0 when performing instructions not specific to drawing
   * @param diagrams a list of the itemized actions that will construct this plan or are used to modify the plan
   */
-final case class BattleplanMessage(char_id : Long,
-                                   player_name : String,
-                                   zone_id : Int,
-                                   diagrams : List[BattleDiagramAction])
-  extends PlanetSideGamePacket {
+final case class BattleplanMessage(
+    char_id: Long,
+    player_name: String,
+    zone_id: Int,
+    diagrams: List[BattleDiagramAction]
+) extends PlanetSideGamePacket {
   type Packet = BattleplanMessage
   def opcode = GamePacketOpcode.BattleplanMessage
   def encode = BattleplanMessage.encode(this)
 }
 
 object BattleDiagramAction {
+
   /**
     * Create a `BattleDiagramAction` object containing `StrokeOne` data.
     * @param thickness the line width in pixels
     * @param color the color of the line
     * @return a `BattleDiagramAction` object
     */
-  def style(thickness : Float, color : Int) : BattleDiagramAction =
+  def style(thickness: Float, color: Int): BattleDiagramAction =
     BattleDiagramAction(DiagramActionCode.Style, Some(Style(thickness, color)))
 
   /**
@@ -178,7 +158,7 @@ object BattleDiagramAction {
     * @param y the y-coordinate of this point
     * @return a `BattleDiagramAction` object
     */
-  def vertex(x : Float, y : Float) : BattleDiagramAction =
+  def vertex(x: Float, y: Float): BattleDiagramAction =
     BattleDiagramAction(DiagramActionCode.Vertex, Some(Vertex(x, y)))
 
   /**
@@ -188,7 +168,7 @@ object BattleDiagramAction {
     * @param unk na
     * @return a `BattleDiagramAction` object
     */
-  def stroke5(x : Float, y : Float, unk : Float) : BattleDiagramAction =
+  def stroke5(x: Float, y: Float, unk: Float): BattleDiagramAction =
     BattleDiagramAction(DiagramActionCode.Action5, Some(StrokeFive(x, y, unk)))
 
   /**
@@ -199,7 +179,7 @@ object BattleDiagramAction {
     * @param channel the available "slots" in which to display messages on the map
     * @param message the text to display
     */
-  def drawString(x : Float, y : Float, color : Int, channel : Int, message : String) : BattleDiagramAction =
+  def drawString(x: Float, y: Float, color: Int, channel: Int, message: String): BattleDiagramAction =
     BattleDiagramAction(DiagramActionCode.DrawString, Some(DrawString(x, y, color, channel, message)))
 
   /**
@@ -207,7 +187,7 @@ object BattleDiagramAction {
     * @param unk na
     * @return a `BattleDiagramAction` object
     */
-  def stroke7(unk : Int) : BattleDiagramAction =
+  def stroke7(unk: Int): BattleDiagramAction =
     BattleDiagramAction(DiagramActionCode.Action7, Some(StrokeSeven(unk)))
 }
 
@@ -225,13 +205,12 @@ object BattleplanMessage extends Marshallable[BattleplanMessage] {
     * @see scala.collection.mutable.LinkedList&#60;E&#62;
     * @see java.util.LinkedList&#60;E&#62;
     */
-  private final case class BattleDiagramChain(diagram : BattleDiagramAction,
-                                              next : Option[BattleDiagramChain])
+  private final case class BattleDiagramChain(diagram: BattleDiagramAction, next: Option[BattleDiagramChain])
 
   /**
     * Parse data into a `Style` object.
     */
-  private val plan1_codec : Codec[Style] = ( //size: 8 (12)
+  private val plan1_codec: Codec[Style] = ( //size: 8 (12)
     ("thickness" | newcodecs.q_float(16.0, 0.0, 5)) ::
       ("color" | uintL(3))
   ).as[Style]
@@ -239,19 +218,19 @@ object BattleplanMessage extends Marshallable[BattleplanMessage] {
   /**
     * Parse data into a `Vertex` object.
     */
-  private val plan2_codec : Codec[Vertex] = ( //size: 22 (26)
+  private val plan2_codec: Codec[Vertex] = ( //size: 22 (26)
     ("x" | newcodecs.q_float(-4096.0, 12288.0, 11)) ::
       ("y" | newcodecs.q_float(-4096.0, 12288.0, 11))
-    ).as[Vertex]
+  ).as[Vertex]
 
   /**
     * Parse data into a `StrokeFive` object.
     */
-  private val plan5_codec : Codec[StrokeFive] = ( //size: 33 (37)
+  private val plan5_codec: Codec[StrokeFive] = ( //size: 33 (37)
     ("unk1" | newcodecs.q_float(-4096.0, 12288.0, 11)) ::
       ("unk2" | newcodecs.q_float(-4096.0, 12288.0, 11)) ::
       ("unk3" | newcodecs.q_float(1024.0, 0.0, 11))
-    ).as[StrokeFive]
+  ).as[StrokeFive]
 
   /**
     * Parse data into a `DrawString` object.<br>
@@ -259,18 +238,20 @@ object BattleplanMessage extends Marshallable[BattleplanMessage] {
     * If we are not on a byte boundary, we must use our current offset and this size (`31u + 4u`) to calculate the padding value.
     * @param padOffset the current padding value for the `String` entry
     */
-  private def plan6_codec(padOffset : Int) : Codec[DrawString] = ( //size: irrelevant, pad value resets
-    ("x" | newcodecs.q_float(-4096.0, 12288.0, 11)) ::
-      ("y" | newcodecs.q_float(-4096.0, 12288.0, 11)) ::
-      ("color" | uintL(3)) ::
-      ("font_size" | uintL(6)) ::
-      ("message" | PacketHelpers.encodedWideStringAligned( if(padOffset % 8 == 0) { 5 } else { 8 - (padOffset + 35) % 8 } ))
+  private def plan6_codec(padOffset: Int): Codec[DrawString] =
+    ( //size: irrelevant, pad value resets
+      ("x" | newcodecs.q_float(-4096.0, 12288.0, 11)) ::
+        ("y" | newcodecs.q_float(-4096.0, 12288.0, 11)) ::
+        ("color" | uintL(3)) ::
+        ("font_size" | uintL(6)) ::
+        ("message" | PacketHelpers.encodedWideStringAligned(if (padOffset % 8 == 0) { 5 }
+      else { 8 - (padOffset + 35) % 8 }))
     ).as[DrawString]
 
   /**
     * Parse data into a `StrokeSeven` object.
     */
-  private val plan7_codec : Codec[StrokeSeven] = ("unk" | uintL(6)).as[StrokeSeven] // size: 6 (10)
+  private val plan7_codec: Codec[StrokeSeven] = ("unk" | uintL(6)).as[StrokeSeven] // size: 6 (10)
 
   /**
     * Switch between different patterns to create a `BattleDiagramAction` for the following data.
@@ -279,58 +260,59 @@ object BattleplanMessage extends Marshallable[BattleplanMessage] {
     *            when `plan == 6`, `plan6_codec` utilizes this value
     * @return a `BattleDiagramAction` object
     */
-  private def diagram_codec(plan : DiagramActionCode.Value, pad : Int) : Codec[BattleDiagramAction] = (
-    conditional(plan == DiagramActionCode.Style, plan1_codec) ::
-      conditional(plan == DiagramActionCode.Vertex, plan2_codec) ::
-      conditional(plan == DiagramActionCode.Action5, plan5_codec) ::
-      conditional(plan == DiagramActionCode.DrawString, plan6_codec(pad)) ::
-      conditional(plan == DiagramActionCode.Action7, plan7_codec)
-    ).exmap[BattleDiagramAction] (
-    {
-      case Some(stroke) :: None :: None :: None :: None :: HNil =>
-        Attempt.successful(BattleDiagramAction(plan, Some(stroke)))
+  private def diagram_codec(plan: DiagramActionCode.Value, pad: Int): Codec[BattleDiagramAction] =
+    (
+      conditional(plan == DiagramActionCode.Style, plan1_codec) ::
+        conditional(plan == DiagramActionCode.Vertex, plan2_codec) ::
+        conditional(plan == DiagramActionCode.Action5, plan5_codec) ::
+        conditional(plan == DiagramActionCode.DrawString, plan6_codec(pad)) ::
+        conditional(plan == DiagramActionCode.Action7, plan7_codec)
+    ).exmap[BattleDiagramAction](
+      {
+        case Some(stroke) :: None :: None :: None :: None :: HNil =>
+          Attempt.successful(BattleDiagramAction(plan, Some(stroke)))
 
-      case None :: Some(stroke) :: None :: None :: None :: HNil =>
-        Attempt.successful(BattleDiagramAction(plan, Some(stroke)))
+        case None :: Some(stroke) :: None :: None :: None :: HNil =>
+          Attempt.successful(BattleDiagramAction(plan, Some(stroke)))
 
-      case None :: None :: Some(stroke) :: None :: None :: HNil =>
-        Attempt.successful(BattleDiagramAction(plan, Some(stroke)))
+        case None :: None :: Some(stroke) :: None :: None :: HNil =>
+          Attempt.successful(BattleDiagramAction(plan, Some(stroke)))
 
-      case None :: None :: None :: Some(stroke) :: None :: HNil =>
-        Attempt.successful(BattleDiagramAction(plan, Some(stroke)))
+        case None :: None :: None :: Some(stroke) :: None :: HNil =>
+          Attempt.successful(BattleDiagramAction(plan, Some(stroke)))
 
-      case None :: None :: None :: None :: Some(stroke) :: HNil =>
-        Attempt.successful(BattleDiagramAction(plan, Some(stroke)))
+        case None :: None :: None :: None :: Some(stroke) :: HNil =>
+          Attempt.successful(BattleDiagramAction(plan, Some(stroke)))
 
-      case None :: None :: None :: None :: None :: HNil =>
-        Attempt.successful(BattleDiagramAction(plan, None))
+        case None :: None :: None :: None :: None :: HNil =>
+          Attempt.successful(BattleDiagramAction(plan, None))
 
-      case _:: _ :: _ :: _ :: _ :: HNil =>
-        Attempt.failure(Err(s"too many strokes for action $plan"))
-    },
-    {
-      case BattleDiagramAction(DiagramActionCode.Style, Some(stroke)) =>
-        Attempt.successful(Some(stroke.asInstanceOf[Style]) :: None :: None :: None :: None :: HNil)
+        case _ :: _ :: _ :: _ :: _ :: HNil =>
+          Attempt.failure(Err(s"too many strokes for action $plan"))
+      },
+      {
+        case BattleDiagramAction(DiagramActionCode.Style, Some(stroke)) =>
+          Attempt.successful(Some(stroke.asInstanceOf[Style]) :: None :: None :: None :: None :: HNil)
 
-      case BattleDiagramAction(DiagramActionCode.Vertex, Some(stroke)) =>
-        Attempt.successful(None :: Some(stroke.asInstanceOf[Vertex]) :: None :: None :: None :: HNil)
+        case BattleDiagramAction(DiagramActionCode.Vertex, Some(stroke)) =>
+          Attempt.successful(None :: Some(stroke.asInstanceOf[Vertex]) :: None :: None :: None :: HNil)
 
-      case BattleDiagramAction(DiagramActionCode.Action5, Some(stroke)) =>
-        Attempt.successful(None :: None :: Some(stroke.asInstanceOf[StrokeFive]) :: None :: None :: HNil)
+        case BattleDiagramAction(DiagramActionCode.Action5, Some(stroke)) =>
+          Attempt.successful(None :: None :: Some(stroke.asInstanceOf[StrokeFive]) :: None :: None :: HNil)
 
-      case BattleDiagramAction(DiagramActionCode.DrawString, Some(stroke)) =>
-        Attempt.successful(None :: None :: None :: Some(stroke.asInstanceOf[DrawString]) :: None :: HNil)
+        case BattleDiagramAction(DiagramActionCode.DrawString, Some(stroke)) =>
+          Attempt.successful(None :: None :: None :: Some(stroke.asInstanceOf[DrawString]) :: None :: HNil)
 
-      case BattleDiagramAction(DiagramActionCode.Action7, Some(stroke)) =>
-        Attempt.successful(None :: None :: None :: None :: Some(stroke.asInstanceOf[StrokeSeven]) :: HNil)
+        case BattleDiagramAction(DiagramActionCode.Action7, Some(stroke)) =>
+          Attempt.successful(None :: None :: None :: None :: Some(stroke.asInstanceOf[StrokeSeven]) :: HNil)
 
-      case BattleDiagramAction(_, None) =>
-        Attempt.successful(None :: None :: None :: None :: None :: HNil)
+        case BattleDiagramAction(_, None) =>
+          Attempt.successful(None :: None :: None :: None :: None :: HNil)
 
-      case BattleDiagramAction(n, _) =>
-        Attempt.failure(Err(s"unhandled stroke action number $n"))
-    }
-  )
+        case BattleDiagramAction(n, _) =>
+          Attempt.failure(Err(s"unhandled stroke action number $n"))
+      }
+    )
 
   /**
     * Parse diagram instructions as a linked list.
@@ -340,35 +322,45 @@ object BattleplanMessage extends Marshallable[BattleplanMessage] {
     *                  different elements add different padding offset to this field on subsequent passes
     * @return a `Codec` for `BattleDiagramChain` segments
     */
-  private def parse_diagrams_codec(remaining : Int, padOffset : Int = 0) : Codec[BattleDiagramChain] = (
-    DiagramActionCode.codec >>:~ { plan =>
+  private def parse_diagrams_codec(remaining: Int, padOffset: Int = 0): Codec[BattleDiagramChain] =
+    (DiagramActionCode.codec >>:~ { plan =>
       ("diagram" | diagram_codec(plan, padOffset)) ::
-        conditional(remaining > 1,
+        conditional(
+          remaining > 1,
           "next" | parse_diagrams_codec(
             remaining - 1,
-            padOffset + (if(plan == DiagramActionCode.DrawString) { -padOffset } else if(plan == DiagramActionCode.Action5) { 37 } else if(plan == DiagramActionCode.Vertex) { 26 } else if(plan == DiagramActionCode.Style) { 12 } else if(plan == DiagramActionCode.Action7) { 10 } else { 4 })
+            padOffset + (if (plan == DiagramActionCode.DrawString) { -padOffset }
+                         else if (plan == DiagramActionCode.Action5) { 37 }
+                         else if (plan == DiagramActionCode.Vertex) { 26 }
+                         else if (plan == DiagramActionCode.Style) { 12 }
+                         else if (plan == DiagramActionCode.Action7) { 10 }
+                         else { 4 })
           )
         )
-    }).exmap[BattleDiagramChain] (
-    {
-      case _ :: diagram :: next :: HNil =>
-        Attempt.successful(BattleDiagramChain(diagram, next))
-    },
-    {
-      case BattleDiagramChain(BattleDiagramAction(num, stroke), next) =>
-        Attempt.successful(num :: BattleDiagramAction(num, stroke) :: next :: HNil)
-    }
-  )
+    }).exmap[BattleDiagramChain](
+      {
+        case _ :: diagram :: next :: HNil =>
+          Attempt.successful(BattleDiagramChain(diagram, next))
+      },
+      {
+        case BattleDiagramChain(BattleDiagramAction(num, stroke), next) =>
+          Attempt.successful(num :: BattleDiagramAction(num, stroke) :: next :: HNil)
+      }
+    )
 
   import scala.collection.mutable.ListBuffer
+
   /**
     * Transform a linked list of `BattleDiagramChain` into a `List` of `BattleDiagramAction` objects.
     * @param element the current link in a chain of `BattleDiagramChain` objects
     * @param list a `List` of extracted `BattleDiagrams`;
     *             technically, the output
     */
-  @tailrec private def rollDiagramLayers(element : Option[BattleDiagramChain], list : ListBuffer[BattleDiagramAction]) : Unit = {
-    if(element.nonEmpty) {
+  @tailrec private def rollDiagramLayers(
+      element: Option[BattleDiagramChain],
+      list: ListBuffer[BattleDiagramAction]
+  ): Unit = {
+    if (element.nonEmpty) {
       list += element.get.diagram
       rollDiagramLayers(element.get.next, list)
     }
@@ -382,34 +374,36 @@ object BattleplanMessage extends Marshallable[BattleplanMessage] {
     *               technically, the output
     * @return a linked list of `BattleDiagramChain` objects
     */
-  @tailrec private def unrollDiagramLayers(revIter : Iterator[BattleDiagramAction], layers : Option[BattleDiagramChain] = None) : Option[BattleDiagramChain] = {
-    if(!revIter.hasNext) {
+  @tailrec private def unrollDiagramLayers(
+      revIter: Iterator[BattleDiagramAction],
+      layers: Option[BattleDiagramChain] = None
+  ): Option[BattleDiagramChain] = {
+    if (!revIter.hasNext) {
       layers
-    }
-    else {
-      val elem : BattleDiagramAction = revIter.next
+    } else {
+      val elem: BattleDiagramAction = revIter.next
       unrollDiagramLayers(revIter, Some(BattleDiagramChain(elem, layers)))
     }
   }
 
-  implicit val codec : Codec[BattleplanMessage] = (
+  implicit val codec: Codec[BattleplanMessage] = (
     ("char_id" | uint32L) ::
       ("player_name" | PacketHelpers.encodedWideString) ::
       ("zone_id" | uint16L) ::
       (uint8L >>:~ { count =>
-        conditional(count > 0, "diagrams" | parse_diagrams_codec(count)).hlist
-      })
-    ).exmap[BattleplanMessage] (
+      conditional(count > 0, "diagrams" | parse_diagrams_codec(count)).hlist
+    })
+  ).exmap[BattleplanMessage](
     {
       case char_id :: player :: zone_id :: _ :: diagramLayers :: HNil =>
-        val list : ListBuffer[BattleDiagramAction] = new ListBuffer()
-        if(diagramLayers.isDefined)
+        val list: ListBuffer[BattleDiagramAction] = new ListBuffer()
+        if (diagramLayers.isDefined)
           rollDiagramLayers(diagramLayers, list)
         Attempt.successful(BattleplanMessage(char_id, player, zone_id, list.toList))
     },
     {
       case BattleplanMessage(char_id, player_name, zone_id, diagrams) =>
-        val layersOpt : Option[BattleDiagramChain] = unrollDiagramLayers(diagrams.reverseIterator)
+        val layersOpt: Option[BattleDiagramChain] = unrollDiagramLayers(diagrams.reverseIterator)
         Attempt.successful(char_id :: player_name :: zone_id :: diagrams.size :: layersOpt :: HNil)
     }
   )

@@ -8,14 +8,15 @@ import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffi
   * An `Actor` that handles messages being dispatched to a specific `Door`.
   * @param door the `Door` object being governed
   */
-class DoorControl(door : Door) extends Actor with FactionAffinityBehavior.Check {
-  def FactionObject : FactionAffinity = door
+class DoorControl(door: Door) extends Actor with FactionAffinityBehavior.Check {
+  def FactionObject: FactionAffinity = door
 
-  def receive : Receive = checkBehavior.orElse {
-    case Door.Use(player, msg) =>
-      sender ! Door.DoorMessage(player, msg, door.Use(player, msg))
+  def receive: Receive =
+    checkBehavior.orElse {
+      case Door.Use(player, msg) =>
+        sender ! Door.DoorMessage(player, msg, door.Use(player, msg))
 
-    case _ =>
-      sender ! Door.NoEvent()
-  }
+      case _ =>
+        sender ! Door.NoEvent()
+    }
 }

@@ -9,23 +9,24 @@ import net.psforever.objects.serverobject.structures.Amenity
   * that infantry will be arranged upon spawning into the game world.
   * @param tDef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
-class SpawnTube(tDef : SpawnTubeDefinition) extends Amenity
-  with SpawnPoint {
-  def Definition : SpawnTubeDefinition = tDef
+class SpawnTube(tDef: SpawnTubeDefinition) extends Amenity with SpawnPoint {
+  def Definition: SpawnTubeDefinition = tDef
 }
 
 object SpawnTube {
+
   /**
     * Overloaded constructor.
     * @param tDef the spawn tube's definition entry
     * @return a `SpawnTube` object
     */
-  def apply(tDef : SpawnTubeDefinition) : SpawnTube = {
+  def apply(tDef: SpawnTubeDefinition): SpawnTube = {
     new SpawnTube(tDef)
   }
 
   import akka.actor.ActorContext
   import net.psforever.types.Vector3
+
   /**
     * Instantiate an configure a `SpawnTube` object
     * @param pos the position (used to determine spawn point)
@@ -34,7 +35,7 @@ object SpawnTube {
     * @param context a context to allow the object to properly set up `ActorSystem` functionality
     * @return the `SpawnTube` object
     */
-  def Constructor(pos : Vector3, orient : Vector3)(id : Int, context : ActorContext) : SpawnTube = {
+  def Constructor(pos: Vector3, orient: Vector3)(id: Int, context: ActorContext): SpawnTube = {
     Constructor(pos, GlobalDefinitions.respawn_tube, orient)(id, context)
   }
 
@@ -47,7 +48,10 @@ object SpawnTube {
     * @param context a context to allow the object to properly set up `ActorSystem` functionality
     * @return the `SpawnTube` object
     */
-  def Constructor(pos : Vector3, tdef : SpawnTubeDefinition, orient : Vector3)(id : Int, context : ActorContext) : SpawnTube = {
+  def Constructor(pos: Vector3, tdef: SpawnTubeDefinition, orient: Vector3)(
+      id: Int,
+      context: ActorContext
+  ): SpawnTube = {
     import akka.actor.Props
 
     val obj = SpawnTube(tdef)

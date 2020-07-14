@@ -19,10 +19,14 @@ class SlottedMetaPacketTest extends Specification {
     hex"0069006400650021002000018667656D" ++
     hex"696E690100040001459E2540377540"
 
-  def createMetaPacket(slot : Int, subslot : Int, rest : ByteVector) = hex"00" ++
-    ControlPacketOpcode.codec.encode(
-      ControlPacketOpcode(ControlPacketOpcode.SlottedMetaPacket0.id + slot)
-    ).require.toByteVector ++ uint16.encode(subslot).require.toByteVector ++ rest
+  def createMetaPacket(slot: Int, subslot: Int, rest: ByteVector) =
+    hex"00" ++
+      ControlPacketOpcode.codec
+        .encode(
+          ControlPacketOpcode(ControlPacketOpcode.SlottedMetaPacket0.id + slot)
+        )
+        .require
+        .toByteVector ++ uint16.encode(subslot).require.toByteVector ++ rest
 
   "decode as the base slot and subslot" in {
     PacketCoding.DecodePacket(string).require match {
@@ -42,11 +46,10 @@ class SlottedMetaPacketTest extends Specification {
     Fragment.foreach(0 to maxSlots) { i =>
       "slot " + i ! {
         val subslot = 12323
-        val pkt = createMetaPacket(i, subslot, ByteVector.empty)
+        val pkt     = createMetaPacket(i, subslot, ByteVector.empty)
 
         PacketCoding.DecodePacket(pkt).require match {
           case SlottedMetaPacket(slot, subslotDecoded, rest) =>
-
             // XXX: there isn't a simple solution to Slot0 and Slot4 be aliases of each other structurally
             // This is probably best left to higher layers
             //slot mustEqual i % 4 // this is seen at 0x00A3FBFA
@@ -61,7 +64,7 @@ class SlottedMetaPacketTest extends Specification {
   }
 
   "encode" in {
-    val encoded = PacketCoding.EncodePacket(SlottedMetaPacket(0, 0x1000, ByteVector.empty)).require
+    val encoded  = PacketCoding.EncodePacket(SlottedMetaPacket(0, 0x1000, ByteVector.empty)).require
     val encoded2 = PacketCoding.EncodePacket(SlottedMetaPacket(3, 0xffff, hex"414243")).require
     val encoded3 = PacketCoding.EncodePacket(SlottedMetaPacket(7, 0, hex"00")).require
 

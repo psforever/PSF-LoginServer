@@ -18,7 +18,9 @@ class CosmeticsTest extends Specification {
       Cosmetics().pstyles mustEqual 0
       Cosmetics(3).pstyles mustEqual 3
       Cosmetics(PersonalStyle.NoHelmet).pstyles mustEqual PersonalStyle.NoHelmet.id
-      Cosmetics(Set(PersonalStyle.NoHelmet, PersonalStyle.Earpiece)).pstyles mustEqual PersonalStyle.NoHelmet.id + PersonalStyle.Earpiece.id
+      Cosmetics(
+        Set(PersonalStyle.NoHelmet, PersonalStyle.Earpiece)
+      ).pstyles mustEqual PersonalStyle.NoHelmet.id + PersonalStyle.Earpiece.id
       Cosmetics(true, false, false, false, false).pstyles mustEqual PersonalStyle.NoHelmet.id
     }
 

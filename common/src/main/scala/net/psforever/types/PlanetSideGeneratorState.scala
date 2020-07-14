@@ -9,11 +9,7 @@ import scodec.codecs._
   */
 object PlanetSideGeneratorState extends Enumeration {
   type Type = Value
-  val Normal,
-  Critical,
-  Destroyed,
-  Unk3
-  = Value
+  val Normal, Critical, Destroyed, Unk3 = Value
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uintL(2))
 }

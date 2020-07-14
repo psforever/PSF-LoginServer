@@ -26,26 +26,27 @@ import scodec.codecs._
   * @param unk3 na
   * @param unk4 na
   */
-final case class GenericCollisionMsg(unk1 : Int,
-                                     player : PlanetSideGUID,
-                                     target : PlanetSideGUID,
-                                     player_health : Int,
-                                     target_health : Int,
-                                     player_velocity : Vector3,
-                                     target_velocity : Vector3,
-                                     player_pos : Vector3,
-                                     target_pos : Vector3,
-                                     unk2 : Long,
-                                     unk3 : Long,
-                                     unk4 : Long)
-  extends PlanetSideGamePacket {
+final case class GenericCollisionMsg(
+    unk1: Int,
+    player: PlanetSideGUID,
+    target: PlanetSideGUID,
+    player_health: Int,
+    target_health: Int,
+    player_velocity: Vector3,
+    target_velocity: Vector3,
+    player_pos: Vector3,
+    target_pos: Vector3,
+    unk2: Long,
+    unk3: Long,
+    unk4: Long
+) extends PlanetSideGamePacket {
   type Packet = GenericCollisionMsg
   def opcode = GamePacketOpcode.GenericCollisionMsg
   def encode = GenericCollisionMsg.encode(this)
 }
 
 object GenericCollisionMsg extends Marshallable[GenericCollisionMsg] {
-  implicit val codec : Codec[GenericCollisionMsg] = (
+  implicit val codec: Codec[GenericCollisionMsg] = (
     ("unk1" | uint2) ::
       ("p" | PlanetSideGUID.codec) ::
       ("t" | PlanetSideGUID.codec) ::
@@ -58,5 +59,5 @@ object GenericCollisionMsg extends Marshallable[GenericCollisionMsg] {
       ("unk2" | uint32L) ::
       ("unk3" | uint32L) ::
       ("unk4" | uint32L)
-    ).as[GenericCollisionMsg]
+  ).as[GenericCollisionMsg]
 }

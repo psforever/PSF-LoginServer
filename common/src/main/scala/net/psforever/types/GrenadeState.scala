@@ -11,8 +11,8 @@ object GrenadeState extends Enumeration(1) {
   type Type = Value
 
   val Primed, //avatars and other depicted player characters
-  Thrown, //avatars only
-  None //non-actionable state of rest
+  Thrown,     //avatars only
+  None        //non-actionable state of rest
   = Value
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uint8L)

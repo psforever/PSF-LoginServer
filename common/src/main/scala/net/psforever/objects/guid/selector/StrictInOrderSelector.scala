@@ -7,10 +7,11 @@ package net.psforever.objects.guid.selector
   * Do not progress if a number is not available when requested.
   */
 class StrictInOrderSelector extends NumberSelector {
-  override def Get(ary : Array[Int]) : Int = {
-    val out : Int = ary(selectionIndex)
+  override def Get(ary: Array[Int]): Int = {
+    val out: Int = ary(selectionIndex)
     ary(selectionIndex) = -1
-    selectionIndex = (selectionIndex + (out >> 31) + 1) % ary.length //(out >> 31): 0 if positive or zero, -1 if negative
+    selectionIndex =
+      (selectionIndex + (out >> 31) + 1) % ary.length //(out >> 31): 0 if positive or zero, -1 if negative
     out
   }
 
@@ -24,10 +25,10 @@ class StrictInOrderSelector extends NumberSelector {
     * The `ret` index is set to index zero.
     * @param ary the `Array` of `Int` numbers
     */
-  override def Format(ary : Array[Int]) : Unit = {
+  override def Format(ary: Array[Int]): Unit = {
     val sorted = Array.fill(ary.length)(-1)
     ary.foreach(n => {
-      if(n > -1) {
+      if (n > -1) {
         sorted(n) = n
       }
     })

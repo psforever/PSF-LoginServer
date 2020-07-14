@@ -9,10 +9,11 @@ import org.specs2.mutable._
 import scodec.bits._
 
 class WeaponDataTest extends Specification {
-  val string_lasher_held = hex"17 BB000000 1688569D90B83 880000008082077036032000000"
-  val string_punisher_held = hex"17 F6000000 0A06612331083 88000000810381383E03200003793287C0E400000"
+  val string_lasher_held    = hex"17 BB000000 1688569D90B83 880000008082077036032000000"
+  val string_punisher_held  = hex"17 F6000000 0A06612331083 88000000810381383E03200003793287C0E400000"
   val string_lasher_dropped = hex"17 F4000000 D69020C 99299 85D0A 5F10 00 00 20 400000004041038819018000000"
-  val string_punisher_dropped = hex"17 2F010000 E12A20B 915A9 28C9A 1412 00 00 33 200000004081C1901B01800001BCB5C2E07000000"
+  val string_punisher_dropped =
+    hex"17 2F010000 E12A20B 915A9 28C9A 1412 00 00 33 200000004081C1901B01800001BCB5C2E07000000"
 
   "WeaponData" should {
     "decode (lasher, held)" in {
@@ -25,7 +26,12 @@ class WeaponDataTest extends Specification {
           parent.get.guid mustEqual PlanetSideGUID(4141)
           parent.get.slot mustEqual 3
           data match {
-            case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, List(ammo), _) =>
+            case WeaponData(
+                  CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid),
+                  fmode,
+                  List(ammo),
+                  _
+                ) =>
               wfaction mustEqual PlanetSideEmpire.VS
               wbops mustEqual false
               walternate mustEqual false
@@ -73,7 +79,12 @@ class WeaponDataTest extends Specification {
           parent.get.guid mustEqual PlanetSideGUID(3092)
           parent.get.slot mustEqual 3
           data match {
-            case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, ammo, _) =>
+            case WeaponData(
+                  CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid),
+                  fmode,
+                  ammo,
+                  _
+                ) =>
               wfaction mustEqual PlanetSideEmpire.VS
               wbops mustEqual false
               walternate mustEqual false
@@ -146,7 +157,12 @@ class WeaponDataTest extends Specification {
           drop.pos.orient.y mustEqual 0f
           drop.pos.orient.z mustEqual 0f
           drop.obj match {
-            case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, List(ammo), _) =>
+            case WeaponData(
+                  CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid),
+                  fmode,
+                  List(ammo),
+                  _
+                ) =>
               wfaction mustEqual PlanetSideEmpire.VS
               wbops mustEqual false
               walternate mustEqual false
@@ -200,7 +216,12 @@ class WeaponDataTest extends Specification {
           drop.pos.orient.y mustEqual 0f
           drop.pos.orient.z mustEqual 306.5625f
           drop.obj match {
-            case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, ammo, _) =>
+            case WeaponData(
+                  CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid),
+                  fmode,
+                  ammo,
+                  _
+                ) =>
               wfaction mustEqual PlanetSideEmpire.NC
               wbops mustEqual false
               walternate mustEqual false
@@ -261,9 +282,21 @@ class WeaponDataTest extends Specification {
       val obj = WeaponData(
         CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, None, PlanetSideGUID(0)),
         0,
-        List(InternalSlot(ObjectClass.energy_cell, PlanetSideGUID(3548), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false)))
+        List(
+          InternalSlot(
+            ObjectClass.energy_cell,
+            PlanetSideGUID(3548),
+            0,
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false)
+          )
+        )
       )
-      val msg = ObjectCreateMessage(ObjectClass.lasher, PlanetSideGUID(3033), ObjectCreateMessageParent(PlanetSideGUID(4141), 3), obj)
+      val msg = ObjectCreateMessage(
+        ObjectClass.lasher,
+        PlanetSideGUID(3033),
+        ObjectCreateMessageParent(PlanetSideGUID(4141), 3),
+        obj
+      )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
       pkt mustEqual string_lasher_held
     }
@@ -274,11 +307,26 @@ class WeaponDataTest extends Specification {
           CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, None, PlanetSideGUID(0)),
           0,
           List(
-            AmmoBoxData(ObjectClass.bullet_9mm, PlanetSideGUID(3918), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false)),
-            AmmoBoxData(ObjectClass.rocket, PlanetSideGUID(3941), 1, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false))
+            AmmoBoxData(
+              ObjectClass.bullet_9mm,
+              PlanetSideGUID(3918),
+              0,
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false)
+            ),
+            AmmoBoxData(
+              ObjectClass.rocket,
+              PlanetSideGUID(3941),
+              1,
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false)
+            )
           )
         )
-      val msg = ObjectCreateMessage(ObjectClass.punisher, PlanetSideGUID(4147), ObjectCreateMessageParent(PlanetSideGUID(3092), 3), obj)
+      val msg = ObjectCreateMessage(
+        ObjectClass.punisher,
+        PlanetSideGUID(4147),
+        ObjectCreateMessageParent(PlanetSideGUID(3092), 3),
+        obj
+      )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
       pkt mustEqual string_punisher_held
     }

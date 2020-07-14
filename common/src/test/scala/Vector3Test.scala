@@ -78,14 +78,14 @@ class Vector3Test extends Specification {
     }
 
     "calculate the unit vector (zero)" in {
-      Vector3.Unit(Vector3.Zero) mustEqual Vector3(0,0,0)
+      Vector3.Unit(Vector3.Zero) mustEqual Vector3(0, 0, 0)
     }
 
     "calculate the unit vector (normal)" in {
       import Vector3._
-      val one_root_two : Float = (1/math.sqrt(2)).toFloat
-      val one_root_three : Float = (1/math.sqrt(3)).toFloat
-      val ulp : Float = math.ulp(1) //measure of insignificance
+      val one_root_two: Float   = (1 / math.sqrt(2)).toFloat
+      val one_root_three: Float = (1 / math.sqrt(3)).toFloat
+      val ulp: Float            = math.ulp(1) //measure of insignificance
 
       Unit(Vector3(1, 0, 0)) mustEqual Vector3(1, 0, 0)
       1 - Magnitude(Vector3(1, 0, 0)) < ulp mustEqual true
@@ -110,9 +110,9 @@ class Vector3Test extends Specification {
     }
 
     "calculate the cross product (identity)" in {
-      val Vx : Vector3 = Vector3(1, 0, 0)
-      val Vy : Vector3 = Vector3(0, 1, 0)
-      val Vz : Vector3 = Vector3(0, 0, 1)
+      val Vx: Vector3 = Vector3(1, 0, 0)
+      val Vy: Vector3 = Vector3(0, 1, 0)
+      val Vz: Vector3 = Vector3(0, 0, 1)
 
       Vector3.CrossProduct(Vx, Vy) mustEqual Vz
       Vector3.CrossProduct(Vy, Vz) mustEqual Vx
@@ -124,86 +124,86 @@ class Vector3Test extends Specification {
     }
 
     "calculate the cross product (full)" in {
-      val A : Vector3 = Vector3(2, 1, -1)
-      val B : Vector3 = Vector3(-3, 4, 1)
+      val A: Vector3 = Vector3(2, 1, -1)
+      val B: Vector3 = Vector3(-3, 4, 1)
 
       Vector3.CrossProduct(A, B) mustEqual Vector3(5, 1, 11)
       Vector3.CrossProduct(B, A) mustEqual Vector3(-5, -1, -11)
     }
 
     "find a perpendicular vector with cross product" in {
-      val A : Vector3 = Vector3(2, 1, -1)
-      val B : Vector3 = Vector3(-3, 4, 1)
-      val C : Vector3 = Vector3.CrossProduct(A, B)
+      val A: Vector3 = Vector3(2, 1, -1)
+      val B: Vector3 = Vector3(-3, 4, 1)
+      val C: Vector3 = Vector3.CrossProduct(A, B)
 
       Vector3.DotProduct(A, C) mustEqual 0
       Vector3.DotProduct(B, C) mustEqual 0
     }
 
     "calculate the scalar projection (perpendicular vectors)" in {
-      val Vx : Vector3 = Vector3(1, 0, 0)
-      val Vy : Vector3 = Vector3(0, 1, 0)
+      val Vx: Vector3 = Vector3(1, 0, 0)
+      val Vy: Vector3 = Vector3(0, 1, 0)
 
       Vector3.ScalarProjection(Vx, Vy) mustEqual 0
     }
 
     "calculate the scalar projection (parallel vectors)" in {
-      val A : Vector3 = Vector3(2, 0, 0)
-      val B : Vector3 = Vector3(10, 0, 0)
+      val A: Vector3 = Vector3(2, 0, 0)
+      val B: Vector3 = Vector3(10, 0, 0)
 
       Vector3.ScalarProjection(A, B) mustEqual 2
       Vector3.ScalarProjection(B, A) mustEqual 10
     }
 
     "calculate the scalar projection (antiparallel vectors)" in {
-      val A : Vector3 = Vector3(2, 0, 0)
-      val B : Vector3 = Vector3(-10, 0, 0)
+      val A: Vector3 = Vector3(2, 0, 0)
+      val B: Vector3 = Vector3(-10, 0, 0)
 
       Vector3.ScalarProjection(A, B) mustEqual -2
       Vector3.ScalarProjection(B, A) mustEqual -10
     }
 
     "calculate the scalar projection (normal)" in {
-      val A : Vector3 = Vector3(2, 1, -1)
-      val B : Vector3 = Vector3(3, 4, 1)
+      val A: Vector3 = Vector3(2, 1, -1)
+      val B: Vector3 = Vector3(3, 4, 1)
 
       Vector3.ScalarProjection(A, B) mustEqual 1.7650452f
       Vector3.ScalarProjection(B, A) mustEqual 3.6742344f
     }
 
     "calculate the vector projection (perpendicular vectors)" in {
-      val Vx : Vector3 = Vector3(1, 0, 0)
-      val Vy : Vector3 = Vector3(0, 1, 0)
+      val Vx: Vector3 = Vector3(1, 0, 0)
+      val Vy: Vector3 = Vector3(0, 1, 0)
 
       Vector3.VectorProjection(Vx, Vy) mustEqual Vector3.Zero
     }
 
     "calculate the vector projection (parallel vectors)" in {
-      val A : Vector3 = Vector3(2, 0, 0)
-      val B : Vector3 = Vector3(10, 0, 0)
+      val A: Vector3 = Vector3(2, 0, 0)
+      val B: Vector3 = Vector3(10, 0, 0)
 
       Vector3.VectorProjection(A, B) mustEqual A
       Vector3.VectorProjection(B, A) mustEqual B
     }
 
     "calculate the vector projection (antiparallel vectors)" in {
-      val A : Vector3 = Vector3(2, 0, 0)
-      val B : Vector3 = Vector3(-10, 0, 0)
+      val A: Vector3 = Vector3(2, 0, 0)
+      val B: Vector3 = Vector3(-10, 0, 0)
 
       Vector3.VectorProjection(A, B) mustEqual A
       Vector3.VectorProjection(B, A) mustEqual B
     }
 
     "calculate the vector projection (normal)" in {
-      val A : Vector3 = Vector3(2, 1, -1)
-      val B : Vector3 = Vector3(3, 4, 1)
+      val A: Vector3 = Vector3(2, 1, -1)
+      val B: Vector3 = Vector3(3, 4, 1)
 
       Vector3.VectorProjection(A, B) mustEqual Vector3(1.0384614f, 1.3846153f, 0.34615383f)
       Vector3.VectorProjection(B, A) mustEqual Vector3(2.9999998f, 1.4999999f, -1.4999999f)
     }
 
     "rotate positive x-axis-vector 90-degrees around the z-axis" in {
-      val A : Vector3 = Vector3(1, 0, 0)
+      val A: Vector3 = Vector3(1, 0, 0)
       A.Rz(0) mustEqual A
       A.Rz(90) mustEqual Vector3(0, 1, 0)
       A.Rz(180) mustEqual Vector3(-1, 0, 0)
@@ -212,7 +212,7 @@ class Vector3Test extends Specification {
     }
 
     "rotate positive y-axis-vector 90-degrees around the x-axis" in {
-      val A : Vector3 = Vector3(0, 1, 0)
+      val A: Vector3 = Vector3(0, 1, 0)
       A.Rx(0) mustEqual A
       A.Rx(90) mustEqual Vector3(0, 0, 1)
       A.Rx(180) mustEqual Vector3(0, -1, 0)
@@ -221,7 +221,7 @@ class Vector3Test extends Specification {
     }
 
     "rotate positive x-axis-vector 90-degrees around the y-axis" in {
-      val A : Vector3 = Vector3(1, 0, 0)
+      val A: Vector3 = Vector3(1, 0, 0)
       A.Ry(0) mustEqual A
       A.Ry(90) mustEqual Vector3(0, 0, -1)
       A.Ry(180) mustEqual Vector3(-1, 0, 0)
@@ -230,14 +230,14 @@ class Vector3Test extends Specification {
     }
 
     "compound rotation" in {
-      val A : Vector3 = Vector3(1, 0, 0)
+      val A: Vector3 = Vector3(1, 0, 0)
       A.Rz(90)
         .Rx(90)
         .Ry(90) mustEqual A
     }
 
     "45-degree rotation" in {
-      val A : Vector3 = Vector3(1, 0, 0)
+      val A: Vector3 = Vector3(1, 0, 0)
       A.Rz(45) mustEqual Vector3(0.70710677f, 0.70710677f, 0)
     }
   }

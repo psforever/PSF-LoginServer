@@ -14,17 +14,16 @@ import scodec.codecs._
   * @param item_guid the item to update
   * @param quantity_delta the change in quantity of the item
   */
-final case class QuantityDeltaUpdateMessage(item_guid : PlanetSideGUID,
-                                            quantity_delta : Int)
-  extends PlanetSideGamePacket {
+final case class QuantityDeltaUpdateMessage(item_guid: PlanetSideGUID, quantity_delta: Int)
+    extends PlanetSideGamePacket {
   type Packet = QuantityDeltaUpdateMessage
   def opcode = GamePacketOpcode.QuantityDeltaUpdateMessage
   def encode = QuantityDeltaUpdateMessage.encode(this)
 }
 
 object QuantityDeltaUpdateMessage extends Marshallable[QuantityDeltaUpdateMessage] {
-  implicit val codec : Codec[QuantityDeltaUpdateMessage] = (
-      ("item_guid" | PlanetSideGUID.codec) ::
-        ("quantity_delta" | int32L)
-    ).as[QuantityDeltaUpdateMessage]
+  implicit val codec: Codec[QuantityDeltaUpdateMessage] = (
+    ("item_guid" | PlanetSideGUID.codec) ::
+      ("quantity_delta" | int32L)
+  ).as[QuantityDeltaUpdateMessage]
 }

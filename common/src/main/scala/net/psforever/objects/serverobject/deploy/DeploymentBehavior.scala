@@ -13,45 +13,47 @@ import akka.actor.Actor
   * @see `DriveState`
   */
 trait DeploymentBehavior {
-  this : Actor =>
+  this: Actor =>
 
-  def DeploymentObject : Deployment.DeploymentObject
+  def DeploymentObject: Deployment.DeploymentObject
 
-  val deployBehavior : Receive = {
+  val deployBehavior: Receive = {
     case Deployment.TryDeploymentChange(state) =>
       val obj = DeploymentObject
-      if(Deployment.NextState(obj.DeploymentState) == state
-        && (obj.DeploymentState = state) == state) {
-        if(Deployment.CheckForDeployState(state)) {
+      if (
+        Deployment.NextState(obj.DeploymentState) == state
+        && (obj.DeploymentState = state) == state
+      ) {
+        if (Deployment.CheckForDeployState(state)) {
           sender ! Deployment.CanDeploy(obj, state)
-        }
-        else { //may need to check in future
+        } else { //may need to check in future
           sender ! Deployment.CanUndeploy(obj, state)
         }
-      }
-      else {
+      } else {
         sender ! Deployment.CanNotChangeDeployment(obj, state, "incorrect transition state")
       }
 
     case Deployment.TryDeploy(state) =>
       val obj = DeploymentObject
-      if(Deployment.CheckForDeployState(state)
+      if (
+        Deployment.CheckForDeployState(state)
         && Deployment.NextState(obj.DeploymentState) == state
-        && (obj.DeploymentState = state) == state) {
+        && (obj.DeploymentState = state) == state
+      ) {
         sender ! Deployment.CanDeploy(obj, state)
-      }
-      else {
+      } else {
         sender ! Deployment.CanNotChangeDeployment(obj, state, "incorrect deploy transition state")
       }
 
     case Deployment.TryUndeploy(state) =>
       val obj = DeploymentObject
-      if(Deployment.CheckForUndeployState(state)
+      if (
+        Deployment.CheckForUndeployState(state)
         && Deployment.NextState(obj.DeploymentState) == state
-        && (obj.DeploymentState = state) == state) {
+        && (obj.DeploymentState = state) == state
+      ) {
         sender ! Deployment.CanUndeploy(obj, state)
-      }
-      else {
+      } else {
         sender ! Deployment.CanNotChangeDeployment(obj, state, "incorrect undeploy transition state")
       }
   }

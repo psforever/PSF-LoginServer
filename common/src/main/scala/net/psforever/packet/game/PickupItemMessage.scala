@@ -20,21 +20,18 @@ import scodec.codecs._
   * @param unk1 na
   * @param unk2 na
   */
-final case class PickupItemMessage(item_guid : PlanetSideGUID,
-                                   player_guid : PlanetSideGUID,
-                                   unk1 : Int,
-                                   unk2 : Int)
-  extends PlanetSideGamePacket {
+final case class PickupItemMessage(item_guid: PlanetSideGUID, player_guid: PlanetSideGUID, unk1: Int, unk2: Int)
+    extends PlanetSideGamePacket {
   type Packet = PickupItemMessage
   def opcode = GamePacketOpcode.PickupItemMessage
   def encode = PickupItemMessage.encode(this)
 }
 
 object PickupItemMessage extends Marshallable[PickupItemMessage] {
-  implicit val codec : Codec[PickupItemMessage] = (
+  implicit val codec: Codec[PickupItemMessage] = (
     ("item_guid" | PlanetSideGUID.codec) ::
       ("player_guid" | PlanetSideGUID.codec) ::
       ("unk1" | uint8L) ::
       ("unk2" | uint16L)
-    ).as[PickupItemMessage]
+  ).as[PickupItemMessage]
 }

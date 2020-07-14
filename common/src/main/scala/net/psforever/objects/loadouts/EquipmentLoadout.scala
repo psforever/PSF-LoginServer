@@ -17,6 +17,8 @@ package net.psforever.objects.loadouts
   * @param visible_slots simplified representation of the `Equipment` that can see "seen" on the target
   * @param inventory simplified representation of the `Equipment` in the target's inventory or trunk
   */
-abstract class EquipmentLoadout(label : String,
-                                visible_slots : List[Loadout.SimplifiedEntry],
-                                inventory : List[Loadout.SimplifiedEntry]) extends Loadout(label)
+abstract class EquipmentLoadout(
+    label: String,
+    visible_slots: List[Loadout.SimplifiedEntry],
+    inventory: List[Loadout.SimplifiedEntry]
+) extends Loadout(label)

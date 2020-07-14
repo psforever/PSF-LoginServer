@@ -27,4 +27,3 @@ class CharacterRequestMessageTest extends Specification {
     pkt mustEqual string
   }
 }
-

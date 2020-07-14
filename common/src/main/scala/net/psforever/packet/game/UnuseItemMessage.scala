@@ -15,17 +15,15 @@ import scodec.codecs._
   * @param player_guid the player
   * @param item_guid the item
   */
-final case class UnuseItemMessage(player_guid : PlanetSideGUID,
-                                  item_guid : PlanetSideGUID)
-  extends PlanetSideGamePacket {
+final case class UnuseItemMessage(player_guid: PlanetSideGUID, item_guid: PlanetSideGUID) extends PlanetSideGamePacket {
   type Packet = UnuseItemMessage
   def opcode = GamePacketOpcode.UnuseItemMessage
   def encode = UnuseItemMessage.encode(this)
 }
 
 object UnuseItemMessage extends Marshallable[UnuseItemMessage] {
-  implicit val codec : Codec[UnuseItemMessage] = (
+  implicit val codec: Codec[UnuseItemMessage] = (
     ("player_guid" | PlanetSideGUID.codec) ::
       ("item_guid" | PlanetSideGUID.codec)
-    ).as[UnuseItemMessage]
+  ).as[UnuseItemMessage]
 }

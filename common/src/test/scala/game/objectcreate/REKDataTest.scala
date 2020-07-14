@@ -9,7 +9,7 @@ import org.specs2.mutable._
 import scodec.bits._
 
 class REKDataTest extends Specification {
-  val string_rek_held = hex"17 86000000 27086C2350F800800000000000"
+  val string_rek_held    = hex"17 86000000 27086C2350F800800000000000"
   val string_rek_dropped = hex"17 BF000000 EC20311 85219 7AC1A 2D12 00 00 4E 4000000001800"
 
   "REKData" should {
@@ -51,7 +51,10 @@ class REKDataTest extends Specification {
           guid mustEqual PlanetSideGUID(4355)
           parent.isDefined mustEqual false
           data match {
-            case DroppedItemData(pos, REKData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), unk1, unk2)) =>
+            case DroppedItemData(
+                  pos,
+                  REKData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), unk1, unk2)
+                ) =>
               pos.coord mustEqual Vector3(4675.039f, 5506.953f, 72.703125f)
               pos.orient mustEqual Vector3.z(230.625f)
 
@@ -76,8 +79,15 @@ class REKDataTest extends Specification {
     }
 
     "encode (held)" in {
-      val obj = REKData(CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)))
-      val msg = ObjectCreateMessage(ObjectClass.remote_electronics_kit, PlanetSideGUID(3893), ObjectCreateMessageParent(PlanetSideGUID(4174), 0), obj)
+      val obj = REKData(
+        CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, Some(false), None, PlanetSideGUID(0))
+      )
+      val msg = ObjectCreateMessage(
+        ObjectClass.remote_electronics_kit,
+        PlanetSideGUID(3893),
+        ObjectCreateMessageParent(PlanetSideGUID(4174), 0),
+        obj
+      )
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
       pkt mustEqual string_rek_held
     }
@@ -85,7 +95,11 @@ class REKDataTest extends Specification {
     "encode (dropped)" in {
       val obj = DroppedItemData(
         PlacementData(4675.039f, 5506.953f, 72.703125f, 0f, 0f, 230.625f),
-        REKData(CommonFieldData(PlanetSideEmpire.VS, false, false, false, None, false, Some(false), None, PlanetSideGUID(0)), 3, 0)
+        REKData(
+          CommonFieldData(PlanetSideEmpire.VS, false, false, false, None, false, Some(false), None, PlanetSideGUID(0)),
+          3,
+          0
+        )
       )
       val msg = ObjectCreateMessage(ObjectClass.remote_electronics_kit, PlanetSideGUID(4355), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector

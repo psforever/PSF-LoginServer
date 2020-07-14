@@ -3,4 +3,4 @@ package services.account
 
 import net.psforever.objects.Account
 
-final case class StoreAccountData(token : String, account : Account)
+final case class StoreAccountData(token: String, account: Account)

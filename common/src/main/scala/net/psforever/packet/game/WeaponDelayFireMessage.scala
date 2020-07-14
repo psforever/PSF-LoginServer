@@ -10,17 +10,15 @@ import scodec.codecs._
   *
   * See [[PlayerStateMessageUpstream]] for explanation of seq_time.
   */
-final case class WeaponDelayFireMessage(seq_time : Int,
-                                        weapon_guid : PlanetSideGUID)
-  extends PlanetSideGamePacket {
+final case class WeaponDelayFireMessage(seq_time: Int, weapon_guid: PlanetSideGUID) extends PlanetSideGamePacket {
   type Packet = WeaponDelayFireMessage
   def opcode = GamePacketOpcode.WeaponDelayFireMessage
   def encode = WeaponDelayFireMessage.encode(this)
 }
 
 object WeaponDelayFireMessage extends Marshallable[WeaponDelayFireMessage] {
-  implicit val codec : Codec[WeaponDelayFireMessage] = (
-      ("seq_time" | uintL(10)) ::
-        ("weapon_guid" | PlanetSideGUID.codec)
-    ).as[WeaponDelayFireMessage]
+  implicit val codec: Codec[WeaponDelayFireMessage] = (
+    ("seq_time" | uintL(10)) ::
+      ("weapon_guid" | PlanetSideGUID.codec)
+  ).as[WeaponDelayFireMessage]
 }

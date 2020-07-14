@@ -12,14 +12,7 @@ import scodec.codecs._
 object ImplantAction extends Enumeration {
   type Type = Value
 
-  val
-  Add,
-  Remove,
-  Initialization,
-  Activation,
-  UnlockMessage,
-  OutOfStamina
-  = Value
+  val Add, Remove, Initialization, Activation, UnlockMessage, OutOfStamina = Value
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uintL(3))
 }
@@ -42,21 +35,22 @@ object ImplantAction extends Enumeration {
   *                 `UnlockMessage` - 0-3 as an unlocked implant slot; display a message<br>
   *                 `OutOfStamina` - lock implant; 0 to lock; 1 to unlock; display a message
   */
-final case class AvatarImplantMessage(player_guid : PlanetSideGUID,
-                                      action : ImplantAction.Value,
-                                      implantSlot : Int,
-                                      status : Int)
-  extends PlanetSideGamePacket {
+final case class AvatarImplantMessage(
+    player_guid: PlanetSideGUID,
+    action: ImplantAction.Value,
+    implantSlot: Int,
+    status: Int
+) extends PlanetSideGamePacket {
   type Packet = AvatarImplantMessage
   def opcode = GamePacketOpcode.AvatarImplantMessage
   def encode = AvatarImplantMessage.encode(this)
 }
 
 object AvatarImplantMessage extends Marshallable[AvatarImplantMessage] {
-  implicit val codec : Codec[AvatarImplantMessage] = (
+  implicit val codec: Codec[AvatarImplantMessage] = (
     ("player_guid" | PlanetSideGUID.codec) ::
       ("action" | ImplantAction.codec) ::
       ("implantSlot" | uint2L) ::
       ("status" | uint4L)
-    ).as[AvatarImplantMessage]
+  ).as[AvatarImplantMessage]
 }

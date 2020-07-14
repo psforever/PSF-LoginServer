@@ -19,16 +19,15 @@ import shapeless.{::, HNil}
   * @param magazine the number of rounds available
   * @see `DetailedWeaponData`
   */
-final case class DetailedAmmoBoxData(data : CommonFieldData,
-                                     magazine : Int
-                                    ) extends ConstructorData {
-  override def bitsize : Long = {
+final case class DetailedAmmoBoxData(data: CommonFieldData, magazine: Int) extends ConstructorData {
+  override def bitsize: Long = {
     val dataSize = data.bitsize
     17L + dataSize
   }
 }
 
 object DetailedAmmoBoxData extends Marshallable[DetailedAmmoBoxData] {
+
   /**
     * An abbreviated constructor for creating `DetailedWeaponData` while masking use of `InternalSlot`.
     * @param cls the code for the type of object being constructed
@@ -37,20 +36,21 @@ object DetailedAmmoBoxData extends Marshallable[DetailedAmmoBoxData] {
     * @param ammo the `DetailedAmmoBoxData`
     * @return an `InternalSlot` object that encapsulates `DetailedAmmoBoxData`
     */
-  def apply(cls : Int, guid : PlanetSideGUID, parentSlot : Int, ammo : DetailedAmmoBoxData) : InternalSlot =
+  def apply(cls: Int, guid: PlanetSideGUID, parentSlot: Int, ammo: DetailedAmmoBoxData): InternalSlot =
     new InternalSlot(cls, guid, parentSlot, ammo)
 
-  def apply(unk : Int, mag : Int) : DetailedAmmoBoxData = {
+  def apply(unk: Int, mag: Int): DetailedAmmoBoxData = {
     DetailedAmmoBoxData(
-      CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, unk > 0, None, false, None, None, PlanetSideGUID(0)), mag
+      CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, unk > 0, None, false, None, None, PlanetSideGUID(0)),
+      mag
     )
   }
 
-  implicit val codec : Codec[DetailedAmmoBoxData] = (
-      ("data" | CommonFieldData.codec) ::
+  implicit val codec: Codec[DetailedAmmoBoxData] = (
+    ("data" | CommonFieldData.codec) ::
       ("magazine" | uint16L) ::
       bool
-    ).exmap[DetailedAmmoBoxData] (
+  ).exmap[DetailedAmmoBoxData](
     {
       case data :: mag :: false :: HNil =>
         Attempt.successful(DetailedAmmoBoxData(data, mag))
@@ -60,7 +60,7 @@ object DetailedAmmoBoxData extends Marshallable[DetailedAmmoBoxData] {
     },
     {
       case DetailedAmmoBoxData(data, mag) =>
-        Attempt.successful(data :: mag :: false:: HNil)
+        Attempt.successful(data :: mag :: false :: HNil)
     }
   )
 }

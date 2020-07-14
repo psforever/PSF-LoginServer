@@ -29,7 +29,7 @@ class DensityLevelUpdateMessageTest extends Specification {
   }
 
   "encode" in {
-    val msg = DensityLevelUpdateMessage(1, 19999, List(0,0, 0,0, 0,0, 0,0))
+    val msg = DensityLevelUpdateMessage(1, 19999, List(0, 0, 0, 0, 0, 0, 0, 0))
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string
@@ -41,12 +41,12 @@ class DensityLevelUpdateMessageTest extends Specification {
   }
 
   "encode (failure; list number too big)" in {
-    val msg = DensityLevelUpdateMessage(1, 19999, List(0,0, 0,0, 0,0, 0,8))
+    val msg = DensityLevelUpdateMessage(1, 19999, List(0, 0, 0, 0, 0, 0, 0, 8))
     PacketCoding.EncodePacket(msg).isSuccessful mustEqual false
   }
 
   "encode (failure; list number too small)" in {
-    val msg = DensityLevelUpdateMessage(1, 19999, List(0,0, 0,0, 0,-1, 0,0))
+    val msg = DensityLevelUpdateMessage(1, 19999, List(0, 0, 0, 0, 0, -1, 0, 0))
     PacketCoding.EncodePacket(msg).isSuccessful mustEqual false
   }
 }

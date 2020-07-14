@@ -10,9 +10,9 @@ import net.psforever.types.PlanetSideGUID
 import scala.util.{Failure, Success, Try}
 
 class FieldTurretConverter extends ObjectCreateConverter[TurretDeployable]() {
-  override def ConstructorData(obj : TurretDeployable) : Try[OneMannedFieldTurretData] = {
+  override def ConstructorData(obj: TurretDeployable): Try[OneMannedFieldTurretData] = {
     val health = StatConverter.Health(obj.Health, obj.MaxHealth)
-    if(health > 3) {
+    if (health > 3) {
       Success(
         OneMannedFieldTurretData(
           CommonFieldDataWithPlacement(
@@ -28,7 +28,7 @@ class FieldTurretConverter extends ObjectCreateConverter[TurretDeployable]() {
               None,
               obj.Owner match {
                 case Some(owner) => owner
-                case None => PlanetSideGUID(0)
+                case None        => PlanetSideGUID(0)
               }
             )
           ),
@@ -36,8 +36,7 @@ class FieldTurretConverter extends ObjectCreateConverter[TurretDeployable]() {
           Some(InventoryData(FieldTurretConverter.MakeMountings(obj)))
         )
       )
-    }
-    else {
+    } else {
       Success(
         OneMannedFieldTurretData(
           CommonFieldDataWithPlacement(
@@ -60,17 +59,19 @@ class FieldTurretConverter extends ObjectCreateConverter[TurretDeployable]() {
     }
   }
 
-  override def DetailedConstructorData(obj : TurretDeployable) : Try[OneMannedFieldTurretData] =
+  override def DetailedConstructorData(obj: TurretDeployable): Try[OneMannedFieldTurretData] =
     Failure(new Exception("converter should not be used to generate detailed OneMannedFieldTurretData"))
 }
 
 object FieldTurretConverter {
-  private def MakeMountings(obj : WeaponTurret) : List[InventoryItemData.InventoryItem] = {
-    obj.Weapons.map({
-      case(index, slot) =>
-        val equip : Equipment = slot.Equipment.get
-        val equipDef = equip.Definition
-        InventoryItemData(equipDef.ObjectId, equip.GUID, index, equipDef.Packet.ConstructorData(equip).get)
-    }).toList
+  private def MakeMountings(obj: WeaponTurret): List[InventoryItemData.InventoryItem] = {
+    obj.Weapons
+      .map({
+        case (index, slot) =>
+          val equip: Equipment = slot.Equipment.get
+          val equipDef         = equip.Definition
+          InventoryItemData(equipDef.ObjectId, equip.GUID, index, equipDef.Packet.ConstructorData(equip).get)
+      })
+      .toList
   }
 }

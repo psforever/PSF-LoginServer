@@ -111,7 +111,11 @@ class RouterTelepadActivationHurryAllTest extends ActorTest {
       obj ! RouterTelepadActivation.AddTask(telepad2, Zone.Nowhere, Some(5 seconds))
       obj ! RouterTelepadActivation.AddTask(telepad3, Zone.Nowhere, Some(6 seconds))
       obj ! SupportActor.HurryAll()
-      val msgs = receiveN(3, 4 seconds) //organized by duration; note: all messages received before the earliest task should be performed
+      val msgs =
+        receiveN(
+          3,
+          4 seconds
+        ) //organized by duration; note: all messages received before the earliest task should be performed
       assert(msgs.head.isInstanceOf[RouterTelepadActivation.ActivateTeleportSystem])
       assert(msgs.head.asInstanceOf[RouterTelepadActivation.ActivateTeleportSystem].telepad == telepad2)
       assert(msgs(1).isInstanceOf[RouterTelepadActivation.ActivateTeleportSystem])

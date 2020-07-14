@@ -15,10 +15,10 @@ import services.Service
   * For example, the cavern crystals are considered owner-neutral elements that are not attached to a `Building` object.
   * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
-class ProximityTerminal(tdef : ProximityTerminalDefinition) extends Terminal(tdef) with ProximityUnit {
-  override def Request(player : Player, msg : Any) : Terminal.Exchange = {
+class ProximityTerminal(tdef: ProximityTerminalDefinition) extends Terminal(tdef) with ProximityUnit {
+  override def Request(player: Player, msg: Any): Terminal.Exchange = {
     msg match {
-      case message : CommonMessages.Use =>
+      case message: CommonMessages.Use =>
         Actor ! message
       case _ =>
     }
@@ -27,11 +27,12 @@ class ProximityTerminal(tdef : ProximityTerminalDefinition) extends Terminal(tde
 }
 
 object ProximityTerminal {
+
   /**
     * Overloaded constructor.
     * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
     */
-  def apply(tdef : ProximityTerminalDefinition) : ProximityTerminal = {
+  def apply(tdef: ProximityTerminalDefinition): ProximityTerminal = {
     new ProximityTerminal(tdef)
   }
 
@@ -44,7 +45,7 @@ object ProximityTerminal {
     * @param context a context to allow the object to properly set up `ActorSystem` functionality
     * @return the `Terminal` object
     */
-  def Constructor(tdef : ProximityTerminalDefinition)(id : Int, context : ActorContext) : Terminal = {
+  def Constructor(tdef: ProximityTerminalDefinition)(id: Int, context: ActorContext): Terminal = {
     import akka.actor.Props
     val obj = ProximityTerminal(tdef)
     obj.Actor = context.actorOf(Props(classOf[ProximityTerminalControl], obj), s"${tdef.Name}_$id")
@@ -59,7 +60,7 @@ object ProximityTerminal {
     * @param context a context to allow the object to properly set up `ActorSystem` functionality
     * @return the `Terminal` object
     */
-  def Constructor(pos : Vector3, tdef : ProximityTerminalDefinition)(id : Int, context : ActorContext) : Terminal = {
+  def Constructor(pos: Vector3, tdef: ProximityTerminalDefinition)(id: Int, context: ActorContext): Terminal = {
     import akka.actor.Props
     val obj = ProximityTerminal(tdef)
     obj.Position = pos
@@ -73,10 +74,11 @@ object ProximityTerminal {
     *            anticipating a `Terminal` object using this same definition
     * @param context hook to the local `Actor` system
     */
-  def Setup(obj : Amenity, context : ActorContext) : Unit = {
+  def Setup(obj: Amenity, context: ActorContext): Unit = {
     import akka.actor.Props
-    if(obj.Actor == Default.Actor) {
-      obj.Actor = context.actorOf(Props(classOf[ProximityTerminalControl], obj), PlanetSideServerObject.UniqueActorName(obj))
+    if (obj.Actor == Default.Actor) {
+      obj.Actor =
+        context.actorOf(Props(classOf[ProximityTerminalControl], obj), PlanetSideServerObject.UniqueActorName(obj))
       obj.Actor ! Service.Startup()
     }
   }

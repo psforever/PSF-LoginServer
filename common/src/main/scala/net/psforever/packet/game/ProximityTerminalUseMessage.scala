@@ -18,19 +18,17 @@ import scodec.codecs._
   * @param object_guid the object whose functionality is triggered
   * @param unk na
   */
-final case class ProximityTerminalUseMessage(player_guid : PlanetSideGUID,
-                                             object_guid : PlanetSideGUID,
-                                             unk : Boolean)
-  extends PlanetSideGamePacket {
+final case class ProximityTerminalUseMessage(player_guid: PlanetSideGUID, object_guid: PlanetSideGUID, unk: Boolean)
+    extends PlanetSideGamePacket {
   type Packet = ProximityTerminalUseMessage
   def opcode = GamePacketOpcode.ProximityTerminalUseMessage
   def encode = ProximityTerminalUseMessage.encode(this)
 }
 
 object ProximityTerminalUseMessage extends Marshallable[ProximityTerminalUseMessage] {
-  implicit val codec : Codec[ProximityTerminalUseMessage] = (
+  implicit val codec: Codec[ProximityTerminalUseMessage] = (
     ("player_guid" | PlanetSideGUID.codec) ::
       ("object_guid" | PlanetSideGUID.codec) ::
       ("unk" | bool)
-    ).as[ProximityTerminalUseMessage]
+  ).as[ProximityTerminalUseMessage]
 }

@@ -25,14 +25,17 @@ import scala.util.{Failure, Success, Try}
   *                    in essence, should match the type of object container to which these resistances belong;
   *                    never has to be defined explicitly, but will be checked upon object definition
   */
-abstract class ResistanceCalculations[TargetType](validate : ResolvedProjectile=>Try[TargetType],
-                                                  extractor : TargetType=>Int) extends ProjectileCalculations {
+abstract class ResistanceCalculations[TargetType](
+    validate: ResolvedProjectile => Try[TargetType],
+    extractor: TargetType => Int
+) extends ProjectileCalculations {
+
   /**
     * Get resistance valuess.
     * @param data the historical `ResolvedProjectile` information
     * @return the damage value
     */
-  def Calculate(data : ResolvedProjectile) : Int = {
+  def Calculate(data: ResolvedProjectile): Int = {
     validate(data) match {
       case Success(target) =>
         extractor(target)
@@ -43,18 +46,17 @@ abstract class ResistanceCalculations[TargetType](validate : ResolvedProjectile=
 }
 
 object ResistanceCalculations {
-  private def failure(typeName : String) = Failure(new Exception(s"can not match expected target $typeName"))
+  private def failure(typeName: String) = Failure(new Exception(s"can not match expected target $typeName"))
 
   //target identification
-  def InvalidTarget(data : ResolvedProjectile) : Try[SourceEntry] = failure(s"invalid ${data.target.Definition.Name}")
+  def InvalidTarget(data: ResolvedProjectile): Try[SourceEntry] = failure(s"invalid ${data.target.Definition.Name}")
 
-  def ValidInfantryTarget(data : ResolvedProjectile) : Try[PlayerSource] = {
+  def ValidInfantryTarget(data: ResolvedProjectile): Try[PlayerSource] = {
     data.target match {
-      case target : PlayerSource =>
-        if(target.ExoSuit != ExoSuitType.MAX) { //max is not counted as an official infantry exo-suit type
+      case target: PlayerSource =>
+        if (target.ExoSuit != ExoSuitType.MAX) { //max is not counted as an official infantry exo-suit type
           Success(target)
-        }
-        else {
+        } else {
           failure("infantry")
         }
       case _ =>
@@ -62,13 +64,12 @@ object ResistanceCalculations {
     }
   }
 
-  def ValidMaxTarget(data : ResolvedProjectile) : Try[PlayerSource] = {
+  def ValidMaxTarget(data: ResolvedProjectile): Try[PlayerSource] = {
     data.target match {
-      case target : PlayerSource =>
-        if(target.ExoSuit == ExoSuitType.MAX) {
+      case target: PlayerSource =>
+        if (target.ExoSuit == ExoSuitType.MAX) {
           Success(target)
-        }
-        else {
+        } else {
           failure("max")
         }
       case _ =>
@@ -76,13 +77,12 @@ object ResistanceCalculations {
     }
   }
 
-  def ValidVehicleTarget(data : ResolvedProjectile) : Try[VehicleSource] = {
+  def ValidVehicleTarget(data: ResolvedProjectile): Try[VehicleSource] = {
     data.target match {
-      case target : VehicleSource =>
-        if(!GlobalDefinitions.isFlightVehicle(target.Definition)) {
+      case target: VehicleSource =>
+        if (!GlobalDefinitions.isFlightVehicle(target.Definition)) {
           Success(target)
-        }
-        else {
+        } else {
           failure("vehicle")
         }
       case _ =>
@@ -90,13 +90,12 @@ object ResistanceCalculations {
     }
   }
 
-  def ValidAircraftTarget(data : ResolvedProjectile) : Try[VehicleSource] = {
+  def ValidAircraftTarget(data: ResolvedProjectile): Try[VehicleSource] = {
     data.target match {
-      case target : VehicleSource =>
-        if(GlobalDefinitions.isFlightVehicle(target.Definition)) {
+      case target: VehicleSource =>
+        if (GlobalDefinitions.isFlightVehicle(target.Definition)) {
           Success(target)
-        }
-        else {
+        } else {
           failure("aircraft")
         }
       case _ =>
@@ -104,13 +103,12 @@ object ResistanceCalculations {
     }
   }
 
-  def ValidAmenityTarget(data : ResolvedProjectile) : Try[ObjectSource] = {
+  def ValidAmenityTarget(data: ResolvedProjectile): Try[ObjectSource] = {
     data.target match {
-      case target : ObjectSource =>
-        if(target.obj.isInstanceOf[Amenity]) {
+      case target: ObjectSource =>
+        if (target.obj.isInstanceOf[Amenity]) {
           Success(target)
-        }
-        else {
+        } else {
           failure("something else")
         }
       case _ =>
@@ -119,27 +117,33 @@ object ResistanceCalculations {
   }
 
   //extractors
-  def NoResistExtractor(target : SourceEntry) : Int = 0
+  def NoResistExtractor(target: SourceEntry): Int = 0
 
-  def ExoSuitDirectExtractor(target : PlayerSource) : Int = ExoSuitDefinition.Select(target.ExoSuit, target.Faction).ResistanceDirectHit
+  def ExoSuitDirectExtractor(target: PlayerSource): Int =
+    ExoSuitDefinition.Select(target.ExoSuit, target.Faction).ResistanceDirectHit
 
-  def ExoSuitSplashExtractor(target : PlayerSource) : Int = ExoSuitDefinition.Select(target.ExoSuit, target.Faction).ResistanceSplash
+  def ExoSuitSplashExtractor(target: PlayerSource): Int =
+    ExoSuitDefinition.Select(target.ExoSuit, target.Faction).ResistanceSplash
 
-  def ExoSuitAggravatedExtractor(target : PlayerSource) : Int = ExoSuitDefinition.Select(target.ExoSuit, target.Faction).ResistanceAggravated
+  def ExoSuitAggravatedExtractor(target: PlayerSource): Int =
+    ExoSuitDefinition.Select(target.ExoSuit, target.Faction).ResistanceAggravated
 
-  def ExoSuitRadiationExtractor(target : PlayerSource) : Float = ExoSuitDefinition.Select(target.ExoSuit, target.Faction).RadiationShielding
+  def ExoSuitRadiationExtractor(target: PlayerSource): Float =
+    ExoSuitDefinition.Select(target.ExoSuit, target.Faction).RadiationShielding
 
-  def VehicleDirectExtractor(target : VehicleSource) : Int = target.Definition.ResistanceDirectHit
+  def VehicleDirectExtractor(target: VehicleSource): Int = target.Definition.ResistanceDirectHit
 
-  def VehicleSplashExtractor(target : VehicleSource) : Int = target.Definition.ResistanceSplash
+  def VehicleSplashExtractor(target: VehicleSource): Int = target.Definition.ResistanceSplash
 
-  def VehicleAggravatedExtractor(target : VehicleSource) : Int = target.Definition.ResistanceAggravated
+  def VehicleAggravatedExtractor(target: VehicleSource): Int = target.Definition.ResistanceAggravated
 
-  def VehicleRadiationExtractor(target : VehicleSource) : Float = target.Definition.RadiationShielding
+  def VehicleRadiationExtractor(target: VehicleSource): Float = target.Definition.RadiationShielding
 
-  def OtherDirectExtractor(target : ObjectSource) : Int = target.Definition.asInstanceOf[ResistanceProfile].ResistanceDirectHit
+  def OtherDirectExtractor(target: ObjectSource): Int =
+    target.Definition.asInstanceOf[ResistanceProfile].ResistanceDirectHit
 
-  def OtherSplashExtractor(target : ObjectSource) : Int = target.Definition.asInstanceOf[ResistanceProfile].ResistanceSplash
+  def OtherSplashExtractor(target: ObjectSource): Int =
+    target.Definition.asInstanceOf[ResistanceProfile].ResistanceSplash
 
-  def MaximumResistance(target : SourceEntry) : Int = Integer.MAX_VALUE
+  def MaximumResistance(target: SourceEntry): Int = Integer.MAX_VALUE
 }

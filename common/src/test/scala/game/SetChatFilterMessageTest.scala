@@ -7,7 +7,7 @@ import net.psforever.packet.game._
 import scodec.bits._
 
 class SetChatFilterMessageTest extends Specification {
-  val string = hex"63 05FF80"
+  val string        = hex"63 05FF80"
   val string_custom = hex"63 05C180"
 
   "decode" in {
@@ -46,28 +46,76 @@ class SetChatFilterMessageTest extends Specification {
   }
 
   "encode" in {
-    val msg = SetChatFilterMessage(ChatChannel.Local, true, List(ChatChannel.Unknown, ChatChannel.Tells, ChatChannel.Local, ChatChannel.Squad, ChatChannel.Outfit, ChatChannel.Command, ChatChannel.Platoon, ChatChannel.Broadcast, ChatChannel.SquadLeader))
+    val msg = SetChatFilterMessage(
+      ChatChannel.Local,
+      true,
+      List(
+        ChatChannel.Unknown,
+        ChatChannel.Tells,
+        ChatChannel.Local,
+        ChatChannel.Squad,
+        ChatChannel.Outfit,
+        ChatChannel.Command,
+        ChatChannel.Platoon,
+        ChatChannel.Broadcast,
+        ChatChannel.SquadLeader
+      )
+    )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }
 
   "encode (success; same channel listed multiple times)" in {
-    val msg = SetChatFilterMessage(ChatChannel.Local, true, List(ChatChannel.Unknown, ChatChannel.Unknown, ChatChannel.Tells, ChatChannel.Tells, ChatChannel.Local, ChatChannel.Squad, ChatChannel.Outfit, ChatChannel.Command, ChatChannel.Platoon, ChatChannel.Broadcast, ChatChannel.SquadLeader))
+    val msg = SetChatFilterMessage(
+      ChatChannel.Local,
+      true,
+      List(
+        ChatChannel.Unknown,
+        ChatChannel.Unknown,
+        ChatChannel.Tells,
+        ChatChannel.Tells,
+        ChatChannel.Local,
+        ChatChannel.Squad,
+        ChatChannel.Outfit,
+        ChatChannel.Command,
+        ChatChannel.Platoon,
+        ChatChannel.Broadcast,
+        ChatChannel.SquadLeader
+      )
+    )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }
 
   "encode (success; out of order)" in {
-    val msg = SetChatFilterMessage(ChatChannel.Local, true, List(ChatChannel.Squad, ChatChannel.Outfit, ChatChannel.SquadLeader, ChatChannel.Unknown, ChatChannel.Command, ChatChannel.Platoon, ChatChannel.Broadcast, ChatChannel.Tells, ChatChannel.Local))
+    val msg = SetChatFilterMessage(
+      ChatChannel.Local,
+      true,
+      List(
+        ChatChannel.Squad,
+        ChatChannel.Outfit,
+        ChatChannel.SquadLeader,
+        ChatChannel.Unknown,
+        ChatChannel.Command,
+        ChatChannel.Platoon,
+        ChatChannel.Broadcast,
+        ChatChannel.Tells,
+        ChatChannel.Local
+      )
+    )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }
 
   "encode (success; custom)" in {
-    val msg = SetChatFilterMessage(ChatChannel.Local, true, List(ChatChannel.Unknown, ChatChannel.Tells, ChatChannel.Broadcast, ChatChannel.SquadLeader))
+    val msg = SetChatFilterMessage(
+      ChatChannel.Local,
+      true,
+      List(ChatChannel.Unknown, ChatChannel.Tells, ChatChannel.Broadcast, ChatChannel.SquadLeader)
+    )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
 
     pkt mustEqual string_custom

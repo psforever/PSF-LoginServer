@@ -67,22 +67,23 @@ import scodec.codecs._
   * false => "The platoon has been disbanded."<br>
   * true => "You have disbanded the platoon."
   */
-final case class SquadMembershipResponse(request_type : SquadResponseType.Value,
-                                         unk1 : Int,
-                                         unk2 : Int,
-                                         char_id : Long,
-                                         other_id : Option[Long],
-                                         player_name : String,
-                                         unk5 : Boolean,
-                                         unk6 : Option[Option[String]])
-  extends PlanetSideGamePacket {
+final case class SquadMembershipResponse(
+    request_type: SquadResponseType.Value,
+    unk1: Int,
+    unk2: Int,
+    char_id: Long,
+    other_id: Option[Long],
+    player_name: String,
+    unk5: Boolean,
+    unk6: Option[Option[String]]
+) extends PlanetSideGamePacket {
   type Packet = SquadMembershipResponse
   def opcode = GamePacketOpcode.SquadMembershipResponse
   def encode = SquadMembershipResponse.encode(this)
 }
 
 object SquadMembershipResponse extends Marshallable[SquadMembershipResponse] {
-  implicit val codec : Codec[SquadMembershipResponse] = (
+  implicit val codec: Codec[SquadMembershipResponse] = (
     "request_type" | SquadResponseType.codec >>:~ { d =>
       ("unk1" | uint(5)) ::
         ("unk2" | uint2) ::
@@ -92,5 +93,5 @@ object SquadMembershipResponse extends Marshallable[SquadMembershipResponse] {
         ("unk5" | bool) ::
         conditional(d != SquadResponseType.Invite, optional(bool, "unk6" | PacketHelpers.encodedWideStringAligned(6)))
     }
-    ).as[SquadMembershipResponse]
+  ).as[SquadMembershipResponse]
 }

@@ -16,17 +16,15 @@ import scodec.codecs._
   *            3 - same as 2 (no change in destination)
   *            Destinations also change (north/south/east/west), but seemingly only to two of the currently active caverns can be linked to?
   */
-final case class ZoneForcedCavernConnectionsMessage(zone : Int,
-                                                    unk : Int)
-  extends PlanetSideGamePacket {
+final case class ZoneForcedCavernConnectionsMessage(zone: Int, unk: Int) extends PlanetSideGamePacket {
   type Packet = ZoneForcedCavernConnectionsMessage
   def opcode = GamePacketOpcode.ZoneForcedCavernConnectionsMessage
   def encode = ZoneForcedCavernConnectionsMessage.encode(this)
 }
 
 object ZoneForcedCavernConnectionsMessage extends Marshallable[ZoneForcedCavernConnectionsMessage] {
-  implicit val codec : Codec[ZoneForcedCavernConnectionsMessage] = (
+  implicit val codec: Codec[ZoneForcedCavernConnectionsMessage] = (
     ("zone" | uint16L) ::
       ("unk" | uint2L)
-    ).as[ZoneForcedCavernConnectionsMessage]
+  ).as[ZoneForcedCavernConnectionsMessage]
 }

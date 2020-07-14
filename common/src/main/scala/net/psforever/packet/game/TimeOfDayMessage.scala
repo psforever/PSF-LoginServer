@@ -31,19 +31,17 @@ import scodec.codecs._
   * @param time Auraxis time
   * @param unk consistently 1092616192; does nothing?
   */
-final case class TimeOfDayMessage(time : Long,
-                                  unk : Long = 1092616192L)
-  extends PlanetSideGamePacket {
+final case class TimeOfDayMessage(time: Long, unk: Long = 1092616192L) extends PlanetSideGamePacket {
   type Packet = TimeOfDayMessage
   def opcode = GamePacketOpcode.TimeOfDayMessage
   def encode = TimeOfDayMessage.encode(this)
 }
 
 object TimeOfDayMessage extends Marshallable[TimeOfDayMessage] {
-  implicit val codec : Codec[TimeOfDayMessage] = (
-      ("time" | uint32L) ::
+  implicit val codec: Codec[TimeOfDayMessage] = (
+    ("time" | uint32L) ::
       ("unk" | uint32L)
-    ).as[TimeOfDayMessage]
+  ).as[TimeOfDayMessage]
 }
 
 /*
@@ -132,4 +130,4 @@ Time Testing Conducted in VS Sanctuary
 48 00 00 E0 47 00 00 20 41 //07:51 (+02:16)
 48 00 00 F0 47 00 00 20 41 //10:08 (+02:17)
 48 00 00 00 48 00 00 20 41 //12:24 (+02:16)
-*/
+ */

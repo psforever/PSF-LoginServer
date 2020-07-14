@@ -6,8 +6,8 @@ import scodec.Codec
 import scodec.bits.{ByteVector, _}
 import scodec.codecs._
 
-final case class ClientChallengeXchg(time : Long, challenge : ByteVector, p : ByteVector, g : ByteVector)
-  extends PlanetSideCryptoPacket {
+final case class ClientChallengeXchg(time: Long, challenge: ByteVector, p: ByteVector, g: ByteVector)
+    extends PlanetSideCryptoPacket {
   def opcode = CryptoPacketOpcode.ClientChallengeXchg
   def encode = ClientChallengeXchg.encode(this)
 }
@@ -31,5 +31,5 @@ object ClientChallengeXchg extends Marshallable[ClientChallengeXchg] {
       ("objects?" | constant(1)) ::
       ("unknown" | constant(hex"03070000".bits)) ::
       ("end?" | constant(0))
-    ).as[ClientChallengeXchg]
+  ).as[ClientChallengeXchg]
 }

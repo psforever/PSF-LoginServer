@@ -11,15 +11,16 @@ package net.psforever.objects.inventory
   * @param cause any prior `Exception` that was thrown then wrapped in this one
   */
 final case class InventoryDisarrayException(private val message: String = "", private val cause: Throwable)
-  extends Exception(message, cause)
+    extends Exception(message, cause)
 
 object InventoryDisarrayException {
+
   /**
     * Overloaded constructor that constructs the `Exception` without nesting any prior `Exceptions`.
     * Just the custom error message is included.
     * @param message the explanation of why the exception was thrown
     * @return an `InventoryDisarrayException` object
     */
-  def apply(message : String) : InventoryDisarrayException =
+  def apply(message: String): InventoryDisarrayException =
     InventoryDisarrayException(message, None.orNull)
 }

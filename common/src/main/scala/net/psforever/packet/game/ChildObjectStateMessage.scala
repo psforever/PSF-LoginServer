@@ -20,19 +20,17 @@ import scodec.codecs._
   * @param pitch the amount of pitch that affects orientation from forward facing (0)
   * @param yaw the amount of yaw that affects orientation from forward-facing (0)
   */
-final case class ChildObjectStateMessage(object_guid : PlanetSideGUID,
-                                         pitch : Float,
-                                         yaw : Float)
-  extends PlanetSideGamePacket {
+final case class ChildObjectStateMessage(object_guid: PlanetSideGUID, pitch: Float, yaw: Float)
+    extends PlanetSideGamePacket {
   type Packet = ChildObjectStateMessage
   def opcode = GamePacketOpcode.ChildObjectStateMessage
   def encode = ChildObjectStateMessage.encode(this)
 }
 
 object ChildObjectStateMessage extends Marshallable[ChildObjectStateMessage] {
-  implicit val codec : Codec[ChildObjectStateMessage] = (
+  implicit val codec: Codec[ChildObjectStateMessage] = (
     ("object_guid" | PlanetSideGUID.codec) ::
       ("pitch" | Angular.codec_pitch) ::
       ("yaw" | Angular.codec_yaw(0f))
-    ).as[ChildObjectStateMessage]
+  ).as[ChildObjectStateMessage]
 }

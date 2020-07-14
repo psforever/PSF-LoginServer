@@ -8,11 +8,11 @@ import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 import scala.util.{Success, Try}
 
 class AmmoBoxConverter extends ObjectCreateConverter[AmmoBox] {
-  override def ConstructorData(obj : AmmoBox) : Try[CommonFieldData] = {
+  override def ConstructorData(obj: AmmoBox): Try[CommonFieldData] = {
     Success(CommonFieldData()(false))
   }
 
-  override def DetailedConstructorData(obj : AmmoBox) : Try[DetailedAmmoBoxData] = {
+  override def DetailedConstructorData(obj: AmmoBox): Try[DetailedAmmoBoxData] = {
     Success(
       DetailedAmmoBoxData(
         CommonFieldData(

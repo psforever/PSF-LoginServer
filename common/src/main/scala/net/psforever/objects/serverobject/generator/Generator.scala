@@ -14,27 +14,27 @@ import net.psforever.types.PlanetSideGeneratorState
   * The generator is capable of self-repair from a completely destroyed state, as long as it has an supply of nanites.
   * @param gdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
-class Generator(private val gdef : GeneratorDefinition) extends Amenity {
-  private var condition : PlanetSideGeneratorState.Value = PlanetSideGeneratorState.Normal
+class Generator(private val gdef: GeneratorDefinition) extends Amenity {
+  private var condition: PlanetSideGeneratorState.Value = PlanetSideGeneratorState.Normal
 
-  def Condition : PlanetSideGeneratorState.Value = condition
+  def Condition: PlanetSideGeneratorState.Value = condition
 
-  def Condition_=(state : PlanetSideGeneratorState.Value) : PlanetSideGeneratorState.Value = {
+  def Condition_=(state: PlanetSideGeneratorState.Value): PlanetSideGeneratorState.Value = {
     condition = state
     Condition
   }
 
-  def Definition : GeneratorDefinition = gdef
+  def Definition: GeneratorDefinition = gdef
 }
 
 object Generator {
-  def apply(gdef : GeneratorDefinition) : Generator = {
+  def apply(gdef: GeneratorDefinition): Generator = {
     new Generator(gdef)
   }
 
   import akka.actor.ActorContext
   import net.psforever.types.Vector3
-  def Constructor(pos : Vector3)(id : Int, context : ActorContext) : Generator = {
+  def Constructor(pos: Vector3)(id: Int, context: ActorContext): Generator = {
     import akka.actor.Props
     import net.psforever.objects.GlobalDefinitions
 

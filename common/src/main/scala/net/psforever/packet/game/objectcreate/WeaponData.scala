@@ -22,19 +22,17 @@ import shapeless.{::, HNil}
   * @param ammo data regarding the currently loaded ammunition type(s)
   * @see `AmmoBoxData`
   */
-final case class WeaponData(data : CommonFieldData,
-                            fire_mode : Int,
-                            ammo : List[InternalSlot],
-                            unk : Boolean = false
-                           ) extends ConstructorData {
-  override def bitsize : Long = {
-    val dataSize = data.bitsize
-    val ammoSize : Long = ammo.foldLeft(0L)(_ + _.bitsize)
+final case class WeaponData(data: CommonFieldData, fire_mode: Int, ammo: List[InternalSlot], unk: Boolean = false)
+    extends ConstructorData {
+  override def bitsize: Long = {
+    val dataSize       = data.bitsize
+    val ammoSize: Long = ammo.foldLeft(0L)(_ + _.bitsize)
     21L + dataSize + ammoSize //11 + 10 (from InventoryData) + ammo
   }
 }
 
 object WeaponData extends Marshallable[WeaponData] {
+
   /**
     * Overloaded constructor for creating `WeaponData` that mandates information about a single type of ammunition.
     * @param unk1 na
@@ -45,7 +43,14 @@ object WeaponData extends Marshallable[WeaponData] {
     * @param ammo the ammunition object
     * @return a `WeaponData` object
     */
-  def apply(unk1 : Int, unk2 : Int, cls : Int, guid : PlanetSideGUID, parentSlot : Int, ammo : CommonFieldData) : WeaponData = {
+  def apply(
+      unk1: Int,
+      unk2: Int,
+      cls: Int,
+      guid: PlanetSideGUID,
+      parentSlot: Int,
+      ammo: CommonFieldData
+  ): WeaponData = {
     WeaponData(
       CommonFieldData(
         PlanetSideEmpire(unk1 & 3),
@@ -74,7 +79,15 @@ object WeaponData extends Marshallable[WeaponData] {
     * @param ammo the ammunition object
     * @return a `WeaponData` object
     */
-  def apply(unk1 : Int, unk2 : Int, fire_mode : Int, cls : Int, guid : PlanetSideGUID, parentSlot : Int, ammo : CommonFieldData) : WeaponData = {
+  def apply(
+      unk1: Int,
+      unk2: Int,
+      fire_mode: Int,
+      cls: Int,
+      guid: PlanetSideGUID,
+      parentSlot: Int,
+      ammo: CommonFieldData
+  ): WeaponData = {
     WeaponData(
       CommonFieldData(
         PlanetSideEmpire(unk1 & 3),
@@ -108,7 +121,19 @@ object WeaponData extends Marshallable[WeaponData] {
     * @param ammo2 the second ammunition object
     * @return a `WeaponData` object
     */
-  def apply(unk1 : Int, unk2 : Int, fire_mode : Int, cls1 : Int, guid1 : PlanetSideGUID, slot1 : Int, ammo1 : CommonFieldData, cls2 : Int, guid2 : PlanetSideGUID, slot2 : Int, ammo2 : CommonFieldData) : WeaponData ={
+  def apply(
+      unk1: Int,
+      unk2: Int,
+      fire_mode: Int,
+      cls1: Int,
+      guid1: PlanetSideGUID,
+      slot1: Int,
+      ammo1: CommonFieldData,
+      cls2: Int,
+      guid2: PlanetSideGUID,
+      slot2: Int,
+      ammo2: CommonFieldData
+  ): WeaponData = {
     WeaponData(
       CommonFieldData(
         PlanetSideEmpire(unk1 & 3),
@@ -126,20 +151,19 @@ object WeaponData extends Marshallable[WeaponData] {
     )
   }
 
-  implicit val codec : Codec[WeaponData] = (
+  implicit val codec: Codec[WeaponData] = (
     ("data" | CommonFieldData.codec) ::
       ("fire_mode" | int8) ::
       bool ::
       optional(bool, "ammo" | InventoryData.codec) ::
       ("unk" | bool)
-    ).exmap[WeaponData] (
+  ).exmap[WeaponData](
     {
       case data :: fmode :: false :: Some(InventoryData(ammo)) :: unk :: HNil =>
         val magSize = ammo.size
-        if(magSize == 0) {
+        if (magSize == 0) {
           Attempt.failure(Err("weapon must decode some ammunition"))
-        }
-        else {
+        } else {
           Attempt.successful(WeaponData(data, fmode, ammo, unk))
         }
       case data :: fmode :: false :: None :: unk :: HNil =>
@@ -151,13 +175,11 @@ object WeaponData extends Marshallable[WeaponData] {
     {
       case WeaponData(data, fmode, ammo, unk) =>
         val magSize = ammo.size
-        if(magSize == 0) {
+        if (magSize == 0) {
           Attempt.failure(Err("weapon must encode some ammunition"))
-        }
-        else if(magSize >= 255) {
+        } else if (magSize >= 255) {
           Attempt.failure(Err("weapon encodes too much ammunition (255+ types!)"))
-        }
-        else {
+        } else {
           Attempt.successful(data :: fmode :: false :: Some(InventoryData(ammo)) :: unk :: HNil)
         }
       case _ =>

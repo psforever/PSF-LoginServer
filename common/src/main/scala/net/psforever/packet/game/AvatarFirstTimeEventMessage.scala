@@ -26,21 +26,22 @@ import scodec.codecs._
   * @param unk na
   * @param event_name the string name of the event
   */
-final case class AvatarFirstTimeEventMessage(avatar_guid : PlanetSideGUID,
-                                             object_id : PlanetSideGUID,
-                                             unk : Long,
-                                             event_name : String)
-  extends PlanetSideGamePacket {
+final case class AvatarFirstTimeEventMessage(
+    avatar_guid: PlanetSideGUID,
+    object_id: PlanetSideGUID,
+    unk: Long,
+    event_name: String
+) extends PlanetSideGamePacket {
   type Packet = AvatarFirstTimeEventMessage
   def opcode = GamePacketOpcode.AvatarFirstTimeEventMessage
   def encode = AvatarFirstTimeEventMessage.encode(this)
 }
 
 object AvatarFirstTimeEventMessage extends Marshallable[AvatarFirstTimeEventMessage] {
-  implicit val codec : Codec[AvatarFirstTimeEventMessage] = (
-     ("avatar_guid" | PlanetSideGUID.codec) ::
-     ("object_id" | PlanetSideGUID.codec) ::
-     ("unk" | uint32L ) ::
-     ("event_name" | PacketHelpers.encodedString)
-    ).as[AvatarFirstTimeEventMessage]
+  implicit val codec: Codec[AvatarFirstTimeEventMessage] = (
+    ("avatar_guid" | PlanetSideGUID.codec) ::
+      ("object_id" | PlanetSideGUID.codec) ::
+      ("unk" | uint32L) ::
+      ("event_name" | PacketHelpers.encodedString)
+  ).as[AvatarFirstTimeEventMessage]
 }

@@ -12,7 +12,7 @@ class SpawnRequestMessageTest extends Specification {
 
   "decode" in {
     PacketCoding.DecodePacket(string).require match {
-      case SpawnRequestMessage(unk1,unk2,unk3,unk4,unk5) =>
+      case SpawnRequestMessage(unk1, unk2, unk3, unk4, unk5) =>
         unk1 mustEqual 0
         unk2 mustEqual SpawnGroup.Facility
         unk3 mustEqual 0

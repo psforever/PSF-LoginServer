@@ -3,7 +3,7 @@ package net.psforever.objects.serverobject.terminals
 
 import net.psforever.objects.Player
 
-class GeneratorTerminalDefinition(objId : Int) extends TerminalDefinition(objId) {
+class GeneratorTerminalDefinition(objId: Int) extends TerminalDefinition(objId) {
   Name = "generator_terminal"
-  def Request(player : Player, msg : Any) : Terminal.Exchange = Terminal.NoDeal()
+  def Request(player: Player, msg: Any): Terminal.Exchange = Terminal.NoDeal()
 }

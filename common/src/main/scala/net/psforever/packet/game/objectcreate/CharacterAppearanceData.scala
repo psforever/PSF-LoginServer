@@ -24,19 +24,21 @@ import shapeless.{::, HNil}
   *                  for Black OPs, the agile exo-suit and the reinforced exo-suit are replaced with the Black OPs exo-suits
   * @param char_id   a unique character reference identification number
   */
-final case class CharacterAppearanceA(app : BasicCharacterData,
-                                      data : CommonFieldData,
-                                      exosuit : ExoSuitType.Value,
-                                      unk5 : Int,
-                                      char_id : Long,
-                                      unk7 : Int,
-                                      unk8 : Int,
-                                      unk9 : Int,
-                                      unkA : Int)
-                                     (name_padding : Int) extends StreamBitSize {
-  override def bitsize : Long = {
-    val dataSize : Long = data.bitsize
-    val nameStringSize : Long = StreamBitSize.stringBitSize(app.name, 16) + name_padding
+final case class CharacterAppearanceA(
+    app: BasicCharacterData,
+    data: CommonFieldData,
+    exosuit: ExoSuitType.Value,
+    unk5: Int,
+    char_id: Long,
+    unk7: Int,
+    unk8: Int,
+    unk9: Int,
+    unkA: Int
+)(name_padding: Int)
+    extends StreamBitSize {
+  override def bitsize: Long = {
+    val dataSize: Long       = data.bitsize
+    val nameStringSize: Long = StreamBitSize.stringBitSize(app.name, 16) + name_padding
     114L + dataSize + nameStringSize
   }
 }
@@ -65,31 +67,36 @@ final case class CharacterAppearanceA(app : BasicCharacterData,
   * @param charging_pose animation pose for both charging modules and BFR imprinting
   * @param on_zipline player's model is changed into a faction-color ball of energy, as if on a zip line
   */
-final case class CharacterAppearanceB(unk0 : Long,
-                                      outfit_name : String,
-                                      outfit_logo : Int,
-                                      unk1 : Boolean,
-                                      backpack : Boolean,
-                                      unk2 : Boolean,
-                                      unk3 : Boolean,
-                                      unk4 : Boolean,
-                                      facingPitch : Float,
-                                      facingYawUpper : Float,
-                                      lfs : Boolean,
-                                      grenade_state : GrenadeState.Value,
-                                      is_cloaking : Boolean,
-                                      unk5 : Boolean,
-                                      unk6 : Boolean,
-                                      charging_pose : Boolean,
-                                      unk7 : Boolean,
-                                      on_zipline : Option[CharacterAppearanceData.ZiplineData])
-                                     (alt_model : Boolean, name_padding : Int) extends StreamBitSize {
-  override def bitsize : Long = {
+final case class CharacterAppearanceB(
+    unk0: Long,
+    outfit_name: String,
+    outfit_logo: Int,
+    unk1: Boolean,
+    backpack: Boolean,
+    unk2: Boolean,
+    unk3: Boolean,
+    unk4: Boolean,
+    facingPitch: Float,
+    facingYawUpper: Float,
+    lfs: Boolean,
+    grenade_state: GrenadeState.Value,
+    is_cloaking: Boolean,
+    unk5: Boolean,
+    unk6: Boolean,
+    charging_pose: Boolean,
+    unk7: Boolean,
+    on_zipline: Option[CharacterAppearanceData.ZiplineData]
+)(
+    alt_model: Boolean,
+    name_padding: Int
+) extends StreamBitSize {
+  override def bitsize: Long = {
     //factor guard bool values into the base size, not its corresponding optional field
-    val outfitStringSize : Long = StreamBitSize.stringBitSize(outfit_name, 16) +
+    val outfitStringSize: Long = StreamBitSize.stringBitSize(outfit_name, 16) +
       CharacterAppearanceData.outfitNamePadding //even if the outfit_name is blank, string is always padded
-    val backpackSize = if(backpack) { 1L } else { 0L }
-    val onZiplineSize : Long = on_zipline match { case Some(n) => n.bitsize; case None => 0 }
+    val backpackSize = if (backpack) { 1L }
+    else { 0L }
+    val onZiplineSize: Long = on_zipline match { case Some(n) => n.bitsize; case None => 0 }
     70L + outfitStringSize + backpackSize + onZiplineSize
   }
 }
@@ -119,44 +126,45 @@ final case class CharacterAppearanceB(unk0 : Long,
   * @see `DetailedCharacterData`
   * @param ribbons the four merit commendation ribbon medals
   */
-final case class CharacterAppearanceData(a : CharacterAppearanceA,
-                                         b : CharacterAppearanceB,
-                                         ribbons : RibbonBars)
-                                        (name_padding : Int) extends StreamBitSize {
+final case class CharacterAppearanceData(a: CharacterAppearanceA, b: CharacterAppearanceB, ribbons: RibbonBars)(
+    name_padding: Int
+) extends StreamBitSize {
 
-  override def bitsize : Long = 128L + a.bitsize + b.bitsize
+  override def bitsize: Long = 128L + a.bitsize + b.bitsize
 
   /**
     * External access to the value padding on the name field.
     * The padding will always be a number 0-7.
     * @return the pad length in bits
     */
-  def NamePadding : Int = name_padding
+  def NamePadding: Int = name_padding
 
   /**
     * When a player is released-dead or attached to a zipline, their basic infantry model is replaced with a different one.
     * @return the length of the variable field that exists when using alternate models
     */
-  def altModelBit : Option[Int] = CharacterAppearanceData.altModelBit(this)
+  def altModelBit: Option[Int] = CharacterAppearanceData.altModelBit(this)
 }
 
 object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
-  def apply(app : BasicCharacterData,
-            black_ops : Boolean,
-            jammered : Boolean,
-            exosuit : ExoSuitType.Value,
-            outfit_name : String,
-            outfit_logo : Int,
-            backpack : Boolean,
-            facingPitch : Float,
-            facingYawUpper : Float,
-            lfs : Boolean,
-            grenade_state : GrenadeState.Value,
-            is_cloaking : Boolean,
-            charging_pose : Boolean,
-            on_zipline : Option[ZiplineData],
-            ribbons : RibbonBars)(name_padding : Int) : CharacterAppearanceData = {
-    val altModel : Boolean = backpack || on_zipline.isDefined
+  def apply(
+      app: BasicCharacterData,
+      black_ops: Boolean,
+      jammered: Boolean,
+      exosuit: ExoSuitType.Value,
+      outfit_name: String,
+      outfit_logo: Int,
+      backpack: Boolean,
+      facingPitch: Float,
+      facingYawUpper: Float,
+      lfs: Boolean,
+      grenade_state: GrenadeState.Value,
+      is_cloaking: Boolean,
+      charging_pose: Boolean,
+      on_zipline: Option[ZiplineData],
+      ribbons: RibbonBars
+  )(name_padding: Int): CharacterAppearanceData = {
+    val altModel: Boolean = backpack || on_zipline.isDefined
     val a = CharacterAppearanceA(
       app,
       CommonFieldData(
@@ -167,10 +175,9 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
         None,
         false,
         None,
-        if(jammered) {
+        if (jammered) {
           Some(0)
-        }
-        else {
+        } else {
           None
         },
         PlanetSideGUID(0)
@@ -185,21 +192,21 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
     )(name_padding)
     val b = CharacterAppearanceB(
       outfit_name.length,
-      outfit_name : String,
-      outfit_logo : Int,
+      outfit_name: String,
+      outfit_logo: Int,
       false,
       backpack,
       false,
       false,
       false,
-      facingPitch : Float,
-      facingYawUpper : Float,
-      lfs : Boolean,
-      grenade_state : GrenadeState.Value,
-      is_cloaking : Boolean,
+      facingPitch: Float,
+      facingYawUpper: Float,
+      lfs: Boolean,
+      grenade_state: GrenadeState.Value,
+      is_cloaking: Boolean,
       false,
       false,
-      charging_pose : Boolean,
+      charging_pose: Boolean,
       false,
       on_zipline
     )(altModel, name_padding)
@@ -210,7 +217,9 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
     )(name_padding)
   }
 
-  def apply(a : Int=>CharacterAppearanceA, b : (Boolean,Int)=>CharacterAppearanceB, ribbons : RibbonBars)(name_padding : Int) : CharacterAppearanceData = {
+  def apply(a: Int => CharacterAppearanceA, b: (Boolean, Int) => CharacterAppearanceB, ribbons: RibbonBars)(
+      name_padding: Int
+  ): CharacterAppearanceData = {
     val first = a(name_padding)
     CharacterAppearanceData(a(name_padding), b(first.data.alternate, name_padding), ribbons)(name_padding)
   }
@@ -220,9 +229,8 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
     * @param unk1 na
     * @param unk2 na
     */
-  final case class ExtraData(unk1 : Boolean,
-                             unk2 : Boolean) extends StreamBitSize {
-    override def bitsize : Long = 2L
+  final case class ExtraData(unk1: Boolean, unk2: Boolean) extends StreamBitSize {
+    override def bitsize: Long = 2L
   }
 
   /**
@@ -230,9 +238,8 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
     * @param unk1 na
     * @param unk2 na
     */
-  final case class ZiplineData(unk1 : Long,
-                               unk2 : Boolean) extends StreamBitSize {
-    override def bitsize : Long = 33L
+  final case class ZiplineData(unk1: Long, unk2: Boolean) extends StreamBitSize {
+    override def bitsize: Long = 33L
   }
 
   /**
@@ -243,23 +250,22 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
     * @param app the appearance
     * @return the length of the variable field that exists when using alternate models
     */
-  def altModelBit(app : CharacterAppearanceData) : Option[Int] = if(app.b.backpack || app.b.on_zipline.isDefined) {
-      if(!app.a.data.alternate) {
+  def altModelBit(app: CharacterAppearanceData): Option[Int] =
+    if (app.b.backpack || app.b.on_zipline.isDefined) {
+      if (!app.a.data.alternate) {
         throw new IllegalArgumentException("missing alternate model flag when should be set")
-      }
-      else {
+      } else {
         Some(1)
       }
-    }
-    else {
+    } else {
       None
     }
 
-  def namePadding(inheritPad : Int, pad : Option[CommonFieldDataExtra]) : Int = {
+  def namePadding(inheritPad: Int, pad: Option[CommonFieldDataExtra]): Int = {
     pad match {
       case Some(n) =>
         val bitsize = n.bitsize.toInt % 8
-        if(inheritPad > bitsize)
+        if (inheritPad > bitsize)
           inheritPad - bitsize
         else
           8 - bitsize
@@ -273,73 +279,112 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
     * The padding will always be a number 0-7.
     * @return the pad length in bits
     */
-  def outfitNamePadding : Int = {
+  def outfitNamePadding: Int = {
     6
   }
 
-  private val extra_codec : Codec[ExtraData] = (
+  private val extra_codec: Codec[ExtraData] = (
     ("unk1" | bool) ::
       ("unk2" | bool)
   ).as[ExtraData]
 
-  private val zipline_codec : Codec[ZiplineData] = (
+  private val zipline_codec: Codec[ZiplineData] = (
     ("unk1" | uint32L) ::
       ("unk2" | bool)
-    ).as[ZiplineData]
+  ).as[ZiplineData]
 
   /**
     * na
     * @param name_padding na
     * @return na
     */
-  def a_codec(name_padding : Int) : Codec[CharacterAppearanceA] = (
-    ("data" | CommonFieldData.codec) >>:~ { data =>
-      ("name" | PacketHelpers.encodedWideStringAligned(namePadding(name_padding, data.v2))) ::
-        ("exosuit" | ExoSuitType.codec) ::
-        ("unk5" | uint2) :: //unknown
-        ("sex" | CharacterGender.codec) ::
-        ("head" | uint8L) ::
-        ("voice" | CharacterVoice.codec) ::
-        ("unk6" | uint32L) ::
-        ("unk7" | uint16L) ::
-        ("unk8" | uint16L) ::
-        ("unk9" | uint16L) ::
-        ("unkA" | uint16L) //usually either 0 or 65535
+  def a_codec(name_padding: Int): Codec[CharacterAppearanceA] =
+    (
+      ("data" | CommonFieldData.codec) >>:~ { data =>
+        ("name" | PacketHelpers.encodedWideStringAligned(namePadding(name_padding, data.v2))) ::
+          ("exosuit" | ExoSuitType.codec) ::
+          ("unk5" | uint2) :: //unknown
+          ("sex" | CharacterGender.codec) ::
+          ("head" | uint8L) ::
+          ("voice" | CharacterVoice.codec) ::
+          ("unk6" | uint32L) ::
+          ("unk7" | uint16L) ::
+          ("unk8" | uint16L) ::
+          ("unk9" | uint16L) ::
+          ("unkA" | uint16L) //usually either 0 or 65535
       }
-    ).exmap[CharacterAppearanceA] (
-    {
-      case data :: name :: suit :: u5 :: sex :: head :: v1 :: u6 :: u7 :: u8 :: u9 :: uA :: HNil =>
-        Attempt.successful(
-          CharacterAppearanceA(BasicCharacterData(name, data.faction, sex, head, v1), data, suit, u5, u6, u7, u8, u9, uA)(name_padding)
-        )
-
-      case _ =>
-        Attempt.Failure(Err("invalid character appearance data; can not encode"))
-    },
-    {
-      case CharacterAppearanceA(BasicCharacterData(name, PlanetSideEmpire.NEUTRAL, _, _, _), _, _, _, _, _, _, _, _) =>
-        Attempt.failure(Err(s"character $name's faction can not declare as neutral"))
-
-      case CharacterAppearanceA(BasicCharacterData(name, faction, sex, head, v1), data, suit, u5, u6, u7, u8, u9, uA) =>
-        if(faction != data.faction) {
-          Attempt.failure(Err(s"character $name's faction fields are mismatched, $faction != ${data.faction}"))
-        }
-        else if(data.faction == PlanetSideEmpire.NEUTRAL) {
+    ).exmap[CharacterAppearanceA](
+      {
+        case data :: name :: suit :: u5 :: sex :: head :: v1 :: u6 :: u7 :: u8 :: u9 :: uA :: HNil =>
           Attempt.successful(
-            CommonFieldData(faction, data.bops, data.alternate, data.v1, data.v2, data.jammered, None, data.v5, PlanetSideGUID(0)) ::
-              name :: suit :: u5 :: sex :: head :: v1 :: u6 :: u7 :: u8 :: u9 :: uA :: HNil
+            CharacterAppearanceA(
+              BasicCharacterData(name, data.faction, sex, head, v1),
+              data,
+              suit,
+              u5,
+              u6,
+              u7,
+              u8,
+              u9,
+              uA
+            )(name_padding)
           )
-        }
-        else {
-          Attempt.successful(
-            data :: name :: suit :: u5 :: sex :: head :: v1 :: u6 :: u7 :: u8 :: u9 :: uA :: HNil
-          )
-        }
 
-      case _ =>
-        Attempt.Failure(Err("invalid character appearance data; can not decode"))
-    }
-  )
+        case _ =>
+          Attempt.Failure(Err("invalid character appearance data; can not encode"))
+      },
+      {
+        case CharacterAppearanceA(
+              BasicCharacterData(name, PlanetSideEmpire.NEUTRAL, _, _, _),
+              _,
+              _,
+              _,
+              _,
+              _,
+              _,
+              _,
+              _
+            ) =>
+          Attempt.failure(Err(s"character $name's faction can not declare as neutral"))
+
+        case CharacterAppearanceA(
+              BasicCharacterData(name, faction, sex, head, v1),
+              data,
+              suit,
+              u5,
+              u6,
+              u7,
+              u8,
+              u9,
+              uA
+            ) =>
+          if (faction != data.faction) {
+            Attempt.failure(Err(s"character $name's faction fields are mismatched, $faction != ${data.faction}"))
+          } else if (data.faction == PlanetSideEmpire.NEUTRAL) {
+            Attempt.successful(
+              CommonFieldData(
+                faction,
+                data.bops,
+                data.alternate,
+                data.v1,
+                data.v2,
+                data.jammered,
+                None,
+                data.v5,
+                PlanetSideGUID(0)
+              ) ::
+                name :: suit :: u5 :: sex :: head :: v1 :: u6 :: u7 :: u8 :: u9 :: uA :: HNil
+            )
+          } else {
+            Attempt.successful(
+              data :: name :: suit :: u5 :: sex :: head :: v1 :: u6 :: u7 :: u8 :: u9 :: uA :: HNil
+            )
+          }
+
+        case _ =>
+          Attempt.Failure(Err("invalid character appearance data; can not decode"))
+      }
+    )
 
   /**
     * na
@@ -347,71 +392,111 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
     * @param name_padding na
     * @return na
     */
-  def b_codec(alt_model : Boolean, name_padding : Int) : Codec[CharacterAppearanceB] = (
-    ("unk0" | uint32L) :: //for outfit_name (below) to be visible in-game, this value should be non-zero
-      ("outfit_name" | PacketHelpers.encodedWideStringAligned(outfitNamePadding)) ::
-      ("outfit_logo" | uint8L) ::
-      ("unk1" | bool) :: //unknown
-      conditional(alt_model, "backpack" | bool) :: //alt_model flag adds this bit; see ps.c:line#1069587
-      ("unk2" | bool) :: //requires alt_model flag (does NOT require health == 0)
-      ("unk3" | bool) :: //stream misalignment when set
-      ("unk4" | bool) :: //unknown
-      ("facingPitch" | Angular.codec_zero_centered) ::
-      ("facingYawUpper" | Angular.codec_zero_centered) ::
-      ("lfs" | uint2) ::
-      ("grenade_state" | GrenadeState.codec_2u) :: //note: bin10 and bin11 are neutral (bin00 is not defined)
-      ("is_cloaking" | bool) ::
-      ("unk5" | bool) :: //unknown
-      ("unk6" | bool) :: //stream misalignment when set
-      ("charging_pose" | bool) ::
-      ("unk7" | bool) :: //alternate charging pose?
-      optional(bool, "on_zipline" | zipline_codec)
-    ).exmap[CharacterAppearanceB] (
-    {
-      case u0 :: outfit :: logo :: u1 :: bpack :: u2 :: u3 :: u4 :: facingPitch :: facingYawUpper :: lfs :: gstate :: cloaking :: u5 :: u6 :: charging :: u7 :: zipline :: HNil =>
-        val lfsBool = if(lfs == 0) false else true
-        val bpackBool = bpack match { case Some(_) => alt_model ; case None => false }
-        Attempt.successful(
-          CharacterAppearanceB(u0, outfit, logo, u1, bpackBool, u2, u3, u4, facingPitch, facingYawUpper, lfsBool, gstate, cloaking, u5, u6, charging, u7, zipline)(alt_model, name_padding)
-        )
-    },
-    {
-      case CharacterAppearanceB(u0, outfit, logo, u1, bpack, u2, u3, u4, facingPitch, facingYawUpper, lfs, gstate, cloaking, u5, u6, charging, u7, zipline) =>
-        val u0Long = if(u0 == 0 && outfit.nonEmpty) {
-          outfit.length.toLong
-        }
-        else {
-          u0
-        } //TODO this is a kludge; unk0 must be (some) non-zero if outfit_name is defined
-        val (bpackOpt, zipOpt) = if(alt_model) {
-          val bpackOpt = if(bpack) { Some(true) } else { None }
-          (bpackOpt, zipline)
-        }
-        else {
-          (None, None)
-        } //alt_model must be set for either of the other two to be valid
-        val lfsInt = if(lfs) { 1 } else { 0 }
-        Attempt.successful(
-          u0Long :: outfit :: logo :: u1 :: bpackOpt :: u2 :: u3 :: u4 :: facingPitch :: facingYawUpper :: lfsInt :: gstate :: cloaking :: u5 :: u6 :: charging :: u7 :: zipOpt :: HNil
-        )
-    }
-  )
+  def b_codec(alt_model: Boolean, name_padding: Int): Codec[CharacterAppearanceB] =
+    (
+      ("unk0" | uint32L) :: //for outfit_name (below) to be visible in-game, this value should be non-zero
+        ("outfit_name" | PacketHelpers.encodedWideStringAligned(outfitNamePadding)) ::
+        ("outfit_logo" | uint8L) ::
+        ("unk1" | bool) ::                           //unknown
+        conditional(alt_model, "backpack" | bool) :: //alt_model flag adds this bit; see ps.c:line#1069587
+        ("unk2" | bool) ::                           //requires alt_model flag (does NOT require health == 0)
+        ("unk3" | bool) ::                           //stream misalignment when set
+        ("unk4" | bool) ::                           //unknown
+        ("facingPitch" | Angular.codec_zero_centered) ::
+        ("facingYawUpper" | Angular.codec_zero_centered) ::
+        ("lfs" | uint2) ::
+        ("grenade_state" | GrenadeState.codec_2u) :: //note: bin10 and bin11 are neutral (bin00 is not defined)
+        ("is_cloaking" | bool) ::
+        ("unk5" | bool) :: //unknown
+        ("unk6" | bool) :: //stream misalignment when set
+        ("charging_pose" | bool) ::
+        ("unk7" | bool) :: //alternate charging pose?
+        optional(bool, "on_zipline" | zipline_codec)
+    ).exmap[CharacterAppearanceB](
+      {
+        case u0 :: outfit :: logo :: u1 :: bpack :: u2 :: u3 :: u4 :: facingPitch :: facingYawUpper :: lfs :: gstate :: cloaking :: u5 :: u6 :: charging :: u7 :: zipline :: HNil =>
+          val lfsBool   = if (lfs == 0) false else true
+          val bpackBool = bpack match { case Some(_) => alt_model; case None => false }
+          Attempt.successful(
+            CharacterAppearanceB(
+              u0,
+              outfit,
+              logo,
+              u1,
+              bpackBool,
+              u2,
+              u3,
+              u4,
+              facingPitch,
+              facingYawUpper,
+              lfsBool,
+              gstate,
+              cloaking,
+              u5,
+              u6,
+              charging,
+              u7,
+              zipline
+            )(alt_model, name_padding)
+          )
+      },
+      {
+        case CharacterAppearanceB(
+              u0,
+              outfit,
+              logo,
+              u1,
+              bpack,
+              u2,
+              u3,
+              u4,
+              facingPitch,
+              facingYawUpper,
+              lfs,
+              gstate,
+              cloaking,
+              u5,
+              u6,
+              charging,
+              u7,
+              zipline
+            ) =>
+          val u0Long = if (u0 == 0 && outfit.nonEmpty) {
+            outfit.length.toLong
+          } else {
+            u0
+          } //TODO this is a kludge; unk0 must be (some) non-zero if outfit_name is defined
+          val (bpackOpt, zipOpt) = if (alt_model) {
+            val bpackOpt = if (bpack) { Some(true) }
+            else { None }
+            (bpackOpt, zipline)
+          } else {
+            (None, None)
+          } //alt_model must be set for either of the other two to be valid
+          val lfsInt = if (lfs) { 1 }
+          else { 0 }
+          Attempt.successful(
+            u0Long :: outfit :: logo :: u1 :: bpackOpt :: u2 :: u3 :: u4 :: facingPitch :: facingYawUpper :: lfsInt :: gstate :: cloaking :: u5 :: u6 :: charging :: u7 :: zipOpt :: HNil
+          )
+      }
+    )
 
-  def codec(name_padding : Int) : Codec[CharacterAppearanceData] = (
-    ("a" | a_codec(name_padding)) >>:~ { a =>
-      ("b" | b_codec(a.data.alternate, name_padding)) ::
-        ("ribbons" | RibbonBars.codec)
-    }
-    ).xmap[CharacterAppearanceData] (
-    {
-      case a :: b :: ribbons :: HNil =>
-        CharacterAppearanceData(a, b, ribbons)(name_padding)
-    },
-    {
-      case CharacterAppearanceData(a, b, ribbons) =>
-        a :: b :: ribbons :: HNil
-    }
-  )
+  def codec(name_padding: Int): Codec[CharacterAppearanceData] =
+    (
+      ("a" | a_codec(name_padding)) >>:~ { a =>
+        ("b" | b_codec(a.data.alternate, name_padding)) ::
+          ("ribbons" | RibbonBars.codec)
+      }
+    ).xmap[CharacterAppearanceData](
+      {
+        case a :: b :: ribbons :: HNil =>
+          CharacterAppearanceData(a, b, ribbons)(name_padding)
+      },
+      {
+        case CharacterAppearanceData(a, b, ribbons) =>
+          a :: b :: ribbons :: HNil
+      }
+    )
 
-  implicit val codec : Codec[CharacterAppearanceData] = codec(0)
+  implicit val codec: Codec[CharacterAppearanceData] = codec(0)
 }

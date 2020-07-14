@@ -14,19 +14,16 @@ import scodec.codecs._
   * @param unk na;
   *            usually `true`
   */
-final case class ZoneLockInfoMessage(zone : Int,
-                                     lock_status : Boolean,
-                                     unk : Boolean)
-  extends PlanetSideGamePacket {
+final case class ZoneLockInfoMessage(zone: Int, lock_status: Boolean, unk: Boolean) extends PlanetSideGamePacket {
   type Packet = ZoneLockInfoMessage
   def opcode = GamePacketOpcode.ZoneLockInfoMessage
   def encode = ZoneLockInfoMessage.encode(this)
 }
 
 object ZoneLockInfoMessage extends Marshallable[ZoneLockInfoMessage] {
-  implicit val codec : Codec[ZoneLockInfoMessage] = (
+  implicit val codec: Codec[ZoneLockInfoMessage] = (
     ("zone" | uint16L) ::
       ("lock_status" | bool) ::
       ("unk" | bool)
-    ).as[ZoneLockInfoMessage]
+  ).as[ZoneLockInfoMessage]
 }

@@ -19,28 +19,26 @@ import scodec.codecs._
   * @param unk2 na
   * @param unk3 na
   */
-final case class DisconnectMessage(msg : String,
-                                   unk2 : String,
-                                   unk3 : String)
-  extends PlanetSideGamePacket {
+final case class DisconnectMessage(msg: String, unk2: String, unk3: String) extends PlanetSideGamePacket {
   type Packet = DisconnectMessage
   def opcode = GamePacketOpcode.DisconnectMessage
   def encode = DisconnectMessage.encode(this)
 }
 
 object DisconnectMessage extends Marshallable[DisconnectMessage] {
+
   /**
     * Overloaded constructor that focuses only on the visible disconnection message
     * @param msg the displayed message
     * @return a `DisconnectMessage` object
     */
-  def apply(msg : String) : DisconnectMessage = {
+  def apply(msg: String): DisconnectMessage = {
     new DisconnectMessage(msg, "", "")
   }
 
-  implicit val codec : Codec[DisconnectMessage] = (
+  implicit val codec: Codec[DisconnectMessage] = (
     ("msg" | PacketHelpers.encodedString) ::
       ("unk2" | PacketHelpers.encodedString) ::
       ("unk3" | PacketHelpers.encodedString)
-    ).as[DisconnectMessage]
+  ).as[DisconnectMessage]
 }

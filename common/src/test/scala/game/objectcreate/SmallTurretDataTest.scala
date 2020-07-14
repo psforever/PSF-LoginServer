@@ -10,7 +10,8 @@ import scodec.bits._
 
 class SmallTurretDataTest extends Specification {
   val string_spitfire_short = hex"17 BB000000 9D37010 E4F08 6AFCA 0312 00 7F 42 2C1F0F0000F00"
-  val string_spitfire = hex"17 4F010000 9D3A910 D1D78 AE3FC 9111 00 00 69 4488107F80F2021DBF80B80C80000008086EDB83A03200000"
+  val string_spitfire =
+    hex"17 4F010000 9D3A910 D1D78 AE3FC 9111 00 00 69 4488107F80F2021DBF80B80C80000008086EDB83A03200000"
 
   "SmallTurretData" should {
     "decode (spitfire, short)" in {
@@ -73,7 +74,12 @@ class SmallTurretDataTest extends Specification {
               inv.head.parentSlot mustEqual 0
               inv.head.obj.isInstanceOf[WeaponData] mustEqual true
               inv.head.obj match {
-                case WeaponData(CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid), fmode, List(ammo), _) =>
+                case WeaponData(
+                      CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid),
+                      fmode,
+                      List(ammo),
+                      _
+                    ) =>
                   wfaction mustEqual PlanetSideEmpire.NEUTRAL
                   wbops mustEqual false
                   walternate mustEqual false
@@ -134,18 +140,48 @@ class SmallTurretDataTest extends Specification {
           CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, Some(true), None, PlanetSideGUID(8208))
         ),
         255,
-        InventoryData(List(
-          InternalSlot(ObjectClass.spitfire_weapon, PlanetSideGUID(3064), 0,
-            WeaponData(
-              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+        InventoryData(
+          List(
+            InternalSlot(
+              ObjectClass.spitfire_weapon,
+              PlanetSideGUID(3064),
               0,
-              List(InternalSlot(ObjectClass.spitfire_ammo, PlanetSideGUID(3694), 0,
-                CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0))
-              ))
+              WeaponData(
+                CommonFieldData(
+                  PlanetSideEmpire.NEUTRAL,
+                  false,
+                  false,
+                  true,
+                  None,
+                  false,
+                  None,
+                  None,
+                  PlanetSideGUID(0)
+                ),
+                0,
+                List(
+                  InternalSlot(
+                    ObjectClass.spitfire_ammo,
+                    PlanetSideGUID(3694),
+                    0,
+                    CommonFieldData(
+                      PlanetSideEmpire.NEUTRAL,
+                      false,
+                      false,
+                      true,
+                      None,
+                      false,
+                      Some(false),
+                      None,
+                      PlanetSideGUID(0)
+                    )
+                  )
+                )
+              )
             )
+            //SmallTurretData.spitfire(PlanetSideGUID(3064), 0x6, 0x8, PlanetSideGUID(3694), 8)
           )
-          //SmallTurretData.spitfire(PlanetSideGUID(3064), 0x6, 0x8, PlanetSideGUID(3694), 8)
-        ))
+        )
       )
       val msg = ObjectCreateMessage(ObjectClass.spitfire_turret, PlanetSideGUID(4265), obj)
       val pkt = PacketCoding.EncodePacket(msg).require.toByteVector

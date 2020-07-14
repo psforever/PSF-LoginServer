@@ -9,11 +9,7 @@ import scodec.codecs._
   */
 object ExoSuitType extends Enumeration {
   type Type = Value
-  val Agile,
-      Reinforced,
-      MAX,
-      Infiltration,
-      Standard= Value
+  val Agile, Reinforced, MAX, Infiltration, Standard = Value
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uint(3))
 }

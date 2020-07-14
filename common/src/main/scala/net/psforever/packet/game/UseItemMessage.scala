@@ -32,7 +32,7 @@ import scodec.codecs._
   * @param object_id    the object id `object_guid`'s object
   */
 
-  /*
+/*
     BETA CLIENT DEBUG INFO:
       User GUID
       UsedItem GUID
@@ -43,26 +43,27 @@ import scodec.codecs._
       RayTrace Intersection Position (3 fields - Vector3)
       Orientation (3 fields - Vector3)
       Client Target ClassID
-  */
-final case class UseItemMessage(avatar_guid : PlanetSideGUID,
-                                item_used_guid : PlanetSideGUID,
-                                object_guid : PlanetSideGUID,
-                                unk2 : Long,
-                                unk3 : Boolean,
-                                unk4 : Vector3,
-                                unk5 : Vector3,
-                                unk6 : Int,
-                                unk7 : Int,
-                                unk8 : Int,
-                                object_id : Long)
-  extends PlanetSideGamePacket {
+ */
+final case class UseItemMessage(
+    avatar_guid: PlanetSideGUID,
+    item_used_guid: PlanetSideGUID,
+    object_guid: PlanetSideGUID,
+    unk2: Long,
+    unk3: Boolean,
+    unk4: Vector3,
+    unk5: Vector3,
+    unk6: Int,
+    unk7: Int,
+    unk8: Int,
+    object_id: Long
+) extends PlanetSideGamePacket {
   type Packet = UseItemMessage
   def opcode = GamePacketOpcode.UseItemMessage
   def encode = UseItemMessage.encode(this)
 }
 
 object UseItemMessage extends Marshallable[UseItemMessage] {
-  implicit val codec : Codec[UseItemMessage] = (
+  implicit val codec: Codec[UseItemMessage] = (
     ("avatar_guid" | PlanetSideGUID.codec) ::
       ("item_used_guid" | PlanetSideGUID.codec) ::
       ("object_guid" | PlanetSideGUID.codec) ::
@@ -74,5 +75,5 @@ object UseItemMessage extends Marshallable[UseItemMessage] {
       ("unk7" | uint8L) ::
       ("unk8" | uint8L) ::
       ("object_id" | uint32L)
-    ).as[UseItemMessage]
+  ).as[UseItemMessage]
 }

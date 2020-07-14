@@ -30,19 +30,22 @@ import scala.annotation.tailrec
   *                   sometimes it is defined but is still not applicable;
   *                   `None` if not applicable (rarely applicable)
   */
-final case class SquadInfo(leader : Option[String],
-                           task : Option[String],
-                           zone_id : Option[PlanetSideZoneID],
-                           size : Option[Int],
-                           capacity : Option[Int],
-                           squad_guid : Option[PlanetSideGUID] = None) {
+final case class SquadInfo(
+    leader: Option[String],
+    task: Option[String],
+    zone_id: Option[PlanetSideZoneID],
+    size: Option[Int],
+    capacity: Option[Int],
+    squad_guid: Option[PlanetSideGUID] = None
+) {
+
   /**
     * Populate the undefined fields of this object with the populated fields of a second object.
     * If the field is already defined in this object, the provided object does not contribute new data.
     * @param info the `SquadInfo` data to be incorporated into this object's data
     * @return a new `SquadInfo` object, combining with two objects' field data
     */
-  def And(info : SquadInfo) : SquadInfo = {
+  def And(info: SquadInfo): SquadInfo = {
     SquadInfo(
       leader.orElse(info.leader),
       task.orElse(info.task),
@@ -54,19 +57,20 @@ final case class SquadInfo(leader : Option[String],
   }
 
   //methods intended to combine the fields of itself and another object
-  def Leader(leader : String) : SquadInfo =
+  def Leader(leader: String): SquadInfo =
     this And SquadInfo(Some(leader), None, None, None, None, None)
-  def Task(task : String) : SquadInfo =
+  def Task(task: String): SquadInfo =
     this And SquadInfo(None, Some(task), None, None, None, None)
-  def ZoneId(zone : PlanetSideZoneID) : SquadInfo =
+  def ZoneId(zone: PlanetSideZoneID): SquadInfo =
     this And SquadInfo(None, None, Some(zone), None, None, None)
-  def ZoneId(zone : Option[PlanetSideZoneID]) : SquadInfo = zone match {
-    case Some(zoneId) => this And SquadInfo(None, None, zone, None, None, None)
-    case None => SquadInfo(leader, task, zone, size, capacity, squad_guid)
-  }
-  def Size(sz : Int) : SquadInfo =
+  def ZoneId(zone: Option[PlanetSideZoneID]): SquadInfo =
+    zone match {
+      case Some(zoneId) => this And SquadInfo(None, None, zone, None, None, None)
+      case None         => SquadInfo(leader, task, zone, size, capacity, squad_guid)
+    }
+  def Size(sz: Int): SquadInfo =
     this And SquadInfo(None, None, None, Some(sz), None, None)
-  def Capacity(cap : Int) : SquadInfo =
+  def Capacity(cap: Int): SquadInfo =
     this And SquadInfo(None, None, None, None, Some(cap), None)
 }
 
@@ -78,8 +82,7 @@ final case class SquadInfo(leader : Option[String],
   * @param listing the squad data;
   *                `None` when the index is 255, or when invoking a "remove" action on any squad at a known index
   */
-final case class SquadListing(index : Int = 255,
-                              listing : Option[SquadInfo] = None)
+final case class SquadListing(index: Int = 255, listing: Option[SquadInfo] = None)
 
 /**
   * Display the list of squads available to a given player.<br>
@@ -121,22 +124,21 @@ final case class SquadListing(index : Int = 255,
   *                  it typically flags an "update" action
   * @param entries a `Vector` of the squad listings
   */
-final case class ReplicationStreamMessage(behavior : Int,
-                                          behavior2 : Option[Int],
-                                          entries : Vector[SquadListing])
-  extends PlanetSideGamePacket {
+final case class ReplicationStreamMessage(behavior: Int, behavior2: Option[Int], entries: Vector[SquadListing])
+    extends PlanetSideGamePacket {
   type Packet = ReplicationStreamMessage
   def opcode = GamePacketOpcode.ReplicationStreamMessage
   def encode = ReplicationStreamMessage.encode(this)
 }
 
 object SquadInfo {
+
   /**
     * An entry where no fields are defined.
     */
   final val Blank = SquadInfo()
 
-  def apply() : SquadInfo = SquadInfo(None, None, None, None, None, None)
+  def apply(): SquadInfo = SquadInfo(None, None, None, None, None, None)
 
   /**
     * Alternate constructor for `SquadInfo` that ignores the `Option` requirement for the fields.<br>
@@ -149,7 +151,7 @@ object SquadInfo {
     * @param capacity       the maximum number of members that the squad can tolerate
     * @return a `SquadInfo` object
     */
-  def apply(leader : String, task : String, continent_guid : PlanetSideZoneID, size : Int, capacity : Int) : SquadInfo = {
+  def apply(leader: String, task: String, continent_guid: PlanetSideZoneID, size: Int, capacity: Int): SquadInfo = {
     SquadInfo(Some(leader), Some(task), Some(continent_guid), Some(size), Some(capacity))
   }
 
@@ -165,7 +167,14 @@ object SquadInfo {
     * @param squad_guid     a GUID associated with the squad, used to recover the squad definition
     * @return a `SquadInfo` object
     */
-  def apply(leader : String, task : String, continent_guid : PlanetSideZoneID, size : Int, capacity : Int, squad_guid : PlanetSideGUID) : SquadInfo = {
+  def apply(
+      leader: String,
+      task: String,
+      continent_guid: PlanetSideZoneID,
+      size: Int,
+      capacity: Int,
+      squad_guid: PlanetSideGUID
+  ): SquadInfo = {
     SquadInfo(Some(leader), Some(task), Some(continent_guid), Some(size), Some(capacity), Some(squad_guid))
   }
 
@@ -174,7 +183,7 @@ object SquadInfo {
     * @param leader the name of the squad leader
     * @return a `SquadInfo` object
     */
-  def apply(leader : String) : SquadInfo = {
+  def apply(leader: String): SquadInfo = {
     SquadInfo(Some(leader), None, None, None, None)
   }
 
@@ -189,7 +198,7 @@ object SquadInfo {
     * @param task   the task the squad is trying to perform
     * @return a `SquadInfo` object
     */
-  def apply(leader : Option[String], task : String) : SquadInfo = {
+  def apply(leader: Option[String], task: String): SquadInfo = {
     SquadInfo(leader, Some(task), None, None, None)
   }
 
@@ -198,7 +207,7 @@ object SquadInfo {
     * @param continent_guid the continent on which the squad is acting
     * @return a `SquadInfo` object
     */
-  def apply(continent_guid : PlanetSideZoneID) : SquadInfo = {
+  def apply(continent_guid: PlanetSideZoneID): SquadInfo = {
     SquadInfo(None, None, Some(continent_guid), None, None)
   }
 
@@ -207,7 +216,7 @@ object SquadInfo {
     * @param size     the current size of the squad
     * @return a `SquadInfo` object
     */
-  def apply(size : Int) : SquadInfo = {
+  def apply(size: Int): SquadInfo = {
     SquadInfo(None, None, None, Some(size), None)
   }
 
@@ -223,7 +232,7 @@ object SquadInfo {
     * @param capacity the maximum number of members that the squad can tolerate, if not `None`
     * @return a `SquadInfo` object
     */
-  def apply(size : Option[Int], capacity : Int) : SquadInfo = {
+  def apply(size: Option[Int], capacity: Int): SquadInfo = {
     SquadInfo(None, None, None, size, Some(capacity))
   }
 
@@ -234,10 +243,10 @@ object SquadInfo {
     * but are considered absent when performing squad list initialization.
     */
   object Field {
-    final val Leader = 1
-    final val Task = 2
-    final val ZoneId = 3
-    final val Size = 4
+    final val Leader   = 1
+    final val Task     = 2
+    final val ZoneId   = 3
+    final val Size     = 4
     final val Capacity = 5
   }
 }
@@ -253,15 +262,14 @@ object SquadHeader {
   /**
     * `Codec` for reading `SquadInfo` data from the first entry from a packet with squad list initialization entries.
     */
-  private val infoCodec : Codec[SquadInfo] = {
+  private val infoCodec: Codec[SquadInfo] = {
     import shapeless.::
     (("squad_guid" | PlanetSideGUID.codec) ::
       ("leader" | PacketHelpers.encodedWideString) ::
       ("task" | PacketHelpers.encodedWideString) ::
       ("continent_guid" | PlanetSideZoneID.codec) ::
       ("size" | uint4L) ::
-      ("capacity" | uint4L)
-      ).exmap[SquadInfo](
+      ("capacity" | uint4L)).exmap[SquadInfo](
       {
         case sguid :: lead :: tsk :: cguid :: sz :: cap :: HNil =>
           Attempt.successful(SquadInfo(lead, tsk, cguid, sz, cap, sguid))
@@ -280,7 +288,7 @@ object SquadHeader {
   /**
     * `Codec` for reading `SquadInfo` data from all entries other than the first from a packet with squad list initialization entries.
     */
-  private val alt_infoCodec : Codec[SquadInfo] = {
+  private val alt_infoCodec: Codec[SquadInfo] = {
     import shapeless.::
     (
       ("squad_guid" | PlanetSideGUID.codec) ::
@@ -289,7 +297,7 @@ object SquadHeader {
         ("continent_guid" | PlanetSideZoneID.codec) ::
         ("size" | uint4L) ::
         ("capacity" | uint4L)
-      ).exmap[SquadInfo] (
+    ).exmap[SquadInfo](
       {
         case sguid :: lead :: tsk :: cguid :: sz :: cap :: HNil =>
           Attempt.successful(SquadInfo(lead, tsk, cguid, sz, cap, sguid))
@@ -308,7 +316,7 @@ object SquadHeader {
   /**
     * `Codec` for reading the `SquadInfo` data in an "update all squad data" entry.
     */
-  private val allCodec : Codec[SquadInfo] = {
+  private val allCodec: Codec[SquadInfo] = {
     import shapeless.::
     (
       ("squad_guid" | PlanetSideGUID.codec) ::
@@ -317,7 +325,7 @@ object SquadHeader {
         ("continent_guid" | PlanetSideZoneID.codec) ::
         ("size" | uint4L) ::
         ("capacity" | uint4L)
-      ).exmap[SquadInfo] (
+    ).exmap[SquadInfo](
       {
         case sguid :: lead :: tsk :: cguid :: sz :: cap :: HNil =>
           Attempt.successful(SquadInfo(lead, tsk, cguid, sz, cap, sguid))
@@ -340,47 +348,49 @@ object SquadHeader {
     *             should be a 0-7 number that gets converted to a 1-7 string padding number
     * @return the encoded string `Codec`
     */
-  private def paddedStringMetaCodec(over : Int) : Codec[String] = PacketHelpers.encodedWideStringAligned({
-    val mod8 = over % 8
-    if(mod8 == 0) {
-      0
-    }
-    else {
-      8 - mod8
-    }
-  })
+  private def paddedStringMetaCodec(over: Int): Codec[String] =
+    PacketHelpers.encodedWideStringAligned({
+      val mod8 = over % 8
+      if (mod8 == 0) {
+        0
+      } else {
+        8 - mod8
+      }
+    })
 
   /**
     * `Codec` for reading the `SquadInfo` data in an "update squad leader" entry.
     */
-  private def leaderCodec(over : Int) : Codec[SquadInfo] = paddedStringMetaCodec(over).exmap[SquadInfo] (
-    lead => Attempt.successful(SquadInfo(lead)),
-    {
-      case SquadInfo(Some(lead), _, _, _, _, _) =>
-        Attempt.successful(lead)
-      case _ =>
-        Attempt.failure(Err("failed to encode squad data for a leader name"))
-    }
-  )
+  private def leaderCodec(over: Int): Codec[SquadInfo] =
+    paddedStringMetaCodec(over).exmap[SquadInfo](
+      lead => Attempt.successful(SquadInfo(lead)),
+      {
+        case SquadInfo(Some(lead), _, _, _, _, _) =>
+          Attempt.successful(lead)
+        case _ =>
+          Attempt.failure(Err("failed to encode squad data for a leader name"))
+      }
+    )
 
   /**
     * `Codec` for reading the `SquadInfo` data in an "update task text" entry.
     */
-  private def taskCodec(over : Int) : Codec[SquadInfo] = paddedStringMetaCodec(over).exmap[SquadInfo] (
-    task => Attempt.successful(SquadInfo(None, task)),
-    {
-      case SquadInfo(_, Some(task), _, _, _, _) =>
-        Attempt.successful(task)
-      case _ =>
-        Attempt.failure(Err("failed to encode squad data for a task string"))
-    }
-  )
+  private def taskCodec(over: Int): Codec[SquadInfo] =
+    paddedStringMetaCodec(over).exmap[SquadInfo](
+      task => Attempt.successful(SquadInfo(None, task)),
+      {
+        case SquadInfo(_, Some(task), _, _, _, _) =>
+          Attempt.successful(task)
+        case _ =>
+          Attempt.failure(Err("failed to encode squad data for a task string"))
+      }
+    )
 
   /**
     * `Codec` for reading the `SquadInfo` data in an "update squad zone id" entry.
     * In reality, the "zone's id"  is the zone's server ordinal index.
     */
-  private val zoneIdCodec : Codec[SquadInfo] = PlanetSideZoneID.codec.exmap[SquadInfo] (
+  private val zoneIdCodec: Codec[SquadInfo] = PlanetSideZoneID.codec.exmap[SquadInfo](
     cguid => Attempt.successful(SquadInfo(cguid)),
     {
       case SquadInfo(_, _, Some(cguid), _, _, _) =>
@@ -393,7 +403,7 @@ object SquadHeader {
   /**
     * `Codec` for reading the `SquadInfo` data in an "update squad size" entry.
     */
-  private val sizeCodec : Codec[SquadInfo] = uint4L.exmap[SquadInfo] (
+  private val sizeCodec: Codec[SquadInfo] = uint4L.exmap[SquadInfo](
     sz => Attempt.successful(SquadInfo(sz)),
     {
       case SquadInfo(_, _, _, Some(sz), _, _) =>
@@ -406,7 +416,7 @@ object SquadHeader {
   /**
     * `Codec` for reading the `SquadInfo` data in an "update squad capacity" entry.
     */
-  private val capacityCodec : Codec[SquadInfo] = uint4L.exmap[SquadInfo] (
+  private val capacityCodec: Codec[SquadInfo] = uint4L.exmap[SquadInfo](
     cap => Attempt.successful(SquadInfo(None, cap)),
     {
       case SquadInfo(_, _, _, _, Some(cap), _) =>
@@ -420,7 +430,7 @@ object SquadHeader {
     * `Codec` for reading the `SquadInfo` data in a "remove squad from list" entry.
     * While the input has no impact, it always writes the number four to a `3u` field - or `0x100`.
     */
-  private val removeCodec : Codec[SquadInfo] = uint(3).exmap[SquadInfo] (
+  private val removeCodec: Codec[SquadInfo] = uint(3).exmap[SquadInfo](
     _ => Attempt.successful(SquadInfo.Blank),
     _ => Attempt.successful(4)
   )
@@ -432,7 +442,7 @@ object SquadHeader {
     * its determining conditional statement is explicitly `false`
     * and all cases involving explicit failure.
     */
-  private val failureCodec : Codec[SquadInfo] = conditional(included = false, bool).exmap[SquadInfo] (
+  private val failureCodec: Codec[SquadInfo] = conditional(included = false, bool).exmap[SquadInfo](
     _ => Attempt.failure(Err("decoding with unhandled codec")),
     _ => Attempt.failure(Err("encoding with unhandled codec"))
   )
@@ -445,14 +455,14 @@ object SquadHeader {
     * @param info the current squad data
     * @param next a potential next encoded squad field
     */
-  private final case class LinkedSquadInfo(code : Int, info : SquadInfo, next : Option[LinkedSquadInfo])
+  private final case class LinkedSquadInfo(code: Int, info: SquadInfo, next: Option[LinkedSquadInfo])
 
   /**
     * Concatenate a `SquadInfo` object chain into a single `SquadInfo` object.
     * @param info the chain
     * @return the concatenated `SquadInfo` object
     */
-  private def unlinkSquadInfo(info : LinkedSquadInfo) : SquadInfo = unlinkSquadInfo(Some(info))
+  private def unlinkSquadInfo(info: LinkedSquadInfo): SquadInfo = unlinkSquadInfo(Some(info))
 
   /**
     * Concatenate a `SquadInfo` object chain into a single `SquadInfo` object.
@@ -463,7 +473,7 @@ object SquadHeader {
     * @return the concatenated `SquadInfo` object
     */
   @tailrec
-  private def unlinkSquadInfo(info : Option[LinkedSquadInfo], squadInfo : SquadInfo = SquadInfo.Blank) : SquadInfo = {
+  private def unlinkSquadInfo(info: Option[LinkedSquadInfo], squadInfo: SquadInfo = SquadInfo.Blank): SquadInfo = {
     info match {
       case None =>
         squadInfo
@@ -479,7 +489,7 @@ object SquadHeader {
     * @param info a `SquadInfo` object that has all relevant fields populated
     * @return a linked list of `SquadInfo` objects, each with a single field from the input `SquadInfo` object
     */
-  private def linkSquadInfo(info : SquadInfo) : LinkedSquadInfo = {
+  private def linkSquadInfo(info: SquadInfo): LinkedSquadInfo = {
     //import scala.collection.immutable.::
     Seq(
       (SquadInfo.Field.Capacity, SquadInfo(None, None, None, None, info.capacity)),
@@ -488,8 +498,7 @@ object SquadHeader {
       (SquadInfo.Field.Task, SquadInfo(None, info.task, None, None, None)),
       (SquadInfo.Field.Leader, SquadInfo(info.leader, None, None, None, None))
     ) //in reverse order so that the linked list is in the correct order
-      .filterNot { case (_, sqInfo) => sqInfo == SquadInfo.Blank }
-    match {
+      .filterNot { case (_, sqInfo) => sqInfo == SquadInfo.Blank } match {
       case Nil =>
         throw new Exception("no linked list squad fields encountered where at least one was expected") //bad end
       case x :: Nil =>
@@ -509,11 +518,10 @@ object SquadHeader {
     * @return a linked list of `SquadInfo` objects, each with a single field from the input `SquadInfo` object
     */
   @tailrec
-  private def linkSquadInfo(infoList : Seq[(Int, SquadInfo)], linkedInfo : LinkedSquadInfo) : LinkedSquadInfo = {
-    if(infoList.isEmpty) {
+  private def linkSquadInfo(infoList: Seq[(Int, SquadInfo)], linkedInfo: LinkedSquadInfo): LinkedSquadInfo = {
+    if (infoList.isEmpty) {
       linkedInfo
-    }
-    else {
+    } else {
       val (code, data) = infoList.head
       linkSquadInfo(infoList.tail, LinkedSquadInfo(code, data, Some(linkedInfo)))
     }
@@ -528,14 +536,14 @@ object SquadHeader {
     * @param pad the current overflow/padding value
     * @return a `LinkedSquadInfo` `Codec` object (linked list)
     */
-  private def listing_codec(size : Int, pad : Int = 1) : Codec[LinkedSquadInfo] = {
+  private def listing_codec(size: Int, pad: Int = 1): Codec[LinkedSquadInfo] = {
     import shapeless.::
     (
       uint4 >>:~ { code =>
         selectCodecAction(code, pad) ::
           conditional(size - 1 > 0, listing_codec(size - 1, (pad + modifyPadValue(code, pad)) % 8))
       }
-      ).xmap[LinkedSquadInfo] (
+    ).xmap[LinkedSquadInfo](
       {
         case code :: entry :: next :: HNil =>
           LinkedSquadInfo(code, entry, next)
@@ -556,14 +564,14 @@ object SquadHeader {
     *             should be a 0-7 number that gets converted to a 1-7 string padding number
     * @return a `Codec` object for the specific field's data
     */
-  private def selectCodecAction(code : Int, pad : Int) : Codec[SquadInfo] = {
+  private def selectCodecAction(code: Int, pad: Int): Codec[SquadInfo] = {
     code match {
-      case SquadInfo.Field.Leader => leaderCodec(pad)
-      case SquadInfo.Field.Task => taskCodec(pad)
-      case SquadInfo.Field.ZoneId => zoneIdCodec
-      case SquadInfo.Field.Size => sizeCodec
+      case SquadInfo.Field.Leader   => leaderCodec(pad)
+      case SquadInfo.Field.Task     => taskCodec(pad)
+      case SquadInfo.Field.ZoneId   => zoneIdCodec
+      case SquadInfo.Field.Size     => sizeCodec
       case SquadInfo.Field.Capacity => capacityCodec
-      case _ => failureCodec
+      case _                        => failureCodec
     }
   }
 
@@ -578,14 +586,14 @@ object SquadHeader {
     *             should be a 0-7 number that gets converted to a 1-7 string padding number
     * @return the number of units that the current overflow/padding value should be modified, in terms of addition
     */
-  private def modifyPadValue(code : Int, pad : Int) : Int = {
+  private def modifyPadValue(code: Int, pad: Int): Int = {
     code match {
-      case SquadInfo.Field.Leader => -pad //byte-aligned string; padding zero'd
-      case SquadInfo.Field.Task => -pad //byte-aligned string; padding zero'd
-      case SquadInfo.Field.ZoneId => 4 //4u + 32u = 4u + 8*4u = additional 4u
-      case SquadInfo.Field.Size => 0 //4u + 4u = no change to padding
-      case SquadInfo.Field.Capacity => 0 //4u + 4u = no change to padding
-      case _ => Int.MinValue //wildly incorrect
+      case SquadInfo.Field.Leader   => -pad         //byte-aligned string; padding zero'd
+      case SquadInfo.Field.Task     => -pad         //byte-aligned string; padding zero'd
+      case SquadInfo.Field.ZoneId   => 4            //4u + 32u = 4u + 8*4u = additional 4u
+      case SquadInfo.Field.Size     => 0            //4u + 4u = no change to padding
+      case SquadInfo.Field.Capacity => 0            //4u + 4u = no change to padding
+      case _                        => Int.MinValue //wildly incorrect
     }
   }
 
@@ -599,45 +607,46 @@ object SquadHeader {
     * @param providedCodec the `Codec` for processing a `SquadInfo` object during the squad list initialization process
     * @return a `SquadListing` `Codec` object
     */
-  private def meta_codec(providedCodec : Codec[SquadInfo]) : Codec[Option[SquadInfo]] = {
+  private def meta_codec(providedCodec: Codec[SquadInfo]): Codec[Option[SquadInfo]] = {
     import shapeless.::
-    (
-      bool >>:~ { unk1 =>
-        uint8 >>:~ { unk2 =>
-          conditional(!unk1 && unk2 == 1, removeCodec) ::
-            conditional(unk1 && unk2 == 6, providedCodec) ::
-            conditional(unk1 && unk2 != 6, listing_codec(unk2))
-        }
-      }).exmap[Option[SquadInfo]] (
+    (bool >>:~ { unk1 =>
+      uint8 >>:~ { unk2 =>
+        conditional(!unk1 && unk2 == 1, removeCodec) ::
+          conditional(unk1 && unk2 == 6, providedCodec) ::
+          conditional(unk1 && unk2 != 6, listing_codec(unk2))
+      }
+    }).exmap[Option[SquadInfo]](
       {
         case false :: 1 :: Some(SquadInfo.Blank) :: None :: None :: HNil => //'remove' case
-          Attempt.Successful( None )
+          Attempt.Successful(None)
 
         case true :: 6 :: None :: Some(info) :: None :: HNil => //handle complete squad info; no field codes
-          Attempt.Successful( Some(info) )
+          Attempt.Successful(Some(info))
 
-        case true :: _ :: None :: None:: Some(result) :: HNil => //iterable field codes
-          Attempt.Successful( Some(unlinkSquadInfo(result)) )
+        case true :: _ :: None :: None :: Some(result) :: HNil => //iterable field codes
+          Attempt.Successful(Some(unlinkSquadInfo(result)))
 
         case data => //error
           Attempt.failure(Err(s"$data can not be encoded as a squad header"))
       },
       {
         case None => //'remove' case
-          Attempt.Successful( false :: 1 :: Some(SquadInfo.Blank) :: None :: None :: HNil )
+          Attempt.Successful(false :: 1 :: Some(SquadInfo.Blank) :: None :: None :: HNil)
 
-        case info @ Some(SquadInfo(Some(_), Some(_), Some(_), Some(_), Some(_), Some(_))) => //handle complete squad info; no field codes
-          Attempt.Successful( true :: 6 :: None :: info :: None :: HNil )
+        case info @ Some(
+              SquadInfo(Some(_), Some(_), Some(_), Some(_), Some(_), Some(_))
+            ) => //handle complete squad info; no field codes
+          Attempt.Successful(true :: 6 :: None :: info :: None :: HNil)
 
         case Some(info) => //iterable field codes
           val linkedInfo = linkSquadInfo(info)
-          var count = 1
-          var linkNext = linkedInfo.next
-          while(linkNext.nonEmpty) {
+          var count      = 1
+          var linkNext   = linkedInfo.next
+          while (linkNext.nonEmpty) {
             count += 1
             linkNext = linkNext.get.next
           }
-          Attempt.Successful( true :: count :: None :: None :: Some(linkSquadInfo(info)) :: HNil )
+          Attempt.Successful(true :: count :: None :: None :: Some(linkSquadInfo(info)) :: HNil)
 
         case data => //error
           Attempt.failure(Err(s"$data can not be decoded into a squad header"))
@@ -648,17 +657,17 @@ object SquadHeader {
   /**
     * `Codec` for standard `SquadHeader` entries.
     */
-  val codec : Codec[Option[SquadInfo]] = meta_codec(allCodec)
+  val codec: Codec[Option[SquadInfo]] = meta_codec(allCodec)
 
   /**
     * `Codec` for types of `SquadHeader` initializations.
     */
-  val info_codec : Codec[Option[SquadInfo]] = meta_codec(infoCodec)
+  val info_codec: Codec[Option[SquadInfo]] = meta_codec(infoCodec)
 
   /**
     * Alternate `Codec` for types of `SquadHeader` initializations.
     */
-  val alt_info_codec : Codec[Option[SquadInfo]] = meta_codec(alt_infoCodec)
+  val alt_info_codec: Codec[Option[SquadInfo]] = meta_codec(alt_infoCodec)
 }
 
 object SquadListing {
@@ -670,7 +679,7 @@ object SquadListing {
     * @param info the squad data
     * @return a `SquadListing` object
     */
-  def apply(index : Int, info : SquadInfo) : SquadListing = {
+  def apply(index: Int, info: SquadInfo): SquadListing = {
     SquadListing(index, Some(info))
   }
 
@@ -679,36 +688,36 @@ object SquadListing {
     * @param entryFunc the `Codec` for processing a given `SquadListing` object
     * @return a `SquadListing` `Codec` object
     */
-  private def meta_codec(entryFunc : Int=>Codec[Option[SquadInfo]]) : Codec[SquadListing] = (
-    ("index" | uint8L) >>:~ { index =>
+  private def meta_codec(entryFunc: Int => Codec[Option[SquadInfo]]): Codec[SquadListing] =
+    (("index" | uint8L) >>:~ { index =>
       conditional(index < 255, "listing" | entryFunc(index)) ::
-        conditional(index == 255, bits) //consume n < 8 bits after the tail entry, else vector will try to operate on invalid data
-    }).xmap[SquadListing] (
-    {
-      case ndx :: Some(lstng) :: _ :: HNil =>
-        SquadListing(ndx, lstng)
-      case ndx :: None :: _ :: HNil =>
-        SquadListing(ndx, None)
-    },
-    {
-      case SquadListing(ndx, lstng) =>
-        ndx :: Some(lstng) :: None :: HNil
-    }
-  )
+        conditional(
+          index == 255,
+          bits
+        ) //consume n < 8 bits after the tail entry, else vector will try to operate on invalid data
+    }).xmap[SquadListing](
+      {
+        case ndx :: Some(lstng) :: _ :: HNil =>
+          SquadListing(ndx, lstng)
+        case ndx :: None :: _ :: HNil =>
+          SquadListing(ndx, None)
+      },
+      {
+        case SquadListing(ndx, lstng) =>
+          ndx :: Some(lstng) :: None :: HNil
+      }
+    )
 
   /**
     * `Codec` for standard `SquadListing` entries.
     */
-  val codec : Codec[SquadListing] = meta_codec({ _ => SquadHeader.codec })
+  val codec: Codec[SquadListing] = meta_codec({ _ => SquadHeader.codec })
 
   /**
     * `Codec` for branching types of `SquadListing` initializations.
     */
-  val info_codec : Codec[SquadListing] = meta_codec({ index : Int =>
-    newcodecs.binary_choice(index == 0,
-      "listing" | SquadHeader.info_codec,
-      "listing" | SquadHeader.alt_info_codec
-    )
+  val info_codec: Codec[SquadListing] = meta_codec({ index: Int =>
+    newcodecs.binary_choice(index == 0, "listing" | SquadHeader.info_codec, "listing" | SquadHeader.alt_info_codec)
   })
 }
 
@@ -721,23 +730,23 @@ object ReplicationStreamMessage extends Marshallable[ReplicationStreamMessage] {
     * @param infos the squad data to be composed into formal list entries
     * @return a `ReplicationStreamMessage` packet object
     */
-  def apply(infos : Iterable[SquadInfo]) : ReplicationStreamMessage = {
-    ReplicationStreamMessage(5, Some(6), infos
-      .zipWithIndex
-      .map { case (info, index) => SquadListing(index, Some(info)) }
-      .toVector
+  def apply(infos: Iterable[SquadInfo]): ReplicationStreamMessage = {
+    ReplicationStreamMessage(
+      5,
+      Some(6),
+      infos.zipWithIndex.map { case (info, index) => SquadListing(index, Some(info)) }.toVector
     )
   }
 
-  implicit val codec : Codec[ReplicationStreamMessage] = (
-    ("behavior" | uintL(3)) >>:~ { behavior =>
-      conditional(behavior == 5, "behavior2" | uintL(3)) ::
-        conditional(behavior != 1, bool) ::
-        newcodecs.binary_choice(behavior != 5,
-          "entries" | vector(SquadListing.codec),
-          "entries" | vector(SquadListing.info_codec)
-        )
-    }).xmap[ReplicationStreamMessage] (
+  implicit val codec: Codec[ReplicationStreamMessage] = (("behavior" | uintL(3)) >>:~ { behavior =>
+    conditional(behavior == 5, "behavior2" | uintL(3)) ::
+      conditional(behavior != 1, bool) ::
+      newcodecs.binary_choice(
+        behavior != 5,
+        "entries" | vector(SquadListing.codec),
+        "entries" | vector(SquadListing.info_codec)
+      )
+  }).xmap[ReplicationStreamMessage](
     {
       case bhvr :: bhvr2 :: _ :: lst :: HNil =>
         ReplicationStreamMessage(bhvr, bhvr2, ignoreTerminatingEntry(lst))
@@ -756,10 +765,10 @@ object ReplicationStreamMessage extends Marshallable[ReplicationStreamMessage] {
     * @param list the listing of squad information
     * @return the listing of squad information, with a specific final entry
     */
-  private def ensureTerminatingEntry(list : Vector[SquadListing]) : Vector[SquadListing] = {
+  private def ensureTerminatingEntry(list: Vector[SquadListing]): Vector[SquadListing] = {
     list.lastOption match {
       case Some(SquadListing(255, _)) => list
-      case Some(_) | None => list :+ SquadListing()
+      case Some(_) | None             => list :+ SquadListing()
     }
   }
 
@@ -769,10 +778,10 @@ object ReplicationStreamMessage extends Marshallable[ReplicationStreamMessage] {
     * @param list the listing of squad information
     * @return the listing of squad information, with a specific final entry truncated
     */
-  private def ignoreTerminatingEntry(list : Vector[SquadListing]) : Vector[SquadListing] = {
+  private def ignoreTerminatingEntry(list: Vector[SquadListing]): Vector[SquadListing] = {
     list.lastOption match {
       case Some(SquadListing(255, _)) => list.init
-      case Some(_) | None => list
+      case Some(_) | None             => list
     }
   }
 }
@@ -788,4 +797,4 @@ ReplicationStream.codec -+                                                      
                          +-> SquadListing.info_codec -+                               |
                                                       |                               |
                                                       +-> SquadHeader.alt_info_codec -+
-*/
+ */

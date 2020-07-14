@@ -8,12 +8,15 @@ import net.psforever.objects.guid.{GUIDTask, TaskResolver}
 class GUIDTaskRegisterToolTest extends ActorTest {
   "RegisterEquipment -> RegisterTool" in {
     val (_, uns, taskResolver, probe) = GUIDTaskTest.CommonTestSetup
-    val obj = Tool(GlobalDefinitions.beamer)
+    val obj                           = Tool(GlobalDefinitions.beamer)
     obj.AmmoSlots.head.Box = AmmoBox(GlobalDefinitions.energy_cell)
 
     assert(!obj.HasGUID)
     assert(!obj.AmmoSlots.head.Box.HasGUID)
-    taskResolver ! TaskResolver.GiveTask(new GUIDTaskTest.RegisterTestTask(probe.ref), List(GUIDTask.RegisterEquipment(obj)(uns)))
+    taskResolver ! TaskResolver.GiveTask(
+      new GUIDTaskTest.RegisterTestTask(probe.ref),
+      List(GUIDTask.RegisterEquipment(obj)(uns))
+    )
     probe.expectMsg(scala.util.Success)
     assert(obj.HasGUID)
     assert(obj.AmmoSlots.head.Box.HasGUID)

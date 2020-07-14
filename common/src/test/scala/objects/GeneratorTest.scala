@@ -47,7 +47,7 @@ class GeneratorControlConstructTest extends ActorTest {
 class GeneratorControlDamageTest extends ActorTest {
   val guid = new NumberPoolHub(new LimitedNumberSource(5))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
-    override def SetupNumberPools() = { }
+    override def SetupNumberPools() = {}
     GUID(guid)
   }
   val avatarProbe = TestProbe()
@@ -59,8 +59,9 @@ class GeneratorControlDamageTest extends ActorTest {
   gen.Position = Vector3(1, 0, 0)
   gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "generator-control")
 
-  val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
-  player1.Position = Vector3(14, 0, 0) //<14m from generator; dies
+  val player1 =
+    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
+  player1.Position = Vector3(14, 0, 0)                                                                  //<14m from generator; dies
   player1.Spawn
 
   val building = Building("test-building", 1, 1, zone, StructureType.Facility) //guid=1
@@ -75,11 +76,19 @@ class GeneratorControlDamageTest extends ActorTest {
   guid.register(gen, 2)
   guid.register(player1, 3)
 
-  val weapon = Tool(GlobalDefinitions.phoenix) //decimator
+  val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
   val resolved = ResolvedProjectile(
     ProjectileResolution.Splash,
-    Projectile(projectile, weapon.Definition, weapon.FireMode, PlayerSource(player1), 0, Vector3(2, 0, 0), Vector3(-1, 0, 0)),
+    Projectile(
+      projectile,
+      weapon.Definition,
+      weapon.FireMode,
+      PlayerSource(player1),
+      0,
+      Vector3(2, 0, 0),
+      Vector3(-1, 0, 0)
+    ),
     SourceEntry(gen),
     gen.DamageModel,
     Vector3(1, 0, 0)
@@ -100,12 +109,13 @@ class GeneratorControlDamageTest extends ActorTest {
       assert(
         msg_avatar.head match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
-          case _ => false
+          case _                                                                                            => false
         }
       )
       assert(
         msg_avatar(1) match {
-          case AvatarServiceMessage("TestCharacter1", AvatarAction.GenericObjectAction(_, PlanetSideGUID(1), 15)) => true
+          case AvatarServiceMessage("TestCharacter1", AvatarAction.GenericObjectAction(_, PlanetSideGUID(1), 15)) =>
+            true
           case _ => false
         }
       )
@@ -119,7 +129,7 @@ class GeneratorControlDamageTest extends ActorTest {
 class GeneratorControlCriticalTest extends ActorTest {
   val guid = new NumberPoolHub(new LimitedNumberSource(5))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
-    override def SetupNumberPools() = { }
+    override def SetupNumberPools() = {}
     GUID(guid)
   }
   val avatarProbe = TestProbe()
@@ -131,8 +141,9 @@ class GeneratorControlCriticalTest extends ActorTest {
   gen.Position = Vector3(1, 0, 0)
   gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "generator-control")
 
-  val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
-  player1.Position = Vector3(14, 0, 0) //<14m from generator; dies
+  val player1 =
+    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
+  player1.Position = Vector3(14, 0, 0)                                                                  //<14m from generator; dies
   player1.Spawn
 
   val building = Building("test-building", 1, 1, zone, StructureType.Facility) //guid=1
@@ -147,17 +158,25 @@ class GeneratorControlCriticalTest extends ActorTest {
   guid.register(gen, 2)
   guid.register(player1, 3)
 
-  val weapon = Tool(GlobalDefinitions.phoenix) //decimator
+  val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
   val resolved = ResolvedProjectile(
     ProjectileResolution.Splash,
-    Projectile(projectile, weapon.Definition, weapon.FireMode, PlayerSource(player1), 0, Vector3(2, 0, 0), Vector3(-1, 0, 0)),
+    Projectile(
+      projectile,
+      weapon.Definition,
+      weapon.FireMode,
+      PlayerSource(player1),
+      0,
+      Vector3(2, 0, 0),
+      Vector3(-1, 0, 0)
+    ),
     SourceEntry(gen),
     gen.DamageModel,
     Vector3(1, 0, 0)
   )
   val applyDamageTo = resolved.damage_model.Calculate(resolved)
-  val halfHealth = gen.Definition.MaxHealth / 2
+  val halfHealth    = gen.Definition.MaxHealth / 2
   expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
@@ -169,24 +188,25 @@ class GeneratorControlCriticalTest extends ActorTest {
       assert(gen.Condition == PlanetSideGeneratorState.Normal)
 
       gen.Actor ! Vitality.Damage(applyDamageTo)
-      val msg_avatar = avatarProbe.receiveN(2, 500 milliseconds)
+      val msg_avatar   = avatarProbe.receiveN(2, 500 milliseconds)
       val msg_building = buildingProbe.receiveOne(500 milliseconds)
       assert(
         msg_avatar.head match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
-          case _ => false
+          case _                                                                                            => false
         }
       )
       assert(
         msg_avatar(1) match {
-          case AvatarServiceMessage("TestCharacter1", AvatarAction.GenericObjectAction(_, PlanetSideGUID(1), 15)) => true
+          case AvatarServiceMessage("TestCharacter1", AvatarAction.GenericObjectAction(_, PlanetSideGUID(1), 15)) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_building match {
           case Building.AmenityStateChange(o) => o eq gen
-          case _ => false
+          case _                              => false
         }
       )
       assert(gen.Health < halfHealth)
@@ -199,7 +219,7 @@ class GeneratorControlCriticalTest extends ActorTest {
 class GeneratorControlDestroyedTest extends ActorTest {
   val guid = new NumberPoolHub(new LimitedNumberSource(5))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
-    override def SetupNumberPools() = { }
+    override def SetupNumberPools() = {}
     GUID(guid)
   }
   val avatarProbe = TestProbe()
@@ -211,8 +231,9 @@ class GeneratorControlDestroyedTest extends ActorTest {
   gen.Position = Vector3(1, 0, 0)
   gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "generator-control")
 
-  val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
-  player1.Position = Vector3(14, 0, 0) //<14m from generator; dies
+  val player1 =
+    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
+  player1.Position = Vector3(14, 0, 0)                                                                  //<14m from generator; dies
   player1.Spawn
   player1.Actor = TestProbe().ref
 
@@ -228,11 +249,19 @@ class GeneratorControlDestroyedTest extends ActorTest {
   guid.register(gen, 2)
   guid.register(player1, 3)
 
-  val weapon = Tool(GlobalDefinitions.phoenix) //decimator
+  val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
   val resolved = ResolvedProjectile(
     ProjectileResolution.Splash,
-    Projectile(projectile, weapon.Definition, weapon.FireMode, PlayerSource(player1), 0, Vector3(2, 0, 0), Vector3(-1, 0, 0)),
+    Projectile(
+      projectile,
+      weapon.Definition,
+      weapon.FireMode,
+      PlayerSource(player1),
+      0,
+      Vector3(2, 0, 0),
+      Vector3(-1, 0, 0)
+    ),
     SourceEntry(gen),
     gen.DamageModel,
     Vector3(1, 0, 0)
@@ -253,7 +282,8 @@ class GeneratorControlDestroyedTest extends ActorTest {
       buildingProbe.expectNoMessage(200 milliseconds)
       assert(
         msg_avatar1 match {
-          case AvatarServiceMessage("TestCharacter1", AvatarAction.GenericObjectAction(_, PlanetSideGUID(1), 16)) => true
+          case AvatarServiceMessage("TestCharacter1", AvatarAction.GenericObjectAction(_, PlanetSideGUID(1), 16)) =>
+            true
           case _ => false
         }
       )
@@ -263,31 +293,33 @@ class GeneratorControlDestroyedTest extends ActorTest {
 
       avatarProbe.expectNoMessage(9 seconds)
       buildingProbe.expectNoMessage(50 milliseconds) //no prior messages
-      val msg_avatar2 = avatarProbe.receiveN(3, 1000 milliseconds) //see DamageableEntity test file
+      val msg_avatar2  = avatarProbe.receiveN(3, 1000 milliseconds) //see DamageableEntity test file
       val msg_building = buildingProbe.receiveOne(200 milliseconds)
       assert(
         msg_building match {
           case Building.AmenityStateChange(o) => o eq gen
-          case _ => false
+          case _                              => false
         }
       )
       assert(
         msg_avatar2.head match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
-          case _ => false
+          case _                                                                                            => false
         }
       )
       assert(
         msg_avatar2(1) match {
           case AvatarServiceMessage("test", AvatarAction.Destroy(PlanetSideGUID(2), _, _, Vector3(1, 0, 0))) => true
-          case _ => false
+          case _                                                                                             => false
         }
       )
       assert(
         msg_avatar2(2) match {
-          case AvatarServiceMessage("test",
-            AvatarAction.SendResponse(_, TriggerEffectMessage(PlanetSideGUID(2), "explosion_generator", None, None))
-          ) => true
+          case AvatarServiceMessage(
+                "test",
+                AvatarAction.SendResponse(_, TriggerEffectMessage(PlanetSideGUID(2), "explosion_generator", None, None))
+              ) =>
+            true
           case _ => false
         }
       )
@@ -310,7 +342,7 @@ class GeneratorControlKillsTest extends ActorTest {
    */
   val guid = new NumberPoolHub(new LimitedNumberSource(5))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
-    override def SetupNumberPools() = { }
+    override def SetupNumberPools() = {}
     GUID(guid)
   }
   val avatarProbe = TestProbe()
@@ -322,13 +354,15 @@ class GeneratorControlKillsTest extends ActorTest {
   gen.Position = Vector3(1, 0, 0)
   gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "generator-control")
 
-  val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
-  player1.Position = Vector3(14, 0, 0) //<14m from generator; dies
+  val player1 =
+    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
+  player1.Position = Vector3(14, 0, 0)                                                                  //<14m from generator; dies
   player1.Spawn
   val player1Probe = TestProbe()
   player1.Actor = player1Probe.ref
-  val player2 = Player(Avatar("TestCharacter2", PlanetSideEmpire.TR, CharacterGender.Female, 1, CharacterVoice.Mute)) //guid=4
-  player2.Position = Vector3(15, 0, 0) //>14m from generator; lives
+  val player2 =
+    Player(Avatar("TestCharacter2", PlanetSideEmpire.TR, CharacterGender.Female, 1, CharacterVoice.Mute)) //guid=4
+  player2.Position = Vector3(15, 0, 0)                                                                    //>14m from generator; lives
   player2.Spawn
   val player2Probe = TestProbe()
   player2.Actor = player2Probe.ref
@@ -346,11 +380,19 @@ class GeneratorControlKillsTest extends ActorTest {
   guid.register(player1, 3)
   guid.register(player2, 4)
 
-  val weapon = Tool(GlobalDefinitions.phoenix) //decimator
+  val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
   val resolved = ResolvedProjectile(
     ProjectileResolution.Splash,
-    Projectile(projectile, weapon.Definition, weapon.FireMode, PlayerSource(player1), 0, Vector3(2, 0, 0), Vector3(-1, 0, 0)),
+    Projectile(
+      projectile,
+      weapon.Definition,
+      weapon.FireMode,
+      PlayerSource(player1),
+      0,
+      Vector3(2, 0, 0),
+      Vector3(-1, 0, 0)
+    ),
     SourceEntry(gen),
     gen.DamageModel,
     Vector3(1, 0, 0)
@@ -373,13 +415,15 @@ class GeneratorControlKillsTest extends ActorTest {
       player2Probe.expectNoMessage(200 milliseconds)
       assert(
         msg_avatar1.head match {
-          case AvatarServiceMessage("TestCharacter1", AvatarAction.GenericObjectAction(_, PlanetSideGUID(1), 16)) => true
+          case AvatarServiceMessage("TestCharacter1", AvatarAction.GenericObjectAction(_, PlanetSideGUID(1), 16)) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_avatar1(1) match {
-          case AvatarServiceMessage("TestCharacter2", AvatarAction.GenericObjectAction(_, PlanetSideGUID(1), 16)) => true
+          case AvatarServiceMessage("TestCharacter2", AvatarAction.GenericObjectAction(_, PlanetSideGUID(1), 16)) =>
+            true
           case _ => false
         }
       )
@@ -388,39 +432,41 @@ class GeneratorControlKillsTest extends ActorTest {
       assert(gen.Condition == PlanetSideGeneratorState.Normal)
 
       val msg_building = buildingProbe.receiveOne(10500 milliseconds)
-      val msg_avatar2 = avatarProbe.receiveN(3, 200 milliseconds)
-      val msg_player1 = player1Probe.receiveOne(100 milliseconds)
+      val msg_avatar2  = avatarProbe.receiveN(3, 200 milliseconds)
+      val msg_player1  = player1Probe.receiveOne(100 milliseconds)
       player2Probe.expectNoMessage(200 milliseconds)
       assert(
         msg_building match {
           case Building.AmenityStateChange(o) => o eq gen
-          case _ => false
+          case _                              => false
         }
       )
       assert(
         msg_avatar2.head match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
-          case _ => false
+          case _                                                                                            => false
         }
       )
       assert(
         msg_avatar2(1) match {
           case AvatarServiceMessage("test", AvatarAction.Destroy(PlanetSideGUID(2), _, _, Vector3(1, 0, 0))) => true
-          case _ => false
+          case _                                                                                             => false
         }
       )
       assert(
         msg_avatar2(2) match {
-          case AvatarServiceMessage("test",
-          AvatarAction.SendResponse(_, TriggerEffectMessage(PlanetSideGUID(2), "explosion_generator", None, None))
-          ) => true
+          case AvatarServiceMessage(
+                "test",
+                AvatarAction.SendResponse(_, TriggerEffectMessage(PlanetSideGUID(2), "explosion_generator", None, None))
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_player1 match {
-          case _ @ Player.Die() => true
-          case _ => false
+          case _ @Player.Die() => true
+          case _               => false
         }
       )
       assert(gen.Health == 0)
@@ -437,8 +483,9 @@ class GeneratorControlNotDestroyTwice extends ActorTest {
     GUID(guid)
   }
   val building = Building("test-building", 1, 1, zone, StructureType.Facility) //guid=1
-  val gen = Generator(GlobalDefinitions.generator) //guid=2
-  val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
+  val gen      = Generator(GlobalDefinitions.generator)                        //guid=2
+  val player1 =
+    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
   player1.Spawn
   guid.register(building, 1)
   guid.register(gen, 2)
@@ -449,17 +496,25 @@ class GeneratorControlNotDestroyTwice extends ActorTest {
   gen.Position = Vector3(1, 0, 0)
   gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "generator-control")
   val activityProbe = TestProbe()
-  val avatarProbe = TestProbe()
+  val avatarProbe   = TestProbe()
   val buildingProbe = TestProbe()
   zone.Activity = activityProbe.ref
   zone.AvatarEvents = avatarProbe.ref
   building.Actor = buildingProbe.ref
 
-  val weapon = Tool(GlobalDefinitions.phoenix) //decimator
+  val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
   val resolved = ResolvedProjectile(
     ProjectileResolution.Splash,
-    Projectile(projectile, weapon.Definition, weapon.FireMode, PlayerSource(player1), 0, Vector3(2, 0, 0), Vector3(-1, 0, 0)),
+    Projectile(
+      projectile,
+      weapon.Definition,
+      weapon.FireMode,
+      PlayerSource(player1),
+      0,
+      Vector3(2, 0, 0),
+      Vector3(-1, 0, 0)
+    ),
     SourceEntry(gen),
     gen.DamageModel,
     Vector3(1, 0, 0)
@@ -506,7 +561,7 @@ class GeneratorControlNotDestroyTwice extends ActorTest {
 class GeneratorControlNotDamageIfExplodingTest extends ActorTest {
   val guid = new NumberPoolHub(new LimitedNumberSource(5))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
-    override def SetupNumberPools() = { }
+    override def SetupNumberPools() = {}
     GUID(guid)
   }
   val avatarProbe = TestProbe()
@@ -518,8 +573,9 @@ class GeneratorControlNotDamageIfExplodingTest extends ActorTest {
   gen.Position = Vector3(1, 0, 0)
   gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "generator-control")
 
-  val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
-  player1.Position = Vector3(14, 0, 0) //<14m from generator; dies
+  val player1 =
+    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
+  player1.Position = Vector3(14, 0, 0)                                                                  //<14m from generator; dies
   player1.Spawn
   val player1Probe = TestProbe()
   player1.Actor = player1Probe.ref
@@ -536,11 +592,19 @@ class GeneratorControlNotDamageIfExplodingTest extends ActorTest {
   guid.register(gen, 2)
   guid.register(player1, 3)
 
-  val weapon = Tool(GlobalDefinitions.phoenix) //decimator
+  val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
   val resolved = ResolvedProjectile(
     ProjectileResolution.Splash,
-    Projectile(projectile, weapon.Definition, weapon.FireMode, PlayerSource(player1), 0, Vector3(2, 0, 0), Vector3(-1, 0, 0)),
+    Projectile(
+      projectile,
+      weapon.Definition,
+      weapon.FireMode,
+      PlayerSource(player1),
+      0,
+      Vector3(2, 0, 0),
+      Vector3(-1, 0, 0)
+    ),
     SourceEntry(gen),
     gen.DamageModel,
     Vector3(1, 0, 0)
@@ -562,7 +626,8 @@ class GeneratorControlNotDamageIfExplodingTest extends ActorTest {
       player1Probe.expectNoMessage(200 milliseconds)
       assert(
         msg_avatar match {
-          case AvatarServiceMessage("TestCharacter1", AvatarAction.GenericObjectAction(_, PlanetSideGUID(1), 16)) => true
+          case AvatarServiceMessage("TestCharacter1", AvatarAction.GenericObjectAction(_, PlanetSideGUID(1), 16)) =>
+            true
           case _ => false
         }
       )
@@ -590,7 +655,7 @@ class GeneratorControlNotDamageIfExplodingTest extends ActorTest {
 class GeneratorControlNotRepairIfExplodingTest extends ActorTest {
   val guid = new NumberPoolHub(new LimitedNumberSource(5))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
-    override def SetupNumberPools() = { }
+    override def SetupNumberPools() = {}
     GUID(guid)
   }
   val avatarProbe = TestProbe()
@@ -602,8 +667,9 @@ class GeneratorControlNotRepairIfExplodingTest extends ActorTest {
   gen.Position = Vector3(1, 0, 0)
   gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "generator-control")
 
-  val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
-  player1.Position = Vector3(14, 0, 0) //<14m from generator; dies
+  val player1 =
+    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
+  player1.Position = Vector3(14, 0, 0)                                                                  //<14m from generator; dies
   player1.Spawn
   val player1Probe = TestProbe()
   player1.Actor = player1Probe.ref
@@ -620,11 +686,19 @@ class GeneratorControlNotRepairIfExplodingTest extends ActorTest {
   guid.register(gen, 2)
   guid.register(player1, 3)
 
-  val weapon = Tool(GlobalDefinitions.phoenix) //decimator
+  val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
   val resolved = ResolvedProjectile(
     ProjectileResolution.Splash,
-    Projectile(projectile, weapon.Definition, weapon.FireMode, PlayerSource(player1), 0, Vector3(2, 0, 0), Vector3(-1, 0, 0)),
+    Projectile(
+      projectile,
+      weapon.Definition,
+      weapon.FireMode,
+      PlayerSource(player1),
+      0,
+      Vector3(2, 0, 0),
+      Vector3(-1, 0, 0)
+    ),
     SourceEntry(gen),
     gen.DamageModel,
     Vector3(1, 0, 0)
@@ -650,7 +724,8 @@ class GeneratorControlNotRepairIfExplodingTest extends ActorTest {
       player1Probe.expectNoMessage(200 milliseconds)
       assert(
         msg_avatar1 match {
-          case AvatarServiceMessage("TestCharacter1", AvatarAction.GenericObjectAction(_, PlanetSideGUID(1), 16)) => true
+          case AvatarServiceMessage("TestCharacter1", AvatarAction.GenericObjectAction(_, PlanetSideGUID(1), 16)) =>
+            true
           case _ => false
         }
       )
@@ -661,13 +736,13 @@ class GeneratorControlNotRepairIfExplodingTest extends ActorTest {
 
       //once
       gen.Actor ! CommonMessages.Use(player1, Some(tool)) //repair?
-      avatarProbe.expectNoMessage(1000 milliseconds) //no messages
+      avatarProbe.expectNoMessage(1000 milliseconds)      //no messages
       buildingProbe.expectNoMessage(200 milliseconds)
       player1Probe.expectNoMessage(200 milliseconds)
       assert(gen.Health == 1)
       //twice
       gen.Actor ! CommonMessages.Use(player1, Some(tool)) //repair?
-      avatarProbe.expectNoMessage(1000 milliseconds) //no messages
+      avatarProbe.expectNoMessage(1000 milliseconds)      //no messages
       buildingProbe.expectNoMessage(200 milliseconds)
       player1Probe.expectNoMessage(200 milliseconds)
       assert(gen.Health == 1)
@@ -678,7 +753,7 @@ class GeneratorControlNotRepairIfExplodingTest extends ActorTest {
 class GeneratorControlRepairPastRestorePoint extends ActorTest {
   val guid = new NumberPoolHub(new LimitedNumberSource(5))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
-    override def SetupNumberPools() = { }
+    override def SetupNumberPools() = {}
     GUID(guid)
   }
   val avatarProbe = TestProbe()
@@ -690,8 +765,9 @@ class GeneratorControlRepairPastRestorePoint extends ActorTest {
   gen.Position = Vector3(1, 0, 0)
   gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "generator-control")
 
-  val player1 = Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
-  player1.Position = Vector3(14, 0, 0) //<14m from generator; dies
+  val player1 =
+    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
+  player1.Position = Vector3(14, 0, 0)                                                                  //<14m from generator; dies
   player1.Spawn
   val player1Probe = TestProbe()
   player1.Actor = player1Probe.ref
@@ -724,38 +800,46 @@ class GeneratorControlRepairPastRestorePoint extends ActorTest {
       assert(gen.Destroyed)
 
       gen.Actor ! CommonMessages.Use(player1, Some(tool)) //repair
-      val msg_avatar = avatarProbe.receiveN(4, 500 milliseconds) //expected
+      val msg_avatar   = avatarProbe.receiveN(4, 500 milliseconds) //expected
       val msg_building = buildingProbe.receiveOne(200 milliseconds)
       assert(
         msg_avatar.head match {
-          case AvatarServiceMessage("TestCharacter1",
-            AvatarAction.SendResponse(_, InventoryStateMessage(ValidPlanetSideGUID(5), _, ValidPlanetSideGUID(4), _))
-          ) => true
+          case AvatarServiceMessage(
+                "TestCharacter1",
+                AvatarAction
+                  .SendResponse(_, InventoryStateMessage(ValidPlanetSideGUID(5), _, ValidPlanetSideGUID(4), _))
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_avatar(1) match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
-          case _ => false
+          case _                                                                                            => false
         }
       )
       assert(
         msg_avatar(2) match {
-          case AvatarServiceMessage("TestCharacter1", AvatarAction.GenericObjectAction(_, PlanetSideGUID(1), 17)) => true
+          case AvatarServiceMessage("TestCharacter1", AvatarAction.GenericObjectAction(_, PlanetSideGUID(1), 17)) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_avatar(3) match {
-          case AvatarServiceMessage("TestCharacter1", AvatarAction.SendResponse(_, RepairMessage(ValidPlanetSideGUID(2), _))) => true
+          case AvatarServiceMessage(
+                "TestCharacter1",
+                AvatarAction.SendResponse(_, RepairMessage(ValidPlanetSideGUID(2), _))
+              ) =>
+            true
           case _ => false
         }
       )
       assert(
         msg_building match {
           case Building.AmenityStateChange(o) => o eq gen
-          case _ => false
+          case _                              => false
         }
       )
       assert(gen.Condition == PlanetSideGeneratorState.Normal)

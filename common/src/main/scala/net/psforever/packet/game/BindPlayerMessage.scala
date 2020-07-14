@@ -17,13 +17,7 @@ import scodec.codecs._
 object BindStatus extends Enumeration(1) {
   type Type = Value
 
-  val
-  Bind,
-  Unbind,
-  Lost,
-  Available,
-  Unavailable
-    = Value
+  val Bind, Unbind, Lost, Available, Unavailable = Value
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uint8)
 }
@@ -68,21 +62,23 @@ object BindStatus extends Enumeration(1) {
   * @param pos coordinates for any displayed deployment map icon;
   *            `x` and `y` determine the position
   */
-final case class BindPlayerMessage(action : BindStatus.Value,
-                                   bind_desc : String,
-                                   display_icon : Boolean,
-                                   logging : Boolean,
-                                   spawn_group : SpawnGroup.Value,
-                                   zone_number : Long,
-                                   unk4 : Long,
-                                   pos : Vector3)
-  extends PlanetSideGamePacket {
+final case class BindPlayerMessage(
+    action: BindStatus.Value,
+    bind_desc: String,
+    display_icon: Boolean,
+    logging: Boolean,
+    spawn_group: SpawnGroup.Value,
+    zone_number: Long,
+    unk4: Long,
+    pos: Vector3
+) extends PlanetSideGamePacket {
   type Packet = BindPlayerMessage
   def opcode = GamePacketOpcode.BindPlayerMessage
   def encode = BindPlayerMessage.encode(this)
 }
 
 object BindPlayerMessage extends Marshallable[BindPlayerMessage] {
+
   /**
     * A common variant of this packet.
     */
@@ -90,7 +86,7 @@ object BindPlayerMessage extends Marshallable[BindPlayerMessage] {
 
   private val spawnGroupCodec = PacketHelpers.createEnumerationCodec(SpawnGroup, uint4)
 
-  implicit val codec : Codec[BindPlayerMessage] = (
+  implicit val codec: Codec[BindPlayerMessage] = (
     ("action" | BindStatus.codec) ::
       ("bind_desc" | PacketHelpers.encodedString) ::
       ("display_icon" | bool) ::
@@ -99,5 +95,5 @@ object BindPlayerMessage extends Marshallable[BindPlayerMessage] {
       ("zone_number" | uint32L) ::
       ("unk4" | uint32L) ::
       ("pos" | Vector3.codec_pos)
-    ).as[BindPlayerMessage]
+  ).as[BindPlayerMessage]
 }

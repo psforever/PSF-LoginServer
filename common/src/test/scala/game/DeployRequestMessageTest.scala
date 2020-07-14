@@ -31,7 +31,8 @@ class DeployRequestMessageTest extends Specification {
       PlanetSideGUID(75),
       PlanetSideGUID(380),
       DriveState.Deploying,
-      0, false,
+      0,
+      false,
       Vector3(4060.1953f, 2218.8281f, 155.32812f)
     )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector

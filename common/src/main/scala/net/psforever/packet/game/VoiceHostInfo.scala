@@ -14,17 +14,15 @@ import scodec.codecs._
   * @param player_guid the player who sent this info (the originator of voice chat?)
   * @param data everything else
   */
-final case class VoiceHostInfo(player_guid : PlanetSideGUID,
-                               data : ByteVector)
-  extends PlanetSideGamePacket {
+final case class VoiceHostInfo(player_guid: PlanetSideGUID, data: ByteVector) extends PlanetSideGamePacket {
   type Packet = VoiceHostInfo
   def opcode = GamePacketOpcode.VoiceHostInfo
   def encode = VoiceHostInfo.encode(this)
 }
 
 object VoiceHostInfo extends Marshallable[VoiceHostInfo] {
-  implicit val codec : Codec[VoiceHostInfo] = (
+  implicit val codec: Codec[VoiceHostInfo] = (
     ("player_guid" | PlanetSideGUID.codec) ::
       ("data" | bytes)
-    ).as[VoiceHostInfo]
+  ).as[VoiceHostInfo]
 }

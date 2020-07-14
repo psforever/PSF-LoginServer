@@ -15,21 +15,22 @@ import scodec.codecs._
   * @param error an error code, if applicable;
   *              no error by default
   */
-final case class ItemTransactionResultMessage(terminal_guid : PlanetSideGUID,
-                                              transaction_type : TransactionType.Value,
-                                              success : Boolean,
-                                              error : Int = 0)
-  extends PlanetSideGamePacket {
+final case class ItemTransactionResultMessage(
+    terminal_guid: PlanetSideGUID,
+    transaction_type: TransactionType.Value,
+    success: Boolean,
+    error: Int = 0
+) extends PlanetSideGamePacket {
   type Packet = ItemTransactionResultMessage
   def opcode = GamePacketOpcode.ItemTransactionResultMessage
   def encode = ItemTransactionResultMessage.encode(this)
 }
 
 object ItemTransactionResultMessage extends Marshallable[ItemTransactionResultMessage] {
-  implicit val codec : Codec[ItemTransactionResultMessage] = (
+  implicit val codec: Codec[ItemTransactionResultMessage] = (
     ("terminal_guid" | PlanetSideGUID.codec) ::
       ("transaction_type" | TransactionType.codec) ::
       ("success" | bool) ::
       ("error" | uint8L)
-    ).as[ItemTransactionResultMessage]
+  ).as[ItemTransactionResultMessage]
 }

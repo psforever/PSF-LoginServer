@@ -19,32 +19,37 @@ import scala.concurrent.duration._
   * Being "jammered" is a status that causes weakness due to temporary equipment disabling or the elimination of certain objects.
   */
 trait JammableUnit {
+
   /** being jammed (jammered) is an on/off state */
-  private var jammed : Boolean = false
+  private var jammed: Boolean = false
 
-  def Jammed : Boolean = jammed
+  def Jammed: Boolean = jammed
 
-  def Jammed_=(state : Boolean) : Boolean = {
+  def Jammed_=(state: Boolean): Boolean = {
     jammed = state
     Jammed
   }
 }
 
 object JammableUnit {
+
   /**
     * A message for generic jammering.
     * Currently, unused.
     */
   final case class Jammer()
+
   /**
     * A message for jammering due to a projectile.
     * @param cause information pertaining to the projectile
     */
-  final case class Jammered(cause : ResolvedProjectile)
+  final case class Jammered(cause: ResolvedProjectile)
+
   /**
     * Stop the auditory aspect of being jammered.
     */
   final case class ClearJammeredSound()
+
   /**
     * Stop the status effects of being jammered.
     */
@@ -57,16 +62,19 @@ object JammableUnit {
   * @see `EffectTarget`
   */
 trait JammingUnit {
+
   /** a list of qualifying conditional tests for determining if an object is to be affected by the jammered status;
-    * if qualifying, that object will be inflicted with a number of milliseconds of the jammered status */
-  private val jammedEffectDuration : mutable.ListBuffer[(TargetValidation, Int)] = new mutable.ListBuffer()
+    * if qualifying, that object will be inflicted with a number of milliseconds of the jammered status
+    */
+  private val jammedEffectDuration: mutable.ListBuffer[(TargetValidation, Int)] = new mutable.ListBuffer()
 
-  def HasJammedEffectDuration : Boolean = jammedEffectDuration.isEmpty
+  def HasJammedEffectDuration: Boolean = jammedEffectDuration.isEmpty
 
-  def JammedEffectDuration : mutable.ListBuffer[(TargetValidation, Int)] = jammedEffectDuration
+  def JammedEffectDuration: mutable.ListBuffer[(TargetValidation, Int)] = jammedEffectDuration
 }
 
 object JammingUnit {
+
   /**
     * Determine whether an object that can be jammered is to be jammered by this source,
     * and for how long.
@@ -76,7 +84,7 @@ object JammingUnit {
     * @param target the object to be determined if affected by the source's jammering
     * @return the duration to be jammered, if any, in milliseconds
     */
-  def FindJammerDuration(jammer : JammingUnit, target : PlanetSideGameObject) : Option[Int] = {
+  def FindJammerDuration(jammer: JammingUnit, target: PlanetSideGameObject): Option[Int] = {
     jammer.JammedEffectDuration
       .collect { case (TargetValidation(_, test), duration) if test(target) => duration }
       .toList
@@ -93,7 +101,7 @@ object JammingUnit {
     * @param targets the objects to be determined if affected by the source's jammering
     * @return the indexed durations to be jammered, if any, in milliseconds
     */
-  def FindJammerDuration(jammer : JammingUnit, targets : Seq[PlanetSideGameObject]) : Seq[Option[Int]] = {
+  def FindJammerDuration(jammer: JammingUnit, targets: Seq[PlanetSideGameObject]): Seq[Option[Int]] = {
     targets.map { target => FindJammerDuration(jammer, target) }
   }
 }
@@ -107,33 +115,37 @@ object JammingUnit {
   * The primary purpose of this behavior is to control timers that toggle the states of these two aspects.
   */
 trait JammableBehavior {
-  this : Actor =>
+  this: Actor =>
+
   /** flag for jammed sound */
-  protected var jammedSound : Boolean = false
+  protected var jammedSound: Boolean = false
+
   /** the sound timer */
-  protected var jammeredSoundTimer : Cancellable = Default.Cancellable
+  protected var jammeredSoundTimer: Cancellable = Default.Cancellable
+
   /** the effect timer */
-  protected var jammeredStatusTimer : Cancellable = Default.Cancellable
+  protected var jammeredStatusTimer: Cancellable = Default.Cancellable
 
   /** `ZoneAware` is used for callback to the event systems */
-  def JammableObject : PlanetSideServerObject with JammableUnit with ZoneAware
+  def JammableObject: PlanetSideServerObject with JammableUnit with ZoneAware
 
   /**
     * If the target can be validated against, affect it with the jammered status.
     * @param target the objects to be determined if affected by the source's jammering
     * @param cause the source of the "jammered" status
     */
-  def TryJammerEffectActivate(target : Any, cause : ResolvedProjectile) : Unit = target match {
-    case obj : PlanetSideServerObject =>
-      val radius = cause.projectile.profile.DamageRadius
-      JammingUnit.FindJammerDuration(cause.projectile.profile, obj) match {
-        case Some(dur) if Vector3.DistanceSquared(cause.hit_pos, cause.target.Position) < radius * radius =>
-          StartJammeredSound(obj, dur)
-          StartJammeredStatus(obj, dur)
-        case _ => ;
-      }
-    case _ => ;
-  }
+  def TryJammerEffectActivate(target: Any, cause: ResolvedProjectile): Unit =
+    target match {
+      case obj: PlanetSideServerObject =>
+        val radius = cause.projectile.profile.DamageRadius
+        JammingUnit.FindJammerDuration(cause.projectile.profile, obj) match {
+          case Some(dur) if Vector3.DistanceSquared(cause.hit_pos, cause.target.Position) < radius * radius =>
+            StartJammeredSound(obj, dur)
+            StartJammeredStatus(obj, dur)
+          case _ => ;
+        }
+      case _ => ;
+    }
 
   /**
     * Activate a distinctive buzzing sound effect.
@@ -143,12 +155,13 @@ trait JammableBehavior {
     * @param dur the duration of the timer, in milliseconds;
     *            by default, 30000
     */
-  def StartJammeredSound(target : Any, dur : Int = 30000) : Unit = {
-    if(!jammedSound) {
+  def StartJammeredSound(target: Any, dur: Int = 30000): Unit = {
+    if (!jammedSound) {
       jammedSound = true
       import scala.concurrent.ExecutionContext.Implicits.global
       jammeredSoundTimer.cancel
-      jammeredSoundTimer = context.system.scheduler.scheduleOnce(dur milliseconds, self, JammableUnit.ClearJammeredSound())
+      jammeredSoundTimer =
+        context.system.scheduler.scheduleOnce(dur milliseconds, self, JammableUnit.ClearJammeredSound())
     }
   }
 
@@ -159,11 +172,12 @@ trait JammableBehavior {
     * @param target an object that can be affected by the jammered status
     * @param dur the duration of the timer, in milliseconds
     */
-  def StartJammeredStatus(target : Any, dur : Int) : Unit = {
+  def StartJammeredStatus(target: Any, dur: Int): Unit = {
     JammableObject.Jammed = true
     jammeredStatusTimer.cancel
     import scala.concurrent.ExecutionContext.Implicits.global
-    jammeredStatusTimer = context.system.scheduler.scheduleOnce(dur milliseconds, self, JammableUnit.ClearJammeredStatus())
+    jammeredStatusTimer =
+      context.system.scheduler.scheduleOnce(dur milliseconds, self, JammableUnit.ClearJammeredStatus())
   }
 
   /**
@@ -172,7 +186,7 @@ trait JammableBehavior {
     * We merely stop the timer.
     * @param target an object that can be affected by the jammered status
     */
-  def CancelJammeredSound(target : Any) : Unit = {
+  def CancelJammeredSound(target: Any): Unit = {
     jammedSound = false
     jammeredSoundTimer.cancel
   }
@@ -183,12 +197,12 @@ trait JammableBehavior {
     * We merely stop the timer.
     * @param target an object that can be affected by the jammered status
     */
-  def CancelJammeredStatus(target : Any) : Unit = {
+  def CancelJammeredStatus(target: Any): Unit = {
     JammableObject.Jammed = false
     jammeredStatusTimer.cancel
   }
 
-  val jammableBehavior : Receive = {
+  val jammableBehavior: Receive = {
     case JammableUnit.Jammered(cause) =>
       TryJammerEffectActivate(JammableObject, cause)
 
@@ -210,38 +224,44 @@ trait JammableBehavior {
   * @see `Zone.VehicleEvents`
   */
 trait JammableMountedWeapons extends JammableBehavior {
-  _ : Actor =>
+  _: Actor =>
 
-  override def StartJammeredSound(target : Any, dur : Int) : Unit = {
+  override def StartJammeredSound(target: Any, dur: Int): Unit = {
     target match {
-      case obj : PlanetSideServerObject with MountedWeapons with JammableUnit if !jammedSound =>
-        obj.Zone.VehicleEvents ! VehicleServiceMessage(obj.Zone.Id, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, obj.GUID, 27, 1))
+      case obj: PlanetSideServerObject with MountedWeapons with JammableUnit if !jammedSound =>
+        obj.Zone.VehicleEvents ! VehicleServiceMessage(
+          obj.Zone.Id,
+          VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, obj.GUID, 27, 1)
+        )
         super.StartJammeredSound(target, dur)
       case _ => ;
     }
   }
 
-  override def StartJammeredStatus(target : Any, dur : Int) : Unit = {
+  override def StartJammeredStatus(target: Any, dur: Int): Unit = {
     target match {
-      case obj : PlanetSideServerObject with MountedWeapons with JammableUnit if !obj.Jammed =>
+      case obj: PlanetSideServerObject with MountedWeapons with JammableUnit if !obj.Jammed =>
         JammableMountedWeapons.JammeredStatus(obj, 1)
         super.StartJammeredStatus(target, dur)
       case _ => ;
     }
   }
 
-  override def CancelJammeredSound(target : Any) : Unit = {
+  override def CancelJammeredSound(target: Any): Unit = {
     target match {
-      case obj : PlanetSideServerObject if jammedSound =>
-        obj.Zone.VehicleEvents ! VehicleServiceMessage(obj.Zone.Id, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, obj.GUID, 27, 0))
+      case obj: PlanetSideServerObject if jammedSound =>
+        obj.Zone.VehicleEvents ! VehicleServiceMessage(
+          obj.Zone.Id,
+          VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, obj.GUID, 27, 0)
+        )
       case _ => ;
     }
     super.CancelJammeredSound(target)
   }
 
-  override def CancelJammeredStatus(target : Any) : Unit = {
+  override def CancelJammeredStatus(target: Any): Unit = {
     target match {
-      case obj : PlanetSideServerObject with MountedWeapons with JammableUnit if obj.Jammed =>
+      case obj: PlanetSideServerObject with MountedWeapons with JammableUnit if obj.Jammed =>
         JammableMountedWeapons.JammeredStatus(obj, 0)
       case _ => ;
     }
@@ -250,6 +270,7 @@ trait JammableMountedWeapons extends JammableBehavior {
 }
 
 object JammableMountedWeapons {
+
   /**
     * Retrieve all of the weapons on a `MountedWeapons` target object and apply a jammered status effect to each.
     * @param target an object that can be affected by the jammered status
@@ -257,15 +278,18 @@ object JammableMountedWeapons {
     *                   0 for deactivation;
     *                   1 for activation
     */
-  def JammeredStatus(target : PlanetSideServerObject with MountedWeapons, statusCode : Int) : Unit = {
-    val zone = target.Zone
+  def JammeredStatus(target: PlanetSideServerObject with MountedWeapons, statusCode: Int): Unit = {
+    val zone   = target.Zone
     val zoneId = zone.Id
     target.Weapons.values
       .map { _.Equipment }
       .collect {
-        case Some(item : Tool) =>
-          item.Jammed = statusCode==1
-          zone.VehicleEvents ! VehicleServiceMessage(zoneId, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, item.GUID, 27, statusCode))
+        case Some(item: Tool) =>
+          item.Jammed = statusCode == 1
+          zone.VehicleEvents ! VehicleServiceMessage(
+            zoneId,
+            VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, item.GUID, 27, statusCode)
+          )
       }
   }
 }

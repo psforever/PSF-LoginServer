@@ -23,9 +23,9 @@ import scala.util.Random
   * Other activities involve event management and managing wide-reaching and factional attributes.
   * @param zones a `List` of continental `Zone` arenas
   */
-class InterstellarCluster(zones : List[Zone]) extends Actor {
+class InterstellarCluster(zones: List[Zone]) extends Actor {
   private[this] val log = org.log4s.getLogger
-  val recallRandom = new Random()
+  val recallRandom      = new Random()
   log.info("Starting interplanetary cluster ...")
 
   /**
@@ -33,16 +33,16 @@ class InterstellarCluster(zones : List[Zone]) extends Actor {
     * That `Actor` is sent a packet that would start the construction of the `Zone`'s server objects.
     * The process is maintained this way to allow every planet to be created and configured in separate stages.
     */
-  override def preStart() : Unit = {
+  override def preStart(): Unit = {
     super.preStart()
-    for(zone <- zones) {
+    for (zone <- zones) {
       log.info(s"Built continent ${zone.Id}")
       zone.Actor = context.actorOf(Props(classOf[ZoneActor], zone), s"${zone.Id}-actor")
       zone.Actor ! Zone.Init()
     }
   }
 
-  def receive : Receive = {
+  def receive: Receive = {
     case InterstellarCluster.GetWorld(zoneId) =>
       log.info(s"Asked to find $zoneId")
       recursiveFindWorldInCluster(zones.iterator, _.Id == zoneId) match {
@@ -65,9 +65,9 @@ class InterstellarCluster(zones : List[Zone]) extends Actor {
           sender ! Zone.Lattice.NoValidSpawnPoint(zone_number, None)
       }
     case InterstellarCluster.ListPlayers() =>
-      var players : List[String] = List()
+      var players: List[String] = List()
 
-      for(zone <- zones) {
+      for (zone <- zones) {
         val zonePlayers = zone.Players
         for (player <- zonePlayers) {
           players ::= player.name
@@ -89,9 +89,9 @@ class InterstellarCluster(zones : List[Zone]) extends Actor {
     case InterstellarCluster.ZoneMapUpdate(zone_num: Int) =>
       val zone = zones.find(x => x.Number == zone_num).get
       zone.Buildings
-          .filter(_._2.BuildingType == StructureType.Facility)
-          .values.foreach(b => b.Actor ! Building.SendMapUpdate(all_clients = true))
-
+        .filter(_._2.BuildingType == StructureType.Facility)
+        .values
+        .foreach(b => b.Actor ! Building.SendMapUpdate(all_clients = true))
 
     case Zoning.InstantAction.Request(faction) =>
       val interests = zones.flatMap { zone =>
@@ -99,17 +99,20 @@ class InterstellarCluster(zones : List[Zone]) extends Actor {
         zone.HotSpotData
           .collect { case spot if zone.Players.nonEmpty => (zone, spot) }
       } /* ignore zones without existing population */
-      if(interests.nonEmpty) {
+      if (interests.nonEmpty) {
         val (withAllies, onlyEnemies) = interests
-          .map { case (zone, spot) =>
-            (
-              zone,
-              spot,
-              ZoneActor.FindLocalSpawnPointsInZone(zone, spot.DisplayLocation, faction, 0).getOrElse(Nil)
-            )
+          .map {
+            case (zone, spot) =>
+              (
+                zone,
+                spot,
+                ZoneActor.FindLocalSpawnPointsInZone(zone, spot.DisplayLocation, faction, 0).getOrElse(Nil)
+              )
           } /* pair hotspots and spawn points */
           .filter { case (_, _, spawns) => spawns.nonEmpty } /* faction spawns must exist */
-          .sortBy({ case (_, spot, _) => spot.Activity.values.foldLeft(0)(_ + _.Heat) })(Ordering[Int].reverse) /* greatest > least */
+          .sortBy({ case (_, spot, _) => spot.Activity.values.foldLeft(0)(_ + _.Heat) })(
+            Ordering[Int].reverse
+          ) /* greatest > least */
           .partition { case (_, spot, _) => spot.ActivityBy().contains(faction) } /* us versus them */
         withAllies.headOption.orElse(onlyEnemies.headOption) match {
           case Some((zone, info, List(spawnPoint))) =>
@@ -118,15 +121,14 @@ class InterstellarCluster(zones : List[Zone]) extends Actor {
             sender ! Zoning.InstantAction.Located(zone, pos, spawnPoint)
           case Some((zone, info, spawns)) =>
             //multiple spawn options
-            val pos = info.DisplayLocation
+            val pos        = info.DisplayLocation
             val spawnPoint = spawns.minBy(point => Vector3.DistanceSquared(point.Position, pos))
             sender ! Zoning.InstantAction.Located(zone, pos, spawnPoint)
           case None =>
             //no actionable hot spots
             sender ! Zoning.InstantAction.NotLocated()
         }
-      }
-      else {
+      } else {
         //never had any actionable hot spots
         sender ! Zoning.InstantAction.NotLocated()
       }
@@ -135,14 +137,14 @@ class InterstellarCluster(zones : List[Zone]) extends Actor {
       recursiveFindWorldInCluster(zones.iterator, _.Id.equals(sanctuary_id)) match {
         case Some(zone) =>
           //TODO zone full
-          val width = zone.Map.Scale.width
+          val width  = zone.Map.Scale.width
           val height = zone.Map.Scale.height
           //xy-coordinates indicate sanctuary spawn bias:
           val spot = math.abs(scala.util.Random.nextInt() % sender.toString.hashCode % 4) match {
             case 0 => Vector3(width, height, 0) //NE
-            case 1 => Vector3(width, 0, 0) //SE
-            case 2 => Vector3.Zero //SW
-            case 3 => Vector3(0, height, 0) //NW
+            case 1 => Vector3(width, 0, 0)      //SE
+            case 2 => Vector3.Zero              //SW
+            case 3 => Vector3(0, height, 0)     //NW
           }
           ZoneActor.FindLocalSpawnPointsInZone(zone, spot, faction, 7).getOrElse(Nil) match {
             case Nil =>
@@ -170,16 +172,14 @@ class InterstellarCluster(zones : List[Zone]) extends Actor {
     * @param predicate a condition to check against to determine when the appropriate `Zone` is discovered
     * @return the discovered `Zone`
     */
-  @tailrec private def recursiveFindWorldInCluster(iter : Iterator[Zone], predicate : Zone=>Boolean) : Option[Zone] = {
-    if(!iter.hasNext) {
+  @tailrec private def recursiveFindWorldInCluster(iter: Iterator[Zone], predicate: Zone => Boolean): Option[Zone] = {
+    if (!iter.hasNext) {
       None
-    }
-    else {
+    } else {
       val cont = iter.next
-      if(predicate.apply(cont)) {
+      if (predicate.apply(cont)) {
         Some(cont)
-      }
-      else {
+      } else {
         recursiveFindWorldInCluster(iter, predicate)
       }
     }
@@ -192,17 +192,17 @@ object InterstellarCluster {
     * Request a hard reference to a `Zone`.
     * @param zoneId the name of the `Zone`
     */
-  final case class GetWorld(zoneId : String)
+  final case class GetWorld(zoneId: String)
 
   /**
     * Provide a hard reference to a `Zone`.
     * @param zoneId the name of the `Zone`
     * @param zone the `Zone`
     */
-  final case class GiveWorld(zoneId : String, zone : Zone)
+  final case class GiveWorld(zoneId: String, zone: Zone)
 
   final case class ListPlayers()
-  final case class PlayerList(players : List[String])
+  final case class PlayerList(players: List[String])
 
   /**
     * Signal to the cluster that a new client needs to be initialized for all listed `Zone` destinations.
@@ -221,8 +221,8 @@ object InterstellarCluster {
     * @see `BuildingInfoUpdateMessage`
     * @param zone_num the zone number to request building map updates for
     */
-  final case class ZoneMapUpdate(zone_num : Int)
+  final case class ZoneMapUpdate(zone_num: Int)
 
   final case class GetZoneIds()
-  final case class ZoneIds(zoneIds : List[Int])
+  final case class ZoneIds(zoneIds: List[Int])
 }

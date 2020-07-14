@@ -12,7 +12,7 @@ import scodec.codecs._
   * They are only vaguely organized by behavior and some numbers may not be associated with an action.
   * When sent by the client to the server, an unknown number of actions are available.
   * The highest known action is a server-sent 45.<br>
-  *<br>
+  * <br>
   * Actions (when sent from server):<br>
   * 03 - symbol: show Mosquito radar<br>
   * 04 - symbol: hide Mosquito radar<br>
@@ -46,15 +46,14 @@ import scodec.codecs._
   *
   * @param action what this packet does
   */
-final case class GenericActionMessage(action : Int)
-  extends PlanetSideGamePacket {
+final case class GenericActionMessage(action: Int) extends PlanetSideGamePacket {
   type Packet = GenericActionMessage
   def opcode = GamePacketOpcode.GenericActionMessage
   def encode = GenericActionMessage.encode(this)
 }
 
 object GenericActionMessage extends Marshallable[GenericActionMessage] {
-  implicit val codec : Codec[GenericActionMessage] = (
+  implicit val codec: Codec[GenericActionMessage] = (
     "action" | uint(6)
-    ).as[GenericActionMessage]
+  ).as[GenericActionMessage]
 }

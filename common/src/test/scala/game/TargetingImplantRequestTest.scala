@@ -9,7 +9,8 @@ import scodec.bits._
 
 class TargetingImplantRequestTest extends Specification {
   val string_single = hex"b5 061016"
-  val string_long = hex"b5 41edeb12d4409f0144053f8010541ba91d03df376831b1e26000611041e1107c0209c0"//0510085013d9ffb6720d5b132900003770?
+  val string_long =
+    hex"b5 41edeb12d4409f0144053f8010541ba91d03df376831b1e26000611041e1107c0209c0" //0510085013d9ffb6720d5b132900003770?
 
   "decode (single)" in {
     PacketCoding.DecodePacket(string_single).require match {

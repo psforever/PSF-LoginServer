@@ -8,22 +8,22 @@ import scala.collection.mutable
 object ServiceManager {
   var serviceManager = ActorRef.noSender
 
-  def boot(implicit system : ActorSystem) = {
+  def boot(implicit system: ActorSystem) = {
     serviceManager = system.actorOf(Props[ServiceManager], "service")
     serviceManager
   }
 
-  case class Register(props : Props, name : String)
-  case class Lookup(name : String)
-  case class LookupResult(request : String, endpoint : ActorRef)
+  case class Register(props: Props, name: String)
+  case class Lookup(name: String)
+  case class LookupResult(request: String, endpoint: ActorRef)
 }
 
 class ServiceManager extends Actor {
   import ServiceManager._
-  private [this] val log = org.log4s.getLogger
+  private[this] val log = org.log4s.getLogger
 
-  var nextLookupId : Long = 0
-  val lookups : mutable.LongMap[RequestEntry] = mutable.LongMap()
+  var nextLookupId: Long                     = 0
+  val lookups: mutable.LongMap[RequestEntry] = mutable.LongMap()
 
   override def preStart = {
     log.info("Starting...")
@@ -62,5 +62,5 @@ class ServiceManager extends Actor {
       log.error(s"invalid message received - $default")
   }
 
-  protected case class RequestEntry(request : String, responder : ActorRef)
+  protected case class RequestEntry(request: String, responder: ActorRef)
 }

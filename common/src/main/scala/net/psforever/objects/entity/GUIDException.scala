@@ -10,13 +10,13 @@ import net.psforever.types.PlanetSideGUID
   * @param obj the entity being manipulated when the complaint arose
   * @param guid the identifier number being manipulated when the ciomplaint arose
   */
-abstract class GUIDException(message : String, cause : Throwable, obj : IdentifiableEntity, guid : PlanetSideGUID)
-  extends RuntimeException(message, cause) {
-  private val entity : IdentifiableEntity = obj
-  def getEntity : IdentifiableEntity = entity
+abstract class GUIDException(message: String, cause: Throwable, obj: IdentifiableEntity, guid: PlanetSideGUID)
+    extends RuntimeException(message, cause) {
+  private val entity: IdentifiableEntity = obj
+  def getEntity: IdentifiableEntity      = entity
 
-  private val entityGUID : PlanetSideGUID = guid
-  def getGUID : PlanetSideGUID = entityGUID
+  private val entityGUID: PlanetSideGUID = guid
+  def getGUID: PlanetSideGUID            = entityGUID
 }
 
 /**
@@ -28,13 +28,12 @@ abstract class GUIDException(message : String, cause : Throwable, obj : Identifi
   * @param obj the entity being manipulated when the complaint arose
   * @param cause the cause of this error
   */
-class NoGUIDException(message : String,
-                      obj : IdentifiableEntity = None.orNull,
-                      cause : Throwable = None.orNull
-                     ) extends GUIDException(message, cause, obj, null)
+class NoGUIDException(message: String, obj: IdentifiableEntity = None.orNull, cause: Throwable = None.orNull)
+    extends GUIDException(message, cause, obj, null)
 
 object NoGUIDException {
-  def unapply(e : NoGUIDException): Option[(String, IdentifiableEntity, Throwable)] = Some((e.getMessage, e.getEntity, e.getCause))
+  def unapply(e: NoGUIDException): Option[(String, IdentifiableEntity, Throwable)] =
+    Some((e.getMessage, e.getEntity, e.getCause))
 }
 
 /**
@@ -44,12 +43,14 @@ object NoGUIDException {
   * @param guid the identifier number being manipulated when the ciomplaint arose
   * @param cause the cause of this error
   */
-class AssigningGUIDException(message : String,
-                             obj : IdentifiableEntity,
-                             guid : PlanetSideGUID,
-                             cause : Throwable = None.orNull
-                            ) extends GUIDException(message, cause, obj, guid)
+class AssigningGUIDException(
+    message: String,
+    obj: IdentifiableEntity,
+    guid: PlanetSideGUID,
+    cause: Throwable = None.orNull
+) extends GUIDException(message, cause, obj, guid)
 
 object AssigningGUIDException {
-  def unapply(e : AssigningGUIDException): Option[(String, Throwable, IdentifiableEntity, PlanetSideGUID)] = Some((e.getMessage, e.getCause, e.getEntity, e.getGUID))
+  def unapply(e: AssigningGUIDException): Option[(String, Throwable, IdentifiableEntity, PlanetSideGUID)] =
+    Some((e.getMessage, e.getCause, e.getEntity, e.getGUID))
 }

@@ -10,7 +10,7 @@ import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 import scala.util.{Success, Try}
 
 class LockerContainerConverter extends ObjectCreateConverter[LockerEquipment]() {
-  override def ConstructorData(obj : LockerEquipment) : Try[LockerContainerData] = {
+  override def ConstructorData(obj: LockerEquipment): Try[LockerContainerData] = {
     MakeInventory(obj.Inventory) match {
       case Nil =>
         Success(LockerContainerData(None))
@@ -19,18 +19,21 @@ class LockerContainerConverter extends ObjectCreateConverter[LockerEquipment]() 
     }
   }
 
-  override def DetailedConstructorData(obj : LockerEquipment) : Try[DetailedLockerContainerData] = {
-    if(obj.Inventory.Size > 0) {
-      Success(DetailedLockerContainerData(
-        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
-        Some(InventoryData(MakeDetailedInventory(obj.Inventory)))
-      ))
-    }
-    else {
-      Success(DetailedLockerContainerData(
-        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
-        None
-      ))
+  override def DetailedConstructorData(obj: LockerEquipment): Try[DetailedLockerContainerData] = {
+    if (obj.Inventory.Size > 0) {
+      Success(
+        DetailedLockerContainerData(
+          CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+          Some(InventoryData(MakeDetailedInventory(obj.Inventory)))
+        )
+      )
+    } else {
+      Success(
+        DetailedLockerContainerData(
+          CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+          None
+        )
+      )
     }
   }
 
@@ -40,13 +43,18 @@ class LockerContainerConverter extends ObjectCreateConverter[LockerEquipment]() 
     * @param inv the inventory container
     * @return a list of all items that were in the inventory in decoded packet form
     */
-  private def MakeInventory(inv : GridInventory) : List[InternalSlot] = {
+  private def MakeInventory(inv: GridInventory): List[InternalSlot] = {
     inv.Items
       .map(item => {
-          val equip : Equipment = item.obj
-          InternalSlot(equip.Definition.ObjectId, equip.GUID, item.start, equip.Definition.Packet.ConstructorData(equip).get)
+        val equip: Equipment = item.obj
+        InternalSlot(
+          equip.Definition.ObjectId,
+          equip.GUID,
+          item.start,
+          equip.Definition.Packet.ConstructorData(equip).get
+        )
       })
-    }
+  }
 
   /**
     * Transform a list of contained items into a list of contained `InternalSlot` objects.
@@ -54,11 +62,16 @@ class LockerContainerConverter extends ObjectCreateConverter[LockerEquipment]() 
     * @param inv the inventory container
     * @return a list of all items that were in the inventory in decoded packet form
     */
-  private def MakeDetailedInventory(inv : GridInventory) : List[InternalSlot] = {
+  private def MakeDetailedInventory(inv: GridInventory): List[InternalSlot] = {
     inv.Items
       .map(item => {
-          val equip : Equipment = item.obj
-          InternalSlot(equip.Definition.ObjectId, equip.GUID, item.start, equip.Definition.Packet.DetailedConstructorData(equip).get)
+        val equip: Equipment = item.obj
+        InternalSlot(
+          equip.Definition.ObjectId,
+          equip.GUID,
+          item.start,
+          equip.Definition.Packet.DetailedConstructorData(equip).get
+        )
       })
   }
 }

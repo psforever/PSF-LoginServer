@@ -18,8 +18,10 @@ import net.psforever.types._
   *             by row and column on the character creation screen, the high nibble is the row and the low nibble is the column
   * @param voice the avatar's voice selection
   */
-final case class BasicCharacterData(name : String,
-                                    faction : PlanetSideEmpire.Value,
-                                    sex : CharacterGender.Value,
-                                    head : Int,
-                                    voice : CharacterVoice.Value)
+final case class BasicCharacterData(
+    name: String,
+    faction: PlanetSideEmpire.Value,
+    sex: CharacterGender.Value,
+    head: Int,
+    voice: CharacterVoice.Value
+)
