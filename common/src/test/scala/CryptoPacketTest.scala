@@ -1,6 +1,5 @@
 // Copyright (c) 2017 PSForever
 import org.specs2.mutable._
-import net.psforever.packet._
 import net.psforever.packet.control.{ClientStart, ServerStart}
 import net.psforever.packet.crypto.{ClientChallengeXchg, ClientFinished, ServerChallengeXchg, ServerFinished}
 import scodec.Codec

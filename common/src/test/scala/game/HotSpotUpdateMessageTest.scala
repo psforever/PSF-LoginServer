@@ -4,7 +4,6 @@ package game
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
-import net.psforever.types.Vector3
 import scodec.bits._
 
 class HotSpotUpdateMessageTest extends Specification {

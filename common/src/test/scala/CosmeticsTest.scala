@@ -1,7 +1,6 @@
 // Copyright (c) 2019 PSForever
 import net.psforever.packet.game.objectcreate.{Cosmetics, PersonalStyle}
 import org.specs2.mutable._
-import net.psforever.types.Vector3
 
 class CosmeticsTest extends Specification {
   "Cosmetics" should {

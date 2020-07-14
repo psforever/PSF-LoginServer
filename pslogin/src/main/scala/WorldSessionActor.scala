@@ -69,8 +69,6 @@ import net.psforever.objects.serverobject.zipline.ZipLinePath
 import net.psforever.objects.teamwork.Squad
 import net.psforever.objects.vehicles.{
   AccessPermissionGroup,
-  AntTransferBehavior,
-  Cargo,
   CargoBehavior,
   MountedWeapons,
   Utility,
@@ -4670,8 +4668,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                   case GlobalDefinitions.resource_silo =>
                     val r        = new scala.util.Random
                     val silo     = amenity.asInstanceOf[ResourceSilo]
-                    val ntu: Int = 900 + r.nextInt(100) - silo.ChargeLevel
-                    //                val ntu: Int = 0 + r.nextInt(100) - silo.ChargeLevel
+                    val ntu: Int = 900 + r.nextInt(100) - silo.NtuCapacitor
                     silo.Actor ! ResourceSilo.UpdateChargeLevel(ntu)
 
                   case _ => ;

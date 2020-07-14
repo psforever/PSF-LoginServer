@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, Props}
 import base.ActorTest
 import net.psforever.objects._
 import net.psforever.objects.serverobject.terminals.Terminal

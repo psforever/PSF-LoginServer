@@ -14,8 +14,6 @@ import services.vehicle.support.{TurretUpgrader, VehicleRemover}
 import net.psforever.types.{DriveState, PlanetSideGUID}
 import services.{GenericEventBus, RemoverActor, Service}
 
-import scala.concurrent.duration._
-
 class VehicleService(zone: Zone) extends Actor {
   private val vehicleDecon: ActorRef  = context.actorOf(Props[VehicleRemover], s"${zone.Id}-vehicle-decon-agent")
   private val turretUpgrade: ActorRef = context.actorOf(Props[TurretUpgrader], s"${zone.Id}-turret-upgrade-agent")
