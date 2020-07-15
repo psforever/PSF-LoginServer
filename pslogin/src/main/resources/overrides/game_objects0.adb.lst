@@ -46,6 +46,7 @@ add_property flechette equiptime 600
 add_property flechette holstertime 600
 add_property forceblade equiptime 250
 add_property forceblade holstertime 250
+add_property galaxy_gunship allowed false
 add_property galaxy_gunship maxhealth 9500
 add_property gauss equiptime 600
 add_property gauss holstertime 600
