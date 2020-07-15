@@ -277,7 +277,7 @@ class Building(
       spawnTubesNormal,
       ForceDomeActive,
       latticeBenefit,
-      0,                 //cavern_benefit; !! Field > 0 will cause malformed packet. See class def.
+      48,                 //cavern_benefit; !! Field > 0 will cause malformed packet. See class def.
       Nil,               //unk4
       0,                 //unk5
       false,             //unk6
