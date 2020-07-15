@@ -4,6 +4,7 @@ package net.psforever.objects.equipment
 import net.psforever.objects._
 import net.psforever.objects.ce.DeployableCategory
 import net.psforever.objects.serverobject.turret.FacilityTurret
+import net.psforever.objects.vital.DamagingActivity
 
 final case class TargetValidation(category: EffectTarget.Category.Value, test: EffectTarget.Validation.Value)
 
@@ -41,7 +42,7 @@ object EffectTarget {
     def RepairSilo(target: PlanetSideGameObject): Boolean =
       target match {
         case v: Vehicle =>
-          !GlobalDefinitions.isFlightVehicle(v.Definition) && v.Health > 0 && v.Health < v.MaxHealth
+          !GlobalDefinitions.isFlightVehicle(v.Definition) && v.Health > 0 && v.Health < v.MaxHealth && v.History.find(x => x.isInstanceOf[DamagingActivity] && x.t >= (System.nanoTime - 5000000000L)).isEmpty
         case _ =>
           false
       }
@@ -49,7 +50,7 @@ object EffectTarget {
     def PadLanding(target: PlanetSideGameObject): Boolean =
       target match {
         case v: Vehicle =>
-          GlobalDefinitions.isFlightVehicle(v.Definition) && v.Health > 0 && v.Health < v.MaxHealth
+          GlobalDefinitions.isFlightVehicle(v.Definition) && v.Health > 0 && v.Health < v.MaxHealth && v.History.find(x => x.isInstanceOf[DamagingActivity] && x.t >= (System.nanoTime - 5000000000L)).isEmpty
         case _ =>
           false
       }
