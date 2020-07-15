@@ -645,7 +645,7 @@ class PlayerControl(player: Player) extends Actor with JammableBehavior with Dam
 
   protected def TakesDamage: Receive = {
     case Vitality.Damage(applyDamageTo) =>
-      if (player.isAlive) {
+      if (player.isAlive && !player.spectator) {
         val originalHealth    = player.Health
         val originalArmor     = player.Armor
         val originalStamina   = player.Stamina
