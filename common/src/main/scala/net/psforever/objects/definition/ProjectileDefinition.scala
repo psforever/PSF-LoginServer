@@ -36,6 +36,7 @@ class ProjectileDefinition(objectId: Int)
   private var autoLock: Boolean         = false
   private var additionalEffect: Boolean = false
   private var jammerProjectile: Boolean = false
+  private var grenade_projectile : Boolean = false
   private var aggravated_damage : Option[AggravatedDamage] = None
   //derived calculations
   private var distanceMax: Float              = 0f
@@ -173,6 +174,13 @@ class ProjectileDefinition(objectId: Int)
   def JammerProjectile_=(effect: Boolean): Boolean = {
     jammerProjectile = effect
     JammerProjectile
+  }
+
+  def GrenadeProjectile : Boolean = grenade_projectile
+
+  def GrenadeProjectile_=(isGrenade : Boolean) : Boolean = {
+    grenade_projectile = isGrenade
+    GrenadeProjectile
   }
 
   def Aggravated : Option[AggravatedDamage] = aggravated_damage

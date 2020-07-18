@@ -13,43 +13,63 @@ import scala.concurrent.ExecutionContext.Implicits.global
 trait AuraEffectBehavior {
   _ : Actor =>
   private var activeEffectIndex : Long = 0
-  private var effectsToIds : mutable.HashMap[Aura.Value, List[Long]] = mutable.HashMap.empty[Aura.Value, List[Long]]
-  private var idsToTimers : mutable.LongMap[Cancellable] = mutable.LongMap.empty[Cancellable]
+  private var effectsToIds : mutable.HashMap[Aura.Value, List[Long]]   = mutable.HashMap.empty[Aura.Value, List[Long]]
+  private var idsToTimers : mutable.LongMap[Cancellable]               = mutable.LongMap.empty[Cancellable]
   private var idsToEntries : mutable.LongMap[AuraEffectBehavior.Entry] = mutable.LongMap.empty[AuraEffectBehavior.Entry]
 
   def AuraTargetObject : Player
 
   val auraBehavior : Receive = {
-    case AuraEffectBehavior.Aggravate(id, 0) =>
-      CleanupEffect(id) match {
-        case Aura.None => ;
-        case _ => UpdateAggravatedEffect(AuraTargetObject)
-      }
+    case AuraEffectBehavior.Aggravate(id, 0, 0) =>
+      CancelEffectTimer(id)
+      PerformCleanupEffect(id)
 
-    case AuraEffectBehavior.Aggravate(id, iteration) => ;
-      idsToTimers.remove(id) match {
-        case Some(timer) => timer.cancel
-        case _ => ;
-      }
-      idsToEntries.get(id) match {
-        case Some(entry) =>
-          //TODO stuff ...
-          idsToTimers += id -> context.system.scheduler.scheduleOnce(
-            entry.effect.infliction_rate milliseconds, self, AuraEffectBehavior.Aggravate(id, iteration - 1))
-        case _ => ;
-      }
+    case AuraEffectBehavior.Aggravate(id, 0, leftoverTime) =>
+      PerformAggravationAndRetimeEvent(id, iteration = 0, Some(leftoverTime), leftoverTime = 0)
+
+    case AuraEffectBehavior.Aggravate(id, iteration, leftover) => ;
+      PerformAggravationAndRetimeEvent(id, iteration - 1, None, leftover)
   }
 
-  def AggravationEffect(data : ResolvedProjectile) : Unit = {
-    data.projectile.profile.Aggravated match {
-      case Some(damage)
-        if data.projectile.profile.ProjectileDamageType == DamageType.Aggravated && damage.effect_type != Aura.None =>
-        AggravationEffect(damage, data)
+  def PerformAggravationAndRetimeEvent(id : Long, iteration : Int, time : Option[Long], leftoverTime : Long) : Unit = {
+    CancelEffectTimer(id)
+    idsToEntries.get(id) match {
+      case Some(entry) =>
+        //TODO stuff ...
+        idsToTimers += id -> context.system.scheduler.scheduleOnce(
+          time.getOrElse(entry.effect.infliction_rate) milliseconds,
+          self,
+          AuraEffectBehavior.Aggravate(id, iteration, leftoverTime)
+        )
+      case _ =>
+        PerformCleanupEffect(id)
+    }
+  }
+
+  def CancelEffectTimer(id : Long) : Unit = {
+    idsToTimers.remove(id) match {
+      case Some(timer) => timer.cancel
       case _ => ;
     }
   }
 
-  private def AggravationEffect(aggravation : AggravatedDamage, data : ResolvedProjectile) : Unit = {
+  def PerformCleanupEffect(id : Long) : Unit = {
+    CleanupEffect(id) match {
+      case Aura.None => ;
+      case _ => UpdateAggravatedEffect(AuraTargetObject)
+    }
+  }
+
+  def TryAggravationEffect(data : ResolvedProjectile) : Unit = {
+    data.projectile.profile.Aggravated match {
+      case Some(damage)
+        if data.projectile.profile.ProjectileDamageType == DamageType.Aggravated && damage.effect_type != Aura.None =>
+        TryAggravationEffect(damage, data)
+      case _ => ;
+    }
+  }
+
+  private def TryAggravationEffect(aggravation : AggravatedDamage, data : ResolvedProjectile) : Unit = {
     val effect = aggravation.effect_type
     val obj = AuraTargetObject
     if(obj.Aura.contains(effect)) { //TODO cumulative?
@@ -76,7 +96,8 @@ trait AuraEffectBehavior {
       idsToEntries += id -> AuraEffectBehavior.Entry(id, infos, aggravation, 0)
       //pair id with timer
       val iterations = (aggravation.duration / infos.infliction_rate).toInt
-      idsToTimers += id -> context.system.scheduler.scheduleOnce(infos.infliction_rate milliseconds, self, AuraEffectBehavior.Aggravate(id, iterations))
+      val leftoverTime = aggravation.duration % infos.infliction_rate
+      idsToTimers += id -> context.system.scheduler.scheduleOnce(infos.infliction_rate milliseconds, self, AuraEffectBehavior.Aggravate(id, iterations, leftoverTime))
     }
   }
 
@@ -112,6 +133,10 @@ trait AuraEffectBehavior {
     idsToTimers.values.foreach { _.cancel }
     idsToTimers.clear
     effectsToIds.clear
+  }
+
+  def EndAllEffectsAndUpdate() : Unit = {
+    EndAllEffects()
     UpdateAggravatedEffect(AuraTargetObject)
   }
 
@@ -126,5 +151,5 @@ trait AuraEffectBehavior {
 object AuraEffectBehavior {
   private case class Entry(id : Long, effect : AggravatedInfo, aggravation : AggravatedDamage, damage : Any)
 
-  private case class Aggravate(id : Long, iteration : Int)
+  private case class Aggravate(id : Long, iterations : Int, leftover : Long)
 }

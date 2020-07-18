@@ -5397,9 +5397,15 @@ class SessionActor extends Actor with MDCContextAware {
             projectile.Velocity = projectile_vel
             //direct_victim_uid
             ValidObject(direct_victim_uid) match {
-              case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
-                CheckForHitPositionDiscrepancy(projectile_guid, explosion_pos, target)
-                ResolveProjectileEntry(projectile, ProjectileResolution.Splash, target, target.Position) match {
+              case Some(
+                  target: PlanetSideGameObject with FactionAffinity with Vitality
+                  ) =>
+                CheckForHitPositionDiscrepancy(
+                  projectile_guid,
+                  explosion_pos,
+                  target
+                )
+                ResolveProjectileEntry(projectile, ProjectileResolution.Splash, target, explosion_pos) match {
                   case Some(projectile) =>
                     HandleDealingDamage(target, projectile)
                   case None => ;

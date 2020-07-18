@@ -2468,6 +2468,7 @@ object GlobalDefinitions {
     dynomite_projectile.Damage1 = 175
     dynomite_projectile.DamageAtEdge = 0.1f
     dynomite_projectile.DamageRadius = 10f
+    dynomite_projectile.GrenadeProjectile = true
     dynomite_projectile.ProjectileDamageType = DamageType.Splash
     dynomite_projectile.InitialVelocity = 30
     dynomite_projectile.Lifespan = 3f
@@ -2685,6 +2686,7 @@ object GlobalDefinitions {
     frag_cartridge_projectile.Damage1 = 100
     frag_cartridge_projectile.DamageAtEdge = 0.1f
     frag_cartridge_projectile.DamageRadius = 7f
+    frag_cartridge_projectile.GrenadeProjectile = true
     frag_cartridge_projectile.ProjectileDamageType = DamageType.Splash
     frag_cartridge_projectile.InitialVelocity = 30
     frag_cartridge_projectile.Lifespan = 15f
@@ -2697,6 +2699,7 @@ object GlobalDefinitions {
     frag_cartridge_projectile_b.Damage1 = 100
     frag_cartridge_projectile_b.DamageAtEdge = 0.1f
     frag_cartridge_projectile_b.DamageRadius = 5f
+    frag_cartridge_projectile_b.GrenadeProjectile = true
     frag_cartridge_projectile_b.ProjectileDamageType = DamageType.Splash
     frag_cartridge_projectile_b.InitialVelocity = 30
     frag_cartridge_projectile_b.Lifespan = 2f
@@ -2708,6 +2711,7 @@ object GlobalDefinitions {
     frag_grenade_projectile.Damage1 = 100
     frag_grenade_projectile.DamageAtEdge = 0.1f
     frag_grenade_projectile.DamageRadius = 7f
+    frag_grenade_projectile.GrenadeProjectile = true
     frag_grenade_projectile.ProjectileDamageType = DamageType.Splash
     frag_grenade_projectile.InitialVelocity = 30
     frag_grenade_projectile.Lifespan = 15f
@@ -2720,6 +2724,7 @@ object GlobalDefinitions {
     frag_grenade_projectile_enh.Damage1 = 100
     frag_grenade_projectile_enh.DamageAtEdge = 0.1f
     frag_grenade_projectile_enh.DamageRadius = 7f
+    frag_grenade_projectile_enh.GrenadeProjectile = true
     frag_grenade_projectile_enh.ProjectileDamageType = DamageType.Splash
     frag_grenade_projectile_enh.InitialVelocity = 30
     frag_grenade_projectile_enh.Lifespan = 2f
@@ -2770,6 +2775,7 @@ object GlobalDefinitions {
     heavy_grenade_projectile.Damage4 = 66
     heavy_grenade_projectile.DamageAtEdge = 0.1f
     heavy_grenade_projectile.DamageRadius = 5f
+    heavy_grenade_projectile.GrenadeProjectile = true
     heavy_grenade_projectile.ProjectileDamageType = DamageType.Splash
     heavy_grenade_projectile.InitialVelocity = 75
     heavy_grenade_projectile.Lifespan = 5f
@@ -2855,6 +2861,7 @@ object GlobalDefinitions {
     jammer_cartridge_projectile.Damage1 = 0
     jammer_cartridge_projectile.DamageAtEdge = 1.0f
     jammer_cartridge_projectile.DamageRadius = 10f
+    jammer_cartridge_projectile.GrenadeProjectile = true
     jammer_cartridge_projectile.ProjectileDamageType = DamageType.Splash
     jammer_cartridge_projectile.InitialVelocity = 30
     jammer_cartridge_projectile.Lifespan = 15f
@@ -2893,6 +2900,7 @@ object GlobalDefinitions {
     jammer_cartridge_projectile_b.Damage1 = 0
     jammer_cartridge_projectile_b.DamageAtEdge = 1.0f
     jammer_cartridge_projectile_b.DamageRadius = 10f
+    jammer_cartridge_projectile_b.GrenadeProjectile = true
     jammer_cartridge_projectile_b.ProjectileDamageType = DamageType.Splash
     jammer_cartridge_projectile_b.InitialVelocity = 30
     jammer_cartridge_projectile_b.Lifespan = 2f
@@ -2930,6 +2938,7 @@ object GlobalDefinitions {
     jammer_grenade_projectile.Damage1 = 0
     jammer_grenade_projectile.DamageAtEdge = 1.0f
     jammer_grenade_projectile.DamageRadius = 10f
+    jammer_grenade_projectile.GrenadeProjectile = true
     jammer_grenade_projectile.ProjectileDamageType = DamageType.Splash
     jammer_grenade_projectile.InitialVelocity = 30
     jammer_grenade_projectile.Lifespan = 15f
@@ -2968,6 +2977,7 @@ object GlobalDefinitions {
     jammer_grenade_projectile_enh.Damage1 = 0
     jammer_grenade_projectile_enh.DamageAtEdge = 1.0f
     jammer_grenade_projectile_enh.DamageRadius = 10f
+    jammer_grenade_projectile_enh.GrenadeProjectile = true
     jammer_grenade_projectile_enh.ProjectileDamageType = DamageType.Splash
     jammer_grenade_projectile_enh.InitialVelocity = 30
     jammer_grenade_projectile_enh.Lifespan = 3f
@@ -3098,6 +3108,7 @@ object GlobalDefinitions {
     maelstrom_grenade_projectile.Damage1 = 60
     maelstrom_grenade_projectile.DamageRadius = 20f
     maelstrom_grenade_projectile.LashRadius = 5f
+    maelstrom_grenade_projectile.GrenadeProjectile = true
     maelstrom_grenade_projectile.ProjectileDamageType = DamageType.Direct
     maelstrom_grenade_projectile.InitialVelocity = 30
     maelstrom_grenade_projectile.Lifespan = 2f
@@ -3111,6 +3122,7 @@ object GlobalDefinitions {
     maelstrom_grenade_projectile_contact.Damage1 = 60
     maelstrom_grenade_projectile_contact.DamageRadius = 20f
     maelstrom_grenade_projectile_contact.LashRadius = 5f
+    maelstrom_grenade_projectile_contact.GrenadeProjectile = true
     maelstrom_grenade_projectile_contact.ProjectileDamageType = DamageType.Direct
     maelstrom_grenade_projectile_contact.InitialVelocity = 30
     maelstrom_grenade_projectile_contact.Lifespan = 15f
@@ -3235,6 +3247,7 @@ object GlobalDefinitions {
     mine_sweeper_projectile.Damage1 = 0
     mine_sweeper_projectile.DamageAtEdge = .33f
     mine_sweeper_projectile.DamageRadius = 25f
+    mine_sweeper_projectile.GrenadeProjectile = true
     mine_sweeper_projectile.ProjectileDamageType = DamageType.Splash
     mine_sweeper_projectile.InitialVelocity = 30
     mine_sweeper_projectile.Lifespan = 15f
@@ -3246,6 +3259,7 @@ object GlobalDefinitions {
     mine_sweeper_projectile_enh.Damage1 = 0
     mine_sweeper_projectile_enh.DamageAtEdge = 0.33f
     mine_sweeper_projectile_enh.DamageRadius = 25f
+    mine_sweeper_projectile_enh.GrenadeProjectile = true
     mine_sweeper_projectile_enh.ProjectileDamageType = DamageType.Splash
     mine_sweeper_projectile_enh.InitialVelocity = 30
     mine_sweeper_projectile_enh.Lifespan = 3f
@@ -3449,11 +3463,12 @@ object GlobalDefinitions {
     plasma_cartridge_projectile.Damage1 = 15
     plasma_cartridge_projectile.DamageAtEdge = 0.2f
     plasma_cartridge_projectile.DamageRadius = 7f
+    plasma_cartridge_projectile.GrenadeProjectile = true
     plasma_cartridge_projectile.ProjectileDamageType = DamageType.Aggravated
     plasma_cartridge_projectile.Aggravated = AggravatedDamage(
       List(AggravatedInfo(DamageType.Direct, 0.25f, 750), AggravatedInfo(DamageType.Splash, 0.25f, 1000)),
       Aura.Plasma,
-      0,
+      4000, //hard-coded default?
       1.5f,
       true,
       false
@@ -3468,11 +3483,12 @@ object GlobalDefinitions {
     plasma_cartridge_projectile_b.Damage1 = 15
     plasma_cartridge_projectile_b.DamageAtEdge = 0.2f
     plasma_cartridge_projectile_b.DamageRadius = 7f
+    plasma_cartridge_projectile_b.GrenadeProjectile = true
     plasma_cartridge_projectile_b.ProjectileDamageType = DamageType.Aggravated
     plasma_cartridge_projectile_b.Aggravated = AggravatedDamage(
       List(AggravatedInfo(DamageType.Direct, 0.25f, 750), AggravatedInfo(DamageType.Splash, 0.25f, 1000)),
       Aura.Plasma,
-      0,
+      4000, //hard-coded default?
       1.5f,
       true,
       false
@@ -3486,11 +3502,12 @@ object GlobalDefinitions {
     plasma_grenade_projectile.Damage1 = 30
     plasma_grenade_projectile.DamageAtEdge = 0.1f
     plasma_grenade_projectile.DamageRadius = 7f
+    plasma_grenade_projectile.GrenadeProjectile = true
     plasma_grenade_projectile.ProjectileDamageType = DamageType.Aggravated
     plasma_grenade_projectile.Aggravated = AggravatedDamage(
       List(AggravatedInfo(DamageType.Direct, 0.25f, 750), AggravatedInfo(DamageType.Splash, 0.25f, 1000)),
       Aura.Plasma,
-      0,
+      4000, //hard-coded default?
       1.5f,
       true,
       false
@@ -3505,11 +3522,12 @@ object GlobalDefinitions {
     plasma_grenade_projectile_B.Damage1 = 30
     plasma_grenade_projectile_B.DamageAtEdge = 0.1f
     plasma_grenade_projectile_B.DamageRadius = 7f
+    plasma_grenade_projectile_B.GrenadeProjectile = true
     plasma_grenade_projectile_B.ProjectileDamageType = DamageType.Aggravated
     plasma_grenade_projectile_B.Aggravated = AggravatedDamage(
       List(AggravatedInfo(DamageType.Direct, 0.25f, 750), AggravatedInfo(DamageType.Splash, 0.25f, 1000)),
       Aura.Plasma,
-      0,
+      4000, //hard-coded default?
       1.5f,
       true,
       false
@@ -3526,6 +3544,7 @@ object GlobalDefinitions {
     pounder_projectile.Damage4 = 132
     pounder_projectile.DamageAtEdge = 0.1f
     pounder_projectile.DamageRadius = 1f
+    pounder_projectile.GrenadeProjectile = true
     pounder_projectile.ProjectileDamageType = DamageType.Splash
     pounder_projectile.InitialVelocity = 120
     pounder_projectile.Lifespan = 2.5f
@@ -3541,6 +3560,7 @@ object GlobalDefinitions {
     pounder_projectile_enh.Damage4 = 132
     pounder_projectile_enh.DamageAtEdge = 0.1f
     pounder_projectile_enh.DamageRadius = 1f
+    pounder_projectile_enh.GrenadeProjectile = true
     pounder_projectile_enh.ProjectileDamageType = DamageType.Splash
     pounder_projectile_enh.InitialVelocity = 120
     pounder_projectile_enh.Lifespan = 3.2f
@@ -3592,6 +3612,7 @@ object GlobalDefinitions {
     ProjectileDefinition.CalculateDerivedFields(quasar_projectile)
 
     radiator_grenade_projectile.Name = "radiator_grenade_projectile" // Todo : Radiator damages ?
+    radiator_grenade_projectile.GrenadeProjectile = true //not really, but technically yes
     radiator_grenade_projectile.ProjectileDamageType = DamageType.Direct
     radiator_grenade_projectile.InitialVelocity = 30
     radiator_grenade_projectile.Lifespan = 3f
@@ -3599,6 +3620,7 @@ object GlobalDefinitions {
 
     radiator_sticky_projectile.Name = "radiator_sticky_projectile"
     // TODO for later, maybe : set_resource_parent radiator_sticky_projectile game_objects radiator_grenade_projectile
+    radiator_sticky_projectile.GrenadeProjectile = true //not really, but technically yes
     radiator_sticky_projectile.ProjectileDamageType = DamageType.Direct
     radiator_sticky_projectile.InitialVelocity = 30
     radiator_sticky_projectile.Lifespan = 4f
