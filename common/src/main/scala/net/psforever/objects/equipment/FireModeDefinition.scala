@@ -33,7 +33,7 @@ class FireModeDefinition {
   /** how much is subtracted from the magazine each fire cycle;
     * most weapons will only fire 1 round per fire cycle; the flamethrower in fire mode 1 fires 50
     */
-  private var rounds: Int = 1
+  private var roundsPerShot: Int = 1
 
   /** how many sub-rounds are queued per round fired;
     * the flechette fires 8 pellets per shell and generates 8 fire reports before the ammo count goes down
@@ -77,11 +77,11 @@ class FireModeDefinition {
     CustomMagazine
   }
 
-  def Rounds: Int = rounds
+  def RoundsPerShot: Int = roundsPerShot
 
-  def Rounds_=(round: Int): Int = {
-    rounds = round
-    Rounds
+  def RoundsPerShot_=(round: Int): Int = {
+    roundsPerShot = round
+    RoundsPerShot
   }
 
   def Chamber: Int = chamber
@@ -102,7 +102,7 @@ class FireModeDefinition {
   def Discharge(weapon: Tool, rounds: Option[Int] = None): Int = {
     val dischargedAmount = rounds match {
       case Some(rounds: Int) => rounds
-      case _                 => Rounds
+      case _                 => RoundsPerShot
     }
     weapon.Magazine - dischargedAmount
   }
@@ -125,7 +125,7 @@ class PelletFireModeDefinition extends FireModeDefinition {
     val chamber: Int = ammoSlot.Chamber = ammoSlot.Chamber - 1
     if (chamber <= 0) {
       ammoSlot.Chamber = Chamber
-      magazine - Rounds
+      magazine - RoundsPerShot
     } else {
       magazine
     }

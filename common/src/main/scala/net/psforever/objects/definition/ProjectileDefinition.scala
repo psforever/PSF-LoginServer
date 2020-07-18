@@ -29,6 +29,7 @@ class ProjectileDefinition(objectId: Int)
   private var existsOnRemoteClients: Boolean        = false                 //`true` spawns a server-managed object
   private var remoteClientData: (Int, Int) =
     (0, 0) //artificial values; for ObjectCreateMessage packet (oicw_little_buddy is undefined)
+  private var damageProxy: Option[Int]  = None
   private var autoLock: Boolean         = false
   private var additionalEffect: Boolean = false
   private var jammerProjectile: Boolean = false
@@ -130,6 +131,15 @@ class ProjectileDefinition(objectId: Int)
   def RemoteClientData_=(remoteClientData: (Int, Int)): (Int, Int) = {
     this.remoteClientData = remoteClientData
     RemoteClientData
+  }
+
+  def DamageProxy : Option[Int] = damageProxy
+
+  def DamageProxy_=(proxyObjectId : Int) : Option[Int] = DamageProxy_=(Some(proxyObjectId))
+
+  def DamageProxy_=(proxyObjectId : Option[Int]) : Option[Int] = {
+    damageProxy = proxyObjectId
+    DamageProxy
   }
 
   def AutoLock: Boolean = autoLock

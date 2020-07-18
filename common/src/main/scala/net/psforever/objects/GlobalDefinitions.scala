@@ -3007,6 +3007,7 @@ object GlobalDefinitions {
     maelstrom_grenade_projectile.ProjectileDamageType = DamageType.Direct
     maelstrom_grenade_projectile.InitialVelocity = 30
     maelstrom_grenade_projectile.Lifespan = 2f
+    maelstrom_grenade_projectile.DamageProxy = 464
     ProjectileDefinition.CalculateDerivedFields(maelstrom_grenade_projectile)
 
     maelstrom_grenade_projectile_contact.Name = "maelstrom_grenade_projectile_contact"
@@ -3017,6 +3018,7 @@ object GlobalDefinitions {
     maelstrom_grenade_projectile_contact.ProjectileDamageType = DamageType.Direct
     maelstrom_grenade_projectile_contact.InitialVelocity = 30
     maelstrom_grenade_projectile_contact.Lifespan = 15f
+    maelstrom_grenade_projectile_contact.DamageProxy = 464
     ProjectileDefinition.CalculateDerivedFields(maelstrom_grenade_projectile_contact)
 
     maelstrom_stream_projectile.Name = "maelstrom_stream_projectile"
@@ -4211,11 +4213,13 @@ object GlobalDefinitions {
     maelstrom.FireModes(1).ProjectileTypeIndices += 1
     maelstrom.FireModes(1).AmmoSlotIndex = 0
     maelstrom.FireModes(1).Magazine = 150
+    maelstrom.FireModes(1).RoundsPerShot = 10
     maelstrom.FireModes += new FireModeDefinition
     maelstrom.FireModes(2).AmmoTypeIndices += 0
     maelstrom.FireModes(2).ProjectileTypeIndices += 2
     maelstrom.FireModes(2).AmmoSlotIndex = 0
     maelstrom.FireModes(2).Magazine = 150
+    maelstrom.FireModes(2).RoundsPerShot = 10
     maelstrom.Tile = InventoryTile.Tile93
     //TODO the maelstrom is weird
 
@@ -4381,7 +4385,7 @@ object GlobalDefinitions {
     flamethrower.FireModes(1).ProjectileTypeIndices += 1
     flamethrower.FireModes(1).AmmoSlotIndex = 0
     flamethrower.FireModes(1).Magazine = 100
-    flamethrower.FireModes(1).Rounds = 50
+    flamethrower.FireModes(1).RoundsPerShot = 50
     flamethrower.Tile = InventoryTile.Tile63
 
     winchester.Name = "winchester"

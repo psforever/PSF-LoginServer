@@ -363,7 +363,7 @@ object GamePacketOpcode extends Enumeration {
       case 0xc2 => game.FacilityBenefitShieldChargeRequestMessage.decode
       case 0xc3 => game.ProximityTerminalUseMessage.decode
       case 0xc4 => game.QuantityDeltaUpdateMessage.decode
-      case 0xc5 => noDecoder(ChainLashMessage)
+      case 0xc5 => game.ChainLashMessage.decode
       case 0xc6 => game.ZoneInfoMessage.decode
       case 0xc7 => noDecoder(LongRangeProjectileInfoMessage)
       // 0xc8
