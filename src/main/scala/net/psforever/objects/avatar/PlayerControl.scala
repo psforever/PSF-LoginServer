@@ -30,12 +30,15 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     extends Actor
     with JammableBehavior
     with Damageable
-    with ContainableBehavior {
+    with ContainableBehavior
+    with AuraEffectBehavior {
   def JammableObject = player
 
   def DamageableObject = player
 
   def ContainerObject = player
+
+  def AuraTargetObject = player
 
   private[this] val log       = org.log4s.getLogger(player.Name)
   private[this] val damageLog = org.log4s.getLogger(Damageable.LogChannel)
@@ -53,11 +56,13 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
   override def postStop(): Unit = {
     lockerControlAgent ! akka.actor.PoisonPill
     player.avatar.locker.Actor = Default.Actor
+    EndAllEffects()
   }
 
   def receive: Receive =
     jammableBehavior
       .orElse(takesDamage)
+      .orElse(auraBehavior)
       .orElse(containerBehavior)
       .orElse {
         case Player.Die() =>
@@ -544,9 +549,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         //alert damage source
         DamageAwareness(target, cause)
       }
+      //special effects
       if (Damageable.CanJammer(target, cause)) {
-        target.Actor ! JammableUnit.Jammered(cause)
+        TryJammerEffectActivate(target, cause)
       }
+      TryAggravationEffect(cause)
     } else {
       DestructionAwareness(target, Some(cause))
     }
@@ -599,6 +606,8 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     val nameChannel  = target.Name
     val zoneChannel  = zone.id
     target.Die
+    //aura effects cancel
+    EndAllEffects()
     //unjam
     CancelJammeredSound(target)
     CancelJammeredStatus(target)
