@@ -6177,28 +6177,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
             log.warn(s"ResolveProjectile: expected projectile, but ${projectile_guid.guid} not found")
         }
 
-//        (hit_info match {
-//          case Some(hitInfo) =>
-//            ValidObject(hitInfo.hitobject_guid) match {
-//              case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
-//                CheckForHitPositionDiscrepancy(projectile_guid, hitInfo.hit_pos, target)
-//                List((target, hitInfo.shot_origin, hitInfo.hit_pos))
-//              case _ =>
-//                Nil
-//            }
-//          case None => ;
-//            Nil
-//        })
-//          .foreach({
-//            case Some((target: PlanetSideGameObject with FactionAffinity with Vitality, shotOrigin: Vector3, hitPos: Vector3)) =>
-//              ResolveProjectileEntry(projectile_guid, ProjectileResolution.Hit, target, hitPos) match {
-//                case Some(projectile) =>
-//                  HandleDealingDamage(target, projectile)
-//                case None => ;
-//              }
-//            case None => ;
-//          })
-
       case msg @ SplashHitMessage(
             seq_time,
             projectile_guid,
