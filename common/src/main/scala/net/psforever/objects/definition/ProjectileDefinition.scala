@@ -25,6 +25,7 @@ class ProjectileDefinition(objectId: Int)
   private var lifespan: Float                       = 1f
   private var damageAtEdge: Float                   = 1f
   private var damageRadius: Float                   = 1f
+  private var lashRadius : Float                    = 0f
   private var useDamage1Subtract: Boolean           = false
   private var existsOnRemoteClients: Boolean        = false                 //`true` spawns a server-managed object
   private var remoteClientData: (Int, Int) =
@@ -117,6 +118,13 @@ class ProjectileDefinition(objectId: Int)
   def DamageRadius_=(damageRadius: Float): Float = {
     this.damageRadius = damageRadius
     DamageRadius
+  }
+
+  def LashRadius: Float = lashRadius
+
+  def LashRadius_=(radius: Float): Float = {
+    lashRadius = radius
+    LashRadius
   }
 
   def ExistsOnRemoteClients: Boolean = existsOnRemoteClients

@@ -3003,7 +3003,8 @@ object GlobalDefinitions {
     maelstrom_grenade_projectile.Name = "maelstrom_grenade_projectile"
     maelstrom_grenade_projectile.Damage0 = 32
     maelstrom_grenade_projectile.Damage1 = 60
-    maelstrom_grenade_projectile.DamageRadius = 20.0f
+    maelstrom_grenade_projectile.DamageRadius = 20f
+    maelstrom_grenade_projectile.LashRadius = 5f
     maelstrom_grenade_projectile.ProjectileDamageType = DamageType.Direct
     maelstrom_grenade_projectile.InitialVelocity = 30
     maelstrom_grenade_projectile.Lifespan = 2f
@@ -3014,7 +3015,8 @@ object GlobalDefinitions {
     // TODO for later, maybe : set_resource_parent maelstrom_grenade_projectile_contact game_objects maelstrom_grenade_projectile
     maelstrom_grenade_projectile_contact.Damage0 = 32
     maelstrom_grenade_projectile_contact.Damage1 = 60
-    maelstrom_grenade_projectile_contact.DamageRadius = 20.0f
+    maelstrom_grenade_projectile_contact.DamageRadius = 20f
+    maelstrom_grenade_projectile_contact.LashRadius = 5f
     maelstrom_grenade_projectile_contact.ProjectileDamageType = DamageType.Direct
     maelstrom_grenade_projectile_contact.InitialVelocity = 30
     maelstrom_grenade_projectile_contact.Lifespan = 15f

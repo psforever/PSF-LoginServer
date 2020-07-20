@@ -812,8 +812,13 @@ class WorldSessionActor extends Actor with MDCContextAware {
           val converter: CharacterSelectConverter = new CharacterSelectConverter
 
           characters.filter(!_.deleted) foreach { character =>
-            val secondsSinceLastLogin =
+            val secondsSinceLastLogin = (try {
               new Period(character.lastLogin, LocalDateTime.now()).toStandardSeconds().getSeconds()
+            }
+            catch {
+              case _ : Exception =>
+                86400 //60s * 60m * 24h = 1day
+            })
             val avatar = character.toAvatar
             AwardCharacterSelectBattleExperiencePoints(avatar, 20000000L)
             avatar.CEP = 600000
@@ -6117,26 +6122,82 @@ class WorldSessionActor extends Actor with MDCContextAware {
 
       case msg @ HitMessage(seq_time, projectile_guid, unk1, hit_info, unk2, unk3, unk4) =>
         log.info(s"Hit: $msg")
-        (hit_info match {
-          case Some(hitInfo) =>
-            ValidObject(hitInfo.hitobject_guid) match {
-              case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
-                CheckForHitPositionDiscrepancy(projectile_guid, hitInfo.hit_pos, target)
-                Some((target, hitInfo.shot_origin, hitInfo.hit_pos))
-              case _ =>
-                None
-            }
-          case None => ;
-            None
-        }) match {
-          case Some((target, shotOrigin, hitPos)) =>
-            ResolveProjectileEntry(projectile_guid, ProjectileResolution.Hit, target, hitPos) match {
-              case Some(projectile) =>
-                HandleDealingDamage(target, projectile)
-              case None => ;
-            }
-          case None => ;
+        //find defined projectile
+        FindProjectileEntry(projectile_guid) match {
+          case Some(projectile) =>
+            //find target(s)
+            (hit_info match {
+              case Some(hitInfo) =>
+                ValidObject(hitInfo.hitobject_guid) match {
+                  case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
+                    CheckForHitPositionDiscrepancy(projectile_guid, hitInfo.hit_pos, target)
+                    List((target, hitInfo.shot_origin, hitInfo.hit_pos))
+
+                  case None if projectile.profile.DamageProxy.getOrElse(0) > 0 =>
+                    //server-side maelstrom grenade target selection
+                    if(projectile.tool_def == GlobalDefinitions.maelstrom) {
+                      val hitPos = hitInfo.hit_pos
+                      val shotOrigin = hitInfo.shot_origin
+                      val radius = projectile.profile.LashRadius * projectile.profile.LashRadius
+                      val targets = continent.LivePlayers.filter { target =>
+                        Vector3.DistanceSquared(target.Position, hitPos) < radius
+                      }
+                      //chainlash is separated from the actual damage application for convenience
+                      continent.AvatarEvents ! AvatarServiceMessage(
+                        continent.Id,
+                        AvatarAction.SendResponse(
+                          PlanetSideGUID(0),
+                          ChainLashMessage(hitPos, projectile.profile.ObjectId, targets.map { _.GUID }.toList)
+                        )
+                      )
+                      targets.map { target =>
+                        CheckForHitPositionDiscrepancy(projectile_guid, hitPos, target)
+                        (target, shotOrigin, hitPos)
+                      }
+                    }
+                    else {
+                      Nil
+                    }
+                  case _ =>
+                    Nil
+                }
+              case None =>
+                Nil
+            })
+              .foreach({
+                case (target: PlanetSideGameObject with FactionAffinity with Vitality, shotOrigin: Vector3, hitPos: Vector3) =>
+                  ResolveProjectileEntry(projectile, ProjectileResolution.Hit, target, hitPos) match {
+                    case Some(projectile) =>
+                      HandleDealingDamage(target, projectile)
+                    case None => ;
+                  }
+                case _ => ;
+              })
+          case None =>
+            log.warn(s"ResolveProjectile: expected projectile, but ${projectile_guid.guid} not found")
         }
+
+//        (hit_info match {
+//          case Some(hitInfo) =>
+//            ValidObject(hitInfo.hitobject_guid) match {
+//              case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
+//                CheckForHitPositionDiscrepancy(projectile_guid, hitInfo.hit_pos, target)
+//                List((target, hitInfo.shot_origin, hitInfo.hit_pos))
+//              case _ =>
+//                Nil
+//            }
+//          case None => ;
+//            Nil
+//        })
+//          .foreach({
+//            case Some((target: PlanetSideGameObject with FactionAffinity with Vitality, shotOrigin: Vector3, hitPos: Vector3)) =>
+//              ResolveProjectileEntry(projectile_guid, ProjectileResolution.Hit, target, hitPos) match {
+//                case Some(projectile) =>
+//                  HandleDealingDamage(target, projectile)
+//                case None => ;
+//              }
+//            case None => ;
+//          })
 
       case msg @ SplashHitMessage(
             seq_time,
