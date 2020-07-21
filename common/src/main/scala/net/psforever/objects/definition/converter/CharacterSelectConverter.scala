@@ -42,7 +42,7 @@ class CharacterSelectConverter extends AvatarConverter {
       CommonFieldData(
         obj.Faction,
         bops = false,
-        false,
+        alternate = false,
         false,
         None,
         false,
@@ -71,7 +71,7 @@ class CharacterSelectConverter extends AvatarConverter {
       facingYawUpper = 0,
       lfs = false,
       GrenadeState.None,
-      obj.Cloaked,
+      is_cloaking = false,
       false,
       false,
       charging_pose = false,

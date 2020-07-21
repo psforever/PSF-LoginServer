@@ -1511,7 +1511,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
           player = p
           persist()
           player.Zone = inZone
-          HandleReleaseAvatar(p, inZone)
+          HandleReleaseAvatar(p, inZone, TurnPlayerIntoCorpse)
           UpdateLoginTimeThenDoClientInitialization()
 
         case (Some(a), None) =>
@@ -1963,7 +1963,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
             Zone.Lattice.RequestSpawnPoint(Zones.SanctuaryZoneNumber(player.Faction), player, 7)
           )
         } else {
-          HandleReleaseAvatar(player, continent)
+          HandleReleaseAvatar(player, continent, TurnPlayerIntoCorpse)
         }
 
       case AvatarResponse.LoadPlayer(pkt) =>
@@ -4270,7 +4270,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         log.info(s"ReleaseAvatarRequest: ${player.GUID} on ${continent.Id} has released")
         reviveTimer.cancel
         GoToDeploymentMap()
-        HandleReleaseAvatar(player, continent)
+        HandleReleaseAvatar(player, continent, TurnPlayerIntoCorpseAndFlag)
 
       case msg @ SpawnRequestMessage(u1, spawn_type, u3, u4, zone_number) =>
         log.info(s"SpawnRequestMessage: $msg")
@@ -5373,25 +5373,25 @@ class WorldSessionActor extends Actor with MDCContextAware {
           case Some(obj: Player) =>
             CancelZoningProcessWithDescriptiveReason("cancel_use")
             if (obj.isBackpack) {
-              if (equipment.isEmpty) {
-                log.info(s"UseItem: ${player.Name} looting the corpse of $obj")
-                sendResponse(
-                  UseItemMessage(
-                    avatar_guid,
-                    item_used_guid,
-                    object_guid,
-                    unk2,
-                    unk3,
-                    unk4,
-                    unk5,
-                    unk6,
-                    unk7,
-                    unk8,
-                    itemType
-                  )
-                )
-                accessedContainer = Some(obj)
-              }
+//              if (equipment.isEmpty) {
+//                log.info(s"UseItem: ${player.Name} looting the corpse of $obj")
+//                sendResponse(
+//                  UseItemMessage(
+//                    avatar_guid,
+//                    item_used_guid,
+//                    object_guid,
+//                    unk2,
+//                    unk3,
+//                    unk4,
+//                    unk5,
+//                    unk6,
+//                    unk7,
+//                    unk8,
+//                    itemType
+//                  )
+//                )
+//                accessedContainer = Some(obj)
+//              }
             } else if (!unk3 && player.isAlive) { //potential kit use
               ValidObject(item_used_guid) match {
                 case Some(kit: Kit) =>
@@ -8296,20 +8296,19 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * If the player has no items stored, the clean solution is to remove the player from the game.
     * To the game, that is a backpack (or some pastry, festive graphical modification allowing).
     * @see `AvatarAction.ObjectDelete`
-    * @see `AvatarAction.Release`
     * @see `AvatarServiceMessage`
     * @see `FriskDeadBody`
     * @see `GUIDTask.UnregisterPlayer`
     * @see `ObjectDeleteMessage`
+    * @see `Player.Release`
     * @see `WellLootedDeadBody`
-    * @see `Zone.Corpse.Add`
-    * @param tplayer the player
+    * @param tplayer the target player
     */
-  def PrepareToTurnPlayerIntoCorpse(tplayer: Player, zone: Zone): Unit = {
+  def PrepareToTurnPlayerIntoCorpse(tplayer: Player, zone: Zone, transformCorpseFunc : (Player,Zone)=>Unit): Unit = {
     tplayer.Release
     FriskDeadBody(tplayer)
     if (!WellLootedDeadBody(tplayer)) {
-      TurnPlayerIntoCorpse(tplayer, zone)
+      transformCorpseFunc(tplayer, zone)
     } else {
       //no items in inventory; leave no corpse
       val pguid = tplayer.GUID
@@ -8321,13 +8320,24 @@ class WorldSessionActor extends Actor with MDCContextAware {
   }
 
   /**
-    * Creates a player that has the characteristics of a corpse.
+    * Create a player that has the characteristics of a corpse.
+    * To the game, that is a backpack (or some pastry, festive graphical modification allowing).
+    * A player who has been kicked may not turn into a corpse.
+    * @see `PlanetsideAttributeMessage`
+    * @see `TurnPlayerIntoCorpse`
+    * @param tplayer the target player
+    */
+  def TurnPlayerIntoCorpseAndFlag(tplayer: Player, zone: Zone) : Unit = {
+    TurnPlayerIntoCorpse(tplayer, zone)
+    sendResponse(PlanetsideAttributeMessage(tplayer.GUID, 6, 1))
+  }
+
+  /**
+    * Create a player that has the characteristics of a corpse.
     * To the game, that is a backpack (or some pastry, festive graphical modification allowing).
     * A player who has been kicked may not turn into a corpse.
     * @see `AvatarAction.Release`
     * @see `AvatarServiceMessage`
-    * @see `CorpseConverter.converter`
-    * @see `DepictPlayerAsCorpse`
     * @see `Player.Release`
     * @see `Zone.AvatarEvents`
     * @see `Zone.Corpse.Add`
@@ -8336,7 +8346,6 @@ class WorldSessionActor extends Actor with MDCContextAware {
     */
   def TurnPlayerIntoCorpse(tplayer: Player, zone: Zone): Unit = {
     tplayer.Release
-    DepictPlayerAsCorpse(tplayer)
     zone.Population ! Zone.Corpse.Add(tplayer)
     zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.Release(tplayer, zone))
   }
@@ -8345,6 +8354,9 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * Creates a player that has the characteristics of a corpse.
     * To the game, that is a backpack (or some pastry, festive graphical modification allowing).
     * @see `CorpseConverter.converter`
+    * @see `ObjectCreateDetailedMessage`
+    * @see `ObjectClass.avatar`
+    * @see `PlanetsideAttributeMessage`
     * @param tplayer the player
     */
   def DepictPlayerAsCorpse(tplayer: Player): Unit = {
@@ -8356,6 +8368,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
         CorpseConverter.converter.DetailedConstructorData(tplayer).get
       )
     )
+    sendResponse(PlanetsideAttributeMessage(guid, 6, 1))
   }
 
   /**
@@ -10918,11 +10931,11 @@ class WorldSessionActor extends Actor with MDCContextAware {
     * @param tplayer na
     * @param zone na
     */
-  def HandleReleaseAvatar(tplayer: Player, zone: Zone): Unit = {
+  def HandleReleaseAvatar(tplayer: Player, zone: Zone, transformCorpseFunc: (Player,Zone)=>Unit): Unit = {
     tplayer.Release
     tplayer.VehicleSeated match {
       case None =>
-        PrepareToTurnPlayerIntoCorpse(tplayer, zone)
+        PrepareToTurnPlayerIntoCorpse(tplayer, zone, transformCorpseFunc)
       case Some(_) =>
         tplayer.VehicleSeated = None
         zone.Population ! Zone.Population.Release(avatar)
