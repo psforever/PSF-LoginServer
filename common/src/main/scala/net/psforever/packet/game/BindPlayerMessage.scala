@@ -67,7 +67,7 @@ final case class BindPlayerMessage(
     bind_desc: String,
     display_icon: Boolean,
     logging: Boolean,
-    spawn_group: SpawnGroup.Value,
+    spawn_group: SpawnGroup,
     zone_number: Long,
     unk4: Long,
     pos: Vector3
@@ -84,7 +84,7 @@ object BindPlayerMessage extends Marshallable[BindPlayerMessage] {
     */
   val Standard = BindPlayerMessage(BindStatus.Unbind, "", false, false, SpawnGroup.BoundAMS, 0, 0, Vector3.Zero)
 
-  private val spawnGroupCodec = PacketHelpers.createEnumerationCodec(SpawnGroup, uint4)
+  private val spawnGroupCodec = PacketHelpers.createIntEnumCodec(SpawnGroup, uint4)
 
   implicit val codec: Codec[BindPlayerMessage] = (
     ("action" | BindStatus.codec) ::

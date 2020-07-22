@@ -1,19 +1,19 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.structures
 
-/**
-  * An `Enumeration` of the kinds of building structures found in the game.
-  * This is merely a kludge for more a future, more complicated internal object that handles base operations.
-  */
-object StructureType extends Enumeration {
-  type Type = Value
+import enumeratum.{EnumEntry, Enum}
 
-  val Bridge, // technically, a "bridge section"
-  Building,   // generic
-  Bunker,     // low accessible ground cover
-  Facility,   // large base
-  Platform,   // outdoor amenities disconnected from a proper base like the vehicle spawn pads in sanctuary
-  Tower,      // also called field towers: watchtower, air tower, gun tower
-  WarpGate    // transport point between zones
-  = Value
+sealed trait StructureType extends EnumEntry
+
+object StructureType extends Enum[StructureType] {
+  val values = findValues
+
+  case object Bridge   extends StructureType // technically, a "bridge section"
+  case object Building extends StructureType // generic
+  case object Bunker   extends StructureType // low accessible ground cover
+  case object Facility extends StructureType // large base
+  case object Platform
+      extends StructureType // outdoor amenities disconnected from a proper base like the vehicle spawn pads in sanctuary
+  case object Tower    extends StructureType // also called field towers: watchtower, air tower, gun tower
+  case object WarpGate extends StructureType // transport point between zones
 }

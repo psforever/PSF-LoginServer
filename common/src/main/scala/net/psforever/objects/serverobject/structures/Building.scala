@@ -4,6 +4,7 @@ package net.psforever.objects.serverobject.structures
 import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorContext
+import net.psforever.actors.zone.{BuildingActor, ZoneActor}
 import net.psforever.objects.{Default, GlobalDefinitions, Player}
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.generator.Generator
@@ -13,18 +14,19 @@ import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.terminals.CaptureTerminal
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{Additional1, Additional2, Additional3}
+import net.psforever.packet.game.BuildingInfoUpdateMessage
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, PlanetSideGeneratorState, Vector3}
 import scalax.collection.{Graph, GraphEdge}
 import services.Service
 import services.local.{LocalAction, LocalServiceMessage}
+import akka.actor.typed.scaladsl.adapter._
 
 class Building(
     private val name: String,
     private val building_guid: Int,
     private val map_id: Int,
     private val zone: Zone,
-    private val buildingType: StructureType.Value,
+    private val buildingType: StructureType,
     private val buildingDefinition: BuildingDefinition
 ) extends AmenityOwner {
 
@@ -71,7 +73,8 @@ class Building(
     } else if (IsCapitol) {
       UpdateForceDomeStatus()
     }
-    TriggerZoneMapUpdate()
+    // FIXME null check is a bad idea but tests rely on it
+    if (Zone.actor != null) Zone.actor ! ZoneActor.ZoneMapUpdate()
     Faction
   }
 
@@ -126,10 +129,6 @@ class Building(
     }
   }
 
-  def TriggerZoneMapUpdate(): Unit = {
-    if (Actor != Default.Actor) Actor ! Building.TriggerZoneMapUpdate(Zone.Number)
-  }
-
   def UpdateForceDomeStatus(): Unit = {
     if (IsCapitol) {
       val originalStatus = ForceDomeActive
@@ -155,7 +154,7 @@ class Building(
             Zone.Id,
             LocalAction.UpdateForceDomeStatus(Service.defaultPlayerGUID, GUID, ForceDomeActive)
           )
-          Actor ! Building.SendMapUpdate(all_clients = true)
+          Actor ! BuildingActor.MapUpdate()
         }
       }
     }
@@ -171,27 +170,7 @@ class Building(
     }
   }
 
-  def Info: (
-      Int,
-      Boolean,
-      PlanetSideEmpire.Value,
-      Long,
-      PlanetSideEmpire.Value,
-      Long,
-      Option[Additional1],
-      PlanetSideGeneratorState.Value,
-      Boolean,
-      Boolean,
-      Int,
-      Int,
-      List[Additional2],
-      Long,
-      Boolean,
-      Int,
-      Option[Additional3],
-      Boolean,
-      Boolean
-  ) = {
+  def infoUpdateMessage(): BuildingInfoUpdateMessage = {
     val ntuLevel: Int = NtuLevel
     //if we have a capture terminal, get the hack status & time (in milliseconds) from control console if it exists
     val (hacking, hackingFaction, hackTime): (Boolean, PlanetSideEmpire.Value, Long) = CaptureTerminal match {
@@ -264,31 +243,33 @@ class Building(
         }
       }
     }
-    //out
-    (
+
+    BuildingInfoUpdateMessage(
+      Zone.Number,
+      MapId,
       ntuLevel,
       hacking,
       hackingFaction,
       hackTime,
       if (ntuLevel > 0) Faction else PlanetSideEmpire.NEUTRAL,
-      0, //!! Field != 0 will cause malformed packet. See class def.
+      0, // Field != 0 will cause malformed packet
       None,
       generatorState,
       spawnTubesNormal,
-      ForceDomeActive,
+      forceDomeActive,
       latticeBenefit,
-      48,                 //cavern_benefit; !! Field > 0 will cause malformed packet. See class def.
-      Nil,               //unk4
-      0,                 //unk5
-      false,             //unk6
-      8,                 //!! unk7 Field != 8 will cause malformed packet. See class def.
-      None,              //unk7x
-      boostSpawnPain,    //boost_spawn_pain
-      boostGeneratorPain //boost_generator_pain
+      48,    // cavern benefit
+      Nil,   // unk4,
+      0,     // unk5
+      false, // unk6
+      8,     // unk7 Field != 8 will cause malformed packet
+      None,  // unk7x
+      boostSpawnPain,
+      boostGeneratorPain
     )
   }
 
-  def BuildingType: StructureType.Value = buildingType
+  def BuildingType: StructureType = buildingType
 
   override def Zone_=(zone: Zone): Zone = Zone //building never leaves zone after being set in constructor
 
@@ -307,58 +288,51 @@ object Building {
       GUID = net.psforever.types.PlanetSideGUID(0)
     }
 
-  def apply(name: String, guid: Int, map_id: Int, zone: Zone, buildingType: StructureType.Value): Building = {
+  def apply(name: String, guid: Int, map_id: Int, zone: Zone, buildingType: StructureType): Building = {
     new Building(name, guid, map_id, zone, buildingType, GlobalDefinitions.building)
   }
 
   def Structure(
-      buildingType: StructureType.Value,
+      buildingType: StructureType,
       location: Vector3,
       rotation: Vector3,
       definition: BuildingDefinition
   )(name: String, guid: Int, map_id: Int, zone: Zone, context: ActorContext): Building = {
-    import akka.actor.Props
     val obj = new Building(name, guid, map_id, zone, buildingType, definition)
     obj.Position = location
     obj.Orientation = rotation
-    obj.Actor = context.actorOf(Props(classOf[BuildingControl], obj), s"$map_id-$buildingType-building")
+    obj.Actor = context.spawn(BuildingActor(zone, obj), s"$map_id-$buildingType-building").toClassic
     obj
   }
 
   def Structure(
-      buildingType: StructureType.Value,
+      buildingType: StructureType,
       location: Vector3
   )(name: String, guid: Int, map_id: Int, zone: Zone, context: ActorContext): Building = {
-    import akka.actor.Props
-
     val obj = new Building(name, guid, map_id, zone, buildingType, GlobalDefinitions.building)
     obj.Position = location
-    obj.Actor = context.actorOf(Props(classOf[BuildingControl], obj), s"$map_id-$buildingType-building")
+    obj.Actor = context.spawn(BuildingActor(zone, obj), s"$map_id-$buildingType-building").toClassic
     obj
   }
 
   def Structure(
-      buildingType: StructureType.Value
+      buildingType: StructureType
   )(name: String, guid: Int, map_id: Int, zone: Zone, context: ActorContext): Building = {
-    import akka.actor.Props
     val obj = new Building(name, guid, map_id, zone, buildingType, GlobalDefinitions.building)
-    obj.Actor = context.actorOf(Props(classOf[BuildingControl], obj), s"$map_id-$buildingType-building")
+    obj.Actor = context.spawn(BuildingActor(zone, obj), s"$map_id-$buildingType-building").toClassic
     obj
   }
 
   def Structure(
-      buildingType: StructureType.Value,
+      buildingType: StructureType,
       buildingDefinition: BuildingDefinition,
       location: Vector3
   )(name: String, guid: Int, id: Int, zone: Zone, context: ActorContext): Building = {
-    import akka.actor.Props
     val obj = new Building(name, guid, id, zone, buildingType, buildingDefinition)
     obj.Position = location
-    obj.Actor = context.actorOf(Props(classOf[BuildingControl], obj), s"$id-$buildingType-building")
+    context.spawn(BuildingActor(zone, obj), s"$id-$buildingType-building").toClassic
     obj
   }
 
   final case class AmenityStateChange(obj: Amenity)
-  final case class SendMapUpdate(all_clients: Boolean)
-  final case class TriggerZoneMapUpdate(zone_num: Int)
 }

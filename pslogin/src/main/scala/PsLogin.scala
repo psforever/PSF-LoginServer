@@ -4,7 +4,7 @@ import java.net.InetAddress
 import java.util.Locale
 
 import akka.{actor => classic}
-import akka.actor.typed.ActorSystem
+import akka.actor.typed.scaladsl.adapter._
 import akka.routing.RandomPool
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.joran.JoranConfigurator
@@ -15,7 +15,7 @@ import net.psforever.objects.guid.TaskResolver
 import org.slf4j
 import org.fusesource.jansi.Ansi._
 import org.fusesource.jansi.Ansi.Color._
-import services.ServiceManager
+import services.{InterstellarClusterService, ServiceManager}
 import services.account.{AccountIntermediaryService, AccountPersistenceService}
 import services.chat.ChatService
 import services.galaxy.GalaxyService
@@ -27,7 +27,6 @@ import org.flywaydb.core.Flyway
 import java.nio.file.Paths
 import scopt.OParser
 
-import akka.actor.typed.scaladsl.adapter._
 import net.psforever.actors.session.SessionActor
 import net.psforever.login.psadmin.PsAdminActor
 import net.psforever.login.{
@@ -94,8 +93,6 @@ object PsLogin {
     implicit val system = classic.ActorSystem("PsLogin")
     Default(system)
 
-    val typedSystem: ActorSystem[Nothing] = system.toTyped
-
     /** Create pipelines for the login and world servers
       *
       * The first node in the pipe is an Actor that handles the crypto for protecting packets.
@@ -130,16 +127,16 @@ object PsLogin {
       None
     }
 
-    val continents = Zones.zones.values ++ Seq(Zone.Nowhere)
+    val zones = Zones.zones.values ++ Seq(Zone.Nowhere)
 
-    system.spawnAnonymous(ChatService())
+    system.spawn(ChatService(), ChatService.ChatServiceKey.id)
+    system.spawn(InterstellarClusterService(zones), InterstellarClusterService.InterstellarClusterServiceKey.id)
 
     val serviceManager = ServiceManager.boot
     serviceManager ! ServiceManager.Register(classic.Props[AccountIntermediaryService], "accountIntermediary")
     serviceManager ! ServiceManager.Register(RandomPool(150).props(classic.Props[TaskResolver]), "taskResolver")
     serviceManager ! ServiceManager.Register(classic.Props[GalaxyService], "galaxy")
     serviceManager ! ServiceManager.Register(classic.Props[SquadService], "squad")
-    serviceManager ! ServiceManager.Register(classic.Props(classOf[InterstellarCluster], continents), "cluster")
     serviceManager ! ServiceManager.Register(classic.Props[AccountPersistenceService], "accountPersistence")
     serviceManager ! ServiceManager.Register(classic.Props[PropertyOverrideManager], "propertyOverrideManager")
 

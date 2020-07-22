@@ -89,9 +89,8 @@ lazy val psloginPackSettings = Seq(
   packMain := Map("ps-login" -> "net.psforever.pslogin.PsLogin"),
   packArchivePrefix := "pslogin",
   packExtraClasspath := Map("ps-login" -> Seq("${PROG_HOME}/pscrypto-lib", "${PROG_HOME}/config")),
-  packResourceDir += (baseDirectory.value / "pscrypto-lib"               -> "pscrypto-lib"),
-  packResourceDir += (baseDirectory.value / "config"                     -> "config"),
-  packResourceDir += (baseDirectory.value / "pslogin/src/main/resources" -> "config")
+  packResourceDir += (baseDirectory.value / "pscrypto-lib" -> "pscrypto-lib"),
+  packResourceDir += (baseDirectory.value / "config"       -> "config")
 )
 
 lazy val root = (project in file("."))
@@ -142,4 +141,4 @@ lazy val decodePackets = (project in file("tools/decode-packets"))
 lazy val decodePacketsPackSettings = Seq(packMain := Map("psf-decode-packets" -> "DecodePackets"))
 
 // Special test configuration for really quiet tests (used in CI)
-lazy val QuietTest = config("quiet") extend (Test)
+lazy val QuietTest = config("quiet") extend Test

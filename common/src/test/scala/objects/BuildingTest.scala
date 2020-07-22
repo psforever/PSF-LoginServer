@@ -1,19 +1,15 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import akka.actor.Props
 import base.ActorTest
+import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.{Default, GlobalDefinitions}
-import net.psforever.objects.serverobject.affinity.FactionAffinity
-import net.psforever.objects.serverobject.doors.{Door, DoorControl}
+import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.structures._
 import net.psforever.objects.zones.Zone
-import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
+import net.psforever.types.PlanetSideEmpire
 import org.specs2.mutable.Specification
-import services.ServiceManager
-import services.galaxy.GalaxyService
-
-import scala.concurrent.duration._
+import akka.actor.typed.scaladsl.adapter._
 
 class AmenityTest extends Specification {
   val definition = new AmenityDefinition(0) {
@@ -115,82 +111,12 @@ class WarpGateTest extends Specification {
   }
 }
 
-class BuildingControl1Test extends ActorTest {
+class BuildingActor1Test extends ActorTest {
   "Building Control" should {
     "construct" in {
       val bldg = Building("Building", 0, 10, Zone.Nowhere, StructureType.Building)
-      bldg.Actor = system.actorOf(Props(classOf[BuildingControl], bldg), "test")
+      bldg.Actor = system.spawn(BuildingActor(Zone.Nowhere, bldg), "test").toClassic
       assert(bldg.Actor != Default.Actor)
-    }
-  }
-}
-
-class BuildingControl2Test extends ActorTest {
-  ServiceManager.boot(system) ! ServiceManager.Register(Props[GalaxyService], "galaxy")
-  val bldg = Building("Building", 0, 10, Zone.Nowhere, StructureType.Building)
-  bldg.Faction = PlanetSideEmpire.TR
-  bldg.Actor = system.actorOf(Props(classOf[BuildingControl], bldg), "test")
-  bldg.Actor ! "startup"
-
-  "Building Control" should {
-    "convert and assert faction affinity on convert request" in {
-      expectNoMessage(500 milliseconds)
-
-      assert(bldg.Faction == PlanetSideEmpire.TR)
-      bldg.Actor ! FactionAffinity.ConvertFactionAffinity(PlanetSideEmpire.VS)
-      val reply = receiveOne(500 milliseconds)
-      assert(reply.isInstanceOf[FactionAffinity.AssertFactionAffinity])
-      assert(reply.asInstanceOf[FactionAffinity.AssertFactionAffinity].obj == bldg)
-      assert(reply.asInstanceOf[FactionAffinity.AssertFactionAffinity].faction == PlanetSideEmpire.VS)
-      assert(bldg.Faction == PlanetSideEmpire.VS)
-    }
-  }
-}
-
-class BuildingControl3Test extends ActorTest {
-  ServiceManager.boot(system) ! ServiceManager.Register(Props[GalaxyService], "galaxy")
-  val bldg = Building("Building", 0, 10, Zone.Nowhere, StructureType.Building)
-  bldg.Faction = PlanetSideEmpire.TR
-  bldg.Actor = system.actorOf(Props(classOf[BuildingControl], bldg), "test")
-  val door1 = Door(GlobalDefinitions.door)
-  door1.GUID = PlanetSideGUID(1)
-  door1.Actor = system.actorOf(Props(classOf[DoorControl], door1), "door1-test")
-  val door2 = Door(GlobalDefinitions.door)
-  door2.GUID = PlanetSideGUID(2)
-  door2.Actor = system.actorOf(Props(classOf[DoorControl], door2), "door2-test")
-  bldg.Amenities = door2
-  bldg.Amenities = door1
-  bldg.Actor ! "startup"
-
-  "Building Control" should {
-    "convert and assert faction affinity on convert request, and for each of its amenities" in {
-      expectNoMessage(500 milliseconds)
-
-      assert(bldg.Faction == PlanetSideEmpire.TR)
-      assert(bldg.Amenities.length == 2)
-      assert(bldg.Amenities.head == door2)
-      assert(bldg.Amenities(1) == door1)
-
-      bldg.Actor ! FactionAffinity.ConvertFactionAffinity(PlanetSideEmpire.VS)
-      val reply = ActorTest.receiveMultiple(3, 500 milliseconds, this)
-      //val reply = receiveN(3, Duration.create(5000, "ms"))
-      assert(reply.length == 3)
-      var building_count = 0
-      var door_count     = 0
-      reply.foreach(item => {
-        assert(item.isInstanceOf[FactionAffinity.AssertFactionAffinity])
-        val item2 = item.asInstanceOf[FactionAffinity.AssertFactionAffinity]
-        item2.obj match {
-          case _: Building =>
-            building_count += 1
-          case _: Door =>
-            door_count += 1
-          case _ =>
-            assert(false)
-        }
-        assert(item2.faction == PlanetSideEmpire.VS)
-      })
-      assert(building_count == 1 && door_count == 2)
     }
   }
 }

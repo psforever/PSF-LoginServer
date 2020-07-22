@@ -2,6 +2,7 @@
 package services.local
 
 import akka.actor.{Actor, ActorRef, Props}
+import net.psforever.actors.zone.{BuildingActor, ZoneActor}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.terminals.{CaptureTerminal, Terminal}
@@ -131,7 +132,7 @@ class LocalService(zone: Zone) extends Actor {
 
           // If the owner of this capture terminal is on the lattice trigger a zone wide map update to update lattice benefits
           zone.Lattice find building match {
-            case Some(_) => building.TriggerZoneMapUpdate()
+            case Some(_) => building.Zone.actor ! ZoneActor.ZoneMapUpdate()
             case None    => ;
           }
         case LocalAction.RouterTelepadTransport(player_guid, passenger_guid, src_guid, dest_guid) =>
@@ -247,9 +248,7 @@ class LocalService(zone: Zone) extends Actor {
 
       if (building.NtuLevel > 0) {
         log.info(s"Setting base ${building.GUID} / MapId: ${building.MapId} as owned by $hackedByFaction")
-
-        building.Faction = hackedByFaction
-        self ! LocalServiceMessage(zone.Id, LocalAction.SetEmpire(building.GUID, hackedByFaction))
+        building.Actor ! BuildingActor.SetFaction(hackedByFaction)
       } else {
         log.info("Base hack completed, but base was out of NTU.")
       }

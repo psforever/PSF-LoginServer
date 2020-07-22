@@ -6,7 +6,7 @@ import akka.routing.RandomPool
 import actor.base.ActorTest
 import net.psforever.objects._
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
-import net.psforever.objects.zones.{Zone, ZoneActor, ZoneMap}
+import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game.objectcreate.{DroppedItemData, ObjectClass, ObjectCreateMessageParent, PlacementData}
 import net.psforever.packet.game.{ObjectCreateMessage, PlayerStateMessageUpstream}
 import net.psforever.types._
@@ -14,6 +14,8 @@ import services.{RemoverActor, Service, ServiceManager}
 import services.avatar._
 
 import scala.concurrent.duration._
+import akka.actor.typed.scaladsl.adapter._
+import net.psforever.actors.zone.ZoneActor
 
 class AvatarService1Test extends ActorTest {
   "AvatarService" should {
@@ -510,8 +512,7 @@ class AvatarReleaseTest extends ActorTest {
   }
   val service      = system.actorOf(Props(classOf[AvatarService], zone), "release-test-service")
   val taskResolver = system.actorOf(Props[TaskResolver], "release-test-resolver")
-  zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "release-test-zone")
-  zone.Actor ! Zone.Init()
+  zone.actor = system.spawn(ZoneActor(zone), "release-test-zone")
   val obj = Player(Avatar("TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
   obj.Continent = "test"
   obj.Release
@@ -561,8 +562,7 @@ class AvatarReleaseEarly1Test extends ActorTest {
   }
   val service      = system.actorOf(Props(classOf[AvatarService], zone), "release-test-service")
   val taskResolver = system.actorOf(Props[TaskResolver], "release-test-resolver")
-  zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "release-test-zone")
-  zone.Actor ! Zone.Init()
+  zone.actor = system.spawn(ZoneActor(zone), "release-test-zone")
   val obj = Player(Avatar("TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
   obj.Continent = "test"
   obj.Release
@@ -613,8 +613,7 @@ class AvatarReleaseEarly2Test extends ActorTest {
   }
   val service      = system.actorOf(Props(classOf[AvatarService], zone), "release-test-service")
   val taskResolver = system.actorOf(Props[TaskResolver], "release-test-resolver")
-  zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "release-test-zone")
-  zone.Actor ! Zone.Init()
+  zone.actor = system.spawn(ZoneActor(zone), "release-test-zone")
   val objAlt =
     Player(
       Avatar("TestCharacter2", PlanetSideEmpire.NC, CharacterGender.Male, 1, CharacterVoice.Voice1)

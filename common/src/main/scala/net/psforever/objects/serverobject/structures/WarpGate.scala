@@ -5,8 +5,10 @@ import akka.actor.ActorContext
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.{GlobalDefinitions, NtuContainer, SpawnPoint}
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{Additional1, Additional2, Additional3}
+import net.psforever.packet.game.BuildingInfoUpdateMessage
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGeneratorState, Vector3}
+import akka.actor.typed.scaladsl.adapter._
+import net.psforever.actors.zone.BuildingActor
 
 import scala.collection.mutable
 
@@ -20,28 +22,10 @@ class WarpGate(name: String, building_guid: Int, map_id: Int, zone: Zone, buildi
   /** what faction views this warp gate as a broadcast gate */
   private var broadcast: mutable.Set[PlanetSideEmpire.Value] = mutable.Set.empty[PlanetSideEmpire.Value]
 
-  override def Info: (
-      Int,
-      Boolean,
-      PlanetSideEmpire.Value,
-      Long,
-      PlanetSideEmpire.Value,
-      Long,
-      Option[Additional1],
-      PlanetSideGeneratorState.Value,
-      Boolean,
-      Boolean,
-      Int,
-      Int,
-      List[Additional2],
-      Long,
-      Boolean,
-      Int,
-      Option[Additional3],
-      Boolean,
-      Boolean
-  ) = {
-    (
+  override def infoUpdateMessage(): BuildingInfoUpdateMessage = {
+    BuildingInfoUpdateMessage(
+      Zone.Number,
+      MapId,
       0,
       false,
       PlanetSideEmpire.NEUTRAL,
@@ -179,19 +163,17 @@ object WarpGate {
   }
 
   def Structure(name: String, guid: Int, map_id: Int, zone: Zone, context: ActorContext): WarpGate = {
-    import akka.actor.Props
     val obj = new WarpGate(name, guid, map_id, zone, GlobalDefinitions.warpgate)
-    obj.Actor = context.actorOf(Props(classOf[WarpGateControl], obj), name = s"$map_id-$guid-gate")
+    obj.Actor = context.spawn(BuildingActor(zone, obj), name = s"$map_id-$guid-gate").toClassic
     obj
   }
 
   def Structure(
       location: Vector3
   )(name: String, guid: Int, map_id: Int, zone: Zone, context: ActorContext): WarpGate = {
-    import akka.actor.Props
     val obj = new WarpGate(name, guid, map_id, zone, GlobalDefinitions.warpgate)
     obj.Position = location
-    obj.Actor = context.actorOf(Props(classOf[WarpGateControl], obj), name = s"$map_id-$guid-gate")
+    obj.Actor = context.spawn(BuildingActor(zone, obj), name = s"$map_id-$guid-gate").toClassic
     obj
   }
 
@@ -199,10 +181,9 @@ object WarpGate {
       location: Vector3,
       buildingDefinition: WarpGateDefinition
   )(name: String, guid: Int, map_id: Int, zone: Zone, context: ActorContext): WarpGate = {
-    import akka.actor.Props
     val obj = new WarpGate(name, guid, map_id, zone, buildingDefinition)
     obj.Position = location
-    obj.Actor = context.actorOf(Props(classOf[WarpGateControl], obj), name = s"$map_id-$guid-gate")
+    obj.Actor = context.spawn(BuildingActor(zone, obj), name = s"$map_id-$guid-gate").toClassic
     obj
   }
 }

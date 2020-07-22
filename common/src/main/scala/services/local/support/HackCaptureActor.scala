@@ -1,6 +1,7 @@
 package services.local.support
 
 import akka.actor.{Actor, Cancellable}
+import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.Default
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.Building
@@ -44,7 +45,9 @@ class HackCaptureActor extends Actor {
       // Restart the timer, in case this is the first object in the hacked objects list or the object was removed and re-added
       RestartTimer()
 
-      if (target.isInstanceOf[CaptureTerminal]) { target.Owner.asInstanceOf[Building].TriggerZoneMapUpdate() }
+      if (target.isInstanceOf[CaptureTerminal]) {
+        target.Owner.asInstanceOf[Building].Zone.actor ! ZoneActor.ZoneMapUpdate()
+      }
 
     case HackCaptureActor.ProcessCompleteHacks() =>
       log.trace("Processing complete hacks")
@@ -74,7 +77,9 @@ class HackCaptureActor extends Actor {
     case HackCaptureActor.ClearHack(target, _) =>
       hackedObjects = hackedObjects.filterNot(x => x.target == target)
 
-      if (target.isInstanceOf[CaptureTerminal]) { target.Owner.asInstanceOf[Building].TriggerZoneMapUpdate() }
+      if (target.isInstanceOf[CaptureTerminal]) {
+        target.Owner.asInstanceOf[Building].Zone.actor ! ZoneActor.ZoneMapUpdate()
+      }
 
       // Restart the timer in case the object we just removed was the next one scheduled
       RestartTimer()

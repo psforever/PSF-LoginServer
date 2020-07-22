@@ -11,6 +11,8 @@ import net.psforever.objects.zones.Zone
 import net.psforever.types.{PlanetSideGUID, _}
 import services.RemoverActor
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
+import akka.actor.typed.scaladsl.adapter._
+import net.psforever.actors.zone.ZoneActor
 
 import scala.concurrent.duration._
 
@@ -213,7 +215,6 @@ object VehicleSpawnPadControlTest {
     import net.psforever.objects.guid.source.LimitedNumberSource
     import net.psforever.objects.serverobject.structures.Building
     import net.psforever.objects.vehicles.VehicleControl
-    import net.psforever.objects.zones.ZoneActor
     import net.psforever.objects.Tool
     import net.psforever.types.CharacterGender
 
@@ -228,8 +229,7 @@ object VehicleSpawnPadControlTest {
       override def SetupNumberPools(): Unit = {}
     }
     zone.GUID(guid)
-    zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), s"test-zone-${System.nanoTime()}")
-    zone.Actor ! Zone.Init()
+    zone.actor = system.spawn(ZoneActor(zone), s"test-zone-${System.nanoTime()}")
 
     // Hack: Wait for the Zone to finish booting, otherwise later tests will fail randomly due to race conditions
     // with actor probe setting
