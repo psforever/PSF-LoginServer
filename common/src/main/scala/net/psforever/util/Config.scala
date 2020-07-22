@@ -61,7 +61,8 @@ case class AppConfig(
     antiCheat: AntiCheatConfig,
     network: NetworkConfig,
     developer: DeveloperConfig,
-    kamon: KamonConfig
+    kamon: KamonConfig,
+    sentry: SentryConfig
 )
 
 case class LoginConfig(
@@ -122,4 +123,9 @@ case class NetSimConfig(
 
 case class KamonConfig(
     enable: Boolean
+)
+
+case class SentryConfig(
+    enable: Boolean,
+    dsn: String
 )
