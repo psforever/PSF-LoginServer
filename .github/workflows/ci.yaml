@@ -1,0 +1,46 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_DB: psforever
+          POSTGRES_USER: psforever
+          POSTGRES_PASSWORD: psforever
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - name: Cache SBT
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.ivy2/cache
+            ~/.sbt
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Scala
+        uses: olafurpg/setup-scala@v5
+      - name: Install pscrypto
+        run: curl -L https://github.com/psforever/PSCrypto/releases/download/v1.1/pscrypto-lib-1.1.zip | jar vx
+      - name: Run migrations
+        run: sbt "pslogin/run migrate"
+      - name: Run build
+        run: sbt packArchiveZip
+      - name: Run tests
+        run: sbt coverage test:compile quiet:test coverageReport
+      - name: Upload coverage
+        run: bash <(curl -s https://codecov.io/bash)
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: pslogin.zip
+          path: target/pslogin*.zip
