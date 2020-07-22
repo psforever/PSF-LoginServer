@@ -75,7 +75,8 @@ lazy val commonSettings = Seq(
     "com.beachape"               %% "enumeratum"              % "1.6.1",
     "joda-time"                   % "joda-time"               % "2.10.6",
     "commons-io"                  % "commons-io"              % "2.6",
-    "com.github.scopt"           %% "scopt"                   % "4.0.0-RC2"
+    "com.github.scopt"           %% "scopt"                   % "4.0.0-RC2",
+    "io.sentry"                   % "sentry-logback"          % "1.7.30"
   )
 )
 
@@ -88,6 +89,7 @@ lazy val pscryptoSettings = Seq(
 lazy val psloginPackSettings = Seq(
   packMain := Map("ps-login" -> "net.psforever.pslogin.PsLogin"),
   packArchivePrefix := "pslogin",
+  packJvmOpts := Map("ps-login" -> Seq("-Dstacktrace.app.packages=net.psforever")),
   packExtraClasspath := Map("ps-login" -> Seq("${PROG_HOME}/pscrypto-lib", "${PROG_HOME}/config")),
   packResourceDir += (baseDirectory.value / "pscrypto-lib" -> "pscrypto-lib"),
   packResourceDir += (baseDirectory.value / "config"       -> "config")

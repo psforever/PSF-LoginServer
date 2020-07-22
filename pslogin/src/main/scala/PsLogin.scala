@@ -2,7 +2,6 @@ package net.psforever.pslogin
 
 import java.net.InetAddress
 import java.util.Locale
-
 import akka.{actor => classic}
 import akka.actor.typed.scaladsl.adapter._
 import akka.routing.RandomPool
@@ -26,6 +25,7 @@ import services.properties.PropertyOverrideManager
 import org.flywaydb.core.Flyway
 import java.nio.file.Paths
 import scopt.OParser
+import io.sentry.Sentry
 
 import net.psforever.actors.session.SessionActor
 import net.psforever.login.psadmin.PsAdminActor
@@ -87,6 +87,11 @@ object PsLogin {
     if (Config.app.kamon.enable) {
       logger.info("Starting Kamon")
       Kamon.init()
+    }
+
+    if (Config.app.sentry.enable) {
+      logger.info(s"Enabling Sentry")
+      Sentry.init(Config.app.sentry.dsn)
     }
 
     /** Start up the main actor system. This "system" is the home for all actors running on this server */

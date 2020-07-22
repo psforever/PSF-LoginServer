@@ -31,10 +31,17 @@
     </filter>
   </appender>
 
+  <appender name="Sentry" class="io.sentry.logback.SentryAppender">
+    <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+      <level>WARN</level>
+    </filter>
+  </appender>
+
   <root level="TRACE">
-    <appender-ref ref="STDOUT" />
-    <appender-ref ref="FILE-TRACE" />
-    <appender-ref ref="FILE-DEBUG" />
+    <appender-ref ref="STDOUT"/>
+    <appender-ref ref="FILE-TRACE"/>
+    <appender-ref ref="FILE-DEBUG"/>
+    <appender-ref ref="Sentry"/>
   </root>
 
   <!-- Logger specific overrides -->
