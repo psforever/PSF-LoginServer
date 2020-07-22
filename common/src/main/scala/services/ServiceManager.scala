@@ -2,20 +2,31 @@
 package services
 
 import akka.actor.{Actor, ActorIdentity, ActorRef, ActorSystem, Identify, Props}
+import akka.actor.typed.scaladsl.adapter._
+import akka.actor.typed
+import akka.actor.typed.receptionist.Receptionist
 
 import scala.collection.mutable
 
 object ServiceManager {
   var serviceManager = ActorRef.noSender
 
+  var receptionist: typed.ActorRef[Receptionist.Command] = null
+
   def boot(implicit system: ActorSystem) = {
     serviceManager = system.actorOf(Props[ServiceManager], "service")
+    receptionist = system.toTyped.receptionist
     serviceManager
   }
 
   case class Register(props: Props, name: String)
+
   case class Lookup(name: String)
+
+  case class LookupFromTyped(name: String, replyTo: typed.ActorRef[LookupResult])
+
   case class LookupResult(request: String, endpoint: ActorRef)
+
 }
 
 class ServiceManager extends Actor {
@@ -36,6 +47,11 @@ class ServiceManager extends Actor {
     case Lookup(name) =>
       context.actorSelection(name) ! Identify(nextLookupId)
       lookups += nextLookupId -> RequestEntry(name, sender())
+      nextLookupId += 1
+
+    case LookupFromTyped(name, replyTo) =>
+      context.actorSelection(name) ! Identify(nextLookupId)
+      lookups += nextLookupId -> RequestEntry(name, replyTo.toClassic)
       nextLookupId += 1
 
     case ActorIdentity(id, Some(ref)) =>

@@ -11,7 +11,7 @@ import net.psforever.objects.guid.source.LimitedNumberSource
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vital.VehicleShieldCharge
-import net.psforever.objects.zones.{Zone, ZoneActor, ZoneMap}
+import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game.{CargoMountPointStatusMessage, ObjectDetachMessage, PlanetsideAttributeMessage}
 import net.psforever.types.{PlanetSideGUID, _}
 import org.specs2.mutable._
@@ -19,8 +19,11 @@ import services.{RemoverActor, ServiceManager}
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.duration._
+import akka.actor.typed.scaladsl.adapter._
+import net.psforever.actors.zone.ZoneActor
 
 class VehicleTest extends Specification {
+
   import VehicleTest._
 
   "SeatDefinition" should {
@@ -408,10 +411,12 @@ class VehicleControlPrepareForDeletionMountedInTest extends FreedContextActorTes
   val guid = new NumberPoolHub(new LimitedNumberSource(10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     GUID(guid)
+
     override def SetupNumberPools(): Unit = {}
   }
-  zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-zone-actor")
-  zone.Init(context)
+  zone.actor = system.spawn(ZoneActor(zone), "test-zone-actor")
+  // crappy workaround but without it the zone doesn't get initialized in time
+  expectNoMessage(400 milliseconds)
 
   val vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
   vehicle.Faction = PlanetSideEmpire.TR
@@ -533,10 +538,12 @@ class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActor
   ServiceManager.boot
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     GUID(guid)
+
     override def SetupNumberPools(): Unit = {}
   }
-  zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-zone-actor")
-  zone.Init(context)
+  zone.actor = system.spawn(ZoneActor(zone), "test-zone-actor")
+  // crappy workaround but without it the zone doesn't get initialized in time
+  expectNoMessage(200 milliseconds)
 
   val vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
   vehicle.Faction = PlanetSideEmpire.TR

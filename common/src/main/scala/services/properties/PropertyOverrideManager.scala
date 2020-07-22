@@ -1,55 +1,29 @@
 package services.properties
 
-import akka.actor.{Actor, ActorRef, Stash}
-import net.psforever.objects.zones.InterstellarCluster
+import akka.actor.Actor
 import net.psforever.packet.game.{GamePropertyTarget, PropertyOverrideMessage}
 import net.psforever.packet.game.PropertyOverrideMessage.GamePropertyScope
 import net.psforever.packet.game.objectcreate.ObjectClass
-import services.ServiceManager
-import services.ServiceManager.Lookup
-
+import net.psforever.zones.Zones
 import scala.collection.mutable.ListBuffer
 
-class PropertyOverrideManager extends Actor with Stash {
+class PropertyOverrideManager extends Actor {
   private[this] val log = org.log4s.getLogger("PropertyOverrideManager")
 
   private var overrides: Map[Int, Map[String, List[(String, String)]]]            = Map()
   private var gamePropertyScopes: List[PropertyOverrideMessage.GamePropertyScope] = List()
-  private var interstellarCluster: ActorRef                                       = Actor.noSender
-  private var zoneIds: List[Int]                                                  = List()
+  lazy private val zoneIds: Iterable[Int]                                         = Zones.zones.values.map(_.Number)
 
   override def preStart = {
-    log.info(s"Starting PropertyOverrideManager")
-    ServiceManager.serviceManager ! Lookup("cluster")
+    LoadOverridesFromFile(zoneId = 0) // Global overrides
+    for (zoneId <- zoneIds) {
+      LoadOverridesFromFile(zoneId)
+    }
+
+    ProcessGamePropertyScopes()
   }
 
-  override def receive = ServiceLookup
-
-  def ServiceLookup: Receive = {
-    case ServiceManager.LookupResult("cluster", endpoint) =>
-      interstellarCluster = endpoint
-
-      if (interstellarCluster != ActorRef.noSender) {
-        interstellarCluster ! InterstellarCluster.GetZoneIds()
-      }
-
-    case InterstellarCluster.ZoneIds(zoneIds) =>
-      this.zoneIds = zoneIds
-
-      unstashAll()
-      LoadOverridesFromFile(zoneId = 0) // Global overrides
-      for (zoneId <- zoneIds) {
-        LoadOverridesFromFile(zoneId)
-      }
-
-      ProcessGamePropertyScopes()
-
-      context.become(ReceiveCommand)
-
-    case _ => stash()
-  }
-
-  def ReceiveCommand: Receive = {
+  override def receive: Receive = {
     case PropertyOverrideManager.GetOverridesMessage => {
       sender ! gamePropertyScopes
     }

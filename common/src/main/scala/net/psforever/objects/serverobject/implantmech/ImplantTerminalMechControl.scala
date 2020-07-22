@@ -60,7 +60,7 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
       player: Player
   ): Boolean = {
     val zone = obj.Zone
-    zone.Map.TerminalToInterface.get(obj.GUID.guid) match {
+    zone.map.TerminalToInterface.get(obj.GUID.guid) match {
       case Some(interface_guid) =>
         (zone.GUID(interface_guid) match {
           case Some(interface) => !interface.Destroyed

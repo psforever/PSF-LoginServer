@@ -127,8 +127,8 @@ object PacketHelpers {
     createEnumerationCodec(enum, storageCodec.xmap[Int](_.toInt, _.toLong))
   }
 
-  /** Create a Codec for enumeratum's Enum type */
-  def createEnumCodec[E <: IntEnumEntry](enum: IntEnum[E], storageCodec: Codec[Int]): Codec[E] = {
+  /** Create a Codec for enumeratum's IntEnum type */
+  def createIntEnumCodec[E <: IntEnumEntry](enum: IntEnum[E], storageCodec: Codec[Int]): Codec[E] = {
     type Struct = Int :: HNil
     val struct: Codec[Struct] = storageCodec.hlist
 
@@ -147,6 +147,10 @@ object PacketHelpers {
       }
 
     struct.narrow[E](from, to)
+  }
+
+  def createLongIntEnumCodec[E <: IntEnumEntry](enum: IntEnum[E], storageCodec: Codec[Long]): Codec[E] = {
+    createIntEnumCodec(enum, storageCodec.xmap[Int](_.toInt, _.toLong))
   }
 
   /** Common codec for how PlanetSide stores string sizes

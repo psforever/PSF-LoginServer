@@ -498,7 +498,7 @@ class PlayerControl(player: Player) extends Actor with JammableBehavior with Dam
               val (interface, slotNumber) = player.VehicleSeated match {
                 case Some(mech_guid) =>
                   (
-                    zone.Map.TerminalToInterface.get(mech_guid.guid),
+                    zone.map.TerminalToInterface.get(mech_guid.guid),
                     if (!player.Implants.exists({ case (implantType, _, _) => implantType == implant_type })) {
                       //no duplicates
                       player.InstallImplant(implant)
@@ -547,7 +547,7 @@ class PlayerControl(player: Player) extends Actor with JammableBehavior with Dam
               val (interface, slotNumber) = player.VehicleSeated match {
                 case Some(mech_guid) =>
                   (
-                    zone.Map.TerminalToInterface.get(mech_guid.guid),
+                    zone.map.TerminalToInterface.get(mech_guid.guid),
                     player.UninstallImplant(implant_type)
                   )
                 case None =>

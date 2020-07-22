@@ -57,6 +57,7 @@ case class AppConfig(
     world: WorldConfig,
     admin: AdminConfig,
     database: DatabaseConfig,
+    game: GameConfig,
     antiCheat: AntiCheatConfig,
     network: NetworkConfig,
     developer: DeveloperConfig,
@@ -101,6 +102,10 @@ case class NetworkConfig(
 case class SessionConfig(
     inboundGraceTime: Duration,
     outboundGraceTime: Duration
+)
+
+case class GameConfig(
+    instantActionAms: Boolean
 )
 
 case class DeveloperConfig(

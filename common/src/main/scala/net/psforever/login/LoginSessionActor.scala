@@ -140,7 +140,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
   def accountLogin(username: String, password: String): Unit = {
     import ctx._
     val newToken = this.generateToken()
-
+    log.info("accountLogin")
     val result = for {
       // backwards compatibility: prefer exact match first, then try lowercase
       accountsExact <- ctx.run(query[persistence.Account].filter(_.username == lift(username)))
@@ -171,6 +171,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
       }
       login <- accountOption match {
         case Some(account) =>
+          log.info(s"$account")
           (account.inactive, password.isBcrypted(account.passhash)) match {
             case (false, true) =>
               accountIntermediary ! StoreAccountData(newToken, new Account(account.id, account.username, account.gm))
