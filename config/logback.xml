@@ -26,8 +26,8 @@
       <pattern>%date{ISO8601} [%thread] %5level "%X" %logger{35} - %msg%n</pattern>
     </encoder>
     <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-      <level>OFF</level>
-      <!--<level>TRACE</level>-->
+      <!--<level>OFF</level>-->
+      <level>TRACE</level>
     </filter>
   </appender>
 

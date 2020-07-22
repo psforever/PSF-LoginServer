@@ -1,6 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.types
 
+import enumeratum.values.{IntEnum, IntEnumEntry}
+
 /**
   * The spawn group.<br>
   * <br>
@@ -17,11 +19,37 @@ package net.psforever.types
   * The icons produced by the normal and the bound tower and facility groups are not detailed.
   * The ones that are not designated as "bound" also do not display icons when manually set.
   * The AMS spawn group icons have an overhead AMS glyph and are smaller in radius, identical otherwise.
+  *
   * @see `BindPlayerMessage`
   */
-object SpawnGroup extends Enumeration {
-  type Type = Value
+sealed abstract class SpawnGroup(val value: Int) extends IntEnumEntry
 
-  val Sanctuary, BoundAMS, AMS, Unknown3, BoundTower, //unused?
-  BoundFacility, Tower, Facility, Unknown8, Unknown9, Unknown10, Unknown11, Unknown12 = Value
+object SpawnGroup extends IntEnum[SpawnGroup] {
+  val values = findValues
+
+  case object Sanctuary extends SpawnGroup(0)
+
+  case object BoundAMS extends SpawnGroup(1)
+
+  case object AMS extends SpawnGroup(2)
+
+  case object Unknown3 extends SpawnGroup(3)
+
+  case object BoundTower    extends SpawnGroup(4) // unused?
+  case object BoundFacility extends SpawnGroup(5)
+
+  case object Tower extends SpawnGroup(6)
+
+  case object Facility extends SpawnGroup(7)
+
+  case object Unknown8 extends SpawnGroup(8)
+
+  case object Unknown9 extends SpawnGroup(9)
+
+  case object Unknown10 extends SpawnGroup(10)
+
+  case object Unknown11 extends SpawnGroup(11)
+
+  case object WarpGate extends SpawnGroup(12)
+
 }

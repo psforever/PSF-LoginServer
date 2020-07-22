@@ -8,22 +8,25 @@ import scodec.codecs._
 
 /**
   * na
-  * @param unk1 when defined, na;
-  *             non-zero when selecting the sanctuary option from a non-sanctuary continent deployment map
-  * @param spawn_type the type of spawn point destination
-  * @param unk3 na
-  * @param unk4 na
-  * @param zone_number when defined, the continent number
+  *
+  * @param unk1        when defined, na;
+  *                    non-zero when selecting the sanctuary option from a non-sanctuary continent deployment map
+  * @param spawn_type  the type of spawn point destination
+  * @param unk3        na
+  * @param unk4        na
+  * @param zone_number when defined, the zone number
   */
-final case class SpawnRequestMessage(unk1: Int, spawn_type: SpawnGroup.Value, unk3: Int, unk4: Int, zone_number: Int)
+final case class SpawnRequestMessage(unk1: Int, spawn_type: SpawnGroup, unk3: Int, unk4: Int, zone_number: Int)
     extends PlanetSideGamePacket {
   type Packet = SpawnRequestMessage
+
   def opcode = GamePacketOpcode.SpawnRequestMessage
+
   def encode = SpawnRequestMessage.encode(this)
 }
 
 object SpawnRequestMessage extends Marshallable[SpawnRequestMessage] {
-  private val spawnGroupCodec = PacketHelpers.createLongEnumerationCodec(SpawnGroup, uint32L)
+  private val spawnGroupCodec = PacketHelpers.createLongIntEnumCodec(SpawnGroup, uint32L)
 
   implicit val codec: Codec[SpawnRequestMessage] = (
     ("unk1" | uint16L) ::

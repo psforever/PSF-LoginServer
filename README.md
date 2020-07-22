@@ -81,7 +81,7 @@ The Login and World servers require PostgreSQL for persistence.
 The default database is named `psforever` and the credentials are
 `psforever:psforever`. To change these, create a configuration file at
 `config/psforever.conf`. For configuration options and their defaults, see
-[`application.conf`](/pslogin/src/main/resources/application.conf). This database user will need
+[`application.conf`](/common/src/main/resources/application.conf). The database user will need
 ALL access to tables, sequences, and functions.
 The permissions required can be summarized by the SQL below.
 Loading this in requires access to a graphical tool such as [pgAdmin](https://www.pgadmin.org/download/) (highly recommended) or a PostgreSQL terminal (`psql`) for advanced users.

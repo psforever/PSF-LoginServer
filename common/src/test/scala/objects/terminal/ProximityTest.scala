@@ -4,6 +4,7 @@ package objects.terminal
 import akka.actor.Props
 import akka.testkit.TestProbe
 import base.ActorTest
+import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.serverobject.terminals.{
@@ -12,14 +13,14 @@ import net.psforever.objects.serverobject.terminals.{
   ProximityUnit,
   Terminal
 }
-import net.psforever.objects.zones.{Zone, ZoneActor, ZoneMap}
+import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.objects.{Avatar, GlobalDefinitions, Player}
 import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, PlanetSideGUID}
 import org.specs2.mutable.Specification
 import services.Service
 import services.local.LocalService
-
 import scala.concurrent.duration._
+import akka.actor.typed.scaladsl.adapter._
 
 class ProximityTest extends Specification {
   "ProximityUnit" should {
@@ -106,7 +107,7 @@ class ProximityTerminalControlStartTest extends ActorTest {
   "ProximityTerminalControl" should {
     //setup
     val zone: Zone = new Zone("test", new ZoneMap("test-map"), 0) {
-      Actor = system.actorOf(Props(classOf[ZoneActor], this), "test-zone")
+      actor = system.spawn(ZoneActor(this), "test-zone")
       override def SetupNumberPools() = {
         AddPool("dynamic", 1 to 10)
       }
@@ -146,7 +147,7 @@ class ProximityTerminalControlTwoUsersTest extends ActorTest {
   "ProximityTerminalControl" should {
     //setup
     val zone: Zone = new Zone("test", new ZoneMap("test-map"), 0) {
-      Actor = system.actorOf(Props(classOf[ZoneActor], this), "test-zone")
+      actor = system.spawn(ZoneActor(this), "test-zone")
       override def SetupNumberPools() = {
         AddPool("dynamic", 1 to 10)
       }
@@ -199,7 +200,7 @@ class ProximityTerminalControlStopTest extends ActorTest {
   "ProximityTerminalControl" should {
     //setup
     val zone: Zone = new Zone("test", new ZoneMap("test-map"), 0) {
-      Actor = system.actorOf(Props(classOf[ZoneActor], this), "test-zone")
+      actor = system.spawn(ZoneActor(this), "test-zone")
       override def SetupNumberPools() = {
         AddPool("dynamic", 1 to 10)
       }
@@ -242,7 +243,7 @@ class ProximityTerminalControlNotStopTest extends ActorTest {
   "ProximityTerminalControl" should {
     //setup
     val zone: Zone = new Zone("test", new ZoneMap("test-map"), 0) {
-      Actor = system.actorOf(Props(classOf[ZoneActor], this), "test-zone")
+      actor = system.spawn(ZoneActor(this), "test-zone")
       override def SetupNumberPools() = {
         AddPool("dynamic", 1 to 10)
       }

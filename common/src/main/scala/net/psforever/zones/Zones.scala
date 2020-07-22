@@ -14,10 +14,10 @@ object Zones {
   val zones: HashMap[String, Zone] = HashMap(
     (
       "z1",
-      new Zone("z1", Await.result(Maps.map01, 30 seconds), 1) {
-        override def Init(implicit context: ActorContext): Unit = {
-          super.Init(context)
-          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
+      new Zone("z1", Await.result(Maps.map01, 60 seconds), 1) {
+        override def init(implicit context: ActorContext): Unit = {
+          super.init(context)
+          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(map.Scale, 80, 80)
           HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
 
           InitZoneAmenities(zone = this)
@@ -26,10 +26,10 @@ object Zones {
     ),
     (
       "z2",
-      new Zone("z2", Await.result(Maps.map02, 30 seconds), 2) {
-        override def Init(implicit context: ActorContext): Unit = {
-          super.Init(context)
-          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
+      new Zone("z2", Await.result(Maps.map02, 60 seconds), 2) {
+        override def init(implicit context: ActorContext): Unit = {
+          super.init(context)
+          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(map.Scale, 80, 80)
           HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
 
           InitZoneAmenities(zone = this)
@@ -38,10 +38,10 @@ object Zones {
     ),
     (
       "z3",
-      new Zone("z3", Await.result(Maps.map03, 30 seconds), 3) {
-        override def Init(implicit context: ActorContext): Unit = {
-          super.Init(context)
-          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
+      new Zone("z3", Await.result(Maps.map03, 60 seconds), 3) {
+        override def init(implicit context: ActorContext): Unit = {
+          super.init(context)
+          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(map.Scale, 80, 80)
           HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
 
           InitZoneAmenities(zone = this)
@@ -50,84 +50,22 @@ object Zones {
     ),
     (
       "z4",
-      new Zone("z4", Await.result(Maps.map04, 30 seconds), 4) {
-        override def Init(implicit context: ActorContext): Unit = {
-          super.Init(context)
-          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
+      new Zone("z4", Await.result(Maps.map04, 60 seconds), 4) {
+        override def init(implicit context: ActorContext): Unit = {
+          super.init(context)
+          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(map.Scale, 80, 80)
           HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
 
           InitZoneAmenities(zone = this)
-
-          BuildingByMapId(5).get.Faction = PlanetSideEmpire.TR       //Akkan
-          BuildingByMapId(6).get.Faction = PlanetSideEmpire.TR       //Baal
-          BuildingByMapId(7).get.Faction = PlanetSideEmpire.TR       //Dagon
-          BuildingByMapId(8).get.Faction = PlanetSideEmpire.NC       //Enkidu
-          BuildingByMapId(9).get.Faction = PlanetSideEmpire.VS       //Girru
-          BuildingByMapId(10).get.Faction = PlanetSideEmpire.VS      //Hanish
-          BuildingByMapId(11).get.Faction = PlanetSideEmpire.VS      //Irkalla
-          BuildingByMapId(12).get.Faction = PlanetSideEmpire.VS      //Kusag
-          BuildingByMapId(13).get.Faction = PlanetSideEmpire.VS      //Lahar
-          BuildingByMapId(14).get.Faction = PlanetSideEmpire.NC      //Marduk
-          BuildingByMapId(15).get.Faction = PlanetSideEmpire.NC      //Neti
-          BuildingByMapId(16).get.Faction = PlanetSideEmpire.NC      //Zaqar
-          BuildingByMapId(17).get.Faction = PlanetSideEmpire.NC      //S_Marduk_Tower
-          BuildingByMapId(18).get.Faction = PlanetSideEmpire.NC      //W_Neti_Tower
-          BuildingByMapId(19).get.Faction = PlanetSideEmpire.NC      //W_Zaqar_Tower
-          BuildingByMapId(20).get.Faction = PlanetSideEmpire.NC      //E_Zaqar_Tower
-          BuildingByMapId(21).get.Faction = PlanetSideEmpire.NC      //NE_Neti_Tower
-          BuildingByMapId(22).get.Faction = PlanetSideEmpire.NC      //SE_Ceryshen_Warpgate_Tower
-          BuildingByMapId(23).get.Faction = PlanetSideEmpire.VS      //S_Kusag_Tower
-          BuildingByMapId(24).get.Faction = PlanetSideEmpire.VS      //NW_Kusag_Tower
-          BuildingByMapId(25).get.Faction = PlanetSideEmpire.VS      //N_Ceryshen_Warpgate_Tower
-          BuildingByMapId(26).get.Faction = PlanetSideEmpire.VS      //SE_Irkalla_Tower
-          BuildingByMapId(27).get.Faction = PlanetSideEmpire.VS      //S_Irkalla_Tower
-          BuildingByMapId(28).get.Faction = PlanetSideEmpire.TR      //NE_Enkidu_Tower
-          BuildingByMapId(29).get.Faction = PlanetSideEmpire.NC      //SE_Akkan_Tower
-          BuildingByMapId(30).get.Faction = PlanetSideEmpire.NC      //SW_Enkidu_Tower
-          BuildingByMapId(31).get.Faction = PlanetSideEmpire.TR      //E_Searhus_Warpgate_Tower
-          BuildingByMapId(32).get.Faction = PlanetSideEmpire.TR      //N_Searhus_Warpgate_Tower
-          BuildingByMapId(33).get.Faction = PlanetSideEmpire.VS      //E_Girru_Tower
-          BuildingByMapId(34).get.Faction = PlanetSideEmpire.VS      //SE_Hanish_Tower
-          BuildingByMapId(35).get.Faction = PlanetSideEmpire.TR      //SW_Hanish_Tower
-          BuildingByMapId(36).get.Faction = PlanetSideEmpire.VS      //W_Girru_Tower
-          BuildingByMapId(37).get.Faction = PlanetSideEmpire.TR      //E_Dagon_Tower
-          BuildingByMapId(38).get.Faction = PlanetSideEmpire.TR      //NE_Baal_Tower
-          BuildingByMapId(39).get.Faction = PlanetSideEmpire.TR      //SE_Baal_Tower
-          BuildingByMapId(40).get.Faction = PlanetSideEmpire.TR      //S_Dagon_Tower
-          BuildingByMapId(41).get.Faction = PlanetSideEmpire.NC      //W_Ceryshen_Warpgate_Tower
-          BuildingByMapId(42).get.Faction = PlanetSideEmpire.NEUTRAL //dagon bunker
-          BuildingByMapId(43).get.Faction = PlanetSideEmpire.NEUTRAL //Akkan North Bunker
-          BuildingByMapId(44).get.Faction = PlanetSideEmpire.NEUTRAL //Enkidu East Bunker
-          BuildingByMapId(45).get.Faction = PlanetSideEmpire.NEUTRAL //Neti bunker
-          BuildingByMapId(46).get.Faction = PlanetSideEmpire.NEUTRAL //Hanish West Bunker
-          BuildingByMapId(47).get.Faction = PlanetSideEmpire.NEUTRAL //Irkalla East Bunker
-          BuildingByMapId(48).get.Faction = PlanetSideEmpire.NEUTRAL //Zaqar bunker
-          BuildingByMapId(49).get.Faction = PlanetSideEmpire.NEUTRAL //Kusag West Bunker
-          BuildingByMapId(50).get.Faction = PlanetSideEmpire.NEUTRAL //marduk bunker
-          BuildingByMapId(51).get.Faction = PlanetSideEmpire.TR      //baal bunker
-          BuildingByMapId(52).get.Faction = PlanetSideEmpire.NEUTRAL //girru bunker
-          BuildingByMapId(53).get.Faction = PlanetSideEmpire.NEUTRAL //lahar bunker
-          BuildingByMapId(54).get.Faction = PlanetSideEmpire.NEUTRAL //akkan bunker
-          BuildingByMapId(55).get.Faction = PlanetSideEmpire.VS      //Irkalla_Tower
-          BuildingByMapId(56).get.Faction = PlanetSideEmpire.VS      //Hanish_Tower
-          BuildingByMapId(57).get.Faction = PlanetSideEmpire.VS      //E_Ceryshen_Warpgate_Tower
-          BuildingByMapId(58).get.Faction = PlanetSideEmpire.VS      //Lahar_Tower
-          BuildingByMapId(59).get.Faction = PlanetSideEmpire.VS      //VSSanc_Warpgate_Tower
-          BuildingByMapId(60).get.Faction = PlanetSideEmpire.TR      //Akkan_Tower
-          BuildingByMapId(61).get.Faction = PlanetSideEmpire.NC      //TRSanc_Warpgate_Tower
-          BuildingByMapId(62).get.Faction = PlanetSideEmpire.NC      //Marduk_Tower
-          BuildingByMapId(63).get.Faction = PlanetSideEmpire.TR      //NW_Dagon_Tower
-          BuildingByMapId(64).get.Faction = PlanetSideEmpire.NEUTRAL //E7 East Bunker (at north from bridge)
-          BuildingByMapId(65).get.Faction = PlanetSideEmpire.VS      //W_Hanish_Tower
         }
       }
     ),
     (
       "z5",
-      new Zone("z5", Await.result(Maps.map05, 30 seconds), 5) {
-        override def Init(implicit context: ActorContext): Unit = {
-          super.Init(context)
-          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
+      new Zone("z5", Await.result(Maps.map05, 60 seconds), 5) {
+        override def init(implicit context: ActorContext): Unit = {
+          super.init(context)
+          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(map.Scale, 80, 80)
           HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
 
           InitZoneAmenities(zone = this)
@@ -136,16 +74,11 @@ object Zones {
     ),
     (
       "z6",
-      new Zone("z6", Await.result(Maps.map06, 30 seconds), 6) {
-        override def Init(implicit context: ActorContext): Unit = {
-          super.Init(context)
-          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
+      new Zone("z6", Await.result(Maps.map06, 60 seconds), 6) {
+        override def init(implicit context: ActorContext): Unit = {
+          super.init(context)
+          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(map.Scale, 80, 80)
           HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
-
-          import net.psforever.types.PlanetSideEmpire
-          BuildingByMapId(2).get.Faction = PlanetSideEmpire.VS
-          BuildingByMapId(48).get.Faction = PlanetSideEmpire.VS
-          BuildingByMapId(49).get.Faction = PlanetSideEmpire.VS
 
           InitZoneAmenities(zone = this)
         }
@@ -153,10 +86,10 @@ object Zones {
     ),
     (
       "z7",
-      new Zone("z7", Await.result(Maps.map07, 30 seconds), 7) {
-        override def Init(implicit context: ActorContext): Unit = {
-          super.Init(context)
-          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
+      new Zone("z7", Await.result(Maps.map07, 60 seconds), 7) {
+        override def init(implicit context: ActorContext): Unit = {
+          super.init(context)
+          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(map.Scale, 80, 80)
           HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
 
           InitZoneAmenities(zone = this)
@@ -165,10 +98,10 @@ object Zones {
     ),
     (
       "z8",
-      new Zone("z8", Await.result(Maps.map08, 30 seconds), 8) {
-        override def Init(implicit context: ActorContext): Unit = {
-          super.Init(context)
-          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
+      new Zone("z8", Await.result(Maps.map08, 60 seconds), 8) {
+        override def init(implicit context: ActorContext): Unit = {
+          super.init(context)
+          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(map.Scale, 80, 80)
           HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
 
           InitZoneAmenities(zone = this)
@@ -177,10 +110,10 @@ object Zones {
     ),
     (
       "z9",
-      new Zone("z9", Await.result(Maps.map09, 30 seconds), 9) {
-        override def Init(implicit context: ActorContext): Unit = {
-          super.Init(context)
-          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
+      new Zone("z9", Await.result(Maps.map09, 60 seconds), 9) {
+        override def init(implicit context: ActorContext): Unit = {
+          super.init(context)
+          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(map.Scale, 80, 80)
           HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
 
           InitZoneAmenities(zone = this)
@@ -189,10 +122,10 @@ object Zones {
     ),
     (
       "z10",
-      new Zone("z10", Await.result(Maps.map10, 30 seconds), 10) {
-        override def Init(implicit context: ActorContext): Unit = {
-          super.Init(context)
-          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
+      new Zone("z10", Await.result(Maps.map10, 60 seconds), 10) {
+        override def init(implicit context: ActorContext): Unit = {
+          super.init(context)
+          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(map.Scale, 80, 80)
           HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
 
           InitZoneAmenities(zone = this)
@@ -201,12 +134,14 @@ object Zones {
     ),
     (
       "home1",
-      new Zone("home1", Await.result(Maps.map11, 30 seconds), 11) {
-        override def Init(implicit context: ActorContext): Unit = {
-          super.Init(context)
+      new Zone("home1", Await.result(Maps.map11, 60 seconds), 11) {
+        override def init(implicit context: ActorContext): Unit = {
+          super.init(context)
 
           import net.psforever.types.PlanetSideEmpire
-          Buildings.values.foreach { _.Faction = PlanetSideEmpire.NC }
+          Buildings.values.foreach {
+            _.Faction = PlanetSideEmpire.NC
+          }
 
           InitZoneAmenities(zone = this)
         }
@@ -214,12 +149,14 @@ object Zones {
     ),
     (
       "home2",
-      new Zone("home2", Await.result(Maps.map12, 30 seconds), 12) {
-        override def Init(implicit context: ActorContext): Unit = {
-          super.Init(context)
+      new Zone("home2", Await.result(Maps.map12, 60 seconds), 12) {
+        override def init(implicit context: ActorContext): Unit = {
+          super.init(context)
 
           import net.psforever.types.PlanetSideEmpire
-          Buildings.values.foreach { _.Faction = PlanetSideEmpire.TR }
+          Buildings.values.foreach {
+            _.Faction = PlanetSideEmpire.TR
+          }
 
           InitZoneAmenities(zone = this)
         }
@@ -227,12 +164,14 @@ object Zones {
     ),
     (
       "home3",
-      new Zone("home3", Await.result(Maps.map13, 30 seconds), 13) {
-        override def Init(implicit context: ActorContext): Unit = {
-          super.Init(context)
+      new Zone("home3", Await.result(Maps.map13, 60 seconds), 13) {
+        override def init(implicit context: ActorContext): Unit = {
+          super.init(context)
 
           import net.psforever.types.PlanetSideEmpire
-          Buildings.values.foreach { _.Faction = PlanetSideEmpire.VS }
+          Buildings.values.foreach {
+            _.Faction = PlanetSideEmpire.VS
+          }
 
           InitZoneAmenities(zone = this)
         }
@@ -276,10 +215,10 @@ object Zones {
     ),
     (
       "c1",
-      new Zone("c1", Await.result(Maps.ugd01, 30 seconds), 23) {
-        override def Init(implicit context: ActorContext): Unit = {
-          super.Init(context)
-          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
+      new Zone("c1", Await.result(Maps.ugd01, 60 seconds), 23) {
+        override def init(implicit context: ActorContext): Unit = {
+          super.init(context)
+          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(map.Scale, 80, 80)
           HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
 
           InitZoneAmenities(zone = this)
@@ -288,10 +227,10 @@ object Zones {
     ),
     (
       "c2",
-      new Zone("c2", Await.result(Maps.ugd02, 30 seconds), 24) {
-        override def Init(implicit context: ActorContext): Unit = {
-          super.Init(context)
-          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
+      new Zone("c2", Await.result(Maps.ugd02, 60 seconds), 24) {
+        override def init(implicit context: ActorContext): Unit = {
+          super.init(context)
+          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(map.Scale, 80, 80)
           HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
 
           InitZoneAmenities(zone = this)
@@ -300,10 +239,10 @@ object Zones {
     ),
     (
       "c3",
-      new Zone("c3", Await.result(Maps.ugd03, 30 seconds), 25) {
-        override def Init(implicit context: ActorContext): Unit = {
-          super.Init(context)
-          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
+      new Zone("c3", Await.result(Maps.ugd03, 60 seconds), 25) {
+        override def init(implicit context: ActorContext): Unit = {
+          super.init(context)
+          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(map.Scale, 80, 80)
           HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
 
           InitZoneAmenities(zone = this)
@@ -312,10 +251,10 @@ object Zones {
     ),
     (
       "c4",
-      new Zone("c4", Await.result(Maps.ugd04, 30 seconds), 26) {
-        override def Init(implicit context: ActorContext): Unit = {
-          super.Init(context)
-          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
+      new Zone("c4", Await.result(Maps.ugd04, 60 seconds), 26) {
+        override def init(implicit context: ActorContext): Unit = {
+          super.init(context)
+          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(map.Scale, 80, 80)
           HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
 
           InitZoneAmenities(zone = this)
@@ -324,10 +263,10 @@ object Zones {
     ),
     (
       "c5",
-      new Zone("c5", Await.result(Maps.ugd05, 30 seconds), 27) {
-        override def Init(implicit context: ActorContext): Unit = {
-          super.Init(context)
-          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
+      new Zone("c5", Await.result(Maps.ugd05, 60 seconds), 27) {
+        override def init(implicit context: ActorContext): Unit = {
+          super.init(context)
+          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(map.Scale, 80, 80)
           HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
 
           InitZoneAmenities(zone = this)
@@ -336,10 +275,10 @@ object Zones {
     ),
     (
       "c6",
-      new Zone("c6", Await.result(Maps.ugd06, 30 seconds), 28) {
-        override def Init(implicit context: ActorContext): Unit = {
-          super.Init(context)
-          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
+      new Zone("c6", Await.result(Maps.ugd06, 60 seconds), 28) {
+        override def init(implicit context: ActorContext): Unit = {
+          super.init(context)
+          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(map.Scale, 80, 80)
           HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
 
           InitZoneAmenities(zone = this)
@@ -348,10 +287,10 @@ object Zones {
     ),
     (
       "i1",
-      new Zone("i1", Await.result(Maps.map99, 30 seconds), 29) {
-        override def Init(implicit context: ActorContext): Unit = {
-          super.Init(context)
-          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
+      new Zone("i1", Await.result(Maps.map99, 60 seconds), 29) {
+        override def init(implicit context: ActorContext): Unit = {
+          super.init(context)
+          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(map.Scale, 80, 80)
           HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
 
           InitZoneAmenities(zone = this)
@@ -360,10 +299,10 @@ object Zones {
     ),
     (
       "i2",
-      new Zone("i2", Await.result(Maps.map98, 30 seconds), 30) {
-        override def Init(implicit context: ActorContext): Unit = {
-          super.Init(context)
-          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
+      new Zone("i2", Await.result(Maps.map98, 60 seconds), 30) {
+        override def init(implicit context: ActorContext): Unit = {
+          super.init(context)
+          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(map.Scale, 80, 80)
           HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
 
           InitZoneAmenities(zone = this)
@@ -372,10 +311,10 @@ object Zones {
     ),
     (
       "i3",
-      new Zone("i3", Await.result(Maps.map97, 30 seconds), 31) {
-        override def Init(implicit context: ActorContext): Unit = {
-          super.Init(context)
-          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
+      new Zone("i3", Await.result(Maps.map97, 60 seconds), 31) {
+        override def init(implicit context: ActorContext): Unit = {
+          super.init(context)
+          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(map.Scale, 80, 80)
           HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
 
           InitZoneAmenities(zone = this)
@@ -384,10 +323,10 @@ object Zones {
     ),
     (
       "i4",
-      new Zone("i4", Await.result(Maps.map96, 30 seconds), 32) {
-        override def Init(implicit context: ActorContext): Unit = {
-          super.Init(context)
-          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(Map.Scale, 80, 80)
+      new Zone("i4", Await.result(Maps.map96, 60 seconds), 32) {
+        override def init(implicit context: ActorContext): Unit = {
+          super.init(context)
+          HotSpotCoordinateFunction = Zones.HotSpots.StandardRemapping(map.Scale, 80, 80)
           HotSpotTimeFunction = Zones.HotSpots.StandardTimeRules
 
           InitZoneAmenities(zone = this)
@@ -560,9 +499,9 @@ object Zones {
           case t: ObjectSource if t.Definition == GlobalDefinitions.manned_turret =>
             60 seconds
           case _: DeployableSource =>
-            30 seconds
+            60 seconds
           case _: ComplexDeployableSource =>
-            30 seconds
+            60 seconds
           case _ =>
             0 seconds
         }

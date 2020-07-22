@@ -5,6 +5,7 @@ import akka.actor.{Actor, Props}
 import akka.routing.RandomPool
 import akka.testkit.TestProbe
 import base.ActorTest
+import net.psforever.actors.zone.{BuildingActor, ZoneActor}
 import net.psforever.objects.guid.{NumberPoolHub, TaskResolver}
 import net.psforever.objects.guid.source.LimitedNumberSource
 import net.psforever.objects.serverobject.CommonMessages
@@ -12,12 +13,13 @@ import net.psforever.objects.{Avatar, GlobalDefinitions, Ntu, Player, Vehicle}
 import net.psforever.objects.serverobject.resourcesilo.{ResourceSilo, ResourceSiloControl, ResourceSiloDefinition}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.serverobject.transfer.TransferBehavior
-import net.psforever.objects.zones.{Zone, ZoneActor, ZoneMap}
+import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game.UseItemMessage
 import net.psforever.types._
 import org.specs2.mutable.Specification
 import services.ServiceManager
 import services.avatar.{AvatarAction, AvatarServiceMessage}
+import akka.actor.typed.scaladsl.adapter._
 
 import scala.concurrent.duration._
 
@@ -97,8 +99,7 @@ class ResourceSiloControlUseTest extends ActorTest {
     override def SetupNumberPools() = {}
     GUID(guid)
   }
-  zone.Actor = system.actorOf(Props(classOf[ZoneActor], zone), "test-zone-actor")
-  zone.Actor ! Zone.Init()
+  zone.actor = system.spawnAnonymous(ZoneActor(zone))
   val building = new Building(
     "Building",
     building_guid = 0,
@@ -117,7 +118,7 @@ class ResourceSiloControlUseTest extends ActorTest {
     new Avatar(0L, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
   ) //guid=3
   val vehicle = Vehicle(GlobalDefinitions.ant) //guid=4
-  val probe = new TestProbe(system)
+  val probe   = new TestProbe(system)
 
   guid.register(building, 1)
   guid.register(obj, 2)
@@ -139,7 +140,7 @@ class ResourceSiloControlUseTest extends ActorTest {
       val reply = probe.receiveOne(2000 milliseconds)
       assert(reply match {
         case TransferBehavior.Discharging(Ntu.Nanites) => true
-        case _ => false
+        case _                                         => false
       })
     }
   }
@@ -221,21 +222,21 @@ class ResourceSiloControlUpdate1Test extends ActorTest {
       assert(obj.CapacitorDisplay == 4)
       assert(reply1 match {
         case AvatarServiceMessage("nowhere", AvatarAction.PlanetsideAttribute(PlanetSideGUID(1), 45, 4)) => true
-        case _ => false
+        case _                                                                                           => false
       })
-      assert(reply2.isInstanceOf[Building.SendMapUpdate])
+      assert(reply2.isInstanceOf[BuildingActor.MapUpdate])
 
       val reply3 = zoneEvents.receiveOne(500 milliseconds)
       assert(!obj.LowNtuWarningOn)
       assert(reply3 match {
         case AvatarServiceMessage("nowhere", AvatarAction.PlanetsideAttribute(PlanetSideGUID(6), 47, 0)) => true
-        case _ => false
+        case _                                                                                           => false
       })
 
       val reply4 = zoneEvents.receiveOne(500 milliseconds)
       assert(reply4 match {
         case AvatarServiceMessage("nowhere", AvatarAction.PlanetsideAttribute(PlanetSideGUID(6), 48, 0)) => true
-        case _ => false
+        case _                                                                                           => false
       })
     }
   }
@@ -295,7 +296,7 @@ class ResourceSiloControlUpdate2Test extends ActorTest {
           .attribute_value == 3
       )
 
-      assert(reply2.isInstanceOf[Building.SendMapUpdate])
+      assert(reply2.isInstanceOf[BuildingActor.MapUpdate])
 
       val reply3 = zoneEvents.receiveOne(500 milliseconds)
       assert(!obj.LowNtuWarningOn)
@@ -355,7 +356,9 @@ class ResourceSiloControlNoUpdateTest extends ActorTest {
       expectNoMessage(500 milliseconds)
       zoneEvents.expectNoMessage(500 milliseconds)
       buildingEvents.expectNoMessage(500 milliseconds)
-      assert(obj.NtuCapacitor == 299 || obj.NtuCapacitor == 300) // Just in case the capacitor level drops while waiting for the message check 299 & 300
+      assert(
+        obj.NtuCapacitor == 299 || obj.NtuCapacitor == 300
+      ) // Just in case the capacitor level drops while waiting for the message check 299 & 300
       assert(obj.CapacitorDisplay == 3)
       assert(!obj.LowNtuWarningOn)
     }
