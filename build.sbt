@@ -100,6 +100,7 @@ lazy val root = (project in file("."))
   .settings(psloginPackSettings: _*)
   .enablePlugins(ScalaUnidocPlugin)
   .aggregate(pslogin, common)
+  .dependsOn(pslogin, common)
 
 lazy val pslogin = (project in file("pslogin"))
   .configs(QuietTest)
