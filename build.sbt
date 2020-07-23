@@ -77,7 +77,9 @@ lazy val commonSettings = Seq(
     "commons-io"                  % "commons-io"              % "2.6",
     "com.github.scopt"           %% "scopt"                   % "4.0.0-RC2",
     "io.sentry"                   % "sentry-logback"          % "1.7.30"
-  )
+  ),
+  // TODO(chord): remove exclusion when SessionActor is refactored: https://github.com/psforever/PSF-LoginServer/issues/279
+  coverageExcludedPackages := "net\\.psforever\\.actors\\.session\\.SessionActor.*;net\\.psforever\\.zones\\.zonemaps.*"
 )
 
 lazy val pscryptoSettings = Seq(
@@ -111,8 +113,6 @@ lazy val pslogin = (project in file("pslogin"))
     name := "pslogin",
     // ActorTests have specific timing requirements and will be flaky if run in parallel
     parallelExecution in Test := false,
-    // TODO(chord): remove exclusion when WorldSessionActor is refactored: https://github.com/psforever/PSF-LoginServer/issues/279
-    coverageExcludedPackages := "net.psforever.actors.session.SessionActor.*;net.psforever.zones.zonemaps.*",
     // Copy all tests from Test -> QuietTest (we're only changing the run options)
     inConfig(QuietTest)(Defaults.testTasks)
   )
