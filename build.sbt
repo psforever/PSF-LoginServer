@@ -85,7 +85,7 @@ lazy val pscryptoSettings = Seq(
 )
 
 lazy val psloginPackSettings = Seq(
-  packMain := Map("ps-login" -> "PsLogin"),
+  packMain := Map("ps-login" -> "net.psforever.pslogin.PsLogin"),
   packArchivePrefix := "pslogin",
   packExtraClasspath := Map("ps-login" -> Seq("${PROG_HOME}/pscrypto-lib", "${PROG_HOME}/config")),
   packResourceDir += (baseDirectory.value / "pscrypto-lib"               -> "pscrypto-lib"),
@@ -100,6 +100,7 @@ lazy val root = (project in file("."))
   .settings(psloginPackSettings: _*)
   .enablePlugins(ScalaUnidocPlugin)
   .aggregate(pslogin, common)
+  .dependsOn(pslogin, common)
 
 lazy val pslogin = (project in file("pslogin"))
   .configs(QuietTest)
