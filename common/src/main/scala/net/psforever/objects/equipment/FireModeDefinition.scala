@@ -2,11 +2,11 @@
 package net.psforever.objects.equipment
 
 import net.psforever.objects.Tool
-import net.psforever.objects.vital.damage.DamageProfile
+import net.psforever.objects.vital.damage.{DamageModifiers, DamageProfile}
 
 import scala.collection.mutable
 
-class FireModeDefinition {
+class FireModeDefinition extends DamageModifiers {
 
   /** indices pointing to all ammo types used, in (an) order
     * the ammo types list will be available from the `ToolDefinition`
@@ -41,7 +41,7 @@ class FireModeDefinition {
   private var chamber: Int = 1
 
   /** modifiers for each damage type */
-  private val modifiers: DamageModifiers = new DamageModifiers
+  private val modifiers: FireModeDamageModifiers = new FireModeDamageModifiers
 
   def AmmoSlotIndex: Int = ammoSlotIndex
 
@@ -91,7 +91,7 @@ class FireModeDefinition {
     Chamber
   }
 
-  def Modifiers: DamageModifiers = modifiers
+  def Add: FireModeDamageModifiers = modifiers
 
   /**
     * Shoot a weapon, remove an anticipated amount of ammunition.
@@ -150,7 +150,7 @@ class InfiniteFireModeDefinition extends FireModeDefinition {
   override def Discharge(weapon: Tool, rounds: Option[Int] = None): Int = 1
 }
 
-class DamageModifiers extends DamageProfile {
+class FireModeDamageModifiers extends DamageProfile {
   private var damage0: Int = 0
   private var damage1: Int = 0
   private var damage2: Int = 0

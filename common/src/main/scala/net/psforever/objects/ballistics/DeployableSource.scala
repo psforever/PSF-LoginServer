@@ -3,12 +3,12 @@ package net.psforever.objects.ballistics
 
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.ce.Deployable
-import net.psforever.objects.definition.{BaseDeployableDefinition, ObjectDefinition}
+import net.psforever.objects.definition.{DeployableDefinition, ObjectDefinition}
 import net.psforever.objects.vital.resistance.ResistanceProfile
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 final case class DeployableSource(
-    obj_def: ObjectDefinition with BaseDeployableDefinition,
+    obj_def: ObjectDefinition with DeployableDefinition,
     faction: PlanetSideEmpire.Value,
     health: Int,
     ownerName: String,
@@ -17,7 +17,7 @@ final case class DeployableSource(
 ) extends SourceEntry {
   override def Name                                              = SourceEntry.NameFormat(obj_def.Name)
   override def Faction                                           = faction
-  def Definition: ObjectDefinition with BaseDeployableDefinition = obj_def
+  def Definition: ObjectDefinition with DeployableDefinition = obj_def
   def Health                                                     = health
   def OwnerName                                                  = ownerName
   def Position                                                   = position

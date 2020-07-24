@@ -37,7 +37,7 @@ trait ResistanceProfile {
   * This is for defining both accessor and mutator functions.
   */
 trait ResistanceProfileMutators extends ResistanceProfile {
-  private var subtract: DamageProfile = new StandardDamageProfile {
+  private val subtract: DamageProfile = new StandardDamageProfile {
     //subtract numbers are always negative modifiers
     override def Damage0_=(damage: Int): Int = super.Damage0_=(if (damage < 1) damage else -damage)
 

@@ -3,6 +3,7 @@ package net.psforever.objects.definition
 
 import net.psforever.objects.ballistics.Projectiles
 import net.psforever.objects.equipment.JammingUnit
+import net.psforever.objects.vital.damage.DamageModifiers
 import net.psforever.objects.vital.{DamageType, StandardDamageProfile}
 
 /**
@@ -13,7 +14,8 @@ import net.psforever.objects.vital.{DamageType, StandardDamageProfile}
 class ProjectileDefinition(objectId: Int)
     extends ObjectDefinition(objectId)
     with JammingUnit
-    with StandardDamageProfile {
+    with StandardDamageProfile
+    with DamageModifiers {
   private val projectileType: Projectiles.Value     = Projectiles(objectId) //let throw NoSuchElementException
   private var acceleration: Int                     = 0
   private var accelerationUntil: Float              = 0f
@@ -40,6 +42,7 @@ class ProjectileDefinition(objectId: Int)
   private var distanceNoDegrade: Float        = 0f
   private var finalVelocity: Float            = 0f
   Name = "projectile"
+  Modifiers = DamageModifiers.DistanceDegrade
 
   def ProjectileType: Projectiles.Value = projectileType
 

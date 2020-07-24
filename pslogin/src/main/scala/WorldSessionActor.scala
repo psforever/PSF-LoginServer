@@ -6140,7 +6140,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                       val shotOrigin = hitInfo.shot_origin
                       val radius = projectile.profile.LashRadius * projectile.profile.LashRadius
                       val targets = continent.LivePlayers.filter { target =>
-                        Vector3.DistanceSquared(target.Position, hitPos) < radius
+                        Vector3.DistanceSquared(target.Position, hitPos) <= radius
                       }
                       //chainlash is separated from the actual damage application for convenience
                       continent.AvatarEvents ! AvatarServiceMessage(
@@ -6152,7 +6152,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
                       )
                       targets.map { target =>
                         CheckForHitPositionDiscrepancy(projectile_guid, hitPos, target)
-                        (target, shotOrigin, hitPos)
+                        (target, hitPos, target.Position)
                       }
                     }
                     else {
@@ -6167,8 +6167,8 @@ class WorldSessionActor extends Actor with MDCContextAware {
               .foreach({
                 case (target: PlanetSideGameObject with FactionAffinity with Vitality, shotOrigin: Vector3, hitPos: Vector3) =>
                   ResolveProjectileEntry(projectile, ProjectileResolution.Hit, target, hitPos) match {
-                    case Some(projectile) =>
-                      HandleDealingDamage(target, projectile)
+                    case Some(resprojectile) =>
+                      HandleDealingDamage(target, resprojectile)
                     case None => ;
                   }
                 case _ => ;

@@ -2,6 +2,7 @@
 package net.psforever.objects.vital.resolution
 
 import net.psforever.objects.ballistics.ResolvedProjectile
+import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.projectile.ProjectileCalculations
 
 /**
@@ -19,7 +20,7 @@ abstract class DamageResistCalculations[A](
     applyFunc: (A, ResolvedProjectile) => ResolutionCalculations.Output
 ) extends ResolutionCalculations {
   def Calculate(
-      damages: ProjectileCalculations.Form,
+      damages: DamageCalculations.Selector,
       resistances: ProjectileCalculations.Form,
       data: ResolvedProjectile
   ): ResolutionCalculations.Output = {
@@ -37,11 +38,11 @@ abstract class DamageResistCalculations[A](
     *         usually, a single `Int` value or a tuple of `Int` values
     */
   def Sample(
-      damages: ProjectileCalculations.Form,
+      damages: DamageCalculations.Selector,
       resistances: ProjectileCalculations.Form,
       data: ResolvedProjectile
   ): A = {
-    val dam: Int = damages(data)
+    val dam = DamageCalculations.DamageWithModifiers(damages, data)
     val res: Int = resistances(data)
     val mod      = calcFunc(data)
     mod(dam, res)

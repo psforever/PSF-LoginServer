@@ -15,7 +15,8 @@ import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.mount.MountableBehavior
 import net.psforever.objects.serverobject.repair.RepairableWeaponTurret
 import net.psforever.objects.serverobject.turret.{TurretDefinition, WeaponTurret}
-import net.psforever.objects.vital.{StandardResolutions, StandardVehicleDamage, StandardVehicleResistance}
+import net.psforever.objects.vital.damage.DamageCalculations
+import net.psforever.objects.vital.{StandardResolutions, StandardVehicleResistance}
 
 class TurretDeployable(tdef: TurretDeployableDefinition)
     extends ComplexDeployable(tdef)
@@ -34,7 +35,7 @@ class TurretDeployableDefinition(private val objectId: Int)
     with TurretDefinition {
   Name = "turret_deployable"
   Packet = new SmallTurretConverter
-  DamageUsing = StandardVehicleDamage
+  DamageUsing = DamageCalculations.AgainstVehicle
   ResistUsing = StandardVehicleResistance
   Model = StandardResolutions.FacilityTurrets
 

@@ -6,6 +6,7 @@ import net.psforever.objects.definition.converter.VehicleConverter
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.vehicles.{DestroyedVehicle, UtilityType}
 import net.psforever.objects.vital._
+import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.resistance.ResistanceProfileMutators
 import net.psforever.types.Vector3
 
@@ -50,7 +51,7 @@ class VehicleDefinition(objectId: Int)
   private var destroyedModel: Option[DestroyedVehicle.Value] = None
   Name = "vehicle"
   Packet = VehicleDefinition.converter
-  DamageUsing = StandardVehicleDamage
+  DamageUsing = DamageCalculations.AgainstVehicle
   ResistUsing = StandardVehicleResistance
   Model = StandardResolutions.Vehicle
   RepairDistance = 10

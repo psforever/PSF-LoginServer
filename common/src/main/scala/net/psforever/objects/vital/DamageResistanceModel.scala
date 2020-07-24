@@ -2,7 +2,7 @@
 package net.psforever.objects.vital
 
 import net.psforever.objects.ballistics.{ProjectileResolution, ResolvedProjectile}
-import net.psforever.objects.vital.damage.DamageSelection
+import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.projectile.ProjectileCalculations
 import net.psforever.objects.vital.resistance.ResistanceSelection
 import net.psforever.objects.vital.resolution.ResolutionCalculations
@@ -27,7 +27,7 @@ import net.psforever.objects.vital.resolution.ResolutionCalculations
 trait DamageResistanceModel {
 
   /** the functionality that processes damage; required */
-  private var damageUsing: DamageSelection = NoDamageSelection
+  private var damageUsing: DamageCalculations.Selector = DamageCalculations.AgainstNothing
 
   /** the functionality that processes resistance; optional */
   private var resistUsing: ResistanceSelection = NoResistanceSelection
@@ -35,9 +35,9 @@ trait DamageResistanceModel {
   /** the functionality that prepares for damage application actions; required */
   private var model: ResolutionCalculations.Form = NoResolutions.Calculate
 
-  def DamageUsing: DamageSelection = damageUsing
+  def DamageUsing: DamageCalculations.Selector = damageUsing
 
-  def DamageUsing_=(selector: DamageSelection): DamageSelection = {
+  def DamageUsing_=(selector: DamageCalculations.Selector): DamageCalculations.Selector = {
     damageUsing = selector
     DamageUsing
   }
@@ -62,9 +62,8 @@ trait DamageResistanceModel {
     * @return a function literal that encapsulates delayed modification instructions for certain objects
     */
   def Calculate(data: ResolvedProjectile): ResolutionCalculations.Output = {
-    val dam: ProjectileCalculations.Form = DamageUsing(data)
     val res: ProjectileCalculations.Form = ResistUsing(data)
-    Model(dam, res, data)
+    Model(DamageUsing, res, data)
   }
 
   /**
@@ -74,8 +73,7 @@ trait DamageResistanceModel {
     * @return a function literal that encapsulates delayed modification instructions for certain objects
     */
   def Calculate(data: ResolvedProjectile, resolution: ProjectileResolution.Value): ResolutionCalculations.Output = {
-    val dam: ProjectileCalculations.Form = DamageUsing(resolution)
     val res: ProjectileCalculations.Form = ResistUsing(resolution)
-    Model(dam, res, data)
+    Model(DamageUsing, res, data)
   }
 }
