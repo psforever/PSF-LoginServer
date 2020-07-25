@@ -128,7 +128,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
 
       case ConnectToWorldRequestMessage(name, _, _, _, _, _, _) =>
         log.info(s"Connect to world request for '$name'")
-        val response = ConnectToWorldMessage(serverName, publicAddress.getHostString, publicAddress.getPort)
+        val response = ConnectToWorldMessage(serverName, publicAddress.getAddress.getHostAddress, publicAddress.getPort)
         sendResponse(PacketCoding.CreateGamePacket(0, response))
         sendResponse(DropSession(sessionId, "user transferring to world"))
 
