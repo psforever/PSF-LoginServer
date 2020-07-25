@@ -43,9 +43,8 @@ class LoginSessionActor extends Actor with MDCContextAware {
   var canonicalHostName: String = ""
   var port: Int                 = 0
 
-  val serverName = Config.app.world.serverName
-  //val publicAddress = new InetSocketAddress(InetAddress.getByName(Config.app.public), Config.app.world.port)
-  val publicAddress = new InetSocketAddress(InetAddress.getLocalHost, Config.app.world.port)
+  val serverName    = Config.app.world.serverName
+  val publicAddress = new InetSocketAddress(InetAddress.getByName(Config.app.public), Config.app.world.port)
 
   // Reference: https://stackoverflow.com/a/50470009
   private val numBcryptPasses = 10
@@ -129,7 +128,7 @@ class LoginSessionActor extends Actor with MDCContextAware {
 
       case ConnectToWorldRequestMessage(name, _, _, _, _, _, _) =>
         log.info(s"Connect to world request for '$name'")
-        val response = ConnectToWorldMessage(serverName, publicAddress.getHostString, publicAddress.getPort)
+        val response = ConnectToWorldMessage(serverName, publicAddress.getAddress.getHostAddress, publicAddress.getPort)
         sendResponse(PacketCoding.CreateGamePacket(0, response))
         sendResponse(DropSession(sessionId, "user transferring to world"))
 
