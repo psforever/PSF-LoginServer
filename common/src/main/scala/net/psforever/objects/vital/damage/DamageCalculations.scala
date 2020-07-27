@@ -32,7 +32,7 @@ object DamageCalculations {
   def DamageWithModifiers(selector: DamageProfile => Int, data: ResolvedProjectile): Int = {
     val projectile = data.projectile
     val profile    = projectile.profile
-    val fireMode = projectile.fire_mode
+    val fireMode   = projectile.fire_mode
     //static (additive and subtractive) modifiers
     val staticModifiers = if (profile.UseDamage1Subtract) {
       List(fireMode.Add, data.target.Modifiers.Subtract)

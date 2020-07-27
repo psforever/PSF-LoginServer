@@ -10076,7 +10076,7 @@ class WorldSessionActor extends Actor with MDCContextAware {
     val faction = target.Faction
     target.ExoSuit = ExoSuitType.Standard
     target.Slot(0).Equipment = Tool(GlobalDefinitions.StandardPistol(faction))
-    target.Slot(2).Equipment = Tool(GlobalDefinitions.maelstrom)
+    target.Slot(2).Equipment = Tool(GlobalDefinitions.suppressor)
     target.Slot(4).Equipment = Tool(GlobalDefinitions.StandardMelee(faction))
     target.Slot(6).Equipment = AmmoBox(GlobalDefinitions.bullet_9mm)
     target.Slot(9).Equipment = AmmoBox(GlobalDefinitions.bullet_9mm)
