@@ -1,5 +1,6 @@
 //Copyright (c) 2020 PSForever
 package net.psforever.objects.vital
+import net.psforever.objects.vital.damage.DamageModifiers
 
 /**
   * na<br>
@@ -7,7 +8,7 @@ package net.psforever.objects.vital
   * The expected (but not enforced) relationship between values follows:
   * `0 <= DamageDestroysAt <= DamageDisablesAt < RepairRestoresAt <= MaxHealth`.
   */
-trait VitalityDefinition {
+trait VitalityDefinition extends DamageModifiers {
 
   /** the maximum amount of health that any of the objects can be allocated;
     * corresponds to ADB property "maxhealth"

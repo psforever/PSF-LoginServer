@@ -2,13 +2,8 @@
 package net.psforever.objects.serverobject.structures
 
 import net.psforever.objects.definition.ObjectDefinition
-import net.psforever.objects.vital.{
-  DamageResistanceModel,
-  StandardAmenityDamage,
-  StandardAmenityResistance,
-  StandardResolutions,
-  VitalityDefinition
-}
+import net.psforever.objects.vital.damage.DamageCalculations
+import net.psforever.objects.vital.{DamageResistanceModel, StandardAmenityResistance, StandardResolutions, VitalityDefinition}
 import net.psforever.objects.vital.resistance.ResistanceProfileMutators
 
 abstract class AmenityDefinition(objectId: Int)
@@ -17,7 +12,7 @@ abstract class AmenityDefinition(objectId: Int)
     with DamageResistanceModel
     with VitalityDefinition {
   Name = "amenity"
-  DamageUsing = StandardAmenityDamage
+  DamageUsing = DamageCalculations.AgainstVehicle
   ResistUsing = StandardAmenityResistance
   Model = StandardResolutions.Amenities
 }

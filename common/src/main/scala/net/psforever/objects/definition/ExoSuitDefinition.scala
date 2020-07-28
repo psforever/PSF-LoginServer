@@ -5,6 +5,7 @@ import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.equipment.EquipmentSize
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.vital._
+import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.resistance.ResistanceProfileMutators
 import net.psforever.types.{CertificationType, ExoSuitType, PlanetSideEmpire}
 
@@ -27,7 +28,7 @@ class ExoSuitDefinition(private val suitType: ExoSuitType.Value)
   protected var capacitorRechargePerSecond: Int            = 0
   protected var capacitorDrainPerSecond: Int               = 0
   Name = "exo-suit"
-  DamageUsing = StandardInfantryDamage
+  DamageUsing = DamageCalculations.AgainstExoSuit
   ResistUsing = StandardInfantryResistance
   Model = StandardResolutions.Infantry
 

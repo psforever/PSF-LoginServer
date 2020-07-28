@@ -18,7 +18,7 @@ class FireModeTest extends Specification {
       obj.AmmoTypeIndices mustEqual Nil
       obj.AmmoSlotIndex mustEqual 0
       obj.Magazine mustEqual 1
-      obj.Rounds mustEqual 1
+      obj.RoundsPerShot mustEqual 1
       obj.Chamber mustEqual 1
     }
 
@@ -31,14 +31,14 @@ class FireModeTest extends Specification {
       tdef.FireModes.head.AmmoTypeIndices += 0
       tdef.FireModes.head.AmmoSlotIndex = 0
       tdef.FireModes.head.Magazine = 18
-      tdef.FireModes.head.Rounds = 18
+      tdef.FireModes.head.RoundsPerShot = 18
       tdef.FireModes.head.Chamber = 2
       tdef.FireModes += new FireModeDefinition
       tdef.FireModes(1).AmmoTypeIndices += 1
       tdef.FireModes(1).AmmoTypeIndices += 2
       tdef.FireModes(1).AmmoSlotIndex = 1
       tdef.FireModes(1).Magazine = 9
-      tdef.FireModes(1).Rounds = 2
+      tdef.FireModes(1).RoundsPerShot = 2
       tdef.FireModes(1).Chamber = 8
 
       tdef.AmmoTypes.toList mustEqual List(GlobalDefinitions.bullet_9mm, GlobalDefinitions.shotgun_shell)
@@ -46,12 +46,12 @@ class FireModeTest extends Specification {
       tdef.FireModes.head.AmmoTypeIndices.toList mustEqual List(0)
       tdef.FireModes.head.AmmoSlotIndex mustEqual 0
       tdef.FireModes.head.Magazine mustEqual 18
-      tdef.FireModes.head.Rounds mustEqual 18
+      tdef.FireModes.head.RoundsPerShot mustEqual 18
       tdef.FireModes.head.Chamber mustEqual 2
       tdef.FireModes(1).AmmoTypeIndices.toList mustEqual List(1, 2)
       tdef.FireModes(1).AmmoSlotIndex mustEqual 1
       tdef.FireModes(1).Magazine mustEqual 9
-      tdef.FireModes(1).Rounds mustEqual 2
+      tdef.FireModes(1).RoundsPerShot mustEqual 2
       tdef.FireModes(1).Chamber mustEqual 8
     }
 
@@ -59,7 +59,7 @@ class FireModeTest extends Specification {
       val obj = Tool(GlobalDefinitions.beamer) //see EquipmentTest
       obj.FireMode.isInstanceOf[FireModeDefinition] mustEqual true
       obj.Magazine mustEqual 16
-      obj.FireMode.Rounds mustEqual 1
+      obj.FireMode.RoundsPerShot mustEqual 1
       obj.FireMode.Chamber mustEqual 1
 
       obj.Magazine mustEqual 16
@@ -77,7 +77,7 @@ class FireModeTest extends Specification {
       obj.AmmoTypeIndices mustEqual Nil
       obj.AmmoSlotIndex mustEqual 0
       obj.Magazine mustEqual 1
-      obj.Rounds mustEqual 1
+      obj.RoundsPerShot mustEqual 1
       obj.Chamber mustEqual 1
     }
 
@@ -85,7 +85,7 @@ class FireModeTest extends Specification {
       val obj = Tool(GlobalDefinitions.flechette) //see EquipmentTest
       obj.FireMode.isInstanceOf[PelletFireModeDefinition] mustEqual true
       obj.Magazine mustEqual 12
-      obj.FireMode.Rounds mustEqual 1
+      obj.FireMode.RoundsPerShot mustEqual 1
       obj.FireMode.Chamber mustEqual 8
 
       obj.Magazine mustEqual 12
@@ -110,7 +110,7 @@ class FireModeTest extends Specification {
       obj.AmmoTypeIndices mustEqual Nil
       obj.AmmoSlotIndex mustEqual 0
       obj.Magazine mustEqual 1
-      obj.Rounds mustEqual 1
+      obj.RoundsPerShot mustEqual 1
       obj.Chamber mustEqual 1
     }
 
@@ -118,7 +118,7 @@ class FireModeTest extends Specification {
       val obj = Tool(GlobalDefinitions.magcutter) //see EquipmentTest
       obj.FireMode.isInstanceOf[InfiniteFireModeDefinition] mustEqual true
       obj.Magazine mustEqual 1
-      obj.FireMode.Rounds mustEqual 1
+      obj.FireMode.RoundsPerShot mustEqual 1
       obj.FireMode.Chamber mustEqual 1
 
       obj.Magazine mustEqual 1

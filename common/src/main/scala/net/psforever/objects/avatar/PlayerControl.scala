@@ -930,9 +930,9 @@ class PlayerControl(player: Player) extends Actor with JammableBehavior with Dam
 
   def RepairValue(item: Tool): Int =
     if (player.ExoSuit != ExoSuitType.MAX) {
-      item.FireMode.Modifiers.Damage0
+      item.FireMode.Add.Damage0
     } else {
-      item.FireMode.Modifiers.Damage3
+      item.FireMode.Add.Damage3
     }
 
   def MessageDeferredCallback(msg: Any): Unit = {

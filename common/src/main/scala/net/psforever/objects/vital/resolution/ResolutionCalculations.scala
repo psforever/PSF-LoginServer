@@ -9,6 +9,7 @@ import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.objects.vital.Vitality
+import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.projectile.ProjectileCalculations
 import net.psforever.types.ImplantType
 
@@ -25,7 +26,7 @@ trait ResolutionCalculations {
     * @return a function literal that encapsulates delayed modification instructions for certain objects
     */
   def Calculate(
-      damages: ProjectileCalculations.Form,
+      damages: DamageCalculations.Selector,
       resistances: ProjectileCalculations.Form,
       data: ResolvedProjectile
   ): ResolutionCalculations.Output
@@ -33,7 +34,7 @@ trait ResolutionCalculations {
 
 object ResolutionCalculations {
   type Output = Any => ResolvedProjectile
-  type Form   = (ProjectileCalculations.Form, ProjectileCalculations.Form, ResolvedProjectile) => Output
+  type Form   = (DamageCalculations.Selector, ProjectileCalculations.Form, ResolvedProjectile) => Output
 
   def NoDamage(data: ResolvedProjectile)(a: Int, b: Int): Int = 0
 

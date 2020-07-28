@@ -3,6 +3,7 @@ package net.psforever.objects.definition
 
 import net.psforever.objects.ballistics.Projectiles
 import net.psforever.objects.equipment.JammingUnit
+import net.psforever.objects.vital.damage.DamageModifiers
 import net.psforever.objects.vital.{DamageType, StandardDamageProfile}
 
 /**
@@ -13,7 +14,8 @@ import net.psforever.objects.vital.{DamageType, StandardDamageProfile}
 class ProjectileDefinition(objectId: Int)
     extends ObjectDefinition(objectId)
     with JammingUnit
-    with StandardDamageProfile {
+    with StandardDamageProfile
+    with DamageModifiers {
   private val projectileType: Projectiles.Value     = Projectiles(objectId) //let throw NoSuchElementException
   private var acceleration: Int                     = 0
   private var accelerationUntil: Float              = 0f
@@ -25,10 +27,12 @@ class ProjectileDefinition(objectId: Int)
   private var lifespan: Float                       = 1f
   private var damageAtEdge: Float                   = 1f
   private var damageRadius: Float                   = 1f
+  private var lashRadius : Float                    = 0f
   private var useDamage1Subtract: Boolean           = false
   private var existsOnRemoteClients: Boolean        = false                 //`true` spawns a server-managed object
   private var remoteClientData: (Int, Int) =
     (0, 0) //artificial values; for ObjectCreateMessage packet (oicw_little_buddy is undefined)
+  private var damageProxy: Option[Int]  = None
   private var autoLock: Boolean         = false
   private var additionalEffect: Boolean = false
   private var jammerProjectile: Boolean = false
@@ -38,6 +42,7 @@ class ProjectileDefinition(objectId: Int)
   private var distanceNoDegrade: Float        = 0f
   private var finalVelocity: Float            = 0f
   Name = "projectile"
+  Modifiers = DamageModifiers.DistanceDegrade
 
   def ProjectileType: Projectiles.Value = projectileType
 
@@ -118,6 +123,13 @@ class ProjectileDefinition(objectId: Int)
     DamageRadius
   }
 
+  def LashRadius: Float = lashRadius
+
+  def LashRadius_=(radius: Float): Float = {
+    lashRadius = radius
+    LashRadius
+  }
+
   def ExistsOnRemoteClients: Boolean = existsOnRemoteClients
 
   def ExistsOnRemoteClients_=(existsOnRemoteClients: Boolean): Boolean = {
@@ -130,6 +142,15 @@ class ProjectileDefinition(objectId: Int)
   def RemoteClientData_=(remoteClientData: (Int, Int)): (Int, Int) = {
     this.remoteClientData = remoteClientData
     RemoteClientData
+  }
+
+  def DamageProxy : Option[Int] = damageProxy
+
+  def DamageProxy_=(proxyObjectId : Int) : Option[Int] = DamageProxy_=(Some(proxyObjectId))
+
+  def DamageProxy_=(proxyObjectId : Option[Int]) : Option[Int] = {
+    damageProxy = proxyObjectId
+    DamageProxy
   }
 
   def AutoLock: Boolean = autoLock

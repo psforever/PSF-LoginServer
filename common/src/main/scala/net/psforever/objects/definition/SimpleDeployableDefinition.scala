@@ -6,13 +6,9 @@ import net.psforever.objects.{Default, PlanetSideGameObject}
 import net.psforever.objects.ce.{Deployable, DeployableCategory, DeployedItem}
 import net.psforever.objects.definition.converter.SmallDeployableConverter
 import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.resistance.ResistanceProfileMutators
-import net.psforever.objects.vital.{
-  DamageResistanceModel,
-  NoResistanceSelection,
-  StandardDeployableDamage,
-  VitalityDefinition
-}
+import net.psforever.objects.vital.{DamageResistanceModel, NoResistanceSelection, VitalityDefinition}
 
 import scala.concurrent.duration._
 
@@ -54,7 +50,7 @@ abstract class DeployableDefinition(objectId: Int)
     with VitalityDefinition
     with BaseDeployableDefinition {
   private val item = DeployedItem(objectId) //let throw NoSuchElementException
-  DamageUsing = StandardDeployableDamage
+  DamageUsing = DamageCalculations.AgainstVehicle
   ResistUsing = NoResistanceSelection
 
   def Item: DeployedItem.Value = item

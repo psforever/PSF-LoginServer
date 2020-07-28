@@ -2,11 +2,11 @@
 package net.psforever.objects.equipment
 
 import net.psforever.objects.Tool
-import net.psforever.objects.vital.damage.DamageProfile
+import net.psforever.objects.vital.damage.{DamageModifiers, DamageProfile}
 
 import scala.collection.mutable
 
-class FireModeDefinition {
+class FireModeDefinition extends DamageModifiers {
 
   /** indices pointing to all ammo types used, in (an) order
     * the ammo types list will be available from the `ToolDefinition`
@@ -33,7 +33,7 @@ class FireModeDefinition {
   /** how much is subtracted from the magazine each fire cycle;
     * most weapons will only fire 1 round per fire cycle; the flamethrower in fire mode 1 fires 50
     */
-  private var rounds: Int = 1
+  private var roundsPerShot: Int = 1
 
   /** how many sub-rounds are queued per round fired;
     * the flechette fires 8 pellets per shell and generates 8 fire reports before the ammo count goes down
@@ -41,7 +41,7 @@ class FireModeDefinition {
   private var chamber: Int = 1
 
   /** modifiers for each damage type */
-  private val modifiers: DamageModifiers = new DamageModifiers
+  private val modifiers: FireModeDamageModifiers = new FireModeDamageModifiers
 
   def AmmoSlotIndex: Int = ammoSlotIndex
 
@@ -77,11 +77,11 @@ class FireModeDefinition {
     CustomMagazine
   }
 
-  def Rounds: Int = rounds
+  def RoundsPerShot: Int = roundsPerShot
 
-  def Rounds_=(round: Int): Int = {
-    rounds = round
-    Rounds
+  def RoundsPerShot_=(round: Int): Int = {
+    roundsPerShot = round
+    RoundsPerShot
   }
 
   def Chamber: Int = chamber
@@ -91,7 +91,7 @@ class FireModeDefinition {
     Chamber
   }
 
-  def Modifiers: DamageModifiers = modifiers
+  def Add: FireModeDamageModifiers = modifiers
 
   /**
     * Shoot a weapon, remove an anticipated amount of ammunition.
@@ -102,7 +102,7 @@ class FireModeDefinition {
   def Discharge(weapon: Tool, rounds: Option[Int] = None): Int = {
     val dischargedAmount = rounds match {
       case Some(rounds: Int) => rounds
-      case _                 => Rounds
+      case _                 => RoundsPerShot
     }
     weapon.Magazine - dischargedAmount
   }
@@ -125,7 +125,7 @@ class PelletFireModeDefinition extends FireModeDefinition {
     val chamber: Int = ammoSlot.Chamber = ammoSlot.Chamber - 1
     if (chamber <= 0) {
       ammoSlot.Chamber = Chamber
-      magazine - Rounds
+      magazine - RoundsPerShot
     } else {
       magazine
     }
@@ -150,7 +150,7 @@ class InfiniteFireModeDefinition extends FireModeDefinition {
   override def Discharge(weapon: Tool, rounds: Option[Int] = None): Int = 1
 }
 
-class DamageModifiers extends DamageProfile {
+class FireModeDamageModifiers extends DamageProfile {
   private var damage0: Int = 0
   private var damage1: Int = 0
   private var damage2: Int = 0

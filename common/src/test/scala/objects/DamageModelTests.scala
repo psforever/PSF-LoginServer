@@ -2,14 +2,16 @@
 package objects
 
 import net.psforever.objects._
-import net.psforever.objects.vital.damage.{DamageCalculations, DamageProfile}
+import net.psforever.objects.vital.damage.{DamageCalculations, DamageModifiers, DamageProfile}
 import DamageCalculations._
 import net.psforever.objects.vital.resistance.ResistanceCalculations
 import ResistanceCalculations._
 import net.psforever.objects.vital.resolution.ResolutionCalculations
 import ResolutionCalculations._
 import net.psforever.objects.ballistics._
-import net.psforever.objects.vital.Vitality
+import net.psforever.objects.definition.{ProjectileDefinition, VehicleDefinition}
+import net.psforever.objects.vital.{DamageType, Vitality}
+import net.psforever.packet.game.objectcreate.ObjectClass
 import net.psforever.types._
 import org.specs2.mutable.Specification
 
@@ -17,8 +19,8 @@ class DamageCalculationsTests extends Specification {
   "DamageCalculations" should {
     val wep        = GlobalDefinitions.galaxy_gunship_cannon
     val wep_fmode  = Tool(wep).FireMode
-    val wep_prof   = wep_fmode.Modifiers.asInstanceOf[DamageProfile]
-    val proj       = wep.ProjectileTypes.head
+    val wep_prof   = wep_fmode.Add
+    val proj       = DamageModelTests.projectile
     val proj_prof  = proj.asInstanceOf[DamageProfile]
     val player     = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
     val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
@@ -29,118 +31,139 @@ class DamageCalculationsTests extends Specification {
       projectile,
       SourceEntry(target),
       target.DamageModel,
-      Vector3(50, 50, 0)
+      Vector3(15, 0, 0)
     )
+
     "extract no damage numbers" in {
-      NoDamageAgainst(proj_prof) mustEqual 0
+      AgainstNothing(proj_prof) mustEqual 0
     }
 
     "extract damage against exosuit target" in {
-      DamageAgainstExoSuit(proj_prof) mustEqual 50
+      AgainstExoSuit(proj_prof) == proj_prof.Damage0 mustEqual true
     }
 
     "extract damage against MAX target" in {
-      DamageAgainstMaxSuit(proj_prof) mustEqual 75
+      AgainstMaxSuit(proj_prof) == proj_prof.Damage3 mustEqual true
     }
 
     "extract damage against vehicle target" in {
-      DamageAgainstVehicle(proj_prof) mustEqual 82
+      AgainstVehicle(proj_prof) == proj_prof.Damage1 mustEqual true
     }
 
     "extract damage against aircraft target" in {
-      DamageAgainstAircraft(proj_prof) mustEqual 82
+      AgainstAircraft(proj_prof) == proj_prof.Damage2 mustEqual true
     }
 
-    "extract damage against something" in {
-      DamageAgainstBFR(proj_prof) mustEqual 66
+    "extract damage against battleframe robotics" in {
+      AgainstBFR(proj_prof) == proj_prof.Damage4 mustEqual true
     }
 
-    "extract a complete damage profile (1)" in {
-      val result                                            = DamageAgainstVehicle(proj_prof) + DamageAgainstVehicle(wep_prof)
-      val func: (DamageProfile, List[DamageProfile]) => Int = DamageWithModifiers(DamageAgainstVehicle)
-      func(proj_prof, List(wep_prof)) mustEqual result
+    "no degrade damage modifier" in {
+      DamageModifiers.SameHit.Calculate(100, resprojectile) mustEqual 100
     }
 
-    "extract a complete damage profile (2)" in {
-      val result                                            = 2 * DamageAgainstVehicle(proj_prof) + DamageAgainstVehicle(wep_prof)
-      val func: (DamageProfile, List[DamageProfile]) => Int = DamageWithModifiers(DamageAgainstVehicle)
-      func(proj_prof, List(proj_prof, wep_prof)) mustEqual result
-    }
-
-    "calculate no distance" in {
-      NoDistance(resprojectile) mustEqual 0
-    }
-
-    "calculate too far distance" in {
-      TooFar(resprojectile) mustEqual Float.MaxValue
-    }
-
-    "calculate distance between target and source" in {
-      DistanceBetweenTargetandSource(resprojectile) mustEqual 67.38225f
-    }
-
-    "calculate distance between target and explosion (splash)" in {
-      DistanceFromExplosionToTarget(resprojectile) mustEqual 63.031242f
-    }
-
-    "calculate no damage from components" in {
-      val result   = DamageWithModifiers(DamageAgainstVehicle)(proj_prof, List(wep_prof))
-      val distance = DistanceFromExplosionToTarget(resprojectile)
-      DamageCalculations.NoDamage(projectile, result, distance) mustEqual 0
-    }
-
-    "calculate degraded damage from components (near)" in {
-      val projectile_alt = Projectile(
-        GlobalDefinitions.galaxy_gunship_gun_projectile, //need projectile with degrade
-        wep,
-        wep_fmode,
-        player,
-        Vector3(2, 2, 0),
-        Vector3.Zero
+    "degrade over distance damage modifier (no degrade)" in {
+      val resprojectile2 = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        projectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3(10, 0, 0)
       )
-      val result = DamageWithModifiers(DamageAgainstVehicle)(proj_prof, List(wep_prof))
-      DirectHitDamageWithDegrade(projectile_alt, result, 0) mustEqual 132
+      DamageModifiers.DistanceDegrade.Calculate(100, resprojectile2) == 100 mustEqual true
     }
 
-    "calculate degraded damage from components (medium)" in {
-      val projectile_alt = Projectile(
-        GlobalDefinitions.galaxy_gunship_gun_projectile, //need projectile with degrade
-        wep,
-        wep_fmode,
-        player,
-        Vector3(2, 2, 0),
-        Vector3.Zero
+    "degrade over distance damage modifier (some degrade)" in {
+      val resprojectile2 = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        projectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3(100, 0, 0)
       )
-      val result = DamageWithModifiers(DamageAgainstVehicle)(proj_prof, List(wep_prof))
-      DirectHitDamageWithDegrade(projectile_alt, result, 250) mustEqual 103
+      val damage = DamageModifiers.DistanceDegrade.Calculate(100, resprojectile2)
+      damage < 100 && damage > 0 mustEqual true
     }
 
-    "calculate degraded damage from components (far)" in {
-      val projectile_alt = Projectile(
-        GlobalDefinitions.galaxy_gunship_gun_projectile, //need projectile with degrade
-        wep,
-        wep_fmode,
-        player,
-        Vector3(2, 2, 0),
-        Vector3.Zero
+    "degrade over distance damage modifier (zero'd)" in {
+      val resprojectile2 = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        projectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3(1000, 0, 0)
       )
-      val result = DamageWithModifiers(DamageAgainstVehicle)(proj_prof, List(wep_prof))
-      DirectHitDamageWithDegrade(projectile_alt, result, 1000) mustEqual 0
+      DamageModifiers.DistanceDegrade.Calculate(100, resprojectile2) == 0 mustEqual true
     }
 
-    "calculate splash damage from components (near)" in {
-      val result = DamageWithModifiers(DamageAgainstVehicle)(proj_prof, List(wep_prof))
-      SplashDamageWithRadialDegrade(projectile, result, 0) mustEqual 132
+    "degrade at radial distance damage modifier (no degrade)" in {
+      val resprojectile2 = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        projectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3(10, 0, 0)
+      )
+      DamageModifiers.RadialDegrade.Calculate(100, resprojectile2) == 100 mustEqual true
     }
 
-    "calculate splash damage from components (medium)" in {
-      val result = DamageWithModifiers(DamageAgainstVehicle)(proj_prof, List(wep_prof))
-      SplashDamageWithRadialDegrade(projectile, result, 5) mustEqual 13
+    "degrade at radial distance damage modifier (some degrade)" in {
+      val damage = DamageModifiers.RadialDegrade.Calculate(100, resprojectile)
+      damage < 100 && damage > 0 mustEqual true
     }
 
-    "calculate splash damage from components (far)" in {
-      val result = DamageWithModifiers(DamageAgainstVehicle)(proj_prof, List(wep_prof))
-      SplashDamageWithRadialDegrade(projectile, result, 6) mustEqual 0
+    "degrade at radial distance damage modifier (zero'd)" in {
+      val resprojectile2 = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        projectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3(1000, 0, 0)
+      )
+      DamageModifiers.RadialDegrade.Calculate(100, resprojectile2) == 0 mustEqual true
+    }
+
+    "lash degrade (no lash; too close)" in {
+      val resprojectile2 = ResolvedProjectile(
+        ProjectileResolution.Lash,
+        projectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3(5, 0, 0) //compared to Vector3(2, 2, 0)
+      )
+      DamageModifiers.Lash.Calculate(100, resprojectile2) == 0 mustEqual true
+    }
+
+    "lash degrade (lash)" in {
+      val resprojectile2 = ResolvedProjectile(
+        ProjectileResolution.Lash,
+        projectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3(20, 0, 0)
+      )
+      val damage = DamageModifiers.Lash.Calculate(100, resprojectile2)
+      damage < 100 && damage > 0 mustEqual true
+    }
+
+    "lash degrade (no lash; too far)" in {
+      val resprojectile2 = ResolvedProjectile(
+        ProjectileResolution.Lash,
+        projectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3(1000, 0, 0)
+      )
+      DamageModifiers.Lash.Calculate(100, resprojectile2) == 0 mustEqual true
+    }
+
+    "extract a complete damage profile" in {
+      val result1 = DamageModifiers.RadialDegrade.Calculate(
+        AgainstVehicle(proj_prof) + AgainstVehicle(wep_prof),
+        resprojectile
+      )
+      val result2 = DamageCalculations.DamageWithModifiers(AgainstVehicle, resprojectile)
+      result1 mustEqual result2
     }
   }
 }
@@ -148,7 +171,7 @@ class DamageCalculationsTests extends Specification {
 class ResistanceCalculationsTests extends Specification {
   val wep        = GlobalDefinitions.galaxy_gunship_cannon
   val wep_fmode  = Tool(wep).FireMode
-  val proj       = wep.ProjectileTypes.head //GlobalDefinitions.heavy_grenade_projectile
+  val proj       = DamageModelTests.projectile
   val player     = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
   val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
 
@@ -249,9 +272,9 @@ class ResistanceCalculationsTests extends Specification {
 }
 
 class ResolutionCalculationsTests extends Specification {
-  val wep       = GlobalDefinitions.suppressor
+  val wep       = GlobalDefinitions.galaxy_gunship_cannon
   val wep_fmode = Tool(wep).FireMode
-  val proj      = wep.ProjectileTypes.head
+  val proj      = DamageModelTests.projectile
   val player    = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
   player.Spawn
   val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
@@ -370,22 +393,22 @@ class ResolutionCalculationsTests extends Specification {
       )
       VehicleDamageAfterResist(resprojectile2)(50, 10) mustEqual 40
     }
-  }
 
-  "calculate resisted damage for vehicle target" in {
-    VehicleDamageAfterResist(50, 10) mustEqual 40
-  }
+    "calculate resisted damage for vehicle target" in {
+      VehicleDamageAfterResist(50, 10) mustEqual 40
+    }
 
-  "calculate un-resisted damage for vehicle target" in {
-    VehicleDamageAfterResist(50, 0) mustEqual 50
+    "calculate un-resisted damage for vehicle target" in {
+      VehicleDamageAfterResist(50, 0) mustEqual 50
+    }
   }
 }
 
 class DamageModelTests extends Specification {
-  val wep       = GlobalDefinitions.suppressor
+  val wep       = GlobalDefinitions.galaxy_gunship_cannon
   val wep_tool  = Tool(wep)
   val wep_fmode = wep_tool.FireMode
-  val proj      = wep.ProjectileTypes.head
+  val proj      = DamageModelTests.projectile
   val player    = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
   player.Spawn
   val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
@@ -427,7 +450,7 @@ class DamageModelTests extends Specification {
       val func: Any => ResolvedProjectile = resprojectile.damage_model.Calculate(resprojectile)
 
       func(tplayer)
-      tplayer.Health mustEqual 87
+      tplayer.Health mustEqual 54
       tplayer.Armor mustEqual 46
     }
 
@@ -448,7 +471,7 @@ class DamageModelTests extends Specification {
         resprojectile.damage_model.Calculate(resprojectile, ProjectileResolution.Splash)
 
       func(tplayer)
-      tplayer.Health mustEqual 98
+      tplayer.Health mustEqual 65
       tplayer.Armor mustEqual 35
     }
 
@@ -469,12 +492,12 @@ class DamageModelTests extends Specification {
       tplayer.Armor = 0
 
       func(tplayer)
-      tplayer.Health mustEqual 83
+      tplayer.Health mustEqual 50
       tplayer.Armor mustEqual 0
     }
 
     "resolve vehicle targets" in {
-      val vehicle = Vehicle(GlobalDefinitions.fury)
+      val vehicle = Vehicle(DamageModelTests.vehicle)
       vehicle.Health mustEqual 650
 
       val resprojectile = ResolvedProjectile(
@@ -487,11 +510,11 @@ class DamageModelTests extends Specification {
       val func: Any => ResolvedProjectile = resprojectile.damage_model.Calculate(resprojectile)
 
       func(vehicle)
-      vehicle.Health mustEqual 641
+      vehicle.Health mustEqual 518
     }
 
     "resolve vehicle targets (with shields)" in {
-      val vehicle = Vehicle(GlobalDefinitions.fury)
+      val vehicle = Vehicle(DamageModelTests.vehicle)
       vehicle.Shields = 10
       vehicle.Health mustEqual 650
       vehicle.Shields mustEqual 10
@@ -506,12 +529,12 @@ class DamageModelTests extends Specification {
       val func: Any => ResolvedProjectile = resprojectile.damage_model.Calculate(resprojectile)
 
       func(vehicle)
-      vehicle.Health mustEqual 650
-      vehicle.Shields mustEqual 1
+      vehicle.Health mustEqual 528
+      vehicle.Shields mustEqual 0
     }
 
     "resolve vehicle targets (losing shields)" in {
-      val vehicle = Vehicle(GlobalDefinitions.fury)
+      val vehicle = Vehicle(DamageModelTests.vehicle)
       vehicle.Shields = 10
       vehicle.Health mustEqual 650
       vehicle.Shields mustEqual 10
@@ -526,15 +549,15 @@ class DamageModelTests extends Specification {
       val func: Any => ResolvedProjectile = resprojectile.damage_model.Calculate(resprojectile)
 
       func(vehicle)
-      vehicle.Health mustEqual 650
-      vehicle.Shields mustEqual 1
+      vehicle.Health mustEqual 528
+      vehicle.Shields mustEqual 0
       func(vehicle)
-      vehicle.Health mustEqual 642
+      vehicle.Health mustEqual 396
       vehicle.Shields mustEqual 0
     }
 
     "resolve vehicle targets in a specific way" in {
-      val vehicle = Vehicle(GlobalDefinitions.fury)
+      val vehicle = Vehicle(DamageModelTests.vehicle)
       vehicle.Health mustEqual 650
 
       val resprojectile = ResolvedProjectile(
@@ -548,7 +571,34 @@ class DamageModelTests extends Specification {
         resprojectile.damage_model.Calculate(resprojectile, ProjectileResolution.Splash)
 
       func(vehicle)
-      vehicle.Health mustEqual 641
+      vehicle.Health mustEqual 518
     }
+  }
+}
+
+object DamageModelTests {
+  final val projectile = new ProjectileDefinition(Projectiles.heavy_grenade_projectile.id) {
+    Damage0 = 50
+    Damage1 = 82
+    Damage2 = 82
+    Damage3 = 75
+    Damage4 = 66
+    DamageAtEdge = 0.1f
+    DamageRadius = 5f
+    DegradeMultiplier = 0.5f
+    LashRadius = 5f
+    ProjectileDamageType = DamageType.Splash
+    InitialVelocity = 75
+    Lifespan = 5f
+    ProjectileDefinition.CalculateDerivedFields(pdef = this)
+    Modifiers = DamageModifiers.RadialDegrade
+  }
+
+  final val vehicle = new VehicleDefinition(ObjectClass.fury) {
+    MaxHealth = 650
+    Damageable = true
+    Repairable = true
+    RepairIfDestroyed = false
+    MaxShields = 130 + 1
   }
 }

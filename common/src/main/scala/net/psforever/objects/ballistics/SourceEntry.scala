@@ -6,12 +6,13 @@ import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.{PlanetSideGameObject, Player, Vehicle}
 import net.psforever.objects.entity.WorldEntity
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.vital.VitalityDefinition
 import net.psforever.objects.vital.resistance.ResistanceProfile
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 trait SourceEntry extends WorldEntity {
   def Name: String = ""
-  def Definition: ObjectDefinition
+  def Definition: ObjectDefinition with VitalityDefinition
   def CharId: Long                     = 0L
   def Faction: PlanetSideEmpire.Value  = PlanetSideEmpire.NEUTRAL
   def Position_=(pos: Vector3)         = Position

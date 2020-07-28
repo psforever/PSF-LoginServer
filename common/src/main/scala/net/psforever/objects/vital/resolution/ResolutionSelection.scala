@@ -9,4 +9,8 @@ trait ResolutionSelection {
   def Max: ResolutionCalculations.Form
   def Vehicle: ResolutionCalculations.Form
   def Aircraft: ResolutionCalculations.Form
+  def SimpleDeployables: ResolutionCalculations.Form
+  def ComplexDeployables: ResolutionCalculations.Form
+  def FacilityTurrets: ResolutionCalculations.Form
+  def Amenities: ResolutionCalculations.Form
 }

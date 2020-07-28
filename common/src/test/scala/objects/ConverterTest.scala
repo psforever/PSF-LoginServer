@@ -926,7 +926,7 @@ class ConverterTest extends Specification {
     "not convert a working vehicle" in {
       val ams = Vehicle(GlobalDefinitions.ams)
       ams.GUID = PlanetSideGUID(413)
-      ams.Health mustEqual 3000 //not destroyed vehicle
+      (ams.Health > 0) mustEqual true //not destroyed vehicle
       DestroyedVehicleConverter.converter.ConstructorData(ams).isFailure mustEqual true
     }
 

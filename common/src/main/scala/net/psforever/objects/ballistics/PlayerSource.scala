@@ -2,14 +2,14 @@
 package net.psforever.objects.ballistics
 
 import net.psforever.objects.Player
-import net.psforever.objects.definition.{ExoSuitDefinition, ObjectDefinition}
+import net.psforever.objects.definition.{AvatarDefinition, ExoSuitDefinition}
 import net.psforever.objects.vital.resistance.ResistanceProfile
 import net.psforever.types.{ExoSuitType, PlanetSideEmpire, Vector3}
 
 final case class PlayerSource(
     name: String,
     char_id: Long,
-    obj_def: ObjectDefinition,
+    obj_def: AvatarDefinition,
     faction: PlanetSideEmpire.Value,
     exosuit: ExoSuitType.Value,
     seated: Boolean,
