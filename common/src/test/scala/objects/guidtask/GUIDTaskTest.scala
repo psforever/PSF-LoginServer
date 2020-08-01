@@ -32,7 +32,7 @@ object GUIDTaskTest {
       RandomPool(25).props(Props(classOf[UniqueNumberSystem], guid, GUIDTaskTest.AllocateNumberPoolActors(guid))),
       "uns"
     )
-    val taskResolver = system.actorOf(RandomPool(15).props(Props[TaskResolver]), "resolver")
+    val taskResolver = system.actorOf(RandomPool(15).props(Props[TaskResolver]()), "resolver")
     LogManager.getLogManager.reset() //suppresses any internal loggers created by the above elements
     (guid, uns, taskResolver, TestProbe())
   }

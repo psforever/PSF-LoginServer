@@ -71,7 +71,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     val building = resourceSilo.Owner
     val zone     = building.Zone
     building.Zone.AvatarEvents ! AvatarServiceMessage(
-      zone.Id,
+      zone.id,
       AvatarAction.PlanetsideAttribute(building.GUID, 47, if (resourceSilo.LowNtuWarningOn) 1 else 0)
     )
   }
@@ -95,7 +95,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
       )
       resourceSilo.Owner.Actor ! BuildingActor.MapUpdate()
       zone.AvatarEvents ! AvatarServiceMessage(
-        zone.Id,
+        zone.id,
         AvatarAction.PlanetsideAttribute(resourceSilo.GUID, 45, resourceSilo.CapacitorDisplay)
       )
       building.Actor ! BuildingActor.MapUpdate()
@@ -108,13 +108,13 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     }
     if (resourceSilo.NtuCapacitor == 0 && siloChargeBeforeChange > 0) {
       // Oops, someone let the base run out of power. Shut it all down.
-      zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttribute(building.GUID, 48, 1))
+      zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.PlanetsideAttribute(building.GUID, 48, 1))
       building.Actor ! BuildingActor.SetFaction(PlanetSideEmpire.NEUTRAL)
     } else if (siloChargeBeforeChange == 0 && resourceSilo.NtuCapacitor > 0) {
       // Power restored. Reactor Online. Sensors Online. Weapons Online. All systems nominal.
       //todo: Check generator is online before starting up
       zone.AvatarEvents ! AvatarServiceMessage(
-        zone.Id,
+        zone.id,
         AvatarAction.PlanetsideAttribute(building.GUID, 48, 0)
       )
       building.Zone.actor ! ZoneActor.ZoneMapUpdate()
@@ -177,7 +177,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
   def PanelAnimation(trigger: Int): Unit = {
     val zone = resourceSilo.Zone
     zone.VehicleEvents ! VehicleServiceMessage(
-      zone.Id,
+      zone.id,
       VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, resourceSilo.GUID, 49, if (trigger > 0) 1 else 0)
     ) // panel glow on & orb particles on
   }

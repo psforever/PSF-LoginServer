@@ -16,7 +16,7 @@ abstract class ActorTest(sys: ActorSystem = ActorSystem("system", ConfigFactory.
     with AnyWordSpecLike
     with Matchers
     with BeforeAndAfterAll {
-  override def afterAll: Unit = {
+  override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system)
   }
 }

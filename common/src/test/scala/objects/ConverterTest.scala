@@ -3,6 +3,7 @@ package objects
 
 import net.psforever.objects.definition.converter.{CharacterSelectConverter, DestroyedVehicleConverter, REKConverter}
 import net.psforever.objects._
+import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.definition._
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
@@ -645,7 +646,7 @@ class ConverterTest extends Specification {
   }
 
   "Player" should {
-    val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+    var avatar = Avatar(0, "Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
     val obj: Player = {
       /*
       Create an AmmoBoxDefinition with which to build two AmmoBoxes
@@ -677,7 +678,7 @@ class ConverterTest extends Specification {
     val converter = new CharacterSelectConverter
 
     "convert to packet (BR < 24)" in {
-      avatar.BEP = 0
+      avatar = avatar.copy(bep = 0)
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(_) =>
           ok
@@ -693,7 +694,7 @@ class ConverterTest extends Specification {
     }
 
     "convert to packet (BR >= 24)" in {
-      avatar.BEP = 10000000
+      avatar = avatar.copy(bep = 10000000)
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(_) =>
           ok
@@ -709,7 +710,7 @@ class ConverterTest extends Specification {
     }
 
     "convert to simple packet (BR < 24)" in {
-      avatar.BEP = 0
+      avatar = avatar.copy(bep = 0)
       converter.DetailedConstructorData(obj) match {
         case Success(_) =>
           ok
@@ -721,7 +722,7 @@ class ConverterTest extends Specification {
     }
 
     "convert to simple packet (BR >= 24)" in {
-      avatar.BEP = 10000000
+      avatar = avatar.copy(bep = 10000000)
       converter.DetailedConstructorData(obj) match {
         case Success(_) =>
           ok

@@ -46,7 +46,7 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
           //TODO setup certifications check
           term.Owner match {
             case b: Building if (b.Faction != player.Faction || b.CaptureTerminalIsHacked) && term.HackedBy.isEmpty =>
-              sender ! CommonMessages.Progress(
+              sender() ! CommonMessages.Progress(
                 GenericHackables.GetHackSpeed(player, term),
                 GenericHackables.FinishHacking(term, player, 3212836864L),
                 GenericHackables.HackingTickAction(progressType = 1, player, term, item.GUID)
@@ -56,7 +56,7 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
 
         case CommonMessages.Use(_, Some(target: PlanetSideGameObject)) =>
           if (!term.Destroyed && term.Definition.asInstanceOf[ProximityDefinition].Validations.exists(p => p(target))) {
-            Use(target, term.Continent, sender)
+            Use(target, term.Continent, sender())
           }
         case CommonMessages.Use(_, Some((target: PlanetSideGameObject, callback: ActorRef))) =>
           if (!term.Destroyed && term.Definition.asInstanceOf[ProximityDefinition].Validations.exists(p => p(target))) {
@@ -110,7 +110,7 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
       if (term.NumberUsers == 1 && hadNoUsers) {
         val medDef = term.Definition.asInstanceOf[MedicalTerminalDefinition]
         import scala.concurrent.ExecutionContext.Implicits.global
-        terminalAction.cancel
+        terminalAction.cancel()
         terminalAction = context.system.scheduler.scheduleWithFixedDelay(
           500 milliseconds,
           medDef.Interval,
@@ -136,7 +136,7 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
       callbacks.remove(whereTarget)
       //de-activation (global / local)
       if (term.NumberUsers == 0 && hadUsers) {
-        terminalAction.cancel
+        terminalAction.cancel()
         TerminalObject.Zone.LocalEvents ! Terminal.StopProximityEffect(term)
       }
     } else {

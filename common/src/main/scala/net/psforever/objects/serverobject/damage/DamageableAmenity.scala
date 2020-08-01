@@ -34,7 +34,7 @@ object DamageableAmenity {
     */
   def DestructionAwareness(target: Damageable.Target, cause: ResolvedProjectile): Unit = {
     val zone       = target.Zone
-    val zoneId     = zone.Id
+    val zoneId     = zone.id
     val events     = zone.AvatarEvents
     val targetGUID = target.GUID
     events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(targetGUID, 50, 1))

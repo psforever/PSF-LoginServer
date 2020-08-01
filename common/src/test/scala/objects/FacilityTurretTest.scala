@@ -4,7 +4,8 @@ package objects
 import akka.actor.Props
 import akka.testkit.TestProbe
 import base.ActorTest
-import net.psforever.objects.{Avatar, Default, GlobalDefinitions, Player, Tool}
+import net.psforever.objects.avatar.Avatar
+import net.psforever.objects.{Default, GlobalDefinitions, Player, Tool}
 import net.psforever.objects.definition.ToolDefinition
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.LimitedNumberSource
@@ -100,7 +101,7 @@ class FacilityTurretControl1Test extends ActorTest {
 }
 
 class FacilityTurretControl2Test extends ActorTest {
-  val player = Player(Avatar("", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val player = Player(Avatar(0, "", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
   val obj    = FacilityTurret(GlobalDefinitions.manned_turret)
   obj.GUID = PlanetSideGUID(1)
   obj.Actor = system.actorOf(Props(classOf[FacilityTurretControl], obj), "turret-control")
@@ -127,7 +128,7 @@ class FacilityTurretControl2Test extends ActorTest {
 }
 
 class FacilityTurretControl3Test extends ActorTest {
-  val player = Player(Avatar("", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val player = Player(Avatar(0, "", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
   val obj    = FacilityTurret(GlobalDefinitions.manned_turret)
   obj.GUID = PlanetSideGUID(1)
   obj.Actor = system.actorOf(Props(classOf[FacilityTurretControl], obj), "turret-control")
@@ -153,7 +154,7 @@ class FacilityTurretControl3Test extends ActorTest {
 }
 
 class FacilityTurretControl4Test extends ActorTest {
-  val player = Player(Avatar("", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val player = Player(Avatar(0, "", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
   val objDef = new FacilityTurretDefinition(480)
   objDef.FactionLocked = false
   val obj = FacilityTurret(objDef)
@@ -203,8 +204,8 @@ class FacilityTurretControlRestorationTest extends ActorTest {
   val turretWeapon = turret.Weapons.values.head.Equipment.get.asInstanceOf[Tool]
 
   val player1 =
-    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
-  player1.Spawn
+    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
+  player1.Spawn()
   player1.Position = Vector3(2, 2, 2)
   val player1Probe = TestProbe()
   player1.Actor = player1Probe.ref

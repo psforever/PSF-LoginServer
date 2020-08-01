@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package game.objectcreatedetailed
 
+import net.psforever.objects.avatar.{BattleRank, Certification, Cosmetic}
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game.ObjectCreateDetailedMessage
@@ -124,13 +125,13 @@ class DetailedCharacterDataTest extends Specification {
                   a.stamina mustEqual 100
                   a.max_field.isEmpty mustEqual true
                   a.certs mustEqual List(
-                    CertificationType.StandardAssault,
-                    CertificationType.MediumAssault,
-                    CertificationType.ATV,
-                    CertificationType.Harasser,
-                    CertificationType.StandardExoSuit,
-                    CertificationType.AgileExoSuit,
-                    CertificationType.ReinforcedExoSuit
+                    Certification.StandardAssault,
+                    Certification.MediumAssault,
+                    Certification.ATV,
+                    Certification.Harasser,
+                    Certification.StandardExoSuit,
+                    Certification.AgileExoSuit,
+                    Certification.ReinforcedExoSuit
                   )
                   a.unk1 mustEqual 0L
                   a.unk2 mustEqual 0L
@@ -312,13 +313,13 @@ class DetailedCharacterDataTest extends Specification {
                   a.stamina mustEqual 100
                   a.max_field.isEmpty mustEqual true
                   a.certs mustEqual List(
-                    CertificationType.StandardAssault,
-                    CertificationType.MediumAssault,
-                    CertificationType.ATV,
-                    CertificationType.Harasser,
-                    CertificationType.StandardExoSuit,
-                    CertificationType.AgileExoSuit,
-                    CertificationType.ReinforcedExoSuit
+                    Certification.StandardAssault,
+                    Certification.MediumAssault,
+                    Certification.ATV,
+                    Certification.Harasser,
+                    Certification.StandardExoSuit,
+                    Certification.AgileExoSuit,
+                    Certification.ReinforcedExoSuit
                   )
                   a.unk1 mustEqual 0L
                   a.unk2 mustEqual 0L
@@ -486,7 +487,6 @@ class DetailedCharacterDataTest extends Specification {
                   ko
               }
 
-              DetailedCharacterData.isBR24(char.a.bep) mustEqual false //br5+
               char match {
                 case DetailedCharacterData(a, b) =>
                   a.bep mustEqual 15301L
@@ -498,11 +498,11 @@ class DetailedCharacterDataTest extends Specification {
                   a.stamina mustEqual 100
                   a.max_field.contains(0) mustEqual true //important!
                   a.certs mustEqual List(
-                    CertificationType.StandardAssault,
-                    CertificationType.MediumAssault,
-                    CertificationType.StandardExoSuit,
-                    CertificationType.AgileExoSuit,
-                    CertificationType.UniMAX
+                    Certification.StandardAssault,
+                    Certification.MediumAssault,
+                    Certification.StandardExoSuit,
+                    Certification.AgileExoSuit,
+                    Certification.UniMAX
                   )
                   a.unk1 mustEqual 0L
                   a.unk2 mustEqual 0L
@@ -714,7 +714,7 @@ class DetailedCharacterDataTest extends Specification {
                   ko
               }
 
-              DetailedCharacterData.isBR24(char.a.bep) mustEqual true
+              (char.a.bep >= BattleRank.BR24.experience) mustEqual true
               char match {
                 case DetailedCharacterData(a, b) =>
                   a.bep mustEqual 6366766L
@@ -726,21 +726,21 @@ class DetailedCharacterDataTest extends Specification {
                   a.stamina mustEqual 46
                   a.max_field.isEmpty mustEqual true
                   a.certs mustEqual List(
-                    CertificationType.StandardAssault,
-                    CertificationType.MediumAssault,
-                    CertificationType.HeavyAssault,
-                    CertificationType.AntiVehicular,
-                    CertificationType.AirCavalryScout,
-                    CertificationType.GroundSupport,
-                    CertificationType.Harasser,
-                    CertificationType.StandardExoSuit,
-                    CertificationType.AgileExoSuit,
-                    CertificationType.Medical,
-                    CertificationType.AdvancedMedical,
-                    CertificationType.Hacking,
-                    CertificationType.AdvancedHacking,
-                    CertificationType.Engineering,
-                    CertificationType.CombatEngineering
+                    Certification.StandardAssault,
+                    Certification.MediumAssault,
+                    Certification.HeavyAssault,
+                    Certification.AntiVehicular,
+                    Certification.AirCavalryScout,
+                    Certification.GroundSupport,
+                    Certification.Harasser,
+                    Certification.StandardExoSuit,
+                    Certification.AgileExoSuit,
+                    Certification.Medical,
+                    Certification.AdvancedMedical,
+                    Certification.Hacking,
+                    Certification.AdvancedHacking,
+                    Certification.Engineering,
+                    Certification.CombatEngineering
                   )
                   a.unk1 mustEqual 0L
                   a.unk2 mustEqual 0L
@@ -1062,17 +1062,9 @@ class DetailedCharacterDataTest extends Specification {
                     "training_ui",
                     "training_map"
                   )
-                  b.cosmetics match {
-                    case Some(c: Cosmetics) =>
-                      c.Styles mustEqual Set(
-                        PersonalStyle.NoHelmet,
-                        PersonalStyle.Beret,
-                        PersonalStyle.Sunglasses,
-                        PersonalStyle.Earpiece
-                      )
-                    case None =>
-                      ko
-                  }
+                  b.cosmetics must beSome(
+                    beEqualTo(Set(Cosmetic.NoHelmet, Cosmetic.Beret, Cosmetic.Sunglasses, Cosmetic.Earpiece))
+                  )
                   b.unk1.isEmpty mustEqual true
                   b.unk2 mustEqual Nil
                   b.unk3 mustEqual Nil
@@ -1263,19 +1255,19 @@ class DetailedCharacterDataTest extends Specification {
                   a.unk8 mustEqual 3165669L
                   a.unk9 mustEqual List(0, 0, 0, 0, 0, 0)
                   a.certs mustEqual List(
-                    CertificationType.StandardAssault,
-                    CertificationType.MediumAssault,
-                    CertificationType.HeavyAssault,
-                    CertificationType.AirCavalryScout,
-                    CertificationType.StandardExoSuit,
-                    CertificationType.AgileExoSuit,
-                    CertificationType.UniMAX,
-                    CertificationType.Medical,
-                    CertificationType.AdvancedMedical,
-                    CertificationType.Hacking,
-                    CertificationType.AdvancedHacking,
-                    CertificationType.ExpertHacking,
-                    CertificationType.Engineering
+                    Certification.StandardAssault,
+                    Certification.MediumAssault,
+                    Certification.HeavyAssault,
+                    Certification.AirCavalryScout,
+                    Certification.StandardExoSuit,
+                    Certification.AgileExoSuit,
+                    Certification.UniMAX,
+                    Certification.Medical,
+                    Certification.AdvancedMedical,
+                    Certification.Hacking,
+                    Certification.AdvancedHacking,
+                    Certification.ExpertHacking,
+                    Certification.Engineering
                   )
 
                   b.unk1.contains(14140) mustEqual true
@@ -1313,18 +1305,9 @@ class DetailedCharacterDataTest extends Specification {
                   )
                   b.unkB mustEqual List()
                   b.unkC mustEqual false
-                  b.cosmetics match {
-                    case Some(c: Cosmetics) =>
-                      c.Styles mustEqual Set(
-                        PersonalStyle.NoHelmet,
-                        PersonalStyle.Sunglasses,
-                        PersonalStyle.Earpiece,
-                        PersonalStyle.BrimmedCap
-                      )
-                    case None =>
-                      ko
-                  }
-                  b.cosmetics.contains(Cosmetics(true, false, true, true, true)) mustEqual true
+                  b.cosmetics must beSome(
+                    beEqualTo(Set(Cosmetic.NoHelmet, Cosmetic.Sunglasses, Cosmetic.Earpiece, Cosmetic.BrimmedCap))
+                  )
                 case _ =>
                   ko
               }
@@ -1399,7 +1382,7 @@ class DetailedCharacterDataTest extends Specification {
                   ko
               }
 
-              DetailedCharacterData.isBR24(char.a.bep) mustEqual false
+              (char.a.bep >= BattleRank.BR24.experience) mustEqual false
               char match {
                 case DetailedCharacterData(a, b) =>
                   a.bep mustEqual 1784200L
@@ -1420,18 +1403,18 @@ class DetailedCharacterDataTest extends Specification {
                   a.unk8 mustEqual 1184175L
                   a.unk9 mustEqual List(0, 0, 0, 0, 0, 0)
                   a.certs mustEqual List(
-                    CertificationType.StandardAssault,
-                    CertificationType.MediumAssault,
-                    CertificationType.HeavyAssault,
-                    CertificationType.AntiVehicular,
-                    CertificationType.AirCavalryScout,
-                    CertificationType.StandardExoSuit,
-                    CertificationType.AgileExoSuit,
-                    CertificationType.Medical,
-                    CertificationType.AdvancedMedical,
-                    CertificationType.Hacking,
-                    CertificationType.AdvancedHacking,
-                    CertificationType.Engineering
+                    Certification.StandardAssault,
+                    Certification.MediumAssault,
+                    Certification.HeavyAssault,
+                    Certification.AntiVehicular,
+                    Certification.AirCavalryScout,
+                    Certification.StandardExoSuit,
+                    Certification.AgileExoSuit,
+                    Certification.Medical,
+                    Certification.AdvancedMedical,
+                    Certification.Hacking,
+                    Certification.AdvancedHacking,
+                    Certification.Engineering
                   )
 
                   b.unk1.contains(21236) mustEqual true
@@ -1605,13 +1588,13 @@ class DetailedCharacterDataTest extends Specification {
         0L,
         List(0, 0, 0, 0, 0, 0),
         List(
-          CertificationType.StandardAssault,
-          CertificationType.MediumAssault,
-          CertificationType.ATV,
-          CertificationType.Harasser,
-          CertificationType.StandardExoSuit,
-          CertificationType.AgileExoSuit,
-          CertificationType.ReinforcedExoSuit
+          Certification.StandardAssault,
+          Certification.MediumAssault,
+          Certification.ATV,
+          Certification.Harasser,
+          Certification.StandardExoSuit,
+          Certification.AgileExoSuit,
+          Certification.ReinforcedExoSuit
         )
       )
       val bb: (Long, Option[Int]) => DetailedCharacterB = DetailedCharacterB(
@@ -1787,13 +1770,13 @@ class DetailedCharacterDataTest extends Specification {
         0L,
         List(0, 0, 0, 0, 0, 0),
         List(
-          CertificationType.StandardAssault,
-          CertificationType.MediumAssault,
-          CertificationType.ATV,
-          CertificationType.Harasser,
-          CertificationType.StandardExoSuit,
-          CertificationType.AgileExoSuit,
-          CertificationType.ReinforcedExoSuit
+          Certification.StandardAssault,
+          Certification.MediumAssault,
+          Certification.ATV,
+          Certification.Harasser,
+          Certification.StandardExoSuit,
+          Certification.AgileExoSuit,
+          Certification.ReinforcedExoSuit
         )
       )
       val bb: (Long, Option[Int]) => DetailedCharacterB = DetailedCharacterB(
@@ -1971,11 +1954,11 @@ class DetailedCharacterDataTest extends Specification {
         0L,
         List(0, 0, 0, 0, 0, 0),
         List(
-          CertificationType.StandardAssault,
-          CertificationType.MediumAssault,
-          CertificationType.StandardExoSuit,
-          CertificationType.AgileExoSuit,
-          CertificationType.UniMAX
+          Certification.StandardAssault,
+          Certification.MediumAssault,
+          Certification.StandardExoSuit,
+          Certification.AgileExoSuit,
+          Certification.UniMAX
         )
       )
       val bb: (Long, Option[Int]) => DetailedCharacterB = DetailedCharacterB(
@@ -2193,21 +2176,21 @@ class DetailedCharacterDataTest extends Specification {
         3278759L,
         List(0, 0, 0, 0, 0, 0),
         List(
-          CertificationType.StandardAssault,
-          CertificationType.MediumAssault,
-          CertificationType.HeavyAssault,
-          CertificationType.AntiVehicular,
-          CertificationType.AirCavalryScout,
-          CertificationType.GroundSupport,
-          CertificationType.Harasser,
-          CertificationType.StandardExoSuit,
-          CertificationType.AgileExoSuit,
-          CertificationType.Medical,
-          CertificationType.AdvancedMedical,
-          CertificationType.Hacking,
-          CertificationType.AdvancedHacking,
-          CertificationType.Engineering,
-          CertificationType.CombatEngineering
+          Certification.StandardAssault,
+          Certification.MediumAssault,
+          Certification.HeavyAssault,
+          Certification.AntiVehicular,
+          Certification.AirCavalryScout,
+          Certification.GroundSupport,
+          Certification.Harasser,
+          Certification.StandardExoSuit,
+          Certification.AgileExoSuit,
+          Certification.Medical,
+          Certification.AdvancedMedical,
+          Certification.Hacking,
+          Certification.AdvancedHacking,
+          Certification.Engineering,
+          Certification.CombatEngineering
         )
       )
       val bb: (Long, Option[Int]) => DetailedCharacterB = DetailedCharacterB(
@@ -2533,7 +2516,7 @@ class DetailedCharacterDataTest extends Specification {
         Nil,
         Nil,
         false,
-        Some(Cosmetics(true, true, true, true, false))
+        Some(Set(Cosmetic.NoHelmet, Cosmetic.Beret, Cosmetic.Sunglasses, Cosmetic.Earpiece))
       )
       val char: Option[Int] => DetailedCharacterData =
         (pad_length: Option[Int]) => DetailedCharacterData(ba, bb(ba.bep, pad_length))(pad_length)
@@ -3678,19 +3661,19 @@ class DetailedCharacterDataTest extends Specification {
         3165669,
         List(0, 0, 0, 0, 0, 0),
         List(
-          CertificationType.StandardAssault,
-          CertificationType.MediumAssault,
-          CertificationType.HeavyAssault,
-          CertificationType.AirCavalryScout,
-          CertificationType.StandardExoSuit,
-          CertificationType.AgileExoSuit,
-          CertificationType.UniMAX,
-          CertificationType.Medical,
-          CertificationType.AdvancedMedical,
-          CertificationType.Hacking,
-          CertificationType.AdvancedHacking,
-          CertificationType.ExpertHacking,
-          CertificationType.Engineering
+          Certification.StandardAssault,
+          Certification.MediumAssault,
+          Certification.HeavyAssault,
+          Certification.AirCavalryScout,
+          Certification.StandardExoSuit,
+          Certification.AgileExoSuit,
+          Certification.UniMAX,
+          Certification.Medical,
+          Certification.AdvancedMedical,
+          Certification.Hacking,
+          Certification.AdvancedHacking,
+          Certification.ExpertHacking,
+          Certification.Engineering
         )
       )
       val bb: (Long, Option[Int]) => DetailedCharacterB = DetailedCharacterB(
@@ -3999,7 +3982,7 @@ class DetailedCharacterDataTest extends Specification {
         ),
         List(),
         false,
-        Some(Cosmetics(true, false, true, true, true))
+        Some(Set(Cosmetic.NoHelmet, Cosmetic.Sunglasses, Cosmetic.Earpiece, Cosmetic.BrimmedCap))
       )
       val char: Option[Int] => DetailedCharacterData =
         (pad_length: Option[Int]) => DetailedCharacterData(ba, bb(ba.bep, pad_length))(pad_length)
@@ -4604,18 +4587,18 @@ class DetailedCharacterDataTest extends Specification {
         1184175,
         List(0, 0, 0, 0, 0, 0),
         List(
-          CertificationType.StandardAssault,
-          CertificationType.MediumAssault,
-          CertificationType.HeavyAssault,
-          CertificationType.AntiVehicular,
-          CertificationType.AirCavalryScout,
-          CertificationType.StandardExoSuit,
-          CertificationType.AgileExoSuit,
-          CertificationType.Medical,
-          CertificationType.AdvancedMedical,
-          CertificationType.Hacking,
-          CertificationType.AdvancedHacking,
-          CertificationType.Engineering
+          Certification.StandardAssault,
+          Certification.MediumAssault,
+          Certification.HeavyAssault,
+          Certification.AntiVehicular,
+          Certification.AirCavalryScout,
+          Certification.StandardExoSuit,
+          Certification.AgileExoSuit,
+          Certification.Medical,
+          Certification.AdvancedMedical,
+          Certification.Hacking,
+          Certification.AdvancedHacking,
+          Certification.Engineering
         )
       )
       val bb: (Long, Option[Int]) => DetailedCharacterB = DetailedCharacterB(

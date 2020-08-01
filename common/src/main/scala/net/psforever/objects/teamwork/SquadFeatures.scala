@@ -73,7 +73,7 @@ class SquadFeatures(val Squad: Squad) {
   private lazy val channel: String = s"${Squad.Faction}-Squad${Squad.GUID.guid}"
 
   def Start(implicit context: ActorContext): SquadFeatures = {
-    switchboard = context.actorOf(Props[SquadSwitchboard], s"squad_${Squad.GUID.guid}_${System.currentTimeMillis}")
+    switchboard = context.actorOf(Props[SquadSwitchboard](), s"squad_${Squad.GUID.guid}_${System.currentTimeMillis}")
     waypoints = Array.fill[WaypointData](SquadWaypoints.values.size)(new WaypointData())
     this
   }

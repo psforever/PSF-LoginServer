@@ -2,6 +2,7 @@ package net.psforever.pslogin
 
 import java.net.InetAddress
 import java.util.Locale
+
 import akka.{actor => classic}
 import akka.actor.typed.scaladsl.adapter._
 import akka.routing.RandomPool
@@ -24,9 +25,9 @@ import org.apache.commons.io.FileUtils
 import services.properties.PropertyOverrideManager
 import org.flywaydb.core.Flyway
 import java.nio.file.Paths
+
 import scopt.OParser
 import io.sentry.Sentry
-
 import net.psforever.actors.session.SessionActor
 import net.psforever.login.psadmin.PsAdminActor
 import net.psforever.login.{
@@ -59,7 +60,7 @@ object PsLogin {
     println(ansi().fgBright(RED).a("""/_/  /___/_/  \___/_/  \__/|___/\__/_/""").reset())
     println("""   Login Server - PSForever Project""")
     println("""        http://psforever.net""")
-    println
+    println()
   }
 
   def systemInformation: String = {
@@ -108,14 +109,14 @@ object PsLogin {
       * See SessionRouter.scala for a diagram
       */
     val loginTemplate = List(
-      SessionPipeline("crypto-session-", classic.Props[CryptoSessionActor]),
-      SessionPipeline("packet-session-", classic.Props[PacketCodingActor]),
-      SessionPipeline("login-session-", classic.Props[LoginSessionActor])
+      SessionPipeline("crypto-session-", classic.Props[CryptoSessionActor]()),
+      SessionPipeline("packet-session-", classic.Props[PacketCodingActor]()),
+      SessionPipeline("login-session-", classic.Props[LoginSessionActor]())
     )
     val worldTemplate = List(
-      SessionPipeline("crypto-session-", classic.Props[CryptoSessionActor]),
-      SessionPipeline("packet-session-", classic.Props[PacketCodingActor]),
-      SessionPipeline("world-session-", classic.Props[SessionActor])
+      SessionPipeline("crypto-session-", classic.Props[CryptoSessionActor]()),
+      SessionPipeline("packet-session-", classic.Props[PacketCodingActor]()),
+      SessionPipeline("world-session-", classic.Props[SessionActor]())
     )
 
     val netSim: Option[NetworkSimulatorParameters] = if (Config.app.developer.netSim.enable) {
@@ -132,18 +133,18 @@ object PsLogin {
       None
     }
 
-    val zones = Zones.zones.values ++ Seq(Zone.Nowhere)
+    val zones = Zones.zones ++ Seq(Zone.Nowhere)
 
     system.spawn(ChatService(), ChatService.ChatServiceKey.id)
     system.spawn(InterstellarClusterService(zones), InterstellarClusterService.InterstellarClusterServiceKey.id)
 
     val serviceManager = ServiceManager.boot
-    serviceManager ! ServiceManager.Register(classic.Props[AccountIntermediaryService], "accountIntermediary")
-    serviceManager ! ServiceManager.Register(RandomPool(150).props(classic.Props[TaskResolver]), "taskResolver")
-    serviceManager ! ServiceManager.Register(classic.Props[GalaxyService], "galaxy")
-    serviceManager ! ServiceManager.Register(classic.Props[SquadService], "squad")
-    serviceManager ! ServiceManager.Register(classic.Props[AccountPersistenceService], "accountPersistence")
-    serviceManager ! ServiceManager.Register(classic.Props[PropertyOverrideManager], "propertyOverrideManager")
+    serviceManager ! ServiceManager.Register(classic.Props[AccountIntermediaryService](), "accountIntermediary")
+    serviceManager ! ServiceManager.Register(RandomPool(150).props(classic.Props[TaskResolver]()), "taskResolver")
+    serviceManager ! ServiceManager.Register(classic.Props[GalaxyService](), "galaxy")
+    serviceManager ! ServiceManager.Register(classic.Props[SquadService](), "squad")
+    serviceManager ! ServiceManager.Register(classic.Props[AccountPersistenceService](), "accountPersistence")
+    serviceManager ! ServiceManager.Register(classic.Props[PropertyOverrideManager](), "propertyOverrideManager")
 
     val loginRouter = classic.Props(new SessionRouter("Login", loginTemplate))
     val worldRouter = classic.Props(new SessionRouter("World", worldTemplate))

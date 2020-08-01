@@ -1,15 +1,16 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.packet.game
 
+import net.psforever.objects.avatar.Certification
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
-import net.psforever.types.{CertificationType, PlanetSideGUID}
+import net.psforever.types.PlanetSideGUID
 import scodec.Codec
 import scodec.codecs._
 import shapeless.{::, HNil}
 
 final case class CharacterKnowledgeInfo(
     name: String,
-    permissions: Set[CertificationType.Value],
+    permissions: Set[Certification],
     unk1: Int,
     unk2: Int,
     unk3: PlanetSideGUID
@@ -43,11 +44,11 @@ object CharacterKnowledgeMessage extends Marshallable[CharacterKnowledgeMessage]
   ).xmap[CharacterKnowledgeInfo](
     {
       case name :: permissions :: u1 :: u2 :: u3 :: HNil =>
-        CharacterKnowledgeInfo(name, CertificationType.fromEncodedLong(permissions), u1, u2, u3)
+        CharacterKnowledgeInfo(name, Certification.fromEncodedLong(permissions), u1, u2, u3)
     },
     {
       case CharacterKnowledgeInfo(name, permissions, u1, u2, u3) =>
-        name :: CertificationType.toEncodedLong(permissions) :: u1 :: u2 :: u3 :: HNil
+        name :: Certification.toEncodedLong(permissions) :: u1 :: u2 :: u3 :: HNil
     }
   )
 

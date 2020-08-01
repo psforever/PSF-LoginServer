@@ -1,6 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
+import net.psforever.objects.avatar.Avatar
+
 import scala.collection.concurrent.{Map, TrieMap}
 
 /**
@@ -25,13 +27,21 @@ private class LivePlayerList {
     }
   }
 
+  def Update(sessionId: Long, avatar: Avatar): Unit = {
+    sessionMap.get(sessionId) match {
+      case Some(_) =>
+        sessionMap(sessionId) = avatar
+      case None => ;
+    }
+  }
+
   def Remove(sessionId: Long): Option[Avatar] = {
     sessionMap.remove(sessionId)
   }
 
   def Shutdown: List[Avatar] = {
     val list = sessionMap.values.toList
-    sessionMap.clear
+    sessionMap.clear()
     list
   }
 }
@@ -68,15 +78,19 @@ object LivePlayerList {
   /**
     * Create a mapped entry between the user's session and a user's character.
     * Neither the player nor the session may exist in the current mappings if this is to work.
+    *
     * @param sessionId the session
-    * @param avatar the character
+    * @param avatar    the character
     * @return `true`, if the session was association was made; `false`, otherwise
     */
   def Add(sessionId: Long, avatar: Avatar): Boolean = Instance.Add(sessionId, avatar)
 
+  def Update(sessionId: Long, avatar: Avatar): Unit = Instance.Update(sessionId, avatar)
+
   /**
     * Remove all entries related to the given session identifier from the mappings.
     * The character no longer counts as "online."
+    *
     * @param sessionId the session
     * @return any character that was afffected by the mapping removal
     */
@@ -84,6 +98,7 @@ object LivePlayerList {
 
   /**
     * Hastily remove all mappings and ids.
+    *
     * @return an unsorted list of the characters that were still online
     */
   def Shutdown: List[Avatar] = Instance.Shutdown

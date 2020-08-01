@@ -199,16 +199,16 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     Flying
   }
 
-  def NtuCapacitorScaled : Int = {
-    if(Definition.MaxNtuCapacitor > 0) {
+  def NtuCapacitorScaled: Int = {
+    if (Definition.MaxNtuCapacitor > 0) {
       scala.math.ceil((NtuCapacitor.toFloat / Definition.MaxNtuCapacitor.toFloat) * 10).toInt
     } else {
       0
     }
   }
 
-  def Capacitor : Int = capacitor
-      
+  def Capacitor: Int = capacitor
+
   def Capacitor_=(value: Int): Int = {
     if (value > Definition.MaxCapacitor) {
       capacitor = Definition.MaxCapacitor
@@ -365,7 +365,7 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     if (!iter.hasNext) {
       None
     } else {
-      val (seatNumber, seat) = iter.next
+      val (seatNumber, seat) = iter.next()
       if (seat.Occupant.contains(player)) {
         Some(seatNumber)
       } else {

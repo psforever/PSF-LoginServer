@@ -2,33 +2,36 @@
 package net.psforever.packet.game.objectcreate
 
 import net.psforever.newcodecs.newcodecs
+import net.psforever.objects.avatar.{BattleRank, Certification, Cosmetic}
 import net.psforever.packet.{Marshallable, PacketHelpers}
-import net.psforever.types.{CertificationType, ExoSuitType, ImplantType}
+import net.psforever.types.{ExoSuitType, ImplantType}
 import scodec.{Attempt, Codec}
 import scodec.codecs._
 import shapeless.{::, HNil}
 
-import scala.annotation.tailrec
-
 /**
   * An entry in the `List` of valid implant slots in `DetailedCharacterData`.
-  * @param implant the type of implant
+  *
+  * @param implant        the type of implant
   * @param initialization the amount of time necessary until this implant is ready to be activated;
   *                       technically, this is unconfirmed
-  * @param active whether this implant is turned on;
-  *               technically, this is unconfirmed
+  * @param active         whether this implant is turned on;
+  *                       technically, this is unconfirmed
   * @see `ImplantType`
   */
-final case class ImplantEntry(implant: ImplantType.Value, initialization: Option[Int], active: Boolean)
+final case class ImplantEntry(implant: ImplantType, initialization: Option[Int], active: Boolean)
     extends StreamBitSize {
   override def bitsize: Long = {
-    val timerSize = initialization match { case Some(_) => 8L; case None => 1L }
+    val timerSize = initialization match {
+      case Some(_) => 8L;
+      case None    => 1L
+    }
     9L + timerSize
   }
 }
 
 object ImplantEntry {
-  def apply(implant: ImplantType.Value, initialization: Option[Int]): ImplantEntry = {
+  def apply(implant: ImplantType, initialization: Option[Int]): ImplantEntry = {
     ImplantEntry(implant, initialization, active = false)
   }
 }
@@ -90,7 +93,7 @@ final case class DetailedCharacterA(
     unk7: Int,
     unk8: Long,
     unk9: List[Int],
-    certs: List[CertificationType.Value]
+    certs: List[Certification]
 ) extends StreamBitSize {
   override def bitsize: Long = {
     val maxFieldSize   = max_field match { case Some(_) => 32L; case None => 0L }
@@ -130,7 +133,7 @@ final case class DetailedCharacterB(
     unkA: List[Long],
     unkB: List[String],
     unkC: Boolean,
-    cosmetics: Option[Cosmetics]
+    cosmetics: Option[Set[Cosmetic]]
 )(
     bep: Long,
     pad_length: Option[Int]
@@ -155,12 +158,17 @@ final case class DetailedCharacterB(
       0L
     }
     //character is at least BR24
-    val unk9Size: Long = if (unk9.isEmpty) { 0L }
-    else { 13L }
+    val unk9Size: Long = if (unk9.isEmpty) {
+      0L
+    } else {
+      13L
+    }
     val unkASize: Long = unkA.length * 32L
     val unkBSize: Long = unkB.foldLeft(0L)(_ + StreamBitSize.stringBitSize(_))
-    val cosmeticsSize: Long = if (DetailedCharacterData.isBR24(bep)) { cosmetics.get.bitsize }
-    else { 0L }
+    val cosmeticsSize: Long = cosmetics match {
+      case Some(_) if bep >= BattleRank.BR24.experience => 5L
+      case _                                            => 0L
+    }
 
     val paddingSize: Int =
       DetailedCharacterData.paddingCalculations(pad_length, implants, Nil)(unk2Len) + /* unk2 */
@@ -174,8 +182,9 @@ final case class DetailedCharacterB(
       DetailedCharacterData.paddingCalculations(
         DetailedCharacterData.displaceByUnk9(pad_length, unk9, 5),
         implants,
-        List(DetailedCharacterData.optToList(unk9), tutorials, firstTimeEvents, unk3, unk2)
-      )(unkB.length) /* unkB */
+        List(unk9.toList, tutorials, firstTimeEvents, unk3, unk2)
+      )(unkB.length)
+    /* unkB */
     275L + unk1Size + implantSize + eventListSize + unk2_3ListSize + tutorialListSize + unk9Size + unkASize + unkBSize + cosmeticsSize + paddingSize
   }
 }
@@ -207,11 +216,11 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
       staminaMax: Int,
       stamina: Int,
       maxField: Option[Long],
-      certs: List[CertificationType.Value],
+      certs: List[Certification],
       implants: List[ImplantEntry],
       firstTimeEvents: List[String],
       tutorials: List[String],
-      cosmetics: Option[Cosmetics]
+      cosmetics: Option[Set[Cosmetic]]
   ): Option[Int] => DetailedCharacterData = {
     val a = DetailedCharacterA(
       bep,
@@ -266,39 +275,25 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     {
       case implant :: true :: n :: HNil => //initialized (no timer), active/inactive?
         val activeBool: Boolean = n != 0
-        ImplantEntry(ImplantType(implant), None, activeBool) //TODO catch potential NoSuchElementException?
+        ImplantEntry(ImplantType.withValue(implant), None, activeBool) //TODO catch potential NoSuchElementException?
 
       case implant :: false :: extra :: HNil => //uninitialized (timer), inactive
-        ImplantEntry(ImplantType(implant), Some(extra), active = false) //TODO catch potential NoSuchElementException?
+        ImplantEntry(
+          ImplantType.withValue(implant),
+          Some(extra),
+          active = false
+        ) //TODO catch potential NoSuchElementException?
     },
     {
       case ImplantEntry(implant, None, n) => //initialized (no timer), active/inactive?
         val activeInt: Int = if (n) { 1 }
         else { 0 }
-        implant.id :: true :: activeInt :: HNil
+        implant.value :: true :: activeInt :: HNil
 
       case ImplantEntry(implant, Some(extra), _) => //uninitialized (timer), inactive
-        implant.id :: false :: extra :: HNil
+        implant.value :: false :: extra :: HNil
     }
   )
-
-  /**
-    * A player's battle rank, determined by their battle experience points, determines how many implants to which they have access.
-    * Starting with "no implants" at BR1, a player earns one at each of the three ranks: BR6, BR12, and BR18.
-    * @param bep battle experience points
-    * @return the number of accessible implant slots
-    */
-  def numberOfImplantSlots(bep: Long): Int = {
-    if (bep > 754370) { //BR18+
-      3
-    } else if (bep > 197753) { //BR12+
-      2
-    } else if (bep > 29999) { //BR6+
-      1
-    } else { //BR1+
-      0
-    }
-  }
 
   /**
     * `Codec` for a `List` of `DCDExtra1` objects.
@@ -424,18 +419,6 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
   )
 
   /**
-    * Support function that obtains the "absolute list value" of an `Option` object.
-    * @param opt the `Option` object
-    * @return if defined, returns a `List` of the `Option` object's contents;
-    *         if undefined (`None`), returns an empty list
-    */
-  def optToList(opt: Option[Any]): List[Any] =
-    opt match {
-      case Some(o) => List(o)
-      case None    => Nil
-    }
-
-  /**
     * A very specific `Option` object addition function.
     * If a condition is met, the current `Optional` value is incremented by a specific amount.
     * @param start the original amount
@@ -531,32 +514,6 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     }
   }
 
-  /**
-    * Players with certain battle rank will always have a certain number of implant slots.
-    * The encoding requires it.
-    * Pad empty slots onto the end of a list of
-    * @param size the required number of implant slots
-    * @param list the `List` of implant slots
-    * @return a fully-populated (or over-populated) `List` of implant slots
-    * @see `ImplantEntry`
-    */
-  @tailrec private def recursiveEnsureImplantSlots(size: Int, list: List[ImplantEntry] = Nil): List[ImplantEntry] = {
-    if (list.length >= size) {
-      list
-    } else {
-      recursiveEnsureImplantSlots(size, list :+ ImplantEntry(ImplantType.None, None))
-    }
-  }
-
-  /**
-    * By comparing the battle experience points to a fixed number of points,
-    * determine if the player is at least battle rank 24.
-    * Important things happen if the player is at least battle rank 24 ...
-    * @param bep the battle experience points being compared
-    * @return `true`, if the battle experience points are enough to be a player of the esteemed battle rank
-    */
-  def isBR24(bep: Long): Boolean = bep > 2286230
-
   def a_codec(suit: ExoSuitType.Value): Codec[DetailedCharacterA] =
     (
       ("bep" | uint32L) ::
@@ -576,7 +533,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
         ("unk7" | uint(3)) ::
         ("unk8" | uint32L) ::
         ("unk9" | PacketHelpers.listOfNSized(6, uint16L)) :: //always length of 6
-        ("certs" | listOfN(uint8L, CertificationType.codec))
+        ("certs" | listOfN(uint8L, Certification.codec))
     ).exmap[DetailedCharacterA](
       {
         case bep :: cep :: u1 :: u2 :: u3 :: healthMax :: health :: u4 :: armor :: u5 :: staminaMax :: stamina :: max :: u6 :: u7 :: u8 :: u9 :: certs :: HNil =>
@@ -633,7 +590,10 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
   def b_codec(bep: Long, pad_length: Option[Int]): Codec[DetailedCharacterB] =
     (
       optional(bool, "unk1" | uint32L) ::
-        (("implants" | PacketHelpers.listOfNSized(numberOfImplantSlots(bep), implant_entry_codec)) >>:~ { implants =>
+        (("implants" | PacketHelpers.listOfNSized(
+          BattleRank.withExperience(bep).implantSlots,
+          implant_entry_codec
+        )) >>:~ { implants =>
         ("unk2" | dcd_list_codec(paddingCalculations(pad_length, implants, Nil))) >>:~ { unk2 =>
           ("unk3" | dcd_list_codec(paddingCalculations(pad_length, implants, List(unk2)))) >>:~ { unk3 =>
             ("firstTimeEvents" | eventsListCodec(paddingCalculations(pad_length, implants, List(unk3, unk2)))) >>:~ {
@@ -651,11 +611,11 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
                           paddingCalculations(
                             displaceByUnk9(pad_length, unk9, 5),
                             implants,
-                            List(optToList(unk9), tut, fte, unk3, unk2)
+                            List(unk9.toList, tut, fte, unk3, unk2)
                           )
                         )) ::
                         ("unkC" | bool) ::
-                        conditional(isBR24(bep), "cosmetics" | Cosmetics.codec)
+                        conditional(bep >= BattleRank.BR24.experience, "cosmetics" | Cosmetic.codec)
                     })
                 }
             }
@@ -674,14 +634,17 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
       },
       {
         case DetailedCharacterB(u1, implants, u2, u3, fte, tut, u4, u5, u6, u7, u8, u9, uA, uB, uC, cosmetics) =>
-          val implantCapacity: Int = numberOfImplantSlots(bep)
-          val implantList = if (implants.length > implantCapacity) {
-            implants.slice(0, implantCapacity)
-          } else {
-            recursiveEnsureImplantSlots(implantCapacity, implants)
-          }
-          val cos: Option[Cosmetics] = if (isBR24(bep)) { cosmetics }
-          else { None }
+          val implantList = (0 until BattleRank.withExperience(bep).implantSlots)
+            .map(index => {
+              implants.lift(index) match {
+                case Some(implant) => implant
+                case None          => ImplantEntry(ImplantType.None, Some(0))
+              }
+            })
+            .toList
+          val cos =
+            if (bep >= BattleRank.BR24.experience) cosmetics.orElse(Some(Set[Cosmetic]()))
+            else None
           Attempt.successful(
             u1 :: implantList :: u2 :: u3 :: fte :: tut :: u4 :: u5 :: u6 :: u7 :: u8 :: u9 :: uA :: uB :: uC :: cos :: HNil
           )

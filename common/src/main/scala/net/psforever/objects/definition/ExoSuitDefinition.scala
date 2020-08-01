@@ -2,12 +2,13 @@
 package net.psforever.objects.definition
 
 import net.psforever.objects.GlobalDefinitions
+import net.psforever.objects.avatar.Certification
 import net.psforever.objects.equipment.EquipmentSize
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.resistance.ResistanceProfileMutators
-import net.psforever.types.{CertificationType, ExoSuitType, PlanetSideEmpire}
+import net.psforever.types.{ExoSuitType, PlanetSideEmpire}
 
 /**
   * A definition for producing the personal armor the player wears.
@@ -18,15 +19,15 @@ class ExoSuitDefinition(private val suitType: ExoSuitType.Value)
     extends BasicDefinition
     with ResistanceProfileMutators
     with DamageResistanceModel {
-  protected var permissions: List[CertificationType.Value] = List.empty
-  protected var maxArmor: Int                              = 0
-  protected val holsters: Array[EquipmentSize.Value]       = Array.fill[EquipmentSize.Value](5)(EquipmentSize.Blocked)
-  protected var inventoryScale: InventoryTile              = InventoryTile.Tile11 //override with custom InventoryTile
-  protected var inventoryOffset: Int                       = 0
-  protected var maxCapacitor: Int                          = 0
-  protected var capacitorRechargeDelayMillis: Int          = 0
-  protected var capacitorRechargePerSecond: Int            = 0
-  protected var capacitorDrainPerSecond: Int               = 0
+  protected var permissions: List[Certification]     = List.empty
+  protected var maxArmor: Int                        = 0
+  protected val holsters: Array[EquipmentSize.Value] = Array.fill[EquipmentSize.Value](5)(EquipmentSize.Blocked)
+  protected var inventoryScale: InventoryTile        = InventoryTile.Tile11 //override with custom InventoryTile
+  protected var inventoryOffset: Int                 = 0
+  protected var maxCapacitor: Int                    = 0
+  protected var capacitorRechargeDelayMillis: Int    = 0
+  protected var capacitorRechargePerSecond: Int      = 0
+  protected var capacitorDrainPerSecond: Int         = 0
   Name = "exo-suit"
   DamageUsing = DamageCalculations.AgainstExoSuit
   ResistUsing = StandardInfantryResistance
@@ -102,24 +103,14 @@ class ExoSuitDefinition(private val suitType: ExoSuitType.Value)
     }
   }
 
-  def Permissions: List[CertificationType.Value] = permissions
+  def Permissions: List[Certification] = permissions
 
-  def Permissions_=(certs: List[CertificationType.Value]): List[CertificationType.Value] = {
+  def Permissions_=(certs: List[Certification]): List[Certification] = {
     permissions = certs
     Permissions
   }
 
   def Use: ExoSuitDefinition = this
-
-  def canEqual(other: Any): Boolean = other.isInstanceOf[ExoSuitDefinition]
-
-  override def equals(other: Any): Boolean =
-    other match {
-      case that: ExoSuitDefinition =>
-        (that canEqual this) &&
-          suitType == that.suitType
-      case _ => false
-    }
 
   override def hashCode(): Int = {
     val state = Seq(suitType)

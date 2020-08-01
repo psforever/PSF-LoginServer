@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.terminals
 
 import akka.actor.{ActorContext, ActorRef}
+import net.psforever.objects.avatar.Certification
 import net.psforever.objects.definition.ImplantDefinition
 import net.psforever.objects.{Default, Player, Vehicle}
 import net.psforever.objects.equipment.Equipment
@@ -11,7 +12,7 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.packet.game.ItemTransactionMessage
 import net.psforever.objects.serverobject.terminals.EquipmentTerminalDefinition._
-import net.psforever.types.{CertificationType, ExoSuitType, TransactionType}
+import net.psforever.types.{ExoSuitType, TransactionType}
 
 import scala.collection.mutable
 
@@ -174,14 +175,15 @@ object OrderTerminalDefinition {
   /**
     * The tab used to select a certification to be utilized by the player.
     * Only certifications may be returned to the interface defined by this page.
+    *
     * @see `CertificationType`
     * @param stock the key is always a `String` value as defined from `ItemTransationMessage` data;
     *              the value is a `CertificationType` value
     */
-  final case class CertificationPage(stock: Map[String, CertificationType.Value]) extends Tab {
+  final case class CertificationPage(stock: Seq[Certification]) extends Tab {
     override def Buy(player: Player, msg: ItemTransactionMessage): Terminal.Exchange = {
-      stock.get(msg.item_name) match {
-        case Some(cert: CertificationType.Value) =>
+      stock.find(_.name == msg.item_name) match {
+        case Some(cert: Certification) =>
           Terminal.LearnCertification(cert)
         case _ =>
           Terminal.NoDeal()
@@ -189,8 +191,8 @@ object OrderTerminalDefinition {
     }
 
     override def Sell(player: Player, msg: ItemTransactionMessage): Terminal.Exchange = {
-      stock.get(msg.item_name) match {
-        case Some(cert: CertificationType.Value) =>
+      stock.find(_.name == msg.item_name) match {
+        case Some(cert: Certification) =>
           Terminal.SellCertification(cert)
         case None =>
           Terminal.NoDeal()
@@ -250,7 +252,7 @@ object OrderTerminalDefinition {
     }
 
     def Dispatch(sender: ActorRef, terminal: Terminal, msg: Terminal.TerminalMessage): Unit = {
-      msg.player.Actor ! msg
+      sender ! msg
     }
   }
 
@@ -296,14 +298,18 @@ object OrderTerminalDefinition {
   //TODO block equipment by blocking ammunition type
   final case class InfantryLoadoutPage() extends LoadoutTab {
     override def Buy(player: Player, msg: ItemTransactionMessage): Terminal.Exchange = {
-      player.EquipmentLoadouts.LoadLoadout(msg.unk1) match {
+      player.avatar.loadouts(msg.unk1) match {
         case Some(loadout: InfantryLoadout)
             if !Exclude.contains(loadout.exosuit) && !Exclude.contains((loadout.exosuit, loadout.subtype)) =>
           val holsters = loadout.visible_slots
-            .map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
+            .map(entry => {
+              InventoryItem(BuildSimplifiedPattern(entry.item), entry.index)
+            })
             .filterNot { entry => Exclude.contains(entry.obj.Definition) }
           val inventory = loadout.inventory
-            .map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
+            .map(entry => {
+              InventoryItem(BuildSimplifiedPattern(entry.item), entry.index)
+            })
             .filterNot { entry => Exclude.contains(entry.obj.Definition) }
           Terminal.InfantryLoadout(loadout.exosuit, loadout.subtype, holsters, inventory)
         case _ =>
@@ -330,12 +336,16 @@ object OrderTerminalDefinition {
     */
   final case class VehicleLoadoutPage() extends LoadoutTab {
     override def Buy(player: Player, msg: ItemTransactionMessage): Terminal.Exchange = {
-      player.EquipmentLoadouts.LoadLoadout(msg.unk1 + 10) match {
+      player.avatar.loadouts(msg.unk1 + 10) match {
         case Some(loadout: VehicleLoadout) if !Exclude.contains(loadout.vehicle_definition) =>
           val weapons = loadout.visible_slots
-            .map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
+            .map(entry => {
+              InventoryItem(BuildSimplifiedPattern(entry.item), entry.index)
+            })
           val inventory = loadout.inventory
-            .map(entry => { InventoryItem(BuildSimplifiedPattern(entry.item), entry.index) })
+            .map(entry => {
+              InventoryItem(BuildSimplifiedPattern(entry.item), entry.index)
+            })
             .filterNot { entry => Exclude.contains(entry.obj.Definition) }
           Terminal.VehicleLoadout(loadout.vehicle_definition, weapons, inventory)
         case _ =>
@@ -345,7 +355,7 @@ object OrderTerminalDefinition {
 
     def Dispatch(sender: ActorRef, terminal: Terminal, msg: Terminal.TerminalMessage): Unit = {
       val player = msg.player
-      player.Zone.GUID(player.VehicleOwned) match {
+      player.Zone.GUID(player.avatar.vehicle) match {
         case Some(vehicle: Vehicle) => vehicle.Actor ! msg
         case _                      => sender ! Terminal.TerminalMessage(player, msg.msg, Terminal.NoDeal())
       }

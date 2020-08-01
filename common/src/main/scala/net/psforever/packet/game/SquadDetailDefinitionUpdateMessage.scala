@@ -1,8 +1,9 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.packet.game
 
+import net.psforever.objects.avatar.Certification
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
-import net.psforever.types.{CertificationType, PlanetSideGUID}
+import net.psforever.types.PlanetSideGUID
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.HNil
@@ -48,7 +49,7 @@ final case class SquadPositionDetail(
     is_closed: Option[Boolean],
     role: Option[String],
     detailed_orders: Option[String],
-    requirements: Option[Set[CertificationType.Value]],
+    requirements: Option[Set[Certification]],
     char_id: Option[Long],
     name: Option[String]
 ) {
@@ -80,23 +81,31 @@ final case class SquadPositionDetail(
   //methods intended to combine the fields of itself and another object
   def Open: SquadPositionDetail =
     this And SquadPositionDetail(Some(false), None, None, None, None, None)
+
   def Close: SquadPositionDetail =
     this And SquadPositionDetail(Some(true), None, None, None, None, None)
+
   def Role(role: String): SquadPositionDetail =
     this And SquadPositionDetail(None, Some(role), None, None, None, None)
+
   def DetailedOrders(orders: String): SquadPositionDetail =
     this And SquadPositionDetail(None, None, Some(orders), None, None, None)
-  def Requirements(req: Set[CertificationType.Value]): SquadPositionDetail =
+
+  def Requirements(req: Set[Certification]): SquadPositionDetail =
     this And SquadPositionDetail(None, None, None, Some(req), None, None)
+
   def CharId(char_id: Long): SquadPositionDetail =
     this And SquadPositionDetail(None, None, None, None, Some(char_id), None)
+
   def Name(name: String): SquadPositionDetail =
     this And SquadPositionDetail(None, None, None, None, None, Some(name))
+
   def Player(char_id: Long, name: String): SquadPositionDetail =
     this And SquadPositionDetail(None, None, None, None, Some(char_id), Some(name))
 
   /**
     * Complete the object by providing placeholder values for all fields.
+    *
     * @return a `SquadPositionDetail` object with all of its field populated
     */
   def Complete: SquadPositionDetail =
@@ -303,7 +312,7 @@ object SquadPositionDetail {
   def apply(
       role: String,
       detailed_orders: String,
-      requirements: Set[CertificationType.Value],
+      requirements: Set[Certification],
       char_id: Long,
       name: String
   ): SquadPositionDetail =
@@ -1013,11 +1022,11 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
     private val requirementsCodec: Codec[SquadPositionDetail] = ulongL(46).exmap[SquadPositionDetail](
       requirements =>
         Attempt.successful(
-          SquadPositionDetail(None, None, None, Some(CertificationType.fromEncodedLong(requirements)), None, None)
+          SquadPositionDetail(None, None, None, Some(Certification.fromEncodedLong(requirements)), None, None)
         ),
       {
         case SquadPositionDetail(_, _, _, Some(requirements), _, _) =>
-          Attempt.successful(CertificationType.toEncodedLong(requirements))
+          Attempt.successful(Certification.toEncodedLong(requirements))
         case _ =>
           Attempt.failure(Err("failed to encode squad position data for certification requirements"))
       }
@@ -1443,10 +1452,10 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
     * Certification values that are front-loaded into the `FullSquad` operations for finding squad position requirements.
     * In the game proper, these are three certification values that the user can not give up or interact with.
     */
-  final val DefaultRequirements: Set[CertificationType.Value] = Set(
-    CertificationType.StandardAssault,
-    CertificationType.StandardExoSuit,
-    CertificationType.AgileExoSuit
+  final val DefaultRequirements: Set[Certification] = Set(
+    Certification.StandardAssault,
+    Certification.StandardExoSuit,
+    Certification.AgileExoSuit
   )
 
   /**
@@ -1482,7 +1491,7 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
     */
   private def basePositionCodec(
       bitsOverByteLength: Int,
-      defaultRequirements: Set[CertificationType.Value]
+      defaultRequirements: Set[Certification]
   ): Codec[SquadPositionDetail] = {
     import shapeless.::
     (
@@ -1501,7 +1510,7 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
               Some(closed),
               Some(role),
               Some(orders),
-              Some(defaultRequirements ++ CertificationType.fromEncodedLong(requirements)),
+              Some(defaultRequirements ++ Certification.fromEncodedLong(requirements)),
               Some(char_id),
               Some(name)
             )
@@ -1519,7 +1528,7 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
               Some(name)
             ) =>
           Attempt.Successful(
-            6 :: closed :: role :: orders :: char_id :: name :: CertificationType.toEncodedLong(
+            6 :: closed :: role :: orders :: char_id :: name :: Certification.toEncodedLong(
               defaultRequirements ++ requirements
             ) :: HNil
           )

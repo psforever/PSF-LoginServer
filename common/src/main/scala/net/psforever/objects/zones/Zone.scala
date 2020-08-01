@@ -35,7 +35,9 @@ import scalax.collection.GraphEdge._
 
 import scala.util.Try
 import akka.actor.typed
+import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.zone.ZoneActor
+import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vehicles.UtilityType
 
@@ -51,7 +53,7 @@ import net.psforever.objects.vehicles.UtilityType
   * Dynamic game objects originate from player characters.
   * (Write more later.)
   *
-  * @param zoneId     the privileged name that can be used as the second parameter in the packet `LoadMapMessage`
+  * @param id         the privileged name that can be used as the second parameter in the packet `LoadMapMessage`
   * @param map        the map of server objects upon which this `Zone` is based
   * @param zoneNumber the numerical index of the `Zone` as it is recognized in a variety of packets;
   *                   also used by `LivePlayerList` to indicate a specific `Zone`
@@ -59,7 +61,7 @@ import net.psforever.objects.vehicles.UtilityType
   *      `LoadMapMessage`<br>
   *      `LivePlayerList`
   */
-class Zone(private val zoneId: String, val map: ZoneMap, zoneNumber: Int) {
+class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
 
   /** Governs general synchronized external requests. */
   var actor: typed.ActorRef[ZoneActor.Command] = _
@@ -68,7 +70,7 @@ class Zone(private val zoneId: String, val map: ZoneMap, zoneNumber: Int) {
   private var soi = Default.Actor
 
   /** Used by the globally unique identifier system to coordinate requests. */
-  private var accessor: ActorRef = Default.Actor
+  private var accessor: ActorRef = ActorRef.noSender
 
   /** The basic support structure for the globally unique number system used by this `Zone`. */
   private var guid: NumberPoolHub = new NumberPoolHub(new LimitedNumberSource(65536))
@@ -97,7 +99,7 @@ class Zone(private val zoneId: String, val map: ZoneMap, zoneNumber: Int) {
 
   /**
     */
-  private val players: TrieMap[Avatar, Option[Player]] = TrieMap[Avatar, Option[Player]]()
+  private val players: TrieMap[Int, Option[Player]] = TrieMap[Int, Option[Player]]()
 
   /**
     */
@@ -120,7 +122,7 @@ class Zone(private val zoneId: String, val map: ZoneMap, zoneNumber: Int) {
 
   /**
     */
-  private var hotspots: ListBuffer[HotSpotInfo] = ListBuffer[HotSpotInfo]()
+  private val hotspots: ListBuffer[HotSpotInfo] = ListBuffer[HotSpotInfo]()
 
   /**
     */
@@ -163,27 +165,27 @@ class Zone(private val zoneId: String, val map: ZoneMap, zoneNumber: Int) {
     * @param context a reference to an `ActorContext` necessary for `Props`
     */
   def init(implicit context: ActorContext): Unit = {
-    if (accessor == Default.Actor) {
+    if (accessor == ActorRef.noSender) {
       SetupNumberPools()
       accessor = context.actorOf(
         RandomPool(25).props(
           Props(classOf[UniqueNumberSystem], this.guid, UniqueNumberSystem.AllocateNumberPoolActors(this.guid))
         ),
-        s"zone-$Id-uns"
+        s"zone-$id-uns"
       )
-      ground = context.actorOf(Props(classOf[ZoneGroundActor], this, equipmentOnGround), s"zone-$Id-ground")
-      deployables = context.actorOf(Props(classOf[ZoneDeployableActor], this, constructions), s"zone-$Id-deployables")
-      transport = context.actorOf(Props(classOf[ZoneVehicleActor], this, vehicles), s"zone-$Id-vehicles")
-      population = context.actorOf(Props(classOf[ZonePopulationActor], this, players, corpses), s"zone-$Id-players")
+      ground = context.actorOf(Props(classOf[ZoneGroundActor], this, equipmentOnGround), s"zone-$id-ground")
+      deployables = context.actorOf(Props(classOf[ZoneDeployableActor], this, constructions), s"zone-$id-deployables")
+      transport = context.actorOf(Props(classOf[ZoneVehicleActor], this, vehicles), s"zone-$id-vehicles")
+      population = context.actorOf(Props(classOf[ZonePopulationActor], this, players, corpses), s"zone-$id-players")
       projector = context.actorOf(
         Props(classOf[ZoneHotSpotDisplay], this, hotspots, 15 seconds, hotspotHistory, 60 seconds),
-        s"zone-$Id-hotspots"
+        s"zone-$id-hotspots"
       )
-      soi = context.actorOf(Props(classOf[SphereOfInfluenceActor], this), s"zone-$Id-soi")
+      soi = context.actorOf(Props(classOf[SphereOfInfluenceActor], this), s"zone-$id-soi")
 
-      avatarEvents = context.actorOf(Props(classOf[AvatarService], this), s"zone-$Id-avatar-events")
-      localEvents = context.actorOf(Props(classOf[LocalService], this), s"zone-$Id-local-events")
-      vehicleEvents = context.actorOf(Props(classOf[VehicleService], this), s"zone-$Id-vehicle-events")
+      avatarEvents = context.actorOf(Props(classOf[AvatarService], this), s"zone-$id-avatar-events")
+      localEvents = context.actorOf(Props(classOf[LocalService], this), s"zone-$id-local-events")
+      vehicleEvents = context.actorOf(Props(classOf[VehicleService], this), s"zone-$id-vehicle-events")
 
       implicit val guid: NumberPoolHub = this.guid //passed into builderObject.Build implicitly
       BuildLocalObjects(context, guid)
@@ -198,10 +200,10 @@ class Zone(private val zoneId: String, val map: ZoneMap, zoneNumber: Int) {
   }
 
   def validate(): Unit = {
-    implicit val log: Logger = org.log4s.getLogger(s"zone/$Id/sanity")
+    implicit val log: Logger = org.log4s.getLogger(s"zone/$id/sanity")
 
     //check bases
-    map.ObjectToBuilding.values
+    map.objectToBuilding.values
       .toSet[Int]
       .foreach(building_id => {
         val target = Building(building_id)
@@ -213,21 +215,21 @@ class Zone(private val zoneId: String, val map: ZoneMap, zoneNumber: Int) {
       })
 
     //check base to object associations
-    map.ObjectToBuilding.keys.foreach(object_guid =>
+    map.objectToBuilding.keys.foreach(object_guid =>
       if (guid(object_guid).isEmpty) {
         log.error(s"expected object id $object_guid to exist, but it did not")
       }
     )
 
     //check door to lock association
-    map.DoorToLock.foreach({
+    map.doorToLock.foreach({
       case (doorGuid, lockGuid) =>
         validateObject(doorGuid, (x: PlanetSideGameObject) => x.isInstanceOf[serverobject.doors.Door], "door")
         validateObject(lockGuid, (x: PlanetSideGameObject) => x.isInstanceOf[serverobject.locks.IFFLock], "IFF lock")
     })
 
     //check vehicle terminal to spawn pad association
-    map.TerminalToSpawnPad.foreach({
+    map.terminalToSpawnPad.foreach({
       case (termGuid, padGuid) =>
         validateObject(
           termGuid,
@@ -242,7 +244,7 @@ class Zone(private val zoneId: String, val map: ZoneMap, zoneNumber: Int) {
     })
 
     //check implant terminal mech to implant terminal interface association
-    map.TerminalToInterface.foreach({
+    map.terminalToInterface.foreach({
       case (mechGuid, interfaceGuid) =>
         validateObject(
           mechGuid,
@@ -257,7 +259,7 @@ class Zone(private val zoneId: String, val map: ZoneMap, zoneNumber: Int) {
     })
 
     //check manned turret to weapon association
-    map.TurretToWeapon.foreach({
+    map.turretToWeapon.foreach({
       case (turretGuid, weaponGuid) =>
         validateObject(
           turretGuid,
@@ -319,7 +321,7 @@ class Zone(private val zoneId: String, val map: ZoneMap, zoneNumber: Int) {
     guid.AddPool("e", (25001 to 30000).toList).Selector = new RandomSelector
     guid.AddPool("f", (30001 to 35000).toList).Selector = new RandomSelector
     guid.AddPool("g", (35001 until 40100).toList).Selector = new RandomSelector
-    guid.AddPool("projectiles", (Projectile.BaseUID until Projectile.RangeUID).toList)
+    guid.AddPool("projectiles", (Projectile.baseUID until Projectile.rangeUID).toList)
     //TODO disabled temporarily to lighten load times
     //guid.AddPool("h", (40150 to 45000).toList).Selector = new RandomSelector
     //guid.AddPool("i", (45001 to 50000).toList).Selector = new RandomSelector
@@ -402,13 +404,6 @@ class Zone(private val zoneId: String, val map: ZoneMap, zoneNumber: Int) {
   }
 
   /**
-    * The privileged name that can be used as the second parameter in the packet `LoadMapMessage`.
-    *
-    * @return the name
-    */
-  def Id: String = zoneId
-
-  /**
     * The numerical index of the `Zone` as it is recognized in a variety of packets.
     *
     * @return the abstract index position of this `Zone`
@@ -436,7 +431,7 @@ class Zone(private val zoneId: String, val map: ZoneMap, zoneNumber: Int) {
       println(
         ansi()
           .fgBright(RED)
-          .a(s"""Caution: replacement of the number pool system for zone $Id; function is for testing purposes only""")
+          .a(s"""Caution: replacement of the number pool system for zone $id; function is for testing purposes only""")
           .reset()
       )
       guid = hub
@@ -529,9 +524,9 @@ class Zone(private val zoneId: String, val map: ZoneMap, zoneNumber: Int) {
 
   def Vehicles: List[Vehicle] = vehicles.toList
 
-  def Players: List[Avatar] = players.keys.toList
+  def Players: List[Avatar] = players.values.flatten.map(_.avatar).toList
 
-  def LivePlayers: List[Player] = players.values.collect({ case Some(tplayer) => tplayer }).toList
+  def LivePlayers: List[Player] = players.values.flatten.toList
 
   def Corpses: List[Player] = corpses.toList
 
@@ -570,11 +565,11 @@ class Zone(private val zoneId: String, val map: ZoneMap, zoneNumber: Int) {
   }
 
   def zipLinePaths: List[ZipLinePath] = {
-    map.ZipLinePaths
+    map.zipLinePaths
   }
 
   private def BuildLocalObjects(implicit context: ActorContext, guid: NumberPoolHub): Unit = {
-    map.LocalObjects.foreach({ builderObject =>
+    map.localObjects.foreach({ builderObject =>
       builderObject.Build
 
       val obj = guid(builderObject.Id)
@@ -588,7 +583,7 @@ class Zone(private val zoneId: String, val map: ZoneMap, zoneNumber: Int) {
     //guard against errors here, but don't worry about specifics; let ZoneActor.ZoneSetupCheck complain about problems
     val other: ListBuffer[IdentifiableEntity] = new ListBuffer[IdentifiableEntity]()
     //turret to weapon
-    map.TurretToWeapon.foreach({
+    map.turretToWeapon.foreach({
       case (turret_guid, weapon_guid) =>
         ((GUID(turret_guid) match {
           case Some(obj: FacilityTurret) =>
@@ -618,7 +613,7 @@ class Zone(private val zoneId: String, val map: ZoneMap, zoneNumber: Int) {
   }
 
   private def MakeBuildings(implicit context: ActorContext): PairMap[Int, Building] = {
-    val buildingList = map.LocalBuildings
+    val buildingList = map.localBuildings
     val registrationKeys: Map[Int, Try[LoanedKey]] = buildingList.map {
       case ((_, building_guid: Int, _), _) =>
         (building_guid, guid.register(building_guid))
@@ -633,7 +628,7 @@ class Zone(private val zoneId: String, val map: ZoneMap, zoneNumber: Int) {
   }
 
   private def AssignAmenities(): Unit = {
-    map.ObjectToBuilding.foreach({
+    map.objectToBuilding.foreach({
       case (object_guid, building_id) =>
         (buildings.get(building_id), guid(object_guid)) match {
           case (Some(building), Some(amenity)) =>
@@ -660,7 +655,7 @@ class Zone(private val zoneId: String, val map: ZoneMap, zoneNumber: Int) {
   }
 
   private def MakeLattice(): Unit = {
-    lattice ++= map.LatticeLink.map {
+    lattice ++= map.latticeLink.map {
       case (source, target) =>
         val (sourceBuilding, targetBuilding) = (Building(source), Building(target)) match {
           case (Some(sBuilding), Some(tBuilding)) => (sBuilding, tBuilding)
@@ -832,12 +827,13 @@ object Zone {
 
     /**
       * Message that instructs the zone to disassociate a `Player` from this `Actor`.
+      *
       * @see `PlayerAlreadySpawned`<br>
-      *       `PlayerCanNotSpawn`
+      *      `PlayerCanNotSpawn`
       * @param avatar the `Avatar` object
       * @param player the `Player` object
       */
-    final case class Spawn(avatar: Avatar, player: Player)
+    final case class Spawn(avatar: Avatar, player: Player, avatarActor: typed.ActorRef[AvatarActor.Command])
 
     /**
       * Message that instructs the zone to disassociate a `Player` from this `Actor`.
@@ -1009,8 +1005,8 @@ object Zone {
           }).orElse(continent.Vehicles.find(_.Find(guid).nonEmpty) match {
             case Some(vehicle) => Some((vehicle, vehicle.Find(guid)))
             case _             => None
-          }).orElse(continent.Players.find(_.Locker.Find(guid).nonEmpty) match {
-            case Some(avatar) => Some((avatar.Locker, avatar.Locker.Find(guid)))
+          }).orElse(continent.Players.find(_.locker.Find(guid).nonEmpty) match {
+            case Some(avatar) => Some((avatar.locker, avatar.locker.Find(guid)))
             case _            => None
           }) match {
             case Some((obj, Some(index))) =>

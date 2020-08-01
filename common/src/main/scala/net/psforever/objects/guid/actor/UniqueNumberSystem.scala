@@ -126,11 +126,11 @@ class UniqueNumberSystem(private val guid: NumberPoolHub, private val poolActors
             case Some(entry) =>
               entry.replyTo ! Failure(new Exception(s"for ${entry.target} with number $number, ${ex.getMessage}"))
             case None => ;
-              log.error(s"could not find original request $nid that caused error $ex, but pool was $sender")
+              log.error(s"could not find original request $nid that caused error $ex, but pool was ${sender()}")
             //no callback is possible
           }
         case _ => ;
-          log.error(s"could not find original request $id that caused error $ex, but pool was $sender")
+          log.error(s"could not find original request $id that caused error $ex, but pool was ${sender()}")
         //no callback is possible
       }
 

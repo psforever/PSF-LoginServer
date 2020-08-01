@@ -3,8 +3,7 @@ package net.psforever.objects.avatar
 
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.ce.{Deployable, DeployableCategory, DeployedItem}
-import net.psforever.types.{CertificationType, PlanetSideGUID}
-
+import net.psforever.types.PlanetSideGUID
 import scala.collection.mutable
 
 /**
@@ -56,11 +55,12 @@ class DeployableToolbox {
 
   /**
     * Set up the initial deployable counts by providing certification values to be used in category and unit selection.
+    *
     * @param certifications a group of certifications for the initial values
     * @return `true`, if this is the first time and actual "initialization" is performed;
-    *        `false`, otherwise
+    *         `false`, otherwise
     */
-  def Initialize(certifications: Set[CertificationType.Value]): Boolean = {
+  def Initialize(certifications: Set[Certification]): Boolean = {
     if (!initialized) {
       DeployableToolbox.Initialize(deployableCounts, categoryCounts, certifications)
       initialized = true
@@ -79,8 +79,8 @@ class DeployableToolbox {
     *                         the new certification should already have been added to this group
     */
   def AddToDeployableQuantities(
-      certification: CertificationType.Value,
-      certificationSet: Set[CertificationType.Value]
+      certification: Certification,
+      certificationSet: Set[Certification]
   ): Unit = {
     initialized = true
     DeployableToolbox.AddToDeployableQuantities(deployableCounts, categoryCounts, certification, certificationSet)
@@ -96,8 +96,8 @@ class DeployableToolbox {
     *                         the new certification should already have been excluded from this group
     */
   def RemoveFromDeployableQuantities(
-      certification: CertificationType.Value,
-      certificationSet: Set[CertificationType.Value]
+      certification: Certification,
+      certificationSet: Set[Certification]
   ): Unit = {
     initialized = true
     DeployableToolbox.RemoveFromDeployablesQuantities(deployableCounts, categoryCounts, certification, certificationSet)
@@ -137,8 +137,8 @@ class DeployableToolbox {
     *        `false`, otherwise
     */
   def Available(obj: DeployableToolbox.AcceptableDeployable): Boolean = {
-    deployableCounts(DeployableToolbox.UnifiedType(obj.Definition.Item)).Available &&
-    categoryCounts(obj.Definition.DeployCategory).Available
+    deployableCounts(DeployableToolbox.UnifiedType(obj.Definition.Item)).Available() &&
+    categoryCounts(obj.Definition.DeployCategory).Available()
   }
 
   /**
@@ -331,8 +331,8 @@ class DeployableToolbox {
 
   def UpdateUI(): List[(Int, Int, Int, Int)] = DeployedItem.values flatMap UpdateUIElement toList
 
-  def UpdateUI(entry: CertificationType.Value): List[(Int, Int, Int, Int)] = {
-    import CertificationType._
+  def UpdateUI(entry: Certification): List[(Int, Int, Int, Int)] = {
+    import Certification._
     entry match {
       case AdvancedHacking =>
         UpdateUIElement(DeployedItem.sensor_shield)
@@ -371,7 +371,7 @@ class DeployableToolbox {
     }
   }
 
-  def UpdateUI(certifications: List[CertificationType.Value]): List[(Int, Int, Int, Int)] = {
+  def UpdateUI(certifications: List[Certification]): List[(Int, Int, Int, Int)] = {
     certifications flatMap UpdateUI
   }
 
@@ -404,7 +404,7 @@ class DeployableToolbox {
     deployableLists(category).clear()
     categoryCounts(category).Current = 0
     (Deployable.Category.Includes(category) map DeployableToolbox.UnifiedType toSet)
-      .foreach({ item: DeployedItem.Value => deployableCounts(item).Current = 0 })
+    .foreach({ item: DeployedItem.Value => deployableCounts(item).Current = 0 })
     out
   }
 
@@ -481,9 +481,9 @@ object DeployableToolbox {
   private def Initialize(
       counts: Map[DeployedItem.Value, DeployableToolbox.Bin],
       categories: Map[DeployableCategory.Value, DeployableToolbox.Bin],
-      certifications: Set[CertificationType.Value]
+      certifications: Set[Certification]
   ): Unit = {
-    import CertificationType._
+    import Certification._
     if (certifications.contains(AdvancedEngineering)) {
       counts(DeployedItem.boomer).Max = 25
       counts(DeployedItem.he_mine).Max = 25
@@ -548,7 +548,7 @@ object DeployableToolbox {
         counts(DeployedItem.sensor_shield).Max = 20
       }
     }
-    if (certifications.contains(CertificationType.GroundSupport)) {
+    if (certifications.contains(Certification.GroundSupport)) {
       counts(DeployedItem.router_telepad_deployable).Max = 1024
       categories(DeployableCategory.Telepads).Max = 1024
     }
@@ -564,10 +564,10 @@ object DeployableToolbox {
   def AddToDeployableQuantities(
       counts: Map[DeployedItem.Value, DeployableToolbox.Bin],
       categories: Map[DeployableCategory.Value, DeployableToolbox.Bin],
-      certification: CertificationType.Value,
-      certificationSet: Set[CertificationType.Value]
+      certification: Certification,
+      certificationSet: Set[Certification]
   ): Unit = {
-    import CertificationType._
+    import Certification._
     if (certificationSet contains certification) {
       certification match {
         case AdvancedHacking =>
@@ -649,10 +649,10 @@ object DeployableToolbox {
   def RemoveFromDeployablesQuantities(
       counts: Map[DeployedItem.Value, DeployableToolbox.Bin],
       categories: Map[DeployableCategory.Value, DeployableToolbox.Bin],
-      certification: CertificationType.Value,
-      certificationSet: Set[CertificationType.Value]
+      certification: Certification,
+      certificationSet: Set[Certification]
   ): Unit = {
-    import CertificationType._
+    import Certification._
     if (!certificationSet.contains(certification)) {
       certification match {
         case AdvancedHacking =>

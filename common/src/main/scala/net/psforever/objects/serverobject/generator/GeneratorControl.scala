@@ -46,7 +46,7 @@ class GeneratorControl(gen: Generator)
           GeneratorControl.UpdateOwner(gen)
           //kaboom
           zone.AvatarEvents ! AvatarServiceMessage(
-            zone.Id,
+            zone.id,
             AvatarAction.SendResponse(
               Service.defaultPlayerGUID,
               TriggerEffectMessage(gen.GUID, "explosion_generator", None, None)

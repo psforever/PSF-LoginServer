@@ -80,7 +80,7 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
         }
 
       case VehicleSpawnControl.ProcessControl.GetNewOrder =>
-        if (sender == concealPlayer) {
+        if (sender() == concealPlayer) {
           trackedOrder = None //guard off
           SelectOrder()
         }
@@ -107,12 +107,14 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
               BlockedReminder(entry, orders)
             }
           case None => ;
-            periodicReminder.cancel
+            periodicReminder.cancel()
         }
 
       case VehicleSpawnControl.ProcessControl.Flush =>
-        periodicReminder.cancel
-        orders.foreach { CancelOrder }
+        periodicReminder.cancel()
+        orders.foreach {
+          CancelOrder
+        }
         orders = Nil
         trackedOrder match {
           case Some(entry) =>
@@ -200,7 +202,7 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
     *              `None`, if no order found or submitted
     */
   def ProcessOrder(order: Option[VehicleSpawnControl.Order]): Unit = {
-    periodicReminder.cancel
+    periodicReminder.cancel()
     order match {
       case Some(_order) =>
         recursiveOrderReminder(orders.iterator)
@@ -259,7 +261,7 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
       cause: Option[Any]
   ): Unit = {
     if (iter.hasNext) {
-      val recipient = iter.next
+      val recipient = iter.next()
       pad.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(
         recipient.driver.Name,
         VehicleSpawnPad.Reminders.Blocked,
@@ -274,7 +276,7 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
       position: Int = 2
   ): Unit = {
     if (iter.hasNext) {
-      val recipient = iter.next
+      val recipient = iter.next()
       pad.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(
         recipient.driver.Name,
         VehicleSpawnPad.Reminders.Queue,

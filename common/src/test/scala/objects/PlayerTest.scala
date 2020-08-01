@@ -3,9 +3,9 @@ package objects
 
 import net.psforever.objects.GlobalDefinitions._
 import net.psforever.objects._
-import net.psforever.objects.definition.{ImplantDefinition, SimpleItemDefinition, SpecialExoSuitDefinition}
+import net.psforever.objects.avatar.Avatar
+import net.psforever.objects.definition.{SimpleItemDefinition, SpecialExoSuitDefinition}
 import net.psforever.objects.equipment.EquipmentSize
-import net.psforever.packet.game.objectcreate.{Cosmetics, PersonalStyle}
 import net.psforever.types.{PlanetSideGUID, _}
 import org.specs2.mutable._
 
@@ -19,7 +19,7 @@ class PlayerTest extends Specification {
       head: Int,
       voice: CharacterVoice.Value
   ): Player = {
-    new Player(Avatar(name, faction, sex, head, voice))
+    new Player(Avatar(0, name, faction, sex, head, voice))
   }
 
   "Player" should {
@@ -41,45 +41,22 @@ class PlayerTest extends Specification {
       obj.Cloaked mustEqual true
     }
 
-    "different players" in {
-      (TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5) ==
-        TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)) mustEqual true
-
-      (TestPlayer("Chord1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5) ==
-        TestPlayer("Chord2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)) mustEqual false
-
-      (TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5) ==
-        TestPlayer("Chord", PlanetSideEmpire.NC, CharacterGender.Male, 0, CharacterVoice.Voice5)) mustEqual false
-
-      (TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5) ==
-        TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Female, 0, CharacterVoice.Voice5)) mustEqual false
-
-      (TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5) ==
-        TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 1, CharacterVoice.Voice5)) mustEqual false
-
-      (TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5) ==
-        TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice4)) mustEqual false
-    }
-
     "(re)spawn" in {
       val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.isAlive mustEqual false
       obj.Health mustEqual 0
-      obj.Stamina mustEqual 0
       obj.Armor mustEqual 0
       obj.MaxHealth mustEqual 100
-      obj.MaxStamina mustEqual 100
       obj.MaxArmor mustEqual 50
-      obj.Spawn
+      obj.Spawn()
       obj.isAlive mustEqual true
       obj.Health mustEqual 100
-      obj.Stamina mustEqual 100
       obj.Armor mustEqual 50
     }
 
     "will not (re)spawn if not dead" in {
       val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      obj.Spawn
+      obj.Spawn()
       obj.Health mustEqual 100
       obj.Armor mustEqual 50
       obj.isAlive mustEqual true
@@ -88,29 +65,27 @@ class PlayerTest extends Specification {
       obj.Armor = 10
       obj.Health mustEqual 10
       obj.Armor mustEqual 10
-      obj.Spawn
+      obj.Spawn()
       obj.Health mustEqual 10
       obj.Armor mustEqual 10
     }
 
     "can die" in {
       val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      obj.Spawn
+      obj.Spawn()
       obj.Armor = 35 //50 -> 35
       obj.isAlive mustEqual true
       obj.Health mustEqual obj.MaxHealth
-      obj.Stamina mustEqual obj.MaxStamina
       obj.Armor mustEqual 35
       obj.Die
       obj.isAlive mustEqual false
       obj.Health mustEqual 0
-      obj.Stamina mustEqual 0
       obj.Armor mustEqual 35
     }
 
     "can not become a backpack if alive" in {
       val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      obj.Spawn
+      obj.Spawn()
       obj.isAlive mustEqual true
       obj.isBackpack mustEqual false
       obj.Release
@@ -130,15 +105,11 @@ class PlayerTest extends Specification {
     "set new maximum values (health, stamina)" in {
       val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.MaxHealth mustEqual 100
-      obj.MaxStamina mustEqual 100
       obj.MaxHealth = 123
-      obj.MaxStamina = 456
       obj.MaxHealth mustEqual 123
-      obj.MaxStamina mustEqual 456
       obj.MaxHealth = None
       //MaxStamina has no equivalent
       obj.MaxHealth mustEqual 100
-      obj.MaxStamina mustEqual 456
     }
 
 //    "set new values (health, armor, stamina) but only when alive" in {
@@ -149,9 +120,9 @@ class PlayerTest extends Specification {
 //      obj.Health mustEqual 0
 //      obj.Armor mustEqual 0
 //      obj.Stamina mustEqual 0
-//
-//      obj.Spawn
-//      obj.Health mustEqual obj.MaxHealth
+    //
+    //      obj.Spawn()
+    //      obj.Health mustEqual obj.MaxHealth
 //      obj.Armor mustEqual obj.MaxArmor
 //      obj.Stamina mustEqual obj.MaxStamina
 //      obj.Health = 23
@@ -305,7 +276,7 @@ class PlayerTest extends Specification {
         item.GUID = PlanetSideGUID(3)
         item
       }
-      obj.Locker.Slot(6).Equipment = {
+      obj.avatar.locker.Slot(6).Equipment = {
         val item = Kit(medkit)
         item.GUID = PlanetSideGUID(4)
         item
@@ -364,85 +335,6 @@ class PlayerTest extends Specification {
       } //free hand
     }
 
-    "battle experience point values of the avatar" in {
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      val player = Player(avatar)
-
-      player.BEP mustEqual avatar.BEP
-      avatar.BEP = 1002
-      player.BEP mustEqual avatar.BEP
-    }
-
-    "command experience point values of the avatar" in {
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      val player = Player(avatar)
-
-      player.CEP mustEqual avatar.CEP
-      avatar.CEP = 1002
-      player.CEP mustEqual avatar.CEP
-    }
-
-    "can get a quick summary of implant slots (default)" in {
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      val player = Player(avatar)
-
-      player.Implants mustEqual Array.empty
-    }
-
-    "can get a quick summary of implant slots (two unlocked, one installed)" in {
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      val player = Player(avatar)
-      val temp   = new ImplantDefinition(1)
-      avatar.Implants(0).Unlocked = true
-      avatar.InstallImplant(new ImplantDefinition(1))
-      avatar.Implants(1).Unlocked = true
-      avatar.InstallImplant(new ImplantDefinition(2))
-      avatar.UninstallImplant(temp.Type)
-
-      val list = player.Implants
-      //slot 0
-      val (implant1, init1, active1) = list(0)
-      implant1 mustEqual ImplantType.None
-      init1 mustEqual -1
-      active1 mustEqual false
-      //slot 1
-      val (implant2, init2, active2) = list(1)
-      implant2 mustEqual ImplantType(2)
-      init2 mustEqual 0
-      active2 mustEqual false
-    }
-
-    "can get a quick summary of implant slots (all unlocked, first two installed)" in {
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      val player = Player(avatar)
-      avatar.Implants(0).Unlocked = true
-      avatar.InstallImplant(new ImplantDefinition(1))
-      avatar.Implants(0).Initialized = true
-      avatar.Implants(0).Active = true
-      avatar.Implants(1).Unlocked = true
-      avatar.InstallImplant(new ImplantDefinition(2))
-      avatar.Implants(1).Initialized = true
-      avatar.Implants(1).Active = false
-      avatar.Implants(2).Unlocked = true
-
-      val list = player.Implants
-      //slot 0
-      val (implant1, init1, active1) = list(0)
-      implant1 mustEqual ImplantType(1)
-      init1 mustEqual 0
-      active1 mustEqual true
-      //slot 1
-      val (implant2, init2, active2) = list(1)
-      implant2 mustEqual ImplantType(2)
-      init2 mustEqual 0
-      active2 mustEqual false
-      //slot 2
-      val (implant3, init3, active3) = list(2)
-      implant3 mustEqual ImplantType.None
-      init3 mustEqual -1
-      active3 mustEqual false
-    }
-
     "seat in a vehicle" in {
       val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.VehicleSeated.isEmpty mustEqual true
@@ -454,11 +346,11 @@ class PlayerTest extends Specification {
 
     "own in a vehicle" in {
       val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      obj.VehicleOwned.isEmpty mustEqual true
-      obj.VehicleOwned = PlanetSideGUID(65)
-      obj.VehicleOwned.contains(PlanetSideGUID(65)) mustEqual true
-      obj.VehicleOwned = None
-      obj.VehicleOwned.isEmpty mustEqual true
+      obj.avatar.vehicle.isEmpty mustEqual true
+      obj.avatar.vehicle = Some(PlanetSideGUID(65))
+      obj.avatar.vehicle.contains(PlanetSideGUID(65)) mustEqual true
+      obj.avatar.vehicle = None
+      obj.avatar.vehicle.isEmpty mustEqual true
     }
 
     "remember what zone he is in" in {
@@ -528,130 +420,6 @@ class PlayerTest extends Specification {
       obj.UsingSpecial mustEqual SpecialExoSuitDefinition.Mode.Normal
       obj.ExoSuit = ExoSuitType.MAX
       obj.UsingSpecial != test mustEqual true
-    }
-
-    "start with a nonexistent cosmetic state" in {
-      TestPlayer(
-        "Chord",
-        PlanetSideEmpire.TR,
-        CharacterGender.Male,
-        0,
-        CharacterVoice.Voice5
-      ).PersonalStyleFeatures.isEmpty mustEqual true
-    }
-
-    "will not gain cosmetic state if player does not have a certain amount of BEP" in {
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      val obj    = Player(avatar)
-      obj.PersonalStyleFeatures.isEmpty mustEqual true
-      val (a1, b1) = obj.AddToPersonalStyle(PersonalStyle.Beret)
-      a1.isEmpty mustEqual true
-      b1.isEmpty mustEqual true
-      obj.PersonalStyleFeatures.isEmpty mustEqual true
-
-      avatar.BEP = 2286231 //BR24
-      val (a2, b2) = obj.AddToPersonalStyle(PersonalStyle.Beret)
-      a2.isEmpty mustEqual true
-      b2 match {
-        case Some(c: Cosmetics) =>
-          c.Styles mustEqual Set(PersonalStyle.Beret)
-        case _ =>
-          ko
-      }
-      obj.PersonalStyleFeatures.isEmpty mustEqual false
-    }
-
-    "will lose cosmetic state" in {
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      val obj    = Player(avatar)
-      avatar.BEP = 2286231 //BR24
-      obj.AddToPersonalStyle(PersonalStyle.Beret)
-      obj.PersonalStyleFeatures.contains(Cosmetics(Set(PersonalStyle.Beret))) mustEqual true
-      val (a2, b2) = obj.RemoveFromPersonalStyle(PersonalStyle.Beret)
-      a2 match {
-        case Some(c: Cosmetics) =>
-          c.Styles mustEqual Set(PersonalStyle.Beret)
-        case _ =>
-          ko
-      }
-      b2 match {
-        case Some(c: Cosmetics) =>
-          c.Styles mustEqual Set.empty
-        case _ =>
-          ko
-      }
-    }
-
-    "will not lose cosmetic state if the player doesn't have any cosmetic state to begin with" in {
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      val obj    = Player(avatar)
-      obj.PersonalStyleFeatures.isEmpty mustEqual true
-      val (a1, b1) = obj.RemoveFromPersonalStyle(PersonalStyle.Beret)
-      a1.isEmpty mustEqual true
-      b1.isEmpty mustEqual true
-    }
-
-    "toggle helmet" in {
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      val obj    = Player(avatar)
-      avatar.BEP = 2286231
-      obj.PersonalStyleFeatures.isEmpty mustEqual true
-      obj.ToggleHelmet
-      obj.PersonalStyleFeatures.contains(Cosmetics(Set(PersonalStyle.NoHelmet))) mustEqual true
-      obj.ToggleHelmet
-      obj.PersonalStyleFeatures.contains(Cosmetics()) mustEqual true
-      obj.ToggleHelmet
-      obj.PersonalStyleFeatures.contains(Cosmetics(Set(PersonalStyle.NoHelmet))) mustEqual true
-    }
-
-    "toggle suglasses" in {
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      val obj    = Player(avatar)
-      avatar.BEP = 2286231
-      obj.PersonalStyleFeatures.isEmpty mustEqual true
-      obj.ToggleShades
-      obj.PersonalStyleFeatures.contains(Cosmetics(Set(PersonalStyle.Sunglasses))) mustEqual true
-      obj.ToggleShades
-      obj.PersonalStyleFeatures.contains(Cosmetics()) mustEqual true
-      obj.ToggleShades
-      obj.PersonalStyleFeatures.contains(Cosmetics(Set(PersonalStyle.Sunglasses))) mustEqual true
-    }
-
-    "toggle earpiece" in {
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      val obj    = Player(avatar)
-      avatar.BEP = 2286231
-      obj.PersonalStyleFeatures.isEmpty mustEqual true
-      obj.ToggleEarpiece
-      obj.PersonalStyleFeatures.contains(Cosmetics(Set(PersonalStyle.Earpiece))) mustEqual true
-      obj.ToggleEarpiece
-      obj.PersonalStyleFeatures.contains(Cosmetics()) mustEqual true
-      obj.ToggleEarpiece
-      obj.PersonalStyleFeatures.contains(Cosmetics(Set(PersonalStyle.Earpiece))) mustEqual true
-    }
-
-    "toggle between brimmed cap and beret" in {
-      val avatar = Avatar("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      val obj    = Player(avatar)
-      avatar.BEP = 2286231
-      obj.PersonalStyleFeatures.isEmpty mustEqual true
-      obj.ToggleHat
-      obj.PersonalStyleFeatures.contains(Cosmetics(Set(PersonalStyle.BrimmedCap))) mustEqual true
-      obj.ToggleHat
-      obj.PersonalStyleFeatures.contains(Cosmetics(Set(PersonalStyle.Beret))) mustEqual true
-      obj.ToggleHat
-      obj.PersonalStyleFeatures.contains(Cosmetics()) mustEqual true
-      obj.ToggleHat
-      obj.PersonalStyleFeatures.contains(Cosmetics(Set(PersonalStyle.BrimmedCap))) mustEqual true
-    }
-
-    "toString" in {
-      val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
-      obj.toString mustEqual "TR Chord 0/100 0/50"
-
-      obj.GUID = PlanetSideGUID(455)
-      obj.Continent = "z3"
-      obj.toString mustEqual "TR Chord z3-455 0/100 0/50"
     }
   }
 }

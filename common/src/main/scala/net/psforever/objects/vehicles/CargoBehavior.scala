@@ -40,7 +40,7 @@ trait CargoBehavior {
         if (iteration == 0) {
           //open the cargo bay door
           obj.Zone.AvatarEvents ! AvatarServiceMessage(
-            obj.Zone.Id,
+            obj.Zone.id,
             AvatarAction.SendResponse(
               Service.defaultPlayerGUID,
               CargoMountPointStatusMessage(
@@ -57,7 +57,7 @@ trait CargoBehavior {
         }
         isMounting = Some(carrier_guid)
         import scala.concurrent.ExecutionContext.Implicits.global
-        cargoMountTimer.cancel
+        cargoMountTimer.cancel()
         cargoMountTimer = context.system.scheduler.scheduleOnce(
           250 milliseconds,
           self,
@@ -75,7 +75,7 @@ trait CargoBehavior {
       ) {
         isDismounting = Some(carrier_guid)
         import scala.concurrent.ExecutionContext.Implicits.global
-        cargoDismountTimer.cancel
+        cargoDismountTimer.cancel()
         cargoDismountTimer = context.system.scheduler.scheduleOnce(
           250 milliseconds,
           self,
@@ -170,7 +170,7 @@ object CargoBehavior {
           )
           val cargoDriverGUID = cargo.Seats(0).Occupant.get.GUID
           zone.VehicleEvents ! VehicleServiceMessage(
-            zone.Id,
+            zone.id,
             VehicleAction.SendResponse(
               cargoDriverGUID,
               CargoMountPointStatusMessage(
@@ -268,7 +268,7 @@ object CargoBehavior {
           )
           val cargoDriverGUID = cargo.Seats(0).Occupant.get.GUID
           zone.VehicleEvents ! VehicleServiceMessage(
-            zone.Id,
+            zone.id,
             VehicleAction.SendResponse(
               cargoDriverGUID,
               CargoMountPointStatusMessage(
@@ -339,7 +339,7 @@ object CargoBehavior {
             )
         }
       case _ =>
-        log.warn(s"DismountVehicleCargo: target $cargo_guid either is not a vehicle in ${zone.Id} or does not exist")
+        log.warn(s"DismountVehicleCargo: target $cargo_guid either is not a vehicle in ${zone.id} or does not exist")
     }
   }
 
@@ -382,7 +382,7 @@ object CargoBehavior {
           carrier.Position
         }
         val GUID0      = Service.defaultPlayerGUID
-        val zoneId     = zone.Id
+        val zoneId     = zone.id
         val events     = zone.VehicleEvents
         val cargoActor = cargo.Actor
         events ! VehicleServiceMessage(
@@ -542,8 +542,8 @@ object CargoBehavior {
       attachMessage: ObjectAttachMessage,
       mountPointStatusMessage: CargoMountPointStatusMessage
   ): Unit = {
-    zone.VehicleEvents ! VehicleServiceMessage(zone.Id, VehicleAction.SendResponse(exclude, attachMessage))
-    zone.VehicleEvents ! VehicleServiceMessage(zone.Id, VehicleAction.SendResponse(exclude, mountPointStatusMessage))
+    zone.VehicleEvents ! VehicleServiceMessage(zone.id, VehicleAction.SendResponse(exclude, attachMessage))
+    zone.VehicleEvents ! VehicleServiceMessage(zone.id, VehicleAction.SendResponse(exclude, mountPointStatusMessage))
   }
 
   /**
@@ -561,7 +561,7 @@ object CargoBehavior {
       mountPoint: Int
   ): (ObjectAttachMessage, CargoMountPointStatusMessage) = {
     val zone                                            = carrier.Zone
-    val zoneId                                          = zone.Id
+    val zoneId                                          = zone.id
     val msgs @ (attachMessage, mountPointStatusMessage) = CargoMountMessages(carrier, cargo, mountPoint)
     zone.VehicleEvents ! VehicleServiceMessage(
       zoneId,

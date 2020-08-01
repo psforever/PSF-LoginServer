@@ -29,7 +29,7 @@ object RepairableAmenity {
     */
   def Restoration(target: Repairable.Target): Unit = {
     val zone       = target.Zone
-    val zoneId     = zone.Id
+    val zoneId     = zone.id
     val events     = zone.AvatarEvents
     val targetGUID = target.GUID
     events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(targetGUID, 50, 0))

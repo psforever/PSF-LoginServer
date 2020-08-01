@@ -19,7 +19,7 @@ object HackableBehavior {
       case CommonMessages.Hack(player, _, _) =>
         val obj = HackableObject
         obj.HackedBy = player
-        sender ! true
+        sender() ! true
 
       case CommonMessages.ClearHack() =>
         val obj = HackableObject

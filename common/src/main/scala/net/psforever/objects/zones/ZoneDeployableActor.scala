@@ -14,7 +14,10 @@ import scala.collection.mutable.ListBuffer
   * @param zone the `Zone` object
   */
 class ZoneDeployableActor(zone: Zone, deployableList: ListBuffer[PlanetSideGameObject with Deployable]) extends Actor {
+
   import ZoneDeployableActor._
+
+  private[this] val log = org.log4s.getLogger
 
   def receive: Receive = {
     case Zone.Deployable.Build(obj, tool) =>
@@ -26,7 +29,9 @@ class ZoneDeployableActor(zone: Zone, deployableList: ListBuffer[PlanetSideGameO
             obj.Definition.Initialize(obj, context)
         }
         obj.Zone = zone
-        sender ! Zone.Deployable.DeployableIsBuilt(obj, tool)
+        sender() ! Zone.Deployable.DeployableIsBuilt(obj, tool)
+      } else {
+        log.warn(s"failed to build deployable ${obj} ${tool}")
       }
 
     case Zone.Deployable.Dismiss(obj) =>
@@ -37,7 +42,7 @@ class ZoneDeployableActor(zone: Zone, deployableList: ListBuffer[PlanetSideGameO
           case _ =>
             obj.Definition.Uninitialize(obj, context)
         }
-        sender ! Zone.Deployable.DeployableIsDismissed(obj)
+        sender() ! Zone.Deployable.DeployableIsDismissed(obj)
       }
 
     case _ => ;
@@ -79,7 +84,7 @@ object ZoneDeployableActor {
     if (!iter.hasNext) {
       None
     } else {
-      if (iter.next == target) {
+      if (iter.next() == target) {
         Some(index)
       } else {
         recursiveFindDeployable(iter, target, index + 1)

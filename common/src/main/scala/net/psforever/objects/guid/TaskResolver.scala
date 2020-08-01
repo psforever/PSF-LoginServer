@@ -76,7 +76,7 @@ class TaskResolver() extends Actor {
       TimeoutCleanup()
 
     case msg =>
-      log.warn(s"$self received an unexpected message $msg from $sender")
+      log.warn(s"$self received an unexpected message $msg from ${sender()}")
   }
 
   /**
@@ -408,7 +408,7 @@ object TaskResolver {
     if (!iter.hasNext) {
       None
     } else {
-      val index: Int = iter.next
+      val index: Int = iter.next()
       if (tasks(index).task.isComplete == resolution) {
         Some(index)
       } else {
@@ -428,7 +428,7 @@ object TaskResolver {
     if (!iter.hasNext) {
       true
     } else {
-      if (iter.next.isComplete == resolution) {
+      if (iter.next().isComplete == resolution) {
         filterCompletionMatch(iter, resolution)
       } else {
         false
@@ -452,7 +452,7 @@ object TaskResolver {
     if (!iter.hasNext) {
       indexList
     } else {
-      val index: Int = iter.next
+      val index: Int = iter.next()
       val taskEntry  = tasks(index)
       if (
         taskEntry.Executing && taskEntry.task.isComplete == Task.Resolution.Incomplete && now - taskEntry.Start > taskEntry.task.Timeout
@@ -476,7 +476,7 @@ object TaskResolver {
     if (!iter.hasNext) {
       None
     } else {
-      if (iter.next.task == target) {
+      if (iter.next().task == target) {
         Some(index)
       } else {
         findTask(iter, target, index + 1)
@@ -496,7 +496,7 @@ object TaskResolver {
     if (!iter.hasNext) {
       None
     } else {
-      val tEntry = iter.next
+      val tEntry = iter.next()
       if (tEntry.subtasks.contains(target)) {
         Some(index)
       } else {

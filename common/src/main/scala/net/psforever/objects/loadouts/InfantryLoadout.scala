@@ -1,7 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.loadouts
 
-import net.psforever.types.{CertificationType, ExoSuitType}
+import net.psforever.objects.avatar.Certification
+import net.psforever.types.ExoSuitType
 
 /**
   * A blueprint of a player's uniform, their holster items, and their inventory items, saved in a specific state.
@@ -12,6 +13,7 @@ import net.psforever.types.{CertificationType, ExoSuitType}
   * The ten-long list is initialized with `FavoritesMessage` packets assigned to the "Infantry" list.
   * Specific entries are added or removed using `FavoritesRequest` packets,
   * re-established using other conventional game packets.
+  *
   * @param label the name by which this inventory will be known when displayed in a Favorites list;
   *              field gets inherited
   * @param visible_slots simplified representation of the `Equipment` that can see "seen" on the target;
@@ -106,15 +108,16 @@ object InfantryLoadout {
     * Assuming the exo-suit is a mechanized assault type,
     * use the subtype to determine what certifications would be valid for permitted access to that specific exo-suit.
     * The "C" does not stand for "certification."
+    *
     * @see `CertificationType`
     * @param subtype the numeric subtype
     * @return a `Set` of all certifications that would grant access to the mechanized assault exo-suit subtype
     */
-  def DetermineSubtypeC(subtype: Int): Set[CertificationType.Value] =
+  def DetermineSubtypeC(subtype: Int): Set[Certification] =
     subtype match {
-      case 1 => Set(CertificationType.AIMAX, CertificationType.UniMAX)
-      case 2 => Set(CertificationType.AVMAX, CertificationType.UniMAX)
-      case 3 => Set(CertificationType.AAMAX, CertificationType.UniMAX)
-      case _ => Set.empty[CertificationType.Value]
+      case 1 => Set(Certification.AIMAX, Certification.UniMAX)
+      case 2 => Set(Certification.AVMAX, Certification.UniMAX)
+      case 3 => Set(Certification.AAMAX, Certification.UniMAX)
+      case _ => Set.empty[Certification]
     }
 }

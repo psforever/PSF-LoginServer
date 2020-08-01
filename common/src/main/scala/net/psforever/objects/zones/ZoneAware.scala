@@ -35,7 +35,7 @@ trait ZoneAware {
     Zone
   }
 
-  def Continent: String = continent.getOrElse(Zone.Id)
+  def Continent: String = continent.getOrElse(Zone.id)
 
   /**
     * Give the entity a custom `Zone` identifier.

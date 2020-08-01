@@ -167,7 +167,7 @@ object DamageableEntity {
       if (!target.Destroyed) {
         val tguid = target.GUID
         zone.AvatarEvents ! AvatarServiceMessage(
-          zone.Id,
+          zone.id,
           AvatarAction.PlanetsideAttributeToAll(tguid, 0, target.Health)
         )
       }
@@ -195,7 +195,7 @@ object DamageableEntity {
     target.Actor ! JammableUnit.ClearJammeredStatus()
     //
     val zone   = target.Zone
-    val zoneId = zone.Id
+    val zoneId = zone.id
     val tguid  = target.GUID
     val attribution = target.Zone.LivePlayers.find { p => cause.projectile.owner.Name.equals(p.Name) } match {
       case Some(player) => player.GUID

@@ -77,13 +77,15 @@ abstract class RemoverActor extends SupportActor[RemoverActor.Entry] {
     */
   override def postStop() = {
     super.postStop()
-    firstTask.cancel
-    secondTask.cancel
+    firstTask.cancel()
+    secondTask.cancel()
     firstHeap.foreach(entry => {
       FirstJob(entry)
       SecondJob(entry)
     })
-    secondHeap.foreach { SecondJob }
+    secondHeap.foreach {
+      SecondJob
+    }
     firstHeap = Nil
     secondHeap = Nil
     taskResolver = ActorRef.noSender
@@ -138,13 +140,19 @@ abstract class RemoverActor extends SupportActor[RemoverActor.Entry] {
 
         //private messages from RemoverActor to RemoverActor
         case RemoverActor.StartDelete() =>
-          firstTask.cancel
-          secondTask.cancel
+          firstTask.cancel()
+          secondTask.cancel()
           val now: Long = System.nanoTime
-          val (in, out) = firstHeap.partition(entry => { now - entry.time >= entry.duration })
+          val (in, out) = firstHeap.partition(entry => {
+            now - entry.time >= entry.duration
+          })
           firstHeap = out
-          secondHeap = secondHeap ++ in.map { RepackageEntry }
-          in.foreach { FirstJob }
+          secondHeap = secondHeap ++ in.map {
+            RepackageEntry
+          }
+          in.foreach {
+            FirstJob
+          }
           RetimeFirstTask()
           if (secondHeap.nonEmpty) {
             import scala.concurrent.ExecutionContext.Implicits.global
@@ -153,7 +161,7 @@ abstract class RemoverActor extends SupportActor[RemoverActor.Entry] {
           trace(s"item removal task has found ${in.size} items to remove")
 
         case RemoverActor.TryDelete() =>
-          secondTask.cancel
+          secondTask.cancel()
           val (in, out) = secondHeap.partition { ClearanceTest }
           secondHeap = out
           in.foreach { SecondJob }
@@ -185,8 +193,10 @@ abstract class RemoverActor extends SupportActor[RemoverActor.Entry] {
         if (out.nonEmpty) {
           RetimeFirstTask()
         }
-        secondTask.cancel
-        in.foreach { FirstJob }
+        secondTask.cancel()
+        in.foreach {
+          FirstJob
+        }
         secondHeap = secondHeap ++ in.map { RepackageEntry }
         import scala.concurrent.ExecutionContext.Implicits.global
         secondTask = context.system.scheduler.scheduleOnce(SecondStandardDuration, self, RemoverActor.TryDelete())
@@ -198,11 +208,13 @@ abstract class RemoverActor extends SupportActor[RemoverActor.Entry] {
     */
   def HurryAll(): Unit = {
     trace("all tasks have been hurried")
-    firstTask.cancel
-    firstHeap.foreach { FirstJob }
+    firstTask.cancel()
+    firstHeap.foreach {
+      FirstJob
+    }
     secondHeap = secondHeap ++ firstHeap.map { RepackageEntry }
     firstHeap = Nil
-    secondTask.cancel
+    secondTask.cancel()
     import scala.concurrent.ExecutionContext.Implicits.global
     secondTask = context.system.scheduler.scheduleOnce(SecondStandardDuration, self, RemoverActor.TryDelete())
   }
@@ -228,7 +240,7 @@ abstract class RemoverActor extends SupportActor[RemoverActor.Entry] {
     */
   def ClearAll(): Unit = {
     trace("all tasks have been cleared")
-    firstTask.cancel
+    firstTask.cancel()
     firstHeap = Nil
   }
 
@@ -249,7 +261,7 @@ abstract class RemoverActor extends SupportActor[RemoverActor.Entry] {
     *            defaults to the current time (in nanoseconds)
     */
   def RetimeFirstTask(now: Long = System.nanoTime): Unit = {
-    firstTask.cancel
+    firstTask.cancel()
     if (firstHeap.nonEmpty) {
       val short_timeout: FiniteDuration = math.max(1, firstHeap.head.duration - (now - firstHeap.head.time)) nanoseconds
       import scala.concurrent.ExecutionContext.Implicits.global

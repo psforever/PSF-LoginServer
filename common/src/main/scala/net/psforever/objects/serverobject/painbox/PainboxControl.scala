@@ -98,7 +98,7 @@ class PainboxControl(painbox: Painbox) extends Actor {
   def Running: Receive = {
     case Painbox.Stop() =>
       context.become(Stopped)
-      painboxTick.cancel
+      painboxTick.cancel()
       painboxTick = Default.Cancellable
 
     case Painbox.Tick() =>
@@ -160,7 +160,7 @@ class PainboxControl(painbox: Painbox) extends Actor {
   def Stopped: Receive = {
     case Painbox.Start() =>
       context.become(Running)
-      painboxTick.cancel
+      painboxTick.cancel()
       painboxTick = context.system.scheduler.scheduleWithFixedDelay(0 seconds, 1 second, self, Painbox.Tick())
 
     case _ => ;

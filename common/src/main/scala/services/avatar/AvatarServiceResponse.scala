@@ -35,8 +35,6 @@ object AvatarResponse {
   final case class ConcealPlayer()                                      extends Response
   final case class EnvironmentalDamage(target: PlanetSideGUID, source_guid: PlanetSideGUID, amount: Int)
       extends Response
-  final case class DeactivateImplantSlot(slot: Int) extends Response
-  final case class ActivateImplantSlot(slot: Int)   extends Response
   final case class Destroy(victim: PlanetSideGUID, killer: PlanetSideGUID, weapon: PlanetSideGUID, pos: Vector3)
       extends Response
   final case class DestroyDisplay(killer: SourceEntry, victim: SourceEntry, method: Int, unk: Int) extends Response

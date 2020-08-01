@@ -77,7 +77,7 @@ class PacketCodingActor extends Actor with MDCContextAware {
       this.sessionId = sharedSessionId
       leftRef = sender()
       if (pipe.hasNext) {
-        rightRef = pipe.next
+        rightRef = pipe.next()
         rightRef !> HelloFriend(sessionId, pipe)
       } else {
         rightRef = sender()
@@ -127,14 +127,14 @@ class PacketCodingActor extends Actor with MDCContextAware {
       relatedALog.clear()
     }
     case RawPacket(msg) =>
-      if (sender == rightRef) { //from LSA, WSA, etc., to network - encode
+      if (sender() == rightRef) { //from LSA, WSA, etc., to network - encode
         mtuLimit(msg)
       } else { //from network, to LSA, WSA, etc. - decode
         UnmarshalInnerPacket(msg, "a packet")
       }
     //known elevated packet type
     case ctrl @ ControlPacket(_, packet) =>
-      if (sender == rightRef) { //from LSA, WSA, to network - encode
+      if (sender() == rightRef) { //from LSA, WSA, to network - encode
         PacketCoding.EncodePacket(packet) match {
           case Successful(data) =>
             mtuLimit(data.toByteVector)
@@ -148,7 +148,7 @@ class PacketCodingActor extends Actor with MDCContextAware {
       }
     //known elevated packet type
     case game @ GamePacket(_, _, packet) =>
-      if (sender == rightRef) { //from LSA, WSA, etc., to network - encode
+      if (sender() == rightRef) { //from LSA, WSA, etc., to network - encode
         PacketCoding.EncodePacket(packet) match {
           case Successful(data) =>
             mtuLimit(data.toByteVector)
@@ -166,7 +166,7 @@ class PacketCodingActor extends Actor with MDCContextAware {
       handleBundlePacket(list)
     //etc
     case msg =>
-      if (sender == rightRef) {
+      if (sender() == rightRef) {
         log.trace(s"BASE CASE PACKET SEND, LEFT: $msg")
         MDC("sessionId") = sessionId.toString
         leftRef !> msg
@@ -421,7 +421,7 @@ class PacketCodingActor extends Actor with MDCContextAware {
       out
     } else {
       import net.psforever.packet.{PlanetSideControlPacket, PlanetSideGamePacket}
-      iter.next match {
+      iter.next() match {
         case msg: PlanetSideGamePacket =>
           PacketCoding.EncodePacket(msg) match {
             case Successful(bytecode) =>
@@ -462,7 +462,7 @@ class PacketCodingActor extends Actor with MDCContextAware {
     if (!iter.hasNext) {
       out
     } else {
-      val data = iter.next
+      val data = iter.next()
       var len  = data.length.toInt
       len = len + (if (len < 256) { 1 }
                    else if (len < 65536) { 2 }

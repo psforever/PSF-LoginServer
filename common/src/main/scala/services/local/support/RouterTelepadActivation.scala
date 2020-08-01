@@ -56,7 +56,7 @@ class RouterTelepadActivation extends SupportActor[RouterTelepadActivation.Entry
 
         //private messages from self to self
         case RouterTelepadActivation.TryActivate() =>
-          activationTask.cancel
+          activationTask.cancel()
           val now: Long = System.nanoTime
           val (in, out) = telepadList.partition(entry => { now - entry.time >= entry.duration })
           telepadList = out
@@ -74,7 +74,7 @@ class RouterTelepadActivation extends SupportActor[RouterTelepadActivation.Entry
     *            defaults to the current time (in nanoseconds)
     */
   def RetimeFirstTask(now: Long = System.nanoTime): Unit = {
-    activationTask.cancel
+    activationTask.cancel()
     if (telepadList.nonEmpty) {
       val short_timeout: FiniteDuration =
         math.max(1, telepadList.head.duration - (now - telepadList.head.time)) nanoseconds
@@ -99,8 +99,10 @@ class RouterTelepadActivation extends SupportActor[RouterTelepadActivation.Entry
 
   def HurryAll(): Unit = {
     trace("all tasks have been hurried")
-    activationTask.cancel
-    telepadList.foreach { ActivationTask }
+    activationTask.cancel()
+    telepadList.foreach {
+      ActivationTask
+    }
     telepadList = Nil
   }
 
@@ -119,7 +121,7 @@ class RouterTelepadActivation extends SupportActor[RouterTelepadActivation.Entry
 
   def ClearAll(): Unit = {
     trace("all tasks have been cleared")
-    activationTask.cancel
+    activationTask.cancel()
     telepadList = Nil
   }
 

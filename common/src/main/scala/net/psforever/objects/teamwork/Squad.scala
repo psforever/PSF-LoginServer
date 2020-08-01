@@ -1,8 +1,9 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.objects.teamwork
 
+import net.psforever.objects.avatar.Certification
 import net.psforever.objects.entity.IdentifiableEntity
-import net.psforever.types.{CertificationType, PlanetSideEmpire, PlanetSideGUID}
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 
 class Squad(squadId: PlanetSideGUID, alignment: PlanetSideEmpire.Value) extends IdentifiableEntity {
   super.GUID_=(squadId)
@@ -62,7 +63,7 @@ class Squad(squadId: PlanetSideGUID, alignment: PlanetSideEmpire.Value) extends 
     }
   }
 
-  def isAvailable(role: Int, certs: Set[CertificationType.Value]): Boolean = {
+  def isAvailable(role: Int, certs: Set[Certification]): Boolean = {
     availability.lift(role) match {
       case Some(true) =>
         membership(role).isAvailable(certs)

@@ -9,7 +9,7 @@ import net.psforever.actors.zone.{BuildingActor, ZoneActor}
 import net.psforever.objects.guid.{NumberPoolHub, TaskResolver}
 import net.psforever.objects.guid.source.LimitedNumberSource
 import net.psforever.objects.serverobject.CommonMessages
-import net.psforever.objects.{Avatar, GlobalDefinitions, Ntu, Player, Vehicle}
+import net.psforever.objects.{GlobalDefinitions, Ntu, Player, Vehicle}
 import net.psforever.objects.serverobject.resourcesilo.{ResourceSilo, ResourceSiloControl, ResourceSiloDefinition}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.serverobject.transfer.TransferBehavior
@@ -20,6 +20,7 @@ import org.specs2.mutable.Specification
 import services.ServiceManager
 import services.avatar.{AvatarAction, AvatarServiceMessage}
 import akka.actor.typed.scaladsl.adapter._
+import net.psforever.objects.avatar.Avatar
 
 import scala.concurrent.duration._
 
@@ -77,7 +78,7 @@ class ResourceSiloTest extends Specification {
 
 class ResourceSiloControlStartupTest extends ActorTest {
   val serviceManager = ServiceManager.boot(system)
-  serviceManager ! ServiceManager.Register(RandomPool(1).props(Props[TaskResolver]), "taskResolver")
+  serviceManager ! ServiceManager.Register(RandomPool(1).props(Props[TaskResolver]()), "taskResolver")
   val obj = ResourceSilo()
   obj.GUID = PlanetSideGUID(1)
   val probe = TestProbe()
@@ -115,7 +116,7 @@ class ResourceSiloControlUseTest extends ActorTest {
   obj.Actor ! "startup"
 
   val player = Player(
-    new Avatar(0L, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
+    new Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
   ) //guid=3
   val vehicle = Vehicle(GlobalDefinitions.ant) //guid=4
   val probe   = new TestProbe(system)
@@ -367,7 +368,7 @@ class ResourceSiloControlNoUpdateTest extends ActorTest {
 
 object ResourceSiloTest {
   val player = Player(
-    new Avatar(0L, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
+    new Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
   )
 
   class ProbedAvatarService(probe: TestProbe) extends Actor {

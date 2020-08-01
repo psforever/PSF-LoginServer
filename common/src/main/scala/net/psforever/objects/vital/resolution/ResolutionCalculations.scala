@@ -147,16 +147,16 @@ object ResolutionCalculations {
             a = result._2
           }
 
-          player.Implants.find(x => x._1 == ImplantType.PersonalShield) match {
-            case Some(x) if x._3 == true => {
+          player.avatar.implants.flatten.find(x => x.definition.implantType == ImplantType.PersonalShield) match {
+            case Some(implant) if implant.active => {
               // Subtract armour damage from stamina
-              result = SubtractWithRemainder(player.Stamina, b)
-              player.Stamina = result._1
+              result = SubtractWithRemainder(player.avatar.stamina, b)
+              player.avatar = player.avatar.copy(stamina = result._1)
               b = result._2
 
               // Then follow up with health damage if any stamina is left
-              result = SubtractWithRemainder(player.Stamina, a)
-              player.Stamina = result._1
+              result = SubtractWithRemainder(player.avatar.stamina, a)
+              player.avatar = player.avatar.copy(stamina = result._1)
               a = result._2
             }
             case _ => ;
@@ -181,7 +181,8 @@ object ResolutionCalculations {
           // If any health damage was applied also drain an amount of stamina equal to half the health damage
           if (player.Health < originalHealth) {
             val delta = originalHealth - player.Health
-            player.Stamina -= math.floor(delta / 2).toInt
+            player.avatar =
+              player.avatar.copy(stamina = math.max(0, player.avatar.stamina - math.floor(delta / 2).toInt))
           }
         }
       case _ =>

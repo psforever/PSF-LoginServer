@@ -287,7 +287,7 @@ class GridInventory extends Container {
     if (!cells.hasNext) {
       None
     } else {
-      val index = cells.next + offset
+      val index = cells.next() + offset
       CheckCollisionsAsGrid(index, tWidth, tHeight) match {
         case Success(Nil) =>
           Some(index)
@@ -466,7 +466,7 @@ class GridInventory extends Container {
     if (!iter.hasNext) {
       None
     } else {
-      val index = iter.next
+      val index = iter.next()
       if (items(index).obj.GUID == guid) {
         Some(index)
       } else {
@@ -567,7 +567,7 @@ class GridInventory extends Container {
       updated: List[List[Int]]
   ): List[List[Int]] = {
     if (original.hasNext) {
-      val target   = original.next
+      val target   = original.next()
       val filtered = updated.filterNot(item => item.equals(target))
       val newupdated = if (filtered.size == updated.size) {
         updated //the lists are the same size, nothing was filtered
@@ -588,7 +588,7 @@ class GridInventory extends Container {
     */
   def Clear(): List[InventoryItem] = {
     val list = items.values.toList
-    items.clear
+    items.clear()
     entryIndex.set(0)
     grid = SetCellsOnlyNoOffset(0, width, height)
     list

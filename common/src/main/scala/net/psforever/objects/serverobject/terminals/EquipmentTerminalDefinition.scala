@@ -214,18 +214,20 @@ object EquipmentTerminalDefinition {
 
   /**
     * Create a new `Tool` from provided `EquipmentDefinition` objects.
+    *
     * @param tdef the `ToolDefinition` object
     * @return a partial function that, when called, creates the piece of `Equipment`
     */
-  private def MakeTool(tdef: ToolDefinition)(): Tool = MakeTool(tdef, Nil)
+  private def MakeTool(tdef: ToolDefinition)(): Tool = MakeTool(tdef, Nil)()
 
   /**
     * Create a new `Tool` from provided `EquipmentDefinition` objects.
+    *
     * @param tdef the `ToolDefinition` object
     * @param adef an `AmmoBoxDefinition` object
     * @return a partial function that, when called, creates the piece of `Equipment`
     */
-  private def MakeTool(tdef: ToolDefinition, adef: AmmoBoxDefinition)(): Tool = MakeTool(tdef, List(adef))
+  private def MakeTool(tdef: ToolDefinition, adef: AmmoBoxDefinition)(): Tool = MakeTool(tdef, List(adef))()
 
   /**
     * Create a new `Tool` from provided `EquipmentDefinition` objects.
@@ -279,7 +281,7 @@ object EquipmentTerminalDefinition {
             case n =>
               ammoSlot.AmmoTypeIndex = n
               ammoSlot.Box =
-                MakeAmmoBox(aType, Some(definition.FireModes(index).Magazine)) //make new internal magazine, full
+                MakeAmmoBox(aType, Some(definition.FireModes(index).Magazine))() //make new internal magazine, full
           }
         case None => ;
       }
@@ -364,24 +366,24 @@ object EquipmentTerminalDefinition {
         (0 until tool.MaxAmmoSlot).foreach(index => {
           val slot = tool.AmmoSlots(index)
           slot.AmmoTypeIndex += obj.ammo(index).ammoIndex
-          slot.Box = MakeAmmoBox(ammo(index), Some(slot.Definition.Magazine)) //Some(obj.ammo(index).ammo.capacity)
+          slot.Box = MakeAmmoBox(ammo(index), Some(slot.Definition.Magazine))() //Some(obj.ammo(index).ammo.capacity)
         })
         tool
 
       case obj: ShorthandAmmoBox =>
-        MakeAmmoBox(obj.definition) //Some(obj.capacity)
+        MakeAmmoBox(obj.definition)() //Some(obj.capacity)
 
       case obj: ShorthandConstructionItem =>
-        MakeConstructionItem(obj.definition)
+        MakeConstructionItem(obj.definition)()
 
       case obj: ShorthandTriggerItem =>
-        MakeTriggerItem(obj.definition)
+        MakeTriggerItem(obj.definition)()
 
       case obj: ShorthandSimpleItem =>
-        MakeSimpleItem(obj.definition)
+        MakeSimpleItem(obj.definition)()
 
       case obj: ShorthandKit =>
-        MakeKit(obj.definition)
+        MakeKit(obj.definition)()
     }
   }
 

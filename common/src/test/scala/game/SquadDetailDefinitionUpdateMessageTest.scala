@@ -1,9 +1,10 @@
 // Copyright (c) 2019 PSForever
 package game
 
+import net.psforever.objects.avatar.Certification
 import net.psforever.packet._
 import net.psforever.packet.game._
-import net.psforever.types.{CertificationType, PlanetSideGUID}
+import net.psforever.types.PlanetSideGUID
 import org.specs2.mutable._
 import scodec.bits._
 
@@ -203,7 +204,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
                 case Some(SquadPositionDetail(None, Some(role), None, Some(req), None, None)) =>
                   role mustEqual "ADV Hacker"
                   req.size mustEqual 1
-                  req.contains(CertificationType.AdvancedHacking) mustEqual true
+                  req.contains(Certification.AdvancedHacking) mustEqual true
                 case _ =>
                   ko
               }
@@ -310,9 +311,9 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
                     Some(""),
                     Some(
                       Set(
-                        CertificationType.StandardAssault,
-                        CertificationType.StandardExoSuit,
-                        CertificationType.AgileExoSuit
+                        Certification.StandardAssault,
+                        Certification.StandardExoSuit,
+                        Certification.AgileExoSuit
                       )
                     ),
                     Some(0),
@@ -329,9 +330,9 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
                     Some(""),
                     Some(
                       Set(
-                        CertificationType.StandardAssault,
-                        CertificationType.StandardExoSuit,
-                        CertificationType.AgileExoSuit
+                        Certification.StandardAssault,
+                        Certification.StandardExoSuit,
+                        Certification.AgileExoSuit
                       )
                     ),
                     Some(0),
@@ -348,9 +349,9 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
                     Some(""),
                     Some(
                       Set(
-                        CertificationType.StandardAssault,
-                        CertificationType.StandardExoSuit,
-                        CertificationType.AgileExoSuit
+                        Certification.StandardAssault,
+                        Certification.StandardExoSuit,
+                        Certification.AgileExoSuit
                       )
                     ),
                     Some(42644970L),
@@ -367,9 +368,9 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
                     Some(""),
                     Some(
                       Set(
-                        CertificationType.StandardAssault,
-                        CertificationType.StandardExoSuit,
-                        CertificationType.AgileExoSuit
+                        Certification.StandardAssault,
+                        Certification.StandardExoSuit,
+                        Certification.AgileExoSuit
                       )
                     ),
                     Some(41604210L),
@@ -386,9 +387,9 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
                     Some(""),
                     Some(
                       Set(
-                        CertificationType.StandardAssault,
-                        CertificationType.StandardExoSuit,
-                        CertificationType.AgileExoSuit
+                        Certification.StandardAssault,
+                        Certification.StandardExoSuit,
+                        Certification.AgileExoSuit
                       )
                     ),
                     Some(0),
@@ -405,9 +406,9 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
                     Some(""),
                     Some(
                       Set(
-                        CertificationType.StandardAssault,
-                        CertificationType.StandardExoSuit,
-                        CertificationType.AgileExoSuit
+                        Certification.StandardAssault,
+                        Certification.StandardExoSuit,
+                        Certification.AgileExoSuit
                       )
                     ),
                     Some(0),
@@ -424,9 +425,9 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
                     Some(""),
                     Some(
                       Set(
-                        CertificationType.StandardAssault,
-                        CertificationType.StandardExoSuit,
-                        CertificationType.AgileExoSuit
+                        Certification.StandardAssault,
+                        Certification.StandardExoSuit,
+                        Certification.AgileExoSuit
                       )
                     ),
                     Some(0),
@@ -443,9 +444,9 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
                     Some(""),
                     Some(
                       Set(
-                        CertificationType.StandardAssault,
-                        CertificationType.StandardExoSuit,
-                        CertificationType.AgileExoSuit
+                        Certification.StandardAssault,
+                        Certification.StandardExoSuit,
+                        Certification.AgileExoSuit
                       )
                     ),
                     Some(0),
@@ -462,9 +463,9 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
                     Some(""),
                     Some(
                       Set(
-                        CertificationType.StandardAssault,
-                        CertificationType.StandardExoSuit,
-                        CertificationType.AgileExoSuit
+                        Certification.StandardAssault,
+                        Certification.StandardExoSuit,
+                        Certification.AgileExoSuit
                       )
                     ),
                     Some(42771010L),
@@ -481,9 +482,9 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
                     Some(""),
                     Some(
                       Set(
-                        CertificationType.StandardAssault,
-                        CertificationType.StandardExoSuit,
-                        CertificationType.AgileExoSuit
+                        Certification.StandardAssault,
+                        Certification.StandardExoSuit,
+                        Certification.AgileExoSuit
                       )
                     ),
                     Some(0),
@@ -779,7 +780,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
                 6,
                 SquadPositionDetail()
                   .Role("ADV Hacker")
-                  .Requirements(Set(CertificationType.AdvancedHacking))
+                  .Requirements(Set(Certification.AdvancedHacking))
               )
             )
           )

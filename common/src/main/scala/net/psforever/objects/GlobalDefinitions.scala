@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
+import net.psforever.objects.avatar.Certification
 import net.psforever.objects.ballistics.Projectiles
 import net.psforever.objects.ce.{DeployableCategory, DeployedItem}
 import net.psforever.objects.definition._
@@ -22,8 +23,7 @@ import net.psforever.objects.serverobject.turret.{FacilityTurretDefinition, Turr
 import net.psforever.objects.vehicles.{DestroyedVehicle, InternalTelepadDefinition, SeatArmorRestriction, UtilityType}
 import net.psforever.objects.vital.damage.{DamageCalculations, DamageModifiers}
 import net.psforever.objects.vital.{DamageType, StandardResolutions}
-import net.psforever.types.{CertificationType, ExoSuitType, PlanetSideEmpire, Vector3}
-
+import net.psforever.types.{ExoSuitType, ImplantType, PlanetSideEmpire, Vector3}
 import scala.collection.mutable
 import scala.concurrent.duration._
 
@@ -53,47 +53,67 @@ object GlobalDefinitions {
   /*
   Implants
    */
-  val advanced_regen = ImplantDefinition(0)
+  val advanced_regen = new ImplantDefinition(ImplantType.AdvancedRegen) {
+    Name = "advanced_regen"
+  }
   advanced_regen.InitializationDuration = 120
   advanced_regen.StaminaCost = 2
   advanced_regen.CostIntervalDefault = 500
 
-  val targeting = ImplantDefinition(1)
+  val targeting = new ImplantDefinition(ImplantType.Targeting) {
+    Name = "targeting"
+  }
   targeting.InitializationDuration = 60
 
-  val audio_amplifier = ImplantDefinition(2)
+  val audio_amplifier = new ImplantDefinition(ImplantType.AudioAmplifier) {
+    Name = "audio_amplifier"
+  }
   audio_amplifier.InitializationDuration = 60
   audio_amplifier.StaminaCost = 1
   audio_amplifier.CostIntervalDefault = 1000
 
-  val darklight_vision = ImplantDefinition(3)
+  val darklight_vision = new ImplantDefinition(ImplantType.DarklightVision) {
+    Name = "darklight_vision"
+  }
   darklight_vision.InitializationDuration = 60
   darklight_vision.ActivationStaminaCost = 3
   darklight_vision.StaminaCost = 1
   darklight_vision.CostIntervalDefault = 500
 
-  val melee_booster = ImplantDefinition(4)
+  val melee_booster = new ImplantDefinition(ImplantType.MeleeBooster) {
+    Name = "melee_booster"
+  }
   melee_booster.InitializationDuration = 120
   melee_booster.StaminaCost = 10
 
-  val personal_shield = ImplantDefinition(5)
+  val personal_shield = new ImplantDefinition(ImplantType.PersonalShield) {
+    Name = "personal_shield"
+  }
   personal_shield.InitializationDuration = 120
   personal_shield.StaminaCost = 1
   personal_shield.CostIntervalDefault = 600
 
-  val range_magnifier = ImplantDefinition(6)
+  val range_magnifier = new ImplantDefinition(ImplantType.RangeMagnifier) {
+    Name = "range_magnifier"
+  }
   range_magnifier.InitializationDuration = 60
 
-  val second_wind = ImplantDefinition(7)
+  val second_wind = new ImplantDefinition(ImplantType.SecondWind) {
+    Name = "second_wind"
+  }
   second_wind.InitializationDuration = 180
 
-  val silent_run = ImplantDefinition(8)
+  val silent_run = new ImplantDefinition(ImplantType.SilentRun) {
+    Name = "silent_run"
+  }
   silent_run.InitializationDuration = 90
   silent_run.StaminaCost = 1
   silent_run.CostIntervalDefault = 333
   silent_run.CostIntervalByExoSuitHashMap(ExoSuitType.Agile) = 1000
 
-  val surge = ImplantDefinition(9)
+  val surge = new ImplantDefinition(ImplantType.Surge) {
+    Name = "surge"
+  }
   surge.InitializationDuration = 90
   surge.StaminaCost = 1
   surge.CostIntervalDefault = 1000
@@ -1633,7 +1653,7 @@ object GlobalDefinitions {
 
     Reinforced.Name = "med_armor"
     Reinforced.Descriptor = "reinforced"
-    Reinforced.Permissions = List(CertificationType.ReinforcedExoSuit)
+    Reinforced.Permissions = List(Certification.ReinforcedExoSuit)
     Reinforced.MaxArmor = 200
     Reinforced.InventoryScale = InventoryTile.Tile1209
     Reinforced.InventoryOffset = 6
@@ -1647,7 +1667,7 @@ object GlobalDefinitions {
     Reinforced.ResistanceAggravated = 12
 
     Infiltration.Name = "infiltration_suit"
-    Infiltration.Permissions = List(CertificationType.InfiltrationSuit)
+    Infiltration.Permissions = List(Certification.InfiltrationSuit)
     Infiltration.MaxArmor = 0
     Infiltration.InventoryScale = InventoryTile.Tile66
     Infiltration.InventoryOffset = 6
@@ -1655,8 +1675,7 @@ object GlobalDefinitions {
     Infiltration.Holster(4, EquipmentSize.Melee)
 
     def CommonMaxConfig(max: SpecialExoSuitDefinition): Unit = {
-      max.Permissions =
-        List(CertificationType.AIMAX, CertificationType.AVMAX, CertificationType.AAMAX, CertificationType.UniMAX)
+      max.Permissions = List(Certification.AIMAX, Certification.AVMAX, Certification.AAMAX, Certification.UniMAX)
       max.MaxArmor = 650
       max.InventoryScale = InventoryTile.Tile1612
       max.InventoryOffset = 6
@@ -4720,35 +4739,33 @@ object GlobalDefinitions {
     ace.Name = "ace"
     ace.Size = EquipmentSize.Pistol
     ace.Modes += new ConstructionFireMode
-    ace.Modes.head.Item(DeployedItem.boomer -> Set(CertificationType.CombatEngineering))
+    ace.Modes.head.Item(DeployedItem.boomer, Set(Certification.CombatEngineering))
     ace.Modes += new ConstructionFireMode
-    ace.Modes(1).Item(DeployedItem.he_mine     -> Set(CertificationType.CombatEngineering))
-    ace.Modes(1).Item(DeployedItem.jammer_mine -> Set(CertificationType.AssaultEngineering))
+    ace.Modes(1).Item(DeployedItem.he_mine, Set(Certification.CombatEngineering))
+    ace.Modes(1).Item(DeployedItem.jammer_mine, Set(Certification.AssaultEngineering))
     ace.Modes += new ConstructionFireMode
-    ace.Modes(2).Item(DeployedItem.spitfire_turret  -> Set(CertificationType.CombatEngineering))
-    ace.Modes(2).Item(DeployedItem.spitfire_cloaked -> Set(CertificationType.FortificationEngineering))
-    ace.Modes(2).Item(DeployedItem.spitfire_aa      -> Set(CertificationType.FortificationEngineering))
+    ace.Modes(2).Item(DeployedItem.spitfire_turret, Set(Certification.CombatEngineering))
+    ace.Modes(2).Item(DeployedItem.spitfire_cloaked, Set(Certification.FortificationEngineering))
+    ace.Modes(2).Item(DeployedItem.spitfire_aa, Set(Certification.FortificationEngineering))
     ace.Modes += new ConstructionFireMode
-    ace.Modes(3).Item(DeployedItem.motionalarmsensor -> Set(CertificationType.CombatEngineering))
-    ace
-      .Modes(3)
-      .Item(DeployedItem.sensor_shield -> Set(CertificationType.AdvancedHacking, CertificationType.CombatEngineering))
+    ace.Modes(3).Item(DeployedItem.motionalarmsensor, Set(Certification.CombatEngineering))
+    ace.Modes(3).Item(DeployedItem.sensor_shield, Set(Certification.AdvancedHacking, Certification.CombatEngineering))
     ace.Tile = InventoryTile.Tile33
 
     advanced_ace.Name = "advanced_ace"
     advanced_ace.Size = EquipmentSize.Rifle
     advanced_ace.Modes += new ConstructionFireMode
-    advanced_ace.Modes.head.Item(DeployedItem.tank_traps -> Set(CertificationType.FortificationEngineering))
+    advanced_ace.Modes.head.Item(DeployedItem.tank_traps, Set(Certification.FortificationEngineering))
     advanced_ace.Modes += new ConstructionFireMode
-    advanced_ace.Modes(1).Item(DeployedItem.portable_manned_turret -> Set(CertificationType.AssaultEngineering))
+    advanced_ace.Modes(1).Item(DeployedItem.portable_manned_turret, Set(Certification.AssaultEngineering))
     advanced_ace.Modes += new ConstructionFireMode
-    advanced_ace.Modes(2).Item(DeployedItem.deployable_shield_generator -> Set(CertificationType.AssaultEngineering))
+    advanced_ace.Modes(2).Item(DeployedItem.deployable_shield_generator, Set(Certification.AssaultEngineering))
     advanced_ace.Tile = InventoryTile.Tile93
 
     router_telepad.Name = "router_telepad"
     router_telepad.Size = EquipmentSize.Pistol
     router_telepad.Modes += new ConstructionFireMode
-    router_telepad.Modes.head.Item(DeployedItem.router_telepad_deployable -> Set(CertificationType.GroundSupport))
+    router_telepad.Modes.head.Item(DeployedItem.router_telepad_deployable, Set(Certification.GroundSupport))
     router_telepad.Tile = InventoryTile.Tile33
     router_telepad.Packet = new TelepadConverter
 
@@ -6125,7 +6142,8 @@ object GlobalDefinitions {
     vulture.TrunkLocation = Vector3(-0.76f, -1.88f, 0f)
     vulture.AutoPilotSpeeds = (0, 4)
     vulture.Packet = variantConverter
-    vulture.DestroyedModel = Some(DestroyedVehicle.Liberator) //add_property vulture destroyedphysics liberator_destroyed
+    vulture.DestroyedModel =
+      Some(DestroyedVehicle.Liberator) //add_property vulture destroyedphysics liberator_destroyed
     vulture.Subtract.Damage1 = 5
     vulture.JackingDuration = Array(0, 30, 10, 5)
     vulture.DamageUsing = DamageCalculations.AgainstAircraft
@@ -6599,7 +6617,9 @@ object GlobalDefinitions {
     vanu_equipment_term.Repairable = false
 
     cert_terminal.Name = "cert_terminal"
-    cert_terminal.Tab += 0 -> OrderTerminalDefinition.CertificationPage(CertTerminalDefinition.certs)
+    val certs = Certification.values.filter(_.cost != 0)
+    val page  = OrderTerminalDefinition.CertificationPage(certs)
+    cert_terminal.Tab += 0 -> page
     cert_terminal.MaxHealth = 500
     cert_terminal.Damageable = true
     cert_terminal.Repairable = true
@@ -6954,4 +6974,5 @@ object GlobalDefinitions {
     generator.RepairIfDestroyed = true
     generator.Subtract.Damage1 = 9
   }
+
 }

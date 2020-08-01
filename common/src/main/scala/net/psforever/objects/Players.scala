@@ -82,7 +82,7 @@ object Players {
     if (!iter.hasNext) {
       list
     } else {
-      val slot = iter.next
+      val slot = iter.next()
       slot.Equipment match {
         case Some(equipment) =>
           slot.Equipment = None
@@ -105,7 +105,7 @@ object Players {
     if (!iter.hasNext) {
       list
     } else {
-      val slot = iter.next
+      val slot = iter.next()
       if (slot.Equipment.isEmpty) {
         list.find(item => item.obj.Size == slot.Size) match {
           case Some(obj) =>
@@ -126,11 +126,11 @@ object Players {
       case Nil =>
         true
       case permissions if subtype != 0 =>
-        val certs = player.Certifications
+        val certs = player.avatar.certifications
         certs.intersect(permissions.toSet).nonEmpty &&
         certs.intersect(InfantryLoadout.DetermineSubtypeC(subtype)).nonEmpty
       case permissions =>
-        player.Certifications.intersect(permissions.toSet).nonEmpty
+        player.avatar.certifications.intersect(permissions.toSet).nonEmpty
     }
   }
 }

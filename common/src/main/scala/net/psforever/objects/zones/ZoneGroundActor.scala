@@ -19,27 +19,27 @@ class ZoneGroundActor(zone: Zone, equipmentOnGround: ListBuffer[Equipment]) exte
 
   def receive: Receive = {
     case Zone.Ground.DropItem(item, pos, orient) =>
-      sender ! (if (!item.HasGUID) {
-                  Zone.Ground.CanNotDropItem(zone, item, "not registered yet")
-                } else if (zone.GUID(item.GUID).isEmpty) {
-                  Zone.Ground.CanNotDropItem(zone, item, "registered to some other zone")
-                } else if (equipmentOnGround.contains(item)) {
-                  Zone.Ground.CanNotDropItem(zone, item, "already dropped")
-                } else {
-                  equipmentOnGround += item
-                  item.Position = pos
-                  item.Orientation = orient
-                  zone.AvatarEvents ! AvatarServiceMessage(
-                    zone.Id,
-                    AvatarAction.DropItem(Service.defaultPlayerGUID, item)
-                  )
-                  Zone.Ground.ItemOnGround(item, pos, orient)
-                })
+      sender() ! (if (!item.HasGUID) {
+                    Zone.Ground.CanNotDropItem(zone, item, "not registered yet")
+                  } else if (zone.GUID(item.GUID).isEmpty) {
+                    Zone.Ground.CanNotDropItem(zone, item, "registered to some other zone")
+                  } else if (equipmentOnGround.contains(item)) {
+                    Zone.Ground.CanNotDropItem(zone, item, "already dropped")
+                  } else {
+                    equipmentOnGround += item
+                    item.Position = pos
+                    item.Orientation = orient
+                    zone.AvatarEvents ! AvatarServiceMessage(
+                      zone.id,
+                      AvatarAction.DropItem(Service.defaultPlayerGUID, item)
+                    )
+                    Zone.Ground.ItemOnGround(item, pos, orient)
+                  })
 
     case Zone.Ground.PickupItem(item_guid) =>
-      sender ! (FindItemOnGround(item_guid) match {
+      sender() ! (FindItemOnGround(item_guid) match {
         case Some(item) =>
-          zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.PickupItem(Service.defaultPlayerGUID, item, 0))
+          zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.PickupItem(Service.defaultPlayerGUID, item, 0))
           Zone.Ground.ItemInHand(item)
         case None =>
           Zone.Ground.CanNotPickupItem(zone, item_guid, "can not find")
@@ -49,7 +49,7 @@ class ZoneGroundActor(zone: Zone, equipmentOnGround: ListBuffer[Equipment]) exte
       //intentionally no callback
       FindItemOnGround(item_guid) match {
         case Some(item) =>
-          zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.PickupItem(Service.defaultPlayerGUID, item, 0))
+          zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.PickupItem(Service.defaultPlayerGUID, item, 0))
         case None => ;
       }
 
@@ -87,7 +87,7 @@ class ZoneGroundActor(zone: Zone, equipmentOnGround: ListBuffer[Equipment]) exte
     if (!iter.hasNext) {
       None
     } else {
-      val item: Equipment = iter.next
+      val item: Equipment = iter.next()
       if (item.GUID == item_guid) {
         Some(index)
       } else {

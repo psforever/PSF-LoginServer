@@ -119,7 +119,7 @@ class ShieldGeneratorControl(gen: ShieldGeneratorDeployable)
     target match {
       case obj: PlanetSideServerObject with JammableUnit if !obj.Jammed =>
         obj.Zone.VehicleEvents ! VehicleServiceMessage(
-          obj.Zone.Id,
+          obj.Zone.id,
           VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, obj.GUID, 27, 1)
         )
         super.StartJammeredStatus(obj, dur)
@@ -132,7 +132,7 @@ class ShieldGeneratorControl(gen: ShieldGeneratorDeployable)
     target match {
       case obj: PlanetSideServerObject with JammableUnit if obj.Jammed =>
         obj.Zone.VehicleEvents ! VehicleServiceMessage(
-          obj.Zone.Id,
+          obj.Zone.id,
           VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, obj.GUID, 27, 0)
         )
       case _ => ;
@@ -154,7 +154,7 @@ object ShieldGeneratorControl {
     if (damageToShields) {
       val zone = target.Zone
       zone.VehicleEvents ! VehicleServiceMessage(
-        zone.Id,
+        zone.id,
         VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 68, target.Shields)
       )
     }

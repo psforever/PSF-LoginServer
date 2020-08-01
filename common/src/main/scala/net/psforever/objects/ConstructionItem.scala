@@ -1,10 +1,10 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
+import net.psforever.objects.avatar.Certification
 import net.psforever.objects.ce.DeployedItem
 import net.psforever.objects.definition.{ConstructionFireMode, ConstructionItemDefinition}
 import net.psforever.objects.equipment.{Equipment, FireModeSwitch}
-import net.psforever.types.CertificationType
 
 /**
   * A type of `Equipment` that can be wielded and applied to the game world to produce other game objects.<br>
@@ -55,7 +55,7 @@ class ConstructionItem(private val cItemDef: ConstructionItemDefinition)
     FireMode.Deployables(ammoTypeIndex)
   }
 
-  def ModePermissions: Set[CertificationType.Value] = FireMode.Permissions(ammoTypeIndex)
+  def ModePermissions: Set[Certification] = FireMode.Permissions(ammoTypeIndex)
 
   def Definition: ConstructionItemDefinition = cItemDef
 }

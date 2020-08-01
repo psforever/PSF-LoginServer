@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game.objectcreate
 
+import net.psforever.objects.avatar.Cosmetic
 import net.psforever.packet.{Marshallable, PacketHelpers}
 import scodec.codecs._
 import scodec.{Attempt, Codec, Err}
@@ -86,18 +87,24 @@ final case class CharacterData(
     unk: Int,
     command_rank: Int,
     implant_effects: List[ImplantEffects.Value],
-    cosmetics: Option[Cosmetics]
+    cosmetics: Option[Set[Cosmetic]]
 )(
     is_backpack: Boolean,
     is_seated: Boolean
 ) extends ConstructorData {
 
   override def bitsize: Long = {
-    val seatedSize = if (is_seated) { 0 }
-    else { 16 }
+    val seatedSize = if (is_seated) {
+      0
+    } else {
+      16
+    }
     val effectsSize: Long = implant_effects.length * 4L
-    val cosmeticsSize: Long = if (cosmetics.isDefined) { cosmetics.get.bitsize }
-    else { 0L }
+    val cosmeticsSize: Long = if (cosmetics.isDefined) {
+      5L
+    } else {
+      0L
+    }
     11L + seatedSize + effectsSize + cosmeticsSize
   }
 }
@@ -120,7 +127,7 @@ object CharacterData extends Marshallable[CharacterData] {
       uniform: UniformStyle.Value,
       cr: Int,
       implant_effects: List[ImplantEffects.Value],
-      cosmetics: Option[Cosmetics]
+      cosmetics: Option[Set[Cosmetic]]
   ): (Boolean, Boolean) => CharacterData =
     CharacterData(health, armor, uniform, 0, cr, implant_effects, cosmetics)
 
@@ -132,7 +139,7 @@ object CharacterData extends Marshallable[CharacterData] {
         uint(3) :: //uniform_upgrade is actually interpreted as a 6u field, but the lower 3u seems to be discarded
           ("command_rank" | uintL(3)) ::
           listOfN(uint2, "implant_effects" | ImplantEffects.codec) ::
-          conditional(style.id > UniformStyle.SecondUpgrade.id, "cosmetics" | Cosmetics.codec)
+          conditional(style.id > UniformStyle.SecondUpgrade.id, "cosmetics" | Cosmetic.codec)
       })
     ).exmap[CharacterData](
       {
@@ -140,7 +147,15 @@ object CharacterData extends Marshallable[CharacterData] {
           val newHealth = if (is_backpack) { 0 }
           else { health }
           Attempt.Successful(
-            CharacterData(newHealth, armor, uniform, unk, cr, implant_effects, cosmetics)(is_backpack, false)
+            CharacterData(
+              newHealth,
+              armor,
+              uniform,
+              unk,
+              cr,
+              implant_effects,
+              cosmetics
+            )(is_backpack, is_seated = false)
           )
 
         case _ =>
@@ -163,12 +178,22 @@ object CharacterData extends Marshallable[CharacterData] {
         uint(3) :: //uniform_upgrade is actually interpreted as a 6u field, but the lower 3u seems to be discarded
           ("command_rank" | uintL(3)) ::
           listOfN(uint2, "implant_effects" | ImplantEffects.codec) ::
-          conditional(style.id > UniformStyle.SecondUpgrade.id, "cosmetics" | Cosmetics.codec)
+          conditional(style.id > UniformStyle.SecondUpgrade.id, "cosmetics" | Cosmetic.codec)
       }
     ).exmap[CharacterData](
       {
         case uniform :: unk :: cr :: implant_effects :: cosmetics :: HNil =>
-          Attempt.Successful(new CharacterData(100, 0, uniform, unk, cr, implant_effects, cosmetics)(is_backpack, true))
+          Attempt.Successful(
+            new CharacterData(
+              100,
+              0,
+              uniform,
+              unk,
+              cr,
+              implant_effects,
+              cosmetics
+            )(is_backpack, true)
+          )
 
         case _ =>
           Attempt.Failure(Err("invalid character data; can not encode"))

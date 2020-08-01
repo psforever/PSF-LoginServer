@@ -2,7 +2,7 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
-import net.psforever.types.{ImplantType, PlanetSideGUID}
+import net.psforever.types.PlanetSideGUID
 import scodec.Codec
 import scodec.codecs._
 
@@ -82,56 +82,9 @@ final case class CreateShortcutMessage(
 }
 
 object Shortcut extends Marshallable[Shortcut] {
-  // Convenient predefined Shortcuts for the Medkit and Implants
-
-  /**
-    *    A map to convert between ImplantTypes and Implant Shortcuts
-    */
-  final lazy val ImplantsMap: Map[ImplantType.Value, Option[Shortcut]] = Map(
-    ImplantType.AdvancedRegen   -> Regeneration,
-    ImplantType.Targeting       -> EnhancedTargeting,
-    ImplantType.AudioAmplifier  -> AudioAmplifier,
-    ImplantType.DarklightVision -> DartklightVision,
-    ImplantType.MeleeBooster    -> MeleeBooster,
-    ImplantType.PersonalShield  -> PersonalShield,
-    ImplantType.RangeMagnifier  -> RangeMagnifier,
-    ImplantType.SecondWind      -> SecondWind,
-    ImplantType.SilentRun       -> SensorShield,
-    ImplantType.Surge           -> Surge
-  ).withDefaultValue(None)
-
-  /** Preset for the Audio Amplifier implant. */
-  final val AudioAmplifier: Some[Shortcut] = Some(Shortcut(2, "audio_amplifier"))
-
-  /** Preset for the Darklight Vision implant. */
-  final val DartklightVision: Some[Shortcut] = Some(Shortcut(2, "darklight_vision"))
-
-  /** Preset for the Enhanced Targeting implant. */
-  final val EnhancedTargeting: Some[Shortcut] = Some(Shortcut(2, "targeting"))
 
   /** Preset for the medkit quick-use option. */
   final val Medkit: Some[Shortcut] = Some(Shortcut(0, "medkit"))
-
-  /** Preset for the Melee Booster implant. */
-  final val MeleeBooster: Some[Shortcut] = Some(Shortcut(2, "melee_booster"))
-
-  /** Preset for the Personal Shield implant. */
-  final val PersonalShield: Some[Shortcut] = Some(Shortcut(2, "personal_shield"))
-
-  /** Preset for the Range Magnifier implant. */
-  final val RangeMagnifier: Some[Shortcut] = Some(Shortcut(2, "range_magnifier"))
-
-  /** Preset for the Regeneration implant. */
-  final val Regeneration: Some[Shortcut] = Some(Shortcut(2, "advanced_regen"))
-
-  /** Preset for the Second Wind implant. */
-  final val SecondWind: Some[Shortcut] = Some(Shortcut(2, "second_wind"))
-
-  /** Preset for the Sensor Shield implant. */
-  final val SensorShield: Some[Shortcut] = Some(Shortcut(2, "silent_run"))
-
-  /** Preset for the Surge implant. */
-  final val Surge: Some[Shortcut] = Some(Shortcut(2, "surge"))
 
   /**
     * Converter for text macro parameters that acts like a preset.

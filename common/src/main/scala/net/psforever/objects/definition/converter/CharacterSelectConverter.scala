@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition.converter
 
+import net.psforever.objects.avatar.Certification
 import net.psforever.objects.{Player, Tool}
 import net.psforever.objects.equipment.EquipmentSlot
 import net.psforever.packet.game.objectcreate._
@@ -42,10 +43,10 @@ class CharacterSelectConverter extends AvatarConverter {
       CommonFieldData(
         obj.Faction,
         bops = false,
-        false,
-        false,
+        alternate = false,
+        v1 = false,
         None,
-        false,
+        jammered = false,
         None,
         v5 = None,
         PlanetSideGUID(0)
@@ -62,38 +63,37 @@ class CharacterSelectConverter extends AvatarConverter {
       0L,
       outfit_name = "",
       outfit_logo = 0,
-      false,
+      unk1 = false,
       backpack = false,
-      false,
-      false,
-      false,
+      unk2 = false,
+      unk3 = false,
+      unk4 = false,
       facingPitch = 0,
       facingYawUpper = 0,
       lfs = false,
       GrenadeState.None,
-      obj.Cloaked,
-      false,
-      false,
+      is_cloaking = obj.Cloaked,
+      unk5 = false,
+      unk6 = false,
       charging_pose = false,
-      false,
+      unk7 = false,
       on_zipline = None
     )
     CharacterAppearanceData(aa, ab, RibbonBars())
   }
 
   private def MakeDetailedCharacterData(obj: Player): Option[Int] => DetailedCharacterData = {
-    val bep: Long = obj.BEP
     val maxOpt: Option[Long] = if (obj.ExoSuit == ExoSuitType.MAX) { Some(0L) }
     else { None }
     val ba: DetailedCharacterA = DetailedCharacterA(
-      bep,
-      obj.CEP,
+      obj.avatar.bep,
+      obj.avatar.cep,
       0L,
       0L,
       0L,
       1,
       1,
-      false,
+      unk4 = false,
       0,
       0L,
       1,
@@ -103,11 +103,13 @@ class CharacterSelectConverter extends AvatarConverter {
       0,
       0L,
       List(0, 0, 0, 0, 0, 0),
-      certs = List.empty[CertificationType.Value]
+      certs = List.empty[Certification]
     )
+
     val bb: (Long, Option[Int]) => DetailedCharacterB = DetailedCharacterB(
       None,
-      MakeImplantEntries(obj), //necessary for correct stream length
+      // necessary for correct stream length
+      List.fill[ImplantEntry](obj.avatar.br.implantSlots)(ImplantEntry(ImplantType.None, None)),
       Nil,
       Nil,
       firstTimeEvents = List.empty[String],
@@ -120,20 +122,10 @@ class CharacterSelectConverter extends AvatarConverter {
       Some(DCDExtra2(0, 0)),
       Nil,
       Nil,
-      false,
-      AvatarConverter.MakeCosmetics(obj)
+      unkC = false,
+      obj.avatar.cosmetics
     )
-    pad_length: Option[Int] => DetailedCharacterData(ba, bb(bep, pad_length))(pad_length)
-  }
-
-  /**
-    * Transform an `Array` of `Implant` objects into a `List` of `ImplantEntry` objects suitable as packet data.
-    * @param obj the `Player` game object
-    * @return the resulting implant `List`
-    * @see `ImplantEntry` in `DetailedCharacterData`
-    */
-  private def MakeImplantEntries(obj: Player): List[ImplantEntry] = {
-    List.fill[ImplantEntry](DetailedCharacterData.numberOfImplantSlots(obj.BEP))(ImplantEntry(ImplantType.None, None))
+    pad_length: Option[Int] => DetailedCharacterData(ba, bb(obj.avatar.bep, pad_length))(pad_length)
   }
 
   /**
@@ -152,7 +144,7 @@ class CharacterSelectConverter extends AvatarConverter {
     if (!iter.hasNext) {
       list
     } else {
-      val slot: EquipmentSlot = iter.next
+      val slot: EquipmentSlot = iter.next()
       slot.Equipment match {
         case Some(equip: Tool) =>
           val jammed = equip.Jammed

@@ -26,7 +26,7 @@ class LockerControl(locker: Locker)
             if item.Definition == GlobalDefinitions.remote_electronics_kit =>
           //TODO setup certifications check
           if (locker.Faction != player.Faction && locker.HackedBy.isEmpty) {
-            sender ! CommonMessages.Progress(
+            sender() ! CommonMessages.Progress(
               GenericHackables.GetHackSpeed(player, locker),
               GenericHackables.FinishHacking(locker, player, 3212836864L),
               GenericHackables.HackingTickAction(progressType = 1, player, locker, item.GUID)

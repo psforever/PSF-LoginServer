@@ -151,7 +151,7 @@ class Building(
       if (originalStatus != ForceDomeActive) {
         if (Actor != Default.Actor) {
           Zone.LocalEvents ! LocalServiceMessage(
-            Zone.Id,
+            Zone.id,
             LocalAction.UpdateForceDomeStatus(Service.defaultPlayerGUID, GUID, ForceDomeActive)
           )
           Actor ! BuildingActor.MapUpdate()
@@ -273,7 +273,7 @@ class Building(
 
   override def Zone_=(zone: Zone): Zone = Zone //building never leaves zone after being set in constructor
 
-  override def Continent: String = Zone.Id
+  override def Continent: String = Zone.id
 
   override def Continent_=(zone: String): String = Continent //building never leaves zone after being set in constructor
 

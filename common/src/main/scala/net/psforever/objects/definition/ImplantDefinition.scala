@@ -14,11 +14,11 @@ import scala.collection.mutable
   * Passive implants are always active and thus have no cost.
   * After being activated, a non-passive implant consumes a specific amount of stamina at regular intervals
   * Some implants will specify a different interval for consuming stamina based on the exo-suit the player is wearing
+  *
   * @param implantType the type of implant that is defined
   * @see `ImplantType`
   */
-class ImplantDefinition(private val implantType: Int) extends BasicDefinition {
-  ImplantType(implantType)
+class ImplantDefinition(val implantType: ImplantType) extends BasicDefinition {
 
   /** how long it takes the implant to become ready for activation; is milliseconds */
   private var initializationDuration: Long = 0L
@@ -84,16 +84,4 @@ class ImplantDefinition(private val implantType: Int) extends BasicDefinition {
   def GetCostIntervalByExoSuit(exosuit: ExoSuitType.Value): Int =
     costIntervalByExoSuit.getOrElse(exosuit, CostIntervalDefault)
   def CostIntervalByExoSuitHashMap: mutable.Map[ExoSuitType.Value, Int] = costIntervalByExoSuit
-
-  def Type: ImplantType.Value = ImplantType(implantType)
-}
-
-object ImplantDefinition {
-  def apply(implantType: Int): ImplantDefinition = {
-    new ImplantDefinition(implantType)
-  }
-
-  def apply(implantType: ImplantType.Value): ImplantDefinition = {
-    new ImplantDefinition(implantType.id)
-  }
 }

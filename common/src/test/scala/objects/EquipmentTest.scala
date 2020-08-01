@@ -5,9 +5,10 @@ import net.psforever.objects._
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.GlobalDefinitions._
+import net.psforever.objects.avatar.Certification
 import net.psforever.objects.ce.DeployedItem
 import net.psforever.objects.definition._
-import net.psforever.types.{CertificationType, PlanetSideGUID}
+import net.psforever.types.PlanetSideGUID
 import org.specs2.mutable._
 
 class EquipmentTest extends Specification {
@@ -398,13 +399,13 @@ class EquipmentTest extends Specification {
     "qualify certifications that must be met before ammo types may be used" in {
       val obj: ConstructionItem = ConstructionItem(GlobalDefinitions.ace)
       obj.AmmoType mustEqual DeployedItem.boomer
-      obj.ModePermissions mustEqual Set(CertificationType.CombatEngineering)
+      obj.ModePermissions mustEqual Set(Certification.CombatEngineering)
       obj.NextFireMode
       obj.AmmoType mustEqual DeployedItem.he_mine
-      obj.ModePermissions mustEqual Set(CertificationType.CombatEngineering)
+      obj.ModePermissions mustEqual Set(Certification.CombatEngineering)
       obj.NextAmmoType
       obj.AmmoType mustEqual DeployedItem.jammer_mine
-      obj.ModePermissions mustEqual Set(CertificationType.AssaultEngineering)
+      obj.ModePermissions mustEqual Set(Certification.AssaultEngineering)
     }
   }
 

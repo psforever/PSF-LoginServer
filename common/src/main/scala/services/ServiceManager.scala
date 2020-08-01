@@ -14,7 +14,7 @@ object ServiceManager {
   var receptionist: typed.ActorRef[Receptionist.Command] = null
 
   def boot(implicit system: ActorSystem) = {
-    serviceManager = system.actorOf(Props[ServiceManager], "service")
+    serviceManager = system.actorOf(Props[ServiceManager](), "service")
     receptionist = system.toTyped.receptionist
     serviceManager
   }
@@ -36,7 +36,7 @@ class ServiceManager extends Actor {
   var nextLookupId: Long                     = 0
   val lookups: mutable.LongMap[RequestEntry] = mutable.LongMap()
 
-  override def preStart = {
+  override def preStart() = {
     log.info("Starting...")
   }
 

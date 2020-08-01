@@ -9,7 +9,7 @@ import akka.actor.typed.scaladsl.adapter._
 class CmdListPlayers(args: Array[String], services: Map[String, ActorRef]) extends Actor {
   private[this] val log = org.log4s.getLogger(self.path.name)
 
-  override def preStart = {
+  override def preStart() = {
     ServiceManager.receptionist ! Receptionist.Find(
       InterstellarClusterService.InterstellarClusterServiceKey,
       context.self

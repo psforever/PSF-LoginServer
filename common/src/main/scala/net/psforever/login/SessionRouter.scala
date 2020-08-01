@@ -54,7 +54,7 @@ class SessionRouter(role: String, pipeline: List[SessionPipeline]) extends Actor
 
   override def supervisorStrategy = OneForOneStrategy() { case _ => Stop }
 
-  override def preStart = {
+  override def preStart() = {
     log.info(s"SessionRouter (for ${role}s) initializing ...")
   }
 

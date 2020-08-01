@@ -25,7 +25,7 @@ class CaptureTerminalControl(terminal: CaptureTerminal)
             case _          => terminal.Faction != player.Faction
           }
           if (canHack) {
-            sender ! CommonMessages.Progress(
+            sender() ! CommonMessages.Progress(
               GenericHackables.GetHackSpeed(player, terminal),
               CaptureTerminals.FinishHackingCaptureConsole(terminal, player, 3212836864L),
               GenericHackables.HackingTickAction(progressType = 1, player, terminal, item.GUID)

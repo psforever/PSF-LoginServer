@@ -8,6 +8,7 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import net.psforever.objects.guid.GUIDTask
 import net.psforever.objects._
+import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.zones.Zone
 import net.psforever.types.Vector3
@@ -56,17 +57,18 @@ class AccountPersistenceService extends Actor {
 
   /**
     * Retrieve the required system event service hooks.
+    *
     * @see `ServiceManager.LookupResult`
     */
-  override def preStart: Unit = {
+  override def preStart(): Unit = {
     ServiceManager.serviceManager ! ServiceManager.Lookup("squad")
     ServiceManager.serviceManager ! ServiceManager.Lookup("taskResolver")
     log.trace("Awaiting system service hooks ...")
   }
 
-  override def postStop: Unit = {
+  override def postStop(): Unit = {
     accounts.foreach { case (_, monitor) => context.stop(monitor) }
-    accounts.clear
+    accounts.clear()
   }
 
   def receive: Receive = Setup
@@ -82,7 +84,7 @@ class AccountPersistenceService extends Actor {
       (accounts.get(name) match {
         case Some(ref) => ref
         case None      => CreateNewPlayerToken(name)
-      }).tell(msg, sender)
+      }).tell(msg, sender())
 
     case msg @ AccountPersistenceService.Update(name, _, _) =>
       accounts.get(name) match {
@@ -90,7 +92,7 @@ class AccountPersistenceService extends Actor {
           ref ! msg
         case None =>
           log.warn(s"tried to update a player entry for $name that did not yet exist; rebuilding entry ...")
-          CreateNewPlayerToken(name).tell(msg, sender)
+          CreateNewPlayerToken(name).tell(msg, sender())
       }
 
     case msg @ AccountPersistenceService.PersistDelay(name, _) =>
@@ -261,18 +263,18 @@ class PersistenceMonitor(name: String, squadService: ActorRef, taskResolver: Act
     * Perform logout operations before the persistence monitor finally stops.
     */
   override def postStop(): Unit = {
-    timer.cancel
+    timer.cancel()
     PerformLogout()
   }
 
   def receive: Receive = {
     case AccountPersistenceService.Login(_) =>
-      sender ! (if (kicked) {
-                  PlayerToken.CanNotLogin(name, PlayerToken.DeniedLoginReason.Kicked)
-                } else {
-                  UpdateTimer()
-                  PlayerToken.LoginInfo(name, inZone, lastPosition)
-                })
+      sender() ! (if (kicked) {
+                    PlayerToken.CanNotLogin(name, PlayerToken.DeniedLoginReason.Kicked)
+                  } else {
+                    UpdateTimer()
+                    PlayerToken.LoginInfo(name, inZone, lastPosition)
+                  })
 
     case AccountPersistenceService.Update(_, z, p) if !kicked =>
       inZone = z
@@ -298,7 +300,7 @@ class PersistenceMonitor(name: String, squadService: ActorRef, taskResolver: Act
         case Some(time) =>
           PerformLogout()
           kickTime = None
-          timer.cancel
+          timer.cancel()
           timer = context.system.scheduler.scheduleOnce(time seconds, self, Logout(name))
         case None =>
           context.parent ! Logout(name)
@@ -312,7 +314,7 @@ class PersistenceMonitor(name: String, squadService: ActorRef, taskResolver: Act
     * Restart the minimum activity timer.
     */
   def UpdateTimer(): Unit = {
-    timer.cancel
+    timer.cancel()
     timer = context.system.scheduler.scheduleOnce(persistTime.getOrElse(60L) seconds, self, Logout(name))
   }
 
@@ -363,12 +365,12 @@ class PersistenceMonitor(name: String, squadService: ActorRef, taskResolver: Act
         //our last body was turned into a corpse; just the avatar remains
         //TODO perform any last minute saving now ...
         AvatarLogout(avatar)
-        inZone.GUID(avatar.VehicleOwned) match {
+        inZone.GUID(avatar.vehicle) match {
           case Some(obj: Vehicle) if obj.OwnerName.contains(avatar.name) =>
             obj.Actor ! Vehicle.Ownership(None)
           case _ => ;
         }
-        taskResolver.tell(GUIDTask.UnregisterLocker(avatar.Locker)(inZone.GUID), context.parent)
+        taskResolver.tell(GUIDTask.UnregisterLocker(avatar.locker)(inZone.GUID), context.parent)
 
       case _ =>
       //user stalled during initial session, or was caught in between zone transfer
@@ -396,13 +398,13 @@ class PersistenceMonitor(name: String, squadService: ActorRef, taskResolver: Act
     val parent = context.parent
     player.Position = Vector3.Zero
     player.Health = 0
-    inZone.GUID(player.VehicleOwned) match {
+    inZone.GUID(player.avatar.vehicle) match {
       case Some(vehicle: Vehicle) if vehicle.OwnerName.contains(player.Name) && vehicle.Actor != Default.Actor =>
         vehicle.Actor ! Vehicle.Ownership(None)
       case _ => ;
     }
     inZone.Population.tell(Zone.Population.Release(avatar), parent)
-    inZone.AvatarEvents.tell(AvatarServiceMessage(inZone.Id, AvatarAction.ObjectDelete(pguid, pguid)), parent)
+    inZone.AvatarEvents.tell(AvatarServiceMessage(inZone.id, AvatarAction.ObjectDelete(pguid, pguid)), parent)
     AvatarLogout(avatar)
     taskResolver.tell(GUIDTask.UnregisterAvatar(player)(inZone.GUID), parent)
   }
@@ -418,12 +420,10 @@ class PersistenceMonitor(name: String, squadService: ActorRef, taskResolver: Act
     * @param avatar the avatar
     */
   def AvatarLogout(avatar: Avatar): Unit = {
-    val parent = context.parent
-    val charId = avatar.CharId
-    LivePlayerList.Remove(charId)
-    squadService.tell(Service.Leave(Some(charId.toString)), parent)
-    Deployables.Disown(inZone, avatar, parent)
-    inZone.Population.tell(Zone.Population.Leave(avatar), parent)
+    LivePlayerList.Remove(avatar.id)
+    squadService.tell(Service.Leave(Some(avatar.id.toString)), context.parent)
+    Deployables.Disown(inZone, avatar, context.parent)
+    inZone.Population.tell(Zone.Population.Leave(avatar), context.parent)
     log.info(s"logout of ${avatar.name}")
   }
 }

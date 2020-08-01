@@ -6,13 +6,14 @@ import akka.testkit.TestProbe
 import actor.base.ActorTest
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 import net.psforever.objects.serverobject.structures.StructureType
-import net.psforever.objects.{Avatar, GlobalDefinitions, Player, Vehicle}
+import net.psforever.objects.{GlobalDefinitions, Player, Vehicle}
 import net.psforever.objects.zones.Zone
 import net.psforever.types.{PlanetSideGUID, _}
 import services.RemoverActor
 import services.vehicle.{VehicleAction, VehicleServiceMessage}
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.actors.zone.ZoneActor
+import net.psforever.objects.avatar.Avatar
 
 import scala.concurrent.duration._
 
@@ -58,10 +59,10 @@ class VehicleSpawnControl3Test extends ActorTest {
       val (vehicle, player, pad, zone) = VehicleSpawnPadControlTest.SetUpAgents(PlanetSideEmpire.TR)
       //we can recycle the vehicle and the player for each order
       val probe   = new TestProbe(system, "zone-events")
-      val player2 = Player(Avatar("test2", player.Faction, CharacterGender.Male, 0, CharacterVoice.Mute))
+      val player2 = Player(Avatar(0, "test2", player.Faction, CharacterGender.Male, 0, CharacterVoice.Mute))
       player2.GUID = PlanetSideGUID(11)
-      player2.Continent = zone.Id
-      player2.Spawn
+      player2.Continent = zone.id
+      player2.Spawn()
 
       zone.VehicleEvents = probe.ref                             //zone events
       pad.Actor ! VehicleSpawnPad.VehicleOrder(player, vehicle)  //first order
@@ -245,10 +246,10 @@ object VehicleSpawnPadControlTest {
     pad.Owner.Faction = faction
     pad.Zone = zone
     guid.register(pad, "test-pool")
-    val player = Player(Avatar("test", faction, CharacterGender.Male, 0, CharacterVoice.Mute))
+    val player = Player(Avatar(0, "test", faction, CharacterGender.Male, 0, CharacterVoice.Mute))
     guid.register(player, "test-pool")
     player.Zone = zone
-    player.Spawn
+    player.Spawn()
     //note: pad and vehicle are both at Vector3(1,0,0) so they count as blocking
     pad.Position = Vector3(1, 0, 0)
     vehicle.Position = Vector3(1, 0, 0)

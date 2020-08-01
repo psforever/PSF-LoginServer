@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.terminals
 
 import net.psforever.objects.Player
+import net.psforever.objects.avatar.Certification
 import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.Amenity
@@ -112,19 +113,19 @@ object Terminal {
     */
   final case class SellEquipment() extends Exchange //TODO if there are exceptions, find them
 
-  import net.psforever.types.CertificationType
-
   /**
     * Provide the certification type unlocked by the player.
+    *
     * @param cert the certification unlocked
     */
-  final case class LearnCertification(cert: CertificationType.Value) extends Exchange
+  final case class LearnCertification(cert: Certification) extends Exchange
 
   /**
     * Provide the certification type freed-up by the player.
+    *
     * @param cert the certification returned
     */
-  final case class SellCertification(cert: CertificationType.Value) extends Exchange
+  final case class SellCertification(cert: Certification) extends Exchange
 
   import net.psforever.objects.definition.ImplantDefinition
 
@@ -196,10 +197,11 @@ object Terminal {
   import akka.actor.ActorContext
 
   /**
-    * Instantiate an configure a `Terminal` object
-    * @param pos The location of the object
-    * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
-    * @param id the unique id that will be assigned to this entity
+    * Instantiate and configure a `Terminal` object
+    *
+    * @param pos     The location of the object
+    * @param tdef    the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
+    * @param id      the unique id that will be assigned to this entity
     * @param context a context to allow the object to properly set up `ActorSystem` functionality
     * @return the `Terminal` object
     */

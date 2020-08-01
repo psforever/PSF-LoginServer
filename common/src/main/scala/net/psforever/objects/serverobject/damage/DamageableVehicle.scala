@@ -180,7 +180,7 @@ object DamageableVehicle {
     if (target.Shields > 0) {
       target.Shields = 0
       zone.VehicleEvents ! VehicleServiceMessage(
-        zone.Id,
+        zone.id,
         VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 68, 0)
       )
     }

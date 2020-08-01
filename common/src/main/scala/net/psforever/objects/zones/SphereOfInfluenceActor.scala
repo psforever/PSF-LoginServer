@@ -27,7 +27,7 @@ class SphereOfInfluenceActor(zone: Zone) extends Actor {
 
       case SOI.Stop() =>
         context.become(Stopped)
-        populateTick.cancel
+        populateTick.cancel()
         sois.foreach { case (facility, _) => facility.PlayersInSOI = Nil }
 
       case _ => ;
@@ -57,7 +57,7 @@ class SphereOfInfluenceActor(zone: Zone) extends Actor {
         facility.PlayersInSOI =
           zone.LivePlayers.filter(p => Vector3.DistanceSquared(facility.Position.xy, p.Position.xy) < radius)
     }
-    populateTick.cancel
+    populateTick.cancel()
     populateTick = context.system.scheduler.scheduleOnce(5 seconds, self, SOI.Populate())
   }
 }

@@ -27,9 +27,9 @@ object MountableBehavior {
         val obj = MountableObject
         if (MountTest(MountableObject, seat_num, user)) {
           user.VehicleSeated = obj.GUID
-          sender ! Mountable.MountMessages(user, Mountable.CanMount(obj, seat_num))
+          sender() ! Mountable.MountMessages(user, Mountable.CanMount(obj, seat_num))
         } else {
-          sender ! Mountable.MountMessages(user, Mountable.CanNotMount(obj, seat_num))
+          sender() ! Mountable.MountMessages(user, Mountable.CanNotMount(obj, seat_num))
         }
     }
 
@@ -91,12 +91,12 @@ object MountableBehavior {
             ) {
               seat.Occupant = None
               user.VehicleSeated = None
-              sender ! Mountable.MountMessages(user, Mountable.CanDismount(obj, seat_num))
+              sender() ! Mountable.MountMessages(user, Mountable.CanDismount(obj, seat_num))
             } else {
-              sender ! Mountable.MountMessages(user, Mountable.CanNotDismount(obj, seat_num))
+              sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(obj, seat_num))
             }
           case None =>
-            sender ! Mountable.MountMessages(user, Mountable.CanNotDismount(obj, seat_num))
+            sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(obj, seat_num))
         }
     }
   }
