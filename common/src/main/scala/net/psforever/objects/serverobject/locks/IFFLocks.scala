@@ -14,7 +14,7 @@ object IFFLocks {
   def FinishResecuringIFFLock(lock: IFFLock)(): Unit = {
     val zone = lock.Zone
     lock.Zone.LocalEvents ! LocalServiceMessage(
-      zone.Id,
+      zone.id,
       LocalAction.ClearTemporaryHack(Service.defaultPlayerGUID, lock)
     )
   }

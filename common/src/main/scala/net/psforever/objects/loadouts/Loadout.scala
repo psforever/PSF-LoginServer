@@ -203,7 +203,7 @@ object Loadout {
     if (!iter.hasNext) {
       list
     } else {
-      val entry = iter.next
+      val entry = iter.next()
       entry.Equipment match {
         case Some(obj) =>
           recursiveHolsterSimplifications(iter, index + 1, list :+ SimplifiedEntry(buildSimplification(obj), index))
@@ -231,7 +231,7 @@ object Loadout {
     if (!iter.hasNext) {
       list
     } else {
-      val entry = iter.next
+      val entry = iter.next()
       val fmodeSimp = if (entry.Box.AmmoType == entry.AmmoType) {
         ShorthandAmmoSlot(
           entry.AmmoTypeIndex,

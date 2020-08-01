@@ -111,11 +111,11 @@ object SpawnPoint {
         val ori  = target.Orientation
         val zrad = math.toRadians(ori.z)
         val radius =
-          scala.math.random.toFloat * d.UseRadius / 2 + 20f //20 is definitely outside of the gating energy field
+          scala.math.random().toFloat * d.UseRadius / 2 + 20f //20 is definitely outside of the gating energy field
         val shift = Vector3(math.sin(zrad).toFloat, math.cos(zrad).toFloat, 0) * radius
         val altitudeShift = target.Definition match {
           case vdef: VehicleDefinition if GlobalDefinitions.isFlightVehicle(vdef) =>
-            Vector3.z(scala.math.random.toFloat * d.UseRadius / 4 + 20f)
+            Vector3.z(scala.math.random().toFloat * d.UseRadius / 4 + 20f)
           case _ =>
             Vector3.Zero
         }

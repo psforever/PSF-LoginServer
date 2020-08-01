@@ -57,7 +57,7 @@ class CryptoSessionActor extends Actor with MDCContextAware {
       this.sessionId = sharedSessionId
       leftRef = sender()
       if (pipe.hasNext) {
-        rightRef = pipe.next // who ever we send to has to send something back to us
+        rightRef = pipe.next() // who ever we send to has to send something back to us
         rightRef !> HelloFriend(sessionId, pipe)
       } else {
         rightRef = sender()

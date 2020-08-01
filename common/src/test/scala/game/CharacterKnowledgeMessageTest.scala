@@ -1,10 +1,11 @@
 // Copyright (c) 2017 PSForever
 package game
 
+import net.psforever.objects.avatar.Certification
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
-import net.psforever.types.{CertificationType, PlanetSideGUID}
+import net.psforever.types.PlanetSideGUID
 import scodec.bits._
 
 class CharacterKnowledgeMessageTest extends Specification {
@@ -17,18 +18,18 @@ class CharacterKnowledgeMessageTest extends Specification {
         info mustEqual CharacterKnowledgeInfo(
           "Frankentank",
           Set(
-            CertificationType.StandardAssault,
-            CertificationType.ArmoredAssault1,
-            CertificationType.MediumAssault,
-            CertificationType.ReinforcedExoSuit,
-            CertificationType.Harasser,
-            CertificationType.Engineering,
-            CertificationType.GroundSupport,
-            CertificationType.AgileExoSuit,
-            CertificationType.AIMAX,
-            CertificationType.StandardExoSuit,
-            CertificationType.AAMAX,
-            CertificationType.ArmoredAssault2
+            Certification.StandardAssault,
+            Certification.ArmoredAssault1,
+            Certification.MediumAssault,
+            Certification.ReinforcedExoSuit,
+            Certification.Harasser,
+            Certification.Engineering,
+            Certification.GroundSupport,
+            Certification.AgileExoSuit,
+            Certification.AIMAX,
+            Certification.StandardExoSuit,
+            Certification.AAMAX,
+            Certification.ArmoredAssault2
           ),
           15,
           0,
@@ -45,18 +46,18 @@ class CharacterKnowledgeMessageTest extends Specification {
       CharacterKnowledgeInfo(
         "Frankentank",
         Set(
-          CertificationType.StandardAssault,
-          CertificationType.ArmoredAssault1,
-          CertificationType.MediumAssault,
-          CertificationType.ReinforcedExoSuit,
-          CertificationType.Harasser,
-          CertificationType.Engineering,
-          CertificationType.GroundSupport,
-          CertificationType.AgileExoSuit,
-          CertificationType.AIMAX,
-          CertificationType.StandardExoSuit,
-          CertificationType.AAMAX,
-          CertificationType.ArmoredAssault2
+          Certification.StandardAssault,
+          Certification.ArmoredAssault1,
+          Certification.MediumAssault,
+          Certification.ReinforcedExoSuit,
+          Certification.Harasser,
+          Certification.Engineering,
+          Certification.GroundSupport,
+          Certification.AgileExoSuit,
+          Certification.AIMAX,
+          Certification.StandardExoSuit,
+          Certification.AAMAX,
+          Certification.ArmoredAssault2
         ),
         15,
         0,

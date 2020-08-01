@@ -29,7 +29,7 @@ object CaptureTerminals {
     ask(target.Actor, CommonMessages.Hack(tplayer, target))(1 second).mapTo[Boolean].onComplete {
       case Success(_) =>
         val zone   = target.Zone
-        val zoneId = zone.Id
+        val zoneId = zone.id
         val pguid  = tplayer.GUID
         zone.LocalEvents ! LocalServiceMessage(
           zoneId,

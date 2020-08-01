@@ -19,7 +19,7 @@ abstract class ActorTest(sys: ActorSystem = ActorSystem("system", ConfigFactory.
     with AnyWordSpecLike
     with Matchers
     with BeforeAndAfterAll {
-  override def afterAll: Unit = {
+  override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system)
   }
 }
@@ -71,7 +71,7 @@ object ActorTest {
 
     def receive: Receive = {
       case msg =>
-        (if (sender == test) {
+        (if (sender() == test) {
            sendTo
          } else {
            test

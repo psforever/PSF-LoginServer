@@ -143,7 +143,7 @@ object SupportActor {
     if (!iter.hasNext) {
       None
     } else {
-      val entry = iter.next
+      val entry = iter.next()
       if (entry.obj.HasGUID && target.obj.HasGUID && comparator.Test(entry, target)) {
         Some(index)
       } else {

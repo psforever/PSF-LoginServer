@@ -22,7 +22,7 @@ object FactionAffinityBehavior {
     val convertBehavior: Receive = {
       case FactionAffinity.ConvertFactionAffinity(faction) =>
         FactionObject.Faction = faction
-        sender ! FactionAffinity.AssertFactionAffinity(FactionObject, faction)
+        sender() ! FactionAffinity.AssertFactionAffinity(FactionObject, faction)
     }
   }
 
@@ -36,7 +36,7 @@ object FactionAffinityBehavior {
 
     val checkBehavior: Receive = {
       case FactionAffinity.ConfirmFactionAffinity() | FactionAffinity.AssertFactionAffinity(_, _) =>
-        sender ! FactionAffinity.AssertFactionAffinity(FactionObject, FactionObject.Faction)
+        sender() ! FactionAffinity.AssertFactionAffinity(FactionObject, FactionObject.Faction)
     }
   }
 }

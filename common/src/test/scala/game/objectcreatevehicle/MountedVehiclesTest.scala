@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package game.objectcreatevehicle
 
+import net.psforever.objects.avatar.Cosmetic
 import net.psforever.packet._
 import net.psforever.packet.game.objectcreate._
 import net.psforever.packet.game.ObjectCreateMessage
@@ -105,7 +106,11 @@ class MountedVehiclesTest extends Specification {
                         unk mustEqual 7
                         cr mustEqual 5
                         implants mustEqual Nil
-                        cosmetics.contains(Cosmetics(true, true, true, true, false)) mustEqual true
+                        cosmetics must beSome(
+                          beEqualTo(
+                            Set(Cosmetic.NoHelmet, Cosmetic.Beret, Cosmetic.Sunglasses, Cosmetic.Earpiece)
+                          )
+                        )
                       case _ =>
                         ko
                     }
@@ -202,7 +207,7 @@ class MountedVehiclesTest extends Specification {
       7,
       5,
       Nil,
-      Some(Cosmetics(true, true, true, true, false))
+      Some(Set(Cosmetic.NoHelmet, Cosmetic.Beret, Cosmetic.Sunglasses, Cosmetic.Earpiece))
     )
     val inv: InventoryData = InventoryData(
       List(

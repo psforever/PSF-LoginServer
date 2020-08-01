@@ -15,12 +15,12 @@ import net.psforever.types.{DriveState, PlanetSideGUID}
 import services.{GenericEventBus, RemoverActor, Service}
 
 class VehicleService(zone: Zone) extends Actor {
-  private val vehicleDecon: ActorRef  = context.actorOf(Props[VehicleRemover], s"${zone.Id}-vehicle-decon-agent")
-  private val turretUpgrade: ActorRef = context.actorOf(Props[TurretUpgrader], s"${zone.Id}-turret-upgrade-agent")
+  private val vehicleDecon: ActorRef  = context.actorOf(Props[VehicleRemover](), s"${zone.id}-vehicle-decon-agent")
+  private val turretUpgrade: ActorRef = context.actorOf(Props[TurretUpgrader](), s"${zone.id}-turret-upgrade-agent")
   private[this] val log               = org.log4s.getLogger
 
-  override def preStart = {
-    log.trace(s"Awaiting ${zone.Id} vehicle events ...")
+  override def preStart() = {
+    log.trace(s"Awaiting ${zone.id} vehicle events ...")
   }
 
   val VehicleEvents = new GenericEventBus[VehicleServiceResponse]
@@ -210,7 +210,7 @@ class VehicleService(zone: Zone) extends Actor {
 
         //unlike other messages, just return to sender, don't publish
         case VehicleAction.UpdateAmsSpawnPoint(zone: Zone) =>
-          sender ! VehicleServiceResponse(
+          sender() ! VehicleServiceResponse(
             s"/$forChannel/Vehicle",
             Service.defaultPlayerGUID,
             VehicleResponse.UpdateAmsSpawnPoint(AmsSpawnPoints(zone))
@@ -258,7 +258,7 @@ class VehicleService(zone: Zone) extends Actor {
     case VehicleSpawnPad.ConcealPlayer(player_guid) =>
       VehicleEvents.publish(
         VehicleServiceResponse(
-          s"/${zone.Id}/Vehicle",
+          s"/${zone.id}/Vehicle",
           Service.defaultPlayerGUID,
           VehicleResponse.ConcealPlayer(player_guid)
         )
@@ -267,7 +267,7 @@ class VehicleService(zone: Zone) extends Actor {
     case VehicleSpawnPad.AttachToRails(vehicle, pad) =>
       VehicleEvents.publish(
         VehicleServiceResponse(
-          s"/${zone.Id}/Vehicle",
+          s"/${zone.id}/Vehicle",
           Service.defaultPlayerGUID,
           VehicleResponse.AttachToRails(vehicle.GUID, pad.GUID)
         )
@@ -312,7 +312,7 @@ class VehicleService(zone: Zone) extends Actor {
     case VehicleSpawnPad.DetachFromRails(vehicle, pad) =>
       VehicleEvents.publish(
         VehicleServiceResponse(
-          s"/${zone.Id}/Vehicle",
+          s"/${zone.id}/Vehicle",
           Service.defaultPlayerGUID,
           VehicleResponse.DetachFromRails(vehicle.GUID, pad.GUID, pad.Position, pad.Orientation.z)
         )
@@ -320,7 +320,7 @@ class VehicleService(zone: Zone) extends Actor {
     case VehicleSpawnPad.ResetSpawnPad(pad) =>
       VehicleEvents.publish(
         VehicleServiceResponse(
-          s"/${zone.Id}/Vehicle",
+          s"/${zone.id}/Vehicle",
           Service.defaultPlayerGUID,
           VehicleResponse.ResetSpawnPad(pad.GUID)
         )
@@ -329,7 +329,7 @@ class VehicleService(zone: Zone) extends Actor {
     case VehicleSpawnPad.RevealPlayer(player_guid) =>
       VehicleEvents.publish(
         VehicleServiceResponse(
-          s"/${zone.Id}/Vehicle",
+          s"/${zone.id}/Vehicle",
           Service.defaultPlayerGUID,
           VehicleResponse.RevealPlayer(player_guid)
         )
@@ -352,7 +352,7 @@ class VehicleService(zone: Zone) extends Actor {
       zone.Transport ! Zone.Vehicle.Spawn(vehicle)
       VehicleEvents.publish(
         VehicleServiceResponse(
-          s"/${zone.Id}/Vehicle",
+          s"/${zone.id}/Vehicle",
           Service.defaultPlayerGUID,
           VehicleResponse.LoadVehicle(vehicle, vtype, vguid, vdata)
         )
@@ -362,7 +362,7 @@ class VehicleService(zone: Zone) extends Actor {
     case VehicleServiceMessage.AMSDeploymentChange(_) =>
       VehicleEvents.publish(
         VehicleServiceResponse(
-          s"/${zone.Id}/Vehicle",
+          s"/${zone.id}/Vehicle",
           Service.defaultPlayerGUID,
           VehicleResponse.UpdateAmsSpawnPoint(AmsSpawnPoints(zone))
         )
@@ -385,7 +385,7 @@ class VehicleService(zone: Zone) extends Actor {
       }
 
     case msg =>
-      log.info(s"Unhandled message $msg from $sender")
+      log.info(s"Unhandled message $msg from ${sender()}")
   }
 
   import net.psforever.objects.serverobject.tube.SpawnTube

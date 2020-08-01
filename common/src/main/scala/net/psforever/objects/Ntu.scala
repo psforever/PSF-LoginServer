@@ -70,14 +70,14 @@ trait NtuStorageBehavior extends Actor {
   def NtuStorageObject: NtuContainer = null
 
   def storageBehavior: Receive = {
-    case Ntu.Offer(src) => HandleNtuOffer(sender, src)
+    case Ntu.Offer(src) => HandleNtuOffer(sender(), src)
 
-    case Ntu.Grant(_, 0) | Ntu.Request(0, 0) | TransferBehavior.Stopping() => StopNtuBehavior(sender)
+    case Ntu.Grant(_, 0) | Ntu.Request(0, 0) | TransferBehavior.Stopping() => StopNtuBehavior(sender())
 
-    case Ntu.Request(min, max) => HandleNtuRequest(sender, min, max)
+    case Ntu.Request(min, max) => HandleNtuRequest(sender(), min, max)
 
-    case Ntu.Grant(src, amount)        => HandleNtuGrant(sender, src, amount)
-    case NtuCommand.Grant(src, amount) => HandleNtuGrant(sender, src, amount)
+    case Ntu.Grant(src, amount)        => HandleNtuGrant(sender(), src, amount)
+    case NtuCommand.Grant(src, amount) => HandleNtuGrant(sender(), src, amount)
   }
 
   def HandleNtuOffer(sender: ActorRef, src: NtuContainer): Unit

@@ -153,7 +153,7 @@ object GUIDTask {
     */
   def RegisterAvatar(tplayer: Player)(implicit guid: ActorRef): TaskResolver.GiveTask = {
     val holsterTasks   = VisibleSlotTaskBuilding(tplayer.Holsters(), RegisterEquipment)
-    val lockerTask     = List(RegisterLocker(tplayer.Locker))
+    val lockerTask     = List(RegisterLocker(tplayer.avatar.locker))
     val inventoryTasks = RegisterInventory(tplayer)
     TaskResolver.GiveTask(RegisterObjectTask(tplayer).task, holsterTasks ++ lockerTask ++ inventoryTasks)
   }
@@ -311,7 +311,7 @@ object GUIDTask {
     */
   def UnregisterAvatar(tplayer: Player)(implicit guid: ActorRef): TaskResolver.GiveTask = {
     val holsterTasks   = VisibleSlotTaskBuilding(tplayer.Holsters(), UnregisterEquipment)
-    val lockerTask     = List(UnregisterLocker(tplayer.Locker))
+    val lockerTask     = List(UnregisterLocker(tplayer.avatar.locker))
     val inventoryTasks = UnregisterInventory(tplayer)
     TaskResolver.GiveTask(UnregisterObjectTask(tplayer).task, holsterTasks ++ lockerTask ++ inventoryTasks)
   }
@@ -392,7 +392,7 @@ object GUIDTask {
     if (!iter.hasNext) {
       list
     } else {
-      iter.next.Equipment match {
+      iter.next().Equipment match {
         case Some(item) =>
           recursiveVisibleSlotTaskBuilding(iter, func, list :+ func(item))
         case None =>

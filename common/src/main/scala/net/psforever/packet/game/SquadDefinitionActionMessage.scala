@@ -1,8 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game
 
+import net.psforever.objects.avatar.Certification
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
-import net.psforever.types.{CertificationType, PlanetSideGUID}
+import net.psforever.types.PlanetSideGUID
 import scodec.bits.BitVector
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
@@ -64,7 +65,7 @@ object SquadAction {
 
   final case class ChangeSquadMemberRequirementsDetailedOrders(u1: Int, orders: String) extends SquadAction(24)
 
-  final case class ChangeSquadMemberRequirementsCertifications(u1: Int, certs: Set[CertificationType.Value])
+  final case class ChangeSquadMemberRequirementsCertifications(u1: Int, certs: Set[Certification])
       extends SquadAction(25)
 
   final case class ResetAll() extends SquadAction(26)
@@ -75,7 +76,7 @@ object SquadAction {
 
   final case class SearchForSquadsWithParticularRole(
       role: String,
-      requirements: Set[CertificationType.Value],
+      requirements: Set[Certification],
       zone_id: Int,
       mode: SearchMode.Value
   ) extends SquadAction(34)
@@ -246,11 +247,11 @@ object SquadAction {
       (uint4 :: ulongL(46)).xmap[ChangeSquadMemberRequirementsCertifications](
         {
           case u1 :: u2 :: HNil =>
-            ChangeSquadMemberRequirementsCertifications(u1, CertificationType.fromEncodedLong(u2))
+            ChangeSquadMemberRequirementsCertifications(u1, Certification.fromEncodedLong(u2))
         },
         {
           case ChangeSquadMemberRequirementsCertifications(u1, u2) =>
-            u1 :: CertificationType.toEncodedLong(u2) :: HNil
+            u1 :: Certification.toEncodedLong(u2) :: HNil
         }
       )
 
@@ -281,11 +282,11 @@ object SquadAction {
       SearchMode.codec).xmap[SearchForSquadsWithParticularRole](
       {
         case u1 :: u2 :: u3 :: u4 :: HNil =>
-          SearchForSquadsWithParticularRole(u1, CertificationType.fromEncodedLong(u2), u3, u4)
+          SearchForSquadsWithParticularRole(u1, Certification.fromEncodedLong(u2), u3, u4)
       },
       {
         case SearchForSquadsWithParticularRole(u1, u2, u3, u4) =>
-          u1 :: CertificationType.toEncodedLong(u2) :: u3 :: u4 :: HNil
+          u1 :: Certification.toEncodedLong(u2) :: u3 :: u4 :: HNil
       }
     )
 

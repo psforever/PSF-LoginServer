@@ -10,13 +10,13 @@ import services.avatar.support.{CorpseRemovalActor, DroppedItemRemover}
 import services.{GenericEventBus, RemoverActor, Service}
 
 class AvatarService(zone: Zone) extends Actor {
-  private val undertaker: ActorRef = context.actorOf(Props[CorpseRemovalActor], s"${zone.Id}-corpse-removal-agent")
-  private val janitor              = context.actorOf(Props[DroppedItemRemover], s"${zone.Id}-item-remover-agent")
+  private val undertaker: ActorRef = context.actorOf(Props[CorpseRemovalActor](), s"${zone.id}-corpse-removal-agent")
+  private val janitor              = context.actorOf(Props[DroppedItemRemover](), s"${zone.id}-item-remover-agent")
 
   private[this] val log = org.log4s.getLogger
 
-  override def preStart = {
-    log.trace(s"Awaiting ${zone.Id} avatar events ...")
+  override def preStart() = {
+    log.trace(s"Awaiting ${zone.id} avatar events ...")
   }
 
   val AvatarEvents = new GenericEventBus[AvatarServiceResponse] //AvatarEventBus
@@ -90,14 +90,7 @@ class AvatarService(zone: Zone) extends Actor {
               AvatarResponse.EnvironmentalDamage(player_guid, source_guid, amount)
             )
           )
-        case AvatarAction.DeactivateImplantSlot(player_guid, slot) =>
-          AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.DeactivateImplantSlot(slot))
-          )
-        case AvatarAction.ActivateImplantSlot(player_guid, slot) =>
-          AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ActivateImplantSlot(slot))
-          )
+
         case AvatarAction.DeployItem(player_guid, item) =>
           val definition = item.Definition
           val objectData = definition.Packet.ConstructorData(item).get
@@ -437,6 +430,6 @@ class AvatarService(zone: Zone) extends Actor {
      */
 
     case msg =>
-      log.warn(s"Unhandled message $msg from $sender")
+      log.warn(s"Unhandled message $msg from ${sender()}")
   }
 }

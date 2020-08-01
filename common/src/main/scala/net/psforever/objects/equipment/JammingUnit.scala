@@ -159,7 +159,7 @@ trait JammableBehavior {
     if (!jammedSound) {
       jammedSound = true
       import scala.concurrent.ExecutionContext.Implicits.global
-      jammeredSoundTimer.cancel
+      jammeredSoundTimer.cancel()
       jammeredSoundTimer =
         context.system.scheduler.scheduleOnce(dur milliseconds, self, JammableUnit.ClearJammeredSound())
     }
@@ -174,7 +174,7 @@ trait JammableBehavior {
     */
   def StartJammeredStatus(target: Any, dur: Int): Unit = {
     JammableObject.Jammed = true
-    jammeredStatusTimer.cancel
+    jammeredStatusTimer.cancel()
     import scala.concurrent.ExecutionContext.Implicits.global
     jammeredStatusTimer =
       context.system.scheduler.scheduleOnce(dur milliseconds, self, JammableUnit.ClearJammeredStatus())
@@ -188,7 +188,7 @@ trait JammableBehavior {
     */
   def CancelJammeredSound(target: Any): Unit = {
     jammedSound = false
-    jammeredSoundTimer.cancel
+    jammeredSoundTimer.cancel()
   }
 
   /**
@@ -199,7 +199,7 @@ trait JammableBehavior {
     */
   def CancelJammeredStatus(target: Any): Unit = {
     JammableObject.Jammed = false
-    jammeredStatusTimer.cancel
+    jammeredStatusTimer.cancel()
   }
 
   val jammableBehavior: Receive = {
@@ -230,7 +230,7 @@ trait JammableMountedWeapons extends JammableBehavior {
     target match {
       case obj: PlanetSideServerObject with MountedWeapons with JammableUnit if !jammedSound =>
         obj.Zone.VehicleEvents ! VehicleServiceMessage(
-          obj.Zone.Id,
+          obj.Zone.id,
           VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, obj.GUID, 27, 1)
         )
         super.StartJammeredSound(target, dur)
@@ -251,7 +251,7 @@ trait JammableMountedWeapons extends JammableBehavior {
     target match {
       case obj: PlanetSideServerObject if jammedSound =>
         obj.Zone.VehicleEvents ! VehicleServiceMessage(
-          obj.Zone.Id,
+          obj.Zone.id,
           VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, obj.GUID, 27, 0)
         )
       case _ => ;
@@ -280,7 +280,7 @@ object JammableMountedWeapons {
     */
   def JammeredStatus(target: PlanetSideServerObject with MountedWeapons, statusCode: Int): Unit = {
     val zone   = target.Zone
-    val zoneId = zone.Id
+    val zoneId = zone.id
     target.Weapons.values
       .map { _.Equipment }
       .collect {

@@ -9,10 +9,12 @@ import net.psforever.objects.serverobject.structures.StructureType
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{ConstructionItem, PlanetSideGameObject, Player, Vehicle}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
+
 import scala.collection.mutable.ListBuffer
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.util.Database._
 import net.psforever.persistence
+
 import scala.util.{Failure, Success}
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -29,7 +31,11 @@ object ZoneActor {
   final case class GetZone(replyTo: ActorRef[ZoneResponse]) extends Command
 
   final case class ZoneResponse(zone: Zone)
+  /*
+  final case class AddAvatar(avatar: Avatar) extends Command
 
+  final case class RemoveAvatar(avatar: Avatar) extends Command
+   */
   final case class AddPlayer(player: Player) extends Command
 
   final case class RemovePlayer(player: Player) extends Command

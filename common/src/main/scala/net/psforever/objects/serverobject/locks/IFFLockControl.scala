@@ -26,13 +26,13 @@ class IFFLockControl(lock: IFFLock)
         case CommonMessages.Use(player, Some(item: SimpleItem))
             if item.Definition == GlobalDefinitions.remote_electronics_kit =>
           if (lock.Faction != player.Faction && lock.HackedBy.isEmpty) {
-            sender ! CommonMessages.Progress(
+            sender() ! CommonMessages.Progress(
               GenericHackables.GetHackSpeed(player, lock),
               GenericHackables.FinishHacking(lock, player, 1114636288L),
               GenericHackables.HackingTickAction(progressType = 1, player, lock, item.GUID)
             )
           } else if (lock.Faction == player.Faction && lock.HackedBy.nonEmpty) {
-            sender ! CommonMessages.Progress(
+            sender() ! CommonMessages.Progress(
               GenericHackables.GetHackSpeed(player, lock),
               IFFLocks.FinishResecuringIFFLock(lock),
               GenericHackables.HackingTickAction(progressType = 1, player, lock, item.GUID)

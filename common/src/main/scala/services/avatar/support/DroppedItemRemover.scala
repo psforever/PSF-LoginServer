@@ -23,7 +23,7 @@ class DroppedItemRemover extends RemoverActor {
     import net.psforever.objects.zones.Zone
     entry.zone.Ground ! Zone.Ground.RemoveItem(entry.obj.GUID)
     context.parent ! AvatarServiceMessage(
-      entry.zone.Id,
+      entry.zone.id,
       AvatarAction.ObjectDelete(Service.defaultPlayerGUID, entry.obj.GUID)
     )
   }

@@ -33,11 +33,11 @@ class ZoneVehicleActor(zone: Zone, vehicleList: ListBuffer[Vehicle]) extends Act
   def receive: Receive = {
     case Zone.Vehicle.Spawn(vehicle) =>
       if (!vehicle.HasGUID) {
-        sender ! Zone.Vehicle.CanNotSpawn(zone, vehicle, "not registered yet")
+        sender() ! Zone.Vehicle.CanNotSpawn(zone, vehicle, "not registered yet")
       } else if (vehicleList.contains(vehicle)) {
-        sender ! Zone.Vehicle.CanNotSpawn(zone, vehicle, "already in zone")
+        sender() ! Zone.Vehicle.CanNotSpawn(zone, vehicle, "already in zone")
       } else if (vehicle.Actor != Default.Actor) {
-        sender ! Zone.Vehicle.CanNotSpawn(zone, vehicle, "already in another zone")
+        sender() ! Zone.Vehicle.CanNotSpawn(zone, vehicle, "already in another zone")
       } else {
         vehicleList += vehicle
         vehicle.Zone = zone
@@ -52,7 +52,7 @@ class ZoneVehicleActor(zone: Zone, vehicleList: ListBuffer[Vehicle]) extends Act
           context.stop(vehicle.Actor)
           vehicle.Actor = Default.Actor
         case None => ;
-          sender ! Zone.Vehicle.CanNotDespawn(zone, vehicle, "can not find")
+          sender() ! Zone.Vehicle.CanNotDespawn(zone, vehicle, "can not find")
       }
 
     case _ => ;
@@ -64,7 +64,7 @@ object ZoneVehicleActor {
     if (!iter.hasNext) {
       None
     } else {
-      if (iter.next.equals(target)) {
+      if (iter.next().equals(target)) {
         Some(index)
       } else {
         recursiveFindVehicle(iter, target, index + 1)

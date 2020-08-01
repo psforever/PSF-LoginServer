@@ -36,10 +36,10 @@ object Vehicles {
   def Own(vehicle: Vehicle, playerOpt: Option[Player]): Option[Vehicle] = {
     playerOpt match {
       case Some(tplayer) =>
-        tplayer.VehicleOwned = vehicle.GUID
+        tplayer.avatar.vehicle = Some(vehicle.GUID)
         vehicle.AssignOwnership(playerOpt)
         vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
-          vehicle.Zone.Id,
+          vehicle.Zone.id,
           VehicleAction.Ownership(tplayer.GUID, vehicle.GUID)
         )
         Vehicles.ReloadAccessPermissions(vehicle, tplayer.Name)
@@ -50,8 +50,9 @@ object Vehicles {
   }
 
   /**
-    * Disassociate a vehicle fromthe player who owns it.
-    * @param guid the unique identifier for that vehicle
+    * Disassociate a vehicle from the player who owns it.
+    *
+    * @param guid    the unique identifier for that vehicle
     * @param vehicle the vehicle
     * @return the vehicle, if it had a previous owner;
     *         `None`, otherwise
@@ -59,8 +60,8 @@ object Vehicles {
   def Disown(guid: PlanetSideGUID, vehicle: Vehicle): Option[Vehicle] =
     vehicle.Zone.GUID(vehicle.Owner) match {
       case Some(player: Player) =>
-        if (player.VehicleOwned.contains(guid)) {
-          player.VehicleOwned = None
+        if (player.avatar.vehicle.contains(guid)) {
+          player.avatar.vehicle = None
           vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
             player.Name,
             VehicleAction.Ownership(player.GUID, PlanetSideGUID(0))
@@ -99,9 +100,9 @@ object Vehicles {
     * @param player the player
     */
   def Disown(player: Player, zoneOpt: Option[Zone]): Option[Vehicle] = {
-    player.VehicleOwned match {
+    player.avatar.vehicle match {
       case Some(vehicle_guid) =>
-        player.VehicleOwned = None
+        player.avatar.vehicle = None
         zoneOpt.getOrElse(player.Zone).GUID(vehicle_guid) match {
           case Some(vehicle: Vehicle) =>
             Disown(player, vehicle)
@@ -231,7 +232,7 @@ object Vehicles {
       cargoHold.Occupant match {
         case Some(cargo: Vehicle) => {
           cargo.Seats(0).Occupant match {
-            case Some(cargoDriver : Player) =>
+            case Some(cargoDriver: Player) =>
               CargoBehavior.HandleVehicleCargoDismount(
                 target.Zone,
                 cargo.GUID,
@@ -255,7 +256,7 @@ object Vehicles {
           tplayer.VehicleSeated = None
           if (tplayer.HasGUID) {
             zone.VehicleEvents ! VehicleServiceMessage(
-              zone.Id,
+              zone.id,
               VehicleAction.KickPassenger(tplayer.GUID, 4, unk2 = false, target.GUID)
             )
           }
@@ -268,7 +269,7 @@ object Vehicles {
       target.Actor ! Vehicle.Deconstruct()
     } else { // Otherwise handle ownership transfer as normal
       // Remove ownership of our current vehicle, if we have one
-      hacker.VehicleOwned match {
+      hacker.avatar.vehicle match {
         case Some(guid: PlanetSideGUID) =>
           zone.GUID(guid) match {
             case Some(vehicle: Vehicle) =>
@@ -294,12 +295,12 @@ object Vehicles {
       //todo: Send HackMessage -> HackCleared to vehicle? can be found in packet captures. Not sure if necessary.
       // And broadcast the faction change to other clients
       zone.AvatarEvents ! AvatarServiceMessage(
-        zone.Id,
+        zone.id,
         AvatarAction.SetEmpire(Service.defaultPlayerGUID, target.GUID, hacker.Faction)
       )
     }
     zone.LocalEvents ! LocalServiceMessage(
-      zone.Id,
+      zone.id,
       LocalAction.TriggerSound(hacker.GUID, TriggeredSound.HackVehicle, target.Position, 30, 0.49803925f)
     )
     // Clean up after specific vehicles, e.g. remove router telepads
@@ -313,31 +314,41 @@ object Vehicles {
     }
   }
 
-  def FindANTChargingSource(obj : TransferContainer, ntuChargingTarget : Option[TransferContainer]) : Option[TransferContainer] = {
+  def FindANTChargingSource(
+      obj: TransferContainer,
+      ntuChargingTarget: Option[TransferContainer]
+  ): Option[TransferContainer] = {
     //determine if we are close enough to charge from something
     (ntuChargingTarget match {
-      case Some(target : WarpGate) if {
-        val soiRadius = target.Definition.SOIRadius
-        Vector3.DistanceSquared(obj.Position.xy, target.Position.xy) < soiRadius * soiRadius
-      } =>
+      case Some(target: WarpGate) if {
+            val soiRadius = target.Definition.SOIRadius
+            Vector3.DistanceSquared(obj.Position.xy, target.Position.xy) < soiRadius * soiRadius
+          } =>
         Some(target.asInstanceOf[NtuContainer])
       case None =>
         None
     }).orElse {
       val position = obj.Position.xy
       obj.Zone.Buildings.values
-        .collectFirst { case gate : WarpGate
-          if { val soiRadius = gate.Definition.SOIRadius
-            Vector3.DistanceSquared(position, gate.Position.xy) < soiRadius * soiRadius } => gate }
+        .collectFirst {
+          case gate: WarpGate if {
+                val soiRadius = gate.Definition.SOIRadius
+                Vector3.DistanceSquared(position, gate.Position.xy) < soiRadius * soiRadius
+              } =>
+            gate
+        }
         .asInstanceOf[Option[NtuContainer]]
     }
   }
 
-  def FindANTDischargingTarget(obj : TransferContainer, ntuChargingTarget : Option[TransferContainer]) : Option[TransferContainer] = {
+  def FindANTDischargingTarget(
+      obj: TransferContainer,
+      ntuChargingTarget: Option[TransferContainer]
+  ): Option[TransferContainer] = {
     (ntuChargingTarget match {
-      case out @ Some(target : NtuContainer) if {
-        Vector3.DistanceSquared(obj.Position.xy, target.Position.xy) < 400 //20m is generous ...
-      } =>
+      case out @ Some(target: NtuContainer) if {
+            Vector3.DistanceSquared(obj.Position.xy, target.Position.xy) < 400 //20m is generous ...
+          } =>
         out
       case _ =>
         None
@@ -352,8 +363,8 @@ object Vehicles {
         } match {
         case Some(building) =>
           building.Amenities
-            .collect { case obj : NtuContainer => obj }
-            .sortBy {o => Vector3.DistanceSquared(position, o.Position.xy) < 400 } //20m is generous ...
+            .collect { case obj: NtuContainer => obj }
+            .sortBy { o => Vector3.DistanceSquared(position, o.Position.xy) < 400 } //20m is generous ...
             .headOption
         case None =>
           None
@@ -363,9 +374,10 @@ object Vehicles {
 
   /**
     * Before a vehicle is removed from the game world, the following actions must be performed.
+    *
     * @param vehicle the vehicle
     */
-  def BeforeUnloadVehicle(vehicle : Vehicle, zone : Zone) : Unit = {
+  def BeforeUnloadVehicle(vehicle: Vehicle, zone: Zone): Unit = {
     vehicle.Definition match {
       case GlobalDefinitions.ams =>
         vehicle.Actor ! Deployment.TryUndeploy(DriveState.Undeploying)
@@ -377,17 +389,17 @@ object Vehicles {
     }
   }
 
-  def RemoveTelepads(vehicle: Vehicle) : Unit = {
+  def RemoveTelepads(vehicle: Vehicle): Unit = {
     val zone = vehicle.Zone
     (vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
-      case Some(util : Utility.InternalTelepad) =>
+      case Some(util: Utility.InternalTelepad) =>
         val telepad = util.Telepad
         util.Telepad = None
         zone.GUID(telepad)
       case _ =>
         None
     }) match {
-      case Some(telepad : TelepadDeployable) =>
+      case Some(telepad: TelepadDeployable) =>
         log.debug(s"BeforeUnload: deconstructing telepad $telepad that was linked to router $vehicle ...")
         telepad.Active = false
         zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(telepad), zone))

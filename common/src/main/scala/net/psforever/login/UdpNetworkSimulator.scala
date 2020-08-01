@@ -64,7 +64,7 @@ class UdpNetworkSimulator(server: ActorRef, params: NetworkSimulatorParameters) 
 
         // this packet needs to be sent within 20 milliseconds or more
         if (lastTime >= 20000000) {
-          server.tell(inPacketQueue.dequeue._1, interface)
+          server.tell(inPacketQueue.dequeue()._1, interface)
         } else {
           schedule(lastTime.nanoseconds, outbound = false)
           exit = true
@@ -79,7 +79,7 @@ class UdpNetworkSimulator(server: ActorRef, params: NetworkSimulatorParameters) 
 
         // this packet needs to be sent within 20 milliseconds or more
         if (lastTime >= 20000000) {
-          interface.tell(outPacketQueue.dequeue._1, server)
+          interface.tell(outPacketQueue.dequeue()._1, server)
         } else {
           schedule(lastTime.nanoseconds, outbound = true)
           exit = true

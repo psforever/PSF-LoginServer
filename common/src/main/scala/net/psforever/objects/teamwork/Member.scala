@@ -1,13 +1,14 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.objects.teamwork
 
-import net.psforever.types.{CertificationType, Vector3}
+import net.psforever.objects.avatar.Certification
+import net.psforever.types.Vector3
 
 class Member {
   //about the position to be filled
-  private var role: String                               = ""
-  private var orders: String                             = ""
-  private var requirements: Set[CertificationType.Value] = Set()
+  private var role: String                     = ""
+  private var orders: String                   = ""
+  private var requirements: Set[Certification] = Set()
   //about the individual filling the position
   private var name: String      = ""
   private var charId: Long      = 0L
@@ -30,9 +31,9 @@ class Member {
     Orders
   }
 
-  def Requirements: Set[CertificationType.Value] = requirements
+  def Requirements: Set[Certification] = requirements
 
-  def Requirements_=(req: Set[CertificationType.Value]): Set[CertificationType.Value] = {
+  def Requirements_=(req: Set[Certification]): Set[Certification] = {
     requirements = req
     Requirements
   }
@@ -83,7 +84,7 @@ class Member {
     charId == 0
   }
 
-  def isAvailable(certs: Set[CertificationType.Value]): Boolean = {
+  def isAvailable(certs: Set[Certification]): Boolean = {
     isAvailable && certs.intersect(requirements) == requirements
   }
 }

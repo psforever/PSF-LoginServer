@@ -22,7 +22,7 @@ class NumberPoolActor(pool: NumberPool) extends Actor {
 
   def receive: Receive = {
     case NumberPoolActor.GetAnyNumber(id) =>
-      sender ! (pool.Get() match {
+      sender() ! (pool.Get() match {
         case Success(value) =>
           NumberPoolActor.GiveNumber(value, id)
         case Failure(ex) => ;
@@ -30,7 +30,7 @@ class NumberPoolActor(pool: NumberPool) extends Actor {
       })
 
     case NumberPoolActor.GetSpecificNumber(number, id) =>
-      sender ! (NumberPoolActor.GetSpecificNumber(pool, number) match {
+      sender() ! (NumberPoolActor.GetSpecificNumber(pool, number) match {
         case Success(value) =>
           NumberPoolActor.GiveNumber(value, id)
         case Failure(ex) => ;
@@ -41,7 +41,7 @@ class NumberPoolActor(pool: NumberPool) extends Actor {
       val result = pool.Return(number)
       val ex: Option[Throwable] = if (!result) { Some(new Exception("number was not returned")) }
       else { None }
-      sender ! NumberPoolActor.ReturnNumberResult(number, ex, id)
+      sender() ! NumberPoolActor.ReturnNumberResult(number, ex, id)
 
     case msg =>
       log.info(s"received an unexpected message - ${msg.toString}")

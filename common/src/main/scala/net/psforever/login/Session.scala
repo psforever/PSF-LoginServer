@@ -26,8 +26,8 @@ class Session(
 ) {
 
   var state: SessionState          = New()
-  val sessionCreatedTime: DateTime = DateTime.now
-  var sessionEndedTime: DateTime   = DateTime.now
+  val sessionCreatedTime: DateTime = DateTime.now()
+  var sessionEndedTime: DateTime   = DateTime.now()
 
   val pipeline = sessionPipeline.map { actor =>
     val a = context.actorOf(actor.props, actor.nameTemplate + sessionId.toString)
@@ -37,7 +37,7 @@ class Session(
 
   val pipelineIter = pipeline.iterator
   if (pipelineIter.hasNext) {
-    pipelineIter.next ! HelloFriend(sessionId, pipelineIter)
+    pipelineIter.next() ! HelloFriend(sessionId, pipelineIter)
   }
 
   // statistics
@@ -74,7 +74,7 @@ class Session(
     pipeline.foreach(context.unwatch)
     pipeline.foreach(_ ! PoisonPill)
 
-    sessionEndedTime = DateTime.now
+    sessionEndedTime = DateTime.now()
     setState(Closed())
   }
 

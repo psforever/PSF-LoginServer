@@ -328,13 +328,13 @@ object WorldSession {
                       )
                     )
                     localZone.AvatarEvents ! AvatarServiceMessage(
-                      localZone.Id,
+                      localZone.id,
                       AvatarAction.ObjectHeld(localGUID, localPlayer.LastDrawnSlot)
                     )
                   }
                   localPlayer.DrawnSlot = localSlot
                   localZone.AvatarEvents ! AvatarServiceMessage(
-                    localZone.Id,
+                    localZone.id,
                     AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectHeldMessage(localGUID, localSlot, false))
                   )
               }
@@ -380,7 +380,7 @@ object WorldSession {
           case Some(_) => ;
           case None => //acting on old data?
             localZone.AvatarEvents ! AvatarServiceMessage(
-              localZone.Id,
+              localZone.id,
               AvatarAction.ObjectDelete(Service.defaultPlayerGUID, item_guid)
             )
         }

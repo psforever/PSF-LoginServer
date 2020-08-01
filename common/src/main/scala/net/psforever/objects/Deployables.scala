@@ -2,12 +2,13 @@
 package net.psforever.objects
 
 import akka.actor.ActorRef
+import net.psforever.objects.avatar.{Avatar, Certification}
 
 import scala.concurrent.duration._
 import net.psforever.objects.ce.{Deployable, DeployedItem}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{DeployableInfo, DeploymentAction}
-import net.psforever.types.{CertificationType, PlanetSideGUID}
+import net.psforever.types.PlanetSideGUID
 import services.RemoverActor
 import services.local.{LocalAction, LocalServiceMessage}
 
@@ -100,7 +101,7 @@ object Deployables {
     */
   def Disown(zone: Zone, avatar: Avatar, replyTo: ActorRef): List[PlanetSideGameObject with Deployable] = {
     val (boomers, deployables) =
-      avatar.Deployables
+      avatar.deployables
         .Clear()
         .map(zone.GUID)
         .collect { case Some(obj) => obj.asInstanceOf[PlanetSideGameObject with Deployable] }
@@ -128,7 +129,7 @@ object Deployables {
     */
   def InitializeDeployableQuantities(avatar: Avatar): Boolean = {
     log.info("Setting up combat engineering ...")
-    avatar.Deployables.Initialize(avatar.Certifications.toSet)
+    avatar.deployables.Initialize(avatar.certifications)
   }
 
   /**
@@ -137,7 +138,7 @@ object Deployables {
     */
   def InitializeDeployableUIElements(avatar: Avatar): List[(Int, Int, Int, Int)] = {
     log.info("Setting up combat engineering UI ...")
-    avatar.Deployables.UpdateUI()
+    avatar.deployables.UpdateUI()
   }
 
   /**
@@ -149,11 +150,11 @@ object Deployables {
     */
   def AddToDeployableQuantities(
       avatar: Avatar,
-      certification: CertificationType.Value,
-      certificationSet: Set[CertificationType.Value]
+      certification: Certification,
+      certificationSet: Set[Certification]
   ): List[(Int, Int, Int, Int)] = {
-    avatar.Deployables.AddToDeployableQuantities(certification, certificationSet)
-    avatar.Deployables.UpdateUI(certification)
+    avatar.deployables.AddToDeployableQuantities(certification, certificationSet)
+    avatar.deployables.UpdateUI(certification)
   }
 
   /**
@@ -165,10 +166,10 @@ object Deployables {
     */
   def RemoveFromDeployableQuantities(
       avatar: Avatar,
-      certification: CertificationType.Value,
-      certificationSet: Set[CertificationType.Value]
+      certification: Certification,
+      certificationSet: Set[Certification]
   ): List[(Int, Int, Int, Int)] = {
-    avatar.Deployables.RemoveFromDeployableQuantities(certification, certificationSet)
-    avatar.Deployables.UpdateUI(certification)
+    avatar.deployables.RemoveFromDeployableQuantities(certification, certificationSet)
+    avatar.deployables.UpdateUI(certification)
   }
 }

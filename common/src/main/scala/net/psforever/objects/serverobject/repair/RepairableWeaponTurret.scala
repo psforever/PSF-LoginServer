@@ -37,7 +37,7 @@ object RepairableWeaponTurret {
     */
   def Restoration(target: Repairable.Target with MountedWeapons): Unit = {
     val zone   = target.Zone
-    val zoneId = zone.Id
+    val zoneId = zone.id
     val tguid  = target.GUID
     val events = zone.VehicleEvents
     target.Weapons

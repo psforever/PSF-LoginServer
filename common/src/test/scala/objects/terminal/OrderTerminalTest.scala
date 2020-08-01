@@ -5,12 +5,13 @@ import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.zones.Zone
 import net.psforever.objects._
+import net.psforever.objects.avatar.{Avatar, Certification}
 import net.psforever.packet.game.ItemTransactionMessage
 import net.psforever.types._
 import org.specs2.mutable.Specification
 
 class OrderTerminalTest extends Specification {
-  val avatar = Avatar("test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
+  val avatar = Avatar(0, "test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
   val player = Player(avatar)
 
   val building = new Building(
@@ -91,27 +92,6 @@ class OrderTerminalTest extends Specification {
       infantryTerminal.Request(player, msg) mustEqual Terminal.NoDeal()
     }
 
-    "player can retrieve an infantry loadout" in {
-      player.ExoSuit = ExoSuitType.Agile
-      player.Slot(0).Equipment = Tool(GlobalDefinitions.beamer)
-      player.Slot(6).Equipment = Tool(GlobalDefinitions.beamer)
-      avatar.EquipmentLoadouts.SaveLoadout(player, "test", 0)
-
-      val msg = infantryTerminal.Request(
-        player,
-        ItemTransactionMessage(PlanetSideGUID(10), TransactionType.Loadout, 4, "", 0, PlanetSideGUID(0))
-      )
-      msg.isInstanceOf[Terminal.InfantryLoadout] mustEqual true
-      val loadout = msg.asInstanceOf[Terminal.InfantryLoadout]
-      loadout.exosuit mustEqual ExoSuitType.Agile
-      loadout.subtype mustEqual 0
-      loadout.holsters.size mustEqual 1
-      loadout.holsters.head.obj.Definition mustEqual GlobalDefinitions.beamer
-      loadout.holsters.head.start mustEqual 0
-      loadout.inventory.head.obj.Definition mustEqual GlobalDefinitions.beamer
-      loadout.inventory.head.start mustEqual 6
-    }
-
     "player can not retrieve an infantry loadout from the wrong line" in {
       val msg = infantryTerminal.Request(
         player,
@@ -148,28 +128,6 @@ class OrderTerminalTest extends Specification {
       val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 46769, "harasser", 0, PlanetSideGUID(0))
       terminal.Request(player, msg) mustEqual Terminal.NoDeal()
     }
-
-    "player can retrieve a vehicle loadout" in {
-      val fury = Vehicle(GlobalDefinitions.fury)
-      fury.Slot(30).Equipment = AmmoBox(GlobalDefinitions.hellfire_ammo)
-      avatar.EquipmentLoadouts.SaveLoadout(fury, "test", 10)
-
-      val msg = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Loadout, 4, "test", 0, PlanetSideGUID(0))
-      terminal.Request(player, msg) match {
-        case Terminal.VehicleLoadout(definition, weapons, trunk) =>
-          definition mustEqual GlobalDefinitions.fury
-
-          weapons.size mustEqual 1
-          weapons.head.obj.Definition mustEqual GlobalDefinitions.fury_weapon_systema
-
-          trunk.size mustEqual 1
-          trunk.head.obj.Definition mustEqual GlobalDefinitions.hellfire_ammo
-        case _ =>
-          ko
-      }
-
-      ok
-    }
   }
 
   "Certification Terminal" should {
@@ -179,7 +137,7 @@ class OrderTerminalTest extends Specification {
     "player can learn a certification ('medium_assault')" in {
       val msg =
         ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Learn, 0, "medium_assault", 0, PlanetSideGUID(0))
-      terminal.Request(player, msg) mustEqual Terminal.LearnCertification(CertificationType.MediumAssault)
+      terminal.Request(player, msg) mustEqual Terminal.LearnCertification(Certification.MediumAssault)
     }
 
     "player can not learn a fake certification ('juggling')" in {
@@ -190,7 +148,7 @@ class OrderTerminalTest extends Specification {
     "player can forget a certification ('medium_assault')" in {
       val msg =
         ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Sell, 0, "medium_assault", 0, PlanetSideGUID(0))
-      terminal.Request(player, msg) mustEqual Terminal.SellCertification(CertificationType.MediumAssault)
+      terminal.Request(player, msg) mustEqual Terminal.SellCertification(Certification.MediumAssault)
     }
 
     "player can not forget a fake certification ('juggling')" in {

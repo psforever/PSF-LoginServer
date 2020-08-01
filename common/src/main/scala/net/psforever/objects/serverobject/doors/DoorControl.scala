@@ -14,9 +14,9 @@ class DoorControl(door: Door) extends Actor with FactionAffinityBehavior.Check {
   def receive: Receive =
     checkBehavior.orElse {
       case Door.Use(player, msg) =>
-        sender ! Door.DoorMessage(player, msg, door.Use(player, msg))
+        sender() ! Door.DoorMessage(player, msg, door.Use(player, msg))
 
       case _ =>
-        sender ! Door.NoEvent()
+        sender() ! Door.NoEvent()
     }
 }

@@ -2,6 +2,7 @@
 package net.psforever.objects.definition.converter
 
 import net.psforever.objects.Player
+import net.psforever.objects.avatar.Certification
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types.{PlanetSideGUID, _}
@@ -37,9 +38,9 @@ class CorpseConverter extends AvatarConverter {
         obj.Faction,
         bops = false,
         alternate = true,
-        false,
+        v1 = false,
         None,
-        false,
+        jammered = false,
         None,
         v5 = None,
         PlanetSideGUID(0)
@@ -56,20 +57,20 @@ class CorpseConverter extends AvatarConverter {
       0L,
       outfit_name = "",
       outfit_logo = 0,
-      false,
+      unk1 = false,
       backpack = true,
-      false,
-      false,
-      false,
+      unk2 = false,
+      unk3 = false,
+      unk4 = false,
       facingPitch = 0,
       facingYawUpper = 0,
       lfs = false,
       GrenadeState.None,
       is_cloaking = false,
-      false,
-      false,
+      unk5 = false,
+      unk6 = false,
       charging_pose = false,
-      false,
+      unk7 = false,
       on_zipline = None
     )
     CharacterAppearanceData(aa, ab, RibbonBars())
@@ -86,7 +87,7 @@ class CorpseConverter extends AvatarConverter {
       0L,
       0,
       0,
-      false,
+      unk4 = false,
       0,
       0L,
       0,
@@ -96,7 +97,7 @@ class CorpseConverter extends AvatarConverter {
       0,
       0L,
       List(0, 0, 0, 0, 0, 0),
-      certs = List.empty[CertificationType.Value]
+      certs = List.empty[Certification]
     )
     val bb: (Long, Option[Int]) => DetailedCharacterB = DetailedCharacterB(
       None,
@@ -113,7 +114,7 @@ class CorpseConverter extends AvatarConverter {
       Some(DCDExtra2(0, 0)),
       Nil,
       Nil,
-      false,
+      unkC = false,
       cosmetics = None
     )
     (pad_length: Option[Int]) => DetailedCharacterData(ba, bb(0, pad_length))(pad_length)
@@ -161,7 +162,7 @@ class CorpseConverter extends AvatarConverter {
     if (!iter.hasNext) {
       list
     } else {
-      val slot: EquipmentSlot = iter.next
+      val slot: EquipmentSlot = iter.next()
       if (slot.Equipment.isDefined) {
         val equip: Equipment = slot.Equipment.get
         recursiveMakeHolsters(

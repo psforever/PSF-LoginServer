@@ -4,8 +4,9 @@ package objects
 import akka.actor.{ActorRef, Props}
 import akka.testkit.TestProbe
 import base.ActorTest
+import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.ballistics._
-import net.psforever.objects.{Avatar, GlobalDefinitions, Player, Tool}
+import net.psforever.objects.{GlobalDefinitions, Player, Tool}
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.LimitedNumberSource
 import net.psforever.objects.serverobject.CommonMessages
@@ -60,9 +61,9 @@ class GeneratorControlDamageTest extends ActorTest {
   gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "generator-control")
 
   val player1 =
-    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
-  player1.Position = Vector3(14, 0, 0)                                                                  //<14m from generator; dies
-  player1.Spawn
+    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
+  player1.Position = Vector3(14, 0, 0)                                                                     //<14m from generator; dies
+  player1.Spawn()
 
   val building = Building("test-building", 1, 1, zone, StructureType.Facility) //guid=1
   building.Position = Vector3(1, 0, 0)
@@ -142,9 +143,9 @@ class GeneratorControlCriticalTest extends ActorTest {
   gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "generator-control")
 
   val player1 =
-    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
-  player1.Position = Vector3(14, 0, 0)                                                                  //<14m from generator; dies
-  player1.Spawn
+    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
+  player1.Position = Vector3(14, 0, 0)                                                                     //<14m from generator; dies
+  player1.Spawn()
 
   val building = Building("test-building", 1, 1, zone, StructureType.Facility) //guid=1
   building.Position = Vector3(1, 0, 0)
@@ -232,9 +233,9 @@ class GeneratorControlDestroyedTest extends ActorTest {
   gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "generator-control")
 
   val player1 =
-    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
-  player1.Position = Vector3(14, 0, 0)                                                                  //<14m from generator; dies
-  player1.Spawn
+    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
+  player1.Position = Vector3(14, 0, 0)                                                                     //<14m from generator; dies
+  player1.Spawn()
   player1.Actor = TestProbe().ref
 
   val building = Building("test-building", 1, 1, zone, StructureType.Facility) //guid=1
@@ -355,15 +356,15 @@ class GeneratorControlKillsTest extends ActorTest {
   gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "generator-control")
 
   val player1 =
-    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
-  player1.Position = Vector3(14, 0, 0)                                                                  //<14m from generator; dies
-  player1.Spawn
+    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
+  player1.Position = Vector3(14, 0, 0)                                                                     //<14m from generator; dies
+  player1.Spawn()
   val player1Probe = TestProbe()
   player1.Actor = player1Probe.ref
   val player2 =
-    Player(Avatar("TestCharacter2", PlanetSideEmpire.TR, CharacterGender.Female, 1, CharacterVoice.Mute)) //guid=4
-  player2.Position = Vector3(15, 0, 0)                                                                    //>14m from generator; lives
-  player2.Spawn
+    Player(Avatar(0, "TestCharacter2", PlanetSideEmpire.TR, CharacterGender.Female, 1, CharacterVoice.Mute)) //guid=4
+  player2.Position = Vector3(15, 0, 0)                                                                       //>14m from generator; lives
+  player2.Spawn()
   val player2Probe = TestProbe()
   player2.Actor = player2Probe.ref
 
@@ -480,13 +481,14 @@ class GeneratorControlNotDestroyTwice extends ActorTest {
   val guid = new NumberPoolHub(new LimitedNumberSource(10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
+
     GUID(guid)
   }
   val building = Building("test-building", 1, 1, zone, StructureType.Facility) //guid=1
   val gen      = Generator(GlobalDefinitions.generator)                        //guid=2
   val player1 =
-    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
-  player1.Spawn
+    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
+  player1.Spawn()
   guid.register(building, 1)
   guid.register(gen, 2)
   guid.register(player1, 3)
@@ -574,9 +576,9 @@ class GeneratorControlNotDamageIfExplodingTest extends ActorTest {
   gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "generator-control")
 
   val player1 =
-    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
-  player1.Position = Vector3(14, 0, 0)                                                                  //<14m from generator; dies
-  player1.Spawn
+    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
+  player1.Position = Vector3(14, 0, 0)                                                                     //<14m from generator; dies
+  player1.Spawn()
   val player1Probe = TestProbe()
   player1.Actor = player1Probe.ref
 
@@ -668,9 +670,9 @@ class GeneratorControlNotRepairIfExplodingTest extends ActorTest {
   gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "generator-control")
 
   val player1 =
-    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
-  player1.Position = Vector3(14, 0, 0)                                                                  //<14m from generator; dies
-  player1.Spawn
+    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
+  player1.Position = Vector3(14, 0, 0)                                                                     //<14m from generator; dies
+  player1.Spawn()
   val player1Probe = TestProbe()
   player1.Actor = player1Probe.ref
 
@@ -766,9 +768,9 @@ class GeneratorControlRepairPastRestorePoint extends ActorTest {
   gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "generator-control")
 
   val player1 =
-    Player(Avatar("TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
-  player1.Position = Vector3(14, 0, 0)                                                                  //<14m from generator; dies
-  player1.Spawn
+    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
+  player1.Position = Vector3(14, 0, 0)                                                                     //<14m from generator; dies
+  player1.Spawn()
   val player1Probe = TestProbe()
   player1.Actor = player1Probe.ref
 

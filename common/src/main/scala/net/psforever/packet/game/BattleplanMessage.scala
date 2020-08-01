@@ -381,7 +381,7 @@ object BattleplanMessage extends Marshallable[BattleplanMessage] {
     if (!revIter.hasNext) {
       layers
     } else {
-      val elem: BattleDiagramAction = revIter.next
+      val elem: BattleDiagramAction = revIter.next()
       unrollDiagramLayers(revIter, Some(BattleDiagramChain(elem, layers)))
     }
   }

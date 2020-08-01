@@ -994,7 +994,7 @@ class VehicleControlShieldsNotChargingTooEarlyTest extends ActorTest {
 //  }
 //  //
 //  val beamer_wep = Tool(GlobalDefinitions.beamer)
-//  val p_source = PlayerSource( Player(Avatar("TestTarget", PlanetSideEmpire.NC, CharacterGender.Female, 1, CharacterVoice.Mute)) )
+//  val p_source = PlayerSource( Player(Avatar(0, "TestTarget", PlanetSideEmpire.NC, CharacterGender.Female, 1, CharacterVoice.Mute)) )
 //  val projectile = Projectile(beamer_wep.Projectile, GlobalDefinitions.beamer, beamer_wep.FireMode, p_source, GlobalDefinitions.beamer.ObjectId, Vector3.Zero, Vector3.Zero)
 //  val fury_dm = Vehicle(GlobalDefinitions.fury).DamageModel
 //  val obj = ResolvedProjectile(ProjectileResolution.Hit, projectile, p_source, fury_dm, Vector3(1.2f, 3.4f, 5.6f))
@@ -1014,8 +1014,10 @@ class VehicleControlShieldsNotChargingTooEarlyTest extends ActorTest {
 //}
 
 object VehicleTest {
-  import net.psforever.objects.Avatar
+
+  import net.psforever.objects.avatar.Avatar
   import net.psforever.types.{CharacterGender, PlanetSideEmpire}
-  val avatar1 = Avatar("test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
-  val avatar2 = Avatar("test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
+
+  val avatar1 = Avatar(0, "test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
+  val avatar2 = Avatar(1, "test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
 }

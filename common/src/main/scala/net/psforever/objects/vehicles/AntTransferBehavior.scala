@@ -30,7 +30,7 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
   def ActivatePanelsForChargingEvent(vehicle: NtuContainer): Unit = {
     val zone = vehicle.Zone
     zone.VehicleEvents ! VehicleServiceMessage(
-      zone.Id,
+      zone.id,
       VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, vehicle.GUID, 52, 1L)
     ) // panel glow on
   }
@@ -39,7 +39,7 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
   def StartNtuChargingEvent(vehicle: NtuContainer): Unit = {
     val zone = vehicle.Zone
     zone.VehicleEvents ! VehicleServiceMessage(
-      zone.Id,
+      zone.id,
       VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, vehicle.GUID, 49, 1L)
     ) // orb particle effect on
   }
@@ -55,7 +55,7 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
   }
 
   def HandleChargingEvent(target: TransferContainer): Boolean = {
-    ntuChargingTick.cancel
+    ntuChargingTick.cancel()
     val obj = ChargeTransferObject
     //log.trace(s"NtuCharging: Vehicle $guid is charging NTU capacitor.")
     if (obj.NtuCapacitor < obj.Definition.MaxNtuCapacitor) {
@@ -101,7 +101,7 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
       transferTarget = Some(target)
       transferEvent = TransferBehavior.Event.Discharging
       target.Actor ! Ntu.Offer(obj)
-      ntuChargingTick.cancel
+      ntuChargingTick.cancel()
       ntuChargingTick = context.system.scheduler.scheduleOnce(
         delay = 1000 milliseconds,
         self,
@@ -139,7 +139,7 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
   /** Stopping */
   override def TryStopChargingEvent(container: TransferContainer): Unit = {
     val vehicle = ChargeTransferObject
-    ntuChargingTick.cancel
+    ntuChargingTick.cancel()
     if (transferEvent != TransferBehavior.Event.None) {
       if (vehicle.DeploymentState == DriveState.Deployed) {
         //turning off glow/orb effects on ANT doesn't seem to work when deployed. Try to undeploy ANT first
@@ -149,7 +149,7 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
         //vehicle is not deployed; just do cleanup
         val vguid  = vehicle.GUID
         val zone   = vehicle.Zone
-        val zoneId = zone.Id
+        val zoneId = zone.id
         val events = zone.VehicleEvents
         if (transferEvent == TransferBehavior.Event.Charging) {
           events ! VehicleServiceMessage(

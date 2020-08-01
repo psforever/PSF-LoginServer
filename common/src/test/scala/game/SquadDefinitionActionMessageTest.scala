@@ -1,11 +1,12 @@
 // Copyright (c) 2017 PSForever
 package game
 
+import net.psforever.objects.avatar.Certification
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game.SquadAction._
 import net.psforever.packet.game._
-import net.psforever.types.{CertificationType, PlanetSideGUID}
+import net.psforever.types.PlanetSideGUID
 import scodec.bits._
 
 class SquadDefinitionActionMessageTest extends Specification {
@@ -183,7 +184,7 @@ class SquadDefinitionActionMessageTest extends Specification {
         unk2 mustEqual 0
         action mustEqual ChangeSquadMemberRequirementsCertifications(
           1,
-          Set(CertificationType.AntiVehicular, CertificationType.InfiltrationSuit)
+          Set(Certification.AntiVehicular, Certification.InfiltrationSuit)
         )
       case _ =>
         ko
@@ -263,7 +264,7 @@ class SquadDefinitionActionMessageTest extends Specification {
         unk2 mustEqual 0
         action mustEqual SearchForSquadsWithParticularRole(
           "Badass",
-          Set(CertificationType.InfiltrationSuit, CertificationType.AntiVehicular),
+          Set(Certification.InfiltrationSuit, Certification.AntiVehicular),
           2,
           SearchMode.SomeCertifications
         )
@@ -279,7 +280,7 @@ class SquadDefinitionActionMessageTest extends Specification {
         unk2 mustEqual 0
         action mustEqual SearchForSquadsWithParticularRole(
           "Badass",
-          Set(CertificationType.InfiltrationSuit, CertificationType.AntiVehicular),
+          Set(Certification.InfiltrationSuit, Certification.AntiVehicular),
           2,
           SearchMode.AllCertifications
         )
@@ -430,7 +431,7 @@ class SquadDefinitionActionMessageTest extends Specification {
       0,
       ChangeSquadMemberRequirementsCertifications(
         1,
-        Set(CertificationType.AntiVehicular, CertificationType.InfiltrationSuit)
+        Set(Certification.AntiVehicular, Certification.InfiltrationSuit)
       )
     )
     val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
@@ -498,7 +499,7 @@ class SquadDefinitionActionMessageTest extends Specification {
       0,
       SearchForSquadsWithParticularRole(
         "Badass",
-        Set(CertificationType.InfiltrationSuit, CertificationType.AntiVehicular),
+        Set(Certification.InfiltrationSuit, Certification.AntiVehicular),
         2,
         SearchMode.SomeCertifications
       )
@@ -514,7 +515,7 @@ class SquadDefinitionActionMessageTest extends Specification {
       0,
       SearchForSquadsWithParticularRole(
         "Badass",
-        Set(CertificationType.InfiltrationSuit, CertificationType.AntiVehicular),
+        Set(Certification.InfiltrationSuit, Certification.AntiVehicular),
         2,
         SearchMode.AllCertifications
       )

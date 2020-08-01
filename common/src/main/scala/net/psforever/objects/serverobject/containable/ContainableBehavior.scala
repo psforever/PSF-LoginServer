@@ -59,36 +59,36 @@ trait ContainableBehavior {
 
     case msg: ContainableMsg if waitOnMoveItemOps == 2 =>
       //all standard messages are blocked
-      RepeatMessageLater(ContainableBehavior.Defer(msg, sender))
+      RepeatMessageLater(ContainableBehavior.Defer(msg, sender()))
       MessageDeferredCallback(msg)
 
     case msg: DeferrableMsg if waitOnMoveItemOps == 1 =>
       //insertion messages not related to an item move attempt are blocked
-      RepeatMessageLater(ContainableBehavior.Defer(msg, sender))
+      RepeatMessageLater(ContainableBehavior.Defer(msg, sender()))
       MessageDeferredCallback(msg)
 
     /* normal messages */
     case Containable.RemoveItemFromSlot(None, Some(slot)) =>
-      sender ! LocalRemoveItemFromSlot(slot)
+      sender() ! LocalRemoveItemFromSlot(slot)
 
     case Containable.RemoveItemFromSlot(Some(item), _) =>
-      sender ! LocalRemoveItemFromSlot(item)
+      sender() ! LocalRemoveItemFromSlot(item)
 
     case Containable.PutItemInSlot(item, dest) =>
       /* can be deferred */
-      sender ! LocalPutItemInSlot(item, dest)
+      sender() ! LocalPutItemInSlot(item, dest)
 
     case Containable.PutItemInSlotOnly(item, dest) =>
       /* can be deferred */
-      sender ! LocalPutItemInSlotOnly(item, dest)
+      sender() ! LocalPutItemInSlotOnly(item, dest)
 
     case Containable.PutItemAway(item) =>
       /* can be deferred */
-      sender ! LocalPutItemAway(item)
+      sender() ! LocalPutItemAway(item)
 
     case Containable.PutItemInSlotOrAway(item, dest) =>
       /* can be deferred */
-      sender ! LocalPutItemInSlotOrAway(item, dest)
+      sender() ! LocalPutItemInSlotOrAway(item, dest)
 
     case msg @ Containable.MoveItem(destination, equipment, destSlot) =>
       /* can be deferred */
@@ -146,10 +146,10 @@ trait ContainableBehavior {
       }
 
     case ContainableBehavior.MoveItemPutItemInSlot(item, dest) =>
-      sender ! LocalPutItemInSlot(item, dest)
+      sender() ! LocalPutItemInSlot(item, dest)
 
     case ContainableBehavior.MoveItemPutItemInSlotOrAway(item, dest) =>
-      sender ! LocalPutItemInSlotOrAway(item, dest)
+      sender() ! LocalPutItemInSlotOrAway(item, dest)
   }
 
   /* Functions (message control) */

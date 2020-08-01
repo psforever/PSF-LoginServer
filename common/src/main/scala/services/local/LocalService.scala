@@ -23,16 +23,16 @@ import services.support.SupportActor
 import scala.concurrent.duration.Duration
 
 class LocalService(zone: Zone) extends Actor {
-  private val doorCloser   = context.actorOf(Props[DoorCloseActor], s"${zone.Id}-local-door-closer")
-  private val hackClearer  = context.actorOf(Props[HackClearActor], s"${zone.Id}-local-hack-clearer")
-  private val hackCapturer = context.actorOf(Props[HackCaptureActor], s"${zone.Id}-local-hack-capturer")
-  private val engineer     = context.actorOf(Props[DeployableRemover], s"${zone.Id}-deployable-remover-agent")
+  private val doorCloser   = context.actorOf(Props[DoorCloseActor](), s"${zone.id}-local-door-closer")
+  private val hackClearer  = context.actorOf(Props[HackClearActor](), s"${zone.id}-local-hack-clearer")
+  private val hackCapturer = context.actorOf(Props[HackCaptureActor](), s"${zone.id}-local-hack-capturer")
+  private val engineer     = context.actorOf(Props[DeployableRemover](), s"${zone.id}-deployable-remover-agent")
   private val teleportDeployment: ActorRef =
-    context.actorOf(Props[RouterTelepadActivation], s"${zone.Id}-telepad-activate-agent")
+    context.actorOf(Props[RouterTelepadActivation](), s"${zone.id}-telepad-activate-agent")
   private[this] val log = org.log4s.getLogger
 
-  override def preStart = {
-    log.trace(s"Awaiting ${zone.Id} local events ...")
+  override def preStart() = {
+    log.trace(s"Awaiting ${zone.id} local events ...")
   }
 
   val LocalEvents = new GenericEventBus[LocalServiceResponse]
@@ -210,7 +210,7 @@ class LocalService(zone: Zone) extends Actor {
     //response from DoorCloseActor
     case DoorCloseActor.CloseTheDoor(door_guid, _) =>
       LocalEvents.publish(
-        LocalServiceResponse(s"/${zone.Id}/Local", Service.defaultPlayerGUID, LocalResponse.DoorCloses(door_guid))
+        LocalServiceResponse(s"/${zone.id}/Local", Service.defaultPlayerGUID, LocalResponse.DoorCloses(door_guid))
       )
 
     //response from HackClearActor
@@ -218,7 +218,7 @@ class LocalService(zone: Zone) extends Actor {
       log.warn(s"Clearing hack for $target_guid")
       LocalEvents.publish(
         LocalServiceResponse(
-          s"/${zone.Id}/Local",
+          s"/${zone.id}/Local",
           Service.defaultPlayerGUID,
           LocalResponse.HackClear(target_guid, unk1, unk2)
         )
@@ -228,7 +228,7 @@ class LocalService(zone: Zone) extends Actor {
     case Terminal.StartProximityEffect(terminal) =>
       LocalEvents.publish(
         LocalServiceResponse(
-          s"/${zone.Id}/Local",
+          s"/${zone.id}/Local",
           PlanetSideGUID(0),
           LocalResponse.ProximityTerminalEffect(terminal.GUID, true)
         )
@@ -236,7 +236,7 @@ class LocalService(zone: Zone) extends Actor {
     case Terminal.StopProximityEffect(terminal) =>
       LocalEvents.publish(
         LocalServiceResponse(
-          s"/${zone.Id}/Local",
+          s"/${zone.id}/Local",
           PlanetSideGUID(0),
           LocalResponse.ProximityTerminalEffect(terminal.GUID, false)
         )
@@ -255,11 +255,11 @@ class LocalService(zone: Zone) extends Actor {
 
       // Reset CC back to normal operation
       self ! LocalServiceMessage(
-        zone.Id,
+        zone.id,
         LocalAction.HackCaptureTerminal(PlanetSideGUID(-1), zone, terminal, 0, 8L, isResecured = true)
       )
       //todo: this appears to be the way to reset the base warning lights after the hack finishes but it doesn't seem to work. The attribute above is a workaround
-      self ! HackClearActor.ClearTheHack(building.GUID, zone.Id, 3212836864L, 8L)
+      self ! HackClearActor.ClearTheHack(building.GUID, zone.id, 3212836864L, 8L)
 
     //message to Engineer
     case LocalServiceMessage.Deployables(msg) =>
@@ -276,7 +276,7 @@ class LocalService(zone: Zone) extends Actor {
               seat.Occupant = None
               tplayer.VehicleSeated = None
               zone.VehicleEvents ! VehicleServiceMessage(
-                zone.Id,
+                zone.id,
                 VehicleAction.KickPassenger(tplayer.GUID, 4, wasKickedByDriver, obj.GUID)
               )
             case None => ;
@@ -292,7 +292,7 @@ class LocalService(zone: Zone) extends Actor {
       EliminateDeployable(obj, guid, pos)
       obj.Trigger match {
         case Some(trigger) =>
-          log.warn(s"LocalService: deconstructing boomer in ${zone.Id}, but trigger@${trigger.GUID.guid} still exists")
+          log.warn(s"LocalService: deconstructing boomer in ${zone.id}, but trigger@${trigger.GUID.guid} still exists")
         case _ => ;
       }
 
@@ -308,7 +308,7 @@ class LocalService(zone: Zone) extends Actor {
     case DeployableRemover.DeleteTrigger(trigger_guid, _) =>
       LocalEvents.publish(
         LocalServiceResponse(
-          s"/${zone.Id}/Local",
+          s"/${zone.id}/Local",
           Service.defaultPlayerGUID,
           LocalResponse.ObjectDelete(trigger_guid, 0)
         )
@@ -340,11 +340,11 @@ class LocalService(zone: Zone) extends Actor {
               internalTelepad.Telepad = remoteTelepad.GUID
               if (internalTelepad.Active) {
                 log.info(
-                  s"ActivateTeleportSystem: fully deployed router@${router.GUID.guid} in ${zone.Id} will link internal@${internalTelepad.GUID.guid} and remote@${remoteTelepad.GUID.guid}"
+                  s"ActivateTeleportSystem: fully deployed router@${router.GUID.guid} in ${zone.id} will link internal@${internalTelepad.GUID.guid} and remote@${remoteTelepad.GUID.guid}"
                 )
                 LocalEvents.publish(
                   LocalServiceResponse(
-                    s"/${zone.Id}/Local",
+                    s"/${zone.id}/Local",
                     Service.defaultPlayerGUID,
                     LocalResponse.ToggleTeleportSystem(router, Some((internalTelepad, remoteTelepad)))
                   )
@@ -363,11 +363,11 @@ class LocalService(zone: Zone) extends Actor {
                 }
               }
             case _ =>
-              log.error(s"ActivateTeleportSystem: vehicle@${router.GUID.guid} in ${zone.Id} is not a router?")
+              log.error(s"ActivateTeleportSystem: vehicle@${router.GUID.guid} in ${zone.id} is not a router?")
               RouterTelepadError(remoteTelepad, "@Telepad_NoDeploy_RouterLost")
           }
         case Some(o) =>
-          log.error(s"ActivateTeleportSystem: ${o.Definition.Name}@${o.GUID.guid} in ${zone.Id} is not a router")
+          log.error(s"ActivateTeleportSystem: ${o.Definition.Name}@${o.GUID.guid} in ${zone.id} is not a router")
           RouterTelepadError(remoteTelepad, "@Telepad_NoDeploy_RouterLost")
         case None =>
           RouterTelepadError(remoteTelepad, "@Telepad_NoDeploy_RouterLost")
@@ -376,10 +376,10 @@ class LocalService(zone: Zone) extends Actor {
     //synchronized damage calculations
     case Vitality.DamageOn(target: Deployable, damage_func) =>
       val cause = damage_func(target)
-      sender ! Vitality.DamageResolution(target, cause)
+      sender() ! Vitality.DamageResolution(target, cause)
 
     case msg =>
-      log.warn(s"Unhandled message $msg from $sender")
+      log.warn(s"Unhandled message $msg from ${sender()}")
   }
 
   /**
@@ -417,7 +417,7 @@ class LocalService(zone: Zone) extends Actor {
   def EliminateDeployable(obj: PlanetSideGameObject with Deployable, guid: PlanetSideGUID, position: Vector3): Unit = {
     LocalEvents.publish(
       LocalServiceResponse(
-        s"/${zone.Id}/Local",
+        s"/${zone.id}/Local",
         Service.defaultPlayerGUID,
         LocalResponse.EliminateDeployable(obj, guid, position)
       )

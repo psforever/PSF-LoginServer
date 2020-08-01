@@ -56,7 +56,7 @@ object DamageableWeaponTurret {
   def DestructionAwareness(target: Damageable.Target with MountedWeapons, cause: ResolvedProjectile): Unit = {
     //wreckage has no (visible) mounted weapons
     val zone         = target.Zone
-    val zoneId       = zone.Id
+    val zoneId       = zone.id
     val avatarEvents = zone.AvatarEvents
     target.Weapons.values
       .filter {

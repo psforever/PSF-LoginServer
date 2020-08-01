@@ -73,12 +73,12 @@ final case class Projectile(
 object Projectile {
 
   /** the first projectile GUID used by all clients internally */
-  final val BaseUID: Int = 40100
+  final val baseUID: Int = 40100
 
   /** all clients progress through 40100 to 40124 normally, skipping only for long-lived projectiles
     * 40125 to 40149 are being reserved as a guard against undetected overflow
     */
-  final val RangeUID: Int = 40150
+  final val rangeUID: Int = 40150
 
   /**
     * Overloaded constructor for an `Unresolved` projectile.

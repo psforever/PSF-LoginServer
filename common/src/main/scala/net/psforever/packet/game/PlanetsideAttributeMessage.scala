@@ -149,14 +149,14 @@ import scodec.codecs._
   * `52 - Vehicle particle effects? (>0 turns on orbs going towards ANT. Doesn't affect silo) (bit?)`<br>
   * `53 - LFS. Value is 1 to flag LFS`<br>
   * `54 - Player "Aura". Values can be expressed in the first byte's lower nibble:`
-  *  <ul>
-  *    <li>0 - nothing</li>
-  *    <li>1 - plasma</li>
-  *    <li>2 - ancient</li>
-  *    <li>4 - LLU (?)</li>
-  *    <li>8 - fire</li>
-  *    <li>e.g., 13 = 8 + 4 + 1 = fire and LLU and plasma</li>
-  *  </ul>
+  * <ul>
+  * <li>0 - nothing</li>
+  * <li>1 - plasma</li>
+  * <li>2 - ancient</li>
+  * <li>4 - LLU (?)</li>
+  * <li>8 - fire</li>
+  * <li>e.g., 13 = 8 + 4 + 1 = fire and LLU and plasma</li>
+  * </ul>
   * `55 - "Someone is attempting to Heal you". Value is 1`<br>
   * `56 - "Someone is attempting to Repair you". Value is 1`<br>
   * `64 - ????? related to using router telepads`
@@ -164,14 +164,14 @@ import scodec.codecs._
   * `73 - "You are locked into the Core Beam. Charging your Module now.". Value is 1 to active`<br>
   * `77 - Cavern Facility Captures. Value is the number of captures`<br>
   * `78 - Cavern Kills. Value is the number of kills`<br>
-  * `106 - Custom Head`<br>
+  * `106 - Avatar Cosmetics`<br>
   * `116 - Apply colour to REK beam and REK icon above players`
-  *  <ul>
-  *    <li>0 = yellow</li>
-  *    <li>1 = red</li>
-  *    <li>2 = purple</li>
-  *    <li>3 = blue</li>
-  *  </ul>
+  * <ul>
+  * <li>0 = yellow</li>
+  * <li>1 = red</li>
+  * <li>2 = purple</li>
+  * <li>3 = blue</li>
+  * </ul>
   * Client to Server : <br>
   * `106 - Custom Head`<br>
   * `224 - Player/vehicle joins black ops`<br>
@@ -179,9 +179,9 @@ import scodec.codecs._
   * <br>
   * `Vehicles:`<br>
   * `10 - Driver seat permissions`
-  *  <ul>
-  *    <li>0 - Locked</li>
-  *    <li>1 - Group</li>
+  * <ul>
+  * <li>0 - Locked</li>
+  * <li>1 - Group</li>
   *    <li>3 - Empire</li>
   *  </ul>
   * `11 - Gunner seat(s) permissions (same)`<br>

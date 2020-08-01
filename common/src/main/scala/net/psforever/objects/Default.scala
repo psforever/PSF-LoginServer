@@ -5,7 +5,8 @@ object Default {
   //cancellable
   import akka.actor.Cancellable
   protected class InternalCancellable extends Cancellable {
-    override def cancel: Boolean      = true
+    override def cancel(): Boolean = true
+
     override def isCancelled: Boolean = true
   }
   private val cancellable: Cancellable = new InternalCancellable
@@ -28,7 +29,7 @@ object Default {
     */
   private class DefaultActor extends AkkaActor {
     def receive: Receive = {
-      case msg => context.system.deadLetters ! DeadLetter(msg, sender, self)
+      case msg => context.system.deadLetters ! DeadLetter(msg, sender(), self)
     }
   }
   private var defaultRef: ActorRef = ActorRef.noSender
@@ -40,7 +41,7 @@ object Default {
     */
   def apply(sys: ActorSystem): ActorRef = {
     if (defaultRef == ActorRef.noSender) {
-      defaultRef = sys.actorOf(Props[DefaultActor], name = s"system-default-actor")
+      defaultRef = sys.actorOf(Props[DefaultActor](), name = s"system-default-actor")
     }
     defaultRef
   }

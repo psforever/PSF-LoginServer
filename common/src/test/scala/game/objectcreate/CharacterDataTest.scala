@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package game.objectcreate
 
+import net.psforever.objects.avatar.Cosmetic
 import net.psforever.packet.PacketCoding
 import net.psforever.packet.game.ObjectCreateMessage
 import net.psforever.packet.game.objectcreate._
@@ -89,17 +90,10 @@ class CharacterDataTest extends Specification {
               char.command_rank mustEqual 5
               char.implant_effects.length mustEqual 1
               char.implant_effects.head mustEqual ImplantEffects.NoEffects
-              char.cosmetics match {
-                case Some(c: Cosmetics) =>
-                  c.Styles mustEqual Set(
-                    PersonalStyle.NoHelmet,
-                    PersonalStyle.Beret,
-                    PersonalStyle.Sunglasses,
-                    PersonalStyle.Earpiece
-                  )
-                case None =>
-                  ko
-              }
+              char.cosmetics must beSome(
+                beEqualTo(Set(Cosmetic.NoHelmet, Cosmetic.Beret, Cosmetic.Sunglasses, Cosmetic.Earpiece))
+              )
+
               char.unk mustEqual 7
               //short test of inventory items
               inv.isDefined mustEqual true
@@ -282,17 +276,9 @@ class CharacterDataTest extends Specification {
               char.uniform_upgrade mustEqual UniformStyle.ThirdUpgrade
               char.command_rank mustEqual 2
               char.implant_effects.isEmpty mustEqual true
-              char.cosmetics match {
-                case Some(c: Cosmetics) =>
-                  c.Styles mustEqual Set(
-                    PersonalStyle.NoHelmet,
-                    PersonalStyle.Beret,
-                    PersonalStyle.Sunglasses,
-                    PersonalStyle.Earpiece
-                  )
-                case None =>
-                  ko
-              }
+              char.cosmetics must beSome(
+                beEqualTo(Set(Cosmetic.NoHelmet, Cosmetic.Beret, Cosmetic.Sunglasses, Cosmetic.Earpiece))
+              )
               char.unk mustEqual 1
 
               hand mustEqual DrawnSlot.Pistol1
@@ -375,7 +361,7 @@ class CharacterDataTest extends Specification {
         7,
         5,
         List(ImplantEffects.NoEffects),
-        Some(Cosmetics(true, true, true, true, false))
+        Some(Set(Cosmetic.NoHelmet, Cosmetic.Beret, Cosmetic.Sunglasses, Cosmetic.Earpiece))
       )
       val inv = InventoryData(
         InventoryItemData(
@@ -482,7 +468,7 @@ class CharacterDataTest extends Specification {
         UniformStyle.ThirdUpgrade,
         5,
         List(ImplantEffects.NoEffects),
-        Some(Cosmetics(true, true, true, true, false))
+        Some(Set(Cosmetic.NoHelmet, Cosmetic.Beret, Cosmetic.Sunglasses, Cosmetic.Earpiece))
       )
       val inv = InventoryData(
         InventoryItemData(
@@ -598,7 +584,7 @@ class CharacterDataTest extends Specification {
         UniformStyle.ThirdUpgrade,
         1,
         List(),
-        Some(Cosmetics(true, true, true, true, false))
+        Some(Set(Cosmetic.NoHelmet, Cosmetic.Beret, Cosmetic.Sunglasses, Cosmetic.Earpiece))
       )
       val obj = PlayerData(pos, app, char, DrawnSlot.Pistol1)
 

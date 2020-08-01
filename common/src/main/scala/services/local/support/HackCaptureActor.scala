@@ -51,7 +51,7 @@ class HackCaptureActor extends Actor {
 
     case HackCaptureActor.ProcessCompleteHacks() =>
       log.trace("Processing complete hacks")
-      clearTrigger.cancel
+      clearTrigger.cancel()
       val now: Long     = System.nanoTime
       val stillHacked   = hackedObjects.filter(x => now - x.hack_timestamp <= x.duration.toNanos)
       val unhackObjects = hackedObjects.filter(x => now - x.hack_timestamp >= x.duration.toNanos)
@@ -64,7 +64,7 @@ class HackCaptureActor extends Actor {
 
         context.parent ! HackCaptureActor.HackTimeoutReached(
           entry.target.GUID,
-          entry.zone.Id,
+          entry.zone.id,
           entry.unk1,
           entry.unk2,
           hackedByFaction

@@ -1,13 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.avatar.LoadoutManager
-import net.psforever.objects.definition.{
-  AvatarDefinition,
-  ExoSuitDefinition,
-  ImplantDefinition,
-  SpecialExoSuitDefinition
-}
+import net.psforever.objects.avatar.{Avatar, LoadoutManager}
+import net.psforever.objects.definition.{AvatarDefinition, ExoSuitDefinition, SpecialExoSuitDefinition}
 import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot, JammableUnit}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
 import net.psforever.objects.serverobject.PlanetSideServerObject
@@ -15,13 +10,12 @@ import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.vital.resistance.ResistanceProfile
 import net.psforever.objects.vital.{DamageResistanceModel, Vitality}
 import net.psforever.objects.zones.ZoneAware
-import net.psforever.packet.game.objectcreate.{Cosmetics, DetailedCharacterData, PersonalStyle}
 import net.psforever.types.{PlanetSideGUID, _}
 
 import scala.annotation.tailrec
 import scala.util.{Success, Try}
 
-class Player(private val core: Avatar)
+class Player(var avatar: Avatar)
     extends PlanetSideServerObject
     with FactionAffinity
     with Vitality
@@ -32,15 +26,12 @@ class Player(private val core: Avatar)
   Health = 0       //player health is artificially managed as a part of their lifecycle; start entity as dead
   Destroyed = true //see isAlive
   private var backpack: Boolean = false
-  private var stamina: Int      = 0
   private var armor: Int        = 0
 
   private var capacitor: Float                         = 0f
   private var capacitorState: CapacitorStateType.Value = CapacitorStateType.Idle
   private var capacitorLastUsedMillis: Long            = 0
   private var capacitorLastChargedMillis: Long         = 0
-
-  private var maxStamina: Int = 100 //does anything affect this?
 
   private var exosuit: ExoSuitDefinition             = GlobalDefinitions.Standard
   private val freeHand: EquipmentSlot                = new OffhandEquipmentSlot(EquipmentSize.Inventory)
@@ -54,9 +45,7 @@ class Player(private val core: Avatar)
   private var crouching: Boolean    = false
   private var jumping: Boolean      = false
   private var cloaked: Boolean      = false
-  private var fatigued: Boolean =
-    false // If stamina drops to 0, player is fatigued until regenerating at least 20 stamina
-  private var afk: Boolean = false
+  private var afk: Boolean          = false
 
   private var vehicleSeated: Option[PlanetSideGUID] = None
 
@@ -70,36 +59,35 @@ class Player(private val core: Avatar)
 
   /** From PlanetsideAttributeMessage */
   var PlanetsideAttribute: Array[Long] = Array.ofDim(120)
-  var skipStaminaRegenForTurns: Int    = 0
+
+  val squadLoadouts = new LoadoutManager(10)
 
   Player.SuitSetup(this, exosuit)
 
-  def CharId: Long = core.CharId
+  def Definition: AvatarDefinition = avatar.definition
 
-  def Name: String = core.name
+  def CharId: Long = avatar.id
 
-  def Faction: PlanetSideEmpire.Value = core.faction
+  def Name: String = avatar.name
 
-  def Sex: CharacterGender.Value = core.sex
+  def Faction: PlanetSideEmpire.Value = avatar.faction
 
-  def Head: Int = core.head
+  def Sex: CharacterGender.Value = avatar.sex
 
-  def Voice: CharacterVoice.Value = core.voice
+  def Head: Int = avatar.head
 
-  def LFS: Boolean = core.LFS
+  def Voice: CharacterVoice.Value = avatar.voice
 
   def isAlive: Boolean = !Destroyed
 
   def isBackpack: Boolean = backpack
 
-  def Spawn: Boolean = {
+  def Spawn(): Boolean = {
     if (!isAlive && !isBackpack) {
       Destroyed = false
       Health = Definition.DefaultHealth
-      Stamina = MaxStamina
       Armor = MaxArmor
       Capacitor = 0
-      ResetAllImplants()
     }
     isAlive
   }
@@ -107,7 +95,6 @@ class Player(private val core: Avatar)
   def Die: Boolean = {
     Destroyed = true
     Health = 0
-    Stamina = 0
     false
   }
 
@@ -124,21 +111,6 @@ class Player(private val core: Avatar)
     } else {
       false
     }
-  }
-
-  def Stamina: Int = stamina
-
-  def Stamina_=(assignStamina: Int): Int = {
-    stamina = if (isAlive) { math.min(math.max(0, assignStamina), MaxStamina) }
-    else { 0 }
-    Stamina
-  }
-
-  def MaxStamina: Int = maxStamina
-
-  def MaxStamina_=(max: Int): Int = {
-    maxStamina = math.min(math.max(0, max), 65535)
-    MaxStamina
   }
 
   def Armor: Int = armor
@@ -199,7 +171,7 @@ class Player(private val core: Avatar)
     } else if (slot > -1 && slot < 5) {
       holsters(slot)
     } else if (slot == 5) {
-      core.FifthSlot
+      avatar.fifthSlot()
     } else if (slot == Player.FreeHandSlot) {
       freeHand
     } else {
@@ -210,10 +182,6 @@ class Player(private val core: Avatar)
   def Holsters(): Array[EquipmentSlot] = holsters
 
   def Inventory: GridInventory = inventory
-
-  def Locker: LockerContainer = core.Locker
-
-  def FifthSlot: EquipmentSlot = core.FifthSlot
 
   override def Fit(obj: Equipment): Option[Int] = {
     recursiveHolsterFit(holsters.iterator, obj.Size) match {
@@ -238,7 +206,7 @@ class Player(private val core: Avatar)
     if (!iter.hasNext) {
       None
     } else {
-      val slot = iter.next
+      val slot = iter.next()
       if (slot.Equipment.isEmpty && slot.Size.equals(objSize)) {
         Some(index)
       } else {
@@ -278,7 +246,7 @@ class Player(private val core: Avatar)
     if (!iter.hasNext) {
       None
     } else {
-      val slot = iter.next
+      val slot = iter.next()
       if (slot.Equipment.isDefined && slot.Equipment.get.GUID == guid) {
         Some(index)
       } else {
@@ -343,40 +311,6 @@ class Player(private val core: Avatar)
 
   def RadiationShielding = exosuit.RadiationShielding
 
-  def EquipmentLoadouts: LoadoutManager = core.EquipmentLoadouts
-
-  def SquadLoadouts: LoadoutManager = core.SquadLoadouts
-
-  def BEP: Long = core.BEP
-
-  def CEP: Long = core.CEP
-
-  def Certifications: Set[CertificationType.Value] = core.Certifications.toSet
-
-  /**
-    * What kind of implant is installed into the given slot number?
-    * @see `ImplantType`
-    * @param slot the slot number
-    * @return the tye of implant
-    */
-  def Implant(slot: Int): ImplantType.Value = core.Implant(slot)
-
-  def ImplantSlot(slot: Int): ImplantSlot = core.Implants(slot)
-
-  /**
-    * A read-only `Array` of tuples representing important information about all unlocked implant slots.
-    * @return a maximum of three implant types, initialization times, and active flags
-    */
-  def Implants: Array[(ImplantType.Value, Long, Boolean)] = {
-    core.Implants.takeWhile(_.Unlocked).map(implant => { (implant.Implant, implant.MaxTimer, implant.Active) })
-  }
-
-  def InstallImplant(implant: ImplantDefinition): Option[Int] = core.InstallImplant(implant)
-
-  def UninstallImplant(implant: ImplantType.Value): Option[Int] = core.UninstallImplant(implant)
-
-  def ResetAllImplants(): Unit = core.ResetAllImplants()
-
   def FacingYawUpper: Float = facingYawUpper
 
   def FacingYawUpper_=(facing: Float): Float = {
@@ -405,78 +339,11 @@ class Player(private val core: Avatar)
     Cloaked
   }
 
-  def Fatigued: Boolean = fatigued
-
-  def Fatigued_=(isFatigued: Boolean): Boolean = {
-    fatigued = isFatigued
-    Fatigued
-  }
-
   def AwayFromKeyboard: Boolean = afk
 
   def AwayFromKeyboard_=(away: Boolean): Boolean = {
     afk = away
     AwayFromKeyboard
-  }
-
-  def PersonalStyleFeatures: Option[Cosmetics] = core.PersonalStyleFeatures
-
-  def AddToPersonalStyle(value: PersonalStyle.Value): (Option[Cosmetics], Option[Cosmetics]) = {
-    val original = core.PersonalStyleFeatures
-    if (DetailedCharacterData.isBR24(core.BEP)) {
-      core.PersonalStyleFeatures = original match {
-        case Some(cosmetic) =>
-          cosmetic + value
-        case None =>
-          Cosmetics(value)
-      }
-      (original, core.PersonalStyleFeatures)
-    } else {
-      (None, None)
-    }
-  }
-
-  def RemoveFromPersonalStyle(value: PersonalStyle.Value): (Option[Cosmetics], Option[Cosmetics]) = {
-    val original = core.PersonalStyleFeatures
-    original match {
-      case Some(cosmetics) =>
-        (original, core.PersonalStyleFeatures = cosmetics - value)
-      case None =>
-        (None, None)
-    }
-  }
-
-  private def BasicFeatureToggle(feature: PersonalStyle.Value): (Option[Cosmetics], Option[Cosmetics]) =
-    core.PersonalStyleFeatures match {
-      case Some(c: Cosmetics) =>
-        if (c.Styles.contains(feature)) {
-          RemoveFromPersonalStyle(feature)
-        } else {
-          AddToPersonalStyle(feature)
-        }
-      case None =>
-        AddToPersonalStyle(feature)
-    }
-
-  def ToggleHelmet: (Option[Cosmetics], Option[Cosmetics]) = BasicFeatureToggle(PersonalStyle.NoHelmet)
-
-  def ToggleShades: (Option[Cosmetics], Option[Cosmetics]) = BasicFeatureToggle(PersonalStyle.Sunglasses)
-
-  def ToggleEarpiece: (Option[Cosmetics], Option[Cosmetics]) = BasicFeatureToggle(PersonalStyle.Earpiece)
-
-  def ToggleHat: (Option[Cosmetics], Option[Cosmetics]) = {
-    core.PersonalStyleFeatures match {
-      case Some(c: Cosmetics) =>
-        if (c.Styles.contains(PersonalStyle.BrimmedCap)) {
-          (RemoveFromPersonalStyle(PersonalStyle.BrimmedCap)._1, AddToPersonalStyle(PersonalStyle.Beret)._2)
-        } else if (c.Styles.contains(PersonalStyle.Beret)) {
-          RemoveFromPersonalStyle(PersonalStyle.Beret)
-        } else {
-          AddToPersonalStyle(PersonalStyle.BrimmedCap)
-        }
-      case None =>
-        AddToPersonalStyle(PersonalStyle.BrimmedCap)
-    }
   }
 
   private var usingSpecial: SpecialExoSuitDefinition.Mode.Value => SpecialExoSuitDefinition.Mode.Value =
@@ -602,8 +469,6 @@ class Player(private val core: Avatar)
     isBackpack && (backpackAccess.isEmpty || backpackAccess.contains(player.GUID))
   }
 
-  def FirstTimeEvents: List[String] = core.FirstTimeEvents
-
   def VehicleSeated: Option[PlanetSideGUID] = vehicleSeated
 
   def VehicleSeated_=(guid: PlanetSideGUID): Option[PlanetSideGUID] = VehicleSeated_=(Some(guid))
@@ -613,40 +478,7 @@ class Player(private val core: Avatar)
     VehicleSeated
   }
 
-  def VehicleOwned: Option[PlanetSideGUID] = core.VehicleOwned
-
-  def VehicleOwned_=(guid: PlanetSideGUID): Option[PlanetSideGUID] = core.VehicleOwned_=(Some(guid))
-
-  def VehicleOwned_=(guid: Option[PlanetSideGUID]): Option[PlanetSideGUID] = core.VehicleOwned_=(guid)
-
-  def GetLastUsedTime(code: Int): Long = core.GetLastUsedTime(code)
-
-  def GetLastUsedTime(code: ExoSuitType.Value): Long = core.GetLastUsedTime(code)
-
-  def GetLastUsedTime(code: ExoSuitType.Value, subtype: Int): Long = core.GetLastUsedTime(code, subtype)
-
-  def SetLastUsedTime(code: Int, time: Long): Unit = core.SetLastUsedTime(code, time)
-
-  def SetLastUsedTime(code: ExoSuitType.Value): Unit = core.SetLastUsedTime(code)
-
-  def SetLastUsedTime(code: ExoSuitType.Value, time: Long): Unit = core.SetLastUsedTime(code, time)
-
-  def SetLastUsedTime(code: ExoSuitType.Value, subtype: Int): Unit = core.SetLastUsedTime(code, subtype)
-
-  def SetLastUsedTime(code: ExoSuitType.Value, subtype: Int, time: Long): Unit =
-    core.SetLastUsedTime(code, subtype, time)
-
-  def GetLastPurchaseTime(code: Int): Long = core.GetLastPurchaseTime(code)
-
-  def SetLastPurchaseTime(code: Int, time: Long): Unit = core.SetLastPurchaseTime(code, time)
-
-  def ObjectTypeNameReference(id: Long): String = core.ObjectTypeNameReference(id)
-
-  def ObjectTypeNameReference(id: Long, name: String): String = core.ObjectTypeNameReference(id, name)
-
   def DamageModel = exosuit.asInstanceOf[DamageResistanceModel]
-
-  def Definition: AvatarDefinition = core.Definition
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[Player]
 
@@ -654,16 +486,23 @@ class Player(private val core: Avatar)
     other match {
       case that: Player =>
         (that canEqual this) &&
-          core == that.core
+          avatar == that.avatar
       case _ =>
         false
     }
 
   override def hashCode(): Int = {
-    core.hashCode()
+    avatar.hashCode()
   }
 
-  override def toString: String = Player.toString(this)
+  override def toString: String = {
+    val guid = if (HasGUID) {
+      s" ${Continent}-${GUID.guid}"
+    } else {
+      ""
+    }
+    s"${avatar.name}$guid ${Health}/${MaxHealth} ${Armor}/${MaxArmor}"
+  }
 }
 
 object Player {
@@ -672,16 +511,6 @@ object Player {
   final val HandsDownSlot: Int = 255
 
   final case class Die()
-  final case class ImplantActivation(slot: Int, status: Int)
-  final case class ImplantInitializationStart(slot: Int)
-  final case class UninitializeImplant(slot: Int)
-  final case class ImplantInitializationComplete(slot: Int)
-  final case class StaminaRegen()
-  final case class StaminaChanged(currentStamina: Option[Int] = None)
-
-  object StaminaChanged {
-    def apply(amount: Int): StaminaChanged = StaminaChanged(Some(amount))
-  }
 
   def apply(core: Avatar): Player = {
     new Player(core)
@@ -698,33 +527,11 @@ object Player {
 
   def Respawn(player: Player): Player = {
     if (player.Release) {
-      val obj = new Player(player.core)
+      val obj = new Player(player.avatar)
       obj.Continent = player.Continent
       obj
     } else {
       player
     }
-  }
-
-  def GetHackLevel(player: Player): Int = {
-    if (
-      player.Certifications.contains(CertificationType.ExpertHacking) || player.Certifications.contains(
-        CertificationType.ElectronicsExpert
-      )
-    ) {
-      3
-    } else if (player.Certifications.contains(CertificationType.AdvancedHacking)) {
-      2
-    } else if (player.Certifications.contains(CertificationType.Hacking)) {
-      1
-    } else {
-      0
-    }
-  }
-
-  def toString(obj: Player): String = {
-    val guid = if (obj.HasGUID) { s" ${obj.Continent}-${obj.GUID.guid}" }
-    else { "" }
-    s"${obj.core}$guid ${obj.Health}/${obj.MaxHealth} ${obj.Armor}/${obj.MaxArmor}"
   }
 }

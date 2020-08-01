@@ -71,7 +71,7 @@ class SensorDeployableControl(sensor: SensorDeployable)
     target match {
       case obj: PlanetSideServerObject if !jammedSound =>
         obj.Zone.VehicleEvents ! VehicleServiceMessage(
-          obj.Zone.Id,
+          obj.Zone.id,
           VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, obj.GUID, 54, 1)
         )
         super.StartJammeredSound(obj, dur)
@@ -83,7 +83,7 @@ class SensorDeployableControl(sensor: SensorDeployable)
       case obj: PlanetSideServerObject with JammableUnit if !obj.Jammed =>
         val zone = obj.Zone
         zone.LocalEvents ! LocalServiceMessage(
-          zone.Id,
+          zone.id,
           LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", obj.GUID, false, 1000)
         )
         super.StartJammeredStatus(obj, dur)
@@ -95,7 +95,7 @@ class SensorDeployableControl(sensor: SensorDeployable)
       case obj: PlanetSideServerObject if jammedSound =>
         val zone = obj.Zone
         zone.VehicleEvents ! VehicleServiceMessage(
-          zone.Id,
+          zone.id,
           VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, obj.GUID, 54, 0)
         )
       case _ => ;
@@ -107,7 +107,7 @@ class SensorDeployableControl(sensor: SensorDeployable)
     target match {
       case obj: PlanetSideServerObject with JammableUnit if obj.Jammed =>
         sensor.Zone.LocalEvents ! LocalServiceMessage(
-          sensor.Zone.Id,
+          sensor.Zone.id,
           LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", obj.GUID, true, 1000)
         )
       case _ => ;
@@ -127,7 +127,7 @@ object SensorDeployableControl {
     Deployables.AnnounceDestroyDeployable(target, Some(1 seconds))
     val zone = target.Zone
     zone.LocalEvents ! LocalServiceMessage(
-      zone.Id,
+      zone.id,
       LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", target.GUID, false, 1000)
     )
     //position the explosion effect near the bulky area of the sensor stalk
@@ -143,7 +143,7 @@ object SensorDeployableControl {
       )
     }
     zone.LocalEvents ! LocalServiceMessage(
-      zone.Id,
+      zone.id,
       LocalAction.TriggerEffectLocation(Service.defaultPlayerGUID, "motion_sensor_destroyed", explosionPos, ang)
     )
     //TODO replaced by an alternate model (charred stub)?

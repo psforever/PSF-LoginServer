@@ -1,8 +1,10 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game
 
+import net.psforever.packet.GamePacketOpcode.Type
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
-import scodec.Codec
+import scodec.bits.BitVector
+import scodec.{Attempt, Codec}
 import scodec.codecs._
 import shapeless.{::, HNil}
 
@@ -12,7 +14,7 @@ object FriendAction extends Enumeration {
   val InitializeFriendList, AddFriend, RemoveFriend, UpdateFriend, InitializeIgnoreList, AddIgnoredPlayer,
       RemoveIgnoredPlayer = Value
 
-  implicit val codec = PacketHelpers.createEnumerationCodec(this, uint(3))
+  implicit val codec: Codec[FriendAction.Value] = PacketHelpers.createEnumerationCodec(this, uint(3))
 }
 
 /**
@@ -53,8 +55,10 @@ final case class FriendsResponse(
     friends: List[Friend] = Nil
 ) extends PlanetSideGamePacket {
   type Packet = FriendsResponse
-  def opcode = GamePacketOpcode.FriendsResponse
-  def encode = FriendsResponse.encode(this)
+
+  def opcode: Type = GamePacketOpcode.FriendsResponse
+
+  def encode: Attempt[BitVector] = FriendsResponse.encode(this)
 }
 
 object Friend extends Marshallable[Friend] {

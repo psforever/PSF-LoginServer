@@ -16,6 +16,7 @@ import services.avatar._
 import scala.concurrent.duration._
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.actors.zone.ZoneActor
+import net.psforever.objects.avatar.Avatar
 
 class AvatarService1Test extends ActorTest {
   "AvatarService" should {
@@ -181,7 +182,7 @@ class DroptItemTest extends ActorTest {
 }
 
 class LoadPlayerTest extends ActorTest {
-  val obj = Player(Avatar("TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
+  val obj = Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
   obj.GUID = PlanetSideGUID(10)
   obj.Slot(5).Equipment.get.GUID = PlanetSideGUID(11)
   val c1data = obj.Definition.Packet.DetailedConstructorData(obj).get
@@ -335,7 +336,7 @@ class PlayerStateTest extends ActorTest {
 }
 
 class PickupItemTest extends ActorTest {
-  val obj  = Player(Avatar("TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
+  val obj  = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
   val tool = Tool(GlobalDefinitions.beamer)
   tool.GUID = PlanetSideGUID(40)
 
@@ -506,14 +507,14 @@ Frequent pauses to allow everything to sort their messages also helps.
 Even with all this work, the tests have a high chance of failure just due to being asynchronous.
  */
 class AvatarReleaseTest extends ActorTest {
-  ServiceManager.boot(system) ! ServiceManager.Register(RandomPool(1).props(Props[TaskResolver]), "taskResolver")
+  ServiceManager.boot(system) ! ServiceManager.Register(RandomPool(1).props(Props[TaskResolver]()), "taskResolver")
   val zone = new Zone("test", new ZoneMap("test-map"), 0) {
     override def SetupNumberPools() = { AddPool("dynamic", 1 to 10) }
   }
   val service      = system.actorOf(Props(classOf[AvatarService], zone), "release-test-service")
-  val taskResolver = system.actorOf(Props[TaskResolver], "release-test-resolver")
+  val taskResolver = system.actorOf(Props[TaskResolver](), "release-test-resolver")
   zone.actor = system.spawn(ZoneActor(zone), "release-test-zone")
-  val obj = Player(Avatar("TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
+  val obj = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
   obj.Continent = "test"
   obj.Release
 
@@ -556,14 +557,14 @@ class AvatarReleaseTest extends ActorTest {
 }
 
 class AvatarReleaseEarly1Test extends ActorTest {
-  ServiceManager.boot(system) ! ServiceManager.Register(RandomPool(1).props(Props[TaskResolver]), "taskResolver")
+  ServiceManager.boot(system) ! ServiceManager.Register(RandomPool(1).props(Props[TaskResolver]()), "taskResolver")
   val zone = new Zone("test", new ZoneMap("test-map"), 0) {
     override def SetupNumberPools() = { AddPool("dynamic", 1 to 10) }
   }
   val service      = system.actorOf(Props(classOf[AvatarService], zone), "release-test-service")
-  val taskResolver = system.actorOf(Props[TaskResolver], "release-test-resolver")
+  val taskResolver = system.actorOf(Props[TaskResolver](), "release-test-resolver")
   zone.actor = system.spawn(ZoneActor(zone), "release-test-zone")
-  val obj = Player(Avatar("TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
+  val obj = Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
   obj.Continent = "test"
   obj.Release
 
@@ -607,18 +608,18 @@ class AvatarReleaseEarly1Test extends ActorTest {
 }
 
 class AvatarReleaseEarly2Test extends ActorTest {
-  ServiceManager.boot(system) ! ServiceManager.Register(RandomPool(1).props(Props[TaskResolver]), "taskResolver")
+  ServiceManager.boot(system) ! ServiceManager.Register(RandomPool(1).props(Props[TaskResolver]()), "taskResolver")
   val zone = new Zone("test", new ZoneMap("test-map"), 0) {
     override def SetupNumberPools() = { AddPool("dynamic", 1 to 10) }
   }
   val service      = system.actorOf(Props(classOf[AvatarService], zone), "release-test-service")
-  val taskResolver = system.actorOf(Props[TaskResolver], "release-test-resolver")
+  val taskResolver = system.actorOf(Props[TaskResolver](), "release-test-resolver")
   zone.actor = system.spawn(ZoneActor(zone), "release-test-zone")
   val objAlt =
     Player(
-      Avatar("TestCharacter2", PlanetSideEmpire.NC, CharacterGender.Male, 1, CharacterVoice.Voice1)
+      Avatar(0, "TestCharacter2", PlanetSideEmpire.NC, CharacterGender.Male, 1, CharacterVoice.Voice1)
     ) //necessary clutter
-  val obj = Player(Avatar("TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
+  val obj = Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
   obj.Continent = "test"
   obj.Release
 

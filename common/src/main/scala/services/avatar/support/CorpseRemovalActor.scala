@@ -24,7 +24,7 @@ class CorpseRemovalActor extends RemoverActor {
     import net.psforever.objects.zones.Zone
     entry.zone.Population ! Zone.Corpse.Remove(entry.obj.asInstanceOf[Player])
     context.parent ! AvatarServiceMessage(
-      entry.zone.Id,
+      entry.zone.id,
       AvatarAction.ObjectDelete(Service.defaultPlayerGUID, entry.obj.GUID)
     )
   }

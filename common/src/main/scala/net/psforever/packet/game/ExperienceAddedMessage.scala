@@ -27,7 +27,6 @@ final case class ExperienceAddedMessage(exp: Int, unk: Boolean = true) extends P
 
 object ExperienceAddedMessage extends Marshallable[ExperienceAddedMessage] {
   implicit val codec: Codec[ExperienceAddedMessage] = (
-    ("cep" | uintL(15)) ::
-      ("unk" | bool)
+    ("exp" | uintL(15)) :: ("unk" | bool)
   ).as[ExperienceAddedMessage]
 }

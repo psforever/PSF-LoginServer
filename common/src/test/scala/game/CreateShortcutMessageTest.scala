@@ -4,7 +4,7 @@ package game
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
-import net.psforever.types.PlanetSideGUID
+import net.psforever.types.{ImplantType, PlanetSideGUID}
 import scodec.bits._
 
 class CreateShortcutMessageTest extends Specification {
@@ -96,27 +96,27 @@ class CreateShortcutMessageTest extends Specification {
   }
 
   "presets" in {
-    Shortcut.AudioAmplifier.get.purpose mustEqual 2
-    Shortcut.AudioAmplifier.get.tile mustEqual "audio_amplifier"
-    Shortcut.DartklightVision.get.purpose mustEqual 2
-    Shortcut.DartklightVision.get.tile mustEqual "darklight_vision"
-    Shortcut.EnhancedTargeting.get.purpose mustEqual 2
-    Shortcut.EnhancedTargeting.get.tile mustEqual "targeting"
+    ImplantType.AudioAmplifier.shortcut.purpose mustEqual 2
+    ImplantType.AudioAmplifier.shortcut.tile mustEqual "audio_amplifier"
+    ImplantType.DarklightVision.shortcut.purpose mustEqual 2
+    ImplantType.DarklightVision.shortcut.tile mustEqual "darklight_vision"
+    ImplantType.Targeting.shortcut.purpose mustEqual 2
+    ImplantType.Targeting.shortcut.tile mustEqual "targeting"
     Shortcut.Medkit.get.purpose mustEqual 0
     Shortcut.Medkit.get.tile mustEqual "medkit"
-    Shortcut.MeleeBooster.get.purpose mustEqual 2
-    Shortcut.MeleeBooster.get.tile mustEqual "melee_booster"
-    Shortcut.PersonalShield.get.purpose mustEqual 2
-    Shortcut.PersonalShield.get.tile mustEqual "personal_shield"
-    Shortcut.RangeMagnifier.get.purpose mustEqual 2
-    Shortcut.RangeMagnifier.get.tile mustEqual "range_magnifier"
-    Shortcut.Regeneration.get.purpose mustEqual 2
-    Shortcut.Regeneration.get.tile mustEqual "advanced_regen"
-    Shortcut.SecondWind.get.purpose mustEqual 2
-    Shortcut.SecondWind.get.tile mustEqual "second_wind"
-    Shortcut.SensorShield.get.purpose mustEqual 2
-    Shortcut.SensorShield.get.tile mustEqual "silent_run"
-    Shortcut.Surge.get.purpose mustEqual 2
-    Shortcut.Surge.get.tile mustEqual "surge"
+    ImplantType.MeleeBooster.shortcut.purpose mustEqual 2
+    ImplantType.MeleeBooster.shortcut.tile mustEqual "melee_booster"
+    ImplantType.PersonalShield.shortcut.purpose mustEqual 2
+    ImplantType.PersonalShield.shortcut.tile mustEqual "personal_shield"
+    ImplantType.RangeMagnifier.shortcut.purpose mustEqual 2
+    ImplantType.RangeMagnifier.shortcut.tile mustEqual "range_magnifier"
+    ImplantType.AdvancedRegen.shortcut.purpose mustEqual 2
+    ImplantType.AdvancedRegen.shortcut.tile mustEqual "advanced_regen"
+    ImplantType.SecondWind.shortcut.purpose mustEqual 2
+    ImplantType.SecondWind.shortcut.tile mustEqual "second_wind"
+    ImplantType.SilentRun.shortcut.purpose mustEqual 2
+    ImplantType.SilentRun.shortcut.tile mustEqual "silent_run"
+    ImplantType.Surge.shortcut.purpose mustEqual 2
+    ImplantType.Surge.shortcut.tile mustEqual "surge"
   }
 }

@@ -14,7 +14,7 @@ import scala.concurrent.duration._
 class RouterTelepadActivationTest extends ActorTest {
   "RouterTelepadActivation" should {
     "construct" in {
-      system.actorOf(Props[RouterTelepadActivation], "activation-test-actor")
+      system.actorOf(Props[RouterTelepadActivation](), "activation-test-actor")
     }
   }
 }
@@ -25,7 +25,7 @@ class RouterTelepadActivationSimpleTest extends ActorTest {
       val telepad = new TelepadDeployable(GlobalDefinitions.router_telepad_deployable)
       telepad.GUID = PlanetSideGUID(1)
       val obj = system.actorOf(
-        Props(classOf[ActorTest.SupportActorInterface], Props[RouterTelepadActivation], self),
+        Props(classOf[ActorTest.SupportActorInterface], Props[RouterTelepadActivation](), self),
         "activation-test-actor"
       )
 
@@ -45,7 +45,7 @@ class RouterTelepadActivationComplexTest extends ActorTest {
       val telepad3 = new TelepadDeployable(GlobalDefinitions.router_telepad_deployable)
       telepad3.GUID = PlanetSideGUID(3)
       val obj = system.actorOf(
-        Props(classOf[ActorTest.SupportActorInterface], Props[RouterTelepadActivation], self),
+        Props(classOf[ActorTest.SupportActorInterface], Props[RouterTelepadActivation](), self),
         "activation-test-actor"
       )
 
@@ -73,7 +73,7 @@ class RouterTelepadActivationHurryTest extends ActorTest {
       val telepad3 = new TelepadDeployable(GlobalDefinitions.router_telepad_deployable)
       telepad3.GUID = PlanetSideGUID(3)
       val obj = system.actorOf(
-        Props(classOf[ActorTest.SupportActorInterface], Props[RouterTelepadActivation], self),
+        Props(classOf[ActorTest.SupportActorInterface], Props[RouterTelepadActivation](), self),
         "activation-test-actor"
       )
 
@@ -103,7 +103,7 @@ class RouterTelepadActivationHurryAllTest extends ActorTest {
       val telepad3 = new TelepadDeployable(GlobalDefinitions.router_telepad_deployable)
       telepad3.GUID = PlanetSideGUID(3)
       val obj = system.actorOf(
-        Props(classOf[ActorTest.SupportActorInterface], Props[RouterTelepadActivation], self),
+        Props(classOf[ActorTest.SupportActorInterface], Props[RouterTelepadActivation](), self),
         "activation-test-actor"
       )
 
@@ -136,7 +136,7 @@ class RouterTelepadActivationClearTest extends ActorTest {
       val telepad3 = new TelepadDeployable(GlobalDefinitions.router_telepad_deployable)
       telepad3.GUID = PlanetSideGUID(3)
       val obj = system.actorOf(
-        Props(classOf[ActorTest.SupportActorInterface], Props[RouterTelepadActivation], self),
+        Props(classOf[ActorTest.SupportActorInterface], Props[RouterTelepadActivation](), self),
         "activation-test-actor"
       )
 
@@ -161,7 +161,7 @@ class RouterTelepadActivationClearAllTest extends ActorTest {
       val telepad3 = new TelepadDeployable(GlobalDefinitions.router_telepad_deployable)
       telepad3.GUID = PlanetSideGUID(3)
       val obj = system.actorOf(
-        Props(classOf[ActorTest.SupportActorInterface], Props[RouterTelepadActivation], self),
+        Props(classOf[ActorTest.SupportActorInterface], Props[RouterTelepadActivation](), self),
         "activation-test-actor"
       )
 

@@ -35,7 +35,7 @@ class DoorCloseActor() extends Actor {
       }
 
     case DoorCloseActor.TryCloseDoors() =>
-      doorCloserTrigger.cancel
+      doorCloserTrigger.cancel()
       val now: Long                       = System.nanoTime
       val (doorsToClose1, doorsLeftOpen1) = PartitionEntries(openDoors, now)
       val (doorsToClose2, doorsLeftOpen2) = doorsToClose1.partition(entry => {
@@ -79,7 +79,7 @@ class DoorCloseActor() extends Actor {
       ).sortBy(_.time)
       doorsToClose2.foreach(entry => {
         entry.door.Open = None                                                       //permissible break from synchronization
-        context.parent ! DoorCloseActor.CloseTheDoor(entry.door.GUID, entry.zone.Id) //call up to the main event system
+        context.parent ! DoorCloseActor.CloseTheDoor(entry.door.GUID, entry.zone.id) //call up to the main event system
       })
 
       if (openDoors.nonEmpty) {

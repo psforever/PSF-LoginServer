@@ -26,7 +26,7 @@ class CorpseControl(player: Player) extends Actor with ContainableBehavior {
         obj.Find(item) match {
           case Some(slot) =>
             obj.Zone.AvatarEvents ! AvatarServiceMessage(
-              player.Zone.Id,
+              player.Zone.id,
               AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectAttachMessage(obj.GUID, item.GUID, slot))
             )
           case None => ;
@@ -40,7 +40,7 @@ class CorpseControl(player: Player) extends Actor with ContainableBehavior {
     val zone   = obj.Zone
     val events = zone.AvatarEvents
     item.Faction = PlanetSideEmpire.NEUTRAL
-    events ! AvatarServiceMessage(zone.Id, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, item.GUID))
+    events ! AvatarServiceMessage(zone.id, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, item.GUID))
   }
 
   def PutItemInSlotCallback(item: Equipment, slot: Int): Unit = {
@@ -49,7 +49,7 @@ class CorpseControl(player: Player) extends Actor with ContainableBehavior {
     val events     = zone.AvatarEvents
     val definition = item.Definition
     events ! AvatarServiceMessage(
-      zone.Id,
+      zone.id,
       AvatarAction.SendResponse(
         Service.defaultPlayerGUID,
         ObjectCreateDetailedMessage(
@@ -66,7 +66,7 @@ class CorpseControl(player: Player) extends Actor with ContainableBehavior {
     val obj  = ContainerObject
     val zone = obj.Zone
     zone.AvatarEvents ! AvatarServiceMessage(
-      zone.Id,
+      zone.id,
       AvatarAction.SendResponse(
         Service.defaultPlayerGUID,
         ObjectDetachMessage(obj.GUID, item.GUID, Vector3.Zero, 0f)

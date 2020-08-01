@@ -51,35 +51,35 @@ object DecodePackets {
     }
 
     val outDir = new File(opts.outDir);
-    if(!outDir.exists()) {
+    if (!outDir.exists()) {
       outDir.mkdirs()
-    } else if(outDir.isFile()) {
+    } else if (outDir.isFile()) {
       println(s"error: out-dir is file")
       sys.exit(1)
     }
 
-     opts.files.foreach { file =>
-      if(!file.exists) {
+    opts.files.foreach { file =>
+      if (!file.exists) {
         println(s"file ${file.getAbsolutePath()} does not exist")
         sys.exit(1)
       }
     }
 
     val tmpFolder = new File(System.getProperty("java.io.tmpdir") + "/psf-decode-packets")
-    if(!tmpFolder.exists()) {
+    if (!tmpFolder.exists()) {
       tmpFolder.mkdirs()
     }
 
     opts.files.par.foreach { file =>
       val outFilePath = opts.outDir + "/" + file.getName().split(".gcap")(0) + ".txt"
-      val outFile = new File(outFilePath);
+      val outFile     = new File(outFilePath);
 
       if (outFile.exists() && opts.skipExisting) {
         return
       }
 
       val tmpFilePath = tmpFolder.getAbsolutePath() + "/" + file.getName().split(".gcap")(0) + ".txt"
-      val writer = new BufferedWriter(new FileWriter(new File(tmpFilePath), false))
+      val writer      = new BufferedWriter(new FileWriter(new File(tmpFilePath), false))
 
       try {
         val lines = opts.preprocessed match {
@@ -95,16 +95,16 @@ object DecodePackets {
         var linesToSkip = 0
         for (line <- lines.drop(1)) {
           breakable {
-            if(linesToSkip > 0) {
+            if (linesToSkip > 0) {
               linesToSkip -= 1
-              break
+              break()
             }
 
             val decodedLine = decodePacket(line.drop(line.lastIndexOf(' ')))
             writer.write(s"${shortGcapyString(line)}")
             writer.newLine()
 
-            if(!isNestedPacket(decodedLine)) {
+            if (!isNestedPacket(decodedLine)) {
               // Standard line, output as is with a bit of extra whitespace for readability
               writer.write(decodedLine.replace(",", ", "))
               writer.newLine()
@@ -130,8 +130,7 @@ object DecodePackets {
         }
         writer.close()
         Files.move(Paths.get(tmpFilePath), Paths.get(outFilePath), StandardCopyOption.REPLACE_EXISTING)
-      }
-      catch {
+      } catch {
         case e: Throwable =>
           println(s"File ${file.getName} threw an exception")
           e.printStackTrace()
@@ -145,17 +144,17 @@ object DecodePackets {
     Traverse down any nested packets such as SlottedMetaPacket, MultiPacket and MultiPacketEx and add indent for each layer down
     The number of lines to skip will be returned so duplicate lines following SlottedMetaPackets in the gcapy output can be filtered out
    */
-  def recursivelyHandleNestedPacket(decodedLine : String, writer : BufferedWriter, depth : Int = 0): Int = {
-    if(decodedLine.indexOf("Failed to parse") >= 0) return depth
-    val regex = "(0x[a-f0-9]+)".r
+  def recursivelyHandleNestedPacket(decodedLine: String, writer: BufferedWriter, depth: Int = 0): Int = {
+    if (decodedLine.indexOf("Failed to parse") >= 0) return depth
+    val regex   = "(0x[a-f0-9]+)".r
     val matches = regex.findAllIn(decodedLine)
 
     var linesToSkip = 0
-    while(matches.hasNext) {
-      val packet = matches.next
+    while (matches.hasNext) {
+      val packet = matches.next()
 
-      for(i <- depth to 0 by -1) {
-        if(i == 0) writer.write("> ")
+      for (i <- depth to 0 by -1) {
+        if (i == 0) writer.write("> ")
         else writer.write("-")
       }
 
@@ -163,7 +162,7 @@ object DecodePackets {
       writer.write(s"${nextDecodedLine.replace(",", ", ")}")
       writer.newLine()
 
-      if(isNestedPacket(nextDecodedLine)) {
+      if (isNestedPacket(nextDecodedLine)) {
         linesToSkip += recursivelyHandleNestedPacket(nextDecodedLine, writer, depth + 1)
       }
 
@@ -173,7 +172,7 @@ object DecodePackets {
     linesToSkip
   }
 
-  def shortGcapyString(line : String): String = {
+  def shortGcapyString(line: String): String = {
     val regex = "Game record ([0-9]+) at ([0-9.]+s) is from ([S|C]).* to ([S|C]).*contents (.*)".r
     line match {
       case regex(index, time, from, to, contents) => {
@@ -183,15 +182,15 @@ object DecodePackets {
     }
   }
 
-  def isNestedPacket(decodedLine : String) : Boolean = {
+  def isNestedPacket(decodedLine: String): Boolean = {
     // Also matches MultiPacketEx
     decodedLine.indexOf("MultiPacket") >= 0 || decodedLine.indexOf("SlottedMetaPacket") >= 0
   }
 
-  def decodePacket(hexString: String) : String = {
+  def decodePacket(hexString: String): String = {
     PacketCoding.DecodePacket(ByteVector.fromValidHex(hexString)) match {
       case Successful(value) => value.toString
-      case Failure(cause) => cause.toString
+      case Failure(cause)    => cause.toString
     }
   }
 }

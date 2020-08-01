@@ -32,14 +32,14 @@ class TerminalControl(term: Terminal)
       .orElse(canBeRepairedByNanoDispenser)
       .orElse {
         case Terminal.Request(player, msg) =>
-          TerminalControl.Dispatch(sender, term, Terminal.TerminalMessage(player, msg, term.Request(player, msg)))
+          TerminalControl.Dispatch(sender(), term, Terminal.TerminalMessage(player, msg, term.Request(player, msg)))
 
         case CommonMessages.Use(player, Some(item: SimpleItem))
             if item.Definition == GlobalDefinitions.remote_electronics_kit =>
           //TODO setup certifications check
           term.Owner match {
             case b: Building if (b.Faction != player.Faction || b.CaptureTerminalIsHacked) && term.HackedBy.isEmpty =>
-              sender ! CommonMessages.Progress(
+              sender() ! CommonMessages.Progress(
                 GenericHackables.GetHackSpeed(player, term),
                 GenericHackables.FinishHacking(term, player, 3212836864L),
                 GenericHackables.HackingTickAction(progressType = 1, player, term, item.GUID)

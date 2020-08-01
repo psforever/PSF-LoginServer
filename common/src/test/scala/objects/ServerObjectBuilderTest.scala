@@ -352,7 +352,7 @@ object ServerObjectBuilderTest {
   class BuilderTestActor(builder: ServerObjectBuilder[_], hub: NumberPoolHub) extends Actor {
     def receive: Receive = {
       case _ =>
-        sender ! builder.Build(context, hub)
+        sender() ! builder.Build(context, hub)
     }
   }
 
@@ -365,7 +365,7 @@ object ServerObjectBuilderTest {
   ) extends Actor {
     def receive: Receive = {
       case _ =>
-        sender ! FoundationBuilder(structure_con).Build(name, building_guid, map_id, zone)(context)
+        sender() ! FoundationBuilder(structure_con).Build(name, building_guid, map_id, zone)(context)
     }
   }
 }

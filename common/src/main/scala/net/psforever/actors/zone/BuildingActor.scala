@@ -140,7 +140,7 @@ class BuildingActor(
           }
         building.Faction = faction
         galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(building.infoUpdateMessage()))
-        zone.LocalEvents ! LocalServiceMessage(zone.Id, LocalAction.SetEmpire(building.GUID, faction))
+        zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.SetEmpire(building.GUID, faction))
         Behaviors.same
 
       case MapUpdate() =>

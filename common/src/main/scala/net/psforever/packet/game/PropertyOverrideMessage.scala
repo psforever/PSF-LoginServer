@@ -100,19 +100,21 @@ object PropertyOverrideMessage extends Marshallable[PropertyOverrideMessage] {
 
   /**
     * The association between a target and the properties that affect it.
+    *
     * @param target what game object is affected by these properties
-    * @param list the properties
+    * @param list   the properties
     * @see `ObjectClass`
     */
-  final case class GamePropertyTarget(target: Int, list: List[GameProperty])
+  final case class GamePropertyTarget(target: Int, list: Seq[GameProperty])
 
   /**
     * The association between a continent/zone and how game objects are affected differently in that region.
+    *
     * @param zone the continent/zone number;
     *             0 refers to server-wide properties
     * @param list the target and its property changes
     */
-  final case class GamePropertyScope(zone: Int, list: List[GamePropertyTarget])
+  final case class GamePropertyScope(zone: Int, list: Seq[GamePropertyTarget])
 
   /**
     * Overloaded constructor for defining a single region where object properties are to be changed.
@@ -204,9 +206,9 @@ object PropertyOverrideMessage extends Marshallable[PropertyOverrideMessage] {
     {
       case GamePropertyScope(zone, list) =>
         val (first, other) = list match {
-          case ((f: GamePropertyTarget) +: (rest: List[GamePropertyTarget])) => (Some(f), Some(rest))
-          case (f: GamePropertyTarget) +: Nil                                => (Some(f), None)
-          case Nil                                                           => (None, None) //unlikely
+          case (f: GamePropertyTarget) +: (rest: List[GamePropertyTarget]) => (Some(f), Some(rest))
+          case (f: GamePropertyTarget) +: Nil                              => (Some(f), None)
+          case Nil                                                         => (None, None) //unlikely
         }
         zone :: list.length :: first :: other :: HNil
     }

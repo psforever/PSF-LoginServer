@@ -145,7 +145,7 @@ object Tool {
     if (!iter.hasNext) {
       list
     } else {
-      val index = iter.next
+      val index = iter.next()
       fmodes.filter(fmode => fmode.AmmoSlotIndex == index) match {
         case fmode :: _ =>
           buildFireModes(tdef, iter, fmodes, list :+ new FireModeSlot(tdef, fmode))

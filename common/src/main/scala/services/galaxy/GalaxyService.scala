@@ -9,7 +9,7 @@ import services.{GenericEventBus, Service}
 class GalaxyService extends Actor {
   private[this] val log = org.log4s.getLogger
 
-  override def preStart = {
+  override def preStart() = {
     log.info("Starting...")
   }
 
@@ -69,6 +69,6 @@ class GalaxyService extends Actor {
       )
 
     case msg =>
-      log.info(s"Unhandled message $msg from $sender")
+      log.info(s"Unhandled message $msg from ${sender()}")
   }
 }

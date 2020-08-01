@@ -12,7 +12,7 @@ import scala.concurrent.duration._
 class DefaultTest extends Specification {
   "Default.Cancellable" should {
     "always act like it can be cancelled successfully" in {
-      Default.Cancellable.cancel mustEqual true
+      Default.Cancellable.cancel() mustEqual true
     }
 
     "always act like it was cancelled successfully" in {

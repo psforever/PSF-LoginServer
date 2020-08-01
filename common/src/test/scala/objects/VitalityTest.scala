@@ -3,6 +3,7 @@ package objects
 
 import net.psforever.objects.ballistics._
 import net.psforever.objects._
+import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.vital._
 import net.psforever.types._
 import org.specs2.mutable.Specification
@@ -16,7 +17,7 @@ class VitalityTest extends Specification {
     val vSource   = VehicleSource(vehicle)
 
     "accept a variety of events" in {
-      val player     = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+      val player     = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       val pSource    = PlayerSource(player)
       val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
       val resprojectile = ResolvedProjectile(
@@ -40,7 +41,7 @@ class VitalityTest extends Specification {
     }
 
     "return and clear the former list of vital activities" in {
-      val player  = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+      val player  = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       val pSource = PlayerSource(player)
 
       player.History(HealFromKit(pSource, 10, GlobalDefinitions.medkit))
@@ -64,7 +65,7 @@ class VitalityTest extends Specification {
     }
 
     "get exactly one entry that was caused by projectile damage" in {
-      val player     = Player(Avatar("TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+      val player     = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       val pSource    = PlayerSource(player)
       val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
       val resprojectile = ResolvedProjectile(

@@ -37,8 +37,8 @@ private class ContextSensitive extends Actor {
   def receive: Receive = {
     case _ =>
       context.become(PassThroughBehavior)
-      output = sender
-      sender ! context
+      output = sender()
+      sender() ! context
   }
 
   /**

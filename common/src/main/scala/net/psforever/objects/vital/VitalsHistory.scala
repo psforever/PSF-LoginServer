@@ -30,7 +30,7 @@ final case class HealFromEquipment(
 final case class HealFromTerm(target: PlayerSource, health: Int, armor: Int, term_def: TerminalDefinition)
     extends HealingActivity(target)
 
-final case class HealFromImplant(target: PlayerSource, amount: Int, implant: ImplantType.Value)
+final case class HealFromImplant(target: PlayerSource, amount: Int, implant: ImplantType)
     extends HealingActivity(target)
 
 final case class HealFromExoSuitChange(target: PlayerSource, exosuit: ExoSuitType.Value) extends HealingActivity(target)
