@@ -21,6 +21,7 @@ class ProjectileDefinition(objectId: Int)
   private var accelerationUntil: Float              = 0f
   private var damageType: DamageType.Value          = DamageType.None
   private var damageTypeSecondary: DamageType.Value = DamageType.None
+  private var damageToHealthOnly: Boolean           = false
   private var degradeDelay: Float                   = 1f
   private var degradeMultiplier: Float              = 1f
   private var initialVelocity: Int                  = 1
@@ -81,6 +82,17 @@ class ProjectileDefinition(objectId: Int)
   def ProjectileDamageTypeSecondary_=(damageTypeSecondary1: DamageType.Value): DamageType.Value = {
     damageTypeSecondary = damageTypeSecondary1
     ProjectileDamageTypeSecondary
+  }
+
+  def ProjectileDamageTypes : Set[DamageType.Value] = {
+    Set(damageType, damageTypeSecondary).filterNot(_ == DamageType.None)
+  }
+
+  def DamageToHealthOnly : Boolean = damageToHealthOnly
+
+  def DamageToHealthOnly_=(healthOnly: Boolean) : Boolean = {
+    damageToHealthOnly = healthOnly
+    DamageToHealthOnly
   }
 
   def DegradeDelay: Float = degradeDelay

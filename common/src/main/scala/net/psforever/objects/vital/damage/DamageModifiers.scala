@@ -1,8 +1,9 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital.damage
 
-import net.psforever.objects.ballistics.{ProjectileResolution, ResolvedProjectile}
-import net.psforever.types.Vector3
+import net.psforever.objects.ballistics.{PlayerSource, ProjectileResolution, ResolvedProjectile}
+import net.psforever.objects.vital.DamageType
+import net.psforever.types.{ExoSuitType, Vector3}
 
 /**
   * Adjustments performed on the subsequent manipulations of the "base damage" value of an attack vector
@@ -43,6 +44,21 @@ object DamageModifiers {
     def Calculate: DamageModifiers.Format = function
 
     private def function(damage: Int, data: ResolvedProjectile): Int = damage
+  }
+
+  case object MaxDistanceCutoff extends Mod {
+    def Calculate: DamageModifiers.Format = function
+
+    private def function(damage: Int, data: ResolvedProjectile): Int = {
+      val projectile = data.projectile
+      val profile    = projectile.profile
+      val distance   = Vector3.Distance(data.hit_pos, projectile.shot_origin)
+      if (distance <= profile.DistanceMax) {
+        damage
+      } else {
+        0
+      }
+    }
   }
 
   /**
@@ -115,6 +131,93 @@ object DamageModifiers {
       } else {
         damage
       }
+    }
+  }
+
+  case object AggravatedDirect extends Mod {
+    def Calculate: DamageModifiers.Format =
+      BaseAggravatedFormula(ProjectileResolution.AggravatedDirect, DamageType.Direct)
+  }
+
+  case object AggravatedSplash extends Mod {
+    def Calculate: DamageModifiers.Format =
+      BaseAggravatedFormula(ProjectileResolution.AggravatedSplash, DamageType.Splash)
+  }
+
+  case object AggravatedDirectBurn extends Mod {
+    def Calculate: DamageModifiers.Format =
+      BaseAggravatedBurnFormula(ProjectileResolution.AggravatedDirectBurn, DamageType.Direct)
+  }
+
+  case object AggravatedSplashBurn extends Mod {
+    def Calculate: DamageModifiers.Format =
+      BaseAggravatedBurnFormula(ProjectileResolution.AggravatedSplashBurn, DamageType.Splash)
+  }
+
+  private def BaseAggravatedFormula(
+                                     resolution: ProjectileResolution.Value,
+                                     damageType : DamageType.Value
+                                   )
+                                   (
+                                     damage: Int,
+                                     data: ResolvedProjectile
+                                   ): Int = {
+    if (data.resolution == resolution) {
+      (data.projectile.profile.Aggravated, data.target) match {
+        case (Some(aggravation), p: PlayerSource) if p.ExoSuit == ExoSuitType.MAX =>
+          val aggravatedDirectDamage = (aggravation.info.find(_.damage_type == damageType) match {
+            case Some(infos) =>
+              damage * infos.degradation_percentage
+            case _ =>
+              damage toFloat
+          }) * aggravation.max_factor
+          damage + aggravatedDirectDamage toInt
+        case _ =>
+          damage
+      }
+    } else {
+      damage
+    }
+  }
+
+  private def BaseAggravatedBurnFormula(
+                                         resolution: ProjectileResolution.Value,
+                                         damageType : DamageType.Value
+                                       )
+                                       (
+                                         damage: Int,
+                                         data: ResolvedProjectile
+                                       ): Int = {
+    if (data.resolution == resolution) {
+      (data.projectile.profile.Aggravated, data.target) match {
+        case (Some(aggravation), p: PlayerSource) =>
+          val degradation = aggravation.info.find(_.damage_type == damageType) match {
+            case Some(info) =>
+              info.degradation_percentage
+            case _ =>
+              1f
+          }
+          if (p.exosuit == ExoSuitType.MAX) {
+            (damage * degradation * aggravation.max_factor) toInt
+          } else {
+            val resist = data.damage_model.ResistUsing(data)(data)
+            if (damage > resist) {
+              ((damage - resist) * degradation).toInt + resist
+            } else {
+              val degradedDamage = damage * degradation
+              if (degradedDamage > resist) {
+                degradedDamage toInt
+              }
+              else {
+                damage
+              }
+            }
+          }
+        case _ =>
+          damage
+      }
+    } else {
+      damage
     }
   }
 }

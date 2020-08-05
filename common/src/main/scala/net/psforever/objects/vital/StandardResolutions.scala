@@ -11,13 +11,13 @@ object NoResolutions
 
 object InfantryResolutions
     extends DamageResistCalculations(
-      ResolutionCalculations.InfantryDamageAfterResist,
+      ResolutionCalculations.InfantryDamage,
       ResolutionCalculations.InfantryApplication
     )
 
 object MaxResolutions
     extends DamageResistCalculations(
-      ResolutionCalculations.MaxDamageAfterResist,
+      ResolutionCalculations.MaxDamage,
       ResolutionCalculations.InfantryApplication
     )
 

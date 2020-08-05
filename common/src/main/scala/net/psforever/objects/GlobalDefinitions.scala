@@ -2034,6 +2034,7 @@ object GlobalDefinitions {
 
     no_projectile.Name = "none"
     ProjectileDefinition.CalculateDerivedFields(no_projectile)
+    no_projectile.Modifiers = Nil
 
     bullet_105mm_projectile.Name = "105mmbullet_projectile"
     bullet_105mm_projectile.Damage0 = 150
@@ -2357,6 +2358,7 @@ object GlobalDefinitions {
     chainblade_projectile.InitialVelocity = 100
     chainblade_projectile.Lifespan = .02f
     ProjectileDefinition.CalculateDerivedFields(chainblade_projectile)
+    chainblade_projectile.Modifiers = DamageModifiers.MaxDistanceCutoff
 
     colossus_100mm_projectile.Name = "colossus_100mm_projectile"
     colossus_100mm_projectile.Damage0 = 58
@@ -2591,6 +2593,7 @@ object GlobalDefinitions {
     flamethrower_fireball.Damage2 = 0
     flamethrower_fireball.Damage3 = 20
     flamethrower_fireball.Damage4 = 0
+    flamethrower_fireball.DamageToHealthOnly = true
     flamethrower_fireball.DamageAtEdge = 0.15f
     flamethrower_fireball.DamageRadius = 5f
     flamethrower_fireball.ProjectileDamageType = DamageType.Aggravated
@@ -2605,6 +2608,13 @@ object GlobalDefinitions {
     flamethrower_fireball.InitialVelocity = 15
     flamethrower_fireball.Lifespan = 1.2f
     ProjectileDefinition.CalculateDerivedFields(flamethrower_fireball)
+    flamethrower_fireball.Modifiers = List(
+      DamageModifiers.AggravatedDirect,
+      DamageModifiers.AggravatedDirectBurn,
+      DamageModifiers.AggravatedSplash,
+      DamageModifiers.AggravatedSplashBurn,
+      DamageModifiers.RadialDegrade
+    )
 
     flamethrower_projectile.Name = "flamethrower_projectile"
     flamethrower_projectile.Damage0 = 10
@@ -2612,6 +2622,7 @@ object GlobalDefinitions {
     flamethrower_projectile.Damage2 = 0
     flamethrower_projectile.Damage3 = 4
     flamethrower_projectile.Damage4 = 0
+    flamethrower_projectile.DamageToHealthOnly = true
     flamethrower_projectile.Acceleration = -5
     flamethrower_projectile.AccelerationUntil = 2f
     flamethrower_projectile.ProjectileDamageType = DamageType.Aggravated
@@ -2628,6 +2639,11 @@ object GlobalDefinitions {
     flamethrower_projectile.InitialVelocity = 10
     flamethrower_projectile.Lifespan = 2.0f
     ProjectileDefinition.CalculateDerivedFields(flamethrower_projectile)
+    flamethrower_projectile.Modifiers = List(
+      DamageModifiers.AggravatedDirect,
+      DamageModifiers.AggravatedDirectBurn,
+      DamageModifiers.MaxDistanceCutoff
+    )
 
     flux_cannon_apc_projectile.Name = "flux_cannon_apc_projectile"
     // TODO for later, maybe : set_resource_parent flux_cannon_apc_projectile game_objects flux_cannon_thresher_projectile
@@ -2679,6 +2695,7 @@ object GlobalDefinitions {
     forceblade_projectile.InitialVelocity = 100
     forceblade_projectile.Lifespan = .02f
     ProjectileDefinition.CalculateDerivedFields(forceblade_projectile)
+    forceblade_projectile.Modifiers = DamageModifiers.MaxDistanceCutoff
 
     frag_cartridge_projectile.Name = "frag_cartridge_projectile"
     // TODO for later, maybe : set_resource_parent frag_cartridge_projectile game_objects frag_grenade_projectile
@@ -2892,7 +2909,7 @@ object GlobalDefinitions {
       EffectTarget.Validation.VehicleNotAMS
     ) -> 10000
     ProjectileDefinition.CalculateDerivedFields(jammer_cartridge_projectile)
-    jammer_cartridge_projectile.Modifiers = Nil
+    jammer_cartridge_projectile.Modifiers = DamageModifiers.MaxDistanceCutoff
 
     jammer_cartridge_projectile_b.Name = "jammer_cartridge_projectile_b"
     // TODO for later, maybe : set_resource_parent jammer_cartridge_projectile_b game_objects jammer_grenade_projectile_enh
@@ -2931,7 +2948,7 @@ object GlobalDefinitions {
       EffectTarget.Validation.VehicleNotAMS
     ) -> 10000
     ProjectileDefinition.CalculateDerivedFields(jammer_cartridge_projectile_b)
-    jammer_cartridge_projectile_b.Modifiers = Nil
+    jammer_cartridge_projectile_b.Modifiers = DamageModifiers.MaxDistanceCutoff
 
     jammer_grenade_projectile.Name = "jammer_grenade_projectile"
     jammer_grenade_projectile.Damage0 = 0
@@ -2969,7 +2986,7 @@ object GlobalDefinitions {
       EffectTarget.Validation.VehicleNotAMS
     ) -> 10000
     ProjectileDefinition.CalculateDerivedFields(jammer_grenade_projectile)
-    jammer_grenade_projectile.Modifiers = Nil
+    jammer_grenade_projectile.Modifiers = DamageModifiers.MaxDistanceCutoff
 
     jammer_grenade_projectile_enh.Name = "jammer_grenade_projectile_enh"
     // TODO for later, maybe : set_resource_parent jammer_grenade_projectile_enh game_objects jammer_grenade_projectile
@@ -3008,7 +3025,7 @@ object GlobalDefinitions {
       EffectTarget.Validation.VehicleNotAMS
     ) -> 10000
     ProjectileDefinition.CalculateDerivedFields(jammer_grenade_projectile_enh)
-    jammer_grenade_projectile_enh.Modifiers = Nil
+    jammer_grenade_projectile_enh.Modifiers = DamageModifiers.MaxDistanceCutoff
 
     katana_projectile.Name = "katana_projectile"
     katana_projectile.Damage0 = 25
@@ -3051,7 +3068,10 @@ object GlobalDefinitions {
     lasher_projectile.LashRadius = 2.5f
     lasher_projectile.Lifespan = 0.75f
     ProjectileDefinition.CalculateDerivedFields(lasher_projectile)
-    lasher_projectile.Modifiers = List(DamageModifiers.DistanceDegrade, DamageModifiers.Lash)
+    lasher_projectile.Modifiers = List(
+      DamageModifiers.DistanceDegrade,
+      DamageModifiers.Lash
+    )
 
     lasher_projectile_ap.Name = "lasher_projectile_ap"
     lasher_projectile_ap.Damage0 = 12
@@ -3066,7 +3086,10 @@ object GlobalDefinitions {
     lasher_projectile_ap.LashRadius = 2.5f
     lasher_projectile_ap.Lifespan = 0.75f
     ProjectileDefinition.CalculateDerivedFields(lasher_projectile_ap)
-    lasher_projectile_ap.Modifiers = List(DamageModifiers.DistanceDegrade, DamageModifiers.Lash)
+    lasher_projectile_ap.Modifiers = List(
+      DamageModifiers.DistanceDegrade,
+      DamageModifiers.Lash
+    )
 
     liberator_bomb_cluster_bomblet_projectile.Name = "liberator_bomb_cluster_bomblet_projectile"
     liberator_bomb_cluster_bomblet_projectile.Damage0 = 75
@@ -3139,6 +3162,7 @@ object GlobalDefinitions {
     maelstrom_stream_projectile.InitialVelocity = 200
     maelstrom_stream_projectile.Lifespan = 0.2f
     ProjectileDefinition.CalculateDerivedFields(maelstrom_stream_projectile)
+    maelstrom_stream_projectile.Modifiers = DamageModifiers.MaxDistanceCutoff
 
     magcutter_projectile.Name = "magcutter_projectile"
     // TODO for later, maybe : set_resource_parent magcutter_projectile game_objects melee_ammo_projectile
@@ -3148,6 +3172,7 @@ object GlobalDefinitions {
     magcutter_projectile.InitialVelocity = 100
     magcutter_projectile.Lifespan = .02f
     ProjectileDefinition.CalculateDerivedFields(magcutter_projectile)
+    magcutter_projectile.Modifiers = DamageModifiers.MaxDistanceCutoff
 
     melee_ammo_projectile.Name = "melee_ammo_projectile"
     melee_ammo_projectile.Damage0 = 25
@@ -3156,6 +3181,7 @@ object GlobalDefinitions {
     melee_ammo_projectile.InitialVelocity = 100
     melee_ammo_projectile.Lifespan = .02f
     ProjectileDefinition.CalculateDerivedFields(melee_ammo_projectile)
+    melee_ammo_projectile.Modifiers = DamageModifiers.MaxDistanceCutoff
 
     meteor_common.Name = "meteor_common"
     meteor_common.DamageAtEdge = .1f
@@ -3476,6 +3502,13 @@ object GlobalDefinitions {
     plasma_cartridge_projectile.InitialVelocity = 30
     plasma_cartridge_projectile.Lifespan = 15f
     ProjectileDefinition.CalculateDerivedFields(plasma_cartridge_projectile)
+    plasma_cartridge_projectile.Modifiers = List(
+      DamageModifiers.AggravatedDirect,
+      DamageModifiers.AggravatedDirectBurn,
+      DamageModifiers.AggravatedSplash,
+      DamageModifiers.AggravatedSplashBurn,
+      DamageModifiers.RadialDegrade
+    )
 
     plasma_cartridge_projectile_b.Name = "plasma_cartridge_projectile_b"
     // TODO for later, maybe : set_resource_parent plasma_cartridge_projectile_b game_objects plasma_grenade_projectile_B
@@ -3496,6 +3529,13 @@ object GlobalDefinitions {
     plasma_cartridge_projectile_b.InitialVelocity = 30
     plasma_cartridge_projectile_b.Lifespan = 2f
     ProjectileDefinition.CalculateDerivedFields(plasma_cartridge_projectile_b)
+    plasma_cartridge_projectile_b.Modifiers = List(
+      DamageModifiers.AggravatedDirect,
+      DamageModifiers.AggravatedDirectBurn,
+      DamageModifiers.AggravatedSplash,
+      DamageModifiers.AggravatedSplashBurn,
+      DamageModifiers.RadialDegrade
+    )
 
     plasma_grenade_projectile.Name = "plasma_grenade_projectile"
     plasma_grenade_projectile.Damage0 = 40
@@ -3515,6 +3555,13 @@ object GlobalDefinitions {
     plasma_grenade_projectile.InitialVelocity = 30
     plasma_grenade_projectile.Lifespan = 15f
     ProjectileDefinition.CalculateDerivedFields(plasma_grenade_projectile)
+    plasma_grenade_projectile.Modifiers = List(
+      DamageModifiers.AggravatedDirect,
+      DamageModifiers.AggravatedDirectBurn,
+      DamageModifiers.AggravatedSplash,
+      DamageModifiers.AggravatedSplashBurn,
+      DamageModifiers.RadialDegrade
+    )
 
     plasma_grenade_projectile_B.Name = "plasma_grenade_projectile_B"
     // TODO for later, maybe : set_resource_parent plasma_grenade_projectile_B game_objects plasma_grenade_projectile
@@ -3535,6 +3582,13 @@ object GlobalDefinitions {
     plasma_grenade_projectile_B.InitialVelocity = 30
     plasma_grenade_projectile_B.Lifespan = 3f
     ProjectileDefinition.CalculateDerivedFields(plasma_grenade_projectile_B)
+    plasma_grenade_projectile_B.Modifiers = List(
+      DamageModifiers.AggravatedDirect,
+      DamageModifiers.AggravatedDirectBurn,
+      DamageModifiers.AggravatedSplash,
+      DamageModifiers.AggravatedSplashBurn,
+      DamageModifiers.RadialDegrade
+    )
 
     pounder_projectile.Name = "pounder_projectile"
     pounder_projectile.Damage0 = 31
@@ -3683,7 +3737,7 @@ object GlobalDefinitions {
     rocklet_jammer_projectile.InitialVelocity = 50
     rocklet_jammer_projectile.Lifespan = 8f
     ProjectileDefinition.CalculateDerivedFields(rocklet_jammer_projectile)
-    rocklet_jammer_projectile.Modifiers = Nil
+    //TODO rocklet_jammer_projectile.Modifiers = DamageModifiers.RadialDegrade?
 
     scattercannon_projectile.Name = "scattercannon_projectile"
     scattercannon_projectile.Damage0 = 11
@@ -3803,7 +3857,6 @@ object GlobalDefinitions {
     spiker_projectile.InitialVelocity = 40
     spiker_projectile.Lifespan = 5f
     ProjectileDefinition.CalculateDerivedFields(spiker_projectile)
-    spiker_projectile.Modifiers = DamageModifiers.RadialDegrade
 
     spitfire_aa_ammo_projectile.Name = "spitfire_aa_ammo_projectile"
     spitfire_aa_ammo_projectile.Damage0 = 5
@@ -3901,6 +3954,7 @@ object GlobalDefinitions {
     trek_projectile.InitialVelocity = 40
     trek_projectile.Lifespan = 7f
     ProjectileDefinition.CalculateDerivedFields(trek_projectile)
+    trek_projectile.Modifiers = DamageModifiers.MaxDistanceCutoff
 
     vanu_sentry_turret_projectile.Name = "vanu_sentry_turret_projectile"
     vanu_sentry_turret_projectile.Damage0 = 25
@@ -4579,7 +4633,7 @@ object GlobalDefinitions {
     flamethrower.FireModes(1).AmmoSlotIndex = 0
     flamethrower.FireModes(1).Magazine = 100
     flamethrower.FireModes(1).RoundsPerShot = 50
-    flamethrower.Tile = InventoryTile.Tile63
+    flamethrower.Tile = InventoryTile.Tile93
 
     winchester.Name = "winchester"
     winchester.Size = EquipmentSize.Rifle
