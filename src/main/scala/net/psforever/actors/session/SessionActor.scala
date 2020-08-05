@@ -1,13 +1,26 @@
 package net.psforever.actors.session
 
 import java.util.concurrent.TimeUnit
-
 import akka.actor.MDCContextAware.Implicits._
 import akka.actor.typed
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
+import java.util.concurrent.atomic.AtomicInteger
+import org.log4s.MDC
+import scala.collection.mutable.LongMap
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.{Failure, Success}
+import scodec.bits.ByteVector
+import services.properties.PropertyOverrideManager
+import org.joda.time.{LocalDateTime, Period}
+import csr.{CSRWarp, CSRZone, Traveler}
+import MDCContextAware.Implicits._
 import net.psforever.objects.{GlobalDefinitions, _}
 import net.psforever.objects.avatar.{Avatar, Certification, DeployableToolbox}
+import net.psforever.objects._
+import net.psforever.objects.avatar.{Certification, DeployableToolbox, FirstTimeEvents}
 import net.psforever.objects.ballistics._
 import net.psforever.objects.ce._
 import net.psforever.objects.definition._
@@ -37,15 +50,7 @@ import net.psforever.objects.serverobject.turret.{FacilityTurret, WeaponTurret}
 import net.psforever.objects.serverobject.zipline.ZipLinePath
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.teamwork.Squad
-import net.psforever.objects.vehicles.{
-  AccessPermissionGroup,
-  CargoBehavior,
-  MountedWeapons,
-  Utility,
-  UtilityType,
-  VehicleControl,
-  VehicleLockState
-}
+import net.psforever.objects.vehicles._
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.vital._
 import net.psforever.objects.zones.{Zone, ZoneHotSpotProjector, Zoning}
@@ -53,6 +58,13 @@ import net.psforever.packet._
 import net.psforever.packet.control._
 import net.psforever.packet.game.objectcreate._
 import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo, _}
+import net.psforever.objects.zones.{InterstellarCluster, Zone, ZoneHotSpotProjector, Zoning}
+import net.psforever.packet._
+import net.psforever.packet.control._
+import net.psforever.packet.game._
+import net.psforever.packet.game.objectcreate._
+import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo}
+import net.psforever.persistence
 import net.psforever.types._
 import org.log4s.MDC
 import scodec.bits.ByteVector
@@ -78,7 +90,6 @@ import net.psforever.login.WorldSession._
 import net.psforever.zones.Zones
 import net.psforever.services.chat.ChatService
 import net.psforever.objects.avatar.Cosmetic
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -86,7 +97,6 @@ import scala.util.Success
 import akka.actor.typed.scaladsl.adapter._
 import akka.pattern.ask
 import akka.util.Timeout
-
 import scala.collection.mutable
 
 object SessionActor {
@@ -5328,7 +5338,15 @@ class SessionActor extends Actor with MDCContextAware {
           case _ => ;
         }
 
-      case msg @ HitMessage(seq_time, projectile_guid, unk1, hit_info, unk2, unk3, unk4) =>
+      case msg @ HitMessage(
+        seq_time,
+        projectile_guid,
+        unk1,
+        hit_info,
+        unk2,
+        unk3,
+        unk4
+      ) =>
         log.info(s"Hit: $msg")
         //find defined projectile
         FindProjectileEntry(projectile_guid) match {
@@ -5395,31 +5413,33 @@ class SessionActor extends Actor with MDCContextAware {
         }
 
       case msg @ SplashHitMessage(
-      seq_time,
-      projectile_guid,
-      explosion_pos,
-      direct_victim_uid,
-      unk3,
-      projectile_vel,
-      unk4,
-      targets
+        seq_time,
+        projectile_guid,
+        explosion_pos,
+        direct_victim_uid,
+        unk3,
+        projectile_vel,
+        unk4,
+        targets
       ) =>
         log.info(s"Splash: $msg")
         FindProjectileEntry(projectile_guid) match {
           case Some(projectile) =>
+            val profile = projectile.profile
             projectile.Position = explosion_pos
             projectile.Velocity = projectile_vel
+            val (resolution1, resolution2) = profile.Aggravated match {
+              case Some(_)
+                if profile.ProjectileDamageTypes.contains(DamageType.Aggravated) =>
+                (ProjectileResolution.AggravatedDirect, ProjectileResolution.AggravatedSplash)
+              case _ =>
+                (ProjectileResolution.Splash, ProjectileResolution.Splash)
+            }
             //direct_victim_uid
             ValidObject(direct_victim_uid) match {
-              case Some(
-                  target: PlanetSideGameObject with FactionAffinity with Vitality
-                  ) =>
-                CheckForHitPositionDiscrepancy(
-                  projectile_guid,
-                  explosion_pos,
-                  target
-                )
-                ResolveProjectileEntry(projectile, ProjectileResolution.Splash, target, explosion_pos) match {
+              case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
+                CheckForHitPositionDiscrepancy(projectile_guid, target.Position, target)
+                ResolveProjectileEntry(projectile, resolution1, target, target.Position) match {
                   case Some(projectile) =>
                     HandleDealingDamage(target, projectile)
                   case None => ;
@@ -5431,7 +5451,7 @@ class SessionActor extends Actor with MDCContextAware {
               ValidObject(elem.uid) match {
                 case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
                   CheckForHitPositionDiscrepancy(projectile_guid, explosion_pos, target)
-                  ResolveProjectileEntry(projectile, ProjectileResolution.Splash, target, explosion_pos) match {
+                  ResolveProjectileEntry(projectile, resolution2, target, explosion_pos) match {
                     case Some(projectile) =>
                       HandleDealingDamage(target, projectile)
                     case None => ;
@@ -5439,7 +5459,7 @@ class SessionActor extends Actor with MDCContextAware {
                 case _ => ;
               }
             })
-            if (projectile.profile.ExistsOnRemoteClients && projectile.HasGUID) {
+            if (profile.ExistsOnRemoteClients && projectile.HasGUID) {
               //cleanup
               val localIndex = projectile_guid.guid - Projectile.baseUID
               if (projectile.HasGUID) {
@@ -5642,16 +5662,16 @@ class SessionActor extends Actor with MDCContextAware {
         log.debug("Ouch! " + msg)
 
       case msg @ BugReportMessage(
-      version_major,
-      version_minor,
-      version_date,
-      bug_type,
-      repeatable,
-      location,
-      zone,
-      pos,
-      summary,
-      desc
+        version_major,
+        version_minor,
+        version_date,
+        bug_type,
+        repeatable,
+        location,
+        zone,
+        pos,
+        summary,
+        desc
       ) =>
         log.info("BugReportMessage: " + msg)
 

@@ -40,6 +40,7 @@ class DamageableTest extends Specification {
     "permit damage" in {
       val target = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
       val resolved = ResolvedProjectile(
+        ProjectileResolution.Hit,
         Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
         SourceEntry(target),
         target.DamageModel,
@@ -52,6 +53,7 @@ class DamageableTest extends Specification {
     "ignore attempts at non-zero damage" in {
       val target = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
       val resolved = ResolvedProjectile(
+        ProjectileResolution.Hit,
         Projectile(
           projectileA,
           weaponA.Definition,
@@ -76,6 +78,7 @@ class DamageableTest extends Specification {
           Faction = player1.Faction
         }
       val resolved = ResolvedProjectile(
+        ProjectileResolution.Hit,
         Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
         SourceEntry(target),
         target.DamageModel,
@@ -98,6 +101,7 @@ class DamageableTest extends Specification {
           Faction = PlanetSideEmpire.NC
         }
       val resolved = ResolvedProjectile(
+        ProjectileResolution.Hit,
         Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
         SourceEntry(target),
         target.DamageModel,
@@ -124,6 +128,7 @@ class DamageableTest extends Specification {
           Faction = player1.Faction
         }
       val resolved = ResolvedProjectile(
+        ProjectileResolution.Hit,
         Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
         SourceEntry(target),
         target.DamageModel,
@@ -147,6 +152,7 @@ class DamageableTest extends Specification {
     "permit jamming" in {
       val target = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
       val resolved = ResolvedProjectile(
+        ProjectileResolution.Hit,
         Projectile(projectileB, weaponB.Definition, weaponB.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
         SourceEntry(target),
         target.DamageModel,
@@ -160,6 +166,7 @@ class DamageableTest extends Specification {
     "ignore attempts at jamming if the projectile is does not cause the effect" in {
       val target = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
       val resolved = ResolvedProjectile(
+        ProjectileResolution.Hit,
         Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
         SourceEntry(target),
         target.DamageModel,
@@ -174,6 +181,7 @@ class DamageableTest extends Specification {
       val target = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
       target.Faction = player1.Faction
       val resolved = ResolvedProjectile(
+        ProjectileResolution.Hit,
         Projectile(projectileB, weaponB.Definition, weaponB.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
         SourceEntry(target),
         target.DamageModel,
@@ -188,6 +196,7 @@ class DamageableTest extends Specification {
     "ignore attempts at jamming targets that are not jammable" in {
       val target = new TrapDeployable(GlobalDefinitions.tank_traps)
       val resolved = ResolvedProjectile(
+        ProjectileResolution.Hit,
         Projectile(projectileB, weaponB.Definition, weaponB.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
         SourceEntry(target),
         target.DamageModel,
@@ -207,6 +216,7 @@ class DamageableTest extends Specification {
       val target = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
       target.Faction = player1.Faction
       val resolved = ResolvedProjectile(
+        ProjectileResolution.Hit,
         Projectile(projectileB, weaponB.Definition, weaponB.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
         SourceEntry(target),
         target.DamageModel,
@@ -261,6 +271,7 @@ class DamageableEntityDamageTest extends ActorTest {
   val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
   val resolved = ResolvedProjectile(
+    ProjectileResolution.Hit,
     Projectile(
       projectile,
       weapon.Definition,
@@ -331,6 +342,7 @@ class DamageableEntityDestroyedTest extends ActorTest {
   val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
   val resolved = ResolvedProjectile(
+    ProjectileResolution.Hit,
     Projectile(
       projectile,
       weapon.Definition,
@@ -404,6 +416,7 @@ class DamageableEntityNotDestroyTwice extends ActorTest {
   val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
   val resolved = ResolvedProjectile(
+    ProjectileResolution.Hit,
     Projectile(
       projectile,
       weapon.Definition,
@@ -474,6 +487,7 @@ class DamageableAmenityTest extends ActorTest {
   val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
   val resolved = ResolvedProjectile(
+    ProjectileResolution.Hit,
     Projectile(
       projectile,
       weapon.Definition,
@@ -566,6 +580,7 @@ class DamageableMountableDamageTest extends ActorTest {
   val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
   val resolved = ResolvedProjectile(
+    ProjectileResolution.Hit,
     Projectile(
       projectile,
       weapon.Definition,
@@ -660,6 +675,7 @@ class DamageableMountableDestroyTest extends ActorTest {
   val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
   val resolved = ResolvedProjectile(
+    ProjectileResolution.Hit,
     Projectile(
       projectile,
       weapon.Definition,
@@ -748,6 +764,7 @@ class DamageableWeaponTurretDamageTest extends ActorTest {
   val projectile   = weapon.Projectile
   val turretSource = SourceEntry(turret)
   val resolved = ResolvedProjectile(
+    ProjectileResolution.Hit,
     Projectile(
       projectile,
       weapon.Definition,
@@ -845,6 +862,7 @@ class DamageableWeaponTurretJammerTest extends ActorTest {
   val projectile   = weapon.Projectile
   val turretSource = SourceEntry(turret)
   val resolved = ResolvedProjectile(
+    ProjectileResolution.Hit,
     Projectile(
       projectile,
       weapon.Definition,
@@ -946,6 +964,7 @@ class DamageableWeaponTurretDestructionTest extends ActorTest {
   val weaponA      = Tool(GlobalDefinitions.jammer_grenade)
   val projectileA  = weaponA.Projectile
   val resolvedA = ResolvedProjectile(
+    ProjectileResolution.Hit,
     Projectile(
       projectileA,
       weaponA.Definition,
@@ -964,6 +983,7 @@ class DamageableWeaponTurretDestructionTest extends ActorTest {
   val weaponB     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectileB = weaponB.Projectile
   val resolvedB = ResolvedProjectile(
+    ProjectileResolution.Hit,
     Projectile(
       projectileB,
       weaponB.Definition,
@@ -1085,6 +1105,7 @@ class DamageableVehicleDamageTest extends ActorTest {
   val projectile    = weapon.Projectile
   val vehicleSource = SourceEntry(atv)
   val resolved = ResolvedProjectile(
+    ProjectileResolution.Hit,
     Projectile(
       projectile,
       weapon.Definition,
@@ -1216,6 +1237,7 @@ class DamageableVehicleDamageMountedTest extends ActorTest {
   val projectile    = weapon.Projectile
   val vehicleSource = SourceEntry(lodestar)
   val resolved = ResolvedProjectile(
+    ProjectileResolution.Hit,
     Projectile(
       projectile,
       weapon.Definition,
@@ -1363,6 +1385,7 @@ class DamageableVehicleJammeringMountedTest extends ActorTest {
   val weapon        = Tool(GlobalDefinitions.jammer_grenade)
   val projectile    = weapon.Projectile
   val resolved = ResolvedProjectile(
+    ProjectileResolution.Hit,
     Projectile(
       projectile,
       weapon.Definition,
@@ -1452,6 +1475,7 @@ class DamageableVehicleDestroyTest extends ActorTest {
   val projectile    = weapon.Projectile
   val vehicleSource = SourceEntry(atv)
   val resolved = ResolvedProjectile(
+    ProjectileResolution.Hit,
     Projectile(
       projectile,
       weapon.Definition,
@@ -1577,6 +1601,7 @@ class DamageableVehicleDestroyMountedTest extends ActorTest {
   val weaponA       = Tool(GlobalDefinitions.jammer_grenade)
   val projectileA   = weaponA.Projectile
   val resolvedA = ResolvedProjectile(
+    ProjectileResolution.Hit,
     Projectile(
       projectileA,
       weaponA.Definition,
@@ -1595,6 +1620,7 @@ class DamageableVehicleDestroyMountedTest extends ActorTest {
   val weaponB     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectileB = weaponB.Projectile
   val resolvedB = ResolvedProjectile(
+    ProjectileResolution.Hit,
     Projectile(
       projectileB,
       weaponB.Definition,

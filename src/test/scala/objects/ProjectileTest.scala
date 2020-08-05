@@ -352,6 +352,7 @@ class ProjectileTest extends Specification {
 
     "construct" in {
       val obj = ResolvedProjectile(
+        ProjectileResolution.Hit,
         projectile,
         PlayerSource(player2),
         fury_dm,

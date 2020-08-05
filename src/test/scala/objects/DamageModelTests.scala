@@ -302,7 +302,7 @@ class ResolutionCalculationsTests extends Specification {
         target1.DamageModel,
         Vector3.Zero
       )
-      InfantryDamageAfterResist(resprojectile1)(50, 10) mustEqual (0, 0)
+      InfantryDamage(resprojectile1)(50, 10) mustEqual (0, 0)
 
       val target2 = player
       val resprojectile2 = ResolvedProjectile(
@@ -312,7 +312,7 @@ class ResolutionCalculationsTests extends Specification {
         target2.DamageModel,
         Vector3.Zero
       )
-      InfantryDamageAfterResist(resprojectile2)(50, 10) mustEqual (40, 10)
+      InfantryDamage(resprojectile2)(50, 10) mustEqual (40, 10)
     }
 
     "calculate health and armor damage for infantry target" in {
@@ -346,7 +346,7 @@ class ResolutionCalculationsTests extends Specification {
         target1.DamageModel,
         Vector3.Zero
       )
-      MaxDamageAfterResist(resprojectile1)(50, 10) mustEqual (0, 0)
+      MaxDamage(resprojectile1)(50, 10) mustEqual (0, 0)
 
       val target2 = player2
       val resprojectile2 = ResolvedProjectile(
@@ -356,7 +356,7 @@ class ResolutionCalculationsTests extends Specification {
         target2.DamageModel,
         Vector3.Zero
       )
-      MaxDamageAfterResist(resprojectile2)(50, 10) mustEqual (0, 40)
+      MaxDamage(resprojectile2)(50, 10) mustEqual (0, 40)
     }
 
     "calculate health and armor damage for max target" in {

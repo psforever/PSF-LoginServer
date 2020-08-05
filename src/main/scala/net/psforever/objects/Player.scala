@@ -359,7 +359,9 @@ class Player(var avatar: Avatar)
   def Aura : Set[AuraEffect.Value] = aura
 
   def AddEffectToAura(effect : AuraEffect.Value) : Set[AuraEffect.Value] = {
-    aura = aura + effect
+    if(effect != AuraEffect.None) {
+      aura = aura + effect
+    }
     Aura
   }
 

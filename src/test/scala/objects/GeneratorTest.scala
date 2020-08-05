@@ -80,6 +80,7 @@ class GeneratorControlDamageTest extends ActorTest {
   val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
   val resolved = ResolvedProjectile(
+    ProjectileResolution.Hit,
     Projectile(
       projectile,
       weapon.Definition,
@@ -161,6 +162,7 @@ class GeneratorControlCriticalTest extends ActorTest {
   val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
   val resolved = ResolvedProjectile(
+    ProjectileResolution.Hit,
     Projectile(
       projectile,
       weapon.Definition,
@@ -251,6 +253,7 @@ class GeneratorControlDestroyedTest extends ActorTest {
   val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
   val resolved = ResolvedProjectile(
+    ProjectileResolution.Hit,
     Projectile(
       projectile,
       weapon.Definition,
@@ -381,6 +384,7 @@ class GeneratorControlKillsTest extends ActorTest {
   val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
   val resolved = ResolvedProjectile(
+    ProjectileResolution.Hit,
     Projectile(
       projectile,
       weapon.Definition,
@@ -503,6 +507,7 @@ class GeneratorControlNotDestroyTwice extends ActorTest {
   val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
   val resolved = ResolvedProjectile(
+    ProjectileResolution.Hit,
     Projectile(
       projectile,
       weapon.Definition,
@@ -592,6 +597,7 @@ class GeneratorControlNotDamageIfExplodingTest extends ActorTest {
   val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
   val resolved = ResolvedProjectile(
+    ProjectileResolution.Hit,
     Projectile(
       projectile,
       weapon.Definition,
@@ -685,6 +691,7 @@ class GeneratorControlNotRepairIfExplodingTest extends ActorTest {
   val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
   val resolved = ResolvedProjectile(
+    ProjectileResolution.Hit,
     Projectile(
       projectile,
       weapon.Definition,
