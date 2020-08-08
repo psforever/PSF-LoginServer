@@ -1,16 +1,16 @@
 // Copyright (c) 2020 PSForever
-package net.psforever.objects.avatar
+package net.psforever.objects.serverobject.aggravated
 
 import akka.actor.{Actor, Cancellable}
-import net.psforever.objects.Player
 import net.psforever.objects.ballistics._
+import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.vital.{DamageType, Vitality}
 import net.psforever.types.Vector3
 
 import scala.collection.mutable
-import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 trait AuraEffectBehavior {
   _ : Actor with Damageable =>
@@ -22,7 +22,7 @@ trait AuraEffectBehavior {
   private val entryIdToEntry: mutable.LongMap[AuraEffectBehavior.Entry] =
     mutable.LongMap.empty[AuraEffectBehavior.Entry]
 
-  def AuraTargetObject : Player
+  def AuraTargetObject : AuraEffectBehavior.Target
 
   val auraBehavior : Receive = {
     case AuraEffectBehavior.Aggravate(id, 0, 0) =>
@@ -93,7 +93,8 @@ trait AuraEffectBehavior {
     data.projectile.profile.Aggravated match {
       case Some(damage)
         if data.projectile.profile.ProjectileDamageTypes.contains(DamageType.Aggravated) &&
-          damage.effect_type != Aura.None =>
+          damage.effect_type != Aura.None && //TODO aphelion starfire
+          damage.targets.exists(validation => validation.test(AuraTargetObject)) =>
         TryAggravationEffect(damage, data)
       case _ => ;
     }
@@ -104,7 +105,7 @@ trait AuraEffectBehavior {
     val obj = AuraTargetObject
     if(CheckForUniqueUnqueuedProjectile(data.projectile)) {
       val auraEffects = obj.Aura
-      if(auraEffects.contains(effect) && aggravation.cumulative_damage_degrade) { //TODO cumulative?
+      if(auraEffects.contains(effect) && aggravation.cumulative_damage_degrade) {
         SetupAggravationEntry(aggravation, data)
       }
       else if(obj.AddEffectToAura(effect).diff(auraEffects).contains(effect)) {
@@ -131,9 +132,9 @@ trait AuraEffectBehavior {
           case Some(list) => effectToEntryId -> (list :+ id)
         }
         //pair id with timer
-        val inflictionRate = info.infliction_rate
+        val inflictionRate = 1000 //info.infliction_rate
         val iterations = (aggravation.duration / inflictionRate).toInt
-        val leftoverTime = aggravation.duration % inflictionRate
+        val leftoverTime = aggravation.duration - (iterations * inflictionRate)
         entryIdToTimer += id -> context.system.scheduler.scheduleOnce(inflictionRate milliseconds, self, AuraEffectBehavior.Aggravate(id, iterations, leftoverTime))
         //pair id with entry
         PairIdWithAggravationEntry(id, effect, inflictionRate, data, data.target, Vector3.Zero)
@@ -212,7 +213,7 @@ trait AuraEffectBehavior {
     UpdateAggravatedEffect(AuraTargetObject)
   }
 
-  def UpdateAggravatedEffect(target: Player) : Unit = {
+  def UpdateAggravatedEffect(target: AuraEffectBehavior.Target) : Unit = {
     import services.avatar.{AvatarAction, AvatarServiceMessage}
     val zone = target.Zone
     val value = target.Aura.foldLeft(0)(_ + _.id)
@@ -225,6 +226,8 @@ trait AuraEffectBehavior {
 }
 
 object AuraEffectBehavior {
+  type Target = PlanetSideServerObject with Vitality with AuraContainer
+
   private case class Entry(id: Long, effect: Aura.Value, retime: Long, data: ResolvedProjectile)
 
   private case class Aggravate(id: Long, iterations: Int, leftover: Long)

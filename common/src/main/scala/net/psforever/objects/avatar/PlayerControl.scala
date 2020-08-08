@@ -8,6 +8,7 @@ import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile}
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
 import net.psforever.objects.loadouts.Loadout
+import net.psforever.objects.serverobject.aggravated.AuraEffectBehavior
 import net.psforever.objects.serverobject.containable.{Containable, ContainableBehavior}
 import net.psforever.objects.vital.{PlayerSuicide, Vitality}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}

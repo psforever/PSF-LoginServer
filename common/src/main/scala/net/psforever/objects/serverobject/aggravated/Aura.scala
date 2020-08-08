@@ -1,5 +1,4 @@
-// Copyright (c) 2020 PSForever
-package net.psforever.objects.avatar
+package net.psforever.objects.serverobject.aggravated
 
 object Aura extends Enumeration {
   final val None = Value(0)
