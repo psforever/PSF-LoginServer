@@ -10,7 +10,9 @@ import net.psforever.objects.inventory.{GridInventory, InventoryItem}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
+import net.psforever.objects.serverobject.aggravated.AuraEffectBehavior
 import net.psforever.objects.serverobject.containable.{Containable, ContainableBehavior}
+import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.DamageableVehicle
 import net.psforever.objects.serverobject.deploy.Deployment.DeploymentObject
 import net.psforever.objects.serverobject.deploy.{Deployment, DeploymentBehavior}
@@ -51,7 +53,8 @@ class VehicleControl(vehicle: Vehicle)
     with RepairableVehicle
     with JammableMountedWeapons
     with ContainableBehavior
-    with AntTransferBehavior {
+    with AntTransferBehavior
+    with AuraEffectBehavior {
 
   //make control actors belonging to utilities when making control actor belonging to vehicle
   vehicle.Utilities.foreach({ case (_, util) => util.Setup })
@@ -74,7 +77,9 @@ class VehicleControl(vehicle: Vehicle)
 
   def ChargeTransferObject = vehicle
 
-  if (vehicle.Definition == GlobalDefinitions.ant) {
+  def AuraTargetObject = vehicle
+
+  if(vehicle.Definition == GlobalDefinitions.ant) {
     findChargeTargetFunc = Vehicles.FindANTChargingSource
     findDischargeTargetFunc = Vehicles.FindANTDischargingTarget
   }
@@ -95,6 +100,7 @@ class VehicleControl(vehicle: Vehicle)
       context.stop(util().Actor)
       util().Actor = Default.Actor
     }
+    EndAllEffects()
   }
 
   def Enabled: Receive =
@@ -103,6 +109,7 @@ class VehicleControl(vehicle: Vehicle)
       .orElse(cargoBehavior)
       .orElse(jammableBehavior)
       .orElse(takesDamage)
+      .orElse(auraBehavior)
       .orElse(canBeRepairedByNanoDispenser)
       .orElse(containerBehavior)
       .orElse(antBehavior)
@@ -578,6 +585,24 @@ class VehicleControl(vehicle: Vehicle)
       case _ => ;
     }
     out
+  }
+
+  override def DamageAwareness(
+    target: Target,
+    cause: ResolvedProjectile,
+    amount: Int
+  ): Unit = {
+    TryAggravationEffect(cause)
+    super.DamageAwareness(target, cause, amount)
+  }
+
+  override def DestructionAwareness(
+    target: Target,
+    cause: ResolvedProjectile
+  ): Unit = {
+    //aura effects cancel
+    EndAllEffects()
+    super.DestructionAwareness(target, cause)
   }
 }
 

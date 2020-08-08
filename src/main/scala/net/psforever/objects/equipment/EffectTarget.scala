@@ -89,10 +89,10 @@ object EffectTarget {
           false
       }
 
-    def AMS(target: PlanetSideGameObject): Boolean =
+    def Vehicle(target: PlanetSideGameObject): Boolean =
       target match {
         case v: Vehicle =>
-          v.Health > 0 && v.Definition == GlobalDefinitions.ams
+          v.Health > 0
         case _ =>
           false
       }
@@ -101,6 +101,22 @@ object EffectTarget {
       target match {
         case v: Vehicle =>
           v.Health > 0 && v.Definition != GlobalDefinitions.ams
+        case _ =>
+          false
+      }
+
+    def AMS(target: PlanetSideGameObject): Boolean =
+      target match {
+        case v: Vehicle =>
+          v.Health > 0 && v.Definition == GlobalDefinitions.ams
+        case _ =>
+          false
+      }
+
+    def Aircraft(target: PlanetSideGameObject): Boolean =
+      target match {
+        case v: Vehicle =>
+          GlobalDefinitions.isFlightVehicle(v.Definition) && v.Health > 0
         case _ =>
           false
       }

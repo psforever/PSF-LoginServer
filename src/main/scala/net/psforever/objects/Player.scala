@@ -3,7 +3,6 @@ package net.psforever.objects
 
 import net.psforever.objects.avatar.{
   Avatar,
-  Aura => AuraEffect,
   LoadoutManager
 }
 import net.psforever.objects.definition.{
@@ -15,6 +14,7 @@ import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot,
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.serverobject.aggravated.AuraContainer
 import net.psforever.objects.vital.resistance.ResistanceProfile
 import net.psforever.objects.vital.{DamageResistanceModel, Vitality}
 import net.psforever.objects.zones.ZoneAware
@@ -30,7 +30,8 @@ class Player(var avatar: Avatar)
     with ResistanceProfile
     with Container
     with JammableUnit
-    with ZoneAware {
+    with ZoneAware
+    with AuraContainer {
   Health = 0       //player health is artificially managed as a part of their lifecycle; start entity as dead
   Destroyed = true //see isAlive
   private var backpack: Boolean = false
@@ -56,8 +57,6 @@ class Player(var avatar: Avatar)
   private var afk: Boolean          = false
 
   private var vehicleSeated: Option[PlanetSideGUID] = None
-
-  private var aura : Set[AuraEffect.Value] = Set.empty[AuraEffect.Value]
 
   Continent = "home2" //the zone id
 
@@ -354,20 +353,6 @@ class Player(var avatar: Avatar)
   def AwayFromKeyboard_=(away: Boolean): Boolean = {
     afk = away
     AwayFromKeyboard
-  }
-
-  def Aura : Set[AuraEffect.Value] = aura
-
-  def AddEffectToAura(effect : AuraEffect.Value) : Set[AuraEffect.Value] = {
-    if(effect != AuraEffect.None) {
-      aura = aura + effect
-    }
-    Aura
-  }
-
-  def RemoveEffectFromAura(effect : AuraEffect.Value) : Set[AuraEffect.Value] = {
-    aura = aura - effect
-    Aura
   }
 
   private var usingSpecial: SpecialExoSuitDefinition.Mode.Value => SpecialExoSuitDefinition.Mode.Value =

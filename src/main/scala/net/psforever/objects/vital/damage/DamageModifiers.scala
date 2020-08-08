@@ -1,7 +1,8 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital.damage
 
-import net.psforever.objects.ballistics.{PlayerSource, ProjectileResolution, ResolvedProjectile}
+import net.psforever.objects.GlobalDefinitions
+import net.psforever.objects.ballistics.{PlayerSource, ProjectileResolution, ResolvedProjectile, VehicleSource}
 import net.psforever.objects.vital.DamageType
 import net.psforever.types.{ExoSuitType, Vector3}
 
@@ -134,22 +135,22 @@ object DamageModifiers {
     }
   }
 
-  case object AggravatedDirect extends Mod {
+  case object InfantryAggravatedDirect extends Mod {
     def Calculate: DamageModifiers.Format =
       BaseAggravatedFormula(ProjectileResolution.AggravatedDirect, DamageType.Direct)
   }
 
-  case object AggravatedSplash extends Mod {
+  case object InfantryAggravatedSplash extends Mod {
     def Calculate: DamageModifiers.Format =
       BaseAggravatedFormula(ProjectileResolution.AggravatedSplash, DamageType.Splash)
   }
 
-  case object AggravatedDirectBurn extends Mod {
+  case object InfantryAggravatedDirectBurn extends Mod {
     def Calculate: DamageModifiers.Format =
       BaseAggravatedBurnFormula(ProjectileResolution.AggravatedDirectBurn, DamageType.Direct)
   }
 
-  case object AggravatedSplashBurn extends Mod {
+  case object InfantryAggravatedSplashBurn extends Mod {
     def Calculate: DamageModifiers.Format =
       BaseAggravatedBurnFormula(ProjectileResolution.AggravatedSplashBurn, DamageType.Splash)
   }
@@ -164,14 +165,18 @@ object DamageModifiers {
                                    ): Int = {
     if (data.resolution == resolution) {
       (data.projectile.profile.Aggravated, data.target) match {
-        case (Some(aggravation), p: PlayerSource) if p.ExoSuit == ExoSuitType.MAX =>
-          val aggravatedDirectDamage = (aggravation.info.find(_.damage_type == damageType) match {
+        case (Some(aggravation), p: PlayerSource) =>
+          val aggravatedDamage = aggravation.info.find(_.damage_type == damageType) match {
             case Some(infos) =>
-              damage * infos.degradation_percentage
+              damage * infos.degradation_percentage + damage
             case _ =>
               damage toFloat
-          }) * aggravation.max_factor
-          damage + aggravatedDirectDamage toInt
+          }
+          if(p.ExoSuit == ExoSuitType.MAX) {
+            (aggravatedDamage * aggravation.max_factor) toInt
+          } else {
+            aggravatedDamage toInt
+          }
         case _ =>
           damage
       }
@@ -214,10 +219,54 @@ object DamageModifiers {
             }
           }
         case _ =>
-          damage
+          0
       }
     } else {
       damage
+    }
+  }
+
+  case object StarfireAggravated extends Mod {
+    def Calculate: DamageModifiers.Format = formula
+
+    private def formula(damage: Int, data: ResolvedProjectile): Int = {
+      if (data.resolution == ProjectileResolution.AggravatedDirect) {
+        (data.projectile.profile.Aggravated, data.target) match {
+          case (Some(aggravation), v : VehicleSource) if GlobalDefinitions.isFlightVehicle(v.Definition) =>
+            aggravation.info.find(_.damage_type == DamageType.Direct) match {
+              case Some(infos) =>
+                (damage * infos.degradation_percentage + damage) toInt
+              case _ =>
+                damage
+            }
+          case _ =>
+            damage
+        }
+      } else {
+        damage
+      }
+    }
+  }
+
+  case object StarfireAggravatedBurn extends Mod {
+    def Calculate: DamageModifiers.Format = formula
+
+    private def formula(damage: Int, data: ResolvedProjectile): Int = {
+      if (data.resolution == ProjectileResolution.AggravatedDirectBurn) {
+        (data.projectile.profile.Aggravated, data.target) match {
+          case (Some(aggravation), v : VehicleSource) if GlobalDefinitions.isFlightVehicle(v.Definition) =>
+            aggravation.info.find(_.damage_type == DamageType.Direct) match {
+              case Some(infos) =>
+                (damage * infos.degradation_percentage) toInt
+              case _ =>
+                damage
+            }
+          case _ =>
+            0
+        }
+      } else {
+        damage
+      }
     }
   }
 }

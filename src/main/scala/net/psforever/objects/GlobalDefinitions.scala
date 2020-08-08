@@ -2,13 +2,13 @@
 package net.psforever.objects
 
 import net.psforever.objects.avatar.Certification
-import net.psforever.objects.avatar.Aura
 import net.psforever.objects.ballistics.{AggravatedDamage, AggravatedInfo, Projectiles}
 import net.psforever.objects.ce.{DeployableCategory, DeployedItem}
 import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter._
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
+import net.psforever.objects.serverobject.aggravated.Aura
 import net.psforever.objects.serverobject.doors.DoorDefinition
 import net.psforever.objects.serverobject.generator.GeneratorDefinition
 import net.psforever.objects.serverobject.implantmech.ImplantTerminalMechDefinition
@@ -2323,7 +2323,8 @@ object GlobalDefinitions {
       Aura.None,
       0,
       0f,
-      true
+      true,
+      List(TargetValidation(EffectTarget.Category.Aircraft, EffectTarget.Validation.Aircraft))
     )
     aphelion_starfire_projectile.ExistsOnRemoteClients = true
     aphelion_starfire_projectile.RemoteClientData = (39577, 249) //starfire_projectile data
@@ -2454,7 +2455,11 @@ object GlobalDefinitions {
       AggravatedInfo(DamageType.Direct, 0.2f, 500),
       Aura.Comet,
       0,
-      10f
+      10f,
+      List(
+        TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player),
+        TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.Vehicle)
+      )
     )
     comet_projectile.InitialVelocity = 80
     comet_projectile.Lifespan = 3.1f
@@ -2609,16 +2614,17 @@ object GlobalDefinitions {
       5000,
       0.1f,
       false,
-      false
+      false,
+      List(TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player))
     )
     flamethrower_fireball.InitialVelocity = 15
     flamethrower_fireball.Lifespan = 1.2f
     ProjectileDefinition.CalculateDerivedFields(flamethrower_fireball)
     flamethrower_fireball.Modifiers = List(
-      DamageModifiers.AggravatedDirect,
-      DamageModifiers.AggravatedDirectBurn,
-      DamageModifiers.AggravatedSplash,
-      DamageModifiers.AggravatedSplashBurn,
+      DamageModifiers.InfantryAggravatedDirect,
+      DamageModifiers.InfantryAggravatedDirectBurn,
+      DamageModifiers.InfantryAggravatedSplash,
+      DamageModifiers.InfantryAggravatedSplashBurn,
       DamageModifiers.RadialDegrade
     )
 
@@ -2638,7 +2644,8 @@ object GlobalDefinitions {
       5000,
       0.5f,
       false,
-      false
+      false,
+      List(TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player))
     )
     flamethrower_projectile.DegradeDelay = 1.0f
     flamethrower_projectile.DegradeMultiplier = 0.5f
@@ -2646,8 +2653,8 @@ object GlobalDefinitions {
     flamethrower_projectile.Lifespan = 2.0f
     ProjectileDefinition.CalculateDerivedFields(flamethrower_projectile)
     flamethrower_projectile.Modifiers = List(
-      DamageModifiers.AggravatedDirect,
-      DamageModifiers.AggravatedDirectBurn,
+      DamageModifiers.InfantryAggravatedDirect,
+      DamageModifiers.InfantryAggravatedDirectBurn,
       DamageModifiers.MaxDistanceCutoff
     )
 
@@ -3500,19 +3507,20 @@ object GlobalDefinitions {
     plasma_cartridge_projectile.Aggravated = AggravatedDamage(
       List(AggravatedInfo(DamageType.Direct, 0.25f, 750), AggravatedInfo(DamageType.Splash, 0.25f, 1000)),
       Aura.Plasma,
-      4000, //hard-coded default?
+      3000,
       1.5f,
       true,
-      false
+      false,
+      List(TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player))
     )
     plasma_cartridge_projectile.InitialVelocity = 30
     plasma_cartridge_projectile.Lifespan = 15f
     ProjectileDefinition.CalculateDerivedFields(plasma_cartridge_projectile)
     plasma_cartridge_projectile.Modifiers = List(
-      DamageModifiers.AggravatedDirect,
-      DamageModifiers.AggravatedDirectBurn,
-      DamageModifiers.AggravatedSplash,
-      DamageModifiers.AggravatedSplashBurn,
+      DamageModifiers.InfantryAggravatedDirect,
+      DamageModifiers.InfantryAggravatedDirectBurn,
+      DamageModifiers.InfantryAggravatedSplash,
+      DamageModifiers.InfantryAggravatedSplashBurn,
       DamageModifiers.RadialDegrade
     )
 
@@ -3527,19 +3535,20 @@ object GlobalDefinitions {
     plasma_cartridge_projectile_b.Aggravated = AggravatedDamage(
       List(AggravatedInfo(DamageType.Direct, 0.25f, 750), AggravatedInfo(DamageType.Splash, 0.25f, 1000)),
       Aura.Plasma,
-      4000, //hard-coded default?
+      3000,
       1.5f,
       true,
-      false
+      false,
+      List(TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player))
     )
     plasma_cartridge_projectile_b.InitialVelocity = 30
     plasma_cartridge_projectile_b.Lifespan = 2f
     ProjectileDefinition.CalculateDerivedFields(plasma_cartridge_projectile_b)
     plasma_cartridge_projectile_b.Modifiers = List(
-      DamageModifiers.AggravatedDirect,
-      DamageModifiers.AggravatedDirectBurn,
-      DamageModifiers.AggravatedSplash,
-      DamageModifiers.AggravatedSplashBurn,
+      DamageModifiers.InfantryAggravatedDirect,
+      DamageModifiers.InfantryAggravatedDirectBurn,
+      DamageModifiers.InfantryAggravatedSplash,
+      DamageModifiers.InfantryAggravatedSplashBurn,
       DamageModifiers.RadialDegrade
     )
 
@@ -3553,19 +3562,20 @@ object GlobalDefinitions {
     plasma_grenade_projectile.Aggravated = AggravatedDamage(
       List(AggravatedInfo(DamageType.Direct, 0.25f, 750), AggravatedInfo(DamageType.Splash, 0.25f, 1000)),
       Aura.Plasma,
-      4000, //hard-coded default?
+      3000,
       1.5f,
       true,
-      false
+      false,
+      List(TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player))
     )
     plasma_grenade_projectile.InitialVelocity = 30
     plasma_grenade_projectile.Lifespan = 15f
     ProjectileDefinition.CalculateDerivedFields(plasma_grenade_projectile)
     plasma_grenade_projectile.Modifiers = List(
-      DamageModifiers.AggravatedDirect,
-      DamageModifiers.AggravatedDirectBurn,
-      DamageModifiers.AggravatedSplash,
-      DamageModifiers.AggravatedSplashBurn,
+      DamageModifiers.InfantryAggravatedDirect,
+      DamageModifiers.InfantryAggravatedDirectBurn,
+      DamageModifiers.InfantryAggravatedSplash,
+      DamageModifiers.InfantryAggravatedSplashBurn,
       DamageModifiers.RadialDegrade
     )
 
@@ -3580,19 +3590,20 @@ object GlobalDefinitions {
     plasma_grenade_projectile_B.Aggravated = AggravatedDamage(
       List(AggravatedInfo(DamageType.Direct, 0.25f, 750), AggravatedInfo(DamageType.Splash, 0.25f, 1000)),
       Aura.Plasma,
-      4000, //hard-coded default?
+      3000,
       1.5f,
       true,
-      false
+      false,
+      List(TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player))
     )
     plasma_grenade_projectile_B.InitialVelocity = 30
     plasma_grenade_projectile_B.Lifespan = 3f
     ProjectileDefinition.CalculateDerivedFields(plasma_grenade_projectile_B)
     plasma_grenade_projectile_B.Modifiers = List(
-      DamageModifiers.AggravatedDirect,
-      DamageModifiers.AggravatedDirectBurn,
-      DamageModifiers.AggravatedSplash,
-      DamageModifiers.AggravatedSplashBurn,
+      DamageModifiers.InfantryAggravatedDirect,
+      DamageModifiers.InfantryAggravatedDirectBurn,
+      DamageModifiers.InfantryAggravatedSplash,
+      DamageModifiers.InfantryAggravatedSplashBurn,
       DamageModifiers.RadialDegrade
     )
 
@@ -3899,9 +3910,10 @@ object GlobalDefinitions {
     starfire_projectile.Aggravated = AggravatedDamage(
       AggravatedInfo(DamageType.Direct, 0.25f, 250),
       Aura.Comet,
-      0,
+      3000,
       0f,
-      true
+      true,
+      List(TargetValidation(EffectTarget.Category.Aircraft, EffectTarget.Validation.Aircraft))
     )
     starfire_projectile.InitialVelocity = 45
     starfire_projectile.Lifespan = 7.8f
@@ -3910,6 +3922,11 @@ object GlobalDefinitions {
     starfire_projectile.AutoLock = true
     starfire_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(starfire_projectile)
+    starfire_projectile.Modifiers = List(
+      DamageModifiers.StarfireAggravated,
+      DamageModifiers.StarfireAggravatedBurn,
+      DamageModifiers.RadialDegrade
+    )
 
     striker_missile_projectile.Name = "striker_missile_projectile"
     striker_missile_projectile.Damage0 = 35
