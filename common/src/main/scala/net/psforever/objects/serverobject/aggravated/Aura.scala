@@ -1,9 +1,16 @@
+// Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.aggravated
 
-object Aura extends Enumeration {
-  final val None = Value(0)
-  final val Plasma = Value(1)
-  final val Comet = Value(2)
-  final val Napalm = Value(4)
-  final val Fire = Value(8)
+sealed class Aura(val id: Int)
+
+object Aura {
+  final case object None extends Aura(id = 0)
+
+  final case object Plasma extends Aura(id = 1)
+
+  final case object Comet extends Aura(id = 2)
+
+  final case object Napalm extends Aura(id = 4)
+
+  final case object Fire extends Aura(id = 8)
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 PSForever
+// Copyright (c) 2020 PSForever
 package net.psforever.objects.ballistics
 import net.psforever.objects.equipment.TargetValidation
 import net.psforever.objects.serverobject.aggravated.Aura
@@ -11,7 +11,7 @@ final case class AggravatedInfo(damage_type: DamageType.Value,
 }
 
 final case class AggravatedDamage(info: List[AggravatedInfo],
-                                  effect_type: Aura.Value,
+                                  effect_type: Aura,
                                   duration: Long,
                                   max_factor: Float,
                                   cumulative_damage_degrade: Boolean,
@@ -20,7 +20,7 @@ final case class AggravatedDamage(info: List[AggravatedInfo],
 
 object AggravatedDamage {
   def apply(info: AggravatedInfo,
-            effect_type: Aura.Value,
+            effect_type: Aura,
             duration: Long,
             max_factor: Float,
             targets: List[TargetValidation]): AggravatedDamage =
@@ -35,7 +35,7 @@ object AggravatedDamage {
     )
 
   def apply(info: AggravatedInfo,
-            effect_type: Aura.Value,
+            effect_type: Aura,
             duration: Long,
             max_factor: Float,
             vanu_aggravated: Boolean,
