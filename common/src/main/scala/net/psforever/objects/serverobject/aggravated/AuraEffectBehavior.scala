@@ -6,7 +6,6 @@ import net.psforever.objects.ballistics._
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.vital.{DamageType, Vitality}
-import net.psforever.types.Vector3
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -15,16 +14,16 @@ import scala.concurrent.duration._
 trait AuraEffectBehavior {
   _ : Actor with Damageable =>
   private var activeEffectIndex: Long = 0
-  private val effectToEntryId: mutable.HashMap[Aura.Value, List[Long]]   =
-    mutable.HashMap.empty[Aura.Value, List[Long]]
-  private val entryIdToTimer: mutable.LongMap[Cancellable]               =
+  private val effectToEntryId: mutable.HashMap[Aura, List[Long]] =
+    mutable.HashMap.empty[Aura, List[Long]]
+  private val entryIdToTimer: mutable.LongMap[Cancellable] =
     mutable.LongMap.empty[Cancellable]
   private val entryIdToEntry: mutable.LongMap[AuraEffectBehavior.Entry] =
     mutable.LongMap.empty[AuraEffectBehavior.Entry]
 
-  def AuraTargetObject : AuraEffectBehavior.Target
+  def AuraTargetObject: AuraEffectBehavior.Target
 
-  val auraBehavior : Receive = {
+  val auraBehavior: Receive = {
     case AuraEffectBehavior.Aggravate(id, 0, 0) =>
       CancelEffectTimer(id)
       PerformCleanupEffect(id)
@@ -33,8 +32,8 @@ trait AuraEffectBehavior {
       RemoveEffectEntry(id)
       RetimeEvent(id, iteration = 0, Some(leftoverTime), leftoverTime = 0)
 
-    case AuraEffectBehavior.Aggravate(id, iteration, leftover) => ;
-      RetimeEventAndPerformAggravation(id, iteration - 1, None, leftover)
+    case AuraEffectBehavior.Aggravate(id, iteration, leftover) =>
+      RetimeEventAndPerformAggravation(id, iteration, None, leftover)
   }
 
   private def RetimeEvent(
@@ -45,22 +44,13 @@ trait AuraEffectBehavior {
                          ): Option[AuraEffectBehavior.Entry] = {
     CancelEffectTimer(id)
     entryIdToEntry.get(id) match {
-      case Some(oldEntry) =>
-        val target = SourceEntry(AuraTargetObject)
-        val entry = PairIdWithAggravationEntry(
-          id,
-          oldEntry.effect,
-          oldEntry.retime,
-          oldEntry.data,
-          target,
-          target.Position - oldEntry.data.target.Position
-        )
+      case out @ Some(oldEntry) =>
         entryIdToTimer += id -> context.system.scheduler.scheduleOnce(
-          time.getOrElse(entry.retime) milliseconds,
+          time.getOrElse(oldEntry.retime) milliseconds,
           self,
           AuraEffectBehavior.Aggravate(id, iteration, leftoverTime)
         )
-        Some(entry)
+        out
       case _ =>
         PerformCleanupEffect(id)
         None
@@ -68,9 +58,9 @@ trait AuraEffectBehavior {
   }
 
   private def RetimeEventAndPerformAggravation(id: Long, iteration: Int, time: Option[Long], leftoverTime: Long) : Unit = {
-    RetimeEvent(id, iteration, time, leftoverTime) match {
+    RetimeEvent(id, iteration - 1, time, leftoverTime) match {
       case Some(entry) =>
-        PerformAggravation(entry)
+        PerformAggravation(entry, iteration)
       case _  => ;
     }
   }
@@ -116,7 +106,7 @@ trait AuraEffectBehavior {
   }
 
   private def CheckForUniqueUnqueuedProjectile(projectile : Projectile) : Boolean = {
-    !entryIdToEntry.values.exists { entry => entry.data.projectile eq projectile }
+    !entryIdToEntry.values.exists { entry => entry.data.projectile.id == projectile.id }
   }
 
   private def SetupAggravationEntry(aggravation: AggravatedDamage, data: ResolvedProjectile) : Unit = {
@@ -131,38 +121,50 @@ trait AuraEffectBehavior {
           case None | Some(Nil) => effectToEntryId += effect -> List(id)
           case Some(list) => effectToEntryId -> (list :+ id)
         }
-        //pair id with timer
-        val inflictionRate = 1000 //info.infliction_rate
-        val iterations = (aggravation.duration / inflictionRate).toInt
-        val leftoverTime = aggravation.duration - (iterations * inflictionRate)
-        entryIdToTimer += id -> context.system.scheduler.scheduleOnce(inflictionRate milliseconds, self, AuraEffectBehavior.Aggravate(id, iterations, leftoverTime))
+        //setup timer data
+        val tick = 1000 //each second
+        val duration = aggravation.duration
+        val iterations = (duration / tick).toInt
+        val leftoverTime = duration - (iterations * tick)
+        //quality per tick
+        val totalPower = (duration.toFloat / info.infliction_rate).toInt - 1
+        val averagePowerPerTick = math.max(1, totalPower.toFloat / iterations).toInt
+        val lastTickRemainder = totalPower - averagePowerPerTick * iterations
+        val qualityPerTick: List[Int] = if (lastTickRemainder > 0) {
+          0 +: List.fill[Int](iterations - 1)(averagePowerPerTick) :+ (lastTickRemainder + averagePowerPerTick)
+        }
+        else {
+          0 +: List.fill[Int](iterations)(averagePowerPerTick)
+        }
         //pair id with entry
-        PairIdWithAggravationEntry(id, effect, inflictionRate, data, data.target, Vector3.Zero)
+        PairIdWithAggravationEntry(id, effect, tick, data, data.target, qualityPerTick)
+        //pair id with timer
+        entryIdToTimer += id -> context.system.scheduler.scheduleOnce(tick milliseconds, self, AuraEffectBehavior.Aggravate(id, iterations, leftoverTime))
       case _ => ;
     }
   }
 
   private def PairIdWithAggravationEntry(
                                   id: Long,
-                                  effect: Aura.Value,
-                                  retime:Long,
+                                  effect: Aura,
+                                  retime: Long,
                                   data: ResolvedProjectile,
                                   target: SourceEntry,
-                                  offset: Vector3
+                                  powerOffset: List[Int]
                                 ): AuraEffectBehavior.Entry = {
     val aggravatedDamageInfo = ResolvedProjectile(
       AuraEffectBehavior.burning(data.resolution),
       data.projectile,
       target,
       data.damage_model,
-      data.hit_pos + offset
+      data.hit_pos
     )
-    val entry = AuraEffectBehavior.Entry(id, effect, retime, aggravatedDamageInfo)
+    val entry = AuraEffectBehavior.Entry(id, effect, retime, aggravatedDamageInfo, powerOffset)
     entryIdToEntry += id -> entry
     entry
   }
 
-  def RemoveEffectEntry(id: Long) : Aura.Value = {
+  def RemoveEffectEntry(id: Long) : Aura = {
     entryIdToEntry.remove(id) match {
       case Some(entry) =>
         entry.data.projectile.profile.Aggravated.get.effect_type
@@ -174,7 +176,7 @@ trait AuraEffectBehavior {
     }
   }
 
-  def CleanupEffect(id: Long) : Aura.Value = {
+  def CleanupEffect(id: Long) : Aura = {
     //remove and cancel timer
     entryIdToTimer.remove(id) match {
       case Some(timer) => timer.cancel
@@ -220,15 +222,23 @@ trait AuraEffectBehavior {
     zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttributeToAll(target.GUID, 54, value))
   }
 
-  private def PerformAggravation(entry: AuraEffectBehavior.Entry) : Unit = {
-    TakesDamage.apply(Vitality.Damage(entry.data.damage_model.Calculate(entry.data)))
+  private def PerformAggravation(entry: AuraEffectBehavior.Entry, tick: Int = 0) : Unit = {
+    val data = entry.data
+    val info = ResolvedProjectile(
+      data.resolution,
+      data.projectile.quality(entry.qualityPerTick(tick).toFloat),
+      data.target,
+      data.damage_model,
+      data.hit_pos
+    )
+    TakesDamage.apply(Vitality.Damage(info.damage_model.Calculate(info)))
   }
 }
 
 object AuraEffectBehavior {
   type Target = PlanetSideServerObject with Vitality with AuraContainer
 
-  private case class Entry(id: Long, effect: Aura.Value, retime: Long, data: ResolvedProjectile)
+  private case class Entry(id: Long, effect: Aura, retime: Long, data: ResolvedProjectile, qualityPerTick: List[Int])
 
   private case class Aggravate(id: Long, iterations: Int, leftover: Long)
 

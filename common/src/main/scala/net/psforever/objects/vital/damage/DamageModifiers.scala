@@ -257,7 +257,7 @@ object DamageModifiers {
           case (Some(aggravation), v : VehicleSource) if GlobalDefinitions.isFlightVehicle(v.Definition) =>
             aggravation.info.find(_.damage_type == DamageType.Direct) match {
               case Some(infos) =>
-                (damage * infos.degradation_percentage) toInt
+                (math.floor(damage * infos.degradation_percentage) * data.projectile.quality) toInt
               case _ =>
                 damage
             }

@@ -2315,7 +2315,7 @@ object GlobalDefinitions {
     aphelion_starfire_projectile.Aggravated = AggravatedDamage(
       AggravatedInfo(DamageType.Direct, 0.25f, 250),
       Aura.None,
-      0,
+      2000,
       0f,
       true,
       List(TargetValidation(EffectTarget.Category.Aircraft, EffectTarget.Validation.Aircraft))
@@ -2448,7 +2448,7 @@ object GlobalDefinitions {
     comet_projectile.Aggravated = AggravatedDamage(
       AggravatedInfo(DamageType.Direct, 0.2f, 500),
       Aura.Comet,
-      0,
+      2000,
       10f,
       List(
         TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player),
@@ -3904,7 +3904,7 @@ object GlobalDefinitions {
     starfire_projectile.Aggravated = AggravatedDamage(
       AggravatedInfo(DamageType.Direct, 0.25f, 250),
       Aura.Comet,
-      3000,
+      2000,
       0f,
       true,
       List(TargetValidation(EffectTarget.Category.Aircraft, EffectTarget.Validation.Aircraft))
@@ -3917,7 +3917,6 @@ object GlobalDefinitions {
     starfire_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(starfire_projectile)
     starfire_projectile.Modifiers = List(
-      DamageModifiers.StarfireAggravated,
       DamageModifiers.StarfireAggravatedBurn,
       DamageModifiers.RadialDegrade
     )
