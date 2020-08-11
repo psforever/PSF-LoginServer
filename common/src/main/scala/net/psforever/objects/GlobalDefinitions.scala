@@ -2,7 +2,7 @@
 package net.psforever.objects
 
 import net.psforever.objects.avatar.Certification
-import net.psforever.objects.ballistics.{AggravatedDamage, AggravatedInfo, Projectiles}
+import net.psforever.objects.ballistics.{AggravatedDamage, AggravatedInfo, AggravatedTiming, Projectiles}
 import net.psforever.objects.ce.{DeployableCategory, DeployedItem}
 import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter._
@@ -2448,7 +2448,7 @@ object GlobalDefinitions {
     comet_projectile.Aggravated = AggravatedDamage(
       AggravatedInfo(DamageType.Direct, 0.2f, 500),
       Aura.Comet,
-      2000,
+      AggravatedTiming(2000, 4),
       10f,
       List(
         TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player),
@@ -2458,6 +2458,10 @@ object GlobalDefinitions {
     comet_projectile.InitialVelocity = 80
     comet_projectile.Lifespan = 3.1f
     ProjectileDefinition.CalculateDerivedFields(comet_projectile)
+    comet_projectile.Modifiers = List(
+      DamageModifiers.CometAggravated,
+      DamageModifiers.CometAggravatedBurn
+    )
 
     dualcycler_projectile.Name = "dualcycler_projectile"
     dualcycler_projectile.Damage0 = 18
@@ -2605,7 +2609,7 @@ object GlobalDefinitions {
     flamethrower_fireball.Aggravated = AggravatedDamage(
       List(AggravatedInfo(DamageType.Direct, 0.9f, 500), AggravatedInfo(DamageType.Splash, 0.9f, 500)),
       Aura.Fire,
-      5000,
+      AggravatedTiming(5000),
       0.1f,
       false,
       false,
@@ -2635,7 +2639,7 @@ object GlobalDefinitions {
     flamethrower_projectile.Aggravated = AggravatedDamage(
       List(AggravatedInfo(DamageType.Direct, 0.5f, 500)),
       Aura.Fire,
-      5000,
+      AggravatedTiming(5000),
       0.5f,
       false,
       false,
@@ -3501,7 +3505,7 @@ object GlobalDefinitions {
     plasma_cartridge_projectile.Aggravated = AggravatedDamage(
       List(AggravatedInfo(DamageType.Direct, 0.25f, 750), AggravatedInfo(DamageType.Splash, 0.25f, 1000)),
       Aura.Plasma,
-      3000,
+      AggravatedTiming(3000),
       1.5f,
       true,
       false,
@@ -3529,7 +3533,7 @@ object GlobalDefinitions {
     plasma_cartridge_projectile_b.Aggravated = AggravatedDamage(
       List(AggravatedInfo(DamageType.Direct, 0.25f, 750), AggravatedInfo(DamageType.Splash, 0.25f, 1000)),
       Aura.Plasma,
-      3000,
+      AggravatedTiming(3000),
       1.5f,
       true,
       false,
@@ -3556,7 +3560,7 @@ object GlobalDefinitions {
     plasma_grenade_projectile.Aggravated = AggravatedDamage(
       List(AggravatedInfo(DamageType.Direct, 0.25f, 750), AggravatedInfo(DamageType.Splash, 0.25f, 1000)),
       Aura.Plasma,
-      3000,
+      AggravatedTiming(3000),
       1.5f,
       true,
       false,
@@ -3584,7 +3588,7 @@ object GlobalDefinitions {
     plasma_grenade_projectile_B.Aggravated = AggravatedDamage(
       List(AggravatedInfo(DamageType.Direct, 0.25f, 750), AggravatedInfo(DamageType.Splash, 0.25f, 1000)),
       Aura.Plasma,
-      3000,
+      AggravatedTiming(3000),
       1.5f,
       true,
       false,

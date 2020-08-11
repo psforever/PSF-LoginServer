@@ -4,6 +4,14 @@ import net.psforever.objects.equipment.TargetValidation
 import net.psforever.objects.serverobject.aggravated.Aura
 import net.psforever.objects.vital.DamageType
 
+final case class AggravatedTiming(duration: Long, ticks: Option[Int])
+
+object AggravatedTiming {
+  def apply(duration: Long): AggravatedTiming = AggravatedTiming(duration, None)
+
+  def apply(duration: Long, ticks: Int): AggravatedTiming = AggravatedTiming(duration, Some(ticks))
+}
+
 final case class AggravatedInfo(damage_type: DamageType.Value,
                                 degradation_percentage: Float,
                                 infliction_rate: Long) {
@@ -12,7 +20,7 @@ final case class AggravatedInfo(damage_type: DamageType.Value,
 
 final case class AggravatedDamage(info: List[AggravatedInfo],
                                   effect_type: Aura,
-                                  duration: Long,
+                                  timing: AggravatedTiming,
                                   max_factor: Float,
                                   cumulative_damage_degrade: Boolean,
                                   vanu_aggravated: Boolean,
@@ -21,13 +29,44 @@ final case class AggravatedDamage(info: List[AggravatedInfo],
 object AggravatedDamage {
   def apply(info: AggravatedInfo,
             effect_type: Aura,
+            timing: AggravatedTiming,
+            max_factor: Float,
+            targets: List[TargetValidation]): AggravatedDamage =
+    AggravatedDamage(
+      List(info),
+      effect_type,
+      timing,
+      max_factor,
+      cumulative_damage_degrade = true,
+      vanu_aggravated = false,
+      targets
+    )
+
+  def apply(info: AggravatedInfo,
+            effect_type: Aura,
+            timing: AggravatedTiming,
+            max_factor: Float,
+            vanu_aggravated: Boolean,
+            targets: List[TargetValidation]): AggravatedDamage =
+    AggravatedDamage(
+      List(info),
+      effect_type,
+      timing,
+      max_factor,
+      cumulative_damage_degrade = true,
+      vanu_aggravated,
+      targets
+    )
+
+  def apply(info: AggravatedInfo,
+            effect_type: Aura,
             duration: Long,
             max_factor: Float,
             targets: List[TargetValidation]): AggravatedDamage =
     AggravatedDamage(
       List(info),
       effect_type,
-      duration,
+      AggravatedTiming(duration),
       max_factor,
       cumulative_damage_degrade = true,
       vanu_aggravated = false,
@@ -43,7 +82,7 @@ object AggravatedDamage {
     AggravatedDamage(
       List(info),
       effect_type,
-      duration,
+      AggravatedTiming(duration),
       max_factor,
       cumulative_damage_degrade = true,
       vanu_aggravated,

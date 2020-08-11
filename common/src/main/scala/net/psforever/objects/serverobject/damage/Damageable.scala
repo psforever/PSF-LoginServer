@@ -59,7 +59,7 @@ object Damageable {
     */
   def CanDamage(obj: Vitality with FactionAffinity, damage: Int, data: ResolvedProjectile): Boolean = {
     val definition = obj.Definition
-    damage > 0 &&
+    (damage > 0 || data.projectile.profile.Aggravated.nonEmpty) &&
     definition.Damageable &&
     (definition.DamageableByFriendlyFire ||
     (data.projectile.owner.Faction != obj.Faction ||
