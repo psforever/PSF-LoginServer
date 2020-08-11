@@ -122,19 +122,27 @@ trait AuraEffectBehavior {
           case Some(list) => effectToEntryId -> (list :+ id)
         }
         //setup timer data
-        val tick = 1000 //each second
-        val duration = aggravation.duration
-        val iterations = (duration / tick).toInt
-        val leftoverTime = duration - (iterations * tick)
+        val timing = aggravation.timing
+        val duration = timing.duration
+        val (tick: Long, iterations: Int) = timing.ticks match {
+          case Some(n) if n < 1 =>
+            val rate = info.infliction_rate
+            (rate, (duration / rate).toInt)
+          case Some(ticks) =>
+            (duration / ticks, ticks)
+          case None =>
+            (1000, (duration / 1000).toInt)
+        }
+        val leftoverTime = duration - (tick * iterations)
         //quality per tick
         val totalPower = (duration.toFloat / info.infliction_rate).toInt - 1
-        val averagePowerPerTick = math.max(1, totalPower.toFloat / iterations).toInt
+        val averagePowerPerTick = totalPower.toFloat / iterations
         val lastTickRemainder = totalPower - averagePowerPerTick * iterations
-        val qualityPerTick: List[Int] = if (lastTickRemainder > 0) {
-          0 +: List.fill[Int](iterations - 1)(averagePowerPerTick) :+ (lastTickRemainder + averagePowerPerTick)
+        val qualityPerTick: List[Float] = if (lastTickRemainder > 0) {
+          0f +: List.fill[Float](iterations - 1)(averagePowerPerTick) :+ (lastTickRemainder + averagePowerPerTick)
         }
         else {
-          0 +: List.fill[Int](iterations)(averagePowerPerTick)
+          0f +: List.fill[Float](iterations)(averagePowerPerTick)
         }
         //pair id with entry
         PairIdWithAggravationEntry(id, effect, tick, data, data.target, qualityPerTick)
@@ -150,7 +158,7 @@ trait AuraEffectBehavior {
                                   retime: Long,
                                   data: ResolvedProjectile,
                                   target: SourceEntry,
-                                  powerOffset: List[Int]
+                                  powerOffset: List[Float]
                                 ): AuraEffectBehavior.Entry = {
     val aggravatedDamageInfo = ResolvedProjectile(
       AuraEffectBehavior.burning(data.resolution),
@@ -224,21 +232,22 @@ trait AuraEffectBehavior {
 
   private def PerformAggravation(entry: AuraEffectBehavior.Entry, tick: Int = 0) : Unit = {
     val data = entry.data
-    val info = ResolvedProjectile(
+    val model = data.damage_model
+    val aggravatedProjectileData = ResolvedProjectile(
       data.resolution,
-      data.projectile.quality(entry.qualityPerTick(tick).toFloat),
+      data.projectile.quality(entry.qualityPerTick(tick)),
       data.target,
-      data.damage_model,
+      model,
       data.hit_pos
     )
-    TakesDamage.apply(Vitality.Damage(info.damage_model.Calculate(info)))
+    TakesDamage.apply(Vitality.Damage(model.Calculate(aggravatedProjectileData)))
   }
 }
 
 object AuraEffectBehavior {
   type Target = PlanetSideServerObject with Vitality with AuraContainer
 
-  private case class Entry(id: Long, effect: Aura, retime: Long, data: ResolvedProjectile, qualityPerTick: List[Int])
+  private case class Entry(id: Long, effect: Aura, retime: Long, data: ResolvedProjectile, qualityPerTick: List[Float])
 
   private case class Aggravate(id: Long, iterations: Int, leftover: Long)
 

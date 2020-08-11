@@ -269,4 +269,33 @@ object DamageModifiers {
       }
     }
   }
+
+  case object CometAggravated extends Mod {
+    def Calculate: DamageModifiers.Format = formula
+
+    private def formula(damage: Int, data: ResolvedProjectile): Int = {
+      if (data.resolution == ProjectileResolution.AggravatedDirect) {
+        0
+      } else {
+        damage
+      }
+    }
+  }
+
+  case object CometAggravatedBurn extends Mod {
+    def Calculate: DamageModifiers.Format = formula
+
+    private def formula(damage: Int, data: ResolvedProjectile): Int = {
+      if (data.resolution == ProjectileResolution.AggravatedDirectBurn) {
+        data.projectile.profile.Aggravated match {
+          case Some(_) =>
+            (damage * data.projectile.quality) toInt
+          case _ =>
+            0
+        }
+      } else {
+        damage
+      }
+    }
+  }
 }
