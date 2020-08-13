@@ -1,8 +1,11 @@
-// Copyright (c) 2020 PSForever
-package net.psforever.objects.serverobject.aggravated
+package net.psforever.objects.serverobject.aura
 
-import net.psforever.objects.serverobject.aggravated.{Aura => AuraEffect}
+import net.psforever.objects.serverobject.aura.{Aura => AuraEffect}
 
+/**
+  * An entity that can display specific special effects that decorate its model.
+  * These animations confer information about the nature of some status that is affecting the target entity.
+  */
 trait AuraContainer {
   private var aura : Set[AuraEffect] = Set.empty[AuraEffect]
 

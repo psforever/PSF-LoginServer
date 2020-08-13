@@ -1,7 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.ballistics
 import net.psforever.objects.equipment.TargetValidation
-import net.psforever.objects.serverobject.aggravated.Aura
+import net.psforever.objects.serverobject.aura.Aura
 import net.psforever.objects.vital.DamageType
 
 final case class AggravatedTiming(duration: Long, ticks: Option[Int])

@@ -7,7 +7,7 @@ import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem,
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
-import net.psforever.objects.serverobject.aggravated.AuraContainer
+import net.psforever.objects.serverobject.aura.AuraContainer
 import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.AmenityOwner

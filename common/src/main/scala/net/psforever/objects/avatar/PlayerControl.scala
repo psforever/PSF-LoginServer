@@ -8,7 +8,8 @@ import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile}
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
 import net.psforever.objects.loadouts.Loadout
-import net.psforever.objects.serverobject.aggravated.AuraEffectBehavior
+import net.psforever.objects.serverobject.aggravated.AggravatedBehavior
+import net.psforever.objects.serverobject.aura.AuraEffectBehavior
 import net.psforever.objects.serverobject.containable.{Containable, ContainableBehavior}
 import net.psforever.objects.vital.{PlayerSuicide, Vitality}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
@@ -32,12 +33,15 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     with JammableBehavior
     with Damageable
     with ContainableBehavior
+    with AggravatedBehavior
     with AuraEffectBehavior {
   def JammableObject = player
 
   def DamageableObject = player
 
   def ContainerObject = player
+
+  def AggravatedObject = player
 
   def AuraTargetObject = player
 
@@ -58,11 +62,13 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     lockerControlAgent ! akka.actor.PoisonPill
     player.avatar.locker.Actor = Default.Actor
     EndAllEffects()
+    EndAllAggravation()
   }
 
   def receive: Receive =
     jammableBehavior
       .orElse(takesDamage)
+      .orElse(aggravatedBehavior)
       .orElse(auraBehavior)
       .orElse(containerBehavior)
       .orElse {
@@ -560,7 +566,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       if (Damageable.CanJammer(target, cause)) {
         TryJammerEffectActivate(target, cause)
       }
-      TryAggravationEffect(cause)
+      TryAggravationEffect(cause) match {
+        case Some(aggravation) =>
+          StartAuraEffect(aggravation.effect_type, aggravation.timing.duration)
+        case _ => ;
+      }
     } else {
       DestructionAwareness(target, Some(cause))
     }
@@ -615,6 +625,8 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     target.Die
     //aura effects cancel
     EndAllEffects()
+    //aggravation cancel
+    EndAllAggravation()
     //unjam
     CancelJammeredSound(target)
     CancelJammeredStatus(target)

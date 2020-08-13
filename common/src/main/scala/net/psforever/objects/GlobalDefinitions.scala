@@ -8,7 +8,7 @@ import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter._
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
-import net.psforever.objects.serverobject.aggravated.Aura
+import net.psforever.objects.serverobject.aura.Aura
 import net.psforever.objects.serverobject.doors.DoorDefinition
 import net.psforever.objects.serverobject.generator.GeneratorDefinition
 import net.psforever.objects.serverobject.implantmech.ImplantTerminalMechDefinition
