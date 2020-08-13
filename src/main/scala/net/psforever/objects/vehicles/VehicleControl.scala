@@ -10,7 +10,8 @@ import net.psforever.objects.inventory.{GridInventory, InventoryItem}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
-import net.psforever.objects.serverobject.aggravated.AuraEffectBehavior
+import net.psforever.objects.serverobject.aggravated.AggravatedBehavior
+import net.psforever.objects.serverobject.aura.AuraEffectBehavior
 import net.psforever.objects.serverobject.containable.{Containable, ContainableBehavior}
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.DamageableVehicle
@@ -54,11 +55,12 @@ class VehicleControl(vehicle: Vehicle)
     with JammableMountedWeapons
     with ContainableBehavior
     with AntTransferBehavior
+    with AggravatedBehavior
     with AuraEffectBehavior {
 
   //make control actors belonging to utilities when making control actor belonging to vehicle
   vehicle.Utilities.foreach({ case (_, util) => util.Setup })
-
+  
   def MountableObject = vehicle
 
   def CargoObject = vehicle
@@ -78,6 +80,8 @@ class VehicleControl(vehicle: Vehicle)
   def ChargeTransferObject = vehicle
 
   def AuraTargetObject = vehicle
+
+  def AggravatedObject     = vehicle
 
   if(vehicle.Definition == GlobalDefinitions.ant) {
     findChargeTargetFunc = Vehicles.FindANTChargingSource
@@ -101,6 +105,7 @@ class VehicleControl(vehicle: Vehicle)
       util().Actor = Default.Actor
     }
     EndAllEffects()
+    EndAllAggravation()
   }
 
   def Enabled: Receive =
@@ -109,6 +114,7 @@ class VehicleControl(vehicle: Vehicle)
       .orElse(cargoBehavior)
       .orElse(jammableBehavior)
       .orElse(takesDamage)
+      .orElse(aggravatedBehavior)
       .orElse(auraBehavior)
       .orElse(canBeRepairedByNanoDispenser)
       .orElse(containerBehavior)
@@ -592,7 +598,11 @@ class VehicleControl(vehicle: Vehicle)
     cause: ResolvedProjectile,
     amount: Int
   ): Unit = {
-    TryAggravationEffect(cause)
+    TryAggravationEffect(cause) match {
+      case Some(aggravation) =>
+        StartAuraEffect(aggravation.effect_type, aggravation.timing.duration)
+      case _ => ;
+    }
     super.DamageAwareness(target, cause, amount)
   }
 
@@ -602,6 +612,8 @@ class VehicleControl(vehicle: Vehicle)
   ): Unit = {
     //aura effects cancel
     EndAllEffects()
+    //aggravation cancel
+    EndAllAggravation()
     super.DestructionAwareness(target, cause)
   }
 }

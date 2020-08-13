@@ -14,7 +14,7 @@ import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot,
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
-import net.psforever.objects.serverobject.aggravated.AuraContainer
+import net.psforever.objects.serverobject.aura.AuraContainer
 import net.psforever.objects.vital.resistance.ResistanceProfile
 import net.psforever.objects.vital.{DamageResistanceModel, Vitality}
 import net.psforever.objects.zones.ZoneAware

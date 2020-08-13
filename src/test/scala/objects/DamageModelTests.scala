@@ -451,8 +451,8 @@ class DamageModelTests extends Specification {
       )
       val func: Any => ResolvedProjectile = resprojectile.damage_model.Calculate(resprojectile)
       func(tplayer)
-      tplayer.Health mustEqual 54
-      tplayer.Armor mustEqual 46
+      tplayer.Health mustEqual 65
+      tplayer.Armor mustEqual 35
     }
 
     "resolve infantry targets in a specific way" in {
