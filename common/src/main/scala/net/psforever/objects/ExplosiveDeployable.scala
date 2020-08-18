@@ -9,7 +9,9 @@ import net.psforever.objects.definition.converter.SmallDeployableConverter
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.damage.Damageable
-import net.psforever.objects.vital.{StandardResolutions, Vitality}
+import net.psforever.objects.serverobject.damage.Damageable.Target
+import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
+import net.psforever.objects.vital.StandardResolutions
 import net.psforever.objects.zones.Zone
 import net.psforever.types.{PlanetSideGUID, Vector3}
 import services.Service
@@ -63,18 +65,20 @@ class ExplosiveDeployableControl(mine: ExplosiveDeployable) extends Actor with D
         case _ => ;
       }
 
-  protected def TakesDamage: Receive = {
-    case Vitality.Damage(applyDamageTo) =>
-      if (mine.CanDamage) {
-        val originalHealth = mine.Health
-        val cause          = applyDamageTo(mine)
-        val damage         = originalHealth - mine.Health
-        if (Damageable.CanDamageOrJammer(mine, damage, cause)) {
-          ExplosiveDeployableControl.DamageResolution(mine, cause, damage)
-        } else {
-          mine.Health = originalHealth
-        }
+  override protected def PerformDamage(
+    target: Target,
+    applyDamageTo: Output
+  ): Unit = {
+    if (mine.CanDamage) {
+      val originalHealth = mine.Health
+      val cause          = applyDamageTo(mine)
+      val damage         = originalHealth - mine.Health
+      if (Damageable.CanDamageOrJammer(mine, damage, cause)) {
+        ExplosiveDeployableControl.DamageResolution(mine, cause, damage)
+      } else {
+        mine.Health = originalHealth
       }
+    }
   }
 }
 

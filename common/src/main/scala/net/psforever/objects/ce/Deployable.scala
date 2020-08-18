@@ -33,7 +33,7 @@ object Deployable {
 
     def Includes(category: DeployableCategory.Value): List[DeployedItem.Value] = {
       (for {
-        (ce, cat) <- deployablesToCategories
+        (ce: DeployedItem.Value, cat: DeployableCategory.Value) <- deployablesToCategories
         if cat == category
       } yield ce) toList
     }

@@ -41,7 +41,7 @@ final case class Projectile(
     attribute_to: Int,
     shot_origin: Vector3,
     shot_angle: Vector3,
-    quality: Float = 1f,
+    quality: ProjectileQuality = ProjectileQuality.Normal,
     id: Long = Projectile.idGenerator.getAndIncrement(),
     fire_time: Long = System.nanoTime
 ) extends PlanetSideGameObject {
@@ -67,8 +67,8 @@ final case class Projectile(
     * @param value the new quality
     * @return a new `Projectile` entity
     */
-  def quality(value: Float): Projectile =
-    Projectile(
+  def quality(value: ProjectileQuality): Projectile = {
+    val projectile = Projectile(
       profile,
       tool_def,
       fire_mode,
@@ -80,6 +80,10 @@ final case class Projectile(
       id,
       fire_time
     )
+    if(isMiss) projectile.Miss()
+    else if(isResolved) projectile.Resolve()
+    projectile
+  }
 
   /**
     * Mark the projectile as being "encountered" or "managed" at least once.

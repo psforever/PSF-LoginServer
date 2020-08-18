@@ -75,6 +75,11 @@ class TurretControl(turret: TurretDeployable)
   def DamageableObject = turret
   def RepairableObject = turret
 
+  override def postStop(): Unit = {
+    super.postStop()
+    damageableWeaponTurretPostStop()
+  }
+
   def receive: Receive =
     checkBehavior
       .orElse(jammableBehavior)

@@ -72,9 +72,13 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
     }
   }
 
-  override protected def DamageAwareness(target: Target, cause: ResolvedProjectile, amount: Int): Unit = {
+  override protected def DamageAwareness(target: Target, cause: ResolvedProjectile, amount: Any): Unit = {
     super.DamageAwareness(target, cause, amount)
-    DamageableMountable.DamageAwareness(DamageableObject, cause)
+    val damageTo = amount match {
+      case a: Int => a
+      case _ => 0
+    }
+    DamageableMountable.DamageAwareness(DamageableObject, cause, damageTo)
   }
 
   override protected def DestructionAwareness(target: Damageable.Target, cause: ResolvedProjectile): Unit = {

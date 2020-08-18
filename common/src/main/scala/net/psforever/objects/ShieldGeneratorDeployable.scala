@@ -44,7 +44,6 @@ class ShieldGeneratorControl(gen: ShieldGeneratorDeployable)
   def JammableObject                         = gen
   def DamageableObject                       = gen
   def RepairableObject                       = gen
-  private var handleDamageToShields: Boolean = false
 
   def receive: Receive =
     jammableBehavior
@@ -90,18 +89,20 @@ class ShieldGeneratorControl(gen: ShieldGeneratorDeployable)
         target,
         s"BEFORE=$originalHealth/$originalShields, AFTER=$health/$shields, CHANGE=$damageToHealth/$damageToShields"
       )
-      handleDamageToShields = damageToShields > 0
-      HandleDamage(target, cause, damageToHealth)
+      HandleDamage(target, cause, (damageToHealth, damageToShields))
     } else {
       gen.Health = originalHealth
       gen.Shields = originalShields
     }
   }
 
-  override protected def DamageAwareness(target: Damageable.Target, cause: ResolvedProjectile, amount: Int): Unit = {
-    super.DamageAwareness(target, cause, amount)
-    ShieldGeneratorControl.DamageAwareness(gen, cause, handleDamageToShields)
-    handleDamageToShields = false
+  override protected def DamageAwareness(target: Damageable.Target, cause: ResolvedProjectile, amount: Any): Unit = {
+    val (damageToHealth, damageToShields) = amount match {
+      case (a: Int, b: Int) => (a, b)
+      case _ => (0, 0)
+    }
+    super.DamageAwareness(target, cause, damageToHealth)
+    ShieldGeneratorControl.DamageAwareness(gen, cause, damageToShields > 0)
   }
 
   override protected def DestructionAwareness(target: Target, cause: ResolvedProjectile): Unit = {
