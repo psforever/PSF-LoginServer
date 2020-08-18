@@ -7750,7 +7750,20 @@ class SessionActor extends Actor with MDCContextAware {
       None
     } else {
       projectile.Resolve()
-      Some(ResolvedProjectile(resolution, projectile, SourceEntry(target), target.DamageModel, pos))
+      val outProjectile = if(projectile.profile.ProjectileDamageTypes.contains(DamageType.Aggravated)) {
+        val quality = projectile.profile.Aggravated match {
+          case Some(aggravation)
+            if aggravation.targets.exists(validation => validation.test(target)) =>
+            ProjectileQuality.AggravatesTarget
+          case _ =>
+            ProjectileQuality.Normal
+        }
+        projectile.quality(quality)
+      }
+      else {
+        projectile
+      }
+      Some(ResolvedProjectile(resolution, outProjectile, SourceEntry(target), target.DamageModel, pos))
     }
   }
 

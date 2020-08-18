@@ -10,11 +10,8 @@ import net.psforever.objects.inventory.{GridInventory, InventoryItem}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
-import net.psforever.objects.serverobject.aggravated.AggravatedBehavior
-import net.psforever.objects.serverobject.aura.AuraEffectBehavior
 import net.psforever.objects.serverobject.containable.{Containable, ContainableBehavior}
-import net.psforever.objects.serverobject.damage.Damageable.Target
-import net.psforever.objects.serverobject.damage.DamageableVehicle
+import net.psforever.objects.serverobject.damage.{AggravatedBehavior, DamageableVehicle}
 import net.psforever.objects.serverobject.deploy.Deployment.DeploymentObject
 import net.psforever.objects.serverobject.deploy.{Deployment, DeploymentBehavior}
 import net.psforever.objects.serverobject.hackable.GenericHackables
@@ -55,8 +52,7 @@ class VehicleControl(vehicle: Vehicle)
     with JammableMountedWeapons
     with ContainableBehavior
     with AntTransferBehavior
-    with AggravatedBehavior
-    with AuraEffectBehavior {
+    with AggravatedBehavior {
 
   //make control actors belonging to utilities when making control actor belonging to vehicle
   vehicle.Utilities.foreach({ case (_, util) => util.Setup })
@@ -79,10 +75,6 @@ class VehicleControl(vehicle: Vehicle)
 
   def ChargeTransferObject = vehicle
 
-  def AuraTargetObject = vehicle
-
-  def AggravatedObject     = vehicle
-
   if(vehicle.Definition == GlobalDefinitions.ant) {
     findChargeTargetFunc = Vehicles.FindANTChargingSource
     findDischargeTargetFunc = Vehicles.FindANTDischargingTarget
@@ -98,14 +90,13 @@ class VehicleControl(vehicle: Vehicle)
 
   override def postStop(): Unit = {
     super.postStop()
+    damageableVehiclePostStop()
     decaying = false
     decayTimer.cancel()
     vehicle.Utilities.values.foreach { util =>
       context.stop(util().Actor)
       util().Actor = Default.Actor
     }
-    EndAllEffects()
-    EndAllAggravation()
   }
 
   def Enabled: Receive =
@@ -114,8 +105,6 @@ class VehicleControl(vehicle: Vehicle)
       .orElse(cargoBehavior)
       .orElse(jammableBehavior)
       .orElse(takesDamage)
-      .orElse(aggravatedBehavior)
-      .orElse(auraBehavior)
       .orElse(canBeRepairedByNanoDispenser)
       .orElse(containerBehavior)
       .orElse(antBehavior)
@@ -591,30 +580,6 @@ class VehicleControl(vehicle: Vehicle)
       case _ => ;
     }
     out
-  }
-
-  override def DamageAwareness(
-    target: Target,
-    cause: ResolvedProjectile,
-    amount: Int
-  ): Unit = {
-    TryAggravationEffect(cause) match {
-      case Some(aggravation) =>
-        StartAuraEffect(aggravation.effect_type, aggravation.timing.duration)
-      case _ => ;
-    }
-    super.DamageAwareness(target, cause, amount)
-  }
-
-  override def DestructionAwareness(
-    target: Target,
-    cause: ResolvedProjectile
-  ): Unit = {
-    //aura effects cancel
-    EndAllEffects()
-    //aggravation cancel
-    EndAllAggravation()
-    super.DestructionAwareness(target, cause)
   }
 }
 

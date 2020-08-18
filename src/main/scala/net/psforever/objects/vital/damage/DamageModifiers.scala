@@ -2,7 +2,7 @@
 package net.psforever.objects.vital.damage
 
 import net.psforever.objects.GlobalDefinitions
-import net.psforever.objects.ballistics.{PlayerSource, ProjectileResolution, ResolvedProjectile, VehicleSource}
+import net.psforever.objects.ballistics._
 import net.psforever.objects.vital.DamageType
 import net.psforever.types.{ExoSuitType, Vector3}
 
@@ -163,7 +163,8 @@ object DamageModifiers {
                                      damage: Int,
                                      data: ResolvedProjectile
                                    ): Int = {
-    if (data.resolution == resolution) {
+    if (data.resolution == resolution &&
+      data.projectile.quality == ProjectileQuality.AggravatesTarget) {
       (data.projectile.profile.Aggravated, data.target) match {
         case (Some(aggravation), p: PlayerSource) =>
           val aggravatedDamage = aggravation.info.find(_.damage_type == damageType) match {
@@ -230,7 +231,8 @@ object DamageModifiers {
     def Calculate: DamageModifiers.Format = formula
 
     private def formula(damage: Int, data: ResolvedProjectile): Int = {
-      if (data.resolution == ProjectileResolution.AggravatedDirect) {
+      if (data.resolution == ProjectileResolution.AggravatedDirect &&
+        data.projectile.quality == ProjectileQuality.AggravatesTarget) {
         (data.projectile.profile.Aggravated, data.target) match {
           case (Some(aggravation), v : VehicleSource) if GlobalDefinitions.isFlightVehicle(v.Definition) =>
             aggravation.info.find(_.damage_type == DamageType.Direct) match {
@@ -257,7 +259,7 @@ object DamageModifiers {
           case (Some(aggravation), v : VehicleSource) if GlobalDefinitions.isFlightVehicle(v.Definition) =>
             aggravation.info.find(_.damage_type == DamageType.Direct) match {
               case Some(infos) =>
-                (math.floor(damage * infos.degradation_percentage) * data.projectile.quality) toInt
+                (math.floor(damage * infos.degradation_percentage) * data.projectile.quality.mod) toInt
               case _ =>
                 damage
             }
@@ -274,8 +276,19 @@ object DamageModifiers {
     def Calculate: DamageModifiers.Format = formula
 
     private def formula(damage: Int, data: ResolvedProjectile): Int = {
-      if (data.resolution == ProjectileResolution.AggravatedDirect) {
-        0
+      if (data.resolution == ProjectileResolution.AggravatedDirect &&
+        data.projectile.quality == ProjectileQuality.AggravatesTarget) {
+        data.projectile.profile.Aggravated match {
+          case Some(aggravation) =>
+            aggravation.info.find(_.damage_type == DamageType.Direct) match {
+              case Some(infos) =>
+                damage - (damage * infos.degradation_percentage) toInt
+              case _ =>
+                damage
+            }
+          case _ =>
+            damage
+        }
       } else {
         damage
       }
@@ -288,8 +301,13 @@ object DamageModifiers {
     private def formula(damage: Int, data: ResolvedProjectile): Int = {
       if (data.resolution == ProjectileResolution.AggravatedDirectBurn) {
         data.projectile.profile.Aggravated match {
-          case Some(_) =>
-            (damage * data.projectile.quality) toInt
+          case Some(aggravation) =>
+            aggravation.info.find(_.damage_type == DamageType.Direct) match {
+              case Some(infos) =>
+                damage - (damage * infos.degradation_percentage) toInt
+              case _ =>
+                damage
+            }
           case _ =>
             0
         }

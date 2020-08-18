@@ -38,8 +38,18 @@ trait AuraEffectBehavior {
     id
   }
 
-  def StartAuraEffect(effect: Aura, duration: Long): Long = {
-    StartAuraEffect(GetUnusedEffectId, effect, duration)
+  def StartAuraEffect(effect: Aura, duration: Long): Option[Long] = {
+    val obj = AuraTargetObject
+    val auraEffects = obj.Aura
+    if (obj.Aura.contains(effect)) {
+      effectToEntryId.getOrElse(effect, List[Long](AuraEffectBehavior.InvalidEffectId)).headOption //grab an available active effect id
+    }
+    else if(obj.AddEffectToAura(effect).diff(auraEffects).contains(effect)) {
+      Some(StartAuraEffect(GetUnusedEffectId, effect, duration))
+    }
+    else {
+      None
+    }
   }
 
   def StartAuraEffect(id: Long, effect: Aura, duration: Long): Long = {
@@ -129,6 +139,8 @@ trait AuraEffectBehavior {
 
 object AuraEffectBehavior {
   type Target = PlanetSideServerObject with AuraContainer
+
+  final val InvalidEffectId = -1
 
   final case class StartEffect(effect: Aura, duration: Long)
 

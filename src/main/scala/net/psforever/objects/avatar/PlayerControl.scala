@@ -8,16 +8,17 @@ import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile}
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
 import net.psforever.objects.loadouts.Loadout
-import net.psforever.objects.serverobject.aggravated.AggravatedBehavior
 import net.psforever.objects.serverobject.aura.AuraEffectBehavior
 import net.psforever.objects.serverobject.containable.{Containable, ContainableBehavior}
-import net.psforever.objects.vital.{PlayerSuicide, Vitality}
+import net.psforever.objects.serverobject.damage.Damageable.Target
+import net.psforever.objects.vital.PlayerSuicide
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
-import net.psforever.objects.serverobject.damage.Damageable
+import net.psforever.objects.serverobject.damage.{AggravatedBehavior, Damageable}
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.repair.Repairable
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.vital._
+import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
@@ -491,29 +492,31 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         case _ => ;
       }
 
-  protected def TakesDamage: Receive = {
-    case Vitality.Damage(applyDamageTo) =>
-      if (player.isAlive && !player.spectator) {
-        val originalHealth    = player.Health
-        val originalArmor     = player.Armor
-        val originalStamina   = player.avatar.stamina
-        val originalCapacitor = player.Capacitor.toInt
-        val cause             = applyDamageTo(player)
-        val health            = player.Health
-        val armor             = player.Armor
-        val stamina           = player.avatar.stamina
-        val capacitor         = player.Capacitor.toInt
-        val damageToHealth    = originalHealth - health
-        val damageToArmor     = originalArmor - armor
-        val damageToStamina   = originalStamina - stamina
-        val damageToCapacitor = originalCapacitor - capacitor
-        HandleDamage(player, cause, damageToHealth, damageToArmor, damageToStamina, damageToCapacitor)
-        if (damageToHealth > 0 || damageToArmor > 0 || damageToStamina > 0 || damageToCapacitor > 0) {
-          damageLog.info(
-            s"${player.Name}-infantry: BEFORE=$originalHealth/$originalArmor/$originalStamina/$originalCapacitor, AFTER=$health/$armor/$stamina/$capacitor, CHANGE=$damageToHealth/$damageToArmor/$damageToStamina/$damageToCapacitor"
-          )
-        }
+  override protected def PerformDamage(
+    target: Target,
+    applyDamageTo: Output
+  ): Unit = {
+    if (player.isAlive && !player.spectator) {
+      val originalHealth    = player.Health
+      val originalArmor     = player.Armor
+      val originalStamina   = player.avatar.stamina
+      val originalCapacitor = player.Capacitor.toInt
+      val cause             = applyDamageTo(player)
+      val health            = player.Health
+      val armor             = player.Armor
+      val stamina           = player.avatar.stamina
+      val capacitor         = player.Capacitor.toInt
+      val damageToHealth    = originalHealth - health
+      val damageToArmor     = originalArmor - armor
+      val damageToStamina   = originalStamina - stamina
+      val damageToCapacitor = originalCapacitor - capacitor
+      HandleDamage(player, cause, damageToHealth, damageToArmor, damageToStamina, damageToCapacitor)
+      if (damageToHealth > 0 || damageToArmor > 0 || damageToStamina > 0 || damageToCapacitor > 0) {
+        damageLog.info(
+          s"${player.Name}-infantry: BEFORE=$originalHealth/$originalArmor/$originalStamina/$originalCapacitor, AFTER=$health/$armor/$stamina/$capacitor, CHANGE=$damageToHealth/$damageToArmor/$damageToStamina/$damageToCapacitor"
+        )
       }
+    }
   }
 
   /**
@@ -521,76 +524,110 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     * @param target na
     */
   def HandleDamage(
-      target: Player,
-      cause: ResolvedProjectile,
-      damageToHealth: Int,
-      damageToArmor: Int,
-      damageToStamina: Int,
-      damageToCapacitor: Int
-  ): Unit = {
-    val targetGUID = target.GUID
-    val zone       = target.Zone
-    val zoneId     = zone.id
-    val events     = zone.AvatarEvents
-    val health     = target.Health
+                    target: Player,
+                    cause: ResolvedProjectile,
+                    damageToHealth: Int,
+                    damageToArmor: Int,
+                    damageToStamina: Int,
+                    damageToCapacitor: Int
+                  ): Unit = {
+    //always do armor update
     if (damageToArmor > 0) {
-      events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(targetGUID, 4, target.Armor))
+      val zone = target.Zone
+      zone.AvatarEvents ! AvatarServiceMessage(
+        zone.id,
+        AvatarAction.PlanetsideAttributeToAll(target.GUID, 4, target.Armor)
+      )
     }
-    if (health > 0) {
-      if (damageToCapacitor > 0) {
-        events ! AvatarServiceMessage(
-          target.Name,
-          AvatarAction.PlanetsideAttributeSelf(targetGUID, 7, target.Capacitor.toLong)
-        )
-      }
-      if (damageToHealth > 0 || damageToStamina > 0) {
-        target.History(cause)
-        if (damageToHealth > 0) {
-          events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(targetGUID, 0, health))
-        }
-        if (damageToStamina > 0) {
-          avatarActor ! AvatarActor.ConsumeStamina(damageToStamina)
-        }
-        //activity on map
-        zone.Activity ! Zone.HotSpot.Activity(cause.target, cause.projectile.owner, cause.hit_pos)
-        //alert damage source
-        DamageAwareness(target, cause)
-      }
-      //special effects
-      if (Damageable.CanJammer(target, cause)) {
-        TryJammerEffectActivate(target, cause)
-      }
-      TryAggravationEffect(cause) match {
-        case Some(aggravation) =>
-          StartAuraEffect(aggravation.effect_type, aggravation.timing.duration)
-        case _ => ;
-      }
+    //choose
+    if (target.Health > 0) {
+      DamageAwareness(target, cause, damageToHealth, damageToArmor, damageToStamina, damageToCapacitor)
     } else {
       DestructionAwareness(target, Some(cause))
     }
   }
 
-  /**
-    * na
-    * @param target na
-    * @param cause na
-    */
-  def DamageAwareness(target: Player, cause: ResolvedProjectile): Unit = {
-    val zone = target.Zone
-    zone.AvatarEvents ! AvatarServiceMessage(
-      target.Name,
-      cause.projectile.owner match {
-        case pSource: PlayerSource => //player damage
-          val name = pSource.Name
-          zone.LivePlayers.find(_.Name == name).orElse(zone.Corpses.find(_.Name == name)) match {
-            case Some(tplayer) => AvatarAction.HitHint(tplayer.GUID, target.GUID)
-            case None =>
-              AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(10, pSource.Position))
+  def DamageAwareness(
+                       target: Player,
+                       cause: ResolvedProjectile,
+                       damageToHealth: Int,
+                       damageToArmor: Int,
+                       damageToStamina: Int,
+                       damageToCapacitor: Int
+                     ): Unit = {
+    val targetGUID            = target.GUID
+    val zone                  = target.Zone
+    val zoneId                = zone.id
+    val events                = zone.AvatarEvents
+    val health                = target.Health
+    var announceConfrontation = damageToArmor > 0
+    //special effects
+    if (Damageable.CanJammer(target, cause)) {
+      TryJammerEffectActivate(target, cause)
+    }
+    val aggravated: Boolean = TryAggravationEffectActivate(cause) match {
+      case Some(aggravation) =>
+        StartAuraEffect(aggravation.effect_type, aggravation.timing.duration)
+        announceConfrontation = true //useful if initial damage (to anything) is zero
+        //initial damage for aggravation, but never treat as "aggravated"
+        false
+      case _ =>
+        cause.projectile.profile.ProjectileDamageTypes.contains(DamageType.Aggravated)
+    }
+    //log historical event
+    target.History(cause)
+    //stat changes
+    if (damageToCapacitor > 0) {
+      events ! AvatarServiceMessage(
+        target.Name,
+        AvatarAction.PlanetsideAttributeSelf(targetGUID, 7, target.Capacitor.toLong)
+      )
+      announceConfrontation = true
+    }
+    if (damageToStamina > 0) {
+      avatarActor ! AvatarActor.ConsumeStamina(damageToStamina)
+      announceConfrontation = true
+    }
+    if (damageToHealth > 0) {
+      events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(targetGUID, 0, health))
+      announceConfrontation = true
+    }
+    val countableDamage = damageToHealth + damageToArmor
+    if(announceConfrontation) {
+      if (!aggravated) {
+        //activity on map
+        zone.Activity ! Zone.HotSpot.Activity(cause.target, cause.projectile.owner, cause.hit_pos)
+        //alert to damage source
+        zone.AvatarEvents ! AvatarServiceMessage(
+          target.Name,
+          cause.projectile.owner match {
+            case pSource: PlayerSource => //player damage
+              val name = pSource.Name
+              zone.LivePlayers.find(_.Name == name).orElse(zone.Corpses.find(_.Name == name)) match {
+                case Some(tplayer) =>
+                  AvatarAction.HitHint(tplayer.GUID, target.GUID)
+                case None =>
+                  AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(countableDamage, pSource.Position))
+              }
+            case source =>
+              AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(countableDamage, source.Position))
           }
-        case source =>
-          AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(10, source.Position))
+        )
       }
-    )
+      else {
+        //general alert
+        zone.AvatarEvents ! AvatarServiceMessage(
+          target.Name,
+          AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(countableDamage, Vector3.Zero))
+        )
+      }
+    }
+    if (aggravated) {
+      events ! AvatarServiceMessage(
+        zoneId,
+        AvatarAction.SendResponse(Service.defaultPlayerGUID, AggravatedDamageMessage(targetGUID, countableDamage))
+      )
+    }
   }
 
   /**

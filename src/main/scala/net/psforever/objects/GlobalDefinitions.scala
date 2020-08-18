@@ -2452,13 +2452,14 @@ object GlobalDefinitions {
     comet_projectile.DamageRadius = 1.0f
     comet_projectile.ProjectileDamageType = DamageType.Aggravated
     comet_projectile.Aggravated = AggravatedDamage(
-      AggravatedInfo(DamageType.Direct, 0.2f, 500),
+      AggravatedInfo(DamageType.Direct, 0.25f, 500), //originally, .2
       Aura.Comet,
-      AggravatedTiming(2000, 4),
+      AggravatedTiming(2000, 3),
       10f,
       List(
         TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player),
-        TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.Vehicle)
+        TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.Vehicle),
+        TargetValidation(EffectTarget.Category.Turret, EffectTarget.Validation.Turret)
       )
     )
     comet_projectile.InitialVelocity = 80

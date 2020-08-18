@@ -8,6 +8,7 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.vital.Vitality
+import net.psforever.objects.vital.resolution.ResolutionCalculations
 
 /**
   * The base "control" `Actor` mixin for damage-handling code.
@@ -24,16 +25,35 @@ trait Damageable {
     */
   def DamageableObject: Damageable.Target
 
-  /** the official mixin hook; `orElse` onto the "control" `Actor` `receive` */
-  final val takesDamage: Receive = TakesDamage
+  /** the official mixin hook;
+    * `orElse` onto the "control" `Actor` `receive`; or,
+    * cite the `originalTakesDamage` protocol during inheritance overrides */
+  val takesDamage: Receive = {
+    case Vitality.Damage(damage_func) =>
+      val obj = DamageableObject
+      if (obj.CanDamage) {
+        PerformDamage(obj, damage_func)
+      }
+  }
+
+  /** a duplicate of the core implementation for the default mixin hook, for use in overriding */
+  final val originalTakesDamage: Receive = {
+    case Vitality.Damage(damage_func) =>
+      val obj = DamageableObject
+      if (obj.CanDamage) {
+        PerformDamage(obj, damage_func)
+      }
+  }
 
   /**
-    * Implementation of the mixin hook will be provided by a child class.
-    * Override this method only when directly implementing.
-    * @see `takesDamage`
-    * @see `DamageableAmenity.PerformDamage`
+    * Assess the vital statistics of the target, apply the damage, and determine if any of those statistics changed.
+    * By default, only take an interest in the change of "health".
+    * If implementing custom damage with no new message handling, override this method.
+    * @see `ResolutionCalculations.Output`
+    * @param target the entity to be damaged
+    * @param applyDamageTo the function that applies the damage to the target in a target-tailored fashion
     */
-  protected def TakesDamage: Receive
+  protected def PerformDamage(target: Damageable.Target, applyDamageTo: ResolutionCalculations.Output): Unit
 }
 
 object Damageable {

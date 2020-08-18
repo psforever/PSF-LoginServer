@@ -1,43 +1,55 @@
 //Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.damage
 
-import akka.actor.Actor.Receive
+import akka.actor.Actor
 import net.psforever.objects.{Vehicle, Vehicles}
 import net.psforever.objects.ballistics.ResolvedProjectile
+import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.damage.Damageable.Target
+import net.psforever.objects.vital.DamageType
 import net.psforever.objects.vital.resolution.ResolutionCalculations
 import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.objects.zones.Zone
+import net.psforever.packet.game.DamageWithPositionMessage
+import net.psforever.types.Vector3
 
 import scala.concurrent.duration._
 
 /**
   * The "control" `Actor` mixin for damage-handling code for `Vehicle` objects.
   */
-trait DamageableVehicle extends DamageableEntity {
+trait DamageableVehicle
+  extends DamageableEntity
+  with AggravatedBehavior {
+  _ : Actor =>
 
-  /** vehicles (may) have shields; they need to be handled */
-  private var handleDamageToShields: Boolean = false
+  def damageableVehiclePostStop(): Unit = {
+    EndAllAggravation()
+  }
 
   /** whether or not the vehicle has been damaged directly, report that damage has occurred */
   private var reportDamageToVehicle: Boolean = false
 
   def DamageableObject: Vehicle
+  def AggravatedObject : Vehicle = DamageableObject
 
-  override protected def TakesDamage: Receive =
-    super.TakesDamage.orElse {
-      case DamageableVehicle.Damage(cause, damage) =>
-        //cargo vehicles inherit feedback from carrier
-        reportDamageToVehicle = damage > 0
-        DamageAwareness(DamageableObject, cause, amount = 0)
+  override val takesDamage: Receive =
+    originalTakesDamage
+      .orElse(aggravatedBehavior)
+      .orElse {
+        case DamageableVehicle.Damage(cause, damage) =>
+          //cargo vehicles inherit feedback from carrier
+          reportDamageToVehicle = damage > 0
+          DamageAwareness(DamageableObject, cause, amount = 0)
 
-      case DamageableVehicle.Destruction(cause) =>
-        //cargo vehicles are destroyed when carrier is destroyed
-        val obj = DamageableObject
-        obj.Health = 0
-        obj.History(cause)
-        DestructionAwareness(obj, cause)
-    }
+        case DamageableVehicle.Destruction(cause) =>
+          //cargo vehicles are destroyed when carrier is destroyed
+          val obj = DamageableObject
+          obj.Health = 0
+          obj.History(cause)
+          DestructionAwareness(obj, cause)
+      }
 
   /**
     * Vehicles may have charged shields that absorb damage before the vehicle's own health is affected.
@@ -62,52 +74,12 @@ trait DamageableVehicle extends DamageableEntity {
         target,
         s"BEFORE=$originalHealth/$originalShields, AFTER=$health/$shields, CHANGE=$damageToHealth/$damageToShields"
       )
-      handleDamageToShields = damageToShields > 0
-      HandleDamage(target, cause, damageToHealth + damageToShields)
+      HandleDamage(target, cause, (damageToHealth, damageToShields))
     } else {
       obj.Health = originalHealth
       obj.Shields = originalShields
     }
   }
-
-  override protected def DamageAwareness(target: Target, cause: ResolvedProjectile, amount: Int): Unit = {
-    val obj           = DamageableObject
-    val handleShields = handleDamageToShields
-    handleDamageToShields = false
-    val handleReport = reportDamageToVehicle || amount > 0
-    reportDamageToVehicle = false
-    if (Damageable.CanDamageOrJammer(target, amount, cause)) {
-      super.DamageAwareness(target, cause, amount)
-    }
-    if (handleReport) {
-      DamageableMountable.DamageAwareness(obj, cause)
-    }
-    DamageableVehicle.DamageAwareness(obj, cause, amount, handleShields)
-  }
-
-  override protected def DestructionAwareness(target: Target, cause: ResolvedProjectile): Unit = {
-    super.DestructionAwareness(target, cause)
-    val obj = DamageableObject
-    DamageableMountable.DestructionAwareness(obj, cause)
-    DamageableVehicle.DestructionAwareness(obj, cause)
-    DamageableWeaponTurret.DestructionAwareness(obj, cause)
-  }
-}
-
-object DamageableVehicle {
-
-  /**
-    * Message for instructing the target's cargo vehicles about a damage source affecting their carrier.
-    * @param cause historical information about damage
-    */
-  private case class Damage(cause: ResolvedProjectile, amount: Int)
-
-  /**
-    * Message for instructing the target's cargo vehicles that their carrier is destroyed,
-    * and they should be destroyed too.
-    * @param cause historical information about damage
-    */
-  private case class Destruction(cause: ResolvedProjectile)
 
   /**
     * Most all vehicles and the weapons mounted to them can jam
@@ -121,25 +93,76 @@ object DamageableVehicle {
     * @see `VehicleServiceMessage`
     * @param target the entity being destroyed
     * @param cause historical information about the damage
-    * @param damage how much damage was performed
-    * @param damageToShields dispatch a shield strength update
+    * @param amount how much damage was performed
     */
-  def DamageAwareness(target: Vehicle, cause: ResolvedProjectile, damage: Int, damageToShields: Boolean): Unit = {
-    //alert cargo occupants to damage source
-    target.CargoHolds.values.foreach(hold => {
-      hold.Occupant match {
-        case Some(cargo) =>
-          cargo.Actor ! DamageableVehicle.Damage(cause, damage + (if (damageToShields) 1 else 0))
-        case None => ;
+  override protected def DamageAwareness(target: Target, cause: ResolvedProjectile, amount: Any): Unit = {
+    val obj            = DamageableObject
+    val zone           = target.Zone
+    val events         = zone.VehicleEvents
+    val targetGUID     = target.GUID
+    val zoneId         = zone.id
+    val vehicleChannel = s"${obj.Actor}"
+    val (damageToHealth, damageToShields, totalDamage) = amount match {
+      case (a: Int, b: Int) => (a, b, a+b)
+      case _ => (0, 0, 0)
+    }
+    var announceConfrontation: Boolean = reportDamageToVehicle || totalDamage > 0
+    val aggravated = TryAggravationEffectActivate(cause) match {
+      case Some(_) =>
+        announceConfrontation = true
+        false
+      case _ =>
+        cause.projectile.profile.ProjectileDamageTypes.contains(DamageType.Aggravated)
+    }
+    reportDamageToVehicle = false
+
+    //log historical event
+    target.History(cause)
+    //damage
+    if (Damageable.CanDamageOrJammer(target, totalDamage, cause)) {
+      //jammering
+      if (Damageable.CanJammer(target, cause)) {
+        target.Actor ! JammableUnit.Jammered(cause)
       }
-    })
-    //shields
-    if (damageToShields) {
-      val zone = target.Zone
-      zone.VehicleEvents ! VehicleServiceMessage(
-        s"${target.Actor}",
-        VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 68, target.Shields)
-      )
+      //stat changes
+      if (damageToShields > 0) {
+        events ! VehicleServiceMessage(
+          vehicleChannel,
+          VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, targetGUID, 68, obj.Shields)
+        )
+        announceConfrontation = true
+      }
+      if (damageToHealth > 0) {
+        events ! VehicleServiceMessage(
+          zoneId,
+          VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, targetGUID, 0, obj.Health)
+        )
+        announceConfrontation = true
+      }
+    }
+    if (announceConfrontation) {
+      if (aggravated) {
+        val msg = VehicleAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(totalDamage, Vector3.Zero))
+        obj.Seats.values
+          .collect { case seat if seat.Occupant.nonEmpty => seat.Occupant.get.Name }
+          .foreach { channel =>
+            events ! VehicleServiceMessage(channel, msg)
+          }
+      }
+      else {
+        //activity on map
+        zone.Activity ! Zone.HotSpot.Activity(cause.target, cause.projectile.owner, cause.hit_pos)
+        //alert to damage source
+        DamageableMountable.DamageAwareness(obj, cause, totalDamage)
+      }
+      //alert cargo occupants to damage source
+      obj.CargoHolds.values.foreach(hold => {
+        hold.Occupant match {
+          case Some(cargo) =>
+            cargo.Actor ! DamageableVehicle.Damage(cause, totalDamage)
+          case None => ;
+        }
+      })
     }
   }
 
@@ -164,10 +187,15 @@ object DamageableVehicle {
     * @param target the entity being destroyed
     * @param cause historical information about the damage
     */
-  def DestructionAwareness(target: Vehicle, cause: ResolvedProjectile): Unit = {
+  override protected def DestructionAwareness(target: Target, cause: ResolvedProjectile): Unit = {
+    super.DestructionAwareness(target, cause)
+    val obj = DamageableObject
+    DamageableMountable.DestructionAwareness(obj, cause)
     val zone = target.Zone
+    //aggravation cancel
+    EndAllAggravation()
     //cargo vehicles die with us
-    target.CargoHolds.values.foreach(hold => {
+    obj.CargoHolds.values.foreach(hold => {
       hold.Occupant match {
         case Some(cargo) =>
           cargo.Actor ! DamageableVehicle.Destruction(cause)
@@ -175,10 +203,10 @@ object DamageableVehicle {
       }
     })
     //special considerations for certain vehicles
-    Vehicles.BeforeUnloadVehicle(target, zone)
+    Vehicles.BeforeUnloadVehicle(obj, zone)
     //shields
-    if (target.Shields > 0) {
-      target.Shields = 0
+    if (obj.Shields > 0) {
+      obj.Shields = 0
       zone.VehicleEvents ! VehicleServiceMessage(
         zone.id,
         VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 68, 0)
@@ -186,5 +214,22 @@ object DamageableVehicle {
     }
     target.Actor ! Vehicle.Deconstruct(Some(1 minute))
     target.ClearHistory()
+    DamageableWeaponTurret.DestructionAwareness(obj, cause)
   }
+}
+
+object DamageableVehicle {
+
+  /**
+    * Message for instructing the target's cargo vehicles about a damage source affecting their carrier.
+    * @param cause historical information about damage
+    */
+  private case class Damage(cause: ResolvedProjectile, amount: Int)
+
+  /**
+    * Message for instructing the target's cargo vehicles that their carrier is destroyed,
+    * and they should be destroyed too.
+    * @param cause historical information about damage
+    */
+  private case class Destruction(cause: ResolvedProjectile)
 }

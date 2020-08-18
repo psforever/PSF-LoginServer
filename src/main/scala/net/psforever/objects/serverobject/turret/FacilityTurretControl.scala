@@ -44,6 +44,11 @@ class FacilityTurretControl(turret: FacilityTurret)
   // Used for timing ammo recharge for vanu turrets in caves
   var weaponAmmoRechargeTimer = Default.Cancellable
 
+  override def postStop(): Unit = {
+    super.postStop()
+    damageableWeaponTurretPostStop()
+  }
+
   def receive: Receive =
     checkBehavior
       .orElse(jammableBehavior)
