@@ -413,14 +413,13 @@ class PlayerControlDamageTest extends ActorTest {
       )
       assert(
         msg_avatar(1) match {
-          case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
+          case AvatarServiceMessage("TestCharacter2", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 2, _)) => true
           case _                                                                                            => false
         }
       )
       assert(
         msg_avatar(2) match {
-          case AvatarServiceMessage("TestCharacter2", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 2, _)) =>
-            true
+          case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
           case _ => false
         }
       )
@@ -437,7 +436,7 @@ class PlayerControlDamageTest extends ActorTest {
         msg_avatar(3) match {
           case AvatarServiceMessage(
                 "TestCharacter2",
-                AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(10, Vector3(2, 0, 0)))
+                AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(17, Vector3(2, 0, 0)))
               ) =>
             true
           case _ => false
