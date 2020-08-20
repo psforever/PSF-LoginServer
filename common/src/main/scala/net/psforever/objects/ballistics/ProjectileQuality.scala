@@ -15,7 +15,7 @@ sealed trait ProjectileQuality {
 }
 
 /**
-  * Implement the numeric modifier with as one.
+  * Implement the numeric modifier with the value as one.
   */
 sealed trait SameAsQuality extends ProjectileQuality {
   def mod: Float = 1f
@@ -25,7 +25,7 @@ object ProjectileQuality {
   /** Standard projectile quality.  More of a flag than a modifier. */
   case object Normal extends SameAsQuality
 
-  /** Quality that flags the first stage of aggravation (setup). */
+  /** Quality that flags the first stage of aggravation (initial damage). */
   case object AggravatesTarget extends SameAsQuality
 
   /** The complete lack of quality.  Even the numeric modifier is zeroed. */

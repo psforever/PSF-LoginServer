@@ -626,7 +626,7 @@ class DamageableMountableDamageTest extends ActorTest {
         msg1_3(1) match {
           case AvatarServiceMessage(
                 "TestCharacter2",
-                AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(10, Vector3(2, 2, 2)))
+                AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(_, Vector3(2, 2, 2)))
               ) =>
             true
           case _ => false
@@ -737,8 +737,10 @@ class DamageableWeaponTurretDamageTest extends ActorTest {
   }
   val activityProbe = TestProbe()
   val avatarProbe   = TestProbe()
+  val vehicleProbe   = TestProbe()
   zone.Activity = activityProbe.ref
   zone.AvatarEvents = avatarProbe.ref
+  zone.VehicleEvents = vehicleProbe.ref
   val turret = new TurretDeployable(GlobalDefinitions.portable_manned_turret_tr) //2
   turret.Actor = system.actorOf(Props(classOf[TurretControl], turret), "turret-control")
   turret.Zone = zone
@@ -787,16 +789,17 @@ class DamageableWeaponTurretDamageTest extends ActorTest {
       assert(turret.Health == turret.Definition.DefaultHealth)
 
       turret.Actor ! Vitality.Damage(applyDamageTo)
-      val msg1_3 = avatarProbe.receiveN(2, 500 milliseconds)
-      val msg2   = activityProbe.receiveOne(500 milliseconds)
+      val msg12 = vehicleProbe.receiveOne(500 milliseconds)
+      val msg3  = activityProbe.receiveOne(500 milliseconds)
+      val msg4  = avatarProbe.receiveOne(500 milliseconds)
       assert(
-        msg1_3.head match {
-          case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
-          case _                                                                                            => false
+        msg12 match {
+          case VehicleServiceMessage("test", VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), PlanetSideGUID(2), 0, _)) => true
+          case _                                                                                                            => false
         }
       )
       assert(
-        msg2 match {
+        msg3 match {
           case activity: Zone.HotSpot.Activity =>
             activity.attacker == PlayerSource(player1) &&
               activity.defender == turretSource &&
@@ -805,10 +808,10 @@ class DamageableWeaponTurretDamageTest extends ActorTest {
         }
       )
       assert(
-        msg1_3(1) match {
+        msg4 match {
           case AvatarServiceMessage(
                 "TestCharacter2",
-                AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(10, Vector3(2, 2, 2)))
+                AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(_, Vector3(2, 2, 2)))
               ) =>
             true
           case _ => false
@@ -1130,40 +1133,36 @@ class DamageableVehicleDamageTest extends ActorTest {
       assert(atv.Shields == 1)
 
       atv.Actor ! Vitality.Damage(applyDamageTo)
-      val msg1_3 = avatarProbe.receiveN(2, 500 milliseconds)
-      val msg2   = activityProbe.receiveOne(200 milliseconds)
-      val msg4   = vehicleProbe.receiveOne(200 milliseconds)
+      val msg12   = vehicleProbe.receiveN(2, 200 milliseconds)
+      val msg3    = activityProbe.receiveOne(200 milliseconds)
+      val msg4   = avatarProbe.receiveOne(200 milliseconds)
       assert(
-        msg1_3.head match {
-          case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(1), 0, _)) => true
-          case _                                                                                            => false
+        msg12.head match {
+          case VehicleServiceMessage(_, VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), PlanetSideGUID(1), 68, _)) => true
+          case _                                                                                                        => false
         }
       )
       assert(
-        msg2 match {
+        msg12(1) match {
+          case VehicleServiceMessage("test", VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), PlanetSideGUID(1), 0, _)) => true
+          case _                                                                                                            => false
+        }
+      )
+      assert(
+        msg3 match {
           case activity: Zone.HotSpot.Activity =>
             activity.attacker == PlayerSource(player1) &&
-              activity.defender == vehicleSource &&
-              activity.location == Vector3(1, 0, 0)
-          case _ => false
-        }
-      )
-      assert(
-        msg1_3(1) match {
-          case AvatarServiceMessage(
-                "TestCharacter2",
-                AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(10, Vector3(2, 0, 0)))
-              ) =>
-            true
+            activity.defender == vehicleSource &&
+            activity.location == Vector3(1, 0, 0)
           case _ => false
         }
       )
       assert(
         msg4 match {
-          case VehicleServiceMessage(
-                channel,
-                VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), PlanetSideGUID(1), 68, _)
-              ) if channel.equals(atv.Actor.toString) =>
+          case AvatarServiceMessage(
+          "TestCharacter2",
+          AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(9, Vector3(2, 0, 0)))
+          ) =>
             true
           case _ => false
         }
@@ -1264,17 +1263,23 @@ class DamageableVehicleDamageMountedTest extends ActorTest {
     assert(atv.Shields == 1)
 
     lodestar.Actor ! Vitality.Damage(applyDamageTo)
-    val msg1_35 = avatarProbe.receiveN(3, 500 milliseconds)
-    val msg2    = activityProbe.receiveOne(200 milliseconds)
-    val msg4    = vehicleProbe.receiveOne(200 milliseconds)
+    val msg12   = vehicleProbe.receiveN(2, 200 milliseconds)
+    val msg3    = activityProbe.receiveOne(200 milliseconds)
+    val msg45   = avatarProbe.receiveN(2,200 milliseconds)
     assert(
-      msg1_35.head match {
-        case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(1), 0, _)) => true
-        case _                                                                                            => false
+      msg12.head match {
+        case VehicleServiceMessage(_, VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), PlanetSideGUID(1), 68, _)) => true
+        case _                                                                                                        => false
       }
     )
     assert(
-      msg2 match {
+      msg12(1) match {
+        case VehicleServiceMessage("test", VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), PlanetSideGUID(1), 0, _)) => true
+        case _                                                                                                            => false
+      }
+    )
+    assert(
+      msg3 match {
         case activity: Zone.HotSpot.Activity =>
           activity.attacker == PlayerSource(player1) &&
             activity.defender == vehicleSource &&
@@ -1283,30 +1288,20 @@ class DamageableVehicleDamageMountedTest extends ActorTest {
       }
     )
     assert(
-      msg1_35(1) match {
+      msg45.head match {
         case AvatarServiceMessage(
               "TestCharacter2",
-              AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(10, Vector3(2, 0, 0)))
+              AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(400, Vector3(2, 0, 0)))
             ) =>
           true
         case _ => false
       }
     )
     assert(
-      msg4 match {
-        case VehicleServiceMessage(
-              channel,
-              VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), PlanetSideGUID(1), 68, _)
-            ) if channel.equals(lodestar.Actor.toString) =>
-          true
-        case _ => false
-      }
-    )
-    assert(
-      msg1_35(2) match {
+      msg45(1) match {
         case AvatarServiceMessage(
               "TestCharacter3",
-              AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(10, Vector3(2, 0, 0)))
+              AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(0, Vector3(2, 0, 0)))
             ) =>
           true
         case _ => false

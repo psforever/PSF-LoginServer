@@ -7,12 +7,17 @@ import scodec.Codec
 import scodec.codecs._
 
 /**
-  * na
-  * @param guid na
-  * @param unk na
+  * Dispatched from the server to cause a damage reaction from a specific target.
+  * Infantry targets should be the primary target of this packet, as indicated by their identifier.
+  * Infantry targets display their flinch animation.
+  * All targets yelp in agony.
+  * Infantry targets use their assigned voice.
+  * Non-infantry targets use the "grizzled"(?) voice.
+  * @param guid the target entity's global unique identifier
+  * @param damage the amount of damsge being simulated
   */
 final case class AggravatedDamageMessage(guid : PlanetSideGUID,
-                                         unk : Long)
+                                         damage : Long)
   extends PlanetSideGamePacket {
   type Packet = AggravatedDamageMessage
   def opcode = GamePacketOpcode.AggravatedDamageMessage
@@ -22,6 +27,6 @@ final case class AggravatedDamageMessage(guid : PlanetSideGUID,
 object AggravatedDamageMessage extends Marshallable[AggravatedDamageMessage] {
   implicit val codec : Codec[AggravatedDamageMessage] = (
     ("guid" | PlanetSideGUID.codec) ::
-      ("unk" | uint32L)
+      ("damage" | uint32L)
     ).as[AggravatedDamageMessage]
 }

@@ -8,7 +8,7 @@ import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile}
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
 import net.psforever.objects.loadouts.Loadout
-import net.psforever.objects.serverobject.aura.AuraEffectBehavior
+import net.psforever.objects.serverobject.aura.{Aura, AuraEffectBehavior}
 import net.psforever.objects.serverobject.containable.{Containable, ContainableBehavior}
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.vital.PlayerSuicide
@@ -36,13 +36,18 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     with ContainableBehavior
     with AggravatedBehavior
     with AuraEffectBehavior {
-  def JammableObject = player
+
+  def JammableObject   = player
 
   def DamageableObject = player
 
   def ContainerObject = player
 
   def AggravatedObject = player
+  ApplicableEffect(Aura.Plasma)
+  ApplicableEffect(Aura.Napalm)
+  ApplicableEffect(Aura.Comet)
+  ApplicableEffect(Aura.Fire)
 
   def AuraTargetObject = player
 
@@ -921,5 +926,29 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       toChannel,
       AvatarAction.ObjectDelete(Service.defaultPlayerGUID, item.GUID)
     )
+  }
+
+  def UpdateAuraEffect(target: AuraEffectBehavior.Target) : Unit = {
+    import services.avatar.{AvatarAction, AvatarServiceMessage}
+    val zone = target.Zone
+    val value = target.Aura.foldLeft(0)(_ + PlayerControl.auraEffectToAttributeValue(_))
+    zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.PlanetsideAttributeToAll(target.GUID, 54, value))
+  }
+}
+
+object PlayerControl {
+  /**
+    * Transform an applicable Aura effect into its `PlanetsideAttributeMessage` value.
+    * @see `Aura`
+    * @see `PlanetsideAttributeMessage`
+    * @param effect the aura effect
+    * @return the attribute value for that effect
+    */
+  private def auraEffectToAttributeValue(effect: Aura): Int = effect match {
+    case Aura.Plasma => 1
+    case Aura.Comet => 2
+    case Aura.Napalm => 4
+    case Aura.Fire => 8
+    case _ => 0
   }
 }

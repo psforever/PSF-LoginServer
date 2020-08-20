@@ -2,19 +2,28 @@
 package net.psforever.objects.serverobject.aura
 
 import akka.actor.{Actor, Cancellable}
+import net.psforever.objects.Default
 import net.psforever.objects.serverobject.PlanetSideServerObject
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
+/**
+  * A mixin that governs the addition, display, and removal of aura particle effects
+  * on a target with control agency.
+  * @see `Aura`
+  * @see `AuraContainer`
+  * @see `PlayerControl`
+  */
 trait AuraEffectBehavior {
   _ : Actor =>
-  private var activeEffectIndex: Long = 0
-  private val effectToEntryId: mutable.HashMap[Aura, List[Long]] =
-    mutable.HashMap.empty[Aura, List[Long]]
-  private val effectIdToTimer: mutable.LongMap[Cancellable] =
-    mutable.LongMap.empty[Cancellable]
+  /** active aura effects are monotonic, but the timer will be updated for continuing and cancelling effects as well<br>
+    * only effects that are initialized to this mapping are approved for display on this target<br>
+    * key - aura effect; value - the timer for that effect
+    * @see `ApplicableEffect`
+    */
+  private val effectToTimer: mutable.HashMap[Aura, Cancellable] = mutable.HashMap.empty[Aura, Cancellable]
 
   def AuraTargetObject: AuraEffectBehavior.Target
 
@@ -22,144 +31,142 @@ trait AuraEffectBehavior {
     case AuraEffectBehavior.StartEffect(effect, duration) =>
       StartAuraEffect(effect, duration)
 
-    case AuraEffectBehavior.EndEffect(Some(id), None) =>
-      EndAuraEffect(id)
-
-    case AuraEffectBehavior.EndEffect(None, Some(effect)) =>
-      EndAuraEffect(effect)
+    case AuraEffectBehavior.EndEffect(effect) =>
+      EndAuraEffectAndUpdate(effect)
 
     case AuraEffectBehavior.EndAllEffects() =>
       EndAllEffectsAndUpdate()
   }
 
-  final def GetUnusedEffectId: Long = {
-    val id = activeEffectIndex
-    activeEffectIndex += 1
-    id
+  /**
+    * Only pre-apporved aura effects will be emitted by this target.
+    * @param effect the aura effect
+    */
+  def ApplicableEffect(effect: Aura): Unit = {
+    //create entry
+    effectToTimer += effect -> Default.Cancellable
   }
 
-  def StartAuraEffect(effect: Aura, duration: Long): Option[Long] = {
+  /**
+    * An aura particle effect is to be emitted by the target.
+    * If the effect was not previously applied to the target in an ongoing manner,
+    * animate it appropriately.
+    * @param effect the effect to be emitted
+    * @param duration for how long the effect will be emitted
+    * @return the active effect index number
+    */
+  def StartAuraEffect(effect: Aura, duration: Long): Unit = {
     val obj = AuraTargetObject
-    val auraEffects = obj.Aura
-    if (obj.Aura.contains(effect)) {
-      effectToEntryId.getOrElse(effect, List[Long](AuraEffectBehavior.InvalidEffectId)).headOption //grab an available active effect id
-    }
-    else if(obj.AddEffectToAura(effect).diff(auraEffects).contains(effect)) {
-      Some(StartAuraEffect(GetUnusedEffectId, effect, duration))
-    }
-    else {
-      None
+    val auraEffectsBefore = obj.Aura.size
+    if(StartAuraTimer(effect, duration) && obj.AddEffectToAura(effect).size > auraEffectsBefore) {
+      //new effect; update visuals
+      UpdateAuraEffect(AuraTargetObject)
     }
   }
 
-  def StartAuraEffect(id: Long, effect: Aura, duration: Long): Long = {
+  /**
+    * As long as the effect has been approved for this target,
+    * the timer will either start if it is stopped or has never been started,
+    * or the timer will stop and be recreated with the new duration if is currently running.
+    * @param effect the effect to be emitted
+    * @param duration for how long the effect will be emitted
+    * @return `true`, if the timer was started or restarted;
+    *        `false`, otherwise
+    */
+  private def StartAuraTimer(effect: Aura, duration: Long): Boolean = {
     //pair aura effect with id
-    effectToEntryId.get(effect) match {
-      case None | Some(Nil) => effectToEntryId += effect -> List(id)
-      case Some(list) => effectToEntryId -> (list :+ id)
-    }
-    //pair id with timer
-    effectIdToTimer += id -> context.system.scheduler.scheduleOnce(duration milliseconds, self, AuraEffectBehavior.EndEffect(id))
-    //update visuals
-    UpdateAuraEffect(AuraTargetObject)
-    id
-  }
-
-  def EndAuraEffect(id: Long): Unit = {
-    EndActiveEffect(id) match {
-      case Aura.Nothing => ;
-      case effect =>
-        CancelEffectTimer(id)
-        val obj = AuraTargetObject
-        obj.RemoveEffectFromAura(effect)
-        UpdateAuraEffect(obj)
-    }
-  }
-
-  def EndActiveEffect(id: Long): Aura = {
-    effectToEntryId.find { case (_, ids) => ids.contains(id) } match {
-      case Some((effect, ids)) if ids.size == 1 =>
-        effectToEntryId.remove(effect)
-        effect
-      case Some((effect, ids)) =>
-        effectToEntryId += effect -> ids.filterNot(_ == id)
-        Aura.Nothing
+    (effectToTimer.get(effect) match {
       case None =>
-        Aura.Nothing
+        None
+      case Some(timer) =>
+        timer.cancel()
+        Some(effect)
+    }) match {
+      case None =>
+        false
+      case Some(_) =>
+        //paired id with timer; retime
+        effectToTimer(effect) =
+          context.system.scheduler.scheduleOnce(duration milliseconds, self, AuraEffectBehavior.EndEffect(effect))
+        true
     }
   }
 
-  def CancelEffectTimer(id: Long) : Unit = {
-    effectIdToTimer.remove(id) match {
-      case Some(timer) => timer.cancel
-      case _ => ;
+  /**
+    * Stop the target entity from emitting the aura particle effect, if it currently is.
+    * @param effect the target effect
+    * @return `true`, if the effect was being emitted but has been stopped
+    *        `false`, if the effect was not approved or is not being emitted
+    */
+  def EndAuraEffect(effect: Aura): Boolean = {
+    effectToTimer.get(effect) match {
+      case Some(timer) if !timer.isCancelled =>
+        timer.cancel()
+        effectToTimer(effect) = Default.Cancellable
+        AuraTargetObject.RemoveEffectFromAura(effect)
+        true
+      case _ =>
+        false
     }
   }
 
-  def EndAuraEffect(effect: Aura): Unit = {
-    effectToEntryId.remove(effect) match {
-      case Some(idList) =>
-        idList.foreach { id =>
-          val obj = AuraTargetObject
-          CancelEffectTimer(id)
-          obj.RemoveEffectFromAura(effect)
-          UpdateAuraEffect(obj)
-        }
-      case _ => ;
-    }
-  }
-
+  /**
+    * Stop the target entity from emitting all aura particle effects.
+    */
   def EndAllEffects() : Unit = {
-    effectIdToTimer.values.foreach { _.cancel }
-    effectIdToTimer.clear
-    effectToEntryId.clear
+    effectToTimer.keysIterator.foreach { effect =>
+      effectToTimer(effect).cancel()
+      effectToTimer(effect) = Default.Cancellable
+    }
     val obj = AuraTargetObject
     obj.Aura.foreach { obj.RemoveEffectFromAura }
   }
 
+  /**
+    * Stop the target entity from emitting the aura particle effect, if it currently is.
+    * If the effect has been stopped, animate the new particle effect state.
+    */
+  def EndAuraEffectAndUpdate(effect: Aura) : Unit = {
+    if(EndAuraEffect(effect)) {
+      UpdateAuraEffect(AuraTargetObject)
+    }
+  }
+
+  /**
+    * Stop the target entity from emitting all aura particle effects.
+    * Animate the new particle effect state.
+    */
   def EndAllEffectsAndUpdate() : Unit = {
     EndAllEffects()
     UpdateAuraEffect(AuraTargetObject)
   }
 
-  def UpdateAuraEffect(target: AuraEffectBehavior.Target) : Unit = {
-    import services.avatar.{AvatarAction, AvatarServiceMessage}
-    val zone = target.Zone
-    val value = target.Aura.foldLeft(0)(_ + AuraEffectBehavior.effectToAttributeValue(_))
-    zone.AvatarEvents ! AvatarServiceMessage(zone.Id, AvatarAction.PlanetsideAttributeToAll(target.GUID, 54, value))
-  }
-
-  def TestForEffect(id: Long): Aura = {
-    effectToEntryId.find { case (_, ids) => ids.contains(id) } match {
-      case Some((effect, _)) => effect
-      case _ => Aura.Nothing
+  /**
+    * Is the target entity emitting the aura effect?
+    * @param effect the effect being tested
+    * @return `true`, if the effect is currently being emitted;
+    *        `false`, otherwise
+    */
+  def TestForEffect(effect: Aura): Boolean = {
+    effectToTimer.get(effect) match {
+      case None => false
+      case Some(timer) => timer.isCancelled
     }
   }
+
+  /**
+    * An override callback to display aura effects emitted.
+    * @param target the entity from which the aura effects are being emitted
+    */
+  def UpdateAuraEffect(target: AuraEffectBehavior.Target) : Unit
 }
 
 object AuraEffectBehavior {
   type Target = PlanetSideServerObject with AuraContainer
 
-  final val InvalidEffectId = -1
-
   final case class StartEffect(effect: Aura, duration: Long)
 
-  final case class EndEffect(id: Option[Long], aura: Option[Aura])
-
-  object EndEffect {
-    def apply(id: Long): EndEffect = EndEffect(Some(id), None)
-
-    def apply(aura: Aura): EndEffect = EndEffect(None, Some(aura))
-  }
+  final case class EndEffect(aura: Aura)
 
   final case class EndAllEffects()
-
-  private def effectToAttributeValue(effect: Aura): Int = effect match {
-    case Aura.None => 0
-    case Aura.Plasma => 1
-    case Aura.Comet => 2
-    case Aura.Napalm => 4
-    case Aura.Fire => 8
-    case _ => Int.MinValue
-  }
 }

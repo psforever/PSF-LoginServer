@@ -1,7 +1,6 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital.damage
 
-import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.ballistics._
 import net.psforever.objects.vital.DamageType
 import net.psforever.types.{ExoSuitType, Vector3}
@@ -135,26 +134,68 @@ object DamageModifiers {
     }
   }
 
+  /*
+  Below this point are the calculations for sources of aggravated damage.
+  For the most part, these calculations are individualistic and arbitrary.
+  They exist in their current form to satisfy observed shots to kill (STK) of specific weapon systems
+  according to 2012 standards of the Youtube video series by TheLegendaryNarwhal.
+   */
+  /**
+    * The initial application of aggravated damage against an infantry target
+    * where the specific damage component is `Direct`.
+    */
   case object InfantryAggravatedDirect extends Mod {
     def Calculate: DamageModifiers.Format =
       BaseAggravatedFormula(ProjectileResolution.AggravatedDirect, DamageType.Direct)
   }
 
+  /**
+    * The initial application of aggravated damage against an infantry target
+    * where the specific damage component is `Splash`.
+    */
   case object InfantryAggravatedSplash extends Mod {
     def Calculate: DamageModifiers.Format =
       BaseAggravatedFormula(ProjectileResolution.AggravatedSplash, DamageType.Splash)
   }
 
+  /**
+    * The ongoing application of aggravated damage ticks against an infantry target
+    * where the specific damage component is `Direct`.
+    * This is called "burning" regardless of what the active aura effect actually is.
+    */
   case object InfantryAggravatedDirectBurn extends Mod {
     def Calculate: DamageModifiers.Format =
       BaseAggravatedBurnFormula(ProjectileResolution.AggravatedDirectBurn, DamageType.Direct)
   }
 
+  /**
+    * The ongoing application of aggravated damage ticks against an infantry target
+    * where the specific damage component is `Splash`.
+    * This is called "burning" regardless of what the active aura effect actually is.
+    */
   case object InfantryAggravatedSplashBurn extends Mod {
     def Calculate: DamageModifiers.Format =
       BaseAggravatedBurnFormula(ProjectileResolution.AggravatedSplashBurn, DamageType.Splash)
   }
 
+  /**
+    * For damage application that involves aggravation of a particular damage type,
+    * calculate that initial damage application for infantry targets
+    * and produce the modified damage value.
+    * Infantry wearing mechanized assault exo-suits (MAX) incorporate an additional modifier.
+    * @see `AggravatedDamage`
+    * @see `ExoSuitType`
+    * @see `InfantryAggravatedDirect`
+    * @see `InfantryAggravatedSplash`
+    * @see `PlayerSource`
+    * @see `ProjectileTarget.AggravatesTarget`
+    * @see `ResolvedProjectile`
+    * @param resolution the projectile resolution to match against
+    * @param damageType the damage type to find in as a component of aggravated information
+    * @param damage the base damage value
+    * @param data historical information related to the damage interaction
+    * @return the modified damage
+    */
   private def BaseAggravatedFormula(
                                      resolution: ProjectileResolution.Value,
                                      damageType : DamageType.Value
@@ -186,6 +227,24 @@ object DamageModifiers {
     }
   }
 
+  /**
+    * For damage application that involves aggravation of a particular damage type,
+    * calculate that damage application burn for each tick for infantry targets
+    * and produce the modified damage value.
+    * Infantry wearing mechanized assault exo-suits (MAX) incorporate an additional modifier.
+    * Vanilla infantry incorporate their resistance value into a slightly different calculation than usual.
+    * @see `AggravatedDamage`
+    * @see `ExoSuitType`
+    * @see `InfantryAggravatedDirectBurn`
+    * @see `InfantryAggravatedSplashBurn`
+    * @see `PlayerSource`
+    * @see `ResolvedProjectile`
+    * @param resolution the projectile resolution to match against
+    * @param damageType the damage type to find in as a component of aggravated information
+    * @param damage the base damage value
+    * @param data historical information related to the damage interaction
+    * @return the modified damage
+    */
   private def BaseAggravatedBurnFormula(
                                          resolution: ProjectileResolution.Value,
                                          damageType : DamageType.Value
@@ -207,16 +266,11 @@ object DamageModifiers {
             (damage * degradation * aggravation.max_factor) toInt
           } else {
             val resist = data.damage_model.ResistUsing(data)(data)
+            //add resist to offset resist subtraction later
             if (damage > resist) {
               ((damage - resist) * degradation).toInt + resist
             } else {
-              val degradedDamage = damage * degradation
-              if (degradedDamage > resist) {
-                degradedDamage toInt
-              }
-              else {
-                damage
-              }
+              (damage * degradation).toInt + resist
             }
           }
         case _ =>
@@ -227,14 +281,21 @@ object DamageModifiers {
     }
   }
 
+  /**
+    * The initial application of aggravated damage against an aircraft target.
+    * Primarily for use in the starfire weapon system.
+    * @see `AggravatedDamage`
+    * @see `ProjectileQuality.AggravatesTarget`
+    * @see `ResolvedProjectile`
+    */
   case object StarfireAggravated extends Mod {
     def Calculate: DamageModifiers.Format = formula
 
     private def formula(damage: Int, data: ResolvedProjectile): Int = {
       if (data.resolution == ProjectileResolution.AggravatedDirect &&
         data.projectile.quality == ProjectileQuality.AggravatesTarget) {
-        (data.projectile.profile.Aggravated, data.target) match {
-          case (Some(aggravation), v : VehicleSource) if GlobalDefinitions.isFlightVehicle(v.Definition) =>
+        data.projectile.profile.Aggravated match {
+          case Some(aggravation) =>
             aggravation.info.find(_.damage_type == DamageType.Direct) match {
               case Some(infos) =>
                 (damage * infos.degradation_percentage + damage) toInt
@@ -250,13 +311,21 @@ object DamageModifiers {
     }
   }
 
+  /**
+    * The ongoing application of aggravated damage ticks against an aircraft target.
+    * Primarily for use in the starfire weapon system.
+    * This is called "burning" regardless of what the active aura effect actually is.
+    * @see `AggravatedDamage`
+    * @see `ProjectileQuality`
+    * @see `ResolvedProjectile`
+    */
   case object StarfireAggravatedBurn extends Mod {
     def Calculate: DamageModifiers.Format = formula
 
     private def formula(damage: Int, data: ResolvedProjectile): Int = {
       if (data.resolution == ProjectileResolution.AggravatedDirectBurn) {
-        (data.projectile.profile.Aggravated, data.target) match {
-          case (Some(aggravation), v : VehicleSource) if GlobalDefinitions.isFlightVehicle(v.Definition) =>
+        data.projectile.profile.Aggravated match {
+          case Some(aggravation) =>
             aggravation.info.find(_.damage_type == DamageType.Direct) match {
               case Some(infos) =>
                 (math.floor(damage * infos.degradation_percentage) * data.projectile.quality.mod) toInt
@@ -272,6 +341,13 @@ object DamageModifiers {
     }
   }
 
+  /**
+    * The initial application of aggravated damage against a target.
+    * Primarily for use in the comet weapon system.
+    * @see `AggravatedDamage`
+    * @see `ProjectileQuality.AggravatesTarget`
+    * @see `ResolvedProjectile`
+    */
   case object CometAggravated extends Mod {
     def Calculate: DamageModifiers.Format = formula
 
@@ -295,6 +371,14 @@ object DamageModifiers {
     }
   }
 
+  /**
+    * The ongoing application of aggravated damage ticks against a target.
+    * Primarily for use in the comet weapon system.
+    * This is called "burning" regardless of what the active aura effect actually is.
+    * @see `AggravatedDamage`
+    * @see `ProjectileQuality`
+    * @see `ResolvedProjectile`
+    */
   case object CometAggravatedBurn extends Mod {
     def Calculate: DamageModifiers.Format = formula
 
