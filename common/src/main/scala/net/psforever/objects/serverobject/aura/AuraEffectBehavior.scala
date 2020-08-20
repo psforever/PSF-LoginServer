@@ -23,7 +23,7 @@ trait AuraEffectBehavior {
     * key - aura effect; value - the timer for that effect
     * @see `ApplicableEffect`
     */
-  private val effectToTimer: mutable.HashMap[Aura, Cancellable] = mutable.HashMap.empty[Aura, Cancellable]
+  private val effectToTimer: mutable.HashMap[Aura, AuraEffectBehavior.Entry] = mutable.HashMap.empty[Aura, AuraEffectBehavior.Entry]
 
   def AuraTargetObject: AuraEffectBehavior.Target
 
@@ -44,7 +44,7 @@ trait AuraEffectBehavior {
     */
   def ApplicableEffect(effect: Aura): Unit = {
     //create entry
-    effectToTimer += effect -> Default.Cancellable
+    effectToTimer += effect -> AuraEffectBehavior.Entry()
   }
 
   /**
@@ -67,27 +67,29 @@ trait AuraEffectBehavior {
   /**
     * As long as the effect has been approved for this target,
     * the timer will either start if it is stopped or has never been started,
-    * or the timer will stop and be recreated with the new duration if is currently running.
+    * or the timer will stop and be recreated with the new duration if is currently running for a shoreter amount of time.
     * @param effect the effect to be emitted
     * @param duration for how long the effect will be emitted
     * @return `true`, if the timer was started or restarted;
     *        `false`, otherwise
     */
   private def StartAuraTimer(effect: Aura, duration: Long): Boolean = {
-    //pair aura effect with id
+    //pair aura effect with entry
     (effectToTimer.get(effect) match {
-      case None =>
-        None
-      case Some(timer) =>
+      case Some(timer) if timer.start + timer.duration < System.currentTimeMillis() + duration =>
         timer.cancel()
         Some(effect)
+      case _ =>
+        None
     }) match {
       case None =>
         false
       case Some(_) =>
-        //paired id with timer; retime
-        effectToTimer(effect) =
+        //retime
+        effectToTimer(effect) = AuraEffectBehavior.Entry(
+          duration,
           context.system.scheduler.scheduleOnce(duration milliseconds, self, AuraEffectBehavior.EndEffect(effect))
+        )
         true
     }
   }
@@ -102,7 +104,7 @@ trait AuraEffectBehavior {
     effectToTimer.get(effect) match {
       case Some(timer) if !timer.isCancelled =>
         timer.cancel()
-        effectToTimer(effect) = Default.Cancellable
+        //effectToTimer(effect) = Default.Cancellable
         AuraTargetObject.RemoveEffectFromAura(effect)
         true
       case _ =>
@@ -116,7 +118,7 @@ trait AuraEffectBehavior {
   def EndAllEffects() : Unit = {
     effectToTimer.keysIterator.foreach { effect =>
       effectToTimer(effect).cancel()
-      effectToTimer(effect) = Default.Cancellable
+      //effectToTimer(effect) = Default.Cancellable
     }
     val obj = AuraTargetObject
     obj.Aura.foreach { obj.RemoveEffectFromAura }
@@ -163,6 +165,18 @@ trait AuraEffectBehavior {
 
 object AuraEffectBehavior {
   type Target = PlanetSideServerObject with AuraContainer
+
+  case class Entry(duration: Long, timer: Cancellable) extends Cancellable {
+    val start: Long = System.currentTimeMillis()
+
+    override def isCancelled : Boolean = timer.isCancelled
+
+    override def cancel: Boolean = timer.cancel
+  }
+
+  object Entry {
+    def apply(): Entry = Entry(0, Default.Cancellable)
+  }
 
   final case class StartEffect(effect: Aura, duration: Long)
 

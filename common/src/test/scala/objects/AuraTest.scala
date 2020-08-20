@@ -116,6 +116,31 @@ class AuraEffectBehaviorStartEffectTest extends ActorTest {
   }
 }
 
+class AuraEffectBehaviorStartLongerEffectTest extends ActorTest {
+  val obj = new AuraTest.Entity()
+  val updateProbe = new TestProbe(system)
+  obj.Actor = system.actorOf(Props(classOf[AuraTest.Agency], obj, updateProbe.ref), "aura-test-actor")
+
+  "AuraEffectBehavior" should {
+    "replace a shorter effect with a longer one" in {
+      assert(obj.Aura.isEmpty)
+      obj.Actor ! AuraEffectBehavior.StartEffect(Aura.Plasma, 500)
+      val msg1 = updateProbe.receiveOne(100 milliseconds)
+      assert(
+        msg1 match {
+          case AuraTest.DoUpdateAuraEffect() => true
+          case _                             => false
+        }
+      )
+      assert(obj.Aura.contains(Aura.Plasma))
+      obj.Actor ! AuraEffectBehavior.StartEffect(Aura.Plasma, 2500)
+      updateProbe.expectNoMessage(2000 milliseconds)
+      //first effect has not ended naturally (yet)
+      assert(obj.Aura.contains(Aura.Plasma))
+    }
+  }
+}
+
 class AuraEffectBehaviorNoRedundantStartEffectTest extends ActorTest {
   val obj = new AuraTest.Entity()
   val updateProbe = new TestProbe(system)
@@ -136,6 +161,29 @@ class AuraEffectBehaviorNoRedundantStartEffectTest extends ActorTest {
       expectNoMessage(1000 milliseconds) //wait for half of the effect's duration
       assert(obj.Aura.contains(Aura.Plasma))
       obj.Actor ! AuraEffectBehavior.StartEffect(Aura.Plasma, 2500)
+      updateProbe.expectNoMessage(1500 milliseconds)
+    }
+  }
+}
+
+class AuraEffectBehaviorNoOverrideStartEffectTest extends ActorTest {
+  val obj = new AuraTest.Entity()
+  val updateProbe = new TestProbe(system)
+  obj.Actor = system.actorOf(Props(classOf[AuraTest.Agency], obj, updateProbe.ref), "aura-test-actor")
+
+  "AuraEffectBehavior" should {
+    "not replace a long-running effect with a short-running effect" in {
+      assert(obj.Aura.isEmpty)
+      obj.Actor ! AuraEffectBehavior.StartEffect(Aura.Plasma, 2500)
+      val msg1 = updateProbe.receiveOne(100 milliseconds)
+      assert(
+        msg1 match {
+          case AuraTest.DoUpdateAuraEffect() => true
+          case _                             => false
+        }
+      )
+      assert(obj.Aura.contains(Aura.Plasma))
+      obj.Actor ! AuraEffectBehavior.StartEffect(Aura.Plasma, 500)
       updateProbe.expectNoMessage(1500 milliseconds)
       //effect has not ended naturally
       assert(obj.Aura.contains(Aura.Plasma))
