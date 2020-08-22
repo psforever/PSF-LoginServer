@@ -1892,15 +1892,10 @@ class SessionActor extends Actor with MDCContextAware {
 
       case AvatarResponse.Killed(mount) =>
         val respawnTimer = 300.seconds
-        //delete free hand item
+        //drop free hand item
         player.FreeHand.Equipment match {
           case Some(item) =>
-            player.FreeHand.Equipment = None
-            continent.AvatarEvents ! AvatarServiceMessage(
-              player.Name,
-              AvatarAction.ObjectDelete(Service.defaultPlayerGUID, item.GUID)
-            )
-            taskResolver ! GUIDTask.UnregisterEquipment(item)(continent.GUID)
+            DropEquipmentFromInventory(player)(item)
           case None => ;
         }
         ToggleMaxSpecialState(enable = false)
