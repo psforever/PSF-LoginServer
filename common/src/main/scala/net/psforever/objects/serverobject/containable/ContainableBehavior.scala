@@ -213,7 +213,7 @@ trait ContainableBehavior {
     ContainableBehavior.TryPutItemInSlot(destination, item, dest) match {
       case (true, swapItem) =>
         swapItem match {
-          case Some(thing) => SwapItemCallback(thing)
+          case Some(thing) => SwapItemCallback(thing, dest)
           case None        => ;
         }
         PutItemInSlotCallback(item, dest)
@@ -249,7 +249,7 @@ trait ContainableBehavior {
     ContainableBehavior.TryPutItemInSlotOrAway(destination, item, dest) match {
       case (Some(slot), swapItem) =>
         swapItem match {
-          case Some(thing) => SwapItemCallback(thing)
+          case Some(thing) => SwapItemCallback(thing, slot)
           case None        => ;
         }
         PutItemInSlotCallback(item, slot)
@@ -330,8 +330,9 @@ trait ContainableBehavior {
     * Reaction to the existence of a swap item being produced from a container into the environment.
     * To be implemented.
     * @param item the item that was removed
+    * @param fromSlot the slot from where the item was removed (where it previous was)
     */
-  def SwapItemCallback(item: Equipment): Unit
+  def SwapItemCallback(item: Equipment, fromSlot: Int): Unit
 }
 
 object ContainableBehavior {
@@ -626,7 +627,7 @@ object Containable {
   /**
     * A response for the `RemoveItemFromSlot` message.
     * It serves the dual purpose of reporting a missing item (by not reporting any slot information)
-    * and reporting no item ata given position (by not reporting any item information).
+    * and reporting no item at a given position (by not reporting any item information).
     * @param obj the container
     * @param item the equipment that was removed
     * @param slot the index position from which any item was removed
