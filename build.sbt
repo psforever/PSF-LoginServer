@@ -1,6 +1,6 @@
 import xerial.sbt.pack.PackPlugin._
 
-lazy val commonSettings = Seq(
+lazy val psforeverSettings = Seq(
   organization := "net.psforever",
   version := "1.0.2-SNAPSHOT",
   scalaVersion := "2.13.3",
@@ -82,7 +82,7 @@ lazy val commonSettings = Seq(
     "org.scala-lang.modules"     %% "scala-parallel-collections" % "0.2.0"
   ),
   // TODO(chord): remove exclusion when SessionActor is refactored: https://github.com/psforever/PSF-LoginServer/issues/279
-  coverageExcludedPackages := "net\\.psforever\\.actors\\.session\\.SessionActor.*;net\\.psforever\\.zones\\.zonemaps.*"
+  coverageExcludedPackages := "net\\.psforever\\.actors\\.session\\.SessionActor.*"
 )
 
 lazy val pscryptoSettings = Seq(
@@ -91,59 +91,46 @@ lazy val pscryptoSettings = Seq(
   unmanagedClasspath in Compile += (baseDirectory in ThisBuild).value / "pscrypto-lib"
 )
 
-lazy val psloginPackSettings = Seq(
-  packMain := Map("ps-login" -> "net.psforever.pslogin.PsLogin"),
-  packArchivePrefix := "pslogin",
-  packJvmOpts := Map("ps-login" -> Seq("-Dstacktrace.app.packages=net.psforever")),
-  packExtraClasspath := Map("ps-login" -> Seq("${PROG_HOME}/pscrypto-lib", "${PROG_HOME}/config")),
-  packResourceDir += (baseDirectory.value / "pscrypto-lib" -> "pscrypto-lib"),
-  packResourceDir += (baseDirectory.value / "config"       -> "config")
-)
+lazy val psforever = (project in file("."))
+  .configs(QuietTest)
+  .settings(psforeverSettings: _*)
+  .settings(
+    name := "psforever",
+    // Copy all tests from Test -> QuietTest (we're only changing the run options)
+    inConfig(QuietTest)(Defaults.testTasks)
+  )
+  .settings(pscryptoSettings: _*)
 
-lazy val root = (project in file("."))
+lazy val server = (project in file("server"))
   .configs(QuietTest)
   .enablePlugins(PackPlugin)
-  .settings(commonSettings: _*)
-  .settings(psloginPackSettings: _*)
-  .enablePlugins(ScalaUnidocPlugin)
-  .aggregate(pslogin, common)
-  .dependsOn(pslogin, common)
-
-lazy val pslogin = (project in file("pslogin"))
-  .configs(QuietTest)
-  .settings(commonSettings: _*)
+  .settings(psforeverSettings: _*)
   .settings(
-    name := "pslogin",
+    name := "server",
     // ActorTests have specific timing requirements and will be flaky if run in parallel
     parallelExecution in Test := false,
     // Copy all tests from Test -> QuietTest (we're only changing the run options)
-    inConfig(QuietTest)(Defaults.testTasks)
+    inConfig(QuietTest)(Defaults.testTasks),
+    packMain := Map("psforever-server" -> "net.psforever.server.Server"),
+    packArchivePrefix := "psforever-server",
+    packJvmOpts := Map("psforever-server" -> Seq("-Dstacktrace.app.packages=net.psforever")),
+    packExtraClasspath := Map("psforever-server" -> Seq("${PROG_HOME}/pscrypto-lib", "${PROG_HOME}/config")),
+    packResourceDir += (baseDirectory.in(psforever).value / "pscrypto-lib" -> "pscrypto-lib"),
+    packResourceDir += (baseDirectory.in(psforever).value / "config"       -> "config")
   )
   .settings(pscryptoSettings: _*)
-  .dependsOn(common)
-
-lazy val common = (project in file("common"))
-  .configs(QuietTest)
-  .settings(commonSettings: _*)
-  .settings(
-    name := "common",
-    // Copy all tests from Test -> QuietTest (we're only changing the run options)
-    inConfig(QuietTest)(Defaults.testTasks)
-  )
-  .settings(pscryptoSettings: _*)
+  .dependsOn(psforever)
 
 lazy val decodePackets = (project in file("tools/decode-packets"))
   .enablePlugins(PackPlugin)
-  .settings(commonSettings: _*)
-  .settings(decodePacketsPackSettings: _*)
+  .settings(psforeverSettings: _*)
   .settings(
     libraryDependencies ++= Seq(
       "org.scala-lang.modules" %% "scala-parallel-collections" % "0.2.0"
-    )
+    ),
+    packMain := Map("psforever-decode-packets" -> "net.psforever.tools.decodePackets.DecodePackets")
   )
-  .dependsOn(common)
-
-lazy val decodePacketsPackSettings = Seq(packMain := Map("psf-decode-packets" -> "DecodePackets"))
+  .dependsOn(psforever)
 
 // Special test configuration for really quiet tests (used in CI)
 lazy val QuietTest = config("quiet") extend Test
