@@ -864,7 +864,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
   def SwapItemCallback(item: Equipment, fromSlot: Int): Unit = {
     val obj  = ContainerObject
     val zone = obj.Zone
-    val toChannel = if (obj.VisibleSlots.contains(fromSlot)) zone.Id else player.Name
+    val toChannel = if (obj.VisibleSlots.contains(fromSlot)) zone.id else player.Name
     zone.AvatarEvents ! AvatarServiceMessage(
       toChannel,
       AvatarAction.ObjectDelete(Service.defaultPlayerGUID, item.GUID)
