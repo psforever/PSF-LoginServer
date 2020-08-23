@@ -27,13 +27,10 @@ lazy val psforeverSettings = Seq(
   // scaladoc flags: https://github.com/scala/scala/blob/2.11.x/src/scaladoc/scala/tools/nsc/doc/Settings.scala
   scalacOptions in (Compile, doc) ++= Seq(
     "-groups",
-    "-implicits",
     "-doc-title",
     "PSF-LoginServer - ",
     "-doc-version",
     "master",
-    "-doc-footer",
-    "Copyright PSForever",
     // For non unidoc builds, you may need bd.getName before the template parameter
     "-doc-source-url",
     "https://github.com/psforever/PSF-LoginServer/blob/master/€{FILE_PATH}.scala",
@@ -134,3 +131,11 @@ lazy val decodePackets = (project in file("tools/decode-packets"))
 
 // Special test configuration for really quiet tests (used in CI)
 lazy val QuietTest = config("quiet") extend Test
+
+lazy val docs = (project in file("docs"))
+  .settings(psforeverSettings: _*)
+  .enablePlugins(ScalaUnidocPlugin)
+  .settings(
+    name := "psforever"
+  )
+  .aggregate(psforever, server, decodePackets)

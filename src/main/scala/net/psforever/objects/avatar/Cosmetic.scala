@@ -49,11 +49,8 @@ case object Cosmetic extends IntEnum[Cosmetic] {
     */
   def valuesToAttributeValue(values: Set[Cosmetic]): Long = {
     values.foldLeft(1) {
-      case (sum, NoHelmet)   => sum - 1
-      case (sum, BrimmedCap) => sum + 2
-      case (sum, Sunglasses) => sum + 4
-      case (sum, Earpiece)   => sum + 8
-      case (sum, Beret)      => sum + 16
+      case (sum, NoHelmet) => sum - NoHelmet.value
+      case (sum, entry)    => sum + entry.value
     }
   }
 

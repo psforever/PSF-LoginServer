@@ -11,6 +11,7 @@ out/
 .bloop
 .metals
 project/metals.sbt
+/docs
 
 # User configs
 config/psforever.conf
