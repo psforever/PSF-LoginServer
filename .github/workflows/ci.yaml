@@ -32,9 +32,9 @@ jobs:
       - name: Install pscrypto
         run: curl -L https://github.com/psforever/PSCrypto/releases/download/v1.1/pscrypto-lib-1.1.zip | jar vx
       - name: Run migrations
-        run: sbt "pslogin/run migrate"
+        run: sbt "server/run migrate"
       - name: Run build
-        run: sbt packArchiveZip
+        run: sbt server/packArchiveZip
       - name: Run tests
         run: sbt coverage test:compile quiet:test coverageReport
       - name: Upload coverage
@@ -42,8 +42,8 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: pslogin.zip
-          path: target/pslogin*.zip
+          name: server.zip
+          path: server/target/server*.zip
   docker:
     runs-on: ubuntu-latest
     steps:
