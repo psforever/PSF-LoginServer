@@ -14,7 +14,7 @@ import net.psforever.objects.zones.Zoning
 import net.psforever.packet.PacketCoding
 import net.psforever.packet.game.{ChatMsg, DeadState, RequestDestroyMessage, ZonePopulationUpdateMessage}
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID, Vector3}
-import net.psforever.util.PointOfInterest
+import net.psforever.util.{Config, PointOfInterest}
 import net.psforever.zones.Zones
 import net.psforever.services.chat.ChatService
 import net.psforever.services.chat.ChatService.ChatChannel
@@ -123,8 +123,11 @@ class ChatActor(
         case Message(message) =>
           log.info("Chat: " + message)
 
+          val gmCommandAllowed =
+            session.account.gm || Config.app.development.unprivilegedGmCommands.contains(message.messageType)
+
           (message.messageType, message.recipient.trim, message.contents.trim) match {
-            case (CMT_FLY, recipient, contents) if session.account.gm =>
+            case (CMT_FLY, recipient, contents) if gmCommandAllowed =>
               val flying = contents match {
                 case "on"  => true
                 case "off" => false
@@ -148,7 +151,7 @@ class ChatActor(
                 else 50
               sessionActor ! SessionActor.SetConnectionState(connectionState)
 
-            case (CMT_SPEED, recipient, contents) if session.account.gm =>
+            case (CMT_SPEED, recipient, contents) if gmCommandAllowed =>
               val speed =
                 try {
                   contents.toFloat
@@ -159,7 +162,7 @@ class ChatActor(
               sessionActor ! SessionActor.SetSpeed(speed)
               sessionActor ! SessionActor.SendResponse(message.copy(contents = f"$speed%.3f"))
 
-            case (CMT_TOGGLESPECTATORMODE, _, contents) if session.account.gm =>
+            case (CMT_TOGGLESPECTATORMODE, _, contents) if gmCommandAllowed =>
               val spectator = contents match {
                 case "on"  => true
                 case "off" => false
@@ -339,38 +342,6 @@ class ChatActor(
                       )
                   }
 
-                case (_, _, contents) if session.account.gm && contents.startsWith("!kick") =>
-                  val input = contents.split("\\s+").drop(1)
-                  if (input.length > 0) {
-                    val numRegex = raw"(\d+)".r
-                    val id       = input(0)
-                    val determination: Player => Boolean = id match {
-                      case numRegex(_) => _.CharId == id.toLong
-                      case _           => _.Name.equals(id)
-                    }
-                    session.zone.LivePlayers
-                      .find(determination)
-                      .orElse(session.zone.Corpses.find(determination)) match {
-                      case Some(player) =>
-                        input.lift(1) match {
-                          case Some(numRegex(time)) =>
-                            sessionActor ! SessionActor.Kick(player, Some(time.toLong))
-                          case _ =>
-                            sessionActor ! SessionActor.Kick(player)
-                        }
-                      case None =>
-                        sessionActor ! SessionActor.SendResponse(
-                          ChatMsg(
-                            CMT_GMOPEN,
-                            message.wideContents,
-                            "Server",
-                            "Invalid player",
-                            message.note
-                          )
-                        )
-                    }
-                  }
-
                 case (_, _, contents) if contents.startsWith("!ntu") && session.account.gm =>
                   session.zone.Buildings.values.foreach(building =>
                     building.Amenities.foreach(amenity =>
@@ -390,7 +361,7 @@ class ChatActor(
                 // unknown ! commands are ignored
               }
 
-            case (CMT_CAPTUREBASE, _, contents) if session.account.gm =>
+            case (CMT_CAPTUREBASE, _, contents) if gmCommandAllowed =>
               val args = contents.split(" ").filter(_ != "")
 
               val (faction, factionPos) = args.zipWithIndex
@@ -507,21 +478,21 @@ class ChatActor(
               }
 
             case (CMT_GMBROADCAST | CMT_GMBROADCAST_NC | CMT_GMBROADCAST_VS | CMT_GMBROADCAST_TR, _, _)
-                if session.account.gm =>
+                if gmCommandAllowed =>
               chatService ! ChatService.Message(
                 session,
                 message.copy(recipient = session.player.Name),
                 ChatChannel.Default()
               )
 
-            case (CMT_GMTELL, _, _) if session.account.gm =>
+            case (CMT_GMTELL, _, _) if gmCommandAllowed =>
               chatService ! ChatService.Message(
                 session,
                 message.copy(recipient = session.player.Name),
                 ChatChannel.Default()
               )
 
-            case (CMT_GMBROADCASTPOPUP, _, _) if session.account.gm =>
+            case (CMT_GMBROADCASTPOPUP, _, _) if gmCommandAllowed =>
               chatService ! ChatService.Message(
                 session,
                 message.copy(recipient = session.player.Name),
@@ -583,7 +554,7 @@ class ChatActor(
                 ChatChannel.Default()
               )
 
-            case (CMT_COMMAND, _, _) if session.account.gm =>
+            case (CMT_COMMAND, _, _) if gmCommandAllowed =>
               chatService ! ChatService.Message(
                 session,
                 message.copy(recipient = session.player.Name),
@@ -593,7 +564,7 @@ class ChatActor(
             case (CMT_NOTE, _, _) =>
               chatService ! ChatService.Message(session, message, ChatChannel.Default())
 
-            case (CMT_SILENCE, _, _) if session.account.gm =>
+            case (CMT_SILENCE, _, _) if gmCommandAllowed =>
               chatService ! ChatService.Message(session, message, ChatChannel.Default())
 
             case (CMT_SQUAD, _, _) =>
@@ -627,7 +598,7 @@ class ChatActor(
                 ChatMsg(ChatMessageType.CMT_WHO, true, "", "VS online : " + popVS + " on " + contName, None)
               )
 
-            case (CMT_ZONE, _, contents) if session.account.gm =>
+            case (CMT_ZONE, _, contents) if gmCommandAllowed =>
               val buffer = contents.toLowerCase.split("\\s+")
               val (zone, gate, list) = (buffer.lift(0), buffer.lift(1)) match {
                 case (Some("-list"), None) =>
@@ -664,7 +635,7 @@ class ChatActor(
                   )
               }
 
-            case (CMT_WARP, _, contents) if session.account.gm =>
+            case (CMT_WARP, _, contents) if gmCommandAllowed =>
               val buffer = contents.toLowerCase.split("\\s+")
               val (coordinates, waypoint) = (buffer.lift(0), buffer.lift(1), buffer.lift(2)) match {
                 case (Some(x), Some(y), Some(z))            => (Some(x, y, z), None)
@@ -693,7 +664,7 @@ class ChatActor(
                   )
               }
 
-            case (CMT_SETBATTLERANK, _, contents) if session.account.gm =>
+            case (CMT_SETBATTLERANK, _, contents) if gmCommandAllowed =>
               val buffer = contents.toLowerCase.split("\\s+")
               val (target, rank) = (buffer.lift(0), buffer.lift(1)) match {
                 case (Some(target), Some(rank)) if target == session.avatar.name =>
@@ -721,7 +692,7 @@ class ChatActor(
                   )
               }
 
-            case (CMT_SETCOMMANDRANK, _, contents) if session.account.gm =>
+            case (CMT_SETCOMMANDRANK, _, contents) if gmCommandAllowed =>
               val buffer = contents.toLowerCase.split("\\s+")
               val (target, rank) = (buffer.lift(0), buffer.lift(1)) match {
                 case (Some(target), Some(rank)) if target == session.avatar.name =>
@@ -749,7 +720,7 @@ class ChatActor(
                   )
               }
 
-            case (CMT_ADDBATTLEEXPERIENCE, _, contents) if session.account.gm =>
+            case (CMT_ADDBATTLEEXPERIENCE, _, contents) if gmCommandAllowed =>
               contents.toIntOption match {
                 case Some(bep) => avatarActor ! AvatarActor.AwardBep(bep)
                 case None =>
@@ -758,7 +729,7 @@ class ChatActor(
                   )
               }
 
-            case (CMT_ADDCOMMANDEXPERIENCE, _, contents) if session.account.gm =>
+            case (CMT_ADDCOMMANDEXPERIENCE, _, contents) if gmCommandAllowed =>
               contents.toIntOption match {
                 case Some(cep) => avatarActor ! AvatarActor.AwardCep(cep)
                 case None =>
@@ -817,7 +788,7 @@ class ChatActor(
                 )
               )
 
-            case (CMT_ADDCERTIFICATION, _, contents) if session.account.gm =>
+            case (CMT_ADDCERTIFICATION, _, contents) if gmCommandAllowed =>
               val certs = contents.split(" ").filter(_ != "").map(name => Certification.values.find(_.name == name))
               if (certs.nonEmpty) {
                 if (certs.contains(None)) {
@@ -848,6 +819,48 @@ class ChatActor(
                     contents = s"@AckSuccessCertifications"
                   )
                 )
+              }
+
+            case (CMT_KICK, _, contents) if gmCommandAllowed =>
+              val input = contents.split("\\s+").drop(1)
+              if (input.length > 0) {
+                val numRegex = raw"(\d+)".r
+                val id       = input(0)
+                val determination: Player => Boolean = id match {
+                  case numRegex(_) => _.CharId == id.toLong
+                  case _           => _.Name.equals(id)
+                }
+                session.zone.LivePlayers
+                  .find(determination)
+                  .orElse(session.zone.Corpses.find(determination)) match {
+                  case Some(player) =>
+                    input.lift(1) match {
+                      case Some(numRegex(time)) =>
+                        sessionActor ! SessionActor.Kick(player, Some(time.toLong))
+                      case _ =>
+                        sessionActor ! SessionActor.Kick(player)
+                    }
+
+                    sessionActor ! SessionActor.SendResponse(
+                      ChatMsg(
+                        CMT_GMOPEN,
+                        message.wideContents,
+                        "Server",
+                        "@kick_o",
+                        message.note
+                      )
+                    )
+                  case None =>
+                    sessionActor ! SessionActor.SendResponse(
+                      ChatMsg(
+                        CMT_GMOPEN,
+                        message.wideContents,
+                        "Server",
+                        "@kick_o",
+                        message.note
+                      )
+                    )
+                }
               }
 
             case _ =>

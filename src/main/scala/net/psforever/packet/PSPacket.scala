@@ -3,6 +3,7 @@ package net.psforever.packet
 
 import java.nio.charset.Charset
 
+import enumeratum.{Enum, EnumEntry}
 import enumeratum.values.{IntEnum, IntEnumEntry}
 import scodec.{Attempt, Codec, DecodeResult, Err}
 import scodec.bits._
@@ -151,6 +152,28 @@ object PacketHelpers {
 
   def createLongIntEnumCodec[E <: IntEnumEntry](enum: IntEnum[E], storageCodec: Codec[Long]): Codec[E] = {
     createIntEnumCodec(enum, storageCodec.xmap[Int](_.toInt, _.toLong))
+  }
+
+  /** Create a Codec for enumeratum's Enum type */
+  def createEnumCodec[E <: EnumEntry](enum: Enum[E], storageCodec: Codec[Int]): Codec[E] = {
+    type Struct = Int :: HNil
+    val struct: Codec[Struct] = storageCodec.hlist
+
+    def to(pkt: E): Struct = {
+      enum.indexOf(pkt) :: HNil
+    }
+
+    def from(struct: Struct): Attempt[E] =
+      struct match {
+        case enumVal :: HNil =>
+          enum.valuesToIndex.find(_._2 == enumVal) match {
+            case Some((v, _)) => Attempt.successful(v)
+            case None =>
+              Attempt.failure(Err(s"Enum index '${enumVal}' not found in values '${enum.valuesToIndex.toString()}'"))
+          }
+      }
+
+    struct.narrow[E](from, to)
   }
 
   /** Common codec for how PlanetSide stores string sizes

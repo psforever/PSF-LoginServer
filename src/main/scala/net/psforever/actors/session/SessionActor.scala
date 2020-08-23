@@ -261,7 +261,7 @@ class SessionActor extends Actor with MDCContextAware {
     */
   var upstreamMessageCount: Int                                              = 0
   var zoningType: Zoning.Method.Value                                        = Zoning.Method.None
-  var zoningChatMessageType: ChatMessageType.Value                           = ChatMessageType.CMT_QUIT
+  var zoningChatMessageType: ChatMessageType                                 = ChatMessageType.CMT_QUIT
   var zoningStatus: Zoning.Status.Value                                      = Zoning.Status.None
   var zoningCounter: Int                                                     = 0
   var instantActionFallbackDestination: Option[Zoning.InstantAction.Located] = None
@@ -1736,12 +1736,13 @@ class SessionActor extends Actor with MDCContextAware {
 
   /**
     * The user no longer expects to perform a zoning event for this reason.
-    * @param msg the message to the user
+    *
+    * @param msg     the message to the user
     * @param msgType the type of message, influencing how it is presented to the user;
     *                normally, this message uses the same value as `zoningChatMessageType`s
     *                defaults to `None`
     */
-  def CancelZoningProcessWithReason(msg: String, msgType: Option[ChatMessageType.Value] = None): Unit = {
+  def CancelZoningProcessWithReason(msg: String, msgType: Option[ChatMessageType] = None): Unit = {
     if (zoningStatus > Zoning.Status.None) {
       sendResponse(ChatMsg(msgType.getOrElse(zoningChatMessageType), false, "", msg, None))
     }
@@ -9281,7 +9282,7 @@ class SessionActor extends Actor with MDCContextAware {
   }
 
   def KickedByAdministration(): Unit = {
-    sendResponse(DisconnectMessage("Your account has been logged out by a Customer Service Representative."))
+    sendResponse(DisconnectMessage("@kick_w"))
     Thread.sleep(300)
     sendResponse(DropSession(session.id, "kick by GM"))
   }

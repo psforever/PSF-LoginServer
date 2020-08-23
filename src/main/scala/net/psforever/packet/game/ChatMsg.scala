@@ -21,7 +21,7 @@ import scodec.codecs._
   * @param note only used when the message is of note type
   */
 final case class ChatMsg(
-    messageType: ChatMessageType.Value,
+    messageType: ChatMessageType,
     wideContents: Boolean,
     recipient: String,
     contents: String,

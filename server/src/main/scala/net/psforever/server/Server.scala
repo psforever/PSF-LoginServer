@@ -4,6 +4,7 @@ import java.net.InetAddress
 import java.nio.file.Paths
 import java.util.Locale
 
+import akka.actor.ActorSystem
 import akka.actor.typed.scaladsl.adapter._
 import akka.routing.RandomPool
 import akka.{actor => classic}
@@ -86,7 +87,7 @@ object Server {
     }
 
     /** Start up the main actor system. This "system" is the home for all actors running on this server */
-    implicit val system = classic.ActorSystem("PsLogin")
+    implicit val system: ActorSystem = classic.ActorSystem("PsLogin")
     Default(system)
 
     /** Create pipelines for the login and world servers
@@ -109,12 +110,12 @@ object Server {
       SessionPipeline("world-session-", classic.Props[SessionActor]())
     )
 
-    val netSim: Option[NetworkSimulatorParameters] = if (Config.app.developer.netSim.enable) {
+    val netSim: Option[NetworkSimulatorParameters] = if (Config.app.development.netSim.enable) {
       val params = NetworkSimulatorParameters(
-        Config.app.developer.netSim.loss,
-        Config.app.developer.netSim.delay.toMillis,
-        Config.app.developer.netSim.reorderChance,
-        Config.app.developer.netSim.reorderTime.toMillis
+        Config.app.development.netSim.loss,
+        Config.app.development.netSim.delay.toMillis,
+        Config.app.development.netSim.reorderChance,
+        Config.app.development.netSim.reorderTime.toMillis
       )
       logger.warn("NetSim is active")
       logger.warn(params.toString)
