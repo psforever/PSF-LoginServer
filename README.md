@@ -112,14 +112,12 @@ To get started using pgAdmin, run the binary. This will start the pgAdmin server
 with the interface. Upon first run, enter your connection details that you created during the PostgreSQL installation.
 When connected, right click the "Databases" menu -> Create... -> Database: psforever -> Save. Next, right click on the
 newly created database (psforever) -> Query Tool... -> Copy and paste the commands below -> Hit the "Play/Run" button.
-The user should be created and granted the right permissions on all future objects.
+The user should be created and made owner of the database.
 
 ```sql
 CREATE USER psforever;
 ALTER USER psforever WITH PASSWORD 'psforever';
-ALTER DEFAULT PRIVILEGES IN SCHEMA PUBLIC GRANT ALL ON TABLES TO psforever;
-ALTER DEFAULT PRIVILEGES IN SCHEMA PUBLIC GRANT ALL ON SEQUENCES TO psforever;
-ALTER DEFAULT PRIVILEGES IN SCHEMA PUBLIC GRANT ALL ON FUNCTIONS TO psforever;
+ALTER TABLE psforever OWNER TO psforever;
 ```
 **NOTE:** applying default privileges _after_ importing the schema will not apply them to existing objects. To fix this,
 *you must drop all objects and try again or apply permissions manually using the Query Tool / `psql`.
@@ -194,9 +192,9 @@ some helper scripts. Run the correct file for your platform (.BAT for Windows an
 
 ### Generating Documentation
 
-Using sbt, you can generate documentation for both the common and pslogin projects using `sbt unidoc`.
+Using sbt, you can generate documentation all projects using `sbt docs/unidoc`.
 
-Current documentation is available at [https://psforever.github.io/docs/master/index.html](https://psforever.github.io/docs/master/index.html)
+Current documentation is available at [https://jgillich.github.io/PSF-LoginServer/net/psforever/index.html](https://jgillich.github.io/PSF-LoginServer/net/psforever/index.html)
 
 ## Tools
 
