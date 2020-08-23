@@ -1,7 +1,8 @@
-// Copyright (c) 2017 PSForever
 package net.psforever.types
 
+import enumeratum.{Enum, EnumEntry}
 import net.psforever.packet.PacketHelpers
+import scodec.Codec
 import scodec.codecs._
 
 /**
@@ -18,264 +19,269 @@ import scodec.codecs._
   * CMT_METAGAME, CMT_SPEEDHACK, CMT_DUMPBUILDINGTREE, CMT_CLIENT_BATCH
   * CMT_COMMAND_ZONE96, CMT_COMMAND_ZONE97, CMT_COMMAND_ZONE98, CMT_COMMAND_ZONE99
   */
-object ChatMessageType extends Enumeration {
-  type Type = Value
-  val UNK_0,                  // ???
-  CMT_ALLIANCE,               // ??? unused
-  CMT_BATTLEGROUP,            // /bg (not working???)
-  CMT_BROADCAST,              // /broadcast OR /b
-  CMT_COMMAND,                // /command OR /c
-  CMT_COMMAND_ALLZONES,       // /comall
-  CMT_COMMAND_REPORT,         // /sitrep OR /situationreport
-  CMT_COMMAND_SANCTUARY,      // /comsanctuary OR /comsan
-  CMT_COMMAND_STATION,        // ??? unused
-  CMT_COMMAND_CAVERN1,        // /comsu OR /comsupai
-  CMT_COMMAND_CAVERN2,        // /comhu OR /comhunhau
-  CMT_COMMAND_CAVERN3,        // /comad OR /comadlivun
-  CMT_COMMAND_CAVERN4,        // /comby OR /combyblos
-  CMT_COMMAND_CAVERN5,        // /coman OR /comannwn
-  CMT_COMMAND_CAVERN6,        // /comdr OR /comdrugaskan
-  CMT_COMMAND_ZONE1,          // /comso OR /comsolsar
-  CMT_COMMAND_ZONE2,          // /comho OR /comhossin
-  CMT_COMMAND_ZONE3,          // /comcy OR /comcyssor
-  CMT_COMMAND_ZONE4,          // /comis OR /comishundar
-  CMT_COMMAND_ZONE5,          // /comfo OR /comforseral
-  CMT_COMMAND_ZONE6,          // /comce OR /comceryshen
-  CMT_COMMAND_ZONE7,          // /comes OR /comesamir
-  CMT_COMMAND_ZONE8,          // /comos OR /comoshur
-  CMT_COMMAND_ZONE8_PRIME,    // /compr OR /comoshurprime
-  CMT_COMMAND_ZONE9,          // /comse OR /comsearhus
-  CMT_COMMAND_ZONE10,         // /comam OR /comamerish
-  CMT_OPEN,                   // /local OR /l
-  CMT_OUTFIT,                 // /outfit OR /o
-  CMT_PLATOON,                // /platoon OR /p
-  CMT_PLATOONLEADER,          // /platoonleader OR /pl
-  CMT_SQUAD,                  // /squad OR /s
-  CMT_SQUADLEADER,            // /sl
-  CMT_TELL,                   // /tell OR /t
-  U_CMT_BLACKOPS_CHAT,        // ??? No slash command?
-  CMT_GMBROADCAST,            // /gmbroadcast
-  CMT_GMBROADCAST_NC,         // /ncbroadcast
-  CMT_GMBROADCAST_TR,         // /trbroadcast
-  CMT_GMBROADCAST_VS,         // /vsbroadcast
-  CMT_GMBROADCASTWORLD,       // /worldbroadcast OR /wb
-  CMT_GMOPEN,                 // /gmlocal
-  CMT_GMTELL,                 // /gmtell (actually causes normal /tell 0x20 when not a gm???)
-  CMT_NOTE,                   // /note
-  CMT_GMBROADCASTPOPUP,       // /gmpopup
-  U_CMT_GMTELLFROM,           // Acknowledgement of /gmtell for sender
-  U_CMT_TELLFROM,             // Acknowledgement of /tell for sender
-  UNK_45,                     // ??? empty
-  CMT_CULLWATERMARK,          // ??? This actually causes the client to ping back to the server with some stringified numbers "80 120" (with the same 46 chatmsg causing infinite loop?) - may be incorrect decoding
-  CMT_INSTANTACTION,          // /instantaction OR /ia
-  CMT_RECALL,                 // /recall
-  CMT_OUTFIT_RECALL,          // /outfitrecall
-  CMT_SQUAD_REMATRIX,         // ???
-  CMT_OUTFITRENAME_USER,      // /outfitrename
-  CMT_RENAME_USER,            // /rename
-  CMT_REPORTUSER,             // /report
-  CMT_VOICE,                  // quickchat (v-- commands)
-  CMT_WHO,                    // /who
-  CMT_WHO_CSR,                // /whocsr OR /whogm
-  CMT_WHO_PLATOONLEADERS,     // /whoplatoonleaders OR /whopl
-  CMT_WHO_SQUADLEADERS,       // /whosquadleaders OR /whosl
-  CMT_WHO_TEAMS,              // /whoteams OR /whoempires
-  CMT_WHO_CR,                 // /who cr<#>
-  CMT_QUIT,                   // /quit OR /q
-  CMT_HIDE_HELMET,            // /hide_helmet OR /helmet
-  CMT_TOGGLE_HAT,             // /hat
-  CMT_TOGGLE_SHADES,          // /shades
-  CMT_TOGGLE_EARPIECE,        // /earpiece
-  CMT_TOGGLE_GM,              // /gmtoggle
-  CMT_ANONYMOUS,              // /anon OR /anonymous
-  CMT_DESTROY,                // /destroy
-  CMT_KICK,                   // /worldkick
-  CMT_KICK_BY_ID,             // /worldkickid
-  UNK_71,                     // ??? empty (though the game elsewhere handles it similarly to 69!)
-  CMT_LOCKSERVER,             // /lockserver
-  CMT_UNLOCKSERVER,           // /unlockserver
-  CMT_CAPTUREBASE,            // /capturebase
-  CMT_CREATE,                 // /create
-  CMT_HACK_DOORS,             // /hackdoors
-  CMT_OUTFITCLAIM,            // /outfitclaim
-  CMT_OUTFITUNCLAIM,          // /outfitunclaim
-  CMT_SETBASERESOURCES,       // /setbaseresources
-  U_CMT_SETHEALTH_TARGET,     // /sethealth t
-  U_CMT_SETARMOR_TARGET,      // /setarmor t
-  CMT_SETVEHICLERESOURCES,    // /setvehicleresources
-  CMT_SUPER_CREATE,           // /supercreate OR /sc
-  CMT_VORTEX_MODULE,          // /vortex OR /vtx
-  U_CMT_RESPAWNAMS,           // /respawnams ("Create AMS Resp")
-  CMT_ADDBATTLEEXPERIENCE,    // /addbep
-  CMT_ADDCERTIFICATION,       // /certadd
-  CMT_ADDCOMMANDEXPERIENCE,   // /addcep
-  CMT_ADDIMPLANT,             // /addimplant
-  CMT_ARMOR,                  // /armor
-  CMT_ENABLEIMPLANT,          // /enableimplant
-  CMT_EXPANSIONS,             // /expansions
-  CMT_FIRST_TIME_EVENTS,      // /firsttime OR /fte
-  CMT_INVENTORYLAYOUT,        // /inventory
-  CMT_REMOVECERTIFICATION,    // /certrm
-  CMT_REMOVEIMPLANT,          // /removeimplant
-  CMT_SAVE,                   // /save
-  CMT_SETBATTLEEXPERIENCE,    // /setbep
-  CMT_SETBATTLERANK,          // /setbr
-  CMT_SETCAPACITANCE,         // /setcapacitance
-  CMT_SETCOMMANDEXPERIENCE,   // /setcep
-  CMT_SETCOMMANDRANK,         // /setcr
-  CMT_SETFAVORITE,            // /setfavorite
-  CMT_SETHEALTH,              // /sethealth
-  CMT_SETARMOR,               // /setarmor
-  CMT_SETIMPLANTSLOTS,        // /setimplantslots
-  CMT_SETSTAMINA,             // /setstamina
-  CMT_SUICIDE,                // /suicide
-  CMT_USEFAVORITE,            // /favorite
-  CMT_TOGGLERESPAWNPENALTY,   // /togglerespawnpenalty
-  CMT_SETAMMO,                // /setammo
-  CMT_AWARD_QUALIFY,          // /award_qualify
-  CMT_AWARD_PROGRESS,         // /award_progress
-  CMT_AWARD_ADD,              // /award_add
-  CMT_AWARD_REMOVE,           // /award_remove
-  CMT_STAT_ADD,               // /stat_add
-  CMT_BFR_SETCAVERNCAPS,      // /bfr_setcaverncaps
-  CMT_BFR_SETCAVERNKILLS,     // /bfr_setcavernkills
-  CMT_BFR_IMPRINT,            // /bfr_imprint
-  CMT_BFR_DAMAGE,             // /bfrdamage
-  CMT_BFR_DAMAGEWEAPON,       // /bfrdamageweapon
-  CMT_RESETPURCHASETIMERS,    // /resetpurchasetimers
-  CMT_EVENTPLAYTIME,          // /eventplaytime
-  CMT_SETTIME,                // /settime
-  CMT_SETTIMESPEED,           // /settimespeed
-  CMT_SNOOP,                  // /snoop
-  CMT_SOULMARK,               // /soulmark
-  CMT_FLY,                    // /fly
-  CMT_SPEED,                  // /speed
-  CMT_TOGGLESPECTATORMODE,    // /spectator
-  CMT_INFO,                   // /info
-  CMT_SHOWZONES,              // /showzones
-  CMT_SYNC,                   // /sync
-  CMT_SECURITY,               // /security
-  CMT_FIND,                   // /find
-  CMT_OUTFITCONFIRM,          // /outfitconfirm
-  CMT_OUTFITDELETE,           // /outfitdelete
-  CMT_OUTFITRENAME_GM,        // /outfitrenamegm
-  CMT_OUTFITLEADER,           // /outfitleader
-  CMT_OUTFITPOINTS,           // /outfitpoints
-  CMT_OUTFITPOINTS_CHARACTER, // /giveop
-  CMT_OUTFITCREDITS,          // /outfitcredits
-  CMT_RENAME_GM,              // /renamegm
-  CMT_SETGRIEF,               // /setgrief
-  CMT_SILENCE,                // /silence
-  CMT_SILENCE_OUTFIT,         // /silenceoutfit
-  CMT_COMMAND_SILENCE,        // /commandsilence
-  CMT_COMMAND_SILENCE_OUTFIT, // /commandsilenceoutfit
-  CMT_COMMAND_SILENCE_EMPIRE, // /commandsilenceempire
-  CMT_SUMMON,                 // /summon
-  CMT_AWARD,                  // /award
-  U_CMT_AWARD_ZONE,           // /award
-  CMT_AWARD_REVOKE,           // /award_revoke
-  U_CMT_AWARD_REVOKE_ZONE,    // /award_revoke
-  CMT_RESET_CERTS,            // /resetcerts
-  U_CMT_SETBATTLERANK_OTHER,  // /setbr <player_name>
-  U_CMT_SETCOMMANDRANK_OTHER, // /setcr <player_name>
-  CMT_GIVE_XP,                // /givexp
-  CMT_BLACKOPS,               // /blackops
-  CMT_GRANT_BFR_IMPRINT,      // /grant_bfr_imprint
-  CMT_WARP,                   // /warp
-  CMT_SETPOPULATIONCAP,       // /popcap
-  U_CMT_SHUTDOWN,             // /shutdown "Shutdown"
-  CMT_MEMORYLOG,              // /memorylog
-  U_CMT_ZONEROTATE,           // /zonerotate
-  CMT_SHIFTER_ENABLE,         // /shifteron
-  CMT_SHIFTER_DISABLE,        // /shifteroff
-  CMT_SHIFTER_CREATE,         // /shiftercreate
-  CMT_SHIFTER_CLEAR,          // /shifterclear
-  CMT_MODULE_SPAWN_STAGGER,   // /modulespawnstagger OR /stagger
-  CMT_MODULE_SPAWN_POP,       // /modulespawnpop OR /pop
-  CMT_PROPERTY_OVERRIDE,      // /setprop
-  CMT_PROPERTY_OVERRIDE_ZONE, // /setpropzone
-  CMT_SET_EMPIRE_BENEFIT,     // /setempirebenefit
-  CMT_REMOVE_EMPIRE_BENEFIT,  // /removeempirebenefit
-  CMT_SET_DEFCON_LEVEL,       // /setdefconlevel
-  GET_DEFCON_TIME,            // /get_defcon_time
-  CMT_RELOAD_ACTOFGOD_INFO,   // /reload_actofgod
-  CMT_SET_DEFCON_WEIGHT,      // /setdefconweight
-  CMT_SET_DEFCON_EVENT_NAME,  // /setdefconeventname
-  CMT_EARTHQUAKE,             // /earthquake
-  CMT_METEOR_SHOWER,          // /meteor_shower
-  CMT_SPAWN_MONOLITH,         // /spawn_monolith
-  CMT_PKG,                    // /pkg
-  CMT_ZONECOMMAND,            // /zcommand
-  CMT_ZONESTART,              // /zstart
-  CMT_ZONESTOP,               // /zstop
-  CMT_ZONELOCK,               // /zlock
-  CMT_BOLOCK,                 // /bolock
-  CMT_TRAINING_ZONE,          // /train
-  CMT_ZONE,                   // /zone
-  CMT_SHOWDAMAGE,             // /showdamage
-  CMT_EMPIREINCENTIVES,       // /empireincentives
-  CMT_MINE,                   // /mine
-  CMT_BATTLEPLANPUBLISH,      // /publish
-  CMT_BATTLEPLANUNPUBLISH,    // /unpublish
-  CMT_BATTLEPLANSUBSCRIBE,    // /subscribe
-  CMT_BATTLEPLANUNSUBSCRIBE,  // /unsubscribe
-  CMT_TEST_BLDG_MODULES,      // /testmodule
-  CMT_SQUAD_TEST,             // /squadtest
-  CMT_HOTSPOT,                // /hotspot OR /hot
-  CMT_SHIFTER_SAVE,           // /shiftersave
-  CMT_SHIFTER_LOAD,           // /shifterload
-  CMT_LIST_ASSETS,            // /listassets
-  CMT_CHECK_PROPERTIES,       // /checkprops
-  CMT_PROPERTY_QUERY,         // /queryprop
-  CMT_INACTIVITYTIMEOUT,      // /inactivitytimeout
-  CMT_SHOW_XPSPLIT,           // /xpsplit
-  CMT_XPDIST,                 // /xpdist
-  CMT_SHOWXPDIST,             // /showxpdist
-  CMT_ENTITYREPORT,           // /entityreport
-  CMT_START_MISSION,          // /startmission
-  CMT_RESET_MISSION,          // /resetmission
-  CMT_CANCEL_MISSION,         // /cancelmission
-  CMT_COMPLETE_MISSION,       // /completemission
-  CMT_GOTO_MISSION_STEP,      // /gotomissionstep
-  CMT_SHOW_MISSION_TRIGGERS,  // /showmissiontriggers
-  CMT_ADD_VANUMODULE,         // /moduleadd
-  CMT_REMOVE_VANUMODULE,      // /moduleremove OR /modulerm
-  CMT_DEBUG_MASSIVE,          // /debugmassive
-  CMT_WARP_TO_NEXT_BILLBOARD, // ???
-  UNK_222,                    // ??? "CTF Flag stolen"
-  UNK_223,                    // ??? "CTF Flag lost"
-  UNK_224,                    // ??? "Vehicle Dismount"
-  UNK_225,                    // ??? empty
-  UNK_226,                    // ??? empty
-  UNK_227,                    // ??? empty
-  UNK_228,                    // ??? empty
-  UNK_229,                    // ??? empty
-  UNK_230,                    // ??? "Vehicle Mount"
-  UNK_231,                    // ??? empty
-  UNK_232,                    // ??? empty
-  CMT_ALARM,                  // /alarm
-  CMT_APPEAL,                 // /appeal
-  CMT_BUGREPORT,              // /bug
-  CMT_CHATLOG,                // /log
-  CMT_CREATE_MACRO,           // /macro
-  CMT_EMOTE,                  // /emote OR /em
-  CMT_FILTER,                 // /filter
-  CMT_FRIENDS,                // /friends
-  CMT_IGNORE,                 // /ignore
-  CMT_HELP,                   // /help OR /gm
-  CMT_LOC,                    // /loc
-  CMT_REPLY,                  // /reply OR /r
-  CMT_TIME,                   // /time
-  CMT_TIMEDHELP,              // /timedhelp
-  CMT_TOGGLE_STATS,           // /stats
-  CMT_VERSION,                // /version
-  CMT_INCENTIVES,             // /incentives
-  CMT_HIDESPECTATOR,          // /hidespectator
-  CMT_HUMBUG,                 // /humbug
-  CMT_SOUND_HORNS,            // /horns
-  CMT_SQUADINVITE,            // /invite OR /squadinvite
-  CMT_SQUADKICK,              // /kick
-  CMT_SQUADACCEPTINVITATION   // /accept OR /yes
+sealed abstract class ChatMessageType extends EnumEntry {}
+
+object ChatMessageType extends Enum[ChatMessageType] {
+
+  val values: IndexedSeq[ChatMessageType] = findValues
+
+  case object UNK_0                   extends ChatMessageType // ???
+  case object CMT_ALLIANCE            extends ChatMessageType // ??? unused
+  case object CMT_BATTLEGROUP         extends ChatMessageType // /bg (not working???)
+  case object CMT_BROADCAST           extends ChatMessageType // /broadcast OR /b
+  case object CMT_COMMAND             extends ChatMessageType // /command OR /c
+  case object CMT_COMMAND_ALLZONES    extends ChatMessageType // /comall
+  case object CMT_COMMAND_REPORT      extends ChatMessageType // /sitrep OR /situationreport
+  case object CMT_COMMAND_SANCTUARY   extends ChatMessageType // /comsanctuary OR /comsan
+  case object CMT_COMMAND_STATION     extends ChatMessageType // ??? unused
+  case object CMT_COMMAND_CAVERN1     extends ChatMessageType // /comsu OR /comsupai
+  case object CMT_COMMAND_CAVERN2     extends ChatMessageType // /comhu OR /comhunhau
+  case object CMT_COMMAND_CAVERN3     extends ChatMessageType // /comad OR /comadlivun
+  case object CMT_COMMAND_CAVERN4     extends ChatMessageType // /comby OR /combyblos
+  case object CMT_COMMAND_CAVERN5     extends ChatMessageType // /coman OR /comannwn
+  case object CMT_COMMAND_CAVERN6     extends ChatMessageType // /comdr OR /comdrugaskan
+  case object CMT_COMMAND_ZONE1       extends ChatMessageType // /comso OR /comsolsar
+  case object CMT_COMMAND_ZONE2       extends ChatMessageType // /comho OR /comhossin
+  case object CMT_COMMAND_ZONE3       extends ChatMessageType // /comcy OR /comcyssor
+  case object CMT_COMMAND_ZONE4       extends ChatMessageType // /comis OR /comishundar
+  case object CMT_COMMAND_ZONE5       extends ChatMessageType // /comfo OR /comforseral
+  case object CMT_COMMAND_ZONE6       extends ChatMessageType // /comce OR /comceryshen
+  case object CMT_COMMAND_ZONE7       extends ChatMessageType // /comes OR /comesamir
+  case object CMT_COMMAND_ZONE8       extends ChatMessageType // /comos OR /comoshur
+  case object CMT_COMMAND_ZONE8_PRIME extends ChatMessageType // /compr OR /comoshurprime
+  case object CMT_COMMAND_ZONE9       extends ChatMessageType // /comse OR /comsearhus
+  case object CMT_COMMAND_ZONE10      extends ChatMessageType // /comam OR /comamerish
+  case object CMT_OPEN                extends ChatMessageType // /local OR /l
+  case object CMT_OUTFIT              extends ChatMessageType // /outfit OR /o
+  case object CMT_PLATOON             extends ChatMessageType // /platoon OR /p
+  case object CMT_PLATOONLEADER       extends ChatMessageType // /platoonleader OR /pl
+  case object CMT_SQUAD               extends ChatMessageType // /squad OR /s
+  case object CMT_SQUADLEADER         extends ChatMessageType // /sl
+  case object CMT_TELL                extends ChatMessageType // /tell OR /t
+  case object U_CMT_BLACKOPS_CHAT     extends ChatMessageType // ??? No slash command?
+  case object CMT_GMBROADCAST         extends ChatMessageType // /gmbroadcast
+  case object CMT_GMBROADCAST_NC      extends ChatMessageType // /ncbroadcast
+  case object CMT_GMBROADCAST_TR      extends ChatMessageType // /trbroadcast
+  case object CMT_GMBROADCAST_VS      extends ChatMessageType // /vsbroadcast
+  case object CMT_GMBROADCASTWORLD    extends ChatMessageType // /worldbroadcast OR /wb
+  case object CMT_GMOPEN              extends ChatMessageType // /gmlocal
+  case object CMT_GMTELL              extends ChatMessageType // /gmtell (actually causes normal /tell 0x20 when not a gm???)
+  case object CMT_NOTE                extends ChatMessageType // /note
+  case object CMT_GMBROADCASTPOPUP    extends ChatMessageType // /gmpopup
+  case object U_CMT_GMTELLFROM        extends ChatMessageType // Acknowledgement of /gmtell for sender
+  case object U_CMT_TELLFROM          extends ChatMessageType // Acknowledgement of /tell for sender
+  case object UNK_45                  extends ChatMessageType // ??? empty
+  case object CMT_CULLWATERMARK
+      extends ChatMessageType // ??? This actually causes the client to ping back to the server with some stringified numbers "80 120" (with the same 46 chatmsg causing infinite loop?) - may be incorrect decoding
+  case object CMT_INSTANTACTION          extends ChatMessageType // /instantaction OR /ia
+  case object CMT_RECALL                 extends ChatMessageType // /recall
+  case object CMT_OUTFIT_RECALL          extends ChatMessageType // /outfitrecall
+  case object CMT_SQUAD_REMATRIX         extends ChatMessageType // ???
+  case object CMT_OUTFITRENAME_USER      extends ChatMessageType // /outfitrename
+  case object CMT_RENAME_USER            extends ChatMessageType // /rename
+  case object CMT_REPORTUSER             extends ChatMessageType // /report
+  case object CMT_VOICE                  extends ChatMessageType // quickchat (v-- commands)
+  case object CMT_WHO                    extends ChatMessageType // /who
+  case object CMT_WHO_CSR                extends ChatMessageType // /whocsr OR /whogm
+  case object CMT_WHO_PLATOONLEADERS     extends ChatMessageType // /whoplatoonleaders OR /whopl
+  case object CMT_WHO_SQUADLEADERS       extends ChatMessageType // /whosquadleaders OR /whosl
+  case object CMT_WHO_TEAMS              extends ChatMessageType // /whoteams OR /whoempires
+  case object CMT_WHO_CR                 extends ChatMessageType // /who cr<#>
+  case object CMT_QUIT                   extends ChatMessageType // /quit OR /q
+  case object CMT_HIDE_HELMET            extends ChatMessageType // /hide_helmet OR /helmet
+  case object CMT_TOGGLE_HAT             extends ChatMessageType // /hat
+  case object CMT_TOGGLE_SHADES          extends ChatMessageType // /shades
+  case object CMT_TOGGLE_EARPIECE        extends ChatMessageType // /earpiece
+  case object CMT_TOGGLE_GM              extends ChatMessageType // /gmtoggle
+  case object CMT_ANONYMOUS              extends ChatMessageType // /anon OR /anonymous
+  case object CMT_DESTROY                extends ChatMessageType // /destroy
+  case object CMT_KICK                   extends ChatMessageType // /worldkick
+  case object CMT_KICK_BY_ID             extends ChatMessageType // /worldkickid
+  case object UNK_71                     extends ChatMessageType // ??? empty (though the game elsewhere handles it similarly to 69!)
+  case object CMT_LOCKSERVER             extends ChatMessageType // /lockserver
+  case object CMT_UNLOCKSERVER           extends ChatMessageType // /unlockserver
+  case object CMT_CAPTUREBASE            extends ChatMessageType // /capturebase
+  case object CMT_CREATE                 extends ChatMessageType // /create
+  case object CMT_HACK_DOORS             extends ChatMessageType // /hackdoors
+  case object CMT_OUTFITCLAIM            extends ChatMessageType // /outfitclaim
+  case object CMT_OUTFITUNCLAIM          extends ChatMessageType // /outfitunclaim
+  case object CMT_SETBASERESOURCES       extends ChatMessageType // /setbaseresources
+  case object U_CMT_SETHEALTH_TARGET     extends ChatMessageType // /sethealth t
+  case object U_CMT_SETARMOR_TARGET      extends ChatMessageType // /setarmor t
+  case object CMT_SETVEHICLERESOURCES    extends ChatMessageType // /setvehicleresources
+  case object CMT_SUPER_CREATE           extends ChatMessageType // /supercreate OR /sc
+  case object CMT_VORTEX_MODULE          extends ChatMessageType // /vortex OR /vtx
+  case object U_CMT_RESPAWNAMS           extends ChatMessageType // /respawnams ("Create AMS Resp")
+  case object CMT_ADDBATTLEEXPERIENCE    extends ChatMessageType // /addbep
+  case object CMT_ADDCERTIFICATION       extends ChatMessageType // /certadd
+  case object CMT_ADDCOMMANDEXPERIENCE   extends ChatMessageType // /addcep
+  case object CMT_ADDIMPLANT             extends ChatMessageType // /addimplant
+  case object CMT_ARMOR                  extends ChatMessageType // /armor
+  case object CMT_ENABLEIMPLANT          extends ChatMessageType // /enableimplant
+  case object CMT_EXPANSIONS             extends ChatMessageType // /expansions
+  case object CMT_FIRST_TIME_EVENTS      extends ChatMessageType // /firsttime OR /fte
+  case object CMT_INVENTORYLAYOUT        extends ChatMessageType // /inventory
+  case object CMT_REMOVECERTIFICATION    extends ChatMessageType // /certrm
+  case object CMT_REMOVEIMPLANT          extends ChatMessageType // /removeimplant
+  case object CMT_SAVE                   extends ChatMessageType // /save
+  case object CMT_SETBATTLEEXPERIENCE    extends ChatMessageType // /setbep
+  case object CMT_SETBATTLERANK          extends ChatMessageType // /setbr
+  case object CMT_SETCAPACITANCE         extends ChatMessageType // /setcapacitance
+  case object CMT_SETCOMMANDEXPERIENCE   extends ChatMessageType // /setcep
+  case object CMT_SETCOMMANDRANK         extends ChatMessageType // /setcr
+  case object CMT_SETFAVORITE            extends ChatMessageType // /setfavorite
+  case object CMT_SETHEALTH              extends ChatMessageType // /sethealth
+  case object CMT_SETARMOR               extends ChatMessageType // /setarmor
+  case object CMT_SETIMPLANTSLOTS        extends ChatMessageType // /setimplantslots
+  case object CMT_SETSTAMINA             extends ChatMessageType // /setstamina
+  case object CMT_SUICIDE                extends ChatMessageType // /suicide
+  case object CMT_USEFAVORITE            extends ChatMessageType // /favorite
+  case object CMT_TOGGLERESPAWNPENALTY   extends ChatMessageType // /togglerespawnpenalty
+  case object CMT_SETAMMO                extends ChatMessageType // /setammo
+  case object CMT_AWARD_QUALIFY          extends ChatMessageType // /award_qualify
+  case object CMT_AWARD_PROGRESS         extends ChatMessageType // /award_progress
+  case object CMT_AWARD_ADD              extends ChatMessageType // /award_add
+  case object CMT_AWARD_REMOVE           extends ChatMessageType // /award_remove
+  case object CMT_STAT_ADD               extends ChatMessageType // /stat_add
+  case object CMT_BFR_SETCAVERNCAPS      extends ChatMessageType // /bfr_setcaverncaps
+  case object CMT_BFR_SETCAVERNKILLS     extends ChatMessageType // /bfr_setcavernkills
+  case object CMT_BFR_IMPRINT            extends ChatMessageType // /bfr_imprint
+  case object CMT_BFR_DAMAGE             extends ChatMessageType // /bfrdamage
+  case object CMT_BFR_DAMAGEWEAPON       extends ChatMessageType // /bfrdamageweapon
+  case object CMT_RESETPURCHASETIMERS    extends ChatMessageType // /resetpurchasetimers
+  case object CMT_EVENTPLAYTIME          extends ChatMessageType // /eventplaytime
+  case object CMT_SETTIME                extends ChatMessageType // /settime
+  case object CMT_SETTIMESPEED           extends ChatMessageType // /settimespeed
+  case object CMT_SNOOP                  extends ChatMessageType // /snoop
+  case object CMT_SOULMARK               extends ChatMessageType // /soulmark
+  case object CMT_FLY                    extends ChatMessageType // /fly
+  case object CMT_SPEED                  extends ChatMessageType // /speed
+  case object CMT_TOGGLESPECTATORMODE    extends ChatMessageType // /spectator
+  case object CMT_INFO                   extends ChatMessageType // /info
+  case object CMT_SHOWZONES              extends ChatMessageType // /showzones
+  case object CMT_SYNC                   extends ChatMessageType // /sync
+  case object CMT_SECURITY               extends ChatMessageType // /security
+  case object CMT_FIND                   extends ChatMessageType // /find
+  case object CMT_OUTFITCONFIRM          extends ChatMessageType // /outfitconfirm
+  case object CMT_OUTFITDELETE           extends ChatMessageType // /outfitdelete
+  case object CMT_OUTFITRENAME_GM        extends ChatMessageType // /outfitrenamegm
+  case object CMT_OUTFITLEADER           extends ChatMessageType // /outfitleader
+  case object CMT_OUTFITPOINTS           extends ChatMessageType // /outfitpoints
+  case object CMT_OUTFITPOINTS_CHARACTER extends ChatMessageType // /giveop
+  case object CMT_OUTFITCREDITS          extends ChatMessageType // /outfitcredits
+  case object CMT_RENAME_GM              extends ChatMessageType // /renamegm
+  case object CMT_SETGRIEF               extends ChatMessageType // /setgrief
+  case object CMT_SILENCE                extends ChatMessageType // /silence
+  case object CMT_SILENCE_OUTFIT         extends ChatMessageType // /silenceoutfit
+  case object CMT_COMMAND_SILENCE        extends ChatMessageType // /commandsilence
+  case object CMT_COMMAND_SILENCE_OUTFIT extends ChatMessageType // /commandsilenceoutfit
+  case object CMT_COMMAND_SILENCE_EMPIRE extends ChatMessageType // /commandsilenceempire
+  case object CMT_SUMMON                 extends ChatMessageType // /summon
+  case object CMT_AWARD                  extends ChatMessageType // /award
+  case object U_CMT_AWARD_ZONE           extends ChatMessageType // /award
+  case object CMT_AWARD_REVOKE           extends ChatMessageType // /award_revoke
+  case object U_CMT_AWARD_REVOKE_ZONE    extends ChatMessageType // /award_revoke
+  case object CMT_RESET_CERTS            extends ChatMessageType // /resetcerts
+  case object U_CMT_SETBATTLERANK_OTHER  extends ChatMessageType // /setbr <player_name>
+  case object U_CMT_SETCOMMANDRANK_OTHER extends ChatMessageType // /setcr <player_name>
+  case object CMT_GIVE_XP                extends ChatMessageType // /givexp
+  case object CMT_BLACKOPS               extends ChatMessageType // /blackops
+  case object CMT_GRANT_BFR_IMPRINT      extends ChatMessageType // /grant_bfr_imprint
+  case object CMT_WARP                   extends ChatMessageType // /warp
+  case object CMT_SETPOPULATIONCAP       extends ChatMessageType // /popcap
+  case object U_CMT_SHUTDOWN             extends ChatMessageType // /shutdown "Shutdown"
+  case object CMT_MEMORYLOG              extends ChatMessageType // /memorylog
+  case object U_CMT_ZONEROTATE           extends ChatMessageType // /zonerotate
+  case object CMT_SHIFTER_ENABLE         extends ChatMessageType // /shifteron
+  case object CMT_SHIFTER_DISABLE        extends ChatMessageType // /shifteroff
+  case object CMT_SHIFTER_CREATE         extends ChatMessageType // /shiftercreate
+  case object CMT_SHIFTER_CLEAR          extends ChatMessageType // /shifterclear
+  case object CMT_MODULE_SPAWN_STAGGER   extends ChatMessageType // /modulespawnstagger OR /stagger
+  case object CMT_MODULE_SPAWN_POP       extends ChatMessageType // /modulespawnpop OR /pop
+  case object CMT_PROPERTY_OVERRIDE      extends ChatMessageType // /setprop
+  case object CMT_PROPERTY_OVERRIDE_ZONE extends ChatMessageType // /setpropzone
+  case object CMT_SET_EMPIRE_BENEFIT     extends ChatMessageType // /setempirebenefit
+  case object CMT_REMOVE_EMPIRE_BENEFIT  extends ChatMessageType // /removeempirebenefit
+  case object CMT_SET_DEFCON_LEVEL       extends ChatMessageType // /setdefconlevel
+  case object GET_DEFCON_TIME            extends ChatMessageType // /get_defcon_time
+  case object CMT_RELOAD_ACTOFGOD_INFO   extends ChatMessageType // /reload_actofgod
+  case object CMT_SET_DEFCON_WEIGHT      extends ChatMessageType // /setdefconweight
+  case object CMT_SET_DEFCON_EVENT_NAME  extends ChatMessageType // /setdefconeventname
+  case object CMT_EARTHQUAKE             extends ChatMessageType // /earthquake
+  case object CMT_METEOR_SHOWER          extends ChatMessageType // /meteor_shower
+  case object CMT_SPAWN_MONOLITH         extends ChatMessageType // /spawn_monolith
+  case object CMT_PKG                    extends ChatMessageType // /pkg
+  case object CMT_ZONECOMMAND            extends ChatMessageType // /zcommand
+  case object CMT_ZONESTART              extends ChatMessageType // /zstart
+  case object CMT_ZONESTOP               extends ChatMessageType // /zstop
+  case object CMT_ZONELOCK               extends ChatMessageType // /zlock
+  case object CMT_BOLOCK                 extends ChatMessageType // /bolock
+  case object CMT_TRAINING_ZONE          extends ChatMessageType // /train
+  case object CMT_ZONE                   extends ChatMessageType // /zone
+  case object CMT_SHOWDAMAGE             extends ChatMessageType // /showdamage
+  case object CMT_EMPIREINCENTIVES       extends ChatMessageType // /empireincentives
+  case object CMT_MINE                   extends ChatMessageType // /mine
+  case object CMT_BATTLEPLANPUBLISH      extends ChatMessageType // /publish
+  case object CMT_BATTLEPLANUNPUBLISH    extends ChatMessageType // /unpublish
+  case object CMT_BATTLEPLANSUBSCRIBE    extends ChatMessageType // /subscribe
+  case object CMT_BATTLEPLANUNSUBSCRIBE  extends ChatMessageType // /unsubscribe
+  case object CMT_TEST_BLDG_MODULES      extends ChatMessageType // /testmodule
+  case object CMT_SQUAD_TEST             extends ChatMessageType // /squadtest
+  case object CMT_HOTSPOT                extends ChatMessageType // /hotspot OR /hot
+  case object CMT_SHIFTER_SAVE           extends ChatMessageType // /shiftersave
+  case object CMT_SHIFTER_LOAD           extends ChatMessageType // /shifterload
+  case object CMT_LIST_ASSETS            extends ChatMessageType // /listassets
+  case object CMT_CHECK_PROPERTIES       extends ChatMessageType // /checkprops
+  case object CMT_PROPERTY_QUERY         extends ChatMessageType // /queryprop
+  case object CMT_INACTIVITYTIMEOUT      extends ChatMessageType // /inactivitytimeout
+  case object CMT_SHOW_XPSPLIT           extends ChatMessageType // /xpsplit
+  case object CMT_XPDIST                 extends ChatMessageType // /xpdist
+  case object CMT_SHOWXPDIST             extends ChatMessageType // /showxpdist
+  case object CMT_ENTITYREPORT           extends ChatMessageType // /entityreport
+  case object CMT_START_MISSION          extends ChatMessageType // /startmission
+  case object CMT_RESET_MISSION          extends ChatMessageType // /resetmission
+  case object CMT_CANCEL_MISSION         extends ChatMessageType // /cancelmission
+  case object CMT_COMPLETE_MISSION       extends ChatMessageType // /completemission
+  case object CMT_GOTO_MISSION_STEP      extends ChatMessageType // /gotomissionstep
+  case object CMT_SHOW_MISSION_TRIGGERS  extends ChatMessageType // /showmissiontriggers
+  case object CMT_ADD_VANUMODULE         extends ChatMessageType // /moduleadd
+  case object CMT_REMOVE_VANUMODULE      extends ChatMessageType // /moduleremove OR /modulerm
+  case object CMT_DEBUG_MASSIVE          extends ChatMessageType // /debugmassive
+  case object CMT_WARP_TO_NEXT_BILLBOARD extends ChatMessageType // ???
+  case object UNK_222                    extends ChatMessageType // ??? "CTF Flag stolen"
+  case object UNK_223                    extends ChatMessageType // ??? "CTF Flag lost"
+  case object UNK_224                    extends ChatMessageType // ??? "Vehicle Dismount"
+  case object UNK_225                    extends ChatMessageType // ??? empty
+  case object UNK_226                    extends ChatMessageType // ??? empty
+  case object UNK_227                    extends ChatMessageType // ??? empty
+  case object UNK_228                    extends ChatMessageType // ??? empty
+  case object UNK_229                    extends ChatMessageType // ??? empty
+  case object UNK_230                    extends ChatMessageType // ??? "Vehicle Mount"
+  case object UNK_231                    extends ChatMessageType // ??? empty
+  case object UNK_232                    extends ChatMessageType // ??? empty
+  case object CMT_ALARM                  extends ChatMessageType // /alarm
+  case object CMT_APPEAL                 extends ChatMessageType // /appeal
+  case object CMT_BUGREPORT              extends ChatMessageType // /bug
+  case object CMT_CHATLOG                extends ChatMessageType // /log
+  case object CMT_CREATE_MACRO           extends ChatMessageType // /macro
+  case object CMT_EMOTE                  extends ChatMessageType // /emote OR /em
+  case object CMT_FILTER                 extends ChatMessageType // /filter
+  case object CMT_FRIENDS                extends ChatMessageType // /friends
+  case object CMT_IGNORE                 extends ChatMessageType // /ignore
+  case object CMT_HELP                   extends ChatMessageType // /help OR /gm
+  case object CMT_LOC                    extends ChatMessageType // /loc
+  case object CMT_REPLY                  extends ChatMessageType // /reply OR /r
+  case object CMT_TIME                   extends ChatMessageType // /time
+  case object CMT_TIMEDHELP              extends ChatMessageType // /timedhelp
+  case object CMT_TOGGLE_STATS           extends ChatMessageType // /stats
+  case object CMT_VERSION                extends ChatMessageType // /version
+  case object CMT_INCENTIVES             extends ChatMessageType // /incentives
+  case object CMT_HIDESPECTATOR          extends ChatMessageType // /hidespectator
+  case object CMT_HUMBUG                 extends ChatMessageType // /humbug
+  case object CMT_SOUND_HORNS            extends ChatMessageType // /horns
+  case object CMT_SQUADINVITE            extends ChatMessageType // /invite OR /squadinvite
+  case object CMT_SQUADKICK              extends ChatMessageType // /kick
+  case object CMT_SQUADACCEPTINVITATION  extends ChatMessageType // /accept OR /yes
 
   /* TODO: Past this point, the types overflow 8 bits, so need a way to either map them for ChatMsg or just take them completely out
 
@@ -342,9 +348,7 @@ object ChatMessageType extends Enumeration {
 
    */
 
-  = Value
-
-  implicit val codec = PacketHelpers.createEnumerationCodec(this, uint8L)
+  implicit val codec: Codec[ChatMessageType] = PacketHelpers.createEnumCodec(this, uint8L)
 }
 
 /*

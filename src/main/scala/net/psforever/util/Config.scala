@@ -3,11 +3,14 @@ package net.psforever.util
 import java.nio.file.Paths
 
 import com.typesafe.config.{Config => TypesafeConfig}
+import enumeratum.{Enum, EnumEntry}
 import enumeratum.values.{IntEnum, IntEnumEntry}
 import net.psforever.packet.game.ServerType
+import net.psforever.types.ChatMessageType
 import pureconfig.ConfigConvert.viaNonEmptyStringOpt
 import pureconfig.ConfigReader.Result
 import pureconfig.{ConfigConvert, ConfigSource}
+
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
 import pureconfig.generic.auto._ // intellij: this is not unused
@@ -28,13 +31,25 @@ object Config {
     viaNonEmptyStringOpt[A](
       v =>
         enum.values.toList.collectFirst {
-          case (e: ServerType) if e.name == v => e.asInstanceOf[A]
+          case e: ServerType if e.name == v => e.asInstanceOf[A]
         },
       _.value.toString
     )
 
+  implicit def enumeratumConfigConvert[A <: EnumEntry](implicit
+      enum: Enum[A],
+      ct: ClassTag[A]
+  ): ConfigConvert[A] =
+    viaNonEmptyStringOpt[A](
+      v =>
+        enum.values.toList.collectFirst {
+          case e if e.toString.toLowerCase == v.toLowerCase => e.asInstanceOf[A]
+        },
+      _.toString
+    )
+
   private val source = {
-    val configFile = Paths.get(directory, "psforever.conf").toFile()
+    val configFile = Paths.get(directory, "psforever.conf").toFile
     if (configFile.exists)
       ConfigSource.file(configFile).withFallback(ConfigSource.defaultApplication)
     else
@@ -60,7 +75,7 @@ case class AppConfig(
     game: GameConfig,
     antiCheat: AntiCheatConfig,
     network: NetworkConfig,
-    developer: DeveloperConfig,
+    development: DevelopmentConfig,
     kamon: KamonConfig,
     sentry: SentryConfig
 )
@@ -109,7 +124,8 @@ case class GameConfig(
     instantActionAms: Boolean
 )
 
-case class DeveloperConfig(
+case class DevelopmentConfig(
+    unprivilegedGmCommands: Seq[ChatMessageType],
     netSim: NetSimConfig
 )
 
