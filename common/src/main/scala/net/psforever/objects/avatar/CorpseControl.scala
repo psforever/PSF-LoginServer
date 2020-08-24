@@ -62,7 +62,7 @@ class CorpseControl(player: Player) extends Actor with ContainableBehavior {
     )
   }
 
-  def SwapItemCallback(item: Equipment): Unit = {
+  def SwapItemCallback(item: Equipment, fromSlot: Int): Unit = {
     val obj  = ContainerObject
     val zone = obj.Zone
     zone.AvatarEvents ! AvatarServiceMessage(

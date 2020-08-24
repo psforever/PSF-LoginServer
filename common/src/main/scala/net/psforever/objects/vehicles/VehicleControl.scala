@@ -450,12 +450,13 @@ class VehicleControl(vehicle: Vehicle)
     }
   }
 
-  def SwapItemCallback(item: Equipment): Unit = {
+  def SwapItemCallback(item: Equipment, fromSlot: Int): Unit = {
     val obj  = ContainerObject
     val zone = obj.Zone
+    val toChannel = if (obj.VisibleSlots.contains(fromSlot)) zone.id else self.toString
     zone.VehicleEvents ! VehicleServiceMessage(
-      self.toString,
-      VehicleAction.SendResponse(Service.defaultPlayerGUID, ObjectDetachMessage(obj.GUID, item.GUID, Vector3.Zero, 0f))
+      toChannel,
+      VehicleAction.ObjectDelete(Service.defaultPlayerGUID, item.GUID)
     )
   }
 

@@ -112,7 +112,7 @@ class LockerContainerControl(locker: LockerContainer, toChannel: String) extends
     )
   }
 
-  def SwapItemCallback(item: Equipment): Unit = {
+  def SwapItemCallback(item: Equipment, fromSlot: Int): Unit = {
     val zone = locker.Zone
     zone.AvatarEvents ! AvatarServiceMessage(
       toChannel,

@@ -1892,6 +1892,12 @@ class SessionActor extends Actor with MDCContextAware {
 
       case AvatarResponse.Killed(mount) =>
         val respawnTimer = 300.seconds
+        //drop free hand item
+        player.FreeHand.Equipment match {
+          case Some(item) =>
+            DropEquipmentFromInventory(player)(item)
+          case None => ;
+        }
         ToggleMaxSpecialState(enable = false)
         keepAliveFunc = NormalKeepAlive
         zoningStatus = Zoning.Status.None
