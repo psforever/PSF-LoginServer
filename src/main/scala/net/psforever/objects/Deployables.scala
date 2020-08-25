@@ -141,35 +141,4 @@ object Deployables {
     avatar.deployables.UpdateUI()
   }
 
-  /**
-    * The player learned a new certification.
-    * Update the deployables user interface elements if it was an "Engineering" certification.
-    * The certification "Advanced Hacking" also relates to an element.
-    * @param certification the certification that was added
-    * @param certificationSet all applicable certifications
-    */
-  def AddToDeployableQuantities(
-      avatar: Avatar,
-      certification: Certification,
-      certificationSet: Set[Certification]
-  ): List[(Int, Int, Int, Int)] = {
-    avatar.deployables.AddToDeployableQuantities(certification, certificationSet)
-    avatar.deployables.UpdateUI(certification)
-  }
-
-  /**
-    * The player forgot a certification he previously knew.
-    * Update the deployables user interface elements if it was an "Engineering" certification.
-    * The certification "Advanced Hacking" also relates to an element.
-    * @param certification the certification that was added
-    * @param certificationSet all applicable certifications
-    */
-  def RemoveFromDeployableQuantities(
-      avatar: Avatar,
-      certification: Certification,
-      certificationSet: Set[Certification]
-  ): List[(Int, Int, Int, Int)] = {
-    avatar.deployables.RemoveFromDeployableQuantities(certification, certificationSet)
-    avatar.deployables.UpdateUI(certification)
-  }
 }

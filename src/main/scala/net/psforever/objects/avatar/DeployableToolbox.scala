@@ -62,7 +62,7 @@ class DeployableToolbox {
     */
   def Initialize(certifications: Set[Certification]): Boolean = {
     if (!initialized) {
-      DeployableToolbox.Initialize(deployableCounts, categoryCounts, certifications)
+      DeployableToolbox.UpdateMaxCounts(deployableCounts, categoryCounts, certifications)
       initialized = true
       true
     } else {
@@ -70,38 +70,10 @@ class DeployableToolbox {
     }
   }
 
-  /**
-    * Change the count of deployable units that can be tracked by providing a new certification.
-    * If the given certification is already factored into the quantities, no changes will occur.
-    * @param certification the new certification
-    * @param certificationSet the group of previous certifications being tracked;
-    *                         occasionally, important former certification values are required for additional configuration;
-    *                         the new certification should already have been added to this group
-    */
-  def AddToDeployableQuantities(
-      certification: Certification,
-      certificationSet: Set[Certification]
-  ): Unit = {
-    initialized = true
-    DeployableToolbox.AddToDeployableQuantities(deployableCounts, categoryCounts, certification, certificationSet)
+  def UpdateMaxCounts(certifications: Set[Certification]) = {
+    DeployableToolbox.UpdateMaxCounts(deployableCounts, categoryCounts, certifications)
   }
 
-  /**
-    * Change the count of deployable units that can be tracked
-    * by designating a certification whose deployables will be removed.
-    * If the given certification is already factored out of the quantities, no changes will occur.
-    * @param certification the old certification
-    * @param certificationSet the group of previous certifications being tracked;
-    *                         occasionally, important former certification values are required for additional configuration;
-    *                         the new certification should already have been excluded from this group
-    */
-  def RemoveFromDeployableQuantities(
-      certification: Certification,
-      certificationSet: Set[Certification]
-  ): Unit = {
-    initialized = true
-    DeployableToolbox.RemoveFromDeployablesQuantities(deployableCounts, categoryCounts, certification, certificationSet)
-  }
 
   /**
     * Determine if the given deployable can be managed by this toolbox.
@@ -473,17 +445,18 @@ object DeployableToolbox {
     }
 
   /**
-    * Hardcoded maximum values for the category and type initialization.
+    * Update deployable max counts
     * @param counts a reference to the type `Bin` object
     * @param categories a reference to the category `Bin` object
     * @param certifications a group of certifications for the initial values
     */
-  private def Initialize(
+  private def UpdateMaxCounts(
       counts: Map[DeployedItem.Value, DeployableToolbox.Bin],
       categories: Map[DeployableCategory.Value, DeployableToolbox.Bin],
       certifications: Set[Certification]
   ): Unit = {
     import Certification._
+    counts.foreach(_._2.Max = 0)
     if (certifications.contains(AdvancedEngineering)) {
       counts(DeployedItem.boomer).Max = 25
       counts(DeployedItem.he_mine).Max = 25
@@ -551,164 +524,6 @@ object DeployableToolbox {
     if (certifications.contains(Certification.GroundSupport)) {
       counts(DeployedItem.router_telepad_deployable).Max = 1024
       categories(DeployableCategory.Telepads).Max = 1024
-    }
-  }
-
-  /**
-    * Hardcoded maximum values for the category and type initialization upon providing a new certification.
-    * @param counts a reference to the type `Bin` object
-    * @param categories a reference to the category `Bin` object
-    * @param certification the new certification
-    * @param certificationSet the group of previous certifications being tracked
-    */
-  def AddToDeployableQuantities(
-      counts: Map[DeployedItem.Value, DeployableToolbox.Bin],
-      categories: Map[DeployableCategory.Value, DeployableToolbox.Bin],
-      certification: Certification,
-      certificationSet: Set[Certification]
-  ): Unit = {
-    import Certification._
-    if (certificationSet contains certification) {
-      certification match {
-        case AdvancedHacking =>
-          if (certificationSet contains CombatEngineering) {
-            counts(DeployedItem.sensor_shield).Max = 20
-          }
-
-        case CombatEngineering =>
-          counts(DeployedItem.boomer).Max = 20
-          counts(DeployedItem.he_mine).Max = 20
-          counts(DeployedItem.spitfire_turret).Max = 10
-          counts(DeployedItem.motionalarmsensor).Max = 20
-          categories(DeployableCategory.Boomers).Max = 20
-          categories(DeployableCategory.Mines).Max = 20
-          categories(DeployableCategory.SmallTurrets).Max = 10
-          categories(DeployableCategory.Sensors).Max = 20
-          if (certificationSet contains AdvancedHacking) {
-            counts(DeployedItem.sensor_shield).Max = 20
-          }
-
-        case AssaultEngineering =>
-          counts(DeployedItem.jammer_mine).Max = 20
-          counts(DeployedItem.portable_manned_turret).Max = 1 //the below turret types are unified
-          //counts(DeployedItem.portable_manned_turret_nc).Max = 1
-          //counts(DeployedItem.portable_manned_turret_tr).Max = 1
-          //counts(DeployedItem.portable_manned_turret_vs).Max = 1
-          counts(DeployedItem.deployable_shield_generator).Max = 1
-          categories(DeployableCategory.FieldTurrets).Max = 1
-          categories(DeployableCategory.ShieldGenerators).Max = 1
-
-        case FortificationEngineering =>
-          counts(DeployedItem.boomer).Max = 25
-          counts(DeployedItem.he_mine).Max = 25
-          counts(DeployedItem.spitfire_turret).Max = 15
-          counts(DeployedItem.motionalarmsensor).Max = 25
-          counts(DeployedItem.spitfire_cloaked).Max = 5
-          counts(DeployedItem.spitfire_aa).Max = 5
-          counts(DeployedItem.tank_traps).Max = 5
-          categories(DeployableCategory.Boomers).Max = 25
-          categories(DeployableCategory.Mines).Max = 25
-          categories(DeployableCategory.SmallTurrets).Max = 15
-          categories(DeployableCategory.Sensors).Max = 25
-          categories(DeployableCategory.TankTraps).Max = 5
-
-        case AdvancedEngineering =>
-          if (!certificationSet.contains(AssaultEngineering)) {
-            AddToDeployableQuantities(
-              counts,
-              categories,
-              AssaultEngineering,
-              certificationSet ++ Set(AssaultEngineering)
-            )
-          }
-          if (!certificationSet.contains(FortificationEngineering)) {
-            AddToDeployableQuantities(
-              counts,
-              categories,
-              FortificationEngineering,
-              certificationSet ++ Set(FortificationEngineering)
-            )
-          }
-
-//        case GroundSupport =>
-//          counts(DeployedItem.router_telepad_deployable).Max = 1024
-//          categories(DeployableCategory.Telepads).Max = 1024
-
-        case _ => ;
-      }
-    }
-  }
-
-  /**
-    * Hardcoded zero'd values for the category and type initialization upon ignoring a previous certification.
-    * @param counts a reference to the type `Bin` object
-    * @param categories a reference to the category `Bin` object
-    * @param certification the new certification
-    * @param certificationSet the group of previous certifications being tracked
-    */
-  def RemoveFromDeployablesQuantities(
-      counts: Map[DeployedItem.Value, DeployableToolbox.Bin],
-      categories: Map[DeployableCategory.Value, DeployableToolbox.Bin],
-      certification: Certification,
-      certificationSet: Set[Certification]
-  ): Unit = {
-    import Certification._
-    if (!certificationSet.contains(certification)) {
-      certification match {
-        case AdvancedHacking =>
-          counts(DeployedItem.sensor_shield).Max = 0
-
-        case CombatEngineering =>
-          counts(DeployedItem.boomer).Max = 0
-          counts(DeployedItem.he_mine).Max = 0
-          counts(DeployedItem.spitfire_turret).Max = 0
-          counts(DeployedItem.motionalarmsensor).Max = 0
-          counts(DeployedItem.sensor_shield).Max = 0
-          categories(DeployableCategory.Boomers).Max = 0
-          categories(DeployableCategory.Mines).Max = 0
-          categories(DeployableCategory.SmallTurrets).Max = 0
-          categories(DeployableCategory.Sensors).Max = 0
-
-        case AssaultEngineering =>
-          counts(DeployedItem.jammer_mine).Max = 0
-          counts(DeployedItem.portable_manned_turret).Max = 0 //the below turret types are unified
-          //counts(DeployedItem.portable_manned_turret_nc).Max = 0
-          //counts(DeployedItem.portable_manned_turret_tr).Max = 0
-          //counts(DeployedItem.portable_manned_turret_vs).Max = 0
-          counts(DeployedItem.deployable_shield_generator).Max = 0
-          categories(DeployableCategory.Sensors).Max = if (certificationSet contains CombatEngineering) 20 else 0
-          categories(DeployableCategory.FieldTurrets).Max = 0
-          categories(DeployableCategory.ShieldGenerators).Max = 0
-
-        case FortificationEngineering =>
-          val ce: Int = if (certificationSet contains CombatEngineering) 1 else 0 //true = 1, false = 0
-          counts(DeployedItem.boomer).Max = ce * 20
-          counts(DeployedItem.he_mine).Max = ce * 20
-          counts(DeployedItem.spitfire_turret).Max = ce * 10
-          counts(DeployedItem.motionalarmsensor).Max = ce * 20
-          counts(DeployedItem.spitfire_cloaked).Max = 0
-          counts(DeployedItem.spitfire_aa).Max = 0
-          counts(DeployedItem.tank_traps).Max = 0
-          categories(DeployableCategory.Boomers).Max = ce * 20
-          categories(DeployableCategory.Mines).Max = ce * 20
-          categories(DeployableCategory.SmallTurrets).Max = ce * 10
-          categories(DeployableCategory.Sensors).Max = ce * 20
-          categories(DeployableCategory.TankTraps).Max = 0
-
-        case AdvancedEngineering =>
-          if (!certificationSet.contains(AssaultEngineering)) {
-            RemoveFromDeployablesQuantities(counts, categories, AssaultEngineering, certificationSet)
-          }
-          if (!certificationSet.contains(FortificationEngineering)) {
-            RemoveFromDeployablesQuantities(counts, categories, FortificationEngineering, certificationSet)
-          }
-
-//        case GroundSupport =>
-//          counts(DeployedItem.router_telepad_deployable).Max = 0
-//          categories(DeployableCategory.Telepads).Max = 0
-
-        case _ => ;
-      }
     }
   }
 }
