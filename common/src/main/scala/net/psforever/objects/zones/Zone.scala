@@ -451,7 +451,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     *        `false`, if the new pool can not be created because the system has already been started
     */
   def AddPool(name: String, pool: Seq[Int]): Boolean = {
-    if (accessor == Default.Actor) {
+    if (accessor == Default.Actor || accessor == null) {
       guid.AddPool(name, pool.toList)
       true
     } else {

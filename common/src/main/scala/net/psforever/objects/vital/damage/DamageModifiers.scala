@@ -101,7 +101,7 @@ object DamageModifiers {
       val distance   = Vector3.Distance(data.hit_pos, data.target.Position)
       val radius     = profile.DamageRadius
       if (distance <= radius) {
-        damage * (1f - (profile.DamageAtEdge * distance / radius)).toInt
+        damage - (damage * profile.DamageAtEdge * distance / radius).toInt
       } else {
         0
       }

@@ -5,7 +5,7 @@ import akka.actor.Props
 import akka.routing.RandomPool
 import actor.base.ActorTest
 import net.psforever.objects._
-import net.psforever.objects.guid.{GUIDTask, TaskResolver}
+import net.psforever.objects.guid.{NumberPoolHub, TaskResolver}
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game.objectcreate.{DroppedItemData, ObjectClass, ObjectCreateMessageParent, PlacementData}
 import net.psforever.packet.game.{ObjectCreateMessage, PlayerStateMessageUpstream}
@@ -17,6 +17,7 @@ import scala.concurrent.duration._
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
+import net.psforever.objects.guid.source.LimitedNumberSource
 
 class AvatarService1Test extends ActorTest {
   "AvatarService" should {
@@ -511,10 +512,13 @@ class AvatarReleaseTest extends ActorTest {
   val zone = new Zone("test", new ZoneMap("test-map"), 0) {
     override def SetupNumberPools() = { AddPool("dynamic", 1 to 10) }
   }
+  val guid1: NumberPoolHub = new NumberPoolHub(new LimitedNumberSource(100))
+  zone.GUID(guid1)
   val service      = system.actorOf(Props(classOf[AvatarService], zone), "release-test-service")
-  val taskResolver = system.actorOf(Props[TaskResolver](), "release-test-resolver")
   zone.actor = system.spawn(ZoneActor(zone), "release-test-zone")
   val obj = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
+  guid1.register(obj)
+  guid1.register(obj.Slot(5).Equipment.get)
   obj.Continent = "test"
   obj.Release
 
@@ -523,7 +527,6 @@ class AvatarReleaseTest extends ActorTest {
       expectNoMessage(100 milliseconds) //spacer
 
       service ! Service.Join("test")
-      taskResolver ! GUIDTask.RegisterObjectTask(obj)(zone.GUID)
       assert(zone.Corpses.isEmpty)
       zone.Population ! Zone.Corpse.Add(obj)
       expectNoMessage(200 milliseconds) //spacer
@@ -561,10 +564,13 @@ class AvatarReleaseEarly1Test extends ActorTest {
   val zone = new Zone("test", new ZoneMap("test-map"), 0) {
     override def SetupNumberPools() = { AddPool("dynamic", 1 to 10) }
   }
+  val guid1: NumberPoolHub = new NumberPoolHub(new LimitedNumberSource(100))
+  zone.GUID(guid1)
   val service      = system.actorOf(Props(classOf[AvatarService], zone), "release-test-service")
-  val taskResolver = system.actorOf(Props[TaskResolver](), "release-test-resolver")
   zone.actor = system.spawn(ZoneActor(zone), "release-test-zone")
   val obj = Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
+  guid1.register(obj)
+  guid1.register(obj.Slot(5).Equipment.get)
   obj.Continent = "test"
   obj.Release
 
@@ -573,7 +579,6 @@ class AvatarReleaseEarly1Test extends ActorTest {
       expectNoMessage(100 milliseconds) //spacer
 
       service ! Service.Join("test")
-      taskResolver ! GUIDTask.RegisterObjectTask(obj)(zone.GUID)
       assert(zone.Corpses.isEmpty)
       zone.Population ! Zone.Corpse.Add(obj)
       expectNoMessage(200 milliseconds) //spacer
@@ -612,14 +617,19 @@ class AvatarReleaseEarly2Test extends ActorTest {
   val zone = new Zone("test", new ZoneMap("test-map"), 0) {
     override def SetupNumberPools() = { AddPool("dynamic", 1 to 10) }
   }
+  val guid1: NumberPoolHub = new NumberPoolHub(new LimitedNumberSource(100))
+  zone.GUID(guid1)
   val service      = system.actorOf(Props(classOf[AvatarService], zone), "release-test-service")
-  val taskResolver = system.actorOf(Props[TaskResolver](), "release-test-resolver")
   zone.actor = system.spawn(ZoneActor(zone), "release-test-zone")
   val objAlt =
     Player(
       Avatar(0, "TestCharacter2", PlanetSideEmpire.NC, CharacterGender.Male, 1, CharacterVoice.Voice1)
     ) //necessary clutter
-  val obj = Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
+  objAlt.GUID = PlanetSideGUID(3)
+  objAlt.Slot(5).Equipment.get.GUID = PlanetSideGUID(4)
+  val obj = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
+  guid1.register(obj)
+  guid1.register(obj.Slot(5).Equipment.get)
   obj.Continent = "test"
   obj.Release
 
@@ -628,7 +638,6 @@ class AvatarReleaseEarly2Test extends ActorTest {
       expectNoMessage(100 milliseconds) //spacer
 
       service ! Service.Join("test")
-      taskResolver ! GUIDTask.RegisterObjectTask(obj)(zone.GUID)
       assert(zone.Corpses.isEmpty)
       zone.Population ! Zone.Corpse.Add(obj)
       expectNoMessage(200 milliseconds) //spacer

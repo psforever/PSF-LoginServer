@@ -64,14 +64,7 @@ class DamageCalculationsTests extends Specification {
     }
 
     "degrade over distance damage modifier (no degrade)" in {
-      val resprojectile2 = ResolvedProjectile(
-        ProjectileResolution.Splash,
-        projectile,
-        SourceEntry(target),
-        target.DamageModel,
-        Vector3(10, 0, 0)
-      )
-      DamageModifiers.DistanceDegrade.Calculate(100, resprojectile2) == 100 mustEqual true
+      DamageModifiers.DistanceDegrade.Calculate(100, resprojectile) == 100 mustEqual true
     }
 
     "degrade over distance damage modifier (some degrade)" in {
@@ -109,7 +102,14 @@ class DamageCalculationsTests extends Specification {
     }
 
     "degrade at radial distance damage modifier (some degrade)" in {
-      val damage = DamageModifiers.RadialDegrade.Calculate(100, resprojectile)
+      val resprojectile2 = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        projectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3(12, 0, 0)
+      )
+      val damage = DamageModifiers.RadialDegrade.Calculate(100, resprojectile2)
       damage < 100 && damage > 0 mustEqual true
     }
 
@@ -119,7 +119,7 @@ class DamageCalculationsTests extends Specification {
         projectile,
         SourceEntry(target),
         target.DamageModel,
-        Vector3(1000, 0, 0)
+        Vector3(100, 0, 0)
       )
       DamageModifiers.RadialDegrade.Calculate(100, resprojectile2) == 0 mustEqual true
     }
