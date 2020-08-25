@@ -253,6 +253,10 @@ class LocalService(zone: Zone) extends Actor {
         log.info("Base hack completed, but base was out of NTU.")
       }
 
+      // FIXME shitty workaround so we don't get a "resecured by owner" message
+      // SetFaction must be processed before we can keep going
+      Thread.sleep(1000)
+
       // Reset CC back to normal operation
       self ! LocalServiceMessage(
         zone.id,

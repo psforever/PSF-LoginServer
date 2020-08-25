@@ -62,7 +62,6 @@ import net.psforever.util.DefinitionUtil
 import org.joda.time.{LocalDateTime, Period}
 import net.psforever.services.ServiceManager
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.objects.Deployables
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContextExecutor, Future, Promise}
 import scala.util.{Failure, Success}
@@ -711,7 +710,9 @@ class AvatarActor(
 
         case UpdatePurchaseTime(definition, time) =>
           if (!Avatar.purchaseCooldowns.contains(definition)) {
-            log.warn(s"UpdatePurchaseTime message for item '${definition.Name}' without cooldown")
+            // TODO only send for items with cooldowns
+            //log.warn(s"UpdatePurchaseTime message for item '${definition.Name}' without cooldown")
+            return Behaviors.same
           }
           // TODO save to db
           avatar = avatar.copy(purchaseTimes = avatar.purchaseTimes.updated(definition.Name, time))
