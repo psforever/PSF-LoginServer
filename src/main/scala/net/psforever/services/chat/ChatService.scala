@@ -81,7 +81,7 @@ class ChatService(context: ActorContext[ChatService.Command]) extends AbstractBe
                 )
                 subs.find(_.session.player.Name == message.recipient) match {
                   case Some(JoinChannel(receiver, _, _)) =>
-                    receiver ! MessageResponse(session, message, channel)
+                    receiver ! MessageResponse(session, message.copy(recipient = session.player.Name), channel)
                   case None =>
                     sender ! MessageResponse(
                       session,
@@ -146,17 +146,23 @@ class ChatService(context: ActorContext[ChatService.Command]) extends AbstractBe
 
             }
 
+          case CMT_SQUAD =>
+            subs.foreach(_.actor ! MessageResponse(session, message, channel))
+
           case CMT_NOTE =>
-            subs.filter(_.session.player.Name == message.recipient).foreach {
-              case JoinChannel(actor, _, _) =>
-                actor ! MessageResponse(session, message.copy(recipient = session.player.Name), channel)
-            }
+            subs
+              .filter(_.session.player.Name == message.recipient)
+              .foreach(
+                _.actor ! MessageResponse(session, message.copy(recipient = session.player.Name), channel)
+              )
 
           // faction commands
           case CMT_OPEN | CMT_PLATOON | CMT_COMMAND =>
-            subs.filter(_.session.player.Faction == session.player.Faction).foreach {
-              case JoinChannel(actor, _, _) => actor ! MessageResponse(session, message, channel)
-            }
+            subs
+              .filter(_.session.player.Faction == session.player.Faction)
+              .foreach(
+                _.actor ! MessageResponse(session, message, channel)
+              )
 
           case CMT_GMBROADCAST_NC =>
             subs.filter(_.session.player.Faction == PlanetSideEmpire.NC).foreach {

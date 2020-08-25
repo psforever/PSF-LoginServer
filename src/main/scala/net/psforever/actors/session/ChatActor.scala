@@ -770,6 +770,7 @@ class ChatActor(
                 case CMT_TOGGLE_SHADES   => Cosmetic.Sunglasses
                 case CMT_TOGGLE_EARPIECE => Cosmetic.Earpiece
               }
+
               val on = contents match {
                 case "on"  => true
                 case "off" => false
@@ -811,7 +812,7 @@ class ChatActor(
                 if (session.avatar.certifications.size < Certification.values.size) {
                   avatarActor ! AvatarActor.SetCertifications(Certification.values.toSet)
                 } else {
-                  avatarActor ! AvatarActor.SetCertifications(Set())
+                  avatarActor ! AvatarActor.SetCertifications(Certification.values.filter(_.cost == 0).toSet)
                 }
                 sessionActor ! SessionActor.SendResponse(
                   message.copy(

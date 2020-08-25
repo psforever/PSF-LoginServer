@@ -2,7 +2,7 @@
 package net.psforever.objects
 
 import akka.actor.ActorRef
-import net.psforever.objects.avatar.{Avatar, Certification}
+import net.psforever.objects.avatar.Avatar
 
 import scala.concurrent.duration._
 import net.psforever.objects.ce.{Deployable, DeployedItem}
