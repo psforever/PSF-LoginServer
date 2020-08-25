@@ -97,14 +97,11 @@ object DamageModifiers {
     def Calculate: DamageModifiers.Format = function
 
     private def function(damage: Int, data: ResolvedProjectile): Int = {
-      val projectile = data.projectile
-      val profile    = projectile.profile
+      val profile    = data.projectile.profile
       val distance   = Vector3.Distance(data.hit_pos, data.target.Position)
       val radius     = profile.DamageRadius
       if (distance <= radius) {
-        val base: Float    = profile.DamageAtEdge
-        val degrade: Float = (1 - base) * ((radius - distance) / radius) + base
-        (damage * degrade).toInt
+        damage * (1f - (profile.DamageAtEdge * distance / radius)).toInt
       } else {
         0
       }

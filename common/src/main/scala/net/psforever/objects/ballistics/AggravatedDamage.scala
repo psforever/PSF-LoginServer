@@ -156,4 +156,23 @@ object AggravatedDamage {
       vanu_aggravated,
       targets
     )
+
+  def burning(resolution: ProjectileResolution.Value): ProjectileResolution.Value = {
+    resolution match {
+      case ProjectileResolution.AggravatedDirect => ProjectileResolution.AggravatedDirectBurn
+      case ProjectileResolution.AggravatedSplash => ProjectileResolution.AggravatedSplashBurn
+      case _ => resolution
+    }
+  }
+
+  def basicDamageType(resolution: ProjectileResolution.Value): DamageType.Value = {
+    resolution match {
+      case ProjectileResolution.AggravatedDirect | ProjectileResolution.AggravatedDirectBurn =>
+        DamageType.Direct
+      case ProjectileResolution.AggravatedSplash | ProjectileResolution.AggravatedSplashBurn =>
+        DamageType.Splash
+      case _ =>
+        DamageType.None
+    }
+  }
 }

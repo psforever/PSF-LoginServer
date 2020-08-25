@@ -37,7 +37,7 @@ trait DamageableWeaponTurret
     val zone           = target.Zone
     val events         = zone.VehicleEvents
     val targetGUID     = target.GUID
-    val zoneId         = zone.Id
+    val zoneId         = zone.id
     val damageToHealth = amount match {
       case a: Int => a
       case _ => 0

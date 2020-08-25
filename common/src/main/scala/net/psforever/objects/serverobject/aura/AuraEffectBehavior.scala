@@ -171,7 +171,7 @@ object AuraEffectBehavior {
 
     override def isCancelled : Boolean = timer.isCancelled
 
-    override def cancel: Boolean = timer.cancel
+    override def cancel(): Boolean = timer.cancel()
   }
 
   object Entry {

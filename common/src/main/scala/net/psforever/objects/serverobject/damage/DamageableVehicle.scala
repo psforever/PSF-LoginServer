@@ -100,7 +100,7 @@ trait DamageableVehicle
     val zone           = target.Zone
     val events         = zone.VehicleEvents
     val targetGUID     = target.GUID
-    val zoneId         = zone.Id
+    val zoneId         = zone.id
     val vehicleChannel = s"${obj.Actor}"
     val (damageToHealth, damageToShields, totalDamage) = amount match {
       case (a: Int, b: Int) => (a, b, a+b)

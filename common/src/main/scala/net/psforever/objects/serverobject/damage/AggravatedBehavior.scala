@@ -26,7 +26,8 @@ trait AggravatedBehavior {
     projectile.profile.Aggravated match {
       case Some(damage)
         if projectile.profile.ProjectileDamageTypes.contains(DamageType.Aggravated) &&
-          damage.effect_type != Aura.Nothing &&
+           damage.info.exists(_.damage_type == AggravatedDamage.basicDamageType(data.resolution)) &&
+           damage.effect_type != Aura.Nothing &&
           (projectile.quality == ProjectileQuality.AggravatesTarget ||
            damage.targets.exists(validation => validation.test(AggravatedObject))) =>
         TryAggravationEffectActivate(damage, data)
@@ -61,7 +62,7 @@ trait AggravatedBehavior {
 
   private def SetupAggravationEntry(aggravation: AggravatedDamage, data: ResolvedProjectile): Boolean = {
     val effect = aggravation.effect_type
-    aggravation.info.find(_.damage_type == AggravatedBehavior.basicDamageType(data.resolution)) match {
+    aggravation.info.find(_.damage_type == AggravatedDamage.basicDamageType(data.resolution)) match {
       case Some(info) =>
         val timing = aggravation.timing
         val duration = timing.duration
@@ -77,7 +78,6 @@ trait AggravatedBehavior {
           case None =>
             (1000L, (duration / 1000).toInt)
         }
-        //val leftoverTime = duration - (tick * iterations)
         //quality per tick
         val totalPower = (duration.toFloat / info.infliction_rate).toInt - 1
         val averagePowerPerTick = totalPower.toFloat / iterations
@@ -108,7 +108,7 @@ trait AggravatedBehavior {
                                           powerOffset: List[Float]
                                         ): AggravatedBehavior.Entry = {
     val aggravatedDamageInfo = ResolvedProjectile(
-      AggravatedBehavior.burning(data.resolution),
+      AggravatedDamage.burning(data.resolution),
       data.projectile,
       target,
       data.damage_model,
@@ -168,7 +168,7 @@ trait AggravatedBehavior {
   def CleanupAggravationTimer(id: Long): Unit = {
     //remove and cancel timer
     aggravationToTimer.remove(id) match {
-      case Some(timer) => timer.cancel
+      case Some(timer) => timer.cancel()
       case _ => ;
     }
   }
@@ -179,9 +179,9 @@ trait AggravatedBehavior {
   }
 
   def EndAllAggravation(): Unit = {
-    entryIdToEntry.clear
-    aggravationToTimer.values.foreach { _.cancel }
-    aggravationToTimer.clear
+    entryIdToEntry.clear()
+    aggravationToTimer.values.foreach { _.cancel() }
+    aggravationToTimer.clear()
   }
 
   def AggravatedReaction: Boolean = ongoingAggravated
@@ -206,23 +206,4 @@ object AggravatedBehavior {
   private case class Entry(id: Long, effect: Aura, retime: Long, data: ResolvedProjectile, qualityPerTick: List[Float])
 
   private case class Aggravate(id: Long, iterations: Int)
-
-  private def burning(resolution: ProjectileResolution.Value): ProjectileResolution.Value = {
-    resolution match {
-      case ProjectileResolution.AggravatedDirect => ProjectileResolution.AggravatedDirectBurn
-      case ProjectileResolution.AggravatedSplash => ProjectileResolution.AggravatedSplashBurn
-      case _ => resolution
-    }
-  }
-
-  private def basicDamageType(resolution: ProjectileResolution.Value): DamageType.Value = {
-    resolution match {
-      case ProjectileResolution.AggravatedDirect | ProjectileResolution.AggravatedDirectBurn =>
-        DamageType.Direct
-      case ProjectileResolution.AggravatedSplash | ProjectileResolution.AggravatedSplashBurn =>
-        DamageType.Splash
-      case _ =>
-        DamageType.None
-    }
-  }
 }
