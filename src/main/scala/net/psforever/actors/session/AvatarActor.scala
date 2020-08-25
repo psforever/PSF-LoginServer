@@ -442,9 +442,6 @@ class AvatarActor(
                   sessionActor ! SessionActor.SendResponse(
                     PlanetsideAttributeMessage(session.get.player.GUID, 25, cert.value)
                   )
-                  updateDeployableUIElements(
-                    Deployables.RemoveFromDeployableQuantities(avatar, cert, avatar.certifications)
-                  )
                 }
                 ctx
                   .run(
@@ -462,12 +459,14 @@ class AvatarActor(
                       sessionActor ! SessionActor.SendResponse(
                         PlanetsideAttributeMessage(session.get.player.GUID, 24, certification.value)
                       )
-                      updateDeployableUIElements(
-                        Deployables.AddToDeployableQuantities(avatar, certification, avatar.certifications)
-                      )
                       avatar = avatar.copy(certifications = avatar.certifications.diff(replace) + certification)
                       sessionActor ! SessionActor.SendResponse(
                         ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = true)
+                      )
+
+                      avatar.deployables.UpdateMaxCounts(avatar.certifications)
+                      updateDeployableUIElements(
+                        avatar.deployables.UpdateUI()
                       )
                   }
 
@@ -513,13 +512,14 @@ class AvatarActor(
                   sessionActor ! SessionActor.SendResponse(
                     PlanetsideAttributeMessage(session.get.player.GUID, 25, cert.value)
                   )
-                  updateDeployableUIElements(
-                    Deployables.RemoveFromDeployableQuantities(avatar, cert, avatar.certifications)
-                  )
                 }
                 avatar = avatar.copy(certifications = avatar.certifications.diff(remove))
                 sessionActor ! SessionActor.SendResponse(
                   ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = true)
+                )
+                avatar.deployables.UpdateMaxCounts(avatar.certifications)
+                updateDeployableUIElements(
+                  avatar.deployables.UpdateUI()
                 )
             }
           Behaviors.same
@@ -533,9 +533,6 @@ class AvatarActor(
                 .map(cert => {
                   sessionActor ! SessionActor.SendResponse(
                     PlanetsideAttributeMessage(session.get.player.GUID, 25, cert.value)
-                  )
-                  updateDeployableUIElements(
-                    Deployables.RemoveFromDeployableQuantities(avatar, cert, avatar.certifications)
                   )
                   ctx
                     .run(
@@ -551,9 +548,6 @@ class AvatarActor(
                     sessionActor ! SessionActor.SendResponse(
                       PlanetsideAttributeMessage(session.get.player.GUID, 24, cert.value)
                     )
-                    updateDeployableUIElements(
-                      Deployables.AddToDeployableQuantities(avatar, cert, avatar.certifications)
-                    )
                     ctx
                       .run(
                         query[persistence.Certification]
@@ -564,6 +558,10 @@ class AvatarActor(
             .onComplete {
               case Success(_) =>
                 avatar = avatar.copy(certifications = certifications)
+                avatar.deployables.UpdateMaxCounts(avatar.certifications)
+                updateDeployableUIElements(
+                  avatar.deployables.UpdateUI()
+                )
               case Failure(exception) =>
                 log.error(exception)("db failure")
             }
@@ -1319,7 +1317,7 @@ class AvatarActor(
   def updateDeployableUIElements(list: List[(Int, Int, Int, Int)]): Unit = {
     val guid = PlanetSideGUID(0)
     list.foreach({
-      case ((currElem, curr, maxElem, max)) =>
+      case (currElem, curr, maxElem, max) =>
         //fields must update in ordered pairs: max, curr
         sessionActor ! SessionActor.SendResponse(PlanetsideAttributeMessage(guid, maxElem, max))
         sessionActor ! SessionActor.SendResponse(PlanetsideAttributeMessage(guid, currElem, curr))
