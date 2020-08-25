@@ -110,7 +110,8 @@ class ZoneTest extends Specification {
       zone.AddPool("pool2", (51 to 75).toList)
 
       val obj = new TestObject()
-      guid1.register(obj, "pool2").isSuccess mustEqual true
+      val registration =  guid1.register(obj, "pool2")
+      registration.isSuccess mustEqual true
       guid1.WhichPool(obj).contains("pool2") mustEqual true
 
       zone.GUID(new NumberPoolHub(new LimitedNumberSource(150))) mustEqual false
@@ -214,13 +215,15 @@ class ZonePopulationTest extends ActorTest {
         override def SetupNumberPools() = {}
       }
       val avatar = Avatar(0, "Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+      val player = Player(avatar)
+      player.GUID = PlanetSideGUID(1)
       zone.actor = system.spawn(ZoneActor(zone), ZoneTest.TestName)
       expectNoMessage(200 milliseconds)
 
       assert(zone.Players.isEmpty)
       assert(zone.LivePlayers.isEmpty)
       zone.Population ! Zone.Population.Join(avatar)
-      zone.Population ! Zone.Population.Spawn(avatar, Player(avatar), null)
+      zone.Population ! Zone.Population.Spawn(avatar, player, null)
       expectNoMessage(Duration.create(200, "ms"))
       assert(zone.Players.size == 1)
       assert(zone.Players.head == avatar)
@@ -232,10 +235,12 @@ class ZonePopulationTest extends ActorTest {
         override def SetupNumberPools() = {}
       }
       val avatar = Avatar(1, "Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+      val player = Player(avatar)
+      player.GUID = PlanetSideGUID(1)
       zone.actor = system.spawn(ZoneActor(zone), ZoneTest.TestName)
       receiveOne(Duration.create(200, "ms")) //consume
       zone.Population ! Zone.Population.Join(avatar)
-      zone.Population ! Zone.Population.Spawn(avatar, Player(avatar), null)
+      zone.Population ! Zone.Population.Spawn(avatar, player, null)
       expectNoMessage(Duration.create(100, "ms"))
 
       assert(zone.Players.size == 1)
@@ -251,6 +256,7 @@ class ZonePopulationTest extends ActorTest {
       val zone   = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = {} }
       val avatar = Avatar(0, "Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val player = Player(avatar)
+      player.GUID = PlanetSideGUID(1)
       zone.actor = system.spawn(ZoneActor(zone), ZoneTest.TestName)
       expectNoMessage(200 milliseconds)
       zone.Population ! Zone.Population.Join(avatar)
@@ -271,6 +277,7 @@ class ZonePopulationTest extends ActorTest {
       val zone   = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = {} }
       val avatar = Avatar(0, "Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val player = Player(avatar)
+      player.GUID = PlanetSideGUID(1)
       zone.actor = system.spawn(ZoneActor(zone), ZoneTest.TestName)
       expectNoMessage(200 milliseconds)
       zone.Population ! Zone.Population.Join(avatar)
@@ -318,7 +325,9 @@ class ZonePopulationTest extends ActorTest {
       val zone    = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = {} }
       val avatar  = Avatar(0, "Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val player1 = Player(avatar)
+      player1.GUID = PlanetSideGUID(1)
       val player2 = Player(avatar)
+      player2.GUID = PlanetSideGUID(2)
       zone.actor = system.spawn(ZoneActor(zone), ZoneTest.TestName)
       expectNoMessage(200 milliseconds)
       zone.Population ! Zone.Population.Join(avatar)
@@ -344,6 +353,7 @@ class ZonePopulationTest extends ActorTest {
       val zone   = new Zone("test", new ZoneMap(""), 0) { override def SetupNumberPools() = {} }
       val avatar = Avatar(0, "Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       val player = Player(avatar)
+      player.GUID = PlanetSideGUID(1)
       zone.actor = system.spawn(ZoneActor(zone), ZoneTest.TestName)
       expectNoMessage(200 milliseconds)
 
@@ -364,10 +374,12 @@ class ZonePopulationTest extends ActorTest {
         override def SetupNumberPools() = {}
       }
       val avatar = Avatar(2, "Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+      val player = Player(avatar)
+      player.GUID = PlanetSideGUID(1)
       zone.actor = system.spawn(ZoneActor(zone), ZoneTest.TestName)
       expectNoMessage(200 milliseconds)
       zone.Population ! Zone.Population.Join(avatar)
-      zone.Population ! Zone.Population.Spawn(avatar, Player(avatar), null)
+      zone.Population ! Zone.Population.Spawn(avatar, player, null)
       expectNoMessage(Duration.create(100, "ms"))
 
       assert(zone.Players.size == 1)
@@ -388,6 +400,7 @@ class ZonePopulationTest extends ActorTest {
         override def SetupNumberPools() = {}
       }
       val player = Player(Avatar(3, "Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5))
+      player.GUID = PlanetSideGUID(1)
       player.Release
       zone.actor = system.spawn(ZoneActor(zone), ZoneTest.TestName)
       expectNoMessage(200 milliseconds)
@@ -404,6 +417,7 @@ class ZonePopulationTest extends ActorTest {
         override def SetupNumberPools() = {}
       }
       val player = Player(Avatar(4, "Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5))
+      player.GUID = PlanetSideGUID(1)
       player.Release
       zone.actor = system.spawn(ZoneActor(zone), ZoneTest.TestName)
       expectNoMessage(200 milliseconds)
@@ -422,10 +436,13 @@ class ZonePopulationTest extends ActorTest {
         override def SetupNumberPools() = {}
       }
       val player1 = Player(Avatar(5, "Chord1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5))
+      player1.GUID = PlanetSideGUID(1)
       player1.Release
       val player2 = Player(Avatar(6, "Chord2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5))
+      player2.GUID = PlanetSideGUID(2)
       player2.Release
       val player3 = Player(Avatar(7, "Chord3", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5))
+      player3.GUID = PlanetSideGUID(3)
       player3.Release
       zone.actor = system.spawn(ZoneActor(zone), ZoneTest.TestName)
       expectNoMessage(200 milliseconds)
@@ -450,6 +467,7 @@ class ZonePopulationTest extends ActorTest {
         override def SetupNumberPools() = {}
       }
       val player = Player(Avatar(8, "Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5))
+      player.GUID = PlanetSideGUID(1)
       //player.Release !!important
       zone.actor = system.spawn(ZoneActor(zone), ZoneTest.TestName)
       expectNoMessage(200 milliseconds)
