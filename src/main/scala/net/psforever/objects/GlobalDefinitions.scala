@@ -3918,7 +3918,11 @@ object GlobalDefinitions {
       2000,
       0f,
       true,
-      List(TargetValidation(EffectTarget.Category.Aircraft, EffectTarget.Validation.Aircraft))
+      List(
+        TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player),
+        TargetValidation(EffectTarget.Category.Vehicle, EffectTarget.Validation.Vehicle),
+        TargetValidation(EffectTarget.Category.Turret, EffectTarget.Validation.Turret)
+      )
     )
     starfire_projectile.InitialVelocity = 45
     starfire_projectile.Lifespan = 7.8f

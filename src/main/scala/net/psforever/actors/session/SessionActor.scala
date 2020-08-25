@@ -1,26 +1,26 @@
 package net.psforever.actors.session
 
-import java.util.concurrent.TimeUnit
-import akka.actor.MDCContextAware.Implicits._
+//language imports
 import akka.actor.typed
 import akka.actor.typed.receptionist.Receptionist
+import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
-import java.util.concurrent.atomic.AtomicInteger
+import akka.pattern.ask
+import akka.util.Timeout
+import java.util.concurrent.TimeUnit
+import MDCContextAware.Implicits._
 import org.log4s.MDC
-import scala.collection.mutable.LongMap
+import scala.collection.mutable
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.{Failure, Success}
+import scala.util.Success
 import scodec.bits.ByteVector
-import services.properties.PropertyOverrideManager
-import org.joda.time.{LocalDateTime, Period}
-import csr.{CSRWarp, CSRZone, Traveler}
-import MDCContextAware.Implicits._
-import net.psforever.objects.{GlobalDefinitions, _}
-import net.psforever.objects.avatar.{Avatar, Certification, DeployableToolbox}
+//project imports
+import net.psforever.login.{DropCryptoSession, DropSession, HelloFriend, RawPacket}
+import net.psforever.login.WorldSession._
 import net.psforever.objects._
-import net.psforever.objects.avatar.{Certification, DeployableToolbox, FirstTimeEvents}
+import net.psforever.objects.avatar.{Avatar, Certification, Cosmetic, DeployableToolbox}
 import net.psforever.objects.ballistics._
 import net.psforever.objects.ce._
 import net.psforever.objects.definition._
@@ -29,6 +29,7 @@ import net.psforever.objects.entity.{SimpleWorldEntity, WorldEntity}
 import net.psforever.objects.equipment.{EffectTarget, Equipment, FireModeSwitch, JammableUnit}
 import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
 import net.psforever.objects.inventory.{Container, InventoryItem}
+import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.containable.Containable
 import net.psforever.objects.serverobject.damage.Damageable
@@ -48,7 +49,6 @@ import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.{FacilityTurret, WeaponTurret}
 import net.psforever.objects.serverobject.zipline.ZipLinePath
-import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.teamwork.Squad
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vehicles.Utility.InternalTelepad
@@ -56,21 +56,12 @@ import net.psforever.objects.vital._
 import net.psforever.objects.zones.{Zone, ZoneHotSpotProjector, Zoning}
 import net.psforever.packet._
 import net.psforever.packet.control._
-import net.psforever.packet.game.objectcreate._
 import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo, _}
-import net.psforever.objects.zones.{InterstellarCluster, Zone, ZoneHotSpotProjector, Zoning}
-import net.psforever.packet._
-import net.psforever.packet.control._
-import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate._
-import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo}
-import net.psforever.persistence
-import net.psforever.types._
-import org.log4s.MDC
-import scodec.bits.ByteVector
 import net.psforever.services.ServiceManager.LookupResult
 import net.psforever.services.account.{AccountPersistenceService, PlayerToken, ReceiveAccountData, RetrieveAccountData}
 import net.psforever.services.avatar.{AvatarAction, AvatarResponse, AvatarServiceMessage, AvatarServiceResponse}
+import net.psforever.services.chat.ChatService
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyResponse, GalaxyServiceMessage, GalaxyServiceResponse}
 import net.psforever.services.local.support.RouterTelepadActivation
 import net.psforever.services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
@@ -84,20 +75,8 @@ import net.psforever.services.teamwork.{
 }
 import net.psforever.services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
 import net.psforever.services.{InterstellarClusterService, RemoverActor, Service, ServiceManager}
-import net.psforever.login.{DropCryptoSession, DropSession, HelloFriend, RawPacket}
+import net.psforever.types._
 import net.psforever.util.{Config, DefinitionUtil}
-import net.psforever.login.WorldSession._
-import net.psforever.zones.Zones
-import net.psforever.services.chat.ChatService
-import net.psforever.objects.avatar.Cosmetic
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
-import scala.util.Success
-import akka.actor.typed.scaladsl.adapter._
-import akka.pattern.ask
-import akka.util.Timeout
-import scala.collection.mutable
 
 object SessionActor {
 
@@ -1300,49 +1279,6 @@ class SessionActor extends Actor with MDCContextAware {
         case _ =>
           taskResolver ! RegisterNewAvatar(player)
       }
-
-    case msg @ Zoning.InstantAction.Located(zone, _, spawn_point) =>
-      //in between subsequent reply messages, it does not matter if the destination changes
-      //so long as there is at least one destination at all (including the fallback)
-      if (ContemplateZoningResponse(Zoning.InstantAction.Request(player.Faction), cluster)) {
-        val (pos, ori) = spawn_point.SpecificPoint(player)
-        SpawnThroughZoningProcess(zone, pos, ori)
-      } else if (zoningStatus != Zoning.Status.None) {
-        instantActionFallbackDestination = Some(msg)
-      }
-
-    case Zoning.InstantAction.NotLocated() =>
-      instantActionFallbackDestination match {
-        case Some(Zoning.InstantAction.Located(zone, _, spawn_point))
-          if spawn_point.Owner.Faction == player.Faction && !spawn_point.Offline =>
-          if (ContemplateZoningResponse(Zoning.InstantAction.Request(player.Faction), cluster)) {
-            val (pos, ori) = spawn_point.SpecificPoint(player)
-            SpawnThroughZoningProcess(zone, pos, ori)
-          } else if (zoningCounter == 0) {
-            CancelZoningProcessWithReason("@InstantActionNoHotspotsAvailable")
-          }
-        case _ =>
-          //no instant action available
-          CancelZoningProcessWithReason("@InstantActionNoHotspotsAvailable")
-      }
-
-    case Zoning.Recall.Located(zone, spawn_point) =>
-      if (ContemplateZoningResponse(Zoning.Recall.Request(player.Faction, zone.Id), cluster)) {
-        val (pos, ori) = spawn_point.SpecificPoint(player)
-        SpawnThroughZoningProcess(zone, pos, ori)
-      }
-
-    case Zoning.Recall.Denied(reason) =>
-      CancelZoningProcessWithReason(s"@norecall_sanctuary_$reason", Some(ChatMessageType.CMT_QUIT))
-
-    case Zoning.Quit() =>
-      if (ContemplateZoningResponse(Zoning.Quit(), self)) {
-        log.info("Good-bye")
-        ImmediateDisconnect()
-      }
-
-    case ZoningReset() =>
-      CancelZoningProcess()
 
     case NewPlayerLoaded(tplayer) =>
       //new zone
@@ -3792,7 +3728,7 @@ class SessionActor extends Actor with MDCContextAware {
               }
           }
         continent.VehicleEvents ! VehicleServiceMessage(
-          continent.Id,
+          continent.id,
           VehicleAction.UpdateAmsSpawnPoint(continent)
         )
         upstreamMessageCount = 0
@@ -7753,7 +7689,8 @@ class SessionActor extends Actor with MDCContextAware {
       val outProjectile = if(projectile.profile.ProjectileDamageTypes.contains(DamageType.Aggravated)) {
         val quality = projectile.profile.Aggravated match {
           case Some(aggravation)
-            if aggravation.targets.exists(validation => validation.test(target)) =>
+            if aggravation.targets.exists(validation => validation.test(target)) &&
+               aggravation.info.exists(_.damage_type == AggravatedDamage.basicDamageType(resolution)) =>
             ProjectileQuality.AggravatesTarget
           case _ =>
             ProjectileQuality.Normal
@@ -8013,12 +7950,12 @@ class SessionActor extends Actor with MDCContextAware {
     * @return `true`, if the desired certification requirements are met; `false`, otherwise
     */
   def ConstructionItemPermissionComparison(
-                                            sample: Set[CertificationType.Value],
-                                            test: Set[CertificationType.Value]
+                                            sample: Set[Certification],
+                                            test: Set[Certification]
                                           ): Boolean = {
-    import CertificationType._
-    val engineeringCerts: Set[CertificationType.Value] = Set(AssaultEngineering, FortificationEngineering)
-    val testDiff: Set[CertificationType.Value]         = test diff (engineeringCerts ++ Set(AdvancedEngineering))
+    import Certification._
+    val engineeringCerts: Set[Certification] = Set(AssaultEngineering, FortificationEngineering)
+    val testDiff: Set[Certification]         = test diff (engineeringCerts ++ Set(AdvancedEngineering))
     //substitute `AssaultEngineering` and `FortificationEngineering` for `AdvancedEngineering`
     val sampleIntersect = if (sample contains AdvancedEngineering) {
       engineeringCerts
@@ -8602,7 +8539,7 @@ class SessionActor extends Actor with MDCContextAware {
         ) {
           //do not delete if vehicle has passengers or cargo
           continent.VehicleEvents ! VehicleServiceMessage(
-            continent.Id,
+            continent.id,
             VehicleAction.UnloadVehicle(pguid, continent, vehicle, topLevel)
           )
           None
@@ -9438,7 +9375,7 @@ class SessionActor extends Actor with MDCContextAware {
             )
             taskResolver ! (if (projectile.HasGUID) {
               continent.AvatarEvents ! AvatarServiceMessage(
-                continent.Id,
+                continent.id,
                 AvatarAction.ProjectileExplodes(
                   player.GUID,
                   projectile.GUID,
