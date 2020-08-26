@@ -1367,11 +1367,11 @@ object GlobalDefinitions {
 
   def MAXArms(subtype: Int, faction: PlanetSideEmpire.Value): ToolDefinition = {
     if (subtype == 1) {
-      AI_MAX(faction)
-    } else if (subtype == 2) {
-      AV_MAX(faction)
-    } else if (subtype == 3) {
       AA_MAX(faction)
+    } else if (subtype == 2) {
+      AI_MAX(faction)
+    } else if (subtype == 3) {
+      AV_MAX(faction)
     } else {
       suppressor // there are no common pool MAX arms
     }

@@ -29,14 +29,12 @@ class DeployableToolbox {
     */
   private val categoryCounts =
     DeployableCategory.values.toSeq.map(value => { value -> new DeployableToolbox.Bin }).toMap
-  categoryCounts(DeployableCategory.Telepads).Max = 1024
 
   /**
     * a map of bins for keeping track of the quantities of individual deployables
     * keys: deployable types, values: quantity storage object
     */
   private val deployableCounts = DeployedItem.values.toSeq.map(value => { value -> new DeployableToolbox.Bin }).toMap
-  deployableCounts(DeployedItem.router_telepad_deployable).Max = 1024
 
   /**
     * a map of tracked/owned individual deployables
@@ -73,7 +71,6 @@ class DeployableToolbox {
   def UpdateMaxCounts(certifications: Set[Certification]) = {
     DeployableToolbox.UpdateMaxCounts(deployableCounts, categoryCounts, certifications)
   }
-
 
   /**
     * Determine if the given deployable can be managed by this toolbox.
@@ -457,6 +454,11 @@ object DeployableToolbox {
   ): Unit = {
     import Certification._
     counts.foreach(_._2.Max = 0)
+
+    // Placing telepads does not require ground support
+    counts(DeployedItem.router_telepad_deployable).Max = 1024
+    categories(DeployableCategory.Telepads).Max = 1024
+
     if (certifications.contains(AdvancedEngineering)) {
       counts(DeployedItem.boomer).Max = 25
       counts(DeployedItem.he_mine).Max = 25
@@ -520,10 +522,6 @@ object DeployableToolbox {
       if (certifications.contains(AdvancedHacking)) {
         counts(DeployedItem.sensor_shield).Max = 20
       }
-    }
-    if (certifications.contains(Certification.GroundSupport)) {
-      counts(DeployedItem.router_telepad_deployable).Max = 1024
-      categories(DeployableCategory.Telepads).Max = 1024
     }
   }
 }
