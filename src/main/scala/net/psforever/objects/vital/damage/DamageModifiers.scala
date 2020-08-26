@@ -279,6 +279,25 @@ object DamageModifiers {
   }
 
   /**
+    * For damage application that involves aggravation of a fireball (Dragon secondary fire mode),
+    * perform 1 damage.
+    * @see `ResolvedProjectile`
+    */
+  case object FireballAggravatedBurn extends Mod {
+    def Calculate: DamageModifiers.Format = formula
+
+    private def formula(damage: Int, data: ResolvedProjectile): Int = {
+      if (data.resolution == ProjectileResolution.AggravatedDirectBurn ||
+          data.resolution == ProjectileResolution.AggravatedSplashBurn) {
+        //add resist to offset resist subtraction later
+        1 + data.damage_model.ResistUsing(data)(data)
+      } else {
+        damage
+      }
+    }
+  }
+
+  /**
     * The initial application of aggravated damage against an aircraft target.
     * Primarily for use in the starfire weapon system.
     * @see `AggravatedDamage`

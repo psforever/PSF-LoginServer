@@ -2616,7 +2616,7 @@ object GlobalDefinitions {
     flamethrower_fireball.Aggravated = AggravatedDamage(
       List(AggravatedInfo(DamageType.Direct, 0.9f, 500), AggravatedInfo(DamageType.Splash, 0.9f, 500)),
       Aura.Fire,
-      AggravatedTiming(5000),
+      AggravatedTiming(5000, 10),
       0.1f,
       false,
       false,
@@ -2627,9 +2627,8 @@ object GlobalDefinitions {
     ProjectileDefinition.CalculateDerivedFields(flamethrower_fireball)
     flamethrower_fireball.Modifiers = List(
       DamageModifiers.InfantryAggravatedDirect,
-      DamageModifiers.InfantryAggravatedDirectBurn,
       DamageModifiers.InfantryAggravatedSplash,
-      DamageModifiers.InfantryAggravatedSplashBurn,
+      DamageModifiers.FireballAggravatedBurn,
       DamageModifiers.RadialDegrade
     )
 
@@ -2646,7 +2645,7 @@ object GlobalDefinitions {
     flamethrower_projectile.Aggravated = AggravatedDamage(
       List(AggravatedInfo(DamageType.Direct, 0.5f, 500)),
       Aura.Fire,
-      AggravatedTiming(5000),
+      AggravatedTiming(5000, 10),
       0.5f,
       false,
       false,
@@ -2659,7 +2658,7 @@ object GlobalDefinitions {
     ProjectileDefinition.CalculateDerivedFields(flamethrower_projectile)
     flamethrower_projectile.Modifiers = List(
       DamageModifiers.InfantryAggravatedDirect,
-      DamageModifiers.InfantryAggravatedDirectBurn,
+      DamageModifiers.FireballAggravatedBurn,
       DamageModifiers.MaxDistanceCutoff
     )
 
