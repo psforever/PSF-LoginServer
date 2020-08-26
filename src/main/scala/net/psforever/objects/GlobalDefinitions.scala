@@ -667,10 +667,14 @@ object GlobalDefinitions {
   val dynomite = ToolDefinition(ObjectClass.dynomite)
 
   val trhev_dualcycler = new ToolDefinition(ObjectClass.trhev_dualcycler) {
+    Name = "trhev_dualcycler"
+
     override def NextFireModeIndex(index: Int): Int = index
   }
 
   val trhev_pounder = new ToolDefinition(ObjectClass.trhev_pounder) {
+    Name = "trhev_pounder"
+
     override def NextFireModeIndex(index: Int): Int = {
       //TODO other modes
       if (index == 0 || index == 3) {
@@ -692,20 +696,22 @@ object GlobalDefinitions {
   }
 
   val trhev_burster = new ToolDefinition(ObjectClass.trhev_burster) {
+    Name = "trhev_burster"
+
     override def NextFireModeIndex(index: Int): Int = index
   }
 
-  val nchev_scattercannon = ToolDefinition(ObjectClass.nchev_scattercannon)
+  val nchev_scattercannon = new ToolDefinition(ObjectClass.nchev_scattercannon) { Name = "nchev_scattercannon" }
 
-  val nchev_falcon = ToolDefinition(ObjectClass.nchev_falcon)
+  val nchev_falcon = new ToolDefinition(ObjectClass.nchev_falcon) { Name = "nchev_falcon" }
 
-  val nchev_sparrow = ToolDefinition(ObjectClass.nchev_sparrow)
+  val nchev_sparrow = new ToolDefinition(ObjectClass.nchev_sparrow) { Name = "nchev_sparrow" }
 
-  val vshev_quasar = ToolDefinition(ObjectClass.vshev_quasar)
+  val vshev_quasar = new ToolDefinition(ObjectClass.vshev_quasar) { Name = "vshev_quasar" }
 
-  val vshev_comet = ToolDefinition(ObjectClass.vshev_comet)
+  val vshev_comet = new ToolDefinition(ObjectClass.vshev_comet) { Name = "vshev_comet" }
 
-  val vshev_starfire = ToolDefinition(ObjectClass.vshev_starfire)
+  val vshev_starfire = new ToolDefinition(ObjectClass.vshev_starfire) { Name = "vshev_starfire" }
 
   val medicalapplicator = ToolDefinition(ObjectClass.medicalapplicator)
 
@@ -1367,7 +1373,7 @@ object GlobalDefinitions {
     } else if (subtype == 3) {
       AA_MAX(faction)
     } else {
-      suppressor //there are no common pool MAX arms
+      suppressor // there are no common pool MAX arms
     }
   }
 

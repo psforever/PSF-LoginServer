@@ -45,19 +45,15 @@ object Avatar {
     GlobalDefinitions.vulture               -> 5.minutes,
     GlobalDefinitions.wasp                  -> 5.minutes,
     GlobalDefinitions.flamethrower          -> 3.minutes,
-    GlobalDefinitions.VSMAX                 -> 5.minutes,
-    GlobalDefinitions.NCMAX                 -> 5.minutes,
-    GlobalDefinitions.TRMAX                 -> 5.minutes,
-    // TODO weapon based cooldown
-    GlobalDefinitions.nchev_sparrow       -> 5.minutes,
-    GlobalDefinitions.nchev_falcon        -> 5.minutes,
-    GlobalDefinitions.nchev_scattercannon -> 5.minutes,
-    GlobalDefinitions.vshev_comet         -> 5.minutes,
-    GlobalDefinitions.vshev_quasar        -> 5.minutes,
-    GlobalDefinitions.vshev_starfire      -> 5.minutes,
-    GlobalDefinitions.trhev_burster       -> 5.minutes,
-    GlobalDefinitions.trhev_dualcycler    -> 5.minutes,
-    GlobalDefinitions.trhev_pounder       -> 5.minutes
+    GlobalDefinitions.nchev_sparrow         -> 5.minutes,
+    GlobalDefinitions.nchev_falcon          -> 5.minutes,
+    GlobalDefinitions.nchev_scattercannon   -> 5.minutes,
+    GlobalDefinitions.vshev_comet           -> 5.minutes,
+    GlobalDefinitions.vshev_quasar          -> 5.minutes,
+    GlobalDefinitions.vshev_starfire        -> 5.minutes,
+    GlobalDefinitions.trhev_burster         -> 5.minutes,
+    GlobalDefinitions.trhev_dualcycler      -> 5.minutes,
+    GlobalDefinitions.trhev_pounder         -> 5.minutes
   )
 
   val useCooldowns: Map[BasicDefinition, FiniteDuration] = Map(
