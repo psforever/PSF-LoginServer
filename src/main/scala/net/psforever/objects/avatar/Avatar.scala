@@ -5,9 +5,10 @@ import net.psforever.objects.equipment.{EquipmentSize, EquipmentSlot}
 import net.psforever.objects.loadouts.{Loadout, SquadLoadout}
 import net.psforever.objects.{GlobalDefinitions, LockerContainer, LockerEquipment, OffhandEquipmentSlot}
 import net.psforever.types._
-import org.joda.time.{LocalDateTime, Period}
+import org.joda.time.{Duration, LocalDateTime, Seconds}
+
 import scala.collection.immutable.Seq
-import scala.concurrent.duration.{FiniteDuration, _}
+import scala.concurrent.duration._
 
 object Avatar {
   val purchaseCooldowns: Map[BasicDefinition, FiniteDuration] = Map(
@@ -105,13 +106,14 @@ case class Avatar(
       times: Map[String, LocalDateTime],
       cooldowns: Map[BasicDefinition, FiniteDuration],
       definition: BasicDefinition
-  ): Option[Period] = {
+  ): Option[Duration] = {
     times.get(definition.Name) match {
       case Some(purchaseTime) =>
-        val secondsSincePurchase = new Period(purchaseTime, LocalDateTime.now()).toStandardSeconds.getSeconds
+        val secondsSincePurchase = Seconds.secondsBetween(purchaseTime, LocalDateTime.now())
+        val duration             = secondsSincePurchase.toStandardDuration
         cooldowns.get(definition) match {
-          case Some(cooldown) if (cooldown.toSeconds - secondsSincePurchase) > 0 =>
-            Some(Period.seconds(cooldown.toSeconds.toInt - secondsSincePurchase))
+          case Some(cooldown) if (cooldown.toSeconds - secondsSincePurchase.getSeconds) > 0 =>
+            Some(duration)
           case _ => None
         }
       case None =>
@@ -120,12 +122,12 @@ case class Avatar(
   }
 
   /** Returns the remaining purchase cooldown or None if an object is not on cooldown */
-  def purchaseCooldown(definition: BasicDefinition): Option[Period] = {
+  def purchaseCooldown(definition: BasicDefinition): Option[Duration] = {
     cooldown(purchaseTimes, Avatar.purchaseCooldowns, definition)
   }
 
   /** Returns the remaining use cooldown or None if an object is not on cooldown */
-  def useCooldown(definition: BasicDefinition): Option[Period] = {
+  def useCooldown(definition: BasicDefinition): Option[Duration] = {
     cooldown(useTimes, Avatar.useCooldowns, definition)
   }
 

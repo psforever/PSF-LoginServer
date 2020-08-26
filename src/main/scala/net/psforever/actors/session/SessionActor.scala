@@ -4612,7 +4612,7 @@ class SessionActor extends Actor with MDCContextAware {
                           ChatMessageType.UNK_225,
                           false,
                           "",
-                          s"@TimeUntilNextUse^${cooldown.toStandardSeconds.getSeconds}",
+                          s"@TimeUntilNextUse^${cooldown.getStandardSeconds}",
                           None
                         )
                       )
