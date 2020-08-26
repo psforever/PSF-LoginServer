@@ -77,6 +77,7 @@ import net.psforever.services.vehicle.{VehicleAction, VehicleResponse, VehicleSe
 import net.psforever.services.{InterstellarClusterService, RemoverActor, Service, ServiceManager}
 import net.psforever.types._
 import net.psforever.util.{Config, DefinitionUtil}
+import net.psforever.zones.Zones
 
 object SessionActor {
 

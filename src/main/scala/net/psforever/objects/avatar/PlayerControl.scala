@@ -929,7 +929,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
   }
 
   def UpdateAuraEffect(target: AuraEffectBehavior.Target) : Unit = {
-    import services.avatar.{AvatarAction, AvatarServiceMessage}
+    import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
     val zone = target.Zone
     val value = target.Aura.foldLeft(0)(_ + PlayerControl.auraEffectToAttributeValue(_))
     zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.PlanetsideAttributeToAll(target.GUID, 54, value))
