@@ -346,6 +346,7 @@ class AvatarService(zone: Zone) extends Actor {
           )
         case AvatarAction.ChangeExosuit(
               target,
+              armor,
               exosuit,
               subtype,
               slot,
@@ -363,6 +364,7 @@ class AvatarService(zone: Zone) extends Actor {
               Service.defaultPlayerGUID,
               AvatarResponse.ChangeExosuit(
                 target,
+                armor,
                 exosuit,
                 subtype,
                 slot,
@@ -378,6 +380,7 @@ class AvatarService(zone: Zone) extends Actor {
           )
         case AvatarAction.ChangeLoadout(
               target,
+              armor,
               exosuit,
               subtype,
               slot,
@@ -394,6 +397,7 @@ class AvatarService(zone: Zone) extends Actor {
               Service.defaultPlayerGUID,
               AvatarResponse.ChangeLoadout(
                 target,
+                armor,
                 exosuit,
                 subtype,
                 slot,

@@ -2086,6 +2086,7 @@ class SessionActor extends Actor with MDCContextAware {
 
       case AvatarResponse.ChangeExosuit(
             target,
+            armor,
             exosuit,
             subtype,
             slot,
@@ -2099,7 +2100,7 @@ class SessionActor extends Actor with MDCContextAware {
           ) =>
         StartBundlingPackets()
         sendResponse(ArmorChangedMessage(target, exosuit, subtype))
-        sendResponse(PlanetsideAttributeMessage(target, 4, player.Armor))
+        sendResponse(PlanetsideAttributeMessage(target, 4, armor))
         if (tplayer_guid == target) {
           //happening to this player
           //cleanup
@@ -2167,6 +2168,7 @@ class SessionActor extends Actor with MDCContextAware {
 
       case AvatarResponse.ChangeLoadout(
             target,
+            armor,
             exosuit,
             subtype,
             slot,
@@ -2179,7 +2181,7 @@ class SessionActor extends Actor with MDCContextAware {
           ) =>
         StartBundlingPackets()
         sendResponse(ArmorChangedMessage(target, exosuit, subtype))
-        sendResponse(PlanetsideAttributeMessage(target, 4, player.Armor))
+        sendResponse(PlanetsideAttributeMessage(target, 4, armor))
         if (tplayer_guid == target) {
           //happening to this player
           sendResponse(ObjectHeldMessage(target, Player.HandsDownSlot, false))
