@@ -190,16 +190,12 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               val requestToChangeArmor          = originalSuit != exosuit || originalSubtype != subtype
               val allowedToChangeArmor = Players.CertificationToUseExoSuit(player, exosuit, subtype) &&
                 (if (exosuit == ExoSuitType.MAX) {
-                   val definition = player.avatar.faction match {
-                     case PlanetSideEmpire.NC => GlobalDefinitions.NCMAX
-                     case PlanetSideEmpire.TR => GlobalDefinitions.TRMAX
-                     case PlanetSideEmpire.VS => GlobalDefinitions.VSMAX
-                   }
-                   player.avatar.purchaseCooldown(definition) match {
+                   val weapon = GlobalDefinitions.MAXArms(subtype, player.Faction)
+                   player.avatar.purchaseCooldown(weapon) match {
                      case Some(_) =>
                        false
                      case None =>
-                       avatarActor ! AvatarActor.UpdatePurchaseTime(definition)
+                       avatarActor ! AvatarActor.UpdatePurchaseTime(weapon)
                        true
                    }
                  } else {
@@ -326,15 +322,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                 if (
                   Players.CertificationToUseExoSuit(player, exosuit, subtype) &&
                   (if (exosuit == ExoSuitType.MAX) {
-                     val definition = player.avatar.faction match {
-                       case PlanetSideEmpire.NC => GlobalDefinitions.NCMAX
-                       case PlanetSideEmpire.TR => GlobalDefinitions.TRMAX
-                       case PlanetSideEmpire.VS => GlobalDefinitions.VSMAX
-                     }
-                     player.avatar.purchaseCooldown(definition) match {
+                     val weapon = GlobalDefinitions.MAXArms(subtype, player.Faction)
+                     player.avatar.purchaseCooldown(weapon) match {
                        case Some(_) => false
                        case None =>
-                         avatarActor ! AvatarActor.UpdatePurchaseTime(definition)
+                         avatarActor ! AvatarActor.UpdatePurchaseTime(weapon)
                          true
                      }
                    } else {
@@ -863,8 +855,8 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
   }
 
   def SwapItemCallback(item: Equipment, fromSlot: Int): Unit = {
-    val obj  = ContainerObject
-    val zone = obj.Zone
+    val obj       = ContainerObject
+    val zone      = obj.Zone
     val toChannel = if (obj.VisibleSlots.contains(fromSlot)) zone.id else player.Name
     zone.AvatarEvents ! AvatarServiceMessage(
       toChannel,

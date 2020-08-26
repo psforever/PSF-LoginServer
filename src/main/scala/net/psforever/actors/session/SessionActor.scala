@@ -5721,8 +5721,8 @@ class SessionActor extends Actor with MDCContextAware {
               None
           }
         })
-
         sendResponse(TargetingInfoMessage(targetInfo))
+
       case msg @ ActionCancelMessage(u1, u2, u3) =>
         log.info("Cancelled: " + msg)
         progressBarUpdate.cancel()

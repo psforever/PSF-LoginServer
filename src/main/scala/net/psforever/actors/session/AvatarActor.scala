@@ -735,30 +735,24 @@ class AvatarActor(
             case (name, purchaseTime) =>
               val secondsSincePurchase = new Period(purchaseTime, LocalDateTime.now()).toStandardSeconds.getSeconds
               Avatar.purchaseCooldowns.find(_._1.Name == name) match {
-                case Some((GlobalDefinitions.NCMAX | GlobalDefinitions.TRMAX | GlobalDefinitions.VSMAX, cooldown))
-                    if cooldown.toSeconds - secondsSincePurchase > 0 =>
-                  val faction: String = avatar.faction.toString.toLowerCase
-                  Seq(
-                    //s"${faction}hev",
-                    s"${faction}hev_antipersonnel",
-                    s"${faction}hev_antivehicular",
-                    s"${faction}hev_antiaircraft"
-                  ).foreach { name =>
-                    sessionActor ! SessionActor.SendResponse(
-                      AvatarVehicleTimerMessage(
-                        session.get.player.GUID,
-                        name,
-                        cooldown.toSeconds - secondsSincePurchase,
-                        unk1 = true
-                      )
-                    )
-                  }
-
                 case Some((obj, cooldown)) if cooldown.toSeconds - secondsSincePurchase > 0 =>
+                  val faction: String = avatar.faction.toString.toLowerCase
+                  val name = obj match {
+                    case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.nchev_scattercannon |
+                        GlobalDefinitions.vshev_quasar =>
+                      s"${faction}hev_antipersonnel"
+                    case GlobalDefinitions.trhev_pounder | GlobalDefinitions.nchev_falcon |
+                        GlobalDefinitions.vshev_comet =>
+                      s"${faction}hev_antivehicular"
+                    case GlobalDefinitions.trhev_burster | GlobalDefinitions.nchev_sparrow |
+                        GlobalDefinitions.vshev_starfire =>
+                      s"${faction}hev_antiaircraft"
+                    case _ => obj.Name
+                  }
                   sessionActor ! SessionActor.SendResponse(
                     AvatarVehicleTimerMessage(
                       session.get.player.GUID,
-                      obj.Name,
+                      name,
                       cooldown.toSeconds - secondsSincePurchase,
                       unk1 = true
                     )

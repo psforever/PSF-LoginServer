@@ -769,6 +769,7 @@ class ChatActor(
                 case CMT_HIDE_HELMET     => Cosmetic.NoHelmet
                 case CMT_TOGGLE_SHADES   => Cosmetic.Sunglasses
                 case CMT_TOGGLE_EARPIECE => Cosmetic.Earpiece
+                case _                   => null
               }
 
               val on = contents match {
