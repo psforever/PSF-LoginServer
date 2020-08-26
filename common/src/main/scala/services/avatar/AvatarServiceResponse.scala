@@ -90,6 +90,7 @@ object AvatarResponse {
       extends Response
   final case class ChangeExosuit(
       target_guid: PlanetSideGUID,
+      armor: Int,
       exosuit: ExoSuitType.Value,
       subtype: Int,
       last_drawn_slot: Int,
@@ -103,6 +104,7 @@ object AvatarResponse {
   ) extends Response
   final case class ChangeLoadout(
       target_guid: PlanetSideGUID,
+      armor: Int,
       exosuit: ExoSuitType.Value,
       subtype: Int,
       last_drawn_slot: Int,

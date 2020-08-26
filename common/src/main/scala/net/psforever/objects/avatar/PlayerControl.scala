@@ -213,7 +213,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                 val originalArmor = player.Armor
                 player.ExoSuit = exosuit //changes the value of MaxArmor to reflect the new exo-suit
                 val toMaxArmor = player.MaxArmor
-                if (originalSuit != exosuit || originalSubtype != subtype || originalArmor > toMaxArmor) {
+                val toArmor = if (originalSuit != exosuit || originalSubtype != subtype || originalArmor > toMaxArmor) {
                   player.History(HealFromExoSuitChange(PlayerSource(player), exosuit))
                   player.Armor = toMaxArmor
                 } else {
@@ -274,6 +274,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   player.Zone.id,
                   AvatarAction.ChangeExosuit(
                     player.GUID,
+                    toArmor,
                     exosuit,
                     subtype,
                     player.LastDrawnSlot,
@@ -365,7 +366,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               val originalArmor = player.Armor
               player.ExoSuit = nextSuit
               val toMaxArmor = player.MaxArmor
-              if (originalSuit != nextSuit || originalSubtype != nextSubtype || originalArmor > toMaxArmor) {
+              val toArmor = if (originalSuit != nextSuit || originalSubtype != nextSubtype || originalArmor > toMaxArmor) {
                 player.History(HealFromExoSuitChange(PlayerSource(player), nextSuit))
                 player.Armor = toMaxArmor
               } else {
@@ -411,6 +412,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                 player.Zone.id,
                 AvatarAction.ChangeLoadout(
                   player.GUID,
+                  toArmor,
                   nextSuit,
                   nextSubtype,
                   player.LastDrawnSlot,
@@ -430,7 +432,6 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           }
 
         case Zone.Ground.ItemOnGround(item, _, _) =>
-          ;
           val name         = player.Name
           val zone         = player.Zone
           val avatarEvents = zone.AvatarEvents

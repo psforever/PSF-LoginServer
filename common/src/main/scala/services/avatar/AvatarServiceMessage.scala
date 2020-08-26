@@ -122,6 +122,7 @@ object AvatarAction {
       extends Action
   final case class ChangeExosuit(
       target_guid: PlanetSideGUID,
+      armor: Int,
       exosuit: ExoSuitType.Value,
       subtype: Int,
       last_drawn_slot: Int,
@@ -135,6 +136,7 @@ object AvatarAction {
   ) extends Action
   final case class ChangeLoadout(
       target_guid: PlanetSideGUID,
+      armor: Int,
       exosuit: ExoSuitType.Value,
       subtype: Int,
       last_drawn_slot: Int,
