@@ -59,9 +59,10 @@ import net.psforever.types.{
 import net.psforever.util.Database._
 import net.psforever.persistence
 import net.psforever.util.DefinitionUtil
-import org.joda.time.{LocalDateTime, Period}
+import org.joda.time.{LocalDateTime, Seconds}
 import net.psforever.services.ServiceManager
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContextExecutor, Future, Promise}
 import scala.util.{Failure, Success}
@@ -733,7 +734,8 @@ class AvatarActor(
         case RefreshPurchaseTimes() =>
           avatar.purchaseTimes.foreach {
             case (name, purchaseTime) =>
-              val secondsSincePurchase = new Period(purchaseTime, LocalDateTime.now()).toStandardSeconds.getSeconds
+              val secondsSincePurchase = Seconds.secondsBetween(purchaseTime, LocalDateTime.now()).getSeconds
+
               Avatar.purchaseCooldowns.find(_._1.Name == name) match {
                 case Some((obj, cooldown)) if cooldown.toSeconds - secondsSincePurchase > 0 =>
                   val faction: String = avatar.faction.toString.toLowerCase
@@ -1096,7 +1098,7 @@ class AvatarActor(
         val converter: CharacterSelectConverter = new CharacterSelectConverter
 
         avatars.filter(!_.deleted) foreach { a =>
-          val secondsSinceLastLogin = new Period(a.lastLogin, LocalDateTime.now()).toStandardSeconds.getSeconds
+          val secondsSinceLastLogin = Seconds.secondsBetween(a.lastLogin, LocalDateTime.now()).getSeconds
           val avatar                = a.toAvatar
           val player                = new Player(avatar)
 
