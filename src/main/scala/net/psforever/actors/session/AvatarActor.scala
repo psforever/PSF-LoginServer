@@ -676,7 +676,10 @@ class AvatarActor(
           import ctx._
           ctx
             .run(
-              query[persistence.Loadout].filter(_.avatarId == lift(avatar.id)).filter(_.loadoutNumber == lift(number))
+              query[persistence.Loadout]
+                .filter(_.avatarId == lift(avatar.id))
+                .filter(_.loadoutNumber == lift(number))
+                .delete
             )
             .onComplete {
               case Success(_) =>
