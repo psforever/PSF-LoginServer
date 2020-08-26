@@ -390,7 +390,9 @@ class AvatarActor(
             case Success((loadouts, implants, certs)) =>
               avatar = avatar.copy(
                 loadouts = loadouts,
-                certifications = certs.map(cert => Certification.withValue(cert.id)).toSet,
+                // make sure we always have the base certifications
+                certifications =
+                  certs.map(cert => Certification.withValue(cert.id)).toSet ++ Certification.values.filter(_.cost == 0),
                 implants = implants.map(implant => Some(Implant(implant.toImplantDefinition))).padTo(3, None)
               )
 
@@ -416,61 +418,60 @@ class AvatarActor(
             sessionActor ! SessionActor.SendResponse(
               ItemTransactionResultMessage(terminalGuid, TransactionType.Learn, success = false)
             )
-            return Behaviors.same
-          }
-
-          val replace = certification.replaces.intersect(avatar.certifications)
-          Future
-            .sequence(replace.map(cert => {
-              ctx
-                .run(
-                  query[persistence.Certification]
-                    .filter(_.avatarId == lift(avatar.id))
-                    .filter(_.id == lift(cert.value))
-                    .delete
-                )
-                .map(_ => cert)
-            }))
-            .onComplete {
-              case Failure(exception) =>
-                log.error(exception)("db failure")
-                sessionActor ! SessionActor.SendResponse(
-                  ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = false)
-                )
-              case Success(replace) =>
-                replace.foreach { cert =>
-                  sessionActor ! SessionActor.SendResponse(
-                    PlanetsideAttributeMessage(session.get.player.GUID, 25, cert.value)
-                  )
-                }
+          } else {
+            val replace = certification.replaces.intersect(avatar.certifications)
+            Future
+              .sequence(replace.map(cert => {
                 ctx
                   .run(
                     query[persistence.Certification]
-                      .insert(_.id -> lift(certification.value), _.avatarId -> lift(avatar.id))
+                      .filter(_.avatarId == lift(avatar.id))
+                      .filter(_.id == lift(cert.value))
+                      .delete
                   )
-                  .onComplete {
-                    case Failure(exception) =>
-                      log.error(exception)("db failure")
-                      sessionActor ! SessionActor.SendResponse(
-                        ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = false)
-                      )
-
-                    case Success(_) =>
-                      sessionActor ! SessionActor.SendResponse(
-                        PlanetsideAttributeMessage(session.get.player.GUID, 24, certification.value)
-                      )
-                      avatar = avatar.copy(certifications = avatar.certifications.diff(replace) + certification)
-                      sessionActor ! SessionActor.SendResponse(
-                        ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = true)
-                      )
-
-                      avatar.deployables.UpdateMaxCounts(avatar.certifications)
-                      updateDeployableUIElements(
-                        avatar.deployables.UpdateUI()
-                      )
+                  .map(_ => cert)
+              }))
+              .onComplete {
+                case Failure(exception) =>
+                  log.error(exception)("db failure")
+                  sessionActor ! SessionActor.SendResponse(
+                    ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = false)
+                  )
+                case Success(replace) =>
+                  replace.foreach { cert =>
+                    sessionActor ! SessionActor.SendResponse(
+                      PlanetsideAttributeMessage(session.get.player.GUID, 25, cert.value)
+                    )
                   }
+                  ctx
+                    .run(
+                      query[persistence.Certification]
+                        .insert(_.id -> lift(certification.value), _.avatarId -> lift(avatar.id))
+                    )
+                    .onComplete {
+                      case Failure(exception) =>
+                        log.error(exception)("db failure")
+                        sessionActor ! SessionActor.SendResponse(
+                          ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = false)
+                        )
 
-            }
+                      case Success(_) =>
+                        sessionActor ! SessionActor.SendResponse(
+                          PlanetsideAttributeMessage(session.get.player.GUID, 24, certification.value)
+                        )
+                        avatar = avatar.copy(certifications = avatar.certifications.diff(replace) + certification)
+                        sessionActor ! SessionActor.SendResponse(
+                          ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = true)
+                        )
+
+                        avatar.deployables.UpdateMaxCounts(avatar.certifications)
+                        updateDeployableUIElements(
+                          avatar.deployables.UpdateUI()
+                        )
+                    }
+
+              }
+          }
           Behaviors.same
 
         case SellCertification(terminalGuid, certification) =>
@@ -480,48 +481,48 @@ class AvatarActor(
             sessionActor ! SessionActor.SendResponse(
               ItemTransactionResultMessage(terminalGuid, TransactionType.Learn, success = false)
             )
-            return Behaviors.same
-          }
+          } else {
 
-          val deps   = Certification.values.filter(_.requires.contains(certification)).toSet
-          val remove = deps ++ Certification.values.filter(_.replaces.intersect(deps).nonEmpty).toSet + certification
+            val deps   = Certification.values.filter(_.requires.contains(certification)).toSet
+            val remove = deps ++ Certification.values.filter(_.replaces.intersect(deps).nonEmpty).toSet + certification
 
-          Future
-            .sequence(
-              avatar.certifications
-                .intersect(remove)
-                .map(cert => {
-                  ctx
-                    .run(
-                      query[persistence.Certification]
-                        .filter(_.avatarId == lift(avatar.id))
-                        .filter(_.id == lift(cert.value))
-                        .delete
-                    )
-                    .map(_ => cert)
-                })
-            )
-            .onComplete {
-              case Failure(exception) =>
-                log.error(exception)("db failure")
-                sessionActor ! SessionActor.SendResponse(
-                  ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = false)
-                )
-              case Success(certs) =>
-                certs.foreach { cert =>
+            Future
+              .sequence(
+                avatar.certifications
+                  .intersect(remove)
+                  .map(cert => {
+                    ctx
+                      .run(
+                        query[persistence.Certification]
+                          .filter(_.avatarId == lift(avatar.id))
+                          .filter(_.id == lift(cert.value))
+                          .delete
+                      )
+                      .map(_ => cert)
+                  })
+              )
+              .onComplete {
+                case Failure(exception) =>
+                  log.error(exception)("db failure")
                   sessionActor ! SessionActor.SendResponse(
-                    PlanetsideAttributeMessage(session.get.player.GUID, 25, cert.value)
+                    ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = false)
                   )
-                }
-                avatar = avatar.copy(certifications = avatar.certifications.diff(remove))
-                sessionActor ! SessionActor.SendResponse(
-                  ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = true)
-                )
-                avatar.deployables.UpdateMaxCounts(avatar.certifications)
-                updateDeployableUIElements(
-                  avatar.deployables.UpdateUI()
-                )
-            }
+                case Success(certs) =>
+                  certs.foreach { cert =>
+                    sessionActor ! SessionActor.SendResponse(
+                      PlanetsideAttributeMessage(session.get.player.GUID, 25, cert.value)
+                    )
+                  }
+                  avatar = avatar.copy(certifications = avatar.certifications.diff(remove))
+                  sessionActor ! SessionActor.SendResponse(
+                    ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = true)
+                  )
+                  avatar.deployables.UpdateMaxCounts(avatar.certifications)
+                  updateDeployableUIElements(
+                    avatar.deployables.UpdateUI()
+                  )
+              }
+          }
           Behaviors.same
 
         case SetCertifications(certifications) =>
@@ -716,12 +717,12 @@ class AvatarActor(
           if (!Avatar.purchaseCooldowns.contains(definition)) {
             // TODO only send for items with cooldowns
             //log.warn(s"UpdatePurchaseTime message for item '${definition.Name}' without cooldown")
-            return Behaviors.same
+          } else {
+            // TODO save to db
+            avatar = avatar.copy(purchaseTimes = avatar.purchaseTimes.updated(definition.Name, time))
+            // we could be more selective and only send what changed, but it doesn't hurt to refresh everything
+            context.self ! RefreshPurchaseTimes()
           }
-          // TODO save to db
-          avatar = avatar.copy(purchaseTimes = avatar.purchaseTimes.updated(definition.Name, time))
-          // we could be more selective and only send what changed, but it doesn't hurt to refresh everything
-          context.self ! RefreshPurchaseTimes()
           Behaviors.same
 
         case UpdateUseTime(definition, time) =>
@@ -779,51 +780,47 @@ class AvatarActor(
             case Some((implant, slot)) =>
               if (!implant.initialized) {
                 log.error(s"requested activation of uninitialized implant $implant")
-                return Behaviors.same
-              }
-              if (!consumeStamina(implant.definition.ActivationStaminaCost)) {
+              } else if (!consumeStamina(implant.definition.ActivationStaminaCost)) {
                 sessionActor ! SessionActor.SendResponse(
                   AvatarImplantMessage(session.get.player.GUID, ImplantAction.OutOfStamina, slot, 1)
                 )
-                return Behaviors.same
-              }
-              if (implant.definition.implantType.disabledFor.contains(session.get.player.ExoSuit)) {
+              } else if (implant.definition.implantType.disabledFor.contains(session.get.player.ExoSuit)) {
                 // TODO can this really happen? can we prevent it?
-                return Behaviors.same
-              }
+              } else {
 
-              avatar = avatar.copy(
-                implants = avatar.implants.updated(slot, Some(implant.copy(active = true)))
-              )
-              sessionActor ! SessionActor.SendResponse(
-                AvatarImplantMessage(
-                  session.get.player.GUID,
-                  ImplantAction.Activation,
-                  slot,
-                  1
+                avatar = avatar.copy(
+                  implants = avatar.implants.updated(slot, Some(implant.copy(active = true)))
                 )
-              )
-
-              // Activation sound / effect
-              session.get.zone.AvatarEvents ! AvatarServiceMessage(
-                session.get.zone.id,
-                AvatarAction.PlanetsideAttribute(
-                  session.get.player.GUID,
-                  28,
-                  implant.definition.implantType.value * 2 + 1
+                sessionActor ! SessionActor.SendResponse(
+                  AvatarImplantMessage(
+                    session.get.player.GUID,
+                    ImplantAction.Activation,
+                    slot,
+                    1
+                  )
                 )
-              )
 
-              implantTimers.get(slot).foreach(_.cancel())
+                // Activation sound / effect
+                session.get.zone.AvatarEvents ! AvatarServiceMessage(
+                  session.get.zone.id,
+                  AvatarAction.PlanetsideAttribute(
+                    session.get.player.GUID,
+                    28,
+                    implant.definition.implantType.value * 2 + 1
+                  )
+                )
 
-              val interval = implant.definition.GetCostIntervalByExoSuit(session.get.player.ExoSuit).milliseconds
-              // TODO costInterval should be an option ^
-              if (interval.toMillis > 0) {
-                implantTimers(slot) = context.system.scheduler.scheduleWithFixedDelay(interval, interval)(() => {
-                  if (!consumeStamina(implant.definition.StaminaCost)) {
-                    context.self ! DeactivateImplant(implantType)
-                  }
-                })
+                implantTimers.get(slot).foreach(_.cancel())
+
+                val interval = implant.definition.GetCostIntervalByExoSuit(session.get.player.ExoSuit).milliseconds
+                // TODO costInterval should be an option ^
+                if (interval.toMillis > 0) {
+                  implantTimers(slot) = context.system.scheduler.scheduleWithFixedDelay(interval, interval)(() => {
+                    if (!consumeStamina(implant.definition.StaminaCost)) {
+                      context.self ! DeactivateImplant(implantType)
+                    }
+                  })
+                }
               }
 
             case None => log.error(s"requested activation of unknown implant $implantType")
@@ -870,21 +867,20 @@ class AvatarActor(
 
         case RestoreStamina(stamina) =>
           assert(stamina > 0)
-          if (!session.get.player.HasGUID) return Behaviors.same
+          if (session.get.player.HasGUID) {
+            val totalStamina = math.min(avatar.maxStamina, avatar.stamina + stamina)
+            val fatigued = if (avatar.fatigued && totalStamina >= 20) {
+              context.self ! InitializeImplants(instant = true)
+              false
+            } else {
+              avatar.fatigued
+            }
+            avatar = avatar.copy(stamina = totalStamina, fatigued = fatigued)
 
-          val totalStamina = math.min(avatar.maxStamina, avatar.stamina + stamina)
-          val fatigued = if (avatar.fatigued && totalStamina >= 20) {
-            context.self ! InitializeImplants(instant = true)
-            false
-          } else {
-            avatar.fatigued
+            sessionActor ! SessionActor.SendResponse(
+              PlanetsideAttributeMessage(session.get.player.GUID, 2, avatar.stamina)
+            )
           }
-          avatar = avatar.copy(stamina = totalStamina, fatigued = fatigued)
-
-          sessionActor ! SessionActor.SendResponse(
-            PlanetsideAttributeMessage(session.get.player.GUID, 2, avatar.stamina)
-          )
-
           Behaviors.same
 
         case ConsumeStamina(stamina) =>
