@@ -2,7 +2,8 @@ package net.psforever.login.psadmin
 
 import java.net.InetSocketAddress
 
-import akka.actor.{Actor, ActorRef, Props, Stash}
+import akka.actor.typed.receptionist.Receptionist
+import akka.actor.{Actor, ActorRef, Props, Stash, typed}
 import akka.io.Tcp
 import akka.util.ByteString
 import org.json4s._
@@ -11,8 +12,8 @@ import scodec.bits._
 import scodec.interop.akka._
 import net.psforever.services.ServiceManager.Lookup
 import net.psforever.services._
-
 import scala.collection.mutable.Map
+import akka.actor.typed.scaladsl.adapter._
 
 object PsAdminActor {
   val whiteSpaceRegex = """\s+""".r
@@ -21,25 +22,34 @@ object PsAdminActor {
 class PsAdminActor(peerAddress: InetSocketAddress, connection: ActorRef) extends Actor with Stash {
   private[this] val log = org.log4s.getLogger(self.path.name)
 
-  val services          = Map[String, ActorRef]()
-  val servicesToResolve = Array("cluster")
-  var buffer            = ByteString()
+  var cluster: typed.ActorRef[InterstellarClusterService.Command] = null
+
+  // val services          = Map[String, ActorRef]()
+  // val servicesToResolve = Array("cluster")
+  var buffer = ByteString()
 
   implicit val formats = DefaultFormats // for JSON serialization
 
   case class CommandCall(operation: String, args: Array[String])
 
+  ServiceManager.receptionist ! Receptionist.Find(
+    InterstellarClusterService.InterstellarClusterServiceKey,
+    context.self
+  )
+
   override def preStart() = {
     log.trace(s"PsAdmin connection started $peerAddress")
-
-    for (service <- servicesToResolve) {
-      ServiceManager.serviceManager ! Lookup(service)
-    }
   }
 
   override def receive = ServiceLookup
 
   def ServiceLookup: Receive = {
+    case InterstellarClusterService.InterstellarClusterServiceKey.Listing(listings) =>
+      cluster = listings.head
+      unstashAll()
+      context.become(ReceiveCommand)
+
+    /*
     case ServiceManager.LookupResult(service, endpoint) =>
       services { service } = endpoint
 
@@ -47,6 +57,7 @@ class PsAdminActor(peerAddress: InetSocketAddress, connection: ActorRef) extends
         unstashAll()
         context.become(ReceiveCommand)
       }
+     */
 
     case default => stash()
   }
@@ -131,7 +142,7 @@ class PsAdminActor(peerAddress: InetSocketAddress, connection: ActorRef) extends
 
         cmd_template match {
           case PsAdminCommands.Command(usage, handler) =>
-            context.actorOf(Props(handler, args, services))
+            context.actorOf(Props(handler, args, Map[String, ActorRef]()))
 
           case PsAdminCommands.CommandInternal(usage, handler) =>
             val resp = handler(args)
