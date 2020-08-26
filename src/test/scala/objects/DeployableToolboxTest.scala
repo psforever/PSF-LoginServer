@@ -246,10 +246,8 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
 
-      obj.AddToDeployableQuantities(
-        CombatEngineering,
-        Set(CombatEngineering)
-      )
+      obj.UpdateMaxCounts(Set(CombatEngineering))
+
       obj.CountDeployable(DeployedItem.boomer)._2 mustEqual 20
       obj.CountDeployable(DeployedItem.he_mine)._2 mustEqual 20
       obj.CountDeployable(DeployedItem.spitfire_turret)._2 mustEqual 10
@@ -266,10 +264,8 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
 
-      obj.AddToDeployableQuantities(
-        FortificationEngineering,
-        Set(CombatEngineering, FortificationEngineering)
-      )
+      obj.UpdateMaxCounts(Set(CombatEngineering, FortificationEngineering))
+
       obj.CountDeployable(DeployedItem.boomer)._2 mustEqual 25
       obj.CountDeployable(DeployedItem.he_mine)._2 mustEqual 25
       obj.CountDeployable(DeployedItem.spitfire_turret)._2 mustEqual 15
@@ -286,10 +282,8 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
 
-      obj.AddToDeployableQuantities(
-        AssaultEngineering,
-        Set(CombatEngineering, FortificationEngineering, AssaultEngineering)
-      )
+      obj.UpdateMaxCounts(Set(CombatEngineering, FortificationEngineering, AssaultEngineering))
+
       obj.CountDeployable(DeployedItem.boomer)._2 mustEqual 25
       obj.CountDeployable(DeployedItem.he_mine)._2 mustEqual 25
       obj.CountDeployable(DeployedItem.spitfire_turret)._2 mustEqual 15
@@ -306,10 +300,8 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
 
-      obj.AddToDeployableQuantities(
-        AssaultEngineering,
-        Set(CombatEngineering, FortificationEngineering, AssaultEngineering)
-      )
+      obj.UpdateMaxCounts(Set(CombatEngineering, FortificationEngineering, AssaultEngineering))
+
       obj.CountDeployable(DeployedItem.boomer)._2 mustEqual 25
       obj.CountDeployable(DeployedItem.he_mine)._2 mustEqual 25
       obj.CountDeployable(DeployedItem.spitfire_turret)._2 mustEqual 15
@@ -326,10 +318,8 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
 
-      obj.AddToDeployableQuantities(
-        AdvancedHacking,
-        Set(CombatEngineering, FortificationEngineering, AssaultEngineering, AdvancedHacking)
-      )
+      obj.UpdateMaxCounts(Set(CombatEngineering, FortificationEngineering, AssaultEngineering, AdvancedHacking))
+
       obj.CountDeployable(DeployedItem.boomer)._2 mustEqual 25
       obj.CountDeployable(DeployedItem.he_mine)._2 mustEqual 25
       obj.CountDeployable(DeployedItem.spitfire_turret)._2 mustEqual 15
@@ -366,10 +356,8 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
 
-      obj.AddToDeployableQuantities(
-        GroundSupport,
-        Set(GroundSupport)
-      )
+      obj.UpdateMaxCounts(Set(GroundSupport))
+
       obj.CountDeployable(DeployedItem.boomer)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.he_mine)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.spitfire_turret)._2 mustEqual 0
@@ -406,10 +394,8 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
 
-      obj.AddToDeployableQuantities(
-        AdvancedEngineering,
-        Set(CombatEngineering, AdvancedEngineering)
-      )
+      obj.UpdateMaxCounts(Set(CombatEngineering, AdvancedEngineering))
+
       obj.CountDeployable(DeployedItem.boomer)._2 mustEqual 25
       obj.CountDeployable(DeployedItem.he_mine)._2 mustEqual 25
       obj.CountDeployable(DeployedItem.spitfire_turret)._2 mustEqual 15
@@ -448,10 +434,8 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
 
-      obj.RemoveFromDeployableQuantities(
-        GroundSupport,
-        Set(CombatEngineering, AssaultEngineering, FortificationEngineering, AdvancedHacking)
-      )
+      obj.UpdateMaxCounts(Set(CombatEngineering, AssaultEngineering, FortificationEngineering, AdvancedHacking))
+
       obj.CountDeployable(DeployedItem.boomer)._2 mustEqual 25
       obj.CountDeployable(DeployedItem.he_mine)._2 mustEqual 25
       obj.CountDeployable(DeployedItem.spitfire_turret)._2 mustEqual 15
@@ -468,10 +452,8 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
 
-      obj.RemoveFromDeployableQuantities(
-        AdvancedHacking,
-        Set(CombatEngineering, AssaultEngineering, FortificationEngineering)
-      )
+      obj.UpdateMaxCounts(Set(CombatEngineering, AssaultEngineering, FortificationEngineering))
+
       obj.CountDeployable(DeployedItem.boomer)._2 mustEqual 25
       obj.CountDeployable(DeployedItem.he_mine)._2 mustEqual 25
       obj.CountDeployable(DeployedItem.spitfire_turret)._2 mustEqual 15
@@ -488,10 +470,8 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
 
-      obj.RemoveFromDeployableQuantities(
-        FortificationEngineering,
-        Set(CombatEngineering, AssaultEngineering)
-      )
+      obj.UpdateMaxCounts(Set(CombatEngineering, AssaultEngineering))
+
       obj.CountDeployable(DeployedItem.boomer)._2 mustEqual 20
       obj.CountDeployable(DeployedItem.he_mine)._2 mustEqual 20
       obj.CountDeployable(DeployedItem.spitfire_turret)._2 mustEqual 10
@@ -508,10 +488,8 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
 
-      obj.RemoveFromDeployableQuantities(
-        AssaultEngineering,
-        Set(CombatEngineering)
-      )
+      obj.UpdateMaxCounts(Set(CombatEngineering))
+
       obj.CountDeployable(DeployedItem.boomer)._2 mustEqual 20
       obj.CountDeployable(DeployedItem.he_mine)._2 mustEqual 20
       obj.CountDeployable(DeployedItem.spitfire_turret)._2 mustEqual 10
@@ -528,10 +506,8 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
 
-      obj.RemoveFromDeployableQuantities(
-        CombatEngineering,
-        Set()
-      )
+      obj.UpdateMaxCounts(Set())
+
       obj.CountDeployable(DeployedItem.boomer)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.he_mine)._2 mustEqual 0
       obj.CountDeployable(DeployedItem.spitfire_turret)._2 mustEqual 0
@@ -568,10 +544,8 @@ class DeployableToolboxTest extends Specification {
       obj.CountDeployable(DeployedItem.deployable_shield_generator)._2 mustEqual 1
       obj.CountDeployable(DeployedItem.router_telepad_deployable)._2 mustEqual 1024
 
-      obj.RemoveFromDeployableQuantities(
-        AdvancedEngineering,
-        Set(CombatEngineering)
-      )
+      obj.UpdateMaxCounts(Set(CombatEngineering))
+
       obj.CountDeployable(DeployedItem.boomer)._2 mustEqual 20
       obj.CountDeployable(DeployedItem.he_mine)._2 mustEqual 20
       obj.CountDeployable(DeployedItem.spitfire_turret)._2 mustEqual 10
@@ -630,10 +604,8 @@ class DeployableToolboxTest extends Specification {
       obj.Add(new BoomerDeployable(GlobalDefinitions.boomer))
       obj.CountDeployable(DeployedItem.boomer).productIterator.toList mustEqual List(3, 20)
 
-      obj.RemoveFromDeployableQuantities(
-        CombatEngineering,
-        Set()
-      )
+      obj.UpdateMaxCounts(Set())
+
       obj.CountDeployable(DeployedItem.boomer).productIterator.toList mustEqual List(3, 0)
     }
 
@@ -851,7 +823,8 @@ class DeployableToolboxTest extends Specification {
       obj.Valid(cerebus) mustEqual false
       obj.CountDeployable(DeployedItem.spitfire_aa).productIterator.toList mustEqual List(0, 0)
 
-      obj.AddToDeployableQuantities(AdvancedEngineering, Set(CombatEngineering, AdvancedEngineering))
+      obj.UpdateMaxCounts(Set(CombatEngineering, AdvancedEngineering))
+
       obj.Valid(cerebus) mustEqual true
       obj.CountDeployable(DeployedItem.spitfire_aa).productIterator.toList mustEqual List(0, 5)
     }
@@ -883,7 +856,8 @@ class DeployableToolboxTest extends Specification {
       obj.Contains(boomer) mustEqual false //false is being passable
       obj.Valid(boomer) mustEqual false
 
-      obj.AddToDeployableQuantities(CombatEngineering, Set(CombatEngineering))
+      obj.UpdateMaxCounts(Set(CombatEngineering))
+
       obj.CountDeployable(DeployedItem.boomer).productIterator.toList mustEqual List(0, 20)
       obj.Accept(boomer) mustEqual true
       obj.Available(boomer) mustEqual true //true is being passable
@@ -904,7 +878,8 @@ class DeployableToolboxTest extends Specification {
       obj.Contains(boomer) mustEqual true
       obj.Valid(boomer) mustEqual true //true is being passable
 
-      obj.RemoveFromDeployableQuantities(CombatEngineering, Set())
+      obj.UpdateMaxCounts(Set())
+
       obj.CountDeployable(DeployedItem.boomer).productIterator.toList mustEqual List(20, 0)
       obj.Accept(boomer) mustEqual false
       obj.Available(boomer) mustEqual false

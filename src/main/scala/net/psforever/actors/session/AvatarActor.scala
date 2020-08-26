@@ -749,6 +749,7 @@ class AvatarActor(
                       s"${faction}hev_antiaircraft"
                     case _ => obj.Name
                   }
+
                   sessionActor ! SessionActor.SendResponse(
                     AvatarVehicleTimerMessage(
                       session.get.player.GUID,

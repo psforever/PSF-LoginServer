@@ -109,8 +109,8 @@ class LoadoutTest extends Specification {
     val ldout4 = Loadout.Create(player, "burster").asInstanceOf[InfantryLoadout]
 
     ldout1.subtype mustEqual 0
-    ldout2.subtype mustEqual 1
-    ldout3.subtype mustEqual 2
+    ldout2.subtype mustEqual 2
+    ldout3.subtype mustEqual 3
     ldout4.subtype mustEqual InfantryLoadout.DetermineSubtype(player) //example
   }
 
@@ -144,9 +144,9 @@ class LoadoutTest extends Specification {
     InfantryLoadout.DetermineSubtypeB(ldout1.exosuit, ldout1.subtype) mustEqual 1
     InfantryLoadout.DetermineSubtypeB(ldout2.exosuit, ldout2.subtype) mustEqual 2
     InfantryLoadout.DetermineSubtypeB(ldout3.exosuit, ldout3.subtype) mustEqual 3
-    InfantryLoadout.DetermineSubtypeB(ldout4.exosuit, ldout4.subtype) mustEqual 4
-    InfantryLoadout.DetermineSubtypeB(ldout5.exosuit, ldout5.subtype) mustEqual 5
-    InfantryLoadout.DetermineSubtypeB(ldout6.exosuit, ldout6.subtype) mustEqual 6
+    InfantryLoadout.DetermineSubtypeB(ldout4.exosuit, ldout4.subtype) mustEqual 5
+    InfantryLoadout.DetermineSubtypeB(ldout5.exosuit, ldout5.subtype) mustEqual 6
+    InfantryLoadout.DetermineSubtypeB(ldout6.exosuit, ldout6.subtype) mustEqual 4
     InfantryLoadout.DetermineSubtypeB(ldout7.exosuit, ldout7.subtype) mustEqual 7
   }
 }
