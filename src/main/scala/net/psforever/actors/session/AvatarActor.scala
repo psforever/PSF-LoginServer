@@ -663,7 +663,13 @@ class AvatarActor(
             case LoadoutType.Infantry =>
               storeLoadout(player, name, number).onComplete {
                 case Success(_) =>
-                  context.self ! RefreshLoadouts()
+                  loadLoadouts().onComplete {
+                    case Success(loadouts) =>
+                      avatar = avatar.copy(loadouts = loadouts)
+                      context.self ! RefreshLoadouts()
+                    case Failure(exception) => log.error(exception)("db failure")
+                  }
+
                 case Failure(exception) => log.error(exception)("db failure")
               }
 
@@ -693,23 +699,18 @@ class AvatarActor(
           Behaviors.same
 
         case RefreshLoadouts() =>
-          loadLoadouts().onComplete {
-            case Success(loadouts) =>
-              avatar = avatar.copy(loadouts = loadouts)
-              loadouts.zipWithIndex.foreach {
-                case (Some(loadout: InfantryLoadout), index) =>
-                  sessionActor ! SessionActor.SendResponse(
-                    FavoritesMessage(
-                      LoadoutType.Infantry,
-                      session.get.player.GUID,
-                      index,
-                      loadout.label,
-                      InfantryLoadout.DetermineSubtypeB(loadout.exosuit, loadout.subtype)
-                    )
-                  )
-                case _ => ;
-              }
-            case Failure(exception) => log.error(exception)("db failure")
+          avatar.loadouts.zipWithIndex.foreach {
+            case (Some(loadout: InfantryLoadout), index) =>
+              sessionActor ! SessionActor.SendResponse(
+                FavoritesMessage(
+                  LoadoutType.Infantry,
+                  session.get.player.GUID,
+                  index,
+                  loadout.label,
+                  InfantryLoadout.DetermineSubtypeB(loadout.exosuit, loadout.subtype)
+                )
+              )
+            case _ => ;
           }
           Behaviors.same
 
@@ -772,7 +773,6 @@ class AvatarActor(
           Behaviors.same
 
         case ActivateImplant(implantType) =>
-          log.info(s"ActivateImplant ${implantType}")
           val res = avatar.implants.zipWithIndex.collectFirst {
             case (Some(implant), index) if implant.definition.implantType == implantType => (implant, index)
           }
@@ -780,14 +780,14 @@ class AvatarActor(
             case Some((implant, slot)) =>
               if (!implant.initialized) {
                 log.error(s"requested activation of uninitialized implant $implant")
-              } else if (!consumeStamina(implant.definition.ActivationStaminaCost)) {
-                sessionActor ! SessionActor.SendResponse(
-                  AvatarImplantMessage(session.get.player.GUID, ImplantAction.OutOfStamina, slot, 1)
-                )
+              } else if (
+                !consumeStamina(implant.definition.ActivationStaminaCost) ||
+                avatar.stamina < implant.definition.StaminaCost
+              ) {
+                // not enough stamina to activate
               } else if (implant.definition.implantType.disabledFor.contains(session.get.player.ExoSuit)) {
                 // TODO can this really happen? can we prevent it?
               } else {
-
                 avatar = avatar.copy(
                   implants = avatar.implants.updated(slot, Some(implant.copy(active = true)))
                 )
@@ -828,39 +828,15 @@ class AvatarActor(
           Behaviors.same
 
         case DeactivateImplant(implantType) =>
-          val res = avatar.implants.zipWithIndex.collectFirst {
-            case (Some(implant), index) if implant.definition.implantType == implantType => (implant, index)
-          }
-          res match {
-            case Some((implant, slot)) =>
-              implantTimers(slot).cancel()
-              avatar = avatar.copy(
-                implants = avatar.implants.updated(slot, Some(implant.copy(active = false)))
-              )
-
-              // Deactivation sound / effect
-              session.get.zone.AvatarEvents ! AvatarServiceMessage(
-                session.get.zone.id,
-                AvatarAction.PlanetsideAttribute(session.get.player.GUID, 28, implant.definition.implantType.value * 2)
-              )
-
-              sessionActor ! SessionActor.SendResponse(
-                AvatarImplantMessage(
-                  session.get.player.GUID,
-                  ImplantAction.Activation,
-                  slot,
-                  0
-                )
-              )
-            case None => log.error(s"requested deactivation of unknown implant $implantType")
-          }
+          deactivateImplant(implantType)
           Behaviors.same
 
         case DeactivateActiveImplants() =>
           avatar.implants.indices.foreach { index =>
             avatar.implants(index).foreach { implant =>
-              if (implant.active && implant.definition.GetCostIntervalByExoSuit(session.get.player.ExoSuit) > 0)
-                context.self ! DeactivateImplant(implant.definition.implantType)
+              if (implant.active && implant.definition.GetCostIntervalByExoSuit(session.get.player.ExoSuit) > 0) {
+                deactivateImplant(implant.definition.implantType)
+              }
             }
           }
           Behaviors.same
@@ -870,13 +846,18 @@ class AvatarActor(
           if (session.get.player.HasGUID) {
             val totalStamina = math.min(avatar.maxStamina, avatar.stamina + stamina)
             val fatigued = if (avatar.fatigued && totalStamina >= 20) {
-              context.self ! InitializeImplants(instant = true)
+              avatar.implants.zipWithIndex.foreach {
+                case (Some(implant), slot) =>
+                  sessionActor ! SessionActor.SendResponse(
+                    AvatarImplantMessage(session.get.player.GUID, ImplantAction.OutOfStamina, slot, 0)
+                  )
+                case _ => ()
+              }
               false
             } else {
               avatar.fatigued
             }
             avatar = avatar.copy(stamina = totalStamina, fatigued = fatigued)
-
             sessionActor ! SessionActor.SendResponse(
               PlanetsideAttributeMessage(session.get.player.GUID, 2, avatar.stamina)
             )
@@ -1027,6 +1008,19 @@ class AvatarActor(
     } else {
       totalStamina == 0
     }
+    if (!avatar.fatigued && fatigued) {
+      avatar.implants.zipWithIndex.foreach {
+        case (Some(implant), slot) =>
+          if (implant.active) {
+            deactivateImplant(implant.definition.implantType)
+          }
+          sessionActor ! SessionActor.SendResponse(
+            AvatarImplantMessage(session.get.player.GUID, ImplantAction.OutOfStamina, slot, 1)
+          )
+        case _ => ()
+      }
+    }
+
     avatar = avatar.copy(stamina = totalStamina, fatigued = fatigued)
     sessionActor ! SessionActor.SendResponse(PlanetsideAttributeMessage(session.get.player.GUID, 2, avatar.stamina))
     consumed
@@ -1045,6 +1039,14 @@ class AvatarActor(
             addShortcut = true,
             Some(implant.definition.implantType.shortcut)
           )
+        )
+
+        // Start client side initialization timer, visible on the character screen
+        // Progress accumulates according to the client's knowledge of the implant initialization time
+        // What is normally a 60s timer that is set to 120s on the server will still visually update as if 60s
+        session.get.zone.AvatarEvents ! AvatarServiceMessage(
+          avatar.name,
+          AvatarAction.SendResponse(Service.defaultPlayerGUID, ActionProgressMessage(slot + 6, 0))
         )
 
         implantTimers.get(slot).foreach(_.cancel())
@@ -1082,6 +1084,35 @@ class AvatarActor(
         Some(implant.copy(initialized = false))
       case (None, _) => None
     })
+  }
+
+  def deactivateImplant(implantType: ImplantType): Unit = {
+    val res = avatar.implants.zipWithIndex.collectFirst {
+      case (Some(implant), index) if implant.definition.implantType == implantType => (implant, index)
+    }
+    res match {
+      case Some((implant, slot)) =>
+        implantTimers(slot).cancel()
+        avatar = avatar.copy(
+          implants = avatar.implants.updated(slot, Some(implant.copy(active = false)))
+        )
+
+        // Deactivation sound / effect
+        session.get.zone.AvatarEvents ! AvatarServiceMessage(
+          session.get.zone.id,
+          AvatarAction.PlanetsideAttribute(session.get.player.GUID, 28, implant.definition.implantType.value * 2)
+        )
+
+        sessionActor ! SessionActor.SendResponse(
+          AvatarImplantMessage(
+            session.get.player.GUID,
+            ImplantAction.Activation,
+            slot,
+            0
+          )
+        )
+      case None => log.error(s"requested deactivation of unknown implant $implantType")
+    }
   }
 
   /** Send list of avatars to client (show character selection screen) */

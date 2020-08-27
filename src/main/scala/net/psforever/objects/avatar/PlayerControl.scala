@@ -358,12 +358,13 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               val originalArmor = player.Armor
               player.ExoSuit = nextSuit
               val toMaxArmor = player.MaxArmor
-              val toArmor = if (originalSuit != nextSuit || originalSubtype != nextSubtype || originalArmor > toMaxArmor) {
-                player.History(HealFromExoSuitChange(PlayerSource(player), nextSuit))
-                player.Armor = toMaxArmor
-              } else {
-                player.Armor = originalArmor
-              }
+              val toArmor =
+                if (originalSuit != nextSuit || originalSubtype != nextSubtype || originalArmor > toMaxArmor) {
+                  player.History(HealFromExoSuitChange(PlayerSource(player), nextSuit))
+                  player.Armor = toMaxArmor
+                } else {
+                  player.Armor = originalArmor
+                }
               //ensure arm is down, even if it needs to go back up
               if (player.DrawnSlot != Player.HandsDownSlot) {
                 player.DrawnSlot = Player.HandsDownSlot

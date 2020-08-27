@@ -90,18 +90,6 @@ import akka.util.Timeout
 import scala.collection.mutable
 
 object SessionActor {
-
-  /** Object use cooldowns.<br>
-    * key - object id<br>
-    * value - time last used (ms)
-    */
-  val delayedGratificationEntries: Map[Int, Long] = Map(
-    GlobalDefinitions.medkit.ObjectId           -> 5000, //5s
-    GlobalDefinitions.super_armorkit.ObjectId   -> 1200000, //20min
-    GlobalDefinitions.super_medkit.ObjectId     -> 1200000, //20min
-    GlobalDefinitions.super_staminakit.ObjectId -> 1200000 //20min
-  )
-
   sealed trait Command
 
   final case class ResponseToSelf(pkt: PlanetSideGamePacket)

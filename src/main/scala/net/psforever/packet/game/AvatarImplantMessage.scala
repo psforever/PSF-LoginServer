@@ -33,7 +33,7 @@ object ImplantAction extends Enumeration {
   *                 `Initialization` - 0 to revoke slot; 1 to allocate implant slot<br>
   *                 `Activation` - 0 to deactivate implant; 1 to activate implant<br>
   *                 `UnlockMessage` - 0-3 as an unlocked implant slot; display a message<br>
-  *                 `OutOfStamina` - lock implant; 0 to lock; 1 to unlock; display a message
+  *                 `OutOfStamina` - lock implant; 1 to lock; 0 to unlock; display a message
   */
 final case class AvatarImplantMessage(
     player_guid: PlanetSideGUID,

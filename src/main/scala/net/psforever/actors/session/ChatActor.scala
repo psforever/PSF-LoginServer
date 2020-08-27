@@ -488,7 +488,7 @@ class ChatActor(
             case (CMT_GMTELL, _, _) if gmCommandAllowed =>
               chatService ! ChatService.Message(
                 session,
-                message.copy(recipient = session.player.Name),
+                message,
                 ChatChannel.Default()
               )
 

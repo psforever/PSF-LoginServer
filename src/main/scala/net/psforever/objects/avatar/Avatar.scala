@@ -110,10 +110,9 @@ case class Avatar(
     times.get(definition.Name) match {
       case Some(purchaseTime) =>
         val secondsSincePurchase = Seconds.secondsBetween(purchaseTime, LocalDateTime.now())
-        val duration             = secondsSincePurchase.toStandardDuration
         cooldowns.get(definition) match {
           case Some(cooldown) if (cooldown.toSeconds - secondsSincePurchase.getSeconds) > 0 =>
-            Some(duration)
+            Some(Seconds.seconds((cooldown.toSeconds - secondsSincePurchase.getSeconds).toInt).toStandardDuration)
           case _ => None
         }
       case None =>
