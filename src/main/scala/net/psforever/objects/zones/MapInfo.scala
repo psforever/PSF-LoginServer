@@ -164,30 +164,30 @@ case object MapInfo extends StringEnum[MapInfo] {
         scale = MapScale.Dim2560
       )
 
-  case object Map99
+  case object Map96
       extends MapInfo(
-        value = "map99",
+        value = "map96",
         checksum = 846603446L,
-        scale = MapScale.Dim4096
-      )
-
-  case object Map98
-      extends MapInfo(
-        value = "map98",
-        checksum = 2810790213L,
         scale = MapScale.Dim4096
       )
 
   case object Map97
       extends MapInfo(
         value = "map97",
+        checksum = 2810790213L,
+        scale = MapScale.Dim4096
+      )
+
+  case object Map98
+      extends MapInfo(
+        value = "map98",
         checksum = 3654267088L,
         scale = MapScale.Dim4096
       )
 
-  case object Map96
+  case object Map99
       extends MapInfo(
-        value = "map96",
+        value = "map99",
         checksum = 4113726460L,
         scale = MapScale.Dim4096
       )

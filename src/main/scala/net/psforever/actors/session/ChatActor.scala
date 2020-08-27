@@ -318,14 +318,15 @@ class ChatActor(
 
                       (zone.LivePlayers ++ zone.Corpses)
                         .filter(_.CharId != session.player.CharId)
-                        .sortBy(_.Name)
+                        .sortBy(p => (p.Name, !p.isAlive))
                         .foreach(player => {
+                          val color = if (!player.isAlive) "\\#7" else ""
                           sessionActor ! SessionActor.SendResponse(
                             ChatMsg(
                               CMT_GMOPEN,
                               message.wideContents,
                               "Server",
-                              s"\\#7${player.Name} (${player.Faction}) [${player.CharId}] at ${player.Position.x.toInt} ${player.Position.y.toInt} ${player.Position.z.toInt}",
+                              s"${color}${player.Name} (${player.Faction}) [${player.CharId}] at ${player.Position.x.toInt} ${player.Position.y.toInt} ${player.Position.z.toInt}",
                               message.note
                             )
                           )
@@ -824,45 +825,54 @@ class ChatActor(
               }
 
             case (CMT_KICK, _, contents) if gmCommandAllowed =>
-              val input = contents.split("\\s+").drop(1)
-              if (input.length > 0) {
-                val numRegex = raw"(\d+)".r
-                val id       = input(0)
-                val determination: Player => Boolean = id match {
-                  case numRegex(_) => _.CharId == id.toLong
-                  case _           => _.Name.equals(id)
-                }
-                session.zone.LivePlayers
-                  .find(determination)
-                  .orElse(session.zone.Corpses.find(determination)) match {
-                  case Some(player) =>
-                    input.lift(1) match {
-                      case Some(numRegex(time)) =>
-                        sessionActor ! SessionActor.Kick(player, Some(time.toLong))
-                      case _ =>
-                        sessionActor ! SessionActor.Kick(player)
-                    }
+              val inputs = contents.split("\\s+").filter(_ != "")
+              inputs.headOption match {
+                case Some(input) =>
+                  val determination: Player => Boolean = input.toLongOption match {
+                    case Some(id) => _.CharId == id
+                    case _        => _.Name.equals(input)
+                  }
+                  session.zone.LivePlayers
+                    .find(determination)
+                    .orElse(session.zone.Corpses.find(determination)) match {
+                    case Some(player) =>
+                      inputs.lift(1).map(_.toLongOption) match {
+                        case Some(Some(time)) =>
+                          sessionActor ! SessionActor.Kick(player, Some(time))
+                        case _ =>
+                          sessionActor ! SessionActor.Kick(player)
+                      }
 
-                    sessionActor ! SessionActor.SendResponse(
-                      ChatMsg(
-                        CMT_GMOPEN,
-                        message.wideContents,
-                        "Server",
-                        "@kick_o",
-                        message.note
+                      sessionActor ! SessionActor.SendResponse(
+                        ChatMsg(
+                          UNK_229,
+                          message.wideContents,
+                          "Server",
+                          "@kick_i",
+                          message.note
+                        )
                       )
-                    )
-                  case None =>
-                    sessionActor ! SessionActor.SendResponse(
-                      ChatMsg(
-                        CMT_GMOPEN,
-                        message.wideContents,
-                        "Server",
-                        "@kick_o",
-                        message.note
+                    case None =>
+                      sessionActor ! SessionActor.SendResponse(
+                        ChatMsg(
+                          UNK_229,
+                          message.wideContents,
+                          "Server",
+                          "@kick_o",
+                          message.note
+                        )
                       )
+                  }
+                case None =>
+                  sessionActor ! SessionActor.SendResponse(
+                    ChatMsg(
+                      UNK_229,
+                      message.wideContents,
+                      "Server",
+                      "@kick_o",
+                      message.note
                     )
-                }
+                  )
               }
 
             case _ =>
@@ -874,7 +884,7 @@ class ChatActor(
           message.messageType match {
             case CMT_TELL | U_CMT_TELLFROM | CMT_BROADCAST | CMT_SQUAD | CMT_PLATOON | CMT_COMMAND | UNK_45 | UNK_71 |
                 CMT_NOTE | CMT_GMBROADCAST | CMT_GMBROADCAST_NC | CMT_GMBROADCAST_TR | CMT_GMBROADCAST_VS |
-                CMT_GMBROADCASTPOPUP | CMT_GMTELL | U_CMT_GMTELLFROM | UNK_227 =>
+                CMT_GMBROADCASTPOPUP | CMT_GMTELL | U_CMT_GMTELLFROM | UNK_227 | UNK_229 =>
               sessionActor ! SessionActor.SendResponse(message)
             case CMT_OPEN =>
               if (
@@ -906,20 +916,20 @@ class ChatActor(
                   if (session.player.silenced) {
                     sessionActor ! SessionActor.SetSilenced(false)
                     sessionActor ! SessionActor.SendResponse(
-                      ChatMsg(ChatMessageType.UNK_71, true, "", "@silence_off", None)
+                      ChatMsg(ChatMessageType.UNK_229, true, "", "@silence_off", None)
                     )
                     if (!silenceTimer.isCancelled) silenceTimer.cancel()
                   } else {
                     sessionActor ! SessionActor.SetSilenced(true)
                     sessionActor ! SessionActor.SendResponse(
-                      ChatMsg(ChatMessageType.UNK_71, true, "", "@silence_on", None)
+                      ChatMsg(ChatMessageType.UNK_229, true, "", "@silence_on", None)
                     )
                     silenceTimer = context.system.scheduler.scheduleOnce(
                       time minutes,
                       () => {
                         sessionActor ! SessionActor.SetSilenced(false)
                         sessionActor ! SessionActor.SendResponse(
-                          ChatMsg(ChatMessageType.UNK_71, true, "", "@silence_timeout", None)
+                          ChatMsg(ChatMessageType.UNK_229, true, "", "@silence_timeout", None)
                         )
                       }
                     )

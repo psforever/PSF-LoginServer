@@ -115,9 +115,9 @@ object InfantryLoadout {
     */
   def DetermineSubtypeC(subtype: Int): Set[Certification] =
     subtype match {
-      case 1 => Set(Certification.AIMAX, Certification.UniMAX)
-      case 2 => Set(Certification.AVMAX, Certification.UniMAX)
-      case 3 => Set(Certification.AAMAX, Certification.UniMAX)
+      case 1 => Set(Certification.AAMAX, Certification.UniMAX)
+      case 2 => Set(Certification.AIMAX, Certification.UniMAX)
+      case 3 => Set(Certification.AVMAX, Certification.UniMAX)
       case _ => Set.empty[Certification]
     }
 }

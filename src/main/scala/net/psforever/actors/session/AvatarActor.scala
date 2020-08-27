@@ -168,7 +168,7 @@ object AvatarActor {
   final case class DeactivateActiveImplants() extends Command
 
   /** Start implant initialization timers (after zoning or respawn) */
-  final case class InitializeImplants(instant: Boolean = false) extends Command
+  final case class InitializeImplants() extends Command
 
   /** Deinitialize implants (before zoning or respawning) */
   final case class DeinitializeImplants() extends Command
@@ -582,6 +582,7 @@ class AvatarActor(
               )
             case _ => ;
           }
+          deinitializeImplants()
           Behaviors.same
 
         case LearnImplant(terminalGuid, definition) =>
@@ -880,8 +881,8 @@ class AvatarActor(
           )
           Behaviors.same
 
-        case InitializeImplants(instant) =>
-          initializeImplants(instant)
+        case InitializeImplants() =>
+          initializeImplants()
           Behaviors.same
 
         case DeinitializeImplants() =>
@@ -890,7 +891,7 @@ class AvatarActor(
 
         case ResetImplants() =>
           deinitializeImplants()
-          initializeImplants(instant = false)
+          initializeImplants()
           Behaviors.same
 
         case AwardBep(bep) =>
@@ -1026,7 +1027,7 @@ class AvatarActor(
     consumed
   }
 
-  def initializeImplants(instant: Boolean): Unit = {
+  def initializeImplants(): Unit = {
     avatar.implants.zipWithIndex.foreach {
       case (Some(implant), slot) =>
         // TODO if this implant is Installed but does not have shortcut, add to a free slot or write over slot 61/62/63
@@ -1051,7 +1052,7 @@ class AvatarActor(
 
         implantTimers.get(slot).foreach(_.cancel())
         implantTimers(slot) = context.system.scheduler.scheduleOnce(
-          if (instant) 0.seconds else implant.definition.InitializationDuration.seconds,
+          implant.definition.InitializationDuration.seconds,
           () => {
             avatar = avatar.copy(implants = avatar.implants.map {
               case Some(implant) => Some(implant.copy(initialized = true))
@@ -1071,9 +1072,8 @@ class AvatarActor(
     avatar = avatar.copy(implants = avatar.implants.zipWithIndex.map {
       case (Some(implant), slot) =>
         if (implant.active) {
-          context.self ! DeactivateImplant(implant.definition.implantType)
+          deactivateImplant(implant.definition.implantType)
         }
-        sessionActor ! SessionActor.SendResponse(ActionProgressMessage(slot + 6, 100))
         session.get.zone.AvatarEvents ! AvatarServiceMessage(
           session.get.zone.id,
           AvatarAction.SendResponse(
