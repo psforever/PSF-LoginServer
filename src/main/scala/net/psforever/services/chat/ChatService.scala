@@ -79,13 +79,13 @@ class ChatService(context: ActorContext[ChatService.Command]) extends AbstractBe
                   message.copy(messageType = if (message.messageType == CMT_TELL) U_CMT_TELLFROM else U_CMT_GMTELLFROM),
                   channel
                 )
-                subs.find(_.session.player.Name == message.recipient) match {
+                subs.find(_.session.player.Name.toLowerCase() == message.recipient.toLowerCase()) match {
                   case Some(JoinChannel(receiver, _, _)) =>
                     receiver ! MessageResponse(session, message.copy(recipient = session.player.Name), channel)
                   case None =>
                     sender ! MessageResponse(
                       session,
-                      ChatMsg(ChatMessageType.UNK_45, false, "", "@NoTell_Target", None),
+                      ChatMsg(ChatMessageType.UNK_45, wideContents = false, "", "@NoTell_Target", None),
                       channel
                     )
                 }
