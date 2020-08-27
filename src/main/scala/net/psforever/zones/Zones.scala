@@ -514,7 +514,19 @@ object Zones {
             this.Buildings.values.foreach(_.Faction = PlanetSideEmpire.TR)
           case "home3" =>
             this.Buildings.values.foreach(_.Faction = PlanetSideEmpire.VS)
-          case _ => ;
+          case _ => ()
+        }
+
+        // Set up warp gate factions aka "sanctuary link". Those names make no sense anymore, don't even ask.
+        this.Buildings.foreach {
+          case (_, building) if building.Name.startsWith("WG") =>
+            building.Name match {
+              case "WG_Amerish_to_Solsar" | "WG_Esamir_to_VSSanc"    => building.Faction = PlanetSideEmpire.NC
+              case "WG_Hossin_to_VSSanc" | "WG_Solsar_to_Amerish"    => building.Faction = PlanetSideEmpire.TR
+              case "WG_Ceryshen_to_Hossin" | "WG_Forseral_to_Solsar" => building.Faction = PlanetSideEmpire.VS
+              case _                                                 => ()
+            }
+          case _ => ()
         }
       }
     }
