@@ -6528,7 +6528,7 @@ object GlobalDefinitions {
     */
   private def initMiscellaneous(): Unit = {
     ams_respawn_tube.Name = "ams_respawn_tube"
-    ams_respawn_tube.Delay = 5
+    ams_respawn_tube.Delay = 10
     ams_respawn_tube.SpecificPointFunc = SpawnPoint.AMS
     ams_respawn_tube.Damageable = false
     ams_respawn_tube.Repairable = false

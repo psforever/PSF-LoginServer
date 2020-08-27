@@ -10,7 +10,6 @@ import org.json4s._
 import org.json4s.native.Serialization.write
 import scodec.bits._
 import scodec.interop.akka._
-import net.psforever.services.ServiceManager.Lookup
 import net.psforever.services._
 import scala.collection.mutable.Map
 import akka.actor.typed.scaladsl.adapter._

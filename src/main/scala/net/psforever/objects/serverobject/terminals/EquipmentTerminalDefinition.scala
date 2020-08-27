@@ -31,15 +31,15 @@ object EquipmentTerminalDefinition {
     * value - a `Tuple` containing exo-suit specifications
     */
   val maxSuits: Map[String, (ExoSuitType.Value, Int)] = Map(
-    "trhev_antiaircraft"  -> (ExoSuitType.MAX, 3),
-    "trhev_antipersonnel" -> (ExoSuitType.MAX, 1),
-    "trhev_antivehicular" -> (ExoSuitType.MAX, 2),
-    "nchev_antiaircraft"  -> (ExoSuitType.MAX, 3),
-    "nchev_antipersonnel" -> (ExoSuitType.MAX, 1),
-    "nchev_antivehicular" -> (ExoSuitType.MAX, 2),
-    "vshev_antiaircraft"  -> (ExoSuitType.MAX, 3),
-    "vshev_antipersonnel" -> (ExoSuitType.MAX, 1),
-    "vshev_antivehicular" -> (ExoSuitType.MAX, 2)
+    "trhev_antiaircraft"  -> (ExoSuitType.MAX, 1),
+    "trhev_antipersonnel" -> (ExoSuitType.MAX, 2),
+    "trhev_antivehicular" -> (ExoSuitType.MAX, 3),
+    "nchev_antiaircraft"  -> (ExoSuitType.MAX, 1),
+    "nchev_antipersonnel" -> (ExoSuitType.MAX, 2),
+    "nchev_antivehicular" -> (ExoSuitType.MAX, 3),
+    "vshev_antiaircraft"  -> (ExoSuitType.MAX, 1),
+    "vshev_antipersonnel" -> (ExoSuitType.MAX, 2),
+    "vshev_antivehicular" -> (ExoSuitType.MAX, 3)
   )
 
   import net.psforever.objects.GlobalDefinitions._
