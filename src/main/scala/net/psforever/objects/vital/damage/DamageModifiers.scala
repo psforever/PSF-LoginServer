@@ -287,7 +287,8 @@ object DamageModifiers {
     def Calculate: DamageModifiers.Format = formula
 
     private def formula(damage: Int, data: ResolvedProjectile): Int = {
-      if (data.resolution == ProjectileResolution.AggravatedDirectBurn ||
+      if (damage > 0 &&
+          data.resolution == ProjectileResolution.AggravatedDirectBurn ||
           data.resolution == ProjectileResolution.AggravatedSplashBurn) {
         //add resist to offset resist subtraction later
         1 + data.damage_model.ResistUsing(data)(data)

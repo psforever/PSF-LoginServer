@@ -2628,8 +2628,8 @@ object GlobalDefinitions {
     flamethrower_fireball.Modifiers = List(
       DamageModifiers.InfantryAggravatedDirect,
       DamageModifiers.InfantryAggravatedSplash,
-      DamageModifiers.FireballAggravatedBurn,
-      DamageModifiers.RadialDegrade
+      DamageModifiers.RadialDegrade,
+      DamageModifiers.FireballAggravatedBurn
     )
 
     flamethrower_projectile.Name = "flamethrower_projectile"
