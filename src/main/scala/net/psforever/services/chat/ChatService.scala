@@ -116,13 +116,13 @@ class ChatService(context: ActorContext[ChatService.Command]) extends AbstractBe
                     if (recipient.session.player.silenced) {
                       sender.actor ! MessageResponse(
                         session,
-                        ChatMsg(UNK_71, true, "", "@silence_disabled_ack", None),
+                        ChatMsg(UNK_229, true, "", "@silence_disabled_ack", None),
                         channel
                       )
                     } else {
                       sender.actor ! MessageResponse(
                         session,
-                        ChatMsg(UNK_71, true, "", "@silence_enabled_ack", None),
+                        ChatMsg(UNK_229, true, "", "@silence_enabled_ack", None),
                         channel
                       )
                     }
@@ -130,14 +130,14 @@ class ChatService(context: ActorContext[ChatService.Command]) extends AbstractBe
                   case None =>
                     sender.actor ! MessageResponse(
                       session,
-                      ChatMsg(UNK_71, true, "", s"unknown player '$name'", None),
+                      ChatMsg(UNK_229, true, "", s"unknown player '$name'", None),
                       channel
                     )
                 }
               case (Some(sender), _, _, error) =>
                 sender.actor ! MessageResponse(
                   session,
-                  ChatMsg(UNK_71, false, "", error.getOrElse("usage: /silence <name> [<time>]"), None),
+                  ChatMsg(UNK_229, false, "", error.getOrElse("usage: /silence <name> [<time>]"), None),
                   channel
                 )
 

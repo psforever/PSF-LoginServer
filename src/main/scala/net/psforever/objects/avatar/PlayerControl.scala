@@ -726,7 +726,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
   }
 
   override def CancelJammeredStatus(target: Any): Unit = {
-    avatarActor ! AvatarActor.InitializeImplants(instant = true)
+    avatarActor ! AvatarActor.InitializeImplants()
     super.CancelJammeredStatus(target)
   }
 

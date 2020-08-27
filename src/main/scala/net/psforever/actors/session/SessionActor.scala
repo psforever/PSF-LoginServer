@@ -1284,6 +1284,8 @@ class SessionActor extends Actor with MDCContextAware {
       log.info(s"Player ${tplayer.Name} has been loaded")
       tplayer.avatar = avatar
       session = session.copy(player = tplayer)
+      avatarActor ! AvatarActor.CreateImplants()
+      avatarActor ! AvatarActor.InitializeImplants()
       //LoadMapMessage causes the client to send BeginZoningMessage, eventually leading to SetCurrentAvatar
       val weaponsEnabled =
         session.zone.map.name != "map11" && session.zone.map.name != "map12" && session.zone.map.name != "map13"
@@ -1309,8 +1311,6 @@ class SessionActor extends Actor with MDCContextAware {
       keepAliveFunc = NormalKeepAlive
       upstreamMessageCount = 0
       setAvatar = false
-      avatarActor ! AvatarActor.CreateImplants()
-      avatarActor ! AvatarActor.InitializeImplants()
       persist()
 
     case PlayerLoaded(tplayer) =>
@@ -1337,24 +1337,24 @@ class SessionActor extends Actor with MDCContextAware {
           failWithError(s"${tplayer.Name} failed to load anywhere")
       }
 
-    /*
-      The user is either already in the current zone and merely transporting himself from one location to another,
-      also called "dying", or occasionally "deconstructing,"
-      or is completely switching in between zones.
-      These correspond to the message NewPlayerLoaded for the case of "dying" or the latter zone switching case,
-      and PlayerLoaded for "deconstruction."
-      In the latter case, the user must wait for the zone to be recognized as loaded for the server
-      and this is performed through the send LoadMapMessage, receive BeginZoningMessage exchange
-      The user's player should have already been registered into the new zone
-      and is at some stage of being added to the zone in which they will have control agency in that zone.
-      Whether or not the zone is loaded in the earlier case depends on the destination with respect to the current location.
-      Once all of the following is (assumed) accomplished,
-      the server will attempt to declare that user's player the avatar of the user's client.
-      Reception of certain packets that represent "reported user activity" after that marks the end of avatar loading.
-      If the maximum number of unsuccessful attempts is reached, some course of action is taken.
-      If the player dies, the process does not need to continue.
-      He may or may not be accompanied by a vehicle at any stage of this process.
-     */
+    /**
+      * The user is either already in the current zone and merely transporting himself from one location to another,
+      * also called "dying", or occasionally "deconstructing,"
+      * or is completely switching in between zones.
+      * These correspond to the message NewPlayerLoaded for the case of "dying" or the latter zone switching case,
+      * and PlayerLoaded for "deconstruction."
+      * In the latter case, the user must wait for the zone to be recognized as loaded for the server
+      * and this is performed through the send LoadMapMessage, receive BeginZoningMessage exchange
+      * The user's player should have already been registered into the new zone
+      * and is at some stage of being added to the zone in which they will have control agency in that zone.
+      * Whether or not the zone is loaded in the earlier case depends on the destination with respect to the current location.
+      * Once all of the following is (assumed) accomplished,
+      * the server will attempt to declare that user's player the avatar of the user's client.
+      * Reception of certain packets that represent "reported user activity" after that marks the end of avatar loading.
+      * If the maximum number of unsuccessful attempts is reached, some course of action is taken.
+      * If the player dies, the process does not need to continue.
+      * He may or may not be accompanied by a vehicle at any stage of this process.
+      */
     case SetCurrentAvatar(tplayer, max_attempts, attempt) =>
       respawnTimer.cancel()
       val waitingOnUpstream = upstreamMessageCount == 0
@@ -3064,6 +3064,7 @@ class SessionActor extends Actor with MDCContextAware {
       player.Actor ! JammableUnit.ClearJammeredStatus()
       player.Actor ! JammableUnit.ClearJammeredSound()
     }
+    // TODO only when respawning after death
     avatarActor ! AvatarActor.ResetImplants()
 
     sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 82, 0))
@@ -4507,7 +4508,8 @@ class SessionActor extends Actor with MDCContextAware {
               } else {
                 avatarActor ! AvatarActor.DeactivateImplant(implant.definition.implantType)
               }
-            case _ => log.error(s"AvatarImplantMessage for unknown or uninitialized implant ${msg}")
+            case Some(implant) if !implant.initialized => ()
+            case _                                     => log.error(s"AvatarImplantMessage for unknown implant ${msg}")
           }
         }
 
@@ -5683,7 +5685,7 @@ class SessionActor extends Actor with MDCContextAware {
         log.info("Battleplan: " + msg)
 
       case msg @ CreateShortcutMessage(player_guid, slot, unk, add, shortcut) =>
-        log.info("CreateShortcutMessage: " + msg)
+        log.debug("CreateShortcutMessage: " + msg)
 
       case msg @ FriendsRequest(action, friend) =>
         log.info("FriendsRequest: " + msg)
@@ -7116,10 +7118,10 @@ class SessionActor extends Actor with MDCContextAware {
     */
   def RespawnClone(tplayer: Player): Player = {
     // workaround to make sure player is spawned with full stamina
-    tplayer.avatar = tplayer.avatar.copy(stamina = avatar.maxStamina)
-    val obj = Player.Respawn(tplayer)
+    player.avatar = player.avatar.copy(stamina = avatar.maxStamina)
     avatarActor ! AvatarActor.RestoreStamina(avatar.maxStamina)
     avatarActor ! AvatarActor.ResetImplants()
+    val obj = Player.Respawn(tplayer)
     DefinitionUtil.applyDefaultLoadout(obj)
     obj.death_by = tplayer.death_by
     obj
@@ -8320,7 +8322,7 @@ class SessionActor extends Actor with MDCContextAware {
         respawnTime.toMillis,
         Vector3.Zero,
         player.Faction,
-        true
+        unk5 = true
       )
     )
     shiftPosition = Some(pos)
