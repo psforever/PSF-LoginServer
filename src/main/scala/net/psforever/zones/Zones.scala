@@ -285,7 +285,7 @@ object Zones {
           lattice.asObject.get(info.value).foreach { obj =>
             obj.asArray.get.foreach { entry =>
               val arr = entry.asArray.get
-              zoneMap.latticeLink((arr(0).asString.get, arr(1).asString.get))
+              zoneMap.addLatticeLink(arr(0).asString.get, arr(1).asString.get)
             }
           }
 
