@@ -1,10 +1,8 @@
 //Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.damage
 
-import akka.actor.Actor.Receive
 import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.equipment.JammableUnit
-import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.resolution.ResolutionCalculations
 import net.psforever.objects.zones.Zone
 import net.psforever.types.PlanetSideGUID
@@ -40,23 +38,6 @@ trait DamageableEntity extends Damageable {
     val name       = target.Actor.toString
     val slashPoint = name.lastIndexOf("/")
     DamageLog(s"${name.substring(slashPoint + 1, name.length - 1)}: $msg")
-  }
-
-  /**
-    * Catch the expected damage message and apply checks to the target.
-    * If adding custom message handling in an future child implementation,
-    * override this method and call `super.TakesDamage.orElse { ... }`.
-    * @see `Damageable.TakesDamage`
-    * @see `ResolutionCalcultions.Output`
-    * @see `Vitality.CanDamage`
-    * @see `Vitality.Damage`
-    */
-  protected def TakesDamage: Receive = {
-    case Vitality.Damage(damage_func) =>
-      val obj = DamageableObject
-      if (obj.CanDamage) {
-        PerformDamage(obj, damage_func)
-      }
   }
 
   /**
@@ -108,7 +89,7 @@ trait DamageableEntity extends Damageable {
     * @param cause historical information about the damage
     * @param damage the amount of damage
     */
-  protected def HandleDamage(target: Damageable.Target, cause: ResolvedProjectile, damage: Int): Unit = {
+  protected def HandleDamage(target: Damageable.Target, cause: ResolvedProjectile, damage: Any): Unit = {
     if (!target.Destroyed && target.Health <= target.Definition.DamageDestroysAt) {
       DestructionAwareness(target, cause)
     } else {
@@ -122,8 +103,12 @@ trait DamageableEntity extends Damageable {
     * @param cause historical information about the damage
     * @param amount the amount of damage
     */
-  protected def DamageAwareness(target: Damageable.Target, cause: ResolvedProjectile, amount: Int): Unit = {
-    DamageableEntity.DamageAwareness(target, cause, amount)
+  protected def DamageAwareness(target: Damageable.Target, cause: ResolvedProjectile, amount: Any): Unit = {
+    amount match {
+      case value: Int =>
+        DamageableEntity.DamageAwareness(target, cause, value)
+      case _ => ;
+    }
   }
 
   /**
@@ -162,16 +147,22 @@ object DamageableEntity {
     if (Damageable.CanJammer(target, cause)) {
       target.Actor ! JammableUnit.Jammered(cause)
     }
-    if (amount > 0) {
+    if (DamageToHealth(target, cause, amount)) {
+      target.Zone.Activity ! Zone.HotSpot.Activity(cause.target, cause.projectile.owner, cause.hit_pos)
+    }
+  }
+
+  def DamageToHealth(target: Damageable.Target, cause: ResolvedProjectile, amount: Int): Boolean = {
+    if (amount > 0 && !target.Destroyed) {
       val zone = target.Zone
-      if (!target.Destroyed) {
-        val tguid = target.GUID
-        zone.AvatarEvents ! AvatarServiceMessage(
-          zone.id,
-          AvatarAction.PlanetsideAttributeToAll(tguid, 0, target.Health)
-        )
-      }
-      zone.Activity ! Zone.HotSpot.Activity(cause.target, cause.projectile.owner, cause.hit_pos)
+      zone.AvatarEvents ! AvatarServiceMessage(
+        zone.id,
+        AvatarAction.PlanetsideAttributeToAll(target.GUID, 0, target.Health)
+      )
+      true
+    }
+    else {
+      false
     }
   }
 

@@ -5,10 +5,13 @@ import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacke
 import net.psforever.types.Vector3
 import scodec.Codec
 import scodec.codecs._
+import shapeless.{::, HNil}
 
 /**
   * Dispatched by the server to indicate a source of damage affecting the player.
-  * Unlike `HitHint` the damage source is defined by an actual coordinate location rather than a physical target.<br>
+  * Unlike `HitHint` the damage source is defined by an actual coordinate location rather than a physical target.
+  * Setting the position to the world origin, however,
+  * can cause the damage tick mark to point towards the previous damaging entity in some situations.<br>
   * <br>
   * The player will be shown a fading, outwards drifting, red tick mark.
   * The location will indicate a general direction towards the source.
@@ -27,5 +30,14 @@ object DamageWithPositionMessage extends Marshallable[DamageWithPositionMessage]
   implicit val codec: Codec[DamageWithPositionMessage] = (
     ("unk" | uint8L) ::
       ("pos" | Vector3.codec_pos)
-  ).as[DamageWithPositionMessage]
+  ).xmap[DamageWithPositionMessage] (
+    {
+      case unk :: pos :: HNil =>
+        DamageWithPositionMessage(math.max(0, math.min(unk, 255)), pos)
+    },
+    {
+      case DamageWithPositionMessage(unk, pos) =>
+        unk :: pos :: HNil
+    }
+  )
 }

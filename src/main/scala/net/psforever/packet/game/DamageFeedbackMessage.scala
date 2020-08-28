@@ -19,7 +19,7 @@ import shapeless.{::, HNil}
   * @param unk3b if no global unique identifier (above), the name of the entity absorbing the damage
   * @param unk3c if no global unique identifier (above), the object type of the entity absorbing the damage
   * @param unk3d na
-  * @param unk4 na
+  * @param unk4 an indicator for the target-specific vital statistic being affected
   * @param unk5 the amount of damage
   * @param unk6 na
   */
@@ -66,6 +66,13 @@ final case class DamageFeedbackMessage(
 }
 
 object DamageFeedbackMessage extends Marshallable[DamageFeedbackMessage] {
+  def apply(unk1: Int,
+            unk2: PlanetSideGUID,
+            unk3: PlanetSideGUID,
+            unk4: Int,
+            unk5: Long): DamageFeedbackMessage =
+    DamageFeedbackMessage(unk1, true, Some(unk2), None, None, true, Some(unk3), None, None, None, unk4, unk5, 0)
+
   implicit val codec: Codec[DamageFeedbackMessage] = (
     ("unk1" | uint4) ::
       (bool >>:~ { u2 =>

@@ -7,6 +7,7 @@ import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem,
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.serverobject.aura.AuraContainer
 import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.AmenityOwner
@@ -78,7 +79,8 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     with StandardResistanceProfile
     with JammableUnit
     with CommonNtuContainer
-    with Container {
+    with Container
+    with AuraContainer {
   private var faction: PlanetSideEmpire.Value     = PlanetSideEmpire.NEUTRAL
   private var shields: Int                        = 0
   private var decal: Int                          = 0

@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition
 
-import net.psforever.objects.ballistics.Projectiles
+import net.psforever.objects.ballistics.{AggravatedDamage, Projectiles}
 import net.psforever.objects.equipment.JammingUnit
 import net.psforever.objects.vital.damage.DamageModifiers
 import net.psforever.objects.vital.{DamageType, StandardDamageProfile}
@@ -16,30 +16,68 @@ class ProjectileDefinition(objectId: Int)
     with JammingUnit
     with StandardDamageProfile
     with DamageModifiers {
+  /** ascertain that this object is a valid projectile type */
   private val projectileType: Projectiles.Value     = Projectiles(objectId) //let throw NoSuchElementException
+  /** how much faster (or slower) the projectile moves (m/s^2^) */
   private var acceleration: Int                     = 0
+  /** when the acceleration stops being applied (s) */
   private var accelerationUntil: Float              = 0f
+  /** the type of damage that the projectile causes */
   private var damageType: DamageType.Value          = DamageType.None
+  /** an auxillary type of damage that the projectile causes */
   private var damageTypeSecondary: DamageType.Value = DamageType.None
+  /** against Infantry targets, this projectile does not do armor damage */
+  private var damageToHealthOnly: Boolean           = false
+  /** number of seconds before an airborne projectile's damage begins to degrade (s) */
   private var degradeDelay: Float                   = 1f
+  /** the rate of degrade of projectile damage after the degrade delay */
   private var degradeMultiplier: Float              = 1f
+  /** the out-of-the-muzzle speed of a projectile (m/s) */
   private var initialVelocity: Int                  = 1
+  /** for how long the projectile exists (s) */
   private var lifespan: Float                       = 1f
+  /** for radial damage, how much damage has been lost the further away from the impact point (m) */
   private var damageAtEdge: Float                   = 1f
+  /** for radial damage, the radial distance of the explosion effect (m) */
   private var damageRadius: Float                   = 1f
+  /** for lashing damage, how far away a target will be affected by the projectile (m) */
   private var lashRadius : Float                    = 0f
+  /** use a specific modifier as a part of damage calculations */
   private var useDamage1Subtract: Boolean           = false
-  private var existsOnRemoteClients: Boolean        = false                 //`true` spawns a server-managed object
-  private var remoteClientData: (Int, Int) =
-    (0, 0) //artificial values; for ObjectCreateMessage packet (oicw_little_buddy is undefined)
+  /** the projectile is represented by a server-side entity
+    * that is updated by the projectile owner
+    * and transmitted to all projectile observers;
+    * `true` spawns a server-managed object */
+  private var existsOnRemoteClients: Boolean        = false
+  /** the values used by the `ObjectCreateMessage` packet for construction of the server-managed projectile
+    * `0, 0` are artificial values;
+    * the oicw_little_buddy is undefined for these values */
+  private var remoteClientData: (Int, Int) = (0, 0)
+  /** some other entity confers projectile damage;
+    * a set value should not `None` and not `0` but is preferred to be the damager's uid */
   private var damageProxy: Option[Int]  = None
+  /** this projectile follows its target, after a fashion */
   private var autoLock: Boolean         = false
+  /** na;
+    * currently used with jammer properties only */
   private var additionalEffect: Boolean = false
+  /** the projectile tries to confer the jammered status effect to its target(s) */
   private var jammerProjectile: Boolean = false
+  /** projectile takes the form of a type of "grenade";
+    * grenades arc with gravity rather than travel in a relatively straight path */
+  private var grenade_projectile : Boolean = false
+  /** projectile tries to confers aggravated damage burn to its target */
+  private var aggravated_damage : Option[AggravatedDamage] = None
   //derived calculations
+  /** the calculated distance at which the projectile have traveled far enough to despawn (m);
+    * typically handled as the projectile no longer performing damage;
+    * occasionally, this value is purely mathematical as opposed to realistic, e.g., the melee weapons */
   private var distanceMax: Float              = 0f
+  /** how far the projectile will travel while accelerating (m) */
   private var distanceFromAcceleration: Float = 0f
+  /** how far the projectile will travel while no degrading (m) */
   private var distanceNoDegrade: Float        = 0f
+  /** after acceleration, if any, what is the final speed of the projectile (m/s) */
   private var finalVelocity: Float            = 0f
   Name = "projectile"
   Modifiers = DamageModifiers.DistanceDegrade
@@ -79,6 +117,17 @@ class ProjectileDefinition(objectId: Int)
   def ProjectileDamageTypeSecondary_=(damageTypeSecondary1: DamageType.Value): DamageType.Value = {
     damageTypeSecondary = damageTypeSecondary1
     ProjectileDamageTypeSecondary
+  }
+
+  def ProjectileDamageTypes : Set[DamageType.Value] = {
+    Set(damageType, damageTypeSecondary).filterNot(_ == DamageType.None)
+  }
+
+  def DamageToHealthOnly : Boolean = damageToHealthOnly
+
+  def DamageToHealthOnly_=(healthOnly: Boolean) : Boolean = {
+    damageToHealthOnly = healthOnly
+    DamageToHealthOnly
   }
 
   def DegradeDelay: Float = degradeDelay
@@ -174,7 +223,23 @@ class ProjectileDefinition(objectId: Int)
     JammerProjectile
   }
 
-  def DistanceMax: Float = distanceMax //accessor only
+  def GrenadeProjectile : Boolean = grenade_projectile
+
+  def GrenadeProjectile_=(isGrenade : Boolean) : Boolean = {
+    grenade_projectile = isGrenade
+    GrenadeProjectile
+  }
+
+  def Aggravated : Option[AggravatedDamage] = aggravated_damage
+
+  def Aggravated_=(damage : AggravatedDamage) : Option[AggravatedDamage] = Aggravated_=(Some(damage))
+
+  def Aggravated_=(damage : Option[AggravatedDamage]) : Option[AggravatedDamage] = {
+    aggravated_damage = damage
+    Aggravated
+  }
+
+  def DistanceMax : Float = distanceMax //accessor only
 
   def DistanceFromAcceleration: Float = distanceFromAcceleration //accessor only
 

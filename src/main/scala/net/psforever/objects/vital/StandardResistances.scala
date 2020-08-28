@@ -6,70 +6,70 @@ import net.psforever.objects.vital.projectile.ProjectileCalculations
 import net.psforever.objects.vital.resistance.{ResistanceCalculations, ResistanceSelection}
 
 object NoResistance
-    extends ResistanceCalculations[SourceEntry](
-      ResistanceCalculations.ValidInfantryTarget,
-      ResistanceCalculations.NoResistExtractor
-    )
+  extends ResistanceCalculations[SourceEntry](
+    ResistanceCalculations.ValidInfantryTarget,
+    ResistanceCalculations.NoResistExtractor
+  )
 
 object InfantryHitResistance
-    extends ResistanceCalculations[PlayerSource](
-      ResistanceCalculations.ValidInfantryTarget,
-      ResistanceCalculations.ExoSuitDirectExtractor
-    )
+  extends ResistanceCalculations[PlayerSource](
+    ResistanceCalculations.ValidInfantryTarget,
+    ResistanceCalculations.ExoSuitDirectExtractor
+  )
 
 object InfantrySplashResistance
-    extends ResistanceCalculations[PlayerSource](
-      ResistanceCalculations.ValidInfantryTarget,
-      ResistanceCalculations.ExoSuitSplashExtractor
-    )
+  extends ResistanceCalculations[PlayerSource](
+    ResistanceCalculations.ValidInfantryTarget,
+    ResistanceCalculations.ExoSuitSplashExtractor
+  )
 
 object InfantryLashResistance
-    extends ResistanceCalculations[PlayerSource](
-      ResistanceCalculations.ValidInfantryTarget,
-      ResistanceCalculations.MaximumResistance
-    )
+  extends ResistanceCalculations[PlayerSource](
+    ResistanceCalculations.ValidInfantryTarget,
+    ResistanceCalculations.MaximumResistance
+  )
 
 object InfantryAggravatedResistance
-    extends ResistanceCalculations[PlayerSource](
-      ResistanceCalculations.ValidInfantryTarget,
-      ResistanceCalculations.ExoSuitAggravatedExtractor
-    )
+  extends ResistanceCalculations[PlayerSource](
+    ResistanceCalculations.ValidInfantryTarget,
+    ResistanceCalculations.ExoSuitAggravatedExtractor
+  )
 
 object VehicleHitResistance
-    extends ResistanceCalculations[VehicleSource](
-      ResistanceCalculations.ValidVehicleTarget,
-      ResistanceCalculations.VehicleDirectExtractor
-    )
+  extends ResistanceCalculations[VehicleSource](
+    ResistanceCalculations.ValidVehicleTarget,
+    ResistanceCalculations.VehicleDirectExtractor
+  )
 
 object VehicleSplashResistance
-    extends ResistanceCalculations[VehicleSource](
-      ResistanceCalculations.ValidVehicleTarget,
-      ResistanceCalculations.VehicleSplashExtractor
-    )
+  extends ResistanceCalculations[VehicleSource](
+    ResistanceCalculations.ValidVehicleTarget,
+    ResistanceCalculations.VehicleSplashExtractor
+  )
 
 object VehicleLashResistance
-    extends ResistanceCalculations[VehicleSource](
-      ResistanceCalculations.ValidVehicleTarget,
-      ResistanceCalculations.NoResistExtractor
-    )
+  extends ResistanceCalculations[VehicleSource](
+    ResistanceCalculations.ValidVehicleTarget,
+    ResistanceCalculations.NoResistExtractor
+  )
 
 object VehicleAggravatedResistance
-    extends ResistanceCalculations[VehicleSource](
-      ResistanceCalculations.ValidVehicleTarget,
-      ResistanceCalculations.VehicleAggravatedExtractor
-    )
+  extends ResistanceCalculations[VehicleSource](
+    ResistanceCalculations.ValidVehicleTarget,
+    ResistanceCalculations.VehicleAggravatedExtractor
+  )
 
 object AmenityHitResistance
-    extends ResistanceCalculations[ObjectSource](
-      ResistanceCalculations.ValidAmenityTarget,
-      ResistanceCalculations.OtherDirectExtractor
-    )
+  extends ResistanceCalculations[ObjectSource](
+    ResistanceCalculations.ValidAmenityTarget,
+    ResistanceCalculations.OtherDirectExtractor
+  )
 
-object AMenitySplashResistance
-    extends ResistanceCalculations[ObjectSource](
-      ResistanceCalculations.ValidAmenityTarget,
-      ResistanceCalculations.OtherSplashExtractor
-    )
+object AmenitySplashResistance
+  extends ResistanceCalculations[ObjectSource](
+    ResistanceCalculations.ValidAmenityTarget,
+    ResistanceCalculations.OtherSplashExtractor
+  )
 
 object NoResistanceSelection extends ResistanceSelection {
   def Direct: ProjectileCalculations.Form     = None

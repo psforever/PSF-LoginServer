@@ -38,12 +38,28 @@ object ResolutionCalculations {
 
   def NoDamage(data: ResolvedProjectile)(a: Int, b: Int): Int = 0
 
-  def InfantryDamageAfterResist(data: ResolvedProjectile): (Int, Int) => (Int, Int) = {
+  def InfantryDamage(data: ResolvedProjectile): (Int, Int) => (Int, Int) = {
     data.target match {
       case target: PlayerSource =>
-        InfantryDamageAfterResist(target.health, target.armor)
+        if(data.projectile.profile.DamageToHealthOnly) {
+          DamageToHealthOnly(target.health)
+        } else {
+          InfantryDamageAfterResist(target.health, target.armor)
+        }
       case _ =>
         InfantryDamageAfterResist(0, 0)
+    }
+  }
+
+  def DamageToHealthOnly(currentHP: Int)(damages: Int, resistance: Int): (Int, Int) = {
+    if (damages > 0 && currentHP > 0) {
+      if(damages > resistance) {
+        (damages - resistance, 0)
+      } else {
+        (damages, 0)
+      }
+    } else {
+      (0, 0)
     }
   }
 
@@ -67,10 +83,14 @@ object ResolutionCalculations {
     }
   }
 
-  def MaxDamageAfterResist(data: ResolvedProjectile): (Int, Int) => (Int, Int) = {
+  def MaxDamage(data: ResolvedProjectile): (Int, Int) => (Int, Int) = {
     data.target match {
       case target: PlayerSource =>
-        MaxDamageAfterResist(target.health, target.armor)
+        if(data.projectile.profile.DamageToHealthOnly) {
+          DamageToHealthOnly(target.health)
+        } else {
+          MaxDamageAfterResist(target.health, target.armor)
+        }
       case _ =>
         MaxDamageAfterResist(0, 0)
     }

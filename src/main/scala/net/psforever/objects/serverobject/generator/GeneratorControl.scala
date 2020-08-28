@@ -88,9 +88,13 @@ class GeneratorControl(gen: Generator)
     !imminentExplosion && super.WillAffectTarget(target, damage, cause)
   }
 
-  override protected def DamageAwareness(target: Target, cause: ResolvedProjectile, amount: Int): Unit = {
+  override protected def DamageAwareness(target: Target, cause: ResolvedProjectile, amount: Any): Unit = {
     super.DamageAwareness(target, cause, amount)
-    GeneratorControl.DamageAwareness(gen, cause, amount)
+    val damageTo = amount match {
+      case a: Int => a
+      case _ => 0
+    }
+    GeneratorControl.DamageAwareness(gen, cause, damageTo)
   }
 
   override protected def DestructionAwareness(target: Target, cause: ResolvedProjectile): Unit = {

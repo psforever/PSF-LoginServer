@@ -358,7 +358,6 @@ class ProjectileTest extends Specification {
         fury_dm,
         Vector3(1.2f, 3.4f, 5.6f)
       )
-      obj.resolution mustEqual ProjectileResolution.Hit
       obj.projectile mustEqual projectile
       obj.target mustEqual p2_source
       obj.damage_model mustEqual fury.DamageModel

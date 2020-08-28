@@ -1,12 +1,20 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.avatar.{Avatar, LoadoutManager}
-import net.psforever.objects.definition.{AvatarDefinition, ExoSuitDefinition, SpecialExoSuitDefinition}
+import net.psforever.objects.avatar.{
+  Avatar,
+  LoadoutManager
+}
+import net.psforever.objects.definition.{
+  AvatarDefinition,
+  ExoSuitDefinition,
+  SpecialExoSuitDefinition
+}
 import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot, JammableUnit}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.serverobject.aura.AuraContainer
 import net.psforever.objects.vital.resistance.ResistanceProfile
 import net.psforever.objects.vital.{DamageResistanceModel, Vitality}
 import net.psforever.objects.zones.ZoneAware
@@ -22,7 +30,8 @@ class Player(var avatar: Avatar)
     with ResistanceProfile
     with Container
     with JammableUnit
-    with ZoneAware {
+    with ZoneAware
+    with AuraContainer {
   Health = 0       //player health is artificially managed as a part of their lifecycle; start entity as dead
   Destroyed = true //see isAlive
   private var backpack: Boolean = false

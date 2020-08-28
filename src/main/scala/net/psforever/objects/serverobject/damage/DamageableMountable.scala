@@ -26,8 +26,13 @@ object DamageableMountable {
     * @see `Zone.LivePlayers`
     * @param target the entity being damaged
     * @param cause historical information about the damage
+    * @param countableDamage the amount of damage being done, translating to the intensity of the damage indicator
     */
-  def DamageAwareness(target: Damageable.Target with Mountable, cause: ResolvedProjectile): Unit = {
+  def DamageAwareness(
+                       target: Damageable.Target with Mountable,
+                       cause: ResolvedProjectile,
+                       countableDamage: Int
+                     ): Unit = {
     val zone   = target.Zone
     val events = zone.AvatarEvents
     val occupants = target.Seats.values.collect {
@@ -38,9 +43,10 @@ object DamageableMountable {
       case pSource: PlayerSource => //player damage
         val name = pSource.Name
         (zone.LivePlayers.find(_.Name == name).orElse(zone.Corpses.find(_.Name == name)) match {
-          case Some(player) => AvatarAction.HitHint(player.GUID, player.GUID)
+          case Some(player) =>
+            AvatarAction.HitHint(player.GUID, player.GUID)
           case None =>
-            AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(10, pSource.Position))
+            AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(countableDamage, pSource.Position))
         }) match {
           case AvatarAction.HitHint(_, guid) =>
             occupants.map { tplayer => (tplayer.Name, AvatarAction.HitHint(guid, tplayer.GUID)) }
@@ -48,7 +54,7 @@ object DamageableMountable {
             occupants.map { tplayer => (tplayer.Name, msg) }
         }
       case source => //object damage
-        val msg = AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(10, source.Position))
+        val msg = AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(countableDamage, source.Position))
         occupants.map { tplayer => (tplayer.Name, msg) }
     }).foreach {
       case (channel, msg) =>

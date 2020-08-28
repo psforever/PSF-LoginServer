@@ -11,7 +11,7 @@ import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.containable.{Containable, ContainableBehavior}
-import net.psforever.objects.serverobject.damage.DamageableVehicle
+import net.psforever.objects.serverobject.damage.{AggravatedBehavior, DamageableVehicle}
 import net.psforever.objects.serverobject.deploy.Deployment.DeploymentObject
 import net.psforever.objects.serverobject.deploy.{Deployment, DeploymentBehavior}
 import net.psforever.objects.serverobject.hackable.GenericHackables
@@ -51,11 +51,12 @@ class VehicleControl(vehicle: Vehicle)
     with RepairableVehicle
     with JammableMountedWeapons
     with ContainableBehavior
-    with AntTransferBehavior {
+    with AntTransferBehavior
+    with AggravatedBehavior {
 
   //make control actors belonging to utilities when making control actor belonging to vehicle
   vehicle.Utilities.foreach({ case (_, util) => util.Setup })
-
+  
   def MountableObject = vehicle
 
   def CargoObject = vehicle
@@ -74,7 +75,7 @@ class VehicleControl(vehicle: Vehicle)
 
   def ChargeTransferObject = vehicle
 
-  if (vehicle.Definition == GlobalDefinitions.ant) {
+  if(vehicle.Definition == GlobalDefinitions.ant) {
     findChargeTargetFunc = Vehicles.FindANTChargingSource
     findDischargeTargetFunc = Vehicles.FindANTDischargingTarget
   }
@@ -89,6 +90,7 @@ class VehicleControl(vehicle: Vehicle)
 
   override def postStop(): Unit = {
     super.postStop()
+    damageableVehiclePostStop()
     decaying = false
     decayTimer.cancel()
     vehicle.Utilities.values.foreach { util =>
