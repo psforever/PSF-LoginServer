@@ -418,4 +418,12 @@ object DamageModifiers {
       }
     }
   }
+
+  case object SpikerChargeDamage extends Mod {
+    def Calculate: DamageModifiers.Format = formula
+
+    private def formula(damage: Int, data: ResolvedProjectile): Int = {
+      (damage * (1f + data.projectile.quality.mod)).toInt
+    }
+  }
 }

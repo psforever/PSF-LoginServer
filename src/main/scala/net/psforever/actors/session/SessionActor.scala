@@ -175,6 +175,8 @@ class SessionActor extends Actor with MDCContextAware {
   var progressBarValue: Option[Float]                                = None
   var shooting: Option[PlanetSideGUID]                               = None //ChangeFireStateMessage_Start
   var prefire: Option[PlanetSideGUID]                                = None //if WeaponFireMessage precedes ChangeFireStateMessage_Start
+  var shootingStart: Long                                            = 0
+  var shootingStop: Long                                             = 0
   var shotsWhileDead: Int                                            = 0
   var accessedContainer: Option[PlanetSideGameObject with Container] = None
   var connectionState: Int                                           = 25
@@ -4051,11 +4053,20 @@ class SessionActor extends Actor with MDCContextAware {
               if (tool.Magazine > 0 || prefire.contains(item_guid)) {
                 prefire = None
                 shooting = Some(item_guid)
+                shootingStart = System.currentTimeMillis()
                 //special case - suppress the decimator's alternate fire mode, by projectile
                 if (tool.Projectile != GlobalDefinitions.phoenix_missile_guided_projectile) {
                   continent.AvatarEvents ! AvatarServiceMessage(
                     continent.id,
                     AvatarAction.ChangeFireState_Start(player.GUID, item_guid)
+                  )
+                }
+                //special case - charge mode on spiker
+                if (tool.Definition == GlobalDefinitions.spiker) {
+                  progressBarUpdate = context.system.scheduler.scheduleOnce(
+                    delay = 1000 millisecond,
+                    self,
+                    ProgressEvent(1f, Tools.FinishChargeFireMode(player, tool), Tools.ChargeFireMode(player, tool))
                   )
                 }
               } else {
@@ -4067,6 +4078,7 @@ class SessionActor extends Actor with MDCContextAware {
             case Some(_) => //permissible, for now
               prefire = None
               shooting = Some(item_guid)
+              shootingStart = System.currentTimeMillis()
               continent.AvatarEvents ! AvatarServiceMessage(
                 continent.id,
                 AvatarAction.ChangeFireState_Start(player.GUID, item_guid)
@@ -4079,6 +4091,7 @@ class SessionActor extends Actor with MDCContextAware {
       case msg @ ChangeFireStateMessage_Stop(item_guid) =>
         log.trace("ChangeFireState_Stop: " + msg)
         prefire = None
+        shootingStop = System.currentTimeMillis()
         val weapon: Option[Equipment] = if (shooting.contains(item_guid)) {
           shooting = None
           continent.AvatarEvents ! AvatarServiceMessage(
@@ -5244,7 +5257,7 @@ class SessionActor extends Actor with MDCContextAware {
       unk6,
       unk7
       ) =>
-        //log.info(s"WeaponFire: $msg")
+        log.info(s"WeaponFire: $msg")
         HandleWeaponFire(weapon_guid, projectile_guid, shot_origin)
 
       case msg @ WeaponLazeTargetPositionMessage(weapon, pos1, pos2) =>
@@ -6811,6 +6824,7 @@ class SessionActor extends Actor with MDCContextAware {
         )
         prefire = None
         shooting = None
+        shootingStop = System.currentTimeMillis()
       case None => ;
     }
     if (session.flying) {
@@ -9345,9 +9359,15 @@ class SessionActor extends Actor with MDCContextAware {
           case _ =>
             (obj.Orientation, obj.Definition.ObjectId, 300f)
         }
-        val distanceToOwner =
-          Vector3.DistanceSquared(shotOrigin, player.Position)
+        val distanceToOwner = Vector3.DistanceSquared(shotOrigin, player.Position)
         if (distanceToOwner <= acceptableDistanceToOwner) {
+          val initialQuality = if(tool.Definition == GlobalDefinitions.spiker) {
+            val quality = (System.currentTimeMillis() - shootingStart) / 1000f //1000ms charge to full
+            ProjectileQuality.Modified(quality)
+          }
+          else {
+            ProjectileQuality.Normal
+          }
           val projectile_info = tool.Projectile
           val projectile =
             Projectile(
@@ -9357,8 +9377,8 @@ class SessionActor extends Actor with MDCContextAware {
               player,
               attribution,
               shotOrigin,
-              angle
-            )
+              angle,
+            ).quality(initialQuality)
           projectiles(projectileIndex) = Some(projectile)
           if (projectile_info.ExistsOnRemoteClients) {
             log.trace(

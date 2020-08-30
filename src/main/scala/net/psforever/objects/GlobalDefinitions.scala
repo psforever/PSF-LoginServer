@@ -3878,6 +3878,10 @@ object GlobalDefinitions {
     spiker_projectile.InitialVelocity = 40
     spiker_projectile.Lifespan = 5f
     ProjectileDefinition.CalculateDerivedFields(spiker_projectile)
+    spiker_projectile.Modifiers = List(
+      DamageModifiers.SpikerChargeDamage,
+      DamageModifiers.RadialDegrade
+    )
 
     spitfire_aa_ammo_projectile.Name = "spitfire_aa_ammo_projectile"
     spitfire_aa_ammo_projectile.Damage0 = 5

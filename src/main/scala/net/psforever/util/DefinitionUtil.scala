@@ -3,6 +3,7 @@ package net.psforever.util
 import net.psforever.objects.definition.BasicDefinition
 import net.psforever.objects.{AmmoBox, GlobalDefinitions, Player, SimpleItem, Tool}
 import net.psforever.types.ExoSuitType
+
 import scala.reflect.runtime.universe
 
 // TODO definitions should be in an iterable format
@@ -225,10 +226,10 @@ object DefinitionUtil {
   def applyDefaultLoadout(player: Player): Unit = {
     val faction = player.Faction
     player.ExoSuit = ExoSuitType.Standard
-    player.Slot(0).Equipment = Tool(GlobalDefinitions.StandardPistol(faction))
+    player.Slot(0).Equipment = Tool(GlobalDefinitions.spiker)//StandardPistol(faction))
     player.Slot(2).Equipment = Tool(GlobalDefinitions.suppressor)
     player.Slot(4).Equipment = Tool(GlobalDefinitions.StandardMelee(faction))
-    player.Slot(6).Equipment = AmmoBox(GlobalDefinitions.bullet_9mm)
+    player.Slot(6).Equipment = AmmoBox(GlobalDefinitions.ancient_ammo_combo)
     player.Slot(9).Equipment = AmmoBox(GlobalDefinitions.bullet_9mm)
     player.Slot(12).Equipment = AmmoBox(GlobalDefinitions.bullet_9mm)
     player.Slot(33).Equipment = AmmoBox(GlobalDefinitions.bullet_9mm_AP)

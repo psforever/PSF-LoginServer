@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition
 
-import net.psforever.objects.ballistics.{AggravatedDamage, Projectiles}
+import net.psforever.objects.ballistics.{AggravatedDamage, ChargeDamage, Projectiles}
 import net.psforever.objects.equipment.JammingUnit
 import net.psforever.objects.vital.damage.DamageModifiers
 import net.psforever.objects.vital.{DamageType, StandardDamageProfile}
@@ -65,9 +65,11 @@ class ProjectileDefinition(objectId: Int)
   private var jammerProjectile: Boolean = false
   /** projectile takes the form of a type of "grenade";
     * grenades arc with gravity rather than travel in a relatively straight path */
-  private var grenade_projectile : Boolean = false
+  private var grenade_projectile: Boolean = false
   /** projectile tries to confers aggravated damage burn to its target */
-  private var aggravated_damage : Option[AggravatedDamage] = None
+  private var aggravated_damage: Option[AggravatedDamage] = None
+  /** */
+  private var charging: Option[ChargeDamage] = None
   //derived calculations
   /** the calculated distance at which the projectile have traveled far enough to despawn (m);
     * typically handled as the projectile no longer performing damage;
@@ -237,6 +239,15 @@ class ProjectileDefinition(objectId: Int)
   def Aggravated_=(damage : Option[AggravatedDamage]) : Option[AggravatedDamage] = {
     aggravated_damage = damage
     Aggravated
+  }
+
+  def Charging : Option[ChargeDamage] = charging
+
+  def Charging_=(damage : ChargeDamage) : Option[ChargeDamage] = ChargeDamage_=(Some(damage))
+
+  def ChargeDamage_=(damage : Option[ChargeDamage]) : Option[ChargeDamage] = {
+    charging = damage
+    Charging
   }
 
   def DistanceMax : Float = distanceMax //accessor only
