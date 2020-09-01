@@ -58,7 +58,7 @@ lazy val psforeverSettings = Seq(
     "org.fusesource.jansi"        % "jansi"                      % "1.12",
     "org.scoverage"              %% "scalac-scoverage-plugin"    % "1.4.1",
     "com.github.nscala-time"     %% "nscala-time"                % "2.24.0",
-    "com.github.t3hnar"          %% "scala-bcrypt"               % "4.1",
+    "com.github.t3hnar"          %% "scala-bcrypt"               % "4.3.0",
     "org.scala-graph"            %% "graph-core"                 % "1.13.1",
     "io.kamon"                   %% "kamon-bundle"               % "2.1.0",
     "io.kamon"                   %% "kamon-apm-reporter"         % "2.1.0",
