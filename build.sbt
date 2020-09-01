@@ -40,7 +40,7 @@ lazy val psforeverSettings = Seq(
   classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
   resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
   libraryDependencies ++= Seq(
-    "com.typesafe.akka"          %% "akka-actor"                 % "2.6.6",
+    "com.typesafe.akka"          %% "akka-actor"                 % "2.6.8",
     "com.typesafe.akka"          %% "akka-slf4j"                 % "2.6.6",
     "com.typesafe.akka"          %% "akka-protobuf-v3"           % "2.6.6",
     "com.typesafe.akka"          %% "akka-stream"                % "2.6.6",
