@@ -1,5 +1,11 @@
 {
   "extends": [
     "config:base"
+  ],
+  "packageRules": [
+    {
+      "packagePatterns": "^com.typesafe.akka",
+      "groupName": ["akka packages"]
+    }
   ]
 }
