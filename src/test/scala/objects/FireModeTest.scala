@@ -73,7 +73,7 @@ class FireModeTest extends Specification {
 
   "PelletFireModeDefinition" should {
     "construct" in {
-      val obj = new PelletFireModeDefinition
+      val obj = new PelletFireModeDefinition(chamber = 1)
       obj.AmmoTypeIndices mustEqual Nil
       obj.AmmoSlotIndex mustEqual 0
       obj.Magazine mustEqual 1

@@ -2,7 +2,8 @@
 package net.psforever.objects.equipment
 
 import net.psforever.objects.Tool
-import net.psforever.objects.vital.damage.{DamageModifiers, DamageProfile}
+import net.psforever.objects.vital.SpecificDamageProfile
+import net.psforever.objects.vital.damage.DamageModifiers
 
 import scala.collection.mutable
 
@@ -41,7 +42,7 @@ class FireModeDefinition extends DamageModifiers {
   private var chamber: Int = 1
 
   /** modifiers for each damage type */
-  private val modifiers: FireModeDamageModifiers = new FireModeDamageModifiers
+  private val modifiers: SpecificDamageProfile = new SpecificDamageProfile
 
   def AmmoSlotIndex: Int = ammoSlotIndex
 
@@ -91,7 +92,7 @@ class FireModeDefinition extends DamageModifiers {
     Chamber
   }
 
-  def Add: FireModeDamageModifiers = modifiers
+  def Add: SpecificDamageProfile = modifiers
 
   /**
     * Shoot a weapon, remove an anticipated amount of ammunition.
@@ -108,7 +109,11 @@ class FireModeDefinition extends DamageModifiers {
   }
 }
 
-class PelletFireModeDefinition extends FireModeDefinition {
+class PelletFireModeDefinition(private val chamber: Int) extends FireModeDefinition {
+  /** how many sub-rounds are queued per round fired;
+    * the flechette fires 8 pellets per shell and generates 8 fire reports before the ammo count goes down
+    */
+  override def Chamber: Int = chamber
 
   /**
     * Shoot a weapon, remove an anticipated amount of ammunition.<br>
@@ -150,45 +155,16 @@ class InfiniteFireModeDefinition extends FireModeDefinition {
   override def Discharge(weapon: Tool, rounds: Option[Int] = None): Int = 1
 }
 
-class FireModeDamageModifiers extends DamageProfile {
-  private var damage0: Int = 0
-  private var damage1: Int = 0
-  private var damage2: Int = 0
-  private var damage3: Int = 0
-  private var damage4: Int = 0
+/**
+  * Shoot a weapon, remove an anticipated amount of ammunition.<br>
+  * <br>
+  * Hold down the fire trigger to create a damage multiplier.
+  * After the multiplier has reach complete/full, expend additional ammunition to sustain it.
+  * @param time the duration until the charge is full (milliseconds)
+  * @param drainInterval the curation between ticks of ammunition depletion after "full charge"
+  */
+class ChargeFireModeDefinition(private val time: Long, private val drainInterval: Long) extends FireModeDefinition {
+  def Time: Long = time
 
-  def Damage0: Int = damage0
-
-  def Damage0_=(damage: Int): Int = {
-    damage0 = damage
-    Damage0
-  }
-
-  def Damage1: Int = damage1
-
-  def Damage1_=(damage: Int): Int = {
-    damage1 = damage
-    Damage1
-  }
-
-  def Damage2: Int = damage2
-
-  def Damage2_=(damage: Int): Int = {
-    damage2 = damage
-    Damage2
-  }
-
-  def Damage3: Int = damage3
-
-  def Damage3_=(damage: Int): Int = {
-    damage3 = damage
-    Damage3
-  }
-
-  def Damage4: Int = damage4
-
-  def Damage4_=(damage: Int): Int = {
-    damage4 = damage
-    Damage4
-  }
+  def DrainInterval: Long = drainInterval
 }

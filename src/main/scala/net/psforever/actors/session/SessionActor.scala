@@ -8,8 +8,11 @@ import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
 import akka.pattern.ask
 import akka.util.Timeout
 import java.util.concurrent.TimeUnit
+
 import MDCContextAware.Implicits._
+import net.psforever.objects.equipment.ChargeFireModeDefinition
 import org.log4s.MDC
+
 import scala.collection.mutable
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
@@ -4061,13 +4064,16 @@ class SessionActor extends Actor with MDCContextAware {
                     AvatarAction.ChangeFireState_Start(player.GUID, item_guid)
                   )
                 }
-                //special case - charge mode on spiker
-                if (tool.Definition == GlobalDefinitions.spiker) {
-                  progressBarUpdate = context.system.scheduler.scheduleOnce(
-                    delay = 1000 millisecond,
-                    self,
-                    ProgressEvent(1f, Tools.FinishChargeFireMode(player, tool), Tools.ChargeFireMode(player, tool))
-                  )
+                //charge ammunition drain
+                tool.FireMode match {
+                  case mode: ChargeFireModeDefinition =>
+                    progressBarUpdate = context.system.scheduler.scheduleWithFixedDelay(
+                      (mode.Time + mode.DrainInterval) milliseconds,
+                      mode.DrainInterval milliseconds,
+                      self,
+                      ProgressEvent(1f, Tools.FinishChargeFireMode(player, tool), Tools.ChargeFireMode(player, tool))
+                    )
+                  case _ => ;
                 }
               } else {
                 log.warn(
@@ -9361,13 +9367,6 @@ class SessionActor extends Actor with MDCContextAware {
         }
         val distanceToOwner = Vector3.DistanceSquared(shotOrigin, player.Position)
         if (distanceToOwner <= acceptableDistanceToOwner) {
-          val initialQuality = if(tool.Definition == GlobalDefinitions.spiker) {
-            val quality = (System.currentTimeMillis() - shootingStart) / 1000f //1000ms charge to full
-            ProjectileQuality.Modified(quality)
-          }
-          else {
-            ProjectileQuality.Normal
-          }
           val projectile_info = tool.Projectile
           val projectile =
             Projectile(
@@ -9378,8 +9377,14 @@ class SessionActor extends Actor with MDCContextAware {
               attribution,
               shotOrigin,
               angle,
-            ).quality(initialQuality)
-          projectiles(projectileIndex) = Some(projectile)
+            )
+          val initialQuality = tool.FireMode match {
+            case mode: ChargeFireModeDefinition =>
+              ProjectileQuality.Modified((projectile.fire_time - shootingStart) / mode.Time.toFloat)
+            case _ =>
+              ProjectileQuality.Normal
+          }
+          projectiles(projectileIndex) = Some(projectile.quality(initialQuality))
           if (projectile_info.ExistsOnRemoteClients) {
             log.trace(
               s"WeaponFireMessage: ${projectile_info.Name} is a remote projectile"
