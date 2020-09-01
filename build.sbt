@@ -41,7 +41,7 @@ lazy val psforeverSettings = Seq(
   resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
   libraryDependencies ++= Seq(
     "com.typesafe.akka"          %% "akka-actor"                 % "2.6.6",
-    "com.typesafe.akka"          %% "akka-slf4j"                 % "2.6.6",
+    "com.typesafe.akka"          %% "akka-slf4j"                 % "2.6.8",
     "com.typesafe.akka"          %% "akka-protobuf-v3"           % "2.6.6",
     "com.typesafe.akka"          %% "akka-stream"                % "2.6.6",
     "com.typesafe.akka"          %% "akka-testkit"               % "2.6.6" % "test",
@@ -52,7 +52,7 @@ lazy val psforeverSettings = Seq(
     "org.scalatest"              %% "scalatest"                  % "3.1.2" % "test",
     "org.scodec"                 %% "scodec-core"                % "1.11.7",
     "net.java.dev.jna"            % "jna"                        % "5.5.0",
-    "com.typesafe.akka"          %% "akka-slf4j"                 % "2.6.5",
+    "com.typesafe.akka"          %% "akka-slf4j"                 % "2.6.8",
     "ch.qos.logback"              % "logback-classic"            % "1.2.3",
     "org.log4s"                  %% "log4s"                      % "1.8.2",
     "org.fusesource.jansi"        % "jansi"                      % "1.12",
