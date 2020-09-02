@@ -8,8 +8,8 @@
       "automerge": true
     },
     {
-      "groupName": "akka"
-      "packagePatterns": "^com.typesafe.akka",
+      "groupName": "akka",
+      "packagePatterns": "^com.typesafe.akka"
     },
     {
       "groupName": "circe",
