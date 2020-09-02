@@ -4,8 +4,16 @@
   ],
   "packageRules": [
     {
+      "updateTypes": ["minor", "patch", "pin", "digest"],
+      "automerge": true
+    },
+    {
+      "groupName": "akka"
       "packagePatterns": "^com.typesafe.akka",
-      "groupName": ["akka packages"]
+    },
+    {
+      "groupName": "circe",
+      "packagePatterns": "^io.circe"
     }
   ]
 }
