@@ -55,7 +55,7 @@ lazy val psforeverSettings = Seq(
     "com.typesafe.akka"          %% "akka-slf4j"                 % "2.6.8",
     "ch.qos.logback"              % "logback-classic"            % "1.2.3",
     "org.log4s"                  %% "log4s"                      % "1.8.2",
-    "org.fusesource.jansi"        % "jansi"                      % "1.12",
+    "org.fusesource.jansi"        % "jansi"                      % "1.18",
     "org.scoverage"              %% "scalac-scoverage-plugin"    % "1.4.1",
     "com.github.nscala-time"     %% "nscala-time"                % "2.24.0",
     "com.github.t3hnar"          %% "scala-bcrypt"               % "4.3.0",
