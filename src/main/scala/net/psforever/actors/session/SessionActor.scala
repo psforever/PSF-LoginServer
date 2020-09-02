@@ -130,8 +130,10 @@ object SessionActor {
     *              must be a positive value
     * @param completionAction a finalizing action performed once the progress reaches 100(%)
     * @param tickAction an action that is performed for each increase of progress
+    * @param tickTime how long between each `tickAction` (ms);
+    *                 defaults to 250 milliseconds
     */
-  final case class ProgressEvent(delta: Float, completionAction: () => Unit, tickAction: Float => Boolean)
+  final case class ProgressEvent(delta: Float, completionAction: () => Unit, tickAction: Float => Boolean, tickTime: Long = 250)
 
   private final val zoningCountdownMessages: Seq[Int] = Seq(5, 10, 20)
 
@@ -548,8 +550,8 @@ class SessionActor extends Actor with MDCContextAware {
         self ! ProgressEvent(rate, finishedAction, stepAction)
       }
 
-    case ProgressEvent(delta, finishedAction, stepAction) =>
-      HandleProgressChange(delta, finishedAction, stepAction)
+    case ProgressEvent(delta, finishedAction, stepAction, tick) =>
+      HandleProgressChange(delta, finishedAction, stepAction, tick)
 
     case Door.DoorMessage(tplayer, msg, order) =>
       HandleDoorMessage(tplayer, msg, order)
@@ -2991,7 +2993,7 @@ class SessionActor extends Actor with MDCContextAware {
     * @param tickAction       an optional action is is performed for each tick of progress;
     *                         also performs a continuity check to determine if the process has been disrupted
     */
-  def HandleProgressChange(delta: Float, completionAction: () => Unit, tickAction: Float => Boolean): Unit = {
+  def HandleProgressChange(delta: Float, completionAction: () => Unit, tickAction: Float => Boolean, tick: Long): Unit = {
     progressBarUpdate.cancel()
     progressBarValue match {
       case Some(value) =>
@@ -3020,9 +3022,9 @@ class SessionActor extends Actor with MDCContextAware {
             progressBarValue = Some(next)
             import scala.concurrent.ExecutionContext.Implicits.global
             progressBarUpdate = context.system.scheduler.scheduleOnce(
-              250 milliseconds,
+              tick milliseconds,
               self,
-              ProgressEvent(delta, completionAction, tickAction)
+              ProgressEvent(delta, completionAction, tickAction, tick)
             )
           } else {
             progressBarValue = None
@@ -4067,11 +4069,11 @@ class SessionActor extends Actor with MDCContextAware {
                 //charge ammunition drain
                 tool.FireMode match {
                   case mode: ChargeFireModeDefinition =>
-                    progressBarUpdate = context.system.scheduler.scheduleWithFixedDelay(
+                    progressBarValue = Some(0f)
+                    progressBarUpdate = context.system.scheduler.scheduleOnce(
                       (mode.Time + mode.DrainInterval) milliseconds,
-                      mode.DrainInterval milliseconds,
                       self,
-                      ProgressEvent(1f, Tools.FinishChargeFireMode(player, tool), Tools.ChargeFireMode(player, tool))
+                      ProgressEvent(1f, () => {}, Tools.ChargeFireMode(player, tool), mode.DrainInterval)
                     )
                   case _ => ;
                 }
@@ -4137,6 +4139,11 @@ class SessionActor extends Actor with MDCContextAware {
         }
         weapon match {
           case Some(tool: Tool) =>
+            tool.FireMode match {
+              case mode : ChargeFireModeDefinition =>
+                sendResponse(QuantityUpdateMessage(tool.AmmoSlot.Box.GUID, tool.Magazine))
+              case _ => ;
+            }
             if (tool.Magazine == 0) {
               FireCycleCleanup(tool)
             }
