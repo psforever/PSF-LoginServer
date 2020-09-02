@@ -75,7 +75,7 @@ lazy val psforeverSettings = Seq(
     "io.sentry"                   % "sentry-logback"             % "1.7.30",
     "io.circe"                   %% "circe-core"                 % "0.12.3",
     "io.circe"                   %% "circe-generic"              % "0.12.3",
-    "io.circe"                   %% "circe-parser"               % "0.12.3",
+    "io.circe"                   %% "circe-parser"               % "0.13.0",
     "org.scala-lang.modules"     %% "scala-parallel-collections" % "0.2.0"
   ),
   // TODO(chord): remove exclusion when SessionActor is refactored: https://github.com/psforever/PSF-LoginServer/issues/279
