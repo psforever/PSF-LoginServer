@@ -65,7 +65,7 @@ lazy val psforeverSettings = Seq(
     "org.json4s"                 %% "json4s-native"              % "3.6.8",
     "io.getquill"                %% "quill-jasync-postgres"      % "3.5.2",
     "org.flywaydb"                % "flyway-core"                % "6.5.5",
-    "org.postgresql"              % "postgresql"                 % "42.2.14",
+    "org.postgresql"              % "postgresql"                 % "42.2.16",
     "com.typesafe"                % "config"                     % "1.4.0",
     "com.github.pureconfig"      %% "pureconfig"                 % "0.13.0",
     "com.beachape"               %% "enumeratum"                 % "1.6.1",
