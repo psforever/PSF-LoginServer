@@ -60,7 +60,7 @@ lazy val psforeverSettings = Seq(
     "com.github.nscala-time"     %% "nscala-time"                % "2.24.0",
     "com.github.t3hnar"          %% "scala-bcrypt"               % "4.3.0",
     "org.scala-graph"            %% "graph-core"                 % "1.13.1",
-    "io.kamon"                   %% "kamon-bundle"               % "2.1.0",
+    "io.kamon"                   %% "kamon-bundle"               % "2.1.6",
     "io.kamon"                   %% "kamon-apm-reporter"         % "2.1.6",
     "org.json4s"                 %% "json4s-native"              % "3.6.8",
     "io.getquill"                %% "quill-jasync-postgres"      % "3.5.2",
