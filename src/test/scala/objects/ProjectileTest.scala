@@ -46,7 +46,7 @@ class ProjectileTest extends Specification {
       obj.InitialVelocity mustEqual 1
       obj.Lifespan mustEqual 1f
       obj.DamageAtEdge mustEqual 1f
-      obj.DamageRadius mustEqual 1f
+      obj.DamageRadius mustEqual 0f
       obj.UseDamage1Subtract mustEqual false
     }
 

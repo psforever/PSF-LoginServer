@@ -8,11 +8,8 @@ import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
 import akka.pattern.ask
 import akka.util.Timeout
 import java.util.concurrent.TimeUnit
-
 import MDCContextAware.Implicits._
-import net.psforever.objects.equipment.ChargeFireModeDefinition
 import org.log4s.MDC
-
 import scala.collection.mutable
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
@@ -29,7 +26,7 @@ import net.psforever.objects.ce._
 import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter.{CorpseConverter, DestroyedVehicleConverter}
 import net.psforever.objects.entity.{SimpleWorldEntity, WorldEntity}
-import net.psforever.objects.equipment.{EffectTarget, Equipment, FireModeSwitch, JammableUnit}
+import net.psforever.objects.equipment.{ChargeFireModeDefinition, EffectTarget, Equipment, FireModeSwitch, JammableUnit}
 import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
 import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
