@@ -269,7 +269,7 @@ class ProjectileTest extends Specification {
       obj.attribute_to mustEqual obj.tool_def.ObjectId
       obj.shot_origin mustEqual Vector3(1.2f, 3.4f, 5.6f)
       obj.shot_angle mustEqual Vector3(0.2f, 0.4f, 0.6f)
-      obj.fire_time <= System.nanoTime mustEqual true
+      obj.fire_time <= System.currentTimeMillis() mustEqual true
       obj.isResolved mustEqual false
     }
 

@@ -64,11 +64,11 @@ trait StandardDamageProfile extends DamageProfile {
 
 object StandardDamageProfile {
   def apply(
-             damage0: Int = 0,
-             damage1: Int = 0,
-             damage2: Int = 0,
-             damage3: Int = 0,
-             damage4: Int = 0
+             damage0: Option[Int] = None,
+             damage1: Option[Int] = None,
+             damage2: Option[Int] = None,
+             damage3: Option[Int] = None,
+             damage4: Option[Int] = None
            ): StandardDamageProfile = {
     val obj = new StandardDamageProfile { }
     obj.Damage0 = damage0

@@ -3866,7 +3866,7 @@ object GlobalDefinitions {
     sparrow_secondary_projectile.Modifiers = DamageModifiers.RadialDegrade
 
     spiker_projectile.Name = "spiker_projectile"
-    spiker_projectile.Charging = ChargeDamage(4, StandardDamageProfile(damage0 = 20, damage1 = 20))
+    spiker_projectile.Charging = ChargeDamage(4, StandardDamageProfile(damage0 = Some(20), damage1 = Some(20)))
     spiker_projectile.Damage0 = 75
     spiker_projectile.Damage1 = 75
     spiker_projectile.DamageAtEdge = 0.1f
