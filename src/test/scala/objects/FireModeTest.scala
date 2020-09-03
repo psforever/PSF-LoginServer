@@ -3,12 +3,7 @@ package objects
 
 import net.psforever.objects.definition.ToolDefinition
 import net.psforever.objects.{GlobalDefinitions, Tool}
-import net.psforever.objects.equipment.{
-  EquipmentSize,
-  FireModeDefinition,
-  InfiniteFireModeDefinition,
-  PelletFireModeDefinition
-}
+import net.psforever.objects.equipment._
 import org.specs2.mutable._
 
 class FireModeTest extends Specification {
@@ -73,7 +68,7 @@ class FireModeTest extends Specification {
 
   "PelletFireModeDefinition" should {
     "construct" in {
-      val obj = new PelletFireModeDefinition(chamber = 1)
+      val obj = new PelletFireModeDefinition
       obj.AmmoTypeIndices mustEqual Nil
       obj.AmmoSlotIndex mustEqual 0
       obj.Magazine mustEqual 1
@@ -127,6 +122,34 @@ class FireModeTest extends Specification {
       obj.Discharge()
       obj.Discharge()
       obj.Magazine mustEqual 1
+    }
+  }
+
+  "ChargeFireModeDefinition" should {
+    "construct" in {
+      val obj = new ChargeFireModeDefinition(1000, 500)
+      obj.AmmoTypeIndices mustEqual Nil
+      obj.AmmoSlotIndex mustEqual 0
+      obj.Magazine mustEqual 1
+      obj.RoundsPerShot mustEqual 1
+      obj.Chamber mustEqual 1
+      obj.Time mustEqual 1000L
+      obj.DrainInterval mustEqual 500L
+    }
+
+    "discharge" in {
+      val obj = Tool(GlobalDefinitions.spiker)
+      obj.FireMode.isInstanceOf[ChargeFireModeDefinition] mustEqual true
+      obj.Magazine mustEqual 25
+      obj.FireMode.RoundsPerShot mustEqual 1
+      obj.FireMode.Chamber mustEqual 1
+
+      obj.Magazine mustEqual 25
+      obj.Discharge()
+      obj.Magazine mustEqual 24
+      obj.Discharge()
+      obj.Discharge()
+      obj.Magazine mustEqual 22
     }
   }
 }

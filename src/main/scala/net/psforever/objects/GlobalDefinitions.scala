@@ -4212,10 +4212,11 @@ object GlobalDefinitions {
     isp.AmmoTypes += shotgun_shell_AP
     isp.ProjectileTypes += shotgun_shell_projectile
     isp.ProjectileTypes += shotgun_shell_AP_projectile
-    isp.FireModes += new PelletFireModeDefinition(chamber = 6) //8 shells x 6 pellets = 48
+    isp.FireModes += new PelletFireModeDefinition
     isp.FireModes.head.AmmoTypeIndices += 0
     isp.FireModes.head.AmmoTypeIndices += 1
     isp.FireModes.head.AmmoSlotIndex = 0
+    isp.FireModes.head.Chamber = 6 //8 shells x 6 pellets = 36
     isp.FireModes.head.Magazine = 8
     isp.FireModes.head.Add.Damage0 = 1
     isp.FireModes.head.Add.Damage2 = 1
@@ -4314,11 +4315,12 @@ object GlobalDefinitions {
     flechette.AmmoTypes += shotgun_shell_AP
     flechette.ProjectileTypes += shotgun_shell_projectile
     flechette.ProjectileTypes += shotgun_shell_AP_projectile
-    flechette.FireModes += new PelletFireModeDefinition(chamber = 8) //12 shells * 8 pellets = 96
+    flechette.FireModes += new PelletFireModeDefinition
     flechette.FireModes.head.AmmoTypeIndices += 0
     flechette.FireModes.head.AmmoTypeIndices += 1
     flechette.FireModes.head.AmmoSlotIndex = 0
     flechette.FireModes.head.Magazine = 12
+    flechette.FireModes.head.Chamber = 8 //12 shells * 8 pellets = 96
     flechette.Tile = InventoryTile.Tile63
 
     cycler.Name = "cycler"
@@ -4443,17 +4445,19 @@ object GlobalDefinitions {
     r_shotgun.AmmoTypes += shotgun_shell_AP
     r_shotgun.ProjectileTypes += shotgun_shell_projectile
     r_shotgun.ProjectileTypes += shotgun_shell_AP_projectile
-    r_shotgun.FireModes += new PelletFireModeDefinition(chamber = 8) //16 shells * 8 pellets = 128
+    r_shotgun.FireModes += new PelletFireModeDefinition
     r_shotgun.FireModes.head.AmmoTypeIndices += 0
     r_shotgun.FireModes.head.AmmoTypeIndices += 1
     r_shotgun.FireModes.head.AmmoSlotIndex = 0
     r_shotgun.FireModes.head.Magazine = 16
+    r_shotgun.FireModes.head.Chamber = 8 //16 shells * 8 pellets = 128
     r_shotgun.FireModes.head.Add.Damage0 = 1
-    r_shotgun.FireModes += new PelletFireModeDefinition(chamber = 8) //16 shells * 8 pellets = 128
+    r_shotgun.FireModes += new PelletFireModeDefinition
     r_shotgun.FireModes(1).AmmoTypeIndices += 0
     r_shotgun.FireModes(1).AmmoTypeIndices += 1
     r_shotgun.FireModes(1).AmmoSlotIndex = 0
     r_shotgun.FireModes(1).Magazine = 16
+    r_shotgun.FireModes(1).Chamber = 8 //16 shells * 8 pellets = 128
     r_shotgun.FireModes(1).Add.Damage0 = -3
     r_shotgun.Tile = InventoryTile.Tile93
 
@@ -4677,10 +4681,11 @@ object GlobalDefinitions {
     pellet_gun.Size = EquipmentSize.Rifle
     pellet_gun.AmmoTypes += pellet_gun_ammo
     pellet_gun.ProjectileTypes += pellet_gun_projectile
-    pellet_gun.FireModes += new PelletFireModeDefinition(chamber = 8) //1 shells * 8 pellets = 8
+    pellet_gun.FireModes += new PelletFireModeDefinition
     pellet_gun.FireModes.head.AmmoTypeIndices += 0
     pellet_gun.FireModes.head.AmmoSlotIndex = 0
-    pellet_gun.FireModes.head.Magazine = 1
+    pellet_gun.FireModes.head.Magazine = 1 //what is this?
+    pellet_gun.FireModes.head.Chamber = 8 //1 shell * 8 pellets = 8
     pellet_gun.Tile = InventoryTile.Tile63
 
     six_shooter.Name = "six_shooter"
@@ -4766,18 +4771,21 @@ object GlobalDefinitions {
     nchev_scattercannon.Size = EquipmentSize.Max
     nchev_scattercannon.AmmoTypes += scattercannon_ammo
     nchev_scattercannon.ProjectileTypes += scattercannon_projectile
-    nchev_scattercannon.FireModes += new PelletFireModeDefinition(chamber = 10)
+    nchev_scattercannon.FireModes += new PelletFireModeDefinition
     nchev_scattercannon.FireModes.head.AmmoTypeIndices += 0
     nchev_scattercannon.FireModes.head.AmmoSlotIndex = 0
     nchev_scattercannon.FireModes.head.Magazine = 40
-    nchev_scattercannon.FireModes += new PelletFireModeDefinition(chamber = 10)
+    nchev_scattercannon.FireModes.head.Chamber = 10 //40 shells * 10 pellets = 400
+    nchev_scattercannon.FireModes += new PelletFireModeDefinition
     nchev_scattercannon.FireModes(1).AmmoTypeIndices += 0
     nchev_scattercannon.FireModes(1).AmmoSlotIndex = 0
     nchev_scattercannon.FireModes(1).Magazine = 40
-    nchev_scattercannon.FireModes += new PelletFireModeDefinition(chamber = 10)
+    nchev_scattercannon.FireModes(1).Chamber = 10 //40 shells * 10 pellets = 400
+    nchev_scattercannon.FireModes += new PelletFireModeDefinition
     nchev_scattercannon.FireModes(2).AmmoTypeIndices += 0
     nchev_scattercannon.FireModes(2).AmmoSlotIndex = 0
     nchev_scattercannon.FireModes(2).Magazine = 40
+    nchev_scattercannon.FireModes(2).Chamber = 10 //40 shells * 10 pellets = 400
 
     nchev_falcon.Name = "nchev_falcon"
     nchev_falcon.Size = EquipmentSize.Max
@@ -5516,10 +5524,11 @@ object GlobalDefinitions {
     energy_gun_nc.Size = EquipmentSize.BaseTurretWeapon
     energy_gun_nc.AmmoTypes += energy_gun_ammo
     energy_gun_nc.ProjectileTypes += energy_gun_nc_projectile
-    energy_gun_nc.FireModes += new PelletFireModeDefinition(chamber = 9)
+    energy_gun_nc.FireModes += new PelletFireModeDefinition
     energy_gun_nc.FireModes.head.AmmoTypeIndices += 0
     energy_gun_nc.FireModes.head.AmmoSlotIndex = 0
     energy_gun_nc.FireModes.head.Magazine = 35
+    energy_gun_nc.FireModes.head.Chamber = 8 //35 shots * 8 pellets = 280
 
     energy_gun_tr.Name = "energy_gun_tr"
     energy_gun_tr.Size = EquipmentSize.BaseTurretWeapon

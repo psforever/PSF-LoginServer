@@ -4120,6 +4120,7 @@ class SessionActor extends Actor with MDCContextAware {
                   continent.id,
                   AvatarAction.ChangeFireState_Start(player.GUID, item_guid)
                 )
+                shootingStart = System.currentTimeMillis() - 1L
               }
               continent.AvatarEvents ! AvatarServiceMessage(
                 continent.id,
@@ -4227,7 +4228,7 @@ class SessionActor extends Actor with MDCContextAware {
                   log.warn(s"ReloadMessage: no ammunition could be found for $item_guid")
                 case x :: xs =>
                   val (deleteFunc, modifyFunc): (Equipment => Future[Any], (AmmoBox, Int) => Unit) = obj match {
-                    case (veh: Vehicle) =>
+                    case veh: Vehicle =>
                       (RemoveOldEquipmentFromInventory(veh, taskResolver), ModifyAmmunitionInVehicle(veh))
                     case o: PlanetSideServerObject with Container =>
                       (RemoveOldEquipmentFromInventory(o, taskResolver), ModifyAmmunition(o))
@@ -9453,9 +9454,9 @@ class SessionActor extends Actor with MDCContextAware {
             avatarActor ! AvatarActor.ConsumeStamina(avatar.stamina)
           }
           avatarActor ! AvatarActor.SuspendStaminaRegeneration(3.seconds)
+          prefire = shooting.orElse(Some(weaponGUID))
+          tool.Discharge()
         }
-        prefire = shooting.orElse(Some(weaponGUID))
-        tool.Discharge() //always
         out
       case _ =>
         (None, None)

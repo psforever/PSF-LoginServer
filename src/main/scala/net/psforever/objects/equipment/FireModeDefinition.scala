@@ -109,12 +109,8 @@ class FireModeDefinition extends DamageModifiers {
   }
 }
 
-class PelletFireModeDefinition(private val chamber: Int) extends FireModeDefinition {
-  /** how many sub-rounds are queued per round fired;
-    * the flechette fires 8 pellets per shell and generates 8 fire reports before the ammo count goes down
-    */
-  override def Chamber: Int = chamber
-
+class PelletFireModeDefinition
+  extends FireModeDefinition {
   /**
     * Shoot a weapon, remove an anticipated amount of ammunition.<br>
     * <br>
@@ -137,7 +133,8 @@ class PelletFireModeDefinition(private val chamber: Int) extends FireModeDefinit
   }
 }
 
-class InfiniteFireModeDefinition extends FireModeDefinition {
+class InfiniteFireModeDefinition
+  extends FireModeDefinition {
 
   /**
     * Shoot a weapon, remove an anticipated amount of ammunition.<br>
@@ -163,8 +160,11 @@ class InfiniteFireModeDefinition extends FireModeDefinition {
   * @param time the duration until the charge is full (milliseconds)
   * @param drainInterval the curation between ticks of ammunition depletion after "full charge"
   */
-class ChargeFireModeDefinition(private val time: Long, private val drainInterval: Long) extends FireModeDefinition {
+class ChargeFireModeDefinition(private val time: Long, private val drainInterval: Long, private val roundsPerInterval: Int = 1)
+  extends FireModeDefinition {
   def Time: Long = time
 
   def DrainInterval: Long = drainInterval
+
+  def RoundsPerInterval: Int = roundsPerInterval
 }
