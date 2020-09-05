@@ -226,10 +226,10 @@ object DefinitionUtil {
   def applyDefaultLoadout(player: Player): Unit = {
     val faction = player.Faction
     player.ExoSuit = ExoSuitType.Standard
-    player.Slot(0).Equipment = Tool(GlobalDefinitions.spiker)//StandardPistol(faction))
+    player.Slot(0).Equipment = Tool(GlobalDefinitions.StandardPistol(faction))
     player.Slot(2).Equipment = Tool(GlobalDefinitions.suppressor)
     player.Slot(4).Equipment = Tool(GlobalDefinitions.StandardMelee(faction))
-    player.Slot(6).Equipment = AmmoBox(GlobalDefinitions.ancient_ammo_combo)
+    player.Slot(6).Equipment = AmmoBox(GlobalDefinitions.bullet_9mm)
     player.Slot(9).Equipment = AmmoBox(GlobalDefinitions.bullet_9mm)
     player.Slot(12).Equipment = AmmoBox(GlobalDefinitions.bullet_9mm)
     player.Slot(33).Equipment = AmmoBox(GlobalDefinitions.bullet_9mm_AP)
