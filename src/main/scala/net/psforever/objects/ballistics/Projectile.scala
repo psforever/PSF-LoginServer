@@ -43,7 +43,7 @@ final case class Projectile(
     shot_angle: Vector3,
     quality: ProjectileQuality = ProjectileQuality.Normal,
     id: Long = Projectile.idGenerator.getAndIncrement(),
-    fire_time: Long = System.nanoTime
+    fire_time: Long = System.currentTimeMillis()
 ) extends PlanetSideGameObject {
   Position = shot_origin
   Orientation = shot_angle

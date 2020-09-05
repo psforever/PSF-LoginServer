@@ -61,3 +61,21 @@ trait StandardDamageProfile extends DamageProfile {
     Damage4
   }
 }
+
+object StandardDamageProfile {
+  def apply(
+             damage0: Option[Int] = None,
+             damage1: Option[Int] = None,
+             damage2: Option[Int] = None,
+             damage3: Option[Int] = None,
+             damage4: Option[Int] = None
+           ): StandardDamageProfile = {
+    val obj = new StandardDamageProfile { }
+    obj.Damage0 = damage0
+    obj.Damage1 = damage1
+    obj.Damage2 = damage2
+    obj.Damage3 = damage3
+    obj.Damage4 = damage4
+    obj
+  }
+}

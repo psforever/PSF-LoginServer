@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition
 
-import net.psforever.objects.ballistics.{AggravatedDamage, Projectiles}
+import net.psforever.objects.ballistics.{AggravatedDamage, ChargeDamage, Projectiles}
 import net.psforever.objects.equipment.JammingUnit
 import net.psforever.objects.vital.damage.DamageModifiers
 import net.psforever.objects.vital.{DamageType, StandardDamageProfile}
@@ -38,8 +38,10 @@ class ProjectileDefinition(objectId: Int)
   private var lifespan: Float                       = 1f
   /** for radial damage, how much damage has been lost the further away from the impact point (m) */
   private var damageAtEdge: Float                   = 1f
-  /** for radial damage, the radial distance of the explosion effect (m) */
-  private var damageRadius: Float                   = 1f
+  /** for radial damage, the distance of the explosion effect (m) */
+  private var damageRadius: Float                   = 0f
+  /** for radial damage, the distance before degradation of the explosion effect (m) */
+  private var damageRadiusMin: Float                = 1f
   /** for lashing damage, how far away a target will be affected by the projectile (m) */
   private var lashRadius : Float                    = 0f
   /** use a specific modifier as a part of damage calculations */
@@ -65,9 +67,11 @@ class ProjectileDefinition(objectId: Int)
   private var jammerProjectile: Boolean = false
   /** projectile takes the form of a type of "grenade";
     * grenades arc with gravity rather than travel in a relatively straight path */
-  private var grenade_projectile : Boolean = false
+  private var grenade_projectile: Boolean = false
   /** projectile tries to confers aggravated damage burn to its target */
-  private var aggravated_damage : Option[AggravatedDamage] = None
+  private var aggravated_damage: Option[AggravatedDamage] = None
+  /** */
+  private var charging: Option[ChargeDamage] = None
   //derived calculations
   /** the calculated distance at which the projectile have traveled far enough to despawn (m);
     * typically handled as the projectile no longer performing damage;
@@ -75,7 +79,8 @@ class ProjectileDefinition(objectId: Int)
   private var distanceMax: Float              = 0f
   /** how far the projectile will travel while accelerating (m) */
   private var distanceFromAcceleration: Float = 0f
-  /** how far the projectile will travel while no degrading (m) */
+  /** how far the projectile will travel while not degrading (m);
+    * this field is not to be used in the place of minimum radial damage */
   private var distanceNoDegrade: Float        = 0f
   /** after acceleration, if any, what is the final speed of the projectile (m/s) */
   private var finalVelocity: Float            = 0f
@@ -172,6 +177,13 @@ class ProjectileDefinition(objectId: Int)
     DamageRadius
   }
 
+  def DamageRadiusMin: Float = damageRadiusMin
+
+  def DamageRadiusMin_=(damageRadius: Float): Float = {
+    this.damageRadiusMin = damageRadius
+    DamageRadiusMin
+  }
+
   def LashRadius: Float = lashRadius
 
   def LashRadius_=(radius: Float): Float = {
@@ -239,6 +251,15 @@ class ProjectileDefinition(objectId: Int)
     Aggravated
   }
 
+  def Charging : Option[ChargeDamage] = charging
+
+  def Charging_=(damage : ChargeDamage) : Option[ChargeDamage] = Charging_=(Some(damage))
+
+  def Charging_=(damage : Option[ChargeDamage]) : Option[ChargeDamage] = {
+    charging = damage
+    Charging
+  }
+
   def DistanceMax : Float = distanceMax //accessor only
 
   def DistanceFromAcceleration: Float = distanceFromAcceleration //accessor only
@@ -253,6 +274,13 @@ object ProjectileDefinition {
     new ProjectileDefinition(projectileType.id)
   }
 
+  /**
+    * Calculate the secondary fields of the projectile's damage.
+    * Depending on whether the appropriate fields are defined,
+    * it may calculate for "damage over distance", typically associated with straight-fire direct hit projectiles,
+    * or for "radial damage", typically associated with explosive splash projectiles.
+    * @param pdef the projectile's definition, often called its profile
+    */
   def CalculateDerivedFields(pdef: ProjectileDefinition): Unit = {
     val (distanceMax, distanceFromAcceleration, finalVelocity): (Float, Float, Float) = if (pdef.Acceleration == 0) {
       (pdef.InitialVelocity * pdef.Lifespan, 0, pdef.InitialVelocity.toFloat)

@@ -2,6 +2,7 @@
 package net.psforever.objects.vital.damage
 
 import net.psforever.objects.ballistics._
+import net.psforever.objects.equipment.ChargeFireModeDefinition
 import net.psforever.objects.vital.DamageType
 import net.psforever.types.{ExoSuitType, Vector3}
 
@@ -97,12 +98,17 @@ object DamageModifiers {
     def Calculate: DamageModifiers.Format = function
 
     private def function(damage: Int, data: ResolvedProjectile): Int = {
-      val profile    = data.projectile.profile
-      val distance   = Vector3.Distance(data.hit_pos, data.target.Position)
-      val radius     = profile.DamageRadius
-      if (distance <= radius) {
-        val base: Float = profile.DamageAtEdge
-        (damage * ((1 - base) * ((radius - distance) / radius) + base)).toInt
+      val profile   = data.projectile.profile
+      val distance  = Vector3.Distance(data.hit_pos, data.target.Position)
+      val radius    = profile.DamageRadius
+      val radiusMin = profile.DamageRadiusMin
+      if (distance <= radiusMin) {
+        damage
+      } else if (distance <= radius) {
+        //damage - (damage * profile.DamageAtEdge * (distance - radiusMin) / (radius - radiusMin)).toInt
+        val base = profile.DamageAtEdge
+        val radi = radius - radiusMin
+        (damage * ((1 - base) * ((radi - (distance - radiusMin)) / radi) + base)).toInt
       } else {
         0
       }
@@ -415,6 +421,21 @@ object DamageModifiers {
         }
       } else {
         damage
+      }
+    }
+  }
+
+  case object SpikerChargeDamage extends Mod {
+    def Calculate: DamageModifiers.Format = formula
+
+    private def formula(damage: Int, data: ResolvedProjectile): Int = {
+      val projectile = data.projectile
+      (projectile.fire_mode, projectile.profile.Charging) match {
+        case (_: ChargeFireModeDefinition, Some(info: ChargeDamage)) =>
+          val chargeQuality = math.max(0f, math.min(projectile.quality.mod, 1f))
+          data.damage_model.DamageUsing(info.min) + (damage * chargeQuality).toInt
+        case _ =>
+          damage
       }
     }
   }

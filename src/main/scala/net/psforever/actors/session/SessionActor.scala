@@ -26,7 +26,7 @@ import net.psforever.objects.ce._
 import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter.{CorpseConverter, DestroyedVehicleConverter}
 import net.psforever.objects.entity.{SimpleWorldEntity, WorldEntity}
-import net.psforever.objects.equipment.{EffectTarget, Equipment, FireModeSwitch, JammableUnit}
+import net.psforever.objects.equipment.{ChargeFireModeDefinition, EffectTarget, Equipment, FireModeSwitch, JammableUnit}
 import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
 import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
@@ -127,8 +127,10 @@ object SessionActor {
     *              must be a positive value
     * @param completionAction a finalizing action performed once the progress reaches 100(%)
     * @param tickAction an action that is performed for each increase of progress
+    * @param tickTime how long between each `tickAction` (ms);
+    *                 defaults to 250 milliseconds
     */
-  final case class ProgressEvent(delta: Float, completionAction: () => Unit, tickAction: Float => Boolean)
+  final case class ProgressEvent(delta: Float, completionAction: () => Unit, tickAction: Float => Boolean, tickTime: Long = 250)
 
   private final val zoningCountdownMessages: Seq[Int] = Seq(5, 10, 20)
 
@@ -175,6 +177,8 @@ class SessionActor extends Actor with MDCContextAware {
   var progressBarValue: Option[Float]                                = None
   var shooting: Option[PlanetSideGUID]                               = None //ChangeFireStateMessage_Start
   var prefire: Option[PlanetSideGUID]                                = None //if WeaponFireMessage precedes ChangeFireStateMessage_Start
+  var shootingStart: Long                                            = 0
+  var shootingStop: Long                                             = 0
   var shotsWhileDead: Int                                            = 0
   var accessedContainer: Option[PlanetSideGameObject with Container] = None
   var connectionState: Int                                           = 25
@@ -543,8 +547,8 @@ class SessionActor extends Actor with MDCContextAware {
         self ! ProgressEvent(rate, finishedAction, stepAction)
       }
 
-    case ProgressEvent(delta, finishedAction, stepAction) =>
-      HandleProgressChange(delta, finishedAction, stepAction)
+    case ProgressEvent(delta, finishedAction, stepAction, tick) =>
+      HandleProgressChange(delta, finishedAction, stepAction, tick)
 
     case Door.DoorMessage(tplayer, msg, order) =>
       HandleDoorMessage(tplayer, msg, order)
@@ -2986,7 +2990,7 @@ class SessionActor extends Actor with MDCContextAware {
     * @param tickAction       an optional action is is performed for each tick of progress;
     *                         also performs a continuity check to determine if the process has been disrupted
     */
-  def HandleProgressChange(delta: Float, completionAction: () => Unit, tickAction: Float => Boolean): Unit = {
+  def HandleProgressChange(delta: Float, completionAction: () => Unit, tickAction: Float => Boolean, tick: Long): Unit = {
     progressBarUpdate.cancel()
     progressBarValue match {
       case Some(value) =>
@@ -3015,9 +3019,9 @@ class SessionActor extends Actor with MDCContextAware {
             progressBarValue = Some(next)
             import scala.concurrent.ExecutionContext.Implicits.global
             progressBarUpdate = context.system.scheduler.scheduleOnce(
-              250 milliseconds,
+              tick milliseconds,
               self,
-              ProgressEvent(delta, completionAction, tickAction)
+              ProgressEvent(delta, completionAction, tickAction, tick)
             )
           } else {
             progressBarValue = None
@@ -4051,12 +4055,24 @@ class SessionActor extends Actor with MDCContextAware {
               if (tool.Magazine > 0 || prefire.contains(item_guid)) {
                 prefire = None
                 shooting = Some(item_guid)
+                shootingStart = System.currentTimeMillis()
                 //special case - suppress the decimator's alternate fire mode, by projectile
                 if (tool.Projectile != GlobalDefinitions.phoenix_missile_guided_projectile) {
                   continent.AvatarEvents ! AvatarServiceMessage(
                     continent.id,
                     AvatarAction.ChangeFireState_Start(player.GUID, item_guid)
                   )
+                }
+                //charge ammunition drain
+                tool.FireMode match {
+                  case mode: ChargeFireModeDefinition =>
+                    progressBarValue = Some(0f)
+                    progressBarUpdate = context.system.scheduler.scheduleOnce(
+                      (mode.Time + mode.DrainInterval) milliseconds,
+                      self,
+                      ProgressEvent(1f, () => {}, Tools.ChargeFireMode(player, tool), mode.DrainInterval)
+                    )
+                  case _ => ;
                 }
               } else {
                 log.warn(
@@ -4067,6 +4083,7 @@ class SessionActor extends Actor with MDCContextAware {
             case Some(_) => //permissible, for now
               prefire = None
               shooting = Some(item_guid)
+              shootingStart = System.currentTimeMillis()
               continent.AvatarEvents ! AvatarServiceMessage(
                 continent.id,
                 AvatarAction.ChangeFireState_Start(player.GUID, item_guid)
@@ -4079,6 +4096,7 @@ class SessionActor extends Actor with MDCContextAware {
       case msg @ ChangeFireStateMessage_Stop(item_guid) =>
         log.trace("ChangeFireState_Stop: " + msg)
         prefire = None
+        shootingStop = System.currentTimeMillis()
         val weapon: Option[Equipment] = if (shooting.contains(item_guid)) {
           shooting = None
           continent.AvatarEvents ! AvatarServiceMessage(
@@ -4099,6 +4117,7 @@ class SessionActor extends Actor with MDCContextAware {
                   continent.id,
                   AvatarAction.ChangeFireState_Start(player.GUID, item_guid)
                 )
+                shootingStart = System.currentTimeMillis() - 1L
               }
               continent.AvatarEvents ! AvatarServiceMessage(
                 continent.id,
@@ -4118,6 +4137,11 @@ class SessionActor extends Actor with MDCContextAware {
         }
         weapon match {
           case Some(tool: Tool) =>
+            tool.FireMode match {
+              case mode : ChargeFireModeDefinition =>
+                sendResponse(QuantityUpdateMessage(tool.AmmoSlot.Box.GUID, tool.Magazine))
+              case _ => ;
+            }
             if (tool.Magazine == 0) {
               FireCycleCleanup(tool)
             }
@@ -4201,7 +4225,7 @@ class SessionActor extends Actor with MDCContextAware {
                   log.warn(s"ReloadMessage: no ammunition could be found for $item_guid")
                 case x :: xs =>
                   val (deleteFunc, modifyFunc): (Equipment => Future[Any], (AmmoBox, Int) => Unit) = obj match {
-                    case (veh: Vehicle) =>
+                    case veh: Vehicle =>
                       (RemoveOldEquipmentFromInventory(veh, taskResolver), ModifyAmmunitionInVehicle(veh))
                     case o: PlanetSideServerObject with Container =>
                       (RemoveOldEquipmentFromInventory(o, taskResolver), ModifyAmmunition(o))
@@ -5244,7 +5268,7 @@ class SessionActor extends Actor with MDCContextAware {
       unk6,
       unk7
       ) =>
-        //log.info(s"WeaponFire: $msg")
+        log.info(s"WeaponFire: $msg")
         HandleWeaponFire(weapon_guid, projectile_guid, shot_origin)
 
       case msg @ WeaponLazeTargetPositionMessage(weapon, pos1, pos2) =>
@@ -6811,6 +6835,7 @@ class SessionActor extends Actor with MDCContextAware {
         )
         prefire = None
         shooting = None
+        shootingStop = System.currentTimeMillis()
       case None => ;
     }
     if (session.flying) {
@@ -9345,8 +9370,7 @@ class SessionActor extends Actor with MDCContextAware {
           case _ =>
             (obj.Orientation, obj.Definition.ObjectId, 300f)
         }
-        val distanceToOwner =
-          Vector3.DistanceSquared(shotOrigin, player.Position)
+        val distanceToOwner = Vector3.DistanceSquared(shotOrigin, player.Position)
         if (distanceToOwner <= acceptableDistanceToOwner) {
           val projectile_info = tool.Projectile
           val projectile =
@@ -9357,9 +9381,15 @@ class SessionActor extends Actor with MDCContextAware {
               player,
               attribution,
               shotOrigin,
-              angle
+              angle,
             )
-          projectiles(projectileIndex) = Some(projectile)
+          val initialQuality = tool.FireMode match {
+            case mode: ChargeFireModeDefinition =>
+              ProjectileQuality.Modified((projectile.fire_time - shootingStart) / mode.Time.toFloat)
+            case _ =>
+              ProjectileQuality.Normal
+          }
+          projectiles(projectileIndex) = Some(projectile.quality(initialQuality))
           if (projectile_info.ExistsOnRemoteClients) {
             log.trace(
               s"WeaponFireMessage: ${projectile_info.Name} is a remote projectile"
@@ -9421,9 +9451,9 @@ class SessionActor extends Actor with MDCContextAware {
             avatarActor ! AvatarActor.ConsumeStamina(avatar.stamina)
           }
           avatarActor ! AvatarActor.SuspendStaminaRegeneration(3.seconds)
+          prefire = shooting.orElse(Some(weaponGUID))
+          tool.Discharge()
         }
-        prefire = shooting.orElse(Some(weaponGUID))
-        tool.Discharge() //always
         out
       case _ =>
         (None, None)

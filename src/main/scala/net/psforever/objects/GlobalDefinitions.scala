@@ -2,7 +2,7 @@
 package net.psforever.objects
 
 import net.psforever.objects.avatar.Certification
-import net.psforever.objects.ballistics.{AggravatedDamage, AggravatedInfo, AggravatedTiming, Projectiles}
+import net.psforever.objects.ballistics._
 import net.psforever.objects.ce.{DeployableCategory, DeployedItem}
 import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter._
@@ -23,8 +23,9 @@ import net.psforever.objects.serverobject.structures.{BuildingDefinition, WarpGa
 import net.psforever.objects.serverobject.turret.{FacilityTurretDefinition, TurretUpgrade}
 import net.psforever.objects.vehicles.{DestroyedVehicle, InternalTelepadDefinition, SeatArmorRestriction, UtilityType}
 import net.psforever.objects.vital.damage.{DamageCalculations, DamageModifiers}
-import net.psforever.objects.vital.{DamageType, StandardResolutions}
+import net.psforever.objects.vital.{DamageType, StandardDamageProfile, StandardResolutions}
 import net.psforever.types.{ExoSuitType, ImplantType, PlanetSideEmpire, Vector3}
+
 import scala.collection.mutable
 import scala.concurrent.duration._
 
@@ -3865,19 +3866,20 @@ object GlobalDefinitions {
     sparrow_secondary_projectile.Modifiers = DamageModifiers.RadialDegrade
 
     spiker_projectile.Name = "spiker_projectile"
-    //    spiker_projectile.Damage0 = 75
-    spiker_projectile.Damage0 = 20
-    //    spiker_projectile.Damage0_min = 20
-    //    spiker_projectile.Damage1 = 75
-    spiker_projectile.Damage1 = 20
-    //    spiker_projectile.Damage1_min = 20
+    spiker_projectile.Charging = ChargeDamage(4, StandardDamageProfile(damage0 = Some(20), damage1 = Some(20)))
+    spiker_projectile.Damage0 = 75
+    spiker_projectile.Damage1 = 75
     spiker_projectile.DamageAtEdge = 0.1f
     spiker_projectile.DamageRadius = 5f
-    spiker_projectile.DamageRadius = 1f
+    spiker_projectile.DamageRadiusMin = 1f
     spiker_projectile.ProjectileDamageType = DamageType.Splash
     spiker_projectile.InitialVelocity = 40
     spiker_projectile.Lifespan = 5f
     ProjectileDefinition.CalculateDerivedFields(spiker_projectile)
+    spiker_projectile.Modifiers = List(
+      DamageModifiers.SpikerChargeDamage,
+      DamageModifiers.RadialDegrade
+    )
 
     spitfire_aa_ammo_projectile.Name = "spitfire_aa_ammo_projectile"
     spitfire_aa_ammo_projectile.Damage0 = 5
@@ -4214,8 +4216,8 @@ object GlobalDefinitions {
     isp.FireModes.head.AmmoTypeIndices += 0
     isp.FireModes.head.AmmoTypeIndices += 1
     isp.FireModes.head.AmmoSlotIndex = 0
+    isp.FireModes.head.Chamber = 6 //8 shells x 6 pellets = 36
     isp.FireModes.head.Magazine = 8
-    isp.FireModes.head.Chamber = 6 //8 shells x 6 pellets = 48
     isp.FireModes.head.Add.Damage0 = 1
     isp.FireModes.head.Add.Damage2 = 1
     isp.FireModes.head.Add.Damage3 = 1
@@ -4417,7 +4419,7 @@ object GlobalDefinitions {
     spiker.Size = EquipmentSize.Pistol
     spiker.AmmoTypes += ancient_ammo_combo
     spiker.ProjectileTypes += spiker_projectile
-    spiker.FireModes += new FireModeDefinition
+    spiker.FireModes += new ChargeFireModeDefinition(time = 1000, drainInterval = 500)
     spiker.FireModes.head.AmmoTypeIndices += 0
     spiker.FireModes.head.AmmoSlotIndex = 0
     spiker.FireModes.head.Magazine = 25
@@ -4682,8 +4684,8 @@ object GlobalDefinitions {
     pellet_gun.FireModes += new PelletFireModeDefinition
     pellet_gun.FireModes.head.AmmoTypeIndices += 0
     pellet_gun.FireModes.head.AmmoSlotIndex = 0
-    pellet_gun.FireModes.head.Magazine = 1
-    pellet_gun.FireModes.head.Chamber = 8 //1 shells * 8 pellets = 8
+    pellet_gun.FireModes.head.Magazine = 1 //what is this?
+    pellet_gun.FireModes.head.Chamber = 8 //1 shell * 8 pellets = 8
     pellet_gun.Tile = InventoryTile.Tile63
 
     six_shooter.Name = "six_shooter"
@@ -4773,17 +4775,17 @@ object GlobalDefinitions {
     nchev_scattercannon.FireModes.head.AmmoTypeIndices += 0
     nchev_scattercannon.FireModes.head.AmmoSlotIndex = 0
     nchev_scattercannon.FireModes.head.Magazine = 40
-    nchev_scattercannon.FireModes.head.Chamber = 10
+    nchev_scattercannon.FireModes.head.Chamber = 10 //40 shells * 10 pellets = 400
     nchev_scattercannon.FireModes += new PelletFireModeDefinition
     nchev_scattercannon.FireModes(1).AmmoTypeIndices += 0
     nchev_scattercannon.FireModes(1).AmmoSlotIndex = 0
     nchev_scattercannon.FireModes(1).Magazine = 40
-    nchev_scattercannon.FireModes(1).Chamber = 10
+    nchev_scattercannon.FireModes(1).Chamber = 10 //40 shells * 10 pellets = 400
     nchev_scattercannon.FireModes += new PelletFireModeDefinition
     nchev_scattercannon.FireModes(2).AmmoTypeIndices += 0
     nchev_scattercannon.FireModes(2).AmmoSlotIndex = 0
     nchev_scattercannon.FireModes(2).Magazine = 40
-    nchev_scattercannon.FireModes(2).Chamber = 10
+    nchev_scattercannon.FireModes(2).Chamber = 10 //40 shells * 10 pellets = 400
 
     nchev_falcon.Name = "nchev_falcon"
     nchev_falcon.Size = EquipmentSize.Max
@@ -5526,7 +5528,7 @@ object GlobalDefinitions {
     energy_gun_nc.FireModes.head.AmmoTypeIndices += 0
     energy_gun_nc.FireModes.head.AmmoSlotIndex = 0
     energy_gun_nc.FireModes.head.Magazine = 35
-    energy_gun_nc.FireModes.head.Chamber = 9
+    energy_gun_nc.FireModes.head.Chamber = 8 //35 shots * 8 pellets = 280
 
     energy_gun_tr.Name = "energy_gun_tr"
     energy_gun_tr.Size = EquipmentSize.BaseTurretWeapon
