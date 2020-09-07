@@ -27,6 +27,8 @@ import net.psforever.services.{RemoverActor, Service}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import akka.actor.typed
+import net.psforever.objects.locker.LockerContainerControl
+
 import scala.concurrent.duration._
 
 class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Command])

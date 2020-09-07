@@ -5,6 +5,7 @@ import base.ActorTest
 import net.psforever.objects._
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
+import net.psforever.objects.locker.LockerEquipment
 import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire}
 
 class GUIDTaskUnregisterPlayerTest extends ActorTest {

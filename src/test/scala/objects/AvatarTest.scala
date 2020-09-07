@@ -5,6 +5,7 @@ import net.psforever.objects.GlobalDefinitions._
 import net.psforever.objects._
 import net.psforever.objects.avatar.{Avatar, BattleRank, Implant}
 import net.psforever.objects.definition.ImplantDefinition
+import net.psforever.objects.locker.LockerEquipment
 import net.psforever.types.{CharacterGender, CharacterVoice, ImplantType, PlanetSideEmpire}
 import org.specs2.mutable._
 

@@ -6,6 +6,7 @@ import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.objects._
 import net.psforever.objects.inventory.Container
+import net.psforever.objects.locker.{LockerContainer, LockerEquipment}
 import net.psforever.objects.serverobject.turret.WeaponTurret
 
 import scala.annotation.tailrec

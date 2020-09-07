@@ -6,6 +6,7 @@ import net.psforever.objects._
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.definition.{SimpleItemDefinition, SpecialExoSuitDefinition}
 import net.psforever.objects.equipment.EquipmentSize
+import net.psforever.objects.locker.LockerEquipment
 import net.psforever.types.{PlanetSideGUID, _}
 import org.specs2.mutable._
 
