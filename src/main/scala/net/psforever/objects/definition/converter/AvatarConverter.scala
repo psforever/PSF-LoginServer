@@ -4,7 +4,7 @@ package net.psforever.objects.definition.converter
 import net.psforever.objects.Player
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.{ExoSuitType, GrenadeState, PlanetSideGUID}
+import net.psforever.types.{ExoSuitType, GrenadeState, PlanetSideEmpire, PlanetSideGUID}
 
 import scala.annotation.tailrec
 import scala.util.{Success, Try}
@@ -175,7 +175,9 @@ object AvatarConverter {
 
   def MakeDetailedInventoryData(obj: Player): InventoryData = {
     InventoryData(
-      (MakeHolsters(obj, BuildDetailedEquipment) ++ MakeFifthSlot(obj) ++ MakeInventory(obj)).sortBy(_.parentSlot)
+      (MakeHolsters(obj, BuildDetailedEquipment) ++
+       MakeFifthSlot(obj) ++
+       MakeInventory(obj)).sortBy(_.parentSlot)
     )
   }
 
@@ -222,7 +224,16 @@ object AvatarConverter {
   private def MakeFifthSlot(obj: Player): List[InternalSlot] = {
     obj.Slot(5).Equipment match {
       case Some(equip) =>
-        BuildDetailedEquipment(5, equip) :: Nil
+        //List(BuildDetailedEquipment(5, equip))
+        List(InternalSlot(
+          equip.Definition.ObjectId,
+          equip.GUID,
+          5,
+          DetailedLockerContainerData(
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+            None
+          )
+        ))
       case _ =>
         Nil
     }

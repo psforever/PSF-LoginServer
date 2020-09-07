@@ -364,13 +364,12 @@ class PersistenceMonitor(name: String, squadService: ActorRef, taskResolver: Act
         //player has released
         //our last body was turned into a corpse; just the avatar remains
         //TODO perform any last minute saving now ...
-        AvatarLogout(avatar)
         inZone.GUID(avatar.vehicle) match {
           case Some(obj: Vehicle) if obj.OwnerName.contains(avatar.name) =>
             obj.Actor ! Vehicle.Ownership(None)
           case _ => ;
         }
-        taskResolver.tell(GUIDTask.UnregisterLocker(avatar.locker)(inZone.GUID), context.parent)
+        AvatarLogout(avatar)
 
       case _ =>
       //user stalled during initial session, or was caught in between zone transfer
@@ -386,7 +385,7 @@ class PersistenceMonitor(name: String, squadService: ActorRef, taskResolver: Act
     * @see `Avatar`
     * @see `AvatarAction.ObjectDelete`
     * @see `AvatarServiceMessage`
-    * @see `GUIDTask.UnregisterAvatar`
+    * @see `GUIDTask.UnregisterPlayer`
     * @see `Player`
     * @see `Zone.AvatarEvents`
     * @see `Zone.Population.Release`
@@ -405,8 +404,8 @@ class PersistenceMonitor(name: String, squadService: ActorRef, taskResolver: Act
     }
     inZone.Population.tell(Zone.Population.Release(avatar), parent)
     inZone.AvatarEvents.tell(AvatarServiceMessage(inZone.id, AvatarAction.ObjectDelete(pguid, pguid)), parent)
+    taskResolver.tell(GUIDTask.UnregisterPlayer(player)(inZone.GUID), parent)
     AvatarLogout(avatar)
-    taskResolver.tell(GUIDTask.UnregisterAvatar(player)(inZone.GUID), parent)
   }
 
   /**
@@ -424,6 +423,7 @@ class PersistenceMonitor(name: String, squadService: ActorRef, taskResolver: Act
     squadService.tell(Service.Leave(Some(avatar.id.toString)), context.parent)
     Deployables.Disown(inZone, avatar, context.parent)
     inZone.Population.tell(Zone.Population.Leave(avatar), context.parent)
+    taskResolver.tell(GUIDTask.UnregisterObjectTask(avatar.locker)(inZone.GUID), context.parent)
     log.info(s"logout of ${avatar.name}")
   }
 }

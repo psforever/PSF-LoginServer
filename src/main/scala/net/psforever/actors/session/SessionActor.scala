@@ -5771,7 +5771,7 @@ class SessionActor extends Actor with MDCContextAware {
         override def Description: String = s"register new player avatar ${localPlayer.Name}"
 
         override def isComplete: Task.Resolution.Value = {
-          if (localPlayer.HasGUID) {
+          if (localPlayer.HasGUID && localPlayer.avatar.locker.HasGUID) {
             Task.Resolution.Success
           } else {
             Task.Resolution.Incomplete
@@ -5785,10 +5785,10 @@ class SessionActor extends Actor with MDCContextAware {
         }
 
         override def onFailure(ex: Throwable): Unit = {
-          localAnnounce ! PlayerFailedToLoad(localPlayer) //alerts WorldSessionActor
+          localAnnounce ! PlayerFailedToLoad(localPlayer) //alerts SessionActor
         }
       },
-      List(GUIDTask.RegisterAvatar(tplayer)(continent.GUID))
+      List(GUIDTask.RegisterPlayer(tplayer)(continent.GUID), GUIDTask.RegisterObjectTask(tplayer.avatar.locker)(continent.GUID))
     )
   }
 
@@ -5872,7 +5872,7 @@ class SessionActor extends Actor with MDCContextAware {
     * Additionally, the driver is only partially associated with the vehicle at this time.
     * `interstellarFerry` is properly keeping track of the vehicle during the transition
     * and the user who is the driver (second param) is properly seated
-    * but the said driver does not know about the vehicle through his usual convention - VehicleSeated` - yet.
+    * but the said driver does not know about the vehicle through his usual convention - `VehicleSeated` - yet.
     * @see `GlobalDefinitions.droppod`
     * @see `GUIDTask.RegisterObjectTask`
     * @see `interstellarFerry`
@@ -5975,10 +5975,10 @@ class SessionActor extends Actor with MDCContextAware {
         }
 
         override def onFailure(ex: Throwable): Unit = {
-          localAnnounce ! PlayerFailedToLoad(localDriver) //alerts WorldSessionActor
+          localAnnounce ! PlayerFailedToLoad(localDriver) //alerts SessionActor
         }
       },
-      List(GUIDTask.RegisterAvatar(driver)(continent.GUID), GUIDTask.RegisterVehicle(obj)(continent.GUID))
+      List(RegisterNewAvatar(driver), GUIDTask.RegisterVehicle(obj)(continent.GUID))
     )
   }
 
@@ -6015,6 +6015,11 @@ class SessionActor extends Actor with MDCContextAware {
     )
   }
 
+  private def UnregisterOldAvatar(tplayer: Player): TaskResolver.GiveTask = {
+    val unregisterPlayer = GUIDTask.UnregisterPlayer(tplayer)(continent.GUID)
+    TaskResolver.GiveTask(unregisterPlayer.task, unregisterPlayer.subs :+ GUIDTask.UnregisterObjectTask(tplayer.avatar.locker)(continent.GUID))
+  }
+
   def UnregisterDrivenVehicle(obj: Vehicle, driver: Player): TaskResolver.GiveTask = {
     TaskResolver.GiveTask(
       new Task() {
@@ -6035,7 +6040,7 @@ class SessionActor extends Actor with MDCContextAware {
           resolver ! Success(this)
         }
       },
-      List(GUIDTask.UnregisterAvatar(driver)(continent.GUID), GUIDTask.UnregisterVehicle(obj)(continent.GUID))
+      List(UnregisterOldAvatar(driver), GUIDTask.UnregisterVehicle(obj)(continent.GUID))
     )
   }
 
@@ -8440,12 +8445,12 @@ class SessionActor extends Actor with MDCContextAware {
       if (player.isBackpack) {
         session = session.copy(player = targetPlayer)
         taskThenZoneChange(
-          GUIDTask.UnregisterLocker(original.avatar.locker)(continent.GUID),
+          GUIDTask.UnregisterObjectTask(original.avatar.locker)(continent.GUID),
           InterstellarClusterService.FindZone(_.id == zoneId, context.self)
         )
       } else if (player.HasGUID) {
         taskThenZoneChange(
-          GUIDTask.UnregisterAvatar(original)(continent.GUID),
+          UnregisterOldAvatar(original),
           InterstellarClusterService.FindZone(_.id == zoneId, context.self)
         )
       } else {
@@ -8541,7 +8546,7 @@ class SessionActor extends Actor with MDCContextAware {
       LoadZoneCommonTransferActivity()
       player.Continent = zoneId //forward-set the continent id to perform a test
       taskThenZoneChange(
-        GUIDTask.UnregisterAvatar(player)(continent.GUID),
+        UnregisterOldAvatar(player),
         InterstellarClusterService.FindZone(_.id == zoneId, context.self)
       )
     } else {
@@ -8586,7 +8591,7 @@ class SessionActor extends Actor with MDCContextAware {
     * A reference to the top-level ferrying vehicle's former globally unique identifier has been retained for this purpose.
     * This vehicle can be deleted for everyone if no more work can be detected.
     *
-    * @see `GUIDTask.UnregisterAvatar`
+    * @see `GUIDTask.UnregisterPlayer`
     * @see `LoadZoneCommonTransferActivity`
     * @see `Vehicles.AllGatedOccupantsInSameZone`
     * @see `PlayerLoaded`
@@ -8609,7 +8614,7 @@ class SessionActor extends Actor with MDCContextAware {
       interstellarFerryTopLevelGUID = None
 
       taskThenZoneChange(
-        GUIDTask.UnregisterAvatar(player)(continent.GUID),
+        GUIDTask.UnregisterPlayer(player)(continent.GUID),
         InterstellarClusterService.FindZone(_.id == zoneId, context.self)
       )
     }
