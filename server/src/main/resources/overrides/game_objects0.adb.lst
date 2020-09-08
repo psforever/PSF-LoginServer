@@ -100,3 +100,4 @@ add_property suppressor holstertime 600
 add_property trek equiptime 500
 add_property trek holstertime 500
 add_property vulture requirement_award0 false
+add_property ams requirement_certification0 vehicles
