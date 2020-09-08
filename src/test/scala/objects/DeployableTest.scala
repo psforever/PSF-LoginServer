@@ -7,7 +7,7 @@ import base.ActorTest
 import net.psforever.objects.ballistics._
 import net.psforever.objects.ce.DeployedItem
 import net.psforever.objects.guid.NumberPoolHub
-import net.psforever.objects.guid.source.LimitedNumberSource
+import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.{Zone, ZoneMap}
@@ -300,7 +300,7 @@ class ShieldGeneratorDeployableTest extends Specification {
 }
 
 class ExplosiveDeployableJammerTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(10))
+  val guid = new NumberPoolHub(new MaxNumberSource(10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)
@@ -398,7 +398,7 @@ class ExplosiveDeployableJammerTest extends ActorTest {
 }
 
 class ExplosiveDeployableJammerExplodeTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(10))
+  val guid = new NumberPoolHub(new MaxNumberSource(10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)
@@ -508,7 +508,7 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
 }
 
 class ExplosiveDeployableDestructionTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(10))
+  val guid = new NumberPoolHub(new MaxNumberSource(10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)

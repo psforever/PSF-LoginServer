@@ -24,8 +24,8 @@ class NumberPoolHub(private val source: NumberSource) {
   import scala.collection.mutable
   private val hash: mutable.HashMap[String, NumberPool] = mutable.HashMap[String, NumberPool]()
   private val bigpool: mutable.LongMap[String]          = mutable.LongMap[String]()
-  hash += "generic" -> new GenericPool(bigpool, source.Size)
-  source.FinalizeRestrictions.foreach(i =>
+  hash += "generic" -> new GenericPool(bigpool, source.size)
+  source.finalizeRestrictions.foreach(i =>
     bigpool += i.toLong -> ""
   ) //these numbers can never be pooled; the source can no longer restrict numbers
 
@@ -47,7 +47,7 @@ class NumberPoolHub(private val source: NumberSource) {
     * @param number the unique number to attempt to retrieve from the `source`
     * @return the object that is assigned to the number
     */
-  def apply(number: Int): Option[IdentifiableEntity] = source.Get(number).orElse(return None).get.Object
+  def apply(number: Int): Option[IdentifiableEntity] = source.get(number).orElse(return None).get.Object
 
   def Numbers: List[Int] = bigpool.keys.map(key => key.toInt).toList
 
@@ -74,7 +74,7 @@ class NumberPoolHub(private val source: NumberSource) {
     if (pool.isEmpty) {
       throw new IllegalArgumentException(s"can not add empty pool $name")
     }
-    if (source.Size <= pool.max) {
+    if (source.size <= pool.max) {
       throw new IllegalArgumentException(s"can not add pool $name - max(pool) is greater than source.size")
     }
     val collision = bigpool.keys.map(n => n.toInt).toSet.intersect(pool.toSet)
@@ -162,7 +162,7 @@ class NumberPoolHub(private val source: NumberSource) {
   def WhichPool(obj: IdentifiableEntity): Option[String] = {
     try {
       val number: Int = obj.GUID.guid
-      val entry       = source.Get(number)
+      val entry       = source.get(number)
       if (entry.isDefined && entry.get.Object.contains(obj)) { WhichPool(number) }
       else { None }
     } catch {
@@ -228,7 +228,7 @@ class NumberPoolHub(private val source: NumberSource) {
   }
 
   private def register_GetAvailableNumberFromSource(number: Int): Try[LoanedKey] = {
-    source.Available(number) match {
+    source.getAvailable(number) match {
       case Some(key) =>
         Success(key)
       case None =>
@@ -258,7 +258,7 @@ class NumberPoolHub(private val source: NumberSource) {
   }
 
   private def register_CheckNumberAgainstDesiredPool(obj: IdentifiableEntity, name: String, number: Int): Try[Int] = {
-    val directKey = source.Get(number)
+    val directKey = source.get(number)
     if (directKey.isEmpty || !directKey.get.Object.contains(obj)) {
       Failure(new Exception("object already registered, but not to this source"))
     } else if (!WhichPool(number).contains(name)) {
@@ -347,7 +347,7 @@ class NumberPoolHub(private val source: NumberSource) {
       case Success(pool) =>
         val number = obj.GUID.guid
         pool.Return(number)
-        source.Return(number)
+        source.returnNumber(number)
         obj.Invalidate()
         Success(number)
       case Failure(ex) =>
@@ -379,7 +379,7 @@ class NumberPoolHub(private val source: NumberSource) {
     * @return the object, if any, previous associated with the number
     */
   def unregister(number: Int): Try[Option[IdentifiableEntity]] = {
-    if (source.Test(number)) {
+    if (source.test(number)) {
       unregister_GetObjectFromSource(number)
     } else {
       Failure(new Exception(s"can not unregister a number $number that this source does not own"))
@@ -387,7 +387,7 @@ class NumberPoolHub(private val source: NumberSource) {
   }
 
   private def unregister_GetObjectFromSource(number: Int): Try[Option[IdentifiableEntity]] = {
-    source.Return(number) match {
+    source.returnNumber(number) match {
       case Some(obj) =>
         unregister_ReturnObjectToPool(obj)
       case None =>
@@ -403,7 +403,7 @@ class NumberPoolHub(private val source: NumberSource) {
         obj.Invalidate()
         Success(Some(obj))
       case Failure(ex) =>
-        source.Available(number) //undo
+        source.getAvailable(number) //undo
         Failure(new Exception(s"started unregistering, but ${ex.getMessage}"))
     }
   }
@@ -432,11 +432,11 @@ class NumberPoolHub(private val source: NumberSource) {
   }
 
   /**
-    * For accessing the `Return` function of the contained `NumberSource` directly.
+    * For accessing the `returnNumber` function of the contained `NumberSource` directly.
     * @param number the number to return.
     * @return any object previously using this number
     */
-  def latterPartUnregister(number: Int): Option[IdentifiableEntity] = source.Return(number)
+  def latterPartUnregister(number: Int): Option[IdentifiableEntity] = source.returnNumber(number)
 
   /**
     * Determines if the object is registered.<br>
@@ -451,7 +451,7 @@ class NumberPoolHub(private val source: NumberSource) {
     */
   def isRegistered(obj: IdentifiableEntity): Boolean = {
     try {
-      source.Get(obj.GUID.guid) match {
+      source.get(obj.GUID.guid) match {
         case Some(monitor) =>
           monitor.Object.contains(obj)
         case None =>
@@ -474,7 +474,7 @@ class NumberPoolHub(private val source: NumberSource) {
     * @see `isRegistered(IdentifiableEntity)`
     */
   def isRegistered(number: Int): Boolean = {
-    source.Get(number) match {
+    source.get(number) match {
       case Some(monitor) =>
         monitor.Policy == AvailabilityPolicy.Leased
       case None =>

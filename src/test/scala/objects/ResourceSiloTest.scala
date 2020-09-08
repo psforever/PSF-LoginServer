@@ -7,7 +7,7 @@ import akka.testkit.TestProbe
 import base.ActorTest
 import net.psforever.actors.zone.{BuildingActor, ZoneActor}
 import net.psforever.objects.guid.{NumberPoolHub, TaskResolver}
-import net.psforever.objects.guid.source.LimitedNumberSource
+import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.{GlobalDefinitions, Ntu, Player, Vehicle}
 import net.psforever.objects.serverobject.resourcesilo.{ResourceSilo, ResourceSiloControl, ResourceSiloDefinition}
@@ -94,7 +94,7 @@ class ResourceSiloControlStartupTest extends ActorTest {
 }
 
 class ResourceSiloControlUseTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(10))
+  val guid = new NumberPoolHub(new MaxNumberSource(10))
   val map  = new ZoneMap("test")
   val zone = new Zone("test", map, 0) {
     override def SetupNumberPools() = {}

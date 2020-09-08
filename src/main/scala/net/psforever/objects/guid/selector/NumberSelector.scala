@@ -46,7 +46,7 @@ abstract class NumberSelector {
     * By default, a simple policy for returning numbers has been provided.
     * This will not be sufficient for all selection actions that can be implemented so `override` where necessary.
     * <br>
-    * `Return` is under no obligation to leave its parameter `Array` unmodified.
+    * `returnNumber` is under no obligation to leave its parameter `Array` unmodified.
     * In fact, it should modify it by default to provide additional feedback of its process.
     * Pass a copy if data mutation is a concern.
     * @param number the number to be returned

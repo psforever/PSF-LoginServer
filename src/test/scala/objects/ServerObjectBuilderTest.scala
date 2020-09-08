@@ -343,9 +343,9 @@ class FacilityTurretObjectBuilderTest extends ActorTest {
 }
 
 object ServerObjectBuilderTest {
-  import net.psforever.objects.guid.source.LimitedNumberSource
+  import net.psforever.objects.guid.source.MaxNumberSource
   def NumberPoolHub: NumberPoolHub = {
-    val obj = new NumberPoolHub(new LimitedNumberSource(2))
+    val obj = new NumberPoolHub(new MaxNumberSource(2))
     obj
   }
 

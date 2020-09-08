@@ -8,7 +8,7 @@ import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.{Default, GlobalDefinitions, Player, Tool}
 import net.psforever.objects.definition.ToolDefinition
 import net.psforever.objects.guid.NumberPoolHub
-import net.psforever.objects.guid.source.LimitedNumberSource
+import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
@@ -182,7 +182,7 @@ class FacilityTurretControl4Test extends ActorTest {
 }
 
 class FacilityTurretControlRestorationTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(10))
+  val guid = new NumberPoolHub(new MaxNumberSource(10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)

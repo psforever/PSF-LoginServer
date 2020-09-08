@@ -7,7 +7,7 @@ import base.ActorTest
 import net.psforever.objects.avatar.{Avatar, PlayerControl}
 import net.psforever.objects.ballistics._
 import net.psforever.objects.guid.NumberPoolHub
-import net.psforever.objects.guid.source.LimitedNumberSource
+import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.objects._
@@ -20,7 +20,7 @@ import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import scala.concurrent.duration._
 
 class PlayerControlHealTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(15))
+  val guid = new NumberPoolHub(new MaxNumberSource(15))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)
@@ -106,7 +106,7 @@ class PlayerControlHealTest extends ActorTest {
 }
 
 class PlayerControlHealSelfTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(15))
+  val guid = new NumberPoolHub(new MaxNumberSource(15))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)
@@ -181,7 +181,7 @@ class PlayerControlHealSelfTest extends ActorTest {
 }
 
 class PlayerControlRepairTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(15))
+  val guid = new NumberPoolHub(new MaxNumberSource(15))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)
@@ -277,7 +277,7 @@ class PlayerControlRepairTest extends ActorTest {
 }
 
 class PlayerControlRepairSelfTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(15))
+  val guid = new NumberPoolHub(new MaxNumberSource(15))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)
@@ -352,7 +352,7 @@ class PlayerControlRepairSelfTest extends ActorTest {
 }
 
 class PlayerControlDamageTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(15))
+  val guid = new NumberPoolHub(new MaxNumberSource(15))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)
@@ -449,7 +449,7 @@ class PlayerControlDamageTest extends ActorTest {
 }
 
 class PlayerControlDeathStandingTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(15))
+  val guid = new NumberPoolHub(new MaxNumberSource(15))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)
@@ -575,7 +575,7 @@ class PlayerControlDeathStandingTest extends ActorTest {
 }
 
 class PlayerControlDeathSeatedTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(15))
+  val guid = new NumberPoolHub(new MaxNumberSource(15))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)

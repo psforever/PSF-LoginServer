@@ -7,7 +7,7 @@ import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.actor.{NumberPoolActor, Register, UniqueNumberSystem, Unregister}
 import net.psforever.objects.guid.selector.RandomSelector
-import net.psforever.objects.guid.source.LimitedNumberSource
+import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.types.PlanetSideGUID
 
 import scala.concurrent.duration._
@@ -15,7 +15,7 @@ import scala.util.{Failure, Success}
 
 class AllocateNumberPoolActors extends ActorTest {
   "AllocateNumberPoolActors" in {
-    val src: LimitedNumberSource = LimitedNumberSource(6000)
+    val src: MaxNumberSource = MaxNumberSource(6000)
     val guid: NumberPoolHub      = new NumberPoolHub(src)
     guid.AddPool("pool1", (1001 to 2000).toList)
     guid.AddPool("pool2", (3001 to 4000).toList)
@@ -32,7 +32,7 @@ class AllocateNumberPoolActors extends ActorTest {
 class UniqueNumberSystemTest extends ActorTest() {
   "UniqueNumberSystem" should {
     "constructor" in {
-      val src: LimitedNumberSource = LimitedNumberSource(6000)
+      val src: MaxNumberSource = MaxNumberSource(6000)
       val guid: NumberPoolHub      = new NumberPoolHub(src)
       guid.AddPool("pool1", (1001 to 2000).toList)
       guid.AddPool("pool2", (3001 to 4000).toList)
@@ -51,7 +51,7 @@ class UniqueNumberSystemTest1 extends ActorTest() {
 
   "UniqueNumberSystem" should {
     "Register (success)" in {
-      val src: LimitedNumberSource = LimitedNumberSource(6000)
+      val src: MaxNumberSource = MaxNumberSource(6000)
       val guid: NumberPoolHub      = new NumberPoolHub(src)
       val pool1                    = (1001 to 2000).toList
       val pool2                    = (3001 to 4000).toList
@@ -63,7 +63,7 @@ class UniqueNumberSystemTest1 extends ActorTest() {
         Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystemTest.AllocateNumberPoolActors(guid)),
         "uns"
       )
-      assert(src.CountUsed == 0)
+      assert(src.countUsed == 0)
       //pool1
       for (_ <- 1 to 100) {
         val testObj = new EntityTestClass()
@@ -88,7 +88,7 @@ class UniqueNumberSystemTest1 extends ActorTest() {
         assert(msg.isInstanceOf[Success[_]])
         assert(pool3.contains(testObj.GUID.guid))
       }
-      assert(src.CountUsed == 300)
+      assert(src.countUsed == 300)
     }
   }
 }
@@ -98,7 +98,7 @@ class UniqueNumberSystemTest2 extends ActorTest() {
 
   "UniqueNumberSystem" should {
     "Register (success; already registered)" in {
-      val src: LimitedNumberSource = LimitedNumberSource(6000)
+      val src: MaxNumberSource = MaxNumberSource(6000)
       val guid: NumberPoolHub      = new NumberPoolHub(src)
       guid.AddPool("pool1", (1001 to 2000).toList).Selector = new RandomSelector
       guid.AddPool("pool2", (3001 to 4000).toList).Selector = new RandomSelector
@@ -109,20 +109,20 @@ class UniqueNumberSystemTest2 extends ActorTest() {
       )
       val testObj = new EntityTestClass()
       assert(!testObj.HasGUID)
-      assert(src.CountUsed == 0)
+      assert(src.countUsed == 0)
 
       uns ! Register(testObj, "pool1")
       val msg1 = receiveOne(Duration.create(500, "ms"))
       assert(msg1.isInstanceOf[Success[_]])
       assert(testObj.HasGUID)
-      assert(src.CountUsed == 1)
+      assert(src.countUsed == 1)
 
       val id = testObj.GUID.guid
       uns ! Register(testObj, "pool2") //different pool; makes no difference
       val msg2 = receiveOne(Duration.create(500, "ms"))
       assert(msg2.isInstanceOf[Success[_]])
       assert(testObj.HasGUID)
-      assert(src.CountUsed == 1)
+      assert(src.countUsed == 1)
       assert(testObj.GUID.guid == id) //unchanged
     }
   }
@@ -134,7 +134,7 @@ class UniqueNumberSystemTest3 extends ActorTest() {
 
   "UniqueNumberSystem" should {
     "Register (failure; no pool)" in {
-      val src: LimitedNumberSource = LimitedNumberSource(6000)
+      val src: MaxNumberSource = MaxNumberSource(6000)
       val guid: NumberPoolHub      = new NumberPoolHub(src)
       guid.AddPool("pool1", (1001 to 2000).toList).Selector = new RandomSelector
       guid.AddPool("pool2", (3001 to 4000).toList).Selector = new RandomSelector
@@ -145,13 +145,13 @@ class UniqueNumberSystemTest3 extends ActorTest() {
       )
       val testObj = new EntityTestClass()
       assert(!testObj.HasGUID)
-      assert(src.CountUsed == 0)
+      assert(src.countUsed == 0)
 
       uns ! Register(testObj, "pool4")
       val msg1 = receiveOne(Duration.create(500, "ms"))
       assert(msg1.isInstanceOf[Failure[_]])
       assert(!testObj.HasGUID)
-      assert(src.CountUsed == 0)
+      assert(src.countUsed == 0)
     }
   }
 }
@@ -161,7 +161,7 @@ class UniqueNumberSystemTest4 extends ActorTest() {
 
   "UniqueNumberSystem" should {
     "Register (failure; empty pool)" in {
-      val src: LimitedNumberSource = LimitedNumberSource(6000)
+      val src: MaxNumberSource = MaxNumberSource(6000)
       val guid: NumberPoolHub      = new NumberPoolHub(src)
       guid.AddPool("pool1", (1001 to 2000).toList).Selector = new RandomSelector
       guid.AddPool("pool2", (3001 to 4000).toList).Selector = new RandomSelector
@@ -190,7 +190,7 @@ class UniqueNumberSystemTest5 extends ActorTest() {
 
   "UniqueNumberSystem" should {
     "Unregister (success)" in {
-      val src: LimitedNumberSource = LimitedNumberSource(6000)
+      val src: MaxNumberSource = MaxNumberSource(6000)
       val guid: NumberPoolHub      = new NumberPoolHub(src)
       val pool2                    = (3001 to 4000).toList
       guid.AddPool("pool1", (1001 to 2000).toList).Selector = new RandomSelector
@@ -202,20 +202,20 @@ class UniqueNumberSystemTest5 extends ActorTest() {
       )
       val testObj = new EntityTestClass()
       assert(!testObj.HasGUID)
-      assert(src.CountUsed == 0)
+      assert(src.countUsed == 0)
 
       uns ! Register(testObj, "pool2")
       val msg1 = receiveOne(Duration.create(2000, "ms"))
       assert(msg1.isInstanceOf[Success[_]])
       assert(testObj.HasGUID)
       assert(pool2.contains(testObj.GUID.guid))
-      assert(src.CountUsed == 1)
+      assert(src.countUsed == 1)
 
       uns ! Unregister(testObj)
       val msg2 = receiveOne(Duration.create(2000, "ms"))
       assert(msg2.isInstanceOf[Success[_]])
       assert(!testObj.HasGUID)
-      assert(src.CountUsed == 0)
+      assert(src.countUsed == 0)
     }
   }
 }
@@ -225,7 +225,7 @@ class UniqueNumberSystemTest6 extends ActorTest() {
 
   "UniqueNumberSystem" should {
     "Unregister (success; object not registered at all)" in {
-      val src: LimitedNumberSource = LimitedNumberSource(6000)
+      val src: MaxNumberSource = MaxNumberSource(6000)
       val guid: NumberPoolHub      = new NumberPoolHub(src)
       guid.AddPool("pool1", (1001 to 2000).toList).Selector = new RandomSelector
       guid.AddPool("pool2", (3001 to 4000).toList).Selector = new RandomSelector
@@ -236,13 +236,13 @@ class UniqueNumberSystemTest6 extends ActorTest() {
       )
       val testObj = new EntityTestClass()
       assert(!testObj.HasGUID)
-      assert(src.CountUsed == 0)
+      assert(src.countUsed == 0)
 
       uns ! Unregister(testObj)
       val msg1 = receiveOne(Duration.create(500, "ms"))
       assert(msg1.isInstanceOf[Success[_]])
       assert(!testObj.HasGUID)
-      assert(src.CountUsed == 0)
+      assert(src.countUsed == 0)
     }
   }
 }
@@ -252,7 +252,7 @@ class UniqueNumberSystemTest7 extends ActorTest() {
 
   "UniqueNumberSystem" should {
     "Unregister (failure; number not in system)" in {
-      val src: LimitedNumberSource = LimitedNumberSource(6000)
+      val src: MaxNumberSource = MaxNumberSource(6000)
       val guid: NumberPoolHub      = new NumberPoolHub(src)
       guid.AddPool("pool1", (1001 to 2000).toList).Selector = new RandomSelector
       guid.AddPool("pool2", (3001 to 4000).toList).Selector = new RandomSelector
@@ -264,13 +264,13 @@ class UniqueNumberSystemTest7 extends ActorTest() {
       val testObj = new EntityTestClass()
       testObj.GUID = PlanetSideGUID(6001) //fake registering; number too high
       assert(testObj.HasGUID)
-      assert(src.CountUsed == 0)
+      assert(src.countUsed == 0)
 
       uns ! Unregister(testObj)
       val msg1 = receiveOne(Duration.create(500, "ms"))
       assert(msg1.isInstanceOf[Failure[_]])
       assert(testObj.HasGUID)
-      assert(src.CountUsed == 0)
+      assert(src.countUsed == 0)
     }
   }
 }
@@ -280,7 +280,7 @@ class UniqueNumberSystemTest8 extends ActorTest() {
 
   "UniqueNumberSystem" should {
     "Unregister (failure; object is not registered to that number)" in {
-      val src: LimitedNumberSource = LimitedNumberSource(6000)
+      val src: MaxNumberSource = MaxNumberSource(6000)
       val guid: NumberPoolHub      = new NumberPoolHub(src)
       guid.AddPool("pool1", (1001 to 2000).toList).Selector = new RandomSelector
       guid.AddPool("pool2", (3001 to 4000).toList).Selector = new RandomSelector
@@ -292,13 +292,13 @@ class UniqueNumberSystemTest8 extends ActorTest() {
       val testObj = new EntityTestClass()
       testObj.GUID = PlanetSideGUID(3500) //fake registering
       assert(testObj.HasGUID)
-      assert(src.CountUsed == 0)
+      assert(src.countUsed == 0)
 
       uns ! Unregister(testObj)
       val msg1 = receiveOne(Duration.create(500, "ms"))
       assert(msg1.isInstanceOf[Failure[_]])
       assert(testObj.HasGUID)
-      assert(src.CountUsed == 0)
+      assert(src.countUsed == 0)
     }
   }
 }
@@ -308,7 +308,7 @@ class UniqueNumberSystemTest9 extends ActorTest() {
 
   "UniqueNumberSystem" should {
     "Failures (manually walking the failure cases)" in {
-      val src: LimitedNumberSource = LimitedNumberSource(6000)
+      val src: MaxNumberSource = MaxNumberSource(6000)
       val guid: NumberPoolHub      = new NumberPoolHub(src)
       guid.AddPool("pool1", (1001 to 2000).toList).Selector = new RandomSelector
       guid.AddPool("pool2", (3001 to 4000).toList).Selector = new RandomSelector
@@ -345,7 +345,7 @@ class UniqueNumberSystemTestA extends ActorTest {
 
   "UniqueNumberSystem" should {
     "remain consistent between registrations" in {
-      val src: LimitedNumberSource = LimitedNumberSource(10)
+      val src: MaxNumberSource = MaxNumberSource(10)
       val guid: NumberPoolHub      = new NumberPoolHub(src)
       guid.AddPool("pool1", (0 until 10).toList).Selector = new RandomSelector
       val uns = system.actorOf(
@@ -354,9 +354,9 @@ class UniqueNumberSystemTestA extends ActorTest {
       )
       expectNoMessage(Duration.create(200, "ms"))
 
-      assert(src.CountUsed == 0)
+      assert(src.countUsed == 0)
       (0 to 4).foreach(i => { assert(guid.register(new EntityTestClass(), i).isSuccess) })
-      assert(src.CountUsed == 5)
+      assert(src.countUsed == 5)
 
       (0 to 5).foreach(_ => { uns ! Register(new EntityTestClass(), "pool1") })
       assert(receiveOne(200 milliseconds).isInstanceOf[Success[_]]) //6th
@@ -365,7 +365,7 @@ class UniqueNumberSystemTestA extends ActorTest {
       assert(receiveOne(200 milliseconds).isInstanceOf[Success[_]]) //9th
       assert(receiveOne(200 milliseconds).isInstanceOf[Success[_]]) //10th
       assert(receiveOne(200 milliseconds).isInstanceOf[Failure[_]]) //no more
-      assert(src.CountUsed == 10)
+      assert(src.countUsed == 10)
     }
   }
 }

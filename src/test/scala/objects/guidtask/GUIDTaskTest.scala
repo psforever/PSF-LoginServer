@@ -8,7 +8,7 @@ import akka.testkit.TestProbe
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.guid.actor.{NumberPoolActor, UniqueNumberSystem}
 import net.psforever.objects.guid.selector.RandomSelector
-import net.psforever.objects.guid.source.LimitedNumberSource
+import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.guid.{NumberPoolHub, Task, TaskResolver}
 
 object GUIDTaskTest {
@@ -26,7 +26,7 @@ object GUIDTaskTest {
     import akka.routing.RandomPool
     import akka.testkit.TestProbe
 
-    val guid: NumberPoolHub = new NumberPoolHub(new LimitedNumberSource(110))
+    val guid: NumberPoolHub = new NumberPoolHub(new MaxNumberSource(110))
     guid.AddPool("dynamic", (1 to 100).toList).Selector = new RandomSelector //TODO name is hardcoded for now
     val uns = system.actorOf(
       RandomPool(25).props(Props(classOf[UniqueNumberSystem], guid, GUIDTaskTest.AllocateNumberPoolActors(guid))),

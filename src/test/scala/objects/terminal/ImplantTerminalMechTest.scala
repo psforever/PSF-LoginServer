@@ -7,7 +7,7 @@ import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.{Default, GlobalDefinitions, Player}
 import net.psforever.objects.definition.SeatDefinition
 import net.psforever.objects.guid.NumberPoolHub
-import net.psforever.objects.guid.source.LimitedNumberSource
+import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.implantmech.{ImplantTerminalMech, ImplantTerminalMechControl}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
@@ -162,7 +162,7 @@ class ImplantTerminalMechControl5Test extends ActorTest {
 
 object ImplantTerminalMechTest {
   def SetUpAgents(faction: PlanetSideEmpire.Value)(implicit system: ActorSystem): (Player, ImplantTerminalMech) = {
-    val guid = new NumberPoolHub(new LimitedNumberSource(10))
+    val guid = new NumberPoolHub(new MaxNumberSource(10))
     val map  = new ZoneMap("test")
     val zone = new Zone("test", map, 0) {
       override def SetupNumberPools() = {}

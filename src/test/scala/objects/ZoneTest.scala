@@ -7,7 +7,7 @@ import base.ActorTest
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.NumberPoolHub
-import net.psforever.objects.guid.source.LimitedNumberSource
+import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects._
@@ -104,7 +104,7 @@ class ZoneTest extends Specification {
 
     "can have its unique identifier system changed if no objects were added to it" in {
       val zone                 = new Zone("home3", map13, 13)
-      val guid1: NumberPoolHub = new NumberPoolHub(new LimitedNumberSource(100))
+      val guid1: NumberPoolHub = new NumberPoolHub(new MaxNumberSource(100))
       zone.GUID(guid1) mustEqual true
       zone.AddPool("pool1", (0 to 50).toList)
       zone.AddPool("pool2", (51 to 75).toList)
@@ -114,7 +114,7 @@ class ZoneTest extends Specification {
       registration.isSuccess mustEqual true
       guid1.WhichPool(obj).contains("pool2") mustEqual true
 
-      zone.GUID(new NumberPoolHub(new LimitedNumberSource(150))) mustEqual false
+      zone.GUID(new NumberPoolHub(new MaxNumberSource(150))) mustEqual false
     }
   }
 }
@@ -123,7 +123,7 @@ class ZoneActorTest extends ActorTest {
   "Zone" should {
     "refuse new number pools after the Actor is started" in {
       val zone = new Zone("test", new ZoneMap("map6"), 1) { override def SetupNumberPools() = {} }
-      zone.GUID(new NumberPoolHub(new LimitedNumberSource(40150)))
+      zone.GUID(new NumberPoolHub(new MaxNumberSource(40150)))
       zone.actor = system.spawn(ZoneActor(zone), "test-add-pool-actor-init")
       expectNoMessage(Duration.create(500, "ms"))
 
@@ -133,7 +133,7 @@ class ZoneActorTest extends ActorTest {
     "refuse to remove number pools after the Actor is started" in {
       val zone = new Zone("test", new ZoneMap("map6"), 1) { override def SetupNumberPools() = {} }
 
-      zone.GUID(new NumberPoolHub(new LimitedNumberSource(10)))
+      zone.GUID(new NumberPoolHub(new MaxNumberSource(10)))
       zone.AddPool("test", 1 to 2)
       zone.actor = system.spawn(ZoneActor(zone), "test-remove-pool-actor-init")
       expectNoMessage(Duration.create(300, "ms"))
@@ -482,7 +482,7 @@ class ZonePopulationTest extends ActorTest {
 
 class ZoneGroundDropItemTest extends ActorTest {
   val item = AmmoBox(GlobalDefinitions.bullet_9mm)
-  val hub  = new NumberPoolHub(new LimitedNumberSource(20))
+  val hub  = new NumberPoolHub(new MaxNumberSource(20))
   hub.register(item, 10)
   val zone = new Zone("test", new ZoneMap("test-map"), 0) { override def SetupNumberPools() = {} }
   zone.GUID(hub)
@@ -507,7 +507,7 @@ class ZoneGroundDropItemTest extends ActorTest {
 
 class ZoneGroundCanNotDropItem1Test extends ActorTest {
   val item = AmmoBox(GlobalDefinitions.bullet_9mm)
-  val hub  = new NumberPoolHub(new LimitedNumberSource(20))
+  val hub  = new NumberPoolHub(new MaxNumberSource(20))
   //hub.register(item, 10) //!important
   val zone = new Zone("test", new ZoneMap("test-map"), 0) { override def SetupNumberPools() = {} }
   zone.GUID(hub)
@@ -532,7 +532,7 @@ class ZoneGroundCanNotDropItem1Test extends ActorTest {
 
 class ZoneGroundCanNotDropItem2Test extends ActorTest {
   val item = AmmoBox(GlobalDefinitions.bullet_9mm)
-  val hub  = new NumberPoolHub(new LimitedNumberSource(20))
+  val hub  = new NumberPoolHub(new MaxNumberSource(20))
   hub.register(item, 10) //!important
   val zone = new Zone("test", new ZoneMap("test-map"), 0) { override def SetupNumberPools() = {} }
   //zone.GUID(hub) //!important
@@ -557,7 +557,7 @@ class ZoneGroundCanNotDropItem2Test extends ActorTest {
 
 class ZoneGroundCanNotDropItem3Test extends ActorTest {
   val item = AmmoBox(GlobalDefinitions.bullet_9mm)
-  val hub  = new NumberPoolHub(new LimitedNumberSource(20))
+  val hub  = new NumberPoolHub(new MaxNumberSource(20))
   hub.register(item, 10) //!important
   val zone = new Zone("test", new ZoneMap("test-map"), 0) { override def SetupNumberPools() = {} }
   zone.GUID(hub) //!important
@@ -590,7 +590,7 @@ class ZoneGroundCanNotDropItem3Test extends ActorTest {
 
 class ZoneGroundPickupItemTest extends ActorTest {
   val item = AmmoBox(GlobalDefinitions.bullet_9mm)
-  val hub  = new NumberPoolHub(new LimitedNumberSource(20))
+  val hub  = new NumberPoolHub(new MaxNumberSource(20))
   hub.register(item, 10)
   val zone = new Zone("test", new ZoneMap("test-map"), 0) { override def SetupNumberPools() = {} }
   zone.GUID(hub)
@@ -618,7 +618,7 @@ class ZoneGroundPickupItemTest extends ActorTest {
 
 class ZoneGroundCanNotPickupItemTest extends ActorTest {
   val item = AmmoBox(GlobalDefinitions.bullet_9mm)
-  val hub  = new NumberPoolHub(new LimitedNumberSource(20))
+  val hub  = new NumberPoolHub(new MaxNumberSource(20))
   hub.register(item, 10)
   val zone = new Zone("test", new ZoneMap("test-map"), 0) { override def SetupNumberPools() = {} }
   zone.GUID(hub) //still registered to this zone
@@ -642,7 +642,7 @@ class ZoneGroundCanNotPickupItemTest extends ActorTest {
 
 class ZoneGroundRemoveItemTest extends ActorTest {
   val item = AmmoBox(GlobalDefinitions.bullet_9mm)
-  val hub  = new NumberPoolHub(new LimitedNumberSource(20))
+  val hub  = new NumberPoolHub(new MaxNumberSource(20))
   hub.register(item, 10)
   val zone = new Zone("test", new ZoneMap("test-map"), 0) { override def SetupNumberPools() = {} }
   zone.GUID(hub) //still registered to this zone
