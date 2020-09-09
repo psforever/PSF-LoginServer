@@ -2,21 +2,14 @@ package net.psforever.zones
 
 import java.io.FileNotFoundException
 
-import net.psforever.objects.serverobject.terminals.{
-  CaptureTerminal,
-  CaptureTerminalDefinition,
-  ProximityTerminal,
-  ProximityTerminalDefinition,
-  Terminal,
-  TerminalDefinition
-}
+import net.psforever.objects.serverobject.terminals.{CaptureTerminal, CaptureTerminalDefinition, ProximityTerminal, ProximityTerminalDefinition, Terminal, TerminalDefinition}
 import net.psforever.objects.serverobject.mblocker.Locker
 import java.util.concurrent.atomic.AtomicInteger
 
 import akka.actor.ActorContext
 import io.circe._
 import io.circe.parser._
-import net.psforever.objects.{GlobalDefinitions, LocalProjectile}
+import net.psforever.objects.{GlobalDefinitions, LocalLockerItem, LocalProjectile}
 import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.definition.BasicDefinition
 import net.psforever.objects.serverobject.doors.Door
@@ -25,18 +18,13 @@ import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.pad.{VehicleSpawnPad, VehicleSpawnPadDefinition}
 import net.psforever.objects.serverobject.painbox.{Painbox, PainboxDefinition}
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
-import net.psforever.objects.serverobject.structures.{
-  Building,
-  BuildingDefinition,
-  FoundationBuilder,
-  StructureType,
-  WarpGate
-}
+import net.psforever.objects.serverobject.structures.{Building, BuildingDefinition, FoundationBuilder, StructureType, WarpGate}
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.{FacilityTurret, FacilityTurretDefinition}
 import net.psforever.objects.zones.{MapInfo, Zone, ZoneInfo, ZoneMap}
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 import net.psforever.util.DefinitionUtil
+
 import scala.io.Source
 import scala.collection.parallel.CollectionConverters._
 
@@ -280,6 +268,9 @@ object Zones {
 
           (Projectile.baseUID until Projectile.rangeUID) foreach {
             zoneMap.addLocalObject(_, LocalProjectile.Constructor)
+          }
+          40150 until 40450 foreach {
+            zoneMap.addLocalObject(_, LocalLockerItem.Constructor)
           }
 
           lattice.asObject.get(info.value).foreach { obj =>

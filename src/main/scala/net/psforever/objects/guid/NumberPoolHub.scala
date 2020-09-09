@@ -74,14 +74,15 @@ class NumberPoolHub(private val source: NumberSource) {
     if (pool.isEmpty) {
       throw new IllegalArgumentException(s"can not add empty pool $name")
     }
-    if (source.size <= pool.max) {
-      throw new IllegalArgumentException(s"can not add pool $name - max(pool) is greater than source.size")
+    if (source.max < pool.max) {
+      throw new IllegalArgumentException(s"can not add pool $name - pool.max is greater than source.max")
     }
-    val collision = bigpool.keys.map(n => n.toInt).toSet.intersect(pool.toSet)
-    if (collision.nonEmpty) {
-      throw new IllegalArgumentException(
-        s"can not add pool $name - it contains the following redundant numbers: ${collision.toString}"
-      )
+    bigpool.keys.map(n => n.toInt).toSet.intersect(pool.toSet).toSeq match {
+      case Nil => ;
+      case collisions =>
+        throw new IllegalArgumentException(
+          s"can not add pool $name - it contains the following redundant numbers: ${collisions.mkString(",")}"
+        )
     }
     pool.foreach(i => bigpool += i.toLong -> name)
     hash += name -> new ExclusivePool(pool)
@@ -243,17 +244,16 @@ class NumberPoolHub(private val source: NumberSource) {
     * @return the number the was given to the object
     */
   def register(obj: IdentifiableEntity, name: String): Try[Int] = {
-    try {
+    if (obj.HasGUID) {
       register_CheckNumberAgainstDesiredPool(obj, name, obj.GUID.guid)
-    } catch {
-      case _: Exception =>
-        register_GetPool(name) match {
-          case Success(key) =>
-            key.Object = obj
-            Success(obj.GUID.guid)
-          case Failure(ex) =>
-            Failure(new Exception(s"trying to register an object but, ${ex.getMessage}"))
-        }
+    } else {
+      register_GetPool(name) match {
+        case Success(key) =>
+          key.Object = obj
+          Success(obj.GUID.guid)
+        case Failure(ex) =>
+          Failure(new Exception(s"trying to register an object but, ${ex.getMessage}"))
+      }
     }
   }
 

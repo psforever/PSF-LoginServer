@@ -18,6 +18,11 @@ import net.psforever.objects.guid.key.{LoanedKey, SecureKey}
   * The purpose of a `NumberSource` is to help facilitate globally unique identifiers (GUID, pl. GUIDs).
   */
 trait NumberSource {
+  /**
+    * The maximum number that can be produced by this source.
+    * @return the max
+    */
+  def max: Int
 
   /**
     * The count of numbers allocated to this source.

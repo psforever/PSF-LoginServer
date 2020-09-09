@@ -12,22 +12,24 @@ class SpecificNumberSource(values: Iterable[Int]) extends NumberSource {
   }
   private val ary: Map[Int, Key] = values.map(index => (index, new Key)).toMap
 
-  override def size: Int = ary.size
+  def max: Int = ary.keys.max
 
-  override def countAvailable: Int = ary.values.count(key => key.policy == AvailabilityPolicy.Available)
+  def size: Int = ary.size
 
-  override def countUsed: Int = ary.values.count(key => key.policy != AvailabilityPolicy.Available)
+  def countAvailable: Int = ary.values.count(key => key.policy == AvailabilityPolicy.Available)
 
-  override def test(number: Int): Boolean = ary.get(number).nonEmpty
+  def countUsed: Int = ary.values.count(key => key.policy != AvailabilityPolicy.Available)
 
-  override def get(number: Int): Option[SecureKey] = {
+  def test(number: Int): Boolean = ary.get(number).nonEmpty
+
+  def get(number: Int): Option[SecureKey] = {
     ary.get(number) match {
       case Some(key) => Some(new SecureKey(number, key))
       case _=> None
     }
   }
 
-  override def getAvailable(number: Int): Option[LoanedKey] = {
+  def getAvailable(number: Int): Option[LoanedKey] = {
     ary.get(number) match {
       case Some(key) if key.policy == AvailabilityPolicy.Available =>
         key.policy = AvailabilityPolicy.Leased
@@ -37,7 +39,7 @@ class SpecificNumberSource(values: Iterable[Int]) extends NumberSource {
     }
   }
 
-  override def returnNumber(number : Int) : Option[IdentifiableEntity] = {
+  def returnNumber(number : Int) : Option[IdentifiableEntity] = {
     ary.get(number) match {
       case Some(key) if key.policy == AvailabilityPolicy.Leased =>
         val out = key.obj
@@ -49,11 +51,11 @@ class SpecificNumberSource(values: Iterable[Int]) extends NumberSource {
     }
   }
 
-  override def restrictNumber(number: Int): Option[LoanedKey] = None
+  def restrictNumber(number: Int): Option[LoanedKey] = None
 
-  override def finalizeRestrictions: List[Int] = Nil
+  def finalizeRestrictions: List[Int] = Nil
 
-  override def clear(): List[IdentifiableEntity] = {
+  def clear(): List[IdentifiableEntity] = {
     ary.values.collect {
       case key if key.policy == AvailabilityPolicy.Leased =>
         val out = key.obj

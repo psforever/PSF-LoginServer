@@ -15,7 +15,7 @@ import net.psforever.objects.guid.AvailabilityPolicy
   * @throws IllegalArgumentException if `max` is less than zero (therefore the count of generated numbers is at most zero)
   * @throws java.lang.NegativeArraySizeException if the count of numbers generated due to max is negative
   */
-class MaxNumberSource(max: Int) extends NumberSource {
+class MaxNumberSource(val max: Int) extends NumberSource {
   if (max < 0) {
     throw new IllegalArgumentException(s"non-negative integers only, not $max")
   }

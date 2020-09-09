@@ -6,6 +6,7 @@ import akka.util.Timeout
 import net.psforever.objects.equipment.{Ammo, Equipment}
 import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
 import net.psforever.objects.inventory.{Container, InventoryItem}
+import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.containable.Containable
 import net.psforever.objects.zones.Zone
@@ -502,6 +503,59 @@ object WorldSession {
         localTermMsg(false)
     }
     result
+  }
+
+  def ContainableMoveItem(
+                           taskResolver: ActorRef,
+                           source: PlanetSideServerObject with Container,
+                           destination: PlanetSideServerObject with Container,
+                           item: Equipment,
+                           dest: Int
+                         ) : Unit = {
+    destination match {
+      case locker: LockerContainer =>
+        StowEquipmentInCataloguedLockerContainer(taskResolver, source, locker, item, dest)
+      case _ =>
+        source.Actor ! Containable.MoveItem(destination, item, dest)
+    }
+  }
+
+  def StowEquipmentInCataloguedLockerContainer(
+                                                taskResolver: ActorRef,
+                                                source: PlanetSideServerObject with Container,
+                                                destination: PlanetSideServerObject with Container,
+                                                item: Equipment,
+                                                dest: Int
+                                               ): Unit = {
+    taskResolver ! TaskResolver.GiveTask(
+      new Task() {
+        val localSource      = source
+        val localDestination = destination
+        val localItem        = item
+        val localSlot        = dest
+
+        override def Description: String = s"unregistering $localItem before stowing in $localDestination"
+
+        override def isComplete: Task.Resolution.Value = {
+          if (localItem.HasGUID && localDestination.Find(localItem).contains(localSlot)) {
+            Task.Resolution.Success
+          } else {
+            Task.Resolution.Incomplete
+          }
+        }
+
+        def Execute(resolver: ActorRef): Unit = {
+          localSource.Actor ! Containable.MoveItem(localDestination, localItem, localSlot)
+          resolver ! Success(this)
+        }
+
+        override def onFailure(ex : Throwable) : Unit = {
+          //TODO delete item?
+          super.onFailure(ex)
+        }
+      },
+      List(GUIDTask.UnregisterEquipment(item)(source.Zone.GUID))
+    )
   }
 
   /**
