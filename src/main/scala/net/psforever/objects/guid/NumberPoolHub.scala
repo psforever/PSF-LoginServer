@@ -351,7 +351,16 @@ class NumberPoolHub(private val source: NumberSource) {
         obj.Invalidate()
         Success(number)
       case Failure(ex) =>
-        Failure(new Exception(s"can not unregister this object: ${ex.getMessage}"))
+        //fallback: is the object in this source?
+        source.get(obj) match {
+          case Some(key) =>
+            val number = key.GUID
+            GetPool(WhichPool(number).get).get.Return(number)
+            source.returnNumber(number)
+            Success(number)
+          case _ =>
+            Failure(new Exception(s"can not unregister this $obj - ${ex.getMessage}"))
+        }
     }
   }
 
@@ -360,7 +369,7 @@ class NumberPoolHub(private val source: NumberSource) {
       case Some(name) =>
         unregister_GetPool(name)
       case None =>
-        Failure(throw new Exception("can not find a pool for this object"))
+        Failure(new Exception(s"can not find a pool for this $obj"))
     }
   }
 

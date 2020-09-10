@@ -57,6 +57,14 @@ trait NumberSource {
   def get(number: Int): Option[SecureKey]
 
   /**
+    * Produce an un-modifiable wrapper for the `Monitor` for this entity,
+    * if the entity is discovered being represented in this source.
+    * @param obj the entity
+    * @return the wrapped `Monitor`
+    */
+  def get(obj: IdentifiableEntity) : Option[SecureKey]
+
+  /**
     * Produce a modifiable wrapper for the `Monitor` for this number, only if the number has not been used.
     * The `Monitor` should be updated before being wrapped, if necessary.
     * @param number the number

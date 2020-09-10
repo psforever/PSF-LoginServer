@@ -507,14 +507,17 @@ object WorldSession {
 
   def ContainableMoveItem(
                            taskResolver: ActorRef,
+                           toChannel: String,
                            source: PlanetSideServerObject with Container,
                            destination: PlanetSideServerObject with Container,
                            item: Equipment,
                            dest: Int
                          ) : Unit = {
-    destination match {
-      case locker: LockerContainer =>
-        StowEquipmentInCataloguedLockerContainer(taskResolver, source, locker, item, dest)
+    (source, destination) match {
+      case (locker: LockerContainer, _) if !destination.isInstanceOf[LockerContainer] =>
+        RemoveEquipmentFromCataloguedLockerContainer(taskResolver, toChannel, locker, destination, item, dest)
+      case (_, locker: LockerContainer) =>
+        StowEquipmentInCataloguedLockerContainer(taskResolver, toChannel, source, locker, item, dest)
       case _ =>
         source.Actor ! Containable.MoveItem(destination, item, dest)
     }
@@ -522,13 +525,30 @@ object WorldSession {
 
   def StowEquipmentInCataloguedLockerContainer(
                                                 taskResolver: ActorRef,
+                                                toChannel: String,
                                                 source: PlanetSideServerObject with Container,
                                                 destination: PlanetSideServerObject with Container,
                                                 item: Equipment,
                                                 dest: Int
                                                ): Unit = {
+    val registrationTask = GUIDTask.UnregisterEquipment(item)(source.Zone.GUID)
+    val (subtasks, swapItemGUID): (List[TaskResolver.GiveTask], Option[PlanetSideGUID]) = {
+      val tile = item.Definition.Tile
+      destination.Inventory.CheckCollisionsVar(dest, tile.Width, tile.Height)
+    } match {
+      case Success(Nil) =>
+        (List(registrationTask), None)
+      case Success(List(swapEntry: InventoryItem)) =>
+        val swapItem = swapEntry.obj
+        swapItem.Invalidate()
+        (List(GUIDTask.RegisterEquipment(swapItem)(source.Zone.GUID), registrationTask), Some(swapItem.GUID))
+      case _ =>
+        (Nil, None)
+    }
     taskResolver ! TaskResolver.GiveTask(
       new Task() {
+        val localGUID        = swapItemGUID
+        val localChannel     = toChannel
         val localSource      = source
         val localDestination = destination
         val localItem        = item
@@ -545,16 +565,56 @@ object WorldSession {
         }
 
         def Execute(resolver: ActorRef): Unit = {
+          localGUID match {
+            case Some(guid) =>
+              val zone = localSource.Zone
+              zone.AvatarEvents ! AvatarServiceMessage(localChannel, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, guid))
+            case None => ;
+          }
           localSource.Actor ! Containable.MoveItem(localDestination, localItem, localSlot)
           resolver ! Success(this)
         }
+      },
+      subtasks
+    )
+  }
 
-        override def onFailure(ex : Throwable) : Unit = {
-          //TODO delete item?
-          super.onFailure(ex)
+  def RemoveEquipmentFromCataloguedLockerContainer(
+                                                    taskResolver: ActorRef,
+                                                    toChannel: String,
+                                                    source: PlanetSideServerObject with Container,
+                                                    destination: PlanetSideServerObject with Container,
+                                                    item: Equipment,
+                                                    dest: Int
+                                              ): Unit = {
+    taskResolver ! TaskResolver.GiveTask(
+      new Task() {
+        val localGUID        = item.GUID
+        val localChannel     = toChannel
+        val localSource      = source
+        val localDestination = destination
+        val localItem        = item
+        val localSlot        = dest
+        localItem.Invalidate()
+
+        override def Description: String = s"registering $localItem in ${localDestination.Zone.id} before removing from $localSource"
+
+        override def isComplete: Task.Resolution.Value = {
+          if (localItem.HasGUID && localDestination.Find(localItem).isEmpty) {
+            Task.Resolution.Success
+          } else {
+            Task.Resolution.Incomplete
+          }
+        }
+
+        def Execute(resolver: ActorRef): Unit = {
+          val zone = localSource.Zone
+          zone.AvatarEvents ! AvatarServiceMessage(localChannel, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, localGUID))
+          localSource.Actor ! Containable.MoveItem(localDestination, localItem, localSlot)
+          resolver ! Success(this)
         }
       },
-      List(GUIDTask.UnregisterEquipment(item)(source.Zone.GUID))
+      List(GUIDTask.RegisterEquipment(item)(destination.Zone.GUID))
     )
   }
 

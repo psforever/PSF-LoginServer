@@ -4472,7 +4472,7 @@ class SessionActor extends Actor with MDCContextAware {
             Some(destination: PlanetSideServerObject with Container),
             Some(item: Equipment)
             ) =>
-            ContainableMoveItem(taskResolver, source, destination, item, dest)
+            ContainableMoveItem(taskResolver, player.Name, source, destination, item, dest)
           case (None, _, _) =>
             log.error(s"MoveItem: wanted to move $item_guid from $source_guid, but could not find source object")
           case (_, None, _) =>
@@ -4509,7 +4509,7 @@ class SessionActor extends Actor with MDCContextAware {
               destination.Fit(item)
             ) match {
               case (Some((source, Some(_))), Some(dest)) =>
-                ContainableMoveItem(taskResolver, source, destination, item, dest)
+                ContainableMoveItem(taskResolver, player.Name, source, destination, item, dest)
               case (None, _) =>
                 log.error(s"LootItem: can not find where $item is put currently")
               case (_, None) =>

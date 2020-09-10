@@ -29,6 +29,18 @@ class SpecificNumberSource(values: Iterable[Int]) extends NumberSource {
     }
   }
 
+  def get(obj: IdentifiableEntity) : Option[SecureKey] = {
+    ary.find { case (_, key) =>
+      key.obj match {
+        case Some(o) => o eq obj
+        case _ => false
+      }
+    } match {
+      case Some((number, key)) => Some(new SecureKey(number, key))
+      case _=> None
+    }
+  }
+
   def getAvailable(number: Int): Option[LoanedKey] = {
     ary.get(number) match {
       case Some(key) if key.policy == AvailabilityPolicy.Available =>
