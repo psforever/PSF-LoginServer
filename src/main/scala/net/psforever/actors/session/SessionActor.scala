@@ -5762,7 +5762,8 @@ class SessionActor extends Actor with MDCContextAware {
     }
 
   /**
-    * Construct tasking that registers all aspects of a `Player` avatar.
+    * Construct tasking that registers all aspects of a `Player` avatar
+    * as if that player is only just being introduced.
     * `Players` are complex objects that contain a variety of other register-able objects and each of these objects much be handled.
     * @param tplayer the avatar `Player`
     * @return a `TaskResolver.GiveTask` message
@@ -5776,7 +5777,7 @@ class SessionActor extends Actor with MDCContextAware {
         override def Description: String = s"register new player avatar ${localPlayer.Name}"
 
         override def isComplete: Task.Resolution.Value = {
-          if (localPlayer.HasGUID && localPlayer.avatar.locker.HasGUID) {
+          if (localPlayer.HasGUID) {
             Task.Resolution.Success
           } else {
             Task.Resolution.Incomplete
@@ -5793,12 +5794,13 @@ class SessionActor extends Actor with MDCContextAware {
           localAnnounce ! PlayerFailedToLoad(localPlayer) //alerts SessionActor
         }
       },
-      List(GUIDTask.RegisterPlayer(tplayer)(continent.GUID), GUIDTask.RegisterObjectTask(tplayer.avatar.locker)(continent.GUID))
+      List(GUIDTask.RegisterAvatar(tplayer)(continent.GUID))
     )
   }
 
   /**
-    * Construct tasking that registers all aspects of a `Player` avatar.
+    * Construct tasking that registers all aspects of a `Player` avatar
+    * as if that player was already introduced and is just being renewed.
     * `Players` are complex objects that contain a variety of other register-able objects and each of these objects much be handled.
     * @param tplayer the avatar `Player`
     * @return a `TaskResolver.GiveTask` message
@@ -6020,11 +6022,6 @@ class SessionActor extends Actor with MDCContextAware {
     )
   }
 
-  private def UnregisterOldAvatar(tplayer: Player): TaskResolver.GiveTask = {
-    val unregisterPlayer = GUIDTask.UnregisterPlayer(tplayer)(continent.GUID)
-    TaskResolver.GiveTask(unregisterPlayer.task, unregisterPlayer.subs :+ GUIDTask.UnregisterObjectTask(tplayer.avatar.locker)(continent.GUID))
-  }
-
   def UnregisterDrivenVehicle(obj: Vehicle, driver: Player): TaskResolver.GiveTask = {
     TaskResolver.GiveTask(
       new Task() {
@@ -6045,7 +6042,7 @@ class SessionActor extends Actor with MDCContextAware {
           resolver ! Success(this)
         }
       },
-      List(UnregisterOldAvatar(driver), GUIDTask.UnregisterVehicle(obj)(continent.GUID))
+      List(GUIDTask.UnregisterAvatar(driver)(continent.GUID), GUIDTask.UnregisterVehicle(obj)(continent.GUID))
     )
   }
 
@@ -8499,7 +8496,7 @@ class SessionActor extends Actor with MDCContextAware {
         )
       } else if (player.HasGUID) {
         taskThenZoneChange(
-          UnregisterOldAvatar(original),
+          GUIDTask.UnregisterAvatar(original)(continent.GUID),
           InterstellarClusterService.FindZone(_.id == zoneId, context.self)
         )
       } else {
@@ -8595,7 +8592,7 @@ class SessionActor extends Actor with MDCContextAware {
       LoadZoneCommonTransferActivity()
       player.Continent = zoneId //forward-set the continent id to perform a test
       taskThenZoneChange(
-        UnregisterOldAvatar(player),
+        GUIDTask.UnregisterAvatar(player)(continent.GUID),
         InterstellarClusterService.FindZone(_.id == zoneId, context.self)
       )
     } else {
@@ -8604,7 +8601,7 @@ class SessionActor extends Actor with MDCContextAware {
       player.VehicleSeated = vehicle.GUID
       player.Continent = zoneId //forward-set the continent id to perform a test
       interstellarFerryTopLevelGUID =
-        (if (
+        if (
           manifest.passengers.isEmpty && manifest.cargo.count { case (name, _) => !name.equals("MISSING_DRIVER") } == 0
         ) {
           //do not delete if vehicle has passengers or cargo
@@ -8615,7 +8612,7 @@ class SessionActor extends Actor with MDCContextAware {
           None
         } else {
           Some(topLevel)
-        })
+        }
       //unregister vehicle and driver whole + GiveWorld
       continent.Transport ! Zone.Vehicle.Despawn(vehicle)
       taskThenZoneChange(
@@ -8663,7 +8660,7 @@ class SessionActor extends Actor with MDCContextAware {
       interstellarFerryTopLevelGUID = None
 
       taskThenZoneChange(
-        GUIDTask.UnregisterPlayer(player)(continent.GUID),
+        GUIDTask.UnregisterAvatar(player)(continent.GUID),
         InterstellarClusterService.FindZone(_.id == zoneId, context.self)
       )
     }
@@ -9263,7 +9260,7 @@ class SessionActor extends Actor with MDCContextAware {
   }
 
   /**
-    * The upstream counter accumulates when the server receives sp[ecific messages from the client.
+    * The upstream counter accumulates when the server receives specific messages from the client.
     * It counts upwards until it reach maximum value, and then starts over.
     * When it starts over, which should take an exceptionally long time to achieve,
     * it starts counting at one rather than zero.

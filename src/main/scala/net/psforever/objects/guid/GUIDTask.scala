@@ -154,7 +154,7 @@ object GUIDTask {
     */
   def RegisterAvatar(tplayer: Player)(implicit guid: ActorRef): TaskResolver.GiveTask = {
     val holsterTasks   = VisibleSlotTaskBuilding(tplayer.Holsters(), RegisterEquipment)
-    val lockerTask     = List(RegisterLocker(tplayer.avatar.locker))
+    val lockerTask     = List(RegisterObjectTask(tplayer.avatar.locker))
     val inventoryTasks = RegisterInventory(tplayer)
     TaskResolver.GiveTask(RegisterObjectTask(tplayer).task, holsterTasks ++ lockerTask ++ inventoryTasks)
   }
@@ -312,7 +312,7 @@ object GUIDTask {
     */
   def UnregisterAvatar(tplayer: Player)(implicit guid: ActorRef): TaskResolver.GiveTask = {
     val holsterTasks   = VisibleSlotTaskBuilding(tplayer.Holsters(), UnregisterEquipment)
-    val lockerTask     = List(UnregisterLocker(tplayer.avatar.locker))
+    val lockerTask     = List(UnregisterObjectTask(tplayer.avatar.locker))
     val inventoryTasks = UnregisterInventory(tplayer)
     TaskResolver.GiveTask(UnregisterObjectTask(tplayer).task, holsterTasks ++ lockerTask ++ inventoryTasks)
   }
@@ -369,7 +369,7 @@ object GUIDTask {
     * @param guid implicit reference to a unique number system
     * @return a list of `TaskResolver.GiveTask` messages
     */
-  def VisibleSlotTaskBuilding(list: Iterable[EquipmentSlot], func: ((Equipment) => TaskResolver.GiveTask))(implicit
+  def VisibleSlotTaskBuilding(list: Iterable[EquipmentSlot], func: Equipment => TaskResolver.GiveTask)(implicit
       guid: ActorRef
   ): List[TaskResolver.GiveTask] = {
     recursiveVisibleSlotTaskBuilding(list.iterator, func)
@@ -387,7 +387,7 @@ object GUIDTask {
     */
   @tailrec private def recursiveVisibleSlotTaskBuilding(
       iter: Iterator[EquipmentSlot],
-      func: ((Equipment) => TaskResolver.GiveTask),
+      func: Equipment => TaskResolver.GiveTask,
       list: List[TaskResolver.GiveTask] = Nil
   )(implicit guid: ActorRef): List[TaskResolver.GiveTask] = {
     if (!iter.hasNext) {

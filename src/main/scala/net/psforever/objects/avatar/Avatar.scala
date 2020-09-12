@@ -2,7 +2,7 @@ package net.psforever.objects.avatar
 
 import net.psforever.objects.definition.{AvatarDefinition, BasicDefinition}
 import net.psforever.objects.equipment.{EquipmentSize, EquipmentSlot}
-import net.psforever.objects.inventory.CataloguedInventory
+import net.psforever.objects.inventory.LocallyRegisteredInventory
 import net.psforever.objects.loadouts.{Loadout, SquadLoadout}
 import net.psforever.objects.locker.{LockerContainer, LockerEquipment}
 import net.psforever.objects.{GlobalDefinitions, OffhandEquipmentSlot}
@@ -85,7 +85,7 @@ case class Avatar(
     squadLoadouts: Seq[Option[SquadLoadout]] = Seq.fill(10)(None),
     implants: Seq[Option[Implant]] = Seq(None, None, None),
     locker: LockerContainer = new LockerContainer({
-      val inv = new CataloguedInventory(numbers = 40150 until 40450) // TODO var bad
+      val inv = new LocallyRegisteredInventory(numbers = 40150 until 40450) // TODO var bad
       inv.Resize(30,20)
       inv
     }),

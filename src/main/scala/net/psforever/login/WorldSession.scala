@@ -505,6 +505,27 @@ object WorldSession {
     result
   }
 
+  /**
+    * Move an item from one container to another.
+    * If the source or if the destination is a kind of container called a `LockerContainer`,
+    * then a special procedure for the movement of the item must be respected.
+    * If the source and the destination are both `LockerContainer` objects, however,
+    * the normal operations for moving an item may be executed.
+    * @see `ActorRef`
+    * @see `Containable.MoveItem`
+    * @see `Container`
+    * @see `Equipment`
+    * @see `LockerContainer`
+    * @see `RemoveEquipmentFromLockerContainer`
+    * @see `StowEquipmentInLockerContainer`
+    * @see `TaskResolver`
+    * @param taskResolver na
+    * @param toChannel broadcast channel name for a manual packet callback
+    * @param source the container in which the item is to be removed
+    * @param destination the container into which the item is to be placed
+    * @param item the item
+    * @param dest where in the destination container the item is being placed
+    */
   def ContainableMoveItem(
                            taskResolver: ActorRef,
                            toChannel: String,
@@ -515,39 +536,78 @@ object WorldSession {
                          ) : Unit = {
     (source, destination) match {
       case (locker: LockerContainer, _) if !destination.isInstanceOf[LockerContainer] =>
-        RemoveEquipmentFromCataloguedLockerContainer(taskResolver, toChannel, locker, destination, item, dest)
+        RemoveEquipmentFromLockerContainer(taskResolver, toChannel, locker, destination, item, dest)
       case (_, locker: LockerContainer) =>
-        StowEquipmentInCataloguedLockerContainer(taskResolver, toChannel, source, locker, item, dest)
+        StowEquipmentInLockerContainer(taskResolver, toChannel, source, locker, item, dest)
       case _ =>
         source.Actor ! Containable.MoveItem(destination, item, dest)
     }
   }
 
-  def StowEquipmentInCataloguedLockerContainer(
-                                                taskResolver: ActorRef,
-                                                toChannel: String,
-                                                source: PlanetSideServerObject with Container,
-                                                destination: PlanetSideServerObject with Container,
-                                                item: Equipment,
-                                                dest: Int
-                                               ): Unit = {
+  /**
+    * Move an item into a player's locker inventory.
+    * Handle any swap item that might become involved in the transfer.
+    * Failure of this process is not supported and may lead to irregular behavior.
+    * @see `ActorRef`
+    * @see `AvatarAction.ObjectDelete`
+    * @see `AvatarServiceMessage`
+    * @see `Containable.MoveItem`
+    * @see `Container`
+    * @see `Equipment`
+    * @see `GridInventory.CheckCollisionsVar`
+    * @see `GUIDTask.RegisterEquipment`
+    * @see `GUIDTask.UnregisterEquipment`
+    * @see `IdentifiableEntity.Invalidate`
+    * @see `LockerContainer`
+    * @see `Service`
+    * @see `Task`
+    * @see `TaskResolver`
+    * @see `TaskResolver.GiveTask`
+    * @see `Zone.AvatarEvents`
+    * @param taskResolver na
+    * @param toChannel broadcast channel name for a manual packet callback
+    * @param source the container in which the item is to be removed
+    * @param destination the container into which the item is to be placed
+    * @param item the item
+    * @param dest where in the destination container the item is being placed
+    */
+  def StowEquipmentInLockerContainer(
+                                      taskResolver: ActorRef,
+                                      toChannel: String,
+                                      source: PlanetSideServerObject with Container,
+                                      destination: PlanetSideServerObject with Container,
+                                      item: Equipment,
+                                      dest: Int
+                                    ): Unit = {
     val registrationTask = GUIDTask.UnregisterEquipment(item)(source.Zone.GUID)
+    //check for the existence of a swap item - account for that in advance
     val (subtasks, swapItemGUID): (List[TaskResolver.GiveTask], Option[PlanetSideGUID]) = {
       val tile = item.Definition.Tile
       destination.Inventory.CheckCollisionsVar(dest, tile.Width, tile.Height)
     } match {
       case Success(Nil) =>
+        //no swap item
         (List(registrationTask), None)
       case Success(List(swapEntry: InventoryItem)) =>
+        //the swap item is to be registered to the source's zone
+        /*
+        destination is a locker container that has its own internal unique number system
+        the swap item is currently registered to this system
+        the swap item will be moved into the system in which the source operates
+        to facilitate the transfer, the item needs to be partially unregistered from the destination's system
+        to facilitate the transfer, the item needs to be preemptively registered to the source's system
+        invalidating the current unique number is sufficient for both of these steps
+         */
         val swapItem = swapEntry.obj
         swapItem.Invalidate()
         (List(GUIDTask.RegisterEquipment(swapItem)(source.Zone.GUID), registrationTask), Some(swapItem.GUID))
       case _ =>
+        //too many swap items or other error; this attempt will probably fail
         (Nil, None)
     }
     taskResolver ! TaskResolver.GiveTask(
       new Task() {
-        val localGUID        = swapItemGUID
+        val localGUID        = swapItemGUID //the swap item's original GUID, if any swap item
         val localChannel     = toChannel
         val localSource      = source
         val localDestination = destination
@@ -567,6 +627,7 @@ object WorldSession {
         def Execute(resolver: ActorRef): Unit = {
           localGUID match {
             case Some(guid) =>
+              //see LockerContainerControl.RemoveItemFromSlotCallback
               val zone = localSource.Zone
               zone.AvatarEvents ! AvatarServiceMessage(localChannel, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, guid))
             case None => ;
@@ -579,22 +640,56 @@ object WorldSession {
     )
   }
 
-  def RemoveEquipmentFromCataloguedLockerContainer(
-                                                    taskResolver: ActorRef,
-                                                    toChannel: String,
-                                                    source: PlanetSideServerObject with Container,
-                                                    destination: PlanetSideServerObject with Container,
-                                                    item: Equipment,
-                                                    dest: Int
-                                              ): Unit = {
+  /**
+    * Remove an item from a player's locker inventory.
+    * Failure of this process is not supported and may lead to irregular behavior.
+    * @see `ActorRef`
+    * @see `AvatarAction.ObjectDelete`
+    * @see `AvatarServiceMessage`
+    * @see `Containable.MoveItem`
+    * @see `Container`
+    * @see `Equipment`
+    * @see `GridInventory.CheckCollisionsVar`
+    * @see `GUIDTask.RegisterEquipment`
+    * @see `GUIDTask.UnregisterEquipment`
+    * @see `IdentifiableEntity.Invalidate`
+    * @see `LockerContainer`
+    * @see `Service`
+    * @see `Task`
+    * @see `TaskResolver`
+    * @see `TaskResolver.GiveTask`
+    * @see `Zone.AvatarEvents`
+    * @param taskResolver na
+    * @param toChannel broadcast channel name for a manual packet callback
+    * @param source the container in which the item is to be removed
+    * @param destination the container into which the item is to be placed
+    * @param item the item
+    * @param dest where in the destination container the item is being placed
+    */
+  def RemoveEquipmentFromLockerContainer(
+                                          taskResolver: ActorRef,
+                                          toChannel: String,
+                                          source: PlanetSideServerObject with Container,
+                                          destination: PlanetSideServerObject with Container,
+                                          item: Equipment,
+                                          dest: Int
+                                        ): Unit = {
     taskResolver ! TaskResolver.GiveTask(
       new Task() {
-        val localGUID        = item.GUID
+        val localGUID        = item.GUID //original GUID
         val localChannel     = toChannel
         val localSource      = source
         val localDestination = destination
         val localItem        = item
         val localSlot        = dest
+        /*
+        source is a locker container that has its own internal unique number system
+        the item is currently registered to this system
+        the item will be moved into the system in which the destination operates
+        to facilitate the transfer, the item needs to be partially unregistered from the source's system
+        to facilitate the transfer, the item needs to be preemptively registered to the destination's system
+        invalidating the current unique number is sufficient for both of these steps
+         */
         localItem.Invalidate()
 
         override def Description: String = s"registering $localItem in ${localDestination.Zone.id} before removing from $localSource"
@@ -609,6 +704,7 @@ object WorldSession {
 
         def Execute(resolver: ActorRef): Unit = {
           val zone = localSource.Zone
+          //see LockerContainerControl.RemoveItemFromSlotCallback
           zone.AvatarEvents ! AvatarServiceMessage(localChannel, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, localGUID))
           localSource.Actor ! Containable.MoveItem(localDestination, localItem, localSlot)
           resolver ! Success(this)

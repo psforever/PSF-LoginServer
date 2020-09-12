@@ -10,8 +10,8 @@ import net.psforever.types.PlanetSideEmpire
 /**
   * The companion of a `Locker` that is carried with a player
   * masquerading as their sixth `EquipmentSlot` object and a sub-inventory item.
-  * The `Player` class refers to it as the "fifth slot" as its permanent slot number is encoded as `0x85`.
   * The inventory of this object is accessed indirectly using a game world `Locker` object (`mb_locker`) as a proxy.
+  * The `Player` class refers to it as the "fifth slot".
   */
 class LockerContainer(inventory: GridInventory)
   extends PlanetSideServerObject

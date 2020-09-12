@@ -206,7 +206,7 @@ class NumberPoolHubTest extends Specification {
       hub2.AddPool("fibonacci", numberList)
       val obj = new EntityTestClass()
       hub1.register(obj, "fibonacci")
-      hub2.unregister(obj) must throwA[Exception]
+      hub2.unregister(obj).isFailure mustEqual true
     }
 
     "pre-register a specific, unused number" in {

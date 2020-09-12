@@ -10,7 +10,15 @@ import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 
-class LockerContainerControl(locker: LockerContainer, toChannel: String) extends Actor with ContainableBehavior {
+/**
+  * A control agency mainly for manipulating the equipment stowed by a player in a `LockerContainer`
+  * and reporting back to a specific xchannel in the event system about these changes.
+  * @param locker the governed player-facing locker component
+  * @param toChannel the channel to which to publish events, typically the owning player's name
+  */
+class LockerContainerControl(locker: LockerContainer, toChannel: String)
+  extends Actor
+  with ContainableBehavior {
   def ContainerObject = locker
 
   def receive: Receive =

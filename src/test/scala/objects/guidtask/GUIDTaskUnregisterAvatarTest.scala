@@ -44,6 +44,6 @@ class GUIDTaskUnregisterAvatarTest extends ActorTest {
     assert(!obj_wep_ammo.HasGUID)
     assert(!obj_inv_ammo.HasGUID)
     assert(!obj_locker.HasGUID)
-    assert(!obj_locker_ammo.HasGUID)
+    assert(obj_locker_ammo.HasGUID)
   }
 }

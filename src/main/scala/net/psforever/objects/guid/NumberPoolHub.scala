@@ -351,16 +351,30 @@ class NumberPoolHub(private val source: NumberSource) {
         obj.Invalidate()
         Success(number)
       case Failure(ex) =>
-        //fallback: is the object in this source?
-        source.get(obj) match {
-          case Some(key) =>
-            val number = key.GUID
-            GetPool(WhichPool(number).get).get.Return(number)
-            source.returnNumber(number)
-            Success(number)
-          case _ =>
-            Failure(new Exception(s"can not unregister this $obj - ${ex.getMessage}"))
-        }
+        unregister_GetMonitorFromObject(obj, ex.getMessage)
+    }
+  }
+
+  /**
+    * Unregister a specific object
+    * by actually finding the object itself, if it exists.
+    * @param obj an object being unregistered
+    * @param msg custom error message;
+    *            has a vague default
+    * @return the number associated with this object
+    */
+  def unregister_GetMonitorFromObject(
+                                       obj: IdentifiableEntity,
+                                       msg: String = "can not find this object"
+                                     ): Try[Int] = {
+    source.get(obj) match {
+      case Some(key) =>
+        val number = key.GUID
+        GetPool(WhichPool(number).get).get.Return(number)
+        source.returnNumber(number)
+        Success(number)
+      case _ =>
+        Failure(new Exception(s"can not unregister this $obj - $msg"))
     }
   }
 

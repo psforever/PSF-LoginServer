@@ -3,13 +3,13 @@ package objects
 
 import net.psforever.objects.{AmmoBox, SimpleItem, Tool}
 import net.psforever.objects.definition.SimpleItemDefinition
-import net.psforever.objects.inventory.{GridInventory, InventoryDisarrayException, InventoryItem, InventoryTile}
+import net.psforever.objects.inventory._
 import net.psforever.objects.GlobalDefinitions.{bullet_9mm, suppressor}
 import net.psforever.types.PlanetSideGUID
 import org.specs2.mutable._
 
 import scala.collection.mutable.ListBuffer
-import scala.util.{Success, Failure}
+import scala.util.{Failure, Success}
 
 class InventoryTest extends Specification {
   val bullet9mmBox1 = AmmoBox(bullet_9mm)
@@ -520,6 +520,168 @@ class InventoryTest extends Specification {
       }
       ok
     }
+  }
+
+  "LocallyRegisteredInventory" should {
+    "construct" in {
+      val obj: LocallyRegisteredInventory = new LocallyRegisteredInventory(List(15))
+      obj.TotalCapacity mustEqual 1
+      obj.Capacity mustEqual 1
+    }
+
+    "insert (and register) item" in {
+      val obj: LocallyRegisteredInventory = new LocallyRegisteredInventory(List(15))
+      obj.Resize(9, 6)
+      obj.Size mustEqual 0
+      val item = AmmoBox(bullet_9mm)
+      item.HasGUID mustEqual false
+      obj.CheckCollisions(2, item) mustEqual Success(Nil)
+      obj += 2 -> item
+      obj.Size mustEqual 1
+      obj.hasItem(PlanetSideGUID(15)).contains(item) mustEqual true
+      item.HasGUID mustEqual true
+      item.GUID mustEqual PlanetSideGUID(15)
+    }
+
+    "insert (and register) complex item" in {
+      val obj: LocallyRegisteredInventory = new LocallyRegisteredInventory(List(15, 16))
+      obj.Resize(9, 6)
+      obj.Size mustEqual 0
+      val item = Tool(suppressor)
+      item.HasGUID mustEqual false
+      item.AmmoSlot.Box.HasGUID mustEqual false
+      obj.CheckCollisions(2, item) mustEqual Success(Nil)
+      obj += 2 -> item
+      obj.Size mustEqual 1
+      item.HasGUID mustEqual true
+      item.AmmoSlot.Box.HasGUID mustEqual true
+    }
+
+    "not insert item if already registered" in {
+      val obj: LocallyRegisteredInventory = new LocallyRegisteredInventory(List(15))
+      obj.Resize(9, 6)
+      obj.Size mustEqual 0
+      val item = AmmoBox(bullet_9mm)
+      item.GUID = PlanetSideGUID(10) //artificially register
+      item.HasGUID mustEqual true
+
+      obj.CheckCollisions(2, item) mustEqual Success(Nil) //insert should be possible
+      obj += 2 -> item
+      obj.Size mustEqual 0
+      obj.hasItem(PlanetSideGUID(15)).isEmpty mustEqual true
+    }
+
+    "not insert (or register) item if no (more) GUID's are available" in {
+      val obj: LocallyRegisteredInventory = new LocallyRegisteredInventory(List(15))
+      obj.Resize(9, 6)
+      val item1 = AmmoBox(bullet_9mm)
+      val item2 = AmmoBox(bullet_9mm)
+      item1.HasGUID mustEqual false
+      item2.HasGUID mustEqual false
+
+      obj.CheckCollisions(2, item1) mustEqual Success(Nil) //insert should be possible
+      obj += 2 -> item1
+      obj.Size mustEqual 1
+      obj.hasItem(PlanetSideGUID(15)).contains(item1) mustEqual true
+      item1.HasGUID mustEqual true
+      item1.GUID mustEqual PlanetSideGUID(15)
+
+      obj.CheckCollisions(5, item2) mustEqual Success(Nil) //insert should be possible
+      obj += 5 -> item2
+      obj.Size mustEqual 1
+      item2.HasGUID mustEqual false
+    }
+
+    "not insert (or register) complex item if no (more) GUID's are available" in {
+      val item = Tool(suppressor)
+      val obj: LocallyRegisteredInventory = new LocallyRegisteredInventory(List(15))
+      obj.Resize(9, 6)
+      obj.Size mustEqual 0
+      item.HasGUID mustEqual false
+      item.AmmoSlot.Box.HasGUID mustEqual false
+
+      obj.CheckCollisions(2, item) mustEqual Success(Nil) //insert should be possible
+      obj += 2 -> item
+      obj.Size mustEqual 0
+      item.HasGUID mustEqual false
+      item.AmmoSlot.Box.HasGUID mustEqual false
+    }
+
+    "insert (and register) multiple items" in {
+      val obj: LocallyRegisteredInventory = new LocallyRegisteredInventory(List(15, 17))
+      obj.Resize(9, 6)
+      val item1 = AmmoBox(bullet_9mm)
+      val item2 = AmmoBox(bullet_9mm)
+      item1.HasGUID mustEqual false
+      item2.HasGUID mustEqual false
+
+      obj.CheckCollisions(2, item1) mustEqual Success(Nil) //insert should be possible
+      obj += 2 -> item1
+      obj.Size mustEqual 1
+      item1.HasGUID mustEqual true
+
+      obj.CheckCollisions(5, item2) mustEqual Success(Nil) //insert should be possible
+      obj += 5 -> item2
+      obj.Size mustEqual 2
+      item2.HasGUID mustEqual true
+    }
+
+    "clear (and unregister) all items" in {
+      val obj: LocallyRegisteredInventory = new LocallyRegisteredInventory(List(15, 17))
+      obj.Resize(9, 6)
+      val item1 = AmmoBox(bullet_9mm)
+      val item2 = AmmoBox(bullet_9mm)
+      obj += 2 -> item1
+      obj += 5 -> item2
+      obj.Size mustEqual 2
+      item1.HasGUID mustEqual true
+      item2.HasGUID mustEqual true
+
+      obj.Clear()
+      obj.Size mustEqual 0
+      item1.HasGUID mustEqual false
+      item2.HasGUID mustEqual false
+    }
+
+    "remove (and unregister) item" in {
+      val obj: LocallyRegisteredInventory = new LocallyRegisteredInventory(List(15, 17))
+      obj.Resize(9, 6)
+      val item1 = AmmoBox(bullet_9mm)
+      val item2 = AmmoBox(bullet_9mm)
+      obj += 2 -> item1
+      obj += 5 -> item2
+      obj.Size mustEqual 2
+      item1.HasGUID mustEqual true
+      item2.HasGUID mustEqual true
+
+      obj -= 2
+      obj.Size mustEqual 1
+      item1.HasGUID mustEqual false
+      item2.HasGUID mustEqual true
+
+      obj -= 5
+      obj.Size mustEqual 0
+      item1.HasGUID mustEqual false
+      item2.HasGUID mustEqual false
+    }
+  }
+
+  "remove (and unregister) complex item" in {
+    val obj: LocallyRegisteredInventory = new LocallyRegisteredInventory(List(15, 17))
+    obj.Resize(9, 6)
+    val item = Tool(suppressor)
+    item.HasGUID mustEqual false
+    item.AmmoSlot.Box.HasGUID mustEqual false
+    obj.CheckCollisions(2, item) mustEqual Success(Nil)
+    obj += 2 -> item
+    obj.Size mustEqual 1
+    item.HasGUID mustEqual true
+    item.AmmoSlot.Box.HasGUID mustEqual true
+
+    obj -= 2
+    obj.Size mustEqual 0
+    item.HasGUID mustEqual false
+    item.AmmoSlot.Box.HasGUID mustEqual false
   }
 
   "InventoryEquiupmentSlot" should {

@@ -27,7 +27,7 @@ class GUIDTaskRegisterPlayerTest extends ActorTest {
     assert(!obj_wep_ammo.HasGUID)
     assert(!obj_inv_ammo.HasGUID)
     assert(!obj_locker.HasGUID)
-    assert(!obj_locker_ammo.HasGUID)
+    assert(obj_locker_ammo.HasGUID)
     taskResolver ! TaskResolver.GiveTask(
       new GUIDTaskTest.RegisterTestTask(probe.ref),
       List(GUIDTask.RegisterPlayer(obj)(uns))
@@ -38,6 +38,6 @@ class GUIDTaskRegisterPlayerTest extends ActorTest {
     assert(obj_wep_ammo.HasGUID)
     assert(obj_inv_ammo.HasGUID)
     assert(!obj_locker.HasGUID)
-    assert(!obj_locker_ammo.HasGUID)
+    assert(obj_locker_ammo.HasGUID)
   }
 }
