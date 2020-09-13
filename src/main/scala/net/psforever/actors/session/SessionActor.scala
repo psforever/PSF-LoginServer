@@ -363,17 +363,25 @@ class SessionActor extends Actor with MDCContextAware {
   def ValidObject(id: Option[PlanetSideGUID]): Option[PlanetSideGameObject] =
     continent.GUID(id) match {
       case Some(obj: LocalProjectile) =>
-        projectiles(id.get.guid - Projectile.baseUID)
+        FindProjectileEntry(id.get)
 
       case Some(_: LocalLockerItem) =>
-        player.avatar.locker.Inventory.hasItem(id.get)
+        player.avatar.locker.Inventory.hasItem(id.get) match {
+          case out @ Some(_) =>
+            out
+          case None =>
+            //delete stale entity reference from client
+            log.warn(s"${player.Name} has an invalid reference to GUID ${id.get} in zone ${continent.id}")
+            sendResponse(ObjectDeleteMessage(id.get, 0))
+            None
+        }
 
       case out @ Some(obj) if obj.HasGUID =>
         out
 
       case None if id.nonEmpty && id.get != PlanetSideGUID(0) =>
         //delete stale entity reference from client
-        log.warn(s"Player ${player.Name} has an invalid reference to GUID ${id.get} in zone ${continent.id}.")
+        log.warn(s"${player.Name} has an invalid reference to GUID ${id.get} in zone ${continent.id}")
         sendResponse(ObjectDeleteMessage(id.get, 0))
         None
 
@@ -4393,25 +4401,20 @@ class SessionActor extends Actor with MDCContextAware {
           case Some(obj: Equipment) =>
             FindEquipmentToDelete(object_guid, obj)
 
-          case Some(_: LocalProjectile) =>
-            FindProjectileEntry(object_guid) match {
-              case Some(projectile) =>
-                if (projectile.isResolved) {
-                  log.warn(
-                    s"RequestDestroy: tried to clean up projectile ${object_guid.guid} but it was already resolved"
-                  )
-                } else {
-                  projectile.Miss()
-                  if (projectile.profile.ExistsOnRemoteClients && projectile.HasGUID) {
-                    continent.AvatarEvents ! AvatarServiceMessage(
-                      continent.id,
-                      AvatarAction.ProjectileExplodes(player.GUID, projectile.GUID, projectile)
-                    )
-                    taskResolver ! UnregisterProjectile(projectile)
-                  }
-                }
-              case None =>
-                log.warn(s"RequestDestroy: projectile ${object_guid.guid} has never been fired")
+          case Some(obj: Projectile) =>
+            if (obj.isResolved) {
+              log.warn(
+                s"RequestDestroy: tried to clean up projectile ${object_guid.guid} but it was already resolved"
+              )
+            } else {
+              obj.Miss()
+              if (obj.profile.ExistsOnRemoteClients && obj.HasGUID) {
+                continent.AvatarEvents ! AvatarServiceMessage(
+                  continent.id,
+                  AvatarAction.ProjectileExplodes(player.GUID, obj.GUID, obj)
+                )
+                taskResolver ! UnregisterProjectile(obj)
+              }
             }
 
           case Some(obj: BoomerDeployable) =>
@@ -8254,6 +8257,7 @@ class SessionActor extends Actor with MDCContextAware {
   /**
     * A simple object searching algorithm that is limited to containers currently known and accessible by the player.
     * If all relatively local containers are checked and the object is not found,
+    * the player's locker inventory will be checked, and then
     * the game environment (items on the ground) will be checked too.
     * If the target object is discovered, it is removed from its current location and is completely destroyed.
     * @see `RequestDestroyMessage`<br>
@@ -8269,8 +8273,7 @@ class SessionActor extends Actor with MDCContextAware {
     : PlanetSideServerObject with Container => Option[(PlanetSideServerObject with Container, Option[Int])] =
       FindInLocalContainer(object_guid)
 
-    findFunc(player.avatar.locker)
-      .orElse(findFunc(player))
+    findFunc(player)
       .orElse(accessedContainer match {
         case Some(parent: PlanetSideServerObject) =>
           findFunc(parent)
@@ -8290,7 +8293,11 @@ class SessionActor extends Actor with MDCContextAware {
         true
 
       case _ =>
-        if (continent.EquipmentOnGround.contains(obj)) {
+        if (player.avatar.locker.Inventory.Remove(object_guid)) {
+          sendResponse(ObjectDeleteMessage(object_guid, 0))
+          log.info(s"RequestDestroy: equipment $obj")
+          true
+        } else if (continent.EquipmentOnGround.contains(obj)) {
           obj.Position = Vector3.Zero
           continent.Ground ! Zone.Ground.RemoveItem(object_guid)
           continent.AvatarEvents ! AvatarServiceMessage.Ground(RemoverActor.ClearSpecific(List(obj), continent))
