@@ -4,7 +4,7 @@ package objects.number
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.selector.RandomSelector
-import net.psforever.objects.guid.source.LimitedNumberSource
+import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.types.PlanetSideGUID
 import org.specs2.mutable.Specification
 
@@ -20,17 +20,17 @@ class NumberPoolHubTest extends Specification {
 
   "NumberPoolHub" should {
     "construct" in {
-      new NumberPoolHub(new LimitedNumberSource(51))
+      new NumberPoolHub(new MaxNumberSource(51))
       ok
     }
 
     "get a pool" in {
-      val obj = new NumberPoolHub(new LimitedNumberSource(51))
+      val obj = new NumberPoolHub(new MaxNumberSource(51))
       obj.GetPool("generic").isDefined mustEqual true //default pool
     }
 
     "add a pool" in {
-      val obj = new NumberPoolHub(new LimitedNumberSource(51))
+      val obj = new NumberPoolHub(new MaxNumberSource(51))
       obj.Numbers.isEmpty mustEqual true
       obj.AddPool("fibonacci", numberList)
       obj.Numbers.toSet.equals(numberList.toSet) mustEqual true
@@ -40,7 +40,7 @@ class NumberPoolHubTest extends Specification {
     }
 
     "enumerate the content of all pools" in {
-      val obj = new NumberPoolHub(new LimitedNumberSource(51))
+      val obj = new NumberPoolHub(new MaxNumberSource(51))
       obj.AddPool("fibonacci1", numberList1)
       obj.AddPool("fibonacci2", numberList2)
       numberSet1.intersect(obj.Numbers.toSet) mustEqual numberSet1
@@ -49,7 +49,7 @@ class NumberPoolHubTest extends Specification {
     }
 
     "remove a pool" in {
-      val obj = new NumberPoolHub(new LimitedNumberSource(51))
+      val obj = new NumberPoolHub(new MaxNumberSource(51))
       obj.Numbers.isEmpty mustEqual true
       obj.AddPool("fibonacci", numberList)
       obj.Numbers.toSet.equals(numberList.toSet) mustEqual true
@@ -59,19 +59,19 @@ class NumberPoolHubTest extends Specification {
     }
 
     "block removing the default 'generic' pool" in {
-      val obj = new NumberPoolHub(new LimitedNumberSource(51))
+      val obj = new NumberPoolHub(new MaxNumberSource(51))
       obj.RemovePool("generic") must throwA[IllegalArgumentException]
     }
 
     "block adding pools that use already-included numbers" in {
-      val obj = new NumberPoolHub(new LimitedNumberSource(51))
+      val obj = new NumberPoolHub(new MaxNumberSource(51))
       obj.AddPool("fibonacci1", numberList)
       val numberList4 = 3 :: 7 :: 21 :: 34 :: 45 :: Nil
       obj.AddPool("fibonacci2", numberList4) must throwA[IllegalArgumentException]
     }
 
     "enumerate only the content of all current pools" in {
-      val obj = new NumberPoolHub(new LimitedNumberSource(51))
+      val obj = new NumberPoolHub(new MaxNumberSource(51))
       obj.AddPool("fibonacci1", numberList1)
       obj.AddPool("fibonacci2", numberList2)
       numberSet1.intersect(obj.Numbers.toSet) mustEqual numberSet1
@@ -82,7 +82,7 @@ class NumberPoolHubTest extends Specification {
     }
 
     "register an object to a pool" in {
-      val hub = new NumberPoolHub(new LimitedNumberSource(51))
+      val hub = new NumberPoolHub(new MaxNumberSource(51))
       hub.AddPool("fibonacci", numberList)
       val obj = new EntityTestClass()
       obj.GUID must throwA[Exception]
@@ -95,7 +95,7 @@ class NumberPoolHubTest extends Specification {
     }
 
     "lookup a registered object" in {
-      val hub = new NumberPoolHub(new LimitedNumberSource(51))
+      val hub = new NumberPoolHub(new MaxNumberSource(51))
       hub.AddPool("fibonacci", numberList)
       val obj = new EntityTestClass()
       hub.register(obj, "fibonacci") match {
@@ -108,14 +108,14 @@ class NumberPoolHubTest extends Specification {
     }
 
     "lookup the pool of a(n unassigned) number" in {
-      val hub = new NumberPoolHub(new LimitedNumberSource(51))
+      val hub = new NumberPoolHub(new MaxNumberSource(51))
       hub.AddPool("fibonacci1", numberList1)
       hub.AddPool("fibonacci2", numberList2)
       hub.WhichPool(13).contains("fibonacci2") mustEqual true
     }
 
     "lookup the pool of a registered object" in {
-      val hub = new NumberPoolHub(new LimitedNumberSource(51))
+      val hub = new NumberPoolHub(new MaxNumberSource(51))
       hub.AddPool("fibonacci", numberList1)
       val obj = new EntityTestClass()
       hub.register(obj, "fibonacci")
@@ -123,7 +123,7 @@ class NumberPoolHubTest extends Specification {
     }
 
     "register an object to a specific, unused number; it is assigned to pool 'generic'" in {
-      val hub = new NumberPoolHub(new LimitedNumberSource(51))
+      val hub = new NumberPoolHub(new MaxNumberSource(51))
       hub.AddPool("fibonacci", numberList1)
       val obj = new EntityTestClass()
       obj.GUID must throwA[Exception]
@@ -137,7 +137,7 @@ class NumberPoolHubTest extends Specification {
     }
 
     "register an object to a specific, pooled number (list 1)" in {
-      val src = new LimitedNumberSource(51)
+      val src = new MaxNumberSource(51)
       val hub = new NumberPoolHub(src)
       hub.AddPool("fibonacci", numberList)
       val obj = new EntityTestClass()
@@ -146,14 +146,14 @@ class NumberPoolHubTest extends Specification {
         case Success(number) =>
           obj.GUID mustEqual PlanetSideGUID(number)
           hub.WhichPool(obj).contains("fibonacci") mustEqual true
-          src.Available(5).isEmpty mustEqual true
+          src.getAvailable(5).isEmpty mustEqual true
         case _ =>
           ko
       }
     }
 
     "register an object to a specific, pooled number (list 2)" in {
-      val src = new LimitedNumberSource(51)
+      val src = new MaxNumberSource(51)
       val hub = new NumberPoolHub(src)
       hub.AddPool("fibonacci", numberList2)
       val obj = new EntityTestClass()
@@ -162,21 +162,21 @@ class NumberPoolHubTest extends Specification {
         case Success(number) =>
           obj.GUID mustEqual PlanetSideGUID(number)
           hub.WhichPool(obj).contains("fibonacci") mustEqual true
-          src.Available(13).isEmpty mustEqual true
+          src.getAvailable(13).isEmpty mustEqual true
         case _ =>
           ko
       }
     }
 
     "register an object without extra specifications; it is assigned to pool 'generic'" in {
-      val hub = new NumberPoolHub(new LimitedNumberSource(51))
+      val hub = new NumberPoolHub(new MaxNumberSource(51))
       val obj = new EntityTestClass()
       hub.register(obj)
       hub.WhichPool(obj).contains("generic") mustEqual true
     }
 
     "unregister an object" in {
-      val hub = new NumberPoolHub(new LimitedNumberSource(51))
+      val hub = new NumberPoolHub(new MaxNumberSource(51))
       hub.AddPool("fibonacci", numberList)
       val obj = new EntityTestClass()
       obj.HasGUID mustEqual false
@@ -190,7 +190,7 @@ class NumberPoolHubTest extends Specification {
     }
 
     "not register an object to a different pool" in {
-      val hub = new NumberPoolHub(new LimitedNumberSource(51))
+      val hub = new NumberPoolHub(new MaxNumberSource(51))
       hub.AddPool("fibonacci1", numberList1)
       hub.AddPool("fibonacci2", numberList2)
       val obj = new EntityTestClass()
@@ -200,17 +200,17 @@ class NumberPoolHubTest extends Specification {
     }
 
     "fail to unregister an object that is not registered to this hub" in {
-      val hub1 = new NumberPoolHub(new LimitedNumberSource(51))
-      val hub2 = new NumberPoolHub(new LimitedNumberSource(51))
+      val hub1 = new NumberPoolHub(new MaxNumberSource(51))
+      val hub2 = new NumberPoolHub(new MaxNumberSource(51))
       hub1.AddPool("fibonacci", numberList)
       hub2.AddPool("fibonacci", numberList)
       val obj = new EntityTestClass()
       hub1.register(obj, "fibonacci")
-      hub2.unregister(obj) must throwA[Exception]
+      hub2.unregister(obj).isFailure mustEqual true
     }
 
     "pre-register a specific, unused number" in {
-      val hub = new NumberPoolHub(new LimitedNumberSource(51))
+      val hub = new NumberPoolHub(new MaxNumberSource(51))
       hub.register(13) match {
         case Success(_) =>
           ok
@@ -220,7 +220,7 @@ class NumberPoolHubTest extends Specification {
     }
 
     "pre-register a specific, pooled number" in {
-      val hub = new NumberPoolHub(new LimitedNumberSource(51))
+      val hub = new NumberPoolHub(new MaxNumberSource(51))
       hub.AddPool("fibonacci", numberList)
       hub.register(13) match {
         case Success(key) =>
@@ -231,7 +231,7 @@ class NumberPoolHubTest extends Specification {
     }
 
     "pre-register a number from a known pool" in {
-      val hub = new NumberPoolHub(new LimitedNumberSource(51))
+      val hub = new NumberPoolHub(new MaxNumberSource(51))
       hub.AddPool("fibonacci", numberList).Selector = new RandomSelector
       hub.register("fibonacci") match {
         case Success(key) =>
@@ -242,7 +242,7 @@ class NumberPoolHubTest extends Specification {
     }
 
     "unregister a number" in {
-      val hub = new NumberPoolHub(new LimitedNumberSource(51))
+      val hub = new NumberPoolHub(new MaxNumberSource(51))
       hub.AddPool("fibonacci", numberList).Selector = new RandomSelector //leave this tagged on
       val obj = new EntityTestClass()
       hub.register(13) match {
@@ -263,48 +263,48 @@ class NumberPoolHubTest extends Specification {
     }
 
     "not affect the hidden restricted pool by adding a new pool" in {
-      val src = new LimitedNumberSource(51)
-      src.Restrict(4)
-      src.Restrict(8) //in fibonacci
-      src.Restrict(10)
-      src.Restrict(12)
+      val src = new MaxNumberSource(51)
+      src.restrictNumber(4)
+      src.restrictNumber(8) //in fibonacci
+      src.restrictNumber(10)
+      src.restrictNumber(12)
       val hub = new NumberPoolHub(src)
       hub.AddPool("fibonacci", numberList) must throwA[IllegalArgumentException]
     }
 
     "not register an object to a number belonging to the restricted pool" in {
-      val src = new LimitedNumberSource(51)
-      src.Restrict(4)
+      val src = new MaxNumberSource(51)
+      src.restrictNumber(4)
       val hub = new NumberPoolHub(src)
       val obj = new EntityTestClass()
       hub.register(obj, 4).isFailure mustEqual true
     }
 
     "not register an object to the restricted pool directly" in {
-      val src = new LimitedNumberSource(51)
-//      src.Restrict(4)
+      val src = new MaxNumberSource(51)
+//      src.restrictNumber(4)
       val hub = new NumberPoolHub(src)
       val obj = new EntityTestClass()
       hub.register(obj, "").isFailure mustEqual true //the empty string represents the restricted pool
     }
 
     "not register a number belonging to the restricted pool" in {
-      val src = new LimitedNumberSource(51)
-      src.Restrict(4)
+      val src = new MaxNumberSource(51)
+      src.restrictNumber(4)
       val hub = new NumberPoolHub(src)
       hub.register(4).isFailure mustEqual true
     }
 
     "not unregister a number belonging to the restricted pool" in {
-      val src = new LimitedNumberSource(51)
-      src.Restrict(4)
+      val src = new MaxNumberSource(51)
+      src.restrictNumber(4)
       val hub = new NumberPoolHub(src)
       hub.unregister(4).isFailure mustEqual true
     }
 
     "identity an object that is registered to it" in {
-      val hub1 = new NumberPoolHub(new LimitedNumberSource(10))
-      val hub2 = new NumberPoolHub(new LimitedNumberSource(10))
+      val hub1 = new NumberPoolHub(new MaxNumberSource(10))
+      val hub2 = new NumberPoolHub(new MaxNumberSource(10))
       val obj1 = new EntityTestClass()
       val obj2 = new EntityTestClass()
       hub1.register(obj1)
@@ -317,15 +317,15 @@ class NumberPoolHubTest extends Specification {
     }
 
     "identity a number that is registered to it" in {
-      val src1 = new LimitedNumberSource(5)
+      val src1 = new MaxNumberSource(5)
       val hub1 = new NumberPoolHub(src1)
-      val src2 = new LimitedNumberSource(10)
-      src2.Restrict(0)
-      src2.Restrict(1)
-      src2.Restrict(2)
-      src2.Restrict(3)
-      src2.Restrict(4)
-      src2.Restrict(5)
+      val src2 = new MaxNumberSource(10)
+      src2.restrictNumber(0)
+      src2.restrictNumber(1)
+      src2.restrictNumber(2)
+      src2.restrictNumber(3)
+      src2.restrictNumber(4)
+      src2.restrictNumber(5)
       val hub2 = new NumberPoolHub(src2)
       val obj1 = new EntityTestClass()
       val obj2 = new EntityTestClass()

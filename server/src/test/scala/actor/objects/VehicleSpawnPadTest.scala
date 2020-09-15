@@ -213,7 +213,7 @@ object VehicleSpawnPadControlTest {
       faction: PlanetSideEmpire.Value
   )(implicit system: ActorSystem): (Vehicle, Player, VehicleSpawnPad, Zone) = {
     import net.psforever.objects.guid.NumberPoolHub
-    import net.psforever.objects.guid.source.LimitedNumberSource
+    import net.psforever.objects.guid.source.MaxNumberSource
     import net.psforever.objects.serverobject.structures.Building
     import net.psforever.objects.vehicles.VehicleControl
     import net.psforever.objects.Tool
@@ -221,7 +221,7 @@ object VehicleSpawnPadControlTest {
 
     val vehicle             = Vehicle(GlobalDefinitions.two_man_assault_buggy)
     val weapon              = vehicle.WeaponControlledFromSeat(1).get.asInstanceOf[Tool]
-    val guid: NumberPoolHub = new NumberPoolHub(LimitedNumberSource(5))
+    val guid: NumberPoolHub = new NumberPoolHub(MaxNumberSource(5))
     guid.AddPool("test-pool", (0 to 5).toList)
     guid.register(vehicle, "test-pool")
     guid.register(weapon, "test-pool")

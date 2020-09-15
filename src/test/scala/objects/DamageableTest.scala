@@ -8,7 +8,7 @@ import net.psforever.objects._
 import net.psforever.objects.ballistics._
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.guid.NumberPoolHub
-import net.psforever.objects.guid.source.LimitedNumberSource
+import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.serverobject.generator.{Generator, GeneratorControl}
 import net.psforever.objects.serverobject.implantmech.{ImplantTerminalMech, ImplantTerminalMechControl}
@@ -242,7 +242,7 @@ essentially, treat them more as generic entities whose object types are damageab
 see specific object type tests in relation to what those object types does above and beyond that during damage
  */
 class DamageableEntityDamageTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(5))
+  val guid = new NumberPoolHub(new MaxNumberSource(5))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
 
@@ -313,7 +313,7 @@ class DamageableEntityDamageTest extends ActorTest {
 }
 
 class DamageableEntityDestroyedTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(5))
+  val guid = new NumberPoolHub(new MaxNumberSource(5))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
 
@@ -387,7 +387,7 @@ class DamageableEntityDestroyedTest extends ActorTest {
 }
 
 class DamageableEntityNotDestroyTwice extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(10))
+  val guid = new NumberPoolHub(new MaxNumberSource(10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
 
@@ -458,7 +458,7 @@ class DamageableEntityNotDestroyTwice extends ActorTest {
 }
 
 class DamageableAmenityTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(10))
+  val guid = new NumberPoolHub(new MaxNumberSource(10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
 
@@ -546,7 +546,7 @@ class DamageableAmenityTest extends ActorTest {
 
 class DamageableMountableDamageTest extends ActorTest {
   //TODO this test with not send HitHint packets because LivePlayers is not being allocated for the players in the zone
-  val guid = new NumberPoolHub(new LimitedNumberSource(10))
+  val guid = new NumberPoolHub(new MaxNumberSource(10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
 
@@ -638,7 +638,7 @@ class DamageableMountableDamageTest extends ActorTest {
 
 class DamageableMountableDestroyTest extends ActorTest {
   //TODO this test with not send HitHint packets because LivePlayers is not being allocated for the players in the zone
-  val guid = new NumberPoolHub(new LimitedNumberSource(10))
+  val guid = new NumberPoolHub(new MaxNumberSource(10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
 
@@ -730,7 +730,7 @@ class DamageableMountableDestroyTest extends ActorTest {
 }
 
 class DamageableWeaponTurretDamageTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(10))
+  val guid = new NumberPoolHub(new MaxNumberSource(10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)
@@ -823,7 +823,7 @@ class DamageableWeaponTurretDamageTest extends ActorTest {
 }
 
 class DamageableWeaponTurretJammerTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(10))
+  val guid = new NumberPoolHub(new MaxNumberSource(10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)
@@ -918,7 +918,7 @@ class DamageableWeaponTurretJammerTest extends ActorTest {
 }
 
 class DamageableWeaponTurretDestructionTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(10))
+  val guid = new NumberPoolHub(new MaxNumberSource(10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)
@@ -1069,7 +1069,7 @@ class DamageableWeaponTurretDestructionTest extends ActorTest {
 }
 
 class DamageableVehicleDamageTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(10))
+  val guid = new NumberPoolHub(new MaxNumberSource(10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)
@@ -1174,7 +1174,7 @@ class DamageableVehicleDamageTest extends ActorTest {
 }
 
 class DamageableVehicleDamageMountedTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(15))
+  val guid = new NumberPoolHub(new MaxNumberSource(15))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)
@@ -1315,7 +1315,7 @@ class DamageableVehicleDamageMountedTest extends ActorTest {
 }
 
 class DamageableVehicleJammeringMountedTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(15))
+  val guid = new NumberPoolHub(new MaxNumberSource(15))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)
@@ -1428,7 +1428,7 @@ class DamageableVehicleJammeringMountedTest extends ActorTest {
 }
 
 class DamageableVehicleDestroyTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(10))
+  val guid = new NumberPoolHub(new MaxNumberSource(10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)
@@ -1531,7 +1531,7 @@ class DamageableVehicleDestroyTest extends ActorTest {
 }
 
 class DamageableVehicleDestroyMountedTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(15))
+  val guid = new NumberPoolHub(new MaxNumberSource(15))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)

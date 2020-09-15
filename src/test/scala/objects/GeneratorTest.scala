@@ -8,7 +8,7 @@ import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.ballistics._
 import net.psforever.objects.{GlobalDefinitions, Player, Tool}
 import net.psforever.objects.guid.NumberPoolHub
-import net.psforever.objects.guid.source.LimitedNumberSource
+import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.generator.{Generator, GeneratorControl}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
@@ -46,7 +46,7 @@ class GeneratorControlConstructTest extends ActorTest {
 }
 
 class GeneratorControlDamageTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(5))
+  val guid = new NumberPoolHub(new MaxNumberSource(5))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)
@@ -128,7 +128,7 @@ class GeneratorControlDamageTest extends ActorTest {
 }
 
 class GeneratorControlCriticalTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(5))
+  val guid = new NumberPoolHub(new MaxNumberSource(5))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)
@@ -218,7 +218,7 @@ class GeneratorControlCriticalTest extends ActorTest {
 }
 
 class GeneratorControlDestroyedTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(5))
+  val guid = new NumberPoolHub(new MaxNumberSource(5))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)
@@ -341,7 +341,7 @@ class GeneratorControlKillsTest extends ActorTest {
   but its SOI information can be loaded with the players manually
   the players need something to catch the die message
    */
-  val guid = new NumberPoolHub(new LimitedNumberSource(5))
+  val guid = new NumberPoolHub(new MaxNumberSource(5))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)
@@ -478,7 +478,7 @@ class GeneratorControlKillsTest extends ActorTest {
 }
 
 class GeneratorControlNotDestroyTwice extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(10))
+  val guid = new NumberPoolHub(new MaxNumberSource(10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
 
@@ -561,7 +561,7 @@ class GeneratorControlNotDestroyTwice extends ActorTest {
 }
 
 class GeneratorControlNotDamageIfExplodingTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(5))
+  val guid = new NumberPoolHub(new MaxNumberSource(5))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)
@@ -655,7 +655,7 @@ class GeneratorControlNotDamageIfExplodingTest extends ActorTest {
 }
 
 class GeneratorControlNotRepairIfExplodingTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(5))
+  val guid = new NumberPoolHub(new MaxNumberSource(5))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)
@@ -753,7 +753,7 @@ class GeneratorControlNotRepairIfExplodingTest extends ActorTest {
 }
 
 class GeneratorControlRepairPastRestorePoint extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(5))
+  val guid = new NumberPoolHub(new MaxNumberSource(5))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)

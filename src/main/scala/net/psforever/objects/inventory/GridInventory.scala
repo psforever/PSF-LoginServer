@@ -191,8 +191,7 @@ class GridInventory extends Container {
     } else {
       val collisions: mutable.Set[InventoryItem] = mutable.Set[InventoryItem]()
       items
-        .map { case (_, item: InventoryItem) => item }
-        .foreach { item: InventoryItem =>
+        .foreach { case (_, item: InventoryItem) =>
           val actualItemStart: Int = item.start - offset
           val itemx: Int           = actualItemStart % width
           val itemy: Int           = actualItemStart / width
@@ -542,8 +541,8 @@ class GridInventory extends Container {
     //lists with multiple entries represent a group of items that collide
     //perform a specific distinct on the list of lists of numeric id overlaps
     //THEN map each list of list's item id to an item
-    val out = testGrid.collect {
-      case (_, list) if list.size > 1 => list.sortWith(_ < _)
+    val out = testGrid.values.collect {
+      case list if list.size > 1 => list.sortWith(_ < _)
     }
     recursiveRelatedListCollisions(out.iterator, out.toList).map { list => list.map { items } }
   }

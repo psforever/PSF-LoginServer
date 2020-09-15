@@ -17,7 +17,7 @@ import scala.concurrent.duration._
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
-import net.psforever.objects.guid.source.LimitedNumberSource
+import net.psforever.objects.guid.source.MaxNumberSource
 
 class AvatarService1Test extends ActorTest {
   "AvatarService" should {
@@ -512,7 +512,7 @@ class AvatarReleaseTest extends ActorTest {
   val zone = new Zone("test", new ZoneMap("test-map"), 0) {
     override def SetupNumberPools() = { AddPool("dynamic", 1 to 10) }
   }
-  val guid1: NumberPoolHub = new NumberPoolHub(new LimitedNumberSource(100))
+  val guid1: NumberPoolHub = new NumberPoolHub(new MaxNumberSource(100))
   zone.GUID(guid1)
   val service      = system.actorOf(Props(classOf[AvatarService], zone), "release-test-service")
   zone.actor = system.spawn(ZoneActor(zone), "release-test-zone")
@@ -564,7 +564,7 @@ class AvatarReleaseEarly1Test extends ActorTest {
   val zone = new Zone("test", new ZoneMap("test-map"), 0) {
     override def SetupNumberPools() = { AddPool("dynamic", 1 to 10) }
   }
-  val guid1: NumberPoolHub = new NumberPoolHub(new LimitedNumberSource(100))
+  val guid1: NumberPoolHub = new NumberPoolHub(new MaxNumberSource(100))
   zone.GUID(guid1)
   val service      = system.actorOf(Props(classOf[AvatarService], zone), "release-test-service")
   zone.actor = system.spawn(ZoneActor(zone), "release-test-zone")
@@ -617,7 +617,7 @@ class AvatarReleaseEarly2Test extends ActorTest {
   val zone = new Zone("test", new ZoneMap("test-map"), 0) {
     override def SetupNumberPools() = { AddPool("dynamic", 1 to 10) }
   }
-  val guid1: NumberPoolHub = new NumberPoolHub(new LimitedNumberSource(100))
+  val guid1: NumberPoolHub = new NumberPoolHub(new MaxNumberSource(100))
   zone.GUID(guid1)
   val service      = system.actorOf(Props(classOf[AvatarService], zone), "release-test-service")
   zone.actor = system.spawn(ZoneActor(zone), "release-test-zone")

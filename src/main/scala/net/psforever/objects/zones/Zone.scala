@@ -12,7 +12,7 @@ import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.actor.UniqueNumberSystem
 import net.psforever.objects.guid.key.LoanedKey
 import net.psforever.objects.guid.selector.RandomSelector
-import net.psforever.objects.guid.source.LimitedNumberSource
+import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.inventory.Container
 import net.psforever.objects.serverobject.painbox.{Painbox, PainboxDefinition}
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
@@ -73,7 +73,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
   private var accessor: ActorRef = ActorRef.noSender
 
   /** The basic support structure for the globally unique number system used by this `Zone`. */
-  private var guid: NumberPoolHub = new NumberPoolHub(new LimitedNumberSource(65536))
+  private var guid: NumberPoolHub = new NumberPoolHub(new MaxNumberSource(65536))
 
   /** A synchronized `List` of items (`Equipment`) dropped by players on the ground and can be collected again. */
   private val equipmentOnGround: ListBuffer[Equipment] = ListBuffer[Equipment]()
@@ -322,6 +322,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     guid.AddPool("f", (30001 to 35000).toList).Selector = new RandomSelector
     guid.AddPool("g", (35001 until 40100).toList).Selector = new RandomSelector
     guid.AddPool("projectiles", (Projectile.baseUID until Projectile.rangeUID).toList)
+    guid.AddPool("locker-contents", (40150 until 40450).toList).Selector = new RandomSelector
     //TODO disabled temporarily to lighten load times
     //guid.AddPool("h", (40150 to 45000).toList).Selector = new RandomSelector
     //guid.AddPool("i", (45001 to 50000).toList).Selector = new RandomSelector
@@ -358,12 +359,12 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
           building match {
             case warpGate: WarpGate =>
               warpGate.Faction == faction || warpGate.Faction == PlanetSideEmpire.NEUTRAL || warpGate.Broadcast
-            case building =>
+            case _ =>
               building.Faction == faction
           }
       }
       .map {
-        case (building, spawns) =>
+        case (building, spawns: List[SpawnPoint]) =>
           (building, spawns.filter(!_.Offline))
       }
       .concat(

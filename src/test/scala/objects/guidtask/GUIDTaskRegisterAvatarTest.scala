@@ -5,6 +5,7 @@ import base.ActorTest
 import net.psforever.objects._
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
+import net.psforever.objects.locker.LockerEquipment
 import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire}
 
 class GUIDTaskRegisterAvatarTest extends ActorTest {
@@ -26,7 +27,7 @@ class GUIDTaskRegisterAvatarTest extends ActorTest {
     assert(!obj_wep_ammo.HasGUID)
     assert(!obj_inv_ammo.HasGUID)
     assert(!obj_locker.HasGUID)
-    assert(!obj_locker_ammo.HasGUID)
+    assert(obj_locker_ammo.HasGUID)
     taskResolver ! TaskResolver.GiveTask(
       new GUIDTaskTest.RegisterTestTask(probe.ref),
       List(GUIDTask.RegisterAvatar(obj)(uns))

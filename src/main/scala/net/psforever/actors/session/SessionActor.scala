@@ -8,8 +8,11 @@ import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
 import akka.pattern.ask
 import akka.util.Timeout
 import java.util.concurrent.TimeUnit
+
 import MDCContextAware.Implicits._
+import net.psforever.objects.locker.LockerContainer
 import org.log4s.MDC
+
 import scala.collection.mutable
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
@@ -359,13 +362,29 @@ class SessionActor extends Actor with MDCContextAware {
 
   def ValidObject(id: Option[PlanetSideGUID]): Option[PlanetSideGameObject] =
     continent.GUID(id) match {
+      case Some(obj: LocalProjectile) =>
+        FindProjectileEntry(id.get)
+
+      case Some(_: LocalLockerItem) =>
+        player.avatar.locker.Inventory.hasItem(id.get) match {
+          case out @ Some(_) =>
+            out
+          case None =>
+            //delete stale entity reference from client
+            log.warn(s"${player.Name} has an invalid reference to GUID ${id.get} in zone ${continent.id}")
+            sendResponse(ObjectDeleteMessage(id.get, 0))
+            None
+        }
+
       case out @ Some(obj) if obj.HasGUID =>
         out
+
       case None if id.nonEmpty && id.get != PlanetSideGUID(0) =>
         //delete stale entity reference from client
-        log.warn(s"Player ${player.Name} has an invalid reference to GUID ${id.get} in zone ${continent.id}.")
+        log.warn(s"${player.Name} has an invalid reference to GUID ${id.get} in zone ${continent.id}")
         sendResponse(ObjectDeleteMessage(id.get, 0))
         None
+
       case _ =>
         None
     }
@@ -1893,7 +1912,7 @@ class SessionActor extends Actor with MDCContextAware {
         continent.GUID(mount) match {
           case Some(obj: Vehicle) =>
             TotalDriverVehicleControl(obj)
-            UnAccessContents(obj)
+            UnaccessContainer(obj)
           case _ => ;
         }
         PlayerActionsToCancel()
@@ -2480,7 +2499,7 @@ class SessionActor extends Actor with MDCContextAware {
           // the player will receive no messages consistently except the KeepAliveMessage echo
           keepAliveFunc = KeepAlivePersistence
         }
-        AccessContents(obj)
+        AccessContainer(obj)
         UpdateWeaponAtSeatPosition(obj, seat_num)
         MountingAction(tplayer, obj, seat_num)
 
@@ -2516,7 +2535,7 @@ class SessionActor extends Actor with MDCContextAware {
         DismountAction(tplayer, obj, seat_num)
 
       case Mountable.CanDismount(obj: Vehicle, seat_num) if obj.Definition == GlobalDefinitions.droppod =>
-        UnAccessContents(obj)
+        UnaccessContainer(obj)
         DismountAction(tplayer, obj, seat_num)
 
       case Mountable.CanDismount(obj: Vehicle, seat_num) =>
@@ -2524,7 +2543,7 @@ class SessionActor extends Actor with MDCContextAware {
         if (player_guid == player.GUID) {
           //disembarking self
           TotalDriverVehicleControl(obj)
-          UnAccessContents(obj)
+          UnaccessContainer(obj)
           DismountAction(tplayer, obj, seat_num)
         } else {
           continent.VehicleEvents ! VehicleServiceMessage(
@@ -2735,7 +2754,7 @@ class SessionActor extends Actor with MDCContextAware {
         if (tplayer_guid == guid) {
           continent.GUID(vehicle_guid) match {
             case Some(obj: Vehicle) =>
-              UnAccessContents(obj)
+              UnaccessContainer(obj)
             case _ => ;
           }
         }
@@ -3779,9 +3798,7 @@ class SessionActor extends Actor with MDCContextAware {
               val guid = player.GUID
               sendResponse(UnuseItemMessage(guid, veh.GUID))
               sendResponse(UnuseItemMessage(guid, guid))
-              veh.AccessingTrunk = None
-              UnAccessContents(veh)
-              accessedContainer = None
+              UnaccessContainer(veh)
             }
           case Some(container) => //just in case
             if (isMovingPlus) {
@@ -3791,7 +3808,7 @@ class SessionActor extends Actor with MDCContextAware {
                 sendResponse(UnuseItemMessage(guid, container.GUID))
               }
               sendResponse(UnuseItemMessage(guid, guid))
-              accessedContainer = None
+              UnaccessContainer(container)
             }
           case None => ;
         }
@@ -4384,25 +4401,20 @@ class SessionActor extends Actor with MDCContextAware {
           case Some(obj: Equipment) =>
             FindEquipmentToDelete(object_guid, obj)
 
-          case Some(_: LocalProjectile) =>
-            FindProjectileEntry(object_guid) match {
-              case Some(projectile) =>
-                if (projectile.isResolved) {
-                  log.warn(
-                    s"RequestDestroy: tried to clean up projectile ${object_guid.guid} but it was already resolved"
-                  )
-                } else {
-                  projectile.Miss()
-                  if (projectile.profile.ExistsOnRemoteClients && projectile.HasGUID) {
-                    continent.AvatarEvents ! AvatarServiceMessage(
-                      continent.id,
-                      AvatarAction.ProjectileExplodes(player.GUID, projectile.GUID, projectile)
-                    )
-                    taskResolver ! UnregisterProjectile(projectile)
-                  }
-                }
-              case None =>
-                log.warn(s"RequestDestroy: projectile ${object_guid.guid} has never been fired")
+          case Some(obj: Projectile) =>
+            if (obj.isResolved) {
+              log.warn(
+                s"RequestDestroy: tried to clean up projectile ${object_guid.guid} but it was already resolved"
+              )
+            } else {
+              obj.Miss()
+              if (obj.profile.ExistsOnRemoteClients && obj.HasGUID) {
+                continent.AvatarEvents ! AvatarServiceMessage(
+                  continent.id,
+                  AvatarAction.ProjectileExplodes(player.GUID, obj.GUID, obj)
+                )
+                taskResolver ! UnregisterProjectile(obj)
+              }
             }
 
           case Some(obj: BoomerDeployable) =>
@@ -4463,7 +4475,7 @@ class SessionActor extends Actor with MDCContextAware {
             Some(destination: PlanetSideServerObject with Container),
             Some(item: Equipment)
             ) =>
-            source.Actor ! Containable.MoveItem(destination, item, dest)
+            ContainableMoveItem(taskResolver, player.Name, source, destination, item, dest)
           case (None, _, _) =>
             log.error(s"MoveItem: wanted to move $item_guid from $source_guid, but could not find source object")
           case (_, None, _) =>
@@ -4500,7 +4512,7 @@ class SessionActor extends Actor with MDCContextAware {
               destination.Fit(item)
             ) match {
               case (Some((source, Some(_))), Some(dest)) =>
-                source.Actor ! Containable.MoveItem(destination, item, dest)
+                ContainableMoveItem(taskResolver, player.Name, source, destination, item, dest)
               case (None, _) =>
                 log.error(s"LootItem: can not find where $item is put currently")
               case (_, None) =>
@@ -4610,7 +4622,7 @@ class SessionActor extends Actor with MDCContextAware {
                     itemType
                   )
                 )
-                accessedContainer = Some(obj)
+                AccessContainer(obj)
               }
             } else if (!unk3 && player.isAlive) { //potential kit use
               ValidObject(item_used_guid) match {
@@ -4759,13 +4771,12 @@ class SessionActor extends Actor with MDCContextAware {
               case None if locker.Faction == player.Faction || !locker.HackedBy.isEmpty =>
                 log.trace(s"UseItem: ${player.Name} accessing a locker")
                 CancelZoningProcessWithDescriptiveReason("cancel_use")
-                val container = player.avatar.locker
-                accessedContainer = Some(container)
+                val playerLocker = player.avatar.locker
                 sendResponse(
                   UseItemMessage(
                     avatar_guid,
                     item_used_guid,
-                    container.GUID,
+                    playerLocker.GUID,
                     unk2,
                     unk3,
                     unk4,
@@ -4776,6 +4787,7 @@ class SessionActor extends Actor with MDCContextAware {
                     456
                   )
                 )
+                AccessContainer(playerLocker)
               case _ => ;
             }
 
@@ -4827,8 +4839,7 @@ class SessionActor extends Actor with MDCContextAware {
                 ) {
                   CancelZoningProcessWithDescriptiveReason("cancel_use")
                   obj.AccessingTrunk = player.GUID
-                  accessedContainer = Some(obj)
-                  AccessContents(obj)
+                  AccessContainer(obj)
                   sendResponse(
                     UseItemMessage(
                       avatar_guid,
@@ -5044,19 +5055,16 @@ class SessionActor extends Actor with MDCContextAware {
 
       case msg @ UnuseItemMessage(player_guid, object_guid) =>
         log.info(s"UnuseItem: $msg")
-        //TODO check for existing accessedContainer value?
         ValidObject(object_guid) match {
-          case Some(obj: Vehicle) =>
-            if (obj.AccessingTrunk.contains(player.GUID)) {
-              obj.AccessingTrunk = None
-              UnAccessContents(obj)
-            }
           case Some(obj: Player) =>
+            UnaccessContainer(obj)
             TryDisposeOfLootedCorpse(obj)
+
+          case Some(obj: Container) =>
+            UnaccessContainer(obj)
 
           case _ => ;
         }
-        accessedContainer = None
 
       case msg @ DeployObjectMessage(guid, unk1, pos, orient, unk2) =>
         log.info(s"DeployObject: $msg")
@@ -5757,7 +5765,8 @@ class SessionActor extends Actor with MDCContextAware {
     }
 
   /**
-    * Construct tasking that registers all aspects of a `Player` avatar.
+    * Construct tasking that registers all aspects of a `Player` avatar
+    * as if that player is only just being introduced.
     * `Players` are complex objects that contain a variety of other register-able objects and each of these objects much be handled.
     * @param tplayer the avatar `Player`
     * @return a `TaskResolver.GiveTask` message
@@ -5785,7 +5794,7 @@ class SessionActor extends Actor with MDCContextAware {
         }
 
         override def onFailure(ex: Throwable): Unit = {
-          localAnnounce ! PlayerFailedToLoad(localPlayer) //alerts WorldSessionActor
+          localAnnounce ! PlayerFailedToLoad(localPlayer) //alerts SessionActor
         }
       },
       List(GUIDTask.RegisterAvatar(tplayer)(continent.GUID))
@@ -5793,7 +5802,8 @@ class SessionActor extends Actor with MDCContextAware {
   }
 
   /**
-    * Construct tasking that registers all aspects of a `Player` avatar.
+    * Construct tasking that registers all aspects of a `Player` avatar
+    * as if that player was already introduced and is just being renewed.
     * `Players` are complex objects that contain a variety of other register-able objects and each of these objects much be handled.
     * @param tplayer the avatar `Player`
     * @return a `TaskResolver.GiveTask` message
@@ -5872,7 +5882,7 @@ class SessionActor extends Actor with MDCContextAware {
     * Additionally, the driver is only partially associated with the vehicle at this time.
     * `interstellarFerry` is properly keeping track of the vehicle during the transition
     * and the user who is the driver (second param) is properly seated
-    * but the said driver does not know about the vehicle through his usual convention - VehicleSeated` - yet.
+    * but the said driver does not know about the vehicle through his usual convention - `VehicleSeated` - yet.
     * @see `GlobalDefinitions.droppod`
     * @see `GUIDTask.RegisterObjectTask`
     * @see `interstellarFerry`
@@ -5975,10 +5985,10 @@ class SessionActor extends Actor with MDCContextAware {
         }
 
         override def onFailure(ex: Throwable): Unit = {
-          localAnnounce ! PlayerFailedToLoad(localDriver) //alerts WorldSessionActor
+          localAnnounce ! PlayerFailedToLoad(localDriver) //alerts SessionActor
         }
       },
-      List(GUIDTask.RegisterAvatar(driver)(continent.GUID), GUIDTask.RegisterVehicle(obj)(continent.GUID))
+      List(RegisterNewAvatar(driver), GUIDTask.RegisterVehicle(obj)(continent.GUID))
     )
   }
 
@@ -6115,31 +6125,79 @@ class SessionActor extends Actor with MDCContextAware {
     )
   }
 
+  def AccessContainer(container: Container): Unit = {
+    container match {
+      case v: Vehicle =>
+        AccessVehicleContents(v)
+      case o: LockerContainer =>
+        AccessGenericContainer(o)
+      case p: PlanetSideServerObject with Container =>
+        accessedContainer = Some(p)
+      case _ => ;
+    }
+  }
+
+  def AccessGenericContainer(container: PlanetSideServerObject with Container): Unit = {
+    accessedContainer = Some(container)
+    DisplayContainerContents(container.GUID, container)
+  }
+
   /**
     * Common preparation for interfacing with a vehicle.
     * Join a vehicle-specific group for shared updates.
     * Construct every object in the vehicle's inventory for shared manipulation updates.
     * @param vehicle the vehicle
     */
-  def AccessContents(vehicle: Vehicle): Unit = {
-    AccessContentsChannel(vehicle)
-    val parent_guid = vehicle.GUID
-    vehicle.Trunk.Items.foreach(entry => {
-      val obj    = entry.obj
-      val objDef = obj.Definition
-      sendResponse(
-        ObjectCreateDetailedMessage(
-          objDef.ObjectId,
-          obj.GUID,
-          ObjectCreateMessageParent(parent_guid, entry.start),
-          objDef.Packet.DetailedConstructorData(obj).get
-        )
-      )
-    })
+  def AccessVehicleContents(vehicle: Vehicle): Unit = {
+    accessedContainer = Some(vehicle)
+    if(vehicle.AccessingTrunk.isEmpty) {
+      vehicle.AccessingTrunk = Some(player.GUID)
+    }
+    AccessVehicleContainerChannel(vehicle)
+    DisplayContainerContents(vehicle.GUID, vehicle)
   }
 
-  def AccessContentsChannel(container: PlanetSideServerObject): Unit = {
+  def AccessVehicleContainerChannel(container: PlanetSideServerObject): Unit = {
     continent.VehicleEvents ! Service.Join(s"${container.Actor}")
+  }
+
+  def DisplayContainerContents(containerId: PlanetSideGUID, container: Container): Unit = {
+   container.Inventory.Items.foreach(entry => {
+     val obj    = entry.obj
+     val objDef = obj.Definition
+     sendResponse(
+       ObjectCreateDetailedMessage(
+         objDef.ObjectId,
+         obj.GUID,
+         ObjectCreateMessageParent(containerId, entry.start),
+         objDef.Packet.DetailedConstructorData(obj).get
+       )
+     )
+   })
+  }
+
+  def UnaccessContainer(): Unit = {
+    accessedContainer match {
+      case Some(container) => UnaccessContainer(container)
+      case _ => ;
+    }
+  }
+
+  def UnaccessContainer(container: Container): Unit = {
+    container match {
+      case v: Vehicle =>
+        UnaccessVehicleContainer(v)
+      case o: LockerContainer =>
+        UnaccessGenericContainer(o)
+      case _: PlanetSideServerObject with Container =>
+        accessedContainer = None
+      case _ => ;
+    }
+  }
+
+  def UnaccessGenericContainer(container: Container): Unit = {
+    accessedContainer = None
+    HideContainerContents(container)
   }
 
   /**
@@ -6148,15 +6206,23 @@ class SessionActor extends Actor with MDCContextAware {
     * Deconstruct every object in the vehicle's inventory.
     * @param vehicle the vehicle
     */
-  def UnAccessContents(vehicle: Vehicle): Unit = {
-    continent.VehicleEvents ! Service.Leave(Some(s"${vehicle.Actor}"))
-    vehicle.Trunk.Items.foreach(entry => {
-      sendResponse(ObjectDeleteMessage(entry.obj.GUID, 0))
-    })
+  def UnaccessVehicleContainer(vehicle: Vehicle): Unit = {
+    accessedContainer = None
+    if(vehicle.AccessingTrunk.contains(player.GUID)) {
+      vehicle.AccessingTrunk = None
+    }
+    UnaccessVehicleContainerChannel(vehicle)
+    HideContainerContents(vehicle)
   }
 
-  def UnAccessContentsChannel(container: PlanetSideServerObject): Unit = {
+  def UnaccessVehicleContainerChannel(container: PlanetSideServerObject): Unit = {
     continent.VehicleEvents ! Service.Leave(Some(s"${container.Actor}"))
+  }
+
+  def HideContainerContents(container: Container): Unit = {
+    container.Inventory.Items.foreach(entry => {
+      sendResponse(ObjectDeleteMessage(entry.obj.GUID, 0))
+    })
   }
 
   /**
@@ -6813,19 +6879,7 @@ class SessionActor extends Actor with MDCContextAware {
     progressBarUpdate.cancel()
     progressBarValue = None
     lastTerminalOrderFulfillment = true
-    accessedContainer match {
-      case Some(obj: Vehicle) =>
-        if (obj.AccessingTrunk.contains(player.GUID)) {
-          obj.AccessingTrunk = None
-          UnAccessContents(obj)
-        }
-        accessedContainer = None
-
-      case Some(_) =>
-        accessedContainer = None
-
-      case None => ;
-    }
+    UnaccessContainer()
     prefire.orElse(shooting) match {
       case Some(guid) =>
         sendResponse(ChangeFireStateMessage_Stop(guid))
@@ -7030,7 +7084,7 @@ class SessionActor extends Actor with MDCContextAware {
     * and is permitted to introduce the avatar to the vehicle's internal settings in a similar way.
     * Neither the player avatar nor the vehicle should be reconstructed before the next zone load operation
     * to avoid damaging the critical setup of this function.
-    * @see `AccessContents`
+    * @see `AccessContainer`
     * @see `UpdateWeaponAtSeatPosition`
     * @param tplayer the player avatar seated in the vehicle's seat
     * @param vehicle the vehicle the player is riding
@@ -7046,7 +7100,7 @@ class SessionActor extends Actor with MDCContextAware {
     sendResponse(ObjectCreateDetailedMessage(pdef.ObjectId, pguid, pdata))
     if (seat == 0 || vehicle.Seats(seat).ControlledWeapon.nonEmpty) {
       sendResponse(ObjectAttachMessage(vguid, pguid, seat))
-      AccessContents(vehicle)
+      AccessContainer(vehicle)
       UpdateWeaponAtSeatPosition(vehicle, seat)
     } else {
       interimUngunnedVehicle = Some(vguid)
@@ -7120,7 +7174,7 @@ class SessionActor extends Actor with MDCContextAware {
         //log.info(s"AvatarRejoin: $vguid -> $vdata")
         if (seat == 0 || vehicle.Seats(seat).ControlledWeapon.nonEmpty) {
           sendResponse(ObjectAttachMessage(vguid, pguid, seat))
-          AccessContents(vehicle)
+          AccessContainer(vehicle)
           UpdateWeaponAtSeatPosition(vehicle, seat)
         } else {
           interimUngunnedVehicle = Some(vguid)
@@ -8203,6 +8257,7 @@ class SessionActor extends Actor with MDCContextAware {
   /**
     * A simple object searching algorithm that is limited to containers currently known and accessible by the player.
     * If all relatively local containers are checked and the object is not found,
+    * the player's locker inventory will be checked, and then
     * the game environment (items on the ground) will be checked too.
     * If the target object is discovered, it is removed from its current location and is completely destroyed.
     * @see `RequestDestroyMessage`<br>
@@ -8218,8 +8273,7 @@ class SessionActor extends Actor with MDCContextAware {
     : PlanetSideServerObject with Container => Option[(PlanetSideServerObject with Container, Option[Int])] =
       FindInLocalContainer(object_guid)
 
-    findFunc(player.avatar.locker)
-      .orElse(findFunc(player))
+    findFunc(player)
       .orElse(accessedContainer match {
         case Some(parent: PlanetSideServerObject) =>
           findFunc(parent)
@@ -8239,7 +8293,11 @@ class SessionActor extends Actor with MDCContextAware {
         true
 
       case _ =>
-        if (continent.EquipmentOnGround.contains(obj)) {
+        if (player.avatar.locker.Inventory.Remove(object_guid)) {
+          sendResponse(ObjectDeleteMessage(object_guid, 0))
+          log.info(s"RequestDestroy: equipment $obj")
+          true
+        } else if (continent.EquipmentOnGround.contains(obj)) {
           obj.Position = Vector3.Zero
           continent.Ground ! Zone.Ground.RemoveItem(object_guid)
           continent.AvatarEvents ! AvatarServiceMessage.Ground(RemoverActor.ClearSpecific(List(obj), continent))
@@ -8440,7 +8498,7 @@ class SessionActor extends Actor with MDCContextAware {
       if (player.isBackpack) {
         session = session.copy(player = targetPlayer)
         taskThenZoneChange(
-          GUIDTask.UnregisterLocker(original.avatar.locker)(continent.GUID),
+          GUIDTask.UnregisterObjectTask(original.avatar.locker)(continent.GUID),
           InterstellarClusterService.FindZone(_.id == zoneId, context.self)
         )
       } else if (player.HasGUID) {
@@ -8545,12 +8603,12 @@ class SessionActor extends Actor with MDCContextAware {
         InterstellarClusterService.FindZone(_.id == zoneId, context.self)
       )
     } else {
-      UnAccessContents(vehicle)
+      UnaccessContainer(vehicle)
       LoadZoneCommonTransferActivity()
       player.VehicleSeated = vehicle.GUID
       player.Continent = zoneId //forward-set the continent id to perform a test
       interstellarFerryTopLevelGUID =
-        (if (
+        if (
           manifest.passengers.isEmpty && manifest.cargo.count { case (name, _) => !name.equals("MISSING_DRIVER") } == 0
         ) {
           //do not delete if vehicle has passengers or cargo
@@ -8561,7 +8619,7 @@ class SessionActor extends Actor with MDCContextAware {
           None
         } else {
           Some(topLevel)
-        })
+        }
       //unregister vehicle and driver whole + GiveWorld
       continent.Transport ! Zone.Vehicle.Despawn(vehicle)
       taskThenZoneChange(
@@ -8586,12 +8644,12 @@ class SessionActor extends Actor with MDCContextAware {
     * A reference to the top-level ferrying vehicle's former globally unique identifier has been retained for this purpose.
     * This vehicle can be deleted for everyone if no more work can be detected.
     *
-    * @see `GUIDTask.UnregisterAvatar`
+    * @see `GUIDTask.UnregisterPlayer`
     * @see `LoadZoneCommonTransferActivity`
     * @see `Vehicles.AllGatedOccupantsInSameZone`
     * @see `PlayerLoaded`
     * @see `TaskBeforeZoneChange`
-    * @see `UnAccessContents`
+    * @see `UnaccessContainer`
     * @param vehicle the target vehicle being moved around
     * @param zoneId  the zone in which the vehicle and driver will be placed
     * @return a tuple composed of an `ActorRef` destination and a message to send to that destination
@@ -9209,7 +9267,7 @@ class SessionActor extends Actor with MDCContextAware {
   }
 
   /**
-    * The upstream counter accumulates when the server receives sp[ecific messages from the client.
+    * The upstream counter accumulates when the server receives specific messages from the client.
     * It counts upwards until it reach maximum value, and then starts over.
     * When it starts over, which should take an exceptionally long time to achieve,
     * it starts counting at one rather than zero.
@@ -9265,7 +9323,7 @@ class SessionActor extends Actor with MDCContextAware {
         case (Some(vehicle: Vehicle), Some(vguid), Some(seat)) =>
           //sit down
           sendResponse(ObjectAttachMessage(vguid, pguid, seat))
-          AccessContents(vehicle)
+          AccessContainer(vehicle)
           keepAliveFunc = KeepAlivePersistence
         case _ => ;
           //we can't find a vehicle? and we're still here? that's bad

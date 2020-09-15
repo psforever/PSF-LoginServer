@@ -14,13 +14,7 @@ class ProjectileTest extends Specification {
   val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
   val fury   = Vehicle(GlobalDefinitions.fury)
 
-  "LocalProjectile" should {
-    "construct" in {
-      val obj = new LocalProjectile() //since they're just placeholders, they only need to construct
-      obj.Definition.ObjectId mustEqual 0
-      obj.Definition.Name mustEqual "projectile"
-    }
-
+  "Range" should {
     "local projectile range" in {
       Projectile.baseUID < Projectile.rangeUID mustEqual true
     }

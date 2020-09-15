@@ -73,7 +73,7 @@ object NumberPoolActor {
   final case class NoNumber(ex: Throwable, id: Option[Any] = None)
 
   /**
-    * A message to invoke the `Return` functionality of the current `NumberSelector`.
+    * A message to invoke the `returnNumber` functionality of the current `NumberSelector`.
     * @param number the number
     */
   final case class ReturnNumber(number: Int, id: Option[Any] = None)

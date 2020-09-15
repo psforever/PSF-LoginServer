@@ -12,9 +12,9 @@ import net.psforever.objects.guid.AvailabilityPolicy
 class LoanedKey(private val guid: Int, private val key: Monitor) {
   def GUID: Int = guid
 
-  def Policy: AvailabilityPolicy.Value = key.Policy
+  def Policy: AvailabilityPolicy.Value = key.policy
 
-  def Object: Option[IdentifiableEntity] = key.Object
+  def Object: Option[IdentifiableEntity] = key.obj
 
   /**
     * na
@@ -30,18 +30,18 @@ class LoanedKey(private val guid: Int, private val key: Monitor) {
     */
   def Object_=(obj: Option[IdentifiableEntity]): Option[IdentifiableEntity] = {
     if (
-      key.Policy == AvailabilityPolicy.Leased || (key.Policy == AvailabilityPolicy.Restricted && key.Object.isEmpty)
+      key.policy == AvailabilityPolicy.Leased || (key.policy == AvailabilityPolicy.Restricted && key.obj.isEmpty)
     ) {
-      if (key.Object.isDefined) {
-        key.Object.get.Invalidate()
-        key.Object = None
+      if (key.obj.isDefined) {
+        key.obj.get.Invalidate()
+        key.obj = None
       }
-      key.Object = obj
+      key.obj = obj
       if (obj.isDefined) {
         import net.psforever.types.PlanetSideGUID
         obj.get.GUID = PlanetSideGUID(guid)
       }
     }
-    key.Object
+    key.obj
   }
 }

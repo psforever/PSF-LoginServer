@@ -7,7 +7,7 @@ import base.ActorTest
 import net.psforever.objects._
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.guid.NumberPoolHub
-import net.psforever.objects.guid.source.LimitedNumberSource
+import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.generator.{Generator, GeneratorControl}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
@@ -28,7 +28,7 @@ essentially, treat it more as a generic entity whose object type is repairable
 see GeneratorTest in relation to what the generator does above and beyond that during repair
  */
 class RepairableEntityRepairTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(10))
+  val guid = new NumberPoolHub(new MaxNumberSource(10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
 
@@ -100,7 +100,7 @@ class RepairableEntityRepairTest extends ActorTest {
 }
 
 class RepairableEntityNotRepairTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(10))
+  val guid = new NumberPoolHub(new MaxNumberSource(10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
 
@@ -141,7 +141,7 @@ class RepairableEntityNotRepairTest extends ActorTest {
 }
 
 class RepairableAmenityTest extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(10))
+  val guid = new NumberPoolHub(new MaxNumberSource(10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
 
@@ -229,7 +229,7 @@ class RepairableAmenityTest extends ActorTest {
 }
 
 class RepairableTurretWeapon extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(10))
+  val guid = new NumberPoolHub(new MaxNumberSource(10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)
@@ -323,7 +323,7 @@ class RepairableTurretWeapon extends ActorTest {
 }
 
 class RepairableVehicleRepair extends ActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(10))
+  val guid = new NumberPoolHub(new MaxNumberSource(10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)
@@ -396,7 +396,7 @@ class RepairableVehicleRestoration extends ActorTest {
   /*
   no messages are dispatched, in this case, because most vehicles are flagged to not be repairable if destroyed
    */
-  val guid = new NumberPoolHub(new LimitedNumberSource(10))
+  val guid = new NumberPoolHub(new MaxNumberSource(10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)

@@ -18,42 +18,51 @@ import net.psforever.objects.guid.key.{LoanedKey, SecureKey}
   * The purpose of a `NumberSource` is to help facilitate globally unique identifiers (GUID, pl. GUIDs).
   */
 trait NumberSource {
+  /**
+    * The maximum number that can be produced by this source.
+    * @return the max
+    */
+  def max: Int
 
   /**
     * The count of numbers allocated to this source.
     * @return the count
     */
-  def Size: Int
+  def size: Int
 
   /**
     * The count of numbers that can still be drawn.
     * @return the count
     */
-  def CountAvailable: Int
+  def countAvailable: Int
 
   /**
     * The count of numbers that can not be drawn.
     * @return the count
     */
-  def CountUsed: Int
+  def countUsed: Int
 
   /**
     * Is this number a member of this number source?
     * @param number the number
     * @return `true`, if it is a member; `false`, otherwise
     */
-  def Test(number: Int): Boolean = -1 < number && number < Size
+  def test(number: Int): Boolean
 
   /**
     * Produce an un-modifiable wrapper for the `Monitor` for this number.
     * @param number the number
     * @return the wrapped `Monitor`
     */
-  def Get(number: Int): Option[SecureKey]
+  def get(number: Int): Option[SecureKey]
 
-  //def GetAll(list : List[Int]) : List[SecureKey]
-
-  //def GetAll(p : Key => Boolean) : List[SecureKey]
+  /**
+    * Produce an un-modifiable wrapper for the `Monitor` for this entity,
+    * if the entity is discovered being represented in this source.
+    * @param obj the entity
+    * @return the wrapped `Monitor`
+    */
+  def get(obj: IdentifiableEntity) : Option[SecureKey]
 
   /**
     * Produce a modifiable wrapper for the `Monitor` for this number, only if the number has not been used.
@@ -61,15 +70,15 @@ trait NumberSource {
     * @param number the number
     * @return the wrapped `Monitor`, or `None`
     */
-  def Available(number: Int): Option[LoanedKey]
+  def getAvailable(number: Int): Option[LoanedKey]
 
   /**
     * Consume a wrapped `Monitor` and release its number from its previous assignment/use.
     * @param monitor the `Monitor`
     * @return any object previously using this `Monitor`
     */
-  def Return(monitor: SecureKey): Option[IdentifiableEntity] = {
-    Return(monitor.GUID)
+  def returnNumber(monitor: SecureKey): Option[IdentifiableEntity] = {
+    returnNumber(monitor.GUID)
   }
 
   /**
@@ -77,8 +86,8 @@ trait NumberSource {
     * @param monitor the `Monitor`
     * @return any object previously using this `Monitor`
     */
-  def Return(monitor: LoanedKey): Option[IdentifiableEntity] = {
-    Return(monitor.GUID)
+  def returnNumber(monitor: LoanedKey): Option[IdentifiableEntity] = {
+    returnNumber(monitor.GUID)
   }
 
   /**
@@ -86,21 +95,21 @@ trait NumberSource {
     * @param number the number
     * @return any object previously using this number
     */
-  def Return(number: Int): Option[IdentifiableEntity]
+  def returnNumber(number: Int): Option[IdentifiableEntity]
 
   /**
     * Produce a modifiable wrapper for the `Monitor` for this number, only if the number has not been used.
-    * This wrapped `Monitor` can only be assigned once and the number may not be `Return`ed to this source.
+    * This wrapped `Monitor` can only be assigned once and the number may not be `returnNumber`ed to this source.
     * @param number the number
     * @return the wrapped `Monitor`
     */
-  def Restrict(number: Int): Option[LoanedKey]
+  def restrictNumber(number: Int): Option[LoanedKey]
 
   /**
     * Numbers from this source may not longer be marked as `Restricted`.
     * @return the `List` of all numbers that have been restricted
     */
-  def FinalizeRestrictions: List[Int]
+  def finalizeRestrictions: List[Int]
 
   import net.psforever.objects.entity.IdentifiableEntity
 
@@ -110,5 +119,5 @@ trait NumberSource {
     * This is the only way to free `Monitors` that are marked as `Restricted`.
     * @return a `List` of assignments maintained by all the currently-used number `Monitors`
     */
-  def Clear(): List[IdentifiableEntity]
+  def clear(): List[IdentifiableEntity]
 }

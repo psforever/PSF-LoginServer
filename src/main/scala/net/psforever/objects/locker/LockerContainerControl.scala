@@ -1,69 +1,24 @@
-// Copyright (c) 2017 PSForever
-package net.psforever.objects
+// Copyright (c) 2020 PSForever
+package net.psforever.objects.locker
 
 import akka.actor.Actor
-import net.psforever.objects.definition.EquipmentDefinition
 import net.psforever.objects.equipment.Equipment
-import net.psforever.objects.inventory.{Container, GridInventory}
-import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.containable.{Containable, ContainableBehavior}
-import net.psforever.packet.game.{ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectDetachMessage}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
-import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
+import net.psforever.packet.game.{ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectDetachMessage}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 /**
-  * The companion of a `Locker` that is carried with a player
-  * masquerading as their sixth `EquipmentSlot` object and a sub-inventory item.
-  * The `Player` class refers to it as the "fifth slot" as its permanent slot number is encoded as `0x85`.
-  * The inventory of this object is accessed using a game world `Locker` object (`mb_locker`).
+  * A control agency mainly for manipulating the equipment stowed by a player in a `LockerContainer`
+  * and reporting back to a specific xchannel in the event system about these changes.
+  * @param locker the governed player-facing locker component
+  * @param toChannel the channel to which to publish events, typically the owning player's name
   */
-class LockerContainer extends PlanetSideServerObject with Container {
-  private var faction: PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
-  private val inventory                       = GridInventory(30, 20)
-
-  def Faction: PlanetSideEmpire.Value = faction
-
-  override def Faction_=(fact: PlanetSideEmpire.Value): PlanetSideEmpire.Value = {
-    faction = fact
-    Faction
-  }
-
-  def Inventory: GridInventory = inventory
-
-  def VisibleSlots: Set[Int] = Set.empty[Int]
-
-  def Definition: EquipmentDefinition = GlobalDefinitions.locker_container
-}
-
-object LockerContainer {
-  def apply(): LockerContainer = {
-    new LockerContainer()
-  }
-}
-
-class LockerEquipment(locker: LockerContainer) extends Equipment with Container {
-  private val obj = locker
-
-  override def GUID: PlanetSideGUID = obj.GUID
-
-  override def GUID_=(guid: PlanetSideGUID): PlanetSideGUID = obj.GUID_=(guid)
-
-  override def HasGUID: Boolean = obj.HasGUID
-
-  override def Invalidate(): Unit = obj.Invalidate()
-
-  override def Faction: PlanetSideEmpire.Value = obj.Faction
-
-  def Inventory: GridInventory = obj.Inventory
-
-  def VisibleSlots: Set[Int] = Set.empty[Int]
-
-  def Definition: EquipmentDefinition = obj.Definition
-}
-
-class LockerContainerControl(locker: LockerContainer, toChannel: String) extends Actor with ContainableBehavior {
+class LockerContainerControl(locker: LockerContainer, toChannel: String)
+  extends Actor
+  with ContainableBehavior {
   def ContainerObject = locker
 
   def receive: Receive =

@@ -2,8 +2,10 @@ package net.psforever.objects.avatar
 
 import net.psforever.objects.definition.{AvatarDefinition, BasicDefinition}
 import net.psforever.objects.equipment.{EquipmentSize, EquipmentSlot}
+import net.psforever.objects.inventory.LocallyRegisteredInventory
 import net.psforever.objects.loadouts.{Loadout, SquadLoadout}
-import net.psforever.objects.{GlobalDefinitions, LockerContainer, LockerEquipment, OffhandEquipmentSlot}
+import net.psforever.objects.locker.{LockerContainer, LockerEquipment}
+import net.psforever.objects.{GlobalDefinitions, OffhandEquipmentSlot}
 import net.psforever.types._
 import org.joda.time.{Duration, LocalDateTime, Seconds}
 
@@ -82,7 +84,11 @@ case class Avatar(
     loadouts: Seq[Option[Loadout]] = Seq.fill(15)(None),
     squadLoadouts: Seq[Option[SquadLoadout]] = Seq.fill(10)(None),
     implants: Seq[Option[Implant]] = Seq(None, None, None),
-    locker: LockerContainer = new LockerContainer(),          // TODO var bad
+    locker: LockerContainer = new LockerContainer({
+      val inv = new LocallyRegisteredInventory(numbers = 40150 until 40450) // TODO var bad
+      inv.Resize(30,20)
+      inv
+    }),
     deployables: DeployableToolbox = new DeployableToolbox(), // TODO var bad
     lookingForSquad: Boolean = false,
     var vehicle: Option[PlanetSideGUID] = None, // TODO var bad

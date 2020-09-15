@@ -7,6 +7,7 @@ import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.definition._
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
+import net.psforever.objects.locker.{LockerContainer, LockerEquipment}
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vehicles.UtilityType

@@ -1,9 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition.converter
 
-import net.psforever.objects.LockerEquipment
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.GridInventory
+import net.psforever.objects.locker.LockerEquipment
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 

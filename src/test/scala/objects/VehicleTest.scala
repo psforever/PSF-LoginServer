@@ -7,7 +7,7 @@ import base.{ActorTest, FreedContextActorTest}
 import net.psforever.objects._
 import net.psforever.objects.definition.{SeatDefinition, VehicleDefinition}
 import net.psforever.objects.guid.NumberPoolHub
-import net.psforever.objects.guid.source.LimitedNumberSource
+import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vital.VehicleShieldCharge
@@ -408,7 +408,7 @@ class VehicleControlPrepareForDeletionPassengerTest extends ActorTest {
 
 class VehicleControlPrepareForDeletionMountedInTest extends FreedContextActorTest {
   ServiceManager.boot
-  val guid = new NumberPoolHub(new LimitedNumberSource(10))
+  val guid = new NumberPoolHub(new MaxNumberSource(10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     GUID(guid)
 
@@ -534,7 +534,7 @@ class VehicleControlPrepareForDeletionMountedInTest extends FreedContextActorTes
 }
 
 class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActorTest {
-  val guid = new NumberPoolHub(new LimitedNumberSource(10))
+  val guid = new NumberPoolHub(new MaxNumberSource(10))
   ServiceManager.boot
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     GUID(guid)
