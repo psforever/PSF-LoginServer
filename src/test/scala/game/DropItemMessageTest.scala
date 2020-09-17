@@ -11,7 +11,7 @@ class DropItemMessageTest extends Specification {
   val string = hex"37 4C00"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case DropItemMessage(item_guid) =>
         item_guid mustEqual PlanetSideGUID(76)
       case _ =>
@@ -21,7 +21,7 @@ class DropItemMessageTest extends Specification {
 
   "encode" in {
     val msg = DropItemMessage(PlanetSideGUID(76))
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

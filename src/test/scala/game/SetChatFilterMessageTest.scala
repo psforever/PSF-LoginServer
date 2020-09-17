@@ -11,7 +11,7 @@ class SetChatFilterMessageTest extends Specification {
   val string_custom = hex"63 05C180"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case SetChatFilterMessage(send, origin, filters) =>
         send mustEqual ChatChannel.Local
         origin mustEqual true
@@ -31,7 +31,7 @@ class SetChatFilterMessageTest extends Specification {
   }
 
   "decode (custom)" in {
-    PacketCoding.DecodePacket(string_custom).require match {
+    PacketCoding.decodePacket(string_custom).require match {
       case SetChatFilterMessage(send, origin, filters) =>
         send mustEqual ChatChannel.Local
         origin mustEqual true
@@ -61,7 +61,7 @@ class SetChatFilterMessageTest extends Specification {
         ChatChannel.SquadLeader
       )
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }
@@ -84,7 +84,7 @@ class SetChatFilterMessageTest extends Specification {
         ChatChannel.SquadLeader
       )
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }
@@ -105,7 +105,7 @@ class SetChatFilterMessageTest extends Specification {
         ChatChannel.Local
       )
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }
@@ -116,7 +116,7 @@ class SetChatFilterMessageTest extends Specification {
       true,
       List(ChatChannel.Unknown, ChatChannel.Tells, ChatChannel.Broadcast, ChatChannel.SquadLeader)
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_custom
   }

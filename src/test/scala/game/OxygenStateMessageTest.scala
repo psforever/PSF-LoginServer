@@ -12,7 +12,7 @@ class OxygenStateMessageTest extends Specification {
   val string_vehicle = hex"78 4b00f4385037a180"
 
   "decode (self)" in {
-    PacketCoding.DecodePacket(string_self).require match {
+    PacketCoding.decodePacket(string_self).require match {
       case OxygenStateMessage(guid, progress, active, veh_state) =>
         guid mustEqual PlanetSideGUID(75)
         progress mustEqual 50.0
@@ -24,7 +24,7 @@ class OxygenStateMessageTest extends Specification {
   }
 
   "decode (vehicle)" in {
-    PacketCoding.DecodePacket(string_vehicle).require match {
+    PacketCoding.decodePacket(string_vehicle).require match {
       case OxygenStateMessage(guid, progress, active, veh_state) =>
         guid mustEqual PlanetSideGUID(75)
         progress mustEqual 50.0f
@@ -40,7 +40,7 @@ class OxygenStateMessageTest extends Specification {
 
   "encode (self)" in {
     val msg = OxygenStateMessage(PlanetSideGUID(75), 50.0f, true)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_self
   }
@@ -48,7 +48,7 @@ class OxygenStateMessageTest extends Specification {
   "encode (vehicle)" in {
     val msg =
       OxygenStateMessage(PlanetSideGUID(75), 50.0f, true, WaterloggedVehicleState(PlanetSideGUID(1546), 50.0f, true))
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_vehicle
   }

@@ -1,10 +1,9 @@
-// Copyright (c) 2017 PSForever
 package net.psforever.packet
 
 import scodec.bits.BitVector
 import scodec.{Attempt, DecodeResult, Err}
 
-// this isnt actually used as an opcode (i.e not serialized)
+// This isn't actually used as an opcode (i.e not serialized)
 object CryptoPacketOpcode extends Enumeration {
   type Type = Value
   val Ignore, ClientChallengeXchg, ServerChallengeXchg, ClientFinished, ServerFinished = Value

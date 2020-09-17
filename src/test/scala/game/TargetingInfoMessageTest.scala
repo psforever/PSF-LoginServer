@@ -11,7 +11,7 @@ class TargetingInfoMessageTest extends Specification {
   val string = hex"50 05 3D10C200 570EFF3C 2406EC00 2B068C00 2A069400"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case TargetingInfoMessage(target_list) =>
         target_list.size mustEqual 5
         //0
@@ -48,7 +48,7 @@ class TargetingInfoMessageTest extends Specification {
         TargetInfo(PlanetSideGUID(1578), 0.5803922f) ::
         Nil
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

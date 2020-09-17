@@ -12,7 +12,7 @@ class WeatherMessageTest extends Specification {
     hex"9501000000004A0807C0D65B8FBF2427663F178608BE0B000000006CE13E0C390E3F64445CB7BF3E0C2FF23DA46264A3193FBA522E3F597D9A96093F95B99E3D0800096FE53E6CD6523F39198EAF683F9BA0363D01009C35503F9E5F3E3F3C304E46F23EF9668E3E6B56C8277F3FB084F33EB6C10291423FB17F663F00008C077F3E3135D03E320A"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case WeatherMessage(clouds, storms) =>
         clouds.size mustEqual 1
         clouds.head.id mustEqual 0
@@ -99,7 +99,7 @@ class WeatherMessageTest extends Specification {
         StormInfo(Vector3(0.24905223f, 0.40665582f, 0.0f), 50, 10) ::
         Nil
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
     pkt mustEqual string
   }
 }

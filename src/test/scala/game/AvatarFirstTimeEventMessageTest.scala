@@ -11,7 +11,7 @@ class AvatarFirstTimeEventMessageTest extends Specification {
   val string = hex"69 4b00 c000 01000000 9e 766973697465645f63657274696669636174696f6e5f7465726d696e616c"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case AvatarFirstTimeEventMessage(avatar_guid, object_guid, unk1, event_name) =>
         avatar_guid mustEqual PlanetSideGUID(75)
         object_guid mustEqual PlanetSideGUID(192)
@@ -24,7 +24,7 @@ class AvatarFirstTimeEventMessageTest extends Specification {
 
   "encode" in {
     val msg = AvatarFirstTimeEventMessage(PlanetSideGUID(75), PlanetSideGUID(192), 1, "visited_certification_terminal")
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

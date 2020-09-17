@@ -14,7 +14,7 @@ class RemoteProjectileDataTest extends Specification {
 
   "RemoteProjectileData" should {
     "decode (striker_missile_targeting_projectile)" in {
-      PacketCoding.DecodePacket(string_striker_projectile).require match {
+      PacketCoding.decodePacket(string_striker_projectile).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 197
           cls mustEqual ObjectClass.striker_missile_targeting_projectile
@@ -48,7 +48,7 @@ class RemoteProjectileDataTest extends Specification {
     }
 
     "decode (hunter_seeker_missile_projectile)" in {
-      PacketCoding.DecodePacket(string_hunter_seeker_missile_projectile).require match {
+      PacketCoding.decodePacket(string_hunter_seeker_missile_projectile).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 197
           cls mustEqual ObjectClass.hunter_seeker_missile_projectile
@@ -94,7 +94,7 @@ class RemoteProjectileDataTest extends Specification {
         0
       )
       val msg = ObjectCreateMessage(ObjectClass.striker_missile_targeting_projectile, PlanetSideGUID(40192), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       //pkt mustEqual string_striker_projectile
 
       pkt.toBitVector.take(132) mustEqual string_striker_projectile.toBitVector.take(132)
@@ -116,7 +116,7 @@ class RemoteProjectileDataTest extends Specification {
       0
     )
     val msg = ObjectCreateMessage(ObjectClass.hunter_seeker_missile_projectile, PlanetSideGUID(40619), obj)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
     //pkt mustEqual string_hunter_seeker_missile_projectile
 
     pkt.toBitVector.take(132) mustEqual string_hunter_seeker_missile_projectile.toBitVector.take(132)

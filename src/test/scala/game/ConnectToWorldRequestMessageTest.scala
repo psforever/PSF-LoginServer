@@ -11,7 +11,7 @@ class ConnectToWorldRequestMessageTest extends Specification {
     hex"03 8667656D696E69 0000000000000000 00000000 00000000 00000000 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  80 00 00 "
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case ConnectToWorldRequestMessage(serverName, token, majorVersion, minorVersion, revision, buildDate, unk) =>
         serverName mustEqual "gemini"
         token mustEqual ""
@@ -27,7 +27,7 @@ class ConnectToWorldRequestMessageTest extends Specification {
 
   "encode" in {
     val msg = ConnectToWorldRequestMessage("gemini", "", 0, 0, 0, "", 0)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

@@ -11,7 +11,7 @@ class PlayerStateMessageUpstreamTest extends Specification {
   val string = hex"BD 4B000 E377BA575B616C640A70004014060110007000000"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case PlayerStateMessageUpstream(
             avatar_guid,
             pos,
@@ -64,7 +64,7 @@ class PlayerStateMessageUpstreamTest extends Specification {
       112,
       0
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

@@ -13,7 +13,7 @@ class DroppodFreefallingMessageTest extends Specification {
 
   "DroppodFreefallingMessage" should {
     "decode" in {
-      PacketCoding.DecodePacket(string).require match {
+      PacketCoding.decodePacket(string).require match {
         case DroppodFreefallingMessage(guid, pos, vel, pos2, orientation1, orientation2) =>
           guid mustEqual PlanetSideGUID(3618)
           pos mustEqual Vector3(5724, 3612, 1085)
@@ -35,7 +35,7 @@ class DroppodFreefallingMessageTest extends Specification {
         Vector3(0, 70.3125f, 272.8125f),
         Vector3(0, 0, 272.8125f)
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string
     }

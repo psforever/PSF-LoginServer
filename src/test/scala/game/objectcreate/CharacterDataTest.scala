@@ -23,7 +23,7 @@ class CharacterDataTest extends Specification {
 
   "CharacterData" should {
     "decode" in {
-      PacketCoding.DecodePacket(string).require match {
+      PacketCoding.decodePacket(string).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 1907
           cls mustEqual ObjectClass.avatar
@@ -145,7 +145,7 @@ class CharacterDataTest extends Specification {
     }
 //
     "decode (seated)" in {
-      PacketCoding.DecodePacket(string_seated).require match {
+      PacketCoding.decodePacket(string_seated).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 1795
           cls mustEqual ObjectClass.avatar
@@ -210,7 +210,7 @@ class CharacterDataTest extends Specification {
     }
 
     "decode (backpack)" in {
-      PacketCoding.DecodePacket(string_backpack).require match {
+      PacketCoding.decodePacket(string_backpack).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 924L
           cls mustEqual ObjectClass.avatar
@@ -399,7 +399,7 @@ class CharacterDataTest extends Specification {
       val obj = PlayerData(pos, app, char, inv, DrawnSlot.Rifle1)
 
       val msg = ObjectCreateMessage(ObjectClass.avatar, PlanetSideGUID(3902), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string
     }
 
@@ -511,7 +511,7 @@ class CharacterDataTest extends Specification {
         ObjectCreateMessageParent(PlanetSideGUID(1234), 0),
         obj
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_seated
     }
 
@@ -589,7 +589,7 @@ class CharacterDataTest extends Specification {
       val obj = PlayerData(pos, app, char, DrawnSlot.Pistol1)
 
       val msg = ObjectCreateMessage(ObjectClass.avatar, PlanetSideGUID(3380), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       //granular test
       val pkt_bitv = pkt.toBitVector
       val ori_bitv = string_backpack.toBitVector

@@ -16,7 +16,7 @@ class SquadMembershipRequestTest extends Specification {
   //TODO find example where unk field is defined and is a string
 
   "decode (1)" in {
-    PacketCoding.DecodePacket(string1).require match {
+    PacketCoding.decodePacket(string1).require match {
       case SquadMembershipRequest(req_type, unk2, unk3, p_name, unk5) =>
         req_type mustEqual SquadRequestType.Invite
         unk2 mustEqual 41593365L
@@ -29,7 +29,7 @@ class SquadMembershipRequestTest extends Specification {
   }
 
   "decode (2)" in {
-    PacketCoding.DecodePacket(string2).require match {
+    PacketCoding.decodePacket(string2).require match {
       case SquadMembershipRequest(req_type, unk2, unk3, p_name, unk5) =>
         req_type mustEqual SquadRequestType.Accept
         unk2 mustEqual 41606501L
@@ -43,7 +43,7 @@ class SquadMembershipRequestTest extends Specification {
 
   "encode (1)" in {
     val msg = SquadMembershipRequest(SquadRequestType.Invite, 41593365, Some(41605156L), "", Some(None))
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
     pkt mustEqual string1
   }
 
@@ -57,7 +57,7 @@ class SquadMembershipRequestTest extends Specification {
 
   "encode (2)" in {
     val msg = SquadMembershipRequest(SquadRequestType.Accept, 41606501, None, "", None)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
     pkt mustEqual string2
   }
 

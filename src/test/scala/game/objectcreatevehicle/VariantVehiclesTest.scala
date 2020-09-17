@@ -14,7 +14,7 @@ class VariantVehiclesTest extends Specification {
 
   "Variant vehicles" should {
     "decode (switchblade)" in {
-      PacketCoding.DecodePacket(string_switchblade).require match {
+      PacketCoding.decodePacket(string_switchblade).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 403L
           cls mustEqual ObjectClass.switchblade
@@ -156,7 +156,7 @@ class VariantVehiclesTest extends Specification {
         )
       )(VehicleFormat.Variant)
       val msg = ObjectCreateMessage(ObjectClass.switchblade, PlanetSideGUID(418), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_switchblade
     }

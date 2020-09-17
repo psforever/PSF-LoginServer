@@ -15,8 +15,9 @@ object PlanetSideZoneID {
 /**
   * Is sent by the PlanetSide world server when sending character selection screen state. Provides metadata
   * about a certain character for rendering purposes (zone background, etc). Acts as an array insert for the
-  * client character list. A blank displayed character is most likely caused by a mismatch between an
-  * ObjectCreateMessage GUID and the GUID from this message.
+  * client character list. A blank displayed character is most likely caused by either:
+  * - a mismatch between an ObjectCreateMessage GUID and the GUID from this message.
+  * - bundling CharacterInfoMessage with OCDM, they should appear one after another
   *
   * @param finished True when there are no more characters to give info on
   */

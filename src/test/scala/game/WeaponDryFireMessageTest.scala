@@ -11,7 +11,7 @@ class WeaponDryFireMessageTest extends Specification {
   val string = hex"52 4C00"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case WeaponDryFireMessage(weapon_guid) =>
         weapon_guid mustEqual PlanetSideGUID(76)
       case _ =>
@@ -21,7 +21,7 @@ class WeaponDryFireMessageTest extends Specification {
 
   "encode" in {
     val msg = WeaponDryFireMessage(PlanetSideGUID(76))
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

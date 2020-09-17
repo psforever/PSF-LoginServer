@@ -10,7 +10,7 @@ class ObjectDeployedMessageTest extends Specification {
   val string_boomer = hex"86 000086626F6F6D6572040000000100000019000000"
 
   "decode" in {
-    PacketCoding.DecodePacket(string_boomer).require match {
+    PacketCoding.decodePacket(string_boomer).require match {
       case ObjectDeployedMessage(unk: Int, desc: String, act: DeployOutcome.Value, count: Long, max: Long) =>
         unk mustEqual 0
         desc mustEqual "boomer"
@@ -24,7 +24,7 @@ class ObjectDeployedMessageTest extends Specification {
 
   "encode" in {
     val msg = ObjectDeployedMessage("boomer", DeployOutcome.Success, 1, 25)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_boomer
   }

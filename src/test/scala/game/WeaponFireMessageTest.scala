@@ -11,7 +11,7 @@ class WeaponFireMessageTest extends Specification {
   val string = hex"34 44130029272F0B5DFD4D4EC5C00009BEF78172003FC0"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case WeaponFireMessage(
             seq_time,
             weapon_guid,
@@ -55,7 +55,7 @@ class WeaponFireMessageTest extends Specification {
       0,
       None
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

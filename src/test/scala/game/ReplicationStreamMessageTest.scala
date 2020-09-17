@@ -66,7 +66,7 @@ class ReplicationStreamMessageTest extends Specification {
   }
 
   "decode (clear)" in {
-    PacketCoding.DecodePacket(stringListClear).require match {
+    PacketCoding.decodePacket(stringListClear).require match {
       case ReplicationStreamMessage(behavior, behavior2, entries) =>
         behavior mustEqual 5
         behavior2.isDefined mustEqual true
@@ -78,7 +78,7 @@ class ReplicationStreamMessageTest extends Specification {
   }
 
   "decode (one)" in {
-    PacketCoding.DecodePacket(stringListOne).require match {
+    PacketCoding.decodePacket(stringListOne).require match {
       case ReplicationStreamMessage(behavior, behavior2, entries) =>
         behavior mustEqual 5
         behavior2.get mustEqual 6
@@ -103,7 +103,7 @@ class ReplicationStreamMessageTest extends Specification {
   }
 
   "decode (two)" in {
-    PacketCoding.DecodePacket(stringListTwo).require match {
+    PacketCoding.decodePacket(stringListTwo).require match {
       case ReplicationStreamMessage(behavior, behavior2, entries) =>
         behavior mustEqual 5
         behavior2.get mustEqual 6
@@ -128,7 +128,7 @@ class ReplicationStreamMessageTest extends Specification {
   }
 
   "decode (three)" in {
-    PacketCoding.DecodePacket(stringListThree).require match {
+    PacketCoding.decodePacket(stringListThree).require match {
       case ReplicationStreamMessage(behavior, behavior2, entries) =>
         behavior mustEqual 5
         behavior2.get mustEqual 6
@@ -160,7 +160,7 @@ class ReplicationStreamMessageTest extends Specification {
   }
 
   "decode (remove)" in {
-    PacketCoding.DecodePacket(stringListRemove).require match {
+    PacketCoding.decodePacket(stringListRemove).require match {
       case ReplicationStreamMessage(behavior, behavior2, entries) =>
         behavior mustEqual 1
         behavior2.isDefined mustEqual false
@@ -173,7 +173,7 @@ class ReplicationStreamMessageTest extends Specification {
   }
 
   "decode (update leader)" in {
-    PacketCoding.DecodePacket(stringUpdateLeader).require match {
+    PacketCoding.decodePacket(stringUpdateLeader).require match {
       case ReplicationStreamMessage(behavior, behavior2, entries) =>
         behavior mustEqual 6
         behavior2.isDefined mustEqual false
@@ -193,7 +193,7 @@ class ReplicationStreamMessageTest extends Specification {
   }
 
   "decode (update task)" in {
-    PacketCoding.DecodePacket(stringUpdateTask).require match {
+    PacketCoding.decodePacket(stringUpdateTask).require match {
       case ReplicationStreamMessage(behavior, behavior2, entries) =>
         behavior mustEqual 6
         behavior2.isDefined mustEqual false
@@ -213,7 +213,7 @@ class ReplicationStreamMessageTest extends Specification {
   }
 
   "decode (update continent)" in {
-    PacketCoding.DecodePacket(stringUpdateContinent).require match {
+    PacketCoding.decodePacket(stringUpdateContinent).require match {
       case ReplicationStreamMessage(behavior, behavior2, entries) =>
         behavior mustEqual 6
         behavior2.isDefined mustEqual false
@@ -233,7 +233,7 @@ class ReplicationStreamMessageTest extends Specification {
   }
 
   "decode (update size)" in {
-    PacketCoding.DecodePacket(stringUpdateSize).require match {
+    PacketCoding.decodePacket(stringUpdateSize).require match {
       case ReplicationStreamMessage(behavior, behavior2, entries) =>
         behavior mustEqual 6
         behavior2.isDefined mustEqual false
@@ -253,7 +253,7 @@ class ReplicationStreamMessageTest extends Specification {
   }
 
   "decode (update leader and size)" in {
-    PacketCoding.DecodePacket(stringUpdateLeaderSize).require match {
+    PacketCoding.decodePacket(stringUpdateLeaderSize).require match {
       case ReplicationStreamMessage(behavior, behavior2, entries) =>
         behavior mustEqual 6
         behavior2.isDefined mustEqual false
@@ -274,7 +274,7 @@ class ReplicationStreamMessageTest extends Specification {
   }
 
   "decode (update task and continent)" in {
-    PacketCoding.DecodePacket(stringUpdateTaskContinent).require match {
+    PacketCoding.decodePacket(stringUpdateTaskContinent).require match {
       case ReplicationStreamMessage(behavior, behavior2, entries) =>
         behavior mustEqual 6
         behavior2.isDefined mustEqual false
@@ -295,7 +295,7 @@ class ReplicationStreamMessageTest extends Specification {
   }
 
   "decode (update all)" in {
-    PacketCoding.DecodePacket(stringUpdateAll).require match {
+    PacketCoding.decodePacket(stringUpdateAll).require match {
       case ReplicationStreamMessage(behavior, behavior2, entries) =>
         behavior mustEqual 6
         behavior2.isDefined mustEqual false
@@ -320,7 +320,7 @@ class ReplicationStreamMessageTest extends Specification {
   }
 
   "decode (remove 1 and update 0)" in {
-    PacketCoding.DecodePacket(stringRemoveUpdate).require match {
+    PacketCoding.decodePacket(stringRemoveUpdate).require match {
       case ReplicationStreamMessage(behavior, behavior2, entries) =>
         behavior mustEqual 1
         behavior2.isDefined mustEqual false
@@ -341,7 +341,7 @@ class ReplicationStreamMessageTest extends Specification {
 
   "encode (clear)" in {
     val msg = ReplicationStreamMessage(5, Some(6), Vector.empty)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringListClear
   }
@@ -352,7 +352,7 @@ class ReplicationStreamMessageTest extends Specification {
         SquadInfo("FragLANdINC", "Frag", PlanetSideZoneID(10), 0, 10, PlanetSideGUID(1))
       )
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringListOne
   }
@@ -364,7 +364,7 @@ class ReplicationStreamMessageTest extends Specification {
         SquadInfo("KOKkiasMFCN", "Squad 2", PlanetSideZoneID(4), 6, 10, PlanetSideGUID(4))
       )
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringListTwo
   }
@@ -377,7 +377,7 @@ class ReplicationStreamMessageTest extends Specification {
         SquadInfo("KOKkiasMFCN", "Squad 2", PlanetSideZoneID(4), 6, 10, PlanetSideGUID(4))
       )
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringListThree
   }
@@ -390,7 +390,7 @@ class ReplicationStreamMessageTest extends Specification {
         SquadListing(5, None)
       )
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringListRemove
   }
@@ -403,7 +403,7 @@ class ReplicationStreamMessageTest extends Specification {
         SquadListing(2, SquadInfo("FateJHNC"))
       )
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringUpdateLeader
   }
@@ -416,7 +416,7 @@ class ReplicationStreamMessageTest extends Specification {
         SquadListing(5, SquadInfo(None, "RIP PS1, visit PSForever.net"))
       )
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringUpdateTask
   }
@@ -429,7 +429,7 @@ class ReplicationStreamMessageTest extends Specification {
         SquadListing(3, SquadInfo(PlanetSideZoneID(10)))
       )
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringUpdateContinent
   }
@@ -442,7 +442,7 @@ class ReplicationStreamMessageTest extends Specification {
         SquadListing(1, SquadInfo(6))
       )
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringUpdateSize
   }
@@ -455,7 +455,7 @@ class ReplicationStreamMessageTest extends Specification {
         SquadListing(5, SquadInfo("Jimmyn").And(SquadInfo(3)))
       )
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringUpdateLeaderSize
   }
@@ -468,7 +468,7 @@ class ReplicationStreamMessageTest extends Specification {
         SquadListing(5, SquadInfo(None, "2").And(SquadInfo(PlanetSideZoneID(4))))
       )
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringUpdateTaskContinent
   }
@@ -481,7 +481,7 @@ class ReplicationStreamMessageTest extends Specification {
         SquadListing(7, SquadInfo("madmuj", "", PlanetSideZoneID(4), 0, 10, PlanetSideGUID(11)))
       )
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringUpdateAll
   }
@@ -495,7 +495,7 @@ class ReplicationStreamMessageTest extends Specification {
         SquadListing(0, SquadInfo(10))
       )
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringRemoveUpdate
   }

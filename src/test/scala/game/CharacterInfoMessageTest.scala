@@ -11,7 +11,7 @@ class CharacterInfoMessageTest extends Specification {
   val string = hex"14 0F000000 10270000C1D87A024B00265CB08000"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case CharacterInfoMessage(unk, zone, charId, guid, finished, last) =>
         unk mustEqual 15L
         zone mustEqual PlanetSideZoneID(10000)
@@ -26,7 +26,7 @@ class CharacterInfoMessageTest extends Specification {
 
   "encode" in {
     val msg = CharacterInfoMessage(15L, PlanetSideZoneID(10000), 41605313L, PlanetSideGUID(75), false, 6404428L)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

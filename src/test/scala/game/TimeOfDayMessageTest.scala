@@ -10,7 +10,7 @@ class TimeOfDayMessageTest extends Specification {
   val string = hex"48 00 00 00 47 00 00 20 41"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case TimeOfDayMessage(time, unk) =>
         time mustEqual 1191182336
         unk mustEqual 1092616192
@@ -21,7 +21,7 @@ class TimeOfDayMessageTest extends Specification {
 
   "encode" in {
     val msg = TimeOfDayMessage(1191182336)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

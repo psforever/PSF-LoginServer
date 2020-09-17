@@ -13,7 +13,7 @@ class ItemTransactionMessageTest extends Specification {
   val string_forget = hex"44 BA00 600011006861726173736572000000"
 
   "decode (buy)" in {
-    PacketCoding.DecodePacket(string_buy).require match {
+    PacketCoding.decodePacket(string_buy).require match {
       case ItemTransactionMessage(terminal_guid, transaction_type, item_page, item_name, unk1, item_guid) =>
         terminal_guid mustEqual PlanetSideGUID(844)
         transaction_type mustEqual TransactionType.Buy
@@ -27,7 +27,7 @@ class ItemTransactionMessageTest extends Specification {
   }
 
   "decode (sell)" in {
-    PacketCoding.DecodePacket(string_sell).require match {
+    PacketCoding.decodePacket(string_sell).require match {
       case ItemTransactionMessage(terminal_guid, transaction_type, item_page, item_name, unk1, item_guid) =>
         terminal_guid mustEqual PlanetSideGUID(851)
         transaction_type mustEqual TransactionType.Sell
@@ -41,7 +41,7 @@ class ItemTransactionMessageTest extends Specification {
   }
 
   "decode (forget)" in {
-    PacketCoding.DecodePacket(string_forget).require match {
+    PacketCoding.decodePacket(string_forget).require match {
       case ItemTransactionMessage(terminal_guid, transaction_type, item_page, item_name, unk1, item_guid) =>
         terminal_guid mustEqual PlanetSideGUID(186)
         transaction_type mustEqual TransactionType.Sell
@@ -56,13 +56,13 @@ class ItemTransactionMessageTest extends Specification {
 
   "encode (buy)" in {
     val msg_buy = ItemTransactionMessage(PlanetSideGUID(844), TransactionType.Buy, 0, "punisher", 0, PlanetSideGUID(0))
-    val pkt_buy = PacketCoding.EncodePacket(msg_buy).require.toByteVector
+    val pkt_buy = PacketCoding.encodePacket(msg_buy).require.toByteVector
     pkt_buy mustEqual string_buy
   }
 
   "encode (sell)" in {
     val msg_sell = ItemTransactionMessage(PlanetSideGUID(851), TransactionType.Sell, 0, "", 0, PlanetSideGUID(78))
-    val pkt_sell = PacketCoding.EncodePacket(msg_sell).require.toByteVector
+    val pkt_sell = PacketCoding.encodePacket(msg_sell).require.toByteVector
 
     pkt_sell mustEqual string_sell
   }
@@ -70,7 +70,7 @@ class ItemTransactionMessageTest extends Specification {
   "encode (forget)" in {
     val msg_forget =
       ItemTransactionMessage(PlanetSideGUID(186), TransactionType.Sell, 0, "harasser", 0, PlanetSideGUID(0))
-    val pkt_forget = PacketCoding.EncodePacket(msg_forget).require.toByteVector
+    val pkt_forget = PacketCoding.encodePacket(msg_forget).require.toByteVector
 
     pkt_forget mustEqual string_forget
   }

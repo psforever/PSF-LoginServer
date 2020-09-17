@@ -29,8 +29,6 @@ jobs:
         uses: actions/checkout@v2
       - name: Setup Scala
         uses: olafurpg/setup-scala@v5
-      - name: Install pscrypto
-        run: curl -L https://github.com/psforever/PSCrypto/releases/download/v1.1/pscrypto-lib-1.1.zip | jar vx
       - name: Run migrations
         run: sbt "server/run migrate"
       - name: Run build

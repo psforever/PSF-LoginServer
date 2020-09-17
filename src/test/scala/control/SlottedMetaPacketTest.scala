@@ -29,7 +29,7 @@ class SlottedMetaPacketTest extends Specification {
         .toByteVector ++ uint16.encode(subslot).require.toByteVector ++ rest
 
   "decode as the base slot and subslot" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case SlottedMetaPacket(slot, subslot, rest) =>
         slot mustEqual 0
         subslot mustEqual 0
@@ -48,7 +48,7 @@ class SlottedMetaPacketTest extends Specification {
         val subslot = 12323
         val pkt     = createMetaPacket(i, subslot, ByteVector.empty)
 
-        PacketCoding.DecodePacket(pkt).require match {
+        PacketCoding.decodePacket(pkt).require match {
           case SlottedMetaPacket(slot, subslotDecoded, rest) =>
             // XXX: there isn't a simple solution to Slot0 and Slot4 be aliases of each other structurally
             // This is probably best left to higher layers
@@ -64,16 +64,16 @@ class SlottedMetaPacketTest extends Specification {
   }
 
   "encode" in {
-    val encoded  = PacketCoding.EncodePacket(SlottedMetaPacket(0, 0x1000, ByteVector.empty)).require
-    val encoded2 = PacketCoding.EncodePacket(SlottedMetaPacket(3, 0xffff, hex"414243")).require
-    val encoded3 = PacketCoding.EncodePacket(SlottedMetaPacket(7, 0, hex"00")).require
+    val encoded  = PacketCoding.encodePacket(SlottedMetaPacket(0, 0x1000, ByteVector.empty)).require
+    val encoded2 = PacketCoding.encodePacket(SlottedMetaPacket(3, 0xffff, hex"414243")).require
+    val encoded3 = PacketCoding.encodePacket(SlottedMetaPacket(7, 0, hex"00")).require
 
     encoded.toByteVector mustEqual createMetaPacket(0, 0x1000, ByteVector.empty)
     encoded2.toByteVector mustEqual createMetaPacket(3, 0xffff, hex"414243")
     encoded3.toByteVector mustEqual createMetaPacket(7, 0, hex"00")
 
-    PacketCoding.EncodePacket(SlottedMetaPacket(8, 0, hex"00")).require must throwA[AssertionError]
-    PacketCoding.EncodePacket(SlottedMetaPacket(-1, 0, hex"00")).require must throwA[AssertionError]
-    PacketCoding.EncodePacket(SlottedMetaPacket(0, 0x10000, hex"00")).require must throwA[IllegalArgumentException]
+    PacketCoding.encodePacket(SlottedMetaPacket(8, 0, hex"00")).require must throwA[AssertionError]
+    PacketCoding.encodePacket(SlottedMetaPacket(-1, 0, hex"00")).require must throwA[AssertionError]
+    PacketCoding.encodePacket(SlottedMetaPacket(0, 0x10000, hex"00")).require must throwA[IllegalArgumentException]
   }
 }

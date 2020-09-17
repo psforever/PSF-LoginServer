@@ -16,7 +16,7 @@ class DetailedConstructionToolDataTest extends Specification {
 
   "ACE (detailed)" should {
     "decode" in {
-      PacketCoding.DecodePacket(string_ace).require match {
+      PacketCoding.decodePacket(string_ace).require match {
         case ObjectCreateDetailedMessage(len, cls, guid, parent, data) =>
           len mustEqual 135
           cls mustEqual ObjectClass.ace
@@ -53,7 +53,7 @@ class DetailedConstructionToolDataTest extends Specification {
         ObjectCreateMessageParent(PlanetSideGUID(3104), 0),
         obj
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_ace
     }
@@ -61,7 +61,7 @@ class DetailedConstructionToolDataTest extends Specification {
 
   "Boomer Trigger (detailed)" should {
     "decode" in {
-      PacketCoding.DecodePacket(string_boomer_trigger).require match {
+      PacketCoding.decodePacket(string_boomer_trigger).require match {
         case ObjectCreateDetailedMessage(len, cls, guid, parent, data) =>
           len mustEqual 135
           cls mustEqual ObjectClass.boomer_trigger
@@ -98,7 +98,7 @@ class DetailedConstructionToolDataTest extends Specification {
         ObjectCreateMessageParent(PlanetSideGUID(2502), 0),
         obj
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_boomer_trigger
     }
@@ -106,7 +106,7 @@ class DetailedConstructionToolDataTest extends Specification {
 
   "Telepad (detailed)" should {
     "decode" in {
-      PacketCoding.DecodePacket(string_telepad).require match {
+      PacketCoding.decodePacket(string_telepad).require match {
         case ObjectCreateDetailedMessage(len, cls, guid, parent, data) =>
           len mustEqual 151
           cls mustEqual ObjectClass.router_telepad
@@ -134,7 +134,7 @@ class DetailedConstructionToolDataTest extends Specification {
     }
 
     "decode (short)" in {
-      PacketCoding.DecodePacket(string_telepad_short).require match {
+      PacketCoding.decodePacket(string_telepad_short).require match {
         case ObjectCreateDetailedMessage(len, cls, guid, parent, data) =>
           len mustEqual 135
           cls mustEqual ObjectClass.router_telepad
@@ -171,7 +171,7 @@ class DetailedConstructionToolDataTest extends Specification {
         ObjectCreateMessageParent(PlanetSideGUID(414), 0),
         obj
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_telepad
     }
@@ -184,7 +184,7 @@ class DetailedConstructionToolDataTest extends Specification {
         ObjectCreateMessageParent(PlanetSideGUID(340), 9),
         obj
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_telepad_short
     }

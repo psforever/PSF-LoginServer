@@ -11,7 +11,7 @@ class WeaponDelayFireMessageTest extends Specification {
   val string = hex"88 A3140000"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case WeaponDelayFireMessage(seq_time, weapon_guid) =>
         seq_time mustEqual 163
         weapon_guid mustEqual PlanetSideGUID(80)
@@ -22,7 +22,7 @@ class WeaponDelayFireMessageTest extends Specification {
 
   "encode" in {
     val msg = WeaponDelayFireMessage(163, PlanetSideGUID(80))
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

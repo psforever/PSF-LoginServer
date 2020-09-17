@@ -11,7 +11,7 @@ class FavoritesRequestTest extends Specification {
   val stringInfantry = hex"5E 4B00 1187 4500 7800 6100 6D00 7000 6C00 6500"
 
   "decode (for infantry)" in {
-    PacketCoding.DecodePacket(stringInfantry).require match {
+    PacketCoding.decodePacket(stringInfantry).require match {
       case FavoritesRequest(player_guid, list, action, line, label) =>
         player_guid mustEqual PlanetSideGUID(75)
         list mustEqual LoadoutType.Infantry
@@ -26,7 +26,7 @@ class FavoritesRequestTest extends Specification {
 
   "encode (for infantry)" in {
     val msg = FavoritesRequest(PlanetSideGUID(75), LoadoutType.Infantry, FavoritesAction.Save, 1, Some("Example"))
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringInfantry
   }

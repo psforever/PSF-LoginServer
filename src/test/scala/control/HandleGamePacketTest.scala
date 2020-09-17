@@ -13,7 +13,7 @@ class HandleGamePacketTest extends Specification {
   val string = hex"00 00 01 CB" ++ base
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case HandleGamePacket(len, data, extra) =>
         len mustEqual 459
         data mustEqual base
@@ -25,7 +25,7 @@ class HandleGamePacketTest extends Specification {
 
   "encode" in {
     val pkt = HandleGamePacket(base)
-    val msg = PacketCoding.EncodePacket(pkt).require.toByteVector
+    val msg = PacketCoding.encodePacket(pkt).require.toByteVector
     msg mustEqual string
   }
 }

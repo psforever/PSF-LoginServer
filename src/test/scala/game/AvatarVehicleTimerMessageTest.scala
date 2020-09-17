@@ -12,7 +12,7 @@ class AvatarVehicleTimerMessageTest extends Specification {
   val string2 = hex"57971b84667572794800000080"
 
   "decode medkit" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case AvatarVehicleTimerMessage(player_guid, text, time, u1) =>
         player_guid mustEqual PlanetSideGUID(5821)
         text mustEqual "medkit"
@@ -23,7 +23,7 @@ class AvatarVehicleTimerMessageTest extends Specification {
     }
   }
   "decode fury" in {
-    PacketCoding.DecodePacket(string2).require match {
+    PacketCoding.decodePacket(string2).require match {
       case AvatarVehicleTimerMessage(player_guid, text, time, u1) =>
         player_guid mustEqual PlanetSideGUID(7063)
         text mustEqual "fury"
@@ -36,13 +36,13 @@ class AvatarVehicleTimerMessageTest extends Specification {
 
   "encode medkit" in {
     val msg = AvatarVehicleTimerMessage(PlanetSideGUID(5821), "medkit", 5, false)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }
   "encode fury" in {
     val msg = AvatarVehicleTimerMessage(PlanetSideGUID(7063), "fury", 72, true)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string2
   }

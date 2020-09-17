@@ -10,7 +10,7 @@ class ReleaseAvatarRequestMessageTest extends Specification {
   val string = hex"ac"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case ReleaseAvatarRequestMessage() =>
         ok
       case _ =>
@@ -20,7 +20,7 @@ class ReleaseAvatarRequestMessageTest extends Specification {
 
   "encode" in {
     val msg = ReleaseAvatarRequestMessage()
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

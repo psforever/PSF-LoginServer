@@ -12,7 +12,7 @@ class ItemTransactionResultMessageTest extends Specification {
   val string_request = hex"44 DD 03 40 00 11 40 73 75 70 70 72 65 73 73 6F 72 00 00 00"
   val string_result  = hex"45 DD 03 50 00"
   "decode" in {
-    PacketCoding.DecodePacket(string_result).require match {
+    PacketCoding.decodePacket(string_result).require match {
       case ItemTransactionResultMessage(terminal_guid, transaction_type, is_success, error_code) =>
         terminal_guid mustEqual PlanetSideGUID(989)
         transaction_type mustEqual TransactionType.Buy
@@ -25,15 +25,15 @@ class ItemTransactionResultMessageTest extends Specification {
 
   "encode" in {
     val msg = ItemTransactionResultMessage(PlanetSideGUID(989), TransactionType.Buy, true, 0)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_result
   }
 
   "proper reply" in {
     try {
-      val request = PacketCoding.DecodePacket(string_request).require.asInstanceOf[ItemTransactionMessage]
-      val result  = PacketCoding.DecodePacket(string_result).require.asInstanceOf[ItemTransactionResultMessage]
+      val request = PacketCoding.decodePacket(string_request).require.asInstanceOf[ItemTransactionMessage]
+      val result  = PacketCoding.decodePacket(string_result).require.asInstanceOf[ItemTransactionResultMessage]
       request.terminal_guid mustEqual result.terminal_guid
       request.transaction_type mustEqual result.transaction_type
     } catch {

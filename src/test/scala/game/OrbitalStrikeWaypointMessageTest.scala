@@ -12,7 +12,7 @@ class OrbitalStrikeWaypointMessageTest extends Specification {
   val string_off = hex"B9 46 0C 00"
 
   "decode (on)" in {
-    PacketCoding.DecodePacket(string_on).require match {
+    PacketCoding.decodePacket(string_on).require match {
       case OrbitalStrikeWaypointMessage(guid, coords) =>
         guid mustEqual PlanetSideGUID(3142)
         coords.isDefined mustEqual true
@@ -24,7 +24,7 @@ class OrbitalStrikeWaypointMessageTest extends Specification {
   }
 
   "decode (off)" in {
-    PacketCoding.DecodePacket(string_off).require match {
+    PacketCoding.decodePacket(string_off).require match {
       case OrbitalStrikeWaypointMessage(guid, coords) =>
         guid mustEqual PlanetSideGUID(3142)
         coords.isDefined mustEqual false
@@ -35,14 +35,14 @@ class OrbitalStrikeWaypointMessageTest extends Specification {
 
   "encode (on)" in {
     val msg = OrbitalStrikeWaypointMessage(PlanetSideGUID(3142), 5518.664f, 2212.539f)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_on
   }
 
   "encode (off)" in {
     val msg = OrbitalStrikeWaypointMessage(PlanetSideGUID(3142))
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_off
   }

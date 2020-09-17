@@ -235,9 +235,7 @@ object DefinitionUtil {
     player.Slot(33).Equipment = AmmoBox(GlobalDefinitions.bullet_9mm_AP)
     player.Slot(36).Equipment = AmmoBox(GlobalDefinitions.StandardPistolAmmo(faction))
     player.Slot(39).Equipment = SimpleItem(GlobalDefinitions.remote_electronics_kit)
-    player.Inventory.Items.foreach {
-      _.obj.Faction = faction
-    }
+    player.Inventory.Items.foreach(_.obj.Faction = faction)
   }
 
   /*
@@ -266,9 +264,6 @@ object DefinitionUtil {
   // But macros cannot be called from the project they're defined in, and moving this to another project is not easy
   // Making GlobalDefinitions iterable (map etc) should be the preferred solution
   def fromString(name: String): BasicDefinition = {
-    //println(
-    //  s"${universe.typeOf[GlobalDefinitions.type].member(universe.TermName(name))} ${universe.typeOf[GlobalDefinitions.type].decl(universe.TermName(name))}"
-    //)
     universe.typeOf[GlobalDefinitions.type].decl(universe.TermName(name))
     val method = universe.typeOf[GlobalDefinitions.type].member(universe.TermName(name)).asMethod
     instanceMirror.reflectMethod(method).apply().asInstanceOf[BasicDefinition]

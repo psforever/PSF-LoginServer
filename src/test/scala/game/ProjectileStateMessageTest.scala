@@ -11,7 +11,7 @@ class ProjectileStateMessageTest extends Specification {
   val string = hex"3f 259d c5019 30e4a 9514 c52c9541 d9ba05c2 c5973941 00 f8 ec 02000000"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case ProjectileStateMessage(projectile, pos, vel, orient, sequence, explode, unk) =>
         projectile mustEqual PlanetSideGUID(40229)
         pos mustEqual Vector3(4611.539f, 5576.375f, 82.328125f)
@@ -35,7 +35,7 @@ class ProjectileStateMessageTest extends Specification {
       false,
       PlanetSideGUID(0)
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     //pkt mustEqual string
     val pkt_bits = pkt.toBitVector

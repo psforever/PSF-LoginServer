@@ -15,7 +15,7 @@ class NonstandardVehiclesTest extends Specification {
 
   "Nonstandard vehicles" should {
     "decode (droppod)" in {
-      PacketCoding.DecodePacket(string_droppod).require match {
+      PacketCoding.decodePacket(string_droppod).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 193L
           cls mustEqual ObjectClass.droppod
@@ -46,7 +46,7 @@ class NonstandardVehiclesTest extends Specification {
     }
 
     "decode (shuttle 1)" in {
-      PacketCoding.DecodePacket(string_orbital_shuttle_1).require match {
+      PacketCoding.decodePacket(string_orbital_shuttle_1).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 130
           cls mustEqual ObjectClass.orbital_shuttle
@@ -63,7 +63,7 @@ class NonstandardVehiclesTest extends Specification {
     }
 
     "decode (shuttle 2)" in {
-      PacketCoding.DecodePacket(string_orbital_shuttle_2).require match {
+      PacketCoding.decodePacket(string_orbital_shuttle_2).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 195
           cls mustEqual ObjectClass.orbital_shuttle
@@ -92,7 +92,7 @@ class NonstandardVehiclesTest extends Specification {
         )
       )
       val msg = ObjectCreateMessage(ObjectClass.droppod, PlanetSideGUID(3595), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_droppod
     }
@@ -105,7 +105,7 @@ class NonstandardVehiclesTest extends Specification {
         ObjectCreateMessageParent(PlanetSideGUID(786), 3),
         obj
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_orbital_shuttle_1
     }
@@ -113,7 +113,7 @@ class NonstandardVehiclesTest extends Specification {
     "encode (shuttle 2)" in {
       val obj = OrbitalShuttleData(PlacementData(5610.0156f, 4255.258f, 134.1875f, 0f, 0f, 180.0f), PlanetSideEmpire.VS)
       val msg = ObjectCreateMessage(ObjectClass.orbital_shuttle, PlanetSideGUID(1127), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_orbital_shuttle_2
     }

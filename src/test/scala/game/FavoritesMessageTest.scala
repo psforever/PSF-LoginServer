@@ -12,7 +12,7 @@ class FavoritesMessageTest extends Specification {
   val stringInfantry = hex"60 2C 03 82 34 4100 6700 6900 6C00 6500 2000 2800 6200 6100 7300 6900 6300 2900 20"
 
   "decode (for infantry)" in {
-    PacketCoding.DecodePacket(stringInfantry).require match {
+    PacketCoding.decodePacket(stringInfantry).require match {
       case FavoritesMessage(list, player_guid, line, label, armor) =>
         list mustEqual LoadoutType.Infantry
         player_guid mustEqual PlanetSideGUID(3760)
@@ -27,13 +27,13 @@ class FavoritesMessageTest extends Specification {
 
   "encode (for infantry)" in {
     val msg = FavoritesMessage(LoadoutType.Infantry, PlanetSideGUID(3760), 0, "Agile (basic)", 1)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringInfantry
   }
 
   "decode (for vehicles)" in {
-    PacketCoding.DecodePacket(stringVehicles).require match {
+    PacketCoding.decodePacket(stringVehicles).require match {
       case FavoritesMessage(list, player_guid, line, label, armor) =>
         list mustEqual LoadoutType.Vehicle
         player_guid mustEqual PlanetSideGUID(4210)
@@ -47,7 +47,7 @@ class FavoritesMessageTest extends Specification {
 
   "encode (for vehicles)" in {
     val msg = FavoritesMessage(LoadoutType.Vehicle, PlanetSideGUID(4210), 0, "Skyguard")
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringVehicles
   }

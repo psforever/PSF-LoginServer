@@ -11,7 +11,7 @@ class GenericObjectActionMessageTest extends Specification {
   val string = hex"56 B501 24"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case GenericObjectActionMessage(object_guid, action) =>
         object_guid mustEqual PlanetSideGUID(437)
         action mustEqual 9
@@ -22,7 +22,7 @@ class GenericObjectActionMessageTest extends Specification {
 
   "encode" in {
     val msg = GenericObjectActionMessage(PlanetSideGUID(437), 9)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

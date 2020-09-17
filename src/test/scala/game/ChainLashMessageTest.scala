@@ -12,7 +12,7 @@ class ChainLashMessageTest extends Specification {
   val string2 = hex"c5 5282e910100000093050"
 
   "decode (1)" in {
-    PacketCoding.DecodePacket(string1).require match {
+    PacketCoding.decodePacket(string1).require match {
       case ChainLashMessage(u1a, u1b, u2, u3) =>
         u1a.isEmpty mustEqual true
         u1b.contains(Vector3(7673.164f, 544.1328f, 14.984375f)) mustEqual true
@@ -24,7 +24,7 @@ class ChainLashMessageTest extends Specification {
   }
 
   "decode (2)" in {
-    PacketCoding.DecodePacket(string2).require match {
+    PacketCoding.decodePacket(string2).require match {
       case ChainLashMessage(u1a, u1b, u2, u3) =>
         u1a.contains(PlanetSideGUID(1445)) mustEqual true
         u1b.isEmpty mustEqual true
@@ -37,14 +37,14 @@ class ChainLashMessageTest extends Specification {
 
   "encode (1)" in {
     val msg = ChainLashMessage(Vector3(7673.164f, 544.1328f, 14.984375f), 466, List(PlanetSideGUID(1603)))
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string1
   }
 
   "encode (2)" in {
     val msg = ChainLashMessage(PlanetSideGUID(1445), 466, List(PlanetSideGUID(1427)))
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string2
   }

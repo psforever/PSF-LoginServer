@@ -12,7 +12,7 @@ class DamageFeedbackMessageTest extends Specification {
   val string_2 = hex"7B 5E5826D8001DC0400000"
 
   "decode (string 1)" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case DamageFeedbackMessage(unk1, unk2, unk2a, unk2b, unk2c, unk3, unk3a, unk3b, unk3c, unk3d, unk4, unk5, unk6) =>
         unk1 mustEqual 3
         unk2 mustEqual true
@@ -33,7 +33,7 @@ class DamageFeedbackMessageTest extends Specification {
   }
 
   "decode (string 2)" in {
-    PacketCoding.DecodePacket(string_2).require match {
+    PacketCoding.decodePacket(string_2).require match {
       case DamageFeedbackMessage(unk1, unk2, unk2a, unk2b, unk2c, unk3, unk3a, unk3b, unk3c, unk3d, unk4, unk5, unk6) =>
         unk1 mustEqual 5
         unk2 mustEqual true
@@ -69,7 +69,7 @@ class DamageFeedbackMessageTest extends Specification {
       2,
       0
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }
@@ -90,7 +90,7 @@ class DamageFeedbackMessageTest extends Specification {
       750,
       0
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_2
   }

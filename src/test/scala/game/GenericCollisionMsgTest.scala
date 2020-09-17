@@ -12,7 +12,7 @@ class GenericCollisionMsgTest extends Specification {
   val string =
     hex"3C 92C00000190000001B2A8010932CEF505C70946F00000000000000000000000017725EBC6D6A058000000000000000000000000000003F8FF45140"
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case GenericCollisionMsg(unk1, p, t, php, thp, pv, tv, ppos, tpos, unk2, unk3, unk4) =>
         unk1 mustEqual 2
         p mustEqual PlanetSideGUID(75)
@@ -53,7 +53,7 @@ class GenericCollisionMsgTest extends Specification {
       0L,
       1171341310L
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
     pkt mustEqual string
   }
 }

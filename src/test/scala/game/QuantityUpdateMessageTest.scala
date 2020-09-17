@@ -11,7 +11,7 @@ class QuantityUpdateMessageTest extends Specification {
   val string = hex"3D 5300 7B000000"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case QuantityUpdateMessage(item_guid, quantity) =>
         item_guid mustEqual PlanetSideGUID(83)
         quantity mustEqual 123
@@ -22,7 +22,7 @@ class QuantityUpdateMessageTest extends Specification {
 
   "encode" in {
     val msg = QuantityUpdateMessage(PlanetSideGUID(83), 123)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

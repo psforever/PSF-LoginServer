@@ -96,12 +96,9 @@ object DecodePackets {
 
         var linesToSkip = 0
         for (line <- lines.drop(1)) {
-          breakable {
-            if (linesToSkip > 0) {
-              linesToSkip -= 1
-              break()
-            }
-
+          if (linesToSkip > 0) {
+            linesToSkip -= 1
+          } else {
             val decodedLine = decodePacket(line.drop(line.lastIndexOf(' ')))
             writer.write(s"${shortGcapyString(line)}")
             writer.newLine()
@@ -142,10 +139,9 @@ object DecodePackets {
     FileUtils.forceDelete(tmpFolder)
   }
 
-  /*
-    Traverse down any nested packets such as SlottedMetaPacket, MultiPacket and MultiPacketEx and add indent for each layer down
-    The number of lines to skip will be returned so duplicate lines following SlottedMetaPackets in the gcapy output can be filtered out
-   */
+  /** Traverse down any nested packets such as SlottedMetaPacket, MultiPacket and MultiPacketEx and add indent for each layer down
+    * The number of lines to skip will be returned so duplicate lines following SlottedMetaPackets in the gcapy output can be filtered out
+    */
   def recursivelyHandleNestedPacket(decodedLine: String, writer: BufferedWriter, depth: Int = 0): Int = {
     if (decodedLine.indexOf("Failed to parse") >= 0) return depth
     val regex   = "(0x[a-f0-9]+)".r
@@ -190,9 +186,9 @@ object DecodePackets {
   }
 
   def decodePacket(hexString: String): String = {
-    PacketCoding.DecodePacket(ByteVector.fromValidHex(hexString)) match {
+    PacketCoding.decodePacket(ByteVector.fromValidHex(hexString)) match {
       case Successful(value) => value.toString
-      case Failure(cause)    => cause.toString
+      case Failure(cause)    => s"Decoding error '${cause.toString}' for data ${hexString}"
     }
   }
 }

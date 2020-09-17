@@ -14,7 +14,7 @@ class SquadWaypointEventTest extends Specification {
   val string_4 = hex"84 40c03f1e5e80804100000000" //fabricated example
 
   "decode (1)" in {
-    PacketCoding.DecodePacket(string_1).require match {
+    PacketCoding.decodePacket(string_1).require match {
       case SquadWaypointEvent(unk1, unk2, unk3, unk4, unk5, unk6) =>
         unk1 mustEqual WaypointEventAction.Remove
         unk2 mustEqual 11
@@ -28,7 +28,7 @@ class SquadWaypointEventTest extends Specification {
   }
 
   "decode (2)" in {
-    PacketCoding.DecodePacket(string_2).require match {
+    PacketCoding.decodePacket(string_2).require match {
       case SquadWaypointEvent(unk1, unk2, unk3, unk4, unk5, unk6) =>
         unk1 mustEqual WaypointEventAction.Remove
         unk2 mustEqual 10
@@ -42,7 +42,7 @@ class SquadWaypointEventTest extends Specification {
   }
 
   "decode (3)" in {
-    PacketCoding.DecodePacket(string_3).require match {
+    PacketCoding.decodePacket(string_3).require match {
       case SquadWaypointEvent(unk1, unk2, unk3, unk4, unk5, unk6) =>
         unk1 mustEqual WaypointEventAction.Add
         unk2 mustEqual 3
@@ -56,7 +56,7 @@ class SquadWaypointEventTest extends Specification {
   }
 
   "decode (4)" in {
-    PacketCoding.DecodePacket(string_4).require match {
+    PacketCoding.decodePacket(string_4).require match {
       case SquadWaypointEvent(unk1, unk2, unk3, unk4, unk5, unk6) =>
         unk1 mustEqual WaypointEventAction.Unknown1
         unk2 mustEqual 3
@@ -71,14 +71,14 @@ class SquadWaypointEventTest extends Specification {
 
   "encode (1)" in {
     val msg = SquadWaypointEvent.Remove(11, 31155863L, SquadWaypoints.One)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_1
   }
 
   "encode (2)" in {
     val msg = SquadWaypointEvent.Remove(10, 0L, SquadWaypoints.ExperienceRally)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_2
   }
@@ -90,14 +90,14 @@ class SquadWaypointEventTest extends Specification {
       SquadWaypoints.Two,
       WaypointEvent(10, Vector3(3457.9688f, 5514.4688f, 0.0f), 1)
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_3
   }
 
   "encode (4)" in {
     val msg = SquadWaypointEvent.Unknown1(3, 41581052L, SquadWaypoints.Two, 4L)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_4
   }

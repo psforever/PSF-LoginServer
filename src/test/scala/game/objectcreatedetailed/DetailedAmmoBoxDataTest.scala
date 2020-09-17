@@ -13,7 +13,7 @@ class DetailedAmmoBoxDataTest extends Specification {
 
   "DetailedAmmoBoxData" should {
     "decode (9mm)" in {
-      PacketCoding.DecodePacket(string_9mm).require match {
+      PacketCoding.decodePacket(string_9mm).require match {
         case ObjectCreateDetailedMessage(len, cls, guid, parent, data) =>
           len mustEqual 124
           cls mustEqual ObjectClass.bullet_9mm
@@ -35,7 +35,7 @@ class DetailedAmmoBoxDataTest extends Specification {
         ObjectCreateMessageParent(PlanetSideGUID(75), 33),
         obj
       )
-      val out = PacketCoding.EncodePacket(msg)
+      val out = PacketCoding.encodePacket(msg)
       val pkt = out.require.toByteVector
 
       pkt mustEqual string_9mm

@@ -13,7 +13,7 @@ class CommonFieldDataWithPlacementTest extends Specification {
 
   "Boomer" should {
     "decode" in {
-      PacketCoding.DecodePacket(string_boomer).require match {
+      PacketCoding.decodePacket(string_boomer).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 165
           cls mustEqual ObjectClass.boomer
@@ -51,7 +51,7 @@ class CommonFieldDataWithPlacementTest extends Specification {
         CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, Some(false), None, PlanetSideGUID(8290))
       )
       val msg = ObjectCreateMessage(ObjectClass.boomer, PlanetSideGUID(3840), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_boomer
     }
   }

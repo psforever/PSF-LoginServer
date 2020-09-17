@@ -11,7 +11,7 @@ class ZipLineMessageTest extends Specification {
   val string = hex"BF 4B00 19 80000010 5bb4089c 52116881 cf76e840"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case ZipLineMessage(player_guid, origin_side, action, uid, pos) =>
         player_guid mustEqual PlanetSideGUID(75)
         origin_side mustEqual false
@@ -28,7 +28,7 @@ class ZipLineMessageTest extends Specification {
 
   "encode" in {
     val msg = ZipLineMessage(PlanetSideGUID(75), false, 0, 204, Vector3(1286.9221f, 1116.5276f, 91.74034f))
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

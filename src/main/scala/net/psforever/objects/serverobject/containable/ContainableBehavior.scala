@@ -23,10 +23,10 @@ sealed trait DeferrableMsg extends ContainableMsg
 
 /**
   * A mixin for handling synchronized movement of `Equipment` items into or out from `Container` entities.
-  * The most important feature of this synchronization is the movmement of equipment
+  * The most important feature of this synchronization is the movemement of equipment
   * out from one container into another container
   * without causing representation overlap, overwriting, or unintended stacking of other equipment
-  * including equipment that has nort yet been inserted.
+  * including equipment that has not yet been inserted.
   */
 trait ContainableBehavior {
   _: Actor =>

@@ -12,7 +12,7 @@ class DestroyDisplayMessageTest extends Specification {
     hex"81 87 41006E00670065006C006C006F00 35BCD801 8 F201 9207 0A 0 48004D00460049004300 B18ED901 00" // Angello-VS (???) HMFIC-TR
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case DestroyDisplayMessage(
             killer,
             killer_charId,
@@ -53,7 +53,7 @@ class DestroyDisplayMessageTest extends Specification {
       PlanetSideEmpire.TR,
       false
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
     pkt mustEqual string
   }
 }

@@ -11,7 +11,7 @@ class UnuseItemMessageTest extends Specification {
   val string = hex"26 4B00 340D"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case UnuseItemMessage(player, item) =>
         player mustEqual PlanetSideGUID(75)
         item mustEqual PlanetSideGUID(3380)
@@ -22,7 +22,7 @@ class UnuseItemMessageTest extends Specification {
 
   "encode" in {
     val msg = UnuseItemMessage(PlanetSideGUID(75), PlanetSideGUID(3380))
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

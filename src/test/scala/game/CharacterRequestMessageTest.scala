@@ -10,7 +10,7 @@ class CharacterRequestMessageTest extends Specification {
   val string = hex"30 c1d87a02 00000000"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case CharacterRequestMessage(charId, action) =>
         charId mustEqual 41605313L
         action mustEqual CharacterRequestAction.Select
@@ -21,7 +21,7 @@ class CharacterRequestMessageTest extends Specification {
 
   "encode" in {
     val msg = CharacterRequestMessage(41605313L, CharacterRequestAction.Select)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

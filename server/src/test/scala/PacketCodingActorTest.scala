@@ -1,53 +1,24 @@
 package net.psforever.pslogin
+/*
 
 import actor.base.ActorTest
 import akka.actor.{ActorRef, Props}
 import akka.testkit.TestProbe
-import net.psforever.login.{HelloFriend, PacketCodingActor, RawPacket}
+import net.psforever.actors.net.MiddlewareActor
 import net.psforever.objects.avatar.Certification
-import net.psforever.packet.control.{ControlSync, MultiPacketBundle, SlottedMetaPacket}
-import net.psforever.packet.{ControlPacket, GamePacket, GamePacketOpcode, PacketCoding}
+import net.psforever.packet.control.{ControlSync, SlottedMetaPacket}
+import net.psforever.packet.{GamePacketOpcode, PacketCoding}
 import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate.ObjectClass
 import net.psforever.types._
 import scodec.bits._
 
 import scala.concurrent.duration._
-
 class PacketCodingActor1Test extends ActorTest {
   "PacketCodingActor" should {
     "construct" in {
-      system.actorOf(Props[PacketCodingActor](), "pca")
+      system.actorOf(Props[MiddlewareActor](), "pca")
       //just construct without failing
-    }
-  }
-}
-
-class PacketCodingActor2Test extends ActorTest {
-  "PacketCodingActor" should {
-    "initialize (no r-neighbor)" in {
-      val pca: ActorRef = system.actorOf(Props[PacketCodingActor](), "pca")
-      within(200 millis) {
-        pca ! HelloFriend(135, List.empty[ActorRef].iterator)
-        expectNoMessage()
-      }
-    }
-  }
-}
-
-class PacketCodingActor3Test extends ActorTest {
-  "PacketCodingActor" should {
-    "initialize (an r-neighbor)" in {
-      val probe1        = TestProbe()
-      val probe2        = system.actorOf(Props(classOf[MDCTestProbe], probe1), "mdc-probe")
-      val pca: ActorRef = system.actorOf(Props[PacketCodingActor](), "pca")
-      val iter          = List(probe2).iterator
-      val msg           = HelloFriend(135, iter)
-
-      assert(iter.hasNext)
-      pca ! msg
-      probe1.expectMsg(msg) //pca will pass message directly; a new HelloFriend would be an unequal different object
-      assert(!iter.hasNext)
     }
   }
 }
@@ -577,7 +548,7 @@ class PacketCodingActorITest extends ActorTest {
       probe1.receiveOne(300 milli) match {
         case RawPacket(data) =>
           assert(data == string_hex)
-          PacketCoding.DecodePacket(data).require match {
+          PacketCoding.decodePacket(data).require match {
             case _: SlottedMetaPacket =>
               assert(true)
             case _ =>
@@ -916,3 +887,5 @@ class PacketCodingActorLTest extends ActorTest {
 object PacketCodingActorTest {
   //decoy
 }
+
+ */

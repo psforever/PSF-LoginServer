@@ -18,7 +18,7 @@ class NormalVehiclesTest extends Specification {
 
   "Normal vehicles" should {
     "decode (fury)" in {
-      PacketCoding.DecodePacket(string_fury).require match {
+      PacketCoding.decodePacket(string_fury).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 336
           cls mustEqual ObjectClass.fury
@@ -86,7 +86,7 @@ class NormalVehiclesTest extends Specification {
     }
 
     "decode (lightning)" in {
-      PacketCoding.DecodePacket(string_lightning).require match {
+      PacketCoding.decodePacket(string_lightning).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 395L
           cls mustEqual ObjectClass.lightning
@@ -172,7 +172,7 @@ class NormalVehiclesTest extends Specification {
     }
 
     "decode (medium transport)" in {
-      PacketCoding.DecodePacket(string_mediumtransport).require match {
+      PacketCoding.decodePacket(string_mediumtransport).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 474L
           cls mustEqual ObjectClass.mediumtransport
@@ -342,7 +342,7 @@ class NormalVehiclesTest extends Specification {
         )
       )(VehicleFormat.Normal)
       val msg = ObjectCreateMessage(ObjectClass.fury, PlanetSideGUID(413), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_fury
     }
@@ -381,7 +381,7 @@ class NormalVehiclesTest extends Specification {
         )
       )(VehicleFormat.Normal)
       val msg = ObjectCreateMessage(ObjectClass.lightning, PlanetSideGUID(90), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_lightning
     }
@@ -441,7 +441,7 @@ class NormalVehiclesTest extends Specification {
         )
       )(VehicleFormat.Normal)
       val msg = ObjectCreateMessage(ObjectClass.mediumtransport, PlanetSideGUID(387), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_mediumtransport
     }

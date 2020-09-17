@@ -11,16 +11,15 @@ import net.psforever.objects.{Default, GlobalDefinitions, Player, Session}
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade, WeaponTurrets}
 import net.psforever.objects.zones.Zoning
-import net.psforever.packet.PacketCoding
 import net.psforever.packet.game.{ChatMsg, DeadState, RequestDestroyMessage, ZonePopulationUpdateMessage}
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID, Vector3}
 import net.psforever.util.{Config, PointOfInterest}
 import net.psforever.zones.Zones
 import net.psforever.services.chat.ChatService
 import net.psforever.services.chat.ChatService.ChatChannel
-
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
+import akka.actor.typed.scaladsl.adapter._
 
 object ChatActor {
   def apply(
@@ -272,9 +271,8 @@ class ChatActor(
                 case Some(turret: FacilityTurret) if turret.isUpgrading =>
                   WeaponTurrets.FinishUpgradingMannedTurret(turret, TurretUpgrade.None)
                 case _ =>
-                  sessionActor ! SessionActor.SendResponse(
-                    PacketCoding.CreateGamePacket(0, RequestDestroyMessage(PlanetSideGUID(guid))).packet
-                  )
+                  // FIXME we shouldn't do it like that
+                  sessionActor.toClassic ! RequestDestroyMessage(PlanetSideGUID(guid))
               }
               sessionActor ! SessionActor.SendResponse(message)
 
@@ -353,7 +351,7 @@ class ChatActor(
                           val ntu: Int = 900 + r.nextInt(100) - silo.NtuCapacitor
                           silo.Actor ! ResourceSilo.UpdateChargeLevel(ntu)
 
-                        case _ => ;
+                        case _ => ()
                       }
                     )
                   )
@@ -474,7 +472,7 @@ class ChatActor(
                   )
                 case _ =>
                   sessionActor ! SessionActor.SendResponse(
-                    message.copy(messageType = UNK_229, contents = "@@CMT_CAPTUREBASE_usage")
+                    message.copy(messageType = UNK_229, contents = "@CMT_CAPTUREBASE_usage")
                   )
               }
 

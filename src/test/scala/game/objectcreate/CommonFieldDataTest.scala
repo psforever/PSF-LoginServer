@@ -15,7 +15,7 @@ object CommonFieldDataTest extends Specification {
 
   "AmmoBoxData" should {
     "decode (shotgun shells, dropped)" in {
-      PacketCoding.DecodePacket(string_shotgunshell_dropped).require match {
+      PacketCoding.decodePacket(string_shotgunshell_dropped).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 165
           cls mustEqual ObjectClass.shotgun_shell
@@ -54,14 +54,14 @@ object CommonFieldDataTest extends Specification {
         CommonFieldData()(false)
       )
       val msg = ObjectCreateMessage(ObjectClass.shotgun_shell, PlanetSideGUID(3453), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_shotgunshell_dropped
     }
   }
 
   "TerminalData" should {
     "decode (implant interface)" in {
-      PacketCoding.DecodePacket(string_implant_interface).require match {
+      PacketCoding.decodePacket(string_implant_interface).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 108
           cls mustEqual 0x199
@@ -76,7 +76,7 @@ object CommonFieldDataTest extends Specification {
     }
 
     "decode (order terminal a)" in {
-      PacketCoding.DecodePacket(string_order_terminala).require match {
+      PacketCoding.decodePacket(string_order_terminala).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 165
           cls mustEqual ObjectClass.order_terminala
@@ -100,7 +100,7 @@ object CommonFieldDataTest extends Specification {
     "encode (implant interface)" in {
       val obj = CommonFieldData(PlanetSideEmpire.VS)(false)
       val msg = ObjectCreateMessage(0x199, PlanetSideGUID(1075), ObjectCreateMessageParent(PlanetSideGUID(514), 1), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_implant_interface
     }
 
@@ -110,7 +110,7 @@ object CommonFieldDataTest extends Specification {
         CommonFieldData(PlanetSideEmpire.NC)(false)
       )
       val msg = ObjectCreateMessage(ObjectClass.order_terminala, PlanetSideGUID(3827), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_order_terminala
     }
 

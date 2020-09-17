@@ -11,7 +11,7 @@ class PlanetsideAttributeMessageTest extends Specification {
   val string = hex"2c d9040458000000"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case PlanetsideAttributeMessage(player_guid, attribute_type, attribute_value) =>
         player_guid mustEqual PlanetSideGUID(1241)
         attribute_type mustEqual 4
@@ -23,7 +23,7 @@ class PlanetsideAttributeMessageTest extends Specification {
 
   "encode" in {
     val msg = PlanetsideAttributeMessage(PlanetSideGUID(1241), 4, 88)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

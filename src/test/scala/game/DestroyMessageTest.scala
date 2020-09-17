@@ -12,7 +12,7 @@ class DestroyMessageTest extends Specification {
 
   "DestroyMessage" should {
     "decode" in {
-      PacketCoding.DecodePacket(string).require match {
+      PacketCoding.decodePacket(string).require match {
         case DestroyMessage(unk1, unk2, unk3, pos) =>
           unk1 mustEqual PlanetSideGUID(2420)
           unk2 mustEqual PlanetSideGUID(2420)
@@ -30,7 +30,7 @@ class DestroyMessageTest extends Specification {
         PlanetSideGUID(0),
         Vector3(1642.0469f, 4091.6172f, 32.59375f)
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string
     }

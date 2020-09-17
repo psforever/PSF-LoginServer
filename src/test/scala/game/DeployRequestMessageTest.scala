@@ -11,7 +11,7 @@ class DeployRequestMessageTest extends Specification {
   val string = hex"4b 4b00 7c01 40 0cf73b52aa6a9300"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case DeployRequestMessage(player_guid, vehicle_guid, deploy_state, unk2, unk3, pos) =>
         player_guid mustEqual PlanetSideGUID(75)
         vehicle_guid mustEqual PlanetSideGUID(380)
@@ -35,7 +35,7 @@ class DeployRequestMessageTest extends Specification {
       false,
       Vector3(4060.1953f, 2218.8281f, 155.32812f)
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

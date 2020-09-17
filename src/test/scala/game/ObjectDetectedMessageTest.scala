@@ -11,7 +11,7 @@ class ObjectDetectedMessageTest extends Specification {
   val string = hex"61 E60F E60F 00 1C9C39F8304030AC18A8183436D42C"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case ObjectDetectedMessage(guid1, guid2, unk1, list) =>
         guid1 mustEqual PlanetSideGUID(4070)
         guid2 mustEqual PlanetSideGUID(4070)
@@ -43,7 +43,7 @@ class ObjectDetectedMessageTest extends Specification {
         PlanetSideGUID(2997) ::
         Nil
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

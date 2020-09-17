@@ -13,7 +13,7 @@ class AegisShieldGeneratorDataTest extends Specification {
 
   "AegisShieldGeneratorData" should {
     "decode" in {
-      PacketCoding.DecodePacket(string_aegis).require match {
+      PacketCoding.decodePacket(string_aegis).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 272
           cls mustEqual ObjectClass.deployable_shield_generator
@@ -53,7 +53,7 @@ class AegisShieldGeneratorDataTest extends Specification {
         255
       )
       val msg = ObjectCreateMessage(ObjectClass.deployable_shield_generator, PlanetSideGUID(2556), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_aegis
     }
   }

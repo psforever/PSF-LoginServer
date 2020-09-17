@@ -12,7 +12,7 @@ class HackMessageTest extends Specification {
   val string = hex"54 000105c3800000202fc04200000000"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case HackMessage(unk1, target_guid, player_guid, progress, unk5, hack_state, unk7) =>
         unk1 mustEqual 0
         target_guid mustEqual PlanetSideGUID(1024)
@@ -28,7 +28,7 @@ class HackMessageTest extends Specification {
 
   "encode" in {
     val msg = HackMessage(0, PlanetSideGUID(1024), PlanetSideGUID(3607), 0, 3212836864L, HackState.Start, 8L)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
     pkt mustEqual string
   }
 }

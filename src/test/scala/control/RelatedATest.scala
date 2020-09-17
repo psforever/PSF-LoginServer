@@ -13,7 +13,7 @@ class RelatedATest extends Specification {
   val string3 = hex"00 14 01 04"
 
   "decode (0)" in {
-    PacketCoding.DecodePacket(string0).require match {
+    PacketCoding.decodePacket(string0).require match {
       case RelatedA(slot, subslot) =>
         slot mustEqual 0
         subslot mustEqual 260
@@ -23,7 +23,7 @@ class RelatedATest extends Specification {
   }
 
   "decode (1)" in {
-    PacketCoding.DecodePacket(string1).require match {
+    PacketCoding.decodePacket(string1).require match {
       case RelatedA(slot, subslot) =>
         slot mustEqual 1
         subslot mustEqual 260
@@ -33,7 +33,7 @@ class RelatedATest extends Specification {
   }
 
   "decode (2)" in {
-    PacketCoding.DecodePacket(string2).require match {
+    PacketCoding.decodePacket(string2).require match {
       case RelatedA(slot, subslot) =>
         slot mustEqual 2
         subslot mustEqual 260
@@ -43,7 +43,7 @@ class RelatedATest extends Specification {
   }
 
   "decode (3)" in {
-    PacketCoding.DecodePacket(string3).require match {
+    PacketCoding.decodePacket(string3).require match {
       case RelatedA(slot, subslot) =>
         slot mustEqual 3
         subslot mustEqual 260
@@ -54,25 +54,25 @@ class RelatedATest extends Specification {
 
   "encode (0)" in {
     val pkt = RelatedA(0, 260)
-    val msg = PacketCoding.EncodePacket(pkt).require.toByteVector
+    val msg = PacketCoding.encodePacket(pkt).require.toByteVector
     msg mustEqual string0
   }
 
   "encode (1)" in {
     val pkt = RelatedA(1, 260)
-    val msg = PacketCoding.EncodePacket(pkt).require.toByteVector
+    val msg = PacketCoding.encodePacket(pkt).require.toByteVector
     msg mustEqual string1
   }
 
   "encode (2)" in {
     val pkt = RelatedA(2, 260)
-    val msg = PacketCoding.EncodePacket(pkt).require.toByteVector
+    val msg = PacketCoding.encodePacket(pkt).require.toByteVector
     msg mustEqual string2
   }
 
   "encode (3)" in {
     val pkt = RelatedA(3, 260)
-    val msg = PacketCoding.EncodePacket(pkt).require.toByteVector
+    val msg = PacketCoding.encodePacket(pkt).require.toByteVector
     msg mustEqual string3
   }
 

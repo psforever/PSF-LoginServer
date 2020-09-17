@@ -11,7 +11,7 @@ class ObjectHeldMessageTest extends Specification {
   val string = hex"33 4B00 02 00"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case ObjectHeldMessage(avatar_guid, held_holsters, unk1) =>
         avatar_guid mustEqual PlanetSideGUID(75)
         held_holsters mustEqual 2
@@ -23,7 +23,7 @@ class ObjectHeldMessageTest extends Specification {
 
   "encode" in {
     val msg = ObjectHeldMessage(PlanetSideGUID(75), 2, false)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

@@ -12,7 +12,7 @@ class CharacterKnowledgeMessageTest extends Specification {
   val string = hex"ec cc637a02 45804600720061006e006b0065006e00740061006e006b0003c022dc0008f01800"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case CharacterKnowledgeMessage(char_id, Some(info)) =>
         char_id mustEqual 41575372L
         info mustEqual CharacterKnowledgeInfo(
@@ -64,7 +64,7 @@ class CharacterKnowledgeMessageTest extends Specification {
         PlanetSideGUID(12)
       )
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

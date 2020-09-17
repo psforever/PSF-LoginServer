@@ -13,7 +13,7 @@ class TRAPDataTest extends Specification {
 
   "TRAPData" should {
     "decode" in {
-      PacketCoding.DecodePacket(string_trap).require match {
+      PacketCoding.decodePacket(string_trap).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 187
           cls mustEqual ObjectClass.tank_traps
@@ -50,7 +50,7 @@ class TRAPDataTest extends Specification {
         255
       )
       val msg      = ObjectCreateMessage(ObjectClass.tank_traps, PlanetSideGUID(2659), obj)
-      val pkt      = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt      = PacketCoding.encodePacket(msg).require.toByteVector
       val pkt_bitv = pkt.toBitVector
       val ori_bitv = string_trap.toBitVector
       pkt_bitv.take(173) mustEqual ori_bitv.take(173)

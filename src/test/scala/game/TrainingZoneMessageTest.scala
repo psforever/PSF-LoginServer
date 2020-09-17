@@ -11,7 +11,7 @@ class TrainingZoneMessageTest extends Specification {
   val string = hex"75 1300 0000"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case TrainingZoneMessage(zone, _) =>
         zone mustEqual PlanetSideGUID(19)
       case _ =>
@@ -21,7 +21,7 @@ class TrainingZoneMessageTest extends Specification {
 
   "encode" in {
     val msg = TrainingZoneMessage(PlanetSideGUID(19))
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

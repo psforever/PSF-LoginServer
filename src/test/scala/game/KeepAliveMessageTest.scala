@@ -10,7 +10,7 @@ class KeepAliveMessageTest extends Specification {
   val string = hex"BA 0000"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case KeepAliveMessage(code) =>
         code mustEqual 0
       case _ =>
@@ -20,7 +20,7 @@ class KeepAliveMessageTest extends Specification {
 
   "encode" in {
     val msg = KeepAliveMessage()
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

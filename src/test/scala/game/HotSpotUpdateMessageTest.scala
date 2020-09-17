@@ -13,7 +13,7 @@ class HotSpotUpdateMessageTest extends Specification {
   val stringThree = hex"9F 0A00 4 030 00FC8 00F0A 80000 002E9 00BEA 80000 00FC8 00BEA 80000 0"
 
   "decode (clear)" in {
-    PacketCoding.DecodePacket(stringClear).require match {
+    PacketCoding.decodePacket(stringClear).require match {
       case HotSpotUpdateMessage(continent_id, unk, spots) =>
         continent_id mustEqual 5
         unk mustEqual 1
@@ -24,7 +24,7 @@ class HotSpotUpdateMessageTest extends Specification {
   }
 
   "decode (one)" in {
-    PacketCoding.DecodePacket(stringOne).require match {
+    PacketCoding.decodePacket(stringOne).require match {
       case HotSpotUpdateMessage(continent_id, unk, spots) =>
         continent_id mustEqual 5
         unk mustEqual 1
@@ -36,7 +36,7 @@ class HotSpotUpdateMessageTest extends Specification {
   }
 
   "decode (two)" in {
-    PacketCoding.DecodePacket(stringTwo).require match {
+    PacketCoding.decodePacket(stringTwo).require match {
       case HotSpotUpdateMessage(continent_id, unk, spots) =>
         continent_id mustEqual 5
         unk mustEqual 5
@@ -49,7 +49,7 @@ class HotSpotUpdateMessageTest extends Specification {
   }
 
   "decode (three)" in {
-    PacketCoding.DecodePacket(stringThree).require match {
+    PacketCoding.decodePacket(stringThree).require match {
       case HotSpotUpdateMessage(continent_id, unk, spots) =>
         continent_id mustEqual 10
         unk mustEqual 4
@@ -64,20 +64,20 @@ class HotSpotUpdateMessageTest extends Specification {
 
   "encode (clear)" in {
     val msg = HotSpotUpdateMessage(5, 1, Nil)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
     pkt mustEqual stringClear
   }
 
   "encode (one)" in {
     val msg = HotSpotUpdateMessage(5, 1, List(HotSpotInfo(4700.0f, 2600.0f, 64.0f)))
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
     pkt mustEqual stringOne
   }
 
   "encode (two)" in {
     val msg =
       HotSpotUpdateMessage(5, 5, List(HotSpotInfo(4000.0f, 5400.0f, 64.0f), HotSpotInfo(5500.0f, 2200.0f, 64.0f)))
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
     pkt mustEqual stringTwo
   }
 
@@ -91,7 +91,7 @@ class HotSpotUpdateMessageTest extends Specification {
         HotSpotInfo(4600.0f, 5500.0f, 64.0f)
       )
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
     pkt mustEqual stringThree
   }
 }

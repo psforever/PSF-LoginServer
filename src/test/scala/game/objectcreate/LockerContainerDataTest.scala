@@ -14,7 +14,7 @@ class LockerContainerDataTest extends Specification {
 
   "LockerContainerData" should {
     "decode" in {
-      PacketCoding.DecodePacket(string_locker_container).require match {
+      PacketCoding.decodePacket(string_locker_container).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 431
           cls mustEqual ObjectClass.locker_container
@@ -92,7 +92,7 @@ class LockerContainerDataTest extends Specification {
         )
       )
       val msg = ObjectCreateMessage(ObjectClass.locker_container, PlanetSideGUID(3148), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_locker_container
     }
   }

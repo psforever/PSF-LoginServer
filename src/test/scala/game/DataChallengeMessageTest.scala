@@ -10,7 +10,7 @@ class DataChallengeMessageTest extends Specification {
   val string = hex"938673616d706c6501000000"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case DataChallengeMessage(attribute, value) =>
         attribute mustEqual "sample"
         value mustEqual 1L
@@ -21,7 +21,7 @@ class DataChallengeMessageTest extends Specification {
 
   "encode" in {
     val msg = DataChallengeMessage("sample", 1L)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

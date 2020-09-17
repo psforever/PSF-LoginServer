@@ -11,7 +11,7 @@ class ObjectDeleteMessageTest extends Specification {
   val string = hex"19 4C00 00"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case ObjectDeleteMessage(object_guid, unk1) =>
         object_guid mustEqual PlanetSideGUID(76)
         unk1 mustEqual 0
@@ -22,7 +22,7 @@ class ObjectDeleteMessageTest extends Specification {
 
   "encode" in {
     val msg = ObjectDeleteMessage(PlanetSideGUID(76), 0)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

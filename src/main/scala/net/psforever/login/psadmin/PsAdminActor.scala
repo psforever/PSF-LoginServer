@@ -93,6 +93,9 @@ class PsAdminActor(peerAddress: InetSocketAddress, connection: ActorRef) extends
     case Tcp.PeerClosed =>
       context.stop(self)
 
+    case Tcp.ErrorClosed(_) =>
+      context.stop(self)
+
     case default =>
       log.error(s"Unexpected message $default")
   }

@@ -10,7 +10,7 @@ class CharacterNoRecordMessageTest extends Specification {
   val string = hex"13 00400000" //we have no record of this packet, so here's something fake that works
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case CharacterNoRecordMessage(unk) =>
         unk mustEqual 16384
       case _ =>
@@ -20,7 +20,7 @@ class CharacterNoRecordMessageTest extends Specification {
 
   "encode" in {
     val msg = CharacterNoRecordMessage(16384)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

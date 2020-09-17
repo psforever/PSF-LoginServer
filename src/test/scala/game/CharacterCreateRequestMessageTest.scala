@@ -11,7 +11,7 @@ class CharacterCreateRequestMessageTest extends Specification {
   val string = hex"2f 88 54006500730074004300680061007200 320590"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case CharacterCreateRequestMessage(name, head, voice, gender, faction) =>
         name mustEqual "TestChar"
         head mustEqual 50
@@ -26,7 +26,7 @@ class CharacterCreateRequestMessageTest extends Specification {
   "encode" in {
     val msg =
       CharacterCreateRequestMessage("TestChar", 50, CharacterVoice.Voice5, CharacterGender.Female, PlanetSideEmpire.NC)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }
