@@ -866,7 +866,7 @@ class AvatarActor(
           Behaviors.same
 
         case ConsumeStamina(stamina) =>
-          assert(stamina > 0)
+          assert(stamina > 0, s"consumed stamina must be larger than 0, but is: ${stamina}")
           consumeStamina(stamina)
           Behaviors.same
 
@@ -1121,8 +1121,8 @@ class AvatarActor(
     val result = ctx.run(query[persistence.Avatar].filter(_.accountId == lift(account.id)))
     result.onComplete {
       case Success(avatars) =>
-        val gen: AtomicInteger                  = new AtomicInteger(1)
-        val converter: CharacterSelectConverter = new CharacterSelectConverter
+        val gen       = new AtomicInteger(1)
+        val converter = new CharacterSelectConverter
 
         avatars.filter(!_.deleted) foreach { a =>
           val secondsSinceLastLogin = Seconds.secondsBetween(a.lastLogin, LocalDateTime.now()).getSeconds
@@ -1200,7 +1200,7 @@ class AvatarActor(
         }
 
         sessionActor ! SessionActor.SendResponse(
-          CharacterInfoMessage(0, PlanetSideZoneID(1), 0, PlanetSideGUID(0), finished = true, 0)
+          CharacterInfoMessage(15, PlanetSideZoneID(0), 0, PlanetSideGUID(0), finished = true, 0)
         )
 
       case Failure(e) => log.error(e)("db failure")

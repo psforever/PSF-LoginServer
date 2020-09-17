@@ -14,7 +14,7 @@ class DetailedWeaponDataTest extends Specification {
 
   "DetailedWeaponData" should {
     "decode (gauss)" in {
-      PacketCoding.DecodePacket(string_gauss).require match {
+      PacketCoding.decodePacket(string_gauss).require match {
         case ObjectCreateDetailedMessage(len, cls, guid, parent, data) =>
           len mustEqual 220
           cls mustEqual ObjectClass.gauss
@@ -55,7 +55,7 @@ class DetailedWeaponDataTest extends Specification {
     }
 
     "decode (punisher)" in {
-      PacketCoding.DecodePacket(string_punisher).require match {
+      PacketCoding.decodePacket(string_punisher).require match {
         case ObjectCreateDetailedMessage(len, cls, guid, parent, data) =>
           len mustEqual 295
           cls mustEqual ObjectClass.punisher
@@ -111,7 +111,7 @@ class DetailedWeaponDataTest extends Specification {
         ObjectCreateMessageParent(PlanetSideGUID(75), 2),
         obj
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_gauss
     }
@@ -141,7 +141,7 @@ class DetailedWeaponDataTest extends Specification {
         ObjectCreateMessageParent(PlanetSideGUID(75), 2),
         obj
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_punisher
     }

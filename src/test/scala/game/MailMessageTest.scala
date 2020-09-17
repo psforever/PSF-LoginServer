@@ -11,7 +11,7 @@ class MailMessageTest extends Specification {
   val string = hex"F1 86466174654A489250726 96F72697479204D61696C2054657374 8E48656C6C6F204175726178697321"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case MailMessage(sender, subject, msg) =>
         sender mustEqual "FateJH"
         subject mustEqual "Priority Mail Test"
@@ -23,7 +23,7 @@ class MailMessageTest extends Specification {
 
   "encode" in {
     val msg = MailMessage("FateJH", "Priority Mail Test", "Hello Auraxis!")
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

@@ -11,7 +11,7 @@ class ChangeAmmoMessageTest extends Specification {
   val string = hex"47 4E00 00000000"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case ChangeAmmoMessage(item_guid, unk1) =>
         item_guid mustEqual PlanetSideGUID(78)
         unk1 mustEqual 0
@@ -22,7 +22,7 @@ class ChangeAmmoMessageTest extends Specification {
 
   "encode" in {
     val msg = ChangeAmmoMessage(PlanetSideGUID(78), 0)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

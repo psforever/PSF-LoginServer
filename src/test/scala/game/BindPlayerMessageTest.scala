@@ -14,7 +14,7 @@ class BindPlayerMessageTest extends Specification {
   val string_akkan    = hex"16048440616d7388100000001400000214e171a8e33024"
 
   "decode (standard)" in {
-    PacketCoding.DecodePacket(string_standard).require match {
+    PacketCoding.decodePacket(string_standard).require match {
       case BindPlayerMessage(action, bindDesc, unk1, logging, unk2, unk3, unk4, pos) =>
         action mustEqual BindStatus.Unbind
         bindDesc mustEqual ""
@@ -30,7 +30,7 @@ class BindPlayerMessageTest extends Specification {
   }
 
   "decode (ams)" in {
-    PacketCoding.DecodePacket(string_ams).require match {
+    PacketCoding.decodePacket(string_ams).require match {
       case BindPlayerMessage(action, bindDesc, unk1, logging, unk2, unk3, unk4, pos) =>
         action mustEqual BindStatus.Unavailable
         bindDesc mustEqual "@ams"
@@ -46,7 +46,7 @@ class BindPlayerMessageTest extends Specification {
   }
 
   "decode (tech)" in {
-    PacketCoding.DecodePacket(string_tech).require match {
+    PacketCoding.decodePacket(string_tech).require match {
       case BindPlayerMessage(action, bindDesc, unk1, logging, unk2, unk3, unk4, pos) =>
         action mustEqual BindStatus.Bind
         bindDesc mustEqual "@tech_plant"
@@ -62,7 +62,7 @@ class BindPlayerMessageTest extends Specification {
   }
 
   "decode (akkan)" in {
-    PacketCoding.DecodePacket(string_akkan).require match {
+    PacketCoding.decodePacket(string_akkan).require match {
       case BindPlayerMessage(action, bindDesc, unk1, logging, unk2, unk3, unk4, pos) =>
         action mustEqual BindStatus.Available
         bindDesc mustEqual "@ams"
@@ -79,14 +79,14 @@ class BindPlayerMessageTest extends Specification {
 
   "encode (standard)" in {
     val msg = BindPlayerMessage.Standard
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_standard
   }
 
   "encode (ams)" in {
     val msg = BindPlayerMessage(BindStatus.Unavailable, "@ams", false, false, SpawnGroup.AMS, 10, 0, Vector3.Zero)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_ams
   }
@@ -102,7 +102,7 @@ class BindPlayerMessageTest extends Specification {
       14,
       Vector3(4610.0f, 6292, 69.625f)
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_tech
   }
@@ -118,7 +118,7 @@ class BindPlayerMessageTest extends Specification {
       5,
       Vector3(2673.039f, 4423.547f, 39.1875f)
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_akkan
   }

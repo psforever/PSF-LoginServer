@@ -10,7 +10,6 @@ import net.psforever.types.ChatMessageType
 import pureconfig.ConfigConvert.viaNonEmptyStringOpt
 import pureconfig.ConfigReader.Result
 import pureconfig.{ConfigConvert, ConfigSource}
-
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
 import pureconfig.generic.auto._ // intellij: this is not unused
@@ -116,8 +115,8 @@ case class NetworkConfig(
 )
 
 case class SessionConfig(
-    inboundGraceTime: Duration,
-    outboundGraceTime: Duration
+    inboundGraceTime: FiniteDuration,
+    outboundGraceTime: FiniteDuration
 )
 
 case class GameConfig(

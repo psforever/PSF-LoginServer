@@ -11,7 +11,7 @@ class PlayerStasisMessageTest extends Specification {
   val string = hex"8A 4B00 80"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case PlayerStasisMessage(player_guid, stasis) =>
         player_guid mustEqual PlanetSideGUID(75)
         stasis mustEqual true
@@ -22,7 +22,7 @@ class PlayerStasisMessageTest extends Specification {
 
   "encode" in {
     val msg = PlayerStasisMessage(PlanetSideGUID(75))
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

@@ -14,7 +14,7 @@ class PlayerStateMessageTest extends Specification {
   val string_vel = hex"08 A006 4DD47 CDB1B 0C0B A8C1A5000403008014A4"
 
   "decode (short)" in {
-    PacketCoding.DecodePacket(string_short).require match {
+    PacketCoding.decodePacket(string_short).require match {
       case PlayerStateMessage(
             guid,
             pos,
@@ -47,7 +47,7 @@ class PlayerStateMessageTest extends Specification {
   }
 
   "decode (mod)" in {
-    PacketCoding.DecodePacket(string_mod).require match {
+    PacketCoding.decodePacket(string_mod).require match {
       case PlayerStateMessage(
             guid,
             pos,
@@ -80,7 +80,7 @@ class PlayerStateMessageTest extends Specification {
   }
 
   "decode (vel)" in {
-    PacketCoding.DecodePacket(string_vel).require match {
+    PacketCoding.decodePacket(string_vel).require match {
       case PlayerStateMessage(
             guid,
             pos,
@@ -129,7 +129,7 @@ class PlayerStateMessageTest extends Specification {
       false,
       false
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
     pkt mustEqual string_short
   }
 
@@ -147,7 +147,7 @@ class PlayerStateMessageTest extends Specification {
       false,
       true
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
     pkt mustEqual string_mod
   }
 
@@ -165,7 +165,7 @@ class PlayerStateMessageTest extends Specification {
       false,
       false
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
     pkt mustEqual string_vel
   }
 }

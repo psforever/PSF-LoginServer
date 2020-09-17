@@ -19,7 +19,7 @@ class BattleplanMessageTest extends Specification {
   //0xb3856477028c4f0075007400730074006100620075006c006f00750073000a000130
 
   "decode (start)" in {
-    PacketCoding.DecodePacket(string_start).require match {
+    PacketCoding.decodePacket(string_start).require match {
       case BattleplanMessage(char_id, player_name, zone_id, diagrams) =>
         char_id mustEqual 41490746
         player_name mustEqual "YetAnotherFailureAlt"
@@ -34,7 +34,7 @@ class BattleplanMessageTest extends Specification {
   }
 
   "decode (end)" in {
-    PacketCoding.DecodePacket(string_stop).require match {
+    PacketCoding.decodePacket(string_stop).require match {
       case BattleplanMessage(char_id, player_name, zone_id, diagrams) =>
         char_id mustEqual 41490746
         player_name mustEqual "YetAnotherFailureAlt"
@@ -49,7 +49,7 @@ class BattleplanMessageTest extends Specification {
   }
 
   "decode (stop)" in {
-    PacketCoding.DecodePacket(string_line).require match {
+    PacketCoding.decodePacket(string_line).require match {
       case BattleplanMessage(char_id, player_name, zone_id, diagrams) =>
         char_id mustEqual 41378949
         player_name mustEqual "Outstabulous"
@@ -191,7 +191,7 @@ class BattleplanMessageTest extends Specification {
   }
 
   "decode (style)" in {
-    PacketCoding.DecodePacket(string_style).require match {
+    PacketCoding.decodePacket(string_style).require match {
       case BattleplanMessage(char_id, player_name, zone_id, diagrams) =>
         char_id mustEqual 41378949
         player_name mustEqual "Outstabulous"
@@ -217,7 +217,7 @@ class BattleplanMessageTest extends Specification {
   }
 
   "decode (message)" in {
-    PacketCoding.DecodePacket(string_message).require match {
+    PacketCoding.decodePacket(string_message).require match {
       case BattleplanMessage(char_id, player_name, zone_id, diagrams) =>
         char_id mustEqual 41378949
         player_name mustEqual "Outstabulous"
@@ -245,7 +245,7 @@ class BattleplanMessageTest extends Specification {
       BattleDiagramAction(DiagramActionCode.StartDrawing) ::
         Nil
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_start
   }
@@ -258,7 +258,7 @@ class BattleplanMessageTest extends Specification {
       BattleDiagramAction(DiagramActionCode.StopDrawing) ::
         Nil
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_stop
   }
@@ -302,7 +302,7 @@ class BattleplanMessageTest extends Specification {
         BattleDiagramAction.vertex(7536.0f, 6632.0f) ::
         Nil
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_line
   }
@@ -317,7 +317,7 @@ class BattleplanMessageTest extends Specification {
         BattleDiagramAction.vertex(7512.0f, 6344.0f) ::
         Nil
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_style
   }
@@ -329,7 +329,7 @@ class BattleplanMessageTest extends Specification {
       10,
       BattleDiagramAction.drawString(7512.0f, 6312.0f, 2, 0, "Hello Auraxis!") :: Nil
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_message
   }

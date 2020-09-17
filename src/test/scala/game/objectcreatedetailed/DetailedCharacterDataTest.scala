@@ -54,7 +54,7 @@ class DetailedCharacterDataTest extends Specification {
 
   "DetailedCharacterData" should {
     "decode" in {
-      PacketCoding.DecodePacket(string).require match {
+      PacketCoding.decodePacket(string).require match {
         case ObjectCreateDetailedMessage(len, cls, guid, parent, data) =>
           len mustEqual 3159
           cls mustEqual ObjectClass.avatar
@@ -244,7 +244,7 @@ class DetailedCharacterDataTest extends Specification {
     }
 
     "decode (character, seated)" in {
-      PacketCoding.DecodePacket(string_seated).require match {
+      PacketCoding.decodePacket(string_seated).require match {
         case ObjectCreateDetailedMessage(len, cls, guid, parent, data) =>
           len mustEqual 3103
           cls mustEqual ObjectClass.avatar
@@ -432,7 +432,7 @@ class DetailedCharacterDataTest extends Specification {
     }
 
     "decode (max)" in {
-      PacketCoding.DecodePacket(string_max).require match {
+      PacketCoding.decodePacket(string_max).require match {
         case ObjectCreateDetailedMessage(_, _, _, _, data) =>
           //this test is mainly for an alternate bitstream parsing order
           //the object produced is massive and most of it is already covered in other tests
@@ -659,7 +659,7 @@ class DetailedCharacterDataTest extends Specification {
     }
 
     "decode (BR32)" in {
-      PacketCoding.DecodePacket(string_br32).require match {
+      PacketCoding.decodePacket(string_br32).require match {
         case ObjectCreateDetailedMessage(_, _, _, _, data) =>
           //this test is mainly for an alternate bitstream parsing order
           //the object produced is massive and most of it is already covered in other tests
@@ -1179,7 +1179,7 @@ class DetailedCharacterDataTest extends Specification {
     }
 
     "decode (ccrider)" in {
-      PacketCoding.DecodePacket(string_ccrider).require match {
+      PacketCoding.decodePacket(string_ccrider).require match {
         case ObjectCreateDetailedMessage(len, _, _, None, data) =>
           len mustEqual 51018L
           data match {
@@ -1320,7 +1320,7 @@ class DetailedCharacterDataTest extends Specification {
     }
 
     "decode (xRider912)" in {
-      PacketCoding.DecodePacket(string_xrider912).require match {
+      PacketCoding.decodePacket(string_xrider912).require match {
         case ObjectCreateDetailedMessage(len, cls, guid, parentInfo, data) =>
           len mustEqual 36047
           cls mustEqual ObjectClass.avatar
@@ -1684,7 +1684,7 @@ class DetailedCharacterDataTest extends Specification {
       val obj = DetailedPlayerData.apply(pos, app, char, inv, DrawnSlot.Pistol1)
 
       val msg      = ObjectCreateDetailedMessage(0x79, PlanetSideGUID(75), obj)
-      val pkt      = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt      = PacketCoding.encodePacket(msg).require.toByteVector
       val pkt_bitv = pkt.toBitVector
       val ori_bitv = string.toBitVector
       pkt_bitv.take(724) mustEqual ori_bitv.take(724) //skip 1; this is the highest bit of facingPitch
@@ -1868,7 +1868,7 @@ class DetailedCharacterDataTest extends Specification {
 
       val msg =
         ObjectCreateDetailedMessage(0x79, PlanetSideGUID(75), ObjectCreateMessageParent(PlanetSideGUID(43981), 0), obj)
-      val pkt      = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt      = PacketCoding.encodePacket(msg).require.toByteVector
       val pkt_bitv = pkt.toBitVector
       val ori_bitv = string_seated.toBitVector
       pkt_bitv.take(668) mustEqual ori_bitv.take(668) //skip 1; this is the highest bit of facingPitch
@@ -2089,7 +2089,7 @@ class DetailedCharacterDataTest extends Specification {
       val obj = DetailedPlayerData(pos, app, char, inv, DrawnSlot.Pistol1)
 
       val msg = ObjectCreateDetailedMessage(ObjectClass.avatar, PlanetSideGUID(1), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_max
     }
 
@@ -3574,7 +3574,7 @@ class DetailedCharacterDataTest extends Specification {
       val obj = DetailedPlayerData(pos, app, char, inv, DrawnSlot.None)
 
       val msg = ObjectCreateDetailedMessage(ObjectClass.avatar, PlanetSideGUID(75), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_br32
     }
 
@@ -4498,7 +4498,7 @@ class DetailedCharacterDataTest extends Specification {
       val obj = DetailedPlayerData.apply(pos, app, char, inv, DrawnSlot.None)
 
       val msg = ObjectCreateDetailedMessage(0x79, PlanetSideGUID(75), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_ccrider
     }
 
@@ -5723,7 +5723,7 @@ class DetailedCharacterDataTest extends Specification {
       val obj = DetailedPlayerData.apply(pos, app, char, inv, DrawnSlot.None)
 
       val msg      = ObjectCreateDetailedMessage(0x79, PlanetSideGUID(3390), obj)
-      val pkt      = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt      = PacketCoding.encodePacket(msg).require.toByteVector
       val pkt_bitv = pkt.toBitVector
       val ori_bitv = string_xrider912.toBitVector
       pkt_bitv.take(140) mustEqual ori_bitv.take(140) //skip 1; this is the highest bit of PlacementData::Orientation::z

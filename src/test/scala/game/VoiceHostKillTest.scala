@@ -10,7 +10,7 @@ class VoiceHostKillTest extends Specification {
   val string_kill = hex"b1"
 
   "decode" in {
-    PacketCoding.DecodePacket(string_kill).require match {
+    PacketCoding.decodePacket(string_kill).require match {
       case VoiceHostKill() =>
         ok
       case _ =>
@@ -20,7 +20,7 @@ class VoiceHostKillTest extends Specification {
 
   "encode" in {
     val msg = VoiceHostKill()
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_kill
   }

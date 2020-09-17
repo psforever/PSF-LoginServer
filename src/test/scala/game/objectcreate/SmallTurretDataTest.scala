@@ -15,7 +15,7 @@ class SmallTurretDataTest extends Specification {
 
   "SmallTurretData" should {
     "decode (spitfire, short)" in {
-      PacketCoding.DecodePacket(string_spitfire_short).require match {
+      PacketCoding.decodePacket(string_spitfire_short).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 187
           cls mustEqual ObjectClass.spitfire_turret
@@ -46,7 +46,7 @@ class SmallTurretDataTest extends Specification {
     }
 
     "decode (spitfire)" in {
-      PacketCoding.DecodePacket(string_spitfire).require match {
+      PacketCoding.decodePacket(string_spitfire).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 335
           cls mustEqual ObjectClass.spitfire_turret
@@ -129,7 +129,7 @@ class SmallTurretDataTest extends Specification {
         0
       )
       val msg = ObjectCreateMessage(ObjectClass.spitfire_turret, PlanetSideGUID(4208), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_spitfire_short
     }
 
@@ -184,7 +184,7 @@ class SmallTurretDataTest extends Specification {
         )
       )
       val msg = ObjectCreateMessage(ObjectClass.spitfire_turret, PlanetSideGUID(4265), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_spitfire
     }
   }

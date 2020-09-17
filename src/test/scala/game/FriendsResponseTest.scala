@@ -13,7 +13,7 @@ class FriendsResponseTest extends Specification {
   val stringShort = hex"73 81 80"
 
   "decode (one friend)" in {
-    PacketCoding.DecodePacket(stringOneFriend).require match {
+    PacketCoding.decodePacket(stringOneFriend).require match {
       case FriendsResponse(action, unk2, unk3, unk4, list) =>
         action mustEqual FriendAction.UpdateFriend
         unk2 mustEqual 0
@@ -28,7 +28,7 @@ class FriendsResponseTest extends Specification {
   }
 
   "decode (multiple friends)" in {
-    PacketCoding.DecodePacket(stringManyFriends).require match {
+    PacketCoding.decodePacket(stringManyFriends).require match {
       case FriendsResponse(action, unk2, unk3, unk4, list) =>
         action mustEqual FriendAction.InitializeFriendList
         unk2 mustEqual 0
@@ -51,7 +51,7 @@ class FriendsResponseTest extends Specification {
   }
 
   "decode (short)" in {
-    PacketCoding.DecodePacket(stringShort).require match {
+    PacketCoding.decodePacket(stringShort).require match {
       case FriendsResponse(action, unk2, unk3, unk4, list) =>
         action mustEqual FriendAction.InitializeIgnoreList
         unk2 mustEqual 0
@@ -72,7 +72,7 @@ class FriendsResponseTest extends Specification {
       Friend("KurtHectic-G", false) ::
         Nil
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringOneFriend
   }
@@ -90,14 +90,14 @@ class FriendsResponseTest extends Specification {
         Friend("KurtHectic-G", false) ::
         Nil
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringManyFriends
   }
 
   "encode (short)" in {
     val msg = FriendsResponse(FriendAction.InitializeIgnoreList, 0, true, true)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringShort
   }

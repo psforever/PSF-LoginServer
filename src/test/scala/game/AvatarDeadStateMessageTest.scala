@@ -12,7 +12,7 @@ class AvatarDeadStateMessageTest extends Specification {
   val string_invalid = hex"ad3c1260801c12608009f99861fb0741e0400000F0"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case AvatarDeadStateMessage(unk1, unk2, unk3, pos, unk4, unk5) =>
         unk1 mustEqual DeadState.Dead
         unk2 mustEqual 300000
@@ -26,7 +26,7 @@ class AvatarDeadStateMessageTest extends Specification {
   }
 
   "decode (failure)" in {
-    PacketCoding.DecodePacket(string_invalid).isFailure mustEqual true
+    PacketCoding.decodePacket(string_invalid).isFailure mustEqual true
   }
 
   "encode" in {
@@ -38,7 +38,7 @@ class AvatarDeadStateMessageTest extends Specification {
       PlanetSideEmpire.VS,
       true
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

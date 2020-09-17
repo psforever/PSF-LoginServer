@@ -13,7 +13,7 @@ class DestroyedVehiclesTest extends Specification {
 
   "Destroyed vehicles" should {
     "decode (ams, destroyed)" in {
-      PacketCoding.DecodePacket(string_ams_destroyed).require match {
+      PacketCoding.decodePacket(string_ams_destroyed).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 141L
           cls mustEqual ObjectClass.ams_destroyed
@@ -35,7 +35,7 @@ class DestroyedVehiclesTest extends Specification {
     "encode (ams, destroyed)" in {
       val obj = DestroyedVehicleData(PlacementData(3674.0f, 2726.789f, 91.15625f, 0f, 0f, 90.0f))
       val msg = ObjectCreateMessage(ObjectClass.ams_destroyed, PlanetSideGUID(4157), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_ams_destroyed
     }

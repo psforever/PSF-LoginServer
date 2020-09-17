@@ -11,7 +11,7 @@ class DamageMessageTest extends Specification {
   val string = hex"0b610b02610b00"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case DamageMessage(guid1, unk1, guid2, unk2) =>
         guid1 mustEqual PlanetSideGUID(2913)
         unk1 mustEqual 2
@@ -24,7 +24,7 @@ class DamageMessageTest extends Specification {
 
   "encode" in {
     val msg = DamageMessage(PlanetSideGUID(2913), 2, PlanetSideGUID(2913), false)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

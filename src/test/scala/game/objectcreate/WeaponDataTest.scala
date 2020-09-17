@@ -17,7 +17,7 @@ class WeaponDataTest extends Specification {
 
   "WeaponData" should {
     "decode (lasher, held)" in {
-      PacketCoding.DecodePacket(string_lasher_held).require match {
+      PacketCoding.decodePacket(string_lasher_held).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 187
           cls mustEqual ObjectClass.lasher
@@ -70,7 +70,7 @@ class WeaponDataTest extends Specification {
     }
 
     "decode (punisher, held)" in {
-      PacketCoding.DecodePacket(string_punisher_held).require match {
+      PacketCoding.decodePacket(string_punisher_held).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 246
           cls mustEqual ObjectClass.punisher
@@ -142,7 +142,7 @@ class WeaponDataTest extends Specification {
     }
 
     "decode (lasher, dropped)" in {
-      PacketCoding.DecodePacket(string_lasher_dropped).require match {
+      PacketCoding.decodePacket(string_lasher_dropped).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 244
           cls mustEqual ObjectClass.lasher
@@ -201,7 +201,7 @@ class WeaponDataTest extends Specification {
     }
 
     "decode (punisher, dropped)" in {
-      PacketCoding.DecodePacket(string_punisher_dropped).require match {
+      PacketCoding.decodePacket(string_punisher_dropped).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 303
           cls mustEqual ObjectClass.punisher
@@ -297,7 +297,7 @@ class WeaponDataTest extends Specification {
         ObjectCreateMessageParent(PlanetSideGUID(4141), 3),
         obj
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_lasher_held
     }
 
@@ -327,7 +327,7 @@ class WeaponDataTest extends Specification {
         ObjectCreateMessageParent(PlanetSideGUID(3092), 3),
         obj
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_punisher_held
     }
 
@@ -341,7 +341,7 @@ class WeaponDataTest extends Specification {
         )
       )
       val msg = ObjectCreateMessage(ObjectClass.lasher, PlanetSideGUID(3074), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_lasher_dropped
     }
 
@@ -358,7 +358,7 @@ class WeaponDataTest extends Specification {
         )
       )
       val msg = ObjectCreateMessage(ObjectClass.punisher, PlanetSideGUID(2978), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_punisher_dropped
     }
   }

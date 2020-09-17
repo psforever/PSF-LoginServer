@@ -13,7 +13,7 @@ class DetailedCommandDetonaterDataTest extends Specification {
 
   "DetailedCommandDetonaterData" should {
     "decode" in {
-      PacketCoding.DecodePacket(string_detonater).require match {
+      PacketCoding.decodePacket(string_detonater).require match {
         case ObjectCreateDetailedMessage(len, cls, guid, parent, data) =>
           len mustEqual 135
           cls mustEqual ObjectClass.command_detonater
@@ -52,7 +52,7 @@ class DetailedCommandDetonaterDataTest extends Specification {
         ObjectCreateMessageParent(PlanetSideGUID(3530), 0),
         obj
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_detonater
     }
   }

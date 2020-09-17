@@ -10,7 +10,7 @@ class ControlSyncRespTest extends Specification {
   val string = hex"0008 5268 21392D92 0000000000000276 0000000000000275 0000000000000275 0000000000000276"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case ControlSyncResp(a, b, c, d, e, f) =>
         a mustEqual 21096
 
@@ -25,7 +25,7 @@ class ControlSyncRespTest extends Specification {
   }
 
   "encode" in {
-    val encoded = PacketCoding.EncodePacket(ControlSyncResp(21096, 0x21392d92, 0x276, 0x275, 0x275, 0x276)).require
+    val encoded = PacketCoding.encodePacket(ControlSyncResp(21096, 0x21392d92, 0x276, 0x275, 0x275, 0x276)).require
 
     encoded.toByteVector mustEqual string
   }

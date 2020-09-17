@@ -14,7 +14,7 @@ class SquadStateTest extends Specification {
     hex"7704008dd9ccf010042a9837310e1b82a8c006646c7a028103984f34759c904a800014f01c26f3d014081ddd3896931bc25478037680ea80c081d699a147b01e154000031c0bc81407e08c1a3a890de1542c022070bd0140815958bf29efa6214300108023c01000ae491ac68d1a61342c023623c50140011d6ea0878f3026a00009e014"
 
   "decode (1)" in {
-    PacketCoding.DecodePacket(string1).require match {
+    PacketCoding.decodePacket(string1).require match {
       case SquadState(guid, list) =>
         guid mustEqual PlanetSideGUID(7)
         list.size mustEqual 1
@@ -40,7 +40,7 @@ class SquadStateTest extends Specification {
   }
 
   "decode (2)" in {
-    PacketCoding.DecodePacket(string2).require match {
+    PacketCoding.decodePacket(string2).require match {
       case SquadState(guid, list) =>
         guid mustEqual PlanetSideGUID(7)
         list.size mustEqual 2
@@ -81,7 +81,7 @@ class SquadStateTest extends Specification {
   }
 
   "decode (8)" in {
-    PacketCoding.DecodePacket(stringx).require match {
+    PacketCoding.decodePacket(stringx).require match {
       case SquadState(guid, list) =>
         guid mustEqual PlanetSideGUID(4)
         list.size mustEqual 8
@@ -218,7 +218,7 @@ class SquadStateTest extends Specification {
         SquadStateInfo(1300870L, 64, 64, Vector3(3464.0469f, 4065.5703f, 20.015625f), 2, 2, false, 0)
       )
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
     pkt mustEqual string1
   }
 
@@ -230,7 +230,7 @@ class SquadStateTest extends Specification {
         SquadStateInfo(42644970L, 64, 64, Vector3(2908.7422f, 3742.6875f, 67.296875f), 2, 2, false, 680)
       )
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
     pkt mustEqual string2
   }
 
@@ -248,7 +248,7 @@ class SquadStateTest extends Specification {
         SquadStateInfo(42616684L, 64, 0, Vector3(2927.1094f, 3704.0312f, 78.375f), 1, 1, false, 0, 572, true)
       )
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
     pkt mustEqual stringx
   }
 }

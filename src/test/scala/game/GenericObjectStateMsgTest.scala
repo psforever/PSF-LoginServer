@@ -11,7 +11,7 @@ class GenericObjectStateMsgTest extends Specification {
   val string = hex"1D 6401 10000000"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case GenericObjectStateMsg(object_guid, state) =>
         object_guid mustEqual PlanetSideGUID(356)
         state mustEqual 16
@@ -22,7 +22,7 @@ class GenericObjectStateMsgTest extends Specification {
 
   "encode" in {
     val msg = GenericObjectStateMsg(PlanetSideGUID(356), 16)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

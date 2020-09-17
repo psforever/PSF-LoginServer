@@ -10,7 +10,7 @@ class ZoneLockInfoMesageTest extends Specification {
   val string = hex"DF 1B 00 40"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case ZoneLockInfoMessage(zone, locked, unk) =>
         zone mustEqual 27
         locked mustEqual false
@@ -22,7 +22,7 @@ class ZoneLockInfoMesageTest extends Specification {
 
   "encode" in {
     val msg = ZoneLockInfoMessage(27, false, true)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

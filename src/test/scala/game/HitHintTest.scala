@@ -11,7 +11,7 @@ class HitHintTest extends Specification {
   val string = hex"0A 460B 0100"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case HitHint(source, player) =>
         source mustEqual PlanetSideGUID(2886)
         player mustEqual PlanetSideGUID(1)
@@ -22,7 +22,7 @@ class HitHintTest extends Specification {
 
   "encode" in {
     val msg = HitHint(PlanetSideGUID(2886), PlanetSideGUID(1))
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

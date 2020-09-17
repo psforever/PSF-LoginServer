@@ -12,7 +12,7 @@ class HitMessageTest extends Specification {
   val string_hitobj     = hex"09 99292705F4B1FB9514585F08BDD3D454CC5EE80300"
 
   "decode (generic)" in {
-    PacketCoding.DecodePacket(string_hitgeneric).require match {
+    PacketCoding.decodePacket(string_hitgeneric).require match {
       case HitMessage(seq_time, projectile_guid, unk1, hit_info, unk2, unk3, unk4) =>
         seq_time mustEqual 777
         projectile_guid mustEqual PlanetSideGUID(40102)
@@ -27,7 +27,7 @@ class HitMessageTest extends Specification {
   }
 
   "decode (object)" in {
-    PacketCoding.DecodePacket(string_hitobj).require match {
+    PacketCoding.decodePacket(string_hitobj).require match {
       case HitMessage(seq_time, projectile_guid, unk1, hit_info, unk2, unk3, unk4) =>
         seq_time mustEqual 153
         projectile_guid mustEqual PlanetSideGUID(40100)
@@ -49,7 +49,7 @@ class HitMessageTest extends Specification {
 
   "encode (generic)" in {
     val msg_hitgeneric = HitMessage(777, PlanetSideGUID(40102), 0, None, true, false, None)
-    val pkt_hitgeneric = PacketCoding.EncodePacket(msg_hitgeneric).require.toByteVector
+    val pkt_hitgeneric = PacketCoding.encodePacket(msg_hitgeneric).require.toByteVector
     pkt_hitgeneric mustEqual string_hitgeneric
   }
 
@@ -69,7 +69,7 @@ class HitMessageTest extends Specification {
       false,
       None
     )
-    val pkt_hitobj = PacketCoding.EncodePacket(msg_hitobj).require.toByteVector
+    val pkt_hitobj = PacketCoding.encodePacket(msg_hitobj).require.toByteVector
 
     pkt_hitobj mustEqual string_hitobj
   }

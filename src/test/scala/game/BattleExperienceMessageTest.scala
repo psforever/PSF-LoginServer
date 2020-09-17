@@ -11,7 +11,7 @@ class BattleExperienceMessageTest extends Specification {
   val string = hex"B4 8A0A E7030000 00"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case BattleExperienceMessage(player_guid, experience, unk) =>
         player_guid mustEqual PlanetSideGUID(2698)
         experience mustEqual 999
@@ -23,7 +23,7 @@ class BattleExperienceMessageTest extends Specification {
 
   "encode" in {
     val msg = BattleExperienceMessage(PlanetSideGUID(2698), 999, 0)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

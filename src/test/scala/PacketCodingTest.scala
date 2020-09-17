@@ -1,6 +1,6 @@
 // Copyright (c) 2017 PSForever
 import org.specs2.mutable._
-import net.psforever.packet._
+import net.psforever.packet.{PlanetSideControlPacket, _}
 import net.psforever.packet.control.{ClientStart, ServerStart}
 import scodec.bits._
 
@@ -18,13 +18,13 @@ class PacketCodingTest extends Specification {
 
   "Packet coding" should {
     "correctly decode control packets" in {
-      val packet = PacketCoding.UnmarshalPacket(hex"0001 00000002 00261e27 000001f0").require
+      val (packet, _) = PacketCoding.unmarshalPacket(hex"0001 00000002 00261e27 000001f0").require
 
-      packet.isInstanceOf[ControlPacket] mustEqual true
+      packet.isInstanceOf[PlanetSideControlPacket] mustEqual true
 
-      val controlPacket = packet.asInstanceOf[ControlPacket]
+      val controlPacket = packet.asInstanceOf[PlanetSideControlPacket]
       controlPacket.opcode mustEqual ControlPacketOpcode.ClientStart
-      controlPacket.packet mustEqual ClientStart(656287232)
+      controlPacket mustEqual ClientStart(656287232)
     }
 
     "encode and decode to identical packets" in {
@@ -32,37 +32,37 @@ class PacketCodingTest extends Specification {
       val serverNonce = 848483
 
       val packetUnderTest = ServerStart(clientNonce, serverNonce)
-      val pkt             = PacketCoding.MarshalPacket(ControlPacket(packetUnderTest.opcode, packetUnderTest)).require
+      val pkt             = PacketCoding.marshalPacket(packetUnderTest).require
 
-      val decoded = PacketCoding.UnmarshalPacket(pkt.toByteVector).require.asInstanceOf[ControlPacket]
-      val recvPkt = decoded.packet.asInstanceOf[ServerStart]
+      val decoded = PacketCoding.unmarshalPacket(pkt.toByteVector).require._1.asInstanceOf[PlanetSideControlPacket]
+      val recvPkt = decoded.asInstanceOf[ServerStart]
 
       packetUnderTest mustEqual recvPkt
     }
 
     "reject corrupted control packets" in {
-      val packet = PacketCoding.UnmarshalPacket(hex"0001 00001002 00261e27 004101f0")
+      val packet = PacketCoding.unmarshalPacket(hex"0001 00001002 00261e27 004101f0")
 
       packet.isSuccessful mustEqual false
     }
 
     "correctly decode crypto packets" in {
-      val packet = PacketCoding.UnmarshalPacket(hex"0001 00000002 00261e27 000001f0").require
+      val (packet, _) = PacketCoding.unmarshalPacket(hex"0001 00000002 00261e27 000001f0").require
 
-      packet.isInstanceOf[ControlPacket] mustEqual true
+      packet.isInstanceOf[PlanetSideControlPacket] mustEqual true
 
-      val controlPacket = packet.asInstanceOf[ControlPacket]
+      val controlPacket = packet.asInstanceOf[PlanetSideControlPacket]
       controlPacket.opcode mustEqual ControlPacketOpcode.ClientStart
-      controlPacket.packet mustEqual ClientStart(656287232)
+      controlPacket mustEqual ClientStart(656287232)
     }
 
     "reject bad packet types" in {
-      PacketCoding.UnmarshalPacket(hex"ff414141").isFailure mustEqual true
+      PacketCoding.unmarshalPacket(hex"ff414141").isFailure mustEqual true
     }
 
     "reject small packets" in {
-      PacketCoding.UnmarshalPacket(hex"00").isFailure mustEqual true
-      PacketCoding.UnmarshalPacket(hex"").isFailure mustEqual true
+      PacketCoding.unmarshalPacket(hex"00").isFailure mustEqual true
+      PacketCoding.unmarshalPacket(hex"").isFailure mustEqual true
     }
   }
 

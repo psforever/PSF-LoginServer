@@ -11,7 +11,7 @@ class PickupItemMessageTest extends Specification {
   val string = hex"36 5600 4B00 00 0000"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case PickupItemMessage(item_guid, player_guid, unk1, unk2) =>
         item_guid mustEqual PlanetSideGUID(86)
         player_guid mustEqual PlanetSideGUID(75)
@@ -24,7 +24,7 @@ class PickupItemMessageTest extends Specification {
 
   "encode" in {
     val msg = PickupItemMessage(PlanetSideGUID(86), PlanetSideGUID(75), 0, 0)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

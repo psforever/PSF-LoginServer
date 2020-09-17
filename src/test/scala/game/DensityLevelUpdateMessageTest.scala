@@ -10,7 +10,7 @@ class DensityLevelUpdateMessageTest extends Specification {
   val string = hex"cd 0100 1f4e 000000"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case DensityLevelUpdateMessage(zone_id, building_id, unk) =>
         zone_id mustEqual 1
         building_id mustEqual 19999
@@ -30,23 +30,23 @@ class DensityLevelUpdateMessageTest extends Specification {
 
   "encode" in {
     val msg = DensityLevelUpdateMessage(1, 19999, List(0, 0, 0, 0, 0, 0, 0, 0))
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }
 
   "encode (failure; wrong number of list entries)" in {
     val msg = DensityLevelUpdateMessage(1, 19999, List(0))
-    PacketCoding.EncodePacket(msg).isSuccessful mustEqual false
+    PacketCoding.encodePacket(msg).isSuccessful mustEqual false
   }
 
   "encode (failure; list number too big)" in {
     val msg = DensityLevelUpdateMessage(1, 19999, List(0, 0, 0, 0, 0, 0, 0, 8))
-    PacketCoding.EncodePacket(msg).isSuccessful mustEqual false
+    PacketCoding.encodePacket(msg).isSuccessful mustEqual false
   }
 
   "encode (failure; list number too small)" in {
     val msg = DensityLevelUpdateMessage(1, 19999, List(0, 0, 0, 0, 0, -1, 0, 0))
-    PacketCoding.EncodePacket(msg).isSuccessful mustEqual false
+    PacketCoding.encodePacket(msg).isSuccessful mustEqual false
   }
 }

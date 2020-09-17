@@ -12,7 +12,7 @@ class AvatarStatisticsMessageTest extends Specification {
     hex"7F 01 3C 40 20 00 00 00  C0 00 00 00 00 00 00 00  20 00 00 00 20 00 00 00  40 00 00 00 00 00 00 00  00 00 00 00"
 
   "decode (long)" in {
-    PacketCoding.DecodePacket(string_long).require match {
+    PacketCoding.decodePacket(string_long).require match {
       case AvatarStatisticsMessage(unk, stats) =>
         unk mustEqual 2
         stats.unk1 mustEqual None
@@ -25,7 +25,7 @@ class AvatarStatisticsMessageTest extends Specification {
   }
 
   "decode (complex)" in {
-    PacketCoding.DecodePacket(string_complex).require match {
+    PacketCoding.decodePacket(string_complex).require match {
       case AvatarStatisticsMessage(unk, stats) =>
         unk mustEqual 0
         stats.unk1 mustEqual Some(1)
@@ -46,35 +46,35 @@ class AvatarStatisticsMessageTest extends Specification {
 
   "encode (long)" in {
     val msg = AvatarStatisticsMessage(2, Statistics(0L))
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_long
   }
 
   "encode (complex)" in {
     val msg = AvatarStatisticsMessage(0, Statistics(1, 572, List[Long](1, 6, 0, 1, 1, 2, 0, 0)))
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_complex
   }
 
   "encode (failure; long; missing value)" in {
     val msg = AvatarStatisticsMessage(0, Statistics(None, None, List(0L)))
-    PacketCoding.EncodePacket(msg).isFailure mustEqual true
+    PacketCoding.encodePacket(msg).isFailure mustEqual true
   }
 
   "encode (failure; complex; missing value (5-bit))" in {
     val msg = AvatarStatisticsMessage(0, Statistics(None, Some(572), List[Long](1, 6, 0, 1, 1, 2, 0, 0)))
-    PacketCoding.EncodePacket(msg).isFailure mustEqual true
+    PacketCoding.encodePacket(msg).isFailure mustEqual true
   }
 
   "encode (failure; complex; missing value (11-bit))" in {
     val msg = AvatarStatisticsMessage(0, Statistics(Some(1), None, List[Long](1, 6, 0, 1, 1, 2, 0, 0)))
-    PacketCoding.EncodePacket(msg).isFailure mustEqual true
+    PacketCoding.encodePacket(msg).isFailure mustEqual true
   }
 
   "encode (failure; complex; wrong number of list entries)" in {
     val msg = AvatarStatisticsMessage(0, Statistics(Some(1), None, List[Long](1, 6, 0, 1)))
-    PacketCoding.EncodePacket(msg).isFailure mustEqual true
+    PacketCoding.encodePacket(msg).isFailure mustEqual true
   }
 }

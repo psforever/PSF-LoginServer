@@ -11,7 +11,7 @@ class EmoteMsgTest extends Specification {
   val string = hex"25 4B00 15"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case EmoteMsg(avatar_guid, emote) =>
         avatar_guid mustEqual PlanetSideGUID(75)
         emote mustEqual EmoteType.Thumbsdown
@@ -22,7 +22,7 @@ class EmoteMsgTest extends Specification {
 
   "encode" in {
     val msg = EmoteMsg(PlanetSideGUID(75), EmoteType.Thumbsdown)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

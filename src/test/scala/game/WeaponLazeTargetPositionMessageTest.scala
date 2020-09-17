@@ -11,7 +11,7 @@ class WeaponLazeTargetPositionMessageTest extends Specification {
   val string = hex"C8 4C00 6C2D7 65535 CA16 982D7 4A535 CA16"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case WeaponLazeTargetPositionMessage(weapon_uid, pos1, pos2) =>
         weapon_uid mustEqual PlanetSideGUID(76)
         pos1.x mustEqual 3674.8438f
@@ -31,7 +31,7 @@ class WeaponLazeTargetPositionMessageTest extends Specification {
       Vector3(3674.8438f, 2726.789f, 91.15625f),
       Vector3(3675.1875f, 2726.5781f, 91.15625f)
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

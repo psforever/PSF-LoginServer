@@ -13,7 +13,7 @@ class LoginMessageTest extends Specification {
 
   "LoginMessage" should {
     "decode (username)" in {
-      PacketCoding.DecodePacket(string_password).require match {
+      PacketCoding.decodePacket(string_password).require match {
         case LoginMessage(majorVersion, minorVersion, buildDate, username, password, token, revision) =>
           majorVersion mustEqual 3
           minorVersion mustEqual 15
@@ -28,7 +28,7 @@ class LoginMessageTest extends Specification {
     }
 
     "decode (token)" in {
-      PacketCoding.DecodePacket(string_token).require match {
+      PacketCoding.decodePacket(string_token).require match {
         case LoginMessage(majorVersion, minorVersion, buildDate, username, password, token, revision) =>
           majorVersion mustEqual 3
           minorVersion mustEqual 15
@@ -52,7 +52,7 @@ class LoginMessageTest extends Specification {
         None,
         84
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_password
     }
@@ -68,7 +68,7 @@ class LoginMessageTest extends Specification {
       Some("AAAABBBBCCCCDDDDEEEEFFFFGGGGHHH"),
       84
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_token
   }

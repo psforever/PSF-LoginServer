@@ -11,7 +11,7 @@ class ArmorChangedMessageTest extends Specification {
   val string = hex"3E 11 01 4C"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case ArmorChangedMessage(player_guid, armor, subtype) =>
         player_guid mustEqual PlanetSideGUID(273)
         armor mustEqual ExoSuitType.MAX
@@ -23,7 +23,7 @@ class ArmorChangedMessageTest extends Specification {
 
   "encode" in {
     val msg = ArmorChangedMessage(PlanetSideGUID(273), ExoSuitType.MAX, 3)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

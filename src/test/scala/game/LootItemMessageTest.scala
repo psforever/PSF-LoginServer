@@ -11,7 +11,7 @@ class LootItemMessageTest extends Specification {
   val string = hex"6C DD0D 5C14"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case LootItemMessage(item_guid, target_guid) =>
         item_guid mustEqual PlanetSideGUID(3549)
         target_guid mustEqual PlanetSideGUID(5212)
@@ -22,7 +22,7 @@ class LootItemMessageTest extends Specification {
 
   "encode" in {
     val msg = LootItemMessage(PlanetSideGUID(3549), PlanetSideGUID(5212))
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
     pkt mustEqual string
   }
 }

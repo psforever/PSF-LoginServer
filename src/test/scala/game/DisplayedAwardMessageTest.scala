@@ -11,7 +11,7 @@ class DisplayedAwardMessageTest extends Specification {
   val string = hex"D1 9F06 A6010000 3 0"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case DisplayedAwardMessage(player_guid, ribbon, bar) =>
         player_guid mustEqual PlanetSideGUID(1695)
         ribbon mustEqual MeritCommendation.TwoYearVS
@@ -23,7 +23,7 @@ class DisplayedAwardMessageTest extends Specification {
 
   "encode" in {
     val msg = DisplayedAwardMessage(PlanetSideGUID(1695), MeritCommendation.TwoYearVS, RibbonBarsSlot.TermOfService)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

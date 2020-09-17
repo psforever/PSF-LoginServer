@@ -12,7 +12,7 @@ class ObjectAttachMessageTest extends Specification {
   val stringToCursor    = hex"2A 9F05 D405 00FA"
 
   "decode (inventory 1,1)" in {
-    PacketCoding.DecodePacket(stringToInventory).require match {
+    PacketCoding.decodePacket(stringToInventory).require match {
       case ObjectAttachMessage(player_guid, item_guid, index) =>
         player_guid mustEqual PlanetSideGUID(1439)
         item_guid mustEqual PlanetSideGUID(1492)
@@ -23,7 +23,7 @@ class ObjectAttachMessageTest extends Specification {
   }
 
   "decode (cursor)" in {
-    PacketCoding.DecodePacket(stringToCursor).require match {
+    PacketCoding.decodePacket(stringToCursor).require match {
       case ObjectAttachMessage(player_guid, item_guid, index) =>
         player_guid mustEqual PlanetSideGUID(1439)
         item_guid mustEqual PlanetSideGUID(1492)
@@ -35,14 +35,14 @@ class ObjectAttachMessageTest extends Specification {
 
   "encode (inventory 1,1)" in {
     val msg = ObjectAttachMessage(PlanetSideGUID(1439), PlanetSideGUID(1492), 6)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringToInventory
   }
 
   "encode (cursor)" in {
     val msg = ObjectAttachMessage(PlanetSideGUID(1439), PlanetSideGUID(1492), 250)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringToCursor
   }

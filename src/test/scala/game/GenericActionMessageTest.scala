@@ -10,7 +10,7 @@ class GenericActionMessageTest extends Specification {
   val string = hex"A7 94"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case GenericActionMessage(action) =>
         action mustEqual 37
       case _ =>
@@ -20,7 +20,7 @@ class GenericActionMessageTest extends Specification {
 
   "encode" in {
     val msg = GenericActionMessage(37)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

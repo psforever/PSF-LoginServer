@@ -1,19 +1,21 @@
 package net.psforever.server
 
-import java.net.InetAddress
+import java.net.{InetAddress, InetSocketAddress}
 import java.nio.file.Paths
 import java.util.Locale
+import java.util.UUID.randomUUID
 
 import akka.actor.ActorSystem
-import akka.actor.typed.scaladsl.adapter._
+import akka.actor.typed.ActorRef
+import akka.actor.typed.scaladsl.Behaviors
 import akka.routing.RandomPool
 import akka.{actor => classic}
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.joran.JoranConfigurator
 import io.sentry.Sentry
 import kamon.Kamon
+import net.psforever.actors.net.{LoginActor, MiddlewareActor, SocketActor}
 import net.psforever.actors.session.SessionActor
-import net.psforever.crypto.CryptoInterface
 import net.psforever.login.psadmin.PsAdminActor
 import net.psforever.login._
 import net.psforever.objects.Default
@@ -33,6 +35,8 @@ import org.fusesource.jansi.Ansi.Color._
 import org.fusesource.jansi.Ansi._
 import org.slf4j
 import scopt.OParser
+import akka.actor.typed.scaladsl.adapter._
+import net.psforever.packet.PlanetSidePacket
 
 object Server {
   private val logger = org.log4s.getLogger
@@ -90,38 +94,25 @@ object Server {
     implicit val system: ActorSystem = classic.ActorSystem("PsLogin")
     Default(system)
 
-    /** Create pipelines for the login and world servers
-      *
-      * The first node in the pipe is an Actor that handles the crypto for protecting packets.
-      * After any crypto operations have been applied or unapplied, the packets are passed on to the next
-      * actor in the chain. For an incoming packet, this is a player session handler. For an outgoing packet
-      * this is the session router, which returns the packet to the sending host.
-      *
-      * See SessionRouter.scala for a diagram
-      */
-    val loginTemplate = List(
-      SessionPipeline("crypto-session-", classic.Props[CryptoSessionActor]()),
-      SessionPipeline("packet-session-", classic.Props[PacketCodingActor]()),
-      SessionPipeline("login-session-", classic.Props[LoginSessionActor]())
-    )
-    val worldTemplate = List(
-      SessionPipeline("crypto-session-", classic.Props[CryptoSessionActor]()),
-      SessionPipeline("packet-session-", classic.Props[PacketCodingActor]()),
-      SessionPipeline("world-session-", classic.Props[SessionActor]())
-    )
-
-    val netSim: Option[NetworkSimulatorParameters] = if (Config.app.development.netSim.enable) {
-      val params = NetworkSimulatorParameters(
-        Config.app.development.netSim.loss,
-        Config.app.development.netSim.delay.toMillis,
-        Config.app.development.netSim.reorderChance,
-        Config.app.development.netSim.reorderTime.toMillis
-      )
-      logger.warn("NetSim is active")
-      logger.warn(params.toString)
-      Some(params)
-    } else {
-      None
+    // typed to classic wrappers for login and session actors
+    val login = (ref: ActorRef[MiddlewareActor.Command], connectionId: String) => {
+      Behaviors.setup[PlanetSidePacket](context => {
+        val actor = context.actorOf(classic.Props(new LoginActor(ref, connectionId)), "login")
+        Behaviors.receiveMessage(message => {
+          actor ! message
+          Behaviors.same
+        })
+      })
+    }
+    val session = (ref: ActorRef[MiddlewareActor.Command], connectionId: String) => {
+      Behaviors.setup[PlanetSidePacket](context => {
+        val uuid  = randomUUID().toString
+        val actor = context.actorOf(classic.Props(new SessionActor(ref, connectionId)), s"session-${uuid}")
+        Behaviors.receiveMessage(message => {
+          actor ! message
+          Behaviors.same
+        })
+      })
     }
 
     val zones = Zones.zones ++ Seq(Zone.Nowhere)
@@ -137,27 +128,19 @@ object Server {
     serviceManager ! ServiceManager.Register(classic.Props[AccountPersistenceService](), "accountPersistence")
     serviceManager ! ServiceManager.Register(classic.Props[PropertyOverrideManager](), "propertyOverrideManager")
 
-    val loginRouter = classic.Props(new SessionRouter("Login", loginTemplate))
-    val worldRouter = classic.Props(new SessionRouter("World", worldTemplate))
-    val loginListener = system.actorOf(
-      classic.Props(new UdpListener(loginRouter, "login-session-router", bindAddress, Config.app.login.port, netSim)),
-      "login-udp-endpoint"
-    )
-    val worldListener = system.actorOf(
-      classic.Props(new UdpListener(worldRouter, "world-session-router", bindAddress, Config.app.world.port, netSim)),
-      "world-udp-endpoint"
-    )
+    system.spawn(SocketActor(new InetSocketAddress(bindAddress, Config.app.login.port), login), "login-socket")
+    system.spawn(SocketActor(new InetSocketAddress(bindAddress, Config.app.world.port), session), "world-socket")
 
     val adminListener = system.actorOf(
       classic.Props(
         new TcpListener(
           classOf[PsAdminActor],
-          "net.psforever.login.psadmin-client-",
+          "psadmin-client-",
           InetAddress.getByName(Config.app.admin.bind),
           Config.app.admin.port
         )
       ),
-      "net.psforever.login.psadmin-tcp-endpoint"
+      "psadmin-tcp-endpoint"
     )
 
     logger.info(
@@ -204,31 +187,6 @@ object Server {
         }
         sys.exit(1)
       case Right(_) =>
-    }
-
-    /** Initialize the PSCrypto native library
-      *
-      * PSCrypto provides PlanetSide specific crypto that is required to communicate with it.
-      * It has to be distributed as a native library because there is no Scala version of the required
-      * cryptographic primitives (MD5MAC). See https://github.com/psforever/PSCrypto for more information.
-      */
-    try {
-      CryptoInterface.initialize()
-    } catch {
-      case e: UnsatisfiedLinkError =>
-        logger.error("Unable to initialize " + CryptoInterface.libName)
-        logger.error(e)(
-          "This means that your PSCrypto version is out of date. Get the latest version from the README" +
-            " https://github.com/psforever/PSF-LoginServer#downloading-pscrypto"
-        )
-        sys.exit(1)
-      case e: IllegalArgumentException =>
-        logger.error("Unable to initialize " + CryptoInterface.libName)
-        logger.error(e)(
-          "This means that your PSCrypto version is out of date. Get the latest version from the README" +
-            " https://github.com/psforever/PSF-LoginServer#downloading-pscrypto"
-        )
-        sys.exit(1)
     }
 
     val builder = OParser.builder[CliConfig]

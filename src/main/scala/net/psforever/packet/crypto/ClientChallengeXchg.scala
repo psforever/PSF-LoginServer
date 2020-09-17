@@ -1,15 +1,16 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.crypto
 
+import net.psforever.packet.CryptoPacketOpcode.Type
 import net.psforever.packet.{CryptoPacketOpcode, Marshallable, PlanetSideCryptoPacket}
-import scodec.Codec
+import scodec.{Attempt, Codec}
 import scodec.bits.{ByteVector, _}
 import scodec.codecs._
 
 final case class ClientChallengeXchg(time: Long, challenge: ByteVector, p: ByteVector, g: ByteVector)
     extends PlanetSideCryptoPacket {
-  def opcode = CryptoPacketOpcode.ClientChallengeXchg
-  def encode = ClientChallengeXchg.encode(this)
+  def opcode: Type               = CryptoPacketOpcode.ClientChallengeXchg
+  def encode: Attempt[BitVector] = ClientChallengeXchg.encode(this)
 }
 
 object ClientChallengeXchg extends Marshallable[ClientChallengeXchg] {

@@ -215,7 +215,7 @@ class LocalService(zone: Zone) extends Actor {
 
     //response from HackClearActor
     case HackClearActor.ClearTheHack(target_guid, _, unk1, unk2) =>
-      log.warn(s"Clearing hack for $target_guid")
+      log.info(s"Clearing hack for $target_guid")
       LocalEvents.publish(
         LocalServiceResponse(
           s"/${zone.id}/Local",

@@ -13,7 +13,7 @@ class TargetingImplantRequestTest extends Specification {
     hex"b5 41edeb12d4409f0144053f8010541ba91d03df376831b1e26000611041e1107c0209c0" //0510085013d9ffb6720d5b132900003770?
 
   "decode (single)" in {
-    PacketCoding.DecodePacket(string_single).require match {
+    PacketCoding.decodePacket(string_single).require match {
       case TargetingImplantRequest(target_list) =>
         target_list.length mustEqual 1
         //0
@@ -25,7 +25,7 @@ class TargetingImplantRequestTest extends Specification {
   }
 
   "decode (long)" in {
-    PacketCoding.DecodePacket(string_long).require match {
+    PacketCoding.decodePacket(string_long).require match {
       case TargetingImplantRequest(target_list) =>
         target_list.length mustEqual 16
         //0
@@ -86,7 +86,7 @@ class TargetingImplantRequestTest extends Specification {
       TargetRequest(PlanetSideGUID(1412), true) ::
         Nil
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_single
   }
@@ -111,7 +111,7 @@ class TargetingImplantRequestTest extends Specification {
         TargetRequest(PlanetSideGUID(14401), false) ::
         Nil
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_long
   }

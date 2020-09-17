@@ -10,7 +10,7 @@ class ExperienceAddedMessageTest extends Specification {
   val string = hex"B8 04 03"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case ExperienceAddedMessage(exp, unk) =>
         exp mustEqual 260 //0x104
         unk mustEqual true
@@ -21,7 +21,7 @@ class ExperienceAddedMessageTest extends Specification {
 
   "encode" in {
     val msg = ExperienceAddedMessage(260)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

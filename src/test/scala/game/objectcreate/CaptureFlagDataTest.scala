@@ -14,7 +14,7 @@ class CaptureFlagDataTest extends Specification {
 
   "CaptureFlagData" in {
     "decode" in {
-      PacketCoding.DecodePacket(string_captureflag).require match {
+      PacketCoding.decodePacket(string_captureflag).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 229
           cls mustEqual ObjectClass.capture_flag
@@ -48,7 +48,7 @@ class CaptureFlagDataTest extends Specification {
         9
       )
       val msg = ObjectCreateMessage(ObjectClass.capture_flag, PlanetSideGUID(4330), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_captureflag
     }
   }

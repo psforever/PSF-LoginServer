@@ -13,7 +13,7 @@ class PlayerStateShiftMessageTest extends Specification {
   val string_posAndVel = hex"BE AE 01 29 CD 59 B9 40 C0 EA D4 00 0F 86 40"
 
   "decode (short)" in {
-    PacketCoding.DecodePacket(string_short).require match {
+    PacketCoding.decodePacket(string_short).require match {
       case PlayerStateShiftMessage(state, unk) =>
         state.isDefined mustEqual false
         unk.isDefined mustEqual true
@@ -24,7 +24,7 @@ class PlayerStateShiftMessageTest extends Specification {
   }
 
   "decode (pos)" in {
-    PacketCoding.DecodePacket(string_pos).require match {
+    PacketCoding.decodePacket(string_pos).require match {
       case PlayerStateShiftMessage(state, unk) =>
         state.isDefined mustEqual true
         state.get.unk mustEqual 1
@@ -40,7 +40,7 @@ class PlayerStateShiftMessageTest extends Specification {
   }
 
   "decode (pos and vel)" in {
-    PacketCoding.DecodePacket(string_posAndVel).require match {
+    PacketCoding.decodePacket(string_posAndVel).require match {
       case PlayerStateShiftMessage(state, unk) =>
         state.isDefined mustEqual true
         state.get.unk mustEqual 2
@@ -60,14 +60,14 @@ class PlayerStateShiftMessageTest extends Specification {
 
   "encode (short)" in {
     val msg = PlayerStateShiftMessage(5)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_short
   }
 
   "encode (pos)" in {
     val msg = PlayerStateShiftMessage(ShiftState(1, Vector3(4624.703f, 5922.1484f, 46.171875f), 92.8125f))
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_pos
   }
@@ -76,7 +76,7 @@ class PlayerStateShiftMessageTest extends Specification {
     val msg = PlayerStateShiftMessage(
       ShiftState(2, Vector3(4645.75f, 5811.6016f, 50.3125f), 50.625f, Vector3(2.8125f, -8.0f, 0.375f))
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_posAndVel
   }

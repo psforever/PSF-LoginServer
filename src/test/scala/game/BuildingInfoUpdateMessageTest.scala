@@ -11,7 +11,7 @@ class BuildingInfoUpdateMessageTest extends Specification {
   val string = hex"a0 04 00 09 00 16 00 00 00 00 80 00 00 00 17 00  00 00 00 00 00 40"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case BuildingInfoUpdateMessage(
             continent_guid,
             building_guid,
@@ -86,7 +86,7 @@ class BuildingInfoUpdateMessageTest extends Specification {
       false,
       false
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

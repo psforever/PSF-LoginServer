@@ -11,7 +11,7 @@ class RepairMessageTest extends Specification {
   val string = hex"4D 2709 5C000000"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case RepairMessage(item_guid, repair_value) =>
         item_guid mustEqual PlanetSideGUID(2343)
         repair_value mustEqual 92
@@ -22,7 +22,7 @@ class RepairMessageTest extends Specification {
 
   "encode" in {
     val msg = RepairMessage(PlanetSideGUID(2343), 92)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

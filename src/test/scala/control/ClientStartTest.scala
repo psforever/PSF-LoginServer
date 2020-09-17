@@ -10,7 +10,7 @@ class ClientStartTest extends Specification {
   val string = hex"0001 00000002 00261e27 000001f0"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case ClientStart(nonce) =>
         nonce mustEqual 656287232
       case _ =>
@@ -20,7 +20,7 @@ class ClientStartTest extends Specification {
 
   "encode" in {
     val msg = ClientStart(656287232)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

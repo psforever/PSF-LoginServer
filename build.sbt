@@ -49,12 +49,11 @@ lazy val psforeverSettings = Seq(
     "com.typesafe.akka"          %% "akka-cluster-typed"         % "2.6.9",
     "com.typesafe.akka"          %% "akka-coordination"          % "2.6.9",
     "com.typesafe.akka"          %% "akka-cluster-tools"         % "2.6.9",
+    "com.typesafe.akka"          %% "akka-slf4j"                 % "2.6.9",
     "com.typesafe.scala-logging" %% "scala-logging"              % "3.9.2",
     "org.specs2"                 %% "specs2-core"                % "4.10.3" % "test",
     "org.scalatest"              %% "scalatest"                  % "3.2.2"  % "test",
     "org.scodec"                 %% "scodec-core"                % "1.11.7",
-    "net.java.dev.jna"            % "jna"                        % "5.6.0",
-    "com.typesafe.akka"          %% "akka-slf4j"                 % "2.6.9",
     "ch.qos.logback"              % "logback-classic"            % "1.2.3",
     "org.log4s"                  %% "log4s"                      % "1.8.2",
     "org.fusesource.jansi"        % "jansi"                      % "1.18",
@@ -78,16 +77,11 @@ lazy val psforeverSettings = Seq(
     "io.circe"                   %% "circe-core"                 % "0.13.0",
     "io.circe"                   %% "circe-generic"              % "0.13.0",
     "io.circe"                   %% "circe-parser"               % "0.13.0",
-    "org.scala-lang.modules"     %% "scala-parallel-collections" % "0.2.0"
+    "org.scala-lang.modules"     %% "scala-parallel-collections" % "0.2.0",
+    "org.bouncycastle"            % "bcprov-jdk15on"             % "1.66"
   ),
   // TODO(chord): remove exclusion when SessionActor is refactored: https://github.com/psforever/PSF-LoginServer/issues/279
   coverageExcludedPackages := "net\\.psforever\\.actors\\.session\\.SessionActor.*"
-)
-
-lazy val pscryptoSettings = Seq(
-  unmanagedClasspath in Test += (baseDirectory in ThisBuild).value / "pscrypto-lib",
-  unmanagedClasspath in Runtime += (baseDirectory in ThisBuild).value / "pscrypto-lib",
-  unmanagedClasspath in Compile += (baseDirectory in ThisBuild).value / "pscrypto-lib"
 )
 
 lazy val psforever = (project in file("."))
@@ -98,7 +92,6 @@ lazy val psforever = (project in file("."))
     // Copy all tests from Test -> QuietTest (we're only changing the run options)
     inConfig(QuietTest)(Defaults.testTasks)
   )
-  .settings(pscryptoSettings: _*)
 
 lazy val server = (project in file("server"))
   .configs(QuietTest)
@@ -113,22 +106,22 @@ lazy val server = (project in file("server"))
     packMain := Map("psforever-server" -> "net.psforever.server.Server"),
     packArchivePrefix := "psforever-server",
     packJvmOpts := Map("psforever-server" -> Seq("-Dstacktrace.app.packages=net.psforever")),
-    packExtraClasspath := Map("psforever-server" -> Seq("${PROG_HOME}/pscrypto-lib", "${PROG_HOME}/config")),
-    packResourceDir += (baseDirectory.in(psforever).value / "pscrypto-lib" -> "pscrypto-lib"),
-    packResourceDir += (baseDirectory.in(psforever).value / "config"       -> "config")
+    packExtraClasspath := Map("psforever-server" -> Seq("${PROG_HOME}/config")),
+    packResourceDir += (baseDirectory.in(psforever).value / "config" -> "config")
   )
-  .settings(pscryptoSettings: _*)
   .dependsOn(psforever)
 
 lazy val decodePackets = (project in file("tools/decode-packets"))
   .enablePlugins(PackPlugin)
   .settings(psforeverSettings: _*)
   .settings(
-    libraryDependencies ++= Seq(
-      "org.scala-lang.modules" %% "scala-parallel-collections" % "0.2.0"
-    ),
     packMain := Map("psforever-decode-packets" -> "net.psforever.tools.decodePackets.DecodePackets")
   )
+  .dependsOn(psforever)
+
+lazy val client = (project in file("tools/client"))
+  .enablePlugins(PackPlugin)
+  .settings(psforeverSettings: _*)
   .dependsOn(psforever)
 
 // Special test configuration for really quiet tests (used in CI)

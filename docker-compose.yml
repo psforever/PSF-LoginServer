@@ -10,15 +10,7 @@ services:
     ports:
       - 51000-51001:51000-51001/udp
       - 51002:51002/tcp
-    command: >
-      sh -c '
-        if [ ! -d "pscrypto-lib" ]; then
-          wget https://github.com/psforever/PSCrypto/releases/download/v1.1/pscrypto-lib-1.1.zip
-          unzip pscrypto-lib-1.1.zip
-          rm pscrypto-lib-1.1.zip
-        fi
-        sbt server/run
-      '
+    command: sbt server/run
   adminer:
     image: adminer
     ports:

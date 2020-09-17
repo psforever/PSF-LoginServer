@@ -16,7 +16,7 @@ class VNLWorldStatusMessageTest extends Specification {
       hex"67656d696e69" ++ hex"0100 03 00 01459e2540 3775" ++ bin"01".toByteVector
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case VNLWorldStatusMessage(message, worlds) =>
         message mustEqual "Welcome to PlanetSide! "
 
@@ -64,7 +64,7 @@ class VNLWorldStatusMessageTest extends Specification {
 
     //0100 04 00 01459e2540377540
 
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }
@@ -72,11 +72,11 @@ class VNLWorldStatusMessageTest extends Specification {
   "encode and decode empty messages" in {
     val string    = hex"0584410041004100410000"
     val empty_msg = VNLWorldStatusMessage("AAAA", Vector())
-    val empty_pkt = PacketCoding.EncodePacket(empty_msg).require.toByteVector
+    val empty_pkt = PacketCoding.encodePacket(empty_msg).require.toByteVector
 
     empty_pkt mustEqual string
 
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case VNLWorldStatusMessage(message, worlds) =>
         message mustEqual "AAAA"
         worlds.length mustEqual 0
@@ -97,11 +97,11 @@ class VNLWorldStatusMessageTest extends Specification {
     )
 
     val msg = VNLWorldStatusMessage("Welcome to PlanetSide! ", worlds)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
 
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case VNLWorldStatusMessage(message, pkt_worlds) =>
         message mustEqual "Welcome to PlanetSide! "
 

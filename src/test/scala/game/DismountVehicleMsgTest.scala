@@ -11,7 +11,7 @@ class DismountVehicleMsgTest extends Specification {
   val string = hex"0F C609 00"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case DismountVehicleMsg(player_guid, bailType, wasKickedByDriver) =>
         player_guid mustEqual PlanetSideGUID(2502)
         bailType mustEqual BailType.Normal
@@ -23,7 +23,7 @@ class DismountVehicleMsgTest extends Specification {
 
   "encode" in {
     val msg = DismountVehicleMsg(PlanetSideGUID(2502), BailType.Normal, false)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

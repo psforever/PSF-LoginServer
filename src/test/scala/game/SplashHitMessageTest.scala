@@ -12,7 +12,7 @@ class SplashHitMessageTest extends Specification {
     hex"62 7129e72b0c1dd1516ec58000051e01d8371f0100000025803616bb2a9ae50b000008889d00644bdd35454c45c000000400"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case SplashHitMessage(unk1, projectile_uid, projectile_pos, unk2, unk3, projectile_vel, unk4, targets) =>
         unk1 mustEqual 113
         projectile_uid mustEqual PlanetSideGUID(40103)
@@ -59,7 +59,7 @@ class SplashHitMessageTest extends Specification {
         SplashedTarget(PlanetSideGUID(372), Vector3(3679.1328f, 2722.6016f, 92.765625f), 268435456L, None) ::
         Nil
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

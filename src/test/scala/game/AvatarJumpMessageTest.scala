@@ -10,7 +10,7 @@ class AvatarJumpMessageTest extends Specification {
   val string = hex"35 80"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case AvatarJumpMessage(state) =>
         state mustEqual true
       case _ =>
@@ -20,7 +20,7 @@ class AvatarJumpMessageTest extends Specification {
 
   "encode" in {
     val msg = AvatarJumpMessage(true)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

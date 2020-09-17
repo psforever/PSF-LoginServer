@@ -11,7 +11,7 @@ class ChangeFireModeMessageTest extends Specification {
   val string = hex"46 4C0020"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case ChangeFireModeMessage(item_guid, fire_mode) =>
         item_guid mustEqual PlanetSideGUID(76)
         fire_mode mustEqual 1
@@ -22,7 +22,7 @@ class ChangeFireModeMessageTest extends Specification {
 
   "encode" in {
     val msg = ChangeFireModeMessage(PlanetSideGUID(76), 1)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

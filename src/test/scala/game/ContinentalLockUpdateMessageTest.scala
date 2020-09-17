@@ -11,7 +11,7 @@ class ContinentalLockUpdateMessageTest extends Specification {
   val string = hex"A8 16 00 40"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case ContinentalLockUpdateMessage(continent_guid, empire) =>
         continent_guid mustEqual 22
         empire mustEqual PlanetSideEmpire.NC
@@ -22,7 +22,7 @@ class ContinentalLockUpdateMessageTest extends Specification {
 
   "encode" in {
     val msg = ContinentalLockUpdateMessage(22, PlanetSideEmpire.NC)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

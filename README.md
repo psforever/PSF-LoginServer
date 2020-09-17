@@ -23,7 +23,6 @@ instructions on downloading the game and using the PSForever launcher to start t
 
 - sbt (Scala build tool)
 - Java Development Kit (JDK) 8.0
-- PSCrypto v1.1 - binary DLL (Windows) or Shared Library (Linux) placed in the root directory of the project. See [Downloading PSCrypto](#downloading-pscrypto) to get it set up.
 - PostgreSQL
 
 ## Setting up a Build Environment
@@ -79,19 +78,6 @@ This will clone the repository and sbt will compile and run the login server ([m
 DB](#setting-up-the-database)). Note: sbt is quite slow at starting up (JVM/JIT warmup). It's recommended you have an
 open sbt console (just run `sbt` without any arguments) in order to avoid this startup time. With a sbt console you can
 run tests (and you should) using `sbt test`.
-
-### Downloading PSCrypto
-**The server requires binary builds of PSCrypto in order to run.** [Download the latest
-*release](https://github.com/psforever/PSCrypto/releases/download/v1.1/pscrypto-lib-1.1.zip) and extract the the
-*approprate dll for your operating system. If you are not comfortable with compiled binaries, you can [build the
-*libraries yourself](https://github.com/psforever/PSCrypto).
-
-sbt, IDEA, and Java will automatically find the required libraries when running the server. The build expects to find
-the library in a subdirectory of the root directory called /pscrypto-lib/. Historically, we have recommended placing it
-directly into the root directory and that has worked as well. If you still have issues with PSCrypto being detected, try
-adding `-Djava.library.path=` (no path necessary) to your preferred IDE's build configuration with the library in the
-root directory. For example, with IDEA: Run -> Edit Configuration -> (select the configuration) -> Uncheck "Use sbt
-shell" -> VM Parameters
 
 ## Setting up the Database
 
@@ -194,7 +180,7 @@ some helper scripts. Run the correct file for your platform (.BAT for Windows an
 
 Using sbt, you can generate documentation all projects using `sbt docs/unidoc`.
 
-Current documentation is available at [https://jgillich.github.io/PSF-LoginServer/net/psforever/index.html](https://jgillich.github.io/PSF-LoginServer/net/psforever/index.html)
+Current documentation is available at [https://psforever.github.io/PSF-LoginServer/net/psforever/index.html](https://psforever.github.io/PSF-LoginServer/net/psforever/index.html)
 
 ## Tools
 
@@ -224,22 +210,6 @@ psf-decode-packets -o ./output-directory foo.gcap bar.gcap
 
 By default, decodePackets takes in `.gcap` files, but it can also take gcapy ascii files with the
 `-p` option. Run `psf-decode-packets --help` to get usage info.
-
-## Troubleshooting
-
-#### Unable to initialize pscrypto
-
-If you get an error like below
-
-```
-12:17:28.037 [main] ERROR PsLogin - Unable to initialize pscrypto
-java.lang.UnsatisfiedLinkError: Unable to load library 'pscrypto': Native library (win32-x86-64/pscrypto.dll) not found in resource path
-```
-
-Then you are missing the native library required to provide cryptographic functions to the login server. To fix this,
-you need a binary build of [PSCrypto](#downloading-pscrypto).
-
-If you are still having trouble on Linux, try putting the library in `root directory/pscrypto-lib/libpscrypto.so`.
 
 ## Contributing
 

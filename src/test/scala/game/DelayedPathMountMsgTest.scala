@@ -11,7 +11,7 @@ class DelayedPathMountMsgTest extends Specification {
   val string = hex"5a f50583044680"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case DelayedPathMountMsg(player_guid, vehicle_guid, u3, u4) =>
         player_guid mustEqual PlanetSideGUID(1525)
         vehicle_guid mustEqual PlanetSideGUID(1155)
@@ -24,7 +24,7 @@ class DelayedPathMountMsgTest extends Specification {
 
   "encode" in {
     val msg = DelayedPathMountMsg(PlanetSideGUID(1525), PlanetSideGUID(1155), 70, true)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

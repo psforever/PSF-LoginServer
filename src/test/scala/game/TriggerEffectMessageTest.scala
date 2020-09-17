@@ -13,7 +13,7 @@ class TriggerEffectMessageTest extends Specification {
   val string_boomer_explode    = hex"51 DF09 8F 6465746F6E6174655F626F6F6D6572 00"
 
   "decode (motion alarm sensor)" in {
-    PacketCoding.DecodePacket(string_motionalarmsensor).require match {
+    PacketCoding.decodePacket(string_motionalarmsensor).require match {
       case TriggerEffectMessage(guid, effect, unk, location) =>
         guid mustEqual PlanetSideGUID(2967)
         effect mustEqual "on"
@@ -27,7 +27,7 @@ class TriggerEffectMessageTest extends Specification {
   }
 
   "decode (boomer)" in {
-    PacketCoding.DecodePacket(string_boomer).require match {
+    PacketCoding.decodePacket(string_boomer).require match {
       case TriggerEffectMessage(guid, effect, unk, location) =>
         guid mustEqual PlanetSideGUID(0)
         effect mustEqual "spawn_object_effect"
@@ -41,7 +41,7 @@ class TriggerEffectMessageTest extends Specification {
   }
 
   "decode (boomer explode)" in {
-    PacketCoding.DecodePacket(string_boomer_explode).require match {
+    PacketCoding.decodePacket(string_boomer_explode).require match {
       case TriggerEffectMessage(guid, effect, unk, location) =>
         guid mustEqual PlanetSideGUID(2527)
         effect mustEqual "detonate_boomer"
@@ -54,7 +54,7 @@ class TriggerEffectMessageTest extends Specification {
 
   "encode (motion alarm sensor)" in {
     val msg = TriggerEffectMessage(PlanetSideGUID(2967), "on", true, 1000L)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_motionalarmsensor
   }
@@ -62,14 +62,14 @@ class TriggerEffectMessageTest extends Specification {
   "encode (boomer)" in {
     val msg =
       TriggerEffectMessage("spawn_object_effect", Vector3(3567.0156f, 3278.6953f, 114.484375f), Vector3(0, 0, 90))
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_boomer
   }
 
   "encode (boomer explode)" in {
     val msg = TriggerEffectMessage(PlanetSideGUID(2527), "detonate_boomer")
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_boomer_explode
   }

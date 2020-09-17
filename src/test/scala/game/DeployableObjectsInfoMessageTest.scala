@@ -11,7 +11,7 @@ class DeployableObjectsInfoMessageTest extends Specification {
   val string = hex"76 00 80 00 00 31 85 41 CF D3 7E B3 34 00 E6 30 48" //this was a TRAP @ Ogma, Forseral
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case DeployableObjectsInfoMessage(action, list) =>
         action mustEqual DeploymentAction.Dismiss
         list.size mustEqual 1
@@ -37,7 +37,7 @@ class DeployableObjectsInfoMessageTest extends Specification {
         PlanetSideGUID(2502)
       )
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

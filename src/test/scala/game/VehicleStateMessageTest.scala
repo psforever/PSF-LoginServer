@@ -11,7 +11,7 @@ class VehicleStateMessageTest extends Specification {
   val string = hex"1b 9d010d85aecaa6b8c2dfdfefffc020008006000078"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case VehicleStateMessage(guid, unk1, pos, ang, vel, unk2, unk3, unk4, wheel, unk5, unk6) =>
         guid mustEqual PlanetSideGUID(413)
         unk1 mustEqual 0
@@ -50,7 +50,7 @@ class VehicleStateMessageTest extends Specification {
       false,
       false
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

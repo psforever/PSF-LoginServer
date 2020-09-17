@@ -11,7 +11,7 @@ class SpawnRequestMessageTest extends Specification {
   val string = hex"4a000007000000000000000200"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case SpawnRequestMessage(unk1, unk2, unk3, unk4, unk5) =>
         unk1 mustEqual 0
         unk2 mustEqual SpawnGroup.Facility
@@ -25,7 +25,7 @@ class SpawnRequestMessageTest extends Specification {
 
   "encode" in {
     val msg = SpawnRequestMessage(0, SpawnGroup.Facility, 0, 0, 2)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

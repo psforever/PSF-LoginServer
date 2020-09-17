@@ -18,7 +18,7 @@ class MountedVehiclesTest extends Specification {
       hex"20e21c0c80c000007722120e81c0000000808063483603000000"
 
   "decode (Scrawny Ronnie's mosquito)" in {
-    PacketCoding.DecodePacket(string_mosquito_seated).require match {
+    PacketCoding.decodePacket(string_mosquito_seated).require match {
       case ObjectCreateMessage(len, cls, guid, parent, data) =>
         len mustEqual 1991
         cls mustEqual ObjectClass.mosquito
@@ -295,7 +295,7 @@ class MountedVehiclesTest extends Specification {
       )
     )(VehicleFormat.Variant)
     val msg = ObjectCreateMessage(ObjectClass.mosquito, PlanetSideGUID(4308), obj)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
     pkt mustEqual string_mosquito_seated
   }
 }

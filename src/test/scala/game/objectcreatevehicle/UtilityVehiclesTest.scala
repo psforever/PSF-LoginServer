@@ -17,7 +17,7 @@ class UtilityVehiclesTest extends Specification {
 
   "Utility vehicles" should {
     "decode (ant)" in {
-      PacketCoding.DecodePacket(string_ant).require match {
+      PacketCoding.decodePacket(string_ant).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 194L
           cls mustEqual ObjectClass.ant
@@ -46,7 +46,7 @@ class UtilityVehiclesTest extends Specification {
     }
 
     "decode (ams)" in {
-      PacketCoding.DecodePacket(string_ams).require match {
+      PacketCoding.decodePacket(string_ams).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 440L
           cls mustEqual ObjectClass.ams
@@ -111,7 +111,7 @@ class UtilityVehiclesTest extends Specification {
         None
       )(VehicleFormat.Utility)
       val msg = ObjectCreateMessage(ObjectClass.ant, PlanetSideGUID(380), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_ant
     }
@@ -161,7 +161,7 @@ class UtilityVehiclesTest extends Specification {
         )
       )(VehicleFormat.Utility)
       val msg = ObjectCreateMessage(ObjectClass.ams, PlanetSideGUID(4157), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_ams
     }

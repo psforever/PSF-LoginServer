@@ -11,7 +11,7 @@ class RequestDestroyMessageTest extends Specification {
   val string = hex"2D A49C"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case RequestDestroyMessage(object_guid) =>
         object_guid mustEqual PlanetSideGUID(40100)
       case _ =>
@@ -21,7 +21,7 @@ class RequestDestroyMessageTest extends Specification {
 
   "encode" in {
     val msg = RequestDestroyMessage(PlanetSideGUID(40100))
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

@@ -10,7 +10,7 @@ class FriendsRequestTest extends Specification {
   val string = hex"72 3 0A0 46004A0048004E004300"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case FriendsRequest(action, friend) =>
         action mustEqual 1
         friend.length mustEqual 5
@@ -22,7 +22,7 @@ class FriendsRequestTest extends Specification {
 
   "encode" in {
     val msg = FriendsRequest(1, "FJHNC")
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

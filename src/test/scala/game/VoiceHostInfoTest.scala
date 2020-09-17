@@ -11,7 +11,7 @@ class VoiceHostInfoTest extends Specification {
   val string_info = hex"b2 4b00"
 
   "decode" in {
-    PacketCoding.DecodePacket(string_info).require match {
+    PacketCoding.decodePacket(string_info).require match {
       case VoiceHostInfo(player, _) =>
         player mustEqual PlanetSideGUID(75)
       case _ =>
@@ -21,7 +21,7 @@ class VoiceHostInfoTest extends Specification {
 
   "encode" in {
     val msg = VoiceHostInfo(PlanetSideGUID(75), ByteVector.empty)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_info
   }

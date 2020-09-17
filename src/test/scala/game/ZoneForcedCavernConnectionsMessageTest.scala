@@ -10,7 +10,7 @@ class ZoneForcedCavernConnectionsMessageTest extends Specification {
   val string = hex"E3200040"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case ZoneForcedCavernConnectionsMessage(zone, unk) =>
         zone mustEqual 32
         unk mustEqual 1
@@ -21,7 +21,7 @@ class ZoneForcedCavernConnectionsMessageTest extends Specification {
 
   "encode" in {
     val msg = ZoneForcedCavernConnectionsMessage(32, 1)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

@@ -14,7 +14,7 @@ class REKDataTest extends Specification {
 
   "REKData" should {
     "decode (held)" in {
-      PacketCoding.DecodePacket(string_rek_held).require match {
+      PacketCoding.decodePacket(string_rek_held).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 134
           cls mustEqual ObjectClass.remote_electronics_kit
@@ -44,7 +44,7 @@ class REKDataTest extends Specification {
     }
 
     "decode (dropped)" in {
-      PacketCoding.DecodePacket(string_rek_dropped).require match {
+      PacketCoding.decodePacket(string_rek_dropped).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 191
           cls mustEqual ObjectClass.remote_electronics_kit
@@ -88,7 +88,7 @@ class REKDataTest extends Specification {
         ObjectCreateMessageParent(PlanetSideGUID(4174), 0),
         obj
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_rek_held
     }
 
@@ -102,7 +102,7 @@ class REKDataTest extends Specification {
         )
       )
       val msg = ObjectCreateMessage(ObjectClass.remote_electronics_kit, PlanetSideGUID(4355), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_rek_dropped
     }
   }

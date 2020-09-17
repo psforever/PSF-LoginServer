@@ -14,7 +14,7 @@ class CreateShortcutMessageTest extends Specification {
   val stringRemove = hex"28 4C05 01 00 00"
 
   "decode (medkit)" in {
-    PacketCoding.DecodePacket(stringMedkit).require match {
+    PacketCoding.decodePacket(stringMedkit).require match {
       case CreateShortcutMessage(player_guid, slot, unk, addShortcut, shortcut) =>
         player_guid mustEqual PlanetSideGUID(4210)
         slot mustEqual 1
@@ -31,7 +31,7 @@ class CreateShortcutMessageTest extends Specification {
   }
 
   "decode (macro)" in {
-    PacketCoding.DecodePacket(stringMacro).require match {
+    PacketCoding.decodePacket(stringMacro).require match {
       case CreateShortcutMessage(player_guid, slot, unk, addShortcut, shortcut) =>
         player_guid mustEqual PlanetSideGUID(1356)
         slot mustEqual 8
@@ -48,7 +48,7 @@ class CreateShortcutMessageTest extends Specification {
   }
 
   "decode (remove)" in {
-    PacketCoding.DecodePacket(stringRemove).require match {
+    PacketCoding.decodePacket(stringRemove).require match {
       case CreateShortcutMessage(player_guid, slot, unk, addShortcut, shortcut) =>
         player_guid mustEqual PlanetSideGUID(1356)
         slot mustEqual 1
@@ -62,7 +62,7 @@ class CreateShortcutMessageTest extends Specification {
 
   "encode (medkit)" in {
     val msg = CreateShortcutMessage(PlanetSideGUID(4210), 1, 0, true, Some(Shortcut(0, "medkit")))
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringMedkit
   }
@@ -75,14 +75,14 @@ class CreateShortcutMessageTest extends Specification {
       true,
       Some(Shortcut(1, "shortcut_macro", "NTU", "/platoon Incoming NTU spam!"))
     )
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringMacro
   }
 
   "encode (remove)" in {
     val msg = CreateShortcutMessage(PlanetSideGUID(1356), 1, 0, false)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringRemove
   }

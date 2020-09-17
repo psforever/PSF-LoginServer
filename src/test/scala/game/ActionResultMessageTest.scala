@@ -11,7 +11,7 @@ class ActionResultMessageTest extends Specification {
   val string_fail = hex"1f 0080000000"
 
   "decode (pass)" in {
-    PacketCoding.DecodePacket(string_pass).require match {
+    PacketCoding.decodePacket(string_pass).require match {
       case ActionResultMessage(okay, code) =>
         okay mustEqual true
         code mustEqual None
@@ -21,7 +21,7 @@ class ActionResultMessageTest extends Specification {
   }
 
   "decode (fail)" in {
-    PacketCoding.DecodePacket(string_fail).require match {
+    PacketCoding.decodePacket(string_fail).require match {
       case ActionResultMessage(okay, code) =>
         okay mustEqual false
         code mustEqual Some(1)
@@ -32,28 +32,28 @@ class ActionResultMessageTest extends Specification {
 
   "encode (pass, full)" in {
     val msg = ActionResultMessage(true, None)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_pass
   }
 
   "encode (pass, minimal)" in {
     val msg = ActionResultMessage.Pass
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_pass
   }
 
   "encode (fail, full)" in {
     val msg = ActionResultMessage(false, Some(1))
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_fail
   }
 
   "encode (fail, minimal)" in {
     val msg = ActionResultMessage.Fail(1)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_fail
   }

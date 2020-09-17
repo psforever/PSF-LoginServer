@@ -11,7 +11,7 @@ class AvatarGrenadeStateMessageTest extends Specification {
   val string = hex"A9 DA11 01"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case AvatarGrenadeStateMessage(player_guid, state) =>
         player_guid mustEqual PlanetSideGUID(4570)
         state mustEqual GrenadeState.Primed
@@ -22,7 +22,7 @@ class AvatarGrenadeStateMessageTest extends Specification {
 
   "encode" in {
     val msg = AvatarGrenadeStateMessage(PlanetSideGUID(4570), GrenadeState.Primed)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

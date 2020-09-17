@@ -11,7 +11,7 @@ class ReloadMessageTest extends Specification {
   val string = hex"0D 4C00 7B000000 FFFFFFFF"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case ReloadMessage(item_guid, ammo_clip, unk1) =>
         item_guid mustEqual PlanetSideGUID(76)
         ammo_clip mustEqual 123
@@ -23,7 +23,7 @@ class ReloadMessageTest extends Specification {
 
   "encode" in {
     val msg = ReloadMessage(PlanetSideGUID(76), 123, -1)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

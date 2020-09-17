@@ -10,7 +10,7 @@ class TeardownConnectionTest extends Specification {
   val string = hex"00 05 02 4F 57 17 00 06"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case TeardownConnection(nonce) =>
         nonce mustEqual 391597826
       case _ =>
@@ -19,7 +19,7 @@ class TeardownConnectionTest extends Specification {
   }
 
   "encode" in {
-    val encoded = PacketCoding.EncodePacket(TeardownConnection(391597826)).require
+    val encoded = PacketCoding.encodePacket(TeardownConnection(391597826)).require
 
     encoded.toByteVector mustEqual string
   }

@@ -14,7 +14,7 @@ class TelepadDeployableDataTest extends Specification {
 
   "TelepadData" should {
     "decode" in {
-      PacketCoding.DecodePacket(string).require match {
+      PacketCoding.decodePacket(string).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 200
           cls mustEqual ObjectClass.router_telepad_deployable
@@ -78,7 +78,7 @@ class TelepadDeployableDataTest extends Specification {
         )
       )
       val msg = ObjectCreateMessage(ObjectClass.router_telepad_deployable, PlanetSideGUID(353), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string
     }

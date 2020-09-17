@@ -11,7 +11,7 @@ class AvatarSearchCriteriaMessageTest extends Specification {
   val string = hex"64 C604 00 00 00 00 00 00"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case AvatarSearchCriteriaMessage(unk1, unk2) =>
         unk1 mustEqual PlanetSideGUID(1222)
         unk2.length mustEqual 6
@@ -28,23 +28,23 @@ class AvatarSearchCriteriaMessageTest extends Specification {
 
   "encode" in {
     val msg = AvatarSearchCriteriaMessage(PlanetSideGUID(1222), List(0, 0, 0, 0, 0, 0))
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }
 
   "encode (failure; wrong number of list entries)" in {
     val msg = AvatarSearchCriteriaMessage(PlanetSideGUID(1222), List(0))
-    PacketCoding.EncodePacket(msg).isSuccessful mustEqual false
+    PacketCoding.encodePacket(msg).isSuccessful mustEqual false
   }
 
   "encode (failure; list number too big)" in {
     val msg = AvatarSearchCriteriaMessage(PlanetSideGUID(1222), List(0, 0, 0, 0, 0, 256))
-    PacketCoding.EncodePacket(msg).isSuccessful mustEqual false
+    PacketCoding.encodePacket(msg).isSuccessful mustEqual false
   }
 
   "encode (failure; list number too small)" in {
     val msg = AvatarSearchCriteriaMessage(PlanetSideGUID(1222), List(0, 0, 0, -1, 0, 0))
-    PacketCoding.EncodePacket(msg).isSuccessful mustEqual false
+    PacketCoding.encodePacket(msg).isSuccessful mustEqual false
   }
 }

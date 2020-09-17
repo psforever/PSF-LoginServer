@@ -11,7 +11,7 @@ class DismountBuildingMsgTest extends Specification {
   val string = hex"7C 4B00 2E00"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case DismountBuildingMsg(player_guid, building_guid) =>
         player_guid mustEqual PlanetSideGUID(75)
         building_guid mustEqual PlanetSideGUID(46)
@@ -22,7 +22,7 @@ class DismountBuildingMsgTest extends Specification {
 
   "encode" in {
     val msg = DismountBuildingMsg(PlanetSideGUID(75), PlanetSideGUID(46))
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

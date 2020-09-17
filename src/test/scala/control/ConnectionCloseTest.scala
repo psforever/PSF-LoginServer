@@ -10,7 +10,7 @@ class ConnectionCloseTest extends Specification {
   val string = hex"001D"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case ConnectionClose() =>
         ok
       case _ =>
@@ -20,7 +20,7 @@ class ConnectionCloseTest extends Specification {
 
   "encode" in {
     val msg = ConnectionClose()
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
     pkt mustEqual string
   }
 }

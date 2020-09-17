@@ -11,7 +11,7 @@ class TriggerEnvironmentalDamageMessageTest extends Specification {
   val string = hex"74 a7c44140000000"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case TriggerEnvironmentalDamageMessage(unk1, guid, unk2) =>
         unk1 mustEqual 2
         guid mustEqual PlanetSideGUID(4511)
@@ -23,7 +23,7 @@ class TriggerEnvironmentalDamageMessageTest extends Specification {
 
   "encode" in {
     val msg = TriggerEnvironmentalDamageMessage(2, PlanetSideGUID(4511), 5L)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

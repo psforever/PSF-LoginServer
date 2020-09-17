@@ -13,7 +13,7 @@ class DetailedREKDataTest extends Specification {
 
   "DetailedREKData" should {
     "decode" in {
-      PacketCoding.DecodePacket(string_rek).require match {
+      PacketCoding.decodePacket(string_rek).require match {
         case ObjectCreateDetailedMessage(len, cls, guid, parent, data) =>
           len mustEqual 151
           cls mustEqual ObjectClass.remote_electronics_kit
@@ -51,7 +51,7 @@ class DetailedREKDataTest extends Specification {
         ObjectCreateMessageParent(PlanetSideGUID(75), 1),
         obj
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_rek
     }

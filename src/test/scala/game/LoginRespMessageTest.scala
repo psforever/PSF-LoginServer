@@ -30,7 +30,7 @@ class LoginRespMessageTest extends Specification {
       0
     )
 
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
     pkt mustEqual string
   }
 
@@ -45,12 +45,12 @@ class LoginRespMessageTest extends Specification {
       10001
     )
 
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
     pkt mustEqual string_priv
   }
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case LoginRespMessage(token, error, stationError, subscription, unk, username, priv) =>
         token mustEqual "HaHLdYzs0VASjksR"
         error mustEqual LoginError.Success
@@ -65,7 +65,7 @@ class LoginRespMessageTest extends Specification {
   }
 
   "decode with privilege" in {
-    PacketCoding.DecodePacket(string_priv).require match {
+    PacketCoding.decodePacket(string_priv).require match {
       case LoginRespMessage(token, error, stationError, subscription, unk, username, priv) =>
         token mustEqual "HaHLdYzs0VASjksR"
         error mustEqual LoginError.Success

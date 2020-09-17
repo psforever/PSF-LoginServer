@@ -14,7 +14,7 @@ class HandheldDataTest extends Specification {
 
   "ACE" should {
     "decode (held)" in {
-      PacketCoding.DecodePacket(string_ace_held).require match {
+      PacketCoding.decodePacket(string_ace_held).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 118
           cls mustEqual ObjectClass.ace
@@ -42,7 +42,7 @@ class HandheldDataTest extends Specification {
     }
 
     "decode (dropped)" in {
-      PacketCoding.DecodePacket(string_ace_dropped).require match {
+      PacketCoding.decodePacket(string_ace_dropped).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 175
           cls mustEqual ObjectClass.ace
@@ -84,7 +84,7 @@ class HandheldDataTest extends Specification {
         ObjectCreateMessageParent(PlanetSideGUID(3336), 0),
         obj
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_ace_held
     }
 
@@ -96,7 +96,7 @@ class HandheldDataTest extends Specification {
         )
       )
       val msg = ObjectCreateMessage(ObjectClass.ace, PlanetSideGUID(4388), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_ace_dropped
     }
   }
@@ -105,7 +105,7 @@ class HandheldDataTest extends Specification {
 
   "Telepad" should {
     "decode" in {
-      PacketCoding.DecodePacket(string_telepad).require match {
+      PacketCoding.decodePacket(string_telepad).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 134
           cls mustEqual ObjectClass.router_telepad
@@ -142,7 +142,7 @@ class HandheldDataTest extends Specification {
         ObjectCreateMessageParent(PlanetSideGUID(430), 0),
         obj
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_telepad
     }
@@ -152,7 +152,7 @@ class HandheldDataTest extends Specification {
 
   "Boomer Trigger" should {
     "decode" in {
-      PacketCoding.DecodePacket(string_boomertrigger).require match {
+      PacketCoding.decodePacket(string_boomertrigger).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 118
           cls mustEqual ObjectClass.boomer_trigger
@@ -189,7 +189,7 @@ class HandheldDataTest extends Specification {
         ObjectCreateMessageParent(PlanetSideGUID(4272), 0),
         obj
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_boomertrigger
     }
   }
@@ -199,7 +199,7 @@ class HandheldDataTest extends Specification {
 
   "Command Detonater" should {
     "decode (held)" in {
-      PacketCoding.DecodePacket(string_detonater_held).require match {
+      PacketCoding.decodePacket(string_detonater_held).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 118
           cls mustEqual ObjectClass.command_detonater
@@ -227,7 +227,7 @@ class HandheldDataTest extends Specification {
     }
 
     "decode (dropped)" in {
-      PacketCoding.DecodePacket(string_detonater_dropped).require match {
+      PacketCoding.decodePacket(string_detonater_dropped).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 175
           cls mustEqual ObjectClass.command_detonater
@@ -268,7 +268,7 @@ class HandheldDataTest extends Specification {
         ObjectCreateMessageParent(PlanetSideGUID(4149), 0),
         obj
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_detonater_held
     }
 
@@ -280,7 +280,7 @@ class HandheldDataTest extends Specification {
         )
       )
       val msg = ObjectCreateMessage(ObjectClass.command_detonater, PlanetSideGUID(3682), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_detonater_dropped
     }
   }

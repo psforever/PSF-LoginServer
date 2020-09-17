@@ -12,7 +12,7 @@ class ChatMsgTest extends Specification {
   val string_tell  = hex"12 20 C180640065006600 83610062006300"
 
   "decode" in {
-    PacketCoding.DecodePacket(string_local).require match {
+    PacketCoding.decodePacket(string_local).require match {
       case ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents) =>
         messagetype mustEqual ChatMessageType.CMT_OPEN
         has_wide_contents mustEqual true
@@ -23,7 +23,7 @@ class ChatMsgTest extends Specification {
         ko
     }
 
-    PacketCoding.DecodePacket(string_tell).require match {
+    PacketCoding.decodePacket(string_tell).require match {
       case ChatMsg(messagetype, has_wide_contents, recipient, contents, note_contents) =>
         messagetype mustEqual ChatMessageType.CMT_TELL
         has_wide_contents mustEqual true
@@ -37,12 +37,12 @@ class ChatMsgTest extends Specification {
 
   "encode" in {
     val msg_local = ChatMsg(ChatMessageType.CMT_OPEN, true, "", "abc", None)
-    val pkt_local = PacketCoding.EncodePacket(msg_local).require.toByteVector
+    val pkt_local = PacketCoding.encodePacket(msg_local).require.toByteVector
 
     pkt_local mustEqual string_local
 
     val msg_tell = ChatMsg(ChatMessageType.CMT_TELL, true, "def", "abc", None)
-    val pkt_tell = PacketCoding.EncodePacket(msg_tell).require.toByteVector
+    val pkt_tell = PacketCoding.encodePacket(msg_tell).require.toByteVector
 
     pkt_tell mustEqual string_tell
   }

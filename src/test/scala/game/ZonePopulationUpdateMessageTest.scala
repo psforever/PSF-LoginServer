@@ -10,7 +10,7 @@ class ZonePopulationUpdateMessageTest extends Specification {
   val string = hex"B6 0400 9E010000 8A000000 25000000 8A000000 25000000 8A000000 25000000 8A000000 25000000"
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case ZonePopulationUpdateMessage(
             continent_guid,
             zone_queue,
@@ -40,7 +40,7 @@ class ZonePopulationUpdateMessageTest extends Specification {
 
   "encode" in {
     val msg = ZonePopulationUpdateMessage(4, 414, 138, 37, 138, 37, 138, 37, 138, 37)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

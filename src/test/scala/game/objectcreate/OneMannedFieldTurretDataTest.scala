@@ -14,7 +14,7 @@ class OneMannedFieldTurretDataTest extends Specification {
 
   "OneMannedFieldTurretData" should {
     "decode (orion)" in {
-      PacketCoding.DecodePacket(string_orion).require match {
+      PacketCoding.decodePacket(string_orion).require match {
         case ObjectCreateMessage(len, cls, guid, parent, data) =>
           len mustEqual 350
           cls mustEqual ObjectClass.portable_manned_turret_vs
@@ -140,7 +140,7 @@ class OneMannedFieldTurretDataTest extends Specification {
         )
       )
       val msg = ObjectCreateMessage(ObjectClass.portable_manned_turret_vs, PlanetSideGUID(2916), obj)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_orion
     }
   }

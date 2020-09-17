@@ -31,7 +31,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
 
   "SquadDetailDefinitionUpdateMessage" should {
     "decode (unk1 + members)" in {
-      PacketCoding.DecodePacket(string_unk1).require match {
+      PacketCoding.decodePacket(string_unk1).require match {
         case SquadDetailDefinitionUpdateMessage(guid, detail) =>
           guid mustEqual PlanetSideGUID(3)
           detail match {
@@ -48,7 +48,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
     }
 
     "decode (char id)" in {
-      PacketCoding.DecodePacket(string_leader_char_id).require match {
+      PacketCoding.decodePacket(string_leader_char_id).require match {
         case SquadDetailDefinitionUpdateMessage(guid, detail) =>
           guid mustEqual PlanetSideGUID(5)
           detail match {
@@ -64,7 +64,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
     }
 
     "decode (unk3 + leader name)" in {
-      PacketCoding.DecodePacket(string_unk3LeaderName).require match {
+      PacketCoding.decodePacket(string_unk3LeaderName).require match {
         case SquadDetailDefinitionUpdateMessage(guid, detail) =>
           guid mustEqual PlanetSideGUID(3)
           detail match {
@@ -82,7 +82,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
     }
 
     "decode (task)" in {
-      PacketCoding.DecodePacket(string_task).require match {
+      PacketCoding.decodePacket(string_task).require match {
         case SquadDetailDefinitionUpdateMessage(guid, detail) =>
           guid mustEqual PlanetSideGUID(5)
           detail match {
@@ -98,7 +98,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
     }
 
     "decode (zone)" in {
-      PacketCoding.DecodePacket(string_zone).require match {
+      PacketCoding.decodePacket(string_zone).require match {
         case SquadDetailDefinitionUpdateMessage(guid, detail) =>
           guid mustEqual PlanetSideGUID(3)
           detail match {
@@ -114,7 +114,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
     }
 
     "decode (task + zone)" in {
-      PacketCoding.DecodePacket(string_taskZone).require match {
+      PacketCoding.decodePacket(string_taskZone).require match {
         case SquadDetailDefinitionUpdateMessage(_, detail) =>
           detail match {
             case SquadDetail(None, None, None, None, None, Some(task), Some(zone), None, None) =>
@@ -130,7 +130,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
     }
 
     "decode (unk7 + members)" in {
-      PacketCoding.DecodePacket(string_unk7).require match {
+      PacketCoding.decodePacket(string_unk7).require match {
         case SquadDetailDefinitionUpdateMessage(guid, detail) =>
           guid mustEqual PlanetSideGUID(3)
           detail match {
@@ -147,7 +147,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
     }
 
     "decode (member closed)" in {
-      PacketCoding.DecodePacket(string_member_closed).require match {
+      PacketCoding.decodePacket(string_member_closed).require match {
         case SquadDetailDefinitionUpdateMessage(guid, detail) =>
           guid mustEqual PlanetSideGUID(3)
           detail match {
@@ -170,7 +170,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
     }
 
     "decode (member role)" in {
-      PacketCoding.DecodePacket(string_member_role).require match {
+      PacketCoding.decodePacket(string_member_role).require match {
         case SquadDetailDefinitionUpdateMessage(guid, detail) =>
           guid mustEqual PlanetSideGUID(7)
           detail match {
@@ -193,7 +193,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
     }
 
     "decode (member role + requirements)" in {
-      PacketCoding.DecodePacket(string_member_roleRequirements).require match {
+      PacketCoding.decodePacket(string_member_roleRequirements).require match {
         case SquadDetailDefinitionUpdateMessage(guid, detail) =>
           guid mustEqual PlanetSideGUID(1)
           detail match {
@@ -218,7 +218,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
     }
 
     "decode (member char id + name)" in {
-      PacketCoding.DecodePacket(string_member_charIdName).require match {
+      PacketCoding.decodePacket(string_member_charIdName).require match {
         case SquadDetailDefinitionUpdateMessage(guid, detail) =>
           guid mustEqual PlanetSideGUID(3)
           detail match {
@@ -242,7 +242,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
     }
 
     "decode (task + member etc)" in {
-      PacketCoding.DecodePacket(string_task_memberEtc).require match {
+      PacketCoding.decodePacket(string_task_memberEtc).require match {
         case SquadDetailDefinitionUpdateMessage(guid, detail) =>
           guid mustEqual PlanetSideGUID(1)
           detail match {
@@ -278,7 +278,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
     }
 
     "decode (full squad)" in {
-      PacketCoding.DecodePacket(string_full).require match {
+      PacketCoding.decodePacket(string_full).require match {
         case SquadDetailDefinitionUpdateMessage(guid, detail) =>
           guid mustEqual PlanetSideGUID(3)
           detail match {
@@ -501,7 +501,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
     }
 
     "decode (mixed)" in {
-      PacketCoding.DecodePacket(string_mixed).require match {
+      PacketCoding.decodePacket(string_mixed).require match {
         case SquadDetailDefinitionUpdateMessage(guid, detail) =>
           guid mustEqual PlanetSideGUID(3)
           detail match {
@@ -659,7 +659,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
             )
           )
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_unk1
     }
 
@@ -668,7 +668,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
         PlanetSideGUID(5),
         SquadDetail().LeaderCharId(30910985L)
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_leader_char_id
     }
 
@@ -684,7 +684,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
             )
           )
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_unk3LeaderName
     }
 
@@ -693,7 +693,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
         PlanetSideGUID(5),
         SquadDetail().Task("All Welcome ")
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_task
     }
 
@@ -702,7 +702,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
         PlanetSideGUID(3),
         SquadDetail().ZoneId(PlanetSideZoneID(21))
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_zone
     }
 
@@ -713,7 +713,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
           .Task("\\#FF0000 The \\#ffffff Blades")
           .ZoneId(PlanetSideZoneID(4))
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_taskZone
     }
 
@@ -738,7 +738,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
             )
           )
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_unk7
     }
 
@@ -752,7 +752,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
             )
           )
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_member_closed
     }
 
@@ -766,7 +766,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
             )
           )
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_member_role
     }
 
@@ -785,7 +785,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
             )
           )
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_member_roleRequirements
     }
 
@@ -799,7 +799,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
             )
           )
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_member_charIdName
     }
 
@@ -823,7 +823,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
             )
           )
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_task_memberEtc
     }
 
@@ -853,7 +853,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
           )
         )
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_full
     }
 
@@ -865,7 +865,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
           .Task("PSForever Packet Collection")
           .Members((0 to 9).map { index => SquadPositionEntry(index, position) }.reverse.toList)
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_mixed
     }
   }

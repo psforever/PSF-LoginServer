@@ -11,7 +11,7 @@ class ServerVehicleOverrideMsgTest extends Specification {
   val string2 = hex"4E 10 050 0"
 
   "decode (1)" in {
-    PacketCoding.DecodePacket(string1).require match {
+    PacketCoding.decodePacket(string1).require match {
       case ServerVehicleOverrideMsg(u1, u2, u3, u4, u5, u6, u7, u8) =>
         u1 mustEqual true
         u2 mustEqual true
@@ -28,7 +28,7 @@ class ServerVehicleOverrideMsgTest extends Specification {
   }
 
   "decode (2)" in {
-    PacketCoding.DecodePacket(string2).require match {
+    PacketCoding.decodePacket(string2).require match {
       case ServerVehicleOverrideMsg(u1, u2, u3, u4, u5, u6, u7, u8) =>
         u1 mustEqual false
         u2 mustEqual false
@@ -45,14 +45,14 @@ class ServerVehicleOverrideMsgTest extends Specification {
 
   "encode (1)" in {
     val msg = ServerVehicleOverrideMsg(true, true, false, false, 0, 0, 12, Some(0L))
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string1
   }
 
   "encode (2)" in {
     val msg = ServerVehicleOverrideMsg(false, false, false, true, 0, 0, 5, None)
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string2
   }

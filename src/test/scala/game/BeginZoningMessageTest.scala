@@ -10,7 +10,7 @@ class BeginZoningMessageTest extends Specification {
   val string = hex"43" //yes, just the opcode
 
   "decode" in {
-    PacketCoding.DecodePacket(string).require match {
+    PacketCoding.decodePacket(string).require match {
       case BeginZoningMessage() =>
         ok
       case _ =>
@@ -20,7 +20,7 @@ class BeginZoningMessageTest extends Specification {
 
   "encode" in {
     val msg = BeginZoningMessage()
-    val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
   }

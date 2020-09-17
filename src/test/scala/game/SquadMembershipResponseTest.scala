@@ -28,7 +28,7 @@ class SquadMembershipResponseTest extends Specification {
 
   "SquadMembershipResponse" should {
     "decode (0-1)" in {
-      PacketCoding.DecodePacket(string_01).require match {
+      PacketCoding.decodePacket(string_01).require match {
         case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
           unk1 mustEqual SquadResponseType.Invite
           unk2 mustEqual 0
@@ -44,7 +44,7 @@ class SquadMembershipResponseTest extends Specification {
     }
 
     "decode (0-2)" in {
-      PacketCoding.DecodePacket(string_02).require match {
+      PacketCoding.decodePacket(string_02).require match {
         case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
           unk1 mustEqual SquadResponseType.Invite
           unk2 mustEqual 0
@@ -60,7 +60,7 @@ class SquadMembershipResponseTest extends Specification {
     }
 
     "decode (1-1)" in {
-      PacketCoding.DecodePacket(string_11).require match {
+      PacketCoding.decodePacket(string_11).require match {
         case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
           unk1 mustEqual SquadResponseType.Unk01
           unk2 mustEqual 19
@@ -76,7 +76,7 @@ class SquadMembershipResponseTest extends Specification {
     }
 
     "decode (1-2)" in {
-      PacketCoding.DecodePacket(string_12).require match {
+      PacketCoding.decodePacket(string_12).require match {
         case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
           unk1 mustEqual SquadResponseType.Unk01
           unk2 mustEqual 18
@@ -92,7 +92,7 @@ class SquadMembershipResponseTest extends Specification {
     }
 
     "decode (2-1)" in {
-      PacketCoding.DecodePacket(string_21).require match {
+      PacketCoding.decodePacket(string_21).require match {
         case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
           unk1 mustEqual SquadResponseType.Accept
           unk2 mustEqual 0
@@ -108,7 +108,7 @@ class SquadMembershipResponseTest extends Specification {
     }
 
     "decode (2-2)" in {
-      PacketCoding.DecodePacket(string_22).require match {
+      PacketCoding.decodePacket(string_22).require match {
         case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
           unk1 mustEqual SquadResponseType.Accept
           unk2 mustEqual 0
@@ -124,7 +124,7 @@ class SquadMembershipResponseTest extends Specification {
     }
 
     "decode (3-1)" in {
-      PacketCoding.DecodePacket(string_31).require match {
+      PacketCoding.decodePacket(string_31).require match {
         case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
           unk1 mustEqual SquadResponseType.Reject
           unk2 mustEqual 0
@@ -140,7 +140,7 @@ class SquadMembershipResponseTest extends Specification {
     }
 
     "decode (3-2)" in {
-      PacketCoding.DecodePacket(string_32).require match {
+      PacketCoding.decodePacket(string_32).require match {
         case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
           unk1 mustEqual SquadResponseType.Reject
           unk2 mustEqual 0
@@ -156,7 +156,7 @@ class SquadMembershipResponseTest extends Specification {
     }
 
     "decode (4-1)" in {
-      PacketCoding.DecodePacket(string_41).require match {
+      PacketCoding.decodePacket(string_41).require match {
         case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
           unk1 mustEqual SquadResponseType.Cancel
           unk2 mustEqual 0
@@ -172,7 +172,7 @@ class SquadMembershipResponseTest extends Specification {
     }
 
     "decode (4-2)" in {
-      PacketCoding.DecodePacket(string_42).require match {
+      PacketCoding.decodePacket(string_42).require match {
         case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
           unk1 mustEqual SquadResponseType.Cancel
           unk2 mustEqual 0
@@ -188,7 +188,7 @@ class SquadMembershipResponseTest extends Specification {
     }
 
     "decode (5-1)" in {
-      PacketCoding.DecodePacket(string_51).require match {
+      PacketCoding.decodePacket(string_51).require match {
         case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
           unk1 mustEqual SquadResponseType.Leave
           unk2 mustEqual 0
@@ -204,7 +204,7 @@ class SquadMembershipResponseTest extends Specification {
     }
 
     "decode (7-1)" in {
-      PacketCoding.DecodePacket(string_71).require match {
+      PacketCoding.decodePacket(string_71).require match {
         case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
           unk1 mustEqual SquadResponseType.PlatoonInvite
           unk2 mustEqual 2
@@ -220,7 +220,7 @@ class SquadMembershipResponseTest extends Specification {
     }
 
     "decode (7-2)" in {
-      PacketCoding.DecodePacket(string_72).require match {
+      PacketCoding.decodePacket(string_72).require match {
         case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
           unk1 mustEqual SquadResponseType.PlatoonInvite
           unk2 mustEqual 0
@@ -236,7 +236,7 @@ class SquadMembershipResponseTest extends Specification {
     }
 
     "decode (8-1)" in {
-      PacketCoding.DecodePacket(string_81).require match {
+      PacketCoding.decodePacket(string_81).require match {
         case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
           unk1 mustEqual SquadResponseType.PlatoonAccept
           unk2 mustEqual 0
@@ -252,7 +252,7 @@ class SquadMembershipResponseTest extends Specification {
     }
 
     "decode (9-1)" in {
-      PacketCoding.DecodePacket(string_91).require match {
+      PacketCoding.decodePacket(string_91).require match {
         case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
           unk1 mustEqual SquadResponseType.PlatoonReject
           unk2 mustEqual 0
@@ -268,7 +268,7 @@ class SquadMembershipResponseTest extends Specification {
     }
 
     "decode (9-2)" in {
-      PacketCoding.DecodePacket(string_92).require match {
+      PacketCoding.decodePacket(string_92).require match {
         case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
           unk1 mustEqual SquadResponseType.PlatoonReject
           unk2 mustEqual 0
@@ -284,7 +284,7 @@ class SquadMembershipResponseTest extends Specification {
     }
 
     "decode (b-1)" in {
-      PacketCoding.DecodePacket(string_b1).require match {
+      PacketCoding.decodePacket(string_b1).require match {
         case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
           unk1 mustEqual SquadResponseType.PlatoonLeave
           unk2 mustEqual 0
@@ -301,7 +301,7 @@ class SquadMembershipResponseTest extends Specification {
 
     "encode (0-1)" in {
       val msg = SquadMembershipResponse(SquadResponseType.Invite, 0, 0, 42771010L, Some(1300870L), "HofD", false, None)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_01
     }
@@ -309,21 +309,21 @@ class SquadMembershipResponseTest extends Specification {
     "encode (0-2)" in {
       val msg =
         SquadMembershipResponse(SquadResponseType.Invite, 0, 0, 1176612L, Some(1004937L), "SPOILERS", true, None)
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_02
     }
 
     "encode (1-1)" in {
       val msg = SquadMembershipResponse(SquadResponseType.Unk01, 19, 0, 41530025L, Some(0L), "", true, Some(None))
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_11
     }
 
     "encode (1-2)" in {
       val msg = SquadMembershipResponse(SquadResponseType.Unk01, 18, 0, 41578085L, Some(0L), "", true, Some(None))
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_12
     }
@@ -339,7 +339,7 @@ class SquadMembershipResponseTest extends Specification {
         true,
         Some(None)
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_21
     }
@@ -355,7 +355,7 @@ class SquadMembershipResponseTest extends Specification {
         true,
         Some(None)
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_22
     }
@@ -363,7 +363,7 @@ class SquadMembershipResponseTest extends Specification {
     "encode (3-1)" in {
       val msg =
         SquadMembershipResponse(SquadResponseType.Reject, 0, 3, 31035057L, Some(42771010L), "HMFIC", false, Some(None))
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_31
     }
@@ -379,7 +379,7 @@ class SquadMembershipResponseTest extends Specification {
         false,
         Some(None)
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_32
     }
@@ -395,7 +395,7 @@ class SquadMembershipResponseTest extends Specification {
         false,
         Some(None)
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_41
     }
@@ -411,7 +411,7 @@ class SquadMembershipResponseTest extends Specification {
         false,
         Some(None)
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_42
     }
@@ -419,14 +419,14 @@ class SquadMembershipResponseTest extends Specification {
     "encode (5-1)" in {
       val msg =
         SquadMembershipResponse(SquadResponseType.Leave, 0, 1, 1176612L, Some(1176612L), "CCRIDER", true, Some(None))
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_51
     }
 
     "encode (7-1)" in {
       val msg = SquadMembershipResponse(SquadResponseType.PlatoonInvite, 2, 0, 1176612L, Some(0L), "", true, Some(None))
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_71
     }
@@ -442,7 +442,7 @@ class SquadMembershipResponseTest extends Specification {
         true,
         Some(None)
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_72
     }
@@ -458,7 +458,7 @@ class SquadMembershipResponseTest extends Specification {
         false,
         Some(None)
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_81
     }
@@ -466,7 +466,7 @@ class SquadMembershipResponseTest extends Specification {
     "encode (9-1)" in {
       val msg =
         SquadMembershipResponse(SquadResponseType.PlatoonReject, 0, 0, 297025L, Some(41605002L), "", true, Some(None))
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_91
     }
@@ -482,7 +482,7 @@ class SquadMembershipResponseTest extends Specification {
         false,
         Some(None)
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_92
     }
@@ -498,7 +498,7 @@ class SquadMembershipResponseTest extends Specification {
         false,
         Some(None)
       )
-      val pkt = PacketCoding.EncodePacket(msg).require.toByteVector
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_b1
     }
