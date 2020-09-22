@@ -6150,9 +6150,6 @@ class SessionActor extends Actor with MDCContextAware {
     */
   def AccessVehicleContents(vehicle: Vehicle): Unit = {
     accessedContainer = Some(vehicle)
-    if(vehicle.AccessingTrunk.isEmpty) {
-      vehicle.AccessingTrunk = Some(player.GUID)
-    }
     AccessVehicleContainerChannel(vehicle)
     DisplayContainerContents(vehicle.GUID, vehicle)
   }
@@ -6879,7 +6876,28 @@ class SessionActor extends Actor with MDCContextAware {
     progressBarUpdate.cancel()
     progressBarValue = None
     lastTerminalOrderFulfillment = true
-    UnaccessContainer()
+    accessedContainer match {
+      case Some(v: Vehicle) =>
+        val vguid = v.GUID
+        if(v.AccessingTrunk.contains(player.GUID)) {
+          if(player.VehicleSeated.contains(vguid)) {
+            v.AccessingTrunk = None //player is seated; just stop accessing trunk
+            if(player.isAlive) {
+              sendResponse(UnuseItemMessage(player.GUID, vguid))
+            }
+          } else {
+            UnaccessContainer(v)
+          }
+        }
+
+      case Some(o) =>
+        UnaccessContainer(o)
+        if(player.isAlive) {
+          sendResponse(UnuseItemMessage(player.GUID, o.GUID))
+        }
+
+      case None => ;
+    }
     prefire.orElse(shooting) match {
       case Some(guid) =>
         sendResponse(ChangeFireStateMessage_Stop(guid))
