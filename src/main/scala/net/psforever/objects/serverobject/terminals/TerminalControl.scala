@@ -2,9 +2,13 @@
 package net.psforever.objects.serverobject.terminals
 
 import akka.actor.{Actor, ActorRef}
+import net.psforever.actors.commands.NtuCommand
+import net.psforever.actors.zone.BuildingActor
+import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.{GlobalDefinitions, SimpleItem}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
+import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.DamageableAmenity
 import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}
 import net.psforever.objects.serverobject.repair.RepairableAmenity
@@ -46,8 +50,18 @@ class TerminalControl(term: Terminal)
               )
             case _ => ;
           }
+
+        case NtuCommand.Grant(_, _) =>
+          PerformRepairs(term, amount = 5)
+
         case _ => ;
       }
+
+  override protected def DamageAwareness(target : Target, cause : ResolvedProjectile, amount : Any) : Unit = {
+    import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
+    term.Owner.Actor ! BuildingActor.Ntu(NtuCommand.Request(100, new ClassicActorRefOps(self).toTyped[NtuCommand.Grant]))
+    super.DamageAwareness(target, cause, amount)
+  }
 
   override def toString: String = term.Definition.Name
 }

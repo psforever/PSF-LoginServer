@@ -11,7 +11,7 @@ object NtuCommand {
     *
     * @param source the nanite container recognized as the sender
     */
-  final case class Offer(source: NtuContainer) extends Command
+  final case class Offer(source: NtuContainer, replyTo: ActorRef[Request]) extends Command
 
   /** Message for asking for nanites from the recipient.
     *
@@ -24,6 +24,6 @@ object NtuCommand {
     * @param source the nanite container recognized as the sender
     * @param amount the nanites transferred in this package
     */
-  final case class Grant(source: NtuContainer, amount: Int)
+  final case class Grant(source: NtuContainer, amount: Int) extends Command
 
 }

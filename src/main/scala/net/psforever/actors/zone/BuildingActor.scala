@@ -5,6 +5,7 @@ import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{ActorRef, Behavior, SupervisorStrategy}
 import akka.{actor => classic}
 import net.psforever.actors.commands.NtuCommand
+import net.psforever.objects.NtuContainer
 import net.psforever.objects.serverobject.structures.{Building, WarpGate}
 import net.psforever.objects.zones.Zone
 import net.psforever.persistence
@@ -154,22 +155,25 @@ class BuildingActor(
 
   def ntu(msg: NtuCommand.Command): Behavior[Command] = {
     import NtuCommand._
-    val ntuBuilding = building match {
-      case b: WarpGate => b
-      case _           => return Behaviors.unhandled
-    }
-
     msg match {
-      case Offer(source) =>
+      case Offer(source, _) =>
+        Behaviors.same
       case Request(amount, replyTo) =>
-        ntuBuilding match {
-          case warpGate: WarpGate => replyTo ! Grant(warpGate, if (warpGate.Active) amount else 0)
-          case _                  => return Behaviors.unhandled
+        building match {
+          case b: WarpGate =>
+            replyTo ! Grant(b, if (b.Active) amount else 0)
+            Behaviors.same
+          case _           =>
+            building.Amenities.find(_.isInstanceOf[NtuContainer]) match {
+              case Some(ntuContainer) =>
+                ntuContainer.Actor ! msg //needs to redirect
+                Behaviors.same
+              case None =>
+                Behaviors.unhandled
+            }
         }
-
+      case _ =>
+        Behaviors.same
     }
-
-    Behaviors.same
   }
-
 }

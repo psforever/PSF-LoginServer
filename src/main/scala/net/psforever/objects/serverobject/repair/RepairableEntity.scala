@@ -78,32 +78,21 @@ trait RepairableEntity extends Repairable {
     */
   protected def PerformRepairs(target: Repairable.Target, player: Player, item: Tool): Unit = {
     val definition     = target.Definition
-    val zone           = target.Zone
-    val events         = zone.AvatarEvents
+    val events         = target.Zone.AvatarEvents
     val name           = player.Name
-    val tguid          = target.GUID
     val originalHealth = target.Health
     val updatedHealth =
       if (!(player.isMoving(1f) || target.isMoving(1f))) { //only allow stationary repairs within margin of error
-        val newHealth = target.Health = originalHealth + Repairable.Quality + RepairValue(item) + definition.RepairMod
-        val zoneId    = zone.id
+        val repairValue = Repairable.Quality + RepairValue(item) + target.Definition.RepairMod
         val magazine  = item.Discharge()
         events ! AvatarServiceMessage(
-          name,
+          player.Name,
           AvatarAction.SendResponse(
             Service.defaultPlayerGUID,
             InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong)
           )
         )
-        if (target.Destroyed) {
-          if (newHealth >= definition.RepairRestoresAt) {
-            events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 0, newHealth))
-            Restoration(target)
-          }
-        } else {
-          events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 0, newHealth))
-        }
-        newHealth
+        PerformRepairs(target, repairValue)
       } else {
         originalHealth
       }
@@ -112,9 +101,26 @@ trait RepairableEntity extends Repairable {
       name,
       AvatarAction.SendResponse(
         Service.defaultPlayerGUID,
-        RepairMessage(tguid, updatedHealth * 100 / definition.MaxHealth)
+        RepairMessage(target.GUID, updatedHealth * 100 / definition.MaxHealth)
       )
     )
+  }
+
+  protected def PerformRepairs(target: Repairable.Target, amount: Int): Int = {
+    val zone           = target.Zone
+    val zoneId         = zone.id
+    val events         = zone.AvatarEvents
+    val tguid          = target.GUID
+    val newHealth      = target.Health = target.Health + amount
+    if (target.Destroyed) {
+      if (newHealth >= target.Definition.RepairRestoresAt) {
+        events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 0, newHealth))
+        Restoration(target)
+      }
+    } else {
+      events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 0, newHealth))
+    }
+    newHealth
   }
 
   /* random object repair modifier */
