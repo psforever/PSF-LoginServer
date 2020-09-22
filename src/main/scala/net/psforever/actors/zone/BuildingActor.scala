@@ -156,7 +156,7 @@ class BuildingActor(
   def ntu(msg: NtuCommand.Command): Behavior[Command] = {
     import NtuCommand._
     msg match {
-      case Offer(source, _) =>
+      case Offer(_, _) =>
         Behaviors.same
       case Request(amount, replyTo) =>
         building match {

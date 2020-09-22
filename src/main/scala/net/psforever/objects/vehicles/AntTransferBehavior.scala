@@ -68,7 +68,7 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
           //ANTs would charge from 0-100% in roughly 75s on live (https://www.youtube.com/watch?v=veOWToR2nSk&feature=youtu.be&t=1194)
           val max = obj.Definition.MaxNtuCapacitor - obj.NtuCapacitor
           target.Actor ! BuildingActor.Ntu(
-            NtuCommand.Request(scala.math.min(obj.Definition.MaxNtuCapacitor / 75, max), context.self)
+            NtuCommand.Request(scala.math.min(obj.Definition.MaxNtuCapacitor / 75f, max), context.self)
           )
         case _ =>
       }
@@ -86,7 +86,7 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
     }
   }
 
-  def ReceiveAndDepositUntilFull(vehicle: Vehicle, amount: Int): Boolean = {
+  def ReceiveAndDepositUntilFull(vehicle: Vehicle, amount: Float): Boolean = {
     val isNotFull = (vehicle.NtuCapacitor += amount) < vehicle.Definition.MaxNtuCapacitor
     UpdateNtuUI(vehicle)
     isNotFull
@@ -128,7 +128,7 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
     ActivatePanelsForChargingEvent(ChargeTransferObject)
   }
 
-  def WithdrawAndTransmit(vehicle: Vehicle, maxRequested: Int): Any = {
+  def WithdrawAndTransmit(vehicle: Vehicle, maxRequested: Float): Any = {
     val chargeable      = ChargeTransferObject
     var chargeToDeposit = Math.min(Math.min(chargeable.NtuCapacitor, 100), maxRequested)
     chargeable.NtuCapacitor -= chargeToDeposit
@@ -176,7 +176,7 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
 
   def HandleNtuOffer(sender: ActorRef, src: NtuContainer): Unit = {}
 
-  def HandleNtuRequest(sender: ActorRef, min: Int, max: Int): Unit = {
+  def HandleNtuRequest(sender: ActorRef, min: Float, max: Float): Unit = {
     if (transferEvent == TransferBehavior.Event.Discharging) {
       val chargeable = ChargeTransferObject
       val chargeToDeposit = if (min == 0) {
@@ -197,7 +197,7 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
     }
   }
 
-  def HandleNtuGrant(sender: ActorRef, src: NtuContainer, amount: Int): Unit = {
+  def HandleNtuGrant(sender: ActorRef, src: NtuContainer, amount: Float): Unit = {
     if (transferEvent == TransferBehavior.Event.Charging) {
       val obj = ChargeTransferObject
       if (ReceiveAndDepositUntilFull(obj, amount)) {

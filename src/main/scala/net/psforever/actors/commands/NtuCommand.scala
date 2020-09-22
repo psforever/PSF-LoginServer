@@ -17,13 +17,13 @@ object NtuCommand {
     *
     * @param amount the amount of nanites requested
     */
-  final case class Request(amount: Int, replyTo: ActorRef[Grant]) extends Command
+  final case class Request(amount: Float, replyTo: ActorRef[Grant]) extends Command
 
   /** Response for transferring nanites to a recipient.
     *
     * @param source the nanite container recognized as the sender
     * @param amount the nanites transferred in this package
     */
-  final case class Grant(source: NtuContainer, amount: Int) extends Command
+  final case class Grant(source: NtuContainer, amount: Float) extends Command
 
 }

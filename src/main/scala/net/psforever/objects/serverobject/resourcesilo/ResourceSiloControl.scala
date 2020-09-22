@@ -28,7 +28,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
   def FactionObject: FactionAffinity = resourceSilo
 
   private[this] val log               = org.log4s.getLogger
-  var panelAnimationFunc: Int => Unit = PanelAnimation
+  var panelAnimationFunc: Float => Unit = PanelAnimation
 
   def receive: Receive = {
     case "startup" =>
@@ -59,7 +59,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
         case ResourceSilo.LowNtuWarning(enabled: Boolean) =>
           LowNtuWarning(enabled)
 
-        case ResourceSilo.UpdateChargeLevel(amount: Int) =>
+        case ResourceSilo.UpdateChargeLevel(amount: Float) =>
           UpdateChargeLevel(amount)
 
         case _ => ;
@@ -76,7 +76,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     )
   }
 
-  def UpdateChargeLevel(amount: Int): Unit = {
+  def UpdateChargeLevel(amount: Float): Unit = {
     val siloChargeBeforeChange  = resourceSilo.NtuCapacitor
     val siloDisplayBeforeChange = resourceSilo.CapacitorDisplay
     val building                = resourceSilo.Owner.asInstanceOf[Building]
@@ -100,7 +100,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
       )
       building.Actor ! BuildingActor.MapUpdate()
     }
-    val ntuIsLow = resourceSilo.NtuCapacitor.toFloat / resourceSilo.Definition.MaxNtuCapacitor.toFloat < 0.2f
+    val ntuIsLow = resourceSilo.NtuCapacitor / resourceSilo.Definition.MaxNtuCapacitor < 0.2f
     if (resourceSilo.LowNtuWarningOn && !ntuIsLow) {
       LowNtuWarning(enabled = false)
     } else if (!resourceSilo.LowNtuWarningOn && ntuIsLow) {
@@ -148,7 +148,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     * @param min    a minimum amount of nanites requested;
     * @param max    the amount of nanites required to not make further requests;
     */
-  def HandleNtuRequest(sender: ActorRef, min: Int, max: Int): Unit = {
+  def HandleNtuRequest(sender: ActorRef, min: Float, max: Float): Unit = {
     val originalAmount = resourceSilo.NtuCapacitor
     UpdateChargeLevel(-min)
     sender ! Ntu.Grant(resourceSilo, originalAmount - resourceSilo.NtuCapacitor)
@@ -157,7 +157,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
   /**
     * Accept nanites into the silo capacitor and set the animation state.
     */
-  def HandleNtuGrant(sender: ActorRef, src: NtuContainer, amount: Int): Unit = {
+  def HandleNtuGrant(sender: ActorRef, src: NtuContainer, amount: Float): Unit = {
     if (amount != 0) {
       val originalAmount = resourceSilo.NtuCapacitor
       UpdateChargeLevel(amount)
@@ -174,7 +174,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     * @param trigger if positive, activate the animation;
     *                if negative or zero, disable the animation
     */
-  def PanelAnimation(trigger: Int): Unit = {
+  def PanelAnimation(trigger: Float): Unit = {
     val zone = resourceSilo.Zone
     zone.VehicleEvents ! VehicleServiceMessage(
       zone.id,
@@ -185,5 +185,5 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
   /**
     * Do nothing this turn.
     */
-  def SkipPanelAnimation(trigger: Int): Unit = {}
+  def SkipPanelAnimation(trigger: Float): Unit = {}
 }
