@@ -67,6 +67,36 @@ class DamageCalculationsTests extends Specification {
       DamageModifiers.DistanceDegrade.Calculate(100, resprojectile) == 100 mustEqual true
     }
 
+    "cut off damage at max distance (no cutoff)" in {
+      DamageModifiers.MaxDistanceCutoff.Calculate(100, resprojectile) == 100 mustEqual true
+    }
+
+    "cut off damage at max distance (cutoff)" in {
+      val cutoffprojectile = ResolvedProjectile(
+        ProjectileResolution.Hit,
+        projectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3(1500, 0, 0)
+      )
+      DamageModifiers.MaxDistanceCutoff.Calculate(100, cutoffprojectile) == 0 mustEqual true
+    }
+
+    "cut off damage at custom distance (no cutoff)" in {
+      DamageModifiers.CustomDistanceCutoff(10).Calculate(100, resprojectile) == 0 mustEqual true
+    }
+
+    "cut off damage at custom distance (cutoff)" in {
+      val coffprojectile = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        projectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3(10, 0, 0)
+      )
+      DamageModifiers.CustomDistanceCutoff(2).Calculate(100, coffprojectile) == 0 mustEqual true
+    }
+
     "degrade over distance damage modifier (some degrade)" in {
       val resprojectile2 = ResolvedProjectile(
         ProjectileResolution.Splash,
@@ -156,6 +186,171 @@ class DamageCalculationsTests extends Specification {
         Vector3(1000, 0, 0)
       )
       DamageModifiers.Lash.Calculate(100, resprojectile2) == 0 mustEqual true
+    }
+
+    "fireball aggravated damage (aggravated splash burn" in {
+      val burnWeapon = Tool(GlobalDefinitions.flamethrower)
+      val burnProjectile = Projectile(
+        burnWeapon.Projectile,
+        burnWeapon.Definition,
+        burnWeapon.FireMode,
+        player,
+        Vector3(2, 2, 0),
+        Vector3.Zero
+      )
+      val burnRes = ResolvedProjectile(
+        ProjectileResolution.AggravatedSplashBurn,
+        projectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3(15, 0, 0)
+      )
+      val resistance = burnRes.damage_model.ResistUsing(burnRes)(burnRes)
+      DamageModifiers.FireballAggravatedBurn.Calculate(100, burnRes) == (1 + resistance) mustEqual true
+    }
+
+    "fireball aggravated damage (noral splash, no modification)" in {
+      val burnWeapon = Tool(GlobalDefinitions.flamethrower)
+      val burnProjectile = Projectile(
+        burnWeapon.Projectile,
+        burnWeapon.Definition,
+        burnWeapon.FireMode,
+        player,
+        Vector3(2, 2, 0),
+        Vector3.Zero
+      )
+      val burnRes = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        projectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3(15, 0, 0)
+      )
+      DamageModifiers.FireballAggravatedBurn.Calculate(100, burnRes) == 100 mustEqual true
+    }
+
+    val charge_weapon = Tool(GlobalDefinitions.spiker)
+    val charge_projectile = Projectile(
+      charge_weapon.Projectile,
+      charge_weapon.Definition,
+      charge_weapon.FireMode,
+      player,
+      Vector3(2, 2, 0),
+      Vector3.Zero
+    )
+    val minDamageBase = charge_weapon.Projectile.Charging.get.min.Damage0
+    val chargeBaseDamage = charge_weapon.Projectile.Damage0
+
+    "charge (none)" in {
+      val cprojectile = charge_projectile.quality(ProjectileQuality.Modified(0))
+      val rescprojectile = ResolvedProjectile(
+        ProjectileResolution.Hit,
+        cprojectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3(15, 0, 0)
+      )
+      val damage = DamageModifiers.SpikerChargeDamage.Calculate(chargeBaseDamage, rescprojectile)
+      val calcDam = minDamageBase + math.floor(chargeBaseDamage * rescprojectile.projectile.quality.mod)
+      damage mustEqual calcDam
+    }
+
+    "charge (half)" in {
+      val cprojectile = charge_projectile.quality(ProjectileQuality.Modified(0.5f))
+      val rescprojectile = ResolvedProjectile(
+        ProjectileResolution.Hit,
+        cprojectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3(15, 0, 0)
+      )
+      val damage = DamageModifiers.SpikerChargeDamage.Calculate(chargeBaseDamage, rescprojectile)
+      val calcDam = minDamageBase + math.floor(chargeBaseDamage * rescprojectile.projectile.quality.mod)
+      damage mustEqual calcDam
+    }
+
+    "charge (full)" in {
+      val cprojectile = charge_projectile.quality(ProjectileQuality.Modified(1))
+      val rescprojectile = ResolvedProjectile(
+        ProjectileResolution.Hit,
+        cprojectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3(15, 0, 0)
+      )
+      val damage = DamageModifiers.SpikerChargeDamage.Calculate(chargeBaseDamage, rescprojectile)
+      val calcDam = minDamageBase + chargeBaseDamage
+      damage mustEqual calcDam
+    }
+
+    val flak_weapon = Tool(GlobalDefinitions.trhev_burster)
+    val flak_projectile = Projectile(
+      flak_weapon.Projectile,
+      flak_weapon.Definition,
+      flak_weapon.FireMode,
+      player,
+      Vector3(2, 2, 0),
+      Vector3.Zero
+    )
+
+    "flak hit (resolution is splash, no degrade)" in {
+      val resfprojectile = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        flak_projectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3(10, 0, 0)
+      )
+      val damage = DamageModifiers.FlakHit.Calculate(100, resfprojectile)
+      damage == 100 mustEqual true
+    }
+
+    "flak hit (resolution is hit, no degrade)" in {
+      val resfprojectile = ResolvedProjectile(
+        ProjectileResolution.Hit,
+        flak_projectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3(10, 0, 0)
+      )
+      val damage = DamageModifiers.FlakHit.Calculate(100, resfprojectile)
+      damage == 100 mustEqual true
+    }
+
+    "flak burst (resolution is hit)" in {
+      val resfprojectile = ResolvedProjectile(
+        ProjectileResolution.Hit,
+        flak_projectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3(15, 0, 0)
+      )
+      val damage = DamageModifiers.FlakBurst.Calculate(100, resfprojectile)
+      damage == 100 mustEqual true
+    }
+
+    "flak burst (resolution is splash, no degrade)" in {
+      val resfprojectile = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        flak_projectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3(10, 0, 0)
+      )
+      val damage = DamageModifiers.FlakBurst.Calculate(100, resfprojectile)
+      damage == 100 mustEqual true
+    }
+
+    "flak burst (resolution is splash, some degrade)" in {
+      val resfprojectile = ResolvedProjectile(
+        ProjectileResolution.Splash,
+        flak_projectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3(5, 0, 0)
+      )
+      val damage = DamageModifiers.FlakBurst.Calculate(100, resfprojectile)
+      damage < 100 mustEqual true
     }
 
     "extract a complete damage profile" in {

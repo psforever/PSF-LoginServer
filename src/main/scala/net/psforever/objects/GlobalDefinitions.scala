@@ -2356,7 +2356,11 @@ object GlobalDefinitions {
     burster_projectile.InitialVelocity = 125
     burster_projectile.Lifespan = 4f
     ProjectileDefinition.CalculateDerivedFields(burster_projectile)
-    //TODO burster_projectile.Modifiers = DamageModifiers.RadialDegrade?
+    burster_projectile.Modifiers = List(
+      //DamageModifiers.FlakHit,
+      DamageModifiers.FlakBurst,
+      DamageModifiers.MaxDistanceCutoff
+    )
 
     chainblade_projectile.Name = "chainblade_projectile"
     // TODO for later, maybe : set_resource_parent chainblade_projectile game_objects melee_ammo_projectile
@@ -2396,7 +2400,11 @@ object GlobalDefinitions {
     colossus_burster_projectile.InitialVelocity = 175
     colossus_burster_projectile.Lifespan = 2.5f
     ProjectileDefinition.CalculateDerivedFields(colossus_burster_projectile)
-    //TODO colossus_burster_projectile.Modifiers = DamageModifiers.RadialDegrade?
+    colossus_burster_projectile.Modifiers = List(
+      //DamageModifiers.FlakHit,
+      DamageModifiers.FlakBurst,
+      DamageModifiers.MaxDistanceCutoff
+    )
 
     colossus_chaingun_projectile.Name = "colossus_chaingun_projectile"
     // TODO for later, maybe : set_resource_parent colossus_chaingun_projectile game_objects 35mmbullet_projectile
@@ -3448,7 +3456,11 @@ object GlobalDefinitions {
     phalanx_flak_projectile.InitialVelocity = 100
     phalanx_flak_projectile.Lifespan = 5f
     ProjectileDefinition.CalculateDerivedFields(phalanx_flak_projectile)
-    //TODO phalanx_flak_projectile.Modifiers = DamageModifiers.RadialDegrade?
+    phalanx_flak_projectile.Modifiers = List(
+      //DamageModifiers.FlakHit,
+      DamageModifiers.FlakBurst,
+      DamageModifiers.MaxDistanceCutoff
+    )
 
     phalanx_projectile.Name = "phalanx_projectile"
     phalanx_projectile.Damage0 = 20
@@ -3747,7 +3759,11 @@ object GlobalDefinitions {
     rocklet_flak_projectile.InitialVelocity = 60
     rocklet_flak_projectile.Lifespan = 3.2f
     ProjectileDefinition.CalculateDerivedFields(rocklet_flak_projectile)
-    //TODO rocklet_flak_projectile.Modifiers = DamageModifiers.RadialDegrade?
+    rocklet_flak_projectile.Modifiers = List(
+      //DamageModifiers.FlakHit,
+      DamageModifiers.FlakBurst,
+      DamageModifiers.MaxDistanceCutoff
+    )
 
     rocklet_jammer_projectile.Name = "rocklet_jammer_projectile"
     rocklet_jammer_projectile.Damage0 = 0
@@ -3826,7 +3842,11 @@ object GlobalDefinitions {
     skyguard_flak_cannon_projectile.InitialVelocity = 100
     skyguard_flak_cannon_projectile.Lifespan = 5f
     ProjectileDefinition.CalculateDerivedFields(skyguard_flak_cannon_projectile)
-    //TODO skyguard_flak_cannon_projectile.Modifiers = DamageModifiers.RadialDegrade?
+    skyguard_flak_cannon_projectile.Modifiers = List(
+      //DamageModifiers.FlakHit,
+      DamageModifiers.FlakBurst,
+      DamageModifiers.MaxDistanceCutoff
+    )
 
     sparrow_projectile.Name = "sparrow_projectile"
     sparrow_projectile.Damage0 = 35
@@ -3894,7 +3914,11 @@ object GlobalDefinitions {
     spitfire_aa_ammo_projectile.InitialVelocity = 100
     spitfire_aa_ammo_projectile.Lifespan = 5f
     ProjectileDefinition.CalculateDerivedFields(spitfire_aa_ammo_projectile)
-    //TODO spitfire_aa_ammo_projectile.Modifiers = DamageModifiers.RadialDegrade?
+    spitfire_aa_ammo_projectile.Modifiers = List(
+      //DamageModifiers.FlakHit,
+      DamageModifiers.FlakBurst,
+      DamageModifiers.MaxDistanceCutoff
+    )
 
     spitfire_ammo_projectile.Name = "spitfire_ammo_projectile"
     spitfire_ammo_projectile.Damage0 = 15
