@@ -1,6 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.terminals
 
+import akka.actor.typed.{ActorRef => TypedActorRef}
+import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.actors.commands.NtuCommand
 import net.psforever.actors.zone.BuildingActor
@@ -31,7 +33,10 @@ class TerminalControl(term: Terminal)
   def DamageableObject = term
   def RepairableObject = term
 
-  private var periodicRepair: Cancellable = Default.Cancellable
+  private lazy val ntuGrantActorRef: TypedActorRef[NtuCommand.Grant] =
+    new ClassicActorRefOps(self).toTyped[NtuCommand.Grant]
+  private var periodicRepairFunc: ()=>Unit                           = startAutoRepair
+  private var periodicRepairTimer: Cancellable                       = Default.Cancellable
 
   def receive: Receive =
     checkBehavior
@@ -55,8 +60,16 @@ class TerminalControl(term: Terminal)
             case _ => ;
           }
 
+        case BuildingActor.PowerOff() =>
+          periodicRepairTimer.cancel()
+          periodicRepairFunc = ()=>{}
+
+        case BuildingActor.PowerOn() =>
+          retimeAutoRepair()
+          periodicRepairFunc = startAutoRepair
+
         case NtuCommand.Grant(_, 0) =>
-          periodicRepair.cancel()
+          periodicRepairTimer.cancel()
 
         case NtuCommand.Grant(_, _) =>
           term.Definition.autoRepair match {
@@ -69,25 +82,40 @@ class TerminalControl(term: Terminal)
       }
 
   override protected def DamageAwareness(target : Target, cause : ResolvedProjectile, amount : Any) : Unit = {
-    import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
+    periodicRepairFunc()
+    super.DamageAwareness(target, cause, amount)
+  }
+
+  def startAutoRepair(): Unit = {
+    if(periodicRepairTimer.isCancelled) {
+      retimeAutoRepair()
+    }
+  }
+
+  def retimeAutoRepair(): Unit = {
     term.Definition.autoRepair match {
-      case Some(AutoRepairStats(_, start, interval, drain)) if periodicRepair.isCancelled =>
-        import scala.concurrent.ExecutionContext.Implicits.global
-        periodicRepair = context.system.scheduler.scheduleWithFixedDelay(
-          start milliseconds,
-          interval milliseconds,
-          term.Owner.Actor,
-          BuildingActor.Ntu(NtuCommand.Request(drain, new ClassicActorRefOps(self).toTyped[NtuCommand.Grant]))
-        )
+      case Some(AutoRepairStats(_, start, interval, drain))
+        if term.Definition.Damageable && term.Health < term.Definition.MaxHealth =>
+        retimeAutoRepair(start, interval, drain)
       case _ => ;
     }
-    super.DamageAwareness(target, cause, amount)
+  }
+
+  def retimeAutoRepair(initialDelay: Long, delay: Long, drain: Float): Unit = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    periodicRepairTimer.cancel()
+    periodicRepairTimer = context.system.scheduler.scheduleWithFixedDelay(
+      initialDelay milliseconds,
+      delay milliseconds,
+      term.Owner.Actor,
+      BuildingActor.Ntu(NtuCommand.Request(drain, ntuGrantActorRef))
+    )
   }
 
   override def PerformRepairs(target : Target, amount : Int) : Int = {
     val newHealth = super.PerformRepairs(target, amount)
     if(newHealth == target.Definition.MaxHealth) {
-      periodicRepair.cancel()
+      periodicRepairTimer.cancel()
     }
     newHealth
   }

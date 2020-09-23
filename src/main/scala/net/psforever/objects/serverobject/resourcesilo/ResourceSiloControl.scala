@@ -32,8 +32,11 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
 
   def receive: Receive = {
     case "startup" =>
-      // todo: This is just a temporary solution to drain NTU over time. When base object destruction is properly implemented NTU should be deducted when base objects repair themselves
-      //      context.system.scheduler.schedule(5 second, 5 second, self, ResourceSilo.UpdateChargeLevel(-1))
+      resourceSilo.Owner match {
+        case building: Building if resourceSilo.NtuCapacitor > 0f =>
+          building.Actor ! BuildingActor.PowerOn()
+        case _ => ;
+      }
       context.become(Processing)
 
     case _ => ;
@@ -109,6 +112,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     if (resourceSilo.NtuCapacitor == 0 && siloChargeBeforeChange > 0) {
       // Oops, someone let the base run out of power. Shut it all down.
       zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.PlanetsideAttribute(building.GUID, 48, 1))
+      building.Actor ! BuildingActor.PowerOff()
       building.Actor ! BuildingActor.SetFaction(PlanetSideEmpire.NEUTRAL)
     } else if (siloChargeBeforeChange == 0 && resourceSilo.NtuCapacitor > 0) {
       // Power restored. Reactor Online. Sensors Online. Weapons Online. All systems nominal.
@@ -117,6 +121,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
         zone.id,
         AvatarAction.PlanetsideAttribute(building.GUID, 48, 0)
       )
+      building.Actor ! BuildingActor.PowerOn()
       building.Zone.actor ! ZoneActor.ZoneMapUpdate()
     }
   }

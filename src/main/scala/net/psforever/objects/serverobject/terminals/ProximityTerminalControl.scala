@@ -96,8 +96,7 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
         case ProximityUnit.Action(_, _) =>
         //reserved
 
-        case msg =>
-          log.warn(s"unexpected message $msg")
+        case _ =>
       }
 
   def Use(target: PlanetSideGameObject, zone: String, callback: ActorRef): Unit = {

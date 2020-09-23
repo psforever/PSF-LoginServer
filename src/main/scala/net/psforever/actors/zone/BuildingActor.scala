@@ -42,6 +42,10 @@ object BuildingActor {
   final case class MapUpdate() extends Command
 
   final case class Ntu(command: NtuCommand.Command) extends Command
+
+  final case class PowerOn() extends Command
+
+  final case class PowerOff() extends Command
 }
 
 class BuildingActor(
@@ -146,6 +150,20 @@ class BuildingActor(
 
       case MapUpdate() =>
         galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(building.infoUpdateMessage()))
+        Behaviors.same
+
+      case msg @ PowerOff() =>
+        log.trace(s"Facility ${building.Name}, ${building.Zone.id} has lost power.")
+        building.Amenities.foreach { amenity =>
+          amenity.Actor ! msg
+        }
+        Behaviors.same
+
+      case msg @ PowerOn() =>
+        log.trace(s"Power has been restored to facility ${building.Name}, ${building.Zone.id}")
+        building.Amenities.foreach { amenity =>
+          amenity.Actor ! msg
+        }
         Behaviors.same
 
       case Ntu(msg) =>
