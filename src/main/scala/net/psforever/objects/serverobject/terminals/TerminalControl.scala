@@ -1,18 +1,20 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.terminals
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.actors.commands.NtuCommand
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.ballistics.ResolvedProjectile
-import net.psforever.objects.{GlobalDefinitions, SimpleItem}
+import net.psforever.objects.{Default, GlobalDefinitions, SimpleItem}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.DamageableAmenity
 import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}
 import net.psforever.objects.serverobject.repair.RepairableAmenity
-import net.psforever.objects.serverobject.structures.Building
+import net.psforever.objects.serverobject.structures.{AutoRepairStats, Building}
+
+import scala.concurrent.duration._
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `Terminal`.
@@ -28,6 +30,8 @@ class TerminalControl(term: Terminal)
   def HackableObject   = term
   def DamageableObject = term
   def RepairableObject = term
+
+  private var periodicRepair: Cancellable = Default.Cancellable
 
   def receive: Receive =
     checkBehavior
@@ -51,22 +55,49 @@ class TerminalControl(term: Terminal)
             case _ => ;
           }
 
+        case NtuCommand.Grant(_, 0) =>
+          periodicRepair.cancel()
+
         case NtuCommand.Grant(_, _) =>
-          PerformRepairs(term, amount = 5)
+          term.Definition.autoRepair match {
+            case Some(repair : AutoRepairStats) =>
+              PerformRepairs(term, repair.amount)
+            case _ => ;
+          }
 
         case _ => ;
       }
 
   override protected def DamageAwareness(target : Target, cause : ResolvedProjectile, amount : Any) : Unit = {
     import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
-    term.Owner.Actor ! BuildingActor.Ntu(NtuCommand.Request(100, new ClassicActorRefOps(self).toTyped[NtuCommand.Grant]))
+    term.Definition.autoRepair match {
+      case Some(AutoRepairStats(_, start, interval, drain)) if periodicRepair.isCancelled =>
+        import scala.concurrent.ExecutionContext.Implicits.global
+        periodicRepair = context.system.scheduler.scheduleWithFixedDelay(
+          start milliseconds,
+          interval milliseconds,
+          term.Owner.Actor,
+          BuildingActor.Ntu(NtuCommand.Request(drain, new ClassicActorRefOps(self).toTyped[NtuCommand.Grant]))
+        )
+      case _ => ;
+    }
     super.DamageAwareness(target, cause, amount)
+  }
+
+  override def PerformRepairs(target : Target, amount : Int) : Int = {
+    val newHealth = super.PerformRepairs(target, amount)
+    if(newHealth == target.Definition.MaxHealth) {
+      periodicRepair.cancel()
+    }
+    newHealth
   }
 
   override def toString: String = term.Definition.Name
 }
 
 object TerminalControl {
+  private case class PeriodicRepair()
+
   def Dispatch(sender: ActorRef, terminal: Terminal, msg: Terminal.TerminalMessage): Unit = {
     msg.response match {
       case Terminal.NoDeal() => sender ! msg

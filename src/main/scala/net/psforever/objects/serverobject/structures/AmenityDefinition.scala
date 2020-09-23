@@ -6,7 +6,7 @@ import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.{DamageResistanceModel, StandardAmenityResistance, StandardResolutions, VitalityDefinition}
 import net.psforever.objects.vital.resistance.ResistanceProfileMutators
 
-final case class AutoRepair(amount: Int, start: Long, repeat: Long, drain: Float)
+final case class AutoRepairStats(amount: Int, start: Long, repeat: Long, drain: Float)
 
 abstract class AmenityDefinition(objectId: Int)
     extends ObjectDefinition(objectId)
@@ -18,10 +18,12 @@ abstract class AmenityDefinition(objectId: Int)
   ResistUsing = StandardAmenityResistance
   Model = StandardResolutions.Amenities
 
-  var autoRepair: Option[AutoRepair] = None
+  var autoRepair: Option[AutoRepairStats] = None
 
-  def autoRepair_=(auto: AutoRepair): Option[AutoRepair] = {
+  def autoRepair_=(auto: AutoRepairStats): Option[AutoRepairStats] = {
     autoRepair = Some(auto)
     autoRepair
   }
+
+  def hasAutoRepair: Boolean = autoRepair.nonEmpty
 }
