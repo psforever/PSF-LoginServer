@@ -1,22 +1,16 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.terminals
 
-import akka.actor.typed.{ActorRef => TypedActorRef}
-import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import akka.actor.{Actor, ActorRef, Cancellable}
-import net.psforever.actors.commands.NtuCommand
-import net.psforever.actors.zone.BuildingActor
+import akka.actor.{Actor, ActorRef}
 import net.psforever.objects.ballistics.ResolvedProjectile
-import net.psforever.objects.{Default, GlobalDefinitions, SimpleItem}
+import net.psforever.objects.{GlobalDefinitions, SimpleItem}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.DamageableAmenity
 import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}
-import net.psforever.objects.serverobject.repair.RepairableAmenity
-import net.psforever.objects.serverobject.structures.{AutoRepairStats, Building}
-
-import scala.concurrent.duration._
+import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableAmenity}
+import net.psforever.objects.serverobject.structures.Building
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `Terminal`.
@@ -27,22 +21,20 @@ class TerminalControl(term: Terminal)
     with FactionAffinityBehavior.Check
     with HackableBehavior.GenericHackable
     with DamageableAmenity
-    with RepairableAmenity {
+    with RepairableAmenity
+    with AmenityAutoRepair {
   def FactionObject    = term
   def HackableObject   = term
   def DamageableObject = term
   def RepairableObject = term
-
-  private lazy val ntuGrantActorRef: TypedActorRef[NtuCommand.Grant] =
-    new ClassicActorRefOps(self).toTyped[NtuCommand.Grant]
-  private var periodicRepairFunc: ()=>Unit                           = startAutoRepair
-  private var periodicRepairTimer: Cancellable                       = Default.Cancellable
+  def AutoRepairObject = term
 
   def receive: Receive =
     checkBehavior
       .orElse(hackableBehavior)
       .orElse(takesDamage)
       .orElse(canBeRepairedByNanoDispenser)
+      .orElse(autoRepairBehavior)
       .orElse {
         case Terminal.Request(player, msg) =>
           TerminalControl.Dispatch(sender(), term, Terminal.TerminalMessage(player, msg, term.Request(player, msg)))
@@ -60,62 +52,18 @@ class TerminalControl(term: Terminal)
             case _ => ;
           }
 
-        case BuildingActor.PowerOff() =>
-          periodicRepairTimer.cancel()
-          periodicRepairFunc = ()=>{}
-
-        case BuildingActor.PowerOn() =>
-          retimeAutoRepair()
-          periodicRepairFunc = startAutoRepair
-
-        case NtuCommand.Grant(_, 0) =>
-          periodicRepairTimer.cancel()
-
-        case NtuCommand.Grant(_, _) =>
-          term.Definition.autoRepair match {
-            case Some(repair : AutoRepairStats) =>
-              PerformRepairs(term, repair.amount)
-            case _ => ;
-          }
-
         case _ => ;
       }
 
   override protected def DamageAwareness(target : Target, cause : ResolvedProjectile, amount : Any) : Unit = {
-    periodicRepairFunc()
+    startAutoRepairIfStopped()
     super.DamageAwareness(target, cause, amount)
-  }
-
-  def startAutoRepair(): Unit = {
-    if(periodicRepairTimer.isCancelled) {
-      retimeAutoRepair()
-    }
-  }
-
-  def retimeAutoRepair(): Unit = {
-    term.Definition.autoRepair match {
-      case Some(AutoRepairStats(_, start, interval, drain))
-        if term.Definition.Damageable && term.Health < term.Definition.MaxHealth =>
-        retimeAutoRepair(start, interval, drain)
-      case _ => ;
-    }
-  }
-
-  def retimeAutoRepair(initialDelay: Long, delay: Long, drain: Float): Unit = {
-    import scala.concurrent.ExecutionContext.Implicits.global
-    periodicRepairTimer.cancel()
-    periodicRepairTimer = context.system.scheduler.scheduleWithFixedDelay(
-      initialDelay milliseconds,
-      delay milliseconds,
-      term.Owner.Actor,
-      BuildingActor.Ntu(NtuCommand.Request(drain, ntuGrantActorRef))
-    )
   }
 
   override def PerformRepairs(target : Target, amount : Int) : Int = {
     val newHealth = super.PerformRepairs(target, amount)
     if(newHealth == target.Definition.MaxHealth) {
-      periodicRepairTimer.cancel()
+      stopAutoRepair()
     }
     newHealth
   }
@@ -124,8 +72,6 @@ class TerminalControl(term: Terminal)
 }
 
 object TerminalControl {
-  private case class PeriodicRepair()
-
   def Dispatch(sender: ActorRef, terminal: Terminal, msg: Terminal.TerminalMessage): Unit = {
     msg.response match {
       case Terminal.NoDeal() => sender ! msg

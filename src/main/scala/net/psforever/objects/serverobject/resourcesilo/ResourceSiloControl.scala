@@ -33,8 +33,12 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
   def receive: Receive = {
     case "startup" =>
       resourceSilo.Owner match {
-        case building: Building if resourceSilo.NtuCapacitor > 0f =>
-          building.Actor ! BuildingActor.PowerOn()
+        case building: Building =>
+          building.Actor ! (if (resourceSilo.NtuCapacitor <= 0f ) {
+            BuildingActor.PowerOff()
+          } else {
+            BuildingActor.PowerOn()
+          })
         case _ => ;
       }
       context.become(Processing)
