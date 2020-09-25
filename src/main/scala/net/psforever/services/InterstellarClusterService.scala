@@ -171,7 +171,7 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
             Random.shuffle(zone.findSpawns(faction, spawnGroups)).headOption match {
               case Some((_, spawnPoints)) if spawnPoints.nonEmpty =>
                 Some((zone, Random.shuffle(spawnPoints.toList).head))
-              case None =>
+              case _ =>
                 None
             }
           case None =>

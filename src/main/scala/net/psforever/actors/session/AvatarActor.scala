@@ -1152,7 +1152,7 @@ class AvatarActor(
                   tool.GUID = PlanetSideGUID(gen.getAndIncrement)
                 case Some(item: Equipment) =>
                   item.GUID = PlanetSideGUID(gen.getAndIncrement)
-                case None => ;
+                case _ => ;
               }
             )
           player.GUID = PlanetSideGUID(gen.getAndIncrement)
@@ -1193,7 +1193,7 @@ class AvatarActor(
                   item.Invalidate()
                 case Some(item: Equipment) =>
                   item.Invalidate()
-                case None => ;
+                case _ => ;
               }
             )
           player.Invalidate()

@@ -407,7 +407,7 @@ object ContainableBehavior {
     item match {
       case Some(_) if item.nonEmpty && source.Slot(slot).Equipment.isEmpty =>
         (outSlot, item)
-      case None =>
+      case _ =>
         (None, None)
     }
   }
@@ -560,7 +560,7 @@ object ContainableBehavior {
     (dest match {
       case Some(slot) if ContainableBehavior.TestPutItemInSlot(destination, item, slot).contains(Nil) =>
         ContainableBehavior.TryPutItemInSlot(destination, item, slot)
-      case None => (false, None)
+      case _ => (false, None)
     }) match {
       case (true, swapItem) =>
         (dest, swapItem)

@@ -3539,7 +3539,7 @@ class SessionActor extends Actor with MDCContextAware {
           })
           (
             a,
-            (continent.GUID(player.VehicleSeated) match {
+            continent.GUID(player.VehicleSeated) match {
               case Some(vehicle : Vehicle) if vehicle.PassengerInSeat(player).isDefined =>
                 b.partition {
                   _.GUID != vehicle.GUID
@@ -3552,7 +3552,7 @@ class SessionActor extends Actor with MDCContextAware {
                 //throw error since VehicleSeated didn't point to a vehicle?
                 player.VehicleSeated = None
                 (b, List.empty[Vehicle])
-            })
+            }
           )
         }
         val allActiveVehicles = vehicles ++ usedVehicle
@@ -5525,7 +5525,7 @@ class SessionActor extends Actor with MDCContextAware {
                   log.warn(
                     s"DismountVehicleMsg: can not dismount from vehicle as driver while server has asserted control; please wait ..."
                   )
-                case Some(seat_num: Int) =>
+                case Some(seat_num) =>
                   obj.Actor ! Mountable.TryDismount(player, seat_num)
                   if (interstellarFerry.isDefined) {
                     //short-circuit the temporary channel for transferring between zones, the player is no longer doing that
@@ -5564,7 +5564,7 @@ class SessionActor extends Actor with MDCContextAware {
               }) match {
                 case (Some(obj: Mountable), Some(tplayer: Player)) =>
                   obj.PassengerInSeat(tplayer) match {
-                    case Some(seat_num: Int) =>
+                    case Some(seat_num) =>
                       obj.Actor ! Mountable.TryDismount(tplayer, seat_num)
                     case None =>
                       dismountWarning(
