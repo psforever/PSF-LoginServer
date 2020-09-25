@@ -90,7 +90,7 @@ class MaxNumberSource(val max: Int) extends NumberSource {
       case Some(key: Key) if allowRestrictions && key.policy != AvailabilityPolicy.Restricted =>
         key.policy = AvailabilityPolicy.Restricted
         Some(new LoanedKey(number, key))
-      case None =>
+      case _ =>
         None
     }
   }

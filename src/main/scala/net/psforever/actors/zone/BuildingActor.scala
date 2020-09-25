@@ -86,8 +86,8 @@ class BuildingActor(
 
   def postStartBehaviour(): Behavior[Command] = {
     (galaxyService, interstellarCluster) match {
-      case (Some(galaxyService), Some(interstellarCluster)) =>
-        buffer.unstashAll(active(galaxyService, interstellarCluster))
+      case (Some(_galaxyService), Some(_interstellarCluster)) =>
+        buffer.unstashAll(active(_galaxyService, _interstellarCluster))
       case _ =>
         Behaviors.same
     }
