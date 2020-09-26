@@ -181,9 +181,15 @@ class MiddlewareActor(
 
                 packet match {
                   // Super awkward special case: Bundling CharacterInfoMessage with OCDM causes the character selection
-                  // to show blank lines and be broken. So we only dequeue either if they are the first packet.
-                  case _: CharacterInfoMessage | _: ObjectCreateDetailedMessage =>
-                    length == packetLength
+                  // to show blank lines and be broken. So we make sure CharacterInfoMessage is always sent as the only
+                  // packet in a bundle.
+                  case _: CharacterInfoMessage =>
+                    if (length == packetLength) {
+                      length += MTU
+                      true
+                    } else {
+                      false
+                    }
                   case _ =>
                     // Some packets may be larger than the MTU limit, in that case we dequeue anyway and split later
                     // We deduct some bytes to leave room for SlottedMetaPacket (4 bytes) and MultiPacketEx (2 bytes + prefix per packet)
