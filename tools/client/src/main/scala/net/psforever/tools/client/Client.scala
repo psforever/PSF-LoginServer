@@ -6,7 +6,14 @@ import java.security.{SecureRandom, Security}
 import akka.actor.typed.ActorRef
 import akka.io.Udp
 import enumeratum.{Enum, EnumEntry}
-import net.psforever.packet.{CryptoPacketOpcode, PacketCoding, PlanetSideControlPacket, PlanetSideCryptoPacket, PlanetSideGamePacket, PlanetSidePacket}
+import net.psforever.packet.{
+  CryptoPacketOpcode,
+  PacketCoding,
+  PlanetSideControlPacket,
+  PlanetSideCryptoPacket,
+  PlanetSideGamePacket,
+  PlanetSidePacket
+}
 import net.psforever.packet.PacketCoding.CryptoCoding
 import net.psforever.packet.control.{ClientStart, ServerStart}
 import net.psforever.packet.crypto.{ClientChallengeXchg, ServerChallengeXchg}
@@ -79,9 +86,9 @@ class Client(username: String, password: String) {
     assert(state == ClientState.Disconnected)
     var macBuffer: ByteVector = ByteVector.empty
 
-    send(ClientStart(0))]
+    send(ClientStart(0))
     val serverStart = waitFor[ServerStart]().require
-    assert(.clientNonce == 0)
+    assert(serverStart.clientNonce == 0)
 
     val time      = System.currentTimeMillis()
     val challenge = randomBytes(12)
@@ -90,10 +97,6 @@ class Client(username: String, password: String) {
     send(ClientChallengeXchg(time, challenge, p, g))
 
     val serverKey = waitFor[ServerChallengeXchg]().require.pubKey
-
-    val
-
-    println(res)
   }
 
   private def waitFor[T](
