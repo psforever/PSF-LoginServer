@@ -9306,17 +9306,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   def KickedByAdministration(): Unit = {
     sendResponse(DisconnectMessage("@kick_w"))
     Thread.sleep(300)
-    // sendResponse(DropSession(session.id, "kick by GM"))
-    middlewareActor ! MiddlewareActor.Close()
+    middlewareActor ! MiddlewareActor.Teardown()
   }
 
   def ImmediateDisconnect(): Unit = {
     if (avatar != null) {
       accountPersistence ! AccountPersistenceService.Logout(avatar.name)
     }
-    // sendResponse(DropCryptoSession())
-    // sendResponse(DropSession(session.id, "user quit"))
-    middlewareActor ! MiddlewareActor.Close()
+    middlewareActor ! MiddlewareActor.Teardown()
   }
 
   def HandleWeaponFire(weaponGUID: PlanetSideGUID, projectileGUID: PlanetSideGUID, shotOrigin: Vector3): Unit = {
@@ -9450,7 +9447,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
   def failWithError(error: String) = {
     log.error(error)
-    middlewareActor ! MiddlewareActor.Close()
+    middlewareActor ! MiddlewareActor.Teardown()
   }
 
   def sendResponse(packet: PlanetSidePacket): Unit = {
