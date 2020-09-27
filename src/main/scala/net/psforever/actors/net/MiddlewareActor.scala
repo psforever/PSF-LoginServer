@@ -30,13 +30,7 @@ import net.psforever.packet.control.{
   TeardownConnection
 }
 import net.psforever.packet.crypto.{ClientChallengeXchg, ClientFinished, ServerChallengeXchg, ServerFinished}
-import net.psforever.packet.game.{
-  ChangeFireModeMessage,
-  CharacterInfoMessage,
-  KeepAliveMessage,
-  ObjectCreateDetailedMessage,
-  PingMsg
-}
+import net.psforever.packet.game.{ChangeFireModeMessage, CharacterInfoMessage, KeepAliveMessage, PingMsg}
 import scodec.Attempt.{Failure, Successful}
 import scodec.bits.{BitVector, ByteVector, HexStringSyntax}
 import scodec.interop.akka.EnrichedByteVector
@@ -77,6 +71,9 @@ object MiddlewareActor {
 
   /** Send outgoing packet */
   final case class Send(msg: PlanetSidePacket) extends Command
+
+  /** Teardown connection */
+  final case class Teardown() extends Command
 
   /** Close connection */
   final case class Close() extends Command
@@ -329,15 +326,15 @@ class MiddlewareActor(
 
                 case _ =>
                   log.error(s"Unexpected packet type $packet in cryptoSetup")
-                  stop()
+                  connectionClose()
               }
             case Failure(e) =>
               log.error(s"Could not decode packet in cryptoSetup: ${e}")
-              stop()
+              connectionClose()
           }
         case other =>
           log.error(s"Invalid message '$other' received in cryptoSetup")
-          stop()
+          connectionClose()
       }
       .receiveSignal(onSignal)
   }
@@ -397,15 +394,15 @@ class MiddlewareActor(
 
                 case other =>
                   log.error(s"Unexpected packet '$other' in cryptoFinish")
-                  stop()
+                  connectionClose()
               }
             case Failure(e) =>
               log.error(s"Could not decode packet in cryptoFinish: $e")
-              stop()
+              connectionClose()
           }
         case other =>
           log.error(s"Invalid message '$other' received in cryptoFinish")
-          stop()
+          connectionClose()
       }
       .receiveSignal(onSignal)
   }
@@ -431,11 +428,16 @@ class MiddlewareActor(
           out(packet)
           Behaviors.same
 
+        case Teardown() =>
+          send(TeardownConnection(clientNonce))
+          context.self ! Close()
+          Behaviors.same
+
         case Close() =>
           outQueue
             .dequeueAll(_ => true)
             .foreach(p => send(smp(0, p._2.bytes), Some(nextSequence), crypto))
-          stop()
+          connectionClose()
       }
       .receiveSignal(onSignal)
   }
@@ -505,7 +507,7 @@ class MiddlewareActor(
             Behaviors.stopped
 
           case TeardownConnection(_) =>
-            stop()
+            Behaviors.stopped
 
           case ClientStart(_) =>
             start()
@@ -573,7 +575,7 @@ class MiddlewareActor(
     ByteVector.view(array)
   }
 
-  def stop(): Behavior[Command] = {
+  def connectionClose(): Behavior[Command] = {
     send(ConnectionClose())
     Behaviors.stopped
   }

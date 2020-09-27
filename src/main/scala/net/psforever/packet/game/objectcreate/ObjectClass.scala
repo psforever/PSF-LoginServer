@@ -428,6 +428,8 @@ object ObjectClass {
   final val stealth_armor             = 837
   final val vehicle_terminal_combined = 952
 
+  final val game_properties = 343
+
   final val objectClassMap = scala.collection.mutable.Map[String, Int]()
 
   def ByName(name: String): Int = {
