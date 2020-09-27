@@ -34,7 +34,7 @@ class CmdListPlayers(args: Array[String], services: Map[String, ActorRef]) exten
       } else {
         data {
           "player_list"
-        } = players
+        } = players.map(_.name)
         context.parent ! CommandGoodResponse(s"${players.length} players online\n", data)
       }
     case default => log.error(s"Unexpected message $default")
