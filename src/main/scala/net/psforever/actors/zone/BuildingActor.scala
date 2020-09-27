@@ -6,7 +6,7 @@ import akka.actor.typed.{ActorRef, Behavior, SupervisorStrategy}
 import akka.{actor => classic}
 import net.psforever.actors.commands.NtuCommand
 import net.psforever.objects.NtuContainer
-import net.psforever.objects.serverobject.structures.{Building, WarpGate}
+import net.psforever.objects.serverobject.structures.{Amenity, Building, WarpGate}
 import net.psforever.objects.zones.Zone
 import net.psforever.persistence
 import net.psforever.types.PlanetSideEmpire
@@ -41,11 +41,13 @@ object BuildingActor {
   // Once they do, we won't need this anymore
   final case class MapUpdate() extends Command
 
+  final case class AmenityStateChange(obj: Amenity) extends Command
+
   final case class Ntu(command: NtuCommand.Command) extends Command
 
-  final case class PowerOn() extends Command
+  final case class SuppliedWithNtu() extends Command
 
-  final case class PowerOff() extends Command
+  final case class NtuDepleted() extends Command
 }
 
 class BuildingActor(
@@ -152,15 +154,21 @@ class BuildingActor(
         galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(building.infoUpdateMessage()))
         Behaviors.same
 
-      case msg @ PowerOff() =>
-        log.trace(s"facility ${building.Name} has lost power")
+      case AmenityStateChange(_) =>
+        //TODO when parameter object is finally immutable, perform analysis on it to determine specific actions
+        //for now, just update the map
+        galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(building.infoUpdateMessage()))
+        Behaviors.same
+
+      case msg @ NtuDepleted() =>
+        log.trace(s"${building.Definition.Name} ${building.Name} ntu has been depleted")
         building.Amenities.foreach { amenity =>
           amenity.Actor ! msg
         }
         Behaviors.same
 
-      case msg @ PowerOn() =>
-        log.trace(s"power has been restored to facility ${building.Name}")
+      case msg @ SuppliedWithNtu() =>
+        log.trace(s"ntu supply has been restored to ${building.Definition.Name} ${building.Name}")
         building.Amenities.foreach { amenity =>
           amenity.Actor ! msg
         }

@@ -2,12 +2,13 @@
 package net.psforever.objects.serverobject.generator
 
 import akka.actor.Actor
+import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.{Player, Tool}
 import net.psforever.objects.ballistics._
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.DamageableEntity
-import net.psforever.objects.serverobject.repair.{Repairable, RepairableEntity}
+import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, Repairable, RepairableEntity}
 import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.vital.DamageFromExplosion
 import net.psforever.packet.game.TriggerEffectMessage
@@ -27,10 +28,12 @@ class GeneratorControl(gen: Generator)
     extends Actor
     with FactionAffinityBehavior.Check
     with DamageableEntity
-    with RepairableEntity {
-  def FactionObject                = gen
-  def DamageableObject             = gen
-  def RepairableObject             = gen
+    with RepairableEntity
+    with AmenityAutoRepair {
+  def FactionObject      = gen
+  def DamageableObject   = gen
+  def RepairableObject   = gen
+  def AutoRepairObject   = gen
   var imminentExplosion: Boolean   = false
   var alarmCooldownPeriod: Boolean = false
 
@@ -38,6 +41,7 @@ class GeneratorControl(gen: Generator)
     checkBehavior
       .orElse(takesDamage)
       .orElse(canBeRepairedByNanoDispenser)
+      .orElse(autoRepairBehavior)
       .orElse {
         case GeneratorControl.GeneratorExplodes() => //TODO this only works with projectiles right now!
           val zone = gen.Zone
@@ -89,6 +93,7 @@ class GeneratorControl(gen: Generator)
   }
 
   override protected def DamageAwareness(target: Target, cause: ResolvedProjectile, amount: Any): Unit = {
+    tryAutoRepair()
     super.DamageAwareness(target, cause, amount)
     val damageTo = amount match {
       case a: Int => a
@@ -98,12 +103,21 @@ class GeneratorControl(gen: Generator)
   }
 
   override protected def DestructionAwareness(target: Target, cause: ResolvedProjectile): Unit = {
+    tryAutoRepair()
     if (!target.Destroyed) {
       target.Health = 1 //temporary
       imminentExplosion = true
       context.system.scheduler.scheduleOnce(10 seconds, self, GeneratorControl.GeneratorExplodes())
       GeneratorControl.BroadcastGeneratorEvent(gen, 16)
     }
+  }
+
+  override def PerformRepairs(target : Target, amount : Int) : Int = {
+    val newHealth = super.PerformRepairs(target, amount)
+    if(newHealth == target.Definition.MaxHealth) {
+      stopAutoRepair()
+    }
+    newHealth
   }
 
   override def Restoration(obj: Repairable.Target): Unit = {
@@ -137,7 +151,7 @@ object GeneratorControl {
     */
   private def UpdateOwner(obj: Generator): Unit = {
     obj.Owner match {
-      case b: Building => b.Actor ! Building.AmenityStateChange(obj)
+      case b: Building => b.Actor ! BuildingActor.AmenityStateChange(obj)
       case _           => ;
     }
   }

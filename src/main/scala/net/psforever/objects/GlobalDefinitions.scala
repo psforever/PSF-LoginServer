@@ -6765,7 +6765,7 @@ object GlobalDefinitions {
     order_terminal.MaxHealth = 500
     order_terminal.Damageable = true
     order_terminal.Repairable = true
-    order_terminal.autoRepair = AutoRepairStats(1, 0, 500, 1f)//AutoRepairStats(1, 5000, 3500, 0.5f)
+    order_terminal.autoRepair = AutoRepairStats(1, 5000, 3500, 0.5f)
     order_terminal.RepairIfDestroyed = true
     order_terminal.Subtract.Damage1 = 8
 

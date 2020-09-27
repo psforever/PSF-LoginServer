@@ -7,7 +7,7 @@ import net.psforever.objects.{GlobalDefinitions, SimpleItem}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.Damageable.Target
-import net.psforever.objects.serverobject.damage.DamageableAmenity
+import net.psforever.objects.serverobject.damage.{Damageable, DamageableAmenity}
 import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}
 import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableAmenity}
 import net.psforever.objects.serverobject.structures.Building
@@ -56,8 +56,13 @@ class TerminalControl(term: Terminal)
       }
 
   override protected def DamageAwareness(target : Target, cause : ResolvedProjectile, amount : Any) : Unit = {
-    startAutoRepairIfStopped()
+    tryAutoRepair()
     super.DamageAwareness(target, cause, amount)
+  }
+
+  override protected def DestructionAwareness(target: Damageable.Target, cause: ResolvedProjectile) : Unit = {
+    tryAutoRepair()
+    super.DestructionAwareness(target, cause)
   }
 
   override def PerformRepairs(target : Target, amount : Int) : Int = {

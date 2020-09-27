@@ -3,7 +3,7 @@ package net.psforever.objects.serverobject.resourcesilo
 
 import akka.actor.{Actor, ActorRef}
 import net.psforever.objects.serverobject.CommonMessages
-import net.psforever.actors.zone.{BuildingActor, ZoneActor}
+import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.transfer.TransferBehavior
 import net.psforever.objects.serverobject.structures.Building
@@ -35,9 +35,9 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
       resourceSilo.Owner match {
         case building: Building =>
           building.Actor ! (if (resourceSilo.NtuCapacitor <= 0f ) {
-            BuildingActor.PowerOff()
+            BuildingActor.NtuDepleted()
           } else {
-            BuildingActor.PowerOn()
+            BuildingActor.SuppliedWithNtu()
           })
         case _ => ;
       }
@@ -100,7 +100,6 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
       log.trace(
         s"Silo ${resourceSilo.GUID} NTU bar level has changed from $siloDisplayBeforeChange to ${resourceSilo.CapacitorDisplay}"
       )
-      resourceSilo.Owner.Actor ! BuildingActor.MapUpdate()
       zone.AvatarEvents ! AvatarServiceMessage(
         zone.id,
         AvatarAction.PlanetsideAttribute(resourceSilo.GUID, 45, resourceSilo.CapacitorDisplay)
@@ -116,7 +115,8 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     if (resourceSilo.NtuCapacitor == 0 && siloChargeBeforeChange > 0) {
       // Oops, someone let the base run out of power. Shut it all down.
       zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.PlanetsideAttribute(building.GUID, 48, 1))
-      building.Actor ! BuildingActor.PowerOff()
+      building.Actor ! BuildingActor.NtuDepleted()
+      building.Actor ! BuildingActor.AmenityStateChange(resourceSilo)
       building.Actor ! BuildingActor.SetFaction(PlanetSideEmpire.NEUTRAL)
     } else if (siloChargeBeforeChange == 0 && resourceSilo.NtuCapacitor > 0) {
       // Power restored. Reactor Online. Sensors Online. Weapons Online. All systems nominal.
@@ -125,8 +125,8 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
         zone.id,
         AvatarAction.PlanetsideAttribute(building.GUID, 48, 0)
       )
-      building.Actor ! BuildingActor.PowerOn()
-      building.Zone.actor ! ZoneActor.ZoneMapUpdate()
+      building.Actor ! BuildingActor.SuppliedWithNtu()
+      building.Actor ! BuildingActor.AmenityStateChange(resourceSilo)
     }
   }
 

@@ -8,10 +8,9 @@ import net.psforever.objects.equipment.{Ammo, JammableMountedWeapons}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.mount.MountableBehavior
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
-import net.psforever.objects.serverobject.damage.DamageableWeaponTurret
+import net.psforever.objects.serverobject.damage.{Damageable, DamageableWeaponTurret}
 import net.psforever.objects.serverobject.hackable.GenericHackables
-import net.psforever.objects.serverobject.repair.Repairable.Target
-import net.psforever.objects.serverobject.repair.RepairableWeaponTurret
+import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableWeaponTurret}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 
@@ -34,12 +33,14 @@ class FacilityTurretControl(turret: FacilityTurret)
     with MountableBehavior.Dismount
     with DamageableWeaponTurret
     with RepairableWeaponTurret
+    with AmenityAutoRepair
     with JammableMountedWeapons {
   def FactionObject    = turret
   def MountableObject  = turret
   def JammableObject   = turret
   def DamageableObject = turret
   def RepairableObject = turret
+  def AutoRepairObject = turret
 
   // Used for timing ammo recharge for vanu turrets in caves
   var weaponAmmoRechargeTimer = Default.Cancellable
@@ -47,6 +48,7 @@ class FacilityTurretControl(turret: FacilityTurret)
   override def postStop(): Unit = {
     super.postStop()
     damageableWeaponTurretPostStop()
+    stopAutoRepair()
   }
 
   def receive: Receive =
@@ -56,6 +58,7 @@ class FacilityTurretControl(turret: FacilityTurret)
       .orElse(dismountBehavior)
       .orElse(takesDamage)
       .orElse(canBeRepairedByNanoDispenser)
+      .orElse(autoRepairBehavior)
       .orElse {
         case CommonMessages.Use(player, Some((item: Tool, upgradeValue: Int)))
             if player.Faction == turret.Faction &&
@@ -110,7 +113,13 @@ class FacilityTurretControl(turret: FacilityTurret)
         case _ => ;
       }
 
-  override protected def DestructionAwareness(target: Target, cause: ResolvedProjectile): Unit = {
+  override protected def DamageAwareness(target : Damageable.Target, cause : ResolvedProjectile, amount : Any) : Unit = {
+    tryAutoRepair()
+    super.DamageAwareness(target, cause, amount)
+  }
+
+  override protected def DestructionAwareness(target: Damageable.Target, cause: ResolvedProjectile): Unit = {
+    tryAutoRepair()
     super.DestructionAwareness(target, cause)
     val zone   = target.Zone
     val zoneId = zone.id
@@ -120,7 +129,15 @@ class FacilityTurretControl(turret: FacilityTurret)
     events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 51, 1))
   }
 
-  override def Restoration(obj: Target): Unit = {
+  override def PerformRepairs(target : Damageable.Target, amount : Int) : Int = {
+    val newHealth = super.PerformRepairs(target, amount)
+    if(newHealth == target.Definition.MaxHealth) {
+      stopAutoRepair()
+    }
+    newHealth
+  }
+
+  override def Restoration(obj: Damageable.Target): Unit = {
     super.Restoration(obj)
     val zone   = turret.Zone
     val zoneId = zone.id

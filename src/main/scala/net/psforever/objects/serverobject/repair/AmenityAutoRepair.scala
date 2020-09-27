@@ -1,84 +1,95 @@
 //Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.repair
 
-import akka.actor.{Actor, Cancellable}
+import akka.actor.{Actor, ActorRef, Cancellable}
 import akka.actor.typed.{ActorRef => TypedActorRef}
 import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import net.psforever.actors.commands.NtuCommand
 import net.psforever.actors.zone.BuildingActor
-import net.psforever.objects.{Default, Ntu}
+import net.psforever.objects.{Default, NtuContainer, NtuStorageBehavior}
 import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.serverobject.structures.{Amenity, AutoRepairStats}
 
 import scala.concurrent.duration._
 
-trait AmenityAutoRepair {
+trait AmenityAutoRepair
+  extends NtuStorageBehavior {
   _: Damageable with RepairableEntity with Actor =>
   private lazy val ntuGrantActorRef: TypedActorRef[NtuCommand.Grant] =
     new ClassicActorRefOps(self).toTyped[NtuCommand.Grant]
-  private var autoRepairStartFunc: ()=>Unit                          = startAutoRepairIfStopped
-  private var autoRepairTimer: Cancellable                           = Default.Cancellable
+  private var autoRepairStartFunc: ()=>Unit = startAutoRepairIfStopped
+  private var autoRepairTimer: Cancellable  = Default.Cancellable
 
   def AutoRepairObject: Amenity
 
-  final val autoRepairBehavior: Receive = {
-    case BuildingActor.PowerOn() =>
-      powerOnCallback()
+  final val autoRepairBehavior: Receive = storageBehavior.orElse {
+    case BuildingActor.SuppliedWithNtu() =>
+      withNtuSupplyCallback()
 
-    case BuildingActor.PowerOff() =>
-      powerOffCallback()
-
-    case Ntu.Grant(_, 0) | NtuCommand.Grant(_, 0) =>
-      autoRepairTimer.cancel()
-
-    case Ntu.Grant(_, _) | NtuCommand.Grant(_, _) =>
-      val obj = AutoRepairObject
-      obj.Definition.autoRepair match {
-        case Some(repair : AutoRepairStats) =>
-          PerformRepairs(obj, repair.amount)
-        case _ => ;
-      }
+    case BuildingActor.NtuDepleted() =>
+      noNtuSupplyCallback()
   }
 
-  def powerOnCallback(): Unit = {
+  def HandleNtuOffer(sender: ActorRef, src: NtuContainer): Unit = { }
+
+  def StopNtuBehavior(sender : ActorRef) : Unit = {
+    autoRepairTimer.cancel()
+  }
+
+  def HandleNtuRequest(sender: ActorRef, min: Float, max: Float): Unit = { }
+
+  def HandleNtuGrant(sender : ActorRef, src : NtuContainer, amount : Float) : Unit = {
+    val obj = AutoRepairObject
+    obj.Definition.autoRepair match {
+      case Some(repair : AutoRepairStats) if obj.Health < obj.Definition.MaxHealth =>
+        PerformRepairs(obj, repair.amount)
+      case _ => ;
+    }
+  }
+
+  def withNtuSupplyCallback(): Unit = {
     startAutoRepairFunctionality()
   }
 
-  def powerOffCallback(): Unit = {
+  def noNtuSupplyCallback(): Unit = {
     stopAutoRepairFunctionality()
   }
 
-  final def startAutoRepairFunctionality(): Unit = {
+  private def startAutoRepairFunctionality(): Unit = {
     retimeAutoRepair()
     autoRepairStartFunc = startAutoRepairIfStopped
   }
 
-  final def stopAutoRepairFunctionality(): Unit = {
+  private def stopAutoRepairFunctionality(): Unit = {
     autoRepairTimer.cancel()
     autoRepairStartFunc = ()=>{}
   }
 
-  final def startAutoRepairIfStopped(): Unit = {
+  private def startAutoRepairIfStopped(): Unit = {
     if(autoRepairTimer.isCancelled) {
       retimeAutoRepair()
     }
+  }
+
+  final def tryAutoRepair(): Unit = {
+    autoRepairStartFunc()
   }
 
   final def stopAutoRepair(): Unit = {
     autoRepairTimer.cancel()
   }
 
-  final def retimeAutoRepair(): Unit = {
+  private def retimeAutoRepair(): Unit = {
     val obj = AutoRepairObject
     obj.Definition.autoRepair match {
       case Some(AutoRepairStats(_, start, interval, drain))
-        if obj.Definition.Damageable && obj.Health < obj.Definition.MaxHealth =>
+        if obj.Health < obj.Definition.MaxHealth =>
         retimeAutoRepair(start, interval, drain)
       case _ => ;
     }
   }
 
-  final def retimeAutoRepair(initialDelay: Long, delay: Long, drain: Float): Unit = {
+  private def retimeAutoRepair(initialDelay: Long, delay: Long, drain: Float): Unit = {
     import scala.concurrent.ExecutionContext.Implicits.global
     autoRepairTimer.cancel()
     autoRepairTimer = context.system.scheduler.scheduleWithFixedDelay(
