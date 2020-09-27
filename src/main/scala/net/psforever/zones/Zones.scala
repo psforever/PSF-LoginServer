@@ -2,7 +2,14 @@ package net.psforever.zones
 
 import java.io.FileNotFoundException
 
-import net.psforever.objects.serverobject.terminals.{CaptureTerminal, CaptureTerminalDefinition, ProximityTerminal, ProximityTerminalDefinition, Terminal, TerminalDefinition}
+import net.psforever.objects.serverobject.terminals.{
+  CaptureTerminal,
+  CaptureTerminalDefinition,
+  ProximityTerminal,
+  ProximityTerminalDefinition,
+  Terminal,
+  TerminalDefinition
+}
 import net.psforever.objects.serverobject.mblocker.Locker
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -13,12 +20,19 @@ import net.psforever.objects.{GlobalDefinitions, LocalLockerItem, LocalProjectil
 import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.definition.BasicDefinition
 import net.psforever.objects.serverobject.doors.Door
+import net.psforever.objects.serverobject.generator.Generator
 import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.pad.{VehicleSpawnPad, VehicleSpawnPadDefinition}
 import net.psforever.objects.serverobject.painbox.{Painbox, PainboxDefinition}
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
-import net.psforever.objects.serverobject.structures.{Building, BuildingDefinition, FoundationBuilder, StructureType, WarpGate}
+import net.psforever.objects.serverobject.structures.{
+  Building,
+  BuildingDefinition,
+  FoundationBuilder,
+  StructureType,
+  WarpGate
+}
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.{FacilityTurret, FacilityTurretDefinition}
 import net.psforever.objects.zones.{MapInfo, Zone, ZoneInfo, ZoneMap}
@@ -295,6 +309,7 @@ object Zones {
     val spawnPads        = objects.filter(e => spawnPadTypes.contains(e.objectType))
     val doors            = objects.filter(e => doorTypes.contains(e.objectType))
     val implantTerminals = objects.filter(_.objectType == "implant_terminal")
+    val genControls      = objects.filter(_.objectType == "gen_control")
 
     objects.foreach { obj =>
       if (ownerGuid == 0) assert(obj.owner.isEmpty)
@@ -481,6 +496,24 @@ object Zones {
               ),
               owningBuildingGuid = ownerGuid
             )
+
+        case "generator" =>
+          zoneMap
+            .addLocalObject(
+              obj.guid,
+              Generator.Constructor(obj.position),
+              owningBuildingGuid = ownerGuid
+            )
+
+          val genControl = genControls.minBy(e => Vector3.DistanceSquared(e.position, obj.position))
+
+          zoneMap
+            .addLocalObject(
+              genControl.guid,
+              Terminal.Constructor(genControl.position, GlobalDefinitions.gen_control),
+              owningBuildingGuid = obj.guid
+            )
+
         case _ => ()
       }
 
