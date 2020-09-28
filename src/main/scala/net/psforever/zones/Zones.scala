@@ -511,7 +511,7 @@ object Zones {
             .addLocalObject(
               genControl.guid,
               Terminal.Constructor(genControl.position, GlobalDefinitions.gen_control),
-              owningBuildingGuid = obj.guid
+              owningBuildingGuid = ownerGuid
             )
 
         case _ => ()
