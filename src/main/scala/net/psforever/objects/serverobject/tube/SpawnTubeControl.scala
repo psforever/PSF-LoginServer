@@ -59,7 +59,7 @@ class SpawnTubeControl(tube: SpawnTube)
   override def Restoration(obj: Repairable.Target): Unit = {
     super.Restoration(obj)
     tube.Owner match {
-      case b: Building => b.Actor ! Building.AmenityStateChange(tube)
+      case b: Building => b.Actor ! BuildingActor.AmenityStateChange(tube)
       case _           => ;
     }
   }

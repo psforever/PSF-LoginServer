@@ -6845,7 +6845,7 @@ object GlobalDefinitions {
     implant_terminal_interface.MaxHealth = 500
     implant_terminal_interface.Damageable = false //TODO true
     implant_terminal_interface.Repairable = true
-    implant_terminal_interface.autoRepair = AutoRepairStats(0, 5000, 200, 0) //TODO amount and drain are default? undefined?
+    implant_terminal_interface.autoRepair = AutoRepairStats(1, 5000, 200, 1) //TODO amount and drain are default? undefined?
     implant_terminal_interface.RepairIfDestroyed = true
 
     ground_vehicle_terminal.Name = "ground_vehicle_terminal"
@@ -7199,5 +7199,4 @@ object GlobalDefinitions {
     generator.RepairIfDestroyed = true
     generator.Subtract.Damage1 = 9
   }
-
 }

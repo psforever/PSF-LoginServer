@@ -4,6 +4,7 @@ package objects
 import akka.actor.{ActorRef, Props}
 import akka.testkit.TestProbe
 import base.ActorTest
+import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.ballistics._
 import net.psforever.objects.{GlobalDefinitions, Player, Tool}
@@ -206,7 +207,7 @@ class GeneratorControlCriticalTest extends ActorTest {
       )
       assert(
         msg_building match {
-          case Building.AmenityStateChange(o) => o eq gen
+          case BuildingActor.AmenityStateChange(o) => o eq gen
           case _                              => false
         }
       )
@@ -268,6 +269,7 @@ class GeneratorControlDestroyedTest extends ActorTest {
     Vector3(1, 0, 0)
   )
   val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  gen.Actor ! BuildingActor.NtuDepleted() //no auto-repair
   expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
@@ -293,12 +295,11 @@ class GeneratorControlDestroyedTest extends ActorTest {
       assert(gen.Condition == PlanetSideGeneratorState.Normal)
 
       avatarProbe.expectNoMessage(9 seconds)
-      buildingProbe.expectNoMessage(50 milliseconds) //no prior messages
       val msg_avatar2  = avatarProbe.receiveN(3, 1000 milliseconds) //see DamageableEntity test file
       val msg_building = buildingProbe.receiveOne(200 milliseconds)
       assert(
         msg_building match {
-          case Building.AmenityStateChange(o) => o eq gen
+          case BuildingActor.AmenityStateChange(o) => o eq gen
           case _                              => false
         }
       )
@@ -399,6 +400,7 @@ class GeneratorControlKillsTest extends ActorTest {
     Vector3(1, 0, 0)
   )
   val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  gen.Actor ! BuildingActor.NtuDepleted() //no auto-repair
   expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
@@ -438,7 +440,7 @@ class GeneratorControlKillsTest extends ActorTest {
       player2Probe.expectNoMessage(200 milliseconds)
       assert(
         msg_building match {
-          case Building.AmenityStateChange(o) => o eq gen
+          case BuildingActor.AmenityStateChange(o) => o eq gen
           case _                              => false
         }
       )
@@ -840,7 +842,7 @@ class GeneratorControlRepairPastRestorePoint extends ActorTest {
       )
       assert(
         msg_building match {
-          case Building.AmenityStateChange(o) => o eq gen
+          case BuildingActor.AmenityStateChange(o) => o eq gen
           case _                              => false
         }
       )

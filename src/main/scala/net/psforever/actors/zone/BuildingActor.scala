@@ -5,8 +5,9 @@ import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{ActorRef, Behavior, SupervisorStrategy}
 import akka.{actor => classic}
 import net.psforever.actors.commands.NtuCommand
-import net.psforever.objects.NtuContainer
-import net.psforever.objects.serverobject.structures.{Amenity, Building, WarpGate}
+import net.psforever.objects.{CommonNtuContainer, NtuContainer}
+import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
 import net.psforever.objects.zones.Zone
 import net.psforever.persistence
 import net.psforever.types.PlanetSideEmpire
@@ -189,12 +190,16 @@ class BuildingActor(
           case b: WarpGate =>
             replyTo ! Grant(b, if (b.Active) amount else 0)
             Behaviors.same
+          case _ if building.BuildingType == StructureType.Tower =>
+            replyTo ! NtuCommand.Grant(new FakeNtuSource(building), amount)
+            Behaviors.same
           case _           =>
             building.Amenities.find(_.isInstanceOf[NtuContainer]) match {
               case Some(ntuContainer) =>
                 ntuContainer.Actor ! msg //needs to redirect
                 Behaviors.same
               case None =>
+                replyTo ! NtuCommand.Grant(null, 0)
                 Behaviors.unhandled
             }
         }
@@ -202,4 +207,13 @@ class BuildingActor(
         Behaviors.same
     }
   }
+}
+
+class FakeNtuSource(private val building: Building)
+  extends PlanetSideServerObject
+  with CommonNtuContainer {
+  override def NtuCapacitor = Float.MaxValue
+  override def Faction = building.Faction
+  override def Zone = building.Zone
+  override def Definition = null
 }
