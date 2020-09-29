@@ -7,7 +7,7 @@ import base.FreedContextActorTest
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.ballistics.{Projectile, ProjectileResolution, ResolvedProjectile, SourceEntry}
 import net.psforever.objects.guid.NumberPoolHub
-import net.psforever.objects.guid.source.LimitedNumberSource
+import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.resourcesilo.{ResourceSilo, ResourceSiloControl}
 import net.psforever.objects.serverobject.structures.{AutoRepairStats, Building, StructureType}
 import net.psforever.objects.serverobject.terminals.{OrderTerminalDefinition, Terminal, TerminalControl}
@@ -32,7 +32,7 @@ class AutoRepairFacilityIntegrationTest extends FreedContextActorTest {
   val weapon = new Tool(GlobalDefinitions.suppressor)
   val terminal = new Terminal(AutoRepairIntegrationTest.terminal_definition)
   val silo = new ResourceSilo()
-  val guid = new NumberPoolHub(new LimitedNumberSource(max = 10))
+  val guid = new NumberPoolHub(new MaxNumberSource(max = 10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)
@@ -101,7 +101,7 @@ class AutoRepairTowerIntegrationTest extends FreedContextActorTest {
   player.Spawn()
   val weapon = new Tool(GlobalDefinitions.suppressor)
   val terminal = new Terminal(AutoRepairIntegrationTest.terminal_definition)
-  val guid = new NumberPoolHub(new LimitedNumberSource(max = 10))
+  val guid = new NumberPoolHub(new MaxNumberSource(max = 10))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)

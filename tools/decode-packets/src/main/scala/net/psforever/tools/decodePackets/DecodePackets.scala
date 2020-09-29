@@ -14,7 +14,6 @@ import scala.collection.parallel.CollectionConverters._
 import scala.io.{Codec, Source}
 import scala.sys.process._
 import scala.util.Using
-import scala.util.control.Breaks._
 
 case class Config(
     outDir: String = System.getProperty("user.dir"),
