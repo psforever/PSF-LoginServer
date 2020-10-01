@@ -100,6 +100,18 @@ object DamageModifiers {
   }
 
   /**
+    * The input damage against the target degrades to the level imposed by the multiplier.
+    * @see `ResolvedProjectile`
+    */
+  case class ReduceToMultiplier(multiplier: Float) extends Mod {
+    def Calculate: DamageModifiers.Format = formula
+
+    private def formula(damage: Int, data: ResolvedProjectile): Int = {
+      (damage * multiplier).toInt
+    }
+  }
+
+  /**
     * Lashing is the property of a projectile affecting nearby targets without coming into direct contact with them.
     * The effect only activates after 5m from the point of origin (`shot_origin`) before the maximum distance.
     * If lashing does not apply, the value goes unmodified.

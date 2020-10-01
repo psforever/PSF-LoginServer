@@ -154,6 +154,18 @@ class DamageCalculationsTests extends Specification {
       DamageModifiers.RadialDegrade.Calculate(100, resprojectile2) == 0 mustEqual true
     }
 
+    "flat degrade value" in {
+      val resfprojectile = ResolvedProjectile(
+        ProjectileResolution.Hit,
+        projectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3(5, 0, 0)
+      )
+      val damage = DamageModifiers.ReduceToMultiplier(0.63f).Calculate(100, resfprojectile)
+      damage == 63 mustEqual true
+    }
+
     "lash degrade (no lash; too close)" in {
       val resprojectile2 = ResolvedProjectile(
         ProjectileResolution.Lash,
