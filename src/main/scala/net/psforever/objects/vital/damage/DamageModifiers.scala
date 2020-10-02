@@ -1,6 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital.damage
 
+import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.ballistics._
 import net.psforever.objects.equipment.ChargeFireModeDefinition
 import net.psforever.objects.vital.DamageType
@@ -367,6 +368,27 @@ object DamageModifiers {
         radialDegradeFunction(damage, data)
       } else {
         damage
+      }
+    }
+  }
+
+  /**
+    * The input value degrades (lessens)
+    * to the percentage of its original value
+    * if the target is a vehicle with no shields.
+    * Mainly used for the `galaxy_gunship` vehicle.
+    * @see `ResolvedProjectile`
+    */
+  case class GalaxyGunshipReduction(multiplier: Float) extends Mod {
+    def Calculate: DamageModifiers.Format = formula
+
+    private def formula(damage: Int, data: ResolvedProjectile): Int = {
+      data.target match {
+        case v: VehicleSource
+          if v.Definition == GlobalDefinitions.galaxy_gunship && v.Shields == 0 =>
+          (damage * multiplier).toInt
+        case _ =>
+          damage
       }
     }
   }

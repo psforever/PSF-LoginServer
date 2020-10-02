@@ -353,6 +353,59 @@ class DamageCalculationsTests extends Specification {
       damage < 100 mustEqual true
     }
 
+    "galaxy gunship reduction (target is galaxy_gunship, no shields)" in {
+      val vehicle = Vehicle(GlobalDefinitions.galaxy_gunship)
+      val resfprojectile = ResolvedProjectile(
+        ProjectileResolution.Hit,
+        projectile,
+        SourceEntry(vehicle),
+        vehicle.DamageModel,
+        Vector3(5, 0, 0)
+      )
+      val damage = DamageModifiers.GalaxyGunshipReduction(0.63f).Calculate(100, resfprojectile)
+      damage == 63 mustEqual true
+    }
+
+    "galaxy gunship reduction (target is galaxy_gunship)" in {
+      val vehicle = Vehicle(GlobalDefinitions.galaxy_gunship)
+      vehicle.Shields = 1
+      val resfprojectile = ResolvedProjectile(
+        ProjectileResolution.Hit,
+        projectile,
+        SourceEntry(vehicle),
+        vehicle.DamageModel,
+        Vector3(5, 0, 0)
+      )
+      val damage = DamageModifiers.GalaxyGunshipReduction(0.63f).Calculate(100, resfprojectile)
+      damage == 100 mustEqual true
+    }
+
+    "galaxy gunship reduction (target is vehicle, but not a galaxy_gunship)" in {
+      val resfprojectile = ResolvedProjectile(
+        ProjectileResolution.Hit,
+        projectile,
+        SourceEntry(target),
+        target.DamageModel,
+        Vector3(5, 0, 0)
+      )
+      val damage = DamageModifiers.GalaxyGunshipReduction(0.63f).Calculate(100, resfprojectile)
+      damage == 100 mustEqual true
+    }
+
+    "galaxy gunship reduction (target is not a vehicle)" in {
+      val tplayer =
+        Player(Avatar(0, "TestCharacter2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+      val resfprojectile = ResolvedProjectile(
+        ProjectileResolution.Hit,
+        projectile,
+        SourceEntry(tplayer),
+        tplayer.DamageModel,
+        Vector3(5, 0, 0)
+      )
+      val damage = DamageModifiers.GalaxyGunshipReduction(0.63f).Calculate(100, resfprojectile)
+      damage == 100 mustEqual true
+    }
+
     "extract a complete damage profile" in {
       val result1 = DamageModifiers.RadialDegrade.Calculate(
         AgainstVehicle(proj_prof) + AgainstVehicle(wep_prof),
