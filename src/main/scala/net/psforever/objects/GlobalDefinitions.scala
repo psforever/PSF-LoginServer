@@ -6455,7 +6455,7 @@ object GlobalDefinitions {
     galaxy_gunship.Subtract.Damage1 = 7
     galaxy_gunship.JackingDuration = Array(0, 60, 20, 10)
     galaxy_gunship.DamageUsing = DamageCalculations.AgainstAircraft
-    galaxy_gunship.Modifiers = DamageModifiers.ReduceToMultiplier(0.63f)
+    galaxy_gunship.Modifiers = DamageModifiers.GalaxyGunshipReduction(0.63f)
 
     lodestar.Name = "lodestar"
     lodestar.MaxHealth = 5000
