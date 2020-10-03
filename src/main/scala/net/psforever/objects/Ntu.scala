@@ -23,7 +23,7 @@ object Ntu {
     * @param max the amount of nanites required to not make further requests;
     *            if 0, the `sender` is full and the message is for clean up operations
     */
-  final case class Request(min: Int, max: Int)
+  final case class Request(min: Float, max: Float)
 
   /**
     * Message for transferring nanites to a recipient.
@@ -31,23 +31,23 @@ object Ntu {
     * @param src    the nanite container recognized as the sender
     * @param amount the nanites transferred in this package
     */
-  final case class Grant(src: NtuContainer, amount: Int)
+  final case class Grant(src: NtuContainer, amount: Float)
 }
 
 trait NtuContainer extends TransferContainer {
-  def NtuCapacitor: Int
+  def NtuCapacitor: Float
 
-  def NtuCapacitor_=(value: Int): Int
+  def NtuCapacitor_=(value: Float): Float
 
   def Definition: NtuContainerDefinition
 }
 
 trait CommonNtuContainer extends NtuContainer {
-  private var ntuCapacitor: Int = 0
+  private var ntuCapacitor: Float = 0
 
-  def NtuCapacitor: Int = ntuCapacitor
+  def NtuCapacitor: Float = ntuCapacitor
 
-  def NtuCapacitor_=(value: Int): Int = {
+  def NtuCapacitor_=(value: Float): Float = {
     ntuCapacitor = scala.math.max(0, scala.math.min(value, Definition.MaxNtuCapacitor))
     NtuCapacitor
   }
@@ -56,11 +56,11 @@ trait CommonNtuContainer extends NtuContainer {
 }
 
 trait NtuContainerDefinition {
-  private var maxNtuCapacitor: Int = 0
+  private var maxNtuCapacitor: Float = 0
 
-  def MaxNtuCapacitor: Int = maxNtuCapacitor
+  def MaxNtuCapacitor: Float = maxNtuCapacitor
 
-  def MaxNtuCapacitor_=(max: Int): Int = {
+  def MaxNtuCapacitor_=(max: Float): Float = {
     maxNtuCapacitor = max
     MaxNtuCapacitor
   }
@@ -76,7 +76,12 @@ trait NtuStorageBehavior extends Actor {
 
     case Ntu.Request(min, max) => HandleNtuRequest(sender(), min, max)
 
+    case NtuCommand.Request(amount, replyTo) =>
+      import akka.actor.typed.scaladsl.adapter.TypedActorRefOps
+      HandleNtuRequest(new TypedActorRefOps(replyTo).toClassic, amount, amount+1)
+
     case Ntu.Grant(src, amount)        => HandleNtuGrant(sender(), src, amount)
+
     case NtuCommand.Grant(src, amount) => HandleNtuGrant(sender(), src, amount)
   }
 
@@ -84,7 +89,7 @@ trait NtuStorageBehavior extends Actor {
 
   def StopNtuBehavior(sender: ActorRef): Unit
 
-  def HandleNtuRequest(sender: ActorRef, min: Int, max: Int): Unit
+  def HandleNtuRequest(sender: ActorRef, min: Float, max: Float): Unit
 
-  def HandleNtuGrant(sender: ActorRef, src: NtuContainer, amount: Int): Unit
+  def HandleNtuGrant(sender: ActorRef, src: NtuContainer, amount: Float): Unit
 }

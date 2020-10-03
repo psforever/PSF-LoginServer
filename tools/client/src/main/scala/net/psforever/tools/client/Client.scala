@@ -23,7 +23,6 @@ import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
-import scala.util.control.Breaks._
 
 object Client {
   Security.addProvider(new BouncyCastleProvider)
@@ -153,6 +152,7 @@ class Client(username: String, password: String) {
         socket.send(new DatagramPacket(payload, payload.length, host))
       case (None, Some(ref)) =>
       // ref ! Udp.Received(ByteString(payload), new InetSocketAddress(socket.getInetAddress, socket.getPort))
+      case _ => ;
     }
   }
 

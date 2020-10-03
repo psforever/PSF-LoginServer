@@ -16,7 +16,6 @@ class DoorControl(door: Door) extends Actor with FactionAffinityBehavior.Check {
       case Door.Use(player, msg) =>
         sender() ! Door.DoorMessage(player, msg, door.Use(player, msg))
 
-      case _ =>
-        sender() ! Door.NoEvent()
+      case _ => ;
     }
 }

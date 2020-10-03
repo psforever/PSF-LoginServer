@@ -2,12 +2,14 @@
 package net.psforever.objects.serverobject.terminals
 
 import akka.actor.{Actor, ActorRef}
+import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.{GlobalDefinitions, SimpleItem}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
-import net.psforever.objects.serverobject.damage.DamageableAmenity
+import net.psforever.objects.serverobject.damage.Damageable.Target
+import net.psforever.objects.serverobject.damage.{Damageable, DamageableAmenity}
 import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}
-import net.psforever.objects.serverobject.repair.RepairableAmenity
+import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableAmenity}
 import net.psforever.objects.serverobject.structures.Building
 
 /**
@@ -19,17 +21,20 @@ class TerminalControl(term: Terminal)
     with FactionAffinityBehavior.Check
     with HackableBehavior.GenericHackable
     with DamageableAmenity
-    with RepairableAmenity {
+    with RepairableAmenity
+    with AmenityAutoRepair {
   def FactionObject    = term
   def HackableObject   = term
   def DamageableObject = term
   def RepairableObject = term
+  def AutoRepairObject = term
 
   def receive: Receive =
     checkBehavior
       .orElse(hackableBehavior)
       .orElse(takesDamage)
       .orElse(canBeRepairedByNanoDispenser)
+      .orElse(autoRepairBehavior)
       .orElse {
         case Terminal.Request(player, msg) =>
           TerminalControl.Dispatch(sender(), term, Terminal.TerminalMessage(player, msg, term.Request(player, msg)))
@@ -46,8 +51,27 @@ class TerminalControl(term: Terminal)
               )
             case _ => ;
           }
+
         case _ => ;
       }
+
+  override protected def DamageAwareness(target : Target, cause : ResolvedProjectile, amount : Any) : Unit = {
+    tryAutoRepair()
+    super.DamageAwareness(target, cause, amount)
+  }
+
+  override protected def DestructionAwareness(target: Damageable.Target, cause: ResolvedProjectile) : Unit = {
+    tryAutoRepair()
+    super.DestructionAwareness(target, cause)
+  }
+
+  override def PerformRepairs(target : Target, amount : Int) : Int = {
+    val newHealth = super.PerformRepairs(target, amount)
+    if(newHealth == target.Definition.MaxHealth) {
+      stopAutoRepair()
+    }
+    newHealth
+  }
 
   override def toString: String = term.Definition.Name
 }

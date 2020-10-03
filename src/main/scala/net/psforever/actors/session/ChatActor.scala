@@ -9,6 +9,7 @@ import net.psforever.objects.avatar.{BattleRank, Certification, CommandRank, Cos
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 import net.psforever.objects.{Default, GlobalDefinitions, Player, Session}
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
+import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade, WeaponTurrets}
 import net.psforever.objects.zones.Zoning
 import net.psforever.packet.game.{ChatMsg, DeadState, RequestDestroyMessage, ZonePopulationUpdateMessage}
@@ -346,9 +347,9 @@ class ChatActor(
                     building.Amenities.foreach(amenity =>
                       amenity.Definition match {
                         case GlobalDefinitions.resource_silo =>
-                          val r        = new scala.util.Random
-                          val silo     = amenity.asInstanceOf[ResourceSilo]
-                          val ntu: Int = 900 + r.nextInt(100) - silo.NtuCapacitor
+                          val r    = new scala.util.Random
+                          val silo = amenity.asInstanceOf[ResourceSilo]
+                          val ntu  = 900f + r.nextFloat() * 100f - silo.NtuCapacitor
                           silo.Actor ! ResourceSilo.UpdateChargeLevel(ntu)
 
                         case _ => ()
@@ -363,8 +364,8 @@ class ChatActor(
             case (CMT_CAPTUREBASE, _, contents) if gmCommandAllowed =>
               val args = contents.split(" ").filter(_ != "")
 
-              val (faction, factionPos) = args.zipWithIndex
-                .map { case (faction, pos) => (faction.toLowerCase, pos) }
+              val (faction, factionPos): (PlanetSideEmpire.Value, Option[Int]) = args.zipWithIndex
+                .map { case (factionName, pos) => (factionName.toLowerCase, pos) }
                 .flatMap {
                   case ("tr", pos)   => Some(PlanetSideEmpire.TR, pos)
                   case ("nc", pos)   => Some(PlanetSideEmpire.NC, pos)
@@ -373,11 +374,11 @@ class ChatActor(
                   case _             => None
                 }
                 .headOption match {
-                case Some((faction, pos)) => (faction, Some(pos))
+                case Some((isFaction, pos)) => (isFaction, Some(pos))
                 case None                 => (session.player.Faction, None)
               }
 
-              val (buildingsOption, buildingPos) = args.zipWithIndex.flatMap {
+              val (buildingsOption, buildingPos): (Option[Seq[Building]], Option[Int]) = args.zipWithIndex.flatMap {
                 case (_, pos) if factionPos.isDefined && factionPos.get == pos => None
                 case ("all", pos) =>
                   Some(
@@ -391,7 +392,7 @@ class ChatActor(
                     ),
                     Some(pos)
                   )
-                case (name, pos) =>
+                case (name: String, pos) =>
                   session.zone.Buildings.find {
                     case (_, building) => name.equalsIgnoreCase(building.Name) && building.CaptureTerminal.isDefined
                   } match {
@@ -411,11 +412,11 @@ class ChatActor(
                 case None                   => (None, None)
               }
 
-              val (timerOption, timerPos) = args.zipWithIndex.flatMap {
+              val (timerOption, timerPos): (Option[Int], Option[Int]) = args.zipWithIndex.flatMap {
                 case (_, pos)
                     if factionPos.isDefined && factionPos.get == pos || buildingPos.isDefined && buildingPos.get == pos =>
                   None
-                case (timer, pos) =>
+                case (timer: String, pos) =>
                   try {
                     val t = timer.toInt // TODO what is the timer format supposed to be?
                     Some(Some(t), Some(pos))
@@ -436,15 +437,15 @@ class ChatActor(
                     (None | Some(1), Some(0), None, Some(_), None) | (Some(1), Some(0), Some(2), Some(_), Some(_)) |
                     // [all [<empire>|none]]
                     (Some(1) | None, Some(0), None, Some(_), None) =>
-                  val buildings = buildingsOption.getOrElse(
+                  val buildings: Seq[Building] = buildingsOption.getOrElse(
                     session.zone.Buildings
-                      .filter {
-                        case (_, building) =>
-                          building.PlayersInSOI.exists { soiPlayer =>
-                            session.player.CharId == soiPlayer.CharId
-                          }
+                      .values
+                      .filter { building =>
+                        building.PlayersInSOI.exists { soiPlayer =>
+                          session.player.CharId == soiPlayer.CharId
+                        }
                       }
-                      .map { case (_, building) => building }
+                      .toSeq
                   )
                   buildings foreach { building =>
                     // TODO implement timer

@@ -231,9 +231,9 @@ object Vehicles {
     // Forcefully dismount any cargo
     target.CargoHolds.values.foreach(cargoHold => {
       cargoHold.Occupant match {
-        case Some(cargo: Vehicle) => {
+        case Some(cargo: Vehicle) =>
           cargo.Seats(0).Occupant match {
-            case Some(cargoDriver: Player) =>
+            case Some(_: Player) =>
               CargoBehavior.HandleVehicleCargoDismount(
                 target.Zone,
                 cargo.GUID,
@@ -243,8 +243,7 @@ object Vehicles {
               )
             case None =>
               log.error("FinishHackingVehicle: vehicle in cargo hold missing driver")
-              CargoBehavior.HandleVehicleCargoDismount(cargo.GUID, cargo, target.GUID, target, false, false, true)
-          }
+              CargoBehavior.HandleVehicleCargoDismount(cargo.GUID, cargo, target.GUID, target, bailed = false, requestedByPassenger = false, kicked = true)
         }
         case None => ;
       }
@@ -326,7 +325,7 @@ object Vehicles {
             Vector3.DistanceSquared(obj.Position.xy, target.Position.xy) < soiRadius * soiRadius
           } =>
         Some(target.asInstanceOf[NtuContainer])
-      case None =>
+      case _ =>
         None
     }).orElse {
       val position = obj.Position.xy

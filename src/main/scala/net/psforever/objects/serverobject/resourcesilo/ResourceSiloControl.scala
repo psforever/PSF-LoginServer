@@ -3,7 +3,7 @@ package net.psforever.objects.serverobject.resourcesilo
 
 import akka.actor.{Actor, ActorRef}
 import net.psforever.objects.serverobject.CommonMessages
-import net.psforever.actors.zone.{BuildingActor, ZoneActor}
+import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.transfer.TransferBehavior
 import net.psforever.objects.serverobject.structures.Building
@@ -28,12 +28,19 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
   def FactionObject: FactionAffinity = resourceSilo
 
   private[this] val log               = org.log4s.getLogger
-  var panelAnimationFunc: Int => Unit = PanelAnimation
+  var panelAnimationFunc: Float => Unit = PanelAnimation
 
   def receive: Receive = {
     case "startup" =>
-      // todo: This is just a temporary solution to drain NTU over time. When base object destruction is properly implemented NTU should be deducted when base objects repair themselves
-      //      context.system.scheduler.schedule(5 second, 5 second, self, ResourceSilo.UpdateChargeLevel(-1))
+      resourceSilo.Owner match {
+        case building: Building =>
+          building.Actor ! (if (resourceSilo.NtuCapacitor <= 0f ) {
+            BuildingActor.NtuDepleted()
+          } else {
+            BuildingActor.SuppliedWithNtu()
+          })
+        case _ => ;
+      }
       context.become(Processing)
 
     case _ => ;
@@ -59,7 +66,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
         case ResourceSilo.LowNtuWarning(enabled: Boolean) =>
           LowNtuWarning(enabled)
 
-        case ResourceSilo.UpdateChargeLevel(amount: Int) =>
+        case ResourceSilo.UpdateChargeLevel(amount: Float) =>
           UpdateChargeLevel(amount)
 
         case _ => ;
@@ -76,7 +83,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     )
   }
 
-  def UpdateChargeLevel(amount: Int): Unit = {
+  def UpdateChargeLevel(amount: Float): Unit = {
     val siloChargeBeforeChange  = resourceSilo.NtuCapacitor
     val siloDisplayBeforeChange = resourceSilo.CapacitorDisplay
     val building                = resourceSilo.Owner.asInstanceOf[Building]
@@ -93,14 +100,13 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
       log.trace(
         s"Silo ${resourceSilo.GUID} NTU bar level has changed from $siloDisplayBeforeChange to ${resourceSilo.CapacitorDisplay}"
       )
-      resourceSilo.Owner.Actor ! BuildingActor.MapUpdate()
       zone.AvatarEvents ! AvatarServiceMessage(
         zone.id,
         AvatarAction.PlanetsideAttribute(resourceSilo.GUID, 45, resourceSilo.CapacitorDisplay)
       )
       building.Actor ! BuildingActor.MapUpdate()
     }
-    val ntuIsLow = resourceSilo.NtuCapacitor.toFloat / resourceSilo.Definition.MaxNtuCapacitor.toFloat < 0.2f
+    val ntuIsLow = resourceSilo.NtuCapacitor / resourceSilo.Definition.MaxNtuCapacitor < 0.2f
     if (resourceSilo.LowNtuWarningOn && !ntuIsLow) {
       LowNtuWarning(enabled = false)
     } else if (!resourceSilo.LowNtuWarningOn && ntuIsLow) {
@@ -109,6 +115,8 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     if (resourceSilo.NtuCapacitor == 0 && siloChargeBeforeChange > 0) {
       // Oops, someone let the base run out of power. Shut it all down.
       zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.PlanetsideAttribute(building.GUID, 48, 1))
+      building.Actor ! BuildingActor.NtuDepleted()
+      building.Actor ! BuildingActor.AmenityStateChange(resourceSilo)
       building.Actor ! BuildingActor.SetFaction(PlanetSideEmpire.NEUTRAL)
     } else if (siloChargeBeforeChange == 0 && resourceSilo.NtuCapacitor > 0) {
       // Power restored. Reactor Online. Sensors Online. Weapons Online. All systems nominal.
@@ -117,7 +125,8 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
         zone.id,
         AvatarAction.PlanetsideAttribute(building.GUID, 48, 0)
       )
-      building.Zone.actor ! ZoneActor.ZoneMapUpdate()
+      building.Actor ! BuildingActor.SuppliedWithNtu()
+      building.Actor ! BuildingActor.AmenityStateChange(resourceSilo)
     }
   }
 
@@ -148,7 +157,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     * @param min    a minimum amount of nanites requested;
     * @param max    the amount of nanites required to not make further requests;
     */
-  def HandleNtuRequest(sender: ActorRef, min: Int, max: Int): Unit = {
+  def HandleNtuRequest(sender: ActorRef, min: Float, max: Float): Unit = {
     val originalAmount = resourceSilo.NtuCapacitor
     UpdateChargeLevel(-min)
     sender ! Ntu.Grant(resourceSilo, originalAmount - resourceSilo.NtuCapacitor)
@@ -157,7 +166,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
   /**
     * Accept nanites into the silo capacitor and set the animation state.
     */
-  def HandleNtuGrant(sender: ActorRef, src: NtuContainer, amount: Int): Unit = {
+  def HandleNtuGrant(sender: ActorRef, src: NtuContainer, amount: Float): Unit = {
     if (amount != 0) {
       val originalAmount = resourceSilo.NtuCapacitor
       UpdateChargeLevel(amount)
@@ -174,7 +183,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     * @param trigger if positive, activate the animation;
     *                if negative or zero, disable the animation
     */
-  def PanelAnimation(trigger: Int): Unit = {
+  def PanelAnimation(trigger: Float): Unit = {
     val zone = resourceSilo.Zone
     zone.VehicleEvents ! VehicleServiceMessage(
       zone.id,
@@ -185,5 +194,5 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
   /**
     * Do nothing this turn.
     */
-  def SkipPanelAnimation(trigger: Int): Unit = {}
+  def SkipPanelAnimation(trigger: Float): Unit = {}
 }

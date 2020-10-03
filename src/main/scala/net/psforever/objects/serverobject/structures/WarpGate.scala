@@ -150,9 +150,9 @@ class WarpGate(name: String, building_guid: Int, map_id: Int, zone: Zone, buildi
 
   def Owner: PlanetSideServerObject = this
 
-  def NtuCapacitor: Int = Definition.MaxNtuCapacitor
+  def NtuCapacitor: Float = Definition.MaxNtuCapacitor
 
-  def NtuCapacitor_=(value: Int): Int = NtuCapacitor
+  def NtuCapacitor_=(value: Float): Float = NtuCapacitor
 
   override def Definition: WarpGateDefinition = buildingDefinition
 }

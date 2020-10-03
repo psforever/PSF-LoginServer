@@ -16,7 +16,7 @@ class ResourceSilo extends Amenity with CommonNtuContainer {
   // For the NTU display bar
   private var capacitorDisplay: Long = 0
 
-  def MaxNtuCapacitor : Int = Definition.MaxNtuCapacitor
+  def MaxNtuCapacitor : Float = Definition.MaxNtuCapacitor
 
   def LowNtuWarningOn: Boolean = lowNtuWarningOn
   def LowNtuWarningOn_=(enabled: Boolean): Boolean = {
@@ -24,7 +24,7 @@ class ResourceSilo extends Amenity with CommonNtuContainer {
     LowNtuWarningOn
   }
 
-  def CapacitorDisplay : Long = scala.math.ceil((NtuCapacitor.toFloat / MaxNtuCapacitor.toFloat) * 10).toInt
+  def CapacitorDisplay : Long = scala.math.ceil((NtuCapacitor / MaxNtuCapacitor) * 10).toInt
 
   def Definition: ResourceSiloDefinition = GlobalDefinitions.resource_silo
 
@@ -34,7 +34,7 @@ class ResourceSilo extends Amenity with CommonNtuContainer {
 }
 
 object ResourceSilo {
-  final case class UpdateChargeLevel(amount: Int)
+  final case class UpdateChargeLevel(amount: Float)
   final case class LowNtuWarning(enabled: Boolean)
   sealed trait Exchange
   final case class ChargeEvent() extends Exchange

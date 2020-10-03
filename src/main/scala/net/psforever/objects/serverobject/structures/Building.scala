@@ -330,9 +330,7 @@ object Building {
   )(name: String, guid: Int, id: Int, zone: Zone, context: ActorContext): Building = {
     val obj = new Building(name, guid, id, zone, buildingType, buildingDefinition)
     obj.Position = location
-    context.spawn(BuildingActor(zone, obj), s"$id-$buildingType-building").toClassic
+    obj.Actor = context.spawn(BuildingActor(zone, obj), s"$id-$buildingType-building").toClassic
     obj
   }
-
-  final case class AmenityStateChange(obj: Amenity)
 }

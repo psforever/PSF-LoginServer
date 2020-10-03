@@ -5,7 +5,9 @@ import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{ActorRef, Behavior, SupervisorStrategy}
 import akka.{actor => classic}
 import net.psforever.actors.commands.NtuCommand
-import net.psforever.objects.serverobject.structures.{Building, WarpGate}
+import net.psforever.objects.{CommonNtuContainer, NtuContainer}
+import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
 import net.psforever.objects.zones.Zone
 import net.psforever.persistence
 import net.psforever.types.PlanetSideEmpire
@@ -40,7 +42,13 @@ object BuildingActor {
   // Once they do, we won't need this anymore
   final case class MapUpdate() extends Command
 
+  final case class AmenityStateChange(obj: Amenity) extends Command
+
   final case class Ntu(command: NtuCommand.Command) extends Command
+
+  final case class SuppliedWithNtu() extends Command
+
+  final case class NtuDepleted() extends Command
 }
 
 class BuildingActor(
@@ -147,6 +155,26 @@ class BuildingActor(
         galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(building.infoUpdateMessage()))
         Behaviors.same
 
+      case AmenityStateChange(_) =>
+        //TODO when parameter object is finally immutable, perform analysis on it to determine specific actions
+        //for now, just update the map
+        galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(building.infoUpdateMessage()))
+        Behaviors.same
+
+      case msg @ NtuDepleted() =>
+        log.trace(s"${building.Definition.Name} ${building.Name} ntu has been depleted")
+        building.Amenities.foreach { amenity =>
+          amenity.Actor ! msg
+        }
+        Behaviors.same
+
+      case msg @ SuppliedWithNtu() =>
+        log.trace(s"ntu supply has been restored to ${building.Definition.Name} ${building.Name}")
+        building.Amenities.foreach { amenity =>
+          amenity.Actor ! msg
+        }
+        Behaviors.same
+
       case Ntu(msg) =>
         ntu(msg)
     }
@@ -154,22 +182,41 @@ class BuildingActor(
 
   def ntu(msg: NtuCommand.Command): Behavior[Command] = {
     import NtuCommand._
-    val ntuBuilding = building match {
-      case b: WarpGate => b
-      case _           => return Behaviors.unhandled
-    }
-
     msg match {
-      case Offer(source) =>
+      case Offer(_, _) =>
+        Behaviors.same
       case Request(amount, replyTo) =>
-        ntuBuilding match {
-          case warpGate: WarpGate => replyTo ! Grant(warpGate, if (warpGate.Active) amount else 0)
-          case _                  => return Behaviors.unhandled
+        building match {
+          case b: WarpGate =>
+            //warp gates are an infiite source of nanites
+            replyTo ! Grant(b, if (b.Active) amount else 0)
+            Behaviors.same
+          case _ if building.BuildingType == StructureType.Tower || building.Zone.map.cavern =>
+            //towers and cavern stuff get free repairs
+            replyTo ! NtuCommand.Grant(new FakeNtuSource(building), amount)
+            Behaviors.same
+          case _           =>
+            //all other facilities require a storage silo for ntu
+            building.Amenities.find(_.isInstanceOf[NtuContainer]) match {
+              case Some(ntuContainer) =>
+                ntuContainer.Actor ! msg //needs to redirect
+                Behaviors.same
+              case None =>
+                replyTo ! NtuCommand.Grant(null, 0)
+                Behaviors.unhandled
+            }
         }
-
+      case _ =>
+        Behaviors.same
     }
-
-    Behaviors.same
   }
+}
 
+class FakeNtuSource(private val building: Building)
+  extends PlanetSideServerObject
+  with CommonNtuContainer {
+  override def NtuCapacitor = Float.MaxValue
+  override def Faction = building.Faction
+  override def Zone = building.Zone
+  override def Definition = null
 }

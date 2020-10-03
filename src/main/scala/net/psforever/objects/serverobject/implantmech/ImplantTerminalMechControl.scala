@@ -10,7 +10,7 @@ import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity, DamageableMountable}
 import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}
-import net.psforever.objects.serverobject.repair.RepairableEntity
+import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableEntity}
 import net.psforever.objects.serverobject.structures.Building
 
 /**
@@ -24,12 +24,14 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
     with MountableBehavior.Dismount
     with HackableBehavior.GenericHackable
     with DamageableEntity
-    with RepairableEntity {
+    with RepairableEntity
+    with AmenityAutoRepair {
   def MountableObject  = mech
   def HackableObject   = mech
   def FactionObject    = mech
   def DamageableObject = mech
   def RepairableObject = mech
+  def AutoRepairObject = mech
 
   def receive: Receive =
     checkBehavior
@@ -38,6 +40,7 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
       .orElse(hackableBehavior)
       .orElse(takesDamage)
       .orElse(canBeRepairedByNanoDispenser)
+      .orElse(autoRepairBehavior)
       .orElse {
         case CommonMessages.Use(player, Some(item: SimpleItem))
             if item.Definition == GlobalDefinitions.remote_electronics_kit =>
@@ -73,6 +76,7 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
   }
 
   override protected def DamageAwareness(target: Target, cause: ResolvedProjectile, amount: Any): Unit = {
+    tryAutoRepair()
     super.DamageAwareness(target, cause, amount)
     val damageTo = amount match {
       case a: Int => a
@@ -85,5 +89,13 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
     super.DestructionAwareness(target, cause)
     DamageableMountable.DestructionAwareness(DamageableObject, cause)
     target.ClearHistory()
+  }
+
+  override def PerformRepairs(target : Damageable.Target, amount : Int) : Int = {
+    val newHealth = super.PerformRepairs(target, amount)
+    if(newHealth == target.Definition.MaxHealth) {
+      stopAutoRepair()
+    }
+    newHealth
   }
 }

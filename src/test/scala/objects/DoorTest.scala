@@ -25,22 +25,22 @@ class DoorTest extends Specification {
 
     "starts as closed (false)" in {
       val door = Door(GlobalDefinitions.door)
-      door.Open mustEqual None
+      door.Open.isEmpty mustEqual true
       door.isOpen mustEqual false
     }
 
     "be opened and closed (1; manual)" in {
       val door = Door(GlobalDefinitions.door)
       door.isOpen mustEqual false
-      door.Open mustEqual None
+      door.Open.isEmpty mustEqual true
 
       door.Open = Some(player)
       door.isOpen mustEqual true
-      door.Open mustEqual Some(player)
+      door.Open.contains(player) mustEqual true
 
       door.Open = None
       door.isOpen mustEqual false
-      door.Open mustEqual None
+      door.Open.isEmpty mustEqual true
     }
 
     "be opened and closed (2; toggle)" in {
@@ -58,11 +58,11 @@ class DoorTest extends Specification {
         364
       )
       val door = Door(GlobalDefinitions.door)
-      door.Open mustEqual None
+      door.Open.isEmpty mustEqual true
       door.Use(player, msg)
-      door.Open mustEqual Some(player)
+      door.Open.contains(player) mustEqual true
       door.Use(player, msg)
-      door.Open mustEqual None
+      door.Open.isEmpty mustEqual true
     }
   }
 }
@@ -115,8 +115,7 @@ class DoorControl3Test extends ActorTest {
       assert(door.Open.isEmpty)
 
       door.Actor ! "trash"
-      val reply = receiveOne(Duration.create(500, "ms"))
-      assert(reply.isInstanceOf[Door.NoEvent])
+      expectNoMessage(Duration.create(500, "ms"))
       assert(door.Open.isEmpty)
     }
   }
