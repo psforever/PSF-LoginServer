@@ -8,7 +8,7 @@ import net.psforever.actors.commands.NtuCommand
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.{Default, NtuContainer, NtuStorageBehavior}
 import net.psforever.objects.serverobject.damage.Damageable
-import net.psforever.objects.serverobject.structures.{Amenity, AutoRepairStats}
+import net.psforever.objects.serverobject.structures.{Amenity, AutoRepairStats, Building}
 
 import scala.concurrent.duration._
 
@@ -74,7 +74,8 @@ trait AmenityAutoRepair
     obj.Definition.autoRepair match {
       case Some(repair : AutoRepairStats) if obj.Health < obj.Definition.MaxHealth =>
         PerformRepairs(obj, repair.amount)
-      case _ => ;
+      case _ =>
+        StopNtuBehavior(sender)
     }
   }
 
@@ -175,11 +176,22 @@ trait AmenityAutoRepair
   private def retimeAutoRepair(initialDelay: Long, delay: Long, drain: Float): Unit = {
     import scala.concurrent.ExecutionContext.Implicits.global
     autoRepairTimer.cancel()
-    autoRepairTimer = context.system.scheduler.scheduleWithFixedDelay(
-      initialDelay milliseconds,
-      delay milliseconds,
-      AutoRepairObject.Owner.Actor,
-      BuildingActor.Ntu(NtuCommand.Request(drain, ntuGrantActorRef))
-    )
+    autoRepairTimer = if(AutoRepairObject.Owner == Building.NoBuilding) {
+      //without an owner, auto-repair freely
+      context.system.scheduler.scheduleWithFixedDelay(
+        initialDelay milliseconds,
+        delay milliseconds,
+        self,
+        NtuCommand.Grant(null, drain)
+      )
+    } else {
+      //ask
+      context.system.scheduler.scheduleWithFixedDelay(
+        initialDelay milliseconds,
+        delay milliseconds,
+        AutoRepairObject.Owner.Actor,
+        BuildingActor.Ntu(NtuCommand.Request(drain, ntuGrantActorRef))
+      )
+    }
   }
 }

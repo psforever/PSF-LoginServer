@@ -188,12 +188,15 @@ class BuildingActor(
       case Request(amount, replyTo) =>
         building match {
           case b: WarpGate =>
+            //warp gates are an infiite source of nanites
             replyTo ! Grant(b, if (b.Active) amount else 0)
             Behaviors.same
-          case _ if building.BuildingType == StructureType.Tower =>
+          case _ if building.BuildingType == StructureType.Tower || building.Zone.map.cavern =>
+            //towers and cavern stuff get free repairs
             replyTo ! NtuCommand.Grant(new FakeNtuSource(building), amount)
             Behaviors.same
           case _           =>
+            //all other facilities require a storage silo for ntu
             building.Amenities.find(_.isInstanceOf[NtuContainer]) match {
               case Some(ntuContainer) =>
                 ntuContainer.Actor ! msg //needs to redirect
