@@ -6,6 +6,7 @@ import net.psforever.objects._
 import net.psforever.objects.ballistics.{ResolvedProjectile, VehicleSource}
 import net.psforever.objects.ce.TelepadLike
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot, JammableMountedWeapons}
+import net.psforever.objects.guid.GUIDTask
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
@@ -20,7 +21,6 @@ import net.psforever.objects.serverobject.repair.RepairableVehicle
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.vital.VehicleShieldCharge
 import net.psforever.objects.zones.Zone
-import net.psforever.services.RemoverActor
 import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.types.{DriveState, ExoSuitType, PlanetSideGUID, Vector3}
@@ -338,7 +338,7 @@ class VehicleControl(vehicle: Vehicle)
         }
     })
     //unregister
-    events ! VehicleServiceMessage.Decon(RemoverActor.AddTask(vehicle, zone, Some(0 seconds)))
+    zone.tasks ! GUIDTask.UnregisterVehicle(vehicle)(zone.GUID)
     //banished to the shadow realm
     vehicle.Position = Vector3.Zero
     //queue final deletion
@@ -355,7 +355,7 @@ class VehicleControl(vehicle: Vehicle)
           val zone = vehicle.Zone
           zone.VehicleEvents ! VehicleServiceMessage(
             zone.id,
-            VehicleAction.UnloadVehicle(Service.defaultPlayerGUID, zone, vehicle, vehicle.GUID)
+            VehicleAction.UnloadVehicle(Service.defaultPlayerGUID, vehicle, vehicle.GUID)
           )
           zone.Transport ! Zone.Vehicle.Despawn(vehicle)
         case _ =>

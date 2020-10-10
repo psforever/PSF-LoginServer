@@ -2,6 +2,7 @@
 package objects
 
 import java.util.concurrent.atomic.AtomicInteger
+
 import akka.actor.ActorContext
 import base.ActorTest
 import net.psforever.objects.entity.IdentifiableEntity
@@ -19,6 +20,7 @@ import org.specs2.mutable.Specification
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
+import net.psforever.services.ServiceManager
 
 import scala.concurrent.duration._
 
@@ -120,6 +122,7 @@ class ZoneTest extends Specification {
 }
 
 class ZoneActorTest extends ActorTest {
+  ServiceManager.boot
   "Zone" should {
     "refuse new number pools after the Actor is started" in {
       val zone = new Zone("test", new ZoneMap("map6"), 1) { override def SetupNumberPools() = {} }

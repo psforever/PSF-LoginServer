@@ -10,12 +10,11 @@ import net.psforever.objects.vital.RepairFromTerm
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.ObjectCreateMessage
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
-import net.psforever.services.vehicle.support.{TurretUpgrader, VehicleRemover}
+import net.psforever.services.vehicle.support.TurretUpgrader
 import net.psforever.types.{DriveState, PlanetSideGUID}
-import net.psforever.services.{GenericEventBus, RemoverActor, Service}
+import net.psforever.services.{GenericEventBus, Service}
 
 class VehicleService(zone: Zone) extends Actor {
-  private val vehicleDecon: ActorRef  = context.actorOf(Props[VehicleRemover](), s"${zone.id}-vehicle-decon-agent")
   private val turretUpgrade: ActorRef = context.actorOf(Props[TurretUpgrader](), s"${zone.id}-turret-upgrade-agent")
   private[this] val log               = org.log4s.getLogger
 
@@ -157,8 +156,7 @@ class VehicleService(zone: Zone) extends Actor {
               )
             )
           )
-        case VehicleAction.UnloadVehicle(player_guid, continent, vehicle, vehicle_guid) =>
-          vehicleDecon ! RemoverActor.ClearSpecific(List(vehicle), continent) //precaution
+        case VehicleAction.UnloadVehicle(player_guid, vehicle, vehicle_guid) =>
           VehicleEvents.publish(
             VehicleServiceResponse(
               s"/$forChannel/Vehicle",
@@ -245,10 +243,6 @@ class VehicleService(zone: Zone) extends Actor {
           )
         case _ => ;
       }
-
-    //message to VehicleRemover
-    case VehicleServiceMessage.Decon(msg) =>
-      vehicleDecon forward msg
 
     //message to TurretUpgrader
     case VehicleServiceMessage.TurretUpgrade(msg) =>

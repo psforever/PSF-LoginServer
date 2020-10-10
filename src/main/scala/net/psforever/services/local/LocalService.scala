@@ -26,7 +26,7 @@ class LocalService(zone: Zone) extends Actor {
   private val doorCloser   = context.actorOf(Props[DoorCloseActor](), s"${zone.id}-local-door-closer")
   private val hackClearer  = context.actorOf(Props[HackClearActor](), s"${zone.id}-local-hack-clearer")
   private val hackCapturer = context.actorOf(Props[HackCaptureActor](), s"${zone.id}-local-hack-capturer")
-  private val engineer     = context.actorOf(Props[DeployableRemover](), s"${zone.id}-deployable-remover-agent")
+  private val engineer     = context.actorOf(Props(classOf[DeployableRemover], zone.tasks), s"${zone.id}-deployable-remover-agent")
   private val teleportDeployment: ActorRef =
     context.actorOf(Props[RouterTelepadActivation](), s"${zone.id}-telepad-activate-agent")
   private[this] val log = org.log4s.getLogger

@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.avatar.support
 
+import akka.actor.ActorRef
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
 import net.psforever.objects.Player
 import net.psforever.types.ExoSuitType
@@ -9,7 +10,7 @@ import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 
 import scala.concurrent.duration._
 
-class CorpseRemovalActor extends RemoverActor {
+class CorpseRemovalActor(taskResolver: ActorRef) extends RemoverActor(taskResolver) {
   final val FirstStandardDuration: FiniteDuration = 1 minute
 
   final val SecondStandardDuration: FiniteDuration = 500 milliseconds

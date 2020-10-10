@@ -2,22 +2,20 @@
 package actor.service
 
 import akka.actor.Props
-import akka.routing.RandomPool
-import actor.base.ActorTest
+import akka.testkit.TestProbe
+import scala.concurrent.duration._
+
+import actor.base.{ActorTest, FreedContextActorTest}
 import net.psforever.objects._
-import net.psforever.objects.guid.{NumberPoolHub, TaskResolver}
+import net.psforever.objects.avatar.Avatar
+import net.psforever.objects.guid.NumberPoolHub
+import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game.objectcreate.{DroppedItemData, ObjectClass, ObjectCreateMessageParent, PlacementData}
 import net.psforever.packet.game.{ObjectCreateMessage, PlayerStateMessageUpstream}
 import net.psforever.types._
 import net.psforever.services.{RemoverActor, Service, ServiceManager}
 import net.psforever.services.avatar._
-
-import scala.concurrent.duration._
-import akka.actor.typed.scaladsl.adapter._
-import net.psforever.actors.zone.ZoneActor
-import net.psforever.objects.avatar.Avatar
-import net.psforever.objects.guid.source.MaxNumberSource
 
 class AvatarService1Test extends ActorTest {
   "AvatarService" should {
@@ -507,36 +505,35 @@ Putting Actor startup in the main class, outside of the body of the test, helps.
 Frequent pauses to allow everything to sort their messages also helps.
 Even with all this work, the tests have a high chance of failure just due to being asynchronous.
  */
-class AvatarReleaseTest extends ActorTest {
-  ServiceManager.boot(system) ! ServiceManager.Register(RandomPool(1).props(Props[TaskResolver]()), "taskResolver")
+class AvatarReleaseTest extends FreedContextActorTest {
+  val guid: NumberPoolHub = new NumberPoolHub(new MaxNumberSource(15))
   val zone = new Zone("test", new ZoneMap("test-map"), 0) {
-    override def SetupNumberPools() = { AddPool("dynamic", 1 to 10) }
+    override def SetupNumberPools() : Unit = { }
+    GUID(guid)
   }
-  val guid1: NumberPoolHub = new NumberPoolHub(new MaxNumberSource(100))
-  zone.GUID(guid1)
-  val service      = system.actorOf(Props(classOf[AvatarService], zone), "release-test-service")
-  zone.actor = system.spawn(ZoneActor(zone), "release-test-zone")
+  zone.init(context)
   val obj = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
-  guid1.register(obj)
-  guid1.register(obj.Slot(5).Equipment.get)
-  obj.Continent = "test"
+  guid.register(obj)
+  guid.register(obj.Slot(5).Equipment.get)
+  obj.Zone = zone
   obj.Release
+  val subscriber = new TestProbe(system)
 
   "AvatarService" should {
     "pass Release" in {
       expectNoMessage(100 milliseconds) //spacer
 
-      service ! Service.Join("test")
+      zone.AvatarEvents.tell(Service.Join("test"), subscriber.ref)
       assert(zone.Corpses.isEmpty)
       zone.Population ! Zone.Corpse.Add(obj)
-      expectNoMessage(200 milliseconds) //spacer
+      subscriber.expectNoMessage(200 milliseconds) //spacer
 
       assert(zone.Corpses.size == 1)
       assert(obj.HasGUID)
       val guid = obj.GUID
-      service ! AvatarServiceMessage("test", AvatarAction.Release(obj, zone, Some(1 second))) //alive for one second
+      zone.AvatarEvents ! AvatarServiceMessage("test", AvatarAction.Release(obj, zone, Some(1 second))) //alive for one second
 
-      val reply1 = receiveOne(200 milliseconds)
+      val reply1 = subscriber.receiveOne(200 milliseconds)
       assert(reply1.isInstanceOf[AvatarServiceResponse])
       val reply1msg = reply1.asInstanceOf[AvatarServiceResponse]
       assert(reply1msg.channel == "/test/Avatar")
@@ -544,7 +541,7 @@ class AvatarReleaseTest extends ActorTest {
       assert(reply1msg.replyMessage.isInstanceOf[AvatarResponse.Release])
       assert(reply1msg.replyMessage.asInstanceOf[AvatarResponse.Release].player == obj)
 
-      val reply2 = receiveOne(2 seconds)
+      val reply2 = subscriber.receiveOne(2 seconds)
       assert(reply2.isInstanceOf[AvatarServiceResponse])
       val reply2msg = reply2.asInstanceOf[AvatarServiceResponse]
       assert(reply2msg.channel.equals("/test/Avatar"))
@@ -552,43 +549,42 @@ class AvatarReleaseTest extends ActorTest {
       assert(reply2msg.replyMessage.isInstanceOf[AvatarResponse.ObjectDelete])
       assert(reply2msg.replyMessage.asInstanceOf[AvatarResponse.ObjectDelete].item_guid == guid)
 
-      expectNoMessage(1 seconds)
+      subscriber.expectNoMessage(1 seconds)
       assert(zone.Corpses.isEmpty)
       assert(!obj.HasGUID)
     }
   }
 }
 
-class AvatarReleaseEarly1Test extends ActorTest {
-  ServiceManager.boot(system) ! ServiceManager.Register(RandomPool(1).props(Props[TaskResolver]()), "taskResolver")
+class AvatarReleaseEarly1Test extends FreedContextActorTest {
+  val guid: NumberPoolHub = new NumberPoolHub(new MaxNumberSource(15))
   val zone = new Zone("test", new ZoneMap("test-map"), 0) {
-    override def SetupNumberPools() = { AddPool("dynamic", 1 to 10) }
+    override def SetupNumberPools() : Unit = { }
+    GUID(guid)
   }
-  val guid1: NumberPoolHub = new NumberPoolHub(new MaxNumberSource(100))
-  zone.GUID(guid1)
-  val service      = system.actorOf(Props(classOf[AvatarService], zone), "release-test-service")
-  zone.actor = system.spawn(ZoneActor(zone), "release-test-zone")
-  val obj = Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
-  guid1.register(obj)
-  guid1.register(obj.Slot(5).Equipment.get)
-  obj.Continent = "test"
+  zone.init(context)
+  val obj = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
+  guid.register(obj)
+  guid.register(obj.Slot(5).Equipment.get)
+  obj.Zone = zone
   obj.Release
+  val subscriber = new TestProbe(system)
 
   "AvatarService" should {
     "pass Release" in {
       expectNoMessage(100 milliseconds) //spacer
 
-      service ! Service.Join("test")
+      zone.AvatarEvents.tell(Service.Join("test"), subscriber.ref)
       assert(zone.Corpses.isEmpty)
       zone.Population ! Zone.Corpse.Add(obj)
-      expectNoMessage(200 milliseconds) //spacer
+      subscriber.expectNoMessage(200 milliseconds) //spacer
 
       assert(zone.Corpses.size == 1)
       assert(obj.HasGUID)
       val guid = obj.GUID
-      service ! AvatarServiceMessage("test", AvatarAction.Release(obj, zone)) //3+ minutes!
+      zone.AvatarEvents ! AvatarServiceMessage("test", AvatarAction.Release(obj, zone)) //3+ minutes!
 
-      val reply1 = receiveOne(200 milliseconds)
+      val reply1 = subscriber.receiveOne(200 milliseconds)
       assert(reply1.isInstanceOf[AvatarServiceResponse])
       val reply1msg = reply1.asInstanceOf[AvatarServiceResponse]
       assert(reply1msg.channel == "/test/Avatar")
@@ -596,8 +592,8 @@ class AvatarReleaseEarly1Test extends ActorTest {
       assert(reply1msg.replyMessage.isInstanceOf[AvatarResponse.Release])
       assert(reply1msg.replyMessage.asInstanceOf[AvatarResponse.Release].player == obj)
 
-      service ! AvatarServiceMessage.Corpse(RemoverActor.HurrySpecific(List(obj), zone)) //IMPORTANT: ONE ENTRY
-      val reply2 = receiveOne(200 milliseconds)
+      zone.AvatarEvents ! AvatarServiceMessage.Corpse(RemoverActor.HurrySpecific(List(obj), zone)) //IMPORTANT: ONE ENTRY
+      val reply2 = subscriber.receiveOne(200 milliseconds)
       assert(reply2.isInstanceOf[AvatarServiceResponse])
       val reply2msg = reply2.asInstanceOf[AvatarServiceResponse]
       assert(reply2msg.channel.equals("/test/Avatar"))
@@ -605,49 +601,48 @@ class AvatarReleaseEarly1Test extends ActorTest {
       assert(reply2msg.replyMessage.isInstanceOf[AvatarResponse.ObjectDelete])
       assert(reply2msg.replyMessage.asInstanceOf[AvatarResponse.ObjectDelete].item_guid == guid)
 
-      expectNoMessage(1 seconds)
+      subscriber.expectNoMessage(1 seconds)
       assert(zone.Corpses.isEmpty)
       assert(!obj.HasGUID)
     }
   }
 }
 
-class AvatarReleaseEarly2Test extends ActorTest {
-  ServiceManager.boot(system) ! ServiceManager.Register(RandomPool(1).props(Props[TaskResolver]()), "taskResolver")
+class AvatarReleaseEarly2Test extends FreedContextActorTest {
+  val guid: NumberPoolHub = new NumberPoolHub(new MaxNumberSource(15))
   val zone = new Zone("test", new ZoneMap("test-map"), 0) {
-    override def SetupNumberPools() = { AddPool("dynamic", 1 to 10) }
+    override def SetupNumberPools() : Unit = { }
+    GUID(guid)
   }
-  val guid1: NumberPoolHub = new NumberPoolHub(new MaxNumberSource(100))
-  zone.GUID(guid1)
-  val service      = system.actorOf(Props(classOf[AvatarService], zone), "release-test-service")
-  zone.actor = system.spawn(ZoneActor(zone), "release-test-zone")
-  val objAlt =
-    Player(
-      Avatar(0, "TestCharacter2", PlanetSideEmpire.NC, CharacterGender.Male, 1, CharacterVoice.Voice1)
-    ) //necessary clutter
+  zone.init(context)
+  val obj = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
+  guid.register(obj)
+  guid.register(obj.Slot(5).Equipment.get)
+  obj.Zone = zone
+  obj.Release
+  val objAlt = Player(
+    Avatar(0, "TestCharacter2", PlanetSideEmpire.NC, CharacterGender.Male, 1, CharacterVoice.Voice1)
+  ) //necessary clutter
   objAlt.GUID = PlanetSideGUID(3)
   objAlt.Slot(5).Equipment.get.GUID = PlanetSideGUID(4)
-  val obj = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
-  guid1.register(obj)
-  guid1.register(obj.Slot(5).Equipment.get)
-  obj.Continent = "test"
-  obj.Release
+  objAlt.Zone = zone
+  val subscriber = new TestProbe(system)
 
   "AvatarService" should {
     "pass Release" in {
       expectNoMessage(100 milliseconds) //spacer
 
-      service ! Service.Join("test")
+      zone.AvatarEvents.tell(Service.Join("test"), subscriber.ref)
       assert(zone.Corpses.isEmpty)
       zone.Population ! Zone.Corpse.Add(obj)
-      expectNoMessage(200 milliseconds) //spacer
+      subscriber.expectNoMessage(200 milliseconds) //spacer
 
       assert(zone.Corpses.size == 1)
       assert(obj.HasGUID)
       val guid = obj.GUID
-      service ! AvatarServiceMessage("test", AvatarAction.Release(obj, zone)) //3+ minutes!
+      zone.AvatarEvents ! AvatarServiceMessage("test", AvatarAction.Release(obj, zone)) //3+ minutes!
 
-      val reply1 = receiveOne(200 milliseconds)
+      val reply1 = subscriber.receiveOne(200 milliseconds)
       assert(reply1.isInstanceOf[AvatarServiceResponse])
       val reply1msg = reply1.asInstanceOf[AvatarServiceResponse]
       assert(reply1msg.channel == "/test/Avatar")
@@ -655,10 +650,10 @@ class AvatarReleaseEarly2Test extends ActorTest {
       assert(reply1msg.replyMessage.isInstanceOf[AvatarResponse.Release])
       assert(reply1msg.replyMessage.asInstanceOf[AvatarResponse.Release].player == obj)
 
-      service ! AvatarServiceMessage.Corpse(
+      zone.AvatarEvents ! AvatarServiceMessage.Corpse(
         RemoverActor.HurrySpecific(List(objAlt, obj), zone)
       ) //IMPORTANT: TWO ENTRIES
-      val reply2 = receiveOne(100 milliseconds)
+      val reply2 = subscriber.receiveOne(100 milliseconds)
       assert(reply2.isInstanceOf[AvatarServiceResponse])
       val reply2msg = reply2.asInstanceOf[AvatarServiceResponse]
       assert(reply2msg.channel.equals("/test/Avatar"))
@@ -666,7 +661,7 @@ class AvatarReleaseEarly2Test extends ActorTest {
       assert(reply2msg.replyMessage.isInstanceOf[AvatarResponse.ObjectDelete])
       assert(reply2msg.replyMessage.asInstanceOf[AvatarResponse.ObjectDelete].item_guid == guid)
 
-      expectNoMessage(1 seconds)
+      subscriber.expectNoMessage(1 seconds)
       assert(zone.Corpses.isEmpty)
       assert(!obj.HasGUID)
     }

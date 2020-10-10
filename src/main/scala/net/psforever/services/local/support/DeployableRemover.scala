@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.local.support
 
+import akka.actor.ActorRef
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
 import net.psforever.objects.zones.Zone
@@ -10,7 +11,7 @@ import net.psforever.services.RemoverActor
 
 import scala.concurrent.duration._
 
-class DeployableRemover extends RemoverActor {
+class DeployableRemover(taskResolver: ActorRef) extends RemoverActor(taskResolver) {
   final val FirstStandardDuration: FiniteDuration = 3 minutes
 
   final val SecondStandardDuration: FiniteDuration = 2 seconds
@@ -64,7 +65,7 @@ class DeployableRemover extends RemoverActor {
         boomer.Trigger match {
           case Some(trigger) =>
             boomer.Trigger = None
-            taskResolver ! GUIDTask.UnregisterObjectTask(trigger)(entry.zone.GUID)
+            boomer.Zone.tasks ! GUIDTask.UnregisterObjectTask(trigger)(entry.zone.GUID)
           case None => ;
         }
         GUIDTask.UnregisterObjectTask(boomer)(entry.zone.GUID)

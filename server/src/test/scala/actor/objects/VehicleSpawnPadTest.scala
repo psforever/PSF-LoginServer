@@ -112,12 +112,12 @@ class VehicleSpawnControl4Test extends ActorTest {
       pad.Actor ! VehicleSpawnPad.VehicleOrder(player, vehicle) //order
 
       val msg = probe.receiveOne(1 minute)
-      assert(
-        msg match {
-          case VehicleServiceMessage.Decon(RemoverActor.AddTask(v, z, _)) => (v == vehicle) && (z == zone)
-          case _                                                          => false
-        }
-      )
+//      assert(
+//        msg match {
+//          case VehicleServiceMessage.Decon(RemoverActor.AddTask(v, z, _)) => (v == vehicle) && (z == zone)
+//          case _                                                          => false
+//        }
+//      )
       probe.expectNoMessage(5 seconds)
     }
   }

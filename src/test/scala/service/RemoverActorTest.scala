@@ -509,7 +509,7 @@ object RemoverActorTest {
 
   final case class DeletionTaskRunAlert()
 
-  class TestRemover extends RemoverActor {
+  class TestRemover(taskResolver: ActorRef) extends RemoverActor(taskResolver) {
     import net.psforever.objects.guid.{Task, TaskResolver}
     val FirstStandardDuration = 1 seconds
 

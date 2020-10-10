@@ -10,8 +10,8 @@ import net.psforever.services.avatar.support.{CorpseRemovalActor, DroppedItemRem
 import net.psforever.services.{GenericEventBus, RemoverActor, Service}
 
 class AvatarService(zone: Zone) extends Actor {
-  private val undertaker: ActorRef = context.actorOf(Props[CorpseRemovalActor](), s"${zone.id}-corpse-removal-agent")
-  private val janitor              = context.actorOf(Props[DroppedItemRemover](), s"${zone.id}-item-remover-agent")
+  private val undertaker: ActorRef = context.actorOf(Props(classOf[CorpseRemovalActor], zone.tasks), s"${zone.id}-corpse-removal-agent")
+  private val janitor              = context.actorOf(Props(classOf[DroppedItemRemover], zone.tasks), s"${zone.id}-item-remover-agent")
 
   private[this] val log = org.log4s.getLogger
 
