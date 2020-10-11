@@ -2,16 +2,19 @@
 package service
 
 import akka.actor.Props
-import base.ActorTest
+import akka.testkit.TestProbe
+import base.{ActorTest, FreedContextActorTest}
 import net.psforever.objects.{GlobalDefinitions, SensorDeployable, Vehicle}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.terminals.{ProximityTerminal, Terminal}
 import net.psforever.objects.vehicles.VehicleControl
-import net.psforever.objects.zones.Zone
+import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game._
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 import net.psforever.services.{Service, ServiceManager}
 import net.psforever.services.local._
+
+import scala.concurrent.duration._
 
 class LocalService1Test extends ActorTest {
   ServiceManager.boot(system)
@@ -118,15 +121,19 @@ class DeployableMapIconTest extends ActorTest {
   }
 }
 
-class DoorClosesTest extends ActorTest {
-  ServiceManager.boot(system)
+class DoorClosesTest extends FreedContextActorTest {
+  val probe = new TestProbe(system)
+  val zone = new Zone("test", new ZoneMap("test-map"), 0) {
+    override def SetupNumberPools() : Unit = { }
+  }
+  zone.init(context)
+  expectNoMessage(500 milliseconds)
 
   "LocalService" should {
     "pass DoorCloses" in {
-      val service = system.actorOf(Props(classOf[LocalService], Zone.Nowhere), "l_service")
-      service ! Service.Join("test")
-      service ! LocalServiceMessage("test", LocalAction.DoorCloses(PlanetSideGUID(10), PlanetSideGUID(40)))
-      expectMsg(LocalServiceResponse("/test/Local", PlanetSideGUID(10), LocalResponse.DoorCloses(PlanetSideGUID(40))))
+      zone.LocalEvents.tell(Service.Join("test"), probe.ref)
+      zone.LocalEvents ! LocalServiceMessage("test", LocalAction.DoorCloses(PlanetSideGUID(10), PlanetSideGUID(40)))
+      probe.expectMsg(LocalServiceResponse("/test/Local", PlanetSideGUID(10), LocalResponse.DoorCloses(PlanetSideGUID(40))))
     }
   }
 }

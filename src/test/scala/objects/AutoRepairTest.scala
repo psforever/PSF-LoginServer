@@ -16,11 +16,13 @@ import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.damage.DamageProfile
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.objects.{GlobalDefinitions, Player, Tool}
+import net.psforever.services.ServiceManager
 import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, Vector3}
 
 import scala.concurrent.duration._
 
 class AutoRepairRequestNtuTest extends FreedContextActorTest {
+  ServiceManager.boot
   val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
   player.Spawn()
   val weapon = new Tool(GlobalDefinitions.suppressor)
@@ -80,6 +82,7 @@ class AutoRepairRequestNtuTest extends FreedContextActorTest {
 }
 
 class AutoRepairRequestNtuRepeatTest extends FreedContextActorTest {
+  ServiceManager.boot
   val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
   player.Spawn()
   val weapon = new Tool(GlobalDefinitions.suppressor)
@@ -141,6 +144,7 @@ class AutoRepairRequestNtuRepeatTest extends FreedContextActorTest {
 }
 
 class AutoRepairNoRequestNtuTest extends FreedContextActorTest {
+  ServiceManager.boot
   val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
   player.Spawn()
   val weapon = new Tool(GlobalDefinitions.suppressor)
@@ -195,6 +199,7 @@ class AutoRepairNoRequestNtuTest extends FreedContextActorTest {
 }
 
 class AutoRepairRestoreRequestNtuTest extends FreedContextActorTest {
+  ServiceManager.boot
   val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
   player.Spawn()
   val weapon = new Tool(GlobalDefinitions.suppressor)
@@ -258,6 +263,7 @@ class AutoRepairRestoreRequestNtuTest extends FreedContextActorTest {
 }
 
 class AutoRepairRepairWithNtuTest extends FreedContextActorTest {
+  ServiceManager.boot
   val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
   player.Spawn()
   val weapon = new Tool(GlobalDefinitions.suppressor)
@@ -316,6 +322,7 @@ class AutoRepairRepairWithNtuTest extends FreedContextActorTest {
 }
 
 class AutoRepairRepairWithNtuUntilDoneTest extends FreedContextActorTest {
+  ServiceManager.boot
   val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
   player.Spawn()
   val weapon = new Tool(GlobalDefinitions.suppressor)

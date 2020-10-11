@@ -118,22 +118,19 @@ object WorldSession {
     * @see `tell`
     * @see `Zone.AvatarEvents`
     * @param obj the container
-    * @param taskResolver na
     * @param item the item being manipulated
     * @param slot na
     * @return a `Future` that anticipates the resolution to this manipulation
     */
   def PutEquipmentInInventorySlot(
-      obj: PlanetSideServerObject with Container,
-      taskResolver: ActorRef
+      obj: PlanetSideServerObject with Container
   )(item: Equipment, slot: Int): Future[Any] = {
     val localContainer = obj
     val localItem      = item
-    val localResolver  = taskResolver
     val result         = ask(localContainer.Actor, Containable.PutItemInSlotOnly(localItem, slot))
     result.onComplete {
       case Failure(_) | Success(_: Containable.CanNotPutItemInSlot) =>
-        localResolver ! GUIDTask.UnregisterEquipment(localItem)(localContainer.Zone.GUID)
+        localContainer.Zone.tasks ! GUIDTask.UnregisterEquipment(localItem)(localContainer.Zone.GUID)
       case _ => ;
     }
     result
@@ -150,14 +147,12 @@ object WorldSession {
     * @see `Task`
     * @see `TaskResolver.GiveTask`
     * @param obj the container
-    * @param taskResolver na
     * @param item the item being manipulated
     * @param slot where the item will be placed in the container
     * @return a `TaskResolver` object
     */
   def PutLoadoutEquipmentInInventory(
-      obj: PlanetSideServerObject with Container,
-      taskResolver: ActorRef
+      obj: PlanetSideServerObject with Container
   )(item: Equipment, slot: Int): TaskResolver.GiveTask = {
     val localZone = obj.Zone
     TaskResolver.GiveTask(
@@ -165,7 +160,7 @@ object WorldSession {
         private val localContainer                             = obj
         private val localItem                                  = item
         private val localSlot                                  = slot
-        private val localFunc: (Equipment, Int) => Future[Any] = PutEquipmentInInventorySlot(obj, taskResolver)
+        private val localFunc: (Equipment, Int) => Future[Any] = PutEquipmentInInventorySlot(obj)
 
         override def Timeout: Long = 1000
 
@@ -203,7 +198,6 @@ object WorldSession {
     * @see `PutEquipmentInInventorySlot`
     * @see `TerminalMessageOnTimeout`
     * @param obj the container
-    * @param taskResolver na
     * @param player na
     * @param term na
     * @param item the item being manipulated
@@ -211,7 +205,6 @@ object WorldSession {
     */
   def BuyNewEquipmentPutInInventory(
       obj: PlanetSideServerObject with Container,
-      taskResolver: ActorRef,
       player: Player,
       term: PlanetSideGUID
   )(item: Equipment): TaskResolver.GiveTask = {
@@ -221,7 +214,6 @@ object WorldSession {
         private val localContainer                = obj
         private val localItem                     = item
         private val localPlayer                   = player
-        private val localResolver                 = taskResolver
         private val localTermMsg: Boolean => Unit = TerminalResult(term, localPlayer, TransactionType.Buy)
 
         override def Timeout: Long = 1000
@@ -242,7 +234,7 @@ object WorldSession {
               case Failure(_) | Success(_: Containable.CanNotPutItemInSlot) =>
                 if (localContainer != localPlayer) {
                   TerminalMessageOnTimeout(
-                    PutEquipmentInInventorySlot(localPlayer, localResolver)(localItem, Player.FreeHandSlot),
+                    PutEquipmentInInventorySlot(localPlayer)(localItem, Player.FreeHandSlot),
                     localTermMsg
                   )
                     .onComplete {
@@ -252,7 +244,7 @@ object WorldSession {
                         localTermMsg(true)
                     }
                 } else {
-                  localResolver ! GUIDTask.UnregisterEquipment(localItem)(localContainer.Zone.GUID)
+                  localContainer.Zone.tasks ! GUIDTask.UnregisterEquipment(localItem)(localContainer.Zone.GUID)
                   localTermMsg(false)
                 }
               case _ =>
@@ -289,12 +281,11 @@ object WorldSession {
     * @see `TaskResolver.GiveTask`
     * @see `Zone.AvatarEvents`
     * @param player the player whose visible slot will be equipped and drawn
-    * @param taskResolver na
     * @param item the item to equip
     * @param slot the slot in which the item will be equipped
     * @return a `TaskResolver` object
     */
-  def HoldNewEquipmentUp(player: Player, taskResolver: ActorRef)(item: Equipment, slot: Int): TaskResolver.GiveTask = {
+  def HoldNewEquipmentUp(player: Player)(item: Equipment, slot: Int): TaskResolver.GiveTask = {
     if (player.VisibleSlots.contains(slot)) {
       val localZone = player.Zone
       TaskResolver.GiveTask(
@@ -303,7 +294,6 @@ object WorldSession {
           private val localGUID     = player.GUID
           private val localItem     = item
           private val localSlot     = slot
-          private val localResolver = taskResolver
 
           override def Timeout: Long = 1000
 
@@ -318,7 +308,7 @@ object WorldSession {
             ask(localPlayer.Actor, Containable.PutItemInSlotOnly(localItem, localSlot))
               .onComplete {
                 case Failure(_) | Success(_: Containable.CanNotPutItemInSlot) =>
-                  localResolver ! GUIDTask.UnregisterEquipment(localItem)(localZone.GUID)
+                  localPlayer.Zone.tasks ! GUIDTask.UnregisterEquipment(localItem)(localZone.GUID)
                 case _ =>
                   if (localPlayer.DrawnSlot != Player.HandsDownSlot) {
                     localPlayer.DrawnSlot = Player.HandsDownSlot
@@ -438,20 +428,18 @@ object WorldSession {
     * @see `GUIDTask.UnregisterEquipment`
     * @see `Zone.AvatarEvents`
     * @param obj the container to search
-    * @param taskResolver na
     * @param item the item to find and remove from the container
     * @return a `Future` that anticipates the resolution to this manipulation
     */
-  def RemoveOldEquipmentFromInventory(obj: PlanetSideServerObject with Container, taskResolver: ActorRef)(
+  def RemoveOldEquipmentFromInventory(obj: PlanetSideServerObject with Container)(
       item: Equipment
   ): Future[Any] = {
     val localContainer = obj
     val localItem      = item
-    val localResolver  = taskResolver
     val result         = ask(localContainer.Actor, Containable.RemoveItemFromSlot(localItem))
     result.onComplete {
       case Success(Containable.ItemFromSlot(_, Some(_), Some(_))) =>
-        localResolver ! GUIDTask.UnregisterEquipment(localItem)(localContainer.Zone.GUID)
+        localContainer.Zone.tasks ! GUIDTask.UnregisterEquipment(localItem)(localContainer.Zone.GUID)
       case _ =>
     }
     result
@@ -474,7 +462,6 @@ object WorldSession {
     * @see `TerminalMessageOnTimeout`
     * @see `TerminalResult`
     * @param obj the container to search
-    * @param taskResolver na
     * @param player the player who used the terminal
     * @param term the unique identifier number of the terminal
     * @param slot from which slot the equipment is to be removed
@@ -482,14 +469,12 @@ object WorldSession {
     */
   def SellEquipmentFromInventory(
       obj: PlanetSideServerObject with Container,
-      taskResolver: ActorRef,
       player: Player,
       term: PlanetSideGUID
   )(slot: Int): Future[Any] = {
     val localContainer                = obj
     val localPlayer                   = player
     val localSlot                     = slot
-    val localResolver                 = taskResolver
     val localTermMsg: Boolean => Unit = TerminalResult(term, localPlayer, TransactionType.Sell)
     val result = TerminalMessageOnTimeout(
       ask(localContainer.Actor, Containable.RemoveItemFromSlot(localSlot)),
@@ -497,7 +482,7 @@ object WorldSession {
     )
     result.onComplete {
       case Success(Containable.ItemFromSlot(_, Some(item), Some(_))) =>
-        localResolver ! GUIDTask.UnregisterEquipment(item)(localContainer.Zone.GUID)
+        localContainer.Zone.tasks ! GUIDTask.UnregisterEquipment(item)(localContainer.Zone.GUID)
         localTermMsg(true)
       case _ =>
         localTermMsg(false)
@@ -519,7 +504,6 @@ object WorldSession {
     * @see `RemoveEquipmentFromLockerContainer`
     * @see `StowEquipmentInLockerContainer`
     * @see `TaskResolver`
-    * @param taskResolver na
     * @param toChannel broadcast channel name for a manual packet callback
     * @param source the container in which the item is to be removed
     * @param destination the container into which the item is to be placed
@@ -527,7 +511,6 @@ object WorldSession {
     * @param dest where in the destination container the item is being placed
     */
   def ContainableMoveItem(
-                           taskResolver: ActorRef,
                            toChannel: String,
                            source: PlanetSideServerObject with Container,
                            destination: PlanetSideServerObject with Container,
@@ -536,9 +519,9 @@ object WorldSession {
                          ) : Unit = {
     (source, destination) match {
       case (locker: LockerContainer, _) if !destination.isInstanceOf[LockerContainer] =>
-        RemoveEquipmentFromLockerContainer(taskResolver, toChannel, locker, destination, item, dest)
+        RemoveEquipmentFromLockerContainer(toChannel, locker, destination, item, dest)
       case (_, locker: LockerContainer) =>
-        StowEquipmentInLockerContainer(taskResolver, toChannel, source, locker, item, dest)
+        StowEquipmentInLockerContainer(toChannel, source, locker, item, dest)
       case _ =>
         source.Actor ! Containable.MoveItem(destination, item, dest)
     }
@@ -564,7 +547,6 @@ object WorldSession {
     * @see `TaskResolver`
     * @see `TaskResolver.GiveTask`
     * @see `Zone.AvatarEvents`
-    * @param taskResolver na
     * @param toChannel broadcast channel name for a manual packet callback
     * @param source the container in which the item is to be removed
     * @param destination the container into which the item is to be placed
@@ -572,7 +554,6 @@ object WorldSession {
     * @param dest where in the destination container the item is being placed
     */
   def StowEquipmentInLockerContainer(
-                                      taskResolver: ActorRef,
                                       toChannel: String,
                                       source: PlanetSideServerObject with Container,
                                       destination: PlanetSideServerObject with Container,
@@ -605,7 +586,7 @@ object WorldSession {
         //too many swap items or other error; this attempt will probably fail
         (Nil, None)
     }
-    taskResolver ! TaskResolver.GiveTask(
+    destination.Zone.tasks ! TaskResolver.GiveTask(
       new Task() {
         val localGUID        = swapItemGUID //the swap item's original GUID, if any swap item
         val localChannel     = toChannel
@@ -659,7 +640,6 @@ object WorldSession {
     * @see `TaskResolver`
     * @see `TaskResolver.GiveTask`
     * @see `Zone.AvatarEvents`
-    * @param taskResolver na
     * @param toChannel broadcast channel name for a manual packet callback
     * @param source the container in which the item is to be removed
     * @param destination the container into which the item is to be placed
@@ -667,14 +647,13 @@ object WorldSession {
     * @param dest where in the destination container the item is being placed
     */
   def RemoveEquipmentFromLockerContainer(
-                                          taskResolver: ActorRef,
                                           toChannel: String,
                                           source: PlanetSideServerObject with Container,
                                           destination: PlanetSideServerObject with Container,
                                           item: Equipment,
                                           dest: Int
                                         ): Unit = {
-    taskResolver ! TaskResolver.GiveTask(
+    destination.Zone.tasks ! TaskResolver.GiveTask(
       new Task() {
         val localGUID        = item.GUID //original GUID
         val localChannel     = toChannel

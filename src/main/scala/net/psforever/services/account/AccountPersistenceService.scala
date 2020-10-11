@@ -49,9 +49,6 @@ class AccountPersistenceService extends Actor {
   /** squad service event hook */
   var squad: ActorRef = ActorRef.noSender
 
-  /** task resolver service event hook */
-  var resolver: ActorRef = ActorRef.noSender
-
   /** log, for trace and warnings only */
   val log = org.log4s.getLogger
 
@@ -62,7 +59,6 @@ class AccountPersistenceService extends Actor {
     */
   override def preStart(): Unit = {
     ServiceManager.serviceManager ! ServiceManager.Lookup("squad")
-    ServiceManager.serviceManager ! ServiceManager.Lookup("taskResolver")
     log.trace("Awaiting system service hooks ...")
   }
 
@@ -130,17 +126,9 @@ class AccountPersistenceService extends Actor {
     * @see `ServiceManager.LookupResult`
     */
   val Setup: Receive = {
-    case ServiceManager.LookupResult(id, endpoint) =>
-      id match {
-        case "squad" =>
-          squad = endpoint
-        case "taskResolver" =>
-          resolver = endpoint
-      }
-      if (
-        squad != ActorRef.noSender &&
-        resolver != ActorRef.noSender
-      ) {
+    case ServiceManager.LookupResult("squad", endpoint) =>
+      squad = endpoint
+      if (squad != ActorRef.noSender) {
         log.trace("Service hooks obtained.  Continuing with standard operation.")
         context.become(Started)
       }
@@ -156,7 +144,7 @@ class AccountPersistenceService extends Actor {
     */
   def CreateNewPlayerToken(name: String): ActorRef = {
     val ref =
-      context.actorOf(Props(classOf[PersistenceMonitor], name, squad, resolver), s"$name-${NextPlayerIndex(name)}")
+      context.actorOf(Props(classOf[PersistenceMonitor], name, squad), s"$name-${NextPlayerIndex(name)}")
     accounts += name -> ref
     ref
   }
@@ -231,10 +219,8 @@ object AccountPersistenceService {
   * and to determine the conditions for end-of-life activity.
   * @param name the unique name of the player
   * @param squadService a hook into the `SquadService` event system
-  * @param taskResolver a hook into the `TaskResolver` event system;
-  *                     used for object unregistering
   */
-class PersistenceMonitor(name: String, squadService: ActorRef, taskResolver: ActorRef) extends Actor {
+class PersistenceMonitor(name: String, squadService: ActorRef) extends Actor {
 
   /** the last-reported zone of this player */
   var inZone: Zone = Zone.Nowhere
@@ -404,7 +390,7 @@ class PersistenceMonitor(name: String, squadService: ActorRef, taskResolver: Act
     }
     inZone.Population.tell(Zone.Population.Release(avatar), parent)
     inZone.AvatarEvents.tell(AvatarServiceMessage(inZone.id, AvatarAction.ObjectDelete(pguid, pguid)), parent)
-    taskResolver.tell(GUIDTask.UnregisterPlayer(player)(inZone.GUID), parent)
+    inZone.tasks.tell(GUIDTask.UnregisterPlayer(player)(inZone.GUID), parent)
     AvatarLogout(avatar)
   }
 
@@ -423,7 +409,7 @@ class PersistenceMonitor(name: String, squadService: ActorRef, taskResolver: Act
     squadService.tell(Service.Leave(Some(avatar.id.toString)), context.parent)
     Deployables.Disown(inZone, avatar, context.parent)
     inZone.Population.tell(Zone.Population.Leave(avatar), context.parent)
-    taskResolver.tell(GUIDTask.UnregisterObjectTask(avatar.locker)(inZone.GUID), context.parent)
+    inZone.tasks.tell(GUIDTask.UnregisterObjectTask(avatar.locker)(inZone.GUID), context.parent)
     log.info(s"logout of ${avatar.name}")
   }
 }

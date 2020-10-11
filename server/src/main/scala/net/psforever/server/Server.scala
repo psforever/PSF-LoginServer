@@ -8,7 +8,6 @@ import java.util.UUID.randomUUID
 import akka.actor.ActorSystem
 import akka.actor.typed.ActorRef
 import akka.actor.typed.scaladsl.Behaviors
-import akka.routing.RandomPool
 import akka.{actor => classic}
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.joran.JoranConfigurator
@@ -19,7 +18,6 @@ import net.psforever.actors.session.SessionActor
 import net.psforever.login.psadmin.PsAdminActor
 import net.psforever.login._
 import net.psforever.objects.Default
-import net.psforever.objects.guid.TaskResolver
 import net.psforever.objects.zones._
 import net.psforever.services.account.{AccountIntermediaryService, AccountPersistenceService}
 import net.psforever.services.chat.ChatService
@@ -122,7 +120,6 @@ object Server {
 
     val serviceManager = ServiceManager.boot
     serviceManager ! ServiceManager.Register(classic.Props[AccountIntermediaryService](), "accountIntermediary")
-    serviceManager ! ServiceManager.Register(RandomPool(150).props(classic.Props[TaskResolver]()), "taskResolver")
     serviceManager ! ServiceManager.Register(classic.Props[GalaxyService](), "galaxy")
     serviceManager ! ServiceManager.Register(classic.Props[SquadService](), "squad")
     serviceManager ! ServiceManager.Register(classic.Props[AccountPersistenceService](), "accountPersistence")

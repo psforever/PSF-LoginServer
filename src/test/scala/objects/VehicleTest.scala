@@ -15,7 +15,7 @@ import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game.{CargoMountPointStatusMessage, ObjectDetachMessage, PlanetsideAttributeMessage}
 import net.psforever.types.{PlanetSideGUID, _}
 import org.specs2.mutable._
-import net.psforever.services.{RemoverActor, ServiceManager}
+import net.psforever.services.ServiceManager
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.duration._
@@ -342,23 +342,7 @@ class VehicleControlPrepareForDeletionTest extends ActorTest {
   "VehicleControl" should {
     "submit for unregistering when marked for deconstruction" in {
       vehicle.Actor ! Vehicle.Deconstruct()
-
-      val vehicle_msg = vehicleProbe.receiveN(1, 500 milliseconds)
-      assert(
-        vehicle_msg.head match {
-          case VehicleServiceMessage.Decon(RemoverActor.AddTask(v, z, _)) => (v eq vehicle) && (z == vehicle.Zone)
-          case _                                                          => false
-        }
-      )
-
-      val vehicle_msg_final = vehicleProbe.receiveN(1, 6 seconds)
-      assert(
-        vehicle_msg_final.head match {
-          case VehicleServiceMessage("test", VehicleAction.UnloadVehicle(_, z, v, PlanetSideGUID(1))) =>
-            (v eq vehicle) && (z == vehicle.Zone)
-          case _ => false
-        }
-      )
+      vehicleProbe.expectNoMessage(5 seconds)
     }
   }
 }
@@ -383,7 +367,7 @@ class VehicleControlPrepareForDeletionPassengerTest extends ActorTest {
     "kick all players when marked for deconstruction" in {
       vehicle.Actor ! Vehicle.Deconstruct()
 
-      val vehicle_msg = vehicleProbe.receiveN(2, 500 milliseconds)
+      val vehicle_msg = vehicleProbe.receiveN(1, 500 milliseconds)
       assert(
         vehicle_msg.head match {
           case VehicleServiceMessage(
@@ -396,12 +380,6 @@ class VehicleControlPrepareForDeletionPassengerTest extends ActorTest {
       )
       assert(player1.VehicleSeated.isEmpty)
       assert(vehicle.Seats(1).Occupant.isEmpty)
-      assert(
-        vehicle_msg(1) match {
-          case VehicleServiceMessage.Decon(RemoverActor.AddTask(v, z, _)) => (v eq vehicle) && (z == vehicle.Zone)
-          case _                                                          => false
-        }
-      )
     }
   }
 }
@@ -451,7 +429,7 @@ class VehicleControlPrepareForDeletionMountedInTest extends FreedContextActorTes
     "if mounted as cargo, self-eject when marked for deconstruction" in {
       vehicle.Actor ! Vehicle.Deconstruct()
 
-      val vehicle_msg = vehicleProbe.receiveN(7, 500 milliseconds)
+      val vehicle_msg = vehicleProbe.receiveN(6, 500 milliseconds)
       //dismounting as cargo messages
       assert(
         vehicle_msg.head match {
@@ -523,12 +501,6 @@ class VehicleControlPrepareForDeletionMountedInTest extends FreedContextActorTes
       )
       assert(player1.VehicleSeated.isEmpty)
       assert(vehicle.Seats(1).Occupant.isEmpty)
-      assert(
-        vehicle_msg(6) match {
-          case VehicleServiceMessage.Decon(RemoverActor.AddTask(v, z, _)) => (v eq vehicle) && (z == vehicle.Zone)
-          case _                                                          => false
-        }
-      )
     }
   }
 }
@@ -580,7 +552,7 @@ class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActor
     "if with mounted cargo, eject it when marked for deconstruction" in {
       lodestar.Actor ! Vehicle.Deconstruct()
 
-      val vehicle_msg = vehicleProbe.receiveN(7, 500 milliseconds)
+      val vehicle_msg = vehicleProbe.receiveN(6, 500 milliseconds)
       assert(
         vehicle_msg.head match {
           case VehicleServiceMessage(
@@ -648,13 +620,6 @@ class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActor
               ) =>
             true
           case _ => false
-        }
-      )
-      //cargo dismounting messages
-      assert(
-        vehicle_msg(6) match {
-          case VehicleServiceMessage.Decon(RemoverActor.AddTask(v, z, _)) => (v eq lodestar) && (z == vehicle.Zone)
-          case _                                                          => false
         }
       )
     }

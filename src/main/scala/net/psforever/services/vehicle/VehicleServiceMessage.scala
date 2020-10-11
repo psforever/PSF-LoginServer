@@ -15,8 +15,6 @@ object VehicleServiceMessage {
   final case class GiveActorControl(vehicle: Vehicle, actorName: String)
   final case class RevokeActorControl(vehicle: Vehicle)
 
-  final case class Decon(msg: Any)
-
   final case class TurretUpgrade(msg: Any)
 
   final case class AMSDeploymentChange(zone: Zone)
@@ -83,7 +81,6 @@ object VehicleAction {
       extends Action
   final case class UnloadVehicle(
       player_guid: PlanetSideGUID,
-      continent: Zone,
       vehicle: Vehicle,
       vehicle_guid: PlanetSideGUID
   )                                                                                        extends Action

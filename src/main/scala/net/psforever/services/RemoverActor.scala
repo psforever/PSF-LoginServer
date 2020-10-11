@@ -30,7 +30,7 @@ import scala.util.Success
   * and finally unregistering it.
   * Some types of object have (de-)implementation variations which should be made explicit through the overrides.
   */
-abstract class RemoverActor extends SupportActor[RemoverActor.Entry] {
+abstract class RemoverActor(val taskResolver: ActorRef) extends SupportActor[RemoverActor.Entry] {
 
   /**
     * The timer that checks whether entries in the first pool are still eligible for that pool.
@@ -52,22 +52,10 @@ abstract class RemoverActor extends SupportActor[RemoverActor.Entry] {
     */
   var secondHeap: List[RemoverActor.Entry] = List()
 
-  protected var taskResolver: ActorRef = ActorRef.noSender
-
   val sameEntryComparator = new SimilarityComparator[RemoverActor.Entry]() {
     def Test(entry1: RemoverActor.Entry, entry2: RemoverActor.Entry): Boolean = {
       entry1.obj == entry2.obj && entry1.zone == entry2.zone && entry1.obj.GUID == entry2.obj.GUID
     }
-  }
-
-  /**
-    * Send the initial message that requests a task resolver for assisting in the removal process.
-    */
-  override def preStart(): Unit = {
-    super.preStart()
-    ServiceManager.serviceManager ! ServiceManager.Lookup(
-      "taskResolver"
-    ) //ask for a resolver to deal with the GUID system
   }
 
   /**
@@ -88,19 +76,9 @@ abstract class RemoverActor extends SupportActor[RemoverActor.Entry] {
     }
     firstHeap = Nil
     secondHeap = Nil
-    taskResolver = ActorRef.noSender
   }
 
-  def receive: Receive = {
-    case ServiceManager.LookupResult("taskResolver", endpoint) =>
-      taskResolver = endpoint
-      context.become(Processing)
-
-    case msg =>
-      debug(s"received message $msg before being properly initialized")
-  }
-
-  def Processing: Receive =
+  def receive: Receive =
     entryManagementBehaviors
       .orElse {
         case RemoverActor.AddTask(obj, zone, duration) =>

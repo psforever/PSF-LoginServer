@@ -2,11 +2,10 @@
 package objects
 
 import akka.actor.{Actor, Props}
-import akka.routing.RandomPool
 import akka.testkit.TestProbe
 import base.ActorTest
 import net.psforever.actors.zone.{BuildingActor, ZoneActor}
-import net.psforever.objects.guid.{NumberPoolHub, TaskResolver}
+import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.{GlobalDefinitions, Ntu, Player, Vehicle}
@@ -17,7 +16,6 @@ import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game.UseItemMessage
 import net.psforever.types._
 import org.specs2.mutable.Specification
-import net.psforever.services.ServiceManager
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.objects.avatar.Avatar
@@ -77,18 +75,21 @@ class ResourceSiloTest extends Specification {
 }
 
 class ResourceSiloControlStartupTest extends ActorTest {
-  val serviceManager = ServiceManager.boot(system)
-  serviceManager ! ServiceManager.Register(RandomPool(1).props(Props[TaskResolver]()), "taskResolver")
   val obj = ResourceSilo()
   obj.GUID = PlanetSideGUID(1)
-  val probe = TestProbe()
-  serviceManager ! ServiceManager.Register(Props(classOf[ResourceSiloTest.ProbedAvatarService], probe), "avatar")
+  obj.Actor = system.actorOf(Props(classOf[ResourceSiloControl], obj), "test-silo")
+  val zone = new Zone("nowhere", new ZoneMap("nowhere-map"), 0)
+  val buildingEvents = TestProbe("test-building-events")
+  obj.Owner =
+    new Building("Building", building_guid = 6, map_id = 0, zone, StructureType.Building, GlobalDefinitions.building) {
+      Actor = buildingEvents.ref
+    }
+  obj.Owner.GUID = PlanetSideGUID(6)
 
   "Resource silo" should {
     "startup properly" in {
-      expectNoMessage(500 milliseconds)
-      system.actorOf(Props(classOf[ResourceSiloControl], obj), "test-silo") ! "startup"
-      expectNoMessage(1 seconds)
+      obj.Actor ! "startup"
+      expectNoMessage(max = 1000 milliseconds)
     }
   }
 }

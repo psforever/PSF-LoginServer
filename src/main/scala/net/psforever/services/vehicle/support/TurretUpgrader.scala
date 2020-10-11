@@ -2,6 +2,7 @@
 package net.psforever.services.vehicle.support
 
 import akka.actor.{ActorRef, Cancellable}
+import net.psforever.objects.equipment.EquipmentSlot
 import net.psforever.objects.{AmmoBox, Default, PlanetSideGameObject, Tool}
 import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
 import net.psforever.objects.serverobject.PlanetSideServerObject
@@ -11,7 +12,6 @@ import net.psforever.objects.zones.Zone
 import net.psforever.types.PlanetSideGUID
 import net.psforever.services.support.{SimilarityComparator, SupportActor, SupportActorCaseConversions}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
-import net.psforever.services.{Service, ServiceManager}
 
 import scala.concurrent.duration._
 import scala.util.Success
@@ -21,20 +21,10 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
 
   var list: List[TurretUpgrader.Entry] = List()
 
-  private var taskResolver: ActorRef = ActorRef.noSender
-
   val sameEntryComparator = new SimilarityComparator[TurretUpgrader.Entry]() {
     def Test(entry1: TurretUpgrader.Entry, entry2: TurretUpgrader.Entry): Boolean = {
       entry1.obj == entry2.obj && entry1.zone == entry2.zone && entry1.obj.GUID == entry2.obj.GUID
     }
-  }
-
-  /**
-    * Send the initial message that requests a task resolver for assisting in the removal process.
-    */
-  override def preStart(): Unit = {
-    super.preStart()
-    self ! Service.Startup()
   }
 
   /**
@@ -49,7 +39,6 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
       UpgradeTurretAmmo
     }
     list = Nil
-    taskResolver = ActorRef.noSender
   }
 
   def CreateEntry(obj: PlanetSideGameObject, zone: Zone, upgrade: TurretUpgrade.Value, duration: Long) =
@@ -57,21 +46,7 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
 
   def InclusionTest(entry: TurretUpgrader.Entry): Boolean = entry.obj.isInstanceOf[FacilityTurret]
 
-  def receive: Receive = {
-    case Service.Startup() =>
-      ServiceManager.serviceManager ! ServiceManager.Lookup(
-        "taskResolver"
-      ) //ask for a resolver to deal with the GUID system
-
-    case ServiceManager.LookupResult("taskResolver", endpoint) =>
-      taskResolver = endpoint
-      context.become(Processing)
-
-    case msg =>
-      debug(s"received message $msg before being properly initialized")
-  }
-
-  def Processing: Receive =
+  def receive: Receive =
     entryManagementBehaviors
       .orElse {
         case TurretUpgrader.AddTask(turret, zone, upgrade, duration) =>
@@ -219,7 +194,7 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
         .map(box => GUIDTask.RegisterEquipment(box)(guid))
         .toList
     )
-    taskResolver ! TaskResolver.GiveTask(
+    target.Zone.tasks ! TaskResolver.GiveTask(
       new Task() {
         private val tasks = oldBoxesTask
 
@@ -258,7 +233,7 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
     val targetGUID = target.GUID
     if (target.Health > 0) {
       target.Weapons
-        .map({ case (index, slot) => (index, slot.Equipment) })
+        .map({ case (index: Int, slot: EquipmentSlot) => (index, slot.Equipment) })
         .collect {
           case (index, Some(tool: Tool)) =>
             context.parent ! VehicleServiceMessage(

@@ -2,12 +2,11 @@
 package net.psforever.objects.serverobject.pad
 
 import akka.actor.{ActorContext, Cancellable, Props}
+import net.psforever.objects.guid.GUIDTask.UnregisterVehicle
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.pad.process.{VehicleSpawnControlBase, VehicleSpawnControlConcealPlayer}
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{Default, Player, Vehicle}
-import net.psforever.services.RemoverActor
-import net.psforever.services.vehicle.VehicleServiceMessage
 
 import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -330,7 +329,7 @@ object VehicleSpawnControl {
     if (zone.Vehicles.exists(_.GUID == vehicle.GUID)) { //already added to zone
       vehicle.Actor ! Vehicle.Deconstruct()
     } else { //just registered to zone
-      zone.VehicleEvents ! VehicleServiceMessage.Decon(RemoverActor.AddTask(vehicle, zone, Some(0 seconds)))
+      zone.tasks ! UnregisterVehicle(vehicle)(zone.GUID)
     }
   }
 }
