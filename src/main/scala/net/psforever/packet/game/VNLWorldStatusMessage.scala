@@ -25,8 +25,8 @@ object ServerType extends IntEnum[ServerType] {
   case object Released       extends ServerType(3, "released")
   case object ReleasedGemini extends ServerType(4, "released_gemini")
 
-  val values         = findValues
-  implicit val codec = PacketHelpers.createIntEnumCodec(this, uint8L)
+  val values: IndexedSeq[ServerType]    = findValues
+  implicit val codec: Codec[ServerType] = PacketHelpers.createIntEnumCodec(this, uint8L)
 }
 
 // This MUST be an IP address. The client DOES NOT do name resolution properly

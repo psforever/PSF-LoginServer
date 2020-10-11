@@ -1820,8 +1820,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         sendResponse(DestroyDisplayMessage(killer, victim, method, unk))
         // TODO Temporary thing that should go somewhere else and use proper xp values
         if (killer.CharId == avatar.id && killer.Faction != victim.Faction) {
-          avatarActor ! AvatarActor.AwardBep(1000)
-          avatarActor ! AvatarActor.AwardCep(100)
+          avatarActor ! AvatarActor.AwardBep((1000 * Config.app.game.bepRate).toLong)
+          avatarActor ! AvatarActor.AwardCep((100 * Config.app.game.cepRate).toLong)
         }
 
       case AvatarResponse.DropItem(pkt) =>
