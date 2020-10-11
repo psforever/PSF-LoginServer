@@ -5,6 +5,7 @@ import java.nio.file.Paths
 import com.typesafe.config.{Config => TypesafeConfig}
 import enumeratum.{Enum, EnumEntry}
 import enumeratum.values.{IntEnum, IntEnumEntry}
+import net.psforever.objects.avatar.{BattleRank, CommandRank}
 import net.psforever.packet.game.ServerType
 import net.psforever.types.ChatMessageType
 import pureconfig.ConfigConvert.viaNonEmptyStringOpt
@@ -30,7 +31,9 @@ object Config {
     viaNonEmptyStringOpt[A](
       v =>
         enum.values.toList.collectFirst {
-          case e: ServerType if e.name == v => e.asInstanceOf[A]
+          case e: ServerType if e.name == v            => e.asInstanceOf[A]
+          case e: BattleRank if e.value.toString == v  => e.asInstanceOf[A]
+          case e: CommandRank if e.value.toString == v => e.asInstanceOf[A]
         },
       _.value.toString
     )
@@ -120,7 +123,15 @@ case class SessionConfig(
 )
 
 case class GameConfig(
-    instantActionAms: Boolean
+    instantActionAms: Boolean,
+    bepRate: Double,
+    cepRate: Double,
+    newAvatar: NewAvatar
+)
+
+case class NewAvatar(
+    br: BattleRank,
+    cr: CommandRank
 )
 
 case class DevelopmentConfig(

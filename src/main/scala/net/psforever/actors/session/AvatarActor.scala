@@ -58,7 +58,7 @@ import net.psforever.types.{
 }
 import net.psforever.util.Database._
 import net.psforever.persistence
-import net.psforever.util.DefinitionUtil
+import net.psforever.util.{Config, DefinitionUtil}
 import org.joda.time.{LocalDateTime, Seconds}
 import net.psforever.services.ServiceManager
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
@@ -306,7 +306,9 @@ class AvatarActor(
                           _.factionId -> lift(empire.id),
                           _.headId    -> lift(head),
                           _.voiceId   -> lift(voice.id),
-                          _.genderId  -> lift(gender.id)
+                          _.genderId  -> lift(gender.id),
+                          _.bep       -> lift(Config.app.game.newAvatar.br.experience),
+                          _.cep       -> lift(Config.app.game.newAvatar.cr.experience)
                         )
                         .returningGenerated(_.id)
                     )
@@ -330,7 +332,7 @@ class AvatarActor(
                     case Failure(e) => log.error(e)("db failure")
                   }
                 case Some(_) =>
-                  // send "char already exist"
+                  // send "char already exists"
                   sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(1))
               }
             case Failure(e) =>
