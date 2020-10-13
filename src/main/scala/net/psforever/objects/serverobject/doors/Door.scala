@@ -25,16 +25,6 @@ class Door(private val ddef: DoorDefinition) extends Amenity {
     Open
   }
 
-  def Use(player: Player, msg: UseItemMessage): Door.Exchange = {
-    if (openState.isEmpty) {
-      openState = Some(player)
-      Door.OpenEvent()
-    } else {
-      openState = None
-      Door.CloseEvent()
-    }
-  }
-
   def Definition: DoorDefinition = ddef
 }
 

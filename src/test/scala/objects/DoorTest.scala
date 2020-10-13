@@ -59,10 +59,12 @@ class DoorTest extends Specification {
       )
       val door = Door(GlobalDefinitions.door)
       door.Open.isEmpty mustEqual true
-      door.Use(player, msg)
+      door.Open = player
+      door.isOpen mustEqual true
       door.Open.contains(player) mustEqual true
-      door.Use(player, msg)
+      door.Open = None
       door.Open.isEmpty mustEqual true
+      door.isOpen mustEqual false
     }
   }
 }

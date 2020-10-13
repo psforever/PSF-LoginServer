@@ -542,9 +542,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     case ProgressEvent(delta, finishedAction, stepAction, tick) =>
       HandleProgressChange(delta, finishedAction, stepAction, tick)
 
-    case Door.DoorMessage(tplayer, msg, order) =>
-      HandleDoorMessage(tplayer, msg, order)
-
     case GalaxyServiceResponse(_, reply) =>
       reply match {
         case GalaxyResponse.HotSpotUpdate(zone_index, priority, hot_spot_info) =>
@@ -2186,36 +2183,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           }
           continent.tasks ! PutLoadoutEquipmentInInventory(target)(item.obj, item.start)
       }
-    }
-  }
-
-  /**
-    * na
-    * @param tplayer na
-    * @param msg     na
-    * @param order   na
-    */
-  def HandleDoorMessage(tplayer: Player, msg: UseItemMessage, order: Door.Exchange): Unit = {
-    val door_guid = msg.object_guid
-    order match {
-      case Door.OpenEvent() =>
-        continent.GUID(door_guid) match {
-          case Some(door: Door) =>
-            sendResponse(GenericObjectStateMsg(door_guid, 16))
-            continent.LocalEvents ! LocalServiceMessage(
-              continent.id,
-              LocalAction.DoorOpens(tplayer.GUID, continent, door)
-            )
-
-          case _ =>
-            log.warn(s"door $door_guid wanted to be opened but could not be found")
-        }
-
-      case Door.CloseEvent() =>
-        sendResponse(GenericObjectStateMsg(door_guid, 17))
-        continent.LocalEvents ! LocalServiceMessage(continent.id, LocalAction.DoorCloses(tplayer.GUID, door_guid))
-
-      case Door.NoEvent() => ;
     }
   }
 
@@ -4477,29 +4444,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
         ValidObject(object_guid) match {
           case Some(door: Door) =>
-            if (
-              player.Faction == door.Faction || (continent.map.doorToLock.get(object_guid.guid) match {
-                case Some(lock_guid) =>
-                  val lock             = continent.GUID(lock_guid).get.asInstanceOf[IFFLock]
-                  val owner            = lock.Owner.asInstanceOf[Building]
-                  val playerIsOnInside = Vector3.ScalarProjection(lock.Outwards, player.Position - door.Position) < 0f
-
-                  // If an IFF lock exists and the IFF lock faction doesn't match the current player and one of the following conditions are met open the door:
-                  // The player is on the inside of the door, determined by the lock orientation
-                  // The lock is hacked
-                  // A base is hacked
-                  // A base is neutral
-                  // todo: A base is out of power (generator down)
-
-                  playerIsOnInside || lock.HackedBy.isDefined || owner.CaptureTerminalIsHacked || lock.Faction == PlanetSideEmpire.NEUTRAL
-                case None => !door.isOpen // If there's no linked IFF lock just open the door if it's closed.
-              })
-            ) {
-              door.Actor ! Door.Use(player, msg)
-            } else if (door.isOpen) {
-              //the door is open globally ... except on our screen
-              sendResponse(GenericObjectStateMsg(object_guid, 16))
-            }
+            door.Actor ! CommonMessages.Use(player)
 
           case Some(resourceSilo: ResourceSilo) =>
             resourceSilo.Actor ! CommonMessages.Use(player)

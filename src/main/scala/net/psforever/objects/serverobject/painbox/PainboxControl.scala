@@ -21,7 +21,7 @@ class PainboxControl(painbox: Painbox) extends PoweredAmenityControl {
 
   var disabled = false // Temporary to disable cavern non-radius fields
 
-  val initialStartup: Unit = {
+  def initialStartup(): Unit = {
     if (painbox.Definition.HasNearestDoorDependency) {
       (painbox.Owner match {
         case obj : Building =>
