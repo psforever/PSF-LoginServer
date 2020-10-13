@@ -50,7 +50,7 @@ trait SpawnPoint {
     */
   def Definition: ObjectDefinition with SpawnPointDefinition
 
-  def Offline: Boolean = psso.Destroyed
+  def isOffline: Boolean = psso.Destroyed
 
   /**
     * Determine a specific position and orientation in which to spawn the target.

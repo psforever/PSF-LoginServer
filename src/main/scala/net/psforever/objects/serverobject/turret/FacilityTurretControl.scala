@@ -1,7 +1,6 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.turret
 
-import akka.actor.Actor
 import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.{Default, GlobalDefinitions, Player, Tool}
 import net.psforever.objects.equipment.{Ammo, JammableMountedWeapons}
@@ -11,8 +10,10 @@ import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableWeaponTurret}
 import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableWeaponTurret}
+import net.psforever.objects.serverobject.structures.PoweredAmenityControl
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -27,7 +28,7 @@ import scala.concurrent.duration._
   * @param turret the `MannedTurret` object being governed
   */
 class FacilityTurretControl(turret: FacilityTurret)
-    extends Actor
+    extends PoweredAmenityControl
     with FactionAffinityBehavior.Check
     with MountableBehavior.TurretMount
     with MountableBehavior.Dismount
@@ -51,14 +52,17 @@ class FacilityTurretControl(turret: FacilityTurret)
     stopAutoRepair()
   }
 
-  def receive: Receive =
+  def commonBehavior: Receive =
     checkBehavior
       .orElse(jammableBehavior)
-      .orElse(mountBehavior)
       .orElse(dismountBehavior)
       .orElse(takesDamage)
       .orElse(canBeRepairedByNanoDispenser)
       .orElse(autoRepairBehavior)
+
+  def poweredStateLogic: Receive =
+    commonBehavior
+      .orElse(mountBehavior)
       .orElse {
         case CommonMessages.Use(player, Some((item: Tool, upgradeValue: Int)))
             if player.Faction == turret.Faction &&
@@ -113,6 +117,12 @@ class FacilityTurretControl(turret: FacilityTurret)
         case _ => ;
       }
 
+  def unpoweredStateLogic: Receive =
+    commonBehavior
+      .orElse {
+        case _ => ;
+      }
+
   override protected def DamageAwareness(target : Damageable.Target, cause : ResolvedProjectile, amount : Any) : Unit = {
     tryAutoRepair()
     super.DamageAwareness(target, cause, amount)
@@ -146,4 +156,25 @@ class FacilityTurretControl(turret: FacilityTurret)
     events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 50, 0))
     events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 51, 0))
   }
+
+  def powerTurnOffCallback(): Unit = {
+    //kick all occupants
+    val guid = turret.GUID
+    val zone = turret.Zone
+    val zoneId = zone.id
+    val events = zone.VehicleEvents
+    turret.Seats.values.foreach(seat =>
+      seat.Occupant match {
+        case Some(player) =>
+          seat.Occupant = None
+          player.VehicleSeated = None
+          if (player.HasGUID) {
+            events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, false, guid))
+          }
+        case None => ;
+      }
+    )
+  }
+
+  def powerTurnOnCallback(): Unit = { }
 }

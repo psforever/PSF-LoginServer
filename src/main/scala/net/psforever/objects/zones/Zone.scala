@@ -354,8 +354,8 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
       .filter {
         case (building, spawns) =>
           spawns.nonEmpty &&
-            spawns.exists(_.Offline == false) &&
-            structures.contains(building.BuildingType)
+          spawns.exists(_.isOffline == false) &&
+          structures.contains(building.BuildingType)
       }
       .filter {
         case (building, _) =>
@@ -368,7 +368,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
       }
       .map {
         case (building, spawns: List[SpawnPoint]) =>
-          (building, spawns.filter(!_.Offline))
+          (building, spawns.filter(!_.isOffline))
       }
       .concat(
         (if (ams) Vehicles else List())

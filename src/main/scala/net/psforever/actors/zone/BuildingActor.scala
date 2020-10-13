@@ -7,6 +7,7 @@ import akka.{actor => classic}
 import net.psforever.actors.commands.NtuCommand
 import net.psforever.objects.{CommonNtuContainer, NtuContainer}
 import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.generator.Generator
 import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
 import net.psforever.objects.zones.Zone
 import net.psforever.persistence
@@ -49,6 +50,10 @@ object BuildingActor {
   final case class SuppliedWithNtu() extends Command
 
   final case class NtuDepleted() extends Command
+
+  final case class PowerOn() extends Command
+
+  final case class PowerOff() extends Command
 }
 
 class BuildingActor(
@@ -152,6 +157,14 @@ class BuildingActor(
         Behaviors.same
 
       case MapUpdate() =>
+        galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(building.infoUpdateMessage()))
+        Behaviors.same
+
+      case AmenityStateChange(obj: Generator) =>
+        //TODO when parameter object is finally immutable, perform analysis on it to determine specific actions
+        val msg = if(obj.Destroyed) BuildingActor.PowerOff() else BuildingActor.PowerOn()
+        building.Amenities.foreach { _.Actor ! msg }
+        //update the map
         galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(building.infoUpdateMessage()))
         Behaviors.same
 
