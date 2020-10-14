@@ -93,7 +93,6 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
   }
 
   override def onMessage(msg: Command): Behavior[Command] = {
-    log.info(s"$msg")
     msg match {
       case GetPlayers(replyTo) =>
         replyTo ! PlayersResponse(zones.flatMap(_.Players).toSeq)
