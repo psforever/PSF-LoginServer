@@ -58,11 +58,11 @@ class FacilityTurretControl(turret: FacilityTurret)
       .orElse(dismountBehavior)
       .orElse(takesDamage)
       .orElse(canBeRepairedByNanoDispenser)
-      .orElse(autoRepairBehavior)
 
   def poweredStateLogic: Receive =
     commonBehavior
       .orElse(mountBehavior)
+      .orElse(autoRepairBehavior)
       .orElse {
         case CommonMessages.Use(player, Some((item: Tool, upgradeValue: Int)))
             if player.Faction == turret.Faction &&
@@ -157,7 +157,12 @@ class FacilityTurretControl(turret: FacilityTurret)
     events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 51, 0))
   }
 
+  override def tryAutoRepair() : Boolean = {
+    isPowered && super.tryAutoRepair()
+  }
+
   def powerTurnOffCallback(): Unit = {
+    stopAutoRepair()
     //kick all occupants
     val guid = turret.GUID
     val zone = turret.Zone
@@ -176,5 +181,7 @@ class FacilityTurretControl(turret: FacilityTurret)
     )
   }
 
-  def powerTurnOnCallback(): Unit = { }
+  def powerTurnOnCallback(): Unit = {
+    tryAutoRepair()
+  }
 }

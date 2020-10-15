@@ -114,6 +114,13 @@ class Building(
     }
   }
 
+  def Generator: Option[Generator] = {
+    Amenities.find(_.isInstanceOf[Generator]) match {
+      case Some(obj: Generator) => Some(obj)
+      case _                    => None
+    }
+  }
+
   def CaptureTerminal: Option[CaptureTerminal] = {
     Amenities.find(_.isInstanceOf[CaptureTerminal]) match {
       case Some(term) => Some(term.asInstanceOf[CaptureTerminal])
@@ -187,8 +194,8 @@ class Building(
         (false, PlanetSideEmpire.NEUTRAL, 0L)
     }
     //if we have no generator, assume the state is "Normal"
-    val (generatorState, boostGeneratorPain) = Amenities.find(x => x.isInstanceOf[Generator]) match {
-      case Some(obj: Generator) =>
+    val (generatorState, boostGeneratorPain) = Generator match {
+      case Some(obj) =>
         (obj.Condition, false) // todo: poll pain field strength
       case _ =>
         (PlanetSideGeneratorState.Normal, false)

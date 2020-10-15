@@ -107,7 +107,12 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
     newHealth
   }
 
+  override def tryAutoRepair() : Boolean = {
+    isPowered && super.tryAutoRepair()
+  }
+
   def powerTurnOffCallback(): Unit = {
+    stopAutoRepair()
     //kick all occupants
     val guid = mech.GUID
     val zone = mech.Zone
@@ -126,5 +131,7 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
     )
   }
 
-  def powerTurnOnCallback(): Unit = { }
+  def powerTurnOnCallback(): Unit = {
+    tryAutoRepair()
+  }
 }

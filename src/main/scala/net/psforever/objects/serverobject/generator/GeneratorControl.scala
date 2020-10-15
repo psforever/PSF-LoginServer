@@ -48,7 +48,7 @@ class GeneratorControl(gen: Generator)
           gen.Health = 0
           super.DestructionAwareness(gen, gen.LastShot.get)
           gen.Condition = PlanetSideGeneratorState.Destroyed
-          GeneratorControl.UpdateOwner(gen)
+          GeneratorControl.UpdateOwner(gen, Some("destroyed"))
           //kaboom
           zone.AvatarEvents ! AvatarServiceMessage(
             zone.id,
@@ -74,12 +74,26 @@ class GeneratorControl(gen: Generator)
         case GeneratorControl.UnderThreatAlarm() =>
           if (!alarmCooldownPeriod) {
             alarmCooldownPeriod = true
-            GeneratorControl.BroadcastGeneratorEvent(gen, event = 15)
+            GeneratorControl.BroadcastGeneratorEvent(gen, GeneratorControl.Event.UnderAttack)
             context.system.scheduler.scheduleOnce(delay = 5 seconds, self, GeneratorControl.AlarmReset())
           }
 
         case GeneratorControl.AlarmReset() =>
           alarmCooldownPeriod = false
+
+        case BuildingActor.NtuDepleted() =>
+          gen.Owner match {
+            case b: Building if !gen.Destroyed =>
+              b.Actor ! BuildingActor.PowerOff()
+            case _ => ;
+          }
+
+        case BuildingActor.SuppliedWithNtu() =>
+          gen.Owner match {
+            case b: Building if !gen.Destroyed =>
+              b.Actor ! BuildingActor.PowerOn()
+            case _ => ;
+          }
 
         case _ => ;
       }
@@ -108,7 +122,8 @@ class GeneratorControl(gen: Generator)
       target.Health = 1 //temporary
       imminentExplosion = true
       context.system.scheduler.scheduleOnce(10 seconds, self, GeneratorControl.GeneratorExplodes())
-      GeneratorControl.BroadcastGeneratorEvent(gen, 16)
+      GeneratorControl.UpdateOwner(gen, Some("overloaded"))
+      GeneratorControl.BroadcastGeneratorEvent(gen, GeneratorControl.Event.Overloaded)
     }
   }
 
@@ -123,8 +138,8 @@ class GeneratorControl(gen: Generator)
   override def Restoration(obj: Repairable.Target): Unit = {
     super.Restoration(obj)
     gen.Condition = PlanetSideGeneratorState.Normal
-    GeneratorControl.UpdateOwner(gen)
-    GeneratorControl.BroadcastGeneratorEvent(gen, 17)
+    GeneratorControl.UpdateOwner(gen, Some("repaired"))
+    GeneratorControl.BroadcastGeneratorEvent(gen, GeneratorControl.Event.Online)
   }
 }
 
@@ -147,11 +162,21 @@ object GeneratorControl {
 
   /**
     * na
+    */
+  object Event extends Enumeration {
+    val UnderAttack = Value(15)
+    val Critical = Value(0)
+    val Overloaded = Value(16)
+    val Online = Value(17)
+  }
+
+  /**
+    * na
     * @param obj na
     */
-  private def UpdateOwner(obj: Generator): Unit = {
+  private def UpdateOwner(obj: Generator, data: Option[Any] = None): Unit = {
     obj.Owner match {
-      case b: Building => b.Actor ! BuildingActor.AmenityStateChange(obj)
+      case b: Building => b.Actor ! BuildingActor.AmenityStateChange(obj, data)
       case _           => ;
     }
   }
@@ -161,11 +186,14 @@ object GeneratorControl {
     * @param target the generator
     * @param event the action code for the event
     */
-  private def BroadcastGeneratorEvent(target: Generator, event: Int): Unit = {
+  private def BroadcastGeneratorEvent(target: Generator, event: Event.Value): Unit = {
     target.Owner match {
       case b: Building =>
         val events = target.Zone.AvatarEvents
-        val msg    = AvatarAction.GenericObjectAction(Service.defaultPlayerGUID, target.Owner.GUID, event)
+        val msg = event match {
+          case Event.Critical => AvatarAction.PlanetsideAttributeToAll(b.GUID, 46, 1) //critical status warning
+          case _ =>              AvatarAction.GenericObjectAction(Service.defaultPlayerGUID, b.GUID, event.id)
+        }
         b.PlayersInSOI.foreach { player =>
           events ! AvatarServiceMessage(player.Name, msg)
         }
@@ -185,7 +213,7 @@ object GeneratorControl {
       val max: Float    = target.MaxHealth.toFloat
       if (target.Condition != PlanetSideGeneratorState.Critical && health / max < 0.51f) { //becoming critical
         target.Condition = PlanetSideGeneratorState.Critical
-        GeneratorControl.UpdateOwner(target)
+        GeneratorControl.UpdateOwner(target, Some("critical"))
       }
       //the generator is under attack
       target.Actor ! UnderThreatAlarm()

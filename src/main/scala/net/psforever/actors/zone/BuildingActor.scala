@@ -9,8 +9,10 @@ import net.psforever.objects.{CommonNtuContainer, NtuContainer}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.generator.Generator
 import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
+import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.zones.Zone
 import net.psforever.persistence
+import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.types.PlanetSideEmpire
 import net.psforever.util.Database._
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
@@ -43,7 +45,11 @@ object BuildingActor {
   // Once they do, we won't need this anymore
   final case class MapUpdate() extends Command
 
-  final case class AmenityStateChange(obj: Amenity) extends Command
+  final case class AmenityStateChange(obj: Amenity, data: Option[Any]) extends Command
+
+  object AmenityStateChange{
+    def apply(obj: Amenity): AmenityStateChange = AmenityStateChange(obj, None)
+  }
 
   final case class Ntu(command: NtuCommand.Command) extends Command
 
@@ -160,29 +166,50 @@ class BuildingActor(
         galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(building.infoUpdateMessage()))
         Behaviors.same
 
-      case AmenityStateChange(obj: Generator) =>
+      case AmenityStateChange(obj: Generator, data) =>
         //TODO when parameter object is finally immutable, perform analysis on it to determine specific actions
-        val msg = if(obj.Destroyed) BuildingActor.PowerOff() else BuildingActor.PowerOn()
-        building.Amenities.foreach { _.Actor ! msg }
+        data match {
+          case Some("overloaded") =>
+            powerLost()
+            val zone = building.Zone
+            val msg = AvatarAction.PlanetsideAttributeToAll(building.GUID, 46, 2)
+            building.PlayersInSOI.foreach { player =>
+              zone.AvatarEvents ! AvatarServiceMessage(player.Name, msg)
+            } //???
+          case Some("repaired") =>
+            powerRestored()
+            val zone = building.Zone
+            building.PlayersInSOI.foreach { player =>
+              val msg = AvatarAction.PlanetsideAttributeToAll(building.GUID, 46, 0)
+              zone.AvatarEvents ! AvatarServiceMessage(player.Name, msg)
+            } //reset ???
+          case _ => ;
+        }
         //update the map
         galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(building.infoUpdateMessage()))
         Behaviors.same
 
-      case AmenityStateChange(_) =>
+      case AmenityStateChange(_, _) =>
         //TODO when parameter object is finally immutable, perform analysis on it to determine specific actions
         //for now, just update the map
         galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(building.infoUpdateMessage()))
         Behaviors.same
 
+      case PowerOff() =>
+        powerLost()
+        Behaviors.same
+
+      case PowerOn() =>
+        powerRestored()
+        Behaviors.same
+
       case msg @ NtuDepleted() =>
-        log.trace(s"${building.Definition.Name} ${building.Name} ntu has been depleted")
         building.Amenities.foreach { amenity =>
           amenity.Actor ! msg
         }
         Behaviors.same
 
       case msg @ SuppliedWithNtu() =>
-        log.trace(s"ntu supply has been restored to ${building.Definition.Name} ${building.Name}")
         building.Amenities.foreach { amenity =>
           amenity.Actor ! msg
         }
@@ -191,6 +218,36 @@ class BuildingActor(
       case Ntu(msg) =>
         ntu(msg)
     }
+  }
+
+  def powerLost(): Unit = {
+    val zone = building.Zone
+    val zoneId = zone.id
+    val events = zone.AvatarEvents
+    val guid = building.GUID
+    val powerMsg = BuildingActor.PowerOff()
+    building.Amenities.foreach { amenity =>
+      amenity.Actor ! powerMsg
+    }
+    //amenities disabled; red warning lights
+    events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(guid, 48, 1))
+    //disable spawn target on deployment map
+    events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(guid, 38, 0))
+  }
+
+  def powerRestored(): Unit = {
+    val zone = building.Zone
+    val zoneId = zone.id
+    val events = zone.AvatarEvents
+    val guid = building.GUID
+    val powerMsg = BuildingActor.PowerOn()
+    building.Amenities.foreach { amenity =>
+      amenity.Actor ! powerMsg
+    }
+    //amenities enabled; normal lights
+    events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(guid, 48, 0))
+    //enable spawn target on deployment map
+    events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(guid, 38, 1))
   }
 
   def ntu(msg: NtuCommand.Command): Behavior[Command] = {

@@ -89,7 +89,12 @@ class TerminalControl(term: Terminal)
     newHealth
   }
 
+  override def tryAutoRepair() : Boolean = {
+    isPowered && super.tryAutoRepair()
+  }
+
   def powerTurnOffCallback() : Unit = {
+    stopAutoRepair()
     //clear hack state
     if (term.HackedBy.nonEmpty) {
       val zone = term.Zone
@@ -97,7 +102,9 @@ class TerminalControl(term: Terminal)
     }
   }
 
-  def powerTurnOnCallback() : Unit = { }
+  def powerTurnOnCallback() : Unit = {
+    tryAutoRepair()
+  }
 
   override def toString: String = term.Definition.Name
 }

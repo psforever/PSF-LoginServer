@@ -3646,6 +3646,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         if (isMovingPlus) {
           CancelZoningProcessWithDescriptiveReason("cancel_motion")
         }
+        if (!player.Crouching && is_crouching) {
+          continent.Buildings.values.find { b => Vector3.Distance(player.Position, b.Position) <= b.Definition.SOIRadius} match {
+            case Some(b) => ;
+            case _ => ;
+          }
+        }
         player.Position = pos
         player.Velocity = vel
         player.Orientation = Vector3(player.Orientation.x, pitch, yaw)
@@ -6554,13 +6560,20 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     */
   def configZone(zone: Zone): Unit = {
     zone.Buildings.values.foreach(building => {
-      sendResponse(SetEmpireMessage(building.GUID, building.Faction))
-
-      // Synchronise capitol force dome state
-      if (building.IsCapitol && building.ForceDomeActive) {
-        sendResponse(GenericObjectActionMessage(building.GUID, 13))
+      val guid = building.GUID
+      sendResponse(SetEmpireMessage(guid, building.Faction))
+      // power
+      building.Generator match {
+        case Some(obj) if obj.Condition != PlanetSideGeneratorState.Normal =>
+          sendResponse(PlanetsideAttributeMessage(guid, 48, 1))
+          sendResponse(PlanetsideAttributeMessage(guid, 38, 0))
+        case _ => ;
       }
-      // Synchronise amenities
+      // capitol force dome state
+      if (building.IsCapitol && building.ForceDomeActive) {
+        sendResponse(GenericObjectActionMessage(guid, 13))
+      }
+      // amenities
       building.Amenities.collect {
         case obj if obj.Destroyed => configAmenityAsDestroyed(obj)
         case obj                  => configAmenityAsWorking(obj)
