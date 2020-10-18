@@ -5,9 +5,10 @@ import akka.actor.{ActorRef, Cancellable}
 import net.psforever.objects._
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
+import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.DamageableAmenity
 import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}
-import net.psforever.objects.serverobject.repair.RepairableAmenity
+import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableAmenity}
 import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
 import net.psforever.services.Service
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
@@ -26,12 +27,14 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
     with FactionAffinityBehavior.Check
     with HackableBehavior.GenericHackable
     with DamageableAmenity
-    with RepairableAmenity {
+    with RepairableAmenity
+    with AmenityAutoRepair {
   def FactionObject    = term
   def HackableObject   = term
   def TerminalObject   = term
   def DamageableObject = term
   def RepairableObject = term
+  def AutoRepairObject = term
 
   var terminalAction: Cancellable             = Default.Cancellable
   val callbacks: mutable.ListBuffer[ActorRef] = new mutable.ListBuffer[ActorRef]()
@@ -40,6 +43,7 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
   val commonBehavior: Receive = checkBehavior
     .orElse(takesDamage)
     .orElse(canBeRepairedByNanoDispenser)
+    .orElse(autoRepairBehavior)
     .orElse {
       case CommonMessages.Unuse(_, Some(target: PlanetSideGameObject)) =>
         Unuse(target, term.Continent)
@@ -117,6 +121,18 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
       case _ => ;
     }
 
+  override def PerformRepairs(target : Target, amount : Int) : Int = {
+    val newHealth = super.PerformRepairs(target, amount)
+    if(newHealth == target.Definition.MaxHealth) {
+      stopAutoRepair()
+    }
+    newHealth
+  }
+
+  override def tryAutoRepair() : Boolean = {
+    isPowered && super.tryAutoRepair()
+  }
+
   def Use(target: PlanetSideGameObject, zone: String, callback: ActorRef): Unit = {
     val hadNoUsers = term.NumberUsers == 0
     if (term.AddUser(target)) {
@@ -164,6 +180,7 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
   }
 
   def powerTurnOffCallback() : Unit = {
+    stopAutoRepair()
     //clear effect callbacks
     terminalAction.cancel()
     if (callbacks.nonEmpty) {
@@ -177,7 +194,9 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
     }
   }
 
-  def powerTurnOnCallback() : Unit = { }
+  def powerTurnOnCallback() : Unit = {
+    tryAutoRepair()
+  }
 
   override def toString: String = term.Definition.Name
 }

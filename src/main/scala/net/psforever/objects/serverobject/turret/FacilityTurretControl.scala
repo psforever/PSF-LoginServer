@@ -58,11 +58,11 @@ class FacilityTurretControl(turret: FacilityTurret)
       .orElse(dismountBehavior)
       .orElse(takesDamage)
       .orElse(canBeRepairedByNanoDispenser)
+      .orElse(autoRepairBehavior)
 
   def poweredStateLogic: Receive =
     commonBehavior
       .orElse(mountBehavior)
-      .orElse(autoRepairBehavior)
       .orElse {
         case CommonMessages.Use(player, Some((item: Tool, upgradeValue: Int)))
             if player.Faction == turret.Faction &&

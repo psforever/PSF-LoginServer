@@ -9,7 +9,6 @@ import net.psforever.objects.{CommonNtuContainer, NtuContainer}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.generator.Generator
 import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
-import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.zones.Zone
 import net.psforever.persistence
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
@@ -118,55 +117,14 @@ class BuildingActor(
   ): Behavior[Command] = {
     Behaviors.receiveMessagePartial {
       case SetFaction(faction) =>
-        import ctx._
-        ctx
-          .run(
-            query[persistence.Building]
-              .filter(_.localId == lift(building.MapId))
-              .filter(_.zoneId == lift(zone.Number))
-          )
-          .onComplete {
-            case Success(res) =>
-              res.headOption match {
-                case Some(_) =>
-                  ctx
-                    .run(
-                      query[persistence.Building]
-                        .filter(_.localId == lift(building.MapId))
-                        .filter(_.zoneId == lift(zone.Number))
-                        .update(_.factionId -> lift(building.Faction.id))
-                    )
-                    .onComplete {
-                      case Success(_) =>
-                      case Failure(e) => log.error(e.getMessage)
-                    }
-                case _ =>
-                  ctx
-                    .run(
-                      query[persistence.Building]
-                        .insert(
-                          _.localId   -> lift(building.MapId),
-                          _.factionId -> lift(building.Faction.id),
-                          _.zoneId    -> lift(zone.Number)
-                        )
-                    )
-                    .onComplete {
-                      case Success(_) =>
-                      case Failure(e) => log.error(e.getMessage)
-                    }
-              }
-            case Failure(e) => log.error(e.getMessage)
-          }
-        building.Faction = faction
-        galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(building.infoUpdateMessage()))
-        zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.SetEmpire(building.GUID, faction))
+        setFactionTo(faction, galaxyService)
         Behaviors.same
 
       case MapUpdate() =>
         galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(building.infoUpdateMessage()))
         Behaviors.same
 
-      case AmenityStateChange(obj: Generator, data) =>
+      case AmenityStateChange(_: Generator, data) =>
         //TODO when parameter object is finally immutable, perform analysis on it to determine specific actions
         data match {
           case Some("overloaded") =>
@@ -176,7 +134,8 @@ class BuildingActor(
             building.PlayersInSOI.foreach { player =>
               zone.AvatarEvents ! AvatarServiceMessage(player.Name, msg)
             } //???
-          case Some("repaired") =>
+          case Some("restored") =>
+            // Power restored. Reactor Online. Sensors Online. Weapons Online. All systems nominal.
             powerRestored()
             val zone = building.Zone
             building.PlayersInSOI.foreach { player =>
@@ -204,12 +163,15 @@ class BuildingActor(
         Behaviors.same
 
       case msg @ NtuDepleted() =>
+        // Oops, someone let the base run out of power. Shut it all down.
         building.Amenities.foreach { amenity =>
           amenity.Actor ! msg
         }
+        setFactionTo(PlanetSideEmpire.NEUTRAL, galaxyService)
         Behaviors.same
 
       case msg @ SuppliedWithNtu() =>
+        // Auto-repair, mainly.  If the Generator works, power is restored too.
         building.Amenities.foreach { amenity =>
           amenity.Actor ! msg
         }
@@ -218,6 +180,51 @@ class BuildingActor(
       case Ntu(msg) =>
         ntu(msg)
     }
+  }
+
+  def setFactionTo(faction: PlanetSideEmpire.Value, galaxy: classic.ActorRef): Unit = {
+    import ctx._
+    ctx
+      .run(
+        query[persistence.Building]
+          .filter(_.localId == lift(building.MapId))
+          .filter(_.zoneId == lift(zone.Number))
+      )
+      .onComplete {
+        case Success(res) =>
+          res.headOption match {
+            case Some(_) =>
+              ctx
+                .run(
+                  query[persistence.Building]
+                    .filter(_.localId == lift(building.MapId))
+                    .filter(_.zoneId == lift(zone.Number))
+                    .update(_.factionId -> lift(building.Faction.id))
+                )
+                .onComplete {
+                  case Success(_) =>
+                  case Failure(e) => log.error(e.getMessage)
+                }
+            case _ =>
+              ctx
+                .run(
+                  query[persistence.Building]
+                    .insert(
+                      _.localId   -> lift(building.MapId),
+                      _.factionId -> lift(building.Faction.id),
+                      _.zoneId    -> lift(zone.Number)
+                    )
+                )
+                .onComplete {
+                  case Success(_) =>
+                  case Failure(e) => log.error(e.getMessage)
+                }
+          }
+        case Failure(e) => log.error(e.getMessage)
+      }
+    building.Faction = faction
+    galaxy ! GalaxyServiceMessage(GalaxyAction.MapUpdate(building.infoUpdateMessage()))
+    zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.SetEmpire(building.GUID, faction))
   }
 
   def powerLost(): Unit = {
