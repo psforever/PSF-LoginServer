@@ -3646,12 +3646,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         if (isMovingPlus) {
           CancelZoningProcessWithDescriptiveReason("cancel_motion")
         }
-        if (!player.Crouching && is_crouching) {
-          continent.Buildings.values.find { b => Vector3.Distance(player.Position, b.Position) <= b.Definition.SOIRadius} match {
-            case Some(b) => ;
-            case _ => ;
-          }
-        }
         player.Position = pos
         player.Velocity = vel
         player.Orientation = Vector3(player.Orientation.x, pitch, yaw)

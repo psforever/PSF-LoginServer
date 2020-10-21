@@ -4,6 +4,7 @@ package objects
 import akka.actor.Props
 import akka.testkit.TestProbe
 import base.FreedContextActorTest
+import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.ballistics.{Projectile, ProjectileResolution, ResolvedProjectile, SourceEntry}
 import net.psforever.objects.guid.NumberPoolHub
@@ -57,6 +58,7 @@ class AutoRepairFacilityIntegrationTest extends FreedContextActorTest {
   silo.NtuCapacitor = 1000
   silo.Actor = system.actorOf(Props(classOf[ResourceSiloControl], silo), "test-silo")
   silo.Actor ! "startup"
+  building.Actor ! BuildingActor.PowerOn() //artificial
 
   val wep_fmode  = weapon.FireMode
   val wep_prof   = wep_fmode.Add

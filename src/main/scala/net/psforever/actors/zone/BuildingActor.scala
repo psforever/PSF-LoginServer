@@ -7,7 +7,7 @@ import akka.{actor => classic}
 import net.psforever.actors.commands.NtuCommand
 import net.psforever.objects.{CommonNtuContainer, NtuContainer}
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.serverobject.generator.Generator
+import net.psforever.objects.serverobject.generator.{Generator, GeneratorControl}
 import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
 import net.psforever.objects.zones.Zone
 import net.psforever.persistence
@@ -16,7 +16,7 @@ import net.psforever.types.PlanetSideEmpire
 import net.psforever.util.Database._
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import net.psforever.services.{InterstellarClusterService, ServiceManager}
+import net.psforever.services.{InterstellarClusterService, Service, ServiceManager}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
@@ -73,6 +73,7 @@ class BuildingActor(
   private[this] val log                                                         = org.log4s.getLogger
   var galaxyService: Option[classic.ActorRef]                                   = None
   var interstellarCluster: Option[ActorRef[InterstellarClusterService.Command]] = None
+  var hasNtuSupply: Boolean = true
 
   context.system.receptionist ! Receptionist.Find(
     InterstellarClusterService.InterstellarClusterServiceKey,
@@ -124,28 +125,11 @@ class BuildingActor(
         galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(building.infoUpdateMessage()))
         Behaviors.same
 
-      case AmenityStateChange(_: Generator, data) =>
-        //TODO when parameter object is finally immutable, perform analysis on it to determine specific actions
-        data match {
-          case Some("overloaded") =>
-            powerLost()
-            val zone = building.Zone
-            val msg = AvatarAction.PlanetsideAttributeToAll(building.GUID, 46, 2)
-            building.PlayersInSOI.foreach { player =>
-              zone.AvatarEvents ! AvatarServiceMessage(player.Name, msg)
-            } //???
-          case Some("restored") =>
-            // Power restored. Reactor Online. Sensors Online. Weapons Online. All systems nominal.
-            powerRestored()
-            val zone = building.Zone
-            building.PlayersInSOI.foreach { player =>
-              val msg = AvatarAction.PlanetsideAttributeToAll(building.GUID, 46, 0)
-              zone.AvatarEvents ! AvatarServiceMessage(player.Name, msg)
-            } //reset ???
-          case _ => ;
+      case AmenityStateChange(gen: Generator, data) =>
+        if (generatorStateChange(gen, data)) {
+          //update the map
+          galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(building.infoUpdateMessage()))
         }
-        //update the map
-        galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(building.infoUpdateMessage()))
         Behaviors.same
 
       case AmenityStateChange(_, _) =>
@@ -163,15 +147,17 @@ class BuildingActor(
         Behaviors.same
 
       case msg @ NtuDepleted() =>
-        // Oops, someone let the base run out of power. Shut it all down.
+        // Someone let the base run out of nanites. No one gets anything.
         building.Amenities.foreach { amenity =>
           amenity.Actor ! msg
         }
         setFactionTo(PlanetSideEmpire.NEUTRAL, galaxyService)
+        hasNtuSupply = false
         Behaviors.same
 
       case msg @ SuppliedWithNtu() =>
-        // Auto-repair, mainly.  If the Generator works, power is restored too.
+        // Auto-repair restart, mainly.  If the Generator works, power should be restored too.
+        hasNtuSupply = true
         building.Amenities.foreach { amenity =>
           amenity.Actor ! msg
         }
@@ -182,49 +168,107 @@ class BuildingActor(
     }
   }
 
+  def generatorStateChange(generator: Generator, event: Any): Boolean = {
+    event match {
+      case Some(GeneratorControl.Event.UnderAttack) =>
+        val events = zone.AvatarEvents
+        val guid = building.GUID
+        val msg = AvatarAction.GenericObjectAction(Service.defaultPlayerGUID, guid, 15)
+        building.PlayersInSOI.foreach { player =>
+          events ! AvatarServiceMessage(player.Name, msg)
+        }
+        false
+      case Some(GeneratorControl.Event.Critical) =>
+        val events = zone.AvatarEvents
+        val guid = building.GUID
+        val msg = AvatarAction.PlanetsideAttributeToAll(guid, 46, 1)
+        building.PlayersInSOI.foreach { player =>
+          events ! AvatarServiceMessage(player.Name, msg)
+        }
+        true
+      case Some(GeneratorControl.Event.Destabilized) =>
+        val events = zone.AvatarEvents
+        val guid = building.GUID
+        val msg = AvatarAction.GenericObjectAction(Service.defaultPlayerGUID, guid, 16)
+        building.PlayersInSOI.foreach { player =>
+          events ! AvatarServiceMessage(player.Name, msg)
+        }
+        false
+      case Some(GeneratorControl.Event.Destroyed) =>
+        true
+      case Some(GeneratorControl.Event.Offline) =>
+        powerLost()
+        val zone = building.Zone
+        val msg = AvatarAction.PlanetsideAttributeToAll(building.GUID, 46, 2)
+        building.PlayersInSOI.foreach { player =>
+          zone.AvatarEvents ! AvatarServiceMessage(player.Name, msg)
+        } //???
+        false
+      case Some(GeneratorControl.Event.Normal) =>
+        true
+      case Some(GeneratorControl.Event.Online) =>
+        // Power restored. Reactor Online. Sensors Online. Weapons Online. All systems nominal.
+        powerRestored()
+        val events = zone.AvatarEvents
+        val guid = building.GUID
+        val msg1 = AvatarAction.PlanetsideAttributeToAll(guid, 46, 0)
+        val msg2 = AvatarAction.GenericObjectAction(Service.defaultPlayerGUID, guid, 17)
+        building.PlayersInSOI.foreach { player =>
+          val name = player.Name
+          events ! AvatarServiceMessage(name, msg1) //reset ???; might be global?
+          events ! AvatarServiceMessage(name, msg2) //This facility's generator is back on line
+        }
+        true
+      case _ =>
+        false
+    }
+  }
+
   def setFactionTo(faction: PlanetSideEmpire.Value, galaxy: classic.ActorRef): Unit = {
-    import ctx._
-    ctx
-      .run(
-        query[persistence.Building]
-          .filter(_.localId == lift(building.MapId))
-          .filter(_.zoneId == lift(zone.Number))
-      )
-      .onComplete {
-        case Success(res) =>
-          res.headOption match {
-            case Some(_) =>
-              ctx
-                .run(
-                  query[persistence.Building]
-                    .filter(_.localId == lift(building.MapId))
-                    .filter(_.zoneId == lift(zone.Number))
-                    .update(_.factionId -> lift(building.Faction.id))
-                )
-                .onComplete {
-                  case Success(_) =>
-                  case Failure(e) => log.error(e.getMessage)
-                }
-            case _ =>
-              ctx
-                .run(
-                  query[persistence.Building]
-                    .insert(
-                      _.localId   -> lift(building.MapId),
-                      _.factionId -> lift(building.Faction.id),
-                      _.zoneId    -> lift(zone.Number)
-                    )
-                )
-                .onComplete {
-                  case Success(_) =>
-                  case Failure(e) => log.error(e.getMessage)
-                }
-          }
-        case Failure(e) => log.error(e.getMessage)
-      }
-    building.Faction = faction
-    galaxy ! GalaxyServiceMessage(GalaxyAction.MapUpdate(building.infoUpdateMessage()))
-    zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.SetEmpire(building.GUID, faction))
+    if (hasNtuSupply) {
+      import ctx._
+      ctx
+        .run(
+          query[persistence.Building]
+            .filter(_.localId == lift(building.MapId))
+            .filter(_.zoneId == lift(zone.Number))
+        )
+        .onComplete {
+          case Success(res) =>
+            res.headOption match {
+              case Some(_) =>
+                ctx
+                  .run(
+                    query[persistence.Building]
+                      .filter(_.localId == lift(building.MapId))
+                      .filter(_.zoneId == lift(zone.Number))
+                      .update(_.factionId -> lift(building.Faction.id))
+                  )
+                  .onComplete {
+                    case Success(_) =>
+                    case Failure(e) => log.error(e.getMessage)
+                  }
+              case _ =>
+                ctx
+                  .run(
+                    query[persistence.Building]
+                      .insert(
+                        _.localId   -> lift(building.MapId),
+                        _.factionId -> lift(building.Faction.id),
+                        _.zoneId    -> lift(zone.Number)
+                      )
+                  )
+                  .onComplete {
+                    case Success(_) =>
+                    case Failure(e) => log.error(e.getMessage)
+                  }
+            }
+          case Failure(e) => log.error(e.getMessage)
+        }
+      building.Faction = faction
+      galaxy ! GalaxyServiceMessage(GalaxyAction.MapUpdate(building.infoUpdateMessage()))
+      zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.SetEmpire(building.GUID, faction))
+    }
   }
 
   def powerLost(): Unit = {

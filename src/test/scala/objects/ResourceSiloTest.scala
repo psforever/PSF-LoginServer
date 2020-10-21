@@ -289,12 +289,6 @@ class ResourceSiloControlUpdate1Test extends ActorTest {
         case AvatarServiceMessage("nowhere", AvatarAction.PlanetsideAttribute(PlanetSideGUID(6), 47, 0)) => true
         case _                                                                                           => false
       })
-
-      val reply4 = zoneEvents.receiveOne(500 milliseconds)
-      assert(reply4 match {
-        case AvatarServiceMessage("nowhere", AvatarAction.PlanetsideAttribute(PlanetSideGUID(6), 48, 0)) => true
-        case _                                                                                           => false
-      })
     }
   }
 }
