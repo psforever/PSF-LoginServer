@@ -6558,9 +6558,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       sendResponse(SetEmpireMessage(guid, building.Faction))
       // power
       building.Generator match {
-        case Some(obj) if obj.Condition != PlanetSideGeneratorState.Normal =>
-          sendResponse(PlanetsideAttributeMessage(guid, 48, 1))
-          sendResponse(PlanetsideAttributeMessage(guid, 38, 0))
+        case Some(obj) if obj.Condition == PlanetSideGeneratorState.Destroyed || building.NtuLevel == 0 =>
+          sendResponse(PlanetsideAttributeMessage(guid, 48, 1)) //amenities disabled; red warning lights
+          sendResponse(PlanetsideAttributeMessage(guid, 38, 0)) //disable spawn target on deployment map
         case _ => ;
       }
       // capitol force dome state

@@ -160,7 +160,7 @@ object AutoRepairIntegrationTest {
     MaxHealth = 500
     Damageable = true
     Repairable = true
-    autoRepair = AutoRepairStats(1, 500, 500, 1)
+    autoRepair = AutoRepairStats(200, 500, 500, 1)
     RepairIfDestroyed = true
   }
 }

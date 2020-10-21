@@ -80,6 +80,8 @@ class GeneratorControl(gen: Generator)
       .orElse {
         case GeneratorControl.Destabilized() =>
           imminentExplosion = true
+          //the generator's condition is technically destroyed, but avoid official reporting until the explosion
+          gen.Condition = PlanetSideGeneratorState.Destroyed
           GeneratorControl.UpdateOwner(gen, Some(GeneratorControl.Event.Destabilized))
           queuedExplosion.cancel()
           queuedExplosion = context.system.scheduler.scheduleOnce(10 seconds, self, GeneratorControl.GeneratorExplodes())
@@ -89,7 +91,6 @@ class GeneratorControl(gen: Generator)
           val zone = gen.Zone
           gen.Health = 0
           super.DestructionAwareness(gen, gen.LastShot.get)
-          gen.Condition = PlanetSideGeneratorState.Destroyed
           GeneratorControl.UpdateOwner(gen, Some(GeneratorControl.Event.Destroyed))
           //kaboom
           zone.AvatarEvents ! AvatarServiceMessage(

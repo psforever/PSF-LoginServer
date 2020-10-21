@@ -287,7 +287,7 @@ class GeneratorControlDestroyedTest extends ActorTest {
       )
       assert(gen.Health == 1)
       assert(!gen.Destroyed)
-      assert(gen.Condition == PlanetSideGeneratorState.Normal)
+      assert(gen.Condition == PlanetSideGeneratorState.Destroyed)
 
       avatarProbe.expectNoMessage(9500 milliseconds)
       val msg_avatar2  = avatarProbe.receiveN(3, 1000 milliseconds) //see DamageableEntity test file
@@ -421,7 +421,7 @@ class GeneratorControlKillsTest extends ActorTest {
       )
       assert(gen.Health == 1)
       assert(!gen.Destroyed)
-      assert(gen.Condition == PlanetSideGeneratorState.Normal)
+      assert(gen.Condition == PlanetSideGeneratorState.Destroyed)
 
       avatarProbe.expectNoMessage(9500 milliseconds)
       val msg_avatar2  = avatarProbe.receiveN(3, 1000 milliseconds) //see DamageableEntity test file
@@ -631,7 +631,7 @@ class GeneratorControlNotDamageIfExplodingTest extends ActorTest {
       )
       assert(gen.Health == 1)
       assert(!gen.Destroyed)
-      assert(gen.Condition == PlanetSideGeneratorState.Normal)
+      assert(gen.Condition == PlanetSideGeneratorState.Destroyed)
       //going to explode state
 
       //once
@@ -732,7 +732,7 @@ class GeneratorControlNotRepairIfExplodingTest extends ActorTest {
       )
       assert(gen.Health == 1)
       assert(!gen.Destroyed)
-      assert(gen.Condition == PlanetSideGeneratorState.Normal)
+      assert(gen.Condition == PlanetSideGeneratorState.Destroyed)
       //going to explode state
 
       //once
