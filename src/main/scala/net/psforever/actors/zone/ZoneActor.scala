@@ -5,7 +5,7 @@ import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.Equipment
-import net.psforever.objects.serverobject.structures.StructureType
+import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{ConstructionItem, PlanetSideGameObject, Player, Vehicle}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
@@ -76,12 +76,21 @@ class ZoneActor(context: ActorContext[ZoneActor.Command], zone: Zone)
 
   ctx.run(query[persistence.Building].filter(_.zoneId == lift(zone.Number))).onComplete {
     case Success(buildings) =>
+      var capitol: Option[Building] = None
       buildings.foreach { building =>
         zone.BuildingByMapId(building.localId) match {
-          case Some(b) => b.Faction = PlanetSideEmpire(building.factionId)
-          case None    => // TODO this happens during testing, need a way to not always persist during tests
+          case Some(b) =>
+            b.Faction = PlanetSideEmpire(building.factionId)
+            if(b.IsCapitol) {
+              capitol = Some(b)
+            }
+          case None    =>
+          // TODO this happens during testing, need a way to not always persist during tests
         }
-
+      }
+      capitol match {
+        case Some(b) => b.ForceDomeActive = BuildingActor.checkForceDomeStatus(b).getOrElse(false)
+        case None    => ;
       }
     case Failure(e) => log.error(e.getMessage)
   }

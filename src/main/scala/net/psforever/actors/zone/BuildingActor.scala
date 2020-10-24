@@ -12,7 +12,7 @@ import net.psforever.objects.serverobject.structures.{Amenity, Building, Structu
 import net.psforever.objects.zones.Zone
 import net.psforever.persistence
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.types.PlanetSideEmpire
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGeneratorState}
 import net.psforever.util.Database._
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
@@ -39,6 +39,14 @@ object BuildingActor {
 
   final case class SetFaction(faction: PlanetSideEmpire.Value) extends Command
 
+  final case class UpdateForceDome(state: Option[Boolean]) extends Command
+
+  object UpdateForceDome {
+    def apply(): UpdateForceDome = UpdateForceDome(None)
+
+    def apply(state: Boolean): UpdateForceDome = UpdateForceDome(Some(state))
+  }
+
   // TODO remove
   // Changes to building objects should go through BuildingActor
   // Once they do, we won't need this anymore
@@ -59,6 +67,58 @@ object BuildingActor {
   final case class PowerOn() extends Command
 
   final case class PowerOff() extends Command
+
+  /**
+    * The natural conditions of a facility that is not eligible for its capitol force dome to be expanded.
+    * The only test not employed is whether or not the target building is a capitol.
+    * Ommission of this condition makes this test capable of evaluating subcapitol eligibility
+    * for capitol force dome expansion.
+    * @param building the target building
+    * @return `true`, if the conditions for capitol force dome are not met;
+    *        `false`, otherwise
+    */
+  def invalidBuildingCapitolForceDomeConditions(building: Building): Boolean = {
+    building.Faction == PlanetSideEmpire.NEUTRAL ||
+      building.NtuLevel == 0 ||
+      (building.Generator match {
+        case Some(o) => o.Condition == PlanetSideGeneratorState.Destroyed
+        case _ => false
+      })
+  }
+
+  /**
+    * If this building is a capitol major facility,
+    * use the faction affinity, the generator status, and the resource silo's capacitance level
+    * to determine if the capitol force dome should be active.
+    * @param building the building being evaluated
+    * @return the condition of the capitol force dome;
+    *         `None`, if the facility is not a capitol building;
+    *         `Some(true|false)` to indicate the state of the force dome
+    */
+  def checkForceDomeStatus(building: Building): Option[Boolean] = {
+    if (building.IsCapitol) {
+      val originalStatus = building.ForceDomeActive
+      val faction = building.Faction
+      val updatedStatus = if (invalidBuildingCapitolForceDomeConditions(building)) {
+        false
+      } else {
+        val ownedSubCapitols = building.Neighbours(faction) match {
+          case Some(buildings: Set[Building]) => buildings.count { b => !invalidBuildingCapitolForceDomeConditions(b) }
+          case None                           => 0
+        }
+        if (originalStatus && ownedSubCapitols <= 1) {
+          false
+        } else if (!originalStatus && ownedSubCapitols > 1) {
+          true
+        } else {
+          originalStatus
+        }
+      }
+      Some(updatedStatus)
+    } else {
+      None
+    }
+  }
 }
 
 class BuildingActor(
@@ -125,6 +185,15 @@ class BuildingActor(
         galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(building.infoUpdateMessage()))
         Behaviors.same
 
+      case UpdateForceDome(stateOpt) =>
+        stateOpt match {
+          case Some(updatedStatus) if building.IsCapitol && updatedStatus != building.ForceDomeActive =>
+            updateForceDomeStatus(updatedStatus, mapUpdateOnChange = true)
+          case _ =>
+            alignForceDomeStatus()
+        }
+        Behaviors.same
+
       case AmenityStateChange(gen: Generator, data) =>
         if (generatorStateChange(gen, data)) {
           //update the map
@@ -139,11 +208,17 @@ class BuildingActor(
         Behaviors.same
 
       case PowerOff() =>
-        powerLost()
+        building.Generator match {
+          case Some(gen) => gen.Actor ! BuildingActor.NtuDepleted()
+          case _ => powerLost()
+        }
         Behaviors.same
 
       case PowerOn() =>
-        powerRestored()
+        building.Generator match {
+          case Some(gen) if building.NtuLevel > 0 => gen.Actor ! BuildingActor.SuppliedWithNtu()
+          case _ => powerRestored()
+        }
         Behaviors.same
 
       case msg @ NtuDepleted() =>
@@ -198,17 +273,19 @@ class BuildingActor(
         true
       case Some(GeneratorControl.Event.Offline) =>
         powerLost()
+        alignForceDomeStatus(mapUpdateOnChange = false)
         val zone = building.Zone
         val msg = AvatarAction.PlanetsideAttributeToAll(building.GUID, 46, 2)
         building.PlayersInSOI.foreach { player =>
           zone.AvatarEvents ! AvatarServiceMessage(player.Name, msg)
         } //???
-        false
+        true
       case Some(GeneratorControl.Event.Normal) =>
         true
       case Some(GeneratorControl.Event.Online) =>
         // Power restored. Reactor Online. Sensors Online. Weapons Online. All systems nominal.
         powerRestored()
+        alignForceDomeStatus(mapUpdateOnChange = false)
         val events = zone.AvatarEvents
         val guid = building.GUID
         val msg1 = AvatarAction.PlanetsideAttributeToAll(guid, 46, 0)
@@ -266,11 +343,59 @@ class BuildingActor(
           case Failure(e) => log.error(e.getMessage)
         }
       building.Faction = faction
+      alignForceDomeStatus(mapUpdateOnChange = false)
       galaxy ! GalaxyServiceMessage(GalaxyAction.MapUpdate(building.infoUpdateMessage()))
       zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.SetEmpire(building.GUID, faction))
     }
   }
 
+  /**
+    * Evaluate the conditions of the building
+    * and determine if its capitol force dome state should be updated
+    * to reflect the actual conditions of the base or its surrounding bases.
+    * If this building is considered a subcapitol facility to the zone's actual capitol facility,
+    * and has the capitol force dome has a dependency upon it,
+    * pass a message onto that facility that it should check its own state alignment.
+    * @param mapUpdateOnChange if `true`, dispatch a `MapUpdate` message for this building
+    */
+  def alignForceDomeStatus(mapUpdateOnChange: Boolean = true): Unit = {
+    BuildingActor.checkForceDomeStatus(building) match {
+      case Some(updatedStatus) if updatedStatus != building.ForceDomeActive =>
+        updateForceDomeStatus(updatedStatus, mapUpdateOnChange)
+      case None if building.IsSubCapitol =>
+        building.Neighbours match {
+          case Some(buildings: Set[Building]) =>
+            buildings
+              .filter { _.IsCapitol }
+              .foreach { _.Actor ! BuildingActor.UpdateForceDome() }
+          case None => ;
+        }
+      case _ => ; //building is neither a capitol nor a subcapitol
+    }
+  }
+
+  /**
+    * Dispatch a message to update the state of the clients with the server state of the capitol force dome.
+    * @param updatedStatus the new capitol force dome status
+    * @param mapUpdateOnChange if `true`, dispatch a `MapUpdate` message for this building
+    */
+  def updateForceDomeStatus(updatedStatus: Boolean, mapUpdateOnChange: Boolean): Unit = {
+    building.ForceDomeActive = updatedStatus
+    zone.LocalEvents ! LocalServiceMessage(
+      zone.id,
+      LocalAction.UpdateForceDomeStatus(Service.defaultPlayerGUID, building.GUID, updatedStatus)
+    )
+    if (mapUpdateOnChange) {
+      context.self ! BuildingActor.MapUpdate()
+    }
+  }
+
+  /**
+    * Power has been severed.
+    * All installed amenities are distributed a `PowerOff` message
+    * and are instructed to display their "unpowered" model.
+    * Additionally, the facility is now rendered unspawnable regardless of its player spawning amenities.
+    */
   def powerLost(): Unit = {
     val zone = building.Zone
     val zoneId = zone.id
@@ -286,6 +411,12 @@ class BuildingActor(
     events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(guid, 38, 0))
   }
 
+  /**
+    * Power has been restored.
+    * All installed amenities are distributed a `PowerOn` message
+    * and are instructed to display their "powered" model.
+    * Additionally, the facility is now rendered spawnable if its player spawning amenities are online.
+    */
   def powerRestored(): Unit = {
     val zone = building.Zone
     val zoneId = zone.id

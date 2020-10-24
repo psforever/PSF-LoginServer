@@ -4,8 +4,8 @@ package net.psforever.objects.serverobject.structures
 import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorContext
-import net.psforever.actors.zone.{BuildingActor, ZoneActor}
-import net.psforever.objects.{Default, GlobalDefinitions, Player}
+import net.psforever.actors.zone.BuildingActor
+import net.psforever.objects.{GlobalDefinitions, Player}
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.generator.Generator
 import net.psforever.objects.serverobject.hackable.Hackable
@@ -17,8 +17,6 @@ import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.BuildingInfoUpdateMessage
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, PlanetSideGeneratorState, Vector3}
 import scalax.collection.{Graph, GraphEdge}
-import net.psforever.services.Service
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import akka.actor.typed.scaladsl.adapter._
 
 class Building(
@@ -65,16 +63,6 @@ class Building(
 
   override def Faction_=(fac: PlanetSideEmpire.Value): PlanetSideEmpire.Value = {
     faction = fac
-    if (IsSubCapitol) {
-      Neighbours match {
-        case Some(buildings: Set[Building]) => buildings.filter(x => x.IsCapitol).head.UpdateForceDomeStatus()
-        case None                           => ;
-      }
-    } else if (IsCapitol) {
-      UpdateForceDomeStatus()
-    }
-    // FIXME null check is a bad idea but tests rely on it
-    if (Zone.actor != null) Zone.actor ! ZoneActor.ZoneMapUpdate()
     Faction
   }
 
@@ -133,37 +121,6 @@ class Building(
       case Some(obj: CaptureTerminal) =>
         obj.HackedBy.isDefined
       case None => false
-    }
-  }
-
-  def UpdateForceDomeStatus(): Unit = {
-    if (IsCapitol) {
-      val originalStatus = ForceDomeActive
-
-      if (Faction == PlanetSideEmpire.NEUTRAL) {
-        ForceDomeActive = false
-      } else {
-        val ownedSubCapitols = Neighbours(Faction) match {
-          case Some(buildings: Set[Building]) => buildings.size
-          case None                           => 0
-        }
-
-        if (ForceDomeActive && ownedSubCapitols <= 1) {
-          ForceDomeActive = false
-        } else if (!ForceDomeActive && ownedSubCapitols > 1) {
-          ForceDomeActive = true
-        }
-      }
-
-      if (originalStatus != ForceDomeActive) {
-        if (Actor != Default.Actor) {
-          Zone.LocalEvents ! LocalServiceMessage(
-            Zone.id,
-            LocalAction.UpdateForceDomeStatus(Service.defaultPlayerGUID, GUID, ForceDomeActive)
-          )
-          Actor ! BuildingActor.MapUpdate()
-        }
-      }
     }
   }
 
