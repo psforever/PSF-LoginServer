@@ -3622,6 +3622,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         if (isMovingPlus) {
           CancelZoningProcessWithDescriptiveReason("cancel_motion")
         }
+        continent.takingOnWater(pos, player.Position) match {
+          case Some(water) =>
+            if(water.submerged(pos, 1f)) {
+              sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "You are drowning", None))
+            } else {
+              sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "You are no longer drowning", None))
+            }
+          case None => ;
+        }
         player.Position = pos
         player.Velocity = vel
         player.Orientation = Vector3(player.Orientation.x, pitch, yaw)

@@ -771,6 +771,10 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     */
   def ClientInitialization(): Zone = this
 
+  def takingOnWater(position: Vector3, lastPosition: Vector3): Option[FillLine] = {
+    map.fluid.find { body => body.breakSurface(position, lastPosition, headHeight = 1f).nonEmpty }
+  }
+
   def AvatarEvents: ActorRef = avatarEvents
 
   def LocalEvents: ActorRef = localEvents
