@@ -13,11 +13,12 @@ class OxygenStateMessageTest extends Specification {
 
   "decode (self)" in {
     PacketCoding.decodePacket(string_self).require match {
-      case OxygenStateMessage(guid, progress, active, veh_state) =>
-        guid mustEqual PlanetSideGUID(75)
-        progress mustEqual 50.0
-        active mustEqual true
-        veh_state.isDefined mustEqual false
+      case OxygenStateMessage(player, vehicle) =>
+        player.guid mustEqual PlanetSideGUID(75)
+        player.progress mustEqual 50.0
+        player.condition mustEqual Drowning.Suffocation
+
+        vehicle.isDefined mustEqual false
       case _ =>
         ko
     }
@@ -25,21 +26,23 @@ class OxygenStateMessageTest extends Specification {
 
   "decode (vehicle)" in {
     PacketCoding.decodePacket(string_vehicle).require match {
-      case OxygenStateMessage(guid, progress, active, veh_state) =>
-        guid mustEqual PlanetSideGUID(75)
-        progress mustEqual 50.0f
-        active mustEqual true
-        veh_state.isDefined mustEqual true
-        veh_state.get.vehicle_guid mustEqual PlanetSideGUID(1546)
-        veh_state.get.progress mustEqual 50.0f
-        veh_state.get.active mustEqual true
+      case OxygenStateMessage(player, vehicle) =>
+        player.guid mustEqual PlanetSideGUID(75)
+        player.progress mustEqual 50.0f
+        player.condition mustEqual Drowning.Suffocation
+
+        vehicle.isDefined mustEqual true
+        val v = vehicle.get
+        v.guid mustEqual PlanetSideGUID(1546)
+        v.progress mustEqual 50.0f
+        v.condition mustEqual Drowning.Suffocation
       case _ =>
         ko
     }
   }
 
   "encode (self)" in {
-    val msg = OxygenStateMessage(PlanetSideGUID(75), 50.0f, true)
+    val msg = OxygenStateMessage(PlanetSideGUID(75), 50.0f)
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_self
@@ -47,7 +50,7 @@ class OxygenStateMessageTest extends Specification {
 
   "encode (vehicle)" in {
     val msg =
-      OxygenStateMessage(PlanetSideGUID(75), 50.0f, true, WaterloggedVehicleState(PlanetSideGUID(1546), 50.0f, true))
+      OxygenStateMessage(PlanetSideGUID(75), 50.0f, PlanetSideGUID(1546), 50.0f)
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_vehicle

@@ -1,71 +1,85 @@
 package net.psforever.objects.zones
 
+import enumeratum.{Enum, EnumEntry}
 import net.psforever.types.Vector3
 
 trait FillLine {
-  def altitude: Float
+  def attribute: FillLineTrait
 
-  def submerged(pos: Vector3, headHeight: Float): Boolean
+  def collision: FillLineCollision
+
+  def submerged(pos: Vector3, headHeight: Float): Boolean = collision.submerged(pos, headHeight)
 
   def breakSurface(pos: Vector3, previousPos: Vector3, headHeight: Float): Option[Boolean] =
     FillLine.breakSurface(fluid = this, pos, previousPos, headHeight)
 }
 
-final case class Sealevel(altitude: Float)
-  extends FillLine {
+sealed abstract class FillLineTrait extends EnumEntry {}
+
+object FilledWith extends Enum[FillLineTrait] {
+  val values: IndexedSeq[FillLineTrait] = findValues
+
+  case object Water extends FillLineTrait
+
+  case object Lava extends FillLineTrait
+
+  case object Death extends FillLineTrait
+}
+
+trait FillLineCollision {
+  def altitude: Float
+
+  def submerged(pos: Vector3, headHeight: Float): Boolean
+}
+
+final case class DeepPlane(altitude: Float)
+  extends FillLineCollision {
   def submerged(pos: Vector3, headHeight: Float): Boolean = {
-    pos.z + headHeight <= altitude
+    pos.z + headHeight < altitude
   }
 }
 
-final case class FloorIsLava(altitude: Float)
-  extends FillLine {
+final case class DeepSquare(altitude: Float, north: Float, east: Float, south: Float, west: Float)
+  extends FillLineCollision {
   def submerged(pos: Vector3, headHeight: Float): Boolean = {
-    pos.z <= altitude
+    pos.z + headHeight < altitude && north > pos.y && pos.y >= south && east > pos.x && pos.x >= west
   }
 }
 
-final case class Pool(altitude: Float, north: Float, east: Float, south: Float, west: Float)
-  extends FillLine {
-  assert(north > south, s"latitudinal coordinates should be north > south, but n=$north, s=$south")
-  assert(east > west, s"longitudinal coordinates should be east > west, but e=$east, w=$west")
+final case class DeepCircle(center: Vector3, radius: Float)
+  extends FillLineCollision {
+  def altitude: Float = center.z
 
   def submerged(pos: Vector3, headHeight: Float): Boolean = {
-    pos.z + headHeight <= altitude && north > pos.y && pos.y > south && east > pos.x && pos.x > west
+    pos.z + headHeight < center.z && Vector3.DistanceSquared(pos.xy, center.xy) < radius * radius
   }
 }
 
-final case class LavaPool(altitude: Float, north: Float, east: Float, south: Float, west: Float)
+final case class SeaLevel(attribute: FillLineTrait, altitude: Float)
   extends FillLine {
-  assert(north > south, s"latitudinal coordinates should be north > south, but n=$north, s=$south")
-  assert(east > west, s"longitudinal coordinates should be east > west, but e=$east, w=$west")
+  private val planar = DeepPlane(altitude)
 
-  def submerged(pos: Vector3, headHeight: Float): Boolean = {
-    pos.z + headHeight <= altitude && north > pos.y && pos.y > south && east > pos.x && pos.x > west
-  }
+  def collision : FillLineCollision = planar
 }
 
-final case class RoundLavaPool(origin: Vector3, radius: Float)
-  extends FillLine {
-  def altitude: Float = origin.z
+final case class Pool(attribute: FillLineTrait, collision: FillLineCollision)
+  extends FillLine
 
-  def submerged(pos: Vector3, headHeight: Float): Boolean = {
-    pos.z + headHeight <= origin.z && Vector3.DistanceSquared(pos.xy, origin.xy) < radius * radius
-  }
+object Pool {
+  def apply(attribute: FillLineTrait, altitude: Float, north: Float, east: Float, south: Float, west: Float): Pool =
+    Pool(attribute, DeepSquare(altitude, north, east, south, west))
+
+  def apply(attribute: FillLineTrait, center: Vector3, radius: Float): Pool =
+    Pool(attribute, DeepCircle(center, radius))
 }
 
 object FillLine {
-  final val Sealevel0 = Sealevel(0)
-
-  final val Sealevel35 = Sealevel(35)
-
   def breakSurface(fluid: FillLine, pos: Vector3, previousPos: Vector3, headHeight: Float): Option[Boolean] = {
-    if (fluid.submerged(pos, headHeight) && !fluid.submerged(previousPos, headHeight)) {
-      Some(true)
-    } else if (!fluid.submerged(pos, headHeight) && fluid.submerged(previousPos, headHeight)) {
-      Some(false)
-    }
-    else {
+    val isSubmerged = fluid.collision.submerged(pos, headHeight)
+    val wasSubmerged = fluid.collision.submerged(previousPos, headHeight)
+    if (isSubmerged != wasSubmerged) {
+      Some(isSubmerged)
+    } else {
       None
     }
   }

@@ -9,10 +9,11 @@ import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.containable.Containable
-import net.psforever.objects.zones.Zone
-import net.psforever.objects.{AmmoBox, GlobalDefinitions, Player, Tool}
-import net.psforever.packet.game.ObjectHeldMessage
-import net.psforever.types.{PlanetSideGUID, TransactionType, Vector3}
+import net.psforever.objects.zones.{FillLine, Zone}
+import net.psforever.objects._
+import net.psforever.objects.avatar.{Submerged, Surfaced}
+import net.psforever.packet.game.{ChatMsg, DrowningTarget, ObjectHeldMessage, OxygenStateMessage}
+import net.psforever.types.{ChatMessageType, PlanetSideGUID, TransactionType, Vector3}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 
@@ -835,6 +836,56 @@ object WorldSession {
         t.Definition.AmmoTypes.map { _.AmmoType }.contains(ammo)
       case _ =>
         false
+    }
+  }
+
+  def onLandEnvironment(obj: PlanetSideServerObject, lastPosition: Vector3): Any = {
+    WorldSession.takingOnWater(obj, lastPosition) match {
+      case Some(fluidBody) =>
+        if(fluidBody.submerged(obj.Position, headHeight = 1f)) {
+          obj.Actor ! Submerged(obj, fluidBody)
+          wadedTooDeeply(obj.Zone, fluidBody)(_, _)
+        } else {
+          onLandEnvironment(_, _)
+        }
+      case None =>
+        onLandEnvironment(_, _)
+    }
+  }
+
+  def wadedTooDeeply(zone: Zone, fluidBody: FillLine)(obj: PlanetSideServerObject, lastPosition: Vector3): Any = {
+    WorldSession.surfacing(zone, fluidBody)(obj, lastPosition) match {
+      case None =>
+        wadedTooDeeply(zone, fluidBody)(_, _)
+      case Some(_) =>
+        WorldSession.takingOnWater(obj, lastPosition) match {
+          case Some(newFluidBody) if newFluidBody.attribute == fluidBody.attribute =>
+            wadedTooDeeply(obj.Zone, newFluidBody)(_, _)
+          case Some(newFluidBody) =>
+            obj.Actor ! Surfaced(obj, fluidBody)
+            obj.Actor ! Submerged(obj, newFluidBody)
+            wadedTooDeeply(obj.Zone, newFluidBody)(_, _)
+          case None =>
+            obj.Actor ! Surfaced(obj, fluidBody)
+            onLandEnvironment(_, _)
+        }
+    }
+  }
+
+  private def takingOnWater(obj: PlanetSideServerObject, lastPosition: Vector3): Option[FillLine] = {
+    val position = obj.Position
+    obj.Zone.map.environment.find { body => body.breakSurface(position, lastPosition, headHeight = 1f).contains(true) }
+  }
+
+  private def surfacing(zone: Zone, fluidBody: FillLine)(obj: PlanetSideServerObject, lastPosition: Vector3): Option[FillLine] = {
+    val position = obj.Position
+    if (obj.Zone eq zone) {
+      fluidBody.breakSurface(position, lastPosition, headHeight = 1f) match {
+        case Some(false) => Some(fluidBody)
+        case _ => None
+      }
+    } else {
+      Some(fluidBody)
     }
   }
 }

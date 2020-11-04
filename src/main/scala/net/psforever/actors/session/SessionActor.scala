@@ -9,6 +9,7 @@ import akka.util.Timeout
 import java.util.concurrent.TimeUnit
 
 import net.psforever.actors.net.MiddlewareActor
+import net.psforever.login.WorldSession
 import net.psforever.services.ServiceManager.Lookup
 import net.psforever.objects.locker.LockerContainer
 import org.log4s.MDC
@@ -20,7 +21,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Success
 import net.psforever.login.WorldSession._
 import net.psforever.objects._
-import net.psforever.objects.avatar.{Avatar, Certification, Cosmetic, DeployableToolbox}
+import net.psforever.objects.avatar._
 import net.psforever.objects.ballistics._
 import net.psforever.objects.ce._
 import net.psforever.objects.definition._
@@ -267,6 +268,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var keepAliveFunc: () => Unit                      = NormalKeepAlive
   var setAvatar: Boolean                             = false
   var turnCounterFunc: PlanetSideGUID => Unit        = TurnCounterDuringInterim
+  var interactingWithEnvironment: (PlanetSideServerObject, Vector3) => Any = WorldSession.onLandEnvironment
 
   var clientKeepAlive: Cancellable   = Default.Cancellable
   var progressBarUpdate: Cancellable = Default.Cancellable
@@ -1879,6 +1881,20 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         if (tplayer_guid != guid) {
           sendResponse(ObjectHeldMessage(guid, slot, false))
         }
+
+      case AvatarResponse.OxygenState(player_guid, Drowning.Suffocation, progress) =>
+//        if (session.account.gm) {
+//          sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "You would be drowning.", None))
+//        } else {
+          sendResponse(OxygenStateMessage(player_guid, progress))
+//        }
+
+      case AvatarResponse.OxygenState(player_guid, Drowning.Recovery, progress) =>
+//        if (session.account.gm) {
+//          sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "You would no longer be drowning.", None))
+//        } else {
+        sendResponse(OxygenStateMessage(DrowningTarget.recover(player_guid, progress)))
+//        }
 
       case AvatarResponse.PlanetsideAttribute(attribute_type, attribute_value) =>
         if (tplayer_guid != guid) {
@@ -3622,15 +3638,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         if (isMovingPlus) {
           CancelZoningProcessWithDescriptiveReason("cancel_motion")
         }
-        continent.takingOnWater(pos, player.Position) match {
-          case Some(water) =>
-            if(water.submerged(pos, 1f)) {
-              sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "You are drowning", None))
-            } else {
-              sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "You are no longer drowning", None))
-            }
-          case None => ;
+        if (!player.Crouching && is_crouching) {
+          sendResponse(OxygenStateMessage(player.GUID))
         }
+        val previousPosition = player.Position
         player.Position = pos
         player.Velocity = vel
         player.Orientation = Vector3(player.Orientation.x, pitch, yaw)
@@ -3700,6 +3711,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         if (player.death_by == -1) {
           KickedByAdministration()
         }
+        interactsWithEnvironment(player, previousPosition)
 
       case msg @ ChildObjectStateMessage(object_guid, pitch, yaw) =>
         //log.info(s"$msg")
@@ -9438,6 +9450,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case _ =>
         (None, None)
     }
+  }
+
+  def interactsWithEnvironment(obj: PlanetSideServerObject, lastPosition: Vector3): Unit = {
+    /*
+    TODO a function of type foo that takes parameters bar that recursively returns a function of type foo that takes parameters bar that recursively returns a function ...
+     */
+    interactingWithEnvironment = interactingWithEnvironment(obj, lastPosition).asInstanceOf[(PlanetSideServerObject,Vector3)=>Any]
   }
 
   def failWithError(error: String) = {

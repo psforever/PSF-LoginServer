@@ -7,7 +7,7 @@ import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.objectcreate.ConstructorData
-import net.psforever.packet.game.ObjectCreateMessage
+import net.psforever.packet.game.{Drowning, ObjectCreateMessage}
 import net.psforever.types.{ExoSuitType, PlanetSideEmpire, PlanetSideGUID, TransactionType, Vector3}
 import net.psforever.services.GenericEventBusMsg
 
@@ -47,6 +47,11 @@ object AvatarResponse {
   final case class LoadProjectile(pkt: ObjectCreateMessage)                                        extends Response
   final case class ObjectDelete(item_guid: PlanetSideGUID, unk: Int)                               extends Response
   final case class ObjectHeld(slot: Int)                                                           extends Response
+  final case class OxygenState(
+      player_guid: PlanetSideGUID,
+      state: Drowning.Value,
+      progress: Float
+  )                                                                                                extends Response
   final case class PlanetsideAttribute(attribute_type: Int, attribute_value: Long)                 extends Response
   final case class PlanetsideAttributeToAll(attribute_type: Int, attribute_value: Long)            extends Response
   final case class PlanetsideAttributeSelf(attribute_type: Int, attribute_value: Long)             extends Response

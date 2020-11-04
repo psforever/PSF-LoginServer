@@ -1,7 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.avatar
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, ActorRef, Cancellable, Props, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.objects.{Player, _}
 import net.psforever.objects.ballistics.{ObjectSource, PlayerSource}
@@ -18,14 +18,13 @@ import net.psforever.objects.serverobject.repair.Repairable
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
-import net.psforever.objects.zones.Zone
+import net.psforever.objects.zones.{FillLine, FillLineTrait, FilledWith, Zone}
 import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.types._
 import net.psforever.services.{RemoverActor, Service}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import akka.actor.typed
 import net.psforever.objects.locker.LockerContainerControl
 import net.psforever.objects.serverobject.painbox.Painbox
 import net.psforever.objects.vital.base.DamageResolution
@@ -58,6 +57,10 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
 
   private[this] val log       = org.log4s.getLogger(player.Name)
   private[this] val damageLog = org.log4s.getLogger(Damageable.LogChannel)
+  var submergedCondition: Option[Drowning.Value] = None
+  var submergedDrownTimer: Long = 0
+  var submergedIn: Option[FillLineTrait] = None
+  var submergedTimer: Cancellable = Default.Cancellable
 
   /** control agency for the player's locker container (dedicated inventory slot #5) */
   val lockerControlAgent: ActorRef = {
@@ -509,6 +512,15 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
 
         case Zone.Ground.CanNotPickupItem(_, item_guid, reason) =>
           log.warn(s"${player.Name} failed to pick up an item ($item_guid) from the ground because $reason")
+
+        case Submerged(target, fluidBody) =>
+          doSubmerging(target, fluidBody)
+
+        case Surfaced(target, fluidBody) =>
+          doSurfacing(target, fluidBody)
+
+        case RecoveredFromSubmerging() =>
+          recoverFromSubmerged()
 
         case _ => ;
       }
@@ -967,6 +979,92 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     val zone = target.Zone
     val value = target.Aura.foldLeft(0)(_ + PlayerControl.auraEffectToAttributeValue(_))
     zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.PlanetsideAttributeToAll(target.GUID, 54, value))
+  }
+
+  def doSubmerging(obj: PlanetSideServerObject, fluidBody: FillLine): Unit = {
+    val attribute = fluidBody.attribute
+    submergedIn = Some(attribute)
+    doSubmerging(obj, attribute)
+  }
+
+  def doSubmerging(obj: PlanetSideServerObject, fluid: FillLineTrait): Unit = {
+    fluid match {
+      case FilledWith.Water =>
+        submergedTimer.cancel()
+        val (effect: Boolean, time: Long, percentage: Float) = submergedCondition match {
+          case None =>
+            (true, 60000L, 100f)
+          case Some(Drowning.Recovery) =>
+            val oldDuration: Long = 10000
+            val newDuration: Long = 60000
+            val oldRemaining: Long = submergedDrownTimer - System.currentTimeMillis()
+            val percentage: Float = oldRemaining / oldDuration.toFloat * 100
+            val drownTime: Long = newDuration - (oldRemaining * (newDuration / oldDuration.toFloat).toLong)
+            (true, drownTime, percentage)
+          case Some(Drowning.Suffocation) =>
+            (false, 0L, 0f)
+        }
+        if (effect) {
+          import scala.concurrent.ExecutionContext.Implicits.global
+          submergedCondition = Some(Drowning.Suffocation)
+          submergedDrownTimer = System.currentTimeMillis() + time
+          submergedTimer = context.system.scheduler.scheduleOnce(delay = time milliseconds, self, Player.Die())
+          player.Zone.AvatarEvents ! AvatarServiceMessage(
+            player.Name,
+            AvatarAction.OxygenState(player.GUID, Drowning.Suffocation, percentage)
+          )
+        }
+      case FilledWith.Death =>
+        if (player.isAlive) {
+          DestructionAwareness(player, None)
+        }
+      case _ => ;
+    }
+  }
+
+  def doSurfacing(obj: PlanetSideServerObject, fluidBody: FillLine): Unit = {
+    doSurfacing(obj, fluidBody.attribute)
+    submergedIn = None
+  }
+
+  def doSurfacing(obj: PlanetSideServerObject, fluid: FillLineTrait): Unit = {
+    fluid match {
+      case FilledWith.Water =>
+        submergedTimer.cancel()
+        val (effect: Boolean, time: Long, percentage: Float) = submergedCondition match {
+          case Some(Drowning.Suffocation) =>
+            val oldDuration: Long = 60000
+            val newDuration: Long = 10000
+            val oldRemaining: Long = submergedDrownTimer - System.currentTimeMillis()
+            val percentage: Float = oldRemaining / oldDuration.toFloat * 100
+            val recoveryTime: Long = newDuration - (oldRemaining * (newDuration / oldDuration.toFloat).toLong)
+            (true, recoveryTime, percentage)
+          case Some(Drowning.Recovery) =>
+            (false, 0L, 0f)
+          case _ =>
+            recoverFromSubmerged()
+            (false, 0L, 0f)
+        }
+        if (effect) {
+          import scala.concurrent.ExecutionContext.Implicits.global
+          submergedCondition = Some(Drowning.Recovery)
+          submergedDrownTimer = System.currentTimeMillis() + time
+          submergedTimer = context.system.scheduler.scheduleOnce(delay = time milliseconds, self, RecoveredFromSubmerging())
+          player.Zone.AvatarEvents ! AvatarServiceMessage(
+            player.Name,
+            AvatarAction.OxygenState(player.GUID, Drowning.Recovery, percentage)
+          )
+        }
+
+      case _ => ;
+    }
+  }
+
+  def recoverFromSubmerged(): Unit = {
+    submergedTimer.cancel()
+    submergedDrownTimer = 0
+    submergedCondition = None
+    submergedIn = None
   }
 }
 

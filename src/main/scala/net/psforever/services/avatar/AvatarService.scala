@@ -184,6 +184,10 @@ class AvatarService(zone: Zone) extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ObjectHeld(slot))
           )
+        case AvatarAction.OxygenState(player_guid, state, progress) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.OxygenState(player_guid, state, progress))
+          )
         case AvatarAction.PlanetsideAttribute(guid, attribute_type, attribute_value) =>
           AvatarEvents.publish(
             AvatarServiceResponse(
