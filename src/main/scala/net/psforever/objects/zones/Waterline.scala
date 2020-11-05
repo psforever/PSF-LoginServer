@@ -8,10 +8,10 @@ trait FillLine {
 
   def collision: FillLineCollision
 
-  def submerged(pos: Vector3, headHeight: Float): Boolean = collision.submerged(pos, headHeight)
+  def submerged(pos: Vector3, waterline: Float): Boolean = collision.submerged(pos, waterline)
 
-  def breakSurface(pos: Vector3, previousPos: Vector3, headHeight: Float): Option[Boolean] =
-    FillLine.breakSurface(fluid = this, pos, previousPos, headHeight)
+  def breakSurface(pos: Vector3, previousPos: Vector3, waterline: Float): Option[Boolean] =
+    FillLine.breakSurface(fluid = this, pos, previousPos, waterline)
 }
 
 sealed abstract class FillLineTrait extends EnumEntry {}
@@ -29,29 +29,36 @@ object FilledWith extends Enum[FillLineTrait] {
 trait FillLineCollision {
   def altitude: Float
 
-  def submerged(pos: Vector3, headHeight: Float): Boolean
+  def submerged(pos: Vector3, waterline: Float): Boolean
 }
 
 final case class DeepPlane(altitude: Float)
   extends FillLineCollision {
-  def submerged(pos: Vector3, headHeight: Float): Boolean = {
-    pos.z + headHeight < altitude
+  def submerged(pos: Vector3, waterline: Float): Boolean = {
+    pos.z + waterline < altitude
   }
 }
 
 final case class DeepSquare(altitude: Float, north: Float, east: Float, south: Float, west: Float)
   extends FillLineCollision {
-  def submerged(pos: Vector3, headHeight: Float): Boolean = {
-    pos.z + headHeight < altitude && north > pos.y && pos.y >= south && east > pos.x && pos.x >= west
+  def submerged(pos: Vector3, waterline: Float): Boolean = {
+    pos.z + waterline < altitude && north > pos.y && pos.y >= south && east > pos.x && pos.x >= west
   }
 }
 
-final case class DeepCircle(center: Vector3, radius: Float)
+final case class DeepSurface(altitude: Float, north: Float, east: Float, south: Float, west: Float)
+  extends FillLineCollision {
+  def submerged(pos: Vector3, waterline: Float): Boolean = {
+    pos.z < altitude && north > pos.y && pos.y >= south && east > pos.x && pos.x >= west
+  }
+}
+
+final case class DeepCircularSurface(center: Vector3, radius: Float)
   extends FillLineCollision {
   def altitude: Float = center.z
 
-  def submerged(pos: Vector3, headHeight: Float): Boolean = {
-    pos.z + headHeight < center.z && Vector3.DistanceSquared(pos.xy, center.xy) < radius * radius
+  def submerged(pos: Vector3, waterline: Float): Boolean = {
+    pos.z < center.z && Vector3.DistanceSquared(pos.xy, center.xy) < radius * radius
   }
 }
 
@@ -68,15 +75,12 @@ final case class Pool(attribute: FillLineTrait, collision: FillLineCollision)
 object Pool {
   def apply(attribute: FillLineTrait, altitude: Float, north: Float, east: Float, south: Float, west: Float): Pool =
     Pool(attribute, DeepSquare(altitude, north, east, south, west))
-
-  def apply(attribute: FillLineTrait, center: Vector3, radius: Float): Pool =
-    Pool(attribute, DeepCircle(center, radius))
 }
 
 object FillLine {
-  def breakSurface(fluid: FillLine, pos: Vector3, previousPos: Vector3, headHeight: Float): Option[Boolean] = {
-    val isSubmerged = fluid.collision.submerged(pos, headHeight)
-    val wasSubmerged = fluid.collision.submerged(previousPos, headHeight)
+  def breakSurface(fluid: FillLine, pos: Vector3, previousPos: Vector3, waterline: Float): Option[Boolean] = {
+    val isSubmerged = fluid.collision.submerged(pos, waterline)
+    val wasSubmerged = fluid.collision.submerged(previousPos, waterline)
     if (isSubmerged != wasSubmerged) {
       Some(isSubmerged)
     } else {

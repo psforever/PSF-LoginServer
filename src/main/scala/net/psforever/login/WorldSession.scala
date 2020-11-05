@@ -12,8 +12,8 @@ import net.psforever.objects.serverobject.containable.Containable
 import net.psforever.objects.zones.{FillLine, Zone}
 import net.psforever.objects._
 import net.psforever.objects.avatar.{Submerged, Surfaced}
-import net.psforever.packet.game.{ChatMsg, DrowningTarget, ObjectHeldMessage, OxygenStateMessage}
-import net.psforever.types.{ChatMessageType, PlanetSideGUID, TransactionType, Vector3}
+import net.psforever.packet.game.ObjectHeldMessage
+import net.psforever.types.{PlanetSideGUID, TransactionType, Vector3}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 
@@ -842,7 +842,7 @@ object WorldSession {
   def onLandEnvironment(obj: PlanetSideServerObject, lastPosition: Vector3): Any = {
     WorldSession.takingOnWater(obj, lastPosition) match {
       case Some(fluidBody) =>
-        if(fluidBody.submerged(obj.Position, headHeight = 1f)) {
+        if(fluidBody.submerged(obj.Position, GlobalDefinitions.Waterline(obj))) {
           obj.Actor ! Submerged(obj, fluidBody)
           wadedTooDeeply(obj.Zone, fluidBody)(_, _)
         } else {
@@ -874,13 +874,13 @@ object WorldSession {
 
   private def takingOnWater(obj: PlanetSideServerObject, lastPosition: Vector3): Option[FillLine] = {
     val position = obj.Position
-    obj.Zone.map.environment.find { body => body.breakSurface(position, lastPosition, headHeight = 1f).contains(true) }
+    obj.Zone.map.environment.find { body => body.breakSurface(position, lastPosition, GlobalDefinitions.Waterline(obj)).contains(true) }
   }
 
   private def surfacing(zone: Zone, fluidBody: FillLine)(obj: PlanetSideServerObject, lastPosition: Vector3): Option[FillLine] = {
     val position = obj.Position
     if (obj.Zone eq zone) {
-      fluidBody.breakSurface(position, lastPosition, headHeight = 1f) match {
+      fluidBody.breakSurface(position, lastPosition, GlobalDefinitions.Waterline(obj)) match {
         case Some(false) => Some(fluidBody)
         case _ => None
       }

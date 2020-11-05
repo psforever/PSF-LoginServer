@@ -3638,9 +3638,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         if (isMovingPlus) {
           CancelZoningProcessWithDescriptiveReason("cancel_motion")
         }
-        if (!player.Crouching && is_crouching) {
-          sendResponse(OxygenStateMessage(player.GUID))
-        }
         val previousPosition = player.Position
         player.Position = pos
         player.Velocity = vel

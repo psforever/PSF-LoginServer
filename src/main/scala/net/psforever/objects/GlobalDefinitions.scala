@@ -28,6 +28,7 @@ import net.psforever.objects.vital.projectile._
 import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.vital.{ComplexDeployableResolutions, MaxResolutions, SimpleResolutions}
 import net.psforever.types.{ExoSuitType, ImplantType, PlanetSideEmpire, Vector3}
+import net.psforever.types._
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -37,6 +38,8 @@ object GlobalDefinitions {
   val avatar = new AvatarDefinition(121)
   avatar.MaxHealth = 100
   avatar.Damageable = true
+  avatar.TakesToWater = false
+  avatar.Waterline = 1.609375f //Male, standing, not MAX
   /*
   exo-suits
    */
@@ -1620,6 +1623,23 @@ object GlobalDefinitions {
         case _ =>
           false
       }
+    }
+  }
+
+  def Waterline(obj: PlanetSideGameObject): Float = {
+    obj match {
+      case p: Player =>
+        if (p.Crouching) {
+          1.093750f // same regardless of gender
+        } else if (p.ExoSuit == ExoSuitType.MAX) {
+          1.906250f // VS female MAX
+        } else if (p.Sex == CharacterGender.Male) {
+          obj.Definition.Waterline // male
+        } else {
+          1.546875f // female
+        }
+      case _ =>
+        obj.Definition.Waterline
     }
   }
 

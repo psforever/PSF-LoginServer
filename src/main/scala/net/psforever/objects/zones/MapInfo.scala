@@ -134,11 +134,11 @@ case object MapInfo extends StringEnum[MapInfo] {
           Pool(FilledWith.Water, 41.46875f, 5964.461f, 1947.1328f, 5701.6016f, 1529.8438f), //north of wakea
           Pool(FilledWith.Water, 39.21875f, 5694.125f, 6939.8984f, 5516.922f, 6814.211f), //northeast of iva
           Pool(FilledWith.Water, 39.078125f, 4381.789f, 6650.8203f, 4071.4766f, 6445.133f), //south of iva
-          Pool(FilledWith.Lava, Vector3(3901.5547f, 4422.746f, 224.57812f), 82.6797f), //upper west lava pool //TODO fudged
-          Pool(FilledWith.Lava, 189.54688f, 4032.914f, 3893.6562f, 3912.3906f, 3666.4453f), //lower west lava pool
-          Pool(FilledWith.Lava, 187.57812f, 4288.1484f, 4589.0703f, 3996.3125f, 4355.6406f), //lower central lava pool
-          Pool(FilledWith.Lava, 181.45312f, 4635.1953f, 4579.3516f, 4406.3438f, 4303.828f), //upper central lava pool
-          Pool(FilledWith.Lava, 176.64062f, 4274.8125f, 4969.9688f, 4101.7734f, 4766.3594f) //east lava pool
+          Pool(FilledWith.Lava, DeepCircularSurface(Vector3(3901.5547f, 4422.746f, 224.57812f), 82.6797f)), //upper west lava pool //TODO fudged
+          Pool(FilledWith.Lava, DeepSurface(189.54688f, 4032.914f, 3893.6562f, 3912.3906f, 3666.4453f)), //lower west lava pool
+          Pool(FilledWith.Lava, DeepSurface(187.57812f, 4288.1484f, 4589.0703f, 3996.3125f, 4355.6406f)), //lower central lava pool
+          Pool(FilledWith.Lava, DeepSurface(181.45312f, 4635.1953f, 4579.3516f, 4406.3438f, 4303.828f)), //upper central lava pool
+          Pool(FilledWith.Lava, DeepSurface(176.64062f, 4274.8125f, 4969.9688f, 4101.7734f, 4766.3594f)) //east lava pool
         )
       )
 

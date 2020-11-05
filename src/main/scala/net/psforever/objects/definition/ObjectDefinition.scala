@@ -40,5 +40,22 @@ abstract class ObjectDefinition(private val objectId: Int) extends BasicDefiniti
     Packet
   }
 
+  private var takesToWater: Boolean = true
+  private var waterline: Float = Float.MaxValue
+
+  def TakesToWater: Boolean = takesToWater
+
+  def TakesToWater_=(takes: Boolean): Boolean = {
+    takesToWater = takes
+    TakesToWater
+  }
+
+  def Waterline: Float = waterline
+
+  def Waterline_=(height: Float): Float = {
+    waterline = height
+    Waterline
+  }
+
   def ObjectId: Int = objectId
 }

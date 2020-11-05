@@ -580,6 +580,39 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     }
   }
 
+  /**
+    * na
+    * @param cause na
+    * @param amount na
+    */
+  def HandleEnvironmentalDamage(cause: PlanetSideGUID, amount: Int) : Unit = {
+    if (player.isAlive && amount > 0) {
+      val playerGUID     = player.GUID
+      val playerName     = player.Name
+      val armor          = player.Armor
+      val stamina        = player.avatar.stamina
+      val capacitor      = player.Capacitor
+      val originalHealth = player.Health
+      val zone           = player.Zone
+      val events         = zone.AvatarEvents
+      player.Health      = originalHealth - amount
+      events ! AvatarServiceMessage(
+        zone.id,
+        AvatarAction.PlanetsideAttributeToAll(playerGUID, 0, player.Health)
+      )
+      events ! AvatarServiceMessage(
+        playerName,
+        AvatarAction.EnvironmentalDamage(playerGUID, cause, amount)
+      )
+      damageLog.info(
+        s"$playerName-infantry: BEFORE=$originalHealth/$armor/$stamina/$capacitor, AFTER=${player.Health}/$armor/$stamina/$capacitor, CHANGE=$amount/0/0/0"
+      )
+      if (player.Health == 0) {
+        DestructionAwareness(player, None)
+      }
+    }
+  }
+
   def DamageAwareness(
                        target: Player,
                        cause: DamageResult,
@@ -984,13 +1017,13 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
   def doSubmerging(obj: PlanetSideServerObject, fluidBody: FillLine): Unit = {
     val attribute = fluidBody.attribute
     submergedIn = Some(attribute)
-    doSubmerging(obj, attribute)
+    doSubmerging(obj, fluidBody, attribute)
   }
 
-  def doSubmerging(obj: PlanetSideServerObject, fluid: FillLineTrait): Unit = {
+  def doSubmerging(obj: PlanetSideServerObject, fluidBody: FillLine, fluid: FillLineTrait): Unit = {
+    submergedTimer.cancel()
     fluid match {
       case FilledWith.Water =>
-        submergedTimer.cancel()
         val (effect: Boolean, time: Long, percentage: Float) = submergedCondition match {
           case None =>
             (true, 60000L, 100f)
@@ -1003,6 +1036,8 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
             (true, drownTime, percentage)
           case Some(Drowning.Suffocation) =>
             (false, 0L, 0f)
+          case _ =>
+            (false, 0L, 0f)
         }
         if (effect) {
           import scala.concurrent.ExecutionContext.Implicits.global
@@ -1014,6 +1049,17 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
             AvatarAction.OxygenState(player.GUID, Drowning.Suffocation, percentage)
           )
         }
+
+      case FilledWith.Lava =>
+        if (player.isAlive) {
+          HandleEnvironmentalDamage(PlanetSideGUID(0), amount = 4)
+          if (player.Health > 0) {
+            StartAuraEffect(Aura.Fire, duration = 1250L) //burn
+            import scala.concurrent.ExecutionContext.Implicits.global
+            submergedTimer = context.system.scheduler.scheduleOnce(delay = 250 milliseconds, self, Submerged(player, fluidBody))
+          }
+        }
+
       case FilledWith.Death =>
         if (player.isAlive) {
           DestructionAwareness(player, None)
@@ -1028,9 +1074,9 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
   }
 
   def doSurfacing(obj: PlanetSideServerObject, fluid: FillLineTrait): Unit = {
+    submergedTimer.cancel()
     fluid match {
       case FilledWith.Water =>
-        submergedTimer.cancel()
         val (effect: Boolean, time: Long, percentage: Float) = submergedCondition match {
           case Some(Drowning.Suffocation) =>
             val oldDuration: Long = 60000
@@ -1056,7 +1102,8 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           )
         }
 
-      case _ => ;
+      case _ =>
+        recoverFromSubmerged()
     }
   }
 
