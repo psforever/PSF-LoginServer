@@ -2,24 +2,10 @@
 package net.psforever.packet.game
 
 import net.psforever.newcodecs.newcodecs
-import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
-import net.psforever.types.PlanetSideGUID
+import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
+import net.psforever.types.{OxygenState, PlanetSideGUID}
 import scodec.Codec
 import scodec.codecs._
-
-/**
-  * The progress state of being a drowning victim.
-  * `Suffocation` means being too far under water.
-  * In terms of percentage, progress proceeds towards 0.
-  * `Recovery` means emerging from being too far under water.
-  * In terms of percentage, progress proceeds towards 100.
-  */
-object Drowning extends Enumeration {
-  val Recovery = Value(0)
-  val Suffocation = Value(1)
-
-  implicit val codec = PacketHelpers.createEnumerationCodec(this, uint(bits = 1))
-}
 
 /**
   * Infomation about the progress bar displayed for a certain target's drowning condition.
@@ -27,7 +13,7 @@ object Drowning extends Enumeration {
   * @param progress the remaining countdown
   * @param condition in what state of drowning the target is progressing
   */
-final case class DrowningTarget(guid: PlanetSideGUID, progress: Float, condition: Drowning.Value)
+final case class DrowningTarget(guid: PlanetSideGUID, progress: Float, condition: OxygenState)
 
 /**
   * Dispatched by the server to cause the player to slowly drown.
@@ -61,13 +47,13 @@ final case class OxygenStateMessage(
 
 object DrowningTarget {
   def apply(guid: PlanetSideGUID): DrowningTarget =
-    DrowningTarget(guid, 100, Drowning.Suffocation)
+    DrowningTarget(guid, 100, OxygenState.Suffocation)
 
   def apply(guid: PlanetSideGUID, progress: Float): DrowningTarget =
-    DrowningTarget(guid, progress, Drowning.Suffocation)
+    DrowningTarget(guid, progress, OxygenState.Suffocation)
 
   def recover(guid: PlanetSideGUID, progress: Float): DrowningTarget =
-    DrowningTarget(guid, progress, Drowning.Recovery)
+    DrowningTarget(guid, progress, OxygenState.Recovery)
 }
 
 object OxygenStateMessage extends Marshallable[OxygenStateMessage] {
@@ -147,7 +133,7 @@ object OxygenStateMessage extends Marshallable[OxygenStateMessage] {
         204.8f,
         11
       ) :: //hackish: 2^11 == 2047, so it should be 204.7; but, 204.8 allows decode == encode
-    Drowning.codec
+    OxygenState.codec
     ).as[DrowningTarget]
 
   implicit val codec: Codec[OxygenStateMessage] = (

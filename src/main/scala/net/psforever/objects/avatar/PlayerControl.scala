@@ -18,7 +18,7 @@ import net.psforever.objects.serverobject.repair.Repairable
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
-import net.psforever.objects.zones.{FillLine, FillLineTrait, FilledWith, Zone}
+import net.psforever.objects.zones.{PieceOfEnvironment, EnvironmentTrait, EnvironmentAttribute, Zone}
 import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.types._
@@ -57,9 +57,9 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
 
   private[this] val log       = org.log4s.getLogger(player.Name)
   private[this] val damageLog = org.log4s.getLogger(Damageable.LogChannel)
-  var submergedCondition: Option[Drowning.Value] = None
-  var submergedDrownTimer: Long = 0
-  var submergedIn: Option[FillLineTrait] = None
+  var submergedCondition: Option[OxygenState] = None
+  var submergedDrownTime: Long = 0
+  var submergedIn: Option[EnvironmentTrait] = None
   var submergedTimer: Cancellable = Default.Cancellable
 
   /** control agency for the player's locker container (dedicated inventory slot #5) */
@@ -513,11 +513,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         case Zone.Ground.CanNotPickupItem(_, item_guid, reason) =>
           log.warn(s"${player.Name} failed to pick up an item ($item_guid) from the ground because $reason")
 
-        case Submerged(target, fluidBody) =>
-          doSubmerging(target, fluidBody)
+        case Submerged(target, fluidBody, vehicleOpt) =>
+          doSubmerging(target, fluidBody, vehicleOpt)
 
-        case Surfaced(target, fluidBody) =>
-          doSurfacing(target, fluidBody)
+        case Surfaced(target, fluidBody, vehicleOpt) =>
+          doSurfacing(target, fluidBody, vehicleOpt)
 
         case RecoveredFromSubmerging() =>
           recoverFromSubmerged()
@@ -1014,53 +1014,61 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.PlanetsideAttributeToAll(target.GUID, 54, value))
   }
 
-  def doSubmerging(obj: PlanetSideServerObject, fluidBody: FillLine): Unit = {
+  def doSubmerging(obj: PlanetSideServerObject, fluidBody: PieceOfEnvironment, vehicleOpt: Option[OxygenStateTarget]): Unit = {
     val attribute = fluidBody.attribute
     submergedIn = Some(attribute)
-    doSubmerging(obj, fluidBody, attribute)
-  }
-
-  def doSubmerging(obj: PlanetSideServerObject, fluidBody: FillLine, fluid: FillLineTrait): Unit = {
     submergedTimer.cancel()
-    fluid match {
-      case FilledWith.Water =>
+    attribute match {
+      case EnvironmentAttribute.Water =>
         val (effect: Boolean, time: Long, percentage: Float) = submergedCondition match {
           case None =>
-            (true, 60000L, 100f)
-          case Some(Drowning.Recovery) =>
-            val oldDuration: Long = 10000
-            val newDuration: Long = 60000
-            val oldRemaining: Long = submergedDrownTimer - System.currentTimeMillis()
-            val percentage: Float = oldRemaining / oldDuration.toFloat * 100
-            val drownTime: Long = newDuration - (oldRemaining * (newDuration / oldDuration.toFloat).toLong)
-            (true, drownTime, percentage)
-          case Some(Drowning.Suffocation) =>
-            (false, 0L, 0f)
+            //start suffocation process
+            (true, obj.Definition.UnderwaterLifespan(OxygenState.Suffocation), 100f)
+          case Some(OxygenState.Recovery) =>
+            //switching from recovery to suffocation
+            val oldDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Recovery)
+            val newDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Suffocation)
+            val oldTimeRemaining: Long = submergedDrownTime - System.currentTimeMillis()
+            val oldTimeRatio: Float = 1f - oldTimeRemaining / oldDuration.toFloat
+            val percentage: Float = oldTimeRatio * 100
+            val newDrownTime: Long = (newDuration * oldTimeRatio).toLong
+            (true, newDrownTime, percentage)
+          case Some(OxygenState.Suffocation) =>
+            //interrupted while suffocating, calculate the progress and keep suffocating
+            val oldDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Suffocation)
+            val oldTimeRemaining: Long = submergedDrownTime - System.currentTimeMillis()
+            val percentage: Float = (oldTimeRemaining / oldDuration.toFloat) * 100f
+            (false, oldTimeRemaining, percentage)
           case _ =>
             (false, 0L, 0f)
         }
         if (effect) {
           import scala.concurrent.ExecutionContext.Implicits.global
-          submergedCondition = Some(Drowning.Suffocation)
-          submergedDrownTimer = System.currentTimeMillis() + time
+          submergedDrownTime = System.currentTimeMillis() + time
+          submergedCondition = Some(OxygenState.Suffocation)
           submergedTimer = context.system.scheduler.scheduleOnce(delay = time milliseconds, self, Player.Die())
           player.Zone.AvatarEvents ! AvatarServiceMessage(
             player.Name,
-            AvatarAction.OxygenState(player.GUID, Drowning.Suffocation, percentage)
+            AvatarAction.OxygenState(OxygenStateTarget(player.GUID, OxygenState.Suffocation, percentage), vehicleOpt)
+          )
+        } else if (vehicleOpt.isDefined) {
+          player.Zone.AvatarEvents ! AvatarServiceMessage(
+            player.Name,
+            AvatarAction.OxygenState(OxygenStateTarget(player.GUID, OxygenState.Suffocation, percentage), vehicleOpt)
           )
         }
 
-      case FilledWith.Lava =>
+      case EnvironmentAttribute.Lava =>
         if (player.isAlive) {
           HandleEnvironmentalDamage(PlanetSideGUID(0), amount = 4)
           if (player.Health > 0) {
             StartAuraEffect(Aura.Fire, duration = 1250L) //burn
             import scala.concurrent.ExecutionContext.Implicits.global
-            submergedTimer = context.system.scheduler.scheduleOnce(delay = 250 milliseconds, self, Submerged(player, fluidBody))
+            submergedTimer = context.system.scheduler.scheduleOnce(delay = 250 milliseconds, self, Submerged(player, fluidBody, None))
           }
         }
 
-      case FilledWith.Death =>
+      case EnvironmentAttribute.Death =>
         if (player.isAlive) {
           DestructionAwareness(player, None)
         }
@@ -1068,49 +1076,60 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     }
   }
 
-  def doSurfacing(obj: PlanetSideServerObject, fluidBody: FillLine): Unit = {
-    doSurfacing(obj, fluidBody.attribute)
-    submergedIn = None
-  }
-
-  def doSurfacing(obj: PlanetSideServerObject, fluid: FillLineTrait): Unit = {
+  def doSurfacing(obj: PlanetSideServerObject, fluidBody: PieceOfEnvironment, vehicleOpt: Option[OxygenStateTarget]): Unit = {
     submergedTimer.cancel()
-    fluid match {
-      case FilledWith.Water =>
+    fluidBody.attribute match {
+      case EnvironmentAttribute.Water =>
         val (effect: Boolean, time: Long, percentage: Float) = submergedCondition match {
-          case Some(Drowning.Suffocation) =>
-            val oldDuration: Long = 60000
-            val newDuration: Long = 10000
-            val oldRemaining: Long = submergedDrownTimer - System.currentTimeMillis()
-            val percentage: Float = oldRemaining / oldDuration.toFloat * 100
-            val recoveryTime: Long = newDuration - (oldRemaining * (newDuration / oldDuration.toFloat).toLong)
+          case None =>
+            (false, 0L, 100f)
+          case Some(OxygenState.Suffocation) =>
+            //switching from suffocation to recovery
+            val oldDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Suffocation)
+            val newDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Recovery)
+            val oldTimeRemaining: Long = submergedDrownTime - System.currentTimeMillis()
+            val oldTimeRatio: Float = oldTimeRemaining / oldDuration.toFloat
+            val percentage: Float = oldTimeRatio * 100
+            val recoveryTime: Long = newDuration - (newDuration * oldTimeRatio).toLong
             (true, recoveryTime, percentage)
-          case Some(Drowning.Recovery) =>
-            (false, 0L, 0f)
+          case Some(OxygenState.Recovery) =>
+            //interrupted while recovering, calculate the progress and keep recovering
+            val currTime = System.currentTimeMillis()
+            val duration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Recovery)
+            val startTime: Long = submergedDrownTime - duration
+            val timeRemaining: Long = submergedDrownTime - currTime
+            val percentage: Float = ((currTime - startTime) / duration.toFloat) * 100f
+            (false, timeRemaining, percentage)
           case _ =>
             recoverFromSubmerged()
-            (false, 0L, 0f)
+            (false, 0L, 100f)
         }
         if (effect) {
           import scala.concurrent.ExecutionContext.Implicits.global
-          submergedCondition = Some(Drowning.Recovery)
-          submergedDrownTimer = System.currentTimeMillis() + time
+          submergedCondition = Some(OxygenState.Recovery)
+          submergedDrownTime = System.currentTimeMillis() + time
           submergedTimer = context.system.scheduler.scheduleOnce(delay = time milliseconds, self, RecoveredFromSubmerging())
           player.Zone.AvatarEvents ! AvatarServiceMessage(
             player.Name,
-            AvatarAction.OxygenState(player.GUID, Drowning.Recovery, percentage)
+            AvatarAction.OxygenState(OxygenStateTarget(player.GUID, OxygenState.Recovery, percentage), vehicleOpt)
+          )
+        } else if (vehicleOpt.isDefined) {
+          player.Zone.AvatarEvents ! AvatarServiceMessage(
+            player.Name,
+            AvatarAction.OxygenState(OxygenStateTarget(player.GUID, OxygenState.Recovery, percentage), vehicleOpt)
           )
         }
 
       case _ =>
         recoverFromSubmerged()
     }
+    submergedIn = None
   }
 
   def recoverFromSubmerged(): Unit = {
     submergedTimer.cancel()
-    submergedDrownTimer = 0
     submergedCondition = None
+    submergedDrownTime = 0
     submergedIn = None
   }
 }

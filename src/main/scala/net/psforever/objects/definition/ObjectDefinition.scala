@@ -3,6 +3,7 @@ package net.psforever.objects.definition
 
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.definition.converter.{ObjectCreateConverter, PacketConverter}
+import net.psforever.types.OxygenState
 
 /**
   * Associate an object's canned in-game representation with its basic game identification unit.
@@ -40,21 +41,39 @@ abstract class ObjectDefinition(private val objectId: Int) extends BasicDefiniti
     Packet
   }
 
-  private var takesToWater: Boolean = true
-  private var waterline: Float = Float.MaxValue
+  private var maxDepth: Float = 0 //water_maxdragdepth
+  private var disableAtMaxDepth: Boolean = false
+  private var drownAtMaxDepth: Boolean = false
+  private var underwaterLifespan: Map[OxygenState, Long] = Map.empty //water_underwaterlifespan and water_underwaterlifespanrecovery
 
-  def TakesToWater: Boolean = takesToWater
+  def MaxDepth: Float = maxDepth
 
-  def TakesToWater_=(takes: Boolean): Boolean = {
-    takesToWater = takes
-    TakesToWater
+  def MaxDepth_=(height: Float): Float = {
+    maxDepth = height
+    MaxDepth
   }
 
-  def Waterline: Float = waterline
+  def DisableAtMaxDepth: Boolean = disableAtMaxDepth
 
-  def Waterline_=(height: Float): Float = {
-    waterline = height
-    Waterline
+  def DisableAtMaxDepth_=(drowns: Boolean): Boolean = {
+    disableAtMaxDepth = drowns
+    DisableAtMaxDepth
+  }
+
+  def DrownAtMaxDepth: Boolean = drownAtMaxDepth
+
+  def DrownAtMaxDepth_=(drowns: Boolean): Boolean = {
+    drownAtMaxDepth = drowns
+    DrownAtMaxDepth
+  }
+
+  def UnderwaterLifespan(): Map[OxygenState, Long] = underwaterLifespan
+
+  def UnderwaterLifespan(key: OxygenState): Long = underwaterLifespan.getOrElse(key, 1L)
+
+  def UnderwaterLifespan(suffocation: Long, recovery: Long): Map[OxygenState, Long] = {
+    underwaterLifespan = Map(OxygenState.Suffocation -> suffocation, OxygenState.Recovery -> recovery)
+    UnderwaterLifespan()
   }
 
   def ObjectId: Int = objectId

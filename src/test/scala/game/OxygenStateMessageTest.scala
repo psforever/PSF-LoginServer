@@ -4,7 +4,7 @@ package game
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
-import net.psforever.types.PlanetSideGUID
+import net.psforever.types.{OxygenState, PlanetSideGUID}
 import scodec.bits._
 
 class OxygenStateMessageTest extends Specification {
@@ -16,7 +16,7 @@ class OxygenStateMessageTest extends Specification {
       case OxygenStateMessage(player, vehicle) =>
         player.guid mustEqual PlanetSideGUID(75)
         player.progress mustEqual 50.0
-        player.condition mustEqual Drowning.Suffocation
+        player.condition mustEqual OxygenState.Suffocation
 
         vehicle.isDefined mustEqual false
       case _ =>
@@ -29,13 +29,13 @@ class OxygenStateMessageTest extends Specification {
       case OxygenStateMessage(player, vehicle) =>
         player.guid mustEqual PlanetSideGUID(75)
         player.progress mustEqual 50.0f
-        player.condition mustEqual Drowning.Suffocation
+        player.condition mustEqual OxygenState.Suffocation
 
         vehicle.isDefined mustEqual true
         val v = vehicle.get
         v.guid mustEqual PlanetSideGUID(1546)
         v.progress mustEqual 50.0f
-        v.condition mustEqual Drowning.Suffocation
+        v.condition mustEqual OxygenState.Suffocation
       case _ =>
         ko
     }

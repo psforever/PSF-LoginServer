@@ -3,12 +3,13 @@ package net.psforever.objects.vehicles
 
 import akka.actor.{Actor, Cancellable}
 import net.psforever.objects._
+import net.psforever.objects.avatar.{OxygenStateTarget, RecoveredFromSubmerging, Submerged, Surfaced}
 import net.psforever.objects.ballistics.VehicleSource
 import net.psforever.objects.ce.TelepadLike
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot, JammableMountedWeapons}
 import net.psforever.objects.guid.GUIDTask
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
-import net.psforever.objects.serverobject.CommonMessages
+import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.containable.{Containable, ContainableBehavior}
@@ -21,10 +22,10 @@ import net.psforever.objects.serverobject.repair.RepairableVehicle
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.vital.VehicleShieldCharge
-import net.psforever.objects.zones.Zone
+import net.psforever.objects.zones.{PieceOfEnvironment, EnvironmentTrait, EnvironmentAttribute, Zone}
 import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
-import net.psforever.types.{DriveState, ExoSuitType, PlanetSideGUID, Vector3}
+import net.psforever.types._
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
@@ -54,10 +55,9 @@ class VehicleControl(vehicle: Vehicle)
     with ContainableBehavior
     with AntTransferBehavior
     with AggravatedBehavior {
-
   //make control actors belonging to utilities when making control actor belonging to vehicle
   vehicle.Utilities.foreach({ case (_, util) => util.Setup })
-  
+
   def MountableObject = vehicle
 
   def CargoObject = vehicle
@@ -76,20 +76,22 @@ class VehicleControl(vehicle: Vehicle)
 
   def ChargeTransferObject = vehicle
 
-  if(vehicle.Definition == GlobalDefinitions.ant) {
+  if (vehicle.Definition == GlobalDefinitions.ant) {
     findChargeTargetFunc = Vehicles.FindANTChargingSource
     findDischargeTargetFunc = Vehicles.FindANTDischargingTarget
   }
-
   /** cheap flag for whether the vehicle is decaying */
-  var decaying: Boolean = false
-
+  var decaying : Boolean = false
   /** primary vehicle decay timer */
-  var decayTimer: Cancellable = Default.Cancellable
+  var decayTimer : Cancellable = Default.Cancellable
+  var submergedCondition : Option[OxygenState] = None
+  var submergedDrownTime : Long = 0
+  var submergedIn : Option[EnvironmentTrait] = None
+  var submergedTimer : Cancellable = Default.Cancellable
 
-  def receive: Receive = Enabled
+  def receive : Receive = Enabled
 
-  override def postStop(): Unit = {
+  override def postStop() : Unit = {
     super.postStop()
     damageableVehiclePostStop()
     decaying = false
@@ -100,7 +102,7 @@ class VehicleControl(vehicle: Vehicle)
     }
   }
 
-  def Enabled: Receive =
+  def Enabled : Receive =
     checkBehavior
       .orElse(deployBehavior)
       .orElse(cargoBehavior)
@@ -116,7 +118,7 @@ class VehicleControl(vehicle: Vehicle)
         case Vehicle.Ownership(Some(player)) =>
           GainOwnership(player)
 
-        case msg @ Mountable.TryMount(player, seat_num) =>
+        case msg@Mountable.TryMount(player, seat_num) =>
           tryMountBehavior.apply(msg)
           val obj = MountableObject
           //check that the player has actually been sat in the expected seat
@@ -125,20 +127,21 @@ class VehicleControl(vehicle: Vehicle)
             if (seat_num == 0 && !obj.OwnerName.contains(player.Name)) {
               //whatever vehicle was previously owned
               vehicle.Zone.GUID(player.avatar.vehicle) match {
-                case Some(v: Vehicle) =>
+                case Some(v : Vehicle) =>
                   v.Actor ! Vehicle.Ownership(None)
                 case _ =>
                   player.avatar.vehicle = None
               }
-              LoseOwnership()       //lose our current ownership
+              LoseOwnership() //lose our current ownership
               GainOwnership(player) //gain new ownership
-            } else {
+            }
+            else {
               decaying = false
               decayTimer.cancel()
             }
           }
 
-        case msg: Mountable.TryDismount =>
+        case msg : Mountable.TryDismount =>
           dismountBehavior.apply(msg)
           val obj = MountableObject
 
@@ -157,7 +160,7 @@ class VehicleControl(vehicle: Vehicle)
           }
 
         case Vehicle.ChargeShields(amount) =>
-          val now: Long = System.currentTimeMillis()
+          val now : Long = System.currentTimeMillis()
           //make certain vehicle doesn't charge shields too quickly
           if (
             vehicle.Health > 0 && vehicle.Shields < vehicle.MaxShields &&
@@ -175,13 +178,13 @@ class VehicleControl(vehicle: Vehicle)
           val originalAffinity = vehicle.Faction
           if (originalAffinity != (vehicle.Faction = faction)) {
             vehicle.Utilities.foreach({
-              case (_: Int, util: Utility) => util().Actor forward FactionAffinity.ConfirmFactionAffinity()
+              case (_ : Int, util : Utility) => util().Actor forward FactionAffinity.ConfirmFactionAffinity()
             })
           }
           sender() ! FactionAffinity.AssertFactionAffinity(vehicle, faction)
 
-        case CommonMessages.Use(player, Some(item: SimpleItem))
-            if item.Definition == GlobalDefinitions.remote_electronics_kit =>
+        case CommonMessages.Use(player, Some(item : SimpleItem))
+          if item.Definition == GlobalDefinitions.remote_electronics_kit =>
           //TODO setup certifications check
           if (vehicle.Faction != player.Faction) {
             sender() ! CommonMessages.Progress(
@@ -205,35 +208,39 @@ class VehicleControl(vehicle: Vehicle)
                 //vehicles are the same type
                 //TODO want to completely swap weapons, but holster icon vanishes temporarily after swap
                 //TODO BFR arms must be swapped properly
-//              //remove old weapons
-//              val oldWeapons = vehicle.Weapons.values.collect { case slot if slot.Equipment.nonEmpty =>
-//                val obj = slot.Equipment.get
-//                slot.Equipment = None
-//                (obj, obj.GUID)
-//              }.toList
-//              (oldWeapons, weapons, afterInventory)
+                //              //remove old weapons
+                //              val oldWeapons = vehicle.Weapons.values.collect { case slot if slot.Equipment.nonEmpty =>
+                //                val obj = slot.Equipment.get
+                //                slot.Equipment = None
+                //                (obj, obj.GUID)
+                //              }.toList
+                //              (oldWeapons, weapons, afterInventory)
                 //TODO for now, just refill ammo; assume weapons stay the same
                 vehicle.Weapons
-                  .collect { case (_, slot: EquipmentSlot) if slot.Equipment.nonEmpty => slot.Equipment.get }
+                  .collect { case (_, slot : EquipmentSlot) if slot.Equipment.nonEmpty => slot.Equipment.get }
                   .collect {
-                    case weapon: Tool =>
+                    case weapon : Tool =>
                       weapon.AmmoSlots.foreach { ammo => ammo.Box.Capacity = ammo.Box.Definition.Capacity }
                   }
                 (Nil, Nil, afterInventory)
-              } else {
+              }
+              else {
                 //vehicle loadout is not for this vehicle
                 //do not transfer over weapon ammo
                 if (
                   vehicle.Definition.TrunkSize == definition.TrunkSize && vehicle.Definition.TrunkOffset == definition.TrunkOffset
                 ) {
                   (Nil, Nil, afterInventory) //trunk is the same dimensions, however
-                } else {
+                }
+                else {
                   //accommodate as much of inventory as possible
                   val (stow, _) = GridInventory.recoverInventory(afterInventory, vehicle.Inventory)
                   (Nil, Nil, stow)
                 }
               }
-              finalInventory.foreach { _.obj.Faction = vehicle.Faction }
+              finalInventory.foreach {
+                _.obj.Faction = vehicle.Faction
+              }
               player.Zone.VehicleEvents ! VehicleServiceMessage(
                 player.Zone.id,
                 VehicleAction.ChangeLoadout(vehicle.GUID, oldWeapons, newWeapons, oldInventory, finalInventory)
@@ -246,6 +253,45 @@ class VehicleControl(vehicle: Vehicle)
             case _ => ;
           }
 
+        case Submerged(target, fluidBody, vehicleOpt) =>
+          doSubmerging(target, fluidBody)
+
+        case Surfaced(target, fluidBody, vehicleOpt) =>
+          doSurfacing(target, fluidBody)
+
+        case RecoveredFromSubmerging() =>
+          recoverFromSubmerged()
+
+        case VehicleControl.Disable() =>
+          PrepareForDisabled()
+          context.become(Disabled)
+
+        case Vehicle.Deconstruct(time) =>
+          time match {
+            case Some(delay) =>
+              decaying = true
+              decayTimer.cancel()
+              decayTimer = context.system.scheduler.scheduleOnce(delay, self, VehicleControl.PrepareForDeletion())
+            case _ =>
+              PrepareForDisabled()
+              PrepareForDeletion()
+              context.become(ReadyToDelete)
+          }
+
+        case VehicleControl.PrepareForDeletion() =>
+          PrepareForDisabled()
+          PrepareForDeletion()
+          context.become(ReadyToDelete)
+
+        case _ => ;
+      }
+
+  def Disabled : Receive =
+    checkBehavior
+      .orElse {
+        case msg : Deployment.TryUndeploy =>
+          deployBehavior.apply(msg)
+
         case Vehicle.Deconstruct(time) =>
           time match {
             case Some(delay) =>
@@ -254,51 +300,67 @@ class VehicleControl(vehicle: Vehicle)
               decayTimer = context.system.scheduler.scheduleOnce(delay, self, VehicleControl.PrepareForDeletion())
             case _ =>
               PrepareForDeletion()
+              context.become(ReadyToDelete)
           }
 
         case VehicleControl.PrepareForDeletion() =>
           PrepareForDeletion()
+          context.become(ReadyToDelete)
 
-        case _ => ;
+        case _ =>
       }
 
-  val tryMountBehavior: Receive = {
-    case msg @ Mountable.TryMount(user, seat_num) =>
-      val exosuit     = user.ExoSuit
+  def ReadyToDelete : Receive =
+    checkBehavior
+      .orElse {
+        case msg : Deployment.TryUndeploy =>
+          deployBehavior.apply(msg)
+
+        case VehicleControl.Deletion() =>
+          val zone = vehicle.Zone
+          zone.VehicleEvents ! VehicleServiceMessage(
+            zone.id,
+            VehicleAction.UnloadVehicle(Service.defaultPlayerGUID, vehicle, vehicle.GUID)
+          )
+          zone.Transport ! Zone.Vehicle.Despawn(vehicle)
+
+        case _ =>
+      }
+
+  val tryMountBehavior : Receive = {
+    case msg@Mountable.TryMount(user, seat_num) =>
+      val exosuit = user.ExoSuit
       val restriction = vehicle.Seats(seat_num).ArmorRestriction
-      val seatGroup   = vehicle.SeatPermissionGroup(seat_num).getOrElse(AccessPermissionGroup.Passenger)
-      val permission  = vehicle.PermissionGroup(seatGroup.id).getOrElse(VehicleLockState.Empire)
+      val seatGroup = vehicle.SeatPermissionGroup(seat_num).getOrElse(AccessPermissionGroup.Passenger)
+      val permission = vehicle.PermissionGroup(seatGroup.id).getOrElse(VehicleLockState.Empire)
       if (
         (if (seatGroup == AccessPermissionGroup.Driver) {
-           vehicle.Owner.contains(user.GUID) || vehicle.Owner.isEmpty || permission != VehicleLockState.Locked
-         } else {
-           permission != VehicleLockState.Locked
-         }) &&
+          vehicle.Owner.contains(user.GUID) || vehicle.Owner.isEmpty || permission != VehicleLockState.Locked
+        }
+        else {
+          permission != VehicleLockState.Locked
+        }) &&
         (exosuit match {
-          case ExoSuitType.MAX        => restriction == SeatArmorRestriction.MaxOnly
+          case ExoSuitType.MAX => restriction == SeatArmorRestriction.MaxOnly
           case ExoSuitType.Reinforced => restriction == SeatArmorRestriction.NoMax
-          case _                      => restriction != SeatArmorRestriction.MaxOnly
+          case _ => restriction != SeatArmorRestriction.MaxOnly
         })
       ) {
         mountBehavior.apply(msg)
-      } else {
+      }
+      else {
         sender() ! Mountable.MountMessages(user, Mountable.CanNotMount(vehicle, seat_num))
       }
   }
 
-  def PrepareForDeletion(): Unit = {
-    decaying = false
-    val guid   = vehicle.GUID
-    val zone   = vehicle.Zone
+  def PrepareForDisabled() : Unit = {
+    val guid = vehicle.GUID
+    val zone = vehicle.Zone
     val zoneId = zone.id
     val events = zone.VehicleEvents
     //miscellaneous changes
+    recoverFromSubmerged()
     Vehicles.BeforeUnloadVehicle(vehicle, zone)
-    //become disabled
-    context.become(Disabled)
-    //cancel jammed behavior
-    CancelJammeredSound(vehicle)
-    CancelJammeredStatus(vehicle)
     //escape being someone else's cargo
     vehicle.MountedIn match {
       case Some(_) =>
@@ -338,6 +400,19 @@ class VehicleControl(vehicle: Vehicle)
             )
         }
     })
+  }
+
+  def PrepareForDeletion() : Unit = {
+    decaying = false
+    val guid = vehicle.GUID
+    val zone = vehicle.Zone
+    val zoneId = zone.id
+    val events = zone.VehicleEvents
+    //miscellaneous changes
+    Vehicles.BeforeUnloadVehicle(vehicle, zone)
+    //cancel jammed behavior
+    CancelJammeredSound(vehicle)
+    CancelJammeredStatus(vehicle)
     //unregister
     zone.tasks ! GUIDTask.UnregisterVehicle(vehicle)(zone.GUID)
     //banished to the shadow realm
@@ -345,22 +420,6 @@ class VehicleControl(vehicle: Vehicle)
     //queue final deletion
     decayTimer = context.system.scheduler.scheduleOnce(5 seconds, self, VehicleControl.Deletion())
   }
-
-  def Disabled: Receive =
-    checkBehavior
-      .orElse {
-        case msg: Deployment.TryUndeploy =>
-          deployBehavior.apply(msg)
-
-        case VehicleControl.Deletion() =>
-          val zone = vehicle.Zone
-          zone.VehicleEvents ! VehicleServiceMessage(
-            zone.id,
-            VehicleAction.UnloadVehicle(Service.defaultPlayerGUID, vehicle, vehicle.GUID)
-          )
-          zone.Transport ! Zone.Vehicle.Despawn(vehicle)
-        case _ =>
-      }
 
   override def TryJammerEffectActivate(target: Any, cause: DamageResult): Unit = {
     if (vehicle.MountedIn.isEmpty) {
@@ -582,6 +641,114 @@ class VehicleControl(vehicle: Vehicle)
     }
     out
   }
+
+  def doSubmerging(obj: PlanetSideServerObject, fluidBody: PieceOfEnvironment): Unit = {
+    val attribute = fluidBody.attribute
+    submergedIn = Some(attribute)
+    submergedTimer.cancel()
+    attribute match {
+      case EnvironmentAttribute.Water =>
+        val (effect: Boolean, time: Long, percentage: Float) = submergedCondition match {
+          case None =>
+            //start suffocation process
+            (true, obj.Definition.UnderwaterLifespan(OxygenState.Suffocation), 100f)
+          case Some(OxygenState.Recovery) =>
+            //switching from recovery to suffocation
+            val oldDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Recovery)
+            val newDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Suffocation)
+            val oldTimeRemaining: Long = submergedDrownTime - System.currentTimeMillis()
+            val oldTimeRatio: Float = 1f - oldTimeRemaining / oldDuration.toFloat
+            val percentage: Float = oldTimeRatio * 100
+            val newDrownTime: Long = (newDuration * oldTimeRatio).toLong
+            (true, newDrownTime, percentage)
+          case Some(OxygenState.Suffocation) =>
+            //interrupted while suffocating, calculate the progress and keep suffocating
+            val oldDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Suffocation)
+            val oldTimeRemaining: Long = submergedDrownTime - System.currentTimeMillis()
+            val percentage: Float = (oldTimeRemaining / oldDuration.toFloat) * 100f
+            (false, oldTimeRemaining, percentage)
+          case _ =>
+            (false, 0L, 0f)
+        }
+        if (effect) {
+          import scala.concurrent.ExecutionContext.Implicits.global
+          submergedCondition = Some(OxygenState.Suffocation)
+          submergedDrownTime = System.currentTimeMillis() + time
+          submergedTimer = context.system.scheduler.scheduleOnce(delay = time milliseconds, self, VehicleControl.Disable())
+          val vtarget = Some(OxygenStateTarget(vehicle.GUID, OxygenState.Suffocation, percentage))
+          vehicle.Seats.values.collect { case seat if seat.isOccupied =>
+            val player = seat.Occupant.get
+            player.Actor ! Submerged(player, fluidBody, vtarget)
+          }
+        }
+
+      case EnvironmentAttribute.Lava =>
+      //        if (player.isAlive) {
+      //          HandleEnvironmentalDamage(PlanetSideGUID(0), amount = 4)
+      //          if (player.Health > 0) {
+      //            import scala.concurrent.ExecutionContext.Implicits.global
+      //            submergedTimer = context.system.scheduler.scheduleOnce(delay = 250 milliseconds, self, Submerged(player, fluidBody, None))
+      //          }
+      //        }
+
+      case EnvironmentAttribute.Death =>
+      //        if (!obj.Destroyed) {
+      //          DestructionAwareness(vehicle, None)
+      //        }
+      case _ => ;
+    }
+  }
+
+  def doSurfacing(obj: PlanetSideServerObject, fluidBody: PieceOfEnvironment): Unit = {
+    submergedTimer.cancel()
+    fluidBody.attribute match {
+      case EnvironmentAttribute.Water =>
+        val (effect: Boolean, time: Long, percentage: Float) = submergedCondition match {
+          case Some(OxygenState.Suffocation) =>
+            //switching from suffocation to recovery
+            val oldDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Suffocation)
+            val newDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Recovery)
+            val oldTimeRemaining: Long = submergedDrownTime - System.currentTimeMillis()
+            val oldTimeRatio: Float = oldTimeRemaining / oldDuration.toFloat
+            val percentage: Float = oldTimeRatio * 100
+            val recoveryTime: Long = newDuration - (newDuration * oldTimeRatio).toLong
+            (true, recoveryTime, percentage)
+          case Some(OxygenState.Recovery) =>
+            //interrupted while recovering, calculate the progress and keep recovering
+            val currTime = System.currentTimeMillis()
+            val duration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Recovery)
+            val startTime: Long = submergedDrownTime - duration
+            val timeRemaining: Long = submergedDrownTime - currTime
+            val percentage: Float = ((currTime - startTime) / duration.toFloat) * 100f
+            (false, timeRemaining, percentage)
+          case _ =>
+            recoverFromSubmerged()
+            (false, 0L, 100f)
+        }
+        if (effect) {
+          import scala.concurrent.ExecutionContext.Implicits.global
+          submergedCondition = Some(OxygenState.Recovery)
+          submergedDrownTime = System.currentTimeMillis() + time
+          submergedTimer = context.system.scheduler.scheduleOnce(delay = time milliseconds, self, RecoveredFromSubmerging())
+          val vtarget = Some(OxygenStateTarget(vehicle.GUID, OxygenState.Recovery, percentage))
+          vehicle.Seats.values.collect { case seat if seat.isOccupied =>
+            val player = seat.Occupant.get
+            player.Actor ! Surfaced(player, fluidBody, vtarget)
+          }
+        }
+
+      case _ =>
+        recoverFromSubmerged()
+    }
+    submergedIn = None
+  }
+
+  def recoverFromSubmerged(): Unit = {
+    submergedTimer.cancel()
+    submergedDrownTime = 0
+    submergedCondition = None
+    submergedIn = None
+  }
 }
 
 object VehicleControl {
@@ -589,6 +756,8 @@ object VehicleControl {
   import scala.concurrent.duration._
 
   private case class PrepareForDeletion()
+
+  private case class Disable()
 
   private case class Deletion()
 

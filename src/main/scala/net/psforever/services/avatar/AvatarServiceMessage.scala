@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.avatar
 
+import net.psforever.objects.avatar.OxygenStateTarget
 import net.psforever.objects.{PlanetSideGameObject, Player}
 import net.psforever.objects.ballistics.{Projectile, SourceEntry}
 import net.psforever.objects.ce.Deployable
@@ -8,7 +9,6 @@ import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.Drowning
 import net.psforever.packet.game.objectcreate.{ConstructorData, ObjectCreateMessageParent}
 import net.psforever.types.{ExoSuitType, PlanetSideEmpire, PlanetSideGUID, TransactionType, Vector3}
 
@@ -68,11 +68,7 @@ object AvatarAction {
   )                                                                                                   extends Action
   final case class ObjectDelete(player_guid: PlanetSideGUID, item_guid: PlanetSideGUID, unk: Int = 0) extends Action
   final case class ObjectHeld(player_guid: PlanetSideGUID, slot: Int)                                 extends Action
-  final case class OxygenState(
-      player_guid: PlanetSideGUID,
-      state: Drowning.Value,
-      progress: Float
-  )                                                                                                   extends Action
+  final case class OxygenState(player: OxygenStateTarget, vehicle: Option[OxygenStateTarget])         extends Action
   final case class PlanetsideAttribute(player_guid: PlanetSideGUID, attribute_type: Int, attribute_value: Long)
       extends Action
   final case class PlanetsideAttributeToAll(player_guid: PlanetSideGUID, attribute_type: Int, attribute_value: Long)

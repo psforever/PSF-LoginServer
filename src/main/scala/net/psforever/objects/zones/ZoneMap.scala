@@ -32,7 +32,7 @@ class ZoneMap(val name: String) {
   var checksum: Long                                                = 0
   var zipLinePaths: List[ZipLinePath]                               = List()
   var cavern: Boolean                                               = false
-  var environment: List[FillLine]                                         = List()
+  var environment: List[PieceOfEnvironment]                                         = List()
   private var linkTurretWeapon: Map[Int, Int]                       = Map()
   private var linkTerminalPad: Map[Int, Int]                        = Map()
   private var linkTerminalInterface: Map[Int, Int]                  = Map()

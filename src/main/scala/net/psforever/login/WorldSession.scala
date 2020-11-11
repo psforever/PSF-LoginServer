@@ -9,7 +9,7 @@ import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.containable.Containable
-import net.psforever.objects.zones.{FillLine, Zone}
+import net.psforever.objects.zones.{PieceOfEnvironment, Zone}
 import net.psforever.objects._
 import net.psforever.objects.avatar.{Submerged, Surfaced}
 import net.psforever.packet.game.ObjectHeldMessage
@@ -839,53 +839,82 @@ object WorldSession {
     }
   }
 
-  def onLandEnvironment(obj: PlanetSideServerObject, lastPosition: Vector3): Any = {
-    WorldSession.takingOnWater(obj, lastPosition) match {
-      case Some(fluidBody) =>
-        if(fluidBody.submerged(obj.Position, GlobalDefinitions.Waterline(obj))) {
-          obj.Actor ! Submerged(obj, fluidBody)
-          wadedTooDeeply(obj.Zone, fluidBody)(_, _)
-        } else {
-          onLandEnvironment(_, _)
-        }
+  /**
+    * While on stable non-interactive terrain,
+    * test whether any special terrain component has an affect upon the target entity.
+    * If so, instruct the target that an interaction should occur.
+    * Considered recursive, but not treated that way.
+    * @see `checkAllEnvironmentInteractions`
+    * @param obj the target entity
+    * @return the function literal that represents the next iterative call of ongoing interaction testing;
+    *         may return itself
+    */
+  def onStableEnvironment(obj: PlanetSideServerObject): Any = {
+    checkAllEnvironmentInteractions(obj) match {
+      case Some(body) =>
+        obj.Actor ! Submerged(obj, body, None)
+        waitOnOngoingInteraction(obj.Zone, body)(_)
       case None =>
-        onLandEnvironment(_, _)
+        onStableEnvironment(_)
     }
   }
 
-  def wadedTooDeeply(zone: Zone, fluidBody: FillLine)(obj: PlanetSideServerObject, lastPosition: Vector3): Any = {
-    WorldSession.surfacing(zone, fluidBody)(obj, lastPosition) match {
+  /**
+    * While on unstable, interactive, or special terrain,
+    * test whether that special terrain component has an affect upon the target entity.
+    * If no interaction exists,
+    * treat the target as if it had been previously affected by the given terrain,
+    * and instruct it to cease that assumption.
+    * Transition between the affects of different special terrains is possible.
+    * Considered recursive, but not treated that way.
+    * @param zone the zone in which the terrain is located
+    * @param body the special terrain
+    * @param obj the target entity
+    * @return the function literal that represents the next iterative call of ongoing interaction testing;
+    *         may return itself
+    */
+  def waitOnOngoingInteraction(zone: Zone, body: PieceOfEnvironment)(obj: PlanetSideServerObject): Any = {
+    checkSpecificEnvironmentInteraction(zone, body)(obj) match {
       case None =>
-        wadedTooDeeply(zone, fluidBody)(_, _)
+        waitOnOngoingInteraction(zone, body)(_)
       case Some(_) =>
-        WorldSession.takingOnWater(obj, lastPosition) match {
-          case Some(newFluidBody) if newFluidBody.attribute == fluidBody.attribute =>
-            wadedTooDeeply(obj.Zone, newFluidBody)(_, _)
-          case Some(newFluidBody) =>
-            obj.Actor ! Surfaced(obj, fluidBody)
-            obj.Actor ! Submerged(obj, newFluidBody)
-            wadedTooDeeply(obj.Zone, newFluidBody)(_, _)
+        checkAllEnvironmentInteractions(obj) match {
+          case Some(newBody) if newBody.attribute == body.attribute =>
+            waitOnOngoingInteraction(obj.Zone, newBody)(_)
+          case Some(newBody) =>
+            obj.Actor ! Surfaced(obj, body, None)
+            obj.Actor ! Submerged(obj, newBody, None)
+            waitOnOngoingInteraction(obj.Zone, newBody)(_)
           case None =>
-            obj.Actor ! Surfaced(obj, fluidBody)
-            onLandEnvironment(_, _)
+            obj.Actor ! Surfaced(obj, body, None)
+            onStableEnvironment(_)
         }
     }
   }
 
-  private def takingOnWater(obj: PlanetSideServerObject, lastPosition: Vector3): Option[FillLine] = {
+  /**
+    * Test whether any special terrain component has an affect upon the target entity.
+    * @param obj the target entity
+    * @return any unstable, interactive, or special terrain that is being interacted
+    */
+  private def checkAllEnvironmentInteractions(obj: PlanetSideServerObject): Option[PieceOfEnvironment] = {
     val position = obj.Position
-    obj.Zone.map.environment.find { body => body.breakSurface(position, lastPosition, GlobalDefinitions.Waterline(obj)).contains(true) }
+    val depth = GlobalDefinitions.MaxDepth(obj)
+    obj.Zone.map.environment.find { body => body.attribute.canInteractWith(obj) && body.testInteraction(position, depth) }
   }
 
-  private def surfacing(zone: Zone, fluidBody: FillLine)(obj: PlanetSideServerObject, lastPosition: Vector3): Option[FillLine] = {
-    val position = obj.Position
-    if (obj.Zone eq zone) {
-      fluidBody.breakSurface(position, lastPosition, GlobalDefinitions.Waterline(obj)) match {
-        case Some(false) => Some(fluidBody)
-        case _ => None
-      }
+  /**
+    * Test whether a special terrain component has an affect upon the target entity.
+    * @param zone the zone in which the terrain is located
+    * @param body the special terrain
+    * @param obj the target entity
+    * @return any unstable, interactive, or special terrain that is being interacted
+    */
+  private def checkSpecificEnvironmentInteraction(zone: Zone, body: PieceOfEnvironment)(obj: PlanetSideServerObject): Option[PieceOfEnvironment] = {
+    if ((obj.Zone eq zone) && !body.testInteraction(obj.Position, GlobalDefinitions.MaxDepth(obj))) {
+      Some(body)
     } else {
-      Some(fluidBody)
+      None
     }
   }
 }

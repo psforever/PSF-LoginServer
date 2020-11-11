@@ -268,7 +268,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var keepAliveFunc: () => Unit                      = NormalKeepAlive
   var setAvatar: Boolean                             = false
   var turnCounterFunc: PlanetSideGUID => Unit        = TurnCounterDuringInterim
-  var interactingWithEnvironment: (PlanetSideServerObject, Vector3) => Any = WorldSession.onLandEnvironment
+  var interactingWithEnvironment: PlanetSideServerObject=>Any = WorldSession.onStableEnvironment
 
   var clientKeepAlive: Cancellable   = Default.Cancellable
   var progressBarUpdate: Cancellable = Default.Cancellable
@@ -1882,19 +1882,16 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           sendResponse(ObjectHeldMessage(guid, slot, false))
         }
 
-      case AvatarResponse.OxygenState(player_guid, Drowning.Suffocation, progress) =>
-//        if (session.account.gm) {
-//          sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "You would be drowning.", None))
-//        } else {
-          sendResponse(OxygenStateMessage(player_guid, progress))
-//        }
-
-      case AvatarResponse.OxygenState(player_guid, Drowning.Recovery, progress) =>
-//        if (session.account.gm) {
-//          sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, false, "", "You would no longer be drowning.", None))
-//        } else {
-        sendResponse(OxygenStateMessage(DrowningTarget.recover(player_guid, progress)))
-//        }
+      case AvatarResponse.OxygenState(player, vehicle) =>
+        sendResponse(
+          OxygenStateMessage(
+            DrowningTarget(player.guid, player.progress, player.state),
+            vehicle match {
+              case Some(vinfo) => Some(DrowningTarget(vinfo.guid, vinfo.progress, vinfo.state))
+              case None => None
+            }
+          )
+        )
 
       case AvatarResponse.PlanetsideAttribute(attribute_type, attribute_value) =>
         if (tplayer_guid != guid) {
@@ -3638,7 +3635,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         if (isMovingPlus) {
           CancelZoningProcessWithDescriptiveReason("cancel_motion")
         }
-        val previousPosition = player.Position
         player.Position = pos
         player.Velocity = vel
         player.Orientation = Vector3(player.Orientation.x, pitch, yaw)
@@ -3708,7 +3704,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         if (player.death_by == -1) {
           KickedByAdministration()
         }
-        interactsWithEnvironment(player, previousPosition)
+        interactsWithEnvironment(player)
 
       case msg @ ChildObjectStateMessage(object_guid, pitch, yaw) =>
         //log.info(s"$msg")
@@ -3810,6 +3806,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               )
             )
             updateSquad()
+            interactsWithEnvironment(obj)
           case (None, _) =>
           //log.error(s"VehicleState: no vehicle $vehicle_guid found in zone")
           //TODO placing a "not driving" warning here may trigger as we are disembarking the vehicle
@@ -9449,11 +9446,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     }
   }
 
-  def interactsWithEnvironment(obj: PlanetSideServerObject, lastPosition: Vector3): Unit = {
+  def interactsWithEnvironment(obj: PlanetSideServerObject): Unit = {
     /*
     TODO a function of type foo that takes parameters bar that recursively returns a function of type foo that takes parameters bar that recursively returns a function ...
      */
-    interactingWithEnvironment = interactingWithEnvironment(obj, lastPosition).asInstanceOf[(PlanetSideServerObject,Vector3)=>Any]
+    interactingWithEnvironment = interactingWithEnvironment(obj).asInstanceOf[PlanetSideServerObject=>Any]
   }
 
   def failWithError(error: String) = {
