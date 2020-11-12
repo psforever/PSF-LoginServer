@@ -51,6 +51,7 @@ import net.psforever.objects.teamwork.Squad
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.vital._
+import net.psforever.objects.vital.test.{DamageReason, ProjectileDamageInteraction}
 import net.psforever.objects.zones.{Zone, ZoneHotSpotProjector, Zoning}
 import net.psforever.packet._
 import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo, _}
@@ -7653,7 +7654,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       resolution: ProjectileResolution.Value,
       target: PlanetSideGameObject with FactionAffinity with Vitality,
       pos: Vector3
-  ): Option[ResolvedProjectile] = {
+  ): Option[ProjectileDamageInteraction] = {
     FindProjectileEntry(projectile_guid) match {
       case Some(projectile) =>
         ResolveProjectileEntry(projectile, resolution, target, pos)
@@ -7676,7 +7677,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       resolution: ProjectileResolution.Value,
       target: PlanetSideGameObject with FactionAffinity with Vitality,
       pos: Vector3
-  ): Option[ResolvedProjectile] = {
+  ): Option[ProjectileDamageInteraction] = {
     if (!projectiles(index).contains(projectile)) {
       log.error(s"expected projectile could not be found at $index; can not resolve")
       None
@@ -7696,7 +7697,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       resolution: ProjectileResolution.Value,
       target: PlanetSideGameObject with FactionAffinity with Vitality,
       pos: Vector3
-  ): Option[ResolvedProjectile] = {
+  ): Option[ProjectileDamageInteraction] = {
     if (projectile.isMiss) {
       log.error("expected projectile was already counted as a missed shot; can not resolve any further")
       None
@@ -7715,7 +7716,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       } else {
         projectile
       }
-      Some(ResolvedProjectile(resolution, outProjectile, SourceEntry(target), target.DamageModel, pos))
+      Some(ProjectileDamageInteraction(SourceEntry(target), DamageReason.Projectile(resolution, outProjectile, target.DamageModel), pos))
     }
   }
 
@@ -7768,8 +7769,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @param target a valid game object that is known to the server
     * @param data a projectile that will affect the target
     */
-  def HandleDealingDamage(target: PlanetSideGameObject with Vitality, data: ResolvedProjectile): Unit = {
-    val func = data.damage_model.Calculate(data)
+  def HandleDealingDamage(target: PlanetSideGameObject with Vitality, data: ProjectileDamageInteraction): Unit = {
+    val func = data.cause.damageModel.Calculate(data)
     target match {
       case obj: Player if obj.CanDamage && obj.Actor != Default.Actor =>
         // auto kick players damaging spectators
@@ -7847,7 +7848,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   def UpdateDeployableUIElements(list: List[(Int, Int, Int, Int)]): Unit = {
     val guid = PlanetSideGUID(0)
     list.foreach({
-      case ((currElem, curr, maxElem, max)) =>
+      case (currElem, curr, maxElem, max) =>
         //fields must update in ordered pairs: max, curr
         sendResponse(PlanetsideAttributeMessage(guid, maxElem, max))
         sendResponse(PlanetsideAttributeMessage(guid, currElem, curr))

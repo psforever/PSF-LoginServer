@@ -2,10 +2,10 @@
 package net.psforever.objects.vital
 
 import net.psforever.objects.vital.damage.DamageCalculations
-import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.vital.projectile.ProjectileCalculations
 import net.psforever.objects.vital.resistance.ResistanceSelection
 import net.psforever.objects.vital.resolution.ResolutionCalculations
+import net.psforever.objects.vital.test.ProjectileDamageInteraction
 
 /**
   * The functionality that is necessary for interaction of a vital game object with the rest of the game world.<br>
@@ -61,7 +61,7 @@ trait DamageResistanceModel {
     * @param data the historical `ResolvedProjectile` information
     * @return a function literal that encapsulates delayed modification instructions for certain objects
     */
-  def Calculate(data: ResolvedProjectile): ResolutionCalculations.Output = {
+  def Calculate(data: ProjectileDamageInteraction): ResolutionCalculations.Output = {
     val res: ProjectileCalculations.Form = ResistUsing(data)
     Model(DamageUsing, res, data)
   }
@@ -72,7 +72,7 @@ trait DamageResistanceModel {
     * @param resolution an explicit damage resolution overriding the one in the `ResolvedProjectile` object
     * @return a function literal that encapsulates delayed modification instructions for certain objects
     */
-  def Calculate(data: ResolvedProjectile, resolution: DamageType.Value): ResolutionCalculations.Output = {
+  def Calculate(data: ProjectileDamageInteraction, resolution: DamageType.Value): ResolutionCalculations.Output = {
     val res: ProjectileCalculations.Form = ResistUsing(resolution)
     Model(DamageUsing, res, data)
   }

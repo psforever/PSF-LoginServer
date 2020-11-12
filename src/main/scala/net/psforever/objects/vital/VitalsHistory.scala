@@ -5,6 +5,7 @@ import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile, Sourc
 import net.psforever.objects.definition.{EquipmentDefinition, KitDefinition, ObjectDefinition}
 import net.psforever.objects.serverobject.painbox.Painbox
 import net.psforever.objects.serverobject.terminals.TerminalDefinition
+import net.psforever.objects.vital.test.ProjectileDamageInteraction
 import net.psforever.types.{ExoSuitType, ImplantType}
 
 abstract class VitalsActivity(target: SourceEntry) {
@@ -50,7 +51,7 @@ final case class RepairFromTerm(target: VehicleSource, amount: Int, term_def: Te
 
 final case class VehicleShieldCharge(target: VehicleSource, amount: Int) extends HealingActivity(target) //TODO facility
 
-final case class DamageFromProjectile(data: ResolvedProjectile) extends DamagingActivity(data.target)
+final case class DamageFromProjectile(data: ProjectileDamageInteraction) extends DamagingActivity(data.target)
 
 final case class DamageFromPainbox(target: PlayerSource, painbox: Painbox, damage: Int) extends DamagingActivity(target)
 
@@ -99,6 +100,16 @@ trait VitalsHistory {
     * @return the list of previous changes to this object's vital statistics
     */
   def History(projectile: ResolvedProjectile): List[VitalsActivity] = {
+    vitalsHistory = DamageFromProjectile(projectile.data.asInstanceOf[ProjectileDamageInteraction]) +: vitalsHistory
+    vitalsHistory
+  }
+
+  /**
+    * Very common example of a `VitalsActivity` event involving weapon discharge.
+    * @param projectile the fully-informed entry of discharge of a weapon
+    * @return the list of previous changes to this object's vital statistics
+    */
+  def History(projectile: ProjectileDamageInteraction): List[VitalsActivity] = {
     vitalsHistory = DamageFromProjectile(projectile) +: vitalsHistory
     vitalsHistory
   }
@@ -110,7 +121,7 @@ trait VitalsHistory {
   def LastShot: Option[ResolvedProjectile] = {
     vitalsHistory.find({ p => p.isInstanceOf[DamageFromProjectile] }) match {
       case Some(entry: DamageFromProjectile) =>
-        Some(entry.data)
+        Some(ResolvedProjectile(entry.data))
       case _ =>
         None
     }

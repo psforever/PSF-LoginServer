@@ -6,6 +6,7 @@ import net.psforever.objects.ballistics._
 import net.psforever.objects.definition.ExoSuitDefinition
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.vital.projectile.ProjectileCalculations
+import net.psforever.objects.vital.test.ProjectileDamageInteraction
 import net.psforever.types.ExoSuitType
 
 import scala.util.{Failure, Success, Try}
@@ -26,16 +27,16 @@ import scala.util.{Failure, Success, Try}
   *                    never has to be defined explicitly, but will be checked upon object definition
   */
 abstract class ResistanceCalculations[TargetType](
-    validate: ResolvedProjectile => Try[TargetType],
+    validate: ProjectileDamageInteraction => Try[TargetType],
     extractor: TargetType => Int
 ) extends ProjectileCalculations {
 
   /**
     * Get resistance valuess.
-    * @param data the historical `ResolvedProjectile` information
+    * @param data the historical `ProjectileDamageInteraction` information
     * @return the damage value
     */
-  def Calculate(data: ResolvedProjectile): Int = {
+  def Calculate(data: ProjectileDamageInteraction): Int = {
     validate(data) match {
       case Success(target) =>
         extractor(target)
@@ -49,9 +50,9 @@ object ResistanceCalculations {
   private def failure(typeName: String) = Failure(new Exception(s"can not match expected target $typeName"))
 
   //target identification
-  def InvalidTarget(data: ResolvedProjectile): Try[SourceEntry] = failure(s"invalid ${data.target.Definition.Name}")
+  def InvalidTarget(data: ProjectileDamageInteraction): Try[SourceEntry] = failure(s"invalid ${data.target.Definition.Name}")
 
-  def ValidInfantryTarget(data: ResolvedProjectile): Try[PlayerSource] = {
+  def ValidInfantryTarget(data: ProjectileDamageInteraction): Try[PlayerSource] = {
     data.target match {
       case target: PlayerSource =>
         if (target.ExoSuit != ExoSuitType.MAX) { //max is not counted as an official infantry exo-suit type
@@ -64,7 +65,7 @@ object ResistanceCalculations {
     }
   }
 
-  def ValidMaxTarget(data: ResolvedProjectile): Try[PlayerSource] = {
+  def ValidMaxTarget(data: ProjectileDamageInteraction): Try[PlayerSource] = {
     data.target match {
       case target: PlayerSource =>
         if (target.ExoSuit == ExoSuitType.MAX) {
@@ -77,7 +78,7 @@ object ResistanceCalculations {
     }
   }
 
-  def ValidVehicleTarget(data: ResolvedProjectile): Try[VehicleSource] = {
+  def ValidVehicleTarget(data: ProjectileDamageInteraction): Try[VehicleSource] = {
     data.target match {
       case target: VehicleSource =>
         if (!GlobalDefinitions.isFlightVehicle(target.Definition)) {
@@ -90,7 +91,7 @@ object ResistanceCalculations {
     }
   }
 
-  def ValidAircraftTarget(data: ResolvedProjectile): Try[VehicleSource] = {
+  def ValidAircraftTarget(data: ProjectileDamageInteraction): Try[VehicleSource] = {
     data.target match {
       case target: VehicleSource =>
         if (GlobalDefinitions.isFlightVehicle(target.Definition)) {
@@ -103,7 +104,7 @@ object ResistanceCalculations {
     }
   }
 
-  def ValidAmenityTarget(data: ResolvedProjectile): Try[ObjectSource] = {
+  def ValidAmenityTarget(data: ProjectileDamageInteraction): Try[ObjectSource] = {
     data.target match {
       case target: ObjectSource =>
         if (target.obj.isInstanceOf[Amenity]) {

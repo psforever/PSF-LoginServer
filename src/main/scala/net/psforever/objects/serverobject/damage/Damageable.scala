@@ -9,6 +9,7 @@ import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.resolution.ResolutionCalculations
+import net.psforever.objects.vital.test.{DamageInteraction, ProjectileDamageInteraction}
 
 /**
   * The base "control" `Actor` mixin for damage-handling code.
@@ -77,12 +78,12 @@ object Damageable {
     * @return `true`, if the target can be affected;
     *        `false`, otherwise
     */
-  def CanDamage(obj: Vitality with FactionAffinity, damage: Int, data: ResolvedProjectile): Boolean = {
+  def CanDamage(obj: Vitality with FactionAffinity, damage: Int, data: ProjectileDamageInteraction): Boolean = {
     val definition = obj.Definition
-    (damage > 0 || data.projectile.profile.Aggravated.nonEmpty) &&
+    (damage > 0 || data.cause.projectile.profile.Aggravated.nonEmpty) &&
     definition.Damageable &&
     (definition.DamageableByFriendlyFire ||
-    (data.projectile.owner.Faction != obj.Faction ||
+    (data.cause.projectile.owner.Faction != obj.Faction ||
     (obj match {
       case hobj: Hackable => hobj.HackedBy.nonEmpty
       case _              => false
@@ -99,7 +100,16 @@ object Damageable {
     *        `false`, otherwise
     */
   def CanJammer(obj: Vitality with FactionAffinity, data: ResolvedProjectile): Boolean = {
-    val projectile = data.projectile
+    CanJammer(obj, data.data)
+  }
+  def CanJammer(obj: Vitality with FactionAffinity, data: DamageInteraction): Boolean = {
+    data match {
+      case o: ProjectileDamageInteraction => CanJammer(obj, o)
+      case _ => false
+    }
+  }
+  def CanJammer(obj: Vitality with FactionAffinity, data: ProjectileDamageInteraction): Boolean = {
+    val projectile = data.cause.projectile
     projectile.profile.JammerProjectile &&
     obj.isInstanceOf[JammableUnit] &&
     (projectile.owner.Faction != obj.Faction ||
@@ -118,6 +128,15 @@ object Damageable {
     *        `false`, otherwise
     */
   def CanDamageOrJammer(obj: Vitality with FactionAffinity, damage: Int, data: ResolvedProjectile): Boolean = {
+    CanDamageOrJammer(obj, damage, data.data)
+  }
+  def CanDamageOrJammer(obj: Vitality with FactionAffinity, damage: Int, data: DamageInteraction): Boolean = {
+    data match {
+      case o: ProjectileDamageInteraction => CanDamage(obj, damage, o) || CanJammer(obj, o)
+      case _ => false
+    }
+  }
+  def CanDamageOrJammer(obj: Vitality with FactionAffinity, damage: Int, data: ProjectileDamageInteraction): Boolean = {
     CanDamage(obj, damage, data) || CanJammer(obj, data)
   }
 

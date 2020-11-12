@@ -6,7 +6,7 @@ import akka.testkit.TestProbe
 import base.FreedContextActorTest
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.avatar.Avatar
-import net.psforever.objects.ballistics.{Projectile, ProjectileResolution, ResolvedProjectile, SourceEntry}
+import net.psforever.objects.ballistics.{Projectile, ProjectileResolution, SourceEntry}
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.resourcesilo.{ResourceSilo, ResourceSiloControl}
@@ -14,6 +14,7 @@ import net.psforever.objects.serverobject.structures.{AutoRepairStats, Building,
 import net.psforever.objects.serverobject.terminals.{OrderTerminalDefinition, Terminal, TerminalControl}
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.damage.DamageProfile
+import net.psforever.objects.vital.test.{DamageReason, ProjectileDamageInteraction}
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.objects.{GlobalDefinitions, Player, Tool}
 import net.psforever.services.galaxy.GalaxyService
@@ -65,14 +66,16 @@ class AutoRepairFacilityIntegrationTest extends FreedContextActorTest {
   val proj       = weapon.Projectile
   val proj_prof  = proj.asInstanceOf[DamageProfile]
   val projectile = Projectile(proj, weapon.Definition, wep_fmode, player, Vector3(2, 0, 0), Vector3.Zero)
-  val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    projectile,
+  val resolved = ProjectileDamageInteraction(
     SourceEntry(terminal),
-    terminal.DamageModel,
+    DamageReason.Projectile(
+      ProjectileResolution.Hit,
+      projectile,
+      terminal.DamageModel
+    ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  val applyDamageTo = resolved.cause.damageModel.Calculate(resolved)
 
   "AutoRepair" should {
     "should activate on damage and trade NTU from the facility's resource silo for repairs" in {
@@ -128,14 +131,16 @@ class AutoRepairTowerIntegrationTest extends FreedContextActorTest {
   val proj       = weapon.Projectile
   val proj_prof  = proj.asInstanceOf[DamageProfile]
   val projectile = Projectile(proj, weapon.Definition, wep_fmode, player, Vector3(2, 0, 0), Vector3.Zero)
-  val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    projectile,
+  val resolved = ProjectileDamageInteraction(
     SourceEntry(terminal),
-    terminal.DamageModel,
+    DamageReason.Projectile(
+      ProjectileResolution.Hit,
+      projectile,
+      terminal.DamageModel
+    ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  val applyDamageTo = resolved.cause.damageModel.Calculate(resolved)
 
   "AutoRepair" should {
     "should activate on damage and trade NTU from the tower for repairs" in {

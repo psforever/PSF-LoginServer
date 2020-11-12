@@ -4,6 +4,7 @@ package net.psforever.objects.serverobject.damage
 import akka.actor.{Actor, Cancellable}
 import net.psforever.objects.ballistics._
 import net.psforever.objects.serverobject.aura.Aura
+import net.psforever.objects.vital.test.{DamageReason, ProjectileDamageInteraction}
 import net.psforever.objects.vital.{DamageType, Vitality}
 
 import scala.collection.mutable
@@ -189,11 +190,12 @@ trait AggravatedBehavior {
   private def PerformAggravation(entry: AggravatedBehavior.Entry, tick: Int = 0): Unit = {
     val data = entry.data
     val model = data.damage_model
-    val aggravatedProjectileData = ResolvedProjectile(
-      data.resolution,
-      data.projectile.quality(ProjectileQuality.Modified(entry.qualityPerTick(tick))),
+    val aggravatedProjectileData = ProjectileDamageInteraction(
       data.target,
-      model,
+      DamageReason.Projectile(
+        data.resolution,
+        data.projectile.quality(ProjectileQuality.Modified(entry.qualityPerTick(tick))),
+        model),
       data.hit_pos
     )
     takesDamage.apply(Vitality.Damage(model.Calculate(aggravatedProjectileData)))

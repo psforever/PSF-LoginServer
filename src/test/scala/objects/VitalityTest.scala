@@ -5,6 +5,7 @@ import net.psforever.objects.ballistics._
 import net.psforever.objects._
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.vital._
+import net.psforever.objects.vital.test.{DamageReason, ProjectileDamageInteraction}
 import net.psforever.types._
 import org.specs2.mutable.Specification
 
@@ -20,11 +21,13 @@ class VitalityTest extends Specification {
       val player     = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       val pSource    = PlayerSource(player)
       val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
-      val resprojectile = ResolvedProjectile(
-        ProjectileResolution.Hit,
-        projectile,
+      val resprojectile =ProjectileDamageInteraction(
         SourceEntry(player),
-        player.DamageModel,
+        DamageReason.Projectile(
+          ProjectileResolution.Hit,
+          projectile,
+          player.DamageModel
+        ),
         Vector3(50, 50, 0)
       )
 
@@ -68,11 +71,13 @@ class VitalityTest extends Specification {
       val player     = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       val pSource    = PlayerSource(player)
       val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
-      val resprojectile = ResolvedProjectile(
-        ProjectileResolution.Hit,
-        projectile,
+      val resprojectile = ProjectileDamageInteraction(
         SourceEntry(player),
-        player.DamageModel,
+        DamageReason.Projectile(
+          ProjectileResolution.Hit,
+          projectile,
+          player.DamageModel
+        ),
         Vector3(50, 50, 0)
       )
 

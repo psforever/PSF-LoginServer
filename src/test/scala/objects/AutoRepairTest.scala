@@ -7,13 +7,14 @@ import base.FreedContextActorTest
 import net.psforever.actors.commands.NtuCommand
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.avatar.Avatar
-import net.psforever.objects.ballistics.{Projectile, ProjectileResolution, ResolvedProjectile, SourceEntry}
+import net.psforever.objects.ballistics.{Projectile, ProjectileResolution, SourceEntry}
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.structures.{AutoRepairStats, Building, StructureType}
 import net.psforever.objects.serverobject.terminals.{OrderTerminalDefinition, Terminal, TerminalControl}
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.damage.DamageProfile
+import net.psforever.objects.vital.test.{DamageReason, ProjectileDamageInteraction}
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.objects.{GlobalDefinitions, Player, Tool}
 import net.psforever.services.ServiceManager
@@ -54,14 +55,16 @@ class AutoRepairRequestNtuTest extends FreedContextActorTest {
   val proj       = weapon.Projectile
   val proj_prof  = proj.asInstanceOf[DamageProfile]
   val projectile = Projectile(proj, weapon.Definition, wep_fmode, player, Vector3(2, 0, 0), Vector3.Zero)
-  val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    projectile,
+  val resolved = ProjectileDamageInteraction(
     SourceEntry(terminal),
-    terminal.DamageModel,
+    DamageReason.Projectile(
+      ProjectileResolution.Hit,
+      projectile,
+      terminal.DamageModel
+    ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  val applyDamageTo = resolved.cause.damageModel.Calculate(resolved)
 
   "AutoRepair" should {
     "asks owning building for NTU after damage" in {
@@ -114,14 +117,16 @@ class AutoRepairRequestNtuRepeatTest extends FreedContextActorTest {
   val proj       = weapon.Projectile
   val proj_prof  = proj.asInstanceOf[DamageProfile]
   val projectile = Projectile(proj, weapon.Definition, wep_fmode, player, Vector3(2, 0, 0), Vector3.Zero)
-  val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    projectile,
+  val resolved = ProjectileDamageInteraction(
     SourceEntry(terminal),
-    terminal.DamageModel,
+    DamageReason.Projectile(
+      ProjectileResolution.Hit,
+      projectile,
+      terminal.DamageModel
+    ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  val applyDamageTo = resolved.cause.damageModel.Calculate(resolved)
 
   "AutoRepair" should {
     "repeatedly asks owning building for NTU after damage" in {
@@ -176,14 +181,16 @@ class AutoRepairNoRequestNtuTest extends FreedContextActorTest {
   val proj       = weapon.Projectile
   val proj_prof  = proj.asInstanceOf[DamageProfile]
   val projectile = Projectile(proj, weapon.Definition, wep_fmode, player, Vector3(2, 0, 0), Vector3.Zero)
-  val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    projectile,
+  val resolved = ProjectileDamageInteraction(
     SourceEntry(terminal),
-    terminal.DamageModel,
+    DamageReason.Projectile(
+      ProjectileResolution.Hit,
+      projectile,
+      terminal.DamageModel
+    ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  val applyDamageTo = resolved.cause.damageModel.Calculate(resolved)
 
   "AutoRepair" should {
     "not ask for NTU after damage if it expects no NTU" in {
@@ -231,14 +238,16 @@ class AutoRepairRestoreRequestNtuTest extends FreedContextActorTest {
   val proj       = weapon.Projectile
   val proj_prof  = proj.asInstanceOf[DamageProfile]
   val projectile = Projectile(proj, weapon.Definition, wep_fmode, player, Vector3(2, 0, 0), Vector3.Zero)
-  val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    projectile,
+  val resolved = ProjectileDamageInteraction(
     SourceEntry(terminal),
-    terminal.DamageModel,
+    DamageReason.Projectile(
+      ProjectileResolution.Hit,
+      projectile,
+      terminal.DamageModel
+    ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  val applyDamageTo = resolved.cause.damageModel.Calculate(resolved)
 
   "AutoRepair" should {
     "ask for NTU after damage if its expectation of NTU is restored" in {
@@ -295,14 +304,16 @@ class AutoRepairRepairWithNtuTest extends FreedContextActorTest {
   val proj       = weapon.Projectile
   val proj_prof  = proj.asInstanceOf[DamageProfile]
   val projectile = Projectile(proj, weapon.Definition, wep_fmode, player, Vector3(2, 0, 0), Vector3.Zero)
-  val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    projectile,
+  val resolved = ProjectileDamageInteraction(
     SourceEntry(terminal),
-    terminal.DamageModel,
+    DamageReason.Projectile(
+      ProjectileResolution.Hit,
+      projectile,
+      terminal.DamageModel
+    ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  val applyDamageTo = resolved.cause.damageModel.Calculate(resolved)
 
   "AutoRepair" should {
     "repair some of the damage when it receives NTU" in {
@@ -354,14 +365,16 @@ class AutoRepairRepairWithNtuUntilDoneTest extends FreedContextActorTest {
   val proj       = weapon.Projectile
   val proj_prof  = proj.asInstanceOf[DamageProfile]
   val projectile = Projectile(proj, weapon.Definition, wep_fmode, player, Vector3(2, 0, 0), Vector3.Zero)
-  val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    projectile,
+  val resolved = ProjectileDamageInteraction(
     SourceEntry(terminal),
-    terminal.DamageModel,
+    DamageReason.Projectile(
+      ProjectileResolution.Hit,
+      projectile,
+      terminal.DamageModel
+    ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  val applyDamageTo = resolved.cause.damageModel.Calculate(resolved)
 
   "AutoRepair" should {
     "ask for NTU after damage and repair some of the damage when it receives NTU, until fully-repaired" in {

@@ -4,6 +4,7 @@ package net.psforever.objects.vital.resistance
 import net.psforever.objects.ballistics._
 import net.psforever.objects.vital.{DamageType, NoResistance}
 import net.psforever.objects.vital.projectile.ProjectileCalculations
+import net.psforever.objects.vital.test.ProjectileDamageInteraction
 
 /**
   * Maintain information about four primary forms of resistance calculation
@@ -18,6 +19,14 @@ trait ResistanceSelection {
   def Aggravated: ProjectileCalculations.Form
 
   def apply(data : ResolvedProjectile) : ProjectileCalculations.Form = data.projectile.profile.ProjectileDamageType match {
+    case DamageType.Direct =>     Direct
+    case DamageType.Splash =>     Splash
+    case DamageType.Lash =>       Lash
+    case DamageType.Aggravated => Aggravated
+    case _ => None
+  }
+
+  def apply(data: ProjectileDamageInteraction) : ProjectileCalculations.Form = data.cause.projectile.profile.ProjectileDamageType match {
     case DamageType.Direct =>     Direct
     case DamageType.Splash =>     Splash
     case DamageType.Lash =>       Lash
