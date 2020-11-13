@@ -14,7 +14,7 @@ import net.psforever.objects.serverobject.structures.{AutoRepairStats, Building,
 import net.psforever.objects.serverobject.terminals.{OrderTerminalDefinition, Terminal, TerminalControl}
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.damage.DamageProfile
-import net.psforever.objects.vital.test.{DamageReason, ProjectileDamageInteraction}
+import net.psforever.objects.vital.test.{ProjectileDamageInteraction, ProjectileReason}
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.objects.{GlobalDefinitions, Player, Tool}
 import net.psforever.services.ServiceManager
@@ -57,7 +57,7 @@ class AutoRepairRequestNtuTest extends FreedContextActorTest {
   val projectile = Projectile(proj, weapon.Definition, wep_fmode, player, Vector3(2, 0, 0), Vector3.Zero)
   val resolved = ProjectileDamageInteraction(
     SourceEntry(terminal),
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       projectile,
       terminal.DamageModel
@@ -119,7 +119,7 @@ class AutoRepairRequestNtuRepeatTest extends FreedContextActorTest {
   val projectile = Projectile(proj, weapon.Definition, wep_fmode, player, Vector3(2, 0, 0), Vector3.Zero)
   val resolved = ProjectileDamageInteraction(
     SourceEntry(terminal),
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       projectile,
       terminal.DamageModel
@@ -183,7 +183,7 @@ class AutoRepairNoRequestNtuTest extends FreedContextActorTest {
   val projectile = Projectile(proj, weapon.Definition, wep_fmode, player, Vector3(2, 0, 0), Vector3.Zero)
   val resolved = ProjectileDamageInteraction(
     SourceEntry(terminal),
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       projectile,
       terminal.DamageModel
@@ -240,7 +240,7 @@ class AutoRepairRestoreRequestNtuTest extends FreedContextActorTest {
   val projectile = Projectile(proj, weapon.Definition, wep_fmode, player, Vector3(2, 0, 0), Vector3.Zero)
   val resolved = ProjectileDamageInteraction(
     SourceEntry(terminal),
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       projectile,
       terminal.DamageModel
@@ -306,7 +306,7 @@ class AutoRepairRepairWithNtuTest extends FreedContextActorTest {
   val projectile = Projectile(proj, weapon.Definition, wep_fmode, player, Vector3(2, 0, 0), Vector3.Zero)
   val resolved = ProjectileDamageInteraction(
     SourceEntry(terminal),
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       projectile,
       terminal.DamageModel
@@ -367,7 +367,7 @@ class AutoRepairRepairWithNtuUntilDoneTest extends FreedContextActorTest {
   val projectile = Projectile(proj, weapon.Definition, wep_fmode, player, Vector3(2, 0, 0), Vector3.Zero)
   val resolved = ProjectileDamageInteraction(
     SourceEntry(terminal),
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       projectile,
       terminal.DamageModel

@@ -20,7 +20,7 @@ import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.support.SupportActor
 import net.psforever.objects.avatar.Avatar
-import net.psforever.objects.vital.test.{DamageReason, ProjectileDamageInteraction}
+import net.psforever.objects.vital.test.{ProjectileDamageInteraction, ProjectileReason}
 
 import scala.concurrent.duration._
 
@@ -336,7 +336,7 @@ class ExplosiveDeployableJammerTest extends ActorTest {
   val projectile  = weapon.Projectile
   val resolved = ProjectileDamageInteraction(
     jMineSource,
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       Projectile(projectile, weapon.Definition, weapon.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
       j_mine.DamageModel
@@ -436,7 +436,7 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
   val projectile  = weapon.Projectile
   val resolved = ProjectileDamageInteraction(
     hMineSource,
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       Projectile(projectile, weapon.Definition, weapon.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
       h_mine.DamageModel
@@ -503,7 +503,7 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
       )
       assert(
         msg_activity match {
-          case Zone.HotSpot.Activity(target, attacker, _) => (target eq hMineSource) && (attacker eq pSource)
+          case Zone.HotSpot.Conflict(target, attacker, _) => (target eq hMineSource) && (attacker eq pSource)
           case _                                          => false
         }
       )
@@ -548,7 +548,7 @@ class ExplosiveDeployableDestructionTest extends ActorTest {
   val projectile  = weapon.Projectile
   val resolved = ProjectileDamageInteraction(
     hMineSource,
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       Projectile(projectile, weapon.Definition, weapon.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
       h_mine.DamageModel

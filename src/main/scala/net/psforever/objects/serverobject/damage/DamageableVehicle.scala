@@ -6,7 +6,6 @@ import net.psforever.objects.{Vehicle, Vehicles}
 import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.damage.Damageable.Target
-import net.psforever.objects.vital.DamageType
 import net.psforever.objects.vital.resolution.ResolutionCalculations
 import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
@@ -107,12 +106,12 @@ trait DamageableVehicle
       case _ => (0, 0, 0)
     }
     var announceConfrontation: Boolean = reportDamageToVehicle || totalDamage > 0
-    val aggravated = TryAggravationEffectActivate(cause) match {
+    val aggravated = TryAggravationEffectActivate(cause.data) match {
       case Some(_) =>
         announceConfrontation = true
         false
       case _ =>
-        cause.projectile.profile.ProjectileDamageTypes.contains(DamageType.Aggravated)
+        cause.data.causesAggravation
     }
     reportDamageToVehicle = false
 
@@ -121,8 +120,8 @@ trait DamageableVehicle
     //damage
     if (Damageable.CanDamageOrJammer(target, totalDamage, cause)) {
       //jammering
-      if (Damageable.CanJammer(target, cause)) {
-        target.Actor ! JammableUnit.Jammered(cause)
+      if (Damageable.CanJammer(target, cause.data)) {
+        target.Actor ! JammableUnit.Jammered(cause.data)
       }
       //stat changes
       if (damageToShields > 0) {
@@ -151,7 +150,7 @@ trait DamageableVehicle
       }
       else {
         //activity on map
-        zone.Activity ! Zone.HotSpot.Activity(cause.target, cause.projectile.owner, cause.hit_pos)
+        zone.Activity ! Zone.HotSpot.Activity(cause)
         //alert to damage source
         DamageableMountable.DamageAwareness(obj, cause, totalDamage)
       }

@@ -2,7 +2,7 @@
 package net.psforever.objects.serverobject.damage
 
 import akka.actor.Actor.Receive
-import net.psforever.objects.ballistics.ResolvedProjectile
+import net.psforever.objects.ballistics.{Adversarial, DamageResult, ResolvedProjectile}
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
@@ -78,16 +78,11 @@ object Damageable {
     * @return `true`, if the target can be affected;
     *        `false`, otherwise
     */
-  def CanDamage(obj: Vitality with FactionAffinity, damage: Int, data: ProjectileDamageInteraction): Boolean = {
+  def CanDamage(obj: Vitality with FactionAffinity, damage: Int, data: DamageInteraction): Boolean = {
     val definition = obj.Definition
-    (damage > 0 || data.cause.projectile.profile.Aggravated.nonEmpty) &&
+    (damage > 0 || data.causesAggravation) &&
     definition.Damageable &&
-    (definition.DamageableByFriendlyFire ||
-    (data.cause.projectile.owner.Faction != obj.Faction ||
-    (obj match {
-      case hobj: Hackable => hobj.HackedBy.nonEmpty
-      case _              => false
-    })))
+    (definition.DamageableByFriendlyFire || adversarialOrHackableChecks(obj, data))
   }
 
   /**
@@ -102,21 +97,22 @@ object Damageable {
   def CanJammer(obj: Vitality with FactionAffinity, data: ResolvedProjectile): Boolean = {
     CanJammer(obj, data.data)
   }
+
   def CanJammer(obj: Vitality with FactionAffinity, data: DamageInteraction): Boolean = {
-    data match {
-      case o: ProjectileDamageInteraction => CanJammer(obj, o)
-      case _ => false
-    }
-  }
-  def CanJammer(obj: Vitality with FactionAffinity, data: ProjectileDamageInteraction): Boolean = {
-    val projectile = data.cause.projectile
-    projectile.profile.JammerProjectile &&
+    data.causesJammering &&
     obj.isInstanceOf[JammableUnit] &&
-    (projectile.owner.Faction != obj.Faction ||
-    (obj match {
-      case hobj: Hackable => hobj.HackedBy.nonEmpty
-      case _              => false
-    }))
+    adversarialOrHackableChecks(obj, data)
+  }
+
+  private def adversarialOrHackableChecks(obj: Vitality with FactionAffinity, data: DamageResult): Boolean = {
+    (data.adversarial match {
+      case Some(Adversarial(attacker, defender)) => attacker.Faction != defender.Faction
+      case None                                  => true
+    }) ||
+     (obj match {
+       case hobj: Hackable => hobj.HackedBy.nonEmpty
+       case _              => false
+     })
   }
 
   /**

@@ -3,7 +3,7 @@ package net.psforever.objects.zones
 
 import akka.actor.{ActorContext, ActorRef, Props}
 import akka.routing.RandomPool
-import net.psforever.objects.ballistics.{Projectile, SourceEntry}
+import net.psforever.objects.ballistics.{Projectile, ResolvedProjectile, SourceEntry}
 import net.psforever.objects._
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.entity.IdentifiableEntity
@@ -923,7 +923,35 @@ object Zone {
   }
 
   object HotSpot {
-    final case class Activity(defender: SourceEntry, attacker: SourceEntry, location: Vector3)
+    trait Activity {
+      def defender: SourceEntry
+
+      def attacker: SourceEntry
+
+      def location: Vector3
+    }
+
+    final case class Conflict(defender: SourceEntry, attacker: SourceEntry, location: Vector3) extends Activity
+
+    final case class NonEvent() extends Activity {
+      def defender: SourceEntry = SourceEntry.None
+
+      def attacker: SourceEntry = SourceEntry.None
+
+      def location: Vector3 = Vector3.Zero
+    }
+
+    object Activity {
+      def apply(data: ResolvedProjectile): Activity = {
+        data.adversarial match {
+          case Some(adversity) => Conflict(adversity.defender, adversity.attacker, data.data.hitPos)
+          case None => NonEvent()
+        }
+      }
+
+      def apply(defender: SourceEntry, attacker: SourceEntry, location: Vector3): Activity =
+        Conflict(defender, attacker, location)
+    }
 
     final case class Cleanup()
 

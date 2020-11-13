@@ -145,10 +145,10 @@ object DamageableEntity {
     */
   def DamageAwareness(target: Damageable.Target, cause: ResolvedProjectile, amount: Int): Unit = {
     if (Damageable.CanJammer(target, cause)) {
-      target.Actor ! JammableUnit.Jammered(cause)
+      target.Actor ! JammableUnit.Jammered(cause.data)
     }
     if (DamageToHealth(target, cause, amount)) {
-      target.Zone.Activity ! Zone.HotSpot.Activity(cause.target, cause.projectile.owner, cause.hit_pos)
+      target.Zone.Activity ! Zone.HotSpot.Activity(cause)
     }
   }
 

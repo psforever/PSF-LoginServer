@@ -1,11 +1,30 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vital
 
+import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.projectile.ProjectileCalculations
 import net.psforever.objects.vital.resistance.ResistanceSelection
 import net.psforever.objects.vital.resolution.ResolutionCalculations
-import net.psforever.objects.vital.test.ProjectileDamageInteraction
+import net.psforever.objects.vital.test.{DamageInteraction, ProjectileDamageInteraction}
+
+trait DamageAndResistance {
+  def DamageUsing: DamageCalculations.Selector
+
+  def ResistUsing: ResistanceSelection
+
+  def Model: ResolutionCalculations.Form
+
+  def Calculate(data: DamageInteraction): ResolutionCalculations.Output
+
+  def Calculate(data: DamageInteraction, resolution: DamageType.Value): ResolutionCalculations.Output
+}
+
+object DamageAndResistance {
+  def doNothingFallback(data: DamageInteraction): ResolutionCalculations.Output = {
+    _: Any => { ResolvedProjectile(data) }
+  }
+}
 
 /**
   * The functionality that is necessary for interaction of a vital game object with the rest of the game world.<br>
@@ -24,7 +43,7 @@ import net.psforever.objects.vital.test.ProjectileDamageInteraction
   * By default, nothing should do anything of substance.
   * @see `Vitality`
   */
-trait DamageResistanceModel {
+trait DamageResistanceModel extends DamageAndResistance {
 
   /** the functionality that processes damage; required */
   private var damageUsing: DamageCalculations.Selector = DamageCalculations.AgainstNothing
@@ -61,6 +80,13 @@ trait DamageResistanceModel {
     * @param data the historical `ResolvedProjectile` information
     * @return a function literal that encapsulates delayed modification instructions for certain objects
     */
+  def Calculate(data: DamageInteraction): ResolutionCalculations.Output = {
+    data match {
+      case o: ProjectileDamageInteraction => Calculate(o)
+      case _ => DamageAndResistance.doNothingFallback(data)
+    }
+  }
+
   def Calculate(data: ProjectileDamageInteraction): ResolutionCalculations.Output = {
     val res: ProjectileCalculations.Form = ResistUsing(data)
     Model(DamageUsing, res, data)
@@ -72,6 +98,13 @@ trait DamageResistanceModel {
     * @param resolution an explicit damage resolution overriding the one in the `ResolvedProjectile` object
     * @return a function literal that encapsulates delayed modification instructions for certain objects
     */
+  def Calculate(data: DamageInteraction, resolution: DamageType.Value): ResolutionCalculations.Output = {
+    data match {
+      case o: ProjectileDamageInteraction => Calculate(o, resolution)
+      case _ => DamageAndResistance.doNothingFallback(data)
+    }
+  }
+
   def Calculate(data: ProjectileDamageInteraction, resolution: DamageType.Value): ResolutionCalculations.Output = {
     val res: ProjectileCalculations.Form = ResistUsing(resolution)
     Model(DamageUsing, res, data)

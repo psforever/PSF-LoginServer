@@ -7,10 +7,12 @@ import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
 import akka.pattern.ask
 import akka.util.Timeout
 import java.util.concurrent.TimeUnit
+
 import net.psforever.actors.net.MiddlewareActor
 import net.psforever.services.ServiceManager.Lookup
 import net.psforever.objects.locker.LockerContainer
 import org.log4s.MDC
+
 import scala.collection.mutable
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
@@ -51,7 +53,7 @@ import net.psforever.objects.teamwork.Squad
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.vital._
-import net.psforever.objects.vital.test.{DamageReason, ProjectileDamageInteraction}
+import net.psforever.objects.vital.test.{DamageInteraction, ProjectileDamageInteraction, ProjectileReason}
 import net.psforever.objects.zones.{Zone, ZoneHotSpotProjector, Zoning}
 import net.psforever.packet._
 import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo, _}
@@ -65,12 +67,7 @@ import net.psforever.services.local.support.RouterTelepadActivation
 import net.psforever.services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
 import net.psforever.services.properties.PropertyOverrideManager
 import net.psforever.services.support.SupportActor
-import net.psforever.services.teamwork.{
-  SquadResponse,
-  SquadServiceMessage,
-  SquadServiceResponse,
-  SquadAction => SquadServiceAction
-}
+import net.psforever.services.teamwork.{SquadResponse, SquadServiceMessage, SquadServiceResponse, SquadAction => SquadServiceAction}
 import net.psforever.services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
 import net.psforever.services.{InterstellarClusterService, RemoverActor, Service, ServiceManager}
 import net.psforever.types._
@@ -7716,7 +7713,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       } else {
         projectile
       }
-      Some(ProjectileDamageInteraction(SourceEntry(target), DamageReason.Projectile(resolution, outProjectile, target.DamageModel), pos))
+      Some(ProjectileDamageInteraction(SourceEntry(target), ProjectileReason(resolution, outProjectile, target.DamageModel), pos))
     }
   }
 
@@ -7769,8 +7766,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @param target a valid game object that is known to the server
     * @param data a projectile that will affect the target
     */
-  def HandleDealingDamage(target: PlanetSideGameObject with Vitality, data: ProjectileDamageInteraction): Unit = {
-    val func = data.cause.damageModel.Calculate(data)
+  def HandleDealingDamage(target: PlanetSideGameObject with Vitality, data: DamageInteraction): Unit = {
+    val func = data.calculate()
     target match {
       case obj: Player if obj.CanDamage && obj.Actor != Default.Actor =>
         // auto kick players damaging spectators

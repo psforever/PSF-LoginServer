@@ -5,7 +5,7 @@ import net.psforever.objects.ballistics._
 import net.psforever.objects._
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.vital._
-import net.psforever.objects.vital.test.{DamageReason, ProjectileDamageInteraction}
+import net.psforever.objects.vital.test.{ProjectileDamageInteraction, ProjectileReason}
 import net.psforever.types._
 import org.specs2.mutable.Specification
 
@@ -23,7 +23,7 @@ class VitalityTest extends Specification {
       val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
       val resprojectile =ProjectileDamageInteraction(
         SourceEntry(player),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           projectile,
           player.DamageModel
@@ -73,7 +73,7 @@ class VitalityTest extends Specification {
       val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
       val resprojectile = ProjectileDamageInteraction(
         SourceEntry(player),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           projectile,
           player.DamageModel

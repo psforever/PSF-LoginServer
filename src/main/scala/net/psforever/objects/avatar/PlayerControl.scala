@@ -562,16 +562,16 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     var announceConfrontation = damageToArmor > 0
     //special effects
     if (Damageable.CanJammer(target, cause)) {
-      TryJammerEffectActivate(target, cause)
+      TryJammerEffectActivate(target, cause.data)
     }
-    val aggravated: Boolean = TryAggravationEffectActivate(cause) match {
+    val aggravated: Boolean = TryAggravationEffectActivate(cause.data) match {
       case Some(aggravation) =>
         StartAuraEffect(aggravation.effect_type, aggravation.timing.duration)
         announceConfrontation = true //useful if initial damage (to anything) is zero
         //initial damage for aggravation, but never treat as "aggravated"
         false
       case _ =>
-        cause.projectile.profile.ProjectileDamageTypes.contains(DamageType.Aggravated)
+        cause.data.causesAggravation
     }
     //log historical event
     target.History(cause)
@@ -595,7 +595,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     if(announceConfrontation) {
       if (!aggravated) {
         //activity on map
-        zone.Activity ! Zone.HotSpot.Activity(cause.target, cause.projectile.owner, cause.hit_pos)
+        zone.Activity ! Zone.HotSpot.Activity(cause)
         //alert to damage source
         zone.AvatarEvents ! AvatarServiceMessage(
           target.Name,

@@ -3,9 +3,9 @@ package net.psforever.objects.equipment
 
 import akka.actor.{Actor, Cancellable}
 import net.psforever.objects.{Default, PlanetSideGameObject, Tool}
-import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.vehicles.MountedWeapons
+import net.psforever.objects.vital.test.{DamageInteraction, ProjectileReason}
 import net.psforever.objects.zones.ZoneAware
 import net.psforever.types.Vector3
 import net.psforever.services.Service
@@ -43,7 +43,7 @@ object JammableUnit {
     * A message for jammering due to a projectile.
     * @param cause information pertaining to the projectile
     */
-  final case class Jammered(cause: ResolvedProjectile)
+  final case class Jammered(cause: DamageInteraction)
 
   /**
     * Stop the auditory aspect of being jammered.
@@ -85,7 +85,11 @@ object JammingUnit {
     * @return the duration to be jammered, if any, in milliseconds
     */
   def FindJammerDuration(jammer: JammingUnit, target: PlanetSideGameObject): Option[Int] = {
-    jammer.JammedEffectDuration
+    FindJammerDuration(jammer.JammedEffectDuration.toList, target)
+  }
+
+  def FindJammerDuration(durations: Iterable[(TargetValidation, Int)], target: PlanetSideGameObject): Option[Int] = {
+    durations
       .collect { case (TargetValidation(_, test), duration) if test(target) => duration }
       .toList
       .sortWith(_ > _)
@@ -132,17 +136,24 @@ trait JammableBehavior {
   /**
     * If the target can be validated against, affect it with the jammered status.
     * @param target the objects to be determined if affected by the source's jammering
-    * @param cause the source of the "jammered" status
+    * @param interaction the source of the "jammered" status
     */
-  def TryJammerEffectActivate(target: Any, cause: ResolvedProjectile): Unit =
+  def TryJammerEffectActivate(target: Any, interaction: DamageInteraction): Unit =
     target match {
       case obj: PlanetSideServerObject =>
-        val radius = cause.projectile.profile.DamageRadius
-        JammingUnit.FindJammerDuration(cause.projectile.profile, obj) match {
-          case Some(dur) if Vector3.DistanceSquared(cause.hit_pos, cause.target.Position) < radius * radius =>
-            StartJammeredSound(obj, dur)
-            StartJammeredStatus(obj, dur)
-          case _ => ;
+        JammingUnit.FindJammerDuration(interaction.jammering, obj) match {
+          case Some(dur) =>
+            if(interaction.cause match {
+              case reason: ProjectileReason =>
+                val radius = reason.projectile.profile.DamageRadius
+                Vector3.DistanceSquared(interaction.hitPos, interaction.target.Position) < radius * radius
+              case _ =>
+                true
+            }) {
+              StartJammeredSound(obj, dur)
+              StartJammeredStatus(obj, dur)
+            }
+          case None =>
         }
       case _ => ;
     }

@@ -201,7 +201,7 @@ object DamageModifiers {
     private def formula(damage: Int, data: ProjectileDamageInteraction): Int = {
       if (data.cause.resolution == ProjectileResolution.AggravatedDirect &&
         data.cause.projectile.quality == ProjectileQuality.AggravatesTarget) {
-        data.cause.projectile.profile.Aggravated match {
+        data.aggravation match {
           case Some(aggravation) =>
             aggravation.info.find(_.damage_type == DamageType.Direct) match {
               case Some(infos) =>
@@ -231,7 +231,7 @@ object DamageModifiers {
 
     private def formula(damage: Int, data: ProjectileDamageInteraction): Int = {
       if (data.cause.resolution == ProjectileResolution.AggravatedDirectBurn) {
-        data.cause.projectile.profile.Aggravated match {
+        data.aggravation match {
           case Some(aggravation) =>
             aggravation.info.find(_.damage_type == DamageType.Direct) match {
               case Some(infos) =>
@@ -261,7 +261,7 @@ object DamageModifiers {
     private def formula(damage: Int, data: ProjectileDamageInteraction): Int = {
       if (data.cause.resolution == ProjectileResolution.AggravatedDirect &&
         data.cause.projectile.quality == ProjectileQuality.AggravatesTarget) {
-        data.cause.projectile.profile.Aggravated match {
+        data.aggravation match {
           case Some(aggravation) =>
             aggravation.info.find(_.damage_type == DamageType.Direct) match {
               case Some(infos) =>
@@ -291,7 +291,7 @@ object DamageModifiers {
 
     private def formula(damage: Int, data: ProjectileDamageInteraction): Int = {
       if (data.cause.resolution == ProjectileResolution.AggravatedDirectBurn) {
-        data.cause.projectile.profile.Aggravated match {
+        data.aggravation match {
           case Some(aggravation) =>
             aggravation.info.find(_.damage_type == DamageType.Direct) match {
               case Some(infos) =>
@@ -469,7 +469,7 @@ object DamageModifiers {
                                    ): Int = {
     if (data.cause.resolution == resolution &&
         data.cause.projectile.quality == ProjectileQuality.AggravatesTarget) {
-      (data.cause.projectile.profile.Aggravated, data.target) match {
+      (data.aggravation, data.target) match {
         case (Some(aggravation), p: PlayerSource) =>
           val aggravatedDamage = aggravation.info.find(_.damage_type == damageType) match {
             case Some(infos) =>
@@ -517,7 +517,7 @@ object DamageModifiers {
                                          data: ProjectileDamageInteraction
                                        ): Int = {
     if (data.cause.resolution == resolution) {
-      (data.cause.projectile.profile.Aggravated, data.target) match {
+      (data.aggravation, data.target) match {
         case (Some(aggravation), p: PlayerSource) =>
           val degradation = aggravation.info.find(_.damage_type == damageType) match {
             case Some(info) =>

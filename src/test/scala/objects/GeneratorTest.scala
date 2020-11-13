@@ -14,7 +14,7 @@ import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.generator.{Generator, GeneratorControl, GeneratorDefinition}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.vital.Vitality
-import net.psforever.objects.vital.test.{DamageReason, ProjectileDamageInteraction}
+import net.psforever.objects.vital.test.{ProjectileDamageInteraction, ProjectileReason}
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game.{InventoryStateMessage, RepairMessage, TriggerEffectMessage}
 import net.psforever.types._
@@ -83,7 +83,7 @@ class GeneratorControlDamageTest extends ActorTest {
   val projectile = weapon.Projectile
   val resolved = ProjectileDamageInteraction(
     SourceEntry(gen),
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       Projectile(
         projectile,
@@ -166,7 +166,7 @@ class GeneratorControlCriticalTest extends ActorTest {
   val projectile = weapon.Projectile
   val resolved = ProjectileDamageInteraction(
     SourceEntry(gen),
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       Projectile(
         projectile,
@@ -252,7 +252,7 @@ class GeneratorControlDestroyedTest extends ActorTest {
   val projectile = weapon.Projectile
   val resolved = ProjectileDamageInteraction(
     SourceEntry(gen),
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       Projectile(
         projectile,
@@ -389,7 +389,7 @@ class GeneratorControlKillsTest extends ActorTest {
   val projectile = weapon.Projectile
   val resolved = ProjectileDamageInteraction(
     SourceEntry(gen),
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       Projectile(
         projectile,
@@ -512,7 +512,7 @@ class GeneratorControlNotDestroyTwice extends ActorTest {
   val projectile = weapon.Projectile
   val resolved = ProjectileDamageInteraction(
     SourceEntry(gen),
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       Projectile(
         projectile,
@@ -604,7 +604,7 @@ class GeneratorControlNotDamageIfExplodingTest extends ActorTest {
   val projectile = weapon.Projectile
   val resolved = ProjectileDamageInteraction(
     SourceEntry(gen),
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       Projectile(
         projectile,
@@ -703,7 +703,7 @@ class GeneratorControlNotRepairIfExplodingTest extends ActorTest {
   val projectile = weapon.Projectile
   val resolved = ProjectileDamageInteraction(
     SourceEntry(gen),
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       Projectile(
         projectile,

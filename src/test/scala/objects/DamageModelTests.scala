@@ -15,7 +15,7 @@ import net.psforever.packet.game.objectcreate.ObjectClass
 import net.psforever.types._
 import org.specs2.mutable.Specification
 import net.psforever.objects.avatar.Avatar
-import net.psforever.objects.vital.test.{DamageReason, ProjectileDamageInteraction}
+import net.psforever.objects.vital.test.{ProjectileDamageInteraction, ProjectileReason}
 
 class DamageCalculationsTests extends Specification {
   "DamageCalculations" should {
@@ -30,7 +30,7 @@ class DamageCalculationsTests extends Specification {
     target.Position = Vector3(10, 0, 0)
     val resprojectile = ProjectileDamageInteraction(
       SourceEntry(target),
-      DamageReason.Projectile(
+      ProjectileReason(
         ProjectileResolution.Hit,
         projectile,
         target.DamageModel
@@ -77,7 +77,7 @@ class DamageCalculationsTests extends Specification {
     "cut off damage at max distance (cutoff)" in {
       val cutoffprojectile = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           projectile,
           target.DamageModel
@@ -94,7 +94,7 @@ class DamageCalculationsTests extends Specification {
     "cut off damage at custom distance (cutoff)" in {
       val coffprojectile = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Splash,
           projectile,
           target.DamageModel
@@ -107,7 +107,7 @@ class DamageCalculationsTests extends Specification {
     "degrade over distance damage modifier (some degrade)" in {
       val resprojectile2 = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Splash,
           projectile,
           target.DamageModel
@@ -121,7 +121,7 @@ class DamageCalculationsTests extends Specification {
     "degrade over distance damage modifier (zero'd)" in {
       val resprojectile2 = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Splash,
           projectile,
           target.DamageModel
@@ -134,7 +134,7 @@ class DamageCalculationsTests extends Specification {
     "degrade at radial distance damage modifier (no degrade)" in {
       val resprojectile2 = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Splash,
           projectile,
           target.DamageModel
@@ -147,7 +147,7 @@ class DamageCalculationsTests extends Specification {
     "degrade at radial distance damage modifier (some degrade)" in {
       val resprojectile2 = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Splash,
           projectile,
           target.DamageModel
@@ -161,7 +161,7 @@ class DamageCalculationsTests extends Specification {
     "degrade at radial distance damage modifier (zero'd)" in {
       val resprojectile2 = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Splash,
           projectile,
           target.DamageModel
@@ -174,7 +174,7 @@ class DamageCalculationsTests extends Specification {
     "lash degrade (no lash; too close)" in {
       val resprojectile2 = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Lash,
           projectile,
           target.DamageModel
@@ -187,7 +187,7 @@ class DamageCalculationsTests extends Specification {
     "lash degrade (lash)" in {
       val resprojectile2 = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Lash,
           projectile,
           target.DamageModel
@@ -201,7 +201,7 @@ class DamageCalculationsTests extends Specification {
     "lash degrade (no lash; too far)" in {
       val resprojectile2 = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Lash,
           projectile,
           target.DamageModel
@@ -223,7 +223,7 @@ class DamageCalculationsTests extends Specification {
 //      )
       val burnRes = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.AggravatedSplashBurn,
           projectile,
           target.DamageModel
@@ -246,7 +246,7 @@ class DamageCalculationsTests extends Specification {
 //      )
       val burnRes = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Splash,
           projectile,
           target.DamageModel
@@ -272,7 +272,7 @@ class DamageCalculationsTests extends Specification {
       val cprojectile = charge_projectile.quality(ProjectileQuality.Modified(0))
       val rescprojectile = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           cprojectile,
           target.DamageModel
@@ -288,7 +288,7 @@ class DamageCalculationsTests extends Specification {
       val cprojectile = charge_projectile.quality(ProjectileQuality.Modified(0.5f))
       val rescprojectile = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           cprojectile,
           target.DamageModel
@@ -304,7 +304,7 @@ class DamageCalculationsTests extends Specification {
       val cprojectile = charge_projectile.quality(ProjectileQuality.Modified(1))
       val rescprojectile = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           cprojectile,
           target.DamageModel
@@ -329,7 +329,7 @@ class DamageCalculationsTests extends Specification {
     "flak hit (resolution is splash, no degrade)" in {
       val resfprojectile = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Splash,
           flak_projectile,
           target.DamageModel
@@ -343,7 +343,7 @@ class DamageCalculationsTests extends Specification {
     "flak hit (resolution is hit, no degrade)" in {
       val resfprojectile = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           flak_projectile,
           target.DamageModel
@@ -357,7 +357,7 @@ class DamageCalculationsTests extends Specification {
     "flak burst (resolution is hit)" in {
       val resfprojectile = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           flak_projectile,
           target.DamageModel
@@ -371,7 +371,7 @@ class DamageCalculationsTests extends Specification {
     "flak burst (resolution is splash, no degrade)" in {
       val resfprojectile = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Splash,
           flak_projectile,
           target.DamageModel
@@ -385,7 +385,7 @@ class DamageCalculationsTests extends Specification {
     "flak burst (resolution is splash, some degrade)" in {
       val resfprojectile = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Splash,
           flak_projectile,
           target.DamageModel
@@ -400,7 +400,7 @@ class DamageCalculationsTests extends Specification {
       val vehicle = Vehicle(GlobalDefinitions.galaxy_gunship)
       val resfprojectile = ProjectileDamageInteraction(
         SourceEntry(vehicle),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           projectile,
           vehicle.DamageModel
@@ -416,7 +416,7 @@ class DamageCalculationsTests extends Specification {
       vehicle.Shields = 1
       val resfprojectile = ProjectileDamageInteraction(
         SourceEntry(vehicle),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           projectile,
           vehicle.DamageModel
@@ -430,7 +430,7 @@ class DamageCalculationsTests extends Specification {
     "galaxy gunship reduction (target is vehicle, but not a galaxy_gunship)" in {
       val resfprojectile = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           projectile,
           target.DamageModel
@@ -446,7 +446,7 @@ class DamageCalculationsTests extends Specification {
         Player(Avatar(0, "TestCharacter2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       val resfprojectile = ProjectileDamageInteraction(
         SourceEntry(tplayer),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           projectile,
           tplayer.DamageModel
@@ -480,7 +480,7 @@ class ResistanceCalculationsTests extends Specification {
       val target = Vehicle(GlobalDefinitions.fury)
       val resprojectile = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           projectile,
           target.DamageModel
@@ -494,7 +494,7 @@ class ResistanceCalculationsTests extends Specification {
       val target = player
       val resprojectile = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           projectile,
           target.DamageModel
@@ -512,7 +512,7 @@ class ResistanceCalculationsTests extends Specification {
       target.ExoSuit = ExoSuitType.MAX
       val resprojectile = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           projectile,
           target.DamageModel
@@ -529,7 +529,7 @@ class ResistanceCalculationsTests extends Specification {
       val target = Vehicle(GlobalDefinitions.fury)
       val resprojectile = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           projectile,
           target.DamageModel
@@ -546,7 +546,7 @@ class ResistanceCalculationsTests extends Specification {
       val target = Vehicle(GlobalDefinitions.mosquito)
       val resprojectile = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           projectile,
           target.DamageModel
@@ -594,7 +594,7 @@ class ResolutionCalculationsTests extends Specification {
       val target = player
       val resprojectile = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           projectile,
           target.DamageModel
@@ -608,7 +608,7 @@ class ResolutionCalculationsTests extends Specification {
       val target1 = Vehicle(GlobalDefinitions.fury) //!
       val resprojectile1 = ProjectileDamageInteraction(
         SourceEntry(target1),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           projectile,
           target1.DamageModel
@@ -620,7 +620,7 @@ class ResolutionCalculationsTests extends Specification {
       val target2 = player
       val resprojectile2 = ProjectileDamageInteraction(
         SourceEntry(target2),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           projectile,
           target2.DamageModel
@@ -656,7 +656,7 @@ class ResolutionCalculationsTests extends Specification {
       val target1 = Vehicle(GlobalDefinitions.fury) //!
       val resprojectile1 = ProjectileDamageInteraction(
         SourceEntry(target1),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           projectile,
           target1.DamageModel
@@ -668,7 +668,7 @@ class ResolutionCalculationsTests extends Specification {
       val target2 = player2
       val resprojectile2 = ProjectileDamageInteraction(
         SourceEntry(target2),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           projectile,
           target2.DamageModel
@@ -696,7 +696,7 @@ class ResolutionCalculationsTests extends Specification {
       val target1 = player
       val resprojectile1 = ProjectileDamageInteraction(
         SourceEntry(target1),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           projectile,
           target1.DamageModel
@@ -708,7 +708,7 @@ class ResolutionCalculationsTests extends Specification {
       val target2 = Vehicle(GlobalDefinitions.fury) //!
       val resprojectile2 = ProjectileDamageInteraction(
         SourceEntry(target2),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           projectile,
           target2.DamageModel
@@ -767,7 +767,7 @@ class DamageModelTests extends Specification {
 
       val resprojectile = ProjectileDamageInteraction(
         SourceEntry(tplayer),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           projectile,
           tplayer.DamageModel
@@ -789,7 +789,7 @@ class DamageModelTests extends Specification {
 
       val resprojectile = ProjectileDamageInteraction(
         SourceEntry(tplayer),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           projectile,
           tplayer.DamageModel
@@ -811,7 +811,7 @@ class DamageModelTests extends Specification {
 
       val resprojectile = ProjectileDamageInteraction(
         SourceEntry(tplayer),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           projectile,
           tplayer.DamageModel
@@ -832,7 +832,7 @@ class DamageModelTests extends Specification {
 
       val resprojectile = ProjectileDamageInteraction(
         SourceEntry(vehicle),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           projectile,
           vehicle.DamageModel
@@ -853,7 +853,7 @@ class DamageModelTests extends Specification {
 
       val resprojectile = ProjectileDamageInteraction(
         SourceEntry(vehicle),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           projectile,
           vehicle.DamageModel
@@ -875,7 +875,7 @@ class DamageModelTests extends Specification {
 
       val resprojectile = ProjectileDamageInteraction(
         SourceEntry(vehicle),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           projectile,
           vehicle.DamageModel
@@ -898,7 +898,7 @@ class DamageModelTests extends Specification {
 
       val resprojectile = ProjectileDamageInteraction(
         SourceEntry(vehicle),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           projectile,
           vehicle.DamageModel

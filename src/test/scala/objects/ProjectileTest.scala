@@ -355,7 +355,7 @@ class ProjectileTest extends Specification {
       obj.projectile mustEqual projectile
       obj.target mustEqual p2_source
       obj.damage_model mustEqual fury.DamageModel
-      obj.hit_pos mustEqual Vector3(1.2f, 3.4f, 5.6f)
+      obj.data.hitPos mustEqual Vector3(1.2f, 3.4f, 5.6f)
     }
   }
 }

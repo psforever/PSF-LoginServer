@@ -6,7 +6,6 @@ import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.turret.{TurretUpgrade, WeaponTurret}
 import net.psforever.objects.vehicles.MountedWeapons
-import net.psforever.objects.vital.DamageType
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.DamageWithPositionMessage
 import net.psforever.types.Vector3
@@ -43,12 +42,12 @@ trait DamageableWeaponTurret
       case _ => 0
     }
     var announceConfrontation: Boolean = damageToHealth > 0
-    val aggravated = TryAggravationEffectActivate(cause) match {
+    val aggravated = TryAggravationEffectActivate(cause.data) match {
       case Some(_) =>
         announceConfrontation = true
         false
       case _ =>
-        cause.projectile.profile.ProjectileDamageTypes.contains(DamageType.Aggravated)
+        cause.data.causesAggravation
     }
 
     //log historical event
@@ -56,8 +55,8 @@ trait DamageableWeaponTurret
     //damage
     if (Damageable.CanDamageOrJammer(target, damageToHealth, cause)) {
       //jammering
-      if (Damageable.CanJammer(target, cause)) {
-        target.Actor ! JammableUnit.Jammered(cause)
+      if (Damageable.CanJammer(target, cause.data)) {
+        target.Actor ! JammableUnit.Jammered(cause.data)
       }
       //stat changes
       //TODO some turrets have shields
@@ -81,7 +80,7 @@ trait DamageableWeaponTurret
       }
       else {
         //activity on map
-        zone.Activity ! Zone.HotSpot.Activity(cause.target, cause.projectile.owner, cause.hit_pos)
+        zone.Activity ! Zone.HotSpot.Activity(cause)
         //alert to damage source
         DamageableMountable.DamageAwareness(obj, cause, damageToHealth)
       }

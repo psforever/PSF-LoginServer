@@ -151,7 +151,7 @@ class ZoneHotSpotProjector(zone: Zone, hotspots: ListBuffer[HotSpotInfo], blanki
       import scala.concurrent.ExecutionContext.Implicits.global
       blanking = context.system.scheduler.scheduleOnce(blankingDelay, self, ZoneHotSpotProjector.BlankingPhase())
 
-    case Zone.HotSpot.Activity(defender, attacker, location) =>
+    case Zone.HotSpot.Conflict(defender, attacker, location) =>
       log.trace(s"received information about activity in ${zone.id}@$location")
       val defenderFaction = defender.Faction
       val attackerFaction = attacker.Faction
@@ -194,7 +194,7 @@ class ZoneHotSpotProjector(zone: Zone, hotspots: ListBuffer[HotSpotInfo], blanki
       //blanking dated activity reports
       val changed = hotspots.flatMap(spot => {
         spot.Activity.collect {
-          case (b, a) if a.LastReport + a.Duration.toNanos <= curr =>
+          case (b, a: ActivityReport) if a.LastReport + a.Duration.toNanos <= curr =>
             a.Clear() //this faction has no more activity in this sector
             (b, spot)
         }

@@ -30,7 +30,7 @@ import org.specs2.mutable.Specification
 
 import scala.concurrent.duration._
 import net.psforever.objects.avatar.Avatar
-import net.psforever.objects.vital.test.{DamageReason, ProjectileDamageInteraction}
+import net.psforever.objects.vital.test.{ProjectileDamageInteraction, ProjectileReason}
 
 class DamageableTest extends Specification {
   val player1     = Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
@@ -43,7 +43,7 @@ class DamageableTest extends Specification {
       val target = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
       val resolved = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
           target.DamageModel
@@ -58,7 +58,7 @@ class DamageableTest extends Specification {
       val target = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
       val resolved = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
           target.DamageModel
@@ -77,7 +77,7 @@ class DamageableTest extends Specification {
         }
       val resolved = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
           target.DamageModel
@@ -102,7 +102,7 @@ class DamageableTest extends Specification {
         }
       val resolved = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
           target.DamageModel
@@ -131,7 +131,7 @@ class DamageableTest extends Specification {
         }
       val resolved = ProjectileDamageInteraction(
         SourceEntry(target),
-        DamageReason.Projectile(
+        ProjectileReason(
           ProjectileResolution.Hit,
           Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
           target.DamageModel
@@ -276,7 +276,7 @@ class DamageableEntityDamageTest extends ActorTest {
   val projectile = weapon.Projectile
   val resolved = ProjectileDamageInteraction(
     SourceEntry(gen),
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       Projectile(projectile, weapon.Definition, weapon.FireMode, PlayerSource(player1), 0, Vector3(2, 0, 0), Vector3(-1, 0, 0)),
       gen.DamageModel
@@ -341,7 +341,7 @@ class DamageableEntityDestroyedTest extends ActorTest {
   val projectile = weapon.Projectile
   val resolved = ProjectileDamageInteraction(
     SourceEntry(mech),
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       Projectile(
         projectile,
@@ -417,7 +417,7 @@ class DamageableEntityNotDestroyTwice extends ActorTest {
   val projectile = weapon.Projectile
   val resolved = ProjectileDamageInteraction(
     SourceEntry(gen),
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       Projectile(
         projectile,
@@ -490,7 +490,7 @@ class DamageableAmenityTest extends ActorTest {
   val projectile = weapon.Projectile
   val resolved = ProjectileDamageInteraction(
     SourceEntry(term),
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       Projectile(
         projectile,
@@ -600,7 +600,7 @@ class DamageableMountableDamageTest extends ActorTest {
   val projectile = weapon.Projectile
   val resolved = ProjectileDamageInteraction(
     SourceEntry(mech),
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       Projectile(
         projectile,
@@ -697,7 +697,7 @@ class DamageableMountableDestroyTest extends ActorTest {
   val projectile = weapon.Projectile
   val resolved = ProjectileDamageInteraction(
     SourceEntry(mech),
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       Projectile(
         projectile,
@@ -790,7 +790,7 @@ class DamageableWeaponTurretDamageTest extends ActorTest {
   val turretSource = SourceEntry(turret)
   val resolved = ProjectileDamageInteraction(
     turretSource,
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       Projectile(
         projectile,
@@ -891,7 +891,7 @@ class DamageableWeaponTurretJammerTest extends ActorTest {
   val turretSource = SourceEntry(turret)
   val resolved = ProjectileDamageInteraction(
     turretSource,
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       Projectile(
         projectile,
@@ -995,7 +995,7 @@ class DamageableWeaponTurretDestructionTest extends ActorTest {
   val projectileA  = weaponA.Projectile
   val resolvedA = ProjectileDamageInteraction(
     turretSource,
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       Projectile(
         projectileA,
@@ -1017,7 +1017,7 @@ class DamageableWeaponTurretDestructionTest extends ActorTest {
   val resolvedB = ProjectileDamageInteraction(
 
     turretSource,
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       Projectile(
         projectileB,
@@ -1141,7 +1141,7 @@ class DamageableVehicleDamageTest extends ActorTest {
   val vehicleSource = SourceEntry(atv)
   val resolved = ProjectileDamageInteraction(
     vehicleSource,
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       Projectile(
         projectile,
@@ -1271,7 +1271,7 @@ class DamageableVehicleDamageMountedTest extends ActorTest {
   val vehicleSource = SourceEntry(lodestar)
   val resolved = ProjectileDamageInteraction(
     vehicleSource,
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       Projectile(
         projectile,
@@ -1417,7 +1417,7 @@ class DamageableVehicleJammeringMountedTest extends ActorTest {
   val projectile    = weapon.Projectile
   val resolved = ProjectileDamageInteraction(
     vehicleSource,
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       Projectile(
         projectile,
@@ -1509,7 +1509,7 @@ class DamageableVehicleDestroyTest extends ActorTest {
   val vehicleSource = SourceEntry(atv)
   val resolved = ProjectileDamageInteraction(
     vehicleSource,
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       Projectile(
         projectile,
@@ -1637,7 +1637,7 @@ class DamageableVehicleDestroyMountedTest extends ActorTest {
   val projectileA   = weaponA.Projectile
   val resolvedA = ProjectileDamageInteraction(
     vehicleSource,
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       Projectile(
         projectileA,
@@ -1658,7 +1658,7 @@ class DamageableVehicleDestroyMountedTest extends ActorTest {
   val projectileB = weaponB.Projectile
   val resolvedB = ProjectileDamageInteraction(
     vehicleSource,
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       Projectile(
         projectileB,

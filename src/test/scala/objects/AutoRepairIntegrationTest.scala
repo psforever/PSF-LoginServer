@@ -14,7 +14,7 @@ import net.psforever.objects.serverobject.structures.{AutoRepairStats, Building,
 import net.psforever.objects.serverobject.terminals.{OrderTerminalDefinition, Terminal, TerminalControl}
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.damage.DamageProfile
-import net.psforever.objects.vital.test.{DamageReason, ProjectileDamageInteraction}
+import net.psforever.objects.vital.test.{ProjectileDamageInteraction, ProjectileReason}
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.objects.{GlobalDefinitions, Player, Tool}
 import net.psforever.services.galaxy.GalaxyService
@@ -68,7 +68,7 @@ class AutoRepairFacilityIntegrationTest extends FreedContextActorTest {
   val projectile = Projectile(proj, weapon.Definition, wep_fmode, player, Vector3(2, 0, 0), Vector3.Zero)
   val resolved = ProjectileDamageInteraction(
     SourceEntry(terminal),
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       projectile,
       terminal.DamageModel
@@ -133,7 +133,7 @@ class AutoRepairTowerIntegrationTest extends FreedContextActorTest {
   val projectile = Projectile(proj, weapon.Definition, wep_fmode, player, Vector3(2, 0, 0), Vector3.Zero)
   val resolved = ProjectileDamageInteraction(
     SourceEntry(terminal),
-    DamageReason.Projectile(
+    ProjectileReason(
       ProjectileResolution.Hit,
       projectile,
       terminal.DamageModel

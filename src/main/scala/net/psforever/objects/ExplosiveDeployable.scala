@@ -87,16 +87,16 @@ object ExplosiveDeployableControl {
     target.History(cause)
     if (target.Health == 0) {
       DestructionAwareness(target, cause)
-    } else if (!target.Jammed && Damageable.CanJammer(target, cause)) {
+    } else if (!target.Jammed && Damageable.CanJammer(target, cause.data)) {
       if (
         target.Jammed = {
           val radius = cause.projectile.profile.DamageRadius
-          Vector3.DistanceSquared(cause.hit_pos, cause.target.Position) < radius * radius
+          Vector3.DistanceSquared(cause.data.hitPos, cause.target.Position) < radius * radius
         }
       ) {
         if (target.Definition.DetonateOnJamming) {
           val zone = target.Zone
-          zone.Activity ! Zone.HotSpot.Activity(cause.target, cause.projectile.owner, cause.hit_pos)
+          zone.Activity ! Zone.HotSpot.Activity(cause)
           zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.Detonate(target.GUID, target))
         }
         DestructionAwareness(target, cause)
