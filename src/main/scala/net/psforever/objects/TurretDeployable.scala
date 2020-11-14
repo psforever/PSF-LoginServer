@@ -2,7 +2,6 @@
 package net.psforever.objects
 
 import akka.actor.{Actor, ActorContext, Props}
-import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.ce.{ComplexDeployable, Deployable, DeployedItem}
 import net.psforever.objects.definition.{ComplexDeployableDefinition, SimpleDeployableDefinition}
 import net.psforever.objects.definition.converter.SmallTurretConverter
@@ -16,6 +15,7 @@ import net.psforever.objects.serverobject.mount.MountableBehavior
 import net.psforever.objects.serverobject.repair.RepairableWeaponTurret
 import net.psforever.objects.serverobject.turret.{TurretDefinition, WeaponTurret}
 import net.psforever.objects.vital.damage.DamageCalculations
+import net.psforever.objects.vital.test.DamageResult
 import net.psforever.objects.vital.{StandardResolutions, StandardVehicleResistance}
 
 class TurretDeployable(tdef: TurretDeployableDefinition)
@@ -91,7 +91,7 @@ class TurretControl(turret: TurretDeployable)
         case _ => ;
       }
 
-  override protected def DestructionAwareness(target: Target, cause: ResolvedProjectile): Unit = {
+  override protected def DestructionAwareness(target: Target, cause: DamageResult): Unit = {
     super.DestructionAwareness(target, cause)
     Deployables.AnnounceDestroyDeployable(turret, None)
   }

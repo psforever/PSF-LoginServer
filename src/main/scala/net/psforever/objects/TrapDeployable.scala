@@ -2,7 +2,6 @@
 package net.psforever.objects
 
 import akka.actor.{Actor, ActorContext, Props}
-import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.ce.{ComplexDeployable, Deployable, DeployedItem}
 import net.psforever.objects.definition.converter.TRAPConverter
 import net.psforever.objects.definition.{ComplexDeployableDefinition, SimpleDeployableDefinition}
@@ -10,6 +9,7 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity}
 import net.psforever.objects.serverobject.repair.RepairableEntity
 import net.psforever.objects.vital.StandardResolutions
+import net.psforever.objects.vital.test.DamageResult
 
 class TrapDeployable(cdef: TrapDeployableDefinition) extends ComplexDeployable(cdef)
 
@@ -43,7 +43,7 @@ class TrapDeployableControl(trap: TrapDeployable) extends Actor with DamageableE
         case _ =>
       }
 
-  override protected def DestructionAwareness(target: Damageable.Target, cause: ResolvedProjectile): Unit = {
+  override protected def DestructionAwareness(target: Damageable.Target, cause: DamageResult): Unit = {
     super.DestructionAwareness(target, cause)
     Deployables.AnnounceDestroyDeployable(trap, None)
   }

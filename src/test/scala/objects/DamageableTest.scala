@@ -155,60 +155,68 @@ class DamageableTest extends Specification {
 
     "permit jamming" in {
       val target = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
-      val resolved = ResolvedProjectile(
-        ProjectileResolution.Hit,
-        Projectile(projectileB, weaponB.Definition, weaponB.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+      val resolved = ProjectileDamageInteraction(
         SourceEntry(target),
-        target.DamageModel,
+        ProjectileReason(
+          ProjectileResolution.Hit,
+          Projectile(projectileB, weaponB.Definition, weaponB.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+          target.DamageModel
+        ),
         Vector3.Zero
       )
 
-      resolved.projectile.profile.JammerProjectile mustEqual true
+      resolved.cause.projectile.profile.JammerProjectile mustEqual true
       Damageable.CanJammer(target, resolved) mustEqual true
     }
 
     "ignore attempts at jamming if the projectile is does not cause the effect" in {
       val target = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
-      val resolved = ResolvedProjectile(
-        ProjectileResolution.Hit,
-        Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+      val resolved = ProjectileDamageInteraction(
         SourceEntry(target),
-        target.DamageModel,
+        ProjectileReason(
+          ProjectileResolution.Hit,
+          Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+          target.DamageModel
+        ),
         Vector3.Zero
       ) //decimator
 
-      resolved.projectile.profile.JammerProjectile mustEqual false
+      resolved.cause.projectile.profile.JammerProjectile mustEqual false
       Damageable.CanJammer(target, resolved) mustEqual false
     }
 
     "ignore attempts at jamming friendly targets" in {
       val target = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
       target.Faction = player1.Faction
-      val resolved = ResolvedProjectile(
-        ProjectileResolution.Hit,
-        Projectile(projectileB, weaponB.Definition, weaponB.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+      val resolved = ProjectileDamageInteraction(
         SourceEntry(target),
-        target.DamageModel,
+        ProjectileReason(
+          ProjectileResolution.Hit,
+          Projectile(projectileB, weaponB.Definition, weaponB.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+          target.DamageModel
+        ),
         Vector3.Zero
       )
 
-      resolved.projectile.profile.JammerProjectile mustEqual true
-      resolved.projectile.owner.Faction == target.Faction mustEqual true
+      resolved.cause.projectile.profile.JammerProjectile mustEqual true
+      resolved.cause.projectile.owner.Faction == target.Faction mustEqual true
       Damageable.CanJammer(target, resolved) mustEqual false
     }
 
     "ignore attempts at jamming targets that are not jammable" in {
       val target = new TrapDeployable(GlobalDefinitions.tank_traps)
-      val resolved = ResolvedProjectile(
-        ProjectileResolution.Hit,
-        Projectile(projectileB, weaponB.Definition, weaponB.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+      val resolved = ProjectileDamageInteraction(
         SourceEntry(target),
-        target.DamageModel,
+        ProjectileReason(
+          ProjectileResolution.Hit,
+          Projectile(projectileB, weaponB.Definition, weaponB.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+          target.DamageModel
+        ),
         Vector3.Zero
       )
 
-      resolved.projectile.profile.JammerProjectile mustEqual true
-      resolved.projectile.owner.Faction == target.Faction mustEqual false
+      resolved.cause.projectile.profile.JammerProjectile mustEqual true
+      resolved.cause.projectile.owner.Faction == target.Faction mustEqual false
       target.isInstanceOf[JammableUnit] mustEqual false
       Damageable.CanJammer(target, resolved) mustEqual false
     }
@@ -219,16 +227,18 @@ class DamageableTest extends Specification {
       player2.GUID = PlanetSideGUID(1)
       val target = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
       target.Faction = player1.Faction
-      val resolved = ResolvedProjectile(
-        ProjectileResolution.Hit,
-        Projectile(projectileB, weaponB.Definition, weaponB.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+      val resolved = ProjectileDamageInteraction(
         SourceEntry(target),
-        target.DamageModel,
+        ProjectileReason(
+          ProjectileResolution.Hit,
+          Projectile(projectileB, weaponB.Definition, weaponB.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+          target.DamageModel,
+        ),
         Vector3.Zero
       )
 
-      resolved.projectile.profile.JammerProjectile mustEqual true
-      resolved.projectile.owner.Faction == target.Faction mustEqual true
+      resolved.cause.projectile.profile.JammerProjectile mustEqual true
+      resolved.cause.projectile.owner.Faction == target.Faction mustEqual true
       target.isInstanceOf[JammableUnit] mustEqual true
       target.HackedBy.nonEmpty mustEqual false
       Damageable.CanJammer(target, resolved) mustEqual false
@@ -503,21 +513,6 @@ class DamageableAmenityTest extends ActorTest {
       ),
       term.DamageModel
     ),
-    Vector3(1, 0, 0)
-  )
-    ResolvedProjectile(
-    ProjectileResolution.Hit,
-    Projectile(
-      projectile,
-      weapon.Definition,
-      weapon.FireMode,
-      PlayerSource(player1),
-      0,
-      Vector3(2, 0, 0),
-      Vector3(-1, 0, 0)
-    ),
-    SourceEntry(term),
-    term.DamageModel,
     Vector3(1, 0, 0)
   )
   val applyDamageTo = resolved.cause.damageModel.Calculate(resolved)

@@ -2,8 +2,9 @@
 package net.psforever.objects.serverobject.damage
 
 import net.psforever.objects.Player
-import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile}
+import net.psforever.objects.ballistics.PlayerSource
 import net.psforever.objects.serverobject.mount.Mountable
+import net.psforever.objects.vital.test.DamageResult
 import net.psforever.packet.game.DamageWithPositionMessage
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
@@ -30,7 +31,7 @@ object DamageableMountable {
     */
   def DamageAwareness(
                        target: Damageable.Target with Mountable,
-                       cause: ResolvedProjectile,
+                       cause: DamageResult,
                        countableDamage: Int
                      ): Unit = {
     val zone   = target.Zone
@@ -39,8 +40,11 @@ object DamageableMountable {
       case seat if seat.isOccupied && seat.Occupant.get.isAlive =>
         seat.Occupant.get
     }
-    (cause.projectile.owner match {
-      case pSource: PlayerSource => //player damage
+    ((cause.adversarial match {
+      case Some(adversarial) => Some(adversarial.attacker)
+      case None              => None
+    }) match {
+      case Some(pSource: PlayerSource) => //player damage
         val name = pSource.Name
         (zone.LivePlayers.find(_.Name == name).orElse(zone.Corpses.find(_.Name == name)) match {
           case Some(player) =>
@@ -53,9 +57,11 @@ object DamageableMountable {
           case msg =>
             occupants.map { tplayer => (tplayer.Name, msg) }
         }
-      case source => //object damage
+      case Some(source) => //object damage
         val msg = AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(countableDamage, source.Position))
         occupants.map { tplayer => (tplayer.Name, msg) }
+      case None =>
+        List.empty
     }).foreach {
       case (channel, msg) =>
         events ! AvatarServiceMessage(channel, msg)
@@ -70,7 +76,7 @@ object DamageableMountable {
     * @param target the entity being destroyed
     * @param cause historical information about the damage
     */
-  def DestructionAwareness(target: Damageable.Target with Mountable, cause: ResolvedProjectile): Unit = {
+  def DestructionAwareness(target: Damageable.Target with Mountable, cause: DamageResult): Unit = {
     target.Seats.values
       .filter(seat => {
         seat.isOccupied && seat.Occupant.get.isAlive

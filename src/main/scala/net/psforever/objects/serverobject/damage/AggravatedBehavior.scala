@@ -4,7 +4,7 @@ package net.psforever.objects.serverobject.damage
 import akka.actor.{Actor, Cancellable}
 import net.psforever.objects.ballistics._
 import net.psforever.objects.serverobject.aura.Aura
-import net.psforever.objects.vital.test.{DamageInteraction, DamageReason, ProjectileDamageInteraction, ProjectileReason}
+import net.psforever.objects.vital.test._
 import net.psforever.objects.vital.{DamageType, Vitality}
 
 import scala.collection.mutable
@@ -22,7 +22,7 @@ trait AggravatedBehavior {
 
   def AggravatedObject: AggravatedBehavior.Target
 
-  def TryAggravationEffectActivate(data: DamageInteraction): Option[AggravatedDamage] = {
+  def TryAggravationEffectActivate(data: DamageResult): Option[AggravatedDamage] = {
     (data, data.aggravation) match {
       case (o: ProjectileDamageInteraction, Some(damage))
         if data.damageTypes.contains(DamageType.Aggravated) &&

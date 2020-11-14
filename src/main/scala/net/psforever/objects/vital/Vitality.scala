@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vital
 
-import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.vital.resolution.ResolutionCalculations
+import net.psforever.objects.vital.test.DamageResult
 
 /**
   * A vital object can be hurt or damaged or healed or repaired (HDHR).
@@ -61,5 +61,5 @@ object Vitality {
     * Report that a vitals object must be updated due to damage.
     * @param obj the vital object
     */
-  final case class DamageResolution(obj: Vitality, cause: ResolvedProjectile)
+  final case class DamageResolution(obj: Vitality, cause: DamageResult)
 }

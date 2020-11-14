@@ -2,12 +2,12 @@
 package net.psforever.objects.serverobject.tube
 
 import net.psforever.actors.zone.BuildingActor
-import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.DamageableAmenity
 import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, Repairable, RepairableAmenity}
 import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
+import net.psforever.objects.vital.test.DamageResult
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `SpawnTube`.
@@ -41,12 +41,12 @@ class SpawnTubeControl(tube: SpawnTube)
         case _ => ;
       }
 
-  override protected def DamageAwareness(target : Target, cause : ResolvedProjectile, amount : Any) : Unit = {
+  override protected def DamageAwareness(target : Target, cause : DamageResult, amount : Any) : Unit = {
     tryAutoRepair()
     super.DamageAwareness(target, cause, amount)
   }
 
-  override protected def DestructionAwareness(target: Target, cause: ResolvedProjectile): Unit = {
+  override protected def DestructionAwareness(target: Target, cause: DamageResult): Unit = {
     tryAutoRepair()
     super.DestructionAwareness(target, cause)
     tube.Owner match {

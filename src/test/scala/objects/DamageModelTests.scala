@@ -15,7 +15,7 @@ import net.psforever.packet.game.objectcreate.ObjectClass
 import net.psforever.types._
 import org.specs2.mutable.Specification
 import net.psforever.objects.avatar.Avatar
-import net.psforever.objects.vital.test.{ProjectileDamageInteraction, ProjectileReason}
+import net.psforever.objects.vital.test.{DamageResult, ProjectileDamageInteraction, ProjectileReason}
 
 class DamageCalculationsTests extends Specification {
   "DamageCalculations" should {
@@ -774,7 +774,7 @@ class DamageModelTests extends Specification {
         ),
         Vector3.Zero
       )
-      val func: Any => ResolvedProjectile = resprojectile.cause.damageModel.Calculate(resprojectile)
+      val func: Any => DamageResult = resprojectile.cause.damageModel.Calculate(resprojectile)
       func(tplayer)
       tplayer.Health mustEqual 65
       tplayer.Armor mustEqual 35
@@ -796,7 +796,7 @@ class DamageModelTests extends Specification {
         ),
         Vector3.Zero
       )
-      val func: Any => ResolvedProjectile = resprojectile.cause.damageModel.Calculate(resprojectile, DamageType.Splash)
+      val func: Any => DamageResult = resprojectile.cause.damageModel.Calculate(resprojectile, DamageType.Splash)
       func(tplayer)
       tplayer.Health mustEqual 65
       tplayer.Armor mustEqual 35
@@ -818,7 +818,7 @@ class DamageModelTests extends Specification {
         ),
         Vector3.Zero
       )
-      val func: Any => ResolvedProjectile = resprojectile.cause.damageModel.Calculate(resprojectile)
+      val func: Any => DamageResult = resprojectile.cause.damageModel.Calculate(resprojectile)
       tplayer.Armor = 0
 
       func(tplayer)
@@ -839,7 +839,7 @@ class DamageModelTests extends Specification {
         ),
         Vector3.Zero
       )
-      val func: Any => ResolvedProjectile = resprojectile.cause.damageModel.Calculate(resprojectile)
+      val func: Any => DamageResult = resprojectile.cause.damageModel.Calculate(resprojectile)
 
       func(vehicle)
       vehicle.Health mustEqual 518
@@ -860,7 +860,7 @@ class DamageModelTests extends Specification {
         ),
         Vector3.Zero
       )
-      val func: Any => ResolvedProjectile = resprojectile.cause.damageModel.Calculate(resprojectile)
+      val func: Any => DamageResult = resprojectile.cause.damageModel.Calculate(resprojectile)
 
       func(vehicle)
       vehicle.Health mustEqual 528
@@ -882,7 +882,7 @@ class DamageModelTests extends Specification {
         ),
         Vector3.Zero
       )
-      val func: Any => ResolvedProjectile = resprojectile.cause.damageModel.Calculate(resprojectile)
+      val func: Any => DamageResult = resprojectile.cause.damageModel.Calculate(resprojectile)
 
       func(vehicle)
       vehicle.Health mustEqual 528
@@ -905,7 +905,7 @@ class DamageModelTests extends Specification {
         ),
         Vector3.Zero
       )
-      val func: Any => ResolvedProjectile = resprojectile.cause.damageModel.Calculate(resprojectile, DamageType.Splash)
+      val func: Any => DamageResult = resprojectile.cause.damageModel.Calculate(resprojectile, DamageType.Splash)
 
       func(vehicle)
       vehicle.Health mustEqual 518

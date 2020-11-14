@@ -1,11 +1,11 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital
 
-import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile, SourceEntry, VehicleSource}
+import net.psforever.objects.ballistics._
 import net.psforever.objects.definition.{EquipmentDefinition, KitDefinition, ObjectDefinition}
 import net.psforever.objects.serverobject.painbox.Painbox
 import net.psforever.objects.serverobject.terminals.TerminalDefinition
-import net.psforever.objects.vital.test.ProjectileDamageInteraction
+import net.psforever.objects.vital.test.{DamageResult, ProjectileDamageInteraction}
 import net.psforever.types.{ExoSuitType, ImplantType}
 
 abstract class VitalsActivity(target: SourceEntry) {
@@ -96,11 +96,15 @@ trait VitalsHistory {
 
   /**
     * Very common example of a `VitalsActivity` event involving weapon discharge.
-    * @param projectile the fully-informed entry of discharge of a weapon
+    * @param result the fully-informed entry of discharge of a weapon
     * @return the list of previous changes to this object's vital statistics
     */
-  def History(projectile: ResolvedProjectile): List[VitalsActivity] = {
-    vitalsHistory = DamageFromProjectile(projectile.data.asInstanceOf[ProjectileDamageInteraction]) +: vitalsHistory
+  def History(result: DamageResult): List[VitalsActivity] = {
+    result.interaction match {
+      case o: ProjectileDamageInteraction =>
+        vitalsHistory = DamageFromProjectile(o) +: vitalsHistory
+      case _ => ;
+    }
     vitalsHistory
   }
 
@@ -118,10 +122,10 @@ trait VitalsHistory {
     * Find, specifically, the last instance of a weapon discharge vital statistics change.
     * @return information about the discharge
     */
-  def LastShot: Option[ResolvedProjectile] = {
+  def LastShot: Option[DamageResult] = {
     vitalsHistory.find({ p => p.isInstanceOf[DamageFromProjectile] }) match {
       case Some(entry: DamageFromProjectile) =>
-        Some(ResolvedProjectile(entry.data))
+        Some(entry.data)
       case _ =>
         None
     }

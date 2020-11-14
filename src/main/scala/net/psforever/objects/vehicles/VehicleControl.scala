@@ -20,7 +20,7 @@ import net.psforever.objects.serverobject.transfer.TransferBehavior
 import net.psforever.objects.serverobject.repair.RepairableVehicle
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.vital.VehicleShieldCharge
-import net.psforever.objects.vital.test.DamageInteraction
+import net.psforever.objects.vital.test.DamageResult
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
@@ -362,7 +362,7 @@ class VehicleControl(vehicle: Vehicle)
         case _ =>
       }
 
-  override def TryJammerEffectActivate(target: Any, cause: DamageInteraction): Unit = {
+  override def TryJammerEffectActivate(target: Any, cause: DamageResult): Unit = {
     if (vehicle.MountedIn.isEmpty) {
       super.TryJammerEffectActivate(target, cause)
     }

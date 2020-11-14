@@ -1,7 +1,6 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.turret
 
-import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.{Default, GlobalDefinitions, Player, Tool}
 import net.psforever.objects.equipment.{Ammo, JammableMountedWeapons}
 import net.psforever.objects.serverobject.CommonMessages
@@ -11,6 +10,7 @@ import net.psforever.objects.serverobject.damage.{Damageable, DamageableWeaponTu
 import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableWeaponTurret}
 import net.psforever.objects.serverobject.structures.PoweredAmenityControl
+import net.psforever.objects.vital.test.DamageResult
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
@@ -123,12 +123,12 @@ class FacilityTurretControl(turret: FacilityTurret)
         case _ => ;
       }
 
-  override protected def DamageAwareness(target : Damageable.Target, cause : ResolvedProjectile, amount : Any) : Unit = {
+  override protected def DamageAwareness(target: Damageable.Target, cause: DamageResult, amount: Any) : Unit = {
     tryAutoRepair()
     super.DamageAwareness(target, cause, amount)
   }
 
-  override protected def DestructionAwareness(target: Damageable.Target, cause: ResolvedProjectile): Unit = {
+  override protected def DestructionAwareness(target: Damageable.Target, cause: DamageResult): Unit = {
     tryAutoRepair()
     super.DestructionAwareness(target, cause)
     val zone   = target.Zone

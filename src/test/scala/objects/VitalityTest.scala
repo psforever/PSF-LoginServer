@@ -31,7 +31,7 @@ class VitalityTest extends Specification {
         Vector3(50, 50, 0)
       )
 
-      player.History(resprojectile) //ResolvedProjectile, straight-up
+      player.History(resprojectile) //ProjectileDamageInteraction, straight-up
       player.History(DamageFromProjectile(resprojectile))
       player.History(HealFromKit(pSource, 10, GlobalDefinitions.medkit))
       player.History(HealFromTerm(pSource, 10, 0, GlobalDefinitions.order_terminal))
@@ -92,7 +92,10 @@ class VitalityTest extends Specification {
 
       player.LastShot match {
         case Some(resolved_projectile) =>
-          resolved_projectile.projectile mustEqual projectile
+          resolved_projectile.interaction match {
+            case o: ProjectileDamageInteraction => o.cause.projectile mustEqual projectile
+            case _ => ko
+          }
         case None =>
           ko
       }

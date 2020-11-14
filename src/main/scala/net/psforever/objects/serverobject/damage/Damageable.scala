@@ -2,14 +2,13 @@
 package net.psforever.objects.serverobject.damage
 
 import akka.actor.Actor.Receive
-import net.psforever.objects.ballistics.{Adversarial, DamageResult, ResolvedProjectile}
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.resolution.ResolutionCalculations
-import net.psforever.objects.vital.test.{DamageInteraction, ProjectileDamageInteraction}
+import net.psforever.objects.vital.test.{DamageResult, ProjectileDamageInteraction}
 
 /**
   * The base "control" `Actor` mixin for damage-handling code.
@@ -78,7 +77,7 @@ object Damageable {
     * @return `true`, if the target can be affected;
     *        `false`, otherwise
     */
-  def CanDamage(obj: Vitality with FactionAffinity, damage: Int, data: DamageInteraction): Boolean = {
+  def CanDamage(obj: Vitality with FactionAffinity, damage: Int, data: DamageResult): Boolean = {
     val definition = obj.Definition
     (damage > 0 || data.causesAggravation) &&
     definition.Damageable &&
@@ -94,11 +93,7 @@ object Damageable {
     * @return `true`, if the target can be affected;
     *        `false`, otherwise
     */
-  def CanJammer(obj: Vitality with FactionAffinity, data: ResolvedProjectile): Boolean = {
-    CanJammer(obj, data.data)
-  }
-
-  def CanJammer(obj: Vitality with FactionAffinity, data: DamageInteraction): Boolean = {
+  def CanJammer(obj: Vitality with FactionAffinity, data: DamageResult): Boolean = {
     data.causesJammering &&
     obj.isInstanceOf[JammableUnit] &&
     adversarialOrHackableChecks(obj, data)
@@ -106,7 +101,7 @@ object Damageable {
 
   private def adversarialOrHackableChecks(obj: Vitality with FactionAffinity, data: DamageResult): Boolean = {
     (data.adversarial match {
-      case Some(Adversarial(attacker, defender)) => attacker.Faction != defender.Faction
+      case Some(adversarial) => adversarial.attacker.Faction != adversarial.defender.Faction
       case None                                  => true
     }) ||
      (obj match {
@@ -123,10 +118,7 @@ object Damageable {
     * @return `true`, if the target can be affected;
     *        `false`, otherwise
     */
-  def CanDamageOrJammer(obj: Vitality with FactionAffinity, damage: Int, data: ResolvedProjectile): Boolean = {
-    CanDamageOrJammer(obj, damage, data.data)
-  }
-  def CanDamageOrJammer(obj: Vitality with FactionAffinity, damage: Int, data: DamageInteraction): Boolean = {
+  def CanDamageOrJammer(obj: Vitality with FactionAffinity, damage: Int, data: DamageResult): Boolean = {
     data match {
       case o: ProjectileDamageInteraction => CanDamage(obj, damage, o) || CanJammer(obj, o)
       case _ => false
@@ -141,7 +133,7 @@ object Damageable {
     * @param target the entity being damaged
     * @param cause historical information about the damage
     */
-  def DestructionAwareness(target: Damageable.Target, cause: ResolvedProjectile): Unit = {
+  def DestructionAwareness(target: Damageable.Target, cause: DamageResult): Unit = {
     target.Destroyed = true
   }
 }

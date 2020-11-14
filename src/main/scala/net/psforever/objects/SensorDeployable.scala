@@ -2,7 +2,6 @@
 package net.psforever.objects
 
 import akka.actor.{Actor, ActorContext, Props}
-import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.ce._
 import net.psforever.objects.definition.converter.SmallDeployableConverter
 import net.psforever.objects.definition.{ComplexDeployableDefinition, SimpleDeployableDefinition}
@@ -12,6 +11,7 @@ import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity}
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.repair.RepairableEntity
 import net.psforever.objects.vital.StandardResolutions
+import net.psforever.objects.vital.test.DamageResult
 import net.psforever.types.{PlanetSideGUID, Vector3}
 import net.psforever.services.Service
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
@@ -62,7 +62,7 @@ class SensorDeployableControl(sensor: SensorDeployable)
 
   override protected def DamageLog(msg: String): Unit = {}
 
-  override protected def DestructionAwareness(target: Damageable.Target, cause: ResolvedProjectile): Unit = {
+  override protected def DestructionAwareness(target: Damageable.Target, cause: DamageResult): Unit = {
     super.DestructionAwareness(target, cause)
     SensorDeployableControl.DestructionAwareness(sensor, PlanetSideGUID(0))
   }

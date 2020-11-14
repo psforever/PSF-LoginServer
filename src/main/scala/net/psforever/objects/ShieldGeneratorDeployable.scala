@@ -2,7 +2,6 @@
 package net.psforever.objects
 
 import akka.actor.{Actor, ActorContext, Props}
-import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.ce.{ComplexDeployable, Deployable, DeployableCategory}
 import net.psforever.objects.definition.{ComplexDeployableDefinition, SimpleDeployableDefinition}
 import net.psforever.objects.definition.converter.ShieldGeneratorConverter
@@ -13,6 +12,7 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.repair.RepairableEntity
 import net.psforever.objects.vital.resolution.ResolutionCalculations
+import net.psforever.objects.vital.test.DamageResult
 import net.psforever.types.PlanetSideGUID
 import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
@@ -96,7 +96,7 @@ class ShieldGeneratorControl(gen: ShieldGeneratorDeployable)
     }
   }
 
-  override protected def DamageAwareness(target: Damageable.Target, cause: ResolvedProjectile, amount: Any): Unit = {
+  override protected def DamageAwareness(target: Damageable.Target, cause: DamageResult, amount: Any): Unit = {
     val (damageToHealth, damageToShields) = amount match {
       case (a: Int, b: Int) => (a, b)
       case _ => (0, 0)
@@ -105,7 +105,7 @@ class ShieldGeneratorControl(gen: ShieldGeneratorDeployable)
     ShieldGeneratorControl.DamageAwareness(gen, cause, damageToShields > 0)
   }
 
-  override protected def DestructionAwareness(target: Target, cause: ResolvedProjectile): Unit = {
+  override protected def DestructionAwareness(target: Target, cause: DamageResult): Unit = {
     super.DestructionAwareness(target, cause)
     ShieldGeneratorControl.DestructionAwareness(gen, PlanetSideGUID(0))
   }
@@ -150,7 +150,7 @@ object ShieldGeneratorControl {
     * @param cause na
     * @param damageToShields na
     */
-  def DamageAwareness(target: ShieldGeneratorDeployable, cause: ResolvedProjectile, damageToShields: Boolean): Unit = {
+  def DamageAwareness(target: ShieldGeneratorDeployable, cause: DamageResult, damageToShields: Boolean): Unit = {
     //shields
     if (damageToShields) {
       val zone = target.Zone

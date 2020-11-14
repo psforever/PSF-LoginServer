@@ -11,6 +11,7 @@ import net.psforever.objects.serverobject.damage.DamageableEntity
 import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, Repairable, RepairableEntity}
 import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.vital.DamageFromExplosion
+import net.psforever.objects.vital.test.DamageResult
 import net.psforever.packet.game.TriggerEffectMessage
 import net.psforever.types.{PlanetSideGeneratorState, Vector3}
 import net.psforever.services.Service
@@ -154,12 +155,12 @@ class GeneratorControl(gen: Generator)
     !imminentExplosion && super.CanPerformRepairs(obj, player, item)
   }
 
-  override protected def WillAffectTarget(target: Target, damage: Int, cause: ResolvedProjectile): Boolean = {
+  override protected def WillAffectTarget(target: Target, damage: Int, cause: DamageResult): Boolean = {
     //if an explosion is queued, disallow further damage
     !imminentExplosion && super.WillAffectTarget(target, damage, cause)
   }
 
-  override protected def DamageAwareness(target: Target, cause: ResolvedProjectile, amount: Any): Unit = {
+  override protected def DamageAwareness(target: Target, cause: DamageResult, amount: Any): Unit = {
     tryAutoRepair()
     super.DamageAwareness(target, cause, amount)
     val damageTo = amount match {
@@ -169,7 +170,7 @@ class GeneratorControl(gen: Generator)
     GeneratorControl.DamageAwareness(gen, cause, damageTo)
   }
 
-  override protected def DestructionAwareness(target: Target, cause: ResolvedProjectile): Unit = {
+  override protected def DestructionAwareness(target: Target, cause: DamageResult): Unit = {
     tryAutoRepair()
     //if the target is already destroyed, do not let it be destroyed again
     if (!target.Destroyed) {
@@ -275,7 +276,7 @@ object GeneratorControl {
     * @param cause historical information about the damage
     * @param amount the amount of damage
     */
-  def DamageAwareness(target: Generator, cause: ResolvedProjectile, amount: Int): Unit = {
+  def DamageAwareness(target: Generator, cause: DamageResult, amount: Int): Unit = {
     if (!target.Destroyed) {
       val health: Float = target.Health.toFloat
       val max: Float    = target.MaxHealth.toFloat

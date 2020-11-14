@@ -1,50 +1,10 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital.test
 
-import net.psforever.objects.ballistics.{Adversarial, AggravatedDamage, DamageResult, ProjectileResolution, ResolvedProjectile, SourceEntry, Projectile => ActualProjectile}
+import net.psforever.objects.ballistics.{AggravatedDamage, SourceEntry}
 import net.psforever.objects.equipment.TargetValidation
-import net.psforever.objects.vital.{DamageAndResistance, DamageType}
+import net.psforever.objects.vital.DamageType
 import net.psforever.types.Vector3
-
-trait DamageReason {
-  def same(test: DamageReason): Boolean
-
-  def calculate(data: DamageInteraction): Any => ResolvedProjectile = (_: Any) => ResolvedProjectile(data)
-}
-
-final case class ProjectileReason(
-                                   resolution : ProjectileResolution.Value,
-                                   projectile: ActualProjectile,
-                                   damageModel: DamageAndResistance
-                                 ) extends DamageReason {
-  def same(test: DamageReason): Boolean = {
-    test match {
-      case o: ProjectileReason => o.projectile.id == projectile.id
-      case _ => false
-    }
-  }
-
-  override def calculate(data: DamageInteraction): Any => ResolvedProjectile = {
-    damageModel.Calculate(data)
-  }
-}
-
-final case class AdversarialCollisionReason() extends DamageReason {
-  def same(test: DamageReason): Boolean = false
-}
-
-final case class CollisionReason() extends DamageReason {
-  def same(test: DamageReason): Boolean = false
-}
-
-final case class EnvironmentReason(body: Any, damage: Int) extends DamageReason {
-  def same(test: DamageReason): Boolean = {
-    test match {
-      case o : EnvironmentReason => body == o.body //TODO eq
-      case _ => false
-    }
-  }
-}
 
 trait DamageInteraction extends DamageResult {
   def hitTime: Long
@@ -55,9 +15,9 @@ trait DamageInteraction extends DamageResult {
 
   def hitPos: Vector3
 
-  def calculate(): Any => ResolvedProjectile = calculate(data = this)
+  def calculate(): Any => DamageResult = calculate(data = this)
 
-  def calculate(data: DamageInteraction): Any => ResolvedProjectile = cause.calculate(data)
+  def calculate(data: DamageInteraction): Any => DamageResult = cause.calculate(data)
 }
 
 final case class GenericDamageInteraction(
@@ -66,6 +26,8 @@ final case class GenericDamageInteraction(
                                            hitPos: Vector3,
                                            hitTime: Long = System.currentTimeMillis()
                                          ) extends DamageInteraction {
+  def interaction = this
+
   def damageTypes: Set[DamageType.Value] = Set.empty
 
   def causesJammering: Boolean = false
@@ -85,6 +47,7 @@ final case class ProjectileDamageInteraction(
                                               hitPos: Vector3,
                                               hitTime: Long = System.currentTimeMillis()
                                             ) extends DamageInteraction {
+  def interaction = this
 
   def damageTypes: Set[DamageType.Value] = cause.projectile.profile.ProjectileDamageTypes
 
@@ -100,7 +63,7 @@ final case class ProjectileDamageInteraction(
 
   def aggravation: Option[AggravatedDamage] = cause.projectile.profile.Aggravated
 
-  def adversarial: Option[Adversarial] = Some(Adversarial(cause.projectile.owner, target))
+  def adversarial: Option[Adversarial] = Some(Adversarial(cause.projectile.owner, target, cause.projectile.attribute_to))
 }
 
 object DamageInteraction {

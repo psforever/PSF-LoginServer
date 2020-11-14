@@ -2,7 +2,7 @@
 package net.psforever.objects.vital.resolution
 
 import net.psforever.objects.{Player, TurretDeployable, Vehicle}
-import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile}
+import net.psforever.objects.ballistics.PlayerSource
 import net.psforever.objects.ce.{ComplexDeployable, Deployable}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.damage.Damageable
@@ -11,7 +11,7 @@ import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.projectile.ProjectileCalculations
-import net.psforever.objects.vital.test.ProjectileDamageInteraction
+import net.psforever.objects.vital.test.{DamageResult, ProjectileDamageInteraction}
 import net.psforever.types.ImplantType
 
 /**
@@ -23,7 +23,7 @@ trait ResolutionCalculations {
     * The exposed entry for the calculation function literal defined by this base.
     * @param damages the function literal that accumulates and calculates damages
     * @param resistances the function literal that collects resistance values
-    * @param data the historical `ResolvedProjectile` information
+    * @param data the historical damage information
     * @return a function literal that encapsulates delayed modification instructions for certain objects
     */
   def Calculate(
@@ -34,7 +34,7 @@ trait ResolutionCalculations {
 }
 
 object ResolutionCalculations {
-  type Output = Any => ResolvedProjectile
+  type Output = Any => DamageResult
   type Form   = (DamageCalculations.Selector, ProjectileCalculations.Form, ProjectileDamageInteraction) => Output
 
   def NoDamage(data: ProjectileDamageInteraction)(a: Int, b: Int): Int = 0
@@ -116,7 +116,7 @@ object ResolutionCalculations {
     * Unlike with `Infantry*` and with `Max*`'s,
     * `VehicleDamageAfterResist` does not necessarily need to validate its target object.
     * The required input is sufficient.
-    * @param data the historical `ResolvedProjectile` information
+    * @param data the historical damage information
     * @return a function literal for dealing with damage values and resistance values together
     */
   def VehicleDamageAfterResist(data: ProjectileDamageInteraction): (Int, Int) => Int = {
@@ -131,7 +131,7 @@ object ResolutionCalculations {
     }
   }
 
-  def NoApplication(damageValue: Int, data: ProjectileDamageInteraction)(target: Any): ResolvedProjectile = ResolvedProjectile(data)
+  def NoApplication(damageValue: Int, data: ProjectileDamageInteraction)(target: Any): DamageResult = data
 
   def SubtractWithRemainder(current: Int, damage: Int): (Int, Int) = {
     val a               = Math.max(0, current - damage)
@@ -147,10 +147,10 @@ object ResolutionCalculations {
     * The expanded `(Any)=>Unit` function for infantry.
     * Apply the damage values to the capacitor (if shielded NC max), health field and personal armor field for an infantry target.
     * @param damageValues a tuple containing damage values for: health, personal armor
-    * @param data the historical `ResolvedProjectile` information
+    * @param data the historical damage information
     * @param target the `Player` object to be affected by these damage values (at some point)
     */
-  def InfantryApplication(damageValues: (Int, Int), data: ProjectileDamageInteraction)(target: Any): ResolvedProjectile = {
+  def InfantryApplication(damageValues: (Int, Int), data: ProjectileDamageInteraction)(target: Any): DamageResult = {
     target match {
       case player: Player =>
         var (a, b) = damageValues
@@ -208,17 +208,17 @@ object ResolutionCalculations {
         }
       case _ =>
     }
-    ResolvedProjectile(data)
+    data
   }
 
   /**
     * The expanded `(Any)=>Unit` function for vehicles.
     * Apply the damage value to the shield field and then the health field (that order) for a vehicle target.
     * @param damage the raw damage
-    * @param data the historical `ResolvedProjectile` information
-    * @param target the `Vehicle` object to be affected by these damage values (at some point)
+    * @param data the historical damage information
+    * @param target the Vehicle` object to be affected by these damage values (at some point)
     */
-  def VehicleApplication(damage: Int, data: ProjectileDamageInteraction)(target: Any): ResolvedProjectile = {
+  def VehicleApplication(damage: Int, data: ProjectileDamageInteraction)(target: Any): DamageResult = {
     target match {
       case vehicle: Vehicle if CanDamage(vehicle, damage, data) =>
         val shields = vehicle.Shields
@@ -232,10 +232,10 @@ object ResolutionCalculations {
         }
       case _ => ;
     }
-    ResolvedProjectile(data)
+    data
   }
 
-  def SimpleApplication(damage: Int, data: ProjectileDamageInteraction)(target: Any): ResolvedProjectile = {
+  def SimpleApplication(damage: Int, data: ProjectileDamageInteraction)(target: Any): DamageResult = {
     target match {
       case obj: Deployable if CanDamage(obj, damage, data) =>
         obj.Health -= damage
@@ -245,10 +245,10 @@ object ResolutionCalculations {
         amenity.Health -= damage
       case _ => ;
     }
-    ResolvedProjectile(data)
+    data
   }
 
-  def ComplexDeployableApplication(damage: Int, data: ProjectileDamageInteraction)(target: Any): ResolvedProjectile = {
+  def ComplexDeployableApplication(damage: Int, data: ProjectileDamageInteraction)(target: Any): DamageResult = {
     target match {
       case ce: ComplexDeployable if CanDamage(ce, damage, data) =>
         if (ce.Shields > 0) {
@@ -276,6 +276,6 @@ object ResolutionCalculations {
 
       case _ => ;
     }
-    ResolvedProjectile(data)
+    data
   }
 }

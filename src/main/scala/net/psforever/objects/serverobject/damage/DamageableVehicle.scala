@@ -3,10 +3,10 @@ package net.psforever.objects.serverobject.damage
 
 import akka.actor.Actor
 import net.psforever.objects.{Vehicle, Vehicles}
-import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.vital.resolution.ResolutionCalculations
+import net.psforever.objects.vital.test.DamageResult
 import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.objects.zones.Zone
@@ -94,7 +94,7 @@ trait DamageableVehicle
     * @param cause historical information about the damage
     * @param amount how much damage was performed
     */
-  override protected def DamageAwareness(target: Target, cause: ResolvedProjectile, amount: Any): Unit = {
+  override protected def DamageAwareness(target: Target, cause: DamageResult, amount: Any): Unit = {
     val obj            = DamageableObject
     val zone           = target.Zone
     val events         = zone.VehicleEvents
@@ -106,12 +106,12 @@ trait DamageableVehicle
       case _ => (0, 0, 0)
     }
     var announceConfrontation: Boolean = reportDamageToVehicle || totalDamage > 0
-    val aggravated = TryAggravationEffectActivate(cause.data) match {
+    val aggravated = TryAggravationEffectActivate(cause) match {
       case Some(_) =>
         announceConfrontation = true
         false
       case _ =>
-        cause.data.causesAggravation
+        cause.causesAggravation
     }
     reportDamageToVehicle = false
 
@@ -120,8 +120,8 @@ trait DamageableVehicle
     //damage
     if (Damageable.CanDamageOrJammer(target, totalDamage, cause)) {
       //jammering
-      if (Damageable.CanJammer(target, cause.data)) {
-        target.Actor ! JammableUnit.Jammered(cause.data)
+      if (Damageable.CanJammer(target, cause)) {
+        target.Actor ! JammableUnit.Jammered(cause)
       }
       //stat changes
       if (damageToShields > 0) {
@@ -186,7 +186,7 @@ trait DamageableVehicle
     * @param target the entity being destroyed
     * @param cause historical information about the damage
     */
-  override protected def DestructionAwareness(target: Target, cause: ResolvedProjectile): Unit = {
+  override protected def DestructionAwareness(target: Target, cause: DamageResult): Unit = {
     super.DestructionAwareness(target, cause)
     val obj = DamageableObject
     DamageableMountable.DestructionAwareness(obj, cause)
@@ -223,12 +223,12 @@ object DamageableVehicle {
     * Message for instructing the target's cargo vehicles about a damage source affecting their carrier.
     * @param cause historical information about damage
     */
-  private case class Damage(cause: ResolvedProjectile, amount: Int)
+  private case class Damage(cause: DamageResult, amount: Int)
 
   /**
     * Message for instructing the target's cargo vehicles that their carrier is destroyed,
     * and they should be destroyed too.
     * @param cause historical information about damage
     */
-  private case class Destruction(cause: ResolvedProjectile)
+  private case class Destruction(cause: DamageResult)
 }

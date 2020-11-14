@@ -5,7 +5,7 @@ import akka.actor.{Actor, Cancellable}
 import net.psforever.objects.{Default, PlanetSideGameObject, Tool}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.vehicles.MountedWeapons
-import net.psforever.objects.vital.test.{DamageInteraction, ProjectileReason}
+import net.psforever.objects.vital.test.{DamageResult, ProjectileReason}
 import net.psforever.objects.zones.ZoneAware
 import net.psforever.types.Vector3
 import net.psforever.services.Service
@@ -43,7 +43,7 @@ object JammableUnit {
     * A message for jammering due to a projectile.
     * @param cause information pertaining to the projectile
     */
-  final case class Jammered(cause: DamageInteraction)
+  final case class Jammered(cause: DamageResult)
 
   /**
     * Stop the auditory aspect of being jammered.
@@ -136,11 +136,12 @@ trait JammableBehavior {
   /**
     * If the target can be validated against, affect it with the jammered status.
     * @param target the objects to be determined if affected by the source's jammering
-    * @param interaction the source of the "jammered" status
+    * @param cause the source of the "jammered" status
     */
-  def TryJammerEffectActivate(target: Any, interaction: DamageInteraction): Unit =
+  def TryJammerEffectActivate(target: Any, cause: DamageResult): Unit =
     target match {
       case obj: PlanetSideServerObject =>
+        val interaction = cause.interaction
         JammingUnit.FindJammerDuration(interaction.jammering, obj) match {
           case Some(dur) =>
             if(interaction.cause match {

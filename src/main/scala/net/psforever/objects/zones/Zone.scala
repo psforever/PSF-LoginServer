@@ -3,7 +3,7 @@ package net.psforever.objects.zones
 
 import akka.actor.{ActorContext, ActorRef, Props}
 import akka.routing.RandomPool
-import net.psforever.objects.ballistics.{Projectile, ResolvedProjectile, SourceEntry}
+import net.psforever.objects.ballistics.{Projectile, SourceEntry}
 import net.psforever.objects._
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.entity.IdentifiableEntity
@@ -40,6 +40,7 @@ import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vehicles.UtilityType
+import net.psforever.objects.vital.test.DamageResult
 
 /**
   * A server object representing the one-landmass planets as well as the individual subterranean caverns.<br>
@@ -942,9 +943,9 @@ object Zone {
     }
 
     object Activity {
-      def apply(data: ResolvedProjectile): Activity = {
+      def apply(data: DamageResult): Activity = {
         data.adversarial match {
-          case Some(adversity) => Conflict(adversity.defender, adversity.attacker, data.data.hitPos)
+          case Some(adversity) => Conflict(adversity.defender, adversity.attacker, data.interaction.hitPos)
           case None => NonEvent()
         }
       }

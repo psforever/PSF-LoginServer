@@ -5213,7 +5213,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                       shotOrigin: Vector3,
                       hitPos: Vector3
                     ) =>
-                  ResolveProjectileEntry(projectile, ProjectileResolution.Hit, target, hitPos) match {
+                  ResolveProjectileInteraction(projectile, ProjectileResolution.Hit, target, hitPos) match {
                     case Some(resprojectile) =>
                       HandleDealingDamage(target, resprojectile)
                     case None => ;
@@ -5250,7 +5250,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             ValidObject(direct_victim_uid) match {
               case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
                 CheckForHitPositionDiscrepancy(projectile_guid, target.Position, target)
-                ResolveProjectileEntry(projectile, resolution1, target, target.Position) match {
+                ResolveProjectileInteraction(projectile, resolution1, target, target.Position) match {
                   case Some(projectile) =>
                     HandleDealingDamage(target, projectile)
                   case None => ;
@@ -5262,7 +5262,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               ValidObject(elem.uid) match {
                 case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
                   CheckForHitPositionDiscrepancy(projectile_guid, explosion_pos, target)
-                  ResolveProjectileEntry(projectile, resolution2, target, explosion_pos) match {
+                  ResolveProjectileInteraction(projectile, resolution2, target, explosion_pos) match {
                     case Some(projectile) =>
                       HandleDealingDamage(target, projectile)
                     case None => ;
@@ -5287,7 +5287,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         ValidObject(victim_guid) match {
           case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
             CheckForHitPositionDiscrepancy(projectile_guid, hit_pos, target)
-            ResolveProjectileEntry(projectile_guid, ProjectileResolution.Lash, target, hit_pos) match {
+            ResolveProjectileInteraction(projectile_guid, ProjectileResolution.Lash, target, hit_pos) match {
               case Some(projectile) =>
                 HandleDealingDamage(target, projectile)
               case None => ;
@@ -7646,7 +7646,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @param resolution the resolution status to promote the projectile
     * @return the projectile
     */
-  def ResolveProjectileEntry(
+  def ResolveProjectileInteraction(
       projectile_guid: PlanetSideGUID,
       resolution: ProjectileResolution.Value,
       target: PlanetSideGameObject with FactionAffinity with Vitality,
@@ -7654,7 +7654,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   ): Option[ProjectileDamageInteraction] = {
     FindProjectileEntry(projectile_guid) match {
       case Some(projectile) =>
-        ResolveProjectileEntry(projectile, resolution, target, pos)
+        ResolveProjectileInteraction(projectile, resolution, target, pos)
       case None =>
         log.warn(s"ResolveProjectile: expected projectile, but ${projectile_guid.guid} not found")
         None
@@ -7668,7 +7668,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @param resolution the resolution status to promote the projectile
     * @return a copy of the projectile
     */
-  def ResolveProjectileEntry(
+  def ResolveProjectileInteraction(
       projectile: Projectile,
       index: Int,
       resolution: ProjectileResolution.Value,
@@ -7679,7 +7679,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       log.error(s"expected projectile could not be found at $index; can not resolve")
       None
     } else {
-      ResolveProjectileEntry(projectile, resolution, target, pos)
+      ResolveProjectileInteraction(projectile, resolution, target, pos)
     }
   }
 
@@ -7689,7 +7689,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @param resolution the resolution status to promote the projectile
     * @return a copy of the projectile
     */
-  def ResolveProjectileEntry(
+  def ResolveProjectileInteraction(
       projectile: Projectile,
       resolution: ProjectileResolution.Value,
       target: PlanetSideGameObject with FactionAffinity with Vitality,
@@ -7758,7 +7758,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * Calculate the amount of damage to be dealt to an active `target`
     * using the information reconstructed from a `Resolvedprojectile`
     * and affect the `target` in a synchronized manner.
-    * The active `target` and the target of the `ResolvedProjectile` do not have be the same.
+    * The active `target` and the target of the `DamageResult` do not have be the same.
     * While the "tell" for being able to sustain damage is an entity of type `Vitality`,
     * only specific `Vitality` entity types are being screened for sustaining damage.
     * @see `DamageResistanceModel`

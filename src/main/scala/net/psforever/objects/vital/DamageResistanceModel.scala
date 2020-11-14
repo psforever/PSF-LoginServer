@@ -1,7 +1,6 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vital
 
-import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.projectile.ProjectileCalculations
 import net.psforever.objects.vital.resistance.ResistanceSelection
@@ -22,7 +21,7 @@ trait DamageAndResistance {
 
 object DamageAndResistance {
   def doNothingFallback(data: DamageInteraction): ResolutionCalculations.Output = {
-    _: Any => { ResolvedProjectile(data) }
+    _: Any => data
   }
 }
 
@@ -77,7 +76,7 @@ trait DamageResistanceModel extends DamageAndResistance {
 
   /**
     * Magic stuff.
-    * @param data the historical `ResolvedProjectile` information
+    * @param data the historical damage information
     * @return a function literal that encapsulates delayed modification instructions for certain objects
     */
   def Calculate(data: DamageInteraction): ResolutionCalculations.Output = {
@@ -94,8 +93,8 @@ trait DamageResistanceModel extends DamageAndResistance {
 
   /**
     * Magic stuff.
-    * @param data the historical `ResolvedProjectile` information
-    * @param resolution an explicit damage resolution overriding the one in the `ResolvedProjectile` object
+    * @param data the historical damage information
+    * @param resolution an explicit damage resolution overriding the one provided
     * @return a function literal that encapsulates delayed modification instructions for certain objects
     */
   def Calculate(data: DamageInteraction, resolution: DamageType.Value): ResolutionCalculations.Output = {
