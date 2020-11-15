@@ -22,8 +22,9 @@ import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
 import net.psforever.objects.serverobject.structures.{AutoRepairStats, BuildingDefinition, WarpGateDefinition}
 import net.psforever.objects.serverobject.turret.{FacilityTurretDefinition, TurretUpgrade}
 import net.psforever.objects.vehicles.{DestroyedVehicle, InternalTelepadDefinition, SeatArmorRestriction, UtilityType}
+import net.psforever.objects.vital.base.DamageType
 import net.psforever.objects.vital.damage.{DamageCalculations, DamageModifiers}
-import net.psforever.objects.vital.{DamageType, StandardDamageProfile, StandardResolutions}
+import net.psforever.objects.vital.{StandardDamageProfile, StandardResolutions}
 import net.psforever.types.{ExoSuitType, ImplantType, PlanetSideEmpire, Vector3}
 
 import scala.collection.mutable

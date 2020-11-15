@@ -14,7 +14,7 @@ import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.generator.{Generator, GeneratorControl, GeneratorDefinition}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.vital.Vitality
-import net.psforever.objects.vital.test.{ProjectileDamageInteraction, ProjectileReason}
+import net.psforever.objects.vital.base.{ProjectileDamageInteraction, ProjectileReason}
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game.{InventoryStateMessage, RepairMessage, TriggerEffectMessage}
 import net.psforever.types._

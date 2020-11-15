@@ -5,7 +5,7 @@ import net.psforever.objects.ballistics._
 import net.psforever.objects.definition.{EquipmentDefinition, KitDefinition, ObjectDefinition}
 import net.psforever.objects.serverobject.painbox.Painbox
 import net.psforever.objects.serverobject.terminals.TerminalDefinition
-import net.psforever.objects.vital.test.{DamageResult, ProjectileDamageInteraction}
+import net.psforever.objects.vital.base.{DamageResult, ProjectileDamageInteraction}
 import net.psforever.types.{ExoSuitType, ImplantType}
 
 abstract class VitalsActivity(target: SourceEntry) {

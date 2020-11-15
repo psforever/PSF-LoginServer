@@ -4,8 +4,8 @@ package net.psforever.objects.serverobject.damage
 import akka.actor.{Actor, Cancellable}
 import net.psforever.objects.ballistics._
 import net.psforever.objects.serverobject.aura.Aura
-import net.psforever.objects.vital.test._
-import net.psforever.objects.vital.{DamageType, Vitality}
+import net.psforever.objects.vital.base._
+import net.psforever.objects.vital.Vitality
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global

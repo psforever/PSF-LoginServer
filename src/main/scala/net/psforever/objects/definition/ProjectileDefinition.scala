@@ -4,7 +4,8 @@ package net.psforever.objects.definition
 import net.psforever.objects.ballistics.{AggravatedDamage, ChargeDamage, Projectiles}
 import net.psforever.objects.equipment.JammingUnit
 import net.psforever.objects.vital.damage.DamageModifiers
-import net.psforever.objects.vital.{DamageType, StandardDamageProfile}
+import net.psforever.objects.vital.StandardDamageProfile
+import net.psforever.objects.vital.base.DamageType
 
 /**
   * The definition that outlines the damage-dealing characteristics of any projectile.

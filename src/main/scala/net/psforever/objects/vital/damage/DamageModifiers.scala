@@ -4,8 +4,7 @@ package net.psforever.objects.vital.damage
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.ballistics._
 import net.psforever.objects.equipment.ChargeFireModeDefinition
-import net.psforever.objects.vital.DamageType
-import net.psforever.objects.vital.test.ProjectileDamageInteraction
+import net.psforever.objects.vital.base.{DamageType, ProjectileDamageInteraction}
 import net.psforever.types.{ExoSuitType, Vector3}
 
 /**

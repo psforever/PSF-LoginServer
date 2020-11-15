@@ -1,5 +1,5 @@
 // Copyright (c) 2020 PSForever
-package net.psforever.objects.vital.test
+package net.psforever.objects.vital.base
 
 import net.psforever.objects.ballistics.{ProjectileResolution, Projectile => ActualProjectile}
 import net.psforever.objects.vital.DamageAndResistance
@@ -32,6 +32,10 @@ final case class AdversarialCollisionReason() extends DamageReason {
 }
 
 final case class CollisionReason() extends DamageReason {
+  def same(test: DamageReason): Boolean = false
+}
+
+final case class ExplosionReason() extends DamageReason {
   def same(test: DamageReason): Boolean = false
 }
 

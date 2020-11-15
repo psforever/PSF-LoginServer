@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vital.projectile
 
-import net.psforever.objects.vital.test.{DamageResult, ProjectileDamageInteraction}
+import net.psforever.objects.vital.base.{DamageResult, ProjectileDamageInteraction}
 
 /**
   * The base for all projectile-induced damage calculation function literals.

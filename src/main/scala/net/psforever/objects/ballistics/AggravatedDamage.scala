@@ -2,7 +2,7 @@
 package net.psforever.objects.ballistics
 import net.psforever.objects.equipment.TargetValidation
 import net.psforever.objects.serverobject.aura.Aura
-import net.psforever.objects.vital.DamageType
+import net.psforever.objects.vital.base.DamageType
 
 /**
   * In what manner of pacing the aggravated damage ticks are applied.

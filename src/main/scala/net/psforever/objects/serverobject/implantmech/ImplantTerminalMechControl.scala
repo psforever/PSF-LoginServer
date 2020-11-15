@@ -11,7 +11,7 @@ import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBe
 import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableEntity}
 import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
-import net.psforever.objects.vital.test.DamageResult
+import net.psforever.objects.vital.base.DamageResult
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `ImplantTerminalMech`.

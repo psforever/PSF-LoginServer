@@ -7,7 +7,7 @@ import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.DamageableAmenity
 import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, Repairable, RepairableAmenity}
 import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
-import net.psforever.objects.vital.test.DamageResult
+import net.psforever.objects.vital.base.DamageResult
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `SpawnTube`.

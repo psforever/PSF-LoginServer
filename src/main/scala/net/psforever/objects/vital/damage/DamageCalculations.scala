@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vital.damage
 
-import net.psforever.objects.vital.test.{DamageInteraction, ProjectileDamageInteraction}
+import net.psforever.objects.vital.base.{DamageInteraction, ProjectileDamageInteraction}
 
 /**
   * A series of methods for extraction of the base damage against a given target type

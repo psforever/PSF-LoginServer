@@ -15,7 +15,7 @@ import net.psforever.objects.serverobject.mount.MountableBehavior
 import net.psforever.objects.serverobject.repair.RepairableWeaponTurret
 import net.psforever.objects.serverobject.turret.{TurretDefinition, WeaponTurret}
 import net.psforever.objects.vital.damage.DamageCalculations
-import net.psforever.objects.vital.test.DamageResult
+import net.psforever.objects.vital.base.DamageResult
 import net.psforever.objects.vital.{StandardResolutions, StandardVehicleResistance}
 
 class TurretDeployable(tdef: TurretDeployableDefinition)

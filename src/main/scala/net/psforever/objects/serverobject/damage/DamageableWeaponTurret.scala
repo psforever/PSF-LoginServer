@@ -5,7 +5,7 @@ import akka.actor.Actor
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.turret.{TurretUpgrade, WeaponTurret}
 import net.psforever.objects.vehicles.MountedWeapons
-import net.psforever.objects.vital.test.DamageResult
+import net.psforever.objects.vital.base.DamageResult
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.DamageWithPositionMessage
 import net.psforever.types.Vector3

@@ -3,7 +3,7 @@ package net.psforever.objects.serverobject.damage
 
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.vital.resolution.ResolutionCalculations
-import net.psforever.objects.vital.test.DamageResult
+import net.psforever.objects.vital.base.DamageResult
 import net.psforever.objects.zones.Zone
 import net.psforever.types.PlanetSideGUID
 import net.psforever.services.Service

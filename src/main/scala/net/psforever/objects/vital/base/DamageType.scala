@@ -1,5 +1,4 @@
-// Copyright (c) 2017 PSForever
-package net.psforever.objects.vital
+package net.psforever.objects.vital.base
 
 /**
   * An `Enumeration` of the damage type.

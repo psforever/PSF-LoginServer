@@ -2,7 +2,7 @@
 package net.psforever.objects.serverobject.damage
 
 import net.psforever.objects.serverobject.structures.Amenity
-import net.psforever.objects.vital.test.DamageResult
+import net.psforever.objects.vital.base.DamageResult
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 
 /**

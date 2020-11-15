@@ -9,7 +9,7 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity}
 import net.psforever.objects.serverobject.repair.RepairableEntity
 import net.psforever.objects.vital.StandardResolutions
-import net.psforever.objects.vital.test.DamageResult
+import net.psforever.objects.vital.base.DamageResult
 
 class TrapDeployable(cdef: TrapDeployableDefinition) extends ComplexDeployable(cdef)
 

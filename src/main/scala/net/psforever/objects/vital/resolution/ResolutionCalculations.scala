@@ -11,7 +11,7 @@ import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.projectile.ProjectileCalculations
-import net.psforever.objects.vital.test.{DamageResult, ProjectileDamageInteraction}
+import net.psforever.objects.vital.base.{DamageResult, ProjectileDamageInteraction}
 import net.psforever.types.ImplantType
 
 /**

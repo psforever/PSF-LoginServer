@@ -40,7 +40,7 @@ import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vehicles.UtilityType
-import net.psforever.objects.vital.test.DamageResult
+import net.psforever.objects.vital.base.DamageResult
 
 /**
   * A server object representing the one-landmass planets as well as the individual subterranean caverns.<br>

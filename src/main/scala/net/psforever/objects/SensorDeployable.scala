@@ -11,7 +11,7 @@ import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity}
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.repair.RepairableEntity
 import net.psforever.objects.vital.StandardResolutions
-import net.psforever.objects.vital.test.DamageResult
+import net.psforever.objects.vital.base.DamageResult
 import net.psforever.types.{PlanetSideGUID, Vector3}
 import net.psforever.services.Service
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}

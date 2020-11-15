@@ -5,7 +5,7 @@ import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.projectile.ProjectileCalculations
 import net.psforever.objects.vital.resistance.ResistanceSelection
 import net.psforever.objects.vital.resolution.ResolutionCalculations
-import net.psforever.objects.vital.test.{DamageInteraction, ProjectileDamageInteraction}
+import net.psforever.objects.vital.base.{DamageInteraction, DamageType, ProjectileDamageInteraction}
 
 trait DamageAndResistance {
   def DamageUsing: DamageCalculations.Selector

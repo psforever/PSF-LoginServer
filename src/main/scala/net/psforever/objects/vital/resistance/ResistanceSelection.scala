@@ -1,9 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vital.resistance
 
-import net.psforever.objects.vital.{DamageType, NoResistance}
+import net.psforever.objects.vital.NoResistance
 import net.psforever.objects.vital.projectile.ProjectileCalculations
-import net.psforever.objects.vital.test.{DamageResult, ProjectileDamageInteraction}
+import net.psforever.objects.vital.base.{DamageResult, DamageType, ProjectileDamageInteraction}
 
 /**
   * Maintain information about four primary forms of resistance calculation

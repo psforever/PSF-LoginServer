@@ -2,7 +2,7 @@
 package net.psforever.objects.vital
 
 import net.psforever.objects.vital.resolution.ResolutionCalculations
-import net.psforever.objects.vital.test.DamageResult
+import net.psforever.objects.vital.base.DamageResult
 
 /**
   * A vital object can be hurt or damaged or healed or repaired (HDHR).

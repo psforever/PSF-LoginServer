@@ -6,7 +6,7 @@ import net.psforever.objects.ballistics._
 import net.psforever.objects.definition.ExoSuitDefinition
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.vital.projectile.ProjectileCalculations
-import net.psforever.objects.vital.test.ProjectileDamageInteraction
+import net.psforever.objects.vital.base.ProjectileDamageInteraction
 import net.psforever.types.ExoSuitType
 
 import scala.util.{Failure, Success, Try}

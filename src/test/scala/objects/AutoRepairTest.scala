@@ -14,7 +14,7 @@ import net.psforever.objects.serverobject.structures.{AutoRepairStats, Building,
 import net.psforever.objects.serverobject.terminals.{OrderTerminalDefinition, Terminal, TerminalControl}
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.damage.DamageProfile
-import net.psforever.objects.vital.test.{ProjectileDamageInteraction, ProjectileReason}
+import net.psforever.objects.vital.base.{ProjectileDamageInteraction, ProjectileReason}
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.objects.{GlobalDefinitions, Player, Tool}
 import net.psforever.services.ServiceManager

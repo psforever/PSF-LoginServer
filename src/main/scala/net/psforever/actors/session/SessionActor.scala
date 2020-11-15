@@ -53,7 +53,7 @@ import net.psforever.objects.teamwork.Squad
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.vital._
-import net.psforever.objects.vital.test.{DamageInteraction, ProjectileDamageInteraction, ProjectileReason}
+import net.psforever.objects.vital.base.{DamageInteraction, DamageType, ProjectileDamageInteraction, ProjectileReason}
 import net.psforever.objects.zones.{Zone, ZoneHotSpotProjector, Zoning}
 import net.psforever.packet._
 import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo, _}

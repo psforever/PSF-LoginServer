@@ -10,12 +10,12 @@ import net.psforever.objects.vital.resolution.ResolutionCalculations
 import ResolutionCalculations._
 import net.psforever.objects.ballistics._
 import net.psforever.objects.definition.{ProjectileDefinition, VehicleDefinition}
-import net.psforever.objects.vital.{DamageType, Vitality}
+import net.psforever.objects.vital.Vitality
 import net.psforever.packet.game.objectcreate.ObjectClass
 import net.psforever.types._
 import org.specs2.mutable.Specification
 import net.psforever.objects.avatar.Avatar
-import net.psforever.objects.vital.test.{DamageResult, ProjectileDamageInteraction, ProjectileReason}
+import net.psforever.objects.vital.base.{DamageResult, DamageType, ProjectileDamageInteraction, ProjectileReason}
 
 class DamageCalculationsTests extends Specification {
   "DamageCalculations" should {

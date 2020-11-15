@@ -3,7 +3,7 @@ package net.psforever.objects.vital.resolution
 
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.projectile.ProjectileCalculations
-import net.psforever.objects.vital.test.ProjectileDamageInteraction
+import net.psforever.objects.vital.base.ProjectileDamageInteraction
 
 /**
   * A specific implementation of `ResolutionCalculations` that deals with

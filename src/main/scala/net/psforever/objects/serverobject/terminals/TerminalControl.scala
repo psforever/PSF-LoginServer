@@ -12,7 +12,7 @@ import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableA
 import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
 import net.psforever.services.Service
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import net.psforever.objects.vital.test.DamageResult
+import net.psforever.objects.vital.base.DamageResult
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `Terminal`.

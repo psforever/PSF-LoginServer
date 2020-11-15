@@ -8,7 +8,7 @@ import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.resolution.ResolutionCalculations
-import net.psforever.objects.vital.test.{DamageResult, ProjectileDamageInteraction}
+import net.psforever.objects.vital.base.{DamageResult, ProjectileDamageInteraction}
 
 /**
   * The base "control" `Actor` mixin for damage-handling code.

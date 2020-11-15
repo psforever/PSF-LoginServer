@@ -30,7 +30,7 @@ import org.specs2.mutable.Specification
 
 import scala.concurrent.duration._
 import net.psforever.objects.avatar.Avatar
-import net.psforever.objects.vital.test.{ProjectileDamageInteraction, ProjectileReason}
+import net.psforever.objects.vital.base.{ProjectileDamageInteraction, ProjectileReason}
 
 class DamageableTest extends Specification {
   val player1     = Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))

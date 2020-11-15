@@ -1,9 +1,8 @@
 // Copyright (c) 2020 PSForever
-package net.psforever.objects.vital.test
+package net.psforever.objects.vital.base
 
 import net.psforever.objects.ballistics.{AggravatedDamage, SourceEntry}
 import net.psforever.objects.equipment.TargetValidation
-import net.psforever.objects.vital.DamageType
 
 final case class Adversarial(attacker: SourceEntry, defender: SourceEntry, implement: Int)
 
