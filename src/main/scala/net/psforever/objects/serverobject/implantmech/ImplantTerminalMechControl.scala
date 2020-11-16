@@ -1,7 +1,6 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.implantmech
 
-import akka.actor.Actor
 import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.{GlobalDefinitions, Player, SimpleItem}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
@@ -11,14 +10,15 @@ import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity, DamageableMountable}
 import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}
 import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableEntity}
-import net.psforever.objects.serverobject.structures.Building
+import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
+import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `ImplantTerminalMech`.
   * @param mech the "mech" object being governed
   */
 class ImplantTerminalMechControl(mech: ImplantTerminalMech)
-    extends Actor
+    extends PoweredAmenityControl
     with FactionAffinityBehavior.Check
     with MountableBehavior.Mount
     with MountableBehavior.Dismount
@@ -33,17 +33,19 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
   def RepairableObject = mech
   def AutoRepairObject = mech
 
-  def receive: Receive =
+  def commonBehavior: Receive =
     checkBehavior
-      .orElse(mountBehavior)
       .orElse(dismountBehavior)
-      .orElse(hackableBehavior)
       .orElse(takesDamage)
       .orElse(canBeRepairedByNanoDispenser)
       .orElse(autoRepairBehavior)
+
+  def poweredStateLogic : Receive =
+    commonBehavior
+      .orElse(mountBehavior)
       .orElse {
         case CommonMessages.Use(player, Some(item: SimpleItem))
-            if item.Definition == GlobalDefinitions.remote_electronics_kit =>
+          if item.Definition == GlobalDefinitions.remote_electronics_kit =>
           //TODO setup certifications check
           mech.Owner match {
             case b: Building if (b.Faction != player.Faction || b.CaptureTerminalIsHacked) && mech.HackedBy.isEmpty =>
@@ -54,6 +56,12 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
               )
             case _ => ;
           }
+        case _ => ;
+      }
+
+  def unpoweredStateLogic: Receive =
+    commonBehavior
+      .orElse {
         case _ => ;
       }
 
@@ -97,5 +105,33 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
       stopAutoRepair()
     }
     newHealth
+  }
+
+  override def tryAutoRepair() : Boolean = {
+    isPowered && super.tryAutoRepair()
+  }
+
+  def powerTurnOffCallback(): Unit = {
+    stopAutoRepair()
+    //kick all occupants
+    val guid = mech.GUID
+    val zone = mech.Zone
+    val zoneId = zone.id
+    val events = zone.VehicleEvents
+    mech.Seats.values.foreach(seat =>
+      seat.Occupant match {
+        case Some(player) =>
+          seat.Occupant = None
+          player.VehicleSeated = None
+          if (player.HasGUID) {
+            events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, false, guid))
+          }
+        case None => ;
+      }
+    )
+  }
+
+  def powerTurnOnCallback(): Unit = {
+    tryAutoRepair()
   }
 }

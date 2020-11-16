@@ -113,18 +113,9 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
       LowNtuWarning(enabled = true)
     }
     if (resourceSilo.NtuCapacitor == 0 && siloChargeBeforeChange > 0) {
-      // Oops, someone let the base run out of power. Shut it all down.
-      zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.PlanetsideAttribute(building.GUID, 48, 1))
       building.Actor ! BuildingActor.NtuDepleted()
       building.Actor ! BuildingActor.AmenityStateChange(resourceSilo)
-      building.Actor ! BuildingActor.SetFaction(PlanetSideEmpire.NEUTRAL)
     } else if (siloChargeBeforeChange == 0 && resourceSilo.NtuCapacitor > 0) {
-      // Power restored. Reactor Online. Sensors Online. Weapons Online. All systems nominal.
-      //todo: Check generator is online before starting up
-      zone.AvatarEvents ! AvatarServiceMessage(
-        zone.id,
-        AvatarAction.PlanetsideAttribute(building.GUID, 48, 0)
-      )
       building.Actor ! BuildingActor.SuppliedWithNtu()
       building.Actor ! BuildingActor.AmenityStateChange(resourceSilo)
     }

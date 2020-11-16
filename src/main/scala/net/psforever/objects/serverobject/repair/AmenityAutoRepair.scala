@@ -129,10 +129,25 @@ trait AmenityAutoRepair
   /**
     * Attempt to start auto-repair operation
     * only if no operation is currently being processed.
+    * @see `actuallyTryAutoRepair`
     * @return `true`, if the auto-repair process started specifically due to this call;
     *        `false`, if it was already started, or did not start
     */
-  final def tryAutoRepair(): Boolean = {
+  def tryAutoRepair(): Boolean = {
+    actuallyTryAutoRepair()
+  }
+
+  /**
+    * Attempt to start auto-repair operation
+    * only if no operation is currently being processed.
+    * In case that an override to the normals operations of `tryAutoRepair` is necessary,
+    * but the superclass can not be invoked,
+    * this method is the backup of those operations to initiate auto-repair.
+    * @see `tryAutoRepair`
+    * @return `true`, if the auto-repair process started specifically due to this call;
+    *        `false`, if it was already started, or did not start
+    */
+  final def actuallyTryAutoRepair(): Boolean = {
     val before = autoRepairTimer.isCancelled
     autoRepairStartFunc()
     !(before || autoRepairTimer.isCancelled)

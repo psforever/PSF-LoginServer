@@ -11,7 +11,7 @@ import net.psforever.objects.{GlobalDefinitions, Player, Tool}
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.CommonMessages
-import net.psforever.objects.serverobject.generator.{Generator, GeneratorControl}
+import net.psforever.objects.serverobject.generator.{Generator, GeneratorControl, GeneratorDefinition}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.{Zone, ZoneMap}
@@ -25,12 +25,12 @@ import scala.concurrent.duration._
 class GeneratorTest extends Specification {
   "Generator" should {
     "construct" in {
-      Generator(GlobalDefinitions.generator)
+      Generator(GeneratorTest.generator_definition)
       ok
     }
 
     "start in 'Normal' condition" in {
-      val obj = Generator(GlobalDefinitions.generator)
+      val obj = Generator(GeneratorTest.generator_definition)
       obj.Condition mustEqual PlanetSideGeneratorState.Normal
     }
   }
@@ -39,7 +39,7 @@ class GeneratorTest extends Specification {
 class GeneratorControlConstructTest extends ActorTest {
   "GeneratorControl" should {
     "construct" in {
-      val gen = Generator(GlobalDefinitions.generator)
+      val gen = Generator(GeneratorTest.generator_definition)
       gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "gen-control")
       assert(gen.Actor != ActorRef.noSender)
     }
@@ -57,7 +57,7 @@ class GeneratorControlDamageTest extends ActorTest {
   val activityProbe = TestProbe()
   zone.Activity = activityProbe.ref
 
-  val gen = Generator(GlobalDefinitions.generator) //guid=2
+  val gen = Generator(GeneratorTest.generator_definition) //guid=2
   gen.Position = Vector3(1, 0, 0)
   gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "generator-control")
 
@@ -106,19 +106,18 @@ class GeneratorControlDamageTest extends ActorTest {
       assert(gen.Condition == PlanetSideGeneratorState.Normal)
 
       gen.Actor ! Vitality.Damage(applyDamageTo)
-      val msg_avatar = avatarProbe.receiveN(2, 500 milliseconds)
-      buildingProbe.expectNoMessage(200 milliseconds)
+      val msg_avatar = avatarProbe.receiveOne(500 milliseconds)
+      val msg_building = buildingProbe.receiveOne(500 milliseconds)
       assert(
-        msg_avatar.head match {
+        msg_avatar match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
           case _                                                                                            => false
         }
       )
       assert(
-        msg_avatar(1) match {
-          case AvatarServiceMessage("TestCharacter1", AvatarAction.GenericObjectAction(_, PlanetSideGUID(1), 15)) =>
-            true
-          case _ => false
+        msg_building match {
+          case BuildingActor.AmenityStateChange(_, Some(GeneratorControl.Event.UnderAttack)) => true
+          case _                                                                             => false
         }
       )
       assert(gen.Health < gen.Definition.MaxHealth)
@@ -139,7 +138,7 @@ class GeneratorControlCriticalTest extends ActorTest {
   val activityProbe = TestProbe()
   zone.Activity = activityProbe.ref
 
-  val gen = Generator(GlobalDefinitions.generator) //guid=2
+  val gen = Generator(GeneratorTest.generator_definition) //guid=2
   gen.Position = Vector3(1, 0, 0)
   gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "generator-control")
 
@@ -190,25 +189,18 @@ class GeneratorControlCriticalTest extends ActorTest {
       assert(gen.Condition == PlanetSideGeneratorState.Normal)
 
       gen.Actor ! Vitality.Damage(applyDamageTo)
-      val msg_avatar   = avatarProbe.receiveN(2, 500 milliseconds)
+      val msg_avatar   = avatarProbe.receiveOne(500 milliseconds)
       val msg_building = buildingProbe.receiveOne(500 milliseconds)
       assert(
-        msg_avatar.head match {
+        msg_avatar match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
           case _                                                                                            => false
         }
       )
       assert(
-        msg_avatar(1) match {
-          case AvatarServiceMessage("TestCharacter1", AvatarAction.GenericObjectAction(_, PlanetSideGUID(1), 15)) =>
-            true
-          case _ => false
-        }
-      )
-      assert(
         msg_building match {
-          case BuildingActor.AmenityStateChange(o) => o eq gen
-          case _                              => false
+          case BuildingActor.AmenityStateChange(o, Some(GeneratorControl.Event.Critical)) => o eq gen
+          case _                                                                          => false
         }
       )
       assert(gen.Health < halfHealth)
@@ -229,7 +221,7 @@ class GeneratorControlDestroyedTest extends ActorTest {
   val activityProbe = TestProbe()
   zone.Activity = activityProbe.ref
 
-  val gen = Generator(GlobalDefinitions.generator) //guid=2
+  val gen = Generator(GeneratorTest.generator_definition) //guid=2
   gen.Position = Vector3(1, 0, 0)
   gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "generator-control")
 
@@ -269,7 +261,6 @@ class GeneratorControlDestroyedTest extends ActorTest {
     Vector3(1, 0, 0)
   )
   val applyDamageTo = resolved.damage_model.Calculate(resolved)
-  gen.Actor ! BuildingActor.NtuDepleted() //no auto-repair
   expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
@@ -281,26 +272,30 @@ class GeneratorControlDestroyedTest extends ActorTest {
       assert(gen.Condition == PlanetSideGeneratorState.Normal) //skipped critical state because didn't transition ~50%
 
       gen.Actor ! Vitality.Damage(applyDamageTo)
-      val msg_avatar1 = avatarProbe.receiveOne(500 milliseconds)
-      buildingProbe.expectNoMessage(200 milliseconds)
+      val msg_building12 = buildingProbe.receiveN(2,500 milliseconds)
       assert(
-        msg_avatar1 match {
-          case AvatarServiceMessage("TestCharacter1", AvatarAction.GenericObjectAction(_, PlanetSideGUID(1), 16)) =>
-            true
+        msg_building12.head match {
+          case BuildingActor.AmenityStateChange(o, Some(GeneratorControl.Event.Offline)) => o eq gen
+          case _ => false
+        }
+      )
+      assert(
+        msg_building12(1) match {
+          case BuildingActor.AmenityStateChange(o, Some(GeneratorControl.Event.Destabilized)) => o eq gen
           case _ => false
         }
       )
       assert(gen.Health == 1)
       assert(!gen.Destroyed)
-      assert(gen.Condition == PlanetSideGeneratorState.Normal)
+      assert(gen.Condition == PlanetSideGeneratorState.Destroyed)
 
-      avatarProbe.expectNoMessage(9 seconds)
+      avatarProbe.expectNoMessage(9500 milliseconds)
       val msg_avatar2  = avatarProbe.receiveN(3, 1000 milliseconds) //see DamageableEntity test file
       val msg_building = buildingProbe.receiveOne(200 milliseconds)
       assert(
         msg_building match {
-          case BuildingActor.AmenityStateChange(o) => o eq gen
-          case _                              => false
+          case BuildingActor.AmenityStateChange(o, Some(GeneratorControl.Event.Destroyed)) => o eq gen
+          case _                                                                           => false
         }
       )
       assert(
@@ -352,7 +347,7 @@ class GeneratorControlKillsTest extends ActorTest {
   val activityProbe = TestProbe()
   zone.Activity = activityProbe.ref
 
-  val gen = Generator(GlobalDefinitions.generator) //guid=2
+  val gen = Generator(GeneratorTest.generator_definition) //guid=2
   gen.Position = Vector3(1, 0, 0)
   gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "generator-control")
 
@@ -400,7 +395,6 @@ class GeneratorControlKillsTest extends ActorTest {
     Vector3(1, 0, 0)
   )
   val applyDamageTo = resolved.damage_model.Calculate(resolved)
-  gen.Actor ! BuildingActor.NtuDepleted() //no auto-repair
   expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
@@ -412,36 +406,30 @@ class GeneratorControlKillsTest extends ActorTest {
       assert(gen.Condition == PlanetSideGeneratorState.Normal) //skipped critical state because didn't transition ~50%
 
       gen.Actor ! Vitality.Damage(applyDamageTo)
-      val msg_avatar1 = avatarProbe.receiveN(2, 500 milliseconds)
-      buildingProbe.expectNoMessage(200 milliseconds)
-      player1Probe.expectNoMessage(200 milliseconds)
-      player2Probe.expectNoMessage(200 milliseconds)
+      val msg_building12 = buildingProbe.receiveN(2,500 milliseconds)
       assert(
-        msg_avatar1.head match {
-          case AvatarServiceMessage("TestCharacter1", AvatarAction.GenericObjectAction(_, PlanetSideGUID(1), 16)) =>
-            true
+        msg_building12.head match {
+          case BuildingActor.AmenityStateChange(o, Some(GeneratorControl.Event.Offline)) => o eq gen
           case _ => false
         }
       )
       assert(
-        msg_avatar1(1) match {
-          case AvatarServiceMessage("TestCharacter2", AvatarAction.GenericObjectAction(_, PlanetSideGUID(1), 16)) =>
-            true
+        msg_building12(1) match {
+          case BuildingActor.AmenityStateChange(o, Some(GeneratorControl.Event.Destabilized)) => o eq gen
           case _ => false
         }
       )
       assert(gen.Health == 1)
       assert(!gen.Destroyed)
-      assert(gen.Condition == PlanetSideGeneratorState.Normal)
+      assert(gen.Condition == PlanetSideGeneratorState.Destroyed)
 
-      val msg_building = buildingProbe.receiveOne(10500 milliseconds)
-      val msg_avatar2  = avatarProbe.receiveN(3, 200 milliseconds)
-      val msg_player1  = player1Probe.receiveOne(100 milliseconds)
-      player2Probe.expectNoMessage(200 milliseconds)
+      avatarProbe.expectNoMessage(9500 milliseconds)
+      val msg_avatar2  = avatarProbe.receiveN(3, 1000 milliseconds) //see DamageableEntity test file
+      val msg_building = buildingProbe.receiveOne(200 milliseconds)
       assert(
         msg_building match {
-          case BuildingActor.AmenityStateChange(o) => o eq gen
-          case _                              => false
+          case BuildingActor.AmenityStateChange(o, Some(GeneratorControl.Event.Destroyed)) => o eq gen
+          case _                                                                           => false
         }
       )
       assert(
@@ -459,22 +447,25 @@ class GeneratorControlKillsTest extends ActorTest {
       assert(
         msg_avatar2(2) match {
           case AvatarServiceMessage(
-                "test",
-                AvatarAction.SendResponse(_, TriggerEffectMessage(PlanetSideGUID(2), "explosion_generator", None, None))
-              ) =>
+          "test",
+          AvatarAction.SendResponse(_, TriggerEffectMessage(PlanetSideGUID(2), "explosion_generator", None, None))
+          ) =>
             true
           case _ => false
         }
       )
+      assert(gen.Health == 0)
+      assert(gen.Destroyed)
+      assert(gen.Condition == PlanetSideGeneratorState.Destroyed)
+
+      val msg_player1  = player1Probe.receiveOne(100 milliseconds)
+      player2Probe.expectNoMessage(200 milliseconds)
       assert(
         msg_player1 match {
           case _ @Player.Die() => true
           case _               => false
         }
       )
-      assert(gen.Health == 0)
-      assert(gen.Destroyed)
-      assert(gen.Condition == PlanetSideGeneratorState.Destroyed)
     }
   }
 }
@@ -487,7 +478,7 @@ class GeneratorControlNotDestroyTwice extends ActorTest {
     GUID(guid)
   }
   val building = Building("test-building", 1, 1, zone, StructureType.Facility) //guid=1
-  val gen      = Generator(GlobalDefinitions.generator)                        //guid=2
+  val gen      = Generator(GeneratorTest.generator_definition)                        //guid=2
   val player1 =
     Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
   player1.Spawn()
@@ -573,7 +564,7 @@ class GeneratorControlNotDamageIfExplodingTest extends ActorTest {
   val activityProbe = TestProbe()
   zone.Activity = activityProbe.ref
 
-  val gen = Generator(GlobalDefinitions.generator) //guid=2
+  val gen = Generator(GeneratorTest.generator_definition) //guid=2
   gen.Position = Vector3(1, 0, 0)
   gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "generator-control")
 
@@ -625,19 +616,22 @@ class GeneratorControlNotDamageIfExplodingTest extends ActorTest {
       assert(gen.Condition == PlanetSideGeneratorState.Normal) //skipped critical state because didn't transition ~50%
 
       gen.Actor ! Vitality.Damage(applyDamageTo)
-      val msg_avatar = avatarProbe.receiveOne(500 milliseconds)
-      buildingProbe.expectNoMessage(200 milliseconds)
-      player1Probe.expectNoMessage(200 milliseconds)
+      val msg_building12 = buildingProbe.receiveN(2,500 milliseconds)
       assert(
-        msg_avatar match {
-          case AvatarServiceMessage("TestCharacter1", AvatarAction.GenericObjectAction(_, PlanetSideGUID(1), 16)) =>
-            true
+        msg_building12.head match {
+          case BuildingActor.AmenityStateChange(o, Some(GeneratorControl.Event.Offline)) => o eq gen
+          case _ => false
+        }
+      )
+      assert(
+        msg_building12(1) match {
+          case BuildingActor.AmenityStateChange(o, Some(GeneratorControl.Event.Destabilized)) => o eq gen
           case _ => false
         }
       )
       assert(gen.Health == 1)
       assert(!gen.Destroyed)
-      assert(gen.Condition == PlanetSideGeneratorState.Normal)
+      assert(gen.Condition == PlanetSideGeneratorState.Destroyed)
       //going to explode state
 
       //once
@@ -667,7 +661,7 @@ class GeneratorControlNotRepairIfExplodingTest extends ActorTest {
   val activityProbe = TestProbe()
   zone.Activity = activityProbe.ref
 
-  val gen = Generator(GlobalDefinitions.generator) //guid=2
+  val gen = Generator(GeneratorTest.generator_definition) //guid=2
   gen.Position = Vector3(1, 0, 0)
   gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "generator-control")
 
@@ -723,19 +717,22 @@ class GeneratorControlNotRepairIfExplodingTest extends ActorTest {
       assert(gen.Condition == PlanetSideGeneratorState.Normal) //skipped critical state because didn't transition ~50%
 
       gen.Actor ! Vitality.Damage(applyDamageTo)
-      val msg_avatar1 = avatarProbe.receiveOne(500 milliseconds)
-      buildingProbe.expectNoMessage(200 milliseconds)
-      player1Probe.expectNoMessage(200 milliseconds)
+      val msg_building12 = buildingProbe.receiveN(2,500 milliseconds)
       assert(
-        msg_avatar1 match {
-          case AvatarServiceMessage("TestCharacter1", AvatarAction.GenericObjectAction(_, PlanetSideGUID(1), 16)) =>
-            true
+        msg_building12.head match {
+          case BuildingActor.AmenityStateChange(o, Some(GeneratorControl.Event.Offline)) => o eq gen
+          case _ => false
+        }
+      )
+      assert(
+        msg_building12(1) match {
+          case BuildingActor.AmenityStateChange(o, Some(GeneratorControl.Event.Destabilized)) => o eq gen
           case _ => false
         }
       )
       assert(gen.Health == 1)
       assert(!gen.Destroyed)
-      assert(gen.Condition == PlanetSideGeneratorState.Normal)
+      assert(gen.Condition == PlanetSideGeneratorState.Destroyed)
       //going to explode state
 
       //once
@@ -765,7 +762,7 @@ class GeneratorControlRepairPastRestorePoint extends ActorTest {
   val activityProbe = TestProbe()
   zone.Activity = activityProbe.ref
 
-  val gen = Generator(GlobalDefinitions.generator) //guid=2
+  val gen = Generator(GeneratorTest.generator_definition) //guid=2
   gen.Position = Vector3(1, 0, 0)
   gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "generator-control")
 
@@ -804,7 +801,7 @@ class GeneratorControlRepairPastRestorePoint extends ActorTest {
       assert(gen.Destroyed)
 
       gen.Actor ! CommonMessages.Use(player1, Some(tool)) //repair
-      val msg_avatar   = avatarProbe.receiveN(4, 500 milliseconds) //expected
+      val msg_avatar   = avatarProbe.receiveN(3, 500 milliseconds) //expected
       val msg_building = buildingProbe.receiveOne(200 milliseconds)
       assert(
         msg_avatar.head match {
@@ -825,13 +822,6 @@ class GeneratorControlRepairPastRestorePoint extends ActorTest {
       )
       assert(
         msg_avatar(2) match {
-          case AvatarServiceMessage("TestCharacter1", AvatarAction.GenericObjectAction(_, PlanetSideGUID(1), 17)) =>
-            true
-          case _ => false
-        }
-      )
-      assert(
-        msg_avatar(3) match {
           case AvatarServiceMessage(
                 "TestCharacter1",
                 AvatarAction.SendResponse(_, RepairMessage(ValidPlanetSideGUID(2), _))
@@ -842,7 +832,7 @@ class GeneratorControlRepairPastRestorePoint extends ActorTest {
       )
       assert(
         msg_building match {
-          case BuildingActor.AmenityStateChange(o) => o eq gen
+          case BuildingActor.AmenityStateChange(o, _) => o eq gen
           case _                              => false
         }
       )
@@ -850,5 +840,17 @@ class GeneratorControlRepairPastRestorePoint extends ActorTest {
       assert(gen.Health > gen.Definition.RepairRestoresAt)
       assert(!gen.Destroyed)
     }
+  }
+}
+
+object GeneratorTest {
+  final val generator_definition = new GeneratorDefinition(352) {
+    MaxHealth = 4000
+    Damageable = true
+    DamageableByFriendlyFire = false
+    Repairable = true
+    RepairDistance = 13.5f
+    RepairIfDestroyed = true
+    //note: no auto-repair
   }
 }

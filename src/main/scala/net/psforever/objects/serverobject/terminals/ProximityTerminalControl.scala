@@ -1,14 +1,17 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.terminals
 
-import akka.actor.{Actor, ActorRef, Cancellable}
+import akka.actor.{ActorRef, Cancellable}
 import net.psforever.objects._
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
+import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.DamageableAmenity
 import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}
-import net.psforever.objects.serverobject.repair.RepairableAmenity
-import net.psforever.objects.serverobject.structures.Building
+import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableAmenity}
+import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
+import net.psforever.services.Service
+import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -20,26 +23,38 @@ import scala.concurrent.duration._
   * @param term the proximity unit (terminal)
   */
 class ProximityTerminalControl(term: Terminal with ProximityUnit)
-    extends Actor
+    extends PoweredAmenityControl
     with FactionAffinityBehavior.Check
     with HackableBehavior.GenericHackable
     with DamageableAmenity
-    with RepairableAmenity {
+    with RepairableAmenity
+    with AmenityAutoRepair {
   def FactionObject    = term
   def HackableObject   = term
   def TerminalObject   = term
   def DamageableObject = term
   def RepairableObject = term
+  def AutoRepairObject = term
 
   var terminalAction: Cancellable             = Default.Cancellable
   val callbacks: mutable.ListBuffer[ActorRef] = new mutable.ListBuffer[ActorRef]()
   val log                                     = org.log4s.getLogger
 
-  def receive: Receive =
-    checkBehavior
+  val commonBehavior: Receive = checkBehavior
+    .orElse(takesDamage)
+    .orElse(canBeRepairedByNanoDispenser)
+    .orElse(autoRepairBehavior)
+    .orElse {
+      case CommonMessages.Unuse(_, Some(target: PlanetSideGameObject)) =>
+        Unuse(target, term.Continent)
+
+      case CommonMessages.Unuse(_, _) =>
+        log.warn(s"unexpected format for CommonMessages.Unuse in this context")
+    }
+
+  def poweredStateLogic: Receive =
+    commonBehavior
       .orElse(hackableBehavior)
-      .orElse(takesDamage)
-      .orElse(canBeRepairedByNanoDispenser)
       .orElse {
         case CommonMessages.Use(player, Some(item: SimpleItem))
             if item.Definition == GlobalDefinitions.remote_electronics_kit =>
@@ -65,12 +80,6 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
 
         case CommonMessages.Use(_, _) =>
           log.warn(s"unexpected format for CommonMessages.Use in this context")
-
-        case CommonMessages.Unuse(_, Some(target: PlanetSideGameObject)) =>
-          Unuse(target, term.Continent)
-
-        case CommonMessages.Unuse(_, _) =>
-          log.warn(s"unexpected format for CommonMessages.Unuse in this context")
 
         case ProximityTerminalControl.TerminalAction() =>
           val proxDef = term.Definition.asInstanceOf[ProximityDefinition]
@@ -98,6 +107,31 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
 
         case _ =>
       }
+
+  def unpoweredStateLogic : Receive = commonBehavior
+    .orElse {
+      case CommonMessages.Use(_, _) =>
+        log.warn(s"unexpected format for CommonMessages.Use in this context")
+
+      case CommonMessages.Unuse(_, Some(target: PlanetSideGameObject)) =>
+        Unuse(target, term.Continent)
+
+      case CommonMessages.Unuse(_, _) =>
+        log.warn(s"unexpected format for CommonMessages.Unuse in this context")
+      case _ => ;
+    }
+
+  override def PerformRepairs(target : Target, amount : Int) : Int = {
+    val newHealth = super.PerformRepairs(target, amount)
+    if(newHealth == target.Definition.MaxHealth) {
+      stopAutoRepair()
+    }
+    newHealth
+  }
+
+  override def tryAutoRepair() : Boolean = {
+    isPowered && super.tryAutoRepair()
+  }
 
   def Use(target: PlanetSideGameObject, zone: String, callback: ActorRef): Unit = {
     val hadNoUsers = term.NumberUsers == 0
@@ -143,6 +177,25 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
         s"ProximityTerminal.Unuse: target by proximity $target is not known to $term, though the unit tried to 'Unuse' it"
       )
     }
+  }
+
+  def powerTurnOffCallback() : Unit = {
+    stopAutoRepair()
+    //clear effect callbacks
+    terminalAction.cancel()
+    if (callbacks.nonEmpty) {
+      callbacks.clear()
+      TerminalObject.Zone.LocalEvents ! Terminal.StopProximityEffect(term)
+    }
+    //clear hack state
+    if (term.HackedBy.nonEmpty) {
+      val zone = term.Zone
+      zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.ClearTemporaryHack(Service.defaultPlayerGUID, term))
+    }
+  }
+
+  def powerTurnOnCallback() : Unit = {
+    tryAutoRepair()
   }
 
   override def toString: String = term.Definition.Name

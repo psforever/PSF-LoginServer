@@ -7,7 +7,7 @@ import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.avatar.{BattleRank, Certification, CommandRank, Cosmetic}
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
-import net.psforever.objects.{Default, GlobalDefinitions, Player, Session}
+import net.psforever.objects.{Default, Player, Session}
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade, WeaponTurrets}
@@ -342,20 +342,55 @@ class ChatActor(
                       )
                   }
 
-                case (_, _, contents) if contents.startsWith("!ntu") && session.account.gm =>
-                  session.zone.Buildings.values.foreach(building =>
-                    building.Amenities.foreach(amenity =>
-                      amenity.Definition match {
-                        case GlobalDefinitions.resource_silo =>
-                          val r    = new scala.util.Random
-                          val silo = amenity.asInstanceOf[ResourceSilo]
-                          val ntu  = 900f + r.nextFloat() * 100f - silo.NtuCapacitor
-                          silo.Actor ! ResourceSilo.UpdateChargeLevel(ntu)
-
-                        case _ => ()
-                      }
+                case (_, _, contents) if contents.startsWith("!ntu") && gmCommandAllowed =>
+                  val buffer = contents.toLowerCase.split("\\s+")
+                  val (facility, customNtuValue) = (buffer.lift(1), buffer.lift(2)) match {
+                    case (Some(x), Some(y)) if y.toIntOption.nonEmpty => (Some(x), Some(y.toInt))
+                    case (Some(x), None) if x.toIntOption.nonEmpty    => (None, Some(x.toInt))
+                    case _                                            => (None, None)
+                  }
+                  val silos = (facility match {
+                    case Some(cur) if cur.toLowerCase().startsWith("curr") =>
+                      val position = session.player.Position
+                      session.zone.Buildings.values
+                        .filter { building =>
+                          val soi2 = building.Definition.SOIRadius * building.Definition.SOIRadius
+                          Vector3.DistanceSquared(building.Position, position) < soi2
+                        }
+                    case Some(x) =>
+                      session.zone.Buildings.values.find { _.Name.equalsIgnoreCase(x) }.toList
+                    case _ =>
+                      session.zone.Buildings.values
+                  })
+                    .flatMap { building => building.Amenities.filter { _.isInstanceOf[ResourceSilo] } }
+                  if(silos.isEmpty) {
+                    sessionActor ! SessionActor.SendResponse(
+                      ChatMsg(UNK_229, true, "Server", s"no targets for ntu found with parameters $facility", None)
                     )
-                  )
+                  }
+                  customNtuValue match {
+                    // x = n0% of maximum capacitance
+                    case Some(value) if value > -1 && value < 11 =>
+                      silos.collect { case silo: ResourceSilo =>
+                        silo.Actor ! ResourceSilo.UpdateChargeLevel(value * silo.MaxNtuCapacitor * 0.1f - silo.NtuCapacitor)
+                      }
+                    // capacitance set to x (where x > 10) exactly, within limits
+                    case Some(value) =>
+                      silos.collect { case silo: ResourceSilo =>
+                        silo.Actor ! ResourceSilo.UpdateChargeLevel(value - silo.NtuCapacitor)
+                      }
+                    case None =>
+                      // x >= n0% of maximum capacitance and x <= maximum capacitance
+                      val rand = new scala.util.Random
+                      silos.collect { case silo: ResourceSilo =>
+                        val a = 7
+                        val b = 10 - a
+                        val tenth = silo.MaxNtuCapacitor * 0.1f
+                        silo.Actor ! ResourceSilo.UpdateChargeLevel(
+                          a * tenth + rand.nextFloat() * b * tenth - silo.NtuCapacitor
+                        )
+                      }
+                  }
 
                 case _ =>
                 // unknown ! commands are ignored

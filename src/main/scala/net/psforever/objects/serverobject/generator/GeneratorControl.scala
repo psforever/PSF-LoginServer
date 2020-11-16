@@ -1,9 +1,9 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.generator
 
-import akka.actor.Actor
+import akka.actor.{Actor, Cancellable}
 import net.psforever.actors.zone.BuildingActor
-import net.psforever.objects.{Player, Tool}
+import net.psforever.objects.{Default, Player, Tool}
 import net.psforever.objects.ballistics._
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.Damageable.Target
@@ -34,21 +34,64 @@ class GeneratorControl(gen: Generator)
   def DamageableObject   = gen
   def RepairableObject   = gen
   def AutoRepairObject   = gen
+  /** flagged to explode after some time */
   var imminentExplosion: Boolean   = false
-  var alarmCooldownPeriod: Boolean = false
+  /** explode when this timer completes */
+  var queuedExplosion: Cancellable = Default.Cancellable
+  /** when damaged, announce that damage was dealt on a schedule */
+  var alarmCooldown: Cancellable   = Default.Cancellable
 
-  def receive: Receive =
+  /*
+  behavior of the generator piggybacks from the logic used in `AmenityAutoRepair`
+  AAR splits its logic based on whether or not it has detected a source of nanite transfer units (NTU)
+  this amenity is the bridge between NTU and facility power so it leverages that logic
+  it is split between when detecting ntu and when starved for ntu
+   */
+
+  def receive: Receive = withNtu
+
+  /** behavior that is valid for both "with-ntu" and "without-ntu" */
+  val commonBehavior: Receive =
     checkBehavior
       .orElse(takesDamage)
       .orElse(canBeRepairedByNanoDispenser)
       .orElse(autoRepairBehavior)
       .orElse {
-        case GeneratorControl.GeneratorExplodes() => //TODO this only works with projectiles right now!
+        case GeneratorControl.UnderThreatAlarm() =>
+          //alert to damage and block other damage alerts for a time
+          if (alarmCooldown.isCancelled) {
+            GeneratorControl.UpdateOwner(gen, Some(GeneratorControl.Event.UnderAttack))
+            alarmCooldown.cancel()
+            alarmCooldown = context.system.scheduler.scheduleOnce(delay = 5 seconds, self, GeneratorControl.AlarmReset())
+          }
+
+        case GeneratorControl.AlarmReset() =>
+          //clear the blocker for alerting to damage
+          alarmCooldown = Default.Cancellable
+      }
+
+  /*
+  when NTU is detected,
+  the generator can be properly destabilized and explode
+  the generator can be repaired to operational status and power the facility in which it is installed
+   */
+  def withNtu: Receive =
+    commonBehavior
+      .orElse {
+        case GeneratorControl.Destabilized() =>
+          imminentExplosion = true
+          //the generator's condition is technically destroyed, but avoid official reporting until the explosion
+          gen.Condition = PlanetSideGeneratorState.Destroyed
+          GeneratorControl.UpdateOwner(gen, Some(GeneratorControl.Event.Destabilized))
+          queuedExplosion.cancel()
+          queuedExplosion = context.system.scheduler.scheduleOnce(10 seconds, self, GeneratorControl.GeneratorExplodes())
+
+        case GeneratorControl.GeneratorExplodes() =>
+          //TODO this only works with projectiles right now!
           val zone = gen.Zone
           gen.Health = 0
           super.DestructionAwareness(gen, gen.LastShot.get)
-          gen.Condition = PlanetSideGeneratorState.Destroyed
-          GeneratorControl.UpdateOwner(gen)
+          GeneratorControl.UpdateOwner(gen, Some(GeneratorControl.Event.Destroyed))
           //kaboom
           zone.AvatarEvents ! AvatarServiceMessage(
             zone.id,
@@ -57,6 +100,8 @@ class GeneratorControl(gen: Generator)
               TriggerEffectMessage(gen.GUID, "explosion_generator", None, None)
             )
           )
+          queuedExplosion.cancel()
+          queuedExplosion = Default.Cancellable
           imminentExplosion = false
           //kill everyone within 14m
           gen.Owner match {
@@ -71,24 +116,46 @@ class GeneratorControl(gen: Generator)
           }
           gen.ClearHistory()
 
-        case GeneratorControl.UnderThreatAlarm() =>
-          if (!alarmCooldownPeriod) {
-            alarmCooldownPeriod = true
-            GeneratorControl.BroadcastGeneratorEvent(gen, event = 15)
-            context.system.scheduler.scheduleOnce(delay = 5 seconds, self, GeneratorControl.AlarmReset())
-          }
-
-        case GeneratorControl.AlarmReset() =>
-          alarmCooldownPeriod = false
+        case GeneratorControl.Restored() =>
+          GeneratorControl.UpdateOwner(gen, Some(GeneratorControl.Event.Online))
 
         case _ => ;
       }
 
+  /*
+  when ntu is not expected,
+  the generator can still be destroyed but will not explode
+  handles the possibility that ntu was lost during an ongoing destabilization and cancels the explosion
+   */
+  def withoutNtu: Receive =
+    commonBehavior
+      .orElse {
+        case GeneratorControl.GeneratorExplodes() =>
+          queuedExplosion.cancel()
+          queuedExplosion = Default.Cancellable
+          imminentExplosion = false
+
+        case GeneratorControl.Destabilized() =>
+          //if the generator is destabilized but has no ntu, it will not explode
+          gen.Health = 0
+          super.DestructionAwareness(gen, gen.LastShot.get)
+          queuedExplosion.cancel()
+          queuedExplosion = Default.Cancellable
+          imminentExplosion = false
+          gen.Condition = PlanetSideGeneratorState.Destroyed
+          GeneratorControl.UpdateOwner(gen, Some(GeneratorControl.Event.Destroyed))
+          gen.ClearHistory()
+
+        case _ =>
+      }
+
   override protected def CanPerformRepairs(obj: Target, player: Player, item: Tool): Boolean = {
+    //if an explosion is queued, disallow repairs
     !imminentExplosion && super.CanPerformRepairs(obj, player, item)
   }
 
   override protected def WillAffectTarget(target: Target, damage: Int, cause: ResolvedProjectile): Boolean = {
+    //if an explosion is queued, disallow further damage
     !imminentExplosion && super.WillAffectTarget(target, damage, cause)
   }
 
@@ -104,11 +171,11 @@ class GeneratorControl(gen: Generator)
 
   override protected def DestructionAwareness(target: Target, cause: ResolvedProjectile): Unit = {
     tryAutoRepair()
+    //if the target is already destroyed, do not let it be destroyed again
     if (!target.Destroyed) {
       target.Health = 1 //temporary
-      imminentExplosion = true
-      context.system.scheduler.scheduleOnce(10 seconds, self, GeneratorControl.GeneratorExplodes())
-      GeneratorControl.BroadcastGeneratorEvent(gen, 16)
+      GeneratorControl.UpdateOwner(gen, Some(GeneratorControl.Event.Offline))
+      self ! GeneratorControl.Destabilized()
     }
   }
 
@@ -123,12 +190,40 @@ class GeneratorControl(gen: Generator)
   override def Restoration(obj: Repairable.Target): Unit = {
     super.Restoration(obj)
     gen.Condition = PlanetSideGeneratorState.Normal
-    GeneratorControl.UpdateOwner(gen)
-    GeneratorControl.BroadcastGeneratorEvent(gen, 17)
+    GeneratorControl.UpdateOwner(gen, Some(GeneratorControl.Event.Normal))
+    self ! GeneratorControl.Restored()
+  }
+
+  override def withNtuSupplyCallback() : Unit = {
+    context.become(withNtu)
+    super.withNtuSupplyCallback()
+    //if not destroyed when a source of ntu is detected, restore facility power
+    if(!gen.Destroyed) {
+      self ! GeneratorControl.Restored()
+    }
+  }
+
+  override def noNtuSupplyCallback() : Unit = {
+    //auto-repair must stop naturally
+    context.become(withoutNtu)
+    super.noNtuSupplyCallback()
+    //if not destroyed when cutoff from a source of ntu, stop facility power generation
+    if(!gen.Destroyed) {
+      GeneratorControl.UpdateOwner(gen, Some(GeneratorControl.Event.Offline))
+    }
+    //can any explosion (see withoutNtu->GenweratorControl.Destabilized)
+    if(!queuedExplosion.isCancelled) {
+      queuedExplosion.cancel()
+      self ! GeneratorControl.Destabilized()
+    }
   }
 }
 
 object GeneratorControl {
+  /**
+    * na
+    */
+  private case class Destabilized()
 
   /**
     * na
@@ -147,30 +242,31 @@ object GeneratorControl {
 
   /**
     * na
-    * @param obj na
     */
-  private def UpdateOwner(obj: Generator): Unit = {
-    obj.Owner match {
-      case b: Building => b.Actor ! BuildingActor.AmenityStateChange(obj)
-      case _           => ;
-    }
-  }
+  private case class Restored()
 
   /**
     * na
-    * @param target the generator
-    * @param event the action code for the event
     */
-  private def BroadcastGeneratorEvent(target: Generator, event: Int): Unit = {
-    target.Owner match {
-      case b: Building =>
-        val events = target.Zone.AvatarEvents
-        val msg    = AvatarAction.GenericObjectAction(Service.defaultPlayerGUID, target.Owner.GUID, event)
-        b.PlayersInSOI.foreach { player =>
-          events ! AvatarServiceMessage(player.Name, msg)
-        }
-      case _ => ;
-    }
+  object Event extends Enumeration {
+    val
+    Critical, //PlanetSideGeneratorState.Critical
+    UnderAttack,
+    Destabilized,
+    Destroyed, //PlanetSideGeneratorState.Destroyed
+    Offline,
+    Normal, //PlanetSideGeneratorState.Normal
+    Online
+    = Value
+  }
+
+  /**
+    * Send a message back to the owner for which this `Amenity` entity is installed.
+    * @param obj the entity doing the self-reporting
+    * @param data optional information that indicates the nature of the state change
+    */
+  private def UpdateOwner(obj: Generator, data: Option[Any] = None): Unit = {
+    obj.Owner.Actor ! BuildingActor.AmenityStateChange(obj, data)
   }
 
   /**
@@ -185,7 +281,7 @@ object GeneratorControl {
       val max: Float    = target.MaxHealth.toFloat
       if (target.Condition != PlanetSideGeneratorState.Critical && health / max < 0.51f) { //becoming critical
         target.Condition = PlanetSideGeneratorState.Critical
-        GeneratorControl.UpdateOwner(target)
+        GeneratorControl.UpdateOwner(target, Some(GeneratorControl.Event.Critical))
       }
       //the generator is under attack
       target.Actor ! UnderThreatAlarm()

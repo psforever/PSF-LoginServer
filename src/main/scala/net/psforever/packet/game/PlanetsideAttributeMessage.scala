@@ -144,7 +144,7 @@ import scodec.codecs._
   * `45 - NTU charge bar 0-10, 5 = 50% full. Seems to apply to both ANT and NTU Silo (possibly siphons?)`<br>
   * `46 - Sends "Generator damage is at a critical level!" message`
   * `47 - Sets base NTU level to CRITICAL. MUST use base MapId not base GUID`<br>
-  * `48 - Set to 1 to send base power loss message & turns on red warning lights throughout base. MUST use base MapId not base GUID`<br>
+  * `48 - Set to 1 to send base power loss message & turns on red warning lights throughout base. MUST use base MapId not base GUID`?<br>
   * `49 - Vehicle texture effects state? (>0 turns on ANT panel glow or ntu silo panel glow + orbs) (bit?)`<br>
   * `52 - Vehicle particle effects? (>0 turns on orbs going towards ANT. Doesn't affect silo) (bit?)`<br>
   * `53 - LFS. Value is 1 to flag LFS`<br>

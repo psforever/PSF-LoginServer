@@ -2,17 +2,22 @@
 package objects
 
 import akka.actor.{ActorSystem, Props}
+import akka.testkit.TestProbe
 import base.ActorTest
 import net.psforever.objects.avatar.Avatar
+import net.psforever.objects.guid.NumberPoolHub
+import net.psforever.objects.guid.source.MaxNumberSource
+import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.{Default, GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.doors.{Door, DoorControl}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
-import net.psforever.objects.zones.Zone
+import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game.UseItemMessage
+import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types._
 import org.specs2.mutable.Specification
 
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 
 class DoorTest extends Specification {
   val player = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
@@ -59,10 +64,12 @@ class DoorTest extends Specification {
       )
       val door = Door(GlobalDefinitions.door)
       door.Open.isEmpty mustEqual true
-      door.Use(player, msg)
+      door.Open = player
+      door.isOpen mustEqual true
       door.Open.contains(player) mustEqual true
-      door.Use(player, msg)
+      door.Open = None
       door.Open.isEmpty mustEqual true
+      door.isOpen mustEqual false
     }
   }
 }
@@ -81,6 +88,8 @@ class DoorControl2Test extends ActorTest {
   "DoorControl" should {
     "open on use" in {
       val (player, door) = DoorControlTest.SetUpAgents(PlanetSideEmpire.TR)
+      val probe = new TestProbe(system)
+      door.Zone.LocalEvents = probe.ref
       val msg = UseItemMessage(
         PlanetSideGUID(1),
         PlanetSideGUID(0),
@@ -96,13 +105,12 @@ class DoorControl2Test extends ActorTest {
       ) //faked
       assert(door.Open.isEmpty)
 
-      door.Actor ! Door.Use(player, msg)
-      val reply = receiveOne(Duration.create(500, "ms"))
-      assert(reply.isInstanceOf[Door.DoorMessage])
-      val reply2 = reply.asInstanceOf[Door.DoorMessage]
-      assert(reply2.player == player)
-      assert(reply2.msg == msg)
-      assert(reply2.response == Door.OpenEvent())
+      door.Actor ! CommonMessages.Use(player, Some(msg))
+      val reply = probe.receiveOne(1000 milliseconds)
+      assert(reply match {
+        case LocalServiceMessage("test", LocalAction.DoorOpens(PlanetSideGUID(0), _, d)) => d eq door
+        case _ => false
+      })
       assert(door.Open.isDefined)
     }
   }
@@ -124,16 +132,24 @@ class DoorControl3Test extends ActorTest {
 object DoorControlTest {
   def SetUpAgents(faction: PlanetSideEmpire.Value)(implicit system: ActorSystem): (Player, Door) = {
     val door = Door(GlobalDefinitions.door)
+    val guid = new NumberPoolHub(new MaxNumberSource(5))
+    val zone = new Zone("test", new ZoneMap("test"), 0) {
+      override def SetupNumberPools() = {}
+      GUID(guid)
+    }
+    guid.register(door, 1)
     door.Actor = system.actorOf(Props(classOf[DoorControl], door), "door")
     door.Owner = new Building(
       "Building",
       building_guid = 0,
       map_id = 0,
-      Zone.Nowhere,
+      zone,
       StructureType.Building,
       GlobalDefinitions.building
     )
     door.Owner.Faction = faction
-    (Player(Avatar(0, "test", faction, CharacterGender.Male, 0, CharacterVoice.Mute)), door)
+    val player = Player(Avatar(0, "test", faction, CharacterGender.Male, 0, CharacterVoice.Mute))
+    guid.register(player, 2)
+    (player, door)
   }
 }
