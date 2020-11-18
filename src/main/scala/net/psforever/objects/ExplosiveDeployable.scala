@@ -11,7 +11,8 @@ import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity}
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
 import net.psforever.objects.vital.StandardResolutions
-import net.psforever.objects.vital.base.{DamageResult, ProjectileReason}
+import net.psforever.objects.vital.base.DamageResult
+import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.Zone
 import net.psforever.types.Vector3
 import net.psforever.services.Service

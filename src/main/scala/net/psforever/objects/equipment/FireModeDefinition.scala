@@ -2,8 +2,8 @@
 package net.psforever.objects.equipment
 
 import net.psforever.objects.Tool
-import net.psforever.objects.vital.SpecificDamageProfile
-import net.psforever.objects.vital.damage.DamageModifiers
+import net.psforever.objects.vital.base.DamageModifiers
+import net.psforever.objects.vital.damage.SpecificDamageProfile
 
 import scala.collection.mutable
 

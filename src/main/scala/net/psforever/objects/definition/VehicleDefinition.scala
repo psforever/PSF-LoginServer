@@ -5,7 +5,7 @@ import net.psforever.objects.NtuContainerDefinition
 import net.psforever.objects.definition.converter.VehicleConverter
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.vehicles.{DestroyedVehicle, UtilityType}
-import net.psforever.objects.vital._
+import net.psforever.objects.vital.{DamageResistanceModel, _}
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.resistance.ResistanceProfileMutators
 import net.psforever.types.Vector3

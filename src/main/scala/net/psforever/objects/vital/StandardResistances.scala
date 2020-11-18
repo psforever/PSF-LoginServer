@@ -2,7 +2,6 @@
 package net.psforever.objects.vital
 
 import net.psforever.objects.ballistics.{ObjectSource, PlayerSource, SourceEntry, VehicleSource}
-import net.psforever.objects.vital.projectile.ProjectileCalculations
 import net.psforever.objects.vital.resistance.{ResistanceCalculations, ResistanceSelection}
 
 object NoResistance
@@ -72,29 +71,29 @@ object AmenitySplashResistance
   )
 
 object NoResistanceSelection extends ResistanceSelection {
-  def Direct: ProjectileCalculations.Form     = None
-  def Splash: ProjectileCalculations.Form     = None
-  def Lash: ProjectileCalculations.Form       = None
-  def Aggravated: ProjectileCalculations.Form = None
+  def Direct: ResistanceSelection.Format     = ResistanceSelection.None
+  def Splash: ResistanceSelection.Format     = ResistanceSelection.None
+  def Lash: ResistanceSelection.Format       = ResistanceSelection.None
+  def Aggravated: ResistanceSelection.Format = ResistanceSelection.None
 }
 
 object StandardInfantryResistance extends ResistanceSelection {
-  def Direct: ProjectileCalculations.Form     = InfantryHitResistance.Calculate
-  def Splash: ProjectileCalculations.Form     = InfantrySplashResistance.Calculate
-  def Lash: ProjectileCalculations.Form       = InfantryLashResistance.Calculate
-  def Aggravated: ProjectileCalculations.Form = InfantryAggravatedResistance.Calculate
+  def Direct: ResistanceSelection.Format     = InfantryHitResistance.Calculate
+  def Splash: ResistanceSelection.Format     = InfantrySplashResistance.Calculate
+  def Lash: ResistanceSelection.Format       = InfantryLashResistance.Calculate
+  def Aggravated: ResistanceSelection.Format = InfantryAggravatedResistance.Calculate
 }
 
 object StandardVehicleResistance extends ResistanceSelection {
-  def Direct: ProjectileCalculations.Form     = VehicleHitResistance.Calculate
-  def Splash: ProjectileCalculations.Form     = VehicleSplashResistance.Calculate
-  def Lash: ProjectileCalculations.Form       = VehicleLashResistance.Calculate
-  def Aggravated: ProjectileCalculations.Form = VehicleAggravatedResistance.Calculate
+  def Direct: ResistanceSelection.Format     = VehicleHitResistance.Calculate
+  def Splash: ResistanceSelection.Format     = VehicleSplashResistance.Calculate
+  def Lash: ResistanceSelection.Format       = VehicleLashResistance.Calculate
+  def Aggravated: ResistanceSelection.Format = VehicleAggravatedResistance.Calculate
 }
 
 object StandardAmenityResistance extends ResistanceSelection {
-  def Direct: ProjectileCalculations.Form     = AmenityHitResistance.Calculate
-  def Splash: ProjectileCalculations.Form     = AmenityHitResistance.Calculate
-  def Lash: ProjectileCalculations.Form       = None
-  def Aggravated: ProjectileCalculations.Form = None
+  def Direct: ResistanceSelection.Format     = AmenityHitResistance.Calculate
+  def Splash: ResistanceSelection.Format     = AmenityHitResistance.Calculate
+  def Lash: ResistanceSelection.Format       = ResistanceSelection.None
+  def Aggravated: ResistanceSelection.Format = ResistanceSelection.None
 }

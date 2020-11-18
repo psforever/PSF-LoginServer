@@ -14,7 +14,8 @@ import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.generator.{Generator, GeneratorControl, GeneratorDefinition}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.vital.Vitality
-import net.psforever.objects.vital.base.{ProjectileDamageInteraction, ProjectileReason}
+import net.psforever.objects.vital.base.{DamageResolution, DamageInteraction}
+import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game.{InventoryStateMessage, RepairMessage, TriggerEffectMessage}
 import net.psforever.types._
@@ -81,10 +82,10 @@ class GeneratorControlDamageTest extends ActorTest {
 
   val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
-  val resolved = ProjectileDamageInteraction(
+  val resolved = DamageInteraction(
     SourceEntry(gen),
     ProjectileReason(
-      ProjectileResolution.Hit,
+      DamageResolution.Hit,
       Projectile(
         projectile,
         weapon.Definition,
@@ -98,7 +99,7 @@ class GeneratorControlDamageTest extends ActorTest {
     ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.cause.damageModel.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
   expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
@@ -164,10 +165,10 @@ class GeneratorControlCriticalTest extends ActorTest {
 
   val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
-  val resolved = ProjectileDamageInteraction(
+  val resolved = DamageInteraction(
     SourceEntry(gen),
     ProjectileReason(
-      ProjectileResolution.Hit,
+      DamageResolution.Hit,
       Projectile(
         projectile,
         weapon.Definition,
@@ -181,7 +182,7 @@ class GeneratorControlCriticalTest extends ActorTest {
     ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.cause.damageModel.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
   val halfHealth    = gen.Definition.MaxHealth / 2
   expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
@@ -250,10 +251,10 @@ class GeneratorControlDestroyedTest extends ActorTest {
 
   val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
-  val resolved = ProjectileDamageInteraction(
+  val resolved = DamageInteraction(
     SourceEntry(gen),
     ProjectileReason(
-      ProjectileResolution.Hit,
+      DamageResolution.Hit,
       Projectile(
         projectile,
         weapon.Definition,
@@ -267,7 +268,7 @@ class GeneratorControlDestroyedTest extends ActorTest {
     ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.cause.damageModel.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
   gen.Actor ! BuildingActor.NtuDepleted() //no auto-repair
   expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
@@ -387,10 +388,10 @@ class GeneratorControlKillsTest extends ActorTest {
 
   val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
-  val resolved = ProjectileDamageInteraction(
+  val resolved = DamageInteraction(
     SourceEntry(gen),
     ProjectileReason(
-      ProjectileResolution.Hit,
+      DamageResolution.Hit,
       Projectile(
         projectile,
         weapon.Definition,
@@ -404,7 +405,7 @@ class GeneratorControlKillsTest extends ActorTest {
     ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.cause.damageModel.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
   gen.Actor ! BuildingActor.NtuDepleted() //no auto-repair
   expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
@@ -510,10 +511,10 @@ class GeneratorControlNotDestroyTwice extends ActorTest {
 
   val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
-  val resolved = ProjectileDamageInteraction(
+  val resolved = DamageInteraction(
     SourceEntry(gen),
     ProjectileReason(
-      ProjectileResolution.Hit,
+      DamageResolution.Hit,
       Projectile(
         projectile,
         weapon.Definition,
@@ -527,7 +528,7 @@ class GeneratorControlNotDestroyTwice extends ActorTest {
     ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.cause.damageModel.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
   expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
@@ -602,10 +603,10 @@ class GeneratorControlNotDamageIfExplodingTest extends ActorTest {
 
   val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
-  val resolved = ProjectileDamageInteraction(
+  val resolved = DamageInteraction(
     SourceEntry(gen),
     ProjectileReason(
-      ProjectileResolution.Hit,
+      DamageResolution.Hit,
       Projectile(
         projectile,
         weapon.Definition,
@@ -619,7 +620,7 @@ class GeneratorControlNotDamageIfExplodingTest extends ActorTest {
     ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.cause.damageModel.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
   expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
@@ -701,10 +702,10 @@ class GeneratorControlNotRepairIfExplodingTest extends ActorTest {
 
   val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
-  val resolved = ProjectileDamageInteraction(
+  val resolved = DamageInteraction(
     SourceEntry(gen),
     ProjectileReason(
-      ProjectileResolution.Hit,
+      DamageResolution.Hit,
       Projectile(
         projectile,
         weapon.Definition,
@@ -718,7 +719,7 @@ class GeneratorControlNotRepairIfExplodingTest extends ActorTest {
     ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.cause.damageModel.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
 
   val tool = Tool(GlobalDefinitions.nano_dispenser) //4 & 5
   guid.register(tool, 4)

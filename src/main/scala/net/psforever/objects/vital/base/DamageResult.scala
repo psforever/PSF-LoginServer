@@ -9,6 +9,8 @@ final case class Adversarial(attacker: SourceEntry, defender: SourceEntry, imple
 trait DamageResult {
   def interaction: DamageInteraction
 
+  def damageType: DamageType.Value
+
   def damageTypes: Set[DamageType.Value]
 
   def causesJammering: Boolean

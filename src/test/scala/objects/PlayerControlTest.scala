@@ -377,10 +377,10 @@ class PlayerControlDamageTest extends ActorTest {
   val tool         = Tool(GlobalDefinitions.suppressor) //guid 3 & 4
   val projectile   = tool.Projectile
   val playerSource = SourceEntry(player2)
-  val resolved = ProjectileDamageInteraction(
+  val resolved = DamageInteraction(
     playerSource,
     ProjectileReason(
-      ProjectileResolution.Hit,
+      DamageResolution.Hit,
       Projectile(
         projectile,
         tool.Definition,
@@ -394,7 +394,7 @@ class PlayerControlDamageTest extends ActorTest {
     ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  val applyDamageTo = resolved.calculate(resolved)
   guid.register(player1, 1)
   guid.register(player2, 2)
   guid.register(tool, 3)
@@ -478,16 +478,16 @@ class PlayerControlDeathStandingTest extends ActorTest {
   val tool          = Tool(GlobalDefinitions.suppressor) //guid 3 & 4
   val projectile    = tool.Projectile
   val player1Source = SourceEntry(player1)
-  val resolved = ProjectileDamageInteraction(
+  val resolved = DamageInteraction(
     SourceEntry(player2),
     ProjectileReason(
-      ProjectileResolution.Hit,
+      DamageResolution.Hit,
       Projectile(projectile, tool.Definition, tool.FireMode, player1Source, 0, Vector3(2, 0, 0), Vector3(-1, 0, 0)),
       player2.DamageModel
     ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  val applyDamageTo = resolved.calculate(resolved)
   guid.register(player1, 1)
   guid.register(player2, 2)
   guid.register(tool, 3)
@@ -609,16 +609,16 @@ class PlayerControlDeathSeatedTest extends ActorTest {
   val tool          = Tool(GlobalDefinitions.suppressor) //guid 3 & 4
   val projectile    = tool.Projectile
   val player1Source = SourceEntry(player1)
-  val resolved = ProjectileDamageInteraction(
+  val resolved = DamageInteraction(
     SourceEntry(player2),
     ProjectileReason(
-      ProjectileResolution.Hit,
+      DamageResolution.Hit,
       Projectile(projectile, tool.Definition, tool.FireMode, player1Source, 0, Vector3(2, 0, 0), Vector3(-1, 0, 0)),
       player2.DamageMode
     ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  val applyDamageTo = resolved.calculate(resolved)
   guid.register(player1, 1)
   guid.register(player2, 2)
   guid.register(tool, 3)

@@ -10,8 +10,8 @@ import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.damage.DamageCalculations
-import net.psforever.objects.vital.projectile.ProjectileCalculations
-import net.psforever.objects.vital.base.{DamageResult, ProjectileDamageInteraction}
+import net.psforever.objects.vital.base.{DamageInteraction, DamageResult}
+import net.psforever.objects.vital.resistance.ResistanceSelection
 import net.psforever.types.ImplantType
 
 /**
@@ -28,21 +28,21 @@ trait ResolutionCalculations {
     */
   def Calculate(
       damages: DamageCalculations.Selector,
-      resistances: ProjectileCalculations.Form,
-      data: ProjectileDamageInteraction
+      resistances: ResistanceSelection.Format,
+      data: DamageInteraction
   ): ResolutionCalculations.Output
 }
 
 object ResolutionCalculations {
   type Output = Any => DamageResult
-  type Form   = (DamageCalculations.Selector, ProjectileCalculations.Form, ProjectileDamageInteraction) => Output
+  type Form   = (DamageCalculations.Selector, ResistanceSelection.Format, DamageInteraction) => Output
 
-  def NoDamage(data: ProjectileDamageInteraction)(a: Int, b: Int): Int = 0
+  def NoDamage(data: DamageInteraction)(a: Int, b: Int): Int = 0
 
-  def InfantryDamage(data: ProjectileDamageInteraction): (Int, Int) => (Int, Int) = {
+  def InfantryDamage(data: DamageInteraction): (Int, Int) => (Int, Int) = {
     data.target match {
       case target: PlayerSource =>
-        if(data.cause.projectile.profile.DamageToHealthOnly) {
+        if(data.cause.source.DamageToHealthOnly) {
           DamageToHealthOnly(target.health)
         } else {
           InfantryDamageAfterResist(target.health, target.armor)
@@ -84,10 +84,10 @@ object ResolutionCalculations {
     }
   }
 
-  def MaxDamage(data: ProjectileDamageInteraction): (Int, Int) => (Int, Int) = {
+  def MaxDamage(data: DamageInteraction): (Int, Int) => (Int, Int) = {
     data.target match {
       case target: PlayerSource =>
-        if(data.cause.projectile.profile.DamageToHealthOnly) {
+        if(data.cause.source.DamageToHealthOnly) {
           DamageToHealthOnly(target.health)
         } else {
           MaxDamageAfterResist(target.health, target.armor)
@@ -119,7 +119,7 @@ object ResolutionCalculations {
     * @param data the historical damage information
     * @return a function literal for dealing with damage values and resistance values together
     */
-  def VehicleDamageAfterResist(data: ProjectileDamageInteraction): (Int, Int) => Int = {
+  def VehicleDamageAfterResist(data: DamageInteraction): (Int, Int) => Int = {
     VehicleDamageAfterResist
   }
 
@@ -131,7 +131,7 @@ object ResolutionCalculations {
     }
   }
 
-  def NoApplication(damageValue: Int, data: ProjectileDamageInteraction)(target: Any): DamageResult = data
+  def NoApplication(damageValue: Int, data: DamageInteraction)(target: Any): DamageResult = data
 
   def SubtractWithRemainder(current: Int, damage: Int): (Int, Int) = {
     val a               = Math.max(0, current - damage)
@@ -139,7 +139,7 @@ object ResolutionCalculations {
     (a, remainingDamage)
   }
 
-  private def CanDamage(obj: Vitality with FactionAffinity, damage: Int, data: ProjectileDamageInteraction): Boolean = {
+  private def CanDamage(obj: Vitality with FactionAffinity, damage: Int, data: DamageInteraction): Boolean = {
     obj.Health > 0 && Damageable.CanDamage(obj, damage, data)
   }
 
@@ -150,7 +150,7 @@ object ResolutionCalculations {
     * @param data the historical damage information
     * @param target the `Player` object to be affected by these damage values (at some point)
     */
-  def InfantryApplication(damageValues: (Int, Int), data: ProjectileDamageInteraction)(target: Any): DamageResult = {
+  def InfantryApplication(damageValues: (Int, Int), data: DamageInteraction)(target: Any): DamageResult = {
     target match {
       case player: Player =>
         var (a, b) = damageValues
@@ -216,9 +216,9 @@ object ResolutionCalculations {
     * Apply the damage value to the shield field and then the health field (that order) for a vehicle target.
     * @param damage the raw damage
     * @param data the historical damage information
-    * @param target the Vehicle` object to be affected by these damage values (at some point)
+    * @param target the `Vehicle` object to be affected by these damage values (at some point)
     */
-  def VehicleApplication(damage: Int, data: ProjectileDamageInteraction)(target: Any): DamageResult = {
+  def VehicleApplication(damage: Int, data: DamageInteraction)(target: Any): DamageResult = {
     target match {
       case vehicle: Vehicle if CanDamage(vehicle, damage, data) =>
         val shields = vehicle.Shields
@@ -235,7 +235,7 @@ object ResolutionCalculations {
     data
   }
 
-  def SimpleApplication(damage: Int, data: ProjectileDamageInteraction)(target: Any): DamageResult = {
+  def SimpleApplication(damage: Int, data: DamageInteraction)(target: Any): DamageResult = {
     target match {
       case obj: Deployable if CanDamage(obj, damage, data) =>
         obj.Health -= damage
@@ -248,7 +248,7 @@ object ResolutionCalculations {
     data
   }
 
-  def ComplexDeployableApplication(damage: Int, data: ProjectileDamageInteraction)(target: Any): DamageResult = {
+  def ComplexDeployableApplication(damage: Int, data: DamageInteraction)(target: Any): DamageResult = {
     target match {
       case ce: ComplexDeployable if CanDamage(ce, damage, data) =>
         if (ce.Shields > 0) {

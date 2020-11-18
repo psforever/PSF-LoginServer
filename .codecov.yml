@@ -4,8 +4,7 @@ comment: off
 ignore:
   - "src/main/scala/net/psforever/objects/ObjectType.scala"
   - "src/main/scala/net/psforever/objects/avatar/Avatars.scala"
-  - "src/main/scala/net/psforever/objects/ballistics/ProjectileResolution.scala"
-  - "src/main/scala/net/psforever/objects/ballistics/Projectiles.scala"
+  - "src/main/scala/net/psforever/objects/ballistics/DamageResolution.scala- "src/main/scala/net/psforever/objects/ballistics/Projectiles.scala"
   - "src/main/scala/net/psforever/objects/equipment/Ammo.scala"
   - "src/main/scala/net/psforever/objects/equipment/CItem.scala"
   - "src/main/scala/net/psforever/objects/equipment/EquipmentSize.scala"
@@ -23,7 +22,6 @@ ignore:
   - "src/main/scala/net/psforever/objects/vehicles/Turrets.scala"
   - "src/main/scala/net/psforever/objects/vehicles/VehicleLockState.scala"
   - "src/main/scala/net/psforever/objects/vital/damage/DamageProfile.scala"
-  - "src/main/scala/net/psforever/objects/vital/projectile/ProjectileCalculations.scala"
   - "src/main/scala/net/psforever/objects/vital/resistance/ResistanceProfile.scala"
   - "src/main/scala/net/psforever/objects/vital/DamageResistanceModel.scala"
   - "src/main/scala/net/psforever/objects/vital/DamageType.scala"

@@ -602,7 +602,7 @@ object VehicleControl {
     */
   def LastShieldChargeOrDamage(now: Long)(act: VitalsActivity): Boolean = {
     act match {
-      case DamageFromProjectile(data) => now - data.hitTime < (5 seconds).toNanos //damage delays next charge by 5s
+      case DamageFromProjectile(data) => now - data.interaction.hitTime < (5 seconds).toNanos //damage delays next charge by 5s
       case vsc: VehicleShieldCharge   => now - vsc.time < (1 seconds).toNanos      //previous charge delays next by 1s
       case _                          => false
     }

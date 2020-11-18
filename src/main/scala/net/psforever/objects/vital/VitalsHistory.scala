@@ -5,7 +5,8 @@ import net.psforever.objects.ballistics._
 import net.psforever.objects.definition.{EquipmentDefinition, KitDefinition, ObjectDefinition}
 import net.psforever.objects.serverobject.painbox.Painbox
 import net.psforever.objects.serverobject.terminals.TerminalDefinition
-import net.psforever.objects.vital.base.{DamageResult, ProjectileDamageInteraction}
+import net.psforever.objects.vital.base.DamageResult
+import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.types.{ExoSuitType, ImplantType}
 
 abstract class VitalsActivity(target: SourceEntry) {
@@ -51,7 +52,7 @@ final case class RepairFromTerm(target: VehicleSource, amount: Int, term_def: Te
 
 final case class VehicleShieldCharge(target: VehicleSource, amount: Int) extends HealingActivity(target) //TODO facility
 
-final case class DamageFromProjectile(data: ProjectileDamageInteraction) extends DamagingActivity(data.target)
+final case class DamageFromProjectile(data: DamageResult) extends DamagingActivity(data.interaction.target)
 
 final case class DamageFromPainbox(target: PlayerSource, painbox: Painbox, damage: Int) extends DamagingActivity(target)
 
@@ -100,21 +101,11 @@ trait VitalsHistory {
     * @return the list of previous changes to this object's vital statistics
     */
   def History(result: DamageResult): List[VitalsActivity] = {
-    result.interaction match {
-      case o: ProjectileDamageInteraction =>
-        vitalsHistory = DamageFromProjectile(o) +: vitalsHistory
+    result.interaction.cause match {
+      case _: ProjectileReason =>
+        vitalsHistory = DamageFromProjectile(result) +: vitalsHistory
       case _ => ;
     }
-    vitalsHistory
-  }
-
-  /**
-    * Very common example of a `VitalsActivity` event involving weapon discharge.
-    * @param projectile the fully-informed entry of discharge of a weapon
-    * @return the list of previous changes to this object's vital statistics
-    */
-  def History(projectile: ProjectileDamageInteraction): List[VitalsActivity] = {
-    vitalsHistory = DamageFromProjectile(projectile) +: vitalsHistory
     vitalsHistory
   }
 

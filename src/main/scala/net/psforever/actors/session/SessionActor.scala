@@ -26,7 +26,7 @@ import net.psforever.objects.ce._
 import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter.{CorpseConverter, DestroyedVehicleConverter}
 import net.psforever.objects.entity.{SimpleWorldEntity, WorldEntity}
-import net.psforever.objects.equipment.{ChargeFireModeDefinition, EffectTarget, Equipment, FireModeSwitch, JammableUnit}
+import net.psforever.objects.equipment._
 import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
 import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
@@ -53,7 +53,8 @@ import net.psforever.objects.teamwork.Squad
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.vital._
-import net.psforever.objects.vital.base.{DamageInteraction, DamageType, ProjectileDamageInteraction, ProjectileReason}
+import net.psforever.objects.vital.base._
+import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.{Zone, ZoneHotSpotProjector, Zoning}
 import net.psforever.packet._
 import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo, _}
@@ -5213,7 +5214,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                       shotOrigin: Vector3,
                       hitPos: Vector3
                     ) =>
-                  ResolveProjectileInteraction(projectile, ProjectileResolution.Hit, target, hitPos) match {
+                  ResolveProjectileInteraction(projectile, DamageResolution.Hit, target, hitPos) match {
                     case Some(resprojectile) =>
                       HandleDealingDamage(target, resprojectile)
                     case None => ;
@@ -5242,9 +5243,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             projectile.Velocity = projectile_vel
             val (resolution1, resolution2) = profile.Aggravated match {
               case Some(_) if profile.ProjectileDamageTypes.contains(DamageType.Aggravated) =>
-                (ProjectileResolution.AggravatedDirect, ProjectileResolution.AggravatedSplash)
+                (DamageResolution.AggravatedDirect, DamageResolution.AggravatedSplash)
               case _ =>
-                (ProjectileResolution.Splash, ProjectileResolution.Splash)
+                (DamageResolution.Splash, DamageResolution.Splash)
             }
             //direct_victim_uid
             ValidObject(direct_victim_uid) match {
@@ -5287,7 +5288,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         ValidObject(victim_guid) match {
           case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
             CheckForHitPositionDiscrepancy(projectile_guid, hit_pos, target)
-            ResolveProjectileInteraction(projectile_guid, ProjectileResolution.Lash, target, hit_pos) match {
+            ResolveProjectileInteraction(projectile_guid, DamageResolution.Lash, target, hit_pos) match {
               case Some(projectile) =>
                 HandleDealingDamage(target, projectile)
               case None => ;
@@ -7647,11 +7648,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @return the projectile
     */
   def ResolveProjectileInteraction(
-      projectile_guid: PlanetSideGUID,
-      resolution: ProjectileResolution.Value,
-      target: PlanetSideGameObject with FactionAffinity with Vitality,
-      pos: Vector3
-  ): Option[ProjectileDamageInteraction] = {
+                                    projectile_guid: PlanetSideGUID,
+                                    resolution: DamageResolution.Value,
+                                    target: PlanetSideGameObject with FactionAffinity with Vitality,
+                                    pos: Vector3
+  ): Option[DamageInteraction] = {
     FindProjectileEntry(projectile_guid) match {
       case Some(projectile) =>
         ResolveProjectileInteraction(projectile, resolution, target, pos)
@@ -7669,12 +7670,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @return a copy of the projectile
     */
   def ResolveProjectileInteraction(
-      projectile: Projectile,
-      index: Int,
-      resolution: ProjectileResolution.Value,
-      target: PlanetSideGameObject with FactionAffinity with Vitality,
-      pos: Vector3
-  ): Option[ProjectileDamageInteraction] = {
+                                    projectile: Projectile,
+                                    index: Int,
+                                    resolution: DamageResolution.Value,
+                                    target: PlanetSideGameObject with FactionAffinity with Vitality,
+                                    pos: Vector3
+  ): Option[DamageInteraction] = {
     if (!projectiles(index).contains(projectile)) {
       log.error(s"expected projectile could not be found at $index; can not resolve")
       None
@@ -7690,11 +7691,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @return a copy of the projectile
     */
   def ResolveProjectileInteraction(
-      projectile: Projectile,
-      resolution: ProjectileResolution.Value,
-      target: PlanetSideGameObject with FactionAffinity with Vitality,
-      pos: Vector3
-  ): Option[ProjectileDamageInteraction] = {
+                                    projectile: Projectile,
+                                    resolution: DamageResolution.Value,
+                                    target: PlanetSideGameObject with FactionAffinity with Vitality,
+                                    pos: Vector3
+  ): Option[DamageInteraction] = {
     if (projectile.isMiss) {
       log.error("expected projectile was already counted as a missed shot; can not resolve any further")
       None
@@ -7713,7 +7714,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       } else {
         projectile
       }
-      Some(ProjectileDamageInteraction(SourceEntry(target), ProjectileReason(resolution, outProjectile, target.DamageModel), pos))
+      Some(DamageInteraction(SourceEntry(target), ProjectileReason(resolution, outProjectile, target.DamageModel), pos))
     }
   }
 

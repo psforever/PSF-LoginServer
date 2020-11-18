@@ -6,7 +6,8 @@ import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.ballistics._
 import net.psforever.objects.definition.ProjectileDefinition
 import net.psforever.objects.serverobject.mblocker.Locker
-import net.psforever.objects.vital.base.{DamageType, ProjectileDamageInteraction, ProjectileReason}
+import net.psforever.objects.vital.base.{DamageInteraction, DamageResolution, DamageType}
+import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.types.{PlanetSideGUID, _}
 import org.specs2.mutable.Specification
 
@@ -328,7 +329,7 @@ class ProjectileTest extends Specification {
     }
   }
 
-  "ProjectileDamageInteraction" should { //TODO wrong place for this test?
+  "Projectile DamageInteraction" should { //TODO wrong place for this test?
     val beamer_wep = Tool(GlobalDefinitions.beamer)
     val p_source   = PlayerSource(player)
     val player2    = Player(Avatar(0, "TestTarget", PlanetSideEmpire.NC, CharacterGender.Female, 1, CharacterVoice.Mute))
@@ -345,18 +346,18 @@ class ProjectileTest extends Specification {
     val fury_dm = fury.DamageModel
 
     "construct" in {
-      val obj = ProjectileDamageInteraction(
+      val obj = DamageInteraction(
         PlayerSource(player2),
         ProjectileReason(
-          ProjectileResolution.Hit,
+          DamageResolution.Hit,
           projectile,
           fury_dm
         ),
         Vector3(1.2f, 3.4f, 5.6f)
       )
-      obj.cause.projectile mustEqual projectile
+      obj.cause.asInstanceOf[ProjectileReason].projectile mustEqual projectile
       obj.target mustEqual p2_source
-      obj.cause.damageModel mustEqual fury.DamageModel
+      obj.cause.asInstanceOf[ProjectileReason].damageModel mustEqual fury.DamageModel
       obj.hitPos mustEqual Vector3(1.2f, 3.4f, 5.6f)
     }
   }

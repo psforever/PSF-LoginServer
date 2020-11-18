@@ -2,7 +2,7 @@
 package net.psforever.objects.ballistics
 import net.psforever.objects.equipment.TargetValidation
 import net.psforever.objects.serverobject.aura.Aura
-import net.psforever.objects.vital.base.DamageType
+import net.psforever.objects.vital.base.{DamageResolution, DamageType}
 
 /**
   * In what manner of pacing the aggravated damage ticks are applied.
@@ -157,19 +157,19 @@ object AggravatedDamage {
       targets
     )
 
-  def burning(resolution: ProjectileResolution.Value): ProjectileResolution.Value = {
+  def burning(resolution: DamageResolution.Value): DamageResolution.Value = {
     resolution match {
-      case ProjectileResolution.AggravatedDirect => ProjectileResolution.AggravatedDirectBurn
-      case ProjectileResolution.AggravatedSplash => ProjectileResolution.AggravatedSplashBurn
+      case DamageResolution.AggravatedDirect => DamageResolution.AggravatedDirectBurn
+      case DamageResolution.AggravatedSplash => DamageResolution.AggravatedSplashBurn
       case _ => resolution
     }
   }
 
-  def basicDamageType(resolution: ProjectileResolution.Value): DamageType.Value = {
+  def basicDamageType(resolution: DamageResolution.Value): DamageType.Value = {
     resolution match {
-      case ProjectileResolution.AggravatedDirect | ProjectileResolution.AggravatedDirectBurn =>
+      case DamageResolution.AggravatedDirect | DamageResolution.AggravatedDirectBurn =>
         DamageType.Direct
-      case ProjectileResolution.AggravatedSplash | ProjectileResolution.AggravatedSplashBurn =>
+      case DamageResolution.AggravatedSplash | DamageResolution.AggravatedSplashBurn =>
         DamageType.Splash
       case _ =>
         DamageType.None

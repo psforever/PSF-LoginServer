@@ -5,7 +5,8 @@ import akka.actor.{Actor, Cancellable}
 import net.psforever.objects.{Default, PlanetSideGameObject, Tool}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.vehicles.MountedWeapons
-import net.psforever.objects.vital.base.{DamageResult, ProjectileReason}
+import net.psforever.objects.vital.base.DamageResult
+import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.ZoneAware
 import net.psforever.types.Vector3
 import net.psforever.services.Service

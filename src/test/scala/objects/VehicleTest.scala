@@ -962,7 +962,7 @@ class VehicleControlShieldsNotChargingTooEarlyTest extends ActorTest {
 //  val p_source = PlayerSource( Player(Avatar(0, "TestTarget", PlanetSideEmpire.NC, CharacterGender.Female, 1, CharacterVoice.Mute)) )
 //  val projectile = Projectile(beamer_wep.Projectile, GlobalDefinitions.beamer, beamer_wep.FireMode, p_source, GlobalDefinitions.beamer.ObjectId, Vector3.Zero, Vector3.Zero)
 //  val fury_dm = Vehicle(GlobalDefinitions.fury).DamageModel
-//  val obj = ProjectileDamageInteraction(p_source, ProjectileReason(ProjectileResolution.Hit, projectile, fury_dm), Vector3(1.2f, 3.4f, 5.6f))
+//  val obj = DamageInteraction(p_source, ProjectileReason(DamageResolution.Hit, projectile, fury_dm), Vector3(1.2f, 3.4f, 5.6f))
 //
 //  "not charge vehicle shields if recently damaged" in {
 //    assert(vehicle.Shields == 0)

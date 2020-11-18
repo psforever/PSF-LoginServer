@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.vital
+package net.psforever.objects.vital.damage
 
-import net.psforever.objects.vital.damage.DamageProfile
+import net.psforever.objects.vital.prop.DamageProfile
 
 trait StandardDamageProfile extends DamageProfile {
   private var damage0: Int         = 0

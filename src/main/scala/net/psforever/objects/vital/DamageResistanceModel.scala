@@ -1,11 +1,10 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vital
 
+import net.psforever.objects.vital.base.{DamageInteraction, DamageType}
 import net.psforever.objects.vital.damage.DamageCalculations
-import net.psforever.objects.vital.projectile.ProjectileCalculations
 import net.psforever.objects.vital.resistance.ResistanceSelection
 import net.psforever.objects.vital.resolution.ResolutionCalculations
-import net.psforever.objects.vital.base.{DamageInteraction, DamageType, ProjectileDamageInteraction}
 
 trait DamageAndResistance {
   def DamageUsing: DamageCalculations.Selector
@@ -14,9 +13,9 @@ trait DamageAndResistance {
 
   def Model: ResolutionCalculations.Form
 
-  def Calculate(data: DamageInteraction): ResolutionCalculations.Output
+  def calculate(data: DamageInteraction): ResolutionCalculations.Output
 
-  def Calculate(data: DamageInteraction, resolution: DamageType.Value): ResolutionCalculations.Output
+  def calculate(data: DamageInteraction, resolution: DamageType.Value): ResolutionCalculations.Output
 }
 
 object DamageAndResistance {
@@ -79,15 +78,8 @@ trait DamageResistanceModel extends DamageAndResistance {
     * @param data the historical damage information
     * @return a function literal that encapsulates delayed modification instructions for certain objects
     */
-  def Calculate(data: DamageInteraction): ResolutionCalculations.Output = {
-    data match {
-      case o: ProjectileDamageInteraction => Calculate(o)
-      case _ => DamageAndResistance.doNothingFallback(data)
-    }
-  }
-
-  def Calculate(data: ProjectileDamageInteraction): ResolutionCalculations.Output = {
-    val res: ProjectileCalculations.Form = ResistUsing(data)
+  def calculate(data: DamageInteraction): ResolutionCalculations.Output = {
+    val res: ResistanceSelection.Format = ResistUsing(data)
     Model(DamageUsing, res, data)
   }
 
@@ -97,15 +89,8 @@ trait DamageResistanceModel extends DamageAndResistance {
     * @param resolution an explicit damage resolution overriding the one provided
     * @return a function literal that encapsulates delayed modification instructions for certain objects
     */
-  def Calculate(data: DamageInteraction, resolution: DamageType.Value): ResolutionCalculations.Output = {
-    data match {
-      case o: ProjectileDamageInteraction => Calculate(o, resolution)
-      case _ => DamageAndResistance.doNothingFallback(data)
-    }
-  }
-
-  def Calculate(data: ProjectileDamageInteraction, resolution: DamageType.Value): ResolutionCalculations.Output = {
-    val res: ProjectileCalculations.Form = ResistUsing(resolution)
+  def calculate(data: DamageInteraction, resolution: DamageType.Value): ResolutionCalculations.Output = {
+    val res: ResistanceSelection.Format = ResistUsing(resolution)
     Model(DamageUsing, res, data)
   }
 }

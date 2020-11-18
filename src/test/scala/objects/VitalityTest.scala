@@ -5,7 +5,8 @@ import net.psforever.objects.ballistics._
 import net.psforever.objects._
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.vital._
-import net.psforever.objects.vital.base.{ProjectileDamageInteraction, ProjectileReason}
+import net.psforever.objects.vital.base.{DamageResolution, DamageInteraction}
+import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.types._
 import org.specs2.mutable.Specification
 
@@ -21,17 +22,17 @@ class VitalityTest extends Specification {
       val player     = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       val pSource    = PlayerSource(player)
       val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
-      val resprojectile =ProjectileDamageInteraction(
+      val resprojectile =DamageInteraction(
         SourceEntry(player),
         ProjectileReason(
-          ProjectileResolution.Hit,
+          DamageResolution.Hit,
           projectile,
           player.DamageModel
         ),
         Vector3(50, 50, 0)
       )
 
-      player.History(resprojectile) //ProjectileDamageInteraction, straight-up
+      player.History(resprojectile) //DamageInteraction, straight-up
       player.History(DamageFromProjectile(resprojectile))
       player.History(HealFromKit(pSource, 10, GlobalDefinitions.medkit))
       player.History(HealFromTerm(pSource, 10, 0, GlobalDefinitions.order_terminal))
@@ -71,10 +72,10 @@ class VitalityTest extends Specification {
       val player     = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       val pSource    = PlayerSource(player)
       val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
-      val resprojectile = ProjectileDamageInteraction(
+      val resprojectile = DamageInteraction(
         SourceEntry(player),
         ProjectileReason(
-          ProjectileResolution.Hit,
+          DamageResolution.Hit,
           projectile,
           player.DamageModel
         ),
@@ -92,8 +93,8 @@ class VitalityTest extends Specification {
 
       player.LastShot match {
         case Some(resolved_projectile) =>
-          resolved_projectile.interaction match {
-            case o: ProjectileDamageInteraction => o.cause.projectile mustEqual projectile
+          resolved_projectile.interaction.cause match {
+            case o: ProjectileReason => o.projectile mustEqual projectile
             case _ => ko
           }
         case None =>

@@ -1,15 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.avatar.{
-  Avatar,
-  LoadoutManager
-}
-import net.psforever.objects.definition.{
-  AvatarDefinition,
-  ExoSuitDefinition,
-  SpecialExoSuitDefinition
-}
+import net.psforever.objects.avatar.{Avatar, LoadoutManager}
+import net.psforever.objects.definition.{AvatarDefinition, ExoSuitDefinition, SpecialExoSuitDefinition}
 import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot, JammableUnit}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
 import net.psforever.objects.serverobject.PlanetSideServerObject

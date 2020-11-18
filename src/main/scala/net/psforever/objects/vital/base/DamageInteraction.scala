@@ -3,9 +3,15 @@ package net.psforever.objects.vital.base
 
 import net.psforever.objects.ballistics.{AggravatedDamage, SourceEntry}
 import net.psforever.objects.equipment.TargetValidation
+import net.psforever.objects.vital.projectile.ProjectileReason
+import net.psforever.objects.vital.resolution.ResolutionCalculations
 import net.psforever.types.Vector3
 
-trait DamageInteraction extends DamageResult {
+trait DamageInteraction
+  extends DamageResult
+  with CommonDamageInteractionCalculationFunction {
+  def interaction: DamageInteraction = this
+
   def hitTime: Long
 
   def target: SourceEntry
@@ -14,18 +20,25 @@ trait DamageInteraction extends DamageResult {
 
   def hitPos: Vector3
 
-  def calculate(): Any => DamageResult = calculate(data = this)
+  def resolution: DamageResolution.Value
 
-  def calculate(data: DamageInteraction): Any => DamageResult = cause.calculate(data)
+  def calculate(): ResolutionCalculations.Output = calculate(data = this)
+
+  def calculate(dtype: DamageType.Value): ResolutionCalculations.Output = calculate(data = this, dtype)
+
+  def calculate(data: DamageInteraction): ResolutionCalculations.Output = cause.calculate(data)
+
+  def calculate(data: DamageInteraction, dtype: DamageType.Value): ResolutionCalculations.Output = cause.calculate(data, dtype)
 }
 
 final case class GenericDamageInteraction(
+                                           resolution: DamageResolution.Value,
                                            target: SourceEntry,
                                            cause: DamageReason,
                                            hitPos: Vector3,
                                            hitTime: Long = System.currentTimeMillis()
                                          ) extends DamageInteraction {
-  def interaction = this
+  def damageType: DamageType.Value = DamageType.None
 
   def damageTypes: Set[DamageType.Value] = Set.empty
 
@@ -46,7 +59,9 @@ final case class ProjectileDamageInteraction(
                                               hitPos: Vector3,
                                               hitTime: Long = System.currentTimeMillis()
                                             ) extends DamageInteraction {
-  def interaction = this
+  def resolution : DamageResolution.Value = cause.resolution
+
+  def damageType: DamageType.Value = cause.projectile.profile.ProjectileDamageType
 
   def damageTypes: Set[DamageType.Value] = cause.projectile.profile.ProjectileDamageTypes
 
@@ -66,18 +81,26 @@ final case class ProjectileDamageInteraction(
 }
 
 object DamageInteraction {
-  def apply(target: SourceEntry, cause: DamageReason, hitPos: Vector3): DamageInteraction = {
+  def apply(resolution: DamageResolution.Value, target: SourceEntry, cause: DamageReason, hitPos: Vector3): DamageInteraction = {
     cause match {
-      case o: ProjectileReason => ProjectileDamageInteraction(target, o, hitPos)
-      case _ => GenericDamageInteraction(target, cause, hitPos)
+      case o: ProjectileReason if o.resolution == resolution =>
+        ProjectileDamageInteraction(target, o, hitPos)
+      case o: ProjectileReason =>
+        ProjectileDamageInteraction(target, ProjectileReason(resolution, o.projectile, o.damageModel), hitPos)
+      case _ =>
+        GenericDamageInteraction(resolution, target, cause, hitPos)
     }
+  }
+
+  def apply(target: SourceEntry, cause: ProjectileReason, hitPos: Vector3): DamageInteraction = {
+    ProjectileDamageInteraction(target, cause, hitPos)
   }
 }
 
 object ProjectileDamageInteraction {
-  def unapply(obj: DamageInteraction): Option[ProjectileDamageInteraction] = {
+  def unapply(obj: DamageInteraction): Option[(SourceEntry, ProjectileReason, Vector3, Long)] = {
     obj.cause match {
-      case o: ProjectileReason => Some(ProjectileDamageInteraction(obj.target, o, obj.hitPos, obj.hitTime))
+      case o: ProjectileReason => Some((obj.target, o, obj.hitPos, obj.hitTime))
       case _ => None
     }
   }

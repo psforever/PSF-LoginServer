@@ -1,6 +1,7 @@
 //Copyright (c) 2020 PSForever
 package net.psforever.objects.vital
-import net.psforever.objects.vital.damage.DamageModifiers
+
+import net.psforever.objects.vital.base.DamageModifiers
 
 /**
   * na<br>

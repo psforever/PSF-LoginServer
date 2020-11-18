@@ -7,14 +7,15 @@ import base.FreedContextActorTest
 import net.psforever.actors.commands.NtuCommand
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.avatar.Avatar
-import net.psforever.objects.ballistics.{Projectile, ProjectileResolution, SourceEntry}
+import net.psforever.objects.ballistics.{Projectile, SourceEntry}
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.structures.{AutoRepairStats, Building, StructureType}
 import net.psforever.objects.serverobject.terminals.{OrderTerminalDefinition, Terminal, TerminalControl}
 import net.psforever.objects.vital.Vitality
-import net.psforever.objects.vital.damage.DamageProfile
-import net.psforever.objects.vital.base.{ProjectileDamageInteraction, ProjectileReason}
+import net.psforever.objects.vital.base.{DamageInteraction, DamageResolution}
+import net.psforever.objects.vital.projectile.ProjectileReason
+import net.psforever.objects.vital.prop.DamageProfile
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.objects.{GlobalDefinitions, Player, Tool}
 import net.psforever.services.ServiceManager
@@ -55,16 +56,16 @@ class AutoRepairRequestNtuTest extends FreedContextActorTest {
   val proj       = weapon.Projectile
   val proj_prof  = proj.asInstanceOf[DamageProfile]
   val projectile = Projectile(proj, weapon.Definition, wep_fmode, player, Vector3(2, 0, 0), Vector3.Zero)
-  val resolved = ProjectileDamageInteraction(
+  val resolved = DamageInteraction(
     SourceEntry(terminal),
     ProjectileReason(
-      ProjectileResolution.Hit,
+      DamageResolution.Hit,
       projectile,
       terminal.DamageModel
     ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.cause.damageModel.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
 
   "AutoRepair" should {
     "asks owning building for NTU after damage" in {
@@ -117,16 +118,16 @@ class AutoRepairRequestNtuRepeatTest extends FreedContextActorTest {
   val proj       = weapon.Projectile
   val proj_prof  = proj.asInstanceOf[DamageProfile]
   val projectile = Projectile(proj, weapon.Definition, wep_fmode, player, Vector3(2, 0, 0), Vector3.Zero)
-  val resolved = ProjectileDamageInteraction(
+  val resolved = DamageInteraction(
     SourceEntry(terminal),
     ProjectileReason(
-      ProjectileResolution.Hit,
+      DamageResolution.Hit,
       projectile,
       terminal.DamageModel
     ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.cause.damageModel.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
 
   "AutoRepair" should {
     "repeatedly asks owning building for NTU after damage" in {
@@ -181,16 +182,16 @@ class AutoRepairNoRequestNtuTest extends FreedContextActorTest {
   val proj       = weapon.Projectile
   val proj_prof  = proj.asInstanceOf[DamageProfile]
   val projectile = Projectile(proj, weapon.Definition, wep_fmode, player, Vector3(2, 0, 0), Vector3.Zero)
-  val resolved = ProjectileDamageInteraction(
+  val resolved = DamageInteraction(
     SourceEntry(terminal),
     ProjectileReason(
-      ProjectileResolution.Hit,
+      DamageResolution.Hit,
       projectile,
       terminal.DamageModel
     ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.cause.damageModel.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
 
   "AutoRepair" should {
     "not ask for NTU after damage if it expects no NTU" in {
@@ -238,16 +239,16 @@ class AutoRepairRestoreRequestNtuTest extends FreedContextActorTest {
   val proj       = weapon.Projectile
   val proj_prof  = proj.asInstanceOf[DamageProfile]
   val projectile = Projectile(proj, weapon.Definition, wep_fmode, player, Vector3(2, 0, 0), Vector3.Zero)
-  val resolved = ProjectileDamageInteraction(
+  val resolved = DamageInteraction(
     SourceEntry(terminal),
     ProjectileReason(
-      ProjectileResolution.Hit,
+      DamageResolution.Hit,
       projectile,
       terminal.DamageModel
     ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.cause.damageModel.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
 
   "AutoRepair" should {
     "ask for NTU after damage if its expectation of NTU is restored" in {
@@ -304,16 +305,16 @@ class AutoRepairRepairWithNtuTest extends FreedContextActorTest {
   val proj       = weapon.Projectile
   val proj_prof  = proj.asInstanceOf[DamageProfile]
   val projectile = Projectile(proj, weapon.Definition, wep_fmode, player, Vector3(2, 0, 0), Vector3.Zero)
-  val resolved = ProjectileDamageInteraction(
+  val resolved = DamageInteraction(
     SourceEntry(terminal),
     ProjectileReason(
-      ProjectileResolution.Hit,
+      DamageResolution.Hit,
       projectile,
       terminal.DamageModel
     ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.cause.damageModel.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
 
   "AutoRepair" should {
     "repair some of the damage when it receives NTU" in {
@@ -365,16 +366,16 @@ class AutoRepairRepairWithNtuUntilDoneTest extends FreedContextActorTest {
   val proj       = weapon.Projectile
   val proj_prof  = proj.asInstanceOf[DamageProfile]
   val projectile = Projectile(proj, weapon.Definition, wep_fmode, player, Vector3(2, 0, 0), Vector3.Zero)
-  val resolved = ProjectileDamageInteraction(
+  val resolved = DamageInteraction(
     SourceEntry(terminal),
     ProjectileReason(
-      ProjectileResolution.Hit,
+      DamageResolution.Hit,
       projectile,
       terminal.DamageModel
     ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.cause.damageModel.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
 
   "AutoRepair" should {
     "ask for NTU after damage and repair some of the damage when it receives NTU, until fully-repaired" in {

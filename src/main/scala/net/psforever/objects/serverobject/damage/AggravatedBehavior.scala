@@ -6,6 +6,7 @@ import net.psforever.objects.ballistics._
 import net.psforever.objects.serverobject.aura.Aura
 import net.psforever.objects.vital.base._
 import net.psforever.objects.vital.Vitality
+import net.psforever.objects.vital.projectile.ProjectileReason
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -23,14 +24,14 @@ trait AggravatedBehavior {
   def AggravatedObject: AggravatedBehavior.Target
 
   def TryAggravationEffectActivate(data: DamageResult): Option[AggravatedDamage] = {
-    (data, data.aggravation) match {
-      case (o: ProjectileDamageInteraction, Some(damage))
+    (data.interaction.cause, data.aggravation) match {
+      case (o: ProjectileReason, Some(damage))
         if data.damageTypes.contains(DamageType.Aggravated) &&
-           damage.info.exists(_.damage_type == AggravatedDamage.basicDamageType(o.cause.resolution)) &&
+           damage.info.exists(_.damage_type == AggravatedDamage.basicDamageType(o.resolution)) &&
            damage.effect_type != Aura.Nothing &&
-           (o.cause.projectile.quality == ProjectileQuality.AggravatesTarget ||
+           (o.projectile.quality == ProjectileQuality.AggravatesTarget ||
             damage.targets.exists(validation => validation.test(AggravatedObject))) =>
-        TryAggravationEffectActivate(damage, o)
+        TryAggravationEffectActivate(damage, data.interaction)
       case _ =>
         None
     }
@@ -38,7 +39,7 @@ trait AggravatedBehavior {
 
   private def TryAggravationEffectActivate(
                                             aggravation: AggravatedDamage,
-                                            data: ProjectileDamageInteraction
+                                            data: DamageInteraction
                                           ): Option[AggravatedDamage] = {
     val effect = aggravation.effect_type
     if(CheckForUniqueUnqueuedCause(data.cause)) {
@@ -60,14 +61,17 @@ trait AggravatedBehavior {
     !entryIdToEntry.values.exists { entry => entry.data.cause.same(cause) }
   }
 
-  private def SetupAggravationEntry(aggravation: AggravatedDamage, data: ProjectileDamageInteraction): Boolean = {
+  private def SetupAggravationEntry(aggravation: AggravatedDamage, data: DamageInteraction): Boolean = {
     val effect = aggravation.effect_type
-    aggravation.info.find(_.damage_type == AggravatedDamage.basicDamageType(data.cause.resolution)) match {
+    aggravation.info.find(_.damage_type == AggravatedDamage.basicDamageType(data.resolution)) match {
       case Some(info) =>
+        //setup effect
         val timing = aggravation.timing
         val duration = timing.duration
-        //setup effect
-        val id = data.cause.projectile.id
+        val id = data.cause match {
+          case o: ProjectileReason => o.projectile.id
+          case _ => data.hitTime
+        }
         //setup timer data
         val (tick: Long, iterations: Int) = timing.ticks match {
           case Some(n) if n < 1 =>
@@ -103,12 +107,12 @@ trait AggravatedBehavior {
                                           id: Long,
                                           effect: Aura,
                                           retime: Long,
-                                          data: ProjectileDamageInteraction,
+                                          data: DamageInteraction,
                                           target: SourceEntry,
                                           powerOffset: List[Float]
                                         ): AggravatedBehavior.Entry = {
-    val cause = data.cause
-    val aggravatedDamageInfo = ProjectileDamageInteraction(
+    val cause = data.cause.asInstanceOf[ProjectileReason]
+    val aggravatedDamageInfo = DamageInteraction(
       target,
       ProjectileReason(
         AggravatedDamage.burning(cause.resolution),
@@ -190,19 +194,21 @@ trait AggravatedBehavior {
   def AggravatedReaction: Boolean = ongoingAggravated
 
   private def PerformAggravation(entry: AggravatedBehavior.Entry, tick: Int = 0): Unit = {
-    entry.data match {
-      case o: ProjectileDamageInteraction =>
-        val cause = o.cause
-        val model = cause.damageModel
-        val aggravatedProjectileData = ProjectileDamageInteraction(
-          o.target,
+    //only works for projectiles right now
+    entry.data.cause match {
+      case o: ProjectileReason =>
+        val cause = o
+        val model = o.damageModel
+        val aggravatedProjectileData = DamageInteraction(
+          entry.data.target,
           ProjectileReason(
             cause.resolution,
             cause.projectile.quality(ProjectileQuality.Modified(entry.qualityPerTick(tick))),
-            model),
-          o.hitPos
+            model
+          ),
+          entry.data.hitPos
         )
-        takesDamage.apply(Vitality.Damage(model.Calculate(aggravatedProjectileData)))
+        takesDamage.apply(Vitality.Damage(model.calculate(aggravatedProjectileData)))
     }
   }
 }

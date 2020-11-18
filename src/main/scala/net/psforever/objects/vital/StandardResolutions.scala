@@ -4,37 +4,37 @@ package net.psforever.objects.vital
 import net.psforever.objects.vital.resolution._
 
 object NoResolutions
-    extends DamageResistCalculations(
+    extends DamageResistanceCalculations(
       ResolutionCalculations.NoDamage,
       ResolutionCalculations.NoApplication
     )
 
 object InfantryResolutions
-    extends DamageResistCalculations(
+    extends DamageResistanceCalculations(
       ResolutionCalculations.InfantryDamage,
       ResolutionCalculations.InfantryApplication
     )
 
 object MaxResolutions
-    extends DamageResistCalculations(
+    extends DamageResistanceCalculations(
       ResolutionCalculations.MaxDamage,
       ResolutionCalculations.InfantryApplication
     )
 
 object VehicleResolutions
-    extends DamageResistCalculations(
+    extends DamageResistanceCalculations(
       ResolutionCalculations.VehicleDamageAfterResist,
       ResolutionCalculations.VehicleApplication
     )
 
 object SimpleResolutions
-    extends DamageResistCalculations(
+    extends DamageResistanceCalculations(
       ResolutionCalculations.VehicleDamageAfterResist,
       ResolutionCalculations.SimpleApplication
     )
 
 object ComplexDeployableResolutions
-    extends DamageResistCalculations(
+    extends DamageResistanceCalculations(
       ResolutionCalculations.VehicleDamageAfterResist,
       ResolutionCalculations.ComplexDeployableApplication
     )
