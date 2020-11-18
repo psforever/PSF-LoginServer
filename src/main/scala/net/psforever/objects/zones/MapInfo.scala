@@ -19,9 +19,9 @@ case object MapInfo extends StringEnum[MapInfo] {
         scale = MapScale.Dim8192,
         environment = List(
           SeaLevel(EnvironmentAttribute.Water, 35),
-          Pool(EnvironmentAttribute.Water, 43.57f, 6263.2812f, 3742.9375f, 6238.0f, 3712.7188f), //north of aton
           Pool(EnvironmentAttribute.Water, 44.92f, 5965.164f, 4801.2266f, 5893.1094f, 4730.203f), //east of seth
           Pool(EnvironmentAttribute.Water, 43.625f, 5296.289f, 5356.8594f, 5265.789f, 5315.9062f), //south of bastet
+          Pool(EnvironmentAttribute.Water, 43.57f, 6263.2812f, 3742.9375f, 6238.0f, 3712.7188f), //north of aton
           Pool(EnvironmentAttribute.Water, 43.515625f, 4805.5f, 4324.3984f, 4727.867f, 4280.2188f), //north of hapi
           Pool(EnvironmentAttribute.Water, 43.0625f, 3313.1094f, 4746.4844f, 3259.4219f, 4691.2266f), //east of thoth
           Pool(EnvironmentAttribute.Water, 43.51f, 1917.1016f, 4086.8984f, 1893.4844f, 4038.2734f) //between horus and amun
@@ -86,7 +86,7 @@ case object MapInfo extends StringEnum[MapInfo] {
         value = "map04",
         checksum = 2455050867L,
         scale = MapScale.Dim8192,
-        environment = List(SeaLevel(EnvironmentAttribute.Water, 35))
+        environment = List(SeaLevel(EnvironmentAttribute.Water, 19.984375f))
       )
 
   case object Map05
@@ -94,7 +94,22 @@ case object MapInfo extends StringEnum[MapInfo] {
         value = "map05",
         checksum = 107922342L,
         scale = MapScale.Dim8192,
-        environment = List(SeaLevel(EnvironmentAttribute.Water, 35))
+        environment = List(
+          SeaLevel(EnvironmentAttribute.Water, 35.015625f),
+          Pool(EnvironmentAttribute.Water, 51.875f, 4571.8125f, 3015.5547f, 4455.8047f, 2852.711f), //down the road, west of bel
+          Pool(EnvironmentAttribute.Water, 49.8125f, 4902.336f, 3413.461f, 4754.0938f, 3210.8125f), //west of bel
+          Pool(EnvironmentAttribute.Water, 49.515625f, 4044.3984f, 4700.8516f, 3999.9688f, 4517.375f), //southeast of neit
+          Pool(EnvironmentAttribute.Water, 48.515625f, 4553.75f, 4110.2188f, 4438.6875f, 3995.3125f), //northwest of neit
+          Pool(EnvironmentAttribute.Water, 48.28125f, 4474.3906f, 4551.2812f, 4339.3984f, 4472.4375f), //northeast of neit
+          Pool(EnvironmentAttribute.Water, 45.828125f, 3808.0547f, 3901.3828f, 1432.5625f, 3720.9844f), //J17
+          Pool(EnvironmentAttribute.Water, 43.765625f, 3997.2812f, 3991.539f, 3937.8906f, 3937.875f), //southwest of neit
+          Pool(EnvironmentAttribute.Water, 43.671875f, 2694.2031f, 3079.875f, 2552.414f, 2898.8203f), //west of anu
+          Pool(EnvironmentAttribute.Water, 42.671875f, 5174.4844f, 5930.133f, 4981.4297f, 5812.383f), //west of lugh
+          Pool(EnvironmentAttribute.Water, 42.203125f, 4935.742f, 5716.086f, 5496.6953f, 5444.5625f), //across road, west of lugh
+          Pool(EnvironmentAttribute.Water, 41.765625f, 2073.914f, 4982.5938f, 1995.4688f, 4899.086f), //L15-M16
+          Pool(EnvironmentAttribute.Water, 41.3125f, 3761.1484f, 2616.75f, 3627.4297f, 2505.1328f), //G11, south
+          Pool(EnvironmentAttribute.Water, 40.421875f, 4058.8281f, 2791.6562f, 3985.1016f, 2685.3672f) //G11, north
+        )
       )
 
   case object Map06
@@ -121,7 +136,7 @@ case object MapInfo extends StringEnum[MapInfo] {
         value = "map08",
         checksum = 0L,
         scale = MapScale.Dim8192,
-        environment = List(SeaLevel(EnvironmentAttribute.Water, 35))
+        environment = List(SeaLevel(EnvironmentAttribute.Water, 26.078125f))
       )
 
   case object Map09
@@ -134,7 +149,7 @@ case object MapInfo extends StringEnum[MapInfo] {
           Pool(EnvironmentAttribute.Water, 41.46875f, 5964.461f, 1947.1328f, 5701.6016f, 1529.8438f), //north of wakea
           Pool(EnvironmentAttribute.Water, 39.21875f, 5694.125f, 6939.8984f, 5516.922f, 6814.211f), //northeast of iva
           Pool(EnvironmentAttribute.Water, 39.078125f, 4381.789f, 6650.8203f, 4071.4766f, 6445.133f), //south of iva
-          Pool(EnvironmentAttribute.Lava, DeepCircularSurface(Vector3(3901.5547f, 4422.746f, 224.57812f), 82.6797f)), //upper west lava pool //TODO fudged
+          Pool(EnvironmentAttribute.Lava, DeepCircularSurface(Vector3(3901.5547f, 4422.746f, 224.57812f), 82.6797f)), //upper west lava pool
           Pool(EnvironmentAttribute.Lava, DeepSurface(189.54688f, 4032.914f, 3893.6562f, 3912.3906f, 3666.4453f)), //lower west lava pool
           Pool(EnvironmentAttribute.Lava, DeepSurface(187.57812f, 4288.1484f, 4589.0703f, 3996.3125f, 4355.6406f)), //lower central lava pool
           Pool(EnvironmentAttribute.Lava, DeepSurface(181.45312f, 4635.1953f, 4579.3516f, 4406.3438f, 4303.828f)), //upper central lava pool
@@ -147,7 +162,7 @@ case object MapInfo extends StringEnum[MapInfo] {
         value = "map10",
         checksum = 230810349L,
         scale = MapScale.Dim8192,
-        environment = List(SeaLevel(EnvironmentAttribute.Water, 35))
+        environment = List(SeaLevel(EnvironmentAttribute.Water, 28))
       )
 
   case object Map11
@@ -188,7 +203,7 @@ case object MapInfo extends StringEnum[MapInfo] {
         value = "map14",
         checksum = 0L,
         scale = MapScale.Dim8192,
-        environment = List(SeaLevel(EnvironmentAttribute.Water, 35))
+        environment = List(SeaLevel(EnvironmentAttribute.Water, 0))
       )
 
   case object Map15
@@ -196,7 +211,7 @@ case object MapInfo extends StringEnum[MapInfo] {
         value = "map15",
         checksum = 0L,
         scale = MapScale.Dim8192,
-        environment = List(SeaLevel(EnvironmentAttribute.Water, 35))
+        environment = List(SeaLevel(EnvironmentAttribute.Water, 0))
       )
 
   case object Map16
@@ -204,7 +219,7 @@ case object MapInfo extends StringEnum[MapInfo] {
         value = "map16",
         checksum = 0L,
         scale = MapScale.Dim8192,
-        environment = List(SeaLevel(EnvironmentAttribute.Water, 35))
+        environment = List(SeaLevel(EnvironmentAttribute.Water, 0))
       )
 
   case object Ugd01
@@ -221,12 +236,12 @@ case object MapInfo extends StringEnum[MapInfo] {
         checksum = 2702486449L,
         scale = MapScale.Dim2560,
         environment = List(
-          Pool(EnvironmentAttribute.Water, 183.98438f, 914.33594f, 1369.5f, 626.03906f, 666.3047f), //upper southern pools
-          Pool(EnvironmentAttribute.Water, 182.96875f, 580.7578f, 913.52344f, 520.4531f, 843.97656f), //lowest southern pool
+          Pool(EnvironmentAttribute.Water, 194.89062f, 1763.4141f, 1415.125f, 1333.9531f, 1280.4609f), //east, northern pool
           Pool(EnvironmentAttribute.Water, 192.40625f, 1717.5703f, 1219.3359f, 1572.8828f, 1036.1328f), //bottom, northern pool
-          Pool(EnvironmentAttribute.Water, 191.65625f, 1869.1484f, 1195.6406f, 1743.8125f, 1050.7344f), //middle, northern pool
           Pool(EnvironmentAttribute.Water, 192.32812f, 1966.1562f, 1252.7344f, 1889.8047f, 1148.5312f), //top, northern pool
-          Pool(EnvironmentAttribute.Water, 194.89062f, 1763.4141f, 1415.125f, 1333.9531f, 1280.4609f) //east, northern pool
+          Pool(EnvironmentAttribute.Water, 191.65625f, 1869.1484f, 1195.6406f, 1743.8125f, 1050.7344f), //middle, northern pool
+          Pool(EnvironmentAttribute.Water, 183.98438f, 914.33594f, 1369.5f, 626.03906f, 666.3047f), //upper southern pools
+          Pool(EnvironmentAttribute.Water, 182.96875f, 580.7578f, 913.52344f, 520.4531f, 843.97656f) //lowest southern pool
         )
       )
 
