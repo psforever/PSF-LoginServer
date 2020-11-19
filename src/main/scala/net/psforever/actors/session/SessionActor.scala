@@ -54,6 +54,7 @@ import net.psforever.objects.vehicles._
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.base._
+import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.{Zone, ZoneHotSpotProjector, Zoning}
 import net.psforever.packet._

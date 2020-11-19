@@ -2,7 +2,7 @@
 package net.psforever.objects.vital.resolution
 
 import net.psforever.objects.vital.damage.DamageCalculations
-import net.psforever.objects.vital.base.DamageInteraction
+import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.resistance.ResistanceSelection
 
 /**
@@ -24,7 +24,7 @@ abstract class DamageResistanceCalculations[A](
     applyFunc: (A, DamageInteraction) => ResolutionCalculations.Output,
     modifiersFunc: (DamageCalculations.Selector, DamageInteraction) => Int = DamageCalculations.WithModifiers
 ) extends ResolutionCalculations {
-  def Calculate(
+  def calculate(
       damages: DamageCalculations.Selector,
       resistances: ResistanceSelection.Format,
       data: DamageInteraction

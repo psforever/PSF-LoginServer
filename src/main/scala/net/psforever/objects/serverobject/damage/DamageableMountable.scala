@@ -4,7 +4,7 @@ package net.psforever.objects.serverobject.damage
 import net.psforever.objects.Player
 import net.psforever.objects.ballistics.PlayerSource
 import net.psforever.objects.serverobject.mount.Mountable
-import net.psforever.objects.vital.base.DamageResult
+import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.packet.game.DamageWithPositionMessage
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}

@@ -4,6 +4,7 @@ package net.psforever.objects.vital.projectile
 import net.psforever.objects.ballistics.{ChargeDamage, PlayerSource, ProjectileQuality}
 import net.psforever.objects.equipment.ChargeFireModeDefinition
 import net.psforever.objects.vital.base._
+import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.types.{ExoSuitType, Vector3}
 
 /** If the calculated distance is greater than the maximum distance of the projectile, damage is zero'd. */

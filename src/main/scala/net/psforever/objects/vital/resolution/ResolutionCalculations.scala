@@ -10,7 +10,7 @@ import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.damage.DamageCalculations
-import net.psforever.objects.vital.base.{DamageInteraction, DamageResult}
+import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.resistance.ResistanceSelection
 import net.psforever.types.ImplantType
 
@@ -26,7 +26,7 @@ trait ResolutionCalculations {
     * @param data the historical damage information
     * @return a function literal that encapsulates delayed modification instructions for certain objects
     */
-  def Calculate(
+  def calculate(
       damages: DamageCalculations.Selector,
       resistances: ResistanceSelection.Format,
       data: DamageInteraction

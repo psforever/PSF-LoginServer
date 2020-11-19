@@ -1,7 +1,9 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital.base
 
-import net.psforever.objects.vital.prop.{DamageProfile, DamageProperties}
+import net.psforever.objects.vital.damage.DamageProfile
+import net.psforever.objects.vital.interaction.{CommonDamageInteractionCalculationFunction, DamageInteraction}
+import net.psforever.objects.vital.prop.DamageProperties
 import net.psforever.objects.vital.resolution.ResolutionCalculations
 
 trait DamageReason

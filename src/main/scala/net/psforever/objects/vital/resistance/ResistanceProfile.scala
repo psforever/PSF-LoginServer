@@ -1,9 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vital.resistance
 
-import net.psforever.objects.vital.damage.StandardDamageProfile
+import net.psforever.objects.vital.damage.{DamageProfile, StandardDamageProfile}
 import net.psforever.objects.vital.base.DamageType
-import net.psforever.objects.vital.prop.DamageProfile
 
 /**
   * The different values for four common methods of modifying incoming damage.

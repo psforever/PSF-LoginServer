@@ -13,9 +13,10 @@ import net.psforever.objects.serverobject.resourcesilo.{ResourceSilo, ResourceSi
 import net.psforever.objects.serverobject.structures.{AutoRepairStats, Building, StructureType}
 import net.psforever.objects.serverobject.terminals.{OrderTerminalDefinition, Terminal, TerminalControl}
 import net.psforever.objects.vital.Vitality
-import net.psforever.objects.vital.base.{DamageInteraction, DamageResolution}
+import net.psforever.objects.vital.base.DamageResolution
+import net.psforever.objects.vital.damage.DamageProfile
+import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
-import net.psforever.objects.vital.prop.DamageProfile
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.objects.{GlobalDefinitions, Player, Tool}
 import net.psforever.services.galaxy.GalaxyService
@@ -28,7 +29,7 @@ class AutoRepairFacilityIntegrationTest extends FreedContextActorTest {
   import akka.actor.typed.scaladsl.adapter._
   system.spawn(InterstellarClusterService(Nil), InterstellarClusterService.InterstellarClusterServiceKey.id)
   ServiceManager.boot(system) ! ServiceManager.Register(Props[GalaxyService](), "galaxy")
-  expectNoMessage(200 milliseconds)
+  expectNoMessage(1000 milliseconds)
 
   val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
   player.Spawn()
@@ -84,7 +85,7 @@ class AutoRepairFacilityIntegrationTest extends FreedContextActorTest {
       assert(terminal.Health == terminal.MaxHealth)
       terminal.Actor ! Vitality.Damage(applyDamageTo)
 
-      avatarProbe.receiveOne(max = 200 milliseconds) //health update event
+      avatarProbe.receiveOne(max = 1000 milliseconds) //health update event
       assert(terminal.Health < terminal.MaxHealth)
       var i = 0 //safety counter
       while(terminal.Health < terminal.MaxHealth && i < 100) {

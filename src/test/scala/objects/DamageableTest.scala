@@ -30,7 +30,8 @@ import org.specs2.mutable.Specification
 
 import scala.concurrent.duration._
 import net.psforever.objects.avatar.Avatar
-import net.psforever.objects.vital.base.{DamageResolution, DamageInteraction}
+import net.psforever.objects.vital.interaction.DamageInteraction
+import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.projectile.ProjectileReason
 
 class DamageableTest extends Specification {
@@ -76,7 +77,8 @@ class DamageableTest extends Specification {
         new Building("test-building", 0, 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building) {
           Faction = player1.Faction
         }
-      val resolved = DamageInteraction(
+
+      val resolvedFF = DamageInteraction(
         SourceEntry(target),
         ProjectileReason(
           DamageResolution.Hit,
@@ -85,14 +87,22 @@ class DamageableTest extends Specification {
         ),
         Vector3.Zero
       )
-
       target.Definition.DamageableByFriendlyFire mustEqual false
       target.Faction == player1.Faction mustEqual true
-      Damageable.CanDamage(target, projectileA.Damage0, resolved) mustEqual false
+      Damageable.CanDamage(target, projectileA.Damage0, resolvedFF) mustEqual false
 
       target.Owner.Faction = PlanetSideEmpire.NC
+      val resolvedNonFF = DamageInteraction(
+        SourceEntry(target),
+        ProjectileReason(
+          DamageResolution.Hit,
+          Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+          target.DamageModel
+        ),
+        Vector3.Zero
+      )
       target.Faction != player1.Faction mustEqual true
-      Damageable.CanDamage(target, projectileA.Damage0, resolved) mustEqual true
+      Damageable.CanDamage(target, projectileA.Damage0, resolvedNonFF) mustEqual true
     }
 
     "ignore attempts at damaging a target that is not damageable" in {

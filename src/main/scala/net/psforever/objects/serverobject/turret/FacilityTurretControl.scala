@@ -10,7 +10,7 @@ import net.psforever.objects.serverobject.damage.{Damageable, DamageableWeaponTu
 import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableWeaponTurret}
 import net.psforever.objects.serverobject.structures.PoweredAmenityControl
-import net.psforever.objects.vital.base.DamageResult
+import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}

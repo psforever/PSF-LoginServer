@@ -28,7 +28,7 @@ import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import akka.actor.typed
 import net.psforever.objects.locker.LockerContainerControl
-import net.psforever.objects.vital.base.DamageResult
+import net.psforever.objects.vital.interaction.DamageResult
 
 import scala.concurrent.duration._
 

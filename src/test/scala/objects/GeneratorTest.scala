@@ -14,7 +14,8 @@ import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.generator.{Generator, GeneratorControl, GeneratorDefinition}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.vital.Vitality
-import net.psforever.objects.vital.base.{DamageResolution, DamageInteraction}
+import net.psforever.objects.vital.base.DamageResolution
+import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game.{InventoryStateMessage, RepairMessage, TriggerEffectMessage}
@@ -269,7 +270,6 @@ class GeneratorControlDestroyedTest extends ActorTest {
     Vector3(1, 0, 0)
   )
   val applyDamageTo = resolved.calculate()
-  gen.Actor ! BuildingActor.NtuDepleted() //no auto-repair
   expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
@@ -406,7 +406,6 @@ class GeneratorControlKillsTest extends ActorTest {
     Vector3(1, 0, 0)
   )
   val applyDamageTo = resolved.calculate()
-  gen.Actor ! BuildingActor.NtuDepleted() //no auto-repair
   expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 

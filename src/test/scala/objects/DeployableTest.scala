@@ -20,7 +20,8 @@ import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.support.SupportActor
 import net.psforever.objects.avatar.Avatar
-import net.psforever.objects.vital.base.{DamageResolution, DamageInteraction}
+import net.psforever.objects.vital.base.DamageResolution
+import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
 
 import scala.concurrent.duration._

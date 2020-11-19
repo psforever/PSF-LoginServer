@@ -4,7 +4,8 @@ package net.psforever.objects.ce
 import net.psforever.objects._
 import net.psforever.objects.definition.DeployableDefinition
 import net.psforever.objects.serverobject.affinity.FactionAffinity
-import net.psforever.objects.vital.{DamageResistanceModel, Vitality}
+import net.psforever.objects.vital.Vitality
+import net.psforever.objects.vital.resolution.DamageResistanceModel
 import net.psforever.objects.zones.ZoneAware
 import net.psforever.packet.game.DeployableIcon
 import net.psforever.types.PlanetSideEmpire

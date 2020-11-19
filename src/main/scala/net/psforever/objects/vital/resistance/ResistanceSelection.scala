@@ -2,7 +2,8 @@
 package net.psforever.objects.vital.resistance
 
 import net.psforever.objects.vital.NoResistance
-import net.psforever.objects.vital.base.{DamageInteraction, DamageResult, DamageType}
+import net.psforever.objects.vital.base.DamageType
+import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 
 /**
   * Maintain information about four primary forms of resistance calculation

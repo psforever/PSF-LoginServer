@@ -1,8 +1,9 @@
 // Copyright (c) 2020 PSForever
-package net.psforever.objects.vital.base
+package net.psforever.objects.vital.interaction
 
 import net.psforever.objects.ballistics.{AggravatedDamage, SourceEntry}
 import net.psforever.objects.equipment.TargetValidation
+import net.psforever.objects.vital.base.{DamageReason, DamageResolution, DamageType}
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.vital.resolution.ResolutionCalculations
 import net.psforever.types.Vector3

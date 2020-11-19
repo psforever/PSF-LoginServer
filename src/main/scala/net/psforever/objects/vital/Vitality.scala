@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vital
 
-import net.psforever.objects.vital.resolution.ResolutionCalculations
-import net.psforever.objects.vital.base.DamageResult
+import net.psforever.objects.vital.resolution.{DamageAndResistance, ResolutionCalculations}
+import net.psforever.objects.vital.interaction.DamageResult
 
 /**
   * A vital object can be hurt or damaged or healed or repaired (HDHR).
@@ -40,7 +40,7 @@ trait Vitality extends VitalsHistory {
     Definition.Repairable && Health < MaxHealth && (Health > 0 || Definition.RepairIfDestroyed)
   }
 
-  def DamageModel: DamageResistanceModel
+  def DamageModel: DamageAndResistance
 
   def Definition: VitalityDefinition
 }

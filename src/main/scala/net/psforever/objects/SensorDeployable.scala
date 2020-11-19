@@ -10,8 +10,8 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity}
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.repair.RepairableEntity
-import net.psforever.objects.vital.StandardResolutions
-import net.psforever.objects.vital.base.DamageResult
+import net.psforever.objects.vital.SimpleResolutions
+import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.types.{PlanetSideGUID, Vector3}
 import net.psforever.services.Service
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
@@ -24,7 +24,7 @@ class SensorDeployable(cdef: SensorDeployableDefinition) extends ComplexDeployab
 class SensorDeployableDefinition(private val objectId: Int) extends ComplexDeployableDefinition(objectId) {
   Name = "sensor_deployable"
   DeployCategory = DeployableCategory.Sensors
-  Model = StandardResolutions.SimpleDeployables
+  Model = SimpleResolutions.calculate
   Packet = new SmallDeployableConverter
 
   override def Initialize(obj: PlanetSideServerObject with Deployable, context: ActorContext) = {

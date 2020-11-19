@@ -1,7 +1,7 @@
 package net.psforever.objects.vital.resistance
 
 import net.psforever.objects.PlanetSideGameObject
-import net.psforever.objects.vital.prop.DamageProfile
+import net.psforever.objects.vital.damage.DamageProfile
 
 /**
   * The different values for four common methods of modifying incoming damage.

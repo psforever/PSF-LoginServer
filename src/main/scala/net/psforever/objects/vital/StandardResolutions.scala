@@ -38,14 +38,3 @@ object ComplexDeployableResolutions
       ResolutionCalculations.VehicleDamageAfterResist,
       ResolutionCalculations.ComplexDeployableApplication
     )
-
-object StandardResolutions extends ResolutionSelection {
-  def Infantry: ResolutionCalculations.Form           = InfantryResolutions.Calculate
-  def Max: ResolutionCalculations.Form                = MaxResolutions.Calculate
-  def Vehicle: ResolutionCalculations.Form            = VehicleResolutions.Calculate
-  def Aircraft: ResolutionCalculations.Form           = VehicleResolutions.Calculate
-  def SimpleDeployables: ResolutionCalculations.Form  = SimpleResolutions.Calculate
-  def ComplexDeployables: ResolutionCalculations.Form = ComplexDeployableResolutions.Calculate
-  def FacilityTurrets: ResolutionCalculations.Form    = SimpleResolutions.Calculate
-  def Amenities: ResolutionCalculations.Form          = SimpleResolutions.Calculate
-}

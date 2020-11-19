@@ -1,8 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vital.damage
 
-import net.psforever.objects.vital.base.DamageInteraction
-import net.psforever.objects.vital.prop.DamageProfile
+import net.psforever.objects.vital.interaction.DamageInteraction
 
 /**
   * A series of methods for extraction of the base damage against a given target type
@@ -25,7 +24,17 @@ object DamageCalculations {
   def AgainstBFR(profile : DamageProfile) : Int = profile.Damage4
 
   /**
-    * Get damage information from a series of profiles related to the weapon discharge.
+    * Get the damage value.
+    * @param selector the function that recovers the damage value
+    * @param data     na
+    * @return the damage value
+    */
+  def Raw(selector: DamageProfile => Int, data: DamageInteraction) : Int = {
+    selector(data.cause.source)
+  }
+
+  /**
+    * Get the damage value after it has been modified by context-related operations.
     * @param selector the function that recovers the damage value
     * @param data     na
     * @return the accumulated damage value

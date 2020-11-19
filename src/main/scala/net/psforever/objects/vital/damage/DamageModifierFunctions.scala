@@ -3,7 +3,8 @@ package net.psforever.objects.vital.damage
 
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.ballistics._
-import net.psforever.objects.vital.base.{DamageInteraction, DamageModifiers, DamageReason}
+import net.psforever.objects.vital.base.{DamageModifiers, DamageReason}
+import net.psforever.objects.vital.interaction.DamageInteraction
 
 /** The input value is the same as the output value. */
 case object SameHit extends DamageModifiers.Mod {

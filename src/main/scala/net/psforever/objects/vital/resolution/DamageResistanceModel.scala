@@ -1,10 +1,11 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.vital
+package net.psforever.objects.vital.resolution
 
-import net.psforever.objects.vital.base.{DamageInteraction, DamageType}
+import net.psforever.objects.vital.base.DamageType
 import net.psforever.objects.vital.damage.DamageCalculations
+import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.resistance.ResistanceSelection
-import net.psforever.objects.vital.resolution.ResolutionCalculations
+import net.psforever.objects.vital.{NoResistanceSelection, NoResolutions}
 
 trait DamageAndResistance {
   def DamageUsing: DamageCalculations.Selector
@@ -50,7 +51,7 @@ trait DamageResistanceModel extends DamageAndResistance {
   private var resistUsing: ResistanceSelection = NoResistanceSelection
 
   /** the functionality that prepares for damage application actions; required */
-  private var model: ResolutionCalculations.Form = NoResolutions.Calculate
+  private var model: ResolutionCalculations.Form = NoResolutions.calculate
 
   def DamageUsing: DamageCalculations.Selector = damageUsing
 

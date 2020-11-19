@@ -10,8 +10,8 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity}
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
-import net.psforever.objects.vital.StandardResolutions
-import net.psforever.objects.vital.base.DamageResult
+import net.psforever.objects.vital.SimpleResolutions
+import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.Zone
 import net.psforever.types.Vector3
@@ -29,7 +29,7 @@ class ExplosiveDeployable(cdef: ExplosiveDeployableDefinition) extends ComplexDe
 class ExplosiveDeployableDefinition(private val objectId: Int) extends ComplexDeployableDefinition(objectId) {
   Name = "explosive_deployable"
   DeployCategory = DeployableCategory.Mines
-  Model = StandardResolutions.SimpleDeployables
+  Model = SimpleResolutions.calculate
   Packet = new SmallDeployableConverter
 
   private var detonateOnJamming: Boolean = true

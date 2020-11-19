@@ -1,8 +1,6 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital.damage
 
-import net.psforever.objects.vital.prop.DamageProfile
-
 class SpecificDamageProfile extends DamageProfile {
   private var damage0: Int = 0
   private var damage1: Int = 0

@@ -2,6 +2,7 @@
 package net.psforever.objects.vital.projectile
 
 import net.psforever.objects.vital.base._
+import net.psforever.objects.vital.interaction.DamageInteraction
 
 object ProjectileDamageModifiers {
   trait Mod extends DamageModifiers.Mod {

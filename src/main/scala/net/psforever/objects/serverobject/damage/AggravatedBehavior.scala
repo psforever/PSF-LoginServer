@@ -6,6 +6,7 @@ import net.psforever.objects.ballistics._
 import net.psforever.objects.serverobject.aura.Aura
 import net.psforever.objects.vital.base._
 import net.psforever.objects.vital.Vitality
+import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.projectile.ProjectileReason
 
 import scala.collection.mutable

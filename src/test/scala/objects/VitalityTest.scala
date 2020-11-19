@@ -5,7 +5,8 @@ import net.psforever.objects.ballistics._
 import net.psforever.objects._
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.vital._
-import net.psforever.objects.vital.base.{DamageResolution, DamageInteraction}
+import net.psforever.objects.vital.base.DamageResolution
+import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.types._
 import org.specs2.mutable.Specification

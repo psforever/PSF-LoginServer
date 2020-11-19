@@ -13,9 +13,10 @@ import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.structures.{AutoRepairStats, Building, StructureType}
 import net.psforever.objects.serverobject.terminals.{OrderTerminalDefinition, Terminal, TerminalControl}
 import net.psforever.objects.vital.Vitality
-import net.psforever.objects.vital.base.{DamageInteraction, DamageResolution}
+import net.psforever.objects.vital.base.DamageResolution
+import net.psforever.objects.vital.damage.DamageProfile
+import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
-import net.psforever.objects.vital.prop.DamageProfile
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.objects.{GlobalDefinitions, Player, Tool}
 import net.psforever.services.ServiceManager

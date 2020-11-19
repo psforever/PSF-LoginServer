@@ -8,7 +8,8 @@ import net.psforever.objects.definition.converter.SmallDeployableConverter
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.resistance.ResistanceProfileMutators
-import net.psforever.objects.vital.{DamageResistanceModel, NoResistanceSelection, VitalityDefinition}
+import net.psforever.objects.vital.resolution.DamageResistanceModel
+import net.psforever.objects.vital.{NoResistanceSelection, VitalityDefinition}
 
 import scala.concurrent.duration._
 

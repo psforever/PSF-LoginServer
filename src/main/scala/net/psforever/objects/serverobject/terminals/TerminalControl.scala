@@ -10,9 +10,9 @@ import net.psforever.objects.serverobject.damage.{Damageable, DamageableAmenity}
 import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}
 import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableAmenity}
 import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
+import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.services.Service
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import net.psforever.objects.vital.base.DamageResult
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `Terminal`.

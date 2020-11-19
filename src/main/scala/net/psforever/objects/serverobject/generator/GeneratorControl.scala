@@ -11,7 +11,7 @@ import net.psforever.objects.serverobject.damage.DamageableEntity
 import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, Repairable, RepairableEntity}
 import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.vital.DamageFromExplosion
-import net.psforever.objects.vital.base.DamageResult
+import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.packet.game.TriggerEffectMessage
 import net.psforever.types.{PlanetSideGeneratorState, Vector3}
 import net.psforever.services.Service

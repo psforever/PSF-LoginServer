@@ -1,4 +1,5 @@
-package net.psforever.objects.vital.prop
+// Copyright (c) 2020 PSForever
+package net.psforever.objects.vital.damage
 
 /**
   * The different values for five common types of damage that can be dealt, based on target and application.

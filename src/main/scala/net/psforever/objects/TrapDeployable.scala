@@ -8,13 +8,13 @@ import net.psforever.objects.definition.{ComplexDeployableDefinition, SimpleDepl
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity}
 import net.psforever.objects.serverobject.repair.RepairableEntity
-import net.psforever.objects.vital.StandardResolutions
-import net.psforever.objects.vital.base.DamageResult
+import net.psforever.objects.vital.SimpleResolutions
+import net.psforever.objects.vital.interaction.DamageResult
 
 class TrapDeployable(cdef: TrapDeployableDefinition) extends ComplexDeployable(cdef)
 
 class TrapDeployableDefinition(objectId: Int) extends ComplexDeployableDefinition(objectId) {
-  Model = StandardResolutions.SimpleDeployables
+  Model = SimpleResolutions.calculate
   Packet = new TRAPConverter
 
   override def Initialize(obj: PlanetSideServerObject with Deployable, context: ActorContext) = {

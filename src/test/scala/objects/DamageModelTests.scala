@@ -2,7 +2,7 @@
 package objects
 
 import net.psforever.objects._
-import net.psforever.objects.vital.damage._
+import net.psforever.objects.vital.damage.{DamageProfile, _}
 import net.psforever.objects.vital.projectile._
 import DamageCalculations._
 import net.psforever.objects.vital.resistance.ResistanceCalculations
@@ -17,7 +17,7 @@ import net.psforever.types._
 import org.specs2.mutable.Specification
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.vital.base._
-import net.psforever.objects.vital.prop.DamageProfile
+import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 
 class DamageCalculationsTests extends Specification {
   "DamageCalculations" should {

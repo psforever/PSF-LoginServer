@@ -13,7 +13,8 @@ import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.AmenityOwner
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vital.resistance.StandardResistanceProfile
-import net.psforever.objects.vital.{DamageResistanceModel, Vitality}
+import net.psforever.objects.vital.Vitality
+import net.psforever.objects.vital.resolution.DamageResistanceModel
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 import scala.annotation.tailrec
@@ -532,7 +533,7 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
 
   def PrepareGatingManifest(): VehicleManifest = {
     val manifest = VehicleManifest(this)
-    seats.collect { case (index, seat) if index > 0 => seat.Occupant = None }
+    seats.collect { case (index: Int, seat: Seat) if index > 0 => seat.Occupant = None }
     vehicleGatingManifest = Some(manifest)
     previousVehicleGatingManifest = None
     manifest

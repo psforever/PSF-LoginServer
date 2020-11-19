@@ -3,8 +3,9 @@ package net.psforever.objects.serverobject.structures
 
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.vital.resistance.StandardResistanceProfile
-import net.psforever.objects.vital.{DamageResistanceModel, Vitality}
-import net.psforever.objects.zones.{Zone, ZoneAware}
+import net.psforever.objects.vital.Vitality
+import net.psforever.objects.vital.resolution.DamageAndResistance
+import net.psforever.objects.zones.Zone
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 import net.psforever.objects.zones.{Zone => World}
 
@@ -19,7 +20,10 @@ import net.psforever.objects.zones.{Zone => World}
   * @see `AmenityOwner`
   * @see `FactionAffinity`
   */
-abstract class Amenity extends PlanetSideServerObject with Vitality with ZoneAware with StandardResistanceProfile {
+abstract class Amenity
+  extends PlanetSideServerObject
+    with Vitality
+    with StandardResistanceProfile {
   private[this] val log = org.log4s.getLogger("Amenity")
 
   /** what other entity has authority over this amenity; usually either a building or a vehicle */
@@ -77,7 +81,7 @@ abstract class Amenity extends PlanetSideServerObject with Vitality with ZoneAwa
     LocationOffset
   }
 
-  def DamageModel = Definition.asInstanceOf[DamageResistanceModel]
+  def DamageModel: DamageAndResistance = Definition.asInstanceOf[DamageAndResistance]
 
   def Definition: AmenityDefinition
 }

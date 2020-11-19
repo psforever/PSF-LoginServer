@@ -1,6 +1,8 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital.base
 
+import net.psforever.objects.vital.interaction.DamageInteraction
+
 /**
   * Adjustments performed on the subsequent manipulations of the "base damage" value of an attack vector
   * (like a projectile).<br>

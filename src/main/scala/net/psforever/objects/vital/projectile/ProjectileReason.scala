@@ -2,10 +2,11 @@
 package net.psforever.objects.vital.projectile
 
 import net.psforever.objects.ballistics.{Projectile => ActualProjectile}
-import net.psforever.objects.vital.DamageAndResistance
 import net.psforever.objects.vital.base._
-import net.psforever.objects.vital.prop.{DamageProfile, DamageProperties}
-import net.psforever.objects.vital.resolution.ResolutionCalculations
+import net.psforever.objects.vital.damage.DamageProfile
+import net.psforever.objects.vital.interaction.DamageInteraction
+import net.psforever.objects.vital.prop.DamageProperties
+import net.psforever.objects.vital.resolution.{DamageAndResistance, ResolutionCalculations}
 
 final case class ProjectileReason(
                                    resolution : DamageResolution.Value,
