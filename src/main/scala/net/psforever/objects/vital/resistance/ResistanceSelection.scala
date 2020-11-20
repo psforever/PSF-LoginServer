@@ -3,7 +3,7 @@ package net.psforever.objects.vital.resistance
 
 import net.psforever.objects.vital.NoResistance
 import net.psforever.objects.vital.base.DamageType
-import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
+import net.psforever.objects.vital.interaction.DamageInteraction
 
 /**
   * Maintain information about four primary forms of resistance calculation
@@ -15,13 +15,13 @@ trait ResistanceSelection {
   def Lash: ResistanceSelection.Format
   def Aggravated: ResistanceSelection.Format
 
-  def apply(data: DamageResult) : ResistanceSelection.Format = data.damageType match {
-      case DamageType.Direct     => Direct
-      case DamageType.Splash     => Splash
-      case DamageType.Lash       => Lash
-      case DamageType.Aggravated => Aggravated
-      case _                     => ResistanceSelection.None
-    }
+  def apply(data: DamageInteraction) : ResistanceSelection.Format = data.damageType match {
+    case DamageType.Direct     => Direct
+    case DamageType.Splash     => Splash
+    case DamageType.Lash       => Lash
+    case DamageType.Aggravated => Aggravated
+    case _                     => ResistanceSelection.None
+  }
 
   def apply(res: DamageType.Value) : ResistanceSelection.Format = res match {
     case DamageType.Direct     => Direct

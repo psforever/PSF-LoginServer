@@ -15,7 +15,7 @@ case object SameHit extends DamageModifiers.Mod {
   * The input value degrades (lessens)
   * to the percentage of its original value
   * if the target is a vehicle with no shields.
-  * Mainly used for the `galaxy_gunship` vehicle.
+  * Specifically used for the `galaxy_gunship`.
   */
 final case class GalaxyGunshipReduction(multiplier: Float) extends DamageModifiers.Mod {
   def calculate(damage: Int, data: DamageInteraction, cause: DamageReason): Int = {

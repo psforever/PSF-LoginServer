@@ -17,7 +17,7 @@ import net.psforever.objects.vital.resistance.ResistanceSelection
   *                      even if no modifiers are to be used, the base damage value needs to be extracted;
   *                      defaults to a function that utilizes all of the available information
   * @tparam A an internal type that converts between `calcFunc`'s output and `applyFunc`'s input;
-  *           never has to be defined explicitly, but will be checked upon object definition
+  *           never has to be defined explicitly but will be checked at compile time
   */
 abstract class DamageResistanceCalculations[A](
     calcFunc: DamageInteraction => (Int, Int) => A,

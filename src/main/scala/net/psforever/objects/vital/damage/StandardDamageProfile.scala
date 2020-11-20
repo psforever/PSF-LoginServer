@@ -1,8 +1,15 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vital.damage
 
+/**
+  * A static modifier for damage.
+  * Typically considered the "raw damage" when a part of the "damage source".
+  * The value determination cascades down to the first defined one.
+  * Requesting `Damage3` returns the value for `Damage1`
+  * if `Damage3 == None` and `Damage2 == None` but `Damage1` is defined.
+  */
 trait StandardDamageProfile extends DamageProfile {
-  private var damage0: Int         = 0
+  private var damage0: Int         = 0 //always considered as a defined value
   private var damage1: Option[Int] = None
   private var damage2: Option[Int] = None
   private var damage3: Option[Int] = None

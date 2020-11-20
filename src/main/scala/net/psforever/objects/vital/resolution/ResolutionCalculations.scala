@@ -18,7 +18,6 @@ import net.psforever.types.ImplantType
   * The base for the combining step of all projectile-induced damage calculation function literals.
   */
 trait ResolutionCalculations {
-
   /**
     * The exposed entry for the calculation function literal defined by this base.
     * @param damages the function literal that accumulates and calculates damages

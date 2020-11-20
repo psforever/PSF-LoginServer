@@ -1,71 +1,70 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vital
 
-import net.psforever.objects.ballistics.{ObjectSource, PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vital.resistance.{ResistanceCalculations, ResistanceSelection}
 
 object NoResistance
-  extends ResistanceCalculations[SourceEntry](
+  extends ResistanceCalculations(
     ResistanceCalculations.ValidInfantryTarget,
     ResistanceCalculations.NoResistExtractor
   )
 
 object InfantryHitResistance
-  extends ResistanceCalculations[PlayerSource](
+  extends ResistanceCalculations(
     ResistanceCalculations.ValidInfantryTarget,
     ResistanceCalculations.ExoSuitDirectExtractor
   )
 
 object InfantrySplashResistance
-  extends ResistanceCalculations[PlayerSource](
+  extends ResistanceCalculations(
     ResistanceCalculations.ValidInfantryTarget,
     ResistanceCalculations.ExoSuitSplashExtractor
   )
 
 object InfantryLashResistance
-  extends ResistanceCalculations[PlayerSource](
+  extends ResistanceCalculations(
     ResistanceCalculations.ValidInfantryTarget,
     ResistanceCalculations.MaximumResistance
   )
 
 object InfantryAggravatedResistance
-  extends ResistanceCalculations[PlayerSource](
+  extends ResistanceCalculations(
     ResistanceCalculations.ValidInfantryTarget,
     ResistanceCalculations.ExoSuitAggravatedExtractor
   )
 
 object VehicleHitResistance
-  extends ResistanceCalculations[VehicleSource](
+  extends ResistanceCalculations(
     ResistanceCalculations.ValidVehicleTarget,
     ResistanceCalculations.VehicleDirectExtractor
   )
 
 object VehicleSplashResistance
-  extends ResistanceCalculations[VehicleSource](
+  extends ResistanceCalculations(
     ResistanceCalculations.ValidVehicleTarget,
     ResistanceCalculations.VehicleSplashExtractor
   )
 
 object VehicleLashResistance
-  extends ResistanceCalculations[VehicleSource](
+  extends ResistanceCalculations(
     ResistanceCalculations.ValidVehicleTarget,
     ResistanceCalculations.NoResistExtractor
   )
 
 object VehicleAggravatedResistance
-  extends ResistanceCalculations[VehicleSource](
+  extends ResistanceCalculations(
     ResistanceCalculations.ValidVehicleTarget,
     ResistanceCalculations.VehicleAggravatedExtractor
   )
 
 object AmenityHitResistance
-  extends ResistanceCalculations[ObjectSource](
+  extends ResistanceCalculations(
     ResistanceCalculations.ValidAmenityTarget,
     ResistanceCalculations.OtherDirectExtractor
   )
 
 object AmenitySplashResistance
-  extends ResistanceCalculations[ObjectSource](
+  extends ResistanceCalculations(
     ResistanceCalculations.ValidAmenityTarget,
     ResistanceCalculations.OtherSplashExtractor
   )

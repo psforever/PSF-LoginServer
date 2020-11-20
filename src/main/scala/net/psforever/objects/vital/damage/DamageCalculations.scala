@@ -27,7 +27,7 @@ object DamageCalculations {
     * Get the damage value.
     * @param selector the function that recovers the damage value
     * @param data     na
-    * @return the damage value
+    * @return the raw damage value
     */
   def Raw(selector: DamageProfile => Int, data: DamageInteraction) : Int = {
     selector(data.cause.source)
@@ -35,9 +35,10 @@ object DamageCalculations {
 
   /**
     * Get the damage value after it has been modified by context-related operations.
+    * Used as the default modifier function for `DamageResistanceCalculations`.
     * @param selector the function that recovers the damage value
-    * @param data     na
-    * @return the accumulated damage value
+    * @param data     the interaction being processed
+    * @return         the accumulated damage value
     */
   def WithModifiers(selector: DamageProfile => Int, data: DamageInteraction) : Int = {
     val cause = data.cause

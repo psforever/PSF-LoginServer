@@ -8,6 +8,14 @@ import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.prop.DamageProperties
 import net.psforever.objects.vital.resolution.{DamageAndResistance, ResolutionCalculations}
 
+/**
+  * A wrapper for a "damage source" in damage calculations
+  * that parameterizes information necessary to explain a projectile being used.
+  * @param resolution how the damage is processed
+  * @param projectile the projectile that caused the damage
+  * @param damageModel the model to be utilized in these calculations;
+  *                    typically, but not always, defined by the target
+  */
 final case class ProjectileReason(
                                    resolution : DamageResolution.Value,
                                    projectile: ActualProjectile,
@@ -17,7 +25,7 @@ final case class ProjectileReason(
 
   def same(test: DamageReason): Boolean = {
     test match {
-      case o: ProjectileReason => o.projectile.id == projectile.id
+      case o: ProjectileReason => o.projectile.id == projectile.id //can only be another projectile with the same uid
       case _ => false
     }
   }

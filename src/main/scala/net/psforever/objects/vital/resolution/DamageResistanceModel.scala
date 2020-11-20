@@ -7,6 +7,9 @@ import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.resistance.ResistanceSelection
 import net.psforever.objects.vital.{NoResistanceSelection, NoResolutions}
 
+/**
+  * The functionality that is necessary for interaction of a vital game object with the rest of the hostile game world.
+  */
 trait DamageAndResistance {
   def DamageUsing: DamageCalculations.Selector
 
@@ -20,13 +23,18 @@ trait DamageAndResistance {
 }
 
 object DamageAndResistance {
+  /**
+    * A pass-through function.
+    * @param data garbage in
+    * @return garbage out
+    */
   def doNothingFallback(data: DamageInteraction): ResolutionCalculations.Output = {
     _: Any => data
   }
 }
 
 /**
-  * The functionality that is necessary for interaction of a vital game object with the rest of the game world.<br>
+  * The functionality that is necessary for interaction of a vital game object with the rest of the hostile game world.<br>
   * <br>
   * A vital object can be hurt or damaged or healed or repaired (HDHR).
   * The actual implementation of how that works is left to the specific object and its interfaces, however.

@@ -19,10 +19,10 @@ trait DamageProfile {
   /** `damage1` is for armor, amenities, deployables, etc. */
   def Damage1_=(damage: Int): Int
 
-  /** `damage2` if for aircraft */
+  /** `damage2` is for aircraft */
   def Damage2: Int
 
-  /** `damage2` if for aircraft */
+  /** `damage2` is for aircraft */
   def Damage2_=(damage: Int): Int
 
   /** `damage3` is for mechanized infantry */

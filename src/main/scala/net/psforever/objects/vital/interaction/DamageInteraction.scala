@@ -8,6 +8,9 @@ import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.vital.resolution.ResolutionCalculations
 import net.psforever.types.Vector3
 
+/**
+  * The recorded encounter of a damage source and a damageable target.
+  */
 trait DamageInteraction
   extends DamageResult
   with CommonDamageInteractionCalculationFunction {
@@ -32,6 +35,10 @@ trait DamageInteraction
   def calculate(data: DamageInteraction, dtype: DamageType.Value): ResolutionCalculations.Output = cause.calculate(data, dtype)
 }
 
+/**
+  * A generic encounter of a damage source and a damageable target.
+  * Tends to cause no special effects and might not even cause any actual damage.
+  */
 final case class GenericDamageInteraction(
                                            resolution: DamageResolution.Value,
                                            target: SourceEntry,
@@ -54,6 +61,9 @@ final case class GenericDamageInteraction(
   def adversarial: Option[Adversarial] = None
 }
 
+/**
+  * An encounter of a projectile-based damage source and a damageable target.
+  */
 final case class ProjectileDamageInteraction(
                                               target: SourceEntry,
                                               cause: ProjectileReason,
@@ -85,10 +95,13 @@ object DamageInteraction {
   def apply(resolution: DamageResolution.Value, target: SourceEntry, cause: DamageReason, hitPos: Vector3): DamageInteraction = {
     cause match {
       case o: ProjectileReason if o.resolution == resolution =>
+        //package projectile damage directly
         ProjectileDamageInteraction(target, o, hitPos)
       case o: ProjectileReason =>
+        //repackage projectile damage, substituting the provided resolution
         ProjectileDamageInteraction(target, ProjectileReason(resolution, o.projectile, o.damageModel), hitPos)
       case _ =>
+        //eh
         GenericDamageInteraction(resolution, target, cause, hitPos)
     }
   }
@@ -99,6 +112,12 @@ object DamageInteraction {
 }
 
 object ProjectileDamageInteraction {
+  /**
+    * Is this nondescript interaction the product of a projectile?
+    * @param obj the interaction
+    * @return defined, if the cause was a projectile;
+    *         undefined, otherwise
+    */
   def unapply(obj: DamageInteraction): Option[(SourceEntry, ProjectileReason, Vector3, Long)] = {
     obj.cause match {
       case o: ProjectileReason => Some((obj.target, o, obj.hitPos, obj.hitTime))

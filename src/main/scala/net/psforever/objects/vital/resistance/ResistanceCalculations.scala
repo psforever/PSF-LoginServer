@@ -11,23 +11,24 @@ import net.psforever.types.ExoSuitType
 import scala.util.{Failure, Success, Try}
 
 /**
-  * The base class for function literal description related to calculating resistance information.<br>
-  * <br>
-  * Implementing functionality of the children is the product of two user-defined processes
-  * and information for the calculation is extracted from the to-be-provided weapon discharge information.
-  * Specifically, the information is found as the `target` object which is a member of the said information.
-  * The specific functions passed into this object typically operate simultaneously normally
-  * and are related to the target and the kind of interaction the weapon discharge had with the target.
+  * The base for function literal description related to calculating resistance information.
+  * This glue connects target validation to value extraction
+  * to avoid the possibility of `NullPointerException` and `ClassCastException`.
+  * Some different types of vital objects store their resistance values in different places.
   * @param validate determine if a more generic `target` object is actually an expected type;
   *                 cast to and return that type of object
   * @param extractor recover the resistance values from an approved type of object
+  * @param default if the target does not match the validator, this is the constant resistance to return;
+  *                the code really needs to be examined in this case;
+  *                defaults to 0
   * @tparam TargetType an internal type that converts between `validate`'s output and `extractor`'s input;
   *                    in essence, should match the type of object container to which these resistances belong;
-  *                    never has to be defined explicitly, but will be checked upon object definition
+  *                    never has to be defined explicitly but will be checked at compile time
   */
 abstract class ResistanceCalculations[TargetType](
     validate: DamageInteraction => Try[TargetType],
-    extractor: TargetType => Int
+    extractor: TargetType => Int,
+    default: Int = 0
 ) {
 
   /**
@@ -40,7 +41,7 @@ abstract class ResistanceCalculations[TargetType](
       case Success(target) =>
         extractor(target)
       case _ =>
-        0
+        default
     }
   }
 }

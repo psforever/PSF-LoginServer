@@ -6,13 +6,18 @@ import net.psforever.objects.equipment.JammingUnit
 import net.psforever.objects.vital.base.{DamageModifiers, DamageType}
 import net.psforever.objects.vital.damage.StandardDamageProfile
 
+/**
+  * Information that explains aspects of the the damage being performed that go beyond simple numbers.
+  * Activation of these "special effects" may or may not even require the damage to be countable
+  * which is the context in which it is formally normalized.
+  */
 trait DamageProperties
   extends StandardDamageProfile
     with JammingUnit
     with DamageModifiers {
-  /** the type of damage that the projectile causes */
+  /** the type of damage cuased */
   private var damageType: DamageType.Value               = DamageType.None
-  /** an auxiliary type of damage that the projectile causes */
+  /** an auxiliary type of damage caused */
   private var damageTypeSecondary: DamageType.Value      = DamageType.None
   /** against Infantry targets, damage does not apply to armor damage */
   private var damageToHealthOnly: Boolean                = false
@@ -31,7 +36,7 @@ trait DamageProperties
   private var additionalEffect: Boolean                  = false
   /** projectile tries to confers aggravated damage burn to its target */
   private var aggravatedDamage: Option[AggravatedDamage] = None
-  /** */
+  /** ... */
   private var charging: Option[ChargeDamage]             = None
 
   def UseDamage1Subtract: Boolean                        = useDamage1Subtract
