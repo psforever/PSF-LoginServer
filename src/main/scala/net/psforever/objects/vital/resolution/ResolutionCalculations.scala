@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vital.resolution
 
-import net.psforever.objects.{Player, TurretDeployable, Vehicle}
-import net.psforever.objects.ballistics.PlayerSource
+import net.psforever.objects.{PlanetSideGameObject, Player, TurretDeployable, Vehicle}
+import net.psforever.objects.ballistics.{PlayerSource, SourceEntry}
 import net.psforever.objects.ce.{ComplexDeployable, Deployable}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.damage.Damageable
@@ -33,7 +33,7 @@ trait ResolutionCalculations {
 }
 
 object ResolutionCalculations {
-  type Output = Any => DamageResult
+  type Output = PlanetSideGameObject with FactionAffinity => DamageResult
   type Form   = (DamageCalculations.Selector, ResistanceSelection.Format, DamageInteraction) => Output
 
   def NoDamage(data: DamageInteraction)(a: Int, b: Int): Int = 0
@@ -130,7 +130,10 @@ object ResolutionCalculations {
     }
   }
 
-  def NoApplication(damageValue: Int, data: DamageInteraction)(target: Any): DamageResult = data
+  def NoApplication(damageValue: Int, data: DamageInteraction)(target: PlanetSideGameObject with FactionAffinity): DamageResult = {
+    val sameTarget = SourceEntry(target)
+    DamageResult(sameTarget, sameTarget, data)
+  }
 
   def SubtractWithRemainder(current: Int, damage: Int): (Int, Int) = {
     val a               = Math.max(0, current - damage)
@@ -149,7 +152,8 @@ object ResolutionCalculations {
     * @param data the historical damage information
     * @param target the `Player` object to be affected by these damage values (at some point)
     */
-  def InfantryApplication(damageValues: (Int, Int), data: DamageInteraction)(target: Any): DamageResult = {
+  def InfantryApplication(damageValues: (Int, Int), data: DamageInteraction)(target: PlanetSideGameObject with FactionAffinity): DamageResult = {
+    val targetBefore = SourceEntry(target)
     target match {
       case player: Player =>
         var (a, b) = damageValues
@@ -207,7 +211,7 @@ object ResolutionCalculations {
         }
       case _ =>
     }
-    data
+    DamageResult(targetBefore, SourceEntry(target), data)
   }
 
   /**
@@ -217,7 +221,8 @@ object ResolutionCalculations {
     * @param data the historical damage information
     * @param target the `Vehicle` object to be affected by these damage values (at some point)
     */
-  def VehicleApplication(damage: Int, data: DamageInteraction)(target: Any): DamageResult = {
+  def VehicleApplication(damage: Int, data: DamageInteraction)(target: PlanetSideGameObject with FactionAffinity): DamageResult = {
+    val targetBefore = SourceEntry(target)
     target match {
       case vehicle: Vehicle if CanDamage(vehicle, damage, data) =>
         val shields = vehicle.Shields
@@ -231,10 +236,11 @@ object ResolutionCalculations {
         }
       case _ => ;
     }
-    data
+    DamageResult(targetBefore, SourceEntry(target), data)
   }
 
-  def SimpleApplication(damage: Int, data: DamageInteraction)(target: Any): DamageResult = {
+  def SimpleApplication(damage: Int, data: DamageInteraction)(target: PlanetSideGameObject with FactionAffinity): DamageResult = {
+    val targetBefore = SourceEntry(target)
     target match {
       case obj: Deployable if CanDamage(obj, damage, data) =>
         obj.Health -= damage
@@ -244,10 +250,11 @@ object ResolutionCalculations {
         amenity.Health -= damage
       case _ => ;
     }
-    data
+    DamageResult(targetBefore, SourceEntry(target), data)
   }
 
-  def ComplexDeployableApplication(damage: Int, data: DamageInteraction)(target: Any): DamageResult = {
+  def ComplexDeployableApplication(damage: Int, data: DamageInteraction)(target: PlanetSideGameObject with FactionAffinity): DamageResult = {
+    val targetBefore = SourceEntry(target)
     target match {
       case ce: ComplexDeployable if CanDamage(ce, damage, data) =>
         if (ce.Shields > 0) {
@@ -275,6 +282,6 @@ object ResolutionCalculations {
 
       case _ => ;
     }
-    data
+    DamageResult(targetBefore, SourceEntry(target), data)
   }
 }

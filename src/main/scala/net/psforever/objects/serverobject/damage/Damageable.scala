@@ -7,7 +7,7 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.vital.Vitality
-import net.psforever.objects.vital.interaction.DamageResult
+import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.resolution.ResolutionCalculations
 
 /**
@@ -77,7 +77,7 @@ object Damageable {
     * @return `true`, if the target can be affected;
     *        `false`, otherwise
     */
-  def CanDamage(obj: Vitality with FactionAffinity, damage: Int, data: DamageResult): Boolean = {
+  def CanDamage(obj: Vitality with FactionAffinity, damage: Int, data: DamageInteraction): Boolean = {
     val definition = obj.Definition
     (damage > 0 || data.causesAggravation) &&
     definition.Damageable &&
@@ -93,13 +93,13 @@ object Damageable {
     * @return `true`, if the target can be affected;
     *        `false`, otherwise
     */
-  def CanJammer(obj: Vitality with FactionAffinity, data: DamageResult): Boolean = {
+  def CanJammer(obj: Vitality with FactionAffinity, data: DamageInteraction): Boolean = {
     data.causesJammering &&
     obj.isInstanceOf[JammableUnit] &&
     adversarialOrHackableChecks(obj, data)
   }
 
-  private def adversarialOrHackableChecks(obj: Vitality with FactionAffinity, data: DamageResult): Boolean = {
+  private def adversarialOrHackableChecks(obj: Vitality with FactionAffinity, data: DamageInteraction): Boolean = {
     (data.adversarial match {
       case Some(adversarial) => adversarial.attacker.Faction != adversarial.defender.Faction
       case None                                  => true
@@ -118,7 +118,7 @@ object Damageable {
     * @return `true`, if the target can be affected;
     *        `false`, otherwise
     */
-  def CanDamageOrJammer(obj: Vitality with FactionAffinity, damage: Int, data: DamageResult): Boolean = {
+  def CanDamageOrJammer(obj: Vitality with FactionAffinity, damage: Int, data: DamageInteraction): Boolean = {
     CanDamage(obj, damage, data) || CanJammer(obj, data)
   }
 

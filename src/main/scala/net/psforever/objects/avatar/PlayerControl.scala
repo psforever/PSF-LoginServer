@@ -562,7 +562,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     val health                = target.Health
     var announceConfrontation = damageToArmor > 0
     //special effects
-    if (Damageable.CanJammer(target, cause)) {
+    if (Damageable.CanJammer(target, cause.interaction)) {
       TryJammerEffectActivate(target, cause)
     }
     val aggravated: Boolean = TryAggravationEffectActivate(cause) match {
@@ -572,7 +572,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         //initial damage for aggravation, but never treat as "aggravated"
         false
       case _ =>
-        cause.causesAggravation
+        cause.interaction.causesAggravation
     }
     //log historical event
     target.History(cause)

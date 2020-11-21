@@ -15,7 +15,7 @@ trait ResistanceSelection {
   def Lash: ResistanceSelection.Format
   def Aggravated: ResistanceSelection.Format
 
-  def apply(data: DamageInteraction) : ResistanceSelection.Format = data.damageType match {
+  def apply(data: DamageInteraction) : ResistanceSelection.Format = data.cause.source.CausesDamageType match {
     case DamageType.Direct     => Direct
     case DamageType.Splash     => Splash
     case DamageType.Lash       => Lash

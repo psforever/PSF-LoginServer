@@ -433,11 +433,10 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
   h_mine.Faction = PlanetSideEmpire.NC
   h_mine.Actor = system.actorOf(Props(classOf[ExplosiveDeployableControl], h_mine), "h-mine-control")
 
-  val hMineSource = SourceEntry(h_mine)
   val pSource     = PlayerSource(player1)
   val projectile  = weapon.Projectile
   val resolved = DamageInteraction(
-    hMineSource,
+    SourceEntry(h_mine),
     ProjectileReason(
       DamageResolution.Hit,
       Projectile(projectile, weapon.Definition, weapon.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
@@ -505,7 +504,7 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
       )
       assert(
         msg_activity match {
-          case Zone.HotSpot.Conflict(target, attacker, _) => (target eq hMineSource) && (attacker eq pSource)
+          case Zone.HotSpot.Conflict(target, attacker, _) => (target.Definition eq h_mine.Definition) && (attacker eq pSource)
           case _                                          => false
         }
       )

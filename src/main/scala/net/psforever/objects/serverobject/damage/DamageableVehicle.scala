@@ -111,16 +111,16 @@ trait DamageableVehicle
         announceConfrontation = true
         false
       case _ =>
-        cause.causesAggravation
+        cause.interaction.causesAggravation
     }
     reportDamageToVehicle = false
 
     //log historical event
     target.History(cause)
     //damage
-    if (Damageable.CanDamageOrJammer(target, totalDamage, cause)) {
+    if (Damageable.CanDamageOrJammer(target, totalDamage, cause.interaction)) {
       //jammering
-      if (Damageable.CanJammer(target, cause)) {
+      if (Damageable.CanJammer(target, cause.interaction)) {
         target.Actor ! JammableUnit.Jammered(cause)
       }
       //stat changes

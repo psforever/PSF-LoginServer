@@ -23,7 +23,7 @@ class VitalityTest extends Specification {
       val player     = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       val pSource    = PlayerSource(player)
       val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
-      val resprojectile =DamageInteraction(
+      val resprojectile = DamageInteraction(
         SourceEntry(player),
         ProjectileReason(
           DamageResolution.Hit,
@@ -32,9 +32,10 @@ class VitalityTest extends Specification {
         ),
         Vector3(50, 50, 0)
       )
+      val result = resprojectile.calculate()(player)
 
-      player.History(resprojectile) //DamageInteraction, straight-up
-      player.History(DamageFromProjectile(resprojectile))
+      player.History(result) //DamageResult, straight-up
+      player.History(DamageFromProjectile(result))
       player.History(HealFromKit(pSource, 10, GlobalDefinitions.medkit))
       player.History(HealFromTerm(pSource, 10, 0, GlobalDefinitions.order_terminal))
       player.History(HealFromImplant(pSource, 10, ImplantType.AdvancedRegen))
@@ -82,8 +83,9 @@ class VitalityTest extends Specification {
         ),
         Vector3(50, 50, 0)
       )
+      val result = resprojectile.calculate()(player)
 
-      player.History(DamageFromProjectile(resprojectile))
+      player.History(DamageFromProjectile(result))
       player.History(HealFromKit(pSource, 10, GlobalDefinitions.medkit))
       player.History(HealFromTerm(pSource, 10, 0, GlobalDefinitions.order_terminal))
       player.History(HealFromImplant(pSource, 10, ImplantType.AdvancedRegen))

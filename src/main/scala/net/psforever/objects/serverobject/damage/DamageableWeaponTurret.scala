@@ -47,15 +47,15 @@ trait DamageableWeaponTurret
         announceConfrontation = true
         false
       case _ =>
-        cause.causesAggravation
+        cause.interaction.causesAggravation
     }
 
     //log historical event
     target.History(cause)
     //damage
-    if (Damageable.CanDamageOrJammer(target, damageToHealth, cause)) {
+    if (Damageable.CanDamageOrJammer(target, damageToHealth, cause.interaction)) {
       //jammering
-      if (Damageable.CanJammer(target, cause)) {
+      if (Damageable.CanJammer(target, cause.interaction)) {
         target.Actor ! JammableUnit.Jammered(cause)
       }
       //stat changes

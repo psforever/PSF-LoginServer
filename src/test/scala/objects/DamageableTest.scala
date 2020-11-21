@@ -802,16 +802,16 @@ class DamageableWeaponTurretDamageTest extends ActorTest {
 
   val weapon       = Tool(GlobalDefinitions.suppressor)
   val projectile   = weapon.Projectile
-  val turretSource = SourceEntry(turret)
+  val pSource = PlayerSource(player1)
   val resolved = DamageInteraction(
-    turretSource,
+    SourceEntry(turret),
     ProjectileReason(
       DamageResolution.Hit,
       Projectile(
         projectile,
         weapon.Definition,
         weapon.FireMode,
-        PlayerSource(player1),
+        pSource,
         0,
         Vector3(2, 0, 0),
         Vector3(-1, 0, 0)
@@ -841,8 +841,8 @@ class DamageableWeaponTurretDamageTest extends ActorTest {
       assert(
         msg3 match {
           case activity: Zone.HotSpot.Activity =>
-            activity.attacker == PlayerSource(player1) &&
-              activity.defender == turretSource &&
+            activity.attacker == pSource &&
+              activity.defender == SourceEntry(turret) &&
               activity.location == Vector3(1, 0, 0)
           case _ => false
         }
@@ -1201,7 +1201,7 @@ class DamageableVehicleDamageTest extends ActorTest {
         msg3 match {
           case activity: Zone.HotSpot.Activity =>
             activity.attacker == PlayerSource(player1) &&
-            activity.defender == vehicleSource &&
+            activity.defender == VehicleSource(atv) &&
             activity.location == Vector3(1, 0, 0)
           case _ => false
         }
@@ -1283,16 +1283,16 @@ class DamageableVehicleDamageMountedTest extends ActorTest {
 
   val weapon        = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile    = weapon.Projectile
-  val vehicleSource = SourceEntry(lodestar)
+  val pSource = PlayerSource(player1)
   val resolved = DamageInteraction(
-    vehicleSource,
+    SourceEntry(lodestar),
     ProjectileReason(
       DamageResolution.Hit,
       Projectile(
         projectile,
         weapon.Definition,
         weapon.FireMode,
-        PlayerSource(player1),
+        pSource,
         0,
         Vector3(2, 0, 0),
         Vector3(-1, 0, 0)
@@ -1332,8 +1332,8 @@ class DamageableVehicleDamageMountedTest extends ActorTest {
     assert(
       msg3 match {
         case activity: Zone.HotSpot.Activity =>
-          activity.attacker == PlayerSource(player1) &&
-            activity.defender == vehicleSource &&
+          activity.attacker == pSource &&
+            activity.defender == SourceEntry(lodestar) &&
             activity.location == Vector3(1, 0, 0)
         case _ => false
       }

@@ -25,9 +25,9 @@ trait AggravatedBehavior {
   def AggravatedObject: AggravatedBehavior.Target
 
   def TryAggravationEffectActivate(data: DamageResult): Option[AggravatedDamage] = {
-    (data.interaction.cause, data.aggravation) match {
+    (data.interaction.cause, data.interaction.aggravation) match {
       case (o: ProjectileReason, Some(damage))
-        if data.damageTypes.contains(DamageType.Aggravated) &&
+        if data.interaction.cause.source.AllDamageTypes.contains(DamageType.Aggravated) &&
            damage.info.exists(_.damage_type == AggravatedDamage.basicDamageType(o.resolution)) &&
            damage.effect_type != Aura.Nothing &&
            (o.projectile.quality == ProjectileQuality.AggravatesTarget ||
@@ -112,14 +112,11 @@ trait AggravatedBehavior {
                                           target: SourceEntry,
                                           powerOffset: List[Float]
                                         ): AggravatedBehavior.Entry = {
-    val cause = data.cause.asInstanceOf[ProjectileReason]
+    val cause = data.cause
     val aggravatedDamageInfo = DamageInteraction(
+      AggravatedDamage.burning(cause.resolution),
       target,
-      ProjectileReason(
-        AggravatedDamage.burning(cause.resolution),
-        cause.projectile,
-        cause.damageModel
-      ),
+      cause,
       data.hitPos
     )
     val entry = AggravatedBehavior.Entry(id, effect, retime, aggravatedDamageInfo, powerOffset)
@@ -195,21 +192,22 @@ trait AggravatedBehavior {
   def AggravatedReaction: Boolean = ongoingAggravated
 
   private def PerformAggravation(entry: AggravatedBehavior.Entry, tick: Int = 0): Unit = {
-    //only works for projectiles right now
     entry.data.cause match {
       case o: ProjectileReason =>
-        val cause = o
-        val model = o.damageModel
         val aggravatedProjectileData = DamageInteraction(
           entry.data.target,
           ProjectileReason(
-            cause.resolution,
-            cause.projectile.quality(ProjectileQuality.Modified(entry.qualityPerTick(tick))),
-            model
+            o.resolution,
+            o.projectile.quality(ProjectileQuality.Modified(entry.qualityPerTick(tick))),
+            o.damageModel
           ),
           entry.data.hitPos
         )
-        takesDamage.apply(Vitality.Damage(model.calculate(aggravatedProjectileData)))
+        takesDamage.apply(Vitality.Damage(aggravatedProjectileData.calculate()))
+
+      case _ =>
+        //TODO how to apply tick damage degradation
+        takesDamage.apply(Vitality.Damage(entry.data.calculate()))
     }
   }
 }

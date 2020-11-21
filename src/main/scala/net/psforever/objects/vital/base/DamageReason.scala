@@ -2,7 +2,7 @@
 package net.psforever.objects.vital.base
 
 import net.psforever.objects.vital.damage.DamageProfile
-import net.psforever.objects.vital.interaction.{CommonDamageInteractionCalculationFunction, DamageInteraction}
+import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.prop.DamageProperties
 import net.psforever.objects.vital.resolution.ResolutionCalculations
 
@@ -10,8 +10,12 @@ import net.psforever.objects.vital.resolution.ResolutionCalculations
   * A wrapper for ambiguity of the "damage source" in damage calculations.
   * The base reason does not convey any specific requirements in regards to the interaction being described.
   */
-trait DamageReason
-  extends CommonDamageInteractionCalculationFunction {
+trait DamageReason {
+  /**
+    * An indication about how the damage was or will be processed.
+    */
+  def resolution: DamageResolution.Value
+
   /**
     * A direct connection to the damage infomration, numbers and properties.
     */
@@ -39,7 +43,9 @@ trait DamageReason
     */
   def unstructuredModifiers: List[DamageModifiers.Mod] = Nil
 
-  def calculate(data: DamageInteraction): ResolutionCalculations.Output = (_: Any) => data
+  def calculate(data: DamageInteraction): ResolutionCalculations.Output =
+    (_: Any) => DamageResult(data.target, data.target, data)
 
-  def calculate(data: DamageInteraction, dtype: DamageType.Value): ResolutionCalculations.Output = (_: Any) => data
+  def calculate(data: DamageInteraction, dtype: DamageType.Value): ResolutionCalculations.Output =
+    (_: Any) => DamageResult(data.target, data.target, data)
 }

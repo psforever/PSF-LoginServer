@@ -1,9 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital.interaction
 
-import net.psforever.objects.ballistics.{AggravatedDamage, SourceEntry}
-import net.psforever.objects.equipment.TargetValidation
-import net.psforever.objects.vital.base.DamageType
+import net.psforever.objects.ballistics.SourceEntry
 
 /**
   * But one thing's sure. The player is hurt, attacked, and somebody's responsible.
@@ -16,23 +14,12 @@ final case class Adversarial(attacker: SourceEntry, defender: SourceEntry, imple
 
 /**
   * The outcome of the damage interaction, after all the numbers have been processed and properly applied.
-  * References relevent special effects of the damage
-  * without having to explore the specific reason for the interaction.
   */
-trait DamageResult {
-  def interaction: DamageInteraction
-
-  def damageType: DamageType.Value
-
-  def damageTypes: Set[DamageType.Value]
-
-  def causesJammering: Boolean
-
-  def jammering: List[(TargetValidation, Int)]
-
-  def causesAggravation: Boolean
-
-  def aggravation: Option[AggravatedDamage]
-
-  def adversarial: Option[Adversarial]
+final case class DamageResult(targetBefore: SourceEntry, targetAfter: SourceEntry, interaction: DamageInteraction) {
+  def adversarial: Option[Adversarial] = {
+    interaction.adversarial match {
+      case Some(adversarial) => Some(Adversarial(adversarial.attacker, targetAfter, adversarial.implement))
+      case None =>              None
+    }
+  }
 }

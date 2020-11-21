@@ -79,7 +79,7 @@ trait DamageableEntity extends Damageable {
     *        `false`, otherwise
     */
   protected def WillAffectTarget(target: Damageable.Target, damage: Int, cause: DamageResult): Boolean = {
-    Damageable.CanDamageOrJammer(target, damage, cause)
+    Damageable.CanDamageOrJammer(target, damage, cause.interaction)
   }
 
   /**
@@ -153,7 +153,7 @@ object DamageableEntity {
     * @param cause historical information about the damage
     */
   def DamageAwareness(target: Damageable.Target, cause: DamageResult, amount: Int): Unit = {
-    if (Damageable.CanJammer(target, cause)) {
+    if (Damageable.CanJammer(target, cause.interaction)) {
       target.Actor ! JammableUnit.Jammered(cause)
     }
     if (DamageToHealth(target, cause, amount)) {

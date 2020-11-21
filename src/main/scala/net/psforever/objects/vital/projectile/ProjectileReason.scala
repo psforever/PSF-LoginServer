@@ -21,7 +21,7 @@ final case class ProjectileReason(
                                    projectile: ActualProjectile,
                                    damageModel: DamageAndResistance
                                  ) extends DamageReason {
-  def source: DamageProperties = projectile.profile.asInstanceOf[DamageProperties]
+  def source: DamageProperties = projectile.profile
 
   def same(test: DamageReason): Boolean = {
     test match {

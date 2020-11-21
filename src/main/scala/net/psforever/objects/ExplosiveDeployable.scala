@@ -74,7 +74,7 @@ class ExplosiveDeployableControl(mine: ExplosiveDeployable) extends Actor with D
       val originalHealth = mine.Health
       val cause          = applyDamageTo(mine)
       val damage         = originalHealth - mine.Health
-      if (Damageable.CanDamageOrJammer(mine, damage, cause)) {
+      if (Damageable.CanDamageOrJammer(mine, damage, cause.interaction)) {
         ExplosiveDeployableControl.DamageResolution(mine, cause, damage)
       } else {
         mine.Health = originalHealth
@@ -88,7 +88,7 @@ object ExplosiveDeployableControl {
     target.History(cause)
     if (target.Health == 0) {
       DestructionAwareness(target, cause)
-    } else if (!target.Jammed && Damageable.CanJammer(target, cause)) {
+    } else if (!target.Jammed && Damageable.CanJammer(target, cause.interaction)) {
       if ( {
         target.Jammed = cause.interaction.cause match {
           case o: ProjectileReason =>

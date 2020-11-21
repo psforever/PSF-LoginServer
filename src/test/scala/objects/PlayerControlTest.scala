@@ -394,7 +394,7 @@ class PlayerControlDamageTest extends ActorTest {
     ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.calculate(resolved)
+  val applyDamageTo = resolved.calculate()
   guid.register(player1, 1)
   guid.register(player2, 2)
   guid.register(tool, 3)
@@ -487,7 +487,7 @@ class PlayerControlDeathStandingTest extends ActorTest {
     ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.calculate(resolved)
+  val applyDamageTo = resolved.calculate()
   guid.register(player1, 1)
   guid.register(player2, 2)
   guid.register(tool, 3)
@@ -618,7 +618,7 @@ class PlayerControlDeathSeatedTest extends ActorTest {
     ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.calculate(resolved)
+  val applyDamageTo = resolved.calculate()
   guid.register(player1, 1)
   guid.register(player2, 2)
   guid.register(tool, 3)

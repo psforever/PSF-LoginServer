@@ -3,7 +3,7 @@ package net.psforever.objects.vital.resolution
 
 import net.psforever.objects.vital.base.DamageType
 import net.psforever.objects.vital.damage.DamageCalculations
-import net.psforever.objects.vital.interaction.DamageInteraction
+import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.resistance.ResistanceSelection
 import net.psforever.objects.vital.{NoResistanceSelection, NoResolutions}
 
@@ -29,7 +29,7 @@ object DamageAndResistance {
     * @return garbage out
     */
   def doNothingFallback(data: DamageInteraction): ResolutionCalculations.Output = {
-    _: Any => data
+    _: Any => DamageResult(data.target, data.target, data)
   }
 }
 
