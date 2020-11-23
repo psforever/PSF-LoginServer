@@ -2,7 +2,7 @@
 package net.psforever.objects.vital.resolution
 
 import net.psforever.objects.{PlanetSideGameObject, Player, TurretDeployable, Vehicle}
-import net.psforever.objects.ballistics.{PlayerSource, SourceEntry}
+import net.psforever.objects.ballistics.{PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.ce.{ComplexDeployable, Deployable}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.damage.Damageable
@@ -12,7 +12,7 @@ import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.resistance.ResistanceSelection
-import net.psforever.types.ImplantType
+import net.psforever.types.{ExoSuitType, ImplantType}
 
 /**
   * The base for the combining step of all projectile-induced damage calculation function literals.
@@ -256,7 +256,7 @@ object ResolutionCalculations {
   def ComplexDeployableApplication(damage: Int, data: DamageInteraction)(target: PlanetSideGameObject with FactionAffinity): DamageResult = {
     val targetBefore = SourceEntry(target)
     target match {
-      case ce: ComplexDeployable if CanDamage(ce, damage, data) =>
+      case ce: TurretDeployable if CanDamage(ce, damage, data) =>
         if (ce.Shields > 0) {
           if (damage > ce.Shields) {
             ce.Health -= (damage - ce.Shields)
@@ -268,7 +268,7 @@ object ResolutionCalculations {
           ce.Health -= damage
         }
 
-      case ce: TurretDeployable if CanDamage(ce, damage, data) =>
+      case ce: ComplexDeployable if CanDamage(ce, damage, data) =>
         if (ce.Shields > 0) {
           if (damage > ce.Shields) {
             ce.Health -= (damage - ce.Shields)
@@ -283,5 +283,48 @@ object ResolutionCalculations {
       case _ => ;
     }
     DamageResult(targetBefore, SourceEntry(target), data)
+  }
+
+  def WildcardCalculations(data: DamageInteraction): (Int, Int) => Any = {
+    data.target match {
+      case p: PlayerSource =>
+        if(p.ExoSuit == ExoSuitType.MAX) MaxDamage(data)
+        else InfantryDamage(data)
+      case _ =>
+        VehicleDamageAfterResist(data)
+    }
+  }
+
+  def WildcardApplication(damage: Any, data: DamageInteraction)(target: PlanetSideGameObject with FactionAffinity): DamageResult = {
+    target match {
+      case _: Player =>
+        val dam : (Int, Int) = damage match {
+          case (a: Int, b: Int) => (a, b)
+          case a: Int => (a, 0)
+          case _ => (0, 0)
+        }
+        InfantryApplication(dam, data)(target)
+
+      case _: Vehicle =>
+        val dam : Int = damage match {
+          case a: Int => a
+          case _ => 0
+        }
+        VehicleApplication(dam, data)(target)
+
+      case _: ComplexDeployable =>
+        val dam : Int = damage match {
+          case a: Int => a
+          case _ => 0
+        }
+        ComplexDeployableApplication(dam, data)(target)
+
+      case _ =>
+        val dam : Int = damage match {
+          case a: Int => a
+          case _ => 0
+        }
+        SimpleApplication(dam, data)(target)
+    }
   }
 }

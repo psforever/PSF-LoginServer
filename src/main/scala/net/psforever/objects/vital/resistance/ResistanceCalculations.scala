@@ -32,7 +32,7 @@ abstract class ResistanceCalculations[TargetType](
 ) {
 
   /**
-    * Get resistance valuess.
+    * Get resistance values.
     * @param data the historical `DamageInteraction` information
     * @return the damage value
     */
@@ -51,6 +51,9 @@ object ResistanceCalculations {
 
   //target identification
   def InvalidTarget(data: DamageInteraction): Try[SourceEntry] = failure(s"invalid ${data.target.Definition.Name}")
+
+  //target is always considered valid
+  def AlwaysValidTarget(data: DamageInteraction): Try[SourceEntry] = Success(data.target)
 
   def ValidInfantryTarget(data: DamageInteraction): Try[PlayerSource] = {
     data.target match {
@@ -110,10 +113,10 @@ object ResistanceCalculations {
         if (target.obj.isInstanceOf[Amenity]) {
           Success(target)
         } else {
-          failure("something else")
+          failure(s"${target.Definition.Name} amenity")
         }
       case _ =>
-        failure("something else")
+        failure(s"amenity")
     }
   }
 

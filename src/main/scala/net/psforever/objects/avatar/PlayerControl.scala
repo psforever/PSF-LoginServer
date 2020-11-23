@@ -28,7 +28,9 @@ import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import akka.actor.typed
 import net.psforever.objects.locker.LockerContainerControl
-import net.psforever.objects.vital.interaction.DamageResult
+import net.psforever.objects.vital.base.DamageResolution
+import net.psforever.objects.vital.etc.SuicideReason
+import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 
 import scala.concurrent.duration._
 
@@ -81,9 +83,28 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       .orElse(auraBehavior)
       .orElse(containerBehavior)
       .orElse {
-        case Player.Die() =>
+        case Player.Die(Some(reason)) =>
           if (player.isAlive) {
-            DestructionAwareness(player, None)
+            //primary death
+            PerformDamage(player, reason.calculate())
+            if(player.Health > 0 || player.isAlive) {
+              //that wasn't good enough
+              DestructionAwareness(player, None)
+            }
+          }
+
+        case Player.Die(None) =>
+          if (player.isAlive) {
+            //suicide
+            PerformDamage(
+              player,
+              DamageInteraction(
+                DamageResolution.Resolved,
+                PlayerSource(player),
+                SuicideReason(),
+                player.Position
+              ).calculate()
+            )
           }
 
         case CommonMessages.Use(user, Some(item: Tool))
@@ -698,12 +719,9 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       target.Capacitor = 0
       events ! AvatarServiceMessage(nameChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 7, 0)) // capacitor
     }
-    val attribute = (cause match {
-      case Some(reason) => DamageableEntity.attributionTo(reason, target.Zone)
+    val attribute = cause match {
+      case Some(reason) => DamageableEntity.attributionTo(reason, target.Zone, player_guid)
       case None => player_guid
-    }) match {
-      case PlanetSideGUID(0) => player_guid
-      case guid => guid
     }
     events ! AvatarServiceMessage(
       nameChannel,

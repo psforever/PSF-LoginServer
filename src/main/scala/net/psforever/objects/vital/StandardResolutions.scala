@@ -9,6 +9,12 @@ object NoResolutions
       ResolutionCalculations.NoApplication
     )
 
+object AnyResolutions
+    extends DamageResistanceCalculations(
+      ResolutionCalculations.WildcardCalculations,
+      ResolutionCalculations.WildcardApplication
+    )
+
 object InfantryResolutions
     extends DamageResistanceCalculations(
       ResolutionCalculations.InfantryDamage,

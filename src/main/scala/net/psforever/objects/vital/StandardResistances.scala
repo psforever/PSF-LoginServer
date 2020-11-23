@@ -5,7 +5,7 @@ import net.psforever.objects.vital.resistance.{ResistanceCalculations, Resistanc
 
 object NoResistance
   extends ResistanceCalculations(
-    ResistanceCalculations.ValidInfantryTarget,
+    ResistanceCalculations.AlwaysValidTarget,
     ResistanceCalculations.NoResistExtractor
   )
 
@@ -70,10 +70,10 @@ object AmenitySplashResistance
   )
 
 object NoResistanceSelection extends ResistanceSelection {
-  def Direct: ResistanceSelection.Format     = ResistanceSelection.None
-  def Splash: ResistanceSelection.Format     = ResistanceSelection.None
-  def Lash: ResistanceSelection.Format       = ResistanceSelection.None
-  def Aggravated: ResistanceSelection.Format = ResistanceSelection.None
+  def Direct: ResistanceSelection.Format     = NoResistance.Calculate
+  def Splash: ResistanceSelection.Format     = NoResistance.Calculate
+  def Lash: ResistanceSelection.Format       = NoResistance.Calculate
+  def Aggravated: ResistanceSelection.Format = NoResistance.Calculate
 }
 
 object StandardInfantryResistance extends ResistanceSelection {
