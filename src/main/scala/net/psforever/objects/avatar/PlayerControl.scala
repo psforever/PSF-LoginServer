@@ -260,12 +260,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   afterHolsters.foreach({ elem => player.Slot(elem.start).Equipment = elem.obj })
                   val remainder = Players.fillEmptyHolsters(player.Holsters().iterator, toInventory ++ beforeInventory)
                   (
-                    player
-                      .Holsters()
-                      .zipWithIndex
-                      .map { case (slot, i) => (slot.Equipment, i) }
-                      .collect { case (Some(obj), index) => InventoryItem(obj, index) }
-                      .toList,
+                    player.HolsterItems(),
                     remainder
                   )
                 }
@@ -408,11 +403,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   player.Holsters().iterator,
                   (curatedHolsters ++ curatedInventory).filterNot(dropPred)
                 )
-                val finalHolsters = player
-                  .Holsters()
-                  .zipWithIndex
-                  .collect { case (slot, index) if slot.Equipment.nonEmpty => InventoryItem(slot.Equipment.get, index) }
-                  .toList
+                val finalHolsters = player.HolsterItems()
                 //inventory
                 val (finalInventory, _) = GridInventory.recoverInventory(leftoversForInventory, player.Inventory)
                 (finalHolsters, finalInventory)

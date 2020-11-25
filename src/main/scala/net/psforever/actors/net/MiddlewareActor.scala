@@ -59,10 +59,11 @@ object MiddlewareActor {
   def apply(
       socket: ActorRef[Udp.Command],
       sender: InetSocketAddress,
-      next: (ActorRef[Command], String) => Behavior[PlanetSidePacket],
-      connectionId: String
+      next: (ActorRef[Command], InetSocketAddress, String, Long) => Behavior[PlanetSidePacket],
+      connectionId: String,
+      sessionId: Long
   ): Behavior[Command] =
-    Behaviors.setup(context => new MiddlewareActor(context, socket, sender, next, connectionId).start())
+    Behaviors.setup(context => new MiddlewareActor(context, socket, sender, next, connectionId, sessionId).start())
 
   sealed trait Command
 
@@ -83,8 +84,9 @@ class MiddlewareActor(
     context: ActorContext[MiddlewareActor.Command],
     socket: ActorRef[Udp.Command],
     sender: InetSocketAddress,
-    next: (ActorRef[MiddlewareActor.Command], String) => Behavior[PlanetSidePacket],
-    connectionId: String
+    next: (ActorRef[MiddlewareActor.Command], InetSocketAddress, String, Long) => Behavior[PlanetSidePacket],
+    connectionId: String,
+    sessionId: Long
 ) {
 
   import MiddlewareActor._
@@ -102,7 +104,7 @@ class MiddlewareActor(
   var crypto: Option[CryptoCoding] = None
 
   val nextActor: ActorRef[PlanetSidePacket] =
-    context.spawnAnonymous(next(context.self, connectionId), ActorTags(s"id=${connectionId}"))
+    context.spawnAnonymous(next(context.self, sender, connectionId, sessionId), ActorTags(s"id=$connectionId"))
 
   /** Queue of incoming packets (plus sequence numbers and timestamps) that arrived in the wrong order */
   val inReorderQueue: ListBuffer[(PlanetSidePacket, Int, Long)] = ListBuffer()
@@ -329,7 +331,7 @@ class MiddlewareActor(
                   connectionClose()
               }
             case Failure(e) =>
-              log.error(s"Could not decode packet in cryptoSetup: ${e}")
+              log.error(s"Could not decode packet in cryptoSetup: $e")
               connectionClose()
           }
         case other =>
@@ -420,7 +422,7 @@ class MiddlewareActor(
                 inReorderQueue.addOne((packet, sequence, System.currentTimeMillis()))
               }
             case Successful((packet, None)) => in(packet)
-            case Failure(e)                 => log.error(s"Could not decode packet: ${e}")
+            case Failure(e)                 => log.error(s"Could not decode packet: $e")
           }
           Behaviors.same
 
@@ -483,7 +485,7 @@ class MiddlewareActor(
           case RelatedA(slot, subslot) =>
             log.info(s"Client indicated a packet is missing prior to slot '$slot' and subslot '$subslot'")
             outSlottedMetaPackets.find(_.subslot == subslot - 1) match {
-              case Some(packet) => outQueueBundled.enqueue(packet)
+              case Some(_packet) => outQueueBundled.enqueue(_packet)
               case None         => log.warn(s"Client requested unknown subslot '$subslot'")
             }
             Behaviors.same
@@ -526,7 +528,7 @@ class MiddlewareActor(
 
   def in(packet: Attempt[PlanetSidePacket]): Unit = {
     packet match {
-      case Successful(packet) => in(packet)
+      case Successful(_packet) => in(_packet)
       case Failure(cause)     => log.error(cause.message)
     }
   }

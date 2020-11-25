@@ -19,7 +19,7 @@ import net.psforever.login.psadmin.PsAdminActor
 import net.psforever.login._
 import net.psforever.objects.Default
 import net.psforever.objects.zones._
-import net.psforever.services.account.{AccountIntermediaryService, AccountPersistenceService}
+import net.psforever.services.account.{AccountIntermediaryService, AccountPersistenceService, ReceiveIPAddress}
 import net.psforever.services.chat.ChatService
 import net.psforever.services.galaxy.GalaxyService
 import net.psforever.services.properties.PropertyOverrideManager
@@ -95,19 +95,21 @@ object Server {
     Default(system)
 
     // typed to classic wrappers for login and session actors
-    val login = (ref: ActorRef[MiddlewareActor.Command], connectionId: String) => {
+    val login = (ref: ActorRef[MiddlewareActor.Command], info: InetSocketAddress, connectionId: String, sessionId: Long) => {
+      import net.psforever.services.account.IPAddress
       Behaviors.setup[PlanetSidePacket](context => {
-        val actor = context.actorOf(classic.Props(new LoginActor(ref, connectionId)), "login")
+        val actor = context.actorOf(classic.Props(new LoginActor(ref, connectionId, sessionId)), "login")
+        actor ! ReceiveIPAddress(new IPAddress(info))
         Behaviors.receiveMessage(message => {
           actor ! message
           Behaviors.same
         })
       })
     }
-    val session = (ref: ActorRef[MiddlewareActor.Command], connectionId: String) => {
+    val session = (ref: ActorRef[MiddlewareActor.Command], info: InetSocketAddress, connectionId: String, sessionId: Long) => {
       Behaviors.setup[PlanetSidePacket](context => {
         val uuid  = randomUUID().toString
-        val actor = context.actorOf(classic.Props(new SessionActor(ref, connectionId)), s"session-${uuid}")
+        val actor = context.actorOf(classic.Props(new SessionActor(ref, connectionId, sessionId)), s"session-$uuid")
         Behaviors.receiveMessage(message => {
           actor ! message
           Behaviors.same

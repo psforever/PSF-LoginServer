@@ -158,7 +158,7 @@ object SessionActor {
   private final case class LoadedRemoteProjectile(projectile_guid: PlanetSideGUID, projectile: Option[Projectile])
 }
 
-class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], connectionId: String)
+class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], connectionId: String, sessionId: Long)
     extends Actor
     with MDCContextAware {
 
@@ -5985,6 +5985,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         AccessVehicleContents(v)
       case o: LockerContainer =>
         AccessGenericContainer(o)
+      case p: Player if p.isBackpack =>
+        AccessCorpseContents(p)
       case p: PlanetSideServerObject with Container =>
         accessedContainer = Some(p)
       case _ => ;
@@ -6004,16 +6006,26 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     */
   def AccessVehicleContents(vehicle: Vehicle): Unit = {
     accessedContainer = Some(vehicle)
-    AccessVehicleContainerChannel(vehicle)
+    AccessContainerChannel(continent.VehicleEvents, vehicle.Actor.toString)
     DisplayContainerContents(vehicle.GUID, vehicle)
   }
 
-  def AccessVehicleContainerChannel(container: PlanetSideServerObject): Unit = {
-    continent.VehicleEvents ! Service.Join(s"${container.Actor}")
+  def AccessCorpseContents(tplayer: Player): Unit = {
+    accessedContainer = Some(tplayer)
+    DisplayContainerContents(tplayer.GUID, tplayer.HolsterItems())
+    DisplayContainerContents(tplayer.GUID, tplayer)
+  }
+
+  def AccessContainerChannel(events: ActorRef, channel: String): Unit = {
+    events ! Service.Join(channel)
   }
 
   def DisplayContainerContents(containerId: PlanetSideGUID, container: Container): Unit = {
-    container.Inventory.Items.foreach(entry => {
+    DisplayContainerContents(containerId, container.Inventory.Items)
+  }
+
+  def DisplayContainerContents(containerId: PlanetSideGUID, items: Iterable[InventoryItem]): Unit = {
+    items.foreach(entry => {
       val obj    = entry.obj
       val objDef = obj.Definition
       sendResponse(
@@ -6040,6 +6052,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         UnaccessVehicleContainer(v)
       case o: LockerContainer =>
         UnaccessGenericContainer(o)
+      case p: Player if p.isBackpack =>
+        UnaccessCorpseContainer(p)
       case _: PlanetSideServerObject with Container =>
         accessedContainer = None
       case _ => ;
@@ -6062,18 +6076,28 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     if (vehicle.AccessingTrunk.contains(player.GUID)) {
       vehicle.AccessingTrunk = None
     }
-    UnaccessVehicleContainerChannel(vehicle)
+    UnaccessContainerChannel(continent.VehicleEvents, vehicle.Actor.toString)
     HideContainerContents(vehicle)
   }
 
-  def UnaccessVehicleContainerChannel(container: PlanetSideServerObject): Unit = {
-    continent.VehicleEvents ! Service.Leave(Some(s"${container.Actor}"))
+  def UnaccessCorpseContainer(tplayer: Player): Unit = {
+    accessedContainer = None
+    HideContainerContents(tplayer.HolsterItems())
+    HideContainerContents(tplayer)
+  }
+
+  def UnaccessContainerChannel(events: ActorRef, channel: String): Unit = {
+    events ! Service.Leave(Some(channel))
   }
 
   def HideContainerContents(container: Container): Unit = {
-    container.Inventory.Items.foreach(entry => {
+    HideContainerContents(container.Inventory.Items)
+  }
+
+  def HideContainerContents(items: List[InventoryItem]): Unit = {
+    items.foreach { entry =>
       sendResponse(ObjectDeleteMessage(entry.obj.GUID, 0))
-    })
+    }
   }
 
   /**
@@ -7189,6 +7213,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     */
   def DepictPlayerAsCorpse(tplayer: Player): Unit = {
     val guid = tplayer.GUID
+    //the corpse as a receptacle
     sendResponse(
       ObjectCreateDetailedMessage(
         ObjectClass.avatar,
@@ -8241,23 +8266,21 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @return all discovered `BoomTrigger` objects
     */
   def RemoveBoomerTriggersFromInventory(): List[BoomerTrigger] = {
-    val holstersWithIndex = player.Holsters().zipWithIndex
-    ((player.Inventory.Items.collect({ case InventoryItem(obj: BoomerTrigger, index) => (obj, index) })) ++
-      (holstersWithIndex
-        .map({ case ((slot, index)) => (slot.Equipment, index) })
-        .collect { case ((Some(obj: BoomerTrigger), index)) => (obj, index) }))
-      .map({
-        case ((obj, index)) =>
-          player.Slot(index).Equipment = None
-          sendResponse(ObjectDeleteMessage(obj.GUID, 0))
-          if (player.VisibleSlots.contains(index) && player.HasGUID) {
-            continent.AvatarEvents ! AvatarServiceMessage(
-              continent.id,
-              AvatarAction.ObjectDelete(player.GUID, obj.GUID)
-            )
-          }
-          obj
-      })
+    val guid = player.GUID
+    val events = continent.AvatarEvents
+    val zoneId = continent.id
+    (player.Inventory.Items ++ player.HolsterItems())
+      .collect { case InventoryItem(obj: BoomerTrigger, index) =>
+        player.Slot(index).Equipment = None
+        sendResponse(ObjectDeleteMessage(obj.GUID, 0))
+        if (player.VisibleSlots.contains(index)) {
+          events ! AvatarServiceMessage(
+            zoneId,
+            AvatarAction.ObjectDelete(guid, obj.GUID)
+          )
+        }
+        obj
+      }
   }
 
   /**
