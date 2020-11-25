@@ -59,11 +59,10 @@ object MiddlewareActor {
   def apply(
       socket: ActorRef[Udp.Command],
       sender: InetSocketAddress,
-      next: (ActorRef[Command], InetSocketAddress, String, Long) => Behavior[PlanetSidePacket],
-      connectionId: String,
-      sessionId: Long
+      next: (ActorRef[Command], InetSocketAddress, String) => Behavior[PlanetSidePacket],
+      connectionId: String
   ): Behavior[Command] =
-    Behaviors.setup(context => new MiddlewareActor(context, socket, sender, next, connectionId, sessionId).start())
+    Behaviors.setup(context => new MiddlewareActor(context, socket, sender, next, connectionId).start())
 
   sealed trait Command
 
@@ -84,9 +83,8 @@ class MiddlewareActor(
     context: ActorContext[MiddlewareActor.Command],
     socket: ActorRef[Udp.Command],
     sender: InetSocketAddress,
-    next: (ActorRef[MiddlewareActor.Command], InetSocketAddress, String, Long) => Behavior[PlanetSidePacket],
-    connectionId: String,
-    sessionId: Long
+    next: (ActorRef[MiddlewareActor.Command], InetSocketAddress, String) => Behavior[PlanetSidePacket],
+    connectionId: String
 ) {
 
   import MiddlewareActor._
@@ -104,7 +102,7 @@ class MiddlewareActor(
   var crypto: Option[CryptoCoding] = None
 
   val nextActor: ActorRef[PlanetSidePacket] =
-    context.spawnAnonymous(next(context.self, sender, connectionId, sessionId), ActorTags(s"id=$connectionId"))
+    context.spawnAnonymous(next(context.self, sender, connectionId), ActorTags(s"id=$connectionId"))
 
   /** Queue of incoming packets (plus sequence numbers and timestamps) that arrived in the wrong order */
   val inReorderQueue: ListBuffer[(PlanetSidePacket, Int, Long)] = ListBuffer()

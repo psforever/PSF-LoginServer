@@ -8266,17 +8266,16 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @return all discovered `BoomTrigger` objects
     */
   def RemoveBoomerTriggersFromInventory(): List[BoomerTrigger] = {
-    val guid = player.GUID
     val events = continent.AvatarEvents
     val zoneId = continent.id
     (player.Inventory.Items ++ player.HolsterItems())
       .collect { case InventoryItem(obj: BoomerTrigger, index) =>
         player.Slot(index).Equipment = None
         sendResponse(ObjectDeleteMessage(obj.GUID, 0))
-        if (player.VisibleSlots.contains(index)) {
+        if (player.HasGUID && player.VisibleSlots.contains(index)) {
           events ! AvatarServiceMessage(
             zoneId,
-            AvatarAction.ObjectDelete(guid, obj.GUID)
+            AvatarAction.ObjectDelete(player.GUID, obj.GUID)
           )
         }
         obj

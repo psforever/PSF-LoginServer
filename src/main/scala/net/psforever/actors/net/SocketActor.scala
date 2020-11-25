@@ -11,7 +11,6 @@ import akka.actor.typed.{ActorRef, ActorTags, Behavior, PostStop, Terminated}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.io.{IO, Udp}
 import akka.actor.typed.scaladsl.adapter._
-import net.psforever.actors.session.Session
 import net.psforever.packet.PlanetSidePacket
 import net.psforever.util.Config
 import scodec.interop.akka.EnrichedByteString
@@ -27,7 +26,7 @@ import scala.util.Random
 object SocketActor {
   def apply(
       address: InetSocketAddress,
-      next: (ActorRef[MiddlewareActor.Command], InetSocketAddress, String, Long) => Behavior[PlanetSidePacket]
+      next: (ActorRef[MiddlewareActor.Command], InetSocketAddress, String) => Behavior[PlanetSidePacket]
   ): Behavior[Command] =
     Behaviors.setup(context => new SocketActor(context, address, next).start())
 
@@ -98,7 +97,7 @@ object SocketActor {
 class SocketActor(
     context: ActorContext[SocketActor.Command],
     address: InetSocketAddress,
-    next: (ActorRef[MiddlewareActor.Command], InetSocketAddress, String, Long) => Behavior[PlanetSidePacket]
+    next: (ActorRef[MiddlewareActor.Command], InetSocketAddress, String) => Behavior[PlanetSidePacket]
 ) {
   import SocketActor._
   import SocketActor.Command
@@ -179,7 +178,7 @@ class SocketActor(
                 case None =>
                   val connectionId = randomUUID.toString
                   val ref = context.spawn(
-                    MiddlewareActor(udpCommandAdapter, remote, next, connectionId, Session.newSessionId()),
+                    MiddlewareActor(udpCommandAdapter, remote, next, connectionId),
                     s"middleware-$connectionId",
                     ActorTags(s"uuid=$connectionId")
                   )
