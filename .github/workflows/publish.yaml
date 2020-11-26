@@ -17,7 +17,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Setup Scala
-        uses: olafurpg/setup-scala@v5
+        uses: olafurpg/setup-scala@v10
       - name: Build docs
         run: sbt docs/unidoc
       - name: Deploy to GitHub Pages
