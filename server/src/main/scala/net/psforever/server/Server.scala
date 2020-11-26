@@ -11,7 +11,7 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.{actor => classic}
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.joran.JoranConfigurator
-import io.sentry.Sentry
+import io.sentry.{Sentry, SentryOptions}
 import kamon.Kamon
 import net.psforever.actors.net.{LoginActor, MiddlewareActor, SocketActor}
 import net.psforever.actors.session.SessionActor
@@ -85,7 +85,9 @@ object Server {
 
     if (Config.app.sentry.enable) {
       logger.info(s"Enabling Sentry")
-      Sentry.init(Config.app.sentry.dsn)
+      val options = new SentryOptions()
+      options.setDsn(Config.app.sentry.dsn)
+      Sentry.init(options)
     }
 
     /** Start up the main actor system. This "system" is the home for all actors running on this server */
