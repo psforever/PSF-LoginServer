@@ -260,12 +260,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   afterHolsters.foreach({ elem => player.Slot(elem.start).Equipment = elem.obj })
                   val remainder = Players.fillEmptyHolsters(player.Holsters().iterator, toInventory ++ beforeInventory)
                   (
-                    player
-                      .Holsters()
-                      .zipWithIndex
-                      .map { case (slot, i) => (slot.Equipment, i) }
-                      .collect { case (Some(obj), index) => InventoryItem(obj, index) }
-                      .toList,
+                    player.HolsterItems(),
                     remainder
                   )
                 }
@@ -408,11 +403,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   player.Holsters().iterator,
                   (curatedHolsters ++ curatedInventory).filterNot(dropPred)
                 )
-                val finalHolsters = player
-                  .Holsters()
-                  .zipWithIndex
-                  .collect { case (slot, index) if slot.Equipment.nonEmpty => InventoryItem(slot.Equipment.get, index) }
-                  .toList
+                val finalHolsters = player.HolsterItems()
                 //inventory
                 val (finalInventory, _) = GridInventory.recoverInventory(leftoversForInventory, player.Inventory)
                 (finalHolsters, finalInventory)
@@ -822,14 +813,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
   def MessageDeferredCallback(msg: Any): Unit = {
     msg match {
       case Containable.MoveItem(_, item, _) =>
-        //momentarily put item back where it was originally
+        //momentarily depict item back where it was originally
         val obj = ContainerObject
         obj.Find(item) match {
           case Some(slot) =>
-            obj.Zone.AvatarEvents ! AvatarServiceMessage(
-              player.Name,
-              AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectAttachMessage(obj.GUID, item.GUID, slot))
-            )
+            PutItemInSlotCallback(item, slot)
           case None => ;
         }
       case _ => ;
@@ -840,7 +828,13 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     val obj       = ContainerObject
     val zone      = obj.Zone
     val events    = zone.AvatarEvents
-    val toChannel = if (obj.VisibleSlots.contains(slot)) zone.id else player.Name
+    val toChannel = if (player.isBackpack) {
+      self.toString
+    } else if (obj.VisibleSlots.contains(slot)) {
+      zone.id
+    } else {
+      player.Name
+    }
     item.Faction = PlanetSideEmpire.NEUTRAL
     if (slot == obj.DrawnSlot) {
       obj.DrawnSlot = Player.HandsDownSlot
@@ -856,9 +850,10 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     val name       = player.Name
     val definition = item.Definition
     val faction    = obj.Faction
+    val toChannel = if (player.isBackpack) { self.toString } else { name }
     item.Faction = faction
     events ! AvatarServiceMessage(
-      name,
+      toChannel,
       AvatarAction.SendResponse(
         Service.defaultPlayerGUID,
         ObjectCreateDetailedMessage(
@@ -869,7 +864,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         )
       )
     )
-    if (obj.VisibleSlots.contains(slot)) {
+    if (!player.isBackpack && obj.VisibleSlots.contains(slot)) {
       events ! AvatarServiceMessage(zone.id, AvatarAction.EquipmentInHand(guid, guid, slot, item))
     }
     //handle specific types of items
@@ -924,7 +919,13 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
   def SwapItemCallback(item: Equipment, fromSlot: Int): Unit = {
     val obj       = ContainerObject
     val zone      = obj.Zone
-    val toChannel = if (obj.VisibleSlots.contains(fromSlot)) zone.id else player.Name
+    val toChannel = if (player.isBackpack) {
+      self.toString
+    } else if (obj.VisibleSlots.contains(fromSlot)) {
+      zone.id
+    } else {
+      player.Name
+    }
     zone.AvatarEvents ! AvatarServiceMessage(
       toChannel,
       AvatarAction.ObjectDelete(Service.defaultPlayerGUID, item.GUID)

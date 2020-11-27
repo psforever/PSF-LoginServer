@@ -4,6 +4,7 @@ import java.net.{InetAddress, InetSocketAddress}
 import java.nio.file.Paths
 import java.util.Locale
 import java.util.UUID.randomUUID
+import java.util.concurrent.atomic.AtomicLong
 
 import akka.actor.ActorSystem
 import akka.actor.typed.ActorRef
@@ -19,7 +20,7 @@ import net.psforever.login.psadmin.PsAdminActor
 import net.psforever.login._
 import net.psforever.objects.Default
 import net.psforever.objects.zones._
-import net.psforever.services.account.{AccountIntermediaryService, AccountPersistenceService}
+import net.psforever.services.account.{AccountIntermediaryService, AccountPersistenceService, ReceiveIPAddress}
 import net.psforever.services.chat.ChatService
 import net.psforever.services.galaxy.GalaxyService
 import net.psforever.services.properties.PropertyOverrideManager
@@ -95,19 +96,21 @@ object Server {
     Default(system)
 
     // typed to classic wrappers for login and session actors
-    val login = (ref: ActorRef[MiddlewareActor.Command], connectionId: String) => {
+    val login = (ref: ActorRef[MiddlewareActor.Command], info: InetSocketAddress, connectionId: String) => {
+      import net.psforever.services.account.IPAddress
       Behaviors.setup[PlanetSidePacket](context => {
-        val actor = context.actorOf(classic.Props(new LoginActor(ref, connectionId)), "login")
+        val actor = context.actorOf(classic.Props(new LoginActor(ref, connectionId, Login.getNewId())), "login")
+        actor ! ReceiveIPAddress(new IPAddress(info))
         Behaviors.receiveMessage(message => {
           actor ! message
           Behaviors.same
         })
       })
     }
-    val session = (ref: ActorRef[MiddlewareActor.Command], connectionId: String) => {
+    val session = (ref: ActorRef[MiddlewareActor.Command], info: InetSocketAddress, connectionId: String) => {
       Behaviors.setup[PlanetSidePacket](context => {
         val uuid  = randomUUID().toString
-        val actor = context.actorOf(classic.Props(new SessionActor(ref, connectionId)), s"session-${uuid}")
+        val actor = context.actorOf(classic.Props(new SessionActor(ref, connectionId, Session.getNewId())), s"session-$uuid")
         Behaviors.receiveMessage(message => {
           actor ! message
           Behaviors.same
@@ -230,6 +233,30 @@ object Server {
       case _ =>
         sys.exit(1)
     }
-
   }
+
+  sealed trait AuthoritativeCounter {
+    /** the id accumulator */
+    private val masterIdKeyRing: AtomicLong = new AtomicLong(0L)
+
+    /**
+      * Poll the next id.
+      * @return a id
+      */
+    def nextId(): Long = masterIdKeyRing.get()
+
+    /**
+      * Get the next available id.
+      * Increment the counter.
+      * @return a id
+      */
+    def getNewId(): Long = {
+      val oldId = masterIdKeyRing.getAndIncrement()
+      oldId
+    }
+  }
+
+  object Session extends AuthoritativeCounter
+
+  object Login extends AuthoritativeCounter
 }

@@ -26,7 +26,7 @@ import scala.util.Random
 object SocketActor {
   def apply(
       address: InetSocketAddress,
-      next: (ActorRef[MiddlewareActor.Command], String) => Behavior[PlanetSidePacket]
+      next: (ActorRef[MiddlewareActor.Command], InetSocketAddress, String) => Behavior[PlanetSidePacket]
   ): Behavior[Command] =
     Behaviors.setup(context => new SocketActor(context, address, next).start())
 
@@ -64,7 +64,7 @@ object SocketActor {
         case _: Udp.Received | _: Udp.Send =>
           simulate(message)
           Behaviors.same
-        case other =>
+        case _ =>
           socketActor ! toSocket(message)
           Behaviors.same
       }
@@ -97,7 +97,7 @@ object SocketActor {
 class SocketActor(
     context: ActorContext[SocketActor.Command],
     address: InetSocketAddress,
-    next: (ActorRef[MiddlewareActor.Command], String) => Behavior[PlanetSidePacket]
+    next: (ActorRef[MiddlewareActor.Command], InetSocketAddress, String) => Behavior[PlanetSidePacket]
 ) {
   import SocketActor._
   import SocketActor.Command
@@ -174,13 +174,13 @@ class SocketActor(
             case Udp.Received(data, remote) =>
               incomingTimes(remote) = System.currentTimeMillis()
               val ref = packetActors.get(remote) match {
-                case Some(ref) => ref
+                case Some(_ref) => _ref
                 case None =>
                   val connectionId = randomUUID.toString
                   val ref = context.spawn(
                     MiddlewareActor(udpCommandAdapter, remote, next, connectionId),
-                    s"middleware-${connectionId}",
-                    ActorTags(s"uuid=${connectionId}")
+                    s"middleware-$connectionId",
+                    ActorTags(s"uuid=$connectionId")
                   )
                   context.watch(ref)
                   packetActors(remote) = ref
@@ -218,7 +218,7 @@ class SocketActor(
         case (_, Terminated(ref)) =>
           packetActors.find(_._2 == ref) match {
             case Some((remote, _)) => packetActors.remove(remote)
-            case None              => log.warn(s"Received Terminated for unknown actor ${ref}")
+            case None              => log.warn(s"Received Terminated for unknown actor $ref")
           }
           Behaviors.same
       }

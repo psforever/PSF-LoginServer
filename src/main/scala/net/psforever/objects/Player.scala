@@ -190,6 +190,19 @@ class Player(var avatar: Avatar)
 
   def Holsters(): Array[EquipmentSlot] = holsters
 
+  /**
+    * Transform the holster equipment slots
+    * into a list of the kind of item wrapper found in an inventory.
+    * @see `GridInventory`
+    * @see `InventoryItem`
+    * @return a list of items that would be found in a proper inventory
+    */
+  def HolsterItems(): List[InventoryItem] = holsters
+    .zipWithIndex
+    .collect {
+      case out @ (slot: EquipmentSlot, index: Int) if slot.Equipment.nonEmpty => InventoryItem(slot.Equipment.get, index)
+    }.toList
+
   def Inventory: GridInventory = inventory
 
   override def Fit(obj: Equipment): Option[Int] = {

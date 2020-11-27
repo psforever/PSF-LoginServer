@@ -70,7 +70,7 @@ object AvatarConverter {
         obj.Faction,
         bops = false,
         alt_model_flag,
-        false,
+        v1 = false,
         None,
         obj.Jammed,
         None,
@@ -89,11 +89,11 @@ object AvatarConverter {
       0L,
       outfit_name = "",
       outfit_logo = 0,
-      false,
+      unk1 = false,
       obj.isBackpack,
-      false,
-      false,
-      false,
+      unk2 = false,
+      unk3 = false,
+      unk4 = false,
       facingPitch = obj.Orientation.y,
       facingYawUpper = obj.FacingYawUpper,
       obj.avatar.lookingForSquad,
@@ -163,21 +163,21 @@ object AvatarConverter {
       Some(DCDExtra2(0, 0)),
       Nil,
       Nil,
-      false,
+      unkC = false,
       obj.avatar.cosmetics
     )
     pad_length: Option[Int] => DetailedCharacterData(ba, bb(obj.avatar.bep, pad_length))(pad_length)
   }
 
   def MakeInventoryData(obj: Player): InventoryData = {
-    InventoryData(MakeHolsters(obj, BuildEquipment).sortBy(_.parentSlot))
+    InventoryData(MakeHolsters(obj, BuildEquipment))
   }
 
   def MakeDetailedInventoryData(obj: Player): InventoryData = {
     InventoryData(
-      (MakeHolsters(obj, BuildDetailedEquipment) ++
+      MakeHolsters(obj, BuildDetailedEquipment) ++
        MakeFifthSlot(obj) ++
-       MakeInventory(obj)).sortBy(_.parentSlot)
+       MakeInventory(obj)
     )
   }
 
@@ -210,7 +210,7 @@ object AvatarConverter {
     * @param builder the function used to transform to the decoded packet form
     * @return a list of all items that were in the holsters in decoded packet form
     */
-  private def MakeHolsters(obj: Player, builder: (Int, Equipment) => InternalSlot): List[InternalSlot] = {
+  def MakeHolsters(obj: Player, builder: (Int, Equipment) => InternalSlot): List[InternalSlot] = {
     recursiveMakeHolsters(obj.Holsters().iterator, builder)
   }
 
@@ -222,9 +222,8 @@ object AvatarConverter {
     * @return a list of any item that was in the fifth holster in decoded packet form
     */
   private def MakeFifthSlot(obj: Player): List[InternalSlot] = {
-    obj.Slot(5).Equipment match {
+    obj.Slot(slot = 5).Equipment match {
       case Some(equip) =>
-        //List(BuildDetailedEquipment(5, equip))
         List(InternalSlot(
           equip.Definition.ObjectId,
           equip.GUID,

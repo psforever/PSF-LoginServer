@@ -10,7 +10,7 @@ import net.psforever.packet.game._
 import net.psforever.persistence
 import net.psforever.services.ServiceManager
 import net.psforever.services.ServiceManager.Lookup
-import net.psforever.services.account.{ReceiveIPAddress, RetrieveIPAddress, StoreAccountData}
+import net.psforever.services.account.{ReceiveIPAddress, StoreAccountData}
 import net.psforever.types.PlanetSideEmpire
 import net.psforever.util.Config
 import net.psforever.util.Database._
@@ -42,7 +42,7 @@ class LoginActor(
 
  */
 
-class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], connectionId: String)
+class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], connectionId: String, sessionId: Long)
     extends Actor
     with MDCContextAware {
   private[this] val log = org.log4s.getLogger
@@ -53,7 +53,6 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
 
   val usernameRegex = """[A-Za-z0-9]{3,}""".r
 
-  var sessionId: Long               = 0
   var leftRef: ActorRef             = ActorRef.noSender
   var rightRef: ActorRef            = ActorRef.noSender
   var accountIntermediary: ActorRef = ActorRef.noSender
@@ -99,8 +98,6 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
         // TODO: prevent multiple LoginMessages from being processed in a row!! We need a state machine
 
         val clientVersion = s"Client Version: $majorVersion.$minorVersion.$revision, $buildDate"
-
-        accountIntermediary ! RetrieveIPAddress(sessionId)
 
         if (token.isDefined)
           log.info(s"New login UN:$username Token:${token.get}. $clientVersion")
