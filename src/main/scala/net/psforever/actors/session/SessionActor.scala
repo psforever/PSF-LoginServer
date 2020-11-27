@@ -5995,35 +5995,57 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
   def AccessGenericContainer(container: PlanetSideServerObject with Container): Unit = {
     accessedContainer = Some(container)
-    DisplayContainerContents(container.GUID, container)
+    DisplayContainerContents(container.GUID, container.Inventory.Items)
   }
 
   /**
-    * Common preparation for interfacing with a vehicle.
+    * Common preparation for interfacing with a vehicle trunk.
     * Join a vehicle-specific group for shared updates.
     * Construct every object in the vehicle's inventory for shared manipulation updates.
+    * @see `Container.Inventory`
+    * @see `GridInventory.Items`
     * @param vehicle the vehicle
     */
   def AccessVehicleContents(vehicle: Vehicle): Unit = {
     accessedContainer = Some(vehicle)
     AccessContainerChannel(continent.VehicleEvents, vehicle.Actor.toString)
-    DisplayContainerContents(vehicle.GUID, vehicle)
+    DisplayContainerContents(vehicle.GUID, vehicle.Inventory.Items)
   }
 
+  /**
+    * Common preparation for interfacing with a corpse (former player's backpack).
+    * Join a corpse-specific group for shared updates.
+    * Construct every object in the player's hands and inventory for shared manipulation updates.
+    * @see `Container.Inventory`
+    * @see `GridInventory.Items`
+    * @see `Player.HolsterItems`
+    * @param tplayer the corpse
+    */
   def AccessCorpseContents(tplayer: Player): Unit = {
     accessedContainer = Some(tplayer)
+    AccessContainerChannel(continent.AvatarEvents, tplayer.Actor.toString)
     DisplayContainerContents(tplayer.GUID, tplayer.HolsterItems())
-    DisplayContainerContents(tplayer.GUID, tplayer)
+    DisplayContainerContents(tplayer.GUID, tplayer.Inventory.Items)
   }
 
+  /**
+    * Join an entity-specific group for shared updates.
+    * @param events the event system bus to which to subscribe
+    * @param channel the channel name
+    */
   def AccessContainerChannel(events: ActorRef, channel: String): Unit = {
     events ! Service.Join(channel)
   }
 
-  def DisplayContainerContents(containerId: PlanetSideGUID, container: Container): Unit = {
-    DisplayContainerContents(containerId, container.Inventory.Items)
-  }
-
+  /**
+    * Depict the contents of a container by building them in the local client
+    * in their container as a group of detailed entities.
+    * @see `ObjectCreateDetailedMessage`
+    * @see `ObjectCreateMessageParent`
+    * @see `PacketConverter.DetailedConstructorData`
+    * @param containerId the container's unique identifier
+    * @param items a list of the entities to be depicted
+    */
   def DisplayContainerContents(containerId: PlanetSideGUID, items: Iterable[InventoryItem]): Unit = {
     items.foreach(entry => {
       val obj    = entry.obj
@@ -6039,6 +6061,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     })
   }
 
+  /**
+    * For whatever conatiner the character considers itself accessing,
+    * initiate protocol to release it from "access".
+    */
   def UnaccessContainer(): Unit = {
     accessedContainer match {
       case Some(container) => UnaccessContainer(container)
@@ -6046,6 +6072,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     }
   }
 
+  /**
+    * For the target container, initiate protocol to release it from "access".
+    */
   def UnaccessContainer(container: Container): Unit = {
     container match {
       case v: Vehicle =>
@@ -6062,7 +6091,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
   def UnaccessGenericContainer(container: Container): Unit = {
     accessedContainer = None
-    HideContainerContents(container)
+    HideContainerContents(container.Inventory.Items)
   }
 
   /**
@@ -6077,23 +6106,37 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       vehicle.AccessingTrunk = None
     }
     UnaccessContainerChannel(continent.VehicleEvents, vehicle.Actor.toString)
-    HideContainerContents(vehicle)
+    HideContainerContents(vehicle.Inventory.Items)
   }
 
+  /**
+    * Common preparation for disengaging from a corpse.
+    * Leave the corpse-specific group that was used for shared updates.
+    * Deconstruct every object in the backpack's inventory.
+    * @param vehicle the vehicle
+    */
   def UnaccessCorpseContainer(tplayer: Player): Unit = {
     accessedContainer = None
+    UnaccessContainerChannel(continent.AvatarEvents, tplayer.Actor.toString)
     HideContainerContents(tplayer.HolsterItems())
-    HideContainerContents(tplayer)
+    HideContainerContents(tplayer.Inventory.Items)
   }
 
+  /**
+    * Leave an entity-specific group for shared updates.
+    * @param events the event system bus to which to subscribe
+    * @param channel the channel name
+    */
   def UnaccessContainerChannel(events: ActorRef, channel: String): Unit = {
     events ! Service.Leave(Some(channel))
   }
 
-  def HideContainerContents(container: Container): Unit = {
-    HideContainerContents(container.Inventory.Items)
-  }
-
+  /**
+    * Forget the contents of a container by deleting that content from the local client.
+    * @see `InventoryItem`
+    * @see `ObjectDeleteMessage`
+    * @param items a list of the entities to be depicted
+    */
   def HideContainerContents(items: List[InventoryItem]): Unit = {
     items.foreach { entry =>
       sendResponse(ObjectDeleteMessage(entry.obj.GUID, 0))
