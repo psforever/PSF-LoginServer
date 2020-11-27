@@ -9,7 +9,6 @@ import net.psforever.objects.serverobject.structures.StructureType
 import net.psforever.objects.{GlobalDefinitions, Player, Vehicle}
 import net.psforever.objects.zones.Zone
 import net.psforever.types.{PlanetSideGUID, _}
-import net.psforever.services.RemoverActor
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.actors.zone.ZoneActor
