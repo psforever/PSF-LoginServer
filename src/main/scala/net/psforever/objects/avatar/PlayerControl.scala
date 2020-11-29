@@ -11,7 +11,6 @@ import net.psforever.objects.loadouts.Loadout
 import net.psforever.objects.serverobject.aura.{Aura, AuraEffectBehavior}
 import net.psforever.objects.serverobject.containable.{Containable, ContainableBehavior}
 import net.psforever.objects.serverobject.damage.Damageable.Target
-import net.psforever.objects.vital.PlayerSuicide
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.damage.{AggravatedBehavior, Damageable, DamageableEntity}
 import net.psforever.objects.serverobject.mount.Mountable
@@ -739,30 +738,22 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     )
     //TODO other methods of death?
     val pentry = PlayerSource(target)
-    (target.History.find({ p => p.isInstanceOf[PlayerSuicide] }) match {
-      case Some(PlayerSuicide(_)) =>
-        None
-      case _ =>
-        cause.orElse { target.LastShot } match {
-          case out @ Some(shot) =>
-            if (System.nanoTime - shot.interaction.hitTime < (10 seconds).toNanos) {
-              out
-            } else {
-              None //suicide
-            }
+    (cause match {
+      case Some(result) =>
+        result.adversarial
+      case None =>
+        target.LastDamage match {
+          case Some(attack) if System.currentTimeMillis() - attack.interaction.hitTime < (10 seconds).toMillis =>
+            attack.adversarial
           case None =>
-            None //suicide
+            None
         }
     }) match {
-      case Some(shot) =>
-        shot.adversarial match {
-          case Some(adversarial) =>
-            events ! AvatarServiceMessage(
-              zoneChannel,
-              AvatarAction.DestroyDisplay(adversarial.attacker, pentry, adversarial.implement)
-            )
-          case None => ;
-        }
+      case Some(adversarial) =>
+        events ! AvatarServiceMessage(
+          zoneChannel,
+          AvatarAction.DestroyDisplay(adversarial.attacker, pentry, adversarial.implement)
+        )
       case None =>
         events ! AvatarServiceMessage(zoneChannel, AvatarAction.DestroyDisplay(pentry, pentry, 0))
     }

@@ -1,6 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital.base
 
+import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.vital.damage.DamageProfile
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.prop.DamageProperties
@@ -42,6 +43,10 @@ trait DamageReason {
     * @return a list of modifications to apply (in order)
     */
   def unstructuredModifiers: List[DamageModifiers.Mod] = Nil
+
+  def adversary: Option[SourceEntry]
+
+  def attribution: Int = 0
 
   def calculate(data: DamageInteraction): ResolutionCalculations.Output =
     (_: Any) => DamageResult(data.target, data.target, data)

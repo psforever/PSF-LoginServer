@@ -25,6 +25,7 @@ import net.psforever.objects.vehicles.{DestroyedVehicle, InternalTelepadDefiniti
 import net.psforever.objects.vital.base.DamageType
 import net.psforever.objects.vital.damage._
 import net.psforever.objects.vital.projectile._
+import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.vital.{ComplexDeployableResolutions, MaxResolutions, SimpleResolutions}
 import net.psforever.types.{ExoSuitType, ImplantType, PlanetSideEmpire, Vector3}
 
@@ -5656,6 +5657,12 @@ object GlobalDefinitions {
     two_man_assault_buggy.AutoPilotSpeeds = (22, 8)
     two_man_assault_buggy.DestroyedModel = Some(DestroyedVehicle.TwoManAssaultBuggy)
     two_man_assault_buggy.JackingDuration = Array(0, 15, 5, 3)
+    two_man_assault_buggy.Explodes = Some(new DamageWithPosition {
+      Damage0 = 200
+      Damage1 = 300
+      DamageRadius = 8
+      DamageAtEdge = 0.2f
+    })
 
     skyguard.Name = "skyguard"
     skyguard.MaxHealth = 1000

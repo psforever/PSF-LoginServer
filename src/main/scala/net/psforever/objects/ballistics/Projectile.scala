@@ -32,7 +32,7 @@ import net.psforever.types.Vector3
   * @param id an exclusive identifier for this projectile;
   *           normally generated internally, but can be manually set
   * @param fire_time when the weapon discharged was recorded;
-  *                  defaults to `System.nanoTime`
+  *                  defaults to `System.currentTimeMillis()`
   */
 final case class Projectile(
     profile: ProjectileDefinition,

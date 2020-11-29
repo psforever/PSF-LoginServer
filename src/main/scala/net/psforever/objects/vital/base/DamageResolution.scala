@@ -27,6 +27,7 @@ object DamageResolution extends Enumeration {
   AggravatedDirect,     //direct hit aggravated damage
   AggravatedDirectBurn, //continuous direct hit aggravated damage
   AggravatedSplash,     //splashed aggravated damage
-  AggravatedSplashBurn  //continuous splashed aggravated damage
+  AggravatedSplashBurn, //continuous splashed aggravated damage
+  Explosion             //area of effect damage, caused by an internal mechanism; unrelated to Splash
   = Value
 }

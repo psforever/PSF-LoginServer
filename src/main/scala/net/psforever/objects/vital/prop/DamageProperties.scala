@@ -34,10 +34,12 @@ trait DamageProperties
   /** na;
     * currently used with jammer properties only */
   private var additionalEffect: Boolean                  = false
-  /** projectile tries to confers aggravated damage burn to its target */
+  /** confers aggravated damage burn to its target */
   private var aggravatedDamage: Option[AggravatedDamage] = None
-  /** ... */
+  /** modifies based on some measure of time */
   private var charging: Option[ChargeDamage]             = None
+  /** a destroyed mine will detonate rather than fizzle-out */
+  private var sympathy: Boolean                          = false
 
   def UseDamage1Subtract: Boolean                        = useDamage1Subtract
 
@@ -117,5 +119,12 @@ trait DamageProperties
   def Charging_=(damage : Option[ChargeDamage]) : Option[ChargeDamage] = {
     charging = damage
     Charging
+  }
+
+  def SympatheticExplosion: Boolean = sympathy
+
+  def SympatheticExplosion_=(chain: Boolean): Boolean = {
+    sympathy = chain
+    SympatheticExplosion
   }
 }

@@ -1,6 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital.collision
 
+import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.vital.base.{DamageReason, DamageResolution}
 import net.psforever.objects.vital.prop.DamageProperties
 
@@ -15,6 +16,8 @@ final case class AdversarialCollisionReason(source: DamageProperties) extends Da
   def resolution: DamageResolution.Value = DamageResolution.Unresolved
 
   def same(test: DamageReason): Boolean = false
+
+  override def adversary : Option[SourceEntry] = None
 }
 
 /**
@@ -26,4 +29,6 @@ final case class CollisionReason(source: DamageProperties) extends DamageReason 
   def resolution: DamageResolution.Value = DamageResolution.Unresolved
 
   def same(test: DamageReason): Boolean = false
+
+  override def adversary : Option[SourceEntry] = None
 }

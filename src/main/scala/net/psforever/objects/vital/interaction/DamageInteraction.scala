@@ -75,15 +75,18 @@ final case class GenericDamageInteraction(
                                            hitPos: Vector3,
                                            hitTime: Long = System.currentTimeMillis()
                                          ) extends DamageInteraction {
-  def causesJammering: Boolean = false
+  def causesJammering: Boolean = cause.source.JammedEffectDuration.nonEmpty
 
-  def jammering: List[(TargetValidation, Int)] = List.empty
+  def jammering: List[(TargetValidation, Int)] = cause.source.JammedEffectDuration.toList
 
-  def causesAggravation: Boolean = false
+  def causesAggravation: Boolean = cause.source.Aggravated.nonEmpty
 
-  def aggravation: Option[AggravatedDamage] = None
+  def aggravation: Option[AggravatedDamage] = cause.source.Aggravated
 
-  def adversarial: Option[Adversarial] = None
+  def adversarial: Option[Adversarial] = cause.adversary match {
+    case Some(adversity) => Some(Adversarial(adversity, target, cause.attribution))
+    case None            => None
+  }
 }
 
 /**
@@ -109,7 +112,10 @@ final case class ProjectileDamageInteraction(
 
   def aggravation: Option[AggravatedDamage] = cause.projectile.profile.Aggravated
 
-  def adversarial: Option[Adversarial] = Some(Adversarial(cause.projectile.owner, target, cause.projectile.attribute_to))
+  def adversarial: Option[Adversarial] = cause.adversary match {
+    case Some(adversity) => Some(Adversarial(adversity, target, cause.projectile.attribute_to))
+    case None =>            None
+  }
 }
 
 object DamageInteraction {

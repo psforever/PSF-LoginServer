@@ -82,14 +82,14 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
 
   val zoneActors: mutable.Map[String, (ActorRef[ZoneActor.Command], Zone)] = mutable.Map(
     _zones.map {
-      case zone =>
+      zone =>
         val zoneActor = context.spawn(ZoneActor(zone), s"zone-${zone.id}")
         (zone.id, (zoneActor, zone))
     }.toSeq: _*
   )
 
-  val zones = zoneActors.map {
-    case (id, (_, zone)) => zone
+  val zones: Iterable[Zone] = zoneActors.map {
+    case (_, (_, zone: Zone)) => zone
   }
 
   override def onMessage(msg: Command): Behavior[Command] = {
@@ -154,7 +154,7 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
 
       case GetRandomSpawnPoint(zoneNumber, faction, spawnGroups, replyTo) =>
         val response = zones.find(_.Number == zoneNumber) match {
-          case Some(zone) =>
+          case Some(zone: Zone) =>
             /*
             val location = math.abs(Random.nextInt() % 4) match {
               case 0 => Vector3(sanctuary.map.Scale.width, sanctuary.map.Scale.height, 0) //NE

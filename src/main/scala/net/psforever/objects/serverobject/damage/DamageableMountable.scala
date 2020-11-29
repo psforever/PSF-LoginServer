@@ -2,9 +2,9 @@
 package net.psforever.objects.serverobject.damage
 
 import net.psforever.objects.Player
-import net.psforever.objects.ballistics.PlayerSource
+import net.psforever.objects.ballistics.{PlayerSource, SourceEntry}
 import net.psforever.objects.serverobject.mount.Mountable
-import net.psforever.objects.vital.interaction.DamageResult
+import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.packet.game.DamageWithPositionMessage
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
@@ -77,14 +77,17 @@ object DamageableMountable {
     * @param cause historical information about the damage
     */
   def DestructionAwareness(target: Damageable.Target with Mountable, cause: DamageResult): Unit = {
+    val interaction = cause.interaction
     target.Seats.values
       .filter(seat => {
         seat.isOccupied && seat.Occupant.get.isAlive
       })
       .foreach(seat => {
         val tplayer = seat.Occupant.get
-        tplayer.History(cause)
-        tplayer.Actor ! Player.Die()
+        //tplayer.History(cause)
+        tplayer.Actor ! Player.Die(
+          DamageInteraction(interaction.resolution, SourceEntry(tplayer), interaction.cause, interaction.hitPos)
+        )
       })
   }
 }

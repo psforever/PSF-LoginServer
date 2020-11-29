@@ -7,6 +7,7 @@ import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.vehicles.{DestroyedVehicle, UtilityType}
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.damage.DamageCalculations
+import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.vital.resistance.ResistanceProfileMutators
 import net.psforever.objects.vital.resolution.DamageResistanceModel
 import net.psforever.types.Vector3
@@ -40,8 +41,7 @@ class VehicleDefinition(objectId: Int)
   private var deploymentTime_Undeploy: Int                       = 0 //ms
   private var trunkSize: InventoryTile                           = InventoryTile.None
   private var trunkOffset: Int                                   = 0
-
-  /** The position offset of the trunk, orientation as East = 0 */
+  /* The position offset of the trunk, orientation as East = 0 */
   private var trunkLocation: Vector3                         = Vector3.Zero
   private var canCloak: Boolean                              = false
   private var canFly: Boolean                                = false
@@ -50,6 +50,7 @@ class VehicleDefinition(objectId: Int)
   private var deconTime: Option[FiniteDuration]              = None
   private var maxCapacitor: Int                              = 0
   private var destroyedModel: Option[DestroyedVehicle.Value] = None
+  private var explodes: Option[DamageWithPosition] = None
   Name = "vehicle"
   Packet = VehicleDefinition.converter
   DamageUsing = DamageCalculations.AgainstVehicle
@@ -182,6 +183,15 @@ class VehicleDefinition(objectId: Int)
   def DestroyedModel_=(model: Option[DestroyedVehicle.Value]): Option[DestroyedVehicle.Value] = {
     destroyedModel = model
     DestroyedModel
+  }
+
+  def Explodes: Option[DamageWithPosition] = explodes
+
+  def Explodes_=(combustion: DamageWithPosition): Option[DamageWithPosition] = Explodes_=(Some(combustion))
+
+  def Explodes_=(combustion: Option[DamageWithPosition]): Option[DamageWithPosition] = {
+    explodes = combustion
+    Explodes
   }
 }
 

@@ -4,6 +4,7 @@ package net.psforever.objects.vital.projectile
 import net.psforever.objects.ballistics.{ChargeDamage, PlayerSource, ProjectileQuality}
 import net.psforever.objects.equipment.ChargeFireModeDefinition
 import net.psforever.objects.vital.base._
+import net.psforever.objects.vital.damage.DamageModifierFunctions
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.types.{ExoSuitType, Vector3}
 
@@ -44,17 +45,6 @@ case class CustomDistanceCutoff(cutoff: Float) extends ProjectileDamageModifiers
 case object DistanceDegrade extends ProjectileDamageModifiers.Mod {
   def calculate(damage: Int, data: DamageInteraction, cause: ProjectileReason): Int =
     ProjectileDamageModifierFunctions.distanceDegradeFunction(damage, data, cause)
-}
-
-/**
-  * The input value degrades (lessens)
-  * the further the distance between the point of origin (target position)
-  * and the point of encounter (`hitPos`) of its vector (projectile).
-  * If the value is encountered beyond its maximum radial distance, the value is zero'd.
-  */
-case object RadialDegrade extends ProjectileDamageModifiers.Mod {
-  def calculate(damage: Int, data: DamageInteraction, cause: ProjectileReason): Int =
-    ProjectileDamageModifierFunctions.radialDegradeFunction(damage, data, cause)
 }
 
 /**
@@ -290,13 +280,13 @@ case object FlakHit extends ProjectileDamageModifiers.Mod {
   * If the damage is resolved through a `SplashHitDamage` packet,
   * calculate the damage as a function of its degrading value over distance
   * between the hit position of the projectile and the position of the target.
-  * @see `radialDegradeFunction`
+  * @see `DamageModifierFunctions.radialDegradeFunction`
   * @see `ProjectileQuality`
   */
 case object FlakBurst extends ProjectileDamageModifiers.Mod {
   def calculate(damage: Int, data: DamageInteraction, cause: ProjectileReason): Int = {
     if(cause.resolution == DamageResolution.Splash) {
-      ProjectileDamageModifierFunctions.radialDegradeFunction(damage, data, cause)
+      DamageModifierFunctions.radialDegradeFunction(damage, data, cause)
     } else {
       damage
     }
@@ -322,29 +312,6 @@ object ProjectileDamageModifierFunctions {
       } else {
         damage - ((damage - profile.DegradeMultiplier * damage) * ((distance - profile.DistanceNoDegrade) / (profile.DistanceMax - profile.DistanceNoDegrade))).toInt
       }
-    } else {
-      0
-    }
-  }
-
-  /**
-    * The input value degrades (lessens)
-    * the further the distance between the point of origin (target position)
-    * and the point of encounter (`hitPos`) of its vector (projectile).
-    * If the value is encountered beyond its maximum radial distance, the value is zero'd.
-    */
-  def radialDegradeFunction(damage: Int, data: DamageInteraction, cause: ProjectileReason): Int = {
-    val profile   = cause.projectile.profile
-    val distance  = Vector3.Distance(data.hitPos, data.target.Position)
-    val radius    = profile.DamageRadius
-    val radiusMin = profile.DamageRadiusMin
-    if (distance <= radiusMin) {
-      damage
-    } else if (distance <= radius) {
-      //damage - (damage * profile.DamageAtEdge * (distance - radiusMin) / (radius - radiusMin)).toInt
-      val base = profile.DamageAtEdge
-      val radi = radius - radiusMin
-      (damage * ((1 - base) * ((radi - (distance - radiusMin)) / radi) + base)).toInt
     } else {
       0
     }

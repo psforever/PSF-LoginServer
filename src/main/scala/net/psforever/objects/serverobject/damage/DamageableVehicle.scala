@@ -2,10 +2,14 @@
 package net.psforever.objects.serverobject.damage
 
 import akka.actor.Actor
+import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.{Vehicle, Vehicles}
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.damage.Damageable.Target
-import net.psforever.objects.vital.interaction.DamageResult
+import net.psforever.objects.vital.Vitality
+import net.psforever.objects.vital.base.DamageResolution
+import net.psforever.objects.vital.etc.ExplodingEntityReason
+import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.resolution.ResolutionCalculations
 import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
@@ -189,10 +193,33 @@ trait DamageableVehicle
   override protected def DestructionAwareness(target: Target, cause: DamageResult): Unit = {
     super.DestructionAwareness(target, cause)
     val obj = DamageableObject
-    DamageableMountable.DestructionAwareness(obj, cause)
     val zone = target.Zone
     //aggravation cancel
     EndAllAggravation()
+    //passengers die with us
+    DamageableMountable.DestructionAwareness(obj, cause)
+    //(some) people standing around get hurt from us
+    obj.Definition.Explodes match {
+      case Some(explosion) =>
+        val seatedPlayers = obj.Seats.values.collect { case seat if seat.isOccupied => seat.Occupant.get.Name }.toList
+        val radius = explosion.DamageRadius * explosion.DamageRadius
+        val sourcePosition = obj.Position
+        target.Zone.LivePlayers
+          .filterNot { player =>
+            Vector3.DistanceSquared(sourcePosition, player.Position) >= radius || seatedPlayers.contains(player.Name)
+          }
+          .foreach { player =>
+            player.Actor ! Vitality.Damage(
+              DamageInteraction(
+                DamageResolution.Explosion,
+                SourceEntry(player),
+                ExplodingEntityReason(obj, player, cause.interaction),
+                player.Position
+              ).calculate()
+            )
+          }
+      case None => ;
+    }
     //cargo vehicles die with us
     obj.CargoHolds.values.foreach(hold => {
       hold.Occupant match {
@@ -211,6 +238,7 @@ trait DamageableVehicle
         VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 68, 0)
       )
     }
+    //clean up
     target.Actor ! Vehicle.Deconstruct(Some(1 minute))
     target.ClearHistory()
     DamageableWeaponTurret.DestructionAwareness(obj, cause)

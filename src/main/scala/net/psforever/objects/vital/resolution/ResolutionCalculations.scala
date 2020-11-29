@@ -2,7 +2,7 @@
 package net.psforever.objects.vital.resolution
 
 import net.psforever.objects.{PlanetSideGameObject, Player, TurretDeployable, Vehicle}
-import net.psforever.objects.ballistics.{PlayerSource, SourceEntry, VehicleSource}
+import net.psforever.objects.ballistics.{PlayerSource, SourceEntry}
 import net.psforever.objects.ce.{ComplexDeployable, Deployable}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.damage.Damageable

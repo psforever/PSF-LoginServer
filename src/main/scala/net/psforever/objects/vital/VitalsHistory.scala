@@ -5,13 +5,14 @@ import net.psforever.objects.ballistics._
 import net.psforever.objects.definition.{EquipmentDefinition, KitDefinition, ObjectDefinition}
 import net.psforever.objects.serverobject.painbox.Painbox
 import net.psforever.objects.serverobject.terminals.TerminalDefinition
+import net.psforever.objects.vital.etc.ExplodingEntityReason
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.types.{ExoSuitType, ImplantType}
 
 abstract class VitalsActivity(target: SourceEntry) {
   def Target: SourceEntry = target
-  val t: Long             = System.nanoTime //???
+  val t: Long             = System.currentTimeMillis() //???
 
   def time: Long = t
 }
@@ -60,6 +61,8 @@ final case class PlayerSuicide(target: PlayerSource) extends DamagingActivity(ta
 
 final case class DamageFromExplosion(target: PlayerSource, cause: ObjectDefinition) extends DamagingActivity(target)
 
+final case class DamageFromExplodingEntity(cause: DamageResult) extends DamagingActivity(cause.targetBefore)
+
 /**
   * A vital object can be hurt or damaged or healed or repaired (HDHR).
   * A history of the previous changes in vital statistics of the underlying object is recorded
@@ -69,6 +72,8 @@ trait VitalsHistory {
 
   /** a reverse-order list of chronological events that have occurred to these vital statistics */
   private var vitalsHistory: List[VitalsActivity] = List.empty[VitalsActivity]
+
+  private var lastDamage: Option[DamageResult] = None
 
   def History: List[VitalsActivity] = vitalsHistory
 
@@ -96,18 +101,24 @@ trait VitalsHistory {
   }
 
   /**
-    * Very common example of a `VitalsActivity` event involving weapon discharge.
-    * @param result the fully-informed entry of discharge of a weapon
+    * Very common example of a `VitalsActivity` event involving damage.
+    * @param result the fully-informed entry
     * @return the list of previous changes to this object's vital statistics
     */
   def History(result: DamageResult): List[VitalsActivity] = {
     result.interaction.cause match {
       case _: ProjectileReason =>
         vitalsHistory = DamageFromProjectile(result) +: vitalsHistory
+        lastDamage = Some(result)
+      case _: ExplodingEntityReason =>
+        vitalsHistory = DamageFromExplodingEntity(result) +: vitalsHistory
+        lastDamage = Some(result)
       case _ => ;
     }
     vitalsHistory
   }
+
+  def LastDamage: Option[DamageResult] = lastDamage
 
   /**
     * Find, specifically, the last instance of a weapon discharge vital statistics change.

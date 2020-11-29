@@ -1,7 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital.projectile
 
-import net.psforever.objects.ballistics.{Projectile => ActualProjectile}
+import net.psforever.objects.ballistics.{SourceEntry, Projectile => ActualProjectile}
 import net.psforever.objects.vital.base._
 import net.psforever.objects.vital.damage.DamageProfile
 import net.psforever.objects.vital.interaction.DamageInteraction
@@ -33,6 +33,10 @@ final case class ProjectileReason(
   override def staticModifiers: List[DamageProfile] = List(projectile.fire_mode.Add)
 
   override def unstructuredModifiers: List[DamageModifiers.Mod] = projectile.fire_mode.Modifiers
+
+  def adversary: Option[SourceEntry] = Some(projectile.owner)
+
+  override def attribution: Int = projectile.attribute_to
 
   override def calculate(data: DamageInteraction): ResolutionCalculations.Output = {
     damageModel.calculate(data)

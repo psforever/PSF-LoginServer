@@ -757,7 +757,7 @@ class DamageableMountableDestroyTest extends ActorTest {
       )
       assert(
         msg3 match {
-          case Player.Die() => true
+          case Player.Die(_) => true
           case _            => false
         }
       )
@@ -1084,7 +1084,7 @@ class DamageableWeaponTurretDestructionTest extends ActorTest {
       )
       assert(
         msg3 match {
-          case Player.Die() => true
+          case Player.Die(_) => true
           case _            => false
         }
       )
@@ -1568,7 +1568,7 @@ class DamageableVehicleDestroyTest extends ActorTest {
       )
       assert(
         msg3 match {
-          case Player.Die() => true
+          case Player.Die(_) => true
           case _            => false
         }
       )
@@ -1758,13 +1758,13 @@ class DamageableVehicleDestroyMountedTest extends ActorTest {
     )
     assert(
       msg_player2 match {
-        case Player.Die() => true
+        case Player.Die(_) => true
         case _            => false
       }
     )
     assert(
       msg_player3 match {
-        case Player.Die() => true
+        case Player.Die(_) => true
         case _            => false
       }
     )

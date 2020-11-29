@@ -473,7 +473,7 @@ class GeneratorControlKillsTest extends ActorTest {
       player2Probe.expectNoMessage(200 milliseconds)
       assert(
         msg_player1 match {
-          case _ @Player.Die() => true
+          case _ @Player.Die(_) => true
           case _               => false
         }
       )

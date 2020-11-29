@@ -1,6 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital.etc
 
+import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.vital.{AnyResolutions, NoResistanceSelection}
 import net.psforever.objects.vital.base.{DamageReason, DamageResolution, DamageType}
 import net.psforever.objects.vital.damage.DamageCalculations
@@ -21,6 +22,8 @@ final case class SuicideReason()
   def same(test: DamageReason): Boolean = {
     test.source eq source
   }
+
+  def adversary: Option[SourceEntry] = None
 
   override def calculate(data : DamageInteraction) : Output = {
     SuicideReason.drm.calculate(data)
