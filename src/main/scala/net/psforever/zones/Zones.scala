@@ -35,6 +35,7 @@ import net.psforever.objects.serverobject.structures.{
 }
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.{FacilityTurret, FacilityTurretDefinition}
+import net.psforever.objects.serverobject.zipline.ZipLinePath
 import net.psforever.objects.zones.{MapInfo, Zone, ZoneInfo, ZoneMap}
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 import net.psforever.util.DefinitionUtil
@@ -77,6 +78,18 @@ object Zones {
     "MapID",
     "IsChildObject"
   )(ZoneMapEntity.apply)
+
+  private implicit val decodeVector3 : Decoder[Vector3] = Decoder.forProduct3(
+    "X",
+    "Y",
+    "Z"
+  )(Vector3.apply)
+
+  private implicit val decodeZipLinePath: Decoder[ZipLinePath] = Decoder.forProduct3(
+    "PathId",
+    "IsTeleporter",
+    "PathPoints"
+  )(ZipLinePath.apply)
 
   // monolith, hst, warpgate are ignored for now as the scala code isn't ready to handle them.
   // BFR terminals/doors are ignored as top level elements as sanctuaries have them with no associated building. (repair_silo also has this problem, but currently is ignored in the AmenityExtrator project)
@@ -191,14 +204,26 @@ object Zones {
           } catch {
             case _: FileNotFoundException => Seq()
           }
-        (info, data)
+
+        val zplData =
+          try {
+            val res  = Source.fromResource(s"zonemaps/zpl_${info.value}.json")
+            val json = res.mkString
+            res.close()
+            decode[Seq[ZipLinePath]](json).toOption.get
+          } catch {
+            case _: FileNotFoundException => Seq()
+          }
+        (info, data, zplData)
       }
       .map {
-        case (info, data) =>
+        case (info, data, zplData) =>
           val zoneMap = new ZoneMap(info.value)
 
           zoneMap.checksum = info.checksum
           zoneMap.scale = info.scale
+
+          zoneMap.zipLinePaths = zplData.toList
 
           // This keeps track of the last used turret weapon guid, as they seem to be arbitrarily assigned at 5000+
           val turretWeaponGuid = new AtomicInteger(5000)
