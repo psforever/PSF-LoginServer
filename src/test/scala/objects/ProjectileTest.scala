@@ -348,6 +348,7 @@ class ProjectileTest extends Specification {
 
     "construct" in {
       val obj = DamageInteraction(
+        DamageResolution.Hit,
         PlayerSource(player2),
         ProjectileReason(
           DamageResolution.Hit,

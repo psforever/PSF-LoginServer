@@ -5,7 +5,7 @@ import akka.actor.{ActorContext, ActorRef, Props}
 import akka.routing.RandomPool
 import net.psforever.objects.ballistics.{Projectile, SourceEntry}
 import net.psforever.objects._
-import net.psforever.objects.ce.Deployable
+import net.psforever.objects.ce.{ComplexDeployable, Deployable, SimpleDeployable}
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.{NumberPoolHub, TaskResolver}
@@ -38,9 +38,13 @@ import akka.actor.typed
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
+import net.psforever.objects.definition.ObjectDefinition
+import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vehicles.UtilityType
-import net.psforever.objects.vital.interaction.DamageResult
+import net.psforever.objects.vital.etc.ExplodingEntityReason
+import net.psforever.objects.vital.{Vitality, VitalityDefinition}
+import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 
 /**
   * A server object representing the one-landmass planets as well as the individual subterranean caverns.<br>
@@ -1061,6 +1065,108 @@ object Zone {
         case None =>
           None
       }
+    }
+  }
+
+  /**
+    * Allocates `Damageable` targets within the radius of a server-prepared innateDamage
+    * and informs those entities that they have affected by the aforementioned innateDamage.
+    * @see `Amenity.Owner`
+    * @see `ComplexDeployable`
+    * @see `DamageInteraction`
+    * @see `DamageResult`
+    * @see `DamageWithPosition`
+    * @see `ExplodingEntityReason`
+    * @see `SimpleDeployable`
+    * @see `VitalityDefinition`
+    * @see `VitalityDefinition.innateDamage`
+    * @see `Zone.Buildings`
+    * @see `Zone.DeployableList`
+    * @see `Zone.LivePlayers`
+    * @see `Zone.LocalEvents`
+    * @see `Zone.Vehicles`
+    * @param zone the zone in which the innateDamage should occur
+    * @param obj the entity that embodies the innateDamage (information)
+    * @param instigation whatprior action triggered the entity to explode, if anything
+    * @return a list of affected entities;
+    *         only mostly complete due to the exclusion of objects whose damage resolution is different than usual
+    */
+  def causeExplosion(
+                      zone: Zone,
+                      obj: PlanetSideGameObject with Vitality,
+                      instigation: Option[DamageResult]
+                    ): List[PlanetSideServerObject] = {
+    obj.Definition.innateDamage match {
+      case Some(explosion) if obj.Definition.explodes =>
+        //useful in this form
+        val definition = obj.Definition.asInstanceOf[ObjectDefinition with VitalityDefinition]
+        val sourcePosition = obj.Position
+        val sourcePositionXY = sourcePosition.xy
+        val radius = explosion.DamageRadius * explosion.DamageRadius
+        //collect all targets that can be damaged
+        //players
+        val playerTargets = zone.LivePlayers.filterNot { _.VehicleSeated.nonEmpty }
+        //vehicles
+        val vehicleTargets = zone.Vehicles.filterNot { v => v.Destroyed || v.MountedIn.nonEmpty }
+        //deployables
+        val (simpleDeployableTargets, complexDeployableTargets) =
+          zone.DeployableList
+            .filterNot { _.Destroyed }
+            .foldRight((List.empty[SimpleDeployable], List.empty[ComplexDeployable])) { case (f, (simp, comp)) =>
+              f match {
+                case o: SimpleDeployable => (simp :+ o, comp)
+                case o: ComplexDeployable => (simp, comp :+ o)
+                case _ => (simp, comp)
+              }
+            }
+        //amenities
+        val soiTargets = obj match {
+          case o: Amenity =>
+            //fortunately, even where soi overlap, amenities in different buildings are never that close to each other
+            o.Owner.Amenities
+          case _ =>
+            zone.Buildings.values
+              .filter { b =>
+                val soiRadius = b.Definition.SOIRadius * b.Definition.SOIRadius
+                Vector3.DistanceSquared(sourcePositionXY, b.Position.xy) < soiRadius || soiRadius <= radius
+              }
+              .flatMap { _.Amenities }
+              .filter { _.Definition.Damageable }
+        }
+        //restrict to targets in the damage radius
+        val allAffectedTargets = (playerTargets ++ vehicleTargets ++ complexDeployableTargets ++ soiTargets)
+          .filter { target =>
+            (target ne obj) && Vector3.DistanceSquared(sourcePosition, target.Position) <= radius
+          }
+        //inform remaining targets that they have suffered an innateDamage
+        allAffectedTargets
+          .foreach { target =>
+            target.Actor ! Vitality.Damage(
+              DamageInteraction(
+                SourceEntry(target),
+                ExplodingEntityReason(definition, target.DamageModel, instigation),
+                target.Position
+              ).calculate()
+            )
+          }
+        //important note - these are not returned as targets that were affected
+        simpleDeployableTargets
+          .filter { target =>
+            Vector3.DistanceSquared(sourcePosition, target.Position) <= radius
+          }
+          .foreach { target =>
+            zone.LocalEvents ! Vitality.DamageOn(
+              target,
+              DamageInteraction(
+                SourceEntry(target),
+                ExplodingEntityReason(definition, target.DamageModel, instigation),
+                target.Position
+              ).calculate()
+            )
+          }
+        allAffectedTargets
+      case None =>
+        Nil
     }
   }
 }

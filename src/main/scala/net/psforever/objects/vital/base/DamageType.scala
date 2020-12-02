@@ -1,12 +1,14 @@
 package net.psforever.objects.vital.base
 
 /**
-  * An `Enumeration` of the damage type.
-  * These types are not necessarily representative of the kind of delivery method being employed;
-  * for example, the bolt driver's `bolt` is considered a "splash"ing projectile.
+  * An `Enumeration` of the damage types
+  * not only distinguishing damage being inflicted
+  * but, more importantly, what kind of resistance is brought to bare against that damage.
+  * For additional types exclusive to aggravation, refer to `Aura`.
   */
 object DamageType extends Enumeration(1) {
   type Type = Value
 
-  final val Direct, Splash, Lash, Radiation, Aggravated, Plasma, Comet, None = Value
+  //"one" (numerical 1 in the ADB) corresponds to objects that explode
+  final val Direct, Splash, Lash, Radiation, Aggravated, One, None = Value
 }

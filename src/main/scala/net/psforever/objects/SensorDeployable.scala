@@ -130,7 +130,7 @@ object SensorDeployableControl {
       zone.id,
       LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", target.GUID, false, 1000)
     )
-    //position the explosion effect near the bulky area of the sensor stalk
+    //position the innateDamage effect near the bulky area of the sensor stalk
     val ang = target.Orientation
     val explosionPos = {
       val pos      = target.Position

@@ -3,11 +3,9 @@ package net.psforever.objects.vital.resolution
 
 import net.psforever.objects.{PlanetSideGameObject, Player, TurretDeployable, Vehicle}
 import net.psforever.objects.ballistics.{PlayerSource, SourceEntry}
-import net.psforever.objects.ce.{ComplexDeployable, Deployable}
+import net.psforever.objects.ce.ComplexDeployable
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.damage.Damageable
-import net.psforever.objects.serverobject.structures.Amenity
-import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
@@ -242,12 +240,8 @@ object ResolutionCalculations {
   def SimpleApplication(damage: Int, data: DamageInteraction)(target: PlanetSideGameObject with FactionAffinity): DamageResult = {
     val targetBefore = SourceEntry(target)
     target match {
-      case obj: Deployable if CanDamage(obj, damage, data) =>
-        obj.Health -= damage
-      case turret: FacilityTurret if CanDamage(turret, damage, data) =>
-        turret.Health -= damage
-      case amenity: Amenity if CanDamage(amenity, damage, data) =>
-        amenity.Health -= damage
+      case entity: Vitality if CanDamage(entity, damage, data) =>
+        entity.Health -= damage
       case _ => ;
     }
     DamageResult(targetBefore, SourceEntry(target), data)

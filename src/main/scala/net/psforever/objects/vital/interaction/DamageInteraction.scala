@@ -2,39 +2,37 @@
 package net.psforever.objects.vital.interaction
 
 import net.psforever.objects.PlanetSideGameObject
-import net.psforever.objects.ballistics.{AggravatedDamage, SourceEntry}
-import net.psforever.objects.equipment.TargetValidation
+import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.vital.base.{DamageReason, DamageResolution, DamageType}
-import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.vital.resolution.{DamageAndResistance, ResolutionCalculations}
 import net.psforever.types.Vector3
 
 /**
   * The recorded encounter of a damage source and a damageable target.
+  * @param target the original affected target;
+  *               not necessarily the currently affected target
+  * @param hitPos the coordinate location where the damage was inflicted
+  * @param cause the method by which the damage was produced
+  * @param resolution how the damage is being processed
+  * @param hitTime when the interaction originally occurred;
+  *                defaults to `System.currentTimeMills()` at object creation
   */
-trait DamageInteraction {
-
-  def hitPos: Vector3
-
-  def hitTime: Long
-
-  /** the original target that was involved in the generation of this interaction */
-  def target: SourceEntry
-
-  def cause: DamageReason
-
-  def causesJammering: Boolean
-
-  def jammering: List[(TargetValidation, Int)]
-
-  def causesAggravation: Boolean
-
-  def aggravation: Option[AggravatedDamage]
-
-  def adversarial: Option[Adversarial]
-
-  def resolution: DamageResolution.Value
+final case class DamageInteraction(
+                                    target: SourceEntry,
+                                    hitPos: Vector3,
+                                    cause: DamageReason,
+                                    resolution: DamageResolution.Value,
+                                    hitTime: Long = System.currentTimeMillis()
+                                  ) {
+  /**
+    * If the cause of the original interaction can be attributed to some agency.
+    * @return a connection between offender, victim, and method
+    */
+  def adversarial: Option[Adversarial] = cause.adversary match {
+    case Some(adversity) => Some(Adversarial(adversity, target, cause.attribution))
+    case None            => None
+  }
 
   /**
     * Process the primary parameters from the interaction
@@ -64,91 +62,39 @@ trait DamageInteraction {
   }
 }
 
-/**
-  * A generic encounter of a damage source and a damageable target.
-  * Tends to cause no special effects and might not even cause any actual damage.
-  */
-final case class GenericDamageInteraction(
-                                           resolution: DamageResolution.Value,
-                                           target: SourceEntry,
-                                           cause: DamageReason,
-                                           hitPos: Vector3,
-                                           hitTime: Long = System.currentTimeMillis()
-                                         ) extends DamageInteraction {
-  def causesJammering: Boolean = cause.source.JammedEffectDuration.nonEmpty
-
-  def jammering: List[(TargetValidation, Int)] = cause.source.JammedEffectDuration.toList
-
-  def causesAggravation: Boolean = cause.source.Aggravated.nonEmpty
-
-  def aggravation: Option[AggravatedDamage] = cause.source.Aggravated
-
-  def adversarial: Option[Adversarial] = cause.adversary match {
-    case Some(adversity) => Some(Adversarial(adversity, target, cause.attribution))
-    case None            => None
-  }
-}
-
-/**
-  * An encounter of a projectile-based damage source and a damageable target.
-  */
-final case class ProjectileDamageInteraction(
-                                              target: SourceEntry,
-                                              cause: ProjectileReason,
-                                              hitPos: Vector3,
-                                              hitTime: Long = System.currentTimeMillis()
-                                            ) extends DamageInteraction {
-  def resolution : DamageResolution.Value = cause.resolution
-
-  def causesJammering: Boolean = cause.projectile.profile.JammerProjectile
-
-  def jammering: List[(TargetValidation, Int)] = if (causesJammering) {
-    cause.projectile.profile.JammedEffectDuration.toList
-  } else {
-    List.empty
-  }
-
-  def causesAggravation: Boolean = cause.projectile.profile.Aggravated.isDefined
-
-  def aggravation: Option[AggravatedDamage] = cause.projectile.profile.Aggravated
-
-  def adversarial: Option[Adversarial] = cause.adversary match {
-    case Some(adversity) => Some(Adversarial(adversity, target, cause.projectile.attribute_to))
-    case None =>            None
-  }
-}
-
 object DamageInteraction {
-  def apply(resolution: DamageResolution.Value, target: SourceEntry, cause: DamageReason, hitPos: Vector3): DamageInteraction = {
-    cause match {
-      case o: ProjectileReason if o.resolution == resolution =>
-        //package projectile damage directly
-        ProjectileDamageInteraction(target, o, hitPos)
-      case o: ProjectileReason =>
-        //repackage projectile damage, substituting the provided resolution
-        ProjectileDamageInteraction(target, ProjectileReason(resolution, o.projectile, o.damageModel), hitPos)
-      case _ =>
-        //eh
-        GenericDamageInteraction(resolution, target, cause, hitPos)
-    }
-  }
-
-  def apply(target: SourceEntry, cause: ProjectileReason, hitPos: Vector3): DamageInteraction = {
-    ProjectileDamageInteraction(target, cause, hitPos)
-  }
-}
-
-object ProjectileDamageInteraction {
   /**
-    * Is this nondescript interaction the product of a projectile?
-    * @param obj the interaction
-    * @return defined, if the cause was a projectile;
-    *         undefined, otherwise
+    * Overloaded constructor for an interaction.
+    * Shuffle the order of parameters; let time default.
+    * @param resolution how the damage is being processed
+    * @param target the original affected target
+    * @param cause the method by which the damage was produced
+    * @param hitPos the coordinate location where the damage was inflicted
+    * @return a `DamageInteraction` object
     */
-  def unapply(obj: DamageInteraction): Option[(SourceEntry, ProjectileReason, Vector3, Long)] = {
-    obj.cause match {
-      case o: ProjectileReason => Some((obj.target, o, obj.hitPos, obj.hitTime))
-      case _ => None
-    }
+  def apply(resolution: DamageResolution.Value, target: SourceEntry, cause: DamageReason, hitPos: Vector3): DamageInteraction = {
+    DamageInteraction(
+      target,
+      hitPos,
+      cause,
+      resolution
+    )
+  }
+
+  /**
+    * Overloaded constructor for an interaction.
+    * Use the resolution from the reason for the damage, shuffle the parameters, and let time default.
+    * @param target the original affected target
+    * @param cause the method by which the damage was produced
+    * @param hitPos the coordinate location where the damage was inflicted
+    * @return a `DamageInteraction` object
+    */
+  def apply(target: SourceEntry, cause: DamageReason, hitPos: Vector3): DamageInteraction = {
+    DamageInteraction(
+      target,
+      hitPos,
+      cause,
+      cause.resolution
+    )
   }
 }

@@ -4,16 +4,14 @@ package net.psforever.objects.serverobject.generator
 import akka.actor.{Actor, Cancellable}
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.{Default, Player, Tool}
-import net.psforever.objects.ballistics._
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.DamageableEntity
 import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, Repairable, RepairableEntity}
-import net.psforever.objects.serverobject.structures.Building
-import net.psforever.objects.vital.DamageFromExplosion
 import net.psforever.objects.vital.interaction.DamageResult
+import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.TriggerEffectMessage
-import net.psforever.types.{PlanetSideGeneratorState, Vector3}
+import net.psforever.types.PlanetSideGeneratorState
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 
@@ -81,7 +79,7 @@ class GeneratorControl(gen: Generator)
       .orElse {
         case GeneratorControl.Destabilized() =>
           imminentExplosion = true
-          //the generator's condition is technically destroyed, but avoid official reporting until the explosion
+          //the generator's condition is technically destroyed, but avoid official reporting until the innateDamage
           gen.Condition = PlanetSideGeneratorState.Destroyed
           GeneratorControl.UpdateOwner(gen, Some(GeneratorControl.Event.Destabilized))
           queuedExplosion.cancel()
@@ -104,17 +102,8 @@ class GeneratorControl(gen: Generator)
           queuedExplosion.cancel()
           queuedExplosion = Default.Cancellable
           imminentExplosion = false
-          //kill everyone within 14m
-          gen.Owner match {
-            case b: Building =>
-              val genDef = gen.Definition
-              b.PlayersInSOI.collect {
-                case player if player.isAlive && Vector3.DistanceSquared(player.Position, gen.Position) < 196 =>
-                  player.History(DamageFromExplosion(PlayerSource(player), genDef))
-                  player.Actor ! Player.Die()
-              }
-            case _ => ;
-          }
+          //hate on everything nearby
+          Zone.causeExplosion(gen.Zone, gen, gen.LastDamage)
           gen.ClearHistory()
 
         case GeneratorControl.Restored() =>
@@ -126,7 +115,7 @@ class GeneratorControl(gen: Generator)
   /*
   when ntu is not expected,
   the generator can still be destroyed but will not explode
-  handles the possibility that ntu was lost during an ongoing destabilization and cancels the explosion
+  handles the possibility that ntu was lost during an ongoing destabilization and cancels the innateDamage
    */
   def withoutNtu: Receive =
     commonBehavior
@@ -151,12 +140,12 @@ class GeneratorControl(gen: Generator)
       }
 
   override protected def CanPerformRepairs(obj: Target, player: Player, item: Tool): Boolean = {
-    //if an explosion is queued, disallow repairs
+    //if an innateDamage is queued, disallow repairs
     !imminentExplosion && super.CanPerformRepairs(obj, player, item)
   }
 
   override protected def WillAffectTarget(target: Target, damage: Int, cause: DamageResult): Boolean = {
-    //if an explosion is queued, disallow further damage
+    //if an innateDamage is queued, disallow further damage
     !imminentExplosion && super.WillAffectTarget(target, damage, cause)
   }
 
@@ -212,7 +201,7 @@ class GeneratorControl(gen: Generator)
     if(!gen.Destroyed) {
       GeneratorControl.UpdateOwner(gen, Some(GeneratorControl.Event.Offline))
     }
-    //can any explosion (see withoutNtu->GenweratorControl.Destabilized)
+    //can any innateDamage (see withoutNtu->GenweratorControl.Destabilized)
     if(!queuedExplosion.isCancelled) {
       queuedExplosion.cancel()
       self ! GeneratorControl.Destabilized()

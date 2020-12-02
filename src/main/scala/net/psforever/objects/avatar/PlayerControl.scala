@@ -592,7 +592,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         //initial damage for aggravation, but never treat as "aggravated"
         false
       case _ =>
-        cause.interaction.causesAggravation
+        cause.interaction.cause.source.Aggravated.nonEmpty
     }
     //log historical event
     target.History(cause)

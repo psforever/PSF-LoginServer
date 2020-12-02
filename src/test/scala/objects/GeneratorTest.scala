@@ -17,6 +17,7 @@ import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
+import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game.{InventoryStateMessage, RepairMessage, TriggerEffectMessage}
 import net.psforever.types._
@@ -337,25 +338,6 @@ class GeneratorControlDestroyedTest extends ActorTest {
 }
 
 class GeneratorControlKillsTest extends ActorTest {
-  /*
-  to perform this test, players need to be added to the SOI organization of the test base in proximity of the generator
-  under normal player scenario, this is an automatic process
-  extending from the act of players being in a zone
-  and players being within the SOI radius from the center of a facility on a periodic check
-  the test base being used has no established SOI region or automatic SOI check refresh,
-  but its SOI information can be loaded with the players manually
-  the players need something to catch the die message
-   */
-  val guid = new NumberPoolHub(new MaxNumberSource(5))
-  val zone = new Zone("test", new ZoneMap("test"), 0) {
-    override def SetupNumberPools() = {}
-    GUID(guid)
-  }
-  val avatarProbe = TestProbe()
-  zone.AvatarEvents = avatarProbe.ref
-  val activityProbe = TestProbe()
-  zone.Activity = activityProbe.ref
-
   val gen = Generator(GeneratorTest.generator_definition) //guid=2
   gen.Position = Vector3(1, 0, 0)
   gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "generator-control")
@@ -368,16 +350,26 @@ class GeneratorControlKillsTest extends ActorTest {
   player1.Actor = player1Probe.ref
   val player2 =
     Player(Avatar(0, "TestCharacter2", PlanetSideEmpire.TR, CharacterGender.Female, 1, CharacterVoice.Mute)) //guid=4
-  player2.Position = Vector3(15, 0, 0)                                                                       //>14m from generator; lives
+  player2.Position = Vector3(20, 0, 0)                                                                       //>14m from generator; lives
   player2.Spawn()
   val player2Probe = TestProbe()
   player2.Actor = player2Probe.ref
 
+
+  val guid = new NumberPoolHub(new MaxNumberSource(5))
+  val zone = new Zone("test", new ZoneMap("test"), 0) {
+    override def SetupNumberPools() = {}
+    GUID(guid)
+    override def LivePlayers = List(player1, player2)
+  }
+  val avatarProbe = TestProbe()
+  zone.AvatarEvents = avatarProbe.ref
+  val activityProbe = TestProbe()
+  zone.Activity = activityProbe.ref
   val building = Building("test-building", 1, 1, zone, StructureType.Facility) //guid=1
   building.Position = Vector3(1, 0, 0)
   building.Zone = zone
   building.Amenities = gen
-  building.PlayersInSOI = List(player1, player2)
   val buildingProbe = TestProbe()
   building.Actor = buildingProbe.ref
 
@@ -410,7 +402,7 @@ class GeneratorControlKillsTest extends ActorTest {
   //we're not testing that the math is correct
 
   "GeneratorControl" should {
-    "kill players when the generator is destroyed" in {
+    "damages (kills) players when the generator is destroyed" in {
       gen.Health = 1 //no matter what, the next shot destroys the generator
       assert(gen.Health == 1)
       assert(!gen.Destroyed)
@@ -469,11 +461,11 @@ class GeneratorControlKillsTest extends ActorTest {
       assert(gen.Destroyed)
       assert(gen.Condition == PlanetSideGeneratorState.Destroyed)
 
-      val msg_player1  = player1Probe.receiveOne(100 milliseconds)
+      val msg_player1  = player1Probe.receiveOne(200 milliseconds)
       player2Probe.expectNoMessage(200 milliseconds)
       assert(
         msg_player1 match {
-          case _ @Player.Die(_) => true
+          case _ @ Vitality.Damage(_) => true
           case _               => false
         }
       )
@@ -868,6 +860,9 @@ object GeneratorTest {
     Repairable = true
     RepairDistance = 13.5f
     RepairIfDestroyed = true
+    innateDamage = new DamageWithPosition {
+      DamageRadius = 14
+    }
     //note: no auto-repair
   }
 }

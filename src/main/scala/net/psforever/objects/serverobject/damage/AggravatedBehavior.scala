@@ -25,10 +25,10 @@ trait AggravatedBehavior {
   def AggravatedObject: AggravatedBehavior.Target
 
   def TryAggravationEffectActivate(data: DamageResult): Option[AggravatedDamage] = {
-    (data.interaction.cause, data.interaction.aggravation) match {
+    (data.interaction.cause, data.interaction.cause.source.Aggravated) match {
       case (o: ProjectileReason, Some(damage))
         if data.interaction.cause.source.AllDamageTypes.contains(DamageType.Aggravated) &&
-           damage.info.exists(_.damage_type == AggravatedDamage.basicDamageType(o.resolution)) &&
+           damage.info.exists(_.damage_type == AggravatedDamage.basicDamageType(data.interaction.resolution)) &&
            damage.effect_type != Aura.Nothing &&
            (o.projectile.quality == ProjectileQuality.AggravatesTarget ||
             damage.targets.exists(validation => validation.test(AggravatedObject))) =>
@@ -164,7 +164,7 @@ trait AggravatedBehavior {
     entryIdToEntry.remove(id) match {
       case Some(entry) =>
         ongoingAggravated = entryIdToEntry.nonEmpty
-        entry.data.aggravation.get.effect_type
+        entry.data.cause.source.Aggravated.get.effect_type
       case _ =>
         Aura.Nothing
     }
@@ -195,6 +195,7 @@ trait AggravatedBehavior {
     entry.data.cause match {
       case o: ProjectileReason =>
         val aggravatedProjectileData = DamageInteraction(
+          entry.data.resolution,
           entry.data.target,
           ProjectileReason(
             o.resolution,

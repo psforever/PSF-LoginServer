@@ -176,7 +176,7 @@ class DamageableTest extends Specification {
         Vector3.Zero
       )
 
-      resolved.causesJammering mustEqual true
+      resolved.cause.source.HasJammedEffectDuration mustEqual true
       Damageable.CanJammer(target, resolved) mustEqual true
     }
 
@@ -192,7 +192,7 @@ class DamageableTest extends Specification {
         Vector3.Zero
       ) //decimator
 
-      resolved.causesJammering mustEqual false
+      resolved.cause.source.HasJammedEffectDuration mustEqual false
       Damageable.CanJammer(target, resolved) mustEqual false
     }
 
@@ -209,7 +209,7 @@ class DamageableTest extends Specification {
         Vector3.Zero
       )
 
-      resolved.causesJammering mustEqual true
+      resolved.cause.source.HasJammedEffectDuration mustEqual true
       resolved.adversarial match {
         case Some(adversarial) => adversarial.attacker.Faction mustEqual adversarial.defender.Faction
         case None => ko
@@ -229,7 +229,7 @@ class DamageableTest extends Specification {
         Vector3.Zero
       )
 
-      resolved.causesJammering mustEqual true
+      resolved.cause.source.HasJammedEffectDuration mustEqual true
       resolved.adversarial match {
         case Some(adversarial) => adversarial.attacker.Faction mustNotEqual adversarial.defender.Faction
         case None => ko
@@ -254,7 +254,7 @@ class DamageableTest extends Specification {
         Vector3.Zero
       )
 
-      resolved.causesJammering mustEqual true
+      resolved.cause.source.HasJammedEffectDuration mustEqual true
       resolved.adversarial match {
         case Some(adversarial) => adversarial.attacker.Faction mustEqual adversarial.defender.Faction
         case None => ko
@@ -1586,18 +1586,6 @@ class DamageableVehicleDestroyTest extends ActorTest {
 }
 
 class DamageableVehicleDestroyMountedTest extends ActorTest {
-  val guid = new NumberPoolHub(new MaxNumberSource(15))
-  val zone = new Zone("test", new ZoneMap("test"), 0) {
-    override def SetupNumberPools() = {}
-    GUID(guid)
-  }
-  val activityProbe = TestProbe()
-  val avatarProbe   = TestProbe()
-  val vehicleProbe  = TestProbe()
-  zone.Activity = activityProbe.ref
-  zone.AvatarEvents = avatarProbe.ref
-  zone.VehicleEvents = vehicleProbe.ref
-
   val atv = Vehicle(GlobalDefinitions.quadassault) //guid=1
   atv.Actor = system.actorOf(Props(classOf[VehicleControl], atv), "atv-control")
   atv.Position = Vector3(1, 0, 0)
@@ -1622,6 +1610,20 @@ class DamageableVehicleDestroyMountedTest extends ActorTest {
   player3.Spawn()
   val player3Probe = TestProbe()
   player3.Actor = player3Probe.ref
+
+
+  val guid = new NumberPoolHub(new MaxNumberSource(15))
+  val zone = new Zone("test", new ZoneMap("test"), 0) {
+    override def SetupNumberPools() = {}
+    GUID(guid)
+    override def LivePlayers = List(player1, player2, player3)
+  }
+  val activityProbe = TestProbe()
+  val avatarProbe   = TestProbe()
+  val vehicleProbe  = TestProbe()
+  zone.Activity = activityProbe.ref
+  zone.AvatarEvents = avatarProbe.ref
+  zone.VehicleEvents = vehicleProbe.ref
 
   guid.register(atv, 1)
   guid.register(atvWeapon, 2)

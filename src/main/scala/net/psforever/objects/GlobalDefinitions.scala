@@ -1694,7 +1694,7 @@ object GlobalDefinitions {
       max.InventoryOffset = 6
       max.Holster(0, EquipmentSize.Max)
       max.Holster(4, EquipmentSize.Melee)
-      max.Subtract.Damage1 = -2
+      max.Subtract.Damage1 = 2
       max.ResistanceDirectHit = 6
       max.ResistanceSplash = 35
       max.ResistanceAggravated = 10
@@ -5598,6 +5598,15 @@ object GlobalDefinitions {
     fury.AutoPilotSpeeds = (24, 10)
     fury.DestroyedModel = Some(DestroyedVehicle.QuadAssault)
     fury.JackingDuration = Array(0, 10, 3, 2)
+    fury.explodes = true
+    fury.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 150
+      Damage1 = 225
+      DamageRadius = 5
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     quadassault.Name = "quadassault" // Basilisk
     quadassault.MaxHealth = 650
@@ -5617,6 +5626,15 @@ object GlobalDefinitions {
     quadassault.AutoPilotSpeeds = (24, 10)
     quadassault.DestroyedModel = Some(DestroyedVehicle.QuadAssault)
     quadassault.JackingDuration = Array(0, 10, 3, 2)
+    quadassault.explodes = true
+    quadassault.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 150
+      Damage1 = 225
+      DamageRadius = 5
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     quadstealth.Name = "quadstealth" // Wraith
     quadstealth.MaxHealth = 650
@@ -5636,6 +5654,15 @@ object GlobalDefinitions {
     quadstealth.AutoPilotSpeeds = (24, 10)
     quadstealth.DestroyedModel = Some(DestroyedVehicle.QuadStealth)
     quadstealth.JackingDuration = Array(0, 10, 3, 2)
+    quadstealth.explodes = true
+    quadstealth.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 150
+      Damage1 = 225
+      DamageRadius = 5
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     two_man_assault_buggy.Name = "two_man_assault_buggy" // Harasser
     two_man_assault_buggy.MaxHealth = 1250
@@ -5657,12 +5684,15 @@ object GlobalDefinitions {
     two_man_assault_buggy.AutoPilotSpeeds = (22, 8)
     two_man_assault_buggy.DestroyedModel = Some(DestroyedVehicle.TwoManAssaultBuggy)
     two_man_assault_buggy.JackingDuration = Array(0, 15, 5, 3)
-    two_man_assault_buggy.Explodes = Some(new DamageWithPosition {
+    two_man_assault_buggy.explodes = true
+    two_man_assault_buggy.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
       Damage0 = 200
       Damage1 = 300
       DamageRadius = 8
       DamageAtEdge = 0.2f
-    })
+      Modifiers = RadialDegrade
+    }
 
     skyguard.Name = "skyguard"
     skyguard.MaxHealth = 1000
@@ -5685,6 +5715,15 @@ object GlobalDefinitions {
     skyguard.AutoPilotSpeeds = (22, 8)
     skyguard.DestroyedModel = Some(DestroyedVehicle.Skyguard)
     skyguard.JackingDuration = Array(0, 15, 5, 3)
+    skyguard.explodes = true
+    skyguard.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 200
+      Damage1 = 300
+      DamageRadius = 8
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     threemanheavybuggy.Name = "threemanheavybuggy" // Marauder
     threemanheavybuggy.MaxHealth = 1700
@@ -5712,6 +5751,15 @@ object GlobalDefinitions {
     threemanheavybuggy.DestroyedModel = Some(DestroyedVehicle.ThreeManHeavyBuggy)
     threemanheavybuggy.Subtract.Damage1 = 5
     threemanheavybuggy.JackingDuration = Array(0, 20, 7, 5)
+    threemanheavybuggy.explodes = true
+    threemanheavybuggy.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 200
+      Damage1 = 300
+      DamageRadius = 10
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     twomanheavybuggy.Name = "twomanheavybuggy" // Enforcer
     twomanheavybuggy.MaxHealth = 1800
@@ -5734,6 +5782,15 @@ object GlobalDefinitions {
     twomanheavybuggy.DestroyedModel = Some(DestroyedVehicle.TwoManHeavyBuggy)
     twomanheavybuggy.Subtract.Damage1 = 5
     twomanheavybuggy.JackingDuration = Array(0, 20, 7, 5)
+    twomanheavybuggy.explodes = true
+    twomanheavybuggy.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 200
+      Damage1 = 300
+      DamageRadius = 8
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     twomanhoverbuggy.Name = "twomanhoverbuggy" // Thresher
     twomanhoverbuggy.MaxHealth = 1600
@@ -5756,6 +5813,15 @@ object GlobalDefinitions {
     twomanhoverbuggy.DestroyedModel = Some(DestroyedVehicle.TwoManHoverBuggy)
     twomanhoverbuggy.Subtract.Damage1 = 5
     twomanhoverbuggy.JackingDuration = Array(0, 20, 7, 5)
+    twomanhoverbuggy.explodes = true
+    twomanhoverbuggy.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 200
+      Damage1 = 300
+      DamageRadius = 10
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     mediumtransport.Name = "mediumtransport" // Deliverer
     mediumtransport.MaxHealth = 2500
@@ -5785,6 +5851,15 @@ object GlobalDefinitions {
     mediumtransport.DestroyedModel = Some(DestroyedVehicle.MediumTransport)
     mediumtransport.Subtract.Damage1 = 7
     mediumtransport.JackingDuration = Array(0, 25, 8, 5)
+    mediumtransport.explodes = true
+    mediumtransport.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 200
+      Damage1 = 300
+      DamageRadius = 12
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     battlewagon.Name = "battlewagon" // Raider
     battlewagon.MaxHealth = 2500
@@ -5817,6 +5892,15 @@ object GlobalDefinitions {
     battlewagon.AutoPilotSpeeds = (18, 6)
     battlewagon.DestroyedModel = Some(DestroyedVehicle.MediumTransport)
     battlewagon.JackingDuration = Array(0, 25, 8, 5)
+    battlewagon.explodes = true
+    battlewagon.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 200
+      Damage1 = 300
+      DamageRadius = 12
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     thunderer.Name = "thunderer"
     thunderer.MaxHealth = 2500
@@ -5846,6 +5930,15 @@ object GlobalDefinitions {
     thunderer.DestroyedModel = Some(DestroyedVehicle.MediumTransport)
     thunderer.Subtract.Damage1 = 7
     thunderer.JackingDuration = Array(0, 25, 8, 5)
+    thunderer.explodes = true
+    thunderer.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 200
+      Damage1 = 300
+      DamageRadius = 12
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     aurora.Name = "aurora"
     aurora.MaxHealth = 2500
@@ -5875,6 +5968,15 @@ object GlobalDefinitions {
     aurora.DestroyedModel = Some(DestroyedVehicle.MediumTransport)
     aurora.Subtract.Damage1 = 7
     aurora.JackingDuration = Array(0, 25, 8, 5)
+    aurora.explodes = true
+    aurora.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 200
+      Damage1 = 300
+      DamageRadius = 12
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     apc_tr.Name = "apc_tr" // Juggernaut
     apc_tr.MaxHealth = 6000
@@ -5926,6 +6028,16 @@ object GlobalDefinitions {
     apc_tr.AutoPilotSpeeds = (16, 6)
     apc_tr.DestroyedModel = Some(DestroyedVehicle.Apc)
     apc_tr.JackingDuration = Array(0, 45, 15, 10)
+    apc_tr.Subtract.Damage1 = 10
+    apc_tr.explodes = true
+    apc_tr.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 300
+      Damage1 = 450
+      DamageRadius = 15
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     apc_nc.Name = "apc_nc" // Vindicator
     apc_nc.MaxHealth = 6000
@@ -5977,6 +6089,16 @@ object GlobalDefinitions {
     apc_nc.AutoPilotSpeeds = (16, 6)
     apc_nc.DestroyedModel = Some(DestroyedVehicle.Apc)
     apc_nc.JackingDuration = Array(0, 45, 15, 10)
+    apc_nc.Subtract.Damage1 = 10
+    apc_nc.explodes = true
+    apc_nc.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 300
+      Damage1 = 450
+      DamageRadius = 15
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     apc_vs.Name = "apc_vs" // Leviathan
     apc_vs.MaxHealth = 6000
@@ -6028,6 +6150,16 @@ object GlobalDefinitions {
     apc_vs.AutoPilotSpeeds = (16, 6)
     apc_vs.DestroyedModel = Some(DestroyedVehicle.Apc)
     apc_vs.JackingDuration = Array(0, 45, 15, 10)
+    apc_vs.Subtract.Damage1 = 10
+    apc_vs.explodes = true
+    apc_vs.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 300
+      Damage1 = 450
+      DamageRadius = 15
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     lightning.Name = "lightning"
     lightning.MaxHealth = 2000
@@ -6048,6 +6180,15 @@ object GlobalDefinitions {
     lightning.DestroyedModel = Some(DestroyedVehicle.Lightning)
     lightning.Subtract.Damage1 = 7
     lightning.JackingDuration = Array(0, 20, 7, 5)
+    lightning.explodes = true
+    lightning.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 250
+      Damage1 = 375
+      DamageRadius = 10
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     prowler.Name = "prowler"
     prowler.MaxHealth = 4800
@@ -6073,6 +6214,15 @@ object GlobalDefinitions {
     prowler.DestroyedModel = Some(DestroyedVehicle.Prowler)
     prowler.Subtract.Damage1 = 9
     prowler.JackingDuration = Array(0, 30, 10, 5)
+    prowler.explodes = true
+    prowler.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 250
+      Damage1 = 375
+      DamageRadius = 12
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     vanguard.Name = "vanguard"
     vanguard.MaxHealth = 5400
@@ -6094,6 +6244,15 @@ object GlobalDefinitions {
     vanguard.DestroyedModel = Some(DestroyedVehicle.Vanguard)
     vanguard.Subtract.Damage1 = 9
     vanguard.JackingDuration = Array(0, 30, 10, 5)
+    vanguard.explodes = true
+    vanguard.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 250
+      Damage1 = 375
+      DamageRadius = 12
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     magrider.Name = "magrider"
     magrider.MaxHealth = 4200
@@ -6117,6 +6276,15 @@ object GlobalDefinitions {
     magrider.DestroyedModel = Some(DestroyedVehicle.Magrider)
     magrider.Subtract.Damage1 = 9
     magrider.JackingDuration = Array(0, 30, 10, 5)
+    magrider.explodes = true
+    magrider.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 250
+      Damage1 = 375
+      DamageRadius = 12
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     val utilityConverter = new UtilityVehicleConverter
     ant.Name = "ant"
@@ -6138,6 +6306,15 @@ object GlobalDefinitions {
     ant.DestroyedModel = Some(DestroyedVehicle.Ant)
     ant.Subtract.Damage1 = 5
     ant.JackingDuration = Array(0, 60, 20, 15)
+    ant.explodes = true
+    ant.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 300
+      Damage1 = 450
+      DamageRadius = 12
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     ams.Name = "ams"
     ams.MaxHealth = 5000 // Temporary - original value is 3000
@@ -6162,6 +6339,15 @@ object GlobalDefinitions {
     ams.DestroyedModel = Some(DestroyedVehicle.Ams)
     ams.Subtract.Damage1 = 10
     ams.JackingDuration = Array(0, 60, 40, 30) // Temporary - original values are 0, 60, 20, 15
+    ams.explodes = true
+    ams.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.Splash
+      Damage0 = 300
+      Damage1 = 450
+      DamageRadius = 15
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     val variantConverter = new VariantVehicleConverter
     router.Name = "router"
@@ -6186,6 +6372,15 @@ object GlobalDefinitions {
     router.DestroyedModel = Some(DestroyedVehicle.Router)
     router.Subtract.Damage1 = 5
     router.JackingDuration = Array(0, 20, 7, 5)
+    router.explodes = true
+    router.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 200
+      Damage1 = 300
+      DamageRadius = 10
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     switchblade.Name = "switchblade"
     switchblade.MaxHealth = 1750
@@ -6210,6 +6405,15 @@ object GlobalDefinitions {
     switchblade.Subtract.Damage0 = 5
     switchblade.Subtract.Damage1 = 5
     switchblade.JackingDuration = Array(0, 20, 7, 5)
+    switchblade.explodes = true
+    switchblade.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 200
+      Damage1 = 300
+      DamageRadius = 10
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     flail.Name = "flail"
     flail.MaxHealth = 2400
@@ -6232,6 +6436,15 @@ object GlobalDefinitions {
     flail.DestroyedModel = Some(DestroyedVehicle.Flail)
     flail.Subtract.Damage1 = 7
     flail.JackingDuration = Array(0, 20, 7, 5)
+    flail.explodes = true
+    flail.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 200
+      Damage1 = 300
+      DamageRadius = 10
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     mosquito.Name = "mosquito"
     mosquito.MaxHealth = 665
@@ -6254,6 +6467,15 @@ object GlobalDefinitions {
     mosquito.DestroyedModel = Some(DestroyedVehicle.Mosquito)
     mosquito.JackingDuration = Array(0, 20, 7, 5)
     mosquito.DamageUsing = DamageCalculations.AgainstAircraft
+    mosquito.explodes = true
+    mosquito.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 200
+      Damage1 = 300
+      DamageRadius = 10
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     lightgunship.Name = "lightgunship" // Reaver
     lightgunship.MaxHealth = 1000
@@ -6277,6 +6499,15 @@ object GlobalDefinitions {
     lightgunship.Subtract.Damage1 = 3
     lightgunship.JackingDuration = Array(0, 30, 10, 5)
     lightgunship.DamageUsing = DamageCalculations.AgainstAircraft
+    lightgunship.explodes = true
+    lightgunship.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 250
+      Damage1 = 375
+      DamageRadius = 12
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     wasp.Name = "wasp"
     wasp.MaxHealth = 515
@@ -6299,6 +6530,15 @@ object GlobalDefinitions {
     wasp.DestroyedModel = Some(DestroyedVehicle.Mosquito) //set_resource_parent wasp game_objects mosquito
     wasp.JackingDuration = Array(0, 20, 7, 5)
     wasp.DamageUsing = DamageCalculations.AgainstAircraft
+    wasp.explodes = true
+    wasp.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 200
+      Damage1 = 300
+      DamageRadius = 10
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     liberator.Name = "liberator"
     liberator.MaxHealth = 2500
@@ -6329,6 +6569,15 @@ object GlobalDefinitions {
     liberator.Subtract.Damage1 = 5
     liberator.JackingDuration = Array(0, 30, 10, 5)
     liberator.DamageUsing = DamageCalculations.AgainstAircraft
+    liberator.explodes = true
+    liberator.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 250
+      Damage1 = 375
+      DamageRadius = 12
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     vulture.Name = "vulture"
     vulture.MaxHealth = 2500
@@ -6360,6 +6609,15 @@ object GlobalDefinitions {
     vulture.Subtract.Damage1 = 5
     vulture.JackingDuration = Array(0, 30, 10, 5)
     vulture.DamageUsing = DamageCalculations.AgainstAircraft
+    vulture.explodes = true
+    vulture.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 250
+      Damage1 = 375
+      DamageRadius = 12
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     dropship.Name = "dropship" // Galaxy
     dropship.MaxHealth = 5000
@@ -6423,6 +6681,15 @@ object GlobalDefinitions {
     dropship.Subtract.Damage1 = 7
     dropship.JackingDuration = Array(0, 60, 20, 10)
     dropship.DamageUsing = DamageCalculations.AgainstAircraft
+    dropship.explodes = true
+    dropship.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 300
+      Damage1 = 450
+      DamageRadius = 30
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     galaxy_gunship.Name = "galaxy_gunship"
     galaxy_gunship.MaxHealth = 6000
@@ -6465,6 +6732,15 @@ object GlobalDefinitions {
     galaxy_gunship.JackingDuration = Array(0, 60, 20, 10)
     galaxy_gunship.DamageUsing = DamageCalculations.AgainstAircraft
     galaxy_gunship.Modifiers = GalaxyGunshipReduction(0.63f)
+    galaxy_gunship.explodes = true
+    galaxy_gunship.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 300
+      Damage1 = 450
+      DamageRadius = 30
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     lodestar.Name = "lodestar"
     lodestar.MaxHealth = 5000
@@ -6495,6 +6771,15 @@ object GlobalDefinitions {
     lodestar.Subtract.Damage1 = 7
     lodestar.JackingDuration = Array(0, 60, 20, 10)
     lodestar.DamageUsing = DamageCalculations.AgainstAircraft
+    lodestar.explodes = true
+    lodestar.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 300
+      Damage1 = 450
+      DamageRadius = 30
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     phantasm.Name = "phantasm"
     phantasm.MaxHealth = 2500
@@ -6526,6 +6811,15 @@ object GlobalDefinitions {
     phantasm.DestroyedModel = None //the adb calls out a phantasm_destroyed but no such asset exists
     phantasm.JackingDuration = Array(0, 60, 20, 10)
     phantasm.DamageUsing = DamageCalculations.AgainstAircraft
+    phantasm.explodes = true
+    phantasm.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 100
+      Damage1 = 150
+      DamageRadius = 12
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     droppod.Name = "droppod"
     droppod.MaxHealth = 20000
@@ -6552,6 +6846,19 @@ object GlobalDefinitions {
     boomer.Repairable = false
     boomer.DeployCategory = DeployableCategory.Boomers
     boomer.DeployTime = Duration.create(1000, "ms")
+    boomer.explodes = true
+    boomer.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.Splash
+      SympatheticExplosion = true
+      Damage0 = 250
+      Damage1 = 750
+      Damage2 = 400
+      Damage3 = 400
+      Damage4 = 1850
+      DamageRadius = 5.1f
+      DamageAtEdge = 0.1f
+      Modifiers = RadialDegrade
+    }
 
     he_mine.Name = "he_mine"
     he_mine.Descriptor = "Mines"
@@ -6560,6 +6867,19 @@ object GlobalDefinitions {
     he_mine.DamageableByFriendlyFire = false
     he_mine.Repairable = false
     he_mine.DeployTime = Duration.create(1000, "ms")
+    he_mine.explodes = true
+    he_mine.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.Splash
+      SympatheticExplosion = true
+      Damage0 = 100
+      Damage1 = 750
+      Damage2 = 400
+      Damage3 = 565
+      Damage4 = 1600
+      DamageRadius = 6.6f
+      DamageAtEdge = 0.25f
+      Modifiers = RadialDegrade
+    }
 
     jammer_mine.Name = "jammer_mine"
     jammer_mine.Descriptor = "JammerMines"
@@ -6582,6 +6902,16 @@ object GlobalDefinitions {
     spitfire_turret.DeployCategory = DeployableCategory.SmallTurrets
     spitfire_turret.DeployTime = Duration.create(5000, "ms")
     spitfire_turret.Model = ComplexDeployableResolutions.calculate
+    spitfire_turret.explodes = true
+    spitfire_turret.explodes = true
+    spitfire_turret.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 200
+      Damage1 = 300
+      DamageRadius = 8
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     spitfire_cloaked.Name = "spitfire_cloaked"
     spitfire_cloaked.Descriptor = "CloakingSpitfires"
@@ -6595,6 +6925,15 @@ object GlobalDefinitions {
     spitfire_cloaked.DeployCategory = DeployableCategory.SmallTurrets
     spitfire_cloaked.DeployTime = Duration.create(5000, "ms")
     spitfire_cloaked.Model = ComplexDeployableResolutions.calculate
+    spitfire_cloaked.explodes = true
+    spitfire_cloaked.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 50
+      Damage1 = 75
+      DamageRadius = 8
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     spitfire_aa.Name = "spitfire_aa"
     spitfire_aa.Descriptor = "FlakSpitfires"
@@ -6608,6 +6947,15 @@ object GlobalDefinitions {
     spitfire_aa.DeployCategory = DeployableCategory.SmallTurrets
     spitfire_aa.DeployTime = Duration.create(5000, "ms")
     spitfire_aa.Model = ComplexDeployableResolutions.calculate
+    spitfire_aa.explodes = true
+    spitfire_aa.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 200
+      Damage1 = 300
+      DamageRadius = 8
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     motionalarmsensor.Name = "motionalarmsensor"
     motionalarmsensor.Descriptor = "MotionSensors"
@@ -6633,6 +6981,15 @@ object GlobalDefinitions {
     tank_traps.RepairIfDestroyed = false
     tank_traps.DeployCategory = DeployableCategory.TankTraps
     tank_traps.DeployTime = Duration.create(6000, "ms")
+    //tank_traps do not explode
+    tank_traps.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 10
+      Damage1 = 10
+      DamageRadius = 8
+      DamageAtEdge = 0.2f
+      Modifiers = RadialDegrade
+    }
 
     val fieldTurretConverter = new FieldTurretConverter
     portable_manned_turret.Name = "portable_manned_turret"
@@ -6651,6 +7008,15 @@ object GlobalDefinitions {
     portable_manned_turret.DeployCategory = DeployableCategory.FieldTurrets
     portable_manned_turret.DeployTime = Duration.create(6000, "ms")
     portable_manned_turret.Model = ComplexDeployableResolutions.calculate
+    portable_manned_turret.explodes = true
+    portable_manned_turret.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 150
+      Damage1 = 300
+      DamageRadius = 8
+      DamageAtEdge = 0.1f
+      Modifiers = RadialDegrade
+    }
 
     portable_manned_turret_nc.Name = "portable_manned_turret_nc"
     portable_manned_turret_nc.Descriptor = "FieldTurrets"
@@ -6668,6 +7034,15 @@ object GlobalDefinitions {
     portable_manned_turret_nc.DeployCategory = DeployableCategory.FieldTurrets
     portable_manned_turret_nc.DeployTime = Duration.create(6000, "ms")
     portable_manned_turret_nc.Model = ComplexDeployableResolutions.calculate
+    portable_manned_turret_nc.explodes = true
+    portable_manned_turret_nc.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 150
+      Damage1 = 300
+      DamageRadius = 8
+      DamageAtEdge = 0.1f
+      Modifiers = RadialDegrade
+    }
 
     portable_manned_turret_tr.Name = "portable_manned_turret_tr"
     portable_manned_turret_tr.Descriptor = "FieldTurrets"
@@ -6685,6 +7060,15 @@ object GlobalDefinitions {
     portable_manned_turret_tr.DeployCategory = DeployableCategory.FieldTurrets
     portable_manned_turret_tr.DeployTime = Duration.create(6000, "ms")
     portable_manned_turret_tr.Model = ComplexDeployableResolutions.calculate
+    portable_manned_turret_tr.explodes = true
+    portable_manned_turret_tr.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 150
+      Damage1 = 300
+      DamageRadius = 8
+      DamageAtEdge = 0.1f
+      Modifiers = RadialDegrade
+    }
 
     portable_manned_turret_vs.Name = "portable_manned_turret_vs"
     portable_manned_turret_vs.Descriptor = "FieldTurrets"
@@ -6702,6 +7086,15 @@ object GlobalDefinitions {
     portable_manned_turret_vs.DeployCategory = DeployableCategory.FieldTurrets
     portable_manned_turret_vs.DeployTime = Duration.create(6000, "ms")
     portable_manned_turret_vs.Model = ComplexDeployableResolutions.calculate
+    portable_manned_turret_vs.explodes = true
+    portable_manned_turret_vs.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 150
+      Damage1 = 300
+      DamageRadius = 8
+      DamageAtEdge = 0.1f
+      Modifiers = RadialDegrade
+    }
 
     deployable_shield_generator.Name = "deployable_shield_generator"
     deployable_shield_generator.Descriptor = "ShieldGenerators"
@@ -7155,6 +7548,15 @@ object GlobalDefinitions {
     manned_turret.MountPoints += 1                      -> 0
     manned_turret.FactionLocked = true
     manned_turret.ReserveAmmunition = false
+    manned_turret.explodes = true
+    manned_turret.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 150
+      Damage1 = 300
+      DamageRadius = 5
+      DamageAtEdge = 0.1f
+      Modifiers = RadialDegrade
+    }
 
     vanu_sentry_turret.Name = "vanu_sentry_turret"
     vanu_sentry_turret.MaxHealth = 1500
@@ -7207,5 +7609,16 @@ object GlobalDefinitions {
     generator.RepairDistance = 13.5f
     generator.RepairIfDestroyed = true
     generator.Subtract.Damage1 = 9
+    generator.explodes = true
+    generator.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 99999
+      //DamageRadius should be 14, but 14 is insufficient for hitting the whole chamber; hence, ...
+      DamageRadius = 15.75f
+      DamageRadiusMin = 14
+      DamageAtEdge = 0.00002f
+      Modifiers = RadialDegrade
+      //damage is 99999 at 14m, dropping rapidly to ~1 at 15.75m
+    }
   }
 }

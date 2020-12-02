@@ -4,6 +4,7 @@ package net.psforever.objects.vital.etc
 import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.vital.base.{DamageReason, DamageResolution}
 import net.psforever.objects.vital.prop.DamageProperties
+import net.psforever.objects.vital.resolution.DamageAndResistance
 
 final case class EnvironmentReason(body: Any, source: DamageProperties) extends DamageReason {
   def resolution: DamageResolution.Value = DamageResolution.Unresolved
@@ -16,4 +17,6 @@ final case class EnvironmentReason(body: Any, source: DamageProperties) extends 
   }
 
   def adversary: Option[SourceEntry] = None
+
+  def damageModel: DamageAndResistance = null
 }

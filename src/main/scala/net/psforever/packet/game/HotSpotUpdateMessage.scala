@@ -16,7 +16,7 @@ import shapeless.{::, HNil}
   * Instead, all maps use a 0 - 8192 coordinate overlay.
   * @param x the x-coord of the center of the hotspot
   * @param y the y-coord of the center of the hotspot
-  * @param scale how big the hotspot explosion icon appears
+  * @param scale how big the hotspot sunburst icon appears
   */
 final case class HotSpotInfo(x: Float, y: Float, scale: Float)
 

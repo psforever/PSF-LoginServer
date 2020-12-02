@@ -47,7 +47,7 @@ trait DamageableWeaponTurret
         announceConfrontation = true
         false
       case _ =>
-        cause.interaction.causesAggravation
+        cause.interaction.cause.source.Aggravated.nonEmpty
     }
 
     //log historical event
@@ -93,6 +93,7 @@ trait DamageableWeaponTurret
     EndAllAggravation()
     DamageableWeaponTurret.DestructionAwareness(obj, cause)
     DamageableMountable.DestructionAwareness(obj, cause)
+    Zone.causeExplosion(target.Zone, target, Some(cause))
   }
 }
 

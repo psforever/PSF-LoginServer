@@ -10,6 +10,7 @@ import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity}
 import net.psforever.objects.serverobject.repair.RepairableEntity
 import net.psforever.objects.vital.SimpleResolutions
 import net.psforever.objects.vital.interaction.DamageResult
+import net.psforever.objects.zones.Zone
 
 class TrapDeployable(cdef: TrapDeployableDefinition) extends ComplexDeployable(cdef)
 
@@ -46,5 +47,6 @@ class TrapDeployableControl(trap: TrapDeployable) extends Actor with DamageableE
   override protected def DestructionAwareness(target: Damageable.Target, cause: DamageResult): Unit = {
     super.DestructionAwareness(target, cause)
     Deployables.AnnounceDestroyDeployable(trap, None)
+    Zone.causeExplosion(target.Zone, target, Some(cause))
   }
 }

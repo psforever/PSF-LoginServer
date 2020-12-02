@@ -4,9 +4,8 @@ package net.psforever.objects.vital.projectile
 import net.psforever.objects.ballistics.{SourceEntry, Projectile => ActualProjectile}
 import net.psforever.objects.vital.base._
 import net.psforever.objects.vital.damage.DamageProfile
-import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.prop.DamageProperties
-import net.psforever.objects.vital.resolution.{DamageAndResistance, ResolutionCalculations}
+import net.psforever.objects.vital.resolution.DamageAndResistance
 
 /**
   * A wrapper for a "damage source" in damage calculations
@@ -37,12 +36,4 @@ final case class ProjectileReason(
   def adversary: Option[SourceEntry] = Some(projectile.owner)
 
   override def attribution: Int = projectile.attribute_to
-
-  override def calculate(data: DamageInteraction): ResolutionCalculations.Output = {
-    damageModel.calculate(data)
-  }
-
-  override def calculate(data: DamageInteraction, dtype: DamageType.Value): ResolutionCalculations.Output = {
-    damageModel.calculate(data, dtype)
-  }
 }

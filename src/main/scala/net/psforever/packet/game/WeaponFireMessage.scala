@@ -19,7 +19,7 @@ import scodec.codecs._
   * @param unk4 Maximum travel distance in meters - seems to be zero for decimator rockets
   * @param unk5 Possibly always 255 from testing
   * @param unk6 0 for bullet
-  *             1 for possibly delayed explosion (thumper alt fire) or thresher/leviathan flux cannon
+  *             1 for possibly delayed innateDamage (thumper alt fire) or thresher/leviathan flux cannon
   *             2 for vs starfire (lockon type?)
   *             3 for thrown (e.g. grenades)
   * @param unk7 Seems to be thrown weapon velocity/direction

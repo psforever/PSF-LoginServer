@@ -139,7 +139,7 @@ case object StarfireAggravated extends ProjectileDamageModifiers.Mod {
   def calculate(damage: Int, data: DamageInteraction, cause: ProjectileReason): Int = {
     if (cause.resolution == DamageResolution.AggravatedDirect &&
         cause.projectile.quality == ProjectileQuality.AggravatesTarget) {
-      data.aggravation match {
+      data.cause.source.Aggravated match {
         case Some(aggravation) =>
           aggravation.info.find(_.damage_type == DamageType.Direct) match {
             case Some(infos) =>
@@ -166,7 +166,7 @@ case object StarfireAggravated extends ProjectileDamageModifiers.Mod {
 case object StarfireAggravatedBurn extends ProjectileDamageModifiers.Mod {
   def calculate(damage: Int, data: DamageInteraction, cause: ProjectileReason): Int = {
     if (cause.resolution == DamageResolution.AggravatedDirectBurn) {
-      data.aggravation match {
+      data.cause.source.Aggravated match {
         case Some(aggravation) =>
           aggravation.info.find(_.damage_type == DamageType.Direct) match {
             case Some(infos) =>
@@ -193,7 +193,7 @@ case object CometAggravated extends ProjectileDamageModifiers.Mod {
   def calculate(damage: Int, data: DamageInteraction, cause: ProjectileReason): Int = {
     if (cause.resolution == DamageResolution.AggravatedDirect &&
         cause.projectile.quality == ProjectileQuality.AggravatesTarget) {
-      data.aggravation match {
+      data.cause.source.Aggravated match {
         case Some(aggravation) =>
           aggravation.info.find(_.damage_type == DamageType.Direct) match {
             case Some(infos) =>
@@ -220,7 +220,7 @@ case object CometAggravated extends ProjectileDamageModifiers.Mod {
 case object CometAggravatedBurn extends ProjectileDamageModifiers.Mod {
   def calculate(damage: Int, data: DamageInteraction, cause: ProjectileReason): Int = {
     if (cause.resolution == DamageResolution.AggravatedDirectBurn) {
-      data.aggravation match {
+      data.cause.source.Aggravated match {
         case Some(aggravation) =>
           aggravation.info.find(_.damage_type == DamageType.Direct) match {
             case Some(infos) =>
@@ -345,7 +345,7 @@ object ProjectileDamageModifierFunctions {
                            ): Int = {
     if (cause.resolution == resolution &&
         cause.projectile.quality == ProjectileQuality.AggravatesTarget) {
-      (data.aggravation, data.target) match {
+      (data.cause.source.Aggravated, data.target) match {
         case (Some(aggravation), p: PlayerSource) =>
           val aggravatedDamage = aggravation.info.find(_.damage_type == damageType) match {
             case Some(infos) =>
@@ -393,7 +393,7 @@ object ProjectileDamageModifierFunctions {
                                  cause: ProjectileReason
                                ): Int = {
     if (cause.resolution == resolution) {
-      (data.aggravation, data.target) match {
+      (data.cause.source.Aggravated, data.target) match {
         case (Some(aggravation), p: PlayerSource) =>
           val degradation = aggravation.info.find(_.damage_type == damageType) match {
             case Some(info) =>

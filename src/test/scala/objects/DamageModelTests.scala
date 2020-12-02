@@ -86,7 +86,8 @@ class DamageCalculationsTests extends Specification {
         ),
         Vector3(1500, 0, 0)
       )
-      MaxDistanceCutoff.calculate(100, cutoffprojectile) == 0 mustEqual true
+      val damage = MaxDistanceCutoff.calculate(100, cutoffprojectile)
+      damage == 0 mustEqual true
     }
 
     "cut off damage at custom distance (no cutoff)" in {

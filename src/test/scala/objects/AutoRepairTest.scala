@@ -58,6 +58,7 @@ class AutoRepairRequestNtuTest extends FreedContextActorTest {
   val proj_prof  = proj.asInstanceOf[DamageProfile]
   val projectile = Projectile(proj, weapon.Definition, wep_fmode, player, Vector3(2, 0, 0), Vector3.Zero)
   val resolved = DamageInteraction(
+    DamageResolution.Hit,
     SourceEntry(terminal),
     ProjectileReason(
       DamageResolution.Hit,
@@ -120,6 +121,7 @@ class AutoRepairRequestNtuRepeatTest extends FreedContextActorTest {
   val proj_prof  = proj.asInstanceOf[DamageProfile]
   val projectile = Projectile(proj, weapon.Definition, wep_fmode, player, Vector3(2, 0, 0), Vector3.Zero)
   val resolved = DamageInteraction(
+    DamageResolution.Hit,
     SourceEntry(terminal),
     ProjectileReason(
       DamageResolution.Hit,
@@ -184,6 +186,7 @@ class AutoRepairNoRequestNtuTest extends FreedContextActorTest {
   val proj_prof  = proj.asInstanceOf[DamageProfile]
   val projectile = Projectile(proj, weapon.Definition, wep_fmode, player, Vector3(2, 0, 0), Vector3.Zero)
   val resolved = DamageInteraction(
+    DamageResolution.Hit,
     SourceEntry(terminal),
     ProjectileReason(
       DamageResolution.Hit,
@@ -241,6 +244,7 @@ class AutoRepairRestoreRequestNtuTest extends FreedContextActorTest {
   val proj_prof  = proj.asInstanceOf[DamageProfile]
   val projectile = Projectile(proj, weapon.Definition, wep_fmode, player, Vector3(2, 0, 0), Vector3.Zero)
   val resolved = DamageInteraction(
+    DamageResolution.Hit,
     SourceEntry(terminal),
     ProjectileReason(
       DamageResolution.Hit,
@@ -307,6 +311,7 @@ class AutoRepairRepairWithNtuTest extends FreedContextActorTest {
   val proj_prof  = proj.asInstanceOf[DamageProfile]
   val projectile = Projectile(proj, weapon.Definition, wep_fmode, player, Vector3(2, 0, 0), Vector3.Zero)
   val resolved = DamageInteraction(
+    DamageResolution.Hit,
     SourceEntry(terminal),
     ProjectileReason(
       DamageResolution.Hit,
@@ -368,6 +373,7 @@ class AutoRepairRepairWithNtuUntilDoneTest extends FreedContextActorTest {
   val proj_prof  = proj.asInstanceOf[DamageProfile]
   val projectile = Projectile(proj, weapon.Definition, wep_fmode, player, Vector3(2, 0, 0), Vector3.Zero)
   val resolved = DamageInteraction(
+    DamageResolution.Hit,
     SourceEntry(terminal),
     ProjectileReason(
       DamageResolution.Hit,

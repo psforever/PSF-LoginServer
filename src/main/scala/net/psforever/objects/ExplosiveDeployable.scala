@@ -99,10 +99,11 @@ object ExplosiveDeployableControl {
         }
       }
       ) {
-        if (target.Definition.DetonateOnJamming) {
+        if (cause.interaction.cause.source.SympatheticExplosion || target.Definition.DetonateOnJamming) {
           val zone = target.Zone
           zone.Activity ! Zone.HotSpot.Activity(cause)
           zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.Detonate(target.GUID, target))
+          Zone.causeExplosion(zone, target, Some(cause))
         }
         DestructionAwareness(target, cause)
       }

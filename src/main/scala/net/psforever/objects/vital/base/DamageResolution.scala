@@ -4,8 +4,8 @@ package net.psforever.objects.vital.base
   * An `Enumeration` of outcomes regarding what actually happened to the damage,
   * complementing normal damage type distinction in directing damage calculations.<br>
   * <br>
-  * Although the latter states reflect what sort of damage might perform - `Hit`, `Splash`, etc. -
-  * the state is more a communication about how that damage is interpreted by the server.
+  * Although some of the earlier states reflect what sort of damage might perform - `Hit`, `Splash`, etc. -
+  * this state is more a communication about how that damage is interpreted by the server.
   * For example, some projectiles:
   * perform `Direct` damage, are reported by `HitMessage` packets, and resolve as `Hit`;
   * or, perform `Direct` damage, are reported by `LashDamage` packets, and resolve as `Lash`.
@@ -28,6 +28,6 @@ object DamageResolution extends Enumeration {
   AggravatedDirectBurn, //continuous direct hit aggravated damage
   AggravatedSplash,     //splashed aggravated damage
   AggravatedSplashBurn, //continuous splashed aggravated damage
-  Explosion             //area of effect damage, caused by an internal mechanism; unrelated to Splash
+  Explosion             //area of effect damage caused by an internal mechanism; unrelated to Splash
   = Value
 }

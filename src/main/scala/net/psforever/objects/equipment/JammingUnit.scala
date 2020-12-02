@@ -69,7 +69,7 @@ trait JammingUnit {
     */
   private val jammedEffectDuration: mutable.ListBuffer[(TargetValidation, Int)] = new mutable.ListBuffer()
 
-  def HasJammedEffectDuration: Boolean = jammedEffectDuration.isEmpty
+  def HasJammedEffectDuration: Boolean = jammedEffectDuration.nonEmpty
 
   def JammedEffectDuration: mutable.ListBuffer[(TargetValidation, Int)] = jammedEffectDuration
 }
@@ -143,7 +143,7 @@ trait JammableBehavior {
     target match {
       case obj: PlanetSideServerObject =>
         val interaction = cause.interaction
-        JammingUnit.FindJammerDuration(interaction.jammering, obj) match {
+        JammingUnit.FindJammerDuration(interaction.cause.source.JammedEffectDuration.toList, obj) match {
           case Some(dur) =>
             if(interaction.cause match {
               case reason: ProjectileReason =>

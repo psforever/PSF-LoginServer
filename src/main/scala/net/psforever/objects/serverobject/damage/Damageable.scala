@@ -79,7 +79,7 @@ object Damageable {
     */
   def CanDamage(obj: Vitality with FactionAffinity, damage: Int, data: DamageInteraction): Boolean = {
     val definition = obj.Definition
-    (damage > 0 || data.causesAggravation) &&
+    (damage > 0 || data.cause.source.Aggravated.nonEmpty) &&
     definition.Damageable &&
     (definition.DamageableByFriendlyFire || adversarialOrHackableChecks(obj, data))
   }
@@ -94,7 +94,7 @@ object Damageable {
     *        `false`, otherwise
     */
   def CanJammer(obj: Vitality with FactionAffinity, data: DamageInteraction): Boolean = {
-    data.causesJammering &&
+    data.cause.source.HasJammedEffectDuration &&
     obj.isInstanceOf[JammableUnit] &&
     adversarialOrHackableChecks(obj, data)
   }
