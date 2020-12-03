@@ -38,12 +38,11 @@ import akka.actor.typed
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
-import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vehicles.UtilityType
 import net.psforever.objects.vital.etc.ExplodingEntityReason
-import net.psforever.objects.vital.{Vitality, VitalityDefinition}
+import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 
 /**
@@ -1099,7 +1098,6 @@ object Zone {
     obj.Definition.innateDamage match {
       case Some(explosion) if obj.Definition.explodes =>
         //useful in this form
-        val definition = obj.Definition.asInstanceOf[ObjectDefinition with VitalityDefinition]
         val sourcePosition = obj.Position
         val sourcePositionXY = sourcePosition.xy
         val radius = explosion.DamageRadius * explosion.DamageRadius
@@ -1144,7 +1142,7 @@ object Zone {
             target.Actor ! Vitality.Damage(
               DamageInteraction(
                 SourceEntry(target),
-                ExplodingEntityReason(definition, target.DamageModel, instigation),
+                ExplodingEntityReason(obj, target.DamageModel, instigation),
                 target.Position
               ).calculate()
             )
@@ -1159,7 +1157,7 @@ object Zone {
               target,
               DamageInteraction(
                 SourceEntry(target),
-                ExplodingEntityReason(definition, target.DamageModel, instigation),
+                ExplodingEntityReason(obj, target.DamageModel, instigation),
                 target.Position
               ).calculate()
             )

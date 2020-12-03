@@ -3,9 +3,8 @@ package net.psforever.objects.vital
 
 import net.psforever.objects.ballistics._
 import net.psforever.objects.definition.{EquipmentDefinition, KitDefinition, ObjectDefinition}
-import net.psforever.objects.serverobject.painbox.Painbox
 import net.psforever.objects.serverobject.terminals.TerminalDefinition
-import net.psforever.objects.vital.etc.ExplodingEntityReason
+import net.psforever.objects.vital.etc.{ExplodingEntityReason, PainboxReason}
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.types.{ExoSuitType, ImplantType}
@@ -53,15 +52,15 @@ final case class RepairFromTerm(target: VehicleSource, amount: Int, term_def: Te
 
 final case class VehicleShieldCharge(target: VehicleSource, amount: Int) extends HealingActivity(target) //TODO facility
 
-final case class DamageFromProjectile(data: DamageResult) extends DamagingActivity(data.interaction.target)
+final case class DamageFromProjectile(data: DamageResult) extends DamagingActivity(data.targetBefore)
 
-final case class DamageFromPainbox(target: PlayerSource, painbox: Painbox, damage: Int) extends DamagingActivity(target)
+final case class DamageFromPainbox(data: DamageResult) extends DamagingActivity(data.targetBefore)
 
 final case class PlayerSuicide(target: PlayerSource) extends DamagingActivity(target)
 
 final case class DamageFromExplosion(target: PlayerSource, cause: ObjectDefinition) extends DamagingActivity(target)
 
-final case class DamageFromExplodingEntity(cause: DamageResult) extends DamagingActivity(cause.targetBefore)
+final case class DamageFromExplodingEntity(data: DamageResult) extends DamagingActivity(data.targetBefore)
 
 /**
   * A vital object can be hurt or damaged or healed or repaired (HDHR).
@@ -113,6 +112,8 @@ trait VitalsHistory {
       case _: ExplodingEntityReason =>
         vitalsHistory = DamageFromExplodingEntity(result) +: vitalsHistory
         lastDamage = Some(result)
+      case _: PainboxReason =>
+        vitalsHistory = DamageFromPainbox(result) +: vitalsHistory
       case _ => ;
     }
     vitalsHistory

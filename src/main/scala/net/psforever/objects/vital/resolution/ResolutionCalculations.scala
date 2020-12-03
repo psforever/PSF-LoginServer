@@ -155,50 +155,52 @@ object ResolutionCalculations {
     target match {
       case player: Player =>
         var (a, b) = damageValues
-        var result = (0, 0)
         if (player.isAlive && !(a == 0 && b == 0)) {
-          if (player.Capacitor.toInt > 0 && player.isShielded) {
-            // Subtract armour damage from capacitor
-            result = SubtractWithRemainder(player.Capacitor.toInt, b)
-            player.Capacitor = result._1.toFloat
-            b = result._2
-
-            // Then follow up with health damage if any capacitor is left
-            result = SubtractWithRemainder(player.Capacitor.toInt, a)
-            player.Capacitor = result._1.toFloat
-            a = result._2
-          }
-
-          player.avatar.implants.flatten.find(x => x.definition.implantType == ImplantType.PersonalShield) match {
-            case Some(implant) if implant.active =>
-              // Subtract armour damage from stamina
-              result = SubtractWithRemainder(player.avatar.stamina, b)
-              player.avatar = player.avatar.copy(stamina = result._1)
+          val originalHealth = player.Health
+          if (data.cause.source.DamageToHealthOnly) {
+            player.Health = SubtractWithRemainder(player.Health, a)._1
+          } else {
+            var result = (0, 0)
+            if (player.Capacitor.toInt > 0 && player.isShielded) {
+              // Subtract armour damage from capacitor
+              result = SubtractWithRemainder(player.Capacitor.toInt, b)
+              player.Capacitor = result._1.toFloat
               b = result._2
 
-              // Then follow up with health damage if any stamina is left
-              result = SubtractWithRemainder(player.avatar.stamina, a)
-              player.avatar = player.avatar.copy(stamina = result._1)
+              // Then follow up with health damage if any capacitor is left
+              result = SubtractWithRemainder(player.Capacitor.toInt, a)
+              player.Capacitor = result._1.toFloat
               a = result._2
+            }
+            player.avatar.implants.flatten.find(x => x.definition.implantType == ImplantType.PersonalShield) match {
+              case Some(implant) if implant.active =>
+                // Subtract armour damage from stamina
+                result = SubtractWithRemainder(player.avatar.stamina, b)
+                player.avatar = player.avatar.copy(stamina = result._1)
+                b = result._2
 
-            case _ => ;
+                // Then follow up with health damage if any stamina is left
+                result = SubtractWithRemainder(player.avatar.stamina, a)
+                player.avatar = player.avatar.copy(stamina = result._1)
+                a = result._2
+
+              case _ => ;
+            }
+
+            // Subtract any remaining armour damage from armour
+            result = SubtractWithRemainder(player.Armor, b)
+            player.Armor = result._1
+            b = result._2
+            // Then bleed through to health if armour ran out
+            result = SubtractWithRemainder(player.Health, b)
+            player.Health = result._1
+            b = result._2
+
+            // Finally, apply health damage to health
+            result = SubtractWithRemainder(player.Health, a)
+            player.Health = result._1
+            //if b > 0 (armor) or result._2 > 0 (health), then we did the math wrong
           }
-
-          // Subtract any remaining armour damage from armour
-          result = SubtractWithRemainder(player.Armor, b)
-          player.Armor = result._1
-          b = result._2
-
-          val originalHealth = player.Health
-          // Then bleed through to health if armour ran out
-          result = SubtractWithRemainder(player.Health, b)
-          player.Health = result._1
-          b = result._2
-
-          // Finally, apply health damage to health
-          result = SubtractWithRemainder(player.Health, a)
-          player.Health = result._1
-          a = result._2
 
           // If any health damage was applied also drain an amount of stamina equal to half the health damage
           if (player.Health < originalHealth) {

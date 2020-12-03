@@ -7573,28 +7573,68 @@ object GlobalDefinitions {
     vanu_sentry_turret.ReserveAmmunition = false
 
     painbox.Name = "painbox"
+    painbox.alwaysOn = false
+    painbox.sphereOffset = Vector3(0, 0, -0.4f)
     painbox.Damageable = false
     painbox.Repairable = false
+    painbox.innateDamage = new DamageWithPosition {
+      Damage0 = 5
+      DamageRadius = 0
+      DamageToHealthOnly = true
+    }
 
     painbox_continuous.Name = "painbox_continuous"
+    painbox_continuous.sphereOffset = Vector3(0, 0, -0.4f)
     painbox_continuous.Damageable = false
     painbox_continuous.Repairable = false
+    painbox_continuous.innateDamage = new DamageWithPosition {
+      Damage0 = 5
+      DamageRadius = 0
+      DamageToHealthOnly = true
+    }
 
     painbox_door_radius.Name = "painbox_door_radius"
+    painbox_door_radius.alwaysOn = false
+    painbox_door_radius.sphereOffset = Vector3(0, 0, -0.4f)
+    painbox_door_radius.hasNearestDoorDependency = true
     painbox_door_radius.Damageable = false
     painbox_door_radius.Repairable = false
+    painbox_door_radius.innateDamage = new DamageWithPosition {
+      Damage0 = 5
+      DamageRadius = 10f * 0.6928f
+      DamageToHealthOnly = true
+    }
 
     painbox_door_radius_continuous.Name = "painbox_door_radius_continuous"
+    painbox_door_radius_continuous.sphereOffset = Vector3(0, 0, -0.4f)
+    painbox_door_radius_continuous.hasNearestDoorDependency = true
     painbox_door_radius_continuous.Damageable = false
     painbox_door_radius_continuous.Repairable = false
+    painbox_door_radius_continuous.innateDamage = new DamageWithPosition {
+      Damage0 = 5
+      DamageRadius = 10f * 0.6928f
+      DamageToHealthOnly = true
+    }
 
     painbox_radius.Name = "painbox_radius"
+    painbox_radius.alwaysOn = false
+    painbox_radius.sphereOffset = Vector3(0, 0, -0.4f)
     painbox_radius.Damageable = false
     painbox_radius.Repairable = false
+    painbox_radius.innateDamage = new DamageWithPosition {
+      Damage0 = 5
+      DamageRadius = 10f * 0.6928f
+      DamageToHealthOnly = true
+    }
 
     painbox_radius_continuous.Name = "painbox_radius_continuous"
     painbox_radius_continuous.Damageable = false
     painbox_radius_continuous.Repairable = false
+    painbox_radius_continuous.innateDamage = new DamageWithPosition {
+      Damage0 = 5
+      DamageRadius = 8.55f
+      DamageToHealthOnly = true
+    }
 
     gen_control.Name = "gen_control"
     gen_control.Damageable = false

@@ -1,9 +1,10 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital.etc
 
+import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.definition.ObjectDefinition
-import net.psforever.objects.vital.VitalityDefinition
+import net.psforever.objects.vital.{Vitality, VitalityDefinition}
 import net.psforever.objects.vital.base.{DamageReason, DamageResolution}
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.vital.prop.DamageWithPosition
@@ -22,18 +23,19 @@ import net.psforever.objects.vital.resolution.DamageAndResistance
   * @param instigation what previous event happened, if any, that caused this explosion
   */
 final case class ExplodingEntityReason(
-                                        entity: ObjectDefinition with VitalityDefinition,
+                                        entity: PlanetSideGameObject with Vitality,
                                         damageModel: DamageAndResistance,
                                         instigation: Option[DamageResult]
                                       ) extends DamageReason {
-  assert(entity.explodes && entity.innateDamage.nonEmpty, "causal entity does not explode")
+  val definition = entity.Definition.asInstanceOf[ObjectDefinition with VitalityDefinition]
+  assert(definition.explodes && definition.innateDamage.nonEmpty, "causal entity does not explode")
 
-  def source: DamageWithPosition = entity.innateDamage.get
+  def source: DamageWithPosition = definition.innateDamage.get
 
   def resolution: DamageResolution.Value = DamageResolution.Explosion
 
   def same(test: DamageReason): Boolean = test match {
-    case eer: ExplodingEntityReason => eer.entity.ObjectId == entity.ObjectId
+    case eer: ExplodingEntityReason => eer.entity eq entity
     case _                          => false
   }
 
@@ -44,5 +46,5 @@ final case class ExplodingEntityReason(
   }
 
   /** the entity that exploded is the source of the damage */
-  override def attribution: Int = entity.ObjectId
+  override def attribution: Int = definition.ObjectId
 }

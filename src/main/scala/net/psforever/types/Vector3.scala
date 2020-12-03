@@ -329,10 +329,39 @@ object Vector3 {
     )
   }
 
-  def PlanarRotateAroundPoint(point: Vector3, center: Vector3, radians: Float): Vector3 = {
-    val x = (Math.cos(radians) * (point.x - center.x) - Math.sin(radians) * (point.y - center.y) + center.x).toFloat
-    val y = (Math.sin(radians) * (point.x - center.x) + Math.cos(radians) * (point.y - center.y) + center.y).toFloat
+  /**
+    * Perform a standard z-axis rotation of a `Vector3` element representing a point in space
+    * around a `Vector3` element representing a point representing an axis of rotation
+    * where the angle of rotation is assumed in radians.
+    * This follows number circle rotation (counterclockwise) instead of compass rose rotation (clockwise).
+    * It can not be substituted with `(Rz(point - axis, radians) + center).xy + z(point.z)`.
+    * @see `Vector3.Rz(Vector3, Double)`
+    * @param point a mathematical vector representing a point in space
+    * @param axis a mathematical vector representing an axis of rotation
+    * @param radians a rotation angle, in radians
+    * @return the rotated point
+    */
+  def PlanarRotateAroundPoint(point: Vector3, axis: Vector3, radians: Float): Vector3 = {
+    val cos = math.cos(radians).toFloat
+    val sin = math.sin(radians).toFloat
+    val dx = point.x - axis.x
+    val dy = point.y - axis.y
+    val x = cos * dx - sin * dy + axis.x
+    val y = sin * dx + cos * dy + axis.y
+    Vector3(
+      closeToInsignificance(x),
+      closeToInsignificance(y),
+      point.z
+    )
+  }
 
-    Vector3(x, y, point.z)
+  /**
+    * Find the center between two points.
+    * @param p1 the first point
+    * @param p2 the second point
+    * @return the point that is the mean position directly between the first point and the second point
+    */
+  def midpoint(p1: Vector3, p2: Vector3): Vector3 = {
+    Vector3((p1.x + p2.x) / 2, (p1.y + p2.y) / 2, (p1.z + p2.z) / 2)
   }
 }

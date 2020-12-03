@@ -4,7 +4,7 @@ package net.psforever.objects.avatar
 import akka.actor.{Actor, ActorRef, Props}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.objects.{Player, _}
-import net.psforever.objects.ballistics.PlayerSource
+import net.psforever.objects.ballistics.{ObjectSource, PlayerSource}
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
 import net.psforever.objects.loadouts.Loadout
@@ -27,6 +27,7 @@ import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import akka.actor.typed
 import net.psforever.objects.locker.LockerContainerControl
+import net.psforever.objects.serverobject.painbox.Painbox
 import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.etc.SuicideReason
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
@@ -620,21 +621,38 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         //alert to damage source
         cause.adversarial match {
           case Some(adversarial) =>
-            zone.AvatarEvents ! AvatarServiceMessage(
-              target.Name,
-              adversarial.attacker match {
-                case pSource : PlayerSource => //player damage
-                  val name = pSource.Name
-                  zone.LivePlayers.find(_.Name == name).orElse(zone.Corpses.find(_.Name == name)) match {
-                    case Some(tplayer) =>
+            adversarial.attacker match {
+              case pSource : PlayerSource => //player damage
+                val name = pSource.Name
+                zone.LivePlayers.find(_.Name == name).orElse(zone.Corpses.find(_.Name == name)) match {
+                  case Some(tplayer) =>
+                    zone.AvatarEvents ! AvatarServiceMessage(
+                      target.Name,
                       AvatarAction.HitHint(tplayer.GUID, target.GUID)
-                    case None =>
-                      AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(countableDamage, pSource.Position))
-                  }
-                case source =>
-                  AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(countableDamage, source.Position))
-              }
-            )
+                    )
+                  case None =>
+                    zone.AvatarEvents ! AvatarServiceMessage(
+                      target.Name,
+                      AvatarAction.SendResponse(
+                        Service.defaultPlayerGUID,
+                        DamageWithPositionMessage(countableDamage, pSource.Position)
+                      )
+                    )
+                }
+              case source: ObjectSource if source.obj.isInstanceOf[Painbox] =>
+                zone.AvatarEvents ! AvatarServiceMessage(
+                  target.Name,
+                  AvatarAction.EnvironmentalDamage(target.GUID, source.obj.GUID, countableDamage)
+                )
+              case source =>
+                zone.AvatarEvents ! AvatarServiceMessage(
+                  target.Name,
+                  AvatarAction.SendResponse(
+                    Service.defaultPlayerGUID,
+                    DamageWithPositionMessage(countableDamage, source.Position)
+                  )
+                )
+            }
           case None =>
         }
       }

@@ -42,7 +42,6 @@ import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
-import net.psforever.objects.serverobject.painbox.Painbox
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals._
@@ -1783,31 +1782,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         sendResponse(GenericObjectActionMessage(guid, 9))
 
       case AvatarResponse.EnvironmentalDamage(target, source, amount) =>
-        if (player.isAlive && amount > 0) {
-          val playerGUID     = player.GUID
-          val armor          = player.Armor
-          val capacitor      = player.Capacitor
-          val originalHealth = player.Health
-          //history
-          continent.GUID(source) match {
-            case Some(obj: Painbox) =>
-              player.History(DamageFromPainbox(PlayerSource(player), obj, amount))
-            case _ => ;
-          }
-          CancelZoningProcessWithDescriptiveReason("cancel_dmg")
-          player.Health = originalHealth - amount
-          sendResponse(PlanetsideAttributeMessage(target, 0, player.Health))
-          continent.AvatarEvents ! AvatarServiceMessage(
-            continent.id,
-            AvatarAction.PlanetsideAttribute(target, 0, player.Health)
-          )
-          damageLog.info(
-            s"${player.Name}-infantry: BEFORE=$originalHealth/$armor/$capacitor, AFTER=${player.Health}/$armor/$capacitor, CHANGE=$amount/0/0"
-          )
-          if (player.Health == 0 && player.isAlive) {
-            player.Actor ! Player.Die()
-          }
-        }
+        CancelZoningProcessWithDescriptiveReason("cancel_dmg")
+        //TODO damage marker?
 
       case AvatarResponse.Destroy(victim, killer, weapon, pos) =>
         // guid = victim // killer = killer ;)
