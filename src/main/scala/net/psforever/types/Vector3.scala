@@ -364,4 +364,33 @@ object Vector3 {
   def midpoint(p1: Vector3, p2: Vector3): Vector3 = {
     Vector3((p1.x + p2.x) / 2, (p1.y + p2.y) / 2, (p1.z + p2.z) / 2)
   }
+
+  /**
+    * Given a `Vector3` element composed of Euler angles,
+    * find a standard unit vector that points in the direction of "up" after rotating by the Euler angles.
+    * Compass direction rules apply (North is 0 degrees, East is 90 degrees, etc.).
+    * @see `Vector3.relativeUp(Vector3, Vector3)`
+    * @param orient three Euler angles representing rotation
+    * @return a mathematical vector representing a relative "up" direction
+    */
+  def relativeUp(orient: Vector3): Vector3 = {
+    relativeUp(orient, Vector3(0,0,1)) //world up
+  }
+
+  /**
+    * Given a `Vector3` element composed of Euler angles
+    * and a `Vector3` element in the direction of "up",
+    * find a standard unit vector that points in the direction of "up" after rotating by the Euler angles.
+    * Compass direction rules apply (North is 0 degrees, East is 90 degrees, etc.).
+    * @see `Vector3.Rx(Float)`
+    * @see `Vector3.Ry(Float)`
+    * @see `Vector3.Rz(Float)`
+    * @param orient three Euler angles representing rotation
+    * @param up a mathematical vector representing "up"
+    * @return a mathematical vector representing a relative "up" direction
+    */
+  def relativeUp(orient: Vector3, up: Vector3): Vector3 = {
+    //TODO is the missing calculation before Rz(Rx(Ry(v, x), y), z) or after Rz(Ry(Rx(v, y), x), z)?
+    Rz(Rx(up, orient.y), (orient.z + 180) % 360f)
+  }
 }

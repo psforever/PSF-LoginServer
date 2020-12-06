@@ -1086,14 +1086,17 @@ object Zone {
     * @see `Zone.Vehicles`
     * @param zone the zone in which the innateDamage should occur
     * @param obj the entity that embodies the innateDamage (information)
-    * @param instigation whatprior action triggered the entity to explode, if anything
+    * @param instigation whatever prior action triggered the entity to explode, if anything
+    * @param detectionTest a custom test to determine if any given target is affected;
+    *                      defaults to an internal test for simple radial proximity
     * @return a list of affected entities;
     *         only mostly complete due to the exclusion of objects whose damage resolution is different than usual
     */
   def causeExplosion(
                       zone: Zone,
                       obj: PlanetSideGameObject with Vitality,
-                      instigation: Option[DamageResult]
+                      instigation: Option[DamageResult],
+                      detectionTest: (PlanetSideGameObject, PlanetSideGameObject, Float) => Boolean = distanceCheck
                     ): List[PlanetSideServerObject] = {
     obj.Definition.innateDamage match {
       case Some(explosion) if obj.Definition.explodes =>
@@ -1134,7 +1137,7 @@ object Zone {
         //restrict to targets in the damage radius
         val allAffectedTargets = (playerTargets ++ vehicleTargets ++ complexDeployableTargets ++ soiTargets)
           .filter { target =>
-            (target ne obj) && Vector3.DistanceSquared(sourcePosition, target.Position) <= radius
+            (target ne obj) && detectionTest(obj, target, radius)
           }
         //inform remaining targets that they have suffered an innateDamage
         allAffectedTargets
@@ -1150,7 +1153,7 @@ object Zone {
         //important note - these are not returned as targets that were affected
         simpleDeployableTargets
           .filter { target =>
-            Vector3.DistanceSquared(sourcePosition, target.Position) <= radius
+            (target ne obj) && detectionTest(obj, target, radius)
           }
           .foreach { target =>
             zone.LocalEvents ! Vitality.DamageOn(
@@ -1166,5 +1169,21 @@ object Zone {
       case None =>
         Nil
     }
+  }
+
+  /**
+    * Two game entities are considered "near" each other if they are within a certain distance of one another.
+    * A default function literal mainly used for `causesExplosion`.
+    * @see `causeExplosion`
+    * @see `Vector3.DistanceSquare`
+    * @param obj1 a game entity
+    * @param obj2 a game entity
+    * @param maxDistance the square of the maximum distance permissible between game entities
+    *                    before they are no longer considered "near"
+    * @return `true`, if the target entities are near to each other;
+    *        `false`, otherwise
+    */
+  private def distanceCheck(obj1: PlanetSideGameObject, obj2: PlanetSideGameObject, maxDistance: Float): Boolean = {
+    Vector3.DistanceSquared(obj1.Position, obj2.Position) <= maxDistance
   }
 }
