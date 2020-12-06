@@ -1068,8 +1068,8 @@ object Zone {
   }
 
   /**
-    * Allocates `Damageable` targets within the radius of a server-prepared innateDamage
-    * and informs those entities that they have affected by the aforementioned innateDamage.
+    * Allocates `Damageable` targets within the radius of a server-prepared explosion
+    * and informs those entities that they have affected by the aforementioned explosion.
     * @see `Amenity.Owner`
     * @see `ComplexDeployable`
     * @see `DamageInteraction`
@@ -1084,8 +1084,8 @@ object Zone {
     * @see `Zone.LivePlayers`
     * @see `Zone.LocalEvents`
     * @see `Zone.Vehicles`
-    * @param zone the zone in which the innateDamage should occur
-    * @param obj the entity that embodies the innateDamage (information)
+    * @param zone the zone in which the explosion should occur
+    * @param obj the entity that embodies the explosion (information)
     * @param instigation whatever prior action triggered the entity to explode, if anything
     * @param detectionTest a custom test to determine if any given target is affected;
     *                      defaults to an internal test for simple radial proximity
@@ -1139,7 +1139,7 @@ object Zone {
           .filter { target =>
             (target ne obj) && detectionTest(obj, target, radius)
           }
-        //inform remaining targets that they have suffered an innateDamage
+        //inform remaining targets that they have suffered an explosion
         allAffectedTargets
           .foreach { target =>
             target.Actor ! Vitality.Damage(

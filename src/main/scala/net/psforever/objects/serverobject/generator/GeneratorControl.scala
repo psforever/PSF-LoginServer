@@ -79,7 +79,7 @@ class GeneratorControl(gen: Generator)
       .orElse {
         case GeneratorControl.Destabilized() =>
           imminentExplosion = true
-          //the generator's condition is technically destroyed, but avoid official reporting until the innateDamage
+          //the generator's condition is technically destroyed, but avoid official reporting until the explosion
           gen.Condition = PlanetSideGeneratorState.Destroyed
           GeneratorControl.UpdateOwner(gen, Some(GeneratorControl.Event.Destabilized))
           queuedExplosion.cancel()
@@ -115,7 +115,7 @@ class GeneratorControl(gen: Generator)
   /*
   when ntu is not expected,
   the generator can still be destroyed but will not explode
-  handles the possibility that ntu was lost during an ongoing destabilization and cancels the innateDamage
+  handles the possibility that ntu was lost during an ongoing destabilization and cancels the explosion
    */
   def withoutNtu: Receive =
     commonBehavior
@@ -140,12 +140,12 @@ class GeneratorControl(gen: Generator)
       }
 
   override protected def CanPerformRepairs(obj: Target, player: Player, item: Tool): Boolean = {
-    //if an innateDamage is queued, disallow repairs
+    //if an explosion is queued, disallow repairs
     !imminentExplosion && super.CanPerformRepairs(obj, player, item)
   }
 
   override protected def WillAffectTarget(target: Target, damage: Int, cause: DamageResult): Boolean = {
-    //if an innateDamage is queued, disallow further damage
+    //if an explosion is queued, disallow further damage
     !imminentExplosion && super.WillAffectTarget(target, damage, cause)
   }
 
@@ -201,7 +201,7 @@ class GeneratorControl(gen: Generator)
     if(!gen.Destroyed) {
       GeneratorControl.UpdateOwner(gen, Some(GeneratorControl.Event.Offline))
     }
-    //can any innateDamage (see withoutNtu->GenweratorControl.Destabilized)
+    //quit any explosion (see withoutNtu->GeneratorControl.Destabilized)
     if(!queuedExplosion.isCancelled) {
       queuedExplosion.cancel()
       self ! GeneratorControl.Destabilized()
