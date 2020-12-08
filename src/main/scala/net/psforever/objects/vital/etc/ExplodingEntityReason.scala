@@ -27,7 +27,7 @@ final case class ExplodingEntityReason(
                                         damageModel: DamageAndResistance,
                                         instigation: Option[DamageResult]
                                       ) extends DamageReason {
-  val definition = entity.Definition.asInstanceOf[ObjectDefinition with VitalityDefinition]
+  private val definition = entity.Definition.asInstanceOf[ObjectDefinition with VitalityDefinition]
   assert(definition.explodes && definition.innateDamage.nonEmpty, "causal entity does not explode")
 
   def source: DamageWithPosition = definition.innateDamage.get

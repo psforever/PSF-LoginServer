@@ -17,8 +17,8 @@ final case class SuicideReason()
   /*
   In my head canon, there is a neverending termite eating into the Auraxian human empires.
   There is no recruitment.
-  People are barely alive long enough to feel basic neds like hunger or thirst.
-  All that is still thrives on the zealous fevor to keep the army motivated.
+  People are barely alive long enough to feel basic needs like hunger or thirst.
+  All that is still thrives on the zealous fervor to keep the army motivated.
   But what do people do if they don't want to fight anymore?
   Do they just never come back from being a speck of thought floating in the air
   and, in frustration at life, endure in a disembodied, solitary limbo of the nanites?
