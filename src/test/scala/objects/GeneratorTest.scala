@@ -350,25 +350,23 @@ class GeneratorControlKillsTest extends ActorTest {
   player1.Actor = player1Probe.ref
   val player2 =
     Player(Avatar(0, "TestCharacter2", PlanetSideEmpire.TR, CharacterGender.Female, 1, CharacterVoice.Mute)) //guid=4
-  player2.Position = Vector3(20, 0, 0)                                                                       //>14m from generator; lives
+  player2.Position = Vector3(25, 0, 0)                                                                       //>14m from generator; lives
   player2.Spawn()
   val player2Probe = TestProbe()
   player2.Actor = player2Probe.ref
 
-
+  val avatarProbe = TestProbe()
+  val activityProbe = TestProbe()
   val guid = new NumberPoolHub(new MaxNumberSource(5))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)
     override def LivePlayers = List(player1, player2)
+    override def AvatarEvents = avatarProbe.ref
+    override def Activity = activityProbe.ref
   }
-  val avatarProbe = TestProbe()
-  zone.AvatarEvents = avatarProbe.ref
-  val activityProbe = TestProbe()
-  zone.Activity = activityProbe.ref
   val building = Building("test-building", 1, 1, zone, StructureType.Facility) //guid=1
   building.Position = Vector3(1, 0, 0)
-  building.Zone = zone
   building.Amenities = gen
   val buildingProbe = TestProbe()
   building.Actor = buildingProbe.ref
@@ -390,12 +388,12 @@ class GeneratorControlKillsTest extends ActorTest {
         weapon.FireMode,
         PlayerSource(player1),
         0,
-        Vector3(2, 0, 0),
+        Vector3(25, 0, 0),
         Vector3(-1, 0, 0)
       ),
       gen.DamageModel
     ),
-    Vector3(1, 0, 0)
+    Vector3(2, 0, 0)
   )
   val applyDamageTo = resolved.calculate()
   expectNoMessage(200 milliseconds)
@@ -860,6 +858,7 @@ object GeneratorTest {
     Repairable = true
     RepairDistance = 13.5f
     RepairIfDestroyed = true
+    explodes = true
     innateDamage = new DamageWithPosition {
       DamageRadius = 14
     }

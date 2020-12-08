@@ -30,38 +30,34 @@ class AutoRepairFacilityIntegrationTest extends FreedContextActorTest {
   system.spawn(InterstellarClusterService(Nil), InterstellarClusterService.InterstellarClusterServiceKey.id)
   ServiceManager.boot(system) ! ServiceManager.Register(Props[GalaxyService](), "galaxy")
   expectNoMessage(1000 milliseconds)
+  val guid = new NumberPoolHub(new MaxNumberSource(max = 10))
+  val avatarProbe = new TestProbe(system)
+  val zone = new Zone("test", new ZoneMap("test"), 0) {
+    override def SetupNumberPools() = {}
+    GUID(guid)
+    override def AvatarEvents = avatarProbe.ref
+  }
+  val building = Building.Structure(StructureType.Facility)(name = "integ-fac-test-building", guid = 6, map_id = 0, zone, context)
+  building.Invalidate()
 
   val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
   player.Spawn()
   val weapon = new Tool(GlobalDefinitions.suppressor)
   val terminal = new Terminal(AutoRepairIntegrationTest.terminal_definition)
   val silo = new ResourceSilo()
-  val guid = new NumberPoolHub(new MaxNumberSource(max = 10))
-  val zone = new Zone("test", new ZoneMap("test"), 0) {
-    override def SetupNumberPools() = {}
-    GUID(guid)
-  }
-  val avatarProbe = new TestProbe(system)
-  zone.AvatarEvents = avatarProbe.ref
-
   guid.register(player, number = 1)
   guid.register(weapon, number = 2)
   guid.register(weapon.AmmoSlot.Box, number = 3)
   guid.register(terminal, number = 4)
   guid.register(silo, number = 5)
-
-  val building = Building.Structure(StructureType.Facility)(name = "test-building", guid = 6, map_id = 0, zone, context)
-  building.Invalidate()
   guid.register(building, number = 6)
+
   building.Amenities = silo
   building.Amenities = terminal
-
   terminal.Actor = context.actorOf(Props(classOf[TerminalControl], terminal), name = "test-terminal")
-
   silo.NtuCapacitor = 1000
   silo.Actor = system.actorOf(Props(classOf[ResourceSiloControl], silo), "test-silo")
   silo.Actor ! "startup"
-  building.Actor ! BuildingActor.PowerOn() //artificial
 
   val wep_fmode  = weapon.FireMode
   val wep_prof   = wep_fmode.Add
@@ -102,31 +98,31 @@ class AutoRepairTowerIntegrationTest extends FreedContextActorTest {
   import akka.actor.typed.scaladsl.adapter._
   system.spawn(InterstellarClusterService(Nil), InterstellarClusterService.InterstellarClusterServiceKey.id)
   ServiceManager.boot(system) ! ServiceManager.Register(Props[GalaxyService](), "galaxy")
-  expectNoMessage(200 milliseconds)
+  expectNoMessage(1000 milliseconds)
+  val guid = new NumberPoolHub(new MaxNumberSource(max = 10))
+  val avatarProbe = new TestProbe(system)
+  val zone = new Zone("test", new ZoneMap("test"), 0) {
+    override def SetupNumberPools() = {}
+    GUID(guid)
+    override def AvatarEvents = avatarProbe.ref
+  }
+  val building = Building.Structure(StructureType.Tower)(name = "integ-twr-test-building", guid = 6, map_id = 0, zone, context)
+  building.Invalidate()
 
   val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
   player.Spawn()
   val weapon = new Tool(GlobalDefinitions.suppressor)
   val terminal = new Terminal(AutoRepairIntegrationTest.terminal_definition)
-  val guid = new NumberPoolHub(new MaxNumberSource(max = 10))
-  val zone = new Zone("test", new ZoneMap("test"), 0) {
-    override def SetupNumberPools() = {}
-    GUID(guid)
-  }
-  val avatarProbe = new TestProbe(system)
-  zone.AvatarEvents = avatarProbe.ref
-
+  terminal.Actor = context.actorOf(Props(classOf[TerminalControl], terminal), name = "test-terminal")
   guid.register(player, number = 1)
   guid.register(weapon, number = 2)
   guid.register(weapon.AmmoSlot.Box, number = 3)
   guid.register(terminal, number = 4)
-
-  val building = Building.Structure(StructureType.Tower)(name = "test-building", guid = 6, map_id = 0, zone, context)
-  building.Invalidate()
   guid.register(building, number = 6)
-  building.Amenities = terminal
 
-  terminal.Actor = context.actorOf(Props(classOf[TerminalControl], terminal), name = "test-terminal")
+  building.Amenities = terminal
+  building.Actor ! BuildingActor.SuppliedWithNtu() //artificial
+  building.Actor ! BuildingActor.PowerOn() //artificial
 
   val wep_fmode  = weapon.FireMode
   val wep_prof   = wep_fmode.Add
