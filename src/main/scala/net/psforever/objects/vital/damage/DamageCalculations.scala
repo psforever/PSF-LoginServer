@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vital.damage
 
-import net.psforever.objects.ballistics.ResolvedProjectile
+import net.psforever.objects.vital.interaction.DamageInteraction
 
 /**
   * A series of methods for extraction of the base damage against a given target type
@@ -11,41 +11,48 @@ object DamageCalculations {
   type Selector = DamageProfile => Int
 
   //raw damage selectors
-  def AgainstNothing(profile: DamageProfile): Int = 0
+  def AgainstNothing(profile : DamageProfile) : Int = 0
 
-  def AgainstExoSuit(profile: DamageProfile): Int = profile.Damage0
+  def AgainstExoSuit(profile : DamageProfile) : Int = profile.Damage0
 
-  def AgainstVehicle(profile: DamageProfile): Int = profile.Damage1
+  def AgainstVehicle(profile : DamageProfile) : Int = profile.Damage1
 
-  def AgainstAircraft(profile: DamageProfile): Int = profile.Damage2
+  def AgainstAircraft(profile : DamageProfile) : Int = profile.Damage2
 
-  def AgainstMaxSuit(profile: DamageProfile): Int = profile.Damage3
+  def AgainstMaxSuit(profile : DamageProfile) : Int = profile.Damage3
 
-  def AgainstBFR(profile: DamageProfile): Int = profile.Damage4
+  def AgainstBFR(profile : DamageProfile) : Int = profile.Damage4
 
   /**
-    * Get damage information from a series of profiles related to the weapon discharge.
+    * Get the damage value.
     * @param selector the function that recovers the damage value
-    * @param data na
-    * @return the accumulated damage value
+    * @param data     na
+    * @return the raw damage value
     */
-  def DamageWithModifiers(selector: DamageProfile => Int, data: ResolvedProjectile): Int = {
-    val projectile = data.projectile
-    val profile    = projectile.profile
-    val fireMode   = projectile.fire_mode
-    //static (additive and subtractive) modifiers
-    val staticModifiers = if (profile.UseDamage1Subtract) {
-      List(fireMode.Add, data.target.Modifiers.Subtract)
-    } else {
-      List(fireMode.Add)
-    }
+  def Raw(selector: DamageProfile => Int, data: DamageInteraction) : Int = {
+    selector(data.cause.source)
+  }
+
+  /**
+    * Get the damage value after it has been modified by context-related operations.
+    * Used as the default modifier function for `DamageResistanceCalculations`.
+    * @param selector the function that recovers the damage value
+    * @param data     the interaction being processed
+    * @return         the accumulated damage value
+    */
+  def WithModifiers(selector: DamageProfile => Int, data: DamageInteraction) : Int = {
+    val cause = data.cause
+    val source = cause.source
+    val target = data.target
     //base damage + static modifiers
-    var damage = selector(profile) + staticModifiers.foldLeft(0)(_ + selector(_))
-    //unstructured modifiers (the order is intentional, however)
-    (fireMode.Modifiers ++
-      profile.Modifiers ++
-      data.target.Definition.Modifiers)
-      .foreach { mod => damage = mod.Calculate(damage, data) }
+    val staticModifiers = cause.staticModifiers ++
+                          (if (source.UseDamage1Subtract) List(target.Modifiers.Subtract) else Nil)
+    //unstructured modifiers (their ordering is intentional)
+    val unstructuredModifiers = cause.unstructuredModifiers ++
+                                source.Modifiers ++ target.Definition.Modifiers
+    //apply
+    var damage = selector(source) + staticModifiers.foldLeft(0)(_ + selector(_))
+    unstructuredModifiers.foreach { mod => damage = mod.calculate(damage, data) }
     damage
   }
 }

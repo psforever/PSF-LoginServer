@@ -2,19 +2,20 @@
 package net.psforever.objects
 
 import akka.actor.{Actor, ActorContext, Props}
-import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.ce.{ComplexDeployable, Deployable, DeployedItem}
 import net.psforever.objects.definition.converter.TRAPConverter
 import net.psforever.objects.definition.{ComplexDeployableDefinition, SimpleDeployableDefinition}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity}
 import net.psforever.objects.serverobject.repair.RepairableEntity
-import net.psforever.objects.vital.StandardResolutions
+import net.psforever.objects.vital.SimpleResolutions
+import net.psforever.objects.vital.interaction.DamageResult
+import net.psforever.objects.zones.Zone
 
 class TrapDeployable(cdef: TrapDeployableDefinition) extends ComplexDeployable(cdef)
 
 class TrapDeployableDefinition(objectId: Int) extends ComplexDeployableDefinition(objectId) {
-  Model = StandardResolutions.SimpleDeployables
+  Model = SimpleResolutions.calculate
   Packet = new TRAPConverter
 
   override def Initialize(obj: PlanetSideServerObject with Deployable, context: ActorContext) = {
@@ -43,8 +44,9 @@ class TrapDeployableControl(trap: TrapDeployable) extends Actor with DamageableE
         case _ =>
       }
 
-  override protected def DestructionAwareness(target: Damageable.Target, cause: ResolvedProjectile): Unit = {
+  override protected def DestructionAwareness(target: Damageable.Target, cause: DamageResult): Unit = {
     super.DestructionAwareness(target, cause)
     Deployables.AnnounceDestroyDeployable(trap, None)
+    Zone.causeExplosion(target.Zone, target, Some(cause))
   }
 }

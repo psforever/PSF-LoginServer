@@ -10,7 +10,10 @@ import net.psforever.objects.zones.ZoneAware
   * An object layered on top of the standard game object class that maintains an internal `ActorRef`.
   * A measure of synchronization can be managed using this `Actor` as a "controlling agent."
   */
-abstract class PlanetSideServerObject extends PlanetSideGameObject with FactionAffinity with ZoneAware {
+abstract class PlanetSideServerObject
+  extends PlanetSideGameObject
+    with FactionAffinity
+    with ZoneAware {
   private var actor: ActorRef              = ActorRef.noSender
   private var getActorFunc: () => ActorRef = PlanetSideServerObject.getDefaultActor
 

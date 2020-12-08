@@ -4,7 +4,10 @@ package net.psforever.objects.serverobject.damage
 import akka.actor.{Actor, Cancellable}
 import net.psforever.objects.ballistics._
 import net.psforever.objects.serverobject.aura.Aura
-import net.psforever.objects.vital.{DamageType, Vitality}
+import net.psforever.objects.vital.base._
+import net.psforever.objects.vital.Vitality
+import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
+import net.psforever.objects.vital.projectile.ProjectileReason
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -21,16 +24,15 @@ trait AggravatedBehavior {
 
   def AggravatedObject: AggravatedBehavior.Target
 
-  def TryAggravationEffectActivate(data: ResolvedProjectile): Option[AggravatedDamage] = {
-    val projectile = data.projectile
-    projectile.profile.Aggravated match {
-      case Some(damage)
-        if projectile.profile.ProjectileDamageTypes.contains(DamageType.Aggravated) &&
-           damage.info.exists(_.damage_type == AggravatedDamage.basicDamageType(data.resolution)) &&
+  def TryAggravationEffectActivate(data: DamageResult): Option[AggravatedDamage] = {
+    (data.interaction.cause, data.interaction.cause.source.Aggravated) match {
+      case (o: ProjectileReason, Some(damage))
+        if data.interaction.cause.source.AllDamageTypes.contains(DamageType.Aggravated) &&
+           damage.info.exists(_.damage_type == AggravatedDamage.basicDamageType(data.interaction.resolution)) &&
            damage.effect_type != Aura.Nothing &&
-          (projectile.quality == ProjectileQuality.AggravatesTarget ||
-           damage.targets.exists(validation => validation.test(AggravatedObject))) =>
-        TryAggravationEffectActivate(damage, data)
+           (o.projectile.quality == ProjectileQuality.AggravatesTarget ||
+            damage.targets.exists(validation => validation.test(AggravatedObject))) =>
+        TryAggravationEffectActivate(damage, data.interaction)
       case _ =>
         None
     }
@@ -38,10 +40,10 @@ trait AggravatedBehavior {
 
   private def TryAggravationEffectActivate(
                                             aggravation: AggravatedDamage,
-                                            data: ResolvedProjectile
+                                            data: DamageInteraction
                                           ): Option[AggravatedDamage] = {
     val effect = aggravation.effect_type
-    if(CheckForUniqueUnqueuedProjectile(data.projectile)) {
+    if(CheckForUniqueUnqueuedCause(data.cause)) {
       val sameEffect = entryIdToEntry.values.filter(entry => entry.effect == effect)
       if(sameEffect.isEmpty || sameEffect.nonEmpty && aggravation.cumulative_damage_degrade) {
         SetupAggravationEntry(aggravation, data)
@@ -56,18 +58,21 @@ trait AggravatedBehavior {
     }
   }
 
-  private def CheckForUniqueUnqueuedProjectile(projectile : Projectile): Boolean = {
-    !entryIdToEntry.values.exists { entry => entry.data.projectile.id == projectile.id }
+  private def CheckForUniqueUnqueuedCause(cause : DamageReason): Boolean = {
+    !entryIdToEntry.values.exists { entry => entry.data.cause.same(cause) }
   }
 
-  private def SetupAggravationEntry(aggravation: AggravatedDamage, data: ResolvedProjectile): Boolean = {
+  private def SetupAggravationEntry(aggravation: AggravatedDamage, data: DamageInteraction): Boolean = {
     val effect = aggravation.effect_type
     aggravation.info.find(_.damage_type == AggravatedDamage.basicDamageType(data.resolution)) match {
       case Some(info) =>
+        //setup effect
         val timing = aggravation.timing
         val duration = timing.duration
-        //setup effect
-        val id = data.projectile.id
+        val id = data.cause match {
+          case o: ProjectileReason => o.projectile.id
+          case _ => data.hitTime
+        }
         //setup timer data
         val (tick: Long, iterations: Int) = timing.ticks match {
           case Some(n) if n < 1 =>
@@ -103,16 +108,16 @@ trait AggravatedBehavior {
                                           id: Long,
                                           effect: Aura,
                                           retime: Long,
-                                          data: ResolvedProjectile,
+                                          data: DamageInteraction,
                                           target: SourceEntry,
                                           powerOffset: List[Float]
                                         ): AggravatedBehavior.Entry = {
-    val aggravatedDamageInfo = ResolvedProjectile(
-      AggravatedDamage.burning(data.resolution),
-      data.projectile,
+    val cause = data.cause
+    val aggravatedDamageInfo = DamageInteraction(
+      AggravatedDamage.burning(cause.resolution),
       target,
-      data.damage_model,
-      data.hit_pos
+      cause,
+      data.hitPos
     )
     val entry = AggravatedBehavior.Entry(id, effect, retime, aggravatedDamageInfo, powerOffset)
     entryIdToEntry += id -> entry
@@ -159,7 +164,7 @@ trait AggravatedBehavior {
     entryIdToEntry.remove(id) match {
       case Some(entry) =>
         ongoingAggravated = entryIdToEntry.nonEmpty
-        entry.data.projectile.profile.Aggravated.get.effect_type
+        entry.data.cause.source.Aggravated.get.effect_type
       case _ =>
         Aura.Nothing
     }
@@ -187,23 +192,31 @@ trait AggravatedBehavior {
   def AggravatedReaction: Boolean = ongoingAggravated
 
   private def PerformAggravation(entry: AggravatedBehavior.Entry, tick: Int = 0): Unit = {
-    val data = entry.data
-    val model = data.damage_model
-    val aggravatedProjectileData = ResolvedProjectile(
-      data.resolution,
-      data.projectile.quality(ProjectileQuality.Modified(entry.qualityPerTick(tick))),
-      data.target,
-      model,
-      data.hit_pos
-    )
-    takesDamage.apply(Vitality.Damage(model.Calculate(aggravatedProjectileData)))
+    entry.data.cause match {
+      case o: ProjectileReason =>
+        val aggravatedProjectileData = DamageInteraction(
+          entry.data.resolution,
+          entry.data.target,
+          ProjectileReason(
+            o.resolution,
+            o.projectile.quality(ProjectileQuality.Modified(entry.qualityPerTick(tick))),
+            o.damageModel
+          ),
+          entry.data.hitPos
+        )
+        takesDamage.apply(Vitality.Damage(aggravatedProjectileData.calculate()))
+
+      case _ =>
+        //TODO how to apply tick damage degradation
+        takesDamage.apply(Vitality.Damage(entry.data.calculate()))
+    }
   }
 }
 
 object AggravatedBehavior {
   type Target = Damageable.Target
 
-  private case class Entry(id: Long, effect: Aura, retime: Long, data: ResolvedProjectile, qualityPerTick: List[Float])
+  private case class Entry(id: Long, effect: Aura, retime: Long, data: DamageInteraction, qualityPerTick: List[Float])
 
   private case class Aggravate(id: Long, iterations: Int)
 }

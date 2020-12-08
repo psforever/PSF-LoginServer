@@ -1,9 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services
 
-import akka.actor.{Actor, ActorIdentity, ActorRef, ActorSystem, Identify, Props}
+import akka.actor.{Actor, ActorIdentity, ActorRef, ActorSystem, Identify, InvalidActorNameException, Props, typed}
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed
 import akka.actor.typed.receptionist.Receptionist
 
 import scala.collection.mutable
@@ -35,6 +34,7 @@ class ServiceManager extends Actor {
 
   var nextLookupId: Long                     = 0
   val lookups: mutable.LongMap[RequestEntry] = mutable.LongMap()
+  val retainedRequests: mutable.HashMap[String, Set[ActorRef]] = mutable.HashMap()
 
   override def preStart() = {
     log.info("Starting...")
@@ -43,7 +43,32 @@ class ServiceManager extends Actor {
   def receive = {
     case Register(props, name) =>
       log.info(s"Registered $name service")
-      context.actorOf(props, name)
+      try {
+        val ref = context.actorOf(props, name)
+        val result = LookupResult(name, ref)
+        //handle logged premature requests
+        retainedRequests.remove(name) match {
+          case Some(oldRequests) =>
+            oldRequests.foreach {
+              _ ! result
+            }
+          case None => ;
+        }
+        //handle active requests that will probably miss
+        val poorlytTimedRequests = lookups.filter {
+          _._2.request.equals(name)
+        }
+        poorlytTimedRequests.foreach { case (id, entry) =>
+          entry.responder ! result
+          lookups.remove(id)
+        }
+      }
+      catch {
+        case e: InvalidActorNameException => //if an entry already exists, no harm, no foul, just don't do it again
+          log.warn(s"service manager says: ${e.getMessage}")
+        case _ => ;
+      }
+
     case Lookup(name) =>
       context.actorSelection(name) ! Identify(nextLookupId)
       lookups += nextLookupId -> RequestEntry(name, sender())
@@ -60,22 +85,21 @@ class ServiceManager extends Actor {
         case Some(RequestEntry(name, sender)) =>
           sender ! LookupResult(name, ref)
           lookups.remove(idNumber)
-        case _ =>
-        //TODO something
+        case _ => ;
       }
 
     case ActorIdentity(id, None) =>
       val idNumber = id.asInstanceOf[Long]
       lookups.get(idNumber) match {
-        case Some(RequestEntry(name, _)) =>
-          log.error(s"request #$idNumber for service `$name` came back empty; it may not exist")
+        case Some(RequestEntry(name, sender)) =>
+          log.error(s"service manager says: request #$idNumber for service `$name` came back empty; it may not exist")
           lookups.remove(idNumber)
-        case _ =>
-        //TODO something
+          retainedRequests(name) = retainedRequests.getOrElse(name, Set[ActorRef]()) ++ Set(sender)
+        case _ => ;
       }
 
     case default =>
-      log.error(s"invalid message received - $default")
+      log.error(s"service manager says: invalid message received - $default")
   }
 
   protected case class RequestEntry(request: String, responder: ActorRef)

@@ -27,8 +27,12 @@ import net.psforever.services.support.SupportActor
 import net.psforever.services.vehicle.support.TurretUpgrader
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import org.specs2.mutable.Specification
+
 import scala.concurrent.duration._
 import net.psforever.objects.avatar.Avatar
+import net.psforever.objects.vital.interaction.DamageInteraction
+import net.psforever.objects.vital.base.DamageResolution
+import net.psforever.objects.vital.projectile.ProjectileReason
 
 class DamageableTest extends Specification {
   val player1     = Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
@@ -39,11 +43,13 @@ class DamageableTest extends Specification {
   "Damageable" should {
     "permit damage" in {
       val target = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
-      val resolved = ResolvedProjectile(
-        ProjectileResolution.Hit,
-        Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+      val resolved = DamageInteraction(
         SourceEntry(target),
-        target.DamageModel,
+        ProjectileReason(
+          DamageResolution.Hit,
+          Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+          target.DamageModel
+        ),
         Vector3.Zero
       )
 
@@ -52,19 +58,13 @@ class DamageableTest extends Specification {
 
     "ignore attempts at non-zero damage" in {
       val target = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
-      val resolved = ResolvedProjectile(
-        ProjectileResolution.Hit,
-        Projectile(
-          projectileA,
-          weaponA.Definition,
-          weaponA.FireMode,
-          PlayerSource(player1),
-          0,
-          Vector3.Zero,
-          Vector3.Zero
-        ),
+      val resolved = DamageInteraction(
         SourceEntry(target),
-        target.DamageModel,
+        ProjectileReason(
+          DamageResolution.Hit,
+          Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+          target.DamageModel
+        ),
         Vector3.Zero
       )
 
@@ -77,21 +77,32 @@ class DamageableTest extends Specification {
         new Building("test-building", 0, 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building) {
           Faction = player1.Faction
         }
-      val resolved = ResolvedProjectile(
-        ProjectileResolution.Hit,
-        Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+
+      val resolvedFF = DamageInteraction(
         SourceEntry(target),
-        target.DamageModel,
+        ProjectileReason(
+          DamageResolution.Hit,
+          Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+          target.DamageModel
+        ),
         Vector3.Zero
       )
-
       target.Definition.DamageableByFriendlyFire mustEqual false
       target.Faction == player1.Faction mustEqual true
-      Damageable.CanDamage(target, projectileA.Damage0, resolved) mustEqual false
+      Damageable.CanDamage(target, projectileA.Damage0, resolvedFF) mustEqual false
 
       target.Owner.Faction = PlanetSideEmpire.NC
+      val resolvedNonFF = DamageInteraction(
+        SourceEntry(target),
+        ProjectileReason(
+          DamageResolution.Hit,
+          Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+          target.DamageModel
+        ),
+        Vector3.Zero
+      )
       target.Faction != player1.Faction mustEqual true
-      Damageable.CanDamage(target, projectileA.Damage0, resolved) mustEqual true
+      Damageable.CanDamage(target, projectileA.Damage0, resolvedNonFF) mustEqual true
     }
 
     "ignore attempts at damaging a target that is not damageable" in {
@@ -100,11 +111,13 @@ class DamageableTest extends Specification {
         new Building("test-building", 0, 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building) {
           Faction = PlanetSideEmpire.NC
         }
-      val resolved = ResolvedProjectile(
-        ProjectileResolution.Hit,
-        Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+      val resolved = DamageInteraction(
         SourceEntry(target),
-        target.DamageModel,
+        ProjectileReason(
+          DamageResolution.Hit,
+          Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+          target.DamageModel
+        ),
         Vector3.Zero
       )
 
@@ -127,11 +140,13 @@ class DamageableTest extends Specification {
         new Building("test-building", 0, 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building) {
           Faction = player1.Faction
         }
-      val resolved = ResolvedProjectile(
-        ProjectileResolution.Hit,
-        Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+      val resolved = DamageInteraction(
         SourceEntry(target),
-        target.DamageModel,
+        ProjectileReason(
+          DamageResolution.Hit,
+          Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+          target.DamageModel
+        ),
         Vector3.Zero
       )
 
@@ -151,60 +166,74 @@ class DamageableTest extends Specification {
 
     "permit jamming" in {
       val target = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
-      val resolved = ResolvedProjectile(
-        ProjectileResolution.Hit,
-        Projectile(projectileB, weaponB.Definition, weaponB.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+      val resolved = DamageInteraction(
         SourceEntry(target),
-        target.DamageModel,
+        ProjectileReason(
+          DamageResolution.Hit,
+          Projectile(projectileB, weaponB.Definition, weaponB.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+          target.DamageModel
+        ),
         Vector3.Zero
       )
 
-      resolved.projectile.profile.JammerProjectile mustEqual true
+      resolved.cause.source.HasJammedEffectDuration mustEqual true
       Damageable.CanJammer(target, resolved) mustEqual true
     }
 
     "ignore attempts at jamming if the projectile is does not cause the effect" in {
       val target = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
-      val resolved = ResolvedProjectile(
-        ProjectileResolution.Hit,
-        Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+      val resolved = DamageInteraction(
         SourceEntry(target),
-        target.DamageModel,
+        ProjectileReason(
+          DamageResolution.Hit,
+          Projectile(projectileA, weaponA.Definition, weaponA.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+          target.DamageModel
+        ),
         Vector3.Zero
       ) //decimator
 
-      resolved.projectile.profile.JammerProjectile mustEqual false
+      resolved.cause.source.HasJammedEffectDuration mustEqual false
       Damageable.CanJammer(target, resolved) mustEqual false
     }
 
     "ignore attempts at jamming friendly targets" in {
       val target = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
       target.Faction = player1.Faction
-      val resolved = ResolvedProjectile(
-        ProjectileResolution.Hit,
-        Projectile(projectileB, weaponB.Definition, weaponB.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+      val resolved = DamageInteraction(
         SourceEntry(target),
-        target.DamageModel,
+        ProjectileReason(
+          DamageResolution.Hit,
+          Projectile(projectileB, weaponB.Definition, weaponB.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+          target.DamageModel
+        ),
         Vector3.Zero
       )
 
-      resolved.projectile.profile.JammerProjectile mustEqual true
-      resolved.projectile.owner.Faction == target.Faction mustEqual true
+      resolved.cause.source.HasJammedEffectDuration mustEqual true
+      resolved.adversarial match {
+        case Some(adversarial) => adversarial.attacker.Faction mustEqual adversarial.defender.Faction
+        case None => ko
+      }
       Damageable.CanJammer(target, resolved) mustEqual false
     }
 
     "ignore attempts at jamming targets that are not jammable" in {
       val target = new TrapDeployable(GlobalDefinitions.tank_traps)
-      val resolved = ResolvedProjectile(
-        ProjectileResolution.Hit,
-        Projectile(projectileB, weaponB.Definition, weaponB.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+      val resolved = DamageInteraction(
         SourceEntry(target),
-        target.DamageModel,
+        ProjectileReason(
+          DamageResolution.Hit,
+          Projectile(projectileB, weaponB.Definition, weaponB.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+          target.DamageModel
+        ),
         Vector3.Zero
       )
 
-      resolved.projectile.profile.JammerProjectile mustEqual true
-      resolved.projectile.owner.Faction == target.Faction mustEqual false
+      resolved.cause.source.HasJammedEffectDuration mustEqual true
+      resolved.adversarial match {
+        case Some(adversarial) => adversarial.attacker.Faction mustNotEqual adversarial.defender.Faction
+        case None => ko
+      }
       target.isInstanceOf[JammableUnit] mustEqual false
       Damageable.CanJammer(target, resolved) mustEqual false
     }
@@ -215,16 +244,21 @@ class DamageableTest extends Specification {
       player2.GUID = PlanetSideGUID(1)
       val target = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
       target.Faction = player1.Faction
-      val resolved = ResolvedProjectile(
-        ProjectileResolution.Hit,
-        Projectile(projectileB, weaponB.Definition, weaponB.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+      val resolved = DamageInteraction(
         SourceEntry(target),
-        target.DamageModel,
+        ProjectileReason(
+          DamageResolution.Hit,
+          Projectile(projectileB, weaponB.Definition, weaponB.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+          target.DamageModel,
+        ),
         Vector3.Zero
       )
 
-      resolved.projectile.profile.JammerProjectile mustEqual true
-      resolved.projectile.owner.Faction == target.Faction mustEqual true
+      resolved.cause.source.HasJammedEffectDuration mustEqual true
+      resolved.adversarial match {
+        case Some(adversarial) => adversarial.attacker.Faction mustEqual adversarial.defender.Faction
+        case None => ko
+      }
       target.isInstanceOf[JammableUnit] mustEqual true
       target.HackedBy.nonEmpty mustEqual false
       Damageable.CanJammer(target, resolved) mustEqual false
@@ -270,22 +304,16 @@ class DamageableEntityDamageTest extends ActorTest {
 
   val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
-  val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    Projectile(
-      projectile,
-      weapon.Definition,
-      weapon.FireMode,
-      PlayerSource(player1),
-      0,
-      Vector3(2, 0, 0),
-      Vector3(-1, 0, 0)
-    ),
+  val resolved = DamageInteraction(
     SourceEntry(gen),
-    gen.DamageModel,
-    Vector3(1, 0, 0)
+    ProjectileReason(
+      DamageResolution.Hit,
+      Projectile(projectile, weapon.Definition, weapon.FireMode, PlayerSource(player1), 0, Vector3(2, 0, 0), Vector3(-1, 0, 0)),
+      gen.DamageModel
+    ),
+    Vector3(1,0,0)
   )
-  val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
   expectNoMessage(200 milliseconds)
 
   "DamageableEntity" should {
@@ -341,22 +369,24 @@ class DamageableEntityDestroyedTest extends ActorTest {
   guid.register(player1, 3)
   val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
-  val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    Projectile(
-      projectile,
-      weapon.Definition,
-      weapon.FireMode,
-      PlayerSource(player1),
-      0,
-      Vector3(2, 0, 0),
-      Vector3(-1, 0, 0)
-    ),
+  val resolved = DamageInteraction(
     SourceEntry(mech),
-    mech.DamageModel,
+    ProjectileReason(
+      DamageResolution.Hit,
+      Projectile(
+        projectile,
+        weapon.Definition,
+        weapon.FireMode,
+        PlayerSource(player1),
+        0,
+        Vector3(2, 0, 0),
+        Vector3(-1, 0, 0)
+      ),
+      mech.DamageModel
+    ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
   expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
@@ -415,22 +445,24 @@ class DamageableEntityNotDestroyTwice extends ActorTest {
 
   val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
-  val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    Projectile(
-      projectile,
-      weapon.Definition,
-      weapon.FireMode,
-      PlayerSource(player1),
-      0,
-      Vector3(2, 0, 0),
-      Vector3(-1, 0, 0)
-    ),
+  val resolved = DamageInteraction(
     SourceEntry(gen),
-    gen.DamageModel,
+    ProjectileReason(
+      DamageResolution.Hit,
+      Projectile(
+        projectile,
+        weapon.Definition,
+        weapon.FireMode,
+        PlayerSource(player1),
+        0,
+        Vector3(2, 0, 0),
+        Vector3(-1, 0, 0)
+      ),
+      gen.DamageModel
+    ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
   expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
@@ -486,22 +518,24 @@ class DamageableAmenityTest extends ActorTest {
 
   val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
-  val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    Projectile(
-      projectile,
-      weapon.Definition,
-      weapon.FireMode,
-      PlayerSource(player1),
-      0,
-      Vector3(2, 0, 0),
-      Vector3(-1, 0, 0)
-    ),
+  val resolved = DamageInteraction(
     SourceEntry(term),
-    term.DamageModel,
+    ProjectileReason(
+      DamageResolution.Hit,
+      Projectile(
+        projectile,
+        weapon.Definition,
+        weapon.FireMode,
+        PlayerSource(player1),
+        0,
+        Vector3(2, 0, 0),
+        Vector3(-1, 0, 0)
+      ),
+      term.DamageModel
+    ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
   expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
@@ -579,22 +613,24 @@ class DamageableMountableDamageTest extends ActorTest {
 
   val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
-  val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    Projectile(
-      projectile,
-      weapon.Definition,
-      weapon.FireMode,
-      PlayerSource(player1),
-      0,
-      Vector3(2, 0, 0),
-      Vector3(-1, 0, 0)
-    ),
+  val resolved = DamageInteraction(
     SourceEntry(mech),
-    mech.DamageModel,
+    ProjectileReason(
+      DamageResolution.Hit,
+      Projectile(
+        projectile,
+        weapon.Definition,
+        weapon.FireMode,
+        PlayerSource(player1),
+        0,
+        Vector3(2, 0, 0),
+        Vector3(-1, 0, 0)
+      ),
+      mech.DamageModel
+    ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
   mech.Seats(0).Occupant = player2        //seat the player
   player2.VehicleSeated = Some(mech.GUID) //seat the player
   expectNoMessage(200 milliseconds)
@@ -674,22 +710,24 @@ class DamageableMountableDestroyTest extends ActorTest {
   building.Actor = buildingProbe.ref
   val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile
-  val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    Projectile(
-      projectile,
-      weapon.Definition,
-      weapon.FireMode,
-      PlayerSource(player1),
-      0,
-      Vector3(2, 0, 0),
-      Vector3(-1, 0, 0)
-    ),
+  val resolved = DamageInteraction(
     SourceEntry(mech),
-    mech.DamageModel,
+    ProjectileReason(
+      DamageResolution.Hit,
+      Projectile(
+        projectile,
+        weapon.Definition,
+        weapon.FireMode,
+        PlayerSource(player1),
+        0,
+        Vector3(2, 0, 0),
+        Vector3(-1, 0, 0)
+      ),
+      mech.DamageModel
+    ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
   mech.Seats(0).Occupant = player2        //seat the player
   player2.VehicleSeated = Some(mech.GUID) //seat the player
   expectNoMessage(200 milliseconds)
@@ -719,7 +757,7 @@ class DamageableMountableDestroyTest extends ActorTest {
       )
       assert(
         msg3 match {
-          case Player.Die() => true
+          case Player.Die(_) => true
           case _            => false
         }
       )
@@ -764,23 +802,25 @@ class DamageableWeaponTurretDamageTest extends ActorTest {
 
   val weapon       = Tool(GlobalDefinitions.suppressor)
   val projectile   = weapon.Projectile
-  val turretSource = SourceEntry(turret)
-  val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    Projectile(
-      projectile,
-      weapon.Definition,
-      weapon.FireMode,
-      PlayerSource(player1),
-      0,
-      Vector3(2, 0, 0),
-      Vector3(-1, 0, 0)
+  val pSource = PlayerSource(player1)
+  val resolved = DamageInteraction(
+    SourceEntry(turret),
+    ProjectileReason(
+      DamageResolution.Hit,
+      Projectile(
+        projectile,
+        weapon.Definition,
+        weapon.FireMode,
+        pSource,
+        0,
+        Vector3(2, 0, 0),
+        Vector3(-1, 0, 0)
+      ),
+      turret.DamageModel
     ),
-    turretSource,
-    turret.DamageModel,
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
   expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
@@ -801,8 +841,8 @@ class DamageableWeaponTurretDamageTest extends ActorTest {
       assert(
         msg3 match {
           case activity: Zone.HotSpot.Activity =>
-            activity.attacker == PlayerSource(player1) &&
-              activity.defender == turretSource &&
+            activity.attacker == pSource &&
+              activity.defender == SourceEntry(turret) &&
               activity.location == Vector3(1, 0, 0)
           case _ => false
         }
@@ -864,22 +904,24 @@ class DamageableWeaponTurretJammerTest extends ActorTest {
   val weapon       = Tool(GlobalDefinitions.jammer_grenade)
   val projectile   = weapon.Projectile
   val turretSource = SourceEntry(turret)
-  val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    Projectile(
-      projectile,
-      weapon.Definition,
-      weapon.FireMode,
-      PlayerSource(player1),
-      0,
-      Vector3(2, 0, 0),
-      Vector3(-1, 0, 0)
-    ),
+  val resolved = DamageInteraction(
     turretSource,
-    turret.DamageModel,
+    ProjectileReason(
+      DamageResolution.Hit,
+      Projectile(
+        projectile,
+        weapon.Definition,
+        weapon.FireMode,
+        PlayerSource(player1),
+        0,
+        Vector3(2, 0, 0),
+        Vector3(-1, 0, 0)
+      ),
+      turret.DamageModel
+    ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
   expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
@@ -966,41 +1008,46 @@ class DamageableWeaponTurretDestructionTest extends ActorTest {
   val turretSource = SourceEntry(turret)
   val weaponA      = Tool(GlobalDefinitions.jammer_grenade)
   val projectileA  = weaponA.Projectile
-  val resolvedA = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    Projectile(
-      projectileA,
-      weaponA.Definition,
-      weaponA.FireMode,
-      PlayerSource(player1),
-      0,
-      Vector3(2, 0, 0),
-      Vector3(-1, 0, 0)
-    ),
+  val resolvedA = DamageInteraction(
     turretSource,
-    turret.DamageModel,
+    ProjectileReason(
+      DamageResolution.Hit,
+      Projectile(
+        projectileA,
+        weaponA.Definition,
+        weaponA.FireMode,
+        PlayerSource(player1),
+        0,
+        Vector3(2, 0, 0),
+        Vector3(-1, 0, 0)
+      ),
+      turret.DamageModel
+    ),
     Vector3(1, 0, 0)
   )
-  val applyDamageToA = resolvedA.damage_model.Calculate(resolvedA)
+  val applyDamageToA = resolvedA.calculate()
 
   val weaponB     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectileB = weaponB.Projectile
-  val resolvedB = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    Projectile(
-      projectileB,
-      weaponB.Definition,
-      weaponB.FireMode,
-      PlayerSource(player1),
-      0,
-      Vector3(2, 0, 0),
-      Vector3(-1, 0, 0)
-    ),
+  val resolvedB = DamageInteraction(
+
     turretSource,
-    turret.DamageModel,
+    ProjectileReason(
+      DamageResolution.Hit,
+      Projectile(
+        projectileB,
+        weaponB.Definition,
+        weaponB.FireMode,
+        PlayerSource(player1),
+        0,
+        Vector3(2, 0, 0),
+        Vector3(-1, 0, 0)
+      ),
+      turret.DamageModel
+    ),
     Vector3(1, 0, 0)
   )
-  val applyDamageToB = resolvedB.damage_model.Calculate(resolvedB)
+  val applyDamageToB = resolvedB.calculate()
   expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
@@ -1037,7 +1084,7 @@ class DamageableWeaponTurretDestructionTest extends ActorTest {
       )
       assert(
         msg3 match {
-          case Player.Die() => true
+          case Player.Die(_) => true
           case _            => false
         }
       )
@@ -1107,22 +1154,24 @@ class DamageableVehicleDamageTest extends ActorTest {
   val weapon        = Tool(GlobalDefinitions.suppressor)
   val projectile    = weapon.Projectile
   val vehicleSource = SourceEntry(atv)
-  val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    Projectile(
-      projectile,
-      weapon.Definition,
-      weapon.FireMode,
-      PlayerSource(player1),
-      0,
-      Vector3(2, 0, 0),
-      Vector3(-1, 0, 0)
-    ),
+  val resolved = DamageInteraction(
     vehicleSource,
-    atv.DamageModel,
+    ProjectileReason(
+      DamageResolution.Hit,
+      Projectile(
+        projectile,
+        weapon.Definition,
+        weapon.FireMode,
+        PlayerSource(player1),
+        0,
+        Vector3(2, 0, 0),
+        Vector3(-1, 0, 0)
+      ),
+      atv.DamageModel
+    ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
   expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
@@ -1152,7 +1201,7 @@ class DamageableVehicleDamageTest extends ActorTest {
         msg3 match {
           case activity: Zone.HotSpot.Activity =>
             activity.attacker == PlayerSource(player1) &&
-            activity.defender == vehicleSource &&
+            activity.defender == VehicleSource(atv) &&
             activity.location == Vector3(1, 0, 0)
           case _ => false
         }
@@ -1234,23 +1283,25 @@ class DamageableVehicleDamageMountedTest extends ActorTest {
 
   val weapon        = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile    = weapon.Projectile
-  val vehicleSource = SourceEntry(lodestar)
-  val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    Projectile(
-      projectile,
-      weapon.Definition,
-      weapon.FireMode,
-      PlayerSource(player1),
-      0,
-      Vector3(2, 0, 0),
-      Vector3(-1, 0, 0)
+  val pSource = PlayerSource(player1)
+  val resolved = DamageInteraction(
+    SourceEntry(lodestar),
+    ProjectileReason(
+      DamageResolution.Hit,
+      Projectile(
+        projectile,
+        weapon.Definition,
+        weapon.FireMode,
+        pSource,
+        0,
+        Vector3(2, 0, 0),
+        Vector3(-1, 0, 0)
+      ),
+      lodestar.DamageModel
     ),
-    vehicleSource,
-    lodestar.DamageModel,
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
   expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
@@ -1281,8 +1332,8 @@ class DamageableVehicleDamageMountedTest extends ActorTest {
     assert(
       msg3 match {
         case activity: Zone.HotSpot.Activity =>
-          activity.attacker == PlayerSource(player1) &&
-            activity.defender == vehicleSource &&
+          activity.attacker == pSource &&
+            activity.defender == SourceEntry(lodestar) &&
             activity.location == Vector3(1, 0, 0)
         case _ => false
       }
@@ -1379,22 +1430,24 @@ class DamageableVehicleJammeringMountedTest extends ActorTest {
   val vehicleSource = SourceEntry(lodestar)
   val weapon        = Tool(GlobalDefinitions.jammer_grenade)
   val projectile    = weapon.Projectile
-  val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    Projectile(
-      projectile,
-      weapon.Definition,
-      weapon.FireMode,
-      PlayerSource(player1),
-      0,
-      Vector3(2, 0, 0),
-      Vector3(-1, 0, 0)
-    ),
+  val resolved = DamageInteraction(
     vehicleSource,
-    lodestar.DamageModel,
+    ProjectileReason(
+      DamageResolution.Hit,
+      Projectile(
+        projectile,
+        weapon.Definition,
+        weapon.FireMode,
+        PlayerSource(player1),
+        0,
+        Vector3(2, 0, 0),
+        Vector3(-1, 0, 0)
+      ),
+      lodestar.DamageModel
+    ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
   expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
@@ -1469,22 +1522,24 @@ class DamageableVehicleDestroyTest extends ActorTest {
   val weapon        = Tool(GlobalDefinitions.suppressor)
   val projectile    = weapon.Projectile
   val vehicleSource = SourceEntry(atv)
-  val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    Projectile(
-      projectile,
-      weapon.Definition,
-      weapon.FireMode,
-      PlayerSource(player1),
-      0,
-      Vector3(2, 0, 0),
-      Vector3(-1, 0, 0)
-    ),
+  val resolved = DamageInteraction(
     vehicleSource,
-    atv.DamageModel,
+    ProjectileReason(
+      DamageResolution.Hit,
+      Projectile(
+        projectile,
+        weapon.Definition,
+        weapon.FireMode,
+        PlayerSource(player1),
+        0,
+        Vector3(2, 0, 0),
+        Vector3(-1, 0, 0)
+      ),
+      atv.DamageModel
+    ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
   expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
@@ -1513,7 +1568,7 @@ class DamageableVehicleDestroyTest extends ActorTest {
       )
       assert(
         msg3 match {
-          case Player.Die() => true
+          case Player.Die(_) => true
           case _            => false
         }
       )
@@ -1531,18 +1586,6 @@ class DamageableVehicleDestroyTest extends ActorTest {
 }
 
 class DamageableVehicleDestroyMountedTest extends ActorTest {
-  val guid = new NumberPoolHub(new MaxNumberSource(15))
-  val zone = new Zone("test", new ZoneMap("test"), 0) {
-    override def SetupNumberPools() = {}
-    GUID(guid)
-  }
-  val activityProbe = TestProbe()
-  val avatarProbe   = TestProbe()
-  val vehicleProbe  = TestProbe()
-  zone.Activity = activityProbe.ref
-  zone.AvatarEvents = avatarProbe.ref
-  zone.VehicleEvents = vehicleProbe.ref
-
   val atv = Vehicle(GlobalDefinitions.quadassault) //guid=1
   atv.Actor = system.actorOf(Props(classOf[VehicleControl], atv), "atv-control")
   atv.Position = Vector3(1, 0, 0)
@@ -1567,6 +1610,20 @@ class DamageableVehicleDestroyMountedTest extends ActorTest {
   player3.Spawn()
   val player3Probe = TestProbe()
   player3.Actor = player3Probe.ref
+
+
+  val guid = new NumberPoolHub(new MaxNumberSource(15))
+  val zone = new Zone("test", new ZoneMap("test"), 0) {
+    override def SetupNumberPools() = {}
+    GUID(guid)
+    override def LivePlayers = List(player1, player2, player3)
+  }
+  val activityProbe = TestProbe()
+  val avatarProbe   = TestProbe()
+  val vehicleProbe  = TestProbe()
+  zone.Activity = activityProbe.ref
+  zone.AvatarEvents = avatarProbe.ref
+  zone.VehicleEvents = vehicleProbe.ref
 
   guid.register(atv, 1)
   guid.register(atvWeapon, 2)
@@ -1595,41 +1652,45 @@ class DamageableVehicleDestroyMountedTest extends ActorTest {
   val vehicleSource = SourceEntry(lodestar)
   val weaponA       = Tool(GlobalDefinitions.jammer_grenade)
   val projectileA   = weaponA.Projectile
-  val resolvedA = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    Projectile(
-      projectileA,
-      weaponA.Definition,
-      weaponA.FireMode,
-      PlayerSource(player1),
-      0,
-      Vector3(2, 0, 0),
-      Vector3(-1, 0, 0)
-    ),
+  val resolvedA = DamageInteraction(
     vehicleSource,
-    lodestar.DamageModel,
+    ProjectileReason(
+      DamageResolution.Hit,
+      Projectile(
+        projectileA,
+        weaponA.Definition,
+        weaponA.FireMode,
+        PlayerSource(player1),
+        0,
+        Vector3(2, 0, 0),
+        Vector3(-1, 0, 0)
+      ),
+      lodestar.DamageModel
+    ),
     Vector3(1, 0, 0)
   )
-  val applyDamageToA = resolvedA.damage_model.Calculate(resolvedA)
+  val applyDamageToA = resolvedA.calculate()
 
   val weaponB     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectileB = weaponB.Projectile
-  val resolvedB = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    Projectile(
-      projectileB,
-      weaponB.Definition,
-      weaponB.FireMode,
-      PlayerSource(player1),
-      0,
-      Vector3(2, 0, 0),
-      Vector3(-1, 0, 0)
-    ),
+  val resolvedB = DamageInteraction(
     vehicleSource,
-    lodestar.DamageModel,
+    ProjectileReason(
+      DamageResolution.Hit,
+      Projectile(
+        projectileB,
+        weaponB.Definition,
+        weaponB.FireMode,
+        PlayerSource(player1),
+        0,
+        Vector3(2, 0, 0),
+        Vector3(-1, 0, 0)
+      ),
+      lodestar.DamageModel
+    ),
     Vector3(1, 0, 0)
   )
-  val applyDamageToB = resolvedB.damage_model.Calculate(resolvedB)
+  val applyDamageToB = resolvedB.calculate()
   expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
@@ -1699,13 +1760,13 @@ class DamageableVehicleDestroyMountedTest extends ActorTest {
     )
     assert(
       msg_player2 match {
-        case Player.Die() => true
+        case Player.Die(_) => true
         case _            => false
       }
     )
     assert(
       msg_player3 match {
-        case Player.Die() => true
+        case Player.Die(_) => true
         case _            => false
       }
     )

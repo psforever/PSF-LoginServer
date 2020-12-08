@@ -20,6 +20,9 @@ import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.support.SupportActor
 import net.psforever.objects.avatar.Avatar
+import net.psforever.objects.vital.base.DamageResolution
+import net.psforever.objects.vital.interaction.DamageInteraction
+import net.psforever.objects.vital.projectile.ProjectileReason
 
 import scala.concurrent.duration._
 
@@ -333,14 +336,16 @@ class ExplosiveDeployableJammerTest extends ActorTest {
   val jMineSource = SourceEntry(j_mine)
   val pSource     = PlayerSource(player1)
   val projectile  = weapon.Projectile
-  val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    Projectile(projectile, weapon.Definition, weapon.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+  val resolved = DamageInteraction(
     jMineSource,
-    j_mine.DamageModel,
+    ProjectileReason(
+      DamageResolution.Hit,
+      Projectile(projectile, weapon.Definition, weapon.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+      j_mine.DamageModel
+    ),
     Vector3(1, 0, 0)
   )
-  val applyDamageToJ = resolved.damage_model.Calculate(resolved)
+  val applyDamageToJ = resolved.calculate()
 
   "ExplosiveDeployable" should {
     "handle being jammered appropriately (no detonation)" in {
@@ -428,17 +433,18 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
   h_mine.Faction = PlanetSideEmpire.NC
   h_mine.Actor = system.actorOf(Props(classOf[ExplosiveDeployableControl], h_mine), "h-mine-control")
 
-  val hMineSource = SourceEntry(h_mine)
   val pSource     = PlayerSource(player1)
   val projectile  = weapon.Projectile
-  val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    Projectile(projectile, weapon.Definition, weapon.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
-    hMineSource,
-    h_mine.DamageModel,
+  val resolved = DamageInteraction(
+    SourceEntry(h_mine),
+    ProjectileReason(
+      DamageResolution.Hit,
+      Projectile(projectile, weapon.Definition, weapon.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+      h_mine.DamageModel
+    ),
     Vector3(1, 0, 0)
   )
-  val applyDamageToH = resolved.damage_model.Calculate(resolved)
+  val applyDamageToH = resolved.calculate()
 
   "ExplosiveDeployable" should {
     "handle being jammered appropriately (detonation)" in {
@@ -498,7 +504,7 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
       )
       assert(
         msg_activity match {
-          case Zone.HotSpot.Activity(target, attacker, _) => (target eq hMineSource) && (attacker eq pSource)
+          case Zone.HotSpot.Conflict(target, attacker, _) => (target.Definition eq h_mine.Definition) && (attacker eq pSource)
           case _                                          => false
         }
       )
@@ -541,14 +547,16 @@ class ExplosiveDeployableDestructionTest extends ActorTest {
   val hMineSource = SourceEntry(h_mine)
   val pSource     = PlayerSource(player1)
   val projectile  = weapon.Projectile
-  val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    Projectile(projectile, weapon.Definition, weapon.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+  val resolved = DamageInteraction(
     hMineSource,
-    h_mine.DamageModel,
+    ProjectileReason(
+      DamageResolution.Hit,
+      Projectile(projectile, weapon.Definition, weapon.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
+      h_mine.DamageModel
+    ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
 
   "ExplosiveDeployable" should {
     "handle being destroyed" in {

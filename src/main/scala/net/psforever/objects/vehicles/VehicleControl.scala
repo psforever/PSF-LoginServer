@@ -3,7 +3,7 @@ package net.psforever.objects.vehicles
 
 import akka.actor.{Actor, Cancellable}
 import net.psforever.objects._
-import net.psforever.objects.ballistics.{ResolvedProjectile, VehicleSource}
+import net.psforever.objects.ballistics.VehicleSource
 import net.psforever.objects.ce.TelepadLike
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot, JammableMountedWeapons}
 import net.psforever.objects.guid.GUIDTask
@@ -19,6 +19,7 @@ import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.transfer.TransferBehavior
 import net.psforever.objects.serverobject.repair.RepairableVehicle
 import net.psforever.objects.serverobject.terminals.Terminal
+import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.vital.VehicleShieldCharge
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
@@ -156,7 +157,7 @@ class VehicleControl(vehicle: Vehicle)
           }
 
         case Vehicle.ChargeShields(amount) =>
-          val now: Long = System.nanoTime
+          val now: Long = System.currentTimeMillis()
           //make certain vehicle doesn't charge shields too quickly
           if (
             vehicle.Health > 0 && vehicle.Shields < vehicle.MaxShields &&
@@ -361,7 +362,7 @@ class VehicleControl(vehicle: Vehicle)
         case _ =>
       }
 
-  override def TryJammerEffectActivate(target: Any, cause: ResolvedProjectile): Unit = {
+  override def TryJammerEffectActivate(target: Any, cause: DamageResult): Unit = {
     if (vehicle.MountedIn.isEmpty) {
       super.TryJammerEffectActivate(target, cause)
     }
@@ -601,8 +602,8 @@ object VehicleControl {
     */
   def LastShieldChargeOrDamage(now: Long)(act: VitalsActivity): Boolean = {
     act match {
-      case DamageFromProjectile(data) => now - data.hit_time < (5 seconds).toNanos //damage delays next charge by 5s
-      case vsc: VehicleShieldCharge   => now - vsc.time < (1 seconds).toNanos      //previous charge delays next by 1s
+      case DamageFromProjectile(data) => now - data.interaction.hitTime < (5 seconds).toMillis //damage delays next charge by 5s
+      case vsc: VehicleShieldCharge   => now - vsc.time < (1 seconds).toMillis      //previous charge delays next by 1s
       case _                          => false
     }
   }

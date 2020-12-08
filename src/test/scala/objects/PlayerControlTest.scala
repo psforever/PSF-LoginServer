@@ -377,22 +377,24 @@ class PlayerControlDamageTest extends ActorTest {
   val tool         = Tool(GlobalDefinitions.suppressor) //guid 3 & 4
   val projectile   = tool.Projectile
   val playerSource = SourceEntry(player2)
-  val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    Projectile(
-      projectile,
-      tool.Definition,
-      tool.FireMode,
-      PlayerSource(player1),
-      0,
-      Vector3(2, 0, 0),
-      Vector3(-1, 0, 0)
-    ),
+  val resolved = DamageInteraction(
     playerSource,
-    player1.DamageModel,
+    ProjectileReason(
+      DamageResolution.Hit,
+      Projectile(
+        projectile,
+        tool.Definition,
+        tool.FireMode,
+        PlayerSource(player1),
+        0,
+        Vector3(2, 0, 0),
+        Vector3(-1, 0, 0)
+      ),
+      player1.DamageModel
+    ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
   guid.register(player1, 1)
   guid.register(player2, 2)
   guid.register(tool, 3)
@@ -476,14 +478,16 @@ class PlayerControlDeathStandingTest extends ActorTest {
   val tool          = Tool(GlobalDefinitions.suppressor) //guid 3 & 4
   val projectile    = tool.Projectile
   val player1Source = SourceEntry(player1)
-  val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    Projectile(projectile, tool.Definition, tool.FireMode, player1Source, 0, Vector3(2, 0, 0), Vector3(-1, 0, 0)),
+  val resolved = DamageInteraction(
     SourceEntry(player2),
-    player2.DamageModel,
+    ProjectileReason(
+      DamageResolution.Hit,
+      Projectile(projectile, tool.Definition, tool.FireMode, player1Source, 0, Vector3(2, 0, 0), Vector3(-1, 0, 0)),
+      player2.DamageModel
+    ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
   guid.register(player1, 1)
   guid.register(player2, 2)
   guid.register(tool, 3)
@@ -605,14 +609,16 @@ class PlayerControlDeathSeatedTest extends ActorTest {
   val tool          = Tool(GlobalDefinitions.suppressor) //guid 3 & 4
   val projectile    = tool.Projectile
   val player1Source = SourceEntry(player1)
-  val resolved = ResolvedProjectile(
-    ProjectileResolution.Hit,
-    Projectile(projectile, tool.Definition, tool.FireMode, player1Source, 0, Vector3(2, 0, 0), Vector3(-1, 0, 0)),
+  val resolved = DamageInteraction(
     SourceEntry(player2),
-    player2.DamageModel,
+    ProjectileReason(
+      DamageResolution.Hit,
+      Projectile(projectile, tool.Definition, tool.FireMode, player1Source, 0, Vector3(2, 0, 0), Vector3(-1, 0, 0)),
+      player2.DamageMode
+    ),
     Vector3(1, 0, 0)
   )
-  val applyDamageTo = resolved.damage_model.Calculate(resolved)
+  val applyDamageTo = resolved.calculate()
   guid.register(player1, 1)
   guid.register(player2, 2)
   guid.register(tool, 3)

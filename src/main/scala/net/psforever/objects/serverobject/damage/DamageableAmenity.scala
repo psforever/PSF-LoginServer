@@ -1,8 +1,8 @@
 //Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.damage
 
-import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.serverobject.structures.Amenity
+import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 
 /**
@@ -13,7 +13,7 @@ import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 trait DamageableAmenity extends DamageableEntity {
   def DamageableObject: Amenity
 
-  override protected def DestructionAwareness(target: Damageable.Target, cause: ResolvedProjectile): Unit = {
+  override protected def DestructionAwareness(target: Damageable.Target, cause: DamageResult): Unit = {
     super.DestructionAwareness(target, cause)
     DamageableAmenity.DestructionAwareness(target, cause)
     target.ClearHistory()
@@ -32,7 +32,7 @@ object DamageableAmenity {
     * @param target the entity being destroyed
     * @param cause historical information about the damage
     */
-  def DestructionAwareness(target: Damageable.Target, cause: ResolvedProjectile): Unit = {
+  def DestructionAwareness(target: Damageable.Target, cause: DamageResult): Unit = {
     val zone       = target.Zone
     val zoneId     = zone.id
     val events     = zone.AvatarEvents

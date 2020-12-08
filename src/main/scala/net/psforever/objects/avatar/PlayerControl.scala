@@ -4,16 +4,15 @@ package net.psforever.objects.avatar
 import akka.actor.{Actor, ActorRef, Props}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.objects.{Player, _}
-import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile}
+import net.psforever.objects.ballistics.{ObjectSource, PlayerSource}
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
 import net.psforever.objects.loadouts.Loadout
 import net.psforever.objects.serverobject.aura.{Aura, AuraEffectBehavior}
 import net.psforever.objects.serverobject.containable.{Containable, ContainableBehavior}
 import net.psforever.objects.serverobject.damage.Damageable.Target
-import net.psforever.objects.vital.PlayerSuicide
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
-import net.psforever.objects.serverobject.damage.{AggravatedBehavior, Damageable}
+import net.psforever.objects.serverobject.damage.{AggravatedBehavior, Damageable, DamageableEntity}
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.repair.Repairable
 import net.psforever.objects.serverobject.terminals.Terminal
@@ -28,6 +27,10 @@ import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import akka.actor.typed
 import net.psforever.objects.locker.LockerContainerControl
+import net.psforever.objects.serverobject.painbox.Painbox
+import net.psforever.objects.vital.base.DamageResolution
+import net.psforever.objects.vital.etc.SuicideReason
+import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 
 import scala.concurrent.duration._
 
@@ -80,9 +83,28 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       .orElse(auraBehavior)
       .orElse(containerBehavior)
       .orElse {
-        case Player.Die() =>
+        case Player.Die(Some(reason)) =>
           if (player.isAlive) {
-            DestructionAwareness(player, None)
+            //primary death
+            PerformDamage(player, reason.calculate())
+            if(player.Health > 0 || player.isAlive) {
+              //that wasn't good enough
+              DestructionAwareness(player, None)
+            }
+          }
+
+        case Player.Die(None) =>
+          if (player.isAlive) {
+            //suicide
+            PerformDamage(
+              player,
+              DamageInteraction(
+                DamageResolution.Resolved,
+                PlayerSource(player),
+                SuicideReason(),
+                player.Position
+              ).calculate()
+            )
           }
 
         case CommonMessages.Use(user, Some(item: Tool))
@@ -524,7 +546,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     */
   def HandleDamage(
                     target: Player,
-                    cause: ResolvedProjectile,
+                    cause: DamageResult,
                     damageToHealth: Int,
                     damageToArmor: Int,
                     damageToStamina: Int,
@@ -548,7 +570,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
 
   def DamageAwareness(
                        target: Player,
-                       cause: ResolvedProjectile,
+                       cause: DamageResult,
                        damageToHealth: Int,
                        damageToArmor: Int,
                        damageToStamina: Int,
@@ -561,7 +583,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     val health                = target.Health
     var announceConfrontation = damageToArmor > 0
     //special effects
-    if (Damageable.CanJammer(target, cause)) {
+    if (Damageable.CanJammer(target, cause.interaction)) {
       TryJammerEffectActivate(target, cause)
     }
     val aggravated: Boolean = TryAggravationEffectActivate(cause) match {
@@ -571,7 +593,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         //initial damage for aggravation, but never treat as "aggravated"
         false
       case _ =>
-        cause.projectile.profile.ProjectileDamageTypes.contains(DamageType.Aggravated)
+        cause.interaction.cause.source.Aggravated.nonEmpty
     }
     //log historical event
     target.History(cause)
@@ -595,23 +617,44 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     if(announceConfrontation) {
       if (!aggravated) {
         //activity on map
-        zone.Activity ! Zone.HotSpot.Activity(cause.target, cause.projectile.owner, cause.hit_pos)
+        zone.Activity ! Zone.HotSpot.Activity(cause)
         //alert to damage source
-        zone.AvatarEvents ! AvatarServiceMessage(
-          target.Name,
-          cause.projectile.owner match {
-            case pSource: PlayerSource => //player damage
-              val name = pSource.Name
-              zone.LivePlayers.find(_.Name == name).orElse(zone.Corpses.find(_.Name == name)) match {
-                case Some(tplayer) =>
-                  AvatarAction.HitHint(tplayer.GUID, target.GUID)
-                case None =>
-                  AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(countableDamage, pSource.Position))
-              }
-            case source =>
-              AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(countableDamage, source.Position))
-          }
-        )
+        cause.adversarial match {
+          case Some(adversarial) =>
+            adversarial.attacker match {
+              case pSource : PlayerSource => //player damage
+                val name = pSource.Name
+                zone.LivePlayers.find(_.Name == name).orElse(zone.Corpses.find(_.Name == name)) match {
+                  case Some(tplayer) =>
+                    zone.AvatarEvents ! AvatarServiceMessage(
+                      target.Name,
+                      AvatarAction.HitHint(tplayer.GUID, target.GUID)
+                    )
+                  case None =>
+                    zone.AvatarEvents ! AvatarServiceMessage(
+                      target.Name,
+                      AvatarAction.SendResponse(
+                        Service.defaultPlayerGUID,
+                        DamageWithPositionMessage(countableDamage, pSource.Position)
+                      )
+                    )
+                }
+              case source: ObjectSource if source.obj.isInstanceOf[Painbox] =>
+                zone.AvatarEvents ! AvatarServiceMessage(
+                  target.Name,
+                  AvatarAction.EnvironmentalDamage(target.GUID, source.obj.GUID, countableDamage)
+                )
+              case source =>
+                zone.AvatarEvents ! AvatarServiceMessage(
+                  target.Name,
+                  AvatarAction.SendResponse(
+                    Service.defaultPlayerGUID,
+                    DamageWithPositionMessage(countableDamage, source.Position)
+                  )
+                )
+            }
+          case None =>
+        }
       }
       else {
         //general alert
@@ -644,7 +687,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     * @param target na
     * @param cause na
     */
-  def DestructionAwareness(target: Player, cause: Option[ResolvedProjectile]): Unit = {
+  def DestructionAwareness(target: Player, cause: Option[DamageResult]): Unit = {
     val player_guid  = target.GUID
     val pos          = target.Position
     val respawnTimer = 300000 //milliseconds
@@ -694,17 +737,8 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       events ! AvatarServiceMessage(nameChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 7, 0)) // capacitor
     }
     val attribute = cause match {
-      case Some(resolved) =>
-        resolved.projectile.owner match {
-          case pSource: PlayerSource =>
-            val name = pSource.Name
-            zone.LivePlayers.find(_.Name == name).orElse(zone.Corpses.find(_.Name == name)) match {
-              case Some(tplayer) => tplayer.GUID
-              case None          => player_guid
-            }
-          case _ => player_guid
-        }
-      case _ => player_guid
+      case Some(reason) => DamageableEntity.attributionTo(reason, target.Zone, player_guid)
+      case None => player_guid
     }
     events ! AvatarServiceMessage(
       nameChannel,
@@ -722,25 +756,21 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     )
     //TODO other methods of death?
     val pentry = PlayerSource(target)
-    (target.History.find({ p => p.isInstanceOf[PlayerSuicide] }) match {
-      case Some(PlayerSuicide(_)) =>
-        None
-      case _ =>
-        cause.orElse { target.LastShot } match {
-          case out @ Some(shot) =>
-            if (System.nanoTime - shot.hit_time < (10 seconds).toNanos) {
-              out
-            } else {
-              None //suicide
-            }
+    (cause match {
+      case Some(result) =>
+        result.adversarial
+      case None =>
+        target.LastDamage match {
+          case Some(attack) if System.currentTimeMillis() - attack.interaction.hitTime < (10 seconds).toMillis =>
+            attack.adversarial
           case None =>
-            None //suicide
+            None
         }
     }) match {
-      case Some(shot) =>
+      case Some(adversarial) =>
         events ! AvatarServiceMessage(
           zoneChannel,
-          AvatarAction.DestroyDisplay(shot.projectile.owner, pentry, shot.projectile.attribute_to)
+          AvatarAction.DestroyDisplay(adversarial.attacker, pentry, adversarial.implement)
         )
       case None =>
         events ! AvatarServiceMessage(zoneChannel, AvatarAction.DestroyDisplay(pentry, pentry, 0))

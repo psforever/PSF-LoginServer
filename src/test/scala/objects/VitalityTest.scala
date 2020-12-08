@@ -5,6 +5,9 @@ import net.psforever.objects.ballistics._
 import net.psforever.objects._
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.vital._
+import net.psforever.objects.vital.base.DamageResolution
+import net.psforever.objects.vital.interaction.DamageInteraction
+import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.types._
 import org.specs2.mutable.Specification
 
@@ -20,16 +23,19 @@ class VitalityTest extends Specification {
       val player     = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       val pSource    = PlayerSource(player)
       val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
-      val resprojectile = ResolvedProjectile(
-        ProjectileResolution.Hit,
-        projectile,
+      val resprojectile = DamageInteraction(
         SourceEntry(player),
-        player.DamageModel,
+        ProjectileReason(
+          DamageResolution.Hit,
+          projectile,
+          player.DamageModel
+        ),
         Vector3(50, 50, 0)
       )
+      val result = resprojectile.calculate()(player)
 
-      player.History(resprojectile) //ResolvedProjectile, straight-up
-      player.History(DamageFromProjectile(resprojectile))
+      player.History(result) //DamageResult, straight-up
+      player.History(DamageFromProjectile(result))
       player.History(HealFromKit(pSource, 10, GlobalDefinitions.medkit))
       player.History(HealFromTerm(pSource, 10, 0, GlobalDefinitions.order_terminal))
       player.History(HealFromImplant(pSource, 10, ImplantType.AdvancedRegen))
@@ -68,15 +74,18 @@ class VitalityTest extends Specification {
       val player     = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       val pSource    = PlayerSource(player)
       val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
-      val resprojectile = ResolvedProjectile(
-        ProjectileResolution.Hit,
-        projectile,
+      val resprojectile = DamageInteraction(
         SourceEntry(player),
-        player.DamageModel,
+        ProjectileReason(
+          DamageResolution.Hit,
+          projectile,
+          player.DamageModel
+        ),
         Vector3(50, 50, 0)
       )
+      val result = resprojectile.calculate()(player)
 
-      player.History(DamageFromProjectile(resprojectile))
+      player.History(DamageFromProjectile(result))
       player.History(HealFromKit(pSource, 10, GlobalDefinitions.medkit))
       player.History(HealFromTerm(pSource, 10, 0, GlobalDefinitions.order_terminal))
       player.History(HealFromImplant(pSource, 10, ImplantType.AdvancedRegen))
@@ -87,7 +96,10 @@ class VitalityTest extends Specification {
 
       player.LastShot match {
         case Some(resolved_projectile) =>
-          resolved_projectile.projectile mustEqual projectile
+          resolved_projectile.interaction.cause match {
+            case o: ProjectileReason => o.projectile mustEqual projectile
+            case _ => ko
+          }
         case None =>
           ko
       }

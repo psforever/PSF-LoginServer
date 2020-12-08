@@ -8,6 +8,7 @@ import net.psforever.objects.definition.{ProjectileDefinition, ToolDefinition}
 import net.psforever.objects.entity.SimpleWorldEntity
 import net.psforever.objects.equipment.FireModeDefinition
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.types.Vector3
 
 /**
@@ -31,7 +32,7 @@ import net.psforever.types.Vector3
   * @param id an exclusive identifier for this projectile;
   *           normally generated internally, but can be manually set
   * @param fire_time when the weapon discharged was recorded;
-  *                  defaults to `System.nanoTime`
+  *                  defaults to `System.currentTimeMillis()`
   */
 final case class Projectile(
     profile: ProjectileDefinition,
@@ -57,7 +58,7 @@ final case class Projectile(
 
   /** Information about the current world coordinates and orientation of the projectile */
   val current: SimpleWorldEntity                   = new SimpleWorldEntity()
-  private var resolved: ProjectileResolution.Value = ProjectileResolution.Unresolved
+  private var resolved: DamageResolution.Value = DamageResolution.Unresolved
 
   /**
     * Create a copy of this projectile with all the same information
@@ -89,16 +90,16 @@ final case class Projectile(
     * Mark the projectile as being "encountered" or "managed" at least once.
     */
   def Resolve(): Unit = {
-    resolved = ProjectileResolution.Resolved
+    resolved = DamageResolution.Resolved
   }
 
   def Miss(): Unit = {
-    resolved = ProjectileResolution.MissedShot
+    resolved = DamageResolution.Missed
   }
 
-  def isResolved: Boolean = resolved == ProjectileResolution.Resolved || resolved == ProjectileResolution.MissedShot
+  def isResolved: Boolean = resolved == DamageResolution.Resolved || resolved == DamageResolution.Missed
 
-  def isMiss: Boolean = resolved == ProjectileResolution.MissedShot
+  def isMiss: Boolean = resolved == DamageResolution.Missed
 
   def Definition = profile
 }

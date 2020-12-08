@@ -5,7 +5,7 @@ import akka.actor.{ActorContext, ActorRef, Props}
 import akka.routing.RandomPool
 import net.psforever.objects.ballistics.{Projectile, SourceEntry}
 import net.psforever.objects._
-import net.psforever.objects.ce.Deployable
+import net.psforever.objects.ce.{ComplexDeployable, Deployable, SimpleDeployable}
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.{NumberPoolHub, TaskResolver}
@@ -38,8 +38,12 @@ import akka.actor.typed
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
+import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vehicles.UtilityType
+import net.psforever.objects.vital.etc.ExplodingEntityReason
+import net.psforever.objects.vital.Vitality
+import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 
 /**
   * A server object representing the one-landmass planets as well as the individual subterranean caverns.<br>
@@ -923,7 +927,35 @@ object Zone {
   }
 
   object HotSpot {
-    final case class Activity(defender: SourceEntry, attacker: SourceEntry, location: Vector3)
+    trait Activity {
+      def defender: SourceEntry
+
+      def attacker: SourceEntry
+
+      def location: Vector3
+    }
+
+    final case class Conflict(defender: SourceEntry, attacker: SourceEntry, location: Vector3) extends Activity
+
+    final case class NonEvent() extends Activity {
+      def defender: SourceEntry = SourceEntry.None
+
+      def attacker: SourceEntry = SourceEntry.None
+
+      def location: Vector3 = Vector3.Zero
+    }
+
+    object Activity {
+      def apply(data: DamageResult): Activity = {
+        data.adversarial match {
+          case Some(adversity) => Conflict(adversity.defender, adversity.attacker, data.interaction.hitPos)
+          case None => NonEvent()
+        }
+      }
+
+      def apply(defender: SourceEntry, attacker: SourceEntry, location: Vector3): Activity =
+        Conflict(defender, attacker, location)
+    }
 
     final case class Cleanup()
 
@@ -1033,5 +1065,125 @@ object Zone {
           None
       }
     }
+  }
+
+  /**
+    * Allocates `Damageable` targets within the radius of a server-prepared explosion
+    * and informs those entities that they have affected by the aforementioned explosion.
+    * @see `Amenity.Owner`
+    * @see `ComplexDeployable`
+    * @see `DamageInteraction`
+    * @see `DamageResult`
+    * @see `DamageWithPosition`
+    * @see `ExplodingEntityReason`
+    * @see `SimpleDeployable`
+    * @see `VitalityDefinition`
+    * @see `VitalityDefinition.innateDamage`
+    * @see `Zone.Buildings`
+    * @see `Zone.DeployableList`
+    * @see `Zone.LivePlayers`
+    * @see `Zone.LocalEvents`
+    * @see `Zone.Vehicles`
+    * @param zone the zone in which the explosion should occur
+    * @param obj the entity that embodies the explosion (information)
+    * @param instigation whatever prior action triggered the entity to explode, if anything
+    * @param detectionTest a custom test to determine if any given target is affected;
+    *                      defaults to an internal test for simple radial proximity
+    * @return a list of affected entities;
+    *         only mostly complete due to the exclusion of objects whose damage resolution is different than usual
+    */
+  def causeExplosion(
+                      zone: Zone,
+                      obj: PlanetSideGameObject with Vitality,
+                      instigation: Option[DamageResult],
+                      detectionTest: (PlanetSideGameObject, PlanetSideGameObject, Float) => Boolean = distanceCheck
+                    ): List[PlanetSideServerObject] = {
+    obj.Definition.innateDamage match {
+      case Some(explosion) if obj.Definition.explodes =>
+        //useful in this form
+        val sourcePosition = obj.Position
+        val sourcePositionXY = sourcePosition.xy
+        val radius = explosion.DamageRadius * explosion.DamageRadius
+        //collect all targets that can be damaged
+        //players
+        val playerTargets = zone.LivePlayers.filterNot { _.VehicleSeated.nonEmpty }
+        //vehicles
+        val vehicleTargets = zone.Vehicles.filterNot { v => v.Destroyed || v.MountedIn.nonEmpty }
+        //deployables
+        val (simpleDeployableTargets, complexDeployableTargets) =
+          zone.DeployableList
+            .filterNot { _.Destroyed }
+            .foldRight((List.empty[SimpleDeployable], List.empty[ComplexDeployable])) { case (f, (simp, comp)) =>
+              f match {
+                case o: SimpleDeployable => (simp :+ o, comp)
+                case o: ComplexDeployable => (simp, comp :+ o)
+                case _ => (simp, comp)
+              }
+            }
+        //amenities
+        val soiTargets = obj match {
+          case o: Amenity =>
+            //fortunately, even where soi overlap, amenities in different buildings are never that close to each other
+            o.Owner.Amenities
+          case _ =>
+            zone.Buildings.values
+              .filter { b =>
+                val soiRadius = b.Definition.SOIRadius * b.Definition.SOIRadius
+                Vector3.DistanceSquared(sourcePositionXY, b.Position.xy) < soiRadius || soiRadius <= radius
+              }
+              .flatMap { _.Amenities }
+              .filter { _.Definition.Damageable }
+        }
+        //restrict to targets in the damage radius
+        val allAffectedTargets = (playerTargets ++ vehicleTargets ++ complexDeployableTargets ++ soiTargets)
+          .filter { target =>
+            (target ne obj) && detectionTest(obj, target, radius)
+          }
+        //inform remaining targets that they have suffered an explosion
+        allAffectedTargets
+          .foreach { target =>
+            target.Actor ! Vitality.Damage(
+              DamageInteraction(
+                SourceEntry(target),
+                ExplodingEntityReason(obj, target.DamageModel, instigation),
+                target.Position
+              ).calculate()
+            )
+          }
+        //important note - these are not returned as targets that were affected
+        simpleDeployableTargets
+          .filter { target =>
+            (target ne obj) && detectionTest(obj, target, radius)
+          }
+          .foreach { target =>
+            zone.LocalEvents ! Vitality.DamageOn(
+              target,
+              DamageInteraction(
+                SourceEntry(target),
+                ExplodingEntityReason(obj, target.DamageModel, instigation),
+                target.Position
+              ).calculate()
+            )
+          }
+        allAffectedTargets
+      case None =>
+        Nil
+    }
+  }
+
+  /**
+    * Two game entities are considered "near" each other if they are within a certain distance of one another.
+    * A default function literal mainly used for `causesExplosion`.
+    * @see `causeExplosion`
+    * @see `Vector3.DistanceSquare`
+    * @param obj1 a game entity
+    * @param obj2 a game entity
+    * @param maxDistance the square of the maximum distance permissible between game entities
+    *                    before they are no longer considered "near"
+    * @return `true`, if the target entities are near to each other;
+    *        `false`, otherwise
+    */
+  private def distanceCheck(obj1: PlanetSideGameObject, obj2: PlanetSideGameObject, maxDistance: Float): Boolean = {
+    Vector3.DistanceSquared(obj1.Position, obj2.Position) <= maxDistance
   }
 }

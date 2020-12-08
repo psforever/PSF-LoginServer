@@ -378,7 +378,7 @@ class LocalService(zone: Zone) extends Actor {
       }
 
     //synchronized damage calculations
-    case Vitality.DamageOn(target: Deployable, damage_func) =>
+    case Vitality.DamageOn(target: PlanetSideGameObject with Deployable, damage_func) =>
       val cause = damage_func(target)
       sender() ! Vitality.DamageResolution(target, cause)
 

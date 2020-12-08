@@ -4,15 +4,14 @@ package net.psforever.objects.serverobject.generator
 import akka.actor.{Actor, Cancellable}
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.{Default, Player, Tool}
-import net.psforever.objects.ballistics._
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.DamageableEntity
 import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, Repairable, RepairableEntity}
-import net.psforever.objects.serverobject.structures.Building
-import net.psforever.objects.vital.DamageFromExplosion
+import net.psforever.objects.vital.interaction.DamageResult
+import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.TriggerEffectMessage
-import net.psforever.types.{PlanetSideGeneratorState, Vector3}
+import net.psforever.types.PlanetSideGeneratorState
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 
@@ -103,17 +102,8 @@ class GeneratorControl(gen: Generator)
           queuedExplosion.cancel()
           queuedExplosion = Default.Cancellable
           imminentExplosion = false
-          //kill everyone within 14m
-          gen.Owner match {
-            case b: Building =>
-              val genDef = gen.Definition
-              b.PlayersInSOI.collect {
-                case player if player.isAlive && Vector3.DistanceSquared(player.Position, gen.Position) < 196 =>
-                  player.History(DamageFromExplosion(PlayerSource(player), genDef))
-                  player.Actor ! Player.Die()
-              }
-            case _ => ;
-          }
+          //hate on everything nearby
+          Zone.causeExplosion(gen.Zone, gen, gen.LastDamage)
           gen.ClearHistory()
 
         case GeneratorControl.Restored() =>
@@ -154,12 +144,12 @@ class GeneratorControl(gen: Generator)
     !imminentExplosion && super.CanPerformRepairs(obj, player, item)
   }
 
-  override protected def WillAffectTarget(target: Target, damage: Int, cause: ResolvedProjectile): Boolean = {
+  override protected def WillAffectTarget(target: Target, damage: Int, cause: DamageResult): Boolean = {
     //if an explosion is queued, disallow further damage
     !imminentExplosion && super.WillAffectTarget(target, damage, cause)
   }
 
-  override protected def DamageAwareness(target: Target, cause: ResolvedProjectile, amount: Any): Unit = {
+  override protected def DamageAwareness(target: Target, cause: DamageResult, amount: Any): Unit = {
     tryAutoRepair()
     super.DamageAwareness(target, cause, amount)
     val damageTo = amount match {
@@ -169,7 +159,7 @@ class GeneratorControl(gen: Generator)
     GeneratorControl.DamageAwareness(gen, cause, damageTo)
   }
 
-  override protected def DestructionAwareness(target: Target, cause: ResolvedProjectile): Unit = {
+  override protected def DestructionAwareness(target: Target, cause: DamageResult): Unit = {
     tryAutoRepair()
     //if the target is already destroyed, do not let it be destroyed again
     if (!target.Destroyed) {
@@ -211,7 +201,7 @@ class GeneratorControl(gen: Generator)
     if(!gen.Destroyed) {
       GeneratorControl.UpdateOwner(gen, Some(GeneratorControl.Event.Offline))
     }
-    //can any explosion (see withoutNtu->GenweratorControl.Destabilized)
+    //quit any explosion (see withoutNtu->GeneratorControl.Destabilized)
     if(!queuedExplosion.isCancelled) {
       queuedExplosion.cancel()
       self ! GeneratorControl.Destabilized()
@@ -275,7 +265,7 @@ object GeneratorControl {
     * @param cause historical information about the damage
     * @param amount the amount of damage
     */
-  def DamageAwareness(target: Generator, cause: ResolvedProjectile, amount: Int): Unit = {
+  def DamageAwareness(target: Generator, cause: DamageResult, amount: Int): Unit = {
     if (!target.Destroyed) {
       val health: Float = target.Health.toFloat
       val max: Float    = target.MaxHealth.toFloat

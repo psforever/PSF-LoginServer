@@ -3,8 +3,8 @@ package net.psforever.objects.serverobject.turret
 
 import net.psforever.objects.definition.{ObjectDefinition, ToolDefinition}
 import net.psforever.objects.vehicles.Turrets
-import net.psforever.objects.vital.DamageResistanceModel
 import net.psforever.objects.vital.resistance.ResistanceProfileMutators
+import net.psforever.objects.vital.resolution.DamageResistanceModel
 
 import scala.collection.mutable
 

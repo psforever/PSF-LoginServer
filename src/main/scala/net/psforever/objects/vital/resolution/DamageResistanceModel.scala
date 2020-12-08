@@ -1,14 +1,40 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.vital
+package net.psforever.objects.vital.resolution
 
+import net.psforever.objects.vital.base.DamageType
 import net.psforever.objects.vital.damage.DamageCalculations
-import net.psforever.objects.ballistics.ResolvedProjectile
-import net.psforever.objects.vital.projectile.ProjectileCalculations
+import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.resistance.ResistanceSelection
-import net.psforever.objects.vital.resolution.ResolutionCalculations
+import net.psforever.objects.vital.{NoResistanceSelection, NoResolutions}
 
 /**
-  * The functionality that is necessary for interaction of a vital game object with the rest of the game world.<br>
+  * The functionality that is necessary for interaction of a vital game object with the rest of the hostile game world.
+  */
+trait DamageAndResistance {
+  def DamageUsing: DamageCalculations.Selector
+
+  def ResistUsing: ResistanceSelection
+
+  def Model: ResolutionCalculations.Form
+
+  def calculate(data: DamageInteraction): ResolutionCalculations.Output
+
+  def calculate(data: DamageInteraction, resolution: DamageType.Value): ResolutionCalculations.Output
+}
+
+object DamageAndResistance {
+  /**
+    * A pass-through function.
+    * @param data garbage in
+    * @return garbage out
+    */
+  def doNothingFallback(data: DamageInteraction): ResolutionCalculations.Output = {
+    _: Any => DamageResult(data.target, data.target, data)
+  }
+}
+
+/**
+  * The functionality that is necessary for interaction of a vital game object with the rest of the hostile game world.<br>
   * <br>
   * A vital object can be hurt or damaged or healed or repaired (HDHR).
   * The actual implementation of how that works is left to the specific object and its interfaces, however.
@@ -24,7 +50,7 @@ import net.psforever.objects.vital.resolution.ResolutionCalculations
   * By default, nothing should do anything of substance.
   * @see `Vitality`
   */
-trait DamageResistanceModel {
+trait DamageResistanceModel extends DamageAndResistance {
 
   /** the functionality that processes damage; required */
   private var damageUsing: DamageCalculations.Selector = DamageCalculations.AgainstNothing
@@ -33,7 +59,7 @@ trait DamageResistanceModel {
   private var resistUsing: ResistanceSelection = NoResistanceSelection
 
   /** the functionality that prepares for damage application actions; required */
-  private var model: ResolutionCalculations.Form = NoResolutions.Calculate
+  private var model: ResolutionCalculations.Form = NoResolutions.calculate
 
   def DamageUsing: DamageCalculations.Selector = damageUsing
 
@@ -58,22 +84,22 @@ trait DamageResistanceModel {
 
   /**
     * Magic stuff.
-    * @param data the historical `ResolvedProjectile` information
+    * @param data the historical damage information
     * @return a function literal that encapsulates delayed modification instructions for certain objects
     */
-  def Calculate(data: ResolvedProjectile): ResolutionCalculations.Output = {
-    val res: ProjectileCalculations.Form = ResistUsing(data)
+  def calculate(data: DamageInteraction): ResolutionCalculations.Output = {
+    val res: ResistanceSelection.Format = ResistUsing(data)
     Model(DamageUsing, res, data)
   }
 
   /**
     * Magic stuff.
-    * @param data the historical `ResolvedProjectile` information
-    * @param resolution an explicit damage resolution overriding the one in the `ResolvedProjectile` object
+    * @param data the historical damage information
+    * @param resolution an explicit damage resolution overriding the one provided
     * @return a function literal that encapsulates delayed modification instructions for certain objects
     */
-  def Calculate(data: ResolvedProjectile, resolution: DamageType.Value): ResolutionCalculations.Output = {
-    val res: ProjectileCalculations.Form = ResistUsing(resolution)
+  def calculate(data: DamageInteraction, resolution: DamageType.Value): ResolutionCalculations.Output = {
+    val res: ResistanceSelection.Format = ResistUsing(resolution)
     Model(DamageUsing, res, data)
   }
 }

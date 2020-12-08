@@ -1,7 +1,6 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.implantmech
 
-import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.{GlobalDefinitions, Player, SimpleItem}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
@@ -11,6 +10,7 @@ import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity, 
 import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}
 import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableEntity}
 import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
+import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 /**
@@ -83,7 +83,7 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
     }
   }
 
-  override protected def DamageAwareness(target: Target, cause: ResolvedProjectile, amount: Any): Unit = {
+  override protected def DamageAwareness(target: Target, cause: DamageResult, amount: Any): Unit = {
     tryAutoRepair()
     super.DamageAwareness(target, cause, amount)
     val damageTo = amount match {
@@ -93,7 +93,7 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
     DamageableMountable.DamageAwareness(DamageableObject, cause, damageTo)
   }
 
-  override protected def DestructionAwareness(target: Damageable.Target, cause: ResolvedProjectile): Unit = {
+  override protected def DestructionAwareness(target: Damageable.Target, cause: DamageResult): Unit = {
     super.DestructionAwareness(target, cause)
     DamageableMountable.DestructionAwareness(DamageableObject, cause)
     target.ClearHistory()

@@ -1,15 +1,17 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital
 
-import net.psforever.objects.ballistics.{PlayerSource, ResolvedProjectile, SourceEntry, VehicleSource}
+import net.psforever.objects.ballistics._
 import net.psforever.objects.definition.{EquipmentDefinition, KitDefinition, ObjectDefinition}
-import net.psforever.objects.serverobject.painbox.Painbox
 import net.psforever.objects.serverobject.terminals.TerminalDefinition
+import net.psforever.objects.vital.etc.{ExplodingEntityReason, PainboxReason}
+import net.psforever.objects.vital.interaction.DamageResult
+import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.types.{ExoSuitType, ImplantType}
 
 abstract class VitalsActivity(target: SourceEntry) {
   def Target: SourceEntry = target
-  val t: Long             = System.nanoTime //???
+  val t: Long             = System.currentTimeMillis() //???
 
   def time: Long = t
 }
@@ -50,13 +52,15 @@ final case class RepairFromTerm(target: VehicleSource, amount: Int, term_def: Te
 
 final case class VehicleShieldCharge(target: VehicleSource, amount: Int) extends HealingActivity(target) //TODO facility
 
-final case class DamageFromProjectile(data: ResolvedProjectile) extends DamagingActivity(data.target)
+final case class DamageFromProjectile(data: DamageResult) extends DamagingActivity(data.targetBefore)
 
-final case class DamageFromPainbox(target: PlayerSource, painbox: Painbox, damage: Int) extends DamagingActivity(target)
+final case class DamageFromPainbox(data: DamageResult) extends DamagingActivity(data.targetBefore)
 
 final case class PlayerSuicide(target: PlayerSource) extends DamagingActivity(target)
 
 final case class DamageFromExplosion(target: PlayerSource, cause: ObjectDefinition) extends DamagingActivity(target)
+
+final case class DamageFromExplodingEntity(data: DamageResult) extends DamagingActivity(data.targetBefore)
 
 /**
   * A vital object can be hurt or damaged or healed or repaired (HDHR).
@@ -67,6 +71,8 @@ trait VitalsHistory {
 
   /** a reverse-order list of chronological events that have occurred to these vital statistics */
   private var vitalsHistory: List[VitalsActivity] = List.empty[VitalsActivity]
+
+  private var lastDamage: Option[DamageResult] = None
 
   def History: List[VitalsActivity] = vitalsHistory
 
@@ -94,20 +100,32 @@ trait VitalsHistory {
   }
 
   /**
-    * Very common example of a `VitalsActivity` event involving weapon discharge.
-    * @param projectile the fully-informed entry of discharge of a weapon
+    * Very common example of a `VitalsActivity` event involving damage.
+    * @param result the fully-informed entry
     * @return the list of previous changes to this object's vital statistics
     */
-  def History(projectile: ResolvedProjectile): List[VitalsActivity] = {
-    vitalsHistory = DamageFromProjectile(projectile) +: vitalsHistory
+  def History(result: DamageResult): List[VitalsActivity] = {
+    result.interaction.cause match {
+      case _: ProjectileReason =>
+        vitalsHistory = DamageFromProjectile(result) +: vitalsHistory
+        lastDamage = Some(result)
+      case _: ExplodingEntityReason =>
+        vitalsHistory = DamageFromExplodingEntity(result) +: vitalsHistory
+        lastDamage = Some(result)
+      case _: PainboxReason =>
+        vitalsHistory = DamageFromPainbox(result) +: vitalsHistory
+      case _ => ;
+    }
     vitalsHistory
   }
+
+  def LastDamage: Option[DamageResult] = lastDamage
 
   /**
     * Find, specifically, the last instance of a weapon discharge vital statistics change.
     * @return information about the discharge
     */
-  def LastShot: Option[ResolvedProjectile] = {
+  def LastShot: Option[DamageResult] = {
     vitalsHistory.find({ p => p.isInstanceOf[DamageFromProjectile] }) match {
       case Some(entry: DamageFromProjectile) =>
         Some(entry.data)

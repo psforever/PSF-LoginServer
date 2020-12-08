@@ -2,7 +2,6 @@
 package net.psforever.objects.serverobject.terminals
 
 import akka.actor.ActorRef
-import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.{GlobalDefinitions, SimpleItem}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
@@ -11,6 +10,7 @@ import net.psforever.objects.serverobject.damage.{Damageable, DamageableAmenity}
 import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}
 import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableAmenity}
 import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
+import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.services.Service
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 
@@ -67,12 +67,12 @@ class TerminalControl(term: Terminal)
       case _ => ;
     }
 
-  override protected def DamageAwareness(target : Target, cause : ResolvedProjectile, amount : Any) : Unit = {
+  override protected def DamageAwareness(target: Target, cause: DamageResult, amount: Any) : Unit = {
     tryAutoRepair()
     super.DamageAwareness(target, cause, amount)
   }
 
-  override protected def DestructionAwareness(target: Damageable.Target, cause: ResolvedProjectile) : Unit = {
+  override protected def DestructionAwareness(target: Damageable.Target, cause: DamageResult) : Unit = {
     tryAutoRepair()
     if (term.HackedBy.nonEmpty) {
       val zone = term.Zone

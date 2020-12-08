@@ -440,7 +440,7 @@ class BuildingActor(
       case Request(amount, replyTo) =>
         building match {
           case b: WarpGate =>
-            //warp gates are an infiite source of nanites
+            //warp gates are an infinite source of nanites
             replyTo ! Grant(b, if (b.Active) amount else 0)
             Behaviors.same
           case _ if building.BuildingType == StructureType.Tower || building.Zone.map.cavern =>

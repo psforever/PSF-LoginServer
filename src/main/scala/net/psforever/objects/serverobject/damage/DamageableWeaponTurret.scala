@@ -2,11 +2,10 @@
 package net.psforever.objects.serverobject.damage
 
 import akka.actor.Actor
-import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.turret.{TurretUpgrade, WeaponTurret}
 import net.psforever.objects.vehicles.MountedWeapons
-import net.psforever.objects.vital.DamageType
+import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.DamageWithPositionMessage
 import net.psforever.types.Vector3
@@ -32,7 +31,7 @@ trait DamageableWeaponTurret
 
   override val takesDamage: Receive = originalTakesDamage.orElse(aggravatedBehavior)
 
-  override protected def DamageAwareness(target: Damageable.Target, cause: ResolvedProjectile, amount: Any): Unit = {
+  override protected def DamageAwareness(target: Damageable.Target, cause: DamageResult, amount: Any): Unit = {
     val obj            = DamageableObject
     val zone           = target.Zone
     val events         = zone.VehicleEvents
@@ -48,15 +47,15 @@ trait DamageableWeaponTurret
         announceConfrontation = true
         false
       case _ =>
-        cause.projectile.profile.ProjectileDamageTypes.contains(DamageType.Aggravated)
+        cause.interaction.cause.source.Aggravated.nonEmpty
     }
 
     //log historical event
     target.History(cause)
     //damage
-    if (Damageable.CanDamageOrJammer(target, damageToHealth, cause)) {
+    if (Damageable.CanDamageOrJammer(target, damageToHealth, cause.interaction)) {
       //jammering
-      if (Damageable.CanJammer(target, cause)) {
+      if (Damageable.CanJammer(target, cause.interaction)) {
         target.Actor ! JammableUnit.Jammered(cause)
       }
       //stat changes
@@ -81,19 +80,20 @@ trait DamageableWeaponTurret
       }
       else {
         //activity on map
-        zone.Activity ! Zone.HotSpot.Activity(cause.target, cause.projectile.owner, cause.hit_pos)
+        zone.Activity ! Zone.HotSpot.Activity(cause)
         //alert to damage source
         DamageableMountable.DamageAwareness(obj, cause, damageToHealth)
       }
     }
   }
 
-  override protected def DestructionAwareness(target: Damageable.Target, cause: ResolvedProjectile): Unit = {
+  override protected def DestructionAwareness(target: Damageable.Target, cause: DamageResult): Unit = {
     super.DestructionAwareness(target, cause)
     val obj = DamageableObject
     EndAllAggravation()
     DamageableWeaponTurret.DestructionAwareness(obj, cause)
     DamageableMountable.DestructionAwareness(obj, cause)
+    Zone.causeExplosion(target.Zone, target, Some(cause))
   }
 }
 
@@ -120,7 +120,7 @@ object DamageableWeaponTurret {
     *               but the handling code closely associates with the former
     * @param cause historical information about the damage
     */
-  def DestructionAwareness(target: Damageable.Target with MountedWeapons, cause: ResolvedProjectile): Unit = {
+  def DestructionAwareness(target: Damageable.Target with MountedWeapons, cause: DamageResult): Unit = {
     //wreckage has no (visible) mounted weapons
     val zone         = target.Zone
     val zoneId       = zone.id

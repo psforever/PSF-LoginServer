@@ -3,8 +3,9 @@ package net.psforever.objects.serverobject.structures
 
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.vital.damage.DamageCalculations
-import net.psforever.objects.vital.{DamageResistanceModel, StandardAmenityResistance, StandardResolutions, VitalityDefinition}
+import net.psforever.objects.vital._
 import net.psforever.objects.vital.resistance.ResistanceProfileMutators
+import net.psforever.objects.vital.resolution.DamageResistanceModel
 
 final case class AutoRepairStats(amount: Int, start: Long, repeat: Long, drain: Float)
 
@@ -16,7 +17,7 @@ abstract class AmenityDefinition(objectId: Int)
   Name = "amenity"
   DamageUsing = DamageCalculations.AgainstVehicle
   ResistUsing = StandardAmenityResistance
-  Model = StandardResolutions.Amenities
+  Model = SimpleResolutions.calculate
 
   var autoRepair: Option[AutoRepairStats] = None
 

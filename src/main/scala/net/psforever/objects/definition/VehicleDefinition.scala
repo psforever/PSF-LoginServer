@@ -8,6 +8,7 @@ import net.psforever.objects.vehicles.{DestroyedVehicle, UtilityType}
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.resistance.ResistanceProfileMutators
+import net.psforever.objects.vital.resolution.DamageResistanceModel
 import net.psforever.types.Vector3
 
 import scala.collection.mutable
@@ -39,8 +40,7 @@ class VehicleDefinition(objectId: Int)
   private var deploymentTime_Undeploy: Int                       = 0 //ms
   private var trunkSize: InventoryTile                           = InventoryTile.None
   private var trunkOffset: Int                                   = 0
-
-  /** The position offset of the trunk, orientation as East = 0 */
+  /* The position offset of the trunk, orientation as East = 0 */
   private var trunkLocation: Vector3                         = Vector3.Zero
   private var canCloak: Boolean                              = false
   private var canFly: Boolean                                = false
@@ -53,7 +53,7 @@ class VehicleDefinition(objectId: Int)
   Packet = VehicleDefinition.converter
   DamageUsing = DamageCalculations.AgainstVehicle
   ResistUsing = StandardVehicleResistance
-  Model = StandardResolutions.Vehicle
+  Model = VehicleResolutions.calculate
   RepairDistance = 10
   RepairRestoresAt = 1
 

@@ -1,8 +1,8 @@
 //Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.damage
 
-import net.psforever.objects.ballistics.ResolvedProjectile
 import net.psforever.objects.equipment.JammableUnit
+import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.vital.resolution.ResolutionCalculations
 import net.psforever.objects.zones.Zone
 import net.psforever.types.PlanetSideGUID
@@ -78,8 +78,8 @@ trait DamageableEntity extends Damageable {
     * @return `true`, if damage resolution is to be evaluated;
     *        `false`, otherwise
     */
-  protected def WillAffectTarget(target: Damageable.Target, damage: Int, cause: ResolvedProjectile): Boolean = {
-    Damageable.CanDamageOrJammer(target, damage, cause)
+  protected def WillAffectTarget(target: Damageable.Target, damage: Int, cause: DamageResult): Boolean = {
+    Damageable.CanDamageOrJammer(target, damage, cause.interaction)
   }
 
   /**
@@ -89,7 +89,7 @@ trait DamageableEntity extends Damageable {
     * @param cause historical information about the damage
     * @param damage the amount of damage
     */
-  protected def HandleDamage(target: Damageable.Target, cause: ResolvedProjectile, damage: Any): Unit = {
+  protected def HandleDamage(target: Damageable.Target, cause: DamageResult, damage: Any): Unit = {
     if (!target.Destroyed && target.Health <= target.Definition.DamageDestroysAt) {
       DestructionAwareness(target, cause)
     } else {
@@ -103,7 +103,7 @@ trait DamageableEntity extends Damageable {
     * @param cause historical information about the damage
     * @param amount the amount of damage
     */
-  protected def DamageAwareness(target: Damageable.Target, cause: ResolvedProjectile, amount: Any): Unit = {
+  protected def DamageAwareness(target: Damageable.Target, cause: DamageResult, amount: Any): Unit = {
     amount match {
       case value: Int =>
         DamageableEntity.DamageAwareness(target, cause, value)
@@ -117,13 +117,22 @@ trait DamageableEntity extends Damageable {
     * @param target the entity being destroyed
     * @param cause historical information about the damage
     */
-  protected def DestructionAwareness(target: Damageable.Target, cause: ResolvedProjectile): Unit = {
+  protected def DestructionAwareness(target: Damageable.Target, cause: DamageResult): Unit = {
     Damageable.DestructionAwareness(target, cause)
     DamageableEntity.DestructionAwareness(target, cause)
   }
 }
 
 object DamageableEntity {
+  def attributionTo(cause: DamageResult, zone: Zone, default: PlanetSideGUID = PlanetSideGUID(0)): PlanetSideGUID = {
+    (cause.adversarial match {
+      case Some(adversarial) => zone.LivePlayers.find { p => adversarial.attacker.Name.equals(p.Name) }
+      case None              => None
+    }) match {
+      case Some(player) => player.GUID
+      case None         => default
+    }
+  }
 
   /**
     * A damaged target dispatches messages to:
@@ -143,16 +152,16 @@ object DamageableEntity {
     * @param target the entity being damaged
     * @param cause historical information about the damage
     */
-  def DamageAwareness(target: Damageable.Target, cause: ResolvedProjectile, amount: Int): Unit = {
-    if (Damageable.CanJammer(target, cause)) {
+  def DamageAwareness(target: Damageable.Target, cause: DamageResult, amount: Int): Unit = {
+    if (Damageable.CanJammer(target, cause.interaction)) {
       target.Actor ! JammableUnit.Jammered(cause)
     }
     if (DamageToHealth(target, cause, amount)) {
-      target.Zone.Activity ! Zone.HotSpot.Activity(cause.target, cause.projectile.owner, cause.hit_pos)
+      target.Zone.Activity ! Zone.HotSpot.Activity(cause)
     }
   }
 
-  def DamageToHealth(target: Damageable.Target, cause: ResolvedProjectile, amount: Int): Boolean = {
+  def DamageToHealth(target: Damageable.Target, cause: DamageResult, amount: Int): Boolean = {
     if (amount > 0 && !target.Destroyed) {
       val zone = target.Zone
       zone.AvatarEvents ! AvatarServiceMessage(
@@ -180,7 +189,7 @@ object DamageableEntity {
     * @param target the entity being destroyed
     * @param cause historical information about the damage
     */
-  def DestructionAwareness(target: Damageable.Target, cause: ResolvedProjectile): Unit = {
+  def DestructionAwareness(target: Damageable.Target, cause: DamageResult): Unit = {
     //un-jam
     target.Actor ! JammableUnit.ClearJammeredSound()
     target.Actor ! JammableUnit.ClearJammeredStatus()
@@ -188,10 +197,7 @@ object DamageableEntity {
     val zone   = target.Zone
     val zoneId = zone.id
     val tguid  = target.GUID
-    val attribution = target.Zone.LivePlayers.find { p => cause.projectile.owner.Name.equals(p.Name) } match {
-      case Some(player) => player.GUID
-      case _            => PlanetSideGUID(0)
-    }
+    val attribution = attributionTo(cause, target.Zone)
     zone.AvatarEvents ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 0, target.Health))
     zone.AvatarEvents ! AvatarServiceMessage(
       zoneId,

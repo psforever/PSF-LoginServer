@@ -1,8 +1,9 @@
 // Copyright (c) 2020 PSForever
-package net.psforever.objects.vital
+package net.psforever.objects.vital.damage
 
-import net.psforever.objects.vital.damage.DamageProfile
-
+/**
+  * A static modifier for damage.
+  */
 class SpecificDamageProfile extends DamageProfile {
   private var damage0: Int = 0
   private var damage1: Int = 0

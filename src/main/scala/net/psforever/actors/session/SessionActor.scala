@@ -7,10 +7,12 @@ import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
 import akka.pattern.ask
 import akka.util.Timeout
 import java.util.concurrent.TimeUnit
+
 import net.psforever.actors.net.MiddlewareActor
 import net.psforever.services.ServiceManager.Lookup
 import net.psforever.objects.locker.LockerContainer
 import org.log4s.MDC
+
 import scala.collection.mutable
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
@@ -24,7 +26,7 @@ import net.psforever.objects.ce._
 import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter.{CorpseConverter, DestroyedVehicleConverter}
 import net.psforever.objects.entity.{SimpleWorldEntity, WorldEntity}
-import net.psforever.objects.equipment.{ChargeFireModeDefinition, EffectTarget, Equipment, FireModeSwitch, JammableUnit}
+import net.psforever.objects.equipment._
 import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
 import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
@@ -40,7 +42,6 @@ import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
-import net.psforever.objects.serverobject.painbox.Painbox
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals._
@@ -51,6 +52,9 @@ import net.psforever.objects.teamwork.Squad
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.vital._
+import net.psforever.objects.vital.base._
+import net.psforever.objects.vital.interaction.DamageInteraction
+import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.{Zone, ZoneHotSpotProjector, Zoning}
 import net.psforever.packet._
 import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo, _}
@@ -64,12 +68,7 @@ import net.psforever.services.local.support.RouterTelepadActivation
 import net.psforever.services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
 import net.psforever.services.properties.PropertyOverrideManager
 import net.psforever.services.support.SupportActor
-import net.psforever.services.teamwork.{
-  SquadResponse,
-  SquadServiceMessage,
-  SquadServiceResponse,
-  SquadAction => SquadServiceAction
-}
+import net.psforever.services.teamwork.{SquadResponse, SquadServiceMessage, SquadServiceResponse, SquadAction => SquadServiceAction}
 import net.psforever.services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
 import net.psforever.services.{InterstellarClusterService, RemoverActor, Service, ServiceManager}
 import net.psforever.types._
@@ -1783,31 +1782,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         sendResponse(GenericObjectActionMessage(guid, 9))
 
       case AvatarResponse.EnvironmentalDamage(target, source, amount) =>
-        if (player.isAlive && amount > 0) {
-          val playerGUID     = player.GUID
-          val armor          = player.Armor
-          val capacitor      = player.Capacitor
-          val originalHealth = player.Health
-          //history
-          continent.GUID(source) match {
-            case Some(obj: Painbox) =>
-              player.History(DamageFromPainbox(PlayerSource(player), obj, amount))
-            case _ => ;
-          }
-          CancelZoningProcessWithDescriptiveReason("cancel_dmg")
-          player.Health = originalHealth - amount
-          sendResponse(PlanetsideAttributeMessage(target, 0, player.Health))
-          continent.AvatarEvents ! AvatarServiceMessage(
-            continent.id,
-            AvatarAction.PlanetsideAttribute(target, 0, player.Health)
-          )
-          damageLog.info(
-            s"${player.Name}-infantry: BEFORE=$originalHealth/$armor/$capacitor, AFTER=${player.Health}/$armor/$capacitor, CHANGE=$amount/0/0"
-          )
-          if (player.Health == 0 && player.isAlive) {
-            player.Actor ! Player.Die()
-          }
-        }
+        CancelZoningProcessWithDescriptiveReason("cancel_dmg")
+        //TODO damage marker?
 
       case AvatarResponse.Destroy(victim, killer, weapon, pos) =>
         // guid = victim // killer = killer ;)
@@ -5215,7 +5191,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                       shotOrigin: Vector3,
                       hitPos: Vector3
                     ) =>
-                  ResolveProjectileEntry(projectile, ProjectileResolution.Hit, target, hitPos) match {
+                  ResolveProjectileInteraction(projectile, DamageResolution.Hit, target, hitPos) match {
                     case Some(resprojectile) =>
                       HandleDealingDamage(target, resprojectile)
                     case None => ;
@@ -5244,15 +5220,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             projectile.Velocity = projectile_vel
             val (resolution1, resolution2) = profile.Aggravated match {
               case Some(_) if profile.ProjectileDamageTypes.contains(DamageType.Aggravated) =>
-                (ProjectileResolution.AggravatedDirect, ProjectileResolution.AggravatedSplash)
+                (DamageResolution.AggravatedDirect, DamageResolution.AggravatedSplash)
               case _ =>
-                (ProjectileResolution.Splash, ProjectileResolution.Splash)
+                (DamageResolution.Splash, DamageResolution.Splash)
             }
             //direct_victim_uid
             ValidObject(direct_victim_uid) match {
               case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
                 CheckForHitPositionDiscrepancy(projectile_guid, target.Position, target)
-                ResolveProjectileEntry(projectile, resolution1, target, target.Position) match {
+                ResolveProjectileInteraction(projectile, resolution1, target, target.Position) match {
                   case Some(projectile) =>
                     HandleDealingDamage(target, projectile)
                   case None => ;
@@ -5264,7 +5240,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               ValidObject(elem.uid) match {
                 case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
                   CheckForHitPositionDiscrepancy(projectile_guid, explosion_pos, target)
-                  ResolveProjectileEntry(projectile, resolution2, target, explosion_pos) match {
+                  ResolveProjectileInteraction(projectile, resolution2, target, explosion_pos) match {
                     case Some(projectile) =>
                       HandleDealingDamage(target, projectile)
                     case None => ;
@@ -5289,7 +5265,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         ValidObject(victim_guid) match {
           case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
             CheckForHitPositionDiscrepancy(projectile_guid, hit_pos, target)
-            ResolveProjectileEntry(projectile_guid, ProjectileResolution.Lash, target, hit_pos) match {
+            ResolveProjectileInteraction(projectile_guid, DamageResolution.Lash, target, hit_pos) match {
               case Some(projectile) =>
                 HandleDealingDamage(target, projectile)
               case None => ;
@@ -7648,15 +7624,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @param resolution the resolution status to promote the projectile
     * @return the projectile
     */
-  def ResolveProjectileEntry(
-      projectile_guid: PlanetSideGUID,
-      resolution: ProjectileResolution.Value,
-      target: PlanetSideGameObject with FactionAffinity with Vitality,
-      pos: Vector3
-  ): Option[ResolvedProjectile] = {
+  def ResolveProjectileInteraction(
+                                    projectile_guid: PlanetSideGUID,
+                                    resolution: DamageResolution.Value,
+                                    target: PlanetSideGameObject with FactionAffinity with Vitality,
+                                    pos: Vector3
+  ): Option[DamageInteraction] = {
     FindProjectileEntry(projectile_guid) match {
       case Some(projectile) =>
-        ResolveProjectileEntry(projectile, resolution, target, pos)
+        ResolveProjectileInteraction(projectile, resolution, target, pos)
       case None =>
         log.warn(s"ResolveProjectile: expected projectile, but ${projectile_guid.guid} not found")
         None
@@ -7670,18 +7646,18 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @param resolution the resolution status to promote the projectile
     * @return a copy of the projectile
     */
-  def ResolveProjectileEntry(
-      projectile: Projectile,
-      index: Int,
-      resolution: ProjectileResolution.Value,
-      target: PlanetSideGameObject with FactionAffinity with Vitality,
-      pos: Vector3
-  ): Option[ResolvedProjectile] = {
+  def ResolveProjectileInteraction(
+                                    projectile: Projectile,
+                                    index: Int,
+                                    resolution: DamageResolution.Value,
+                                    target: PlanetSideGameObject with FactionAffinity with Vitality,
+                                    pos: Vector3
+  ): Option[DamageInteraction] = {
     if (!projectiles(index).contains(projectile)) {
       log.error(s"expected projectile could not be found at $index; can not resolve")
       None
     } else {
-      ResolveProjectileEntry(projectile, resolution, target, pos)
+      ResolveProjectileInteraction(projectile, resolution, target, pos)
     }
   }
 
@@ -7691,12 +7667,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @param resolution the resolution status to promote the projectile
     * @return a copy of the projectile
     */
-  def ResolveProjectileEntry(
-      projectile: Projectile,
-      resolution: ProjectileResolution.Value,
-      target: PlanetSideGameObject with FactionAffinity with Vitality,
-      pos: Vector3
-  ): Option[ResolvedProjectile] = {
+  def ResolveProjectileInteraction(
+                                    projectile: Projectile,
+                                    resolution: DamageResolution.Value,
+                                    target: PlanetSideGameObject with FactionAffinity with Vitality,
+                                    pos: Vector3
+  ): Option[DamageInteraction] = {
     if (projectile.isMiss) {
       log.error("expected projectile was already counted as a missed shot; can not resolve any further")
       None
@@ -7715,7 +7691,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       } else {
         projectile
       }
-      Some(ResolvedProjectile(resolution, outProjectile, SourceEntry(target), target.DamageModel, pos))
+      Some(DamageInteraction(SourceEntry(target), ProjectileReason(resolution, outProjectile, target.DamageModel), pos))
     }
   }
 
@@ -7760,7 +7736,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * Calculate the amount of damage to be dealt to an active `target`
     * using the information reconstructed from a `Resolvedprojectile`
     * and affect the `target` in a synchronized manner.
-    * The active `target` and the target of the `ResolvedProjectile` do not have be the same.
+    * The active `target` and the target of the `DamageResult` do not have be the same.
     * While the "tell" for being able to sustain damage is an entity of type `Vitality`,
     * only specific `Vitality` entity types are being screened for sustaining damage.
     * @see `DamageResistanceModel`
@@ -7768,8 +7744,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @param target a valid game object that is known to the server
     * @param data a projectile that will affect the target
     */
-  def HandleDealingDamage(target: PlanetSideGameObject with Vitality, data: ResolvedProjectile): Unit = {
-    val func = data.damage_model.Calculate(data)
+  def HandleDealingDamage(target: PlanetSideGameObject with Vitality, data: DamageInteraction): Unit = {
+    val func = data.calculate()
     target match {
       case obj: Player if obj.CanDamage && obj.Actor != Default.Actor =>
         // auto kick players damaging spectators
@@ -7847,7 +7823,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   def UpdateDeployableUIElements(list: List[(Int, Int, Int, Int)]): Unit = {
     val guid = PlanetSideGUID(0)
     list.foreach({
-      case ((currElem, curr, maxElem, max)) =>
+      case (currElem, curr, maxElem, max) =>
         //fields must update in ordered pairs: max, curr
         sendResponse(PlanetsideAttributeMessage(guid, maxElem, max))
         sendResponse(PlanetsideAttributeMessage(guid, currElem, curr))
