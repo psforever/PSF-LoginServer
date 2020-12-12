@@ -1,13 +1,12 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.avatar
 
-import net.psforever.objects.avatar.OxygenStateTarget
 import net.psforever.objects.{PlanetSideGameObject, Player}
 import net.psforever.objects.ballistics.{Projectile, SourceEntry}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.InventoryItem
-import net.psforever.objects.zones.Zone
+import net.psforever.objects.zones.{OxygenStateTarget, Zone}
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.objectcreate.{ConstructorData, ObjectCreateMessageParent}
 import net.psforever.types.{ExoSuitType, PlanetSideEmpire, PlanetSideGUID, TransactionType, Vector3}

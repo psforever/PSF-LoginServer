@@ -1,66 +1,80 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital
 
-import net.psforever.objects.ballistics._
-import net.psforever.objects.definition.{EquipmentDefinition, KitDefinition, ObjectDefinition}
+import net.psforever.objects.ballistics.{PlayerSource, VehicleSource}
+import net.psforever.objects.definition.{EquipmentDefinition, KitDefinition}
 import net.psforever.objects.serverobject.terminals.TerminalDefinition
+import net.psforever.objects.vital.environment.EnvironmentReason
 import net.psforever.objects.vital.etc.{ExplodingEntityReason, PainboxReason}
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.types.{ExoSuitType, ImplantType}
 
-abstract class VitalsActivity(target: SourceEntry) {
-  def Target: SourceEntry = target
-  val t: Long             = System.currentTimeMillis() //???
-
-  def time: Long = t
+trait VitalsActivity {
+  def time: Long
 }
 
-abstract class HealingActivity(target: SourceEntry) extends VitalsActivity(target)
+trait HealingActivity extends VitalsActivity {
+  def time: Long = System.currentTimeMillis()
+}
 
-abstract class DamagingActivity(target: SourceEntry) extends VitalsActivity(target)
+trait DamagingActivity extends VitalsActivity {
+  def time: Long = data.interaction.hitTime
+  def data: DamageResult
+}
 
-final case class HealFromKit(target: PlayerSource, amount: Int, kit_def: KitDefinition) extends HealingActivity(target)
+final case class HealFromKit(kit_def: KitDefinition, amount: Int)
+  extends HealingActivity
 
 final case class HealFromEquipment(
-    target: PlayerSource,
     user: PlayerSource,
-    amount: Int,
-    equipment_def: EquipmentDefinition
-) extends HealingActivity(target)
+    equipment_def: EquipmentDefinition,
+    amount: Int
+) extends HealingActivity
 
-final case class HealFromTerm(target: PlayerSource, health: Int, armor: Int, term_def: TerminalDefinition)
-    extends HealingActivity(target)
+final case class HealFromTerm(term_def: TerminalDefinition, health: Int, armor: Int)
+  extends HealingActivity
 
-final case class HealFromImplant(target: PlayerSource, amount: Int, implant: ImplantType)
-    extends HealingActivity(target)
+final case class HealFromImplant(implant: ImplantType, health: Int)
+  extends HealingActivity
 
-final case class HealFromExoSuitChange(target: PlayerSource, exosuit: ExoSuitType.Value) extends HealingActivity(target)
+final case class HealFromExoSuitChange(exosuit: ExoSuitType.Value)
+  extends HealingActivity
 
-final case class RepairFromKit(target: PlayerSource, amount: Int, kit_def: KitDefinition)
-    extends HealingActivity(target)
+final case class RepairFromKit(kit_def: KitDefinition, amount: Int)
+    extends HealingActivity()
 
 final case class RepairFromEquipment(
-    target: PlayerSource,
     user: PlayerSource,
-    amount: Int,
-    equipment_def: EquipmentDefinition
-) extends HealingActivity(target)
+    equipment_def: EquipmentDefinition,
+    amount: Int
+) extends HealingActivity
 
-final case class RepairFromTerm(target: VehicleSource, amount: Int, term_def: TerminalDefinition)
-    extends HealingActivity(target)
+final case class RepairFromTerm(term_def: TerminalDefinition, amount: Int)
+    extends HealingActivity
 
-final case class VehicleShieldCharge(target: VehicleSource, amount: Int) extends HealingActivity(target) //TODO facility
+final case class VehicleShieldCharge(amount: Int)
+  extends HealingActivity //TODO facility
 
-final case class DamageFromProjectile(data: DamageResult) extends DamagingActivity(data.targetBefore)
+final case class DamageFrom(data: DamageResult)
+  extends DamagingActivity
 
-final case class DamageFromPainbox(data: DamageResult) extends DamagingActivity(data.targetBefore)
+final case class DamageFromProjectile(data: DamageResult)
+  extends DamagingActivity
 
-final case class PlayerSuicide(target: PlayerSource) extends DamagingActivity(target)
+final case class DamageFromPainbox(data: DamageResult)
+  extends DamagingActivity
 
-final case class DamageFromExplosion(target: PlayerSource, cause: ObjectDefinition) extends DamagingActivity(target)
+final case class DamageFromEnvironment(data: DamageResult)
+  extends DamagingActivity
 
-final case class DamageFromExplodingEntity(data: DamageResult) extends DamagingActivity(data.targetBefore)
+final case class PlayerSuicide()
+  extends DamagingActivity {
+  def data: DamageResult = null //TODO do something
+}
+
+final case class DamageFromExplodingEntity(data: DamageResult)
+  extends DamagingActivity
 
 /**
   * A vital object can be hurt or damaged or healed or repaired (HDHR).
@@ -114,7 +128,13 @@ trait VitalsHistory {
         lastDamage = Some(result)
       case _: PainboxReason =>
         vitalsHistory = DamageFromPainbox(result) +: vitalsHistory
+      case _: EnvironmentReason =>
+        vitalsHistory = DamageFromEnvironment(result) +: vitalsHistory
       case _ => ;
+        vitalsHistory = DamageFrom(result) +: vitalsHistory
+        if(result.adversarial.nonEmpty) {
+          lastDamage = Some(result)
+        }
     }
     vitalsHistory
   }
@@ -139,4 +159,60 @@ trait VitalsHistory {
     vitalsHistory = List.empty[VitalsActivity]
     out
   }
+}
+
+//deprecated overrides
+object HealFromKit {
+  def apply(Target: PlayerSource, amount: Int, kit_def: KitDefinition): HealFromKit =
+    HealFromKit(kit_def, amount)
+}
+
+object HealFromEquipment {
+  def apply(
+             Target: PlayerSource,
+             user: PlayerSource,
+             amount: Int,
+             equipment_def: EquipmentDefinition
+           ): HealFromEquipment =
+    HealFromEquipment(user, equipment_def, amount)
+}
+
+object HealFromTerm {
+  def apply(Target: PlayerSource, health: Int, armor: Int, term_def: TerminalDefinition): HealFromTerm =
+    HealFromTerm(term_def, health, armor)
+}
+
+object HealFromImplant {
+  def apply(Target: PlayerSource, amount: Int, implant: ImplantType): HealFromImplant =
+    HealFromImplant(implant, amount)
+}
+
+object HealFromExoSuitChange {
+  def apply(Target: PlayerSource, exosuit: ExoSuitType.Value): HealFromExoSuitChange =
+    HealFromExoSuitChange(exosuit)
+}
+
+object RepairFromKit {
+  def apply(Target: PlayerSource, amount: Int, kit_def: KitDefinition): RepairFromKit =
+    RepairFromKit(kit_def, amount)
+}
+
+object RepairFromEquipment {
+  def apply(
+             Target: PlayerSource,
+             user: PlayerSource,
+             amount: Int,
+             equipment_def: EquipmentDefinition
+           ) : RepairFromEquipment =
+    RepairFromEquipment(user, equipment_def, amount)
+}
+
+object RepairFromTerm {
+  def apply(Target: VehicleSource, amount: Int, term_def: TerminalDefinition): RepairFromTerm =
+    RepairFromTerm(term_def, amount)
+}
+
+object VehicleShieldCharge {
+  def apply(Target: VehicleSource, amount: Int): VehicleShieldCharge =
+    VehicleShieldCharge(amount)
 }

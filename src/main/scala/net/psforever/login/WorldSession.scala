@@ -9,9 +9,8 @@ import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.containable.Containable
-import net.psforever.objects.zones.{PieceOfEnvironment, Zone}
+import net.psforever.objects.zones.{PieceOfEnvironment, InteractWithEnvironment, EscapeFromEnvironment, Zone}
 import net.psforever.objects._
-import net.psforever.objects.avatar.{Submerged, Surfaced}
 import net.psforever.packet.game.ObjectHeldMessage
 import net.psforever.types.{PlanetSideGUID, TransactionType, Vector3}
 import net.psforever.services.Service
@@ -852,7 +851,7 @@ object WorldSession {
   def onStableEnvironment(obj: PlanetSideServerObject): Any = {
     checkAllEnvironmentInteractions(obj) match {
       case Some(body) =>
-        obj.Actor ! Submerged(obj, body, None)
+        obj.Actor ! InteractWithEnvironment(obj, body, None)
         waitOnOngoingInteraction(obj.Zone, body)(_)
       case None =>
         onStableEnvironment(_)
@@ -882,11 +881,11 @@ object WorldSession {
           case Some(newBody) if newBody.attribute == body.attribute =>
             waitOnOngoingInteraction(obj.Zone, newBody)(_)
           case Some(newBody) =>
-            obj.Actor ! Surfaced(obj, body, None)
-            obj.Actor ! Submerged(obj, newBody, None)
+            obj.Actor ! EscapeFromEnvironment(obj, body, None)
+            obj.Actor ! InteractWithEnvironment(obj, newBody, None)
             waitOnOngoingInteraction(obj.Zone, newBody)(_)
           case None =>
-            obj.Actor ! Surfaced(obj, body, None)
+            obj.Actor ! EscapeFromEnvironment(obj, body, None)
             onStableEnvironment(_)
         }
     }

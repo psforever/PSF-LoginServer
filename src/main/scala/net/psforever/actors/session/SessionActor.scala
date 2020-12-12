@@ -6776,7 +6776,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @param tplayer the player to be killed
     */
   def suicide(tplayer: Player): Unit = {
-    tplayer.History(PlayerSuicide(PlayerSource(tplayer)))
+    tplayer.History(PlayerSuicide())
     tplayer.Actor ! Player.Die()
   }
 
@@ -9168,7 +9168,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     if (hitPositionDiscrepancy > Config.app.antiCheat.hitPositionDiscrepancyThreshold) {
       // If the target position on the server does not match the position where the projectile landed within reason there may be foul play
       log.warn(
-        s"Shot guid ${projectile_guid} has hit location discrepancy with target location. Target: ${target.Position} Reported: ${hitPos}, Distance: ${hitPositionDiscrepancy} / ${math.sqrt(hitPositionDiscrepancy).toFloat}; suspect"
+        s"Shot guid $projectile_guid has hit location discrepancy with target location. Target: ${target.Position} Reported: $hitPos, Distance: $hitPositionDiscrepancy / ${math.sqrt(hitPositionDiscrepancy).toFloat}; suspect"
       )
     }
   }

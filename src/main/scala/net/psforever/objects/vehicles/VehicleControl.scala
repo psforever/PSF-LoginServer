@@ -3,7 +3,6 @@ package net.psforever.objects.vehicles
 
 import akka.actor.{Actor, Cancellable}
 import net.psforever.objects._
-import net.psforever.objects.avatar.{OxygenStateTarget, RecoveredFromSubmerging, Submerged, Surfaced}
 import net.psforever.objects.ballistics.VehicleSource
 import net.psforever.objects.ce.TelepadLike
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot, JammableMountedWeapons}
@@ -20,9 +19,11 @@ import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.transfer.TransferBehavior
 import net.psforever.objects.serverobject.repair.RepairableVehicle
 import net.psforever.objects.serverobject.terminals.Terminal
-import net.psforever.objects.vital.interaction.DamageResult
+import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.VehicleShieldCharge
-import net.psforever.objects.zones.{PieceOfEnvironment, EnvironmentTrait, EnvironmentAttribute, Zone}
+import net.psforever.objects.vital.environment.EnvironmentReason
+import net.psforever.objects.vital.etc.SuicideReason
+import net.psforever.objects.zones._
 import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.types._
@@ -85,9 +86,9 @@ class VehicleControl(vehicle: Vehicle)
   /** primary vehicle decay timer */
   var decayTimer : Cancellable = Default.Cancellable
   var submergedCondition : Option[OxygenState] = None
-  var submergedDrownTime : Long = 0
-  var submergedIn : Option[EnvironmentTrait] = None
-  var submergedTimer : Cancellable = Default.Cancellable
+  var interactionTime : Long = 0
+  var interactWith : Option[EnvironmentTrait] = None
+  var interactionTimer : Cancellable = Default.Cancellable
 
   def receive : Receive = Enabled
 
@@ -253,14 +254,14 @@ class VehicleControl(vehicle: Vehicle)
             case _ => ;
           }
 
-        case Submerged(target, fluidBody, vehicleOpt) =>
-          doSubmerging(target, fluidBody)
+        case InteractWithEnvironment(target, body, _) =>
+          doInteracting(target, body)
 
-        case Surfaced(target, fluidBody, vehicleOpt) =>
-          doSurfacing(target, fluidBody)
+        case EscapeFromEnvironment(target, body, _) =>
+          stopInteracting(target, body)
 
-        case RecoveredFromSubmerging() =>
-          recoverFromSubmerged()
+        case RecoveredFromEnvironmentInteraction() =>
+          recoverFromEnvironmentInteraction()
 
         case VehicleControl.Disable() =>
           PrepareForDisabled()
@@ -359,7 +360,7 @@ class VehicleControl(vehicle: Vehicle)
     val zoneId = zone.id
     val events = zone.VehicleEvents
     //miscellaneous changes
-    recoverFromSubmerged()
+    recoverFromEnvironmentInteraction()
     Vehicles.BeforeUnloadVehicle(vehicle, zone)
     //escape being someone else's cargo
     vehicle.MountedIn match {
@@ -642,12 +643,19 @@ class VehicleControl(vehicle: Vehicle)
     out
   }
 
-  def doSubmerging(obj: PlanetSideServerObject, fluidBody: PieceOfEnvironment): Unit = {
-    val attribute = fluidBody.attribute
-    submergedIn = Some(attribute)
-    submergedTimer.cancel()
+  /**
+    * The vehicle has clipped into the critical range of a piece of environment
+    * and that environment may have special attributes that affect the vehicle.
+    * @param obj the target
+    * @param body the piece of environment that is being interacted with
+    */
+  def doInteracting(obj: PlanetSideServerObject, body: PieceOfEnvironment): Unit = {
+    val attribute = body.attribute
+    interactWith = Some(attribute)
+    interactionTimer.cancel()
     attribute match {
       case EnvironmentAttribute.Water =>
+        //water causes vehicles to slowly become disabled if they loiter around in it for too long
         val (effect: Boolean, time: Long, percentage: Float) = submergedCondition match {
           case None =>
             //start suffocation process
@@ -656,7 +664,7 @@ class VehicleControl(vehicle: Vehicle)
             //switching from recovery to suffocation
             val oldDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Recovery)
             val newDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Suffocation)
-            val oldTimeRemaining: Long = submergedDrownTime - System.currentTimeMillis()
+            val oldTimeRemaining: Long = interactionTime - System.currentTimeMillis()
             val oldTimeRatio: Float = 1f - oldTimeRemaining / oldDuration.toFloat
             val percentage: Float = oldTimeRatio * 100
             val newDrownTime: Long = (newDuration * oldTimeRatio).toLong
@@ -664,7 +672,7 @@ class VehicleControl(vehicle: Vehicle)
           case Some(OxygenState.Suffocation) =>
             //interrupted while suffocating, calculate the progress and keep suffocating
             val oldDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Suffocation)
-            val oldTimeRemaining: Long = submergedDrownTime - System.currentTimeMillis()
+            val oldTimeRemaining: Long = interactionTime - System.currentTimeMillis()
             val percentage: Float = (oldTimeRemaining / oldDuration.toFloat) * 100f
             (false, oldTimeRemaining, percentage)
           case _ =>
@@ -673,42 +681,70 @@ class VehicleControl(vehicle: Vehicle)
         if (effect) {
           import scala.concurrent.ExecutionContext.Implicits.global
           submergedCondition = Some(OxygenState.Suffocation)
-          submergedDrownTime = System.currentTimeMillis() + time
-          submergedTimer = context.system.scheduler.scheduleOnce(delay = time milliseconds, self, VehicleControl.Disable())
+          interactionTime = System.currentTimeMillis() + time
+          interactionTimer = context.system.scheduler.scheduleOnce(delay = time milliseconds, self, VehicleControl.Disable())
+          //inform the players mounted in the vehicle that their ride is in trouble (that they are in trouble)
           val vtarget = Some(OxygenStateTarget(vehicle.GUID, OxygenState.Suffocation, percentage))
           vehicle.Seats.values.collect { case seat if seat.isOccupied =>
             val player = seat.Occupant.get
-            player.Actor ! Submerged(player, fluidBody, vtarget)
+            player.Actor ! InteractWithEnvironment(player, body, vtarget)
           }
         }
 
       case EnvironmentAttribute.Lava =>
-      //        if (player.isAlive) {
-      //          HandleEnvironmentalDamage(PlanetSideGUID(0), amount = 4)
-      //          if (player.Health > 0) {
-      //            import scala.concurrent.ExecutionContext.Implicits.global
-      //            submergedTimer = context.system.scheduler.scheduleOnce(delay = 250 milliseconds, self, Submerged(player, fluidBody, None))
-      //          }
-      //        }
+        //lava causes vehicles to take (considerable) damage until they are inevitably destroyed
+        val vehicle = DamageableObject
+        if (!obj.Destroyed) {
+          PerformDamage(
+            vehicle,
+            DamageInteraction(
+              VehicleSource(vehicle),
+              EnvironmentReason(body, vehicle),
+              vehicle.Position
+            ).calculate()
+          )
+          //keep doing damage
+          if (vehicle.Health > 0) {
+            import scala.concurrent.ExecutionContext.Implicits.global
+            interactionTimer = context.system.scheduler.scheduleOnce(delay = 250 milliseconds, self, InteractWithEnvironment(obj, body, None))
+          }
+        }
 
       case EnvironmentAttribute.Death =>
-      //        if (!obj.Destroyed) {
-      //          DestructionAwareness(vehicle, None)
-      //        }
+        //death causes vehicles to be destroyed outright; it's not even considered as environmental damage anymore
+        if (!obj.Destroyed) {
+          PerformDamage(
+            vehicle,
+            DamageInteraction(
+              VehicleSource(vehicle),
+              SuicideReason(),
+              vehicle.Position
+            ).calculate()
+          )
+        }
+
       case _ => ;
     }
   }
 
-  def doSurfacing(obj: PlanetSideServerObject, fluidBody: PieceOfEnvironment): Unit = {
-    submergedTimer.cancel()
-    fluidBody.attribute match {
+  /**
+    * The vehicle is no longer clipped into the critical range of a piece of environment.
+    * Any special attributes of the environment that may affect the vehicle should cease.
+    * @param obj the target
+    * @param body the piece of environment that is being interacted with
+    */
+  def stopInteracting(obj: PlanetSideServerObject, body: PieceOfEnvironment): Unit = {
+    interactionTimer.cancel()
+    body.attribute match {
       case EnvironmentAttribute.Water =>
+        //the vehicle will no longer become disabled due to water
+        //but it does have to endure a recovery period to get back to full dehydration
         val (effect: Boolean, time: Long, percentage: Float) = submergedCondition match {
           case Some(OxygenState.Suffocation) =>
             //switching from suffocation to recovery
             val oldDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Suffocation)
             val newDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Recovery)
-            val oldTimeRemaining: Long = submergedDrownTime - System.currentTimeMillis()
+            val oldTimeRemaining: Long = interactionTime - System.currentTimeMillis()
             val oldTimeRatio: Float = oldTimeRemaining / oldDuration.toFloat
             val percentage: Float = oldTimeRatio * 100
             val recoveryTime: Long = newDuration - (newDuration * oldTimeRatio).toLong
@@ -717,37 +753,45 @@ class VehicleControl(vehicle: Vehicle)
             //interrupted while recovering, calculate the progress and keep recovering
             val currTime = System.currentTimeMillis()
             val duration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Recovery)
-            val startTime: Long = submergedDrownTime - duration
-            val timeRemaining: Long = submergedDrownTime - currTime
+            val startTime: Long = interactionTime - duration
+            val timeRemaining: Long = interactionTime - currTime
             val percentage: Float = ((currTime - startTime) / duration.toFloat) * 100f
             (false, timeRemaining, percentage)
           case _ =>
-            recoverFromSubmerged()
+            recoverFromEnvironmentInteraction()
             (false, 0L, 100f)
         }
         if (effect) {
           import scala.concurrent.ExecutionContext.Implicits.global
           submergedCondition = Some(OxygenState.Recovery)
-          submergedDrownTime = System.currentTimeMillis() + time
-          submergedTimer = context.system.scheduler.scheduleOnce(delay = time milliseconds, self, RecoveredFromSubmerging())
+          interactionTime = System.currentTimeMillis() + time
+          interactionTimer = context.system.scheduler.scheduleOnce(delay = time milliseconds, self, RecoveredFromEnvironmentInteraction())
           val vtarget = Some(OxygenStateTarget(vehicle.GUID, OxygenState.Recovery, percentage))
+          //inform the players mounted in the vehicle
           vehicle.Seats.values.collect { case seat if seat.isOccupied =>
             val player = seat.Occupant.get
-            player.Actor ! Surfaced(player, fluidBody, vtarget)
+            player.Actor ! EscapeFromEnvironment(player, body, vtarget)
           }
         }
 
       case _ =>
-        recoverFromSubmerged()
+        //no other environment does anything special in the process of not being encountered
+        //lava, for example, merely stops hurting
+        //you can't escape being in contact with death
+        recoverFromEnvironmentInteraction()
     }
-    submergedIn = None
+    interactWith = None
   }
 
-  def recoverFromSubmerged(): Unit = {
-    submergedTimer.cancel()
-    submergedDrownTime = 0
+  /**
+    * Reset the environment encounter fields and completely stop whatever is the current mechanic.
+    * This does not perform messaging relay either with mounted occupants or with any other service.
+    */
+  def recoverFromEnvironmentInteraction(): Unit = {
+    interactionTimer.cancel()
+    interactionTime = 0
+    interactWith = None
     submergedCondition = None
-    submergedIn = None
   }
 }
 
