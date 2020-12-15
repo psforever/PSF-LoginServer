@@ -5,7 +5,7 @@ import net.psforever.objects.Player
 import net.psforever.objects.ballistics.{Projectile, SourceEntry}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.InventoryItem
-import net.psforever.objects.zones.OxygenStateTarget
+import net.psforever.objects.serverobject.environment.OxygenStateTarget
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.packet.game.ObjectCreateMessage

@@ -3,7 +3,7 @@ package net.psforever.objects.vital.environment
 
 import net.psforever.objects.ballistics.PlayerSource
 import net.psforever.objects.vital.interaction.DamageInteraction
-import net.psforever.objects.zones.EnvironmentAttribute
+import net.psforever.objects.serverobject.environment.EnvironmentAttribute
 
 /**
   * The deeper you move into lava, the greater the amount of health you burn through.
@@ -13,7 +13,7 @@ import net.psforever.objects.zones.EnvironmentAttribute
 case object LavaDepth extends EnvironmentDamageModifiers.Mod {
   def calculate(damage: Int, data: DamageInteraction, cause: EnvironmentReason): Int = {
     if (cause.body.attribute == EnvironmentAttribute.Lava) {
-      val depth: Float = scala.math.max(0, cause.body.collision.altitude - data.target.Position.z)
+      val depth: Float = scala.math.max(0, (cause.body.collision.altitude - data.target.Position.z).toFloat)
       data.target match {
         case _: PlayerSource =>
           (damage * (1f + depth)).toInt

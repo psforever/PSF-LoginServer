@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.definition.VehicleDefinition
+import net.psforever.objects.definition.{SeatDefinition, VehicleDefinition}
 import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot, JammableUnit}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem, InventoryTile}
 import net.psforever.objects.serverobject.mount.Mountable
@@ -9,6 +9,7 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.aura.AuraContainer
 import net.psforever.objects.serverobject.deploy.Deployment
+import net.psforever.objects.serverobject.environment.InteractsWithZoneEnvironment
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.AmenityOwner
 import net.psforever.objects.vehicles._
@@ -71,6 +72,7 @@ import scala.util.{Success, Try}
   */
 class Vehicle(private val vehicleDef: VehicleDefinition)
     extends AmenityOwner
+    with InteractsWithZoneEnvironment
     with Hackable
     with FactionAffinity
     with Mountable
@@ -205,7 +207,7 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
 
   def NtuCapacitorScaled: Int = {
     if (Definition.MaxNtuCapacitor > 0) {
-      scala.math.ceil((NtuCapacitor.toFloat / Definition.MaxNtuCapacitor.toFloat) * 10).toInt
+      scala.math.ceil((NtuCapacitor / Definition.MaxNtuCapacitor) * 10).toInt
     } else {
       0
     }
@@ -666,7 +668,7 @@ object Vehicle {
       })
       .toMap
     //create seats
-    vehicle.seats = vdef.Seats.map({ case (num, definition) => num -> Seat(definition) }).toMap
+    vehicle.seats = vdef.Seats.map({ case (num: Int, definition: SeatDefinition) => num -> Seat(definition) }).toMap
     // create cargo holds
     vehicle.cargoHolds = vdef.Cargo.map({ case (num, definition) => num -> Cargo(definition) }).toMap
 

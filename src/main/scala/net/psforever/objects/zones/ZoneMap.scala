@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.zones
 
+import net.psforever.objects.serverobject.environment.PieceOfEnvironment
 import net.psforever.objects.serverobject.structures.FoundationBuilder
 import net.psforever.objects.serverobject.zipline.ZipLinePath
 import net.psforever.objects.serverobject.{PlanetSideServerObject, ServerObjectBuilder}

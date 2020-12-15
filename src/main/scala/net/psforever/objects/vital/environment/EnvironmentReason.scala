@@ -2,12 +2,12 @@
 package net.psforever.objects.vital.environment
 
 import net.psforever.objects.ballistics.SourceEntry
+import net.psforever.objects.serverobject.environment.{EnvironmentAttribute, PieceOfEnvironment}
 import net.psforever.objects.vital.base.{DamageReason, DamageResolution}
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.prop.DamageProperties
 import net.psforever.objects.vital.resolution.{DamageAndResistance, DamageResistanceModel}
 import net.psforever.objects.vital.{NoResistanceSelection, SimpleResolutions, Vitality}
-import net.psforever.objects.zones.{EnvironmentAttribute, PieceOfEnvironment}
 
 /**
   * A wrapper for a "damage source" in damage calculations

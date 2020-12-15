@@ -1,6 +1,7 @@
 package net.psforever.objects.zones
 
 import enumeratum.values.{StringEnum, StringEnumEntry}
+import net.psforever.objects.serverobject.environment._
 import net.psforever.types.Vector3
 
 sealed abstract class MapInfo(

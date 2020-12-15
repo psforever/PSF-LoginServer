@@ -1,5 +1,5 @@
 // Copyright (c) 2020 PSForever
-package net.psforever.objects.zones
+package net.psforever.objects.serverobject.environment
 
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.types.{OxygenState, PlanetSideGUID}

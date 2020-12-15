@@ -9,7 +9,6 @@ import akka.util.Timeout
 import java.util.concurrent.TimeUnit
 
 import net.psforever.actors.net.MiddlewareActor
-import net.psforever.login.WorldSession
 import net.psforever.services.ServiceManager.Lookup
 import net.psforever.objects.locker.LockerContainer
 import org.log4s.MDC
@@ -268,7 +267,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var keepAliveFunc: () => Unit                      = NormalKeepAlive
   var setAvatar: Boolean                             = false
   var turnCounterFunc: PlanetSideGUID => Unit        = TurnCounterDuringInterim
-  var interactingWithEnvironment: PlanetSideServerObject=>Any = WorldSession.onStableEnvironment
 
   var clientKeepAlive: Cancellable   = Default.Cancellable
   var progressBarUpdate: Cancellable = Default.Cancellable
@@ -3704,7 +3702,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         if (player.death_by == -1) {
           KickedByAdministration()
         }
-        interactsWithEnvironment(player)
+        player.zoneInteraction()
 
       case msg @ ChildObjectStateMessage(object_guid, pitch, yaw) =>
         //log.info(s"$msg")
@@ -3806,7 +3804,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               )
             )
             updateSquad()
-            interactsWithEnvironment(obj)
+            obj.zoneInteraction()
           case (None, _) =>
           //log.error(s"VehicleState: no vehicle $vehicle_guid found in zone")
           //TODO placing a "not driving" warning here may trigger as we are disembarking the vehicle
@@ -9444,13 +9442,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case _ =>
         (None, None)
     }
-  }
-
-  def interactsWithEnvironment(obj: PlanetSideServerObject): Unit = {
-    /*
-    TODO a function of type foo that takes parameters bar that recursively returns a function of type foo that takes parameters bar that recursively returns a function ...
-     */
-    interactingWithEnvironment = interactingWithEnvironment(obj).asInstanceOf[PlanetSideServerObject=>Any]
   }
 
   def failWithError(error: String) = {

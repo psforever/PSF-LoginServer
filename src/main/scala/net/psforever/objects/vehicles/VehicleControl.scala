@@ -15,6 +15,7 @@ import net.psforever.objects.serverobject.containable.{Containable, ContainableB
 import net.psforever.objects.serverobject.damage.{AggravatedBehavior, DamageableVehicle}
 import net.psforever.objects.serverobject.deploy.Deployment.DeploymentObject
 import net.psforever.objects.serverobject.deploy.{Deployment, DeploymentBehavior}
+import net.psforever.objects.serverobject.environment._
 import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.transfer.TransferBehavior
 import net.psforever.objects.serverobject.repair.RepairableVehicle
@@ -55,7 +56,8 @@ class VehicleControl(vehicle: Vehicle)
     with JammableMountedWeapons
     with ContainableBehavior
     with AntTransferBehavior
-    with AggravatedBehavior {
+    with AggravatedBehavior
+    with RespondsToZoneEnvironment {
   //make control actors belonging to utilities when making control actor belonging to vehicle
   vehicle.Utilities.foreach({ case (_, util) => util.Setup })
 
@@ -77,6 +79,12 @@ class VehicleControl(vehicle: Vehicle)
 
   def ChargeTransferObject = vehicle
 
+  def InteractiveObject = vehicle
+  SetInteraction(EnvironmentAttribute.Water, doInteractingWithWater)
+  SetInteraction(EnvironmentAttribute.Lava, doInteractingWithLava)
+  SetInteraction(EnvironmentAttribute.Death, doInteractingWithDeath)
+  SetInteractionStop(EnvironmentAttribute.Water, stopInteractingWithWater)
+
   if (vehicle.Definition == GlobalDefinitions.ant) {
     findChargeTargetFunc = Vehicles.FindANTChargingSource
     findDischargeTargetFunc = Vehicles.FindANTDischargingTarget
@@ -86,9 +94,6 @@ class VehicleControl(vehicle: Vehicle)
   /** primary vehicle decay timer */
   var decayTimer : Cancellable = Default.Cancellable
   var submergedCondition : Option[OxygenState] = None
-  var interactionTime : Long = 0
-  var interactWith : Option[EnvironmentTrait] = None
-  var interactionTimer : Cancellable = Default.Cancellable
 
   def receive : Receive = Enabled
 
@@ -112,6 +117,7 @@ class VehicleControl(vehicle: Vehicle)
       .orElse(canBeRepairedByNanoDispenser)
       .orElse(containerBehavior)
       .orElse(antBehavior)
+      .orElse(environmentBehavior)
       .orElse {
         case Vehicle.Ownership(None) =>
           LoseOwnership()
@@ -144,21 +150,7 @@ class VehicleControl(vehicle: Vehicle)
 
         case msg : Mountable.TryDismount =>
           dismountBehavior.apply(msg)
-          val obj = MountableObject
-
-          // Reset velocity to zero when driver dismounts, to allow jacking/repair if vehicle was moving slightly before dismount
-          if (!obj.Seats(0).isOccupied) {
-            obj.Velocity = Some(Vector3.Zero)
-          }
-          //are we already decaying? are we unowned? is no one seated anywhere?
-          if (!decaying && obj.Owner.isEmpty && obj.Seats.values.forall(!_.isOccupied)) {
-            decaying = true
-            decayTimer = context.system.scheduler.scheduleOnce(
-              MountableObject.Definition.DeconstructionTime.getOrElse(5 minutes),
-              self,
-              VehicleControl.PrepareForDeletion()
-            )
-          }
+          dismountCleanup()
 
         case Vehicle.ChargeShields(amount) =>
           val now : Long = System.currentTimeMillis()
@@ -254,17 +246,8 @@ class VehicleControl(vehicle: Vehicle)
             case _ => ;
           }
 
-        case InteractWithEnvironment(target, body, _) =>
-          doInteracting(target, body)
-
-        case EscapeFromEnvironment(target, body, _) =>
-          stopInteracting(target, body)
-
-        case RecoveredFromEnvironmentInteraction() =>
-          recoverFromEnvironmentInteraction()
-
         case VehicleControl.Disable() =>
-          PrepareForDisabled()
+          PrepareForDisabled(kickPassengers = false)
           context.become(Disabled)
 
         case Vehicle.Deconstruct(time) =>
@@ -274,13 +257,13 @@ class VehicleControl(vehicle: Vehicle)
               decayTimer.cancel()
               decayTimer = context.system.scheduler.scheduleOnce(delay, self, VehicleControl.PrepareForDeletion())
             case _ =>
-              PrepareForDisabled()
+              PrepareForDisabled(kickPassengers = true)
               PrepareForDeletion()
               context.become(ReadyToDelete)
           }
 
         case VehicleControl.PrepareForDeletion() =>
-          PrepareForDisabled()
+          PrepareForDisabled(kickPassengers = true)
           PrepareForDeletion()
           context.become(ReadyToDelete)
 
@@ -292,6 +275,10 @@ class VehicleControl(vehicle: Vehicle)
       .orElse {
         case msg : Deployment.TryUndeploy =>
           deployBehavior.apply(msg)
+
+        case msg : Mountable.TryDismount =>
+          dismountBehavior.apply(msg)
+          dismountCleanup()
 
         case Vehicle.Deconstruct(time) =>
           time match {
@@ -329,7 +316,7 @@ class VehicleControl(vehicle: Vehicle)
       }
 
   val tryMountBehavior : Receive = {
-    case msg@Mountable.TryMount(user, seat_num) =>
+    case msg @ Mountable.TryMount(user, seat_num) =>
       val exosuit = user.ExoSuit
       val restriction = vehicle.Seats(seat_num).ArmorRestriction
       val seatGroup = vehicle.SeatPermissionGroup(seat_num).getOrElse(AccessPermissionGroup.Passenger)
@@ -354,13 +341,30 @@ class VehicleControl(vehicle: Vehicle)
       }
   }
 
-  def PrepareForDisabled() : Unit = {
+  def dismountCleanup(): Unit = {
+    val obj = MountableObject
+    // Reset velocity to zero when driver dismounts, to allow jacking/repair if vehicle was moving slightly before dismount
+    if (!obj.Seats(0).isOccupied) {
+      obj.Velocity = Some(Vector3.Zero)
+    }
+    //are we already decaying? are we unowned? is no one seated anywhere?
+    if (!decaying && obj.Owner.isEmpty && obj.Seats.values.forall(!_.isOccupied)) {
+      decaying = true
+      decayTimer = context.system.scheduler.scheduleOnce(
+        MountableObject.Definition.DeconstructionTime.getOrElse(5 minutes),
+        self,
+        VehicleControl.PrepareForDeletion()
+      )
+    }
+  }
+
+  def PrepareForDisabled(kickPassengers: Boolean) : Unit = {
     val guid = vehicle.GUID
     val zone = vehicle.Zone
     val zoneId = zone.id
     val events = zone.VehicleEvents
     //miscellaneous changes
-    recoverFromEnvironmentInteraction()
+    recoverFromEnvironmentInteracting()
     Vehicles.BeforeUnloadVehicle(vehicle, zone)
     //escape being someone else's cargo
     vehicle.MountedIn match {
@@ -374,34 +378,36 @@ class VehicleControl(vehicle: Vehicle)
         )
       case _ => ;
     }
-    //kick all passengers
-    vehicle.Seats.values.foreach(seat => {
-      seat.Occupant match {
-        case Some(player) =>
-          seat.Occupant = None
-          player.VehicleSeated = None
-          if (player.HasGUID) {
-            events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, false, guid))
-          }
-        case None => ;
-      }
-      //abandon all cargo
-      vehicle.CargoHolds.values
-        .collect {
-          case hold if hold.isOccupied =>
-            val cargo = hold.Occupant.get
-            CargoBehavior.HandleVehicleCargoDismount(
-              cargo.GUID,
-              cargo,
-              guid,
-              vehicle,
-              bailed = false,
-              requestedByPassenger = false,
-              kicked = false
-            )
+    if (!vehicle.Flying || kickPassengers) {
+      //kick all passengers (either not flying, or being explicitly instructed)
+      vehicle.Seats.values.foreach { seat =>
+        seat.Occupant match {
+          case Some(player) =>
+            seat.Occupant = None
+            player.VehicleSeated = None
+            if (player.HasGUID) {
+              events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, false, guid))
+            }
+          case None => ;
         }
-    })
-  }
+      }
+    }
+    //abandon all cargo
+    vehicle.CargoHolds.values
+      .collect {
+        case hold if hold.isOccupied =>
+          val cargo = hold.Occupant.get
+          CargoBehavior.HandleVehicleCargoDismount(
+            cargo.GUID,
+            cargo,
+            guid,
+            vehicle,
+            bailed = false,
+            requestedByPassenger = false,
+            kicked = false
+          )
+      }
+    }
 
   def PrepareForDeletion() : Unit = {
     decaying = false
@@ -643,154 +649,86 @@ class VehicleControl(vehicle: Vehicle)
     out
   }
 
-  /**
-    * The vehicle has clipped into the critical range of a piece of environment
-    * and that environment may have special attributes that affect the vehicle.
-    * @param obj the target
-    * @param body the piece of environment that is being interacted with
-    */
-  def doInteracting(obj: PlanetSideServerObject, body: PieceOfEnvironment): Unit = {
-    val attribute = body.attribute
-    interactWith = Some(attribute)
-    interactionTimer.cancel()
-    attribute match {
-      case EnvironmentAttribute.Water =>
-        //water causes vehicles to slowly become disabled if they loiter around in it for too long
-        val (effect: Boolean, time: Long, percentage: Float) = submergedCondition match {
-          case None =>
-            //start suffocation process
-            (true, obj.Definition.UnderwaterLifespan(OxygenState.Suffocation), 100f)
-          case Some(OxygenState.Recovery) =>
-            //switching from recovery to suffocation
-            val oldDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Recovery)
-            val newDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Suffocation)
-            val oldTimeRemaining: Long = interactionTime - System.currentTimeMillis()
-            val oldTimeRatio: Float = 1f - oldTimeRemaining / oldDuration.toFloat
-            val percentage: Float = oldTimeRatio * 100
-            val newDrownTime: Long = (newDuration * oldTimeRatio).toLong
-            (true, newDrownTime, percentage)
-          case Some(OxygenState.Suffocation) =>
-            //interrupted while suffocating, calculate the progress and keep suffocating
-            val oldDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Suffocation)
-            val oldTimeRemaining: Long = interactionTime - System.currentTimeMillis()
-            val percentage: Float = (oldTimeRemaining / oldDuration.toFloat) * 100f
-            (false, oldTimeRemaining, percentage)
-          case _ =>
-            (false, 0L, 0f)
-        }
-        if (effect) {
-          import scala.concurrent.ExecutionContext.Implicits.global
-          submergedCondition = Some(OxygenState.Suffocation)
-          interactionTime = System.currentTimeMillis() + time
-          interactionTimer = context.system.scheduler.scheduleOnce(delay = time milliseconds, self, VehicleControl.Disable())
-          //inform the players mounted in the vehicle that their ride is in trouble (that they are in trouble)
-          val vtarget = Some(OxygenStateTarget(vehicle.GUID, OxygenState.Suffocation, percentage))
-          vehicle.Seats.values.collect { case seat if seat.isOccupied =>
-            val player = seat.Occupant.get
-            player.Actor ! InteractWithEnvironment(player, body, vtarget)
-          }
-        }
-
-      case EnvironmentAttribute.Lava =>
-        //lava causes vehicles to take (considerable) damage until they are inevitably destroyed
-        val vehicle = DamageableObject
-        if (!obj.Destroyed) {
-          PerformDamage(
-            vehicle,
-            DamageInteraction(
-              VehicleSource(vehicle),
-              EnvironmentReason(body, vehicle),
-              vehicle.Position
-            ).calculate()
-          )
-          //keep doing damage
-          if (vehicle.Health > 0) {
-            import scala.concurrent.ExecutionContext.Implicits.global
-            interactionTimer = context.system.scheduler.scheduleOnce(delay = 250 milliseconds, self, InteractWithEnvironment(obj, body, None))
-          }
-        }
-
-      case EnvironmentAttribute.Death =>
-        //death causes vehicles to be destroyed outright; it's not even considered as environmental damage anymore
-        if (!obj.Destroyed) {
-          PerformDamage(
-            vehicle,
-            DamageInteraction(
-              VehicleSource(vehicle),
-              SuicideReason(),
-              vehicle.Position
-            ).calculate()
-          )
-        }
-
-      case _ => ;
+  def doInteractingWithWater(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
+    //water causes vehicles to slowly become disabled if they loiter around in it for too long
+    val (effect: Boolean, time: Long, percentage: Float) =
+      RespondsToZoneEnvironment.drowningInWateryConditions(obj, submergedCondition, interactionTime)
+    if (effect) {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      submergedCondition = Some(OxygenState.Suffocation)
+      interactionTime = System.currentTimeMillis() + time
+      interactionTimer = context.system.scheduler.scheduleOnce(delay = time milliseconds, self, VehicleControl.Disable())
+      //inform the players mounted in the vehicle that their ride is in trouble (that they are in trouble)
+      val vtarget = Some(OxygenStateTarget(vehicle.GUID, OxygenState.Suffocation, percentage))
+      vehicle.Seats.values.collect { case seat if seat.isOccupied =>
+        val player = seat.Occupant.get
+        player.Actor ! InteractWithEnvironment(player, body, vtarget)
+      }
     }
   }
 
-  /**
-    * The vehicle is no longer clipped into the critical range of a piece of environment.
-    * Any special attributes of the environment that may affect the vehicle should cease.
-    * @param obj the target
-    * @param body the piece of environment that is being interacted with
-    */
-  def stopInteracting(obj: PlanetSideServerObject, body: PieceOfEnvironment): Unit = {
-    interactionTimer.cancel()
-    body.attribute match {
-      case EnvironmentAttribute.Water =>
-        //the vehicle will no longer become disabled due to water
-        //but it does have to endure a recovery period to get back to full dehydration
-        val (effect: Boolean, time: Long, percentage: Float) = submergedCondition match {
-          case Some(OxygenState.Suffocation) =>
-            //switching from suffocation to recovery
-            val oldDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Suffocation)
-            val newDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Recovery)
-            val oldTimeRemaining: Long = interactionTime - System.currentTimeMillis()
-            val oldTimeRatio: Float = oldTimeRemaining / oldDuration.toFloat
-            val percentage: Float = oldTimeRatio * 100
-            val recoveryTime: Long = newDuration - (newDuration * oldTimeRatio).toLong
-            (true, recoveryTime, percentage)
-          case Some(OxygenState.Recovery) =>
-            //interrupted while recovering, calculate the progress and keep recovering
-            val currTime = System.currentTimeMillis()
-            val duration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Recovery)
-            val startTime: Long = interactionTime - duration
-            val timeRemaining: Long = interactionTime - currTime
-            val percentage: Float = ((currTime - startTime) / duration.toFloat) * 100f
-            (false, timeRemaining, percentage)
-          case _ =>
-            recoverFromEnvironmentInteraction()
-            (false, 0L, 100f)
-        }
-        if (effect) {
-          import scala.concurrent.ExecutionContext.Implicits.global
-          submergedCondition = Some(OxygenState.Recovery)
-          interactionTime = System.currentTimeMillis() + time
-          interactionTimer = context.system.scheduler.scheduleOnce(delay = time milliseconds, self, RecoveredFromEnvironmentInteraction())
-          val vtarget = Some(OxygenStateTarget(vehicle.GUID, OxygenState.Recovery, percentage))
-          //inform the players mounted in the vehicle
-          vehicle.Seats.values.collect { case seat if seat.isOccupied =>
-            val player = seat.Occupant.get
-            player.Actor ! EscapeFromEnvironment(player, body, vtarget)
-          }
-        }
-
-      case _ =>
-        //no other environment does anything special in the process of not being encountered
-        //lava, for example, merely stops hurting
-        //you can't escape being in contact with death
-        recoverFromEnvironmentInteraction()
+  def doInteractingWithLava(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
+    //lava causes vehicles to take (considerable) damage until they are inevitably destroyed
+    val vehicle = DamageableObject
+    if (!obj.Destroyed) {
+      PerformDamage(
+        vehicle,
+        DamageInteraction(
+          VehicleSource(vehicle),
+          EnvironmentReason(body, vehicle),
+          vehicle.Position
+        ).calculate()
+      )
+      //keep doing damage
+      if (vehicle.Health > 0) {
+        import scala.concurrent.ExecutionContext.Implicits.global
+        interactionTimer = context.system.scheduler.scheduleOnce(delay = 250 milliseconds, self, InteractWithEnvironment(obj, body, None))
+      }
     }
-    interactWith = None
+  }
+
+  def doInteractingWithDeath(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
+    //death causes vehicles to be destroyed outright; it's not even considered as environmental damage anymore
+    if (!obj.Destroyed) {
+      PerformDamage(
+        vehicle,
+        DamageInteraction(
+          VehicleSource(vehicle),
+          SuicideReason(),
+          vehicle.Position
+        ).calculate()
+      )
+    }
+  }
+
+  def stopInteractingWithWater(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
+    //the vehicle will no longer become disabled due to water
+    //but it does have to endure a recovery period to get back to full dehydration
+    val (effect: Boolean, time: Long, percentage: Float) =
+    RespondsToZoneEnvironment.recoveringFromWateryConditions(obj, submergedCondition, interactionTime)
+    if (percentage == 100f) {
+      recoverFromEnvironmentInteracting()
+    }
+    if (effect) {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      submergedCondition = Some(OxygenState.Recovery)
+      interactionTime = System.currentTimeMillis() + time
+      interactionTimer = context.system.scheduler.scheduleOnce(delay = time milliseconds, self, RecoveredFromEnvironmentInteraction())
+      val vtarget = Some(OxygenStateTarget(vehicle.GUID, OxygenState.Recovery, percentage))
+      //inform the players mounted in the vehicle
+      vehicle.Seats.values.collect { case seat if seat.isOccupied =>
+        val player = seat.Occupant.get
+        player.Actor ! EscapeFromEnvironment(player, body, vtarget)
+      }
+    }
   }
 
   /**
     * Reset the environment encounter fields and completely stop whatever is the current mechanic.
     * This does not perform messaging relay either with mounted occupants or with any other service.
     */
-  def recoverFromEnvironmentInteraction(): Unit = {
-    interactionTimer.cancel()
-    interactionTime = 0
-    interactWith = None
+  override def recoverFromEnvironmentInteracting(): Unit = {
+    super.recoverFromEnvironmentInteracting()
     submergedCondition = None
   }
 }

@@ -1,4 +1,4 @@
-package net.psforever.objects.zones
+package net.psforever.objects.serverobject.environment
 
 import enumeratum.{Enum, EnumEntry}
 import net.psforever.objects.PlanetSideGameObject
