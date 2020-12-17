@@ -6570,8 +6570,7 @@ object GlobalDefinitions {
       Modifiers = RadialDegrade
     }
     mosquito.DrownAtMaxDepth = true
-    mosquito.MaxDepth = 1 //flying vehicles will automatically disable
-    mosquito.UnderwaterLifespan(suffocation = 1000L, recovery = 1000L)
+    mosquito.MaxDepth = 2 //flying vehicles will automatically disable
 
     lightgunship.Name = "lightgunship" // Reaver
     lightgunship.MaxHealth = 1000
@@ -6605,8 +6604,7 @@ object GlobalDefinitions {
       Modifiers = RadialDegrade
     }
     lightgunship.DrownAtMaxDepth = true
-    lightgunship.MaxDepth = 1 //flying vehicles will automatically disable
-    lightgunship.UnderwaterLifespan(suffocation = 1000L, recovery = 1000L)
+    lightgunship.MaxDepth = 2 //flying vehicles will automatically disable
 
     wasp.Name = "wasp"
     wasp.MaxHealth = 515
@@ -6639,8 +6637,7 @@ object GlobalDefinitions {
       Modifiers = RadialDegrade
     }
     wasp.DrownAtMaxDepth = true
-    wasp.MaxDepth = 1 //flying vehicles will automatically disable
-    wasp.UnderwaterLifespan(suffocation = 1000L, recovery = 1000L)
+    wasp.MaxDepth = 2 //flying vehicles will automatically disable
 
     liberator.Name = "liberator"
     liberator.MaxHealth = 2500
@@ -6681,8 +6678,7 @@ object GlobalDefinitions {
       Modifiers = RadialDegrade
     }
     liberator.DrownAtMaxDepth = true
-    liberator.MaxDepth = 2.3125f //flying vehicles will automatically disable
-    liberator.UnderwaterLifespan(suffocation = 1000L, recovery = 1000L)
+    liberator.MaxDepth = 2 //flying vehicles will automatically disable
 
     vulture.Name = "vulture"
     vulture.MaxHealth = 2500
@@ -6724,8 +6720,7 @@ object GlobalDefinitions {
       Modifiers = RadialDegrade
     }
     vulture.DrownAtMaxDepth = true
-    vulture.MaxDepth = 2.3125f //flying vehicles will automatically disable
-    vulture.UnderwaterLifespan(suffocation = 1000L, recovery = 1000L)
+    vulture.MaxDepth = 2 //flying vehicles will automatically disable
 
     dropship.Name = "dropship" // Galaxy
     dropship.MaxHealth = 5000
@@ -6799,8 +6794,7 @@ object GlobalDefinitions {
       Modifiers = RadialDegrade
     }
     dropship.DrownAtMaxDepth = true
-    dropship.MaxDepth = 2.385f
-    dropship.UnderwaterLifespan(suffocation = 1000L, recovery = 1000L)
+    dropship.MaxDepth = 2
 
     galaxy_gunship.Name = "galaxy_gunship"
     galaxy_gunship.MaxHealth = 6000
@@ -6853,8 +6847,7 @@ object GlobalDefinitions {
       Modifiers = RadialDegrade
     }
     galaxy_gunship.DrownAtMaxDepth = true
-    galaxy_gunship.MaxDepth = 2.385f
-    galaxy_gunship.UnderwaterLifespan(suffocation = 1000L, recovery = 1000L)
+    galaxy_gunship.MaxDepth = 2
 
     lodestar.Name = "lodestar"
     lodestar.MaxHealth = 5000
@@ -6895,8 +6888,7 @@ object GlobalDefinitions {
       Modifiers = RadialDegrade
     }
     lodestar.DrownAtMaxDepth = true
-    lodestar.MaxDepth = 1.625f
-    lodestar.UnderwaterLifespan(suffocation = 1000L, recovery = 1000L)
+    lodestar.MaxDepth = 2
 
     phantasm.Name = "phantasm"
     phantasm.MaxHealth = 2500
@@ -6938,8 +6930,7 @@ object GlobalDefinitions {
       Modifiers = RadialDegrade
     }
     phantasm.DrownAtMaxDepth = true
-    phantasm.MaxDepth = 1.25f
-    phantasm.UnderwaterLifespan(suffocation = 1000L, recovery = 1000L)
+    phantasm.MaxDepth = 2
 
     droppod.Name = "droppod"
     droppod.MaxHealth = 20000
@@ -6952,7 +6943,7 @@ object GlobalDefinitions {
     droppod.DeconstructionTime = Some(5 seconds)
     droppod.DestroyedModel = None //the adb calls out a droppod; the cyclic nature of this confounds me
     droppod.DamageUsing = DamageCalculations.AgainstAircraft
-    droppod.DrownAtMaxDepth = true
+    droppod.DrownAtMaxDepth = false
   }
 
   /**

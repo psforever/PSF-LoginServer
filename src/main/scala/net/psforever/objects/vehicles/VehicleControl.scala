@@ -83,7 +83,9 @@ class VehicleControl(vehicle: Vehicle)
   SetInteraction(EnvironmentAttribute.Water, doInteractingWithWater)
   SetInteraction(EnvironmentAttribute.Lava, doInteractingWithLava)
   SetInteraction(EnvironmentAttribute.Death, doInteractingWithDeath)
-  SetInteractionStop(EnvironmentAttribute.Water, stopInteractingWithWater)
+  if (!vehicle.Definition.CanFly) { //can not recover from sinking disability
+    SetInteractionStop(EnvironmentAttribute.Water, stopInteractingWithWater)
+  }
 
   if (vehicle.Definition == GlobalDefinitions.ant) {
     findChargeTargetFunc = Vehicles.FindANTChargingSource
@@ -93,6 +95,7 @@ class VehicleControl(vehicle: Vehicle)
   var decaying : Boolean = false
   /** primary vehicle decay timer */
   var decayTimer : Cancellable = Default.Cancellable
+  /** becoming waterlogged, or drying out? */
   var submergedCondition : Option[OxygenState] = None
 
   def receive : Receive = Enabled
@@ -649,10 +652,22 @@ class VehicleControl(vehicle: Vehicle)
     out
   }
 
+  /**
+    * Water causes vehicles to become disabled if they dive off too far, too deep.
+    * Flying vehicles do not display progress towards being waterlogged.  They just disable outright.
+    * @param obj the target
+    * @param body the environment
+    * @param data additional interaction information, if applicable
+    */
   def doInteractingWithWater(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
-    //water causes vehicles to slowly become disabled if they loiter around in it for too long
-    val (effect: Boolean, time: Long, percentage: Float) =
-      RespondsToZoneEnvironment.drowningInWateryConditions(obj, submergedCondition, interactionTime)
+    val (effect: Boolean, time: Long, percentage: Float) = {
+      val (a, b, c) = RespondsToZoneEnvironment.drowningInWateryConditions(obj, submergedCondition, interactionTime)
+      if (a && vehicle.Definition.CanFly) {
+        (true, 0, 0f) //no progress bar
+      } else {
+        (a, b, c)
+      }
+    }
     if (effect) {
       import scala.concurrent.ExecutionContext.Implicits.global
       submergedCondition = Some(OxygenState.Suffocation)
@@ -667,8 +682,13 @@ class VehicleControl(vehicle: Vehicle)
     }
   }
 
+  /**
+    * Lava causes vehicles to take (considerable) damage until they are inevitably destroyed.
+    * @param obj the target
+    * @param body the environment
+    * @param data additional interaction information, if applicable
+    */
   def doInteractingWithLava(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
-    //lava causes vehicles to take (considerable) damage until they are inevitably destroyed
     val vehicle = DamageableObject
     if (!obj.Destroyed) {
       PerformDamage(
@@ -687,8 +707,14 @@ class VehicleControl(vehicle: Vehicle)
     }
   }
 
+  /**
+    * Death causes vehicles to be destroyed outright.
+    * It's not even considered as environmental damage anymore.
+    * @param obj the target
+    * @param body the environment
+    * @param data additional interaction information, if applicable
+    */
   def doInteractingWithDeath(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
-    //death causes vehicles to be destroyed outright; it's not even considered as environmental damage anymore
     if (!obj.Destroyed) {
       PerformDamage(
         vehicle,
@@ -701,15 +727,19 @@ class VehicleControl(vehicle: Vehicle)
     }
   }
 
+  /**
+    * When out of water, the vehicle no longer risks becoming disabled.
+    * It does have to endure a recovery period to get back to full dehydration
+    * Flying vehicles are exempt from this process due to the abrupt disability they experience.
+    * @param obj the target
+    * @param body the environment
+    * @param data additional interaction information, if applicable
+    */
   def stopInteractingWithWater(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
-    //the vehicle will no longer become disabled due to water
-    //but it does have to endure a recovery period to get back to full dehydration
     val (effect: Boolean, time: Long, percentage: Float) =
-    RespondsToZoneEnvironment.recoveringFromWateryConditions(obj, submergedCondition, interactionTime)
-    if (percentage == 100f) {
-      recoverFromEnvironmentInteracting()
-    }
+      RespondsToZoneEnvironment.recoveringFromWateryConditions(obj, submergedCondition, interactionTime)
     if (effect) {
+      recoverFromEnvironmentInteracting()
       import scala.concurrent.ExecutionContext.Implicits.global
       submergedCondition = Some(OxygenState.Recovery)
       interactionTime = System.currentTimeMillis() + time

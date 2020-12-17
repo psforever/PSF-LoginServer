@@ -15,7 +15,8 @@ import scala.collection.mutable
   * and gets reacted to when coming into contact with that geometry.
   * Ideally, the target under control instigates the responses towards the environment
   * by independently re-evaluating the conditions of its interactions.
-  * While a resersal of this trigger scheme is possible, it is not ideal.
+  * Only one kind of environment can elicit a response at a time.
+  * While a reversal of this trigger scheme is possible, it is not ideal.
   * @see `InteractsWithZoneEnvironment`
   * @see `PieceOfEnvironment`
   */
@@ -27,10 +28,14 @@ trait RespondsToZoneEnvironment {
   var interactWith : Option[EnvironmentTrait] = None
   /** a gesture of automation added to the interaction */
   var interactionTimer : Cancellable = Default.Cancellable
-  /** a mapping of responses when specific interactions occur */
+  /** a mapping of responses when specific interactions occur;
+    * select from these options when starting an effect;
+    * key - type of environment, value - reaction function */
   private var interactWithEnvironmentStart: mutable.HashMap[EnvironmentTrait, RespondsToZoneEnvironment.Interaction] =
     mutable.HashMap[EnvironmentTrait, RespondsToZoneEnvironment.Interaction]()
-  /** a mapping of responses when specific interactions cease */
+  /** a mapping of responses when specific interactions cease;
+    * select from these options when ending an effect;
+    * key - type of environment, value - reaction function */
   private var interactWithEnvironmentStop: mutable.HashMap[EnvironmentTrait, RespondsToZoneEnvironment.Interaction] =
     mutable.HashMap[EnvironmentTrait, RespondsToZoneEnvironment.Interaction]()
 
@@ -58,8 +63,8 @@ trait RespondsToZoneEnvironment {
   }
 
   def doEnvironmentInteracting(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
-    if (interactWith.isEmpty) {
-      val attribute = body.attribute
+    val attribute = body.attribute
+    if (interactWith.isEmpty || interactWith.contains(attribute)) {
       interactWith = Some(attribute)
       interactionTimer.cancel()
       interactWithEnvironmentStart.get(attribute) match {
@@ -95,10 +100,20 @@ trait RespondsToZoneEnvironment {
 object RespondsToZoneEnvironment {
   type Interaction = (PlanetSideServerObject, PieceOfEnvironment, Option[OxygenStateTarget]) => Unit
 
+  /**
+    * Calculate the effect of being exposed to a watery environment beyond its critical region.
+    * @param obj the target
+    * @param condition the current environment progressive event of the target, e.g., already drowning
+    * @param completionTime how long since the current environment progressive event started
+    * @return three values:
+    *         whether any change in effect will occur,
+    *         for how long this new change if effect will occur after starting,
+    *         and what the starting progress value of this new effect looks like
+    */
   def drowningInWateryConditions(
-                                 obj: PlanetSideServerObject,
-                                 condition: Option[OxygenState],
-                                 ongoingTime: Long
+                                  obj: PlanetSideServerObject,
+                                  condition: Option[OxygenState],
+                                  completionTime: Long
                                ): (Boolean, Long, Float) = {
     condition match {
       case None =>
@@ -108,7 +123,7 @@ object RespondsToZoneEnvironment {
         //switching from recovery to suffocation
         val oldDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Recovery)
         val newDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Suffocation)
-        val oldTimeRemaining: Long = ongoingTime - System.currentTimeMillis()
+        val oldTimeRemaining: Long = completionTime - System.currentTimeMillis()
         val oldTimeRatio: Float = 1f - oldTimeRemaining / oldDuration.toFloat
         val percentage: Float = oldTimeRatio * 100
         val newDrownTime: Long = (newDuration * oldTimeRatio).toLong
@@ -116,7 +131,7 @@ object RespondsToZoneEnvironment {
       case Some(OxygenState.Suffocation) =>
         //interrupted while suffocating, calculate the progress and keep suffocating
         val oldDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Suffocation)
-        val oldTimeRemaining: Long = ongoingTime - System.currentTimeMillis()
+        val oldTimeRemaining: Long = completionTime - System.currentTimeMillis()
         val percentage: Float = (oldTimeRemaining / oldDuration.toFloat) * 100f
         (false, oldTimeRemaining, percentage)
       case _ =>
@@ -124,17 +139,27 @@ object RespondsToZoneEnvironment {
     }
   }
 
+  /**
+    * Calculate the effect of being removed from a watery environment beyond its critical region.
+    * @param obj the target
+    * @param condition the current environment progressive event of the target, e.g., already drowning
+    * @param completionTime how long since the current environment progressive event started
+    * @return three values:
+    *         whether any change in effect will occur,
+    *         for how long this new change if effect will occur after starting,
+    *         and what the starting progress value of this new effect looks like
+    */
   def recoveringFromWateryConditions(
                                      obj: PlanetSideServerObject,
                                      condition: Option[OxygenState],
-                                     ongoingTime: Long
+                                     completionTime: Long
                                    ): (Boolean, Long, Float) = {
     condition match {
       case Some(OxygenState.Suffocation) =>
         //switching from suffocation to recovery
         val oldDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Suffocation)
         val newDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Recovery)
-        val oldTimeRemaining: Long = ongoingTime - System.currentTimeMillis()
+        val oldTimeRemaining: Long = completionTime - System.currentTimeMillis()
         val oldTimeRatio: Float = oldTimeRemaining / oldDuration.toFloat
         val percentage: Float = oldTimeRatio * 100
         val recoveryTime: Long = newDuration - (newDuration * oldTimeRatio).toLong
@@ -143,8 +168,8 @@ object RespondsToZoneEnvironment {
         //interrupted while recovering, calculate the progress and keep recovering
         val currTime = System.currentTimeMillis()
         val duration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Recovery)
-        val startTime: Long = ongoingTime - duration
-        val timeRemaining: Long = ongoingTime - currTime
+        val startTime: Long = completionTime - duration
+        val timeRemaining: Long = completionTime - currTime
         val percentage: Float = ((currTime - startTime) / duration.toFloat) * 100f
         (false, timeRemaining, percentage)
       case _ =>

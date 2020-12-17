@@ -49,12 +49,12 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
   def ContainerObject = player
 
   def AggravatedObject = player
+
+  def AuraTargetObject = player
   ApplicableEffect(Aura.Plasma)
   ApplicableEffect(Aura.Napalm)
   ApplicableEffect(Aura.Comet)
   ApplicableEffect(Aura.Fire)
-
-  def AuraTargetObject = player
 
   def InteractiveObject = player
   SetInteraction(EnvironmentAttribute.Water, doInteractingWithWater)
@@ -64,6 +64,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
 
   private[this] val log       = org.log4s.getLogger(player.Name)
   private[this] val damageLog = org.log4s.getLogger(Damageable.LogChannel)
+  /** suffocating, or regaining breath? */
   var submergedCondition: Option[OxygenState] = None
 
   /** control agency for the player's locker container (dedicated inventory slot #5) */
@@ -102,7 +103,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           suicide()
 
         case CommonMessages.Use(user, Some(item: Tool))
-            if item.Definition == GlobalDefinitions.medicalapplicator && player.isAlive =>
+          if item.Definition == GlobalDefinitions.medicalapplicator && player.isAlive =>
           //heal
           val originalHealth = player.Health
           val definition     = player.Definition
@@ -703,7 +704,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     EndAllAggravation()
     //unjam
     CancelJammeredSound(target)
-    CancelJammeredStatus(target)
+    super.CancelJammeredStatus(target)
     //uninitialize implants
     avatarActor ! AvatarActor.DeinitializeImplants()
     events ! AvatarServiceMessage(
@@ -980,8 +981,15 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.PlanetsideAttributeToAll(target.GUID, 54, value))
   }
 
+  /**
+    * Water causes players to slowly suffocate.
+    * When they (finally) drown, they will die.
+    * @param obj the target
+    * @param body the environment
+    * @param data additional interaction information, if applicable;
+    *             for players, this will be data from any mounted vehicles
+    */
   def doInteractingWithWater(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
-    //water causes players to slowly suffocate; after they (finally) drown, they will die
     val (effect: Boolean, time: Long, percentage: Float) =
       RespondsToZoneEnvironment.drowningInWateryConditions(obj, submergedCondition, interactionTime)
     if (effect) {
@@ -1003,8 +1011,13 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     }
   }
 
+  /**
+    * Lava causes players to take (considerable) damage until they inevitably die.
+    * @param obj the target
+    * @param body the environment
+    * @param data additional interaction information, if applicable
+    */
   def doInteractingWithLava(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
-    //lava causes players to take (considerable) damage until they inevitably die
     if (player.isAlive) {
       PerformDamage(
         player,
@@ -1022,14 +1035,26 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     }
   }
 
+  /**
+    * Death causes players to die outright.
+    * It's not even considered as environmental damage anymore.
+    * @param obj the target
+    * @param body the environment
+    * @param data additional interaction information, if applicable
+    */
   def doInteractingWithDeath(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
-    //death causes players to die outright; it's not even considered as environmental damage anymore
     suicide()
   }
 
-  def stopInteractingWithWater(obj: PlanetSideServerObject, body: PieceOfEnvironment, vehicleOpt: Option[OxygenStateTarget]): Unit = {
-    //the player is no longer suffocating
-    //but he does have to endure a recovery period to get back to full health
+  /**
+    * When out of water, the player is no longer suffocating.
+    * The player does have to endure a recovery period to get back to normal, though.
+    * @param obj the target
+    * @param body the environment
+    * @param data additional interaction information, if applicable;
+    *             for players, this will be data from any mounted vehicles
+    */
+  def stopInteractingWithWater(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
     val (effect: Boolean, time: Long, percentage: Float) =
       RespondsToZoneEnvironment.recoveringFromWateryConditions(obj, submergedCondition, interactionTime)
     if (percentage == 100f) {
@@ -1043,21 +1068,17 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       //inform the player
       player.Zone.AvatarEvents ! AvatarServiceMessage(
         player.Name,
-        AvatarAction.OxygenState(OxygenStateTarget(player.GUID, OxygenState.Recovery, percentage), vehicleOpt)
+        AvatarAction.OxygenState(OxygenStateTarget(player.GUID, OxygenState.Recovery, percentage), data)
       )
-    } else if (vehicleOpt.isDefined) {
+    } else if (data.isDefined) {
       //inform the player
       player.Zone.AvatarEvents ! AvatarServiceMessage(
         player.Name,
-        AvatarAction.OxygenState(OxygenStateTarget(player.GUID, OxygenState.Recovery, percentage), vehicleOpt)
+        AvatarAction.OxygenState(OxygenStateTarget(player.GUID, OxygenState.Recovery, percentage), data)
       )
     }
   }
 
-  /**
-    * Reset the environment encounter fields and completely stop whatever is the current mechanic.
-    * This does not perform messaging relay with any other service.
-    */
   override def recoverFromEnvironmentInteracting(): Unit = {
     super.recoverFromEnvironmentInteracting()
     submergedCondition = None

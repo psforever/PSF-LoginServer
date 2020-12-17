@@ -5,12 +5,25 @@ import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.zones.Zone
 
+/**
+  * This game entity may infrequently test whether it may interact with game world environment.
+  */
 trait InteractsWithZoneEnvironment {
   _: PlanetSideServerObject =>
+  /** interactions for this particular entity is allowed */
   private var _allowZoneEnvironmentInteractions: Boolean = true
 
+  /**
+    * If the environmental interactive permissions of this entity change.
+    */
   def allowZoneEnvironmentInteractions: Boolean = _allowZoneEnvironmentInteractions
 
+  /**
+    * If the environmental interactive permissions of this entity change,
+    * trigger a formal change to the interaction methodology.
+    * @param allow whether or not interaction is permitted
+    * @return whether or not interaction is permitted
+    */
   def allowZoneEnvironmentInteractions_=(allow: Boolean): Boolean = {
     val before = _allowZoneEnvironmentInteractions
     _allowZoneEnvironmentInteractions = allow
@@ -23,6 +36,17 @@ trait InteractsWithZoneEnvironment {
   private var interactingWithEnvironment: (PlanetSideServerObject, Boolean) => Any =
     InteractsWithZoneEnvironment.onStableEnvironment()
 
+  /**
+    * The method by which zone interactions are tested or a current interaction maintained.
+    * Utilize a function literal that, when called, returns a function literal of the same type;
+    * the function that is returned will not necessarily be the same as the one that was used
+    * but will represent the existing and ongoing status of interaction with the environment.
+    * Calling one function and exchanging it for another function to be called like this creates a procedure
+    * that controls and limits the interactions with the environment to only what is necessary.
+    * @see `InteractsWithZoneEnvironment.blockedFromInteracting`
+    * @see `InteractsWithZoneEnvironment.onStableEnvironment`
+    * @see `InteractsWithZoneEnvironment.awaitOngoingInteraction`
+    */
   def zoneInteraction(): Unit = {
     //val func: (PlanetSideServerObject, Boolean) => Any = interactingWithEnvironment(this, allowZoneEnvironmentInteractions)
     interactingWithEnvironment = interactingWithEnvironment(this, allowZoneEnvironmentInteractions)
@@ -38,7 +62,7 @@ object InteractsWithZoneEnvironment {
     * Considered tail recursive, but not treated that way.
     * @see `blockedFromInteracting`
     * @see `checkAllEnvironmentInteractions`
-    * @see `waitOnOngoingInteraction`
+    * @see `awaitOngoingInteraction`
     * @param obj the target entity
     * @return the function literal that represents the next iterative call of ongoing interaction testing;
     *         may return itself
@@ -48,7 +72,7 @@ object InteractsWithZoneEnvironment {
       checkAllEnvironmentInteractions(obj) match {
         case Some(body) =>
           obj.Actor ! InteractWithEnvironment(obj, body, None)
-          waitOnOngoingInteraction(obj.Zone, body)(_,_)
+          awaitOngoingInteraction(obj.Zone, body)(_,_)
         case None =>
           onStableEnvironment()(_,_)
       }
@@ -75,23 +99,24 @@ object InteractsWithZoneEnvironment {
     * @return the function literal that represents the next iterative call of ongoing interaction testing;
     *         may return itself
     */
-  def waitOnOngoingInteraction(zone: Zone, body: PieceOfEnvironment)(obj: PlanetSideServerObject, allow: Boolean): Any = {
+  def awaitOngoingInteraction(zone: Zone, body: PieceOfEnvironment)(obj: PlanetSideServerObject, allow: Boolean): Any = {
     if (allow) {
       checkSpecificEnvironmentInteraction(zone, body)(obj) match {
         case None =>
-          waitOnOngoingInteraction(zone, body)(_, _)
-        case Some(_) =>
           checkAllEnvironmentInteractions(obj) match {
             case Some(newBody) if newBody.attribute == body.attribute =>
-              waitOnOngoingInteraction(obj.Zone, newBody)(_, _)
+              obj.Actor ! InteractWithEnvironment(obj, newBody, None)
+              awaitOngoingInteraction(obj.Zone, newBody)(_, _)
             case Some(newBody) =>
               obj.Actor ! EscapeFromEnvironment(obj, body, None)
               obj.Actor ! InteractWithEnvironment(obj, newBody, None)
-              waitOnOngoingInteraction(obj.Zone, newBody)(_, _)
+              awaitOngoingInteraction(obj.Zone, newBody)(_, _)
             case None =>
               obj.Actor ! EscapeFromEnvironment(obj, body, None)
               onStableEnvironment()(_, _)
           }
+        case Some(_) =>
+          onStableEnvironment()(_, _)
       }
     } else {
       obj.Actor ! EscapeFromEnvironment(obj, body, None)
@@ -135,7 +160,7 @@ object InteractsWithZoneEnvironment {
     * @return any unstable, interactive, or special terrain that is being interacted
     */
   private def checkSpecificEnvironmentInteraction(zone: Zone, body: PieceOfEnvironment)(obj: PlanetSideServerObject): Option[PieceOfEnvironment] = {
-    if ((obj.Zone eq zone) && !body.testInteraction(obj.Position, GlobalDefinitions.MaxDepth(obj))) {
+    if ((obj.Zone eq zone) && body.testInteraction(obj.Position, GlobalDefinitions.MaxDepth(obj))) {
       Some(body)
     } else {
       None
