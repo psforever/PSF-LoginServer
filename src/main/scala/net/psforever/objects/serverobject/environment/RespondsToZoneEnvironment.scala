@@ -24,8 +24,8 @@ trait RespondsToZoneEnvironment {
   _: Actor =>
   /** how long the current interaction has been progressing in the current way */
   var interactionTime : Long = 0
-  /** the attributes of the environment that we are currently in interaction with */
-  var interactWith : Option[EnvironmentTrait] = None
+  /** the environment that we are currently in interaction with */
+  var interactWith : Option[PieceOfEnvironment] = None
   /** a gesture of automation added to the interaction */
   var interactionTimer : Cancellable = Default.Cancellable
   /** a mapping of responses when specific interactions occur;
@@ -52,7 +52,7 @@ trait RespondsToZoneEnvironment {
       recoverFromEnvironmentInteracting()
   }
 
-  def InteractWith: Option[EnvironmentTrait] = interactWith
+  def InteractWith: Option[PieceOfEnvironment] = interactWith
 
   def SetInteraction(attribute: EnvironmentTrait, action: RespondsToZoneEnvironment.Interaction): Unit = {
     interactWithEnvironmentStart += attribute -> action
@@ -64,8 +64,8 @@ trait RespondsToZoneEnvironment {
 
   def doEnvironmentInteracting(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
     val attribute = body.attribute
-    if (interactWith.isEmpty || interactWith.contains(attribute)) {
-      interactWith = Some(attribute)
+    if (interactWith.isEmpty || interactWith.get.attribute == attribute) {
+      interactWith = Some(body)
       interactionTimer.cancel()
       interactWithEnvironmentStart.get(attribute) match {
         case Some(func) => func(obj, body, data)
@@ -76,7 +76,7 @@ trait RespondsToZoneEnvironment {
 
   def stopEnvironmentInteracting(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
     val attribute = body.attribute
-    if (interactWith.contains(attribute)) {
+    if (interactWith.nonEmpty && interactWith.get.attribute == attribute) {
       interactWith = None
       interactionTimer.cancel()
       interactWithEnvironmentStop.get(attribute) match {

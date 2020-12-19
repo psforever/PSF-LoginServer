@@ -1298,8 +1298,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       * The user is either already in the current zone and merely transporting himself from one location to another,
       * also called "dying", or occasionally "deconstructing,"
       * or is completely switching in between zones.
-      * These correspond to the message NewPlayerLoaded for the case of "dying" or the latter zone switching case,
-      * and PlayerLoaded for "deconstruction."
+      * These correspond to the message `NewPlayerLoaded` for the case of "dying" or the latter zone switching case,
+      * and `PlayerLoaded` for "deconstruction."
       * In the latter case, the user must wait for the zone to be recognized as loaded for the server
       * and this is performed through the send LoadMapMessage, receive BeginZoningMessage exchange
       * The user's player should have already been registered into the new zone
@@ -3046,7 +3046,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           )
         )
       case (Some(vehicle), Some(0)) =>
-        //summon any passengers and cargo vehicles left behind on previous continent
+        //driver; summon any passengers and cargo vehicles left behind on previous continent
         if (vehicle.Jammed) {
           //TODO something better than just canceling?
           vehicle.Actor ! JammableUnit.ClearJammeredStatus()
@@ -3067,6 +3067,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           continent.id,
           vehicle
         )
+      case (Some(vehicle), _) =>
+        //passenger
+        vehicle.Actor ! Vehicle.UpdateZoneInteractionProgressUI(player)
       case _ => ;
     }
     interstellarFerryTopLevelGUID = None
@@ -6894,6 +6897,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             case _ =>
               vehicle.MountedIn = None
           }
+          vehicle.allowZoneEnvironmentInteractions = true
           data
         } else {
           //passenger
@@ -8514,6 +8518,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         )
     }
     //
+    vehicle.allowZoneEnvironmentInteractions = false
     if (!zoneReload && zoneId == continent.id) {
       if (vehicle.Definition == GlobalDefinitions.droppod) {
         //instant action droppod in the same zone

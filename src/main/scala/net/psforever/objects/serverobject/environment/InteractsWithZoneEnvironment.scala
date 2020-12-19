@@ -52,6 +52,22 @@ trait InteractsWithZoneEnvironment {
     interactingWithEnvironment = interactingWithEnvironment(this, allowZoneEnvironmentInteractions)
       .asInstanceOf[(PlanetSideServerObject, Boolean) => Any]
   }
+
+  /**
+    * Suspend any current interaction procedures through the proper channels
+    * or deactivate a previously flagged interaction blocking procedure
+    * and reset the system to its neutral state.
+    * The main difference between resetting and flagging the blocking procedure
+    * is that resetting will (probably) restore the previously active procedure on the next `zoneInteraction` call
+    * while blocking will halt all attempts to establish a new active interaction procedure
+    * and unblocking will immediately install whatever is the current active interaction.
+    * @see `InteractsWithZoneEnvironment.onStableEnvironment`
+    */
+  def resetZoneInteraction() : Unit = {
+    _allowZoneEnvironmentInteractions = true
+    interactingWithEnvironment(this, false)
+    interactingWithEnvironment = InteractsWithZoneEnvironment.onStableEnvironment()
+  }
 }
 
 object InteractsWithZoneEnvironment {
@@ -102,6 +118,8 @@ object InteractsWithZoneEnvironment {
   def awaitOngoingInteraction(zone: Zone, body: PieceOfEnvironment)(obj: PlanetSideServerObject, allow: Boolean): Any = {
     if (allow) {
       checkSpecificEnvironmentInteraction(zone, body)(obj) match {
+        case Some(_) =>
+          awaitOngoingInteraction(obj.Zone, body)(_, _)
         case None =>
           checkAllEnvironmentInteractions(obj) match {
             case Some(newBody) if newBody.attribute == body.attribute =>
@@ -115,8 +133,6 @@ object InteractsWithZoneEnvironment {
               obj.Actor ! EscapeFromEnvironment(obj, body, None)
               onStableEnvironment()(_, _)
           }
-        case Some(_) =>
-          onStableEnvironment()(_, _)
       }
     } else {
       obj.Actor ! EscapeFromEnvironment(obj, body, None)
@@ -146,7 +162,7 @@ object InteractsWithZoneEnvironment {
     * @param obj the target entity
     * @return any unstable, interactive, or special terrain that is being interacted
     */
-  private def checkAllEnvironmentInteractions(obj: PlanetSideServerObject): Option[PieceOfEnvironment] = {
+  def checkAllEnvironmentInteractions(obj: PlanetSideServerObject): Option[PieceOfEnvironment] = {
     val position = obj.Position
     val depth = GlobalDefinitions.MaxDepth(obj)
     obj.Zone.map.environment.find { body => body.attribute.canInteractWith(obj) && body.testInteraction(position, depth) }
