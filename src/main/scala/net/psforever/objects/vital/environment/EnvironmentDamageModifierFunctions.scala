@@ -13,12 +13,12 @@ import net.psforever.objects.serverobject.environment.EnvironmentAttribute
 case object LavaDepth extends EnvironmentDamageModifiers.Mod {
   def calculate(damage: Int, data: DamageInteraction, cause: EnvironmentReason): Int = {
     if (cause.body.attribute == EnvironmentAttribute.Lava) {
-      val depth: Float = scala.math.max(0, (cause.body.collision.altitude - data.target.Position.z).toFloat)
+      val depth: Float = scala.math.max(0, cause.body.collision.altitude - data.target.Position.z)
       data.target match {
         case _: PlayerSource =>
           (damage * (1f + depth)).toInt
         case t =>
-          damage + (0.05f * depth * t.Definition.MaxHealth).toInt
+          damage + (0.1f * depth * t.Definition.MaxHealth).toInt
       }
     } else {
       damage
