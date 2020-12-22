@@ -12,6 +12,7 @@ import net.psforever.types.PlanetSideEmpire
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.util.Config
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -150,7 +151,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     */
   def HandleNtuRequest(sender: ActorRef, min: Float, max: Float): Unit = {
     val originalAmount = resourceSilo.NtuCapacitor
-    UpdateChargeLevel(-min)
+    UpdateChargeLevel(-(min * Config.app.game.amenityAutorepairDrainRate))
     sender ! Ntu.Grant(resourceSilo, originalAmount - resourceSilo.NtuCapacitor)
   }
 

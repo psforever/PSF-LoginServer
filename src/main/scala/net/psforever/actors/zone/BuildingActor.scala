@@ -5,7 +5,7 @@ import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{ActorRef, Behavior, SupervisorStrategy}
 import akka.{actor => classic}
 import net.psforever.actors.commands.NtuCommand
-import net.psforever.objects.{CommonNtuContainer, NtuContainer}
+import net.psforever.objects.NtuContainer
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.generator.{Generator, GeneratorControl}
 import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
@@ -17,6 +17,7 @@ import net.psforever.util.Database._
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.{InterstellarClusterService, Service, ServiceManager}
+import net.psforever.util.Config
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
@@ -438,18 +439,19 @@ class BuildingActor(
       case Offer(_, _) =>
         Behaviors.same
       case Request(amount, replyTo) =>
+        val modifiedAmount = amount * Config.app.game.amenityAutorepairDrainRate
         building match {
           case b: WarpGate =>
             //warp gates are an infinite source of nanites
-            replyTo ! Grant(b, if (b.Active) amount else 0)
+            replyTo ! Grant(b, if (b.Active) modifiedAmount else 0)
             Behaviors.same
           case _ if building.BuildingType == StructureType.Tower || building.Zone.map.cavern =>
             //towers and cavern stuff get free repairs
-            replyTo ! NtuCommand.Grant(new FakeNtuSource(building), amount)
+            replyTo ! NtuCommand.Grant(new FakeNtuSource(building), modifiedAmount)
             Behaviors.same
           case _           =>
             //all other facilities require a storage silo for ntu
-            building.Amenities.find(_.isInstanceOf[NtuContainer]) match {
+            building.NtuSource match {
               case Some(ntuContainer) =>
                 ntuContainer.Actor ! msg //needs to redirect
                 Behaviors.same
@@ -466,8 +468,9 @@ class BuildingActor(
 
 class FakeNtuSource(private val building: Building)
   extends PlanetSideServerObject
-  with CommonNtuContainer {
+  with NtuContainer {
   override def NtuCapacitor = Float.MaxValue
+  override def NtuCapacitor_=(a: Float) = Float.MaxValue
   override def Faction = building.Faction
   override def Zone = building.Zone
   override def Definition = null
