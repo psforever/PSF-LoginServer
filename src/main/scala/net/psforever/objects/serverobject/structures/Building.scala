@@ -93,9 +93,9 @@ class Building(
   }
 
   def NtuSource: Option[NtuContainer] = {
-    Amenities.find(_.isInstanceOf[NtuContainer]) {
+    Amenities.find(_.isInstanceOf[NtuContainer]) match {
       case Some(o: NtuContainer) => Some(o)
-      case None                  => None
+      case _                     => None
     }
   }
 
