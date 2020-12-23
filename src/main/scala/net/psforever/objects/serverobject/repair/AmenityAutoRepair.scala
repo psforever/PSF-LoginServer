@@ -39,12 +39,13 @@ trait AmenityAutoRepair
   private var autoRepairStartFunc: ()=>Unit = startAutoRepairIfStopped
   /** the timer for requests for auto-repair-actionable resource deposits (NTU) */
   private var autoRepairTimer: Cancellable  = Default.Cancellable
-  /** indicate the current state of the tasking;
-    * `None` means no repair tasks;
-    * `Some(0L)` means previous repair task fulfilled;
-    * `Some(time)` means that a repair task is or was queued to occur `time` */
+  /** indicate the current state of the task assignment;
+    * `None` means no auto-repair operations;
+    * `Some(0L)` means previous auto-repair task completed;
+    * `Some(time)` means that an auto-repair task is or was queued to occur at `time` */
   private var autoRepairQueueTask: Option[Long] = None
-  /** repair can only occur in integer increments, so any non-integer portion of incremental repairs accumulates */
+  /** repair can only occur in integer increments, so any non-integer portion of incremental repairs accumulates;
+    * once above a whole number, that number is extracted and applied to the base repair value */
   private var autoRepairOverflow: Float = 0f
 
   def AutoRepairObject: Amenity
@@ -81,6 +82,7 @@ trait AmenityAutoRepair
     val obj = AutoRepairObject
     obj.Definition.autoRepair match {
       case Some(repair : AutoRepairStats) if obj.Health < obj.Definition.MaxHealth =>
+        autoRepairTimer.cancel()
         val modifiedRepairAmount = repair.amount * Config.app.game.amenityAutorepairRate
         val wholeRepairAmount = modifiedRepairAmount.toInt
         val overflowRepairAmount = modifiedRepairAmount - wholeRepairAmount
@@ -94,9 +96,9 @@ trait AmenityAutoRepair
           wholeRepairAmount + wholeOverflow
         }
         PerformRepairs(obj, finalRepairAmount)
-        autoRepairTimer.cancel()
+        val taskTime = System.currentTimeMillis() - autoRepairQueueTask.get
         autoRepairQueueTask = Some(0L)
-        trySetupAutoRepairSubsequent()
+        trySetupAutoRepairSubsequent(taskTime)
       case _ =>
         StopNtuBehavior(sender)
     }
@@ -145,25 +147,26 @@ trait AmenityAutoRepair
     * or if the current process has stalled.
     */
   private def startAutoRepairIfStopped(): Unit = {
-    if(autoRepairQueueTask.isEmpty || stallDetection(stalledBy = 15000L)) {
+    if(autoRepairQueueTask.isEmpty || stallDetection(stallTime = 15000L)) {
       trySetupAutoRepairInitial()
     }
   }
 
   /**
     * Detect if the auto-repair system is in a stalled state where orders are not being dispatched when they should.
-    * @param stalledBy for how long we need to be stalled
+    * Not running or not being expected to be running does not count as being stalled.
+    * @param stallTime for how long we need to be stalled (ms)
     * @return `true`, if stalled;
     *        `false`, otherwise
     */
-  private def stallDetection(stalledBy: Long): Boolean = {
+  private def stallDetection(stallTime: Long): Boolean = {
     autoRepairQueueTask match {
       case Some(0L) =>
         //the last auto-repair request was completed; did we start the next one?
         autoRepairTimer.isCancelled
       case Some(time) =>
         //waiting for too long on an active auto-repair request
-       time + stalledBy > System.currentTimeMillis()
+        time + stallTime > System.currentTimeMillis()
       case None =>
         //we've not stalled; we're just not running
         false
@@ -219,8 +222,9 @@ trait AmenityAutoRepair
     val obj = AutoRepairObject
     obj.Definition.autoRepair match {
       case Some(AutoRepairStats(_, start, _, drain)) if obj.Health < obj.Definition.MaxHealth =>
-        setupAutoRepairTime(start, drain)
-      case _ => ;
+        setupAutoRepair(start, drain)
+      case _ =>
+        stopAutoRepair()
     }
   }
 
@@ -229,14 +233,20 @@ trait AmenityAutoRepair
     * and the amenity actually requires to be performed,
     * perform the setup for the auto-repair operation.
     * This is the delay before every subsequent repair attempt.
+    * @param delayOffset an adjustment to the normal delay applied to the subsequent operation (ms);
+    *                    ideally, some number that's inclusive to 0 and the interval
     */
-  private def trySetupAutoRepairSubsequent(): Unit = {
+  private def trySetupAutoRepairSubsequent(delayOffset: Long): Unit = {
     if (autoRepairQueueTask.contains(0L)) {
       val obj = AutoRepairObject
       obj.Definition.autoRepair match {
         case Some(AutoRepairStats(_, _, interval, drain)) if obj.Health < obj.Definition.MaxHealth =>
-          setupAutoRepairTime(interval, drain)
-        case _ => ;
+          setupAutoRepair(
+            math.min(interval, math.max(0L, interval - delayOffset)),
+            drain
+          )
+        case _ =>
+          stopAutoRepair()
       }
     }
   }
@@ -247,11 +257,11 @@ trait AmenityAutoRepair
       * @see `BuildingActor.Ntu`
       * @see `NtuCommand.Request`
       * @see `scheduleOnce`
-      * @param delay the delay before the message is sent
+      * @param delay the delay before the message is sent (ms)
       * @param drain the amount of NTU being levied as a cost for auto-repair operation
       *              (the responding entity determines how to satisfy this cost)
       */
-  private def setupAutoRepairTime(delay: Long, drain: Float): Unit = {
+  private def setupAutoRepair(delay: Long, drain: Float): Unit = {
     import scala.concurrent.ExecutionContext.Implicits.global
     autoRepairTimer.cancel()
     autoRepairQueueTask = Some(System.currentTimeMillis() + delay)

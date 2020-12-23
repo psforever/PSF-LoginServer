@@ -7167,7 +7167,7 @@ object GlobalDefinitions {
     order_terminal.MaxHealth = 500
     order_terminal.Damageable = true
     order_terminal.Repairable = true
-    order_terminal.autoRepair = AutoRepairStats(1, 5000, 3500, 0.5f)
+    order_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
     order_terminal.RepairIfDestroyed = true
     order_terminal.Subtract.Damage1 = 8
 
@@ -7231,7 +7231,7 @@ object GlobalDefinitions {
     cert_terminal.MaxHealth = 500
     cert_terminal.Damageable = true
     cert_terminal.Repairable = true
-    cert_terminal.autoRepair = AutoRepairStats(1, 5000, 3500, 0.5f)
+    cert_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
     cert_terminal.RepairIfDestroyed = true
     cert_terminal.Subtract.Damage1 = 8
 
@@ -7239,7 +7239,7 @@ object GlobalDefinitions {
     implant_terminal_mech.MaxHealth = 1500 //TODO 1000; right now, 1000 (mech) + 500 (interface)
     implant_terminal_mech.Damageable = true
     implant_terminal_mech.Repairable = true
-    implant_terminal_mech.autoRepair = AutoRepairStats(1, 5000, 2400, 0.5f)
+    implant_terminal_mech.autoRepair = AutoRepairStats(1.6f, 5000, 2400, 0.5f) //ori. 1, 5000, 2400, 0.5f
     implant_terminal_mech.RepairIfDestroyed = true
 
     implant_terminal_interface.Name = "implant_terminal_interface"
@@ -7259,7 +7259,7 @@ object GlobalDefinitions {
     ground_vehicle_terminal.MaxHealth = 500
     ground_vehicle_terminal.Damageable = true
     ground_vehicle_terminal.Repairable = true
-    ground_vehicle_terminal.autoRepair = AutoRepairStats(1, 5000, 3500, 0.5f)
+    ground_vehicle_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
     ground_vehicle_terminal.RepairIfDestroyed = true
     ground_vehicle_terminal.Subtract.Damage1 = 8
 
@@ -7272,7 +7272,7 @@ object GlobalDefinitions {
     air_vehicle_terminal.MaxHealth = 500
     air_vehicle_terminal.Damageable = true
     air_vehicle_terminal.Repairable = true
-    air_vehicle_terminal.autoRepair = AutoRepairStats(1, 5000, 3500, 0.5f)
+    air_vehicle_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
     air_vehicle_terminal.RepairIfDestroyed = true
     air_vehicle_terminal.Subtract.Damage1 = 8
 
@@ -7285,7 +7285,7 @@ object GlobalDefinitions {
     dropship_vehicle_terminal.MaxHealth = 500
     dropship_vehicle_terminal.Damageable = true
     dropship_vehicle_terminal.Repairable = true
-    dropship_vehicle_terminal.autoRepair = AutoRepairStats(1, 5000, 3500, 0.5f)
+    dropship_vehicle_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
     dropship_vehicle_terminal.RepairIfDestroyed = true
     dropship_vehicle_terminal.Subtract.Damage1 = 8
 
@@ -7298,7 +7298,7 @@ object GlobalDefinitions {
     vehicle_terminal_combined.MaxHealth = 500
     vehicle_terminal_combined.Damageable = true
     vehicle_terminal_combined.Repairable = true
-    vehicle_terminal_combined.autoRepair = AutoRepairStats(1, 5000, 3500, 0.5f)
+    vehicle_terminal_combined.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
     vehicle_terminal_combined.RepairIfDestroyed = true
     vehicle_terminal_combined.Subtract.Damage1 = 8
 
@@ -7311,7 +7311,7 @@ object GlobalDefinitions {
     vanu_air_vehicle_term.MaxHealth = 500
     vanu_air_vehicle_term.Damageable = true
     vanu_air_vehicle_term.Repairable = true
-    vanu_air_vehicle_term.autoRepair = AutoRepairStats(1, 5000, 3500, 0.5f)
+    vanu_air_vehicle_term.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
     vanu_air_vehicle_term.RepairIfDestroyed = true
     vanu_air_vehicle_term.Subtract.Damage1 = 8
 
@@ -7324,7 +7324,7 @@ object GlobalDefinitions {
     vanu_vehicle_term.MaxHealth = 500
     vanu_vehicle_term.Damageable = true
     vanu_vehicle_term.Repairable = true
-    vanu_vehicle_term.autoRepair = AutoRepairStats(1, 5000, 3500, 0.5f)
+    vanu_vehicle_term.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
     vanu_vehicle_term.RepairIfDestroyed = true
     vanu_vehicle_term.Subtract.Damage1 = 8
 
@@ -7337,7 +7337,7 @@ object GlobalDefinitions {
     bfr_terminal.MaxHealth = 500
     bfr_terminal.Damageable = true
     bfr_terminal.Repairable = true
-    bfr_terminal.autoRepair = AutoRepairStats(1, 5000, 3500, 0.5f)
+    bfr_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
     bfr_terminal.RepairIfDestroyed = true
     bfr_terminal.Subtract.Damage1 = 8
 
@@ -7348,17 +7348,18 @@ object GlobalDefinitions {
     respawn_tube.Damageable = true
     respawn_tube.DamageableByFriendlyFire = false
     respawn_tube.Repairable = true
-    respawn_tube.autoRepair = AutoRepairStats(1, 10000, 2400, 1)
+    respawn_tube.autoRepair = AutoRepairStats(1.6f, 10000, 2400, 1) //orig. 1, 10000, 2400, 1
     respawn_tube.RepairIfDestroyed = true
     respawn_tube.Subtract.Damage1 = 8
 
     respawn_tube_sanctuary.Name = "respawn_tube"
     respawn_tube_sanctuary.Delay = 10
     respawn_tube_sanctuary.SpecificPointFunc = SpawnPoint.Default
+    respawn_tube_sanctuary.MaxHealth = 1000
     respawn_tube_sanctuary.Damageable = false //true?
     respawn_tube_sanctuary.DamageableByFriendlyFire = false
     respawn_tube_sanctuary.Repairable = true
-    respawn_tube_sanctuary.autoRepair = AutoRepairStats(1, 10000, 2400, 1)
+    respawn_tube_sanctuary.autoRepair = AutoRepairStats(1.6f, 10000, 2400, 1) //orig. 1, 10000, 2400, 1
 
     respawn_tube_tower.Name = "respawn_tube_tower"
     respawn_tube_tower.Delay = 10
@@ -7367,7 +7368,7 @@ object GlobalDefinitions {
     respawn_tube_tower.Damageable = true
     respawn_tube_tower.DamageableByFriendlyFire = false
     respawn_tube_tower.Repairable = true
-    respawn_tube_tower.autoRepair = AutoRepairStats(1, 10000, 2400, 1)
+    respawn_tube_tower.autoRepair = AutoRepairStats(1.6f, 10000, 2400, 1) //orig. 1, 10000, 2400, 1
     respawn_tube_tower.RepairIfDestroyed = true
     respawn_tube_tower.Subtract.Damage1 = 8
 
@@ -7385,7 +7386,7 @@ object GlobalDefinitions {
     medical_terminal.MaxHealth = 500
     medical_terminal.Damageable = true
     medical_terminal.Repairable = true
-    medical_terminal.autoRepair = AutoRepairStats(1, 5000, 3500, 0.5f)
+    medical_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
     medical_terminal.RepairIfDestroyed = true
 
     adv_med_terminal.Name = "adv_med_terminal"
@@ -7397,7 +7398,7 @@ object GlobalDefinitions {
     adv_med_terminal.MaxHealth = 750
     adv_med_terminal.Damageable = true
     adv_med_terminal.Repairable = true
-    adv_med_terminal.autoRepair = AutoRepairStats(1, 5000, 2400, 0.5f)
+    adv_med_terminal.autoRepair = AutoRepairStats(1.57894f, 5000, 2400, 0.5f) //orig. 1, 5000, 2400, 0.5f
     adv_med_terminal.RepairIfDestroyed = true
 
     crystals_health_a.Name = "crystals_health_a"
@@ -7425,7 +7426,7 @@ object GlobalDefinitions {
     portable_med_terminal.MaxHealth = 500
     portable_med_terminal.Damageable = false //TODO actually true
     portable_med_terminal.Repairable = false
-    portable_med_terminal.autoRepair = AutoRepairStats(1, 5000, 3500, 0.5f)
+    portable_med_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
 
     pad_landing_frame.Name = "pad_landing_frame"
     pad_landing_frame.Interval = 1000
@@ -7539,7 +7540,7 @@ object GlobalDefinitions {
     manned_turret.Damageable = true
     manned_turret.DamageDisablesAt = 0
     manned_turret.Repairable = true
-    manned_turret.autoRepair = AutoRepairStats(1, 10000, 1600, 0.5f)
+    manned_turret.autoRepair = AutoRepairStats(1.0909f, 10000, 1600, 0.5f) //orig. 1, 10000, 1600, 0.5f
     manned_turret.RepairIfDestroyed = true
     manned_turret.Weapons += 1                          -> new mutable.HashMap()
     manned_turret.Weapons(1) += TurretUpgrade.None      -> phalanx_sgl_hevgatcan
@@ -7563,7 +7564,7 @@ object GlobalDefinitions {
     vanu_sentry_turret.Damageable = true
     vanu_sentry_turret.DamageDisablesAt = 0
     vanu_sentry_turret.Repairable = true
-    vanu_sentry_turret.autoRepair = AutoRepairStats(3, 10000, 1000, 0.5f)
+    vanu_sentry_turret.autoRepair = AutoRepairStats(3.27272f, 10000, 1000, 0.5f) //orig. 3, 10000, 1000, 0.5f
     vanu_sentry_turret.RepairIfDestroyed = true
     vanu_sentry_turret.Weapons += 1                     -> new mutable.HashMap()
     vanu_sentry_turret.Weapons(1) += TurretUpgrade.None -> vanu_sentry_turret_weapon
@@ -7645,7 +7646,7 @@ object GlobalDefinitions {
     generator.Damageable = true
     generator.DamageableByFriendlyFire = false
     generator.Repairable = true
-    generator.autoRepair = AutoRepairStats(1, 5000, 875, 1)
+    generator.autoRepair = AutoRepairStats(0.77775f, 5000, 875, 1) //orig. 1, 5000, 875, 1
     generator.RepairDistance = 13.5f
     generator.RepairIfDestroyed = true
     generator.Subtract.Damage1 = 9
