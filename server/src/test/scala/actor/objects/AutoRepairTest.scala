@@ -1,5 +1,5 @@
 // Copyright (c) 2020 PSForever
-package objects
+package actor.objects
 
 import akka.actor.Props
 import akka.testkit.TestProbe
