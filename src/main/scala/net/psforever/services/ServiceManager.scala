@@ -65,8 +65,9 @@ class ServiceManager extends Actor {
       }
       catch {
         case e: InvalidActorNameException => //if an entry already exists, no harm, no foul, just don't do it again
+          log.warn(s"about the name, service manager says: ${e.getMessage}")
+        case e: Exception =>
           log.warn(s"service manager says: ${e.getMessage}")
-        case _ => ;
       }
 
     case Lookup(name) =>
