@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.zones
 
+import net.psforever.objects.serverobject.environment.PieceOfEnvironment
 import net.psforever.objects.serverobject.structures.FoundationBuilder
 import net.psforever.objects.serverobject.zipline.ZipLinePath
 import net.psforever.objects.serverobject.{PlanetSideServerObject, ServerObjectBuilder}
@@ -32,6 +33,7 @@ class ZoneMap(val name: String) {
   var checksum: Long                                                = 0
   var zipLinePaths: List[ZipLinePath]                               = List()
   var cavern: Boolean                                               = false
+  var environment: List[PieceOfEnvironment]                                         = List()
   private var linkTurretWeapon: Map[Int, Int]                       = Map()
   private var linkTerminalPad: Map[Int, Int]                        = Map()
   private var linkTerminalInterface: Map[Int, Int]                  = Map()

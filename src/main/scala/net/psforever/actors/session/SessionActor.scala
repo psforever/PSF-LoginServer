@@ -20,7 +20,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Success
 import net.psforever.login.WorldSession._
 import net.psforever.objects._
-import net.psforever.objects.avatar.{Avatar, Certification, Cosmetic, DeployableToolbox}
+import net.psforever.objects.avatar._
 import net.psforever.objects.ballistics._
 import net.psforever.objects.ce._
 import net.psforever.objects.definition._
@@ -1298,8 +1298,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       * The user is either already in the current zone and merely transporting himself from one location to another,
       * also called "dying", or occasionally "deconstructing,"
       * or is completely switching in between zones.
-      * These correspond to the message NewPlayerLoaded for the case of "dying" or the latter zone switching case,
-      * and PlayerLoaded for "deconstruction."
+      * These correspond to the message `NewPlayerLoaded` for the case of "dying" or the latter zone switching case,
+      * and `PlayerLoaded` for "deconstruction."
       * In the latter case, the user must wait for the zone to be recognized as loaded for the server
       * and this is performed through the send LoadMapMessage, receive BeginZoningMessage exchange
       * The user's player should have already been registered into the new zone
@@ -1879,6 +1879,17 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         if (tplayer_guid != guid) {
           sendResponse(ObjectHeldMessage(guid, slot, false))
         }
+
+      case AvatarResponse.OxygenState(player, vehicle) =>
+        sendResponse(
+          OxygenStateMessage(
+            DrowningTarget(player.guid, player.progress, player.state),
+            vehicle match {
+              case Some(vinfo) => Some(DrowningTarget(vinfo.guid, vinfo.progress, vinfo.state))
+              case None => None
+            }
+          )
+        )
 
       case AvatarResponse.PlanetsideAttribute(attribute_type, attribute_value) =>
         if (tplayer_guid != guid) {
@@ -3035,7 +3046,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           )
         )
       case (Some(vehicle), Some(0)) =>
-        //summon any passengers and cargo vehicles left behind on previous continent
+        //driver; summon any passengers and cargo vehicles left behind on previous continent
         if (vehicle.Jammed) {
           //TODO something better than just canceling?
           vehicle.Actor ! JammableUnit.ClearJammeredStatus()
@@ -3056,6 +3067,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           continent.id,
           vehicle
         )
+      case (Some(vehicle), _) =>
+        //passenger
+        vehicle.Actor ! Vehicle.UpdateZoneInteractionProgressUI(player)
       case _ => ;
     }
     interstellarFerryTopLevelGUID = None
@@ -3691,6 +3705,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         if (player.death_by == -1) {
           KickedByAdministration()
         }
+        player.zoneInteraction()
 
       case msg @ ChildObjectStateMessage(object_guid, pitch, yaw) =>
         //log.info(s"$msg")
@@ -3792,6 +3807,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               )
             )
             updateSquad()
+            obj.zoneInteraction()
           case (None, _) =>
           //log.error(s"VehicleState: no vehicle $vehicle_guid found in zone")
           //TODO placing a "not driving" warning here may trigger as we are disembarking the vehicle
@@ -6761,7 +6777,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @param tplayer the player to be killed
     */
   def suicide(tplayer: Player): Unit = {
-    tplayer.History(PlayerSuicide(PlayerSource(tplayer)))
+    tplayer.History(PlayerSuicide())
     tplayer.Actor ! Player.Die()
   }
 
@@ -6881,6 +6897,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             case _ =>
               vehicle.MountedIn = None
           }
+          vehicle.allowZoneEnvironmentInteractions = true
           data
         } else {
           //passenger
@@ -8501,6 +8518,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         )
     }
     //
+    vehicle.allowZoneEnvironmentInteractions = false
     if (!zoneReload && zoneId == continent.id) {
       if (vehicle.Definition == GlobalDefinitions.droppod) {
         //instant action droppod in the same zone
@@ -9153,7 +9171,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     if (hitPositionDiscrepancy > Config.app.antiCheat.hitPositionDiscrepancyThreshold) {
       // If the target position on the server does not match the position where the projectile landed within reason there may be foul play
       log.warn(
-        s"Shot guid ${projectile_guid} has hit location discrepancy with target location. Target: ${target.Position} Reported: ${hitPos}, Distance: ${hitPositionDiscrepancy} / ${math.sqrt(hitPositionDiscrepancy).toFloat}; suspect"
+        s"Shot guid $projectile_guid has hit location discrepancy with target location. Target: ${target.Position} Reported: $hitPos, Distance: $hitPositionDiscrepancy / ${math.sqrt(hitPositionDiscrepancy).toFloat}; suspect"
       )
     }
   }

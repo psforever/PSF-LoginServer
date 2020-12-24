@@ -1,0 +1,86 @@
+// Copyright (c) 2020 PSForever
+package net.psforever.objects.serverobject.environment
+
+import net.psforever.types.Vector3
+
+/**
+  * The coordinate representation of a feature of the game world that is not a formal game object,
+  * usually terrain, but can be used to represent any bounded region.
+  * Calling this "geometry" would be accurate yet still generous.
+  */
+trait EnvironmentCollision {
+  /** in general, the highest point in this geometry */
+  def altitude: Float
+
+  /**
+    * Is the test point "within" the bounds of the represented environment?
+    * @param pos the test point
+    * @param varDepth how far "into" the environment the point must be
+    * @return `true`, if the point is sufficiently "deep";
+    *        `false`, otherwise
+    */
+  def testInteraction(pos: Vector3, varDepth: Float): Boolean
+}
+
+/**
+  * A mathematical plane that is always perpendicular to world-up.
+  * The modifier "deep" indicates that the valid area goes down from the altitude to the bottom of the world.
+  * @param altitude the z-coordinate of the geometry (height)
+  */
+final case class DeepPlane(altitude: Float)
+  extends EnvironmentCollision {
+  def testInteraction(pos: Vector3, varDepth: Float): Boolean = {
+    pos.z + varDepth < altitude
+  }
+}
+
+/**
+  * From above, a rectangular region that is always perpendicular to world-up
+  * and whose sides align with the X-axis and Y-axis, respectively.
+  * The modifier "deep" indicates that the valid area goes down from the altitude to the bottom of the world.
+  * @param altitude the z-coordinate of the geometry (height)
+  * @param north the y-coordinate of the greatest side
+  * @param east the x-coordinate of the other greatest side
+  * @param south the y-coordinate of the least side
+  * @param west the x-coordinate of the other least side
+  */
+final case class DeepSquare(altitude: Float, north: Float, east: Float, south: Float, west: Float)
+  extends EnvironmentCollision {
+  def testInteraction(pos: Vector3, varDepth: Float): Boolean = {
+    pos.z + varDepth < altitude && north > pos.y && pos.y >= south && east > pos.x && pos.x >= west
+  }
+}
+
+/**
+  * Similar to `DeepRectangle`,
+  * from above, a rectangular region that is always perpendicular to world-up
+  * and whose sides align with the X-axis and Y-axis, respectively.
+  * The modifier "deep" indicates that the valid area goes down from the altitude to the bottom of the world.
+  * It is never subject to variable intersection depth during testing.
+  * @param altitude the z-coordinate of the geometry (height)
+  * @param north the y-coordinate of the greatest side
+  * @param east the x-coordinate of the other greatest side
+  * @param south the y-coordinate of the least side
+  * @param west the x-coordinate of the other least side
+  */
+final case class DeepSurface(altitude: Float, north: Float, east: Float, south: Float, west: Float)
+  extends EnvironmentCollision {
+  def testInteraction(pos: Vector3, varDepth: Float): Boolean = {
+    pos.z < altitude && north > pos.y && pos.y >= south && east > pos.x && pos.x >= west
+  }
+}
+
+/**
+  * From above, a circular region that is always perpendicular to world-up.
+  * The modifier "deep" indicates that the valid area goes down from the altitude to the bottom of the world.
+  * @param center the center of the geometry (height)
+  * @param radius how large the circle is
+  */
+final case class DeepCircularSurface(center: Vector3, radius: Float)
+  extends EnvironmentCollision {
+  def altitude: Float = center.z
+
+  def testInteraction(pos: Vector3, varDepth: Float): Boolean = {
+    pos.z < center.z && Vector3.DistanceSquared(pos.xy, center.xy) < radius * radius
+  }
+}

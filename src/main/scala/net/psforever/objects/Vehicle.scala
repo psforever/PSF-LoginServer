@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.definition.VehicleDefinition
+import net.psforever.objects.definition.{SeatDefinition, ToolDefinition, VehicleDefinition}
 import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot, JammableUnit}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem, InventoryTile}
 import net.psforever.objects.serverobject.mount.Mountable
@@ -9,6 +9,7 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.aura.AuraContainer
 import net.psforever.objects.serverobject.deploy.Deployment
+import net.psforever.objects.serverobject.environment.InteractsWithZoneEnvironment
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.AmenityOwner
 import net.psforever.objects.vehicles._
@@ -71,6 +72,7 @@ import scala.util.{Success, Try}
   */
 class Vehicle(private val vehicleDef: VehicleDefinition)
     extends AmenityOwner
+    with InteractsWithZoneEnvironment
     with Hackable
     with FactionAffinity
     with Mountable
@@ -205,7 +207,7 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
 
   def NtuCapacitorScaled: Int = {
     if (Definition.MaxNtuCapacitor > 0) {
-      scala.math.ceil((NtuCapacitor.toFloat / Definition.MaxNtuCapacitor.toFloat) * 10).toInt
+      scala.math.ceil((NtuCapacitor / Definition.MaxNtuCapacitor) * 10).toInt
     } else {
       0
     }
@@ -631,6 +633,14 @@ object Vehicle {
   }
 
   /**
+    * For vehicles, this pertains mainly to resending information needs to display the the drowning red progress bar
+    * that is a product of the `OxygenStateMessage` packet to vehicle passengers.
+    * It also forces passengers to update their internal understanding of their own drowning state.
+    * @param passenger a player mounted in the vehicle
+    */
+  final case class UpdateZoneInteractionProgressUI(passenger : Player)
+
+  /**
     * Overloaded constructor.
     * @param vehicleDef the vehicle's definition entry
     * @return a `Vehicle` object
@@ -657,30 +667,31 @@ object Vehicle {
     //general stuff
     vehicle.Health = vdef.DefaultHealth
     //create weapons
-    vehicle.weapons = vdef.Weapons
-      .map({
-        case (num, definition) =>
-          val slot = EquipmentSlot(EquipmentSize.VehicleWeapon)
-          slot.Equipment = Tool(definition)
-          num -> slot
-      })
-      .toMap
+    vehicle.weapons = vdef.Weapons.map[Int, EquipmentSlot] {
+      case (num: Int, definition: ToolDefinition) =>
+        val slot = EquipmentSlot(EquipmentSize.VehicleWeapon)
+        slot.Equipment = Tool(definition)
+        num -> slot
+    }.toMap
     //create seats
-    vehicle.seats = vdef.Seats.map({ case (num, definition) => num -> Seat(definition) }).toMap
+    vehicle.seats = vdef.Seats.map[Int, Seat] {
+      case (num: Int, definition: SeatDefinition) =>
+        num -> Seat(definition)
+    }.toMap
     // create cargo holds
-    vehicle.cargoHolds = vdef.Cargo.map({ case (num, definition) => num -> Cargo(definition) }).toMap
-
+    vehicle.cargoHolds = vdef.Cargo.map[Int, Cargo] {
+      case (num, definition) =>
+        num -> Cargo(definition)
+    }.toMap
     //create utilities
-    vehicle.utilities = vdef.Utilities
-      .map({
-        case (num, util) =>
-          val obj     = Utility(util, vehicle)
-          val utilObj = obj()
-          vehicle.Amenities = utilObj
-          utilObj.LocationOffset = vdef.UtilityOffset.get(num)
-          num -> obj
-      })
-      .toMap
+    vehicle.utilities = vdef.Utilities.map[Int, Utility] {
+      case (num: Int, util: UtilityType.Value) =>
+        val obj     = Utility(util, vehicle)
+        val utilObj = obj()
+        vehicle.Amenities = utilObj
+        utilObj.LocationOffset = vdef.UtilityOffset.get(num)
+        num -> obj
+    }.toMap
     //trunk
     vdef.TrunkSize match {
       case InventoryTile.None => ;

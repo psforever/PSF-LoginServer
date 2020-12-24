@@ -10,7 +10,7 @@ import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.containable.Containable
 import net.psforever.objects.zones.Zone
-import net.psforever.objects.{AmmoBox, GlobalDefinitions, Player, Tool}
+import net.psforever.objects._
 import net.psforever.packet.game.ObjectHeldMessage
 import net.psforever.types.{PlanetSideGUID, TransactionType, Vector3}
 import net.psforever.services.Service

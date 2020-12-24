@@ -115,8 +115,10 @@ trait DamageableVehicle
     }
     reportDamageToVehicle = false
 
-    //log historical event
-    target.History(cause)
+    if (obj.MountedIn.nonEmpty) {
+      //log historical event
+      target.History(cause)
+    }
     //damage
     if (Damageable.CanDamageOrJammer(target, totalDamage, cause.interaction)) {
       //jammering
