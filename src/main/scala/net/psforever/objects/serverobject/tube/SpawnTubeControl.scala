@@ -76,7 +76,7 @@ class SpawnTubeControl(tube: SpawnTube)
   }
 
   def powerTurnOffCallback(): Unit = {
-    tube.offline = false
+    tube.offline = true
     stopAutoRepair()
     tube.Owner match {
       case b: Building => b.Actor ! BuildingActor.AmenityStateChange(tube)
@@ -85,7 +85,7 @@ class SpawnTubeControl(tube: SpawnTube)
   }
 
   def powerTurnOnCallback(): Unit = {
-    tube.offline = true
+    tube.offline = false
     tryAutoRepair()
     tube.Owner match {
       case b: Building => b.Actor ! BuildingActor.AmenityStateChange(tube)
