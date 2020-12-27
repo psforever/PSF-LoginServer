@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet
 
-import java.security.{Key, SecureRandom, Security}
+import java.security.{Key, Security}
 
 import javax.crypto.Cipher
 import javax.crypto.spec.RC5ParameterSpec
@@ -16,7 +16,7 @@ import net.psforever.util.Md5Mac
 object PacketCoding {
   Security.addProvider(new BouncyCastleProvider)
 
-  private val random = new SecureRandom()
+  //private val random = new java.security.SecureRandom()
 
   val RC5_BLOCK_SIZE = 8
 
@@ -40,9 +40,9 @@ object PacketCoding {
       case _: PlanetSideControlPacket if crypto.isEmpty => BitVector.empty
       case _ =>
         sequence match {
-          case Some(sequence) =>
-            uint16L.encode(sequence) match {
-              case Successful(seq) => seq
+          case Some(_sequence) =>
+            uint16L.encode(_sequence) match {
+              case Successful(_seq) => _seq
               case f @ Failure(_)  => return f
             }
           case None =>
@@ -53,8 +53,8 @@ object PacketCoding {
     val (flags, payload) = packet match {
       case _: PlanetSideGamePacket | _: PlanetSideControlPacket if crypto.isDefined =>
         encodePacket(packet) match {
-          case Successful(payload) =>
-            val encryptedPayload = crypto.get.encrypt(payload.bytes) match {
+          case Successful(_payload) =>
+            val encryptedPayload = crypto.get.encrypt(_payload.bytes) match {
               case Successful(p) => p
               case f: Failure    => return f
             }
@@ -68,29 +68,29 @@ object PacketCoding {
         }
       case packet: PlanetSideGamePacket =>
         encodePacket(packet) match {
-          case Successful(payload) =>
+          case Successful(_payload) =>
             (
               PlanetSidePacketFlags.codec.encode(PlanetSidePacketFlags(PacketType.Normal, secured = false)).require,
-              payload
+              _payload
             )
           case f @ Failure(_) => return f
         }
       case packet: PlanetSideControlPacket =>
         encodePacket(packet) match {
-          case Successful(payload) =>
+          case Successful(_payload) =>
             (
               // control packets don't have flags
               BitVector.empty,
-              payload
+              _payload
             )
           case f @ Failure(_) => return f
         }
       case packet: PlanetSideCryptoPacket =>
         encodePacket(packet) match {
-          case Successful(payload) =>
+          case Successful(_payload) =>
             (
               PlanetSidePacketFlags.codec.encode(PlanetSidePacketFlags(PacketType.Crypto, secured = false)).require,
-              payload
+              _payload
             )
           case f @ Failure(_) => return f
         }
@@ -164,7 +164,7 @@ object PacketCoding {
       crypto: Option[CryptoCoding] = None
   ): Attempt[(PlanetSidePacket, Int)] = {
     val (flags, remainder) = Codec.decode[PlanetSidePacketFlags](BitVector(msg)) match {
-      case Successful(DecodeResult(value, remainder)) => (value, remainder)
+      case Successful(DecodeResult(value, _remainder)) => (value, _remainder)
       case Failure(e)                                 => return Failure(Err(s"Failed to parse packet flags: ${e.message}"))
     }
 
@@ -184,8 +184,8 @@ object PacketCoding {
 
     // all packets have a two byte sequence ID
     val (sequence, payload) = uint16L.decode(remainder) match {
-      case Successful(DecodeResult(value, remainder)) =>
-        (value, remainder.toByteVector)
+      case Successful(DecodeResult(value, _remainder)) =>
+        (value, _remainder.toByteVector)
       case Failure(e) =>
         return Failure(Err(s"Failed to parse packet sequence number: ${e.message}"))
     }
@@ -195,9 +195,9 @@ object PacketCoding {
         CryptoPacketOpcode
           .getPacketDecoder(cryptoState)(payload.bits)
           .map(p => (p.value.asInstanceOf[PlanetSidePacket], sequence))
-      case (PacketType.Normal, Some(crypto)) if flags.secured =>
+      case (PacketType.Normal, Some(_crypto)) if flags.secured =>
         // encrypted payload is 4-byte aligned: 1b flags, 2b sequence, 1b padding
-        crypto.decrypt(payload.drop(1)).map(p => decodePacket(p)).flatten.map(p => (p, sequence))
+        _crypto.decrypt(payload.drop(1)).map(p => decodePacket(p)).flatten.map(p => (p, sequence))
       case (PacketType.Normal, None) if !flags.secured =>
         decodePacket(payload).map(p => (p, sequence))
       case (PacketType.Normal, None) =>
@@ -279,7 +279,9 @@ object PacketCoding {
           Successful(ByteVector.view(rc5Encrypt.doFinal(packetWithPadding.toArray)))
         }
       } catch {
-        case e: Throwable => Failure(Err(s"encrypt error: '${e.getMessage}' data: ${packetWithPadding.toHex}"))
+        case e: Throwable =>
+          val msg = if(e.getMessage == null) e.getClass.getSimpleName else e.getMessage
+          Failure(Err(s"encrypt error: '$msg' data: ${packetWithPadding.toHex}"))
       }
     }
 
@@ -295,7 +297,7 @@ object PacketCoding {
 
       // last byte is the padding length
       val padding = uint8L.decode(payloadDecrypted.takeRight(1).bits) match {
-        case Successful(padding) => padding.value
+        case Successful(_padding) => _padding.value
         case Failure(e)          => return Failure(Err(s"Failed to decode the encrypted padding length: ${e.message}"))
       }
 
@@ -304,7 +306,7 @@ object PacketCoding {
 
       val mac = bytes(Md5Mac.MACLENGTH).decode(payloadMac.bits) match {
         case Failure(e)      => return Failure(Err("Failed to extract the encrypted MAC: " + e.message))
-        case Successful(mac) => mac.value
+        case Successful(_mac) => _mac.value
       }
 
       val payloadNoMac = payloadNoPadding.dropRight(Md5Mac.MACLENGTH)

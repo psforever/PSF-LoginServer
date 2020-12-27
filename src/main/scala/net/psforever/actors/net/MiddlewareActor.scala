@@ -6,28 +6,8 @@ import akka.actor.Cancellable
 import akka.actor.typed.{ActorRef, ActorTags, Behavior, PostStop, Signal}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.io.Udp
-import net.psforever.packet.{
-  CryptoPacketOpcode,
-  PacketCoding,
-  PlanetSideControlPacket,
-  PlanetSideCryptoPacket,
-  PlanetSideGamePacket,
-  PlanetSidePacket
-}
-import net.psforever.packet.control.{
-  ClientStart,
-  ConnectionClose,
-  ControlSync,
-  ControlSyncResp,
-  HandleGamePacket,
-  MultiPacket,
-  MultiPacketEx,
-  RelatedA,
-  RelatedB,
-  ServerStart,
-  SlottedMetaPacket,
-  TeardownConnection
-}
+import net.psforever.packet.{CryptoPacketOpcode, PacketCoding, PlanetSideControlPacket, PlanetSideCryptoPacket, PlanetSideGamePacket, PlanetSidePacket}
+import net.psforever.packet.control.{ClientStart, ConnectionClose, ControlSync, ControlSyncResp, HandleGamePacket, MultiPacket, MultiPacketEx, RelatedA, RelatedB, ServerStart, SlottedMetaPacket, TeardownConnection}
 import net.psforever.packet.crypto.{ClientChallengeXchg, ClientFinished, ServerChallengeXchg, ServerFinished}
 import net.psforever.packet.game.{ChangeFireModeMessage, CharacterInfoMessage, KeepAliveMessage, PingMsg}
 import scodec.Attempt.{Failure, Successful}
@@ -77,6 +57,32 @@ object MiddlewareActor {
 
   /** Close connection */
   final case class Close() extends Command
+
+  /**
+    * All packets are bundled by themselves.
+    * May as well just waste all of the cycles on your CPU, eh?
+    */
+  def allPacketGuard(packet: PlanetSidePacket): Boolean = true
+
+  /**
+    * `CharacterInfoMessage` packets are bundled by themselves.<br>
+    * <br>
+    * Super awkward special case.
+    * Bundling `CharacterInfoMessage` with its corresponding `ObjectCreateDetailedMesssage`,
+    * which can occur during otherwise careless execution of the character select screen,
+    * causes the character options to show blank slots and be unusable.
+    */
+  def characterInfoMessageGuard(packet: PlanetSidePacket): Boolean = {
+    packet.isInstanceOf[CharacterInfoMessage]
+  }
+
+  /**
+    * `KeepAliveMessage` packets are bundled by themselves.
+    * They're special.
+    */
+  def keepAliveMessageGuard(packet: PlanetSidePacket): Boolean = {
+    packet.isInstanceOf[KeepAliveMessage]
+  }
 }
 
 class MiddlewareActor(
@@ -149,6 +155,11 @@ class MiddlewareActor(
     r
   }
 
+  val packetsBundledByThemselves: List[PlanetSidePacket=>Boolean] = List(
+    MiddlewareActor.keepAliveMessageGuard,
+    MiddlewareActor.characterInfoMessageGuard
+  )
+
   /** Create a new SlottedMetaPacket with the sequence number filled in and the packet added to the history */
   def smp(slot: Int, data: ByteVector): SlottedMetaPacket = {
     if (outSlottedMetaPackets.length > 100) {
@@ -169,33 +180,32 @@ class MiddlewareActor(
 
         if (outQueue.nonEmpty && outQueueBundled.isEmpty) {
           var length = 0L
-          val bundle = outQueue
-            .dequeueWhile {
-              case (packet, payload) =>
-                // packet length + MultiPacketEx prefix length
-                val packetLength = payload.length + (if (payload.length < 256 * 8) { 1L * 8 }
-                                                     else if (payload.length < 65536 * 8) { 2L * 8 }
-                                                     else { 4L * 8 })
-                length += packetLength
+          val bundle = {
+            val (_, bundle) = outQueue
+              .dequeueWhile {
+                case (packet, payload) =>
+                  // packet length + MultiPacketEx prefix length
+                  val packetLength = payload.length + (if (payload.length < 256 * 8) { 1L * 8 }
+                  else if (payload.length < 65536 * 8) { 2L * 8 }
+                  else { 4L * 8 })
+                  length += packetLength
 
-                packet match {
-                  // Super awkward special case: Bundling CharacterInfoMessage with OCDM causes the character selection
-                  // to show blank lines and be broken. So we make sure CharacterInfoMessage is always sent as the only
-                  // packet in a bundle.
-                  case _: CharacterInfoMessage =>
+                  if (packetsBundledByThemselves.exists { _(packet) }) {
                     if (length == packetLength) {
                       length += MTU
                       true
                     } else {
                       false
                     }
-                  case _ =>
+                  } else {
                     // Some packets may be larger than the MTU limit, in that case we dequeue anyway and split later
                     // We deduct some bytes to leave room for SlottedMetaPacket (4 bytes) and MultiPacketEx (2 bytes + prefix per packet)
                     length == packetLength || length <= (MTU - 6) * 8
-                }
-            }
-            .map(_._2)
+                  }
+              }
+              .unzip
+            bundle
+          }
 
           if (bundle.length == 1) {
             outQueueBundled.enqueueAll(splitPacket(bundle.head))
@@ -244,7 +254,7 @@ class MiddlewareActor(
                 if (attempts % 10 == 0) send(RelatedA(0, subslot))
                 inSubslotsMissing(subslot) += 1
               } else {
-                log.warn(s"Requesting subslot '$subslot' from client failed")
+                log.warn(s"Requesting subslot $subslot from client failed")
                 inSubslotsMissing.remove(subslot)
               }
           }
@@ -254,6 +264,8 @@ class MiddlewareActor(
       }
     })
   }
+
+//CryptoSessionActor
 
   def start(): Behavior[Command] = {
     Behaviors.receiveMessagePartial {
@@ -409,6 +421,8 @@ class MiddlewareActor(
       .receiveSignal(onSignal)
   }
 
+//PacketCodingActor
+
   def active(): Behavior[Command] = {
     Behaviors
       .receiveMessage[Command] {
@@ -483,10 +497,10 @@ class MiddlewareActor(
             Behaviors.same
 
           case RelatedA(slot, subslot) =>
-            log.info(s"Client indicated a packet is missing prior to slot '$slot' and subslot '$subslot'")
+            log.info(s"Client indicated a smp of slot $slot is missing prior to subslot $subslot")
             outSlottedMetaPackets.find(_.subslot == subslot - 1) match {
               case Some(_packet) => outQueueBundled.enqueue(_packet)
-              case None          => log.warn(s"Client requested unknown subslot '$subslot'")
+              case None          => log.warn(s"Client requested unknown smp of slot $slot prior to $subslot")
             }
             Behaviors.same
 
@@ -566,7 +580,7 @@ class MiddlewareActor(
         socket ! Udp.Send(bytes.toByteString, sender)
         bytes
       case Failure(e) =>
-        log.error(s"Failed to encode packet ${packet.getClass.getName}: $e")
+        log.error(s"Failed to encode packet ${packet.getClass.getSimpleName}: $e")
         ByteVector.empty
     }
   }
