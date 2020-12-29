@@ -160,18 +160,31 @@ class MiddlewareActor(
     MiddlewareActor.characterInfoMessageGuard
   )
 
-  /** Create a new SlottedMetaPacket with the sequence number filled in and the packet added to the history */
+  val smpHistoryLength: Int = 100
+  /** History of created `SlottedMetaPacket`s.
+    * In case the client does not register receiving a packet by checking against packet subslot index numbers,
+    * it will dispatch a `RelatedA` packet,
+    * and the server will hopefully locate the packet where it has been backlogged.
+    * The client will also dispatch a `RelatedB` packet to indicate the packet with the highest subslot received.
+    * All packets with subslots less than that number have been received or will no longer be requested.
+    * The client and server supposedly maintain reciprocating mechanisms.
+    */
+  val preparedSlottedMetaPackets: Array[SlottedMetaPacket] = new Array[SlottedMetaPacket](smpHistoryLength)
+  var nextSmpIndex: Int = 0
+  var acceptedSmpSubslot: Int = 0
+
+  /**
+    * Create a new `SlottedMetaPacket` with the sequence number filled in and the packet added to the history.
+    * @param slot the slot for this packet, which influences the type of SMP
+    * @param data hexadecimal data, the encoded packets to be placed in the SMP
+    * @return the packet
+    */
   def smp(slot: Int, data: ByteVector): SlottedMetaPacket = {
-    if (outSlottedMetaPackets.length > 100) {
-      outSlottedMetaPackets = outSlottedMetaPackets.takeRight(100)
-    }
     val packet = SlottedMetaPacket(slot, nextSubslot, data)
-    outSlottedMetaPackets += packet
+    preparedSlottedMetaPackets.update(nextSmpIndex, packet)
+    nextSmpIndex = (nextSmpIndex + 1) % smpHistoryLength
     packet
   }
-
-  /** History of sent SlottedMetaPackets in case the client requests missing SMP packets via a RelatedA packet. */
-  var outSlottedMetaPackets: ListBuffer[SlottedMetaPacket] = ListBuffer()
 
   /** Timer that handles the bundling and throttling of outgoing packets and the reordering of incoming packets */
   val queueProcessor: Cancellable = {
@@ -179,15 +192,17 @@ class MiddlewareActor(
       try {
 
         if (outQueue.nonEmpty && outQueueBundled.isEmpty) {
-          var length = 0L
           val bundle = {
+            var length = 0L
             val (_, bundle) = outQueue
               .dequeueWhile {
                 case (packet, payload) =>
-                  // packet length + MultiPacketEx prefix length
-                  val packetLength = payload.length + (if (payload.length < 256 * 8) { 1L * 8 }
-                  else if (payload.length < 65536 * 8) { 2L * 8 }
-                  else { 4L * 8 })
+                  // packet length + MultiPacketEx header length
+                  val packetLength = payload.length + (
+                    if (payload.length < 2048) { 8L } //256 * 8; 1L * 8
+                    else if (payload.length < 524288) { 16L } //65536 * 8; 2L * 8
+                    else { 32L } //4L * 8
+                  )
                   length += packetLength
 
                   if (packetsBundledByThemselves.exists { _(packet) }) {
@@ -219,7 +234,7 @@ class MiddlewareActor(
 
         outQueueBundled.dequeueFirst(_ => true) match {
           case Some(packet) => send(packet, Some(nextSequence), crypto)
-          case None         => ()
+          case None         => ;
         }
 
         if (inReorderQueue.nonEmpty) {
@@ -497,15 +512,20 @@ class MiddlewareActor(
             Behaviors.same
 
           case RelatedA(slot, subslot) =>
-            log.info(s"Client indicated a smp of slot $slot is missing prior to subslot $subslot")
-            outSlottedMetaPackets.find(_.subslot == subslot - 1) match {
-              case Some(_packet) => outQueueBundled.enqueue(_packet)
-              case None          => log.warn(s"Client requested unknown smp of slot $slot prior to $subslot")
+            log.trace(s"Client indicated a smp of slot $slot is missing prior to subslot $subslot")
+            val requestedSubslot = subslot - 1
+            preparedSlottedMetaPackets.find(_.subslot == requestedSubslot) match {
+              case Some(_packet) =>
+                outQueueBundled.enqueue(_packet)
+              case None if requestedSubslot < acceptedSmpSubslot =>
+                log.warn(s"Client requested an smp that is prior to a confirmed tx and is no longer in backlog")
+              case None =>
+                log.warn(s"Client requested an smp of slot $slot prior to $subslot that is not in backlog")
             }
             Behaviors.same
 
           case RelatedB(_, subslot) =>
-            outSlottedMetaPackets = outSlottedMetaPackets.filter(_.subslot > subslot)
+            acceptedSmpSubslot = subslot
             Behaviors.same
 
           case ControlSync(diff, _, _, _, _, _, fa, fb) =>
