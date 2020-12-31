@@ -249,7 +249,6 @@ object PacketCoding {
       macEncryptionKey: ByteVector,
       macDecryptionKey: ByteVector
   ) {
-    private val iv         = BigInt(64, random)
     private val rc5Spec    = new RC5ParameterSpec(0, 16, 32)
     private val rc5Encrypt = Cipher.getInstance("RC5/ECB/NoPadding")
     private val rc5Decrypt = Cipher.getInstance("RC5/ECB/NoPadding")
@@ -276,7 +275,9 @@ object PacketCoding {
       val packetWithPadding = packetNoPadding ++ ByteVector.fill(paddingNeeded)(0x00) ++ paddingEncoded.toByteVector
       // raw packets plus MAC, padded to the nearest 8 byte boundary
       try {
-        Successful(ByteVector.view(rc5Encrypt.doFinal(packetWithPadding.toArray)))
+        rc5Encrypt.synchronized {
+          Successful(ByteVector.view(rc5Encrypt.doFinal(packetWithPadding.toArray)))
+        }
       } catch {
         case e: Throwable => Failure(Err(s"encrypt error: '${e.getMessage}' data: ${packetWithPadding.toHex}"))
       }
@@ -285,7 +286,9 @@ object PacketCoding {
     def decrypt(data: ByteVector): Attempt[ByteVector] = {
       val payloadDecrypted =
         try {
-          ByteVector.view(rc5Decrypt.doFinal(data.toArray))
+          rc5Decrypt.synchronized {
+            ByteVector.view(rc5Decrypt.doFinal(data.toArray))
+          }
         } catch {
           case e: Throwable => return Failure(Err(e.getMessage))
         }
