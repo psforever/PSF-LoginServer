@@ -407,6 +407,10 @@ class AvatarActor(
 
         case ReplaceAvatar(newAvatar) =>
           avatar = newAvatar
+          avatar.deployables.UpdateMaxCounts(avatar.certifications)
+          updateDeployableUIElements(
+            avatar.deployables.UpdateUI()
+          )
           Behaviors.same
 
         case AddFirstTimeEvent(event) =>
@@ -461,14 +465,11 @@ class AvatarActor(
                         sessionActor ! SessionActor.SendResponse(
                           PlanetsideAttributeMessage(session.get.player.GUID, 24, certification.value)
                         )
-                        avatar = avatar.copy(certifications = avatar.certifications.diff(replace) + certification)
+                        context.self ! ReplaceAvatar(
+                          avatar.copy(certifications = avatar.certifications.diff(replace) + certification)
+                        )
                         sessionActor ! SessionActor.SendResponse(
                           ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = true)
-                        )
-
-                        avatar.deployables.UpdateMaxCounts(avatar.certifications)
-                        updateDeployableUIElements(
-                          avatar.deployables.UpdateUI()
                         )
                     }
 
@@ -510,18 +511,14 @@ class AvatarActor(
                     ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = false)
                   )
                 case Success(certs) =>
+                  context.self ! ReplaceAvatar(avatar.copy(certifications = avatar.certifications.diff(remove)))
                   certs.foreach { cert =>
                     sessionActor ! SessionActor.SendResponse(
                       PlanetsideAttributeMessage(session.get.player.GUID, 25, cert.value)
                     )
                   }
-                  avatar = avatar.copy(certifications = avatar.certifications.diff(remove))
                   sessionActor ! SessionActor.SendResponse(
                     ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = true)
-                  )
-                  avatar.deployables.UpdateMaxCounts(avatar.certifications)
-                  updateDeployableUIElements(
-                    avatar.deployables.UpdateUI()
                   )
               }
           }
@@ -560,11 +557,7 @@ class AvatarActor(
             )
             .onComplete {
               case Success(_) =>
-                avatar = avatar.copy(certifications = certifications)
-                avatar.deployables.UpdateMaxCounts(avatar.certifications)
-                updateDeployableUIElements(
-                  avatar.deployables.UpdateUI()
-                )
+                context.self ! ReplaceAvatar(avatar.copy(certifications = certifications))
               case Failure(exception) =>
                 log.error(exception)("db failure")
             }
@@ -600,7 +593,9 @@ class AvatarActor(
                 .run(query[persistence.Implant].insert(_.name -> lift(definition.Name), _.avatarId -> lift(avatar.id)))
                 .onComplete {
                   case Success(_) =>
-                    avatar = avatar.copy(implants = avatar.implants.updated(index, Some(Implant(definition))))
+                    context.self ! ReplaceAvatar(
+                      avatar.copy(implants = avatar.implants.updated(index, Some(Implant(definition))))
+                    )
                     sessionActor ! SessionActor.SendResponse(
                       AvatarImplantMessage(
                         session.get.player.GUID,
@@ -641,7 +636,7 @@ class AvatarActor(
                 )
                 .onComplete {
                   case Success(_) =>
-                    avatar = avatar.copy(implants = avatar.implants.updated(index, None))
+                    context.self ! ReplaceAvatar(avatar.copy(implants = avatar.implants.updated(index, None)))
                     sessionActor ! SessionActor.SendResponse(
                       AvatarImplantMessage(session.get.player.GUID, ImplantAction.Remove, index, 0)
                     )
@@ -668,7 +663,7 @@ class AvatarActor(
                 case Success(_) =>
                   loadLoadouts().onComplete {
                     case Success(loadouts) =>
-                      avatar = avatar.copy(loadouts = loadouts)
+                      context.self ! ReplaceAvatar(avatar.copy(loadouts = loadouts))
                       context.self ! RefreshLoadouts()
                     case Failure(exception) => log.error(exception)("db failure")
                   }
@@ -694,7 +689,7 @@ class AvatarActor(
             )
             .onComplete {
               case Success(_) =>
-                avatar = avatar.copy(loadouts = avatar.loadouts.updated(number, None))
+                context.self ! ReplaceAvatar(avatar.copy(loadouts = avatar.loadouts.updated(number, None)))
                 sessionActor ! SessionActor.SendResponse(FavoritesMessage(loadoutType, player.GUID, number, ""))
               case Failure(exception) =>
                 log.error(exception)("db failure")

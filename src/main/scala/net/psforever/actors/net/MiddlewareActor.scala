@@ -166,6 +166,7 @@ class MiddlewareActor(
   val queueProcessor: Cancellable = {
     context.system.scheduler.scheduleWithFixedDelay(10.milliseconds, 10.milliseconds)(() => {
       try {
+
         if (outQueue.nonEmpty && outQueueBundled.isEmpty) {
           var length = 0L
           val bundle = outQueue

@@ -13,6 +13,7 @@ out/
 project/metals.sbt
 /docs
 .vscode
+.bsp
 
 # User configs
 config/psforever.conf

@@ -57,7 +57,7 @@ class Md5Mac(val key: ByteVector) {
   assert(key.length == KEYLENGTH, s"key length must be ${KEYLENGTH}, not ${key.length}")
   doKey()
 
-  private def doKey() = {
+  private def doKey(): Unit = {
     val ek: ListBuffer[Byte]   = ListBuffer.fill(48)(0)
     val data: ListBuffer[Byte] = ListBuffer.fill(128)(0)
     (0 until 16).foreach(j => {
