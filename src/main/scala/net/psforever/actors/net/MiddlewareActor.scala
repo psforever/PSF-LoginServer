@@ -122,11 +122,6 @@ class MiddlewareActor(
   /** Latest incoming subslot number */
   var inSubslot = 0
 
-  /** the last confirmed packet `inSubslot` number
-    * @see `RelatedB`
-    */
-  var inSubslotConfirmation: Int = 0
-
   /** List of missing subslot numbers and attempts counter */
   var inSubslotsMissing: mutable.Map[Int, Int] = mutable.Map()
 
@@ -235,9 +230,8 @@ class MiddlewareActor(
 
           if (bundle.length == 1) {
             splitPacket(bundle.head) match {
-              case Seq() => ;
-                log.warn("")
-                //TODO oversized packet recovery?
+              case Seq() =>
+                //TODO is oversized packet recovery possible?
               case data =>
                 outQueueBundled.enqueueAll(data)
                 sendFirstBundle()
@@ -270,7 +264,9 @@ class MiddlewareActor(
         case (subslot, attempts) =>
           if (attempts <= 50) {
             // Slight hack to send RelatedA less frequently, might want to put this on a separate timer
-            if (attempts % 10 == 0) send(RelatedA(0, subslot))
+            if (attempts % 10 == 0) {
+              send(RelatedA(0, subslot))
+            }
             inSubslotsMissing(subslot) += 1
           } else {
             log.warn(s"requesting subslot $subslot from client failed")
@@ -300,7 +296,7 @@ class MiddlewareActor(
   def handleInReorderQueue(): Unit = {
     var currentSequence  = inSequence
     val currentTime      = System.currentTimeMillis()
-    val take = inReorderQueue
+    val takenPackets = inReorderQueue
       .takeWhile { entry =>
         // Forward packet if next in sequence order or older than 50ms (five update attempts)
         if (entry.sequence == currentSequence + 1 || currentTime - entry.time > 50) {
@@ -311,12 +307,12 @@ class MiddlewareActor(
         }
       }
       .map(_.packet)
-    inReorderQueue.takeRightInPlace(inReorderQueue.length - take.length)
+    inReorderQueue.takeRightInPlace(inReorderQueue.length - takenPackets.length)
     inSequence = currentSequence
-    take.foreach { in }
+    takenPackets.foreach { in }
   }
 
-//CryptoSessionActor
+//formerly, CryptoSessionActor
 
   def start(): Behavior[Command] = {
     Behaviors.receiveMessagePartial {
@@ -469,7 +465,7 @@ class MiddlewareActor(
       .receiveSignal(onSignal)
   }
 
-//PacketCodingActor
+//formerly, PacketCodingActor
 
   def active(): Behavior[Command] = {
     Behaviors
@@ -532,14 +528,17 @@ class MiddlewareActor(
       case packet: PlanetSideControlPacket =>
         packet match {
           case SlottedMetaPacket(slot, subslot, inner) =>
+            //also send a confirmation packet after all requested packets are handled
             if (subslot > inSubslot + 1) {
-              ((inSubslot + 1) until subslot).foreach(s => inSubslotsMissing.addOne((s, 0)))
-            } else if (inSubslotsMissing.contains(subslot)) {
-              inSubslotsMissing.remove(subslot)
-            } else if (inSubslotsMissing.isEmpty) {
+              ((inSubslot + 1) until subslot).foreach { s => inSubslotsMissing.addOne((s, 0)) } //request missing SMP's
+              inSubslot = subslot
+            } else if (subslot <= inSubslot) {
+              inSubslotsMissing.remove(subslot) //expedite this SMP
+              if (inSubslotsMissing.isEmpty) {
+                send(RelatedB(slot, inSubslot))
+              }
+            } else {
               send(RelatedB(slot, subslot))
-            }
-            if (subslot > inSubslot) {
               inSubslot = subslot
             }
             in(PacketCoding.decodePacket(inner))
@@ -554,15 +553,14 @@ class MiddlewareActor(
             Behaviors.same
 
           case RelatedA(slot, subslot) =>
-            log.warn(s"Client indicated a smp of slot $slot is missing prior to subslot $subslot")
             val requestedSubslot = subslot - 1
             preparedSlottedMetaPackets.find(_.subslot == requestedSubslot) match {
               case Some(_packet) =>
                 outQueueBundled.enqueue(_packet)
               case None if requestedSubslot < acceptedSmpSubslot =>
-                log.warn(s"Client requested an smp that is prior to a confirmed tx and is no longer in backlog")
+                log.warn(s"Client indicated an smp of slot $slot prior to $subslot that is no longer in the backlog")
               case None =>
-                log.warn(s"Client requested an smp of slot $slot prior to $subslot that is not in backlog")
+                log.warn(s"Client indicated an smp of slot $slot prior to $subslot that is not in the backlog")
             }
             Behaviors.same
 
