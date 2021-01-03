@@ -1,32 +1,88 @@
 package net.psforever.actors.net
 
-import java.net.InetSocketAddress
-import java.security.{SecureRandom, Security}
 import akka.actor.Cancellable
 import akka.actor.typed.{ActorRef, ActorTags, Behavior, PostStop, Signal}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.io.Udp
-import net.psforever.packet.{CryptoPacketOpcode, PacketCoding, PlanetSideControlPacket, PlanetSideCryptoPacket, PlanetSideGamePacket, PlanetSidePacket}
-import net.psforever.packet.control.{ClientStart, ConnectionClose, ControlSync, ControlSyncResp, HandleGamePacket, MultiPacket, MultiPacketEx, RelatedA, RelatedB, ServerStart, SlottedMetaPacket, TeardownConnection}
-import net.psforever.packet.crypto.{ClientChallengeXchg, ClientFinished, ServerChallengeXchg, ServerFinished}
-import net.psforever.packet.game.{CharacterInfoMessage, KeepAliveMessage, PingMsg}
+import java.net.InetSocketAddress
+import java.security.{SecureRandom, Security}
+import javax.crypto.spec.SecretKeySpec
+import org.bouncycastle.jce.provider.BouncyCastleProvider
+import scala.collection.mutable
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
+import scala.concurrent.duration._
+import scodec.Attempt
 import scodec.Attempt.{Failure, Successful}
 import scodec.bits.{BitVector, ByteVector, HexStringSyntax}
 import scodec.interop.akka.EnrichedByteVector
 
-import javax.crypto.spec.SecretKeySpec
+import net.psforever.objects.Default
+import net.psforever.packet.{
+  CryptoPacketOpcode,
+  PacketCoding,
+  PlanetSideControlPacket,
+  PlanetSideCryptoPacket,
+  PlanetSideGamePacket,
+  PlanetSidePacket
+}
+import net.psforever.packet.control.{
+  ClientStart,
+  ConnectionClose,
+  ControlSync,
+  ControlSyncResp,
+  HandleGamePacket,
+  MultiPacket,
+  MultiPacketEx,
+  RelatedA,
+  RelatedB,
+  ServerStart,
+  SlottedMetaPacket,
+  TeardownConnection
+}
+import net.psforever.packet.crypto.{ClientChallengeXchg, ClientFinished, ServerChallengeXchg, ServerFinished}
+import net.psforever.packet.game.{ChangeFireModeMessage, CharacterInfoMessage, KeepAliveMessage, PingMsg}
 import net.psforever.packet.PacketCoding.CryptoCoding
 import net.psforever.util.{DiffieHellman, Md5Mac}
-import org.bouncycastle.jce.provider.BouncyCastleProvider
-import scodec.Attempt
 
-import scala.collection.mutable
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
-import scala.concurrent.duration._
-
-/** MiddlewareActor sits between the raw UDP socket and the "main" actors (either login or session) and handles
-  * crypto and control packets. This means it sets up cryptography, it decodes incoming packets,
-  * it encodes, bundles and splits outgoing packets, it handles things like requesting/resending lost packets and more.
+/**
+  * `MiddlewareActor` sits between the raw UDP socket and the "main" actors
+  * (either `LoginActor` or `SessionActor`)
+  * and handles crypto and control packets.
+  * The former side is called the outbound network (the clients); the former is called the inbound local (server).
+  * This service sets up cryptography, it decodes incoming packets, it encodes, bundles, or splits outgoing packets,
+  * and it handles things like requesting/resending lost packets.
+  * Accurate operation of the service is mostly a product of the network being agreeable
+  * and allowing packets to arrive correctly.
+  * Various subroutines are used to keep track of the predicted offending packets.<br>
+  * <br>
+  * The cryptographic aspect of the service resolves itself first,
+  * exchanging keys and passcodes and challeneges between local and the network.
+  * Most of this process occurs without any prior cryptographic setup,
+  * relying on the validation of its own exchange to operate.
+  * Afterwards its completion,
+  * all raw data arriving from the network or leaving to the network will require a cipher
+  * based on the previously exchanged data.
+  * <br>
+  * As packets arrive from local with the intention of being sent out towards the network terminus,
+  * they will be pooled into a buffer.
+  * Periodically, the buffer contents will be evaluated,
+  * and packet data of enough quantity and combined length will be assembled into a singular packet bundle.
+  * This bundle will be queued and dispatched towards the network.
+  * If the outbound packets do not arrive at the network terminus correctly,
+  * the network has a method of dispatching requests for identified missing packets.
+  * This side of the communication will keep track of its previously dispatched packets for a "reasonable" amount of time
+  * and will respond to those requests if possible by searching its catalog.<br>
+  * <br>
+  * If the inbound packets do not arrive correctly the first time,
+  * after a while, requests for identified mising packets from the network source will occur.
+  * Virtually all important packets have a sequence number that bestows on each packet an absolute delivery order.
+  * Bundled packets have a subslot number that indicates the total number of subslot packets dispatched to this client
+  * as well as the order in which the packets should have been received.
+  * If a packet is out of sequence - a future packet, compared to what is being expected - it is buffered.
+  * Should the expected packets show up out of order before the buffered is cleared,
+  * everything sorts itself out.
+  * Unresolved missing sequence entries will often lead to requests for missing packets with anticipated subslots.
+  * If these requests do not resolve, there is unfortuantely not much that can be done except grin and bear with it.
   */
 object MiddlewareActor {
   Security.addProvider(new BouncyCastleProvider)
@@ -57,6 +113,9 @@ object MiddlewareActor {
   /** Close connection */
   final case class Close() extends Command
 
+  /** ... */
+  private case class ProcessQueue() extends Command
+
   /** Log inbound packets that are yet to be in proper order by sequence number */
   private case class InReorderEntry(packet: PlanetSidePacket, sequence: Int, time: Long)
 
@@ -85,8 +144,20 @@ object MiddlewareActor {
   def keepAliveMessageGuard(packet: PlanetSidePacket): Boolean = {
     packet.isInstanceOf[KeepAliveMessage]
   }
+
+  /**
+    * A function for blanking tasks related to inbound packet resolution.
+    * Do nothing.
+    * Wait to be told to do something.
+    */
+  private def neutral(): Unit = { }
 }
 
+/**
+  * MiddlewareActor sits between the raw UDP socket and the "main" actors (either login or session) and handles
+  * crypto and control packets. This means it sets up cryptography, it decodes incoming packets,
+  * it encodes, bundles and splits outgoing packets, it handles things like requesting/resending lost packets and more.
+  */
 class MiddlewareActor(
     context: ActorContext[MiddlewareActor.Command],
     socket: ActorRef[Udp.Command],
@@ -131,9 +202,16 @@ class MiddlewareActor(
   /** Queue of outgoing packets ready for sending */
   val outQueueBundled: mutable.Queue[PlanetSidePacket] = mutable.Queue()
 
-  /** Latest outgoing sequence number */
+  /** Latest outbound sequence number;
+    * the current sequence is one less than this number */
   var outSequence = 0
 
+  /**
+    * Increment the outbound sequence number.
+    * The previous sequence number is returned.
+    * The fidelity of the sequence field in packets is 16 bits, so wrap back to 0 after 65535.
+    * @return
+    */
   def nextSequence: Int = {
     val r = outSequence
     if (outSequence == 0xffff) {
@@ -144,9 +222,16 @@ class MiddlewareActor(
     r
   }
 
-  /** Latest outgoing subslot number */
+  /** Latest outbound subslot number;
+    * the current subslot is one less than this number */
   var outSubslot = 0
 
+  /**
+    * Increment the outbound subslot number.
+    * The previous subslot number is returned.
+    * The fidelity of the subslot field in `SlottedMetapacket`'s is 16 bits, so wrap back to 0 after 65535.
+    * @return
+    */
   def nextSubslot: Int = {
     val r = outSubslot
     if (outSubslot == 0xffff) {
@@ -157,6 +242,9 @@ class MiddlewareActor(
     r
   }
 
+  /**
+    * Do not bundle these packets together with other packets
+    */
   val packetsBundledByThemselves: List[PlanetSidePacket=>Boolean] = List(
     MiddlewareActor.keepAliveMessageGuard,
     MiddlewareActor.characterInfoMessageGuard
@@ -175,142 +263,17 @@ class MiddlewareActor(
   var nextSmpIndex: Int = 0
   var acceptedSmpSubslot: Int = 0
 
-  /**
-    * Create a new `SlottedMetaPacket` with the sequence number filled in and the packet added to the history.
-    * @param slot the slot for this packet, which influences the type of SMP
-    * @param data hexadecimal data, the encoded packets to be placed in the SMP
-    * @return the packet
-    */
-  def smp(slot: Int, data: ByteVector): SlottedMetaPacket = {
-    val packet = SlottedMetaPacket(slot, nextSubslot, data)
-    preparedSlottedMetaPackets.update(nextSmpIndex, packet)
-    nextSmpIndex = (nextSmpIndex + 1) % smpHistoryLength
-    packet
-  }
 
-  /** Delay between runs of the queue processor (ms) */
-  val queueProcessorHz = 10.milliseconds
+  var timesInReorderQueue: Int = 0
+  var timesSubslotMissing: Int = 0
+  /** Delay between runs of the packet bundler/resolver timer (ms);
+    * 250ms per network update (client upstream), so 10 runs of this bundling code every update */
+  val packetProcessorHz = 25.milliseconds
+  /** Timer that handles the bundling and throttling of outgoing packets and resolves disorganized inbound packets */
+  var packetProcessor: Cancellable = Default.Cancellable
 
-  /** Timer that handles the bundling and throttling of outgoing packets and the reordering of incoming packets */
-  val queueProcessor: Cancellable = {
-    context.system.scheduler.scheduleWithFixedDelay(queueProcessorHz, queueProcessorHz)(() => {
-      try {
-        if (outQueueBundled.nonEmpty) {
-          sendFirstBundle()
-        } else if (outQueue.nonEmpty) {
-          val bundle = {
-            var length = 0L
-            val (_, bundle) = outQueue
-              .dequeueWhile {
-                case (packet, payload) =>
-                  // packet length + MultiPacketEx header length
-                  val packetLength = payload.length + (
-                    if (payload.length < 2048) { 8L } //256 * 8; 1L * 8
-                    else if (payload.length < 524288) { 16L } //65536 * 8; 2L * 8
-                    else { 32L } //4L * 8
-                  )
-                  length += packetLength
-
-                  if (packetsBundledByThemselves.exists { _(packet) }) {
-                    if (length == packetLength) {
-                      length += MTU
-                      true
-                    } else {
-                      false
-                    }
-                  } else {
-                    // Some packets may be larger than the MTU limit, in that case we dequeue anyway and split later
-                    // We deduct some bytes to leave room for SlottedMetaPacket (4 bytes) and MultiPacketEx (2 bytes + prefix per packet)
-                    length == packetLength || length <= (MTU - 6) * 8
-                  }
-              }
-              .unzip
-            bundle
-          }
-
-          if (bundle.length == 1) {
-            splitPacket(bundle.head) match {
-              case Seq() =>
-                //TODO is oversized packet recovery possible?
-              case data =>
-                outQueueBundled.enqueueAll(data)
-                sendFirstBundle()
-            }
-          } else {
-            PacketCoding.encodePacket(MultiPacketEx(bundle.toVector.map(_.bytes))) match {
-              case Successful(data) =>
-                outQueueBundled.enqueue(smp(slot = 0, data.bytes))
-                sendFirstBundle()
-              case Failure(cause)   =>
-                log.error(cause.message)
-                //to avoid packets being lost, unwrap bundle and attempt to queue the packets individually
-                bundle.foreach { packet =>
-                  outQueueBundled.enqueue(smp(slot = 0, packet.bytes))
-                }
-                sendFirstBundle()
-            }
-          }
-        }
-      } catch {
-        case e: Throwable =>
-          log.error(s"outbound queue processing error - ${Option(e.getMessage).getOrElse(e.getClass.getSimpleName)}")
-      }
-
-      if (inReorderQueue.nonEmpty) {
-        handleInReorderQueue()
-      }
-
-      inSubslotsMissing.foreach {
-        case (subslot, attempts) =>
-          if (attempts <= 50) {
-            // Slight hack to send RelatedA less frequently, might want to put this on a separate timer
-            if (attempts % 10 == 0) {
-              send(RelatedA(0, subslot))
-            }
-            inSubslotsMissing(subslot) += 1
-          } else {
-            log.warn(s"requesting subslot $subslot from client failed")
-            inSubslotsMissing.remove(subslot)
-          }
-      }
-    })
-  }
-
-  /**
-    * Take the first fully-prepared packet from the queue of prepared packets and send it to the client.
-    * Assign the dispatched packet the latest sequence number.
-    * Do not call unless confident the the queue has at least one element.
-    * @throws NoSuchElementException if there is no packet to dequeue
-    * @see `SlottedMetaPacket`
-    */
-  def sendFirstBundle(): Unit = {
-    send(outQueueBundled.dequeue(), Some(nextSequence), crypto)
-  }
-
-  /**
-    * Examine inbound packets that need to be reordered by sequence number and
-    * pass all packets that are now in the correct order and
-    * pass packets that have been kept waiting for too long in the queue.
-    * Set the recorded inbound sequence number to belong to the greatest packet removed from the queue.
-    */
-  def handleInReorderQueue(): Unit = {
-    var currentSequence  = inSequence
-    val currentTime      = System.currentTimeMillis()
-    val takenPackets = inReorderQueue
-      .takeWhile { entry =>
-        // Forward packet if next in sequence order or older than 50ms (five update attempts)
-        if (entry.sequence == currentSequence + 1 || currentTime - entry.time > 50) {
-          currentSequence = entry.sequence //already ordered by sequence, stays in order during traversal
-          true
-        } else {
-          false
-        }
-      }
-      .map(_.packet)
-    inReorderQueue.takeRightInPlace(inReorderQueue.length - takenPackets.length)
-    inSequence = currentSequence
-    takenPackets.foreach { in }
-  }
+//  val inboundProcessorHz = 10.milliseconds
+//  var inboundProcessor: Cancellable = Default.Cancellable
 
 //formerly, CryptoSessionActor
 
@@ -328,7 +291,7 @@ class MiddlewareActor(
 
               // TODO ResetSequence
               case _ =>
-                log.error(s"Unexpected packet type $packet in init")
+                log.warn(s"Unexpected packet type $packet in start (before crypto)")
                 Behaviors.same
             }
           case Failure(_) =>
@@ -342,6 +305,12 @@ class MiddlewareActor(
                     // reflect the packet back to the sender
                     send(ping)
                     Behaviors.same
+
+                  case _: ChangeFireModeMessage =>
+                    log.trace(s"What is this packet that just arrived? ${msg.toString}")
+                    //ignore
+                    Behaviors.same
+
                   case _ =>
                     log.error(s"Unexpected non-crypto packet type $packet in start")
                     Behaviors.same
@@ -447,7 +416,11 @@ class MiddlewareActor(
                   )
 
                   send(ServerFinished(serverChallengeResult))
-
+                  //start the queue processor loop
+                  packetProcessor =
+                    context.system.scheduler.scheduleWithFixedDelay(packetProcessorHz, packetProcessorHz)(()=> {
+                      context.self ! ProcessQueue()
+                    })
                   active()
 
                 case other =>
@@ -476,7 +449,9 @@ class MiddlewareActor(
               if (sequence == inSequence + 1) {
                 inSequence = sequence
                 in(packet)
-              } else if(sequence <= inSequence) { //expedite this packet
+              } else if(sequence < inSequence) { //expedite this packet
+                inReorderQueue.filterInPlace(_.sequence == sequence)
+                inReorderQueueFunc = inReorderQueueTest
                 in(packet)
               } else {
                 var insertAtIndex = 0
@@ -485,6 +460,7 @@ class MiddlewareActor(
                   insertAtIndex += 1
                 }
                 inReorderQueue.insert(insertAtIndex, InReorderEntry(packet, sequence, System.currentTimeMillis()))
+                inReorderQueueFunc = processInReorderQueue
               }
             case Successful((packet, None)) =>
               in(packet)
@@ -495,6 +471,10 @@ class MiddlewareActor(
 
         case Send(packet) =>
           out(packet)
+          Behaviors.same
+
+        case ProcessQueue() =>
+          processQueue()
           Behaviors.same
 
         case Teardown() =>
@@ -514,7 +494,10 @@ class MiddlewareActor(
   val onSignal: PartialFunction[(ActorContext[Command], Signal), Behavior[Command]] = {
     case (_, PostStop) =>
       context.stop(nextActor)
-      queueProcessor.cancel()
+      if(timesInReorderQueue > 0 || timesSubslotMissing > 0) {
+        log.info(s"End of life note: out of sequence checks: $timesInReorderQueue, subslot missing checks: $timesSubslotMissing")
+      }
+      packetProcessor.cancel()
       Behaviors.same
   }
 
@@ -532,8 +515,10 @@ class MiddlewareActor(
             if (subslot > inSubslot + 1) {
               ((inSubslot + 1) until subslot).foreach { s => inSubslotsMissing.addOne((s, 0)) } //request missing SMP's
               inSubslot = subslot
-            } else if (subslot <= inSubslot) {
+              inSubslotsMissingFunc = processInSubslotsMissing
+            } else if (subslot < inSubslot) {
               inSubslotsMissing.remove(subslot) //expedite this SMP
+              inSubslotsMissingFunc = inSubslotsMissingTest
               if (inSubslotsMissing.isEmpty) {
                 send(RelatedB(slot, inSubslot))
               }
@@ -597,7 +582,6 @@ class MiddlewareActor(
         log.error(s"Unexpected crypto packet '$packet'")
         Behaviors.same
     }
-
   }
 
   def in(packet: Attempt[PlanetSidePacket]): Unit = {
@@ -619,6 +603,229 @@ class MiddlewareActor(
           case Failure(cause)      => log.error(cause.message)
         }
     }
+  }
+
+  /**
+    * Periodically deal with these concerns:
+    * the bundling and throttling of outgoing packets,
+    * the reordering of out-of-sequence incoming packets,
+    * and the resolution of missing incoming packets.
+    * The latter two of these tasks are managed by function literals that may have no tasking assigned at the time.
+    */
+  def processQueue(): Unit = {
+    processOutQueueBundle()
+    inReorderQueueFunc()
+    inSubslotsMissingFunc()
+  }
+
+//  def startInboundProcessor(): Unit = {
+//    inboundProcessor =
+//      context.system.scheduler.scheduleWithFixedDelay(inboundProcessorHz, inboundProcessorHz)(()=> {
+//        context.self ! ProcessQueue()
+//      })
+//  }
+
+  /**
+    * Outbound packets that have not been caught by other guards need to be bundled
+    * and placed into `SlottedMetaPacket` messages.
+    * Multiple packets in one bundle have to be placed into a `MultiPacketEx` message wrapper
+    * before being placed into the `SlottedMetaPacket`.
+    * Packets that are too big for the MTU must go on to be split into smaller portions that will be wrapped individually.
+    * Once queued, the first bundle is dispatched to the network.
+    */
+  def processOutQueueBundle(): Unit = {
+    try {
+      if (outQueueBundled.nonEmpty) {
+        sendFirstBundle()
+      } else if (outQueue.nonEmpty) {
+        val bundle = {
+          var length = 0L
+          val (_, bundle) = outQueue
+            .dequeueWhile {
+              case (packet, payload) =>
+                // packet length + MultiPacketEx header length
+                val packetLength = payload.length + (
+                  if (payload.length < 2048) { 8L } //256 * 8; 1L * 8
+                  else if (payload.length < 524288) { 16L } //65536 * 8; 2L * 8
+                  else { 32L } //4L * 8
+                  )
+                length += packetLength
+
+                if (packetsBundledByThemselves.exists { _(packet) }) {
+                  if (length == packetLength) {
+                    length += MTU
+                    true
+                  } else {
+                    false
+                  }
+                } else {
+                  // Some packets may be larger than the MTU limit, in that case we dequeue anyway and split later
+                  // We deduct some bytes to leave room for SlottedMetaPacket (4 bytes) and MultiPacketEx (2 bytes + prefix per packet)
+                  length == packetLength || length <= (MTU - 6) * 8
+                }
+            }
+            .unzip
+          bundle
+        }
+
+        if (bundle.length == 1) {
+          splitPacket(bundle.head) match {
+            case Seq() =>
+            //TODO is oversized packet recovery possible?
+            case data =>
+              outQueueBundled.enqueueAll(data)
+              sendFirstBundle()
+          }
+        } else {
+          PacketCoding.encodePacket(MultiPacketEx(bundle.toVector.map(_.bytes))) match {
+            case Successful(data) =>
+              outQueueBundled.enqueue(smp(slot = 0, data.bytes))
+              sendFirstBundle()
+            case Failure(cause)   =>
+              log.error(cause.message)
+              //to avoid packets being lost, unwrap bundle and queue the packets individually
+              bundle.foreach { packet =>
+                outQueueBundled.enqueue(smp(slot = 0, packet.bytes))
+              }
+              sendFirstBundle()
+          }
+        }
+      }
+    } catch {
+      case e: Throwable =>
+        log.error(s"outbound queue processing error - ${Option(e.getMessage).getOrElse(e.getClass.getSimpleName)}")
+    }
+  }
+
+  /** what to periodically do about the inbound reorder queue */
+  private var inReorderQueueFunc: ()=>Unit = MiddlewareActor.neutral
+
+  /**
+    * Examine inbound packets that need to be reordered by sequence number and
+    * pass all packets that are now in the correct order and
+    * pass packets that have been kept waiting for too long in the queue.
+    * Set the recorded inbound sequence number to belong to the greatest packet removed from the queue.
+    */
+  def processInReorderQueue(): Unit = {
+    timesInReorderQueue += 1
+    var currentSequence  = inSequence
+    val currentTime      = System.currentTimeMillis()
+    val takenPackets = (inReorderQueue.indexWhere { currentTime - _.time > 50 } match {
+      case -1 =>
+        inReorderQueue
+          .takeWhile { entry =>
+            // Forward packet if next in sequence order
+            if (entry.sequence == currentSequence + 1) {
+              currentSequence = entry.sequence //already ordered by sequence, stays in order during traversal
+              true
+            } else {
+              false
+            }
+          }
+      case index =>
+        // Forward all packets ahead of any packet that has been in the queue for 50ms
+        val entries = inReorderQueue.take(index + 1)
+        currentSequence = entries.last.sequence
+        entries
+    }).map(_.packet)
+    inReorderQueue.dropInPlace(takenPackets.length)
+    inSequence = currentSequence
+    takenPackets.foreach { p =>
+      inReorderQueueFunc = inReorderQueueTest
+      in(p)
+    }
+  }
+
+  /**
+    * If the inbound reorder queue is empty, do no more work on it until work is available.
+    * Otherwise, do work on whatever is at the front of the queue, and do no test again until explicitly requested.
+    * Test the queue for contents after removing content from it.
+    */
+  def inReorderQueueTest(): Unit = {
+    if (inReorderQueue.isEmpty) {
+      inReorderQueueFunc = MiddlewareActor.neutral
+    } else {
+      inReorderQueueFunc = processInReorderQueue
+      processInReorderQueue()
+    }
+  }
+
+  /** what to periodically do about the missing inbound subslot map */
+  private var inSubslotsMissingFunc: ()=>Unit = MiddlewareActor.neutral
+
+  def processInSubslotsMissing(): Unit = {
+    timesSubslotMissing += 1
+    inSubslotsMissing.foreach {
+      case (subslot, attempts) =>
+        if (attempts <= 20) {
+          // Send RelatedA less frequently, might want to put this on a separate timer
+          if (attempts % 5 == 0) {
+            send(RelatedA(0, subslot))
+          }
+          inSubslotsMissing(subslot) += 1
+        } else {
+          log.trace(s"requesting subslot $subslot from client failed")
+          inSubslotsMissing.remove(subslot)
+          inSubslotsMissingFunc = inSubslotsMissingTest
+        }
+    }
+  }
+
+  /**
+    * If the inbound missing subslot map is empty, do no more work on it until work is available.
+    * Otherwise, do work on whatever is in the map, and do no test again until explicitly requested.
+    * Test the map for contents after removing content from it.
+    */
+  def inSubslotsMissingTest(): Unit = {
+    if (inSubslotsMissing.isEmpty) {
+      inSubslotsMissingFunc = MiddlewareActor.neutral
+    } else {
+      inSubslotsMissingFunc = processInSubslotsMissing
+      processInSubslotsMissing()
+    }
+  }
+
+  /**
+    * Split packet into multiple chunks (if necessary).
+    * Split packets are wrapped in a `HandleGamePacket` and sent as `SlottedMetaPacket4`.
+    * The purpose of `SlottedMetaPacket4` may or may not be to indicate a split packet.
+    */
+  def splitPacket(packet: BitVector): Seq[PlanetSideControlPacket] = {
+    if (packet.length > (MTU - 4) * 8) {
+      PacketCoding.encodePacket(HandleGamePacket(packet.bytes)) match {
+        case Successful(data) =>
+          data.grouped((MTU - 8) * 8).map(vec => smp(slot = 4, vec.bytes)).toSeq
+        case Failure(cause) =>
+          log.error(cause.message)
+          Seq()
+      }
+    } else {
+      Seq(smp(slot = 0, packet.bytes))
+    }
+  }
+
+  /**
+    * Create a new `SlottedMetaPacket` with the sequence number filled in and the packet added to the history.
+    * @param slot the slot for this packet, which influences the type of SMP
+    * @param data hexadecimal data, the encoded packets to be placed in the SMP
+    * @return the packet
+    */
+  def smp(slot: Int, data: ByteVector): SlottedMetaPacket = {
+    val packet = SlottedMetaPacket(slot, nextSubslot, data)
+    preparedSlottedMetaPackets.update(nextSmpIndex, packet)
+    nextSmpIndex = (nextSmpIndex + 1) % smpHistoryLength
+    packet
+  }
+
+  /**
+    * Take the first fully-prepared packet from the queue of prepared packets and send it to the client.
+    * Assign the dispatched packet the latest sequence number.
+    * Do not call unless confident the the queue has at least one element.
+    * @throws NoSuchElementException if there is no packet to dequeue
+    * @see `SlottedMetaPacket`
+    */
+  def sendFirstBundle(): Unit = {
+    send(outQueueBundled.dequeue(), Some(nextSequence), crypto)
   }
 
   def send(packet: PlanetSideControlPacket): ByteVector = {
@@ -645,32 +852,23 @@ class MiddlewareActor(
     }
   }
 
+  /**
+    * A random series of bytes used as a challenge value.
+    * @param amount the number of bytes
+    * @return a random series of bytes
+    */
   def randomBytes(amount: Int): ByteVector = {
     val array = Array.ofDim[Byte](amount)
     random.nextBytes(array)
     ByteVector.view(array)
   }
 
+  /**
+    * End client-server ops.
+    * End messaging capabilities.
+    */
   def connectionClose(): Behavior[Command] = {
     send(ConnectionClose())
     Behaviors.stopped
-  }
-
-  /** Split packet into multiple chunks (if necessary)
-    * Split packets are wrapped in a HandleGamePacket and sent as SlottedMetaPacket4
-    * The purpose of SlottedMetaPacket4 may or may not be to indicate a split packet
-    */
-  def splitPacket(packet: BitVector): Seq[PlanetSideControlPacket] = {
-    if (packet.length > (MTU - 4) * 8) {
-      PacketCoding.encodePacket(HandleGamePacket(packet.bytes)) match {
-        case Successful(data) =>
-          data.grouped((MTU - 8) * 8).map(vec => smp(slot = 4, vec.bytes)).toSeq
-        case Failure(cause) =>
-          log.error(cause.message)
-          Seq()
-      }
-    } else {
-      Seq(smp(slot = 0, packet.bytes))
-    }
   }
 }
