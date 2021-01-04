@@ -150,7 +150,7 @@ object MiddlewareActor {
     * Do nothing.
     * Wait to be told to do something.
     */
-  private def neutral(): Unit = { }
+  private def doNothing(): Unit = { }
 }
 
 /**
@@ -268,9 +268,12 @@ class MiddlewareActor(
   var timesSubslotMissing: Int = 0
   /** Delay between runs of the packet bundler/resolver timer (ms);
     * 250ms per network update (client upstream), so 10 runs of this bundling code every update */
-  val packetProcessorHz = 25.milliseconds
+  val packetProcessorTime = 25
   /** Timer that handles the bundling and throttling of outgoing packets and resolves disorganized inbound packets */
   var packetProcessor: Cancellable = Default.Cancellable
+
+  /** how long packets that are out of sequenctial order wait for the missing sequence before being expedited */
+  val inReorderQueueEntryTimout = 50 //(ms)
 
 //  val inboundProcessorHz = 10.milliseconds
 //  var inboundProcessor: Cancellable = Default.Cancellable
@@ -418,7 +421,10 @@ class MiddlewareActor(
                   send(ServerFinished(serverChallengeResult))
                   //start the queue processor loop
                   packetProcessor =
-                    context.system.scheduler.scheduleWithFixedDelay(packetProcessorHz, packetProcessorHz)(()=> {
+                    context.system.scheduler.scheduleWithFixedDelay(
+                      packetProcessorTime.milliseconds,
+                      packetProcessorTime.milliseconds
+                    )(()=> {
                       context.self ! ProcessQueue()
                     })
                   active()
@@ -446,22 +452,7 @@ class MiddlewareActor(
         case Receive(msg) =>
           PacketCoding.unmarshalPacket(msg, crypto) match {
             case Successful((packet, Some(sequence))) =>
-              if (sequence == inSequence + 1) {
-                inSequence = sequence
-                in(packet)
-              } else if(sequence < inSequence) { //expedite this packet
-                inReorderQueue.filterInPlace(_.sequence == sequence)
-                inReorderQueueFunc = inReorderQueueTest
-                in(packet)
-              } else {
-                var insertAtIndex = 0
-                val length = inReorderQueue.length
-                while (insertAtIndex < length && sequence >= inReorderQueue(insertAtIndex).sequence) {
-                  insertAtIndex += 1
-                }
-                inReorderQueue.insert(insertAtIndex, InReorderEntry(packet, sequence, System.currentTimeMillis()))
-                inReorderQueueFunc = processInReorderQueue
-              }
+              activeSequenceFunc(packet, sequence)
             case Successful((packet, None)) =>
               in(packet)
             case Failure(e)                 =>
@@ -697,20 +688,97 @@ class MiddlewareActor(
     }
   }
 
-  /** what to periodically do about the inbound reorder queue */
-  private var inReorderQueueFunc: ()=>Unit = MiddlewareActor.neutral
+  /** what to do when a packet unmarshals properly and has a sequence number
+    * @see `activeNormal`
+    * @see `activeWithReordering`
+    */
+  private var activeSequenceFunc: (PlanetSidePacket, Int)=>Unit = activeNormal
+
+  /**
+    * Properly handle the newly-arrived packet based on its sequence number.
+    * If the packet is in the proper order, or is considered old, by its sequence number,
+    * act on the packet immediately.
+    * If the sequence if higher than the next one expected, indicating that some packets may have been missed,
+    * put that packet to the side and active a resolution queue.
+    * @param packet the packet
+    * @param sequence the sequence number obtained from the packet
+    */
+  def activeNormal(packet: PlanetSidePacket, sequence: Int): Unit = {
+    if (sequence == inSequence + 1) {
+      inSequence = sequence
+      in(packet)
+    } else if(sequence < inSequence) { //expedite this packet
+      in(packet)
+    } else if (sequence == inSequence) {
+      //do nothing?
+    } else {
+      inReorderQueue.enqueue(InReorderEntry(packet, sequence, System.currentTimeMillis())) //first entry
+      inReorderQueueFunc       = processInReorderQueueTimeoutOnly
+      inReorderQueueStaticFunc = processInReorderQueue
+      activeSequenceFunc       = activeWithReordering
+    }
+  }
+
+  /**
+    * Properly handle the newly-arrived packet based on its sequence number,
+    * with an ongoing resolution queue for managing out of sequence packets.
+    * If the packet is in the proper order, or is considered old, by its sequence number,
+    * act on the packet immediately.
+    * If the packet is considered a packet that was expected in the past,
+    * attempt to clear it from the queue and test the resolution queue for further work.
+    * If the sequence if higher than the next one expected, indicating that some packets may have been missed,
+    * add it to the resolution queue.
+    * Finally, act on the state of the resolution queue.
+    * @param packet the packet
+    * @param sequence the sequence number obtained from the packet
+    */
+  def activeWithReordering(packet: PlanetSidePacket, sequence: Int): Unit = {
+    if (sequence == inSequence + 1) {
+      inSequence = sequence
+      in(packet)
+    } else if(sequence < inSequence) { //expedite this packet
+      inReorderQueue.filterInPlace(_.sequence == sequence)
+      inReorderQueueFunc       = inReorderQueueTest
+      inReorderQueueStaticFunc = inReorderQueueTest
+      in(packet)
+    } else if (sequence == inSequence) {
+      //do nothing?
+    } else {
+      var insertAtIndex = 0
+      val length = inReorderQueue.length
+      while (insertAtIndex < length && sequence >= inReorderQueue(insertAtIndex).sequence) {
+        insertAtIndex += 1
+      }
+      inReorderQueue.insert(insertAtIndex, InReorderEntry(packet, sequence, System.currentTimeMillis()))
+    }
+    inReorderQueueStaticFunc()
+  }
+
+  /** how to periodically respond to the state of the inbound reorder queue;
+    * administered by the primary packet processor schedule
+    * @see `inReorderQueueTest`
+    * @see `processInReorderQueueTimeoutOnly`
+    */
+  private var inReorderQueueFunc: ()=>Unit = doNothing
+  /** a triggered response to updates to the inbound reorder queue;
+    * administered by the function that accepts packets, during the sequence analysis
+    * @see `inReorderQueueTest`
+    * @see `processInReorderQueue`
+    */
+  private var inReorderQueueStaticFunc: ()=>Unit = doNothing
 
   /**
     * Examine inbound packets that need to be reordered by sequence number and
     * pass all packets that are now in the correct order and
     * pass packets that have been kept waiting for too long in the queue.
     * Set the recorded inbound sequence number to belong to the greatest packet removed from the queue.
+    * @see `processInReorderQueueTimeoutOnly`
     */
   def processInReorderQueue(): Unit = {
     timesInReorderQueue += 1
     var currentSequence  = inSequence
     val currentTime      = System.currentTimeMillis()
-    val takenPackets = (inReorderQueue.indexWhere { currentTime - _.time > 50 } match {
+    val takenPackets     = (inReorderQueue.indexWhere { currentTime - _.time > inReorderQueueEntryTimout } match {
       case -1 =>
         inReorderQueue
           .takeWhile { entry =>
@@ -724,34 +792,59 @@ class MiddlewareActor(
           }
       case index =>
         // Forward all packets ahead of any packet that has been in the queue for 50ms
-        val entries = inReorderQueue.take(index + 1)
+        val entries     = inReorderQueue.take(index + 1)
         currentSequence = entries.last.sequence
         entries
     }).map(_.packet)
     inReorderQueue.dropInPlace(takenPackets.length)
     inSequence = currentSequence
     takenPackets.foreach { p =>
-      inReorderQueueFunc = inReorderQueueTest
+      inReorderQueueFunc       = inReorderQueueTest
+      inReorderQueueStaticFunc = inReorderQueueTest
       in(p)
     }
   }
 
   /**
+    * Examine inbound packets that need to be reordered by sequence number and
+    * pass packets that have been kept waiting for too long in the queue.
+    * Set the recorded inbound sequence number to belong to the greatest packet removed from the queue.
+    * This may run during the scheduled check on the in-order queue after the outbound bundling process.
+    */
+  def processInReorderQueueTimeoutOnly(): Unit = {
+    timesInReorderQueue += 1
+    val currentTime      = System.currentTimeMillis()
+    val index            = inReorderQueue.indexWhere { currentTime - _.time > inReorderQueueEntryTimout }
+    val takenPackets     = inReorderQueue.take(index + 1)
+    inReorderQueue.dropInPlace(takenPackets.length)
+    takenPackets.foreach { p =>
+      inReorderQueueFunc       = inReorderQueueTest
+      inReorderQueueStaticFunc = inReorderQueueTest
+      inSequence               = p.sequence
+      in(p.packet)
+    }
+  }
+
+  /**
     * If the inbound reorder queue is empty, do no more work on it until work is available.
-    * Otherwise, do work on whatever is at the front of the queue, and do no test again until explicitly requested.
-    * Test the queue for contents after removing content from it.
+    * Otherwise, do work on whatever is at the front of the queue, and do not test again until explicitly requested.
+    * Test the queue for more contents after removing content from it.
     */
   def inReorderQueueTest(): Unit = {
     if (inReorderQueue.isEmpty) {
-      inReorderQueueFunc = MiddlewareActor.neutral
+      inReorderQueueFunc       = doNothing
+      inReorderQueueStaticFunc = doNothing
+      activeSequenceFunc       = activeNormal
+      //do nothing
     } else {
-      inReorderQueueFunc = processInReorderQueue
+      inReorderQueueFunc       = processInReorderQueueTimeoutOnly
+      inReorderQueueStaticFunc = processInReorderQueue
       processInReorderQueue()
     }
   }
 
   /** what to periodically do about the missing inbound subslot map */
-  private var inSubslotsMissingFunc: ()=>Unit = MiddlewareActor.neutral
+  private var inSubslotsMissingFunc: ()=>Unit = doNothing
 
   def processInSubslotsMissing(): Unit = {
     timesSubslotMissing += 1
@@ -778,7 +871,7 @@ class MiddlewareActor(
     */
   def inSubslotsMissingTest(): Unit = {
     if (inSubslotsMissing.isEmpty) {
-      inSubslotsMissingFunc = MiddlewareActor.neutral
+      inSubslotsMissingFunc = doNothing
     } else {
       inSubslotsMissingFunc = processInSubslotsMissing
       processInSubslotsMissing()
