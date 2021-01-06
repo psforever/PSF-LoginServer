@@ -114,7 +114,15 @@ case class AntiCheatConfig(
 )
 
 case class NetworkConfig(
-    session: SessionConfig
+    session: SessionConfig,
+    middleware: MiddlewareConfig
+)
+
+case class MiddlewareConfig(
+  packetBundlingDelay: FiniteDuration,
+  inReorderTimeout: FiniteDuration,
+  inSubslotMissingDelay: FiniteDuration,
+  inSubslotMissingAttempts: Int
 )
 
 case class SessionConfig(
