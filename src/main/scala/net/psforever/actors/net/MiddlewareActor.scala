@@ -486,9 +486,9 @@ class MiddlewareActor(
               case Some(_packet) =>
                 outQueueBundled.enqueue(_packet)
               case None if requestedSubslot < acceptedSmpSubslot =>
-                log.warn(s"Client indicated an smp of slot $slot prior to $subslot that is no longer in the backlog")
+                log.warn(s"Client indicated an smp of slot $slot prior to $subslot that is no longer logged")
               case None =>
-                log.warn(s"Client indicated an smp of slot $slot prior to $subslot that is not in the backlog")
+                log.warn(s"Client indicated an smp of slot $slot prior to $subslot that is not found")
             }
             Behaviors.same
 
@@ -876,34 +876,18 @@ class MiddlewareActor(
           inSubslotsMissing.synchronized {
             timesSubslotMissing += inSubslotsMissing.size
             inSubslotsMissing.foreach { case (subslot, attempt) =>
-              //signum returns -1 0 1; signum results are +1 for array indices 0 1 2
-              inSubslotsMissingRequestFuncs(math.signum(attempt) + 1)(subslot)
+              val value = attempt - 1
+              if(value > 0) {
+                inSubslotsMissing(subslot) = value
+              } else {
+                inSubslotsMissing.remove(subslot)
+              }
               send(RelatedA(0, subslot))
             }
             inSubslotsMissingRequestsFinished()
           }
         })
     }
-  }
-
-  /** what to do when the remaining attempts at requesting a missing subslot is negative, zero, or positive;
-    * even if the intial number of requests is set to zero, one `RelatedA` request will always be dispatched;
-    * unless initialized incorrectly, it will never be negative */
-  private val inSubslotsMissingRequestFuncs: Seq[Int=>Unit] = Seq(removeSubslotRequest, removeSubslotRequest, nextSubslotRequestFor)
-
-  /**
-    * This subslot request has one less opportunity to have a repeated `RelatedA` dispatched for it.
-    * @param subslot a subslot number
-    */
-  def nextSubslotRequestFor(subslot: Int): Unit = {
-    inSubslotsMissing(subslot) -= 1
-  }
-  /**
-    * This subslot request has no more chances to be have a `RelatedA` dispatched for it.
-    * @param subslot a subslot number
-    */
-  def removeSubslotRequest(subslot: Int): Unit = {
-    inSubslotsMissing.remove(subslot)
   }
 
   /**
