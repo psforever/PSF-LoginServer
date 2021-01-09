@@ -38,7 +38,7 @@ jobs:
         run: |
           echo "REPOSITORY=$(echo $GITHUB_REPOSITORY | tr '[A-Z]' '[a-z]')" >> $GITHUB_ENV
       - name: Build and push Docker image
-        uses: docker/build-push-action@v2.2.1
+        uses: docker/build-push-action@v2.2.2
         with:
           username: ${{ github.actor }}
           password: ${{ github.token }}
