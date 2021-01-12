@@ -32,3 +32,5 @@ logs/
 *.exe
 *.zip
 pscrypto-lib/
+.bsp/
+project/project/

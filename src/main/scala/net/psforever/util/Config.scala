@@ -124,6 +124,8 @@ case class SessionConfig(
 
 case class GameConfig(
     instantActionAms: Boolean,
+    amenityAutorepairRate: Float,
+    amenityAutorepairDrainRate: Float,
     bepRate: Double,
     cepRate: Double,
     newAvatar: NewAvatar

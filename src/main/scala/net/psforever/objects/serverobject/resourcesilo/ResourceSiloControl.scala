@@ -12,6 +12,7 @@ import net.psforever.types.PlanetSideEmpire
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.util.Config
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -28,7 +29,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
   def FactionObject: FactionAffinity = resourceSilo
 
   private[this] val log               = org.log4s.getLogger
-  var panelAnimationFunc: Float => Unit = PanelAnimation
+  var panelAnimationFunc: (ActorRef, Float) => Unit = PanelAnimation
 
   def receive: Receive = {
     case "startup" =>
@@ -138,7 +139,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     */
   def StopNtuBehavior(sender: ActorRef): Unit = {
     panelAnimationFunc = PanelAnimation
-    panelAnimationFunc(0)
+    panelAnimationFunc(sender, 0)
   }
 
   /**
@@ -150,7 +151,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     */
   def HandleNtuRequest(sender: ActorRef, min: Float, max: Float): Unit = {
     val originalAmount = resourceSilo.NtuCapacitor
-    UpdateChargeLevel(-min)
+    UpdateChargeLevel(-(min * Config.app.game.amenityAutorepairDrainRate))
     sender ! Ntu.Grant(resourceSilo, originalAmount - resourceSilo.NtuCapacitor)
   }
 
@@ -159,9 +160,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     */
   def HandleNtuGrant(sender: ActorRef, src: NtuContainer, amount: Float): Unit = {
     if (amount != 0) {
-      val originalAmount = resourceSilo.NtuCapacitor
-      UpdateChargeLevel(amount)
-      panelAnimationFunc(resourceSilo.NtuCapacitor - originalAmount)
+      panelAnimationFunc(sender, amount)
       panelAnimationFunc = SkipPanelAnimation
     }
   }
@@ -174,16 +173,28 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     * @param trigger if positive, activate the animation;
     *                if negative or zero, disable the animation
     */
-  def PanelAnimation(trigger: Float): Unit = {
+  def PanelAnimation(source: ActorRef, trigger: Float): Unit = {
     val zone = resourceSilo.Zone
     zone.VehicleEvents ! VehicleServiceMessage(
       zone.id,
       VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, resourceSilo.GUID, 49, if (trigger > 0) 1 else 0)
-    ) // panel glow on & orb particles on
+    ) // panel glow & orb particles
+    // do not let the trigger charge go to waste, but also do not let the silo be filled
+    // attempting to return it to the source may sabotage an ongoing transfer process
+    val amount = math.min(resourceSilo.MaxNtuCapacitor - resourceSilo.NtuCapacitor, trigger)
+    UpdateChargeLevel(amount - amount*0.1f)
   }
 
   /**
-    * Do nothing this turn.
+    * Update the charge level and decide if the silo is full.
+    * Announce that full-ness to the NTU source.
+    * Although called "Skip", an animation that broadcasts the transfer process should be ongoing at the moment.
     */
-  def SkipPanelAnimation(trigger: Float): Unit = {}
+  def SkipPanelAnimation(source: ActorRef, trigger: Float): Unit = {
+    UpdateChargeLevel(trigger)
+    // immediate termination of ntu requests
+    if (resourceSilo.NtuCapacitor == resourceSilo.MaxNtuCapacitor) {
+      source ! Ntu.Request(0, 0)
+    }
+  }
 }

@@ -69,6 +69,7 @@ trait TransferBehavior {
   def TryStopChargingEvent(container : TransferContainer) : Unit = {
     transferEvent = TransferBehavior.Event.None
     transferTarget match {
+      case Some(_: net.psforever.objects.serverobject.structures.WarpGate) => ;
       case Some(obj) =>
         obj.Actor ! TransferBehavior.Stopping()
       case _ => ;

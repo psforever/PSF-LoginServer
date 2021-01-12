@@ -7,7 +7,7 @@ import net.psforever.objects.vital._
 import net.psforever.objects.vital.resistance.ResistanceProfileMutators
 import net.psforever.objects.vital.resolution.DamageResistanceModel
 
-final case class AutoRepairStats(amount: Int, start: Long, repeat: Long, drain: Float)
+final case class AutoRepairStats(amount: Float, start: Long, repeat: Long, drain: Float)
 
 abstract class AmenityDefinition(objectId: Int)
     extends ObjectDefinition(objectId)

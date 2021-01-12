@@ -5,7 +5,7 @@ import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{ActorRef, Behavior, SupervisorStrategy}
 import akka.{actor => classic}
 import net.psforever.actors.commands.NtuCommand
-import net.psforever.objects.{CommonNtuContainer, NtuContainer}
+import net.psforever.objects.NtuContainer
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.generator.{Generator, GeneratorControl}
 import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
@@ -449,7 +449,7 @@ class BuildingActor(
             Behaviors.same
           case _           =>
             //all other facilities require a storage silo for ntu
-            building.Amenities.find(_.isInstanceOf[NtuContainer]) match {
+            building.NtuSource match {
               case Some(ntuContainer) =>
                 ntuContainer.Actor ! msg //needs to redirect
                 Behaviors.same
@@ -466,8 +466,9 @@ class BuildingActor(
 
 class FakeNtuSource(private val building: Building)
   extends PlanetSideServerObject
-  with CommonNtuContainer {
+  with NtuContainer {
   override def NtuCapacitor = Float.MaxValue
+  override def NtuCapacitor_=(a: Float) = Float.MaxValue
   override def Faction = building.Faction
   override def Zone = building.Zone
   override def Definition = null

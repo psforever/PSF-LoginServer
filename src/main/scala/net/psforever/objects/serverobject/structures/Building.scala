@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorContext
 import net.psforever.actors.zone.BuildingActor
-import net.psforever.objects.{GlobalDefinitions, Player}
+import net.psforever.objects.{GlobalDefinitions, NtuContainer, Player}
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.generator.Generator
 import net.psforever.objects.serverobject.hackable.Hackable
@@ -89,6 +89,13 @@ class Building(
     zone.Lattice find this match {
       case Some(x) => Some(x.diSuccessors.map(x => x.toOuter))
       case None    => None;
+    }
+  }
+
+  def NtuSource: Option[NtuContainer] = {
+    Amenities.find(_.isInstanceOf[NtuContainer]) match {
+      case Some(o: NtuContainer) => Some(o)
+      case _                     => None
     }
   }
 

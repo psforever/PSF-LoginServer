@@ -276,9 +276,9 @@ class ResourceSiloControlUpdate1Test extends ActorTest {
       val reply1 = zoneEvents.receiveOne(500 milliseconds)
       val reply2 = buildingEvents.receiveOne(500 milliseconds)
       assert(obj.NtuCapacitor == 305)
-      assert(obj.CapacitorDisplay == 4)
+      assert(obj.CapacitorDisplay == 3)
       assert(reply1 match {
-        case AvatarServiceMessage("nowhere", AvatarAction.PlanetsideAttribute(PlanetSideGUID(1), 45, 4)) => true
+        case AvatarServiceMessage("nowhere", AvatarAction.PlanetsideAttribute(PlanetSideGUID(1), 45, 3)) => true
         case _                                                                                           => false
       })
       assert(reply2.isInstanceOf[BuildingActor.MapUpdate])
@@ -321,7 +321,7 @@ class ResourceSiloControlUpdate2Test extends ActorTest {
       val reply1 = zoneEvents.receiveOne(1000 milliseconds)
       val reply2 = buildingEvents.receiveOne(1000 milliseconds)
       assert(obj.NtuCapacitor == 205)
-      assert(obj.CapacitorDisplay == 3)
+      assert(obj.CapacitorDisplay == 2)
       assert(reply1.isInstanceOf[AvatarServiceMessage])
       assert(reply1.asInstanceOf[AvatarServiceMessage].forChannel == "nowhere")
       assert(reply1.asInstanceOf[AvatarServiceMessage].actionMessage.isInstanceOf[AvatarAction.PlanetsideAttribute])
@@ -344,7 +344,7 @@ class ResourceSiloControlUpdate2Test extends ActorTest {
           .asInstanceOf[AvatarServiceMessage]
           .actionMessage
           .asInstanceOf[AvatarAction.PlanetsideAttribute]
-          .attribute_value == 3
+          .attribute_value == 2
       )
 
       assert(reply2.isInstanceOf[BuildingActor.MapUpdate])
@@ -400,18 +400,16 @@ class ResourceSiloControlNoUpdateTest extends ActorTest {
       obj.NtuCapacitor = 250
       obj.LowNtuWarningOn = false
       assert(obj.NtuCapacitor == 250)
-      assert(obj.CapacitorDisplay == 3)
+      assert(obj.CapacitorDisplay == 2)
       assert(!obj.LowNtuWarningOn)
-      obj.Actor ! ResourceSilo.UpdateChargeLevel(50)
+      obj.Actor ! ResourceSilo.UpdateChargeLevel(49)
 
       expectNoMessage(500 milliseconds)
       zoneEvents.expectNoMessage(500 milliseconds)
-      buildingEvents.expectNoMessage(500 milliseconds)
-      assert(
-        obj.NtuCapacitor == 299 || obj.NtuCapacitor == 300
-      ) // Just in case the capacitor level drops while waiting for the message check 299 & 300
-      assert(obj.CapacitorDisplay == 3)
+      assert(obj.CapacitorDisplay == 2)
+      assert(obj.NtuCapacitor < 300)
       assert(!obj.LowNtuWarningOn)
+      buildingEvents.expectNoMessage(500 milliseconds)
     }
   }
 }

@@ -1,5 +1,5 @@
 // Copyright (c) 2020 PSForever
-package objects
+package actor.objects
 
 import akka.actor.Props
 import akka.testkit.TestProbe
@@ -78,10 +78,8 @@ class AutoRepairRequestNtuTest extends FreedContextActorTest {
       assert(terminal.Health < terminal.MaxHealth)
       val buildingMsg = buildingProbe.receiveOne(max = 600 milliseconds)
       assert(buildingMsg match {
-        case BuildingActor.Ntu(NtuCommand.Request(drain, _)) =>
-          drain == terminal.Definition.autoRepair.get.drain
-        case _ =>
-          false
+        case BuildingActor.Ntu(NtuCommand.Request(_, _)) => true
+        case _                                           => false
       })
     }
   }
@@ -142,11 +140,10 @@ class AutoRepairRequestNtuRepeatTest extends FreedContextActorTest {
       (0 to 3).foreach { _ =>
         val buildingMsg = buildingProbe.receiveOne(max = 1000 milliseconds)
         assert(buildingMsg match {
-          case BuildingActor.Ntu(NtuCommand.Request(drain, _)) =>
-            drain == terminal.Definition.autoRepair.get.drain
-          case _ =>
-            false
+          case BuildingActor.Ntu(NtuCommand.Request(_, _)) => true
+          case _                                           => false
         })
+        terminal.Actor ! NtuCommand.Grant(null, 0)
       }
     }
   }
@@ -268,10 +265,8 @@ class AutoRepairRestoreRequestNtuTest extends FreedContextActorTest {
       terminal.Actor ! BuildingActor.SuppliedWithNtu()
       val buildingMsg = buildingProbe.receiveOne(max = 600 milliseconds)
       assert(buildingMsg match {
-        case BuildingActor.Ntu(NtuCommand.Request(drain, _)) =>
-          drain == terminal.Definition.autoRepair.get.drain
-        case _ =>
-          false
+        case BuildingActor.Ntu(NtuCommand.Request(_, _)) => true
+        case _                                               => false
       })
     }
   }

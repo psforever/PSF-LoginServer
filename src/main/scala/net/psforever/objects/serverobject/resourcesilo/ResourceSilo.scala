@@ -24,7 +24,15 @@ class ResourceSilo extends Amenity with CommonNtuContainer {
     LowNtuWarningOn
   }
 
-  def CapacitorDisplay : Long = scala.math.ceil((NtuCapacitor / MaxNtuCapacitor) * 10).toInt
+  def CapacitorDisplay : Long = {
+    if(NtuCapacitor == 0) {
+      0
+    } else if(NtuCapacitor <= 0.1f * MaxNtuCapacitor) {
+      1
+    } else {
+      ((NtuCapacitor / MaxNtuCapacitor) * 10).toInt
+    }
+  }
 
   def Definition: ResourceSiloDefinition = GlobalDefinitions.resource_silo
 
