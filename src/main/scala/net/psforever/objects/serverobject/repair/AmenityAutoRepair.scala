@@ -96,7 +96,8 @@ trait AmenityAutoRepair
           wholeRepairAmount + wholeOverflow
         }
         PerformRepairs(obj, finalRepairAmount)
-        val taskTime = System.currentTimeMillis() - autoRepairQueueTask.get
+        val currentTime = System.currentTimeMillis()
+        val taskTime = currentTime - autoRepairQueueTask.getOrElse(currentTime)
         autoRepairQueueTask = Some(0L)
         trySetupAutoRepairSubsequent(taskTime)
       case _ =>
@@ -214,7 +215,7 @@ trait AmenityAutoRepair
 
   /**
     * As long as setup information regarding the auto-repair process can be discovered in the amenity's definition
-    * and the amenity actually requires to be performed,
+    * and the amenity actually requires repairs to be performed,
     * perform the setup for the auto-repair operation.
     * This is the initial delay before the first repair attempt.
     */
@@ -230,7 +231,7 @@ trait AmenityAutoRepair
 
   /**
     * As long as setup information regarding the auto-repair process can be discovered in the amenity's definition
-    * and the amenity actually requires to be performed,
+    * and the amenity actually requires repairs to be performed,
     * perform the setup for the auto-repair operation.
     * This is the delay before every subsequent repair attempt.
     * @param delayOffset an adjustment to the normal delay applied to the subsequent operation (ms);
