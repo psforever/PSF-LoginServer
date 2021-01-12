@@ -1,10 +1,10 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.avatar
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, ActorRef, Props, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.objects.{Player, _}
-import net.psforever.objects.ballistics.{ObjectSource, PlayerSource}
+import net.psforever.objects.ballistics.PlayerSource
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
 import net.psforever.objects.loadouts.Loadout
@@ -18,18 +18,17 @@ import net.psforever.objects.serverobject.repair.Repairable
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
-import net.psforever.objects.zones.Zone
+import net.psforever.objects.zones._
 import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.types._
 import net.psforever.services.{RemoverActor, Service}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import akka.actor.typed
 import net.psforever.objects.locker.LockerContainerControl
-import net.psforever.objects.serverobject.painbox.Painbox
-import net.psforever.objects.vital.base.DamageResolution
-import net.psforever.objects.vital.etc.SuicideReason
+import net.psforever.objects.serverobject.environment._
+import net.psforever.objects.vital.environment.EnvironmentReason
+import net.psforever.objects.vital.etc.{PainboxReason, SuicideReason}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 
 import scala.concurrent.duration._
@@ -40,7 +39,8 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     with Damageable
     with ContainableBehavior
     with AggravatedBehavior
-    with AuraEffectBehavior {
+    with AuraEffectBehavior
+    with RespondsToZoneEnvironment {
 
   def JammableObject   = player
 
@@ -49,15 +49,23 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
   def ContainerObject = player
 
   def AggravatedObject = player
+
+  def AuraTargetObject = player
   ApplicableEffect(Aura.Plasma)
   ApplicableEffect(Aura.Napalm)
   ApplicableEffect(Aura.Comet)
   ApplicableEffect(Aura.Fire)
 
-  def AuraTargetObject = player
+  def InteractiveObject = player
+  SetInteraction(EnvironmentAttribute.Water, doInteractingWithWater)
+  SetInteraction(EnvironmentAttribute.Lava, doInteractingWithLava)
+  SetInteraction(EnvironmentAttribute.Death, doInteractingWithDeath)
+  SetInteractionStop(EnvironmentAttribute.Water, stopInteractingWithWater)
 
   private[this] val log       = org.log4s.getLogger(player.Name)
   private[this] val damageLog = org.log4s.getLogger(Damageable.LogChannel)
+  /** suffocating, or regaining breath? */
+  var submergedCondition: Option[OxygenState] = None
 
   /** control agency for the player's locker container (dedicated inventory slot #5) */
   val lockerControlAgent: ActorRef = {
@@ -82,33 +90,20 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       .orElse(aggravatedBehavior)
       .orElse(auraBehavior)
       .orElse(containerBehavior)
+      .orElse(environmentBehavior)
       .orElse {
         case Player.Die(Some(reason)) =>
           if (player.isAlive) {
             //primary death
             PerformDamage(player, reason.calculate())
-            if(player.Health > 0 || player.isAlive) {
-              //that wasn't good enough
-              DestructionAwareness(player, None)
-            }
+            suicide()
           }
 
         case Player.Die(None) =>
-          if (player.isAlive) {
-            //suicide
-            PerformDamage(
-              player,
-              DamageInteraction(
-                DamageResolution.Resolved,
-                PlayerSource(player),
-                SuicideReason(),
-                player.Position
-              ).calculate()
-            )
-          }
+          suicide()
 
         case CommonMessages.Use(user, Some(item: Tool))
-            if item.Definition == GlobalDefinitions.medicalapplicator && player.isAlive =>
+          if item.Definition == GlobalDefinitions.medicalapplicator && player.isAlive =>
           //heal
           val originalHealth = player.Health
           val definition     = player.Definition
@@ -564,7 +559,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     if (target.Health > 0) {
       DamageAwareness(target, cause, damageToHealth, damageToArmor, damageToStamina, damageToCapacitor)
     } else {
-      DestructionAwareness(target, Some(cause))
+      DestructionAwareness(target, cause)
     }
   }
 
@@ -639,11 +634,6 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                       )
                     )
                 }
-              case source: ObjectSource if source.obj.isInstanceOf[Painbox] =>
-                zone.AvatarEvents ! AvatarServiceMessage(
-                  target.Name,
-                  AvatarAction.EnvironmentalDamage(target.GUID, source.obj.GUID, countableDamage)
-                )
               case source =>
                 zone.AvatarEvents ! AvatarServiceMessage(
                   target.Name,
@@ -654,6 +644,18 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                 )
             }
           case None =>
+            cause.interaction.cause match {
+              case o: PainboxReason =>
+                zone.AvatarEvents ! AvatarServiceMessage(
+                  target.Name,
+                  AvatarAction.EnvironmentalDamage(target.GUID, o.entity.GUID, countableDamage)
+                )
+              case _ =>
+                zone.AvatarEvents ! AvatarServiceMessage(
+                  target.Name,
+                  AvatarAction.EnvironmentalDamage(target.GUID, ValidPlanetSideGUID(0), countableDamage)
+                )
+            }
         }
       }
       else {
@@ -687,7 +689,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     * @param target na
     * @param cause na
     */
-  def DestructionAwareness(target: Player, cause: Option[DamageResult]): Unit = {
+  def DestructionAwareness(target: Player, cause: DamageResult): Unit = {
     val player_guid  = target.GUID
     val pos          = target.Position
     val respawnTimer = 300000 //milliseconds
@@ -702,7 +704,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     EndAllAggravation()
     //unjam
     CancelJammeredSound(target)
-    CancelJammeredStatus(target)
+    super.CancelJammeredStatus(target)
     //uninitialize implants
     avatarActor ! AvatarActor.DeinitializeImplants()
     events ! AvatarServiceMessage(
@@ -736,10 +738,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       target.Capacitor = 0
       events ! AvatarServiceMessage(nameChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 7, 0)) // capacitor
     }
-    val attribute = cause match {
-      case Some(reason) => DamageableEntity.attributionTo(reason, target.Zone, player_guid)
-      case None => player_guid
-    }
+    val attribute = DamageableEntity.attributionTo(cause, target.Zone, player_guid)
     events ! AvatarServiceMessage(
       nameChannel,
       AvatarAction.SendResponse(
@@ -756,17 +755,17 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     )
     //TODO other methods of death?
     val pentry = PlayerSource(target)
-    (cause match {
-      case Some(result) =>
-        result.adversarial
-      case None =>
+    (cause.adversarial match {
+      case out @ Some(_) =>
+        out
+      case _ =>
         target.LastDamage match {
           case Some(attack) if System.currentTimeMillis() - attack.interaction.hitTime < (10 seconds).toMillis =>
             attack.adversarial
           case None =>
             None
         }
-    }) match {
+      }) match {
       case Some(adversarial) =>
         events ! AvatarServiceMessage(
           zoneChannel,
@@ -774,6 +773,19 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         )
       case None =>
         events ! AvatarServiceMessage(zoneChannel, AvatarAction.DestroyDisplay(pentry, pentry, 0))
+    }
+  }
+
+  def suicide() : Unit = {
+    if (player.Health > 0 || player.isAlive) {
+      PerformDamage(
+        player,
+        DamageInteraction(
+          PlayerSource(player),
+          SuicideReason(),
+          player.Position
+        ).calculate()
+      )
     }
   }
 
@@ -967,6 +979,109 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     val zone = target.Zone
     val value = target.Aura.foldLeft(0)(_ + PlayerControl.auraEffectToAttributeValue(_))
     zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.PlanetsideAttributeToAll(target.GUID, 54, value))
+  }
+
+  /**
+    * Water causes players to slowly suffocate.
+    * When they (finally) drown, they will die.
+    * @param obj the target
+    * @param body the environment
+    * @param data additional interaction information, if applicable;
+    *             for players, this will be data from any mounted vehicles
+    */
+  def doInteractingWithWater(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
+    val (effect: Boolean, time: Long, percentage: Float) =
+      RespondsToZoneEnvironment.drowningInWateryConditions(obj, submergedCondition, interactionTime)
+    if (effect) {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      interactionTime = System.currentTimeMillis() + time
+      submergedCondition = Some(OxygenState.Suffocation)
+      interactionTimer = context.system.scheduler.scheduleOnce(delay = time milliseconds, self, Player.Die())
+      //inform the player that they are in trouble
+      player.Zone.AvatarEvents ! AvatarServiceMessage(
+        player.Name,
+        AvatarAction.OxygenState(OxygenStateTarget(player.GUID, OxygenState.Suffocation, percentage), data)
+      )
+    } else if (data.isDefined) {
+      //inform the player that their mounted vehicle is in trouble (that they are in trouble)
+      player.Zone.AvatarEvents ! AvatarServiceMessage(
+        player.Name,
+        AvatarAction.OxygenState(OxygenStateTarget(player.GUID, OxygenState.Suffocation, percentage), data)
+      )
+    }
+  }
+
+  /**
+    * Lava causes players to take (considerable) damage until they inevitably die.
+    * @param obj the target
+    * @param body the environment
+    * @param data additional interaction information, if applicable
+    */
+  def doInteractingWithLava(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
+    if (player.isAlive) {
+      PerformDamage(
+        player,
+        DamageInteraction(
+          PlayerSource(player),
+          EnvironmentReason(body, player),
+          player.Position
+        ).calculate()
+      )
+      if (player.Health > 0) {
+        StartAuraEffect(Aura.Fire, duration = 1250L) //burn
+        import scala.concurrent.ExecutionContext.Implicits.global
+        interactionTimer = context.system.scheduler.scheduleOnce(delay = 250 milliseconds, self, InteractWithEnvironment(player, body, None))
+      }
+    }
+  }
+
+  /**
+    * Death causes players to die outright.
+    * It's not even considered as environmental damage anymore.
+    * @param obj the target
+    * @param body the environment
+    * @param data additional interaction information, if applicable
+    */
+  def doInteractingWithDeath(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
+    suicide()
+  }
+
+  /**
+    * When out of water, the player is no longer suffocating.
+    * The player does have to endure a recovery period to get back to normal, though.
+    * @param obj the target
+    * @param body the environment
+    * @param data additional interaction information, if applicable;
+    *             for players, this will be data from any mounted vehicles
+    */
+  def stopInteractingWithWater(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
+    val (effect: Boolean, time: Long, percentage: Float) =
+      RespondsToZoneEnvironment.recoveringFromWateryConditions(obj, submergedCondition, interactionTime)
+    if (percentage == 100f) {
+      recoverFromEnvironmentInteracting()
+    }
+    if (effect) {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      submergedCondition = Some(OxygenState.Recovery)
+      interactionTime = System.currentTimeMillis() + time
+      interactionTimer = context.system.scheduler.scheduleOnce(delay = time milliseconds, self, RecoveredFromEnvironmentInteraction())
+      //inform the player
+      player.Zone.AvatarEvents ! AvatarServiceMessage(
+        player.Name,
+        AvatarAction.OxygenState(OxygenStateTarget(player.GUID, OxygenState.Recovery, percentage), data)
+      )
+    } else if (data.isDefined) {
+      //inform the player
+      player.Zone.AvatarEvents ! AvatarServiceMessage(
+        player.Name,
+        AvatarAction.OxygenState(OxygenStateTarget(player.GUID, OxygenState.Recovery, percentage), data)
+      )
+    }
+  }
+
+  override def recoverFromEnvironmentInteracting(): Unit = {
+    super.recoverFromEnvironmentInteracting()
+    submergedCondition = None
   }
 }
 

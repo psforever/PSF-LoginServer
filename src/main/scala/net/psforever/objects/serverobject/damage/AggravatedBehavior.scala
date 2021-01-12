@@ -33,6 +33,10 @@ trait AggravatedBehavior {
            (o.projectile.quality == ProjectileQuality.AggravatesTarget ||
             damage.targets.exists(validation => validation.test(AggravatedObject))) =>
         TryAggravationEffectActivate(damage, data.interaction)
+      case (_: DamageReason, Some(damage))
+        if damage.effect_type != Aura.Nothing &&
+            damage.targets.exists(validation => validation.test(AggravatedObject)) =>
+        TryAggravationEffectActivate(damage, data.interaction)
       case _ =>
         None
     }

@@ -8,6 +8,7 @@ import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.aura.AuraContainer
+import net.psforever.objects.serverobject.environment.InteractsWithZoneEnvironment
 import net.psforever.objects.vital.resistance.ResistanceProfile
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.interaction.DamageInteraction
@@ -20,6 +21,7 @@ import scala.util.{Success, Try}
 
 class Player(var avatar: Avatar)
     extends PlanetSideServerObject
+    with InteractsWithZoneEnvironment
     with FactionAffinity
     with Vitality
     with ResistanceProfile
@@ -27,8 +29,6 @@ class Player(var avatar: Avatar)
     with JammableUnit
     with ZoneAware
     with AuraContainer {
-  Health = 0       //player health is artificially managed as a part of their lifecycle; start entity as dead
-  Destroyed = true //see isAlive
   private var backpack: Boolean = false
   private var armor: Int        = 0
 
@@ -66,6 +66,9 @@ class Player(var avatar: Avatar)
 
   val squadLoadouts = new LoadoutManager(10)
 
+  //init
+  Health = 0       //player health is artificially managed as a part of their lifecycle; start entity as dead
+  Destroyed = true //see isAlive
   Player.SuitSetup(this, exosuit)
 
   def Definition: AvatarDefinition = avatar.definition

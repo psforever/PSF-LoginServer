@@ -222,6 +222,7 @@ object Zones {
 
           zoneMap.checksum = info.checksum
           zoneMap.scale = info.scale
+          zoneMap.environment = info.environment
 
           zoneMap.zipLinePaths = zplData.toList
 

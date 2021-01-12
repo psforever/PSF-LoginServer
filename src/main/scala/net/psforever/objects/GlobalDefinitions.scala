@@ -28,6 +28,7 @@ import net.psforever.objects.vital.projectile._
 import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.vital.{ComplexDeployableResolutions, MaxResolutions, SimpleResolutions}
 import net.psforever.types.{ExoSuitType, ImplantType, PlanetSideEmpire, Vector3}
+import net.psforever.types._
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -37,6 +38,9 @@ object GlobalDefinitions {
   val avatar = new AvatarDefinition(121)
   avatar.MaxHealth = 100
   avatar.Damageable = true
+  avatar.DrownAtMaxDepth = true
+  avatar.MaxDepth = 1.609375f //Male, standing, not MAX
+  avatar.UnderwaterLifespan(suffocation = 60000L, recovery = 10000L)
   /*
   exo-suits
    */
@@ -1620,6 +1624,23 @@ object GlobalDefinitions {
         case _ =>
           false
       }
+    }
+  }
+
+  def MaxDepth(obj: PlanetSideGameObject): Float = {
+    obj match {
+      case p: Player =>
+        if (p.Crouching) {
+          1.093750f // same regardless of gender
+        } else if (p.ExoSuit == ExoSuitType.MAX) {
+          1.906250f // VS female MAX
+        } else if (p.Sex == CharacterGender.Male) {
+          obj.Definition.MaxDepth // male
+        } else {
+          1.546875f // female
+        }
+      case _ =>
+        obj.Definition.MaxDepth
     }
   }
 
@@ -5607,6 +5628,9 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    fury.DrownAtMaxDepth = true
+    fury.MaxDepth = 1.3f
+    fury.UnderwaterLifespan(suffocation = 5000L, recovery = 2500L)
 
     quadassault.Name = "quadassault" // Basilisk
     quadassault.MaxHealth = 650
@@ -5635,6 +5659,9 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    quadassault.DrownAtMaxDepth = true
+    quadassault.MaxDepth = 1.3f
+    quadassault.UnderwaterLifespan(suffocation = 5000L, recovery = 2500L)
 
     quadstealth.Name = "quadstealth" // Wraith
     quadstealth.MaxHealth = 650
@@ -5663,6 +5690,9 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    quadstealth.DrownAtMaxDepth = true
+    quadstealth.MaxDepth = 1.25f
+    quadstealth.UnderwaterLifespan(suffocation = 5000L, recovery = 2500L)
 
     two_man_assault_buggy.Name = "two_man_assault_buggy" // Harasser
     two_man_assault_buggy.MaxHealth = 1250
@@ -5693,6 +5723,9 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    two_man_assault_buggy.DrownAtMaxDepth = true
+    two_man_assault_buggy.MaxDepth = 1.5f
+    two_man_assault_buggy.UnderwaterLifespan(suffocation = 5000L, recovery = 2500L)
 
     skyguard.Name = "skyguard"
     skyguard.MaxHealth = 1000
@@ -5715,6 +5748,7 @@ object GlobalDefinitions {
     skyguard.AutoPilotSpeeds = (22, 8)
     skyguard.DestroyedModel = Some(DestroyedVehicle.Skyguard)
     skyguard.JackingDuration = Array(0, 15, 5, 3)
+
     skyguard.explodes = true
     skyguard.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
@@ -5724,6 +5758,9 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    skyguard.DrownAtMaxDepth = true
+    skyguard.MaxDepth = 1.5f
+    skyguard.UnderwaterLifespan(suffocation = 5000L, recovery = 2500L)
 
     threemanheavybuggy.Name = "threemanheavybuggy" // Marauder
     threemanheavybuggy.MaxHealth = 1700
@@ -5760,6 +5797,9 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    threemanheavybuggy.DrownAtMaxDepth = true
+    threemanheavybuggy.MaxDepth = 1.83f
+    threemanheavybuggy.UnderwaterLifespan(suffocation = 5000L, recovery = 2500L)
 
     twomanheavybuggy.Name = "twomanheavybuggy" // Enforcer
     twomanheavybuggy.MaxHealth = 1800
@@ -5791,6 +5831,9 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    twomanheavybuggy.DrownAtMaxDepth = true
+    twomanheavybuggy.MaxDepth = 1.95f
+    twomanheavybuggy.UnderwaterLifespan(suffocation = 5000L, recovery = 2500L)
 
     twomanhoverbuggy.Name = "twomanhoverbuggy" // Thresher
     twomanhoverbuggy.MaxHealth = 1600
@@ -5822,6 +5865,8 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    twomanhoverbuggy.DrownAtMaxDepth = true
+    twomanhoverbuggy.UnderwaterLifespan(suffocation = 45000L, recovery = 5000L) //but the thresher hovers over water, so ...?
 
     mediumtransport.Name = "mediumtransport" // Deliverer
     mediumtransport.MaxHealth = 2500
@@ -5860,6 +5905,9 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    mediumtransport.DrownAtMaxDepth = false
+    mediumtransport.MaxDepth = 1.2f
+    mediumtransport.UnderwaterLifespan(suffocation = -1, recovery = -1)
 
     battlewagon.Name = "battlewagon" // Raider
     battlewagon.MaxHealth = 2500
@@ -5901,6 +5949,9 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    battlewagon.DrownAtMaxDepth = true
+    battlewagon.MaxDepth = 1.2f
+    battlewagon.UnderwaterLifespan(suffocation = -1, recovery = -1)
 
     thunderer.Name = "thunderer"
     thunderer.MaxHealth = 2500
@@ -5939,6 +5990,9 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    thunderer.DrownAtMaxDepth = true
+    thunderer.MaxDepth = 1.2f
+    thunderer.UnderwaterLifespan(suffocation = -1, recovery = -1)
 
     aurora.Name = "aurora"
     aurora.MaxHealth = 2500
@@ -5977,6 +6031,9 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    aurora.DrownAtMaxDepth = true
+    aurora.MaxDepth = 1.2f
+    aurora.UnderwaterLifespan(suffocation = -1, recovery = -1)
 
     apc_tr.Name = "apc_tr" // Juggernaut
     apc_tr.MaxHealth = 6000
@@ -6038,6 +6095,9 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    apc_tr.DrownAtMaxDepth = true
+    apc_tr.MaxDepth = 3
+    apc_tr.UnderwaterLifespan(suffocation = 15000L, recovery = 7500L)
 
     apc_nc.Name = "apc_nc" // Vindicator
     apc_nc.MaxHealth = 6000
@@ -6099,6 +6159,9 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    apc_nc.DrownAtMaxDepth = true
+    apc_nc.MaxDepth = 3
+    apc_nc.UnderwaterLifespan(suffocation = 15000L, recovery = 7500L)
 
     apc_vs.Name = "apc_vs" // Leviathan
     apc_vs.MaxHealth = 6000
@@ -6160,6 +6223,9 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    apc_vs.DrownAtMaxDepth = true
+    apc_vs.MaxDepth = 3
+    apc_vs.UnderwaterLifespan(suffocation = 15000L, recovery = 7500L)
 
     lightning.Name = "lightning"
     lightning.MaxHealth = 2000
@@ -6189,6 +6255,9 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    lightning.DrownAtMaxDepth = true
+    lightning.MaxDepth = 1.38f
+    lightning.UnderwaterLifespan(suffocation = 12000L, recovery = 6000L)
 
     prowler.Name = "prowler"
     prowler.MaxHealth = 4800
@@ -6223,6 +6292,9 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    prowler.DrownAtMaxDepth = true
+    prowler.MaxDepth = 3
+    prowler.UnderwaterLifespan(suffocation = 12000L, recovery = 6000L)
 
     vanguard.Name = "vanguard"
     vanguard.MaxHealth = 5400
@@ -6253,6 +6325,9 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    vanguard.DrownAtMaxDepth = true
+    vanguard.MaxDepth = 2.7f
+    vanguard.UnderwaterLifespan(suffocation = 12000L, recovery = 6000L)
 
     magrider.Name = "magrider"
     magrider.MaxHealth = 4200
@@ -6285,6 +6360,9 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    magrider.DrownAtMaxDepth = true
+    magrider.MaxDepth = 2
+    magrider.UnderwaterLifespan(suffocation = 45000L, recovery = 5000L) //but the magrider hovers over water, so ...?
 
     val utilityConverter = new UtilityVehicleConverter
     ant.Name = "ant"
@@ -6315,6 +6393,9 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    ant.DrownAtMaxDepth = true
+    ant.MaxDepth = 2
+    ant.UnderwaterLifespan(suffocation = 12000L, recovery = 6000L)
 
     ams.Name = "ams"
     ams.MaxHealth = 5000 // Temporary - original value is 3000
@@ -6348,6 +6429,9 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    ams.DrownAtMaxDepth = true
+    ams.MaxDepth = 3
+    ams.UnderwaterLifespan(suffocation = 5000L, recovery = 5000L)
 
     val variantConverter = new VariantVehicleConverter
     router.Name = "router"
@@ -6381,6 +6465,9 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    router.DrownAtMaxDepth = true
+    router.MaxDepth = 2
+    router.UnderwaterLifespan(suffocation = 45000L, recovery = 5000L) //but the router hovers over water, so ...?
 
     switchblade.Name = "switchblade"
     switchblade.MaxHealth = 1750
@@ -6414,6 +6501,9 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    switchblade.DrownAtMaxDepth = true
+    switchblade.MaxDepth = 2
+    switchblade.UnderwaterLifespan(suffocation = 45000L, recovery = 5000L) //but the switchblade hovers over water, so ...?
 
     flail.Name = "flail"
     flail.MaxHealth = 2400
@@ -6445,6 +6535,9 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    flail.DrownAtMaxDepth = true
+    flail.MaxDepth = 2
+    flail.UnderwaterLifespan(suffocation = 45000L, recovery = 5000L) //but the flail hovers over water, so ...?
 
     mosquito.Name = "mosquito"
     mosquito.MaxHealth = 665
@@ -6476,6 +6569,8 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    mosquito.DrownAtMaxDepth = true
+    mosquito.MaxDepth = 2 //flying vehicles will automatically disable
 
     lightgunship.Name = "lightgunship" // Reaver
     lightgunship.MaxHealth = 1000
@@ -6508,6 +6603,8 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    lightgunship.DrownAtMaxDepth = true
+    lightgunship.MaxDepth = 2 //flying vehicles will automatically disable
 
     wasp.Name = "wasp"
     wasp.MaxHealth = 515
@@ -6539,6 +6636,8 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    wasp.DrownAtMaxDepth = true
+    wasp.MaxDepth = 2 //flying vehicles will automatically disable
 
     liberator.Name = "liberator"
     liberator.MaxHealth = 2500
@@ -6578,6 +6677,8 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    liberator.DrownAtMaxDepth = true
+    liberator.MaxDepth = 2 //flying vehicles will automatically disable
 
     vulture.Name = "vulture"
     vulture.MaxHealth = 2500
@@ -6618,6 +6719,8 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    vulture.DrownAtMaxDepth = true
+    vulture.MaxDepth = 2 //flying vehicles will automatically disable
 
     dropship.Name = "dropship" // Galaxy
     dropship.MaxHealth = 5000
@@ -6690,6 +6793,8 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    dropship.DrownAtMaxDepth = true
+    dropship.MaxDepth = 2
 
     galaxy_gunship.Name = "galaxy_gunship"
     galaxy_gunship.MaxHealth = 6000
@@ -6741,6 +6846,8 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    galaxy_gunship.DrownAtMaxDepth = true
+    galaxy_gunship.MaxDepth = 2
 
     lodestar.Name = "lodestar"
     lodestar.MaxHealth = 5000
@@ -6780,6 +6887,8 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    lodestar.DrownAtMaxDepth = true
+    lodestar.MaxDepth = 2
 
     phantasm.Name = "phantasm"
     phantasm.MaxHealth = 2500
@@ -6820,6 +6929,8 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = RadialDegrade
     }
+    phantasm.DrownAtMaxDepth = true
+    phantasm.MaxDepth = 2
 
     droppod.Name = "droppod"
     droppod.MaxHealth = 20000
@@ -6832,6 +6943,7 @@ object GlobalDefinitions {
     droppod.DeconstructionTime = Some(5 seconds)
     droppod.DestroyedModel = None //the adb calls out a droppod; the cyclic nature of this confounds me
     droppod.DamageUsing = DamageCalculations.AgainstAircraft
+    droppod.DrownAtMaxDepth = false
   }
 
   /**

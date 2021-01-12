@@ -2,7 +2,6 @@ package net.psforever.actors.net
 
 import java.net.InetSocketAddress
 import java.security.{SecureRandom, Security}
-
 import akka.actor.Cancellable
 import akka.actor.typed.{ActorRef, ActorTags, Behavior, PostStop, Signal}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
@@ -34,6 +33,7 @@ import net.psforever.packet.game.{ChangeFireModeMessage, CharacterInfoMessage, K
 import scodec.Attempt.{Failure, Successful}
 import scodec.bits.{BitVector, ByteVector, HexStringSyntax}
 import scodec.interop.akka.EnrichedByteVector
+
 import javax.crypto.spec.SecretKeySpec
 import net.psforever.packet.PacketCoding.CryptoCoding
 import net.psforever.util.{DiffieHellman, Md5Mac}
@@ -42,7 +42,7 @@ import scodec.Attempt
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.ExecutionContextExecutor
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 import scala.concurrent.duration._
 
 /** MiddlewareActor sits between the raw UDP socket and the "main" actors (either login or session) and handles
@@ -90,6 +90,7 @@ class MiddlewareActor(
   import MiddlewareActor._
 
   implicit val ec: ExecutionContextExecutor = context.executionContext
+  implicit val executor: ExecutionContext   = context.executionContext
 
   private[this] val log = org.log4s.getLogger
 
@@ -165,6 +166,7 @@ class MiddlewareActor(
   val queueProcessor: Cancellable = {
     context.system.scheduler.scheduleWithFixedDelay(10.milliseconds, 10.milliseconds)(() => {
       try {
+
         if (outQueue.nonEmpty && outQueueBundled.isEmpty) {
           var length = 0L
           val bundle = outQueue
@@ -484,7 +486,7 @@ class MiddlewareActor(
             log.info(s"Client indicated a packet is missing prior to slot '$slot' and subslot '$subslot'")
             outSlottedMetaPackets.find(_.subslot == subslot - 1) match {
               case Some(_packet) => outQueueBundled.enqueue(_packet)
-              case None         => log.warn(s"Client requested unknown subslot '$subslot'")
+              case None          => log.warn(s"Client requested unknown subslot '$subslot'")
             }
             Behaviors.same
 
@@ -527,7 +529,7 @@ class MiddlewareActor(
   def in(packet: Attempt[PlanetSidePacket]): Unit = {
     packet match {
       case Successful(_packet) => in(_packet)
-      case Failure(cause)     => log.error(cause.message)
+      case Failure(cause)      => log.error(cause.message)
     }
   }
 

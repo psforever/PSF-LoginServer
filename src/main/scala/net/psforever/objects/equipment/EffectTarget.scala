@@ -42,7 +42,7 @@ object EffectTarget {
     def RepairSilo(target: PlanetSideGameObject): Boolean =
       target match {
         case v: Vehicle =>
-          !GlobalDefinitions.isFlightVehicle(v.Definition) && v.Health > 0 && v.Health < v.MaxHealth && v.History.find(x => x.isInstanceOf[DamagingActivity] && x.t >= (System.nanoTime - 5000000000L)).isEmpty
+          !GlobalDefinitions.isFlightVehicle(v.Definition) && v.Health > 0 && v.Health < v.MaxHealth && v.History.exists(x => x.isInstanceOf[DamagingActivity] && x.time >= (System.currentTimeMillis() - 5000000000L))
         case _ =>
           false
       }
@@ -50,7 +50,7 @@ object EffectTarget {
     def PadLanding(target: PlanetSideGameObject): Boolean =
       target match {
         case v: Vehicle =>
-          GlobalDefinitions.isFlightVehicle(v.Definition) && v.Health > 0 && v.Health < v.MaxHealth && v.History.find(x => x.isInstanceOf[DamagingActivity] && x.t >= (System.nanoTime - 5000000000L)).isEmpty
+          GlobalDefinitions.isFlightVehicle(v.Definition) && v.Health > 0 && v.Health < v.MaxHealth && v.History.exists(x => x.isInstanceOf[DamagingActivity] && x.time >= (System.currentTimeMillis() - 5000000000L))
         case _ =>
           false
       }

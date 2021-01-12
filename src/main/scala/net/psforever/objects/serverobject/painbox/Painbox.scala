@@ -13,6 +13,8 @@ object Painbox {
   final case class Tick()
   final case class Stop()
 
+  final case class EnvironmentalDamage(obj: Painbox, amount: Int)
+
   def apply(tdef: PainboxDefinition): Painbox = {
     new Painbox(tdef)
   }

@@ -56,7 +56,7 @@ lazy val psforeverSettings = Seq(
     "org.scodec"                 %% "scodec-core"                % "1.11.7",
     "ch.qos.logback"              % "logback-classic"            % "1.2.3",
     "org.log4s"                  %% "log4s"                      % "1.9.0",
-    "org.fusesource.jansi"        % "jansi"                      % "2.1.0",
+    "org.fusesource.jansi"        % "jansi"                      % "2.1.1",
     "org.scoverage"              %% "scalac-scoverage-plugin"    % "1.4.2",
     "com.github.nscala-time"     %% "nscala-time"                % "2.26.0",
     "com.github.t3hnar"          %% "scala-bcrypt"               % "4.3.0",
@@ -65,12 +65,12 @@ lazy val psforeverSettings = Seq(
     "io.kamon"                   %% "kamon-apm-reporter"         % "2.1.9",
     "org.json4s"                 %% "json4s-native"              % "3.6.10",
     "io.getquill"                %% "quill-jasync-postgres"      % "3.5.3",
-    "org.flywaydb"                % "flyway-core"                % "7.3.1",
+    "org.flywaydb"                % "flyway-core"                % "7.3.2",
     "org.postgresql"              % "postgresql"                 % "42.2.18",
     "com.typesafe"                % "config"                     % "1.4.1",
     "com.github.pureconfig"      %% "pureconfig"                 % "0.14.0",
     "com.beachape"               %% "enumeratum"                 % "1.6.1",
-    "joda-time"                   % "joda-time"                  % "2.10.8",
+    "joda-time"                   % "joda-time"                  % "2.10.9",
     "commons-io"                  % "commons-io"                 % "2.8.0",
     "com.github.scopt"           %% "scopt"                      % "4.0.0",
     "io.sentry"                   % "sentry-logback"             % "3.2.0",
@@ -78,7 +78,7 @@ lazy val psforeverSettings = Seq(
     "io.circe"                   %% "circe-generic"              % "0.13.0",
     "io.circe"                   %% "circe-parser"               % "0.13.0",
     "org.scala-lang.modules"     %% "scala-parallel-collections" % "1.0.0",
-    "org.bouncycastle"            % "bcprov-jdk15on"             % "1.67"
+    "org.bouncycastle"            % "bcprov-jdk15on"             % "1.68"
   ),
   // TODO(chord): remove exclusion when SessionActor is refactored: https://github.com/psforever/PSF-LoginServer/issues/279
   coverageExcludedPackages := "net\\.psforever\\.actors\\.session\\.SessionActor.*"
