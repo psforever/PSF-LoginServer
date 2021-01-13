@@ -2,16 +2,18 @@
 package net.psforever.objects
 
 import akka.actor.{Actor, ActorContext, Props}
+import net.psforever.objects.ballistics.{PlayerSource, SourceEntry}
 import net.psforever.objects.ce._
 import net.psforever.objects.definition.{ComplexDeployableDefinition, SimpleDeployableDefinition}
 import net.psforever.objects.definition.converter.SmallDeployableConverter
 import net.psforever.objects.equipment.JammableUnit
-import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity}
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
 import net.psforever.objects.vital.SimpleResolutions
-import net.psforever.objects.vital.interaction.DamageResult
+import net.psforever.objects.vital.etc.TriggerUsedReason
+import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.Zone
 import net.psforever.types.Vector3
@@ -21,7 +23,9 @@ import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 
 import scala.concurrent.duration._
 
-class ExplosiveDeployable(cdef: ExplosiveDeployableDefinition) extends ComplexDeployable(cdef) with JammableUnit {
+class ExplosiveDeployable(cdef: ExplosiveDeployableDefinition)
+  extends ComplexDeployable(cdef)
+  with JammableUnit {
 
   override def Definition: ExplosiveDeployableDefinition = cdef
 }
@@ -63,6 +67,24 @@ class ExplosiveDeployableControl(mine: ExplosiveDeployable) extends Actor with D
   def receive: Receive =
     takesDamage
       .orElse {
+        case CommonMessages.Use(player, Some(trigger: BoomerTrigger)) if {
+          mine match {
+            case boomer: BoomerDeployable => boomer.Trigger.contains(trigger) && mine.Definition.Damageable
+            case _                        => false
+          }
+        } =>
+          // the mine damages itself, which sets it off, which causes an explosion
+          // think of this as an initiator to the proper explosion
+          mine.Destroyed = true
+          ExplosiveDeployableControl.DamageResolution(
+            mine,
+            DamageInteraction(
+              SourceEntry(mine),
+              TriggerUsedReason(PlayerSource(player), trigger),
+              mine.Position
+            ).calculate()(mine),
+            damage = 0
+          )
         case _ => ;
       }
 
@@ -84,9 +106,18 @@ class ExplosiveDeployableControl(mine: ExplosiveDeployable) extends Actor with D
 }
 
 object ExplosiveDeployableControl {
+  /**
+    * na
+    * @param target na
+    * @param cause na
+    * @param damage na
+    */
   def DamageResolution(target: ExplosiveDeployable, cause: DamageResult, damage: Int): Unit = {
     target.History(cause)
-    if (target.Health == 0) {
+    if (cause.interaction.cause.source.SympatheticExplosion) {
+      explodes(target, cause)
+      DestructionAwareness(target, cause)
+    } else if (target.Health == 0) {
       DestructionAwareness(target, cause)
     } else if (!target.Jammed && Damageable.CanJammer(target, cause.interaction)) {
       if ( {
@@ -99,11 +130,8 @@ object ExplosiveDeployableControl {
         }
       }
       ) {
-        if (cause.interaction.cause.source.SympatheticExplosion || target.Definition.DetonateOnJamming) {
-          val zone = target.Zone
-          zone.Activity ! Zone.HotSpot.Activity(cause)
-          zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.Detonate(target.GUID, target))
-          Zone.causeExplosion(zone, target, Some(cause))
+        if (target.Definition.DetonateOnJamming) {
+          explodes(target, cause)
         }
         DestructionAwareness(target, cause)
       }
@@ -115,11 +143,27 @@ object ExplosiveDeployableControl {
     * @param target na
     * @param cause na
     */
+  def explodes(target: Damageable.Target, cause: DamageResult): Unit = {
+    target.Health = 1 // short-circuit logic in DestructionAwareness
+    val zone = target.Zone
+    zone.Activity ! Zone.HotSpot.Activity(cause)
+    zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.Detonate(target.GUID, target))
+    Zone.causeExplosion(zone, target, Some(cause))
+  }
+
+  /**
+    * na
+    * @param target na
+    * @param cause na
+    */
   def DestructionAwareness(target: ExplosiveDeployable, cause: DamageResult): Unit = {
     val zone = target.Zone
     val attribution = DamageableEntity.attributionTo(cause, target.Zone)
+    Deployables.AnnounceDestroyDeployable(
+      target,
+      Some(if (target.Jammed || target.Destroyed) 0 seconds else 500 milliseconds)
+    )
     target.Destroyed = true
-    Deployables.AnnounceDestroyDeployable(target, Some(if (target.Jammed) 0 seconds else 500 milliseconds))
     zone.AvatarEvents ! AvatarServiceMessage(
       zone.id,
       AvatarAction.Destroy(target.GUID, attribution, Service.defaultPlayerGUID, target.Position)

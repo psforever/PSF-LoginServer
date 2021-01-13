@@ -2184,6 +2184,17 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       if (player.HasGUID) player.GUID
       else PlanetSideGUID(0)
     reply match {
+      case LocalResponse.AlertDestroyDeployable(obj: BoomerDeployable) =>
+        //the (former) owner (obj.OwnerName) should process this message
+        obj.Trigger match {
+          case Some(item: BoomerTrigger) =>
+            FindEquipmentToDelete(item.GUID, item)
+            item.Companion = None
+          case _ => ;
+        }
+        avatar.deployables.Remove(obj)
+        UpdateDeployableUIElements(avatar.deployables.UpdateUIElement(obj.Definition.Item))
+
       case LocalResponse.AlertDestroyDeployable(obj) =>
         //the (former) owner (obj.OwnerName) should process this message
         avatar.deployables.Remove(obj)
@@ -2194,17 +2205,17 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           sendResponse(DeployableObjectsInfoMessage(behavior, deployInfo))
         }
 
-      case LocalResponse.Detonate(guid, obj: BoomerDeployable) =>
-        sendResponse(TriggerEffectMessage(guid, "detonate_boomer"))
-        sendResponse(PlanetsideAttributeMessage(guid, 29, 1))
-        sendResponse(ObjectDeleteMessage(guid, 0))
+      case LocalResponse.Detonate(dguid, obj: BoomerDeployable) =>
+        sendResponse(TriggerEffectMessage(dguid, "detonate_boomer"))
+        sendResponse(PlanetsideAttributeMessage(dguid, 29, 1))
+        sendResponse(ObjectDeleteMessage(dguid, 0))
 
-      case LocalResponse.Detonate(guid, obj: ExplosiveDeployable) =>
-        sendResponse(GenericObjectActionMessage(guid, 19))
-        sendResponse(PlanetsideAttributeMessage(guid, 29, 1))
-        sendResponse(ObjectDeleteMessage(guid, 0))
+      case LocalResponse.Detonate(dguid, obj: ExplosiveDeployable) =>
+        sendResponse(GenericObjectActionMessage(dguid, 19))
+        sendResponse(PlanetsideAttributeMessage(dguid, 29, 1))
+        sendResponse(ObjectDeleteMessage(dguid, 0))
 
-      case LocalResponse.Detonate(guid, obj) =>
+      case LocalResponse.Detonate(_, obj) =>
         log.warn(s"LocalResponse.Detonate: ${obj.Definition.Name} not configured to explode correctly")
 
       case LocalResponse.DoorOpens(door_guid) =>
@@ -4039,13 +4050,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             )
             continent.GUID(trigger.Companion) match {
               case Some(boomer: BoomerDeployable) =>
-                boomer.Destroyed = true
-                continent.LocalEvents ! LocalServiceMessage(continent.id, LocalAction.Detonate(boomer.GUID, boomer))
-                Deployables.AnnounceDestroyDeployable(boomer, Some(500 milliseconds))
+                boomer.Actor ! CommonMessages.Use(player, Some(trigger))
               case Some(_) | None => ;
             }
-            FindEquipmentToDelete(item_guid, trigger)
-            trigger.Companion = None
           case _ => ;
         }
         progressBarUpdate.cancel()
