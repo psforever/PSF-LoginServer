@@ -187,7 +187,7 @@ object PointOfInterest {
     * @return all of the location keys
     */
   def listLocations(zone: PointOfInterest): String = {
-    var out: String = "warps: "
+    var out: String = "Locations: "
     if (zone.locations.nonEmpty) {
       out += zone.locations.keys.toArray.sorted.mkString(", ")
     } else
@@ -201,12 +201,21 @@ object PointOfInterest {
     * @return all of the warpgate keys
     */
   def listWarpgates(zone: PointOfInterest): String = {
-    var out: String = "gatenames: "
+    var out: String = "Gates: "
     if (zone.gates.isEmpty)
       out += "none"
     else
       out += zone.gates.keys.toArray.sorted.mkString(", ")
     out
+  }
+
+  /**
+    * Get the name for all of the warpgates and locations that can be visited in this `CSRZone`.
+    * @param zone the `CSRZone`
+    * @return all of the warpgate and location keys
+    */
+  def listAll(zone: PointOfInterest): String = {
+    s"${listWarpgates(zone)} ${listLocations(zone)}"
   }
 
   /**
