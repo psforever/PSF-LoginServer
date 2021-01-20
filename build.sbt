@@ -62,7 +62,7 @@ lazy val psforeverSettings = Seq(
     "com.github.t3hnar"          %% "scala-bcrypt"               % "4.3.0",
     "org.scala-graph"            %% "graph-core"                 % "1.13.2",
     "io.kamon"                   %% "kamon-bundle"               % "2.1.10",
-    "io.kamon"                   %% "kamon-apm-reporter"         % "2.1.9",
+    "io.kamon"                   %% "kamon-apm-reporter"         % "2.1.10",
     "org.json4s"                 %% "json4s-native"              % "3.6.10",
     "io.getquill"                %% "quill-jasync-postgres"      % "3.6.0",
     "org.flywaydb"                % "flyway-core"                % "7.5.0",
