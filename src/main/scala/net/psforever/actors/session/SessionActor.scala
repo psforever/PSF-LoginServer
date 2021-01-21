@@ -1433,7 +1433,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       deadState = DeadState.RespawnTime
 
       session = session.copy(player = new Player(avatar))
-      //xy-coordinates indicate sanctuary spawn bias:
+      //ay-coordinates indicate sanctuary spawn bias:
       player.Position = math.abs(scala.util.Random.nextInt() % avatar.name.hashCode % 4) match {
         case 0 => Vector3(8192, 8192, 0) //NE
         case 1 => Vector3(8192, 0, 0)    //SE

@@ -118,6 +118,14 @@ object Vector3 {
   def z(value: Float): Vector3 = Vector3(0, 0, value)
 
   /**
+    * Calculate the negation of this vector,
+    * the same vector in the antiparallel direction.
+    * @param v the original vector
+    * @return the negation of the original vector
+    */
+  def neg(v: Vector3): Vector3 = Vector3(-v.x, -v.y, -v.z)
+
+  /**
     * Calculate the actual distance between two points.
     * @param pos1 the first point
     * @param pos2 the second point

@@ -73,7 +73,7 @@ class ExplosiveDeployableControl(mine: ExplosiveDeployable) extends Actor with D
             case _                        => false
           }
         } =>
-          // the mine damages itself, which sets it off, which causes an explosion
+          // the trigger damages the mine, which sets it off, which causes an explosion
           // think of this as an initiator to the proper explosion
           mine.Destroyed = true
           ExplosiveDeployableControl.DamageResolution(
