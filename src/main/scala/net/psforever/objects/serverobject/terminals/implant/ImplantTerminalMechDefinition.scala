@@ -1,5 +1,5 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.serverobject.implantmech
+package net.psforever.objects.serverobject.terminals.implant
 
 import net.psforever.objects.definition.SeatDefinition
 import net.psforever.objects.serverobject.structures.AmenityDefinition

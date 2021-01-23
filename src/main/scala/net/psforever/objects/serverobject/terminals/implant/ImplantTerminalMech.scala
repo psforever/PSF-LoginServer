@@ -1,10 +1,11 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.serverobject.implantmech
+package net.psforever.objects.serverobject.terminals.implant
 
 import net.psforever.objects.Player
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.structures.Amenity
+import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalAware
 import net.psforever.objects.vehicles.Seat
 import net.psforever.packet.game.TriggeredSound
 import net.psforever.types.Vector3
@@ -17,7 +18,8 @@ import net.psforever.types.Vector3
 class ImplantTerminalMech(private val idef: ImplantTerminalMechDefinition)
     extends Amenity
     with Mountable
-    with Hackable {
+    with Hackable
+    with CaptureTerminalAware {
   private val seats: Map[Int, Seat] = Map(0 -> new Seat(idef.Seats(0)))
 
   HackSound = TriggeredSound.HackTerminal

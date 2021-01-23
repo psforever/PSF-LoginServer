@@ -152,7 +152,7 @@ class HackClearTest extends ActorTest {
       service ! Service.Join("test")
       service ! LocalServiceMessage("test", LocalAction.HackClear(PlanetSideGUID(10), obj, 0L, 1000L))
       expectMsg(
-        LocalServiceResponse("/test/Local", PlanetSideGUID(10), LocalResponse.HackClear(PlanetSideGUID(40), 0L, 1000L))
+        LocalServiceResponse("/test/Local", PlanetSideGUID(10), LocalResponse.SendHackMessageHackCleared(PlanetSideGUID(40), 0L, 1000L))
       )
     }
   }

@@ -1,11 +1,11 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.serverobject.terminals
+package net.psforever.objects.serverobject.terminals.capture
 
 import akka.actor.Actor
-import net.psforever.objects.{GlobalDefinitions, SimpleItem}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}
+import net.psforever.objects.{GlobalDefinitions, SimpleItem}
 
 class CaptureTerminalControl(terminal: CaptureTerminal)
     extends Actor

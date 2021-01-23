@@ -10,6 +10,7 @@ import net.psforever.objects.serverobject.damage.{Damageable, DamageableWeaponTu
 import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableWeaponTurret}
 import net.psforever.objects.serverobject.structures.PoweredAmenityControl
+import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalAwareBehavior
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
@@ -35,13 +36,15 @@ class FacilityTurretControl(turret: FacilityTurret)
     with DamageableWeaponTurret
     with RepairableWeaponTurret
     with AmenityAutoRepair
-    with JammableMountedWeapons {
+    with JammableMountedWeapons
+    with CaptureTerminalAwareBehavior {
   def FactionObject    = turret
   def MountableObject  = turret
   def JammableObject   = turret
   def DamageableObject = turret
   def RepairableObject = turret
   def AutoRepairObject = turret
+  def CaptureTerminalAwareObject = turret
 
   // Used for timing ammo recharge for vanu turrets in caves
   var weaponAmmoRechargeTimer = Default.Cancellable
@@ -59,6 +62,7 @@ class FacilityTurretControl(turret: FacilityTurret)
       .orElse(takesDamage)
       .orElse(canBeRepairedByNanoDispenser)
       .orElse(autoRepairBehavior)
+      .orElse(captureTerminalAwareBehaviour)
 
   def poweredStateLogic: Receive =
     commonBehavior
@@ -113,7 +117,6 @@ class FacilityTurretControl(turret: FacilityTurret)
             weaponAmmoRechargeTimer.cancel()
             weaponAmmoRechargeTimer = Default.Cancellable
           }
-
         case _ => ;
       }
 
