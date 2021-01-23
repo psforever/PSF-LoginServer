@@ -233,7 +233,7 @@ object Zones {
             val structureType =
               if (towerTypes.contains(structure.objectType) || structure.objectType == "redoubt")
                 StructureType.Tower
-              else if (facilityTypes.contains(structure.objectType))
+              else if (facilityTypes.contains(structure.objectType) || cavernBuildingTypes.contains(structure.objectType))
                 StructureType.Facility
               else if (bunkerTypes.contains(structure.objectType))
                 StructureType.Bunker
