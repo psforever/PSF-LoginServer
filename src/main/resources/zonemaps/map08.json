@@ -8684,32 +8684,6 @@
     "IsChildObject": true
   },
   {
-    "Id": 645,
-    "ObjectName": "llm_socket",
-    "ObjectType": "llm_socket",
-    "Owner": 525,
-    "AbsX": 2226.74072,
-    "AbsY": 3381.22168,
-    "AbsZ": 47.1299973,
-    "Yaw": 0.0,
-    "GUID": 687,
-    "MapID": null,
-    "IsChildObject": true
-  },
-  {
-    "Id": 763,
-    "ObjectName": "llm_socket",
-    "ObjectType": "llm_socket",
-    "Owner": 654,
-    "AbsX": 2532.84058,
-    "AbsY": 4528.31738,
-    "AbsZ": 50.48315,
-    "Yaw": 0.0,
-    "GUID": 688,
-    "MapID": null,
-    "IsChildObject": true
-  },
-  {
     "Id": 915,
     "ObjectName": "llm_socket",
     "ObjectType": "llm_socket",
@@ -8736,32 +8710,6 @@
     "IsChildObject": true
   },
   {
-    "Id": 376,
-    "ObjectName": "llm_socket",
-    "ObjectType": "llm_socket",
-    "Owner": 275,
-    "AbsX": 3904.129,
-    "AbsY": 4695.489,
-    "AbsZ": 63.15471,
-    "Yaw": 0.0,
-    "GUID": 691,
-    "MapID": null,
-    "IsChildObject": true
-  },
-  {
-    "Id": 1219,
-    "ObjectName": "llm_socket",
-    "ObjectType": "llm_socket",
-    "Owner": 1087,
-    "AbsX": 3958.74463,
-    "AbsY": 2196.716,
-    "AbsZ": 45.3599777,
-    "Yaw": 0.0,
-    "GUID": 692,
-    "MapID": null,
-    "IsChildObject": true
-  },
-  {
     "Id": 1067,
     "ObjectName": "llm_socket",
     "ObjectType": "llm_socket",
@@ -8771,32 +8719,6 @@
     "AbsZ": 45.8678055,
     "Yaw": 0.0,
     "GUID": 693,
-    "MapID": null,
-    "IsChildObject": true
-  },
-  {
-    "Id": 266,
-    "ObjectName": "llm_socket",
-    "ObjectType": "llm_socket",
-    "Owner": 146,
-    "AbsX": 4748.437,
-    "AbsY": 5469.24854,
-    "AbsZ": 48.33355,
-    "Yaw": 0.0,
-    "GUID": 694,
-    "MapID": null,
-    "IsChildObject": true
-  },
-  {
-    "Id": 516,
-    "ObjectName": "llm_socket",
-    "ObjectType": "llm_socket",
-    "Owner": 396,
-    "AbsX": 5497.22266,
-    "AbsY": 3957.127,
-    "AbsZ": 45.2092972,
-    "Yaw": 0.0,
-    "GUID": 695,
     "MapID": null,
     "IsChildObject": true
   },

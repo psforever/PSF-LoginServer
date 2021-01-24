@@ -8970,32 +8970,6 @@
     "IsChildObject": true
   },
   {
-    "Id": 1219,
-    "ObjectName": "llm_socket",
-    "ObjectType": "llm_socket",
-    "Owner": 1110,
-    "AbsX": 2700.56641,
-    "AbsY": 2938.72949,
-    "AbsZ": 60.2481575,
-    "Yaw": 0.0,
-    "GUID": 711,
-    "MapID": null,
-    "IsChildObject": true
-  },
-  {
-    "Id": 959,
-    "ObjectName": "llm_socket",
-    "ObjectType": "llm_socket",
-    "Owner": 839,
-    "AbsX": 3376.60767,
-    "AbsY": 2457.89429,
-    "AbsZ": 50.8711739,
-    "Yaw": 0.0,
-    "GUID": 712,
-    "MapID": null,
-    "IsChildObject": true
-  },
-  {
     "Id": 136,
     "ObjectName": "llm_socket",
     "ObjectType": "llm_socket",
@@ -9009,45 +8983,6 @@
     "IsChildObject": true
   },
   {
-    "Id": 1090,
-    "ObjectName": "llm_socket",
-    "ObjectType": "llm_socket",
-    "Owner": 968,
-    "AbsX": 3664.68848,
-    "AbsY": 4789.21875,
-    "AbsZ": 64.9002762,
-    "Yaw": 0.0,
-    "GUID": 714,
-    "MapID": null,
-    "IsChildObject": true
-  },
-  {
-    "Id": 288,
-    "ObjectName": "llm_socket",
-    "ObjectType": "llm_socket",
-    "Owner": 156,
-    "AbsX": 4365.159,
-    "AbsY": 4282.131,
-    "AbsZ": 60.087677,
-    "Yaw": 0.0,
-    "GUID": 715,
-    "MapID": null,
-    "IsChildObject": true
-  },
-  {
-    "Id": 1817,
-    "ObjectName": "llm_socket",
-    "ObjectType": "llm_socket",
-    "Owner": 1716,
-    "AbsX": 4649.79736,
-    "AbsY": 2642.05566,
-    "AbsZ": 70.51741,
-    "Yaw": 0.0,
-    "GUID": 716,
-    "MapID": null,
-    "IsChildObject": true
-  },
-  {
     "Id": 819,
     "ObjectName": "llm_socket",
     "ObjectType": "llm_socket",
@@ -9057,32 +8992,6 @@
     "AbsZ": 110.921089,
     "Yaw": 0.0,
     "GUID": 717,
-    "MapID": null,
-    "IsChildObject": true
-  },
-  {
-    "Id": 580,
-    "ObjectName": "llm_socket",
-    "ObjectType": "llm_socket",
-    "Owner": 460,
-    "AbsX": 5467.6167,
-    "AbsY": 3842.79272,
-    "AbsZ": 55.66716,
-    "Yaw": 0.0,
-    "GUID": 718,
-    "MapID": null,
-    "IsChildObject": true
-  },
-  {
-    "Id": 690,
-    "ObjectName": "llm_socket",
-    "ObjectType": "llm_socket",
-    "Owner": 589,
-    "AbsX": 5904.2207,
-    "AbsY": 4439.24854,
-    "AbsZ": 69.2569962,
-    "Yaw": 0.0,
-    "GUID": 719,
     "MapID": null,
     "IsChildObject": true
   },
