@@ -8,17 +8,17 @@ object Intersection {
     /**
       * Do these two lines intersect?
       * Lines in 2D space will always intersect unless they are parallel or antiparallel.
-      * In that case, they can still "intersect" if the lines are coincidental.
+      * In that case, however, they can still "intersect" if provided that the lines are coincidental.
       */
-    def apply(origin1 : Vector3, origin2 : Vector3, line1 : Line2D, line2 : Line2D): Boolean = {
+    def apply(line1: Line2D, line2: Line2D): Boolean = {
       line1.d != line2.d || {
         //parallel or antiparallel?
         val u = Vector3.Unit(Vector3(line2.x - line1.x, line2.y - line1.y, 0))
-        line1.d == u || line1.d == Vector3.neg(u)
+        u == Vector3.Zero || line1.d == u || line1.d == Vector3.neg(u)
       }
     }
 
-    private def pointOnSegment(ax : Float, ay : Float, px : Float, py : Float, bx : Float, by : Float): Boolean = {
+    private def pointOnSegment(ax: Float, ay: Float, px: Float, py: Float, bx: Float, by: Float): Boolean = {
       px <= math.max(ax, bx) && px >= math.min(ax, bx) && py <= math.max(ay, by) && py >= math.min(ay, by)
     }
 
@@ -41,9 +41,9 @@ object Intersection {
       * @return the orientation value
       */
     private def orientationOfPoints(
-                                     ax : Float, ay : Float,
-                                     px : Float, py : Float,
-                                     bx : Float, by : Float
+                                     ax: Float, ay: Float,
+                                     px: Float, py: Float,
+                                     bx: Float, by: Float
                                    ): PointTripleOrientation.Value = {
       val out = (py - ay) * (bx - px) - (px - ax) * (by - py)
       if (out == 0) PointTripleOrientation.Colinear
@@ -57,16 +57,16 @@ object Intersection {
       * If a test of multiple ordered triple points reveals that certain triples have different orientations,
       * then we can safely assume the intersection state of the segments.
       */
-    def apply(origin1 : Vector3, origin2 : Vector3, line1 : Segment2D, line2 : Segment2D): Boolean = {
+    def apply(line1: Segment2D, line2: Segment2D): Boolean = {
       //setup
-      val ln1ax = line1.ax + origin1.x
-      val ln1ay = line1.ay + origin1.y
-      val ln1bx = ln1ax + origin1.x
-      val ln1by = ln1ay + origin1.y
-      val ln2ax = line2.ax + origin2.x
-      val ln2ay = line2.ay + origin2.y
-      val ln2bx = ln2ax + origin2.x
-      val ln2by = ln2ay + origin2.y
+      val ln1ax = line1.ax
+      val ln1ay = line1.ay
+      val ln1bx = line1.bx
+      val ln1by = line1.by
+      val ln2ax = line2.ax
+      val ln2ay = line2.ay
+      val ln2bx = line2.bx
+      val ln2by = line2.by
       val ln1_ln2a = orientationOfPoints(ln1ax, ln1ay, ln1bx, ln1by, ln2ax, ln2ay)
       val ln1_ln2b = orientationOfPoints(ln1ax, ln1ay, ln1bx, ln1by, ln2bx, ln2by)
       val ln2_ln1a = orientationOfPoints(ln2ax, ln2ay, ln2bx, ln2by, ln1ax, ln1ay)
@@ -85,11 +85,15 @@ object Intersection {
       * Actual mathematically-sound intersection between lines and line segments in 3D-space is terribly uncommon.
       * Instead, check that the closest distance between two line segments is below a threshold value.
       */
-    def apply(origin1 : Vector3, origin2 : Vector3, line1 : Line3D, line2 : Line3D): Boolean = {
-      apply(origin1, origin2, line1, line2, 0.15f)
+    def apply(line1: Line3D, line2: Line3D): Boolean = {
+      apply(line1, line2, 0.15f)
     }
-    def apply(origin1 : Vector3, origin2 : Vector3, line1 : Line3D, line2 : Line3D, threshold: Float): Boolean = {
-      ClosestDistance.Between(origin1, origin2, line1, line2) < threshold
+    def apply(line1: Line3D, line2: Line3D, threshold: Float): Boolean = {
+      Closest.Distance(line1, line2) < threshold
+    }
+
+    def apply(c1: Circle, c2 : Circle): Boolean = {
+      Vector3.Magnitude(Vector3(c1.x - c2.x, c1.y - c2.y, 0)) <= c1.radius + c2.radius
     }
 
     /**
@@ -97,11 +101,58 @@ object Intersection {
       * Actual mathematically-sound intersection between lines and line segments in 3D-space is terribly uncommon.
       * Instead, check that the closest distance between two line segments is below a threshold value.
       */
-    def apply(origin1 : Vector3, origin2 : Vector3, seg1 : Segment3D, seg2 : Segment3D): Boolean = {
-      apply(origin1, origin2, seg1, seg2, 0.15f)
+    def apply(seg1: Segment3D, seg2: Segment3D): Boolean = {
+      apply(seg1, seg2, 0.15f)
     }
-    def apply(origin1 : Vector3, origin2 : Vector3, seg1 : Segment3D, seg2 : Segment3D, threshold: Float): Boolean = {
-      ClosestDistance.Between(origin1, origin2, seg1, seg2) < threshold
+    def apply(seg1: Segment3D, seg2: Segment3D, threshold: Float): Boolean = {
+      Closest.Distance(seg1, seg2) < threshold
+    }
+
+    def apply(s1: Sphere, s2 : Sphere): Boolean = {
+      Vector3.Magnitude(
+        Vector3(
+          s1.x - s2.x,
+          s1.y - s2.y,
+          s1.z - s2.z
+        )
+      ) <= s1.radius + s2.radius
+    }
+
+    def apply(c1: Cylinder, c2: Cylinder): Boolean = {
+      apply(c1.circle, c2.circle) &&
+      ((c1.height >= c2.z && c1.z <= c2.height) || (c2.height >= c1.z && c2.z <= c1.height))
+    }
+
+    def apply(cylinder: Cylinder, sphere: Sphere): Boolean = {
+      val cylinderCircle = cylinder.circle
+      val cylinderCircleRadius = cylinderCircle.radius
+      val cylinderTop = cylinder.z + cylinder.height
+      val sphereRadius = sphere.radius
+      val sphereBase = sphere.z - sphereRadius
+      val sphereTop = sphere.z + sphereRadius
+      if (apply(cylinderCircle, Circle(sphere.x, sphere.y, sphereRadius)) &&
+          ((sphereTop >= cylinder.z && sphereBase <= cylinderTop) ||
+           (cylinderTop >= sphereBase && cylinder.z <= sphereTop))) {
+        // potential intersection ...
+        val sphereAsPoint = Vector3(sphere.x, sphere.y, sphere.z)
+        val cylinderAsPoint = Vector3(cylinderCircle.x, cylinderCircle.y, cylinder.z)
+        val segmentFromCylinderToSphere = sphereAsPoint - cylinderAsPoint
+        val segmentFromCylinderToSphereXY = segmentFromCylinderToSphere.xy
+        if ((cylinder.z <= sphere.z && sphere.z <= cylinderTop) ||
+            Vector3.MagnitudeSquared(segmentFromCylinderToSphereXY) <= cylinderCircleRadius * cylinderCircleRadius) {
+          true // top or bottom of sphere, or widest part of the sphere, must interact with the cylinder
+        } else {
+          // only option left is the curves of the sphere interacting with the cylinder's rim, top or base
+          val directionFromCylinderToSphere = Vector3.Unit(segmentFromCylinderToSphereXY)
+          val pointOnCylinderRimBase = cylinderAsPoint + directionFromCylinderToSphere * cylinderCircleRadius
+          val pointOnCylinderRimTop = pointOnCylinderRimBase + Vector3.z(cylinder.height)
+          val sqSphereRadius = sphereRadius * sphereRadius
+          Vector3.DistanceSquared(sphereAsPoint, pointOnCylinderRimTop) <= sqSphereRadius ||
+          Vector3.DistanceSquared(sphereAsPoint, pointOnCylinderRimBase) <= sqSphereRadius
+        }
+      } else {
+        false
+      }
     }
   }
 }

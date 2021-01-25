@@ -40,6 +40,12 @@ object Segment2D {
   }
 }
 
+final case class Circle(x: Float, y: Float, radius: Float)
+
+object Circle {
+  def apply(radius: Float): Circle = Circle(0f, 0f, radius)
+}
+
 final case class Line3D(x: Float, y: Float, z: Float, d: Vector3) extends Line
 
 final case class Segment3D(ax: Float, ay: Float, az: Float, bx: Float, by: Float, bz: Float) extends Segment {
@@ -50,6 +56,20 @@ object Segment3D {
   def apply(x: Float, y: Float, z: Float, d: Vector3): Segment3D = {
     Segment3D(x, y, z, z+d.x, y+d.y, z+d.z)
   }
+}
+
+final case class Sphere(x: Float, y: Float, z: Float, radius: Float)
+
+final case class Cylinder(circle: Circle, z: Float, height: Float)
+
+object Cylinder {
+  def apply(x: Float, y: Float, z: Float, radius: Float, height: Float): Cylinder = {
+    Cylinder(Circle(x, y, radius), z, height)
+  }
+}
+
+object Sphere {
+  def apply(p: Vector3, radius: Float): Sphere = Sphere(p.x, p.y, p.z, radius)
 }
 
 object Geometry {
