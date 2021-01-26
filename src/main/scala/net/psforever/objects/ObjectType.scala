@@ -22,7 +22,7 @@ object ObjectType extends Enumeration {
   val BoomerTrigger            = "boomer_trigger"
   val Building                 = "building"
   val CaptureFlag              = "capture_flag"
-  val CaptureFlagSocket        = "capture_flag_socket"
+  val CaptureFlagSocket        = "llm_socket"
   val CaptureTerminal          = "capture_terminal"
   val CertTerminal             = "cert_terminal"
   val ChainLashDamager         = "chain_lash_damager"
