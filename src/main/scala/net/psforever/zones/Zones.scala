@@ -13,6 +13,7 @@ import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.definition.BasicDefinition
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.generator.Generator
+import net.psforever.objects.serverobject.llu.{CaptureFlagSocket, CaptureFlagSocketDefinition}
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.pad.{VehicleSpawnPad, VehicleSpawnPadDefinition}
 import net.psforever.objects.serverobject.painbox.{Painbox, PainboxDefinition}
@@ -334,6 +335,15 @@ object Zones {
             CaptureTerminal.Constructor(
               obj.position,
               obj.objectDefinition.asInstanceOf[CaptureTerminalDefinition]
+            ),
+            owningBuildingGuid = ownerGuid
+          )
+        case "llm_socket" =>
+          zoneMap.addLocalObject(
+            obj.guid,
+            CaptureFlagSocket.Constructor(
+              obj.objectDefinition.asInstanceOf[CaptureFlagSocketDefinition],
+              obj.position
             ),
             owningBuildingGuid = ownerGuid
           )
