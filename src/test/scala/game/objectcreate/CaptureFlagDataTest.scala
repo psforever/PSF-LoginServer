@@ -29,24 +29,16 @@ class CaptureFlagDataTest extends Specification {
           flag.pos.orient.y mustEqual 0f
           flag.pos.orient.z mustEqual 47.8125f
           flag.faction mustEqual PlanetSideEmpire.NC
-          flag.unk1 mustEqual 21
-          flag.unk2 mustEqual 4
-          flag.unk3 mustEqual 2838
-          flag.unk4 mustEqual 9
+          flag.owningBaseGuid mustEqual 21
+          flag.targetBaseGuid mustEqual 4
+          flag.milliseconds_remaining mustEqual 592662
         case _ =>
           ko
       }
     }
 
     "encode" in {
-      val obj = CaptureFlagData(
-        PlacementData(3912.0312f, 5169.4375f, 59.96875f, 0f, 0f, 47.8125f),
-        PlanetSideEmpire.NC,
-        21,
-        4,
-        2838,
-        9
-      )
+      val obj = CaptureFlagData(PlacementData(3912.0312f, 5169.4375f, 59.96875f, 0f, 0f, 47.8125f), PlanetSideEmpire.NC, 21, 4, 2838)
       val msg = ObjectCreateMessage(ObjectClass.capture_flag, PlanetSideGUID(4330), obj)
       val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_captureflag

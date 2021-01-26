@@ -16,19 +16,18 @@ import shapeless.{::, HNil}
   * Whenever an applicable player is nearby, that client will rapidly fire off `ItemUseMessage` packets to the server.
   * The capture flag will be picked-up by the player and stored in a special slot that is not part of their inventory.
   * A special dropping keybind has been prepared to relinquish the capture flag back to the game world.
+  * @param pos the position + orientation + velocity of the LLU where it is dropped/spawned
   * @param faction the empire whose players may interact with this capture flag
-  * @param unk1 na
-  * @param unk2 na
-  * @param unk3 na
-  * @param unk4 na
+  * @param owningBaseGuid The GUID of the base that this LLU belongs to
+  * @param targetBaseGuid The GUID of the base that this LLU must be taken to
+  * @param milliseconds_remaining The number of milliseconds left on the timer for this LLU - should match the CC timer
   */
 final case class CaptureFlagData(
     pos: PlacementData,
     faction: PlanetSideEmpire.Value,
-    unk1: Int,
-    unk2: Int,
-    unk3: Int,
-    unk4: Int
+    owningBaseGuid : Int,
+    targetBaseGuid : Int,
+    milliseconds_remaining : Long
 ) extends ConstructorData {
   override def bitsize: Long = 88L + pos.bitsize
 }
@@ -40,24 +39,23 @@ object CaptureFlagData extends Marshallable[CaptureFlagData] {
       bool ::
       uint4L ::
       uint16L ::
-      ("unk1" | uint8L) ::
+      ("owningBaseGuid" | uint8L) ::
       uint8L ::
-      ("unk2" | uint8L) ::
+      ("targetBaseGuid" | uint8L) ::
       uint8L ::
-      ("unk3" | uint16L) :: //probably a PlanetSideGUID
-      ("unk4" | uint8L) ::
-      uint(9)
+      ("milliseconds_remaining" | uint32L) ::
+      uint(1)
   ).exmap[CaptureFlagData](
     {
-      case pos :: fac :: false :: 4 :: 0 :: unk1 :: 0 :: unk2 :: 0 :: unk3 :: unk4 :: 0 :: HNil =>
-        Attempt.Successful(CaptureFlagData(pos, fac, unk1, unk2, unk3, unk4))
+      case pos :: faction :: false :: 4 :: 0 :: owningBaseGuid :: 0 :: targetBaseGuid :: 0 :: milliseconds_remaining :: 0 :: HNil =>
+        Attempt.Successful(CaptureFlagData(pos, faction, owningBaseGuid, targetBaseGuid, milliseconds_remaining))
 
       case data =>
         Attempt.failure(Err(s"invalid capture flag data format - $data"))
     },
     {
-      case CaptureFlagData(pos, fac, unk1, unk2, unk3, unk4) =>
-        Attempt.successful(pos :: fac :: false :: 4 :: 0 :: unk1 :: 0 :: unk2 :: 0 :: unk3 :: unk4 :: 0 :: HNil)
+      case CaptureFlagData(pos, faction, owningBaseGuid, targetBaseGuid, milliseconds_remaining) =>
+        Attempt.successful(pos :: faction :: false :: 4 :: 0 :: owningBaseGuid :: 0 :: targetBaseGuid :: 0 :: milliseconds_remaining :: 0 :: HNil)
     }
   )
 }
