@@ -531,7 +531,7 @@ object GamePacketOpcode extends Enumeration {
       case 0xbf => game.ZipLineMessage.decode
 
       // OPCODES 0xc0-cf
-      case 0xc0 => noDecoder(CaptureFlagUpdateMessage)
+      case 0xc0 => game.CaptureFlagUpdateMessage.decode
       case 0xc1 => noDecoder(VanuModuleUpdateMessage)
       case 0xc2 => game.FacilityBenefitShieldChargeRequestMessage.decode
       case 0xc3 => game.ProximityTerminalUseMessage.decode
