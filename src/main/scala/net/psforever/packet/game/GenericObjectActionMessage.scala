@@ -21,6 +21,7 @@ import shapeless.{::, HNil}
   *             11 - Deploy capital base shield pole with animation and broadcasts "The capitol force dome at X has been activated"
   *             12 - Stow capital base shield pole with animation and broadcasts "The capitol force dome at X has been deactivated"
   *             13 - Deploy capital base shield pole (instantly, unless still in the middle of the stow animation)
+  *             14 - Changes capture console to say "Facility hacked by the <Faction> LLU has been spawned." when looked at
   *             15 - Displays "This facility's generator is under attack!"
   *             16 - Displays "Generator has Overloaded! Evacuate Generator Room Immediately!"
   *             17 - Displays "This facility's generator is back on line"
@@ -41,6 +42,7 @@ import shapeless.{::, HNil}
   *             53 - Put down an FDU
   *             56 - Sets vehicle or player to be black ops
   *             57 - Reverts player from black ops
+  * @see GenericObjectActionEnum
   */
 final case class GenericObjectActionMessage(object_guid: PlanetSideGUID, code: Int) extends PlanetSideGamePacket {
   type Packet = GenericObjectActionMessage
@@ -49,6 +51,10 @@ final case class GenericObjectActionMessage(object_guid: PlanetSideGUID, code: I
 }
 
 object GenericObjectActionMessage extends Marshallable[GenericObjectActionMessage] {
+  def apply(object_guid: PlanetSideGUID, code: GenericObjectActionEnum.GenericObjectActionEnum): GenericObjectActionMessage = {
+    GenericObjectActionMessage(object_guid, code.id)
+  }
+
   implicit val codec: Codec[GenericObjectActionMessage] = (
     ("object_guid" | PlanetSideGUID.codec) ::
       ("code" | uint(bits = 6)) ::
@@ -63,4 +69,13 @@ object GenericObjectActionMessage extends Marshallable[GenericObjectActionMessag
         Attempt.Successful(guid :: code :: BitVector.empty :: HNil)
     }
   )
+}
+
+object GenericObjectActionEnum extends Enumeration {
+  type GenericObjectActionEnum = Value
+
+  /** <b>Effect:</b> Capture console displays "Facility hacked by the <Faction> LLU has been spawned." when looked at<br>
+    * <b>Target</b>: CaptureTerminal
+    */
+  val FlagSpawned = Value(14)
 }

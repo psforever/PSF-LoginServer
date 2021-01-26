@@ -33,6 +33,7 @@ import scodec.codecs._
   * `0x84` - 4 - knife holster<br>
   * `0x86` - 6 - grid (1,1)<br>
   * `0x00FA` - 250 - is a special dest/extra code that "attaches the item to the player's cursor"
+  * `0x00FC` - 252 - special item slot e.g. LLU (Possibly also cavern modules)
   * @param parent_guid the parent object
   * @param child_guid the child object
   * @param slot a codified location within the parent object's inventory;

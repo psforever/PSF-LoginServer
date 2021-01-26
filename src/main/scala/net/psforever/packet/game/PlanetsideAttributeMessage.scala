@@ -144,8 +144,8 @@ import scodec.codecs._
   * `43 - Info on avatar name : 0 = Nothing, 1 = "(LD)" message`<br>
   * `45 - NTU charge bar 0-10, 5 = 50% full. Seems to apply to both ANT and NTU Silo (possibly siphons?)`<br>
   * `46 - Sends "Generator damage is at a critical level!" message`
-  * `47 - Sets base NTU level to CRITICAL. MUST use base MapId not base GUID`<br>
-  * `48 - Set to 1 to send base power loss message & turns on red warning lights throughout base. MUST use base MapId not base GUID`?<br>
+  * `47 - Sets base NTU level to CRITICAL.`<br>
+  * `48 - Set to 1 to send base power loss message & turns on red warning lights throughout base.<br>
   * `49 - Vehicle texture effects state? (>0 turns on ANT panel glow or ntu silo panel glow + orbs) (bit?)`<br>
   * `52 - Vehicle particle effects? (>0 turns on orbs going towards ANT. Doesn't affect silo) (bit?)`<br>
   * `53 - LFS. Value is 1 to flag LFS`<br>
@@ -161,7 +161,7 @@ import scodec.codecs._
   * `55 - "Someone is attempting to Heal you". Value is 1`<br>
   * `56 - "Someone is attempting to Repair you". Value is 1`<br>
   * `64 - ????? related to using router telepads`
-  * `67 - Enables base shields (from cavern module/lock). MUST use base MapId not GUID`<br>
+  * `67 - Enables base shields (from cavern module/lock)`<br>
   * `73 - "You are locked into the Core Beam. Charging your Module now.". Value is 1 to active`<br>
   * `77 - Cavern Facility Captures. Value is the number of captures`<br>
   * `78 - Cavern Kills. Value is the number of kills`<br>
