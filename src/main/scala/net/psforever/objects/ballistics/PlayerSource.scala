@@ -18,6 +18,8 @@ final case class PlayerSource(
     position: Vector3,
     orientation: Vector3,
     velocity: Option[Vector3],
+    crouching: Boolean,
+    jumping: Boolean,
     modifiers: ResistanceProfile
 ) extends SourceEntry {
   override def Name    = name
@@ -48,6 +50,8 @@ object PlayerSource {
       tplayer.Position,
       tplayer.Orientation,
       tplayer.Velocity,
+      tplayer.Crouching,
+      tplayer.Jumping,
       ExoSuitDefinition.Select(tplayer.ExoSuit, tplayer.Faction)
     )
   }

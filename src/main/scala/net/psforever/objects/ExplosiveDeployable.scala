@@ -7,11 +7,12 @@ import net.psforever.objects.ce._
 import net.psforever.objects.definition.{ComplexDeployableDefinition, SimpleDeployableDefinition}
 import net.psforever.objects.definition.converter.SmallDeployableConverter
 import net.psforever.objects.equipment.JammableUnit
+import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity}
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
-import net.psforever.objects.vital.SimpleResolutions
+import net.psforever.objects.vital.{SimpleResolutions, Vitality}
 import net.psforever.objects.vital.etc.TriggerUsedReason
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.projectile.ProjectileReason
@@ -96,11 +97,31 @@ class ExplosiveDeployableControl(mine: ExplosiveDeployable) extends Actor with D
       val originalHealth = mine.Health
       val cause          = applyDamageTo(mine)
       val damage         = originalHealth - mine.Health
-      if (Damageable.CanDamageOrJammer(mine, damage, cause.interaction)) {
+      if (CanDetonate(mine, damage, cause.interaction)) {
         ExplosiveDeployableControl.DamageResolution(mine, cause, damage)
       } else {
         mine.Health = originalHealth
       }
+    }
+  }
+
+  /**
+    * A supplement for checking target susceptibility
+    * to account for sympathetic explosives even if there is no damage.
+    * This does not supercede other underlying checks or undo prior damage checks.
+    * @see `Damageable.CanDamageOrJammer`
+    * @see `DamageProperties.SympatheticExplosives`
+    * @param obj the entity being damaged
+    * @param damage the amount of damage
+    * @param data historical information about the damage
+    * @return `true`, if the target can be affected;
+    *        `false`, otherwise
+    */
+  def CanDetonate(obj: Vitality with FactionAffinity, damage: Int, data: DamageInteraction): Boolean = {
+    if (damage == 0 && data.cause.source.SympatheticExplosion) {
+      Damageable.CanDamageOrJammer(mine, damage = 1, data)
+    } else {
+      Damageable.CanDamageOrJammer(mine, damage, data)
     }
   }
 }

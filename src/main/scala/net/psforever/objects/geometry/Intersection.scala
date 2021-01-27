@@ -13,7 +13,7 @@ object Intersection {
     def apply(line1: Line2D, line2: Line2D): Boolean = {
       line1.d != line2.d || {
         //parallel or antiparallel?
-        val u = Vector3.Unit(Vector3(line2.x - line1.x, line2.y - line1.y, 0))
+        val u = Vector3.Unit(Vector3(line2.p.x - line1.p.x, line2.p.y - line1.p.y, 0))
         u == Vector3.Zero || line1.d == u || line1.d == Vector3.neg(u)
       }
     }
@@ -59,14 +59,14 @@ object Intersection {
       */
     def apply(line1: Segment2D, line2: Segment2D): Boolean = {
       //setup
-      val ln1ax = line1.ax
-      val ln1ay = line1.ay
-      val ln1bx = line1.bx
-      val ln1by = line1.by
-      val ln2ax = line2.ax
-      val ln2ay = line2.ay
-      val ln2bx = line2.bx
-      val ln2by = line2.by
+      val ln1ax = line1.p1.x
+      val ln1ay = line1.p1.y
+      val ln1bx = line1.p2.x
+      val ln1by = line1.p2.y
+      val ln2ax = line2.p1.x
+      val ln2ay = line2.p1.y
+      val ln2bx = line2.p2.x
+      val ln2by = line2.p2.y
       val ln1_ln2a = orientationOfPoints(ln1ax, ln1ay, ln1bx, ln1by, ln2ax, ln2ay)
       val ln1_ln2b = orientationOfPoints(ln1ax, ln1ay, ln1bx, ln1by, ln2bx, ln2by)
       val ln2_ln1a = orientationOfPoints(ln2ax, ln2ay, ln2bx, ln2by, ln1ax, ln1ay)
@@ -93,7 +93,7 @@ object Intersection {
     }
 
     def apply(c1: Circle, c2 : Circle): Boolean = {
-      Vector3.Magnitude(Vector3(c1.x - c2.x, c1.y - c2.y, 0)) <= c1.radius + c2.radius
+      Vector3.Magnitude(Vector3(c1.p.x - c2.p.x, c1.p.y - c2.p.y, 0)) <= c1.radius + c2.radius
     }
 
     /**
@@ -111,9 +111,9 @@ object Intersection {
     def apply(s1: Sphere, s2 : Sphere): Boolean = {
       Vector3.Magnitude(
         Vector3(
-          s1.x - s2.x,
-          s1.y - s2.y,
-          s1.z - s2.z
+          s1.p.x - s2.p.x,
+          s1.p.y - s2.p.y,
+          s1.p.z - s2.p.z
         )
       ) <= s1.radius + s2.radius
     }
@@ -128,17 +128,17 @@ object Intersection {
       val cylinderCircleRadius = cylinderCircle.radius
       val cylinderTop = cylinder.z + cylinder.height
       val sphereRadius = sphere.radius
-      val sphereBase = sphere.z - sphereRadius
-      val sphereTop = sphere.z + sphereRadius
-      if (apply(cylinderCircle, Circle(sphere.x, sphere.y, sphereRadius)) &&
+      val sphereBase = sphere.p.z - sphereRadius
+      val sphereTop = sphere.p.z + sphereRadius
+      if (apply(cylinderCircle, Circle(sphere.p.x, sphere.p.y, sphereRadius)) &&
           ((sphereTop >= cylinder.z && sphereBase <= cylinderTop) ||
            (cylinderTop >= sphereBase && cylinder.z <= sphereTop))) {
         // potential intersection ...
-        val sphereAsPoint = Vector3(sphere.x, sphere.y, sphere.z)
-        val cylinderAsPoint = Vector3(cylinderCircle.x, cylinderCircle.y, cylinder.z)
+        val sphereAsPoint = Vector3(sphere.p.x, sphere.p.y, sphere.p.z)
+        val cylinderAsPoint = Vector3(cylinderCircle.p.x, cylinderCircle.p.y, cylinder.z)
         val segmentFromCylinderToSphere = sphereAsPoint - cylinderAsPoint
         val segmentFromCylinderToSphereXY = segmentFromCylinderToSphere.xy
-        if ((cylinder.z <= sphere.z && sphere.z <= cylinderTop) ||
+        if ((cylinder.z <= sphere.p.z && sphere.p.z <= cylinderTop) ||
             Vector3.MagnitudeSquared(segmentFromCylinderToSphereXY) <= cylinderCircleRadius * cylinderCircleRadius) {
           true // top or bottom of sphere, or widest part of the sphere, must interact with the cylinder
         } else {

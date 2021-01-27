@@ -6,9 +6,9 @@ import net.psforever.types.Vector3
 object Closest {
   object Distance {
     def apply(point : Vector3, seg : Segment2D) : Float = {
-      val segdx = seg.bx - seg.ax
-      val segdy = seg.by - seg.ay
-      ((point.x - seg.ax) * segdx + (point.y - seg.ay) * segdy) /
+      val segdx = seg.p2.x - seg.p1.x
+      val segdy = seg.p2.y - seg.p1.y
+      ((point.x - seg.p1.x) * segdx + (point.y - seg.p1.y) * segdy) /
       Vector3.MagnitudeSquared(Vector3(segdx, segdy, 0))
     }
 
@@ -18,7 +18,7 @@ object Closest {
       } else {
         math.abs(
           Vector3.DotProduct(
-            Vector3(line2.x - line1.x, line2.y - line1.y, 0),
+            Vector3(line2.p.x - line1.p.x, line2.p.y - line1.p.y, 0),
             Vector3(-1/line1.d.y, 1/line1.d.x, 0)
           )
         )
@@ -29,10 +29,10 @@ object Closest {
       if (Intersection.Test(seg1, seg2)) { //intersecting line segments
         0f
       } else {
-        val v1a = Vector3(seg1.ax, seg1.ay, 0)
-        val v2a = Vector3(seg2.ax, seg2.ay, 0)
-        val v1b = Vector3(seg1.bx, seg1.by, 0)
-        val v2b = Vector3(seg2.bx, seg2.by, 0)
+        val v1a = Vector3(seg1.p1.x, seg1.p1.y, 0)
+        val v2a = Vector3(seg2.p1.x, seg2.p1.y, 0)
+        val v1b = Vector3(seg1.p2.x, seg1.p2.y, 0)
+        val v2b = Vector3(seg2.p2.x, seg2.p2.y, 0)
         math.min(
           apply(v1a, seg2),
           math.min(
@@ -47,7 +47,7 @@ object Closest {
     }
 
     def apply(c1: Circle, c2 : Circle): Float = {
-      math.max(0, Vector3.Magnitude(Vector3(c1.x - c2.x, c1.y - c2.y, 0)) - c1.radius - c2.radius)
+      math.max(0, Vector3.Magnitude(Vector3(c1.p.x - c2.p.x, c1.p.y - c2.p.y, 0)) - c1.radius - c2.radius)
     }
 
     /**
@@ -62,12 +62,12 @@ object Closest {
       val cross = Vector3.CrossProduct(line1.d, line2.d)
       if(cross != Vector3.Zero) {
         math.abs(
-          Vector3.DotProduct(cross, Vector3(line1.x - line2.x, line1.y - line2.y, line1.z - line2.z))
+          Vector3.DotProduct(cross, Vector3(line1.p.x - line2.p.x, line1.p.y - line2.p.y, line1.p.z - line2.p.z))
         ) / Vector3.Magnitude(cross)
       } else {
         // lines are parallel or coincidental
         // construct a right triangle with one leg on line1 and the hypotenuse between the line's known points
-        val hypotenuse = Vector3(line2.x - line1.x, line2.y - line1.y, line2.z - line1.z)
+        val hypotenuse = Vector3(line2.p.x - line1.p.x, line2.p.y - line1.p.y, line2.p.z - line1.p.z)
         val legOnLine1 = line1.d * Vector3.DotProduct(hypotenuse, line1.d)
         Vector3.Magnitude(hypotenuse - legOnLine1)
       }
@@ -82,7 +82,7 @@ object Closest {
     }
 
     def apply(s1: Sphere, s2 : Sphere): Float = {
-      math.max(0, Vector3.Magnitude(Vector3(s1.x - s2.x, s1.y - s2.y, s1.z - s2.z)) - s1.radius - s2.radius)
+      math.max(0, Vector3.Magnitude(Vector3(s1.p.x - s2.p.x, s1.p.y - s2.p.y, s1.p.z - s2.p.z)) - s1.radius - s2.radius)
     }
   }
 
@@ -97,9 +97,9 @@ object Closest {
     def apply(c1 : Circle, c2 : Circle): Option[Segment2D] = {
       val distance = Distance(c1, c2)
       if (distance > 0) {
-        val c1x = c1.x
-        val c1y = c1.y
-        val v = Vector3.Unit(Vector3(c2.x - c1x, c2.y - c1y, 0f))
+        val c1x = c1.p.x
+        val c1y = c1.p.y
+        val v = Vector3.Unit(Vector3(c2.p.x - c1x, c2.p.y - c1y, 0f))
         val c1d = v * c1.radius
         val c2d = v * c2.radius
         Some(
@@ -122,8 +122,8 @@ object Closest {
       *         `None`, if the lines intersect with each other
       */
     def apply(line1 : Line3D, line2 : Line3D): Option[Segment3D] = {
-      val p1 = Vector3(line1.x, line1.y, line1.z)
-      val p3 = Vector3(line2.x, line2.y, line2.z)
+      val p1 = Vector3(line1.p.x, line1.p.y, line1.p.z)
+      val p3 = Vector3(line2.p.x, line2.p.y, line2.p.z)
       val p13 = p1 - p3 // vector between point on first line and point on second line
       val p43 = line2.d
       val p21 = line1.d
@@ -141,12 +141,12 @@ object Closest {
           if (p21 == p13u || p21 == Vector3.neg(p13u)) { //coincidental lines overlap / intersect
             None
           } else { //parallel lines
-            val connecting = Vector3(line2.x - line1.x, line2.y - line1.y, line2.z - line1.z)
+            val connecting = Vector3(line2.p.x - line1.p.x, line2.p.y - line1.p.y, line2.p.z - line1.p.z)
             val legOnLine1 = line1.d * Vector3.DotProduct(connecting, line1.d)
             val v = connecting - legOnLine1
             Some(Segment3D(
-              line1.x, line1.y, line1.z,
-              line1.x + v.x, line1.y + v.y, line1.z + v.z
+              line1.p.x, line1.p.y, line1.p.z,
+              line1.p.x + v.x, line1.p.y + v.y, line1.p.z + v.z
             ))
           }
         } else {
@@ -169,25 +169,25 @@ object Closest {
     def apply(line1 : Segment3D, line2 : Segment3D): Option[Segment3D] = {
       val uline1 =  Vector3.Unit(line1.d)
       val uline2 =  Vector3.Unit(line2.d)
-      apply(Line3D(line1.ax, line1.ay, line1.az, uline1), Line3D(line2.ax, line2.ay, line2.az, uline2)) match {
+      apply(Line3D(line1.p1.x, line1.p1.y, line1.p1.z, uline1), Line3D(line2.p1.x, line2.p1.y, line2.p1.z, uline2)) match {
         case Some(seg: Segment3D) => // common skew lines and parallel lines
-          val sega = Vector3(seg.ax, seg.ay, seg.az)
-          val p1 = Vector3(line1.ax, line1.ay, line1.az)
+          val sega = Vector3(seg.p1.x, seg.p1.y, seg.p1.z)
+          val p1 = Vector3(line1.p1.x, line1.p1.y, line1.p1.z)
           val d1 = sega - p1
           val out1 = if (!Geometry.equalVectors(Vector3.Unit(d1), uline1)) { //clamp seg.a(xyz) to segment line1's bounds
             p1
           } else if (Vector3.MagnitudeSquared(d1) > Vector3.MagnitudeSquared(line1.d)) {
-            Vector3(line1.bx, line1.by, line1.bz)
+            Vector3(line1.p2.x, line1.p2.y, line1.p2.z)
           } else {
             sega
           }
-          val segb = Vector3(seg.bx, seg.by, seg.bz)
-          val p2 = Vector3(line2.ax, line2.ay, line2.az)
+          val segb = Vector3(seg.p2.x, seg.p2.y, seg.p2.z)
+          val p2 = Vector3(line2.p1.x, line2.p1.y, line2.p1.z)
           val d2 = segb - p2
           val out2 = if (!Geometry.equalVectors(Vector3.Unit(d2), uline2)) { //clamp seg.b(xyz) to segment line2's bounds
             p2
           } else if (Vector3.MagnitudeSquared(d2) > Vector3.MagnitudeSquared(line2.d)) {
-            Vector3(line2.bx, line2.by, line2.bz)
+            Vector3(line2.p2.x, line2.p2.y, line2.p2.z)
           } else {
             segb
           }
@@ -196,19 +196,19 @@ object Closest {
             out2.x, out2.y, out2.z
           ))
         case None =>
-          val connectingU = Vector3.Unit(Vector3(line2.ax - line1.ax, line2.ay - line1.ay, line2.az - line1.az))
+          val connectingU = Vector3.Unit(Vector3(line2.p1.x - line1.p1.x, line2.p1.y - line1.p1.y, line2.p1.z - line1.p1.z))
           if (uline1 == connectingU || uline1 == Vector3.neg(connectingU)) { // coincidental line segments
-            val line1a = Vector3(line1.ax, line1.ay, line1.az)
-            val line1b = Vector3(line1.bx, line1.by, line1.bz)
-            val line2a = Vector3(line2.ax, line2.ay, line2.az)
-            val line2b = Vector3(line2.bx, line2.by, line2.bz)
+            val line1a = Vector3(line1.p1.x, line1.p1.y, line1.p1.z)
+            val line1b = Vector3(line1.p2.x, line1.p2.y, line1.p2.z)
+            val line2a = Vector3(line2.p1.x, line2.p1.y, line2.p1.z)
+            val line2b = Vector3(line2.p2.x, line2.p2.y, line2.p2.z)
             if (Vector3.Unit(line2a - line1a) != Vector3.Unit(line2b - line1a) ||
                 Vector3.Unit(line2a - line1b) != Vector3.Unit(line2b - line1b) ||
                 Vector3.Unit(line1a - line2a) != Vector3.Unit(line1b - line2a) ||
                 Vector3.Unit(line1a - line2b) != Vector3.Unit(line1b - line2b)) {
               Some(Segment3D(
-                line1.ax, line1.ay, line1a.z,
-                line1.ax, line1.ay, line1a.z
+                line1.p1.x, line1.p1.y, line1a.z,
+                line1.p1.x, line1.p1.y, line1a.z
               )) // overlap regions
             }
             else {
@@ -245,10 +245,10 @@ object Closest {
     def apply(s1 : Sphere, s2 : Sphere): Option[Segment3D] = {
       val distance = Distance(s1, s2)
       if (distance > 0) {
-        val s1x = s1.x
-        val s1y = s1.y
-        val s1z = s1.z
-        val v = Vector3.Unit(Vector3(s2.x - s1x, s2.y - s1y, s2.z - s1z))
+        val s1x = s1.p.x
+        val s1y = s1.p.y
+        val s1z = s1.p.z
+        val v = Vector3.Unit(Vector3(s2.p.x - s1x, s2.p.y - s1y, s2.p.z - s1z))
         val s1d = v * s1.radius
         val s2d = v * (s1.radius + distance)
         Some(Segment3D(s1x + s1d.x, s1y + s1d.y, s1y + s1d.y, s1x + s2d.x, s1y + s2d.y, s1y + s2d.y))
@@ -258,8 +258,8 @@ object Closest {
     }
 
     def apply(line : Line3D, sphere : Sphere): Option[Segment3D] = {
-      val sphereAsPoint = Vector3(sphere.x, sphere.y, sphere.z)
-      val lineAsPoint = Vector3(line.x, line.y, line.z)
+      val sphereAsPoint = Vector3(sphere.p.x, sphere.p.y, sphere.p.z)
+      val lineAsPoint = Vector3(line.p.x, line.p.y, line.p.z)
       val direct = sphereAsPoint - lineAsPoint
       val projectionOfDirect = line.d * Vector3.DotProduct(direct, line.d)
       val heightFromProjection = projectionOfDirect - direct

@@ -38,6 +38,7 @@ import akka.actor.typed
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
+import net.psforever.objects.geometry.Geometry3D
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vehicles.UtilityType
@@ -1175,7 +1176,7 @@ object Zone {
     * Two game entities are considered "near" each other if they are within a certain distance of one another.
     * A default function literal mainly used for `causesExplosion`.
     * @see `causeExplosion`
-    * @see `Vector3.DistanceSquare`
+    * @see `ObjectDefinition.Geometry`
     * @param obj1 a game entity
     * @param obj2 a game entity
     * @param maxDistance the square of the maximum distance permissible between game entities
@@ -1183,7 +1184,35 @@ object Zone {
     * @return `true`, if the target entities are near to each other;
     *        `false`, otherwise
     */
-  private def distanceCheck(obj1: PlanetSideGameObject, obj2: PlanetSideGameObject, maxDistance: Float): Boolean = {
-    Vector3.DistanceSquared(obj1.Position, obj2.Position) <= maxDistance
+  def distanceCheck(obj1: PlanetSideGameObject, obj2: PlanetSideGameObject, maxDistance: Float): Boolean = {
+    distanceCheck(obj1.Definition.Geometry(obj1), obj2.Definition.Geometry(obj2), maxDistance)
+  }
+  /**
+    * Two game entities are considered "near" each other if they are within a certain distance of one another.
+    * @param g1 the geometric representation of a game entity
+    * @param g2 the geometric representation of a game entity
+    * @param maxDistance    the square of the maximum distance permissible between game entities
+    *                       before they are no longer considered "near"
+    * @return `true`, if the target entities are near to each other;
+    *        `false`, otherwise
+    */
+  def distanceCheck(g1: Geometry3D, g2: Geometry3D, maxDistance: Float): Boolean = {
+    distanceCheck(g1, g2) <= maxDistance
+  }
+  /**
+    * Two game entities are considered "near" each other if they are within a certain distance of one another.
+    * @see `PrimitiveGeometry.pointOnOutside`
+    * @see `Vector3.DistanceSquared`
+    * @see `Vector3.neg`
+    * @see `Vector3.Unit`
+    * @param g1 the geometric representation of a game entity
+    * @param g2 the geometric representation of a game entity
+    * @return the crude distance between the two geometric representations
+    */
+  def distanceCheck(g1: Geometry3D, g2: Geometry3D): Float = {
+    val dir = Vector3.Unit(g2.center.asVector3 - g1.center.asVector3)
+    val point1 = g1.pointOnOutside(dir).asVector3
+    val point2 = g2.pointOnOutside(Vector3.neg(dir)).asVector3
+    Vector3.DistanceSquared(point1, point2)
   }
 }

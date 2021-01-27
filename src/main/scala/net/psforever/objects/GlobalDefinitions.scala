@@ -24,6 +24,7 @@ import net.psforever.objects.serverobject.turret.{FacilityTurretDefinition, Turr
 import net.psforever.objects.vehicles.{DestroyedVehicle, InternalTelepadDefinition, SeatArmorRestriction, UtilityType}
 import net.psforever.objects.vital.base.DamageType
 import net.psforever.objects.vital.damage._
+import net.psforever.objects.vital.etc.ExplodingRadialDegrade
 import net.psforever.objects.vital.projectile._
 import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.vital.{ComplexDeployableResolutions, MaxResolutions, SimpleResolutions}
@@ -5626,7 +5627,7 @@ object GlobalDefinitions {
       Damage1 = 225
       DamageRadius = 5
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     fury.DrownAtMaxDepth = true
     fury.MaxDepth = 1.3f
@@ -5657,7 +5658,7 @@ object GlobalDefinitions {
       Damage1 = 225
       DamageRadius = 5
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     quadassault.DrownAtMaxDepth = true
     quadassault.MaxDepth = 1.3f
@@ -5688,7 +5689,7 @@ object GlobalDefinitions {
       Damage1 = 225
       DamageRadius = 5
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     quadstealth.DrownAtMaxDepth = true
     quadstealth.MaxDepth = 1.25f
@@ -5721,7 +5722,7 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 8
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     two_man_assault_buggy.DrownAtMaxDepth = true
     two_man_assault_buggy.MaxDepth = 1.5f
@@ -5756,7 +5757,7 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 8
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     skyguard.DrownAtMaxDepth = true
     skyguard.MaxDepth = 1.5f
@@ -5795,7 +5796,7 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 10
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     threemanheavybuggy.DrownAtMaxDepth = true
     threemanheavybuggy.MaxDepth = 1.83f
@@ -5829,7 +5830,7 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 8
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     twomanheavybuggy.DrownAtMaxDepth = true
     twomanheavybuggy.MaxDepth = 1.95f
@@ -5863,7 +5864,7 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 10
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     twomanhoverbuggy.DrownAtMaxDepth = true
     twomanhoverbuggy.UnderwaterLifespan(suffocation = 45000L, recovery = 5000L) //but the thresher hovers over water, so ...?
@@ -5903,7 +5904,7 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     mediumtransport.DrownAtMaxDepth = false
     mediumtransport.MaxDepth = 1.2f
@@ -5947,7 +5948,7 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     battlewagon.DrownAtMaxDepth = true
     battlewagon.MaxDepth = 1.2f
@@ -5988,7 +5989,7 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     thunderer.DrownAtMaxDepth = true
     thunderer.MaxDepth = 1.2f
@@ -6029,7 +6030,7 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     aurora.DrownAtMaxDepth = true
     aurora.MaxDepth = 1.2f
@@ -6093,7 +6094,7 @@ object GlobalDefinitions {
       Damage1 = 450
       DamageRadius = 15
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     apc_tr.DrownAtMaxDepth = true
     apc_tr.MaxDepth = 3
@@ -6157,7 +6158,7 @@ object GlobalDefinitions {
       Damage1 = 450
       DamageRadius = 15
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     apc_nc.DrownAtMaxDepth = true
     apc_nc.MaxDepth = 3
@@ -6221,7 +6222,7 @@ object GlobalDefinitions {
       Damage1 = 450
       DamageRadius = 15
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     apc_vs.DrownAtMaxDepth = true
     apc_vs.MaxDepth = 3
@@ -6253,7 +6254,7 @@ object GlobalDefinitions {
       Damage1 = 375
       DamageRadius = 10
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     lightning.DrownAtMaxDepth = true
     lightning.MaxDepth = 1.38f
@@ -6290,7 +6291,7 @@ object GlobalDefinitions {
       Damage1 = 375
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     prowler.DrownAtMaxDepth = true
     prowler.MaxDepth = 3
@@ -6323,7 +6324,7 @@ object GlobalDefinitions {
       Damage1 = 375
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     vanguard.DrownAtMaxDepth = true
     vanguard.MaxDepth = 2.7f
@@ -6358,7 +6359,7 @@ object GlobalDefinitions {
       Damage1 = 375
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     magrider.DrownAtMaxDepth = true
     magrider.MaxDepth = 2
@@ -6391,7 +6392,7 @@ object GlobalDefinitions {
       Damage1 = 450
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     ant.DrownAtMaxDepth = true
     ant.MaxDepth = 2
@@ -6427,7 +6428,7 @@ object GlobalDefinitions {
       Damage1 = 450
       DamageRadius = 15
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     ams.DrownAtMaxDepth = true
     ams.MaxDepth = 3
@@ -6463,7 +6464,7 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 10
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     router.DrownAtMaxDepth = true
     router.MaxDepth = 2
@@ -6499,7 +6500,7 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 10
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     switchblade.DrownAtMaxDepth = true
     switchblade.MaxDepth = 2
@@ -6533,7 +6534,7 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 10
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     flail.DrownAtMaxDepth = true
     flail.MaxDepth = 2
@@ -6567,7 +6568,7 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 10
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     mosquito.DrownAtMaxDepth = true
     mosquito.MaxDepth = 2 //flying vehicles will automatically disable
@@ -6601,7 +6602,7 @@ object GlobalDefinitions {
       Damage1 = 375
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     lightgunship.DrownAtMaxDepth = true
     lightgunship.MaxDepth = 2 //flying vehicles will automatically disable
@@ -6634,7 +6635,7 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 10
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     wasp.DrownAtMaxDepth = true
     wasp.MaxDepth = 2 //flying vehicles will automatically disable
@@ -6675,7 +6676,7 @@ object GlobalDefinitions {
       Damage1 = 375
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     liberator.DrownAtMaxDepth = true
     liberator.MaxDepth = 2 //flying vehicles will automatically disable
@@ -6717,7 +6718,7 @@ object GlobalDefinitions {
       Damage1 = 375
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     vulture.DrownAtMaxDepth = true
     vulture.MaxDepth = 2 //flying vehicles will automatically disable
@@ -6791,7 +6792,7 @@ object GlobalDefinitions {
       Damage1 = 450
       DamageRadius = 30
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     dropship.DrownAtMaxDepth = true
     dropship.MaxDepth = 2
@@ -6844,7 +6845,7 @@ object GlobalDefinitions {
       Damage1 = 450
       DamageRadius = 30
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     galaxy_gunship.DrownAtMaxDepth = true
     galaxy_gunship.MaxDepth = 2
@@ -6885,7 +6886,7 @@ object GlobalDefinitions {
       Damage1 = 450
       DamageRadius = 30
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     lodestar.DrownAtMaxDepth = true
     lodestar.MaxDepth = 2
@@ -6927,7 +6928,7 @@ object GlobalDefinitions {
       Damage1 = 150
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     phantasm.DrownAtMaxDepth = true
     phantasm.MaxDepth = 2
@@ -6969,7 +6970,7 @@ object GlobalDefinitions {
       Damage4 = 1850
       DamageRadius = 5.1f
       DamageAtEdge = 0.1f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
 
     he_mine.Name = "he_mine"
@@ -6990,7 +6991,7 @@ object GlobalDefinitions {
       Damage4 = 1600
       DamageRadius = 6.6f
       DamageAtEdge = 0.25f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
 
     jammer_mine.Name = "jammer_mine"
@@ -7022,7 +7023,7 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 8
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
 
     spitfire_cloaked.Name = "spitfire_cloaked"
@@ -7044,7 +7045,7 @@ object GlobalDefinitions {
       Damage1 = 75
       DamageRadius = 8
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
 
     spitfire_aa.Name = "spitfire_aa"
@@ -7066,7 +7067,7 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 8
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
 
     motionalarmsensor.Name = "motionalarmsensor"
@@ -7100,7 +7101,7 @@ object GlobalDefinitions {
       Damage1 = 10
       DamageRadius = 8
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
 
     val fieldTurretConverter = new FieldTurretConverter
@@ -7127,7 +7128,7 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 8
       DamageAtEdge = 0.1f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
 
     portable_manned_turret_nc.Name = "portable_manned_turret_nc"
@@ -7153,7 +7154,7 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 8
       DamageAtEdge = 0.1f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
 
     portable_manned_turret_tr.Name = "portable_manned_turret_tr"
@@ -7179,7 +7180,7 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 8
       DamageAtEdge = 0.1f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
 
     portable_manned_turret_vs.Name = "portable_manned_turret_vs"
@@ -7205,7 +7206,7 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 8
       DamageAtEdge = 0.1f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
 
     deployable_shield_generator.Name = "deployable_shield_generator"
@@ -7668,7 +7669,7 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 5
       DamageAtEdge = 0.1f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
 
     vanu_sentry_turret.Name = "vanu_sentry_turret"
@@ -7770,7 +7771,7 @@ object GlobalDefinitions {
       DamageRadius = 15.75f
       DamageRadiusMin = 14
       DamageAtEdge = 0.00002f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
       //damage is 99999 at 14m, dropping rapidly to ~1 at 15.75m
     }
   }
