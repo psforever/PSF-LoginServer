@@ -20,13 +20,18 @@ class CaptureFlag(tDef: CaptureFlagDefinition) extends Amenity {
     target
   }
 
-  /**
-    * Since a LLU belongs to a base, but needs to be picked up by the enemy faction we need to be able to override the faction that owns the LLU to the hacker faction
-    */
+  // Since a LLU belongs to a base, but needs to be picked up by the enemy faction we need to be able to override the faction that owns the LLU to the hacker faction
   override def Faction: PlanetSideEmpire.Value = faction
   override def Faction_=(new_faction: PlanetSideEmpire.Value): PlanetSideEmpire.Value = {
     faction = new_faction
     faction
+  }
+
+  // When the flag is carried by a player, the position returned should be that of the carrier not the flag
+  override def Position: Vector3 = if (Carrier.nonEmpty) {
+    carrier.get.Position
+  } else {
+    Entity.Position
   }
 
   def Carrier: Option[Player] = carrier
