@@ -38,7 +38,7 @@ class CaptureFlagDataTest extends Specification {
     }
 
     "encode" in {
-      val obj = CaptureFlagData(PlacementData(3912.0312f, 5169.4375f, 59.96875f, 0f, 0f, 47.8125f), PlanetSideEmpire.NC, 21, 4, 2838)
+      val obj = CaptureFlagData(PlacementData(3912.0312f, 5169.4375f, 59.96875f, 0f, 0f, 47.8125f), PlanetSideEmpire.NC, 21, 4, 592662)
       val msg = ObjectCreateMessage(ObjectClass.capture_flag, PlanetSideGUID(4330), obj)
       val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_captureflag
