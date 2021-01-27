@@ -2,34 +2,26 @@
 package net.psforever.services.local
 
 import akka.actor.{Actor, ActorRef, Props}
-import akka.pattern.Patterns
-import akka.util.Timeout
-import net.psforever.actors.zone.{BuildingActor, ZoneActor}
-import net.psforever.objects.ce.Deployable
-import net.psforever.objects.serverobject.structures.{Amenity, Building}
-import net.psforever.objects.serverobject.terminals.Terminal
-import net.psforever.objects.zones.Zone
 import net.psforever.objects._
-import net.psforever.packet.game.{PlanetsideAttributeEnum, TriggeredEffect, TriggeredEffectLocation}
+import net.psforever.objects.ce.Deployable
+import net.psforever.objects.serverobject.terminals.Terminal
+import net.psforever.objects.vehicles.{Utility, UtilityType}
 import net.psforever.objects.vital.Vitality
-import net.psforever.types.{PlanetSideGUID, Vector3}
-import net.psforever.services.local.support._
+import net.psforever.objects.zones.Zone
+import net.psforever.packet.game.{TriggeredEffect, TriggeredEffectLocation}
+import net.psforever.services.local.support.{CaptureFlagManager, _}
+import net.psforever.services.support.SupportActor
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.services.{GenericEventBus, RemoverActor, Service}
+import net.psforever.types.{PlanetSideGUID, Vector3}
 
-import scala.concurrent.duration._
-import net.psforever.objects.serverobject.hackable.Hackable
-import net.psforever.objects.vehicles.{Utility, UtilityType}
-import net.psforever.services.support.SupportActor
-
-import java.util.concurrent.TimeUnit
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.{Duration, _}
 
 class LocalService(zone: Zone) extends Actor {
   private val doorCloser   = context.actorOf(Props[DoorCloseActor](), s"${zone.id}-local-door-closer")
   private val hackClearer  = context.actorOf(Props[HackClearActor](), s"${zone.id}-local-hack-clearer")
-  private val hackCapturer = context.actorOf(Props[HackCaptureActor](), s"${zone.id}-local-hack-capturer")
+  private val hackCapturer = context.actorOf(Props(classOf[HackCaptureActor], zone.tasks), s"${zone.id}-local-hack-capturer")
+  private val captureFlagManager = context.actorOf(Props(classOf[CaptureFlagManager], zone.tasks, zone), s"${zone.id}-local-capture-flag-manager")
   private val engineer     = context.actorOf(Props(classOf[DeployableRemover], zone.tasks), s"${zone.id}-deployable-remover-agent")
   private val teleportDeployment: ActorRef =
     context.actorOf(Props[RouterTelepadActivation](), s"${zone.id}-telepad-activate-agent")
@@ -102,10 +94,43 @@ class LocalService(zone: Zone) extends Actor {
           )
         case LocalAction.ClearTemporaryHack(_, target) =>
           hackClearer ! HackClearActor.ObjectIsResecured(target)
+
         case LocalAction.ResecureCaptureTerminal(target) =>
           hackCapturer ! HackCaptureActor.ResecureCaptureTerminal(target, zone)
         case LocalAction.StartCaptureTerminalHack(target) =>
           hackCapturer ! HackCaptureActor.StartCaptureTerminalHack(target, zone, 0, 8L)
+        case LocalAction.LluCaptured(llu) =>
+          hackCapturer ! HackCaptureActor.FlagCaptured(llu)
+
+        case LocalAction.LluSpawned(player_guid, llu) =>
+          // Forward to all clients to create object locally
+          LocalEvents.publish(
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              player_guid,
+              LocalResponse.LluSpawned(llu)
+            )
+          )
+
+        case LocalAction.LluDespawned(player_guid, llu) =>
+          // Forward to all clients to destroy object locally
+          LocalEvents.publish(
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              player_guid,
+              LocalResponse.LluDespawned(llu)
+            )
+          )
+
+        case LocalAction.SendPacket(packet) =>
+          LocalEvents.publish(
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              PlanetSideGUID(-1),
+              LocalResponse.SendPacket(packet)
+            )
+          )
+
         case LocalAction.SendPlanetsideAttributeMessage(player_guid, target_guid, attribute_number, attribute_value) =>
           LocalEvents.publish(
             LocalServiceResponse(
@@ -114,6 +139,34 @@ class LocalService(zone: Zone) extends Actor {
               LocalResponse.SendPlanetsideAttributeMessage(target_guid, attribute_number, attribute_value)
             )
           )
+
+        case LocalAction.SendGenericObjectActionMessage(player_guid, target_guid, action_number) =>
+          LocalEvents.publish(
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              player_guid,
+              LocalResponse.SendGenericObjectActionMessage(target_guid, action_number)
+            )
+          )
+
+        case LocalAction.SendChatMsg(player_guid, msg) =>
+          LocalEvents.publish(
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              player_guid,
+              LocalResponse.SendChatMsg(msg)
+            )
+          )
+
+        case LocalAction.SendGenericActionMessage(player_guid, action_number) =>
+          LocalEvents.publish(
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              player_guid,
+              LocalResponse.SendGenericActionMessage(action_number)
+            )
+          )
+
         case LocalAction.RouterTelepadTransport(player_guid, passenger_guid, src_guid, dest_guid) =>
           LocalEvents.publish(
             LocalServiceResponse(
@@ -337,6 +390,16 @@ class LocalService(zone: Zone) extends Actor {
     case Vitality.DamageOn(target: PlanetSideGameObject with Deployable, damage_func) =>
       val cause = damage_func(target)
       sender() ! Vitality.DamageResolution(target, cause)
+
+    // Forward all CaptureFlagManager messages
+    case msg @
+      (CaptureFlagManager.SpawnCaptureFlag(_, _, _)
+      | CaptureFlagManager.PickupFlag(_, _)
+      | CaptureFlagManager.DropFlag(_)
+      | CaptureFlagManager.Captured(_)
+      | CaptureFlagManager.Lost(_, _)
+      | CaptureFlagManager) =>
+      captureFlagManager.forward(msg)
 
     case msg =>
       log.warn(s"Unhandled message $msg from ${sender()}")

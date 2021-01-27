@@ -1,16 +1,20 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.local
 
-import net.psforever.objects.{PlanetSideGameObject, TelepadDeployable, Vehicle}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.hackable.Hackable
+import net.psforever.objects.serverobject.llu.CaptureFlag
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
 import net.psforever.objects.vehicles.Utility
 import net.psforever.objects.zones.Zone
+import net.psforever.objects.{PlanetSideGameObject, TelepadDeployable, Vehicle}
+import net.psforever.packet.PlanetSideGamePacket
+import net.psforever.packet.game.GenericActionEnum.GenericActionEnum
+import net.psforever.packet.game.GenericObjectActionEnum.GenericObjectActionEnum
 import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
-import net.psforever.packet.game.{DeployableInfo, DeploymentAction, TriggeredSound}
+import net.psforever.packet.game.{ChatMsg, DeployableInfo, DeploymentAction, TriggeredSound}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 final case class LocalServiceMessage(forChannel: String, actionMessage: LocalAction.Action)
@@ -46,14 +50,37 @@ object LocalAction {
   ) extends Action
   final case class ClearTemporaryHack(player_guid: PlanetSideGUID, target: PlanetSideServerObject with Hackable)
       extends Action
+
   final case class ResecureCaptureTerminal(target: CaptureTerminal) extends Action
   final case class StartCaptureTerminalHack(target: CaptureTerminal) extends Action
+  final case class LluCaptured(llu: CaptureFlag) extends Action
+  final case class LluSpawned(player_guid: PlanetSideGUID, llu: CaptureFlag) extends Action
+  final case class LluDespawned(player_guid: PlanetSideGUID, llu: CaptureFlag) extends Action
+
+  final case class SendPacket(packet: PlanetSideGamePacket) extends Action
   final case class SendPlanetsideAttributeMessage(
       player_guid: PlanetSideGUID,
       target: PlanetSideGUID,
       attribute_number: PlanetsideAttributeEnum,
       attribute_value: Long
   ) extends Action
+
+  final case class SendGenericObjectActionMessage(
+     player_guid: PlanetSideGUID,
+     target: PlanetSideGUID,
+     action_number: GenericObjectActionEnum
+   ) extends Action
+
+  final case class SendChatMsg(
+     player_guid: PlanetSideGUID,
+     msg: ChatMsg
+   ) extends Action
+
+  final case class SendGenericActionMessage(
+    player_guid: PlanetSideGUID,
+    action_number: GenericActionEnum
+  ) extends Action
+
   final case class RouterTelepadTransport(
       player_guid: PlanetSideGUID,
       passenger_guid: PlanetSideGUID,

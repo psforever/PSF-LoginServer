@@ -4,7 +4,7 @@ package net.psforever.services.galaxy
 import net.psforever.objects.Vehicle
 import net.psforever.objects.vehicles.VehicleManifest
 import net.psforever.objects.zones.HotSpotInfo
-import net.psforever.packet.game.BuildingInfoUpdateMessage
+import net.psforever.packet.game.{BuildingInfoUpdateMessage, CaptureFlagUpdateMessage, FlagInfo}
 import net.psforever.types.PlanetSideGUID
 import net.psforever.services.GenericEventBusMsg
 
@@ -16,6 +16,8 @@ object GalaxyResponse {
 
   final case class HotSpotUpdate(zone_id: Int, priority: Int, host_spot_info: List[HotSpotInfo]) extends Response
   final case class MapUpdate(msg: BuildingInfoUpdateMessage)                                     extends Response
+  final case class FlagMapUpdate(msg: CaptureFlagUpdateMessage)                                  extends Response
+
 
   final case class TransferPassenger(
       temp_channel: String,
