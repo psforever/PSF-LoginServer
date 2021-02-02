@@ -276,6 +276,9 @@ class VehicleControl(vehicle: Vehicle)
           PrepareForDeletion()
           context.become(ReadyToDelete)
 
+        case VehicleControl.AssignOwnership(player) =>
+          vehicle.AssignOwnership(player)
+
         case _ => ;
       }
 
@@ -859,6 +862,8 @@ object VehicleControl {
   private case class Disable()
 
   private case class Deletion()
+
+  final case class AssignOwnership(player: Option[Player])
 
   /**
     * Determine if a given activity entry would invalidate the act of charging vehicle shields this tick.
