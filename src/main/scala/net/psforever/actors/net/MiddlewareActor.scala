@@ -119,10 +119,7 @@ object MiddlewareActor {
     packet.isInstanceOf[CharacterInfoMessage]
   }
 
-  /**
-    * `KeepAliveMessage` packets are bundled by themselves.
-    * They're special.
-    */
+  /** `KeepAliveMessage` packets are bundled by themselves. They're special. */
   def keepAliveMessageGuard(packet: PlanetSidePacket): Boolean = {
     packet.isInstanceOf[KeepAliveMessage]
   }
