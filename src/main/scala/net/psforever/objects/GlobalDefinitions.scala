@@ -6042,7 +6042,6 @@ object GlobalDefinitions {
     apc_tr.RepairIfDestroyed = false
     apc_tr.MaxShields = 1200
     apc_tr.Seats += 0 -> new SeatDefinition()
-    apc_tr.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     apc_tr.Seats += 1 -> new SeatDefinition()
     apc_tr.Seats(1).ControlledWeapon = 11
     apc_tr.Seats += 2 -> new SeatDefinition()
@@ -6106,7 +6105,6 @@ object GlobalDefinitions {
     apc_nc.RepairIfDestroyed = false
     apc_nc.MaxShields = 1200
     apc_nc.Seats += 0 -> new SeatDefinition()
-    apc_nc.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     apc_nc.Seats += 1 -> new SeatDefinition()
     apc_nc.Seats(1).ControlledWeapon = 11
     apc_nc.Seats += 2 -> new SeatDefinition()
@@ -6170,7 +6168,6 @@ object GlobalDefinitions {
     apc_vs.RepairIfDestroyed = false
     apc_vs.MaxShields = 1200
     apc_vs.Seats += 0 -> new SeatDefinition()
-    apc_vs.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
     apc_vs.Seats += 1 -> new SeatDefinition()
     apc_vs.Seats(1).ControlledWeapon = 11
     apc_vs.Seats += 2 -> new SeatDefinition()
