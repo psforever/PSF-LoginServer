@@ -4910,7 +4910,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             TryDisposeOfLootedCorpse(obj)
 
           case Some(obj: Container) =>
-            UnaccessContainer(obj)
+            // Make sure we don't unload the contents of the vehicle the player is seated in
+            // An example scenario of this would be closing the trunk contents when rearming at a landing pad
+            if (player.VehicleSeated.isEmpty || player.VehicleSeated.get != obj.GUID) {
+              UnaccessContainer(obj)
+            }
 
           case _ => ;
         }
