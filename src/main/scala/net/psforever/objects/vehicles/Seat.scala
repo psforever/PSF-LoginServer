@@ -61,6 +61,7 @@ class Seat(private val seatDef: SeatDefinition) {
     seatDef.ArmorRestriction
   }
 
+  /** Determines if the seat can be bailed from while the vehicle is in motion */
   def Bailable: Boolean = {
     seatDef.Bailable
   }
