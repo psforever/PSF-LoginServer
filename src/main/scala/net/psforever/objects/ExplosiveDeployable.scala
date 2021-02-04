@@ -7,6 +7,7 @@ import net.psforever.objects.ce._
 import net.psforever.objects.definition.{ComplexDeployableDefinition, SimpleDeployableDefinition}
 import net.psforever.objects.definition.converter.SmallDeployableConverter
 import net.psforever.objects.equipment.JammableUnit
+import net.psforever.objects.geometry.Geometry3D
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity}
@@ -118,11 +119,11 @@ class ExplosiveDeployableControl(mine: ExplosiveDeployable) extends Actor with D
     *        `false`, otherwise
     */
   def CanDetonate(obj: Vitality with FactionAffinity, damage: Int, data: DamageInteraction): Boolean = {
-    if (damage == 0 && data.cause.source.SympatheticExplosion) {
+    !mine.Destroyed && (if (damage == 0 && data.cause.source.SympatheticExplosion) {
       Damageable.CanDamageOrJammer(mine, damage = 1, data)
     } else {
       Damageable.CanDamageOrJammer(mine, damage, data)
-    }
+    })
   }
 }
 
@@ -169,7 +170,7 @@ object ExplosiveDeployableControl {
     val zone = target.Zone
     zone.Activity ! Zone.HotSpot.Activity(cause)
     zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.Detonate(target.GUID, target))
-    Zone.causeExplosion(zone, target, Some(cause))
+    Zone.causeExplosion(zone, target, Some(cause), ExplosiveDeployableControl.detectionForExplosiveSource(target))
   }
 
   /**
@@ -195,5 +196,49 @@ object ExplosiveDeployableControl {
         LocalAction.TriggerEffect(Service.defaultPlayerGUID, "detonate_damaged_mine", target.GUID)
       )
     }
+  }
+
+  /**
+    * Two game entities are considered "near" each other if they are within a certain distance of one another.
+    * For explosives, the source of the explosion is always typically constant.
+    * @see `detectsTarget`
+    * @see `ObjectDefinition.Geometry`
+    * @see `Vector3.relativeUp`
+    * @param obj a game entity that explodes
+    * @return a function that resolves a potential target as detected
+    */
+  def detectionForExplosiveSource(obj: PlanetSideGameObject): (PlanetSideGameObject, PlanetSideGameObject, Float) => Boolean = {
+    val up = Vector3.relativeUp(obj.Orientation) //check relativeUp; rotate as little as necessary!
+    val g1 = obj.Definition.Geometry(obj)
+    detectTarget(g1, up)
+  }
+
+  /**
+    * Two game entities are considered "near" each other if they are within a certain distance of one another.
+    * For explosives, targets in the damage radius in the direction of the blast (above the explosive) are valid targets.
+    * Targets that are ~0.5916f units in the opposite direction of the blast (below the explosive) are also selected.
+    * @see `ObjectDefinition.Geometry`
+    * @see `PrimitiveGeometry.pointOnOutside`
+    * @see `Vector3.DistanceSquared`
+    * @see `Vector3.neg`
+    * @see `Vector3.relativeUp`
+    * @see `Vector3.ScalarProjection`
+    * @see `Vector3.Unit`
+    * @param g1 a cached geometric representation that should belong to `obj1`
+    * @param up a cached vector in the direction of "above `obj1`'s geometric representation"
+    * @param obj1 a game entity that explodes
+    * @param obj2 a game entity that suffers the explosion
+    * @param maxDistance the square of the maximum distance permissible between game entities
+    *                    before they are no longer considered "near"
+    * @return `true`, if the target entities are near enough to each other;
+    *        `false`, otherwise
+    */
+  def detectTarget(g1: Geometry3D, up: Vector3)(obj1: PlanetSideGameObject, obj2: PlanetSideGameObject, maxDistance: Float) : Boolean = {
+    val g2 = obj2.Definition.Geometry(obj2)
+    val dir = g2.center.asVector3 - g1.center.asVector3
+    val scalar = Vector3.ScalarProjection(dir, up)
+    val point1 = g1.pointOnOutside(dir).asVector3
+    val point2 = g2.pointOnOutside(Vector3.neg(dir)).asVector3
+    (scalar >= 0 || Vector3.MagnitudeSquared(up * scalar) < 0.35f) && Vector3.DistanceSquared(point1, point2) <= maxDistance
   }
 }

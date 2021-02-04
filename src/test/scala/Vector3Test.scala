@@ -257,10 +257,18 @@ class Vector3Test extends Specification {
 
     "find a relative up (y-rot)" in {
       Vector3.relativeUp(Vector3(0, 0, 0)) mustEqual Vector3(0,0,1) //up
-      Vector3.relativeUp(Vector3(0, 90, 0)) mustEqual Vector3(0,-1,0) //north
+      Vector3.relativeUp(Vector3(0, 90, 0)) mustEqual Vector3(0,-1,0) //south
       Vector3.relativeUp(Vector3(0, 180, 0)) mustEqual Vector3(0,0,-1) //down
-      Vector3.relativeUp(Vector3(0, 270, 0)) mustEqual Vector3(0,1,0) //south
+      Vector3.relativeUp(Vector3(0, 270, 0)) mustEqual Vector3(0,1,0) //north
       Vector3.relativeUp(Vector3(0, 360, 0)) mustEqual Vector3(0,0,1) //up
+    }
+
+    "find a relative up (x-rot)" in {
+      Vector3.relativeUp(Vector3(0, 0, 0)) mustEqual Vector3(0,0,1) //up
+      Vector3.relativeUp(Vector3(90, 0, 0)) mustEqual Vector3(-1,0,0) //west
+      Vector3.relativeUp(Vector3(180, 0, 0)) mustEqual Vector3(0,0,-1) //down
+      Vector3.relativeUp(Vector3(270, 0, 0)) mustEqual Vector3(1,0,0) //east
+      Vector3.relativeUp(Vector3(360, 0, 0)) mustEqual Vector3(0,0,1) //up
     }
 
     "find a relative up (combined y,z)" in {
@@ -269,6 +277,42 @@ class Vector3Test extends Specification {
       Vector3.relativeUp(Vector3(0, 180, 90)) mustEqual Vector3(0,0,-1) //down
       Vector3.relativeUp(Vector3(0, 270, 90)) mustEqual Vector3(1,0,0) //east
       Vector3.relativeUp(Vector3(0, 360, 90)) mustEqual Vector3(0,0,1) //up
+
+      Vector3.relativeUp(Vector3(0, 90, 180)) mustEqual Vector3(0,1,0) //north
+      Vector3.relativeUp(Vector3(0, 180, 180)) mustEqual Vector3(0,0,-1) //down
+      Vector3.relativeUp(Vector3(0, 270, 180)) mustEqual Vector3(0,-1,0) //south
+      Vector3.relativeUp(Vector3(0, 360, 180)) mustEqual Vector3(0,0,1) //up
+
+      Vector3.relativeUp(Vector3(0, 90, 270)) mustEqual Vector3(1,0,0) //east
+      Vector3.relativeUp(Vector3(0, 180, 270)) mustEqual Vector3(0,0,-1) //down
+      Vector3.relativeUp(Vector3(0, 270, 270)) mustEqual Vector3(-1,0,0) //west
+      Vector3.relativeUp(Vector3(0, 360, 270)) mustEqual Vector3(0,0,1) //up
+    }
+
+    "find a relative up (combined x,z)" in {
+      Vector3.relativeUp(Vector3(0, 0, 90)) mustEqual Vector3(0,0,1) //up
+      Vector3.relativeUp(Vector3(90, 0, 90)) mustEqual Vector3(0,-1,0) //south
+      Vector3.relativeUp(Vector3(180, 0, 90)) mustEqual Vector3(0,0,-1) //down
+      Vector3.relativeUp(Vector3(270, 0, 90)) mustEqual Vector3(0,1,0) //north
+      Vector3.relativeUp(Vector3(360, 0, 90)) mustEqual Vector3(0,0,1) //up
+
+      Vector3.relativeUp(Vector3(90, 0, 180)) mustEqual Vector3(1,0,0) //east
+      Vector3.relativeUp(Vector3(180, 0, 180)) mustEqual Vector3(0,0,-1) //down
+      Vector3.relativeUp(Vector3(270, 0, 180)) mustEqual Vector3(-1,0,0) //west
+      Vector3.relativeUp(Vector3(360, 0, 180)) mustEqual Vector3(0,0,1) //up
+
+      Vector3.relativeUp(Vector3(90, 0, 270)) mustEqual Vector3(0,1,0) //north
+      Vector3.relativeUp(Vector3(180, 0, 270)) mustEqual Vector3(0,0,-1) //down
+      Vector3.relativeUp(Vector3(270, 0, 270)) mustEqual Vector3(0,-1,0) //south
+      Vector3.relativeUp(Vector3(360, 0, 270)) mustEqual Vector3(0,0,1) //up
+    }
+
+    "find a relative up (combined x,y)" in {
+      val south = Vector3(0,-1,0)
+      Vector3.relativeUp(Vector3(0, 90, 0)) mustEqual Vector3(0,-1,0) //south
+      Vector3.relativeUp(Vector3(90, 90, 0)) mustEqual Vector3(-1,0,0) //west
+      Vector3.relativeUp(Vector3(180, 90, 0)) mustEqual Vector3(0,1,0) //north
+      Vector3.relativeUp(Vector3(270, 90, 0)) mustEqual Vector3(1,0,0) //east
     }
   }
 }

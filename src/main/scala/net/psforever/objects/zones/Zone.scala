@@ -1135,7 +1135,7 @@ object Zone {
               .flatMap { _.Amenities }
               .filter { _.Definition.Damageable }
         }
-        //restrict to targets in the damage radius
+        //restrict to targets according to the detection plan
         val allAffectedTargets = (playerTargets ++ vehicleTargets ++ complexDeployableTargets ++ soiTargets)
           .filter { target =>
             (target ne obj) && detectionTest(obj, target, radius)
@@ -1177,11 +1177,11 @@ object Zone {
     * A default function literal mainly used for `causesExplosion`.
     * @see `causeExplosion`
     * @see `ObjectDefinition.Geometry`
-    * @param obj1 a game entity
-    * @param obj2 a game entity
+    * @param obj1 a game entity, should be the source of the explosion
+    * @param obj2 a game entity, should be the target of the explosion
     * @param maxDistance the square of the maximum distance permissible between game entities
     *                    before they are no longer considered "near"
-    * @return `true`, if the target entities are near to each other;
+    * @return `true`, if the target entities are near enough to each other;
     *        `false`, otherwise
     */
   def distanceCheck(obj1: PlanetSideGameObject, obj2: PlanetSideGameObject, maxDistance: Float): Boolean = {
@@ -1193,7 +1193,7 @@ object Zone {
     * @param g2 the geometric representation of a game entity
     * @param maxDistance    the square of the maximum distance permissible between game entities
     *                       before they are no longer considered "near"
-    * @return `true`, if the target entities are near to each other;
+    * @return `true`, if the target entities are near enough to each other;
     *        `false`, otherwise
     */
   def distanceCheck(g1: Geometry3D, g2: Geometry3D, maxDistance: Float): Boolean = {
