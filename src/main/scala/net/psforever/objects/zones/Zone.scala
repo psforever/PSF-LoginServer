@@ -436,12 +436,16 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     if (actor == null && guid.Pools.values.foldLeft(0)(_ + _.Count) == 0) {
       import org.fusesource.jansi.Ansi.Color.RED
       import org.fusesource.jansi.Ansi.ansi
-      println(
-        ansi()
-          .fgBright(RED)
-          .a(s"""Caution: replacement of the number pool system for zone $id; function is for testing purposes only""")
-          .reset()
-      )
+
+      // If the number pool has been replaced for a test don't show this warning, if the zone id contains test we'll assume you know what you're doing.
+      if (!id.contains("test")) {
+        println(
+          ansi()
+            .fgBright(RED)
+            .a(s"""Caution: replacement of the number pool system for zone $id; function is for testing purposes only""")
+            .reset()
+        )
+      }
       guid = hub
       true
     } else {
