@@ -152,8 +152,8 @@ trait JammableBehavior {
               case _ =>
                 true
             }) {
-              StartJammeredSound(obj, dur)
               StartJammeredStatus(obj, dur)
+              StartJammeredSound(obj, dur)
             }
           case None =>
         }

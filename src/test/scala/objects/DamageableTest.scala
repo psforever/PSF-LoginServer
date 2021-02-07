@@ -932,27 +932,10 @@ class DamageableWeaponTurretJammerTest extends ActorTest {
 
       turret.Actor ! Vitality.Damage(applyDamageTo)
       val msg12 = vehicleProbe.receiveN(2, 500 milliseconds)
-      assert(
-        msg12.head match {
-          case VehicleServiceMessage(
-                "test",
-                VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, PlanetSideGUID(2), 27, 1)
-              ) =>
-            true
-          case _ => false
-        }
-      )
-      assert(
-        msg12(1) match {
-          case VehicleServiceMessage(
-                "test",
-                VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, PlanetSideGUID(5), 27, 1)
-              ) =>
-            true
-          case _ => false
-        }
-      )
-      expectNoMessage(100 milliseconds) // FIXME this is a hack to make it pass
+
+      assert(msg12.contains(VehicleServiceMessage("test", VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, PlanetSideGUID(2), 27, 1))))
+      assert(msg12.contains(VehicleServiceMessage("test", VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, PlanetSideGUID(5), 27, 1))))
+
       assert(turret.Health == turret.Definition.DefaultHealth)
       assert(turret.Jammed)
     }
