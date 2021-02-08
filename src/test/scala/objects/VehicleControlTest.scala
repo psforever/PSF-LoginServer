@@ -348,6 +348,11 @@ class VehicleControlMountingBlockedExosuitTest extends ActorTest {
   vehicle.GUID = PlanetSideGUID(10)
   vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
 
+  val vehicle2 = Vehicle(GlobalDefinitions.lightning)
+  vehicle2.Faction = PlanetSideEmpire.TR
+  vehicle2.GUID = PlanetSideGUID(11)
+  vehicle2.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle2), "vehicle2-test")
+
   val player1 = Player(VehicleTest.avatar1)
   player1.ExoSuit = ExoSuitType.Reinforced
   player1.GUID = PlanetSideGUID(1)
@@ -359,9 +364,9 @@ class VehicleControlMountingBlockedExosuitTest extends ActorTest {
   player3.GUID = PlanetSideGUID(3)
 
   "Vehicle Control" should {
-    "block players from sitting if their exo-suit is not allowed by the seat" in {
-      //disallow
-      vehicle.Actor.tell(Mountable.TryMount(player1, 0), probe.ref) //Reinforced in non-MAX seat
+    "block players from sitting if their exo-suit is not allowed by the seat - apc_tr" in {
+      // disallow
+      vehicle2.Actor.tell(Mountable.TryMount(player1, 0), probe.ref) // Reinforced in non-reinforced seat
       checkCanNotMount()
       vehicle.Actor.tell(Mountable.TryMount(player2, 0), probe.ref) //MAX in non-Reinforced seat
       checkCanNotMount()
@@ -373,11 +378,14 @@ class VehicleControlMountingBlockedExosuitTest extends ActorTest {
       checkCanNotMount()
 
       //allow
-      vehicle.Actor.tell(Mountable.TryMount(player1, 1), probe.ref)
+      vehicle.Actor.tell(Mountable.TryMount(player1, 0), probe.ref) // Reinforced in driver seat allowing all except MAX
       checkCanMount()
-      vehicle.Actor.tell(Mountable.TryMount(player2, 9), probe.ref)
+      vehicle.Actor.tell(VehicleControl.AssignOwnership(None), probe.ref) // Reset ownership to allow further driver seat mounting tests
+      vehicle.Actor.tell(Mountable.TryMount(player1, 1), probe.ref) // Reinforced in passenger seat allowing all except MAX
       checkCanMount()
-      vehicle.Actor.tell(Mountable.TryMount(player3, 0), probe.ref)
+      vehicle.Actor.tell(Mountable.TryMount(player2, 9), probe.ref) // MAX in MAX-only seat
+      checkCanMount()
+      vehicle.Actor.tell(Mountable.TryMount(player3, 0), probe.ref) // Agile in driver seat allowing all except MAX
       checkCanMount()
     }
   }
