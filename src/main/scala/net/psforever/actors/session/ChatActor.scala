@@ -673,11 +673,11 @@ class ChatActor(
             case (CMT_WARP, _, contents) if gmCommandAllowed =>
               val buffer = contents.toLowerCase.split("\\s+")
               val (coordinates, waypoint) = (buffer.lift(0), buffer.lift(1), buffer.lift(2)) match {
-                case (Some(x), Some(y), Some(z))            => (Some(x, y, z), None)
-                case (Some("to"), Some(character), None)    => (None, None) // TODO not implemented
-                case (Some("near"), Some(objectName), None) => (None, None) // TODO not implemented
-                case (Some(waypoint), None, None)           => (None, Some(waypoint))
-                case _                                      => (None, None)
+                case (Some(x), Some(y), Some(z))                        => (Some(x, y, z), None)
+                case (Some("to"), Some(character), None)                => (None, None) // TODO not implemented
+                case (Some("near"), Some(objectName), None)             => (None, None) // TODO not implemented
+                case (Some(waypoint), None, None) if waypoint.nonEmpty  => (None, Some(waypoint))
+                case _                                                  => (None, None)
               }
               (coordinates, waypoint) match {
                 case (Some((x, y, z)), None) if List(x, y, z).forall { str =>
@@ -685,6 +685,12 @@ class ChatActor(
                       coordinate.isDefined && coordinate.get >= 0 && coordinate.get <= 8191
                     } =>
                   sessionActor ! SessionActor.SetPosition(Vector3(x.toFloat, y.toFloat, z.toFloat))
+                case (None, Some(waypoint)) if waypoint == "-list" =>
+                  val zone = PointOfInterest.get(session.player.Zone.id)
+                  zone match {
+                    case Some(zone: PointOfInterest) => sessionActor ! SessionActor.SendResponse(ChatMsg(UNK_229, true, "", PointOfInterest.listAll(zone), None))
+                    case _ => ChatMsg(UNK_229, true, "", s"unknown player zone '${session.player.Zone.id}'", None)
+                  }
                 case (None, Some(waypoint)) if waypoint != "-help" =>
                   PointOfInterest.getWarpLocation(session.zone.id, waypoint) match {
                     case Some(location) => sessionActor ! SessionActor.SetPosition(location)
