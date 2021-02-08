@@ -27,6 +27,7 @@ class SeatDefinition extends BasicDefinition {
     restriction
   }
 
+  /** Determines if the seat can be bailed from while the vehicle is in motion */
   def Bailable: Boolean = {
     this.bailable
   }
