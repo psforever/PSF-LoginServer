@@ -972,6 +972,8 @@ object GlobalDefinitions {
 
   val router_telepad_deployable = SimpleDeployableDefinition(DeployedItem.router_telepad_deployable)
 
+  val special_emp = ExplosiveDeployableDefinition(DeployedItem.jammer_mine)
+
   //this is only treated like a deployable
   val internal_router_telepad_deployable = InternalTelepadDefinition() //objectId: 744
   init_deployables()
@@ -7293,6 +7295,22 @@ object GlobalDefinitions {
     internal_router_telepad_deployable.DeployTime = Duration.create(1, "ms")
     internal_router_telepad_deployable.DeployCategory = DeployableCategory.Telepads
     internal_router_telepad_deployable.Packet = new InternalTelepadDeployableConverter
+
+    special_emp.Name = "emp"
+    special_emp.MaxHealth = 1
+    special_emp.Damageable = false
+    special_emp.Repairable = false
+    special_emp.DeployCategory = DeployableCategory.Mines
+    special_emp.explodes = true
+    special_emp.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.Splash
+      SympatheticExplosion = true
+      Damage0 = 0
+      DamageAtEdge = 1.0f
+      DamageRadius = 5f
+      AdditionalEffect = true
+      Modifiers = MaxDistanceCutoff
+    }
   }
 
   /**
@@ -7844,12 +7862,11 @@ object GlobalDefinitions {
     generator.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 99999
-      //DamageRadius should be 14, but 14 is insufficient for hitting the whole chamber; hence, ...
-      DamageRadius = 15.75f
       DamageRadiusMin = 14
+      DamageRadius = 14.5f
       DamageAtEdge = 0.00002f
       Modifiers = ExplodingRadialDegrade
-      //damage is 99999 at 14m, dropping rapidly to ~1 at 15.75m
+      //damage is 99999 at 14m, dropping rapidly to ~1 at 14.5m
     }
     generator.Geometry = GeometryForm.representByCylinder(radius = 1.2617f, height = 9.14063f)
   }

@@ -6,7 +6,7 @@ import net.psforever.types.Vector3
 object Geometry {
   def equalFloats(value1: Float, value2: Float, off: Float = 0.001f): Boolean = {
     val diff = value1 - value2
-    (diff >= 0 && diff <= off) || diff > -off
+    if (diff >= 0) diff <= off else diff > -off
   }
 
   def equalVectors(value1: Vector3, value2: Vector3, off: Float = 0.001f): Boolean = {

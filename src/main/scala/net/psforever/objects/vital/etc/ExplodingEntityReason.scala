@@ -73,12 +73,12 @@ case object ExplodingRadialDegrade extends ExplodingDamageModifiers.Mod {
   def calculate(damage: Int, data: DamageInteraction, cause: ExplodingEntityReason): Int = {
     cause.source match {
       case withPosition: DamageWithPosition =>
-        val distance  = math.sqrt(Zone.distanceCheck(
+        val radius    = withPosition.DamageRadius
+        val radiusMin = withPosition.DamageRadiusMin
+        val distance = math.sqrt(Zone.distanceCheck(
           cause.entity.Definition.asInstanceOf[ObjectDefinition].Geometry(cause.entity),
           data.target.Definition.Geometry(data.target)
         ))
-        val radius    = withPosition.DamageRadius
-        val radiusMin = withPosition.DamageRadiusMin
         if (distance <= radiusMin) {
           damage
         } else if (distance <= radius) {

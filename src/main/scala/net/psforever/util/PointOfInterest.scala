@@ -364,7 +364,7 @@ object PointOfInterest {
       "anguta"   -> Vector3(3999, 4170, 266),
       "igaluk"   -> Vector3(3241, 5658, 235),
       "keelut"   -> Vector3(3630, 1904, 265),
-      "nerrivik" -> Vector3(3522, 3703, 322),
+      "nerrivik" -> Vector3(3522, 3703, 222),
       "pinga"    -> Vector3(5938, 3545, 96),
       "sedna"    -> Vector3(3932, 5160, 232),
       "tarqaq"   -> Vector3(2980, 2155, 237),

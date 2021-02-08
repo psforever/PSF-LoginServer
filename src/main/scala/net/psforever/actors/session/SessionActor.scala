@@ -5252,8 +5252,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
                 CheckForHitPositionDiscrepancy(projectile_guid, target.Position, target)
                 ResolveProjectileInteraction(projectile, resolution1, target, target.Position) match {
-                  case Some(projectile) =>
-                    HandleDealingDamage(target, projectile)
+                  case Some(_projectile) =>
+                    HandleDealingDamage(target, _projectile)
                   case None => ;
                 }
               case _ => ;
@@ -5264,13 +5264,25 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
                   CheckForHitPositionDiscrepancy(projectile_guid, explosion_pos, target)
                   ResolveProjectileInteraction(projectile, resolution2, target, explosion_pos) match {
-                    case Some(projectile) =>
-                      HandleDealingDamage(target, projectile)
+                    case Some(_projectile) =>
+                      HandleDealingDamage(target, _projectile)
                     case None => ;
                   }
                 case _ => ;
               }
             })
+            if (
+              projectile.profile.HasJammedEffectDuration ||
+              projectile.profile.JammerProjectile ||
+              projectile.profile.SympatheticExplosion
+            ) {
+              Zone.causeSpecialEmp(
+                continent,
+                player,
+                explosion_pos,
+                GlobalDefinitions.special_emp.innateDamage.get
+              )
+            }
             if (profile.ExistsOnRemoteClients && projectile.HasGUID) {
               //cleanup
               val localIndex = projectile_guid.guid - Projectile.baseUID

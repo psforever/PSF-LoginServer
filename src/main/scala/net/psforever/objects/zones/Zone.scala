@@ -42,9 +42,10 @@ import net.psforever.objects.geometry.Geometry3D
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vehicles.UtilityType
-import net.psforever.objects.vital.etc.ExplodingEntityReason
+import net.psforever.objects.vital.etc.{EmpReason, ExplodingEntityReason}
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
+import net.psforever.objects.vital.prop.DamageWithPosition
 
 /**
   * A server object representing the one-landmass planets as well as the individual subterranean caverns.<br>
@@ -1173,6 +1174,64 @@ object Zone {
   }
 
   /**
+    * Allocates `Damageable` targets within the radius of a server-prepared electromagnetic pulse
+    * and informs those entities that they have affected by the aforementioned pulse.
+    * Targets within the effect radius within other rooms are affected, unlike with normal damage.
+    * The only affected target is Boomer deployables.
+    * @see `Amenity.Owner`
+    * @see `BoomerDeployable`
+    * @see `DamageInteraction`
+    * @see `DamageResult`
+    * @see `DamageWithPosition`
+    * @see `EmpReason`
+    * @see `Zone.DeployableList`
+    * @param zone the zone in which the emp should occur
+    * @param obj the entity that triggered the emp (information)
+    * @param sourcePosition where the emp physically originates
+    * @param effect characteristics of the emp produced
+    * @param detectionTest a custom test to determine if any given target is affected;
+    *                      defaults to an internal test for simple radial proximity
+    * @return a list of affected entities
+    */
+  def causeSpecialEmp(
+                       zone: Zone,
+                       obj: PlanetSideServerObject with Vitality,
+                       sourcePosition: Vector3,
+                       effect: DamageWithPosition,
+                       detectionTest: (PlanetSideGameObject, PlanetSideGameObject, Float) => Boolean = distanceCheck
+                     ): List[PlanetSideServerObject] = {
+    val proxy: ExplosiveDeployable = {
+      //construct a proxy unit to represent the pulse
+      val o = new ExplosiveDeployable(GlobalDefinitions.special_emp)
+      o.Owner = Some(obj.GUID)
+      o.OwnerName = obj match {
+        case p: Player          => p.Name
+        case o: OwnableByPlayer => o.OwnerName.getOrElse("")
+        case _                  => ""
+      }
+      o.Position = sourcePosition
+      o.Faction = obj.Faction
+      o
+    }
+    val radius = effect.DamageRadius * effect.DamageRadius
+    //only boomers can be affected (that's why it's special)
+    val allAffectedTargets = zone.DeployableList
+      .collect { case o: BoomerDeployable if !o.Destroyed && (o ne obj) && detectionTest(proxy, o, radius) => o }
+    //inform targets that they have suffered the effects of the emp
+    allAffectedTargets
+      .foreach { target =>
+        target.Actor ! Vitality.Damage(
+          DamageInteraction(
+            SourceEntry(target),
+            EmpReason(obj, effect, target),
+            sourcePosition
+          ).calculate()
+        )
+      }
+    allAffectedTargets
+  }
+
+  /**
     * Two game entities are considered "near" each other if they are within a certain distance of one another.
     * A default function literal mainly used for `causesExplosion`.
     * @see `causeExplosion`
@@ -1197,6 +1256,7 @@ object Zone {
     *        `false`, otherwise
     */
   def distanceCheck(g1: Geometry3D, g2: Geometry3D, maxDistance: Float): Boolean = {
+    Vector3.DistanceSquared(g1.center.asVector3, g2.center.asVector3) <= maxDistance ||
     distanceCheck(g1, g2) <= maxDistance
   }
   /**

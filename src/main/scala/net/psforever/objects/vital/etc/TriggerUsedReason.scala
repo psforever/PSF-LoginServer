@@ -1,13 +1,14 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital.etc
 
-import net.psforever.objects.BoomerTrigger
+import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.ballistics.{PlayerSource, SourceEntry}
 import net.psforever.objects.vital.{NoResistanceSelection, SimpleResolutions}
 import net.psforever.objects.vital.base.{DamageReason, DamageResolution}
 import net.psforever.objects.vital.damage.DamageCalculations.AgainstExoSuit
 import net.psforever.objects.vital.prop.DamageProperties
 import net.psforever.objects.vital.resolution.{DamageAndResistance, DamageResistanceModel}
+import net.psforever.types.PlanetSideGUID
 
 /**
   * A wrapper for a "damage source" in damage calculations
@@ -23,16 +24,16 @@ import net.psforever.objects.vital.resolution.{DamageAndResistance, DamageResist
   * @see `DamageCalculations`
   * @see `VitalityDefinition.DamageableByFriendlyFire`
   * @param user the player who is holding the trigger
-  * @param item the trigger
+  * @param item_guid the trigger
   */
-final case class TriggerUsedReason(user: PlayerSource, item: BoomerTrigger)
+final case class TriggerUsedReason(user: PlayerSource, item_guid: PlanetSideGUID)
   extends DamageReason {
   def source: DamageProperties = TriggerUsedReason.triggered
 
   def resolution: DamageResolution.Value = DamageResolution.Resolved
 
   def same(test: DamageReason): Boolean = test match {
-    case tur: TriggerUsedReason => tur.item eq item
+    case tur: TriggerUsedReason => tur.item_guid == item_guid && tur.user.Name.equals(user.Name)
     case _                      => false
   }
 
@@ -43,7 +44,7 @@ final case class TriggerUsedReason(user: PlayerSource, item: BoomerTrigger)
 
   /** while weird, the trigger was accredited as the method of death on Gemini Live;
     * even though its icon looks like an misshapen AMS */
-  override def attribution: Int = item.Definition.ObjectId
+  override def attribution: Int = GlobalDefinitions.boomer_trigger.ObjectId
 }
 
 object TriggerUsedReason {

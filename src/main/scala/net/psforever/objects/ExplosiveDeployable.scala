@@ -82,7 +82,7 @@ class ExplosiveDeployableControl(mine: ExplosiveDeployable) extends Actor with D
             mine,
             DamageInteraction(
               SourceEntry(mine),
-              TriggerUsedReason(PlayerSource(player), trigger),
+              TriggerUsedReason(PlayerSource(player), trigger.GUID),
               mine.Position
             ).calculate()(mine),
             damage = 0
@@ -239,6 +239,10 @@ object ExplosiveDeployableControl {
     val scalar = Vector3.ScalarProjection(dir, up)
     val point1 = g1.pointOnOutside(dir).asVector3
     val point2 = g2.pointOnOutside(Vector3.neg(dir)).asVector3
-    (scalar >= 0 || Vector3.MagnitudeSquared(up * scalar) < 0.35f) && Vector3.DistanceSquared(point1, point2) <= maxDistance
+    (scalar >= 0 || Vector3.MagnitudeSquared(up * scalar) < 0.35f) &&
+    math.min(
+      Vector3.DistanceSquared(g1.center.asVector3, g2.center.asVector3),
+      Vector3.DistanceSquared(point1, point2)
+    ) <= maxDistance
   }
 }
