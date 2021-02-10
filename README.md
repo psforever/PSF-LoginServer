@@ -103,7 +103,7 @@ The user should be created and made owner of the database.
 ```sql
 CREATE USER psforever;
 ALTER USER psforever WITH PASSWORD 'psforever';
-ALTER TABLE psforever OWNER TO psforever;
+ALTER DATABASE psforever OWNER TO psforever;
 ```
 **NOTE:** applying default privileges _after_ importing the schema will not apply them to existing objects. To fix this,
 *you must drop all objects and try again or apply permissions manually using the Query Tool / `psql`.
