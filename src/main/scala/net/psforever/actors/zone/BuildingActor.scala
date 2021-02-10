@@ -208,7 +208,10 @@ class BuildingActor(
       case AmenityStateChange(terminal: CaptureTerminal, data) =>
         // Notify amenities that listen for CC hack state changes, e.g. wall turrets to dismount seated players
         building.Amenities.filter(x => x.isInstanceOf[CaptureTerminalAware]).foreach(amenity => {
-          amenity.Actor ! CaptureTerminalAwareBehavior.TerminalStatusChanged(terminal, data.get.asInstanceOf[Boolean])
+          data match {
+            case Some(isResecured: Boolean) => amenity.Actor ! CaptureTerminalAwareBehavior.TerminalStatusChanged(terminal, isResecured)
+            case _ => log.warn("CaptureTerminal AmenityStateChange was received with no attached data.")
+          }
         })
 
         // When a CC is hacked (or resecured) all currently hacked amenities for the base should return to their default unhacked state
