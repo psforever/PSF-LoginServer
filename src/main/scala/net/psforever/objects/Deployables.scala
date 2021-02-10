@@ -16,9 +16,13 @@ object Deployables {
   //private val log = org.log4s.getLogger("Deployables")
 
   object Make {
-    def apply(item: DeployedItem.Value): () => PlanetSideGameObject with Deployable = cemap(item)
+    def apply(item: DeployedItem.Value): () => Deployable = cemap(item)
 
-    private val cemap: Map[DeployedItem.Value, () => PlanetSideGameObject with Deployable] = Map(
+    private val cemap2: Map[DeployedItem.Value, () => Deployable] = Map(
+      DeployedItem.boomer                 -> { () => new BoomerDeployable(GlobalDefinitions.boomer) }
+    )
+
+    private val cemap: Map[DeployedItem.Value, () => Deployable] = Map(
       DeployedItem.boomer                 -> { () => new BoomerDeployable(GlobalDefinitions.boomer) },
       DeployedItem.he_mine                -> { () => new ExplosiveDeployable(GlobalDefinitions.he_mine) },
       DeployedItem.jammer_mine            -> { () => new ExplosiveDeployable(GlobalDefinitions.jammer_mine) },
@@ -63,14 +67,13 @@ object Deployables {
     * and the real owner will still be aware of the existence of the deployable,
     * that player must be informed of the loss of the deployable directly.
     * @see `DeployableRemover`
-    * @see `Vitality.DamageResolution`
     * @see `LocalResponse.EliminateDeployable`
     * @see `DeconstructDeployable`
     * @param target the deployable that is destroyed
     * @param time length of time that the deployable is allowed to exist in the game world;
     *             `None` indicates the normal un-owned existence time (180 seconds)
     */
-  def AnnounceDestroyDeployable(target: PlanetSideGameObject with Deployable, time: Option[FiniteDuration]): Unit = {
+  def AnnounceDestroyDeployable(target: Deployable, time: Option[FiniteDuration]): Unit = {
     val zone = target.Zone
     target.OwnerName match {
       case Some(owner) =>
@@ -99,12 +102,12 @@ object Deployables {
     * @return all previously-owned deployables after they have been processed;
     *         boomers are listed before all other deployable types
     */
-  def Disown(zone: Zone, avatar: Avatar, replyTo: ActorRef): List[PlanetSideGameObject with Deployable] = {
+  def Disown(zone: Zone, avatar: Avatar, replyTo: ActorRef): List[Deployable] = {
     val (boomers, deployables) =
       avatar.deployables
         .Clear()
         .map(zone.GUID)
-        .collect { case Some(obj) => obj.asInstanceOf[PlanetSideGameObject with Deployable] }
+        .collect { case Some(obj) => obj.asInstanceOf[Deployable] }
         .partition(_.isInstanceOf[BoomerDeployable])
     //do not change the OwnerName field at this time
     boomers.collect({

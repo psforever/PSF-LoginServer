@@ -2,15 +2,14 @@
 package net.psforever.objects.definition.converter
 
 import net.psforever.objects.ce.Deployable
-import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Failure, Success, Try}
 
-class SmallDeployableConverter extends ObjectCreateConverter[PlanetSideGameObject with Deployable]() {
-  override def ConstructorData(obj: PlanetSideGameObject with Deployable): Try[CommonFieldDataWithPlacement] = {
+class SmallDeployableConverter extends ObjectCreateConverter[Deployable]() {
+  override def ConstructorData(obj: Deployable): Try[CommonFieldDataWithPlacement] = {
     Success(
       CommonFieldDataWithPlacement(
         PlacementData(obj.Position, obj.Orientation),
@@ -35,6 +34,6 @@ class SmallDeployableConverter extends ObjectCreateConverter[PlanetSideGameObjec
     )
   }
 
-  override def DetailedConstructorData(obj: PlanetSideGameObject with Deployable): Try[CommonFieldDataWithPlacement] =
+  override def DetailedConstructorData(obj: Deployable): Try[CommonFieldDataWithPlacement] =
     Failure(new Exception("converter should not be used to generate detailed small deployable data"))
 }

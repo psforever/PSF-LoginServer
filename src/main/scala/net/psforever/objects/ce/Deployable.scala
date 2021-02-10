@@ -3,6 +3,7 @@ package net.psforever.objects.ce
 
 import net.psforever.objects._
 import net.psforever.objects.definition.DeployableDefinition
+import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.resolution.DamageResistanceModel
@@ -10,9 +11,25 @@ import net.psforever.objects.zones.ZoneAware
 import net.psforever.packet.game.DeployableIcon
 import net.psforever.types.PlanetSideEmpire
 
-trait Deployable extends FactionAffinity with Vitality with OwnableByPlayer with ZoneAware {
-  this: PlanetSideGameObject =>
+trait BaseDeployable
+  extends PlanetSideServerObject
+    with FactionAffinity
+    with Vitality
+    with OwnableByPlayer
+    with ZoneAware {
   private var faction: PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
+  private var shields: Int = 0
+
+  def Shields: Int = shields
+
+  def Shields_=(toShields: Int): Int = {
+    shields = math.min(math.max(0, toShields), MaxShields)
+    Shields
+  }
+
+  def MaxShields: Int = {
+    0 //Definition.MaxShields
+  }
 
   def MaxHealth: Int
 
@@ -26,6 +43,11 @@ trait Deployable extends FactionAffinity with Vitality with OwnableByPlayer with
   def DamageModel: DamageResistanceModel = Definition.asInstanceOf[DamageResistanceModel]
 
   def Definition: DeployableDefinition
+}
+
+abstract class Deployable(cdef: DeployableDefinition)
+  extends BaseDeployable {
+  def Definition: DeployableDefinition = cdef
 }
 
 object Deployable {

@@ -1,7 +1,6 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.avatar
 
-import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.ce.{Deployable, DeployableCategory, DeployedItem}
 import net.psforever.types.PlanetSideGUID
 import scala.collection.mutable
@@ -194,7 +193,7 @@ class DeployableToolbox {
     */
   def DisplaceFirst(
       obj: DeployableToolbox.AcceptableDeployable,
-      rule: (Deployable) => Boolean
+      rule: Deployable => Boolean
   ): Option[DeployableToolbox.AcceptableDeployable] = {
     val definition   = obj.Definition
     val category     = definition.DeployCategory
@@ -395,7 +394,7 @@ object DeployableToolbox {
   /**
     * A `type` intended to properly define the minimum acceptable conditions for a `Deployable` object.
     */
-  type AcceptableDeployable = PlanetSideGameObject with Deployable
+  type AcceptableDeployable = Deployable
 
   /**
     * An internal class to keep track of the quantity of deployables managed for a certain set of criteria.

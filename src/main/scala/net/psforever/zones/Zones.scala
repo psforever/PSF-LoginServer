@@ -785,8 +785,6 @@ object Zones {
             60 seconds
           case _: DeployableSource =>
             60 seconds
-          case _: ComplexDeployableSource =>
-            60 seconds
           case _ =>
             0 seconds
         }

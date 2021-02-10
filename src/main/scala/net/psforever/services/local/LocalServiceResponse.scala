@@ -2,12 +2,10 @@
 package net.psforever.services.local
 
 import net.psforever.objects.{PlanetSideGameObject, TelepadDeployable, Vehicle}
-import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.llu.CaptureFlag
-import net.psforever.objects.serverobject.structures.{AmenityOwner, Building}
+import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.terminals.{ProximityUnit, Terminal}
 import net.psforever.objects.vehicles.Utility
-import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.GenericActionEnum.GenericActionEnum
 import net.psforever.packet.game.GenericObjectActionEnum.GenericObjectActionEnum
 import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
@@ -26,13 +24,13 @@ final case class LocalServiceResponse(
 object LocalResponse {
   trait Response
 
-  final case class AlertDestroyDeployable(obj: PlanetSideGameObject with Deployable)             extends Response
+  final case class AlertDestroyDeployable(obj: Deployable)             extends Response
   final case class DeployableMapIcon(action: DeploymentAction.Value, deployInfo: DeployableInfo) extends Response
   final case class Detonate(guid: PlanetSideGUID, obj: PlanetSideGameObject)                     extends Response
   final case class DoorOpens(door_guid: PlanetSideGUID)                                          extends Response
   final case class DoorCloses(door_guid: PlanetSideGUID)                                         extends Response
   final case class EliminateDeployable(
-      obj: PlanetSideGameObject with Deployable,
+      obj: Deployable,
       object_guid: PlanetSideGUID,
       pos: Vector3
   )                                                                                extends Response

@@ -975,7 +975,7 @@ object GlobalDefinitions {
 
   val deployable_shield_generator = new ShieldGeneratorDefinition
 
-  val router_telepad_deployable = SimpleDeployableDefinition(DeployedItem.router_telepad_deployable)
+  val router_telepad_deployable = TelepadDeployableDefinition(DeployedItem.router_telepad_deployable)
 
   //this is only treated like a deployable
   val internal_router_telepad_deployable = InternalTelepadDefinition() //objectId: 744

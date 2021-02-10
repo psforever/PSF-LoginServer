@@ -2,10 +2,9 @@
 package net.psforever.objects.definition
 
 import akka.actor.ActorContext
-import net.psforever.objects.{Default, PlanetSideGameObject}
+import net.psforever.objects.Default
 import net.psforever.objects.ce.{Deployable, DeployableCategory, DeployedItem}
 import net.psforever.objects.definition.converter.SmallDeployableConverter
-import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.resistance.ResistanceProfileMutators
 import net.psforever.objects.vital.resolution.DamageResistanceModel
@@ -35,13 +34,12 @@ trait BaseDeployableDefinition {
     DeployTime
   }
 
-  def Initialize(obj: PlanetSideGameObject with Deployable, context: ActorContext): Unit = {}
+  def Initialize(obj: Deployable, context: ActorContext): Unit = {}
 
-  def Initialize(obj: PlanetSideServerObject with Deployable, context: ActorContext): Unit = {}
-
-  def Uninitialize(obj: PlanetSideGameObject with Deployable, context: ActorContext): Unit = {}
-
-  def Uninitialize(obj: PlanetSideServerObject with Deployable, context: ActorContext): Unit = {}
+  def Uninitialize(obj: Deployable, context: ActorContext): Unit = {
+    context.stop(obj.Actor)
+    obj.Actor = Default.Actor
+  }
 }
 
 abstract class DeployableDefinition(objectId: Int)
@@ -53,24 +51,7 @@ abstract class DeployableDefinition(objectId: Int)
   private val item = DeployedItem(objectId) //let throw NoSuchElementException
   DamageUsing = DamageCalculations.AgainstVehicle
   ResistUsing = NoResistanceSelection
+  Packet = new SmallDeployableConverter
 
   def Item: DeployedItem.Value = item
-}
-
-class SimpleDeployableDefinition(objectId: Int) extends DeployableDefinition(objectId) {
-  Packet = new SmallDeployableConverter
-}
-
-abstract class ComplexDeployableDefinition(objectId: Int) extends DeployableDefinition(objectId)
-
-object SimpleDeployableDefinition {
-  def apply(item: DeployedItem.Value): SimpleDeployableDefinition =
-    new SimpleDeployableDefinition(item.id)
-
-  def SimpleUninitialize(obj: PlanetSideGameObject, context: ActorContext): Unit = {}
-
-  def SimpleUninitialize(obj: PlanetSideServerObject, context: ActorContext): Unit = {
-    context.stop(obj.Actor)
-    obj.Actor = Default.Actor
-  }
 }

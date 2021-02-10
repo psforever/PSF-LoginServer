@@ -7,7 +7,7 @@ import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.zones.Zone
-import net.psforever.objects.{ConstructionItem, PlanetSideGameObject, Player, Vehicle}
+import net.psforever.objects.{ConstructionItem, Player, Vehicle}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 import scala.collection.mutable.ListBuffer
@@ -44,10 +44,10 @@ object ZoneActor {
 
   final case class PickupItem(guid: PlanetSideGUID) extends Command
 
-  final case class BuildDeployable(obj: PlanetSideGameObject with Deployable, withTool: ConstructionItem)
+  final case class BuildDeployable(obj: Deployable, withTool: ConstructionItem)
       extends Command
 
-  final case class DismissDeployable(obj: PlanetSideGameObject with Deployable) extends Command
+  final case class DismissDeployable(obj: Deployable) extends Command
 
   final case class SpawnVehicle(vehicle: Vehicle) extends Command
 

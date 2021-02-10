@@ -4,7 +4,7 @@ package net.psforever.objects
 import akka.actor.{Actor, ActorContext, Props}
 import net.psforever.objects.ballistics.{PlayerSource, SourceEntry}
 import net.psforever.objects.ce._
-import net.psforever.objects.definition.{ComplexDeployableDefinition, SimpleDeployableDefinition}
+import net.psforever.objects.definition.DeployableDefinition
 import net.psforever.objects.definition.converter.SmallDeployableConverter
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.geometry.Geometry3D
@@ -26,13 +26,13 @@ import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import scala.concurrent.duration._
 
 class ExplosiveDeployable(cdef: ExplosiveDeployableDefinition)
-  extends ComplexDeployable(cdef)
-  with JammableUnit {
+  extends Deployable(cdef)
+    with JammableUnit {
 
   override def Definition: ExplosiveDeployableDefinition = cdef
 }
 
-class ExplosiveDeployableDefinition(private val objectId: Int) extends ComplexDeployableDefinition(objectId) {
+class ExplosiveDeployableDefinition(private val objectId: Int) extends DeployableDefinition(objectId) {
   Name = "explosive_deployable"
   DeployCategory = DeployableCategory.Mines
   Model = SimpleResolutions.calculate
@@ -47,13 +47,9 @@ class ExplosiveDeployableDefinition(private val objectId: Int) extends ComplexDe
     DetonateOnJamming
   }
 
-  override def Initialize(obj: PlanetSideServerObject with Deployable, context: ActorContext) = {
+  override def Initialize(obj: Deployable, context: ActorContext) = {
     obj.Actor =
       context.actorOf(Props(classOf[ExplosiveDeployableControl], obj), PlanetSideServerObject.UniqueActorName(obj))
-  }
-
-  override def Uninitialize(obj: PlanetSideServerObject with Deployable, context: ActorContext) = {
-    SimpleDeployableDefinition.SimpleUninitialize(obj, context)
   }
 }
 

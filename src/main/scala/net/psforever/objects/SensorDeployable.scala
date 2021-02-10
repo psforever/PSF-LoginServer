@@ -4,7 +4,7 @@ package net.psforever.objects
 import akka.actor.{Actor, ActorContext, Props}
 import net.psforever.objects.ce._
 import net.psforever.objects.definition.converter.SmallDeployableConverter
-import net.psforever.objects.definition.{ComplexDeployableDefinition, SimpleDeployableDefinition}
+import net.psforever.objects.definition.DeployableDefinition
 import net.psforever.objects.equipment.{JammableBehavior, JammableUnit}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity}
@@ -19,21 +19,17 @@ import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.duration._
 
-class SensorDeployable(cdef: SensorDeployableDefinition) extends ComplexDeployable(cdef) with Hackable with JammableUnit
+class SensorDeployable(cdef: SensorDeployableDefinition) extends Deployable(cdef) with Hackable with JammableUnit
 
-class SensorDeployableDefinition(private val objectId: Int) extends ComplexDeployableDefinition(objectId) {
+class SensorDeployableDefinition(private val objectId: Int) extends DeployableDefinition(objectId) {
   Name = "sensor_deployable"
   DeployCategory = DeployableCategory.Sensors
   Model = SimpleResolutions.calculate
   Packet = new SmallDeployableConverter
 
-  override def Initialize(obj: PlanetSideServerObject with Deployable, context: ActorContext) = {
+  override def Initialize(obj: Deployable, context: ActorContext) = {
     obj.Actor =
       context.actorOf(Props(classOf[SensorDeployableControl], obj), PlanetSideServerObject.UniqueActorName(obj))
-  }
-
-  override def Uninitialize(obj: PlanetSideServerObject with Deployable, context: ActorContext) = {
-    SimpleDeployableDefinition.SimpleUninitialize(obj, context)
   }
 }
 
@@ -123,7 +119,7 @@ object SensorDeployableControl {
     * @param target na
     * @param attribution na
     */
-  def DestructionAwareness(target: Damageable.Target with Deployable, attribution: PlanetSideGUID): Unit = {
+  def DestructionAwareness(target: Deployable, attribution: PlanetSideGUID): Unit = {
     Deployables.AnnounceDestroyDeployable(target, Some(1 seconds))
     val zone = target.Zone
     zone.LocalEvents ! LocalServiceMessage(

@@ -3,9 +3,9 @@ package net.psforever.objects.zones
 
 import akka.actor.{ActorContext, ActorRef, Props}
 import akka.routing.RandomPool
-import net.psforever.objects.ballistics.{Projectile, SourceEntry}
 import net.psforever.objects.{PlanetSideGameObject, _}
-import net.psforever.objects.ce.{ComplexDeployable, Deployable, SimpleDeployable}
+import net.psforever.objects.ballistics.{Projectile, SourceEntry}
+import net.psforever.objects.ce.Deployable
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.{NumberPoolHub, TaskResolver}
@@ -101,7 +101,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
 
   /**
     */
-  private val constructions: ListBuffer[PlanetSideGameObject with Deployable] = ListBuffer()
+  private val constructions: ListBuffer[Deployable] = ListBuffer()
 
   /**
     */
@@ -536,7 +536,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     */
   def EquipmentOnGround: List[Equipment] = equipmentOnGround.toList
 
-  def DeployableList: List[PlanetSideGameObject with Deployable] = constructions.toList
+  def DeployableList: List[Deployable] = constructions.toList
 
   def Vehicles: List[Vehicle] = vehicles.toList
 
@@ -930,11 +930,11 @@ object Zone {
   }
 
   object Deployable {
-    final case class Build(obj: PlanetSideGameObject with Deployable, withTool: ConstructionItem)
-    final case class DeployableIsBuilt(obj: PlanetSideGameObject with Deployable, withTool: ConstructionItem)
+    final case class Build(obj: Deployable, withTool: ConstructionItem)
+    final case class DeployableIsBuilt(obj: Deployable, withTool: ConstructionItem)
 
-    final case class Dismiss(obj: PlanetSideGameObject with Deployable)
-    final case class DeployableIsDismissed(obj: PlanetSideGameObject with Deployable)
+    final case class Dismiss(obj: Deployable)
+    final case class DeployableIsDismissed(obj: Deployable)
   }
 
   object Vehicle {
@@ -1109,7 +1109,7 @@ object Zone {
                         source: PlanetSideGameObject with FactionAffinity with Vitality,
                         createInteraction: (PlanetSideGameObject with FactionAffinity with Vitality, PlanetSideGameObject with FactionAffinity with Vitality) => DamageInteraction,
                         testTargetsFromZone: (PlanetSideGameObject, PlanetSideGameObject, Float) => Boolean = distanceCheck,
-                        acquireTargetsFromZone: (Zone, PlanetSideGameObject with FactionAffinity with Vitality, DamageWithPosition) => (List[PlanetSideServerObject with Vitality], List[PlanetSideGameObject with FactionAffinity with Vitality]) = findAllTargets
+                        acquireTargetsFromZone: (Zone, PlanetSideGameObject with FactionAffinity with Vitality, DamageWithPosition) => List[PlanetSideServerObject with Vitality] = findAllTargets
                     ): List[PlanetSideServerObject] = {
     source.Definition.innateDamage match {
       case Some(damage) =>
@@ -1145,20 +1145,16 @@ object Zone {
                         properties: DamageWithPosition,
                         createInteraction: (PlanetSideGameObject with FactionAffinity with Vitality, PlanetSideGameObject with FactionAffinity with Vitality) => DamageInteraction,
                         testTargetsFromZone: (PlanetSideGameObject, PlanetSideGameObject, Float) => Boolean,
-                        acquireTargetsFromZone: (Zone, PlanetSideGameObject with FactionAffinity with Vitality, DamageWithPosition) => (List[PlanetSideServerObject with Vitality], List[PlanetSideGameObject with FactionAffinity with Vitality])
+                        acquireTargetsFromZone: (Zone, PlanetSideGameObject with FactionAffinity with Vitality, DamageWithPosition) => List[PlanetSideServerObject with Vitality]
                       ): List[PlanetSideServerObject] = {
     //collect targets that can be damaged
-    val (pssos, psgos) = acquireTargetsFromZone(zone, source, properties)
+    val pssos = acquireTargetsFromZone(zone, source, properties)
     val radius = properties.DamageRadius * properties.DamageRadius
     //restrict to targets according to the detection plan
     val allAffectedTargets = pssos.filter { target => testTargetsFromZone(source, target, radius) }
     //inform remaining targets that they have suffered damage
     allAffectedTargets
       .foreach { target => target.Actor ! Vitality.Damage(createInteraction(source, target).calculate()) }
-    //important note - these are not returned as targets that were affected
-    psgos
-      .filter { target => testTargetsFromZone(source, target, radius) }
-      .foreach { target => zone.LocalEvents ! Vitality.DamageOn(target, createInteraction(source, target).calculate()) }
     allAffectedTargets
   }
 
@@ -1172,18 +1168,16 @@ object Zone {
     * @see `Zone.DeployableList`
     * @see `Zone.LivePlayers`
     * @see `Zone.Vehicles`
-    * @param zone the zone in which to search
+    * @param zone   the zone in which the explosion should occur
     * @param source a game entity that is treated as the origin and is excluded from results
     * @param damagePropertiesBySource information about the effect/damage
-    * @return two lists of objects with different characteristics;
-    *         the first list is `PlanetSideServerObject` entities with `Vitality`;
-    *         the second list is `PlanetSideGameObject` entities with both `Vitality` and `FactionAffinity`
+    * @return a list of affected entities
     */
   def findAllTargets(
                       zone: Zone,
                       source: PlanetSideGameObject with Vitality,
                       damagePropertiesBySource: DamageWithPosition
-                    ): (List[PlanetSideServerObject with Vitality], List[PlanetSideGameObject with FactionAffinity with Vitality]) = {
+                    ): List[PlanetSideServerObject with Vitality] = {
     val sourcePosition = source.Position
     val sourcePositionXY = sourcePosition.xy
     val radius = damagePropertiesBySource.DamageRadius * damagePropertiesBySource.DamageRadius
@@ -1193,16 +1187,7 @@ object Zone {
     //vehicles
     val vehicleTargets = zone.Vehicles.filterNot { v => v.Destroyed || v.MountedIn.nonEmpty }
     //deployables
-    val (simpleDeployableTargets, complexDeployableTargets) =
-      zone.DeployableList
-        .filterNot { _.Destroyed }
-        .foldRight((List.empty[SimpleDeployable], List.empty[ComplexDeployable])) { case (f, (simp, comp)) =>
-          f match {
-            case o: SimpleDeployable => (simp :+ o, comp)
-            case o: ComplexDeployable => (simp, comp :+ o)
-            case _ => (simp, comp)
-          }
-        }
+    val deployableTargets = zone.DeployableList.filterNot { _.Destroyed }
     //amenities
     val soiTargets = source match {
       case o: Amenity =>
@@ -1217,12 +1202,9 @@ object Zone {
           .flatMap { _.Amenities }
           .filter { _.Definition.Damageable }
     }
-    (
-      (playerTargets ++ vehicleTargets ++ complexDeployableTargets ++ soiTargets)
-        .filter { target => target ne source },
-      simpleDeployableTargets
-        .filter { target => target ne source }
-    )
+
+    //restrict to targets according to the detection plan
+    (playerTargets ++ vehicleTargets ++ deployableTargets ++ soiTargets).filter { target => target ne source }
   }
 
   /**

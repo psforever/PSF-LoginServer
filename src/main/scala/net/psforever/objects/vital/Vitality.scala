@@ -2,7 +2,6 @@
 package net.psforever.objects.vital
 
 import net.psforever.objects.vital.resolution.{DamageAndResistance, ResolutionCalculations}
-import net.psforever.objects.vital.interaction.DamageResult
 
 /**
   * A vital object can be hurt or damaged or healed or repaired (HDHR).
@@ -54,12 +53,4 @@ object Vitality {
     * @param func a function literal
     */
   final case class Damage(func: ResolutionCalculations.Output)
-
-  final case class DamageOn(obj: Vitality, func: ResolutionCalculations.Output)
-
-  /**
-    * Report that a vitals object must be updated due to damage.
-    * @param obj the vital object
-    */
-  final case class DamageResolution(obj: Vitality, cause: DamageResult)
 }

@@ -5,7 +5,7 @@ import akka.actor.ActorRef
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
 import net.psforever.objects.zones.Zone
-import net.psforever.objects.{BoomerDeployable, PlanetSideGameObject, TurretDeployable}
+import net.psforever.objects.{BoomerDeployable, TurretDeployable}
 import net.psforever.types.{PlanetSideGUID, Vector3}
 import net.psforever.services.RemoverActor
 
@@ -27,7 +27,7 @@ class DeployableRemover(taskResolver: ActorRef) extends RemoverActor(taskResolve
         FirstJobBoomer(boomer, entry)
       case _ => ;
     }
-    entry.zone.Deployables ! Zone.Deployable.Dismiss(obj.asInstanceOf[PlanetSideGameObject with Deployable])
+    entry.zone.Deployables ! Zone.Deployable.Dismiss(obj.asInstanceOf[Deployable])
   }
 
   def FirstJobBoomer(obj: BoomerDeployable, entry: RemoverActor.Entry): Unit = {
@@ -49,7 +49,7 @@ class DeployableRemover(taskResolver: ActorRef) extends RemoverActor(taskResolve
   }
 
   override def SecondJob(entry: RemoverActor.Entry): Unit = {
-    val obj = entry.obj.asInstanceOf[PlanetSideGameObject with Deployable]
+    val obj = entry.obj.asInstanceOf[Deployable]
     trace(s"Deleting a ${obj.Definition.Name} deployable")
     context.parent ! DeployableRemover.EliminateDeployable(obj, obj.GUID, obj.Position, entry.zone)
     super.SecondJob(entry)
@@ -77,7 +77,7 @@ class DeployableRemover(taskResolver: ActorRef) extends RemoverActor(taskResolve
 
 object DeployableRemover {
   final case class EliminateDeployable(
-      obj: PlanetSideGameObject with Deployable,
+      obj: Deployable,
       guid: PlanetSideGUID,
       position: Vector3,
       zone: Zone

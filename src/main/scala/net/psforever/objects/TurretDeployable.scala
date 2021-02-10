@@ -2,8 +2,8 @@
 package net.psforever.objects
 
 import akka.actor.{Actor, ActorContext, Props}
-import net.psforever.objects.ce.{ComplexDeployable, Deployable, DeployedItem}
-import net.psforever.objects.definition.{ComplexDeployableDefinition, SimpleDeployableDefinition}
+import net.psforever.objects.ce.{Deployable, DeployedItem}
+import net.psforever.objects.definition.DeployableDefinition
 import net.psforever.objects.definition.converter.SmallTurretConverter
 import net.psforever.objects.equipment.{JammableMountedWeapons, JammableUnit}
 import net.psforever.objects.serverobject.PlanetSideServerObject
@@ -19,7 +19,7 @@ import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.vital.{SimpleResolutions, StandardVehicleResistance}
 
 class TurretDeployable(tdef: TurretDeployableDefinition)
-    extends ComplexDeployable(tdef)
+    extends Deployable(tdef)
     with WeaponTurret
     with JammableUnit
     with Hackable {
@@ -29,7 +29,7 @@ class TurretDeployable(tdef: TurretDeployableDefinition)
 }
 
 class TurretDeployableDefinition(private val objectId: Int)
-    extends ComplexDeployableDefinition(objectId)
+    extends DeployableDefinition(objectId)
     with TurretDefinition {
   Name = "turret_deployable"
   Packet = new SmallTurretConverter
@@ -38,16 +38,12 @@ class TurretDeployableDefinition(private val objectId: Int)
   Model = SimpleResolutions.calculate
 
   //override to clarify inheritance conflict
-  override def MaxHealth: Int = super[ComplexDeployableDefinition].MaxHealth
+  override def MaxHealth: Int = super[DeployableDefinition].MaxHealth
   //override to clarify inheritance conflict
-  override def MaxHealth_=(max: Int): Int = super[ComplexDeployableDefinition].MaxHealth_=(max)
+  override def MaxHealth_=(max: Int): Int = super[DeployableDefinition].MaxHealth_=(max)
 
-  override def Initialize(obj: PlanetSideServerObject with Deployable, context: ActorContext) = {
+  override def Initialize(obj: Deployable, context: ActorContext) = {
     obj.Actor = context.actorOf(Props(classOf[TurretControl], obj), PlanetSideServerObject.UniqueActorName(obj))
-  }
-
-  override def Uninitialize(obj: PlanetSideServerObject with Deployable, context: ActorContext) = {
-    SimpleDeployableDefinition.SimpleUninitialize(obj, context)
   }
 }
 

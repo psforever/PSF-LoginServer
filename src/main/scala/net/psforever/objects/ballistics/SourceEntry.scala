@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.ballistics
 
-import net.psforever.objects.ce.{ComplexDeployable, SimpleDeployable}
+import net.psforever.objects.ce.Deployable
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.{PlanetSideGameObject, Player, Vehicle}
 import net.psforever.objects.entity.WorldEntity
@@ -32,11 +32,10 @@ object SourceEntry {
 
   def apply(target: PlanetSideGameObject with FactionAffinity): SourceEntry = {
     target match {
-      case obj: Player            => PlayerSource(obj)
-      case obj: Vehicle           => VehicleSource(obj)
-      case obj: ComplexDeployable => ComplexDeployableSource(obj)
-      case obj: SimpleDeployable  => DeployableSource(obj)
-      case _                      => ObjectSource(target)
+      case obj: Player     => PlayerSource(obj)
+      case obj: Vehicle    => VehicleSource(obj)
+      case obj: Deployable => DeployableSource(obj)
+      case _               => ObjectSource(target)
     }
   }
 

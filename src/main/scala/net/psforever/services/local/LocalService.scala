@@ -6,11 +6,11 @@ import net.psforever.objects._
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.vehicles.{Utility, UtilityType}
-import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{TriggeredEffect, TriggeredEffectLocation}
-import net.psforever.services.local.support.{CaptureFlagManager, _}
+import net.psforever.services.local.support.CaptureFlagManager
 import net.psforever.services.support.SupportActor
+import net.psforever.services.local.support._
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.services.{GenericEventBus, RemoverActor, Service}
 import net.psforever.types.{PlanetSideGUID, Vector3}
@@ -426,11 +426,6 @@ class LocalService(zone: Zone) extends Actor {
           RouterTelepadError(remoteTelepad, "@Telepad_NoDeploy_RouterLost")
       }
 
-    //synchronized damage calculations
-    case Vitality.DamageOn(target: PlanetSideGameObject with Deployable, damage_func) =>
-      val cause = damage_func(target)
-      sender() ! Vitality.DamageResolution(target, cause)
-
     // Forward all CaptureFlagManager messages
     case msg @ (CaptureFlagManager.SpawnCaptureFlag(_, _, _) | CaptureFlagManager.PickupFlag(_, _) |
         CaptureFlagManager.DropFlag(_) | CaptureFlagManager.Captured(_) | CaptureFlagManager.Lost(_, _) |
@@ -473,7 +468,7 @@ class LocalService(zone: Zone) extends Actor {
     *             may be a former identifier
     * @param position the deployable's position
     */
-  def EliminateDeployable(obj: PlanetSideGameObject with Deployable, guid: PlanetSideGUID, position: Vector3): Unit = {
+  def EliminateDeployable(obj: Deployable, guid: PlanetSideGUID, position: Vector3): Unit = {
     LocalEvents.publish(
       LocalServiceResponse(
         s"/${zone.id}/Local",
