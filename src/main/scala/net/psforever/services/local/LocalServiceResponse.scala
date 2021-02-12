@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.local
 
-import net.psforever.objects.{PlanetSideGameObject, TelepadDeployable, Vehicle}
 import net.psforever.objects.serverobject.llu.CaptureFlag
+import net.psforever.objects.{ConstructionItem, PlanetSideGameObject, TelepadDeployable, Vehicle}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.terminals.{ProximityUnit, Terminal}
 import net.psforever.objects.vehicles.Utility
@@ -24,6 +24,7 @@ final case class LocalServiceResponse(
 object LocalResponse {
   trait Response
 
+  final case class AlertBuildDeployable(obj: Deployable, tool: ConstructionItem)                 extends Response
   final case class AlertDestroyDeployable(obj: Deployable)             extends Response
   final case class DeployableMapIcon(action: DeploymentAction.Value, deployInfo: DeployableInfo) extends Response
   final case class Detonate(guid: PlanetSideGUID, obj: PlanetSideGameObject)                     extends Response

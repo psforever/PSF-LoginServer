@@ -41,15 +41,23 @@ object SensorDeployableDefinition {
 
 class SensorDeployableControl(sensor: SensorDeployable)
     extends Actor
+    with DeployableBehavior
     with JammableBehavior
     with DamageableEntity
     with RepairableEntity {
+  def DeployableObject = sensor
   def JammableObject   = sensor
   def DamageableObject = sensor
   def RepairableObject = sensor
 
+  override def postStop(): Unit = {
+    super.postStop()
+    deployableBehaviorPostStop()
+  }
+
   def receive: Receive =
-    jammableBehavior
+    deployableBehavior
+      .orElse(jammableBehavior)
       .orElse(takesDamage)
       .orElse(canBeRepairedByNanoDispenser)
       .orElse {
@@ -102,13 +110,23 @@ class SensorDeployableControl(sensor: SensorDeployable)
   override def CancelJammeredStatus(target: Any): Unit = {
     target match {
       case obj: PlanetSideServerObject with JammableUnit if obj.Jammed =>
-        sensor.Zone.LocalEvents ! LocalServiceMessage(
-          sensor.Zone.id,
+        val zone = sensor.Zone
+        zone.LocalEvents ! LocalServiceMessage(
+          zone.id,
           LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", obj.GUID, true, 1000)
         )
       case _ => ;
     }
     super.CancelJammeredStatus(target)
+  }
+
+  override def finalizeDeployable(tool: ConstructionItem) : Unit = {
+    super.finalizeDeployable(tool)
+    val zone = sensor.Zone
+    zone.LocalEvents ! LocalServiceMessage(
+      zone.id,
+      LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", sensor.GUID, true, 1000)
+    )
   }
 }
 

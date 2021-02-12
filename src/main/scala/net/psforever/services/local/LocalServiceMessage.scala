@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.local
 
+import net.psforever.objects.ConstructionItem
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.doors.Door
@@ -29,8 +30,9 @@ object LocalServiceMessage {
 object LocalAction {
   trait Action
 
+  final case class AlertBuildDeployable(obj: Deployable, tool: ConstructionItem)       extends Action
   final case class AlertDestroyDeployable(player_guid: PlanetSideGUID, obj: Deployable)
-      extends Action
+    extends Action
   final case class DeployableMapIcon(
       player_guid: PlanetSideGUID,
       behavior: DeploymentAction.Value,

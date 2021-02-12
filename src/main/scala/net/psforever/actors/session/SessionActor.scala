@@ -58,6 +58,7 @@ import net.psforever.services.avatar.{AvatarAction, AvatarResponse, AvatarServic
 import net.psforever.services.chat.ChatService
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyResponse, GalaxyServiceMessage, GalaxyServiceResponse}
 import net.psforever.services.local.support.{CaptureFlagManager, HackCaptureActor, RouterTelepadActivation}
+import net.psforever.services.local.support.HackCaptureActor
 import net.psforever.services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
 import net.psforever.services.properties.PropertyOverrideManager
 import net.psforever.services.support.SupportActor
@@ -1036,135 +1037,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
     case msg @ Zone.Vehicle.CanNotDespawn(zone, vehicle, reason) =>
       log.warn(s"${player.Name}'s ${vehicle.Definition.Name} can not deconstruct in ${zone.id} because $reason")
-
-    case Zone.Deployable.DeployableIsBuilt(obj, tool) =>
-      val index = player.Find(tool) match {
-        case Some(x) =>
-          x
-        case None =>
-          player.LastDrawnSlot
-      }
-      if (avatar.deployables.Accept(obj) || (avatar.deployables.Valid(obj) && !avatar.deployables.Contains(obj))) {
-        tool.Definition match {
-          case GlobalDefinitions.ace =>
-            continent.LocalEvents ! LocalServiceMessage(
-              continent.id,
-              LocalAction.TriggerEffectLocation(player.GUID, "spawn_object_effect", obj.Position, obj.Orientation)
-            )
-          case GlobalDefinitions.advanced_ace =>
-            sendResponse(
-              GenericObjectActionMessage(player.GUID, 53)
-            ) //put fdu down; it will be removed from the client's holster
-            continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.PutDownFDU(player.GUID))
-          case GlobalDefinitions.router_telepad => ;
-          case _ =>
-            log.warn(
-              s"Zone.Deployable.DeployableIsBuilt: not sure what kind of construction item to animate - ${tool.Definition.Name}"
-            )
-        }
-        import scala.concurrent.ExecutionContext.Implicits.global
-        context.system.scheduler.scheduleOnce(
-          obj.Definition.DeployTime milliseconds,
-          self,
-          SessionActor.FinalizeDeployable(obj, tool, index)
-        )
-      } else {
-        TryDropFDU(tool, index, obj.Position)
-        sendResponse(ObjectDeployedMessage.Failure(obj.Definition.Name))
-        obj.Position = Vector3.Zero
-        obj.AssignOwnership(None)
-        continent.Deployables ! Zone.Deployable.Dismiss(obj)
-      }
-
-    case SessionActor.FinalizeDeployable(obj: SensorDeployable, tool, index) =>
-      //motion alarm sensor and sensor disruptor
-      DeployableBuildActivity(obj)
-      continent.LocalEvents ! LocalServiceMessage(
-        continent.id,
-        LocalAction.TriggerEffectInfo(player.GUID, "on", obj.GUID, true, 1000)
-      )
-      CommonDestroyConstructionItem(tool, index)
-      FindReplacementConstructionItem(tool, index)
-
-    case SessionActor.FinalizeDeployable(obj: BoomerDeployable, tool, index) =>
-      //boomers
-      DeployableBuildActivity(obj)
-      //TODO sufficiently delete the tool
-      sendResponse(ObjectDeleteMessage(tool.GUID, 0))
-      continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.ObjectDelete(player.GUID, tool.GUID))
-      continent.tasks ! GUIDTask.UnregisterEquipment(tool)(continent.GUID)
-      val trigger = new BoomerTrigger
-      trigger.Companion = obj.GUID
-      obj.Trigger = trigger
-      val holster = player.Slot(index)
-      if (holster.Equipment.contains(tool)) {
-        holster.Equipment = None
-        continent.tasks ! HoldNewEquipmentUp(player)(trigger, index)
-      } else {
-        //don't know where boomer trigger should go; drop it on the ground
-        continent.tasks ! NewItemDrop(player, continent)(trigger)
-      }
-
-    case SessionActor.FinalizeDeployable(obj: ExplosiveDeployable, tool, index) =>
-      //mines
-      DeployableBuildActivity(obj)
-      CommonDestroyConstructionItem(tool, index)
-      FindReplacementConstructionItem(tool, index)
-
-    case SessionActor.FinalizeDeployable(obj: TelepadDeployable, tool, index) =>
-      if (obj.Health > 0) {
-        val guid = obj.GUID
-        //router telepad deployable
-        val router = tool.asInstanceOf[Telepad].Router
-        //router must exist and be deployed
-        continent.GUID(router) match {
-          case Some(vehicle: Vehicle) =>
-            val routerGUID = router.get
-            if (vehicle.Destroyed) {
-              //the Telepad was successfully deployed; but, before it could configure, its Router was destroyed
-              sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", "@Telepad_NoDeploy_RouterLost", None))
-              continent.LocalEvents ! LocalServiceMessage.Deployables(
-                RemoverActor.AddTask(obj, continent, Some(0 seconds))
-              )
-            } else {
-              log.debug(s"FinalizeDeployable: setup for telepad #${guid.guid} in zone ${continent.id}")
-              obj.Router = routerGUID //necessary; forwards link to the router
-              DeployableBuildActivity(obj)
-              RemoveOldEquipmentFromInventory(player)(tool)
-              //it takes 60s for the telepad to become properly active
-              continent.LocalEvents ! LocalServiceMessage.Telepads(RouterTelepadActivation.AddTask(obj, continent))
-            }
-
-          case _ =>
-            //the Telepad was successfully deployed; but, before it could configure, its Router was deconstructed
-            sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", "@Telepad_NoDeploy_RouterLost", None))
-            continent.LocalEvents ! LocalServiceMessage.Deployables(
-              RemoverActor.AddTask(obj, continent, Some(0 seconds))
-            )
-        }
-      }
-
-    case SessionActor.FinalizeDeployable(obj: Deployable, tool, index) =>
-      //tank_traps, spitfires, deployable field turrets and the deployable_shield_generator
-      DeployableBuildActivity(obj)
-      CommonDestroyConstructionItem(tool, index)
-      FindReplacementConstructionItem(tool, index)
-
-    case SessionActor.FinalizeDeployable(obj, tool, index) =>
-      val guid       = obj.GUID
-      val definition = obj.Definition
-      sendResponse(GenericObjectActionMessage(guid, 21)) //reset build cooldown
-      sendResponse(ObjectDeployedMessage.Failure(definition.Name))
-      log.warn(
-        s"FinalizeDeployable: deployable ${definition.Item}@$guid not handled by specific case"
-      )
-      log.warn(
-        s"FinalizeDeployable: deployable ${definition.Item}@$guid will be cleaned up, but may not get unregistered properly"
-      )
-      TryDropFDU(tool, index, obj.Position)
-      obj.Position = Vector3.Zero
-      continent.Deployables ! Zone.Deployable.Dismiss(obj)
-
+      
     //!!only dispatch Zone.Deployable.Dismiss from WorldSessionActor as cleanup if the target deployable was never fully introduced
     case Zone.Deployable.DeployableIsDismissed(obj: TurretDeployable) =>
       continent.tasks ! GUIDTask.UnregisterDeployableTurret(obj)(continent.GUID)
@@ -2266,16 +2139,45 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       if (player.HasGUID) player.GUID
       else PlanetSideGUID(0)
     reply match {
-      case LocalResponse.AlertDestroyDeployable(obj: BoomerDeployable) =>
-        //the (former) owner (obj.OwnerName) should process this message
-        obj.Trigger match {
-          case Some(item: BoomerTrigger) =>
-            FindEquipmentToDelete(item.GUID, item)
-            item.Companion = None
-          case _ => ;
+      case LocalResponse.AlertBuildDeployable(obj: BoomerDeployable, tool) =>
+        //boomers
+        val trigger = new BoomerTrigger
+        trigger.Companion = obj.GUID
+        obj.Trigger = trigger
+        //TODO sufficiently delete the tool
+        sendResponse(ObjectDeleteMessage(tool.GUID, 0))
+        continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.ObjectDelete(player.GUID, tool.GUID))
+        continent.tasks ! GUIDTask.UnregisterEquipment(tool)(continent.GUID)
+        player.Find(tool) match {
+          case Some(index) =>
+            val holster = player.Slot(index)
+            holster.Equipment = None
+            continent.tasks ! HoldNewEquipmentUp(player)(trigger, index)
+          case None =>
+            //don't know where boomer trigger "should" go
+            continent.tasks ! PutNewEquipmentInInventoryOrDrop(player)(trigger)
         }
-        avatar.deployables.Remove(obj)
-        UpdateDeployableUIElements(avatar.deployables.UpdateUIElement(obj.Definition.Item))
+        DeployableBuildActivity(obj)
+
+      case LocalResponse.AlertBuildDeployable(obj: TelepadDeployable, tool) =>
+        continent.GUID(obj.Router) match {
+          case Some(_) =>
+            RemoveOldEquipmentFromInventory(player)(tool)
+            DeployableBuildActivity(obj)
+          case _ =>
+            DropEquipmentFromInventory(player)(tool, Some(obj.Position))
+            sendResponse(GenericObjectActionMessage(guid, 21)) //reset build cooldown
+            sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", "@Telepad_NoDeploy_RouterLost", None))
+        }
+
+      case LocalResponse.AlertBuildDeployable(obj, tool) =>
+        DeployableBuildActivity(obj)
+        player.Find(tool) match {
+          case Some(index) =>
+            CommonDestroyConstructionItem(tool, index)
+            FindReplacementConstructionItem(tool, index)
+          case None => ;
+        }
 
       case LocalResponse.AlertDestroyDeployable(obj) =>
         //the (former) owner (obj.OwnerName) should process this message
@@ -8287,53 +8189,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     val guid        = obj.GUID
     val definition  = obj.Definition
     val item        = definition.Item
-    val deployables = avatar.deployables
-    val (curr, max) = deployables.CountDeployable(item)
-    //two potential messages related to numerical limitations of deployables
-    if (!avatar.deployables.Available(obj)) {
-      val (removed, msg) = {
-        if (curr == max) { //too many of a specific type of deployable
-          (deployables.DisplaceFirst(obj), max > 1)
-        } else { //make room by eliminating a different type of deployable
-          (deployables.DisplaceFirst(obj, { d => d.Definition.Item != item }), true)
-        }
-      }
-      removed match {
-        case Some(telepad: TelepadDeployable) =>
-          telepad.AssignOwnership(None)
-          continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(telepad), continent))
-          continent.LocalEvents ! LocalServiceMessage.Deployables(
-            RemoverActor.AddTask(telepad, continent, Some(0 seconds))
-          ) //normal decay
-        case Some(old) =>
-          old.AssignOwnership(None)
-          continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(old), continent))
-          continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(old, continent, Some(0 seconds)))
-          if (msg) { //max test
-            sendResponse(
-              ChatMsg(ChatMessageType.UNK_229, false, "", s"@${definition.Descriptor}OldestDestroyed", None)
-            )
-          }
-        case None => ; //should be an invalid case
-          log.warn(
-            s"DeployableBuildActivity: how awkward: ${player.Name} probably shouldn't be allowed to build this deployable right now"
-          )
-      }
-    } else if (obj.isInstanceOf[TelepadDeployable]) {
-      //always treat the telepad we are putting down as the first and only one
-      sendResponse(ObjectDeployedMessage.Success(definition.Name, 1, 1))
-    } else {
-      sendResponse(ObjectDeployedMessage.Success(definition.Name, curr + 1, max))
-      val (catCurr, catMax) = deployables.CountCategory(item)
-      if ((max > 1 && curr + 1 == max) || (catMax > 1 && catCurr + 1 == catMax)) {
-        sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", s"@${definition.Descriptor}LimitReached", None))
-      }
-    }
-    avatar.deployables.Add(obj)
-    UpdateDeployableUIElements(avatar.deployables.UpdateUIElement(item))
     sendResponse(GenericObjectActionMessage(guid, 21)) //reset build cooldown
-    sendResponse(ObjectCreateMessage(definition.ObjectId, guid, definition.Packet.ConstructorData(obj).get))
-    continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.DeployItem(player.GUID, obj))
+    UpdateDeployableUIElements(avatar.deployables.UpdateUIElement(item))
     //map icon
     val deployInfo = DeployableInfo(guid, Deployable.Icon(item), obj.Position, obj.Owner.getOrElse(PlanetSideGUID(0)))
     sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, deployInfo))

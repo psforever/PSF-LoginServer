@@ -32,6 +32,7 @@ import net.psforever.objects.vital.environment.EnvironmentReason
 import net.psforever.objects.vital.etc.{PainboxReason, SuicideReason}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.services.hart.ShuttleState
+import net.psforever.packet.PlanetSideGamePacket
 
 import scala.concurrent.duration._
 
@@ -413,6 +414,100 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
 
         case Zone.Ground.CanNotPickupItem(_, item_guid, reason) =>
           log.warn(s"${player.Name} failed to pick up an item ($item_guid) from the ground because $reason")
+
+        case Zone.Deployable.Build(obj, tool) =>
+          val zone = player.Zone
+          val deployables = player.avatar.deployables
+          if (deployables.Accept(obj) || (deployables.Valid(obj) && !deployables.Contains(obj))) {
+            obj.Actor ! Zone.Deployable.Setup(tool)
+          } else {
+            if (tool.Definition == GlobalDefinitions.advanced_ace) {
+              player.Find(tool) match {
+                case Some(index) =>
+                  player.Slot(index).Equipment = None
+                  zone.Ground.tell(
+                    Zone.Ground.DropItem(tool, obj.Position, Vector3.z(player.Orientation.z)),
+                    self
+                  )
+                case None => ;
+              }
+            }
+            //TODO PlayerControl.sendResponse(zone, player.Name, GenericObjectActionMessage(guid, 21)) //reset build cooldown)
+            PlayerControl.sendResponse(zone, player.Name, ObjectDeployedMessage.Failure(obj.Definition.Name))
+            obj.Position = Vector3.Zero
+            obj.AssignOwnership(None)
+            zone.Deployables ! Zone.Deployable.Dismiss(obj)
+          }
+
+        case Zone.Deployable.IsBuilt(obj, tool) =>
+          val zone        = obj.Zone
+          val channel     = player.Name
+          val definition  = obj.Definition
+          val item        = definition.Item
+          val deployables = player.avatar.deployables
+          val (curr, max) = deployables.CountDeployable(item)
+          //two potential messages related to numerical limitations of deployables
+          /*
+          Besides the standard `ObjectCreateMessage` packet that produces the model and game object on the client,
+          The first limit of note is the actual number of a specific type of deployable can be placed.
+          The second limit of note is the actual number of a specific group (category) of deployables that can be placed.
+          For example, the player can place 25 mines but that count adds up all types of mines;
+          specific mines have individual limits such as 25 and 5 and only that many of that type can be placed at once.
+          Depending on which limit is encountered, an "oldest entry" is struck from the list to make space.
+          This generates the first message - "@*OldestDestroyed."
+          The other message is generated if the number of that specific type of deployable
+          or the number of deployables available in its category
+          matches against the maximum count allowed.
+          This generates the second message - "@*LimitReached."
+          These messages are mutually exclusive, with "@*OldestDestroyed" taking priority over "@*LimitReached."
+          */
+          if (!deployables.Available(obj)) {
+            val (removed, msg) = {
+              if (curr == max) { //too many of a specific type of deployable
+                (deployables.DisplaceFirst(obj), max > 1)
+              } else { //make room by eliminating a different type of deployable
+                (deployables.DisplaceFirst(obj, { d => d.Definition.Item != item }), true)
+              }
+            }
+            removed match {
+              case Some(telepad: TelepadDeployable) =>
+                telepad.AssignOwnership(None)
+                zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(telepad), zone))
+                zone.LocalEvents ! LocalServiceMessage.Deployables(
+                  RemoverActor.AddTask(telepad, zone, Some(0 seconds))
+                ) //normal decay
+              case Some(old) =>
+                old.AssignOwnership(None)
+                zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(old), zone))
+                zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(old, zone, Some(0 seconds)))
+                if (msg) { //max test
+                  PlayerControl.sendResponse(
+                    zone,
+                    channel,
+                    ChatMsg(ChatMessageType.UNK_229, false, "", s"@${definition.Descriptor}OldestDestroyed", None)
+                  )
+                }
+              case None => ; //should be an invalid case
+                org.log4s.getLogger(name = "Deployables").warn(
+                  "how awkward: we probably shouldn't be allowed to build this deployable right now"
+                )
+            }
+          } else if (obj.isInstanceOf[TelepadDeployable]) {
+            //always treat the telepad we are putting down as the first and only one
+            PlayerControl.sendResponse(zone, channel, ObjectDeployedMessage.Success(definition.Name, count = 1, max = 1))
+          } else {
+            PlayerControl.sendResponse(zone, channel, ObjectDeployedMessage.Success(definition.Name, curr + 1, max))
+            val (catCurr, catMax) = deployables.CountCategory(item)
+            if ((max > 1 && curr + 1 == max) || (catMax > 1 && catCurr + 1 == catMax)) {
+              PlayerControl.sendResponse(
+                zone,
+                channel,
+                ChatMsg(ChatMessageType.UNK_229, false, "", s"@${definition.Descriptor}LimitReached", None)
+              )
+            }
+          }
+          deployables.Add(obj)
+          zone.LocalEvents ! LocalServiceMessage(player.Name, LocalAction.AlertBuildDeployable(obj, tool))
 
         case _ => ;
       }
@@ -1162,5 +1257,9 @@ object PlayerControl {
     case Aura.Napalm => 4
     case Aura.Fire => 8
     case _ => 0
+  }
+
+  private def sendResponse(zone: Zone, channel: String, msg: PlanetSideGamePacket): Unit = {
+    zone.AvatarEvents ! AvatarServiceMessage(channel, AvatarAction.SendResponse(Service.defaultPlayerGUID, msg))
   }
 }

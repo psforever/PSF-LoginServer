@@ -59,11 +59,21 @@ object ExplosiveDeployableDefinition {
   }
 }
 
-class ExplosiveDeployableControl(mine: ExplosiveDeployable) extends Actor with Damageable {
+class ExplosiveDeployableControl(mine: ExplosiveDeployable)
+  extends Actor
+  with DeployableBehavior
+  with Damageable {
+  def DeployableObject = mine
   def DamageableObject = mine
 
+  override def postStop(): Unit = {
+    super.postStop()
+    deployableBehaviorPostStop()
+  }
+
   def receive: Receive =
-    takesDamage
+    deployableBehavior
+      .orElse(takesDamage)
       .orElse {
         case CommonMessages.Use(player, Some(trigger: BoomerTrigger)) if {
           mine match {

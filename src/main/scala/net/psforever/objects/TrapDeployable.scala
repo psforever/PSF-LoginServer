@@ -2,7 +2,7 @@
 package net.psforever.objects
 
 import akka.actor.{Actor, ActorContext, Props}
-import net.psforever.objects.ce.{Deployable, DeployedItem}
+import net.psforever.objects.ce.{Deployable, DeployableBehavior, DeployedItem}
 import net.psforever.objects.definition.converter.TRAPConverter
 import net.psforever.objects.definition.DeployableDefinition
 import net.psforever.objects.serverobject.PlanetSideServerObject
@@ -29,12 +29,23 @@ object TrapDeployableDefinition {
   }
 }
 
-class TrapDeployableControl(trap: TrapDeployable) extends Actor with DamageableEntity with RepairableEntity {
+class TrapDeployableControl(trap: TrapDeployable)
+  extends Actor
+  with DeployableBehavior
+  with DamageableEntity
+  with RepairableEntity {
+  def DeployableObject = trap
   def DamageableObject = trap
   def RepairableObject = trap
 
+  override def postStop(): Unit = {
+    super.postStop()
+    deployableBehaviorPostStop()
+  }
+
   def receive: Receive =
-    takesDamage
+    deployableBehavior
+      .orElse(takesDamage)
       .orElse(canBeRepairedByNanoDispenser)
       .orElse {
         case _ =>

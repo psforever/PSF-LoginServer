@@ -931,7 +931,9 @@ object Zone {
 
   object Deployable {
     final case class Build(obj: Deployable, withTool: ConstructionItem)
-    final case class DeployableIsBuilt(obj: Deployable, withTool: ConstructionItem)
+    final case class Setup(withTool: ConstructionItem)
+    final case class IsBuilt(obj: Deployable, withTool: ConstructionItem)
+    final case class CanNotBeBuilt(obj: Deployable, withTool: ConstructionItem)
 
     final case class Dismiss(obj: Deployable)
     final case class DeployableIsDismissed(obj: Deployable)

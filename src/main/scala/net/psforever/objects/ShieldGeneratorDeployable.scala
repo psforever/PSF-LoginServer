@@ -2,7 +2,7 @@
 package net.psforever.objects
 
 import akka.actor.{Actor, ActorContext, Props}
-import net.psforever.objects.ce.{Deployable, DeployableCategory}
+import net.psforever.objects.ce.{Deployable, DeployableBehavior, DeployableCategory}
 import net.psforever.objects.definition.DeployableDefinition
 import net.psforever.objects.definition.converter.ShieldGeneratorConverter
 import net.psforever.objects.equipment.{JammableBehavior, JammableUnit}
@@ -34,15 +34,23 @@ class ShieldGeneratorDefinition extends DeployableDefinition(240) {
 
 class ShieldGeneratorControl(gen: ShieldGeneratorDeployable)
     extends Actor
+    with DeployableBehavior
     with JammableBehavior
     with DamageableEntity
     with RepairableEntity {
-  def JammableObject                         = gen
-  def DamageableObject                       = gen
-  def RepairableObject                       = gen
+  def DeployableObject = gen
+  def JammableObject   = gen
+  def DamageableObject = gen
+  def RepairableObject = gen
+
+  override def postStop(): Unit = {
+    super.postStop()
+    deployableBehaviorPostStop()
+  }
 
   def receive: Receive =
-    jammableBehavior
+    deployableBehavior
+      .orElse(jammableBehavior)
       .orElse(takesDamage)
       .orElse(canBeRepairedByNanoDispenser)
       .orElse {

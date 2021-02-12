@@ -22,7 +22,10 @@ class ZoneDeployableActor(zone: Zone, deployableList: ListBuffer[Deployable]) ex
       if (DeployableBuild(obj, deployableList)) {
         obj.Zone = zone
         obj.Definition.Initialize(obj, context)
-        sender() ! Zone.Deployable.DeployableIsBuilt(obj, tool)
+        zone.LivePlayers.find { p => obj.OwnerName.contains(p.Name) } match {
+          case Some(p) => p.Actor ! Zone.Deployable.Build(obj, tool) //owner is trying to put it down
+          case None => obj.Actor ! Zone.Deployable.Setup(tool) //strong and independent deployable
+        }
       } else {
         log.warn(s"failed to build deployable $obj from $tool")
       }

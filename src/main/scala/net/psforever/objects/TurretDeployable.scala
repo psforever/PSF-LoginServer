@@ -2,7 +2,7 @@
 package net.psforever.objects
 
 import akka.actor.{Actor, ActorContext, Props}
-import net.psforever.objects.ce.{Deployable, DeployedItem}
+import net.psforever.objects.ce.{Deployable, DeployableBehavior, DeployedItem}
 import net.psforever.objects.definition.DeployableDefinition
 import net.psforever.objects.definition.converter.SmallTurretConverter
 import net.psforever.objects.equipment.{JammableMountedWeapons, JammableUnit}
@@ -57,11 +57,13 @@ object TurretDeployableDefinition {
 
 class TurretControl(turret: TurretDeployable)
     extends Actor
+    with DeployableBehavior
     with FactionAffinityBehavior.Check
     with JammableMountedWeapons //note: jammable status is reported as vehicle events, not local events
     with MountableBehavior
     with DamageableWeaponTurret
     with RepairableWeaponTurret {
+  def DeployableObject = turret
   def MountableObject  = turret
   def JammableObject   = turret
   def FactionObject    = turret
@@ -70,11 +72,13 @@ class TurretControl(turret: TurretDeployable)
 
   override def postStop(): Unit = {
     super.postStop()
+    deployableBehaviorPostStop()
     damageableWeaponTurretPostStop()
   }
 
   def receive: Receive =
-    checkBehavior
+    deployableBehavior
+      .orElse(checkBehavior)
       .orElse(jammableBehavior)
       .orElse(mountBehavior)
       .orElse(dismountBehavior)

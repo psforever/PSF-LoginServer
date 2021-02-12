@@ -49,6 +49,14 @@ class LocalService(zone: Zone) extends Actor {
 
     case LocalServiceMessage(forChannel, action) =>
       action match {
+        case LocalAction.AlertBuildDeployable(obj, tool) =>
+          LocalEvents.publish(
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              Service.defaultPlayerGUID,
+              LocalResponse.AlertBuildDeployable(obj, tool)
+            )
+          )
         case LocalAction.AlertDestroyDeployable(_, obj) =>
           LocalEvents.publish(
             LocalServiceResponse(
