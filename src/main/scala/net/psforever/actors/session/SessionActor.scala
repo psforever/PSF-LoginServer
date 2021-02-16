@@ -61,7 +61,6 @@ import net.psforever.services.local.support.{CaptureFlagManager, HackCaptureActo
 import net.psforever.services.local.support.HackCaptureActor
 import net.psforever.services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
 import net.psforever.services.properties.PropertyOverrideManager
-import net.psforever.services.support.SupportActor
 import net.psforever.services.teamwork.{SquadResponse, SquadServiceMessage, SquadServiceResponse, SquadAction => SquadServiceAction}
 import net.psforever.services.hart.HartTimer
 import net.psforever.services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
@@ -2240,22 +2239,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           sendResponse(GenericObjectActionMessage(dguid, 29))
           sendResponse(GenericObjectActionMessage(dguid, 30))
         }
-        //determine if no replacement teleport system exists
-        continent.GUID(obj.Router) match {
-          case Some(router: Vehicle) =>
-            //if the telepad was replaced, the new system is physically in place but not yet functional
-            if (
-              router.Utility(UtilityType.internal_router_telepad_deployable) match {
-                case Some(internalTelepad: Utility.InternalTelepad) =>
-                  internalTelepad.Telepad.contains(dguid) //same telepad
-                case _ => true
-              }
-            ) {
-              //there is no replacement telepad; shut down the system
-              ToggleTeleportSystem(router, None)
-            }
-          case _ => ;
-        }
         //standard deployable elimination behavior
         if (obj.Destroyed) {
           DeconstructDeployable(obj, dguid, pos)
@@ -2343,6 +2326,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       case LocalResponse.RouterTelepadTransport(passenger_guid, src_guid, dest_guid) =>
         UseRouterTelepadEffect(passenger_guid, src_guid, dest_guid)
+
+      case LocalResponse.SendResponse(msg) =>
+        sendResponse(msg)
 
       case LocalResponse.SetEmpire(object_guid, empire) =>
         sendResponse(SetEmpireMessage(object_guid, empire))
@@ -4465,7 +4451,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             }
 
           case Some(obj: TelepadDeployable) =>
-            continent.LocalEvents ! LocalServiceMessage.Telepads(SupportActor.ClearSpecific(List(obj), continent))
             continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(obj), continent))
             continent.LocalEvents ! LocalServiceMessage.Deployables(
               RemoverActor.AddTask(obj, continent, Some(0 seconds))
@@ -8870,54 +8855,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       remoteTelepad: TelepadDeployable
   ): Unit = {
     internalTelepad.Telepad = remoteTelepad.GUID //necessary; backwards link to the (new) telepad
-    CreateRouterInternalTelepad(router, internalTelepad)
-    LinkRemoteTelepad(remoteTelepad.GUID)
-  }
-
-  /**
-    * Create the mechanism that serves as one endpoint of the linked router teleportation system.<br>
-    * <br>
-    * Technically, the mechanism - an `InternalTelepad` object - is always made to exist
-    * due to how the Router vehicle object is encoded into an `ObjectCreateMessage` packet.
-    * Regardless, that internal mechanism is created anew each time the system links a new remote telepad.
-    * @param router the vehicle that houses one end of the teleportation system (the `internalTelepad`)
-    * @param internalTelepad the endpoint of the teleportation system housed by the router
-    */
-  def CreateRouterInternalTelepad(router: Vehicle, internalTelepad: PlanetSideGameObject with TelepadLike): Unit = {
-    //create the interal telepad each time the link is made
-    val rguid = router.GUID
-    val uguid = internalTelepad.GUID
-    val udef  = internalTelepad.Definition
-    /*
-    the following instantiation and configuration creates the internal Router component
-    normally dispatched while the Router is transitioned into its Deploying state
-    it is safe, however, to perform these actions at any time during and after the Deploying state
-     */
-    sendResponse(
-      ObjectCreateMessage(
-        udef.ObjectId,
-        uguid,
-        ObjectCreateMessageParent(rguid, 2), //TODO stop assuming slot number
-        udef.Packet.ConstructorData(internalTelepad).get
-      )
-    )
-    sendResponse(GenericObjectActionMessage(uguid, 27))
-    sendResponse(GenericObjectActionMessage(uguid, 30))
-    /*
-    the following configurations create the interactive beam underneath the Deployed Router
-    normally dispatched after the warm-up timer has completed
-     */
-    sendResponse(GenericObjectActionMessage(uguid, 27))
-    sendResponse(GenericObjectActionMessage(uguid, 28))
-  }
-
-  /**
-    * na
-    * @param telepadGUID na
-    */
-  def LinkRemoteTelepad(telepadGUID: PlanetSideGUID): Unit = {
-    sendResponse(GenericObjectActionMessage(telepadGUID, 27))
-    sendResponse(GenericObjectActionMessage(telepadGUID, 28))
+    TelepadLike.StartRouterInternalTelepad(continent, router.GUID, internalTelepad)
+    TelepadLike.LinkTelepad(continent, remoteTelepad.GUID)
   }
 
   /**

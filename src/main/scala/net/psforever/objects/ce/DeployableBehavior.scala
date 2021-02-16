@@ -11,7 +11,6 @@ import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.PlanetSideGUID
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 trait DeployableBehavior {
@@ -34,6 +33,7 @@ trait DeployableBehavior {
           case Some(p) => p.Actor ! Zone.Deployable.Build(obj, tool) //owner is trying to put it down
           case None => //obj.Actor ! Zone.Deployable.Setup(tool) //strong and independent deployable
         }
+        import scala.concurrent.ExecutionContext.Implicits.global
         setup = context.system.scheduler.scheduleOnce(
           obj.Definition.DeployTime milliseconds,
           self,

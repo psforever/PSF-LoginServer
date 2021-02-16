@@ -37,7 +37,7 @@ trait BaseDeployableDefinition {
   def Initialize(obj: Deployable, context: ActorContext): Unit = {}
 
   def Uninitialize(obj: Deployable, context: ActorContext): Unit = {
-    context.stop(obj.Actor)
+    obj.Actor ! akka.actor.PoisonPill
     obj.Actor = Default.Actor
   }
 }

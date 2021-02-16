@@ -68,7 +68,6 @@ object LocalAction {
       attribute_number: PlanetsideAttributeEnum,
       attribute_value: Long
   ) extends Action
-
   final case class SendGenericObjectActionMessage(
      player_guid: PlanetSideGUID,
      target: PlanetSideGUID,
@@ -84,7 +83,7 @@ object LocalAction {
     player_guid: PlanetSideGUID,
     action_number: GenericActionEnum
   ) extends Action
-
+  final case class RouterTelepadMessage(msg: String)                                      extends Action
   final case class RouterTelepadTransport(
       player_guid: PlanetSideGUID,
       passenger_guid: PlanetSideGUID,
@@ -101,6 +100,11 @@ object LocalAction {
   ) extends Action
   final case class ShuttleEvent(ev: OrbitalShuttleEvent)                                              extends Action
   final case class ShuttleState(guid: PlanetSideGUID, pos: Vector3, orientation: Vector3, state: Int) extends Action
+  final case class StartRouterInternalTelepad(
+    router_guid: PlanetSideGUID,
+    obj_guid: PlanetSideGUID,
+    obj: Utility.InternalTelepad
+  ) extends Action
   final case class ToggleTeleportSystem(
       player_guid: PlanetSideGUID,
       router: Vehicle,

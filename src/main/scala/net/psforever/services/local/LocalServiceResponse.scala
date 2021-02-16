@@ -69,6 +69,11 @@ object LocalResponse {
   ) extends Response
   final case class ShuttleEvent(ev: OrbitalShuttleEvent)                                              extends Response
   final case class ShuttleState(guid: PlanetSideGUID, pos: Vector3, orientation: Vector3, state: Int) extends Response
+  final case class StartRouterInternalTelepad(
+    router_guid: PlanetSideGUID,
+    obj_guid: PlanetSideGUID,
+    obj: Utility.InternalTelepad
+  ) extends Response
   final case class ToggleTeleportSystem(
       router: Vehicle,
       systemPlan: Option[(Utility.InternalTelepad, TelepadDeployable)]

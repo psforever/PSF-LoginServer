@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.local
 
-import akka.actor.{Actor, ActorRef, Props}
 import net.psforever.objects._
+import akka.actor.{Actor, Props}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.vehicles.{Utility, UtilityType}
@@ -18,16 +18,22 @@ import net.psforever.types.{PlanetSideGUID, Vector3}
 import scala.concurrent.duration.{Duration, _}
 
 class LocalService(zone: Zone) extends Actor {
-  private val doorCloser  = context.actorOf(Props[DoorCloseActor](), s"${zone.id}-local-door-closer")
-  private val hackClearer = context.actorOf(Props[HackClearActor](), s"${zone.id}-local-hack-clearer")
-  private val hackCapturer =
-    context.actorOf(Props(classOf[HackCaptureActor], zone.tasks), s"${zone.id}-local-hack-capturer")
-  private val captureFlagManager =
-    context.actorOf(Props(classOf[CaptureFlagManager], zone.tasks, zone), s"${zone.id}-local-capture-flag-manager")
-  private val engineer =
-    context.actorOf(Props(classOf[DeployableRemover], zone.tasks), s"${zone.id}-deployable-remover-agent")
-  private val teleportDeployment: ActorRef =
-    context.actorOf(Props[RouterTelepadActivation](), s"${zone.id}-telepad-activate-agent")
+  private val doorCloser = context.actorOf(
+    Props[DoorCloseActor](), s"${zone.id}-local-door-closer"
+  )
+  private val hackClearer = context.actorOf(
+    Props[HackClearActor](), s"${zone.id}-local-hack-clearer"
+  )
+  private val hackCapturer = context.actorOf(
+    Props(classOf[HackCaptureActor], zone.tasks), s"${zone.id}-local-hack-capturer"
+  )
+  private val captureFlagManager = context.actorOf(
+    Props(classOf[CaptureFlagManager], zone.tasks, zone), s"${zone.id}-local-capture-flag-manager"
+  )
+  private val engineer = context.actorOf(
+    Props(classOf[DeployableRemover], zone.tasks), s"${zone.id}-deployable-remover-agent"
+  )
+
   private[this] val log = org.log4s.getLogger
 
   val LocalEvents = new GenericEventBus[LocalServiceResponse]
@@ -152,7 +158,6 @@ class LocalService(zone: Zone) extends Actor {
               LocalResponse.SendPlanetsideAttributeMessage(target_guid, attribute_number, attribute_value)
             )
           )
-
         case LocalAction.SendGenericObjectActionMessage(player_guid, target_guid, action_number) =>
           LocalEvents.publish(
             LocalServiceResponse(
@@ -179,7 +184,14 @@ class LocalService(zone: Zone) extends Actor {
               LocalResponse.SendGenericActionMessage(action_number)
             )
           )
-
+        case LocalAction.RouterTelepadMessage(msg) =>
+          LocalEvents.publish(
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              Service.defaultPlayerGUID,
+              LocalResponse.RouterTelepadMessage(msg)
+            )
+          )
         case LocalAction.RouterTelepadTransport(player_guid, passenger_guid, src_guid, dest_guid) =>
           LocalEvents.publish(
             LocalServiceResponse(
@@ -230,6 +242,14 @@ class LocalService(zone: Zone) extends Actor {
               s"/$forChannel/Local",
               Service.defaultPlayerGUID,
               LocalResponse.ShuttleState(guid, pos, orient, state)
+            )
+          )
+        case LocalAction.StartRouterInternalTelepad(router_guid, obj_guid, obj) =>
+          LocalEvents.publish(
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              Service.defaultPlayerGUID,
+              LocalResponse.StartRouterInternalTelepad(router_guid, obj_guid, obj)
             )
           )
         case LocalAction.ToggleTeleportSystem(player_guid, router, system_plan) =>
@@ -359,8 +379,6 @@ class LocalService(zone: Zone) extends Actor {
 
     case DeployableRemover.EliminateDeployable(obj: TelepadDeployable, guid, pos, _) =>
       obj.Active = false
-      //ClearSpecific will also remove objects that do not have GUID's; we may not have a GUID at this time
-      teleportDeployment ! SupportActor.ClearSpecific(List(obj), zone)
       EliminateDeployable(obj, guid, pos)
 
     case DeployableRemover.EliminateDeployable(obj, guid, pos, _) =>
@@ -374,10 +392,6 @@ class LocalService(zone: Zone) extends Actor {
           LocalResponse.ObjectDelete(trigger_guid, 0)
         )
       )
-
-    //message to RouterTelepadActivation
-    case LocalServiceMessage.Telepads(msg) =>
-      teleportDeployment forward msg
 
     //from RouterTelepadActivation
     case RouterTelepadActivation.ActivateTeleportSystem(telepad, _) =>
