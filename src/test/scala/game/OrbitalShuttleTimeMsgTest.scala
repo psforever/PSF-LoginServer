@@ -28,9 +28,9 @@ class OrbitalShuttleTimeMsgTest extends Specification {
         u6 mustEqual true
         u7 mustEqual 0
         u8 mustEqual List(
-          Unk(PlanetSideGUID(788), PlanetSideGUID(1127), 5),
-          Unk(PlanetSideGUID(787), PlanetSideGUID(1128), 5),
-          Unk(PlanetSideGUID(786), PlanetSideGUID(1129), 27)
+          PadAndShuttlePair(PlanetSideGUID(788), PlanetSideGUID(1127), 5),
+          PadAndShuttlePair(PlanetSideGUID(787), PlanetSideGUID(1128), 5),
+          PadAndShuttlePair(PlanetSideGUID(786), PlanetSideGUID(1129), 27)
         )
       case _ =>
         ko
@@ -48,9 +48,9 @@ class OrbitalShuttleTimeMsgTest extends Specification {
         u6 mustEqual true
         u7 mustEqual 0
         u8 mustEqual List(
-          Unk(PlanetSideGUID(788), PlanetSideGUID(1127), 20),
-          Unk(PlanetSideGUID(787), PlanetSideGUID(1128), 20),
-          Unk(PlanetSideGUID(786), PlanetSideGUID(1129), 20)
+          PadAndShuttlePair(PlanetSideGUID(788), PlanetSideGUID(1127), 20),
+          PadAndShuttlePair(PlanetSideGUID(787), PlanetSideGUID(1128), 20),
+          PadAndShuttlePair(PlanetSideGUID(786), PlanetSideGUID(1129), 20)
         )
       case _ =>
         ko
@@ -68,9 +68,9 @@ class OrbitalShuttleTimeMsgTest extends Specification {
         u6 mustEqual true
         u7 mustEqual 0
         u8 mustEqual List(
-          Unk(PlanetSideGUID(788), PlanetSideGUID(1127), 20),
-          Unk(PlanetSideGUID(787), PlanetSideGUID(1128), 20),
-          Unk(PlanetSideGUID(786), PlanetSideGUID(1129), 20)
+          PadAndShuttlePair(PlanetSideGUID(788), PlanetSideGUID(1127), 20),
+          PadAndShuttlePair(PlanetSideGUID(787), PlanetSideGUID(1128), 20),
+          PadAndShuttlePair(PlanetSideGUID(786), PlanetSideGUID(1129), 20)
         )
       case _ =>
         ko
@@ -88,9 +88,9 @@ class OrbitalShuttleTimeMsgTest extends Specification {
         u6 mustEqual true
         u7 mustEqual 0
         u8 mustEqual List(
-          Unk(PlanetSideGUID(788), PlanetSideGUID(1127), 20),
-          Unk(PlanetSideGUID(787), PlanetSideGUID(1128), 20),
-          Unk(PlanetSideGUID(786), PlanetSideGUID(1129), 20)
+          PadAndShuttlePair(PlanetSideGUID(788), PlanetSideGUID(1127), 20),
+          PadAndShuttlePair(PlanetSideGUID(787), PlanetSideGUID(1128), 20),
+          PadAndShuttlePair(PlanetSideGUID(786), PlanetSideGUID(1129), 20)
         )
       case _ =>
         ko
@@ -108,9 +108,9 @@ class OrbitalShuttleTimeMsgTest extends Specification {
         u6 mustEqual true
         u7 mustEqual 0
         u8 mustEqual List(
-          Unk(PlanetSideGUID(788), PlanetSideGUID(1127), 20),
-          Unk(PlanetSideGUID(787), PlanetSideGUID(1128), 20),
-          Unk(PlanetSideGUID(786), PlanetSideGUID(1129), 20)
+          PadAndShuttlePair(PlanetSideGUID(788), PlanetSideGUID(1127), 20),
+          PadAndShuttlePair(PlanetSideGUID(787), PlanetSideGUID(1128), 20),
+          PadAndShuttlePair(PlanetSideGUID(786), PlanetSideGUID(1129), 20)
         )
       case _ =>
         ko
@@ -128,9 +128,9 @@ class OrbitalShuttleTimeMsgTest extends Specification {
         u6 mustEqual true
         u7 mustEqual 0
         u8 mustEqual List(
-          Unk(PlanetSideGUID(788), PlanetSideGUID(1127), 6),
-          Unk(PlanetSideGUID(787), PlanetSideGUID(1128), 25),
-          Unk(PlanetSideGUID(786), PlanetSideGUID(1129), 5)
+          PadAndShuttlePair(PlanetSideGUID(788), PlanetSideGUID(1127), 6),
+          PadAndShuttlePair(PlanetSideGUID(787), PlanetSideGUID(1128), 25),
+          PadAndShuttlePair(PlanetSideGUID(786), PlanetSideGUID(1129), 5)
         )
       case _ =>
         ko
@@ -148,9 +148,9 @@ class OrbitalShuttleTimeMsgTest extends Specification {
         u6 mustEqual true
         u7 mustEqual 0
         u8 mustEqual List(
-          Unk(PlanetSideGUID(788), PlanetSideGUID(1127), 20),
-          Unk(PlanetSideGUID(787), PlanetSideGUID(1128), 20),
-          Unk(PlanetSideGUID(786), PlanetSideGUID(1129), 20)
+          PadAndShuttlePair(PlanetSideGUID(788), PlanetSideGUID(1127), 20),
+          PadAndShuttlePair(PlanetSideGUID(787), PlanetSideGUID(1128), 20),
+          PadAndShuttlePair(PlanetSideGUID(786), PlanetSideGUID(1129), 20)
         )
       case _ =>
         ko
@@ -159,9 +159,9 @@ class OrbitalShuttleTimeMsgTest extends Specification {
 
   "encode (1)" in {
     val msg = OrbitalShuttleTimeMsg(3, 3, 4, 23669, 8000, true, 0, List(
-      Unk(PlanetSideGUID(788), PlanetSideGUID(1127), 5),
-      Unk(PlanetSideGUID(787), PlanetSideGUID(1128), 5),
-      Unk(PlanetSideGUID(786), PlanetSideGUID(1129), 27)
+      PadAndShuttlePair(PlanetSideGUID(788), PlanetSideGUID(1127), 5),
+      PadAndShuttlePair(PlanetSideGUID(787), PlanetSideGUID(1128), 5),
+      PadAndShuttlePair(PlanetSideGUID(786), PlanetSideGUID(1129), 27)
     ))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
@@ -170,9 +170,9 @@ class OrbitalShuttleTimeMsgTest extends Specification {
 
   "encode (2)" in {
     val msg = OrbitalShuttleTimeMsg(3, 4, 5, 8000, 8000, true, 0, List(
-      Unk(PlanetSideGUID(788), PlanetSideGUID(1127), 20),
-      Unk(PlanetSideGUID(787), PlanetSideGUID(1128), 20),
-      Unk(PlanetSideGUID(786), PlanetSideGUID(1129), 20)
+      PadAndShuttlePair(PlanetSideGUID(788), PlanetSideGUID(1127), 20),
+      PadAndShuttlePair(PlanetSideGUID(787), PlanetSideGUID(1128), 20),
+      PadAndShuttlePair(PlanetSideGUID(786), PlanetSideGUID(1129), 20)
     ))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
@@ -181,9 +181,9 @@ class OrbitalShuttleTimeMsgTest extends Specification {
 
   "encode (3)" in {
     val msg = OrbitalShuttleTimeMsg(3, 0, 5, 4294967295L, 8000, true, 0, List(
-      Unk(PlanetSideGUID(788), PlanetSideGUID(1127), 20),
-      Unk(PlanetSideGUID(787), PlanetSideGUID(1128), 20),
-      Unk(PlanetSideGUID(786), PlanetSideGUID(1129), 20)
+      PadAndShuttlePair(PlanetSideGUID(788), PlanetSideGUID(1127), 20),
+      PadAndShuttlePair(PlanetSideGUID(787), PlanetSideGUID(1128), 20),
+      PadAndShuttlePair(PlanetSideGUID(786), PlanetSideGUID(1129), 20)
     ))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
@@ -192,9 +192,9 @@ class OrbitalShuttleTimeMsgTest extends Specification {
 
   "encode (4)" in {
     val msg = OrbitalShuttleTimeMsg(3, 0, 0, 0, 60000, true, 0, List(
-      Unk(PlanetSideGUID(788), PlanetSideGUID(1127), 20),
-      Unk(PlanetSideGUID(787), PlanetSideGUID(1128), 20),
-      Unk(PlanetSideGUID(786), PlanetSideGUID(1129), 20)
+      PadAndShuttlePair(PlanetSideGUID(788), PlanetSideGUID(1127), 20),
+      PadAndShuttlePair(PlanetSideGUID(787), PlanetSideGUID(1128), 20),
+      PadAndShuttlePair(PlanetSideGUID(786), PlanetSideGUID(1129), 20)
     ))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
@@ -203,9 +203,9 @@ class OrbitalShuttleTimeMsgTest extends Specification {
 
   "encode (5)" in {
     val msg = OrbitalShuttleTimeMsg(3, 1, 1, 224998, 8000, true, 0, List(
-      Unk(PlanetSideGUID(788), PlanetSideGUID(1127), 20),
-      Unk(PlanetSideGUID(787), PlanetSideGUID(1128), 20),
-      Unk(PlanetSideGUID(786), PlanetSideGUID(1129), 20)
+      PadAndShuttlePair(PlanetSideGUID(788), PlanetSideGUID(1127), 20),
+      PadAndShuttlePair(PlanetSideGUID(787), PlanetSideGUID(1128), 20),
+      PadAndShuttlePair(PlanetSideGUID(786), PlanetSideGUID(1129), 20)
     ))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
@@ -214,9 +214,9 @@ class OrbitalShuttleTimeMsgTest extends Specification {
 
   "encode (6)" in {
     val msg = OrbitalShuttleTimeMsg(3, 2, 2, 216998, 8000, true, 0, List(
-      Unk(PlanetSideGUID(788), PlanetSideGUID(1127), 6),
-      Unk(PlanetSideGUID(787), PlanetSideGUID(1128), 25),
-      Unk(PlanetSideGUID(786), PlanetSideGUID(1129), 5)
+      PadAndShuttlePair(PlanetSideGUID(788), PlanetSideGUID(1127), 6),
+      PadAndShuttlePair(PlanetSideGUID(787), PlanetSideGUID(1128), 25),
+      PadAndShuttlePair(PlanetSideGUID(786), PlanetSideGUID(1129), 5)
     ))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
@@ -225,9 +225,9 @@ class OrbitalShuttleTimeMsgTest extends Specification {
 
   "encode (7)" in {
     val msg = OrbitalShuttleTimeMsg(3, 7, 3, 203669, 8000, true, 0, List(
-      Unk(PlanetSideGUID(788), PlanetSideGUID(1127), 20),
-      Unk(PlanetSideGUID(787), PlanetSideGUID(1128), 20),
-      Unk(PlanetSideGUID(786), PlanetSideGUID(1129), 20)
+      PadAndShuttlePair(PlanetSideGUID(788), PlanetSideGUID(1127), 20),
+      PadAndShuttlePair(PlanetSideGUID(787), PlanetSideGUID(1128), 20),
+      PadAndShuttlePair(PlanetSideGUID(786), PlanetSideGUID(1129), 20)
     ))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 

@@ -7,6 +7,7 @@ import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.objectcreate.ConstructorData
+import net.psforever.services.time.ShuttleTimer.OrbitalShuttleEvent
 import net.psforever.types.{BailType, DriveState, PlanetSideGUID, Vector3}
 
 final case class VehicleServiceMessage(forChannel: String, actionMessage: VehicleAction.Action)
@@ -64,6 +65,7 @@ object VehicleAction {
   )                                                                                                  extends Action
   final case class MountVehicle(player_guid: PlanetSideGUID, object_guid: PlanetSideGUID, seat: Int) extends Action
   final case class ObjectDelete(player_guid: PlanetSideGUID, weapon_guid: PlanetSideGUID)            extends Action
+  final case class OrbitalShuttleTimerEvent(ev: OrbitalShuttleEvent)                                 extends Action
   final case class Ownership(player_guid: PlanetSideGUID, vehicle_guid: PlanetSideGUID)              extends Action
   final case class PlanetsideAttribute(
       player_guid: PlanetSideGUID,

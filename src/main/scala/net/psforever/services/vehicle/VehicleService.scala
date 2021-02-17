@@ -121,6 +121,10 @@ class VehicleService(zone: Zone) extends Actor {
               VehicleResponse.MountVehicle(vehicle_guid, seat)
             )
           )
+        case VehicleAction.OrbitalShuttleTimerEvent(ev) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(s"/$forChannel/Vehicle", Service.defaultPlayerGUID, VehicleResponse.OrbitalShuttleTimerEvent(ev))
+          )
         case VehicleAction.Ownership(player_guid, vehicle_guid) =>
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.Ownership(vehicle_guid))

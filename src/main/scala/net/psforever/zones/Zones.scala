@@ -535,6 +535,7 @@ object Zones {
               OrbitalShuttlePad.Constructor(obj.position, GlobalDefinitions.obbasemesh, Vector3.z(obj.yaw)),
               owningBuildingGuid = ownerGuid
             )
+          zoneMap.linkShuttleToBay(obj.guid)
 
         case _ => ()
       }

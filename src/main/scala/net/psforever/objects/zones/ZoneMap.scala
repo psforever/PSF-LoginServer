@@ -33,12 +33,13 @@ class ZoneMap(val name: String) {
   var checksum: Long                                                = 0
   var zipLinePaths: List[ZipLinePath]                               = List()
   var cavern: Boolean                                               = false
-  var environment: List[PieceOfEnvironment]                                         = List()
+  var environment: List[PieceOfEnvironment]                         = List()
   private var linkTurretWeapon: Map[Int, Int]                       = Map()
   private var linkTerminalPad: Map[Int, Int]                        = Map()
   private var linkTerminalInterface: Map[Int, Int]                  = Map()
   private var linkDoorLock: Map[Int, Int]                           = Map()
   private var linkObjectBase: Map[Int, Int]                         = Map()
+  private var containsShuttle: List[Int]                           = List()
   private var buildings: Map[(String, Int, Int), FoundationBuilder] = Map()
   private var lattice: Set[(String, String)]                        = Set()
 
@@ -114,6 +115,12 @@ class ZoneMap(val name: String) {
 
   def linkTurretToWeapon(turretGuid: Int, weaponGuid: Int): Unit = {
     linkTurretWeapon = linkTurretWeapon ++ Map(turretGuid -> weaponGuid)
+  }
+
+  def shuttleBays: List[Int] = containsShuttle
+
+  def linkShuttleToBay(shuttleBayGuid: Int): Unit = {
+    containsShuttle = containsShuttle :+ shuttleBayGuid
   }
 
   def latticeLink: Set[(String, String)] = lattice

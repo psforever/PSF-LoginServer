@@ -71,6 +71,7 @@ import net.psforever.services.local.{LocalAction, LocalResponse, LocalServiceMes
 import net.psforever.services.properties.PropertyOverrideManager
 import net.psforever.services.support.SupportActor
 import net.psforever.services.teamwork.{SquadResponse, SquadServiceMessage, SquadServiceResponse, SquadAction => SquadServiceAction}
+import net.psforever.services.time.ShuttleTimer
 import net.psforever.services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
 import net.psforever.services.{InterstellarClusterService, RemoverActor, Service, ServiceManager}
 import net.psforever.types._
@@ -2685,6 +2686,16 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           sendResponse(ObjectAttachMessage(vehicle_guid, guid, seat))
         }
 
+      case VehicleResponse.OrbitalShuttleTimerEvent(ev) =>
+        sendResponse(
+          OrbitalShuttleTimeMsg(
+            3,
+            ev.u1, ev.u2, ev.t1, ev.t2,
+            true, 0,
+            ev.pairs.map { case ((a, b), c) => PadAndShuttlePair(a, b, c) }
+          )
+        )
+
       case VehicleResponse.Ownership(vehicleGuid) =>
         if (tplayer_guid == guid) { // Only the player that owns this vehicle needs the ownership packet
           avatarActor ! AvatarActor.SetVehicle(Some(vehicleGuid))
@@ -3542,6 +3553,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           sendResponse(DeployRequestMessage(player.GUID, obj.GUID, DriveState.Deployed, 0, false, Vector3.Zero))
           ToggleTeleportSystem(obj, TelepadLike.AppraiseTeleportationSystem(obj, continent))
         }
+        val zoneId = continent.id
+        serviceManager.ask(Lookup("shuttleTimer"))(Timeout(2 seconds))
+          .onComplete {
+            case Success(LookupResult("shuttleTimer", ref)) =>
+              ref ! ShuttleTimer.Update(continentId, avatar.name)
+            case _ =>
+          }
 
         //implant terminals
         continent.map.terminalToInterface.foreach({
@@ -3652,9 +3670,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
         if (is_crouching && !player.Crouching) {
           sendResponse(OrbitalShuttleTimeMsg(3, 3, 4, 23669, 8000, true, 0, List(
-            Unk(PlanetSideGUID(788), PlanetSideGUID(1127), 5),
-            Unk(PlanetSideGUID(787), PlanetSideGUID(1128), 5),
-            Unk(PlanetSideGUID(786), PlanetSideGUID(1129), 27)
+            PadAndShuttlePair(PlanetSideGUID(788), PlanetSideGUID(1127), 5),
+            PadAndShuttlePair(PlanetSideGUID(787), PlanetSideGUID(1128), 5),
+            PadAndShuttlePair(PlanetSideGUID(786), PlanetSideGUID(1129), 27)
           )))
         }
         player.Position = pos

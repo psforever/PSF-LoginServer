@@ -622,11 +622,10 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
         }
     })
     //shuttles
-    buildings.values
-      .filter { _.Definition.Name.startsWith("orbital_building") }
-      .flatMap { _.Amenities.collect { case o: OrbitalShuttlePad => o } }
-      .foreach { obj =>
-        guid.register(obj.shuttle, "dynamic")
+    map.shuttleBays
+      .map { guid(_) }
+      .collect { case Some(obj: OrbitalShuttlePad) =>
+        other += obj.shuttle
       }
     //after all fixed GUID's are defined  ...
     other.foreach(obj => guid.register(obj, "dynamic"))
@@ -671,11 +670,10 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
           painbox.Actor ! "startup"
       }
     //the orbital_buildings in sanctuary zones have to establish their shuttle routes
-    buildings.values
-      .flatMap(_.Amenities.filter(_.Definition.Name.startsWith("orbital_building")))
-      .collect {
-        case pad: OrbitalShuttlePad =>
-          pad.Actor ! Service.Startup()
+    map.shuttleBays
+      .map { guid(_) }
+      .collect { case Some(obj: OrbitalShuttlePad) =>
+        obj.Actor ! Service.Startup()
       }
     //allocate soi information
     soi ! SOI.Build()
