@@ -22,6 +22,7 @@ import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
 import net.psforever.objects.serverobject.structures.{AutoRepairStats, BuildingDefinition, WarpGateDefinition}
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalDefinition
 import net.psforever.objects.serverobject.terminals.implant.{ImplantTerminalDefinition, ImplantTerminalMechDefinition}
+import net.psforever.objects.serverobject.structures.{AmenityDefinition, AutoRepairStats, BuildingDefinition, WarpGateDefinition}
 import net.psforever.objects.serverobject.turret.{FacilityTurretDefinition, TurretUpgrade}
 import net.psforever.objects.vehicles.{DestroyedVehicle, InternalTelepadDefinition, SeatArmorRestriction, UtilityType}
 import net.psforever.objects.vital.base.DamageType
@@ -938,6 +939,8 @@ object GlobalDefinitions {
   val phantasm = VehicleDefinition(ObjectClass.phantasm)
 
   val droppod = VehicleDefinition(ObjectClass.droppod)
+
+  val orbital_shuttle = VehicleDefinition(ObjectClass.orbital_shuttle)
   init_vehicles()
 
   /*
@@ -1093,6 +1096,8 @@ object GlobalDefinitions {
   val gen_control = new GeneratorTerminalDefinition(349)
 
   val generator = new GeneratorDefinition(351)
+
+  val obbasemesh = new AmenityDefinition(598) { }
   initMiscellaneous()
 
   /*
@@ -6992,7 +6997,19 @@ object GlobalDefinitions {
     droppod.DestroyedModel = None //the adb calls out a droppod; the cyclic nature of this confounds me
     droppod.DamageUsing = DamageCalculations.AgainstAircraft
     droppod.DrownAtMaxDepth = false
-    //TODO geometry?
+
+    orbital_shuttle.Name = "droppod"
+    orbital_shuttle.MaxHealth = 20000
+    orbital_shuttle.Damageable = false
+    orbital_shuttle.CanFly = true
+    orbital_shuttle.Seats += 0       -> new SeatDefinition
+    orbital_shuttle.MountPoints += 1 -> 0
+    orbital_shuttle.TrunkSize = InventoryTile.None
+    orbital_shuttle.Packet = new OrbitalShuttleConverter
+    orbital_shuttle.DeconstructionTime = None
+    orbital_shuttle.DestroyedModel = None
+    orbital_shuttle.DamageUsing = DamageCalculations.AgainstNothing
+    orbital_shuttle.DrownAtMaxDepth = false
   }
 
   /**
@@ -7876,5 +7893,10 @@ object GlobalDefinitions {
       //damage is 99999 at 14m, dropping rapidly to ~1 at 14.5m
     }
     generator.Geometry = GeometryForm.representByCylinder(radius = 1.2617f, height = 9.14063f)
+
+    obbasemesh.Name = "obbasemesh"
+    obbasemesh.Descriptor = "orbital_shuttle_pad"
+    obbasemesh.Damageable = false
+    obbasemesh.Repairable = false
   }
 }

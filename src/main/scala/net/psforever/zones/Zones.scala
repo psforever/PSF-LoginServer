@@ -14,6 +14,7 @@ import net.psforever.objects.definition.BasicDefinition
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.generator.Generator
 import net.psforever.objects.serverobject.locks.IFFLock
+import net.psforever.objects.serverobject.pad.shuttle.OrbitalShuttlePad
 import net.psforever.objects.serverobject.pad.{VehicleSpawnPad, VehicleSpawnPadDefinition}
 import net.psforever.objects.serverobject.painbox.{Painbox, PainboxDefinition}
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
@@ -524,6 +525,14 @@ object Zones {
             .addLocalObject(
               genControl.guid,
               Terminal.Constructor(genControl.position, GlobalDefinitions.gen_control),
+              owningBuildingGuid = ownerGuid
+            )
+
+        case "obbasemesh" =>
+          zoneMap
+            .addLocalObject(
+              obj.guid,
+              OrbitalShuttlePad.Constructor(obj.position, GlobalDefinitions.obbasemesh, Vector3.z(obj.yaw)),
               owningBuildingGuid = ownerGuid
             )
 
