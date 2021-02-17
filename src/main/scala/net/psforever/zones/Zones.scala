@@ -2,14 +2,7 @@ package net.psforever.zones
 
 import java.io.FileNotFoundException
 
-import net.psforever.objects.serverobject.terminals.{
-  CaptureTerminal,
-  CaptureTerminalDefinition,
-  ProximityTerminal,
-  ProximityTerminalDefinition,
-  Terminal,
-  TerminalDefinition
-}
+import net.psforever.objects.serverobject.terminals.{CaptureTerminal, CaptureTerminalDefinition, ProximityTerminal, ProximityTerminalDefinition, Terminal, TerminalDefinition}
 import net.psforever.objects.serverobject.mblocker.Locker
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -23,16 +16,11 @@ import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.generator.Generator
 import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.IFFLock
+import net.psforever.objects.serverobject.pad.shuttle.OrbitalShuttlePad
 import net.psforever.objects.serverobject.pad.{VehicleSpawnPad, VehicleSpawnPadDefinition}
 import net.psforever.objects.serverobject.painbox.{Painbox, PainboxDefinition}
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
-import net.psforever.objects.serverobject.structures.{
-  Building,
-  BuildingDefinition,
-  FoundationBuilder,
-  StructureType,
-  WarpGate
-}
+import net.psforever.objects.serverobject.structures.{Building, BuildingDefinition, FoundationBuilder, StructureType, WarpGate}
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.{FacilityTurret, FacilityTurretDefinition}
 import net.psforever.objects.serverobject.zipline.ZipLinePath
@@ -537,6 +525,14 @@ object Zones {
             .addLocalObject(
               genControl.guid,
               Terminal.Constructor(genControl.position, GlobalDefinitions.gen_control),
+              owningBuildingGuid = ownerGuid
+            )
+
+        case "obbasemesh" =>
+          zoneMap
+            .addLocalObject(
+              obj.guid,
+              OrbitalShuttlePad.Constructor(obj.position, GlobalDefinitions.obbasemesh, Vector3.z(obj.yaw)),
               owningBuildingGuid = ownerGuid
             )
 

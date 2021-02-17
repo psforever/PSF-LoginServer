@@ -3632,9 +3632,16 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         persist()
         turnCounterFunc(avatar_guid)
         val isMoving     = WorldEntity.isMoving(vel)
-        val isMovingPlus = isMoving || is_jumping || jump_thrust
+        val isMovingPlus = isMoving || is_jumping || jump_thrust || (is_crouching != player.Crouching)
         if (isMovingPlus) {
           CancelZoningProcessWithDescriptiveReason("cancel_motion")
+        }
+        if (is_crouching && !player.Crouching) {
+          sendResponse(OrbitalShuttleTimeMsg(3, 3, 4, 23669, 8000, true, 0, List(
+            Unk(PlanetSideGUID(788), PlanetSideGUID(1127), 5),
+            Unk(PlanetSideGUID(787), PlanetSideGUID(1128), 5),
+            Unk(PlanetSideGUID(786), PlanetSideGUID(1129), 27)
+          )))
         }
         player.Position = pos
         player.Velocity = vel

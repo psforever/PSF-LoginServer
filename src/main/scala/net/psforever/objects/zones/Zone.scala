@@ -39,11 +39,13 @@ import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.pad.shuttle.OrbitalShuttlePad
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vehicles.UtilityType
 import net.psforever.objects.vital.etc.ExplodingEntityReason
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
+import net.psforever.services.Service
 
 /**
   * A server object representing the one-landmass planets as well as the individual subterranean caverns.<br>
@@ -616,6 +618,13 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
           case _ => ;
         }
     })
+    //shuttles
+    buildings.values
+      .filter { _.Definition.Name.startsWith("orbital_building") }
+      .flatMap { _.Amenities.collect { case o: OrbitalShuttlePad => o } }
+      .foreach { obj =>
+        guid.register(obj.shuttle, "dynamic")
+      }
     //after all fixed GUID's are defined  ...
     other.foreach(obj => guid.register(obj, "dynamic"))
   }
@@ -657,6 +666,13 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
       .collect {
         case painbox: Painbox =>
           painbox.Actor ! "startup"
+      }
+    //the orbital_buildings in sanctuary zones have to establish their shuttle routes
+    buildings.values
+      .flatMap(_.Amenities.filter(_.Definition.Name.startsWith("orbital_building")))
+      .collect {
+        case pad: OrbitalShuttlePad =>
+          pad.Actor ! Service.Startup()
       }
     //allocate soi information
     soi ! SOI.Build()
