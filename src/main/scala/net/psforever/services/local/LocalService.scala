@@ -91,6 +91,12 @@ class LocalService(zone: Zone) extends Actor {
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.DoorCloses(door_guid))
           )
+        case LocalAction.DoorSlamsShut(door) =>
+          val door_guid = door.GUID
+          doorCloser ! SupportActor.ClearSpecific(List(door), door.Zone)
+          LocalEvents.publish(
+            LocalServiceResponse(s"/$forChannel/Local", Service.defaultPlayerGUID, LocalResponse.DoorCloses(door_guid))
+          )
         case LocalAction.HackClear(player_guid, target, unk1, unk2) =>
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.SendHackMessageHackCleared(target.GUID, unk1, unk2))

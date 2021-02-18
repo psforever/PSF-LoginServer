@@ -1061,6 +1061,8 @@ object GlobalDefinitions {
 
   val door = new DoorDefinition
 
+  val gr_door_mb_orb = new DoorDefinition
+
   val resource_silo = new ResourceSiloDefinition
 
   val capture_terminal = new CaptureTerminalDefinition(158) // Base CC
@@ -7708,6 +7710,10 @@ object GlobalDefinitions {
     door.Name = "door"
     door.Damageable = false
     door.Repairable = false
+
+    gr_door_mb_orb.Name = "gr_door_mb_orb"
+    gr_door_mb_orb.Damageable = false
+    gr_door_mb_orb.Repairable = false
 
     resource_silo.Name = "resource_silo"
     resource_silo.Damageable = false

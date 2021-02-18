@@ -3553,11 +3553,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           sendResponse(DeployRequestMessage(player.GUID, obj.GUID, DriveState.Deployed, 0, false, Vector3.Zero))
           ToggleTeleportSystem(obj, TelepadLike.AppraiseTeleportationSystem(obj, continent))
         }
-        val zoneId = continent.id
+        val name = avatar.name
         serviceManager.ask(Lookup("shuttleTimer"))(Timeout(2 seconds))
           .onComplete {
             case Success(LookupResult("shuttleTimer", ref)) =>
-              ref ! ShuttleTimer.Update(continentId, avatar.name)
+              ref ! ShuttleTimer.Update(continentId, name)
             case _ =>
           }
 

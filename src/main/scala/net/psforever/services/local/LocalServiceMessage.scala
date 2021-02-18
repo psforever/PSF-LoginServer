@@ -34,6 +34,7 @@ object LocalAction {
   final case class Detonate(guid: PlanetSideGUID, obj: PlanetSideGameObject)           extends Action
   final case class DoorOpens(player_guid: PlanetSideGUID, continent: Zone, door: Door) extends Action
   final case class DoorCloses(player_guid: PlanetSideGUID, door_guid: PlanetSideGUID)  extends Action
+  final case class DoorSlamsShut(door: Door)                                           extends Action
   final case class HackClear(player_guid: PlanetSideGUID, target: PlanetSideServerObject, unk1: Long, unk2: Long = 8L)
       extends Action
   final case class HackTemporarily(

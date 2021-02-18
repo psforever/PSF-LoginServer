@@ -339,6 +339,14 @@ object Zones {
             owningBuildingGuid = ownerGuid
           )
 
+        case "gr_door_mb_orb" =>
+          zoneMap
+            .addLocalObject(
+              obj.guid,
+              Door.Constructor(obj.position, GlobalDefinitions.gr_door_mb_orb),
+              owningBuildingGuid = ownerGuid
+            )
+
         case objectType if doorTypes.contains(objectType) =>
           zoneMap
             .addLocalObject(obj.guid, Door.Constructor(obj.position), owningBuildingGuid = ownerGuid)
