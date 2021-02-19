@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.doors
 
 import net.psforever.objects.Player
+import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.packet.game.UseItemMessage
 
@@ -65,9 +66,19 @@ object Door {
     */
   final case class NoEvent() extends Exchange
 
+  final case class UpdateMechanism(mechanism: Option[LockingMechanismLogic]) extends Exchange
+
+  object UpdateMechanism {
+    def apply(): UpdateMechanism = UpdateMechanism(None)
+
+    def apply(mechanism: LockingMechanismLogic): UpdateMechanism = UpdateMechanism(Some(mechanism))
+  }
+
   case object Lock extends Exchange
 
   case object Unlock extends Exchange
+
+  type LockingMechanismLogic = (PlanetSideServerObject, Door) => Boolean
 
   /**
     * Overloaded constructor.

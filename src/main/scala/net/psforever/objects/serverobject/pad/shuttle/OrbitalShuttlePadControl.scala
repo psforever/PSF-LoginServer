@@ -2,12 +2,16 @@
 package net.psforever.objects.serverobject.pad.shuttle
 
 import akka.actor.Actor
-import net.psforever.objects.GlobalDefinitions
+import net.psforever.objects.{GlobalDefinitions, Player}
+import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.zones.Zone
+import net.psforever.packet.game.ChatMsg
+import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.time.ShuttleTimer
 import net.psforever.services.{Service, ServiceManager}
-import net.psforever.types.Vector3
+import net.psforever.types.{ChatMessageType, Vector3}
 
 class OrbitalShuttlePadControl(pad: OrbitalShuttlePad) extends Actor {
   var managedDoors: List[Door] = Nil
@@ -16,10 +20,16 @@ class OrbitalShuttlePadControl(pad: OrbitalShuttlePad) extends Actor {
 
   val taxiing: Receive = {
     case ShuttleTimer.LockDoors =>
-      managedDoors.foreach { _.Actor ! Door.Lock }
+      managedDoors.foreach { door =>
+        door.Actor ! Door.UpdateMechanism(OrbitalShuttlePadControl.lockedWaitingForShuttle _)
+        val zone = pad.Zone
+        if(door.isOpen) {
+          zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.DoorSlamsShut(door))
+        }
+      }
 
     case ShuttleTimer.UnlockDoors =>
-      managedDoors.foreach { _.Actor ! Door.Unlock }
+      managedDoors.foreach { _.Actor ! Door.UpdateMechanism(None) }
 
     case _ => ;
   }
@@ -48,5 +58,23 @@ class OrbitalShuttlePadControl(pad: OrbitalShuttlePad) extends Actor {
       context.become(shuttleTime)
 
     case _ => ;
+  }
+}
+
+object OrbitalShuttlePadControl {
+  def lockedWaitingForShuttle(obj: PlanetSideServerObject, door: Door): Boolean = {
+    val zone = door.Zone
+    val channel = obj match {
+      case p: Player => p.Name
+      case _ => ""
+    }
+    zone.AvatarEvents ! AvatarServiceMessage(
+      channel,
+      AvatarAction.SendResponse(
+        Service.defaultPlayerGUID,
+        ChatMsg(ChatMessageType.UNK_225, false, "", "@DoorWillOpenWhenShuttleReturns", None)
+      )
+    )
+    false
   }
 }

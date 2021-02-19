@@ -93,7 +93,7 @@ class LocalService(zone: Zone) extends Actor {
           )
         case LocalAction.DoorSlamsShut(door) =>
           val door_guid = door.GUID
-          doorCloser ! SupportActor.ClearSpecific(List(door), door.Zone)
+          doorCloser ! SupportActor.HurrySpecific(List(door), zone)
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", Service.defaultPlayerGUID, LocalResponse.DoorCloses(door_guid))
           )

@@ -37,7 +37,7 @@ object TimedShuttleEvent {
   }
   case object Blanking extends TimedShuttleEvent {
     def t: Long = Int.MaxValue.toLong
-    def d: Long = 500 //for how long?
+    def d: Long = 1 //for how long?
   }
 
   final val eventTimeDeltas: Seq[TimedShuttleEvent] = Seq(

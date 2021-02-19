@@ -16,6 +16,7 @@ import scodec.codecs._
   * @param vel optional movement data
   * @param flying flight information, valid only for a vehicle that can fly when in flight;
   *               `Some(7)`, when in a flying state (vertical thrust unnecessary to unlock movement)
+  *               `Some(14)`, used by the HART during docking procedures
   *               `None`, when landed and for all vehicles that do not fly
   * @param unk3 na
   * @param unk4 na

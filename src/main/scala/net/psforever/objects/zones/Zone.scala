@@ -40,6 +40,8 @@ import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.geometry.Geometry3D
 import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.doors.Door
+import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.pad.shuttle.OrbitalShuttlePad
 import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
 import net.psforever.objects.serverobject.tube.SpawnTube
@@ -655,6 +657,13 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
           case (None, _) | (_, None) => ; //let ZoneActor's sanity check catch this error
         }
     })
+    //doors with nearby locks use those locks as their unlocking mechanism
+    //let ZoneActor's sanity check catch missing entities
+    map.doorToLock
+      .map { case(doorGUID: Int, lockGUID: Int) => (guid(doorGUID), guid(lockGUID)) }
+      .collect { case (Some(door: Door), Some(lock: IFFLock)) =>
+        door.Actor ! Door.UpdateMechanism(IFFLock.testLock(lock) _)
+      }
     //ntu management (eventually move to a generic building startup function)
     buildings.values
       .flatMap(_.Amenities.filter(_.Definition == GlobalDefinitions.resource_silo))
