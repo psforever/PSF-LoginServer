@@ -66,19 +66,15 @@ object Door {
     */
   final case class NoEvent() extends Exchange
 
-  final case class UpdateMechanism(mechanism: Option[LockingMechanismLogic]) extends Exchange
+  type LockingMechanismLogic = (PlanetSideServerObject, Door) => Boolean
 
-  object UpdateMechanism {
-    def apply(): UpdateMechanism = UpdateMechanism(None)
+  final case class UpdateMechanism(mechanism: LockingMechanismLogic) extends Exchange
 
-    def apply(mechanism: LockingMechanismLogic): UpdateMechanism = UpdateMechanism(Some(mechanism))
-  }
+  case object ResetMechanism extends Exchange
 
   case object Lock extends Exchange
 
   case object Unlock extends Exchange
-
-  type LockingMechanismLogic = (PlanetSideServerObject, Door) => Boolean
 
   /**
     * Overloaded constructor.

@@ -136,6 +136,34 @@ class LocalService(zone: Zone) extends Actor {
               LocalResponse.SetEmpire(object_guid, empire)
             )
           )
+        case LocalAction.ShuttleDock(pad, shuttle, slot) =>
+          LocalEvents.publish(
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              Service.defaultPlayerGUID,
+              LocalResponse.ShuttleDock(pad, shuttle, slot)
+            )
+          )
+        case LocalAction.ShuttleUndock(pad, shuttle, pos, orient) =>
+          LocalEvents.publish(
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              Service.defaultPlayerGUID,
+              LocalResponse.ShuttleUndock(pad, shuttle, pos, orient)
+            )
+          )
+        case LocalAction.ShuttleEvent(ev) =>
+          LocalEvents.publish(
+            LocalServiceResponse(s"/$forChannel/Local", Service.defaultPlayerGUID, LocalResponse.ShuttleEvent(ev))
+          )
+        case LocalAction.ShuttleState(guid, pos, orient, state) =>
+          LocalEvents.publish(
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              Service.defaultPlayerGUID,
+              LocalResponse.ShuttleState(guid, pos, orient, state)
+            )
+          )
         case LocalAction.ToggleTeleportSystem(player_guid, router, system_plan) =>
           LocalEvents.publish(
             LocalServiceResponse(
@@ -172,7 +200,7 @@ class LocalService(zone: Zone) extends Actor {
               LocalResponse.TriggerSound(sound, pos, unk, volume)
             )
           )
-        case LocalAction.UpdateForceDomeStatus(player_guid, building_guid, activated) => {
+        case LocalAction.UpdateForceDomeStatus(player_guid, building_guid, activated) =>
           LocalEvents.publish(
             LocalServiceResponse(
               s"/$forChannel/Local",
@@ -180,7 +208,6 @@ class LocalService(zone: Zone) extends Actor {
               LocalResponse.UpdateForceDomeStatus(building_guid, activated)
             )
           )
-        }
         case LocalAction.RechargeVehicleWeapon(player_guid, vehicle_guid, weapon_guid) =>
           LocalEvents.publish(
             LocalServiceResponse(

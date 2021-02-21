@@ -2331,6 +2331,25 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case LocalResponse.SetEmpire(object_guid, empire) =>
         sendResponse(SetEmpireMessage(object_guid, empire))
 
+      case LocalResponse.ShuttleEvent(ev) =>
+        sendResponse(
+          OrbitalShuttleTimeMsg(
+            3,
+            ev.u1, ev.u2, ev.t1, ev.t2,
+            true, 0,
+            ev.pairs.map { case ((a, b), c) => PadAndShuttlePair(a, b, c) }
+          )
+        )
+
+      case LocalResponse.ShuttleDock(pguid, sguid, slot) =>
+        sendResponse(ObjectAttachMessage(pguid, sguid, slot))
+
+      case LocalResponse.ShuttleUndock(pguid, sguid, pos, orient) =>
+        sendResponse(ObjectDetachMessage(pguid, sguid, pos, orient))
+
+      case LocalResponse.ShuttleState(sguid, pos, orient, state) =>
+        sendResponse(VehicleStateMessage(sguid, 0, pos, orient, None, Some(state), 0, 0, 15, false, false))
+
       case LocalResponse.ToggleTeleportSystem(router, system_plan) =>
         ToggleTeleportSystem(router, system_plan)
 
@@ -2685,16 +2704,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         if (tplayer_guid != guid) {
           sendResponse(ObjectAttachMessage(vehicle_guid, guid, seat))
         }
-
-      case VehicleResponse.OrbitalShuttleTimerEvent(ev) =>
-        sendResponse(
-          OrbitalShuttleTimeMsg(
-            3,
-            ev.u1, ev.u2, ev.t1, ev.t2,
-            true, 0,
-            ev.pairs.map { case ((a, b), c) => PadAndShuttlePair(a, b, c) }
-          )
-        )
 
       case VehicleResponse.Ownership(vehicleGuid) =>
         if (tplayer_guid == guid) { // Only the player that owns this vehicle needs the ownership packet

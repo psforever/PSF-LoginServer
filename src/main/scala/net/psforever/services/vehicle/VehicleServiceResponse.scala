@@ -12,7 +12,6 @@ import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.packet.game.ObjectCreateMessage
 import net.psforever.types.{BailType, DriveState, PlanetSideGUID, Vector3}
 import net.psforever.services.GenericEventBusMsg
-import net.psforever.services.time.ShuttleTimer.OrbitalShuttleEvent
 
 final case class VehicleServiceResponse(
     channel: String,
@@ -46,12 +45,11 @@ object VehicleResponse {
   final case class LoadVehicle(vehicle: Vehicle, vtype: Int, vguid: PlanetSideGUID, vdata: ConstructorData)
       extends Response
   final case class MountVehicle(object_guid: PlanetSideGUID, seat: Int) extends Response
-  final case class OrbitalShuttleTimerEvent(ev: OrbitalShuttleEvent)                                 extends Response
   final case class Ownership(vehicle_guid: PlanetSideGUID)              extends Response
   final case class PlanetsideAttribute(vehicle_guid: PlanetSideGUID, attribute_type: Int, attribute_value: Long)
       extends Response
-  final case class RevealPlayer(player_guid: PlanetSideGUID)                                        extends Response
-  final case class SeatPermissions(vehicle_guid: PlanetSideGUID, seat_group: Int, permission: Long) extends Response
+  final case class RevealPlayer(player_guid: PlanetSideGUID)                                          extends Response
+  final case class SeatPermissions(vehicle_guid: PlanetSideGUID, seat_group: Int, permission: Long)   extends Response
   final case class StowEquipment(
       vehicle_guid: PlanetSideGUID,
       slot: Int,

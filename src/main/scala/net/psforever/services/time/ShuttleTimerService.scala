@@ -19,7 +19,7 @@ class ShuttleTimerService extends Actor {
           val actor = context.actorOf(Props(classOf[ShuttleTimer], zone), s"$channel-shuttle-timer")
           channels.put(channel, actor)
           actor
-      }).tell(out, sender())
+      }).tell(out, out.from)
 
     case out @ ShuttleTimer.Update(inZone, _) =>
       channels.get(inZone) match {

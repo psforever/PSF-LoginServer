@@ -19,7 +19,7 @@ class DoorControl(door: Door)
   def FactionObject: FactionAffinity = door
   var bolt: Boolean = false
   var lockingMechanism: Door.LockingMechanismLogic = DoorControl.alwaysOpen
-  var previousMechanism: Door.LockingMechanismLogic = DoorControl.alwaysOpen
+  var previousMechanism: Option[Door.LockingMechanismLogic] = Some(DoorControl.alwaysOpen)
 
   val commonBehavior: Receive = checkBehavior
     .orElse {
@@ -34,14 +34,14 @@ class DoorControl(door: Door)
       case Door.Unlock =>
         bolt = false
 
-      case Door.UpdateMechanism(Some(logic)) =>
-        previousMechanism = lockingMechanism
+      case Door.UpdateMechanism(logic) =>
+        previousMechanism = Some(lockingMechanism)
         lockingMechanism = logic
 
-      case Door.UpdateMechanism(None) =>
+      case Door.ResetMechanism =>
         val temp = lockingMechanism
-        lockingMechanism = previousMechanism
-        previousMechanism = temp
+        lockingMechanism = previousMechanism.get
+        previousMechanism = Some(temp)
     }
 
   def poweredStateLogic: Receive =

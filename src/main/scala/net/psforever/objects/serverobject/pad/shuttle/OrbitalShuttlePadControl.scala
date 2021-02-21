@@ -21,7 +21,7 @@ class OrbitalShuttlePadControl(pad: OrbitalShuttlePad) extends Actor {
   val taxiing: Receive = {
     case ShuttleTimer.LockDoors =>
       managedDoors.foreach { door =>
-        door.Actor ! Door.UpdateMechanism(OrbitalShuttlePadControl.lockedWaitingForShuttle _)
+        door.Actor ! Door.UpdateMechanism(OrbitalShuttlePadControl.lockedWaitingForShuttle)
         val zone = pad.Zone
         if(door.isOpen) {
           zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.DoorSlamsShut(door))
@@ -29,14 +29,34 @@ class OrbitalShuttlePadControl(pad: OrbitalShuttlePad) extends Actor {
       }
 
     case ShuttleTimer.UnlockDoors =>
-      managedDoors.foreach { _.Actor ! Door.UpdateMechanism(None) }
+      managedDoors.foreach { _.Actor ! Door.ResetMechanism }
+
+    case ShuttleTimer.ShuttleDocked =>
+      val zone = pad.Zone
+      zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.ShuttleDock(pad.GUID, pad.shuttle.GUID, 3))
+
+    case ShuttleTimer.ShuttleFreeFromDock =>
+      val zone = pad.Zone
+      val shuttle = pad.shuttle
+      zone.LocalEvents ! LocalServiceMessage(
+        zone.id,
+        LocalAction.ShuttleUndock(pad.GUID, shuttle.GUID, shuttle.Position, shuttle.Orientation)
+      )
+
+    case ShuttleTimer.ShuttleStateUpdate(state) =>
+      val zone = pad.Zone
+      val shuttle = pad.shuttle
+      zone.LocalEvents ! LocalServiceMessage(
+        zone.id,
+        LocalAction.ShuttleState(shuttle.GUID, shuttle.Position, shuttle.Orientation, state)
+      )
 
     case _ => ;
   }
 
   val shuttleTime: Receive = {
     case ServiceManager.LookupResult("shuttleTimer", timer) =>
-      timer ! ShuttleTimer.PairWith(pad.Zone, pad.GUID, pad.shuttle.GUID)
+      timer ! ShuttleTimer.PairWith(pad.Zone, pad.GUID, pad.shuttle.GUID, self)
       context.become(taxiing)
 
     case _ => ;
@@ -44,13 +64,13 @@ class OrbitalShuttlePadControl(pad: OrbitalShuttlePad) extends Actor {
 
   val startUp: Receive = {
     case Service.Startup() if pad.shuttle.HasGUID =>
-      val zone = pad.Zone
+      val position = pad.Position
+      pad.shuttle.Position = position + Vector3(0,8.25f,0) //magic offset
+      pad.shuttle.Orientation = pad.Orientation
       pad.shuttle.Faction = pad.Faction
-      pad.shuttle.Zone = zone
-      zone.Transport ! Zone.Vehicle.Spawn(pad.shuttle)
+      pad.Zone.Transport ! Zone.Vehicle.Spawn(pad.shuttle)
       ServiceManager.serviceManager ! ServiceManager.Lookup("shuttleTimer")
 
-      val position = pad.Position
       managedDoors = pad.Owner.Amenities
         .collect { case d: Door if d.Definition == GlobalDefinitions.gr_door_mb_orb => d }
         .sortBy { o => Vector3.DistanceSquared(position, o.Position) }

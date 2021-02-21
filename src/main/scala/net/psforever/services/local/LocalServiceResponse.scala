@@ -9,6 +9,7 @@ import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
 import net.psforever.packet.game._
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 import net.psforever.services.GenericEventBusMsg
+import net.psforever.services.time.ShuttleTimer.OrbitalShuttleEvent
 
 final case class LocalServiceResponse(
     channel: String,
@@ -44,6 +45,14 @@ object LocalResponse {
       dest_guid: PlanetSideGUID
   )                                                                                       extends Response
   final case class SetEmpire(object_guid: PlanetSideGUID, empire: PlanetSideEmpire.Value) extends Response
+  final case class ShuttleDock(pad_guid: PlanetSideGUID, shuttle_guid: PlanetSideGUID, toSlot: Int)   extends Response
+  final case class ShuttleUndock(
+      pad_guid: PlanetSideGUID,
+      shuttle_guid: PlanetSideGUID,
+      pos: Vector3, orient: Vector3
+  ) extends Response
+  final case class ShuttleEvent(ev: OrbitalShuttleEvent)                                              extends Response
+  final case class ShuttleState(guid: PlanetSideGUID, pos: Vector3, orientation: Vector3, state: Int) extends Response
   final case class ToggleTeleportSystem(
       router: Vehicle,
       systemPlan: Option[(Utility.InternalTelepad, TelepadDeployable)]
