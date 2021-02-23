@@ -36,10 +36,7 @@ object DamageableMountable {
                      ): Unit = {
     val zone   = target.Zone
     val events = zone.AvatarEvents
-    val occupants = target.Seats.values.collect {
-      case seat if seat.isOccupied && seat.Occupant.get.isAlive =>
-        seat.Occupant.get
-    }
+    val occupants = target.Seats.values.toSeq.flatMap { seat => seat.occupants.filter(_.isAlive) }
     ((cause.adversarial match {
       case Some(adversarial) => Some(adversarial.attacker)
       case None              => None
@@ -80,10 +77,10 @@ object DamageableMountable {
     val interaction = cause.interaction
     target.Seats.values
       .filter(seat => {
-        seat.isOccupied && seat.Occupant.get.isAlive
+        seat.isOccupied && seat.occupant.get.isAlive
       })
       .foreach(seat => {
-        val tplayer = seat.Occupant.get
+        val tplayer = seat.occupant.get
         //tplayer.History(cause)
         tplayer.Actor ! Player.Die(
           DamageInteraction(interaction.resolution, SourceEntry(tplayer), interaction.cause, interaction.hitPos)

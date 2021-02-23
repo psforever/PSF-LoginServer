@@ -110,7 +110,7 @@ class FacilityTurretControl2Test extends ActorTest {
   bldg.Faction = PlanetSideEmpire.TR
 
   "FacilityTurretControl" should {
-    "seat on faction affiliation when FactionLock is true" in {
+    "mount on faction affiliation when FactionLock is true" in {
       assert(player.Faction == PlanetSideEmpire.TR)
       assert(obj.Faction == PlanetSideEmpire.TR)
       assert(obj.Definition.FactionLocked)

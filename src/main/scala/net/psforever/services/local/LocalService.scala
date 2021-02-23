@@ -264,9 +264,9 @@ class LocalService(zone: Zone) extends Actor {
       if (seats.count(_.isOccupied) > 0) {
         val wasKickedByDriver = false //TODO yeah, I don't know
         seats.foreach(seat => {
-          seat.Occupant match {
+          seat.occupant match {
             case Some(tplayer) =>
-              seat.Occupant = None
+              seat.unmount(tplayer)
               tplayer.VehicleSeated = None
               zone.VehicleEvents ! VehicleServiceMessage(
                 zone.id,

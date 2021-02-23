@@ -145,7 +145,7 @@ trait DamageableVehicle
       if (aggravated) {
         val msg = VehicleAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(totalDamage, Vector3.Zero))
         obj.Seats.values
-          .collect { case seat if seat.Occupant.nonEmpty => seat.Occupant.get.Name }
+          .flatMap { case seat if seat.occupants.nonEmpty => seat.occupants.map(_.Name) }
           .foreach { channel =>
             events ! VehicleServiceMessage(channel, msg)
           }
@@ -158,7 +158,7 @@ trait DamageableVehicle
       }
       //alert cargo occupants to damage source
       obj.CargoHolds.values.foreach(hold => {
-        hold.Occupant match {
+        hold.occupant match {
           case Some(cargo) =>
             cargo.Actor ! DamageableVehicle.Damage(cause, totalDamage)
           case None => ;
@@ -198,7 +198,7 @@ trait DamageableVehicle
     DamageableMountable.DestructionAwareness(obj, cause)
     //cargo vehicles die with us
     obj.CargoHolds.values.foreach(hold => {
-      hold.Occupant match {
+      hold.occupant match {
         case Some(cargo) =>
           cargo.Actor ! DamageableVehicle.Destruction(cause)
         case None => ;

@@ -55,7 +55,7 @@ class VehicleControlPrepareForDeletionPassengerTest extends ActorTest {
 
   vehicle.GUID = PlanetSideGUID(1)
   player1.GUID = PlanetSideGUID(2)
-  vehicle.Seats(1).Occupant = player1 //passenger seat
+  vehicle.Seats(1).mount(player1) //passenger mount
   player1.VehicleSeated = vehicle.GUID
   expectNoMessage(200 milliseconds)
 
@@ -75,7 +75,7 @@ class VehicleControlPrepareForDeletionPassengerTest extends ActorTest {
         }
       )
       assert(player1.VehicleSeated.isEmpty)
-      assert(vehicle.Seats(1).Occupant.isEmpty)
+      assert(vehicle.Seats(1).occupants.isEmpty)
     }
   }
 }
@@ -109,11 +109,11 @@ class VehicleControlPrepareForDeletionMountedInTest extends FreedContextActorTes
     util().GUID = PlanetSideGUID(utilityId)
     utilityId += 1
   }
-  vehicle.Seats(1).Occupant = player1 //passenger seat
+  vehicle.Seats(1).mount(player1) //passenger mount
   player1.VehicleSeated = vehicle.GUID
-  lodestar.Seats(0).Occupant = player2
+  lodestar.Seats(0).mount(player2)
   player2.VehicleSeated = lodestar.GUID
-  lodestar.CargoHolds(1).Occupant = vehicle
+  lodestar.CargoHolds(1).mount(vehicle)
   vehicle.MountedIn = lodestar.GUID
 
   val vehicleProbe = new TestProbe(system)
@@ -196,7 +196,7 @@ class VehicleControlPrepareForDeletionMountedInTest extends FreedContextActorTes
         }
       )
       assert(player1.VehicleSeated.isEmpty)
-      assert(vehicle.Seats(1).Occupant.isEmpty)
+      assert(vehicle.Seats(1).occupants.isEmpty)
     }
   }
 }
@@ -232,11 +232,11 @@ class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActor
     util().GUID = PlanetSideGUID(utilityId)
     utilityId += 1
   }
-  vehicle.Seats(1).Occupant = player1 //passenger seat
+  vehicle.Seats(1).mount(player1) //passenger mount
   player1.VehicleSeated = vehicle.GUID
-  lodestar.Seats(0).Occupant = player2
+  lodestar.Seats(0).mount(player2)
   player2.VehicleSeated = lodestar.GUID
-  lodestar.CargoHolds(1).Occupant = vehicle
+  lodestar.CargoHolds(1).mount(vehicle)
   vehicle.MountedIn = lodestar.GUID
 
   val vehicleProbe = new TestProbe(system)
@@ -260,7 +260,7 @@ class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActor
         }
       )
       assert(player2.VehicleSeated.isEmpty)
-      assert(lodestar.Seats(0).Occupant.isEmpty)
+      assert(lodestar.Seats(0).occupants.isEmpty)
       //cargo dismounting messages
       assert(
         vehicle_msg(1) match {
@@ -364,28 +364,31 @@ class VehicleControlMountingBlockedExosuitTest extends ActorTest {
   player3.GUID = PlanetSideGUID(3)
 
   "Vehicle Control" should {
-    "block players from sitting if their exo-suit is not allowed by the seat - apc_tr" in {
+    "block players from sitting if their exo-suit is not allowed by the mount - apc_tr" in {
       // disallow
-      vehicle2.Actor.tell(Mountable.TryMount(player1, 0), probe.ref) // Reinforced in non-reinforced seat
+      vehicle2.Actor.tell(Mountable.TryMount(player1, 0), probe.ref) // Reinforced in non-reinforced mount
       checkCanNotMount()
-      vehicle.Actor.tell(Mountable.TryMount(player2, 0), probe.ref) //MAX in non-Reinforced seat
+      vehicle.Actor.tell(Mountable.TryMount(player2, 0), probe.ref) //MAX in non-Reinforced mount
       checkCanNotMount()
-      vehicle.Actor.tell(Mountable.TryMount(player2, 1), probe.ref) //MAX in non-MAX seat
+      vehicle.Actor.tell(Mountable.TryMount(player2, 1), probe.ref) //MAX in non-MAX mount
       checkCanNotMount()
-      vehicle.Actor.tell(Mountable.TryMount(player1, 9), probe.ref) //Reinforced in MAX-only seat
+      vehicle.Actor.tell(Mountable.TryMount(player1, 9), probe.ref) //Reinforced in MAX-only mount
       checkCanNotMount()
-      vehicle.Actor.tell(Mountable.TryMount(player3, 9), probe.ref) //Agile in MAX-only seat
+      vehicle.Actor.tell(Mountable.TryMount(player3, 9), probe.ref) //Agile in MAX-only mount
       checkCanNotMount()
 
       //allow
-      vehicle.Actor.tell(Mountable.TryMount(player1, 0), probe.ref) // Reinforced in driver seat allowing all except MAX
+      vehicle.Actor.tell(Mountable.TryMount(player1, 0), probe.ref) // Reinforced in driver mount allowing all except MAX
       checkCanMount()
-      vehicle.Actor.tell(VehicleControl.AssignOwnership(None), probe.ref) // Reset ownership to allow further driver seat mounting tests
-      vehicle.Actor.tell(Mountable.TryMount(player1, 1), probe.ref) // Reinforced in passenger seat allowing all except MAX
+      // Reset to allow further driver mount mounting tests
+      vehicle.Actor ! Mountable.TryDismount(player1, 0)
+      vehicle.Owner = None
+      vehicle.OwnerName = None
+      vehicle.Actor.tell(Mountable.TryMount(player3, 0), probe.ref) // Agile in driver mount allowing all except MAX
       checkCanMount()
-      vehicle.Actor.tell(Mountable.TryMount(player2, 9), probe.ref) // MAX in MAX-only seat
+      vehicle.Actor.tell(Mountable.TryMount(player1, 1), probe.ref) // Reinforced in passenger mount allowing all except MAX
       checkCanMount()
-      vehicle.Actor.tell(Mountable.TryMount(player3, 0), probe.ref) // Agile in driver seat allowing all except MAX
+      vehicle.Actor.tell(Mountable.TryMount(player2, 9), probe.ref) // MAX in MAX-only mount
       checkCanMount()
     }
   }
@@ -424,13 +427,13 @@ class VehicleControlMountingBlockedSeatPermissionTest extends ActorTest {
 
   "Vehicle Control" should {
     //11 June 2018: Group is not supported yet so do not bother testing it
-    "block players from sitting if the seat does not allow it" in {
+    "block players from sitting if the mount does not allow it" in {
 
       vehicle.PermissionGroup(2, 3)                                 //passenger group -> empire
-      vehicle.Actor.tell(Mountable.TryMount(player1, 3), probe.ref) //passenger seat
+      vehicle.Actor.tell(Mountable.TryMount(player1, 3), probe.ref) //passenger mount
       checkCanMount()
       vehicle.PermissionGroup(2, 0)                                 //passenger group -> locked
-      vehicle.Actor.tell(Mountable.TryMount(player2, 4), probe.ref) //passenger seat
+      vehicle.Actor.tell(Mountable.TryMount(player2, 4), probe.ref) //passenger mount
       checkCanNotMount()
     }
   }
@@ -455,13 +458,13 @@ class VehicleControlMountingDriverSeatTest extends ActorTest {
   player1.GUID = PlanetSideGUID(1)
 
   "Vehicle Control" should {
-    "allow players to sit in the driver seat, even if it is locked, if the vehicle is unowned" in {
+    "allow players to sit in the driver mount, even if it is locked, if the vehicle is unowned" in {
       assert(vehicle.PermissionGroup(0).contains(VehicleLockState.Locked)) //driver group -> locked
-      assert(vehicle.Seats(0).Occupant.isEmpty)
+      assert(vehicle.Seats(0).occupants.isEmpty)
       assert(vehicle.Owner.isEmpty)
       vehicle.Actor.tell(Mountable.TryMount(player1, 0), probe.ref)
       checkCanMount()
-      assert(vehicle.Seats(0).Occupant.nonEmpty)
+      assert(vehicle.Seats(0).occupants.nonEmpty)
     }
   }
 }
@@ -497,21 +500,21 @@ class VehicleControlMountingOwnedLockedDriverSeatTest extends ActorTest {
   player2.GUID = PlanetSideGUID(2)
 
   "Vehicle Control" should {
-    "block players that are not the current owner from sitting in the driver seat (locked)" in {
+    "block players that are not the current owner from sitting in the driver mount (locked)" in {
       assert(vehicle.PermissionGroup(0).contains(VehicleLockState.Locked)) //driver group -> locked
-      assert(vehicle.Seats(0).Occupant.isEmpty)
+      assert(vehicle.Seats(0).occupants.isEmpty)
       vehicle.Owner = player1.GUID
 
       vehicle.Actor.tell(Mountable.TryMount(player1, 0), probe.ref)
       checkCanMount()
-      assert(vehicle.Seats(0).Occupant.nonEmpty)
+      assert(vehicle.Seats(0).occupants.nonEmpty)
       vehicle.Actor.tell(Mountable.TryDismount(player1, 0), probe.ref)
       probe.receiveOne(Duration.create(100, "ms")) //discard
-      assert(vehicle.Seats(0).Occupant.isEmpty)
+      assert(vehicle.Seats(0).occupants.isEmpty)
 
       vehicle.Actor.tell(Mountable.TryMount(player2, 0), probe.ref)
       checkCanNotMount()
-      assert(vehicle.Seats(0).Occupant.isEmpty)
+      assert(vehicle.Seats(0).occupants.isEmpty)
     }
   }
 }
@@ -537,22 +540,22 @@ class VehicleControlMountingOwnedUnlockedDriverSeatTest extends ActorTest {
   player2.GUID = PlanetSideGUID(2)
 
   "Vehicle Control" should {
-    "allow players that are not the current owner to sit in the driver seat (empire)" in {
+    "allow players that are not the current owner to sit in the driver mount (empire)" in {
       vehicle.PermissionGroup(0, 3)                                        //passenger group -> empire
       assert(vehicle.PermissionGroup(0).contains(VehicleLockState.Empire)) //driver group -> empire
-      assert(vehicle.Seats(0).Occupant.isEmpty)
+      assert(vehicle.Seats(0).occupants.isEmpty)
       vehicle.Owner = player1.GUID //owner set
 
       vehicle.Actor.tell(Mountable.TryMount(player1, 0), probe.ref)
       checkCanMount()
-      assert(vehicle.Seats(0).Occupant.nonEmpty)
+      assert(vehicle.Seats(0).occupants.nonEmpty)
       vehicle.Actor.tell(Mountable.TryDismount(player1, 0), probe.ref)
       probe.receiveOne(Duration.create(100, "ms")) //discard
-      assert(vehicle.Seats(0).Occupant.isEmpty)
+      assert(vehicle.Seats(0).occupants.isEmpty)
 
       vehicle.Actor.tell(Mountable.TryMount(player2, 0), probe.ref)
       checkCanMount()
-      assert(vehicle.Seats(0).Occupant.nonEmpty)
+      assert(vehicle.Seats(0).occupants.nonEmpty)
     }
   }
 }
@@ -708,7 +711,7 @@ class VehicleControlInteractWithWaterPartialTest extends ActorTest {
   player1.Spawn()
   vehicle.Zone = zone
   vehicle.Faction = PlanetSideEmpire.TR
-  vehicle.Seats(0).Occupant = player1
+  vehicle.Seats(0).mount(player1)
   player1.VehicleSeated = vehicle.GUID
   player1.Actor = playerProbe.ref
   vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-control")
@@ -763,7 +766,7 @@ class VehicleControlInteractWithWaterTest extends ActorTest {
   player1.Spawn()
   vehicle.Zone = zone
   vehicle.Faction = PlanetSideEmpire.TR
-  vehicle.Seats(0).Occupant = player1
+  vehicle.Seats(0).mount(player1)
   player1.VehicleSeated = vehicle.GUID
   val (probe, avatarActor) = PlayerControlTest.DummyAvatar(system)
   player1.Actor = system.actorOf(Props(classOf[PlayerControl], player1, avatarActor), "player1-control")
@@ -830,7 +833,7 @@ class VehicleControlStopInteractWithWaterTest extends ActorTest {
   player1.Spawn()
   vehicle.Zone = zone
   vehicle.Faction = PlanetSideEmpire.TR
-  vehicle.Seats(0).Occupant = player1
+  vehicle.Seats(0).mount(player1)
   player1.VehicleSeated = vehicle.GUID
   player1.Actor = playerProbe.ref
   vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-control")
@@ -899,7 +902,7 @@ class VehicleControlInteractWithLavaTest extends ActorTest {
   player1.Spawn()
   vehicle.Zone = zone
   vehicle.Faction = PlanetSideEmpire.TR
-  vehicle.Seats(0).Occupant = player1
+  vehicle.Seats(0).mount(player1)
   player1.VehicleSeated = vehicle.GUID
   val (probe, avatarActor) = PlayerControlTest.DummyAvatar(system)
   player1.Actor = system.actorOf(Props(classOf[PlayerControl], player1, avatarActor), "player1-control")
@@ -957,7 +960,7 @@ class VehicleControlInteractWithDeathTest extends ActorTest {
   player1.Spawn()
   vehicle.Zone = zone
   vehicle.Faction = PlanetSideEmpire.TR
-  vehicle.Seats(0).Occupant = player1
+  vehicle.Seats(0).mount(player1)
   player1.VehicleSeated = vehicle.GUID
   val (probe, avatarActor) = PlayerControlTest.DummyAvatar(system)
   player1.Actor = system.actorOf(Props(classOf[PlayerControl], player1, avatarActor), "player1-control")

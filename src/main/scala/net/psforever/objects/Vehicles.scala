@@ -87,7 +87,7 @@ object Vehicles {
   /**
     * Disassociate a player from a vehicle that he owns.
     * The vehicle must exist in the game world on the specified continent.
-    * This is similar but unrelated to the natural exchange of ownership when someone else sits in the vehicle's driver seat.
+    * This is similar but unrelated to the natural exchange of ownership when someone else sits in the vehicle's driver mount.
     * This is the player side of vehicle ownership removal.
     * @param player the player
     */
@@ -96,7 +96,7 @@ object Vehicles {
   /**
     * Disassociate a player from a vehicle that he owns.
     * The vehicle must exist in the game world on the specified continent.
-    * This is similar but unrelated to the natural exchange of ownership when someone else sits in the vehicle's driver seat.
+    * This is similar but unrelated to the natural exchange of ownership when someone else sits in the vehicle's driver mount.
     * This is the player side of vehicle ownership removal.
     * @param player the player
     */
@@ -117,7 +117,7 @@ object Vehicles {
 
   /**
     * Disassociate a player from a vehicle that he owns without associating a different player as the owner.
-    * Set the vehicle's driver seat permissions and passenger and gunner seat permissions to "allow empire,"
+    * Set the vehicle's driver mount permissions and passenger and gunner mount permissions to "allow empire,"
     * then reload them for all clients.
     * This is the vehicle side of vehicle ownership removal.
     * @param player the player
@@ -196,7 +196,7 @@ object Vehicles {
         val manifestPassengerResults = manifestPassengers.map { name => vzone.Players.exists(_.name.equals(name)) }
         manifestPassengerResults.forall(_ == true) &&
         vehicle.CargoHolds.values
-          .collect { case hold if hold.isOccupied => AllGatedOccupantsInSameZone(hold.Occupant.get) }
+          .collect { case hold if hold.isOccupied => AllGatedOccupantsInSameZone(hold.occupant.get) }
           .forall(_ == true)
       case _ =>
         false
@@ -230,9 +230,9 @@ object Vehicles {
     val zone = target.Zone
     // Forcefully dismount any cargo
     target.CargoHolds.values.foreach(cargoHold => {
-      cargoHold.Occupant match {
+      cargoHold.occupant match {
         case Some(cargo: Vehicle) =>
-          cargo.Seats(0).Occupant match {
+          cargo.Seats(0).occupant match {
             case Some(_: Player) =>
               CargoBehavior.HandleVehicleCargoDismount(
                 target.Zone,
@@ -241,7 +241,7 @@ object Vehicles {
                 requestedByPassenger = false,
                 kicked = true
               )
-            case None =>
+            case _ =>
               log.error("FinishHackingVehicle: vehicle in cargo hold missing driver")
               CargoBehavior.HandleVehicleCargoDismount(cargo.GUID, cargo, target.GUID, target, bailed = false, requestedByPassenger = false, kicked = true)
         }
@@ -250,9 +250,9 @@ object Vehicles {
     })
     // Forcefully dismount all seated occupants from the vehicle
     target.Seats.values.foreach(seat => {
-      seat.Occupant match {
-        case Some(tplayer) =>
-          seat.Occupant = None
+      seat.occupant match {
+        case Some(tplayer: Player) =>
+          seat.unmount(tplayer)
           tplayer.VehicleSeated = None
           if (tplayer.HasGUID) {
             zone.VehicleEvents ! VehicleServiceMessage(
@@ -260,7 +260,7 @@ object Vehicles {
               VehicleAction.KickPassenger(tplayer.GUID, 4, unk2 = false, target.GUID)
             )
           }
-        case None => ;
+        case _ => ;
       }
     })
     // If the vehicle can fly and is flying deconstruct it, and well played to whomever managed to hack a plane in mid air. I'm impressed.

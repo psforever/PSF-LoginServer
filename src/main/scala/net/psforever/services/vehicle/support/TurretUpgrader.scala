@@ -154,8 +154,8 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
     target.Seats.values
       .filter { _.isOccupied }
       .foreach({ seat =>
-        val tplayer = seat.Occupant.get
-        seat.Occupant = None
+        val tplayer = seat.occupant.get
+        seat.unmount(tplayer)
         tplayer.VehicleSeated = None
         if (tplayer.HasGUID) {
           context.parent ! VehicleServiceMessage(

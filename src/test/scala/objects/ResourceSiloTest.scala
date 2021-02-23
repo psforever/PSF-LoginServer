@@ -180,7 +180,7 @@ class ResourceSiloControlUseTest extends ActorTest {
   guid.register(vehicle, 4)
   expectNoMessage(200 milliseconds)
   zone.Transport ! Zone.Vehicle.Spawn(vehicle)
-  vehicle.Seats(0).Occupant = player
+  vehicle.Seats(0).mount(player)
   player.VehicleSeated = vehicle.GUID
   expectNoMessage(200 milliseconds)
   system.stop(vehicle.Actor)

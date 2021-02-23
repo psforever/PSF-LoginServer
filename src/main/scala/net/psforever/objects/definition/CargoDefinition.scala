@@ -1,35 +1,13 @@
-// Copyright (c) 2017 PSForever
+// Copyright (c) 2021 PSForever
 package net.psforever.objects.definition
 
-import net.psforever.objects.vehicles.CargoVehicleRestriction
+import net.psforever.objects.Vehicle
+import net.psforever.objects.serverobject.mount.{LargeCargo, MountRestriction, MountableDefinition}
 
-/**
-  * The definition for a cargo hold.
-  */
-class CargoDefinition extends BasicDefinition {
-
-  /** a restriction on the type of exo-suit a person can wear */
-  private var vehicleRestriction: CargoVehicleRestriction.Value = CargoVehicleRestriction.Small
-
-  /** the user can escape while the vehicle is moving */
-  private var bailable: Boolean = true
+class CargoDefinition extends MountableDefinition[Vehicle] {
   Name = "cargo"
 
-  def CargoRestriction: CargoVehicleRestriction.Value = {
-    this.vehicleRestriction
-  }
+  var restriction: MountRestriction[Vehicle] = LargeCargo
 
-  def CargoRestriction_=(restriction: CargoVehicleRestriction.Value): CargoVehicleRestriction.Value = {
-    this.vehicleRestriction = restriction
-    restriction
-  }
-
-  def Bailable: Boolean = {
-    this.bailable
-  }
-
-  def Bailable_=(canBail: Boolean): Boolean = {
-    this.bailable = canBail
-    canBail
-  }
+  var bailable: Boolean = false
 }

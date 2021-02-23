@@ -103,7 +103,7 @@ class FacilityTurretControl(turret: FacilityTurret)
           if (weapon.Magazine < weapon.MaxMagazine && System.nanoTime() - weapon.LastDischarge > 3000000000L) {
             weapon.Magazine += 1
             val seat = turret.Seat(0).get
-            seat.Occupant match {
+            seat.occupant match {
               case Some(player: Player) =>
                 turret.Zone.LocalEvents ! LocalServiceMessage(
                   turret.Zone.id,
@@ -172,9 +172,9 @@ class FacilityTurretControl(turret: FacilityTurret)
     val zoneId = zone.id
     val events = zone.VehicleEvents
     turret.Seats.values.foreach(seat =>
-      seat.Occupant match {
+      seat.occupant match {
         case Some(player) =>
-          seat.Occupant = None
+          seat.unmount(player)
           player.VehicleSeated = None
           if (player.HasGUID) {
             events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, false, guid))

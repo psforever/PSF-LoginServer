@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.terminals.implant
 
-import net.psforever.objects.definition.SeatDefinition
+import net.psforever.objects.serverobject.mount.{SeatDefinition, Unrestricted}
 import net.psforever.objects.serverobject.structures.AmenityDefinition
 
 /**
@@ -10,9 +10,11 @@ import net.psforever.objects.serverobject.structures.AmenityDefinition
   * This `Definition` constructs the visible mechanical tube component that can be mounted.
   */
 class ImplantTerminalMechDefinition extends AmenityDefinition(410) {
-  /* key - seat index, value - seat object */
-  private val seats: Map[Int, SeatDefinition] = Map(0 -> new SeatDefinition)
-  /* key - entry point index, value - seat index */
+  /* key - mount index, value - mount object */
+  private val seats: Map[Int, SeatDefinition] = Map(0 -> new SeatDefinition() {
+    restriction = Unrestricted
+  })
+  /* key - entry point index, value - mount index */
   private val mountPoints: Map[Int, Int] = Map(1 -> 0)
   Name = "implant_terminal_mech"
 

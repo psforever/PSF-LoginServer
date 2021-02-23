@@ -87,7 +87,7 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
 
       /*
     When the vehicle is spawned and added to the pad, it will "occupy" the pad and block it from further action.
-    Normally, the player who wanted to spawn the vehicle will be automatically put into the driver seat.
+    Normally, the player who wanted to spawn the vehicle will be automatically put into the driver mount.
     If this is blocked, the vehicle will idle on the pad and must be moved far enough away from the point of origin.
     During this time, a periodic message about the spawn pad being blocked
     will be broadcast to all current customers in the order queue.
@@ -220,8 +220,7 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
     */
   def BlockedReminder(blockedOrder: VehicleSpawnControl.Order, recipients: Seq[VehicleSpawnControl.Order]): Unit = {
     val user = blockedOrder.vehicle
-      .Seats(0)
-      .Occupant
+      .Seats(0).occupant
       .orElse(pad.Zone.GUID(blockedOrder.vehicle.Owner))
       .orElse(pad.Zone.GUID(blockedOrder.DriverGUID))
     val relevantRecipients = user match {

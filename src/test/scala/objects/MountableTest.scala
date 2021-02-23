@@ -5,10 +5,9 @@ import akka.actor.{Actor, ActorRef, Props}
 import base.ActorTest
 import net.psforever.objects.Player
 import net.psforever.objects.avatar.Avatar
-import net.psforever.objects.definition.{ObjectDefinition, SeatDefinition}
-import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
+import net.psforever.objects.definition.ObjectDefinition
+import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior, Seat, SeatDefinition}
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.vehicles.Seat
 import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, PlanetSideGUID}
 
 import scala.concurrent.duration.Duration
@@ -75,7 +74,7 @@ object MountableTest {
     def MountPoints: Map[Int, Int]                     = Map(1 -> 0)
     def GetSeatFromMountPoint(mount: Int): Option[Int] = MountPoints.get(mount)
     def PassengerInSeat(user: Player): Option[Int] = {
-      if (seats(0).Occupant.contains(user)) {
+      if (seats(0).occupants.contains(user)) {
         Some(0)
       } else {
         None

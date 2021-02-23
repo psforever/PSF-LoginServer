@@ -8,6 +8,7 @@ import net.psforever.objects.definition._
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.locker.{LockerContainer, LockerEquipment}
+import net.psforever.objects.serverobject.mount.SeatDefinition
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vehicles.UtilityType
@@ -872,7 +873,7 @@ class ConverterTest extends Specification {
 
       val fury_def = VehicleDefinition(ObjectClass.fury)
       fury_def.Seats += 0 -> new SeatDefinition()
-      fury_def.Seats(0).Bailable = true
+      fury_def.Seats(0).bailable = true
       fury_def.Seats(0).ControlledWeapon = Some(1)
       fury_def.MountPoints += 0 -> 0
       fury_def.MountPoints += 2 -> 0

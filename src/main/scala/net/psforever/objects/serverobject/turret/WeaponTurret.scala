@@ -2,18 +2,18 @@
 package net.psforever.objects.serverobject.turret
 
 import net.psforever.objects.{AmmoBox, PlanetSideGameObject, Player, Tool}
-import net.psforever.objects.definition.{AmmoBoxDefinition, SeatDefinition, ToolDefinition}
+import net.psforever.objects.definition.{AmmoBoxDefinition, ToolDefinition}
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.objects.inventory.{Container, GridInventory}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
-import net.psforever.objects.serverobject.mount.Mountable
-import net.psforever.objects.vehicles.{MountedWeapons, Seat => Chair}
+import net.psforever.objects.serverobject.mount.{Mountable, Seat => Chair, SeatDefinition}
+import net.psforever.objects.vehicles.MountedWeapons
 
 trait WeaponTurret extends FactionAffinity with Mountable with MountedWeapons with Container {
   _: PlanetSideGameObject =>
 
-  /** manned turrets have just one seat; this is just standard interface */
-  protected val seats: Map[Int, Chair] = Map(0 -> Chair(new SeatDefinition() { ControlledWeapon = Some(1) }))
+  /** manned turrets have just one mount; this is just standard interface */
+  protected val seats: Map[Int, Chair] = Map(0 -> new Chair(new SeatDefinition() { ControlledWeapon = Some(1) }))
 
   /** turrets have just one weapon; this is just standard interface */
   protected var weapons: Map[Int, EquipmentSlot] = Map.empty
@@ -55,15 +55,15 @@ trait WeaponTurret extends FactionAffinity with Mountable with MountedWeapons wi
 
   /**
     * Given the index of an entry mounting point, return the infantry-accessible `Seat` associated with it.
-    * @param mountPoint an index representing the seat position / mounting point
-    * @return a seat number, or `None`
+    * @param mountPoint an index representing the mount position / mounting point
+    * @return a mount number, or `None`
     */
   def GetSeatFromMountPoint(mountPoint: Int): Option[Int] = {
     MountPoints.get(mountPoint)
   }
 
   def PassengerInSeat(user: Player): Option[Int] = {
-    if (seats(0).Occupant.contains(user)) {
+    if (seats(0).occupants.contains(user)) {
       Some(0)
     } else {
       None

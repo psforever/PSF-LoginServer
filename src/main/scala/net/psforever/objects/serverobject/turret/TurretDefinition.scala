@@ -14,9 +14,9 @@ import scala.collection.mutable
 trait TurretDefinition extends ResistanceProfileMutators with DamageResistanceModel {
   odef: ObjectDefinition =>
   Turrets(odef.ObjectId) //let throw NoSuchElementException
-  /* key - entry point index, value - seat index */
+  /* key - entry point index, value - mount index */
   private val mountPoints: mutable.HashMap[Int, Int] = mutable.HashMap()
-  /* key - seat number, value - hash map (below) */
+  /* key - mount number, value - hash map (below) */
   /* key - upgrade, value - weapon definition */
   private val weapons: mutable.HashMap[Int, mutable.HashMap[TurretUpgrade.Value, ToolDefinition]] =
     mutable.HashMap[Int, mutable.HashMap[TurretUpgrade.Value, ToolDefinition]]()

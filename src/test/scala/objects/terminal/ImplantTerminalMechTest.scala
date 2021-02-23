@@ -5,14 +5,12 @@ import akka.actor.{ActorSystem, Props}
 import base.ActorTest
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.{Default, GlobalDefinitions, Player}
-import net.psforever.objects.definition.SeatDefinition
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.MaxNumberSource
-import net.psforever.objects.serverobject.mount.Mountable
+import net.psforever.objects.serverobject.terminals.implant.{ImplantTerminalMech, ImplantTerminalMechControl}
+import net.psforever.objects.serverobject.mount.{Mountable, Seat, SeatDefinition}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.serverobject.terminals.Terminal
-import net.psforever.objects.serverobject.terminals.implant.{ImplantTerminalMech, ImplantTerminalMechControl}
-import net.psforever.objects.vehicles.Seat
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, Vector3}
 import org.specs2.mutable.Specification
@@ -27,10 +25,7 @@ class ImplantTerminalMechTest extends Specification {
       implant_terminal_mech.MountPoints mustEqual Map(1 -> 0)
       implant_terminal_mech.Seats.keySet mustEqual Set(0)
       implant_terminal_mech.Seats(0).isInstanceOf[SeatDefinition] mustEqual true
-      implant_terminal_mech
-        .Seats(0)
-        .ArmorRestriction mustEqual net.psforever.objects.vehicles.SeatArmorRestriction.NoMax
-      implant_terminal_mech.Seats(0).Bailable mustEqual false
+      implant_terminal_mech.Seats(0).bailable mustEqual false
       implant_terminal_mech.Seats(0).ControlledWeapon.isEmpty mustEqual true
     }
   }
@@ -44,20 +39,20 @@ class ImplantTerminalMechTest extends Specification {
       obj.Seats(0).isInstanceOf[Seat] mustEqual true
     }
 
-    "get seat from mount points" in {
+    "get mount from mount points" in {
       val obj = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech)
       obj.GetSeatFromMountPoint(0).isEmpty mustEqual true
       obj.GetSeatFromMountPoint(1).contains(0) mustEqual true
       obj.GetSeatFromMountPoint(2).isEmpty mustEqual true
     }
 
-    "get passenger in a seat" in {
+    "get passenger in a mount" in {
       val player = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
       val obj    = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech)
       obj.PassengerInSeat(player).isEmpty mustEqual true
-      obj.Seats(0).Occupant = player
+      obj.Seats(0).mount(player)
       obj.PassengerInSeat(player).contains(0) mustEqual true
-      obj.Seats(0).Occupant = None
+      obj.Seats(0).unmount(None)
       obj.PassengerInSeat(player).isEmpty mustEqual true
     }
   }
@@ -145,7 +140,7 @@ class ImplantTerminalMechControl5Test extends ActorTest {
       receiveOne(Duration.create(100, "ms")) //consume reply
       assert(mech.Seat(0).get.isOccupied)
 
-      mech.Velocity = Vector3(1, 0, 0) //makes no sense, but it works as the "seat" is not bailable
+      mech.Velocity = Vector3(1, 0, 0) //makes no sense, but it works as the "mount" is not bailable
       mech.Actor ! Mountable.TryDismount(player, 0)
       val reply = receiveOne(Duration.create(100, "ms"))
       assert(reply.isInstanceOf[Mountable.MountMessages])

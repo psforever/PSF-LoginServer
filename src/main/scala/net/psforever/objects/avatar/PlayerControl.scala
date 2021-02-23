@@ -713,13 +713,13 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     ) //align client interface fields with state
     zone.GUID(target.VehicleSeated) match {
       case Some(obj: Mountable) =>
-        //boot cadaver from seat internally (vehicle perspective)
+        //boot cadaver from mount internally (vehicle perspective)
         obj.PassengerInSeat(target) match {
           case Some(index) =>
-            obj.Seats(index).Occupant = None
+            obj.Seats(index).unmount(None)
           case _ => ;
         }
-        //boot cadaver from seat on client
+        //boot cadaver from mount on client
         events ! AvatarServiceMessage(
           nameChannel,
           AvatarAction.SendResponse(

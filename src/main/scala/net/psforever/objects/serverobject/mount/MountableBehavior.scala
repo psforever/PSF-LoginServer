@@ -41,7 +41,7 @@ object MountableBehavior {
       })) &&
       !obj.Destroyed &&
       (obj.Seats.get(seatNumber) match {
-        case Some(seat) => (seat.Occupant = player).contains(player)
+        case Some(seat) => seat.mount(player).contains(player)
         case _          => false
       })
     }
@@ -60,7 +60,7 @@ object MountableBehavior {
           (!wep.Definition.FactionLocked || player.Faction == obj.Faction) &&
             !obj.Destroyed &&
             (obj.Seats.get(seatNumber) match {
-              case Some(seat) => (seat.Occupant = player).contains(player)
+              case Some(seat) => seat.mount(player).contains(player)
               case _          => false
             })
         case _ =>
@@ -86,10 +86,10 @@ object MountableBehavior {
         obj.Seat(seat_num) match {
           case Some(seat) =>
             if (
-              seat.Bailable || !obj.isMoving(1) || (obj
+              seat.bailable || !obj.isMoving(1) || (obj
                 .isInstanceOf[Vehicle] && obj.asInstanceOf[Vehicle].DeploymentState == DriveState.Deployed)
             ) {
-              seat.Occupant = None
+              seat.unmount(None)
               user.VehicleSeated = None
               sender() ! Mountable.MountMessages(user, Mountable.CanDismount(obj, seat_num))
             } else {

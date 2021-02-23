@@ -3,7 +3,6 @@ package net.psforever.objects.serverobject.mount
 
 import akka.actor.ActorRef
 import net.psforever.objects.Player
-import net.psforever.objects.vehicles.Seat
 
 /**
   * A `Trait` common to all game objects that permit players to
@@ -14,34 +13,34 @@ import net.psforever.objects.vehicles.Seat
 trait Mountable {
 
   /**
-    * Retrieve a mapping of each seat from its internal index.
-    * @return the mapping of index to seat
+    * Retrieve a mapping of each mount from its internal index.
+    * @return the mapping of index to mount
     */
   def Seats: Map[Int, Seat]
 
   /**
-    * Given a seat's index position, retrieve the internal `Seat` object.
-    * @return the specific seat
+    * Given a mount's index position, retrieve the internal `Seat` object.
+    * @return the specific mount
     */
   def Seat(seatNum: Int): Option[Seat]
 
   /**
-    * Retrieve a mapping of each seat from its mount point index.
-    * @return the mapping of mount point to seat
+    * Retrieve a mapping of each mount from its mount point index.
+    * @return the mapping of mount point to mount
     */
   def MountPoints: Map[Int, Int]
 
   /**
-    * Given a mount point index, return the associated seat index.
+    * Given a mount point index, return the associated mount index.
     * @param mount the mount point
-    * @return the seat index
+    * @return the mount index
     */
   def GetSeatFromMountPoint(mount: Int): Option[Int]
 
   /**
     * Given a player, determine if that player is seated.
     * @param user the player
-    * @return the seat index
+    * @return the mount index
     */
   def PassengerInSeat(user: Player): Option[Int]
 
@@ -60,7 +59,7 @@ object Mountable {
   /**
     * Message used by the player to indicate the desire to board a `Mountable` object.
     * @param player the player who sent this request message
-    * @param seat_num the seat index
+    * @param seat_num the mount index
     */
   final case class TryMount(player: Player, seat_num: Int)
 
@@ -82,7 +81,7 @@ object Mountable {
     * Message sent in response to the player succeeding to access a `Mountable` object.
     * The player should be seated at the given index.
     * @param obj the `Mountable` object
-    * @param seat_num the seat index
+    * @param seat_num the mount index
     */
   final case class CanMount(obj: Mountable, seat_num: Int) extends Exchange
 
@@ -90,7 +89,7 @@ object Mountable {
     * Message sent in response to the player failing to access a `Mountable` object.
     * The player would have been be seated at the given index.
     * @param obj the `Mountable` object
-    * @param seat_num the seat index
+    * @param seat_num the mount index
     */
   final case class CanNotMount(obj: Mountable, seat_num: Int) extends Exchange
 
@@ -98,7 +97,7 @@ object Mountable {
     * Message sent in response to the player succeeding to disembark a `Mountable` object.
     * The player was previously seated at the given index.
     * @param obj the `Mountable` object
-    * @param seat_num the seat index
+    * @param seat_num the mount index
     */
   final case class CanDismount(obj: Mountable, seat_num: Int) extends Exchange
 
@@ -106,7 +105,7 @@ object Mountable {
     * Message sent in response to the player failing to disembark a `Mountable` object.
     * The player is still seated at the given index.
     * @param obj the `Mountable` object
-    * @param seat_num the seat index
+    * @param seat_num the mount index
     */
   final case class CanNotDismount(obj: Mountable, seat_num: Int) extends Exchange
 }

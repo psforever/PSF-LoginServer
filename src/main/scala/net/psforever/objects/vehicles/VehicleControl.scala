@@ -132,9 +132,9 @@ class VehicleControl(vehicle: Vehicle)
         case msg@Mountable.TryMount(player, seat_num) =>
           tryMountBehavior.apply(msg)
           val obj = MountableObject
-          //check that the player has actually been sat in the expected seat
+          //check that the player has actually been sat in the expected mount
           if (obj.PassengerInSeat(player).contains(seat_num)) {
-            //if the driver seat, change ownership
+            //if the driver mount, change ownership
             if (seat_num == 0 && !obj.OwnerName.contains(player.Name)) {
               //whatever vehicle was previously owned
               vehicle.Zone.GUID(player.avatar.vehicle) match {
@@ -330,21 +330,15 @@ class VehicleControl(vehicle: Vehicle)
   val tryMountBehavior : Receive = {
     case msg @ Mountable.TryMount(user, seat_num) =>
       val exosuit = user.ExoSuit
-      val restriction = vehicle.Seats(seat_num).ArmorRestriction
       val seatGroup = vehicle.SeatPermissionGroup(seat_num).getOrElse(AccessPermissionGroup.Passenger)
       val permission = vehicle.PermissionGroup(seatGroup.id).getOrElse(VehicleLockState.Empire)
       if (
-        (if (seatGroup == AccessPermissionGroup.Driver) {
+        if (seatGroup == AccessPermissionGroup.Driver) {
           vehicle.Owner.contains(user.GUID) || vehicle.Owner.isEmpty || permission != VehicleLockState.Locked
         }
         else {
           permission != VehicleLockState.Locked
-        }) &&
-        (exosuit match {
-          case ExoSuitType.MAX => restriction == SeatArmorRestriction.MaxOnly
-          case ExoSuitType.Reinforced => restriction == SeatArmorRestriction.NoMax
-          case _ => restriction != SeatArmorRestriction.MaxOnly
-        })
+        }
       ) {
         mountBehavior.apply(msg)
       }
@@ -393,9 +387,9 @@ class VehicleControl(vehicle: Vehicle)
     if (!vehicle.Flying || kickPassengers) {
       //kick all passengers (either not flying, or being explicitly instructed)
       vehicle.Seats.values.foreach { seat =>
-        seat.Occupant match {
+        seat.occupant match {
           case Some(player) =>
-            seat.Occupant = None
+            seat.unmount(player)
             player.VehicleSeated = None
             if (player.HasGUID) {
               events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, false, guid))
@@ -408,7 +402,7 @@ class VehicleControl(vehicle: Vehicle)
     vehicle.CargoHolds.values
       .collect {
         case hold if hold.isOccupied =>
-          val cargo = hold.Occupant.get
+          val cargo = hold.occupant.get
           CargoBehavior.HandleVehicleCargoDismount(
             cargo.GUID,
             cargo,
@@ -558,7 +552,7 @@ class VehicleControl(vehicle: Vehicle)
         val zone        = vehicle.Zone
         val zoneChannel = zone.id
         val GUID0       = Service.defaultPlayerGUID
-        val driverChannel = vehicle.Seats(0).Occupant match {
+        val driverChannel = vehicle.Seats(0).occupant match {
           case Some(tplayer) => tplayer.Name
           case None          => ""
         }
@@ -623,7 +617,7 @@ class VehicleControl(vehicle: Vehicle)
         val guid  = vehicle.GUID
         val zone  = vehicle.Zone
         val GUID0 = Service.defaultPlayerGUID
-        val driverChannel = vehicle.Seats(0).Occupant match {
+        val driverChannel = vehicle.Seats(0).occupant match {
           case Some(tplayer) => tplayer.Name
           case None          => ""
         }
@@ -686,7 +680,7 @@ class VehicleControl(vehicle: Vehicle)
         percentage,
         body,
         vehicle.Seats.values
-          .collect { case seat if seat.isOccupied => seat.Occupant.get }
+          .flatMap { case seat if seat.isOccupied => seat.occupants }
           .filter { p => p.isAlive && (p.Zone eq vehicle.Zone) }
       )
     }
@@ -779,7 +773,7 @@ class VehicleControl(vehicle: Vehicle)
         percentage,
         body,
         vehicle.Seats.values
-          .collect { case seat if seat.isOccupied => seat.Occupant.get }
+          .flatMap { case seat if seat.isOccupied => seat.occupants }
           .filter { p => p.isAlive && (p.Zone eq vehicle.Zone) }
       )
     }

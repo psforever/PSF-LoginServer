@@ -3,10 +3,9 @@ package net.psforever.objects.serverobject.terminals.implant
 
 import net.psforever.objects.Player
 import net.psforever.objects.serverobject.hackable.Hackable
-import net.psforever.objects.serverobject.mount.Mountable
+import net.psforever.objects.serverobject.mount.{Mountable, Seat}
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalAware
-import net.psforever.objects.vehicles.Seat
 import net.psforever.packet.game.TriggeredSound
 import net.psforever.types.Vector3
 
@@ -20,7 +19,7 @@ class ImplantTerminalMech(private val idef: ImplantTerminalMechDefinition)
     with Mountable
     with Hackable
     with CaptureTerminalAware {
-  private val seats: Map[Int, Seat] = Map(0 -> new Seat(idef.Seats(0)))
+  private val seats: Map[Int, Seat] = Map(0 -> new Seat(idef.Seats.head._2))
 
   HackSound = TriggeredSound.HackTerminal
   HackEffectDuration = Array(0, 30, 60, 90)
@@ -35,7 +34,7 @@ class ImplantTerminalMech(private val idef: ImplantTerminalMechDefinition)
   def GetSeatFromMountPoint(mount: Int): Option[Int] = idef.MountPoints.get(mount)
 
   def PassengerInSeat(user: Player): Option[Int] = {
-    if (seats(0).Occupant.contains(user)) {
+    if (seats(0).occupants.contains(user)) {
       Some(0)
     } else {
       None

@@ -122,9 +122,9 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
     val zoneId = zone.id
     val events = zone.VehicleEvents
     mech.Seats.values.foreach(seat =>
-      seat.Occupant match {
+      seat.occupant match {
         case Some(player) =>
-          seat.Occupant = None
+          seat.unmount(player)
           player.VehicleSeated = None
           if (player.HasGUID) {
             events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, false, guid))

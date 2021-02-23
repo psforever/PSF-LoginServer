@@ -14,6 +14,7 @@ import net.psforever.objects.serverobject.doors.DoorDefinition
 import net.psforever.objects.serverobject.generator.GeneratorDefinition
 import net.psforever.objects.serverobject.locks.IFFLockDefinition
 import net.psforever.objects.serverobject.mblocker.LockerDefinition
+import net.psforever.objects.serverobject.mount.{MaxOnly, NoReinforcedOrMax, SeatDefinition}
 import net.psforever.objects.serverobject.pad.VehicleSpawnPadDefinition
 import net.psforever.objects.serverobject.painbox.PainboxDefinition
 import net.psforever.objects.serverobject.terminals._
@@ -26,7 +27,7 @@ import net.psforever.objects.serverobject.structures.{AmenityDefinition, AutoRep
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalDefinition
 import net.psforever.objects.serverobject.terminals.implant.{ImplantTerminalDefinition, ImplantTerminalMechDefinition}
 import net.psforever.objects.serverobject.turret.{FacilityTurretDefinition, TurretUpgrade}
-import net.psforever.objects.vehicles.{DestroyedVehicle, InternalTelepadDefinition, SeatArmorRestriction, UtilityType}
+import net.psforever.objects.vehicles.{DestroyedVehicle, InternalTelepadDefinition, UtilityType}
 import net.psforever.objects.vital.base.DamageType
 import net.psforever.objects.vital.damage._
 import net.psforever.objects.vital.etc.ExplodingRadialDegrade
@@ -5620,14 +5621,22 @@ object GlobalDefinitions {
     val apcForm = GeometryForm.representByCylinder(radius = 4.6211f, height = 3.90626f) _ //TODO hexahedron
     val liberatorForm = GeometryForm.representByCylinder(radius = 3.74615f, height = 2.51563f) _
 
+    val bailableSeat = new SeatDefinition() {
+      bailable = true
+    }
+    val maxOnlySeat = new SeatDefinition() {
+      restriction = MaxOnly
+    }
+
     fury.Name = "fury"
     fury.MaxHealth = 650
     fury.Damageable = true
     fury.Repairable = true
     fury.RepairIfDestroyed = false
     fury.MaxShields = 130
-    fury.Seats += 0 -> new SeatDefinition()
-    fury.Seats(0).Bailable = true
+    fury.Seats += 0 -> new SeatDefinition() {
+      bailable = true
+    }
     fury.Seats(0).ControlledWeapon = 1
     fury.Weapons += 1     -> fury_weapon_systema
     fury.MountPoints += 1 -> 0
@@ -5658,8 +5667,9 @@ object GlobalDefinitions {
     quadassault.Repairable = true
     quadassault.RepairIfDestroyed = false
     quadassault.MaxShields = 130
-    quadassault.Seats += 0 -> new SeatDefinition()
-    quadassault.Seats(0).Bailable = true
+    quadassault.Seats += 0 -> new SeatDefinition() {
+      bailable = true
+    }
     quadassault.Seats(0).ControlledWeapon = 1
     quadassault.Weapons += 1     -> quadassault_weapon_system
     quadassault.MountPoints += 1 -> 0
@@ -5691,8 +5701,7 @@ object GlobalDefinitions {
     quadstealth.RepairIfDestroyed = false
     quadstealth.MaxShields = 130
     quadstealth.CanCloak = true
-    quadstealth.Seats += 0 -> new SeatDefinition()
-    quadstealth.Seats(0).Bailable = true
+    quadstealth.Seats += 0 -> bailableSeat
     quadstealth.CanCloak = true
     quadstealth.MountPoints += 1 -> 0
     quadstealth.MountPoints += 2 -> 0
@@ -5722,10 +5731,10 @@ object GlobalDefinitions {
     two_man_assault_buggy.Repairable = true
     two_man_assault_buggy.RepairIfDestroyed = false
     two_man_assault_buggy.MaxShields = 250
-    two_man_assault_buggy.Seats += 0 -> new SeatDefinition()
-    two_man_assault_buggy.Seats(0).Bailable = true
-    two_man_assault_buggy.Seats += 1 -> new SeatDefinition()
-    two_man_assault_buggy.Seats(1).Bailable = true
+    two_man_assault_buggy.Seats += 0 -> bailableSeat
+    two_man_assault_buggy.Seats += 1 -> new SeatDefinition() {
+      bailable = true
+    }
     two_man_assault_buggy.Seats(1).ControlledWeapon = 2
     two_man_assault_buggy.Weapons += 2     -> chaingun_p
     two_man_assault_buggy.MountPoints += 1 -> 0
@@ -5756,10 +5765,10 @@ object GlobalDefinitions {
     skyguard.Repairable = true
     skyguard.RepairIfDestroyed = false
     skyguard.MaxShields = 200
-    skyguard.Seats += 0 -> new SeatDefinition()
-    skyguard.Seats(0).Bailable = true
-    skyguard.Seats += 1 -> new SeatDefinition()
-    skyguard.Seats(1).Bailable = true
+    skyguard.Seats += 0 -> bailableSeat
+    skyguard.Seats += 1 -> new SeatDefinition() {
+      bailable = true
+    }
     skyguard.Seats(1).ControlledWeapon = 2
     skyguard.Weapons += 2     -> skyguard_weapon_system
     skyguard.MountPoints += 1 -> 0
@@ -5791,13 +5800,14 @@ object GlobalDefinitions {
     threemanheavybuggy.Repairable = true
     threemanheavybuggy.RepairIfDestroyed = false
     threemanheavybuggy.MaxShields = 340
-    threemanheavybuggy.Seats += 0 -> new SeatDefinition()
-    threemanheavybuggy.Seats(0).Bailable = true
-    threemanheavybuggy.Seats += 1 -> new SeatDefinition()
-    threemanheavybuggy.Seats(1).Bailable = true
+    threemanheavybuggy.Seats += 0 -> bailableSeat
+    threemanheavybuggy.Seats += 1 -> new SeatDefinition() {
+      bailable = true
+    }
     threemanheavybuggy.Seats(1).ControlledWeapon = 3
-    threemanheavybuggy.Seats += 2 -> new SeatDefinition()
-    threemanheavybuggy.Seats(2).Bailable = true
+    threemanheavybuggy.Seats += 2 -> new SeatDefinition() {
+      bailable = true
+    }
     threemanheavybuggy.Seats(2).ControlledWeapon = 4
     threemanheavybuggy.Weapons += 3     -> chaingun_p
     threemanheavybuggy.Weapons += 4     -> grenade_launcher_marauder
@@ -5831,10 +5841,10 @@ object GlobalDefinitions {
     twomanheavybuggy.Repairable = true
     twomanheavybuggy.RepairIfDestroyed = false
     twomanheavybuggy.MaxShields = 360
-    twomanheavybuggy.Seats += 0 -> new SeatDefinition()
-    twomanheavybuggy.Seats(0).Bailable = true
-    twomanheavybuggy.Seats += 1 -> new SeatDefinition()
-    twomanheavybuggy.Seats(1).Bailable = true
+    twomanheavybuggy.Seats += 0 -> bailableSeat
+    twomanheavybuggy.Seats += 1 -> new SeatDefinition() {
+      bailable = true
+    }
     twomanheavybuggy.Seats(1).ControlledWeapon = 2
     twomanheavybuggy.Weapons += 2     -> advanced_missile_launcher_t
     twomanheavybuggy.MountPoints += 1 -> 0
@@ -5866,10 +5876,10 @@ object GlobalDefinitions {
     twomanhoverbuggy.Repairable = true
     twomanhoverbuggy.RepairIfDestroyed = false
     twomanhoverbuggy.MaxShields = 320
-    twomanhoverbuggy.Seats += 0 -> new SeatDefinition()
-    twomanhoverbuggy.Seats(0).Bailable = true
-    twomanhoverbuggy.Seats += 1 -> new SeatDefinition()
-    twomanhoverbuggy.Seats(1).Bailable = true
+    twomanhoverbuggy.Seats += 0 -> bailableSeat
+    twomanhoverbuggy.Seats += 1 -> new SeatDefinition() {
+      bailable = true
+    }
     twomanhoverbuggy.Seats(1).ControlledWeapon = 2
     twomanhoverbuggy.Weapons += 2     -> flux_cannon_thresher
     twomanhoverbuggy.MountPoints += 1 -> 0
@@ -5900,8 +5910,9 @@ object GlobalDefinitions {
     mediumtransport.Repairable = true
     mediumtransport.RepairIfDestroyed = false
     mediumtransport.MaxShields = 500
-    mediumtransport.Seats += 0 -> new SeatDefinition()
-    mediumtransport.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+    mediumtransport.Seats += 0 -> new SeatDefinition() {
+      restriction = NoReinforcedOrMax
+    }
     mediumtransport.Seats += 1 -> new SeatDefinition()
     mediumtransport.Seats(1).ControlledWeapon = 5
     mediumtransport.Seats += 2 -> new SeatDefinition()
@@ -5942,8 +5953,9 @@ object GlobalDefinitions {
     battlewagon.Repairable = true
     battlewagon.RepairIfDestroyed = false
     battlewagon.MaxShields = 500
-    battlewagon.Seats += 0 -> new SeatDefinition()
-    battlewagon.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+    battlewagon.Seats += 0 -> new SeatDefinition() {
+      restriction = NoReinforcedOrMax
+    }
     battlewagon.Seats += 1 -> new SeatDefinition()
     battlewagon.Seats(1).ControlledWeapon = 5
     battlewagon.Seats += 2 -> new SeatDefinition()
@@ -5987,8 +5999,9 @@ object GlobalDefinitions {
     thunderer.Repairable = true
     thunderer.RepairIfDestroyed = false
     thunderer.MaxShields = 500
-    thunderer.Seats += 0 -> new SeatDefinition()
-    thunderer.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+    thunderer.Seats += 0 -> new SeatDefinition() {
+      restriction = NoReinforcedOrMax
+    }
     thunderer.Seats += 1 -> new SeatDefinition()
     thunderer.Seats(1).ControlledWeapon = 5
     thunderer.Seats += 2 -> new SeatDefinition()
@@ -6029,8 +6042,9 @@ object GlobalDefinitions {
     aurora.Repairable = true
     aurora.RepairIfDestroyed = false
     aurora.MaxShields = 500
-    aurora.Seats += 0 -> new SeatDefinition()
-    aurora.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+    aurora.Seats += 0 -> new SeatDefinition() {
+      restriction = NoReinforcedOrMax
+    }
     aurora.Seats += 1 -> new SeatDefinition()
     aurora.Seats(1).ControlledWeapon = 5
     aurora.Seats += 2 -> new SeatDefinition()
@@ -6086,10 +6100,8 @@ object GlobalDefinitions {
     apc_tr.Seats(7).ControlledWeapon = 13
     apc_tr.Seats += 8 -> new SeatDefinition()
     apc_tr.Seats(8).ControlledWeapon = 14
-    apc_tr.Seats += 9 -> new SeatDefinition()
-    apc_tr.Seats(9).ArmorRestriction = SeatArmorRestriction.MaxOnly
-    apc_tr.Seats += 10 -> new SeatDefinition()
-    apc_tr.Seats(10).ArmorRestriction = SeatArmorRestriction.MaxOnly
+    apc_tr.Seats += 9 -> maxOnlySeat
+    apc_tr.Seats += 10 -> maxOnlySeat
     apc_tr.Weapons += 11     -> apc_weapon_systemc_tr
     apc_tr.Weapons += 12     -> apc_weapon_systemb
     apc_tr.Weapons += 13     -> apc_weapon_systema
@@ -6150,10 +6162,8 @@ object GlobalDefinitions {
     apc_nc.Seats(7).ControlledWeapon = 13
     apc_nc.Seats += 8 -> new SeatDefinition()
     apc_nc.Seats(8).ControlledWeapon = 14
-    apc_nc.Seats += 9 -> new SeatDefinition()
-    apc_nc.Seats(9).ArmorRestriction = SeatArmorRestriction.MaxOnly
-    apc_nc.Seats += 10 -> new SeatDefinition()
-    apc_nc.Seats(10).ArmorRestriction = SeatArmorRestriction.MaxOnly
+    apc_nc.Seats += 9 -> maxOnlySeat
+    apc_nc.Seats += 10 -> maxOnlySeat
     apc_nc.Weapons += 11     -> apc_weapon_systemc_nc
     apc_nc.Weapons += 12     -> apc_weapon_systemb
     apc_nc.Weapons += 13     -> apc_weapon_systema
@@ -6214,10 +6224,8 @@ object GlobalDefinitions {
     apc_vs.Seats(7).ControlledWeapon = 13
     apc_vs.Seats += 8 -> new SeatDefinition()
     apc_vs.Seats(8).ControlledWeapon = 14
-    apc_vs.Seats += 9 -> new SeatDefinition()
-    apc_vs.Seats(9).ArmorRestriction = SeatArmorRestriction.MaxOnly
-    apc_vs.Seats += 10 -> new SeatDefinition()
-    apc_vs.Seats(10).ArmorRestriction = SeatArmorRestriction.MaxOnly
+    apc_vs.Seats += 9 -> maxOnlySeat
+    apc_vs.Seats += 10 -> maxOnlySeat
     apc_vs.Weapons += 11     -> apc_weapon_systemc_vs
     apc_vs.Weapons += 12     -> apc_weapon_systemb
     apc_vs.Weapons += 13     -> apc_weapon_systema
@@ -6263,8 +6271,9 @@ object GlobalDefinitions {
     lightning.Repairable = true
     lightning.RepairIfDestroyed = false
     lightning.MaxShields = 400
-    lightning.Seats += 0 -> new SeatDefinition()
-    lightning.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+    lightning.Seats += 0 -> new SeatDefinition() {
+      restriction = NoReinforcedOrMax
+    }
     lightning.Seats(0).ControlledWeapon = 1
     lightning.Weapons += 1     -> lightning_weapon_system
     lightning.MountPoints += 1 -> 0
@@ -6296,8 +6305,9 @@ object GlobalDefinitions {
     prowler.Repairable = true
     prowler.RepairIfDestroyed = false
     prowler.MaxShields = 960
-    prowler.Seats += 0 -> new SeatDefinition()
-    prowler.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+    prowler.Seats += 0 -> new SeatDefinition() {
+      restriction = NoReinforcedOrMax
+    }
     prowler.Seats += 1 -> new SeatDefinition()
     prowler.Seats(1).ControlledWeapon = 3
     prowler.Seats += 2 -> new SeatDefinition()
@@ -6334,8 +6344,9 @@ object GlobalDefinitions {
     vanguard.Repairable = true
     vanguard.RepairIfDestroyed = false
     vanguard.MaxShields = 1080
-    vanguard.Seats += 0 -> new SeatDefinition()
-    vanguard.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+    vanguard.Seats += 0 -> new SeatDefinition() {
+      restriction = NoReinforcedOrMax
+    }
     vanguard.Seats += 1 -> new SeatDefinition()
     vanguard.Seats(1).ControlledWeapon = 2
     vanguard.Weapons += 2     -> vanguard_weapon_system
@@ -6368,8 +6379,9 @@ object GlobalDefinitions {
     magrider.Repairable = true
     magrider.RepairIfDestroyed = false
     magrider.MaxShields = 840
-    magrider.Seats += 0 -> new SeatDefinition()
-    magrider.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+    magrider.Seats += 0 -> new SeatDefinition() {
+      restriction = NoReinforcedOrMax
+    }
     magrider.Seats(0).ControlledWeapon = 2
     magrider.Seats += 1 -> new SeatDefinition()
     magrider.Seats(1).ControlledWeapon = 3
@@ -6405,8 +6417,9 @@ object GlobalDefinitions {
     ant.Repairable = true
     ant.RepairIfDestroyed = false
     ant.MaxShields = 400
-    ant.Seats += 0 -> new SeatDefinition()
-    ant.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+    ant.Seats += 0 -> new SeatDefinition() {
+      restriction = NoReinforcedOrMax
+    }
     ant.MountPoints += 1 -> 0
     ant.MountPoints += 2 -> 0
     ant.Deployment = true
@@ -6438,8 +6451,9 @@ object GlobalDefinitions {
     ams.Repairable = true
     ams.RepairIfDestroyed = false
     ams.MaxShields = 1000 // Temporary - original value is 600 + 1
-    ams.Seats += 0 -> new SeatDefinition()
-    ams.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+    ams.Seats += 0 -> new SeatDefinition() {
+      restriction = NoReinforcedOrMax
+    }
     ams.MountPoints += 1 -> 0
     ams.MountPoints += 2 -> 0
     ams.Utilities += 1   -> UtilityType.matrix_terminalc
@@ -6585,8 +6599,9 @@ object GlobalDefinitions {
     mosquito.RepairIfDestroyed = false
     mosquito.MaxShields = 133
     mosquito.CanFly = true
-    mosquito.Seats += 0 -> new SeatDefinition()
-    mosquito.Seats(0).Bailable = true
+    mosquito.Seats += 0 -> new SeatDefinition() {
+      bailable = true
+    }
     mosquito.Seats(0).ControlledWeapon = 1
     mosquito.Weapons += 1     -> rotarychaingun_mosquito
     mosquito.MountPoints += 1 -> 0
@@ -6619,8 +6634,9 @@ object GlobalDefinitions {
     lightgunship.RepairIfDestroyed = false
     lightgunship.MaxShields = 200
     lightgunship.CanFly = true
-    lightgunship.Seats += 0 -> new SeatDefinition()
-    lightgunship.Seats(0).Bailable = true
+    lightgunship.Seats += 0 -> new SeatDefinition() {
+      bailable = true
+    }
     lightgunship.Seats(0).ControlledWeapon = 1
     lightgunship.Weapons += 1     -> lightgunship_weapon_system
     lightgunship.MountPoints += 1 -> 0
@@ -6654,8 +6670,9 @@ object GlobalDefinitions {
     wasp.RepairIfDestroyed = false
     wasp.MaxShields = 103
     wasp.CanFly = true
-    wasp.Seats += 0 -> new SeatDefinition()
-    wasp.Seats(0).Bailable = true
+    wasp.Seats += 0 -> new SeatDefinition() {
+      bailable = true
+    }
     wasp.Seats(0).ControlledWeapon = 1
     wasp.Weapons += 1     -> wasp_weapon_system
     wasp.MountPoints += 1 -> 0
@@ -6690,12 +6707,14 @@ object GlobalDefinitions {
     liberator.CanFly = true
     liberator.Seats += 0 -> new SeatDefinition()
     liberator.Seats(0).ControlledWeapon = 3
-    liberator.Seats += 1 -> new SeatDefinition()
+    liberator.Seats += 1 -> new SeatDefinition() {
+      bailable = true
+    }
     liberator.Seats(1).ControlledWeapon = 4
-    liberator.Seats(1).Bailable = true
-    liberator.Seats += 2 -> new SeatDefinition()
+    liberator.Seats += 2 -> new SeatDefinition() {
+      bailable = true
+    }
     liberator.Seats(2).ControlledWeapon = 5
-    liberator.Seats(2).Bailable = true
     liberator.Weapons += 3     -> liberator_weapon_system
     liberator.Weapons += 4     -> liberator_bomb_bay
     liberator.Weapons += 5     -> liberator_25mm_cannon
@@ -6734,12 +6753,14 @@ object GlobalDefinitions {
     vulture.CanFly = true
     vulture.Seats += 0 -> new SeatDefinition()
     vulture.Seats(0).ControlledWeapon = 3
-    vulture.Seats += 1 -> new SeatDefinition()
+    vulture.Seats += 1 -> new SeatDefinition() {
+      bailable = true
+    }
     vulture.Seats(1).ControlledWeapon = 4
-    vulture.Seats(1).Bailable = true
-    vulture.Seats += 2 -> new SeatDefinition()
+    vulture.Seats += 2 -> new SeatDefinition() {
+      bailable = true
+    }
     vulture.Seats(2).ControlledWeapon = 5
-    vulture.Seats(2).Bailable = true
     vulture.Weapons += 3     -> vulture_nose_weapon_system
     vulture.Weapons += 4     -> vulture_bomb_bay
     vulture.Weapons += 5     -> vulture_tail_cannon
@@ -6779,32 +6800,30 @@ object GlobalDefinitions {
     dropship.MaxShields = 1000
     dropship.CanFly = true
     dropship.Seats += 0 -> new SeatDefinition()
-    dropship.Seats += 1 -> new SeatDefinition()
-    dropship.Seats(1).Bailable = true
+    dropship.Seats += 1 -> new SeatDefinition() {
+      bailable = true
+    }
     dropship.Seats(1).ControlledWeapon = 12
-    dropship.Seats += 2 -> new SeatDefinition()
-    dropship.Seats(2).Bailable = true
+    dropship.Seats += 2 -> new SeatDefinition() {
+      bailable = true
+    }
     dropship.Seats(2).ControlledWeapon = 13
-    dropship.Seats += 3 -> new SeatDefinition()
-    dropship.Seats(3).Bailable = true
-    dropship.Seats += 4 -> new SeatDefinition()
-    dropship.Seats(4).Bailable = true
-    dropship.Seats += 5 -> new SeatDefinition()
-    dropship.Seats(5).Bailable = true
-    dropship.Seats += 6 -> new SeatDefinition()
-    dropship.Seats(6).Bailable = true
-    dropship.Seats += 7 -> new SeatDefinition()
-    dropship.Seats(7).Bailable = true
-    dropship.Seats += 8 -> new SeatDefinition()
-    dropship.Seats(8).Bailable = true
-    dropship.Seats += 9 -> new SeatDefinition()
-    dropship.Seats(9).Bailable = true
-    dropship.Seats(9).ArmorRestriction = SeatArmorRestriction.MaxOnly
-    dropship.Seats += 10 -> new SeatDefinition()
-    dropship.Seats(10).Bailable = true
-    dropship.Seats(10).ArmorRestriction = SeatArmorRestriction.MaxOnly
-    dropship.Seats += 11 -> new SeatDefinition()
-    dropship.Seats(11).Bailable = true
+    dropship.Seats += 3 -> bailableSeat
+    dropship.Seats += 4 -> bailableSeat
+    dropship.Seats += 5 -> bailableSeat
+    dropship.Seats += 6 -> bailableSeat
+    dropship.Seats += 7 -> bailableSeat
+    dropship.Seats += 9 -> new SeatDefinition() {
+      bailable = true
+      restriction = MaxOnly
+    }
+    dropship.Seats += 10 -> new SeatDefinition() {
+      bailable = true
+      restriction = MaxOnly
+    }
+    dropship.Seats += 11 -> new SeatDefinition() {
+      bailable = true
+    }
     dropship.Seats(11).ControlledWeapon = 14
     dropship.Weapons += 12     -> cannon_dropship_20mm
     dropship.Weapons += 13     -> cannon_dropship_20mm
@@ -6854,21 +6873,26 @@ object GlobalDefinitions {
     galaxy_gunship.MaxShields = 1200
     galaxy_gunship.CanFly = true
     galaxy_gunship.Seats += 0 -> new SeatDefinition()
-    galaxy_gunship.Seats += 1 -> new SeatDefinition()
+    galaxy_gunship.Seats += 1 -> new SeatDefinition() {
+      bailable = true
+    }
     galaxy_gunship.Seats(1).ControlledWeapon = 6
-    galaxy_gunship.Seats(1).Bailable = true
-    galaxy_gunship.Seats += 2 -> new SeatDefinition()
+    galaxy_gunship.Seats += 2 -> new SeatDefinition() {
+      bailable = true
+    }
     galaxy_gunship.Seats(2).ControlledWeapon = 7
-    galaxy_gunship.Seats(2).Bailable = true
-    galaxy_gunship.Seats += 3 -> new SeatDefinition()
+    galaxy_gunship.Seats += 3 -> new SeatDefinition() {
+      bailable = true
+    }
     galaxy_gunship.Seats(3).ControlledWeapon = 8
-    galaxy_gunship.Seats(3).Bailable = true
-    galaxy_gunship.Seats += 4 -> new SeatDefinition()
+    galaxy_gunship.Seats += 4 -> new SeatDefinition() {
+      bailable = true
+    }
     galaxy_gunship.Seats(4).ControlledWeapon = 9
-    galaxy_gunship.Seats(4).Bailable = true
-    galaxy_gunship.Seats += 5 -> new SeatDefinition()
+    galaxy_gunship.Seats += 5 -> new SeatDefinition() {
+      bailable = true
+    }
     galaxy_gunship.Seats(5).ControlledWeapon = 10
-    galaxy_gunship.Seats(5).Bailable = true
     galaxy_gunship.Weapons += 6     -> galaxy_gunship_cannon
     galaxy_gunship.Weapons += 7     -> galaxy_gunship_cannon
     galaxy_gunship.Weapons += 8     -> galaxy_gunship_tailgun
@@ -6955,14 +6979,10 @@ object GlobalDefinitions {
     phantasm.CanCloak = true
     phantasm.CanFly = true
     phantasm.Seats += 0 -> new SeatDefinition()
-    phantasm.Seats += 1 -> new SeatDefinition()
-    phantasm.Seats(1).Bailable = true
-    phantasm.Seats += 2 -> new SeatDefinition()
-    phantasm.Seats(2).Bailable = true
-    phantasm.Seats += 3 -> new SeatDefinition()
-    phantasm.Seats(3).Bailable = true
-    phantasm.Seats += 4 -> new SeatDefinition()
-    phantasm.Seats(4).Bailable = true
+    phantasm.Seats += 1 -> bailableSeat
+    phantasm.Seats += 2 -> bailableSeat
+    phantasm.Seats += 3 -> bailableSeat
+    phantasm.Seats += 4 -> bailableSeat
     phantasm.MountPoints += 1 -> 0
     phantasm.MountPoints += 2 -> 1
     phantasm.MountPoints += 3 -> 2
@@ -7002,12 +7022,19 @@ object GlobalDefinitions {
     droppod.DamageUsing = DamageCalculations.AgainstAircraft
     droppod.DrownAtMaxDepth = false
 
-    orbital_shuttle.Name = "droppod"
+    orbital_shuttle.Name = "orbital_shuttle"
     orbital_shuttle.MaxHealth = 20000
     orbital_shuttle.Damageable = false
     orbital_shuttle.CanFly = true
-    orbital_shuttle.Seats += 0       -> new SeatDefinition
-    orbital_shuttle.MountPoints += 1 -> 0
+    //no seats
+    orbital_shuttle.MountPoints += 1 -> 1
+    orbital_shuttle.MountPoints += 2 -> 1
+    orbital_shuttle.MountPoints += 3 -> 1
+    orbital_shuttle.MountPoints += 4 -> 1
+    orbital_shuttle.MountPoints += 5 -> 1
+    orbital_shuttle.MountPoints += 6 -> 1
+    orbital_shuttle.MountPoints += 7 -> 1
+    orbital_shuttle.MountPoints += 8 -> 1
     orbital_shuttle.TrunkSize = InventoryTile.None
     orbital_shuttle.Packet = new OrbitalShuttleConverter
     orbital_shuttle.DeconstructionTime = None
