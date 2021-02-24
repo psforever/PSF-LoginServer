@@ -154,7 +154,7 @@ class VehicleControl(vehicle: Vehicle)
             updateZoneInteractionProgressUI(player)
           }
 
-        case msg : Mountable.TryDismount =>
+        case msg @ Mountable.TryDismount(user, seat_num) =>
           dismountBehavior.apply(msg)
           dismountCleanup()
 
@@ -329,7 +329,6 @@ class VehicleControl(vehicle: Vehicle)
 
   val tryMountBehavior : Receive = {
     case msg @ Mountable.TryMount(user, seat_num) =>
-      val exosuit = user.ExoSuit
       val seatGroup = vehicle.SeatPermissionGroup(seat_num).getOrElse(AccessPermissionGroup.Passenger)
       val permission = vehicle.PermissionGroup(seatGroup.id).getOrElse(VehicleLockState.Empire)
       if (
@@ -354,6 +353,7 @@ class VehicleControl(vehicle: Vehicle)
       obj.Velocity = Some(Vector3.Zero)
     }
     //are we already decaying? are we unowned? is no one seated anywhere?
+    //a vehicle that can not be owned will never naturally decay in response to a seat dismount
     if (!decaying && obj.Owner.isEmpty && obj.Seats.values.forall(!_.isOccupied)) {
       decaying = true
       decayTimer = context.system.scheduler.scheduleOnce(

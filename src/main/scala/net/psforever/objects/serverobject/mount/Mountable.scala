@@ -4,6 +4,8 @@ package net.psforever.objects.serverobject.mount
 import akka.actor.ActorRef
 import net.psforever.objects.Player
 
+import scala.annotation.tailrec
+
 /**
   * A `Trait` common to all game objects that permit players to
   * interact with established spatial locations external to the object ("mount points") and
@@ -11,38 +13,60 @@ import net.psforever.objects.Player
   * @see `Seat`
   */
 trait Mountable {
+  protected var seats: Map[Int, Seat] = Map.empty
 
   /**
     * Retrieve a mapping of each mount from its internal index.
     * @return the mapping of index to mount
     */
-  def Seats: Map[Int, Seat]
+  def Seats: Map[Int, Seat] = seats
 
   /**
     * Given a mount's index position, retrieve the internal `Seat` object.
     * @return the specific mount
     */
-  def Seat(seatNum: Int): Option[Seat]
+  def Seat(seatNumber: Int): Option[Seat] = {
+    if (seatNumber >= 0 && seatNumber < seats.size) {
+      seats.get(seatNumber)
+    } else {
+      None
+    }
+  }
 
   /**
     * Retrieve a mapping of each mount from its mount point index.
     * @return the mapping of mount point to mount
     */
-  def MountPoints: Map[Int, Int]
+  def MountPoints: Map[Int, Int] = Definition.MountPoints.toMap
 
   /**
     * Given a mount point index, return the associated mount index.
-    * @param mount the mount point
+    * @param mountPoint the mount point
     * @return the mount index
     */
-  def GetSeatFromMountPoint(mount: Int): Option[Int]
+  def GetSeatFromMountPoint(mountPoint: Int): Option[Int] = {
+    Definition.MountPoints.get(mountPoint)
+  }
 
   /**
     * Given a player, determine if that player is seated.
     * @param user the player
     * @return the mount index
     */
-  def PassengerInSeat(user: Player): Option[Int]
+  def PassengerInSeat(user: Player): Option[Int] = recursivePassengerInSeat(seats.iterator, user)
+
+  @tailrec private def recursivePassengerInSeat(iter: Iterator[(Int, Seat)], player: Player): Option[Int] = {
+    if (!iter.hasNext) {
+      None
+    } else {
+      val (seatNumber, seat) = iter.next()
+      if (seat.occupants.contains(player)) {
+        Some(seatNumber)
+      } else {
+        recursivePassengerInSeat(iter, player)
+      }
+    }
+  }
 
   /**
     * A reference to an `Actor` that governs the logic of the object to accept `Mountable` messages.
@@ -52,6 +76,8 @@ trait Mountable {
     * @return the internal `ActorRef`
     */
   def Actor: ActorRef //TODO can we enforce this desired association to MountableControl?
+
+  def Definition: MountableDefinition
 }
 
 object Mountable {

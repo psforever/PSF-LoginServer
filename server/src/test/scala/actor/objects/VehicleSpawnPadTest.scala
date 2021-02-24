@@ -92,7 +92,7 @@ class VehicleSpawnControl3Test extends ActorTest {
       //if we move the vehicle away from the pad, we should receive a second ConcealPlayer message
       //that means that the first order has cleared and the spawn pad is now working on the second order successfully
       player.VehicleSeated = None //since shared between orders, as necessary
-      vehicle.Seats(0).unmount(None)
+      vehicle.Seats(0).unmount(player)
       vehicle.Position = Vector3(12, 0, 0)
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.ResetSpawnPad])
       probe.expectMsgClass(3 seconds, classOf[VehicleSpawnPad.ConcealPlayer])

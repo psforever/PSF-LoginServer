@@ -2,9 +2,9 @@
 package net.psforever.objects
 
 import net.psforever.objects.definition.{ToolDefinition, VehicleDefinition}
-import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot, JammableUnit}
+import net.psforever.objects.equipment.{EquipmentSize, EquipmentSlot, JammableUnit}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem, InventoryTile}
-import net.psforever.objects.serverobject.mount.{Mountable, Seat, SeatDefinition}
+import net.psforever.objects.serverobject.mount.{Seat, SeatDefinition}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.aura.AuraContainer
@@ -18,7 +18,6 @@ import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.resolution.DamageResistanceModel
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
-import scala.annotation.tailrec
 import scala.concurrent.duration.FiniteDuration
 import scala.util.{Success, Try}
 
@@ -72,11 +71,10 @@ import scala.util.{Success, Try}
   */
 class Vehicle(private val vehicleDef: VehicleDefinition)
     extends AmenityOwner
+    with MountableWeapons
     with InteractsWithZoneEnvironment
     with Hackable
     with FactionAffinity
-    with Mountable
-    with MountedWeapons
     with Deployment
     with Vitality
     with OwnableByPlayer
@@ -101,9 +99,7 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     */
   private val groupPermissions: Array[VehicleLockState.Value] =
     Array(VehicleLockState.Locked, VehicleLockState.Empire, VehicleLockState.Empire, VehicleLockState.Locked)
-  private var seats: Map[Int, Seat]            = Map.empty
   private var cargoHolds: Map[Int, Cargo]      = Map.empty
-  private var weapons: Map[Int, EquipmentSlot] = Map.empty
   private var utilities: Map[Int, Utility]     = Map()
   private val trunk: GridInventory             = GridInventory()
 
@@ -228,17 +224,6 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
   }
 
   /**
-    * Given the index of an entry mounting point, return the infantry-accessible `Seat` associated with it.
-    * @param mountPoint an index representing the mount position / mounting point
-    * @return a mount number, or `None`
-    */
-  def GetSeatFromMountPoint(mountPoint: Int): Option[Int] = {
-    Definition.MountPoints.get(mountPoint)
-  }
-
-  def MountPoints: Map[Int, Int] = Definition.MountPoints.toMap
-
-  /**
     * What are the access permissions for a position on this vehicle, seats or trunk?
     * @param group the group index
     * @return what sort of access permission exist for this group
@@ -292,24 +277,6 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
       None
     }
 
-  /**
-    * Get the mount at the index.
-    * The specified "mount" can only accommodate a player as opposed to weapon mounts which share the same indexing system.
-    * @param seatNumber an index representing the mount position / mounting point
-    * @return a `Seat`, or `None`
-    */
-  def Seat(seatNumber: Int): Option[Seat] = {
-    if (seatNumber >= 0 && seatNumber < this.seats.size) {
-      this.seats.get(seatNumber)
-    } else {
-      None
-    }
-  }
-
-  def Seats: Map[Int, Seat] = {
-    seats
-  }
-
   def CargoHold(cargoNumber: Int): Option[Cargo] = {
     if (cargoNumber >= 0) {
       this.cargoHolds.get(cargoNumber)
@@ -327,8 +294,8 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
       Some(AccessPermissionGroup.Driver)
     } else {
       Seat(seatNumber) match {
-        case Some(seat) =>
-          seat.ControlledWeapon match {
+        case Some(_) =>
+          Definition.controlledWeapons.get(seatNumber) match {
             case Some(_) =>
               Some(AccessPermissionGroup.Gunner)
             case None =>
@@ -341,42 +308,6 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
             case None =>
               None
           }
-      }
-    }
-  }
-
-  def Weapons: Map[Int, EquipmentSlot] = weapons
-
-  /**
-    * Get the weapon at the index.
-    * @param wepNumber an index representing the mount position / mounting point
-    * @return a weapon, or `None`
-    */
-  def ControlledWeapon(wepNumber: Int): Option[Equipment] = {
-    weapons.get(wepNumber) match {
-      case Some(mount) =>
-        mount.Equipment
-      case None =>
-        None
-    }
-  }
-
-  /**
-    * Given a player who may be an occupant, retrieve an number of the mount where this player is sat.
-    * @param player the player
-    * @return a mount number, or `None` if the `player` is not actually seated in this vehicle
-    */
-  def PassengerInSeat(player: Player): Option[Int] = recursivePassengerInSeat(seats.iterator, player)
-
-  @tailrec private def recursivePassengerInSeat(iter: Iterator[(Int, Seat)], player: Player): Option[Int] = {
-    if (!iter.hasNext) {
-      None
-    } else {
-      val (seatNumber, seat) = iter.next()
-      if (seat.occupants.contains(player)) {
-        Some(seatNumber)
-      } else {
-        recursivePassengerInSeat(iter, player)
       }
     }
   }
@@ -416,7 +347,7 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
 
   def Inventory: GridInventory = trunk
 
-  def VisibleSlots: Set[Int] = weapons.keySet
+  def VisibleSlots: Set[Int] = weapons.keys.toSet
 
   override def Slot(slotNum: Int): EquipmentSlot = {
     weapons
@@ -536,7 +467,7 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
 
   def PrepareGatingManifest(): VehicleManifest = {
     val manifest = VehicleManifest(this)
-    seats.collect { case (index: Int, seat: Seat) if index > 0 => seat.unmount(None) }
+    seats.collect { case (index: Int, seat: Seat) if index > 0 => seat.unmount(seat.occupant) }
     vehicleGatingManifest = Some(manifest)
     previousVehicleGatingManifest = None
     manifest

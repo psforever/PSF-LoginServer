@@ -1,13 +1,15 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.serverobject.mount
 
-import net.psforever.objects.definition.BasicDefinition
+import scala.collection.mutable
 
-trait MountableDefinition[A]
-  extends BasicDefinition {
-  def occupancy: Int = 1
+trait MountableDefinition {
+  /* key - mount index, value - mount object */
+  private val seats: mutable.HashMap[Int, SeatDefinition]  = mutable.HashMap[Int, SeatDefinition]()
+  /* key - entry point index, value - mount index */
+  private val mountPoints: mutable.HashMap[Int, Int] = mutable.HashMap()
 
-  def restriction: MountRestriction[A]
+  def Seats: mutable.HashMap[Int, SeatDefinition] = seats
 
-  def bailable: Boolean
+  def MountPoints: mutable.HashMap[Int, Int] = mountPoints
 }

@@ -26,7 +26,6 @@ class ImplantTerminalMechTest extends Specification {
       implant_terminal_mech.Seats.keySet mustEqual Set(0)
       implant_terminal_mech.Seats(0).isInstanceOf[SeatDefinition] mustEqual true
       implant_terminal_mech.Seats(0).bailable mustEqual false
-      implant_terminal_mech.Seats(0).ControlledWeapon.isEmpty mustEqual true
     }
   }
 
@@ -52,7 +51,7 @@ class ImplantTerminalMechTest extends Specification {
       obj.PassengerInSeat(player).isEmpty mustEqual true
       obj.Seats(0).mount(player)
       obj.PassengerInSeat(player).contains(0) mustEqual true
-      obj.Seats(0).unmount(None)
+      obj.Seats(0).unmount(player)
       obj.PassengerInSeat(player).isEmpty mustEqual true
     }
   }

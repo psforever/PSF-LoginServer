@@ -2,10 +2,10 @@
 package net.psforever.objects.vehicles
 
 import net.psforever.objects.Vehicle
-import net.psforever.objects.serverobject.mount.{MountableDefinition, SingleMountableSpace}
+import net.psforever.objects.serverobject.mount.{MountableSpace, MountableSpaceDefinition}
 
-class Cargo(private val cdef: MountableDefinition[Vehicle]) extends SingleMountableSpace[Vehicle] {
+class Cargo(private val cdef: MountableSpaceDefinition[Vehicle]) extends MountableSpace[Vehicle] {
   override protected def testToMount(target: Vehicle): Boolean = target.MountedIn.isEmpty && super.testToMount(target)
 
-  def definition: MountableDefinition[Vehicle] = cdef
+  def definition: MountableSpaceDefinition[Vehicle] = cdef
 }

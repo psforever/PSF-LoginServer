@@ -716,7 +716,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         //boot cadaver from mount internally (vehicle perspective)
         obj.PassengerInSeat(target) match {
           case Some(index) =>
-            obj.Seats(index).unmount(None)
+            obj.Seats(index).unmount(target)
           case _ => ;
         }
         //boot cadaver from mount on client

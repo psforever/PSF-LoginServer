@@ -1,7 +1,6 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.terminals.implant
 
-import net.psforever.objects.Player
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.mount.{Mountable, Seat}
 import net.psforever.objects.serverobject.structures.Amenity
@@ -19,27 +18,11 @@ class ImplantTerminalMech(private val idef: ImplantTerminalMechDefinition)
     with Mountable
     with Hackable
     with CaptureTerminalAware {
-  private val seats: Map[Int, Seat] = Map(0 -> new Seat(idef.Seats.head._2))
+  seats = Map(0 -> new Seat(idef.Seats.head._2))
 
   HackSound = TriggeredSound.HackTerminal
   HackEffectDuration = Array(0, 30, 60, 90)
   HackDuration = Array(0, 10, 5, 3)
-
-  def Seats: Map[Int, Seat] = seats
-
-  def Seat(seatNum: Int): Option[Seat] = seats.get(seatNum)
-
-  def MountPoints: Map[Int, Int] = idef.MountPoints
-
-  def GetSeatFromMountPoint(mount: Int): Option[Int] = idef.MountPoints.get(mount)
-
-  def PassengerInSeat(user: Player): Option[Int] = {
-    if (seats(0).occupants.contains(user)) {
-      Some(0)
-    } else {
-      None
-    }
-  }
 
   def Definition: ImplantTerminalMechDefinition = idef
 }

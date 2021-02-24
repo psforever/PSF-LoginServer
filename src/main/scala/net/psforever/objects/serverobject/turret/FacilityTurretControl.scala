@@ -74,7 +74,7 @@ class FacilityTurretControl(turret: FacilityTurret)
               item.Magazine > 0 && turret.Seats.values.forall(!_.isOccupied) =>
           TurretUpgrade.values.find(_.id == upgradeValue) match {
             case Some(upgrade)
-                if turret.Upgrade != upgrade && turret.Definition.Weapons.values
+                if turret.Upgrade != upgrade && turret.Definition.WeaponPaths.values
                   .flatMap(_.keySet)
                   .exists(_ == upgrade) =>
               sender() ! CommonMessages.Progress(

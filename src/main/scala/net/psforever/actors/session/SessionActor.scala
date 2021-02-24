@@ -2365,7 +2365,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case LocalResponse.RechargeVehicleWeapon(vehicle_guid, weapon_guid) => {
         if (tplayer_guid == guid) {
           continent.GUID(vehicle_guid) match {
-            case Some(vehicle: Mountable with MountedWeapons) =>
+            case Some(vehicle: MountableWeapons) =>
               vehicle.PassengerInSeat(player) match {
                 case Some(seat_num: Int) =>
                   vehicle.WeaponControlledFromSeat(seat_num) match {
@@ -2419,7 +2419,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             //phantasm doesn't uncloak if the driver is uncloaked and no other vehicle cloaks
             obj.Cloaked = tplayer.Cloaked
           }
-        } else if (obj.Seats(seat_num).ControlledWeapon.isEmpty) {
+        } else if (obj.WeaponControlledFromSeat(seat_num).isEmpty) {
           // the player will receive no messages consistently except the KeepAliveMessage echo
           keepAliveFunc = KeepAlivePersistence
         }
@@ -3809,7 +3809,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             turnCounterFunc(player.GUID)
             val seat = obj.Seats(0)
             player.Position = pos //convenient
-            if (seat.ControlledWeapon.isEmpty) {
+            if (obj.WeaponControlledFromSeat(0).isEmpty) {
               player.Orientation = Vector3.z(ang.z) //convenient
             }
             obj.Position = pos
@@ -6208,7 +6208,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     player.VehicleSeated match {
       case Some(vehicle_guid) => //weapon is vehicle turret?
         continent.GUID(vehicle_guid) match {
-          case Some(vehicle: Mountable with MountedWeapons with Container) =>
+          case Some(vehicle: Mountable with MountableWeapons with Container) =>
             vehicle.PassengerInSeat(player) match {
               case Some(seat_num) =>
                 (Some(vehicle), vehicle.WeaponControlledFromSeat(seat_num))
@@ -6809,7 +6809,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               sendResponse(PlanetsideAttributeMessage(target_guid, 20, value))
               GetMountableAndSeat(None, player, continent) match {
                 case (Some(mountable: Amenity), Some(seat)) if mountable.Owner.GUID == capture_terminal.Owner.GUID =>
-                  mountable.Seats(seat).unmount(None)
+                  mountable.Seats(seat).unmount(player)
                   player.VehicleSeated = None
                   continent.VehicleEvents ! VehicleServiceMessage(
                     continent.id,
@@ -7093,7 +7093,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     val pdata = pdef.Packet.DetailedConstructorData(tplayer).get
     tplayer.VehicleSeated = vguid
     sendResponse(ObjectCreateDetailedMessage(pdef.ObjectId, pguid, pdata))
-    if (seat == 0 || vehicle.Seats(seat).ControlledWeapon.nonEmpty) {
+    if (seat == 0 || vehicle.WeaponControlledFromSeat(seat).nonEmpty) {
       sendResponse(ObjectAttachMessage(vguid, pguid, seat))
       AccessContainer(vehicle)
       UpdateWeaponAtSeatPosition(vehicle, seat)
@@ -7167,7 +7167,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         player.VehicleSeated = vguid
         sendResponse(ObjectCreateDetailedMessage(pdef.ObjectId, pguid, pdata))
         //log.info(s"AvatarRejoin: $vguid -> $vdata")
-        if (seat == 0 || vehicle.Seats(seat).ControlledWeapon.nonEmpty) {
+        if (seat == 0 || vehicle.WeaponControlledFromSeat(seat).nonEmpty) {
           sendResponse(ObjectAttachMessage(vguid, pguid, seat))
           AccessContainer(vehicle)
           UpdateWeaponAtSeatPosition(vehicle, seat)
@@ -8919,7 +8919,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @param objWithSeat the object that owns seats (and weaponry)
     * @param seatNum the mount
     */
-  def UpdateWeaponAtSeatPosition(objWithSeat: MountedWeapons, seatNum: Int): Unit = {
+  def UpdateWeaponAtSeatPosition(objWithSeat: MountableWeapons, seatNum: Int): Unit = {
     objWithSeat.WeaponControlledFromSeat(seatNum) match {
       case Some(weapon: Tool) =>
         //update mounted weapon belonging to mount
@@ -9355,7 +9355,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     GetMountableAndSeat(None, tplayer, continent) match {
       case (Some(obj), Some(seatNum)) =>
         tplayer.VehicleSeated = None
-        obj.Seats(seatNum).unmount(None)
+        obj.Seats(seatNum).unmount(tplayer)
         continent.VehicleEvents ! VehicleServiceMessage(
           continent.id,
           VehicleAction.KickPassenger(tplayer.GUID, seatNum, false, obj.GUID)

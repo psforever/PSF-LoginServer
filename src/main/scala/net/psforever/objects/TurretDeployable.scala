@@ -25,8 +25,6 @@ class TurretDeployable(tdef: TurretDeployableDefinition)
     with Hackable {
   WeaponTurret.LoadDefinition(this)
 
-  def MountPoints: Map[Int, Int] = Definition.MountPoints.toMap
-
   override def Definition = tdef
 }
 

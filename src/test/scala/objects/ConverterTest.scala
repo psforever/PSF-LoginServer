@@ -874,7 +874,7 @@ class ConverterTest extends Specification {
       val fury_def = VehicleDefinition(ObjectClass.fury)
       fury_def.Seats += 0 -> new SeatDefinition()
       fury_def.Seats(0).bailable = true
-      fury_def.Seats(0).ControlledWeapon = Some(1)
+      fury_def.controlledWeapons += 0 -> 1
       fury_def.MountPoints += 0 -> 0
       fury_def.MountPoints += 2 -> 0
       fury_def.Weapons += 1     -> fury_weapon_systema_def

@@ -336,7 +336,7 @@ class PersistenceMonitor(name: String, squadService: ActorRef) extends Actor {
           case _ => (None, None) //bad data?
         }) match {
           case (Some(_), Some(seat)) =>
-            seat.unmount(None) //unmount
+            seat.unmount(player) //unmount
           case _ => ;
         }
         PlayerAvatarLogout(avatar, player)

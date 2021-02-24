@@ -13,8 +13,6 @@ class FacilityTurret(tDef: FacilityTurretDefinition)
     with CaptureTerminalAware {
   WeaponTurret.LoadDefinition(this)
 
-  def MountPoints: Map[Int, Int] = Definition.MountPoints.toMap
-
   def Definition: FacilityTurretDefinition = tDef
 }
 

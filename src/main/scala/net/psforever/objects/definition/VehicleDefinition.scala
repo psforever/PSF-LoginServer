@@ -4,8 +4,7 @@ package net.psforever.objects.definition
 import net.psforever.objects.NtuContainerDefinition
 import net.psforever.objects.definition.converter.VehicleConverter
 import net.psforever.objects.inventory.InventoryTile
-import net.psforever.objects.serverobject.mount.SeatDefinition
-import net.psforever.objects.vehicles.{DestroyedVehicle, UtilityType}
+import net.psforever.objects.vehicles.{DestroyedVehicle, MountableWeaponsDefinition, UtilityType}
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.resistance.ResistanceProfileMutators
@@ -21,19 +20,14 @@ import scala.concurrent.duration._
   */
 class VehicleDefinition(objectId: Int)
     extends ObjectDefinition(objectId)
+    with MountableWeaponsDefinition
     with VitalityDefinition
     with NtuContainerDefinition
     with ResistanceProfileMutators
     with DamageResistanceModel {
   /** vehicle shields offered through amp station facility benefits (generally: 20% of health + 1) */
   private var maxShields: Int = 0
-  /* key - mount index, value - mount object */
-  private val seats: mutable.HashMap[Int, SeatDefinition]  = mutable.HashMap[Int, SeatDefinition]()
   private val cargo: mutable.HashMap[Int, CargoDefinition] = mutable.HashMap[Int, CargoDefinition]()
-  /* key - entry point index, value - mount index */
-  private val mountPoints: mutable.HashMap[Int, Int] = mutable.HashMap()
-  /* key - mount index (where this weapon attaches during object construction), value - the weapon on an EquipmentSlot */
-  private val weapons: mutable.HashMap[Int, ToolDefinition]      = mutable.HashMap[Int, ToolDefinition]()
   private var deployment: Boolean                                = false
   private val utilities: mutable.HashMap[Int, UtilityType.Value] = mutable.HashMap()
   private val utilityOffsets: mutable.HashMap[Int, Vector3]      = mutable.HashMap()
@@ -65,11 +59,7 @@ class VehicleDefinition(objectId: Int)
     MaxShields
   }
 
-  def Seats: mutable.HashMap[Int, SeatDefinition] = seats
-
   def Cargo: mutable.HashMap[Int, CargoDefinition] = cargo
-
-  def MountPoints: mutable.HashMap[Int, Int] = mountPoints
 
   def CanBeOwned: Boolean = canBeOwned
 
@@ -91,8 +81,6 @@ class VehicleDefinition(objectId: Int)
     canFly = flying
     CanFly
   }
-
-  def Weapons: mutable.HashMap[Int, ToolDefinition] = weapons
 
   def Deployment: Boolean = deployment
 

@@ -83,21 +83,33 @@ object MountableBehavior {
     val dismountBehavior: Receive = {
       case Mountable.TryDismount(user, seat_num) =>
         val obj = MountableObject
-        obj.Seat(seat_num) match {
-          case Some(seat) =>
-            if (
-              seat.bailable || !obj.isMoving(1) || (obj
-                .isInstanceOf[Vehicle] && obj.asInstanceOf[Vehicle].DeploymentState == DriveState.Deployed)
-            ) {
-              seat.unmount(None)
-              user.VehicleSeated = None
-              sender() ! Mountable.MountMessages(user, Mountable.CanDismount(obj, seat_num))
-            } else {
-              sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(obj, seat_num))
-            }
-          case None =>
-            sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(obj, seat_num))
+        if (DismountTest(obj, seat_num, user)) {
+          user.VehicleSeated = None
+          sender() ! Mountable.MountMessages(user, Mountable.CanDismount(obj, seat_num))
+        } else {
+          sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(obj, seat_num))
         }
+    }
+
+    def DismountTest(
+                      obj: Mountable with WorldEntity,
+                      seatNumber: Int,
+                      user: Player
+                    ): Boolean = {
+      obj.Seats.get(seatNumber) match {
+        case Some(seat) =>
+          (
+            seat.bailable ||
+            !obj.isMoving(test = 1) ||
+            (obj match {
+              case v: Vehicle => v.DeploymentState == DriveState.Deployed
+              case _          => false
+            })
+            ) &&
+          seat.unmount(user).isEmpty
+        case None =>
+          false
+      }
     }
   }
 }

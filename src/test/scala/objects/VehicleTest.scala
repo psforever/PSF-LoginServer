@@ -15,19 +15,16 @@ class VehicleTest extends Specification {
     val seat = new SeatDefinition
     seat.restriction = MaxOnly
     seat.bailable = true
-    seat.ControlledWeapon = 5
 
     "define (default)" in {
       val t_seat = new SeatDefinition
       t_seat.restriction mustEqual NoMax
       t_seat.bailable mustEqual false
-      t_seat.ControlledWeapon.isEmpty mustEqual true
     }
 
     "define (custom)" in {
       seat.restriction mustEqual MaxOnly
       seat.bailable mustEqual true
-      seat.ControlledWeapon.contains(5)
     }
   }
 
@@ -38,7 +35,6 @@ class VehicleTest extends Specification {
       fury.CanCloak mustEqual false
       fury.Seats.size mustEqual 1
       fury.Seats(0).bailable mustEqual true
-      fury.Seats(0).ControlledWeapon.contains(1)
       fury.MountPoints.size mustEqual 2
       fury.MountPoints.get(1).contains(0)
       fury.MountPoints.get(2).contains(0)
@@ -55,13 +51,11 @@ class VehicleTest extends Specification {
     val seat_def = new SeatDefinition
     seat_def.restriction = MaxOnly
     seat_def.bailable = true
-    seat_def.ControlledWeapon = 5
 
     "construct" in {
       val seat = new Seat(seat_def)
       seat.definition.restriction mustEqual MaxOnly
       seat.bailable mustEqual true
-      seat.ControlledWeapon.contains(5)
       seat.isOccupied mustEqual false
       seat.occupants.isEmpty mustEqual true
     }
@@ -111,7 +105,7 @@ class VehicleTest extends Specification {
       seat.occupants.contains(player2) mustEqual false
       seat.occupants.contains(player1) mustEqual true
 
-      seat.unmount(None)
+      seat.unmount(player1)
       seat.isOccupied mustEqual false
       seat.mount(player2)
       seat.isOccupied mustEqual true
@@ -133,7 +127,6 @@ class VehicleTest extends Specification {
       fury_vehicle.Seats(0).isOccupied mustEqual false
       fury_vehicle.Seats(0).occupants.isEmpty mustEqual true
       fury_vehicle.Seats(0).bailable mustEqual true
-      fury_vehicle.Seats(0).ControlledWeapon.contains(1)
       fury_vehicle.PermissionGroup(0).contains(VehicleLockState.Locked) //driver
       fury_vehicle.PermissionGroup(1).contains(VehicleLockState.Empire) //gunner
       fury_vehicle.PermissionGroup(2).contains(VehicleLockState.Empire) //passenger
@@ -244,7 +237,7 @@ class VehicleTest extends Specification {
 
       harasser_vehicle.PassengerInSeat(player1).contains(0)
       harasser_vehicle.PassengerInSeat(player2).contains(1)
-      harasser_vehicle.Seat(0).get.unmount(None)
+      harasser_vehicle.Seat(0).get.unmount(player1)
       harasser_vehicle.PassengerInSeat(player1).isEmpty mustEqual true
       harasser_vehicle.PassengerInSeat(player2).contains(1)
     }

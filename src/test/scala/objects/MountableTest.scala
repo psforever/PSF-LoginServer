@@ -6,7 +6,7 @@ import base.ActorTest
 import net.psforever.objects.Player
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.definition.ObjectDefinition
-import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior, Seat, SeatDefinition}
+import net.psforever.objects.serverobject.mount._
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, PlanetSideGUID}
 
@@ -68,22 +68,13 @@ class MountableControl3Test extends ActorTest {
 
 object MountableTest {
   class MountableTestObject extends PlanetSideServerObject with Mountable {
-    private val seats: Map[Int, Seat]                  = Map(0 -> new Seat(new SeatDefinition()))
-    def Seats: Map[Int, Seat]                          = seats
-    def Seat(seatNum: Int): Option[Seat]               = seats.get(seatNum)
-    def MountPoints: Map[Int, Int]                     = Map(1 -> 0)
-    def GetSeatFromMountPoint(mount: Int): Option[Int] = MountPoints.get(mount)
-    def PassengerInSeat(user: Player): Option[Int] = {
-      if (seats(0).occupants.contains(user)) {
-        Some(0)
-      } else {
-        None
-      }
-    }
+    seats += 0 -> new Seat(new SeatDefinition())
     GUID = PlanetSideGUID(1)
     //eh whatever
     def Faction                      = PlanetSideEmpire.TR
-    def Definition: ObjectDefinition = null
+    def Definition = new ObjectDefinition(1) with MountableDefinition {
+      MountPoints += 0 -> 0
+    }
   }
 
   class MountableTestControl(obj: PlanetSideServerObject with Mountable)
