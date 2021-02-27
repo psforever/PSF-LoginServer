@@ -118,6 +118,14 @@ object Vector3 {
   def z(value: Float): Vector3 = Vector3(0, 0, value)
 
   /**
+    * Calculate the negation of this vector,
+    * the same vector in the antiparallel direction.
+    * @param v the original vector
+    * @return the negation of the original vector
+    */
+  def neg(v: Vector3): Vector3 = Vector3(-v.x, -v.y, -v.z)
+
+  /**
     * Calculate the actual distance between two points.
     * @param pos1 the first point
     * @param pos2 the second point
@@ -379,8 +387,8 @@ object Vector3 {
 
   /**
     * Given a `Vector3` element composed of Euler angles
-    * and a `Vector3` element in the direction of "up",
-    * find a standard unit vector that points in the direction of "up" after rotating by the Euler angles.
+    * and a `Vector3` element in the vector direction of "up",
+    * find a standard unit vector that points in the direction of the entity's "up" after rotating by the Euler angles.
     * Compass direction rules apply (North is 0 degrees, East is 90 degrees, etc.).
     * @see `Vector3.Rx(Float)`
     * @see `Vector3.Ry(Float)`
@@ -390,7 +398,12 @@ object Vector3 {
     * @return a mathematical vector representing a relative "up" direction
     */
   def relativeUp(orient: Vector3, up: Vector3): Vector3 = {
-    //TODO is the missing calculation before Rz(Rx(Ry(v, x), y), z) or after Rz(Ry(Rx(v, y), x), z)?
-    Rz(Rx(up, orient.y), (orient.z + 180) % 360f)
+    /*
+    rotate in Ry using the x-component and rotate in Rx using the y-component
+    only Rz is rotated using its corresponding component, and you add 180 clamping to 0-360 degrees
+    I'm sure mathematicians know what's going on here, but I don't
+    the purpose of this comment is to make certain that the future me knows that all this is not a mistake
+     */
+    Rz(Rx(Ry(Unit(up), orient.x), orient.y), (orient.z + 180) % 360f)
   }
 }

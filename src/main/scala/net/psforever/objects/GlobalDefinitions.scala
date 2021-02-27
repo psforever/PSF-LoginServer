@@ -7,6 +7,7 @@ import net.psforever.objects.ce.{DeployableCategory, DeployedItem}
 import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter._
 import net.psforever.objects.equipment._
+import net.psforever.objects.geometry.GeometryForm
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.serverobject.aura.Aura
 import net.psforever.objects.serverobject.doors.DoorDefinition
@@ -24,6 +25,7 @@ import net.psforever.objects.serverobject.turret.{FacilityTurretDefinition, Turr
 import net.psforever.objects.vehicles.{DestroyedVehicle, InternalTelepadDefinition, SeatArmorRestriction, UtilityType}
 import net.psforever.objects.vital.base.DamageType
 import net.psforever.objects.vital.damage._
+import net.psforever.objects.vital.etc.ExplodingRadialDegrade
 import net.psforever.objects.vital.projectile._
 import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.vital.{ComplexDeployableResolutions, MaxResolutions, SimpleResolutions}
@@ -969,6 +971,8 @@ object GlobalDefinitions {
   val deployable_shield_generator = new ShieldGeneratorDefinition
 
   val router_telepad_deployable = SimpleDeployableDefinition(DeployedItem.router_telepad_deployable)
+
+  val special_emp = ExplosiveDeployableDefinition(DeployedItem.jammer_mine)
 
   //this is only treated like a deployable
   val internal_router_telepad_deployable = InternalTelepadDefinition() //objectId: 744
@@ -5601,6 +5605,11 @@ object GlobalDefinitions {
     * Initialize `VehicleDefinition` globals.
     */
   private def init_vehicles(): Unit = {
+    val atvForm = GeometryForm.representByCylinder(radius = 1.1797f, height = 1.1875f) _
+    val delivererForm = GeometryForm.representByCylinder(radius = 2.46095f, height = 2.40626f) _ //TODO hexahedron
+    val apcForm = GeometryForm.representByCylinder(radius = 4.6211f, height = 3.90626f) _ //TODO hexahedron
+    val liberatorForm = GeometryForm.representByCylinder(radius = 3.74615f, height = 2.51563f) _
+
     fury.Name = "fury"
     fury.MaxHealth = 650
     fury.Damageable = true
@@ -5626,11 +5635,12 @@ object GlobalDefinitions {
       Damage1 = 225
       DamageRadius = 5
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     fury.DrownAtMaxDepth = true
     fury.MaxDepth = 1.3f
     fury.UnderwaterLifespan(suffocation = 5000L, recovery = 2500L)
+    fury.Geometry = atvForm
 
     quadassault.Name = "quadassault" // Basilisk
     quadassault.MaxHealth = 650
@@ -5657,11 +5667,12 @@ object GlobalDefinitions {
       Damage1 = 225
       DamageRadius = 5
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     quadassault.DrownAtMaxDepth = true
     quadassault.MaxDepth = 1.3f
     quadassault.UnderwaterLifespan(suffocation = 5000L, recovery = 2500L)
+    quadassault.Geometry = atvForm
 
     quadstealth.Name = "quadstealth" // Wraith
     quadstealth.MaxHealth = 650
@@ -5688,11 +5699,12 @@ object GlobalDefinitions {
       Damage1 = 225
       DamageRadius = 5
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     quadstealth.DrownAtMaxDepth = true
     quadstealth.MaxDepth = 1.25f
     quadstealth.UnderwaterLifespan(suffocation = 5000L, recovery = 2500L)
+    quadstealth.Geometry = atvForm
 
     two_man_assault_buggy.Name = "two_man_assault_buggy" // Harasser
     two_man_assault_buggy.MaxHealth = 1250
@@ -5721,11 +5733,12 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 8
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     two_man_assault_buggy.DrownAtMaxDepth = true
     two_man_assault_buggy.MaxDepth = 1.5f
     two_man_assault_buggy.UnderwaterLifespan(suffocation = 5000L, recovery = 2500L)
+    two_man_assault_buggy.Geometry = GeometryForm.representByCylinder(radius = 2.10545f, height = 1.59376f)
 
     skyguard.Name = "skyguard"
     skyguard.MaxHealth = 1000
@@ -5748,7 +5761,6 @@ object GlobalDefinitions {
     skyguard.AutoPilotSpeeds = (22, 8)
     skyguard.DestroyedModel = Some(DestroyedVehicle.Skyguard)
     skyguard.JackingDuration = Array(0, 15, 5, 3)
-
     skyguard.explodes = true
     skyguard.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
@@ -5756,11 +5768,12 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 8
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     skyguard.DrownAtMaxDepth = true
     skyguard.MaxDepth = 1.5f
     skyguard.UnderwaterLifespan(suffocation = 5000L, recovery = 2500L)
+    skyguard.Geometry = GeometryForm.representByCylinder(radius = 1.8867f, height = 1.4375f)
 
     threemanheavybuggy.Name = "threemanheavybuggy" // Marauder
     threemanheavybuggy.MaxHealth = 1700
@@ -5795,11 +5808,12 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 10
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     threemanheavybuggy.DrownAtMaxDepth = true
     threemanheavybuggy.MaxDepth = 1.83f
     threemanheavybuggy.UnderwaterLifespan(suffocation = 5000L, recovery = 2500L)
+    threemanheavybuggy.Geometry = GeometryForm.representByCylinder(radius = 2.1953f, height = 2.03125f)
 
     twomanheavybuggy.Name = "twomanheavybuggy" // Enforcer
     twomanheavybuggy.MaxHealth = 1800
@@ -5829,11 +5843,12 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 8
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     twomanheavybuggy.DrownAtMaxDepth = true
     twomanheavybuggy.MaxDepth = 1.95f
     twomanheavybuggy.UnderwaterLifespan(suffocation = 5000L, recovery = 2500L)
+    twomanheavybuggy.Geometry = GeometryForm.representByCylinder(radius = 2.60935f, height = 1.79688f)
 
     twomanhoverbuggy.Name = "twomanhoverbuggy" // Thresher
     twomanhoverbuggy.MaxHealth = 1600
@@ -5863,10 +5878,11 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 10
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     twomanhoverbuggy.DrownAtMaxDepth = true
     twomanhoverbuggy.UnderwaterLifespan(suffocation = 45000L, recovery = 5000L) //but the thresher hovers over water, so ...?
+    twomanhoverbuggy.Geometry = GeometryForm.representByCylinder(radius = 2.1875f, height = 2.01563f)
 
     mediumtransport.Name = "mediumtransport" // Deliverer
     mediumtransport.MaxHealth = 2500
@@ -5903,11 +5919,12 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     mediumtransport.DrownAtMaxDepth = false
     mediumtransport.MaxDepth = 1.2f
     mediumtransport.UnderwaterLifespan(suffocation = -1, recovery = -1)
+    mediumtransport.Geometry = delivererForm
 
     battlewagon.Name = "battlewagon" // Raider
     battlewagon.MaxHealth = 2500
@@ -5947,11 +5964,12 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     battlewagon.DrownAtMaxDepth = true
     battlewagon.MaxDepth = 1.2f
     battlewagon.UnderwaterLifespan(suffocation = -1, recovery = -1)
+    battlewagon.Geometry = delivererForm
 
     thunderer.Name = "thunderer"
     thunderer.MaxHealth = 2500
@@ -5988,11 +6006,12 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     thunderer.DrownAtMaxDepth = true
     thunderer.MaxDepth = 1.2f
     thunderer.UnderwaterLifespan(suffocation = -1, recovery = -1)
+    thunderer.Geometry = delivererForm
 
     aurora.Name = "aurora"
     aurora.MaxHealth = 2500
@@ -6029,11 +6048,12 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     aurora.DrownAtMaxDepth = true
     aurora.MaxDepth = 1.2f
     aurora.UnderwaterLifespan(suffocation = -1, recovery = -1)
+    aurora.Geometry = delivererForm
 
     apc_tr.Name = "apc_tr" // Juggernaut
     apc_tr.MaxHealth = 6000
@@ -6092,11 +6112,12 @@ object GlobalDefinitions {
       Damage1 = 450
       DamageRadius = 15
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     apc_tr.DrownAtMaxDepth = true
     apc_tr.MaxDepth = 3
     apc_tr.UnderwaterLifespan(suffocation = 15000L, recovery = 7500L)
+    apc_tr.Geometry = apcForm
 
     apc_nc.Name = "apc_nc" // Vindicator
     apc_nc.MaxHealth = 6000
@@ -6155,11 +6176,12 @@ object GlobalDefinitions {
       Damage1 = 450
       DamageRadius = 15
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     apc_nc.DrownAtMaxDepth = true
     apc_nc.MaxDepth = 3
     apc_nc.UnderwaterLifespan(suffocation = 15000L, recovery = 7500L)
+    apc_nc.Geometry = apcForm
 
     apc_vs.Name = "apc_vs" // Leviathan
     apc_vs.MaxHealth = 6000
@@ -6218,11 +6240,12 @@ object GlobalDefinitions {
       Damage1 = 450
       DamageRadius = 15
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     apc_vs.DrownAtMaxDepth = true
     apc_vs.MaxDepth = 3
     apc_vs.UnderwaterLifespan(suffocation = 15000L, recovery = 7500L)
+    apc_vs.Geometry = apcForm
 
     lightning.Name = "lightning"
     lightning.MaxHealth = 2000
@@ -6250,11 +6273,12 @@ object GlobalDefinitions {
       Damage1 = 375
       DamageRadius = 10
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     lightning.DrownAtMaxDepth = true
     lightning.MaxDepth = 1.38f
     lightning.UnderwaterLifespan(suffocation = 12000L, recovery = 6000L)
+    lightning.Geometry = GeometryForm.representByCylinder(radius = 2.5078f, height = 1.79688f)
 
     prowler.Name = "prowler"
     prowler.MaxHealth = 4800
@@ -6287,11 +6311,12 @@ object GlobalDefinitions {
       Damage1 = 375
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     prowler.DrownAtMaxDepth = true
     prowler.MaxDepth = 3
     prowler.UnderwaterLifespan(suffocation = 12000L, recovery = 6000L)
+    prowler.Geometry = GeometryForm.representByCylinder(radius = 3.461f, height = 3.48438f)
 
     vanguard.Name = "vanguard"
     vanguard.MaxHealth = 5400
@@ -6320,11 +6345,12 @@ object GlobalDefinitions {
       Damage1 = 375
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     vanguard.DrownAtMaxDepth = true
     vanguard.MaxDepth = 2.7f
     vanguard.UnderwaterLifespan(suffocation = 12000L, recovery = 6000L)
+    vanguard.Geometry = GeometryForm.representByCylinder(radius = 3.8554f, height = 2.60938f)
 
     magrider.Name = "magrider"
     magrider.MaxHealth = 4200
@@ -6355,11 +6381,12 @@ object GlobalDefinitions {
       Damage1 = 375
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     magrider.DrownAtMaxDepth = true
     magrider.MaxDepth = 2
     magrider.UnderwaterLifespan(suffocation = 45000L, recovery = 5000L) //but the magrider hovers over water, so ...?
+    magrider.Geometry = GeometryForm.representByCylinder(radius = 3.3008f, height = 3.26562f)
 
     val utilityConverter = new UtilityVehicleConverter
     ant.Name = "ant"
@@ -6388,11 +6415,12 @@ object GlobalDefinitions {
       Damage1 = 450
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     ant.DrownAtMaxDepth = true
     ant.MaxDepth = 2
     ant.UnderwaterLifespan(suffocation = 12000L, recovery = 6000L)
+    ant.Geometry = GeometryForm.representByCylinder(radius = 2.16795f, height = 2.09376f) //TODO hexahedron
 
     ams.Name = "ams"
     ams.MaxHealth = 5000 // Temporary - original value is 3000
@@ -6424,11 +6452,12 @@ object GlobalDefinitions {
       Damage1 = 450
       DamageRadius = 15
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     ams.DrownAtMaxDepth = true
     ams.MaxDepth = 3
     ams.UnderwaterLifespan(suffocation = 5000L, recovery = 5000L)
+    ams.Geometry = GeometryForm.representByCylinder(radius = 3.0117f, height = 3.39062f) //TODO hexahedron
 
     val variantConverter = new VariantVehicleConverter
     router.Name = "router"
@@ -6460,11 +6489,12 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 10
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     router.DrownAtMaxDepth = true
     router.MaxDepth = 2
     router.UnderwaterLifespan(suffocation = 45000L, recovery = 5000L) //but the router hovers over water, so ...?
+    router.Geometry = GeometryForm.representByCylinder(radius = 3.64845f, height = 3.51563f) //TODO hexahedron
 
     switchblade.Name = "switchblade"
     switchblade.MaxHealth = 1750
@@ -6496,11 +6526,12 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 10
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     switchblade.DrownAtMaxDepth = true
     switchblade.MaxDepth = 2
     switchblade.UnderwaterLifespan(suffocation = 45000L, recovery = 5000L) //but the switchblade hovers over water, so ...?
+    switchblade.Geometry = GeometryForm.representByCylinder(radius = 2.4335f, height = 2.73438f)
 
     flail.Name = "flail"
     flail.MaxHealth = 2400
@@ -6530,11 +6561,12 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 10
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     flail.DrownAtMaxDepth = true
     flail.MaxDepth = 2
     flail.UnderwaterLifespan(suffocation = 45000L, recovery = 5000L) //but the flail hovers over water, so ...?
+    flail.Geometry = GeometryForm.representByCylinder(radius = 2.1875f, height = 2.21875f)
 
     mosquito.Name = "mosquito"
     mosquito.MaxHealth = 665
@@ -6564,10 +6596,11 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 10
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     mosquito.DrownAtMaxDepth = true
     mosquito.MaxDepth = 2 //flying vehicles will automatically disable
+    mosquito.Geometry = GeometryForm.representByCylinder(radius = 2.72108f, height = 2.5f)
 
     lightgunship.Name = "lightgunship" // Reaver
     lightgunship.MaxHealth = 1000
@@ -6598,10 +6631,11 @@ object GlobalDefinitions {
       Damage1 = 375
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     lightgunship.DrownAtMaxDepth = true
     lightgunship.MaxDepth = 2 //flying vehicles will automatically disable
+    lightgunship.Geometry = GeometryForm.representByCylinder(radius = 2.375f, height = 1.98438f)
 
     wasp.Name = "wasp"
     wasp.MaxHealth = 515
@@ -6631,10 +6665,11 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 10
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     wasp.DrownAtMaxDepth = true
     wasp.MaxDepth = 2 //flying vehicles will automatically disable
+    wasp.Geometry = GeometryForm.representByCylinder(radius = 2.88675f, height = 2.5f)
 
     liberator.Name = "liberator"
     liberator.MaxHealth = 2500
@@ -6674,10 +6709,11 @@ object GlobalDefinitions {
       Damage1 = 375
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     liberator.DrownAtMaxDepth = true
     liberator.MaxDepth = 2 //flying vehicles will automatically disable
+    liberator.Geometry = liberatorForm
 
     vulture.Name = "vulture"
     vulture.MaxHealth = 2500
@@ -6718,10 +6754,11 @@ object GlobalDefinitions {
       Damage1 = 375
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     vulture.DrownAtMaxDepth = true
     vulture.MaxDepth = 2 //flying vehicles will automatically disable
+    vulture.Geometry = liberatorForm
 
     dropship.Name = "dropship" // Galaxy
     dropship.MaxHealth = 5000
@@ -6792,10 +6829,11 @@ object GlobalDefinitions {
       Damage1 = 450
       DamageRadius = 30
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     dropship.DrownAtMaxDepth = true
     dropship.MaxDepth = 2
+    dropship.Geometry = GeometryForm.representByCylinder(radius = 10.52202f, height = 6.23438f)
 
     galaxy_gunship.Name = "galaxy_gunship"
     galaxy_gunship.MaxHealth = 6000
@@ -6850,10 +6888,11 @@ object GlobalDefinitions {
       Damage1 = 450
       DamageRadius = 30
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     galaxy_gunship.DrownAtMaxDepth = true
     galaxy_gunship.MaxDepth = 2
+    galaxy_gunship.Geometry = GeometryForm.representByCylinder(radius = 9.2382f, height = 5.01562f)
 
     lodestar.Name = "lodestar"
     lodestar.MaxHealth = 5000
@@ -6891,10 +6930,11 @@ object GlobalDefinitions {
       Damage1 = 450
       DamageRadius = 30
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     lodestar.DrownAtMaxDepth = true
     lodestar.MaxDepth = 2
+    lodestar.Geometry = GeometryForm.representByCylinder(radius = 7.8671f, height = 6.79688f) //TODO hexahedron
 
     phantasm.Name = "phantasm"
     phantasm.MaxHealth = 2500
@@ -6933,10 +6973,11 @@ object GlobalDefinitions {
       Damage1 = 150
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     phantasm.DrownAtMaxDepth = true
     phantasm.MaxDepth = 2
+    phantasm.Geometry = GeometryForm.representByCylinder(radius = 5.2618f, height = 3f)
 
     droppod.Name = "droppod"
     droppod.MaxHealth = 20000
@@ -6950,12 +6991,18 @@ object GlobalDefinitions {
     droppod.DestroyedModel = None //the adb calls out a droppod; the cyclic nature of this confounds me
     droppod.DamageUsing = DamageCalculations.AgainstAircraft
     droppod.DrownAtMaxDepth = false
+    //TODO geometry?
   }
 
   /**
     * Initialize `Deployable` globals.
     */
   private def init_deployables(): Unit = {
+    val mine = GeometryForm.representByCylinder(radius = 0.1914f, height = 0.0957f) _
+    val smallTurret = GeometryForm.representByCylinder(radius = 0.48435f, height = 1.23438f) _
+    val sensor = GeometryForm.representByCylinder(radius = 0.1914f, height = 1.21875f) _
+    val largeTurret = GeometryForm.representByCylinder(radius = 0.8437f, height = 2.29687f) _
+
     boomer.Name = "boomer"
     boomer.Descriptor = "Boomers"
     boomer.MaxHealth = 100
@@ -6975,8 +7022,9 @@ object GlobalDefinitions {
       Damage4 = 1850
       DamageRadius = 5.1f
       DamageAtEdge = 0.1f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
+    boomer.Geometry = mine
 
     he_mine.Name = "he_mine"
     he_mine.Descriptor = "Mines"
@@ -6996,8 +7044,9 @@ object GlobalDefinitions {
       Damage4 = 1600
       DamageRadius = 6.6f
       DamageAtEdge = 0.25f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
+    he_mine.Geometry = mine
 
     jammer_mine.Name = "jammer_mine"
     jammer_mine.Descriptor = "JammerMines"
@@ -7007,6 +7056,7 @@ object GlobalDefinitions {
     jammer_mine.Repairable = false
     jammer_mine.DeployTime = Duration.create(1000, "ms")
     jammer_mine.DetonateOnJamming = false
+    jammer_mine.Geometry = mine
 
     spitfire_turret.Name = "spitfire_turret"
     spitfire_turret.Descriptor = "Spitfires"
@@ -7028,8 +7078,9 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 8
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
+    spitfire_turret.Geometry = smallTurret
 
     spitfire_cloaked.Name = "spitfire_cloaked"
     spitfire_cloaked.Descriptor = "CloakingSpitfires"
@@ -7050,8 +7101,9 @@ object GlobalDefinitions {
       Damage1 = 75
       DamageRadius = 8
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
+    spitfire_cloaked.Geometry = smallTurret
 
     spitfire_aa.Name = "spitfire_aa"
     spitfire_aa.Descriptor = "FlakSpitfires"
@@ -7072,8 +7124,9 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 8
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
+    spitfire_aa.Geometry = smallTurret
 
     motionalarmsensor.Name = "motionalarmsensor"
     motionalarmsensor.Descriptor = "MotionSensors"
@@ -7082,6 +7135,7 @@ object GlobalDefinitions {
     motionalarmsensor.Repairable = true
     motionalarmsensor.RepairIfDestroyed = false
     motionalarmsensor.DeployTime = Duration.create(1000, "ms")
+    motionalarmsensor.Geometry = sensor
 
     sensor_shield.Name = "sensor_shield"
     sensor_shield.Descriptor = "SensorShields"
@@ -7090,6 +7144,7 @@ object GlobalDefinitions {
     sensor_shield.Repairable = true
     sensor_shield.RepairIfDestroyed = false
     sensor_shield.DeployTime = Duration.create(5000, "ms")
+    sensor_shield.Geometry = sensor
 
     tank_traps.Name = "tank_traps"
     tank_traps.Descriptor = "TankTraps"
@@ -7106,8 +7161,9 @@ object GlobalDefinitions {
       Damage1 = 10
       DamageRadius = 8
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
+    tank_traps.Geometry = GeometryForm.representByCylinder(radius = 2.89680997f, height = 3.57812f)
 
     val fieldTurretConverter = new FieldTurretConverter
     portable_manned_turret.Name = "portable_manned_turret"
@@ -7133,8 +7189,9 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 8
       DamageAtEdge = 0.1f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
+    portable_manned_turret.Geometry = largeTurret
 
     portable_manned_turret_nc.Name = "portable_manned_turret_nc"
     portable_manned_turret_nc.Descriptor = "FieldTurrets"
@@ -7159,8 +7216,9 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 8
       DamageAtEdge = 0.1f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
+    portable_manned_turret_nc.Geometry = largeTurret
 
     portable_manned_turret_tr.Name = "portable_manned_turret_tr"
     portable_manned_turret_tr.Descriptor = "FieldTurrets"
@@ -7185,8 +7243,9 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 8
       DamageAtEdge = 0.1f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
+    portable_manned_turret_tr.Geometry = largeTurret
 
     portable_manned_turret_vs.Name = "portable_manned_turret_vs"
     portable_manned_turret_vs.Descriptor = "FieldTurrets"
@@ -7211,8 +7270,9 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 8
       DamageAtEdge = 0.1f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
+    portable_manned_turret_vs.Geometry = largeTurret
 
     deployable_shield_generator.Name = "deployable_shield_generator"
     deployable_shield_generator.Descriptor = "ShieldGenerators"
@@ -7222,6 +7282,7 @@ object GlobalDefinitions {
     deployable_shield_generator.RepairIfDestroyed = false
     deployable_shield_generator.DeployTime = Duration.create(6000, "ms")
     deployable_shield_generator.Model = ComplexDeployableResolutions.calculate
+    deployable_shield_generator.Geometry = GeometryForm.representByCylinder(radius = 0.6562f, height = 2.17188f)
 
     router_telepad_deployable.Name = "router_telepad_deployable"
     router_telepad_deployable.MaxHealth = 100
@@ -7231,6 +7292,7 @@ object GlobalDefinitions {
     router_telepad_deployable.DeployCategory = DeployableCategory.Telepads
     router_telepad_deployable.Packet = new TelepadDeployableConverter
     router_telepad_deployable.Model = SimpleResolutions.calculate
+    router_telepad_deployable.Geometry = GeometryForm.representByRaisedSphere(radius = 1.2344f)
 
     internal_router_telepad_deployable.Name = "router_telepad_deployable"
     internal_router_telepad_deployable.MaxHealth = 1
@@ -7239,12 +7301,30 @@ object GlobalDefinitions {
     internal_router_telepad_deployable.DeployTime = Duration.create(1, "ms")
     internal_router_telepad_deployable.DeployCategory = DeployableCategory.Telepads
     internal_router_telepad_deployable.Packet = new InternalTelepadDeployableConverter
+
+    special_emp.Name = "emp"
+    special_emp.MaxHealth = 1
+    special_emp.Damageable = false
+    special_emp.Repairable = false
+    special_emp.DeployCategory = DeployableCategory.Mines
+    special_emp.explodes = true
+    special_emp.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.Splash
+      SympatheticExplosion = true
+      Damage0 = 0
+      DamageAtEdge = 1.0f
+      DamageRadius = 5f
+      AdditionalEffect = true
+      Modifiers = MaxDistanceCutoff
+    }
   }
 
   /**
     * Initialize `Miscellaneous` globals.
     */
   private def initMiscellaneous(): Unit = {
+    val vterm = GeometryForm.representByCylinder(radius = 1.03515f, height = 1.09374f) _
+
     ams_respawn_tube.Name = "ams_respawn_tube"
     ams_respawn_tube.Delay = 10
     ams_respawn_tube.SpecificPointFunc = SpawnPoint.AMS
@@ -7285,9 +7365,10 @@ object GlobalDefinitions {
     order_terminal.MaxHealth = 500
     order_terminal.Damageable = true
     order_terminal.Repairable = true
-    order_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
+    order_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) 
     order_terminal.RepairIfDestroyed = true
     order_terminal.Subtract.Damage1 = 8
+    order_terminal.Geometry = GeometryForm.representByCylinder(radius = 0.8438f, height = 1.3f)
 
     order_terminala.Name = "order_terminala"
     order_terminala.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(
@@ -7349,16 +7430,18 @@ object GlobalDefinitions {
     cert_terminal.MaxHealth = 500
     cert_terminal.Damageable = true
     cert_terminal.Repairable = true
-    cert_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
+    cert_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) 
     cert_terminal.RepairIfDestroyed = true
     cert_terminal.Subtract.Damage1 = 8
+    cert_terminal.Geometry = GeometryForm.representByCylinder(radius = 0.66405f, height = 1.09374f)
 
     implant_terminal_mech.Name = "implant_terminal_mech"
     implant_terminal_mech.MaxHealth = 1500 //TODO 1000; right now, 1000 (mech) + 500 (interface)
     implant_terminal_mech.Damageable = true
     implant_terminal_mech.Repairable = true
-    implant_terminal_mech.autoRepair = AutoRepairStats(1.6f, 5000, 2400, 0.5f) //ori. 1, 5000, 2400, 0.5f
+    implant_terminal_mech.autoRepair = AutoRepairStats(1.6f, 5000, 2400, 0.5f)
     implant_terminal_mech.RepairIfDestroyed = true
+    implant_terminal_mech.Geometry = GeometryForm.representByCylinder(radius = 2.7813f, height = 6.4375f)
 
     implant_terminal_interface.Name = "implant_terminal_interface"
     implant_terminal_interface.Tab += 0 -> OrderTerminalDefinition.ImplantPage(ImplantTerminalDefinition.implants)
@@ -7367,6 +7450,7 @@ object GlobalDefinitions {
     implant_terminal_interface.Repairable = true
     implant_terminal_interface.autoRepair = AutoRepairStats(1, 5000, 200, 1) //TODO amount and drain are default? undefined?
     implant_terminal_interface.RepairIfDestroyed = true
+    //TODO will need geometry when Damageable = true
 
     ground_vehicle_terminal.Name = "ground_vehicle_terminal"
     ground_vehicle_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(
@@ -7377,9 +7461,10 @@ object GlobalDefinitions {
     ground_vehicle_terminal.MaxHealth = 500
     ground_vehicle_terminal.Damageable = true
     ground_vehicle_terminal.Repairable = true
-    ground_vehicle_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
+    ground_vehicle_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) 
     ground_vehicle_terminal.RepairIfDestroyed = true
     ground_vehicle_terminal.Subtract.Damage1 = 8
+    ground_vehicle_terminal.Geometry = vterm
 
     air_vehicle_terminal.Name = "air_vehicle_terminal"
     air_vehicle_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(
@@ -7390,9 +7475,10 @@ object GlobalDefinitions {
     air_vehicle_terminal.MaxHealth = 500
     air_vehicle_terminal.Damageable = true
     air_vehicle_terminal.Repairable = true
-    air_vehicle_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
+    air_vehicle_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) 
     air_vehicle_terminal.RepairIfDestroyed = true
     air_vehicle_terminal.Subtract.Damage1 = 8
+    air_vehicle_terminal.Geometry = vterm
 
     dropship_vehicle_terminal.Name = "dropship_vehicle_terminal"
     dropship_vehicle_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(
@@ -7403,9 +7489,10 @@ object GlobalDefinitions {
     dropship_vehicle_terminal.MaxHealth = 500
     dropship_vehicle_terminal.Damageable = true
     dropship_vehicle_terminal.Repairable = true
-    dropship_vehicle_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
+    dropship_vehicle_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) 
     dropship_vehicle_terminal.RepairIfDestroyed = true
     dropship_vehicle_terminal.Subtract.Damage1 = 8
+    dropship_vehicle_terminal.Geometry = vterm
 
     vehicle_terminal_combined.Name = "vehicle_terminal_combined"
     vehicle_terminal_combined.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(
@@ -7416,9 +7503,10 @@ object GlobalDefinitions {
     vehicle_terminal_combined.MaxHealth = 500
     vehicle_terminal_combined.Damageable = true
     vehicle_terminal_combined.Repairable = true
-    vehicle_terminal_combined.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
+    vehicle_terminal_combined.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) 
     vehicle_terminal_combined.RepairIfDestroyed = true
     vehicle_terminal_combined.Subtract.Damage1 = 8
+    vehicle_terminal_combined.Geometry = vterm
 
     vanu_air_vehicle_term.Name = "vanu_air_vehicle_term"
     vanu_air_vehicle_term.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(
@@ -7429,7 +7517,7 @@ object GlobalDefinitions {
     vanu_air_vehicle_term.MaxHealth = 500
     vanu_air_vehicle_term.Damageable = true
     vanu_air_vehicle_term.Repairable = true
-    vanu_air_vehicle_term.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
+    vanu_air_vehicle_term.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) 
     vanu_air_vehicle_term.RepairIfDestroyed = true
     vanu_air_vehicle_term.Subtract.Damage1 = 8
 
@@ -7442,7 +7530,7 @@ object GlobalDefinitions {
     vanu_vehicle_term.MaxHealth = 500
     vanu_vehicle_term.Damageable = true
     vanu_vehicle_term.Repairable = true
-    vanu_vehicle_term.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
+    vanu_vehicle_term.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) 
     vanu_vehicle_term.RepairIfDestroyed = true
     vanu_vehicle_term.Subtract.Damage1 = 8
 
@@ -7455,9 +7543,10 @@ object GlobalDefinitions {
     bfr_terminal.MaxHealth = 500
     bfr_terminal.Damageable = true
     bfr_terminal.Repairable = true
-    bfr_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
+    bfr_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) 
     bfr_terminal.RepairIfDestroyed = true
     bfr_terminal.Subtract.Damage1 = 8
+    bfr_terminal.Geometry = GeometryForm.representByCylinder(radius = 0.92185f, height = 2.64693f)
 
     respawn_tube.Name = "respawn_tube"
     respawn_tube.Delay = 10
@@ -7466,9 +7555,10 @@ object GlobalDefinitions {
     respawn_tube.Damageable = true
     respawn_tube.DamageableByFriendlyFire = false
     respawn_tube.Repairable = true
-    respawn_tube.autoRepair = AutoRepairStats(1.6f, 10000, 2400, 1) //orig. 1, 10000, 2400, 1
+    respawn_tube.autoRepair = AutoRepairStats(1.6f, 10000, 2400, 1) 
     respawn_tube.RepairIfDestroyed = true
     respawn_tube.Subtract.Damage1 = 8
+    respawn_tube.Geometry = GeometryForm.representByCylinder(radius = 0.9336f, height = 2.84375f)
 
     respawn_tube_sanctuary.Name = "respawn_tube"
     respawn_tube_sanctuary.Delay = 10
@@ -7477,7 +7567,8 @@ object GlobalDefinitions {
     respawn_tube_sanctuary.Damageable = false //true?
     respawn_tube_sanctuary.DamageableByFriendlyFire = false
     respawn_tube_sanctuary.Repairable = true
-    respawn_tube_sanctuary.autoRepair = AutoRepairStats(1.6f, 10000, 2400, 1) //orig. 1, 10000, 2400, 1
+    respawn_tube_sanctuary.autoRepair = AutoRepairStats(1.6f, 10000, 2400, 1)
+    //TODO will need geometry when Damageable = true
 
     respawn_tube_tower.Name = "respawn_tube_tower"
     respawn_tube_tower.Delay = 10
@@ -7486,9 +7577,10 @@ object GlobalDefinitions {
     respawn_tube_tower.Damageable = true
     respawn_tube_tower.DamageableByFriendlyFire = false
     respawn_tube_tower.Repairable = true
-    respawn_tube_tower.autoRepair = AutoRepairStats(1.6f, 10000, 2400, 1) //orig. 1, 10000, 2400, 1
+    respawn_tube_tower.autoRepair = AutoRepairStats(1.6f, 10000, 2400, 1) 
     respawn_tube_tower.RepairIfDestroyed = true
     respawn_tube_tower.Subtract.Damage1 = 8
+    respawn_tube_tower.Geometry = GeometryForm.representByCylinder(radius = 0.9336f, height = 2.84375f)
 
     teleportpad_terminal.Name = "teleportpad_terminal"
     teleportpad_terminal.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.routerTerminal)
@@ -7504,8 +7596,9 @@ object GlobalDefinitions {
     medical_terminal.MaxHealth = 500
     medical_terminal.Damageable = true
     medical_terminal.Repairable = true
-    medical_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
+    medical_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) 
     medical_terminal.RepairIfDestroyed = true
+    medical_terminal.Geometry = GeometryForm.representByCylinder(radius = 0.711f, height = 1.75f)
 
     adv_med_terminal.Name = "adv_med_terminal"
     adv_med_terminal.Interval = 500
@@ -7516,8 +7609,9 @@ object GlobalDefinitions {
     adv_med_terminal.MaxHealth = 750
     adv_med_terminal.Damageable = true
     adv_med_terminal.Repairable = true
-    adv_med_terminal.autoRepair = AutoRepairStats(1.57894f, 5000, 2400, 0.5f) //orig. 1, 5000, 2400, 0.5f
+    adv_med_terminal.autoRepair = AutoRepairStats(1.57894f, 5000, 2400, 0.5f) 
     adv_med_terminal.RepairIfDestroyed = true
+    adv_med_terminal.Geometry = GeometryForm.representByCylinder(radius = 0.8662125f, height = 3.47f)
 
     crystals_health_a.Name = "crystals_health_a"
     crystals_health_a.Interval = 500
@@ -7544,7 +7638,7 @@ object GlobalDefinitions {
     portable_med_terminal.MaxHealth = 500
     portable_med_terminal.Damageable = false //TODO actually true
     portable_med_terminal.Repairable = false
-    portable_med_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
+    portable_med_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) 
 
     pad_landing_frame.Name = "pad_landing_frame"
     pad_landing_frame.Interval = 1000
@@ -7658,7 +7752,7 @@ object GlobalDefinitions {
     manned_turret.Damageable = true
     manned_turret.DamageDisablesAt = 0
     manned_turret.Repairable = true
-    manned_turret.autoRepair = AutoRepairStats(1.0909f, 10000, 1600, 0.5f) //orig. 1, 10000, 1600, 0.5f
+    manned_turret.autoRepair = AutoRepairStats(1.0909f, 10000, 1600, 0.5f) 
     manned_turret.RepairIfDestroyed = true
     manned_turret.Weapons += 1                          -> new mutable.HashMap()
     manned_turret.Weapons(1) += TurretUpgrade.None      -> phalanx_sgl_hevgatcan
@@ -7674,15 +7768,16 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 5
       DamageAtEdge = 0.1f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
+    manned_turret.Geometry = GeometryForm.representByCylinder(radius = 1.2695f, height = 2.6875f)
 
     vanu_sentry_turret.Name = "vanu_sentry_turret"
     vanu_sentry_turret.MaxHealth = 1500
     vanu_sentry_turret.Damageable = true
     vanu_sentry_turret.DamageDisablesAt = 0
     vanu_sentry_turret.Repairable = true
-    vanu_sentry_turret.autoRepair = AutoRepairStats(3.27272f, 10000, 1000, 0.5f) //orig. 3, 10000, 1000, 0.5f
+    vanu_sentry_turret.autoRepair = AutoRepairStats(3.27272f, 10000, 1000, 0.5f) 
     vanu_sentry_turret.RepairIfDestroyed = true
     vanu_sentry_turret.Weapons += 1                     -> new mutable.HashMap()
     vanu_sentry_turret.Weapons(1) += TurretUpgrade.None -> vanu_sentry_turret_weapon
@@ -7690,6 +7785,7 @@ object GlobalDefinitions {
     vanu_sentry_turret.MountPoints += 2                 -> 0
     vanu_sentry_turret.FactionLocked = false
     vanu_sentry_turret.ReserveAmmunition = false
+    vanu_sentry_turret.Geometry = GeometryForm.representByCylinder(radius = 1.76311f, height = 3.984375f)
 
     painbox.Name = "painbox"
     painbox.alwaysOn = false
@@ -7764,7 +7860,7 @@ object GlobalDefinitions {
     generator.Damageable = true
     generator.DamageableByFriendlyFire = false
     generator.Repairable = true
-    generator.autoRepair = AutoRepairStats(0.77775f, 5000, 875, 1) //orig. 1, 5000, 875, 1
+    generator.autoRepair = AutoRepairStats(0.77775f, 5000, 875, 1) 
     generator.RepairDistance = 13.5f
     generator.RepairIfDestroyed = true
     generator.Subtract.Damage1 = 9
@@ -7772,12 +7868,12 @@ object GlobalDefinitions {
     generator.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 99999
-      //DamageRadius should be 14, but 14 is insufficient for hitting the whole chamber; hence, ...
-      DamageRadius = 15.75f
       DamageRadiusMin = 14
+      DamageRadius = 14.5f
       DamageAtEdge = 0.00002f
-      Modifiers = RadialDegrade
-      //damage is 99999 at 14m, dropping rapidly to ~1 at 15.75m
+      Modifiers = ExplodingRadialDegrade
+      //damage is 99999 at 14m, dropping rapidly to ~1 at 14.5m
     }
+    generator.Geometry = GeometryForm.representByCylinder(radius = 1.2617f, height = 9.14063f)
   }
 }

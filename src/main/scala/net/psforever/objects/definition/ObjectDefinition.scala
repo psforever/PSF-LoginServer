@@ -3,6 +3,7 @@ package net.psforever.objects.definition
 
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.definition.converter.{ObjectCreateConverter, PacketConverter}
+import net.psforever.objects.geometry.{Geometry3D, GeometryForm}
 import net.psforever.types.OxygenState
 
 /**
@@ -74,6 +75,28 @@ abstract class ObjectDefinition(private val objectId: Int) extends BasicDefiniti
   def UnderwaterLifespan(suffocation: Long, recovery: Long): Map[OxygenState, Long] = {
     underwaterLifespan = Map(OxygenState.Suffocation -> suffocation, OxygenState.Recovery -> recovery)
     UnderwaterLifespan()
+  }
+
+  private var serverSplashTargetsCentroid: Boolean = false
+
+  def ServerSplashTargetsCentroid: Boolean = serverSplashTargetsCentroid
+
+  def ServerSplashTargetsCentroid_=(splash: Boolean): Boolean = {
+    serverSplashTargetsCentroid = splash
+    ServerSplashTargetsCentroid
+  }
+
+  private var serverGeometry: Any => Geometry3D = GeometryForm.representByPoint()
+
+  def Geometry: Any => Geometry3D = if (ServerSplashTargetsCentroid) {
+    serverGeometry
+  } else {
+    GeometryForm.representByPoint()
+  }
+
+  def Geometry_=(func: Any => Geometry3D): Any => Geometry3D = {
+    serverGeometry = func
+    Geometry
   }
 
   def ObjectId: Int = objectId
