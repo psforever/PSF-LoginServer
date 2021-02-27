@@ -1,6 +1,7 @@
 // Copyright (c) 2016 PSForever.net to present
 package net.psforever.packet.game
 
+import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
 import net.psforever.types.PlanetSideGUID
 import scodec.Codec
@@ -71,11 +72,11 @@ import scodec.codecs._
   * Format is: Time left - 2 bytes, faction - 1 byte (1-4), isResecured - 1 byte (0-1)`<br>
   *   <ul>
   *     <li>65535 segments per faction in deciseconds (seconds * 10)</li>
-  *     <li>0-65535 = Neutral 0 seconds to 1h 49m 14s - 0x 00 00 00 00 to 0x FF FF 00 00</li>
-  *     <li>65536 - 131071 - TR - 0x 00 00 01 00</li>
-  *     <li>131072 - 196607 - NC - 0x 00 00 02 00</li>
-  *     <li>196608 - 262143 - VS - 0x 00 00 03 00</li>
-  *     <li>17039360 - CC Resecured - 0x 00 00 04 01</li>
+  *     <li>0-65535 = Neutral 0 seconds to 1h 49m 14s - 0x0000 to 0xFFFF</li>
+  *     <li>65536 (0x10000) - 131071 (0x1FFFF) - TR</li>
+  *     <li>131072 (0x20000) - 196607 (0x2FFFF) - NC</li>
+  *     <li>196608 (0x30000) - 262143 (0x3FFFF) - VS</li>
+  *     <li>17039360 (0x1040000) - CC Resecured</li>
   *   </ul>
   * `24 - Learn certification:`<br>
   *   <ul>
@@ -215,9 +216,23 @@ object PlanetsideAttributeMessage extends Marshallable[PlanetsideAttributeMessag
     PlanetsideAttributeMessage(guid, attribute_type, attribute_value.guid)
   }
 
+  def apply(guid: PlanetSideGUID, attribute_type: PlanetsideAttributeEnum, attribute_value: Int): PlanetsideAttributeMessage = {
+    PlanetsideAttributeMessage(guid, attribute_type.id, attribute_value.toLong)
+  }
+
+  def apply(guid: PlanetSideGUID, attribute_type: PlanetsideAttributeEnum, attribute_value: Long): PlanetsideAttributeMessage = {
+    PlanetsideAttributeMessage(guid, attribute_type.id, attribute_value)
+  }
+
   implicit val codec: Codec[PlanetsideAttributeMessage] = (
     ("guid" | PlanetSideGUID.codec) ::
       ("attribute_type" | uint8L) ::
       ("attribute_value" | uint32L)
   ).as[PlanetsideAttributeMessage]
+}
+
+object PlanetsideAttributeEnum extends Enumeration {
+  type PlanetsideAttributeEnum = Value
+
+  val ControlConsoleHackUpdate = Value(20)
 }

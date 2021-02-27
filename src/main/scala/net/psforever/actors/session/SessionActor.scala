@@ -6,8 +6,8 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
 import akka.pattern.ask
 import akka.util.Timeout
-import java.util.concurrent.TimeUnit
 
+import java.util.concurrent.TimeUnit
 import net.psforever.actors.net.MiddlewareActor
 import net.psforever.services.ServiceManager.Lookup
 import net.psforever.objects.locker.LockerContainer
@@ -37,7 +37,6 @@ import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.generator.Generator
 import net.psforever.objects.serverobject.hackable.Hackable
-import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.mount.Mountable
@@ -45,6 +44,8 @@ import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals._
+import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, CaptureTerminals}
+import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.{FacilityTurret, WeaponTurret}
 import net.psforever.objects.serverobject.zipline.ZipLinePath
@@ -57,6 +58,7 @@ import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.{Zone, ZoneHotSpotProjector, Zoning}
 import net.psforever.packet._
+import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
 import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo, _}
 import net.psforever.packet.game.objectcreate._
 import net.psforever.services.ServiceManager.LookupResult
@@ -64,7 +66,7 @@ import net.psforever.services.account.{AccountPersistenceService, PlayerToken, R
 import net.psforever.services.avatar.{AvatarAction, AvatarResponse, AvatarServiceMessage, AvatarServiceResponse}
 import net.psforever.services.chat.ChatService
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyResponse, GalaxyServiceMessage, GalaxyServiceResponse}
-import net.psforever.services.local.support.RouterTelepadActivation
+import net.psforever.services.local.support.{HackCaptureActor, RouterTelepadActivation}
 import net.psforever.services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
 import net.psforever.services.properties.PropertyOverrideManager
 import net.psforever.services.support.SupportActor
@@ -2296,7 +2298,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           DeconstructDeployable(obj, guid, pos, obj.Orientation, 2)
         }
 
-      case LocalResponse.HackClear(target_guid, unk1, unk2) =>
+      case LocalResponse.SendHackMessageHackCleared(target_guid, unk1, unk2) =>
         log.trace(s"Clearing hack for ${target_guid}")
         // Reset hack state for all players
         sendResponse(HackMessage(0, target_guid, guid, 0, unk1, HackState.HackCleared, unk2))
@@ -2304,8 +2306,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case LocalResponse.HackObject(target_guid, unk1, unk2) =>
         HackObject(target_guid, unk1, unk2)
 
-      case LocalResponse.HackCaptureTerminal(target_guid, unk1, unk2, isResecured) =>
-        HackCaptureTerminal(target_guid, unk1, unk2, isResecured)
+      case LocalResponse.SendPlanetsideAttributeMessage(target_guid, attribute_number, attribute_value) =>
+        SendPlanetsideAttributeMessage(target_guid, attribute_number, attribute_value)
 
       case LocalResponse.ObjectDelete(object_guid, unk) =>
         if (tplayer_guid != guid) {
@@ -2657,6 +2659,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case VehicleResponse.KickPassenger(seat_num, wasKickedByDriver, vehicle_guid) =>
         // seat_num seems to be correct if passenger is kicked manually by driver, but always seems to return 4 if user is kicked by seat permissions
         sendResponse(DismountVehicleMsg(guid, BailType.Kicked, wasKickedByDriver))
+        player.VehicleSeated = None
         if (tplayer_guid == guid) {
           continent.GUID(vehicle_guid) match {
             case Some(obj: Vehicle) =>
@@ -6698,7 +6701,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case obj: Hackable if obj.HackedBy.nonEmpty =>
         amenity.Definition match {
           case GlobalDefinitions.capture_terminal =>
-            HackCaptureTerminal(amenity.GUID, 0L, 0L, false)
+            SendPlanetsideAttributeMessage(
+              amenity.GUID,
+              PlanetsideAttributeEnum.ControlConsoleHackUpdate,
+              HackCaptureActor.GetHackUpdateAttributeValue(amenity.asInstanceOf[CaptureTerminal], isResecured = false))
           case _ =>
             HackObject(amenity.GUID, 1114636288L, 8L) //generic hackable object
         }
@@ -6742,51 +6748,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   }
 
   /**
-    * na
-    * @param target_guid na
-    * @param unk1 na
-    * @param unk2 na
-    * @param isResecured na
+    * Send a PlanetsideAttributeMessage packet to the client
+    * @param target_guid The target of the attribute
+    * @param attribute_number The attribute number
+    * @param attribute_value The attribute value
     */
-  def HackCaptureTerminal(target_guid: PlanetSideGUID, unk1: Long, unk2: Long, isResecured: Boolean): Unit = {
-    var value = 0L
-    if (isResecured) {
-      value = 17039360L
-      sendResponse(PlanetsideAttributeMessage(target_guid, 20, value))
-    } else {
-      continent.GUID(target_guid) match {
-        case Some(capture_terminal: Amenity with Hackable) =>
-          capture_terminal.HackedBy match {
-            case Some(Hackable.HackInfo(_, _, hfaction, _, start, length)) =>
-              val hack_time_remaining_ms =
-                TimeUnit.MILLISECONDS.convert(math.max(0, start + length - System.nanoTime), TimeUnit.NANOSECONDS)
-              val deciseconds_remaining = (hack_time_remaining_ms / 100)
-              //See PlanetSideAttributeMessage #20 documentation for an explanation of how the timer is calculated
-              val start_num = hfaction match {
-                case PlanetSideEmpire.TR => 65536L
-                case PlanetSideEmpire.NC => 131072L
-                case PlanetSideEmpire.VS => 196608L
-              }
-              value = start_num + deciseconds_remaining
-              sendResponse(PlanetsideAttributeMessage(target_guid, 20, value))
-              GetMountableAndSeat(None, player, continent) match {
-                case (Some(mountable: Amenity), Some(seat)) if mountable.Owner.GUID == capture_terminal.Owner.GUID =>
-                  mountable.Seats(seat).Occupant = None
-                  player.VehicleSeated = None
-                  continent.VehicleEvents ! VehicleServiceMessage(
-                    continent.id,
-                    VehicleAction.KickPassenger(player.GUID, seat, true, mountable.GUID)
-                  )
-                case _ => ;
-              }
-            case _ => log.warn("HackCaptureTerminal: hack state monitor not defined")
-          }
-        case _ =>
-          log.warn(
-            s"HackCaptureTerminal: couldn't find capture terminal with GUID ${target_guid} in zone ${continent.id}"
-          )
-      }
-    }
+  def SendPlanetsideAttributeMessage(target_guid: PlanetSideGUID, attribute_number: PlanetsideAttributeEnum, attribute_value: Long): Unit = {
+    sendResponse(PlanetsideAttributeMessage(target_guid, attribute_number, attribute_value))
   }
 
   /**

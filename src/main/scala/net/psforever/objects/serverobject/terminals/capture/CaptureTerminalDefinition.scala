@@ -1,4 +1,4 @@
-package net.psforever.objects.serverobject.terminals
+package net.psforever.objects.serverobject.terminals.capture
 
 import net.psforever.objects.serverobject.structures.AmenityDefinition
 

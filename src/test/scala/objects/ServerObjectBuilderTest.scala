@@ -83,7 +83,9 @@ class IFFLockObjectBuilderTest extends FreedContextActorTest {
 }
 
 class ImplantTerminalMechObjectBuilderTest extends FreedContextActorTest {
-  import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
+
+  import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
+
   "Implant terminal mech object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub

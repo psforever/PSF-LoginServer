@@ -40,6 +40,7 @@ import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.geometry.Geometry3D
 import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vehicles.UtilityType
 import net.psforever.objects.vital.etc.{EmpReason, ExplodingEntityReason}
@@ -257,7 +258,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
       case (mechGuid, interfaceGuid) =>
         validateObject(
           mechGuid,
-          (x: PlanetSideGameObject) => x.isInstanceOf[serverobject.implantmech.ImplantTerminalMech],
+          (x: PlanetSideGameObject) => x.isInstanceOf[ImplantTerminalMech],
           "implant terminal mech"
         )
         validateObject(

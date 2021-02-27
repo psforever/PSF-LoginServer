@@ -6,9 +6,10 @@ import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.hackable.Hackable
-import net.psforever.objects.serverobject.terminals.CaptureTerminal
+import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
 import net.psforever.objects.vehicles.Utility
 import net.psforever.objects.zones.Zone
+import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
 import net.psforever.packet.game.{DeployableInfo, DeploymentAction, TriggeredSound}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
@@ -45,13 +46,13 @@ object LocalAction {
   ) extends Action
   final case class ClearTemporaryHack(player_guid: PlanetSideGUID, target: PlanetSideServerObject with Hackable)
       extends Action
-  final case class HackCaptureTerminal(
+  final case class ResecureCaptureTerminal(target: CaptureTerminal) extends Action
+  final case class StartCaptureTerminalHack(target: CaptureTerminal) extends Action
+  final case class SendPlanetsideAttributeMessage(
       player_guid: PlanetSideGUID,
-      continent: Zone,
-      target: CaptureTerminal,
-      unk1: Long,
-      unk2: Long = 8L,
-      isResecured: Boolean
+      target: PlanetSideGUID,
+      attribute_number: PlanetsideAttributeEnum,
+      attribute_value: Long
   ) extends Action
   final case class RouterTelepadTransport(
       player_guid: PlanetSideGUID,

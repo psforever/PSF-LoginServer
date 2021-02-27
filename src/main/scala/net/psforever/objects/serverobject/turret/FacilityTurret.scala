@@ -3,9 +3,14 @@ package net.psforever.objects.serverobject.turret
 
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.structures.Amenity
+import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalAware
 import net.psforever.types.Vector3
 
-class FacilityTurret(tDef: FacilityTurretDefinition) extends Amenity with WeaponTurret with JammableUnit {
+class FacilityTurret(tDef: FacilityTurretDefinition)
+  extends Amenity
+    with WeaponTurret
+    with JammableUnit
+    with CaptureTerminalAware {
   WeaponTurret.LoadDefinition(this)
 
   def MountPoints: Map[Int, Int] = Definition.MountPoints.toMap

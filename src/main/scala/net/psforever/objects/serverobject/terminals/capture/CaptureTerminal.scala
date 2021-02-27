@@ -1,4 +1,4 @@
-package net.psforever.objects.serverobject.terminals
+package net.psforever.objects.serverobject.terminals.capture
 
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.Amenity
@@ -9,6 +9,15 @@ class CaptureTerminal(private val idef: CaptureTerminalDefinition) extends Ameni
   def Definition: CaptureTerminalDefinition = idef
   HackDuration = Array(60, 40, 20, 15)
   HackSound = TriggeredSound.HackTerminal
+
+  override def toString: String = {
+    val guid = if (HasGUID) {
+      s" ${Continent}-${GUID.guid}"
+    } else {
+      ""
+    }
+    s"${this.getClass.getName}: $guid ($Faction)"
+  }
 }
 
 object CaptureTerminal {

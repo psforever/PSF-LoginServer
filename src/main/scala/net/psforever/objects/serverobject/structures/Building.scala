@@ -2,7 +2,6 @@
 package net.psforever.objects.serverobject.structures
 
 import java.util.concurrent.TimeUnit
-
 import akka.actor.ActorContext
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.{GlobalDefinitions, NtuContainer, Player}
@@ -11,13 +10,13 @@ import net.psforever.objects.serverobject.generator.Generator
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.painbox.Painbox
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
-import net.psforever.objects.serverobject.terminals.CaptureTerminal
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.BuildingInfoUpdateMessage
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, PlanetSideGeneratorState, Vector3}
 import scalax.collection.{Graph, GraphEdge}
 import akka.actor.typed.scaladsl.adapter._
+import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
 
 class Building(
     private val name: String,
@@ -121,6 +120,10 @@ class Building(
       case Some(term) => Some(term.asInstanceOf[CaptureTerminal])
       case _          => None
     }
+  }
+
+  def HackableAmenities: List[Amenity with Hackable] = {
+    Amenities.filter(x => x.isInstanceOf[Hackable]).map(x => x.asInstanceOf[Amenity with Hackable])
   }
 
   def CaptureTerminalIsHacked: Boolean = {

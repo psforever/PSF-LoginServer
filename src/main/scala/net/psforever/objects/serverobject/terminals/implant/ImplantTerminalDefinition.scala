@@ -1,5 +1,5 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.serverobject.terminals
+package net.psforever.objects.serverobject.terminals.implant
 
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.definition.ImplantDefinition

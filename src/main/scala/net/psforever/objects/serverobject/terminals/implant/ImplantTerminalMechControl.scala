@@ -1,16 +1,17 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.serverobject.implantmech
+package net.psforever.objects.serverobject.terminals.implant
 
-import net.psforever.objects.{GlobalDefinitions, Player, SimpleItem}
-import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
-import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity, DamageableMountable}
 import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}
+import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableEntity}
 import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
+import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalAwareBehavior
+import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.vital.interaction.DamageResult
+import net.psforever.objects.{GlobalDefinitions, Player, SimpleItem}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 /**
@@ -25,13 +26,15 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
     with HackableBehavior.GenericHackable
     with DamageableEntity
     with RepairableEntity
-    with AmenityAutoRepair {
+    with AmenityAutoRepair
+    with CaptureTerminalAwareBehavior {
   def MountableObject  = mech
   def HackableObject   = mech
   def FactionObject    = mech
   def DamageableObject = mech
   def RepairableObject = mech
   def AutoRepairObject = mech
+  def CaptureTerminalAwareObject = mech
 
   def commonBehavior: Receive =
     checkBehavior

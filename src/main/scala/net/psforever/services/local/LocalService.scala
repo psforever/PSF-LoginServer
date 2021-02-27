@@ -2,13 +2,15 @@
 package net.psforever.services.local
 
 import akka.actor.{Actor, ActorRef, Props}
+import akka.pattern.Patterns
+import akka.util.Timeout
 import net.psforever.actors.zone.{BuildingActor, ZoneActor}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
-import net.psforever.objects.serverobject.terminals.{CaptureTerminal, Terminal}
+import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.zones.Zone
 import net.psforever.objects._
-import net.psforever.packet.game.{TriggeredEffect, TriggeredEffectLocation}
+import net.psforever.packet.game.{PlanetsideAttributeEnum, TriggeredEffect, TriggeredEffectLocation}
 import net.psforever.objects.vital.Vitality
 import net.psforever.types.{PlanetSideGUID, Vector3}
 import net.psforever.services.local.support._
@@ -20,6 +22,8 @@ import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.vehicles.{Utility, UtilityType}
 import net.psforever.services.support.SupportActor
 
+import java.util.concurrent.TimeUnit
+import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
 class LocalService(zone: Zone) extends Actor {
@@ -89,7 +93,7 @@ class LocalService(zone: Zone) extends Actor {
           )
         case LocalAction.HackClear(player_guid, target, unk1, unk2) =>
           LocalEvents.publish(
-            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.HackClear(target.GUID, unk1, unk2))
+            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.SendHackMessageHackCleared(target.GUID, unk1, unk2))
           )
         case LocalAction.HackTemporarily(player_guid, _, target, unk1, duration, unk2) =>
           hackClearer ! HackClearActor.ObjectIsHacked(target, zone, unk1, unk2, duration)
@@ -98,43 +102,18 @@ class LocalService(zone: Zone) extends Actor {
           )
         case LocalAction.ClearTemporaryHack(_, target) =>
           hackClearer ! HackClearActor.ObjectIsResecured(target)
-        case LocalAction.HackCaptureTerminal(player_guid, _, target, unk1, unk2, isResecured) =>
-          // When a CC is hacked (or resecured) all amenities for the base should be unhacked
-          val building = target.Owner.asInstanceOf[Building]
-          val hackableAmenities =
-            building.Amenities.filter(x => x.isInstanceOf[Hackable]).map(x => x.asInstanceOf[Amenity with Hackable])
-          hackableAmenities.foreach(amenity =>
-            if (amenity.HackedBy.isDefined) { hackClearer ! HackClearActor.ObjectIsResecured(amenity) }
-          )
-
-          if (isResecured) {
-            hackCapturer ! HackCaptureActor.ClearHack(target, zone)
-          } else {
-            target.Definition match {
-              case GlobalDefinitions.capture_terminal =>
-                // Base CC
-                hackCapturer ! HackCaptureActor.ObjectIsHacked(target, zone, unk1, unk2, duration = 15 minutes)
-              case GlobalDefinitions.secondary_capture =>
-                // Tower CC
-                hackCapturer ! HackCaptureActor.ObjectIsHacked(target, zone, unk1, unk2, duration = 1 nanosecond)
-              case GlobalDefinitions.vanu_control_console =>
-                hackCapturer ! HackCaptureActor.ObjectIsHacked(target, zone, unk1, unk2, duration = 10 minutes)
-            }
-          }
-
+        case LocalAction.ResecureCaptureTerminal(target) =>
+          hackCapturer ! HackCaptureActor.ResecureCaptureTerminal(target, zone)
+        case LocalAction.StartCaptureTerminalHack(target) =>
+          hackCapturer ! HackCaptureActor.StartCaptureTerminalHack(target, zone, 0, 8L)
+        case LocalAction.SendPlanetsideAttributeMessage(player_guid, target_guid, attribute_number, attribute_value) =>
           LocalEvents.publish(
             LocalServiceResponse(
               s"/$forChannel/Local",
               player_guid,
-              LocalResponse.HackCaptureTerminal(target.GUID, unk1, unk2, isResecured)
+              LocalResponse.SendPlanetsideAttributeMessage(target_guid, attribute_number, attribute_value)
             )
           )
-
-          // If the owner of this capture terminal is on the lattice trigger a zone wide map update to update lattice benefits
-          zone.Lattice find building match {
-            case Some(_) => building.Zone.actor ! ZoneActor.ZoneMapUpdate()
-            case None    => ;
-          }
         case LocalAction.RouterTelepadTransport(player_guid, passenger_guid, src_guid, dest_guid) =>
           LocalEvents.publish(
             LocalServiceResponse(
@@ -214,13 +193,13 @@ class LocalService(zone: Zone) extends Actor {
       )
 
     //response from HackClearActor
-    case HackClearActor.ClearTheHack(target_guid, _, unk1, unk2) =>
+    case HackClearActor.SendHackMessageHackCleared(target_guid, _, unk1, unk2) =>
       log.info(s"Clearing hack for $target_guid")
       LocalEvents.publish(
         LocalServiceResponse(
           s"/${zone.id}/Local",
           Service.defaultPlayerGUID,
-          LocalResponse.HackClear(target_guid, unk1, unk2)
+          LocalResponse.SendHackMessageHackCleared(target_guid, unk1, unk2)
         )
       )
 
@@ -241,29 +220,6 @@ class LocalService(zone: Zone) extends Actor {
           LocalResponse.ProximityTerminalEffect(terminal.GUID, false)
         )
       )
-
-    case HackCaptureActor.HackTimeoutReached(capture_terminal_guid, _, _, _, hackedByFaction) =>
-      val terminal = zone.GUID(capture_terminal_guid).get.asInstanceOf[CaptureTerminal]
-      val building = terminal.Owner.asInstanceOf[Building]
-
-      if (building.NtuLevel > 0) {
-        log.info(s"Setting base ${building.GUID} / MapId: ${building.MapId} as owned by $hackedByFaction")
-        building.Actor ! BuildingActor.SetFaction(hackedByFaction)
-      } else {
-        log.info("Base hack completed, but base was out of NTU.")
-      }
-
-      // FIXME shitty workaround so we don't get a "resecured by owner" message
-      // SetFaction must be processed before we can keep going
-      Thread.sleep(1000)
-
-      // Reset CC back to normal operation
-      self ! LocalServiceMessage(
-        zone.id,
-        LocalAction.HackCaptureTerminal(PlanetSideGUID(-1), zone, terminal, 0, 8L, isResecured = true)
-      )
-      //todo: this appears to be the way to reset the base warning lights after the hack finishes but it doesn't seem to work. The attribute above is a workaround
-      self ! HackClearActor.ClearTheHack(building.GUID, zone.id, 3212836864L, 8L)
 
     //message to Engineer
     case LocalServiceMessage.Deployables(msg) =>

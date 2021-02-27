@@ -5,6 +5,7 @@ import net.psforever.objects.{PlanetSideGameObject, TelepadDeployable, Vehicle}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.terminals.{ProximityUnit, Terminal}
 import net.psforever.objects.vehicles.Utility
+import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
 import net.psforever.packet.game._
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 import net.psforever.services.GenericEventBusMsg
@@ -28,9 +29,9 @@ object LocalResponse {
       object_guid: PlanetSideGUID,
       pos: Vector3
   )                                                                                extends Response
-  final case class HackClear(target_guid: PlanetSideGUID, unk1: Long, unk2: Long)  extends Response
+  final case class SendHackMessageHackCleared(target_guid: PlanetSideGUID, unk1: Long, unk2: Long)  extends Response
   final case class HackObject(target_guid: PlanetSideGUID, unk1: Long, unk2: Long) extends Response
-  final case class HackCaptureTerminal(target_guid: PlanetSideGUID, unk1: Long, unk2: Long, isResecured: Boolean)
+  final case class SendPlanetsideAttributeMessage(target_guid: PlanetSideGUID, attribute_number: PlanetsideAttributeEnum, attribute_value: Long)
       extends Response
   final case class ObjectDelete(item_guid: PlanetSideGUID, unk: Int) extends Response
   final case class ProximityTerminalAction(terminal: Terminal with ProximityUnit, target: PlanetSideGameObject)

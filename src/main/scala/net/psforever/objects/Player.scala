@@ -521,7 +521,7 @@ class Player(var avatar: Avatar)
     } else {
       ""
     }
-    s"${avatar.name}$guid ${Health}/${MaxHealth} ${Armor}/${MaxArmor}"
+    s"${avatar.name}$guid ${avatar.faction} H: ${Health}/${MaxHealth} A: ${Armor}/${MaxArmor}"
   }
 }
 

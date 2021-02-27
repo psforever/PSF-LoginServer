@@ -43,7 +43,7 @@ class HackClearActor() extends Actor {
       hackedObjects = stillHackedObjects
       unhackObjects.foreach(entry => {
         entry.target.Actor ! CommonMessages.ClearHack()
-        context.parent ! HackClearActor.ClearTheHack(
+        context.parent ! HackClearActor.SendHackMessageHackCleared(
           entry.target.GUID,
           entry.zone.id,
           entry.unk1,
@@ -59,7 +59,7 @@ class HackClearActor() extends Actor {
         case Some(entry: HackClearActor.HackEntry) =>
           hackedObjects = hackedObjects.filterNot(x => x.target == target)
           entry.target.Actor ! CommonMessages.ClearHack()
-          context.parent ! HackClearActor.ClearTheHack(
+          context.parent ! HackClearActor.SendHackMessageHackCleared(
             entry.target.GUID,
             entry.zone.id,
             entry.unk1,
@@ -173,7 +173,7 @@ object HackClearActor {
     * @param obj the server object
     * @param zone_id the zone in which the object resides
     */
-  final case class ClearTheHack(obj: PlanetSideGUID, zone_id: String, unk1: Long, unk2: Long)
+  final case class SendHackMessageHackCleared(obj: PlanetSideGUID, zone_id: String, unk1: Long, unk2: Long)
 
   /**
     * Internal message used to signal a test of the queued door information.
