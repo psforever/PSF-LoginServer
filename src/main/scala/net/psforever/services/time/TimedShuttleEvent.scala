@@ -32,7 +32,7 @@ object TimedShuttleEvent {
     def shuttleState: Option[Int] = Some(10)
     def docked: Option[Boolean] = Some(true)
   }
-  case object Takeoff extends TimedShuttleEvent {
+  case object RaiseShuttlePlatform extends TimedShuttleEvent {
     def u1: Int = 1
     def u2: Int = 1
     def t: Long = fullTime //225000ms
@@ -40,7 +40,7 @@ object TimedShuttleEvent {
     def shuttleState: Option[Int] = Some(11)
     def docked: Option[Boolean] = Some(true)
   }
-  case object Event1 extends TimedShuttleEvent {
+  case object Takeoff extends TimedShuttleEvent {
     def u1: Int = 2
     def u2: Int = 2
     def t: Long = 217000
@@ -64,7 +64,7 @@ object TimedShuttleEvent {
     def shuttleState: Option[Int] = Some(13)
     def docked: Option[Boolean] = None
   }
-  case object Event4 extends TimedShuttleEvent {
+  case object Docking extends TimedShuttleEvent {
     def u1: Int = 4
     def u2: Int = 5
     def t: Long = 8000

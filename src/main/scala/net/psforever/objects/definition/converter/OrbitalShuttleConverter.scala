@@ -8,11 +8,11 @@ import scala.util.{Failure, Success, Try}
 
 class OrbitalShuttleConverter extends ObjectCreateConverter[Vehicle]() {
   override def ConstructorData(obj: Vehicle): Try[OrbitalShuttleData] = {
-    if (obj.MountedIn.nonEmpty) {
-      Success(OrbitalShuttleData(obj.Faction, None))
-    } else {
+//    if (obj.MountedIn.nonEmpty) {
+//      Success(OrbitalShuttleData(obj.Faction, None))
+//    } else {
       Success(OrbitalShuttleData(obj.Faction, Some(PlacementData(obj.Position, obj.Orientation))))
-    }
+//    }
   }
 
   override def DetailedConstructorData(obj: Vehicle): Try[OrbitalShuttleData] =

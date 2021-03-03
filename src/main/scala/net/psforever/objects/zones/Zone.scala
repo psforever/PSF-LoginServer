@@ -947,6 +947,10 @@ object Zone {
 
     final case class Despawn(vehicle: Vehicle)
 
+    final case class HasSpawned(zone: Zone, vehicle: Vehicle)
+
+    final case class HasDespawned(zone: Zone, vehicle: Vehicle)
+
     final case class CanNotSpawn(zone: Zone, vehicle: Vehicle, reason: String)
 
     final case class CanNotDespawn(zone: Zone, vehicle: Vehicle, reason: String)

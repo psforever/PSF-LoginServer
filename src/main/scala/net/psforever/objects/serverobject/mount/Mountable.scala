@@ -37,7 +37,7 @@ trait Mountable {
     * Retrieve a mapping of each mount from its mount point index.
     * @return the mapping of mount point to mount
     */
-  def MountPoints: Map[Int, Int] = Definition.MountPoints.toMap
+  def MountPoints: Map[Int, MountInfo] = Definition.MountPoints.toMap
 
   /**
     * Given a mount point index, return the associated mount index.
@@ -45,7 +45,10 @@ trait Mountable {
     * @return the mount index
     */
   def GetSeatFromMountPoint(mountPoint: Int): Option[Int] = {
-    Definition.MountPoints.get(mountPoint)
+    MountPoints.get(mountPoint) match {
+      case Some(mp) => Some(mp.seatIndex)
+      case _        => None
+    }
   }
 
   /**
@@ -85,10 +88,15 @@ object Mountable {
   /**
     * Message used by the player to indicate the desire to board a `Mountable` object.
     * @param player the player who sent this request message
-    * @param seat_num the mount index
+    * @param mount_point the mount index
     */
-  final case class TryMount(player: Player, seat_num: Int)
+  final case class TryMount(player: Player, mount_point: Int)
 
+  /**
+    * Message used by the player to indicate the desire to escape a `Mountable` object.
+    * @param player the player who sent this request message
+    * @param seat_num the seat index
+    */
   final case class TryDismount(player: Player, seat_num: Int)
 
   /**
@@ -107,31 +115,31 @@ object Mountable {
     * Message sent in response to the player succeeding to access a `Mountable` object.
     * The player should be seated at the given index.
     * @param obj the `Mountable` object
-    * @param seat_num the mount index
+    * @param mount_point the mount index
     */
-  final case class CanMount(obj: Mountable, seat_num: Int) extends Exchange
+  final case class CanMount(obj: Mountable, seat_number: Int, mount_point: Int) extends Exchange
 
   /**
     * Message sent in response to the player failing to access a `Mountable` object.
     * The player would have been be seated at the given index.
     * @param obj the `Mountable` object
-    * @param seat_num the mount index
+    * @param mount_point the mount index
     */
-  final case class CanNotMount(obj: Mountable, seat_num: Int) extends Exchange
+  final case class CanNotMount(obj: Mountable, mount_point: Int) extends Exchange
 
   /**
     * Message sent in response to the player succeeding to disembark a `Mountable` object.
     * The player was previously seated at the given index.
     * @param obj the `Mountable` object
-    * @param seat_num the mount index
+    * @param seat_num the seat index
     */
-  final case class CanDismount(obj: Mountable, seat_num: Int) extends Exchange
+  final case class CanDismount(obj: Mountable, seat_num: Int, mount_point: Int) extends Exchange
 
   /**
     * Message sent in response to the player failing to disembark a `Mountable` object.
     * The player is still seated at the given index.
     * @param obj the `Mountable` object
-    * @param seat_num the mount index
+    * @param seat_num the seat index
     */
   final case class CanNotDismount(obj: Mountable, seat_num: Int) extends Exchange
 }

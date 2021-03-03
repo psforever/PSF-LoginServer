@@ -5,6 +5,7 @@ import akka.actor.{Actor, Cancellable}
 import net.psforever.objects._
 import net.psforever.objects.ballistics.VehicleSource
 import net.psforever.objects.ce.TelepadLike
+import net.psforever.objects.entity.WorldEntity
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot, JammableMountedWeapons}
 import net.psforever.objects.guid.GUIDTask
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
@@ -48,8 +49,7 @@ class VehicleControl(vehicle: Vehicle)
     extends Actor
     with FactionAffinityBehavior.Check
     with DeploymentBehavior
-    with MountableBehavior.Mount
-    with MountableBehavior.Dismount
+    with MountableBehavior
     with CargoBehavior
     with DamageableVehicle
     with RepairableVehicle
@@ -129,34 +129,13 @@ class VehicleControl(vehicle: Vehicle)
         case Vehicle.Ownership(Some(player)) =>
           GainOwnership(player)
 
-        case msg@Mountable.TryMount(player, seat_num) =>
-          tryMountBehavior.apply(msg)
-          val obj = MountableObject
-          //check that the player has actually been sat in the expected mount
-          if (obj.PassengerInSeat(player).contains(seat_num)) {
-            //if the driver mount, change ownership
-            if (seat_num == 0 && !obj.OwnerName.contains(player.Name)) {
-              //whatever vehicle was previously owned
-              vehicle.Zone.GUID(player.avatar.vehicle) match {
-                case Some(v : Vehicle) =>
-                  v.Actor ! Vehicle.Ownership(None)
-                case _ =>
-                  player.avatar.vehicle = None
-              }
-              LoseOwnership() //lose our current ownership
-              GainOwnership(player) //gain new ownership
-            }
-            else {
-              decaying = false
-              decayTimer.cancel()
-            }
-            //
-            updateZoneInteractionProgressUI(player)
-          }
+        case msg @ Mountable.TryMount(player, mount_point) =>
+          mountBehavior.apply(msg)
+          mountCleanup(mount_point, player)
 
-        case msg @ Mountable.TryDismount(user, seat_num) =>
+        case msg @ Mountable.TryDismount(_, seat_num) =>
           dismountBehavior.apply(msg)
-          dismountCleanup()
+          dismountCleanup(seat_num)
 
         case Vehicle.ChargeShields(amount) =>
           val now : Long = System.currentTimeMillis()
@@ -261,7 +240,7 @@ class VehicleControl(vehicle: Vehicle)
 
         case Vehicle.Deconstruct(time) =>
           time match {
-            case Some(delay) =>
+            case Some(delay) if vehicle.Definition.undergoesDecay =>
               decaying = true
               decayTimer.cancel()
               decayTimer = context.system.scheduler.scheduleOnce(delay, self, VehicleControl.PrepareForDeletion())
@@ -288,13 +267,13 @@ class VehicleControl(vehicle: Vehicle)
         case msg : Deployment.TryUndeploy =>
           deployBehavior.apply(msg)
 
-        case msg : Mountable.TryDismount =>
+        case msg @ Mountable.TryDismount(_, seat_num) =>
           dismountBehavior.apply(msg)
-          dismountCleanup()
+          dismountCleanup(seat_num)
 
         case Vehicle.Deconstruct(time) =>
           time match {
-            case Some(delay) =>
+            case Some(delay) if vehicle.Definition.undergoesDecay =>
               decaying = true
               decayTimer.cancel()
               decayTimer = context.system.scheduler.scheduleOnce(delay, self, VehicleControl.PrepareForDeletion())
@@ -327,40 +306,81 @@ class VehicleControl(vehicle: Vehicle)
         case _ =>
       }
 
-  val tryMountBehavior : Receive = {
-    case msg @ Mountable.TryMount(user, seat_num) =>
-      val seatGroup = vehicle.SeatPermissionGroup(seat_num).getOrElse(AccessPermissionGroup.Passenger)
-      val permission = vehicle.PermissionGroup(seatGroup.id).getOrElse(VehicleLockState.Empire)
-      if (
-        if (seatGroup == AccessPermissionGroup.Driver) {
-          vehicle.Owner.contains(user.GUID) || vehicle.Owner.isEmpty || permission != VehicleLockState.Locked
-        }
-        else {
-          permission != VehicleLockState.Locked
-        }
-      ) {
-        mountBehavior.apply(msg)
-      }
-      else {
-        sender() ! Mountable.MountMessages(user, Mountable.CanNotMount(vehicle, seat_num))
-      }
+  override protected def mountTest(
+                                    obj: PlanetSideServerObject with Mountable,
+                                    seatNumber: Int,
+                                    user: Player
+                                  ): Boolean = {
+    val seatGroup = vehicle.SeatPermissionGroup(seatNumber).getOrElse(AccessPermissionGroup.Passenger)
+    val permission = vehicle.PermissionGroup(seatGroup.id).getOrElse(VehicleLockState.Empire)
+    (if (seatGroup == AccessPermissionGroup.Driver) {
+      vehicle.Owner.contains(user.GUID) || vehicle.Owner.isEmpty || permission != VehicleLockState.Locked
+    } else {
+      permission != VehicleLockState.Locked
+    }) &&
+    super.mountTest(obj, seatNumber, user)
   }
 
-  def dismountCleanup(): Unit = {
+  def mountCleanup(mount_point: Int, user: Player): Unit = {
+    val obj = MountableObject
+    obj.GetSeatFromMountPoint(mount_point) match {
+      case Some(seatNumber) =>
+        //check that the player has actually been sat in the expected mount
+        if (obj.PassengerInSeat(user).contains(seatNumber)) {
+          //if the driver mount, change ownership if that is permissible for this vehicle
+          if (seatNumber == 0 && !obj.OwnerName.contains(user.Name) && obj.Definition.CanBeOwned.nonEmpty) {
+            //whatever vehicle was previously owned
+            vehicle.Zone.GUID(user.avatar.vehicle) match {
+              case Some(v : Vehicle) =>
+                v.Actor ! Vehicle.Ownership(None)
+              case _ =>
+                user.avatar.vehicle = None
+            }
+            LoseOwnership() //lose our current ownership
+            GainOwnership(user) //gain new ownership
+          }
+          else {
+            decaying = false
+            decayTimer.cancel()
+          }
+          updateZoneInteractionProgressUI(user)
+        }
+      case _ =>
+    }
+  }
+
+  override protected def dismountTest(
+                                       obj: Mountable with WorldEntity,
+                                       seatNumber: Int,
+                                       user: Player
+                                     ): Boolean = {
+    vehicle.DeploymentState == DriveState.Deployed || super.dismountTest(obj, seatNumber, user)
+  }
+
+  def dismountCleanup(seatBeingDismounted: Int): Unit = {
     val obj = MountableObject
     // Reset velocity to zero when driver dismounts, to allow jacking/repair if vehicle was moving slightly before dismount
     if (!obj.Seats(0).isOccupied) {
       obj.Velocity = Some(Vector3.Zero)
     }
-    //are we already decaying? are we unowned? is no one seated anywhere?
-    //a vehicle that can not be owned will never naturally decay in response to a seat dismount
-    if (!decaying && obj.Owner.isEmpty && obj.Seats.values.forall(!_.isOccupied)) {
-      decaying = true
-      decayTimer = context.system.scheduler.scheduleOnce(
-        MountableObject.Definition.DeconstructionTime.getOrElse(5 minutes),
-        self,
-        VehicleControl.PrepareForDeletion()
-      )
+    if (!obj.Seats(seatBeingDismounted).isOccupied) { //seat was vacated
+      //we were only owning the vehicle while we sat in its driver seat
+      val canBeOwned = obj.Definition.CanBeOwned
+      if (canBeOwned.contains(false) && seatBeingDismounted == 0) {
+        LoseOwnership()
+      }
+      //are we already decaying? are we unowned? is no one seated anywhere?
+      if (!decaying &&
+          obj.Definition.undergoesDecay &&
+          obj.Owner.isEmpty &&
+          obj.Seats.values.forall(!_.isOccupied)) {
+        decaying = true
+        decayTimer = context.system.scheduler.scheduleOnce(
+          MountableObject.Definition.DeconstructionTime.getOrElse(5 minutes),
+          self,
+          VehicleControl.PrepareForDeletion()
+        )
+      }
     }
   }
 
@@ -417,10 +437,7 @@ class VehicleControl(vehicle: Vehicle)
 
   def PrepareForDeletion() : Unit = {
     decaying = false
-    val guid = vehicle.GUID
     val zone = vehicle.Zone
-    val zoneId = zone.id
-    val events = zone.VehicleEvents
     //miscellaneous changes
     Vehicles.BeforeUnloadVehicle(vehicle, zone)
     //cancel jammed behavior
@@ -443,7 +460,10 @@ class VehicleControl(vehicle: Vehicle)
   def LoseOwnership(): Unit = {
     val obj = MountableObject
     Vehicles.Disown(obj.GUID, obj)
-    if (!decaying && obj.Seats.values.forall(!_.isOccupied)) {
+    if (!decaying &&
+        obj.Definition.undergoesDecay &&
+        obj.Owner.isEmpty &&
+        obj.Seats.values.forall(!_.isOccupied)) {
       decaying = true
       decayTimer = context.system.scheduler.scheduleOnce(
         obj.Definition.DeconstructionTime.getOrElse(5 minutes),
@@ -454,7 +474,8 @@ class VehicleControl(vehicle: Vehicle)
   }
 
   def GainOwnership(player: Player): Unit = {
-    Vehicles.Own(MountableObject, player) match {
+    val obj = MountableObject
+    Vehicles.Own(obj, player) match {
       case Some(_) =>
         decaying = false
         decayTimer.cancel()
@@ -532,7 +553,7 @@ class VehicleControl(vehicle: Vehicle)
     val toChannel = if (obj.VisibleSlots.contains(fromSlot)) zone.id else self.toString
     zone.VehicleEvents ! VehicleServiceMessage(
       toChannel,
-      VehicleAction.ObjectDelete(Service.defaultPlayerGUID, item.GUID)
+      VehicleAction.ObjectDelete(item.GUID)
     )
   }
 

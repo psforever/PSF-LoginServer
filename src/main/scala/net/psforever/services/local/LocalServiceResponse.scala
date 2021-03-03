@@ -6,6 +6,7 @@ import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.terminals.{ProximityUnit, Terminal}
 import net.psforever.objects.vehicles.Utility
 import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
+import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game._
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 import net.psforever.services.GenericEventBusMsg
@@ -44,6 +45,7 @@ object LocalResponse {
       src_guid: PlanetSideGUID,
       dest_guid: PlanetSideGUID
   )                                                                                       extends Response
+  final case class SendResponse(pkt: PlanetSideGamePacket)                                extends Response
   final case class SetEmpire(object_guid: PlanetSideGUID, empire: PlanetSideEmpire.Value) extends Response
   final case class ShuttleDock(pad_guid: PlanetSideGUID, shuttle_guid: PlanetSideGUID, toSlot: Int)   extends Response
   final case class ShuttleUndock(

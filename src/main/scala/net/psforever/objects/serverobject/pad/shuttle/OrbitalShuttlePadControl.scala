@@ -33,11 +33,13 @@ class OrbitalShuttlePadControl(pad: OrbitalShuttlePad) extends Actor {
 
     case ShuttleTimer.ShuttleDocked =>
       val zone = pad.Zone
+      pad.shuttle.MountedIn = pad.GUID
       zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.ShuttleDock(pad.GUID, pad.shuttle.GUID, 3))
 
     case ShuttleTimer.ShuttleFreeFromDock =>
       val zone = pad.Zone
       val shuttle = pad.shuttle
+      shuttle.MountedIn = None
       zone.LocalEvents ! LocalServiceMessage(
         zone.id,
         LocalAction.ShuttleUndock(pad.GUID, shuttle.GUID, shuttle.Position, shuttle.Orientation)
@@ -57,7 +59,18 @@ class OrbitalShuttlePadControl(pad: OrbitalShuttlePad) extends Actor {
   val shuttleTime: Receive = {
     case ServiceManager.LookupResult("shuttleTimer", timer) =>
       timer ! ShuttleTimer.PairWith(pad.Zone, pad.GUID, pad.shuttle.GUID, self)
+      pad.Zone.Transport ! Zone.Vehicle.Spawn(pad.shuttle)
+
+    case _: Zone.Vehicle.HasSpawned =>
       context.become(taxiing)
+
+    case Zone.Vehicle.CanNotSpawn(zone, _, reason) =>
+      org.log4s
+        .getLogger("OrbitalShuttle")
+        .error(s"shuttle for pad#${pad.Owner.GUID.guid} in zone ${zone.id} did not spawn - $reason")
+
+    case msg: ShuttleTimer.Command =>
+      self.forward(msg) //keep delaying
 
     case _ => ;
   }
@@ -68,7 +81,6 @@ class OrbitalShuttlePadControl(pad: OrbitalShuttlePad) extends Actor {
       pad.shuttle.Position = position + Vector3(0,8.25f,0) //magic offset
       pad.shuttle.Orientation = pad.Orientation
       pad.shuttle.Faction = pad.Faction
-      pad.Zone.Transport ! Zone.Vehicle.Spawn(pad.shuttle)
       ServiceManager.serviceManager ! ServiceManager.Lookup("shuttleTimer")
 
       managedDoors = pad.Owner.Amenities

@@ -63,7 +63,7 @@ object VehicleAction {
       vdata: ConstructorData
   )                                                                                                  extends Action
   final case class MountVehicle(player_guid: PlanetSideGUID, object_guid: PlanetSideGUID, seat: Int) extends Action
-  final case class ObjectDelete(player_guid: PlanetSideGUID, weapon_guid: PlanetSideGUID)            extends Action
+  final case class ObjectDelete(guid: PlanetSideGUID)                                                extends Action
   final case class Ownership(player_guid: PlanetSideGUID, vehicle_guid: PlanetSideGUID)              extends Action
   final case class PlanetsideAttribute(
       player_guid: PlanetSideGUID,

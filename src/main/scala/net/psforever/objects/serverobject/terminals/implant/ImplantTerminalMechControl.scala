@@ -21,8 +21,7 @@ import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 class ImplantTerminalMechControl(mech: ImplantTerminalMech)
     extends PoweredAmenityControl
     with FactionAffinityBehavior.Check
-    with MountableBehavior.Mount
-    with MountableBehavior.Dismount
+    with MountableBehavior
     with HackableBehavior.GenericHackable
     with DamageableEntity
     with RepairableEntity
@@ -68,11 +67,11 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
         case _ => ;
       }
 
-  override protected def MountTest(
-      obj: PlanetSideServerObject with Mountable,
-      seatNumber: Int,
-      player: Player
-  ): Boolean = {
+  override protected def mountTest(
+                                    obj: PlanetSideServerObject with Mountable,
+                                    seatNumber: Int,
+                                    player: Player
+                                  ): Boolean = {
     val zone = obj.Zone
     zone.map.terminalToInterface.get(obj.GUID.guid) match {
       case Some(interface_guid) =>
@@ -80,7 +79,7 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
           case Some(interface) => !interface.Destroyed
           case None            => false
         }) &&
-          super.MountTest(obj, seatNumber, player)
+          super.mountTest(obj, seatNumber, player)
       case None =>
         false
     }

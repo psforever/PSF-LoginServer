@@ -8,6 +8,7 @@ import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.{Player, SpawnPoint, Vehicle}
 import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.zones.Zone
+import net.psforever.packet.game.DroppodError
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, SpawnGroup, Vector3}
 import net.psforever.util.Config
 
@@ -71,6 +72,19 @@ object InterstellarClusterService {
   final case class GetPlayers(replyTo: ActorRef[PlayersResponse]) extends Command
 
   final case class PlayersResponse(players: Seq[Avatar])
+
+  final case class DroppodLaunchRequest(
+                                         zoneNumber: Int,
+                                         position: Vector3,
+                                         faction: PlanetSideEmpire.Value,
+                                         replyTo: ActorRef[DroppodLaunchExchange]
+                                       ) extends Command
+
+  trait DroppodLaunchExchange
+
+  final case class DroppodLaunchConfirmation(destination: Zone, position: Vector3) extends DroppodLaunchExchange
+
+  final case class DroppodLaunchDenial(errorCode: DroppodError.Value, data: Option[Any]) extends DroppodLaunchExchange
 }
 
 class InterstellarClusterService(context: ActorContext[InterstellarClusterService.Command], _zones: Iterable[Zone])
@@ -138,7 +152,7 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
             Ordering[Int].reverse
           ) // greatest > least
           .sortWith {
-            case ((_, spot1, _), (_, spot2, _)) =>
+            case ((_, spot1, _), (_, _, _)) =>
               spot1.ActivityBy().contains(faction) // prefer own faction activity
           }
           .headOption
@@ -209,6 +223,15 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
             }
           case None =>
             replyTo ! SpawnPointResponse(None)
+        }
+
+      case DroppodLaunchRequest(zoneNumber, position, _, replyTo) =>
+        zones.find(_.Number == zoneNumber) match {
+          case Some(zone) =>
+            //TODO all of the checks for the specific DroppodLaunchResponseMessage excuses go here
+            replyTo ! DroppodLaunchConfirmation(zone, position)
+          case None => ;
+            replyTo ! DroppodLaunchDenial(DroppodError.InvalidLocation, None)
         }
     }
 

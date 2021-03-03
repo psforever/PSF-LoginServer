@@ -14,8 +14,9 @@ class ShuttleTimer(zone: Zone) extends Actor {
   import scala.concurrent.ExecutionContext.Implicits.global
   var padAndShuttlePairs: List[(PlanetSideGUID, PlanetSideGUID)] = List()
   var currTime: Long = System.currentTimeMillis()
-  var timer: Cancellable = context.system.scheduler.scheduleOnce(0 milliseconds, self, ShuttleTimer.NextEvent(1))
   var index: Int = 0
+  var timer: Cancellable = context.system.scheduler.scheduleOnce(delay = 0 milliseconds, self, ShuttleTimer.NextEvent(1))
+  var eventSequence = ShuttleTimer.sequence
 
   val events = new GenericEventBus[ShuttleTimer.Command]
 
@@ -23,13 +24,13 @@ class ShuttleTimer(zone: Zone) extends Actor {
     case ShuttleTimer.PairWith(_, pad, shuttle, from) =>
       events.subscribe(from, to = "")
       padAndShuttlePairs = (padAndShuttlePairs :+ (pad, shuttle)).distinct
-      if (ShuttleTimer.sequence(index).lockedDoors) {
+      if (eventSequence(index).lockedDoors) {
         from ! ShuttleTimer.LockDoors
       }
 
     case ShuttleTimer.NextEvent(next) =>
-      val currEvent = ShuttleTimer.sequence(index)
-      val event = ShuttleTimer.sequence(next)
+      val currEvent = eventSequence(index)
+      val event = eventSequence(next)
       index = next
       currTime = System.currentTimeMillis()
       timer = context.system.scheduler.scheduleOnce(event.duration milliseconds, self, ShuttleTimer.NextEvent((next + 1) % 7))
@@ -58,7 +59,8 @@ class ShuttleTimer(zone: Zone) extends Actor {
       }
 
     case ShuttleTimer.Update(_, forChannel) =>
-      val event = ShuttleTimer.sequence(index)
+      val seq = eventSequence
+      val event = seq(index)
       if (event.docked.contains(true)) {
         events.publish( ShuttleTimer.ShuttleDocked )
       }
@@ -69,7 +71,11 @@ class ShuttleTimer(zone: Zone) extends Actor {
       event.shuttleState match {
         case Some(state) =>
           events.publish( ShuttleTimer.ShuttleStateUpdate(state) )
-        case None => ;
+        case None =>
+          //find last valid shuttle state
+          var i = index - 1
+          while(seq(i).shuttleState.isEmpty) { i = if (i - 1 < 0) 6 else i - 1 }
+          events.publish( ShuttleTimer.ShuttleStateUpdate(seq(i).shuttleState.get) )
       }
 
     case _ => ;
@@ -80,15 +86,15 @@ class ShuttleTimer(zone: Zone) extends Actor {
     val (t1, t2, pairs) = event match {
       case Boarding =>
         (0L, time.getOrElse(event.t), Seq(20, 20, 20))
-      case Takeoff =>
+      case RaiseShuttlePlatform =>
         (time.getOrElse(event.t), 8000L, Seq(20, 20, 20))
-      case Event1 =>
+      case Takeoff =>
         (time.getOrElse(event.t), 8000L, Seq(6, 25, 5))
       case Event2 =>
         (time.getOrElse(event.t), 8000L, Seq(20, 20, 20))
       case Event3 =>
         (time.getOrElse(event.t), 8000L, Seq(5, 5, 27))
-      case Event4 =>
+      case Docking =>
         (time.getOrElse(event.t), 8000L, Seq(20, 20, 20))
       case Blanking =>
         (time.getOrElse(event.t), 8000L, Seq(20, 20, 20))
@@ -118,13 +124,15 @@ object ShuttleTimer {
 
   case object ShuttleFreeFromDock extends Command
 
-  final val sequence: Seq[TimedShuttleEvent] = Seq(
-    Boarding,
-    Takeoff,
-    Event1,
-    Event2,
-    Event3,
-    Event4,
-    Blanking
-  )
+  val sequence: Seq[TimedShuttleEvent] = {
+    Seq(
+      Boarding,
+      RaiseShuttlePlatform,
+      Takeoff,
+      Event2,
+      Event3,
+      Docking,
+      Blanking
+    )
+  }
 }

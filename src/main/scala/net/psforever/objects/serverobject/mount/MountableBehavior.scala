@@ -2,15 +2,33 @@
 package net.psforever.objects.serverobject.mount
 
 import akka.actor.Actor
-import net.psforever.objects.{Player, Vehicle}
-import net.psforever.objects.entity.{Identifiable, WorldEntity}
+import net.psforever.objects.Player
+import net.psforever.objects.entity.WorldEntity
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.hackable.Hackable
-import net.psforever.objects.serverobject.turret.WeaponTurret
-import net.psforever.types.DriveState
 
-object MountableBehavior {
+import scala.collection.mutable
+
+trait MountableBehavior {
+  _ : Actor =>
+  def MountableObject: PlanetSideServerObject with Mountable
+
+  /** retain the mount point that was used by this occupant to mount */
+  val usedMountPoint: mutable.HashMap[String, Int] = mutable.HashMap()
+
+  def getUsedMountPoint(playerName: String, seatNumber: Int): Int = {
+    usedMountPoint
+      .remove(playerName)
+      .getOrElse {
+        MountableObject
+          .Definition
+          .MountPoints
+          .find { case (_, mp) => mp.seatIndex == seatNumber } match {
+          case Some((mount, _)) => mount
+          case None             => -1
+        }
+      }
+  }
 
   /**
     * The logic governing `Mountable` objects that use the `TryMount` message.
@@ -18,54 +36,40 @@ object MountableBehavior {
     * @see `Seat`
     * @see `Mountable`
     */
-  trait Mount {
-    _: Actor =>
-    def MountableObject: PlanetSideServerObject with Mountable with FactionAffinity
-
-    val mountBehavior: Receive = {
-      case Mountable.TryMount(user, seat_num) =>
-        val obj = MountableObject
-        if (MountTest(MountableObject, seat_num, user)) {
+  val mountBehavior: Receive = {
+    case Mountable.TryMount(user, mount_point) =>
+      val obj = MountableObject
+      obj.GetSeatFromMountPoint(mount_point) match {
+        case Some(seatNum) if mountTest(obj, seatNum, user) && tryMount(obj, seatNum, user) =>
           user.VehicleSeated = obj.GUID
-          sender() ! Mountable.MountMessages(user, Mountable.CanMount(obj, seat_num))
-        } else {
-          sender() ! Mountable.MountMessages(user, Mountable.CanNotMount(obj, seat_num))
-        }
-    }
-
-    protected def MountTest(obj: PlanetSideServerObject with Mountable, seatNumber: Int, player: Player): Boolean = {
-      (player.Faction == obj.Faction ||
-      (obj match {
-        case o: Hackable => o.HackedBy.isDefined
-        case _           => false
-      })) &&
-      !obj.Destroyed &&
-      (obj.Seats.get(seatNumber) match {
-        case Some(seat) => seat.mount(player).contains(player)
-        case _          => false
-      })
-    }
+          usedMountPoint.put(user.Name, mount_point)
+          sender() ! Mountable.MountMessages(user, Mountable.CanMount(obj, seatNum, mount_point))
+        case _ =>
+          sender() ! Mountable.MountMessages(user, Mountable.CanNotMount(obj, mount_point))
+      }
   }
 
-  trait TurretMount extends Mount {
-    _: Actor =>
+  protected def mountTest(
+                           obj: PlanetSideServerObject with Mountable,
+                           seatNumber: Int,
+                           player: Player
+                         ): Boolean = {
+    (player.Faction == obj.Faction ||
+     (obj match {
+       case o : Hackable => o.HackedBy.isDefined
+       case _ => false
+     })) &&
+    !obj.Destroyed
+  }
 
-    override protected def MountTest(
-        obj: PlanetSideServerObject with Mountable,
-        seatNumber: Int,
-        player: Player
-    ): Boolean = {
-      obj match {
-        case wep: WeaponTurret =>
-          (!wep.Definition.FactionLocked || player.Faction == obj.Faction) &&
-            !obj.Destroyed &&
-            (obj.Seats.get(seatNumber) match {
-              case Some(seat) => seat.mount(player).contains(player)
-              case _          => false
-            })
-        case _ =>
-          super.MountTest(obj, seatNumber, player)
-      }
+  private def tryMount(
+                        obj: PlanetSideServerObject with Mountable,
+                        seatNumber: Int,
+                        player: Player
+                      ): Boolean = {
+    obj.Seats.get(seatNumber) match {
+      case Some(seat) => seat.mount(player).contains(player)
+      case _ => false
     }
   }
 
@@ -75,41 +79,41 @@ object MountableBehavior {
     * @see `Seat`
     * @see `Mountable`
     */
-  trait Dismount {
-    this: Actor =>
-
-    def MountableObject: Mountable with Identifiable with WorldEntity with FactionAffinity
-
-    val dismountBehavior: Receive = {
-      case Mountable.TryDismount(user, seat_num) =>
-        val obj = MountableObject
-        if (DismountTest(obj, seat_num, user)) {
-          user.VehicleSeated = None
-          sender() ! Mountable.MountMessages(user, Mountable.CanDismount(obj, seat_num))
-        } else {
-          sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(obj, seat_num))
-        }
-    }
-
-    def DismountTest(
-                      obj: Mountable with WorldEntity,
-                      seatNumber: Int,
-                      user: Player
-                    ): Boolean = {
-      obj.Seats.get(seatNumber) match {
-        case Some(seat) =>
-          (
-            seat.bailable ||
-            !obj.isMoving(test = 1) ||
-            (obj match {
-              case v: Vehicle => v.DeploymentState == DriveState.Deployed
-              case _          => false
-            })
-            ) &&
-          seat.unmount(user).isEmpty
-        case None =>
-          false
+  val dismountBehavior: Receive = {
+    case Mountable.TryDismount(user, seat_number) =>
+      val obj = MountableObject
+      if (dismountTest(obj, seat_number, user) && tryDismount(obj, seat_number, user)) {
+        user.VehicleSeated = None
+        sender() ! Mountable.MountMessages(
+          user,
+          Mountable.CanDismount(obj, seat_number, getUsedMountPoint(user.Name, seat_number))
+        )
       }
+      else {
+        sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(obj, seat_number))
+      }
+  }
+
+  protected def dismountTest(
+                              obj: Mountable with WorldEntity,
+                              seatNumber: Int,
+                              user: Player
+                            ): Boolean = {
+    obj.PassengerInSeat(user).contains(seatNumber) &&
+    (obj.Seats.get(seatNumber) match {
+      case Some(seat) => seat.bailable || !obj.isMoving(test = 1)
+      case _          => false
+    })
+  }
+
+  private def tryDismount(
+                           obj: Mountable,
+                           seatNumber: Int,
+                           user: Player
+                         ): Boolean = {
+    obj.Seats.get(seatNumber) match {
+      case Some(seat) => seat.unmount(user).isEmpty
+      case _ => false
     }
   }
 }

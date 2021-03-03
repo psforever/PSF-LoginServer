@@ -73,7 +73,7 @@ import net.psforever.services.support.SupportActor
 import net.psforever.services.teamwork.{SquadResponse, SquadServiceMessage, SquadServiceResponse, SquadAction => SquadServiceAction}
 import net.psforever.services.time.ShuttleTimer
 import net.psforever.services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
-import net.psforever.services.{InterstellarClusterService, RemoverActor, Service, ServiceManager}
+import net.psforever.services.{InterstellarClusterService => ICS, RemoverActor, Service, ServiceManager}
 import net.psforever.types._
 import net.psforever.util.{Config, DefinitionUtil}
 import net.psforever.zones.Zones
@@ -177,7 +177,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var galaxyService: ActorRef                                        = ActorRef.noSender
   var squadService: ActorRef                                         = ActorRef.noSender
   var propertyOverrideManager: ActorRef                              = Actor.noSender
-  var cluster: typed.ActorRef[InterstellarClusterService.Command]    = Actor.noSender
+  var cluster: typed.ActorRef[ICS.Command]                           = Actor.noSender
   var _session: Session                                              = Session()
   var progressBarValue: Option[Float]                                = None
   var shooting: Option[PlanetSideGUID]                               = None //ChangeFireStateMessage_Start
@@ -301,7 +301,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   serviceManager ! Lookup("propertyOverrideManager")
 
   ServiceManager.receptionist ! Receptionist.Find(
-    InterstellarClusterService.InterstellarClusterServiceKey,
+    ICS.InterstellarClusterServiceKey,
     context.self
   )
 
@@ -386,7 +386,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       propertyOverrideManager = endpoint
       log.info("ID: " + session.id + " Got propertyOverrideManager service " + endpoint)
 
-    case InterstellarClusterService.InterstellarClusterServiceKey.Listing(listings) =>
+    case ICS.InterstellarClusterServiceKey.Listing(listings) =>
       cluster = listings.head
 
     // Avatar subscription update
@@ -409,7 +409,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     case AvatarActor.AvatarLoginResponse(avatar) =>
       session = session.copy(avatar = avatar)
       Deployables.InitializeDeployableQuantities(avatar)
-      cluster ! InterstellarClusterService.FilterZones(_ => true, context.self)
+      cluster ! ICS.FilterZones(_ => true, context.self)
 
     case packet: PlanetSideGamePacket =>
       handleGamePkt(packet)
@@ -437,7 +437,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       zoningChatMessageType = ChatMessageType.CMT_RECALL
       zoningStatus = Zoning.Status.Request
       beginZoningCountdown(() => {
-        cluster ! InterstellarClusterService.GetRandomSpawnPoint(
+        cluster ! ICS.GetRandomSpawnPoint(
           Zones.sanctuaryZoneNumber(player.Faction),
           player.Faction,
           Seq(SpawnGroup.Sanctuary),
@@ -452,24 +452,24 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       /* TODO no ask or adapters from classic to typed so this logic is happening in SpawnPointResponse
       implicit val timeout = Timeout(1 seconds)
       val future =
-        ask(cluster.toClassic, InterstellarClusterService.GetInstantActionSpawnPoint(player.Faction, context.self))
-          .mapTo[InterstellarClusterService.SpawnPointResponse]
+        ask(cluster.toClassic, ICS.GetInstantActionSpawnPoint(player.Faction, context.self))
+          .mapTo[ICS.SpawnPointResponse]
       Await.result(future, 2 second) match {
-        case InterstellarClusterService.SpawnPointResponse(None) =>
+        case ICS.SpawnPointResponse(None) =>
           sendResponse(
             ChatMsg(ChatMessageType.CMT_INSTANTACTION, false, "", "@InstantActionNoHotspotsAvailable", None)
           )
-        case InterstellarClusterService.SpawnPointResponse(Some(_)) =>
+        case ICS.SpawnPointResponse(Some(_)) =>
           beginZoningCountdown(() => {
-            cluster ! InterstellarClusterService.GetInstantActionSpawnPoint(player.Faction, context.self)
+            cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self)
           })
       }
 
       beginZoningCountdown(() => {
-        cluster ! InterstellarClusterService.GetInstantActionSpawnPoint(player.Faction, context.self)
+        cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self)
       })
        */
-      cluster ! InterstellarClusterService.GetInstantActionSpawnPoint(player.Faction, context.self)
+      cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self)
 
     case Quit() =>
       //priority to quitting is given to quit over other zoning methods
@@ -952,14 +952,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     case Zone.Population.PlayerAlreadySpawned(zone, tplayer) =>
       log.warn(s"${tplayer.Name} is already spawned on zone ${zone.id}; a clerical error?")
 
-    case InterstellarClusterService.SpawnPointResponse(response) =>
+    case ICS.SpawnPointResponse(response) =>
       zoningType match {
         case Zoning.Method.InstantAction if response.isEmpty =>
           CancelZoningProcessWithReason("@InstantActionNoHotspotsAvailable")
 
         case Zoning.Method.InstantAction if zoningStatus == Zoning.Status.Request =>
           beginZoningCountdown(() => {
-            cluster ! InterstellarClusterService.GetInstantActionSpawnPoint(player.Faction, context.self)
+            cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self)
           })
 
         case zoningType =>
@@ -988,8 +988,18 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           }
       }
 
+    case ICS.DroppodLaunchDenial(errorCode, _) =>
+      sendResponse(DroppodLaunchResponseMessage(errorCode, player.GUID))
+
+    case ICS.DroppodLaunchConfirmation(zone, position) =>
+      LoadZoneLaunchDroppod(zone, position)
+
+    case msg @ Zone.Vehicle.HasSpawned(zone, vehicle) => ;
+
     case msg @ Zone.Vehicle.CanNotSpawn(zone, vehicle, reason) =>
       log.warn(s"$msg")
+
+    case msg @ Zone.Vehicle.HasDespawned(zone, vehicle) => ;
 
     case msg @ Zone.Vehicle.CanNotDespawn(zone, vehicle, reason) =>
       log.warn(s"$msg")
@@ -1128,7 +1138,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     case Zone.Deployable.DeployableIsDismissed(obj) =>
       continent.tasks ! GUIDTask.UnregisterObjectTask(obj)(continent.GUID)
 
-    case InterstellarClusterService.ZonesResponse(zones) =>
+    case ICS.ZonesResponse(zones) =>
       zones.foreach { zone =>
         val continentNumber = zone.Number
         val popBO           = 0
@@ -1205,7 +1215,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             self ! NewPlayerLoaded(player)
           } else {
             zoneReload = true
-            cluster ! InterstellarClusterService.GetNearbySpawnPoint(
+            cluster ! ICS.GetNearbySpawnPoint(
               continent.Number,
               player,
               Seq(SpawnGroup.Facility, SpawnGroup.Tower),
@@ -1214,7 +1224,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           }
       }
 
-    case InterstellarClusterService.ZoneResponse(zone) =>
+    case ICS.ZoneResponse(zone) =>
       log.info(s"Zone ${zone.get.id} will now load")
       loadConfZone = true
       val oldZone = session.zone
@@ -1618,55 +1628,29 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   }
 
   /**
-    * You can't instant action to respond to some activity using a droppod!
-    * You can't.
-    * You just can't.
+    * Attach the player to a droppod vehicle and hurtle them through the stratosphere in some far off world.
+    * Perform all normal operation standardization (state cancels) as if any of form of zoning was being performed,
+    * then assemble the vehicle and work around some inconvenient setup requirements for vehicle gating.
+    * You can't instant action to respond to some activity using a droppod.
     * @param zone            the destination zone
-    * @param hotspotPosition where is the hotspot that is being addressed
-    * @param spawnPosition   the destination spawn position (may not be related to a literal `SpawnPoint` entity)
+    * @param spawnPosition   the destination drop position
     */
-  def YouCantInstantActionUsingDroppod(zone: Zone, hotspotPosition: Vector3, spawnPosition: Vector3): Unit = {
+  def LoadZoneLaunchDroppod(zone: Zone, spawnPosition: Vector3): Unit = {
     CancelZoningProcess()
     PlayerActionsToCancel()
     CancelAllProximityUnits()
-    //find a safe drop point
-    var targetBuildings = zone.Buildings.values
-    var whereToDroppod  = spawnPosition.xy
-    while (targetBuildings.nonEmpty) {
-      (targetBuildings
-        .filter { building =>
-          val radius = building.Definition.SOIRadius
-          Vector3.DistanceSquared(building.Position.xy, whereToDroppod) < radius * radius
-        }) match {
-        case Nil =>
-          //no soi interference
-          targetBuildings = Nil
-        case List(building: Building) =>
-          //blocked by a single soi; find space just outside of this soi and confirm no new overlap
-          val radius = Vector3(0, building.Definition.SOIRadius.toFloat + 5f, 0)
-          whereToDroppod =
-            building.Position.xy + Vector3.Rz(radius, math.abs(scala.util.Random.nextInt() % 360).toFloat)
-        case buildings =>
-          //probably blocked by a facility and its tower (maximum overlap potential is 2?); find space outside of largest soi
-          val largestBuilding = buildings.maxBy(_.Definition.SOIRadius)
-          val radius          = Vector3(0, largestBuilding.Definition.SOIRadius.toFloat + 5f, 0)
-          whereToDroppod =
-            largestBuilding.Position.xy + Vector3.Rz(radius, math.abs(scala.util.Random.nextInt() % 360).toFloat)
-          targetBuildings = buildings
-      }
-    }
     //droppod action
     val droppod = Vehicle(GlobalDefinitions.droppod)
     droppod.Faction = player.Faction
-    droppod.Position = whereToDroppod.xy + Vector3.z(1024)
+    droppod.Position = spawnPosition.xy + Vector3.z(1024)
     droppod.Orientation = Vector3.z(180) //you always seems to land looking south; don't know why
     droppod.Seats(0).mount(player)
     droppod.GUID = PlanetSideGUID(0)  //droppod is not registered, we must jury-rig this
     droppod.Invalidate()              //now, we must short-circuit the jury-rig
     interstellarFerry = Some(droppod) //leverage vehicle gating
     player.Position = droppod.Position
+    player.VehicleSeated = PlanetSideGUID(0)
     LoadZonePhysicalSpawnPoint(zone.id, droppod.Position, Vector3.Zero, 0 seconds)
-    /* Don't even think about it. */
   }
 
   /**
@@ -1846,7 +1830,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         reviveTimer.cancel()
         if (player.death_by == 0) {
           reviveTimer = context.system.scheduler.scheduleOnce(respawnTimer) {
-            cluster ! InterstellarClusterService.GetRandomSpawnPoint(
+            cluster ! ICS.GetRandomSpawnPoint(
               Zones.sanctuaryZoneNumber(player.Faction),
               player.Faction,
               Seq(SpawnGroup.Sanctuary),
@@ -2326,6 +2310,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case LocalResponse.SetEmpire(object_guid, empire) =>
         sendResponse(SetEmpireMessage(object_guid, empire))
 
+      case LocalResponse.SendResponse(pkt) =>
+        sendResponse(pkt)
+
       case LocalResponse.ShuttleEvent(ev) =>
         sendResponse(
           OrbitalShuttleTimeMsg(
@@ -2392,17 +2379,25 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     */
   def HandleMountMessages(tplayer: Player, reply: Mountable.Exchange): Unit = {
     reply match {
-      case Mountable.CanMount(obj: ImplantTerminalMech, seat_num) =>
+      case Mountable.CanMount(obj: ImplantTerminalMech, seat_number, mount_point) =>
         CancelZoningProcessWithDescriptiveReason("cancel_use")
         CancelAllProximityUnits()
-        MountingAction(tplayer, obj, seat_num)
+        MountingAction(tplayer, obj, seat_number)
         // the player will receive no messages consistently except the KeepAliveMessage echo
         keepAliveFunc = KeepAlivePersistence
 
-      case Mountable.CanMount(obj: Vehicle, seat_num) =>
+      case Mountable.CanMount(obj: Vehicle, seat_number, _)
+        if obj.Definition == GlobalDefinitions.orbital_shuttle =>
+        CancelZoningProcessWithDescriptiveReason("cancel_mount")
+        CancelAllProximityUnits()
+        MountingAction(tplayer, obj, seat_number)
+        // the player will receive no messages consistently except the KeepAliveMessage echo
+        keepAliveFunc = KeepAlivePersistence
+
+      case Mountable.CanMount(obj: Vehicle, seat_number, _) =>
         CancelZoningProcessWithDescriptiveReason("cancel_mount")
         val obj_guid: PlanetSideGUID = obj.GUID
-        log.info(s"MountVehicleMsg: ${player.Name}_guid mounts $obj_guid @ $seat_num")
+        log.info(s"MountVehicleMsg: ${player.Name}_guid mounts $obj_guid @ $seat_number")
         CancelAllProximityUnits()
         sendResponse(PlanetsideAttributeMessage(obj_guid, 0, obj.Health))
         sendResponse(PlanetsideAttributeMessage(obj_guid, 68, obj.Shields)) //shield health
@@ -2413,29 +2408,29 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           val capacitor = scala.math.ceil((obj.Capacitor.toFloat / obj.Definition.MaxCapacitor.toFloat) * 10).toInt
           sendResponse(PlanetsideAttributeMessage(obj_guid, 113, capacitor))
         }
-        if (seat_num == 0) {
+        if (seat_number == 0) {
           if (obj.Definition == GlobalDefinitions.quadstealth) {
             //wraith cloak state matches the cloak state of the driver
             //phantasm doesn't uncloak if the driver is uncloaked and no other vehicle cloaks
             obj.Cloaked = tplayer.Cloaked
           }
-        } else if (obj.WeaponControlledFromSeat(seat_num).isEmpty) {
+        } else if (obj.WeaponControlledFromSeat(seat_number).isEmpty) {
           // the player will receive no messages consistently except the KeepAliveMessage echo
           keepAliveFunc = KeepAlivePersistence
         }
         AccessContainer(obj)
-        UpdateWeaponAtSeatPosition(obj, seat_num)
-        MountingAction(tplayer, obj, seat_num)
+        UpdateWeaponAtSeatPosition(obj, seat_number)
+        MountingAction(tplayer, obj, seat_number)
 
-      case Mountable.CanMount(obj: FacilityTurret, seat_num) =>
+      case Mountable.CanMount(obj: FacilityTurret, seat_number, mount_point) =>
         CancelZoningProcessWithDescriptiveReason("cancel_mount")
         if (!obj.isUpgrading) {
           if (obj.Definition == GlobalDefinitions.vanu_sentry_turret) {
             obj.Zone.LocalEvents ! LocalServiceMessage(obj.Zone.id, LocalAction.SetEmpire(obj.GUID, player.Faction))
           }
           sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))
-          UpdateWeaponAtSeatPosition(obj, seat_num)
-          MountingAction(tplayer, obj, seat_num)
+          UpdateWeaponAtSeatPosition(obj, seat_number)
+          MountingAction(tplayer, obj, seat_number)
           // the player will receive no messages consistently except the KeepAliveMessage echo
           keepAliveFunc = KeepAlivePersistence
         } else {
@@ -2444,25 +2439,75 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           )
         }
 
-      case Mountable.CanMount(obj: PlanetSideGameObject with WeaponTurret, seat_num) =>
+      case Mountable.CanMount(obj: PlanetSideGameObject with WeaponTurret, seat_number, mount_point) =>
         CancelZoningProcessWithDescriptiveReason("cancel_mount")
         sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))
-        UpdateWeaponAtSeatPosition(obj, seat_num)
-        MountingAction(tplayer, obj, seat_num)
+        UpdateWeaponAtSeatPosition(obj, seat_number)
+        MountingAction(tplayer, obj, seat_number)
         // the player will receive no messages consistently except the KeepAliveMessage echo
         keepAliveFunc = KeepAlivePersistence
 
-      case Mountable.CanMount(obj: Mountable, _) =>
+      case Mountable.CanMount(obj: Mountable, _, _) =>
         log.warn(s"MountVehicleMsg: $obj is some generic mountable object and nothing will happen")
 
-      case Mountable.CanDismount(obj: ImplantTerminalMech, seat_num) =>
+      case Mountable.CanDismount(obj: ImplantTerminalMech, seat_num, _) =>
         DismountAction(tplayer, obj, seat_num)
 
-      case Mountable.CanDismount(obj: Vehicle, seat_num) if obj.Definition == GlobalDefinitions.droppod =>
+      case Mountable.CanDismount(obj: Vehicle, seat_num, mount_point)
+        if obj.Definition == GlobalDefinitions.orbital_shuttle =>
+        val pguid = player.GUID
+        if (obj.MountedIn.nonEmpty) {
+          //dismount to hart lobby
+          val sguid = obj.GUID
+          val offset = obj.MountPoints(mount_point).positionOffset
+          val offxy = offset.xy
+          val (horizontal, bias) = if (offxy.x >= 0) {
+            (90f,  if (offxy.y >= 0) 1 else -1)
+          } else {
+            (270f, if (offxy.y >= 0) -1 else 1)
+          }
+          val zang = (horizontal + bias * math.atan(offxy.y / offxy.x)).toFloat
+          val pos = obj.Position + obj.MountPoints(mount_point).positionOffset
+          tplayer.Position = pos
+          sendResponse(DelayedPathMountMsg(pguid, sguid, 60, true))
+          continent.LocalEvents ! LocalServiceMessage(
+            continent.id,
+            LocalAction.SendResponse(ObjectDetachMessage(sguid, pguid, pos, 0, 0, zang))
+          )
+        }
+        else {
+          //get ready for orbital drop
+          DismountAction(tplayer, obj, seat_num)
+          //DismountAction(...) uses vehicle service, so use that service to coordinate the remainder of the messages
+          continent.VehicleEvents ! VehicleServiceMessage(
+            player.Name,
+            VehicleAction.SendResponse(Service.defaultPlayerGUID, PlayerStasisMessage(pguid)) //the stasis message
+          )
+          //when the player dismounts, they will be positioned where the shuttle was when it disappeared in the sky
+          //the player will fall to the ground and is perfectly vulnerable in this state
+          //additionally, our player must exist in the current zone
+          //having no in-game avatar target will throw us out of the map screen when deploying and cause softlock
+          continent.VehicleEvents ! VehicleServiceMessage(
+            player.Name,
+            VehicleAction.SendResponse(
+              Service.defaultPlayerGUID,
+              PlayerStateShiftMessage(ShiftState(0, obj.Position, obj.Orientation.z, None)) //hide in the shuttle bay
+            )
+          )
+          continent.VehicleEvents ! VehicleServiceMessage(
+            continent.id,
+            VehicleAction.SendResponse(pguid, GenericObjectActionMessage(pguid, 9)) //conceal the player
+          )
+        }
+        keepAliveFunc = NormalKeepAlive
+
+      case Mountable.CanDismount(obj: Vehicle, seat_num, _)
+        if obj.Definition == GlobalDefinitions.droppod =>
         UnaccessContainer(obj)
         DismountAction(tplayer, obj, seat_num)
+        obj.Actor ! Vehicle.Deconstruct()
 
-      case Mountable.CanDismount(obj: Vehicle, seat_num) =>
+      case Mountable.CanDismount(obj: Vehicle, seat_num, _) =>
         val player_guid: PlanetSideGUID = tplayer.GUID
         if (player_guid == player.GUID) {
           //disembarking self
@@ -2476,22 +2521,24 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           )
         }
 
-      case Mountable.CanDismount(obj: PlanetSideGameObject with WeaponTurret, seat_num) =>
+      case Mountable.CanDismount(obj: PlanetSideGameObject with WeaponTurret, seat_num, _) =>
         DismountAction(tplayer, obj, seat_num)
 
-      case Mountable.CanDismount(obj: Mountable, _) =>
+      case Mountable.CanDismount(obj: Mountable, _, _) =>
         log.warn(s"DismountVehicleMsg: $obj is some generic mountable object and nothing will happen")
 
-      case Mountable.CanNotMount(obj: Vehicle, seat_num) =>
-        log.warn(s"MountVehicleMsg: ${tplayer.Name} attempted to mount $obj's mount $seat_num, but was not allowed")
-        if (obj.SeatPermissionGroup(seat_num).contains(AccessPermissionGroup.Driver)) {
-          sendResponse(
-            ChatMsg(ChatMessageType.CMT_OPEN, false, "", "You are not the driver of this vehicle.", None)
-          )
+      case Mountable.CanNotMount(obj: Vehicle, mount_point) =>
+        log.warn(s"MountVehicleMsg: ${tplayer.Name} attempted to mount $obj's mount $mount_point, but was not allowed")
+        obj.GetSeatFromMountPoint(mount_point) match {
+          case Some(seatNum) if obj.SeatPermissionGroup(seatNum).contains(AccessPermissionGroup.Driver) =>
+            sendResponse(
+              ChatMsg(ChatMessageType.CMT_OPEN, false, "", "You are not the driver of this vehicle.", None)
+            )
+          case _ =>
         }
 
-      case Mountable.CanNotMount(obj: Mountable, seat_num) =>
-        log.warn(s"MountVehicleMsg: ${tplayer.Name} attempted to mount $obj's mount $seat_num, but was not allowed")
+      case Mountable.CanNotMount(obj: Mountable, mount_point) =>
+        log.warn(s"MountVehicleMsg: ${tplayer.Name} attempted to mount $obj's mount $mount_point, but was not allowed")
 
       case Mountable.CanNotDismount(obj, seat_num) =>
         log.warn(
@@ -3067,7 +3114,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         sendResponse(
           DroppodFreefallingMessage(
             vehicle.GUID,
-            vehicle.Position + Vector3.z(50),
+            vehicle.Position,
             Vector3.z(-999),
             vehicle.Position + Vector3.z(25),
             Vector3(0, 70.3125f, 90),
@@ -3524,15 +3571,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         //cargo occupants (including our own vehicle as cargo)
         allActiveVehicles.collect {
           case vehicle if vehicle.CargoHolds.nonEmpty =>
-            vehicle.CargoHolds.collect({
-              case (index, hold: Cargo) if hold.isOccupied => {
+            vehicle.CargoHolds.collect {
+              case (_index, hold: Cargo) if hold.isOccupied =>
                 CargoBehavior.CargoMountBehaviorForAll(
                   vehicle,
                   hold.occupant.get,
-                  index
+                  _index
                 ) //CargoMountBehaviorForUs can fail to attach the cargo vehicle on some clients
-              }
-            })
+            }
         }
         //special deploy states
         val deployedVehicles = allActiveVehicles.filter(_.DeploymentState == DriveState.Deployed)
@@ -3673,11 +3719,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           CancelZoningProcessWithDescriptiveReason("cancel_motion")
         }
         if (is_crouching && !player.Crouching) {
-          sendResponse(OrbitalShuttleTimeMsg(3, 3, 4, 23669, 8000, true, 0, List(
-            PadAndShuttlePair(PlanetSideGUID(788), PlanetSideGUID(1127), 5),
-            PadAndShuttlePair(PlanetSideGUID(787), PlanetSideGUID(1128), 5),
-            PadAndShuttlePair(PlanetSideGUID(786), PlanetSideGUID(1129), 27)
-          )))
+          //...
         }
         player.Position = pos
         player.Velocity = vel
@@ -3905,7 +3947,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         log.info(s"SpawnRequestMessage: $msg")
         if (deadState != DeadState.RespawnTime) {
           deadState = DeadState.RespawnTime
-          cluster ! InterstellarClusterService.GetNearbySpawnPoint(
+          cluster ! ICS.GetNearbySpawnPoint(
             spawnGroup match {
               case SpawnGroup.Sanctuary =>
                 Zones.sanctuaryZoneNumber(player.Faction)
@@ -4275,14 +4317,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           case Some(vehicle: Vehicle) =>
             /* line 1a: player is admin (and overrules other access requirements) */
             /* line 1b: vehicle and player (as the owner) acknowledge each other */
-            /* line 1c: vehicle is the same faction as player and either the owner is absent or the vehicle is destroyed */
+            /* line 1c: vehicle is the same faction as player, is ownable, and either the owner is absent or the vehicle is destroyed */
             /* line 2: vehicle is not mounted in anything or, if it is, its seats are empty */
             if (
               (session.account.gm ||
               (player.avatar.vehicle.contains(object_guid) && vehicle.Owner.contains(player.GUID)) ||
-              (player.Faction == vehicle.Faction && ((vehicle.Owner.isEmpty || continent
-                .GUID(vehicle.Owner.get)
-                .isEmpty) || vehicle.Destroyed))) &&
+              (player.Faction == vehicle.Faction &&
+               (vehicle.Definition.CanBeOwned.nonEmpty &&
+                (vehicle.Owner.isEmpty || continent.GUID(vehicle.Owner.get).isEmpty) || vehicle.Destroyed))) &&
               (vehicle.MountedIn.isEmpty || !vehicle.Seats.values.exists(_.isOccupied))
             ) {
               vehicle.Actor ! Vehicle.Deconstruct()
@@ -5362,7 +5404,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                     true
                 })) =>
               deadState = DeadState.RespawnTime
-              cluster ! InterstellarClusterService.GetSpawnPoint(
+              cluster ! ICS.GetSpawnPoint(
                 destinationZoneGuid.guid,
                 player,
                 destinationBuildingGuid,
@@ -5384,14 +5426,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         log.info("MountVehicleMsg: " + msg)
         ValidObject(mountable_guid) match {
           case Some(obj: Mountable) =>
-            obj.GetSeatFromMountPoint(entry_point) match {
-              case Some(seat_num) =>
-                obj.Actor ! Mountable.TryMount(player, seat_num)
-              case None =>
-                log.warn(
-                  s"MountVehicleMsg: attempted to board mountable $mountable_guid's mount $entry_point, but no mount exists there"
-                )
-            }
+            obj.Actor ! Mountable.TryMount(player, entry_point)
           case None | Some(_) =>
             log.warn(s"MountVehicleMsg: not a mountable thing")
         }
@@ -5407,7 +5442,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           //normally disembarking from a mount
           (interstellarFerry.orElse(continent.GUID(player.VehicleSeated)) match {
             case out @ Some(obj: Vehicle) =>
-              if (obj.MountedIn.isEmpty) out else None
+              continent.GUID(obj.MountedIn) match {
+                case Some(_: Vehicle) => None //cargo vehicle
+                case _                => out  //arrangement "may" be permissible
+              }
             case out @ Some(_: Mountable) =>
               out
             case _ =>
@@ -5434,7 +5472,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                   //todo: continue flight path until aircraft crashes if no passengers present (or no passenger seats), then deconstruct.
                   //todo: kick cargo passengers out. To be added after PR #216 is merged
                   obj match {
-                    case v: Vehicle if bailType == BailType.Bailed && seat_num == 0 && v.Flying =>
+                    case v: Vehicle
+                      if bailType == BailType.Bailed &&
+                         v.SeatPermissionGroup(seat_num).contains(AccessPermissionGroup.Driver) &&
+                         v.Flying =>
                       v.Actor ! Vehicle.Deconstruct(None) //immediate deconstruction
                     case _ => ;
                   }
@@ -5552,12 +5593,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                     if (allow == VehicleLockState.Locked) { //TODO only important permission atm
                       vehicle.Definition.MountPoints.values
                         .foreach(mountpoint_num => {
-                          vehicle.Seat(mountpoint_num) match {
+                          val seatIndex = mountpoint_num.seatIndex
+                          vehicle.Seat(seatIndex) match {
                             case Some(seat) =>
                               seat.occupant match {
                                 case Some(tplayer: Player) =>
                                   if (
-                                    vehicle.SeatPermissionGroup(mountpoint_num).contains(group) && tplayer != player
+                                    vehicle.SeatPermissionGroup(seatIndex).contains(group) && tplayer != player
                                   ) { //can not kick self
                                     seat.unmount(tplayer)
                                     tplayer.VehicleSeated = None
@@ -5570,11 +5612,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                               }
                             case None => ; // Not a mount mounting point
                           }
-                          vehicle.CargoHold(mountpoint_num) match {
+                          vehicle.CargoHold(seatIndex) match {
                             case Some(cargo) =>
                               cargo.occupant match {
                                 case Some(vehicle) =>
-                                  if (vehicle.SeatPermissionGroup(mountpoint_num).contains(group)) {
+                                  if (vehicle.SeatPermissionGroup(seatIndex).contains(group)) {
                                     //todo: this probably doesn't work for passengers within the cargo vehicle
                                     // Instruct client to start bail dismount procedure
                                     self ! DismountVehicleCargoMsg(player.GUID, vehicle.GUID, true, false, false)
@@ -5652,6 +5694,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           }
         })
         sendResponse(TargetingInfoMessage(targetInfo))
+
+      case msg @ DroppodLaunchRequestMessage(_, zone, xypos, _) =>
+        //log.info("Droppod request: " + msg)
+        cluster ! ICS.DroppodLaunchRequest(
+          zone,
+          xypos,
+          player.Faction,
+          self.toTyped[ICS.DroppodLaunchExchange]
+        )
 
       case msg @ ActionCancelMessage(u1, u2, u3) =>
         log.info("Cancelled: " + msg)
@@ -6937,6 +6988,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           //as the driver, we must temporarily exclude ourselves from being in the vehicle during its creation
           val seat = vehicle.Seats(0)
           seat.unmount(player)
+          player.VehicleSeated = None
           val data = vdef.Packet.ConstructorData(vehicle).get
           sendResponse(ObjectCreateMessage(vehicle.Definition.ObjectId, vguid, data))
           seat.mount(player)
@@ -7360,14 +7412,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
     continent.GUID(player.VehicleSeated) match {
       case Some(obj: Vehicle) if !obj.Destroyed =>
-        cluster ! InterstellarClusterService.GetRandomSpawnPoint(
+        cluster ! ICS.GetRandomSpawnPoint(
           Zones.sanctuaryZoneNumber(player.Faction),
           player.Faction,
           Seq(SpawnGroup.WarpGate),
           context.self
         )
       case _ =>
-        cluster ! InterstellarClusterService.GetRandomSpawnPoint(
+        cluster ! ICS.GetRandomSpawnPoint(
           Zones.sanctuaryZoneNumber(player.Faction),
           player.Faction,
           Seq(SpawnGroup.Sanctuary),
@@ -7799,7 +7851,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     val player_guid: PlanetSideGUID = tplayer.GUID
     log.info(s"DismountVehicleMsg: ${tplayer.Name} dismounts $obj from $seatNum")
     keepAliveFunc = NormalKeepAlive
-    sendResponse(DismountVehicleMsg(player_guid, BailType.Normal, false))
+    sendResponse(DismountVehicleMsg(player_guid, BailType.Normal, wasKickedByDriver = false))
     continent.VehicleEvents ! VehicleServiceMessage(
       continent.id,
       VehicleAction.DismountVehicle(player_guid, BailType.Normal, false)
@@ -8487,15 +8539,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         session = session.copy(player = targetPlayer)
         taskThenZoneChange(
           GUIDTask.UnregisterObjectTask(original.avatar.locker)(continent.GUID),
-          InterstellarClusterService.FindZone(_.id == zoneId, context.self)
+          ICS.FindZone(_.id == zoneId, context.self)
         )
       } else if (player.HasGUID) {
         taskThenZoneChange(
           GUIDTask.UnregisterAvatar(original)(continent.GUID),
-          InterstellarClusterService.FindZone(_.id == zoneId, context.self)
+          ICS.FindZone(_.id == zoneId, context.self)
         )
       } else {
-        cluster ! InterstellarClusterService.FindZone(_.id == zoneId, context.self)
+        cluster ! ICS.FindZone(_.id == zoneId, context.self)
       }
 
     }
@@ -8589,7 +8641,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       player.Continent = zoneId //forward-set the continent id to perform a test
       taskThenZoneChange(
         GUIDTask.UnregisterAvatar(player)(continent.GUID),
-        InterstellarClusterService.FindZone(_.id == zoneId, context.self)
+        ICS.FindZone(_.id == zoneId, context.self)
       )
     } else {
       UnaccessContainer(vehicle)
@@ -8613,7 +8665,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       continent.Transport ! Zone.Vehicle.Despawn(vehicle)
       taskThenZoneChange(
         UnregisterDrivenVehicle(vehicle, player),
-        InterstellarClusterService.FindZone(_.id == zoneId, context.self)
+        ICS.FindZone(_.id == zoneId, context.self)
       )
     }
   }
@@ -8657,7 +8709,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       taskThenZoneChange(
         GUIDTask.UnregisterAvatar(player)(continent.GUID),
-        InterstellarClusterService.FindZone(_.id == zoneId, context.self)
+        ICS.FindZone(_.id == zoneId, context.self)
       )
     }
   }
@@ -8700,7 +8752,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   /** Before changing zones, perform the following task (which can be a nesting of subtasks). */
   def taskThenZoneChange(
       task: TaskResolver.GiveTask,
-      zoneMessage: InterstellarClusterService.FindZone
+      zoneMessage: ICS.FindZone
   ): Unit = {
     continent.tasks ! TaskResolver.GiveTask(
       new Task() {

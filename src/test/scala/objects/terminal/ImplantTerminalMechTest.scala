@@ -81,7 +81,7 @@ class ImplantTerminalMechControl2Test extends ActorTest {
       assert(reply2.response.isInstanceOf[Mountable.CanMount])
       val reply3 = reply2.response.asInstanceOf[Mountable.CanMount]
       assert(reply3.obj == mech)
-      assert(reply3.seat_num == 0)
+      assert(reply3.seat_number == 0)
     }
   }
 }
@@ -104,7 +104,7 @@ class ImplantTerminalMechControl3Test extends ActorTest {
       assert(reply2.response.isInstanceOf[Mountable.CanNotMount])
       val reply3 = reply2.response.asInstanceOf[Mountable.CanNotMount]
       assert(reply3.obj == mech)
-      assert(reply3.seat_num == 0)
+      assert(reply3.mount_point == 0)
     }
   }
 }

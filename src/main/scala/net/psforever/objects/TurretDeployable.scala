@@ -11,7 +11,7 @@ import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.DamageableWeaponTurret
 import net.psforever.objects.serverobject.hackable.Hackable
-import net.psforever.objects.serverobject.mount.MountableBehavior
+import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.repair.RepairableWeaponTurret
 import net.psforever.objects.serverobject.turret.{TurretDefinition, WeaponTurret}
 import net.psforever.objects.vital.damage.DamageCalculations
@@ -63,8 +63,7 @@ class TurretControl(turret: TurretDeployable)
     extends Actor
     with FactionAffinityBehavior.Check
     with JammableMountedWeapons //note: jammable status is reported as vehicle events, not local events
-    with MountableBehavior.TurretMount
-    with MountableBehavior.Dismount
+    with MountableBehavior
     with DamageableWeaponTurret
     with RepairableWeaponTurret {
   def MountableObject  = turret
@@ -88,6 +87,13 @@ class TurretControl(turret: TurretDeployable)
       .orElse {
         case _ => ;
       }
+
+  override protected def mountTest(
+                                    obj: PlanetSideServerObject with Mountable,
+                                    seatNumber: Int,
+                                    player: Player): Boolean = {
+    (!turret.Definition.FactionLocked || player.Faction == obj.Faction) && !obj.Destroyed
+  }
 
   override protected def DestructionAwareness(target: Target, cause: DamageResult): Unit = {
     super.DestructionAwareness(target, cause)

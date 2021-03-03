@@ -128,6 +128,14 @@ class LocalService(zone: Zone) extends Actor {
               LocalResponse.RouterTelepadTransport(passenger_guid, src_guid, dest_guid)
             )
           )
+        case LocalAction.SendResponse(pkt) =>
+          LocalEvents.publish(
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              Service.defaultPlayerGUID,
+              LocalResponse.SendResponse(pkt)
+            )
+          )
         case LocalAction.SetEmpire(object_guid, empire) =>
           LocalEvents.publish(
             LocalServiceResponse(

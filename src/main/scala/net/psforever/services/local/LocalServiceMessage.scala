@@ -10,6 +10,7 @@ import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
 import net.psforever.objects.vehicles.Utility
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
+import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.{DeployableInfo, DeploymentAction, TriggeredSound}
 import net.psforever.services.time.ShuttleTimer.OrbitalShuttleEvent
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
@@ -62,6 +63,7 @@ object LocalAction {
       src_guid: PlanetSideGUID,
       dest_guid: PlanetSideGUID
   )                                                                                       extends Action
+  final case class SendResponse(pkt: PlanetSideGamePacket)                                extends Action
   final case class SetEmpire(object_guid: PlanetSideGUID, empire: PlanetSideEmpire.Value) extends Action
   final case class ShuttleDock(pad_guid: PlanetSideGUID, shuttle_guid: PlanetSideGUID, toSlot: Int)   extends Action
   final case class ShuttleUndock(

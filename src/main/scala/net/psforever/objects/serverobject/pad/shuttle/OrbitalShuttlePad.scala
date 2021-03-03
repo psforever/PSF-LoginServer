@@ -3,9 +3,18 @@ package net.psforever.objects.serverobject.pad.shuttle
 
 import net.psforever.objects.{GlobalDefinitions, Vehicle}
 import net.psforever.objects.serverobject.structures.{Amenity, AmenityDefinition}
+import net.psforever.objects.vehicles.AccessPermissionGroup
 
 class OrbitalShuttlePad(spDef: AmenityDefinition) extends Amenity {
-  val shuttle = new Vehicle(GlobalDefinitions.orbital_shuttle)
+  val shuttle = new Vehicle(GlobalDefinitions.orbital_shuttle) {
+    //the shuttle only has passenger seats
+    override def SeatPermissionGroup(seatNumber : Int) : Option[AccessPermissionGroup.Value] = {
+      Seat(seatNumber) match {
+        case Some(_) => Some(AccessPermissionGroup.Passenger)
+        case _       => None
+      }
+    }
+  }
 
   def Definition: AmenityDefinition = spDef
 }

@@ -38,7 +38,7 @@ class MountableControl2Test extends ActorTest {
       assert(reply2.response.isInstanceOf[Mountable.CanMount])
       val reply3 = reply2.response.asInstanceOf[Mountable.CanMount]
       assert(reply3.obj == obj)
-      assert(reply3.seat_num == 0)
+      assert(reply3.seat_number == 0)
     }
   }
 }
@@ -61,7 +61,7 @@ class MountableControl3Test extends ActorTest {
       assert(reply2.response.isInstanceOf[Mountable.CanNotMount])
       val reply3 = reply2.response.asInstanceOf[Mountable.CanNotMount]
       assert(reply3.obj == obj)
-      assert(reply3.seat_num == 0)
+      assert(reply3.mount_point == 0)
     }
   }
 }
@@ -73,14 +73,13 @@ object MountableTest {
     //eh whatever
     def Faction                      = PlanetSideEmpire.TR
     def Definition = new ObjectDefinition(1) with MountableDefinition {
-      MountPoints += 0 -> 0
+      MountPoints += 0 -> MountInfo(0)
     }
   }
 
   class MountableTestControl(obj: PlanetSideServerObject with Mountable)
       extends Actor
-      with MountableBehavior.Mount
-      with MountableBehavior.Dismount {
+      with MountableBehavior {
     override def MountableObject = obj
 
     def receive: Receive = mountBehavior.orElse(dismountBehavior)

@@ -39,8 +39,16 @@ class VehicleDefinition(objectId: Int)
   private var trunkLocation: Vector3                         = Vector3.Zero
   private var canCloak: Boolean                              = false
   private var canFly: Boolean                                = false
-  private var canBeOwned: Boolean                            = true
+  /** whether the vehicle gains and/or maintains ownership based on access to the driver seat<br>
+    * `Some(true)` - assign ownership upon the driver mount, maintains ownership after the driver dismounts<br>
+    * `Some(false)` - assign ownership upon the driver mount, becomes unowned after the driver dismounts<br>
+    * `None` - does not assign ownership<br>
+    * Be cautious about using `None` as the client tends to equate the driver seat as the owner's seat for many vehicles
+    * and breaking from the client's convention either requires additional fields or just doesn't work.
+    */
+  private var canBeOwned: Option[Boolean]                    = Some(true)
   private var serverVehicleOverrideSpeeds: (Int, Int)        = (0, 0)
+  var undergoesDecay: Boolean                                = true
   private var deconTime: Option[FiniteDuration]              = None
   private var maxCapacitor: Int                              = 0
   private var destroyedModel: Option[DestroyedVehicle.Value] = None
@@ -61,9 +69,11 @@ class VehicleDefinition(objectId: Int)
 
   def Cargo: mutable.HashMap[Int, CargoDefinition] = cargo
 
-  def CanBeOwned: Boolean = canBeOwned
+  def CanBeOwned: Option[Boolean] = canBeOwned
 
-  def CanBeOwned_=(ownable: Boolean): Boolean = {
+  def CanBeOwned_=(ownable: Boolean): Option[Boolean] = CanBeOwned_=(Some(ownable))
+
+  def CanBeOwned_=(ownable: Option[Boolean]): Option[Boolean] = {
     canBeOwned = ownable
     CanBeOwned
   }

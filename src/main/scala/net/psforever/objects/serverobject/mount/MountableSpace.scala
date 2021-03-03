@@ -6,20 +6,18 @@ trait MountableSpace[A] {
 
   /**
     * A single mounted entity.
-    * Only return the occupant of this mount if the mount is limited to single user.
+    * Always return whichever target is at the head of the list.
+    * Do not not rely on this to test for participation
+    * as you can not check against any mounted targets except for the first one if multiple mountings are premissible.
     * @see `occupants`
     * @return one mounted entity at most, or `None`
     */
   def occupant: Option[A] = {
-    if (definition.occupancy == 1) {
-      _occupants.headOption
-    } else {
-      None
-    }
+    _occupants.headOption
   }
 
   /**
-    * A collection of mounted entities.
+    * A collection of all mounted entities.
     * @return all mounted entities
     */
   def occupants: List[A] = _occupants

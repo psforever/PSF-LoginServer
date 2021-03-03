@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.terminals.implant
 
-import net.psforever.objects.serverobject.mount.{MountableDefinition, SeatDefinition, Unrestricted}
+import net.psforever.objects.serverobject.mount.{MountInfo, MountableDefinition, SeatDefinition, Unrestricted}
 import net.psforever.objects.serverobject.structures.AmenityDefinition
 
 /**
@@ -19,5 +19,5 @@ class ImplantTerminalMechDefinition
     restriction = Unrestricted
   }
   /* key - entry point index, value - mount index */
-  MountPoints += 1 -> 0
+  MountPoints += 1 -> MountInfo(0)
 }
