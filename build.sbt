@@ -3,7 +3,7 @@ import xerial.sbt.pack.PackPlugin._
 lazy val psforeverSettings = Seq(
   organization := "net.psforever",
   version := "1.0.2-SNAPSHOT",
-  scalaVersion := "2.13.3",
+  scalaVersion := "2.13.5",
   Global / cancelable := false,
   semanticdbEnabled := true,
   semanticdbVersion := scalafixSemanticdb.revision,
