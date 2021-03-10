@@ -84,7 +84,7 @@ object InterstellarClusterService {
 
   final case class DroppodLaunchConfirmation(destination: Zone, position: Vector3) extends DroppodLaunchExchange
 
-  final case class DroppodLaunchDenial(errorCode: DroppodError.Value, data: Option[Any]) extends DroppodLaunchExchange
+  final case class DroppodLaunchDenial(errorCode: DroppodError, data: Option[Any]) extends DroppodLaunchExchange
 }
 
 class InterstellarClusterService(context: ActorContext[InterstellarClusterService.Command], _zones: Iterable[Zone])

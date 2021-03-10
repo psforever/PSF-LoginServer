@@ -71,9 +71,9 @@ import net.psforever.services.local.{LocalAction, LocalResponse, LocalServiceMes
 import net.psforever.services.properties.PropertyOverrideManager
 import net.psforever.services.support.SupportActor
 import net.psforever.services.teamwork.{SquadResponse, SquadServiceMessage, SquadServiceResponse, SquadAction => SquadServiceAction}
-import net.psforever.services.time.ShuttleTimer
+import net.psforever.services.hart.HartTimer
 import net.psforever.services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
-import net.psforever.services.{InterstellarClusterService => ICS, RemoverActor, Service, ServiceManager}
+import net.psforever.services.{RemoverActor, Service, ServiceManager, InterstellarClusterService => ICS}
 import net.psforever.types._
 import net.psforever.util.{Config, DefinitionUtil}
 import net.psforever.zones.Zones
@@ -2314,14 +2314,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         sendResponse(pkt)
 
       case LocalResponse.ShuttleEvent(ev) =>
-        sendResponse(
-          OrbitalShuttleTimeMsg(
-            3,
-            ev.u1, ev.u2, ev.t1, ev.t2,
-            true, 0,
-            ev.pairs.map { case ((a, b), c) => PadAndShuttlePair(a, b, c) }
-          )
+        val msg = OrbitalShuttleTimeMsg(
+          ev.u1, ev.u2,
+          ev.t1, ev.t2, ev.t3,
+          ev.pairs.map { case ((a, b), c) => PadAndShuttlePair(a, b, c) }
         )
+        sendResponse(msg)
 
       case LocalResponse.ShuttleDock(pguid, sguid, slot) =>
         sendResponse(ObjectAttachMessage(pguid, sguid, slot))
@@ -3115,8 +3113,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           DroppodFreefallingMessage(
             vehicle.GUID,
             vehicle.Position,
-            Vector3.z(-999),
-            vehicle.Position + Vector3.z(25),
+            Vector3.z(value = -999),
+            vehicle.Position + Vector3(-20, 1.156f, -50),
             Vector3(0, 70.3125f, 90),
             Vector3(0, 0, 90)
           )
@@ -3604,10 +3602,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           ToggleTeleportSystem(obj, TelepadLike.AppraiseTeleportationSystem(obj, continent))
         }
         val name = avatar.name
-        serviceManager.ask(Lookup("shuttleTimer"))(Timeout(2 seconds))
+        serviceManager.ask(Lookup("hart"))(Timeout(2 seconds))
           .onComplete {
-            case Success(LookupResult("shuttleTimer", ref)) =>
-              ref ! ShuttleTimer.Update(continentId, name)
+            case Success(LookupResult("hart", ref)) =>
+              ref ! HartTimer.Update(continentId, name)
             case _ =>
           }
 
@@ -3718,9 +3716,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         if (isMovingPlus) {
           CancelZoningProcessWithDescriptiveReason("cancel_motion")
         }
-        if (is_crouching && !player.Crouching) {
-          //...
-        }
+//        if (is_crouching && !player.Crouching) {
+//          //dev stuff
+//        }
         player.Position = pos
         player.Velocity = vel
         player.Orientation = Vector3(player.Orientation.x, pitch, yaw)
@@ -5695,11 +5693,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         })
         sendResponse(TargetingInfoMessage(targetInfo))
 
-      case msg @ DroppodLaunchRequestMessage(_, zone, xypos, _) =>
-        //log.info("Droppod request: " + msg)
+      case msg @ DroppodLaunchRequestMessage(info, _) =>
+        //log.info(s"Droppod request: $msg")
         cluster ! ICS.DroppodLaunchRequest(
-          zone,
-          xypos,
+          info.zone_number,
+          info.xypos,
           player.Faction,
           self.toTyped[ICS.DroppodLaunchExchange]
         )

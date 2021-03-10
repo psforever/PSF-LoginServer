@@ -36,7 +36,7 @@ import org.slf4j
 import scopt.OParser
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.packet.PlanetSidePacket
-import net.psforever.services.time.ShuttleTimerService
+import net.psforever.services.hart.HartService
 
 object Server {
   private val logger = org.log4s.getLogger
@@ -130,7 +130,7 @@ object Server {
     serviceManager ! ServiceManager.Register(classic.Props[SquadService](), "squad")
     serviceManager ! ServiceManager.Register(classic.Props[AccountPersistenceService](), "accountPersistence")
     serviceManager ! ServiceManager.Register(classic.Props[PropertyOverrideManager](), "propertyOverrideManager")
-    serviceManager ! ServiceManager.Register(classic.Props[ShuttleTimerService](), "shuttleTimer")
+    serviceManager ! ServiceManager.Register(classic.Props[HartService](), "hart")
 
     system.spawn(SocketActor(new InetSocketAddress(bindAddress, Config.app.login.port), login), "login-socket")
     system.spawn(SocketActor(new InetSocketAddress(bindAddress, Config.app.world.port), session), "world-socket")

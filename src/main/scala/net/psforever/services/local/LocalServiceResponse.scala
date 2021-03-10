@@ -10,7 +10,7 @@ import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game._
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 import net.psforever.services.GenericEventBusMsg
-import net.psforever.services.time.ShuttleTimer.OrbitalShuttleEvent
+import net.psforever.services.hart.HartTimer.OrbitalShuttleEvent
 
 final case class LocalServiceResponse(
     channel: String,

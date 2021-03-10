@@ -623,12 +623,6 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
           case _ => ;
         }
     })
-    //shuttles
-    map.shuttleBays
-      .map { guid(_) }
-      .collect { case Some(obj: OrbitalShuttlePad) =>
-        other += obj.shuttle
-      }
     //after all fixed GUID's are defined  ...
     other.foreach(obj => guid.register(obj, "dynamic"))
   }
@@ -662,7 +656,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     map.doorToLock
       .map { case(doorGUID: Int, lockGUID: Int) => (guid(doorGUID), guid(lockGUID)) }
       .collect { case (Some(door: Door), Some(lock: IFFLock)) =>
-        door.Actor ! Door.UpdateMechanism(IFFLock.testLock(lock) _)
+        door.Actor ! Door.UpdateMechanism(IFFLock.testLock(lock))
       }
     //ntu management (eventually move to a generic building startup function)
     buildings.values

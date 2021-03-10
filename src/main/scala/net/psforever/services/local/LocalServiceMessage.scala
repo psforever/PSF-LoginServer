@@ -12,7 +12,7 @@ import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.{DeployableInfo, DeploymentAction, TriggeredSound}
-import net.psforever.services.time.ShuttleTimer.OrbitalShuttleEvent
+import net.psforever.services.hart.HartTimer.OrbitalShuttleEvent
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 final case class LocalServiceMessage(forChannel: String, actionMessage: LocalAction.Action)
