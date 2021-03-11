@@ -393,7 +393,7 @@ object CargoBehavior {
           s"$cargoActor",
           VehicleAction.SendResponse(GUID0, PlanetsideAttributeMessage(cargoGUID, 68, cargo.Shields))
         )
-        if (carrier.Flying) {
+        if (carrier.isFlying) {
           //the carrier vehicle is flying; eject the cargo vehicle
           val ejectCargoMsg =
             CargoMountPointStatusMessage(carrierGUID, GUID0, GUID0, cargoGUID, mountPoint, CargoStatus.InProgress, 0)

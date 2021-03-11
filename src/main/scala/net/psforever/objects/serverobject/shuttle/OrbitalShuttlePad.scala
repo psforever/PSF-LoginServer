@@ -1,7 +1,10 @@
 // Copyright (c) 2021 PSForever
-package net.psforever.objects.serverobject.pad.shuttle
+package net.psforever.objects.serverobject.shuttle
 
+import akka.actor.ActorRef
+import net.psforever.objects.Vehicle
 import net.psforever.objects.serverobject.structures.{Amenity, AmenityDefinition}
+import net.psforever.types.PlanetSideGUID
 
 /**
   * The orbital shuttle pad which is the primary component of the high altitude rapid transport (HART) system.<br>
@@ -15,10 +18,22 @@ import net.psforever.objects.serverobject.structures.{Amenity, AmenityDefinition
   * @param spDef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
 class OrbitalShuttlePad(spDef: AmenityDefinition) extends Amenity {
+  private var _shuttle: Option[PlanetSideGUID] = None
+
+  def shuttle: Option[PlanetSideGUID] = _shuttle
+
+  def shuttle_=(orbitalShuttle: Vehicle): Option[PlanetSideGUID] = {
+    _shuttle = _shuttle.orElse(Some(orbitalShuttle.GUID))
+    _shuttle
+  }
   def Definition: AmenityDefinition = spDef
 }
 
 object OrbitalShuttlePad {
+  final case class GetShuttle(giveTo: ActorRef)
+
+  final case class GiveShuttle(shuttle: Vehicle)
+
   /**
     * Overloaded constructor.
     * @param spDef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields

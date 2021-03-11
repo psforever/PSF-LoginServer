@@ -1,5 +1,5 @@
 // Copyright (c) 2021 PSForever
-package net.psforever.objects.serverobject.pad.shuttle
+package net.psforever.objects.serverobject.shuttle
 
 import akka.actor.{Actor, ActorRef}
 import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
@@ -42,6 +42,9 @@ class OrbitalShuttlePadControl(pad: OrbitalShuttlePad) extends Actor {
 
   /** the HART system is active and ready to handle state changes */
   val taxiing: Receive = {
+    case OrbitalShuttlePad.GetShuttle(to) =>
+      to ! OrbitalShuttlePad.GiveShuttle(shuttle)
+
     case HartTimer.LockDoors =>
       managedDoors.foreach { door =>
         door.Actor ! Door.UpdateMechanism(OrbitalShuttlePadControl.lockedWaitingForShuttle)
@@ -68,6 +71,7 @@ class OrbitalShuttlePadControl(pad: OrbitalShuttlePad) extends Actor {
       )
 
     case HartTimer.ShuttleStateUpdate(state) =>
+      shuttle.Flying = state
       val zone = pad.Zone
       zone.LocalEvents ! LocalServiceMessage(
         zone.id,
@@ -81,6 +85,7 @@ class OrbitalShuttlePadControl(pad: OrbitalShuttlePad) extends Actor {
   val shuttleTime: Receive = {
     case Zone.Vehicle.HasSpawned(_, newShuttle) =>
       shuttle = newShuttle
+      pad.shuttle = newShuttle
       ServiceManager.serviceManager ! ServiceManager.Lookup("hart")
 
     case ServiceManager.LookupResult(_, timer) =>

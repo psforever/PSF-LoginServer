@@ -404,7 +404,7 @@ class VehicleControl(vehicle: Vehicle)
         )
       case _ => ;
     }
-    if (!vehicle.Flying || kickPassengers) {
+    if (!vehicle.isFlying || kickPassengers) {
       //kick all passengers (either not flying, or being explicitly instructed)
       vehicle.Seats.values.foreach { seat =>
         seat.occupant match {

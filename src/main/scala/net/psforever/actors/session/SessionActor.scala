@@ -2457,15 +2457,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         if (obj.MountedIn.nonEmpty) {
           //dismount to hart lobby
           val sguid = obj.GUID
-          val offset = obj.MountPoints(mount_point).positionOffset
-          val offxy = offset.xy
-          val (horizontal, bias) = if (offxy.x >= 0) {
-            (90f,  if (offxy.y >= 0) 1 else -1)
-          } else {
-            (270f, if (offxy.y >= 0) -1 else 1)
-          }
-          val zang = (horizontal + bias * math.atan(offxy.y / offxy.x)).toFloat
-          val pos = obj.Position + obj.MountPoints(mount_point).positionOffset
+          val (pos, zang) = Vehicles.dismountShuttle(obj, mount_point)
           tplayer.Position = pos
           sendResponse(DelayedPathMountMsg(pguid, sguid, 60, true))
           continent.LocalEvents ! LocalServiceMessage(
@@ -2489,7 +2481,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             player.Name,
             VehicleAction.SendResponse(
               Service.defaultPlayerGUID,
-              PlayerStateShiftMessage(ShiftState(0, obj.Position, obj.Orientation.z, None)) //hide in the shuttle bay
+              PlayerStateShiftMessage(ShiftState(0, obj.Position, obj.Orientation.z, None)) //cower in the shuttle bay
             )
           )
           continent.VehicleEvents ! VehicleServiceMessage(
@@ -3861,12 +3853,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 obj.Velocity = Some(Vector3.Zero)
               }
               if (obj.Definition.CanFly) {
-                obj.Flying = flying.nonEmpty //usually Some(7)
+                obj.Flying = flying //usually Some(7)
               }
               obj.Cloaked = obj.Definition.CanCloak && is_cloaked
             } else {
               obj.Velocity = None
-              obj.Flying = false
+              obj.Flying = None
             }
             continent.VehicleEvents ! VehicleServiceMessage(
               continent.id,
@@ -3877,7 +3869,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 obj.Position,
                 ang,
                 obj.Velocity,
-                if (obj.Flying) {
+                if (obj.isFlying) {
                   flying
                 } else {
                   None
@@ -5473,7 +5465,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                     case v: Vehicle
                       if bailType == BailType.Bailed &&
                          v.SeatPermissionGroup(seat_num).contains(AccessPermissionGroup.Driver) &&
-                         v.Flying =>
+                         v.isFlying =>
                       v.Actor ! Vehicle.Deconstruct(None) //immediate deconstruction
                     case _ => ;
                   }

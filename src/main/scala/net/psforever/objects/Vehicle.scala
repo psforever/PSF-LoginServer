@@ -90,7 +90,7 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
   private var jammered: Boolean                   = false
 
   private var cloaked: Boolean                    = false
-  private var flying: Boolean                     = false
+  private var flying: Option[Int]                 = None
   private var capacitor: Int                      = 0
 
   /**
@@ -195,9 +195,13 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     Cloaked
   }
 
-  def Flying: Boolean = flying
+  def isFlying: Boolean = flying.nonEmpty
 
-  def Flying_=(isFlying: Boolean): Boolean = {
+  def Flying: Option[Int] = flying
+
+  def Flying_=(isFlying: Int): Option[Int] = Flying_=(Some(isFlying))
+
+  def Flying_=(isFlying: Option[Int]): Option[Int] = {
     flying = isFlying
     Flying
   }

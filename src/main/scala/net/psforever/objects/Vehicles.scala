@@ -237,7 +237,7 @@ object Vehicles {
               CargoBehavior.HandleVehicleCargoDismount(
                 target.Zone,
                 cargo.GUID,
-                bailed = target.Flying,
+                bailed = target.isFlying,
                 requestedByPassenger = false,
                 kicked = true
               )
@@ -264,7 +264,7 @@ object Vehicles {
       }
     })
     // If the vehicle can fly and is flying deconstruct it, and well played to whomever managed to hack a plane in mid air. I'm impressed.
-    if (target.Definition.CanFly && target.Flying) {
+    if (target.Definition.CanFly && target.isFlying) {
       // todo: Should this force the vehicle to land in the same way as when a pilot bails with passengers on board?
       target.Actor ! Vehicle.Deconstruct()
     } else { // Otherwise handle ownership transfer as normal
@@ -406,5 +406,25 @@ object Vehicles {
         zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(telepad, zone, Some(0 seconds)))
       case _ => ;
     }
+  }
+
+  /**
+    * Find the position and angle at which an ejected player will be placed once outside of the shuttle.
+    * Mainly for use with the proper high altitude rapid transport (HART) shuttle.
+    * @param obj the (shuttle) vehicle
+    * @param mountPoint the mount point that indicates a seat
+    * @return the position and angle
+    */
+  def dismountShuttle(obj: Vehicle, mountPoint: Int): (Vector3, Float) = {
+    val offset = obj.MountPoints(mountPoint).positionOffset
+    val offxy = offset.xy
+    val (horizontal, bias) = if (offxy.x >= 0) {
+      (90f,  if (offxy.y >= 0) 1 else -1)
+    } else {
+      (270f, if (offxy.y >= 0) -1 else 1)
+    }
+    val zang = (horizontal + bias * math.atan(offxy.y / offxy.x)).toFloat
+    val pos = obj.Position + offset
+    (pos, zang)
   }
 }

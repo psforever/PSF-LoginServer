@@ -2,7 +2,7 @@ package net.psforever.objects.zones
 
 import enumeratum.values.{StringEnum, StringEnumEntry}
 import net.psforever.objects.serverobject.environment._
-import net.psforever.types.Vector3
+import net.psforever.types.{PlanetSideGUID, Vector3}
 
 sealed abstract class MapInfo(
     val value: String,
@@ -180,7 +180,7 @@ case object MapInfo extends StringEnum[MapInfo] {
           Pool(EnvironmentAttribute.Water, 34.96875f, 5899.367f, 3235.5781f, 5573.8516f, 2865.7812f), //northeast of hart c campus
           Pool(EnvironmentAttribute.Water, 34.328125f, 3880.7422f, 5261.508f, 3780.9219f, 5166.953f), //east of hart a campus
           Pool(EnvironmentAttribute.Water, 31.03125f, 4849.797f, 2415.4297f, 4731.8594f, 2252.1484f) //south of hart c campus
-        )
+        ) ++ MapEnvironment.map11Environment
       )
 
   case object Map12
@@ -188,7 +188,8 @@ case object MapInfo extends StringEnum[MapInfo] {
         value = "map12",
         checksum = 962888126L,
         scale = MapScale.Dim8192,
-        environment = List(SeaLevel(EnvironmentAttribute.Water, 20.03125f))
+        environment = List(SeaLevel(EnvironmentAttribute.Water, 20.03125f)) ++
+                      MapEnvironment.map12Environment
       )
 
   case object Map13
@@ -196,7 +197,8 @@ case object MapInfo extends StringEnum[MapInfo] {
         value = "map13",
         checksum = 3904659548L,
         scale = MapScale.Dim8192,
-        environment = List(SeaLevel(EnvironmentAttribute.Water, 30))
+        environment = List(SeaLevel(EnvironmentAttribute.Water, 30)) ++
+                      MapEnvironment.map13Environment
       )
 
   case object Map14
@@ -317,3 +319,57 @@ case object MapInfo extends StringEnum[MapInfo] {
 
   val values: IndexedSeq[MapInfo] = findValues
 }
+
+object MapEnvironment {
+  final val map11Environment: List[PieceOfEnvironment] =
+    hartGantryDenialFields(PlanetSideGUID(840), Vector3(2258, 5538, 65.20142f)) ++
+    hartGantryDenialFields(PlanetSideGUID(841), Vector3(4152, 6070, 43.8766136f)) ++
+    hartGantryDenialFields(PlanetSideGUID(842), Vector3(4816, 3506, 68.73806f))
+
+  final val map12Environment: List[PieceOfEnvironment] =
+    hartGantryDenialFields(PlanetSideGUID(808), Vector3(2922, 5230, 35.9989929f)) ++
+    hartGantryDenialFields(PlanetSideGUID(809), Vector3(3006, 2984, 34.919342f)) ++
+    hartGantryDenialFields(PlanetSideGUID(810), Vector3(5232, 3908, 35.9291039f))
+
+  final val map13Environment: List[PieceOfEnvironment] =
+    hartGantryDenialFields(PlanetSideGUID(786), Vector3(2978, 4834, 56.085392f)) ++
+    hartGantryDenialFields(PlanetSideGUID(787), Vector3(3688, 2808, 90.85312f)) ++
+    hartGantryDenialFields(PlanetSideGUID(788), Vector3(5610, 4238, 103.228859f))
+
+  /**
+    * Generate eight environmental representations that serve to eject players
+    * from the high altitude rapid transport (HART) building boarding hallways
+    * when the HART shuttle associated with that building is no longer boarding
+    * and the doors to those hallways should deny entrance.
+    * When kicked out of the hallway,
+    * ejected players should be placed in the same position as if the player willing dismounted the shuttle.
+    * While this task seems daunting, HART buildings are formulaic, not only in layout but in orientation.
+    * @param obbasemesh the globally unique identifier of the orbital shuttle pad,
+    *                   an amenity of an `orbital_building_*`
+    * @param position the central position of the `orbital_building_*` building
+    *                 in which the `obbasemesh` amenity is installed
+    * @return a list of environmental representations
+    */
+  private def hartGantryDenialFields(obbasemesh: PlanetSideGUID, position: Vector3): List[PieceOfEnvironment] = {
+    val px: Float     = position.x
+    val py: Float     = position.y
+    val nwall: Float  = 14.711f
+    val swall: Float  = 14.7188f
+    val door: Float   = 55.9219f
+    val gantry: Float = 45.9297f
+    val lower: Float  = position.z + 6.164608f
+    val upper: Float  = position.z + 17.508358f
+    //lower lobbies are listed before upper lobbies to ensure they are tested first
+    List(
+      GantryDenialField(obbasemesh, 1, DeepSurface(lower, py + nwall, px + door,   py + 1,     px + gantry)), //NE
+      GantryDenialField(obbasemesh, 2, DeepSurface(lower, py - 1,     px + door,   py - swall, px + gantry)), //SE
+      GantryDenialField(obbasemesh, 5, DeepSurface(lower, py + nwall, px - gantry, py + 1,     px - door)),   //NW
+      GantryDenialField(obbasemesh, 6, DeepSurface(lower, py - 1,     px - gantry, py - swall, px - door)),   //SW
+      GantryDenialField(obbasemesh, 3, DeepSurface(upper, py + nwall, px + door,   py + 1,     px + gantry)), //NE
+      GantryDenialField(obbasemesh, 4, DeepSurface(upper, py - 1,     px + door,   py - swall, px + gantry)), //SE
+      GantryDenialField(obbasemesh, 7, DeepSurface(upper, py + nwall, px - gantry, py + 1,     px - door)),   //NW
+      GantryDenialField(obbasemesh, 8, DeepSurface(upper, py - 1,     px - gantry, py - swall, px - door))    //SW
+    )
+  }
+}
+

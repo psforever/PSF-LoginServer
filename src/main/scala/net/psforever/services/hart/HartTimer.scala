@@ -2,6 +2,7 @@
 package net.psforever.services.hart
 
 import akka.actor.{Actor, ActorRef, Cancellable}
+import net.psforever.objects.Default
 import net.psforever.objects.zones.Zone
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.{GenericEventBus, GenericEventBusMsg}
@@ -21,21 +22,24 @@ class HartTimer(zone: Zone) extends Actor {
   /** all of the paired HART facility amenities and the shuttle housed in that facility (in that order) */
   var padAndShuttlePairs: List[(PlanetSideGUID, PlanetSideGUID)] = List()
   /** the current time at the start of the previous event */
-  var lastStartTime: Long = System.currentTimeMillis()
+  var lastStartTime: Long = 0
   /** scheduler for each subsequent event in the sequence */
-  var timer: Cancellable = context.system.scheduler.scheduleOnce(delay = 0 milliseconds, self, HartTimer.NextEvent(1))
+  var timer: Cancellable = Default.Cancellable
   /** index keeping track of the current event in the sequence*/
+
   var sequenceIndex: Int = 0
   /* the HART system is controlled by a sequence of events (just called the "sequence" at times);
    * the sequence describes key state changes and animation cues
    * to produce the effect of the orbital shuttle being used
    */
-  var sequence = HartEvent.buildEventSequence(
-    inFlightDuration = 55000L, //225000L,
-    boardingDuration = 10000L //60000L
-  )
+  var sequence = Seq.empty[HartEvent]
   /** how many events are a part of this sequence */
-  var sequenceLength = sequence.length
+  var sequenceLength = 0
+  /** when the timing of the events in the system changes,
+    * do not push them until the shuttle has completed its current routine
+    */
+  var delayedScheduleChange: Option[Seq[HartEvent]] = None
+
   /** a message bus to which all associated orbital shuttle pads are subscribed */
   val events = new GenericEventBus[HartTimer.Command]
 
@@ -47,64 +51,67 @@ class HartTimer(zone: Zone) extends Actor {
         from ! HartTimer.LockDoors
       }
 
-    case HartTimer.NextEvent(next) =>
-      val currEvent = sequence(sequenceIndex)
-      val event = sequence(next)
-      sequenceIndex = next
-      lastStartTime = System.currentTimeMillis()
-      timer = context.system.scheduler.scheduleOnce(
-        event.duration milliseconds,
-        self,
-        HartTimer.NextEvent((next + 1) % sequenceLength)
-      )
-      //updates
-      val evt = HartTimer.analyzeEvent(event, padAndShuttlePairs)
-      event.docked match {
-        case Some(true) if currEvent.docked.isEmpty =>
-          zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.ShuttleEvent(evt))
-          events.publish( HartTimer.ShuttleDocked )
-        case Some(false) if currEvent.docked.contains(true) =>
-          events.publish( HartTimer.ShuttleFreeFromDock )
-          context.system.scheduler.scheduleOnce(
-            delay = 10 milliseconds,
-            zone.LocalEvents,
-            LocalServiceMessage(zone.id, LocalAction.ShuttleEvent(evt))
-          )
-        case _ =>
-          zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.ShuttleEvent(evt))
-      }
-      if (currEvent.lockedDoors != event.lockedDoors) {
-        events.publish( if(event.lockedDoors) HartTimer.LockDoors else HartTimer.UnlockDoors )
-      }
-      event.shuttleState match {
-        case Some(state) =>
-          events.publish( HartTimer.ShuttleStateUpdate(state.id) )
-        case None => ;
-      }
+    case HartTimer.NextEvent(next) if next == 0 =>
+      sequence = delayedScheduleChange.getOrElse(sequence)
+      sequenceLength = sequence.length
+      delayedScheduleChange = None
+      nextEvent(next)
 
-    case HartTimer.Update(_, forChannel) =>
-      val seq = sequence
-      val event = seq(sequenceIndex)
-      if (event.docked.contains(true)) {
-        events.publish( HartTimer.ShuttleDocked )
-      }
-      zone.LocalEvents ! LocalServiceMessage(
-        forChannel,
-        LocalAction.ShuttleEvent(
-          HartTimer.analyzeEvent(event, padAndShuttlePairs, Some(System.currentTimeMillis() - lastStartTime))
-        )
-      )
-      event.shuttleState match {
-        case Some(state) =>
-          events.publish( HartTimer.ShuttleStateUpdate(state.id) )
-        case None =>
-          //find last valid shuttle state
-          var i = sequenceIndex - 1
-          while(seq(i).shuttleState.isEmpty) { i = if (i - 1 < 0) sequenceLength - 1 else i - 1 }
-          events.publish( HartTimer.ShuttleStateUpdate(seq(i).shuttleState.get.id) )
+    case HartTimer.NextEvent(next) =>
+      nextEvent(next)
+
+    case HartTimer.SetEventDurations(_, awayDuration: Long, boardingDuration: Long) =>
+      val newSequence = HartEvent.buildEventSequence(awayDuration, boardingDuration)
+      if (newSequence.nonEmpty) {
+        if (timer.isCancelled) {
+          sequence = newSequence
+          sequenceLength = newSequence.length
+          nextEvent(sequenceIndex)
+        } else if (sequenceIndex == 0) {
+          sequence = newSequence
+          sequenceLength = newSequence.length
+        } else {
+          delayedScheduleChange = Some(newSequence)
+        }
       }
 
     case _ => ;
+  }
+
+  def nextEvent(next: Int): Unit = {
+    val currEvent = sequence(sequenceIndex)
+    val event = sequence(next)
+    sequenceIndex = next
+    lastStartTime = System.currentTimeMillis()
+    timer = context.system.scheduler.scheduleOnce(
+      event.duration milliseconds,
+      self,
+      HartTimer.NextEvent((next + 1) % sequenceLength)
+    )
+    //updates
+    val evt = HartTimer.analyzeEvent(event, padAndShuttlePairs)
+    event.docked match {
+      case Some(true) if currEvent.docked.isEmpty =>
+        zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.ShuttleEvent(evt))
+        events.publish( HartTimer.ShuttleDocked )
+      case Some(false) if currEvent.docked.contains(true) =>
+        events.publish( HartTimer.ShuttleFreeFromDock )
+        context.system.scheduler.scheduleOnce(
+          delay = 10 milliseconds,
+          zone.LocalEvents,
+          LocalServiceMessage(zone.id, LocalAction.ShuttleEvent(evt))
+        )
+      case _ =>
+        zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.ShuttleEvent(evt))
+    }
+    if (currEvent.lockedDoors != event.lockedDoors) {
+      events.publish( if(event.lockedDoors) HartTimer.LockDoors else HartTimer.UnlockDoors )
+    }
+    event.shuttleState match {
+      case Some(state) =>
+        events.publish( HartTimer.ShuttleStateUpdate(state.id) )
+      case None => ;
+    }
   }
 }
 
@@ -151,12 +158,19 @@ object HartTimer {
     * @param index the position of the next event
     */
   private case class NextEvent(index: Int)
+
+  trait MessageToHartInZone {
+    def inZone: String
+  }
+
   /**
     * Personalized messages that align the state of the shuttle to one's perspective (client).
     * @param inZone the zone for which the update will be composed
     * @param forChannel to whom to address the reply
     */
-  final case class Update(inZone: String, forChannel: String)
+  final case class Update(inZone: String, forChannel: String) extends MessageToHartInZone
+
+  final case class SetEventDurations(inZone: String, away: Long, boarding: Long) extends MessageToHartInZone
   /**
     * Append information about a building amenity and shuttle combination in this zone.
     * @param zone the relevant zone

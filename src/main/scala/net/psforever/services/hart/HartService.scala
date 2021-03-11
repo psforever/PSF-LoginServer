@@ -2,6 +2,7 @@
 package net.psforever.services.hart
 
 import akka.actor.{Actor, ActorRef, Props}
+import net.psforever.util.Config
 
 import scala.collection.concurrent.TrieMap
 
@@ -15,23 +16,28 @@ import scala.collection.concurrent.TrieMap
   */
 class HartService extends Actor {
   /** key - a zone id; value - the manager for that zone's HART system */
-  val channels: TrieMap[String, ActorRef] = TrieMap[String, ActorRef]()
+  val zoneTimers: TrieMap[String, ActorRef] = TrieMap[String, ActorRef]()
 
   def receive: Receive = {
     case out : HartTimer.PairWith =>
       val zone = out.zone
       val channel = zone.id
-      (channels.get(channel) match {
+      (zoneTimers.get(channel) match {
         case Some(o) =>
           o
         case None =>
           val actor = context.actorOf(Props(classOf[HartTimer], zone), s"$channel-shuttle-timer")
-          channels.put(channel, actor)
+          zoneTimers.put(channel, actor)
+          actor ! HartTimer.SetEventDurations(
+            channel,
+            Config.app.game.hart.inFlightDuration,
+            Config.app.game.hart.boardingDuration
+          )
           actor
       }).tell(out, out.from)
 
-    case out @ HartTimer.Update(inZone, _) =>
-      channels.get(inZone) match {
+    case out: HartTimer.MessageToHartInZone =>
+      zoneTimers.get(out.inZone) match {
         case Some(o) => o ! out
         case _ =>
       }

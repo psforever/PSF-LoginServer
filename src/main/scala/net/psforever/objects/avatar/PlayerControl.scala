@@ -27,9 +27,11 @@ import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.objects.locker.LockerContainerControl
 import net.psforever.objects.serverobject.environment._
+import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
 import net.psforever.objects.vital.environment.EnvironmentReason
 import net.psforever.objects.vital.etc.{PainboxReason, SuicideReason}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
+import net.psforever.services.hart.ShuttleState
 
 import scala.concurrent.duration._
 
@@ -60,6 +62,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
   SetInteraction(EnvironmentAttribute.Water, doInteractingWithWater)
   SetInteraction(EnvironmentAttribute.Lava, doInteractingWithLava)
   SetInteraction(EnvironmentAttribute.Death, doInteractingWithDeath)
+  SetInteraction(EnvironmentAttribute.GantryDenialField, doInteractingWithGantryField)
   SetInteractionStop(EnvironmentAttribute.Water, stopInteractingWithWater)
 
   private[this] val log       = org.log4s.getLogger(player.Name)
@@ -1044,6 +1047,38 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     */
   def doInteractingWithDeath(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
     suicide()
+  }
+
+  def doInteractingWithGantryField(
+                                    obj: PlanetSideServerObject,
+                                    body: PieceOfEnvironment,
+                                    data: Option[OxygenStateTarget]
+                                  ): Unit = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val field = body.asInstanceOf[GantryDenialField]
+    val zone = player.Zone
+    (zone.GUID(field.obbasemesh) match {
+      case Some(pad : OrbitalShuttlePad) => zone.GUID(pad.shuttle)
+      case _                             => None
+    }) match {
+      case Some(shuttle: Vehicle)
+        if shuttle.Flying.contains(ShuttleState.State11.id) =>
+        val (pos, zang) = Vehicles.dismountShuttle(shuttle, field.mountPoint)
+        shuttle.Zone.AvatarEvents ! AvatarServiceMessage(
+          player.Name,
+          AvatarAction.SendResponse(
+            Service.defaultPlayerGUID,
+            PlayerStateShiftMessage(ShiftState(0, pos, zang, None)))
+        )
+      case Some(_: Vehicle) =>
+        interactionTimer = context.system.scheduler.scheduleOnce(
+          delay = 250 milliseconds,
+          self,
+          InteractWithEnvironment(player, body, None)
+        )
+      case _ => ;
+        //something configured incorrectly; no need to keep checking
+    }
   }
 
   /**

@@ -42,8 +42,8 @@ import net.psforever.objects.geometry.Geometry3D
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.locks.IFFLock
-import net.psforever.objects.serverobject.pad.shuttle.OrbitalShuttlePad
 import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
+import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vehicles.UtilityType
 import net.psforever.objects.vital.etc.{EmpReason, ExplodingEntityReason}
