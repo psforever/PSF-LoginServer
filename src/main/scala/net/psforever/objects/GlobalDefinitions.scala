@@ -23,6 +23,8 @@ import net.psforever.objects.serverobject.structures.{AutoRepairStats, BuildingD
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalDefinition
 import net.psforever.objects.serverobject.terminals.implant.{ImplantTerminalDefinition, ImplantTerminalMechDefinition}
 import net.psforever.objects.serverobject.structures.{AmenityDefinition, AutoRepairStats, BuildingDefinition, WarpGateDefinition}
+import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalDefinition
+import net.psforever.objects.serverobject.terminals.implant.{ImplantTerminalDefinition, ImplantTerminalMechDefinition}
 import net.psforever.objects.serverobject.turret.{FacilityTurretDefinition, TurretUpgrade}
 import net.psforever.objects.vehicles.{DestroyedVehicle, InternalTelepadDefinition, SeatArmorRestriction, UtilityType}
 import net.psforever.objects.vital.base.DamageType
@@ -7010,6 +7012,7 @@ object GlobalDefinitions {
     orbital_shuttle.DestroyedModel = None
     orbital_shuttle.DamageUsing = DamageCalculations.AgainstNothing
     orbital_shuttle.DrownAtMaxDepth = false
+    //TODO geometry?
   }
 
   /**

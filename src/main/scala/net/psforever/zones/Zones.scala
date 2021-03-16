@@ -396,7 +396,7 @@ object Zones {
             // presumably the model is rotated differently to the expected orientation
             // On top of that, some spawn pads also have an additional rotation (vehiclecreationzorientoffset)
             // when spawning vehicles set in game_objects.adb.lst - this should be handled on the Scala side
-            val adjustedYaw = closestSpawnPad.yaw - 90;
+            val adjustedYaw = closestSpawnPad.yaw - 90
 
             zoneMap.addLocalObject(
               closestSpawnPad.guid,

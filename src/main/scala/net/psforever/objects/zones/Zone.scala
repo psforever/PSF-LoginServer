@@ -40,14 +40,14 @@ import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.geometry.Geometry3D
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
 import net.psforever.objects.serverobject.pad.shuttle.OrbitalShuttlePad
+import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vehicles.UtilityType
 import net.psforever.objects.vital.etc.{EmpReason, ExplodingEntityReason}
-import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.prop.DamageWithPosition
+import net.psforever.objects.vital.Vitality
 import net.psforever.services.Service
 
 /**
@@ -1263,6 +1263,7 @@ object Zone {
   def distanceCheck(obj1: PlanetSideGameObject, obj2: PlanetSideGameObject, maxDistance: Float): Boolean = {
     distanceCheck(obj1.Definition.Geometry(obj1), obj2.Definition.Geometry(obj2), maxDistance)
   }
+
   /**
     * Two game entities are considered "near" each other if they are within a certain distance of one another.
     * @param g1 the geometric representation of a game entity
