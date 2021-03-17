@@ -21,11 +21,12 @@ trait CaptureTerminalAwareBehavior {
           if (CaptureTerminalAwareObject.isInstanceOf[Mountable]) {
             CaptureTerminalAwareObject.asInstanceOf[Mountable].Seats.filter(x => x._2.isOccupied).foreach(x => {
               val (seat_num, seat) = x
+              val user = seat.occupant.get
               CaptureTerminalAwareObject.Zone.VehicleEvents ! VehicleServiceMessage(
                 CaptureTerminalAwareObject.Zone.id,
-                VehicleAction.KickPassenger(seat.Occupant.get.GUID, seat_num, true, CaptureTerminalAwareObject.GUID))
-
-              seat.Occupant = None
+                VehicleAction.KickPassenger(user.GUID, seat_num, true, CaptureTerminalAwareObject.GUID)
+              )
+              seat.unmount(user)
             })
           }
       }

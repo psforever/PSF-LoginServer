@@ -6,7 +6,7 @@ import net.psforever.objects.serverobject.mount.{LargeCargo, MountRestriction, M
 
 class CargoDefinition extends MountableSpaceDefinition[Vehicle] {
   Name = "cargo"
-  def occupancy:Int = 1
+  def occupancy: Int = 1
 
   var restriction: MountRestriction[Vehicle] = LargeCargo
 

@@ -2,42 +2,37 @@
 package net.psforever.objects.serverobject.mount
 
 trait MountableSpace[A] {
-  private var _occupants: List[A] = List()
+  private var _occupant: Option[A] = None
 
   /**
     * A single mounted entity.
-    * Always return whichever target is at the head of the list.
-    * Do not not rely on this to test for participation
-    * as you can not check against any mounted targets except for the first one if multiple mountings are premissible.
-    * @see `occupants`
     * @return one mounted entity at most, or `None`
     */
-  def occupant: Option[A] = {
-    _occupants.headOption
-  }
+  def occupant: Option[A] = _occupant
 
   /**
-    * A collection of all mounted entities.
+    * A collection of any mounted entity.
+    * Useful for compiling all seated users using `flatMap`.
     * @return all mounted entities
     */
-  def occupants: List[A] = _occupants
+  def occupants: List[A] = _occupant.toList
 
   /**
     * Is anything be seated?
     * Do not use this method as a test for "availability".
     */
-  def isOccupied: Boolean = _occupants.nonEmpty
+  def isOccupied: Boolean = _occupant.nonEmpty
 
   /**
     * Can something be mounted?
     * Use this method as a test for "availability".
     */
-  def canBeOccupied: Boolean = _occupants.size < definition.occupancy
+  def canBeOccupied: Boolean = _occupant.isEmpty
 
   /**
     * Is this specific entity currently mounted?
     */
-  def isOccupiedBy(target: A): Boolean = _occupants.contains(target)
+  def isOccupiedBy(target: A): Boolean = _occupant.contains(target)
 
   /**
     * Is this specific entity allowed to be mounted in this space?
@@ -57,7 +52,7 @@ trait MountableSpace[A] {
   def mount(target: Option[A]): Option[A] = {
     target match {
       case Some(p) if testToMount(p) =>
-        _occupants = _occupants :+ p
+        _occupant = target
         target
       case _ =>
         occupant
@@ -81,7 +76,7 @@ trait MountableSpace[A] {
   def unmount(target: Option[A]): Option[A] = {
     target match {
       case Some(p) if testToUnmount(p) =>
-        _occupants = _occupants.filterNot(_ == p)
+        _occupant = None
         None
       case _ =>
         occupant

@@ -67,7 +67,7 @@ trait MountableBehavior {
                         seatNumber: Int,
                         player: Player
                       ): Boolean = {
-    obj.Seats.get(seatNumber) match {
+    obj.Seat(seatNumber) match {
       case Some(seat) => seat.mount(player).contains(player)
       case _ => false
     }

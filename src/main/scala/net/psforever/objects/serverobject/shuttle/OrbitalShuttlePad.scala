@@ -26,6 +26,7 @@ class OrbitalShuttlePad(spDef: AmenityDefinition) extends Amenity {
     _shuttle = _shuttle.orElse(Some(orbitalShuttle.GUID))
     _shuttle
   }
+
   def Definition: AmenityDefinition = spDef
 }
 

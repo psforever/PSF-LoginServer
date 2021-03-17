@@ -3,17 +3,16 @@ package net.psforever.objects.serverobject.shuttle
 
 import akka.actor.{Actor, ActorRef}
 import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
-import net.psforever.objects.{GlobalDefinitions, Player, Vehicle}
+import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.doors.Door
-import net.psforever.objects.vehicles.AccessPermissionGroup
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.ChatMsg
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import net.psforever.services.hart.HartTimer
+import net.psforever.services.hart.{HartTimer, HartTimerActions}
 import net.psforever.services.{Service, ServiceManager}
-import net.psforever.types.{ChatMessageType, Vector3}
+import net.psforever.types.ChatMessageType
 
 import scala.util.Success
 
@@ -22,7 +21,7 @@ import scala.util.Success
   * <br>
   * For the purposes of maintaining a close relationship
   * with the rest of the high altitude rapid transport (HART) system's components,
-  * this control agency also locally creates the vehicle that will the shuttle when ti starts up.
+  * this control agency also locally creates the vehicle that will the shuttle when it starts up.
   * The shuttle should be treated like a supporting object to the zone
   * that exists within the normal vehicle pipeline.
   * @see `ShuttleState`
@@ -47,7 +46,7 @@ class OrbitalShuttlePadControl(pad: OrbitalShuttlePad) extends Actor {
 
     case HartTimer.LockDoors =>
       managedDoors.foreach { door =>
-        door.Actor ! Door.UpdateMechanism(OrbitalShuttlePadControl.lockedWaitingForShuttle)
+        //door.Actor ! Door.UpdateMechanism(OrbitalShuttlePadControl.lockedWaitingForShuttle)
         val zone = pad.Zone
         if(door.isOpen) {
           zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.DoorSlamsShut(door))
@@ -55,37 +54,26 @@ class OrbitalShuttlePadControl(pad: OrbitalShuttlePad) extends Actor {
       }
 
     case HartTimer.UnlockDoors =>
-      managedDoors.foreach { _.Actor ! Door.ResetMechanism }
+      //managedDoors.foreach { _.Actor ! Door.UpdateMechanism(OrbitalShuttlePadControl.shuttleIsBoarding) }
 
-    case HartTimer.ShuttleDocked =>
-      val zone = pad.Zone
-      shuttle.MountedIn = pad.GUID
-      zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.ShuttleDock(pad.GUID, shuttle.GUID, 3))
+    case HartTimer.ShuttleDocked(forChannel) =>
+      HartTimerActions.ShuttleDocked(pad, shuttle, forChannel)
 
-    case HartTimer.ShuttleFreeFromDock =>
-      val zone = pad.Zone
-      shuttle.MountedIn = None
-      zone.LocalEvents ! LocalServiceMessage(
-        zone.id,
-        LocalAction.ShuttleUndock(pad.GUID, shuttle.GUID, shuttle.Position, shuttle.Orientation)
-      )
+    case HartTimer.ShuttleFreeFromDock(forChannel) =>
+      HartTimerActions.ShuttleFreeFromDock(pad, shuttle, forChannel)
 
-    case HartTimer.ShuttleStateUpdate(state) =>
-      shuttle.Flying = state
-      val zone = pad.Zone
-      zone.LocalEvents ! LocalServiceMessage(
-        zone.id,
-        LocalAction.ShuttleState(shuttle.GUID, shuttle.Position, shuttle.Orientation, state)
-      )
+    case HartTimer.ShuttleStateUpdate(forChannel, state) =>
+      HartTimerActions.ShuttleStateUpdate(pad, shuttle, forChannel, state)
 
     case _ => ;
   }
 
   /** wire the pad and shuttle into a zone-scoped service handler */
   val shuttleTime: Receive = {
-    case Zone.Vehicle.HasSpawned(_, newShuttle) =>
+    case Zone.Vehicle.HasSpawned(_, newShuttle: OrbitalShuttle) =>
       shuttle = newShuttle
       pad.shuttle = newShuttle
+      pad.Owner.Amenities = new ShuttleAmenity(newShuttle)
       ServiceManager.serviceManager ! ServiceManager.Lookup("hart")
 
     case ServiceManager.LookupResult(_, timer) =>
@@ -111,26 +99,22 @@ class OrbitalShuttlePadControl(pad: OrbitalShuttlePad) extends Actor {
     */
   val startUp: Receive = {
     case Service.Startup() =>
+      import net.psforever.types.Vector3
+      import net.psforever.types.Vector3._
+      import net.psforever.objects.GlobalDefinitions._
       val position = pad.Position
       val zone = pad.Zone
       //collect managed doors
       managedDoors = pad.Owner.Amenities
-        .collect { case d: Door if d.Definition == GlobalDefinitions.gr_door_mb_orb => d }
-        .sortBy { o => Vector3.DistanceSquared(position, o.Position) }
+        .collect { case d: Door if d.Definition == gr_door_mb_orb => d }
+        .sortBy { o => DistanceSquared(position, o.Position) }
         .take(8)
       //create shuttle
-      val newShuttle = new Vehicle(GlobalDefinitions.orbital_shuttle) {
-        Position = position + Vector3(0, 8.25f, 0) //magic offset
-        Orientation = pad.Orientation
-        Faction = pad.Faction
-        override def SeatPermissionGroup(seatNumber : Int) : Option[AccessPermissionGroup.Value] = {
-          Seat(seatNumber) match {
-            case Some(_) => Some(AccessPermissionGroup.Passenger)
-            case _       => None
-          }
-        }
-      }
-      //register and add shuttle
+      val newShuttle = new OrbitalShuttle(orbital_shuttle)
+      val _pad = pad
+      newShuttle.Position = position + Rz(Vector3(0, -8.25f, 0), _pad.Orientation.z) //magic offset number
+      newShuttle.Orientation = _pad.Orientation
+      newShuttle.Faction = _pad.Faction
       zone.tasks ! OrbitalShuttlePadControl.registerShuttle(zone, newShuttle, self)
       //progress ...
       context.become(shuttleTime)
@@ -176,9 +160,25 @@ object OrbitalShuttlePadControl {
   }
 
   /**
+    * Logic for door mechanism that allows the shuttle entryway to be opened.
+    * Only opens for users with proper faction affinity.
+    * @param obj what attempted to open the door
+    * @param door the door
+    * @return `false`, as the door can not be opened in this state
+    */
+  def shuttleIsBoarding(obj: PlanetSideServerObject, door: Door): Boolean = {
+    if (obj.Faction == door.Faction) {
+      true
+    } else {
+      false
+    }
+  }
+
+  /**
     * Logic for door mechanism that keeps select doors shut when the shuttle is not ready for boarding.
     * A message flashes onscreen to explain this reason.
-    * @see `AvatarAction>SendResponse`
+    * The message will not flash if the door has no expectation of ever opening for a user.
+    * @see `AvatarAction.SendResponse`
     * @see `AvatarServiceMessage`
     * @see `ChatMessageType`
     * @see `ChatMsg`
@@ -191,17 +191,18 @@ object OrbitalShuttlePadControl {
     */
   def lockedWaitingForShuttle(obj: PlanetSideServerObject, door: Door): Boolean = {
     val zone = door.Zone
-    val channel = obj match {
-      case p: Player => p.Name
-      case _ => ""
+    obj match {
+      case p: Player if p.Faction == door.Faction =>
+        zone.AvatarEvents ! AvatarServiceMessage(
+          p.Name,
+          AvatarAction.SendResponse(
+            Service.defaultPlayerGUID,
+            ChatMsg(ChatMessageType.UNK_225, false, "", "@DoorWillOpenWhenShuttleReturns", None)
+          )
+        )
+        p.Name
+      case _ => ;
     }
-    zone.AvatarEvents ! AvatarServiceMessage(
-      channel,
-      AvatarAction.SendResponse(
-        Service.defaultPlayerGUID,
-        ChatMsg(ChatMessageType.UNK_225, false, "", "@DoorWillOpenWhenShuttleReturns", None)
-      )
-    )
     false
   }
 }

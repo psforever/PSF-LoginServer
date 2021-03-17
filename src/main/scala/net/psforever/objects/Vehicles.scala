@@ -410,21 +410,18 @@ object Vehicles {
 
   /**
     * Find the position and angle at which an ejected player will be placed once outside of the shuttle.
-    * Mainly for use with the proper high altitude rapid transport (HART) shuttle.
+    * Mainly for use with the proper high altitude rapid transport (HART) shuttle and it's corresponding HART building.
     * @param obj the (shuttle) vehicle
     * @param mountPoint the mount point that indicates a seat
     * @return the position and angle
     */
   def dismountShuttle(obj: Vehicle, mountPoint: Int): (Vector3, Float) = {
-    val offset = obj.MountPoints(mountPoint).positionOffset
-    val offxy = offset.xy
-    val (horizontal, bias) = if (offxy.x >= 0) {
-      (90f,  if (offxy.y >= 0) 1 else -1)
-    } else {
-      (270f, if (offxy.y >= 0) -1 else 1)
+    val shuttleAngle = obj.Orientation.z
+    val offset = {
+      val baseOffset = obj.MountPoints(mountPoint).positionOffset
+      Vector3.Rz(baseOffset.xy, shuttleAngle) + Vector3.z(baseOffset.z)
     }
-    val zang = (horizontal + bias * math.atan(offxy.y / offxy.x)).toFloat
-    val pos = obj.Position + offset
-    (pos, zang)
+    val turnAway = if (offset.x >= 0) -90f else 90f
+    (obj.Position + offset, (shuttleAngle + turnAway) % 360f)
   }
 }

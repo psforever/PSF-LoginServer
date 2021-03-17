@@ -57,7 +57,7 @@ class VehicleTest extends Specification {
       seat.definition.restriction mustEqual MaxOnly
       seat.bailable mustEqual true
       seat.isOccupied mustEqual false
-      seat.occupants.isEmpty mustEqual true
+      seat.occupant.isEmpty mustEqual true
     }
 
     "player can sit" in {
@@ -68,7 +68,7 @@ class VehicleTest extends Specification {
       player1.ExoSuit = ExoSuitType.MAX
       seat.mount(player1)
       seat.isOccupied mustEqual true
-      seat.occupants.contains(player1) mustEqual true
+      seat.occupant.contains(player1) mustEqual true
     }
 
     "one occupant at a time" in {
@@ -79,13 +79,13 @@ class VehicleTest extends Specification {
       player1.ExoSuit = ExoSuitType.MAX
       seat.mount(player1)
       seat.isOccupied mustEqual true
-      seat.occupants.contains(player1) mustEqual true
+      seat.occupant.contains(player1) mustEqual true
 
       val player2 = Player(avatar1)
       player2.ExoSuit = ExoSuitType.MAX
       seat.mount(player2)
       seat.isOccupied mustEqual true
-      seat.occupants.contains(player1) mustEqual true
+      seat.occupant.contains(player1) mustEqual true
     }
 
     "one player must get out of mount before other can get in" in {
@@ -96,13 +96,13 @@ class VehicleTest extends Specification {
       player1.ExoSuit = ExoSuitType.MAX
       seat.mount(player1)
       seat.isOccupied mustEqual true
-      seat.occupants.contains(player1) mustEqual true
+      seat.occupant.contains(player1) mustEqual true
 
       val player2 = Player(avatar2)
       player2.ExoSuit = ExoSuitType.MAX
       seat.mount(player2)
       seat.isOccupied mustEqual true
-      seat.occupants.contains(player2) mustEqual false
+      seat.occupant.contains(player2) mustEqual false
       seat.occupants.contains(player1) mustEqual true
 
       seat.unmount(player1)

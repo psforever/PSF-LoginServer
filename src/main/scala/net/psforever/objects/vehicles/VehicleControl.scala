@@ -323,29 +323,26 @@ class VehicleControl(vehicle: Vehicle)
 
   def mountCleanup(mount_point: Int, user: Player): Unit = {
     val obj = MountableObject
-    obj.GetSeatFromMountPoint(mount_point) match {
+    obj.PassengerInSeat(user) match {
       case Some(seatNumber) =>
-        //check that the player has actually been sat in the expected mount
-        if (obj.PassengerInSeat(user).contains(seatNumber)) {
-          //if the driver mount, change ownership if that is permissible for this vehicle
-          if (seatNumber == 0 && !obj.OwnerName.contains(user.Name) && obj.Definition.CanBeOwned.nonEmpty) {
-            //whatever vehicle was previously owned
-            vehicle.Zone.GUID(user.avatar.vehicle) match {
-              case Some(v : Vehicle) =>
-                v.Actor ! Vehicle.Ownership(None)
-              case _ =>
-                user.avatar.vehicle = None
-            }
-            LoseOwnership() //lose our current ownership
-            GainOwnership(user) //gain new ownership
+        //if the driver mount, change ownership if that is permissible for this vehicle
+        if (seatNumber == 0 && !obj.OwnerName.contains(user.Name) && obj.Definition.CanBeOwned.nonEmpty) {
+          //whatever vehicle was previously owned
+          vehicle.Zone.GUID(user.avatar.vehicle) match {
+            case Some(v : Vehicle) =>
+              v.Actor ! Vehicle.Ownership(None)
+            case _ =>
+              user.avatar.vehicle = None
           }
-          else {
-            decaying = false
-            decayTimer.cancel()
-          }
-          updateZoneInteractionProgressUI(user)
+          LoseOwnership() //lose our current ownership
+          GainOwnership(user) //gain new ownership
         }
-      case _ =>
+        else {
+          decaying = false
+          decayTimer.cancel()
+        }
+        updateZoneInteractionProgressUI(user)
+      case None => ;
     }
   }
 

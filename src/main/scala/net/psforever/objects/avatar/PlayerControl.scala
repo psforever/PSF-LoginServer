@@ -1062,7 +1062,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       case _                             => None
     }) match {
       case Some(shuttle: Vehicle)
-        if shuttle.Flying.contains(ShuttleState.State11.id) =>
+        if shuttle.Flying.contains(ShuttleState.State11.id) || shuttle.Faction != player.Faction =>
         val (pos, zang) = Vehicles.dismountShuttle(shuttle, field.mountPoint)
         shuttle.Zone.AvatarEvents ! AvatarServiceMessage(
           player.Name,

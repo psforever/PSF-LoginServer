@@ -45,13 +45,32 @@ final case class HartEventTimeFields(t1: Long, t2: Long, t3: Long)
   * encompassing both ground facility conditions and conditions of the orbital shuttle.
   */
 sealed trait HartEvent {
-  def u1: HartSequence //HART facility and shuttle animation
-  def u2: Int //counter?
-  def timeOnClock: Long //starting time on the clock
-  def duration: Long //for how long this event goes on
+  /** HART facility and shuttle animation */
+  def u1: HartSequence
+  /** counter? */
+  def u2: Int
+  /** starting time on the clock; typically seen on the display */
+  def timeOnClock: Long
+  /** for how long this event goes on */
+  def duration: Long
+  /** are the managed doors for the HART facility locked closed;
+    * this is an active state field: `true` - locked right now and `false` - unlocked right now
+    */
   def lockedDoors: Boolean = true
+  /** the shuttle has a unique state to expose to the zone;
+    * the state is related to a value in the `Flying` field of a `VehicleStateMessage` packet
+    */
   def shuttleState: Option[ShuttleState.Value]
+  /** how the shuttle and the HART facility interact;
+    * this is an active state field:
+    * `Some(true)` - the shuttle is docked right now;
+    * `Some(false)` - the shuttle has freed itself from the facility's dock right now;
+    * `None` - the shuttle is acting freely apart from its facility */
   def docked: Option[Boolean]
+  /** these fields must be including prior to an update if the shuttle state was not previous known;
+    * the primary purpose is to place the shuttle platform at the correct elevation
+    */
+  def prerequisiteUpdate: Option[HartEventStateFields]
 
   /**
     * Get the animation state fields for this event.
@@ -84,6 +103,9 @@ sealed trait HartEvent {
 }
 
 object HartEvent {
+  private val prepareForDepartureOnUpdate: Option[HartEventStateFields] =
+    Some(HartEventStateFields(HartSequence.PrepareForDeparture, 1))
+
   final case class Boarding(duration: Long) extends HartEvent {
     def u1: HartSequence = HartSequence.State0
     def u2: Int = 0
@@ -91,6 +113,7 @@ object HartEvent {
     override def lockedDoors: Boolean = false
     def shuttleState: Option[ShuttleState.Value] = Some(ShuttleState.State10)
     def docked: Option[Boolean] = Some(true)
+    def prerequisiteUpdate: Option[HartEventStateFields] = None
 
     override def timeFields(time: Option[Long]): HartEventTimeFields = {
       /*
@@ -108,15 +131,16 @@ object HartEvent {
     }
   }
 
-  final case class RaiseShuttlePlatform(timeOnClock: Long) extends HartEvent {
+  final case class ShuttleTakeoffOps(timeOnClock: Long) extends HartEvent {
     def u1: HartSequence = HartSequence.PrepareForDeparture
     def u2: Int = 1
     def duration: Long = 8000
     def shuttleState: Option[ShuttleState.Value] = Some(ShuttleState.State11)
     def docked: Option[Boolean] = Some(true)
+    def prerequisiteUpdate: Option[HartEventStateFields] = None
   }
 
-  object RaiseShuttlePlatform {
+  object ShuttleTakeoffOps {
     final val duration: Long = 8000L
   }
 
@@ -126,21 +150,23 @@ object HartEvent {
     def duration: Long = Takeoff.duration
     def shuttleState: Option[ShuttleState.Value] = Some(ShuttleState.State12)
     def docked: Option[Boolean] = Some(false)
+    def prerequisiteUpdate: Option[HartEventStateFields] = prepareForDepartureOnUpdate
   }
 
   object Takeoff {
     final val duration: Long = 13300L
   }
 
-  final case class Event2(
-                           timeOnClock: Long,
-                           duration: Long,
-                           boardingDuration: Long
-                         ) extends HartEvent {
+  final case class InTransit(
+                              timeOnClock: Long,
+                              duration: Long,
+                              boardingDuration: Long
+                            ) extends HartEvent {
     def u1: HartSequence = HartSequence.State7
     def u2: Int = 3
     def shuttleState: Option[ShuttleState.Value] = Some(ShuttleState.State15)
     def docked: Option[Boolean] = None
+    def prerequisiteUpdate: Option[HartEventStateFields] = prepareForDepartureOnUpdate
 
     override def stateFields(time: Option[Long] = None): HartEventStateFields = {
       HartEventStateFields(
@@ -168,22 +194,24 @@ object HartEvent {
     }
   }
 
-  case object Event3 extends HartEvent {
+  case object Arrival extends HartEvent {
     def u1: HartSequence = HartSequence.Land
     def u2: Int = 4
     def timeOnClock: Long = 23700
     def duration: Long = 15700
     def shuttleState: Option[ShuttleState.Value] = Some(ShuttleState.State13)
     def docked: Option[Boolean] = None
+    def prerequisiteUpdate: Option[HartEventStateFields] = prepareForDepartureOnUpdate
   }
 
-  case object Docking extends HartEvent {
+  case object ShuttleDockingOps extends HartEvent {
     def u1: HartSequence = HartSequence.PrepareForBoarding
     def u2: Int = 5
     def timeOnClock: Long = 8000
     def duration: Long = 8000
     def shuttleState: Option[ShuttleState.Value] = Some(ShuttleState.State14)
     def docked: Option[Boolean] = Some(true)
+    def prerequisiteUpdate: Option[HartEventStateFields] = None
   }
 
   case object Blanking extends HartEvent {
@@ -193,6 +221,7 @@ object HartEvent {
     def duration: Long = 1 //for how long?
     def shuttleState: Option[ShuttleState.Value] = None
     def docked: Option[Boolean] = Some(true)
+    def prerequisiteUpdate: Option[HartEventStateFields] = None
 
     override def timeFields(time: Option[Long]): HartEventTimeFields =
       HartEventTimeFields(timeOnClock, 8000L, 0L)
@@ -220,23 +249,23 @@ object HartEvent {
     * @return the final sequence of events
     */
   def buildEventSequence(inFlightDuration: Long, boardingDuration: Long): Seq[HartEvent] = {
-    val returnDurations = Event3.duration + Docking.duration
-    val fixedDurations = RaiseShuttlePlatform.duration + Takeoff.duration + returnDurations
+    val returnDurations = Arrival.duration + ShuttleDockingOps.duration
+    val fixedDurations = ShuttleTakeoffOps.duration + Takeoff.duration + returnDurations
     val full = if (inFlightDuration > fixedDurations) {
       inFlightDuration
     } else {
       inFlightDuration + fixedDurations
     }
-    val firstTime = full - RaiseShuttlePlatform.duration
+    val firstTime = full - ShuttleTakeoffOps.duration
     val secondTime = firstTime - Takeoff.duration
     val awayDuration = secondTime - returnDurations
     Seq(
       Boarding(boardingDuration),
-      RaiseShuttlePlatform(full),
+      ShuttleTakeoffOps(full),
       Takeoff(firstTime),
-      Event2(secondTime, awayDuration, boardingDuration),
-      Event3,
-      Docking,
+      InTransit(secondTime, awayDuration, boardingDuration),
+      Arrival,
+      ShuttleDockingOps,
       Blanking
     )
   }

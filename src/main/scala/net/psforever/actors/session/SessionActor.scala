@@ -6,8 +6,8 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
 import akka.pattern.ask
 import akka.util.Timeout
-
 import java.util.concurrent.TimeUnit
+
 import net.psforever.actors.net.MiddlewareActor
 import net.psforever.services.ServiceManager.Lookup
 import net.psforever.objects.locker.LockerContainer
@@ -44,7 +44,7 @@ import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals._
-import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, CaptureTerminals}
+import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
 import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.{FacilityTurret, WeaponTurret}
@@ -559,7 +559,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
         case GalaxyResponse.TransferPassenger(temp_channel, vehicle, vehicle_to_delete, manifest) =>
           (manifest.passengers.find { case (name, _) => player.Name.equals(name) } match {
-            case Some((name, index)) if vehicle.Seats(index).occupants.isEmpty =>
+            case Some((name, index)) if vehicle.Seats(index).occupant.isEmpty =>
               vehicle.Seats(index).mount(player)
               Some(vehicle)
             case Some((name, index)) =>
@@ -3496,7 +3496,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           )
           //occupants other than driver
           vehicle.Seats
-            .filter({ case (index, seat) => seat.isOccupied && live.containsSlice(seat.occupants) && index > 0 })
+            .filter({ case (index, seat) => seat.isOccupied && live.contains(seat.occupant.get) && index > 0 })
             .foreach({
               case (index, seat) =>
                 val targetPlayer    = seat.occupant.get
@@ -3523,7 +3523,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             vehicle.Seats
               .filter({
                 case (index, seat) =>
-                  seat.isOccupied && !seat.occupants.contains(player) && live.containsSlice(seat.occupants) && index > 0
+                  seat.isOccupied && !seat.occupant.contains(player) && live.contains(seat.occupant.get) && index > 0
               })
               .foreach({
                 case (index, seat) =>
@@ -5581,42 +5581,33 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                     )
                     //kick players who should not be seated in the vehicle due to permission changes
                     if (allow == VehicleLockState.Locked) { //TODO only important permission atm
-                      vehicle.Definition.MountPoints.values
-                        .foreach(mountpoint_num => {
-                          val seatIndex = mountpoint_num.seatIndex
-                          vehicle.Seat(seatIndex) match {
-                            case Some(seat) =>
-                              seat.occupant match {
-                                case Some(tplayer: Player) =>
-                                  if (
-                                    vehicle.SeatPermissionGroup(seatIndex).contains(group) && tplayer != player
-                                  ) { //can not kick self
-                                    seat.unmount(tplayer)
-                                    tplayer.VehicleSeated = None
-                                    continent.VehicleEvents ! VehicleServiceMessage(
-                                      continent.id,
-                                      VehicleAction.KickPassenger(tplayer.GUID, 4, false, object_guid)
-                                    )
-                                  }
-                                case _ => ; // No player seated
-                              }
-                            case None => ; // Not a mount mounting point
-                          }
-                          vehicle.CargoHold(seatIndex) match {
-                            case Some(cargo) =>
-                              cargo.occupant match {
-                                case Some(vehicle) =>
-                                  if (vehicle.SeatPermissionGroup(seatIndex).contains(group)) {
-                                    //todo: this probably doesn't work for passengers within the cargo vehicle
-                                    // Instruct client to start bail dismount procedure
-                                    self ! DismountVehicleCargoMsg(player.GUID, vehicle.GUID, true, false, false)
-                                  }
-                                case None => ; // No vehicle in cargo
-                              }
-                            case None => ; // Not a cargo mounting point
-                          }
-
-                        })
+                      vehicle.Seats.foreach { case (seatIndex, seat) =>
+                        seat.occupant match {
+                          case Some(tplayer : Player) =>
+                            if (
+                              vehicle.SeatPermissionGroup(seatIndex).contains(group) && tplayer != player
+                            ) { //can not kick self
+                              seat.unmount(tplayer)
+                              tplayer.VehicleSeated = None
+                              continent.VehicleEvents ! VehicleServiceMessage(
+                                continent.id,
+                                VehicleAction.KickPassenger(tplayer.GUID, 4, false, object_guid)
+                              )
+                            }
+                          case _ => ; // No player seated
+                        }
+                      }
+                      vehicle.CargoHolds.foreach { case (cargoIndex, hold) =>
+                        hold.occupant match {
+                          case Some(cargo) =>
+                            if (vehicle.SeatPermissionGroup(cargoIndex).contains(group)) {
+                              //todo: this probably doesn't work for passengers within the cargo vehicle
+                              // Instruct client to start bail dismount procedure
+                              self ! DismountVehicleCargoMsg(player.GUID, cargo.GUID, true, false, false)
+                            }
+                          case None => ; // No vehicle in cargo
+                        }
+                      }
                     }
                   case None => ;
                 }

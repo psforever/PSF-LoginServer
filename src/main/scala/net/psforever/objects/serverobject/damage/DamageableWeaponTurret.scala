@@ -73,7 +73,7 @@ trait DamageableWeaponTurret
       if (aggravated) {
         val msg = VehicleAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(damageToHealth, Vector3.Zero))
         obj.Seats.values
-          .collect { case seat if seat.occupants.nonEmpty => seat.occupants.head.Name }
+          .collect { case seat if seat.occupant.nonEmpty => seat.occupant.get.Name }
           .foreach { channel =>
             events ! VehicleServiceMessage(channel, msg)
           }

@@ -1103,6 +1103,7 @@ object GlobalDefinitions {
   val generator = new GeneratorDefinition(351)
 
   val obbasemesh = new AmenityDefinition(598) { }
+
   initMiscellaneous()
 
   /*
@@ -6992,21 +6993,26 @@ object GlobalDefinitions {
       occupancy = 300
       restriction = Unrestricted
     }
-    orbital_shuttle.MountPoints += 1 -> MountInfo(0, Vector3( 60,   4, -28.2f))
-    orbital_shuttle.MountPoints += 2 -> MountInfo(0, Vector3( 60, -20, -28.2f))
-    orbital_shuttle.MountPoints += 3 -> MountInfo(0, Vector3( 60,   4, -18.2f))
-    orbital_shuttle.MountPoints += 4 -> MountInfo(0, Vector3( 60, -20, -18.2f))
-    orbital_shuttle.MountPoints += 5 -> MountInfo(0, Vector3(-60,   4, -28.2f))
-    orbital_shuttle.MountPoints += 6 -> MountInfo(0, Vector3(-60, -20, -28.2f))
-    orbital_shuttle.MountPoints += 7 -> MountInfo(0, Vector3(-60,   4, -18.2f))
-    orbital_shuttle.MountPoints += 8 -> MountInfo(0, Vector3(-60, -20, -18.2f))
+    /*
+    these are close to the mount point offsets in the ADB;
+    physically, they correlate to positions in the HART building rather than with the shuttle model by itself;
+    set the shuttle pad based on the zonemap extraction values then position the shuttle relative to that pad;
+    rotation based on the shuttle should place these offsets in the HART lobby whose gantry hall corresponds to that mount index
+    */
+    orbital_shuttle.MountPoints += 1 -> MountInfo(0, Vector3(-62,  4, -28.2f))
+    orbital_shuttle.MountPoints += 2 -> MountInfo(0, Vector3(-62, 28, -28.2f))
+    orbital_shuttle.MountPoints += 3 -> MountInfo(0, Vector3(-62,  4, -18.2f))
+    orbital_shuttle.MountPoints += 4 -> MountInfo(0, Vector3(-62, 28, -18.2f))
+    orbital_shuttle.MountPoints += 5 -> MountInfo(0, Vector3( 62,  4, -28.2f))
+    orbital_shuttle.MountPoints += 6 -> MountInfo(0, Vector3( 62, 28, -28.2f))
+    orbital_shuttle.MountPoints += 7 -> MountInfo(0, Vector3( 62,  4, -18.2f))
+    orbital_shuttle.MountPoints += 8 -> MountInfo(0, Vector3( 62, 28, -18.2f))
     orbital_shuttle.TrunkSize = InventoryTile.None
     orbital_shuttle.Packet = new OrbitalShuttleConverter
     orbital_shuttle.DeconstructionTime = None
     orbital_shuttle.DestroyedModel = None
     orbital_shuttle.DamageUsing = DamageCalculations.AgainstNothing
     orbital_shuttle.DrownAtMaxDepth = false
-    //TODO geometry?
   }
 
   /**

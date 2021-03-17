@@ -63,7 +63,7 @@ trait Mountable {
       None
     } else {
       val (seatNumber, seat) = iter.next()
-      if (seat.occupants.contains(player)) {
+      if (seat.occupant.contains(player)) {
         Some(seatNumber)
       } else {
         recursivePassengerInSeat(iter, player)

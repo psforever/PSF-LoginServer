@@ -70,8 +70,6 @@ object Door {
 
   final case class UpdateMechanism(mechanism: LockingMechanismLogic) extends Exchange
 
-  case object ResetMechanism extends Exchange
-
   case object Lock extends Exchange
 
   case object Unlock extends Exchange

@@ -137,7 +137,7 @@ object Pool {
 final case class GantryDenialField(
                                     obbasemesh: PlanetSideGUID,
                                     mountPoint: Int,
-                                    collision: DeepSurface
+                                    collision: EnvironmentCollision
                                   ) extends PieceOfEnvironment {
   def attribute = EnvironmentAttribute.GantryDenialField
 }

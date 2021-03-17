@@ -75,7 +75,7 @@ class VehicleControlPrepareForDeletionPassengerTest extends ActorTest {
         }
       )
       assert(player1.VehicleSeated.isEmpty)
-      assert(vehicle.Seats(1).occupants.isEmpty)
+      assert(vehicle.Seats(1).occupant.isEmpty)
     }
   }
 }
@@ -196,7 +196,7 @@ class VehicleControlPrepareForDeletionMountedInTest extends FreedContextActorTes
         }
       )
       assert(player1.VehicleSeated.isEmpty)
-      assert(vehicle.Seats(1).occupants.isEmpty)
+      assert(vehicle.Seats(1).occupant.isEmpty)
     }
   }
 }
@@ -260,7 +260,7 @@ class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActor
         }
       )
       assert(player2.VehicleSeated.isEmpty)
-      assert(lodestar.Seats(0).occupants.isEmpty)
+      assert(lodestar.Seats(0).occupant.isEmpty)
       //cargo dismounting messages
       assert(
         vehicle_msg(1) match {
@@ -461,11 +461,11 @@ class VehicleControlMountingDriverSeatTest extends ActorTest {
   "Vehicle Control" should {
     "allow players to sit in the driver mount, even if it is locked, if the vehicle is unowned" in {
       assert(vehicle.PermissionGroup(0).contains(VehicleLockState.Locked)) //driver group -> locked
-      assert(vehicle.Seats(0).occupants.isEmpty)
+      assert(vehicle.Seats(0).occupant.isEmpty)
       assert(vehicle.Owner.isEmpty)
       vehicle.Actor.tell(Mountable.TryMount(player1, 0), probe.ref)
       checkCanMount()
-      assert(vehicle.Seats(0).occupants.nonEmpty)
+      assert(vehicle.Seats(0).occupant.nonEmpty)
     }
   }
 }
@@ -503,19 +503,19 @@ class VehicleControlMountingOwnedLockedDriverSeatTest extends ActorTest {
   "Vehicle Control" should {
     "block players that are not the current owner from sitting in the driver mount (locked)" in {
       assert(vehicle.PermissionGroup(0).contains(VehicleLockState.Locked)) //driver group -> locked
-      assert(vehicle.Seats(0).occupants.isEmpty)
+      assert(vehicle.Seats(0).occupant.isEmpty)
       vehicle.Owner = player1.GUID
 
       vehicle.Actor.tell(Mountable.TryMount(player1, 0), probe.ref)
       checkCanMount()
-      assert(vehicle.Seats(0).occupants.nonEmpty)
+      assert(vehicle.Seats(0).occupant.nonEmpty)
       vehicle.Actor.tell(Mountable.TryDismount(player1, 0), probe.ref)
       probe.receiveOne(Duration.create(100, "ms")) //discard
-      assert(vehicle.Seats(0).occupants.isEmpty)
+      assert(vehicle.Seats(0).occupant.isEmpty)
 
       vehicle.Actor.tell(Mountable.TryMount(player2, 0), probe.ref)
       checkCanNotMount()
-      assert(vehicle.Seats(0).occupants.isEmpty)
+      assert(vehicle.Seats(0).occupant.isEmpty)
     }
   }
 }
@@ -544,19 +544,19 @@ class VehicleControlMountingOwnedUnlockedDriverSeatTest extends ActorTest {
     "allow players that are not the current owner to sit in the driver mount (empire)" in {
       vehicle.PermissionGroup(0, 3)                                        //passenger group -> empire
       assert(vehicle.PermissionGroup(0).contains(VehicleLockState.Empire)) //driver group -> empire
-      assert(vehicle.Seats(0).occupants.isEmpty)
+      assert(vehicle.Seats(0).occupant.isEmpty)
       vehicle.Owner = player1.GUID //owner set
 
       vehicle.Actor.tell(Mountable.TryMount(player1, 0), probe.ref)
       checkCanMount()
-      assert(vehicle.Seats(0).occupants.nonEmpty)
+      assert(vehicle.Seats(0).occupant.nonEmpty)
       vehicle.Actor.tell(Mountable.TryDismount(player1, 0), probe.ref)
       probe.receiveOne(Duration.create(100, "ms")) //discard
-      assert(vehicle.Seats(0).occupants.isEmpty)
+      assert(vehicle.Seats(0).occupant.isEmpty)
 
       vehicle.Actor.tell(Mountable.TryMount(player2, 0), probe.ref)
       checkCanMount()
-      assert(vehicle.Seats(0).occupants.nonEmpty)
+      assert(vehicle.Seats(0).occupant.nonEmpty)
     }
   }
 }

@@ -35,7 +35,7 @@ object VehicleManifest {
     }
     val passengers = vehicle.Seats.collect {
       case (index: Int, seat: Seat) if index > 0 && seat.isOccupied =>
-        (seat.occupants.head.Name, index)
+        (seat.occupant.get.Name, index)
     }
     val cargo = vehicle.CargoHolds.collect {
       case (index: Int, hold: Cargo) if hold.occupant.nonEmpty =>
