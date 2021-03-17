@@ -20,9 +20,6 @@ import net.psforever.objects.serverobject.painbox.PainboxDefinition
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.tube.SpawnTubeDefinition
 import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
-import net.psforever.objects.serverobject.structures.{AutoRepairStats, BuildingDefinition, WarpGateDefinition}
-import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalDefinition
-import net.psforever.objects.serverobject.terminals.implant.{ImplantTerminalDefinition, ImplantTerminalMechDefinition}
 import net.psforever.objects.serverobject.structures.{AmenityDefinition, AutoRepairStats, BuildingDefinition, WarpGateDefinition}
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalDefinition
 import net.psforever.objects.serverobject.terminals.implant.{ImplantTerminalDefinition, ImplantTerminalMechDefinition}
