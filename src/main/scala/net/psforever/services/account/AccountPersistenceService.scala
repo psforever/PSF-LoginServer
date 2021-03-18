@@ -21,13 +21,13 @@ import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
   * relogging (short-term client connectivity issue resolution), and
   * logout (end-of-life conditions involving the separation of a user from the game world).<br>
   * <br>
-  * A user polls this service and the net.psforever.services either creates a new `PersistenceMonitor` entity
+  * A user polls this service and the service either creates a new `PersistenceMonitor` entity
   * or returns whatever `PersistenceMonitor` entity currently exists.
-  * Performing informative pdates to the monitor about the user's eventual player avatar instance
+  * Performing informative updates to the monitor about the user's eventual player avatar instance
   * (which can be performed by messaging the service indirectly,
   * though sending directly to the monitor is recommended)
   * facilitate the management of persistence.
-  * If connectivity isssues with the client are encountered by the user,
+  * If connectivity issues with the client are encountered by the user,
   * within a reasonable amount of time to connection restoration,
   * the user may regain control of their existing persistence monitor and, thus, the same player avatar.
   * End of life is mainly managed by the monitors internally
@@ -144,7 +144,7 @@ class AccountPersistenceService extends Actor {
     */
   def CreateNewPlayerToken(name: String): ActorRef = {
     val ref =
-      context.actorOf(Props(classOf[PersistenceMonitor], name, squad), s"$name-${NextPlayerIndex(name)}")
+      context.actorOf(Props(classOf[PersistenceMonitor], name, squad), s"${NextPlayerIndex(name)}_${name.hashCode()}")
     accounts += name -> ref
     ref
   }
@@ -312,7 +312,7 @@ class PersistenceMonitor(name: String, squadService: ActorRef) extends Actor {
     * <br>
     * The updates have been providing the zone
     * and the basic information about the user (player name) has been provided since the beginning
-    * and it's a trivial matter to find where the avatar and player and asess their circumstances.
+    * and it's a trivial matter to find where the avatar and player and assess their circumstances.
     * The four important vectors are:
     * the player avatar is in a vehicle,
     * the player avatar is standing,
