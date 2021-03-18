@@ -66,13 +66,20 @@ class OrbitalShuttle(sdef: VehicleDefinition) extends Vehicle(sdef) {
 
   /**
     * All players mounted in the shuttle are passengers only.  No driver.  No gunners.
+    * Even if it does not exist yet, as long as it has the potential to be created,
+    * discuss the next seat that would be created as if it already exists.
     * @param seatNumber the index of a mount point
-    * @return this mount point belongs to `Passenger` permissions
+    * @return `Passenger` permissions
     */
   override def SeatPermissionGroup(seatNumber : Int) : Option[AccessPermissionGroup.Value] = {
-    Seat(seatNumber) match {
-      case Some(_) => Some(AccessPermissionGroup.Passenger)
-      case _       => None
+    Seats.get(seatNumber) match {
+      case Some(_) =>
+        Some(AccessPermissionGroup.Passenger)
+      case None
+        if seats.size == seatNumber && Seats.values.exists { _.definition.occupancy > seats.size } =>
+        Some(AccessPermissionGroup.Passenger)
+      case _ =>
+        None
     }
   }
 }

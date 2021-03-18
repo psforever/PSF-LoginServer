@@ -46,7 +46,7 @@ class OrbitalShuttlePadControl(pad: OrbitalShuttlePad) extends Actor {
 
     case HartTimer.LockDoors =>
       managedDoors.foreach { door =>
-        //door.Actor ! Door.UpdateMechanism(OrbitalShuttlePadControl.lockedWaitingForShuttle)
+        door.Actor ! Door.UpdateMechanism(OrbitalShuttlePadControl.lockedWaitingForShuttle)
         val zone = pad.Zone
         if(door.isOpen) {
           zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.DoorSlamsShut(door))
@@ -54,7 +54,7 @@ class OrbitalShuttlePadControl(pad: OrbitalShuttlePad) extends Actor {
       }
 
     case HartTimer.UnlockDoors =>
-      //managedDoors.foreach { _.Actor ! Door.UpdateMechanism(OrbitalShuttlePadControl.shuttleIsBoarding) }
+      managedDoors.foreach { _.Actor ! Door.UpdateMechanism(OrbitalShuttlePadControl.shuttleIsBoarding) }
 
     case HartTimer.ShuttleDocked(forChannel) =>
       HartTimerActions.ShuttleDocked(pad, shuttle, forChannel)
@@ -100,7 +100,7 @@ class OrbitalShuttlePadControl(pad: OrbitalShuttlePad) extends Actor {
   val startUp: Receive = {
     case Service.Startup() =>
       import net.psforever.types.Vector3
-      import net.psforever.types.Vector3._
+      import net.psforever.types.Vector3.DistanceSquared
       import net.psforever.objects.GlobalDefinitions._
       val position = pad.Position
       val zone = pad.Zone
@@ -111,12 +111,10 @@ class OrbitalShuttlePadControl(pad: OrbitalShuttlePad) extends Actor {
         .take(8)
       //create shuttle
       val newShuttle = new OrbitalShuttle(orbital_shuttle)
-      val _pad = pad
-      newShuttle.Position = position + Rz(Vector3(0, -8.25f, 0), _pad.Orientation.z) //magic offset number
-      newShuttle.Orientation = _pad.Orientation
-      newShuttle.Faction = _pad.Faction
+      newShuttle.Position = position + Vector3(0, -8.25f, 0).Rz(pad.Orientation.z) //magic offset number
+      newShuttle.Orientation = pad.Orientation
+      newShuttle.Faction = pad.Faction
       zone.tasks ! OrbitalShuttlePadControl.registerShuttle(zone, newShuttle, self)
-      //progress ...
       context.become(shuttleTime)
 
     case _ => ;
@@ -164,14 +162,11 @@ object OrbitalShuttlePadControl {
     * Only opens for users with proper faction affinity.
     * @param obj what attempted to open the door
     * @param door the door
-    * @return `false`, as the door can not be opened in this state
+    * @return `true`, if the user is the accepted by the door;
+    *        `false`, otherwise
     */
   def shuttleIsBoarding(obj: PlanetSideServerObject, door: Door): Boolean = {
-    if (obj.Faction == door.Faction) {
-      true
-    } else {
-      false
-    }
+    obj.Faction == door.Faction
   }
 
   /**

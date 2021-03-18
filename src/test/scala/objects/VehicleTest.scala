@@ -3,7 +3,7 @@ package objects
 
 import net.psforever.objects._
 import net.psforever.objects.definition.VehicleDefinition
-import net.psforever.objects.serverobject.mount.{MaxOnly, NoMax, Seat, SeatDefinition}
+import net.psforever.objects.serverobject.mount._
 import net.psforever.objects.vehicles._
 import net.psforever.types.{PlanetSideGUID, _}
 import org.specs2.mutable._
@@ -31,13 +31,13 @@ class VehicleTest extends Specification {
   "VehicleDefinition" should {
     "define" in {
       val fury = GlobalDefinitions.fury
-      fury.CanBeOwned mustEqual true
+      fury.CanBeOwned.contains(true) mustEqual true
       fury.CanCloak mustEqual false
       fury.Seats.size mustEqual 1
       fury.Seats(0).bailable mustEqual true
       fury.MountPoints.size mustEqual 2
-      fury.MountPoints.get(1).contains(0)
-      fury.MountPoints.get(2).contains(0)
+      fury.MountPoints.get(1).contains(MountInfo(0, Vector3(0,0,0))) mustEqual true
+      fury.MountPoints.get(2).contains(MountInfo(0, Vector3(0,0,0))) mustEqual true
       fury.Weapons.size mustEqual 1
       fury.Weapons.get(0).isEmpty mustEqual true
       fury.Weapons.get(1).contains(GlobalDefinitions.fury_weapon_systema)

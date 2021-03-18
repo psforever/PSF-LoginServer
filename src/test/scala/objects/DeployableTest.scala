@@ -8,7 +8,7 @@ import net.psforever.objects.ballistics._
 import net.psforever.objects.ce.DeployedItem
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.MaxNumberSource
-import net.psforever.objects.serverobject.mount.Mountable
+import net.psforever.objects.serverobject.mount.{MountInfo, Mountable}
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.objects.{TurretDeployable, _}
@@ -156,8 +156,11 @@ class TurretDeployableTest extends Specification {
     }
 
     "may have mount point" in {
-      new TurretDeployable(GlobalDefinitions.spitfire_turret).MountPoints mustEqual Map()
-      new TurretDeployable(GlobalDefinitions.portable_manned_turret_vs).MountPoints mustEqual Map(1 -> 0, 2 -> 0)
+      new TurretDeployable(GlobalDefinitions.spitfire_turret).MountPoints.isEmpty mustEqual true
+
+      val pmt = new TurretDeployable(GlobalDefinitions.portable_manned_turret_vs)
+      pmt.MountPoints.get(1).contains(MountInfo(0, Vector3(0, 0, 0))) mustEqual true
+      pmt.MountPoints.get(2).contains(MountInfo(0, Vector3(0, 0, 0))) mustEqual true
     }
   }
 }
@@ -671,7 +674,7 @@ class TurretControlMountTest extends ActorTest {
 
       assert(obj.Seats(0).occupant.isEmpty)
       val player1 = Player(Avatar(0, "test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
-      obj.Actor ! Mountable.TryMount(player1, 0)
+      obj.Actor ! Mountable.TryMount(player1, 1)
       val reply1a = receiveOne(200 milliseconds)
       assert(reply1a.isInstanceOf[Mountable.MountMessages])
       val reply1b = reply1a.asInstanceOf[Mountable.MountMessages]
@@ -691,7 +694,7 @@ class TurretControlBlockMountTest extends ActorTest {
 
       assert(obj.Seats(0).occupant.isEmpty)
       val player1 = Player(Avatar(0, "test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
-      obj.Actor ! Mountable.TryMount(player1, 0)
+      obj.Actor ! Mountable.TryMount(player1, 1)
       val reply1a = receiveOne(200 milliseconds)
       assert(reply1a.isInstanceOf[Mountable.MountMessages])
       val reply1b = reply1a.asInstanceOf[Mountable.MountMessages]
@@ -700,7 +703,7 @@ class TurretControlBlockMountTest extends ActorTest {
       assert(obj.Seats(0).occupant.contains(player1))
 
       val player2 = Player(Avatar(1, "test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
-      obj.Actor ! Mountable.TryMount(player2, 0)
+      obj.Actor ! Mountable.TryMount(player2, 1)
       val reply2a = receiveOne(200 milliseconds)
       assert(reply2a.isInstanceOf[Mountable.MountMessages])
       val reply2b = reply2a.asInstanceOf[Mountable.MountMessages]
@@ -719,7 +722,7 @@ class TurretControlBlockBetrayalMountTest extends ActorTest {
 
       assert(obj.Seats(0).occupant.isEmpty)
       val player = Player(Avatar(0, "test", PlanetSideEmpire.VS, CharacterGender.Male, 0, CharacterVoice.Mute))
-      obj.Actor ! Mountable.TryMount(player, 0)
+      obj.Actor ! Mountable.TryMount(player, 1)
       val reply1a = receiveOne(200 milliseconds)
       assert(reply1a.isInstanceOf[Mountable.MountMessages])
       val reply1b = reply1a.asInstanceOf[Mountable.MountMessages]
@@ -739,7 +742,7 @@ class TurretControlDismountTest extends ActorTest {
 
       assert(obj.Seats(0).occupant.isEmpty)
       val player = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
-      obj.Actor ! Mountable.TryMount(player, 0)
+      obj.Actor ! Mountable.TryMount(player, 1)
       val reply1a = receiveOne(200 milliseconds)
       assert(reply1a.isInstanceOf[Mountable.MountMessages])
       val reply1b = reply1a.asInstanceOf[Mountable.MountMessages]
@@ -762,16 +765,20 @@ class TurretControlBetrayalMountTest extends ActorTest {
   "TurretControl" should {
     "allow all allegiances" in {
       val obj = new TurretDeployable(
-        new TurretDeployableDefinition(685) { FactionLocked = false } //required (defaults to true)
+        new TurretDeployableDefinition(685) {
+          MountPoints += 1 -> MountInfo(0, Vector3.Zero)
+          FactionLocked = false
+        } //required (defaults to true)
       ) { GUID = PlanetSideGUID(1) }
       obj.Faction = PlanetSideEmpire.TR
       obj.Actor = system.actorOf(Props(classOf[TurretControl], obj), s"${obj.Definition.Name}_test")
+      val probe = new TestProbe(system)
 
       assert(obj.Seats(0).occupant.isEmpty)
       val player = Player(Avatar(0, "test", PlanetSideEmpire.NC, CharacterGender.Male, 0, CharacterVoice.Mute))
       assert(player.Faction != obj.Faction)
-      obj.Actor ! Mountable.TryMount(player, 0)
-      val reply1a = receiveOne(200 milliseconds)
+      obj.Actor.tell(Mountable.TryMount(player, 1), probe.ref)
+      val reply1a = probe.receiveOne(200 milliseconds)
       assert(reply1a.isInstanceOf[Mountable.MountMessages])
       val reply1b = reply1a.asInstanceOf[Mountable.MountMessages]
       assert(reply1b.player == player)

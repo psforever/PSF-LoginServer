@@ -8,7 +8,7 @@ import net.psforever.objects.{Default, GlobalDefinitions, Player}
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.terminals.implant.{ImplantTerminalMech, ImplantTerminalMechControl}
-import net.psforever.objects.serverobject.mount.{Mountable, Seat, SeatDefinition}
+import net.psforever.objects.serverobject.mount.{MountInfo, Mountable, Seat, SeatDefinition}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.zones.{Zone, ZoneMap}
@@ -22,7 +22,7 @@ class ImplantTerminalMechTest extends Specification {
     "define" in {
       val implant_terminal_mech = GlobalDefinitions.implant_terminal_mech
       implant_terminal_mech.ObjectId mustEqual 410
-      implant_terminal_mech.MountPoints mustEqual Map(1 -> 0)
+      implant_terminal_mech.MountPoints.get(1).contains(MountInfo(0, Vector3.Zero)) mustEqual true
       implant_terminal_mech.Seats.keySet mustEqual Set(0)
       implant_terminal_mech.Seats(0).isInstanceOf[SeatDefinition] mustEqual true
       implant_terminal_mech.Seats(0).bailable mustEqual false
@@ -71,7 +71,7 @@ class ImplantTerminalMechControl2Test extends ActorTest {
   "ImplantTerminalMechControl" should {
     "let a player mount" in {
       val (player, mech) = ImplantTerminalMechTest.SetUpAgents(PlanetSideEmpire.TR)
-      val msg            = Mountable.TryMount(player, 0)
+      val msg            = Mountable.TryMount(player, 1)
 
       mech.Actor ! msg
       val reply = receiveOne(Duration.create(200, "ms"))
@@ -93,10 +93,10 @@ class ImplantTerminalMechControl3Test extends ActorTest {
       val (player1, mech) = ImplantTerminalMechTest.SetUpAgents(PlanetSideEmpire.TR)
       val player2         = Player(Avatar(1, "test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
 
-      mech.Actor ! Mountable.TryMount(player1, 0)
+      mech.Actor ! Mountable.TryMount(player1, 1)
       receiveOne(Duration.create(100, "ms")) //consume reply
 
-      mech.Actor ! Mountable.TryMount(player2, 0)
+      mech.Actor ! Mountable.TryMount(player2, 1)
       val reply = receiveOne(Duration.create(100, "ms"))
       assert(reply.isInstanceOf[Mountable.MountMessages])
       val reply2 = reply.asInstanceOf[Mountable.MountMessages]
@@ -104,7 +104,7 @@ class ImplantTerminalMechControl3Test extends ActorTest {
       assert(reply2.response.isInstanceOf[Mountable.CanNotMount])
       val reply3 = reply2.response.asInstanceOf[Mountable.CanNotMount]
       assert(reply3.obj == mech)
-      assert(reply3.mount_point == 0)
+      assert(reply3.mount_point == 1)
     }
   }
 }
@@ -113,7 +113,7 @@ class ImplantTerminalMechControl4Test extends ActorTest {
   "ImplantTerminalMechControl" should {
     "dismount player after mounting" in {
       val (player, mech) = ImplantTerminalMechTest.SetUpAgents(PlanetSideEmpire.TR)
-      mech.Actor ! Mountable.TryMount(player, 0)
+      mech.Actor ! Mountable.TryMount(player, 1)
       receiveOne(Duration.create(200, "ms")) //consume reply
       assert(mech.Seat(0).get.isOccupied)
 
@@ -135,7 +135,7 @@ class ImplantTerminalMechControl5Test extends ActorTest {
   "ImplantTerminalMechControl" should {
     "block a player from dismounting" in {
       val (player, mech) = ImplantTerminalMechTest.SetUpAgents(PlanetSideEmpire.TR)
-      mech.Actor ! Mountable.TryMount(player, 0)
+      mech.Actor ! Mountable.TryMount(player, 1)
       receiveOne(Duration.create(100, "ms")) //consume reply
       assert(mech.Seat(0).get.isOccupied)
 

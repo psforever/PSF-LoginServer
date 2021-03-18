@@ -28,10 +28,13 @@ class HartService extends Actor {
         case None =>
           val actor = context.actorOf(Props(classOf[HartTimer], zone), s"$channel-shuttle-timer")
           zoneTimers.put(channel, actor)
-          actor ! HartTimer.SetEventDurations(
-            channel,
-            Config.app.game.hart.inFlightDuration,
-            Config.app.game.hart.boardingDuration
+          actor.tell(
+            HartTimer.SetEventDurations(
+              channel,
+              Config.app.game.hart.inFlightDuration,
+              Config.app.game.hart.boardingDuration
+            ),
+            self
           )
           actor
       }).tell(out, out.from)

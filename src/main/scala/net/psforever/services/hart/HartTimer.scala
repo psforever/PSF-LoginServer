@@ -44,64 +44,12 @@ class HartTimer(zone: Zone) extends Actor {
 
   /** a message bus to which all associated orbital shuttle pads are subscribed */
   val padEvents = new GenericEventBus[HartTimer.Command]
-  /** cahce common messages */
+  /** cache common messages */
   val shuttleDockedInThisZone = HartTimer.ShuttleDocked(zoneId)
   val shuttleFreeFromDockInThisZone = HartTimer.ShuttleFreeFromDock(zoneId)
 
-  def receive: Receive = {
-    case HartTimer.PairWith(_, pad, shuttle, from) =>
-      padEvents.subscribe(from, to = "")
-      padAndShuttlePairs = (padAndShuttlePairs :+ (pad, shuttle)).distinct
-      if (sequence(sequenceIndex).lockedDoors) {
-        from ! HartTimer.LockDoors
-      }
-      if (sequence(sequenceIndex).docked.contains(true)) {
-        from ! HartTimer.ShuttleDocked(zoneId)
-      }
-
-    case HartTimer.NextEvent(next) if next == 0 =>
-      sequence = delayedScheduleChange.getOrElse(sequence)
-      sequenceLength = sequence.length
-      delayedScheduleChange = None
-      nextEvent(next)
-
-    case HartTimer.NextEvent(next) =>
-      nextEvent(next)
-
-    case HartTimer.Update(_, forChannel) if sequence.nonEmpty =>
-      val seq = sequence
-      val event = seq(sequenceIndex)
-      val time = Some(System.currentTimeMillis() - lastStartTime)
-      if (event.docked.contains(true)) {
-        padEvents.publish( HartTimer.ShuttleDocked(forChannel) )
-      }
-      event.prerequisiteUpdate match {
-        case Some(fields) =>
-          val times = event.timeFields(time)
-          zone.LocalEvents ! LocalServiceMessage(
-            forChannel,
-            LocalAction.ShuttleEvent(HartTimer.OrbitalShuttleEvent(
-              fields.u1, fields.u2, times.t1, times.t2, times.t3, padAndShuttlePairs zip Seq(20, 20, 20)
-            ))
-          )
-        case None => ;
-      }
-      zone.LocalEvents ! LocalServiceMessage(
-        forChannel,
-        LocalAction.ShuttleEvent(
-          HartTimer.analyzeEvent(event, padAndShuttlePairs, time)
-        )
-      )
-      event.shuttleState match {
-        case Some(state) =>
-          padEvents.publish( HartTimer.ShuttleStateUpdate(forChannel, state.id) )
-        case None =>
-          //find previous valid shuttle state
-          var i = sequenceIndex - 1
-          while(seq(i).shuttleState.isEmpty) { i = if (i - 1 < 0) sequenceLength - 1 else i - 1 }
-          padEvents.publish( HartTimer.ShuttleStateUpdate(forChannel, seq(i).shuttleState.get.id) )
-      }
-
+  /** the behaviors common to both the inert and active operations of the hart */
+  val commonBehavior: Receive = {
     case HartTimer.SetEventDurations(_, awayDuration: Long, boardingDuration: Long) =>
       val newSequence = HartEvent.buildEventSequence(awayDuration, boardingDuration)
       if (newSequence.nonEmpty) {
@@ -109,15 +57,86 @@ class HartTimer(zone: Zone) extends Actor {
           sequence = newSequence
           sequenceLength = newSequence.length
           nextEvent(sequenceIndex)
-        } else if (sequenceIndex == 0) {
-          sequence = newSequence
-          sequenceLength = newSequence.length
         } else {
           delayedScheduleChange = Some(newSequence)
         }
+        context.become(flightsScheduled)
       }
+  }
 
-    case _ => ;
+  /** behaviors that are valid while no sequence of events is defined; the hart is inert */
+  def grounded: Receive = commonBehavior
+    .orElse {
+      case HartTimer.PairWith(_, pad, shuttle, from) =>
+        pairWith(pad, shuttle, from)
+
+      case _ => ;
+    }
+
+  /** behaviors that are valid after a sequence of events is defined; the hart is active */
+  def flightsScheduled: Receive = commonBehavior
+    .orElse {
+      case HartTimer.PairWith(_, pad, shuttle, from) =>
+        pairWith(pad, shuttle, from)
+        val event = sequence(sequenceIndex)
+        if (event.lockedDoors) {
+          from ! HartTimer.LockDoors
+        }
+        if (event.docked.contains(true)) {
+          from ! HartTimer.ShuttleDocked(zoneId)
+        }
+
+      case HartTimer.NextEvent(next) if next == 0 =>
+        sequence = delayedScheduleChange.getOrElse(sequence)
+        sequenceLength = sequence.length
+        delayedScheduleChange = None
+        nextEvent(next)
+
+      case HartTimer.NextEvent(next) =>
+        nextEvent(next)
+
+      case HartTimer.Update(_, forChannel) =>
+        val seq = sequence
+        val event = seq(sequenceIndex)
+        val time = Some(System.currentTimeMillis() - lastStartTime)
+        if (event.docked.contains(true)) {
+          padEvents.publish( HartTimer.ShuttleDocked(forChannel) )
+        }
+        event.prerequisiteUpdate match {
+          case Some(fields) =>
+            val times = event.timeFields(time)
+            zone.LocalEvents ! LocalServiceMessage(
+              forChannel,
+              LocalAction.ShuttleEvent(HartTimer.OrbitalShuttleEvent(
+                fields.u1, fields.u2, times.t1, times.t2, times.t3, padAndShuttlePairs zip Seq(20, 20, 20)
+              ))
+            )
+          case None => ;
+        }
+        zone.LocalEvents ! LocalServiceMessage(
+          forChannel,
+          LocalAction.ShuttleEvent(
+            HartTimer.analyzeEvent(event, padAndShuttlePairs, time)
+          )
+        )
+        event.shuttleState match {
+          case Some(state) =>
+            padEvents.publish( HartTimer.ShuttleStateUpdate(forChannel, state.id) )
+          case None =>
+            //find previous valid shuttle state
+            var i = sequenceIndex - 1
+            while(seq(i).shuttleState.isEmpty) { i = if (i - 1 < 0) sequenceLength - 1 else i - 1 }
+            padEvents.publish( HartTimer.ShuttleStateUpdate(forChannel, seq(i).shuttleState.get.id) )
+        }
+
+      case _ => ;
+    }
+
+  def receive: Receive = flightsScheduled
+
+  def pairWith(pad: PlanetSideGUID, shuttle: PlanetSideGUID, from: ActorRef): Unit = {
+    padEvents.subscribe(from, to = "")
+    padAndShuttlePairs = (padAndShuttlePairs :+ (pad, shuttle)).distinct
   }
 
   def nextEvent(next: Int): Unit = {

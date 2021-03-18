@@ -10,7 +10,7 @@ import net.psforever.objects.definition.ToolDefinition
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.CommonMessages
-import net.psforever.objects.serverobject.mount.Mountable
+import net.psforever.objects.serverobject.mount.{MountInfo, Mountable}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.serverobject.turret._
 import net.psforever.objects.zones.{Zone, ZoneMap}
@@ -31,7 +31,7 @@ class FacilityTurretTest extends Specification {
       obj.ReserveAmmunition mustEqual false
       obj.FactionLocked mustEqual true
       obj.MaxHealth mustEqual 0
-      obj.MountPoints mustEqual mutable.HashMap.empty[Int, Int]
+      obj.MountPoints.isEmpty mustEqual true
     }
 
     "construct" in {
@@ -45,7 +45,7 @@ class FacilityTurretTest extends Specification {
       }
       obj.Seats.size mustEqual 1
       obj.MountPoints.size mustEqual 1
-      obj.MountPoints(1) mustEqual 0
+      obj.MountPoints.get(1).contains(MountInfo(0, Vector3.Zero)) mustEqual true
       obj.Health mustEqual 3600
       obj.Upgrade mustEqual TurretUpgrade.None
       obj.Health = 360
@@ -114,7 +114,7 @@ class FacilityTurretControl2Test extends ActorTest {
       assert(obj.Faction == PlanetSideEmpire.TR)
       assert(obj.Definition.FactionLocked)
 
-      obj.Actor ! Mountable.TryMount(player, 0)
+      obj.Actor ! Mountable.TryMount(player, 1)
       val reply = receiveOne(300 milliseconds)
       reply match {
         case msg: Mountable.MountMessages =>
@@ -140,7 +140,7 @@ class FacilityTurretControl3Test extends ActorTest {
       assert(obj.Faction == PlanetSideEmpire.NEUTRAL)
       assert(obj.Definition.FactionLocked)
 
-      obj.Actor ! Mountable.TryMount(player, 0)
+      obj.Actor ! Mountable.TryMount(player, 1)
       val reply = receiveOne(300 milliseconds)
       reply match {
         case msg: Mountable.MountMessages =>
@@ -154,9 +154,7 @@ class FacilityTurretControl3Test extends ActorTest {
 
 class FacilityTurretControl4Test extends ActorTest {
   val player = Player(Avatar(0, "", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
-  val objDef = new FacilityTurretDefinition(480)
-  objDef.FactionLocked = false
-  val obj = FacilityTurret(objDef)
+  val obj = FacilityTurret(GlobalDefinitions.vanu_sentry_turret)
   obj.GUID = PlanetSideGUID(1)
   obj.Actor = system.actorOf(Props(classOf[FacilityTurretControl], obj), "turret-control")
   val bldg = Building("Building", guid = 0, map_id = 0, Zone.Nowhere, StructureType.Building)
@@ -168,7 +166,7 @@ class FacilityTurretControl4Test extends ActorTest {
       assert(obj.Faction == PlanetSideEmpire.NEUTRAL)
       assert(!obj.Definition.FactionLocked)
 
-      obj.Actor ! Mountable.TryMount(player, 0)
+      obj.Actor ! Mountable.TryMount(player, 1)
       val reply = receiveOne(300 milliseconds)
       reply match {
         case msg: Mountable.MountMessages =>
