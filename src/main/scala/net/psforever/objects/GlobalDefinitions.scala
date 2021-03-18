@@ -7797,7 +7797,7 @@ object GlobalDefinitions {
       DamageAtEdge = 0.1f
       Modifiers = ExplodingRadialDegrade
     }
-    manned_turret.Geometry = GeometryForm.representByCylinder(radius = 1.2695f, height = 2.6875f)
+    manned_turret.Geometry = GeometryForm.representByCylinder(radius = 1.2695f, height = 4.042f)
 
     vanu_sentry_turret.Name = "vanu_sentry_turret"
     vanu_sentry_turret.MaxHealth = 1500
