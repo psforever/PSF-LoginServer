@@ -132,7 +132,7 @@ class HartTimer(zone: Zone) extends Actor {
       case _ => ;
     }
 
-  def receive: Receive = flightsScheduled
+  def receive: Receive = grounded
 
   def pairWith(pad: PlanetSideGUID, shuttle: PlanetSideGUID, from: ActorRef): Unit = {
     padEvents.subscribe(from, to = "")
@@ -178,7 +178,7 @@ class HartTimer(zone: Zone) extends Actor {
 
 object HartTimer {
   /**
-    * Transform `TimeShuttleEvent` data into `OrbitalShuttleEvent` data.
+    * Transform `HartEvent` data into `OrbitalShuttleEvent` data.
     * The former is treated as something internal.
     * The latter is treated as something external.
     * @see `OrbitalShuttleEvent`

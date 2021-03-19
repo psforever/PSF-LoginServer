@@ -11,6 +11,7 @@ import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.DroppodError
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, SpawnGroup, Vector3}
 import net.psforever.util.Config
+import net.psforever.zones.Zones
 
 import scala.collection.mutable
 import scala.util.Random
@@ -225,12 +226,19 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
             replyTo ! SpawnPointResponse(None)
         }
 
-      case DroppodLaunchRequest(zoneNumber, position, _, replyTo) =>
+      case DroppodLaunchRequest(zoneNumber, position, faction, replyTo) =>
         zones.find(_.Number == zoneNumber) match {
           case Some(zone) =>
             //TODO all of the checks for the specific DroppodLaunchResponseMessage excuses go here
-            replyTo ! DroppodLaunchConfirmation(zone, position)
-          case None => ;
+            if(zone.map.cavern) {
+              //just being cautious - caverns are typically not normally selectable as drop zones
+              replyTo ! DroppodLaunchDenial(DroppodError.ZoneNotAvailable, None)
+            } else if (zone.Number == Zones.sanctuaryZoneNumber(faction)) {
+              replyTo ! DroppodLaunchDenial(DroppodError.OwnFactionLocked, None)
+            } else {
+              replyTo ! DroppodLaunchConfirmation(zone, position)
+            }
+          case None =>
             replyTo ! DroppodLaunchDenial(DroppodError.InvalidLocation, None)
         }
     }

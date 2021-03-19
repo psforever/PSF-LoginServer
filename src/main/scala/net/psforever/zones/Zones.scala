@@ -569,6 +569,8 @@ object Zones {
             this.Buildings.values.foreach(_.Faction = PlanetSideEmpire.TR)
           case "home3" =>
             this.Buildings.values.foreach(_.Faction = PlanetSideEmpire.VS)
+          case zoneid if zoneid.startsWith("c") =>
+            this.map.cavern = true
           case _ => ()
         }
 
