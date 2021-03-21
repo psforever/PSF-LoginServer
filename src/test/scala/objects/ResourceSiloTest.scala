@@ -154,7 +154,7 @@ class ResourceSiloControlUseTest extends FreedContextActorTest {
   expectNoMessage(1000 milliseconds)
   var buildingMap = new TrieMap[Int, Building]()
   val guid = new NumberPoolHub(new MaxNumberSource(max = 10))
-  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
   val ant = Vehicle(GlobalDefinitions.ant)
   val silo = new ResourceSilo()
   val catchall = new TestProbe(system).ref
@@ -427,7 +427,7 @@ class ResourceSiloControlNoUpdateTest extends ActorTest {
 
 object ResourceSiloTest {
   val player = Player(
-    new Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
+    new Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)
   )
 
   class ProbedAvatarService(probe: TestProbe) extends Actor {

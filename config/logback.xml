@@ -77,11 +77,11 @@
       <onMatch>ACCEPT</onMatch>
       <onMismatch>DENY</onMismatch>
     </filter>
-    <filter class="ch.qos.logback.classic.filter.LevelFilter">
+    <!-- <filter class="ch.qos.logback.classic.filter.LevelFilter">
       <level>TRACE</level>
       <onMatch>ACCEPT</onMatch>
       <onMismatch>DENY</onMismatch>
-    </filter>
+    </filter> -->
   </appender>
 
   <appender name="Sentry" class="io.sentry.logback.SentryAppender">

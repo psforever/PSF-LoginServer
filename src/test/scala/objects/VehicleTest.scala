@@ -307,8 +307,8 @@ class VehicleTest extends Specification {
 
 object VehicleTest {
   import net.psforever.objects.avatar.Avatar
-  import net.psforever.types.{CharacterGender, PlanetSideEmpire}
+  import net.psforever.types.{CharacterSex, PlanetSideEmpire}
 
-  val avatar1 = Avatar(0, "test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
-  val avatar2 = Avatar(1, "test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
+  val avatar1 = Avatar(0, "test1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)
+  val avatar2 = Avatar(1, "test2", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)
 }

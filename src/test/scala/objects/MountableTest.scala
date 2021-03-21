@@ -8,7 +8,7 @@ import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.mount._
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, PlanetSideGUID}
+import net.psforever.types.{CharacterSex, CharacterVoice, PlanetSideEmpire, PlanetSideGUID}
 
 import scala.concurrent.duration.Duration
 
@@ -25,7 +25,7 @@ class MountableControl1Test extends ActorTest {
 class MountableControl2Test extends ActorTest {
   "MountableControl" should {
     "let a player mount" in {
-      val player = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+      val player = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
       val obj    = new MountableTest.MountableTestObject
       obj.Actor = system.actorOf(Props(classOf[MountableTest.MountableTestControl], obj), "mountable")
       val msg = Mountable.TryMount(player, 0)
@@ -46,8 +46,8 @@ class MountableControl2Test extends ActorTest {
 class MountableControl3Test extends ActorTest {
   "MountableControl" should {
     "block a player from mounting" in {
-      val player1 = Player(Avatar(0, "test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
-      val player2 = Player(Avatar(1, "test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+      val player1 = Player(Avatar(0, "test1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
+      val player2 = Player(Avatar(1, "test2", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
       val obj     = new MountableTest.MountableTestObject
       obj.Actor = system.actorOf(Props(classOf[MountableTest.MountableTestControl], obj), "mountable")
       obj.Actor ! Mountable.TryMount(player1, 0)

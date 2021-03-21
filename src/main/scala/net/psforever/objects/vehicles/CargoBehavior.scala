@@ -183,7 +183,7 @@ object CargoBehavior {
             )
           )
           false
-          //sending packet to the cargo vehicle's client results in player locking himself in his vehicle
+          //sending packet to the cargo vehicle's client results in player being lock in own vehicle
           //player gets stuck as "always trying to remount the cargo hold"
           //obviously, don't do this
         } else {
@@ -281,7 +281,7 @@ object CargoBehavior {
             )
           )
           false
-          //sending packet to the cargo vehicle's client results in player locking himself in his vehicle
+          //sending packet to the cargo vehicle's client results in player being lock in own vehicle
           //player gets stuck as "always trying to remount the cargo hold"
           //obviously, don't do this
         } else if (iteration > 40) {

@@ -47,7 +47,7 @@ import net.psforever.packet.game.{
   PlanetsideAttributeMessage
 }
 import net.psforever.types.{
-  CharacterGender,
+  CharacterSex,
   CharacterVoice,
   ExoSuitType,
   ImplantType,
@@ -98,7 +98,7 @@ object AvatarActor {
       name: String,
       head: Int,
       voice: CharacterVoice.Value,
-      gender: CharacterGender.Value,
+      gender: CharacterSex,
       empire: PlanetSideEmpire.Value
   ) extends Command
 
@@ -1275,7 +1275,7 @@ class AvatarActor(
       .run(query[persistence.Loadout].filter(_.avatarId == lift(avatar.id)))
       .map { loadouts =>
         loadouts.map { loadout =>
-          val doll = new Player(Avatar(0, "doll", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+          val doll = new Player(Avatar(0, "doll", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
           doll.ExoSuit = ExoSuitType(loadout.exosuitId)
 
           loadout.items.split("/").foreach {

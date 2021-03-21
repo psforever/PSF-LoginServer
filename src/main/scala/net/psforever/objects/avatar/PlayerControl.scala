@@ -714,7 +714,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       case Some(a) =>
         damageLog.info(s"DisplayDestroy: ${a.defender} was killed by ${a.attacker}")
       case _ =>
-        damageLog.info(s"DisplayDestroy: ${player.Name} killed ${if(player.Sex==CharacterGender.Male){"himself"}else{"herself"}}.")
+        damageLog.info(s"DisplayDestroy: ${player.Name} killed ${player.Sex.pronounObject}self.")
     }
     events ! AvatarServiceMessage(
       nameChannel,
