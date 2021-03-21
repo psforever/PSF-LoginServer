@@ -328,7 +328,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               )
 
             case Terminal.InfantryLoadout(exosuit, subtype, holsters, inventory) =>
-              log.info(s"wants to change equipment loadout to their option #${msg.unk1 + 1}")
+              log.info(s"${player.Name} wants to change equipment loadout to their option #${msg.unk1 + 1}")
               val fallbackSubtype = 0
               val fallbackSuit    = ExoSuitType.Standard
               val originalSuit    = player.ExoSuit
@@ -371,7 +371,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   (exosuit, subtype)
                 } else {
                   log.warn(
-                    s"no longer has permission to wear the exo-suit type $exosuit; will wear $fallbackSuit instead"
+                    s"${player.Name} no longer has permission to wear the exo-suit type $exosuit; will wear $fallbackSuit instead"
                   )
                   (fallbackSuit, fallbackSubtype)
                 }
@@ -710,6 +710,12 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     super.CancelJammeredStatus(target)
     //uninitialize implants
     avatarActor ! AvatarActor.DeinitializeImplants()
+    cause.adversarial match {
+      case Some(a) =>
+        damageLog.info(s"DisplayDestroy: ${a.defender} was killed by ${a.attacker}")
+      case _ =>
+        damageLog.info(s"DisplayDestroy: ${player.Name} killed ${if(player.Sex==CharacterGender.Male){"himself"}else{"herself"}}.")
+    }
     events ! AvatarServiceMessage(
       nameChannel,
       AvatarAction.Killed(player_guid, target.VehicleSeated)

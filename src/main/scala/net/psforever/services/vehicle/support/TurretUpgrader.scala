@@ -164,7 +164,7 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
           )
         }
       })
-    info(s"Converting manned wall turret weapon to $upgrade")
+    debug(s"Converting manned wall turret weapon to $upgrade")
 
     val oldBoxes = AllMountedWeaponMagazines(target)
     target.Upgrade = upgrade //perform upgrade
@@ -228,7 +228,7 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
   def FinishUpgradingTurret(entry: TurretUpgrader.Entry)(): Unit = {
     val target = entry.obj.asInstanceOf[FacilityTurret]
     val zone   = entry.zone
-    info(s"Wall turret finished ${target.Upgrade} upgrade")
+    trace(s"Wall turret finished ${target.Upgrade} upgrade")
     target.ConfirmUpgrade(entry.upgrade)
     val targetGUID = target.GUID
     if (target.Health > 0) {

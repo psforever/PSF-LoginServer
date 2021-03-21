@@ -485,14 +485,20 @@ class AvatarActor(
               ItemTransactionResultMessage(terminalGuid, TransactionType.Learn, success = false)
             )
           } else {
-
-            val deps   = Certification.values.filter(_.requires.contains(certification)).toSet
-            val remove = deps ++ Certification.values.filter(_.replaces.intersect(deps).nonEmpty).toSet + certification
+            var requiredByCert: Set[Certification] = Set(certification)
+            var removeThese: Set[Certification] = Set(certification)
+            val allCerts: Set[Certification] = Certification.values.toSet
+            do {
+              removeThese = allCerts.filter { testingCert =>
+                testingCert.requires.intersect(removeThese).nonEmpty
+              }
+              requiredByCert = requiredByCert ++ removeThese
+            } while(removeThese.nonEmpty)
 
             Future
               .sequence(
                 avatar.certifications
-                  .intersect(remove)
+                  .intersect(requiredByCert)
                   .map(cert => {
                     ctx
                       .run(
@@ -511,7 +517,7 @@ class AvatarActor(
                     ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = false)
                   )
                 case Success(certs) =>
-                  context.self ! ReplaceAvatar(avatar.copy(certifications = avatar.certifications.diff(remove)))
+                  context.self ! ReplaceAvatar(avatar.copy(certifications = avatar.certifications.diff(certs)))
                   certs.foreach { cert =>
                     sessionActor ! SessionActor.SendResponse(
                       PlanetsideAttributeMessage(session.get.player.GUID, 25, cert.value)

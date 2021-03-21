@@ -410,7 +410,7 @@ class PersistenceMonitor(name: String, squadService: ActorRef) extends Actor {
     Deployables.Disown(inZone, avatar, context.parent)
     inZone.Population.tell(Zone.Population.Leave(avatar), context.parent)
     inZone.tasks.tell(GUIDTask.UnregisterObjectTask(avatar.locker)(inZone.GUID), context.parent)
-    log.info(s"logout of ${avatar.name}")
+    log.info(s"Logout of ${avatar.name}")
   }
 }
 

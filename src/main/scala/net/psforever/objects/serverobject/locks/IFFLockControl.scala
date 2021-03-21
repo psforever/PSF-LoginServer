@@ -41,7 +41,7 @@ class IFFLockControl(lock: IFFLock)
             )
           } else {
             val log = org.log4s.getLogger
-            log.warn("IFF lock is being hacked, but don't know how to handle this state:")
+            log.warn(s"IFF lock is being hacked by ${player.Faction}, but don't know how to handle this state:")
             log.warn(s"Lock - Faction=${lock.Faction}, HackedBy=${lock.HackedBy}")
             log.warn(s"Player - Faction=${player.Faction}")
           }

@@ -10,24 +10,77 @@
     </filter>
   </appender>
 
-  <appender name="FILE-DEBUG" class="ch.qos.logback.core.FileAppender">
-    <file>logs/pslogin-debug_${bySecond}.log</file>
+  <appender name="FILE-GENERAL" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>logs/psforever-general_${bySecond}.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>logs/psforever-general_%d{yyyy-MM-dd}.gz</fileNamePattern>
+      <maxHistory>40</maxHistory>
+      <totalSizeCap>10GB</totalSizeCap>
+    </rollingPolicy>
     <encoder>
       <pattern>%date{ISO8601} %5level "%X" %logger{35} - %msg%n</pattern>
     </encoder>
+    <filter class="net.psforever.filters.LoggerPrefixFilter">
+      <!--
+       c.g.j.s.d.p.c.PostgreSQLConnectionHandler
+      -->
+      <prefix>com.github.jasync.sql.db.postgresql.codec</prefix>
+    </filter>
+    <filter class="net.psforever.filters.LoggerPrefixFilter">
+      <!--
+       i.s.c.AbstractConnection.lockdown
+       i.sentry.connection.AsyncConnection
+      -->
+      <prefix>io.sentry.connection</prefix>
+    </filter>
+    <filter class="net.psforever.filters.LoggerPrefixFilter">
+      <!-- damage log -->
+      <prefix>DamageResolution</prefix>
+    </filter>
     <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-      <level>DEBUG</level>
+      <level>INFO</level>
     </filter>
   </appender>
 
-  <appender name="FILE-TRACE" class="ch.qos.logback.core.FileAppender">
-    <file>logs/pslogin-trace_${bySecond}.log</file>
+  <appender name="FILE-DEBUG" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>logs/psforever-debug_${bySecond}.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>logs/psforever-debug_%d{yyyy-MM-dd}.gz</fileNamePattern>
+      <maxHistory>40</maxHistory>
+      <totalSizeCap>10GB</totalSizeCap>
+    </rollingPolicy>
     <encoder>
       <pattern>%date{ISO8601} [%thread] %5level "%X" %logger{35} - %msg%n</pattern>
     </encoder>
-    <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-        <level>OFF</level>
-        <!--<level>TRACE</level>-->
+    <filter class="net.psforever.filters.LoggerPrefixFilter">
+      <!--
+       c.g.j.s.d.p.e.CloseStatementEncoder
+       c.g.j.s.d.p.e.PreparedStatementEncoderHelper
+       c.g.j.s.d.p.e.PreparedStatementOpeningEncoder
+       c.g.j.s.d.p.e.QueryMessageEncoder
+       -->
+      <prefix>com.github.jasync.sql.db.postgresql.encoders</prefix>
+    </filter>
+    <filter class="net.psforever.filters.LoggerPrefixFilter">
+      <!--
+       c.g.j.s.d.p.PostgreSQLConnection?
+       c.g.j.s.d.p.c.PostgreSQLConnectionHandler
+      -->
+      <prefix>com.github.jasync.sql.db.postgresql.codec</prefix>
+    </filter>
+    <filter class="net.psforever.filters.LoggerPrefixFilter">
+      <!-- i.g.context.jasync.JAsyncContext -->
+      <prefix>io.getquill.context.jasync</prefix>
+    </filter>
+    <filter class="ch.qos.logback.classic.filter.LevelFilter">
+      <level>DEBUG</level>
+      <onMatch>ACCEPT</onMatch>
+      <onMismatch>DENY</onMismatch>
+    </filter>
+    <filter class="ch.qos.logback.classic.filter.LevelFilter">
+      <level>TRACE</level>
+      <onMatch>ACCEPT</onMatch>
+      <onMismatch>DENY</onMismatch>
     </filter>
   </appender>
 
@@ -39,7 +92,7 @@
 
   <root level="TRACE">
     <appender-ref ref="STDOUT"/>
-    <appender-ref ref="FILE-TRACE"/>
+    <appender-ref ref="FILE-GENERAL"/>
     <appender-ref ref="FILE-DEBUG"/>
     <appender-ref ref="Sentry"/>
   </root>

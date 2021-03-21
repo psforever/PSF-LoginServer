@@ -128,7 +128,6 @@ object Deployables {
     * @param avatar the player's core
     */
   def InitializeDeployableQuantities(avatar: Avatar): Boolean = {
-    log.info("Setting up combat engineering ...")
     avatar.deployables.Initialize(avatar.certifications)
   }
 
@@ -137,7 +136,6 @@ object Deployables {
     * @param avatar the player's core
     */
   def InitializeDeployableUIElements(avatar: Avatar): List[(Int, Int, Int, Int)] = {
-    log.info("Setting up combat engineering UI ...")
     avatar.deployables.UpdateUI()
   }
 

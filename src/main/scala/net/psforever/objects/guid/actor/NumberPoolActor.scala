@@ -44,7 +44,7 @@ class NumberPoolActor(pool: NumberPool) extends Actor {
       sender() ! NumberPoolActor.ReturnNumberResult(number, ex, id)
 
     case msg =>
-      log.info(s"received an unexpected message - ${msg.toString}")
+      log.warn(s"Received an unexpected message - ${msg.toString}")
   }
 }
 

@@ -160,8 +160,6 @@ object CargoBehavior {
             VehicleAction.SendResponse(PlanetSideGUID(0), PlanetsideAttributeMessage(cargoGUID, 68, cargo.Shields))
           )
           val (attachMsg, mountPointMsg) = CargoMountBehaviorForAll(carrier, cargo, mountPoint)
-          log.info(s"HandleCheckCargoMounting: $attachMsg")
-          log.info(s"HandleCheckCargoMounting: $mountPointMsg")
           false
         } else if (distance > 625 || iteration >= 40) {
           //vehicles moved too far away or took too long to get into proper position; abort mounting
