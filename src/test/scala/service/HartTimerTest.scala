@@ -4,8 +4,6 @@ package service
 import akka.actor.Props
 import akka.testkit.TestProbe
 import base.ActorTest
-import net.psforever.objects.GlobalDefinitions
-import net.psforever.objects.serverobject.shuttle.{OrbitalShuttle, OrbitalShuttlePad}
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.services.hart.HartTimer
 import net.psforever.types.PlanetSideGUID

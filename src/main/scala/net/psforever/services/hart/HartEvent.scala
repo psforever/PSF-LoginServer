@@ -166,7 +166,7 @@ object HartEvent {
     def u2: Int = 3
     def shuttleState: Option[ShuttleState.Value] = Some(ShuttleState.State15)
     def docked: Option[Boolean] = None
-    def prerequisiteUpdate: Option[HartEventStateFields] = prepareForDepartureOnUpdate
+    def prerequisiteUpdate: Option[HartEventStateFields] = None
 
     override def stateFields(time: Option[Long] = None): HartEventStateFields = {
       HartEventStateFields(
