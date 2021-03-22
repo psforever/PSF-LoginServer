@@ -27,7 +27,7 @@ case class Avatar(
       id,
       name,
       PlanetSideEmpire(factionId),
-      CharacterSex(genderId),
+      CharacterSex.valuesToEntriesMap(genderId),
       headId,
       CharacterVoice(voiceId),
       bep,

@@ -306,7 +306,7 @@ class AvatarActor(
                           _.factionId -> lift(empire.id),
                           _.headId    -> lift(head),
                           _.voiceId   -> lift(voice.id),
-                          _.genderId  -> lift(gender.id),
+                          _.genderId  -> lift(gender.value),
                           _.bep       -> lift(Config.app.game.newAvatar.br.experience),
                           _.cep       -> lift(Config.app.game.newAvatar.cr.experience)
                         )

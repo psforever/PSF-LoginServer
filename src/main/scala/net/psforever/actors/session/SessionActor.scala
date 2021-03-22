@@ -8593,7 +8593,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @return a tuple composed of an `ActorRef` destination and a message to send to that destination
     */
   def LoadZoneInVehicleAsPassenger(vehicle: Vehicle, zoneId: String): Unit = {
-    val msg: String = s"${player.Name} loading into $zoneId as the passenger of a ${vehicle.Definition.Name}\""
+    val msg: String = s"${player.Name} loading into $zoneId as the passenger of a ${vehicle.Definition.Name}"
     log.info(msg)
     log.debug(s"LoadZoneInVehicleAsPassenger: $msg")
     if (!zoneReload && zoneId == continent.id) {
