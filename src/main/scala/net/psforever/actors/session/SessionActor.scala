@@ -3729,7 +3729,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           }
         }
         accessedContainer match {
-          case Some(veh: Vehicle) =>
+          // Ensure we don't unload the contents of the vehicle trunk for players seated in the vehicle.
+          // This can happen if PSUM arrives during the mounting process
+          case Some(veh: Vehicle) if player.VehicleSeated.isEmpty || player.VehicleSeated.get != veh.GUID =>
             if (
               isMoving || veh.isMoving(1) || Vector3.DistanceSquared(
                 player.Position,
@@ -3742,7 +3744,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               UnaccessContainer(veh)
             }
           case Some(container) => //just in case
-            if (isMovingPlus) {
+            if (isMovingPlus && (player.VehicleSeated.isEmpty || player.VehicleSeated.get != container.GUID)) { // Ensure we don't close the container if the player is seated in it
               val guid = player.GUID
               // If the container is a corpse and gets removed just as this runs it can cause a client disconnect, so we'll check the container has a GUID first.
               if (container.HasGUID) {
@@ -4978,7 +4980,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             TryDisposeOfLootedCorpse(obj)
 
           case Some(obj: Container) =>
-            UnaccessContainer(obj)
+            // Make sure we don't unload the contents of the vehicle the player is seated in
+            // An example scenario of this would be closing the trunk contents when rearming at a landing pad
+            if (player.VehicleSeated.isEmpty || player.VehicleSeated.get != obj.GUID) {
+              UnaccessContainer(obj)
+            }
 
           case _ => ;
         }
