@@ -205,10 +205,17 @@ class Vector3Test extends Specification {
     "rotate positive x-axis-vector 90-degrees around the z-axis" in {
       val A: Vector3 = Vector3(1, 0, 0)
       A.Rz(0) mustEqual A
-      A.Rz(90) mustEqual Vector3(0, 1, 0)
+      A.Rz(90) mustEqual Vector3(0, -1, 0)
       A.Rz(180) mustEqual Vector3(-1, 0, 0)
-      A.Rz(270) mustEqual Vector3(0, -1, 0)
+      A.Rz(270) mustEqual Vector3(0, 1, 0)
       A.Rz(360) mustEqual A
+
+      val B: Vector3 = Vector3(0, 1, 0)
+      B.Rz(0) mustEqual B
+      B.Rz(90) mustEqual Vector3(1, 0, 0)
+      B.Rz(180) mustEqual Vector3(0, -1, 0)
+      B.Rz(270) mustEqual Vector3(-1, 0, 0)
+      B.Rz(360) mustEqual B
     }
 
     "rotate positive y-axis-vector 90-degrees around the x-axis" in {
@@ -233,12 +240,12 @@ class Vector3Test extends Specification {
       val A: Vector3 = Vector3(1, 0, 0)
       A.Rz(90)
         .Rx(90)
-        .Ry(90) mustEqual A
+        .Ry(-90) mustEqual A
     }
 
     "45-degree rotation" in {
       val A: Vector3 = Vector3(1, 0, 0)
-      A.Rz(45) mustEqual Vector3(0.70710677f, 0.70710677f, 0)
+      A.Rz(45) mustEqual Vector3(0.70710677f, -0.70710677f, 0)
     }
 
     "find a relative up (identity)" in {
@@ -291,9 +298,9 @@ class Vector3Test extends Specification {
 
     "find a relative up (combined x,z)" in {
       Vector3.relativeUp(Vector3(0, 0, 90)) mustEqual Vector3(0,0,1) //up
-      Vector3.relativeUp(Vector3(90, 0, 90)) mustEqual Vector3(0,-1,0) //south
+      Vector3.relativeUp(Vector3(90, 0, 90)) mustEqual Vector3(0,1,0) //north
       Vector3.relativeUp(Vector3(180, 0, 90)) mustEqual Vector3(0,0,-1) //down
-      Vector3.relativeUp(Vector3(270, 0, 90)) mustEqual Vector3(0,1,0) //north
+      Vector3.relativeUp(Vector3(270, 0, 90)) mustEqual Vector3(0,-1,0) //south
       Vector3.relativeUp(Vector3(360, 0, 90)) mustEqual Vector3(0,0,1) //up
 
       Vector3.relativeUp(Vector3(90, 0, 180)) mustEqual Vector3(1,0,0) //east
@@ -301,14 +308,13 @@ class Vector3Test extends Specification {
       Vector3.relativeUp(Vector3(270, 0, 180)) mustEqual Vector3(-1,0,0) //west
       Vector3.relativeUp(Vector3(360, 0, 180)) mustEqual Vector3(0,0,1) //up
 
-      Vector3.relativeUp(Vector3(90, 0, 270)) mustEqual Vector3(0,1,0) //north
+      Vector3.relativeUp(Vector3(90, 0, 270)) mustEqual Vector3(0,-1,0) //south
       Vector3.relativeUp(Vector3(180, 0, 270)) mustEqual Vector3(0,0,-1) //down
-      Vector3.relativeUp(Vector3(270, 0, 270)) mustEqual Vector3(0,-1,0) //south
+      Vector3.relativeUp(Vector3(270, 0, 270)) mustEqual Vector3(0,1,0) //north
       Vector3.relativeUp(Vector3(360, 0, 270)) mustEqual Vector3(0,0,1) //up
     }
 
     "find a relative up (combined x,y)" in {
-      val south = Vector3(0,-1,0)
       Vector3.relativeUp(Vector3(0, 90, 0)) mustEqual Vector3(0,-1,0) //south
       Vector3.relativeUp(Vector3(90, 90, 0)) mustEqual Vector3(-1,0,0) //west
       Vector3.relativeUp(Vector3(180, 90, 0)) mustEqual Vector3(0,1,0) //north

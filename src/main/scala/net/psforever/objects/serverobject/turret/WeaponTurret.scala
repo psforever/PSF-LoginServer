@@ -1,22 +1,22 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.turret
 
-import net.psforever.objects.{AmmoBox, PlanetSideGameObject, Player, Tool}
-import net.psforever.objects.definition.{AmmoBoxDefinition, SeatDefinition, ToolDefinition}
-import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
+import net.psforever.objects.{AmmoBox, PlanetSideGameObject, Tool}
+import net.psforever.objects.definition.{AmmoBoxDefinition, ToolDefinition}
+import net.psforever.objects.equipment.EquipmentSlot
 import net.psforever.objects.inventory.{Container, GridInventory}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
-import net.psforever.objects.serverobject.mount.Mountable
-import net.psforever.objects.vehicles.{MountedWeapons, Seat => Chair}
+import net.psforever.objects.serverobject.mount.{SeatDefinition, Seat => Chair}
+import net.psforever.objects.vehicles.MountableWeapons
 
-trait WeaponTurret extends FactionAffinity with Mountable with MountedWeapons with Container {
+trait WeaponTurret
+  extends FactionAffinity
+  with MountableWeapons
+  with Container {
   _: PlanetSideGameObject =>
 
-  /** manned turrets have just one seat; this is just standard interface */
-  protected val seats: Map[Int, Chair] = Map(0 -> Chair(new SeatDefinition() { ControlledWeapon = Some(1) }))
-
-  /** turrets have just one weapon; this is just standard interface */
-  protected var weapons: Map[Int, EquipmentSlot] = Map.empty
+  /** manned turrets have just one mount; this is just standard interface */
+  seats = Map(0 -> new Chair(new SeatDefinition()))
 
   /** may or may not have inaccessible inventory space
     * see `ReserveAmmunition` in the definition
@@ -45,39 +45,6 @@ trait WeaponTurret extends FactionAffinity with Mountable with MountedWeapons wi
 
   def VisibleSlots: Set[Int] = Set(1)
 
-  def Weapons: Map[Int, EquipmentSlot] = weapons
-
-  def MountPoints: Map[Int, Int]
-
-  def Seats: Map[Int, Chair] = seats
-
-  def Seat(seatNum: Int): Option[Chair] = seats.get(seatNum)
-
-  /**
-    * Given the index of an entry mounting point, return the infantry-accessible `Seat` associated with it.
-    * @param mountPoint an index representing the seat position / mounting point
-    * @return a seat number, or `None`
-    */
-  def GetSeatFromMountPoint(mountPoint: Int): Option[Int] = {
-    MountPoints.get(mountPoint)
-  }
-
-  def PassengerInSeat(user: Player): Option[Int] = {
-    if (seats(0).Occupant.contains(user)) {
-      Some(0)
-    } else {
-      None
-    }
-  }
-
-  def ControlledWeapon(wepNumber: Int): Option[Equipment] = {
-    if (VisibleSlots.contains(wepNumber)) {
-      weapons(wepNumber).Equipment
-    } else {
-      None
-    }
-  }
-
   def Upgrade: TurretUpgrade.Value = upgradePath
 
   def Upgrade_=(upgrade: TurretUpgrade.Value): TurretUpgrade.Value = {
@@ -86,7 +53,7 @@ trait WeaponTurret extends FactionAffinity with Mountable with MountedWeapons wi
     //upgrade each weapon as long as that weapon has a valid option for that upgrade
     Definition match {
       case definition: TurretDefinition =>
-        definition.Weapons.foreach({
+        definition.WeaponPaths.foreach({
           case (index, upgradePaths) =>
             if (upgradePaths.contains(upgrade)) {
               updated = true
@@ -136,7 +103,7 @@ object WeaponTurret {
   def LoadDefinition(turret: WeaponTurret, tdef: TurretDefinition): WeaponTurret = {
     import net.psforever.objects.equipment.EquipmentSize.BaseTurretWeapon
     //create weapons; note the class
-    turret.weapons = tdef.Weapons
+    turret.weapons = tdef.WeaponPaths
       .map({
         case (num, upgradePaths) =>
           val slot = EquipmentSlot(BaseTurretWeapon)
@@ -146,7 +113,7 @@ object WeaponTurret {
       .toMap
     //special inventory ammunition object(s)
     if (tdef.ReserveAmmunition) {
-      val allAmmunitionTypes = tdef.Weapons.values.flatMap { _.values.flatMap { _.AmmoTypes } }.toSet
+      val allAmmunitionTypes = tdef.WeaponPaths.values.flatMap { _.values.flatMap { _.AmmoTypes } }.toSet
       if (allAmmunitionTypes.nonEmpty) {
         turret.inventory.Resize(allAmmunitionTypes.size, 1)
         var i: Int = 0

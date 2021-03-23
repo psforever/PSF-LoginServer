@@ -331,8 +331,8 @@ object Vector3 {
     val sin       = math.sin(ang).toFloat
     val (x, y, z) = (vec.x, vec.y, vec.z)
     Vector3(
-      closeToInsignificance(x * cos - y * sin),
-      closeToInsignificance(x * sin - y * cos),
+      closeToInsignificance(x * cos + y * sin),
+      closeToInsignificance(y * cos - x * sin),
       z
     )
   }
@@ -389,7 +389,7 @@ object Vector3 {
     * Given a `Vector3` element composed of Euler angles
     * and a `Vector3` element in the vector direction of "up",
     * find a standard unit vector that points in the direction of the entity's "up" after rotating by the Euler angles.
-    * Compass direction rules apply (North is 0 degrees, East is 90 degrees, etc.).
+    * Compass direction rules apply for the z-axis (North is 0 degrees, East is 90 degrees, etc.).
     * @see `Vector3.Rx(Float)`
     * @see `Vector3.Ry(Float)`
     * @see `Vector3.Rz(Float)`
@@ -404,6 +404,6 @@ object Vector3 {
     I'm sure mathematicians know what's going on here, but I don't
     the purpose of this comment is to make certain that the future me knows that all this is not a mistake
      */
-    Rz(Rx(Ry(Unit(up), orient.x), orient.y), (orient.z + 180) % 360f)
+    Rz(Rx(Ry(Unit(up), orient.x), -orient.y), (orient.z + 180) % 360f)
   }
 }

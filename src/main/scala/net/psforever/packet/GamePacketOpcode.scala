@@ -401,16 +401,16 @@ object GamePacketOpcode extends Enumeration {
       case 0x50 => game.TargetingInfoMessage.decode
       case 0x51 => game.TriggerEffectMessage.decode
       case 0x52 => game.WeaponDryFireMessage.decode
-      case 0x53 => noDecoder(DroppodLaunchRequestMessage)
+      case 0x53 => game.DroppodLaunchRequestMessage.decode
       case 0x54 => game.HackMessage.decode
-      case 0x55 => noDecoder(DroppodLaunchResponseMessage)
+      case 0x55 => game.DroppodLaunchResponseMessage.decode
       case 0x56 => game.GenericObjectActionMessage.decode
       case 0x57 => game.AvatarVehicleTimerMessage.decode
       // 0x58
       case 0x58 => game.AvatarImplantMessage.decode
       case 0x59 => noDecoder(UnknownMessage89)
       case 0x5a => game.DelayedPathMountMsg.decode
-      case 0x5b => noDecoder(OrbitalShuttleTimeMsg)
+      case 0x5b => game.OrbitalShuttleTimeMsg.decode
       case 0x5c => noDecoder(AIDamage)
       case 0x5d => game.DeployObjectMessage.decode
       case 0x5e => game.FavoritesRequest.decode

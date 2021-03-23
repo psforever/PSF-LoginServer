@@ -2,7 +2,7 @@ package net.psforever.objects.zones
 
 import enumeratum.values.{StringEnum, StringEnumEntry}
 import net.psforever.objects.serverobject.environment._
-import net.psforever.types.Vector3
+import net.psforever.types.{PlanetSideGUID, Vector3}
 
 sealed abstract class MapInfo(
     val value: String,
@@ -180,7 +180,7 @@ case object MapInfo extends StringEnum[MapInfo] {
           Pool(EnvironmentAttribute.Water, 34.96875f, 5899.367f, 3235.5781f, 5573.8516f, 2865.7812f), //northeast of hart c campus
           Pool(EnvironmentAttribute.Water, 34.328125f, 3880.7422f, 5261.508f, 3780.9219f, 5166.953f), //east of hart a campus
           Pool(EnvironmentAttribute.Water, 31.03125f, 4849.797f, 2415.4297f, 4731.8594f, 2252.1484f) //south of hart c campus
-        )
+        ) ++ MapEnvironment.map11Environment
       )
 
   case object Map12
@@ -188,7 +188,8 @@ case object MapInfo extends StringEnum[MapInfo] {
         value = "map12",
         checksum = 962888126L,
         scale = MapScale.Dim8192,
-        environment = List(SeaLevel(EnvironmentAttribute.Water, 20.03125f))
+        environment = List(SeaLevel(EnvironmentAttribute.Water, 20.03125f)) ++
+                      MapEnvironment.map12Environment
       )
 
   case object Map13
@@ -196,7 +197,8 @@ case object MapInfo extends StringEnum[MapInfo] {
         value = "map13",
         checksum = 3904659548L,
         scale = MapScale.Dim8192,
-        environment = List(SeaLevel(EnvironmentAttribute.Water, 30))
+        environment = List(SeaLevel(EnvironmentAttribute.Water, 30)) ++
+                      MapEnvironment.map13Environment
       )
 
   case object Map14
@@ -317,3 +319,107 @@ case object MapInfo extends StringEnum[MapInfo] {
 
   val values: IndexedSeq[MapInfo] = findValues
 }
+
+object MapEnvironment {
+  /** the pattern of mount points for the HART gantries in most facilities;
+    * eight values - 1-8 - listed as four downstairs - NE SE NW SW - then four upstairs - same
+    */
+  private val hartMountPoints: Seq[Int] = Seq(6,5, 2,1, 8,7, 4,3)
+  /** the pattern of mount points for the HART gantries in VS sanctuary facilities;
+    * eight values - 1-8 - listed as four downstairs - NE SE NW SW - then four upstairs - same
+    */
+  private val vsHartMountPoints: Seq[Int] = Seq(1,2, 5,6, 3,4, 7,8)
+
+  /** HART denial fields for the New Conglomerate sanctuary */
+  final val map11Environment: List[PieceOfEnvironment] =
+    hartGantryDenialFields(PlanetSideGUID(840), Vector3(2258, 5538, 65.20142f), hartMountPoints) ++
+    hartGantryDenialFields(PlanetSideGUID(841), Vector3(4152, 6070, 43.8766136f), hartMountPoints) ++
+    specialHartGantryDenialFields(PlanetSideGUID(842))
+
+  /** HART denial fields for the Terran Republic sanctuary */
+  final val map12Environment: List[PieceOfEnvironment] =
+    hartGantryDenialFields(PlanetSideGUID(808), Vector3(2922, 5230, 35.9989929f), hartMountPoints) ++
+    hartGantryDenialFields(PlanetSideGUID(809), Vector3(3006, 2984, 34.919342f), hartMountPoints) ++
+    hartGantryDenialFields(PlanetSideGUID(810), Vector3(5232, 3908, 35.9291039f), hartMountPoints)
+
+  /** HART denial fields for the Vanu Sovereignty sanctuary */
+  final val map13Environment: List[PieceOfEnvironment] =
+    hartGantryDenialFields(PlanetSideGUID(786), Vector3(2978, 4834, 56.085392f), vsHartMountPoints) ++
+    hartGantryDenialFields(PlanetSideGUID(787), Vector3(3688, 2808, 90.85312f), vsHartMountPoints) ++
+    hartGantryDenialFields(PlanetSideGUID(788), Vector3(5610, 4238, 103.228859f), vsHartMountPoints)
+
+  /**
+    * Generate eight environmental representations that serve to eject players
+    * from the high altitude rapid transport (HART) building boarding gantry hallways
+    * when the HART shuttle associated with that building is no longer boarding
+    * and the doors to those hallways should deny entrance.
+    * When kicked out of the hallway,
+    * ejected players should be placed in the same position as if the player willingly dismounted the shuttle.<br>
+    * <br>
+    * While this task seems daunting, HART buildings are formulaic, not only in layout but in orientation.
+    * @param obbasemesh the globally unique identifier of the orbital shuttle pad,
+    *                   an amenity of an `orbital_building_*`
+    * @param position a very specific position near the center of the `orbital_building_*` building
+    * @param mountPoints the assignment of mount point for each denial field
+    * @return a list of environmental representations
+    */
+  private def hartGantryDenialFields(
+                                      obbasemesh: PlanetSideGUID,
+                                      position: Vector3,
+                                      mountPoints: Seq[Int]
+                                    ): List[PieceOfEnvironment] = {
+    val px: Float     = position.x
+    val py: Float     = position.y
+    val pz: Float     = position.z
+    val wall: Float  = 14.7188f
+    val door: Float   = 55.9219f
+    val gantry: Float = 45.9297f
+    val lower: Float  = pz + 6.164608f
+    val upper: Float  = pz + 17.508358f
+    //downstairs lobbies are listed before upstairs lobbies to ensure they are tested first
+    List(
+      GantryDenialField(obbasemesh, mountPoints(0), DeepSurface(lower, py + wall, px + door,   py + 1,    px + gantry)), //NE
+      GantryDenialField(obbasemesh, mountPoints(1), DeepSurface(lower, py - 1,    px + door,   py - wall, px + gantry)), //SE
+      GantryDenialField(obbasemesh, mountPoints(2), DeepSurface(lower, py + wall, px - gantry, py + 1,    px - door)),   //NW
+      GantryDenialField(obbasemesh, mountPoints(3), DeepSurface(lower, py - 1,    px - gantry, py - wall, px - door)),   //SW
+      GantryDenialField(obbasemesh, mountPoints(4), DeepSurface(upper, py + wall, px + door,   py + 1,    px + gantry)), //NE
+      GantryDenialField(obbasemesh, mountPoints(5), DeepSurface(upper, py - 1,    px + door,   py - wall, px + gantry)), //SE
+      GantryDenialField(obbasemesh, mountPoints(6), DeepSurface(upper, py + wall, px - gantry, py + 1,    px - door)),   //NW
+      GantryDenialField(obbasemesh, mountPoints(7), DeepSurface(upper, py - 1,    px - gantry, py - wall, px - door))    //SW
+    )
+  }
+
+  /**
+    * Generate eight environmental representations that serve to eject players
+    * from the high altitude rapid transport (HART) building boarding hallways
+    * when the HART shuttle associated with that building is no longer boarding
+    * and the doors to those hallways should deny entrance.
+    * When kicked out of the hallway,
+    * ejected players should be placed in the same position as if the player willingly dismounted the shuttle.<br>
+    * <br>
+    * The New Conglomerate HART A campus building is at an ordinal angle
+    * which makes the typical axis-aligned environment geometry unsuitable for representation of the denial field.
+    * Instead of rectangles, circles will be used.
+    * This facility is centered at 4816, 3506, 68.73806 (x ,y, z).
+    * @param obbasemesh the globally unique identifier of the orbital shuttle pad,
+    *                   an amenity of an `orbital_building_*`
+    * @return a list of environmental representations
+    */
+  def specialHartGantryDenialFields(obbasemesh: PlanetSideGUID): List[PieceOfEnvironment] = {
+    val lower: Float  = 74.902668f
+    val upper: Float  = 86.246418f
+    val radius: Float = 6.5f
+    //downstairs lobbies are listed before upstairs lobbies to ensure they are tested first
+    List(
+      GantryDenialField(obbasemesh, 1, DeepCircularSurface(Vector3(4846f, 3547.6016f, lower), radius)), //N
+      GantryDenialField(obbasemesh, 2, DeepCircularSurface(Vector3(4857.5234f, 3536f, lower), radius)), //E
+      GantryDenialField(obbasemesh, 5, DeepCircularSurface(Vector3(4774.3516f, 3476f, lower), radius)), //W
+      GantryDenialField(obbasemesh, 6, DeepCircularSurface(Vector3(4786f, 3464.4453f, lower), radius)), //S
+      GantryDenialField(obbasemesh, 3, DeepCircularSurface(Vector3(4846f, 3547.6016f, upper), radius)), //N
+      GantryDenialField(obbasemesh, 4, DeepCircularSurface(Vector3(4857.5234f, 3536f, upper), radius)), //E
+      GantryDenialField(obbasemesh, 7, DeepCircularSurface(Vector3(4774.3516f, 3476f, upper), radius)), //W
+      GantryDenialField(obbasemesh, 8, DeepCircularSurface(Vector3(4786f, 3464.4453f, upper), radius))  //S
+    )
+  }
+}
+

@@ -631,8 +631,8 @@ class DamageableMountableDamageTest extends ActorTest {
     Vector3(1, 0, 0)
   )
   val applyDamageTo = resolved.calculate()
-  mech.Seats(0).Occupant = player2        //seat the player
-  player2.VehicleSeated = Some(mech.GUID) //seat the player
+  mech.Seats(0).mount(player2)        //mount the player
+  player2.VehicleSeated = Some(mech.GUID) //mount the player
   expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
@@ -728,8 +728,8 @@ class DamageableMountableDestroyTest extends ActorTest {
     Vector3(1, 0, 0)
   )
   val applyDamageTo = resolved.calculate()
-  mech.Seats(0).Occupant = player2        //seat the player
-  player2.VehicleSeated = Some(mech.GUID) //seat the player
+  mech.Seats(0).mount(player2)        //mount the player
+  player2.VehicleSeated = Some(mech.GUID) //mount the player
   expectNoMessage(200 milliseconds)
   //we're not testing that the math is correct
 
@@ -797,7 +797,7 @@ class DamageableWeaponTurretDamageTest extends ActorTest {
   guid.register(turret, 2)
   guid.register(player1, 3)
   guid.register(player2, 4)
-  turret.Seats(0).Occupant = player2
+  turret.Seats(0).mount(player2)
   player2.VehicleSeated = turret.GUID
 
   val weapon       = Tool(GlobalDefinitions.suppressor)
@@ -898,7 +898,7 @@ class DamageableWeaponTurretJammerTest extends ActorTest {
   guid.register(player2, 4)
   guid.register(turretWeapon, 5)
   guid.register(turretWeapon.AmmoSlot.Box, 6)
-  turret.Seats(0).Occupant = player2
+  turret.Seats(0).mount(player2)
   player2.VehicleSeated = turret.GUID
 
   val weapon       = Tool(GlobalDefinitions.jammer_grenade)
@@ -999,7 +999,7 @@ class DamageableWeaponTurretDestructionTest extends ActorTest {
   guid.register(player2, 4)
   guid.register(turretWeapon, 5)
   guid.register(turretWeapon.AmmoSlot.Box, 6)
-  turret.Seats(0).Occupant = player2
+  turret.Seats(0).mount(player2)
   player2.VehicleSeated = turret.GUID
   building.Position = Vector3(1, 0, 0)
   building.Zone = zone
@@ -1060,7 +1060,7 @@ class DamageableWeaponTurretDestructionTest extends ActorTest {
       assert(!turret.Destroyed)
 
       turret.Actor ! Vitality.Damage(applyDamageToA) //also test destruction while jammered
-      vehicleProbe.receiveN(2, 500 milliseconds)     //flush jammered messages (see above)
+      vehicleProbe.receiveN(2, 1000 milliseconds)     //flush jammered messages (see above)
       assert(turret.Health > turret.Definition.DamageDestroysAt)
       assert(turret.Jammed)
       assert(!turret.Destroyed)
@@ -1148,7 +1148,7 @@ class DamageableVehicleDamageTest extends ActorTest {
   guid.register(player1, 2)
   guid.register(player2, 3)
   atv.Zone = zone
-  atv.Seats(0).Occupant = player2
+  atv.Seats(0).mount(player2)
   player2.VehicleSeated = atv.GUID
 
   val weapon        = Tool(GlobalDefinitions.suppressor)
@@ -1273,12 +1273,12 @@ class DamageableVehicleDamageMountedTest extends ActorTest {
   //the lodestar control actor needs to load after the utilities have guid's assigned
   lodestar.Actor = system.actorOf(Props(classOf[VehicleControl], lodestar), "lodestar-control")
   lodestar.Zone = zone
-  lodestar.Seats(0).Occupant = player2
+  lodestar.Seats(0).mount(player2)
   player2.VehicleSeated = lodestar.GUID
   atv.Zone = zone
-  atv.Seats(0).Occupant = player3
+  atv.Seats(0).mount(player3)
   player3.VehicleSeated = atv.GUID
-  lodestar.CargoHolds(1).Occupant = atv
+  lodestar.CargoHolds(1).mount(atv)
   atv.MountedIn = lodestar.GUID
 
   val weapon        = Tool(GlobalDefinitions.phoenix) //decimator
@@ -1420,11 +1420,11 @@ class DamageableVehicleJammeringMountedTest extends ActorTest {
   lodestar.Actor = system.actorOf(Props(classOf[VehicleControl], lodestar), "lodestar-control")
   atv.Zone = zone
   lodestar.Zone = zone
-  atv.Seats(0).Occupant = player2
+  atv.Seats(0).mount(player2)
   player2.VehicleSeated = atv.GUID
-  lodestar.Seats(0).Occupant = player3
+  lodestar.Seats(0).mount(player3)
   player3.VehicleSeated = lodestar.GUID
-  lodestar.CargoHolds(1).Occupant = atv
+  lodestar.CargoHolds(1).mount(atv)
   atv.MountedIn = lodestar.GUID
 
   val vehicleSource = SourceEntry(lodestar)
@@ -1516,7 +1516,7 @@ class DamageableVehicleDestroyTest extends ActorTest {
   guid.register(atvWeapon, 4)
   guid.register(atvWeapon.AmmoSlot.Box, 5)
   atv.Zone = zone
-  atv.Seats(0).Occupant = player2
+  atv.Seats(0).mount(player2)
   player2.VehicleSeated = atv.GUID
 
   val weapon        = Tool(GlobalDefinitions.suppressor)
@@ -1642,11 +1642,11 @@ class DamageableVehicleDestroyMountedTest extends ActorTest {
   lodestar.Actor = system.actorOf(Props(classOf[VehicleControl], lodestar), "lodestar-control")
   atv.Zone = zone
   lodestar.Zone = zone
-  atv.Seats(0).Occupant = player2
+  atv.Seats(0).mount(player2)
   player2.VehicleSeated = atv.GUID
-  lodestar.Seats(0).Occupant = player3
+  lodestar.Seats(0).mount(player3)
   player3.VehicleSeated = lodestar.GUID
-  lodestar.CargoHolds(1).Occupant = atv
+  lodestar.CargoHolds(1).mount(atv)
   atv.MountedIn = lodestar.GUID
 
   val vehicleSource = SourceEntry(lodestar)

@@ -660,7 +660,7 @@ class PlayerControlDeathSeatedTest extends ActorTest {
     "handle death when seated (in something)" in {
       player2.Health = player2.Definition.DamageDestroysAt + 1 //initial state manip
       player2.VehicleSeated = vehicle.GUID                     //initial state manip, anything
-      vehicle.Seats(0).Occupant = player2
+      vehicle.Seats(0).mount(player2)
       player2.Armor = 0 //initial state manip
       assert(player2.Health > player2.Definition.DamageDestroysAt)
       assert(player2.isAlive)

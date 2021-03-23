@@ -40,13 +40,17 @@ import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.geometry.Geometry3D
 import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.doors.Door
+import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
+import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vehicles.UtilityType
 import net.psforever.objects.vital.etc.{EmpReason, ExplodingEntityReason}
-import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.prop.DamageWithPosition
+import net.psforever.objects.vital.Vitality
+import net.psforever.services.Service
 
 /**
   * A server object representing the one-landmass planets as well as the individual subterranean caverns.<br>
@@ -647,6 +651,13 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
           case (None, _) | (_, None) => ; //let ZoneActor's sanity check catch this error
         }
     })
+    //doors with nearby locks use those locks as their unlocking mechanism
+    //let ZoneActor's sanity check catch missing entities
+    map.doorToLock
+      .map { case(doorGUID: Int, lockGUID: Int) => (guid(doorGUID), guid(lockGUID)) }
+      .collect { case (Some(door: Door), Some(lock: IFFLock)) =>
+        door.Actor ! Door.UpdateMechanism(IFFLock.testLock(lock))
+      }
     //ntu management (eventually move to a generic building startup function)
     buildings.values
       .flatMap(_.Amenities.filter(_.Definition == GlobalDefinitions.resource_silo))
@@ -660,6 +671,12 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
       .collect {
         case painbox: Painbox =>
           painbox.Actor ! "startup"
+      }
+    //the orbital_buildings in sanctuary zones have to establish their shuttle routes
+    map.shuttleBays
+      .map { guid(_) }
+      .collect { case Some(obj: OrbitalShuttlePad) =>
+        obj.Actor ! Service.Startup()
       }
     //allocate soi information
     soi ! SOI.Build()
@@ -923,6 +940,10 @@ object Zone {
     final case class Spawn(vehicle: Vehicle)
 
     final case class Despawn(vehicle: Vehicle)
+
+    final case class HasSpawned(zone: Zone, vehicle: Vehicle)
+
+    final case class HasDespawned(zone: Zone, vehicle: Vehicle)
 
     final case class CanNotSpawn(zone: Zone, vehicle: Vehicle, reason: String)
 
@@ -1247,6 +1268,7 @@ object Zone {
   def distanceCheck(obj1: PlanetSideGameObject, obj2: PlanetSideGameObject, maxDistance: Float): Boolean = {
     distanceCheck(obj1.Definition.Geometry(obj1), obj2.Definition.Geometry(obj2), maxDistance)
   }
+
   /**
     * Two game entities are considered "near" each other if they are within a certain distance of one another.
     * @param g1 the geometric representation of a game entity

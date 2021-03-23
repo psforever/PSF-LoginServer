@@ -236,9 +236,10 @@ object ExplosiveDeployableControl {
   def detectTarget(g1: Geometry3D, up: Vector3)(obj1: PlanetSideGameObject, obj2: PlanetSideGameObject, maxDistance: Float) : Boolean = {
     val g2 = obj2.Definition.Geometry(obj2)
     val dir = g2.center.asVector3 - g1.center.asVector3
-    val scalar = Vector3.ScalarProjection(dir, up)
+    //val scalar = Vector3.ScalarProjection(dir, up)
     val point1 = g1.pointOnOutside(dir).asVector3
     val point2 = g2.pointOnOutside(Vector3.neg(dir)).asVector3
+    val scalar = Vector3.ScalarProjection(point2 - point1, up)
     (scalar >= 0 || Vector3.MagnitudeSquared(up * scalar) < 0.35f) &&
     math.min(
       Vector3.DistanceSquared(g1.center.asVector3, g2.center.asVector3),

@@ -7,7 +7,6 @@ import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
 import akka.pattern.ask
 import akka.util.Timeout
 
-import java.util.concurrent.TimeUnit
 import net.psforever.actors.net.MiddlewareActor
 import net.psforever.services.ServiceManager.Lookup
 import net.psforever.objects.locker.LockerContainer
@@ -44,7 +43,7 @@ import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals._
-import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, CaptureTerminals}
+import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
 import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.{FacilityTurret, WeaponTurret}
@@ -71,8 +70,9 @@ import net.psforever.services.local.{LocalAction, LocalResponse, LocalServiceMes
 import net.psforever.services.properties.PropertyOverrideManager
 import net.psforever.services.support.SupportActor
 import net.psforever.services.teamwork.{SquadResponse, SquadServiceMessage, SquadServiceResponse, SquadAction => SquadServiceAction}
+import net.psforever.services.hart.HartTimer
 import net.psforever.services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
-import net.psforever.services.{InterstellarClusterService, RemoverActor, Service, ServiceManager}
+import net.psforever.services.{RemoverActor, Service, ServiceManager, InterstellarClusterService => ICS}
 import net.psforever.types._
 import net.psforever.util.{Config, DefinitionUtil}
 import net.psforever.zones.Zones
@@ -176,7 +176,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var galaxyService: ActorRef                                        = ActorRef.noSender
   var squadService: ActorRef                                         = ActorRef.noSender
   var propertyOverrideManager: ActorRef                              = Actor.noSender
-  var cluster: typed.ActorRef[InterstellarClusterService.Command]    = Actor.noSender
+  var cluster: typed.ActorRef[ICS.Command]                           = Actor.noSender
   var _session: Session                                              = Session()
   var progressBarValue: Option[Float]                                = None
   var shooting: Option[PlanetSideGUID]                               = None //ChangeFireStateMessage_Start
@@ -240,9 +240,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   /** Upstream message counter<br>
     * Checks for server acknowledgement of the following messages in the following conditions:<br>
     *   `PlayerStateMessageUpstream` (infantry)<br>
-    *   `VehicleStateMessage` (driver seat only)<br>
-    *   `ChildObjectStateMessage` (any gunner seat that is not the driver)<br>
-    *   `KeepAliveMessage` (any passenger seat that is not the driver)<br>
+    *   `VehicleStateMessage` (driver mount only)<br>
+    *   `ChildObjectStateMessage` (any gunner mount that is not the driver)<br>
+    *   `KeepAliveMessage` (any passenger mount that is not the driver)<br>
     * As they should arrive roughly every 250 milliseconds this allows for a very crude method of scheduling tasks up to four times per second
     */
   var upstreamMessageCount: Int                                              = 0
@@ -300,7 +300,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   serviceManager ! Lookup("propertyOverrideManager")
 
   ServiceManager.receptionist ! Receptionist.Find(
-    InterstellarClusterService.InterstellarClusterServiceKey,
+    ICS.InterstellarClusterServiceKey,
     context.self
   )
 
@@ -385,7 +385,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       propertyOverrideManager = endpoint
       log.info("ID: " + session.id + " Got propertyOverrideManager service " + endpoint)
 
-    case InterstellarClusterService.InterstellarClusterServiceKey.Listing(listings) =>
+    case ICS.InterstellarClusterServiceKey.Listing(listings) =>
       cluster = listings.head
 
     // Avatar subscription update
@@ -408,7 +408,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     case AvatarActor.AvatarLoginResponse(avatar) =>
       session = session.copy(avatar = avatar)
       Deployables.InitializeDeployableQuantities(avatar)
-      cluster ! InterstellarClusterService.FilterZones(_ => true, context.self)
+      cluster ! ICS.FilterZones(_ => true, context.self)
 
     case packet: PlanetSideGamePacket =>
       handleGamePkt(packet)
@@ -436,7 +436,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       zoningChatMessageType = ChatMessageType.CMT_RECALL
       zoningStatus = Zoning.Status.Request
       beginZoningCountdown(() => {
-        cluster ! InterstellarClusterService.GetRandomSpawnPoint(
+        cluster ! ICS.GetRandomSpawnPoint(
           Zones.sanctuaryZoneNumber(player.Faction),
           player.Faction,
           Seq(SpawnGroup.Sanctuary),
@@ -451,24 +451,24 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       /* TODO no ask or adapters from classic to typed so this logic is happening in SpawnPointResponse
       implicit val timeout = Timeout(1 seconds)
       val future =
-        ask(cluster.toClassic, InterstellarClusterService.GetInstantActionSpawnPoint(player.Faction, context.self))
-          .mapTo[InterstellarClusterService.SpawnPointResponse]
+        ask(cluster.toClassic, ICS.GetInstantActionSpawnPoint(player.Faction, context.self))
+          .mapTo[ICS.SpawnPointResponse]
       Await.result(future, 2 second) match {
-        case InterstellarClusterService.SpawnPointResponse(None) =>
+        case ICS.SpawnPointResponse(None) =>
           sendResponse(
             ChatMsg(ChatMessageType.CMT_INSTANTACTION, false, "", "@InstantActionNoHotspotsAvailable", None)
           )
-        case InterstellarClusterService.SpawnPointResponse(Some(_)) =>
+        case ICS.SpawnPointResponse(Some(_)) =>
           beginZoningCountdown(() => {
-            cluster ! InterstellarClusterService.GetInstantActionSpawnPoint(player.Faction, context.self)
+            cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self)
           })
       }
 
       beginZoningCountdown(() => {
-        cluster ! InterstellarClusterService.GetInstantActionSpawnPoint(player.Faction, context.self)
+        cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self)
       })
        */
-      cluster ! InterstellarClusterService.GetInstantActionSpawnPoint(player.Faction, context.self)
+      cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self)
 
     case Quit() =>
       //priority to quitting is given to quit over other zoning methods
@@ -558,37 +558,32 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
         case GalaxyResponse.TransferPassenger(temp_channel, vehicle, vehicle_to_delete, manifest) =>
           (manifest.passengers.find { case (name, _) => player.Name.equals(name) } match {
-            case Some((name, index)) if vehicle.Seats(index).Occupant.isEmpty =>
-              vehicle.Seats(index).Occupant = player
+            case Some((name, index)) if vehicle.Seats(index).occupant.isEmpty =>
+              vehicle.Seats(index).mount(player)
               Some(vehicle)
             case Some((name, index)) =>
-              log.warn(s"TransferPassenger: seat $index is already occupied")
+              log.warn(s"TransferPassenger: mount $index is already occupied")
               None
             case None =>
               None
           }).orElse(manifest.cargo.find { case (name, _) => player.Name.equals(name) } match {
             case Some((name, index)) =>
-              vehicle.CargoHolds(index).Occupant match {
+              vehicle.CargoHolds(index).occupant match {
                 case Some(cargo) =>
-                  cargo.Seats(0).Occupant match {
-                    case Some(driver) if driver.Name.equals(name) =>
-                      Some(cargo)
-                    case _ =>
-                      None
-                  }
+                  cargo.Seats(0).occupants.find(_.Name.equals(name))
                 case None =>
                   None
               }
             case None =>
               None
           }) match {
-            case Some(v) =>
+            case Some(v: Vehicle) =>
               galaxyService ! Service.Leave(Some(temp_channel)) //temporary vehicle-specific channel (see above)
               deadState = DeadState.Release
               sendResponse(AvatarDeadStateMessage(DeadState.Release, 0, 0, player.Position, player.Faction, true))
               interstellarFerry = Some(v) //on the other continent and registered to that continent's GUID system
               LoadZonePhysicalSpawnPoint(v.Continent, v.Position, v.Orientation, 1 seconds)
-            case None =>
+            case _ =>
               interstellarFerry match {
                 case None =>
                   galaxyService ! Service.Leave(Some(temp_channel)) //no longer being transferred between zones
@@ -956,14 +951,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     case Zone.Population.PlayerAlreadySpawned(zone, tplayer) =>
       log.warn(s"${tplayer.Name} is already spawned on zone ${zone.id}; a clerical error?")
 
-    case InterstellarClusterService.SpawnPointResponse(response) =>
+    case ICS.SpawnPointResponse(response) =>
       zoningType match {
         case Zoning.Method.InstantAction if response.isEmpty =>
           CancelZoningProcessWithReason("@InstantActionNoHotspotsAvailable")
 
         case Zoning.Method.InstantAction if zoningStatus == Zoning.Status.Request =>
           beginZoningCountdown(() => {
-            cluster ! InterstellarClusterService.GetInstantActionSpawnPoint(player.Faction, context.self)
+            cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self)
           })
 
         case zoningType =>
@@ -992,8 +987,18 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           }
       }
 
+    case ICS.DroppodLaunchDenial(errorCode, _) =>
+      sendResponse(DroppodLaunchResponseMessage(errorCode, player.GUID))
+
+    case ICS.DroppodLaunchConfirmation(zone, position) =>
+      LoadZoneLaunchDroppod(zone, position)
+
+    case msg @ Zone.Vehicle.HasSpawned(zone, vehicle) => ;
+
     case msg @ Zone.Vehicle.CanNotSpawn(zone, vehicle, reason) =>
       log.warn(s"$msg")
+
+    case msg @ Zone.Vehicle.HasDespawned(zone, vehicle) => ;
 
     case msg @ Zone.Vehicle.CanNotDespawn(zone, vehicle, reason) =>
       log.warn(s"$msg")
@@ -1132,7 +1137,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     case Zone.Deployable.DeployableIsDismissed(obj) =>
       continent.tasks ! GUIDTask.UnregisterObjectTask(obj)(continent.GUID)
 
-    case InterstellarClusterService.ZonesResponse(zones) =>
+    case ICS.ZonesResponse(zones) =>
       zones.foreach { zone =>
         val continentNumber = zone.Number
         val popBO           = 0
@@ -1209,7 +1214,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             self ! NewPlayerLoaded(player)
           } else {
             zoneReload = true
-            cluster ! InterstellarClusterService.GetNearbySpawnPoint(
+            cluster ! ICS.GetNearbySpawnPoint(
               continent.Number,
               player,
               Seq(SpawnGroup.Facility, SpawnGroup.Tower),
@@ -1218,7 +1223,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           }
       }
 
-    case InterstellarClusterService.ZoneResponse(zone) =>
+    case ICS.ZoneResponse(zone) =>
       log.info(s"Zone ${zone.get.id} will now load")
       loadConfZone = true
       val oldZone = session.zone
@@ -1622,55 +1627,29 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   }
 
   /**
-    * You can't instant action to respond to some activity using a droppod!
-    * You can't.
-    * You just can't.
+    * Attach the player to a droppod vehicle and hurtle them through the stratosphere in some far off world.
+    * Perform all normal operation standardization (state cancels) as if any of form of zoning was being performed,
+    * then assemble the vehicle and work around some inconvenient setup requirements for vehicle gating.
+    * You can't instant action to respond to some activity using a droppod.
     * @param zone            the destination zone
-    * @param hotspotPosition where is the hotspot that is being addressed
-    * @param spawnPosition   the destination spawn position (may not be related to a literal `SpawnPoint` entity)
+    * @param spawnPosition   the destination drop position
     */
-  def YouCantInstantActionUsingDroppod(zone: Zone, hotspotPosition: Vector3, spawnPosition: Vector3): Unit = {
+  def LoadZoneLaunchDroppod(zone: Zone, spawnPosition: Vector3): Unit = {
     CancelZoningProcess()
     PlayerActionsToCancel()
     CancelAllProximityUnits()
-    //find a safe drop point
-    var targetBuildings = zone.Buildings.values
-    var whereToDroppod  = spawnPosition.xy
-    while (targetBuildings.nonEmpty) {
-      (targetBuildings
-        .filter { building =>
-          val radius = building.Definition.SOIRadius
-          Vector3.DistanceSquared(building.Position.xy, whereToDroppod) < radius * radius
-        }) match {
-        case Nil =>
-          //no soi interference
-          targetBuildings = Nil
-        case List(building: Building) =>
-          //blocked by a single soi; find space just outside of this soi and confirm no new overlap
-          val radius = Vector3(0, building.Definition.SOIRadius.toFloat + 5f, 0)
-          whereToDroppod =
-            building.Position.xy + Vector3.Rz(radius, math.abs(scala.util.Random.nextInt() % 360).toFloat)
-        case buildings =>
-          //probably blocked by a facility and its tower (maximum overlap potential is 2?); find space outside of largest soi
-          val largestBuilding = buildings.maxBy(_.Definition.SOIRadius)
-          val radius          = Vector3(0, largestBuilding.Definition.SOIRadius.toFloat + 5f, 0)
-          whereToDroppod =
-            largestBuilding.Position.xy + Vector3.Rz(radius, math.abs(scala.util.Random.nextInt() % 360).toFloat)
-          targetBuildings = buildings
-      }
-    }
     //droppod action
     val droppod = Vehicle(GlobalDefinitions.droppod)
     droppod.Faction = player.Faction
-    droppod.Position = whereToDroppod.xy + Vector3.z(1024)
+    droppod.Position = spawnPosition.xy + Vector3.z(1024)
     droppod.Orientation = Vector3.z(180) //you always seems to land looking south; don't know why
-    droppod.Seats(0).Occupant = player
+    droppod.Seats(0).mount(player)
     droppod.GUID = PlanetSideGUID(0)  //droppod is not registered, we must jury-rig this
     droppod.Invalidate()              //now, we must short-circuit the jury-rig
     interstellarFerry = Some(droppod) //leverage vehicle gating
     player.Position = droppod.Position
+    player.VehicleSeated = PlanetSideGUID(0)
     LoadZonePhysicalSpawnPoint(zone.id, droppod.Position, Vector3.Zero, 0 seconds)
-    /* Don't even think about it. */
   }
 
   /**
@@ -1850,7 +1829,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         reviveTimer.cancel()
         if (player.death_by == 0) {
           reviveTimer = context.system.scheduler.scheduleOnce(respawnTimer) {
-            cluster ! InterstellarClusterService.GetRandomSpawnPoint(
+            cluster ! ICS.GetRandomSpawnPoint(
               Zones.sanctuaryZoneNumber(player.Faction),
               player.Faction,
               Seq(SpawnGroup.Sanctuary),
@@ -2330,6 +2309,26 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case LocalResponse.SetEmpire(object_guid, empire) =>
         sendResponse(SetEmpireMessage(object_guid, empire))
 
+      case LocalResponse.SendResponse(pkt) =>
+        sendResponse(pkt)
+
+      case LocalResponse.ShuttleEvent(ev) =>
+        val msg = OrbitalShuttleTimeMsg(
+          ev.u1, ev.u2,
+          ev.t1, ev.t2, ev.t3,
+          ev.pairs.map { case ((a, b), c) => PadAndShuttlePair(a, b, c) }
+        )
+        sendResponse(msg)
+
+      case LocalResponse.ShuttleDock(pguid, sguid, slot) =>
+        sendResponse(ObjectAttachMessage(pguid, sguid, slot))
+
+      case LocalResponse.ShuttleUndock(pguid, sguid, pos, orient) =>
+        sendResponse(ObjectDetachMessage(pguid, sguid, pos, orient))
+
+      case LocalResponse.ShuttleState(sguid, pos, orient, state) =>
+        sendResponse(VehicleStateMessage(sguid, 0, pos, orient, None, Some(state), 0, 0, 15, false, false))
+
       case LocalResponse.ToggleTeleportSystem(router, system_plan) =>
         ToggleTeleportSystem(router, system_plan)
 
@@ -2350,7 +2349,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case LocalResponse.RechargeVehicleWeapon(vehicle_guid, weapon_guid) => {
         if (tplayer_guid == guid) {
           continent.GUID(vehicle_guid) match {
-            case Some(vehicle: Mountable with MountedWeapons) =>
+            case Some(vehicle: MountableWeapons) =>
               vehicle.PassengerInSeat(player) match {
                 case Some(seat_num: Int) =>
                   vehicle.WeaponControlledFromSeat(seat_num) match {
@@ -2377,17 +2376,25 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     */
   def HandleMountMessages(tplayer: Player, reply: Mountable.Exchange): Unit = {
     reply match {
-      case Mountable.CanMount(obj: ImplantTerminalMech, seat_num) =>
+      case Mountable.CanMount(obj: ImplantTerminalMech, seat_number, mount_point) =>
         CancelZoningProcessWithDescriptiveReason("cancel_use")
         CancelAllProximityUnits()
-        MountingAction(tplayer, obj, seat_num)
+        MountingAction(tplayer, obj, seat_number)
         // the player will receive no messages consistently except the KeepAliveMessage echo
         keepAliveFunc = KeepAlivePersistence
 
-      case Mountable.CanMount(obj: Vehicle, seat_num) =>
+      case Mountable.CanMount(obj: Vehicle, seat_number, _)
+        if obj.Definition == GlobalDefinitions.orbital_shuttle =>
+        CancelZoningProcessWithDescriptiveReason("cancel_mount")
+        CancelAllProximityUnits()
+        MountingAction(tplayer, obj, seat_number)
+        // the player will receive no messages consistently except the KeepAliveMessage echo
+        keepAliveFunc = KeepAlivePersistence
+
+      case Mountable.CanMount(obj: Vehicle, seat_number, _) =>
         CancelZoningProcessWithDescriptiveReason("cancel_mount")
         val obj_guid: PlanetSideGUID = obj.GUID
-        log.info(s"MountVehicleMsg: ${player.Name}_guid mounts $obj_guid @ $seat_num")
+        log.info(s"MountVehicleMsg: ${player.Name}_guid mounts $obj_guid @ $seat_number")
         CancelAllProximityUnits()
         sendResponse(PlanetsideAttributeMessage(obj_guid, 0, obj.Health))
         sendResponse(PlanetsideAttributeMessage(obj_guid, 68, obj.Shields)) //shield health
@@ -2398,29 +2405,29 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           val capacitor = scala.math.ceil((obj.Capacitor.toFloat / obj.Definition.MaxCapacitor.toFloat) * 10).toInt
           sendResponse(PlanetsideAttributeMessage(obj_guid, 113, capacitor))
         }
-        if (seat_num == 0) {
+        if (seat_number == 0) {
           if (obj.Definition == GlobalDefinitions.quadstealth) {
             //wraith cloak state matches the cloak state of the driver
             //phantasm doesn't uncloak if the driver is uncloaked and no other vehicle cloaks
             obj.Cloaked = tplayer.Cloaked
           }
-        } else if (obj.Seats(seat_num).ControlledWeapon.isEmpty) {
+        } else if (obj.WeaponControlledFromSeat(seat_number).isEmpty) {
           // the player will receive no messages consistently except the KeepAliveMessage echo
           keepAliveFunc = KeepAlivePersistence
         }
         AccessContainer(obj)
-        UpdateWeaponAtSeatPosition(obj, seat_num)
-        MountingAction(tplayer, obj, seat_num)
+        UpdateWeaponAtSeatPosition(obj, seat_number)
+        MountingAction(tplayer, obj, seat_number)
 
-      case Mountable.CanMount(obj: FacilityTurret, seat_num) =>
+      case Mountable.CanMount(obj: FacilityTurret, seat_number, mount_point) =>
         CancelZoningProcessWithDescriptiveReason("cancel_mount")
         if (!obj.isUpgrading) {
           if (obj.Definition == GlobalDefinitions.vanu_sentry_turret) {
             obj.Zone.LocalEvents ! LocalServiceMessage(obj.Zone.id, LocalAction.SetEmpire(obj.GUID, player.Faction))
           }
           sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))
-          UpdateWeaponAtSeatPosition(obj, seat_num)
-          MountingAction(tplayer, obj, seat_num)
+          UpdateWeaponAtSeatPosition(obj, seat_number)
+          MountingAction(tplayer, obj, seat_number)
           // the player will receive no messages consistently except the KeepAliveMessage echo
           keepAliveFunc = KeepAlivePersistence
         } else {
@@ -2429,25 +2436,67 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           )
         }
 
-      case Mountable.CanMount(obj: PlanetSideGameObject with WeaponTurret, seat_num) =>
+      case Mountable.CanMount(obj: PlanetSideGameObject with WeaponTurret, seat_number, mount_point) =>
         CancelZoningProcessWithDescriptiveReason("cancel_mount")
         sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))
-        UpdateWeaponAtSeatPosition(obj, seat_num)
-        MountingAction(tplayer, obj, seat_num)
+        UpdateWeaponAtSeatPosition(obj, seat_number)
+        MountingAction(tplayer, obj, seat_number)
         // the player will receive no messages consistently except the KeepAliveMessage echo
         keepAliveFunc = KeepAlivePersistence
 
-      case Mountable.CanMount(obj: Mountable, _) =>
+      case Mountable.CanMount(obj: Mountable, _, _) =>
         log.warn(s"MountVehicleMsg: $obj is some generic mountable object and nothing will happen")
 
-      case Mountable.CanDismount(obj: ImplantTerminalMech, seat_num) =>
+      case Mountable.CanDismount(obj: ImplantTerminalMech, seat_num, _) =>
         DismountAction(tplayer, obj, seat_num)
 
-      case Mountable.CanDismount(obj: Vehicle, seat_num) if obj.Definition == GlobalDefinitions.droppod =>
+      case Mountable.CanDismount(obj: Vehicle, seat_num, mount_point)
+        if obj.Definition == GlobalDefinitions.orbital_shuttle =>
+        val pguid = player.GUID
+        if (obj.MountedIn.nonEmpty) {
+          //dismount to hart lobby
+          val sguid = obj.GUID
+          val (pos, zang) = Vehicles.dismountShuttle(obj, mount_point)
+          tplayer.Position = pos
+          sendResponse(DelayedPathMountMsg(pguid, sguid, 60, true))
+          continent.LocalEvents ! LocalServiceMessage(
+            continent.id,
+            LocalAction.SendResponse(ObjectDetachMessage(sguid, pguid, pos, 0, 0, zang))
+          )
+        }
+        else {
+          //get ready for orbital drop
+          DismountAction(tplayer, obj, seat_num)
+          //DismountAction(...) uses vehicle service, so use that service to coordinate the remainder of the messages
+          continent.VehicleEvents ! VehicleServiceMessage(
+            player.Name,
+            VehicleAction.SendResponse(Service.defaultPlayerGUID, PlayerStasisMessage(pguid)) //the stasis message
+          )
+          //when the player dismounts, they will be positioned where the shuttle was when it disappeared in the sky
+          //the player will fall to the ground and is perfectly vulnerable in this state
+          //additionally, our player must exist in the current zone
+          //having no in-game avatar target will throw us out of the map screen when deploying and cause softlock
+          continent.VehicleEvents ! VehicleServiceMessage(
+            player.Name,
+            VehicleAction.SendResponse(
+              Service.defaultPlayerGUID,
+              PlayerStateShiftMessage(ShiftState(0, obj.Position, obj.Orientation.z, None)) //cower in the shuttle bay
+            )
+          )
+          continent.VehicleEvents ! VehicleServiceMessage(
+            continent.id,
+            VehicleAction.SendResponse(pguid, GenericObjectActionMessage(pguid, 9)) //conceal the player
+          )
+        }
+        keepAliveFunc = NormalKeepAlive
+
+      case Mountable.CanDismount(obj: Vehicle, seat_num, _)
+        if obj.Definition == GlobalDefinitions.droppod =>
         UnaccessContainer(obj)
         DismountAction(tplayer, obj, seat_num)
+        obj.Actor ! Vehicle.Deconstruct()
 
-      case Mountable.CanDismount(obj: Vehicle, seat_num) =>
+      case Mountable.CanDismount(obj: Vehicle, seat_num, _) =>
         val player_guid: PlanetSideGUID = tplayer.GUID
         if (player_guid == player.GUID) {
           //disembarking self
@@ -2461,26 +2510,28 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           )
         }
 
-      case Mountable.CanDismount(obj: PlanetSideGameObject with WeaponTurret, seat_num) =>
+      case Mountable.CanDismount(obj: PlanetSideGameObject with WeaponTurret, seat_num, _) =>
         DismountAction(tplayer, obj, seat_num)
 
-      case Mountable.CanDismount(obj: Mountable, _) =>
+      case Mountable.CanDismount(obj: Mountable, _, _) =>
         log.warn(s"DismountVehicleMsg: $obj is some generic mountable object and nothing will happen")
 
-      case Mountable.CanNotMount(obj: Vehicle, seat_num) =>
-        log.warn(s"MountVehicleMsg: ${tplayer.Name} attempted to mount $obj's seat $seat_num, but was not allowed")
-        if (obj.SeatPermissionGroup(seat_num).contains(AccessPermissionGroup.Driver)) {
-          sendResponse(
-            ChatMsg(ChatMessageType.CMT_OPEN, false, "", "You are not the driver of this vehicle.", None)
-          )
+      case Mountable.CanNotMount(obj: Vehicle, mount_point) =>
+        log.warn(s"MountVehicleMsg: ${tplayer.Name} attempted to mount $obj's mount $mount_point, but was not allowed")
+        obj.GetSeatFromMountPoint(mount_point) match {
+          case Some(seatNum) if obj.SeatPermissionGroup(seatNum).contains(AccessPermissionGroup.Driver) =>
+            sendResponse(
+              ChatMsg(ChatMessageType.CMT_OPEN, false, "", "You are not the driver of this vehicle.", None)
+            )
+          case _ =>
         }
 
-      case Mountable.CanNotMount(obj: Mountable, seat_num) =>
-        log.warn(s"MountVehicleMsg: ${tplayer.Name} attempted to mount $obj's seat $seat_num, but was not allowed")
+      case Mountable.CanNotMount(obj: Mountable, mount_point) =>
+        log.warn(s"MountVehicleMsg: ${tplayer.Name} attempted to mount $obj's mount $mount_point, but was not allowed")
 
       case Mountable.CanNotDismount(obj, seat_num) =>
         log.warn(
-          s"DismountVehicleMsg: ${tplayer.Name} attempted to dismount $obj's seat $seat_num, but was not allowed"
+          s"DismountVehicleMsg: ${tplayer.Name} attempted to dismount $obj's mount $seat_num, but was not allowed"
         )
     }
   }
@@ -2657,7 +2708,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
 
       case VehicleResponse.KickPassenger(seat_num, wasKickedByDriver, vehicle_guid) =>
-        // seat_num seems to be correct if passenger is kicked manually by driver, but always seems to return 4 if user is kicked by seat permissions
+        // seat_num seems to be correct if passenger is kicked manually by driver, but always seems to return 4 if user is kicked by mount permissions
         sendResponse(DismountVehicleMsg(guid, BailType.Kicked, wasKickedByDriver))
         player.VehicleSeated = None
         if (tplayer_guid == guid) {
@@ -3052,9 +3103,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         sendResponse(
           DroppodFreefallingMessage(
             vehicle.GUID,
-            vehicle.Position + Vector3.z(50),
-            Vector3.z(-999),
-            vehicle.Position + Vector3.z(25),
+            vehicle.Position,
+            Vector3.z(value = -999),
+            vehicle.Position + Vector3(-20, 1.156f, -50),
             Vector3(0, 70.3125f, 90),
             Vector3(0, 0, 90)
           )
@@ -3328,7 +3379,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             .asInstanceOf[Mountable]
             .Seats
             .values
-            .map(_.Occupant)
+            .map(_.occupant)
             .collect {
               case Some(occupant) =>
                 if (occupant.isAlive) {
@@ -3444,10 +3495,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           )
           //occupants other than driver
           vehicle.Seats
-            .filter({ case (index, seat) => seat.isOccupied && live.contains(seat.Occupant.get) && index > 0 })
+            .filter({ case (index, seat) => seat.isOccupied && live.contains(seat.occupant.get) && index > 0 })
             .foreach({
               case (index, seat) =>
-                val targetPlayer    = seat.Occupant.get
+                val targetPlayer    = seat.occupant.get
                 val targetDefiniton = targetPlayer.avatar.definition
                 sendResponse(
                   ObjectCreateMessage(
@@ -3471,11 +3522,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             vehicle.Seats
               .filter({
                 case (index, seat) =>
-                  seat.isOccupied && !seat.Occupant.contains(player) && live.contains(seat.Occupant.get) && index > 0
+                  seat.isOccupied && !seat.occupant.contains(player) && live.contains(seat.occupant.get) && index > 0
               })
               .foreach({
                 case (index, seat) =>
-                  val targetPlayer     = seat.Occupant.get
+                  val targetPlayer     = seat.occupant.get
                   val targetDefinition = targetPlayer.avatar.definition
                   sendResponse(
                     ObjectCreateMessage(
@@ -3486,7 +3537,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                     )
                   )
               })
-            //since we would have only subscribed recently, we need to reload seat access states
+            //since we would have only subscribed recently, we need to reload mount access states
             (0 to 3).foreach { group =>
               sendResponse(PlanetsideAttributeMessage(vguid, group + 10, vehicle.PermissionGroup(group).get.id))
             }
@@ -3509,15 +3560,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         //cargo occupants (including our own vehicle as cargo)
         allActiveVehicles.collect {
           case vehicle if vehicle.CargoHolds.nonEmpty =>
-            vehicle.CargoHolds.collect({
-              case (index, hold: Cargo) if hold.isOccupied => {
+            vehicle.CargoHolds.collect {
+              case (_index, hold: Cargo) if hold.isOccupied =>
                 CargoBehavior.CargoMountBehaviorForAll(
                   vehicle,
-                  hold.Occupant.get,
-                  index
+                  hold.occupant.get,
+                  _index
                 ) //CargoMountBehaviorForUs can fail to attach the cargo vehicle on some clients
-              }
-            })
+            }
         }
         //special deploy states
         val deployedVehicles = allActiveVehicles.filter(_.DeploymentState == DriveState.Deployed)
@@ -3542,6 +3592,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           sendResponse(DeployRequestMessage(player.GUID, obj.GUID, DriveState.Deployed, 0, false, Vector3.Zero))
           ToggleTeleportSystem(obj, TelepadLike.AppraiseTeleportationSystem(obj, continent))
         }
+        val name = avatar.name
+        serviceManager.ask(Lookup("hart"))(Timeout(2 seconds))
+          .onComplete {
+            case Success(LookupResult("hart", ref)) =>
+              ref ! HartTimer.Update(continentId, name)
+            case _ =>
+          }
 
         //implant terminals
         continent.map.terminalToInterface.foreach({
@@ -3560,11 +3617,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 )
               case _ => ;
             }
-            //seat terminal occupants
+            //mount terminal occupants
             continent.GUID(terminal_guid) match {
               case Some(obj: Mountable) =>
-                obj.Seats(0).Occupant match {
-                  case Some(targetPlayer) =>
+                obj.Seats(0).occupant match {
+                  case Some(targetPlayer: Player) =>
                     val targetDefinition = targetPlayer.avatar.definition
                     sendResponse(
                       ObjectCreateMessage(
@@ -3574,7 +3631,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                         targetDefinition.Packet.ConstructorData(targetPlayer).get
                       )
                     )
-                  case None => ;
+                  case _ => ;
                 }
               case _ => ;
             }
@@ -3604,9 +3661,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               }
               //reserved ammunition?
               //TODO need to register if it exists
-              //seat turret occupant
-              turret.Seats(0).Occupant match {
-                case Some(targetPlayer) =>
+              //mount turret occupant
+              turret.Seats(0).occupant match {
+                case Some(targetPlayer: Player) =>
                   val targetDefinition = targetPlayer.avatar.definition
                   sendResponse(
                     ObjectCreateMessage(
@@ -3616,7 +3673,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                       targetDefinition.Packet.ConstructorData(targetPlayer).get
                     )
                   )
-                case None => ;
+                case _ => ;
               }
           }
         continent.VehicleEvents ! VehicleServiceMessage(
@@ -3650,6 +3707,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         if (isMovingPlus) {
           CancelZoningProcessWithDescriptiveReason("cancel_motion")
         }
+//        if (is_crouching && !player.Crouching) {
+//          //dev stuff goes here
+//        }
         player.Position = pos
         player.Velocity = vel
         player.Orientation = Vector3(player.Orientation.x, pitch, yaw)
@@ -3780,7 +3840,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             turnCounterFunc(player.GUID)
             val seat = obj.Seats(0)
             player.Position = pos //convenient
-            if (seat.ControlledWeapon.isEmpty) {
+            if (obj.WeaponControlledFromSeat(0).isEmpty) {
               player.Orientation = Vector3.z(ang.z) //convenient
             }
             obj.Position = pos
@@ -3792,12 +3852,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 obj.Velocity = Some(Vector3.Zero)
               }
               if (obj.Definition.CanFly) {
-                obj.Flying = flying.nonEmpty //usually Some(7)
+                obj.Flying = flying //usually Some(7)
               }
               obj.Cloaked = obj.Definition.CanCloak && is_cloaked
             } else {
               obj.Velocity = None
-              obj.Flying = false
+              obj.Flying = None
             }
             continent.VehicleEvents ! VehicleServiceMessage(
               continent.id,
@@ -3808,7 +3868,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 obj.Position,
                 ang,
                 obj.Velocity,
-                if (obj.Flying) {
+                if (obj.isFlying) {
                   flying
                 } else {
                   None
@@ -3876,7 +3936,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         log.info(s"SpawnRequestMessage: $msg")
         if (deadState != DeadState.RespawnTime) {
           deadState = DeadState.RespawnTime
-          cluster ! InterstellarClusterService.GetNearbySpawnPoint(
+          cluster ! ICS.GetNearbySpawnPoint(
             spawnGroup match {
               case SpawnGroup.Sanctuary =>
                 Zones.sanctuaryZoneNumber(player.Faction)
@@ -4246,14 +4306,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           case Some(vehicle: Vehicle) =>
             /* line 1a: player is admin (and overrules other access requirements) */
             /* line 1b: vehicle and player (as the owner) acknowledge each other */
-            /* line 1c: vehicle is the same faction as player and either the owner is absent or the vehicle is destroyed */
+            /* line 1c: vehicle is the same faction as player, is ownable, and either the owner is absent or the vehicle is destroyed */
             /* line 2: vehicle is not mounted in anything or, if it is, its seats are empty */
             if (
               (session.account.gm ||
               (player.avatar.vehicle.contains(object_guid) && vehicle.Owner.contains(player.GUID)) ||
-              (player.Faction == vehicle.Faction && ((vehicle.Owner.isEmpty || continent
-                .GUID(vehicle.Owner.get)
-                .isEmpty) || vehicle.Destroyed))) &&
+              (player.Faction == vehicle.Faction &&
+               (vehicle.Definition.CanBeOwned.nonEmpty &&
+                (vehicle.Owner.isEmpty || continent.GUID(vehicle.Owner.get).isEmpty) || vehicle.Destroyed))) &&
               (vehicle.MountedIn.isEmpty || !vehicle.Seats.values.exists(_.isOccupied))
             ) {
               vehicle.Actor ! Vehicle.Deconstruct()
@@ -5333,7 +5393,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                     true
                 })) =>
               deadState = DeadState.RespawnTime
-              cluster ! InterstellarClusterService.GetSpawnPoint(
+              cluster ! ICS.GetSpawnPoint(
                 destinationZoneGuid.guid,
                 player,
                 destinationBuildingGuid,
@@ -5355,14 +5415,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         log.info("MountVehicleMsg: " + msg)
         ValidObject(mountable_guid) match {
           case Some(obj: Mountable) =>
-            obj.GetSeatFromMountPoint(entry_point) match {
-              case Some(seat_num) =>
-                obj.Actor ! Mountable.TryMount(player, seat_num)
-              case None =>
-                log.warn(
-                  s"MountVehicleMsg: attempted to board mountable $mountable_guid's seat $entry_point, but no seat exists there"
-                )
-            }
+            obj.Actor ! Mountable.TryMount(player, entry_point)
           case None | Some(_) =>
             log.warn(s"MountVehicleMsg: not a mountable thing")
         }
@@ -5375,10 +5428,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           log.warn(s"$msg; some vehicle might not know that a player is no longer sitting in it")
         }
         if (player.GUID == player_guid) {
-          //normally disembarking from a seat
+          //normally disembarking from a mount
           (interstellarFerry.orElse(continent.GUID(player.VehicleSeated)) match {
             case out @ Some(obj: Vehicle) =>
-              if (obj.MountedIn.isEmpty) out else None
+              continent.GUID(obj.MountedIn) match {
+                case Some(_: Vehicle) => None //cargo vehicle
+                case _                => out  //arrangement "may" be permissible
+              }
             case out @ Some(_: Mountable) =>
               out
             case _ =>
@@ -5405,7 +5461,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                   //todo: continue flight path until aircraft crashes if no passengers present (or no passenger seats), then deconstruct.
                   //todo: kick cargo passengers out. To be added after PR #216 is merged
                   obj match {
-                    case v: Vehicle if bailType == BailType.Bailed && seat_num == 0 && v.Flying =>
+                    case v: Vehicle
+                      if bailType == BailType.Bailed &&
+                         v.SeatPermissionGroup(seat_num).contains(AccessPermissionGroup.Driver) &&
+                         v.isFlying =>
                       v.Actor ! Vehicle.Deconstruct(None) //immediate deconstruction
                     case _ => ;
                   }
@@ -5419,7 +5478,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               dismountWarning(s"DismountVehicleMsg: can not find mountable entity ${player.VehicleSeated}")
           }
         } else {
-          //kicking someone else out of a seat; need to own that seat/mountable
+          //kicking someone else out of a mount; need to own that mount/mountable
           player.avatar.vehicle match {
             case Some(obj_guid) =>
               ((ValidObject(obj_guid), ValidObject(player_guid)) match {
@@ -5521,41 +5580,33 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                     )
                     //kick players who should not be seated in the vehicle due to permission changes
                     if (allow == VehicleLockState.Locked) { //TODO only important permission atm
-                      vehicle.Definition.MountPoints.values
-                        .foreach(mountpoint_num => {
-                          vehicle.Seat(mountpoint_num) match {
-                            case Some(seat) =>
-                              seat.Occupant match {
-                                case Some(tplayer) =>
-                                  if (
-                                    vehicle.SeatPermissionGroup(mountpoint_num).contains(group) && tplayer != player
-                                  ) { //can not kick self
-                                    seat.Occupant = None
-                                    tplayer.VehicleSeated = None
-                                    continent.VehicleEvents ! VehicleServiceMessage(
-                                      continent.id,
-                                      VehicleAction.KickPassenger(tplayer.GUID, 4, false, object_guid)
-                                    )
-                                  }
-                                case None => ; // No player seated
-                              }
-                            case None => ; // Not a seat mounting point
-                          }
-                          vehicle.CargoHold(mountpoint_num) match {
-                            case Some(cargo) =>
-                              cargo.Occupant match {
-                                case Some(vehicle) =>
-                                  if (vehicle.SeatPermissionGroup(mountpoint_num).contains(group)) {
-                                    //todo: this probably doesn't work for passengers within the cargo vehicle
-                                    // Instruct client to start bail dismount procedure
-                                    self ! DismountVehicleCargoMsg(player.GUID, vehicle.GUID, true, false, false)
-                                  }
-                                case None => ; // No vehicle in cargo
-                              }
-                            case None => ; // Not a cargo mounting point
-                          }
-
-                        })
+                      vehicle.Seats.foreach { case (seatIndex, seat) =>
+                        seat.occupant match {
+                          case Some(tplayer : Player) =>
+                            if (
+                              vehicle.SeatPermissionGroup(seatIndex).contains(group) && tplayer != player
+                            ) { //can not kick self
+                              seat.unmount(tplayer)
+                              tplayer.VehicleSeated = None
+                              continent.VehicleEvents ! VehicleServiceMessage(
+                                continent.id,
+                                VehicleAction.KickPassenger(tplayer.GUID, 4, false, object_guid)
+                              )
+                            }
+                          case _ => ; // No player seated
+                        }
+                      }
+                      vehicle.CargoHolds.foreach { case (cargoIndex, hold) =>
+                        hold.occupant match {
+                          case Some(cargo) =>
+                            if (vehicle.SeatPermissionGroup(cargoIndex).contains(group)) {
+                              //todo: this probably doesn't work for passengers within the cargo vehicle
+                              // Instruct client to start bail dismount procedure
+                              self ! DismountVehicleCargoMsg(player.GUID, cargo.GUID, true, false, false)
+                            }
+                          case None => ; // No vehicle in cargo
+                        }
+                      }
                     }
                   case None => ;
                 }
@@ -5623,6 +5674,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           }
         })
         sendResponse(TargetingInfoMessage(targetInfo))
+
+      case msg @ DroppodLaunchRequestMessage(info, _) =>
+        //log.info(s"Droppod request: $msg")
+        cluster ! ICS.DroppodLaunchRequest(
+          info.zone_number,
+          info.xypos,
+          player.Faction,
+          self.toTyped[ICS.DroppodLaunchExchange]
+        )
 
       case msg @ ActionCancelMessage(u1, u2, u3) =>
         log.info("Cancelled: " + msg)
@@ -6169,7 +6229,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * Along with any discovered item, a containing object such that the statement:<br>
     *   `container.Find(object) = Some(slot)`<br>
     * ... will return a proper result.
-    * For a seat controlled weapon, the vehicle is returned.
+    * For a mount controlled weapon, the vehicle is returned.
     * For the player's hand, the player is returned.
     * @return a `Tuple` of the returned values;
     *         the first value is a `Container` object;
@@ -6179,7 +6239,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     player.VehicleSeated match {
       case Some(vehicle_guid) => //weapon is vehicle turret?
         continent.GUID(vehicle_guid) match {
-          case Some(vehicle: Mountable with MountedWeapons with Container) =>
+          case Some(vehicle: Mountable with MountableWeapons with Container) =>
             vehicle.PassengerInSeat(player) match {
               case Some(seat_num) =>
                 (Some(vehicle), vehicle.WeaponControlledFromSeat(seat_num))
@@ -6663,7 +6723,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @see `Door`
     * @see `GenericObjectStateMsg`
     * @see `Hackable`
-    * @see `HackCaptureTerminal`
     * @see `HackObject`
     * @see `PlanetsideAttributeMessage`
     * @see `ResourceSilo`
@@ -6831,7 +6890,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * <br>
     * If that player is in a vehicle, it will construct that vehicle.
     * If the player is the driver of the vehicle,
-    * they must temporarily be removed from the driver seat in order for the vehicle to be constructed properly.
+    * they must temporarily be removed from the driver mount in order for the vehicle to be constructed properly.
     * These two previous statements operate through similar though distinct mechanisms and imply different conditions.
     * In reality, they produce the same output but enforce different relationships between the components.
     * The vehicle without a rendered player will always be created if that vehicle exists.
@@ -6851,7 +6910,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         //if the vehicle is the cargo of another vehicle in this zone
         val carrierInfo = continent.GUID(vehicle.MountedIn) match {
           case Some(carrier: Vehicle) =>
-            (Some(carrier), carrier.CargoHolds.find({ case (index, hold) => hold.Occupant.contains(vehicle) }))
+            (Some(carrier), carrier.CargoHolds.find({ case (index, hold) => hold.occupant.contains(vehicle) }))
           case _ =>
             (None, None)
         }
@@ -6866,13 +6925,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           continent.Transport ! Zone.Vehicle.Spawn(vehicle)
           //as the driver, we must temporarily exclude ourselves from being in the vehicle during its creation
           val seat = vehicle.Seats(0)
-          seat.Occupant = None
+          seat.unmount(player)
+          player.VehicleSeated = None
           val data = vdef.Packet.ConstructorData(vehicle).get
           sendResponse(ObjectCreateMessage(vehicle.Definition.ObjectId, vguid, data))
-          seat.Occupant = player
+          seat.mount(player)
           Vehicles.Own(vehicle, player)
           vehicle.CargoHolds.values
-            .collect { case hold if hold.isOccupied => hold.Occupant.get }
+            .collect { case hold if hold.isOccupied => hold.occupant.get }
             .foreach { _.MountedIn = vguid }
           continent.VehicleEvents ! VehicleServiceMessage(
             continent.id,
@@ -6938,12 +6998,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   }
 
   /**
-    * If the player is mounted in some entity, find that entity and get the seat index number at which the player is sat.
+    * If the player is mounted in some entity, find that entity and get the mount index number at which the player is sat.
     * The priority of object confirmation is `direct` then `occupant.VehicleSeated`.
     * Once an object is found, the remainder are ignored.
     * @param direct a game object in which the player may be sat
     * @param occupant the player who is sat and may have specified the game object in which mounted
-    * @return a tuple consisting of a vehicle reference and a seat index
+    * @return a tuple consisting of a vehicle reference and a mount index
     *         if and only if the vehicle is known to this client and the `WorldSessioNActor`-global `player` occupies it;
     *         `(None, None)`, otherwise (even if the vehicle can be determined)
     */
@@ -6965,7 +7025,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     }
 
   /**
-    * If the player is seated in a vehicle, find that vehicle and get the seat index number at which the player is sat.<br>
+    * If the player is seated in a vehicle, find that vehicle and get the mount index number at which the player is sat.<br>
     * <br>
     * For special purposes involved in zone transfers,
     * where the vehicle may or may not exist in either of the zones (yet),
@@ -6974,7 +7034,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * to avoid inspecting the wrong vehicle and failing simple vehicle checks where this function may be employed.
     * @see `GetMountableAndSeat`
     * @see `interstellarFerry`
-    * @return a tuple consisting of a vehicle reference and a seat index
+    * @return a tuple consisting of a vehicle reference and a mount index
     *         if and only if the vehicle is known to this client and the `WorldSessioNActor`-global `player` occupies it;
     *         `(None, None)`, otherwise (even if the vehicle can be determined)
     */
@@ -6985,9 +7045,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     }
 
   /**
-    * If the player is seated in a vehicle, find that vehicle and get the seat index number at which the player is sat.
+    * If the player is seated in a vehicle, find that vehicle and get the mount index number at which the player is sat.
     * @see `GetMountableAndSeat`
-    * @return a tuple consisting of a vehicle reference and a seat index
+    * @return a tuple consisting of a vehicle reference and a mount index
     *         if and only if the vehicle is known to this client and the `WorldSessioNActor`-global `player` occupies it;
     *         `(None, None)`, otherwise (even if the vehicle can be determined)
     */
@@ -6998,7 +7058,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     }
 
   /**
-    * Create an avatar character so that avatar's player is mounted in a vehicle's seat.
+    * Create an avatar character so that avatar's player is mounted in a vehicle's mount.
     * A part of the process of spawning the player into the game world.<br>
     * <br>
     * This is a very specific configuration of the player character that is not visited very often.
@@ -7011,9 +7071,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * to avoid damaging the critical setup of this function.
     * @see `AccessContainer`
     * @see `UpdateWeaponAtSeatPosition`
-    * @param tplayer the player avatar seated in the vehicle's seat
+    * @param tplayer the player avatar seated in the vehicle's mount
     * @param vehicle the vehicle the player is riding
-    * @param seat the seat index
+    * @param seat the mount index
     */
   def AvatarCreateInVehicle(tplayer: Player, vehicle: Vehicle, seat: Int): Unit = {
     val pdef  = tplayer.avatar.definition
@@ -7023,7 +7083,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     val pdata = pdef.Packet.DetailedConstructorData(tplayer).get
     tplayer.VehicleSeated = vguid
     sendResponse(ObjectCreateDetailedMessage(pdef.ObjectId, pguid, pdata))
-    if (seat == 0 || vehicle.Seats(seat).ControlledWeapon.nonEmpty) {
+    if (seat == 0 || vehicle.WeaponControlledFromSeat(seat).nonEmpty) {
       sendResponse(ObjectAttachMessage(vguid, pguid, seat))
       AccessContainer(vehicle)
       UpdateWeaponAtSeatPosition(vehicle, seat)
@@ -7058,7 +7118,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * <br>
     * If that player is in a vehicle, it will construct that vehicle.
     * If the player is the driver of the vehicle,
-    * they must temporarily be removed from the driver seat in order for the vehicle to be constructed properly.
+    * they must temporarily be removed from the driver mount in order for the vehicle to be constructed properly.
     * These two previous statements operate through similar though distinct mechanisms and imply different conditions.
     * In reality, they produce the same output but enforce different relationships between the components.
     * The vehicle without a rendered player will always be created if that vehicle exists.<br>
@@ -7079,10 +7139,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         val vguid = vehicle.GUID
         if (seat == 0) {
           val seat = vehicle.Seats(0)
-          seat.Occupant = None
+          seat.unmount(player)
           val vdata = vdef.Packet.ConstructorData(vehicle).get
           sendResponse(ObjectCreateMessage(vehicle.Definition.ObjectId, vguid, vdata))
-          seat.Occupant = player
+          seat.mount(player)
         } else {
           val vdata = vdef.Packet.ConstructorData(vehicle).get
           sendResponse(ObjectCreateMessage(vehicle.Definition.ObjectId, vguid, vdata))
@@ -7097,7 +7157,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         player.VehicleSeated = vguid
         sendResponse(ObjectCreateDetailedMessage(pdef.ObjectId, pguid, pdata))
         //log.info(s"AvatarRejoin: $vguid -> $vdata")
-        if (seat == 0 || vehicle.Seats(seat).ControlledWeapon.nonEmpty) {
+        if (seat == 0 || vehicle.WeaponControlledFromSeat(seat).nonEmpty) {
           sendResponse(ObjectAttachMessage(vguid, pguid, seat))
           AccessContainer(vehicle)
           UpdateWeaponAtSeatPosition(vehicle, seat)
@@ -7290,14 +7350,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
     continent.GUID(player.VehicleSeated) match {
       case Some(obj: Vehicle) if !obj.Destroyed =>
-        cluster ! InterstellarClusterService.GetRandomSpawnPoint(
+        cluster ! ICS.GetRandomSpawnPoint(
           Zones.sanctuaryZoneNumber(player.Faction),
           player.Faction,
           Seq(SpawnGroup.WarpGate),
           context.self
         )
       case _ =>
-        cluster ! InterstellarClusterService.GetRandomSpawnPoint(
+        cluster ! ICS.GetRandomSpawnPoint(
           Zones.sanctuaryZoneNumber(player.Faction),
           player.Faction,
           Seq(SpawnGroup.Sanctuary),
@@ -7703,7 +7763,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * Common activities/procedure when a player mounts a valid object.
     * @param tplayer the player
     * @param obj the mountable object
-    * @param seatNum the seat into which the player is mounting
+    * @param seatNum the mount into which the player is mounting
     */
   def MountingAction(tplayer: Player, obj: PlanetSideGameObject with Mountable, seatNum: Int): Unit = {
     val player_guid: PlanetSideGUID = tplayer.GUID
@@ -7723,13 +7783,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * Common activities/procedure when a player dismounts a valid object.
     * @param tplayer the player
     * @param obj the mountable object
-    * @param seatNum the seat out of which which the player is disembarking
+    * @param seatNum the mount out of which which the player is disembarking
     */
   def DismountAction(tplayer: Player, obj: PlanetSideGameObject with Mountable, seatNum: Int): Unit = {
     val player_guid: PlanetSideGUID = tplayer.GUID
     log.info(s"DismountVehicleMsg: ${tplayer.Name} dismounts $obj from $seatNum")
     keepAliveFunc = NormalKeepAlive
-    sendResponse(DismountVehicleMsg(player_guid, BailType.Normal, false))
+    sendResponse(DismountVehicleMsg(player_guid, BailType.Normal, wasKickedByDriver = false))
     continent.VehicleEvents ! VehicleServiceMessage(
       continent.id,
       VehicleAction.DismountVehicle(player_guid, BailType.Normal, false)
@@ -8417,15 +8477,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         session = session.copy(player = targetPlayer)
         taskThenZoneChange(
           GUIDTask.UnregisterObjectTask(original.avatar.locker)(continent.GUID),
-          InterstellarClusterService.FindZone(_.id == zoneId, context.self)
+          ICS.FindZone(_.id == zoneId, context.self)
         )
       } else if (player.HasGUID) {
         taskThenZoneChange(
           GUIDTask.UnregisterAvatar(original)(continent.GUID),
-          InterstellarClusterService.FindZone(_.id == zoneId, context.self)
+          ICS.FindZone(_.id == zoneId, context.self)
         )
       } else {
-        cluster ! InterstellarClusterService.FindZone(_.id == zoneId, context.self)
+        cluster ! ICS.FindZone(_.id == zoneId, context.self)
       }
 
     }
@@ -8494,11 +8554,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     )
     manifest.cargo.foreach {
       case ("MISSING_DRIVER", index) =>
-        val cargo = vehicle.CargoHolds(index).Occupant.get
+        val cargo = vehicle.CargoHolds(index).occupant.get
         log.error(s"LoadZoneInVehicleAsDriver: eject cargo in hold $index; vehicle missing driver")
         CargoBehavior.HandleVehicleCargoDismount(cargo.GUID, cargo, vehicle.GUID, vehicle, false, false, true)
       case (name, index) =>
-        val cargo = vehicle.CargoHolds(index).Occupant.get
+        val cargo = vehicle.CargoHolds(index).occupant.get
         continent.VehicleEvents ! VehicleServiceMessage(
           name,
           VehicleAction.TransferPassengerChannel(pguid, s"${cargo.Actor}", toChannel, cargo, topLevel)
@@ -8519,7 +8579,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       player.Continent = zoneId //forward-set the continent id to perform a test
       taskThenZoneChange(
         GUIDTask.UnregisterAvatar(player)(continent.GUID),
-        InterstellarClusterService.FindZone(_.id == zoneId, context.self)
+        ICS.FindZone(_.id == zoneId, context.self)
       )
     } else {
       UnaccessContainer(vehicle)
@@ -8543,7 +8603,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       continent.Transport ! Zone.Vehicle.Despawn(vehicle)
       taskThenZoneChange(
         UnregisterDrivenVehicle(vehicle, player),
-        InterstellarClusterService.FindZone(_.id == zoneId, context.self)
+        ICS.FindZone(_.id == zoneId, context.self)
       )
     }
   }
@@ -8587,7 +8647,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       taskThenZoneChange(
         GUIDTask.UnregisterAvatar(player)(continent.GUID),
-        InterstellarClusterService.FindZone(_.id == zoneId, context.self)
+        ICS.FindZone(_.id == zoneId, context.self)
       )
     }
   }
@@ -8614,7 +8674,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         vehicle.CargoHolds.values
           .collect {
             case hold if hold.isOccupied =>
-              val cargo = hold.Occupant.get
+              val cargo = hold.occupant.get
               cargo.Continent = toZoneId
               //point to the cargo vehicle to instigate cargo vehicle driver transportation
               galaxyService ! GalaxyServiceMessage(
@@ -8630,7 +8690,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   /** Before changing zones, perform the following task (which can be a nesting of subtasks). */
   def taskThenZoneChange(
       task: TaskResolver.GiveTask,
-      zoneMessage: InterstellarClusterService.FindZone
+      zoneMessage: ICS.FindZone
   ): Unit = {
     continent.tasks ! TaskResolver.GiveTask(
       new Task() {
@@ -8845,14 +8905,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   }
 
   /**
-    * From a seat, find the weapon controlled from it, and update the ammunition counts for that weapon's magazines.
+    * From a mount, find the weapon controlled from it, and update the ammunition counts for that weapon's magazines.
     * @param objWithSeat the object that owns seats (and weaponry)
-    * @param seatNum the seat
+    * @param seatNum the mount
     */
-  def UpdateWeaponAtSeatPosition(objWithSeat: MountedWeapons, seatNum: Int): Unit = {
+  def UpdateWeaponAtSeatPosition(objWithSeat: MountableWeapons, seatNum: Int): Unit = {
     objWithSeat.WeaponControlledFromSeat(seatNum) match {
       case Some(weapon: Tool) =>
-        //update mounted weapon belonging to seat
+        //update mounted weapon belonging to mount
         weapon.AmmoSlots.foreach(slot => {
           //update the magazine(s) in the weapon, specifically
           val magazine = slot.Box
@@ -9094,9 +9154,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       .flatMap {
         case Some(obj: Vehicle) if !obj.Cloaked =>
           //TODO hint: vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.ProjectileAutoLockAwareness(mode))
-          obj.Seats.values.collect { case seat if seat.isOccupied => seat.Occupant.get.Name }
+          obj.Seats.values.flatMap { case seat if seat.isOccupied => seat.occupants.map(_.Name) }
         case Some(obj: Mountable) =>
-          obj.Seats.values.collect { case seat if seat.isOccupied => seat.Occupant.get.Name }
+          obj.Seats.values.flatMap { case seat if seat.isOccupied => seat.occupants.map(_.Name) }
         case Some(obj: Player) if obj.ExoSuit == ExoSuitType.MAX =>
           Seq(obj.Name)
         case _ =>
@@ -9216,15 +9276,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * Until new upstream messages that pass some tests against their data start being reported,
     * the counter does not accumulate properly.<br>
     * <br>
-    * In the case that the transitioning player is seated in a vehicle seat
+    * In the case that the transitioning player is seated in a vehicle mount
     * that is not the driver and does not have a mounted weapon under its control,
     * no obvious feedback will be provided by the client.
     * For example, when as infantry, a `PlayerStateMessageUpstream` packet is dispatched by the client.
-    * For example, when in the driver seat, a `VehicleStateMessage` is dispatched by the client.
+    * For example, when in the driver mount, a `VehicleStateMessage` is dispatched by the client.
     * In the given case, the only packet that indicates the player is seated is a `KeepAliveMessage`.
     * Detection of this `KeepALiveMessage`, for the purpose of transitioning logic,
     * can not be instantaneous to the zoning process or other checks for proper zoning conditions that will be disrupted.
-    * To avoid complications, the player in such a seat is initially spawned as infantry on their own client,
+    * To avoid complications, the player in such a mount is initially spawned as infantry on their own client,
     * realizes the state transition confirmation for infantry (turn counter),
     * and is forced to transition into being seated,
     * and only at that time will begin registering `KeepAliveMessage` to mark the end of their interim period.
@@ -9265,7 +9325,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * The atypical response to receiving a `KeepAliveMessage` packet from the client.<br>
     * <br>
     * `KeepAliveMessage` packets are the primary vehicle for persistence due to client reporting
-    * in the case where the player's avatar is riding in a vehicle in a seat with no vehicle.
+    * in the case where the player's avatar is riding in a vehicle in a mount with no vehicle.
     * @see `KeepAliveMessage`
     * @see `keepAliveFunc`
     * @see `turnCounterFunc`
@@ -9285,7 +9345,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     GetMountableAndSeat(None, tplayer, continent) match {
       case (Some(obj), Some(seatNum)) =>
         tplayer.VehicleSeated = None
-        obj.Seats(seatNum).Occupant = None
+        obj.Seats(seatNum).unmount(tplayer)
         continent.VehicleEvents ! VehicleServiceMessage(
           continent.id,
           VehicleAction.KickPassenger(tplayer.GUID, seatNum, false, obj.GUID)

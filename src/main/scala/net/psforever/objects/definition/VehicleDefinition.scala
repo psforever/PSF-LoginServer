@@ -4,7 +4,7 @@ package net.psforever.objects.definition
 import net.psforever.objects.NtuContainerDefinition
 import net.psforever.objects.definition.converter.VehicleConverter
 import net.psforever.objects.inventory.InventoryTile
-import net.psforever.objects.vehicles.{DestroyedVehicle, UtilityType}
+import net.psforever.objects.vehicles.{DestroyedVehicle, MountableWeaponsDefinition, UtilityType}
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.resistance.ResistanceProfileMutators
@@ -20,19 +20,14 @@ import scala.concurrent.duration._
   */
 class VehicleDefinition(objectId: Int)
     extends ObjectDefinition(objectId)
+    with MountableWeaponsDefinition
     with VitalityDefinition
     with NtuContainerDefinition
     with ResistanceProfileMutators
     with DamageResistanceModel {
   /** vehicle shields offered through amp station facility benefits (generally: 20% of health + 1) */
   private var maxShields: Int = 0
-  /* key - seat index, value - seat object */
-  private val seats: mutable.HashMap[Int, SeatDefinition]  = mutable.HashMap[Int, SeatDefinition]()
   private val cargo: mutable.HashMap[Int, CargoDefinition] = mutable.HashMap[Int, CargoDefinition]()
-  /* key - entry point index, value - seat index */
-  private val mountPoints: mutable.HashMap[Int, Int] = mutable.HashMap()
-  /* key - seat index (where this weapon attaches during object construction), value - the weapon on an EquipmentSlot */
-  private val weapons: mutable.HashMap[Int, ToolDefinition]      = mutable.HashMap[Int, ToolDefinition]()
   private var deployment: Boolean                                = false
   private val utilities: mutable.HashMap[Int, UtilityType.Value] = mutable.HashMap()
   private val utilityOffsets: mutable.HashMap[Int, Vector3]      = mutable.HashMap()
@@ -44,8 +39,16 @@ class VehicleDefinition(objectId: Int)
   private var trunkLocation: Vector3                         = Vector3.Zero
   private var canCloak: Boolean                              = false
   private var canFly: Boolean                                = false
-  private var canBeOwned: Boolean                            = true
+  /** whether the vehicle gains and/or maintains ownership based on access to the driver seat<br>
+    * `Some(true)` - assign ownership upon the driver mount, maintains ownership after the driver dismounts<br>
+    * `Some(false)` - assign ownership upon the driver mount, becomes unowned after the driver dismounts<br>
+    * `None` - does not assign ownership<br>
+    * Be cautious about using `None` as the client tends to equate the driver seat as the owner's seat for many vehicles
+    * and breaking from the client's convention either requires additional fields or just doesn't work.
+    */
+  private var canBeOwned: Option[Boolean]                    = Some(true)
   private var serverVehicleOverrideSpeeds: (Int, Int)        = (0, 0)
+  var undergoesDecay: Boolean                                = true
   private var deconTime: Option[FiniteDuration]              = None
   private var maxCapacitor: Int                              = 0
   private var destroyedModel: Option[DestroyedVehicle.Value] = None
@@ -64,15 +67,13 @@ class VehicleDefinition(objectId: Int)
     MaxShields
   }
 
-  def Seats: mutable.HashMap[Int, SeatDefinition] = seats
-
   def Cargo: mutable.HashMap[Int, CargoDefinition] = cargo
 
-  def MountPoints: mutable.HashMap[Int, Int] = mountPoints
+  def CanBeOwned: Option[Boolean] = canBeOwned
 
-  def CanBeOwned: Boolean = canBeOwned
+  def CanBeOwned_=(ownable: Boolean): Option[Boolean] = CanBeOwned_=(Some(ownable))
 
-  def CanBeOwned_=(ownable: Boolean): Boolean = {
+  def CanBeOwned_=(ownable: Option[Boolean]): Option[Boolean] = {
     canBeOwned = ownable
     CanBeOwned
   }
@@ -90,8 +91,6 @@ class VehicleDefinition(objectId: Int)
     canFly = flying
     CanFly
   }
-
-  def Weapons: mutable.HashMap[Int, ToolDefinition] = weapons
 
   def Deployment: Boolean = deployment
 

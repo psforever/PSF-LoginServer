@@ -1,14 +1,9 @@
 package net.psforever.objects.serverobject.terminals.capture
 
-import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.Player
 import net.psforever.objects.serverobject.CommonMessages
-import net.psforever.objects.serverobject.hackable.Hackable
-import net.psforever.packet.game.PlanetsideAttributeEnum
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import net.psforever.types.PlanetSideEmpire
 
-import java.util.concurrent.TimeUnit
 import scala.util.{Failure, Success}
 
 object CaptureTerminals {

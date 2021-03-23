@@ -203,7 +203,7 @@ class AutoRepairFacilityIntegrationAntGiveNtuTest extends FreedContextActorTest 
   ant.NtuCapacitor = maxNtuCap
   ant.Actor = context.actorOf(Props(classOf[VehicleControl], ant), name = "test-ant")
   ant.Zone = zone
-  ant.Seats(0).Occupant = player
+  ant.Seats(0).mount(player)
   ant.DeploymentState = DriveState.Deployed
   building.Amenities = terminal
   building.Amenities = silo
@@ -297,7 +297,7 @@ class AutoRepairFacilityIntegrationTerminalDestroyedTerminalAntTest extends Free
   ant.NtuCapacitor = maxNtuCap
   ant.Actor = context.actorOf(Props(classOf[VehicleControl], ant), name = "test-ant")
   ant.Zone = zone
-  ant.Seats(0).Occupant = player
+  ant.Seats(0).mount(player)
   ant.DeploymentState = DriveState.Deployed
   building.Amenities = terminal
   building.Amenities = silo
@@ -399,7 +399,7 @@ class AutoRepairFacilityIntegrationTerminalIncompleteRepairTest extends FreedCon
   ant.NtuCapacitor = maxNtuCap
   ant.Actor = context.actorOf(Props(classOf[VehicleControl], ant), name = "test-ant")
   ant.Zone = zone
-  ant.Seats(0).Occupant = player
+  ant.Seats(0).mount(player)
   ant.DeploymentState = DriveState.Deployed
   building.Amenities = terminal
   building.Amenities = silo

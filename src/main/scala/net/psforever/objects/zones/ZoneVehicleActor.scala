@@ -44,6 +44,7 @@ class ZoneVehicleActor(zone: Zone, vehicleList: ListBuffer[Vehicle]) extends Act
         vehicle.Actor =
           context.actorOf(Props(classOf[VehicleControl], vehicle), PlanetSideServerObject.UniqueActorName(vehicle))
       }
+      sender() ! Zone.Vehicle.HasSpawned(zone, vehicle)
 
     case Zone.Vehicle.Despawn(vehicle) =>
       ZoneVehicleActor.recursiveFindVehicle(vehicleList.iterator, vehicle) match {
@@ -51,6 +52,7 @@ class ZoneVehicleActor(zone: Zone, vehicleList: ListBuffer[Vehicle]) extends Act
           vehicleList.remove(index)
           context.stop(vehicle.Actor)
           vehicle.Actor = Default.Actor
+          sender() ! Zone.Vehicle.HasDespawned(zone, vehicle)
         case None => ;
           sender() ! Zone.Vehicle.CanNotDespawn(zone, vehicle, "can not find")
       }

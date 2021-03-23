@@ -14,6 +14,7 @@ import net.psforever.objects.definition.BasicDefinition
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.generator.Generator
 import net.psforever.objects.serverobject.locks.IFFLock
+import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
 import net.psforever.objects.serverobject.pad.{VehicleSpawnPad, VehicleSpawnPadDefinition}
 import net.psforever.objects.serverobject.painbox.{Painbox, PainboxDefinition}
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
@@ -338,6 +339,14 @@ object Zones {
             owningBuildingGuid = ownerGuid
           )
 
+        case "gr_door_mb_orb" =>
+          zoneMap
+            .addLocalObject(
+              obj.guid,
+              Door.Constructor(obj.position, GlobalDefinitions.gr_door_mb_orb),
+              owningBuildingGuid = ownerGuid
+            )
+
         case objectType if doorTypes.contains(objectType) =>
           zoneMap
             .addLocalObject(obj.guid, Door.Constructor(obj.position), owningBuildingGuid = ownerGuid)
@@ -395,7 +404,7 @@ object Zones {
             // presumably the model is rotated differently to the expected orientation
             // On top of that, some spawn pads also have an additional rotation (vehiclecreationzorientoffset)
             // when spawning vehicles set in game_objects.adb.lst - this should be handled on the Scala side
-            val adjustedYaw = closestSpawnPad.yaw - 90;
+            val adjustedYaw = closestSpawnPad.yaw - 90
 
             zoneMap.addLocalObject(
               closestSpawnPad.guid,
@@ -527,6 +536,15 @@ object Zones {
               owningBuildingGuid = ownerGuid
             )
 
+        case "obbasemesh" =>
+          zoneMap
+            .addLocalObject(
+              obj.guid,
+              OrbitalShuttlePad.Constructor(obj.position, GlobalDefinitions.obbasemesh, Vector3.z(obj.yaw)),
+              owningBuildingGuid = ownerGuid
+            )
+          zoneMap.linkShuttleToBay(obj.guid)
+
         case _ => ()
       }
 
@@ -551,6 +569,8 @@ object Zones {
             this.Buildings.values.foreach(_.Faction = PlanetSideEmpire.TR)
           case "home3" =>
             this.Buildings.values.foreach(_.Faction = PlanetSideEmpire.VS)
+          case zoneid if zoneid.startsWith("c") =>
+            this.map.cavern = true
           case _ => ()
         }
 

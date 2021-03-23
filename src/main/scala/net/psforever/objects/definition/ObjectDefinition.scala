@@ -89,9 +89,9 @@ abstract class ObjectDefinition(private val objectId: Int) extends BasicDefiniti
   private var serverGeometry: Any => Geometry3D = GeometryForm.representByPoint()
 
   def Geometry: Any => Geometry3D = if (ServerSplashTargetsCentroid) {
-    serverGeometry
-  } else {
     GeometryForm.representByPoint()
+  } else {
+    serverGeometry
   }
 
   def Geometry_=(func: Any => Geometry3D): Any => Geometry3D = {

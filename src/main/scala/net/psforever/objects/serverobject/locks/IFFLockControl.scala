@@ -6,6 +6,8 @@ import net.psforever.objects.{GlobalDefinitions, SimpleItem}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}
+import net.psforever.objects.serverobject.structures.Building
+import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `IFFLock`.
@@ -42,6 +44,27 @@ class IFFLockControl(lock: IFFLock)
             log.warn("IFF lock is being hacked, but don't know how to handle this state:")
             log.warn(s"Lock - Faction=${lock.Faction}, HackedBy=${lock.HackedBy}")
             log.warn(s"Player - Faction=${player.Faction}")
+          }
+
+        case IFFLock.DoorOpenRequest(target, door, replyTo) =>
+          val owner = lock.Owner.asInstanceOf[Building]
+          /*
+          If one of the following conditions are met:
+          1. target and door have same faction affinity
+          2. lock or lock owner is neutral
+          3. lock is hacked
+          4. facility capture terminal (owner is a building) has been hacked
+          5. requestee is on the inside of the door (determined by the lock orientation)
+          ... open the door.
+           */
+          if (
+            lock.Faction == target.Faction ||
+            lock.Faction == PlanetSideEmpire.NEUTRAL || owner.Faction == PlanetSideEmpire.NEUTRAL ||
+            lock.HackedBy.isDefined ||
+            owner.CaptureTerminalIsHacked ||
+            Vector3.ScalarProjection(lock.Outwards, target.Position - door.Position) < 0f
+          ) {
+            replyTo ! IFFLock.DoorOpenResponse(target)
           }
 
         case _ => ; //no default message

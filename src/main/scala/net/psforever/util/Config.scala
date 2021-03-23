@@ -136,12 +136,18 @@ case class GameConfig(
     amenityAutorepairDrainRate: Float,
     bepRate: Double,
     cepRate: Double,
-    newAvatar: NewAvatar
+    newAvatar: NewAvatar,
+    hart: HartConfig
 )
 
 case class NewAvatar(
     br: BattleRank,
     cr: CommandRank
+)
+
+case class HartConfig(
+    inFlightDuration: Long,
+    boardingDuration: Long
 )
 
 case class DevelopmentConfig(

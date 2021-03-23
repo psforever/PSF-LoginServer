@@ -2,6 +2,7 @@
 package net.psforever.objects.vehicles
 
 import net.psforever.objects.Vehicle
+import net.psforever.objects.serverobject.mount.Seat
 import net.psforever.objects.zones.Zone
 
 /**
@@ -14,7 +15,7 @@ import net.psforever.objects.zones.Zone
   * @param vehicle the vehicle in transport
   * @param origin where the vehicle originally was
   * @param driverName the name of the driver when the transport process started
-  * @param passengers the paired names and seat indices of all passengers when the transport process started
+  * @param passengers the paired names and mount indices of all passengers when the transport process started
   * @param cargo the paired driver names and cargo hold indices of all cargo vehicles when the transport process started
   */
 final case class VehicleManifest(
@@ -28,17 +29,17 @@ final case class VehicleManifest(
 
 object VehicleManifest {
   def apply(vehicle: Vehicle): VehicleManifest = {
-    val driverName = vehicle.Seats(0).Occupant match {
+    val driverName = vehicle.Seats(0).occupant match {
       case Some(driver) => driver.Name
       case None         => "MISSING_DRIVER"
     }
     val passengers = vehicle.Seats.collect {
-      case (index, seat) if index > 0 && seat.isOccupied =>
-        (seat.Occupant.get.Name, index)
+      case (index: Int, seat: Seat) if index > 0 && seat.isOccupied =>
+        (seat.occupant.get.Name, index)
     }
     val cargo = vehicle.CargoHolds.collect {
-      case (index, hold) if hold.Occupant.nonEmpty =>
-        hold.Occupant.get.Seats(0).Occupant match {
+      case (index: Int, hold: Cargo) if hold.occupant.nonEmpty =>
+        hold.occupant.get.Seats(0).occupant match {
           case Some(driver) =>
             (driver.Name, index)
           case None =>

@@ -226,6 +226,21 @@ class FacilityTurretObjectBuilderTest extends FreedContextActorTest {
   }
 }
 
+class OrbitalShuttlePadObjectBuilderTest extends FreedContextActorTest {
+  import net.psforever.objects.GlobalDefinitions.obbasemesh
+  import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
+  "OrbitalShuttlePadObjectBuilder" should {
+    "build" in {
+      val hub = ServerObjectBuilderTest.NumberPoolHub
+      val obj = ServerObjectBuilder(1, OrbitalShuttlePad.Constructor(Vector3.Zero, obbasemesh, Vector3.Zero)).Build(context, hub)
+      assert(obj.isInstanceOf[OrbitalShuttlePad])
+      assert(obj.HasGUID)
+      assert(obj.GUID == PlanetSideGUID(1))
+      assert(obj == hub(1).get)
+    }
+  }
+}
+
 object ServerObjectBuilderTest {
   import net.psforever.objects.guid.source.MaxNumberSource
   def NumberPoolHub: NumberPoolHub = {

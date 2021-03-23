@@ -8,8 +8,10 @@ import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.{Player, SpawnPoint, Vehicle}
 import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.zones.Zone
+import net.psforever.packet.game.DroppodError
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, SpawnGroup, Vector3}
 import net.psforever.util.Config
+import net.psforever.zones.Zones
 
 import scala.collection.mutable
 import scala.util.Random
@@ -71,6 +73,19 @@ object InterstellarClusterService {
   final case class GetPlayers(replyTo: ActorRef[PlayersResponse]) extends Command
 
   final case class PlayersResponse(players: Seq[Avatar])
+
+  final case class DroppodLaunchRequest(
+                                         zoneNumber: Int,
+                                         position: Vector3,
+                                         faction: PlanetSideEmpire.Value,
+                                         replyTo: ActorRef[DroppodLaunchExchange]
+                                       ) extends Command
+
+  trait DroppodLaunchExchange
+
+  final case class DroppodLaunchConfirmation(destination: Zone, position: Vector3) extends DroppodLaunchExchange
+
+  final case class DroppodLaunchDenial(errorCode: DroppodError, data: Option[Any]) extends DroppodLaunchExchange
 }
 
 class InterstellarClusterService(context: ActorContext[InterstellarClusterService.Command], _zones: Iterable[Zone])
@@ -138,7 +153,7 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
             Ordering[Int].reverse
           ) // greatest > least
           .sortWith {
-            case ((_, spot1, _), (_, spot2, _)) =>
+            case ((_, spot1, _), (_, _, _)) =>
               spot1.ActivityBy().contains(faction) // prefer own faction activity
           }
           .headOption
@@ -209,6 +224,22 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
             }
           case None =>
             replyTo ! SpawnPointResponse(None)
+        }
+
+      case DroppodLaunchRequest(zoneNumber, position, faction, replyTo) =>
+        zones.find(_.Number == zoneNumber) match {
+          case Some(zone) =>
+            //TODO all of the checks for the specific DroppodLaunchResponseMessage excuses go here
+            if(zone.map.cavern) {
+              //just being cautious - caverns are typically not normally selectable as drop zones
+              replyTo ! DroppodLaunchDenial(DroppodError.ZoneNotAvailable, None)
+            } else if (zone.Number == Zones.sanctuaryZoneNumber(faction)) {
+              replyTo ! DroppodLaunchDenial(DroppodError.OwnFactionLocked, None)
+            } else {
+              replyTo ! DroppodLaunchConfirmation(zone, position)
+            }
+          case None =>
+            replyTo ! DroppodLaunchDenial(DroppodError.InvalidLocation, None)
         }
     }
 

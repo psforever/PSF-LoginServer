@@ -13,7 +13,7 @@ object EquipmentSize extends Enumeration {
   VehicleWeapon,      //vehicle-mounted weapons
   BaseTurretWeapon,   //common phalanx cannons, and cavern turrets
   BFRArmWeapon,       //duel arm weapons for bfr
-  BFRGunnerWeapon,    //gunner seat for bfr
+  BFRGunnerWeapon,    //gunner mount for bfr
   Inventory           //reserved
   = Value
 

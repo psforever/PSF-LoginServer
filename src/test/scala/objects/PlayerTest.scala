@@ -336,7 +336,7 @@ class PlayerTest extends Specification {
       } //free hand
     }
 
-    "seat in a vehicle" in {
+    "mount in a vehicle" in {
       val obj = TestPlayer("Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
       obj.VehicleSeated.isEmpty mustEqual true
       obj.VehicleSeated = PlanetSideGUID(65)

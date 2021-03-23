@@ -2,15 +2,11 @@
 package net.psforever.services.local
 
 import akka.actor.{Actor, ActorRef, Props}
-import akka.pattern.Patterns
-import akka.util.Timeout
-import net.psforever.actors.zone.{BuildingActor, ZoneActor}
 import net.psforever.objects.ce.Deployable
-import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.zones.Zone
 import net.psforever.objects._
-import net.psforever.packet.game.{PlanetsideAttributeEnum, TriggeredEffect, TriggeredEffectLocation}
+import net.psforever.packet.game.{TriggeredEffect, TriggeredEffectLocation}
 import net.psforever.objects.vital.Vitality
 import net.psforever.types.{PlanetSideGUID, Vector3}
 import net.psforever.services.local.support._
@@ -18,12 +14,9 @@ import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.services.{GenericEventBus, RemoverActor, Service}
 
 import scala.concurrent.duration._
-import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.vehicles.{Utility, UtilityType}
 import net.psforever.services.support.SupportActor
 
-import java.util.concurrent.TimeUnit
-import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
 class LocalService(zone: Zone) extends Actor {
@@ -91,6 +84,12 @@ class LocalService(zone: Zone) extends Actor {
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.DoorCloses(door_guid))
           )
+        case LocalAction.DoorSlamsShut(door) =>
+          val door_guid = door.GUID
+          doorCloser ! SupportActor.HurrySpecific(List(door), zone)
+          LocalEvents.publish(
+            LocalServiceResponse(s"/$forChannel/Local", Service.defaultPlayerGUID, LocalResponse.DoorCloses(door_guid))
+          )
         case LocalAction.HackClear(player_guid, target, unk1, unk2) =>
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.SendHackMessageHackCleared(target.GUID, unk1, unk2))
@@ -122,12 +121,48 @@ class LocalService(zone: Zone) extends Actor {
               LocalResponse.RouterTelepadTransport(passenger_guid, src_guid, dest_guid)
             )
           )
+        case LocalAction.SendResponse(pkt) =>
+          LocalEvents.publish(
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              Service.defaultPlayerGUID,
+              LocalResponse.SendResponse(pkt)
+            )
+          )
         case LocalAction.SetEmpire(object_guid, empire) =>
           LocalEvents.publish(
             LocalServiceResponse(
               s"/$forChannel/Local",
               Service.defaultPlayerGUID,
               LocalResponse.SetEmpire(object_guid, empire)
+            )
+          )
+        case LocalAction.ShuttleDock(pad, shuttle, slot) =>
+          LocalEvents.publish(
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              Service.defaultPlayerGUID,
+              LocalResponse.ShuttleDock(pad, shuttle, slot)
+            )
+          )
+        case LocalAction.ShuttleUndock(pad, shuttle, pos, orient) =>
+          LocalEvents.publish(
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              Service.defaultPlayerGUID,
+              LocalResponse.ShuttleUndock(pad, shuttle, pos, orient)
+            )
+          )
+        case LocalAction.ShuttleEvent(ev) =>
+          LocalEvents.publish(
+            LocalServiceResponse(s"/$forChannel/Local", Service.defaultPlayerGUID, LocalResponse.ShuttleEvent(ev))
+          )
+        case LocalAction.ShuttleState(guid, pos, orient, state) =>
+          LocalEvents.publish(
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              Service.defaultPlayerGUID,
+              LocalResponse.ShuttleState(guid, pos, orient, state)
             )
           )
         case LocalAction.ToggleTeleportSystem(player_guid, router, system_plan) =>
@@ -166,7 +201,7 @@ class LocalService(zone: Zone) extends Actor {
               LocalResponse.TriggerSound(sound, pos, unk, volume)
             )
           )
-        case LocalAction.UpdateForceDomeStatus(player_guid, building_guid, activated) => {
+        case LocalAction.UpdateForceDomeStatus(player_guid, building_guid, activated) =>
           LocalEvents.publish(
             LocalServiceResponse(
               s"/$forChannel/Local",
@@ -174,7 +209,6 @@ class LocalService(zone: Zone) extends Actor {
               LocalResponse.UpdateForceDomeStatus(building_guid, activated)
             )
           )
-        }
         case LocalAction.RechargeVehicleWeapon(player_guid, vehicle_guid, weapon_guid) =>
           LocalEvents.publish(
             LocalServiceResponse(
@@ -231,9 +265,9 @@ class LocalService(zone: Zone) extends Actor {
       if (seats.count(_.isOccupied) > 0) {
         val wasKickedByDriver = false //TODO yeah, I don't know
         seats.foreach(seat => {
-          seat.Occupant match {
+          seat.occupant match {
             case Some(tplayer) =>
-              seat.Occupant = None
+              seat.unmount(tplayer)
               tplayer.VehicleSeated = None
               zone.VehicleEvents ! VehicleServiceMessage(
                 zone.id,

@@ -75,7 +75,7 @@ object VehicleSpawnPad {
   final case class ResetSpawnPad(pad: VehicleSpawnPad)
 
   /**
-    * Message that acts as callback to the driver that the process of sitting in the driver seat will be initiated soon.
+    * Message that acts as callback to the driver that the process of sitting in the driver mount will be initiated soon.
     * This information should only be communicated to the driver's client only.
     * @param driver_name the person who will drive the vehicle
     * @param vehicle the vehicle being spawned
@@ -84,7 +84,7 @@ object VehicleSpawnPad {
   final case class StartPlayerSeatedInVehicle(driver_name: String, vehicle: Vehicle, pad: VehicleSpawnPad)
 
   /**
-    * Message that acts as callback to the driver that the process of sitting in the driver seat should be finished.
+    * Message that acts as callback to the driver that the process of sitting in the driver mount should be finished.
     * This information should only be communicated to the driver's client only.
     * @param driver_name the person who will drive the vehicle
     * @param vehicle the vehicle being spawned
