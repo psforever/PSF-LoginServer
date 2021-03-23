@@ -55,7 +55,7 @@ final case class VariantVehicleData(unk: Int) extends SpecificVehicleData(Vehicl
   *              health should be less than 3/255, or 0%<br>
   *             -jammered - vehicles will not be jammered by setting this field<br>
   *             -player_guid the vehicle's (official) owner;
-  *              a living player in the game world on the same continent as the vehicle who may mount the driver seat
+  *              a living player in the game world on the same continent as the vehicle who may mount the driver mount
   * @param unk3 na
   * @param health the amount of health the vehicle has, as a percentage of a filled bar (255)
   * @param unk4 na
@@ -69,7 +69,7 @@ final case class VariantVehicleData(unk: Int) extends SpecificVehicleData(Vehicl
   *                            see `vehicle_type`
   * @param inventory the seats, mounted weapons, and utilities (such as terminals) that are currently included;
   *                  will also include trunk contents;
-  *                  the driver is the only valid seat entry (more will cause the access permissions to act up)
+  *                  the driver is the only valid mount entry (more will cause the access permissions to act up)
   * @param vehicle_type a modifier for parsing the vehicle data format differently;
   *                     see `vehicle_format_data`;
   *                     defaults to `Normal`
@@ -393,8 +393,8 @@ object VehicleData extends Marshallable[VehicleData] {
     * the entries are temporarily formatted into a linked list before being put back into a normal `List`.<br>
     * <br>
     * 6 June 2018:<br>
-    * Due to curious behavior in the vehicle seat access controls,
-    * please only encode and decode the driver seat even though all seats are currently reachable.
+    * Due to curious behavior in the vehicle mount access controls,
+    * please only encode and decode the driver mount even though all seats are currently reachable.
     * @param length the distance in bits to the first inventory entry
     * @return a `Codec` that translates `InventoryData`
     */
@@ -404,8 +404,8 @@ object VehicleData extends Marshallable[VehicleData] {
       uint8 >>:~ { size =>
         uint2 ::
           (inventory_seat_codec(
-            length,                                   //length of stream until current seat
-            CumulativeSeatedPlayerNamePadding(length) //calculated offset of name field in next seat
+            length,                                   //length of stream until current mount
+            CumulativeSeatedPlayerNamePadding(length) //calculated offset of name field in next mount
           ) >>:~ { seats =>
           PacketHelpers.listOfNSized(size - countSeats(seats), InternalSlot.codec).hlist
         })
@@ -450,13 +450,13 @@ object VehicleData extends Marshallable[VehicleData] {
           conditional(
             objClass == ObjectClass.avatar,
             inventory_seat_codec(
-              { //length of stream until next seat
+              { //length of stream until next mount
                 length + (seat match {
                   case Some(o) => o.bitsize
                   case None    => 0
                 })
               },
-              CumulativeSeatedPlayerNamePadding(length, seat) //calculated offset of name field in next seat
+              CumulativeSeatedPlayerNamePadding(length, seat) //calculated offset of name field in next mount
             )
           ).hlist
         }
@@ -487,7 +487,7 @@ object VehicleData extends Marshallable[VehicleData] {
     * The operation performed by this `Codec` is very similar to `InternalSlot.codec`.
     * @param pad the padding offset for the player's name;
     *            0-7 bits;
-    *            this padding value must recalculate for each represented seat
+    *            this padding value must recalculate for each represented mount
     * @see `CharacterAppearanceData`<br>
     *       `VehicleData.InitialStreamLengthToSeatEntries`<br>
     *       `CumulativeSeatedPlayerNamePadding`

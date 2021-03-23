@@ -6,10 +6,13 @@ import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.hackable.Hackable
-import net.psforever.objects.serverobject.terminals.CaptureTerminal
+import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
 import net.psforever.objects.vehicles.Utility
 import net.psforever.objects.zones.Zone
+import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
+import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.{DeployableInfo, DeploymentAction, TriggeredSound}
+import net.psforever.services.hart.HartTimer.OrbitalShuttleEvent
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 final case class LocalServiceMessage(forChannel: String, actionMessage: LocalAction.Action)
@@ -33,6 +36,7 @@ object LocalAction {
   final case class Detonate(guid: PlanetSideGUID, obj: PlanetSideGameObject)           extends Action
   final case class DoorOpens(player_guid: PlanetSideGUID, continent: Zone, door: Door) extends Action
   final case class DoorCloses(player_guid: PlanetSideGUID, door_guid: PlanetSideGUID)  extends Action
+  final case class DoorSlamsShut(door: Door)                                           extends Action
   final case class HackClear(player_guid: PlanetSideGUID, target: PlanetSideServerObject, unk1: Long, unk2: Long = 8L)
       extends Action
   final case class HackTemporarily(
@@ -45,13 +49,13 @@ object LocalAction {
   ) extends Action
   final case class ClearTemporaryHack(player_guid: PlanetSideGUID, target: PlanetSideServerObject with Hackable)
       extends Action
-  final case class HackCaptureTerminal(
+  final case class ResecureCaptureTerminal(target: CaptureTerminal) extends Action
+  final case class StartCaptureTerminalHack(target: CaptureTerminal) extends Action
+  final case class SendPlanetsideAttributeMessage(
       player_guid: PlanetSideGUID,
-      continent: Zone,
-      target: CaptureTerminal,
-      unk1: Long,
-      unk2: Long = 8L,
-      isResecured: Boolean
+      target: PlanetSideGUID,
+      attribute_number: PlanetsideAttributeEnum,
+      attribute_value: Long
   ) extends Action
   final case class RouterTelepadTransport(
       player_guid: PlanetSideGUID,
@@ -59,7 +63,16 @@ object LocalAction {
       src_guid: PlanetSideGUID,
       dest_guid: PlanetSideGUID
   )                                                                                       extends Action
+  final case class SendResponse(pkt: PlanetSideGamePacket)                                extends Action
   final case class SetEmpire(object_guid: PlanetSideGUID, empire: PlanetSideEmpire.Value) extends Action
+  final case class ShuttleDock(pad_guid: PlanetSideGUID, shuttle_guid: PlanetSideGUID, toSlot: Int)   extends Action
+  final case class ShuttleUndock(
+      pad_guid: PlanetSideGUID,
+      shuttle_guid: PlanetSideGUID,
+      pos: Vector3, orient: Vector3
+  ) extends Action
+  final case class ShuttleEvent(ev: OrbitalShuttleEvent)                                              extends Action
+  final case class ShuttleState(guid: PlanetSideGUID, pos: Vector3, orientation: Vector3, state: Int) extends Action
   final case class ToggleTeleportSystem(
       player_guid: PlanetSideGUID,
       router: Vehicle,

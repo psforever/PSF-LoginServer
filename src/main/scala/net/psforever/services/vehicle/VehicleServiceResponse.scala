@@ -45,11 +45,12 @@ object VehicleResponse {
   final case class LoadVehicle(vehicle: Vehicle, vtype: Int, vguid: PlanetSideGUID, vdata: ConstructorData)
       extends Response
   final case class MountVehicle(object_guid: PlanetSideGUID, seat: Int) extends Response
+  final case class ObjectDelete(guid: PlanetSideGUID)                   extends Response
   final case class Ownership(vehicle_guid: PlanetSideGUID)              extends Response
   final case class PlanetsideAttribute(vehicle_guid: PlanetSideGUID, attribute_type: Int, attribute_value: Long)
       extends Response
-  final case class RevealPlayer(player_guid: PlanetSideGUID)                                        extends Response
-  final case class SeatPermissions(vehicle_guid: PlanetSideGUID, seat_group: Int, permission: Long) extends Response
+  final case class RevealPlayer(player_guid: PlanetSideGUID)                                          extends Response
+  final case class SeatPermissions(vehicle_guid: PlanetSideGUID, seat_group: Int, permission: Long)   extends Response
   final case class StowEquipment(
       vehicle_guid: PlanetSideGUID,
       slot: Int,

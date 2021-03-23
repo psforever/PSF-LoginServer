@@ -38,13 +38,18 @@ import akka.actor.typed
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
+import net.psforever.objects.geometry.Geometry3D
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.serverobject.pad.shuttle.OrbitalShuttlePad
+import net.psforever.objects.serverobject.doors.Door
+import net.psforever.objects.serverobject.locks.IFFLock
+import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
+import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vehicles.UtilityType
-import net.psforever.objects.vital.etc.ExplodingEntityReason
-import net.psforever.objects.vital.Vitality
+import net.psforever.objects.vital.etc.{EmpReason, ExplodingEntityReason}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
+import net.psforever.objects.vital.prop.DamageWithPosition
+import net.psforever.objects.vital.Vitality
 import net.psforever.services.Service
 
 /**
@@ -257,7 +262,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
       case (mechGuid, interfaceGuid) =>
         validateObject(
           mechGuid,
-          (x: PlanetSideGameObject) => x.isInstanceOf[serverobject.implantmech.ImplantTerminalMech],
+          (x: PlanetSideGameObject) => x.isInstanceOf[ImplantTerminalMech],
           "implant terminal mech"
         )
         validateObject(
@@ -618,13 +623,6 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
           case _ => ;
         }
     })
-    //shuttles
-    buildings.values
-      .filter { _.Definition.Name.startsWith("orbital_building") }
-      .flatMap { _.Amenities.collect { case o: OrbitalShuttlePad => o } }
-      .foreach { obj =>
-        guid.register(obj.shuttle, "dynamic")
-      }
     //after all fixed GUID's are defined  ...
     other.foreach(obj => guid.register(obj, "dynamic"))
   }
@@ -653,6 +651,13 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
           case (None, _) | (_, None) => ; //let ZoneActor's sanity check catch this error
         }
     })
+    //doors with nearby locks use those locks as their unlocking mechanism
+    //let ZoneActor's sanity check catch missing entities
+    map.doorToLock
+      .map { case(doorGUID: Int, lockGUID: Int) => (guid(doorGUID), guid(lockGUID)) }
+      .collect { case (Some(door: Door), Some(lock: IFFLock)) =>
+        door.Actor ! Door.UpdateMechanism(IFFLock.testLock(lock))
+      }
     //ntu management (eventually move to a generic building startup function)
     buildings.values
       .flatMap(_.Amenities.filter(_.Definition == GlobalDefinitions.resource_silo))
@@ -668,11 +673,10 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
           painbox.Actor ! "startup"
       }
     //the orbital_buildings in sanctuary zones have to establish their shuttle routes
-    buildings.values
-      .flatMap(_.Amenities.filter(_.Definition.Name.startsWith("orbital_building")))
-      .collect {
-        case pad: OrbitalShuttlePad =>
-          pad.Actor ! Service.Startup()
+    map.shuttleBays
+      .map { guid(_) }
+      .collect { case Some(obj: OrbitalShuttlePad) =>
+        obj.Actor ! Service.Startup()
       }
     //allocate soi information
     soi ! SOI.Build()
@@ -937,6 +941,10 @@ object Zone {
 
     final case class Despawn(vehicle: Vehicle)
 
+    final case class HasSpawned(zone: Zone, vehicle: Vehicle)
+
+    final case class HasDespawned(zone: Zone, vehicle: Vehicle)
+
     final case class CanNotSpawn(zone: Zone, vehicle: Vehicle, reason: String)
 
     final case class CanNotDespawn(zone: Zone, vehicle: Vehicle, reason: String)
@@ -1150,7 +1158,7 @@ object Zone {
               .flatMap { _.Amenities }
               .filter { _.Definition.Damageable }
         }
-        //restrict to targets in the damage radius
+        //restrict to targets according to the detection plan
         val allAffectedTargets = (playerTargets ++ vehicleTargets ++ complexDeployableTargets ++ soiTargets)
           .filter { target =>
             (target ne obj) && detectionTest(obj, target, radius)
@@ -1188,18 +1196,106 @@ object Zone {
   }
 
   /**
+    * Allocates `Damageable` targets within the radius of a server-prepared electromagnetic pulse
+    * and informs those entities that they have affected by the aforementioned pulse.
+    * Targets within the effect radius within other rooms are affected, unlike with normal damage.
+    * The only affected target is Boomer deployables.
+    * @see `Amenity.Owner`
+    * @see `BoomerDeployable`
+    * @see `DamageInteraction`
+    * @see `DamageResult`
+    * @see `DamageWithPosition`
+    * @see `EmpReason`
+    * @see `Zone.DeployableList`
+    * @param zone the zone in which the emp should occur
+    * @param obj the entity that triggered the emp (information)
+    * @param sourcePosition where the emp physically originates
+    * @param effect characteristics of the emp produced
+    * @param detectionTest a custom test to determine if any given target is affected;
+    *                      defaults to an internal test for simple radial proximity
+    * @return a list of affected entities
+    */
+  def causeSpecialEmp(
+                       zone: Zone,
+                       obj: PlanetSideServerObject with Vitality,
+                       sourcePosition: Vector3,
+                       effect: DamageWithPosition,
+                       detectionTest: (PlanetSideGameObject, PlanetSideGameObject, Float) => Boolean = distanceCheck
+                     ): List[PlanetSideServerObject] = {
+    val proxy: ExplosiveDeployable = {
+      //construct a proxy unit to represent the pulse
+      val o = new ExplosiveDeployable(GlobalDefinitions.special_emp)
+      o.Owner = Some(obj.GUID)
+      o.OwnerName = obj match {
+        case p: Player          => p.Name
+        case o: OwnableByPlayer => o.OwnerName.getOrElse("")
+        case _                  => ""
+      }
+      o.Position = sourcePosition
+      o.Faction = obj.Faction
+      o
+    }
+    val radius = effect.DamageRadius * effect.DamageRadius
+    //only boomers can be affected (that's why it's special)
+    val allAffectedTargets = zone.DeployableList
+      .collect { case o: BoomerDeployable if !o.Destroyed && (o ne obj) && detectionTest(proxy, o, radius) => o }
+    //inform targets that they have suffered the effects of the emp
+    allAffectedTargets
+      .foreach { target =>
+        target.Actor ! Vitality.Damage(
+          DamageInteraction(
+            SourceEntry(target),
+            EmpReason(obj, effect, target),
+            sourcePosition
+          ).calculate()
+        )
+      }
+    allAffectedTargets
+  }
+
+  /**
     * Two game entities are considered "near" each other if they are within a certain distance of one another.
     * A default function literal mainly used for `causesExplosion`.
     * @see `causeExplosion`
-    * @see `Vector3.DistanceSquare`
-    * @param obj1 a game entity
-    * @param obj2 a game entity
+    * @see `ObjectDefinition.Geometry`
+    * @param obj1 a game entity, should be the source of the explosion
+    * @param obj2 a game entity, should be the target of the explosion
     * @param maxDistance the square of the maximum distance permissible between game entities
     *                    before they are no longer considered "near"
-    * @return `true`, if the target entities are near to each other;
+    * @return `true`, if the target entities are near enough to each other;
     *        `false`, otherwise
     */
-  private def distanceCheck(obj1: PlanetSideGameObject, obj2: PlanetSideGameObject, maxDistance: Float): Boolean = {
-    Vector3.DistanceSquared(obj1.Position, obj2.Position) <= maxDistance
+  def distanceCheck(obj1: PlanetSideGameObject, obj2: PlanetSideGameObject, maxDistance: Float): Boolean = {
+    distanceCheck(obj1.Definition.Geometry(obj1), obj2.Definition.Geometry(obj2), maxDistance)
+  }
+
+  /**
+    * Two game entities are considered "near" each other if they are within a certain distance of one another.
+    * @param g1 the geometric representation of a game entity
+    * @param g2 the geometric representation of a game entity
+    * @param maxDistance    the square of the maximum distance permissible between game entities
+    *                       before they are no longer considered "near"
+    * @return `true`, if the target entities are near enough to each other;
+    *        `false`, otherwise
+    */
+  def distanceCheck(g1: Geometry3D, g2: Geometry3D, maxDistance: Float): Boolean = {
+    Vector3.DistanceSquared(g1.center.asVector3, g2.center.asVector3) <= maxDistance ||
+    distanceCheck(g1, g2) <= maxDistance
+  }
+  /**
+    * Two game entities are considered "near" each other if they are within a certain distance of one another.
+    * @see `PrimitiveGeometry.pointOnOutside`
+    * @see `Vector3.DistanceSquared`
+    * @see `Vector3.neg`
+    * @see `Vector3.Unit`
+    * @param g1 the geometric representation of a game entity
+    * @param g2 the geometric representation of a game entity
+    * @return the crude distance between the two geometric representations
+    */
+  def distanceCheck(g1: Geometry3D, g2: Geometry3D): Float = {
+    val dir = Vector3.Unit(g2.center.asVector3 - g1.center.asVector3)
+    val point1 = g1.pointOnOutside(dir).asVector3
+    val point2 = g2.pointOnOutside(Vector3.neg(dir)).asVector3
+    Vector3.DistanceSquared(point1, point2)
   }
 }

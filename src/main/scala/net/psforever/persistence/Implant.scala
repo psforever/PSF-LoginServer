@@ -1,7 +1,7 @@
 package net.psforever.persistence
 
 import net.psforever.objects.definition.ImplantDefinition
-import net.psforever.objects.serverobject.terminals.ImplantTerminalDefinition
+import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalDefinition
 
 case class Implant(
     name: String,

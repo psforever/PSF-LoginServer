@@ -1,6 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.locks
 
+import akka.actor.ActorRef
+import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.packet.game.TriggeredSound
@@ -48,6 +51,14 @@ class IFFLock(private val idef: IFFLockDefinition) extends Amenity with Hackable
 }
 
 object IFFLock {
+  final case class DoorOpenRequest(requestee: PlanetSideServerObject, door: Door, replyTo: ActorRef)
+
+  final case class DoorOpenResponse(requestee: PlanetSideServerObject)
+
+  def testLock(lock: IFFLock)(target: PlanetSideServerObject, door: Door): Boolean = {
+    lock.Actor ! IFFLock.DoorOpenRequest(target, door, door.Actor)
+    false
+  }
 
   /**
     * Overloaded constructor.

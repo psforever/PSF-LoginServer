@@ -6,9 +6,11 @@ import net.psforever.objects.ballistics.{PlayerSource, SourceEntry}
 import net.psforever.objects.ce.ComplexDeployable
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.damage.Damageable
-import net.psforever.objects.vital.Vitality
+import net.psforever.objects.vital.base.DamageResolution
+import net.psforever.objects.vital.{DamagingActivity, Vitality, VitalsHistory}
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
+import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.vital.resistance.ResistanceSelection
 import net.psforever.types.{ExoSuitType, ImplantType}
 
@@ -153,7 +155,7 @@ object ResolutionCalculations {
   def InfantryApplication(damageValues: (Int, Int), data: DamageInteraction)(target: PlanetSideGameObject with FactionAffinity): DamageResult = {
     val targetBefore = SourceEntry(target)
     target match {
-      case player: Player =>
+      case player: Player if noDoubleLash(player, data) =>
         var (a, b) = damageValues
         if (player.isAlive && !(a == 0 && b == 0)) {
           val originalHealth = player.Health
@@ -321,6 +323,19 @@ object ResolutionCalculations {
           case _ => 0
         }
         SimpleApplication(dam, data)(target)
+    }
+  }
+
+  private def noDoubleLash(target: PlanetSideGameObject with VitalsHistory, data: DamageInteraction): Boolean = {
+    data.cause match {
+      case reason: ProjectileReason if reason.resolution == DamageResolution.Lash =>
+        val curr = System.currentTimeMillis()
+        !target.History.exists {
+          case dam: DamagingActivity => curr - dam.time < 1000 && reason.same(dam.data.interaction.cause)
+          case _                     => false
+        }
+      case _ =>
+        true
     }
   }
 }

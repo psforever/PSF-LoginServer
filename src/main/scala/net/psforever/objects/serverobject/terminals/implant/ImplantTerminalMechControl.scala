@@ -1,16 +1,17 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.serverobject.implantmech
+package net.psforever.objects.serverobject.terminals.implant
 
-import net.psforever.objects.{GlobalDefinitions, Player, SimpleItem}
-import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
-import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity, DamageableMountable}
 import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}
+import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableEntity}
 import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
+import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalAwareBehavior
+import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.vital.interaction.DamageResult
+import net.psforever.objects.{GlobalDefinitions, Player, SimpleItem}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 /**
@@ -20,18 +21,19 @@ import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 class ImplantTerminalMechControl(mech: ImplantTerminalMech)
     extends PoweredAmenityControl
     with FactionAffinityBehavior.Check
-    with MountableBehavior.Mount
-    with MountableBehavior.Dismount
+    with MountableBehavior
     with HackableBehavior.GenericHackable
     with DamageableEntity
     with RepairableEntity
-    with AmenityAutoRepair {
+    with AmenityAutoRepair
+    with CaptureTerminalAwareBehavior {
   def MountableObject  = mech
   def HackableObject   = mech
   def FactionObject    = mech
   def DamageableObject = mech
   def RepairableObject = mech
   def AutoRepairObject = mech
+  def CaptureTerminalAwareObject = mech
 
   def commonBehavior: Receive =
     checkBehavior
@@ -65,11 +67,11 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
         case _ => ;
       }
 
-  override protected def MountTest(
-      obj: PlanetSideServerObject with Mountable,
-      seatNumber: Int,
-      player: Player
-  ): Boolean = {
+  override protected def mountTest(
+                                    obj: PlanetSideServerObject with Mountable,
+                                    seatNumber: Int,
+                                    player: Player
+                                  ): Boolean = {
     val zone = obj.Zone
     zone.map.terminalToInterface.get(obj.GUID.guid) match {
       case Some(interface_guid) =>
@@ -77,7 +79,7 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
           case Some(interface) => !interface.Destroyed
           case None            => false
         }) &&
-          super.MountTest(obj, seatNumber, player)
+          super.mountTest(obj, seatNumber, player)
       case None =>
         false
     }
@@ -119,9 +121,9 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
     val zoneId = zone.id
     val events = zone.VehicleEvents
     mech.Seats.values.foreach(seat =>
-      seat.Occupant match {
+      seat.occupant match {
         case Some(player) =>
-          seat.Occupant = None
+          seat.unmount(player)
           player.VehicleSeated = None
           if (player.HasGUID) {
             events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, false, guid))

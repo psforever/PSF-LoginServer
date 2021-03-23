@@ -2,13 +2,12 @@
 package net.psforever.objects.serverobject.doors
 
 import net.psforever.objects.Player
-import net.psforever.objects.serverobject.CommonMessages
+import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.locks.IFFLock
-import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
+import net.psforever.objects.serverobject.structures.PoweredAmenityControl
 import net.psforever.services.Service
 import net.psforever.services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
-import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `Door`.
@@ -18,36 +17,36 @@ class DoorControl(door: Door)
   extends PoweredAmenityControl
   with FactionAffinityBehavior.Check {
   def FactionObject: FactionAffinity = door
+  var isLocked: Boolean = false
+  var lockingMechanism: Door.LockingMechanismLogic = DoorControl.alwaysOpen
 
   val commonBehavior: Receive = checkBehavior
+    .orElse {
+      case Door.Lock =>
+        isLocked = true
+        if (door.isOpen) {
+          val zone = door.Zone
+          door.Open = None
+          zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.DoorSlamsShut(door))
+        }
+
+      case Door.Unlock =>
+        isLocked = false
+
+      case Door.UpdateMechanism(logic) =>
+        lockingMechanism = logic
+    }
 
   def poweredStateLogic: Receive =
     commonBehavior
       .orElse {
         case CommonMessages.Use(player, _) =>
-          val zone = door.Zone
-          val doorGUID = door.GUID
-          if (
-                player.Faction == door.Faction || (zone.GUID(zone.map.doorToLock.getOrElse(doorGUID.guid, 0)) match {
-                  case Some(lock: IFFLock) =>
-                    val owner            = lock.Owner.asInstanceOf[Building]
-                    val playerIsOnInside = Vector3.ScalarProjection(lock.Outwards, player.Position - door.Position) < 0f
-                    /*
-                    If an IFF lock exists and
-                    the IFF lock faction doesn't match the current player and
-                    one of the following conditions are met:
-                    1. player is on the inside of the door (determined by the lock orientation)
-                    2. lock is hacked
-                    3. facility capture terminal has been hacked
-                    4. base is neutral
-                    ... open the door.
-                     */
-                    playerIsOnInside || lock.HackedBy.isDefined || owner.CaptureTerminalIsHacked || lock.Faction == PlanetSideEmpire.NEUTRAL
-                  case _ => true // no linked IFF lock, just try open the door
-                })
-              ) {
+          if (lockingMechanism(player, door) && !isLocked) {
             openDoor(player)
           }
+
+        case IFFLock.DoorOpenResponse(target: Player) if !isLocked =>
+          openDoor(target)
 
         case _ => ;
       }
@@ -55,7 +54,7 @@ class DoorControl(door: Door)
   def unpoweredStateLogic: Receive = {
     commonBehavior
       .orElse {
-        case CommonMessages.Use(player, _) =>
+        case CommonMessages.Use(player, _) if !isLocked =>
           //without power, the door opens freely
           openDoor(player)
 
@@ -87,4 +86,8 @@ class DoorControl(door: Door)
   override def powerTurnOffCallback() : Unit = { }
 
   override def powerTurnOnCallback() : Unit = { }
+}
+
+object DoorControl {
+  def alwaysOpen(obj: PlanetSideServerObject, door: Door): Boolean = true
 }

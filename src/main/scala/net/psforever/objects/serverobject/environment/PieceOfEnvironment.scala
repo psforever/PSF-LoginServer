@@ -2,9 +2,9 @@
 package net.psforever.objects.serverobject.environment
 
 import enumeratum.{Enum, EnumEntry}
-import net.psforever.objects.PlanetSideGameObject
+import net.psforever.objects.{PlanetSideGameObject, Player}
 import net.psforever.objects.vital.Vitality
-import net.psforever.types.Vector3
+import net.psforever.types.{PlanetSideGUID, Vector3}
 
 /**
   * The representation of a feature of the game world that is not a formal game object,
@@ -76,6 +76,17 @@ object EnvironmentAttribute extends Enum[EnvironmentTrait] {
       }
     }
   }
+
+  case object GantryDenialField
+    extends EnvironmentTrait {
+    /** only interact with living player characters */
+    def canInteractWith(obj: PlanetSideGameObject): Boolean = {
+      obj match {
+        case p: Player => p.isAlive
+        case _         => false
+      }
+    }
+  }
 }
 
 /**
@@ -121,6 +132,14 @@ object Pool {
     */
   def apply(attribute: EnvironmentTrait, altitude: Float, north: Float, east: Float, south: Float, west: Float): Pool =
     Pool(attribute, DeepSquare(altitude, north, east, south, west))
+}
+
+final case class GantryDenialField(
+                                    obbasemesh: PlanetSideGUID,
+                                    mountPoint: Int,
+                                    collision: EnvironmentCollision
+                                  ) extends PieceOfEnvironment {
+  def attribute = EnvironmentAttribute.GantryDenialField
 }
 
 object PieceOfEnvironment {

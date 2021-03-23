@@ -1,10 +1,10 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.definition.{SeatDefinition, ToolDefinition, VehicleDefinition}
-import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot, JammableUnit}
+import net.psforever.objects.definition.{ToolDefinition, VehicleDefinition}
+import net.psforever.objects.equipment.{EquipmentSize, EquipmentSlot, JammableUnit}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem, InventoryTile}
-import net.psforever.objects.serverobject.mount.Mountable
+import net.psforever.objects.serverobject.mount.{Seat, SeatDefinition}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.aura.AuraContainer
@@ -18,7 +18,6 @@ import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.resolution.DamageResistanceModel
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
-import scala.annotation.tailrec
 import scala.concurrent.duration.FiniteDuration
 import scala.util.{Success, Try}
 
@@ -33,7 +32,7 @@ import scala.util.{Success, Try}
   * The `Map` of `Utility` objects is given using the same inventory index positions.
   * Positive indices and zero are considered "represented" and must be assigned a globally unique identifier
   * and must be present in the containing vehicle's `ObjectCreateMessage` packet.
-  * The index is the seat position, reflecting the position in the zero-index inventory.
+  * The index is the mount position, reflecting the position in the zero-index inventory.
   * Negative indices are expected to be excluded from this conversion.
   * The value of the negative index does not have a specific meaning.<br>
   * <br>
@@ -44,27 +43,27 @@ import scala.util.{Success, Try}
   * The driver is the only player that can access a vehicle's saved loadouts through a repair/rearm silo
   * and can procure equipment from the said silo.
   * The owner of a vehicle and the driver of a vehicle as mostly interchangeable terms for this reason
-  * and it can be summarized that the player who has access to the driver seat meets the qualifications for the "owner"
-  * so long as that player is the last person to have sat in that seat.
-  * All previous ownership information is replaced just as soon as someone else sits in the driver's seat.
+  * and it can be summarized that the player who has access to the driver mount meets the qualifications for the "owner"
+  * so long as that player is the last person to have sat in that mount.
+  * All previous ownership information is replaced just as soon as someone else sits in the driver's mount.
   * Ownership is also transferred as players die and respawn (from and to the same client)
   * and when they leave a continent without taking the vehicle they currently own with them.
   * (They also lose ownership when they leave the game, of course.)<br>
   * <br>
   * All seats have vehicle-level properties on top of their own internal properties.
-  * A seat has a glyph projected onto the ground when the vehicle is not moving
-  * that is used to mark where the seat can be accessed, as well as broadcasting the current access condition of the seat.
+  * A mount has a glyph projected onto the ground when the vehicle is not moving
+  * that is used to mark where the mount can be accessed, as well as broadcasting the current access condition of the mount.
   * As indicated previously, seats are composed into categories and the categories used to control access.
-  * The "driver" group has already been mentioned and is usually composed of a single seat, the "first" one.
-  * The driver seat is typically locked to the person who can sit in it - the owner - unless manually unlocked.
-  * Any seat besides the "driver" that has a weapon controlled from the seat is called a "gunner" seats.
-  * Any other seat besides the "driver" seat and "gunner" seats is called a "passenger" seat.
+  * The "driver" group has already been mentioned and is usually composed of a single mount, the "first" one.
+  * The driver mount is typically locked to the person who can sit in it - the owner - unless manually unlocked.
+  * Any mount besides the "driver" that has a weapon controlled from the mount is called a "gunner" seats.
+  * Any other mount besides the "driver" mount and "gunner" seats is called a "passenger" mount.
   * All of these seats are typically unlocked normally.
-  * The "trunk" also counts as an access group even though it is not directly attached to a seat and starts as "locked."
+  * The "trunk" also counts as an access group even though it is not directly attached to a mount and starts as "locked."
   * The categories all have their own glyphs,
   * sharing a red cross glyph as a "can not access" state,
   * and may also use their lack of visibility to express state.
-  * In terms of individual access, each seat can have its current occupant ejected, save for the driver's seat.
+  * In terms of individual access, each mount can have its current occupant ejected, save for the driver's mount.
   * @see `Vehicle.EquipmentUtilities`
   * @param vehicleDef the vehicle's definition entry;
   *                   stores and unloads pertinent information about the `Vehicle`'s configuration;
@@ -72,11 +71,10 @@ import scala.util.{Success, Try}
   */
 class Vehicle(private val vehicleDef: VehicleDefinition)
     extends AmenityOwner
+    with MountableWeapons
     with InteractsWithZoneEnvironment
     with Hackable
     with FactionAffinity
-    with Mountable
-    with MountedWeapons
     with Deployment
     with Vitality
     with OwnableByPlayer
@@ -90,19 +88,18 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
   private var decal: Int                          = 0
   private var trunkAccess: Option[PlanetSideGUID] = None
   private var jammered: Boolean                   = false
+
   private var cloaked: Boolean                    = false
-  private var flying: Boolean                     = false
+  private var flying: Option[Int]                 = None
   private var capacitor: Int                      = 0
 
   /**
     * Permissions control who gets to access different parts of the vehicle;
-    * the groups are Driver (seat), Gunner (seats), Passenger (seats), and the Trunk
+    * the groups are Driver (mount), Gunner (seats), Passenger (seats), and the Trunk
     */
   private val groupPermissions: Array[VehicleLockState.Value] =
     Array(VehicleLockState.Locked, VehicleLockState.Empire, VehicleLockState.Empire, VehicleLockState.Locked)
-  private var seats: Map[Int, Seat]            = Map.empty
   private var cargoHolds: Map[Int, Cargo]      = Map.empty
-  private var weapons: Map[Int, EquipmentSlot] = Map.empty
   private var utilities: Map[Int, Utility]     = Map()
   private val trunk: GridInventory             = GridInventory()
 
@@ -198,9 +195,13 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     Cloaked
   }
 
-  def Flying: Boolean = flying
+  def isFlying: Boolean = flying.nonEmpty
 
-  def Flying_=(isFlying: Boolean): Boolean = {
+  def Flying: Option[Int] = flying
+
+  def Flying_=(isFlying: Int): Option[Int] = Flying_=(Some(isFlying))
+
+  def Flying_=(isFlying: Option[Int]): Option[Int] = {
     flying = isFlying
     Flying
   }
@@ -225,17 +226,6 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     }
     Capacitor
   }
-
-  /**
-    * Given the index of an entry mounting point, return the infantry-accessible `Seat` associated with it.
-    * @param mountPoint an index representing the seat position / mounting point
-    * @return a seat number, or `None`
-    */
-  def GetSeatFromMountPoint(mountPoint: Int): Option[Int] = {
-    Definition.MountPoints.get(mountPoint)
-  }
-
-  def MountPoints: Map[Int, Int] = Definition.MountPoints.toMap
 
   /**
     * What are the access permissions for a position on this vehicle, seats or trunk?
@@ -291,24 +281,6 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
       None
     }
 
-  /**
-    * Get the seat at the index.
-    * The specified "seat" can only accommodate a player as opposed to weapon mounts which share the same indexing system.
-    * @param seatNumber an index representing the seat position / mounting point
-    * @return a `Seat`, or `None`
-    */
-  def Seat(seatNumber: Int): Option[Seat] = {
-    if (seatNumber >= 0 && seatNumber < this.seats.size) {
-      this.seats.get(seatNumber)
-    } else {
-      None
-    }
-  }
-
-  def Seats: Map[Int, Seat] = {
-    seats
-  }
-
   def CargoHold(cargoNumber: Int): Option[Cargo] = {
     if (cargoNumber >= 0) {
       this.cargoHolds.get(cargoNumber)
@@ -322,12 +294,12 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
   }
 
   def SeatPermissionGroup(seatNumber: Int): Option[AccessPermissionGroup.Value] = {
-    if (seatNumber == 0) {
+    if (seatNumber == 0) { //valid in almost all cases
       Some(AccessPermissionGroup.Driver)
     } else {
       Seat(seatNumber) match {
-        case Some(seat) =>
-          seat.ControlledWeapon match {
+        case Some(_) =>
+          Definition.controlledWeapons.get(seatNumber) match {
             case Some(_) =>
               Some(AccessPermissionGroup.Gunner)
             case None =>
@@ -336,46 +308,14 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
         case None =>
           CargoHold(seatNumber) match {
             case Some(_) =>
-              Some(AccessPermissionGroup.Passenger)
+              Some(AccessPermissionGroup.Passenger) //TODO confirm this
             case None =>
-              None
+              if (seatNumber >= trunk.Offset && seatNumber < trunk.Offset + trunk.TotalCapacity) {
+                Some(AccessPermissionGroup.Trunk)
+              } else {
+                None
+              }
           }
-      }
-    }
-  }
-
-  def Weapons: Map[Int, EquipmentSlot] = weapons
-
-  /**
-    * Get the weapon at the index.
-    * @param wepNumber an index representing the seat position / mounting point
-    * @return a weapon, or `None`
-    */
-  def ControlledWeapon(wepNumber: Int): Option[Equipment] = {
-    weapons.get(wepNumber) match {
-      case Some(mount) =>
-        mount.Equipment
-      case None =>
-        None
-    }
-  }
-
-  /**
-    * Given a player who may be an occupant, retrieve an number of the seat where this player is sat.
-    * @param player the player
-    * @return a seat number, or `None` if the `player` is not actually seated in this vehicle
-    */
-  def PassengerInSeat(player: Player): Option[Int] = recursivePassengerInSeat(seats.iterator, player)
-
-  @tailrec private def recursivePassengerInSeat(iter: Iterator[(Int, Seat)], player: Player): Option[Int] = {
-    if (!iter.hasNext) {
-      None
-    } else {
-      val (seatNumber, seat) = iter.next()
-      if (seat.Occupant.contains(player)) {
-        Some(seatNumber)
-      } else {
-        recursivePassengerInSeat(iter, player)
       }
     }
   }
@@ -415,7 +355,7 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
 
   def Inventory: GridInventory = trunk
 
-  def VisibleSlots: Set[Int] = weapons.keySet
+  def VisibleSlots: Set[Int] = weapons.keys.toSet
 
   override def Slot(slotNum: Int): EquipmentSlot = {
     weapons
@@ -535,7 +475,7 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
 
   def PrepareGatingManifest(): VehicleManifest = {
     val manifest = VehicleManifest(this)
-    seats.collect { case (index: Int, seat: Seat) if index > 0 => seat.Occupant = None }
+    seats.collect { case (index: Int, seat: Seat) if index > 0 => seat.unmount(seat.occupant) }
     vehicleGatingManifest = Some(manifest)
     previousVehicleGatingManifest = None
     manifest
@@ -676,12 +616,12 @@ object Vehicle {
     //create seats
     vehicle.seats = vdef.Seats.map[Int, Seat] {
       case (num: Int, definition: SeatDefinition) =>
-        num -> Seat(definition)
+        num -> new Seat(definition)
     }.toMap
     // create cargo holds
     vehicle.cargoHolds = vdef.Cargo.map[Int, Cargo] {
       case (num, definition) =>
-        num -> Cargo(definition)
+        num -> new Cargo(definition)
     }.toMap
     //create utilities
     vehicle.utilities = vdef.Utilities.map[Int, Utility] {

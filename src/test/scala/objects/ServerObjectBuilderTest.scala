@@ -83,7 +83,9 @@ class IFFLockObjectBuilderTest extends FreedContextActorTest {
 }
 
 class ImplantTerminalMechObjectBuilderTest extends FreedContextActorTest {
-  import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
+
+  import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
+
   "Implant terminal mech object" should {
     "build" in {
       val hub = ServerObjectBuilderTest.NumberPoolHub
@@ -217,6 +219,21 @@ class FacilityTurretObjectBuilderTest extends FreedContextActorTest {
       val hub = ServerObjectBuilderTest.NumberPoolHub
       val obj = ServerObjectBuilder(1, FacilityTurret.Constructor(manned_turret)).Build(context, hub)
       assert(obj.isInstanceOf[FacilityTurret])
+      assert(obj.HasGUID)
+      assert(obj.GUID == PlanetSideGUID(1))
+      assert(obj == hub(1).get)
+    }
+  }
+}
+
+class OrbitalShuttlePadObjectBuilderTest extends FreedContextActorTest {
+  import net.psforever.objects.GlobalDefinitions.obbasemesh
+  import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
+  "OrbitalShuttlePadObjectBuilder" should {
+    "build" in {
+      val hub = ServerObjectBuilderTest.NumberPoolHub
+      val obj = ServerObjectBuilder(1, OrbitalShuttlePad.Constructor(Vector3.Zero, obbasemesh, Vector3.Zero)).Build(context, hub)
+      assert(obj.isInstanceOf[OrbitalShuttlePad])
       assert(obj.HasGUID)
       assert(obj.GUID == PlanetSideGUID(1))
       assert(obj == hub(1).get)

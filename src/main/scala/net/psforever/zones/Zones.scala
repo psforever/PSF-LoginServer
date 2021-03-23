@@ -1,11 +1,10 @@
 package net.psforever.zones
 
 import java.io.FileNotFoundException
-
-import net.psforever.objects.serverobject.terminals.{CaptureTerminal, CaptureTerminalDefinition, ProximityTerminal, ProximityTerminalDefinition, Terminal, TerminalDefinition}
+import net.psforever.objects.serverobject.terminals.{ProximityTerminal, ProximityTerminalDefinition, Terminal, TerminalDefinition}
 import net.psforever.objects.serverobject.mblocker.Locker
-import java.util.concurrent.atomic.AtomicInteger
 
+import java.util.concurrent.atomic.AtomicInteger
 import akka.actor.ActorContext
 import io.circe._
 import io.circe.parser._
@@ -14,13 +13,14 @@ import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.definition.BasicDefinition
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.generator.Generator
-import net.psforever.objects.serverobject.implantmech.ImplantTerminalMech
 import net.psforever.objects.serverobject.locks.IFFLock
-import net.psforever.objects.serverobject.pad.shuttle.OrbitalShuttlePad
 import net.psforever.objects.serverobject.pad.{VehicleSpawnPad, VehicleSpawnPadDefinition}
 import net.psforever.objects.serverobject.painbox.{Painbox, PainboxDefinition}
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Building, BuildingDefinition, FoundationBuilder, StructureType, WarpGate}
+import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
+import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, CaptureTerminalDefinition}
+import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.{FacilityTurret, FacilityTurretDefinition}
 import net.psforever.objects.serverobject.zipline.ZipLinePath
@@ -234,7 +234,7 @@ object Zones {
             val structureType =
               if (towerTypes.contains(structure.objectType) || structure.objectType == "redoubt")
                 StructureType.Tower
-              else if (facilityTypes.contains(structure.objectType))
+              else if (facilityTypes.contains(structure.objectType) || cavernBuildingTypes.contains(structure.objectType))
                 StructureType.Facility
               else if (bunkerTypes.contains(structure.objectType))
                 StructureType.Bunker
@@ -339,6 +339,14 @@ object Zones {
             owningBuildingGuid = ownerGuid
           )
 
+        case "gr_door_mb_orb" =>
+          zoneMap
+            .addLocalObject(
+              obj.guid,
+              Door.Constructor(obj.position, GlobalDefinitions.gr_door_mb_orb),
+              owningBuildingGuid = ownerGuid
+            )
+
         case objectType if doorTypes.contains(objectType) =>
           zoneMap
             .addLocalObject(obj.guid, Door.Constructor(obj.position), owningBuildingGuid = ownerGuid)
@@ -396,7 +404,7 @@ object Zones {
             // presumably the model is rotated differently to the expected orientation
             // On top of that, some spawn pads also have an additional rotation (vehiclecreationzorientoffset)
             // when spawning vehicles set in game_objects.adb.lst - this should be handled on the Scala side
-            val adjustedYaw = closestSpawnPad.yaw - 90;
+            val adjustedYaw = closestSpawnPad.yaw - 90
 
             zoneMap.addLocalObject(
               closestSpawnPad.guid,
@@ -535,6 +543,7 @@ object Zones {
               OrbitalShuttlePad.Constructor(obj.position, GlobalDefinitions.obbasemesh, Vector3.z(obj.yaw)),
               owningBuildingGuid = ownerGuid
             )
+          zoneMap.linkShuttleToBay(obj.guid)
 
         case _ => ()
       }
@@ -560,6 +569,8 @@ object Zones {
             this.Buildings.values.foreach(_.Faction = PlanetSideEmpire.TR)
           case "home3" =>
             this.Buildings.values.foreach(_.Faction = PlanetSideEmpire.VS)
+          case zoneid if zoneid.startsWith("c") =>
+            this.map.cavern = true
           case _ => ()
         }
 

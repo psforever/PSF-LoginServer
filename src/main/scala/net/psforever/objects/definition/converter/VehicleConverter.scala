@@ -76,7 +76,7 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
 
   private def MakeDriverSeat(obj: Vehicle): List[InventoryItemData.InventoryItem] = {
     val offset: Long = VehicleData.InitialStreamLengthToSeatEntries(obj.Velocity.nonEmpty, SpecificFormatModifier)
-    obj.Seats(0).Occupant match {
+    obj.Seats(0).occupant match {
       case Some(player) =>
         List(InventoryItemData(ObjectClass.avatar, player.GUID, 0, SeatConverter.MakeSeat(player, offset)))
       case None =>

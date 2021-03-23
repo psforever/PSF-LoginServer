@@ -105,6 +105,14 @@ class VehicleService(zone: Zone) extends Actor {
               VehicleResponse.KickPassenger(seat_num, kickedByDriver, vehicle_guid)
             )
           )
+        case VehicleAction.ObjectDelete(guid) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(
+              s"/$forChannel/Vehicle",
+              Service.defaultPlayerGUID,
+              VehicleResponse.ObjectDelete(guid)
+            )
+          )
         case VehicleAction.LoadVehicle(player_guid, vehicle, vtype, vguid, vdata) =>
           VehicleEvents.publish(
             VehicleServiceResponse(

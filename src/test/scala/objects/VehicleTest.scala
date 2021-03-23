@@ -2,7 +2,8 @@
 package objects
 
 import net.psforever.objects._
-import net.psforever.objects.definition.{SeatDefinition, VehicleDefinition}
+import net.psforever.objects.definition.VehicleDefinition
+import net.psforever.objects.serverobject.mount._
 import net.psforever.objects.vehicles._
 import net.psforever.types.{PlanetSideGUID, _}
 import org.specs2.mutable._
@@ -12,35 +13,31 @@ class VehicleTest extends Specification {
 
   "SeatDefinition" should {
     val seat = new SeatDefinition
-    seat.ArmorRestriction = SeatArmorRestriction.MaxOnly
-    seat.Bailable = true
-    seat.ControlledWeapon = 5
+    seat.restriction = MaxOnly
+    seat.bailable = true
 
     "define (default)" in {
       val t_seat = new SeatDefinition
-      t_seat.ArmorRestriction mustEqual SeatArmorRestriction.NoMax
-      t_seat.Bailable mustEqual false
-      t_seat.ControlledWeapon.isEmpty mustEqual true
+      t_seat.restriction mustEqual NoMax
+      t_seat.bailable mustEqual false
     }
 
     "define (custom)" in {
-      seat.ArmorRestriction mustEqual SeatArmorRestriction.MaxOnly
-      seat.Bailable mustEqual true
-      seat.ControlledWeapon.contains(5)
+      seat.restriction mustEqual MaxOnly
+      seat.bailable mustEqual true
     }
   }
 
   "VehicleDefinition" should {
     "define" in {
       val fury = GlobalDefinitions.fury
-      fury.CanBeOwned mustEqual true
+      fury.CanBeOwned.contains(true) mustEqual true
       fury.CanCloak mustEqual false
       fury.Seats.size mustEqual 1
-      fury.Seats(0).Bailable mustEqual true
-      fury.Seats(0).ControlledWeapon.contains(1)
+      fury.Seats(0).bailable mustEqual true
       fury.MountPoints.size mustEqual 2
-      fury.MountPoints.get(1).contains(0)
-      fury.MountPoints.get(2).contains(0)
+      fury.MountPoints.get(1).contains(MountInfo(0, Vector3(0,0,0))) mustEqual true
+      fury.MountPoints.get(2).contains(MountInfo(0, Vector3(0,0,0))) mustEqual true
       fury.Weapons.size mustEqual 1
       fury.Weapons.get(0).isEmpty mustEqual true
       fury.Weapons.get(1).contains(GlobalDefinitions.fury_weapon_systema)
@@ -52,69 +49,67 @@ class VehicleTest extends Specification {
 
   "Seat" should {
     val seat_def = new SeatDefinition
-    seat_def.ArmorRestriction = SeatArmorRestriction.MaxOnly
-    seat_def.Bailable = true
-    seat_def.ControlledWeapon = 5
+    seat_def.restriction = MaxOnly
+    seat_def.bailable = true
 
     "construct" in {
       val seat = new Seat(seat_def)
-      seat.ArmorRestriction mustEqual SeatArmorRestriction.MaxOnly
-      seat.Bailable mustEqual true
-      seat.ControlledWeapon.contains(5)
+      seat.definition.restriction mustEqual MaxOnly
+      seat.bailable mustEqual true
       seat.isOccupied mustEqual false
-      seat.Occupant.isEmpty mustEqual true
+      seat.occupant.isEmpty mustEqual true
     }
 
     "player can sit" in {
       val seat = new Seat(seat_def)
-      seat.Occupant.isDefined mustEqual false
+      seat.isOccupied mustEqual false
 
       val player1 = Player(avatar1)
       player1.ExoSuit = ExoSuitType.MAX
-      seat.Occupant = player1
-      seat.Occupant.isDefined mustEqual true
-      seat.Occupant.contains(player1) mustEqual true
+      seat.mount(player1)
+      seat.isOccupied mustEqual true
+      seat.occupant.contains(player1) mustEqual true
     }
 
     "one occupant at a time" in {
       val seat = new Seat(seat_def)
-      seat.Occupant.isDefined mustEqual false
+      seat.isOccupied mustEqual false
 
       val player1 = Player(avatar1)
       player1.ExoSuit = ExoSuitType.MAX
-      seat.Occupant = player1
-      seat.Occupant.isDefined mustEqual true
-      seat.Occupant.contains(player1) mustEqual true
+      seat.mount(player1)
+      seat.isOccupied mustEqual true
+      seat.occupant.contains(player1) mustEqual true
 
       val player2 = Player(avatar1)
       player2.ExoSuit = ExoSuitType.MAX
-      seat.Occupant = player2
-      seat.Occupant.isDefined mustEqual true
-      seat.Occupant.contains(player1) mustEqual true
+      seat.mount(player2)
+      seat.isOccupied mustEqual true
+      seat.occupant.contains(player1) mustEqual true
     }
 
-    "one player must get out of seat before other can get in" in {
+    "one player must get out of mount before other can get in" in {
       val seat = new Seat(seat_def)
-      seat.Occupant.isDefined mustEqual false
+      seat.isOccupied mustEqual false
 
       val player1 = Player(avatar1)
       player1.ExoSuit = ExoSuitType.MAX
-      seat.Occupant = player1
-      seat.Occupant.isDefined mustEqual true
-      seat.Occupant.contains(player1) mustEqual true
+      seat.mount(player1)
+      seat.isOccupied mustEqual true
+      seat.occupant.contains(player1) mustEqual true
 
       val player2 = Player(avatar2)
       player2.ExoSuit = ExoSuitType.MAX
-      seat.Occupant = player2
-      seat.Occupant.isDefined mustEqual true
-      seat.Occupant.contains(player2) mustEqual false
-      seat.Occupant.contains(player1) mustEqual true
+      seat.mount(player2)
+      seat.isOccupied mustEqual true
+      seat.occupant.contains(player2) mustEqual false
+      seat.occupants.contains(player1) mustEqual true
 
-      seat.Occupant = None
-      seat.Occupant.isDefined mustEqual false
-      seat.Occupant = player2
-      seat.Occupant.isDefined mustEqual true
-      seat.Occupant.contains(player2) mustEqual true
+      seat.unmount(player1)
+      seat.isOccupied mustEqual false
+      seat.mount(player2)
+      seat.isOccupied mustEqual true
+      seat.occupants.contains(player2) mustEqual true
     }
   }
 
@@ -128,11 +123,10 @@ class VehicleTest extends Specification {
       val fury_vehicle = Vehicle(GlobalDefinitions.fury)
       fury_vehicle.Owner.isEmpty mustEqual true
       fury_vehicle.Seats.size mustEqual 1
-      fury_vehicle.Seats(0).ArmorRestriction mustEqual SeatArmorRestriction.NoMax
+      fury_vehicle.Seats(0).definition.restriction mustEqual NoMax
       fury_vehicle.Seats(0).isOccupied mustEqual false
-      fury_vehicle.Seats(0).Occupant.isEmpty mustEqual true
-      fury_vehicle.Seats(0).Bailable mustEqual true
-      fury_vehicle.Seats(0).ControlledWeapon.contains(1)
+      fury_vehicle.Seats(0).occupants.isEmpty mustEqual true
+      fury_vehicle.Seats(0).bailable mustEqual true
       fury_vehicle.PermissionGroup(0).contains(VehicleLockState.Locked) //driver
       fury_vehicle.PermissionGroup(1).contains(VehicleLockState.Empire) //gunner
       fury_vehicle.PermissionGroup(2).contains(VehicleLockState.Empire) //passenger
@@ -180,7 +174,7 @@ class VehicleTest extends Specification {
       fury_vehicle.Owner.contains(PlanetSideGUID(2)) mustEqual true
     }
 
-    "can use mount point to get seat number" in {
+    "can use mount point to get mount number" in {
       val fury_vehicle = Vehicle(GlobalDefinitions.fury)
       fury_vehicle.GetSeatFromMountPoint(0).isEmpty mustEqual true
       fury_vehicle.GetSeatFromMountPoint(1).contains(0)
@@ -224,7 +218,7 @@ class VehicleTest extends Specification {
       fury_vehicle.PermissionGroup(AccessPermissionGroup.Driver.id) mustEqual fury_vehicle.PermissionGroup(10)
     }
 
-    "can determine permission group from seat" in {
+    "can determine permission group from mount" in {
       val harasser_vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
       harasser_vehicle.SeatPermissionGroup(0).contains(AccessPermissionGroup.Driver)
       harasser_vehicle.SeatPermissionGroup(1).contains(AccessPermissionGroup.Gunner)
@@ -232,23 +226,23 @@ class VehicleTest extends Specification {
       //TODO test for AccessPermissionGroup.Passenger later
     }
 
-    "can find a passenger in a seat" in {
+    "can find a passenger in a mount" in {
       val harasser_vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
       val player1          = Player(avatar1)
       player1.GUID = PlanetSideGUID(1)
       val player2 = Player(avatar2)
       player2.GUID = PlanetSideGUID(2)
-      harasser_vehicle.Seat(0).get.Occupant = player1 //don't worry about ownership for now
-      harasser_vehicle.Seat(1).get.Occupant = player2
+      harasser_vehicle.Seat(0).get.mount(player1) //don't worry about ownership for now
+      harasser_vehicle.Seat(1).get.mount(player2)
 
       harasser_vehicle.PassengerInSeat(player1).contains(0)
       harasser_vehicle.PassengerInSeat(player2).contains(1)
-      harasser_vehicle.Seat(0).get.Occupant = None
+      harasser_vehicle.Seat(0).get.unmount(player1)
       harasser_vehicle.PassengerInSeat(player1).isEmpty mustEqual true
       harasser_vehicle.PassengerInSeat(player2).contains(1)
     }
 
-    "can find a weapon controlled from seat" in {
+    "can find a weapon controlled from mount" in {
       val harasser_vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
       val chaingun_p       = harasser_vehicle.Weapons(2).Equipment
       chaingun_p.isDefined mustEqual true

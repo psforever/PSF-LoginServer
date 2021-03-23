@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.doors
 
 import net.psforever.objects.Player
+import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.packet.game.UseItemMessage
 
@@ -65,6 +66,14 @@ object Door {
     */
   final case class NoEvent() extends Exchange
 
+  type LockingMechanismLogic = (PlanetSideServerObject, Door) => Boolean
+
+  final case class UpdateMechanism(mechanism: LockingMechanismLogic) extends Exchange
+
+  case object Lock extends Exchange
+
+  case object Unlock extends Exchange
+
   /**
     * Overloaded constructor.
     * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
@@ -101,12 +110,25 @@ object Door {
     * @return the `Door` object
     */
   def Constructor(pos: Vector3)(id: Int, context: ActorContext): Door = {
-    import akka.actor.Props
     import net.psforever.objects.GlobalDefinitions
+    Constructor(pos, GlobalDefinitions.door)(id, context)
+  }
 
-    val obj = Door(GlobalDefinitions.door)
+  /**
+    * Instantiate and configure a `Door` object that has knowledge of both its position and outwards-facing direction.
+    * The assumption is that this door will be paired with an IFF Lock, thus, has conditions for opening.
+    * @param pos the position of the door
+    * @param ddef the definition for this specific type of door
+    * @param id the unique id that will be assigned to this entity
+    * @param context a context to allow the object to properly set up `ActorSystem` functionality
+    * @return the `Door` object
+    */
+  def Constructor(pos: Vector3, ddef: DoorDefinition)(id: Int, context: ActorContext): Door = {
+    import akka.actor.Props
+
+    val obj = Door(ddef)
     obj.Position = pos
-    obj.Actor = context.actorOf(Props(classOf[DoorControl], obj), s"${GlobalDefinitions.door.Name}_$id")
+    obj.Actor = context.actorOf(Props(classOf[DoorControl], obj), s"${ddef.Name}_$id")
     obj
   }
 }
