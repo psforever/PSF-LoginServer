@@ -64,7 +64,7 @@ case object MapInfo extends StringEnum[MapInfo] {
         checksum = 1624200906L,
         scale = MapScale.Dim8192,
         environment = List(
-          SeaLevel(EnvironmentAttribute.Water, 35),
+          SeaLevel(EnvironmentAttribute.Water, 29.5f),
           Pool(EnvironmentAttribute.Water, 67.3125f, 3449.586f, 5870.383f, 3313.75f, 5715.3203f), //east of itan, south of kaang
           Pool(EnvironmentAttribute.Water, 53.71875f, 6013.0625f, 1861.7969f, 5947.1406f, 1634.7734f), //E6
           Pool(EnvironmentAttribute.Water, 49.625f, 7181.6953f, 1496.3828f, 6972.992f, 1340.1328f), //east of wele
