@@ -1100,7 +1100,6 @@ object GlobalDefinitions {
   val generator = new GeneratorDefinition(351)
 
   val obbasemesh = new AmenityDefinition(598) { }
-
   initMiscellaneous()
 
   /*

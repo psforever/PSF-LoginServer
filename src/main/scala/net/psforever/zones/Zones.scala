@@ -14,10 +14,10 @@ import net.psforever.objects.definition.BasicDefinition
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.generator.Generator
 import net.psforever.objects.serverobject.locks.IFFLock
-import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
 import net.psforever.objects.serverobject.pad.{VehicleSpawnPad, VehicleSpawnPadDefinition}
 import net.psforever.objects.serverobject.painbox.{Painbox, PainboxDefinition}
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
+import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
 import net.psforever.objects.serverobject.structures.{Building, BuildingDefinition, FoundationBuilder, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, CaptureTerminalDefinition}
 import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
