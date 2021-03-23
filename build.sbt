@@ -51,7 +51,7 @@ lazy val psforeverSettings = Seq(
     "com.typesafe.akka"          %% "akka-cluster-tools"         % "2.6.13",
     "com.typesafe.akka"          %% "akka-slf4j"                 % "2.6.13",
     "com.typesafe.akka"          %% "akka-http"                  % "10.2.4",
-    "com.typesafe.scala-logging" %% "scala-logging"              % "3.9.2",
+    "com.typesafe.scala-logging" %% "scala-logging"              % "3.9.3",
     "org.specs2"                 %% "specs2-core"                % "4.10.6" % "test",
     "org.scalatest"              %% "scalatest"                  % "3.2.6"  % "test",
     "org.scodec"                 %% "scodec-core"                % "1.11.7",
