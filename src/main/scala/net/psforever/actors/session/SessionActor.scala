@@ -2851,7 +2851,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
         sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 1L))          //mount points off
         sendResponse(PlanetsideAttributeMessage(player.GUID, 21, vehicle_guid)) //ownership
-        vehicle.Actor ! Mountable.TryMount(player, 0)
+        vehicle.MountPoints.find { case (_, mp) => mp.seatIndex == 0 } match {
+          case Some((mountPoint, _)) => vehicle.Actor ! Mountable.TryMount(player, mountPoint)
+          case _ => ;
+        }
 
       case VehicleResponse.PlayerSeatedInVehicle(vehicle, pad) =>
         val vehicle_guid = vehicle.GUID
@@ -9160,9 +9163,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       .flatMap {
         case Some(obj: Vehicle) if !obj.Cloaked =>
           //TODO hint: vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.ProjectileAutoLockAwareness(mode))
-          obj.Seats.values.flatMap { case seat if seat.isOccupied => seat.occupants.map(_.Name) }
+          obj.Seats.values.flatMap { case seat => seat.occupants.map(_.Name) }
         case Some(obj: Mountable) =>
-          obj.Seats.values.flatMap { case seat if seat.isOccupied => seat.occupants.map(_.Name) }
+          obj.Seats.values.flatMap { case seat => seat.occupants.map(_.Name) }
         case Some(obj: Player) if obj.ExoSuit == ExoSuitType.MAX =>
           Seq(obj.Name)
         case _ =>
@@ -9269,7 +9272,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     */
   def TurnCounterDuringInterim(guid: PlanetSideGUID): Unit = {
     upstreamMessageCount = 0
-    if (player.GUID == guid && player.Zone == continent) {
+    if (player != null && player.GUID == guid && player.Zone == continent) {
       turnCounterFunc = NormalTurnCounter
     }
   }
