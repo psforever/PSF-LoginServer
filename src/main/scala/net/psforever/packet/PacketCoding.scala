@@ -176,6 +176,8 @@ object PacketCoding {
         if (flags.secured && crypto.isEmpty) {
           return Failure(Err("Unsupported packet type: crypto packets must be unencrypted"))
         }
+      case PacketType.ResetSequence =>
+        return Failure(Err(s"Caught a wild ResetSequence when cryptoState is ${crypto.nonEmpty}: $msg -> $flags and $remainder"))
       case _ =>
         return Failure(Err(s"Unsupported packet type: ${flags.packetType.toString}"))
     }
