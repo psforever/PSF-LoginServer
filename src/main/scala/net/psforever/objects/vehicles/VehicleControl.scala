@@ -334,7 +334,6 @@ class VehicleControl(vehicle: Vehicle)
             case _ =>
               user.avatar.vehicle = None
           }
-          LoseOwnership() //lose our current ownership
           GainOwnership(user) //gain new ownership
         }
         else {
@@ -472,6 +471,7 @@ class VehicleControl(vehicle: Vehicle)
 
   def GainOwnership(player: Player): Unit = {
     val obj = MountableObject
+    Vehicles.Disown(obj.GUID, obj)
     Vehicles.Own(obj, player) match {
       case Some(_) =>
         decaying = false

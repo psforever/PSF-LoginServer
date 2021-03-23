@@ -6792,7 +6792,9 @@ object GlobalDefinitions {
     dropship.Weapons += 12     -> cannon_dropship_20mm
     dropship.Weapons += 13     -> cannon_dropship_20mm
     dropship.Weapons += 14     -> dropship_rear_turret
-    dropship.Cargo += 15       -> new CargoDefinition()
+    dropship.Cargo += 15       -> new CargoDefinition() {
+      restriction = SmallCargo
+    }
     dropship.MountPoints += 1 -> MountInfo(0)
     dropship.MountPoints += 2 -> MountInfo(11)
     dropship.MountPoints += 3 -> MountInfo(1)

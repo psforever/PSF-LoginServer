@@ -17,13 +17,13 @@ class DoorControl(door: Door)
   extends PoweredAmenityControl
   with FactionAffinityBehavior.Check {
   def FactionObject: FactionAffinity = door
-  var bolt: Boolean = false
+  var isLocked: Boolean = false
   var lockingMechanism: Door.LockingMechanismLogic = DoorControl.alwaysOpen
 
   val commonBehavior: Receive = checkBehavior
     .orElse {
       case Door.Lock =>
-        bolt = true
+        isLocked = true
         if (door.isOpen) {
           val zone = door.Zone
           door.Open = None
@@ -31,7 +31,7 @@ class DoorControl(door: Door)
         }
 
       case Door.Unlock =>
-        bolt = false
+        isLocked = false
 
       case Door.UpdateMechanism(logic) =>
         lockingMechanism = logic
@@ -41,11 +41,11 @@ class DoorControl(door: Door)
     commonBehavior
       .orElse {
         case CommonMessages.Use(player, _) =>
-          if (lockingMechanism(player, door) && !bolt) {
+          if (lockingMechanism(player, door) && !isLocked) {
             openDoor(player)
           }
 
-        case IFFLock.DoorOpenResponse(target: Player) if !bolt =>
+        case IFFLock.DoorOpenResponse(target: Player) if !isLocked =>
           openDoor(target)
 
         case _ => ;
@@ -54,7 +54,7 @@ class DoorControl(door: Door)
   def unpoweredStateLogic: Receive = {
     commonBehavior
       .orElse {
-        case CommonMessages.Use(player, _) if !bolt =>
+        case CommonMessages.Use(player, _) if !isLocked =>
           //without power, the door opens freely
           openDoor(player)
 

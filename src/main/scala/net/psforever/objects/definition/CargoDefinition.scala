@@ -10,5 +10,5 @@ class CargoDefinition extends MountableSpaceDefinition[Vehicle] {
 
   var restriction: MountRestriction[Vehicle] = LargeCargo
 
-  var bailable: Boolean = false
+  var bailable: Boolean = true
 }

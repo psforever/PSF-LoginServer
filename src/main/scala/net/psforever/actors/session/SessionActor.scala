@@ -6,7 +6,6 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
 import akka.pattern.ask
 import akka.util.Timeout
-import java.util.concurrent.TimeUnit
 
 import net.psforever.actors.net.MiddlewareActor
 import net.psforever.services.ServiceManager.Lookup
@@ -3704,12 +3703,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         persist()
         turnCounterFunc(avatar_guid)
         val isMoving     = WorldEntity.isMoving(vel)
-        val isMovingPlus = isMoving || is_jumping || jump_thrust || (is_crouching != player.Crouching)
+        val isMovingPlus = isMoving || is_jumping || jump_thrust
         if (isMovingPlus) {
           CancelZoningProcessWithDescriptiveReason("cancel_motion")
         }
 //        if (is_crouching && !player.Crouching) {
-//          //dev stuff
+//          //dev stuff goes here
 //        }
         player.Position = pos
         player.Velocity = vel
@@ -6724,7 +6723,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @see `Door`
     * @see `GenericObjectStateMsg`
     * @see `Hackable`
-    * @see `HackCaptureTerminal`
     * @see `HackObject`
     * @see `PlanetsideAttributeMessage`
     * @see `ResourceSilo`
@@ -6816,47 +6814,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     */
   def SendPlanetsideAttributeMessage(target_guid: PlanetSideGUID, attribute_number: PlanetsideAttributeEnum, attribute_value: Long): Unit = {
     sendResponse(PlanetsideAttributeMessage(target_guid, attribute_number, attribute_value))
-  }
-
-  def HackCaptureTerminal(target_guid: PlanetSideGUID, unk1: Long, unk2: Long, isResecured: Boolean): Unit = {
-    var value = 0L
-    if (isResecured) {
-      value = 17039360L
-      sendResponse(PlanetsideAttributeMessage(target_guid, 20, value))
-    } else {
-      continent.GUID(target_guid) match {
-        case Some(capture_terminal: Amenity with Hackable) =>
-          capture_terminal.HackedBy match {
-            case Some(Hackable.HackInfo(_, _, hfaction, _, start, length)) =>
-              val hack_time_remaining_ms =
-                TimeUnit.MILLISECONDS.convert(math.max(0, start + length - System.nanoTime), TimeUnit.NANOSECONDS)
-              val deciseconds_remaining = (hack_time_remaining_ms / 100)
-              //See PlanetSideAttributeMessage #20 documentation for an explanation of how the timer is calculated
-              val start_num = hfaction match {
-                case PlanetSideEmpire.TR => 65536L
-                case PlanetSideEmpire.NC => 131072L
-                case PlanetSideEmpire.VS => 196608L
-              }
-              value = start_num + deciseconds_remaining
-              sendResponse(PlanetsideAttributeMessage(target_guid, 20, value))
-              GetMountableAndSeat(None, player, continent) match {
-                case (Some(mountable: Amenity), Some(seat)) if mountable.Owner.GUID == capture_terminal.Owner.GUID =>
-                  mountable.Seats(seat).unmount(player)
-                  player.VehicleSeated = None
-                  continent.VehicleEvents ! VehicleServiceMessage(
-                    continent.id,
-                    VehicleAction.KickPassenger(player.GUID, seat, true, mountable.GUID)
-                  )
-                case _ => ;
-              }
-            case _ => log.warn("HackCaptureTerminal: hack state monitor not defined")
-          }
-        case _ =>
-          log.warn(
-            s"HackCaptureTerminal: couldn't find capture terminal with GUID ${target_guid} in zone ${continent.id}"
-          )
-      }
-    }
   }
 
   /**

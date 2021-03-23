@@ -41,5 +41,5 @@ case object SmallCargo extends MountRestriction[Vehicle] {
 }
 
 case object LargeCargo extends MountRestriction[Vehicle] {
-  def test(target : Vehicle) : Boolean = true
+  def test(target : Vehicle) : Boolean = !target.Definition.CanFly
 }
