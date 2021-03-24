@@ -89,7 +89,7 @@ class GeneratorControl(gen: Generator)
           //TODO this only works with projectiles right now!
           val zone = gen.Zone
           gen.Health = 0
-          super.DestructionAwareness(gen, gen.LastShot.get)
+          super.DestructionAwareness(gen, gen.LastDamage.get)
           GeneratorControl.UpdateOwner(gen, Some(GeneratorControl.Event.Destroyed))
           //kaboom
           zone.AvatarEvents ! AvatarServiceMessage(
@@ -128,7 +128,7 @@ class GeneratorControl(gen: Generator)
         case GeneratorControl.Destabilized() =>
           //if the generator is destabilized but has no ntu, it will not explode
           gen.Health = 0
-          super.DestructionAwareness(gen, gen.LastShot.get)
+          super.DestructionAwareness(gen, gen.LastDamage.get)
           queuedExplosion.cancel()
           queuedExplosion = Default.Cancellable
           imminentExplosion = false
