@@ -417,7 +417,7 @@ class MiddlewareActor(
             case Successful((packet, None)) =>
               in(packet)
             case Failure(e)                 =>
-              log.error(s"Could not decode packet: $e")
+              log.error(s"Could not decode $connectionId's packet: $e")
           }
           Behaviors.same
 
