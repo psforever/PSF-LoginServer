@@ -757,6 +757,7 @@ class PlayerControlDeathSeatedTest extends ActorTest {
 class PlayerControlInteractWithWaterTest extends ActorTest {
   val player1 =
     Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
+  player1.Definition.UnderwaterLifespan(suffocation = 3000, recovery = 3000) // Override the default 60s down / 10s recovery so the tests don't take forever to run
   val avatarProbe = TestProbe()
   val guid = new NumberPoolHub(new MaxNumberSource(15))
   val pool = Pool(EnvironmentAttribute.Water, DeepSquare(-1, 10, 10, 0, 0))
@@ -797,11 +798,12 @@ class PlayerControlInteractWithWaterTest extends ActorTest {
           case _ => false
         }
       )
-      //player will die in 60s
-      //detailing these death messages is not necessary
+
+      //player will die in 3s (overridden from 60s)
       assert(player1.Health == 100)
-      probe.receiveOne(65 seconds) //wait until our implants deinitialize
-      assert(player1.Health == 0) //ded
+      awaitAssert(
+        assert(player1.Health == 0)
+      , max = player1.Definition.UnderwaterLifespan(OxygenState.Suffocation) + 3000 milliseconds, interval = 1 second)
     }
   }
 }
@@ -809,6 +811,7 @@ class PlayerControlInteractWithWaterTest extends ActorTest {
 class PlayerControlStopInteractWithWaterTest extends ActorTest {
   val player1 =
     Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
+  player1.Definition.UnderwaterLifespan(suffocation = 3000, recovery = 3000) // Override the default 60s down / 10s recovery so the tests don't take forever to run
   val avatarProbe = TestProbe()
   val guid = new NumberPoolHub(new MaxNumberSource(15))
   val pool = Pool(EnvironmentAttribute.Water, DeepSquare(-1, 10, 10, 0, 0))
@@ -849,7 +852,7 @@ class PlayerControlStopInteractWithWaterTest extends ActorTest {
           case _ => false
         }
       )
-      //player would normally die in 60s
+      //player would normally die in 3s (overridden from 60s)
       player1.Position = Vector3.Zero //pool's closed
       player1.zoneInteraction() //trigger
       val msg_recover = avatarProbe.receiveOne(250 milliseconds)
@@ -863,7 +866,7 @@ class PlayerControlStopInteractWithWaterTest extends ActorTest {
         }
       )
       assert(player1.Health == 100) //still alive?
-      probe.expectNoMessage(65 seconds)
+      probe.expectNoMessage(5 seconds)
       assert(player1.Health == 100) //yep, still alive
     }
   }
