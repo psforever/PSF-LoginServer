@@ -25,7 +25,7 @@ class HackCaptureActor extends Actor {
 
   def receive: Receive = {
     case HackCaptureActor.StartCaptureTerminalHack(target, zone, unk1, unk2, startTime) =>
-      log.trace(s"${target.GUID} is hacked.")
+      log.trace(s"StartCaptureTerminalHack: ${target.GUID} is hacked.")
 
       val duration = target.Definition match {
         case GlobalDefinitions.capture_terminal =>
@@ -49,7 +49,7 @@ class HackCaptureActor extends Actor {
       hackedObjects.find(_.target == target) match {
         case Some(_) =>
           log.trace(
-            s"${target.GUID} was already hacked - removing it from the hacked objects list before re-adding it."
+            s"StartCaptureTerminalHack: ${target.GUID} was already hacked - removing it from the hacked objects list before re-adding it."
           )
           hackedObjects = hackedObjects.filterNot(x => x.target == target)
         case _ => ;
@@ -70,7 +70,7 @@ class HackCaptureActor extends Actor {
       val finishedHacks = hackedObjects.filter(x => now - x.hack_timestamp >= x.duration.toNanos)
       hackedObjects = stillHacked
       finishedHacks.foreach(entry => {
-        log.trace(s"Capture terminal hack timeout reached for terminal ${entry.target.GUID}")
+        log.trace(s"ProcessCompleteHacks: capture terminal hack timeout reached for terminal ${entry.target.GUID}")
 
         val hackedByFaction = entry.target.HackedBy.get.hackerFaction
         entry.target.Actor ! CommonMessages.ClearHack()
@@ -143,7 +143,7 @@ class HackCaptureActor extends Actor {
       val short_timeout: FiniteDuration =
         math.max(1, hackEntry.duration.toNanos - (System.nanoTime - hackEntry.hack_timestamp)) nanoseconds
 
-      log.trace(s"Still items left in hacked objects list. Checking again in ${short_timeout.toSeconds} seconds")
+      log.trace(s"RestartTimer: still items left in hacked objects list. Checking again in ${short_timeout.toSeconds} seconds")
       import scala.concurrent.ExecutionContext.Implicits.global
       clearTrigger = context.system.scheduler.scheduleOnce(short_timeout, self, HackCaptureActor.ProcessCompleteHacks())
     }

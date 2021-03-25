@@ -84,11 +84,11 @@ class HackClearActor() extends Actor {
           val short_timeout: FiniteDuration = math.max(1, hackEntry.duration - (now - hackEntry.time)) nanoseconds
 
           log.debug(
-            s"HackClearActor: Still items left in hacked objects list. Checking again in ${short_timeout.toSeconds} seconds"
+            s"HackClearActor: still items left in hacked objects list. Checking again in ${short_timeout.toSeconds} seconds"
           )
           import scala.concurrent.ExecutionContext.Implicits.global
           clearTrigger = context.system.scheduler.scheduleOnce(short_timeout, self, HackClearActor.TryClearHacks())
-        case None => log.debug("HackClearActor: No objects left in hacked objects list. Not rescheduling check.")
+        case None => log.debug("HackClearActor: no objects left in hacked objects list. Not rescheduling check.")
       }
 
     }

@@ -196,7 +196,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
   }
 
   def loginPwdFailureResponse(username: String, newToken: String) = {
-    log.info(s"Failed login to account $username")
+    log.warn(s"Failed login to account $username")
     middlewareActor ! MiddlewareActor.Send(
       LoginRespMessage(
         newToken,

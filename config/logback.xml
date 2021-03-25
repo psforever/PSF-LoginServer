@@ -14,12 +14,24 @@
     <file>logs/psforever-general_${bySecond}.log</file>
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
       <fileNamePattern>logs/psforever-general_%d{yyyy-MM-dd}.gz</fileNamePattern>
-      <maxHistory>40</maxHistory>
+      <maxHistory>60</maxHistory>
       <totalSizeCap>10GB</totalSizeCap>
     </rollingPolicy>
     <encoder>
-      <pattern>%date{ISO8601} %5level "%X" %logger{35} - %msg%n</pattern>
+      <pattern>%date{ISO8601} %5level %logger{35} - %msg%n</pattern>
     </encoder>
+    <filter class="ch.qos.logback.core.filter.EvaluatorFilter">
+      <evaluator>
+        <matcher>
+          <Name>encrypted</Name>
+          <!-- occurs during latency or relogging complications; the messages are useless -->
+          <regex>Unexpected packet type EncryptedPacket</regex>
+        </matcher>
+        <expression>encrypted.matches(formattedMessage)</expression>
+      </evaluator>
+      <OnMatch>DENY</OnMatch>
+      <OnMismatch>NEUTRAL</OnMismatch>
+    </filter>
     <filter class="net.psforever.filters.LoggerPrefixFilter">
       <!--
        c.g.j.s.d.p.c.PostgreSQLConnectionHandler
@@ -40,13 +52,16 @@
     <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
       <level>INFO</level>
     </filter>
+    <filter class="net.psforever.filters.ApplyCooldownToDuplicateLoggingFilter">
+      <cooldown>5000</cooldown>
+    </filter>
   </appender>
 
   <appender name="FILE-DEBUG" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <file>logs/psforever-debug_${bySecond}.log</file>
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
       <fileNamePattern>logs/psforever-debug_%d{yyyy-MM-dd}.gz</fileNamePattern>
-      <maxHistory>40</maxHistory>
+      <maxHistory>60</maxHistory>
       <totalSizeCap>10GB</totalSizeCap>
     </rollingPolicy>
     <encoder>
@@ -63,8 +78,8 @@
     </filter>
     <filter class="net.psforever.filters.LoggerPrefixFilter">
       <!--
-       c.g.j.s.d.p.PostgreSQLConnection?
        c.g.j.s.d.p.c.PostgreSQLConnectionHandler
+       consider: c.g.j.s.d.p.PostgreSQLConnection?
       -->
       <prefix>com.github.jasync.sql.db.postgresql.codec</prefix>
     </filter>
@@ -87,6 +102,18 @@
   <appender name="Sentry" class="io.sentry.logback.SentryAppender">
     <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
       <level>WARN</level>
+    </filter>
+    <filter class="ch.qos.logback.core.filter.EvaluatorFilter">
+      <evaluator>
+        <matcher>
+          <Name>encrypted</Name>
+          <!-- occurs during logging or relogging complications; the messages are useless -->
+          <regex>Unexpected packet type EncryptedPacket</regex>
+        </matcher>
+        <expression>encrypted.matches(formattedMessage)</expression>
+      </evaluator>
+      <OnMatch>DENY</OnMatch>
+      <OnMismatch>NEUTRAL</OnMismatch>
     </filter>
   </appender>
 

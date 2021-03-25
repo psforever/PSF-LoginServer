@@ -23,7 +23,7 @@ object CaptureTerminals {
   def FinishHackingCaptureConsole(target: CaptureTerminal, hackingPlayer: Player, unk: Long)(): Unit = {
     import akka.pattern.ask
     import scala.concurrent.duration._
-    log.info(s"${hackingPlayer.toString} Hacked a ${target.toString}")
+    log.info(s"${hackingPlayer.toString} hacked a ${target.Definition.Name}")
     // Wait for the target actor to set the HackedBy property
     import scala.concurrent.ExecutionContext.Implicits.global
     ask(target.Actor, CommonMessages.Hack(hackingPlayer, target))(1 second).mapTo[Boolean].onComplete {

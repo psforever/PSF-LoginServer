@@ -46,7 +46,7 @@ object WeaponTurrets {
     * @param upgrade the upgrade being applied to the turret (usually, it's weapon system)
     */
   def FinishUpgradingMannedTurret(target: FacilityTurret, upgrade: TurretUpgrade.Value): Unit = {
-    log.info(s"Converting manned wall turret weapon to $upgrade")
+    log.info(s"Manned wall turret weapon being converted to $upgrade")
     val zone   = target.Zone
     val events = zone.VehicleEvents
     events ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.ClearSpecific(List(target), zone))

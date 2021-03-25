@@ -295,7 +295,7 @@ class MiddlewareActor(
                     Behaviors.same
 
                   case _: ChangeFireModeMessage =>
-                    log.trace(s"What is this packet that just arrived? ${msg.toString}")
+                    log.trace(s"What is this packet that just arrived? $msg")
                     //ignore
                     Behaviors.same
 

@@ -5,13 +5,13 @@ import net.psforever.objects.{GlobalDefinitions, Player, Vehicle}
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.serverobject.shuttle.OrbitalShuttle
 import net.psforever.objects.vehicles.AccessPermissionGroup
-import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire}
+import net.psforever.types.{CharacterSex, CharacterVoice, PlanetSideEmpire}
 import org.specs2.mutable.Specification
 
 class OrbitalShuttleTest extends Specification {
-  val testAvatar1 = Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
-  val testAvatar2 = Avatar(1, "TestCharacter2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
-  val testAvatar3 = Avatar(2, "TestCharacter3", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
+  val testAvatar1 = Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)
+  val testAvatar2 = Avatar(1, "TestCharacter2", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)
+  val testAvatar3 = Avatar(2, "TestCharacter3", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)
 
   "OrbitalShuttle" should {
     "construct (proper definition)" in {

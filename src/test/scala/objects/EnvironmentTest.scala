@@ -207,13 +207,13 @@ class EnvironmentAttributeTest extends Specification {
 
   "GantryDenialField" should {
     "interact with players" in {
-      val obj = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+      val obj = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
       obj.Spawn()
       EnvironmentAttribute.GantryDenialField.canInteractWith(obj) mustEqual true
     }
 
     "not interact with dead players" in {
-      val obj = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+      val obj = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
       obj.isAlive mustEqual false
       EnvironmentAttribute.GantryDenialField.canInteractWith(obj) mustEqual false
     }

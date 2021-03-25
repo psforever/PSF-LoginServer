@@ -2,7 +2,7 @@
 package net.psforever.objects
 
 import akka.actor.ActorRef
-import net.psforever.objects.avatar.Avatar
+import net.psforever.objects.avatar.{Avatar, Certification}
 
 import scala.concurrent.duration._
 import net.psforever.objects.ce.{Deployable, DeployedItem}
@@ -13,7 +13,7 @@ import net.psforever.services.RemoverActor
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 
 object Deployables {
-  private val log = org.log4s.getLogger("Deployables")
+  //private val log = org.log4s.getLogger("Deployables")
 
   object Make {
     def apply(item: DeployedItem.Value): () => PlanetSideGameObject with Deployable = cemap(item)
@@ -139,4 +139,32 @@ object Deployables {
     avatar.deployables.UpdateUI()
   }
 
+  /**
+    * Compare sets of certifications to determine if
+    * the requested `Engineering`-like certification requirements of the one group can be found in a another group.
+    * @see `CertificationType`
+    * @param sample the certifications to be compared against
+    * @param test the desired certifications
+    * @return `true`, if the desired certification requirements are met; `false`, otherwise
+    */
+  def constructionItemPermissionComparison(
+                                            sample: Set[Certification],
+                                            test: Set[Certification]
+                                          ): Boolean = {
+    import Certification._
+    val engineeringCerts: Set[Certification] = Set(AssaultEngineering, FortificationEngineering)
+    val testDiff: Set[Certification]         = test diff (engineeringCerts ++ Set(AdvancedEngineering))
+    //substitute `AssaultEngineering` and `FortificationEngineering` for `AdvancedEngineering`
+    val sampleIntersect = if (sample contains AdvancedEngineering) {
+      engineeringCerts
+    } else {
+      sample intersect engineeringCerts
+    }
+    val testIntersect = if (test contains AdvancedEngineering) {
+      engineeringCerts
+    } else {
+      test intersect engineeringCerts
+    }
+    (sample intersect testDiff equals testDiff) && (sampleIntersect intersect testIntersect equals testIntersect)
+  }
 }

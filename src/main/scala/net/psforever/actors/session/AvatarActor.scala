@@ -326,7 +326,7 @@ class AvatarActor(
 
                   result.onComplete {
                     case Success(_) =>
-                      log.debug(s"created character ${name} for account ${account.name}")
+                      log.debug(s"AvatarActor: created character ${name} for account ${account.name}")
                       sessionActor ! SessionActor.SendResponse(ActionResultMessage.Pass)
                       sendAvatars(account)
                     case Failure(e) => log.error(e)("db failure")
@@ -353,7 +353,7 @@ class AvatarActor(
 
           result.onComplete {
             case Success(_) =>
-              log.debug(s"avatar $id deleted")
+              log.debug(s"AvatarActor: avatar $id deleted")
               sessionActor ! SessionActor.SendResponse(ActionResultMessage.Pass)
               sendAvatars(account)
             case Failure(e) => log.error(e)("db failure")

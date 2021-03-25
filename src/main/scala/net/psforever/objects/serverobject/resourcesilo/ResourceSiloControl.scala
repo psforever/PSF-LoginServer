@@ -99,7 +99,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     // Only send updated capacitor display value to all clients if it has actually changed
     if (resourceSilo.CapacitorDisplay != siloDisplayBeforeChange) {
       log.trace(
-        s"Silo ${resourceSilo.GUID} NTU bar level has changed from $siloDisplayBeforeChange to ${resourceSilo.CapacitorDisplay}"
+        s"UpdateChargeLevel: silo ${resourceSilo.GUID} NTU bar level has changed from $siloDisplayBeforeChange to ${resourceSilo.CapacitorDisplay}"
       )
       zone.AvatarEvents ! AvatarServiceMessage(
         zone.id,

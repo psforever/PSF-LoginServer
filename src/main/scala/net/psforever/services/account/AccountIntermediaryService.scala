@@ -25,10 +25,6 @@ class AccountIntermediaryService extends Actor {
   private val IPAddressBySessionID = mutable.Map[Long, IPAddress]()
   private[this] val log            = org.log4s.getLogger
 
-  override def preStart() = {
-    log.trace("Starting...")
-  }
-
   def receive = {
     // Called by the LoginSessionActor
     case StoreAccountData(token, account) =>

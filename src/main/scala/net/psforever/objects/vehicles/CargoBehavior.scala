@@ -147,7 +147,7 @@ object CargoBehavior {
         )
         if (distance <= 64) {
           //cargo vehicle is close enough to assume to be physically within the carrier's hold; mount it
-          log.info(s"HandleCheckCargoMounting: mounting cargo vehicle in carrier at distance of $distance")
+          log.debug(s"HandleCheckCargoMounting: mounting cargo vehicle in carrier at distance of $distance")
           cargo.MountedIn = carrierGUID
           hold.mount(cargo)
           cargo.Velocity = None
@@ -163,7 +163,7 @@ object CargoBehavior {
           false
         } else if (distance > 625 || iteration >= 40) {
           //vehicles moved too far away or took too long to get into proper position; abort mounting
-          log.info(
+          log.debug(
             "HandleCheckCargoMounting: cargo vehicle is too far away or didn't mount within allocated time - aborting"
           )
           val cargoDriverGUID = cargo.Seats(0).occupant.get.GUID
@@ -261,7 +261,7 @@ object CargoBehavior {
         )
         if (distance > 225) {
           //cargo vehicle has moved far enough away; close the carrier's hold door
-          log.info(
+          log.debug(
             s"HandleCheckCargoDismounting: dismount of cargo vehicle from carrier complete at distance of $distance"
           )
           val cargoDriverGUID = cargo.Seats(0).occupant.get.GUID
@@ -401,8 +401,7 @@ object CargoBehavior {
           events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(GUID0, ejectCargoMsg))
           events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(GUID0, detachCargoMsg))
           events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(GUID0, resetCargoMsg))
-          log.debug(ejectCargoMsg.toString)
-          log.debug(detachCargoMsg.toString)
+          log.debug(s"HandleVehicleCargoDismount: eject - $ejectCargoMsg, detach - $detachCargoMsg")
           if (driverOpt.isEmpty) {
             //TODO cargo should drop like a rock like normal; until then, deconstruct it
             cargo.Actor ! Vehicle.Deconstruct()

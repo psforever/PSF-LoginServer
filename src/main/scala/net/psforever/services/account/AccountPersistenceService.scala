@@ -59,7 +59,6 @@ class AccountPersistenceService extends Actor {
     */
   override def preStart(): Unit = {
     ServiceManager.serviceManager ! ServiceManager.Lookup("squad")
-    log.trace("Awaiting system service hooks ...")
   }
 
   override def postStop(): Unit = {

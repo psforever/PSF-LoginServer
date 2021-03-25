@@ -15,10 +15,6 @@ class AvatarService(zone: Zone) extends Actor {
 
   private[this] val log = org.log4s.getLogger
 
-  override def preStart() = {
-    log.trace(s"Awaiting ${zone.id} avatar events ...")
-  }
-
   val AvatarEvents = new GenericEventBus[AvatarServiceResponse] //AvatarEventBus
 
   def receive = {
