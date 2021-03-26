@@ -106,7 +106,8 @@ object PacketCoding {
     packet.encode match {
       case Successful(payload) =>
         packet match {
-          case _: PlanetSideCryptoPacket => Successful(payload)
+          case _: PlanetSideCryptoPacket =>
+            Successful(payload)
           case packet: PlanetSideControlPacket =>
             ControlPacketOpcode.codec.encode(packet.opcode) match {
               case Successful(opcode) => Successful(hex"00".bits ++ opcode ++ payload)
@@ -117,6 +118,8 @@ object PacketCoding {
               case Successful(opcode) => Successful(opcode ++ payload)
               case f @ Failure(_)     => f
             }
+          case _ =>
+            Failure(Err("packet not supported"))
         }
       case f @ Failure(_) => f
     }

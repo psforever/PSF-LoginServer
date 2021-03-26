@@ -3402,7 +3402,6 @@ class SquadService extends Actor {
             Publish(faction, SquadResponse.InitList(PublishedLists(factionListings)))
         }
       case None =>
-      case None =>
         //first time being published
         factionListings += guid
         Publish(faction, SquadResponse.InitList(PublishedLists(factionListings)))
