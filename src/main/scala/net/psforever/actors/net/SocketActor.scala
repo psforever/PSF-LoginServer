@@ -82,7 +82,7 @@ object SocketActor {
           socketActor ! toSocket(message)
         }
       } else {
-        log.info("Network simulator dropped packet")
+        log.trace("Network simulator dropped packet")
       }
     }
 

@@ -304,7 +304,7 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
         ("name" | PacketHelpers.encodedWideStringAligned(namePadding(name_padding, data.v2))) ::
           ("exosuit" | ExoSuitType.codec) ::
           ("unk5" | uint2) :: //unknown
-          ("sex" | CharacterGender.codec) ::
+          ("sex" | CharacterSex.codec) ::
           ("head" | uint8L) ::
           ("voice" | CharacterVoice.codec) ::
           ("unk6" | uint32L) ::

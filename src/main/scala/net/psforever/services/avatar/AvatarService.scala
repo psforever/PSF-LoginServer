@@ -15,17 +15,12 @@ class AvatarService(zone: Zone) extends Actor {
 
   private[this] val log = org.log4s.getLogger
 
-  override def preStart() = {
-    log.trace(s"Awaiting ${zone.id} avatar events ...")
-  }
-
   val AvatarEvents = new GenericEventBus[AvatarServiceResponse] //AvatarEventBus
 
   def receive = {
     case Service.Join(channel) =>
       val path = s"/$channel/Avatar"
       val who  = sender()
-      log.info(s"$who has joined $path")
       AvatarEvents.subscribe(who, path)
 
     case Service.Leave(None) =>
@@ -33,8 +28,6 @@ class AvatarService(zone: Zone) extends Actor {
 
     case Service.Leave(Some(channel)) =>
       val path = s"/$channel/Avatar"
-      val who  = sender()
-      log.info(s"$who has left $path")
       AvatarEvents.unsubscribe(sender(), path)
 
     case Service.LeaveAll() =>

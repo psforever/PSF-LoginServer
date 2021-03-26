@@ -226,7 +226,7 @@ object Vehicles {
     * @param unk na; used by `HackMessage` as `unk5`
     */
   def FinishHackingVehicle(target: Vehicle, hacker: Player, unk: Long)(): Unit = {
-    log.info(s"Vehicle guid: ${target.GUID} has been jacked")
+    log.info(s"${hacker.Name} has jacked a ${target.Definition.Name}")
     val zone = target.Zone
     // Forcefully dismount any cargo
     target.CargoHolds.values.foreach(cargoHold => {

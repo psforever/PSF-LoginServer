@@ -12,7 +12,7 @@ import net.psforever.objects.serverobject.mount.{MountInfo, Mountable, Seat, Sea
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.zones.{Zone, ZoneMap}
-import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, Vector3}
+import net.psforever.types.{CharacterSex, CharacterVoice, PlanetSideEmpire, Vector3}
 import org.specs2.mutable.Specification
 
 import scala.concurrent.duration.Duration
@@ -46,7 +46,7 @@ class ImplantTerminalMechTest extends Specification {
     }
 
     "get passenger in a mount" in {
-      val player = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+      val player = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
       val obj    = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech)
       obj.PassengerInSeat(player).isEmpty mustEqual true
       obj.Seats(0).mount(player)
@@ -87,11 +87,11 @@ class ImplantTerminalMechControl2Test extends ActorTest {
 }
 
 class ImplantTerminalMechControl3Test extends ActorTest {
-  import net.psforever.types.CharacterGender
+  import net.psforever.types.CharacterSex
   "ImplantTerminalMechControl" should {
     "block a player from mounting" in {
       val (player1, mech) = ImplantTerminalMechTest.SetUpAgents(PlanetSideEmpire.TR)
-      val player2         = Player(Avatar(1, "test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+      val player2         = Player(Avatar(1, "test2", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
 
       mech.Actor ! Mountable.TryMount(player1, 1)
       receiveOne(Duration.create(100, "ms")) //consume reply
@@ -183,6 +183,6 @@ object ImplantTerminalMechTest {
     map.linkTerminalToInterface(1, 2)
     terminal.Actor = system.actorOf(Props(classOf[ImplantTerminalMechControl], terminal), "terminal-control")
 
-    (Player(Avatar(0, "test", faction, CharacterGender.Male, 0, CharacterVoice.Mute)), terminal)
+    (Player(Avatar(0, "test", faction, CharacterSex.Male, 0, CharacterVoice.Mute)), terminal)
   }
 }

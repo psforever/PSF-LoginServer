@@ -20,7 +20,7 @@ import org.specs2.mutable.Specification
 import scala.concurrent.duration._
 
 class DoorTest extends Specification {
-  val player = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val player = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
 
   "Door" should {
     "construct" in {
@@ -148,7 +148,7 @@ object DoorControlTest {
       GlobalDefinitions.building
     )
     door.Owner.Faction = faction
-    val player = Player(Avatar(0, "test", faction, CharacterGender.Male, 0, CharacterVoice.Mute))
+    val player = Player(Avatar(0, "test", faction, CharacterSex.Male, 0, CharacterVoice.Mute))
     guid.register(player, 2)
     (player, door)
   }

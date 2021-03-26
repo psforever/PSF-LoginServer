@@ -20,7 +20,7 @@ class VitalityTest extends Specification {
     val vSource   = VehicleSource(vehicle)
 
     "accept a variety of events" in {
-      val player     = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+      val player     = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
       val pSource    = PlayerSource(player)
       val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
       val resprojectile = DamageInteraction(
@@ -47,7 +47,7 @@ class VitalityTest extends Specification {
     }
 
     "return and clear the former list of vital activities" in {
-      val player  = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+      val player  = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
       val pSource = PlayerSource(player)
 
       player.History(HealFromKit(pSource, 10, GlobalDefinitions.medkit))
@@ -71,7 +71,7 @@ class VitalityTest extends Specification {
     }
 
     "get exactly one entry that was caused by projectile damage" in {
-      val player     = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+      val player     = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
       val pSource    = PlayerSource(player)
       val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
       val resprojectile = DamageInteraction(

@@ -1646,7 +1646,7 @@ object GlobalDefinitions {
           1.093750f // same regardless of gender
         } else if (p.ExoSuit == ExoSuitType.MAX) {
           1.906250f // VS female MAX
-        } else if (p.Sex == CharacterGender.Male) {
+        } else if (p.Sex == CharacterSex.Male) {
           obj.Definition.MaxDepth // male
         } else {
           1.546875f // female

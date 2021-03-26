@@ -124,11 +124,7 @@ class SquadService extends Actor {
   private[this] val log = org.log4s.getLogger
 
   private def debug(msg: String): Unit = {
-    log.info(msg)
-  }
-
-  override def preStart(): Unit = {
-    log.info("Starting...")
+    log.debug(msg)
   }
 
   override def postStop(): Unit = {
@@ -321,7 +317,7 @@ class SquadService extends Actor {
       case str if str.matches("//d+") =>
         Publish(to.toLong, msg, excluded)
       case _ =>
-        log.error(s"Publish(String): subscriber information is an unhandled format - $to")
+        log.warn(s"Publish(String): subscriber information is an unhandled format - $to")
     }
   }
 
@@ -336,7 +332,7 @@ class SquadService extends Actor {
       case Some(user) =>
         user ! SquadServiceResponse("", msg)
       case None =>
-        log.error(s"Publish(Long): subscriber information can not be found - $to")
+        log.warn(s"Publish(Long): subscriber information can not be found - $to")
     }
   }
 
@@ -383,7 +379,6 @@ class SquadService extends Actor {
     case Service.Join(faction) if "TRNCVS".indexOf(faction) > -1 =>
       val path = s"/$faction/Squad"
       val who  = sender()
-      debug(s"$who has joined $path")
       SquadEvents.subscribe(who, path)
 
     //subscribe to the player's personal channel - necessary for future and previous squad information
@@ -392,7 +387,6 @@ class SquadService extends Actor {
         val longCharId = char_id.toLong
         val path       = s"/$char_id/Squad"
         val who        = sender()
-        debug(s"$who has joined $path")
         context.watch(who)
         UserEvents += longCharId -> who
         refused(longCharId) = Nil
@@ -407,7 +401,6 @@ class SquadService extends Actor {
     case Service.Leave(Some(faction)) if "TRNCVS".indexOf(faction) > -1 =>
       val path = s"/$faction/Squad"
       val who  = sender()
-      debug(s"$who has left $path")
       SquadEvents.unsubscribe(who, path)
 
     case Service.Leave(Some(char_id)) =>

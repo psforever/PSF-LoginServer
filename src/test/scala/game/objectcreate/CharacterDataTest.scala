@@ -40,7 +40,7 @@ class CharacterDataTest extends Specification {
                 case CharacterAppearanceData(a, b, ribbons) =>
                   a.app.name mustEqual "ScrawnyRonnie"
                   a.app.faction mustEqual PlanetSideEmpire.TR
-                  a.app.sex mustEqual CharacterGender.Male
+                  a.app.sex mustEqual CharacterSex.Male
                   a.app.head mustEqual 5
                   a.app.voice mustEqual CharacterVoice.Voice5
                   a.data.bops mustEqual false
@@ -157,7 +157,7 @@ class CharacterDataTest extends Specification {
                 case CharacterAppearanceData(a, b, ribbons) =>
                   a.app.name mustEqual "ScrawnyRonnie"
                   a.app.faction mustEqual PlanetSideEmpire.TR
-                  a.app.sex mustEqual CharacterGender.Male
+                  a.app.sex mustEqual CharacterSex.Male
                   a.app.head mustEqual 5
                   a.app.voice mustEqual CharacterVoice.Voice5
                   a.data.bops mustEqual false
@@ -226,7 +226,7 @@ class CharacterDataTest extends Specification {
                 case CharacterAppearanceData(a, b, ribbons) =>
                   a.app.name mustEqual "Angello"
                   a.app.faction mustEqual PlanetSideEmpire.VS
-                  a.app.sex mustEqual CharacterGender.Male
+                  a.app.sex mustEqual CharacterSex.Male
                   a.app.head mustEqual 10
                   a.app.voice mustEqual CharacterVoice.Voice2
                   a.data.bops mustEqual false
@@ -300,7 +300,7 @@ class CharacterDataTest extends Specification {
         BasicCharacterData(
           "ScrawnyRonnie",
           PlanetSideEmpire.TR,
-          CharacterGender.Male,
+          CharacterSex.Male,
           5,
           CharacterVoice.Voice5
         ),
@@ -408,7 +408,7 @@ class CharacterDataTest extends Specification {
         BasicCharacterData(
           "ScrawnyRonnie",
           PlanetSideEmpire.TR,
-          CharacterGender.Male,
+          CharacterSex.Male,
           5,
           CharacterVoice.Voice5
         ),
@@ -524,7 +524,7 @@ class CharacterDataTest extends Specification {
         BasicCharacterData(
           "Angello",
           PlanetSideEmpire.VS,
-          CharacterGender.Male,
+          CharacterSex.Male,
           10,
           CharacterVoice.Voice2
         ),

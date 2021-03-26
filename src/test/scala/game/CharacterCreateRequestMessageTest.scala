@@ -4,7 +4,7 @@ package game
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
-import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire}
+import net.psforever.types.{CharacterSex, CharacterVoice, PlanetSideEmpire}
 import scodec.bits._
 
 class CharacterCreateRequestMessageTest extends Specification {
@@ -16,7 +16,7 @@ class CharacterCreateRequestMessageTest extends Specification {
         name mustEqual "TestChar"
         head mustEqual 50
         voice mustEqual CharacterVoice.Voice5
-        gender mustEqual CharacterGender.Female
+        gender mustEqual CharacterSex.Female
         faction mustEqual PlanetSideEmpire.NC
       case _ =>
         ko
@@ -25,7 +25,7 @@ class CharacterCreateRequestMessageTest extends Specification {
 
   "encode" in {
     val msg =
-      CharacterCreateRequestMessage("TestChar", 50, CharacterVoice.Voice5, CharacterGender.Female, PlanetSideEmpire.NC)
+      CharacterCreateRequestMessage("TestChar", 50, CharacterVoice.Voice5, CharacterSex.Female, PlanetSideEmpire.NC)
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string

@@ -26,7 +26,7 @@ class TcpListener[T <: Actor](actorClass: Class[T], nextActorName: String, liste
 
   def receive = {
     case Tcp.Bound(local) =>
-      log.info(s"Now listening on TCP:$local")
+      log.debug(s"Now listening on TCP:$local")
 
       context.become(ready(sender()))
     case Tcp.CommandFailed(Tcp.Bind(_, address, _, _, _)) =>

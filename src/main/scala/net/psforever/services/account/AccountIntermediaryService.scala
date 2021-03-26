@@ -25,37 +25,33 @@ class AccountIntermediaryService extends Actor {
   private val IPAddressBySessionID = mutable.Map[Long, IPAddress]()
   private[this] val log            = org.log4s.getLogger
 
-  override def preStart() = {
-    log.trace("Starting...")
-  }
-
   def receive = {
     // Called by the LoginSessionActor
     case StoreAccountData(token, account) =>
       accountsByToken += (token -> account)
-      log.info(s"Storing intermediary account data for ${account.id}")
+      log.trace(s"Storing intermediary account data for ${account.id}")
 
     // Called by the WorldSessionActor
     case RetrieveAccountData(token) =>
       accountsByToken.remove(token) match {
         case Some(acc) =>
           sender() ! ReceiveAccountData(acc)
-          log.info(s"Retrieving intermediary account data for $acc")
+          log.trace(s"Retrieving intermediary account data for $acc")
         case None =>
           log.error(s"Unable to retrieve intermediary account data for $token")
       }
 
     case StoreIPAddress(sessionID, address) =>
       IPAddressBySessionID += (sessionID -> address)
-      log.info(s"Storing IP address (${address.Address}) for sessionID : $sessionID")
+      log.trace(s"Storing IP address (${address.Address}) for sessionID : $sessionID")
 
     case RetrieveIPAddress(sessionID) =>
       val address: Option[IPAddress] = IPAddressBySessionID.remove(sessionID)
       if (address.nonEmpty) {
         sender() ! ReceiveIPAddress(address.get)
-        log.info(s"Retrieving IP address data for sessionID : ${sessionID}")
+        log.trace(s"Retrieving IP address data for sessionID : $sessionID")
       } else {
-        log.error(s"Unable to retrieve IP address data for sessionID : ${sessionID}")
+        log.error(s"Unable to retrieve IP address data for sessionID : $sessionID")
       }
 
     case msg =>

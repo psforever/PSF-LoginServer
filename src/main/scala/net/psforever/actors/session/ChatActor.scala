@@ -121,8 +121,6 @@ class ChatActor(
           Behaviors.same
 
         case Message(message) =>
-          log.info("Chat: " + message)
-
           val gmCommandAllowed =
             session.account.gm || Config.app.development.unprivilegedGmCommands.contains(message.messageType)
 
@@ -916,7 +914,7 @@ class ChatActor(
               }
 
             case _ =>
-              log.info(s"unhandled chat message $message")
+              log.warn(s"Unhandled chat message $message")
           }
           Behaviors.same
 
@@ -945,7 +943,7 @@ class ChatActor(
               val args = message.contents.split(" ")
               val (name, time) = (args.lift(0), args.lift(1)) match {
                 case (Some(name), _) if name != session.player.Name =>
-                  log.error("received silence message for other player")
+                  log.error("Received silence message for other player")
                   (None, None)
                 case (Some(name), None)                                     => (Some(name), Some(5))
                 case (Some(name), Some(time)) if time.toIntOption.isDefined => (Some(name), Some(time.toInt))
@@ -976,11 +974,11 @@ class ChatActor(
                   }
 
                 case (name, time) =>
-                  log.error(s"bad silence args $name $time")
+                  log.warn(s"Bad silence args $name $time")
               }
 
             case _ =>
-              log.error(s"unexpected messageType $message")
+              log.warn(s"Unexpected messageType $message")
 
           }
           Behaviors.same

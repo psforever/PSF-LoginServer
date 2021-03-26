@@ -58,7 +58,7 @@ class VehicleSpawnControl3Test extends ActorTest {
       val (vehicle, player, pad, zone) = VehicleSpawnPadControlTest.SetUpAgents(PlanetSideEmpire.TR)
       //we can recycle the vehicle and the player for each order
       val probe   = new TestProbe(system, "zone-events")
-      val player2 = Player(Avatar(0, "test2", player.Faction, CharacterGender.Male, 0, CharacterVoice.Mute))
+      val player2 = Player(Avatar(0, "test2", player.Faction, CharacterSex.Male, 0, CharacterVoice.Mute))
       player2.GUID = PlanetSideGUID(11)
       player2.Continent = zone.id
       player2.Spawn()
@@ -216,7 +216,7 @@ object VehicleSpawnPadControlTest {
     import net.psforever.objects.serverobject.structures.Building
     import net.psforever.objects.vehicles.VehicleControl
     import net.psforever.objects.Tool
-    import net.psforever.types.CharacterGender
+    import net.psforever.types.CharacterSex
 
     val vehicle             = Vehicle(GlobalDefinitions.two_man_assault_buggy)
     val weapon              = vehicle.WeaponControlledFromSeat(1).get.asInstanceOf[Tool]
@@ -245,7 +245,7 @@ object VehicleSpawnPadControlTest {
     pad.Owner.Faction = faction
     pad.Zone = zone
     guid.register(pad, "test-pool")
-    val player = Player(Avatar(0, "test", faction, CharacterGender.Male, 0, CharacterVoice.Mute))
+    val player = Player(Avatar(0, "test", faction, CharacterSex.Male, 0, CharacterVoice.Mute))
     guid.register(player, "test-pool")
     player.Zone = zone
     player.Spawn()

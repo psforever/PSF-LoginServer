@@ -10,7 +10,7 @@ import scodec.codecs.uint
   * While it is technically not valid to have a wrong-gendered voice,
   * unlisted sixth and seventh entries would give a male character a female voice;
   * a female character with either entry would become mute, however.
-  * @see `CharacterGender`
+  * @see `CharacterSex`
   */
 object CharacterVoice extends Enumeration {
   type Type = Value

@@ -6,12 +6,12 @@ import net.psforever.objects._
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.guid.{GUIDTask, TaskResolver}
 import net.psforever.objects.locker.LockerEquipment
-import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire}
+import net.psforever.types.{CharacterSex, CharacterVoice, PlanetSideEmpire}
 
 class GUIDTaskRegisterPlayerTest extends ActorTest {
   "RegisterPlayer" in {
     val (_, uns, taskResolver, probe) = GUIDTaskTest.CommonTestSetup
-    val obj                           = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+    val obj                           = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
     val obj_wep                       = Tool(GlobalDefinitions.beamer)
     obj.Slot(0).Equipment = obj_wep
     val obj_wep_ammo = AmmoBox(GlobalDefinitions.energy_cell)

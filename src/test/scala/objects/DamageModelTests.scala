@@ -26,7 +26,7 @@ class DamageCalculationsTests extends Specification {
     val wep_prof   = wep_fmode.Add
     val proj       = DamageModelTests.projectile
     val proj_prof  = proj.asInstanceOf[DamageProfile]
-    val player     = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+    val player     = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
     val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
     val target     = Vehicle(GlobalDefinitions.fury)
     target.Position = Vector3(10, 0, 0)
@@ -450,7 +450,7 @@ class DamageCalculationsTests extends Specification {
 
     "galaxy gunship reduction (target is not a vehicle)" in {
       val tplayer =
-        Player(Avatar(0, "TestCharacter2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+        Player(Avatar(0, "TestCharacter2", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
       val resfprojectile = DamageInteraction(
         SourceEntry(tplayer),
         ProjectileReason(
@@ -479,7 +479,7 @@ class ResistanceCalculationsTests extends Specification {
   val wep        = GlobalDefinitions.galaxy_gunship_cannon
   val wep_fmode  = Tool(wep).FireMode
   val proj       = DamageModelTests.projectile
-  val player     = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val player     = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
   val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
 
   "ResistanceCalculations" should {
@@ -515,7 +515,7 @@ class ResistanceCalculationsTests extends Specification {
     }
 
     "discern mechanized infantry targets" in {
-      val target = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+      val target = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
       target.ExoSuit = ExoSuitType.MAX
       val resprojectile = DamageInteraction(
         SourceEntry(target),
@@ -592,7 +592,7 @@ class ResolutionCalculationsTests extends Specification {
   val wep       = GlobalDefinitions.galaxy_gunship_cannon
   val wep_fmode = Tool(wep).FireMode
   val proj      = DamageModelTests.projectile
-  val player    = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val player    = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
   player.Spawn()
   val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
 
@@ -656,7 +656,7 @@ class ResolutionCalculationsTests extends Specification {
       InfantryDamageAfterResist(100, 100)(50, 60) mustEqual (0, 50)
     }
 
-    val player2 = Player(Avatar(0, "TestCharacter2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+    val player2 = Player(Avatar(0, "TestCharacter2", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
     player2.ExoSuit = ExoSuitType.MAX
     player2.Spawn()
     "calculate no max damage for vehicles" in {
@@ -740,7 +740,7 @@ class DamageModelTests extends Specification {
   val wep_tool  = Tool(wep)
   val wep_fmode = wep_tool.FireMode
   val proj      = DamageModelTests.projectile
-  val player    = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val player    = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
   player.Spawn()
   val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
 
@@ -767,7 +767,7 @@ class DamageModelTests extends Specification {
 
     "resolve infantry targets" in {
       val tplayer =
-        Player(Avatar(0, "TestCharacter2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+        Player(Avatar(0, "TestCharacter2", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
       tplayer.Spawn()
       tplayer.Health mustEqual 100
       tplayer.Armor mustEqual 50
@@ -789,7 +789,7 @@ class DamageModelTests extends Specification {
 
     "resolve infantry targets in a specific way" in {
       val tplayer =
-        Player(Avatar(0, "TestCharacter2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+        Player(Avatar(0, "TestCharacter2", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
       tplayer.Spawn()
       tplayer.Health mustEqual 100
       tplayer.Armor mustEqual 50
@@ -811,7 +811,7 @@ class DamageModelTests extends Specification {
 
     "resolve infantry targets, with damage overflow" in {
       val tplayer =
-        Player(Avatar(0, "TestCharacter2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+        Player(Avatar(0, "TestCharacter2", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
       tplayer.Spawn()
       tplayer.Health mustEqual 100
       tplayer.Armor mustEqual 50

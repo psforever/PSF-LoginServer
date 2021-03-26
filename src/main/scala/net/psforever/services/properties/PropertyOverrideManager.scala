@@ -31,16 +31,16 @@ class PropertyOverrideManager extends Actor {
   }
 
   private def LoadOverridesFromFile(zoneId: Int): Unit = {
-    val zoneOverrides = LoadFile(s"overrides/game_objects${zoneId}.adb.lst")
+    val zoneOverrides = LoadFile(s"overrides/game_objects$zoneId.adb.lst")
 
     if (zoneOverrides == null) {
-      log.debug(s"No overrides found for zone ${zoneId} using filename game_objects${zoneId}.adb.lst")
+      log.debug(s"PropertyOverride: no overrides found for zone $zoneId using filename game_objects$zoneId.adb.lst")
       return
     }
 
     val grouped = zoneOverrides.groupBy(_._1).view.mapValues(_.map(x => (x._2, x._3)).toList).toMap
 
-    log.debug(s"Loaded property overrides for zone $zoneId: ${grouped.toString}")
+    log.debug(s"PropertyOverride: loaded property overrides for zone $zoneId: ${grouped.toString}")
     overrides += (zoneId -> grouped)
   }
 

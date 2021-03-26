@@ -100,7 +100,7 @@ class FacilityTurretControl1Test extends ActorTest {
 }
 
 class FacilityTurretControl2Test extends ActorTest {
-  val player = Player(Avatar(0, "", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val player = Player(Avatar(0, "", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
   val obj    = FacilityTurret(GlobalDefinitions.manned_turret)
   obj.GUID = PlanetSideGUID(1)
   obj.Actor = system.actorOf(Props(classOf[FacilityTurretControl], obj), "turret-control")
@@ -127,7 +127,7 @@ class FacilityTurretControl2Test extends ActorTest {
 }
 
 class FacilityTurretControl3Test extends ActorTest {
-  val player = Player(Avatar(0, "", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val player = Player(Avatar(0, "", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
   val obj    = FacilityTurret(GlobalDefinitions.manned_turret)
   obj.GUID = PlanetSideGUID(1)
   obj.Actor = system.actorOf(Props(classOf[FacilityTurretControl], obj), "turret-control")
@@ -153,7 +153,7 @@ class FacilityTurretControl3Test extends ActorTest {
 }
 
 class FacilityTurretControl4Test extends ActorTest {
-  val player = Player(Avatar(0, "", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val player = Player(Avatar(0, "", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
   val obj = FacilityTurret(GlobalDefinitions.vanu_sentry_turret)
   obj.GUID = PlanetSideGUID(1)
   obj.Actor = system.actorOf(Props(classOf[FacilityTurretControl], obj), "turret-control")
@@ -201,7 +201,7 @@ class FacilityTurretControlRestorationTest extends ActorTest {
   val turretWeapon = turret.Weapons.values.head.Equipment.get.asInstanceOf[Tool]
 
   val player1 =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=3
+    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=3
   player1.Spawn()
   player1.Position = Vector3(2, 2, 2)
   val player1Probe = TestProbe()

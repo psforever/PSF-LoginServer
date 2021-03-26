@@ -70,7 +70,7 @@ class DetailedCharacterDataTest extends Specification {
                 case CharacterAppearanceData(a, b, ribbons) =>
                   a.app.name mustEqual "IlllIIIlllIlIllIlllIllI"
                   a.app.faction mustEqual PlanetSideEmpire.VS
-                  a.app.sex mustEqual CharacterGender.Female
+                  a.app.sex mustEqual CharacterSex.Female
                   a.app.head mustEqual 41
                   a.app.voice mustEqual CharacterVoice.Voice1
                   a.data.bops mustEqual false
@@ -258,7 +258,7 @@ class DetailedCharacterDataTest extends Specification {
                 case CharacterAppearanceData(a, b, ribbons) =>
                   a.app.name mustEqual "IlllIIIlllIlIllIlllIllI"
                   a.app.faction mustEqual PlanetSideEmpire.VS
-                  a.app.sex mustEqual CharacterGender.Female
+                  a.app.sex mustEqual CharacterSex.Female
                   a.app.head mustEqual 41
                   a.app.voice mustEqual CharacterVoice.Voice1
                   a.data.bops mustEqual false
@@ -443,7 +443,7 @@ class DetailedCharacterDataTest extends Specification {
                 case CharacterAppearanceData(a, b, ribbons) =>
                   a.app.name mustEqual "HaHaATRMax"
                   a.app.faction mustEqual PlanetSideEmpire.TR
-                  a.app.sex mustEqual CharacterGender.Male
+                  a.app.sex mustEqual CharacterSex.Male
                   a.app.head mustEqual 57
                   a.app.voice mustEqual CharacterVoice.Voice1
                   a.data.bops mustEqual false
@@ -670,7 +670,7 @@ class DetailedCharacterDataTest extends Specification {
                 case CharacterAppearanceData(a, b, ribbons) =>
                   a.app.name mustEqual "KiCkJr"
                   a.app.faction mustEqual PlanetSideEmpire.NC
-                  a.app.sex mustEqual CharacterGender.Male
+                  a.app.sex mustEqual CharacterSex.Male
                   a.app.head mustEqual 24
                   a.app.voice mustEqual CharacterVoice.Voice4
                   a.data.bops mustEqual false
@@ -1189,7 +1189,7 @@ class DetailedCharacterDataTest extends Specification {
                   a.app mustEqual BasicCharacterData(
                     "CCRIDER",
                     PlanetSideEmpire.NC,
-                    CharacterGender.Male,
+                    CharacterSex.Male,
                     20,
                     CharacterVoice.Voice3
                   )
@@ -1336,7 +1336,7 @@ class DetailedCharacterDataTest extends Specification {
                   a.app mustEqual BasicCharacterData(
                     "xRider912",
                     PlanetSideEmpire.TR,
-                    CharacterGender.Male,
+                    CharacterSex.Male,
                     4,
                     CharacterVoice.Voice1
                   )
@@ -1515,7 +1515,7 @@ class DetailedCharacterDataTest extends Specification {
         BasicCharacterData(
           "IlllIIIlllIlIllIlllIllI",
           PlanetSideEmpire.VS,
-          CharacterGender.Female,
+          CharacterSex.Female,
           41,
           CharacterVoice.Voice1
         ),
@@ -1697,7 +1697,7 @@ class DetailedCharacterDataTest extends Specification {
         BasicCharacterData(
           "IlllIIIlllIlIllIlllIllI",
           PlanetSideEmpire.VS,
-          CharacterGender.Female,
+          CharacterSex.Female,
           41,
           CharacterVoice.Voice1
         ),
@@ -1886,7 +1886,7 @@ class DetailedCharacterDataTest extends Specification {
         BasicCharacterData(
           "HaHaATRMax",
           PlanetSideEmpire.TR,
-          CharacterGender.Male,
+          CharacterSex.Male,
           57,
           CharacterVoice.Voice1
         ),
@@ -2103,7 +2103,7 @@ class DetailedCharacterDataTest extends Specification {
         BasicCharacterData(
           "KiCkJr",
           PlanetSideEmpire.NC,
-          CharacterGender.Male,
+          CharacterSex.Male,
           24,
           CharacterVoice.Voice4
         ),
@@ -3588,7 +3588,7 @@ class DetailedCharacterDataTest extends Specification {
         BasicCharacterData(
           "CCRIDER",
           PlanetSideEmpire.NC,
-          CharacterGender.Male,
+          CharacterSex.Male,
           20,
           CharacterVoice.Voice3
         ),
@@ -4512,7 +4512,7 @@ class DetailedCharacterDataTest extends Specification {
         BasicCharacterData(
           "xRider912",
           PlanetSideEmpire.TR,
-          CharacterGender.Male,
+          CharacterSex.Male,
           4,
           CharacterVoice.Voice1
         ),

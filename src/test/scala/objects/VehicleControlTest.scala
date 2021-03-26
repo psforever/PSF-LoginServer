@@ -330,25 +330,6 @@ class VehicleControlMountingBlockedExosuitTest extends ActorTest {
     override def VehicleEvents: ActorRef = catchall
     override def Activity: ActorRef = catchall
   }
-  def checkCanNotMount(probe: TestProbe, id: String): Unit = {
-    val reply = probe.receiveOne(Duration.create(250, "ms"))
-    reply match {
-      case msg: Mountable.MountMessages =>
-        assert(msg.response.isInstanceOf[Mountable.CanNotMount], s"test $id")
-      case _ =>
-        assert(false, s"test $id-b")
-    }
-  }
-
-  def checkCanMount(probe: TestProbe, id: String): Unit = {
-    val reply = probe.receiveOne(Duration.create(250, "ms"))
-    reply match {
-      case msg: Mountable.MountMessages =>
-        assert(msg.response.isInstanceOf[Mountable.CanMount], s" - test: $id")
-      case _ =>
-        assert(false, s" - test: $id-b")
-    }
-  }
   val vehicle = Vehicle(GlobalDefinitions.apc_tr)
   vehicle.Faction = PlanetSideEmpire.TR
   vehicle.GUID = PlanetSideGUID(10)
@@ -379,28 +360,28 @@ class VehicleControlMountingBlockedExosuitTest extends ActorTest {
       val probe = new TestProbe(system)
       // disallow
       vehicle.Actor.tell(Mountable.TryMount(player2, 1), probe.ref) //MAX in non-Max mount
-      checkCanNotMount(probe, "MAX in non-Max mount 1")
+      VehicleControlTest.checkCanNotMount(probe, "MAX in non-Max mount 1")
       vehicle.Actor.tell(Mountable.TryMount(player2, 2), probe.ref) //MAX in non-MAX mount
-      checkCanNotMount(probe, "MAX in non-MAX mount 2")
+      VehicleControlTest.checkCanNotMount(probe, "MAX in non-MAX mount 2")
       vehicle.Actor.tell(Mountable.TryMount(player1, 11), probe.ref) //Reinforced in MAX-only mount
-      checkCanNotMount(probe, "Reinforced in MAX-only mount")
+      VehicleControlTest.checkCanNotMount(probe, "Reinforced in MAX-only mount")
       vehicle.Actor.tell(Mountable.TryMount(player3, 11), probe.ref) //Agile in MAX-only mount
-      checkCanNotMount(probe, "Agile in MAX-only mount")
+      VehicleControlTest.checkCanNotMount(probe, "Agile in MAX-only mount")
 
       //allow
       vehicle.Actor.tell(Mountable.TryMount(player1, 1), probe.ref) // Reinforced in driver mount allowing all except MAX
-      checkCanMount(probe, "Reinforced in driver mount allowing all except MAX")
+      VehicleControlTest.checkCanMount(probe, "Reinforced in driver mount allowing all except MAX")
       // Reset to allow further driver mount mounting tests
       vehicle.Actor.tell(Mountable.TryDismount(player1, 0), probe.ref)
       probe.receiveOne(500 milliseconds) //discard
       vehicle.Owner = None //ensure
       vehicle.OwnerName = None //ensure
       vehicle.Actor.tell(Mountable.TryMount(player3, 1), probe.ref) // Agile in driver mount allowing all except MAX
-      checkCanMount(probe, "Agile in driver mount allowing all except MAX")
+      VehicleControlTest.checkCanMount(probe, "Agile in driver mount allowing all except MAX")
       vehicle.Actor.tell(Mountable.TryMount(player1, 3), probe.ref) // Reinforced in passenger mount allowing all except MAX
-      checkCanMount(probe, "Reinforced in passenger mount allowing all except MAX")
+      VehicleControlTest.checkCanMount(probe, "Reinforced in passenger mount allowing all except MAX")
       vehicle.Actor.tell(Mountable.TryMount(player2, 11), probe.ref) // MAX in MAX-only mount
-      checkCanMount(probe, "MAX in MAX-only mount")
+      VehicleControlTest.checkCanMount(probe, "MAX in MAX-only mount")
     }
   }
 }
@@ -621,7 +602,7 @@ class VehicleControlShieldsNotChargingTooEarlyTest extends ActorTest {
 //  }
 //  //
 //  val beamer_wep = Tool(GlobalDefinitions.beamer)
-//  val p_source = PlayerSource( Player(Avatar(0, "TestTarget", PlanetSideEmpire.NC, CharacterGender.Female, 1, CharacterVoice.Mute)) )
+//  val p_source = PlayerSource( Player(Avatar(0, "TestTarget", PlanetSideEmpire.NC, CharacterSex.Female, 1, CharacterVoice.Mute)) )
 //  val projectile = Projectile(beamer_wep.Projectile, GlobalDefinitions.beamer, beamer_wep.FireMode, p_source, GlobalDefinitions.beamer.ObjectId, Vector3.Zero, Vector3.Zero)
 //  val fury_dm = Vehicle(GlobalDefinitions.fury).DamageModel
 //  val obj = DamageInteraction(p_source, ProjectileReason(DamageResolution.Hit, projectile, fury_dm), Vector3(1.2f, 3.4f, 5.6f))
@@ -643,7 +624,7 @@ class VehicleControlShieldsNotChargingTooEarlyTest extends ActorTest {
 class VehicleControlInteractWithWaterPartialTest extends ActorTest {
   val vehicle = Vehicle(GlobalDefinitions.fury) //guid=2
   val player1 =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
+    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
   val playerProbe = TestProbe()
   val guid = new NumberPoolHub(new MaxNumberSource(15))
   val pool = Pool(EnvironmentAttribute.Water, DeepSquare(-1, 10, 10, 0, 0))
@@ -694,7 +675,7 @@ class VehicleControlInteractWithWaterPartialTest extends ActorTest {
 class VehicleControlInteractWithWaterTest extends ActorTest {
   val vehicle = Vehicle(GlobalDefinitions.fury) //guid=2
   val player1 =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
+    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
   val avatarProbe = TestProbe()
   val vehicleProbe = TestProbe()
   val guid = new NumberPoolHub(new MaxNumberSource(15))
@@ -765,7 +746,7 @@ class VehicleControlInteractWithWaterTest extends ActorTest {
 class VehicleControlStopInteractWithWaterTest extends ActorTest {
   val vehicle = Vehicle(GlobalDefinitions.fury) //guid=2
   val player1 =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
+    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
   val playerProbe = TestProbe()
   val guid = new NumberPoolHub(new MaxNumberSource(15))
   val pool = Pool(EnvironmentAttribute.Water, DeepSquare(-1, 10, 10, 0, 0))
@@ -829,7 +810,7 @@ class VehicleControlStopInteractWithWaterTest extends ActorTest {
 class VehicleControlInteractWithLavaTest extends ActorTest {
   val vehicle = Vehicle(GlobalDefinitions.fury) //guid=2
   val player1 =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
+    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
   val avatarProbe = TestProbe()
   val vehicleProbe = TestProbe()
   val guid = new NumberPoolHub(new MaxNumberSource(15))
@@ -890,7 +871,7 @@ class VehicleControlInteractWithLavaTest extends ActorTest {
 class VehicleControlInteractWithDeathTest extends ActorTest {
   val vehicle = Vehicle(GlobalDefinitions.fury) //guid=2
   val player1 =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
+    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
   val guid = new NumberPoolHub(new MaxNumberSource(15))
   val pool = Pool(EnvironmentAttribute.Death, DeepSquare(-1, 10, 10, 0, 0))
   val zone = new Zone(
@@ -937,11 +918,10 @@ class VehicleControlInteractWithDeathTest extends ActorTest {
 
 object VehicleControlTest {
   import net.psforever.objects.avatar.Avatar
-  import net.psforever.types.{CharacterGender, PlanetSideEmpire}
+  import net.psforever.types.{CharacterSex, PlanetSideEmpire}
 
-  val avatar1 = Avatar(0, "test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
-  val avatar2 = Avatar(1, "test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
-
+  val avatar1 = Avatar(0, "test1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)
+  val avatar2 = Avatar(1, "test2", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)
 
   def checkCanNotMount(probe: TestProbe, id: String): Unit = {
     val reply = probe.receiveOne(Duration.create(250, "ms"))

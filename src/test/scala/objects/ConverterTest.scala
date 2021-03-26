@@ -648,7 +648,7 @@ class ConverterTest extends Specification {
   }
 
   "Player" should {
-    var avatar = Avatar(0, "Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+    var avatar = Avatar(0, "Chord", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Voice5)
     val obj: Player = {
       /*
       Create an AmmoBoxDefinition with which to build two AmmoBoxes
