@@ -116,7 +116,7 @@ class SquadService extends Actor {
   private[this] val log = org.log4s.getLogger
 
   private def debug(msg: String): Unit = {
-    log.debug(msg)
+    log.trace(msg)
   }
 
   override def postStop(): Unit = {
@@ -426,10 +426,10 @@ class SquadService extends Actor {
           SquadActionWaypoint(tplayer, wtype, info)
 
         case SquadAction.Definition(guid, line, action) =>
-          SquadActionDefinition(tplayer, zone, guid, line, action)
+          SquadActionDefinition(tplayer, zone, guid, line, action, sender())
 
         case SquadAction.Update(char_id, health, max_health, armor, max_armor, pos, zone_number) =>
-          SquadActionUpdate(char_id, health, max_health, armor, max_armor, pos, zone_number)
+          SquadActionUpdate(char_id, health, max_health, armor, max_armor, pos, zone_number, sender())
 
         case msg =>
           debug(s"Unhandled message $msg from ${sender()}")
@@ -492,7 +492,7 @@ class SquadService extends Actor {
     context.unwatch(requestee)
     UserEvents find { case (_, subscription) => subscription eq requestee } match {
       case Some((to, _)) =>
-        LeaveService(to, sender())
+        LeaveService(to, requestee)
       case _ => ;
     }
   }
@@ -1153,7 +1153,7 @@ class SquadService extends Actor {
     RemoveProximityInvites(cancellingPlayer)
   }
 
-  def SquadActionMembershipPromote(promotingPlayer:Long, _promotedPlayer: Long, promotedName: String): Unit = {
+  def SquadActionMembershipPromote(promotingPlayer: Long, _promotedPlayer: Long, promotedName: String): Unit = {
     val promotedPlayer = (if (promotedName.nonEmpty) {
       //validate player with name exists
       LivePlayerList
@@ -1269,26 +1269,27 @@ class SquadService extends Actor {
                              zone: Zone,
                              guid: PlanetSideGUID,
                              line: Int,
-                             action: SquadRequestAction): Unit = {
+                             action: SquadRequestAction,
+                             sendTo: ActorRef): Unit = {
     import net.psforever.packet.game.SquadAction._
     val pSquadOpt = GetParticipatingSquad(tplayer)
     val lSquadOpt = GetLeadingSquad(tplayer, pSquadOpt)
     //the following actions can only be performed by a squad's leader
     action match {
       case SaveSquadFavorite() =>
-        SquadActionDefinitionSaveSquadFavorite(tplayer, line, lSquadOpt)
+        SquadActionDefinitionSaveSquadFavorite(tplayer, line, lSquadOpt, sendTo)
 
       case LoadSquadFavorite() =>
-        SquadActionDefinitionLoadSquadFavorite(tplayer, line, pSquadOpt, lSquadOpt)
+        SquadActionDefinitionLoadSquadFavorite(tplayer, line, pSquadOpt, lSquadOpt, sendTo)
 
       case DeleteSquadFavorite() =>
-        SquadActionDefinitionDeleteSquadFavorite(tplayer, line)
+        SquadActionDefinitionDeleteSquadFavorite(tplayer, line, sendTo)
 
       case ChangeSquadPurpose(purpose) =>
         SquadActionDefinitionChangeSquadPurpose(tplayer, lSquadOpt, purpose)
 
       case ChangeSquadZone(zone_id) =>
-        SquadActionDefinitionChangeSquadZone(tplayer, lSquadOpt, zone_id)
+        SquadActionDefinitionChangeSquadZone(tplayer, lSquadOpt, zone_id, sendTo)
 
       case CloseSquadMemberPosition(position) =>
         SquadActionDefinitionCloseSquadMemberPosition(tplayer, lSquadOpt, position)
@@ -1318,10 +1319,10 @@ class SquadService extends Actor {
         SquadActionDefinitionCancelFind(lSquadOpt)
 
       case RequestListSquad() =>
-        SquadActionDefinitionRequestListSquad(tplayer, lSquadOpt)
+        SquadActionDefinitionRequestListSquad(tplayer, lSquadOpt, sendTo)
 
       case StopListSquad() =>
-        SquadActionDefinitionStopListSquad(tplayer, lSquadOpt)
+        SquadActionDefinitionStopListSquad(tplayer, lSquadOpt, sendTo)
 
       case ResetAll() =>
         SquadActionDefinitionResetAll(lSquadOpt)
@@ -1371,10 +1372,10 @@ class SquadService extends Actor {
             )) =>
             //though we should be able correctly search squads as is intended
             //I don't know how search results should be prioritized or even how to return search results to the user
-            Publish(sender(), SquadResponse.SquadSearchResults())
+            Publish(sendTo, SquadResponse.SquadSearchResults())
 
           case (_, DisplaySquad()) =>
-            SquadActionDefinitionDisplaySquad(tplayer, guid)
+            SquadActionDefinitionDisplaySquad(tplayer, guid, sendTo)
 
           //the following message is feedback from a specific client, awaiting proper initialization
           // how to respond?
@@ -1386,11 +1387,16 @@ class SquadService extends Actor {
     }
   }
 
-  def SquadActionDefinitionSaveSquadFavorite(tplayer: Player, line: Int, lSquadOpt: Option[Squad]): Unit = {
+  def SquadActionDefinitionSaveSquadFavorite(
+                                              tplayer: Player,
+                                              line: Int,
+                                              lSquadOpt: Option[Squad],
+                                              sendTo: ActorRef
+                                            ): Unit = {
     val squad = lSquadOpt.getOrElse(StartSquad(tplayer))
     if (squad.Task.nonEmpty && squad.ZoneId > 0) {
       tplayer.squadLoadouts.SaveLoadout(squad, squad.Task, line)
-      Publish(sender(), SquadResponse.ListSquadFavorite(line, squad.Task))
+      Publish(sendTo, SquadResponse.ListSquadFavorite(line, squad.Task))
     }
   }
 
@@ -1398,26 +1404,27 @@ class SquadService extends Actor {
                                               tplayer: Player,
                                               line: Int,
                                               pSquadOpt: Option[Squad],
-                                              lSquadOpt: Option[Squad]
+                                              lSquadOpt: Option[Squad],
+                                              sendTo: ActorRef
                                             ): Unit = {
     if (pSquadOpt.isEmpty || pSquadOpt == lSquadOpt) {
       val squad = lSquadOpt.getOrElse(StartSquad(tplayer))
       tplayer.squadLoadouts.LoadLoadout(line) match {
         case Some(loadout: SquadLoadout) if squad.Size == 1 =>
           SquadService.LoadSquadDefinition(squad, loadout)
-          UpdateSquadListWhenListed(squadFeatures(squad.GUID), SquadService.SquadList.Publish(squad))
-          Publish(sender(), SquadResponse.AssociateWithSquad(PlanetSideGUID(0)))
+          UpdateSquadListWhenListed(squadFeatures(squad.GUID), SquadService.PublishFullListing(squad))
+          Publish(sendTo, SquadResponse.AssociateWithSquad(PlanetSideGUID(0)))
           InitSquadDetail(PlanetSideGUID(0), Seq(tplayer.CharId), squad)
           UpdateSquadDetail(squad)
-          Publish(sender(), SquadResponse.AssociateWithSquad(squad.GUID))
+          Publish(sendTo, SquadResponse.AssociateWithSquad(squad.GUID))
         case _ =>
       }
     }
   }
 
-  def SquadActionDefinitionDeleteSquadFavorite(tplayer: Player, line: Int): Unit = {
+  def SquadActionDefinitionDeleteSquadFavorite(tplayer: Player, line: Int, sendTo: ActorRef): Unit = {
     tplayer.squadLoadouts.DeleteLoadout(line)
-    Publish(sender(), SquadResponse.ListSquadFavorite(line, ""))
+    Publish(sendTo, SquadResponse.ListSquadFavorite(line, ""))
   }
 
   def SquadActionDefinitionChangeSquadPurpose(tplayer: Player, lSquadOpt: Option[Squad], purpose: String): Unit = {
@@ -1430,13 +1437,14 @@ class SquadService extends Actor {
   def SquadActionDefinitionChangeSquadZone(
                                             tplayer: Player,
                                             lSquadOpt: Option[Squad],
-                                            zone_id: PlanetSideZoneID
+                                            zone_id: PlanetSideZoneID,
+                                            sendTo: ActorRef
                                           ): Unit = {
     val squad = lSquadOpt.getOrElse(StartSquad(tplayer))
     squad.ZoneId = zone_id.zoneId.toInt
     UpdateSquadListWhenListed(squadFeatures(squad.GUID), SquadInfo().ZoneId(zone_id))
     InitialAssociation(squad)
-    Publish(sender(), SquadResponse.Detail(squad.GUID, SquadService.Detail.Publish(squad)))
+    Publish(sendTo, SquadResponse.Detail(squad.GUID, SquadService.PublishFullDetails(squad)))
     UpdateSquadDetail(
       squad.GUID,
       squad.GUID,
@@ -1711,23 +1719,23 @@ class SquadService extends Actor {
     }
   }
 
-  def SquadActionDefinitionRequestListSquad(tplayer: Player, lSquadOpt: Option[Squad]): Unit = {
+  def SquadActionDefinitionRequestListSquad(tplayer: Player, lSquadOpt: Option[Squad], sendTo: ActorRef): Unit = {
     val squad    = lSquadOpt.getOrElse(StartSquad(tplayer))
     val features = squadFeatures(squad.GUID)
     if (!features.Listed && squad.Task.nonEmpty && squad.ZoneId > 0) {
       features.Listed = true
       InitialAssociation(squad)
-      Publish(sender(), SquadResponse.SetListSquad(squad.GUID))
+      Publish(sendTo, SquadResponse.SetListSquad(squad.GUID))
       UpdateSquadList(squad, None)
     }
   }
 
-  def SquadActionDefinitionStopListSquad(tplayer: Player, lSquadOpt: Option[Squad]): Unit = {
+  def SquadActionDefinitionStopListSquad(tplayer: Player, lSquadOpt: Option[Squad], sendTo: ActorRef): Unit = {
     val squad    = lSquadOpt.getOrElse(StartSquad(tplayer))
     val features = squadFeatures(squad.GUID)
     if (features.Listed) {
       features.Listed = false
-      Publish(sender(), SquadResponse.SetListSquad(PlanetSideGUID(0)))
+      Publish(sendTo, SquadResponse.SetListSquad(PlanetSideGUID(0)))
       UpdateSquadList(squad, None)
     }
   }
@@ -1911,14 +1919,14 @@ class SquadService extends Actor {
   }
 
   /** the following action can be performed by anyone */
-  def SquadActionDefinitionDisplaySquad(tplayer: Player, guid: PlanetSideGUID): Unit = {
+  def SquadActionDefinitionDisplaySquad(tplayer: Player, guid: PlanetSideGUID, sendTo: ActorRef): Unit = {
     val charId = tplayer.CharId
     GetSquad(guid) match {
       case Some(squad) if memberToSquad.get(charId).isEmpty =>
         continueToMonitorDetails += charId -> squad.GUID
-        Publish(sender(), SquadResponse.Detail(squad.GUID, SquadService.Detail.Publish(squad)))
+        Publish(sendTo, SquadResponse.Detail(squad.GUID, SquadService.PublishFullDetails(squad)))
       case Some(squad) =>
-        Publish(sender(), SquadResponse.Detail(squad.GUID, SquadService.Detail.Publish(squad)))
+        Publish(sendTo, SquadResponse.Detail(squad.GUID, SquadService.PublishFullDetails(squad)))
       case _ => ;
     }
   }
@@ -1930,7 +1938,8 @@ class SquadService extends Actor {
                          armor: Int,
                          maxArmor: Int,
                          pos: Vector3,
-                         zoneNumber: Int
+                         zoneNumber: Int,
+                         sendTo: ActorRef
                        ): Unit = {
     memberToSquad.get(charId) match {
       case Some(squad) =>
@@ -1941,7 +1950,7 @@ class SquadService extends Actor {
             member.Position = pos
             member.ZoneId = zoneNumber
             Publish(
-              sender(),
+              sendTo,
               SquadResponse.UpdateMembers(
                 squad,
                 squad.Membership
@@ -2802,7 +2811,7 @@ class SquadService extends Actor {
     * @see ``ResetAll
     * @see `SquadResponse.AssociateWithSquad`
     * @see `SquadResponse.Detail`
-    * @see `SquadService.Detail.Publish`
+    * @see `SquadService.PublishFullDetails`
     * @param squad the squad
     */
   def InitialAssociation(squad: Squad): Unit = {
@@ -2811,7 +2820,7 @@ class SquadService extends Actor {
       squadFeatures(guid).InitialAssociation = false
       val charId = squad.Leader.CharId
       Publish(charId, SquadResponse.AssociateWithSquad(guid))
-      Publish(charId, SquadResponse.Detail(guid, SquadService.Detail.Publish(squad)))
+      Publish(charId, SquadResponse.Detail(guid, SquadService.PublishFullDetails(squad)))
     }
   }
 
@@ -3393,6 +3402,7 @@ class SquadService extends Actor {
             Publish(faction, SquadResponse.InitList(PublishedLists(factionListings)))
         }
       case None =>
+      case None =>
         //first time being published
         factionListings += guid
         Publish(faction, SquadResponse.InitList(PublishedLists(factionListings)))
@@ -3419,19 +3429,19 @@ class SquadService extends Actor {
   /**
     * Dispatch an intial message entailing the strategic information and the composition of this squad.
     * The details of the squad will be updated in full and be sent to all indicated observers.
-    * @see `SquadService.Detail.Publish`
+    * @see `SquadService.PublishFullDetails`
     * @param guid the unique squad identifier to be used when composing the details for this message
     * @param to the unique character identifier numbers of the players who will receive this message
     * @param squad the squad from which the squad details shall be composed
     */
   def InitSquadDetail(guid: PlanetSideGUID, to: Iterable[Long], squad: Squad): Unit = {
-    val output = SquadResponse.Detail(guid, SquadService.Detail.Publish(squad))
+    val output = SquadResponse.Detail(guid, SquadService.PublishFullDetails(squad))
     to.foreach { Publish(_, output) }
   }
 
   /**
     * Send a message entailing the strategic information and the composition of the squad to the existing members of the squad.
-    * @see `SquadService.Detail.Publish`
+    * @see `SquadService.PublishFullDetails`
     * @see `UpdateSquadDetail(PlanetSideGUID, PlanetSideGUID, List[Long], SquadDetail)`
     * @param squad the squad
     */
@@ -3440,7 +3450,7 @@ class SquadService extends Actor {
       squad.GUID,
       squad.GUID,
       Nil,
-      SquadService.Detail.Publish(squad)
+      SquadService.PublishFullDetails(squad)
     )
   }
 
@@ -3450,7 +3460,7 @@ class SquadService extends Actor {
     * a meaningful substitute identifier will be employed in the message.
     * The "meaningful substitute" is usually `PlanetSideGUID(0)`
     * which indicates the local non-squad squad data on the client of a squad leader.
-    * @see `SquadService.Detail.Publish`
+    * @see `SquadService.PublishFullDetails`
     * @see `UpdateSquadDetail(PlanetSideGUID, PlanetSideGUID, List[Long], SquadDetail)`
     * @param squad the squad
     */
@@ -3459,12 +3469,12 @@ class SquadService extends Actor {
       guid,
       squad.GUID,
       Nil,
-      SquadService.Detail.Publish(squad)
+      SquadService.PublishFullDetails(squad)
     )
   }
 
   /**
-    * Send Send a message entailing some of the strategic information and the composition to the existing members of the squad.
+    * Send a message entailing some of the strategic information and the composition to the existing members of the squad.
     * @see `SquadResponse.Detail`
     * @see `UpdateSquadDetail(PlanetSideGUID, PlanetSideGUID, List[Long], SquadDetail)`
     * @param guid the unique identifier number of the squad
@@ -3528,7 +3538,7 @@ class SquadService extends Actor {
     * @return a `Vector` of transformed squad data
     */
   def PublishedLists(guids: Iterable[PlanetSideGUID]): Vector[SquadInfo] = {
-    guids.map { guid => SquadService.SquadList.Publish(squadFeatures(guid).Squad) }.toVector
+    guids.map { guid => SquadService.PublishFullListing(squadFeatures(guid).Squad) }.toVector
   }
 }
 
@@ -3611,58 +3621,52 @@ object SquadService {
     */
   final case class SpontaneousInvite(player: Player) extends Invitation(player.CharId, player.Name)
 
-  object SquadList {
-
-    /**
-      * Produce complete squad information.
-      * @see `SquadInfo`
-      * @param squad the squad
-      * @return the squad's information to be used in the squad list
-      */
-    def Publish(squad: Squad): SquadInfo = {
-      SquadInfo(
-        squad.Leader.Name,
-        squad.Task,
-        PlanetSideZoneID(squad.ZoneId),
-        squad.Size,
-        squad.Capacity,
-        squad.GUID
-      )
-    }
+  /**
+    * Produce complete squad information.
+    * @see `SquadInfo`
+    * @param squad the squad
+    * @return the squad's information to be used in the squad list
+    */
+  def PublishFullListing(squad: Squad): SquadInfo = {
+    SquadInfo(
+      squad.Leader.Name,
+      squad.Task,
+      PlanetSideZoneID(squad.ZoneId),
+      squad.Size,
+      squad.Capacity,
+      squad.GUID
+    )
   }
 
-  object Detail {
-
-    /**
-      * Produce complete squad membership details.
-      * @see `SquadDetail`
-      * @param squad the squad
-      * @return the squad's information to be used in the squad's detail window
-      */
-    def Publish(squad: Squad): SquadDetail = {
-      SquadDetail()
-        .Field1(squad.GUID.guid)
-        .LeaderCharId(squad.Leader.CharId)
-        .LeaderName(squad.Leader.Name)
-        .Task(squad.Task)
-        .ZoneId(PlanetSideZoneID(squad.ZoneId))
-        .Members(
-          squad.Membership.zipWithIndex
-            .map({
-              case (p, index) =>
-                SquadPositionEntry(
-                  index,
-                  if (squad.Availability(index)) {
-                    SquadPositionDetail(p.Role, p.Orders, p.Requirements, p.CharId, p.Name)
-                  } else {
-                    SquadPositionDetail.Closed
-                  }
-                )
-            })
-            .toList
-        )
-        .Complete
-    }
+  /**
+    * Produce complete squad membership details.
+    * @see `SquadDetail`
+    * @param squad the squad
+    * @return the squad's information to be used in the squad's detail window
+    */
+  def PublishFullDetails(squad: Squad): SquadDetail = {
+    SquadDetail()
+      .Field1(squad.GUID.guid)
+      .LeaderCharId(squad.Leader.CharId)
+      .LeaderName(squad.Leader.Name)
+      .Task(squad.Task)
+      .ZoneId(PlanetSideZoneID(squad.ZoneId))
+      .Members(
+        squad.Membership.zipWithIndex
+          .map({
+            case (p, index) =>
+              SquadPositionEntry(
+                index,
+                if (squad.Availability(index)) {
+                  SquadPositionDetail(p.Role, p.Orders, p.Requirements, p.CharId, p.Name)
+                } else {
+                  SquadPositionDetail.Closed
+                }
+              )
+          })
+          .toList
+      )
+      .Complete
   }
 
   /**
