@@ -80,7 +80,7 @@ lazy val psforeverSettings = Seq(
     "io.circe"                   %% "circe-parser"               % "0.13.0",
     "org.scala-lang.modules"     %% "scala-parallel-collections" % "1.0.1",
     "org.bouncycastle"            % "bcprov-jdk15on"             % "1.68",
-    "org.codehaus.janino"         % "janino"                     % "2.6.1"
+    "org.codehaus.janino"         % "janino"                     % "2.7.8"
   ),
   // TODO(chord): remove exclusion when SessionActor is refactored: https://github.com/psforever/PSF-LoginServer/issues/279
   coverageExcludedPackages := "net\\.psforever\\.actors\\.session\\.SessionActor.*"
