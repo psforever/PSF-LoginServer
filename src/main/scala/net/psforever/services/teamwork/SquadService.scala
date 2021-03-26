@@ -306,7 +306,7 @@ class SquadService extends Actor {
     to match {
       case str if "TRNCVS".indexOf(str) > -1 || str.matches("(TR|NC|VS)-Squad\\d+") =>
         SquadEvents.publish(SquadServiceResponse(s"/$str/Squad", excluded, msg))
-      case str if str.matches("//d+") =>
+      case str if str.matches("\\d+") =>
         Publish(to.toLong, msg, excluded)
       case _ =>
         log.warn(s"Publish(String): subscriber information is an unhandled format - $to")
