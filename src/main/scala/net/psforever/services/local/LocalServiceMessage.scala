@@ -23,8 +23,6 @@ final case class LocalServiceMessage(forChannel: String, actionMessage: LocalAct
 
 object LocalServiceMessage {
   final case class Deployables(msg: Any)
-
-  final case class Telepads(msg: Any)
 }
 
 object LocalAction {
@@ -42,6 +40,12 @@ object LocalAction {
   final case class DoorOpens(player_guid: PlanetSideGUID, continent: Zone, door: Door) extends Action
   final case class DoorCloses(player_guid: PlanetSideGUID, door_guid: PlanetSideGUID)  extends Action
   final case class DoorSlamsShut(door: Door)                                           extends Action
+  final case class EliminateDeployable(
+                                        obj: Deployable,
+                                        object_guid: PlanetSideGUID,
+                                        pos: Vector3,
+                                        deletionEffect: Int
+                                      )                                                extends Action
   final case class HackClear(player_guid: PlanetSideGUID, target: PlanetSideServerObject, unk1: Long, unk2: Long = 8L)
       extends Action
   final case class HackTemporarily(

@@ -42,6 +42,7 @@ class ShieldGeneratorControl(gen: ShieldGeneratorDeployable)
   def JammableObject   = gen
   def DamageableObject = gen
   def RepairableObject = gen
+  deletionType = 1 //from DeployableBehavior
 
   override def postStop(): Unit = {
     super.postStop()

@@ -31,11 +31,12 @@ object LocalResponse {
   final case class DoorOpens(door_guid: PlanetSideGUID)                                          extends Response
   final case class DoorCloses(door_guid: PlanetSideGUID)                                         extends Response
   final case class EliminateDeployable(
-      obj: Deployable,
-      object_guid: PlanetSideGUID,
-      pos: Vector3
-  )                                                                                extends Response
-  final case class SendHackMessageHackCleared(target_guid: PlanetSideGUID, unk1: Long, unk2: Long)  extends Response
+                                        obj: Deployable,
+                                        object_guid: PlanetSideGUID,
+                                        pos: Vector3,
+                                        deletionEffect: Int
+  )                                                                                                extends Response
+  final case class SendHackMessageHackCleared(target_guid: PlanetSideGUID, unk1: Long, unk2: Long) extends Response
   final case class HackObject(target_guid: PlanetSideGUID, unk1: Long, unk2: Long) extends Response
 
   final case class SendPacket(packet: PlanetSideGamePacket) extends Response

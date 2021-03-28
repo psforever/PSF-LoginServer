@@ -5,6 +5,7 @@ import akka.actor.{Actor, ActorRef, Props, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.objects.{Player, _}
 import net.psforever.objects.ballistics.PlayerSource
+import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
 import net.psforever.objects.loadouts.Loadout
@@ -21,7 +22,7 @@ import net.psforever.objects.zones._
 import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.types._
-import net.psforever.services.{RemoverActor, Service}
+import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.objects.locker.LockerContainerControl
@@ -376,7 +377,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   val factionChannel = boomer.Faction.toString
                   if (avatar.deployables.Remove(boomer)) {
                     boomer.Faction = PlanetSideEmpire.NEUTRAL
-                    boomer.AssignOwnership(None)
+                    boomer.Actor ! Deployable.Ownership(None)
                     avatar.deployables.UpdateUIElement(boomer.Definition.Item).foreach {
                       case (currElem, curr, maxElem, max) =>
                         avatarEvents ! AvatarServiceMessage(
@@ -388,7 +389,6 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                           AvatarAction.PlanetsideAttributeToAll(Service.defaultPlayerGUID, currElem, curr)
                         )
                     }
-                    localEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(boomer, zone))
                     localEvents ! LocalServiceMessage(
                       factionChannel,
                       LocalAction.DeployableMapIcon(
@@ -471,15 +471,10 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
             }
             removed match {
               case Some(telepad: TelepadDeployable) =>
-                telepad.AssignOwnership(None)
-                zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(telepad), zone))
-                zone.LocalEvents ! LocalServiceMessage.Deployables(
-                  RemoverActor.AddTask(telepad, zone, Some(0 seconds))
-                ) //normal decay
+                telepad.Actor ! Deployable.Ownership(None)
               case Some(old) =>
-                old.AssignOwnership(None)
-                zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(old), zone))
-                zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(old, zone, Some(0 seconds)))
+                old.Actor ! Deployable.Ownership(None)
+                old.Actor ! Deployable.Deconstruct()
                 if (msg) { //max test
                   PlayerControl.sendResponse(
                     zone,
@@ -1044,7 +1039,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
             val factionChannel = faction.toString
             if (avatar.deployables.Add(boomer)) {
               boomer.Faction = faction
-              boomer.AssignOwnership(player)
+              boomer.Actor ! Deployable.Ownership(player)
               avatar.deployables.UpdateUIElement(boomer.Definition.Item).foreach {
                 case (currElem, curr, maxElem, max) =>
                   events ! AvatarServiceMessage(
@@ -1056,7 +1051,6 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                     AvatarAction.PlanetsideAttributeToAll(Service.defaultPlayerGUID, currElem, curr)
                   )
               }
-              zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(boomer), zone))
               events ! AvatarServiceMessage(
                 factionChannel,
                 AvatarAction.SetEmpire(Service.defaultPlayerGUID, bguid, faction)

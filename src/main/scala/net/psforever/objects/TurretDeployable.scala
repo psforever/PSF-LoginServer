@@ -6,6 +6,7 @@ import net.psforever.objects.ce.{Deployable, DeployableBehavior, DeployedItem}
 import net.psforever.objects.definition.DeployableDefinition
 import net.psforever.objects.definition.converter.SmallTurretConverter
 import net.psforever.objects.equipment.{JammableMountedWeapons, JammableUnit}
+import net.psforever.objects.guid.GUIDTask
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.Damageable.Target
@@ -17,6 +18,10 @@ import net.psforever.objects.serverobject.turret.{TurretDefinition, WeaponTurret
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.vital.{SimpleResolutions, StandardVehicleResistance}
+import net.psforever.objects.zones.Zone
+import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+
+import scala.concurrent.duration.FiniteDuration
 
 class TurretDeployable(tdef: TurretDeployableDefinition)
     extends Deployable(tdef)
@@ -98,5 +103,35 @@ class TurretControl(turret: TurretDeployable)
   override protected def DestructionAwareness(target: Target, cause: DamageResult): Unit = {
     super.DestructionAwareness(target, cause)
     Deployables.AnnounceDestroyDeployable(turret, None)
+  }
+
+  override def deconstructDeployable(time: Option[FiniteDuration]) : Unit = {
+    val zone = turret.Zone
+    val seats = turret.Seats.values
+    //either we have no seats or no one gets to sit
+    val retime = if (seats.count(_.isOccupied) > 0) {
+      //unlike with vehicles, it's possible to request deconstruction of one's own field turret while seated in it
+      val wasKickedByDriver = false
+      seats.foreach { seat =>
+        seat.occupant match {
+          case Some(tplayer) =>
+            seat.unmount(tplayer)
+            tplayer.VehicleSeated = None
+            zone.VehicleEvents ! VehicleServiceMessage(
+              zone.id,
+              VehicleAction.KickPassenger(tplayer.GUID, 4, wasKickedByDriver, turret.GUID)
+            )
+          case None => ;
+        }
+      }
+      Some(time.getOrElse(Deployable.cleanup) + Deployable.cleanup)
+    } else {
+      time
+    }
+    super.deconstructDeployable(retime)
+  }
+
+  override def unregisterDeployable(zone: Zone, obj: Deployable): Unit = {
+    zone.tasks ! GUIDTask.UnregisterDeployableTurret(turret)(zone.GUID)
   }
 }

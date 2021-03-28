@@ -2209,7 +2209,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case LocalResponse.DoorCloses(door_guid) => //door closes for everyone
         sendResponse(GenericObjectStateMsg(door_guid, 17))
 
-      case LocalResponse.EliminateDeployable(obj: TurretDeployable, dguid, pos) =>
+      case LocalResponse.EliminateDeployable(obj: TurretDeployable, dguid, pos, _) =>
         if (obj.Destroyed) {
           DeconstructDeployable(obj, dguid, pos)
         } else {
@@ -2219,20 +2219,19 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             dguid,
             pos,
             obj.Orientation,
-            if (obj.MountPoints.isEmpty) 2
-            else 1
+            if (obj.MountPoints.isEmpty) 2 else 1
           )
         }
 
-      case LocalResponse.EliminateDeployable(obj: ExplosiveDeployable, dguid, pos) =>
+      case LocalResponse.EliminateDeployable(obj: ExplosiveDeployable, dguid, pos, effect) =>
         if (obj.Destroyed || obj.Jammed || obj.Health == 0) {
           DeconstructDeployable(obj, dguid, pos)
         } else {
           obj.Destroyed = true
-          DeconstructDeployable(obj, dguid, pos, obj.Orientation, 2)
+          DeconstructDeployable(obj, dguid, pos, obj.Orientation, effect)
         }
 
-      case LocalResponse.EliminateDeployable(obj: TelepadDeployable, dguid, pos) =>
+      case LocalResponse.EliminateDeployable(obj: TelepadDeployable, dguid, pos, _) =>
         //if active, deactivate
         if (obj.Active) {
           obj.Active = false
@@ -2244,23 +2243,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           DeconstructDeployable(obj, dguid, pos)
         } else {
           obj.Destroyed = true
-          DeconstructDeployable(obj, dguid, pos, obj.Orientation, 2)
+          DeconstructDeployable(obj, dguid, pos, obj.Orientation, deletionType = 2)
         }
 
-      case LocalResponse.EliminateDeployable(obj: Deployable, dguid, pos) =>
+      case LocalResponse.EliminateDeployable(obj, dguid, pos, effect) =>
         if (obj.Destroyed) {
           DeconstructDeployable(obj, dguid, pos)
         } else {
           obj.Destroyed = true
-          DeconstructDeployable(obj, dguid, pos, obj.Orientation, 1)
-        }
-
-      case LocalResponse.EliminateDeployable(obj, dguid, pos) =>
-        if (obj.Destroyed) {
-          DeconstructDeployable(obj, dguid, pos)
-        } else {
-          obj.Destroyed = true
-          DeconstructDeployable(obj, dguid, pos, obj.Orientation, 2)
+          DeconstructDeployable(obj, dguid, pos, obj.Orientation, effect)
         }
 
       case LocalResponse.SendHackMessageHackCleared(target_guid, unk1, unk2) =>
@@ -2332,9 +2323,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       case LocalResponse.SetEmpire(object_guid, empire) =>
         sendResponse(SetEmpireMessage(object_guid, empire))
-
-      case LocalResponse.SendResponse(pkt) =>
-        sendResponse(pkt)
 
       case LocalResponse.ShuttleEvent(ev) =>
         val msg = OrbitalShuttleTimeMsg(
@@ -3401,10 +3389,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         val guid = player.GUID
         val foundDeployables =
           continent.DeployableList.filter(obj => obj.OwnerName.contains(player.Name) && obj.Health > 0)
-        continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(foundDeployables, continent))
         foundDeployables.foreach(obj => {
           if (avatar.deployables.Add(obj)) {
-            obj.Owner = guid
+            obj.Actor ! Deployable.Ownership(player)
           }
         })
         //render deployable objects
@@ -4390,24 +4377,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               log.warn(s"RequestDestroy: ${player.Name} must own vehicle in order to deconstruct it")
             }
 
-          case Some(obj: BoomerTrigger) =>
-            if (FindEquipmentToDelete(object_guid, obj)) {
-              continent.GUID(obj.Companion) match {
-                case Some(boomer: BoomerDeployable) =>
-                  boomer.Trigger = None
-                  continent.LocalEvents ! LocalServiceMessage.Deployables(
-                    RemoverActor.AddTask(boomer, continent, Some(0 seconds))
-                  )
-                //continent.Deployables ! Zone.Deployable.Dismiss(boomer)
-                case Some(thing) =>
-                  log.warn(s"RequestDestroy: BoomerTrigger object connected to wrong object - $thing")
-                case None => ;
-              }
-            }
-
-          case Some(obj: Equipment) =>
-            FindEquipmentToDelete(object_guid, obj)
-
           case Some(obj: Projectile) =>
             if (obj.isResolved) {
               log.warn(
@@ -4424,46 +4393,30 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               }
             }
 
-          case Some(obj: BoomerDeployable) =>
-            continent.LocalEvents ! LocalServiceMessage.Deployables(
-              RemoverActor.AddTask(obj, continent, Some(0 seconds))
-            )
-            obj.Trigger match {
-              case Some(trigger) =>
-                obj.Trigger = None
-                val guid = trigger.GUID
-                Zone.EquipmentIs.Where(trigger, guid, continent) match {
-                  case Some(Zone.EquipmentIs.InContainer(container, index)) =>
-                    container.Slot(index).Equipment = None
-                  case Some(Zone.EquipmentIs.OnGround()) =>
-                    continent.Ground ! Zone.Ground.RemoveItem(guid)
-                  case Some(Zone.EquipmentIs.Orphaned()) =>
-                    log.warn(s"RequestDestroy: boomer_trigger@$guid has been found but it seems to be orphaned")
-                  case _ => ;
-                }
-                continent.AvatarEvents ! AvatarServiceMessage(
-                  continent.id,
-                  AvatarAction.ObjectDelete(PlanetSideGUID(0), guid)
-                )
-                GUIDTask.UnregisterObjectTask(trigger)(continent.GUID)
-
-              case None => ;
+          case Some(obj: BoomerTrigger) =>
+            if (FindEquipmentToDelete(object_guid, obj)) {
+              continent.GUID(obj.Companion) match {
+                case Some(boomer: BoomerDeployable) =>
+                  boomer.Trigger = None
+                  boomer.Actor ! Deployable.Deconstruct()
+                case Some(thing) =>
+                  log.warn(s"RequestDestroy: BoomerTrigger object connected to wrong object - $thing")
+                case None => ;
+              }
             }
 
-          case Some(obj: TelepadDeployable) =>
-            continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(obj), continent))
-            continent.LocalEvents ! LocalServiceMessage.Deployables(
-              RemoverActor.AddTask(obj, continent, Some(0 seconds))
-            )
-
           case Some(obj: Deployable) =>
-            continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(obj), continent))
-            continent.LocalEvents ! LocalServiceMessage.Deployables(
-              RemoverActor.AddTask(obj, continent, Some(0 seconds))
-            )
+            if (session.account.gm || obj.Owner.isEmpty || obj.Owner.contains(player.GUID) || obj.Destroyed) {
+              obj.Actor ! Deployable.Deconstruct()
+            } else {
+              log.warn(s"RequestDestroy: ${player.Name} must own the deployable in order to deconstruct it")
+            }
+
+          case Some(obj: Equipment) =>
+            FindEquipmentToDelete(object_guid, obj)
 
           case Some(thing) =>
-            log.warn(s"RequestDestroy: not allowed to delete object $thing")
+            log.warn(s"RequestDestroy: not allowed to delete this ${thing.Definition.Name}")
 
           case None =>
             log.warn(s"RequestDestroy: object ${object_guid.guid} not found")
@@ -7378,8 +7331,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       boomers.foreach(boomer => {
         continent.GUID(boomer) match {
           case Some(obj: BoomerDeployable) =>
-            obj.OwnerName = None
-            continent.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, continent))
+            obj.Actor ! Deployable.Ownership(None)
           case Some(_) | None => ;
         }
       })
@@ -8832,7 +8784,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   def ToggleTeleportSystem(router: Vehicle, systemPlan: Option[(Utility.InternalTelepad, TelepadDeployable)]): Unit = {
     systemPlan match {
       case Some((internalTelepad, remoteTelepad)) =>
-        LinkRouterToRemoteTelepad(router, internalTelepad, remoteTelepad)
+        internalTelepad.Telepad = remoteTelepad.GUID //necessary; backwards link to the (new) telepad
+        TelepadLike.StartRouterInternalTelepad(continent, router.GUID, internalTelepad)
+        TelepadLike.LinkTelepad(continent, remoteTelepad.GUID)
       case _ =>
         router.Utility(UtilityType.internal_router_telepad_deployable) match {
           case Some(util: Utility.InternalTelepad) =>
@@ -8840,23 +8794,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           case _ => ;
         }
     }
-  }
-
-  /**
-    * Link the router teleport system using the provided terminal information.
-    * The internal telepad is made known of the remote telepad, creating the link.
-    * @param router the vehicle that houses one end of the teleportation system (the `internalTelepad`)
-    * @param internalTelepad the endpoint of the teleportation system housed by the router
-    * @param remoteTelepad the endpoint of the teleportation system that exists in the environment
-    */
-  def LinkRouterToRemoteTelepad(
-      router: Vehicle,
-      internalTelepad: Utility.InternalTelepad,
-      remoteTelepad: TelepadDeployable
-  ): Unit = {
-    internalTelepad.Telepad = remoteTelepad.GUID //necessary; backwards link to the (new) telepad
-    TelepadLike.StartRouterInternalTelepad(continent, router.GUID, internalTelepad)
-    TelepadLike.LinkTelepad(continent, remoteTelepad.GUID)
   }
 
   /**

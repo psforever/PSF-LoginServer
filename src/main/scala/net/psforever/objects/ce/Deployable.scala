@@ -51,6 +51,27 @@ abstract class Deployable(cdef: DeployableDefinition)
 }
 
 object Deployable {
+  import scala.concurrent.duration._
+  final val decay: FiniteDuration = 3.minutes
+
+  final val cleanup: FiniteDuration = 2.seconds
+
+  final case class Deconstruct(time: Option[FiniteDuration] = None)
+
+  object Deconstruct {
+    def apply(): Deconstruct = Deconstruct(None)
+  }
+
+  /**
+    * Change a vehicle's internal ownership property to match that of the target player.
+    * @param player the person who will own the vehicle, or `None` if the vehicle will go unowned
+    */
+  final case class Ownership(player: Option[Player])
+
+  object Ownership {
+    def apply(player: Player): Ownership = Ownership(Some(player))
+  }
+
   object Category {
     def Of(item: DeployedItem.Value): DeployableCategory.Value = deployablesToCategories(item)
 

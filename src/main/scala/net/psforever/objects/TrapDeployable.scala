@@ -12,7 +12,8 @@ import net.psforever.objects.vital.SimpleResolutions
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
 
-class TrapDeployable(cdef: TrapDeployableDefinition) extends Deployable(cdef)
+class TrapDeployable(cdef: TrapDeployableDefinition)
+  extends Deployable(cdef)
 
 class TrapDeployableDefinition(objectId: Int) extends DeployableDefinition(objectId) {
   Model = SimpleResolutions.calculate

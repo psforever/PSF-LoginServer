@@ -11,7 +11,6 @@ import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.vital.SimpleResolutions
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
-import net.psforever.services.RemoverActor
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.DriveState
 
@@ -59,9 +58,7 @@ class TelepadDeployableControl(tpad: TelepadDeployable)
             case Some(obj: InternalTelepad) =>
               obj.Actor ! TelepadLike.RequestLink(tpad)
             case _ =>
-              zone.LocalEvents ! LocalServiceMessage.Deployables(
-                RemoverActor.AddTask(tpad, zone, Some(0 seconds))
-              )
+              tpad.Actor ! Deployable.Deconstruct()
               TelepadControl.TelepadError(zone, tpad.OwnerName.getOrElse(""), msg = "@Telepad_NoDeploy_RouterLost")
           }
 
@@ -75,10 +72,7 @@ class TelepadDeployableControl(tpad: TelepadDeployable)
           if (tpad.Router.contains(obj.Owner.GUID)) {
             tpad.Router = None
             tpad.Active = false
-            val zone = tpad.Zone
-            zone.LocalEvents ! LocalServiceMessage.Deployables(
-              RemoverActor.AddTask(tpad, zone, Some(0 seconds))
-            )
+            tpad.Actor ! Deployable.Deconstruct()
           }
 
         case _ =>
@@ -91,8 +85,8 @@ class TelepadDeployableControl(tpad: TelepadDeployable)
     Zone.causeExplosion(target.Zone, target, Some(cause))
   }
 
-  override def setupDeployable(tool: ConstructionItem): Unit = {
-    super.setupDeployable(tool)
+  override def handleConstructionTool(obj: Deployable, tool: ConstructionItem): Unit = {
+    super.handleConstructionTool(obj, tool)
     val zone = tpad.Zone
     tool match {
       case tele: Telepad =>
@@ -103,9 +97,7 @@ class TelepadDeployableControl(tpad: TelepadDeployable)
             if tpad.Health > 0 && !vehicle.Destroyed && vehicle.DeploymentState == DriveState.Deployed =>
             tpad.Router = tele.Router //necessary; forwards link to the router
           case _ =>
-            zone.LocalEvents ! LocalServiceMessage.Deployables(
-              RemoverActor.AddTask(tpad, zone, Some(0 seconds))
-            )
+            tpad.Actor ! Deployable.Deconstruct()
             TelepadControl.TelepadError(zone, tpad.OwnerName.getOrElse(""), msg = "@Telepad_NoDeploy_RouterLost")
         }
       case _ => ;
@@ -120,6 +112,11 @@ class TelepadDeployableControl(tpad: TelepadDeployable)
       self,
       TelepadLike.Activate(tpad)
     )
+  }
+
+  override def deconstructDeployable(time : Option[FiniteDuration]) : Unit = {
+    TelepadControl.DestructionAwareness(tpad)
+    super.deconstructDeployable(time)
   }
 }
 

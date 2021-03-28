@@ -947,7 +947,7 @@ object GlobalDefinitions {
   /*
   combat engineering deployables
    */
-  val boomer = ExplosiveDeployableDefinition(DeployedItem.boomer)
+  val boomer = BoomerDeployableDefinition(DeployedItem.boomer)
 
   val he_mine = ExplosiveDeployableDefinition(DeployedItem.he_mine)
 

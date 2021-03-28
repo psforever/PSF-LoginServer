@@ -2,19 +2,17 @@
 package net.psforever.objects
 
 import akka.actor.{Actor, ActorContext, Props}
-import net.psforever.objects.ballistics.{PlayerSource, SourceEntry}
 import net.psforever.objects.ce._
 import net.psforever.objects.definition.DeployableDefinition
 import net.psforever.objects.definition.converter.SmallDeployableConverter
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.geometry.Geometry3D
 import net.psforever.objects.serverobject.affinity.FactionAffinity
-import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
+import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity}
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
 import net.psforever.objects.vital.{SimpleResolutions, Vitality}
-import net.psforever.objects.vital.etc.TriggerUsedReason
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.Zone
@@ -75,24 +73,6 @@ class ExplosiveDeployableControl(mine: ExplosiveDeployable)
     deployableBehavior
       .orElse(takesDamage)
       .orElse {
-        case CommonMessages.Use(player, Some(trigger: BoomerTrigger)) if {
-          mine match {
-            case boomer: BoomerDeployable => boomer.Trigger.contains(trigger) && mine.Definition.Damageable
-            case _                        => false
-          }
-        } =>
-          // the trigger damages the mine, which sets it off, which causes an explosion
-          // think of this as an initiator to the proper explosion
-          mine.Destroyed = true
-          ExplosiveDeployableControl.DamageResolution(
-            mine,
-            DamageInteraction(
-              SourceEntry(mine),
-              TriggerUsedReason(PlayerSource(player), trigger.GUID),
-              mine.Position
-            ).calculate()(mine),
-            damage = 0
-          )
         case _ => ;
       }
 

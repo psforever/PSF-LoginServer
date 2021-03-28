@@ -9,7 +9,6 @@ import net.psforever.objects.ce.{Deployable, DeployedItem}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{DeployableInfo, DeploymentAction}
 import net.psforever.types.PlanetSideGUID
-import net.psforever.services.RemoverActor
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 
 object Deployables {
@@ -66,7 +65,7 @@ object Deployables {
     * Additionally, since the player who destroyed the deployable isn't necessarily the owner,
     * and the real owner will still be aware of the existence of the deployable,
     * that player must be informed of the loss of the deployable directly.
-    * @see `DeployableRemover`
+    * @see `LocalAction.EliminateDeployable`
     * @see `LocalResponse.EliminateDeployable`
     * @see `DeconstructDeployable`
     * @param target the deployable that is destroyed
@@ -89,8 +88,7 @@ object Deployables {
         DeployableInfo(target.GUID, Deployable.Icon(target.Definition.Item), target.Position, PlanetSideGUID(0))
       )
     )
-    zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(target), zone))
-    zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(target, zone, time))
+    target.Actor ! Deployable.Deconstruct(time)
   }
 
   /**
@@ -103,27 +101,33 @@ object Deployables {
     *         boomers are listed before all other deployable types
     */
   def Disown(zone: Zone, avatar: Avatar, replyTo: ActorRef): List[Deployable] = {
-    val (boomers, deployables) =
-      avatar.deployables
-        .Clear()
-        .map(zone.GUID)
-        .collect { case Some(obj) => obj.asInstanceOf[Deployable] }
-        .partition(_.isInstanceOf[BoomerDeployable])
-    //do not change the OwnerName field at this time
-    boomers.collect({
-      case obj: BoomerDeployable =>
-        zone.LocalEvents.tell(
-          LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, zone, Some(0 seconds))),
-          replyTo
-        ) //near-instant
-        obj.Owner = None
-        obj.Trigger = None
-    })
-    deployables.foreach(obj => {
-      zone.LocalEvents.tell(LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, zone)), replyTo) //normal decay
-      obj.Owner = None
-    })
-    boomers ++ deployables
+    avatar.deployables
+      .Clear()
+      .map(zone.GUID)
+      .collect {
+        case Some(obj: Deployable) =>
+          obj.Actor ! Deployable.Ownership(None)
+          obj.Owner = None //fast-forward
+          obj
+      }
+//    val (boomers, deployables) =
+//      avatar.deployables
+//        .Clear()
+//        .map(zone.GUID)
+//        .collect { case Some(obj) => obj.asInstanceOf[Deployable] }
+//        .partition(_.isInstanceOf[BoomerDeployable])
+//    //do not change the OwnerName field at this time
+//    boomers.collect({
+//      case obj: BoomerDeployable =>
+//        obj.Actor.tell(Deployable.Deconstruct(), replyTo)
+//        obj.Owner = None
+//        obj.Trigger = None
+//    })
+//    deployables.foreach(obj => {
+//      obj.Actor ! Deployable.Ownership(None)
+//      obj.Owner = None //zoom ahead
+//    })
+//    boomers ++ deployables
   }
 
   /**
