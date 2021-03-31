@@ -197,8 +197,8 @@ class BuildingActor(
 
       case AmenityStateChange(gen: Generator, data) =>
         if (generatorStateChange(gen, data)) {
-          //update the map
-          galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(building.infoUpdateMessage()))
+          // Request all buildings update their map data to refresh lattice linked benefits
+          zone.actor ! ZoneActor.ZoneMapUpdate()
         }
         Behaviors.same
 
@@ -361,7 +361,7 @@ class BuildingActor(
         }
       building.Faction = faction
       alignForceDomeStatus(mapUpdateOnChange = false)
-      galaxy ! GalaxyServiceMessage(GalaxyAction.MapUpdate(building.infoUpdateMessage()))
+      zone.actor ! ZoneActor.ZoneMapUpdate() // Update entire lattice to show lattice benefits
       zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.SetEmpire(building.GUID, faction))
     }
   }

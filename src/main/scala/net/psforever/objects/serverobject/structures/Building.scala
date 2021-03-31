@@ -209,9 +209,11 @@ class Building(
         // Check this Building is on the lattice first
         zone.Lattice find this match {
           case Some(_) =>
-            // todo: generator destruction state
             val subGraph = Zone.Lattice filter ((b: Building) =>
-              b.Faction == this.Faction && !b.CaptureTerminalIsHacked && b.NtuLevel > 0
+              b.Faction == this.Faction
+                && !b.CaptureTerminalIsHacked
+                && b.NtuLevel > 0
+                && (b.Generator.isEmpty || b.Generator.get.Condition != PlanetSideGeneratorState.Destroyed)
             )
 
             var stackedBenefit = 0
@@ -235,13 +237,13 @@ class Building(
       hackingFaction,
       hackTime,
       if (ntuLevel > 0) Faction else PlanetSideEmpire.NEUTRAL,
-      0, // Field != 0 will cause malformed packet
-      None,
+      0, // unk1 Field != 0 will cause malformed packet
+      None, // unk1x
       generatorState,
       spawnTubesNormal,
       forceDomeActive,
-      latticeBenefit,
-      48,    // cavern benefit
+      if (generatorState != PlanetSideGeneratorState.Destroyed) latticeBenefit else 0,
+      if (generatorState != PlanetSideGeneratorState.Destroyed) 48 else 0,    // cavern benefit
       Nil,   // unk4,
       0,     // unk5
       false, // unk6
