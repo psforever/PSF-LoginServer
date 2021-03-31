@@ -87,7 +87,7 @@ object Vehicles {
   /**
     * Disassociate a player from a vehicle that he owns.
     * The vehicle must exist in the game world on the specified continent.
-    * This is similar but unrelated to the natural exchange of ownership when someone else sits in the vehicle's driver seat.
+    * This is similar but unrelated to the natural exchange of ownership when someone else sits in the vehicle's driver mount.
     * This is the player side of vehicle ownership removal.
     * @param player the player
     */
@@ -96,7 +96,7 @@ object Vehicles {
   /**
     * Disassociate a player from a vehicle that he owns.
     * The vehicle must exist in the game world on the specified continent.
-    * This is similar but unrelated to the natural exchange of ownership when someone else sits in the vehicle's driver seat.
+    * This is similar but unrelated to the natural exchange of ownership when someone else sits in the vehicle's driver mount.
     * This is the player side of vehicle ownership removal.
     * @param player the player
     */
@@ -117,7 +117,7 @@ object Vehicles {
 
   /**
     * Disassociate a player from a vehicle that he owns without associating a different player as the owner.
-    * Set the vehicle's driver seat permissions and passenger and gunner seat permissions to "allow empire,"
+    * Set the vehicle's driver mount permissions and passenger and gunner mount permissions to "allow empire,"
     * then reload them for all clients.
     * This is the vehicle side of vehicle ownership removal.
     * @param player the player
@@ -196,7 +196,7 @@ object Vehicles {
         val manifestPassengerResults = manifestPassengers.map { name => vzone.Players.exists(_.name.equals(name)) }
         manifestPassengerResults.forall(_ == true) &&
         vehicle.CargoHolds.values
-          .collect { case hold if hold.isOccupied => AllGatedOccupantsInSameZone(hold.Occupant.get) }
+          .collect { case hold if hold.isOccupied => AllGatedOccupantsInSameZone(hold.occupant.get) }
           .forall(_ == true)
       case _ =>
         false
@@ -226,22 +226,22 @@ object Vehicles {
     * @param unk na; used by `HackMessage` as `unk5`
     */
   def FinishHackingVehicle(target: Vehicle, hacker: Player, unk: Long)(): Unit = {
-    log.info(s"Vehicle guid: ${target.GUID} has been jacked")
+    log.info(s"${hacker.Name} has jacked a ${target.Definition.Name}")
     val zone = target.Zone
     // Forcefully dismount any cargo
     target.CargoHolds.values.foreach(cargoHold => {
-      cargoHold.Occupant match {
+      cargoHold.occupant match {
         case Some(cargo: Vehicle) =>
-          cargo.Seats(0).Occupant match {
+          cargo.Seats(0).occupant match {
             case Some(_: Player) =>
               CargoBehavior.HandleVehicleCargoDismount(
                 target.Zone,
                 cargo.GUID,
-                bailed = target.Flying,
+                bailed = target.isFlying,
                 requestedByPassenger = false,
                 kicked = true
               )
-            case None =>
+            case _ =>
               log.error("FinishHackingVehicle: vehicle in cargo hold missing driver")
               CargoBehavior.HandleVehicleCargoDismount(cargo.GUID, cargo, target.GUID, target, bailed = false, requestedByPassenger = false, kicked = true)
         }
@@ -250,9 +250,9 @@ object Vehicles {
     })
     // Forcefully dismount all seated occupants from the vehicle
     target.Seats.values.foreach(seat => {
-      seat.Occupant match {
-        case Some(tplayer) =>
-          seat.Occupant = None
+      seat.occupant match {
+        case Some(tplayer: Player) =>
+          seat.unmount(tplayer)
           tplayer.VehicleSeated = None
           if (tplayer.HasGUID) {
             zone.VehicleEvents ! VehicleServiceMessage(
@@ -260,11 +260,11 @@ object Vehicles {
               VehicleAction.KickPassenger(tplayer.GUID, 4, unk2 = false, target.GUID)
             )
           }
-        case None => ;
+        case _ => ;
       }
     })
     // If the vehicle can fly and is flying deconstruct it, and well played to whomever managed to hack a plane in mid air. I'm impressed.
-    if (target.Definition.CanFly && target.Flying) {
+    if (target.Definition.CanFly && target.isFlying) {
       // todo: Should this force the vehicle to land in the same way as when a pilot bails with passengers on board?
       target.Actor ! Vehicle.Deconstruct()
     } else { // Otherwise handle ownership transfer as normal
@@ -406,5 +406,22 @@ object Vehicles {
         zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(telepad, zone, Some(0 seconds)))
       case _ => ;
     }
+  }
+
+  /**
+    * Find the position and angle at which an ejected player will be placed once outside of the shuttle.
+    * Mainly for use with the proper high altitude rapid transport (HART) shuttle and it's corresponding HART building.
+    * @param obj the (shuttle) vehicle
+    * @param mountPoint the mount point that indicates a seat
+    * @return the position and angle
+    */
+  def dismountShuttle(obj: Vehicle, mountPoint: Int): (Vector3, Float) = {
+    val shuttleAngle = obj.Orientation.z
+    val offset = {
+      val baseOffset = obj.MountPoints(mountPoint).positionOffset
+      Vector3.Rz(baseOffset.xy, shuttleAngle) + Vector3.z(baseOffset.z)
+    }
+    val turnAway = if (offset.x >= 0) -90f else 90f
+    (obj.Position + offset, (shuttleAngle + turnAway) % 360f)
   }
 }

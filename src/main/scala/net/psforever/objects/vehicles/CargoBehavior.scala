@@ -147,9 +147,9 @@ object CargoBehavior {
         )
         if (distance <= 64) {
           //cargo vehicle is close enough to assume to be physically within the carrier's hold; mount it
-          log.info(s"HandleCheckCargoMounting: mounting cargo vehicle in carrier at distance of $distance")
+          log.debug(s"HandleCheckCargoMounting: mounting cargo vehicle in carrier at distance of $distance")
           cargo.MountedIn = carrierGUID
-          hold.Occupant = cargo
+          hold.mount(cargo)
           cargo.Velocity = None
           zone.VehicleEvents ! VehicleServiceMessage(
             s"${cargo.Actor}",
@@ -160,15 +160,13 @@ object CargoBehavior {
             VehicleAction.SendResponse(PlanetSideGUID(0), PlanetsideAttributeMessage(cargoGUID, 68, cargo.Shields))
           )
           val (attachMsg, mountPointMsg) = CargoMountBehaviorForAll(carrier, cargo, mountPoint)
-          log.info(s"HandleCheckCargoMounting: $attachMsg")
-          log.info(s"HandleCheckCargoMounting: $mountPointMsg")
           false
         } else if (distance > 625 || iteration >= 40) {
           //vehicles moved too far away or took too long to get into proper position; abort mounting
-          log.info(
+          log.debug(
             "HandleCheckCargoMounting: cargo vehicle is too far away or didn't mount within allocated time - aborting"
           )
-          val cargoDriverGUID = cargo.Seats(0).Occupant.get.GUID
+          val cargoDriverGUID = cargo.Seats(0).occupant.get.GUID
           zone.VehicleEvents ! VehicleServiceMessage(
             zone.id,
             VehicleAction.SendResponse(
@@ -185,7 +183,7 @@ object CargoBehavior {
             )
           )
           false
-          //sending packet to the cargo vehicle's client results in player locking himself in his vehicle
+          //sending packet to the cargo vehicle's client results in player being lock in own vehicle
           //player gets stuck as "always trying to remount the cargo hold"
           //obviously, don't do this
         } else {
@@ -263,10 +261,10 @@ object CargoBehavior {
         )
         if (distance > 225) {
           //cargo vehicle has moved far enough away; close the carrier's hold door
-          log.info(
+          log.debug(
             s"HandleCheckCargoDismounting: dismount of cargo vehicle from carrier complete at distance of $distance"
           )
-          val cargoDriverGUID = cargo.Seats(0).Occupant.get.GUID
+          val cargoDriverGUID = cargo.Seats(0).occupant.get.GUID
           zone.VehicleEvents ! VehicleServiceMessage(
             zone.id,
             VehicleAction.SendResponse(
@@ -283,13 +281,13 @@ object CargoBehavior {
             )
           )
           false
-          //sending packet to the cargo vehicle's client results in player locking himself in his vehicle
+          //sending packet to the cargo vehicle's client results in player being lock in own vehicle
           //player gets stuck as "always trying to remount the cargo hold"
           //obviously, don't do this
         } else if (iteration > 40) {
           //cargo vehicle has spent too long not getting far enough away; restore the cargo's mount in the carrier hold
           cargo.MountedIn = carrierGUID
-          hold.Occupant = cargo
+          hold.mount(cargo)
           CargoMountBehaviorForAll(carrier, cargo, mountPoint)
           false
         } else {
@@ -363,11 +361,11 @@ object CargoBehavior {
       kicked: Boolean
   ): Unit = {
     val zone = carrier.Zone
-    carrier.CargoHolds.find({ case (_, hold) => hold.Occupant.contains(cargo) }) match {
+    carrier.CargoHolds.find({ case (_, hold) => hold.occupant.contains(cargo) }) match {
       case Some((mountPoint, hold)) =>
         cargo.MountedIn = None
-        hold.Occupant = None
-        val driverOpt = cargo.Seats(0).Occupant
+        hold.unmount(cargo)
+        val driverOpt = cargo.Seats(0).occupant
         val rotation: Vector3 = if (Vehicles.CargoOrientation(cargo) == 1) { //TODO: BFRs will likely also need this set
           //dismount router "sideways" in a lodestar
           carrier.Orientation.xy + Vector3.z((carrier.Orientation.z - 90) % 360)
@@ -393,7 +391,7 @@ object CargoBehavior {
           s"$cargoActor",
           VehicleAction.SendResponse(GUID0, PlanetsideAttributeMessage(cargoGUID, 68, cargo.Shields))
         )
-        if (carrier.Flying) {
+        if (carrier.isFlying) {
           //the carrier vehicle is flying; eject the cargo vehicle
           val ejectCargoMsg =
             CargoMountPointStatusMessage(carrierGUID, GUID0, GUID0, cargoGUID, mountPoint, CargoStatus.InProgress, 0)
@@ -403,8 +401,7 @@ object CargoBehavior {
           events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(GUID0, ejectCargoMsg))
           events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(GUID0, detachCargoMsg))
           events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(GUID0, resetCargoMsg))
-          log.debug(ejectCargoMsg.toString)
-          log.debug(detachCargoMsg.toString)
+          log.debug(s"HandleVehicleCargoDismount: eject - $ejectCargoMsg, detach - $detachCargoMsg")
           if (driverOpt.isEmpty) {
             //TODO cargo should drop like a rock like normal; until then, deconstruct it
             cargo.Actor ! Vehicle.Deconstruct()

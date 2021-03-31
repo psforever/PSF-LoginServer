@@ -143,6 +143,6 @@ object TerminalControlTest {
       GlobalDefinitions.building
     )
     terminal.Owner.Faction = faction
-    (Player(Avatar(0, "test", faction, CharacterGender.Male, 0, CharacterVoice.Mute)), terminal)
+    (Player(Avatar(0, "test", faction, CharacterSex.Male, 0, CharacterVoice.Mute)), terminal)
   }
 }

@@ -1,14 +1,9 @@
 package net.psforever.objects.serverobject.terminals.capture
 
-import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.Player
 import net.psforever.objects.serverobject.CommonMessages
-import net.psforever.objects.serverobject.hackable.Hackable
-import net.psforever.packet.game.PlanetsideAttributeEnum
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import net.psforever.types.PlanetSideEmpire
 
-import java.util.concurrent.TimeUnit
 import scala.util.{Failure, Success}
 
 object CaptureTerminals {
@@ -28,7 +23,7 @@ object CaptureTerminals {
     import akka.pattern.ask
 
     import scala.concurrent.duration._
-    log.info(s"${hackingPlayer.toString} Hacked a ${target.toString}")
+    log.info(s"${hackingPlayer.toString} hacked a ${target.Definition.Name}")
     // Wait for the target actor to set the HackedBy property
     import scala.concurrent.ExecutionContext.Implicits.global
     ask(target.Actor, CommonMessages.Hack(hackingPlayer, target))(1 second).mapTo[Boolean].onComplete {

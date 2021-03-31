@@ -103,7 +103,7 @@ class UniqueNumberSystem(private val guid: NumberPoolHub, private val poolActors
         }
       } catch {
         case _: Exception =>
-          log.info(s"$obj is already unregistered")
+          log.warn(s"$obj is already unregistered")
           callback ! Success(obj)
       }
 

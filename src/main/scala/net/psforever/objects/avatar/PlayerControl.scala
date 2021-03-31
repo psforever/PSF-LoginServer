@@ -27,9 +27,11 @@ import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.objects.locker.LockerContainerControl
 import net.psforever.objects.serverobject.environment._
+import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
 import net.psforever.objects.vital.environment.EnvironmentReason
 import net.psforever.objects.vital.etc.{PainboxReason, SuicideReason}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
+import net.psforever.services.hart.ShuttleState
 
 import scala.concurrent.duration._
 
@@ -60,6 +62,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
   SetInteraction(EnvironmentAttribute.Water, doInteractingWithWater)
   SetInteraction(EnvironmentAttribute.Lava, doInteractingWithLava)
   SetInteraction(EnvironmentAttribute.Death, doInteractingWithDeath)
+  SetInteraction(EnvironmentAttribute.GantryDenialField, doInteractingWithGantryField)
   SetInteractionStop(EnvironmentAttribute.Water, stopInteractingWithWater)
 
   private[this] val log       = org.log4s.getLogger(player.Name)
@@ -325,7 +328,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               )
 
             case Terminal.InfantryLoadout(exosuit, subtype, holsters, inventory) =>
-              log.info(s"wants to change equipment loadout to their option #${msg.unk1 + 1}")
+              log.info(s"${player.Name} wants to change equipment loadout to their option #${msg.unk1 + 1}")
               val fallbackSubtype = 0
               val fallbackSuit    = ExoSuitType.Standard
               val originalSuit    = player.ExoSuit
@@ -368,7 +371,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   (exosuit, subtype)
                 } else {
                   log.warn(
-                    s"no longer has permission to wear the exo-suit type $exosuit; will wear $fallbackSuit instead"
+                    s"${player.Name} no longer has permission to wear the exo-suit type $exosuit; will wear $fallbackSuit instead"
                   )
                   (fallbackSuit, fallbackSubtype)
                 }
@@ -708,6 +711,13 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     //uninitialize implants
     avatarActor ! AvatarActor.DeinitializeImplants()
 
+    cause.adversarial match {
+      case Some(a) =>
+        damageLog.info(s"DisplayDestroy: ${a.defender} was killed by ${a.attacker}")
+      case _ =>
+        damageLog.info(s"DisplayDestroy: ${player.Name} killed ${player.Sex.pronounObject}self.")
+    }
+
     // This would normally happen async as part of AvatarAction.Killed, but if it doesn't happen before deleting calling AvatarAction.ObjectDelete on the player the LLU will end up invisible to others if carried
     // Therefore, queue it up to happen first.
     events ! AvatarServiceMessage(nameChannel, AvatarAction.DropSpecialItem())
@@ -718,13 +728,13 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     ) //align client interface fields with state
     zone.GUID(target.VehicleSeated) match {
       case Some(obj: Mountable) =>
-        //boot cadaver from seat internally (vehicle perspective)
+        //boot cadaver from mount internally (vehicle perspective)
         obj.PassengerInSeat(target) match {
           case Some(index) =>
-            obj.Seats(index).Occupant = None
+            obj.Seats(index).unmount(target)
           case _ => ;
         }
-        //boot cadaver from seat on client
+        //boot cadaver from mount on client
         events ! AvatarServiceMessage(
           nameChannel,
           AvatarAction.SendResponse(
@@ -1049,6 +1059,38 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     */
   def doInteractingWithDeath(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
     suicide()
+  }
+
+  def doInteractingWithGantryField(
+                                    obj: PlanetSideServerObject,
+                                    body: PieceOfEnvironment,
+                                    data: Option[OxygenStateTarget]
+                                  ): Unit = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val field = body.asInstanceOf[GantryDenialField]
+    val zone = player.Zone
+    (zone.GUID(field.obbasemesh) match {
+      case Some(pad : OrbitalShuttlePad) => zone.GUID(pad.shuttle)
+      case _                             => None
+    }) match {
+      case Some(shuttle: Vehicle)
+        if shuttle.Flying.contains(ShuttleState.State11.id) || shuttle.Faction != player.Faction =>
+        val (pos, zang) = Vehicles.dismountShuttle(shuttle, field.mountPoint)
+        shuttle.Zone.AvatarEvents ! AvatarServiceMessage(
+          player.Name,
+          AvatarAction.SendResponse(
+            Service.defaultPlayerGUID,
+            PlayerStateShiftMessage(ShiftState(0, pos, zang, None)))
+        )
+      case Some(_: Vehicle) =>
+        interactionTimer = context.system.scheduler.scheduleOnce(
+          delay = 250 milliseconds,
+          self,
+          InteractWithEnvironment(player, body, None)
+        )
+      case _ => ;
+        //something configured incorrectly; no need to keep checking
+    }
   }
 
   /**

@@ -181,7 +181,7 @@ class DroptItemTest extends ActorTest {
 }
 
 class LoadPlayerTest extends ActorTest {
-  val obj = Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
+  val obj = Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.VS, CharacterSex.Female, 1, CharacterVoice.Voice1))
   obj.GUID = PlanetSideGUID(10)
   obj.Slot(5).Equipment.get.GUID = PlanetSideGUID(11)
   val c1data = obj.Definition.Packet.DetailedConstructorData(obj).get
@@ -335,7 +335,7 @@ class PlayerStateTest extends ActorTest {
 }
 
 class PickupItemTest extends ActorTest {
-  val obj  = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
+  val obj  = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.VS, CharacterSex.Female, 1, CharacterVoice.Voice1))
   val tool = Tool(GlobalDefinitions.beamer)
   tool.GUID = PlanetSideGUID(40)
 
@@ -512,7 +512,7 @@ class AvatarReleaseTest extends FreedContextActorTest {
     GUID(guid)
   }
   zone.init(context)
-  val obj = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
+  val obj = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.VS, CharacterSex.Female, 1, CharacterVoice.Voice1))
   guid.register(obj)
   guid.register(obj.Slot(5).Equipment.get)
   obj.Zone = zone
@@ -563,7 +563,7 @@ class AvatarReleaseEarly1Test extends FreedContextActorTest {
     GUID(guid)
   }
   zone.init(context)
-  val obj = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
+  val obj = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.VS, CharacterSex.Female, 1, CharacterVoice.Voice1))
   guid.register(obj)
   guid.register(obj.Slot(5).Equipment.get)
   obj.Zone = zone
@@ -615,13 +615,13 @@ class AvatarReleaseEarly2Test extends FreedContextActorTest {
     GUID(guid)
   }
   zone.init(context)
-  val obj = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 1, CharacterVoice.Voice1))
+  val obj = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.VS, CharacterSex.Female, 1, CharacterVoice.Voice1))
   guid.register(obj)
   guid.register(obj.Slot(5).Equipment.get)
   obj.Zone = zone
   obj.Release
   val objAlt = Player(
-    Avatar(0, "TestCharacter2", PlanetSideEmpire.NC, CharacterGender.Male, 1, CharacterVoice.Voice1)
+    Avatar(0, "TestCharacter2", PlanetSideEmpire.NC, CharacterSex.Male, 1, CharacterVoice.Voice1)
   ) //necessary clutter
   objAlt.GUID = PlanetSideGUID(3)
   objAlt.Slot(5).Equipment.get.GUID = PlanetSideGUID(4)

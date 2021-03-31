@@ -2,7 +2,7 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
-import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire}
+import net.psforever.types.{CharacterSex, CharacterVoice, PlanetSideEmpire}
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}
@@ -14,7 +14,7 @@ final case class CharacterCreateRequestMessage(
     name: String,
     headId: Int,
     voiceId: CharacterVoice.Value,
-    gender: CharacterGender.Value,
+    gender: CharacterSex,
     empire: PlanetSideEmpire.Value
 ) extends PlanetSideGamePacket {
   type Packet = CharacterCreateRequestMessage
@@ -29,7 +29,7 @@ object CharacterCreateRequestMessage extends Marshallable[CharacterCreateRequest
     ("name" | PacketHelpers.encodedWideString) ::
       ("headId" | uint8L) ::
       ("voiceId" | character_voice_codec) ::
-      ("gender" | CharacterGender.codec) ::
+      ("gender" | CharacterSex.codec) ::
       ("empire" | PlanetSideEmpire.codec)
   ).exmap[CharacterCreateRequestMessage](
     {

@@ -392,7 +392,7 @@ object ProjectileDamageModifierFunctions {
                                  data: DamageInteraction,
                                  cause: ProjectileReason
                                ): Int = {
-    if (cause.resolution == resolution) {
+    if (data.resolution == resolution) {
       (data.cause.source.Aggravated, data.target) match {
         case (Some(aggravation), p: PlayerSource) =>
           val degradation = aggravation.info.find(_.damage_type == damageType) match {

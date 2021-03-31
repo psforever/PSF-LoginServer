@@ -14,7 +14,7 @@ import scala.concurrent.duration._
   * <br>
   * This object is the first link in the process chain that spawns the ordered vehicle.
   * It is devoted to causing the prospective driver to become hidden during the first part of the process
-  * with the goal of appearing to be "teleported" into the driver seat.
+  * with the goal of appearing to be "teleported" into the driver mount.
   * It has failure cases should the driver be in an incorrect state.
   * @param pad the `VehicleSpawnPad` object being governed
   */

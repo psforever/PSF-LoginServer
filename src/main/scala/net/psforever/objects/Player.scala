@@ -79,7 +79,7 @@ class Player(var avatar: Avatar)
 
   def Faction: PlanetSideEmpire.Value = avatar.faction
 
-  def Sex: CharacterGender.Value = avatar.sex
+  def Sex: CharacterSex = avatar.sex
 
   def Head: Int = avatar.head
 

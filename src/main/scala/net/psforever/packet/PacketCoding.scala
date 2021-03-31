@@ -174,7 +174,11 @@ object PacketCoding {
         }
       case PacketType.Crypto =>
         if (flags.secured && crypto.isEmpty) {
-          return Failure(Err("Unsupported packet type: crypto packets must be unencrypted"))
+          return Failure(Err("Unsupported packet type: secured crypto packets must be unencrypted"))
+        }
+      case PacketType.ResetSequence =>
+        if (!flags.secured || crypto.isEmpty) {
+          return Failure(Err("Unsupported packet type: reset sequence packets must be encrypted"))
         }
       case _ =>
         return Failure(Err(s"Unsupported packet type: ${flags.packetType.toString}"))
@@ -185,7 +189,7 @@ object PacketCoding {
       case Successful(DecodeResult(value, _remainder)) =>
         (value, _remainder.toByteVector)
       case Failure(e) =>
-        return Failure(Err(s"Failed to parse packet sequence number: ${e.message}"))
+        return Failure(Err(s"Failed to parse ${flags.packetType} packet sequence number: ${e.message}"))
     }
 
     (flags.packetType, crypto) match {
@@ -199,9 +203,13 @@ object PacketCoding {
       case (PacketType.Normal, None) if !flags.secured =>
         decodePacket(payload).map(p => (p, sequence))
       case (PacketType.Normal, None) =>
-        Failure(Err(s"Cannot unmarshal encrypted packet without CryptoCoding"))
+        Failure(Err("Cannot unmarshal encrypted packet without a cipher"))
+      case (PacketType.ResetSequence, Some(_crypto)) =>
+        val test = _crypto.decrypt(payload.drop(1))
+        Failure(Err(s"ResetSequence not completely supported, but: $flags, $sequence, and $payload; decrypt: $test"))
+      case (ptype, _) =>
+        Failure(Err(s"Cannot unmarshal $ptype packet at all"))
     }
-
   }
 
   /**

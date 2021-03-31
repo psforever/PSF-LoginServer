@@ -1,13 +1,14 @@
 // Copyright (c) 2020 PSForever
 package objects
 
+import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.{GlobalDefinitions, Player, Tool, Vehicle}
 import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.serverobject.environment._
 import net.psforever.objects.serverobject.terminals.{Terminal, TerminalDefinition}
 import net.psforever.objects.vital.Vitality
 import net.psforever.packet.game.objectcreate.ObjectClass
-import net.psforever.types.Vector3
+import net.psforever.types._
 import org.specs2.mutable.Specification
 
 class EnvironmentCollisionTest extends Specification {
@@ -203,6 +204,26 @@ class EnvironmentAttributeTest extends Specification {
       EnvironmentAttribute.Death.canInteractWith(obj) mustEqual false
     }
   }
+
+  "GantryDenialField" should {
+    "interact with players" in {
+      val obj = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
+      obj.Spawn()
+      EnvironmentAttribute.GantryDenialField.canInteractWith(obj) mustEqual true
+    }
+
+    "not interact with dead players" in {
+      val obj = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
+      obj.isAlive mustEqual false
+      EnvironmentAttribute.GantryDenialField.canInteractWith(obj) mustEqual false
+    }
+
+    "not interact with an object that is not a player" in {
+      val obj = Tool(GlobalDefinitions.suppressor)
+      obj.isInstanceOf[Vitality] mustEqual false
+      EnvironmentAttribute.GantryDenialField.canInteractWith(obj) mustEqual false
+    }
+  }
 }
 
 class SeaLevelTest extends Specification {
@@ -277,6 +298,17 @@ class PoolTest extends Specification {
         square.testInteraction(Vector3(1,1,10), varDepth =  0)
       pool.testInteraction(Vector3(1,1, 9), varDepth =  1) mustEqual
         square.testInteraction(Vector3(1,1, 9), varDepth =  1)
+    }
+  }
+}
+
+class GantryDenialField extends Specification {
+  val square = DeepSquare(0, 1, 10, 10, 1)
+
+  "GantryDenialField" should {
+    "always has the environmental attribute of 'GantryDenialField'" in {
+      val obj = GantryDenialField(PlanetSideGUID(0), 0, square)
+      obj.attribute mustEqual EnvironmentAttribute.GantryDenialField
     }
   }
 }

@@ -98,6 +98,6 @@ object IFFLockControlTest {
       GlobalDefinitions.building
     )
     lock.Owner.Faction = faction
-    (Player(Avatar(0, "test", faction, CharacterGender.Male, 0, CharacterVoice.Mute)), lock)
+    (Player(Avatar(0, "test", faction, CharacterSex.Male, 0, CharacterVoice.Mute)), lock)
   }
 }

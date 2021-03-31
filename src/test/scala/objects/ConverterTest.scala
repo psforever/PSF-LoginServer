@@ -8,6 +8,7 @@ import net.psforever.objects.definition._
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.locker.{LockerContainer, LockerEquipment}
+import net.psforever.objects.serverobject.mount.{MountInfo, SeatDefinition}
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vehicles.UtilityType
@@ -647,7 +648,7 @@ class ConverterTest extends Specification {
   }
 
   "Player" should {
-    var avatar = Avatar(0, "Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+    var avatar = Avatar(0, "Chord", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Voice5)
     val obj: Player = {
       /*
       Create an AmmoBoxDefinition with which to build two AmmoBoxes
@@ -872,10 +873,10 @@ class ConverterTest extends Specification {
 
       val fury_def = VehicleDefinition(ObjectClass.fury)
       fury_def.Seats += 0 -> new SeatDefinition()
-      fury_def.Seats(0).Bailable = true
-      fury_def.Seats(0).ControlledWeapon = Some(1)
-      fury_def.MountPoints += 0 -> 0
-      fury_def.MountPoints += 2 -> 0
+      fury_def.Seats(0).bailable = true
+      fury_def.controlledWeapons += 0 -> 1
+      fury_def.MountPoints += 0 -> MountInfo(0)
+      fury_def.MountPoints += 2 -> MountInfo(0)
       fury_def.Weapons += 1     -> fury_weapon_systema_def
       fury_def.TrunkSize = InventoryTile(11, 11)
       fury_def.TrunkOffset = 30

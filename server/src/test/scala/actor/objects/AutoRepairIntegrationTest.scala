@@ -48,7 +48,7 @@ class AutoRepairFacilityIntegrationTest extends FreedContextActorTest {
   val building = Building.Structure(StructureType.Facility)(name = "integ-fac-test-building", guid = 6, map_id = 0, zone, context)
   building.Invalidate()
 
-  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
   player.Spawn()
   val weapon = new Tool(GlobalDefinitions.suppressor)
   val terminal = new Terminal(AutoRepairIntegrationTest.terminal_definition)
@@ -164,7 +164,7 @@ class AutoRepairFacilityIntegrationAntGiveNtuTest extends FreedContextActorTest 
   expectNoMessage(1000 milliseconds)
   var buildingMap = new TrieMap[Int, Building]()
   val guid = new NumberPoolHub(new MaxNumberSource(max = 10))
-  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
   val ant = Vehicle(GlobalDefinitions.ant)
   val terminal = new Terminal(AutoRepairIntegrationTest.slow_terminal_definition)
   val silo = new ResourceSilo()
@@ -203,7 +203,7 @@ class AutoRepairFacilityIntegrationAntGiveNtuTest extends FreedContextActorTest 
   ant.NtuCapacitor = maxNtuCap
   ant.Actor = context.actorOf(Props(classOf[VehicleControl], ant), name = "test-ant")
   ant.Zone = zone
-  ant.Seats(0).Occupant = player
+  ant.Seats(0).mount(player)
   ant.DeploymentState = DriveState.Deployed
   building.Amenities = terminal
   building.Amenities = silo
@@ -255,7 +255,7 @@ class AutoRepairFacilityIntegrationTerminalDestroyedTerminalAntTest extends Free
   expectNoMessage(1000 milliseconds)
   var buildingMap = new TrieMap[Int, Building]()
   val guid = new NumberPoolHub(new MaxNumberSource(max = 10))
-  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
   val weapon = new Tool(GlobalDefinitions.suppressor)
   val ant = Vehicle(GlobalDefinitions.ant)
   val terminal = new Terminal(AutoRepairIntegrationTest.slow_terminal_definition)
@@ -297,7 +297,7 @@ class AutoRepairFacilityIntegrationTerminalDestroyedTerminalAntTest extends Free
   ant.NtuCapacitor = maxNtuCap
   ant.Actor = context.actorOf(Props(classOf[VehicleControl], ant), name = "test-ant")
   ant.Zone = zone
-  ant.Seats(0).Occupant = player
+  ant.Seats(0).mount(player)
   ant.DeploymentState = DriveState.Deployed
   building.Amenities = terminal
   building.Amenities = silo
@@ -357,7 +357,7 @@ class AutoRepairFacilityIntegrationTerminalIncompleteRepairTest extends FreedCon
   expectNoMessage(1000 milliseconds)
   var buildingMap = new TrieMap[Int, Building]()
   val guid = new NumberPoolHub(new MaxNumberSource(max = 10))
-  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
   val weapon = new Tool(GlobalDefinitions.suppressor)
   val ant = Vehicle(GlobalDefinitions.ant)
   val terminal = new Terminal(AutoRepairIntegrationTest.slow_terminal_definition)
@@ -399,7 +399,7 @@ class AutoRepairFacilityIntegrationTerminalIncompleteRepairTest extends FreedCon
   ant.NtuCapacitor = maxNtuCap
   ant.Actor = context.actorOf(Props(classOf[VehicleControl], ant), name = "test-ant")
   ant.Zone = zone
-  ant.Seats(0).Occupant = player
+  ant.Seats(0).mount(player)
   ant.DeploymentState = DriveState.Deployed
   building.Amenities = terminal
   building.Amenities = silo
@@ -485,7 +485,7 @@ class AutoRepairTowerIntegrationTest extends FreedContextActorTest {
   val building = Building.Structure(StructureType.Tower)(name = "integ-twr-test-building", guid = 6, map_id = 0, zone, context)
   building.Invalidate()
 
-  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
   player.Spawn()
   val weapon = new Tool(GlobalDefinitions.suppressor)
   val terminal = new Terminal(AutoRepairIntegrationTest.terminal_definition)

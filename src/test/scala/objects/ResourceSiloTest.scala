@@ -3,8 +3,8 @@ package objects
 
 import akka.actor.{Actor, Props}
 import akka.testkit.TestProbe
-import base.ActorTest
-import net.psforever.actors.zone.{BuildingActor, ZoneActor}
+import base.{ActorTest, FreedContextActorTest}
+import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.CommonMessages
@@ -17,9 +17,11 @@ import net.psforever.packet.game.UseItemMessage
 import net.psforever.types._
 import org.specs2.mutable.Specification
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import akka.actor.typed.scaladsl.adapter._
 import net.psforever.objects.avatar.Avatar
+import net.psforever.services.{InterstellarClusterService, ServiceManager}
+import net.psforever.services.galaxy.GalaxyService
 
+import scala.collection.concurrent.TrieMap
 import scala.concurrent.duration._
 
 class ResourceSiloTest extends Specification {
@@ -145,51 +147,60 @@ class ResourceSiloControlStartupMessageSomeTest extends ActorTest {
   }
 }
 
-class ResourceSiloControlUseTest extends ActorTest {
-  val guid = new NumberPoolHub(new MaxNumberSource(10))
-  val map  = new ZoneMap("test")
-  val zone = new Zone("test", map, 0) {
+class ResourceSiloControlUseTest extends FreedContextActorTest {
+  import akka.actor.typed.scaladsl.adapter._
+  system.spawn(InterstellarClusterService(Nil), InterstellarClusterService.InterstellarClusterServiceKey.id)
+  ServiceManager.boot(system) ! ServiceManager.Register(Props[GalaxyService](), "galaxy")
+  expectNoMessage(1000 milliseconds)
+  var buildingMap = new TrieMap[Int, Building]()
+  val guid = new NumberPoolHub(new MaxNumberSource(max = 10))
+  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
+  val ant = Vehicle(GlobalDefinitions.ant)
+  val silo = new ResourceSilo()
+  val catchall = new TestProbe(system).ref
+  val zone = new Zone("test", new ZoneMap("test-map"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)
+    override def AvatarEvents = catchall
+    override def LocalEvents = catchall
+    override def VehicleEvents = catchall
+    override def Activity = catchall
+    override def Vehicles = List(ant)
+    override def Buildings = { buildingMap.toMap }
   }
-  zone.actor = system.spawnAnonymous(ZoneActor(zone))
   val building = new Building(
-    "Building",
-    building_guid = 0,
+    name = "integ-fac-test-building",
+    building_guid = 6,
     map_id = 0,
     zone,
-    StructureType.Building,
-    GlobalDefinitions.building
-  ) //guid=1
-  building.Actor = TestProbe("building-actor").ref
+    StructureType.Facility,
+    GlobalDefinitions.cryo_facility
+  )
+  buildingMap += 6 -> building
+  building.Actor = context.spawn(BuildingActor(zone, building), "integ-fac-test-building-control").toClassic
+  building.Invalidate()
 
-  val obj = ResourceSilo() //guid=2
-  obj.Actor = system.actorOf(Props(classOf[ResourceSiloControl], obj), "test-silo")
-  obj.Owner = building
-  obj.Actor ! "startup"
+  guid.register(player, number = 1)
+  guid.register(ant, number = 2)
+  guid.register(silo, number = 5)
+  guid.register(building, number = 6)
 
-  val player = Player(
-    new Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
-  ) //guid=3
-  val vehicle = Vehicle(GlobalDefinitions.ant) //guid=4
-  val probe   = new TestProbe(system)
-
-  guid.register(building, 1)
-  guid.register(obj, 2)
-  guid.register(player, 3)
-  guid.register(vehicle, 4)
-  expectNoMessage(200 milliseconds)
-  zone.Transport ! Zone.Vehicle.Spawn(vehicle)
-  vehicle.Seats(0).Occupant = player
-  player.VehicleSeated = vehicle.GUID
-  expectNoMessage(200 milliseconds)
-  system.stop(vehicle.Actor)
-  vehicle.Actor = probe.ref
+  val maxNtuCap = ant.Definition.MaxNtuCapacitor
+  player.Spawn()
+  ant.NtuCapacitor = maxNtuCap
+  val probe = new TestProbe(system)
+  ant.Actor = probe.ref
+  ant.Zone = zone
+  ant.Seats(0).mount(player)
+  ant.DeploymentState = DriveState.Deployed
+  building.Amenities = silo
+  silo.Actor = system.actorOf(Props(classOf[ResourceSiloControl], silo), "test-silo")
+  silo.Actor ! "startup"
 
   "Resource silo" should {
     "respond when being used" in {
       expectNoMessage(1 seconds)
-      obj.Actor ! CommonMessages.Use(ResourceSiloTest.player)
+      silo.Actor ! CommonMessages.Use(ResourceSiloTest.player)
 
       val reply = probe.receiveOne(2000 milliseconds)
       assert(reply match {
@@ -416,7 +427,7 @@ class ResourceSiloControlNoUpdateTest extends ActorTest {
 
 object ResourceSiloTest {
   val player = Player(
-    new Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)
+    new Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)
   )
 
   class ProbedAvatarService(probe: TestProbe) extends Actor {

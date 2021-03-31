@@ -47,7 +47,7 @@ import net.psforever.packet.game.{
   PlanetsideAttributeMessage
 }
 import net.psforever.types.{
-  CharacterGender,
+  CharacterSex,
   CharacterVoice,
   ExoSuitType,
   ImplantType,
@@ -98,7 +98,7 @@ object AvatarActor {
       name: String,
       head: Int,
       voice: CharacterVoice.Value,
-      gender: CharacterGender.Value,
+      gender: CharacterSex,
       empire: PlanetSideEmpire.Value
   ) extends Command
 
@@ -306,7 +306,7 @@ class AvatarActor(
                           _.factionId -> lift(empire.id),
                           _.headId    -> lift(head),
                           _.voiceId   -> lift(voice.id),
-                          _.genderId  -> lift(gender.id),
+                          _.genderId  -> lift(gender.value),
                           _.bep       -> lift(Config.app.game.newAvatar.br.experience),
                           _.cep       -> lift(Config.app.game.newAvatar.cr.experience)
                         )
@@ -326,7 +326,7 @@ class AvatarActor(
 
                   result.onComplete {
                     case Success(_) =>
-                      log.debug(s"created character ${name} for account ${account.name}")
+                      log.debug(s"AvatarActor: created character ${name} for account ${account.name}")
                       sessionActor ! SessionActor.SendResponse(ActionResultMessage.Pass)
                       sendAvatars(account)
                     case Failure(e) => log.error(e)("db failure")
@@ -353,7 +353,7 @@ class AvatarActor(
 
           result.onComplete {
             case Success(_) =>
-              log.debug(s"avatar $id deleted")
+              log.debug(s"AvatarActor: avatar $id deleted")
               sessionActor ! SessionActor.SendResponse(ActionResultMessage.Pass)
               sendAvatars(account)
             case Failure(e) => log.error(e)("db failure")
@@ -485,14 +485,20 @@ class AvatarActor(
               ItemTransactionResultMessage(terminalGuid, TransactionType.Learn, success = false)
             )
           } else {
-
-            val deps   = Certification.values.filter(_.requires.contains(certification)).toSet
-            val remove = deps ++ Certification.values.filter(_.replaces.intersect(deps).nonEmpty).toSet + certification
+            var requiredByCert: Set[Certification] = Set(certification)
+            var removeThese: Set[Certification] = Set(certification)
+            val allCerts: Set[Certification] = Certification.values.toSet
+            do {
+              removeThese = allCerts.filter { testingCert =>
+                testingCert.requires.intersect(removeThese).nonEmpty
+              }
+              requiredByCert = requiredByCert ++ removeThese
+            } while(removeThese.nonEmpty)
 
             Future
               .sequence(
                 avatar.certifications
-                  .intersect(remove)
+                  .intersect(requiredByCert)
                   .map(cert => {
                     ctx
                       .run(
@@ -511,7 +517,7 @@ class AvatarActor(
                     ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = false)
                   )
                 case Success(certs) =>
-                  context.self ! ReplaceAvatar(avatar.copy(certifications = avatar.certifications.diff(remove)))
+                  context.self ! ReplaceAvatar(avatar.copy(certifications = avatar.certifications.diff(certs)))
                   certs.foreach { cert =>
                     sessionActor ! SessionActor.SendResponse(
                       PlanetsideAttributeMessage(session.get.player.GUID, 25, cert.value)
@@ -1269,7 +1275,7 @@ class AvatarActor(
       .run(query[persistence.Loadout].filter(_.avatarId == lift(avatar.id)))
       .map { loadouts =>
         loadouts.map { loadout =>
-          val doll = new Player(Avatar(0, "doll", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+          val doll = new Player(Avatar(0, "doll", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
           doll.ExoSuit = ExoSuitType(loadout.exosuitId)
 
           loadout.items.split("/").foreach {

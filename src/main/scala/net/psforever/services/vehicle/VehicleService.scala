@@ -18,27 +18,19 @@ class VehicleService(zone: Zone) extends Actor {
   private val turretUpgrade: ActorRef = context.actorOf(Props[TurretUpgrader](), s"${zone.id}-turret-upgrade-agent")
   private[this] val log               = org.log4s.getLogger
 
-  override def preStart() = {
-    log.trace(s"Awaiting ${zone.id} vehicle events ...")
-  }
-
   val VehicleEvents = new GenericEventBus[VehicleServiceResponse]
 
   def receive = {
     case Service.Join(channel) =>
       val path = s"/$channel/Vehicle"
-      val who  = sender()
-      log.info(s"$who has joined $path")
-      VehicleEvents.subscribe(who, path)
+      VehicleEvents.subscribe(sender(), path)
 
     case Service.Leave(None) =>
       VehicleEvents.unsubscribe(sender())
 
     case Service.Leave(Some(channel)) =>
       val path = s"/$channel/Vehicle"
-      val who  = sender()
-      log.info(s"$who has left $path")
-      VehicleEvents.unsubscribe(who, path)
+      VehicleEvents.unsubscribe(sender(), path)
 
     case Service.LeaveAll() =>
       VehicleEvents.unsubscribe(sender())
@@ -103,6 +95,14 @@ class VehicleService(zone: Zone) extends Actor {
               s"/$forChannel/Vehicle",
               player_guid,
               VehicleResponse.KickPassenger(seat_num, kickedByDriver, vehicle_guid)
+            )
+          )
+        case VehicleAction.ObjectDelete(guid) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(
+              s"/$forChannel/Vehicle",
+              Service.defaultPlayerGUID,
+              VehicleResponse.ObjectDelete(guid)
             )
           )
         case VehicleAction.LoadVehicle(player_guid, vehicle, vtype, vguid, vdata) =>
@@ -379,7 +379,7 @@ class VehicleService(zone: Zone) extends Actor {
       }
 
     case msg =>
-      log.info(s"Unhandled message $msg from ${sender()}")
+      log.warn(s"Unhandled message $msg from ${sender()}")
   }
 
   import net.psforever.objects.serverobject.tube.SpawnTube

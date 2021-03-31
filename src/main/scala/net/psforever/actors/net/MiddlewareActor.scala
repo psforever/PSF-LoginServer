@@ -119,10 +119,7 @@ object MiddlewareActor {
     packet.isInstanceOf[CharacterInfoMessage]
   }
 
-  /**
-    * `KeepAliveMessage` packets are bundled by themselves.
-    * They're special.
-    */
+  /** `KeepAliveMessage` packets are bundled by themselves. They're special. */
   def keepAliveMessageGuard(packet: PlanetSidePacket): Boolean = {
     packet.isInstanceOf[KeepAliveMessage]
   }
@@ -295,7 +292,7 @@ class MiddlewareActor(
                     Behaviors.same
 
                   case _: ChangeFireModeMessage =>
-                    log.trace(s"What is this packet that just arrived? ${msg.toString}")
+                    log.trace(s"What is this packet that just arrived? $msg")
                     //ignore
                     Behaviors.same
 
@@ -420,7 +417,7 @@ class MiddlewareActor(
             case Successful((packet, None)) =>
               in(packet)
             case Failure(e)                 =>
-              log.error(s"could not decode packet: $e")
+              log.error(s"Could not decode $connectionId's packet: $e")
           }
           Behaviors.same
 
@@ -530,7 +527,7 @@ class MiddlewareActor(
   def in(packet: Attempt[PlanetSidePacket]): Unit = {
     packet match {
       case Successful(_packet) => in(_packet)
-      case Failure(cause)      => log.error(cause.message)
+      case Failure(cause)      => log.error(s"Could not decode packet: ${cause.message}")
     }
   }
 
@@ -543,7 +540,7 @@ class MiddlewareActor(
       case _ =>
         PacketCoding.encodePacket(packet) match {
           case Successful(payload) => outQueue.enqueue((packet, payload))
-          case Failure(cause)      => log.error(cause.message)
+          case Failure(cause)      => log.error(s"Could not encode $packet: ${cause.message}")
         }
     }
   }
@@ -615,7 +612,7 @@ class MiddlewareActor(
               outQueueBundled.enqueue(smp(slot = 0, data.bytes))
               sendFirstBundle()
             case Failure(cause)   =>
-              log.error(cause.message)
+              log.error(s"could not bundle $bundle: ${cause.message}")
               //to avoid packets being lost, unwrap bundle and queue the packets individually
               bundle.foreach { packet =>
                 outQueueBundled.enqueue(smp(slot = 0, packet.bytes))
@@ -626,7 +623,7 @@ class MiddlewareActor(
       }
     } catch {
       case e: Throwable =>
-        log.error(s"outbound queue processing error - ${Option(e.getMessage).getOrElse(e.getClass.getSimpleName)}")
+        log.error(s"Outbound queue processing error: ${Option(e.getMessage).getOrElse(e.getClass.getSimpleName)}")
     }
   }
 
@@ -901,7 +898,7 @@ class MiddlewareActor(
         case Successful(data) =>
           data.grouped((MTU - 8) * 8).map(vec => smp(slot = 4, vec.bytes)).toSeq
         case Failure(cause) =>
-          log.error(cause.message)
+          log.error(s"Could not split packet: ${cause.message}")
           Seq()
       }
     } else {

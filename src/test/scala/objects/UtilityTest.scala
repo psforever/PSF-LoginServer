@@ -60,7 +60,7 @@ class UtilityTest extends Specification {
       val veh = Vehicle(GlobalDefinitions.quadstealth)
       veh.Faction = PlanetSideEmpire.TR
       val obj    = Utility(UtilityType.teleportpad_terminal, UtilityTest.vehicle)
-      val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+      val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
       veh.GUID = PlanetSideGUID(101)
       obj().Owner = veh //hack
       obj().GUID = PlanetSideGUID(1)

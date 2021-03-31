@@ -104,7 +104,7 @@ object GenericHackables {
   def FinishHacking(target: PlanetSideServerObject with Hackable, user: Player, unk: Long)(): Unit = {
     import akka.pattern.ask
     import scala.concurrent.duration._
-    log.info(s"Hacked a $target")
+    log.info(s"${user.Name} hacked a ${target.Definition.Name}")
     // Wait for the target actor to set the HackedBy property, otherwise LocalAction.HackTemporarily will not complete properly
     import scala.concurrent.ExecutionContext.Implicits.global
     val tplayer = user

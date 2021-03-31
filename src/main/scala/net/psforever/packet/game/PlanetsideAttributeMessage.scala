@@ -179,14 +179,14 @@ import scodec.codecs._
   * `228 - Player/vehicle leaves black ops`<br>
   * <br>
   * `Vehicles:`<br>
-  * `10 - Driver seat permissions`
+  * `10 - Driver mount permissions`
   * <ul>
   * <li>0 - Locked</li>
   * <li>1 - Group</li>
   *    <li>3 - Empire</li>
   *  </ul>
-  * `11 - Gunner seat(s) permissions (same)`<br>
-  * `12 - Passenger seat(s) permissions (same)`<br>
+  * `11 - Gunner mount(s) permissions (same)`<br>
+  * `12 - Passenger mount(s) permissions (same)`<br>
   * `13 - Trunk permissions (same)`<br>
   * `21 - Declare a player the vehicle's owner, by globally unique identifier`<br>
   * `22 - Toggles gunner and passenger mount points (1 = hides, 0 = reveals; this also locks their permissions)`<br>

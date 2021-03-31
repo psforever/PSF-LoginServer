@@ -1,6 +1,13 @@
 # Too spammy for us
 comment: off
 
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 0.25%
+
 ignore:
   - "src/main/scala/net/psforever/objects/ObjectType.scala"
   - "src/main/scala/net/psforever/objects/avatar/Avatars.scala"
@@ -14,6 +21,7 @@ ignore:
   - "src/main/scala/net/psforever/objects/guid/AvailabilityPolicy.scala"
   - "src/main/scala/net/psforever/objects/serverobject/pad/AutoDriveControls.scala"
   - "src/main/scala/net/psforever/objects/serverobject/structures/StructureType.scala"
+  - "src/main/scala/net/psforever/objects/serverobject/shuttle/ShuttleAmenity.scala"
   - "src/main/scala/net/psforever/objects/serverobject/turret/TurretUpgrade.scala"
   - "src/main/scala/net/psforever/objects/serverobject/CommonMessages.scala"
   - "src/main/scala/net/psforever/objects/vehicles/AccessPermissionGroup.scala"
@@ -63,6 +71,8 @@ ignore:
   - "src/main/scala/net/psforever/services/avatar/AvatarResponse.scala"
   - "src/main/scala/net/psforever/services/galaxy/GalaxyAction.scala"
   - "src/main/scala/net/psforever/services/galaxy/GalaxyResponse.scala"
+  - "src/main/scala/net/psforever/services/hart/HartEvent.scala"
+  - "src/main/scala/net/psforever/services/hart/HartTimerActions.scala"
   - "src/main/scala/net/psforever/services/local/LocalAction.scala"
   - "src/main/scala/net/psforever/services/local/LocalResponse.scala"
   - "src/main/scala/net/psforever/services/vehicle/VehicleAction.scala"

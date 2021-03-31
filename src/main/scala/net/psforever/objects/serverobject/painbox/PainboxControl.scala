@@ -24,7 +24,7 @@ class PainboxControl(painbox: Painbox) extends PoweredAmenityControl {
     if (painbox.Owner.Continent.matches("c[0-9]")) {
       //are we in a safe zone?
       // todo: handle non-radius painboxes in caverns properly
-      log.info(s"Skipping initialization of ${painbox.GUID} on ${painbox.Owner.Continent} - ${painbox.Position}")
+      log.debug(s"Skipping initialization of ${painbox.GUID} on ${painbox.Owner.Continent} - ${painbox.Position}")
       disabled = true
     } else {
       if (painbox.Definition.HasNearestDoorDependency) {

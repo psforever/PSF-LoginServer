@@ -7,24 +7,27 @@ import net.psforever.objects.ce.{DeployableCategory, DeployedItem}
 import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter._
 import net.psforever.objects.equipment._
+import net.psforever.objects.geometry.GeometryForm
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.serverobject.aura.Aura
 import net.psforever.objects.serverobject.doors.DoorDefinition
 import net.psforever.objects.serverobject.generator.GeneratorDefinition
 import net.psforever.objects.serverobject.locks.IFFLockDefinition
 import net.psforever.objects.serverobject.mblocker.LockerDefinition
+import net.psforever.objects.serverobject.mount._
 import net.psforever.objects.serverobject.pad.VehicleSpawnPadDefinition
 import net.psforever.objects.serverobject.painbox.PainboxDefinition
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.tube.SpawnTubeDefinition
 import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
-import net.psforever.objects.serverobject.structures.{AutoRepairStats, BuildingDefinition, WarpGateDefinition}
+import net.psforever.objects.serverobject.structures.{AmenityDefinition, AutoRepairStats, BuildingDefinition, WarpGateDefinition}
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalDefinition
 import net.psforever.objects.serverobject.terminals.implant.{ImplantTerminalDefinition, ImplantTerminalMechDefinition}
 import net.psforever.objects.serverobject.turret.{FacilityTurretDefinition, TurretUpgrade}
-import net.psforever.objects.vehicles.{DestroyedVehicle, InternalTelepadDefinition, SeatArmorRestriction, UtilityType}
+import net.psforever.objects.vehicles.{DestroyedVehicle, InternalTelepadDefinition, UtilityType}
 import net.psforever.objects.vital.base.DamageType
 import net.psforever.objects.vital.damage._
+import net.psforever.objects.vital.etc.ExplodingRadialDegrade
 import net.psforever.objects.vital.projectile._
 import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.vital.{ComplexDeployableResolutions, MaxResolutions, SimpleResolutions}
@@ -937,6 +940,8 @@ object GlobalDefinitions {
   val phantasm = VehicleDefinition(ObjectClass.phantasm)
 
   val droppod = VehicleDefinition(ObjectClass.droppod)
+
+  val orbital_shuttle = VehicleDefinition(ObjectClass.orbital_shuttle)
   init_vehicles()
 
   /*
@@ -971,6 +976,8 @@ object GlobalDefinitions {
   val deployable_shield_generator = new ShieldGeneratorDefinition
 
   val router_telepad_deployable = SimpleDeployableDefinition(DeployedItem.router_telepad_deployable)
+
+  val special_emp = ExplosiveDeployableDefinition(DeployedItem.jammer_mine)
 
   //this is only treated like a deployable
   val internal_router_telepad_deployable = InternalTelepadDefinition() //objectId: 744
@@ -1053,6 +1060,8 @@ object GlobalDefinitions {
 
   val door = new DoorDefinition
 
+  val gr_door_mb_orb = new DoorDefinition
+
   val resource_silo = new ResourceSiloDefinition
 
   val capture_terminal = new CaptureTerminalDefinition(158) // Base CC
@@ -1095,6 +1104,8 @@ object GlobalDefinitions {
   val gen_control = new GeneratorTerminalDefinition(349)
 
   val generator = new GeneratorDefinition(351)
+
+  val obbasemesh = new AmenityDefinition(598) { }
   initMiscellaneous()
 
   /*
@@ -1641,7 +1652,7 @@ object GlobalDefinitions {
           1.093750f // same regardless of gender
         } else if (p.ExoSuit == ExoSuitType.MAX) {
           1.906250f // VS female MAX
-        } else if (p.Sex == CharacterGender.Male) {
+        } else if (p.Sex == CharacterSex.Male) {
           obj.Definition.MaxDepth // male
         } else {
           1.546875f // female
@@ -5608,18 +5619,29 @@ object GlobalDefinitions {
     * Initialize `VehicleDefinition` globals.
     */
   private def init_vehicles(): Unit = {
+    val atvForm = GeometryForm.representByCylinder(radius = 1.1797f, height = 1.1875f) _
+    val delivererForm = GeometryForm.representByCylinder(radius = 2.46095f, height = 2.40626f) _ //TODO hexahedron
+    val apcForm = GeometryForm.representByCylinder(radius = 4.6211f, height = 3.90626f) _ //TODO hexahedron
+    val liberatorForm = GeometryForm.representByCylinder(radius = 3.74615f, height = 2.51563f) _
+
+    val bailableSeat = new SeatDefinition() {
+      bailable = true
+    }
+    val maxOnlySeat = new SeatDefinition() {
+      restriction = MaxOnly
+    }
+
     fury.Name = "fury"
     fury.MaxHealth = 650
     fury.Damageable = true
     fury.Repairable = true
     fury.RepairIfDestroyed = false
     fury.MaxShields = 130
-    fury.Seats += 0 -> new SeatDefinition()
-    fury.Seats(0).Bailable = true
-    fury.Seats(0).ControlledWeapon = 1
+    fury.Seats += 0 -> bailableSeat
+    fury.controlledWeapons += 0 -> 1
     fury.Weapons += 1     -> fury_weapon_systema
-    fury.MountPoints += 1 -> 0
-    fury.MountPoints += 2 -> 0
+    fury.MountPoints += 1 -> MountInfo(0)
+    fury.MountPoints += 2 -> MountInfo(0)
     fury.TrunkSize = InventoryTile.Tile1111
     fury.TrunkOffset = 30
     fury.TrunkLocation = Vector3(-1.71f, 0f, 0f)
@@ -5633,11 +5655,12 @@ object GlobalDefinitions {
       Damage1 = 225
       DamageRadius = 5
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     fury.DrownAtMaxDepth = true
     fury.MaxDepth = 1.3f
     fury.UnderwaterLifespan(suffocation = 5000L, recovery = 2500L)
+    fury.Geometry = atvForm
 
     quadassault.Name = "quadassault" // Basilisk
     quadassault.MaxHealth = 650
@@ -5645,12 +5668,11 @@ object GlobalDefinitions {
     quadassault.Repairable = true
     quadassault.RepairIfDestroyed = false
     quadassault.MaxShields = 130
-    quadassault.Seats += 0 -> new SeatDefinition()
-    quadassault.Seats(0).Bailable = true
-    quadassault.Seats(0).ControlledWeapon = 1
+    quadassault.Seats += 0 -> bailableSeat
+    quadassault.controlledWeapons += 0 -> 1
     quadassault.Weapons += 1     -> quadassault_weapon_system
-    quadassault.MountPoints += 1 -> 0
-    quadassault.MountPoints += 2 -> 0
+    quadassault.MountPoints += 1 -> MountInfo(0)
+    quadassault.MountPoints += 2 -> MountInfo(0)
     quadassault.TrunkSize = InventoryTile.Tile1111
     quadassault.TrunkOffset = 30
     quadassault.TrunkLocation = Vector3(-1.71f, 0f, 0f)
@@ -5664,11 +5686,12 @@ object GlobalDefinitions {
       Damage1 = 225
       DamageRadius = 5
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     quadassault.DrownAtMaxDepth = true
     quadassault.MaxDepth = 1.3f
     quadassault.UnderwaterLifespan(suffocation = 5000L, recovery = 2500L)
+    quadassault.Geometry = atvForm
 
     quadstealth.Name = "quadstealth" // Wraith
     quadstealth.MaxHealth = 650
@@ -5677,11 +5700,10 @@ object GlobalDefinitions {
     quadstealth.RepairIfDestroyed = false
     quadstealth.MaxShields = 130
     quadstealth.CanCloak = true
-    quadstealth.Seats += 0 -> new SeatDefinition()
-    quadstealth.Seats(0).Bailable = true
+    quadstealth.Seats += 0 -> bailableSeat
     quadstealth.CanCloak = true
-    quadstealth.MountPoints += 1 -> 0
-    quadstealth.MountPoints += 2 -> 0
+    quadstealth.MountPoints += 1 -> MountInfo(0)
+    quadstealth.MountPoints += 2 -> MountInfo(0)
     quadstealth.TrunkSize = InventoryTile.Tile1111
     quadstealth.TrunkOffset = 30
     quadstealth.TrunkLocation = Vector3(-1.71f, 0f, 0f)
@@ -5695,11 +5717,12 @@ object GlobalDefinitions {
       Damage1 = 225
       DamageRadius = 5
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     quadstealth.DrownAtMaxDepth = true
     quadstealth.MaxDepth = 1.25f
     quadstealth.UnderwaterLifespan(suffocation = 5000L, recovery = 2500L)
+    quadstealth.Geometry = atvForm
 
     two_man_assault_buggy.Name = "two_man_assault_buggy" // Harasser
     two_man_assault_buggy.MaxHealth = 1250
@@ -5707,14 +5730,12 @@ object GlobalDefinitions {
     two_man_assault_buggy.Repairable = true
     two_man_assault_buggy.RepairIfDestroyed = false
     two_man_assault_buggy.MaxShields = 250
-    two_man_assault_buggy.Seats += 0 -> new SeatDefinition()
-    two_man_assault_buggy.Seats(0).Bailable = true
-    two_man_assault_buggy.Seats += 1 -> new SeatDefinition()
-    two_man_assault_buggy.Seats(1).Bailable = true
-    two_man_assault_buggy.Seats(1).ControlledWeapon = 2
+    two_man_assault_buggy.Seats += 0 -> bailableSeat
+    two_man_assault_buggy.Seats += 1 -> bailableSeat
+    two_man_assault_buggy.controlledWeapons += 1 -> 2
     two_man_assault_buggy.Weapons += 2     -> chaingun_p
-    two_man_assault_buggy.MountPoints += 1 -> 0
-    two_man_assault_buggy.MountPoints += 2 -> 1
+    two_man_assault_buggy.MountPoints += 1 -> MountInfo(0)
+    two_man_assault_buggy.MountPoints += 2 -> MountInfo(1)
     two_man_assault_buggy.TrunkSize = InventoryTile.Tile1511
     two_man_assault_buggy.TrunkOffset = 30
     two_man_assault_buggy.TrunkLocation = Vector3(-2.5f, 0f, 0f)
@@ -5728,11 +5749,12 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 8
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     two_man_assault_buggy.DrownAtMaxDepth = true
     two_man_assault_buggy.MaxDepth = 1.5f
     two_man_assault_buggy.UnderwaterLifespan(suffocation = 5000L, recovery = 2500L)
+    two_man_assault_buggy.Geometry = GeometryForm.representByCylinder(radius = 2.10545f, height = 1.59376f)
 
     skyguard.Name = "skyguard"
     skyguard.MaxHealth = 1000
@@ -5740,22 +5762,19 @@ object GlobalDefinitions {
     skyguard.Repairable = true
     skyguard.RepairIfDestroyed = false
     skyguard.MaxShields = 200
-    skyguard.Seats += 0 -> new SeatDefinition()
-    skyguard.Seats(0).Bailable = true
-    skyguard.Seats += 1 -> new SeatDefinition()
-    skyguard.Seats(1).Bailable = true
-    skyguard.Seats(1).ControlledWeapon = 2
+    skyguard.Seats += 0 -> bailableSeat
+    skyguard.Seats += 1 -> bailableSeat
+    skyguard.controlledWeapons += 1 -> 2
     skyguard.Weapons += 2     -> skyguard_weapon_system
-    skyguard.MountPoints += 1 -> 0
-    skyguard.MountPoints += 2 -> 0
-    skyguard.MountPoints += 3 -> 1
+    skyguard.MountPoints += 1 -> MountInfo(0)
+    skyguard.MountPoints += 2 -> MountInfo(0)
+    skyguard.MountPoints += 3 -> MountInfo(1)
     skyguard.TrunkSize = InventoryTile.Tile1511
     skyguard.TrunkOffset = 30
     skyguard.TrunkLocation = Vector3(2.5f, 0f, 0f)
     skyguard.AutoPilotSpeeds = (22, 8)
     skyguard.DestroyedModel = Some(DestroyedVehicle.Skyguard)
     skyguard.JackingDuration = Array(0, 15, 5, 3)
-
     skyguard.explodes = true
     skyguard.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
@@ -5763,11 +5782,12 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 8
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     skyguard.DrownAtMaxDepth = true
     skyguard.MaxDepth = 1.5f
     skyguard.UnderwaterLifespan(suffocation = 5000L, recovery = 2500L)
+    skyguard.Geometry = GeometryForm.representByCylinder(radius = 1.8867f, height = 1.4375f)
 
     threemanheavybuggy.Name = "threemanheavybuggy" // Marauder
     threemanheavybuggy.MaxHealth = 1700
@@ -5775,19 +5795,16 @@ object GlobalDefinitions {
     threemanheavybuggy.Repairable = true
     threemanheavybuggy.RepairIfDestroyed = false
     threemanheavybuggy.MaxShields = 340
-    threemanheavybuggy.Seats += 0 -> new SeatDefinition()
-    threemanheavybuggy.Seats(0).Bailable = true
-    threemanheavybuggy.Seats += 1 -> new SeatDefinition()
-    threemanheavybuggy.Seats(1).Bailable = true
-    threemanheavybuggy.Seats(1).ControlledWeapon = 3
-    threemanheavybuggy.Seats += 2 -> new SeatDefinition()
-    threemanheavybuggy.Seats(2).Bailable = true
-    threemanheavybuggy.Seats(2).ControlledWeapon = 4
+    threemanheavybuggy.Seats += 0 -> bailableSeat
+    threemanheavybuggy.Seats += 1 -> bailableSeat
+    threemanheavybuggy.Seats += 2 -> bailableSeat
+    threemanheavybuggy.controlledWeapons += 1 -> 3
+    threemanheavybuggy.controlledWeapons += 2 -> 4
     threemanheavybuggy.Weapons += 3     -> chaingun_p
     threemanheavybuggy.Weapons += 4     -> grenade_launcher_marauder
-    threemanheavybuggy.MountPoints += 1 -> 0
-    threemanheavybuggy.MountPoints += 2 -> 1
-    threemanheavybuggy.MountPoints += 3 -> 2
+    threemanheavybuggy.MountPoints += 1 -> MountInfo(0)
+    threemanheavybuggy.MountPoints += 2 -> MountInfo(1)
+    threemanheavybuggy.MountPoints += 3 -> MountInfo(2)
     threemanheavybuggy.TrunkSize = InventoryTile.Tile1511
     threemanheavybuggy.TrunkOffset = 30
     threemanheavybuggy.TrunkLocation = Vector3(3.01f, 0f, 0f)
@@ -5802,11 +5819,12 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 10
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     threemanheavybuggy.DrownAtMaxDepth = true
     threemanheavybuggy.MaxDepth = 1.83f
     threemanheavybuggy.UnderwaterLifespan(suffocation = 5000L, recovery = 2500L)
+    threemanheavybuggy.Geometry = GeometryForm.representByCylinder(radius = 2.1953f, height = 2.03125f)
 
     twomanheavybuggy.Name = "twomanheavybuggy" // Enforcer
     twomanheavybuggy.MaxHealth = 1800
@@ -5814,14 +5832,12 @@ object GlobalDefinitions {
     twomanheavybuggy.Repairable = true
     twomanheavybuggy.RepairIfDestroyed = false
     twomanheavybuggy.MaxShields = 360
-    twomanheavybuggy.Seats += 0 -> new SeatDefinition()
-    twomanheavybuggy.Seats(0).Bailable = true
-    twomanheavybuggy.Seats += 1 -> new SeatDefinition()
-    twomanheavybuggy.Seats(1).Bailable = true
-    twomanheavybuggy.Seats(1).ControlledWeapon = 2
+    twomanheavybuggy.Seats += 0 -> bailableSeat
+    twomanheavybuggy.Seats += 1 -> bailableSeat
+    twomanheavybuggy.controlledWeapons += 1 -> 2
     twomanheavybuggy.Weapons += 2     -> advanced_missile_launcher_t
-    twomanheavybuggy.MountPoints += 1 -> 0
-    twomanheavybuggy.MountPoints += 2 -> 1
+    twomanheavybuggy.MountPoints += 1 -> MountInfo(0)
+    twomanheavybuggy.MountPoints += 2 -> MountInfo(1)
     twomanheavybuggy.TrunkSize = InventoryTile.Tile1511
     twomanheavybuggy.TrunkOffset = 30
     twomanheavybuggy.TrunkLocation = Vector3(-0.23f, -2.05f, 0f)
@@ -5836,11 +5852,12 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 8
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     twomanheavybuggy.DrownAtMaxDepth = true
     twomanheavybuggy.MaxDepth = 1.95f
     twomanheavybuggy.UnderwaterLifespan(suffocation = 5000L, recovery = 2500L)
+    twomanheavybuggy.Geometry = GeometryForm.representByCylinder(radius = 2.60935f, height = 1.79688f)
 
     twomanhoverbuggy.Name = "twomanhoverbuggy" // Thresher
     twomanhoverbuggy.MaxHealth = 1600
@@ -5848,14 +5865,12 @@ object GlobalDefinitions {
     twomanhoverbuggy.Repairable = true
     twomanhoverbuggy.RepairIfDestroyed = false
     twomanhoverbuggy.MaxShields = 320
-    twomanhoverbuggy.Seats += 0 -> new SeatDefinition()
-    twomanhoverbuggy.Seats(0).Bailable = true
-    twomanhoverbuggy.Seats += 1 -> new SeatDefinition()
-    twomanhoverbuggy.Seats(1).Bailable = true
-    twomanhoverbuggy.Seats(1).ControlledWeapon = 2
+    twomanhoverbuggy.Seats += 0 -> bailableSeat
+    twomanhoverbuggy.Seats += 1 -> bailableSeat
+    twomanhoverbuggy.controlledWeapons += 1 -> 2
     twomanhoverbuggy.Weapons += 2     -> flux_cannon_thresher
-    twomanhoverbuggy.MountPoints += 1 -> 0
-    twomanhoverbuggy.MountPoints += 2 -> 1
+    twomanhoverbuggy.MountPoints += 1 -> MountInfo(0)
+    twomanhoverbuggy.MountPoints += 2 -> MountInfo(1)
     twomanhoverbuggy.TrunkSize = InventoryTile.Tile1511
     twomanhoverbuggy.TrunkOffset = 30
     twomanhoverbuggy.TrunkLocation = Vector3(-3.39f, 0f, 0f)
@@ -5870,10 +5885,11 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 10
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     twomanhoverbuggy.DrownAtMaxDepth = true
     twomanhoverbuggy.UnderwaterLifespan(suffocation = 45000L, recovery = 5000L) //but the thresher hovers over water, so ...?
+    twomanhoverbuggy.Geometry = GeometryForm.representByCylinder(radius = 2.1875f, height = 2.01563f)
 
     mediumtransport.Name = "mediumtransport" // Deliverer
     mediumtransport.MaxHealth = 2500
@@ -5881,21 +5897,22 @@ object GlobalDefinitions {
     mediumtransport.Repairable = true
     mediumtransport.RepairIfDestroyed = false
     mediumtransport.MaxShields = 500
-    mediumtransport.Seats += 0 -> new SeatDefinition()
-    mediumtransport.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+    mediumtransport.Seats += 0 -> new SeatDefinition() {
+      restriction = NoReinforcedOrMax
+    }
     mediumtransport.Seats += 1 -> new SeatDefinition()
-    mediumtransport.Seats(1).ControlledWeapon = 5
     mediumtransport.Seats += 2 -> new SeatDefinition()
-    mediumtransport.Seats(2).ControlledWeapon = 6
-    mediumtransport.Seats += 3       -> new SeatDefinition()
-    mediumtransport.Seats += 4       -> new SeatDefinition()
-    mediumtransport.Weapons += 5     -> mediumtransport_weapon_systemA
-    mediumtransport.Weapons += 6     -> mediumtransport_weapon_systemB
-    mediumtransport.MountPoints += 1 -> 0
-    mediumtransport.MountPoints += 2 -> 1
-    mediumtransport.MountPoints += 3 -> 2
-    mediumtransport.MountPoints += 4 -> 3
-    mediumtransport.MountPoints += 5 -> 4
+    mediumtransport.Seats += 3 -> new SeatDefinition()
+    mediumtransport.Seats += 4 -> new SeatDefinition()
+    mediumtransport.controlledWeapons += 1 -> 5
+    mediumtransport.controlledWeapons += 2 -> 6
+    mediumtransport.Weapons += 5 -> mediumtransport_weapon_systemA
+    mediumtransport.Weapons += 6 -> mediumtransport_weapon_systemB
+    mediumtransport.MountPoints += 1 -> MountInfo(0)
+    mediumtransport.MountPoints += 2 -> MountInfo(1)
+    mediumtransport.MountPoints += 3 -> MountInfo(2)
+    mediumtransport.MountPoints += 4 -> MountInfo(3)
+    mediumtransport.MountPoints += 5 -> MountInfo(4)
     mediumtransport.TrunkSize = InventoryTile.Tile1515
     mediumtransport.TrunkOffset = 30
     mediumtransport.TrunkLocation = Vector3(-3.46f, 0f, 0f)
@@ -5910,11 +5927,12 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     mediumtransport.DrownAtMaxDepth = false
     mediumtransport.MaxDepth = 1.2f
     mediumtransport.UnderwaterLifespan(suffocation = -1, recovery = -1)
+    mediumtransport.Geometry = delivererForm
 
     battlewagon.Name = "battlewagon" // Raider
     battlewagon.MaxHealth = 2500
@@ -5922,25 +5940,26 @@ object GlobalDefinitions {
     battlewagon.Repairable = true
     battlewagon.RepairIfDestroyed = false
     battlewagon.MaxShields = 500
-    battlewagon.Seats += 0 -> new SeatDefinition()
-    battlewagon.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+    battlewagon.Seats += 0 -> new SeatDefinition() {
+      restriction = NoReinforcedOrMax
+    }
     battlewagon.Seats += 1 -> new SeatDefinition()
-    battlewagon.Seats(1).ControlledWeapon = 5
     battlewagon.Seats += 2 -> new SeatDefinition()
-    battlewagon.Seats(2).ControlledWeapon = 6
     battlewagon.Seats += 3 -> new SeatDefinition()
-    battlewagon.Seats(3).ControlledWeapon = 7
     battlewagon.Seats += 4 -> new SeatDefinition()
-    battlewagon.Seats(4).ControlledWeapon = 8
+    battlewagon.controlledWeapons += 1 -> 5
+    battlewagon.controlledWeapons += 2 -> 6
+    battlewagon.controlledWeapons += 3 -> 7
+    battlewagon.controlledWeapons += 4 -> 8
     battlewagon.Weapons += 5     -> battlewagon_weapon_systema
     battlewagon.Weapons += 6     -> battlewagon_weapon_systemb
     battlewagon.Weapons += 7     -> battlewagon_weapon_systemc
     battlewagon.Weapons += 8     -> battlewagon_weapon_systemd
-    battlewagon.MountPoints += 1 -> 0
-    battlewagon.MountPoints += 2 -> 1
-    battlewagon.MountPoints += 3 -> 2
-    battlewagon.MountPoints += 4 -> 3
-    battlewagon.MountPoints += 5 -> 4
+    battlewagon.MountPoints += 1 -> MountInfo(0)
+    battlewagon.MountPoints += 2 -> MountInfo(1)
+    battlewagon.MountPoints += 3 -> MountInfo(2)
+    battlewagon.MountPoints += 4 -> MountInfo(3)
+    battlewagon.MountPoints += 5 -> MountInfo(4)
     battlewagon.TrunkSize = InventoryTile.Tile1515
     battlewagon.TrunkOffset = 30
     battlewagon.TrunkLocation = Vector3(-3.46f, 0f, 0f)
@@ -5954,11 +5973,12 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     battlewagon.DrownAtMaxDepth = true
     battlewagon.MaxDepth = 1.2f
     battlewagon.UnderwaterLifespan(suffocation = -1, recovery = -1)
+    battlewagon.Geometry = delivererForm
 
     thunderer.Name = "thunderer"
     thunderer.MaxHealth = 2500
@@ -5966,21 +5986,22 @@ object GlobalDefinitions {
     thunderer.Repairable = true
     thunderer.RepairIfDestroyed = false
     thunderer.MaxShields = 500
-    thunderer.Seats += 0 -> new SeatDefinition()
-    thunderer.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+    thunderer.Seats += 0 -> new SeatDefinition() {
+      restriction = NoReinforcedOrMax
+    }
     thunderer.Seats += 1 -> new SeatDefinition()
-    thunderer.Seats(1).ControlledWeapon = 5
     thunderer.Seats += 2 -> new SeatDefinition()
-    thunderer.Seats(2).ControlledWeapon = 6
-    thunderer.Seats += 3       -> new SeatDefinition()
-    thunderer.Seats += 4       -> new SeatDefinition()
-    thunderer.Weapons += 5     -> thunderer_weapon_systema
-    thunderer.Weapons += 6     -> thunderer_weapon_systemb
-    thunderer.MountPoints += 1 -> 0
-    thunderer.MountPoints += 2 -> 1
-    thunderer.MountPoints += 3 -> 2
-    thunderer.MountPoints += 4 -> 3
-    thunderer.MountPoints += 5 -> 4
+    thunderer.Seats += 3 -> new SeatDefinition()
+    thunderer.Seats += 4 -> new SeatDefinition()
+    thunderer.Weapons += 5 -> thunderer_weapon_systema
+    thunderer.Weapons += 6 -> thunderer_weapon_systemb
+    thunderer.controlledWeapons += 1 -> 5
+    thunderer.controlledWeapons += 2 -> 6
+    thunderer.MountPoints += 1 -> MountInfo(0)
+    thunderer.MountPoints += 2 -> MountInfo(1)
+    thunderer.MountPoints += 3 -> MountInfo(2)
+    thunderer.MountPoints += 4 -> MountInfo(3)
+    thunderer.MountPoints += 5 -> MountInfo(4)
     thunderer.TrunkSize = InventoryTile.Tile1515
     thunderer.TrunkOffset = 30
     thunderer.TrunkLocation = Vector3(-3.46f, 0f, 0f)
@@ -5995,11 +6016,12 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     thunderer.DrownAtMaxDepth = true
     thunderer.MaxDepth = 1.2f
     thunderer.UnderwaterLifespan(suffocation = -1, recovery = -1)
+    thunderer.Geometry = delivererForm
 
     aurora.Name = "aurora"
     aurora.MaxHealth = 2500
@@ -6007,21 +6029,22 @@ object GlobalDefinitions {
     aurora.Repairable = true
     aurora.RepairIfDestroyed = false
     aurora.MaxShields = 500
-    aurora.Seats += 0 -> new SeatDefinition()
-    aurora.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+    aurora.Seats += 0 -> new SeatDefinition() {
+      restriction = NoReinforcedOrMax
+    }
     aurora.Seats += 1 -> new SeatDefinition()
-    aurora.Seats(1).ControlledWeapon = 5
     aurora.Seats += 2 -> new SeatDefinition()
-    aurora.Seats(2).ControlledWeapon = 6
-    aurora.Seats += 3       -> new SeatDefinition()
-    aurora.Seats += 4       -> new SeatDefinition()
-    aurora.Weapons += 5     -> aurora_weapon_systema
-    aurora.Weapons += 6     -> aurora_weapon_systemb
-    aurora.MountPoints += 1 -> 0
-    aurora.MountPoints += 2 -> 1
-    aurora.MountPoints += 3 -> 2
-    aurora.MountPoints += 4 -> 3
-    aurora.MountPoints += 5 -> 4
+    aurora.Seats += 3 -> new SeatDefinition()
+    aurora.Seats += 4 -> new SeatDefinition()
+    aurora.controlledWeapons += 1 -> 5
+    aurora.controlledWeapons += 2 -> 6
+    aurora.Weapons += 5 -> aurora_weapon_systema
+    aurora.Weapons += 6 -> aurora_weapon_systemb
+    aurora.MountPoints += 1 -> MountInfo(0)
+    aurora.MountPoints += 2 -> MountInfo(1)
+    aurora.MountPoints += 3 -> MountInfo(2)
+    aurora.MountPoints += 4 -> MountInfo(3)
+    aurora.MountPoints += 5 -> MountInfo(4)
     aurora.TrunkSize = InventoryTile.Tile1515
     aurora.TrunkOffset = 30
     aurora.TrunkLocation = Vector3(-3.46f, 0f, 0f)
@@ -6036,11 +6059,12 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     aurora.DrownAtMaxDepth = true
     aurora.MaxDepth = 1.2f
     aurora.UnderwaterLifespan(suffocation = -1, recovery = -1)
+    aurora.Geometry = delivererForm
 
     apc_tr.Name = "apc_tr" // Juggernaut
     apc_tr.MaxHealth = 6000
@@ -6048,44 +6072,41 @@ object GlobalDefinitions {
     apc_tr.Repairable = true
     apc_tr.RepairIfDestroyed = false
     apc_tr.MaxShields = 1200
-    apc_tr.Seats += 0 -> new SeatDefinition()
-    apc_tr.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
-    apc_tr.Seats += 1 -> new SeatDefinition()
-    apc_tr.Seats(1).ControlledWeapon = 11
-    apc_tr.Seats += 2 -> new SeatDefinition()
-    apc_tr.Seats(2).ControlledWeapon = 12
-    apc_tr.Seats += 3 -> new SeatDefinition()
-    apc_tr.Seats += 4 -> new SeatDefinition()
-    apc_tr.Seats += 5 -> new SeatDefinition()
-    apc_tr.Seats(5).ControlledWeapon = 15
-    apc_tr.Seats += 6 -> new SeatDefinition()
-    apc_tr.Seats(6).ControlledWeapon = 16
-    apc_tr.Seats += 7 -> new SeatDefinition()
-    apc_tr.Seats(7).ControlledWeapon = 13
-    apc_tr.Seats += 8 -> new SeatDefinition()
-    apc_tr.Seats(8).ControlledWeapon = 14
-    apc_tr.Seats += 9 -> new SeatDefinition()
-    apc_tr.Seats(9).ArmorRestriction = SeatArmorRestriction.MaxOnly
-    apc_tr.Seats += 10 -> new SeatDefinition()
-    apc_tr.Seats(10).ArmorRestriction = SeatArmorRestriction.MaxOnly
-    apc_tr.Weapons += 11     -> apc_weapon_systemc_tr
-    apc_tr.Weapons += 12     -> apc_weapon_systemb
-    apc_tr.Weapons += 13     -> apc_weapon_systema
-    apc_tr.Weapons += 14     -> apc_weapon_systemd_tr
-    apc_tr.Weapons += 15     -> apc_ballgun_r
-    apc_tr.Weapons += 16     -> apc_ballgun_l
-    apc_tr.MountPoints += 1  -> 0
-    apc_tr.MountPoints += 2  -> 0
-    apc_tr.MountPoints += 3  -> 1
-    apc_tr.MountPoints += 4  -> 2
-    apc_tr.MountPoints += 5  -> 3
-    apc_tr.MountPoints += 6  -> 4
-    apc_tr.MountPoints += 7  -> 5
-    apc_tr.MountPoints += 8  -> 6
-    apc_tr.MountPoints += 9  -> 7
-    apc_tr.MountPoints += 10 -> 8
-    apc_tr.MountPoints += 11 -> 9
-    apc_tr.MountPoints += 12 -> 10
+    apc_tr.Seats += 0  -> new SeatDefinition()
+    apc_tr.Seats += 1  -> new SeatDefinition()
+    apc_tr.Seats += 2  -> new SeatDefinition()
+    apc_tr.Seats += 3  -> new SeatDefinition()
+    apc_tr.Seats += 4  -> new SeatDefinition()
+    apc_tr.Seats += 5  -> new SeatDefinition()
+    apc_tr.Seats += 6  -> new SeatDefinition()
+    apc_tr.Seats += 7  -> new SeatDefinition()
+    apc_tr.Seats += 8  -> new SeatDefinition()
+    apc_tr.Seats += 9  -> maxOnlySeat
+    apc_tr.Seats += 10 -> maxOnlySeat
+    apc_tr.controlledWeapons += 1 -> 11
+    apc_tr.controlledWeapons += 2 -> 12
+    apc_tr.controlledWeapons += 5 -> 15
+    apc_tr.controlledWeapons += 6 -> 16
+    apc_tr.controlledWeapons += 7 -> 13
+    apc_tr.controlledWeapons += 8 -> 14
+    apc_tr.Weapons += 11 -> apc_weapon_systemc_tr
+    apc_tr.Weapons += 12 -> apc_weapon_systemb
+    apc_tr.Weapons += 13 -> apc_weapon_systema
+    apc_tr.Weapons += 14 -> apc_weapon_systemd_tr
+    apc_tr.Weapons += 15 -> apc_ballgun_r
+    apc_tr.Weapons += 16 -> apc_ballgun_l
+    apc_tr.MountPoints += 1 -> MountInfo(0)
+    apc_tr.MountPoints += 2 -> MountInfo(0)
+    apc_tr.MountPoints += 3 -> MountInfo(1)
+    apc_tr.MountPoints += 4 -> MountInfo(2)
+    apc_tr.MountPoints += 5 -> MountInfo(3)
+    apc_tr.MountPoints += 6 -> MountInfo(4)
+    apc_tr.MountPoints += 7 -> MountInfo(5)
+    apc_tr.MountPoints += 8 -> MountInfo(6)
+    apc_tr.MountPoints += 9 -> MountInfo(7)
+    apc_tr.MountPoints += 10 -> MountInfo(8)
+    apc_tr.MountPoints += 11 -> MountInfo(9)
+    apc_tr.MountPoints += 12 -> MountInfo(10)
     apc_tr.TrunkSize = InventoryTile.Tile2016
     apc_tr.TrunkOffset = 30
     apc_tr.TrunkLocation = Vector3(-5.82f, 0f, 0f)
@@ -6100,11 +6121,12 @@ object GlobalDefinitions {
       Damage1 = 450
       DamageRadius = 15
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     apc_tr.DrownAtMaxDepth = true
     apc_tr.MaxDepth = 3
     apc_tr.UnderwaterLifespan(suffocation = 15000L, recovery = 7500L)
+    apc_tr.Geometry = apcForm
 
     apc_nc.Name = "apc_nc" // Vindicator
     apc_nc.MaxHealth = 6000
@@ -6112,44 +6134,41 @@ object GlobalDefinitions {
     apc_nc.Repairable = true
     apc_nc.RepairIfDestroyed = false
     apc_nc.MaxShields = 1200
-    apc_nc.Seats += 0 -> new SeatDefinition()
-    apc_nc.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
-    apc_nc.Seats += 1 -> new SeatDefinition()
-    apc_nc.Seats(1).ControlledWeapon = 11
-    apc_nc.Seats += 2 -> new SeatDefinition()
-    apc_nc.Seats(2).ControlledWeapon = 12
-    apc_nc.Seats += 3 -> new SeatDefinition()
-    apc_nc.Seats += 4 -> new SeatDefinition()
-    apc_nc.Seats += 5 -> new SeatDefinition()
-    apc_nc.Seats(5).ControlledWeapon = 15
-    apc_nc.Seats += 6 -> new SeatDefinition()
-    apc_nc.Seats(6).ControlledWeapon = 16
-    apc_nc.Seats += 7 -> new SeatDefinition()
-    apc_nc.Seats(7).ControlledWeapon = 13
+    apc_nc.Seats += 0  -> new SeatDefinition()
+    apc_nc.Seats += 1  -> new SeatDefinition()
+    apc_nc.Seats += 2  -> new SeatDefinition()
+    apc_nc.Seats += 3  -> new SeatDefinition()
+    apc_nc.Seats += 4  -> new SeatDefinition()
+    apc_nc.Seats += 5  -> new SeatDefinition()
+    apc_nc.Seats += 6  -> new SeatDefinition()
+    apc_nc.Seats += 7  -> new SeatDefinition()
     apc_nc.Seats += 8 -> new SeatDefinition()
-    apc_nc.Seats(8).ControlledWeapon = 14
-    apc_nc.Seats += 9 -> new SeatDefinition()
-    apc_nc.Seats(9).ArmorRestriction = SeatArmorRestriction.MaxOnly
-    apc_nc.Seats += 10 -> new SeatDefinition()
-    apc_nc.Seats(10).ArmorRestriction = SeatArmorRestriction.MaxOnly
-    apc_nc.Weapons += 11     -> apc_weapon_systemc_nc
-    apc_nc.Weapons += 12     -> apc_weapon_systemb
-    apc_nc.Weapons += 13     -> apc_weapon_systema
-    apc_nc.Weapons += 14     -> apc_weapon_systemd_nc
-    apc_nc.Weapons += 15     -> apc_ballgun_r
-    apc_nc.Weapons += 16     -> apc_ballgun_l
-    apc_nc.MountPoints += 1  -> 0
-    apc_nc.MountPoints += 2  -> 0
-    apc_nc.MountPoints += 3  -> 1
-    apc_nc.MountPoints += 4  -> 2
-    apc_nc.MountPoints += 5  -> 3
-    apc_nc.MountPoints += 6  -> 4
-    apc_nc.MountPoints += 7  -> 5
-    apc_nc.MountPoints += 8  -> 6
-    apc_nc.MountPoints += 9  -> 7
-    apc_nc.MountPoints += 10 -> 8
-    apc_nc.MountPoints += 11 -> 9
-    apc_nc.MountPoints += 12 -> 10
+    apc_nc.Seats += 9  -> maxOnlySeat
+    apc_nc.Seats += 10 -> maxOnlySeat
+    apc_nc.controlledWeapons += 1 -> 11
+    apc_nc.controlledWeapons += 2 -> 12
+    apc_nc.controlledWeapons += 5 -> 15
+    apc_nc.controlledWeapons += 6 -> 16
+    apc_nc.controlledWeapons += 7 -> 13
+    apc_nc.controlledWeapons += 8 -> 14
+    apc_nc.Weapons += 11 -> apc_weapon_systemc_nc
+    apc_nc.Weapons += 12 -> apc_weapon_systemb
+    apc_nc.Weapons += 13 -> apc_weapon_systema
+    apc_nc.Weapons += 14 -> apc_weapon_systemd_nc
+    apc_nc.Weapons += 15 -> apc_ballgun_r
+    apc_nc.Weapons += 16 -> apc_ballgun_l
+    apc_nc.MountPoints += 1 -> MountInfo(0)
+    apc_nc.MountPoints += 2 -> MountInfo(0)
+    apc_nc.MountPoints += 3 -> MountInfo(1)
+    apc_nc.MountPoints += 4 -> MountInfo(2)
+    apc_nc.MountPoints += 5 -> MountInfo(3)
+    apc_nc.MountPoints += 6 -> MountInfo(4)
+    apc_nc.MountPoints += 7 -> MountInfo(5)
+    apc_nc.MountPoints += 8 -> MountInfo(6)
+    apc_nc.MountPoints += 9 -> MountInfo(7)
+    apc_nc.MountPoints += 10 -> MountInfo(8)
+    apc_nc.MountPoints += 11 -> MountInfo(9)
+    apc_nc.MountPoints += 12 -> MountInfo(10)
     apc_nc.TrunkSize = InventoryTile.Tile2016
     apc_nc.TrunkOffset = 30
     apc_nc.TrunkLocation = Vector3(-5.82f, 0f, 0f)
@@ -6164,11 +6183,12 @@ object GlobalDefinitions {
       Damage1 = 450
       DamageRadius = 15
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     apc_nc.DrownAtMaxDepth = true
     apc_nc.MaxDepth = 3
     apc_nc.UnderwaterLifespan(suffocation = 15000L, recovery = 7500L)
+    apc_nc.Geometry = apcForm
 
     apc_vs.Name = "apc_vs" // Leviathan
     apc_vs.MaxHealth = 6000
@@ -6176,44 +6196,41 @@ object GlobalDefinitions {
     apc_vs.Repairable = true
     apc_vs.RepairIfDestroyed = false
     apc_vs.MaxShields = 1200
-    apc_vs.Seats += 0 -> new SeatDefinition()
-    apc_vs.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
-    apc_vs.Seats += 1 -> new SeatDefinition()
-    apc_vs.Seats(1).ControlledWeapon = 11
-    apc_vs.Seats += 2 -> new SeatDefinition()
-    apc_vs.Seats(2).ControlledWeapon = 12
-    apc_vs.Seats += 3 -> new SeatDefinition()
-    apc_vs.Seats += 4 -> new SeatDefinition()
-    apc_vs.Seats += 5 -> new SeatDefinition()
-    apc_vs.Seats(5).ControlledWeapon = 15
-    apc_vs.Seats += 6 -> new SeatDefinition()
-    apc_vs.Seats(6).ControlledWeapon = 16
-    apc_vs.Seats += 7 -> new SeatDefinition()
-    apc_vs.Seats(7).ControlledWeapon = 13
-    apc_vs.Seats += 8 -> new SeatDefinition()
-    apc_vs.Seats(8).ControlledWeapon = 14
-    apc_vs.Seats += 9 -> new SeatDefinition()
-    apc_vs.Seats(9).ArmorRestriction = SeatArmorRestriction.MaxOnly
-    apc_vs.Seats += 10 -> new SeatDefinition()
-    apc_vs.Seats(10).ArmorRestriction = SeatArmorRestriction.MaxOnly
-    apc_vs.Weapons += 11     -> apc_weapon_systemc_vs
-    apc_vs.Weapons += 12     -> apc_weapon_systemb
-    apc_vs.Weapons += 13     -> apc_weapon_systema
-    apc_vs.Weapons += 14     -> apc_weapon_systemd_vs
-    apc_vs.Weapons += 15     -> apc_ballgun_r
-    apc_vs.Weapons += 16     -> apc_ballgun_l
-    apc_vs.MountPoints += 1  -> 0
-    apc_vs.MountPoints += 2  -> 0
-    apc_vs.MountPoints += 3  -> 1
-    apc_vs.MountPoints += 4  -> 2
-    apc_vs.MountPoints += 5  -> 3
-    apc_vs.MountPoints += 6  -> 4
-    apc_vs.MountPoints += 7  -> 5
-    apc_vs.MountPoints += 8  -> 6
-    apc_vs.MountPoints += 9  -> 7
-    apc_vs.MountPoints += 10 -> 8
-    apc_vs.MountPoints += 11 -> 9
-    apc_vs.MountPoints += 12 -> 10
+    apc_vs.Seats += 0  -> new SeatDefinition()
+    apc_vs.Seats += 1  -> new SeatDefinition()
+    apc_vs.Seats += 2  -> new SeatDefinition()
+    apc_vs.Seats += 3  -> new SeatDefinition()
+    apc_vs.Seats += 4  -> new SeatDefinition()
+    apc_vs.Seats += 5  -> new SeatDefinition()
+    apc_vs.Seats += 6  -> new SeatDefinition()
+    apc_vs.Seats += 7  -> new SeatDefinition()
+    apc_vs.Seats += 8  -> new SeatDefinition()
+    apc_vs.Seats += 9  -> maxOnlySeat
+    apc_vs.Seats += 10 -> maxOnlySeat
+    apc_vs.controlledWeapons += 1 -> 11
+    apc_vs.controlledWeapons += 2 -> 12
+    apc_vs.controlledWeapons += 5 -> 15
+    apc_vs.controlledWeapons += 6 -> 16
+    apc_vs.controlledWeapons += 7 -> 13
+    apc_vs.controlledWeapons += 8 -> 14
+    apc_vs.Weapons += 11 -> apc_weapon_systemc_vs
+    apc_vs.Weapons += 12 -> apc_weapon_systemb
+    apc_vs.Weapons += 13 -> apc_weapon_systema
+    apc_vs.Weapons += 14 -> apc_weapon_systemd_vs
+    apc_vs.Weapons += 15 -> apc_ballgun_r
+    apc_vs.Weapons += 16 -> apc_ballgun_l
+    apc_vs.MountPoints += 1 -> MountInfo(0)
+    apc_vs.MountPoints += 2 -> MountInfo(0)
+    apc_vs.MountPoints += 3 -> MountInfo(1)
+    apc_vs.MountPoints += 4 -> MountInfo(2)
+    apc_vs.MountPoints += 5 -> MountInfo(3)
+    apc_vs.MountPoints += 6 -> MountInfo(4)
+    apc_vs.MountPoints += 7 -> MountInfo(5)
+    apc_vs.MountPoints += 8 -> MountInfo(6)
+    apc_vs.MountPoints += 9 -> MountInfo(7)
+    apc_vs.MountPoints += 10 -> MountInfo(8)
+    apc_vs.MountPoints += 11 -> MountInfo(9)
+    apc_vs.MountPoints += 12 -> MountInfo(10)
     apc_vs.TrunkSize = InventoryTile.Tile2016
     apc_vs.TrunkOffset = 30
     apc_vs.TrunkLocation = Vector3(-5.82f, 0f, 0f)
@@ -6228,11 +6245,12 @@ object GlobalDefinitions {
       Damage1 = 450
       DamageRadius = 15
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     apc_vs.DrownAtMaxDepth = true
     apc_vs.MaxDepth = 3
     apc_vs.UnderwaterLifespan(suffocation = 15000L, recovery = 7500L)
+    apc_vs.Geometry = apcForm
 
     lightning.Name = "lightning"
     lightning.MaxHealth = 2000
@@ -6240,12 +6258,13 @@ object GlobalDefinitions {
     lightning.Repairable = true
     lightning.RepairIfDestroyed = false
     lightning.MaxShields = 400
-    lightning.Seats += 0 -> new SeatDefinition()
-    lightning.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
-    lightning.Seats(0).ControlledWeapon = 1
-    lightning.Weapons += 1     -> lightning_weapon_system
-    lightning.MountPoints += 1 -> 0
-    lightning.MountPoints += 2 -> 0
+    lightning.Seats += 0 -> new SeatDefinition() {
+      restriction = NoReinforcedOrMax
+    }
+    lightning.controlledWeapons += 0 -> 1
+    lightning.Weapons += 1 -> lightning_weapon_system
+    lightning.MountPoints += 1 -> MountInfo(0)
+    lightning.MountPoints += 2 -> MountInfo(0)
     lightning.TrunkSize = InventoryTile.Tile1511
     lightning.TrunkOffset = 30
     lightning.TrunkLocation = Vector3(-3f, 0f, 0f)
@@ -6260,11 +6279,12 @@ object GlobalDefinitions {
       Damage1 = 375
       DamageRadius = 10
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     lightning.DrownAtMaxDepth = true
     lightning.MaxDepth = 1.38f
     lightning.UnderwaterLifespan(suffocation = 12000L, recovery = 6000L)
+    lightning.Geometry = GeometryForm.representByCylinder(radius = 2.5078f, height = 1.79688f)
 
     prowler.Name = "prowler"
     prowler.MaxHealth = 4800
@@ -6272,17 +6292,18 @@ object GlobalDefinitions {
     prowler.Repairable = true
     prowler.RepairIfDestroyed = false
     prowler.MaxShields = 960
-    prowler.Seats += 0 -> new SeatDefinition()
-    prowler.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+    prowler.Seats += 0 -> new SeatDefinition() {
+      restriction = NoReinforcedOrMax
+    }
     prowler.Seats += 1 -> new SeatDefinition()
-    prowler.Seats(1).ControlledWeapon = 3
     prowler.Seats += 2 -> new SeatDefinition()
-    prowler.Seats(2).ControlledWeapon = 4
+    prowler.controlledWeapons += 1 -> 3
+    prowler.controlledWeapons += 2 -> 4
     prowler.Weapons += 3     -> prowler_weapon_systemA
     prowler.Weapons += 4     -> prowler_weapon_systemB
-    prowler.MountPoints += 1 -> 0
-    prowler.MountPoints += 2 -> 1
-    prowler.MountPoints += 3 -> 2
+    prowler.MountPoints += 1 -> MountInfo(0)
+    prowler.MountPoints += 2 -> MountInfo(1)
+    prowler.MountPoints += 3 -> MountInfo(2)
     prowler.TrunkSize = InventoryTile.Tile1511
     prowler.TrunkOffset = 30
     prowler.TrunkLocation = Vector3(-4.71f, 0f, 0f)
@@ -6297,11 +6318,12 @@ object GlobalDefinitions {
       Damage1 = 375
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     prowler.DrownAtMaxDepth = true
     prowler.MaxDepth = 3
     prowler.UnderwaterLifespan(suffocation = 12000L, recovery = 6000L)
+    prowler.Geometry = GeometryForm.representByCylinder(radius = 3.461f, height = 3.48438f)
 
     vanguard.Name = "vanguard"
     vanguard.MaxHealth = 5400
@@ -6309,13 +6331,14 @@ object GlobalDefinitions {
     vanguard.Repairable = true
     vanguard.RepairIfDestroyed = false
     vanguard.MaxShields = 1080
-    vanguard.Seats += 0 -> new SeatDefinition()
-    vanguard.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
+    vanguard.Seats += 0 -> new SeatDefinition() {
+      restriction = NoReinforcedOrMax
+    }
     vanguard.Seats += 1 -> new SeatDefinition()
-    vanguard.Seats(1).ControlledWeapon = 2
-    vanguard.Weapons += 2     -> vanguard_weapon_system
-    vanguard.MountPoints += 1 -> 0
-    vanguard.MountPoints += 2 -> 1
+    vanguard.controlledWeapons += 1 -> 2
+    vanguard.Weapons += 2 -> vanguard_weapon_system
+    vanguard.MountPoints += 1 -> MountInfo(0)
+    vanguard.MountPoints += 2 -> MountInfo(1)
     vanguard.TrunkSize = InventoryTile.Tile1511
     vanguard.TrunkOffset = 30
     vanguard.TrunkLocation = Vector3(-4.84f, 0f, 0f)
@@ -6330,11 +6353,12 @@ object GlobalDefinitions {
       Damage1 = 375
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     vanguard.DrownAtMaxDepth = true
     vanguard.MaxDepth = 2.7f
     vanguard.UnderwaterLifespan(suffocation = 12000L, recovery = 6000L)
+    vanguard.Geometry = GeometryForm.representByCylinder(radius = 3.8554f, height = 2.60938f)
 
     magrider.Name = "magrider"
     magrider.MaxHealth = 4200
@@ -6342,15 +6366,16 @@ object GlobalDefinitions {
     magrider.Repairable = true
     magrider.RepairIfDestroyed = false
     magrider.MaxShields = 840
-    magrider.Seats += 0 -> new SeatDefinition()
-    magrider.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
-    magrider.Seats(0).ControlledWeapon = 2
+    magrider.Seats += 0 -> new SeatDefinition() {
+      restriction = NoReinforcedOrMax
+    }
     magrider.Seats += 1 -> new SeatDefinition()
-    magrider.Seats(1).ControlledWeapon = 3
-    magrider.Weapons += 2     -> particle_beam_magrider
-    magrider.Weapons += 3     -> heavy_rail_beam_magrider
-    magrider.MountPoints += 1 -> 0
-    magrider.MountPoints += 2 -> 1
+    magrider.controlledWeapons += 0 -> 2
+    magrider.controlledWeapons += 1 -> 3
+    magrider.Weapons += 2 -> particle_beam_magrider
+    magrider.Weapons += 3 -> heavy_rail_beam_magrider
+    magrider.MountPoints += 1 -> MountInfo(0)
+    magrider.MountPoints += 2 -> MountInfo(1)
     magrider.TrunkSize = InventoryTile.Tile1511
     magrider.TrunkOffset = 30
     magrider.TrunkLocation = Vector3(5.06f, 0f, 0f)
@@ -6365,11 +6390,12 @@ object GlobalDefinitions {
       Damage1 = 375
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     magrider.DrownAtMaxDepth = true
     magrider.MaxDepth = 2
     magrider.UnderwaterLifespan(suffocation = 45000L, recovery = 5000L) //but the magrider hovers over water, so ...?
+    magrider.Geometry = GeometryForm.representByCylinder(radius = 3.3008f, height = 3.26562f)
 
     val utilityConverter = new UtilityVehicleConverter
     ant.Name = "ant"
@@ -6378,10 +6404,11 @@ object GlobalDefinitions {
     ant.Repairable = true
     ant.RepairIfDestroyed = false
     ant.MaxShields = 400
-    ant.Seats += 0 -> new SeatDefinition()
-    ant.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
-    ant.MountPoints += 1 -> 0
-    ant.MountPoints += 2 -> 0
+    ant.Seats += 0 -> new SeatDefinition() {
+      restriction = NoReinforcedOrMax
+    }
+    ant.MountPoints += 1 -> MountInfo(0)
+    ant.MountPoints += 2 -> MountInfo(0)
     ant.Deployment = true
     ant.DeployTime = 1500
     ant.UndeployTime = 1500
@@ -6398,11 +6425,12 @@ object GlobalDefinitions {
       Damage1 = 450
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     ant.DrownAtMaxDepth = true
     ant.MaxDepth = 2
     ant.UnderwaterLifespan(suffocation = 12000L, recovery = 6000L)
+    ant.Geometry = GeometryForm.representByCylinder(radius = 2.16795f, height = 2.09376f) //TODO hexahedron
 
     ams.Name = "ams"
     ams.MaxHealth = 5000 // Temporary - original value is 3000
@@ -6410,10 +6438,11 @@ object GlobalDefinitions {
     ams.Repairable = true
     ams.RepairIfDestroyed = false
     ams.MaxShields = 1000 // Temporary - original value is 600 + 1
-    ams.Seats += 0 -> new SeatDefinition()
-    ams.Seats(0).ArmorRestriction = SeatArmorRestriction.NoReinforcedOrMax
-    ams.MountPoints += 1 -> 0
-    ams.MountPoints += 2 -> 0
+    ams.Seats += 0 -> new SeatDefinition() {
+      restriction = NoReinforcedOrMax
+    }
+    ams.MountPoints += 1 -> MountInfo(0)
+    ams.MountPoints += 2 -> MountInfo(0)
     ams.Utilities += 1   -> UtilityType.matrix_terminalc
     ams.Utilities += 2   -> UtilityType.ams_respawn_tube
     ams.Utilities += 3   -> UtilityType.order_terminala
@@ -6434,11 +6463,12 @@ object GlobalDefinitions {
       Damage1 = 450
       DamageRadius = 15
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     ams.DrownAtMaxDepth = true
     ams.MaxDepth = 3
     ams.UnderwaterLifespan(suffocation = 5000L, recovery = 5000L)
+    ams.Geometry = GeometryForm.representByCylinder(radius = 3.0117f, height = 3.39062f) //TODO hexahedron
 
     val variantConverter = new VariantVehicleConverter
     router.Name = "router"
@@ -6448,7 +6478,7 @@ object GlobalDefinitions {
     router.RepairIfDestroyed = false
     router.MaxShields = 800
     router.Seats += 0       -> new SeatDefinition()
-    router.MountPoints += 1 -> 0
+    router.MountPoints += 1 -> MountInfo(0)
     router.Utilities += 1   -> UtilityType.teleportpad_terminal
     router.Utilities += 2   -> UtilityType.internal_router_telepad_deployable
     router.TrunkSize = InventoryTile.Tile1511
@@ -6470,11 +6500,12 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 10
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     router.DrownAtMaxDepth = true
     router.MaxDepth = 2
     router.UnderwaterLifespan(suffocation = 45000L, recovery = 5000L) //but the router hovers over water, so ...?
+    router.Geometry = GeometryForm.representByCylinder(radius = 3.64845f, height = 3.51563f) //TODO hexahedron
 
     switchblade.Name = "switchblade"
     switchblade.MaxHealth = 1750
@@ -6483,10 +6514,10 @@ object GlobalDefinitions {
     switchblade.RepairIfDestroyed = false
     switchblade.MaxShields = 350
     switchblade.Seats += 0 -> new SeatDefinition()
-    switchblade.Seats(0).ControlledWeapon = 1
+    switchblade.controlledWeapons += 0 -> 1
     switchblade.Weapons += 1     -> scythe
-    switchblade.MountPoints += 1 -> 0
-    switchblade.MountPoints += 2 -> 0
+    switchblade.MountPoints += 1 -> MountInfo(0)
+    switchblade.MountPoints += 2 -> MountInfo(0)
     switchblade.TrunkSize = InventoryTile.Tile1511
     switchblade.TrunkOffset = 30
     switchblade.TrunkLocation = Vector3(-2.5f, 0f, 0f)
@@ -6506,11 +6537,12 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 10
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     switchblade.DrownAtMaxDepth = true
     switchblade.MaxDepth = 2
     switchblade.UnderwaterLifespan(suffocation = 45000L, recovery = 5000L) //but the switchblade hovers over water, so ...?
+    switchblade.Geometry = GeometryForm.representByCylinder(radius = 2.4335f, height = 2.73438f)
 
     flail.Name = "flail"
     flail.MaxHealth = 2400
@@ -6519,9 +6551,9 @@ object GlobalDefinitions {
     flail.RepairIfDestroyed = false
     flail.MaxShields = 480
     flail.Seats += 0 -> new SeatDefinition()
-    flail.Seats(0).ControlledWeapon = 1
-    flail.Weapons += 1     -> flail_weapon
-    flail.MountPoints += 1 -> 0
+    flail.controlledWeapons += 0 -> 1
+    flail.Weapons += 1 -> flail_weapon
+    flail.MountPoints += 1 -> MountInfo(0)
     flail.TrunkSize = InventoryTile.Tile1511
     flail.TrunkOffset = 30
     flail.TrunkLocation = Vector3(-3.75f, 0f, 0f)
@@ -6540,11 +6572,12 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 10
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     flail.DrownAtMaxDepth = true
     flail.MaxDepth = 2
     flail.UnderwaterLifespan(suffocation = 45000L, recovery = 5000L) //but the flail hovers over water, so ...?
+    flail.Geometry = GeometryForm.representByCylinder(radius = 2.1875f, height = 2.21875f)
 
     mosquito.Name = "mosquito"
     mosquito.MaxHealth = 665
@@ -6553,12 +6586,11 @@ object GlobalDefinitions {
     mosquito.RepairIfDestroyed = false
     mosquito.MaxShields = 133
     mosquito.CanFly = true
-    mosquito.Seats += 0 -> new SeatDefinition()
-    mosquito.Seats(0).Bailable = true
-    mosquito.Seats(0).ControlledWeapon = 1
+    mosquito.Seats += 0 -> bailableSeat
+    mosquito.controlledWeapons += 0 -> 1
     mosquito.Weapons += 1     -> rotarychaingun_mosquito
-    mosquito.MountPoints += 1 -> 0
-    mosquito.MountPoints += 2 -> 0
+    mosquito.MountPoints += 1 -> MountInfo(0)
+    mosquito.MountPoints += 2 -> MountInfo(0)
     mosquito.TrunkSize = InventoryTile.Tile1111
     mosquito.TrunkOffset = 30
     mosquito.TrunkLocation = Vector3(-4.6f, 0f, 0f)
@@ -6574,10 +6606,11 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 10
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     mosquito.DrownAtMaxDepth = true
     mosquito.MaxDepth = 2 //flying vehicles will automatically disable
+    mosquito.Geometry = GeometryForm.representByCylinder(radius = 2.72108f, height = 2.5f)
 
     lightgunship.Name = "lightgunship" // Reaver
     lightgunship.MaxHealth = 1000
@@ -6586,12 +6619,11 @@ object GlobalDefinitions {
     lightgunship.RepairIfDestroyed = false
     lightgunship.MaxShields = 200
     lightgunship.CanFly = true
-    lightgunship.Seats += 0 -> new SeatDefinition()
-    lightgunship.Seats(0).Bailable = true
-    lightgunship.Seats(0).ControlledWeapon = 1
+    lightgunship.Seats += 0 -> bailableSeat
+    lightgunship.controlledWeapons += 0 -> 1
     lightgunship.Weapons += 1     -> lightgunship_weapon_system
-    lightgunship.MountPoints += 1 -> 0
-    lightgunship.MountPoints += 2 -> 0
+    lightgunship.MountPoints += 1 -> MountInfo(0)
+    lightgunship.MountPoints += 2 -> MountInfo(0)
     lightgunship.TrunkSize = InventoryTile.Tile1511
     lightgunship.TrunkOffset = 30
     lightgunship.TrunkLocation = Vector3(-5.61f, 0f, 0f)
@@ -6608,10 +6640,11 @@ object GlobalDefinitions {
       Damage1 = 375
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     lightgunship.DrownAtMaxDepth = true
     lightgunship.MaxDepth = 2 //flying vehicles will automatically disable
+    lightgunship.Geometry = GeometryForm.representByCylinder(radius = 2.375f, height = 1.98438f)
 
     wasp.Name = "wasp"
     wasp.MaxHealth = 515
@@ -6620,12 +6653,11 @@ object GlobalDefinitions {
     wasp.RepairIfDestroyed = false
     wasp.MaxShields = 103
     wasp.CanFly = true
-    wasp.Seats += 0 -> new SeatDefinition()
-    wasp.Seats(0).Bailable = true
-    wasp.Seats(0).ControlledWeapon = 1
+    wasp.Seats += 0 -> bailableSeat
+    wasp.controlledWeapons += 0 -> 1
     wasp.Weapons += 1     -> wasp_weapon_system
-    wasp.MountPoints += 1 -> 0
-    wasp.MountPoints += 2 -> 0
+    wasp.MountPoints += 1 -> MountInfo(0)
+    wasp.MountPoints += 2 -> MountInfo(0)
     wasp.TrunkSize = InventoryTile.Tile1111
     wasp.TrunkOffset = 30
     wasp.TrunkLocation = Vector3(-4.6f, 0f, 0f)
@@ -6641,10 +6673,11 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 10
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     wasp.DrownAtMaxDepth = true
     wasp.MaxDepth = 2 //flying vehicles will automatically disable
+    wasp.Geometry = GeometryForm.representByCylinder(radius = 2.88675f, height = 2.5f)
 
     liberator.Name = "liberator"
     liberator.MaxHealth = 2500
@@ -6654,18 +6687,18 @@ object GlobalDefinitions {
     liberator.MaxShields = 500
     liberator.CanFly = true
     liberator.Seats += 0 -> new SeatDefinition()
-    liberator.Seats(0).ControlledWeapon = 3
-    liberator.Seats += 1 -> new SeatDefinition()
-    liberator.Seats(1).ControlledWeapon = 4
-    liberator.Seats += 2 -> new SeatDefinition()
-    liberator.Seats(2).ControlledWeapon = 5
+    liberator.Seats += 1 -> bailableSeat
+    liberator.Seats += 2 -> bailableSeat
+    liberator.controlledWeapons += 0 -> 3
+    liberator.controlledWeapons += 1 -> 4
+    liberator.controlledWeapons += 2 -> 5
     liberator.Weapons += 3     -> liberator_weapon_system
     liberator.Weapons += 4     -> liberator_bomb_bay
     liberator.Weapons += 5     -> liberator_25mm_cannon
-    liberator.MountPoints += 1 -> 0
-    liberator.MountPoints += 2 -> 1
-    liberator.MountPoints += 3 -> 1
-    liberator.MountPoints += 4 -> 2
+    liberator.MountPoints += 1 -> MountInfo(0)
+    liberator.MountPoints += 2 -> MountInfo(1)
+    liberator.MountPoints += 3 -> MountInfo(1)
+    liberator.MountPoints += 4 -> MountInfo(2)
     liberator.TrunkSize = InventoryTile.Tile1515
     liberator.TrunkOffset = 30
     liberator.TrunkLocation = Vector3(-0.76f, -1.88f, 0f)
@@ -6682,10 +6715,11 @@ object GlobalDefinitions {
       Damage1 = 375
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     liberator.DrownAtMaxDepth = true
     liberator.MaxDepth = 2 //flying vehicles will automatically disable
+    liberator.Geometry = liberatorForm
 
     vulture.Name = "vulture"
     vulture.MaxHealth = 2500
@@ -6695,18 +6729,18 @@ object GlobalDefinitions {
     vulture.MaxShields = 500
     vulture.CanFly = true
     vulture.Seats += 0 -> new SeatDefinition()
-    vulture.Seats(0).ControlledWeapon = 3
-    vulture.Seats += 1 -> new SeatDefinition()
-    vulture.Seats(1).ControlledWeapon = 4
-    vulture.Seats += 2 -> new SeatDefinition()
-    vulture.Seats(2).ControlledWeapon = 5
+    vulture.Seats += 1 -> bailableSeat
+    vulture.Seats += 2 -> bailableSeat
+    vulture.controlledWeapons += 0 -> 3
+    vulture.controlledWeapons += 1 -> 4
+    vulture.controlledWeapons += 2 -> 5
     vulture.Weapons += 3     -> vulture_nose_weapon_system
     vulture.Weapons += 4     -> vulture_bomb_bay
     vulture.Weapons += 5     -> vulture_tail_cannon
-    vulture.MountPoints += 1 -> 0
-    vulture.MountPoints += 2 -> 1
-    vulture.MountPoints += 3 -> 1
-    vulture.MountPoints += 4 -> 2
+    vulture.MountPoints += 1 -> MountInfo(0)
+    vulture.MountPoints += 2 -> MountInfo(1)
+    vulture.MountPoints += 3 -> MountInfo(1)
+    vulture.MountPoints += 4 -> MountInfo(2)
     vulture.TrunkSize = InventoryTile.Tile1611
     vulture.TrunkOffset = 30
     vulture.TrunkLocation = Vector3(-0.76f, -1.88f, 0f)
@@ -6724,10 +6758,11 @@ object GlobalDefinitions {
       Damage1 = 375
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     vulture.DrownAtMaxDepth = true
     vulture.MaxDepth = 2 //flying vehicles will automatically disable
+    vulture.Geometry = liberatorForm
 
     dropship.Name = "dropship" // Galaxy
     dropship.MaxHealth = 5000
@@ -6738,50 +6773,46 @@ object GlobalDefinitions {
     dropship.MaxShields = 1000
     dropship.CanFly = true
     dropship.Seats += 0 -> new SeatDefinition()
-    dropship.Seats += 1 -> new SeatDefinition()
-    dropship.Seats(1).Bailable = true
-    dropship.Seats(1).ControlledWeapon = 12
-    dropship.Seats += 2 -> new SeatDefinition()
-    dropship.Seats(2).Bailable = true
-    dropship.Seats(2).ControlledWeapon = 13
-    dropship.Seats += 3 -> new SeatDefinition()
-    dropship.Seats(3).Bailable = true
-    dropship.Seats += 4 -> new SeatDefinition()
-    dropship.Seats(4).Bailable = true
-    dropship.Seats += 5 -> new SeatDefinition()
-    dropship.Seats(5).Bailable = true
-    dropship.Seats += 6 -> new SeatDefinition()
-    dropship.Seats(6).Bailable = true
-    dropship.Seats += 7 -> new SeatDefinition()
-    dropship.Seats(7).Bailable = true
-    dropship.Seats += 8 -> new SeatDefinition()
-    dropship.Seats(8).Bailable = true
-    dropship.Seats += 9 -> new SeatDefinition()
-    dropship.Seats(9).Bailable = true
-    dropship.Seats(9).ArmorRestriction = SeatArmorRestriction.MaxOnly
-    dropship.Seats += 10 -> new SeatDefinition()
-    dropship.Seats(10).Bailable = true
-    dropship.Seats(10).ArmorRestriction = SeatArmorRestriction.MaxOnly
-    dropship.Seats += 11 -> new SeatDefinition()
-    dropship.Seats(11).Bailable = true
-    dropship.Seats(11).ControlledWeapon = 14
+    dropship.Seats += 1 -> new SeatDefinition() {
+      bailable = true
+    }
+    dropship.Seats += 2 -> bailableSeat
+    dropship.Seats += 3 -> bailableSeat
+    dropship.Seats += 4 -> bailableSeat
+    dropship.Seats += 5 -> bailableSeat
+    dropship.Seats += 6 -> bailableSeat
+    dropship.Seats += 7 -> bailableSeat
+    dropship.Seats += 9 -> new SeatDefinition() {
+      bailable = true
+      restriction = MaxOnly
+    }
+    dropship.Seats += 10 -> new SeatDefinition() {
+      bailable = true
+      restriction = MaxOnly
+    }
+    dropship.Seats += 11 -> bailableSeat
+    dropship.controlledWeapons += 1 -> 12
+    dropship.controlledWeapons += 2 -> 13
+    dropship.controlledWeapons += 11 -> 14
     dropship.Weapons += 12     -> cannon_dropship_20mm
     dropship.Weapons += 13     -> cannon_dropship_20mm
     dropship.Weapons += 14     -> dropship_rear_turret
-    dropship.Cargo += 15       -> new CargoDefinition()
-    dropship.MountPoints += 1  -> 0
-    dropship.MountPoints += 2  -> 11
-    dropship.MountPoints += 3  -> 1
-    dropship.MountPoints += 4  -> 2
-    dropship.MountPoints += 5  -> 3
-    dropship.MountPoints += 6  -> 4
-    dropship.MountPoints += 7  -> 5
-    dropship.MountPoints += 8  -> 6
-    dropship.MountPoints += 9  -> 7
-    dropship.MountPoints += 10 -> 8
-    dropship.MountPoints += 11 -> 9
-    dropship.MountPoints += 12 -> 10
-    dropship.MountPoints += 13 -> 15
+    dropship.Cargo += 15       -> new CargoDefinition() {
+      restriction = SmallCargo
+    }
+    dropship.MountPoints += 1 -> MountInfo(0)
+    dropship.MountPoints += 2 -> MountInfo(11)
+    dropship.MountPoints += 3 -> MountInfo(1)
+    dropship.MountPoints += 4 -> MountInfo(2)
+    dropship.MountPoints += 5 -> MountInfo(3)
+    dropship.MountPoints += 6 -> MountInfo(4)
+    dropship.MountPoints += 7 -> MountInfo(5)
+    dropship.MountPoints += 8 -> MountInfo(6)
+    dropship.MountPoints += 9 -> MountInfo(7)
+    dropship.MountPoints += 10 -> MountInfo(8)
+    dropship.MountPoints += 11 -> MountInfo(9)
+    dropship.MountPoints += 12 -> MountInfo(10)
+    dropship.MountPoints += 13 -> MountInfo(15)
     dropship.TrunkSize = InventoryTile.Tile1612
     dropship.TrunkOffset = 30
     dropship.TrunkLocation = Vector3(-7.39f, -4.96f, 0f)
@@ -6798,10 +6829,11 @@ object GlobalDefinitions {
       Damage1 = 450
       DamageRadius = 30
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     dropship.DrownAtMaxDepth = true
     dropship.MaxDepth = 2
+    dropship.Geometry = GeometryForm.representByCylinder(radius = 10.52202f, height = 6.23438f)
 
     galaxy_gunship.Name = "galaxy_gunship"
     galaxy_gunship.MaxHealth = 6000
@@ -6812,27 +6844,27 @@ object GlobalDefinitions {
     galaxy_gunship.MaxShields = 1200
     galaxy_gunship.CanFly = true
     galaxy_gunship.Seats += 0 -> new SeatDefinition()
-    galaxy_gunship.Seats += 1 -> new SeatDefinition()
-    galaxy_gunship.Seats(1).ControlledWeapon = 6
-    galaxy_gunship.Seats += 2 -> new SeatDefinition()
-    galaxy_gunship.Seats(2).ControlledWeapon = 7
-    galaxy_gunship.Seats += 3 -> new SeatDefinition()
-    galaxy_gunship.Seats(3).ControlledWeapon = 8
-    galaxy_gunship.Seats += 4 -> new SeatDefinition()
-    galaxy_gunship.Seats(4).ControlledWeapon = 9
-    galaxy_gunship.Seats += 5 -> new SeatDefinition()
-    galaxy_gunship.Seats(5).ControlledWeapon = 10
+    galaxy_gunship.Seats += 1 -> bailableSeat
+    galaxy_gunship.Seats += 2 -> bailableSeat
+    galaxy_gunship.Seats += 3 -> bailableSeat
+    galaxy_gunship.Seats += 4 -> bailableSeat
+    galaxy_gunship.Seats += 5 -> bailableSeat
+    galaxy_gunship.controlledWeapons += 1 -> 6
+    galaxy_gunship.controlledWeapons += 2 -> 7
+    galaxy_gunship.controlledWeapons += 3 -> 8
+    galaxy_gunship.controlledWeapons += 4 -> 9
+    galaxy_gunship.controlledWeapons += 5 -> 10
     galaxy_gunship.Weapons += 6     -> galaxy_gunship_cannon
     galaxy_gunship.Weapons += 7     -> galaxy_gunship_cannon
     galaxy_gunship.Weapons += 8     -> galaxy_gunship_tailgun
     galaxy_gunship.Weapons += 9     -> galaxy_gunship_gun
     galaxy_gunship.Weapons += 10    -> galaxy_gunship_gun
-    galaxy_gunship.MountPoints += 1 -> 0
-    galaxy_gunship.MountPoints += 2 -> 3
-    galaxy_gunship.MountPoints += 3 -> 1
-    galaxy_gunship.MountPoints += 4 -> 2
-    galaxy_gunship.MountPoints += 5 -> 4
-    galaxy_gunship.MountPoints += 6 -> 5
+    galaxy_gunship.MountPoints += 1 -> MountInfo(0)
+    galaxy_gunship.MountPoints += 2 -> MountInfo(3)
+    galaxy_gunship.MountPoints += 3 -> MountInfo(1)
+    galaxy_gunship.MountPoints += 4 -> MountInfo(2)
+    galaxy_gunship.MountPoints += 5 -> MountInfo(4)
+    galaxy_gunship.MountPoints += 6 -> MountInfo(5)
     galaxy_gunship.TrunkSize = InventoryTile.Tile1816
     galaxy_gunship.TrunkOffset = 30
     galaxy_gunship.TrunkLocation = Vector3(-9.85f, 0f, 0f)
@@ -6851,10 +6883,11 @@ object GlobalDefinitions {
       Damage1 = 450
       DamageRadius = 30
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     galaxy_gunship.DrownAtMaxDepth = true
     galaxy_gunship.MaxDepth = 2
+    galaxy_gunship.Geometry = GeometryForm.representByCylinder(radius = 9.2382f, height = 5.01562f)
 
     lodestar.Name = "lodestar"
     lodestar.MaxHealth = 5000
@@ -6865,8 +6898,8 @@ object GlobalDefinitions {
     lodestar.MaxShields = 1000
     lodestar.CanFly = true
     lodestar.Seats += 0         -> new SeatDefinition()
-    lodestar.MountPoints += 1   -> 0
-    lodestar.MountPoints += 2   -> 1
+    lodestar.MountPoints += 1 -> MountInfo(0)
+    lodestar.MountPoints += 2 -> MountInfo(1)
     lodestar.Cargo += 1         -> new CargoDefinition()
     lodestar.Utilities += 2     -> UtilityType.lodestar_repair_terminal
     lodestar.UtilityOffset += 2 -> Vector3(0, 20, 0)
@@ -6892,10 +6925,11 @@ object GlobalDefinitions {
       Damage1 = 450
       DamageRadius = 30
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     lodestar.DrownAtMaxDepth = true
     lodestar.MaxDepth = 2
+    lodestar.Geometry = GeometryForm.representByCylinder(radius = 7.8671f, height = 6.79688f) //TODO hexahedron
 
     phantasm.Name = "phantasm"
     phantasm.MaxHealth = 2500
@@ -6906,19 +6940,15 @@ object GlobalDefinitions {
     phantasm.CanCloak = true
     phantasm.CanFly = true
     phantasm.Seats += 0 -> new SeatDefinition()
-    phantasm.Seats += 1 -> new SeatDefinition()
-    phantasm.Seats(1).Bailable = true
-    phantasm.Seats += 2 -> new SeatDefinition()
-    phantasm.Seats(2).Bailable = true
-    phantasm.Seats += 3 -> new SeatDefinition()
-    phantasm.Seats(3).Bailable = true
-    phantasm.Seats += 4 -> new SeatDefinition()
-    phantasm.Seats(4).Bailable = true
-    phantasm.MountPoints += 1 -> 0
-    phantasm.MountPoints += 2 -> 1
-    phantasm.MountPoints += 3 -> 2
-    phantasm.MountPoints += 4 -> 3
-    phantasm.MountPoints += 5 -> 4
+    phantasm.Seats += 1 -> bailableSeat
+    phantasm.Seats += 2 -> bailableSeat
+    phantasm.Seats += 3 -> bailableSeat
+    phantasm.Seats += 4 -> bailableSeat
+    phantasm.MountPoints += 1 -> MountInfo(0)
+    phantasm.MountPoints += 2 -> MountInfo(1)
+    phantasm.MountPoints += 3 -> MountInfo(2)
+    phantasm.MountPoints += 4 -> MountInfo(3)
+    phantasm.MountPoints += 5 -> MountInfo(4)
     phantasm.TrunkSize = InventoryTile.Tile1107
     phantasm.TrunkOffset = 30
     phantasm.TrunkLocation = Vector3(-6.16f, 0f, 0f)
@@ -6934,29 +6964,70 @@ object GlobalDefinitions {
       Damage1 = 150
       DamageRadius = 12
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
     phantasm.DrownAtMaxDepth = true
     phantasm.MaxDepth = 2
+    phantasm.Geometry = GeometryForm.representByCylinder(radius = 5.2618f, height = 3f)
 
     droppod.Name = "droppod"
     droppod.MaxHealth = 20000
-    //droppod.Damageable = false
+    droppod.Damageable = false
+    droppod.Repairable = false
     droppod.CanFly = true
-    droppod.Seats += 0       -> new SeatDefinition
-    droppod.MountPoints += 1 -> 0
+    droppod.Seats += 0 -> new SeatDefinition {
+      restriction = Unrestricted
+    }
+    droppod.MountPoints += 1 -> MountInfo(0)
     droppod.TrunkSize = InventoryTile.None
     droppod.Packet = new DroppodConverter()
     droppod.DeconstructionTime = Some(5 seconds)
     droppod.DestroyedModel = None //the adb calls out a droppod; the cyclic nature of this confounds me
     droppod.DamageUsing = DamageCalculations.AgainstAircraft
     droppod.DrownAtMaxDepth = false
+
+    orbital_shuttle.Name = "orbital_shuttle"
+    orbital_shuttle.MaxHealth = 20000
+    orbital_shuttle.Damageable = false
+    orbital_shuttle.Repairable = false
+    orbital_shuttle.CanFly = true
+    orbital_shuttle.CanBeOwned = None
+    orbital_shuttle.undergoesDecay = false
+    orbital_shuttle.Seats += 0 -> new SeatDefinition {
+      occupancy = 300
+      restriction = Unrestricted
+    }
+    /*
+    these are close to the mount point offsets in the ADB;
+    physically, they correlate to positions in the HART building rather than with the shuttle model by itself;
+    set the shuttle pad based on the zonemap extraction values then position the shuttle relative to that pad;
+    rotation based on the shuttle should place these offsets in the HART lobby whose gantry hall corresponds to that mount index
+    */
+    orbital_shuttle.MountPoints += 1 -> MountInfo(0, Vector3(-62,  4, -28.2f))
+    orbital_shuttle.MountPoints += 2 -> MountInfo(0, Vector3(-62, 28, -28.2f))
+    orbital_shuttle.MountPoints += 3 -> MountInfo(0, Vector3(-62,  4, -18.2f))
+    orbital_shuttle.MountPoints += 4 -> MountInfo(0, Vector3(-62, 28, -18.2f))
+    orbital_shuttle.MountPoints += 5 -> MountInfo(0, Vector3( 62,  4, -28.2f))
+    orbital_shuttle.MountPoints += 6 -> MountInfo(0, Vector3( 62, 28, -28.2f))
+    orbital_shuttle.MountPoints += 7 -> MountInfo(0, Vector3( 62,  4, -18.2f))
+    orbital_shuttle.MountPoints += 8 -> MountInfo(0, Vector3( 62, 28, -18.2f))
+    orbital_shuttle.TrunkSize = InventoryTile.None
+    orbital_shuttle.Packet = new OrbitalShuttleConverter
+    orbital_shuttle.DeconstructionTime = None
+    orbital_shuttle.DestroyedModel = None
+    orbital_shuttle.DamageUsing = DamageCalculations.AgainstNothing
+    orbital_shuttle.DrownAtMaxDepth = false
   }
 
   /**
     * Initialize `Deployable` globals.
     */
   private def init_deployables(): Unit = {
+    val mine = GeometryForm.representByCylinder(radius = 0.1914f, height = 0.0957f) _
+    val smallTurret = GeometryForm.representByCylinder(radius = 0.48435f, height = 1.23438f) _
+    val sensor = GeometryForm.representByCylinder(radius = 0.1914f, height = 1.21875f) _
+    val largeTurret = GeometryForm.representByCylinder(radius = 0.8437f, height = 2.29687f) _
+
     boomer.Name = "boomer"
     boomer.Descriptor = "Boomers"
     boomer.MaxHealth = 100
@@ -6976,8 +7047,9 @@ object GlobalDefinitions {
       Damage4 = 1850
       DamageRadius = 5.1f
       DamageAtEdge = 0.1f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
+    boomer.Geometry = mine
 
     he_mine.Name = "he_mine"
     he_mine.Descriptor = "Mines"
@@ -6997,8 +7069,9 @@ object GlobalDefinitions {
       Damage4 = 1600
       DamageRadius = 6.6f
       DamageAtEdge = 0.25f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
+    he_mine.Geometry = mine
 
     jammer_mine.Name = "jammer_mine"
     jammer_mine.Descriptor = "JammerMines"
@@ -7008,6 +7081,7 @@ object GlobalDefinitions {
     jammer_mine.Repairable = false
     jammer_mine.DeployTime = Duration.create(1000, "ms")
     jammer_mine.DetonateOnJamming = false
+    jammer_mine.Geometry = mine
 
     spitfire_turret.Name = "spitfire_turret"
     spitfire_turret.Descriptor = "Spitfires"
@@ -7015,8 +7089,8 @@ object GlobalDefinitions {
     spitfire_turret.Damageable = true
     spitfire_turret.Repairable = true
     spitfire_turret.RepairIfDestroyed = false
-    spitfire_turret.Weapons += 1                     -> new mutable.HashMap()
-    spitfire_turret.Weapons(1) += TurretUpgrade.None -> spitfire_weapon
+    spitfire_turret.WeaponPaths += 1                     -> new mutable.HashMap()
+    spitfire_turret.WeaponPaths(1) += TurretUpgrade.None -> spitfire_weapon
     spitfire_turret.ReserveAmmunition = false
     spitfire_turret.DeployCategory = DeployableCategory.SmallTurrets
     spitfire_turret.DeployTime = Duration.create(5000, "ms")
@@ -7029,8 +7103,9 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 8
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
+    spitfire_turret.Geometry = smallTurret
 
     spitfire_cloaked.Name = "spitfire_cloaked"
     spitfire_cloaked.Descriptor = "CloakingSpitfires"
@@ -7038,8 +7113,8 @@ object GlobalDefinitions {
     spitfire_cloaked.Damageable = true
     spitfire_cloaked.Repairable = true
     spitfire_cloaked.RepairIfDestroyed = false
-    spitfire_cloaked.Weapons += 1                     -> new mutable.HashMap()
-    spitfire_cloaked.Weapons(1) += TurretUpgrade.None -> spitfire_weapon
+    spitfire_cloaked.WeaponPaths += 1                     -> new mutable.HashMap()
+    spitfire_cloaked.WeaponPaths(1) += TurretUpgrade.None -> spitfire_weapon
     spitfire_cloaked.ReserveAmmunition = false
     spitfire_cloaked.DeployCategory = DeployableCategory.SmallTurrets
     spitfire_cloaked.DeployTime = Duration.create(5000, "ms")
@@ -7051,8 +7126,9 @@ object GlobalDefinitions {
       Damage1 = 75
       DamageRadius = 8
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
+    spitfire_cloaked.Geometry = smallTurret
 
     spitfire_aa.Name = "spitfire_aa"
     spitfire_aa.Descriptor = "FlakSpitfires"
@@ -7060,8 +7136,8 @@ object GlobalDefinitions {
     spitfire_aa.Damageable = true
     spitfire_aa.Repairable = true
     spitfire_aa.RepairIfDestroyed = false
-    spitfire_aa.Weapons += 1                     -> new mutable.HashMap()
-    spitfire_aa.Weapons(1) += TurretUpgrade.None -> spitfire_aa_weapon
+    spitfire_aa.WeaponPaths += 1                     -> new mutable.HashMap()
+    spitfire_aa.WeaponPaths(1) += TurretUpgrade.None -> spitfire_aa_weapon
     spitfire_aa.ReserveAmmunition = false
     spitfire_aa.DeployCategory = DeployableCategory.SmallTurrets
     spitfire_aa.DeployTime = Duration.create(5000, "ms")
@@ -7073,8 +7149,9 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 8
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
+    spitfire_aa.Geometry = smallTurret
 
     motionalarmsensor.Name = "motionalarmsensor"
     motionalarmsensor.Descriptor = "MotionSensors"
@@ -7083,6 +7160,7 @@ object GlobalDefinitions {
     motionalarmsensor.Repairable = true
     motionalarmsensor.RepairIfDestroyed = false
     motionalarmsensor.DeployTime = Duration.create(1000, "ms")
+    motionalarmsensor.Geometry = sensor
 
     sensor_shield.Name = "sensor_shield"
     sensor_shield.Descriptor = "SensorShields"
@@ -7091,6 +7169,7 @@ object GlobalDefinitions {
     sensor_shield.Repairable = true
     sensor_shield.RepairIfDestroyed = false
     sensor_shield.DeployTime = Duration.create(5000, "ms")
+    sensor_shield.Geometry = sensor
 
     tank_traps.Name = "tank_traps"
     tank_traps.Descriptor = "TankTraps"
@@ -7107,8 +7186,9 @@ object GlobalDefinitions {
       Damage1 = 10
       DamageRadius = 8
       DamageAtEdge = 0.2f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
+    tank_traps.Geometry = GeometryForm.representByCylinder(radius = 2.89680997f, height = 3.57812f)
 
     val fieldTurretConverter = new FieldTurretConverter
     portable_manned_turret.Name = "portable_manned_turret"
@@ -7117,10 +7197,11 @@ object GlobalDefinitions {
     portable_manned_turret.Damageable = true
     portable_manned_turret.Repairable = true
     portable_manned_turret.RepairIfDestroyed = false
-    portable_manned_turret.MountPoints += 1                 -> 0
-    portable_manned_turret.MountPoints += 2                 -> 0
-    portable_manned_turret.Weapons += 1                     -> new mutable.HashMap()
-    portable_manned_turret.Weapons(1) += TurretUpgrade.None -> energy_gun
+    portable_manned_turret.controlledWeapons += 0 -> 1
+    portable_manned_turret.WeaponPaths += 1                     -> new mutable.HashMap()
+    portable_manned_turret.WeaponPaths(1) += TurretUpgrade.None -> energy_gun
+    portable_manned_turret.MountPoints += 1 -> MountInfo(0)
+    portable_manned_turret.MountPoints += 2 -> MountInfo(0)
     portable_manned_turret.ReserveAmmunition = true
     portable_manned_turret.FactionLocked = true
     portable_manned_turret.Packet = fieldTurretConverter
@@ -7134,8 +7215,9 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 8
       DamageAtEdge = 0.1f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
+    portable_manned_turret.Geometry = largeTurret
 
     portable_manned_turret_nc.Name = "portable_manned_turret_nc"
     portable_manned_turret_nc.Descriptor = "FieldTurrets"
@@ -7143,10 +7225,11 @@ object GlobalDefinitions {
     portable_manned_turret_nc.Damageable = true
     portable_manned_turret_nc.Repairable = true
     portable_manned_turret_nc.RepairIfDestroyed = false
-    portable_manned_turret_nc.MountPoints += 1                 -> 0
-    portable_manned_turret_nc.MountPoints += 2                 -> 0
-    portable_manned_turret_nc.Weapons += 1                     -> new mutable.HashMap()
-    portable_manned_turret_nc.Weapons(1) += TurretUpgrade.None -> energy_gun_nc
+    portable_manned_turret_nc.WeaponPaths += 1                     -> new mutable.HashMap()
+    portable_manned_turret_nc.WeaponPaths(1) += TurretUpgrade.None -> energy_gun_nc
+    portable_manned_turret_nc.controlledWeapons += 0 -> 1
+    portable_manned_turret_nc.MountPoints += 1 -> MountInfo(0)
+    portable_manned_turret_nc.MountPoints += 2 -> MountInfo(0)
     portable_manned_turret_nc.ReserveAmmunition = true
     portable_manned_turret_nc.FactionLocked = true
     portable_manned_turret_nc.Packet = fieldTurretConverter
@@ -7160,8 +7243,9 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 8
       DamageAtEdge = 0.1f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
+    portable_manned_turret_nc.Geometry = largeTurret
 
     portable_manned_turret_tr.Name = "portable_manned_turret_tr"
     portable_manned_turret_tr.Descriptor = "FieldTurrets"
@@ -7169,10 +7253,11 @@ object GlobalDefinitions {
     portable_manned_turret_tr.Damageable = true
     portable_manned_turret_tr.Repairable = true
     portable_manned_turret_tr.RepairIfDestroyed = false
-    portable_manned_turret_tr.MountPoints += 1                 -> 0
-    portable_manned_turret_tr.MountPoints += 2                 -> 0
-    portable_manned_turret_tr.Weapons += 1                     -> new mutable.HashMap()
-    portable_manned_turret_tr.Weapons(1) += TurretUpgrade.None -> energy_gun_tr
+    portable_manned_turret_tr.WeaponPaths += 1                     -> new mutable.HashMap()
+    portable_manned_turret_tr.WeaponPaths(1) += TurretUpgrade.None -> energy_gun_tr
+    portable_manned_turret_tr.controlledWeapons += 0 -> 1
+    portable_manned_turret_tr.MountPoints += 1 -> MountInfo(0)
+    portable_manned_turret_tr.MountPoints += 2 -> MountInfo(0)
     portable_manned_turret_tr.ReserveAmmunition = true
     portable_manned_turret_tr.FactionLocked = true
     portable_manned_turret_tr.Packet = fieldTurretConverter
@@ -7186,8 +7271,9 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 8
       DamageAtEdge = 0.1f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
+    portable_manned_turret_tr.Geometry = largeTurret
 
     portable_manned_turret_vs.Name = "portable_manned_turret_vs"
     portable_manned_turret_vs.Descriptor = "FieldTurrets"
@@ -7195,10 +7281,11 @@ object GlobalDefinitions {
     portable_manned_turret_vs.Damageable = true
     portable_manned_turret_vs.Repairable = true
     portable_manned_turret_vs.RepairIfDestroyed = false
-    portable_manned_turret_vs.MountPoints += 1                 -> 0
-    portable_manned_turret_vs.MountPoints += 2                 -> 0
-    portable_manned_turret_vs.Weapons += 1                     -> new mutable.HashMap()
-    portable_manned_turret_vs.Weapons(1) += TurretUpgrade.None -> energy_gun_vs
+    portable_manned_turret_vs.WeaponPaths += 1                     -> new mutable.HashMap()
+    portable_manned_turret_vs.WeaponPaths(1) += TurretUpgrade.None -> energy_gun_vs
+    portable_manned_turret_vs.controlledWeapons += 0 -> 1
+    portable_manned_turret_vs.MountPoints += 1 -> MountInfo(0)
+    portable_manned_turret_vs.MountPoints += 2 -> MountInfo(0)
     portable_manned_turret_vs.ReserveAmmunition = true
     portable_manned_turret_vs.FactionLocked = true
     portable_manned_turret_vs.Packet = fieldTurretConverter
@@ -7212,8 +7299,9 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 8
       DamageAtEdge = 0.1f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
+    portable_manned_turret_vs.Geometry = largeTurret
 
     deployable_shield_generator.Name = "deployable_shield_generator"
     deployable_shield_generator.Descriptor = "ShieldGenerators"
@@ -7223,6 +7311,7 @@ object GlobalDefinitions {
     deployable_shield_generator.RepairIfDestroyed = false
     deployable_shield_generator.DeployTime = Duration.create(6000, "ms")
     deployable_shield_generator.Model = ComplexDeployableResolutions.calculate
+    deployable_shield_generator.Geometry = GeometryForm.representByCylinder(radius = 0.6562f, height = 2.17188f)
 
     router_telepad_deployable.Name = "router_telepad_deployable"
     router_telepad_deployable.MaxHealth = 100
@@ -7232,6 +7321,7 @@ object GlobalDefinitions {
     router_telepad_deployable.DeployCategory = DeployableCategory.Telepads
     router_telepad_deployable.Packet = new TelepadDeployableConverter
     router_telepad_deployable.Model = SimpleResolutions.calculate
+    router_telepad_deployable.Geometry = GeometryForm.representByRaisedSphere(radius = 1.2344f)
 
     internal_router_telepad_deployable.Name = "router_telepad_deployable"
     internal_router_telepad_deployable.MaxHealth = 1
@@ -7240,12 +7330,30 @@ object GlobalDefinitions {
     internal_router_telepad_deployable.DeployTime = Duration.create(1, "ms")
     internal_router_telepad_deployable.DeployCategory = DeployableCategory.Telepads
     internal_router_telepad_deployable.Packet = new InternalTelepadDeployableConverter
+
+    special_emp.Name = "emp"
+    special_emp.MaxHealth = 1
+    special_emp.Damageable = false
+    special_emp.Repairable = false
+    special_emp.DeployCategory = DeployableCategory.Mines
+    special_emp.explodes = true
+    special_emp.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.Splash
+      SympatheticExplosion = true
+      Damage0 = 0
+      DamageAtEdge = 1.0f
+      DamageRadius = 5f
+      AdditionalEffect = true
+      Modifiers = MaxDistanceCutoff
+    }
   }
 
   /**
     * Initialize `Miscellaneous` globals.
     */
   private def initMiscellaneous(): Unit = {
+    val vterm = GeometryForm.representByCylinder(radius = 1.03515f, height = 1.09374f) _
+
     ams_respawn_tube.Name = "ams_respawn_tube"
     ams_respawn_tube.Delay = 10
     ams_respawn_tube.SpecificPointFunc = SpawnPoint.AMS
@@ -7286,9 +7394,10 @@ object GlobalDefinitions {
     order_terminal.MaxHealth = 500
     order_terminal.Damageable = true
     order_terminal.Repairable = true
-    order_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
+    order_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) 
     order_terminal.RepairIfDestroyed = true
     order_terminal.Subtract.Damage1 = 8
+    order_terminal.Geometry = GeometryForm.representByCylinder(radius = 0.8438f, height = 1.3f)
 
     order_terminala.Name = "order_terminala"
     order_terminala.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(
@@ -7350,16 +7459,18 @@ object GlobalDefinitions {
     cert_terminal.MaxHealth = 500
     cert_terminal.Damageable = true
     cert_terminal.Repairable = true
-    cert_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
+    cert_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) 
     cert_terminal.RepairIfDestroyed = true
     cert_terminal.Subtract.Damage1 = 8
+    cert_terminal.Geometry = GeometryForm.representByCylinder(radius = 0.66405f, height = 1.09374f)
 
     implant_terminal_mech.Name = "implant_terminal_mech"
     implant_terminal_mech.MaxHealth = 1500 //TODO 1000; right now, 1000 (mech) + 500 (interface)
     implant_terminal_mech.Damageable = true
     implant_terminal_mech.Repairable = true
-    implant_terminal_mech.autoRepair = AutoRepairStats(1.6f, 5000, 2400, 0.5f) //ori. 1, 5000, 2400, 0.5f
+    implant_terminal_mech.autoRepair = AutoRepairStats(1.6f, 5000, 2400, 0.5f)
     implant_terminal_mech.RepairIfDestroyed = true
+    implant_terminal_mech.Geometry = GeometryForm.representByCylinder(radius = 2.7813f, height = 6.4375f)
 
     implant_terminal_interface.Name = "implant_terminal_interface"
     implant_terminal_interface.Tab += 0 -> OrderTerminalDefinition.ImplantPage(ImplantTerminalDefinition.implants)
@@ -7368,6 +7479,7 @@ object GlobalDefinitions {
     implant_terminal_interface.Repairable = true
     implant_terminal_interface.autoRepair = AutoRepairStats(1, 5000, 200, 1) //TODO amount and drain are default? undefined?
     implant_terminal_interface.RepairIfDestroyed = true
+    //TODO will need geometry when Damageable = true
 
     ground_vehicle_terminal.Name = "ground_vehicle_terminal"
     ground_vehicle_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(
@@ -7378,9 +7490,10 @@ object GlobalDefinitions {
     ground_vehicle_terminal.MaxHealth = 500
     ground_vehicle_terminal.Damageable = true
     ground_vehicle_terminal.Repairable = true
-    ground_vehicle_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
+    ground_vehicle_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) 
     ground_vehicle_terminal.RepairIfDestroyed = true
     ground_vehicle_terminal.Subtract.Damage1 = 8
+    ground_vehicle_terminal.Geometry = vterm
 
     air_vehicle_terminal.Name = "air_vehicle_terminal"
     air_vehicle_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(
@@ -7391,9 +7504,10 @@ object GlobalDefinitions {
     air_vehicle_terminal.MaxHealth = 500
     air_vehicle_terminal.Damageable = true
     air_vehicle_terminal.Repairable = true
-    air_vehicle_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
+    air_vehicle_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) 
     air_vehicle_terminal.RepairIfDestroyed = true
     air_vehicle_terminal.Subtract.Damage1 = 8
+    air_vehicle_terminal.Geometry = vterm
 
     dropship_vehicle_terminal.Name = "dropship_vehicle_terminal"
     dropship_vehicle_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(
@@ -7404,9 +7518,10 @@ object GlobalDefinitions {
     dropship_vehicle_terminal.MaxHealth = 500
     dropship_vehicle_terminal.Damageable = true
     dropship_vehicle_terminal.Repairable = true
-    dropship_vehicle_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
+    dropship_vehicle_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) 
     dropship_vehicle_terminal.RepairIfDestroyed = true
     dropship_vehicle_terminal.Subtract.Damage1 = 8
+    dropship_vehicle_terminal.Geometry = vterm
 
     vehicle_terminal_combined.Name = "vehicle_terminal_combined"
     vehicle_terminal_combined.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(
@@ -7417,9 +7532,10 @@ object GlobalDefinitions {
     vehicle_terminal_combined.MaxHealth = 500
     vehicle_terminal_combined.Damageable = true
     vehicle_terminal_combined.Repairable = true
-    vehicle_terminal_combined.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
+    vehicle_terminal_combined.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) 
     vehicle_terminal_combined.RepairIfDestroyed = true
     vehicle_terminal_combined.Subtract.Damage1 = 8
+    vehicle_terminal_combined.Geometry = vterm
 
     vanu_air_vehicle_term.Name = "vanu_air_vehicle_term"
     vanu_air_vehicle_term.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(
@@ -7430,7 +7546,7 @@ object GlobalDefinitions {
     vanu_air_vehicle_term.MaxHealth = 500
     vanu_air_vehicle_term.Damageable = true
     vanu_air_vehicle_term.Repairable = true
-    vanu_air_vehicle_term.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
+    vanu_air_vehicle_term.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) 
     vanu_air_vehicle_term.RepairIfDestroyed = true
     vanu_air_vehicle_term.Subtract.Damage1 = 8
 
@@ -7443,7 +7559,7 @@ object GlobalDefinitions {
     vanu_vehicle_term.MaxHealth = 500
     vanu_vehicle_term.Damageable = true
     vanu_vehicle_term.Repairable = true
-    vanu_vehicle_term.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
+    vanu_vehicle_term.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) 
     vanu_vehicle_term.RepairIfDestroyed = true
     vanu_vehicle_term.Subtract.Damage1 = 8
 
@@ -7456,9 +7572,10 @@ object GlobalDefinitions {
     bfr_terminal.MaxHealth = 500
     bfr_terminal.Damageable = true
     bfr_terminal.Repairable = true
-    bfr_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
+    bfr_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) 
     bfr_terminal.RepairIfDestroyed = true
     bfr_terminal.Subtract.Damage1 = 8
+    bfr_terminal.Geometry = GeometryForm.representByCylinder(radius = 0.92185f, height = 2.64693f)
 
     respawn_tube.Name = "respawn_tube"
     respawn_tube.Delay = 10
@@ -7467,9 +7584,10 @@ object GlobalDefinitions {
     respawn_tube.Damageable = true
     respawn_tube.DamageableByFriendlyFire = false
     respawn_tube.Repairable = true
-    respawn_tube.autoRepair = AutoRepairStats(1.6f, 10000, 2400, 1) //orig. 1, 10000, 2400, 1
+    respawn_tube.autoRepair = AutoRepairStats(1.6f, 10000, 2400, 1) 
     respawn_tube.RepairIfDestroyed = true
     respawn_tube.Subtract.Damage1 = 8
+    respawn_tube.Geometry = GeometryForm.representByCylinder(radius = 0.9336f, height = 2.84375f)
 
     respawn_tube_sanctuary.Name = "respawn_tube"
     respawn_tube_sanctuary.Delay = 10
@@ -7478,7 +7596,8 @@ object GlobalDefinitions {
     respawn_tube_sanctuary.Damageable = false //true?
     respawn_tube_sanctuary.DamageableByFriendlyFire = false
     respawn_tube_sanctuary.Repairable = true
-    respawn_tube_sanctuary.autoRepair = AutoRepairStats(1.6f, 10000, 2400, 1) //orig. 1, 10000, 2400, 1
+    respawn_tube_sanctuary.autoRepair = AutoRepairStats(1.6f, 10000, 2400, 1)
+    //TODO will need geometry when Damageable = true
 
     respawn_tube_tower.Name = "respawn_tube_tower"
     respawn_tube_tower.Delay = 10
@@ -7487,9 +7606,10 @@ object GlobalDefinitions {
     respawn_tube_tower.Damageable = true
     respawn_tube_tower.DamageableByFriendlyFire = false
     respawn_tube_tower.Repairable = true
-    respawn_tube_tower.autoRepair = AutoRepairStats(1.6f, 10000, 2400, 1) //orig. 1, 10000, 2400, 1
+    respawn_tube_tower.autoRepair = AutoRepairStats(1.6f, 10000, 2400, 1) 
     respawn_tube_tower.RepairIfDestroyed = true
     respawn_tube_tower.Subtract.Damage1 = 8
+    respawn_tube_tower.Geometry = GeometryForm.representByCylinder(radius = 0.9336f, height = 2.84375f)
 
     teleportpad_terminal.Name = "teleportpad_terminal"
     teleportpad_terminal.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.routerTerminal)
@@ -7505,8 +7625,9 @@ object GlobalDefinitions {
     medical_terminal.MaxHealth = 500
     medical_terminal.Damageable = true
     medical_terminal.Repairable = true
-    medical_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
+    medical_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) 
     medical_terminal.RepairIfDestroyed = true
+    medical_terminal.Geometry = GeometryForm.representByCylinder(radius = 0.711f, height = 1.75f)
 
     adv_med_terminal.Name = "adv_med_terminal"
     adv_med_terminal.Interval = 500
@@ -7517,8 +7638,9 @@ object GlobalDefinitions {
     adv_med_terminal.MaxHealth = 750
     adv_med_terminal.Damageable = true
     adv_med_terminal.Repairable = true
-    adv_med_terminal.autoRepair = AutoRepairStats(1.57894f, 5000, 2400, 0.5f) //orig. 1, 5000, 2400, 0.5f
+    adv_med_terminal.autoRepair = AutoRepairStats(1.57894f, 5000, 2400, 0.5f) 
     adv_med_terminal.RepairIfDestroyed = true
+    adv_med_terminal.Geometry = GeometryForm.representByCylinder(radius = 0.8662125f, height = 3.47f)
 
     crystals_health_a.Name = "crystals_health_a"
     crystals_health_a.Interval = 500
@@ -7545,7 +7667,7 @@ object GlobalDefinitions {
     portable_med_terminal.MaxHealth = 500
     portable_med_terminal.Damageable = false //TODO actually true
     portable_med_terminal.Repairable = false
-    portable_med_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) //orig. 1, 5000, 3500, 0.5f
+    portable_med_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f) 
 
     pad_landing_frame.Name = "pad_landing_frame"
     pad_landing_frame.Interval = 1000
@@ -7594,6 +7716,10 @@ object GlobalDefinitions {
     door.Name = "door"
     door.Damageable = false
     door.Repairable = false
+
+    gr_door_mb_orb.Name = "gr_door_mb_orb"
+    gr_door_mb_orb.Damageable = false
+    gr_door_mb_orb.Repairable = false
 
     resource_silo.Name = "resource_silo"
     resource_silo.Damageable = false
@@ -7659,13 +7785,14 @@ object GlobalDefinitions {
     manned_turret.Damageable = true
     manned_turret.DamageDisablesAt = 0
     manned_turret.Repairable = true
-    manned_turret.autoRepair = AutoRepairStats(1.0909f, 10000, 1600, 0.5f) //orig. 1, 10000, 1600, 0.5f
+    manned_turret.autoRepair = AutoRepairStats(1.0909f, 10000, 1600, 0.5f) 
     manned_turret.RepairIfDestroyed = true
-    manned_turret.Weapons += 1                          -> new mutable.HashMap()
-    manned_turret.Weapons(1) += TurretUpgrade.None      -> phalanx_sgl_hevgatcan
-    manned_turret.Weapons(1) += TurretUpgrade.AVCombo   -> phalanx_avcombo
-    manned_turret.Weapons(1) += TurretUpgrade.FlakCombo -> phalanx_flakcombo
-    manned_turret.MountPoints += 1                      -> 0
+    manned_turret.WeaponPaths += 1                          -> new mutable.HashMap()
+    manned_turret.WeaponPaths(1) += TurretUpgrade.None      -> phalanx_sgl_hevgatcan
+    manned_turret.WeaponPaths(1) += TurretUpgrade.AVCombo   -> phalanx_avcombo
+    manned_turret.WeaponPaths(1) += TurretUpgrade.FlakCombo -> phalanx_flakcombo
+    manned_turret.controlledWeapons += 0 -> 1
+    manned_turret.MountPoints += 1 -> MountInfo(0)
     manned_turret.FactionLocked = true
     manned_turret.ReserveAmmunition = false
     manned_turret.explodes = true
@@ -7675,22 +7802,25 @@ object GlobalDefinitions {
       Damage1 = 300
       DamageRadius = 5
       DamageAtEdge = 0.1f
-      Modifiers = RadialDegrade
+      Modifiers = ExplodingRadialDegrade
     }
+    manned_turret.Geometry = GeometryForm.representByCylinder(radius = 1.2695f, height = 4.042f)
 
     vanu_sentry_turret.Name = "vanu_sentry_turret"
     vanu_sentry_turret.MaxHealth = 1500
     vanu_sentry_turret.Damageable = true
     vanu_sentry_turret.DamageDisablesAt = 0
     vanu_sentry_turret.Repairable = true
-    vanu_sentry_turret.autoRepair = AutoRepairStats(3.27272f, 10000, 1000, 0.5f) //orig. 3, 10000, 1000, 0.5f
+    vanu_sentry_turret.autoRepair = AutoRepairStats(3.27272f, 10000, 1000, 0.5f) 
     vanu_sentry_turret.RepairIfDestroyed = true
-    vanu_sentry_turret.Weapons += 1                     -> new mutable.HashMap()
-    vanu_sentry_turret.Weapons(1) += TurretUpgrade.None -> vanu_sentry_turret_weapon
-    vanu_sentry_turret.MountPoints += 1                 -> 0
-    vanu_sentry_turret.MountPoints += 2                 -> 0
+    vanu_sentry_turret.WeaponPaths += 1                     -> new mutable.HashMap()
+    vanu_sentry_turret.WeaponPaths(1) += TurretUpgrade.None -> vanu_sentry_turret_weapon
+    vanu_sentry_turret.controlledWeapons += 0 -> 1
+    vanu_sentry_turret.MountPoints += 1 -> MountInfo(0)
+    vanu_sentry_turret.MountPoints += 2 -> MountInfo(0)
     vanu_sentry_turret.FactionLocked = false
     vanu_sentry_turret.ReserveAmmunition = false
+    vanu_sentry_turret.Geometry = GeometryForm.representByCylinder(radius = 1.76311f, height = 3.984375f)
 
     painbox.Name = "painbox"
     painbox.alwaysOn = false
@@ -7765,7 +7895,7 @@ object GlobalDefinitions {
     generator.Damageable = true
     generator.DamageableByFriendlyFire = false
     generator.Repairable = true
-    generator.autoRepair = AutoRepairStats(0.77775f, 5000, 875, 1) //orig. 1, 5000, 875, 1
+    generator.autoRepair = AutoRepairStats(0.77775f, 5000, 875, 1) 
     generator.RepairDistance = 13.5f
     generator.RepairIfDestroyed = true
     generator.Subtract.Damage1 = 9
@@ -7773,12 +7903,17 @@ object GlobalDefinitions {
     generator.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 99999
-      //DamageRadius should be 14, but 14 is insufficient for hitting the whole chamber; hence, ...
-      DamageRadius = 15.75f
       DamageRadiusMin = 14
+      DamageRadius = 14.5f
       DamageAtEdge = 0.00002f
-      Modifiers = RadialDegrade
-      //damage is 99999 at 14m, dropping rapidly to ~1 at 15.75m
+      Modifiers = ExplodingRadialDegrade
+      //damage is 99999 at 14m, dropping rapidly to ~1 at 14.5m
     }
+    generator.Geometry = GeometryForm.representByCylinder(radius = 1.2617f, height = 9.14063f)
+
+    obbasemesh.Name = "obbasemesh"
+    obbasemesh.Descriptor = "orbital_shuttle_pad"
+    obbasemesh.Damageable = false
+    obbasemesh.Repairable = false
   }
 }

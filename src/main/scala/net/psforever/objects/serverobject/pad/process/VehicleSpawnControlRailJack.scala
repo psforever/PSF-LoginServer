@@ -23,7 +23,7 @@ class VehicleSpawnControlRailJack(pad: VehicleSpawnPad) extends VehicleSpawnCont
   def LogId = "-lifter"
 
   val seatDriver =
-    context.actorOf(Props(classOf[VehicleSpawnControlSeatDriver], pad), s"${context.parent.path.name}-seat")
+    context.actorOf(Props(classOf[VehicleSpawnControlSeatDriver], pad), s"${context.parent.path.name}-mount")
 
   def receive: Receive = {
     case order @ VehicleSpawnControl.Order(_, vehicle) =>

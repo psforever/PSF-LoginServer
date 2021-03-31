@@ -142,7 +142,7 @@ class ChatService(context: ActorContext[ChatService.Command]) extends AbstractBe
                 )
 
               case (None, _, _, _) =>
-                log.error("received message from non-subscribed actor")
+                log.warn("received message from non-subscribed actor")
 
             }
 

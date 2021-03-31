@@ -13,7 +13,7 @@ import net.psforever.types.{PlanetSideGUID, _}
 import org.specs2.mutable.Specification
 
 class ProjectileTest extends Specification {
-  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
   val fury   = Vehicle(GlobalDefinitions.fury)
 
   "Range" should {
@@ -209,7 +209,7 @@ class ProjectileTest extends Specification {
 
     "contain timely information" in {
       val obj =
-        Player(Avatar(0, "TestCharacter-alt", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+        Player(Avatar(0, "TestCharacter-alt", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
       obj.VehicleSeated = Some(PlanetSideGUID(1))
       obj.Position = Vector3(1.2f, 3.4f, 5.6f)
       obj.Orientation = Vector3(2.1f, 4.3f, 6.5f)
@@ -333,7 +333,7 @@ class ProjectileTest extends Specification {
   "Projectile DamageInteraction" should { //TODO wrong place for this test?
     val beamer_wep = Tool(GlobalDefinitions.beamer)
     val p_source   = PlayerSource(player)
-    val player2    = Player(Avatar(0, "TestTarget", PlanetSideEmpire.NC, CharacterGender.Female, 1, CharacterVoice.Mute))
+    val player2    = Player(Avatar(0, "TestTarget", PlanetSideEmpire.NC, CharacterSex.Female, 1, CharacterVoice.Mute))
     val p2_source  = PlayerSource(player2)
     val projectile = Projectile(
       beamer_wep.Projectile,

@@ -15,6 +15,7 @@ import net.psforever.packet.game.GenericActionEnum.GenericActionEnum
 import net.psforever.packet.game.GenericObjectActionEnum.GenericObjectActionEnum
 import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
 import net.psforever.packet.game.{ChatMsg, DeployableInfo, DeploymentAction, TriggeredSound}
+import net.psforever.services.hart.HartTimer.OrbitalShuttleEvent
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 final case class LocalServiceMessage(forChannel: String, actionMessage: LocalAction.Action)
@@ -38,6 +39,7 @@ object LocalAction {
   final case class Detonate(guid: PlanetSideGUID, obj: PlanetSideGameObject)           extends Action
   final case class DoorOpens(player_guid: PlanetSideGUID, continent: Zone, door: Door) extends Action
   final case class DoorCloses(player_guid: PlanetSideGUID, door_guid: PlanetSideGUID)  extends Action
+  final case class DoorSlamsShut(door: Door)                                           extends Action
   final case class HackClear(player_guid: PlanetSideGUID, target: PlanetSideServerObject, unk1: Long, unk2: Long = 8L)
       extends Action
   final case class HackTemporarily(
@@ -87,7 +89,16 @@ object LocalAction {
       src_guid: PlanetSideGUID,
       dest_guid: PlanetSideGUID
   )                                                                                       extends Action
+  final case class SendResponse(pkt: PlanetSideGamePacket)                                extends Action
   final case class SetEmpire(object_guid: PlanetSideGUID, empire: PlanetSideEmpire.Value) extends Action
+  final case class ShuttleDock(pad_guid: PlanetSideGUID, shuttle_guid: PlanetSideGUID, toSlot: Int)   extends Action
+  final case class ShuttleUndock(
+      pad_guid: PlanetSideGUID,
+      shuttle_guid: PlanetSideGUID,
+      pos: Vector3, orient: Vector3
+  ) extends Action
+  final case class ShuttleEvent(ev: OrbitalShuttleEvent)                                              extends Action
+  final case class ShuttleState(guid: PlanetSideGUID, pos: Vector3, orientation: Vector3, state: Int) extends Action
   final case class ToggleTeleportSystem(
       player_guid: PlanetSideGUID,
       router: Vehicle,

@@ -3,7 +3,7 @@ package net.psforever.persistence
 import net.psforever.objects.avatar
 import net.psforever.objects.avatar.Cosmetic
 import org.joda.time.LocalDateTime
-import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire}
+import net.psforever.types.{CharacterSex, CharacterVoice, PlanetSideEmpire}
 
 case class Avatar(
     id: Int,
@@ -27,7 +27,7 @@ case class Avatar(
       id,
       name,
       PlanetSideEmpire(factionId),
-      CharacterGender(genderId),
+      CharacterSex.valuesToEntriesMap(genderId),
       headId,
       CharacterVoice(voiceId),
       bep,

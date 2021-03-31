@@ -39,7 +39,7 @@ class VehicleSpawnControl2Test extends ActorTest {
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.LoadVehicle])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.AttachToRails])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.StartPlayerSeatedInVehicle])
-      vehicle.Seats(0).Occupant = player
+      vehicle.Seats(0).mount(player)
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.PlayerSeatedInVehicle])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.DetachFromRails])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.ServerVehicleOverrideStart])
@@ -58,7 +58,7 @@ class VehicleSpawnControl3Test extends ActorTest {
       val (vehicle, player, pad, zone) = VehicleSpawnPadControlTest.SetUpAgents(PlanetSideEmpire.TR)
       //we can recycle the vehicle and the player for each order
       val probe   = new TestProbe(system, "zone-events")
-      val player2 = Player(Avatar(0, "test2", player.Faction, CharacterGender.Male, 0, CharacterVoice.Mute))
+      val player2 = Player(Avatar(0, "test2", player.Faction, CharacterSex.Male, 0, CharacterVoice.Mute))
       player2.GUID = PlanetSideGUID(11)
       player2.Continent = zone.id
       player2.Spawn()
@@ -75,7 +75,7 @@ class VehicleSpawnControl3Test extends ActorTest {
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.LoadVehicle])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.AttachToRails])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.StartPlayerSeatedInVehicle])
-      vehicle.Seats(0).Occupant = player
+      vehicle.Seats(0).mount(player)
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.PlayerSeatedInVehicle])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.DetachFromRails])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.ServerVehicleOverrideStart])
@@ -92,7 +92,7 @@ class VehicleSpawnControl3Test extends ActorTest {
       //if we move the vehicle away from the pad, we should receive a second ConcealPlayer message
       //that means that the first order has cleared and the spawn pad is now working on the second order successfully
       player.VehicleSeated = None //since shared between orders, as necessary
-      vehicle.Seats(0).Occupant = None
+      vehicle.Seats(0).unmount(player)
       vehicle.Position = Vector3(12, 0, 0)
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.ResetSpawnPad])
       probe.expectMsgClass(3 seconds, classOf[VehicleSpawnPad.ConcealPlayer])
@@ -216,7 +216,7 @@ object VehicleSpawnPadControlTest {
     import net.psforever.objects.serverobject.structures.Building
     import net.psforever.objects.vehicles.VehicleControl
     import net.psforever.objects.Tool
-    import net.psforever.types.CharacterGender
+    import net.psforever.types.CharacterSex
 
     val vehicle             = Vehicle(GlobalDefinitions.two_man_assault_buggy)
     val weapon              = vehicle.WeaponControlledFromSeat(1).get.asInstanceOf[Tool]
@@ -245,7 +245,7 @@ object VehicleSpawnPadControlTest {
     pad.Owner.Faction = faction
     pad.Zone = zone
     guid.register(pad, "test-pool")
-    val player = Player(Avatar(0, "test", faction, CharacterGender.Male, 0, CharacterVoice.Mute))
+    val player = Player(Avatar(0, "test", faction, CharacterSex.Male, 0, CharacterVoice.Mute))
     guid.register(player, "test-pool")
     player.Zone = zone
     player.Spawn()

@@ -3,8 +3,8 @@ package net.psforever.objects.serverobject.turret
 
 import net.psforever.objects.{Default, GlobalDefinitions, Player, Tool}
 import net.psforever.objects.equipment.{Ammo, JammableMountedWeapons}
-import net.psforever.objects.serverobject.CommonMessages
-import net.psforever.objects.serverobject.mount.MountableBehavior
+import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
+import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableWeaponTurret}
 import net.psforever.objects.serverobject.hackable.GenericHackables
@@ -31,8 +31,7 @@ import scala.concurrent.duration._
 class FacilityTurretControl(turret: FacilityTurret)
     extends PoweredAmenityControl
     with FactionAffinityBehavior.Check
-    with MountableBehavior.TurretMount
-    with MountableBehavior.Dismount
+    with MountableBehavior
     with DamageableWeaponTurret
     with RepairableWeaponTurret
     with AmenityAutoRepair
@@ -74,7 +73,7 @@ class FacilityTurretControl(turret: FacilityTurret)
               item.Magazine > 0 && turret.Seats.values.forall(!_.isOccupied) =>
           TurretUpgrade.values.find(_.id == upgradeValue) match {
             case Some(upgrade)
-                if turret.Upgrade != upgrade && turret.Definition.Weapons.values
+                if turret.Upgrade != upgrade && turret.Definition.WeaponPaths.values
                   .flatMap(_.keySet)
                   .exists(_ == upgrade) =>
               sender() ! CommonMessages.Progress(
@@ -103,7 +102,7 @@ class FacilityTurretControl(turret: FacilityTurret)
           if (weapon.Magazine < weapon.MaxMagazine && System.nanoTime() - weapon.LastDischarge > 3000000000L) {
             weapon.Magazine += 1
             val seat = turret.Seat(0).get
-            seat.Occupant match {
+            seat.occupant match {
               case Some(player: Player) =>
                 turret.Zone.LocalEvents ! LocalServiceMessage(
                   turret.Zone.id,
@@ -125,6 +124,13 @@ class FacilityTurretControl(turret: FacilityTurret)
       .orElse {
         case _ => ;
       }
+
+  override protected def mountTest(
+                                    obj: PlanetSideServerObject with Mountable,
+                                    seatNumber: Int,
+                                    player: Player): Boolean = {
+    (!turret.Definition.FactionLocked || player.Faction == obj.Faction) && !obj.Destroyed
+  }
 
   override protected def DamageAwareness(target: Damageable.Target, cause: DamageResult, amount: Any) : Unit = {
     tryAutoRepair()
@@ -172,9 +178,9 @@ class FacilityTurretControl(turret: FacilityTurret)
     val zoneId = zone.id
     val events = zone.VehicleEvents
     turret.Seats.values.foreach(seat =>
-      seat.Occupant match {
+      seat.occupant match {
         case Some(player) =>
-          seat.Occupant = None
+          seat.unmount(player)
           player.VehicleSeated = None
           if (player.HasGUID) {
             events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, false, guid))

@@ -485,7 +485,7 @@ class PacketCodingActorITest extends ActorTest {
     BasicCharacterData(
       "IlllIIIlllIlIllIlllIllI",
       PlanetSideEmpire.VS,
-      CharacterGender.Female,
+      CharacterSex.Female,
       41,
       CharacterVoice.Voice1
     ),
@@ -600,7 +600,7 @@ class PacketCodingActorKTest extends ActorTest {
     BasicCharacterData(
       "IlllIIIlllIlIllIlllIllI",
       PlanetSideEmpire.VS,
-      CharacterGender.Female,
+      CharacterSex.Female,
       41,
       CharacterVoice.Voice1
     ),

@@ -14,7 +14,7 @@ class VariantVehicleConverter extends VehicleConverter {
      */
     Some(
       VariantVehicleData(
-        if (obj.Definition.CanFly && obj.Flying) 7 else 0
+        if (obj.Definition.CanFly && obj.isFlying) 7 else 0
       )
     )
   }

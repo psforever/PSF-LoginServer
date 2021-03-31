@@ -27,27 +27,19 @@ class LocalService(zone: Zone) extends Actor {
     context.actorOf(Props[RouterTelepadActivation](), s"${zone.id}-telepad-activate-agent")
   private[this] val log = org.log4s.getLogger
 
-  override def preStart() = {
-    log.trace(s"Awaiting ${zone.id} local events ...")
-  }
-
   val LocalEvents = new GenericEventBus[LocalServiceResponse]
 
   def receive: Receive = {
     case Service.Join(channel) =>
       val path = s"/$channel/Local"
-      val who  = sender()
-      log.info(s"$who has joined $path")
-      LocalEvents.subscribe(who, path)
+      LocalEvents.subscribe(sender(), path)
 
     case Service.Leave(None) =>
       LocalEvents.unsubscribe(sender())
 
     case Service.Leave(Some(channel)) =>
       val path = s"/$channel/Local"
-      val who  = sender()
-      log.info(s"$who has left $path")
-      LocalEvents.unsubscribe(who, path)
+      LocalEvents.unsubscribe(sender(), path)
 
     case Service.LeaveAll() =>
       LocalEvents.unsubscribe(sender())
@@ -82,6 +74,12 @@ class LocalService(zone: Zone) extends Actor {
         case LocalAction.DoorCloses(player_guid, door_guid) =>
           LocalEvents.publish(
             LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.DoorCloses(door_guid))
+          )
+        case LocalAction.DoorSlamsShut(door) =>
+          val door_guid = door.GUID
+          doorCloser ! SupportActor.HurrySpecific(List(door), zone)
+          LocalEvents.publish(
+            LocalServiceResponse(s"/$forChannel/Local", Service.defaultPlayerGUID, LocalResponse.DoorCloses(door_guid))
           )
         case LocalAction.HackClear(player_guid, target, unk1, unk2) =>
           LocalEvents.publish(
@@ -175,12 +173,48 @@ class LocalService(zone: Zone) extends Actor {
               LocalResponse.RouterTelepadTransport(passenger_guid, src_guid, dest_guid)
             )
           )
+        case LocalAction.SendResponse(pkt) =>
+          LocalEvents.publish(
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              Service.defaultPlayerGUID,
+              LocalResponse.SendResponse(pkt)
+            )
+          )
         case LocalAction.SetEmpire(object_guid, empire) =>
           LocalEvents.publish(
             LocalServiceResponse(
               s"/$forChannel/Local",
               Service.defaultPlayerGUID,
               LocalResponse.SetEmpire(object_guid, empire)
+            )
+          )
+        case LocalAction.ShuttleDock(pad, shuttle, slot) =>
+          LocalEvents.publish(
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              Service.defaultPlayerGUID,
+              LocalResponse.ShuttleDock(pad, shuttle, slot)
+            )
+          )
+        case LocalAction.ShuttleUndock(pad, shuttle, pos, orient) =>
+          LocalEvents.publish(
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              Service.defaultPlayerGUID,
+              LocalResponse.ShuttleUndock(pad, shuttle, pos, orient)
+            )
+          )
+        case LocalAction.ShuttleEvent(ev) =>
+          LocalEvents.publish(
+            LocalServiceResponse(s"/$forChannel/Local", Service.defaultPlayerGUID, LocalResponse.ShuttleEvent(ev))
+          )
+        case LocalAction.ShuttleState(guid, pos, orient, state) =>
+          LocalEvents.publish(
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              Service.defaultPlayerGUID,
+              LocalResponse.ShuttleState(guid, pos, orient, state)
             )
           )
         case LocalAction.ToggleTeleportSystem(player_guid, router, system_plan) =>
@@ -219,7 +253,7 @@ class LocalService(zone: Zone) extends Actor {
               LocalResponse.TriggerSound(sound, pos, unk, volume)
             )
           )
-        case LocalAction.UpdateForceDomeStatus(player_guid, building_guid, activated) => {
+        case LocalAction.UpdateForceDomeStatus(player_guid, building_guid, activated) =>
           LocalEvents.publish(
             LocalServiceResponse(
               s"/$forChannel/Local",
@@ -227,7 +261,6 @@ class LocalService(zone: Zone) extends Actor {
               LocalResponse.UpdateForceDomeStatus(building_guid, activated)
             )
           )
-        }
         case LocalAction.RechargeVehicleWeapon(player_guid, vehicle_guid, weapon_guid) =>
           LocalEvents.publish(
             LocalServiceResponse(
@@ -248,13 +281,6 @@ class LocalService(zone: Zone) extends Actor {
     //response from HackClearActor
     case HackClearActor.SendHackMessageHackCleared(target_guid, _, unk1, unk2) =>
       log.info(s"Clearing hack for $target_guid")
-      LocalEvents.publish(
-        LocalServiceResponse(
-          s"/${zone.id}/Local",
-          Service.defaultPlayerGUID,
-          LocalResponse.SendHackMessageHackCleared(target_guid, unk1, unk2)
-        )
-      )
 
     //message from ProximityTerminalControl
     case Terminal.StartProximityEffect(terminal) =>
@@ -284,9 +310,9 @@ class LocalService(zone: Zone) extends Actor {
       if (seats.count(_.isOccupied) > 0) {
         val wasKickedByDriver = false //TODO yeah, I don't know
         seats.foreach(seat => {
-          seat.Occupant match {
+          seat.occupant match {
             case Some(tplayer) =>
-              seat.Occupant = None
+              seat.unmount(tplayer)
               tplayer.VehicleSeated = None
               zone.VehicleEvents ! VehicleServiceMessage(
                 zone.id,
@@ -342,7 +368,7 @@ class LocalService(zone: Zone) extends Actor {
               //get rid of previous linked remote telepad (if any)
               zone.GUID(internalTelepad.Telepad) match {
                 case Some(old: TelepadDeployable) =>
-                  log.info(
+                  log.trace(
                     s"ActivateTeleportSystem: old remote telepad@${old.GUID.guid} linked to internal@${internalTelepad.GUID.guid} will be deconstructed"
                   )
                   old.Active = false
@@ -352,7 +378,7 @@ class LocalService(zone: Zone) extends Actor {
               }
               internalTelepad.Telepad = remoteTelepad.GUID
               if (internalTelepad.Active) {
-                log.info(
+                log.trace(
                   s"ActivateTeleportSystem: fully deployed router@${router.GUID.guid} in ${zone.id} will link internal@${internalTelepad.GUID.guid} and remote@${remoteTelepad.GUID.guid}"
                 )
                 LocalEvents.publish(

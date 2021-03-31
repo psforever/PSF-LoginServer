@@ -50,7 +50,7 @@ class DeployableRemover(taskResolver: ActorRef) extends RemoverActor(taskResolve
 
   override def SecondJob(entry: RemoverActor.Entry): Unit = {
     val obj = entry.obj.asInstanceOf[PlanetSideGameObject with Deployable]
-    info(s"Deleting a ${obj.Definition.Name} deployable")
+    trace(s"Deleting a ${obj.Definition.Name} deployable")
     context.parent ! DeployableRemover.EliminateDeployable(obj, obj.GUID, obj.Position, entry.zone)
     super.SecondJob(entry)
   }

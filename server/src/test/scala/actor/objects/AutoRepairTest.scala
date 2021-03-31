@@ -20,13 +20,13 @@ import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.objects.{GlobalDefinitions, Player, Tool}
 import net.psforever.services.ServiceManager
-import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, Vector3}
+import net.psforever.types.{CharacterSex, CharacterVoice, PlanetSideEmpire, Vector3}
 
 import scala.concurrent.duration._
 
 class AutoRepairRequestNtuTest extends FreedContextActorTest {
   ServiceManager.boot
-  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
   player.Spawn()
   val weapon = new Tool(GlobalDefinitions.suppressor)
   val terminal = new Terminal(AutoRepairTest.terminal_definition)
@@ -87,7 +87,7 @@ class AutoRepairRequestNtuTest extends FreedContextActorTest {
 
 class AutoRepairRequestNtuRepeatTest extends FreedContextActorTest {
   ServiceManager.boot
-  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
   player.Spawn()
   val weapon = new Tool(GlobalDefinitions.suppressor)
   val terminal = new Terminal(AutoRepairTest.terminal_definition)
@@ -151,7 +151,7 @@ class AutoRepairRequestNtuRepeatTest extends FreedContextActorTest {
 
 class AutoRepairNoRequestNtuTest extends FreedContextActorTest {
   ServiceManager.boot
-  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
   player.Spawn()
   val weapon = new Tool(GlobalDefinitions.suppressor)
   val terminal = new Terminal(AutoRepairTest.terminal_definition)
@@ -209,7 +209,7 @@ class AutoRepairNoRequestNtuTest extends FreedContextActorTest {
 
 class AutoRepairRestoreRequestNtuTest extends FreedContextActorTest {
   ServiceManager.boot
-  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
   player.Spawn()
   val weapon = new Tool(GlobalDefinitions.suppressor)
   val terminal = new Terminal(AutoRepairTest.terminal_definition)
@@ -274,7 +274,7 @@ class AutoRepairRestoreRequestNtuTest extends FreedContextActorTest {
 
 class AutoRepairRepairWithNtuTest extends FreedContextActorTest {
   ServiceManager.boot
-  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
   player.Spawn()
   val weapon = new Tool(GlobalDefinitions.suppressor)
   val terminal = new Terminal(AutoRepairTest.terminal_definition)
@@ -336,7 +336,7 @@ class AutoRepairRepairWithNtuTest extends FreedContextActorTest {
 
 class AutoRepairRepairWithNtuUntilDoneTest extends FreedContextActorTest {
   ServiceManager.boot
-  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
   player.Spawn()
   val weapon = new Tool(GlobalDefinitions.suppressor)
   val terminal = new Terminal(AutoRepairTest.terminal_definition)

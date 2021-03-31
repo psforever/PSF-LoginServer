@@ -13,11 +13,11 @@ import scala.concurrent.duration._
   * The basic `VehicleSpawnControl` is the root of a simple tree of "spawn control" objects that chain to each other.
   * Each object performs on (or more than one related) actions upon the vehicle order that was submitted.<br>
   * <br>
-  * This object forces the prospective driver to take the driver seat.
+  * This object forces the prospective driver to take the driver mount.
   * Multiple separate but sequentially significant steps occur within the scope of this object.
   * First, this step waits for the vehicle to be completely ready to accept the driver.
-  * Second, this step triggers the player to actually be moved into the driver seat.
-  * Finally, this step waits until the driver is properly in the driver seat.
+  * Second, this step triggers the player to actually be moved into the driver mount.
+  * Finally, this step waits until the driver is properly in the driver mount.
   * It has failure cases should the driver or the vehicle be in an incorrect state.
   * @see `ZonePopulationActor`
   * @param pad the `VehicleSpawnPad` object being governed

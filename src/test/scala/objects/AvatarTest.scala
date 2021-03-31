@@ -6,12 +6,12 @@ import net.psforever.objects._
 import net.psforever.objects.avatar.{Avatar, BattleRank, Implant}
 import net.psforever.objects.definition.ImplantDefinition
 import net.psforever.objects.locker.LockerEquipment
-import net.psforever.types.{CharacterGender, CharacterVoice, ImplantType, PlanetSideEmpire}
+import net.psforever.types.{CharacterSex, CharacterVoice, ImplantType, PlanetSideEmpire}
 import org.specs2.mutable._
 
 class AvatarTest extends Specification {
   def CreatePlayer(): (Player, Avatar) = {
-    val avatar = Avatar(0, "TestCharacter", PlanetSideEmpire.VS, CharacterGender.Female, 41, CharacterVoice.Voice1)
+    val avatar = Avatar(0, "TestCharacter", PlanetSideEmpire.VS, CharacterSex.Female, 41, CharacterVoice.Voice1)
     val player = Player(avatar)
     player.Slot(0).Equipment = Tool(beamer)
     player.Slot(2).Equipment = Tool(suppressor)
@@ -26,10 +26,10 @@ class AvatarTest extends Specification {
   }
 
   "construct" in {
-    val av = Avatar(0, "Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+    val av = Avatar(0, "Chord", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Voice5)
     av.name mustEqual "Chord"
     av.faction mustEqual PlanetSideEmpire.TR
-    av.sex mustEqual CharacterGender.Male
+    av.sex mustEqual CharacterSex.Male
     av.head mustEqual 0
     av.voice mustEqual CharacterVoice.Voice5
     av.bep mustEqual 0
@@ -39,7 +39,7 @@ class AvatarTest extends Specification {
   }
 
   "can not maintain experience point values below zero" in {
-    val av = Avatar(0, "Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+    val av = Avatar(0, "Chord", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Voice5)
     av.bep mustEqual 0
     av.copy(bep = -1) must throwA[AssertionError]
     av.copy(cep = -1) must throwA[AssertionError]
@@ -47,7 +47,7 @@ class AvatarTest extends Specification {
 
   //refer to ImplantTest.scala for more tests
   "maximum of three implant slots" in {
-    val obj = Avatar(0, "Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+    val obj = Avatar(0, "Chord", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Voice5)
     obj.implants.length mustEqual 3
     obj.implants(0) must beNone
     obj.implants(1) must beNone
@@ -61,7 +61,7 @@ class AvatarTest extends Specification {
       0,
       "Chord",
       PlanetSideEmpire.TR,
-      CharacterGender.Male,
+      CharacterSex.Male,
       0,
       CharacterVoice.Voice5,
       bep = BattleRank.BR6.experience
@@ -81,7 +81,7 @@ class AvatarTest extends Specification {
   "can not install the same type of implant twice" in {
     val testplant1 = Implant(new ImplantDefinition(ImplantType.AdvancedRegen))
     val testplant2 = Implant(new ImplantDefinition(ImplantType.AdvancedRegen))
-    val obj        = Avatar(0, "Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+    val obj        = Avatar(0, "Chord", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Voice5)
     obj.copy(implants = obj.implants.updated(0, Some(testplant1)).updated(1, Some(testplant2))) must throwA[
       AssertionError
     ]
@@ -91,7 +91,7 @@ class AvatarTest extends Specification {
     val testplant1 = Implant(new ImplantDefinition(ImplantType.AdvancedRegen))
     val testplant2 = Implant(new ImplantDefinition(ImplantType.Surge))
     val testplant3 = Implant(new ImplantDefinition(ImplantType.DarklightVision))
-    val obj        = Avatar(0, "Chord", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Voice5)
+    val obj        = Avatar(0, "Chord", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Voice5)
     obj.copy(
       bep = BattleRank.BR12.value,
       implants = Seq(Some(testplant1), Some(testplant2), Some(testplant3))

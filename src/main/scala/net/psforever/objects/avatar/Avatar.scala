@@ -72,7 +72,7 @@ case class Avatar(
     id: Int,
     name: String,
     faction: PlanetSideEmpire.Value,
-    sex: CharacterGender.Value,
+    sex: CharacterSex,
     head: Int,
     voice: CharacterVoice.Value,
     bep: Long = 0,

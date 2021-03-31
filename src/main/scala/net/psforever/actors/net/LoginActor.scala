@@ -100,10 +100,9 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
         val clientVersion = s"Client Version: $majorVersion.$minorVersion.$revision, $buildDate"
 
         if (token.isDefined)
-          log.info(s"New login UN:$username Token:${token.get}. $clientVersion")
+          log.trace(s"New login UN:$username Token:${token.get}. $clientVersion")
         else {
-//        log.info(s"New login UN:$username PW:$password. $clientVersion")
-          log.info(s"New login UN:$username. $clientVersion")
+          log.trace(s"New login UN:$username. $clientVersion")
         }
 
         accountLogin(username, password.get)
@@ -115,7 +114,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
         middlewareActor ! MiddlewareActor.Close()
 
       case _ =>
-        log.debug(s"Unhandled GamePacket $pkt")
+        log.warn(s"Unhandled GamePacket $pkt")
     }
 
   def accountLogin(username: String, password: String): Unit = {
@@ -197,7 +196,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
   }
 
   def loginPwdFailureResponse(username: String, newToken: String) = {
-    log.info(s"Failed login to account $username")
+    log.warn(s"Failed login to account $username")
     middlewareActor ! MiddlewareActor.Send(
       LoginRespMessage(
         newToken,
@@ -212,7 +211,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
   }
 
   def loginFailureResponse(username: String, newToken: String) = {
-    log.info("DB problem")
+    log.warn("DB problem")
     middlewareActor ! MiddlewareActor.Send(
       LoginRespMessage(
         newToken,
@@ -227,7 +226,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
   }
 
   def loginAccountFailureResponse(username: String, newToken: String) = {
-    log.info(s"Account $username inactive")
+    log.warn(s"Account $username inactive")
     middlewareActor ! MiddlewareActor.Send(
       LoginRespMessage(
         newToken,

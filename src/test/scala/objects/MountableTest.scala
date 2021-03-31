@@ -5,11 +5,10 @@ import akka.actor.{Actor, ActorRef, Props}
 import base.ActorTest
 import net.psforever.objects.Player
 import net.psforever.objects.avatar.Avatar
-import net.psforever.objects.definition.{ObjectDefinition, SeatDefinition}
-import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
+import net.psforever.objects.definition.ObjectDefinition
+import net.psforever.objects.serverobject.mount._
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.vehicles.Seat
-import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, PlanetSideGUID}
+import net.psforever.types.{CharacterSex, CharacterVoice, PlanetSideEmpire, PlanetSideGUID}
 
 import scala.concurrent.duration.Duration
 
@@ -26,7 +25,7 @@ class MountableControl1Test extends ActorTest {
 class MountableControl2Test extends ActorTest {
   "MountableControl" should {
     "let a player mount" in {
-      val player = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+      val player = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
       val obj    = new MountableTest.MountableTestObject
       obj.Actor = system.actorOf(Props(classOf[MountableTest.MountableTestControl], obj), "mountable")
       val msg = Mountable.TryMount(player, 0)
@@ -39,7 +38,7 @@ class MountableControl2Test extends ActorTest {
       assert(reply2.response.isInstanceOf[Mountable.CanMount])
       val reply3 = reply2.response.asInstanceOf[Mountable.CanMount]
       assert(reply3.obj == obj)
-      assert(reply3.seat_num == 0)
+      assert(reply3.seat_number == 0)
     }
   }
 }
@@ -47,8 +46,8 @@ class MountableControl2Test extends ActorTest {
 class MountableControl3Test extends ActorTest {
   "MountableControl" should {
     "block a player from mounting" in {
-      val player1 = Player(Avatar(0, "test1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
-      val player2 = Player(Avatar(1, "test2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+      val player1 = Player(Avatar(0, "test1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
+      val player2 = Player(Avatar(1, "test2", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
       val obj     = new MountableTest.MountableTestObject
       obj.Actor = system.actorOf(Props(classOf[MountableTest.MountableTestControl], obj), "mountable")
       obj.Actor ! Mountable.TryMount(player1, 0)
@@ -62,35 +61,25 @@ class MountableControl3Test extends ActorTest {
       assert(reply2.response.isInstanceOf[Mountable.CanNotMount])
       val reply3 = reply2.response.asInstanceOf[Mountable.CanNotMount]
       assert(reply3.obj == obj)
-      assert(reply3.seat_num == 0)
+      assert(reply3.mount_point == 0)
     }
   }
 }
 
 object MountableTest {
   class MountableTestObject extends PlanetSideServerObject with Mountable {
-    private val seats: Map[Int, Seat]                  = Map(0 -> new Seat(new SeatDefinition()))
-    def Seats: Map[Int, Seat]                          = seats
-    def Seat(seatNum: Int): Option[Seat]               = seats.get(seatNum)
-    def MountPoints: Map[Int, Int]                     = Map(1 -> 0)
-    def GetSeatFromMountPoint(mount: Int): Option[Int] = MountPoints.get(mount)
-    def PassengerInSeat(user: Player): Option[Int] = {
-      if (seats(0).Occupant.contains(user)) {
-        Some(0)
-      } else {
-        None
-      }
-    }
+    seats += 0 -> new Seat(new SeatDefinition())
     GUID = PlanetSideGUID(1)
     //eh whatever
     def Faction                      = PlanetSideEmpire.TR
-    def Definition: ObjectDefinition = null
+    def Definition = new ObjectDefinition(1) with MountableDefinition {
+      MountPoints += 0 -> MountInfo(0)
+    }
   }
 
   class MountableTestControl(obj: PlanetSideServerObject with Mountable)
       extends Actor
-      with MountableBehavior.Mount
-      with MountableBehavior.Dismount {
+      with MountableBehavior {
     override def MountableObject = obj
 
     def receive: Receive = mountBehavior.orElse(dismountBehavior)

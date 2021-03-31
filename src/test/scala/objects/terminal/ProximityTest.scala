@@ -17,7 +17,7 @@ import net.psforever.objects.serverobject.terminals.{
 }
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.objects.{GlobalDefinitions, Player}
-import net.psforever.types.{CharacterGender, CharacterVoice, PlanetSideEmpire, PlanetSideGUID}
+import net.psforever.types.{CharacterSex, CharacterVoice, PlanetSideEmpire, PlanetSideGUID}
 import org.specs2.mutable.Specification
 import net.psforever.services.Service
 import net.psforever.services.local.LocalService
@@ -41,7 +41,7 @@ class ProximityTest extends Specification {
             ProximityTest.avatarId.getAndIncrement(),
             "TestCharacter1",
             PlanetSideEmpire.VS,
-            CharacterGender.Female,
+            CharacterSex.Female,
             1,
             CharacterVoice.Voice1
           )
@@ -54,7 +54,7 @@ class ProximityTest extends Specification {
             ProximityTest.avatarId.getAndIncrement(),
             "TestCharacter2",
             PlanetSideEmpire.VS,
-            CharacterGender.Female,
+            CharacterSex.Female,
             1,
             CharacterVoice.Voice1
           )
@@ -77,7 +77,7 @@ class ProximityTest extends Specification {
             ProximityTest.avatarId.getAndIncrement(),
             "TestCharacter1",
             PlanetSideEmpire.VS,
-            CharacterGender.Female,
+            CharacterSex.Female,
             1,
             CharacterVoice.Voice1
           )
@@ -90,7 +90,7 @@ class ProximityTest extends Specification {
             ProximityTest.avatarId.getAndIncrement(),
             "TestCharacter2",
             PlanetSideEmpire.VS,
-            CharacterGender.Female,
+            CharacterSex.Female,
             1,
             CharacterVoice.Voice1
           )
@@ -118,7 +118,7 @@ class ProximityTest extends Specification {
             ProximityTest.avatarId.getAndIncrement(),
             "TestCharacter1",
             PlanetSideEmpire.VS,
-            CharacterGender.Female,
+            CharacterSex.Female,
             1,
             CharacterVoice.Voice1
           )
@@ -140,7 +140,7 @@ class ProximityTest extends Specification {
             ProximityTest.avatarId.getAndIncrement(),
             "TestCharacter1",
             PlanetSideEmpire.VS,
-            CharacterGender.Female,
+            CharacterSex.Female,
             1,
             CharacterVoice.Voice1
           )
@@ -184,7 +184,7 @@ class ProximityTerminalControlStartTest extends ActorTest {
           ProximityTest.avatarId.getAndIncrement(),
           "TestCharacter1",
           PlanetSideEmpire.VS,
-          CharacterGender.Female,
+          CharacterSex.Female,
           1,
           CharacterVoice.Voice1
         )
@@ -235,7 +235,7 @@ class ProximityTerminalControlTwoUsersTest extends ActorTest {
           ProximityTest.avatarId.getAndIncrement(),
           "TestCharacter1",
           PlanetSideEmpire.VS,
-          CharacterGender.Female,
+          CharacterSex.Female,
           1,
           CharacterVoice.Voice1
         )
@@ -249,7 +249,7 @@ class ProximityTerminalControlTwoUsersTest extends ActorTest {
           ProximityTest.avatarId.getAndIncrement(),
           "TestCharacter2",
           PlanetSideEmpire.VS,
-          CharacterGender.Female,
+          CharacterSex.Female,
           1,
           CharacterVoice.Voice1
         )
@@ -307,7 +307,7 @@ class ProximityTerminalControlStopTest extends ActorTest {
           ProximityTest.avatarId.getAndIncrement(),
           "TestCharacter1",
           PlanetSideEmpire.VS,
-          CharacterGender.Female,
+          CharacterSex.Female,
           1,
           CharacterVoice.Voice1
         )
@@ -361,7 +361,7 @@ class ProximityTerminalControlNotStopTest extends ActorTest {
           ProximityTest.avatarId.getAndIncrement(),
           "TestCharacter1",
           PlanetSideEmpire.VS,
-          CharacterGender.Female,
+          CharacterSex.Female,
           1,
           CharacterVoice.Voice1
         )
@@ -375,7 +375,7 @@ class ProximityTerminalControlNotStopTest extends ActorTest {
           ProximityTest.avatarId.getAndIncrement(),
           "TestCharacter2",
           PlanetSideEmpire.VS,
-          CharacterGender.Female,
+          CharacterSex.Female,
           1,
           CharacterVoice.Voice1
         )

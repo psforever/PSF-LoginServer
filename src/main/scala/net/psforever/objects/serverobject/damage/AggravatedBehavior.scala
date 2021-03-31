@@ -118,10 +118,10 @@ trait AggravatedBehavior {
                                         ): AggravatedBehavior.Entry = {
     val cause = data.cause
     val aggravatedDamageInfo = DamageInteraction(
-      AggravatedDamage.burning(cause.resolution),
       target,
+      data.hitPos,
       cause,
-      data.hitPos
+      AggravatedDamage.burning(cause.resolution)
     )
     val entry = AggravatedBehavior.Entry(id, effect, retime, aggravatedDamageInfo, powerOffset)
     entryIdToEntry += id -> entry

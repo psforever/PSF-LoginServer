@@ -121,8 +121,6 @@ class ChatActor(
           Behaviors.same
 
         case Message(message) =>
-          log.info("Chat: " + message)
-
           val gmCommandAllowed =
             session.account.gm || Config.app.development.unprivilegedGmCommands.contains(message.messageType)
 
@@ -675,11 +673,11 @@ class ChatActor(
             case (CMT_WARP, _, contents) if gmCommandAllowed =>
               val buffer = contents.toLowerCase.split("\\s+")
               val (coordinates, waypoint) = (buffer.lift(0), buffer.lift(1), buffer.lift(2)) match {
-                case (Some(x), Some(y), Some(z))            => (Some(x, y, z), None)
-                case (Some("to"), Some(character), None)    => (None, None) // TODO not implemented
-                case (Some("near"), Some(objectName), None) => (None, None) // TODO not implemented
-                case (Some(waypoint), None, None)           => (None, Some(waypoint))
-                case _                                      => (None, None)
+                case (Some(x), Some(y), Some(z))                        => (Some(x, y, z), None)
+                case (Some("to"), Some(character), None)                => (None, None) // TODO not implemented
+                case (Some("near"), Some(objectName), None)             => (None, None) // TODO not implemented
+                case (Some(waypoint), None, None) if waypoint.nonEmpty  => (None, Some(waypoint))
+                case _                                                  => (None, None)
               }
               (coordinates, waypoint) match {
                 case (Some((x, y, z)), None) if List(x, y, z).forall { str =>
@@ -687,6 +685,12 @@ class ChatActor(
                       coordinate.isDefined && coordinate.get >= 0 && coordinate.get <= 8191
                     } =>
                   sessionActor ! SessionActor.SetPosition(Vector3(x.toFloat, y.toFloat, z.toFloat))
+                case (None, Some(waypoint)) if waypoint == "-list" =>
+                  val zone = PointOfInterest.get(session.player.Zone.id)
+                  zone match {
+                    case Some(zone: PointOfInterest) => sessionActor ! SessionActor.SendResponse(ChatMsg(UNK_229, true, "", PointOfInterest.listAll(zone), None))
+                    case _ => ChatMsg(UNK_229, true, "", s"unknown player zone '${session.player.Zone.id}'", None)
+                  }
                 case (None, Some(waypoint)) if waypoint != "-help" =>
                   PointOfInterest.getWarpLocation(session.zone.id, waypoint) match {
                     case Some(location) => sessionActor ! SessionActor.SetPosition(location)
@@ -912,7 +916,7 @@ class ChatActor(
               }
 
             case _ =>
-              log.info(s"unhandled chat message $message")
+              log.warn(s"Unhandled chat message $message")
           }
           Behaviors.same
 
@@ -941,7 +945,7 @@ class ChatActor(
               val args = message.contents.split(" ")
               val (name, time) = (args.lift(0), args.lift(1)) match {
                 case (Some(name), _) if name != session.player.Name =>
-                  log.error("received silence message for other player")
+                  log.error("Received silence message for other player")
                   (None, None)
                 case (Some(name), None)                                     => (Some(name), Some(5))
                 case (Some(name), Some(time)) if time.toIntOption.isDefined => (Some(name), Some(time.toInt))
@@ -972,11 +976,11 @@ class ChatActor(
                   }
 
                 case (name, time) =>
-                  log.error(s"bad silence args $name $time")
+                  log.warn(s"Bad silence args $name $time")
               }
 
             case _ =>
-              log.error(s"unexpected messageType $message")
+              log.warn(s"Unexpected messageType $message")
 
           }
           Behaviors.same

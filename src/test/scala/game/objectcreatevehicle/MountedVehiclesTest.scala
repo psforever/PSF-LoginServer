@@ -57,7 +57,7 @@ class MountedVehiclesTest extends Specification {
                         a.app mustEqual BasicCharacterData(
                           "ScrawnyRonnie",
                           PlanetSideEmpire.TR,
-                          CharacterGender.Male,
+                          CharacterSex.Male,
                           5,
                           CharacterVoice.Voice5
                         )
@@ -146,7 +146,7 @@ class MountedVehiclesTest extends Specification {
       BasicCharacterData(
         "ScrawnyRonnie",
         PlanetSideEmpire.TR,
-        CharacterGender.Male,
+        CharacterSex.Male,
         5,
         CharacterVoice.Voice5
       ),

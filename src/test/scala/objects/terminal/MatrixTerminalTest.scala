@@ -21,7 +21,7 @@ class MatrixTerminalTest extends Specification {
     }
 
     "invalid message" in {
-      val player   = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute))
+      val player   = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
       val msg      = ItemTransactionMessage(PlanetSideGUID(1), TransactionType.Buy, 1, "lite_armor", 0, PlanetSideGUID(0))
       val terminal = Terminal(new MatrixTerminalDefinition(519))
       terminal.Owner = Vehicle(GlobalDefinitions.quadstealth)

@@ -26,9 +26,9 @@ import scala.concurrent.duration._
 
 class PlayerControlHealTest extends ActorTest {
   val player1 =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
+    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
   val player2 =
-    Player(Avatar(1, "TestCharacter2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=2
+    Player(Avatar(1, "TestCharacter2", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=2
   val avatarProbe = TestProbe()
   val guid = new NumberPoolHub(new MaxNumberSource(15))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
@@ -111,7 +111,7 @@ class PlayerControlHealTest extends ActorTest {
 }
 class PlayerControlHealSelfTest extends ActorTest {
   val player1 =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
+    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
   val avatarProbe = TestProbe()
   val guid = new NumberPoolHub(new MaxNumberSource(15))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
@@ -186,9 +186,9 @@ class PlayerControlHealSelfTest extends ActorTest {
 
 class PlayerControlRepairTest extends ActorTest {
   val player1 =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
+    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
   val player2 =
-    Player(Avatar(1, "TestCharacter2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=2
+    Player(Avatar(1, "TestCharacter2", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=2
   val avatarProbe = TestProbe()
   val guid = new NumberPoolHub(new MaxNumberSource(15))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
@@ -282,7 +282,7 @@ class PlayerControlRepairTest extends ActorTest {
 
 class PlayerControlRepairSelfTest extends ActorTest {
   val player1 =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
+    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
   val avatarProbe = TestProbe()
   val guid = new NumberPoolHub(new MaxNumberSource(15))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
@@ -357,9 +357,9 @@ class PlayerControlRepairSelfTest extends ActorTest {
 
 class PlayerControlDamageTest extends ActorTest {
   val player1 =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
+    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
   val player2 =
-    Player(Avatar(1, "TestCharacter2", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=2
+    Player(Avatar(1, "TestCharacter2", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=2
   val avatarProbe = TestProbe()
   val activityProbe = TestProbe()
   val guid = new NumberPoolHub(new MaxNumberSource(15))
@@ -462,9 +462,9 @@ class PlayerControlDamageTest extends ActorTest {
 
 class PlayerControlDeathStandingTest extends ActorTest {
   val player1 =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
+    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
   val player2 =
-    Player(Avatar(1, "TestCharacter2", PlanetSideEmpire.NC, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=2
+    Player(Avatar(1, "TestCharacter2", PlanetSideEmpire.NC, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=2
   val avatarProbe = TestProbe()
   val activityProbe = TestProbe()
   val guid = new NumberPoolHub(new MaxNumberSource(15))
@@ -606,9 +606,9 @@ class PlayerControlDeathStandingTest extends ActorTest {
 
 class PlayerControlDeathSeatedTest extends ActorTest {
   val player1 =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
+    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
   val player2 =
-    Player(Avatar(1, "TestCharacter2", PlanetSideEmpire.NC, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=2
+    Player(Avatar(1, "TestCharacter2", PlanetSideEmpire.NC, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=2
   val avatarProbe = TestProbe()
   val activityProbe = TestProbe()
   val guid = new NumberPoolHub(new MaxNumberSource(15))
@@ -666,7 +666,7 @@ class PlayerControlDeathSeatedTest extends ActorTest {
     "handle death when seated (in something)" in {
       player2.Health = player2.Definition.DamageDestroysAt + 1 //initial state manip
       player2.VehicleSeated = vehicle.GUID                     //initial state manip, anything
-      vehicle.Seats(0).Occupant = player2
+      vehicle.Seats(0).mount(player2)
       player2.Armor = 0 //initial state manip
       assert(player2.Health > player2.Definition.DamageDestroysAt)
       assert(player2.isAlive)
@@ -768,7 +768,7 @@ class PlayerControlDeathSeatedTest extends ActorTest {
 
 class PlayerControlInteractWithWaterTest extends ActorTest {
   val player1 =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
+    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
   val avatarProbe = TestProbe()
   val guid = new NumberPoolHub(new MaxNumberSource(15))
   val pool = Pool(EnvironmentAttribute.Water, DeepSquare(-1, 10, 10, 0, 0))
@@ -820,7 +820,7 @@ class PlayerControlInteractWithWaterTest extends ActorTest {
 
 class PlayerControlStopInteractWithWaterTest extends ActorTest {
   val player1 =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
+    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
   val avatarProbe = TestProbe()
   val guid = new NumberPoolHub(new MaxNumberSource(15))
   val pool = Pool(EnvironmentAttribute.Water, DeepSquare(-1, 10, 10, 0, 0))
@@ -883,7 +883,7 @@ class PlayerControlStopInteractWithWaterTest extends ActorTest {
 
 class PlayerControlInteractWithLavaTest extends ActorTest {
   val player1 =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
+    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
   val avatarProbe = TestProbe()
   val guid = new NumberPoolHub(new MaxNumberSource(15))
   val pool = Pool(EnvironmentAttribute.Lava, DeepSquare(-1, 10, 10, 0, 0))
@@ -943,7 +943,7 @@ class PlayerControlInteractWithLavaTest extends ActorTest {
 
 class PlayerControlInteractWithDeathTest extends ActorTest {
   val player1 =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterGender.Male, 0, CharacterVoice.Mute)) //guid=1
+    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
   val avatarProbe = TestProbe()
   val guid = new NumberPoolHub(new MaxNumberSource(15))
   val pool = Pool(EnvironmentAttribute.Death, DeepSquare(-1, 10, 10, 0, 0))

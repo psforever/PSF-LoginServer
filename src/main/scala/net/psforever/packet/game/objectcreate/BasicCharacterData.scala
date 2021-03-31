@@ -9,7 +9,7 @@ import net.psforever.types._
   * This partition of the data stream contains information used to represent how the player's avatar is presented.
   * This appearance coincides with the data available from the `CharacterCreateRequestMessage` packet.
   * @see `PlanetSideEmpire`<br>
-  *        `CharacterGender`
+  *        `CharacterSex`
   * @param name the unique name of the avatar;
   *             minimum of two characters
   * @param faction the empire to which the avatar belongs
@@ -21,7 +21,7 @@ import net.psforever.types._
 final case class BasicCharacterData(
     name: String,
     faction: PlanetSideEmpire.Value,
-    sex: CharacterGender.Value,
+    sex: CharacterSex,
     head: Int,
     voice: CharacterVoice.Value
 )

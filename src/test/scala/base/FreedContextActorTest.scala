@@ -38,7 +38,7 @@ private class ContextSensitive extends Actor {
     case _ =>
       context.become(PassThroughBehavior)
       output = sender()
-      sender() ! context
+      sender().tell(context, self)
   }
 
   /**
