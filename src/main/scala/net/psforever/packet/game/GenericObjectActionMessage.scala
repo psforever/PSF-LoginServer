@@ -11,37 +11,37 @@ import shapeless.{::, HNil}
 /**
   * Dispatched by the server to enact an effect on some game object.
   * (Write more some other time.)
-  * @param object_guid the target object
-  * @param code the action code (0-63)
-  *             6 - Deconstructs player
-  *             7 - Start imprinting process (progress bar + character animation)
-  *             8 - Finish imprinting?
-  *             9 - Cloak
-  *             10 - Uncloak
-  *             11 - Deploy capital base shield pole with animation and broadcasts "The capitol force dome at X has been activated"
-  *             12 - Stow capital base shield pole with animation and broadcasts "The capitol force dome at X has been deactivated"
-  *             13 - Deploy capital base shield pole (instantly, unless still in the middle of the stow animation)
-  *             14 - Changes capture console to say "Facility hacked by the <Faction> LLU has been spawned." when looked at
-  *             15 - Displays "This facility's generator is under attack!"
-  *             16 - Displays "Generator has Overloaded! Evacuate Generator Room Immediately!"
-  *             17 - Displays "This facility's generator is back on line"
-  *             19 - Cause mines to explode
-  *             20 - Hit flinch? (orig, 82->80)
-  *             21 - Reset build cooldown from using an ACE
-  *             22 - ???? (Has been seen on vehicle pad objects, possibly some sort of reset flag after base faction flip / hack clear?)
-  *             23 - Plays vehicle pad animation moving downwards
-  *             24 - Makes the vehicle bounce slightly. Have seen this in packet captures after taking a vehicle through a warpgate
-  *             27 - Activates the router internal telepad for linking
-  *             28 - Activates the router internal telepad for linking
-  *             29 - Activates the telepad deployable (also used on the router's internal telepad)
-  *             30 - Activates the telepad deployable (also used on the router's internal telepad)
-  *             31 - Animation during router teleportation (source)
-  *             32 - Animation during router teleportation (destination)
-  *             34 - Time until item can be used ?????
-  *             50 - For aircraft - client shows "The bailing mechanism failed! To fix the mechanism, land and repair the vehicle!"
-  *             53 - Put down an FDU
-  *             56 - Sets vehicle or player to be black ops
-  *             57 - Reverts player from black ops
+  * @param object_guid the target object<br/>
+  * @param code the action code (0-63)<br/>
+  *             6 - Deconstructs player<br/>
+  *             7 - Start imprinting process (progress bar + character animation)<br/>
+  *             8 - Finish imprinting?<br/>
+  *             9 - Cloak<br/>
+  *             10 - Uncloak<br/>
+  *             11 - Deploy capital base shield pole with animation and broadcasts "The capitol force dome at X has been activated"<br/>
+  *             12 - Stow capital base shield pole with animation and broadcasts "The capitol force dome at X has been deactivated"<br/>
+  *             13 - Deploy capital base shield pole (instantly, unless still in the middle of the stow animation)<br/>
+  *             14 - Changes capture console to say "Facility hacked by the <Faction> LLU has been spawned." when looked at<br/>
+  *             15 - Displays "This facility's generator is under attack!"<br/>
+  *             16 - Displays "Generator has Overloaded! Evacuate Generator Room Immediately!"<br/>
+  *             17 - Displays "This facility's generator is back on line"<br/>
+  *             19 - Cause mines to explode<br/>
+  *             20 - Hit flinch? (orig, 82->80)<br/>
+  *             21 - Reset build cooldown from using an ACE<br/>
+  *             22 - ???? (Has been seen on vehicle pad objects, possibly some sort of reset flag after base faction flip / hack clear?)<br/>
+  *             23 - Plays vehicle pad animation moving downwards<br/>
+  *             24 - Makes the vehicle bounce slightly. Have seen this in packet captures after taking a vehicle through a warpgate<br/>
+  *             27 - Activates the router internal telepad for linking<br/>
+  *             28 - Activates the router internal telepad for linking<br/>
+  *             29 - Activates the telepad deployable (also used on the router's internal telepad)<br/>
+  *             30 - Activates the telepad deployable (also used on the router's internal telepad)<br/>
+  *             31 - Animation during router teleportation (source)<br/>
+  *             32 - Animation during router teleportation (destination)<br/>
+  *             34 - Time until item can be used ?????<br/>
+  *             50 - For aircraft - client shows "The bailing mechanism failed! To fix the mechanism, land and repair the vehicle!"<br/>
+  *             53 - Put down an FDU<br/>
+  *             56 - Sets vehicle or player to be black ops<br/>
+  *             57 - Reverts player from black ops<br/>
   * @see GenericObjectActionEnum
   */
 final case class GenericObjectActionMessage(object_guid: PlanetSideGUID, code: Int) extends PlanetSideGamePacket {
