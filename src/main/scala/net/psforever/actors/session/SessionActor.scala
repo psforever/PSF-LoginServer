@@ -1822,6 +1822,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           CancelZoningProcessWithDescriptiveReason("cancel_dmg")
         }
 
+      case AvatarResponse.DropSpecialItem() =>
+        DropSpecialSlotItem()
+
       case AvatarResponse.Killed(mount) =>
         val respawnTimer = 300.seconds
         //drop free hand item

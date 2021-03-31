@@ -117,6 +117,7 @@ object AvatarResponse {
       inventory: List[InventoryItem],
       drop: List[InventoryItem]
   ) extends Response
+  final case class DropSpecialItem() extends Response
 
   final case class TeardownConnection() extends Response
   //  final case class PlayerStateShift(itemID : PlanetSideGUID) extends Response

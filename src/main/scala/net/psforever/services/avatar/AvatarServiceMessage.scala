@@ -149,6 +149,7 @@ object AvatarAction {
       inventory: List[InventoryItem],
       drop: List[InventoryItem]
   ) extends Action
+  final case class DropSpecialItem() extends Action
 
   final case class TeardownConnection() extends Action
   //  final case class PlayerStateShift(killer : PlanetSideGUID, victim : PlanetSideGUID) extends Action
