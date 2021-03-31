@@ -85,8 +85,7 @@ class TelepadDeployableControl(tpad: TelepadDeployable)
     Zone.causeExplosion(target.Zone, target, Some(cause))
   }
 
-  override def handleConstructionTool(obj: Deployable, tool: ConstructionItem): Unit = {
-    super.handleConstructionTool(obj, tool)
+  override def finalizeDeployable(tool: ConstructionItem): Unit = {
     val zone = tpad.Zone
     tool match {
       case tele: Telepad =>
@@ -95,23 +94,21 @@ class TelepadDeployableControl(tpad: TelepadDeployable)
         zone.GUID(tele.Router) match {
           case Some(vehicle: Vehicle)
             if tpad.Health > 0 && !vehicle.Destroyed && vehicle.DeploymentState == DriveState.Deployed =>
-            tpad.Router = tele.Router //necessary; forwards link to the router
+            super.finalizeDeployable(tool)
+            tpad.Router = tele.Router //necessary; forwards link to the router that prodcued the telepad
+            import scala.concurrent.ExecutionContext.Implicits.global
+            setup.cancel()
+            setup = context.system.scheduler.scheduleOnce(
+              TelepadControl.LinkTime,
+              self,
+              TelepadLike.Activate(tpad)
+            )
           case _ =>
-            tpad.Actor ! Deployable.Deconstruct()
             TelepadControl.TelepadError(zone, tpad.OwnerName.getOrElse(""), msg = "@Telepad_NoDeploy_RouterLost")
+            tpad.Actor ! Deployable.Deconstruct(Some(0.seconds))
         }
       case _ => ;
     }
-  }
-
-  override def finalizeDeployable(tool: ConstructionItem): Unit = {
-    import scala.concurrent.ExecutionContext.Implicits.global
-    setup.cancel()
-    setup = context.system.scheduler.scheduleOnce(
-      TelepadControl.LinkTime,
-      self,
-      TelepadLike.Activate(tpad)
-    )
   }
 
   override def deconstructDeployable(time : Option[FiniteDuration]) : Unit = {

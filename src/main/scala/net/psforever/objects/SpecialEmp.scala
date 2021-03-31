@@ -134,11 +134,7 @@ object SpecialEmp {
                       zone: Zone,
                       obj: PlanetSideGameObject with FactionAffinity with Vitality,
                       properties: DamageWithPosition
-                    ): (List[PlanetSideServerObject with Vitality], List[PlanetSideGameObject with FactionAffinity with Vitality]) = {
-    (
-      zone.DeployableList
-        .collect { case o: BoomerDeployable if !o.Destroyed && (o ne obj) => o },
-      Nil
-    )
+                    ): List[PlanetSideServerObject with Vitality] = {
+    zone.DeployableList.collect { case o: BoomerDeployable if !o.Destroyed && (o ne obj) => o }
   }
 }

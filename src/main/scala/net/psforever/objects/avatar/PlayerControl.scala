@@ -45,8 +45,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     with AggravatedBehavior
     with AuraEffectBehavior
     with RespondsToZoneEnvironment {
-
-  def JammableObject   = player
+  def JammableObject = player
 
   def DamageableObject = player
 
@@ -66,12 +65,10 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
   SetInteraction(EnvironmentAttribute.Death, doInteractingWithDeath)
   SetInteraction(EnvironmentAttribute.GantryDenialField, doInteractingWithGantryField)
   SetInteractionStop(EnvironmentAttribute.Water, stopInteractingWithWater)
-
-  private[this] val log       = org.log4s.getLogger(player.Name)
+  private[this] val log = org.log4s.getLogger(player.Name)
   private[this] val damageLog = org.log4s.getLogger(Damageable.LogChannel)
   /** suffocating, or regaining breath? */
   var submergedCondition: Option[OxygenState] = None
-
   /** control agency for the player's locker container (dedicated inventory slot #5) */
   val lockerControlAgent: ActorRef = {
     val locker = player.avatar.locker
@@ -111,20 +108,20 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           if item.Definition == GlobalDefinitions.medicalapplicator && player.isAlive =>
           //heal
           val originalHealth = player.Health
-          val definition     = player.Definition
+          val definition = player.Definition
           if (
             player.MaxHealth > 0 && originalHealth < player.MaxHealth &&
             user.Faction == player.Faction &&
             item.Magazine > 0 &&
             Vector3.Distance(user.Position, player.Position) < definition.RepairDistance
           ) {
-            val zone   = player.Zone
+            val zone = player.Zone
             val events = zone.AvatarEvents
-            val uname  = user.Name
-            val guid   = player.GUID
+            val uname = user.Name
+            val guid = player.GUID
             if (!(player.isMoving || user.isMoving)) { //only allow stationary heals
               val newHealth = player.Health = originalHealth + 10
-              val magazine  = item.Discharge()
+              val magazine = item.Discharge()
               events ! AvatarServiceMessage(
                 uname,
                 AvatarAction.SendResponse(
@@ -174,17 +171,17 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
 
         case CommonMessages.Use(user, Some(item: Tool)) if item.Definition == GlobalDefinitions.bank =>
           val originalArmor = player.Armor
-          val definition    = player.Definition
+          val definition = player.Definition
           if (
             player.MaxArmor > 0 && originalArmor < player.MaxArmor &&
             user.Faction == player.Faction &&
             item.AmmoType == Ammo.armor_canister && item.Magazine > 0 &&
             Vector3.Distance(user.Position, player.Position) < definition.RepairDistance
           ) {
-            val zone   = player.Zone
+            val zone = player.Zone
             val events = zone.AvatarEvents
-            val uname  = user.Name
-            val guid   = player.GUID
+            val uname = user.Name
+            val guid = player.GUID
             if (!(player.isMoving || user.isMoving)) { //only allow stationary repairs
               val newArmor = player.Armor =
                 originalArmor + Repairable.applyLevelModifier(user, item, RepairToolValue(item)).toInt + definition.RepairMod
@@ -238,16 +235,16 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
             case Terminal.InfantryLoadout(exosuit, subtype, holsters, inventory) =>
               log.info(s"${player.Name} wants to change equipment loadout to their option #${msg.unk1 + 1}")
               val fallbackSubtype = 0
-              val fallbackSuit    = ExoSuitType.Standard
-              val originalSuit    = player.ExoSuit
+              val fallbackSuit = ExoSuitType.Standard
+              val originalSuit = player.ExoSuit
               val originalSubtype = Loadout.DetermineSubtype(player)
               //sanitize exo-suit for change
-              val dropPred      = ContainableBehavior.DropPredicate(player)
-              val oldHolsters   = Players.clearHolsters(player.Holsters().iterator)
-              val dropHolsters  = oldHolsters.filter(dropPred)
-              val oldInventory  = player.Inventory.Clear()
+              val dropPred = ContainableBehavior.DropPredicate(player)
+              val oldHolsters = Players.clearHolsters(player.Holsters().iterator)
+              val dropHolsters = oldHolsters.filter(dropPred)
+              val oldInventory = player.Inventory.Clear()
               val dropInventory = oldInventory.filter(dropPred)
-              val toDeleteOrDrop: List[InventoryItem] = (player.FreeHand.Equipment match {
+              val toDeleteOrDrop : List[InventoryItem] = (player.FreeHand.Equipment match {
                 case Some(obj) =>
                   val out = InventoryItem(obj, -1)
                   player.FreeHand.Equipment = None
@@ -262,27 +259,27 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               //a loadout with a prohibited exo-suit type will result in the fallback exo-suit type
               //imposed 5min delay on mechanized exo-suit switches
               val (nextSuit, nextSubtype) =
-                if (
-                  Players.CertificationToUseExoSuit(player, exosuit, subtype) &&
-                  (if (exosuit == ExoSuitType.MAX) {
-                     val weapon = GlobalDefinitions.MAXArms(subtype, player.Faction)
-                     player.avatar.purchaseCooldown(weapon) match {
-                       case Some(_) => false
-                       case None =>
-                         avatarActor ! AvatarActor.UpdatePurchaseTime(weapon)
-                         true
-                     }
-                   } else {
-                     true
-                   })
-                ) {
-                  (exosuit, subtype)
+              if (
+                Players.CertificationToUseExoSuit(player, exosuit, subtype) &&
+                (if (exosuit == ExoSuitType.MAX) {
+                  val weapon = GlobalDefinitions.MAXArms(subtype, player.Faction)
+                  player.avatar.purchaseCooldown(weapon) match {
+                    case Some(_) => false
+                    case None =>
+                      avatarActor ! AvatarActor.UpdatePurchaseTime(weapon)
+                      true
+                  }
                 } else {
-                  log.warn(
-                    s"${player.Name} no longer has permission to wear the exo-suit type $exosuit; will wear $fallbackSuit instead"
-                  )
-                  (fallbackSuit, fallbackSubtype)
-                }
+                  true
+                })
+              ) {
+                (exosuit, subtype)
+              } else {
+                log.warn(
+                  s"${player.Name} no longer has permission to wear the exo-suit type $exosuit; will wear $fallbackSuit instead"
+                )
+                (fallbackSuit, fallbackSubtype)
+              }
               //sanitize (incoming) inventory
               //TODO equipment permissions; these loops may be expanded upon in future
               val curatedHolsters = for {
@@ -364,45 +361,12 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           }
 
         case Zone.Ground.ItemOnGround(item, _, _) =>
-          val name         = player.Name
-          val zone         = player.Zone
-          val avatarEvents = zone.AvatarEvents
-          val localEvents  = zone.LocalEvents
           item match {
             case trigger: BoomerTrigger =>
-              //dropped the trigger, no longer own the boomer; make certain whole faction is aware of that
-              (zone.GUID(trigger.Companion), zone.Players.find { _.name == name }) match {
-                case (Some(boomer: BoomerDeployable), Some(avatar)) =>
-                  val guid           = boomer.GUID
-                  val factionChannel = boomer.Faction.toString
-                  if (avatar.deployables.Remove(boomer)) {
-                    boomer.Faction = PlanetSideEmpire.NEUTRAL
-                    boomer.Actor ! Deployable.Ownership(None)
-                    avatar.deployables.UpdateUIElement(boomer.Definition.Item).foreach {
-                      case (currElem, curr, maxElem, max) =>
-                        avatarEvents ! AvatarServiceMessage(
-                          name,
-                          AvatarAction.PlanetsideAttributeToAll(Service.defaultPlayerGUID, maxElem, max)
-                        )
-                        avatarEvents ! AvatarServiceMessage(
-                          name,
-                          AvatarAction.PlanetsideAttributeToAll(Service.defaultPlayerGUID, currElem, curr)
-                        )
-                    }
-                    localEvents ! LocalServiceMessage(
-                      factionChannel,
-                      LocalAction.DeployableMapIcon(
-                        Service.defaultPlayerGUID,
-                        DeploymentAction.Dismiss,
-                        DeployableInfo(guid, DeployableIcon.Boomer, boomer.Position, PlanetSideGUID(0))
-                      )
-                    )
-                    avatarEvents ! AvatarServiceMessage(
-                      factionChannel,
-                      AvatarAction.SetEmpire(Service.defaultPlayerGUID, guid, PlanetSideEmpire.NEUTRAL)
-                    )
-                  }
-                case _ => ; //pointless trigger? or a trigger being deleted?
+              //drop the trigger, lose the boomer; make certain whole faction is aware of that
+              player.Zone.GUID(trigger.Companion) match {
+                case Some(obj: BoomerDeployable) => obj.Actor ! Deployable.Ownership(None)
+                case _ => ;
               }
             case _ => ;
           }
@@ -421,34 +385,19 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           if (deployables.Accept(obj) || (deployables.Valid(obj) && !deployables.Contains(obj))) {
             obj.Actor ! Zone.Deployable.Setup(tool)
           } else {
-            if (tool.Definition == GlobalDefinitions.advanced_ace) {
-              player.Find(tool) match {
-                case Some(index) =>
-                  player.Slot(index).Equipment = None
-                  zone.Ground.tell(
-                    Zone.Ground.DropItem(tool, obj.Position, Vector3.z(player.Orientation.z)),
-                    self
-                  )
-                case None => ;
-              }
-            }
-            //TODO PlayerControl.sendResponse(zone, player.Name, GenericObjectActionMessage(guid, 21)) //reset build cooldown)
-            PlayerControl.sendResponse(zone, player.Name, ObjectDeployedMessage.Failure(obj.Definition.Name))
-            obj.Position = Vector3.Zero
-            obj.AssignOwnership(None)
+            zone.LocalEvents ! LocalServiceMessage(player.Name, LocalAction.CancelBuildDeployable(obj, tool))
             zone.Deployables ! Zone.Deployable.Dismiss(obj)
           }
 
         case Zone.Deployable.IsBuilt(obj, tool) =>
-          val zone        = obj.Zone
-          val channel     = player.Name
-          val definition  = obj.Definition
-          val item        = definition.Item
+          val zone = obj.Zone
+          val channel = player.Name
+          val definition = obj.Definition
+          val item = definition.Item
           val deployables = player.avatar.deployables
           val (curr, max) = deployables.CountDeployable(item)
           //two potential messages related to numerical limitations of deployables
           /*
-          Besides the standard `ObjectCreateMessage` packet that produces the model and game object on the client,
           The first limit of note is the actual number of a specific type of deployable can be placed.
           The second limit of note is the actual number of a specific group (category) of deployables that can be placed.
           For example, the player can place 25 mines but that count adds up all types of mines;
@@ -502,7 +451,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
             }
           }
           deployables.Add(obj)
-          zone.LocalEvents ! LocalServiceMessage(player.Name, LocalAction.AlertBuildDeployable(obj, tool))
+          zone.LocalEvents ! LocalServiceMessage(player.Name, LocalAction.BuildDeployable(obj, tool))
 
         case _ => ;
       }
@@ -1031,45 +980,9 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     item match {
       case trigger: BoomerTrigger =>
         //pick up the trigger, own the boomer; make certain whole faction is aware of that
-        (zone.GUID(trigger.Companion), zone.Players.find { _.name == name }) match {
-          case (Some(boomer: BoomerDeployable), Some(avatar))
-              if !boomer.OwnerName.contains(name) || boomer.Faction != faction =>
-            val bguid          = boomer.GUID
-            val faction        = player.Faction
-            val factionChannel = faction.toString
-            if (avatar.deployables.Add(boomer)) {
-              boomer.Faction = faction
-              boomer.Actor ! Deployable.Ownership(player)
-              avatar.deployables.UpdateUIElement(boomer.Definition.Item).foreach {
-                case (currElem, curr, maxElem, max) =>
-                  events ! AvatarServiceMessage(
-                    name,
-                    AvatarAction.PlanetsideAttributeToAll(Service.defaultPlayerGUID, maxElem, max)
-                  )
-                  events ! AvatarServiceMessage(
-                    name,
-                    AvatarAction.PlanetsideAttributeToAll(Service.defaultPlayerGUID, currElem, curr)
-                  )
-              }
-              events ! AvatarServiceMessage(
-                factionChannel,
-                AvatarAction.SetEmpire(Service.defaultPlayerGUID, bguid, faction)
-              )
-              zone.LocalEvents ! LocalServiceMessage(
-                factionChannel,
-                LocalAction.DeployableMapIcon(
-                  Service.defaultPlayerGUID,
-                  DeploymentAction.Build,
-                  DeployableInfo(
-                    bguid,
-                    DeployableIcon.Boomer,
-                    boomer.Position,
-                    boomer.Owner.getOrElse(PlanetSideGUID(0))
-                  )
-                )
-              )
-            }
-          case _ => ; //pointless trigger?
+        zone.GUID(trigger.Companion) match {
+          case Some(obj: BoomerDeployable) => obj.Actor ! Deployable.Ownership(player)
+          case _ => ;
         }
       case _ => ;
     }

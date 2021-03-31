@@ -107,27 +107,9 @@ object Deployables {
       .collect {
         case Some(obj: Deployable) =>
           obj.Actor ! Deployable.Ownership(None)
-          obj.Owner = None //fast-forward
+          obj.Owner = None //fast-forward the effect
           obj
       }
-//    val (boomers, deployables) =
-//      avatar.deployables
-//        .Clear()
-//        .map(zone.GUID)
-//        .collect { case Some(obj) => obj.asInstanceOf[Deployable] }
-//        .partition(_.isInstanceOf[BoomerDeployable])
-//    //do not change the OwnerName field at this time
-//    boomers.collect({
-//      case obj: BoomerDeployable =>
-//        obj.Actor.tell(Deployable.Deconstruct(), replyTo)
-//        obj.Owner = None
-//        obj.Trigger = None
-//    })
-//    deployables.foreach(obj => {
-//      obj.Actor ! Deployable.Ownership(None)
-//      obj.Owner = None //zoom ahead
-//    })
-//    boomers ++ deployables
   }
 
   /**

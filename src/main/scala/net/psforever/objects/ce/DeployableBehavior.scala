@@ -5,12 +5,10 @@ import akka.actor.{Actor, Cancellable}
 import net.psforever.objects.guid.GUIDTask
 import net.psforever.objects.{ConstructionItem, Default, GlobalDefinitions, Player}
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game._
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import net.psforever.types.PlanetSideGUID
 
 import scala.concurrent.duration._
 
@@ -19,33 +17,33 @@ trait DeployableBehavior {
   def DeployableObject: Deployable
 
   var deletionType: Int = 2
-  var constructed : Boolean = false
+  var constructed: Option[Boolean] = None
   var setup: Cancellable = Default.Cancellable
-  var decayTimer : Cancellable = Default.Cancellable
+  var decay: Cancellable = Default.Cancellable
 
   def deployableBehaviorPostStop(): Unit = {
     setup.cancel()
-    decayTimer.cancel()
+    decay.cancel()
   }
 
   val deployableBehavior: Receive = {
     case Zone.Deployable.Setup(tool)
-      if !constructed && setup.isCancelled =>
+      if constructed.isEmpty && setup.isCancelled =>
       setupDeployable(tool)
 
     case DeployableBehavior.Finalize(tool) =>
       finalizeDeployable(tool)
 
     case Deployable.Ownership(None)
-      if constructed =>
+      if constructed.contains(true) && DeployableObject.Owner.isEmpty =>
       loseOwnership()
 
     case Deployable.Ownership(Some(player))
-      if constructed && !DeployableObject.Destroyed =>
+      if constructed.contains(true) && !DeployableObject.Destroyed =>
       gainOwnership(player)
 
     case Deployable.Deconstruct(time)
-      if constructed && decayTimer.isCancelled =>
+      if constructed.contains(true) =>
       deconstructDeployable(time)
 
     case DeployableBehavior.FinalizeElimination() =>
@@ -54,14 +52,14 @@ trait DeployableBehavior {
 
   def loseOwnership(): Unit = {
     DeployableObject.Owner = None //OwnerName should remain set
-    if (decayTimer.isCancelled) {
+    if (decay.isCancelled) {
       import scala.concurrent.ExecutionContext.Implicits.global
-      decayTimer = context.system.scheduler.scheduleOnce(Deployable.decay, self, Deployable.Deconstruct())
+      decay = context.system.scheduler.scheduleOnce(Deployable.decay, self, Deployable.Deconstruct())
     }
   }
 
   def gainOwnership(player: Player): Unit = {
-    decayTimer.cancel()
+    decay.cancel()
     DeployableObject.AssignOwnership(player)
   }
 
@@ -95,10 +93,6 @@ trait DeployableBehavior {
   def setupDeployable(tool: ConstructionItem): Unit = {
     val obj = DeployableObject
     handleConstructionTool(obj, tool)
-    obj.Zone.LivePlayers.find { p => obj.OwnerName.contains(p.Name) } match {
-      case Some(p) => p.Actor ! Zone.Deployable.Build(obj, tool) //owner is trying to put it down
-      case None => //obj.Actor ! Zone.Deployable.Setup(tool) //strong and independent deployable
-    }
     import scala.concurrent.ExecutionContext.Implicits.global
     setup = context.system.scheduler.scheduleOnce(
       obj.Definition.DeployTime milliseconds,
@@ -109,7 +103,7 @@ trait DeployableBehavior {
 
   def finalizeDeployable(tool: ConstructionItem): Unit = {
     setup.cancel()
-    constructed = true
+    constructed = Some(true)
     val obj = DeployableObject
     obj.Zone.LivePlayers.find { p => obj.OwnerName.contains(p.Name) } match {
       case Some(p) => p.Actor ! Zone.Deployable.IsBuilt(obj, tool)
@@ -119,11 +113,12 @@ trait DeployableBehavior {
   }
 
   def deconstructDeployable(time: Option[FiniteDuration]): Unit = {
+    constructed = Some(false)
     val duration = time.getOrElse(Deployable.cleanup)
     import scala.concurrent.ExecutionContext.Implicits.global
     setup.cancel()
-    decayTimer.cancel()
-    setup = context.system.scheduler.scheduleOnce(duration, self, DeployableBehavior.FinalizeElimination())
+    decay.cancel()
+    decay = context.system.scheduler.scheduleOnce(duration, self, DeployableBehavior.FinalizeElimination())
   }
 
   def unregisterDeployable(zone: Zone, obj: Deployable): Unit = {
@@ -131,9 +126,8 @@ trait DeployableBehavior {
   }
 
   def dismissDeployable(): Unit = {
-    constructed = false
     setup.cancel()
-    decayTimer.cancel()
+    decay.cancel()
     val obj = DeployableObject
     val zone = obj.Zone
     zone.Deployables ! Zone.Deployable.Dismiss(obj)
@@ -171,21 +165,16 @@ object DeployableBehavior {
     val zone       = obj.Zone
     val guid       = obj.GUID
     val owner      = obj.Owner.getOrElse(Service.defaultPlayerGUID)
-    val ownerName  = obj.OwnerName.getOrElse("")
-    val channel    = ownerName
     val definition = obj.Definition
     val item       = definition.Item
     zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.DeployItem(Service.defaultPlayerGUID, obj))
     //map icon
-    val deployInfo = DeployableInfo(guid, Deployable.Icon(item), obj.Position, obj.Owner.getOrElse(PlanetSideGUID(0)))
-    sendResponse(zone, channel, DeployableObjectsInfoMessage(DeploymentAction.Build, deployInfo))
     zone.LocalEvents ! LocalServiceMessage(
-      channel,
-      LocalAction.DeployableMapIcon(owner, DeploymentAction.Build, deployInfo)
+      obj.Faction.toString,
+      LocalAction.DeployableMapIcon(
+        Service.defaultPlayerGUID,
+        DeploymentAction.Build, DeployableInfo(guid, Deployable.Icon(item), obj.Position, owner)
+      )
     )
-  }
-
-  private def sendResponse(zone: Zone, channel: String, msg: PlanetSideGamePacket): Unit = {
-    zone.AvatarEvents ! AvatarServiceMessage(channel, AvatarAction.SendResponse(Service.defaultPlayerGUID, msg))
   }
 }

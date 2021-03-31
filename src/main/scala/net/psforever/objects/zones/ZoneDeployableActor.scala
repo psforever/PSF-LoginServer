@@ -18,12 +18,12 @@ class ZoneDeployableActor(zone: Zone, deployableList: ListBuffer[Deployable]) ex
   private[this] val log = org.log4s.getLogger
 
   def receive: Receive = {
-    case Zone.Deployable.Build(obj, tool) =>
+    case msg @ Zone.Deployable.Build(obj, tool) =>
       if (DeployableBuild(obj, deployableList)) {
         obj.Zone = zone
         obj.Definition.Initialize(obj, context)
         zone.LivePlayers.find { p => obj.OwnerName.contains(p.Name) } match {
-          case Some(p) => p.Actor ! Zone.Deployable.Build(obj, tool) //owner is trying to put it down
+          case Some(p) => p.Actor ! msg //owner is trying to put it down
           case None => obj.Actor ! Zone.Deployable.Setup(tool) //strong and independent deployable
         }
       } else {

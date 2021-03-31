@@ -9,8 +9,11 @@ import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObjec
 import net.psforever.objects.vital.etc.TriggerUsedReason
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.zones.Zone
+import net.psforever.packet.game.{DeployableIcon, DeployableInfo, DeploymentAction}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 
 class BoomerDeployable(cdef: ExplosiveDeployableDefinition)
   extends ExplosiveDeployable(cdef) {
@@ -67,17 +70,70 @@ class BoomerDeployableControl(mine: BoomerDeployable)
             damage = 0
           )
 
-
         case _ => ;
       }
 
-//  override def gainOwnership(player : Player) : Unit = {
-//    super.gainOwnership(player)
-//    val faction = player.Faction
-//    val zone = mine.Zone
-//    mine.Faction = faction
-//    zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.SetEmpire(mine.GUID, faction))
-//  }
+  override def loseOwnership(): Unit = {
+    super.loseOwnership()
+    val guid           = mine.GUID
+    val zone           = mine.Zone
+    val localEvents    = zone.LocalEvents
+    val factionChannel = mine.Faction.toString
+    val formerOwner    = mine.OwnerName.getOrElse("")
+    mine.OwnerName     = None
+    mine.Faction       = PlanetSideEmpire.NEUTRAL
+    zone.AvatarEvents ! AvatarServiceMessage(
+      factionChannel,
+      AvatarAction.SetEmpire(Service.defaultPlayerGUID, guid, PlanetSideEmpire.NEUTRAL)
+    )
+    localEvents ! LocalServiceMessage(
+      factionChannel,
+      LocalAction.DeployableMapIcon(
+        Service.defaultPlayerGUID,
+        DeploymentAction.Dismiss,
+        DeployableInfo(guid, DeployableIcon.Boomer, mine.Position, PlanetSideGUID(0))
+      )
+    )
+    zone.Players.find { _.name == formerOwner } match {
+      case Some(_) => //in this zone
+        localEvents ! LocalServiceMessage(
+          formerOwner,
+          LocalAction.AlertDestroyDeployable(Service.defaultPlayerGUID, mine)
+        )
+      case _ => ;
+    }
+  }
+
+  override def gainOwnership(player: Player): Unit = {
+    super.gainOwnership(player)
+    val guid           = mine.GUID
+    val zone           = mine.Zone
+    val name           = player.Name
+    val faction        = player.Faction
+    val factionChannel = faction.toString
+    val localEvents    = zone.LocalEvents
+    mine.Faction       = faction
+    zone.AvatarEvents ! AvatarServiceMessage(
+      factionChannel,
+      AvatarAction.SetEmpire(Service.defaultPlayerGUID, guid, faction)
+    )
+    localEvents ! LocalServiceMessage(
+      factionChannel,
+      LocalAction.DeployableMapIcon(
+        Service.defaultPlayerGUID,
+        DeploymentAction.Build,
+        DeployableInfo(guid, DeployableIcon.Boomer, mine.Position, mine.Owner.get)
+      )
+    )
+    zone.Players.find { _.name == name } match {
+      case Some(_) =>
+        localEvents ! LocalServiceMessage(
+          name,
+          LocalAction.AlertBuildDeployable(mine)
+        )
+      case _ => ;
+    }
+  }
 
 //  override def finalizeDeployable(tool : ConstructionItem) : Unit = {
 //    val zone = mine.Zone

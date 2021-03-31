@@ -45,12 +45,12 @@ class LocalService(zone: Zone) extends Actor {
 
     case LocalServiceMessage(forChannel, action) =>
       action match {
-        case LocalAction.AlertBuildDeployable(obj, tool) =>
+        case LocalAction.AlertBuildDeployable(obj) =>
           LocalEvents.publish(
             LocalServiceResponse(
               s"/$forChannel/Local",
               Service.defaultPlayerGUID,
-              LocalResponse.AlertBuildDeployable(obj, tool)
+              LocalResponse.AlertBuildDeployable(obj)
             )
           )
         case LocalAction.AlertDestroyDeployable(_, obj) =>
@@ -59,6 +59,22 @@ class LocalService(zone: Zone) extends Actor {
               s"/$forChannel/Local",
               Service.defaultPlayerGUID,
               LocalResponse.AlertDestroyDeployable(obj)
+            )
+          )
+        case LocalAction.CancelBuildDeployable(obj, tool) =>
+          LocalEvents.publish(
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              Service.defaultPlayerGUID,
+              LocalResponse.CancelBuildDeployable(obj, tool)
+            )
+          )
+        case LocalAction.BuildDeployable(obj, tool) =>
+          LocalEvents.publish(
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              Service.defaultPlayerGUID,
+              LocalResponse.BuildDeployable(obj, tool)
             )
           )
         case LocalAction.DeployableMapIcon(player_guid, behavior, deployInfo) =>

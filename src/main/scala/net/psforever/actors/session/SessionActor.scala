@@ -2138,7 +2138,17 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       if (player.HasGUID) player.GUID
       else PlanetSideGUID(0)
     reply match {
-      case LocalResponse.AlertBuildDeployable(obj: BoomerDeployable, tool) =>
+      case LocalResponse.AlertBuildDeployable(obj) =>
+        //the owner (obj.OwnerName) should process this message
+        avatar.deployables.Add(obj)
+        UpdateDeployableUIElements(avatar.deployables.UpdateUIElement(obj.Definition.Item))
+
+      case LocalResponse.AlertDestroyDeployable(obj) =>
+        //the (former) owner (obj.OwnerName) should process this message
+        avatar.deployables.Remove(obj)
+        UpdateDeployableUIElements(avatar.deployables.UpdateUIElement(obj.Definition.Item))
+
+      case LocalResponse.BuildDeployable(obj: BoomerDeployable, tool) =>
         //boomers
         val trigger = new BoomerTrigger
         trigger.Companion = obj.GUID
@@ -2158,7 +2168,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
         DeployableBuildActivity(obj)
 
-      case LocalResponse.AlertBuildDeployable(obj: TelepadDeployable, tool) =>
+      case LocalResponse.BuildDeployable(obj: TelepadDeployable, tool) =>
         continent.GUID(obj.Router) match {
           case Some(_) =>
             RemoveOldEquipmentFromInventory(player)(tool)
@@ -2169,7 +2179,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", "@Telepad_NoDeploy_RouterLost", None))
         }
 
-      case LocalResponse.AlertBuildDeployable(obj, tool) =>
+      case LocalResponse.BuildDeployable(obj, tool) =>
         DeployableBuildActivity(obj)
         player.Find(tool) match {
           case Some(index) =>
@@ -2178,15 +2188,27 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           case None => ;
         }
 
-      case LocalResponse.AlertDestroyDeployable(obj) =>
-        //the (former) owner (obj.OwnerName) should process this message
-        avatar.deployables.Remove(obj)
-        UpdateDeployableUIElements(avatar.deployables.UpdateUIElement(obj.Definition.Item))
-
       case LocalResponse.DeployableMapIcon(behavior, deployInfo) =>
         if (tplayer_guid != guid) {
           sendResponse(DeployableObjectsInfoMessage(behavior, deployInfo))
         }
+
+      case LocalResponse.CancelBuildDeployable(obj, tool) =>
+        if (tool.Definition == GlobalDefinitions.advanced_ace) {
+          player.Find(tool) match {
+            case Some(index) =>
+              player.Slot(index).Equipment = None
+              continent.Ground.tell(
+                Zone.Ground.DropItem(tool, obj.Position, Vector3.z(player.Orientation.z)),
+                self
+              )
+            case None => ;
+          }
+        }
+        sendResponse(GenericObjectActionMessage(player.GUID, 21)) //reset build cooldown
+        sendResponse(ObjectDeployedMessage.Failure(obj.Definition.Name))
+        obj.Position = Vector3.Zero
+        obj.AssignOwnership(None)
 
       case LocalResponse.Detonate(dguid, obj: BoomerDeployable) =>
         sendResponse(TriggerEffectMessage(dguid, "detonate_boomer"))
@@ -4122,7 +4144,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           FindEquipment
         } else {
           FindEquipment match {
-            case Some(tool: Tool) =>
+            case Some(tool: Tool) => //special cases
               //the decimator does not send a ChangeFireState_Start on the last shot
               if (
                 tool.Definition == GlobalDefinitions.phoenix &&
@@ -7335,8 +7357,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           case Some(_) | None => ;
         }
       })
-      val triggers = RemoveBoomerTriggersFromInventory()
-      triggers.foreach(trigger => { NormalItemDrop(obj, continent)(trigger) })
+      RemoveBoomerTriggersFromInventory()foreach(trigger => { NormalItemDrop(obj, continent)(trigger) })
     }
   }
 
@@ -8380,17 +8401,21 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     val events = continent.AvatarEvents
     val zoneId = continent.id
     (player.Inventory.Items ++ player.HolsterItems())
-      .collect {
-        case InventoryItem(obj: BoomerTrigger, index) =>
-          player.Slot(index).Equipment = None
+      .collect { case InventoryItem(obj: BoomerTrigger, index) =>
+        player.Slot(index).Equipment = None
+        continent.GUID(obj.Companion) match {
+          case Some(mine: BoomerDeployable) => mine.Actor ! Deployable.Ownership(None)
+          case _ => ;
+        }
+        if (player.VisibleSlots.contains(index)) {
+          events ! AvatarServiceMessage(
+            zoneId,
+            AvatarAction.ObjectDelete(Service.defaultPlayerGUID, obj.GUID)
+          )
+        } else {
           sendResponse(ObjectDeleteMessage(obj.GUID, 0))
-          if (player.HasGUID && player.VisibleSlots.contains(index)) {
-            events ! AvatarServiceMessage(
-              zoneId,
-              AvatarAction.ObjectDelete(player.GUID, obj.GUID)
-            )
-          }
-          obj
+        }
+        obj
       }
   }
 

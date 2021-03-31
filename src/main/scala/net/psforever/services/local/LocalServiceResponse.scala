@@ -24,8 +24,10 @@ final case class LocalServiceResponse(
 object LocalResponse {
   trait Response
 
-  final case class AlertBuildDeployable(obj: Deployable, tool: ConstructionItem)                 extends Response
-  final case class AlertDestroyDeployable(obj: Deployable)             extends Response
+  final case class AlertBuildDeployable(obj: Deployable)                                         extends Response
+  final case class AlertDestroyDeployable(obj: Deployable)                                       extends Response
+  final case class BuildDeployable(obj: Deployable, tool: ConstructionItem)                      extends Response
+  final case class CancelBuildDeployable(obj: Deployable, tool: ConstructionItem)                extends Response
   final case class DeployableMapIcon(action: DeploymentAction.Value, deployInfo: DeployableInfo) extends Response
   final case class Detonate(guid: PlanetSideGUID, obj: PlanetSideGameObject)                     extends Response
   final case class DoorOpens(door_guid: PlanetSideGUID)                                          extends Response

@@ -15,10 +15,9 @@ import net.psforever.objects.{TurretDeployable, _}
 import net.psforever.packet.game.{DeployableIcon, DeployableInfo, DeploymentAction}
 import net.psforever.types._
 import org.specs2.mutable.Specification
-import net.psforever.services.{RemoverActor, Service}
+import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import net.psforever.services.support.SupportActor
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.interaction.DamageInteraction
@@ -355,7 +354,7 @@ class ExplosiveDeployableJammerTest extends ActorTest {
       assert(!j_mine.Destroyed)
 
       j_mine.Actor ! Vitality.Damage(applyDamageToJ)
-      val msg_local  = localProbe.receiveN(4, 200 milliseconds)
+      val msg_local  = localProbe.receiveN(2, 200 milliseconds)
       val msg_avatar = avatarProbe.receiveOne(200 milliseconds)
       activityProbe.expectNoMessage(200 milliseconds)
       assert(
@@ -376,20 +375,6 @@ class ExplosiveDeployableJammerTest extends ActorTest {
                 )
               ) =>
             true
-          case _ => false
-        }
-      )
-      assert(
-        msg_local(2) match {
-          case LocalServiceMessage.Deployables(SupportActor.ClearSpecific(List(target), _zone)) =>
-            (j_mine eq target) && (_zone eq zone)
-          case _ => false
-        }
-      )
-      assert(
-        msg_local(3) match {
-          case LocalServiceMessage.Deployables(RemoverActor.AddTask(target, _zone, _)) =>
-            (target eq j_mine) && (_zone eq zone)
           case _ => false
         }
       )
@@ -454,7 +439,7 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
       assert(!h_mine.Destroyed)
 
       h_mine.Actor ! Vitality.Damage(applyDamageToH)
-      val msg_local    = localProbe.receiveN(5, 200 milliseconds)
+      val msg_local    = localProbe.receiveN(3, 200 milliseconds)
       val msg_avatar   = avatarProbe.receiveOne(200 milliseconds)
       val msg_activity = activityProbe.receiveOne(200 milliseconds)
       assert(
@@ -481,20 +466,6 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
                 )
               ) =>
             true
-          case _ => false
-        }
-      )
-      assert(
-        msg_local(3) match {
-          case LocalServiceMessage.Deployables(SupportActor.ClearSpecific(List(target), _zone)) =>
-            (h_mine eq target) && (_zone eq zone)
-          case _ => false
-        }
-      )
-      assert(
-        msg_local(4) match {
-          case LocalServiceMessage.Deployables(RemoverActor.AddTask(target, _zone, _)) =>
-            (target eq h_mine) && (_zone eq zone)
           case _ => false
         }
       )
@@ -568,7 +539,7 @@ class ExplosiveDeployableDestructionTest extends ActorTest {
       assert(!h_mine.Destroyed)
 
       h_mine.Actor ! Vitality.Damage(applyDamageTo)
-      val msg_local  = localProbe.receiveN(5, 200 milliseconds)
+      val msg_local  = localProbe.receiveN(3, 200 milliseconds)
       val msg_avatar = avatarProbe.receiveOne(200 milliseconds)
       activityProbe.expectNoMessage(200 milliseconds)
       assert(
@@ -594,20 +565,6 @@ class ExplosiveDeployableDestructionTest extends ActorTest {
       )
       assert(
         msg_local(2) match {
-          case LocalServiceMessage.Deployables(SupportActor.ClearSpecific(List(target), _zone)) =>
-            (h_mine eq target) && (_zone eq zone)
-          case _ => false
-        }
-      )
-      assert(
-        msg_local(3) match {
-          case LocalServiceMessage.Deployables(RemoverActor.AddTask(target, _zone, _)) =>
-            (target eq h_mine) && (_zone eq zone)
-          case _ => false
-        }
-      )
-      assert(
-        msg_local(4) match {
           case LocalServiceMessage("test", LocalAction.TriggerEffect(_, "detonate_damaged_mine", PlanetSideGUID(2))) =>
             true
           case _ => false
