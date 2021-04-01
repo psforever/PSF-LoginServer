@@ -24,10 +24,10 @@ final case class CaptureFlagUpdateMessage(zone_number: Int, flagInfoList: List[F
   * @param target_map_id The mapID of the base the LLU must be delivered to
   * @param x X map position
   * @param y Y map position
-  * @param u6 Time remaining for hack? No effect when modified
-  * @param isMonolithUnit Changes the icon on the map to the monolith unit icon
+  * @param hack_time_remaining Time remaining on hack - will override BuildingInfoUpdateMessage when displaying hack timer on map base details
+  * @param is_monolith_unit Changes the icon on the map to the monolith unit icon
   */
-final case class FlagInfo(u1: Int, owner_map_id: Int, target_map_id: Int, x: Float, y: Float, u6: Long, isMonolithUnit: Boolean)
+final case class FlagInfo(u1: Int, owner_map_id: Int, target_map_id: Int, x: Float, y: Float, hack_time_remaining: Long, is_monolith_unit: Boolean)
 object FlagInfo extends Marshallable[FlagInfo] {
   implicit val codec: Codec[FlagInfo] = {
     (("u1" | uint2L)
@@ -35,8 +35,8 @@ object FlagInfo extends Marshallable[FlagInfo] {
     :: ("target_map_id" | uint16L)
     :: ("u4" | newcodecs.q_float(0.0, 8192.0, 20))
     :: ("u5" | newcodecs.q_float(0.0, 8192.0, 20))
-    :: ("u6" | uint32L)
-    :: ("isMonolithUnit" | bool))
+    :: ("hack_time_remaining" | uint32L)
+    :: ("is_monolith_unit" | bool))
   }.as[FlagInfo]
 }
 

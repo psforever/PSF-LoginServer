@@ -71,8 +71,8 @@ class CaptureFlagManager(val taskResolver: ActorRef, zone: Zone) extends Actor{
           target_map_id = flag.Target.MapId,
           x = flag.Position.x,
           y = flag.Position.y,
-          u6 = 0,
-          isMonolithUnit = false
+          hack_time_remaining = flag.Owner.asInstanceOf[Building].infoUpdateMessage().hack_time_remaining,
+          is_monolith_unit = false
         )
       )
 
