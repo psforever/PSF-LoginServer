@@ -13,11 +13,11 @@ import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, Ca
 import net.psforever.objects.zones.Zone
 import net.psforever.persistence
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, PlanetSideGeneratorState}
-import net.psforever.util.Database._
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.{InterstellarClusterService, Service, ServiceManager}
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, PlanetSideGeneratorState}
+import net.psforever.util.Database._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
@@ -197,8 +197,8 @@ class BuildingActor(
 
       case AmenityStateChange(gen: Generator, data) =>
         if (generatorStateChange(gen, data)) {
-          //update the map
-          galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(building.infoUpdateMessage()))
+          // Request all buildings update their map data to refresh lattice linked benefits
+          zone.actor ! ZoneActor.ZoneMapUpdate()
         }
         Behaviors.same
 
@@ -364,7 +364,7 @@ class BuildingActor(
         }
       building.Faction = faction
       alignForceDomeStatus(mapUpdateOnChange = false)
-      galaxy ! GalaxyServiceMessage(GalaxyAction.MapUpdate(building.infoUpdateMessage()))
+      zone.actor ! ZoneActor.ZoneMapUpdate() // Update entire lattice to show lattice benefits
       zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.SetEmpire(building.GUID, faction))
     }
   }

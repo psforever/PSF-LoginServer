@@ -16,6 +16,7 @@ import net.psforever.packet.game.BuildingInfoUpdateMessage
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, PlanetSideGeneratorState, Vector3}
 import scalax.collection.{Graph, GraphEdge}
 import akka.actor.typed.scaladsl.adapter._
+import net.psforever.objects.serverobject.llu.{CaptureFlag, CaptureFlagSocket}
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
 
 class Building(
@@ -27,10 +28,6 @@ class Building(
     private val buildingDefinition: BuildingDefinition
 ) extends AmenityOwner {
 
-  /**
-    * The map_id is the identifier number used in BuildingInfoUpdateMessage. This is the index that the building appears in the MPO file starting from index 1
-    * The GUID is the identifier number used in SetEmpireMessage / Facility hacking / PlanetSideAttributeMessage.
-    */
   private var faction: PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
   private var playersInSOI: List[Player]      = List.empty
   private val capitols                        = List("Thoth", "Voltan", "Neit", "Anguta", "Eisa", "Verica")
@@ -43,6 +40,10 @@ class Building(
 
   def Name: String = name
 
+  /**
+    * The map_id is the identifier number used in BuildingInfoUpdateMessage. This is the index that the building appears in the MPO file starting from index 1
+    * The GUID is the identifier number used in SetEmpireMessage / Facility hacking / PlanetSideAttributeMessage.
+    */
   def MapId: Int = map_id
 
   def IsCapitol: Boolean = capitols.contains(name)
@@ -122,6 +123,14 @@ class Building(
     }
   }
 
+  def IsCtfBase: Boolean = GetFlagSocket match {
+    case Some(_) => true
+    case _ => false
+  }
+
+  def GetFlagSocket: Option[CaptureFlagSocket] = this.Amenities.find(_.Definition == GlobalDefinitions.llm_socket).asInstanceOf[Option[CaptureFlagSocket]]
+  def GetFlag: Option[CaptureFlag] = this.Amenities.find(_.Definition == GlobalDefinitions.capture_flag).asInstanceOf[Option[CaptureFlag]]
+
   def HackableAmenities: List[Amenity with Hackable] = {
     Amenities.filter(x => x.isInstanceOf[Hackable]).map(x => x.asInstanceOf[Amenity with Hackable])
   }
@@ -200,9 +209,11 @@ class Building(
         // Check this Building is on the lattice first
         zone.Lattice find this match {
           case Some(_) =>
-            // todo: generator destruction state
             val subGraph = Zone.Lattice filter ((b: Building) =>
-              b.Faction == this.Faction && !b.CaptureTerminalIsHacked && b.NtuLevel > 0
+              b.Faction == this.Faction
+                && !b.CaptureTerminalIsHacked
+                && b.NtuLevel > 0
+                && (b.Generator.isEmpty || b.Generator.get.Condition != PlanetSideGeneratorState.Destroyed)
             )
 
             var stackedBenefit = 0
@@ -226,13 +237,13 @@ class Building(
       hackingFaction,
       hackTime,
       if (ntuLevel > 0) Faction else PlanetSideEmpire.NEUTRAL,
-      0, // Field != 0 will cause malformed packet
-      None,
+      0, // unk1 Field != 0 will cause malformed packet
+      None, // unk1x
       generatorState,
       spawnTubesNormal,
       forceDomeActive,
-      latticeBenefit,
-      48,    // cavern benefit
+      if (generatorState != PlanetSideGeneratorState.Destroyed) latticeBenefit else 0,
+      if (generatorState != PlanetSideGeneratorState.Destroyed) 48 else 0,    // cavern benefit
       Nil,   // unk4,
       0,     // unk5
       false, // unk6

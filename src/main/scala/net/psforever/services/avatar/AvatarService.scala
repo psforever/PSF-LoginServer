@@ -408,6 +408,9 @@ class AvatarService(zone: Zone) extends Actor {
             )
           )
 
+        case AvatarAction.DropSpecialItem() =>
+          AvatarEvents.publish(AvatarServiceResponse(s"/$forChannel/Avatar", Service.defaultPlayerGUID, AvatarResponse.DropSpecialItem()))
+
         case _ => ;
       }
 

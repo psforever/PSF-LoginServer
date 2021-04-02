@@ -3,8 +3,13 @@ package net.psforever.services.local
 
 import net.psforever.objects.{PlanetSideGameObject, TelepadDeployable, Vehicle}
 import net.psforever.objects.ce.Deployable
+import net.psforever.objects.serverobject.llu.CaptureFlag
+import net.psforever.objects.serverobject.structures.{AmenityOwner, Building}
 import net.psforever.objects.serverobject.terminals.{ProximityUnit, Terminal}
 import net.psforever.objects.vehicles.Utility
+import net.psforever.packet.PlanetSideGamePacket
+import net.psforever.packet.game.GenericActionEnum.GenericActionEnum
+import net.psforever.packet.game.GenericObjectActionEnum.GenericObjectActionEnum
 import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game._
@@ -33,8 +38,18 @@ object LocalResponse {
   )                                                                                extends Response
   final case class SendHackMessageHackCleared(target_guid: PlanetSideGUID, unk1: Long, unk2: Long)  extends Response
   final case class HackObject(target_guid: PlanetSideGUID, unk1: Long, unk2: Long) extends Response
+
+  final case class SendPacket(packet: PlanetSideGamePacket) extends Response
   final case class SendPlanetsideAttributeMessage(target_guid: PlanetSideGUID, attribute_number: PlanetsideAttributeEnum, attribute_value: Long)
       extends Response
+  final case class SendGenericObjectActionMessage(target_guid: PlanetSideGUID, action_number: GenericObjectActionEnum)
+    extends Response
+  final case class SendChatMsg(msg: ChatMsg) extends Response
+  final case class SendGenericActionMessage(action_num: GenericActionEnum) extends Response
+
+  final case class LluSpawned(llu: CaptureFlag) extends Response
+  final case class LluDespawned(llu: CaptureFlag) extends Response
+
   final case class ObjectDelete(item_guid: PlanetSideGUID, unk: Int) extends Response
   final case class ProximityTerminalAction(terminal: Terminal with ProximityUnit, target: PlanetSideGameObject)
       extends Response

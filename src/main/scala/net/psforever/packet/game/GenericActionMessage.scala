@@ -19,8 +19,11 @@ import scodec.codecs._
   * 07 - warning: missile lock<br>
   * 08 - warning: Wasp missile lock<br>
   * 09 - warning: T-REK lock<br>
+  * 11 - Drop special item e.g. LLU<br>
   * 12 - sound: base captured fanfare<br>
   * 14 - prompt: new character basic training<br>
+  * 15 - MAX Deploy<br>
+  * 16 - MAX Undeploy<br>
   * 22 - message: awarded a cavern capture (updates cavern capture status)<br>
   * 23 - award a cavern kill<br>
   * 24 - message: you have been imprinted (updates imprinted status; does it?)<br>
@@ -54,7 +57,21 @@ final case class GenericActionMessage(action: Int) extends PlanetSideGamePacket 
 }
 
 object GenericActionMessage extends Marshallable[GenericActionMessage] {
+  def apply(action: GenericActionEnum.GenericActionEnum): GenericActionMessage = {
+    GenericActionMessage(action.id)
+  }
+
   implicit val codec: Codec[GenericActionMessage] = (
     "action" | uint(6)
   ).as[GenericActionMessage]
+}
+
+object GenericActionEnum extends Enumeration {
+  type GenericActionEnum = Value
+
+  /** Drop special item e.g. LLU */
+  val DropSpecialItem = Value(11)
+
+  /** Plays the base capture fanfare sound */
+  val BaseCaptureFanfare = Value(12)
 }

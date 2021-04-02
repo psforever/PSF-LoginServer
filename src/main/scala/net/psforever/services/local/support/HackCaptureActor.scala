@@ -1,21 +1,26 @@
 package net.psforever.services.local.support
 
-import akka.actor.{Actor, Cancellable}
+import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.actors.zone.{BuildingActor, ZoneActor}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.hackable.Hackable
+import net.psforever.objects.serverobject.llu.CaptureFlag
 import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{Default, GlobalDefinitions}
-import net.psforever.packet.game.PlanetsideAttributeEnum
+import net.psforever.packet.game.{GenericActionEnum, PlanetsideAttributeEnum}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.{FiniteDuration, _}
+import scala.util.Random
 
-class HackCaptureActor extends Actor {
+/**
+  * Responsible for handling the aspects related to hacking control consoles and capturing bases.
+  */
+class HackCaptureActor(val taskResolver: ActorRef) extends Actor {
   private[this] val log = org.log4s.getLogger
 
   private var clearTrigger: Cancellable = Default.Cancellable
@@ -61,6 +66,7 @@ class HackCaptureActor extends Actor {
       RestartTimer()
 
       NotifyHackStateChange(target, isResecured = false)
+      TrySpawnCaptureFlag(target)
 
     case HackCaptureActor.ProcessCompleteHacks() =>
       log.trace("Processing complete hacks")
@@ -75,7 +81,19 @@ class HackCaptureActor extends Actor {
         val hackedByFaction = entry.target.HackedBy.get.hackerFaction
         entry.target.Actor ! CommonMessages.ClearHack()
 
-        HackCompleted(entry.target, hackedByFaction)
+        entry.target.Owner.asInstanceOf[Building].GetFlagSocket match {
+          case Some(socket) =>
+            // LLU was not delivered in time. Send resecured notifications
+            entry.target.Owner.asInstanceOf[Building].GetFlag match {
+              case Some(flag: CaptureFlag) => entry.target.Zone.LocalEvents ! CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.TimedOut)
+              case None => log.warn(s"Failed to find capture flag matching socket ${socket.GUID}")
+            }
+
+            NotifyHackStateChange(entry.target, isResecured = true)
+          case None =>
+            // Timed hack finished, capture the base
+            HackCompleted(entry.target, hackedByFaction)
+        }
       })
 
       // If there's hacked objects left in the list restart the timer with the shortest hack time left
@@ -84,32 +102,79 @@ class HackCaptureActor extends Actor {
     case HackCaptureActor.ResecureCaptureTerminal(target, _) =>
       hackedObjects = hackedObjects.filterNot(x => x.target == target)
 
+      // If LLU exists it was not delivered. Send resecured notifications
+      target.Owner.asInstanceOf[Building].GetFlag match {
+        case Some(flag: CaptureFlag) => target.Zone.LocalEvents ! CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.Resecured)
+        case None => ;
+      }
+
       NotifyHackStateChange(target, isResecured = true)
 
       // Restart the timer in case the object we just removed was the next one scheduled
       RestartTimer()
+    case HackCaptureActor.FlagCaptured(flag) =>
+      log.warn(hackedObjects.toString())
+      hackedObjects.find(_.target.GUID == flag.Owner.asInstanceOf[Building].CaptureTerminal.get.GUID) match {
+        case Some(entry) =>
+          val hackedByFaction = entry.target.HackedBy.get.hackerFaction
+          hackedObjects = hackedObjects.filterNot(x => x == entry)
+          HackCompleted(entry.target, hackedByFaction)
+
+          entry.target.Actor ! CommonMessages.ClearHack()
+
+          flag.Zone.LocalEvents ! CaptureFlagManager.Captured(flag)
+
+          // If there's hacked objects left in the list restart the timer with the shortest hack time left
+          RestartTimer()
+        case _ =>
+          log.error(s"Attempted LLU capture for ${flag.Owner.asInstanceOf[Building].Name} but CC GUID ${flag.Owner.asInstanceOf[Building].CaptureTerminal.get.GUID} was not in list of hacked objects")
+      }
+
     case _ => ;
   }
 
-  private def NotifyHackStateChange(target: CaptureTerminal, isResecured: Boolean): Unit = {
-    val attribute_value = HackCaptureActor.GetHackUpdateAttributeValue(target, isResecured)
+  private def TrySpawnCaptureFlag(terminal: CaptureTerminal): Unit = {
+    // Handle LLUs if the base contains a LLU socket
+    // If there are no neighbouring bases belonging to the hacking faction this will be handled as a regular timed hack (e.g. neutral base in enemy territory)
+    val owner = terminal.Owner.asInstanceOf[Building]
+    val hackingFaction = HackCaptureActor.GetHackingFaction(terminal).get
+    val hackingFactionNeighbourBases = owner.Neighbours(hackingFaction)
+
+    hackingFactionNeighbourBases match {
+      case Some(neighbours) =>
+        if(owner.IsCtfBase) {
+          // Find a random neighbouring base matching the hacking faction
+          val targetBase = neighbours.toVector((new Random).nextInt(neighbours.size))
+
+          // Request LLU is created by CaptureFlagActor via LocalService
+          terminal.Zone.LocalEvents ! CaptureFlagManager.SpawnCaptureFlag(terminal, targetBase, hackingFaction)
+        }
+      case None =>
+        log.info("Couldn't find any neighbouring bases for LLU hack.")
+    }
+  }
+
+  private def NotifyHackStateChange(terminal: CaptureTerminal, isResecured: Boolean): Unit = {
+    val attribute_value = HackCaptureActor.GetHackUpdateAttributeValue(terminal, isResecured)
 
     // Notify all clients that CC has been hacked
-    target.Zone.LocalEvents ! LocalServiceMessage(
-      target.Zone.id,
+    terminal.Zone.LocalEvents ! LocalServiceMessage(
+      terminal.Zone.id,
       LocalAction.SendPlanetsideAttributeMessage(
         PlanetSideGUID(-1),
-        target.GUID,
+        terminal.GUID,
         PlanetsideAttributeEnum.ControlConsoleHackUpdate,
         attribute_value
       )
     )
 
+    val owner = terminal.Owner.asInstanceOf[Building]
+
     // Notify parent building that state has changed
-    target.Owner.Actor ! BuildingActor.AmenityStateChange(target, Some(isResecured))
+    owner.Actor ! BuildingActor.AmenityStateChange(terminal, Some(isResecured))
 
     // Push map update to clients
-    target.Owner.asInstanceOf[Building].Zone.actor ! ZoneActor.ZoneMapUpdate()
+    owner.Zone.actor ! ZoneActor.ZoneMapUpdate()
   }
 
   private def HackCompleted(terminal: CaptureTerminal with Hackable, hackedByFaction: PlanetSideEmpire.Value): Unit = {
@@ -117,6 +182,9 @@ class HackCaptureActor extends Actor {
     if (building.NtuLevel > 0) {
       log.info(s"Setting base ${building.GUID} / MapId: ${building.MapId} as owned by $hackedByFaction")
       building.Actor! BuildingActor.SetFaction(hackedByFaction)
+
+      // todo: This should probably only go to those within the captured SOI who belong to the capturing faction
+      building.Zone.LocalEvents ! LocalServiceMessage(building.Zone.id, LocalAction.SendGenericActionMessage(PlanetSideGUID(-1), GenericActionEnum.BaseCaptureFanfare))
     } else {
       log.info("Base hack completed, but base was out of NTU.")
     }
@@ -160,6 +228,7 @@ object HackCaptureActor {
   )
 
   final case class ResecureCaptureTerminal(target: CaptureTerminal, zone: Zone)
+  final case class FlagCaptured(flag: CaptureFlag)
 
   private final case class ProcessCompleteHacks()
 
@@ -172,11 +241,19 @@ object HackCaptureActor {
       hack_timestamp: Long
   )
 
-  def GetHackUpdateAttributeValue(target: CaptureTerminal, isResecured: Boolean): Long = {
+  def GetHackingFaction(terminal: CaptureTerminal): Option[PlanetSideEmpire.Value] = {
+    terminal.HackedBy match {
+      case Some(Hackable.HackInfo(_, _, hackingFaction, _, _, _)) =>
+        Some(hackingFaction)
+      case _ => None
+    }
+  }
+
+  def GetHackUpdateAttributeValue(terminal: CaptureTerminal, isResecured: Boolean): Long = {
     if (isResecured) {
       17039360L
     } else {
-      target.HackedBy match {
+      terminal.HackedBy match {
         case Some(Hackable.HackInfo(_, _, hackingFaction, _, start, length)) =>
           // See PlanetSideAttributeMessage #20 documentation for an explanation of how the timer is calculated
           val hack_time_remaining_ms =

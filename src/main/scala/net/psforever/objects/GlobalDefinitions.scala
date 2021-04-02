@@ -33,6 +33,7 @@ import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.vital.{ComplexDeployableResolutions, MaxResolutions, SimpleResolutions}
 import net.psforever.types.{ExoSuitType, ImplantType, PlanetSideEmpire, Vector3}
 import net.psforever.types._
+import net.psforever.objects.serverobject.llu.{CaptureFlagDefinition, CaptureFlagSocketDefinition}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -1068,6 +1069,11 @@ object GlobalDefinitions {
   val secondary_capture = new CaptureTerminalDefinition(751) // Tower CC
 
   val vanu_control_console = new CaptureTerminalDefinition(930) // Cavern CC
+
+  val llm_socket = new CaptureFlagSocketDefinition()
+
+  val capture_flag = new CaptureFlagDefinition()
+  capture_flag.Packet = new CaptureFlagConverter
 
   val lodestar_repair_terminal = new MedicalTerminalDefinition(461)
 

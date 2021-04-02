@@ -404,6 +404,8 @@ class ChatActor(
                   case ("nc", pos)   => Some(PlanetSideEmpire.NC, pos)
                   case ("vs", pos)   => Some(PlanetSideEmpire.VS, pos)
                   case ("none", pos) => Some(PlanetSideEmpire.NEUTRAL, pos)
+                  case ("bo", pos) => Some(PlanetSideEmpire.NEUTRAL, pos)
+                  case ("neutral", pos) => Some(PlanetSideEmpire.NEUTRAL, pos)
                   case _             => None
                 }
                 .headOption match {

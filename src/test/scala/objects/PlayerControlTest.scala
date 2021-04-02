@@ -526,7 +526,7 @@ class PlayerControlDeathStandingTest extends ActorTest {
       assert(player2.isAlive)
 
       player2.Actor ! Vitality.Damage(applyDamageTo)
-      val msg_avatar = avatarProbe.receiveN(7, 500 milliseconds)
+      val msg_avatar = avatarProbe.receiveN(8, 500 milliseconds)
       val msg_stamina = probe.receiveOne(500 milliseconds)
       activityProbe.expectNoMessage(200 milliseconds)
       assert(
@@ -543,25 +543,31 @@ class PlayerControlDeathStandingTest extends ActorTest {
       )
       assert(
         msg_avatar(1) match {
+          case AvatarServiceMessage("TestCharacter2", AvatarAction.DropSpecialItem()) => true
+          case _                                                                      => false
+        }
+      )
+      assert(
+        msg_avatar(2) match {
           case AvatarServiceMessage("TestCharacter2", AvatarAction.Killed(PlanetSideGUID(2), None)) => true
           case _                                                                                    => false
         }
       )
       assert(
-        msg_avatar(2) match {
+        msg_avatar(3) match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
           case _                                                                                            => false
         }
       )
       assert(
-        msg_avatar(3) match {
+        msg_avatar(4) match {
           case AvatarServiceMessage("TestCharacter2", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 7, _)) =>
             true
           case _ => false
         }
       )
       assert(
-        msg_avatar(4) match {
+        msg_avatar(5) match {
           case AvatarServiceMessage(
                 "TestCharacter2",
                 AvatarAction.SendResponse(_, DestroyMessage(PlanetSideGUID(2), PlanetSideGUID(1), _, _))
@@ -571,7 +577,7 @@ class PlayerControlDeathStandingTest extends ActorTest {
         }
       )
       assert(
-        msg_avatar(5) match {
+        msg_avatar(6) match {
           case AvatarServiceMessage(
                 "TestCharacter2",
                 AvatarAction.SendResponse(
@@ -584,7 +590,7 @@ class PlayerControlDeathStandingTest extends ActorTest {
         }
       )
       assert(
-        msg_avatar(6) match {
+        msg_avatar(7) match {
           case AvatarServiceMessage("test", AvatarAction.DestroyDisplay(killer, victim, _, _))
               if killer.Name.equals(player1.Name) && victim.Name.equals(player2.Name) =>
             true
@@ -666,7 +672,7 @@ class PlayerControlDeathSeatedTest extends ActorTest {
       assert(player2.isAlive)
 
       player2.Actor ! Vitality.Damage(applyDamageTo)
-      val msg_avatar = avatarProbe.receiveN(8, 500 milliseconds)
+      val msg_avatar = avatarProbe.receiveN(9, 500 milliseconds)
       val msg_stamina = probe.receiveOne(500 milliseconds)
       activityProbe.expectNoMessage(200 milliseconds)
       assert(
@@ -677,6 +683,12 @@ class PlayerControlDeathSeatedTest extends ActorTest {
       )
       assert(
         msg_avatar.head match {
+          case AvatarServiceMessage("TestCharacter2", AvatarAction.DropSpecialItem()) => true
+          case _                                                                      => false
+        }
+      )
+      assert(
+        msg_avatar(1) match {
           case AvatarServiceMessage(
                 "TestCharacter2",
                 AvatarAction.Killed(PlanetSideGUID(2), Some(PlanetSideGUID(7)))
@@ -686,7 +698,7 @@ class PlayerControlDeathSeatedTest extends ActorTest {
         }
       )
       assert(
-        msg_avatar(1) match {
+        msg_avatar(2) match {
           case AvatarServiceMessage(
                 "TestCharacter2",
                 AvatarAction.SendResponse(_, ObjectDetachMessage(PlanetSideGUID(7), PlanetSideGUID(2), _, _, _, _))
@@ -696,7 +708,7 @@ class PlayerControlDeathSeatedTest extends ActorTest {
         }
       )
       assert(
-        msg_avatar(2) match {
+        msg_avatar(3) match {
           case AvatarServiceMessage(
                 "TestCharacter2",
                 AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 29, 1)
@@ -706,19 +718,19 @@ class PlayerControlDeathSeatedTest extends ActorTest {
         }
       )
       assert(
-        msg_avatar(3) match {
+        msg_avatar(4) match {
           case AvatarServiceMessage("test", AvatarAction.ObjectDelete(PlanetSideGUID(2), PlanetSideGUID(2), _)) => true
           case _                                                                                                => false
         }
       )
       assert(
-        msg_avatar(4) match {
+        msg_avatar(5) match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
           case _                                                                                            => false
         }
       )
       assert(
-        msg_avatar(5) match {
+        msg_avatar(6) match {
           case AvatarServiceMessage(
                 "TestCharacter2",
                 AvatarAction.SendResponse(_, DestroyMessage(PlanetSideGUID(2), PlanetSideGUID(1), _, _))
@@ -728,7 +740,7 @@ class PlayerControlDeathSeatedTest extends ActorTest {
         }
       )
       assert(
-        msg_avatar(6) match {
+        msg_avatar(7) match {
           case AvatarServiceMessage(
                 "TestCharacter2",
                 AvatarAction.SendResponse(
@@ -741,7 +753,7 @@ class PlayerControlDeathSeatedTest extends ActorTest {
         }
       )
       assert(
-        msg_avatar(7) match {
+        msg_avatar(8) match {
           case AvatarServiceMessage("test", AvatarAction.DestroyDisplay(killer, victim, _, _))
               if killer.Name.equals(player1.Name) && victim.Name.equals(player2.Name) =>
             true

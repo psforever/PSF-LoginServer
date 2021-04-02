@@ -248,14 +248,24 @@ object ChatMessageType extends Enum[ChatMessageType] {
   case object CMT_REMOVE_VANUMODULE      extends ChatMessageType // /moduleremove OR /modulerm
   case object CMT_DEBUG_MASSIVE          extends ChatMessageType // /debugmassive
   case object CMT_WARP_TO_NEXT_BILLBOARD extends ChatMessageType // ???
-  case object UNK_222                    extends ChatMessageType // ??? "CTF Flag stolen"
-  case object UNK_223                    extends ChatMessageType // ??? "CTF Flag lost"
+  case object UNK_222                    extends ChatMessageType // "CTF Flag stolen"
+                                                                 // Plays a trumpet-like sound and displays the message: "<Base Type> <Base Name> has spawned a LLU"
+                                                                 // "It must be taken to <Base Type> <Base Name>'s Control Console within 15 minutes or the hack will fail!"
+                                                                 // Example string: @CTF_FlagSpawned^@cryo_facility~^@Hanish~^@comm_station_dsp~^@Akkan~^15~
+  case object UNK_223                    extends ChatMessageType // "CTF Flag lost"
+                                                                 // Handles both LLU lost and LLU resecured
+                                                                 // Example string: @CTF_Failed_SourceResecured^@TerranRepublic~^@Hanish~
+                                                                 // Output: "The Terran Republic resecured Hanish!" "The LLU was lost!"
+                                                                 // Example string: @CTF_Failed_FlagLost^@TerranRepublic~^@Hanish~
+                                                                 // Output: "The Terran Republic lost Hanish's LLU" "Hack canceled!"
   case object UNK_224                    extends ChatMessageType // ??? "Vehicle Dismount"
   case object UNK_225                    extends ChatMessageType // ??? empty
   case object UNK_226                    extends ChatMessageType // ??? empty
   case object UNK_227                    extends ChatMessageType // ??? empty
   case object UNK_228                    extends ChatMessageType // ??? empty
-  case object UNK_229                    extends ChatMessageType // ??? empty
+  case object UNK_229                    extends ChatMessageType // See UNK_222 - seems to do the same except without trumpet-like sound
+                                                                 // Is used for flag pickup @CTF_FlagPickedUp^OzTurtle~^@NewConglomerate~^@Qumu~
+                                                                 // Or flag warning @CTF_Warning_Carrier^VanuHemlock~^@VanuSovereigncy~^@Mani~^@Dagur~^10~
   case object UNK_230                    extends ChatMessageType // ??? "Vehicle Mount"
   case object UNK_231                    extends ChatMessageType // ??? empty
   case object UNK_232                    extends ChatMessageType // ??? empty

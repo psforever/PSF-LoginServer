@@ -3,7 +3,7 @@ package net.psforever.services.galaxy
 
 import akka.actor.Actor
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.BuildingInfoUpdateMessage
+import net.psforever.packet.game.{BuildingInfoUpdateMessage, FlagInfo}
 import net.psforever.services.{GenericEventBus, Service}
 
 class GalaxyService extends Actor {
@@ -39,6 +39,11 @@ class GalaxyService extends Actor {
         case GalaxyAction.MapUpdate(msg: BuildingInfoUpdateMessage) =>
           GalaxyEvents.publish(
             GalaxyServiceResponse(s"/Galaxy", GalaxyResponse.MapUpdate(msg))
+          )
+
+        case GalaxyAction.FlagMapUpdate(msg) =>
+          GalaxyEvents.publish(
+            GalaxyServiceResponse(s"/Galaxy", GalaxyResponse.FlagMapUpdate(msg))
           )
 
         case GalaxyAction.TransferPassenger(_, temp_channel, vehicle, vehicle_to_delete, manifest) =>

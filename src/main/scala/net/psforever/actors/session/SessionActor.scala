@@ -1,21 +1,11 @@
 package net.psforever.actors.session
 
-import akka.actor.typed
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware}
+import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware, typed}
 import akka.pattern.ask
 import akka.util.Timeout
 import net.psforever.actors.net.MiddlewareActor
-import net.psforever.services.ServiceManager.Lookup
-import net.psforever.objects.locker.LockerContainer
-import org.log4s.MDC
-
-import scala.collection.mutable
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.Success
 import net.psforever.login.WorldSession._
 import net.psforever.objects._
 import net.psforever.objects.avatar._
@@ -27,7 +17,7 @@ import net.psforever.objects.entity.{SimpleWorldEntity, WorldEntity}
 import net.psforever.objects.equipment._
 import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
 import net.psforever.objects.inventory.{Container, InventoryItem}
-import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
+import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.containable.Containable
 import net.psforever.objects.serverobject.damage.Damageable
@@ -35,6 +25,7 @@ import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.generator.Generator
 import net.psforever.objects.serverobject.hackable.Hackable
+import net.psforever.objects.serverobject.llu.CaptureFlag
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.mount.Mountable
@@ -47,9 +38,10 @@ import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.{FacilityTurret, WeaponTurret}
 import net.psforever.objects.serverobject.zipline.ZipLinePath
+import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.teamwork.Squad
-import net.psforever.objects.vehicles._
 import net.psforever.objects.vehicles.Utility.InternalTelepad
+import net.psforever.objects.vehicles._
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.base._
 import net.psforever.objects.vital.interaction.DamageInteraction
@@ -57,14 +49,14 @@ import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.{Zone, ZoneHotSpotProjector, Zoning}
 import net.psforever.packet._
 import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
-import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo, _}
 import net.psforever.packet.game.objectcreate._
-import net.psforever.services.ServiceManager.LookupResult
+import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo, _}
+import net.psforever.services.ServiceManager.{Lookup, LookupResult}
 import net.psforever.services.account.{AccountPersistenceService, PlayerToken, ReceiveAccountData, RetrieveAccountData}
 import net.psforever.services.avatar.{AvatarAction, AvatarResponse, AvatarServiceMessage, AvatarServiceResponse}
 import net.psforever.services.chat.ChatService
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyResponse, GalaxyServiceMessage, GalaxyServiceResponse}
-import net.psforever.services.local.support.{HackCaptureActor, RouterTelepadActivation}
+import net.psforever.services.local.support.{CaptureFlagManager, HackCaptureActor, RouterTelepadActivation}
 import net.psforever.services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
 import net.psforever.services.properties.PropertyOverrideManager
 import net.psforever.services.support.SupportActor
@@ -75,6 +67,13 @@ import net.psforever.services.{RemoverActor, Service, ServiceManager, Interstell
 import net.psforever.types._
 import net.psforever.util.{Config, DefinitionUtil}
 import net.psforever.zones.Zones
+import org.log4s.MDC
+
+import scala.collection.mutable
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
+import scala.util.Success
 
 object SessionActor {
   sealed trait Command
@@ -203,6 +202,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var setupAvatarFunc: () => Unit                                     = AvatarCreate
   var setCurrentAvatarFunc: Player => Unit                            = SetCurrentAvatarNormally
   var persist: () => Unit                                             = NoPersistence
+  var specialItemSlotGuid : Option[PlanetSideGUID] = None // If a special item (e.g. LLU) has been attached to the player the GUID should be stored here, or cleared when dropped, since the drop hotkey doesn't send the GUID of the object to be dropped.
 
   /**
     * used during zone transfers to maintain reference to seated vehicle (which does not yet exist in the new zone)
@@ -553,6 +553,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             )
           )
         case GalaxyResponse.MapUpdate(msg) =>
+          sendResponse(msg)
+
+        case GalaxyResponse.FlagMapUpdate(msg) =>
           sendResponse(msg)
 
         case GalaxyResponse.TransferPassenger(temp_channel, vehicle, vehicle_to_delete, manifest) =>
@@ -968,6 +971,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           CancelZoningProcess()
           PlayerActionsToCancel()
           CancelAllProximityUnits()
+          DropSpecialSlotItem()
           continent.Population ! Zone.Population.Release(avatar)
           response match {
             case Some((zone, spawnPoint)) =>
@@ -1802,6 +1806,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           CancelZoningProcessWithDescriptiveReason("cancel_dmg")
         }
 
+      case AvatarResponse.DropSpecialItem() =>
+        DropSpecialSlotItem()
+
       case AvatarResponse.Killed(mount) =>
         val respawnTimer = 300.seconds
         //drop free hand item
@@ -1810,25 +1817,32 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             DropEquipmentFromInventory(player)(item)
           case None => ;
         }
+
+        DropSpecialSlotItem()
         ToggleMaxSpecialState(enable = false)
+
         keepAliveFunc = NormalKeepAlive
         zoningStatus = Zoning.Status.None
         deadState = DeadState.Dead
+
         continent.GUID(mount) match {
           case Some(obj: Vehicle) =>
             TotalDriverVehicleControl(obj)
             UnaccessContainer(obj)
           case _ => ;
         }
+
         PlayerActionsToCancel()
         CancelAllProximityUnits()
         CancelZoningProcessWithDescriptiveReason("cancel")
+
         if (shotsWhileDead > 0) {
           log.warn(
             s"KillPlayer/SHOTS_WHILE_DEAD: client of ${avatar.name} fired $shotsWhileDead rounds while character was dead on server"
           )
           shotsWhileDead = 0
         }
+
         reviveTimer.cancel()
         if (player.death_by == 0) {
           reviveTimer = context.system.scheduler.scheduleOnce(respawnTimer) {
@@ -2133,6 +2147,28 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     }
   }
 
+  def DropSpecialSlotItem(): Unit = {
+    specialItemSlotGuid match {
+      case Some(guid: PlanetSideGUID) =>
+        specialItemSlotGuid = None
+        continent.GUID(guid) match {
+          case Some(llu: CaptureFlag) =>
+            llu.Carrier match {
+              case Some(carrier: Player) if carrier.GUID == player.GUID =>
+                continent.LocalEvents ! CaptureFlagManager.DropFlag(llu)
+              case Some(carrier: Player) =>
+                log.warn(s"${player.toString} tried to drop LLU, but it is currently held by ${carrier.toString}")
+              case None =>
+                log.warn(s"${player.toString} tried to drop LLU, but nobody is holding it.")
+            }
+          case _ =>
+            log.warn(s"${player.toString} Tried to drop a special item that wasn't recognized. GUID: $guid")
+        }
+
+      case _ => ; // Nothing to drop, do nothing.
+    }
+  }
+
   /**
     * Enforce constraints on bulk purchases as determined by a given player's previous purchase times and hard acquisition delays.
     * Intended to assist in sanitizing loadout information from the perspective of the player, or target owner.
@@ -2290,6 +2326,40 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case LocalResponse.SendPlanetsideAttributeMessage(target_guid, attribute_number, attribute_value) =>
         SendPlanetsideAttributeMessage(target_guid, attribute_number, attribute_value)
 
+      case LocalResponse.SendGenericObjectActionMessage(target_guid, action_number) =>
+        sendResponse(GenericObjectActionMessage(target_guid, action_number))
+
+      case LocalResponse.SendGenericActionMessage(action_number) =>
+        sendResponse(GenericActionMessage(action_number))
+
+      case LocalResponse.SendChatMsg(msg) =>
+        sendResponse(msg)
+
+      case LocalResponse.SendPacket(packet) =>
+        sendResponse(packet)
+
+      case LocalResponse.LluSpawned(llu) =>
+        // Create LLU on client
+        sendResponse(ObjectCreateMessage(
+          llu.Definition.ObjectId,
+          llu.GUID,
+          llu.Definition.Packet.ConstructorData(llu).get
+        ))
+
+        sendResponse(TriggerSoundMessage(TriggeredSound.LLUMaterialize, llu.Position, unk = 20, 0.8000001f))
+
+      case LocalResponse.LluDespawned(llu) =>
+        sendResponse(TriggerSoundMessage(TriggeredSound.LLUDeconstruct, llu.Position, unk = 20, 0.8000001f))
+        sendResponse(ObjectDeleteMessage(llu.GUID, 0))
+
+        // If the player was holding the LLU, remove it from their tracked special item slot
+        specialItemSlotGuid match {
+          case Some(guid) =>
+            if (guid == llu.GUID) {
+              specialItemSlotGuid = None
+            }
+          case _ => ;
+        }
       case LocalResponse.ObjectDelete(object_guid, unk) =>
         if (tplayer_guid != guid) {
           sendResponse(ObjectDeleteMessage(object_guid, unk))
@@ -4144,7 +4214,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               case None =>
                 log.warn(s"DropItem: ${player.Name} wanted to drop a $anItem, but it wasn't at hand")
             }
-          case Some(obj) => //TODO LLU
+          case Some(obj) =>
             log.warn(s"DropItem: ${player.Name} wanted to drop a $obj, but that isn't possible")
           case None =>
             sendResponse(ObjectDeleteMessage(item_guid, 0)) //this is fine; item doesn't exist to the server anyway
@@ -4719,7 +4789,16 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               case Some(item) =>
                 CancelZoningProcessWithDescriptiveReason("cancel_use")
                 captureTerminal.Actor ! CommonMessages.Use(player, Some(item))
-              case _ => ;
+              case _ if specialItemSlotGuid.nonEmpty =>
+                continent.GUID(specialItemSlotGuid) match {
+                  case Some(llu: CaptureFlag) =>
+                    if (llu.Target.GUID == captureTerminal.Owner.GUID) {
+                      continent.LocalEvents ! LocalServiceMessage(continent.id, LocalAction.LluCaptured(llu))
+                    } else {
+                      log.info(s"LLU target is not this base. Target GUID: ${llu.Target.GUID} This base: ${captureTerminal.Owner.GUID}")
+                    }
+                  case _ => log.warn("Item in specialItemSlotGuid is not registered with continent or is not a LLU")
+                }
             }
 
           case Some(obj: FacilityTurret) =>
@@ -4945,6 +5024,19 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               case None => ;
             }
 
+        case Some(obj: CaptureFlag) =>
+          // LLU can normally only be picked up the faction that owns it
+          if (specialItemSlotGuid.isEmpty) {
+            if(obj.Faction == player.Faction) {
+              specialItemSlotGuid = Some(obj.GUID)
+              continent.LocalEvents ! CaptureFlagManager.PickupFlag(obj, player)
+            } else {
+              log.warn(s"Player ${player.toString} tried to pick up LLU ${obj.GUID} - ${obj.Faction} that doesn't belong to their faction")
+            }
+          } else if(specialItemSlotGuid.get != obj.GUID) { // Ignore duplicate pickup requests
+            log.warn(s"Player ${player.toString} tried to pick up LLU ${obj.GUID} - ${obj.Faction} but their special slot already contains $specialItemSlotGuid")
+          }
+
           case Some(obj) =>
             CancelZoningProcessWithDescriptiveReason("cancel_use")
             log.warn(s"UseItem: ${player.Name} does not know how to handle $obj")
@@ -5047,6 +5139,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           } else if (action == 30) {
             log.info(s"${player.Name} is back")
             player.AwayFromKeyboard = false
+          }
+          if (action == GenericActionEnum.DropSpecialItem.id) {
+            DropSpecialSlotItem()
           }
           if (action == 15) { //max deployment
             log.info(s"${player.Name} has anchored ${player.Sex.pronounObject}self to the ground")
@@ -6715,11 +6810,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     //sync model access state
     sendResponse(PlanetsideAttributeMessage(amenityId, 50, 0))
     sendResponse(PlanetsideAttributeMessage(amenityId, 51, 0))
+
     //sync damageable, if
     val health = amenity.Health
     if (amenity.Definition.Damageable && health < amenity.MaxHealth) {
       sendResponse(PlanetsideAttributeMessage(amenityId, 0, health))
     }
+
     //sync special object type cases
     amenity match {
       case silo: ResourceSilo =>
@@ -6733,19 +6830,30 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case door: Door if door.isOpen =>
         sendResponse(GenericObjectStateMsg(amenityId, 16))
 
-      case _ => ;
-    }
-    //sync hack state
-    amenity match {
       case obj: Hackable if obj.HackedBy.nonEmpty =>
+        //sync hack state
         amenity.Definition match {
-          case GlobalDefinitions.capture_terminal =>
-            SendPlanetsideAttributeMessage(
-              amenity.GUID,
-              PlanetsideAttributeEnum.ControlConsoleHackUpdate,
-              HackCaptureActor.GetHackUpdateAttributeValue(amenity.asInstanceOf[CaptureTerminal], isResecured = false))
-          case _ =>
-            HackObject(amenity.GUID, 1114636288L, 8L) //generic hackable object
+            case GlobalDefinitions.capture_terminal =>
+              SendPlanetsideAttributeMessage(
+                amenity.GUID,
+                PlanetsideAttributeEnum.ControlConsoleHackUpdate,
+                HackCaptureActor.GetHackUpdateAttributeValue(amenity.asInstanceOf[CaptureTerminal], isResecured = false))
+            case _ =>
+              HackObject(amenity.GUID, 1114636288L, 8L) //generic hackable object
+          }
+
+      // sync capture flags
+      case llu: CaptureFlag =>
+        // Create LLU
+        sendResponse(ObjectCreateMessage(
+          llu.Definition.ObjectId,
+          llu.GUID,
+          llu.Definition.Packet.ConstructorData(llu).get
+        ))
+
+        // Attach it to a player if it has a carrier
+        if (llu.Carrier.nonEmpty) {
+          continent.LocalEvents ! LocalServiceMessage(continent.id, LocalAction.SendPacket(ObjectAttachMessage(llu.Carrier.get.GUID, llu.GUID, 252)))
         }
       case _ => ;
     }

@@ -710,12 +710,18 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     super.CancelJammeredStatus(target)
     //uninitialize implants
     avatarActor ! AvatarActor.DeinitializeImplants()
+
     cause.adversarial match {
       case Some(a) =>
         damageLog.info(s"DisplayDestroy: ${a.defender} was killed by ${a.attacker}")
       case _ =>
         damageLog.info(s"DisplayDestroy: ${player.Name} killed ${player.Sex.pronounObject}self.")
     }
+
+    // This would normally happen async as part of AvatarAction.Killed, but if it doesn't happen before deleting calling AvatarAction.ObjectDelete on the player the LLU will end up invisible to others if carried
+    // Therefore, queue it up to happen first.
+    events ! AvatarServiceMessage(nameChannel, AvatarAction.DropSpecialItem())
+
     events ! AvatarServiceMessage(
       nameChannel,
       AvatarAction.Killed(player_guid, target.VehicleSeated)
