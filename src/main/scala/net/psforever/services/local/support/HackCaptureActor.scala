@@ -81,8 +81,9 @@ class HackCaptureActor(val taskResolver: ActorRef) extends Actor {
         val hackedByFaction = entry.target.HackedBy.get.hackerFaction
         entry.target.Actor ! CommonMessages.ClearHack()
 
-        entry.target.Owner.asInstanceOf[Building].GetFlagSocket match {
-          case Some(socket) =>
+        // If the base has a socket, but no flag spawned it means the hacked base is neutral with no friendly neighbouring bases to deliver to, making it a timed hack.
+        (entry.target.Owner.asInstanceOf[Building].GetFlagSocket, entry.target.Owner.asInstanceOf[Building].GetFlag) match {
+          case (Some(socket), Some(_)) =>
             // LLU was not delivered in time. Send resecured notifications
             entry.target.Owner.asInstanceOf[Building].GetFlag match {
               case Some(flag: CaptureFlag) => entry.target.Zone.LocalEvents ! CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.TimedOut)
@@ -90,8 +91,8 @@ class HackCaptureActor(val taskResolver: ActorRef) extends Actor {
             }
 
             NotifyHackStateChange(entry.target, isResecured = true)
-          case None =>
-            // Timed hack finished, capture the base
+          case _ =>
+            // Timed hack finished (or neutral LLU base with no neighbour as timed hack), capture the base
             HackCompleted(entry.target, hackedByFaction)
         }
       })
