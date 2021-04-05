@@ -18,7 +18,6 @@ import net.psforever.objects.serverobject.turret.{TurretDefinition, WeaponTurret
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.vital.{SimpleResolutions, StandardVehicleResistance}
-import net.psforever.objects.zones.Zone
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.duration.FiniteDuration
@@ -131,7 +130,8 @@ class TurretControl(turret: TurretDeployable)
     super.deconstructDeployable(retime)
   }
 
-  override def unregisterDeployable(zone: Zone, obj: Deployable): Unit = {
+  override def unregisterDeployable(obj: Deployable): Unit = {
+    val zone = obj.Zone
     zone.tasks ! GUIDTask.UnregisterDeployableTurret(turret)(zone.GUID)
   }
 }

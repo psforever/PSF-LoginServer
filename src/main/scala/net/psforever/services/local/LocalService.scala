@@ -45,14 +45,6 @@ class LocalService(zone: Zone) extends Actor {
 
     case LocalServiceMessage(forChannel, action) =>
       action match {
-        case LocalAction.AlertBuildDeployable(obj) =>
-          LocalEvents.publish(
-            LocalServiceResponse(
-              s"/$forChannel/Local",
-              Service.defaultPlayerGUID,
-              LocalResponse.AlertBuildDeployable(obj)
-            )
-          )
         case LocalAction.AlertDestroyDeployable(_, obj) =>
           LocalEvents.publish(
             LocalServiceResponse(
@@ -61,28 +53,20 @@ class LocalService(zone: Zone) extends Actor {
               LocalResponse.AlertDestroyDeployable(obj)
             )
           )
-        case LocalAction.CancelBuildDeployable(obj, tool) =>
-          LocalEvents.publish(
-            LocalServiceResponse(
-              s"/$forChannel/Local",
-              Service.defaultPlayerGUID,
-              LocalResponse.CancelBuildDeployable(obj, tool)
-            )
-          )
-        case LocalAction.BuildDeployable(obj, tool) =>
-          LocalEvents.publish(
-            LocalServiceResponse(
-              s"/$forChannel/Local",
-              Service.defaultPlayerGUID,
-              LocalResponse.BuildDeployable(obj, tool)
-            )
-          )
         case LocalAction.DeployableMapIcon(player_guid, behavior, deployInfo) =>
           LocalEvents.publish(
             LocalServiceResponse(
               s"/$forChannel/Local",
               player_guid,
               LocalResponse.DeployableMapIcon(behavior, deployInfo)
+            )
+          )
+        case LocalAction.DeployableUIFor(item) =>
+          LocalEvents.publish(
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              Service.defaultPlayerGUID,
+              LocalResponse.DeployableUIFor(item)
             )
           )
         case LocalAction.Detonate(guid, obj) =>

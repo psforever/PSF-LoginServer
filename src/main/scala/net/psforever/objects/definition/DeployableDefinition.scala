@@ -12,9 +12,16 @@ import net.psforever.objects.vital.{NoResistanceSelection, VitalityDefinition}
 
 import scala.concurrent.duration._
 
+object DeployAnimation extends Enumeration {
+  type Type = Value
+
+  val None, Standard, Fdu = Value
+}
+
 trait BaseDeployableDefinition {
   private var category: DeployableCategory.Value = DeployableCategory.Boomers
   private var deployTime: Long                   = (1 second).toMillis //ms
+  var deployAnimation: DeployAnimation.Value     = DeployAnimation.None
 
   def Item: DeployedItem.Value
 

@@ -3,6 +3,7 @@ package net.psforever.objects.avatar
 
 import net.psforever.objects.ce.{Deployable, DeployableCategory, DeployedItem}
 import net.psforever.types.PlanetSideGUID
+
 import scala.collection.mutable
 
 /**
@@ -12,13 +13,18 @@ import scala.collection.mutable
   * `CombatEngineering` and above certifications include permissions for different types of deployables,
   * and one unique type of deployable is available through the `GroundSupport`
   * and one that also requires `AdvancedHacking`.
-  * (They are collectively called "ce" for that reason.)
+  * (They are collectively called "ce" for that reason.)<br>
+  * <br>
   * Not only does the level of certification change the maximum number of deployables that can be managed by type
   * but it also influences the maximum number of deployables that can be managed by category.
   * Individual deployables are counted by type and category individually in special data structures
   * to avoid having to probe the primary list of deployable references whenever a question of quantity is asked.
   * As deployables are added and removed, and tracked certifications are added and removed,
   * these structures are updated to reflect proper count.
+  * For example, the greatest number of spitfire turrets that can be placed is 15 (individual count)
+  * and the greatest number of shadow turrets and cerebus turrets that can be placed is 5 each (individual counts)
+  * but the maximum number of small turrets that can be placed overall is only 15 (categorical count).
+  * Spitfire turrets, shadow turrets, and cerebus turrets are all included in the category of small turrets.
   */
 class DeployableToolbox {
 
@@ -138,6 +144,28 @@ class DeployableToolbox {
     val dType     = deployableCounts(DeployableToolbox.UnifiedType(obj.Definition.Item))
     val dList     = deployableLists(category)
     if (dCategory.Available() && dType.Available() && !dList.contains(obj)) {
+      dCategory.Current += 1
+      dType.Current += 1
+      dList += obj
+      true
+    } else {
+      false
+    }
+  }
+
+  /**
+    * Manage the provided deployable, the maximum number of governable units be damned.
+    * It still needs to be a unique unit of a governable deployable type, however.
+    * @param obj the deployable
+    * @return `true`, if the deployable is added;
+    *        `false`, otherwise
+    */
+  def AddOverLimit(obj: DeployableToolbox.AcceptableDeployable): Boolean = {
+    val category  = obj.Definition.DeployCategory
+    val dCategory = categoryCounts(category)
+    val dType     = deployableCounts(DeployableToolbox.UnifiedType(obj.Definition.Item))
+    val dList     = deployableLists(category)
+    if (!dList.contains(obj)) {
       dCategory.Current += 1
       dType.Current += 1
       dList += obj
@@ -297,7 +325,9 @@ class DeployableToolbox {
     List((curr, dType.Current, max, dType.Max))
   }
 
-  def UpdateUI(): List[(Int, Int, Int, Int)] = DeployedItem.values flatMap UpdateUIElement toList
+  def UpdateUI(): List[(Int, Int, Int, Int)] = DeployedItem.values.flatMap { value: DeployedItem.Value =>
+    UpdateUIElement(value)
+  }.toList
 
   def UpdateUI(entry: Certification): List[(Int, Int, Int, Int)] = {
     import Certification._

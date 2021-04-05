@@ -136,6 +136,7 @@ class DeployableBehaviorSetupOwnedP2Test extends FreedContextActorTest {
     override def Deployables: ActorRef = deployables
     override def Players = List(avatar)
     override def LivePlayers = List(player)
+    override def tasks: ActorRef = eventsProbe.ref
   }
   guid.register(jmine, number = 1)
   guid.register(citem, number = 2)
@@ -147,54 +148,77 @@ class DeployableBehaviorSetupOwnedP2Test extends FreedContextActorTest {
   jmine.AssignOwnership(player)
   avatar.deployables.UpdateMaxCounts(Set(Certification.CombatEngineering, Certification.AssaultEngineering))
   player.Zone = zone
+  player.Slot(slot = 0).Equipment = citem
   player.Actor = system.actorOf(Props(classOf[PlayerControl], player, null), name = "deployable-test-player-control")
 
   "DeployableBehavior" should {
     "perform setup functions after asking owner" in {
+      assert(player.Slot(slot = 0).Equipment.contains(citem), "owned setup test, 2 - player hand is empty")
       assert(deployableList.isEmpty, "owned setup test, 2 - deployable list is not empty")
       assert(!avatar.deployables.Contains(jmine), "owned setup test, 2 - avatar already owns deployable")
       zone.Deployables ! Zone.Deployable.Build(jmine, citem)
-
-      val eventsMsgs = eventsProbe.receiveN(5, 10.seconds)
+      //assert(false, "test needs to be fixed")
+      val eventsMsgs = eventsProbe.receiveN(8, 10.seconds)
       eventsMsgs.head match {
+        case AvatarServiceMessage(
+          "TestCharacter1",
+          AvatarAction.SendResponse(
+            Service.defaultPlayerGUID,
+            ObjectDeployedMessage(0, "jammer_mine", DeployOutcome.Success, 1, 20)
+          )
+        ) => ;
+        case _ =>
+          assert(false, "owned setup test, 2 - did not receive build confirmation")
+      }
+      eventsMsgs(1) match {
+        case LocalServiceMessage("TestCharacter1", LocalAction.DeployableUIFor(DeployedItem.jammer_mine)) => ;
+        case _ => assert(false, "owned setup test, 2 - did not receive ui update")
+      }
+      eventsMsgs(2) match {
         case LocalServiceMessage(
           "test",
           LocalAction.TriggerEffectLocation(PlanetSideGUID(3), "spawn_object_effect", Vector3(1,2,3), Vector3(4,5,6))
         )      => ;
         case _ => assert(false, "owned setup test, 2 - no spawn fx")
       }
-      eventsMsgs(1) match {
+      eventsMsgs(3) match {
         case AvatarServiceMessage("test", AvatarAction.DeployItem(PlanetSideGUID(0), obj)) =>
           assert(obj eq jmine, "owned setup test, 2 - not same mine")
         case _ =>
           assert( false, "owned setup test, 2 - wrong deploy message")
       }
       //the message order can be jumbled from here-on
-      if( !eventsMsgs.contains(
-        LocalServiceMessage(
+      eventsMsgs(4) match {
+        case LocalServiceMessage(
           "TR",
           LocalAction.DeployableMapIcon(
             PlanetSideGUID(0),
             DeploymentAction.Build,
             DeployableInfo(PlanetSideGUID(1), DeployableIcon.DisruptorMine, Vector3(1,2,3), PlanetSideGUID(3))
           )
-        )
-      )) {
-        assert(false, "owned setup test, 2 - no icon or wrong icon")
+        ) => ;
+        case _ =>
+          assert(false, "owned setup test, 2 - no icon or wrong icon")
       }
-      if( !eventsMsgs.contains(
-        AvatarServiceMessage("TestCharacter1", AvatarAction.SendResponse(
-          PlanetSideGUID(0),
-          ObjectDeployedMessage(0, "jammer_mine", DeployOutcome.Success, 1, 20)
-        ))
-      )) {
-        assert(false, "owned setup test, 2 - not reporting on successful build")
+      eventsMsgs(5) match {
+        case AvatarServiceMessage(
+          "TestCharacter1",
+          AvatarAction.SendResponse(Service.defaultPlayerGUID, GenericObjectActionMessage(PlanetSideGUID(1), 21))
+        ) => ;
+        case _ =>
+          assert(false, "owned setup test, 2 - build action not reset (GOAM21)")
       }
-      if( !eventsMsgs.contains(
-        LocalServiceMessage("TestCharacter1", LocalAction.BuildDeployable(jmine, citem))
-      )) {
-        assert(false, "owned setup test, 2 - not reporting on build correctly")
+      eventsMsgs(6) match {
+        case AvatarServiceMessage("test", AvatarAction.ObjectDelete(Service.defaultPlayerGUID, PlanetSideGUID(2), 0)) => ;
+        case _ =>
+          assert(false, "owned setup test, 2 - construction tool not deleted")
       }
+      eventsMsgs(7) match {
+        case TaskResolver.GiveTask(_, _) => ;
+        case _ =>
+          assert(false, "owned setup test, 2 - construction tool not unregistered")
+      }
+      assert(player.Slot(slot = 0).Equipment.isEmpty, "owned setup test, 2 - player hand should be empty")
       assert(deployableList.contains(jmine), "owned setup test, 2 - deployable not appended to list")
       assert(avatar.deployables.Contains(jmine), "owned setup test, 2 - avatar does not own deployable")
     }
@@ -274,12 +298,13 @@ class DeployableBehaviorDeconstructOwnedTest extends FreedContextActorTest {
   jmine.AssignOwnership(player)
   avatar.deployables.UpdateMaxCounts(Set(Certification.CombatEngineering, Certification.AssaultEngineering))
   player.Zone = zone
+  player.Slot(slot = 0).Equipment = citem
   player.Actor = system.actorOf(Props(classOf[PlayerControl], player, null), name = "deployable-test-player-control")
 
   "DeployableBehavior" should {
     "deconstruct and alert owner" in {
       zone.Deployables ! Zone.Deployable.Build(jmine, citem)
-      eventsProbe.receiveN(5, 10.seconds)
+      eventsProbe.receiveN(8, 10.seconds)
       assert(deployableList.contains(jmine), "owned deconstruct test - deployable not appended to list")
       assert(avatar.deployables.Contains(jmine), "owned deconstruct test - avatar does not own deployable")
 

@@ -33,8 +33,12 @@ class ZoneDeployableActor(zone: Zone, deployableList: ListBuffer[Deployable]) ex
     case Zone.Deployable.Dismiss(obj) =>
       if (DeployableDismiss(obj, deployableList)) {
         obj.Definition.Uninitialize(obj, context)
-        sender() ! Zone.Deployable.DeployableIsDismissed(obj)
+        sender() ! Zone.Deployable.IsDismissed(obj)
       }
+
+    case Zone.Deployable.IsBuilt(_, _) => ;
+
+    case Zone.Deployable.IsDismissed(_) => ;
 
     case _ => ;
   }

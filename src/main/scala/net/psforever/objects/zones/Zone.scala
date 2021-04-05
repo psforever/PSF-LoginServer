@@ -936,7 +936,7 @@ object Zone {
     final case class CanNotBeBuilt(obj: Deployable, withTool: ConstructionItem)
 
     final case class Dismiss(obj: Deployable)
-    final case class DeployableIsDismissed(obj: Deployable)
+    final case class IsDismissed(obj: Deployable)
   }
 
   object Vehicle {

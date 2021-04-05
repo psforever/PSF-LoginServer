@@ -1,7 +1,7 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.objects
 
-import akka.actor.{Actor, ActorContext, Props}
+import akka.actor.{Actor, ActorContext, ActorRef, Props}
 import net.psforever.objects.ce._
 import net.psforever.objects.definition.converter.SmallDeployableConverter
 import net.psforever.objects.definition.DeployableDefinition
@@ -120,8 +120,8 @@ class SensorDeployableControl(sensor: SensorDeployable)
     super.CancelJammeredStatus(target)
   }
 
-  override def finalizeDeployable(tool: ConstructionItem) : Unit = {
-    super.finalizeDeployable(tool)
+  override def finalizeDeployable(tool: ConstructionItem, callback: ActorRef) : Unit = {
+    super.finalizeDeployable(tool, callback)
     val zone = sensor.Zone
     zone.LocalEvents ! LocalServiceMessage(
       zone.id,

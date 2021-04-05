@@ -7,7 +7,7 @@ import net.psforever.objects.avatar.{Avatar, Certification}
 import scala.concurrent.duration._
 import net.psforever.objects.ce.{Deployable, DeployedItem}
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{DeployableInfo, DeploymentAction}
+import net.psforever.packet.game._
 import net.psforever.types.PlanetSideGUID
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 
@@ -16,10 +16,6 @@ object Deployables {
 
   object Make {
     def apply(item: DeployedItem.Value): () => Deployable = cemap(item)
-
-    private val cemap2: Map[DeployedItem.Value, () => Deployable] = Map(
-      DeployedItem.boomer                 -> { () => new BoomerDeployable(GlobalDefinitions.boomer) }
-    )
 
     private val cemap: Map[DeployedItem.Value, () => Deployable] = Map(
       DeployedItem.boomer                 -> { () => new BoomerDeployable(GlobalDefinitions.boomer) },
@@ -53,6 +49,22 @@ object Deployables {
 
   /**
     * Distribute information that a deployable has been destroyed.
+    * Additionally, since the player who destroyed the deployable isn't necessarily the owner,
+    * and the real owner will still be aware of the existence of the deployable,
+    * that player must be informed of the loss of the deployable directly.
+    * @see `AnnounceDestroyDeployable(Deployable)`
+    * @see `Deployable.Deconstruct`
+    * @param target the deployable that is destroyed
+    * @param time length of time that the deployable is allowed to exist in the game world;
+    *             `None` indicates the normal un-owned existence time (180 seconds)
+    */
+  def AnnounceDestroyDeployable(target: Deployable, time: Option[FiniteDuration]): Unit = {
+    AnnounceDestroyDeployable(target)
+    target.Actor ! Deployable.Deconstruct(time)
+  }
+
+  /**
+    * Distribute information that a deployable has been destroyed.
     * The deployable may not have yet been eliminated from the game world (client or server),
     * but its health is zero and it has entered the conditions where it is nearly irrelevant.<br>
     * <br>
@@ -61,22 +73,26 @@ object Deployables {
     * This function eventually invokes the same routine
     * but mainly goes into effect when the deployable has been destroyed
     * and may still leave a physical component in the game world to be cleaned up later.
-    * That is the task `EliminateDeployable` performs.
-    * Additionally, since the player who destroyed the deployable isn't necessarily the owner,
-    * and the real owner will still be aware of the existence of the deployable,
-    * that player must be informed of the loss of the deployable directly.
+    * @see `DeployableInfo`
+    * @see `DeploymentAction`
+    * @see `LocalAction.AlertDestroyDeployable`
     * @see `LocalAction.EliminateDeployable`
-    * @see `LocalResponse.EliminateDeployable`
-    * @see `DeconstructDeployable`
+    * @see `LocalAction.DeployableMapIcon`
     * @param target the deployable that is destroyed
-    * @param time length of time that the deployable is allowed to exist in the game world;
-    *             `None` indicates the normal un-owned existence time (180 seconds)
-    */
-  def AnnounceDestroyDeployable(target: Deployable, time: Option[FiniteDuration]): Unit = {
+    **/
+  def AnnounceDestroyDeployable(target: Deployable): Unit = {
     val zone = target.Zone
     target.OwnerName match {
       case Some(owner) =>
         target.OwnerName = None
+        /* this is the "correct" method */
+//        (zone.LivePlayers ++ zone.Corpses).find { p => owner.equals(p.Name) } match {
+//          case Some(p) =>
+//            p.Actor ! Player.LoseDeployable(target)
+//          case _ =>
+//            zone.LocalEvents ! LocalServiceMessage(owner, LocalAction.AlertDestroyDeployable(PlanetSideGUID(0), target))
+//        }
+        /* this is the fast method */
         zone.LocalEvents ! LocalServiceMessage(owner, LocalAction.AlertDestroyDeployable(PlanetSideGUID(0), target))
       case None => ;
     }
@@ -88,7 +104,6 @@ object Deployables {
         DeployableInfo(target.GUID, Deployable.Icon(target.Definition.Item), target.Position, PlanetSideGUID(0))
       )
     )
-    target.Actor ! Deployable.Deconstruct(time)
   }
 
   /**

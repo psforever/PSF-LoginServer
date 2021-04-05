@@ -1,8 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.local
 
-import net.psforever.objects.ConstructionItem
-import net.psforever.objects.ce.Deployable
+import net.psforever.objects.ce.{Deployable, DeployedItem}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.hackable.Hackable
@@ -28,15 +27,13 @@ object LocalServiceMessage {
 object LocalAction {
   trait Action
 
-  final case class AlertBuildDeployable(obj: Deployable)                                extends Action
   final case class AlertDestroyDeployable(player_guid: PlanetSideGUID, obj: Deployable) extends Action
-  final case class BuildDeployable(obj: Deployable, tool: ConstructionItem)             extends Action
-  final case class CancelBuildDeployable(obj: Deployable, tool: ConstructionItem)       extends Action
   final case class DeployableMapIcon(
-      player_guid: PlanetSideGUID,
-      behavior: DeploymentAction.Value,
-      deployInfo: DeployableInfo
-  )                                                                                    extends Action
+                                      player_guid: PlanetSideGUID,
+                                      behavior: DeploymentAction.Value,
+                                      deployInfo: DeployableInfo
+                                    )                                                  extends Action
+  final case class DeployableUIFor(obj: DeployedItem.Value)                            extends Action
   final case class Detonate(guid: PlanetSideGUID, obj: PlanetSideGameObject)           extends Action
   final case class DoorOpens(player_guid: PlanetSideGUID, continent: Zone, door: Door) extends Action
   final case class DoorCloses(player_guid: PlanetSideGUID, door_guid: PlanetSideGUID)  extends Action

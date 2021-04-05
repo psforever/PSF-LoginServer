@@ -7049,6 +7049,7 @@ object GlobalDefinitions {
     boomer.Repairable = false
     boomer.DeployCategory = DeployableCategory.Boomers
     boomer.DeployTime = Duration.create(1000, "ms")
+    boomer.deployAnimation = DeployAnimation.Standard
     boomer.explodes = true
     boomer.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.Splash
@@ -7070,6 +7071,7 @@ object GlobalDefinitions {
     he_mine.DamageableByFriendlyFire = false
     he_mine.Repairable = false
     he_mine.DeployTime = Duration.create(1000, "ms")
+    he_mine.deployAnimation = DeployAnimation.Standard
     he_mine.explodes = true
     he_mine.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.Splash
@@ -7091,6 +7093,7 @@ object GlobalDefinitions {
     jammer_mine.DamageableByFriendlyFire = false
     jammer_mine.Repairable = false
     jammer_mine.DeployTime = Duration.create(1000, "ms")
+    jammer_mine.deployAnimation = DeployAnimation.Standard
     jammer_mine.DetonateOnJamming = false
     jammer_mine.Geometry = mine
     spitfire_turret.Name = "spitfire_turret"
@@ -7105,7 +7108,7 @@ object GlobalDefinitions {
     spitfire_turret.DeployCategory = DeployableCategory.SmallTurrets
     spitfire_turret.DeployTime = Duration.create(5000, "ms")
     spitfire_turret.Model = ComplexDeployableResolutions.calculate
-    spitfire_turret.explodes = true
+    spitfire_turret.deployAnimation = DeployAnimation.Standard
     spitfire_turret.explodes = true
     spitfire_turret.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
@@ -7127,6 +7130,7 @@ object GlobalDefinitions {
     spitfire_cloaked.ReserveAmmunition = false
     spitfire_cloaked.DeployCategory = DeployableCategory.SmallTurrets
     spitfire_cloaked.DeployTime = Duration.create(5000, "ms")
+    spitfire_cloaked.deployAnimation = DeployAnimation.Standard
     spitfire_cloaked.Model = ComplexDeployableResolutions.calculate
     spitfire_cloaked.explodes = true
     spitfire_cloaked.innateDamage = new DamageWithPosition {
@@ -7149,6 +7153,7 @@ object GlobalDefinitions {
     spitfire_aa.ReserveAmmunition = false
     spitfire_aa.DeployCategory = DeployableCategory.SmallTurrets
     spitfire_aa.DeployTime = Duration.create(5000, "ms")
+    spitfire_aa.deployAnimation = DeployAnimation.Standard
     spitfire_aa.Model = ComplexDeployableResolutions.calculate
     spitfire_aa.explodes = true
     spitfire_aa.innateDamage = new DamageWithPosition {
@@ -7167,6 +7172,7 @@ object GlobalDefinitions {
     motionalarmsensor.Repairable = true
     motionalarmsensor.RepairIfDestroyed = false
     motionalarmsensor.DeployTime = Duration.create(1000, "ms")
+    motionalarmsensor.deployAnimation = DeployAnimation.Standard
     motionalarmsensor.Geometry = sensor
     sensor_shield.Name = "sensor_shield"
     sensor_shield.Descriptor = "SensorShields"
@@ -7175,6 +7181,7 @@ object GlobalDefinitions {
     sensor_shield.Repairable = true
     sensor_shield.RepairIfDestroyed = false
     sensor_shield.DeployTime = Duration.create(5000, "ms")
+    sensor_shield.deployAnimation = DeployAnimation.Standard
     sensor_shield.Geometry = sensor
     tank_traps.Name = "tank_traps"
     tank_traps.Descriptor = "TankTraps"
@@ -7184,6 +7191,7 @@ object GlobalDefinitions {
     tank_traps.RepairIfDestroyed = false
     tank_traps.DeployCategory = DeployableCategory.TankTraps
     tank_traps.DeployTime = Duration.create(6000, "ms")
+    tank_traps.deployAnimation = DeployAnimation.Fdu
     //tank_traps do not explode
     tank_traps.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
@@ -7211,6 +7219,7 @@ object GlobalDefinitions {
     portable_manned_turret.Packet = fieldTurretConverter
     portable_manned_turret.DeployCategory = DeployableCategory.FieldTurrets
     portable_manned_turret.DeployTime = Duration.create(6000, "ms")
+    portable_manned_turret.deployAnimation = DeployAnimation.Fdu
     portable_manned_turret.Model = ComplexDeployableResolutions.calculate
     portable_manned_turret.explodes = true
     portable_manned_turret.innateDamage = new DamageWithPosition {
@@ -7238,6 +7247,7 @@ object GlobalDefinitions {
     portable_manned_turret_nc.Packet = fieldTurretConverter
     portable_manned_turret_nc.DeployCategory = DeployableCategory.FieldTurrets
     portable_manned_turret_nc.DeployTime = Duration.create(6000, "ms")
+    portable_manned_turret_nc.deployAnimation = DeployAnimation.Fdu
     portable_manned_turret_nc.Model = ComplexDeployableResolutions.calculate
     portable_manned_turret_nc.explodes = true
     portable_manned_turret_nc.innateDamage = new DamageWithPosition {
@@ -7265,6 +7275,7 @@ object GlobalDefinitions {
     portable_manned_turret_tr.Packet = fieldTurretConverter
     portable_manned_turret_tr.DeployCategory = DeployableCategory.FieldTurrets
     portable_manned_turret_tr.DeployTime = Duration.create(6000, "ms")
+    portable_manned_turret_tr.deployAnimation = DeployAnimation.Fdu
     portable_manned_turret_tr.Model = ComplexDeployableResolutions.calculate
     portable_manned_turret_tr.explodes = true
     portable_manned_turret_tr.innateDamage = new DamageWithPosition {
@@ -7292,6 +7303,7 @@ object GlobalDefinitions {
     portable_manned_turret_vs.Packet = fieldTurretConverter
     portable_manned_turret_vs.DeployCategory = DeployableCategory.FieldTurrets
     portable_manned_turret_vs.DeployTime = Duration.create(6000, "ms")
+    portable_manned_turret_vs.deployAnimation = DeployAnimation.Fdu
     portable_manned_turret_vs.Model = ComplexDeployableResolutions.calculate
     portable_manned_turret_vs.explodes = true
     portable_manned_turret_vs.innateDamage = new DamageWithPosition {
@@ -7310,6 +7322,7 @@ object GlobalDefinitions {
     deployable_shield_generator.Repairable = true
     deployable_shield_generator.RepairIfDestroyed = false
     deployable_shield_generator.DeployTime = Duration.create(6000, "ms")
+    deployable_shield_generator.deployAnimation = DeployAnimation.Fdu
     deployable_shield_generator.Model = ComplexDeployableResolutions.calculate
     deployable_shield_generator.Geometry = GeometryForm.representByCylinder(radius = 0.6562f, height = 2.17188f)
     router_telepad_deployable.Name = "router_telepad_deployable"

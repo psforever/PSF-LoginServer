@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import akka.actor.{Actor, ActorContext, Props}
+import akka.actor.{Actor, ActorContext, ActorRef, Props}
 import net.psforever.objects.ce.{Deployable, DeployableBehavior, DeployedItem, TelepadLike}
 import net.psforever.objects.definition.DeployableDefinition
 import net.psforever.objects.serverobject.PlanetSideServerObject
@@ -85,7 +85,7 @@ class TelepadDeployableControl(tpad: TelepadDeployable)
     Zone.causeExplosion(target.Zone, target, Some(cause))
   }
 
-  override def finalizeDeployable(tool: ConstructionItem): Unit = {
+  override def finalizeDeployable(tool: ConstructionItem, callback: ActorRef): Unit = {
     val zone = tpad.Zone
     tool match {
       case tele: Telepad =>
@@ -94,7 +94,7 @@ class TelepadDeployableControl(tpad: TelepadDeployable)
         zone.GUID(tele.Router) match {
           case Some(vehicle: Vehicle)
             if tpad.Health > 0 && !vehicle.Destroyed && vehicle.DeploymentState == DriveState.Deployed =>
-            super.finalizeDeployable(tool)
+            super.finalizeDeployable(tool, callback)
             tpad.Router = tele.Router //necessary; forwards link to the router that prodcued the telepad
             import scala.concurrent.ExecutionContext.Implicits.global
             setup.cancel()

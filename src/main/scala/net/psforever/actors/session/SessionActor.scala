@@ -1038,11 +1038,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       log.warn(s"${player.Name}'s ${vehicle.Definition.Name} can not deconstruct in ${zone.id} because $reason")
       
     //!!only dispatch Zone.Deployable.Dismiss from WorldSessionActor as cleanup if the target deployable was never fully introduced
-    case Zone.Deployable.DeployableIsDismissed(obj: TurretDeployable) =>
+    case Zone.Deployable.IsDismissed(obj: TurretDeployable) =>
       continent.tasks ! GUIDTask.UnregisterDeployableTurret(obj)(continent.GUID)
 
     //!!only dispatch Zone.Deployable.Dismiss from WorldSessionActor as cleanup if the target deployable was never fully introduced
-    case Zone.Deployable.DeployableIsDismissed(obj) =>
+    case Zone.Deployable.IsDismissed(obj) =>
       continent.tasks ! GUIDTask.UnregisterObjectTask(obj)(continent.GUID)
 
     case ICS.ZonesResponse(zones) =>
@@ -1731,6 +1731,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         DropSpecialSlotItem()
 
       case AvatarResponse.Killed(mount) =>
+        val cause = (player.LastDamage match {
+          case Some(reason) => (Some(reason), reason.adversarial)
+          case None         => (None, None)
+        }) match {
+          case (_, Some(adversarial)) => adversarial.attacker.Name
+          case (Some(reason), None)   => s"a ${reason.interaction.cause.getClass.getSimpleName}"
+          case _                      => "an unfortunate circumstance"
+        }
+        log.info(s"${player.Name} has died, killed by $cause")
         val respawnTimer = 300.seconds
         //drop free hand item
         player.FreeHand.Equipment match {
@@ -2138,54 +2147,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       if (player.HasGUID) player.GUID
       else PlanetSideGUID(0)
     reply match {
-      case LocalResponse.AlertBuildDeployable(obj) =>
-        //the owner (obj.OwnerName) should process this message
-        avatar.deployables.Add(obj)
-        UpdateDeployableUIElements(avatar.deployables.UpdateUIElement(obj.Definition.Item))
-
       case LocalResponse.AlertDestroyDeployable(obj) =>
-        //the (former) owner (obj.OwnerName) should process this message
-        avatar.deployables.Remove(obj)
-        UpdateDeployableUIElements(avatar.deployables.UpdateUIElement(obj.Definition.Item))
-
-      case LocalResponse.BuildDeployable(obj: BoomerDeployable, tool) =>
-        //boomers
-        val trigger = new BoomerTrigger
-        trigger.Companion = obj.GUID
-        obj.Trigger = trigger
-        //TODO sufficiently delete the tool
-        sendResponse(ObjectDeleteMessage(tool.GUID, 0))
-        continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.ObjectDelete(player.GUID, tool.GUID))
-        continent.tasks ! GUIDTask.UnregisterEquipment(tool)(continent.GUID)
-        player.Find(tool) match {
-          case Some(index) =>
-            val holster = player.Slot(index)
-            holster.Equipment = None
-            continent.tasks ! HoldNewEquipmentUp(player)(trigger, index)
-          case None =>
-            //don't know where boomer trigger "should" go
-            continent.tasks ! PutNewEquipmentInInventoryOrDrop(player)(trigger)
-        }
-        DeployableBuildActivity(obj)
-
-      case LocalResponse.BuildDeployable(obj: TelepadDeployable, tool) =>
-        continent.GUID(obj.Router) match {
-          case Some(_) =>
-            RemoveOldEquipmentFromInventory(player)(tool)
-            DeployableBuildActivity(obj)
-          case _ =>
-            DropEquipmentFromInventory(player)(tool, Some(obj.Position))
-            sendResponse(GenericObjectActionMessage(guid, 21)) //reset build cooldown
-            sendResponse(ChatMsg(ChatMessageType.UNK_229, false, "", "@Telepad_NoDeploy_RouterLost", None))
-        }
-
-      case LocalResponse.BuildDeployable(obj, tool) =>
-        DeployableBuildActivity(obj)
-        player.Find(tool) match {
-          case Some(index) =>
-            CommonDestroyConstructionItem(tool, index)
-            FindReplacementConstructionItem(tool, index)
-          case None => ;
+        //the (former) owner (obj.OwnerName) may process this message
+        if (avatar.deployables.Remove(obj)) {
+          UpdateDeployableUIElements(avatar.deployables.UpdateUIElement(obj.Definition.Item))
         }
 
       case LocalResponse.DeployableMapIcon(behavior, deployInfo) =>
@@ -2193,22 +2158,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           sendResponse(DeployableObjectsInfoMessage(behavior, deployInfo))
         }
 
-      case LocalResponse.CancelBuildDeployable(obj, tool) =>
-        if (tool.Definition == GlobalDefinitions.advanced_ace) {
-          player.Find(tool) match {
-            case Some(index) =>
-              player.Slot(index).Equipment = None
-              continent.Ground.tell(
-                Zone.Ground.DropItem(tool, obj.Position, Vector3.z(player.Orientation.z)),
-                self
-              )
-            case None => ;
-          }
-        }
-        sendResponse(GenericObjectActionMessage(player.GUID, 21)) //reset build cooldown
-        sendResponse(ObjectDeployedMessage.Failure(obj.Definition.Name))
-        obj.Position = Vector3.Zero
-        obj.AssignOwnership(None)
+      case LocalResponse.DeployableUIFor(item) =>
+        UpdateDeployableUIElements(avatar.deployables.UpdateUIElement(item))
 
       case LocalResponse.Detonate(dguid, obj: BoomerDeployable) =>
         sendResponse(TriggerEffectMessage(dguid, "detonate_boomer"))
@@ -2233,7 +2184,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       case LocalResponse.EliminateDeployable(obj: TurretDeployable, dguid, pos, _) =>
         if (obj.Destroyed) {
-          DeconstructDeployable(obj, dguid, pos)
+          sendResponse(ObjectDeleteMessage(dguid, 0))
         } else {
           obj.Destroyed = true
           DeconstructDeployable(
@@ -2247,7 +2198,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       case LocalResponse.EliminateDeployable(obj: ExplosiveDeployable, dguid, pos, effect) =>
         if (obj.Destroyed || obj.Jammed || obj.Health == 0) {
-          DeconstructDeployable(obj, dguid, pos)
+          sendResponse(ObjectDeleteMessage(dguid, 0))
         } else {
           obj.Destroyed = true
           DeconstructDeployable(obj, dguid, pos, obj.Orientation, effect)
@@ -2262,7 +2213,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
         //standard deployable elimination behavior
         if (obj.Destroyed) {
-          DeconstructDeployable(obj, dguid, pos)
+          sendResponse(ObjectDeleteMessage(dguid, 0))
         } else {
           obj.Destroyed = true
           DeconstructDeployable(obj, dguid, pos, obj.Orientation, deletionType = 2)
@@ -2270,7 +2221,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       case LocalResponse.EliminateDeployable(obj, dguid, pos, effect) =>
         if (obj.Destroyed) {
-          DeconstructDeployable(obj, dguid, pos)
+          sendResponse(ObjectDeleteMessage(dguid, 0))
         } else {
           obj.Destroyed = true
           DeconstructDeployable(obj, dguid, pos, obj.Orientation, effect)
@@ -3412,7 +3363,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         val foundDeployables =
           continent.DeployableList.filter(obj => obj.OwnerName.contains(player.Name) && obj.Health > 0)
         foundDeployables.foreach(obj => {
-          if (avatar.deployables.Add(obj)) {
+          if (avatar.deployables.AddOverLimit(obj)) {
             obj.Actor ! Deployable.Ownership(player)
           }
         })
@@ -5703,6 +5654,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 s"PlanetsideAttribute: vehicle attributes - ${player.Name} does not own vehicle ${vehicle.GUID} and can not change it"
               )
             }
+
+          case Some(_: Deployable) =>
+            //most likely a ShieldGeneratorDeployable or a TurretDeployable (OMFT) in a friendly SOI
+            //suspect this has to do with the chargeable shields
+            //the attribute_type should be 108
 
           // Cosmetics options
           case Some(player: Player) if attribute_type == 106 =>
@@ -8124,171 +8080,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   /**
     * Common actions related to constructing a new `Deployable` object in the game environment.<br>
     * <br>
-    * Besides the standard `ObjectCreateMessage` packet that produces the model and game object on the client,
-    * two messages are dispatched in accordance with enforced deployable limits.
-    * The first limit of note is the actual number of a specific type of deployable can be placed.
-    * The second limit of note is the actual number of a specific group (category) of deployables that can be placed.
-    * For example, the player can place 25 mines but that count adds up all types of mines;
-    * specific mines have individual limits such as 25 and 5 and only that many of that type can be placed at once.
-    * Depending on which limit is encountered, an "oldest entry" is struck from the list to make space.
-    * This generates the first message - "@*OldestDestroyed."
-    * The other message is generated if the number of that specific type of deployable
-    * or the number of deployables available in its category
-    * matches against the maximum count allowed.
-    * This generates the second message - "@*LimitReached."
-    * These messages are mutually exclusive, with "@*OldestDestroyed" taking priority over "@*LimitReached."<br>
-    * <br>
     * The map icon for the deployable just introduced is also created on the clients of all faction-affiliated players.
     * This icon is important as, short of destroying it,
     * the owner has no other means of controlling the created object that it is associated with.
     * @param obj the `Deployable` object to be built
     */
   def DeployableBuildActivity(obj: Deployable): Unit = {
-    val guid        = obj.GUID
-    val definition  = obj.Definition
-    val item        = definition.Item
-    sendResponse(GenericObjectActionMessage(guid, 21)) //reset build cooldown
-    UpdateDeployableUIElements(avatar.deployables.UpdateUIElement(item))
-    //map icon
-    val deployInfo = DeployableInfo(guid, Deployable.Icon(item), obj.Position, obj.Owner.getOrElse(PlanetSideGUID(0)))
-    sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, deployInfo))
-    continent.LocalEvents ! LocalServiceMessage(
-      s"${player.Faction}",
-      LocalAction.DeployableMapIcon(player.GUID, DeploymentAction.Build, deployInfo)
-    )
-  }
-
-  /**
-    * If the tool is a form of field deployment unit (FDU, also called an `advanced_ace`),
-    * completely remove the object from its current position and place it on the ground.
-    * In the case of a botched deployable construction, dropping the FDU is visually consistent
-    * as it should already be depicted as on the ground as a part of its animation cycle.
-    * @param tool the `ConstructionItem` object currently in the slot (checked)
-    * @param index the slot index
-    * @param pos where to drop the object in the game world
-    */
-  def TryDropFDU(tool: ConstructionItem, index: Int, pos: Vector3): Unit = {
-    if (tool.Definition == GlobalDefinitions.advanced_ace) {
-      DropEquipmentFromInventory(player)(tool, Some(pos))
-    }
-  }
-
-  /**
-    * Destroy a `ConstructionItem` object that can be found in the indexed slot.
-    * @see `Player.Find`
-    * @param tool the `ConstructionItem` object currently in the slot (checked)
-    * @param index the slot index
-    */
-  def CommonDestroyConstructionItem(tool: ConstructionItem, index: Int): Unit = {
-    if (SafelyRemoveConstructionItemFromSlot(tool, index, "CommonDestroyConstructionItem")) {
-      continent.tasks ! GUIDTask.UnregisterEquipment(tool)(continent.GUID)
-    }
-  }
-
-  /**
-    * Find the target `ConstructionTool` object, either at the suggested slot or wherever it is on the `player`,
-    * and remove it from the game world visually.<br>
-    * <br>
-    * Not finding the target object at its intended slot is an entirely recoverable situation
-    * as long as the target object is discovered to be somewhere else in the player's holsters or inventory space.
-    * If found after a more thorough search, merely log the discrepancy as a warning.
-    * If the discrepancy becomes common, the developer messed up the function call
-    * or he should not be using this function.
-    * @param tool the `ConstructionItem` object currently in the slot (checked)
-    * @param index the slot index
-    * @param logDecorator what kind of designation to give any log entires originating from this function;
-    *                     defaults to its own function name
-    * @return `true`, if the target object was found and removed;
-    *        `false`, otherwise
-    */
-  def SafelyRemoveConstructionItemFromSlot(
-      tool: ConstructionItem,
-      index: Int,
-      logDecorator: String = "SafelyRemoveConstructionItemFromSlot"
-  ): Boolean = {
-    if ({
-      val holster = player.Slot(index)
-      if (holster.Equipment.contains(tool)) {
-        holster.Equipment = None
-        true
-      } else {
-        player.Find(tool) match {
-          case Some(newIndex) =>
-            log.warn(
-              s"$logDecorator: ${player.Name} was looking for an item in his hand $index, but item was found at $newIndex instead"
-            )
-            player.Slot(newIndex).Equipment = None
-            true
-          case None =>
-            log.warn(s"$logDecorator: ${player.Name} could not find the target ${tool.Definition.Name}")
-            false
-        }
-      }
-    }) {
-      sendResponse(ObjectDeleteMessage(tool.GUID, 0))
-      continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.ObjectDelete(player.GUID, tool.GUID))
-      true
-    } else {
-      false
-    }
-  }
-
-  /**
-    * Find a `ConstructionItem` object in player's inventory
-    * that is the same type as a target `ConstructionItem` object and
-    * transfer it into the designated slot index, usually a holster.
-    * Draw that holster.
-    * After being transferred, the replacement should be reconfigured to match the fire mode of the original.
-    * The primary use of this operation is following the successful manifestation of a deployable in the game world.<br>
-    * <br>
-    * As this function should be used in response to some other action such as actually placing a deployable,
-    * do not instigate bundling from within the function's scope.
-    * @see `WorldSessionActor.FinalizeDeployable`<br>
-    *       `FindEquipmentStock`
-    * @param tool the `ConstructionItem` object to match
-    * @param index where to put the discovered replacement
-    */
-  def FindReplacementConstructionItem(tool: ConstructionItem, index: Int): Unit = {
-    val fireMode   = tool.FireModeIndex
-    val ammoType   = tool.AmmoTypeIndex
-    val definition = tool.Definition
-
-    if (player.Slot(index).Equipment.isEmpty) {
-      FindEquipmentStock(player, { e => e.Definition == definition }, 1) match {
-        case x :: _ =>
-          val guid = player.GUID
-          val obj  = x.obj.asInstanceOf[ConstructionItem]
-          if ((player.Slot(index).Equipment = obj).contains(obj)) {
-            player.Inventory -= x.start
-            sendResponse(ObjectAttachMessage(guid, obj.GUID, index))
-
-            if (obj.FireModeIndex != fireMode) {
-              obj.FireModeIndex = fireMode
-              sendResponse(ChangeFireModeMessage(obj.GUID, fireMode))
-            }
-            if (obj.AmmoTypeIndex != ammoType) {
-              obj.AmmoTypeIndex = ammoType
-              sendResponse(ChangeAmmoMessage(obj.GUID, ammoType))
-            }
-            if (player.VisibleSlots.contains(index)) {
-              continent.AvatarEvents ! AvatarServiceMessage(
-                continent.id,
-                AvatarAction.EquipmentInHand(guid, guid, index, obj)
-              )
-              if (player.DrawnSlot == Player.HandsDownSlot) {
-                player.DrawnSlot = index
-                sendResponse(ObjectHeldMessage(guid, index, false))
-                continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.ObjectHeld(guid, index))
-              }
-            }
-          }
-        case Nil => ; //no replacements found
-      }
-    } else {
-      log.warn(
-        s"FindReplacementConstructionItem: ${player.Name}, your $index hand needs to be empty before a replacement ${definition.Name} can be installed"
-      )
-    }
+    sendResponse(GenericObjectActionMessage(obj.GUID, 21)) //reset build cooldown
+    UpdateDeployableUIElements(avatar.deployables.UpdateUIElement(obj.Definition.Item))
   }
 
   /**
@@ -8297,8 +8096,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * the player's locker inventory will be checked, and then
     * the game environment (items on the ground) will be checked too.
     * If the target object is discovered, it is removed from its current location and is completely destroyed.
-    * @see `RequestDestroyMessage`<br>
-    *       `Zone.ItemIs.Where`
+    * @see `RequestDestroyMessage`
+    * @see `Zone.ItemIs.Where`
     * @param object_guid the target object's globally unique identifier;
     *                    it is not expected that the object will be unregistered, but it is also not gauranteed
     * @param obj the target object
@@ -8345,25 +8144,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   }
 
   /**
-    * Common behavior for deconstructing expended explosive deployables in the game environment.
-    * @param obj the deployable
-    * @param guid the globally unique identifier for the deployable
-    * @param pos the previous position of the deployable
-    */
-  def DeconstructDeployable(obj: Deployable, guid: PlanetSideGUID, pos: Vector3): Unit = {
-    sendResponse(SetEmpireMessage(guid, PlanetSideEmpire.NEUTRAL)) //for some, removes the green marker circle
-    sendResponse(ObjectDeleteMessage(guid, 0))
-    if (player.Faction == obj.Faction) {
-      sendResponse(
-        DeployableObjectsInfoMessage(
-          DeploymentAction.Dismiss,
-          DeployableInfo(guid, Deployable.Icon(obj.Definition.Item), pos, obj.Owner.getOrElse(PlanetSideGUID(0)))
-        )
-      )
-    }
-  }
-
-  /**
     * Common behavior for deconstructing deployables in the game environment.
     * @param obj the deployable
     * @param guid the globally unique identifier for the deployable
@@ -8378,18 +8158,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       orient: Vector3,
       deletionType: Int
   ): Unit = {
-    sendResponse(SetEmpireMessage(guid, PlanetSideEmpire.NEUTRAL)) //for some, removes the green marker circle
     sendResponse(TriggerEffectMessage("spawn_object_failed_effect", pos, orient))
     sendResponse(PlanetsideAttributeMessage(guid, 29, 1)) //make deployable vanish
     sendResponse(ObjectDeleteMessage(guid, deletionType))
-    if (player.Faction == obj.Faction) {
-      sendResponse(
-        DeployableObjectsInfoMessage(
-          DeploymentAction.Dismiss,
-          DeployableInfo(guid, Deployable.Icon(obj.Definition.Item), pos, obj.Owner.getOrElse(PlanetSideGUID(0)))
-        )
-      )
-    }
   }
 
   /**

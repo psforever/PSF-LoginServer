@@ -3,10 +3,13 @@ package net.psforever.objects.avatar
 
 import akka.actor.{Actor, ActorRef, Props, typed}
 import net.psforever.actors.session.AvatarActor
+import net.psforever.login.WorldSession.{DropEquipmentFromInventory, HoldNewEquipmentUp, PutNewEquipmentInInventoryOrDrop, RemoveOldEquipmentFromInventory}
 import net.psforever.objects.{Player, _}
 import net.psforever.objects.ballistics.PlayerSource
 import net.psforever.objects.ce.Deployable
+import net.psforever.objects.definition.DeployAnimation
 import net.psforever.objects.equipment._
+import net.psforever.objects.guid.GUIDTask
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
 import net.psforever.objects.loadouts.Loadout
 import net.psforever.objects.serverobject.aura.{Aura, AuraEffectBehavior}
@@ -365,7 +368,8 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
             case trigger: BoomerTrigger =>
               //drop the trigger, lose the boomer; make certain whole faction is aware of that
               player.Zone.GUID(trigger.Companion) match {
-                case Some(obj: BoomerDeployable) => obj.Actor ! Deployable.Ownership(None)
+                case Some(obj: BoomerDeployable) =>
+                  loseDeployableOwnership(obj)
                 case _ => ;
               }
             case _ => ;
@@ -382,85 +386,98 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         case Zone.Deployable.Build(obj, tool) =>
           val zone = player.Zone
           val deployables = player.avatar.deployables
-          if (deployables.Accept(obj) || (deployables.Valid(obj) && !deployables.Contains(obj))) {
+          if (deployables.Valid(obj) &&
+              !deployables.Contains(obj) &&
+              Players.deployableWithinBuildLimits(player, obj)) {
+            tool.Definition match {
+              case GlobalDefinitions.ace | /* animation handled in deployable lifecycle */
+                   GlobalDefinitions.router_telepad => ; /* no special animation */
+              case GlobalDefinitions.advanced_ace
+                if obj.Definition.deployAnimation == DeployAnimation.Fdu =>
+                zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.PutDownFDU(player.GUID))
+              case _ =>
+                org.log4s.getLogger(name = "Deployables").warn(
+                  s"not sure what kind of construction item to animate - ${tool.Definition.Name}"
+                )
+            }
             obj.Actor ! Zone.Deployable.Setup(tool)
           } else {
-            zone.LocalEvents ! LocalServiceMessage(player.Name, LocalAction.CancelBuildDeployable(obj, tool))
+            /*
+            If the tool is a form of field deployment unit (FDU), place it on the ground.
+            In the case of a botched deployable construction, dropping the FDU is visually consistent
+            as it should already be depicted as on the ground as a part of its animation cycle.
+            */
+            if (tool.Definition == GlobalDefinitions.advanced_ace) {
+              DropEquipmentFromInventory(player)(tool, Some(obj.Position))
+            }
+            Players.buildActivity(zone, player.Name, obj)
+            obj.Position = Vector3.Zero
+            obj.AssignOwnership(None)
             zone.Deployables ! Zone.Deployable.Dismiss(obj)
           }
 
-        case Zone.Deployable.IsBuilt(obj, tool) =>
-          val zone = obj.Zone
-          val channel = player.Name
-          val definition = obj.Definition
-          val item = definition.Item
-          val deployables = player.avatar.deployables
-          val (curr, max) = deployables.CountDeployable(item)
-          //two potential messages related to numerical limitations of deployables
-          /*
-          The first limit of note is the actual number of a specific type of deployable can be placed.
-          The second limit of note is the actual number of a specific group (category) of deployables that can be placed.
-          For example, the player can place 25 mines but that count adds up all types of mines;
-          specific mines have individual limits such as 25 and 5 and only that many of that type can be placed at once.
-          Depending on which limit is encountered, an "oldest entry" is struck from the list to make space.
-          This generates the first message - "@*OldestDestroyed."
-          The other message is generated if the number of that specific type of deployable
-          or the number of deployables available in its category
-          matches against the maximum count allowed.
-          This generates the second message - "@*LimitReached."
-          These messages are mutually exclusive, with "@*OldestDestroyed" taking priority over "@*LimitReached."
-          */
-          if (!deployables.Available(obj)) {
-            val (removed, msg) = {
-              if (curr == max) { //too many of a specific type of deployable
-                (deployables.DisplaceFirst(obj), max > 1)
-              } else { //make room by eliminating a different type of deployable
-                (deployables.DisplaceFirst(obj, { d => d.Definition.Item != item }), true)
-              }
-            }
-            removed match {
-              case Some(telepad: TelepadDeployable) =>
-                telepad.Actor ! Deployable.Ownership(None)
-              case Some(old) =>
-                old.Actor ! Deployable.Ownership(None)
-                old.Actor ! Deployable.Deconstruct()
-                if (msg) { //max test
-                  PlayerControl.sendResponse(
-                    zone,
-                    channel,
-                    ChatMsg(ChatMessageType.UNK_229, false, "", s"@${definition.Descriptor}OldestDestroyed", None)
-                  )
-                }
-              case None => ; //should be an invalid case
-                org.log4s.getLogger(name = "Deployables").warn(
-                  "how awkward: we probably shouldn't be allowed to build this deployable right now"
-                )
-            }
-          } else if (obj.isInstanceOf[TelepadDeployable]) {
-            //always treat the telepad we are putting down as the first and only one
-            PlayerControl.sendResponse(zone, channel, ObjectDeployedMessage.Success(definition.Name, count = 1, max = 1))
-          } else {
-            PlayerControl.sendResponse(zone, channel, ObjectDeployedMessage.Success(definition.Name, curr + 1, max))
-            val (catCurr, catMax) = deployables.CountCategory(item)
-            if ((max > 1 && curr + 1 == max) || (catMax > 1 && catCurr + 1 == catMax)) {
-              PlayerControl.sendResponse(
-                zone,
-                channel,
-                ChatMsg(ChatMessageType.UNK_229, false, "", s"@${definition.Descriptor}LimitReached", None)
-              )
-            }
+        case Zone.Deployable.IsBuilt(obj: BoomerDeployable, tool) =>
+          val zone = player.Zone
+          //boomers
+          val trigger = new BoomerTrigger
+          trigger.Companion = obj.GUID
+          obj.Trigger = trigger
+          //TODO sufficiently delete the tool
+          zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.ObjectDelete(player.GUID, tool.GUID))
+          zone.tasks ! GUIDTask.UnregisterEquipment(tool)(zone.GUID)
+          player.Find(tool) match {
+            case Some(index) =>
+              val holster = player.Slot(index)
+              holster.Equipment = None
+              zone.tasks ! HoldNewEquipmentUp(player)(trigger, index)
+            case None =>
+              //don't know where boomer trigger "should" go
+              zone.tasks ! PutNewEquipmentInInventoryOrDrop(player)(trigger)
           }
-          deployables.Add(obj)
-          zone.LocalEvents ! LocalServiceMessage(player.Name, LocalAction.BuildDeployable(obj, tool))
+          Players.buildActivity(zone, player.Name, obj)
+
+        case Zone.Deployable.IsBuilt(obj: TelepadDeployable, tool) =>
+          val zone = player.Zone
+          zone.GUID(obj.Router) match {
+            case Some(_) =>
+              RemoveOldEquipmentFromInventory(player)(tool)
+            case _ =>
+              DropEquipmentFromInventory(player)(tool, Some(obj.Position))
+              player.Actor ! Player.LoseDeployable(obj)
+              obj.Actor ! Deployable.Deconstruct(Some(0.seconds))
+              zone.AvatarEvents ! AvatarServiceMessage(
+                player.Name,
+                AvatarAction.SendResponse(
+                  Service.defaultPlayerGUID,
+                  ChatMsg(ChatMessageType.UNK_229, false, "", "@Telepad_NoDeploy_RouterLost", None)
+                )
+              )
+          }
+          Players.buildActivity(zone, player.Name, obj)
+
+        case Zone.Deployable.IsBuilt(obj, tool) =>
+          Players.buildActivity(player.Zone, player.Name, obj)
+          player.Find(tool) match {
+            case Some(index) =>
+              Players.commonDestroyConstructionItem(player, tool, index)
+              Players.findReplacementConstructionItem(player, tool, index)
+            case None =>
+              log.warn(s"${player.Name} should have destroyed a ${tool.Definition.Name} here, but could not find it")
+          }
+
+        case Player.LoseDeployable(obj) =>
+          if (player.avatar.deployables.Remove(obj)) {
+            player.Zone.LocalEvents ! LocalServiceMessage(player.Name, LocalAction.DeployableUIFor(obj.Definition.Item))
+          }
 
         case _ => ;
       }
 
   def setExoSuit(exosuit: ExoSuitType.Value, subtype: Int): Boolean = {
-    var toDelete: List[InventoryItem] = Nil
-    val originalSuit                  = player.ExoSuit
-    val originalSubtype               = Loadout.DetermineSubtype(player)
-    val requestToChangeArmor          = originalSuit != exosuit || originalSubtype != subtype
+    var toDelete : List[InventoryItem] = Nil
+    val originalSuit = player.ExoSuit
+    val originalSubtype = Loadout.DetermineSubtype(player)
+    val requestToChangeArmor = originalSuit != exosuit || originalSubtype != subtype
     val allowedToChangeArmor = Players.CertificationToUseExoSuit(player, exosuit, subtype) &&
                                (if (exosuit == ExoSuitType.MAX) {
                                  val weapon = GlobalDefinitions.MAXArms(subtype, player.Faction)
@@ -471,12 +488,13 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                                      avatarActor ! AvatarActor.UpdatePurchaseTime(weapon)
                                      true
                                  }
-                               } else {
+                               }
+                               else {
                                  true
                                })
     if (requestToChangeArmor && allowedToChangeArmor) {
       log.info(s"${player.Name} wants to change to a different exo-suit - $exosuit")
-      val beforeHolsters  = Players.clearHolsters(player.Holsters().iterator)
+      val beforeHolsters = Players.clearHolsters(player.Holsters().iterator)
       val beforeInventory = player.Inventory.Clear()
       //change suit
       val originalArmor = player.Armor
@@ -485,7 +503,8 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       val toArmor = if (originalSuit != exosuit || originalSubtype != subtype || originalArmor > toMaxArmor) {
         player.History(HealFromExoSuitChange(PlayerSource(player), exosuit))
         player.Armor = toMaxArmor
-      } else {
+      }
+      else {
         player.Armor = originalArmor
       }
       //ensure arm is down, even if it needs to go back up
@@ -496,7 +515,8 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         val (maxWeapons, normalWeapons) = beforeHolsters.partition(elem => elem.obj.Size == EquipmentSize.Max)
         toDelete ++= maxWeapons
         normalWeapons
-      } else {
+      }
+      else {
         beforeHolsters
       }
       //populate holsters
@@ -505,9 +525,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           normalHolsters,
           Players.fillEmptyHolsters(List(player.Slot(4)).iterator, normalHolsters) ++ beforeInventory
         )
-      } else if (originalSuit == exosuit) { //note - this will rarely be the situation
+      }
+      else if (originalSuit == exosuit) { //note - this will rarely be the situation
         (normalHolsters, Players.fillEmptyHolsters(player.Holsters().iterator, normalHolsters))
-      } else {
+      }
+      else {
         val (afterHolsters, toInventory) =
           normalHolsters.partition(elem => elem.obj.Size == player.Slot(elem.start).Size)
         afterHolsters.foreach({ elem => player.Slot(elem.start).Equipment = elem.obj })
@@ -520,7 +542,8 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       //put items back into inventory
       val (stow, drop) = if (originalSuit == exosuit) {
         (finalInventory, Nil)
-      } else {
+      }
+      else {
         val (a, b) = GridInventory.recoverInventory(finalInventory, player.Inventory)
         (
           a,
@@ -552,7 +575,19 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         )
       )
       true
-    } else {
+    }
+    else {
+      false
+    }
+  }
+
+  def loseDeployableOwnership(obj: Deployable): Boolean = {
+    if (player.avatar.deployables.Remove(obj)) {
+      obj.Actor ! Deployable.Ownership(None)
+      player.Zone.LocalEvents ! LocalServiceMessage(player.Name, LocalAction.DeployableUIFor(obj.Definition.Item))
+      true
+    }
+    else {
       false
     }
   }
@@ -981,7 +1016,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       case trigger: BoomerTrigger =>
         //pick up the trigger, own the boomer; make certain whole faction is aware of that
         zone.GUID(trigger.Companion) match {
-          case Some(obj: BoomerDeployable) => obj.Actor ! Deployable.Ownership(player)
+          case Some(obj: BoomerDeployable) =>
+            val deployables = player.avatar.deployables
+            if (deployables.Valid(obj)) {
+              Players.gainDeployableOwnership(player, obj, deployables.AddOverLimit)
+            }
           case _ => ;
         }
       case _ => ;
@@ -1166,7 +1205,7 @@ object PlayerControl {
     case _ => 0
   }
 
-  private def sendResponse(zone: Zone, channel: String, msg: PlanetSideGamePacket): Unit = {
+  def sendResponse(zone: Zone, channel: String, msg: PlanetSideGamePacket): Unit = {
     zone.AvatarEvents ! AvatarServiceMessage(channel, AvatarAction.SendResponse(Service.defaultPlayerGUID, msg))
   }
 }
