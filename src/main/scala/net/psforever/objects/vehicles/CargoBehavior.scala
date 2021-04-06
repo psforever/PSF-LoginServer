@@ -148,8 +148,8 @@ object CargoBehavior {
         if (distance <= 64) {
           //cargo vehicle is close enough to assume to be physically within the carrier's hold; mount it
           log.debug(s"HandleCheckCargoMounting: mounting cargo vehicle in carrier at distance of $distance")
-          cargo.MountedIn = carrierGUID
           hold.mount(cargo)
+          cargo.MountedIn = carrierGUID
           cargo.Velocity = None
           zone.VehicleEvents ! VehicleServiceMessage(
             s"${cargo.Actor}",
