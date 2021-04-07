@@ -57,6 +57,10 @@ class ZoneVehicleActor(zone: Zone, vehicleList: ListBuffer[Vehicle]) extends Act
           sender() ! Zone.Vehicle.CanNotDespawn(zone, vehicle, "can not find")
       }
 
+    case Zone.Vehicle.HasDespawned(_, _) => ;
+
+    case Zone.Vehicle.CanNotDespawn(_, _, _) => ;
+
     case _ => ;
   }
 }
