@@ -663,7 +663,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
       .flatMap(_.Amenities.filter(_.Definition == GlobalDefinitions.resource_silo))
       .collect {
         case silo: ResourceSilo =>
-          silo.Actor ! "startup"
+          silo.Actor ! Service.Startup()
       }
     //some painfields need to look for their closest door
     buildings.values

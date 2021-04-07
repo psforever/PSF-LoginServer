@@ -32,9 +32,10 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
   var panelAnimationFunc: (ActorRef, Float) => Unit = PanelAnimation
 
   def receive: Receive = {
-    case "startup" =>
+    case Service.Startup() =>
       resourceSilo.Owner match {
         case building: Building =>
+          UpdateChargeLevel(amount = 0)
           building.Actor ! (if (resourceSilo.NtuCapacitor <= 0f ) {
             BuildingActor.NtuDepleted()
           } else {
