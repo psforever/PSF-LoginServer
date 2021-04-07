@@ -301,7 +301,7 @@ class VehicleControl(vehicle: Vehicle)
             zone.id,
             VehicleAction.UnloadVehicle(Service.defaultPlayerGUID, vehicle, vehicle.GUID)
           )
-          zone.Transport ! Zone.Vehicle.Despawn(vehicle)
+          zone.Transport.tell(Zone.Vehicle.Despawn(vehicle), zone.Transport)
 
         case _ =>
       }

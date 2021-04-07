@@ -113,7 +113,7 @@ object CargoBehavior {
       case Some(carrier: Vehicle) =>
         HandleCheckCargoMounting(cargoGUID, cargo, carrierGUID, carrier, mountPoint, iteration)
       case carrier if iteration > 0 =>
-        log.error(s"HandleCheckCargoMounting: participant vehicles changed in the middle of a mounting event")
+        log.warn(s"HandleCheckCargoMounting: participant vehicles changed in the middle of a mounting event")
         LogCargoEventMissingVehicleError("HandleCheckCargoMounting: carrier", carrier, carrierGUID)
         false
       case _ =>
@@ -148,8 +148,8 @@ object CargoBehavior {
         if (distance <= 64) {
           //cargo vehicle is close enough to assume to be physically within the carrier's hold; mount it
           log.debug(s"HandleCheckCargoMounting: mounting cargo vehicle in carrier at distance of $distance")
-          cargo.MountedIn = carrierGUID
           hold.mount(cargo)
+          cargo.MountedIn = carrierGUID
           cargo.Velocity = None
           zone.VehicleEvents ! VehicleServiceMessage(
             s"${cargo.Actor}",
@@ -159,7 +159,7 @@ object CargoBehavior {
             s"${cargo.Actor}",
             VehicleAction.SendResponse(PlanetSideGUID(0), PlanetsideAttributeMessage(cargoGUID, 68, cargo.Shields))
           )
-          val (attachMsg, mountPointMsg) = CargoMountBehaviorForAll(carrier, cargo, mountPoint)
+          CargoMountBehaviorForAll(carrier, cargo, mountPoint)
           false
         } else if (distance > 625 || iteration >= 40) {
           //vehicles moved too far away or took too long to get into proper position; abort mounting
@@ -286,8 +286,8 @@ object CargoBehavior {
           //obviously, don't do this
         } else if (iteration > 40) {
           //cargo vehicle has spent too long not getting far enough away; restore the cargo's mount in the carrier hold
-          cargo.MountedIn = carrierGUID
           hold.mount(cargo)
+          cargo.MountedIn = carrierGUID
           CargoMountBehaviorForAll(carrier, cargo, mountPoint)
           false
         } else {
