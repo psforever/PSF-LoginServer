@@ -15,6 +15,7 @@ class ResourceSilo extends Amenity with CommonNtuContainer {
 
   // For the NTU display bar
   private var capacitorDisplay: Long = 0
+  NtuCapacitor = Definition.MaxNtuCapacitor
 
   def MaxNtuCapacitor : Float = Definition.MaxNtuCapacitor
 
