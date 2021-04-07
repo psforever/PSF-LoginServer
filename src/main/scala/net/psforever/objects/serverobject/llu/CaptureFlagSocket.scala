@@ -1,6 +1,6 @@
 package net.psforever.objects.serverobject.llu
 
-import akka.actor.ActorContext
+import akka.actor.{ActorContext, Props}
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.types.Vector3
@@ -24,9 +24,10 @@ object CaptureFlagSocket {
     Constructor(GlobalDefinitions.llm_socket, pos)(id, context)
   }
 
-  def Constructor(tdef: CaptureFlagSocketDefinition, pos: Vector3)(id: Int, context: ActorContext) : CaptureFlagSocket = {
+  def Constructor(tdef: CaptureFlagSocketDefinition, pos: Vector3)(id: Int, context: ActorContext): CaptureFlagSocket = {
     val obj = CaptureFlagSocket(tdef)
     obj.Position = pos
+    obj.Actor = context.actorOf(Props(classOf[CaptureFlagSocketControl], obj), s"${obj.Definition.Name}_$id")
     obj
   }
 }

@@ -6833,7 +6833,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         //silo capacity
         sendResponse(PlanetsideAttributeMessage(amenityId, 45, silo.CapacitorDisplay))
         //warning lights
-        sendResponse(PlanetsideAttributeMessage(silo.Owner.GUID, 47, if (silo.LowNtuWarningOn) 1 else 0))
+        sendResponse(PlanetsideAttributeMessage(silo.Owner.GUID, 47, silo.LowNtuWarningOn))
         if (silo.NtuCapacitor == 0) {
           sendResponse(PlanetsideAttributeMessage(silo.Owner.GUID, 48, 1))
         }

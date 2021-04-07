@@ -621,12 +621,13 @@ object Zones {
 
     def initResourceSilos(zone: Zone): Unit = {
       // todo: load silo charge from database
-      zone.Buildings.values.flatMap {
-        _.Amenities.collect {
-          case silo: ResourceSilo =>
-            silo.Actor ! ResourceSilo.UpdateChargeLevel(silo.MaxNtuCapacitor)
-        }
-      }
+      // todo: load silo charge from this function call
+//      zone.Buildings.values.flatMap {
+//        _.Amenities.collect {
+//          case silo: ResourceSilo =>
+//            silo.Actor ! ResourceSilo.UpdateChargeLevel(silo.MaxNtuCapacitor)
+//        }
+//      }
     }
   }
 
