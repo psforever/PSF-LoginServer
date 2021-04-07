@@ -521,6 +521,10 @@ class MiddlewareActor(
       case packet: PlanetSideCryptoPacket =>
         log.error(s"Unexpected crypto packet '$packet'")
         Behaviors.same
+
+      case packet =>
+        log.error(s"Unexpected type of packet '$packet'")
+        Behaviors.same
     }
   }
 
