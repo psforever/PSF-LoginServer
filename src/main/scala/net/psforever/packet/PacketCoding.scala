@@ -5,6 +5,7 @@ import java.security.{Key, Security}
 
 import javax.crypto.Cipher
 import javax.crypto.spec.RC5ParameterSpec
+import net.psforever.packet.reset.ResetSequence
 import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
 import scodec.{Attempt, Codec, DecodeResult, Err}
@@ -118,6 +119,13 @@ object PacketCoding {
               case Successful(opcode) => Successful(opcode ++ payload)
               case f @ Failure(_)     => f
             }
+
+          case packet: PlanetSideResetSequencePacket =>
+            ResetSequenceOpcode.codec.encode(packet.opcode) match {
+              case Successful(opcode) => Successful(opcode)
+              case f @ Failure(_)     => f
+            }
+          
           case _ =>
             Failure(Err("packet not supported"))
         }
@@ -208,8 +216,11 @@ object PacketCoding {
       case (PacketType.Normal, None) =>
         Failure(Err("Cannot unmarshal encrypted packet without a cipher"))
       case (PacketType.ResetSequence, Some(_crypto)) =>
-        val test = _crypto.decrypt(payload.drop(1))
-        Failure(Err(s"ResetSequence not completely supported, but: $flags, $sequence, and $payload; decrypt: $test"))
+        _crypto.decrypt(payload.drop(1)) match {
+          case Successful(p) if p == hex"01" => Successful((ResetSequence(), sequence))
+          case Successful(p) => Failure(Err(s"ResetSequence decrypted to unsupported value - $p"))
+          case _ => Failure(Err(s"ResetSequence did not decrypt properly"))
+        }
       case (ptype, _) =>
         Failure(Err(s"Cannot unmarshal $ptype packet at all"))
     }
@@ -243,9 +254,12 @@ object PacketCoding {
         GamePacketOpcode.codec.decode(msg.bits) match {
           case Successful(opcode) =>
             GamePacketOpcode.getPacketDecoder(opcode.value)(opcode.remainder) match {
+              case Failure(_) if opcode.value.id == 1 =>
+                Successful(ResetSequence())
               case Failure(e) =>
                 Failure(Err(f"Failed to parse game packet 0x${opcode.value.id}%02x: " + e.messageWithContext))
-              case Successful(p) => Successful(p.value)
+              case Successful(p) =>
+                Successful(p.value)
             }
           case Failure(e) => Failure(Err("Failed to decode game packet's opcode: " + e.message))
         }

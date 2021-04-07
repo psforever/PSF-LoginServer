@@ -1,7 +1,7 @@
 package net.psforever.actors.net
 
 import akka.actor.Cancellable
-import akka.actor.typed.{ActorRef, ActorTags, Behavior, PostStop, Signal}
+import akka.actor.typed._
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.io.Udp
 import java.net.InetSocketAddress
@@ -19,8 +19,8 @@ import scodec.Attempt.{Failure, Successful}
 import scodec.bits.{BitVector, ByteVector, HexStringSyntax}
 import scodec.interop.akka.EnrichedByteVector
 import net.psforever.objects.Default
-import net.psforever.packet.{CryptoPacketOpcode, PacketCoding, PlanetSideControlPacket, PlanetSideCryptoPacket, PlanetSideGamePacket, PlanetSidePacket}
-import net.psforever.packet.control.{ClientStart, ConnectionClose, ControlSync, ControlSyncResp, HandleGamePacket, MultiPacket, MultiPacketEx, RelatedA, RelatedB, ServerStart, SlottedMetaPacket, TeardownConnection}
+import net.psforever.packet._
+import net.psforever.packet.control._
 import net.psforever.packet.crypto.{ClientChallengeXchg, ClientFinished, ServerChallengeXchg, ServerFinished}
 import net.psforever.packet.game.{ChangeFireModeMessage, CharacterInfoMessage, KeepAliveMessage, PingMsg}
 import net.psforever.packet.PacketCoding.CryptoCoding
@@ -522,8 +522,9 @@ class MiddlewareActor(
         log.error(s"Unexpected crypto packet '$packet'")
         Behaviors.same
 
-      case packet =>
-        log.error(s"Unexpected type of packet '$packet'")
+      case _: PlanetSideResetSequencePacket =>
+        log.debug("Received sequence reset request from client; complying")
+        outSequence = 0
         Behaviors.same
     }
   }

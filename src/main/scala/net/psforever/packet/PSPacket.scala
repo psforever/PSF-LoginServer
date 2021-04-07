@@ -40,7 +40,9 @@ trait PlanetSideCryptoPacket extends PlanetSidePacket {
 }
 
 /** PlanetSide ResetSequence packets: self-contained? */
-trait PlanetSideResetSequencePacket extends PlanetSidePacket { }
+trait PlanetSideResetSequencePacket extends PlanetSidePacket {
+  def opcode: ResetSequenceOpcode.Type
+}
 
 /** PlanetSide packet type. Used in more complicated packet headers
   *
