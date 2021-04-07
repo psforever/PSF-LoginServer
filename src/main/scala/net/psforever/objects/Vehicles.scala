@@ -5,7 +5,7 @@ import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.transfer.TransferContainer
 import net.psforever.objects.serverobject.structures.{StructureType, WarpGate}
-import net.psforever.objects.vehicles.{CargoBehavior, Utility, UtilityType, VehicleLockState}
+import net.psforever.objects.vehicles._
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.TriggeredSound
 import net.psforever.types.{DriveState, PlanetSideGUID, Vector3}
@@ -192,12 +192,14 @@ object Vehicles {
     val vzone = vehicle.Zone
     vehicle.PreviousGatingManifest() match {
       case Some(manifest) if vzone != manifest.origin =>
-        val manifestPassengers       = manifest.passengers.collect { case (name, _) => name } :+ manifest.driverName
-        val manifestPassengerResults = manifestPassengers.map { name => vzone.Players.exists(_.name.equals(name)) }
-        manifestPassengerResults.forall(_ == true) &&
-        vehicle.CargoHolds.values
-          .collect { case hold if hold.isOccupied => AllGatedOccupantsInSameZone(hold.occupant.get) }
-          .forall(_ == true)
+        val manifestPassengers = manifest.passengers.collect {
+          case ManifestPassengerEntry(name, _) => name
+        } :+ manifest.driverName
+        manifestPassengers.forall { name => vzone.Players.exists(_.name.equals(name)) } &&
+        vehicle.CargoHolds.values.forall {
+          case hold if hold.isOccupied => AllGatedOccupantsInSameZone(hold.occupant.get)
+          case _                       => true
+        }
       case _ =>
         false
     }

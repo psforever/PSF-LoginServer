@@ -559,26 +559,34 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           sendResponse(msg)
 
         case GalaxyResponse.TransferPassenger(temp_channel, vehicle, vehicle_to_delete, manifest) =>
-          (manifest.passengers.find { case (name, _) => player.Name.equals(name) } match {
-            case Some((name, index)) if vehicle.Seats(index).occupant.isEmpty =>
-              vehicle.Seats(index).mount(player)
+          val playerName = player.Name
+          log.debug(s"TransferPassenger: $playerName received the summons to transfer to ${vehicle.Zone.id} ...")
+          (manifest.passengers.find { _.name.equals(playerName) } match {
+            case Some(entry) if vehicle.Seats(entry.mount).occupant.isEmpty =>
+              player.VehicleSeated = None
+              vehicle.Seats(entry.mount).mount(player)
+              player.VehicleSeated = vehicle.GUID
               Some(vehicle)
-            case Some((name, index)) =>
-              log.warn(s"TransferPassenger: $player tried to mount seat $index when it was already occupied, and was rebuked")
+            case Some(entry) if vehicle.Seats(entry.mount).occupant.contains(player) =>
+              Some(vehicle)
+            case Some(entry) =>
+              log.warn(s"TransferPassenger: $playerName tried to mount seat ${entry.mount} during summoning, but it was already occupied, and ${player.Sex.pronounSubject} was rebuked")
               None
             case None =>
+              //log.warn(s"TransferPassenger: $playerName is missing from the manifest of a summoning ${vehicle.Definition.Name} from ${vehicle.Zone.id}")
               None
-          }).orElse(manifest.cargo.find { case (name, _) => player.Name.equals(name) } match {
-            case Some((name, index)) =>
-              vehicle.CargoHolds(index).occupant match {
-                case Some(cargo) =>
-                  cargo.Seats(0).occupants.find(_.Name.equals(name))
-                case None =>
+          }).orElse {
+            manifest.cargo.find { _.name.equals(playerName) } match {
+            case Some(entry) =>
+              vehicle.CargoHolds(entry.mount).occupant match {
+                case out @ Some(cargo) if cargo.Seats(0).occupants.exists(_.Name.equals(playerName)) =>
+                  out
+                case _ =>
                   None
               }
             case None =>
               None
-          }) match {
+          }} match {
             case Some(v: Vehicle) =>
               galaxyService ! Service.Leave(Some(temp_channel)) //temporary vehicle-specific channel (see above)
               deadState = DeadState.Release
@@ -2886,6 +2894,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             Some(old_channel)
           )                                          //old vehicle-specific channel (was s"${vehicle.Actor}")
           galaxyService ! Service.Join(temp_channel) //temporary vehicle-specific channel
+          log.debug(s"TransferPassengerChannel: ${player.Name} now subscribed to $temp_channel for vehicle gating")
         }
 
       case VehicleResponse.KickCargo(vehicle, speed, delay) =>
@@ -5800,7 +5809,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
 
         def Execute(resolver: ActorRef): Unit = {
-          log.trace(s"Player $localPlayer is registered")
+          log.trace(s"Player ${localPlayer.Name} is newly registered")
           resolver ! Success(this)
           localAnnounce ! NewPlayerLoaded(localPlayer) //alerts WorldSessionActor
         }
@@ -5990,6 +5999,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
 
         def Execute(resolver: ActorRef): Unit = {
+          log.trace(s"${localDriver.Name} 's vehicle ${localVehicle.Definition.Name} is registered")
           localDriver.VehicleSeated = localVehicle.GUID
           Vehicles.Own(localVehicle, localDriver)
           localAnnounce ! NewPlayerLoaded(localDriver) //alerts WorldSessionActor
@@ -6000,7 +6010,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           localAnnounce ! PlayerFailedToLoad(localDriver) //alerts SessionActor
         }
       },
-      List(RegisterNewAvatar(driver), GUIDTask.RegisterVehicle(obj)(continent.GUID))
+      List(GUIDTask.RegisterAvatar(driver)(continent.GUID), GUIDTask.RegisterVehicle(obj)(continent.GUID))
     )
   }
 
@@ -6823,7 +6833,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         //silo capacity
         sendResponse(PlanetsideAttributeMessage(amenityId, 45, silo.CapacitorDisplay))
         //warning lights
-        sendResponse(PlanetsideAttributeMessage(silo.Owner.GUID, 47, if (silo.LowNtuWarningOn) 1 else 0))
+        sendResponse(PlanetsideAttributeMessage(silo.Owner.GUID, 47, silo.LowNtuWarningOn))
         if (silo.NtuCapacitor == 0) {
           sendResponse(PlanetsideAttributeMessage(silo.Owner.GUID, 48, 1))
         }
@@ -7012,12 +7022,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           //driver
           continent.Transport ! Zone.Vehicle.Spawn(vehicle)
           //as the driver, we must temporarily exclude ourselves from being in the vehicle during its creation
-          val seat = vehicle.Seats(0)
-          seat.unmount(player)
+          val mount = vehicle.Seats(0)
+          mount.unmount(player)
           player.VehicleSeated = None
           val data = vdef.Packet.ConstructorData(vehicle).get
           sendResponse(ObjectCreateMessage(vehicle.Definition.ObjectId, vguid, data))
-          seat.mount(player)
+          mount.mount(player)
+          player.VehicleSeated = vguid
           Vehicles.Own(vehicle, player)
           vehicle.CargoHolds.values
             .collect { case hold if hold.isOccupied => hold.occupant.get }
@@ -8615,14 +8626,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       VehicleAction.TransferPassengerChannel(pguid, s"${vehicle.Actor}", toChannel, vehicle, topLevel)
     )
     manifest.cargo.foreach {
-      case ("MISSING_DRIVER", index) =>
+      case ManifestPassengerEntry("MISSING_DRIVER", index) =>
         val cargo = vehicle.CargoHolds(index).occupant.get
         log.warn(s"LoadZoneInVehicleAsDriver: ${player.Name} must eject cargo in hold $index; vehicle is missing driver")
         CargoBehavior.HandleVehicleCargoDismount(cargo.GUID, cargo, vehicle.GUID, vehicle, false, false, true)
-      case (name, index) =>
-        val cargo = vehicle.CargoHolds(index).occupant.get
+      case entry =>
+        val cargo = vehicle.CargoHolds(entry.mount).occupant.get
         continent.VehicleEvents ! VehicleServiceMessage(
-          name,
+          entry.name,
           VehicleAction.TransferPassengerChannel(pguid, s"${cargo.Actor}", toChannel, cargo, topLevel)
         )
     }
@@ -8649,9 +8660,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       player.VehicleSeated = vehicle.GUID
       player.Continent = zoneId //forward-set the continent id to perform a test
       interstellarFerryTopLevelGUID =
-        if (
-          manifest.passengers.isEmpty && manifest.cargo.count { case (name, _) => !name.equals("MISSING_DRIVER") } == 0
-        ) {
+        if (manifest.passengers.isEmpty && manifest.cargo.count { !_.name.equals("MISSING_DRIVER") } == 0) {
           //do not delete if vehicle has passengers or cargo
           continent.VehicleEvents ! VehicleServiceMessage(
             continent.id,
@@ -8741,10 +8750,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               val cargo = hold.occupant.get
               cargo.Continent = toZoneId
               //point to the cargo vehicle to instigate cargo vehicle driver transportation
-              galaxyService ! GalaxyServiceMessage(
-                toChannel,
-                GalaxyAction.TransferPassenger(player_guid, toChannel, vehicle, topLevel, manifest)
-              )
+//              galaxyService ! GalaxyServiceMessage(
+//                toChannel,
+//                GalaxyAction.TransferPassenger(player_guid, toChannel, vehicle, topLevel, manifest)
+//              )
           }
       case None =>
         log.error(s"LoadZoneTransferPassengerMessages: ${player.Name} expected a manifest for zone transfer; got nothing")

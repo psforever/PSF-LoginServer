@@ -355,6 +355,8 @@ class ChatActor(
                           val soi2 = building.Definition.SOIRadius * building.Definition.SOIRadius
                           Vector3.DistanceSquared(building.Position, position) < soi2
                         }
+                    case Some(all) if all.toLowerCase.startsWith("all") =>
+                      session.zone.Buildings.values
                     case Some(x) =>
                       session.zone.Buildings.values.find { _.Name.equalsIgnoreCase(x) }.toList
                     case _ =>
