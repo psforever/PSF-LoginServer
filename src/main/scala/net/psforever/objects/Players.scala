@@ -411,39 +411,41 @@ object Players {
     * @param index where to put the discovered replacement
     */
   def findReplacementConstructionItem(player: Player, tool: ConstructionItem, index: Int): Unit = {
-    val zone = player.Zone
     val fireMode   = tool.FireModeIndex
     val definition = tool.Definition
 
     if (player.Slot(index).Equipment.isEmpty) {
       FindEquipmentStock(player, { e => e.Definition == definition }, 1) match {
         case x :: _ =>
-          val guid = player.GUID
+          val zone = player.Zone
+          val events = zone.AvatarEvents
+          val name = player.Name
+          val pguid = player.GUID
           val obj  = x.obj.asInstanceOf[ConstructionItem]
           if ((player.Slot(index).Equipment = obj).contains(obj)) {
             player.Inventory -= x.start
-            zone.AvatarEvents ! AvatarServiceMessage(
+            events ! AvatarServiceMessage(
               zone.id,
-              AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectAttachMessage(guid, obj.GUID, index))
+              AvatarAction.EquipmentInHand(Service.defaultPlayerGUID, pguid, index, obj)
             )
-
             if (obj.FireModeIndex != fireMode) {
               obj.FireModeIndex = fireMode
-              zone.AvatarEvents ! AvatarServiceMessage(
-                player.Name,
+              events ! AvatarServiceMessage(
+                name,
                 AvatarAction.ChangeFireMode(Service.defaultPlayerGUID, obj.GUID, fireMode)
               )
             }
             //ammo type?
-            if (player.VisibleSlots.contains(index)) {
-              zone.AvatarEvents ! AvatarServiceMessage(
-                zone.id,
-                AvatarAction.EquipmentInHand(guid, guid, index, obj)
+            if (player.DrawnSlot == Player.HandsDownSlot) {
+              player.DrawnSlot = index
+              events ! AvatarServiceMessage(
+                name,
+                AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectHeldMessage(pguid, index, true))
               )
-              if (player.DrawnSlot == Player.HandsDownSlot) {
-                player.DrawnSlot = index
-                zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.ObjectHeld(Service.defaultPlayerGUID, index))
-              }
+              events ! AvatarServiceMessage(
+                zone.id,
+                AvatarAction.ObjectHeld(pguid, index)
+              )
             }
           }
         case Nil => ; //no replacements found

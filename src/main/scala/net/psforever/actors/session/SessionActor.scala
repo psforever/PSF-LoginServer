@@ -4120,9 +4120,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               )
               Some(tool)
             case _ =>
-              log.warn(
-                s"ChangeFireState_Stop: ${player.Name} never started firing item ${item_guid.guid} in the first place?"
-              )
+              //log.warn(s"ChangeFireState_Stop: ${player.Name} never started firing item ${item_guid.guid} in the first place?")
               None
           }
         }
@@ -4264,8 +4262,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             )
             // Ignore non-equipment holsters
             //todo: check current suit holster slots?
-            if (held_holsters >= 0 && held_holsters < 5) {
-              player.Holsters()(held_holsters).Equipment match {
+            val isHolsters = held_holsters >= 0 && held_holsters < 5
+            val equipment = player.Slot(held_holsters).Equipment.orElse { player.Slot(before).Equipment }
+            if (isHolsters) {
+              equipment match {
                 case Some(unholsteredItem: Equipment) =>
                   log.info(s"${player.Name} has drawn a $unholsteredItem from its holster")
                   if (unholsteredItem.Definition == GlobalDefinitions.remote_electronics_kit) {
@@ -4276,6 +4276,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                     )
                   }
                 case None => ;
+              }
+            } else {
+              equipment match {
+                case Some(holsteredEquipment) =>
+                  log.info(s"${player.Name} has put ${player.Sex.possessive} ${holsteredEquipment.Definition.Name} down")
+                case None =>
+                  log.info(s"${player.Name} lowers ${player.Sex.possessive} hand")
               }
             }
 
@@ -5654,11 +5661,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 s"PlanetsideAttribute: vehicle attributes - ${player.Name} does not own vehicle ${vehicle.GUID} and can not change it"
               )
             }
-
-          case Some(_: Deployable) =>
-            //most likely a ShieldGeneratorDeployable or a TurretDeployable (OMFT) in a friendly SOI
-            //suspect this has to do with the chargeable shields
-            //the attribute_type should be 108
 
           // Cosmetics options
           case Some(player: Player) if attribute_type == 106 =>
