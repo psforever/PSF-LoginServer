@@ -27,7 +27,6 @@ object LocalServiceMessage {
 object LocalAction {
   trait Action
 
-  final case class AlertDestroyDeployable(player_guid: PlanetSideGUID, obj: Deployable) extends Action
   final case class DeployableMapIcon(
                                       player_guid: PlanetSideGUID,
                                       behavior: DeploymentAction.Value,

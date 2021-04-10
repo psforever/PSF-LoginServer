@@ -254,14 +254,25 @@ class DeployableBehaviorDeconstructTest extends ActorTest {
       assert(deployableList.contains(jmine), "deconstruct test - deployable not appended to list")
 
       jmine.Actor ! Deployable.Deconstruct()
-      val eventsMsgs = eventsProbe.receiveN(2, 10.seconds)
+      val eventsMsgs = eventsProbe.receiveN(3, 10.seconds)
       eventsMsgs.head match {
-        case TaskResolver.GiveTask(_, _) => ;
-        case _ => assert(false, "deconstruct test - not unregistering deployable")
-      }
-      eventsMsgs(1) match {
         case LocalServiceMessage("test", LocalAction.EliminateDeployable(`jmine`, PlanetSideGUID(1), Vector3(1,2,3), 2)) => ;
         case _ => assert(false, "deconstruct test - not eliminating deployable")
+      }
+      eventsMsgs(1) match {
+        case LocalServiceMessage(
+          "TR",
+          LocalAction.DeployableMapIcon(
+            PlanetSideGUID(0),
+            DeploymentAction.Dismiss,
+            DeployableInfo(PlanetSideGUID(1), DeployableIcon.DisruptorMine, Vector3(1, 2, 3), PlanetSideGUID(0))
+          )
+        ) => ;
+        case _ => assert(false, "owned deconstruct test - not removing icon")
+      }
+      eventsMsgs(2) match {
+        case TaskResolver.GiveTask(_, _) => ;
+        case _ => assert(false, "deconstruct test - not unregistering deployable")
       }
       assert(!deployableList.contains(jmine), "deconstruct test - deployable not removed from list")
     }
@@ -309,23 +320,33 @@ class DeployableBehaviorDeconstructOwnedTest extends FreedContextActorTest {
       assert(avatar.deployables.Contains(jmine), "owned deconstruct test - avatar does not own deployable")
 
       jmine.Actor ! Deployable.Deconstruct()
-      val eventsMsgs = eventsProbe.receiveN(3, 10.seconds)
+      val eventsMsgs = eventsProbe.receiveN(4, 10.seconds)
       eventsMsgs.head match {
-        case TaskResolver.GiveTask(_, _) => ;
-        case _ => assert(false, "owned deconstruct test - not unregistering deployable")
-      }
-      eventsMsgs(1) match {
         case LocalServiceMessage("test", LocalAction.EliminateDeployable(`jmine`, PlanetSideGUID(1), Vector3(1,2,3), 2)) => ;
         case _ => assert(false, "owned deconstruct test - not eliminating deployable")
       }
-      eventsMsgs(2) match {
-        case LocalServiceMessage("TestCharacter1", LocalAction.AlertDestroyDeployable(Service.defaultPlayerGUID, `jmine`)) => ;
+      eventsMsgs(1) match {
+        case LocalServiceMessage("TestCharacter1", LocalAction.DeployableUIFor(DeployedItem.jammer_mine)) => ;
         case _ => assert(false, "")
+      }
+      eventsMsgs(2) match {
+          case LocalServiceMessage(
+          "TR",
+          LocalAction.DeployableMapIcon(
+            PlanetSideGUID(0),
+            DeploymentAction.Dismiss,
+            DeployableInfo(PlanetSideGUID(1), DeployableIcon.DisruptorMine, Vector3(1, 2, 3), PlanetSideGUID(0))
+          )
+        ) => ;
+        case _ => assert(false, "owned deconstruct test - not removing icon")
+      }
+      eventsMsgs(3) match {
+        case TaskResolver.GiveTask(_, _) => ;
+        case _ => assert(false, "owned deconstruct test - not unregistering deployable")
       }
 
       assert(deployableList.isEmpty, "owned deconstruct test - deployable still in list")
-      assert(avatar.deployables.Contains(jmine), "owned deconstruct test - avatar still owns deployable")
-      //must be handled by logic elsewhere
+      assert(!avatar.deployables.Contains(jmine), "owned deconstruct test - avatar still owns deployable")
     }
   }
 }

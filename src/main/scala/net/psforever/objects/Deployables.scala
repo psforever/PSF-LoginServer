@@ -75,33 +75,32 @@ object Deployables {
     * and may still leave a physical component in the game world to be cleaned up later.
     * @see `DeployableInfo`
     * @see `DeploymentAction`
-    * @see `LocalAction.AlertDestroyDeployable`
-    * @see `LocalAction.EliminateDeployable`
     * @see `LocalAction.DeployableMapIcon`
     * @param target the deployable that is destroyed
     **/
   def AnnounceDestroyDeployable(target: Deployable): Unit = {
     val zone = target.Zone
+    val events = zone.LocalEvents
+    val item = target.Definition.Item
     target.OwnerName match {
       case Some(owner) =>
+        zone.Players.find { p => owner.equals(p.name) } match {
+          case Some(p) =>
+            if (p.deployables.Remove(target)) {
+              events ! LocalServiceMessage(owner, LocalAction.DeployableUIFor(item))
+            }
+          case None => ;
+        }
+        target.Owner = None
         target.OwnerName = None
-        /* this is the "correct" method */
-//        (zone.LivePlayers ++ zone.Corpses).find { p => owner.equals(p.Name) } match {
-//          case Some(p) =>
-//            p.Actor ! Player.LoseDeployable(target)
-//          case _ =>
-//            zone.LocalEvents ! LocalServiceMessage(owner, LocalAction.AlertDestroyDeployable(PlanetSideGUID(0), target))
-//        }
-        /* this is the fast method */
-        zone.LocalEvents ! LocalServiceMessage(owner, LocalAction.AlertDestroyDeployable(PlanetSideGUID(0), target))
       case None => ;
     }
-    zone.LocalEvents ! LocalServiceMessage(
+    events ! LocalServiceMessage(
       s"${target.Faction}",
       LocalAction.DeployableMapIcon(
         PlanetSideGUID(0),
         DeploymentAction.Dismiss,
-        DeployableInfo(target.GUID, Deployable.Icon(target.Definition.Item), target.Position, PlanetSideGUID(0))
+        DeployableInfo(target.GUID, Deployable.Icon(item), target.Position, PlanetSideGUID(0))
       )
     )
   }

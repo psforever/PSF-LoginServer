@@ -45,14 +45,6 @@ class LocalService(zone: Zone) extends Actor {
 
     case LocalServiceMessage(forChannel, action) =>
       action match {
-        case LocalAction.AlertDestroyDeployable(_, obj) =>
-          LocalEvents.publish(
-            LocalServiceResponse(
-              s"/$forChannel/Local",
-              Service.defaultPlayerGUID,
-              LocalResponse.AlertDestroyDeployable(obj)
-            )
-          )
         case LocalAction.DeployableMapIcon(player_guid, behavior, deployInfo) =>
           LocalEvents.publish(
             LocalServiceResponse(

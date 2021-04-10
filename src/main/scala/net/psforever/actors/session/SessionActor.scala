@@ -57,8 +57,7 @@ import net.psforever.services.account.{AccountPersistenceService, PlayerToken, R
 import net.psforever.services.avatar.{AvatarAction, AvatarResponse, AvatarServiceMessage, AvatarServiceResponse}
 import net.psforever.services.chat.ChatService
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyResponse, GalaxyServiceMessage, GalaxyServiceResponse}
-import net.psforever.services.local.support.{CaptureFlagManager, HackCaptureActor, RouterTelepadActivation}
-import net.psforever.services.local.support.HackCaptureActor
+import net.psforever.services.local.support.{CaptureFlagManager, HackCaptureActor}
 import net.psforever.services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
 import net.psforever.services.properties.PropertyOverrideManager
 import net.psforever.services.teamwork.{SquadResponse, SquadServiceMessage, SquadServiceResponse, SquadAction => SquadServiceAction}
@@ -167,7 +166,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   MDC("connectionId") = connectionId
 
   private[this] val log                                              = org.log4s.getLogger
-  private[this] val damageLog                                        = org.log4s.getLogger(Damageable.LogChannel)
   var avatarActor: typed.ActorRef[AvatarActor.Command]               = context.spawnAnonymous(AvatarActor(context.self))
   var chatActor: typed.ActorRef[ChatActor.Command]                   = context.spawnAnonymous(ChatActor(context.self, avatarActor))
   var accountIntermediary: ActorRef                                  = Default.Actor
@@ -1036,12 +1034,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
     case msg @ Zone.Vehicle.CanNotDespawn(zone, vehicle, reason) =>
       log.warn(s"${player.Name}'s ${vehicle.Definition.Name} can not deconstruct in ${zone.id} because $reason")
-      
-    //!!only dispatch Zone.Deployable.Dismiss from WorldSessionActor as cleanup if the target deployable was never fully introduced
+
+    //!!only dispatched to SessionActor as cleanup if the target deployable was never fully introduced
     case Zone.Deployable.IsDismissed(obj: TurretDeployable) =>
       continent.tasks ! GUIDTask.UnregisterDeployableTurret(obj)(continent.GUID)
 
-    //!!only dispatch Zone.Deployable.Dismiss from WorldSessionActor as cleanup if the target deployable was never fully introduced
+    //!!only dispatched to SessionActor as cleanup if the target deployable was never fully introduced
     case Zone.Deployable.IsDismissed(obj) =>
       continent.tasks ! GUIDTask.UnregisterObjectTask(obj)(continent.GUID)
 
@@ -2147,12 +2145,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       if (player.HasGUID) player.GUID
       else PlanetSideGUID(0)
     reply match {
-      case LocalResponse.AlertDestroyDeployable(obj) =>
-        //the (former) owner (obj.OwnerName) may process this message
-        if (avatar.deployables.Remove(obj)) {
-          UpdateDeployableUIElements(avatar.deployables.UpdateUIElement(obj.Definition.Item))
-        }
-
       case LocalResponse.DeployableMapIcon(behavior, deployInfo) =>
         if (tplayer_guid != guid) {
           sendResponse(DeployableObjectsInfoMessage(behavior, deployInfo))
@@ -5019,20 +5011,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
 
       case msg @ DeployObjectMessage(guid, unk1, pos, orient, unk2) =>
-        //the hand with the construction item is no longer drawn
-        //TODO consider player.Slot(player.LastDrawnSlot)
         (player.Holsters().find(slot => slot.Equipment.nonEmpty && slot.Equipment.get.GUID == guid) match {
-          case Some(slot) =>
-            slot.Equipment
-          case None =>
-            None
+          case Some(slot) => slot.Equipment
+          case None       => None
         }) match {
           case Some(obj: ConstructionItem) =>
             val ammoType = obj.AmmoType match {
-              case DeployedItem.portable_manned_turret =>
-                GlobalDefinitions.PortableMannedTurret(player.Faction).Item //faction-specific turret
-              case turret =>
-                turret
+              case DeployedItem.portable_manned_turret => GlobalDefinitions.PortableMannedTurret(player.Faction).Item
+              case dtype                               => dtype
             }
             log.info(s"${player.Name} is constructing a $ammoType deployable")
             CancelZoningProcessWithDescriptiveReason("cancel_use")
@@ -5666,9 +5652,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           case Some(player: Player) if attribute_type == 106 =>
             avatarActor ! AvatarActor.SetCosmetics(Cosmetic.valuesFromAttributeValue(attribute_value))
 
+          case Some(obj) =>
+            log.trace(s"PlanetsideAttribute: ${player.Name} does not know how to apply unknown attributes behavior $attribute_type to ${obj.Definition.Name}")
+
           case _ =>
-            log.warn(s"PlanetsideAttribute: echoing unknown attributes behavior $attribute_type back to ${player.Name}")
-            sendResponse(PlanetsideAttributeMessage(object_guid, attribute_type, attribute_value))
+            log.warn(s"PlanetsideAttribute: ${player.Name} does not know how to apply unknown attributes behavior $attribute_type")
         }
 
       case msg @ FacilityBenefitShieldChargeRequestMessage(guid) =>

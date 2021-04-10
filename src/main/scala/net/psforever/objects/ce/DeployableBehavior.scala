@@ -86,6 +86,10 @@ trait DeployableBehavior {
 
     case DeployableBehavior.FinalizeElimination() =>
       dismissDeployable()
+
+    case Zone.Deployable.IsDismissed(obj)
+      if (obj eq DeployableObject) && (constructed.isEmpty || constructed.contains(false)) =>
+      unregisterDeployable(obj)
   }
 
   /**
@@ -284,8 +288,7 @@ trait DeployableBehavior {
     val zone = obj.Zone
     //there's no special meaning behind directing any replies from from zone governance straight back to zone governance
     //this deployable control agency, however, will be expiring and can not be a recipient
-    zone.Deployables.tell(Zone.Deployable.Dismiss(obj), zone.Deployables)
-    unregisterDeployable(obj)
+    zone.Deployables ! Zone.Deployable.Dismiss(obj)
     zone.LocalEvents ! LocalServiceMessage(
       zone.id,
       LocalAction.EliminateDeployable(obj, obj.GUID, obj.Position, deletionType)

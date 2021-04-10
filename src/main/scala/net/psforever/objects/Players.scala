@@ -310,7 +310,7 @@ object Players {
     */
   def successfulBuildActivity(zone: Zone, channel: String, obj: Deployable): Unit = {
     //sent to avatar event bus to preempt additional tool management
-    buildActivity(zone, channel, obj)
+    buildCooldownReset(zone, channel, obj)
     //sent to local event bus to cooperate with deployable management
     zone.LocalEvents ! LocalServiceMessage(
       channel,
@@ -324,7 +324,7 @@ object Players {
     * @param channel to whom to send the messages
     * @param obj the `Deployable` object
     */
-  def buildActivity(zone: Zone, channel: String, obj: Deployable): Unit = {
+  def buildCooldownReset(zone: Zone, channel: String, obj: Deployable): Unit = {
     //sent to avatar event bus to preempt additional tool management
     zone.AvatarEvents ! AvatarServiceMessage(
       channel,

@@ -410,7 +410,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
             if (tool.Definition == GlobalDefinitions.advanced_ace) {
               DropEquipmentFromInventory(player)(tool, Some(obj.Position))
             }
-            Players.buildActivity(zone, player.Name, obj)
+            Players.buildCooldownReset(zone, player.Name, obj)
             obj.Position = Vector3.Zero
             obj.AssignOwnership(None)
             zone.Deployables ! Zone.Deployable.Dismiss(obj)
@@ -434,7 +434,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               //don't know where boomer trigger "should" go
               zone.tasks ! PutNewEquipmentInInventoryOrDrop(player)(trigger)
           }
-          Players.buildActivity(zone, player.Name, obj)
+          Players.buildCooldownReset(zone, player.Name, obj)
 
         case Zone.Deployable.IsBuilt(obj: TelepadDeployable, tool) =>
           val zone = player.Zone
@@ -453,10 +453,10 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                 )
               )
           }
-          Players.buildActivity(zone, player.Name, obj)
+          Players.buildCooldownReset(zone, player.Name, obj)
 
         case Zone.Deployable.IsBuilt(obj, tool) =>
-          Players.buildActivity(player.Zone, player.Name, obj)
+          Players.buildCooldownReset(player.Zone, player.Name, obj)
           player.Find(tool) match {
             case Some(index) =>
               Players.commonDestroyConstructionItem(player, tool, index)

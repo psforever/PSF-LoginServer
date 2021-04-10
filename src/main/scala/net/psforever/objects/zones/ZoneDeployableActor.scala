@@ -27,13 +27,14 @@ class ZoneDeployableActor(zone: Zone, deployableList: ListBuffer[Deployable]) ex
           case None => obj.Actor ! Zone.Deployable.Setup(tool) //strong and independent deployable
         }
       } else {
-        log.warn(s"failed to build deployable $obj from $tool")
+        log.warn(s"failed to build a ${obj.Definition.Name} belonging to ${obj.OwnerName.getOrElse("no one")}")
+        sender() ! Zone.Deployable.IsDismissed(obj)
       }
 
     case Zone.Deployable.Dismiss(obj) =>
       if (DeployableDismiss(obj, deployableList)) {
+        obj.Actor ! Zone.Deployable.IsDismissed(obj)
         obj.Definition.Uninitialize(obj, context)
-        sender() ! Zone.Deployable.IsDismissed(obj)
       }
 
     case Zone.Deployable.IsBuilt(_, _) => ;

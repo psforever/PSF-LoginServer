@@ -24,7 +24,6 @@ final case class LocalServiceResponse(
 object LocalResponse {
   trait Response
 
-  final case class AlertDestroyDeployable(obj: Deployable)                                       extends Response
   final case class DeployableMapIcon(action: DeploymentAction.Value, deployInfo: DeployableInfo) extends Response
   final case class DeployableUIFor(obj: DeployedItem.Value)                                      extends Response
   final case class Detonate(guid: PlanetSideGUID, obj: PlanetSideGameObject)                     extends Response

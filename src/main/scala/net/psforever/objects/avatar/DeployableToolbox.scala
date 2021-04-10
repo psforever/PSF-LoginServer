@@ -183,7 +183,7 @@ class DeployableToolbox {
     * If the deployable is found to currently being managed by this toolbox, then it is properly removed.
     * No changes should occur if the deployable is not properly removed.
     * @param obj the deployable
-    * @return `true`, if the deployable is added;
+    * @return `true`, if the deployable is removed;
     *        `false`, otherwise
     */
   def Remove(obj: DeployableToolbox.AcceptableDeployable): Boolean = {

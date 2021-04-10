@@ -78,20 +78,6 @@ class LocalService5Test extends ActorTest {
   }
 }
 
-class AlertDestroyDeployableTest extends ActorTest {
-  ServiceManager.boot(system)
-  val obj = new SensorDeployable(GlobalDefinitions.motionalarmsensor)
-
-  "LocalService" should {
-    "pass AlertDestroyDeployable" in {
-      val service = system.actorOf(Props(classOf[LocalService], Zone.Nowhere), "l_service")
-      service ! Service.Join("test")
-      service ! LocalServiceMessage("test", LocalAction.AlertDestroyDeployable(PlanetSideGUID(10), obj))
-      expectMsg(LocalServiceResponse("/test/Local", PlanetSideGUID(0), LocalResponse.AlertDestroyDeployable(obj)))
-    }
-  }
-}
-
 class DeployableMapIconTest extends ActorTest {
   ServiceManager.boot(system)
 
