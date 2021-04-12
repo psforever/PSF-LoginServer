@@ -371,12 +371,15 @@ object Zones {
           // Since tech plant garage locks are the only type where the lock does not face the same direction as the door we need to apply an offset for those, otherwise the door won't operate properly when checking inside/outside angles.
           val yawOffset = if (obj.objectType == "lock_garage") 90 else 0
 
-          zoneMap.addLocalObject(
-            obj.guid,
-            IFFLock.Constructor(obj.position, Vector3(0, 0, obj.yaw + yawOffset)),
-            owningBuildingGuid = ownerGuid,
-            doorGuid = closestDoor.guid
-          )
+          // Ignore duplicate lock objects, for example Sobek (and other Dropship Centers) CC door has 2 locks stacked on top of each other
+          if (!zoneMap.doorToLock.keys.iterator.contains(closestDoor.guid)) {
+            zoneMap.addLocalObject(
+              obj.guid,
+              IFFLock.Constructor(obj.position, Vector3(0, 0, obj.yaw + yawOffset)),
+              owningBuildingGuid = ownerGuid,
+              doorGuid = closestDoor.guid
+            )
+          }
 
         case objectType if structure.isDefined && terminalTypes.contains(objectType) =>
           // SoE in their infinite wisdom decided to remap vehicle_terminal to vehicle_terminal_combined in certain cases in the game_objects.adb file.
