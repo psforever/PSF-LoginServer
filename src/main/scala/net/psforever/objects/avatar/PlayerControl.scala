@@ -777,7 +777,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         target.LastDamage match {
           case Some(attack) if System.currentTimeMillis() - attack.interaction.hitTime < (10 seconds).toMillis =>
             attack.adversarial
-          case None =>
+          case _ =>
             None
         }
       }) match {
