@@ -78,5 +78,3 @@ add_property vshev_antipersonnel allowed false
 add_property vshev_antivehicular allowed false
 add_property vulture allowed false
 add_property wasp allowed false
-add_property med_armor requirement_certification0 empire_issue
-add_property stealth_armor requirement_certification0 empire_issue
