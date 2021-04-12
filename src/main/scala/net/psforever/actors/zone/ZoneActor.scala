@@ -113,7 +113,7 @@ class ZoneActor(context: ActorContext[ZoneActor.Command], zone: Zone)
         zone.Ground ! Zone.Ground.PickupItem(guid)
 
       case BuildDeployable(obj, tool) =>
-        zone.Deployables ! Zone.Deployable.Build(obj, tool)
+        zone.Deployables ! Zone.Deployable.Build(obj)
 
       case DismissDeployable(obj) =>
         zone.Deployables ! Zone.Deployable.Dismiss(obj)

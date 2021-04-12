@@ -20,7 +20,6 @@ import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.containable.Containable
-import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.generator.Generator
@@ -5010,7 +5009,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           case _ => ;
         }
 
-      case msg @ DeployObjectMessage(guid, unk1, pos, orient, unk2) =>
+      case msg @ DeployObjectMessage(guid, _, pos, orient, _) =>
         (player.Holsters().find(slot => slot.Equipment.nonEmpty && slot.Equipment.get.GUID == guid) match {
           case Some(slot) => slot.Equipment
           case None       => None
@@ -5033,7 +5032,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               case _ =>
                 GUIDTask.RegisterObjectTask(dObj)(continent.GUID)
             }
-            continent.tasks ! CallBackForTask(tasking, continent.Deployables, Zone.Deployable.Build(dObj, obj))
+            continent.tasks ! CallBackForTask(tasking, continent.Deployables, Zone.Deployable.BuildByOwner(dObj, player, obj))
 
           case Some(obj) =>
             log.warn(s"DeployObject: what is $obj, ${player.Name}?  It's not a construction tool!")
@@ -6087,24 +6086,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     } else {
       reg
     }
-  }
-
-  def CallBackForTask(task: TaskResolver.GiveTask, sendTo: ActorRef, pass: Any): TaskResolver.GiveTask = {
-    TaskResolver.GiveTask(
-      new Task() {
-        private val localDesc   = task.task.Description
-        private val destination = sendTo
-        private val passMsg     = pass
-
-        override def Description: String = s"callback for tasking $localDesc"
-
-        def Execute(resolver: ActorRef): Unit = {
-          destination ! passMsg
-          resolver ! Success(this)
-        }
-      },
-      List(task)
-    )
   }
 
   def AccessContainer(container: Container): Unit = {

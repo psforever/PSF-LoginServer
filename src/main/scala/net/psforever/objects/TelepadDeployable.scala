@@ -12,14 +12,18 @@ import net.psforever.objects.vital.SimpleResolutions
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import net.psforever.types.DriveState
 
 import scala.concurrent.duration._
 
-class TelepadDeployable(ddef: TelepadDeployableDefinition) extends Deployable(ddef) with TelepadLike
+class TelepadDeployable(ddef: TelepadDeployableDefinition)
+  extends Deployable(ddef) with TelepadLike {
+  override def Definition: TelepadDeployableDefinition = ddef
+}
 
 class TelepadDeployableDefinition(objectId: Int) extends DeployableDefinition(objectId) {
   Model = SimpleResolutions.calculate
+
+  var linkTime: FiniteDuration = 60.seconds
 
   override def Initialize(obj: Deployable, context: ActorContext) = {
     obj.Actor = context.actorOf(Props(classOf[TelepadDeployableControl], obj), PlanetSideServerObject.UniqueActorName(obj))
@@ -49,26 +53,38 @@ class TelepadDeployableControl(tpad: TelepadDeployable)
     deployableBehavior
       .orElse(takesDamage)
       .orElse {
-        case TelepadLike.Activate(_: TelepadDeployable) =>
+        case TelepadLike.Activate(tpad: TelepadDeployable)
+          if isConstructed.contains(true) =>
           val zone = tpad.Zone
           (zone.GUID(tpad.Router) match {
             case Some(vehicle : Vehicle) => vehicle.Utility(UtilityType.internal_router_telepad_deployable)
             case _                             => None
           }) match {
             case Some(obj: InternalTelepad) =>
-              obj.Actor ! TelepadLike.RequestLink(tpad)
+              import scala.concurrent.ExecutionContext.Implicits.global
+              setup = context.system.scheduler.scheduleOnce(
+                tpad.Definition.linkTime,
+                obj.Actor,
+                TelepadLike.RequestLink(tpad)
+              )
             case _ =>
-              tpad.Actor ! Deployable.Deconstruct()
-              TelepadControl.TelepadError(zone, tpad.OwnerName.getOrElse(""), msg = "@Telepad_NoDeploy_RouterLost")
+              deconstructDeployable(None)
+              tpad.OwnerName match {
+                case Some(owner) =>
+                  TelepadControl.TelepadError(zone, owner, msg = "@Telepad_NoDeploy_RouterLost")
+                case None => ;
+              }
           }
 
-        case TelepadLike.Activate(obj: InternalTelepad) =>
+        case TelepadLike.Activate(obj: InternalTelepad)
+          if isConstructed.contains(true) =>
           if (obj.Telepad.contains(tpad.GUID) && tpad.Router.contains(obj.Owner.GUID)) {
             tpad.Active = true
             TelepadLike.LinkTelepad(tpad.Zone, tpad.GUID)
           }
 
-        case TelepadLike.SeverLink(obj: InternalTelepad) =>
+        case TelepadLike.SeverLink(obj: InternalTelepad)
+          if isConstructed.contains(true) =>
           if (tpad.Router.contains(obj.Owner.GUID)) {
             tpad.Router = None
             tpad.Active = false
@@ -85,30 +101,10 @@ class TelepadDeployableControl(tpad: TelepadDeployable)
     Zone.causeExplosion(target.Zone, target, Some(cause))
   }
 
-  override def finalizeDeployable(tool: ConstructionItem, callback: ActorRef): Unit = {
-    val zone = tpad.Zone
-    tool match {
-      case tele: Telepad =>
-        //a telepad is connected to the router that dispensed it
-        //the telepad deployable must also be connected, but only if the router is in the correct state
-        zone.GUID(tele.Router) match {
-          case Some(vehicle: Vehicle)
-            if tpad.Health > 0 && !vehicle.Destroyed && vehicle.DeploymentState == DriveState.Deployed =>
-            super.finalizeDeployable(tool, callback)
-            tpad.Router = tele.Router //necessary; forwards link to the router that prodcued the telepad
-            import scala.concurrent.ExecutionContext.Implicits.global
-            setup.cancel()
-            setup = context.system.scheduler.scheduleOnce(
-              TelepadControl.LinkTime,
-              self,
-              TelepadLike.Activate(tpad)
-            )
-          case _ =>
-            TelepadControl.TelepadError(zone, tpad.OwnerName.getOrElse(""), msg = "@Telepad_NoDeploy_RouterLost")
-            tpad.Actor ! Deployable.Deconstruct(Some(0.seconds))
-        }
-      case _ => ;
-    }
+  override def finalizeDeployable(callback: ActorRef): Unit = {
+    super.finalizeDeployable(callback)
+    decay.cancel() //telepad does not decay if unowned; but, deconstruct if router link fails
+    self ! TelepadLike.Activate(tpad)
   }
 
   override def deconstructDeployable(time : Option[FiniteDuration]) : Unit = {
@@ -118,8 +114,6 @@ class TelepadDeployableControl(tpad: TelepadDeployable)
 }
 
 object TelepadControl {
-  val LinkTime = 60 seconds
-
   def DestructionAwareness(tpad: TelepadDeployable): Unit = {
     if (tpad.Active) {
       tpad.Active = false

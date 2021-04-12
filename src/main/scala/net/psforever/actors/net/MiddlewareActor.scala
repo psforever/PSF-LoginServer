@@ -535,6 +535,10 @@ class MiddlewareActor(
             Behaviors.same
         }
 
+      case packet: PlanetSideResetSequencePacket =>
+        log.error(s"Reset sequence packet - '$packet'")
+        Behaviors.same
+
       case packet: PlanetSideCryptoPacket =>
         log.error(s"Unexpected crypto packet '$packet'")
         Behaviors.same

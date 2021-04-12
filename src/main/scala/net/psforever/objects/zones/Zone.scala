@@ -930,9 +930,10 @@ object Zone {
   }
 
   object Deployable {
-    final case class Build(obj: Deployable, withTool: ConstructionItem)
-    final case class Setup(withTool: ConstructionItem)
-    final case class IsBuilt(obj: Deployable, withTool: ConstructionItem)
+    final case class Build(obj: Deployable)
+    final case class BuildByOwner(obj: Deployable, owner: Player, withTool: ConstructionItem)
+    final case class Setup()
+    final case class IsBuilt(obj: Deployable)
     final case class CanNotBeBuilt(obj: Deployable, withTool: ConstructionItem)
 
     final case class Dismiss(obj: Deployable)

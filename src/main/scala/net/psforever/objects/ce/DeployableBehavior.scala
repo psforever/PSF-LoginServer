@@ -46,7 +46,7 @@ trait DeployableBehavior {
     * `None` means "never constructed",
     * `Some(false)` means "deconstructed" or a state that is unresponsive to certain messaging input,
     * `Some(true)` means "constructed" */
-  var constructed: Option[Boolean] = None
+  private var constructed: Option[Boolean] = None
   /** a value that is utilized by the `ObjectDeleteMessage` packet, affecting animation */
   var deletionType: Int = 2
 
@@ -55,13 +55,15 @@ trait DeployableBehavior {
     decay.cancel()
   }
 
-  val deployableBehavior: Receive = {
-    case Zone.Deployable.Setup(tool)
-      if constructed.isEmpty && setup.isCancelled =>
-      setupDeployable(tool, sender())
+  def isConstructed: Option[Boolean] = constructed
 
-    case DeployableBehavior.Finalize(tool, callback) =>
-      finalizeDeployable(tool, callback)
+  val deployableBehavior: Receive = {
+    case Zone.Deployable.Setup()
+      if constructed.isEmpty && setup.isCancelled =>
+      setupDeployable(sender())
+
+    case DeployableBehavior.Finalize(callback) =>
+      finalizeDeployable(callback)
 
     case Deployable.Ownership(None)
       if DeployableObject.Owner.nonEmpty =>
@@ -182,10 +184,9 @@ trait DeployableBehavior {
     * @see `DeployableDefinition.deployAnimation`
     * @see `DeployableDefinition.DeployTime`
     * @see `LocalAction.TriggerEffectLocation`
-    * @param tool the construction item used by a player to build the deployable
     * @param callback an `ActorRef` used for confirming the deployable's completion of the process
     */
-  def setupDeployable(tool: ConstructionItem, callback: ActorRef): Unit = {
+  def setupDeployable(callback: ActorRef): Unit = {
     val obj = DeployableObject
     constructed = Some(false)
     if (obj.Definition.deployAnimation == DeployAnimation.Standard) {
@@ -204,7 +205,7 @@ trait DeployableBehavior {
     setup = context.system.scheduler.scheduleOnce(
       obj.Definition.DeployTime milliseconds,
       self,
-      DeployableBehavior.Finalize(tool, callback)
+      DeployableBehavior.Finalize(callback)
     )
   }
 
@@ -219,10 +220,9 @@ trait DeployableBehavior {
     * @see `DeployableInfo`
     * @see `LocalAction.DeployableMapIcon`
     * @see `Zone.Deployable.IsBuilt`
-    * @param tool the construction item used by a player to build the deployable
     * @param callback an `ActorRef` used for confirming the deployable's completion of the process
     */
-  def finalizeDeployable(tool: ConstructionItem, callback: ActorRef): Unit = {
+  def finalizeDeployable(callback: ActorRef): Unit = {
     setup.cancel()
     constructed = Some(true)
     val obj = DeployableObject
@@ -250,7 +250,7 @@ trait DeployableBehavior {
       )
     )
     //local build management
-    callback ! Zone.Deployable.IsBuilt(obj, tool)
+    callback ! Zone.Deployable.IsBuilt(obj)
   }
 
   /**
@@ -303,8 +303,8 @@ trait DeployableBehavior {
 }
 
 object DeployableBehavior {
-  /** internal message for progresisng the build process */
-  private case class Finalize(tool: ConstructionItem, sender: ActorRef)
+  /** internal message for progressing the build process */
+  private case class Finalize(callback: ActorRef)
 
   /** internal message for progresisng the deconstruction process */
   private case class FinalizeElimination()

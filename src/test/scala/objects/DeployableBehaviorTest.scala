@@ -1,3 +1,4 @@
+// Copyright (c) 2021 PSForever
 package objects
 
 import akka.actor.{ActorRef, Props}
@@ -21,7 +22,6 @@ import scala.concurrent.duration._
 class DeployableBehaviorSetupTest extends ActorTest {
   val eventsProbe = new TestProbe(system)
   val jmine = Deployables.Make(DeployedItem.jammer_mine)() //guid=1
-  val citem = new ConstructionItem(GlobalDefinitions.ace) //guid = 2
   val deployableList = new ListBuffer()
   val guid = new NumberPoolHub(new MaxNumberSource(max = 5))
   val zone = new Zone(id = "test", new ZoneMap(name = "test"), zoneNumber = 0) {
@@ -34,7 +34,6 @@ class DeployableBehaviorSetupTest extends ActorTest {
     override def Deployables: ActorRef = deployables
   }
   guid.register(jmine, number = 1)
-  guid.register(citem, number = 2)
   jmine.Faction = PlanetSideEmpire.TR
   jmine.Position = Vector3(1,2,3)
   jmine.Orientation = Vector3(4,5,6)
@@ -42,7 +41,7 @@ class DeployableBehaviorSetupTest extends ActorTest {
   "DeployableBehavior" should {
     "perform self-setup" in {
       assert(deployableList.isEmpty, "self-setup test - deployable list is not empty")
-      zone.Deployables ! Zone.Deployable.Build(jmine, citem)
+      zone.Deployables ! Zone.Deployable.Build(jmine)
 
       val eventsMsgs = eventsProbe.receiveN(3, 10.seconds)
       eventsMsgs.head match {
@@ -106,10 +105,10 @@ class DeployableBehaviorSetupOwnedP1Test extends ActorTest {
       val playerProbe = new TestProbe(system)
       player.Actor = playerProbe.ref
       assert(deployableList.isEmpty, "owned setup test, 1 - deployable list is not empty")
-      zone.Deployables ! Zone.Deployable.Build(jmine, citem)
+      zone.Deployables ! Zone.Deployable.BuildByOwner(jmine, player, citem)
 
       playerProbe.receiveOne(200.milliseconds) match {
-        case Zone.Deployable.Build(a, b) =>
+        case Player.BuildDeployable(a, b) =>
           assert((a eq jmine) && (b eq citem), "owned setup test, 1 - process echoing wrong mine or wrong construction item")
         case _ =>
           assert(false, "owned setup test, 1 - not echoing messages to owner")
@@ -156,7 +155,7 @@ class DeployableBehaviorSetupOwnedP2Test extends FreedContextActorTest {
       assert(player.Slot(slot = 0).Equipment.contains(citem), "owned setup test, 2 - player hand is empty")
       assert(deployableList.isEmpty, "owned setup test, 2 - deployable list is not empty")
       assert(!avatar.deployables.Contains(jmine), "owned setup test, 2 - avatar already owns deployable")
-      zone.Deployables ! Zone.Deployable.Build(jmine, citem)
+      zone.Deployables ! Zone.Deployable.BuildByOwner(jmine, player, citem)
       //assert(false, "test needs to be fixed")
       val eventsMsgs = eventsProbe.receiveN(8, 10.seconds)
       eventsMsgs.head match {
@@ -228,7 +227,6 @@ class DeployableBehaviorSetupOwnedP2Test extends FreedContextActorTest {
 class DeployableBehaviorDeconstructTest extends ActorTest {
   val eventsProbe = new TestProbe(system)
   val jmine = Deployables.Make(DeployedItem.jammer_mine)() //guid = 1
-  val citem = new ConstructionItem(GlobalDefinitions.ace) //guid = 2
   val deployableList = new ListBuffer()
   val guid = new NumberPoolHub(new MaxNumberSource(max = 5))
   val zone = new Zone(id = "test", new ZoneMap(name = "test"), zoneNumber = 0) {
@@ -242,14 +240,13 @@ class DeployableBehaviorDeconstructTest extends ActorTest {
     override def Deployables: ActorRef = deployables
   }
   guid.register(jmine, number = 1)
-  guid.register(citem, number = 2)
   jmine.Faction = PlanetSideEmpire.TR
   jmine.Position = Vector3(1,2,3)
   jmine.Orientation = Vector3(4,5,6)
 
   "DeployableBehavior" should {
     "deconstruct, by self" in {
-      zone.Deployables ! Zone.Deployable.Build(jmine, citem)
+      zone.Deployables ! Zone.Deployable.Build(jmine)
       eventsProbe.receiveN(3, 10.seconds) //all of the messages from the construction (see other testing)
       assert(deployableList.contains(jmine), "deconstruct test - deployable not appended to list")
 
@@ -314,7 +311,7 @@ class DeployableBehaviorDeconstructOwnedTest extends FreedContextActorTest {
 
   "DeployableBehavior" should {
     "deconstruct and alert owner" in {
-      zone.Deployables ! Zone.Deployable.Build(jmine, citem)
+      zone.Deployables ! Zone.Deployable.BuildByOwner(jmine, player, citem)
       eventsProbe.receiveN(8, 10.seconds)
       assert(deployableList.contains(jmine), "owned deconstruct test - deployable not appended to list")
       assert(avatar.deployables.Contains(jmine), "owned deconstruct test - avatar does not own deployable")

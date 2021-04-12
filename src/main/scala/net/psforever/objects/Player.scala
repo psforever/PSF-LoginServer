@@ -552,6 +552,8 @@ object Player {
   final val FreeHandSlot: Int  = 250
   final val HandsDownSlot: Int = 255
 
+  final case class BuildDeployable(obj: Deployable, withTool: ConstructionItem)
+
   final case class LoseDeployable(obj: Deployable)
 
   final case class Die(reason: Option[DamageInteraction])

@@ -12,8 +12,6 @@ import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.PlanetSideGUID
 
-import scala.concurrent.duration._
-
 trait TelepadLike {
   private var router: Option[PlanetSideGUID] = None
   private var activated: Boolean             = false
@@ -131,7 +129,7 @@ object TelepadLike {
       LocalAction.SendResponse(GenericObjectActionMessage(utilityGUID, 27))
     )
     events ! LocalServiceMessage(
-      zone.id,
+      zoneId,
       LocalAction.SendResponse(GenericObjectActionMessage(utilityGUID, 30))
     )
     LinkTelepad(zone, utilityGUID)
@@ -203,8 +201,4 @@ class TelepadControl(obj: InternalTelepad) extends akka.actor.Actor {
 
     case _ => ;
   }
-}
-
-object TelepadControl {
-  final val LinkTime = 60 seconds
 }

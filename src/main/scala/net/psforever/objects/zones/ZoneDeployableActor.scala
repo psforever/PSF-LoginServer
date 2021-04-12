@@ -2,6 +2,7 @@
 package net.psforever.objects.zones
 
 import akka.actor.Actor
+import net.psforever.objects.Player
 import net.psforever.objects.ce.Deployable
 
 import scala.annotation.tailrec
@@ -18,14 +19,21 @@ class ZoneDeployableActor(zone: Zone, deployableList: ListBuffer[Deployable]) ex
   private[this] val log = org.log4s.getLogger
 
   def receive: Receive = {
-    case msg @ Zone.Deployable.Build(obj, tool) =>
+    case Zone.Deployable.Build(obj) =>
       if (DeployableBuild(obj, deployableList)) {
         obj.Zone = zone
         obj.Definition.Initialize(obj, context)
-        zone.LivePlayers.find { p => obj.OwnerName.contains(p.Name) } match {
-          case Some(p) => p.Actor ! msg //owner is trying to put it down
-          case None => obj.Actor ! Zone.Deployable.Setup(tool) //strong and independent deployable
-        }
+        obj.Actor ! Zone.Deployable.Setup()
+      } else {
+        log.warn(s"failed to build a ${obj.Definition.Name}")
+        sender() ! Zone.Deployable.IsDismissed(obj)
+      }
+
+    case Zone.Deployable.BuildByOwner(obj, owner, tool) =>
+      if (DeployableBuild(obj, deployableList)) {
+        obj.Zone = zone
+        obj.Definition.Initialize(obj, context)
+        owner.Actor ! Player.BuildDeployable(obj, tool)
       } else {
         log.warn(s"failed to build a ${obj.Definition.Name} belonging to ${obj.OwnerName.getOrElse("no one")}")
         sender() ! Zone.Deployable.IsDismissed(obj)
@@ -37,7 +45,7 @@ class ZoneDeployableActor(zone: Zone, deployableList: ListBuffer[Deployable]) ex
         obj.Definition.Uninitialize(obj, context)
       }
 
-    case Zone.Deployable.IsBuilt(_, _) => ;
+    case Zone.Deployable.IsBuilt(_) => ;
 
     case Zone.Deployable.IsDismissed(_) => ;
 

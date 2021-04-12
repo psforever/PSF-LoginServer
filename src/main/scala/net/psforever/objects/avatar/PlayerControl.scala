@@ -72,6 +72,8 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
   private[this] val damageLog = org.log4s.getLogger(Damageable.LogChannel)
   /** suffocating, or regaining breath? */
   var submergedCondition: Option[OxygenState] = None
+  /** assistance for deployable construction, retention of the construction item */
+  var deployablePair: Option[(Deployable, ConstructionItem)] = None
   /** control agency for the player's locker container (dedicated inventory slot #5) */
   val lockerControlAgent: ActorRef = {
     val locker = player.avatar.locker
@@ -383,87 +385,71 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         case Zone.Ground.CanNotPickupItem(_, item_guid, reason) =>
           log.warn(s"${player.Name} failed to pick up an item ($item_guid) from the ground because $reason")
 
-        case Zone.Deployable.Build(obj, tool) =>
-          val zone = player.Zone
-          val deployables = player.avatar.deployables
-          if (deployables.Valid(obj) &&
-              !deployables.Contains(obj) &&
-              Players.deployableWithinBuildLimits(player, obj)) {
-            tool.Definition match {
-              case GlobalDefinitions.ace | /* animation handled in deployable lifecycle */
-                   GlobalDefinitions.router_telepad => ; /* no special animation */
-              case GlobalDefinitions.advanced_ace
-                if obj.Definition.deployAnimation == DeployAnimation.Fdu =>
-                zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.PutDownFDU(player.GUID))
-              case _ =>
-                org.log4s.getLogger(name = "Deployables").warn(
-                  s"not sure what kind of construction item to animate - ${tool.Definition.Name}"
-                )
-            }
-            obj.Actor ! Zone.Deployable.Setup(tool)
-          } else {
-            /*
-            If the tool is a form of field deployment unit (FDU), place it on the ground.
-            In the case of a botched deployable construction, dropping the FDU is visually consistent
-            as it should already be depicted as on the ground as a part of its animation cycle.
-            */
-            if (tool.Definition == GlobalDefinitions.advanced_ace) {
-              DropEquipmentFromInventory(player)(tool, Some(obj.Position))
-            }
-            Players.buildCooldownReset(zone, player.Name, obj)
-            obj.Position = Vector3.Zero
-            obj.AssignOwnership(None)
-            zone.Deployables ! Zone.Deployable.Dismiss(obj)
-          }
+        case Player.BuildDeployable(obj: TelepadDeployable, tool: Telepad) =>
+          obj.Router = tool.Router //necessary; forwards link to the router that prodcued the telepad
+          setupDeployable(obj, tool)
 
-        case Zone.Deployable.IsBuilt(obj: BoomerDeployable, tool) =>
-          val zone = player.Zone
-          //boomers
-          val trigger = new BoomerTrigger
-          trigger.Companion = obj.GUID
-          obj.Trigger = trigger
-          //TODO sufficiently delete the tool
-          zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.ObjectDelete(player.GUID, tool.GUID))
-          zone.tasks ! GUIDTask.UnregisterEquipment(tool)(zone.GUID)
-          player.Find(tool) match {
-            case Some(index) =>
-              val holster = player.Slot(index)
-              holster.Equipment = None
-              zone.tasks ! HoldNewEquipmentUp(player)(trigger, index)
-            case None =>
-              //don't know where boomer trigger "should" go
-              zone.tasks ! PutNewEquipmentInInventoryOrDrop(player)(trigger)
-          }
-          Players.buildCooldownReset(zone, player.Name, obj)
+        case Player.BuildDeployable(obj, tool) =>
+          setupDeployable(obj, tool)
 
-        case Zone.Deployable.IsBuilt(obj: TelepadDeployable, tool) =>
-          val zone = player.Zone
-          zone.GUID(obj.Router) match {
-            case Some(_) =>
+        case Zone.Deployable.IsBuilt(obj: BoomerDeployable) =>
+          deployablePair match {
+            case Some((deployable, tool)) if deployable eq obj =>
+              val zone = player.Zone
+              //boomers
+              val trigger = new BoomerTrigger
+              trigger.Companion = obj.GUID
+              obj.Trigger = trigger
+              //TODO sufficiently delete the tool
+              zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.ObjectDelete(player.GUID, tool.GUID))
+              zone.tasks ! GUIDTask.UnregisterEquipment(tool)(zone.GUID)
+              player.Find(tool) match {
+                case Some(index) if player.VisibleSlots.contains(index) =>
+                  player.Slot(index).Equipment = None
+                  zone.tasks ! HoldNewEquipmentUp(player)(trigger, index)
+                case Some(index) =>
+                  player.Slot(index).Equipment = None
+                  zone.tasks ! PutNewEquipmentInInventoryOrDrop(player)(trigger)
+                case None =>
+                  //don't know where boomer trigger "should" go
+                  zone.tasks ! PutNewEquipmentInInventoryOrDrop(player)(trigger)
+              }
+              Players.buildCooldownReset(zone, player.Name, obj)
+            case _ => ;
+          }
+          deployablePair = None
+
+        case Zone.Deployable.IsBuilt(obj: TelepadDeployable) =>
+          deployablePair match {
+            case Some((deployable, tool: Telepad)) if deployable eq obj =>
               RemoveOldEquipmentFromInventory(player)(tool)
-            case _ =>
-              DropEquipmentFromInventory(player)(tool, Some(obj.Position))
-              player.Actor ! Player.LoseDeployable(obj)
-              obj.Actor ! Deployable.Deconstruct(Some(0.seconds))
-              zone.AvatarEvents ! AvatarServiceMessage(
-                player.Name,
-                AvatarAction.SendResponse(
-                  Service.defaultPlayerGUID,
-                  ChatMsg(ChatMessageType.UNK_229, false, "", "@Telepad_NoDeploy_RouterLost", None)
-                )
-              )
+              val zone = player.Zone
+              zone.GUID(obj.Router) match {
+                case Some(v: Vehicle)
+                  if v.Definition == GlobalDefinitions.router => ;
+                case _ =>
+                  player.Actor ! Player.LoseDeployable(obj)
+                  TelepadControl.TelepadError(zone, player.Name, msg = "@Telepad_NoDeploy_RouterLost")
+              }
+              Players.buildCooldownReset(zone, player.Name, obj)
+            case _ => ;
           }
-          Players.buildCooldownReset(zone, player.Name, obj)
+          deployablePair = None
 
-        case Zone.Deployable.IsBuilt(obj, tool) =>
-          Players.buildCooldownReset(player.Zone, player.Name, obj)
-          player.Find(tool) match {
-            case Some(index) =>
-              Players.commonDestroyConstructionItem(player, tool, index)
-              Players.findReplacementConstructionItem(player, tool, index)
-            case None =>
-              log.warn(s"${player.Name} should have destroyed a ${tool.Definition.Name} here, but could not find it")
+        case Zone.Deployable.IsBuilt(obj) =>
+          deployablePair match {
+            case Some((deployable, tool)) if deployable eq obj =>
+              Players.buildCooldownReset(player.Zone, player.Name, obj)
+              player.Find(tool) match {
+                case Some(index) =>
+                  Players.commonDestroyConstructionItem(player, tool, index)
+                  Players.findReplacementConstructionItem(player, tool, index)
+                case None =>
+                  log.warn(s"${player.Name} should have destroyed a ${tool.Definition.Name} here, but could not find it")
+              }
+            case _ => ;
           }
+          deployablePair = None
 
         case Player.LoseDeployable(obj) =>
           if (player.avatar.deployables.Remove(obj)) {
@@ -589,6 +575,47 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     }
     else {
       false
+    }
+  }
+
+  def setupDeployable(obj: Deployable, tool: ConstructionItem): Unit = {
+    if (deployablePair.isEmpty) {
+      val zone = player.Zone
+      val deployables = player.avatar.deployables
+      if (deployables.Valid(obj) &&
+          !deployables.Contains(obj) &&
+          Players.deployableWithinBuildLimits(player, obj)) {
+        tool.Definition match {
+          case GlobalDefinitions.ace | /* animation handled in deployable lifecycle */
+               GlobalDefinitions.router_telepad => ; /* no special animation */
+          case GlobalDefinitions.advanced_ace
+            if obj.Definition.deployAnimation == DeployAnimation.Fdu =>
+            zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.PutDownFDU(player.GUID))
+          case _ =>
+            org.log4s.getLogger(name = "Deployables").warn(
+              s"not sure what kind of construction item to animate - ${tool.Definition.Name}"
+            )
+        }
+        deployablePair = Some((obj, tool))
+        obj.Faction = player.Faction
+        obj.AssignOwnership(player)
+        obj.Actor ! Zone.Deployable.Setup()
+      }
+      else {
+        log.warn(s"cannot build a ${obj.Definition.Name}")
+        DropEquipmentFromInventory(player)(tool, Some(obj.Position))
+        Players.buildCooldownReset(zone, player.Name, obj)
+        obj.Position = Vector3.Zero
+        obj.AssignOwnership(None)
+        zone.Deployables ! Zone.Deployable.Dismiss(obj)
+      }
+    } else {
+      log.warn(s"already building one deployable, so cannot build a ${obj.Definition.Name}")
+      obj.Position = Vector3.Zero
+      obj.AssignOwnership(None)
+      val zone = player.Zone
+      zone.Deployables ! Zone.Deployable.Dismiss(obj)
+      Players.buildCooldownReset(zone, player.Name, obj)
     }
   }
 

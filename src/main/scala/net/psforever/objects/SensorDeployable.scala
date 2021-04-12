@@ -120,8 +120,8 @@ class SensorDeployableControl(sensor: SensorDeployable)
     super.CancelJammeredStatus(target)
   }
 
-  override def finalizeDeployable(tool: ConstructionItem, callback: ActorRef) : Unit = {
-    super.finalizeDeployable(tool, callback)
+  override def finalizeDeployable(callback: ActorRef) : Unit = {
+    super.finalizeDeployable(callback)
     val zone = sensor.Zone
     zone.LocalEvents ! LocalServiceMessage(
       zone.id,
