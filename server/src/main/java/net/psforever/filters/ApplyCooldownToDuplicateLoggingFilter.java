@@ -69,7 +69,7 @@ public class ApplyCooldownToDuplicateLoggingFilter extends Filter<ILoggingEvent>
 
     @Override
     public void stop() {
-        housecleaning.shutdown();
+        housecleaning.shutdownNow();
         messageMap.clear();
         messageMap = null;
         super.stop();
