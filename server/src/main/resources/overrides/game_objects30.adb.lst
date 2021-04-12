@@ -59,3 +59,4 @@ add_property vulture purchase_tech_plant false
 add_property wasp purchase_tech_plant false
 add_property wasp requirement_certification0 vehicles
 add_property wasp requirement_certification1 vehicles
+add_property galaxy_gunship allowed true
