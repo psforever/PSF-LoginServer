@@ -2793,8 +2793,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         //seat number (first field) seems to be correct if passenger is kicked manually by driver
         //but always seems to return 4 if user is kicked by mount permissions changing
         sendResponse(DismountVehicleMsg(guid, BailType.Kicked, wasKickedByDriver))
-        player.VehicleSeated = None
         if (tplayer_guid == guid) {
+          log.info(s"{${player.Name} has been kicked from ${player.Sex.possessive} ride!")
           continent.GUID(vehicle_guid) match {
             case Some(obj: Vehicle) =>
               UnaccessContainer(obj)
