@@ -2908,7 +2908,7 @@ class SquadService extends Actor {
             .unzip { case (member, index) => (member.CharId, index) }
           val toChannel = features.ToChannel
           memberCharIds.foreach { charId =>
-            SquadEvents.subscribe(events, s"/$toChannel/Squad")
+            SquadEvents.subscribe(UserEvents(charId), s"/$toChannel/Squad")
             Publish(
               charId,
               SquadResponse.Join(
@@ -2923,8 +2923,7 @@ class SquadService extends Actor {
           InitSquadDetail(squad)
         } else {
           //joining an active squad; everybody updates differently
-          val updatedIndex = List(position)
-          val toChannel    = features.ToChannel
+          val toChannel = features.ToChannel
           //new member gets full squad UI updates
           Publish(
             charId,
@@ -2938,7 +2937,7 @@ class SquadService extends Actor {
             )
           )
           //other squad members see new member joining the squad
-          Publish(toChannel, SquadResponse.Join(squad, updatedIndex, ""))
+          Publish(toChannel, SquadResponse.Join(squad, List(position), ""))
           InitWaypoints(charId, squad.GUID)
           InitSquadDetail(squad.GUID, Seq(charId), squad)
           UpdateSquadDetail(
