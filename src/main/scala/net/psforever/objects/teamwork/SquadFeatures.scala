@@ -33,10 +33,11 @@ class SquadFeatures(val Squad: Squad) {
     * <br>
     * All of the waypoints constantly exist as long as the squad to which they are attached exists.
     * They are merely "activated" and "deactivated."
-    * When "activated," the waypoint knows on which continent to appear and where on the map and in the game world to be positioned.
-    * Waypoints manifest in the game world as a far-off beam of light that extends into the sky
+    * When "activated," the waypoint knows on which continent to appear
+    * and where on the map and in the game world to be positioned.
+    * Waypoints manifest in the game world as a (usually far-off) beam of light that extends into the sky
     * and whose ground contact utilizes a downwards pulsating arrow.
-    * On the continental map and deployment map, they appear as a diamond, with a differentiating number where applicable.
+    * On the continental map and deployment map, they appear as a diamond, with a different number where applicable.
     * The squad leader experience rally, for example, does not have a number like the preceding four waypoints.
     * @see `Start`
     */
@@ -44,10 +45,10 @@ class SquadFeatures(val Squad: Squad) {
 
   /**
     * The particular position being recruited right at the moment.
-    * When `None`. no highlighted searches have been indicated.
+    * When `None`, no highlighted searches have been indicated.
     * When a positive integer or 0, indicates distributed `LookingForSquadRoleInvite` messages as recorded by `proxyInvites`.
-    * Only one position may bne actively recruited at a time in this case.
-    * When -1, indicates distributed `ProximityIvite` messages as recorded by `proxyInvites`.
+    * Only one position may be actively recruited at a time in this case.
+    * When -1, indicates distributed `ProximityInvite` messages as recorded by `proxyInvites`.
     * Previous efforts may or may not be forgotten if there is a switch between the two modes.
     */
   private var searchForRole: Option[Int] = None
@@ -58,14 +59,14 @@ class SquadFeatures(val Squad: Squad) {
   private var proxyInvites: List[Long] = Nil
 
   /**
-    * These useres rejected invitation to this squad.
+    * These users rejected invitation to this squad.
     * For the purposes of wide-searches for membership
     * such as Looking For Squad checks and proximity invitation,
     * the unique character identifier numbers in this list are skipped.
     * Direct invitation requests from the non sqad member should remain functional.
     */
   private var refusedPlayers: List[Long]             = Nil
-  private var autoApproveInvitationRequests: Boolean = true
+  private var autoApproveInvitationRequests: Boolean = false
   private var locationFollowsSquadLead: Boolean      = true
 
   private var listed: Boolean = false
