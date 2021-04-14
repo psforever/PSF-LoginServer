@@ -737,7 +737,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 //a finalization? what does this do?
                 sendResponse(SquadDefinitionActionMessage(squad.GUID, 0, SquadAction.Unknown(18)))
                 updateSquad = PeriodicUpdatesWhenEnrolledInSquad
-                //chatActor ! ChatActor.JoinChannel(ChatService.ChatChannel.Squad(squad.GUID))
+                chatActor ! ChatActor.JoinChannel(ChatService.ChatChannel.Squad(squad.GUID))
               case _ =>
                 //other player is joining our squad
                 //load each member's entry
@@ -775,7 +775,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                         None
                       )
                   }
-                  .toList
               )
             )
 
@@ -807,7 +806,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 squad_supplement_id = 0
                 squadUpdateCounter = 0
                 updateSquad = NoSquadUpdates
-                //chatActor ! ChatActor.LeaveChannel(ChatService.ChatChannel.Squad(squad.GUID))
+                chatActor ! ChatActor.LeaveChannel(ChatService.ChatChannel.Squad(squad.GUID))
               case _ =>
                 //remove each member's entry
                 GiveSquadColorsInZone(
