@@ -21,20 +21,20 @@ import java.util.concurrent.TimeUnit;
  */
 public class ApplyCooldownToDuplicateLoggingFilter extends Filter<ILoggingEvent> {
     private long cooldown;
-    private ConcurrentHashMap<String, Long> messageMap;
+//    private ConcurrentHashMap<String, Long> messageMap;
     private long cleaning = 900000L; //default: 15min
-    private ScheduledExecutorService housecleaning;
+//    private ScheduledExecutorService housecleaning;
 
     @Override
     public FilterReply decide(ILoggingEvent event) {
-        String msg = event.getMessage();
-        long currTime = System.currentTimeMillis();
-        Long previousTime = messageMap.put(msg, currTime);
-        if (previousTime != null && previousTime + cooldown > currTime) {
-            return FilterReply.DENY;
-        } else {
+//        String msg = event.getMessage();
+//        long currTime = System.currentTimeMillis();
+//        Long previousTime = messageMap.put(msg, currTime);
+//        if (previousTime != null && previousTime + cooldown > currTime) {
+//            return FilterReply.DENY;
+//        } else {
             return FilterReply.NEUTRAL;
-        }
+//        }
     }
 
     public void setCooldown(Long duration) {
@@ -48,30 +48,30 @@ public class ApplyCooldownToDuplicateLoggingFilter extends Filter<ILoggingEvent>
     @Override
     public void start() {
         if (this.cooldown != 0L) {
-            messageMap = new ConcurrentHashMap<>(1000);
-            housecleaning = Executors.newScheduledThreadPool(1);
-            Runnable task = () -> {
-                //being "concurrent" should be enough
-                //the worst that can happen is two of the same message back-to-back in the log once in a while
-                if (!messageMap.isEmpty()) {
-                    long currTime = System.currentTimeMillis();
-                    Iterator<String> oldLogMessages = messageMap.entrySet().stream()
-                            .filter( entry -> entry.getValue() + cooldown < currTime )
-                            .map( Map.Entry::getKey )
-                            .iterator();
-                    oldLogMessages.forEachRemaining(key -> messageMap.remove(key));
-                }
-            };
-            housecleaning.scheduleWithFixedDelay(task, cleaning, cleaning, TimeUnit.MILLISECONDS);
+//            messageMap = new ConcurrentHashMap<>(1000);
+//            housecleaning = Executors.newScheduledThreadPool(1);
+//            Runnable task = () -> {
+//                //being "concurrent" should be enough
+//                //the worst that can happen is two of the same message back-to-back in the log once in a while
+//                if (!messageMap.isEmpty()) {
+//                    long currTime = System.currentTimeMillis();
+//                    Iterator<String> oldLogMessages = messageMap.entrySet().stream()
+//                            .filter( entry -> entry.getValue() + cooldown < currTime )
+//                            .map( Map.Entry::getKey )
+//                            .iterator();
+//                    oldLogMessages.forEachRemaining(key -> messageMap.remove(key));
+//                }
+//            };
+//            housecleaning.scheduleWithFixedDelay(task, cleaning, cleaning, TimeUnit.MILLISECONDS);
             super.start();
         }
     }
 
     @Override
     public void stop() {
-        housecleaning.shutdown();
-        messageMap.clear();
-        messageMap = null;
+//        housecleaning.shutdown();
+//        messageMap.clear();
+//        messageMap = null;
         super.stop();
     }
 }
