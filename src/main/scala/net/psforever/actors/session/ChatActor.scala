@@ -117,7 +117,7 @@ class ChatActor(
 
         case LeaveChannel(channel) =>
           chatService ! ChatService.LeaveChannel(chatServiceAdapter, channel)
-          channels = channels.filter(_ == channel)
+          channels = channels.filterNot(_ == channel)
           Behaviors.same
 
         case Message(message) =>

@@ -50,21 +50,21 @@ class ChatService(context: ActorContext[ChatService.Command]) extends AbstractBe
         this
 
       case LeaveChannel(actor, channel) =>
-        subscriptions = subscriptions.filter {
-          case JoinChannel(a, _, c) => actor != a && channel != c
+        subscriptions = subscriptions.filterNot {
+          case JoinChannel(a, _, c) => actor == a && channel == c
         }
         this
 
       case LeaveAllChannels(actor) =>
-        subscriptions = subscriptions.filter {
-          case JoinChannel(a, _, _) => actor != a
+        subscriptions = subscriptions.filterNot {
+          case JoinChannel(a, _, _) => actor == a
         }
         this
 
       case Message(session, message, channel) =>
         (channel, message.messageType) match {
-          case (ChatChannel.Squad(_), CMT_SQUAD)                                =>
-          case (ChatChannel.Default(), messageType) if messageType != CMT_SQUAD =>
+          case (ChatChannel.Squad(_), CMT_SQUAD)                                => ;
+          case (ChatChannel.Default(), messageType) if messageType != CMT_SQUAD => ;
           case _ =>
             log.error(s"invalid chat channel $channel for messageType ${message.messageType}")
             return this

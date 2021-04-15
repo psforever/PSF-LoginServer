@@ -775,7 +775,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                         None
                       )
                   }
-                  .toList
               )
             )
 
@@ -3303,6 +3302,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     */
   def ZoneChangeSquadSetup(): Unit = {
     RespawnSquadSetup()
+    squadService ! SquadServiceMessage(player, continent, SquadServiceAction.InitSquadList())
     GiveSquadColorsInZone()
     squadSetup = RespawnSquadSetup
   }
