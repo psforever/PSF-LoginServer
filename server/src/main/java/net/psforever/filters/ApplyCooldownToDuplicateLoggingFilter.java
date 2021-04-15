@@ -62,14 +62,14 @@ public class ApplyCooldownToDuplicateLoggingFilter extends Filter<ILoggingEvent>
                 }
             };
             housecleaning = Executors.newScheduledThreadPool(1);
-//            housecleaning.scheduleWithFixedDelay(task, cleaning, cleaning, TimeUnit.MILLISECONDS);
+            housecleaning.scheduleWithFixedDelay(task, cleaning, cleaning, TimeUnit.MILLISECONDS);
             super.start();
         }
     }
 
     @Override
     public void stop() {
-        housecleaning.shutdown();
+        housecleaning.shutdownNow();
         messageMap.clear();
         messageMap = null;
         super.stop();
