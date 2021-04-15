@@ -8,9 +8,6 @@ import ch.qos.logback.core.spi.FilterReply;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Disrupts a variety of logging messages that would otherwise repeat within a certain frame of time.
@@ -21,9 +18,9 @@ import java.util.concurrent.TimeUnit;
  */
 public class ApplyCooldownToDuplicateLoggingFilter extends Filter<ILoggingEvent> {
     private long cooldown;
-    private ConcurrentHashMap<String, Long> messageMap;
     private long cleaning = 900000L; //default: 15min
-    private ScheduledExecutorService housecleaning;
+    private ConcurrentHashMap<String, Long> messageMap;
+    private long housecleaningTime = System.currentTimeMillis() + cleaning;
 
     @Override
     public FilterReply decide(ILoggingEvent event) {
@@ -33,43 +30,36 @@ public class ApplyCooldownToDuplicateLoggingFilter extends Filter<ILoggingEvent>
         if (previousTime != null && previousTime + cooldown > currTime) {
             return FilterReply.DENY;
         } else {
+            if (currTime > housecleaningTime) {
+                runCleaning();
+                housecleaningTime = currTime + cleaning;
+            }
             return FilterReply.NEUTRAL;
         }
     }
 
     public void setCooldown(Long duration) {
-        this.cooldown = duration;
+        cooldown = duration;
     }
 
     public void setCleaning(Long duration) {
-        this.cleaning = duration;
+        cleaning = duration;
+        housecleaningTime = System.currentTimeMillis() + cleaning;
     }
 
-    @Override
-    public void start() {
-        if (this.cooldown != 0L) {
-            messageMap = new ConcurrentHashMap<>(1000);
-            housecleaning = Executors.newScheduledThreadPool(1);
-            Runnable task = () -> {
-                //being "concurrent" should be enough
-                //the worst that can happen is two of the same message back-to-back in the log once in a while
-                if (!messageMap.isEmpty()) {
-                    long currTime = System.currentTimeMillis();
-                    Iterator<String> oldLogMessages = messageMap.entrySet().stream()
-                            .filter( entry -> entry.getValue() + cooldown < currTime )
-                            .map( Map.Entry::getKey )
-                            .iterator();
-                    oldLogMessages.forEachRemaining(key -> messageMap.remove(key));
-                }
-            };
-            housecleaning.scheduleWithFixedDelay(task, cleaning, cleaning, TimeUnit.MILLISECONDS);
-            super.start();
+    private void runCleaning() {
+        if (!messageMap.isEmpty()) {
+            long currTime = System.currentTimeMillis();
+            Iterator<String> oldLogMessages = messageMap.entrySet().stream()
+                    .filter( entry -> entry.getValue() + cooldown < currTime )
+                    .map( Map.Entry::getKey )
+                    .iterator();
+            oldLogMessages.forEachRemaining(key -> messageMap.remove(key));
         }
     }
 
     @Override
     public void stop() {
-        housecleaning.shutdown();
         messageMap.clear();
         messageMap = null;
         super.stop();
