@@ -265,7 +265,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var zoneReload: Boolean                            = false
   var interimUngunnedVehicle: Option[PlanetSideGUID] = None
   var interimUngunnedVehicleSeat: Option[Int]        = None
-  var keepAliveFunc: () => Unit                      = NormalKeepAlive
+  var keepAliveFunc: () => Unit                      = KeepAlivePersistenceInitial
   var setAvatar: Boolean                             = false
   var turnCounterFunc: PlanetSideGUID => Unit        = TurnCounterDuringInterim
 
@@ -1321,7 +1321,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       * These correspond to the message `NewPlayerLoaded` for the case of "dying" or the latter zone switching case,
       * and `PlayerLoaded` for "deconstruction."
       * In the latter case, the user must wait for the zone to be recognized as loaded for the server
-      * and this is performed through the send LoadMapMessage, receive BeginZoningMessage exchange
+      * and this is performed through the send `LoadMapMessage`, receive `BeginZoningMessage` exchange.
       * The user's player should have already been registered into the new zone
       * and is at some stage of being added to the zone in which they will have control agency in that zone.
       * Whether or not the zone is loaded in the earlier case depends on the destination with respect to the current location.
@@ -1379,6 +1379,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               self,
               SetCurrentAvatar(tplayer, max_attempts, attempt + max_attempts / 3)
             )
+          } else {
+            keepAliveFunc = GetMountableAndSeat(None, player, continent) match {
+              case (Some(v: Vehicle), Some(seatNumber))
+                if seatNumber > 0 && v.WeaponControlledFromSeat(seatNumber).isEmpty => KeepAlivePersistence
+              case _                                                                => NormalKeepAlive
+            }
           }
           //if not the condition above, player has started playing normally
         } else {
@@ -2455,11 +2461,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     */
   def HandleMountMessages(tplayer: Player, reply: Mountable.Exchange): Unit = {
     reply match {
-      case Mountable.CanMount(obj: ImplantTerminalMech, seat_number, mount_point) =>
+      case Mountable.CanMount(obj: ImplantTerminalMech, seat_number, _) =>
         CancelZoningProcessWithDescriptiveReason("cancel_use")
         CancelAllProximityUnits()
         MountingAction(tplayer, obj, seat_number)
-        // the player will receive no messages consistently except the KeepAliveMessage echo
         keepAliveFunc = KeepAlivePersistence
 
       case Mountable.CanMount(obj: Vehicle, seat_number, _)
@@ -2467,7 +2472,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         CancelZoningProcessWithDescriptiveReason("cancel_mount")
         CancelAllProximityUnits()
         MountingAction(tplayer, obj, seat_number)
-        // the player will receive no messages consistently except the KeepAliveMessage echo
         keepAliveFunc = KeepAlivePersistence
 
       case Mountable.CanMount(obj: Vehicle, seat_number, _) =>
@@ -2491,14 +2495,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             obj.Cloaked = tplayer.Cloaked
           }
         } else if (obj.WeaponControlledFromSeat(seat_number).isEmpty) {
-          // the player will receive no messages consistently except the KeepAliveMessage echo
           keepAliveFunc = KeepAlivePersistence
         }
         AccessContainer(obj)
         UpdateWeaponAtSeatPosition(obj, seat_number)
         MountingAction(tplayer, obj, seat_number)
 
-      case Mountable.CanMount(obj: FacilityTurret, seat_number, mount_point) =>
+      case Mountable.CanMount(obj: FacilityTurret, seat_number, _) =>
         CancelZoningProcessWithDescriptiveReason("cancel_mount")
         if (!obj.isUpgrading) {
           log.info(s"${player.Name} mounts ${obj.Definition.Name}")
@@ -2508,20 +2511,17 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))
           UpdateWeaponAtSeatPosition(obj, seat_number)
           MountingAction(tplayer, obj, seat_number)
-          // the player will receive no messages consistently except the KeepAliveMessage echo
-          keepAliveFunc = KeepAlivePersistence
         } else {
           log.warn(
             s"MountVehicleMsg: ${tplayer.Name} wants to mount turret ${obj.GUID.guid}, but needs to wait until it finishes updating"
           )
         }
 
-      case Mountable.CanMount(obj: PlanetSideGameObject with WeaponTurret, seat_number, mount_point) =>
+      case Mountable.CanMount(obj: PlanetSideGameObject with WeaponTurret, seat_number, _) =>
         CancelZoningProcessWithDescriptiveReason("cancel_mount")
         sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))
         UpdateWeaponAtSeatPosition(obj, seat_number)
         MountingAction(tplayer, obj, seat_number)
-        // the player will receive no messages consistently except the KeepAliveMessage echo
         keepAliveFunc = KeepAlivePersistence
 
       case Mountable.CanMount(obj: Mountable, _, _) =>
@@ -2792,8 +2792,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         //seat number (first field) seems to be correct if passenger is kicked manually by driver
         //but always seems to return 4 if user is kicked by mount permissions changing
         sendResponse(DismountVehicleMsg(guid, BailType.Kicked, wasKickedByDriver))
-        player.VehicleSeated = None
         if (tplayer_guid == guid) {
+          log.info(s"{${player.Name} has been kicked from ${player.Sex.possessive} ride!")
           continent.GUID(vehicle_guid) match {
             case Some(obj: Vehicle) =>
               UnaccessContainer(obj)
@@ -9300,6 +9300,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @param zone na
     */
   def HandleReleaseAvatar(tplayer: Player, zone: Zone): Unit = {
+    keepAliveFunc = KeepAlivePersistence
     tplayer.Release
     tplayer.VehicleSeated match {
       case None =>
@@ -9396,7 +9397,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * The atypical response to receiving a `KeepAliveMessage` packet from the client.<br>
     * <br>
     * `KeepAliveMessage` packets are the primary vehicle for persistence due to client reporting
-    * in the case where the player's avatar is riding in a vehicle in a mount with no vehicle.
+    * in the case where the player's avatar is riding in a vehicle in a mount with no weapon to control.
     * @see `KeepAliveMessage`
     * @see `keepAliveFunc`
     * @see `turnCounterFunc`
@@ -9406,6 +9407,17 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     interimUngunnedVehicle = None
     persist()
     turnCounterFunc(player.GUID)
+  }
+
+  /**
+    *  A really atypical response to receiving a `KeepAliveMessage` packet from the client
+    *  that applies only during the character select portion and part of the first zone load activity.
+    */
+  def KeepAlivePersistenceInitial(): Unit = {
+    persist()
+    if (player != null && player.HasGUID) {
+      keepAliveFunc = KeepAlivePersistence
+    }
   }
 
   def AdministrativeKick(tplayer: Player) = {

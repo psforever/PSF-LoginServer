@@ -145,7 +145,7 @@ trait DamageableVehicle
       if (aggravated) {
         val msg = VehicleAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(totalDamage, Vector3.Zero))
         obj.Seats.values
-          .map { case seat if seat.occupant.nonEmpty => seat.occupant.get.Name }
+          .collect { case seat if seat.occupant.nonEmpty => seat.occupant.get.Name }
           .foreach { channel =>
             events ! VehicleServiceMessage(channel, msg)
           }
