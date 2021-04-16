@@ -207,6 +207,8 @@ object AvatarActor {
 
   private case class SetStamina(stamina: Int) extends Command
 
+  private case class SetImplantInitialized(implantType: ImplantType) extends Command
+
   final case class AvatarResponse(avatar: Avatar)
 
   final case class AvatarLoginResponse(avatar: Avatar)
@@ -486,14 +488,14 @@ class AvatarActor(
             )
           } else {
             var requiredByCert: Set[Certification] = Set(certification)
-            var removeThese: Set[Certification] = Set(certification)
-            val allCerts: Set[Certification] = Certification.values.toSet
+            var removeThese: Set[Certification]    = Set(certification)
+            val allCerts: Set[Certification]       = Certification.values.toSet
             do {
               removeThese = allCerts.filter { testingCert =>
                 testingCert.requires.intersect(removeThese).nonEmpty
               }
               requiredByCert = requiredByCert ++ removeThese
-            } while(removeThese.nonEmpty)
+            } while (removeThese.nonEmpty)
 
             Future
               .sequence(
@@ -777,10 +779,9 @@ class AvatarActor(
           Behaviors.same
 
         case ActivateImplant(implantType) =>
-          val res = avatar.implants.zipWithIndex.collectFirst {
+          avatar.implants.zipWithIndex.collectFirst {
             case (Some(implant), index) if implant.definition.implantType == implantType => (implant, index)
-          }
-          res match {
+          } match {
             case Some((implant, slot)) =>
               if (!implant.initialized) {
                 log.error(s"requested activation of uninitialized implant $implant")
@@ -829,6 +830,31 @@ class AvatarActor(
 
             case None => log.error(s"requested activation of unknown implant $implantType")
           }
+          Behaviors.same
+
+        case SetImplantInitialized(implantType) =>
+          avatar.implants.zipWithIndex.collectFirst {
+            case (Some(implant), index) if implant.definition.implantType == implantType => index
+          } match {
+            case Some(index) =>
+              sessionActor ! SessionActor.SendResponse(
+                AvatarImplantMessage(session.get.player.GUID, ImplantAction.Initialization, index, 1)
+              )
+              avatar = avatar.copy(implants = avatar.implants.map {
+                case Some(implant) if implant.definition.implantType == implantType =>
+                  Some(implant.copy(initialized = true))
+                case other => other
+              })
+
+              // automatic targeting implant activation is a client side feature
+              // For some reason it doesn't always work with 100% reliability, so we're also activating it server side
+              // Must be delayed by a bit or the client will toggle it off again
+              if (implantType == ImplantType.Targeting) {
+                context.scheduleOnce(2.seconds, context.self, ActivateImplant(implantType))
+              }
+            case None => log.error(s"set initialized called for unknown implant $implantType")
+          }
+
           Behaviors.same
 
         case DeactivateImplant(implantType) =>
@@ -1054,17 +1080,10 @@ class AvatarActor(
         )
 
         implantTimers.get(slot).foreach(_.cancel())
-        implantTimers(slot) = context.system.scheduler.scheduleOnce(
+        implantTimers(slot) = context.scheduleOnce(
           implant.definition.InitializationDuration.seconds,
-          () => {
-            avatar = avatar.copy(implants = avatar.implants.map {
-              case Some(implant) => Some(implant.copy(initialized = true))
-              case None          => None
-            })
-            sessionActor ! SessionActor.SendResponse(
-              AvatarImplantMessage(session.get.player.GUID, ImplantAction.Initialization, slot, 1)
-            )
-          }
+          context.self,
+          SetImplantInitialized(implant.definition.implantType)
         )
 
       case (None, _) => ;
