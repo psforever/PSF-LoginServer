@@ -3125,7 +3125,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       player.Actor ! JammableUnit.ClearJammeredStatus()
       player.Actor ! JammableUnit.ClearJammeredSound()
     }
-    if (deadState != DeadState.Alive) {
+    val originalDeadState = deadState
+    deadState = DeadState.Alive
+    if (originalDeadState != DeadState.Alive) {
       avatarActor ! AvatarActor.ResetImplants()
     }
 
@@ -3139,8 +3141,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     sendResponse(
       SetChatFilterMessage(ChatChannel.Platoon, false, ChatChannel.values.toList)
     ) //TODO will not always be "on" like this
-    val originalDeadState = deadState
-    deadState = DeadState.Alive
     sendResponse(AvatarDeadStateMessage(DeadState.Alive, 0, 0, tplayer.Position, player.Faction, true))
     //looking for squad (members)
     if (tplayer.avatar.lookingForSquad || lfsm) {
@@ -7090,8 +7090,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         log.trace(s"AvatarCreate: ${player.Name} - $guid -> $data")
     }
     continent.Population ! Zone.Population.Spawn(avatar, player, avatarActor)
-    //cautious redundancy
-    deadState = DeadState.Alive
     avatarActor ! AvatarActor.RefreshPurchaseTimes()
     //begin looking for conditions to set the avatar
     context.system.scheduler.scheduleOnce(delay = 250 millisecond, self, SetCurrentAvatar(player, 200))
@@ -7278,8 +7276,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         sendResponse(ObjectCreateDetailedMessage(ObjectClass.avatar, guid, data))
         log.debug(s"AvatarRejoin: ${player.Name} - $guid -> $data")
     }
-    //cautious redundancy
-    deadState = DeadState.Alive
     avatarActor ! AvatarActor.RefreshPurchaseTimes()
     setupAvatarFunc = AvatarCreate
     //begin looking for conditions to set the avatar
