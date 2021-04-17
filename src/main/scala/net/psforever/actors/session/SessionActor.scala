@@ -2463,6 +2463,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     reply match {
       case Mountable.CanMount(obj: ImplantTerminalMech, seat_number, _) =>
         CancelZoningProcessWithDescriptiveReason("cancel_use")
+        log.info(s"${player.Name} mounts an implant terminal")
         CancelAllProximityUnits()
         MountingAction(tplayer, obj, seat_number)
         keepAliveFunc = KeepAlivePersistence
@@ -2470,14 +2471,21 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case Mountable.CanMount(obj: Vehicle, seat_number, _)
         if obj.Definition == GlobalDefinitions.orbital_shuttle =>
         CancelZoningProcessWithDescriptiveReason("cancel_mount")
+        log.info(s"${player.Name} mounts the orbital shuttle")
         CancelAllProximityUnits()
         MountingAction(tplayer, obj, seat_number)
         keepAliveFunc = KeepAlivePersistence
 
       case Mountable.CanMount(obj: Vehicle, seat_number, _) =>
         CancelZoningProcessWithDescriptiveReason("cancel_mount")
+        log.info(s"${player.Name} mounts ${obj.Definition.Name} in ${
+          obj.SeatPermissionGroup(seat_number) match {
+            case Some(AccessPermissionGroup.Driver) =>  "the driver seat"
+            case Some(seatType)                     => s"a $seatType seat, #$seat_number"
+            case None                               =>  "a seat"
+          }
+        }")
         val obj_guid: PlanetSideGUID = obj.GUID
-        log.info(s"${player.Name} mounts ${obj.Definition.Name} in seat $seat_number")
         CancelAllProximityUnits()
         sendResponse(PlanetsideAttributeMessage(obj_guid, 0, obj.Health))
         sendResponse(PlanetsideAttributeMessage(obj_guid, 68, obj.Shields)) //shield health
@@ -2504,7 +2512,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case Mountable.CanMount(obj: FacilityTurret, seat_number, _) =>
         CancelZoningProcessWithDescriptiveReason("cancel_mount")
         if (!obj.isUpgrading) {
-          log.info(s"${player.Name} mounts ${obj.Definition.Name}")
+          log.info(s"${player.Name} mounts the ${obj.Definition.Name}")
           if (obj.Definition == GlobalDefinitions.vanu_sentry_turret) {
             obj.Zone.LocalEvents ! LocalServiceMessage(obj.Zone.id, LocalAction.SetEmpire(obj.GUID, player.Faction))
           }
@@ -2519,6 +2527,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       case Mountable.CanMount(obj: PlanetSideGameObject with WeaponTurret, seat_number, _) =>
         CancelZoningProcessWithDescriptiveReason("cancel_mount")
+        log.info(s"${player.Name} mounts the ${obj.Definition.asInstanceOf[BasicDefinition].Name}")
         sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))
         UpdateWeaponAtSeatPosition(obj, seat_number)
         MountingAction(tplayer, obj, seat_number)
