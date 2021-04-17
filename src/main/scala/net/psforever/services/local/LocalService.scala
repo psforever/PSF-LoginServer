@@ -18,11 +18,14 @@ import net.psforever.types.{PlanetSideGUID, Vector3}
 import scala.concurrent.duration.{Duration, _}
 
 class LocalService(zone: Zone) extends Actor {
-  private val doorCloser   = context.actorOf(Props[DoorCloseActor](), s"${zone.id}-local-door-closer")
-  private val hackClearer  = context.actorOf(Props[HackClearActor](), s"${zone.id}-local-hack-clearer")
-  private val hackCapturer = context.actorOf(Props(classOf[HackCaptureActor], zone.tasks), s"${zone.id}-local-hack-capturer")
-  private val captureFlagManager = context.actorOf(Props(classOf[CaptureFlagManager], zone.tasks, zone), s"${zone.id}-local-capture-flag-manager")
-  private val engineer     = context.actorOf(Props(classOf[DeployableRemover], zone.tasks), s"${zone.id}-deployable-remover-agent")
+  private val doorCloser  = context.actorOf(Props[DoorCloseActor](), s"${zone.id}-local-door-closer")
+  private val hackClearer = context.actorOf(Props[HackClearActor](), s"${zone.id}-local-hack-clearer")
+  private val hackCapturer =
+    context.actorOf(Props(classOf[HackCaptureActor], zone.tasks), s"${zone.id}-local-hack-capturer")
+  private val captureFlagManager =
+    context.actorOf(Props(classOf[CaptureFlagManager], zone.tasks, zone), s"${zone.id}-local-capture-flag-manager")
+  private val engineer =
+    context.actorOf(Props(classOf[DeployableRemover], zone.tasks), s"${zone.id}-deployable-remover-agent")
   private val teleportDeployment: ActorRef =
     context.actorOf(Props[RouterTelepadActivation](), s"${zone.id}-telepad-activate-agent")
   private[this] val log = org.log4s.getLogger
@@ -83,7 +86,11 @@ class LocalService(zone: Zone) extends Actor {
           )
         case LocalAction.HackClear(player_guid, target, unk1, unk2) =>
           LocalEvents.publish(
-            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.SendHackMessageHackCleared(target.GUID, unk1, unk2))
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              player_guid,
+              LocalResponse.SendHackMessageHackCleared(target.GUID, unk1, unk2)
+            )
           )
         case LocalAction.HackTemporarily(player_guid, _, target, unk1, duration, unk2) =>
           hackClearer ! HackClearActor.ObjectIsHacked(target, zone, unk1, unk2, duration)
@@ -281,6 +288,13 @@ class LocalService(zone: Zone) extends Actor {
     //response from HackClearActor
     case HackClearActor.SendHackMessageHackCleared(target_guid, _, unk1, unk2) =>
       log.info(s"Clearing hack for $target_guid")
+      LocalEvents.publish(
+        LocalServiceResponse(
+          s"/${zone.id}/Local",
+          Service.defaultPlayerGUID,
+          LocalResponse.SendHackMessageHackCleared(target_guid, unk1, unk2)
+        )
+      )
 
     //message from ProximityTerminalControl
     case Terminal.StartProximityEffect(terminal) =>
@@ -418,13 +432,9 @@ class LocalService(zone: Zone) extends Actor {
       sender() ! Vitality.DamageResolution(target, cause)
 
     // Forward all CaptureFlagManager messages
-    case msg @
-      (CaptureFlagManager.SpawnCaptureFlag(_, _, _)
-      | CaptureFlagManager.PickupFlag(_, _)
-      | CaptureFlagManager.DropFlag(_)
-      | CaptureFlagManager.Captured(_)
-      | CaptureFlagManager.Lost(_, _)
-      | CaptureFlagManager) =>
+    case msg @ (CaptureFlagManager.SpawnCaptureFlag(_, _, _) | CaptureFlagManager.PickupFlag(_, _) |
+        CaptureFlagManager.DropFlag(_) | CaptureFlagManager.Captured(_) | CaptureFlagManager.Lost(_, _) |
+        CaptureFlagManager) =>
       captureFlagManager.forward(msg)
 
     case msg =>
