@@ -129,7 +129,7 @@ object MiddlewareActor {
     * Do nothing.
     * Wait to be told to do something.
     */
-  private def doNothing(): Unit = { }
+  private def doNothing(): Unit = {}
 }
 
 /**
@@ -182,7 +182,8 @@ class MiddlewareActor(
   val outQueueBundled: mutable.Queue[PlanetSidePacket] = mutable.Queue()
 
   /** Latest outbound sequence number;
-    * the current sequence is one less than this number */
+    * the current sequence is one less than this number
+    */
   var outSequence = 0
 
   /**
@@ -202,7 +203,8 @@ class MiddlewareActor(
   }
 
   /** Latest outbound subslot number;
-    * the current subslot is one less than this number */
+    * the current subslot is one less than this number
+    */
   var outSubslot = 0
 
   /**
@@ -224,12 +226,13 @@ class MiddlewareActor(
   /**
     * Do not bundle these packets together with other packets
     */
-  val packetsBundledByThemselves: List[PlanetSidePacket=>Boolean] = List(
+  val packetsBundledByThemselves: List[PlanetSidePacket => Boolean] = List(
     MiddlewareActor.keepAliveMessageGuard,
     MiddlewareActor.characterInfoMessageGuard
   )
 
   val smpHistoryLength: Int = 100
+
   /** History of created `SlottedMetaPacket`s.
     * In case the client does not register receiving a packet by checking against packet subslot index numbers,
     * it will dispatch a `RelatedA` packet,
@@ -239,24 +242,32 @@ class MiddlewareActor(
     * The client and server supposedly maintain reciprocating mechanisms.
     */
   val preparedSlottedMetaPackets: Array[SlottedMetaPacket] = new Array[SlottedMetaPacket](smpHistoryLength)
-  var nextSmpIndex: Int = 0
-  var acceptedSmpSubslot: Int = 0
+  var nextSmpIndex: Int                                    = 0
+  var acceptedSmpSubslot: Int                              = 0
 
   /** end of life stat */
   var timesInReorderQueue: Int = 0
+
   /** end of life stat */
   var timesSubslotMissing: Int = 0
+
   /** Delay between runs of the packet bundler/resolver timer (ms);
-    * 250ms per network update (client upstream), so 10 runs of this bundling code every update */
+    * 250ms per network update (client upstream), so 10 runs of this bundling code every update
+    */
   val packetProcessorDelay = Config.app.network.middleware.packetBundlingDelay
+
   /** Timer that handles the bundling and throttling of outgoing packets and resolves disorganized inbound packets */
   var packetProcessor: Cancellable = Default.Cancellable
+
   /** how long packets that are out of sequential order wait for the missing sequence before being expedited (ms) */
   val inReorderTimeout = Config.app.network.middleware.inReorderTimeout
+
   /** Timer that handles the bundling and throttling of outgoing packets requesting packets with known subslot numbers */
   var subslotMissingProcessor: Cancellable = Default.Cancellable
+
   /** how long to wait between repeated requests for packets with known missing subslot numbers (ms) */
   val inSubslotMissingDelay = Config.app.network.middleware.inSubslotMissingDelay
+
   /** how many time to repeat the request for a packet with a known missing subslot number */
   val inSubslotMissingNumberOfAttempts = Config.app.network.middleware.inSubslotMissingAttempts
 
@@ -273,6 +284,13 @@ class MiddlewareActor(
                 val serverNonce = Math.abs(random.nextInt())
                 send(ServerStart(nonce, serverNonce), None, None)
                 cryptoSetup()
+
+              /** Unknown30 is used to reuse an existing crypto session when switching from login to world
+                * When not handling it, it appears that the client will fall back to using ClientStart
+                * TODO implement this
+                */
+              case (Unknown30(nonce), _) =>
+                connectionClose()
 
               // TODO ResetSequence
               case _ =>
@@ -356,17 +374,17 @@ class MiddlewareActor(
               packet match {
                 case (ClientFinished(clientPubKey, _), Some(_)) =>
                   serverMACBuffer ++= msg.drop(3)
-                  val agreedKey     = dh.agree(clientPubKey.toArray)
+                  val agreedKey = dh.agree(clientPubKey.toArray)
                   val agreedMessage = ByteVector("master secret".getBytes) ++ clientChallenge ++
                     hex"00000000" ++ serverChallenge ++ hex"00000000"
-                  val masterSecret  = new Md5Mac(ByteVector.view(agreedKey)).updateFinal(agreedMessage)
-                  val mac           = new Md5Mac(masterSecret)
+                  val masterSecret = new Md5Mac(ByteVector.view(agreedKey)).updateFinal(agreedMessage)
+                  val mac          = new Md5Mac(masterSecret)
                   //TODO verify client challenge?
                   val serverChallengeResult = mac
                     .updateFinal(ByteVector("server finished".getBytes) ++ serverMACBuffer ++ hex"01", 0xc)
-                  val encExpansion   = ByteVector.view("server expansion".getBytes) ++ hex"0000" ++ serverChallenge ++
+                  val encExpansion = ByteVector.view("server expansion".getBytes) ++ hex"0000" ++ serverChallenge ++
                     hex"00000000" ++ clientChallenge ++ hex"00000000"
-                  val decExpansion   = ByteVector.view("client expansion".getBytes) ++ hex"0000" ++ serverChallenge ++
+                  val decExpansion = ByteVector.view("client expansion".getBytes) ++ hex"0000" ++ serverChallenge ++
                     hex"00000000" ++ clientChallenge ++ hex"00000000"
                   val expandedEncKey = mac.updateFinal(encExpansion, 64)
                   val expandedDecKey = mac.updateFinal(decExpansion, 64)
@@ -381,13 +399,12 @@ class MiddlewareActor(
                   )
                   send(ServerFinished(serverChallengeResult))
                   //start the queue processor loop
-                  packetProcessor =
-                    context.system.scheduler.scheduleWithFixedDelay(
-                      packetProcessorDelay,
-                      packetProcessorDelay
-                    )(()=> {
-                      context.self ! ProcessQueue()
-                    })
+                  packetProcessor = context.system.scheduler.scheduleWithFixedDelay(
+                    packetProcessorDelay,
+                    packetProcessorDelay
+                  )(() => {
+                    context.self ! ProcessQueue()
+                  })
                   active()
 
                 case other =>
@@ -416,7 +433,7 @@ class MiddlewareActor(
               activeSequenceFunc(packet, sequence)
             case Successful((packet, None)) =>
               in(packet)
-            case Failure(e)                 =>
+            case Failure(e) =>
               log.error(s"Could not decode $connectionId's packet: $e")
           }
           Behaviors.same
@@ -446,7 +463,7 @@ class MiddlewareActor(
   val onSignal: PartialFunction[(ActorContext[Command], Signal), Behavior[Command]] = {
     case (_, PostStop) =>
       context.stop(nextActor)
-      if(timesInReorderQueue > 0 || timesSubslotMissing > 0) {
+      if (timesInReorderQueue > 0 || timesSubslotMissing > 0) {
         log.trace(s"out of sequence checks: $timesInReorderQueue, subslot missing checks: $timesSubslotMissing")
       }
       packetProcessor.cancel()
@@ -575,31 +592,29 @@ class MiddlewareActor(
       } else if (outQueue.nonEmpty) {
         val bundle = {
           var length = 0L
-          val (_, bundle) = outQueue
-            .dequeueWhile {
-              case (packet, payload) =>
-                // packet length + MultiPacketEx header length
-                val packetLength = payload.length + (
-                  if (payload.length < 2048) { 8L } //256 * 8; 1L * 8
-                  else if (payload.length < 524288) { 16L } //65536 * 8; 2L * 8
-                  else { 32L } //4L * 8
-                  )
-                length += packetLength
+          val (_, bundle) = outQueue.dequeueWhile {
+            case (packet, payload) =>
+              // packet length + MultiPacketEx header length
+              val packetLength = payload.length + (
+                if (payload.length < 2048) { 8L }         //256 * 8; 1L * 8
+                else if (payload.length < 524288) { 16L } //65536 * 8; 2L * 8
+                else { 32L }                              //4L * 8
+              )
+              length += packetLength
 
-                if (packetsBundledByThemselves.exists { _(packet) }) {
-                  if (length == packetLength) {
-                    length += MTU
-                    true //dequeue only packet
-                  } else {
-                    false //dequeue later
-                  }
+              if (packetsBundledByThemselves.exists { _(packet) }) {
+                if (length == packetLength) {
+                  length += MTU
+                  true //dequeue only packet
                 } else {
-                  // Some packets may be larger than the MTU limit, in that case we dequeue anyway and split later
-                  // We deduct some bytes to leave room for SlottedMetaPacket (4 bytes) and MultiPacketEx (2 bytes + prefix per packet)
-                  length == packetLength || length <= (MTU - 6) * 8
+                  false //dequeue later
                 }
-            }
-            .unzip
+              } else {
+                // Some packets may be larger than the MTU limit, in that case we dequeue anyway and split later
+                // We deduct some bytes to leave room for SlottedMetaPacket (4 bytes) and MultiPacketEx (2 bytes + prefix per packet)
+                length == packetLength || length <= (MTU - 6) * 8
+              }
+          }.unzip
           bundle
         }
 
@@ -616,7 +631,7 @@ class MiddlewareActor(
             case Successful(data) =>
               outQueueBundled.enqueue(smp(slot = 0, data.bytes))
               sendFirstBundle()
-            case Failure(cause)   =>
+            case Failure(cause) =>
               log.error(s"could not bundle $bundle: ${cause.message}")
               //to avoid packets being lost, unwrap bundle and queue the packets individually
               bundle.foreach { packet =>
@@ -636,7 +651,7 @@ class MiddlewareActor(
     * @see `activeNormal`
     * @see `activeWithReordering`
     */
-  private var activeSequenceFunc: (PlanetSidePacket, Int)=>Unit = activeNormal
+  private var activeSequenceFunc: (PlanetSidePacket, Int) => Unit = activeNormal
 
   /**
     * Properly handle the newly-arrived packet based on its sequence number.
@@ -651,7 +666,7 @@ class MiddlewareActor(
     if (sequence == inSequence + 1) {
       inSequence = sequence
       in(packet)
-    } else if(sequence < inSequence) { //expedite this packet
+    } else if (sequence < inSequence) { //expedite this packet
       in(packet)
     } else if (sequence == inSequence) {
       //do nothing?
@@ -681,7 +696,7 @@ class MiddlewareActor(
       inSequence = sequence
       in(packet)
       processInReorderQueue()
-    } else if(sequence < inSequence) { //expedite this packet
+    } else if (sequence < inSequence) { //expedite this packet
       inReorderQueue.filterInPlace(_.sequence == sequence)
       in(packet)
       inReorderQueueFunc = inReorderQueueTest
@@ -690,7 +705,7 @@ class MiddlewareActor(
       //do nothing?
     } else {
       var insertAtIndex = 0
-      val length = inReorderQueue.length
+      val length        = inReorderQueue.length
       while (insertAtIndex < length && sequence >= inReorderQueue(insertAtIndex).sequence) {
         insertAtIndex += 1
       }
@@ -704,7 +719,7 @@ class MiddlewareActor(
     * @see `inReorderQueueTest`
     * @see `processInReorderQueueTimeoutOnly`
     */
-  private var inReorderQueueFunc: ()=>Unit = doNothing
+  private var inReorderQueueFunc: () => Unit = doNothing
 
   /**
     * Examine inbound packets that need to be reordered by sequence number and
@@ -715,9 +730,9 @@ class MiddlewareActor(
     */
   def processInReorderQueue(): Unit = {
     timesInReorderQueue += 1
-    var currentSequence  = inSequence
-    val currentTime      = System.currentTimeMillis()
-    val takenPackets     = (inReorderQueue.indexWhere { currentTime - _.time > inReorderTimeout.toMillis } match {
+    var currentSequence = inSequence
+    val currentTime     = System.currentTimeMillis()
+    val takenPackets = (inReorderQueue.indexWhere { currentTime - _.time > inReorderTimeout.toMillis } match {
       case -1 =>
         inReorderQueue
           .takeWhile { entry =>
@@ -731,7 +746,7 @@ class MiddlewareActor(
           }
       case index =>
         // Forward all packets ahead of any packet that has been in the queue for 50ms
-        val entries     = inReorderQueue.take(index + 1)
+        val entries = inReorderQueue.take(index + 1)
         currentSequence = entries.last.sequence
         entries
     }).map(_.packet)
@@ -757,7 +772,7 @@ class MiddlewareActor(
     inReorderQueue.dropInPlace(takenPackets.length)
     takenPackets.foreach { p =>
       inReorderQueueFunc = inReorderQueueTest
-      inSequence         = p.sequence
+      inSequence = p.sequence
       in(p.packet)
     }
   }
@@ -783,7 +798,7 @@ class MiddlewareActor(
     * @see `inSubslotNotMissing`
     * @see `inSubslotMissingRequests`
     */
-  private var activeSubslotsFunc: (Int, Int, ByteVector)=>Unit = inSubslotNotMissing
+  private var activeSubslotsFunc: (Int, Int, ByteVector) => Unit = inSubslotNotMissing
 
   /**
     * What to do with a `SlottedMetaPacket` control packet normally.
@@ -851,7 +866,7 @@ class MiddlewareActor(
     * resume normal operations when acting upon inbound `SlottedMetaPacket` packets.
     * @param slot the optional slot to report the "first" `RelatedB` in a "while"
     */
-  def inSubslotsMissingRequestsFinished(slot: Int = 0) : Unit = {
+  def inSubslotsMissingRequestsFinished(slot: Int = 0): Unit = {
     if (inSubslotsMissing.isEmpty) {
       subslotMissingProcessor.cancel()
       activeSubslotsFunc = inSubslotNotMissing
@@ -870,25 +885,25 @@ class MiddlewareActor(
     */
   def askForMissingSubslots(): Unit = {
     if (subslotMissingProcessor.isCancelled) {
-      subslotMissingProcessor =
-        context.system.scheduler.scheduleWithFixedDelay(
-          initialDelay = 0.milliseconds,
-          inSubslotMissingDelay
-        )(()=> {
-          inSubslotsMissing.synchronized {
-            timesSubslotMissing += inSubslotsMissing.size
-            inSubslotsMissing.foreach { case (subslot, attempt) =>
+      subslotMissingProcessor = context.system.scheduler.scheduleWithFixedDelay(
+        initialDelay = 0.milliseconds,
+        inSubslotMissingDelay
+      )(() => {
+        inSubslotsMissing.synchronized {
+          timesSubslotMissing += inSubslotsMissing.size
+          inSubslotsMissing.foreach {
+            case (subslot, attempt) =>
               val value = attempt - 1
-              if(value > 0) {
+              if (value > 0) {
                 inSubslotsMissing(subslot) = value
               } else {
                 inSubslotsMissing.remove(subslot)
               }
               send(RelatedA(0, subslot))
-            }
-            inSubslotsMissingRequestsFinished()
           }
-        })
+          inSubslotsMissingRequestsFinished()
+        }
+      })
     }
   }
 
