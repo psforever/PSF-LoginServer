@@ -42,7 +42,7 @@ object PacketCoding {
           case Some(_sequence) =>
             uint16L.encode(_sequence) match {
               case Successful(_seq) => _seq
-              case f @ Failure(_)  => return f
+              case f @ Failure(_)   => return f
             }
           case None =>
             return Failure(Err(s"Missing sequence"))
@@ -125,7 +125,7 @@ object PacketCoding {
               case Successful(opcode) => Successful(opcode)
               case f @ Failure(_)     => f
             }
-          
+
           case _ =>
             Failure(Err("packet not supported"))
         }
@@ -174,7 +174,7 @@ object PacketCoding {
   ): Attempt[(PlanetSidePacket, Int)] = {
     val (flags, remainder) = Codec.decode[PlanetSidePacketFlags](BitVector(msg)) match {
       case Successful(DecodeResult(value, _remainder)) => (value, _remainder)
-      case Failure(e)                                 => return Failure(Err(s"Failed to parse packet flags: ${e.message}"))
+      case Failure(e)                                  => return Failure(Err(s"Failed to parse packet flags: ${e.message}"))
     }
 
     flags.packetType match {
@@ -218,8 +218,8 @@ object PacketCoding {
       case (PacketType.ResetSequence, Some(_crypto)) =>
         _crypto.decrypt(payload.drop(1)) match {
           case Successful(p) if p == hex"01" => Successful((ResetSequence(), sequence))
-          case Successful(p) => Failure(Err(s"ResetSequence decrypted to unsupported value - $p"))
-          case _ => Failure(Err(s"ResetSequence did not decrypt properly"))
+          case Successful(p)                 => Failure(Err(s"ResetSequence decrypted to unsupported value - $p"))
+          case _                             => Failure(Err(s"ResetSequence did not decrypt properly"))
         }
       case (ptype, _) =>
         Failure(Err(s"Cannot unmarshal $ptype packet at all"))
@@ -238,8 +238,7 @@ object PacketCoding {
   def decodePacket(msg: ByteVector): Attempt[PlanetSidePacket] = {
     if (msg.length < PLANETSIDE_MIN_PACKET_SIZE)
       return Failure(Err(s"Packet does not meet the minimum length of $PLANETSIDE_MIN_PACKET_SIZE bytes"))
-    val firstByte = msg { 0 }
-    firstByte match {
+    msg(0) match {
       case 0x00 =>
         // control packets don't need the first byte
         ControlPacketOpcode.codec.decode(msg.drop(1).bits) match {
@@ -303,7 +302,7 @@ object PacketCoding {
         }
       } catch {
         case e: Throwable =>
-          val msg = if(e.getMessage == null) e.getClass.getSimpleName else e.getMessage
+          val msg = if (e.getMessage == null) e.getClass.getSimpleName else e.getMessage
           Failure(Err(s"encrypt error: '$msg' data: ${packetWithPadding.toHex}"))
       }
     }
@@ -321,14 +320,14 @@ object PacketCoding {
       // last byte is the padding length
       val padding = uint8L.decode(payloadDecrypted.takeRight(1).bits) match {
         case Successful(_padding) => _padding.value
-        case Failure(e)          => return Failure(Err(s"Failed to decode the encrypted padding length: ${e.message}"))
+        case Failure(e)           => return Failure(Err(s"Failed to decode the encrypted padding length: ${e.message}"))
       }
 
       val payloadNoPadding = payloadDecrypted.dropRight(1 + padding)
       val payloadMac       = payloadNoPadding.takeRight(Md5Mac.MACLENGTH)
 
       val mac = bytes(Md5Mac.MACLENGTH).decode(payloadMac.bits) match {
-        case Failure(e)      => return Failure(Err("Failed to extract the encrypted MAC: " + e.message))
+        case Failure(e)       => return Failure(Err("Failed to extract the encrypted MAC: " + e.message))
         case Successful(_mac) => _mac.value
       }
 
