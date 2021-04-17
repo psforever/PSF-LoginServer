@@ -363,7 +363,7 @@ class ChatActor(
                       session.zone.Buildings.values
                   })
                     .flatMap { building => building.Amenities.filter { _.isInstanceOf[ResourceSilo] } }
-                  if(silos.isEmpty) {
+                  if (silos.isEmpty) {
                     sessionActor ! SessionActor.SendResponse(
                       ChatMsg(UNK_229, true, "Server", s"no targets for ntu found with parameters $facility", None)
                     )
@@ -371,24 +371,29 @@ class ChatActor(
                   customNtuValue match {
                     // x = n0% of maximum capacitance
                     case Some(value) if value > -1 && value < 11 =>
-                      silos.collect { case silo: ResourceSilo =>
-                        silo.Actor ! ResourceSilo.UpdateChargeLevel(value * silo.MaxNtuCapacitor * 0.1f - silo.NtuCapacitor)
+                      silos.collect {
+                        case silo: ResourceSilo =>
+                          silo.Actor ! ResourceSilo.UpdateChargeLevel(
+                            value * silo.MaxNtuCapacitor * 0.1f - silo.NtuCapacitor
+                          )
                       }
                     // capacitance set to x (where x > 10) exactly, within limits
                     case Some(value) =>
-                      silos.collect { case silo: ResourceSilo =>
-                        silo.Actor ! ResourceSilo.UpdateChargeLevel(value - silo.NtuCapacitor)
+                      silos.collect {
+                        case silo: ResourceSilo =>
+                          silo.Actor ! ResourceSilo.UpdateChargeLevel(value - silo.NtuCapacitor)
                       }
                     case None =>
                       // x >= n0% of maximum capacitance and x <= maximum capacitance
                       val rand = new scala.util.Random
-                      silos.collect { case silo: ResourceSilo =>
-                        val a = 7
-                        val b = 10 - a
-                        val tenth = silo.MaxNtuCapacitor * 0.1f
-                        silo.Actor ! ResourceSilo.UpdateChargeLevel(
-                          a * tenth + rand.nextFloat() * b * tenth - silo.NtuCapacitor
-                        )
+                      silos.collect {
+                        case silo: ResourceSilo =>
+                          val a     = 7
+                          val b     = 10 - a
+                          val tenth = silo.MaxNtuCapacitor * 0.1f
+                          silo.Actor ! ResourceSilo.UpdateChargeLevel(
+                            a * tenth + rand.nextFloat() * b * tenth - silo.NtuCapacitor
+                          )
                       }
                   }
 
@@ -402,17 +407,17 @@ class ChatActor(
               val (faction, factionPos): (PlanetSideEmpire.Value, Option[Int]) = args.zipWithIndex
                 .map { case (factionName, pos) => (factionName.toLowerCase, pos) }
                 .flatMap {
-                  case ("tr", pos)   => Some(PlanetSideEmpire.TR, pos)
-                  case ("nc", pos)   => Some(PlanetSideEmpire.NC, pos)
-                  case ("vs", pos)   => Some(PlanetSideEmpire.VS, pos)
-                  case ("none", pos) => Some(PlanetSideEmpire.NEUTRAL, pos)
-                  case ("bo", pos) => Some(PlanetSideEmpire.NEUTRAL, pos)
+                  case ("tr", pos)      => Some(PlanetSideEmpire.TR, pos)
+                  case ("nc", pos)      => Some(PlanetSideEmpire.NC, pos)
+                  case ("vs", pos)      => Some(PlanetSideEmpire.VS, pos)
+                  case ("none", pos)    => Some(PlanetSideEmpire.NEUTRAL, pos)
+                  case ("bo", pos)      => Some(PlanetSideEmpire.NEUTRAL, pos)
                   case ("neutral", pos) => Some(PlanetSideEmpire.NEUTRAL, pos)
-                  case _             => None
+                  case _                => None
                 }
                 .headOption match {
                 case Some((isFaction, pos)) => (isFaction, Some(pos))
-                case None                 => (session.player.Faction, None)
+                case None                   => (session.player.Faction, None)
               }
 
               val (buildingsOption, buildingPos): (Option[Seq[Building]], Option[Int]) = args.zipWithIndex.flatMap {
@@ -475,14 +480,11 @@ class ChatActor(
                     // [all [<empire>|none]]
                     (Some(1) | None, Some(0), None, Some(_), None) =>
                   val buildings: Seq[Building] = buildingsOption.getOrElse(
-                    session.zone.Buildings
-                      .values
-                      .filter { building =>
-                        building.PlayersInSOI.exists { soiPlayer =>
-                          session.player.CharId == soiPlayer.CharId
-                        }
+                    session.zone.Buildings.values.filter { building =>
+                      building.PlayersInSOI.exists { soiPlayer =>
+                        session.player.CharId == soiPlayer.CharId
                       }
-                      .toSeq
+                    }.toSeq
                   )
                   buildings foreach { building =>
                     // TODO implement timer
@@ -563,12 +565,21 @@ class ChatActor(
                 ChatChannel.Default()
               )
 
-            case (CMT_VOICE, _, _) =>
-              chatService ! ChatService.Message(
-                session,
-                message.copy(recipient = session.player.Name),
-                ChatChannel.Default()
-              )
+            case (CMT_VOICE, _, contents) =>
+              // SH prefix are tactical voice macros only sent to squad
+              if (contents.startsWith("SH")) {
+                channels.foreach {
+                  case channel: ChatChannel.Squad =>
+                    chatService ! ChatService.Message(session, message.copy(recipient = session.player.Name), channel)
+                  case _ =>
+                }
+              } else {
+                chatService ! ChatService.Message(
+                  session,
+                  message.copy(recipient = session.player.Name),
+                  ChatChannel.Default()
+                )
+              }
 
             case (CMT_TELL, _, _) if !session.player.silenced =>
               chatService ! ChatService.Message(
@@ -675,11 +686,11 @@ class ChatActor(
             case (CMT_WARP, _, contents) if gmCommandAllowed =>
               val buffer = contents.toLowerCase.split("\\s+")
               val (coordinates, waypoint) = (buffer.lift(0), buffer.lift(1), buffer.lift(2)) match {
-                case (Some(x), Some(y), Some(z))                        => (Some(x, y, z), None)
-                case (Some("to"), Some(character), None)                => (None, None) // TODO not implemented
-                case (Some("near"), Some(objectName), None)             => (None, None) // TODO not implemented
-                case (Some(waypoint), None, None) if waypoint.nonEmpty  => (None, Some(waypoint))
-                case _                                                  => (None, None)
+                case (Some(x), Some(y), Some(z))                       => (Some(x, y, z), None)
+                case (Some("to"), Some(character), None)               => (None, None) // TODO not implemented
+                case (Some("near"), Some(objectName), None)            => (None, None) // TODO not implemented
+                case (Some(waypoint), None, None) if waypoint.nonEmpty => (None, Some(waypoint))
+                case _                                                 => (None, None)
               }
               (coordinates, waypoint) match {
                 case (Some((x, y, z)), None) if List(x, y, z).forall { str =>
@@ -690,7 +701,10 @@ class ChatActor(
                 case (None, Some(waypoint)) if waypoint == "-list" =>
                   val zone = PointOfInterest.get(session.player.Zone.id)
                   zone match {
-                    case Some(zone: PointOfInterest) => sessionActor ! SessionActor.SendResponse(ChatMsg(UNK_229, true, "", PointOfInterest.listAll(zone), None))
+                    case Some(zone: PointOfInterest) =>
+                      sessionActor ! SessionActor.SendResponse(
+                        ChatMsg(UNK_229, true, "", PointOfInterest.listAll(zone), None)
+                      )
                     case _ => ChatMsg(UNK_229, true, "", s"unknown player zone '${session.player.Zone.id}'", None)
                   }
                 case (None, Some(waypoint)) if waypoint != "-help" =>
@@ -939,7 +953,8 @@ class ChatActor(
             case CMT_VOICE =>
               if (
                 session.zone == fromSession.zone &&
-                Vector3.Distance(session.player.Position, fromSession.player.Position) < 25
+                Vector3.Distance(session.player.Position, fromSession.player.Position) < 25 ||
+                message.contents.startsWith("SH") // tactical squad voice macro
               ) {
                 sessionActor ! SessionActor.SendResponse(message)
               }
