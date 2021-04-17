@@ -604,10 +604,10 @@ class MiddlewareActor(
 
               if (packetsBundledByThemselves.exists { _(packet) }) {
                 if (length == packetLength) {
-                  length += MTU
-                  true //dequeue only packet
+                  length = Long.MaxValue
+                  true // dequeue only packet
                 } else {
-                  false //dequeue later
+                  false // dequeue later
                 }
               } else {
                 // Some packets may be larger than the MTU limit, in that case we dequeue anyway and split later
