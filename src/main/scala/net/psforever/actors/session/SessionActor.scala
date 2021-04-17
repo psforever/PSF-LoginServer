@@ -2681,14 +2681,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               case Some(_) =>
                 sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
               case None =>
-                avatarActor ! AvatarActor.UpdatePurchaseTime(vehicle.Definition)
-                Avatar.purchaseCooldowns.get(vehicle.Definition) match {
-                  case Some(cooldown) =>
-                    sendResponse(
-                      AvatarVehicleTimerMessage(tplayer.GUID, vehicle.Definition.Name, cooldown.toSeconds, unk1 = true)
-                    )
-                  case None => ;
-                }
                 val pad = continent.GUID(padGuid).get.asInstanceOf[VehicleSpawnPad]
                 vehicle.Faction = tplayer.Faction
                 vehicle.Position = pad.Position
@@ -2950,6 +2942,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
         sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 1L))          //mount points off
         sendResponse(PlanetsideAttributeMessage(player.GUID, 21, vehicle_guid)) //ownership
+        avatarActor ! AvatarActor.UpdatePurchaseTime(vehicle.Definition)
+        Avatar.purchaseCooldowns.get(vehicle.Definition) match {
+          case Some(cooldown) =>
+            sendResponse(AvatarVehicleTimerMessage(player.GUID, vehicle.Definition.Name, cooldown.toSeconds, unk1 = true))
+          case None => ;
+        }
         vehicle.MountPoints.find { case (_, mp) => mp.seatIndex == 0 } match {
           case Some((mountPoint, _)) => vehicle.Actor ! Mountable.TryMount(player, mountPoint)
           case _ => ;
