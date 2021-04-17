@@ -43,8 +43,8 @@ public class ApplyCooldownToDuplicateLoggingFilter extends Filter<ILoggingEvent>
     }
 
     public void setCleaning(Long duration) {
+        housecleaningTime = housecleaningTime - cleaning + duration;
         cleaning = duration;
-        housecleaningTime = System.currentTimeMillis() + cleaning;
     }
 
     private void runCleaning() {
@@ -55,6 +55,14 @@ public class ApplyCooldownToDuplicateLoggingFilter extends Filter<ILoggingEvent>
                     .map( Map.Entry::getKey )
                     .iterator();
             oldLogMessages.forEachRemaining(key -> messageMap.remove(key));
+        }
+    }
+
+    @Override
+    public void start() {
+        if (this.cooldown != 0L) {
+            messageMap = new ConcurrentHashMap<>(1000);
+            super.start();
         }
     }
 

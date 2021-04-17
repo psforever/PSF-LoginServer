@@ -2463,6 +2463,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     reply match {
       case Mountable.CanMount(obj: ImplantTerminalMech, seat_number, _) =>
         CancelZoningProcessWithDescriptiveReason("cancel_use")
+        log.info(s"${player.Name} mounts an implant terminal")
         CancelAllProximityUnits()
         MountingAction(tplayer, obj, seat_number)
         keepAliveFunc = KeepAlivePersistence
@@ -2470,14 +2471,21 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case Mountable.CanMount(obj: Vehicle, seat_number, _)
         if obj.Definition == GlobalDefinitions.orbital_shuttle =>
         CancelZoningProcessWithDescriptiveReason("cancel_mount")
+        log.info(s"${player.Name} mounts the orbital shuttle")
         CancelAllProximityUnits()
         MountingAction(tplayer, obj, seat_number)
         keepAliveFunc = KeepAlivePersistence
 
       case Mountable.CanMount(obj: Vehicle, seat_number, _) =>
         CancelZoningProcessWithDescriptiveReason("cancel_mount")
+        log.info(s"${player.Name} mounts ${obj.Definition.Name} in ${
+          obj.SeatPermissionGroup(seat_number) match {
+            case Some(AccessPermissionGroup.Driver) =>  "the driver seat"
+            case Some(seatType)                     => s"a $seatType seat, #$seat_number"
+            case None                               =>  "a seat"
+          }
+        }")
         val obj_guid: PlanetSideGUID = obj.GUID
-        log.info(s"${player.Name} mounts ${obj.Definition.Name} in seat $seat_number")
         CancelAllProximityUnits()
         sendResponse(PlanetsideAttributeMessage(obj_guid, 0, obj.Health))
         sendResponse(PlanetsideAttributeMessage(obj_guid, 68, obj.Shields)) //shield health
@@ -2504,7 +2512,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case Mountable.CanMount(obj: FacilityTurret, seat_number, _) =>
         CancelZoningProcessWithDescriptiveReason("cancel_mount")
         if (!obj.isUpgrading) {
-          log.info(s"${player.Name} mounts ${obj.Definition.Name}")
+          log.info(s"${player.Name} mounts the ${obj.Definition.Name}")
           if (obj.Definition == GlobalDefinitions.vanu_sentry_turret) {
             obj.Zone.LocalEvents ! LocalServiceMessage(obj.Zone.id, LocalAction.SetEmpire(obj.GUID, player.Faction))
           }
@@ -2519,6 +2527,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       case Mountable.CanMount(obj: PlanetSideGameObject with WeaponTurret, seat_number, _) =>
         CancelZoningProcessWithDescriptiveReason("cancel_mount")
+        log.info(s"${player.Name} mounts the ${obj.Definition.asInstanceOf[BasicDefinition].Name}")
         sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))
         UpdateWeaponAtSeatPosition(obj, seat_number)
         MountingAction(tplayer, obj, seat_number)
@@ -2528,6 +2537,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         log.warn(s"MountVehicleMsg: $obj is some mountable object and nothing will happen for ${player.Name}")
 
       case Mountable.CanDismount(obj: ImplantTerminalMech, seat_num, _) =>
+        log.info(s"${tplayer.Name} dismounts the implant terminal")
         DismountAction(tplayer, obj, seat_num)
 
       case Mountable.CanDismount(obj: Vehicle, seat_num, mount_point)
@@ -2535,6 +2545,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         val pguid = player.GUID
         if (obj.MountedIn.nonEmpty) {
           //dismount to hart lobby
+          log.info(s"${tplayer.Name} dismounts the orbital shuttle into the lobby")
           val sguid = obj.GUID
           val (pos, zang) = Vehicles.dismountShuttle(obj, mount_point)
           tplayer.Position = pos
@@ -2573,11 +2584,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       case Mountable.CanDismount(obj: Vehicle, seat_num, _)
         if obj.Definition == GlobalDefinitions.droppod =>
+        log.info(s"${tplayer.Name} has landed on ${continent.id}")
         UnaccessContainer(obj)
         DismountAction(tplayer, obj, seat_num)
         obj.Actor ! Vehicle.Deconstruct()
 
       case Mountable.CanDismount(obj: Vehicle, seat_num, _) =>
+        log.info(
+          s"${tplayer.Name} dismounts a ${obj.Definition.asInstanceOf[ObjectDefinition].Name} from seat #$seat_num"
+        )
         val player_guid: PlanetSideGUID = tplayer.GUID
         if (player_guid == player.GUID) {
           //disembarking self
@@ -2592,6 +2607,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
 
       case Mountable.CanDismount(obj: PlanetSideGameObject with WeaponTurret, seat_num, _) =>
+        log.info(s"${tplayer.Name} dismounts a ${obj.Definition.asInstanceOf[ObjectDefinition].Name}")
         DismountAction(tplayer, obj, seat_num)
 
       case Mountable.CanDismount(obj: Mountable, _, _) =>
@@ -7883,9 +7899,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     */
   def DismountAction(tplayer: Player, obj: PlanetSideGameObject with Mountable, seatNum: Int): Unit = {
     val player_guid: PlanetSideGUID = tplayer.GUID
-    log.info(
-      s"${tplayer.Name} dismounts a ${obj.Definition.asInstanceOf[ObjectDefinition].Name} from seat #$seatNum"
-    )
     keepAliveFunc = NormalKeepAlive
     sendResponse(DismountVehicleMsg(player_guid, BailType.Normal, wasKickedByDriver = false))
     continent.VehicleEvents ! VehicleServiceMessage(

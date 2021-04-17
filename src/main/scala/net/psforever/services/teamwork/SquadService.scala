@@ -1,17 +1,27 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.services.teamwork
 
-import akka.actor.{Actor, ActorRef, Terminated}
 import net.psforever.objects.avatar.{Avatar, Certification}
 import net.psforever.objects.definition.converter.StatConverter
 import net.psforever.objects.loadouts.SquadLoadout
 import net.psforever.objects.teamwork.{Member, Squad, SquadFeatures}
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{LivePlayerList, Player}
-import net.psforever.packet.game.{PlanetSideZoneID, SquadDetail, SquadInfo, SquadPositionDetail, SquadPositionEntry, WaypointEventAction, WaypointInfo, SquadAction => SquadRequestAction}
-import net.psforever.types._
+import net.psforever.packet.game.{
+  PlanetSideZoneID,
+  SquadDetail,
+  SquadInfo,
+  SquadPositionDetail,
+  SquadPositionEntry,
+  WaypointEventAction,
+  WaypointInfo,
+  SquadAction => SquadRequestAction
+}
 import net.psforever.services.{GenericEventBus, Service}
+import net.psforever.types._
 
+import akka.actor.{Actor, ActorRef, Terminated}
+import java.io.{PrintWriter, StringWriter}
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -116,7 +126,7 @@ class SquadService extends Actor {
   private[this] val log = org.log4s.getLogger
 
   private def debug(msg: String): Unit = {
-    log.trace(msg)
+    log.debug(msg)
   }
 
   override def postStop(): Unit = {
@@ -432,16 +442,16 @@ class SquadService extends Actor {
           SquadActionUpdate(char_id, health, max_health, armor, max_armor, pos, zone_number, sender())
 
         case msg =>
-          debug(s"Unhandled message $msg from ${sender()}")
+          log.warn(s"Unhandled action $msg from ${sender()}")
       }
 
     case msg =>
-      debug(s"Unhandled message $msg from ${sender()}")
+      log.warn(s"Unhandled message $msg from ${sender()}")
   }
 
   def JoinByFaction(faction: String, sender: ActorRef): Unit = {
     val path = s"/$faction/Squad"
-    debug(s"$sender has joined $path")
+    log.trace(s"$sender has joined $path")
     SquadEvents.subscribe(sender, path)
   }
 
@@ -449,7 +459,7 @@ class SquadService extends Actor {
     try {
       val longCharId = charId.toLong
       val path       = s"/$charId/Squad"
-      debug(s"$sender has joined $path")
+      log.trace(s"$sender has joined $path")
       context.watch(sender)
       UserEvents += longCharId -> sender
       refused(longCharId) = Nil
@@ -458,13 +468,15 @@ class SquadService extends Actor {
         log.warn(s"Service.Join: tried $charId as a unique character identifier, but it could not be casted")
       case e: Exception =>
         log.error(s"Service.Join: unexpected exception using $charId as data - ${e.getLocalizedMessage}")
-        e.printStackTrace()
+        val sw = new StringWriter
+        e.printStackTrace(new PrintWriter(sw))
+        log.error(sw.toString)
     }
   }
 
   def LeaveByFaction(faction: String, sender: ActorRef): Unit = {
     val path = s"/$faction/Squad"
-    debug(s"$sender has left $path")
+    log.trace(s"$sender has left $path")
     SquadEvents.unsubscribe(sender, path)
   }
 
@@ -476,7 +488,9 @@ class SquadService extends Actor {
         log.warn(s"Service.Leave: tried $charId as a unique character identifier, but it could not be casted")
       case e: Exception =>
         log.error(s"Service.Leave: unexpected exception using $charId as data - ${e.getLocalizedMessage}")
-        e.printStackTrace()
+        val sw = new StringWriter
+        e.printStackTrace(new PrintWriter(sw))
+        log.error(sw.toString)
     }
   }
 
@@ -2481,16 +2495,11 @@ class SquadService extends Actor {
   def RemoveAllInvitesToSquad(sguid: PlanetSideGUID): Unit = {
     //clean up invites
     invites.collect {
-      case (id, VacancyInvite(_, _, guid)) if sguid == guid =>
-        RemoveInvite(id)
-      case (id, IndirectInvite(_, guid)) if sguid == guid =>
-        RemoveInvite(id)
-      case (id, LookingForSquadRoleInvite(_, _, guid, _)) if sguid == guid =>
-        RemoveInvite(id)
-      case (id, RequestRole(_, guid, _)) if sguid == guid =>
-        RemoveInvite(id)
-      case (id, ProximityInvite(_, _, guid)) if sguid == guid =>
-        RemoveInvite(id)
+      case (id, VacancyInvite(_, _, guid)) if sguid == guid                => RemoveInvite(id)
+      case (id, IndirectInvite(_, guid)) if sguid == guid                  => RemoveInvite(id)
+      case (id, LookingForSquadRoleInvite(_, _, guid, _)) if sguid == guid => RemoveInvite(id)
+      case (id, RequestRole(_, guid, _)) if sguid == guid                  => RemoveInvite(id)
+      case (id, ProximityInvite(_, _, guid)) if sguid == guid              => RemoveInvite(id)
     }
     //tidy the queued invitations
     queuedInvites.foreach {
@@ -2536,16 +2545,11 @@ class SquadService extends Actor {
   def RemoveAllInvitesWithPlayer(charId: Long): Unit = {
     RemoveInvite(charId)
     invites.collect {
-      case (id, SpontaneousInvite(player)) if player.CharId == charId =>
-        RemoveInvite(id)
-      case (id, VacancyInvite(_charId, _, _)) if _charId == charId =>
-        RemoveInvite(id)
-      case (id, IndirectInvite(player, _)) if player.CharId == charId =>
-        RemoveInvite(id)
-      case (id, LookingForSquadRoleInvite(_charId, _, _, _)) if _charId == charId =>
-        RemoveInvite(id)
-      case (id, RequestRole(player, _, _)) if player.CharId == charId =>
-        RemoveInvite(id)
+      case (id, SpontaneousInvite(player)) if player.CharId == charId             => RemoveInvite(id)
+      case (id, VacancyInvite(_charId, _, _)) if _charId == charId                => RemoveInvite(id)
+      case (id, IndirectInvite(player, _)) if player.CharId == charId             => RemoveInvite(id)
+      case (id, LookingForSquadRoleInvite(_charId, _, _, _)) if _charId == charId => RemoveInvite(id)
+      case (id, RequestRole(player, _, _)) if player.CharId == charId             => RemoveInvite(id)
     }
     //tidy the queued invitations
     queuedInvites.remove(charId)
@@ -3051,14 +3055,18 @@ class SquadService extends Actor {
         member.Name = ""
         member.CharId = 0
         //other squad members see the member leaving
-        Publish(squadFeatures(squad.GUID).ToChannel, SquadResponse.Leave(squad, List(entry)), Seq(charId))
-        UpdateSquadListWhenListed(squadFeatures(squad.GUID), SquadInfo().Size(squad.Size))
+        squadFeatures.get(squad.GUID) match {
+          case Some(features) =>
+            Publish(features.ToChannel, SquadResponse.Leave(squad, List(entry)), Seq(charId))
+            UpdateSquadListWhenListed(features, SquadInfo().Size(squad.Size))
+          case None => ;
+        }
         UpdateSquadDetail(
           squad.GUID,
           SquadDetail().Members(List(SquadPositionEntry(index, SquadPositionDetail().Player(char_id = 0, name = ""))))
         )
         true
-      case None =>
+      case _ =>
         false
     }
   }
@@ -3298,14 +3306,16 @@ class SquadService extends Actor {
     continueToMonitorDetails.remove(charId)
     RemoveAllInvitesWithPlayer(charId)
     val pSquadOpt = GetParticipatingSquad(charId)
-    val lSquadOpt = GetLeadingSquad(charId, pSquadOpt)
     pSquadOpt match {
       //member of the squad; leave the squad
       case Some(squad) =>
         val size = squad.Size
-        SquadEvents.unsubscribe(UserEvents(charId), s"/${squadFeatures(squad.GUID).ToChannel}/Squad")
-        UserEvents.remove(charId)
-        lSquadOpt match {
+        UserEvents.remove(charId) match {
+          case Some(events) =>
+            SquadEvents.unsubscribe(events, s"/${squadFeatures(squad.GUID).ToChannel}/Squad")
+          case _ => ;
+        }
+        GetLeadingSquad(charId, pSquadOpt) match {
           case Some(_) =>
             //leader of a squad; the squad will be disbanded
             PanicDisbandSquad(
