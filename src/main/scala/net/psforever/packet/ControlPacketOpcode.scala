@@ -28,7 +28,7 @@ object ControlPacketOpcode extends Enumeration {
   Unknown26, Unknown27, Unknown28, ConnectionClose, Unknown30 = Value
 
   private def noDecoder(opcode: ControlPacketOpcode.Type) =
-    (_: BitVector) => Attempt.failure(Err(s"Could not find a marshaller for control packet $opcode"))
+    (bits: BitVector) => Attempt.failure(Err(s"Could not find a marshaller for control packet $opcode (${bits.toHex})"))
 
   def getPacketDecoder(
       opcode: ControlPacketOpcode.Type
