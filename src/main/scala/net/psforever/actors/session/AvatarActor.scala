@@ -721,13 +721,14 @@ class AvatarActor(
           Behaviors.same
 
         case UpdatePurchaseTime(definition, time) =>
-          if (!Avatar.purchaseCooldowns.contains(definition)) {
-            // TODO only send for items with cooldowns
+          //only send for items with cooldowns
+          Avatar.purchaseCooldowns.get(definition) match {
+            case Some(cooldown) =>
+              // TODO save to db
+              avatar = avatar.copy(purchaseTimes = avatar.purchaseTimes.updated(definition.Name, time))
+              updatePurchaseTimer(definition.Name, cooldown.toSeconds, unk1 = true)
+            case None => ;
             //log.warn(s"UpdatePurchaseTime message for item '${definition.Name}' without cooldown")
-          } else {
-            // TODO save to db
-            avatar = avatar.copy(purchaseTimes = avatar.purchaseTimes.updated(definition.Name, time))
-            refreshPurchaseTimes(Set(definition.Name))
           }
           Behaviors.same
 
@@ -1360,14 +1361,7 @@ class AvatarActor(
                 case _                                =>
                   obj.Name
               }
-              sessionActor ! SessionActor.SendResponse(
-                AvatarVehicleTimerMessage(
-                  session.get.player.GUID,
-                  name,
-                  cooldown.toSeconds - secondsSincePurchase,
-                  unk1 = true //TODO? vehicles = true, everything else = false
-                )
-              )
+              updatePurchaseTimer(name, cooldown.toSeconds - secondsSincePurchase, unk1 = true)
 
             case _ =>
               keysToDrop = keysToDrop :+ key  //key has timed-out
@@ -1378,5 +1372,12 @@ class AvatarActor(
     if (keysToDrop.nonEmpty) {
       avatar.copy(purchaseTimes = avatar.purchaseTimes.removedAll(keysToDrop))
     }
+  }
+
+  def updatePurchaseTimer(name: String, time: Long, unk1: Boolean): Unit = {
+    //TODO? unk1 is: vehicles = true, everything else = false
+    sessionActor ! SessionActor.SendResponse(
+      AvatarVehicleTimerMessage(session.get.player.GUID, name, time, unk1 = true)
+    )
   }
 }
