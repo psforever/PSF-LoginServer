@@ -784,7 +784,7 @@ class AvatarActor(
           } match {
             case Some((implant, slot)) =>
               if (!implant.initialized) {
-                log.error(s"requested activation of uninitialized implant $implant")
+                log.warn(s"requested activation of uninitialized implant $implantType")
               } else if (
                 !consumeStamina(implant.definition.ActivationStaminaCost) ||
                 avatar.stamina < implant.definition.StaminaCost
@@ -877,7 +877,7 @@ class AvatarActor(
             val totalStamina = math.min(avatar.maxStamina, avatar.stamina + stamina)
             val fatigued = if (avatar.fatigued && totalStamina >= 20) {
               avatar.implants.zipWithIndex.foreach {
-                case (Some(implant), slot) =>
+                case (Some(_), slot) =>
                   sessionActor ! SessionActor.SendResponse(
                     AvatarImplantMessage(session.get.player.GUID, ImplantAction.OutOfStamina, slot, 0)
                   )
@@ -1103,16 +1103,15 @@ class AvatarActor(
             AvatarImplantMessage(session.get.player.GUID, ImplantAction.Initialization, slot, 0)
           )
         )
-        Some(implant.copy(initialized = false))
+        Some(implant.copy(initialized = false, active = false))
       case (None, _) => None
     })
   }
 
   def deactivateImplant(implantType: ImplantType): Unit = {
-    val res = avatar.implants.zipWithIndex.collectFirst {
+    avatar.implants.zipWithIndex.collectFirst {
       case (Some(implant), index) if implant.definition.implantType == implantType => (implant, index)
-    }
-    res match {
+    } match {
       case Some((implant, slot)) =>
         implantTimers(slot).cancel()
         avatar = avatar.copy(
