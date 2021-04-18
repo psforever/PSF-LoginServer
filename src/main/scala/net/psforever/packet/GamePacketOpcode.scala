@@ -18,284 +18,284 @@ object GamePacketOpcode extends Enumeration {
   type Type = Value
   val
   // OPCODES 0x00-0f
-  Unknown0, // PPT_NULL in beta client
-  LoginMessage,
-  LoginRespMessage,
+  Unknown0,                     // PPT_NULL in beta client
+  LoginMessage,                 //
+  LoginRespMessage,             //
   ConnectToWorldRequestMessage, // found by searching for 83 F8 03 89 in IDA
-  ConnectToWorldMessage,
-  VNLWorldStatusMessage,
-  UnknownMessage6, // PPT_TRANSFERTOWORLDREQUEST
-  UnknownMessage7, // PPT_TRANSFERTOWORLDRESPONSE
+  ConnectToWorldMessage,        //
+  VNLWorldStatusMessage,        //
+  UnknownMessage6,              // PPT_TRANSFERTOWORLDREQUEST
+  UnknownMessage7,              // PPT_TRANSFERTOWORLDRESPONSE
   // 0x08
-  PlayerStateMessage,
-  HitMessage,
-  HitHint,
-  DamageMessage,
-  DestroyMessage,
-  ReloadMessage,
-  MountVehicleMsg,
-  DismountVehicleMsg,
+  PlayerStateMessage, //
+  HitMessage,         //
+  HitHint,            //
+  DamageMessage,      //
+  DestroyMessage,     //
+  ReloadMessage,      //
+  MountVehicleMsg,    //
+  DismountVehicleMsg, //
   // OPCODES 0x10-1f
-  UseItemMessage,
-  MoveItemMessage,
-  ChatMsg,
-  CharacterNoRecordMessage,
-  CharacterInfoMessage,
-  UnknownMessage21, // PPT_DISCONNECT
-  BindPlayerMessage,
+  UseItemMessage,                //
+  MoveItemMessage,               //
+  ChatMsg,                       //
+  CharacterNoRecordMessage,      //
+  CharacterInfoMessage,          //
+  UnknownMessage21,              // PPT_DISCONNECT
+  BindPlayerMessage,             //
   ObjectCreateMessage_Duplicate, // PPT_OBJECTCREATE
   // 0x18
-  ObjectCreateMessage, // PPT_OBJECTCREATEDETAILED
-  ObjectDeleteMessage,
-  PingMsg,
-  VehicleStateMessage,
-  FrameVehicleStateMessage,
-  GenericObjectStateMsg,
-  ChildObjectStateMessage,
-  ActionResultMessage,
+  ObjectCreateMessage,      // PPT_OBJECTCREATEDETAILED
+  ObjectDeleteMessage,      //
+  PingMsg,                  //
+  VehicleStateMessage,      //
+  FrameVehicleStateMessage, //
+  GenericObjectStateMsg,    //
+  ChildObjectStateMessage,  //
+  ActionResultMessage,      //
   // OPCODES 0x20-2f
-  UnknownMessage32, // PPT_ACTIONBEGIN
-  ActionProgressMessage,
-  ActionCancelMessage,
-  ActionCancelAcknowledgeMessage,
-  SetEmpireMessage,
-  EmoteMsg,
-  UnuseItemMessage,
-  ObjectDetachMessage,
+  UnknownMessage32,               // PPT_ACTIONBEGIN
+  ActionProgressMessage,          //
+  ActionCancelMessage,            //
+  ActionCancelAcknowledgeMessage, //
+  SetEmpireMessage,               //
+  EmoteMsg,                       //
+  UnuseItemMessage,               //
+  ObjectDetachMessage,            //
   // 0x28
-  CreateShortcutMessage,
-  ChangeShortcutBankMessage,
-  ObjectAttachMessage,
-  UnknownMessage43, // PPT_OBJECTEMPTY
-  PlanetsideAttributeMessage,
-  RequestDestroyMessage,
-  UnknownMessage46, // PPT_EQUIPITEM
-  CharacterCreateRequestMessage,
+  CreateShortcutMessage,         //
+  ChangeShortcutBankMessage,     //
+  ObjectAttachMessage,           //
+  UnknownMessage43,              // PPT_OBJECTEMPTY
+  PlanetsideAttributeMessage,    //
+  RequestDestroyMessage,         //
+  UnknownMessage46,              // PPT_EQUIPITEM
+  CharacterCreateRequestMessage, //
   // OPCODES 0x30-3f
-  CharacterRequestMessage,
-  LoadMapMessage,
-  SetCurrentAvatarMessage,
-  ObjectHeldMessage,
-  WeaponFireMessage,
-  AvatarJumpMessage,
-  PickupItemMessage,
-  DropItemMessage,
+  CharacterRequestMessage, //
+  LoadMapMessage,          //
+  SetCurrentAvatarMessage, //
+  ObjectHeldMessage,       //
+  WeaponFireMessage,       //
+  AvatarJumpMessage,       //
+  PickupItemMessage,       //
+  DropItemMessage,         //
   // 0x38
-  InventoryStateMessage,
-  ChangeFireStateMessage_Start,
-  ChangeFireStateMessage_Stop,
-  UnknownMessage59,
-  GenericCollisionMsg,
-  QuantityUpdateMessage,
-  ArmorChangedMessage,
-  ProjectileStateMessage,
+  InventoryStateMessage,        //
+  ChangeFireStateMessage_Start, //
+  ChangeFireStateMessage_Stop,  //
+  UnknownMessage59,             //
+  GenericCollisionMsg,          //
+  QuantityUpdateMessage,        //
+  ArmorChangedMessage,          //
+  ProjectileStateMessage,       //
   // OPCODES 0x40-4f
-  MountVehicleCargoMsg,
-  DismountVehicleCargoMsg,
-  CargoMountPointStatusMessage,
-  BeginZoningMessage,
-  ItemTransactionMessage,
-  ItemTransactionResultMessage,
-  ChangeFireModeMessage,
-  ChangeAmmoMessage,
+  MountVehicleCargoMsg,         //
+  DismountVehicleCargoMsg,      //
+  CargoMountPointStatusMessage, //
+  BeginZoningMessage,           //
+  ItemTransactionMessage,       //
+  ItemTransactionResultMessage, //
+  ChangeFireModeMessage,        //
+  ChangeAmmoMessage,            //
   // 0x48
-  TimeOfDayMessage,
-  UnknownMessage73, // PPT_PROJECTILE_EVENT_BLOCK
-  SpawnRequestMessage,
-  DeployRequestMessage,
-  UnknownMessage76, // PPT_BUILDINGSTATECHANGED
-  RepairMessage,
-  ServerVehicleOverrideMsg,
+  TimeOfDayMessage,         //
+  UnknownMessage73,         // PPT_PROJECTILE_EVENT_BLOCK
+  SpawnRequestMessage,      //
+  DeployRequestMessage,     //
+  UnknownMessage76,         // PPT_BUILDINGSTATECHANGED
+  RepairMessage,            //
+  ServerVehicleOverrideMsg, //
   LashMessage,
   // OPCODES 0x50-5f
-  TargetingInfoMessage,
-  TriggerEffectMessage,
-  WeaponDryFireMessage,
-  DroppodLaunchRequestMessage,
-  HackMessage,
-  DroppodLaunchResponseMessage,
-  GenericObjectActionMessage,
-  AvatarVehicleTimerMessage,
+  TargetingInfoMessage,         //
+  TriggerEffectMessage,         //
+  WeaponDryFireMessage,         //
+  DroppodLaunchRequestMessage,  //
+  HackMessage,                  //
+  DroppodLaunchResponseMessage, //
+  GenericObjectActionMessage,   //
+  AvatarVehicleTimerMessage,    //
   // 0x58
-  AvatarImplantMessage,
-  UnknownMessage89, // PPT_SEARCHMESSAGE
-  DelayedPathMountMsg,
-  OrbitalShuttleTimeMsg,
-  AIDamage,
-  DeployObjectMessage,
-  FavoritesRequest,
-  FavoritesResponse,
+  AvatarImplantMessage,  //
+  UnknownMessage89,      // PPT_SEARCHMESSAGE
+  DelayedPathMountMsg,   //
+  OrbitalShuttleTimeMsg, //
+  AIDamage,              //
+  DeployObjectMessage,   //
+  FavoritesRequest,      //
+  FavoritesResponse,     //
   // OPCODES 0x60-6f
-  FavoritesMessage,
-  ObjectDetectedMessage,
-  SplashHitMessage,
-  SetChatFilterMessage,
-  AvatarSearchCriteriaMessage,
-  AvatarSearchResponse,
-  WeaponJammedMessage,
-  LinkDeadAwarenessMsg,
+  FavoritesMessage,            //
+  ObjectDetectedMessage,       //
+  SplashHitMessage,            //
+  SetChatFilterMessage,        //
+  AvatarSearchCriteriaMessage, //
+  AvatarSearchResponse,        //
+  WeaponJammedMessage,         //
+  LinkDeadAwarenessMsg,        //
   // 0x68
-  DroppodFreefallingMessage,
-  AvatarFirstTimeEventMessage,
-  AggravatedDamageMessage,
-  TriggerSoundMessage,
-  LootItemMessage,
-  VehicleSubStateMessage,
-  SquadMembershipRequest,
-  SquadMembershipResponse,
+  DroppodFreefallingMessage,   //
+  AvatarFirstTimeEventMessage, //
+  AggravatedDamageMessage,     //
+  TriggerSoundMessage,         //
+  LootItemMessage,             //
+  VehicleSubStateMessage,      //
+  SquadMembershipRequest,      //
+  SquadMembershipResponse,     //
   // OPCODES 0x70-7f
-  SquadMemberEvent,
-  PlatoonEvent,
-  FriendsRequest,
-  FriendsResponse,
-  TriggerEnvironmentalDamageMessage,
-  TrainingZoneMessage,
-  DeployableObjectsInfoMessage,
+  SquadMemberEvent,                  //
+  PlatoonEvent,                      //
+  FriendsRequest,                    //
+  FriendsResponse,                   //
+  TriggerEnvironmentalDamageMessage, //
+  TrainingZoneMessage,               //
+  DeployableObjectsInfoMessage,      //
   SquadState,
   // 0x78
-  OxygenStateMessage,
-  TradeMessage,
-  UnknownMessage122,
-  DamageFeedbackMessage,
-  DismountBuildingMsg,
-  UnknownMessage125, // PPT_MOUNTBUILDING
-  UnknownMessage126, // PPT_INTENDEDDROPZONE
-  AvatarStatisticsMessage,
+  OxygenStateMessage,      //
+  TradeMessage,            //
+  UnknownMessage122,       //
+  DamageFeedbackMessage,   //
+  DismountBuildingMsg,     //
+  UnknownMessage125,       // PPT_MOUNTBUILDING
+  UnknownMessage126,       // PPT_INTENDEDDROPZONE
+  AvatarStatisticsMessage, //
   // OPCODES 0x80-8f
-  GenericObjectAction2Message,
-  DestroyDisplayMessage,
-  TriggerBotAction,
-  SquadWaypointRequest,
-  SquadWaypointEvent,
-  OffshoreVehicleMessage,
-  ObjectDeployedMessage,
-  ObjectDeployedCountMessage,
+  GenericObjectAction2Message, //
+  DestroyDisplayMessage,       //
+  TriggerBotAction,            //
+  SquadWaypointRequest,        //
+  SquadWaypointEvent,          //
+  OffshoreVehicleMessage,      //
+  ObjectDeployedMessage,       //
+  ObjectDeployedCountMessage,  //
   // 0x88
-  WeaponDelayFireMessage,
-  BugReportMessage,
-  PlayerStasisMessage,
-  UnknownMessage139,
-  OutfitMembershipRequest,
-  OutfitMembershipResponse,
-  OutfitRequest,
-  OutfitEvent,
+  WeaponDelayFireMessage,   //
+  BugReportMessage,         //
+  PlayerStasisMessage,      //
+  UnknownMessage139,        //
+  OutfitMembershipRequest,  //
+  OutfitMembershipResponse, //
+  OutfitRequest,            //
+  OutfitEvent,              //
   // OPCODES 0x90-9f
-  OutfitMemberEvent,
-  OutfitMemberUpdate,
-  PlanetsideStringAttributeMessage,
-  DataChallengeMessage,
-  DataChallengeMessageResp,
-  WeatherMessage,
-  SimDataChallenge,
-  SimDataChallengeResp,
+  OutfitMemberEvent,                //
+  OutfitMemberUpdate,               //
+  PlanetsideStringAttributeMessage, //
+  DataChallengeMessage,             //
+  DataChallengeMessageResp,         //
+  WeatherMessage,                   //
+  SimDataChallenge,                 //
+  SimDataChallengeResp,             //
   // 0x98
-  OutfitListEvent,
-  EmpireIncentivesMessage,
-  InvalidTerrainMessage,
-  SyncMessage,
-  DebugDrawMessage,
-  SoulMarkMessage,
-  UplinkPositionEvent,
-  HotSpotUpdateMessage,
+  OutfitListEvent,         //
+  EmpireIncentivesMessage, //
+  InvalidTerrainMessage,   //
+  SyncMessage,             //
+  DebugDrawMessage,        //
+  SoulMarkMessage,         //
+  UplinkPositionEvent,     //
+  HotSpotUpdateMessage,    //
   // OPCODES 0xa0-af
-  BuildingInfoUpdateMessage,
-  FireHintMessage,
-  UplinkRequest,
-  UplinkResponse,
-  WarpgateRequest,
-  WarpgateResponse,
-  DamageWithPositionMessage,
-  GenericActionMessage,
+  BuildingInfoUpdateMessage, //
+  FireHintMessage,           //
+  UplinkRequest,             //
+  UplinkResponse,            //
+  WarpgateRequest,           //
+  WarpgateResponse,          //
+  DamageWithPositionMessage, //
+  GenericActionMessage,      //
   // 0xa8
-  ContinentalLockUpdateMessage,
-  AvatarGrenadeStateMessage,
-  UnknownMessage170,
-  UnknownMessage171,
-  ReleaseAvatarRequestMessage,
-  AvatarDeadStateMessage,
-  CSAssistMessage,
-  CSAssistCommentMessage,
+  ContinentalLockUpdateMessage, //
+  AvatarGrenadeStateMessage,    //
+  UnknownMessage170,            //
+  UnknownMessage171,            //
+  ReleaseAvatarRequestMessage,  //
+  AvatarDeadStateMessage,       //
+  CSAssistMessage,              //
+  CSAssistCommentMessage,       //
   // OPCODES 0xb0-bf
-  VoiceHostRequest,
-  VoiceHostKill,
-  VoiceHostInfo,
-  BattleplanMessage,
-  BattleExperienceMessage,
-  TargetingImplantRequest,
-  ZonePopulationUpdateMessage,
-  DisconnectMessage,
+  VoiceHostRequest,            //
+  VoiceHostKill,               //
+  VoiceHostInfo,               //
+  BattleplanMessage,           //
+  BattleExperienceMessage,     //
+  TargetingImplantRequest,     //
+  ZonePopulationUpdateMessage, //
+  DisconnectMessage,           //
   // 0xb8
-  ExperienceAddedMessage,
-  OrbitalStrikeWaypointMessage,
-  KeepAliveMessage,
-  MapObjectStateBlockMessage,
-  SnoopMsg,
-  PlayerStateMessageUpstream,
-  PlayerStateShiftMessage,
-  ZipLineMessage,
+  ExperienceAddedMessage,       //
+  OrbitalStrikeWaypointMessage, //
+  KeepAliveMessage,             //
+  MapObjectStateBlockMessage,   //
+  SnoopMsg,                     //
+  PlayerStateMessageUpstream,   //
+  PlayerStateShiftMessage,      //
+  ZipLineMessage,               //
   // OPCODES 0xc0-cf
-  CaptureFlagUpdateMessage,
-  VanuModuleUpdateMessage,
-  FacilityBenefitShieldChargeRequestMessage,
-  ProximityTerminalUseMessage,
-  QuantityDeltaUpdateMessage,
-  ChainLashMessage,
-  ZoneInfoMessage,
-  LongRangeProjectileInfoMessage,
+  CaptureFlagUpdateMessage,                  //
+  VanuModuleUpdateMessage,                   //
+  FacilityBenefitShieldChargeRequestMessage, //
+  ProximityTerminalUseMessage,               //
+  QuantityDeltaUpdateMessage,                //
+  ChainLashMessage,                          //
+  ZoneInfoMessage,                           //
+  LongRangeProjectileInfoMessage,            //
   // 0xc8
-  WeaponLazeTargetPositionMessage,
-  ModuleLimitsMessage,
-  OutfitBenefitMessage,
-  EmpireChangeTimeMessage,
-  ClockCalibrationMessage,
-  DensityLevelUpdateMessage,
-  ActOfGodMessage,
-  AvatarAwardMessage,
+  WeaponLazeTargetPositionMessage, //
+  ModuleLimitsMessage,             //
+  OutfitBenefitMessage,            //
+  EmpireChangeTimeMessage,         //
+  ClockCalibrationMessage,         //
+  DensityLevelUpdateMessage,       //
+  ActOfGodMessage,                 //
+  AvatarAwardMessage,              //
   // OPCODES 0xd0-df
-  UnknownMessage208,
-  DisplayedAwardMessage,
-  RespawnAMSInfoMessage,
-  ComponentDamageMessage,
-  GenericObjectActionAtPositionMessage,
-  PropertyOverrideMessage,
-  WarpgateLinkOverrideMessage,
-  EmpireBenefitsMessage,
+  UnknownMessage208,                    //
+  DisplayedAwardMessage,                //
+  RespawnAMSInfoMessage,                //
+  ComponentDamageMessage,               //
+  GenericObjectActionAtPositionMessage, //
+  PropertyOverrideMessage,              //
+  WarpgateLinkOverrideMessage,          //
+  EmpireBenefitsMessage,                //
   // 0xd8
-  ForceEmpireMessage,
-  BroadcastWarpgateUpdateMessage,
-  UnknownMessage218,
-  SquadMainTerminalMessage,
-  SquadMainTerminalResponseMessage,
-  SquadOrderMessage,
-  SquadOrderResponse,
-  ZoneLockInfoMessage,
+  ForceEmpireMessage,               //
+  BroadcastWarpgateUpdateMessage,   //
+  UnknownMessage218,                //
+  SquadMainTerminalMessage,         //
+  SquadMainTerminalResponseMessage, //
+  SquadOrderMessage,                //
+  SquadOrderResponse,               //
+  ZoneLockInfoMessage,              //
   // OPCODES 0xe0-ef
-  SquadBindInfoMessage,
-  AudioSequenceMessage,
-  SquadFacilityBindInfoMessage,
-  ZoneForcedCavernConnectionsMessage,
-  MissionActionMessage,
-  MissionKillTriggerMessage,
-  ReplicationStreamMessage,
-  SquadDefinitionActionMessage,
+  SquadBindInfoMessage,               //
+  AudioSequenceMessage,               //
+  SquadFacilityBindInfoMessage,       //
+  ZoneForcedCavernConnectionsMessage, //
+  MissionActionMessage,               //
+  MissionKillTriggerMessage,          //
+  ReplicationStreamMessage,           //
+  SquadDefinitionActionMessage,       //
   // 0xe8
-  SquadDetailDefinitionUpdateMessage,
-  TacticsMessage,
-  RabbitUpdateMessage,
-  SquadInvitationRequestMessage,
-  CharacterKnowledgeMessage,
-  GameScoreUpdateMessage,
-  UnknownMessage238,
-  OrderTerminalBugMessage,
+  SquadDetailDefinitionUpdateMessage, //
+  TacticsMessage,                     //
+  RabbitUpdateMessage,                //
+  SquadInvitationRequestMessage,      //
+  CharacterKnowledgeMessage,          //
+  GameScoreUpdateMessage,             //
+  UnknownMessage238,                  //
+  OrderTerminalBugMessage,            //
   // OPCODES 0xf0-f3
-  QueueTimedHelpMessage,
-  MailMessage,
-  GameVarUpdate,
-  ClientCheatedMessage // last known message type (243, 0xf3)
+  QueueTimedHelpMessage, //
+  MailMessage,           //
+  GameVarUpdate,         //
+  ClientCheatedMessage   // last known message type (243, 0xf3)
   = Value
 
   private def noDecoder(opcode: GamePacketOpcode.Type) =
-    (_: BitVector) => Attempt.failure(Err(s"Could not find a marshaller for game packet $opcode"))
+    (bits: BitVector) => Attempt.failure(Err(s"Could not find a marshaller for game packet $opcode (${bits.toHex}"))
 
   /// Mapping of packet IDs to decoders. Notice that we are using the @switch annotation which ensures that the Scala
   /// compiler will be able to optimize this as a lookup table (switch statement). Microbenchmarks show a nearly 400x

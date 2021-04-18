@@ -207,6 +207,8 @@ object AvatarActor {
 
   private case class SetStamina(stamina: Int) extends Command
 
+  private case class SetImplantInitialized(implantType: ImplantType) extends Command
+
   final case class AvatarResponse(avatar: Avatar)
 
   final case class AvatarLoginResponse(avatar: Avatar)
@@ -486,14 +488,14 @@ class AvatarActor(
             )
           } else {
             var requiredByCert: Set[Certification] = Set(certification)
-            var removeThese: Set[Certification] = Set(certification)
-            val allCerts: Set[Certification] = Certification.values.toSet
+            var removeThese: Set[Certification]    = Set(certification)
+            val allCerts: Set[Certification]       = Certification.values.toSet
             do {
               removeThese = allCerts.filter { testingCert =>
                 testingCert.requires.intersect(removeThese).nonEmpty
               }
               requiredByCert = requiredByCert ++ removeThese
-            } while(removeThese.nonEmpty)
+            } while (removeThese.nonEmpty)
 
             Future
               .sequence(
@@ -745,13 +747,12 @@ class AvatarActor(
           Behaviors.same
 
         case ActivateImplant(implantType) =>
-          val res = avatar.implants.zipWithIndex.collectFirst {
+          avatar.implants.zipWithIndex.collectFirst {
             case (Some(implant), index) if implant.definition.implantType == implantType => (implant, index)
-          }
-          res match {
+          } match {
             case Some((implant, slot)) =>
               if (!implant.initialized) {
-                log.error(s"requested activation of uninitialized implant $implant")
+                log.warn(s"requested activation of uninitialized implant $implantType")
               } else if (
                 !consumeStamina(implant.definition.ActivationStaminaCost) ||
                 avatar.stamina < implant.definition.StaminaCost
@@ -799,6 +800,25 @@ class AvatarActor(
           }
           Behaviors.same
 
+        case SetImplantInitialized(implantType) =>
+          avatar.implants.zipWithIndex.collectFirst {
+            case (Some(implant), index) if implant.definition.implantType == implantType => index
+          } match {
+            case Some(index) =>
+              sessionActor ! SessionActor.SendResponse(
+                AvatarImplantMessage(session.get.player.GUID, ImplantAction.Initialization, index, 1)
+              )
+              avatar = avatar.copy(implants = avatar.implants.map {
+                case Some(implant) if implant.definition.implantType == implantType =>
+                  Some(implant.copy(initialized = true))
+                case other => other
+              })
+
+            case None => log.error(s"set initialized called for unknown implant $implantType")
+          }
+
+          Behaviors.same
+
         case DeactivateImplant(implantType) =>
           deactivateImplant(implantType)
           Behaviors.same
@@ -819,7 +839,7 @@ class AvatarActor(
             val totalStamina = math.min(avatar.maxStamina, avatar.stamina + stamina)
             val fatigued = if (avatar.fatigued && totalStamina >= 20) {
               avatar.implants.zipWithIndex.foreach {
-                case (Some(implant), slot) =>
+                case (Some(_), slot) =>
                   sessionActor ! SessionActor.SendResponse(
                     AvatarImplantMessage(session.get.player.GUID, ImplantAction.OutOfStamina, slot, 0)
                   )
@@ -1013,26 +1033,19 @@ class AvatarActor(
           )
         )
 
+        implantTimers.get(slot).foreach(_.cancel())
+        implantTimers(slot) = context.scheduleOnce(
+          implant.definition.InitializationDuration.seconds,
+          context.self,
+          SetImplantInitialized(implant.definition.implantType)
+        )
+
         // Start client side initialization timer, visible on the character screen
         // Progress accumulates according to the client's knowledge of the implant initialization time
-        // What is normally a 60s timer that is set to 120s on the server will still visually update as if 60s
+        // What is normally a 60s timer that is set to 120s on the server will still visually update as if 60s\
         session.get.zone.AvatarEvents ! AvatarServiceMessage(
           avatar.name,
           AvatarAction.SendResponse(Service.defaultPlayerGUID, ActionProgressMessage(slot + 6, 0))
-        )
-
-        implantTimers.get(slot).foreach(_.cancel())
-        implantTimers(slot) = context.system.scheduler.scheduleOnce(
-          implant.definition.InitializationDuration.seconds,
-          () => {
-            avatar = avatar.copy(implants = avatar.implants.map {
-              case Some(implant) => Some(implant.copy(initialized = true))
-              case None          => None
-            })
-            sessionActor ! SessionActor.SendResponse(
-              AvatarImplantMessage(session.get.player.GUID, ImplantAction.Initialization, slot, 1)
-            )
-          }
         )
 
       case (None, _) => ;
@@ -1052,16 +1065,15 @@ class AvatarActor(
             AvatarImplantMessage(session.get.player.GUID, ImplantAction.Initialization, slot, 0)
           )
         )
-        Some(implant.copy(initialized = false))
+        Some(implant.copy(initialized = false, active = false))
       case (None, _) => None
     })
   }
 
   def deactivateImplant(implantType: ImplantType): Unit = {
-    val res = avatar.implants.zipWithIndex.collectFirst {
+    avatar.implants.zipWithIndex.collectFirst {
       case (Some(implant), index) if implant.definition.implantType == implantType => (implant, index)
-    }
-    res match {
+    } match {
       case Some((implant, slot)) =>
         implantTimers(slot).cancel()
         avatar = avatar.copy(

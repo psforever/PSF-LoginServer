@@ -63,8 +63,9 @@ class ChatService(context: ActorContext[ChatService.Command]) extends AbstractBe
 
       case Message(session, message, channel) =>
         (channel, message.messageType) match {
-          case (ChatChannel.Squad(_), CMT_SQUAD)                                => ;
-          case (ChatChannel.Default(), messageType) if messageType != CMT_SQUAD => ;
+          case (ChatChannel.Squad(_), CMT_SQUAD)                                      => ()
+          case (ChatChannel.Squad(_), CMT_VOICE) if message.contents.startsWith("SH") => ()
+          case (ChatChannel.Default(), messageType) if messageType != CMT_SQUAD       => ()
           case _ =>
             log.error(s"invalid chat channel $channel for messageType ${message.messageType}")
             return this

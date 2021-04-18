@@ -63,7 +63,7 @@ object PacketType extends Enumeration(1) {
 }
 
 /** PlanetSide packet flags (beginning of most packets) */
-final case class PlanetSidePacketFlags(packetType: PacketType.Value, secured: Boolean)
+final case class PlanetSidePacketFlags(packetType: PacketType.Value, secured: Boolean, advanced: Boolean = true)
 
 /** Codec for [[PlanetSidePacketFlags]] */
 object PlanetSidePacketFlags extends Marshallable[PlanetSidePacketFlags] {
@@ -71,7 +71,8 @@ object PlanetSidePacketFlags extends Marshallable[PlanetSidePacketFlags] {
     ("packet_type" | PacketType.codec) :: // first 4-bits
       ("unused" | constant(bin"0")) ::
       ("secured" | bool) ::
-      ("advanced" | constant(bin"1")) ::      // we only support "advanced packets"
+      //("advanced" | constant(bin"1")) ::      // we only support "advanced packets"
+      ("advanced" | bool) ::
       ("length_specified" | constant(bin"0")) // we DO NOT support this field
   ).as[PlanetSidePacketFlags]
 }
