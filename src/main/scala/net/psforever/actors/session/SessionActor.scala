@@ -1292,7 +1292,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
     case PlayerLoaded(tplayer) =>
       //same zone
-      log.info(s"Player ${tplayer.Name} will respawn")
+      log.info(s"${tplayer.Name} will respawn")
       tplayer.avatar = avatar
       session = session.copy(player = tplayer)
       setupAvatarFunc()
@@ -2478,7 +2478,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       case Mountable.CanMount(obj: Vehicle, seat_number, _) =>
         CancelZoningProcessWithDescriptiveReason("cancel_mount")
-        log.info(s"${player.Name} mounts ${obj.Definition.Name} in ${
+        log.info(s"${player.Name} mounts the ${obj.Definition.Name} in ${
           obj.SeatPermissionGroup(seat_number) match {
             case Some(AccessPermissionGroup.Driver) =>  "the driver seat"
             case Some(seatType)                     => s"a $seatType seat, #$seat_number"
@@ -2943,11 +2943,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 1L))          //mount points off
         sendResponse(PlanetsideAttributeMessage(player.GUID, 21, vehicle_guid)) //ownership
         avatarActor ! AvatarActor.UpdatePurchaseTime(vehicle.Definition)
-        Avatar.purchaseCooldowns.get(vehicle.Definition) match {
-          case Some(cooldown) =>
-            sendResponse(AvatarVehicleTimerMessage(player.GUID, vehicle.Definition.Name, cooldown.toSeconds, unk1 = true))
-          case None => ;
-        }
         vehicle.MountPoints.find { case (_, mp) => mp.seatIndex == 0 } match {
           case Some((mountPoint, _)) => vehicle.Actor ! Mountable.TryMount(player, mountPoint)
           case _ => ;

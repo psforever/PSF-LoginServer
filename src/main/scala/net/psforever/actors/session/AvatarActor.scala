@@ -725,8 +725,7 @@ class AvatarActor(
           } else {
             // TODO save to db
             avatar = avatar.copy(purchaseTimes = avatar.purchaseTimes.updated(definition.Name, time))
-            // we could be more selective and only send what changed, but it doesn't hurt to refresh everything
-            context.self ! RefreshPurchaseTimes()
+            refreshPurchaseTimes(Set(definition.Name))
           }
           Behaviors.same
 
@@ -738,38 +737,7 @@ class AvatarActor(
           Behaviors.same
 
         case RefreshPurchaseTimes() =>
-          avatar.purchaseTimes.foreach {
-            case (name, purchaseTime) =>
-              val secondsSincePurchase = Seconds.secondsBetween(purchaseTime, LocalDateTime.now()).getSeconds
-
-              Avatar.purchaseCooldowns.find(_._1.Name == name) match {
-                case Some((obj, cooldown)) if cooldown.toSeconds - secondsSincePurchase > 0 =>
-                  val faction: String = avatar.faction.toString.toLowerCase
-                  val name = obj match {
-                    case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.nchev_scattercannon |
-                        GlobalDefinitions.vshev_quasar =>
-                      s"${faction}hev_antipersonnel"
-                    case GlobalDefinitions.trhev_pounder | GlobalDefinitions.nchev_falcon |
-                        GlobalDefinitions.vshev_comet =>
-                      s"${faction}hev_antivehicular"
-                    case GlobalDefinitions.trhev_burster | GlobalDefinitions.nchev_sparrow |
-                        GlobalDefinitions.vshev_starfire =>
-                      s"${faction}hev_antiaircraft"
-                    case _ => obj.Name
-                  }
-
-                  sessionActor ! SessionActor.SendResponse(
-                    AvatarVehicleTimerMessage(
-                      session.get.player.GUID,
-                      name,
-                      cooldown.toSeconds - secondsSincePurchase,
-                      unk1 = true
-                    )
-                  )
-
-                case _ => ;
-              }
-          }
+          refreshPurchaseTimes(avatar.purchaseTimes.keys.toSet)
           Behaviors.same
 
         case SetVehicle(vehicle) =>
@@ -1281,8 +1249,8 @@ class AvatarActor(
           loadout.items.split("/").foreach {
             case value =>
               val (objectType, objectIndex, objectId, toolAmmo) = value.split(",") match {
-                case Array(a, b, c)    => (a, b.toInt, c.toInt, None)
-                case Array(a, b, c, d) => (a, b.toInt, c.toInt, Some(d))
+                case Array(a, b: String, c: String)    => (a, b.toInt, c.toInt, None)
+                case Array(a, b: String, c: String, d) => (a, b.toInt, c.toInt, Some(d))
               }
 
               objectType match {
@@ -1305,9 +1273,9 @@ class AvatarActor(
               }
 
               toolAmmo foreach { toolAmmo =>
-                toolAmmo.split("_").drop(1).foreach { value =>
+                toolAmmo.toString.split("_").drop(1).foreach { value =>
                   val (ammoSlots, ammoTypeIndex, ammoBoxDefinition) = value.split("-") match {
-                    case Array(a, b, c) => (a.toInt, b.toInt, c.toInt)
+                    case Array(a: String, b: String, c: String) => (a.toInt, b.toInt, c.toInt)
                   }
                   doll.Slot(objectIndex).Equipment.get.asInstanceOf[Tool].AmmoSlots(ammoSlots).AmmoTypeIndex =
                     ammoTypeIndex
@@ -1355,4 +1323,48 @@ class AvatarActor(
     })
   }
 
+  def refreshPurchaseTimes(keys: Set[String]): Unit = {
+    var keysToDrop: Seq[String] = Nil
+    keys.foreach { key =>
+      avatar.purchaseTimes.find { case (name, _) => name.equals(key) } match {
+        case Some((name, purchaseTime)) =>
+          val secondsSincePurchase = Seconds.secondsBetween(purchaseTime, LocalDateTime.now()).getSeconds
+          Avatar.purchaseCooldowns.find(_._1.Name == name) match {
+            case Some((obj, cooldown)) if cooldown.toSeconds - secondsSincePurchase > 0 =>
+              val faction : String = avatar.faction.toString.toLowerCase
+              val name = obj match {
+                case GlobalDefinitions.trhev_dualcycler |
+                     GlobalDefinitions.nchev_scattercannon |
+                     GlobalDefinitions.vshev_quasar   =>
+                  s"${faction}hev_antipersonnel"
+                case GlobalDefinitions.trhev_pounder |
+                     GlobalDefinitions.nchev_falcon |
+                     GlobalDefinitions.vshev_comet    =>
+                  s"${faction}hev_antivehicular"
+                case GlobalDefinitions.trhev_burster |
+                     GlobalDefinitions.nchev_sparrow |
+                     GlobalDefinitions.vshev_starfire =>
+                  s"${faction}hev_antiaircraft"
+                case _                                =>
+                  obj.Name
+              }
+              sessionActor ! SessionActor.SendResponse(
+                AvatarVehicleTimerMessage(
+                  session.get.player.GUID,
+                  name,
+                  cooldown.toSeconds - secondsSincePurchase,
+                  unk1 = true //TODO? vehicles = true, everything else = false
+                )
+              )
+
+            case _ =>
+              keysToDrop = keysToDrop :+ key  //key has timed-out
+          }
+        case _ => ;
+      }
+    }
+    if (keysToDrop.nonEmpty) {
+      avatar.copy(purchaseTimes = avatar.purchaseTimes.removedAll(keysToDrop))
+    }
+  }
 }
