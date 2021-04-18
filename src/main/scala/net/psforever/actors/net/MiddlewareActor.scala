@@ -297,7 +297,7 @@ class MiddlewareActor(
                 log.warn(s"Unexpected packet type $packet in start (before crypto)")
                 Behaviors.same
             }
-          case Failure(_) =>
+          case Failure(unmarshalError) =>
             // There is a special case where no crypto is being used.
             // The only packet coming through looks like PingMsg. This is a hardcoded
             // feature of the client @ 0x005FD618
@@ -318,8 +318,8 @@ class MiddlewareActor(
                     log.error(s"Unexpected non-crypto packet type $packet in start")
                     Behaviors.same
                 }
-              case Failure(e) =>
-                log.error(s"Could not decode packet in start: $e")
+              case Failure(decodeError) =>
+                log.error(s"Could not decode packet in start: '$unmarshalError' / '$decodeError'")
                 Behaviors.same
             }
         }
