@@ -846,12 +846,6 @@ class AvatarActor(
                 case other => other
               })
 
-              // automatic targeting implant activation is a client side feature
-              // For some reason it doesn't always work with 100% reliability, so we're also activating it server side
-              // Must be delayed by a bit or the client will toggle it off again
-              if (implantType == ImplantType.Targeting) {
-                context.scheduleOnce(2.seconds, context.self, ActivateImplant(implantType))
-              }
             case None => log.error(s"set initialized called for unknown implant $implantType")
           }
 
@@ -1071,19 +1065,19 @@ class AvatarActor(
           )
         )
 
-        // Start client side initialization timer, visible on the character screen
-        // Progress accumulates according to the client's knowledge of the implant initialization time
-        // What is normally a 60s timer that is set to 120s on the server will still visually update as if 60s
-        session.get.zone.AvatarEvents ! AvatarServiceMessage(
-          avatar.name,
-          AvatarAction.SendResponse(Service.defaultPlayerGUID, ActionProgressMessage(slot + 6, 0))
-        )
-
         implantTimers.get(slot).foreach(_.cancel())
         implantTimers(slot) = context.scheduleOnce(
           implant.definition.InitializationDuration.seconds,
           context.self,
           SetImplantInitialized(implant.definition.implantType)
+        )
+
+        // Start client side initialization timer, visible on the character screen
+        // Progress accumulates according to the client's knowledge of the implant initialization time
+        // What is normally a 60s timer that is set to 120s on the server will still visually update as if 60s\
+        session.get.zone.AvatarEvents ! AvatarServiceMessage(
+          avatar.name,
+          AvatarAction.SendResponse(Service.defaultPlayerGUID, ActionProgressMessage(slot + 6, 0))
         )
 
       case (None, _) => ;

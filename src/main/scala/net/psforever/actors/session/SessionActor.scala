@@ -4600,14 +4600,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         if (action == ImplantAction.Activation) {
           CancelZoningProcessWithDescriptiveReason("cancel_implant")
           avatar.implants(slot) match {
-            case Some(implant) if implant.initialized =>
-              if (!implant.active) {
+            case Some(implant) =>
+              if (status == 1) {
                 avatarActor ! AvatarActor.ActivateImplant(implant.definition.implantType)
               } else {
                 avatarActor ! AvatarActor.DeactivateImplant(implant.definition.implantType)
               }
-            case Some(implant) if !implant.initialized => ()
-            case _                                     => log.error(s"AvatarImplantMessage: ${player.Name} has an unknown implant in $slot")
+            case _ => log.error(s"AvatarImplantMessage: ${player.Name} has an unknown implant in $slot")
           }
         }
 
