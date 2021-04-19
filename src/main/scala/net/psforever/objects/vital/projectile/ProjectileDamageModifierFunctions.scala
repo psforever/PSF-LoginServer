@@ -119,8 +119,8 @@ case object InfantryAggravatedSplashBurn extends ProjectileDamageModifiers.Mod {
 case object FireballAggravatedBurn extends ProjectileDamageModifiers.Mod {
   def calculate(damage: Int, data: DamageInteraction, cause: ProjectileReason): Int = {
     if (damage > 0 &&
-        (cause.resolution == DamageResolution.AggravatedDirectBurn ||
-         cause.resolution == DamageResolution.AggravatedSplashBurn)) {
+        (data.resolution == DamageResolution.AggravatedDirectBurn ||
+         data.resolution == DamageResolution.AggravatedSplashBurn)) {
       //add resist to offset resist subtraction later
       1 + cause.damageModel.ResistUsing(data)(data)
     } else {
