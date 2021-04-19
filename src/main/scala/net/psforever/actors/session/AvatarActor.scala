@@ -1370,7 +1370,7 @@ class AvatarActor(
       }
     }
     if (keysToDrop.nonEmpty) {
-      avatar.copy(purchaseTimes = avatar.purchaseTimes.removedAll(keysToDrop))
+      avatar = avatar.copy(purchaseTimes = avatar.purchaseTimes.removedAll(keysToDrop))
     }
   }
 
