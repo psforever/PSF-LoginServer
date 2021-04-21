@@ -135,19 +135,21 @@ class SocketActor(
   val sessionReaper: Cancellable = context.system.scheduler.scheduleWithFixedDelay(0.seconds, 5.seconds)(() => {
     val now = System.currentTimeMillis()
     packetActors.keys.foreach(addr => {
-      incomingTimes.get(addr) match {
-        case Some(time) =>
-          if (now - time > Config.app.network.session.inboundGraceTime.toMillis) {
-            context.self ! StopChild(packetActors(addr))
+      packetActors.get(addr) match {
+        case Some(child) =>
+          if(
+            (incomingTimes.get(addr) match {
+              case Some(time) =>  now - time > Config.app.network.session.inboundGraceTime.toMillis
+              case _          => false
+            }) ||
+            (outgoingTimes.get(addr) match {
+              case Some(time) =>  now - time > Config.app.network.session.outboundGraceTime.toMillis
+            case _            => false
+          })
+          ) {
+            context.self ! StopChild(child)
           }
-        case _ => ()
-      }
-      outgoingTimes.get(addr) match {
-        case Some(time) =>
-          if (now - time > Config.app.network.session.outboundGraceTime.toMillis) {
-            context.self ! StopChild(packetActors(addr))
-          }
-        case _ => ()
+        case _ => ;
       }
     })
   })
