@@ -20,7 +20,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.implicitConversions
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 object WorldSession {
 
@@ -65,6 +65,41 @@ object WorldSession {
       case _ => ;
     }
     result
+  }
+
+  /**
+    * Use this for placing equipment that has yet to be registered into a container,
+    * such as in support of changing ammunition types in `Tool` objects (weapons).
+    * Equipment will go wherever it fits in containing object, or be dropped if it fits nowhere.
+    * Item swapping during the placement is not allowed.
+    * @see `ChangeAmmoMessage`
+    * @see `GUIDTask.RegisterEquipment`
+    * @see `PutEquipmentInInventoryOrDrop`
+    * @see `Task`
+    * @see `TaskResolver.GiveTask`
+    * @param obj the container
+    * @param item the item being manipulated
+    * @return a `TaskResolver` object
+    */
+  def PutNewEquipmentInInventorySlot(
+                                      obj: PlanetSideServerObject with Container
+                                    )(item: Equipment, slot: Int): TaskResolver.GiveTask = {
+    val localZone = obj.Zone
+    TaskResolver.GiveTask(
+      new Task() {
+        private val localContainer = obj
+        private val localItem      = item
+        private val localSlot      = slot
+
+        override def isComplete: Task.Resolution.Value = Task.Resolution.Success
+
+        def Execute(resolver: ActorRef): Unit = {
+          PutEquipmentInInventorySlot(localContainer)(localItem, localSlot)
+          resolver ! Success(this)
+        }
+      },
+      List(GUIDTask.RegisterEquipment(item)(localZone.GUID))
+    )
   }
 
   /**
@@ -560,45 +595,40 @@ object WorldSession {
                                       item: Equipment,
                                       dest: Int
                                     ): Unit = {
-    val registrationTask = GUIDTask.UnregisterEquipment(item)(source.Zone.GUID)
-    //check for the existence of a swap item - account for that in advance
-    val (subtasks, swapItemGUID): (List[TaskResolver.GiveTask], Option[PlanetSideGUID]) = {
+    val (performSwap, swapItemGUID): (Boolean, Option[PlanetSideGUID]) = {
       val tile = item.Definition.Tile
       destination.Inventory.CheckCollisionsVar(dest, tile.Width, tile.Height)
     } match {
       case Success(Nil) =>
         //no swap item
-        (List(registrationTask), None)
+        (true, None)
       case Success(List(swapEntry: InventoryItem)) =>
         //the swap item is to be registered to the source's zone
-        /*
-        destination is a locker container that has its own internal unique number system
-        the swap item is currently registered to this system
-        the swap item will be moved into the system in which the source operates
-        to facilitate the transfer, the item needs to be partially unregistered from the destination's system
-        to facilitate the transfer, the item needs to be preemptively registered to the source's system
-        invalidating the current unique number is sufficient for both of these steps
-         */
-        val swapItem = swapEntry.obj
-        swapItem.Invalidate()
-        (List(GUIDTask.RegisterEquipment(swapItem)(source.Zone.GUID), registrationTask), Some(swapItem.GUID))
+        (true, Some(swapEntry.obj.GUID))
       case _ =>
-        //too many swap items or other error; this attempt will probably fail
-        (Nil, None)
+        //too many swap items or other error; this attempt will not execute
+        (false, None)
     }
-    destination.Zone.tasks ! TaskResolver.GiveTask(
-      new Task() {
-        val localGUID        = swapItemGUID //the swap item's original GUID, if any swap item
-        val localChannel     = toChannel
-        val localSource      = source
+    if (performSwap) {
+      def moveItemTaskFunc(toSlot: Int): Task = new Task() {
+        val localGUID = swapItemGUID //the swap item's original GUID, if any swap item
+        val localChannel = toChannel
+        val localSource = source
         val localDestination = destination
-        val localItem        = item
-        val localSlot        = dest
+        val localItem = item
+        val localDestSlot = dest
+        val localSrcSlot = toSlot
+        val localMoveOnComplete: Try[Any] => Unit = {
+          case Success(Containable.ItemPutInSlot(_, _, _, Some(swapItem))) =>
+            //swapItem is not registered right now, we can not drop the item without re-registering it
+            localSource.Zone.tasks ! PutNewEquipmentInInventorySlot(localSource)(swapItem, localSrcSlot)
+          case _ => ;
+        }
 
         override def Description: String = s"unregistering $localItem before stowing in $localDestination"
 
         override def isComplete: Task.Resolution.Value = {
-          if (localItem.HasGUID && localDestination.Find(localItem).contains(localSlot)) {
+          if (localItem.HasGUID && localDestination.Find(localItem).contains(localDestSlot)) {
             Task.Resolution.Success
           } else {
             Task.Resolution.Incomplete
@@ -609,16 +639,28 @@ object WorldSession {
           localGUID match {
             case Some(guid) =>
               //see LockerContainerControl.RemoveItemFromSlotCallback
-              val zone = localSource.Zone
-              zone.AvatarEvents ! AvatarServiceMessage(localChannel, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, guid))
+              localSource.Zone.AvatarEvents ! AvatarServiceMessage(
+                localChannel,
+                AvatarAction.ObjectDelete(Service.defaultPlayerGUID, guid)
+              )
             case None => ;
           }
-          localSource.Actor ! Containable.MoveItem(localDestination, localItem, localSlot)
+          val moveResult = ask(localDestination.Actor, Containable.PutItemInSlotOrAway(localItem, Some(localDestSlot)))
+          moveResult.onComplete(localMoveOnComplete)
           resolver ! Success(this)
         }
-      },
-      subtasks
-    )
+      }
+      val resultOnComplete: Try[Any] => Unit = {
+        case Success(Containable.ItemFromSlot(fromSource, Some(itemToMove), Some(fromSlot))) =>
+          destination.Zone.tasks ! TaskResolver.GiveTask(
+            moveItemTaskFunc(fromSlot),
+            List(GUIDTask.UnregisterEquipment(itemToMove)(fromSource.Zone.GUID))
+          )
+        case _ => ;
+      }
+      val result = ask(source.Actor, Containable.RemoveItemFromSlot(item))
+      result.onComplete(resultOnComplete)
+    }
   }
 
   /**
@@ -670,6 +712,10 @@ object WorldSession {
         invalidating the current unique number is sufficient for both of these steps
          */
         localItem.Invalidate()
+        localItem match {
+          case t: Tool => t.AmmoSlots.foreach { _.Box.Invalidate() }
+          case _       => ;
+        }
 
         override def Description: String = s"registering $localItem in ${localDestination.Zone.id} before removing from $localSource"
 
