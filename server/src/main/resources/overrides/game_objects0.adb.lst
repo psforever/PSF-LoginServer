@@ -1,7 +1,5 @@
-add_property ace allowed true
 add_property ace equiptime 500
 add_property ace holstertime 500
-add_property ace_deployable allowed true
 add_property ace_deployable equiptime 500
 add_property ace_deployable holstertime 500
 add_property advanced_ace equiptime 750
@@ -46,8 +44,6 @@ add_property flechette equiptime 600
 add_property flechette holstertime 600
 add_property forceblade equiptime 250
 add_property forceblade holstertime 250
-add_property galaxy_gunship allowed false
-add_property galaxy_gunship maxhealth 9500
 add_property gauss equiptime 600
 add_property gauss holstertime 600
 add_property ilc9 equiptime 500
@@ -58,10 +54,9 @@ add_property katana equiptime 250
 add_property katana holstertime 250
 add_property lasher equiptime 750
 add_property lasher holstertime 750
-add_property lasher_projectile lash_delay 0.00
-add_property lasher_projectile_ap lash_delay 0.00
 add_property lasher_projectile_ap lasher_projectile_ap false
 add_property lasher_projectile_ap lasher_projectile true
+add_property lightgunship maxhealth 855
 add_property maelstrom equiptime 1000
 add_property maelstrom holstertime 1000
 add_property magcutter equiptime 250
@@ -77,6 +72,10 @@ add_property nano_dispenser holstertime 750
 add_property pellet_gun equiptime 600
 add_property pellet_gun holstertime 600
 add_property peregrine_flight requirement_award0 false
+add_property portable_manned_turret odf_buildings true
+add_property portable_manned_turret odf_soi_enemy true
+add_property portable_manned_turret odf_soi_friendly true
+add_property portable_manned_turret odf_walls true
 add_property pulsar equiptime 600
 add_property pulsar holstertime 600
 add_property punisher equiptime 600
@@ -100,4 +99,3 @@ add_property suppressor holstertime 600
 add_property trek equiptime 500
 add_property trek holstertime 500
 add_property vulture requirement_award0 false
-add_property ams requirement_certification0 vehicles

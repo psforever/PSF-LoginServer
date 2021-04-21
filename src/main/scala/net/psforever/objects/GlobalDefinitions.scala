@@ -6624,11 +6624,11 @@ object GlobalDefinitions {
     mosquito.Geometry = GeometryForm.representByCylinder(radius = 2.72108f, height = 2.5f)
 
     lightgunship.Name = "lightgunship" // Reaver
-    lightgunship.MaxHealth = 1000
+    lightgunship.MaxHealth = 855 // Temporary - Correct Reaver Health from pre-"Coder Madness 2" Event
     lightgunship.Damageable = true
     lightgunship.Repairable = true
     lightgunship.RepairIfDestroyed = false
-    lightgunship.MaxShields = 200
+    lightgunship.MaxShields = 171 // Temporary - Correct Reaver Shields from pre-"Coder Madness 2" Event
     lightgunship.CanFly = true
     lightgunship.Seats += 0             -> bailableSeat
     lightgunship.controlledWeapons += 0 -> 1
@@ -7366,7 +7366,7 @@ object GlobalDefinitions {
     val vterm = GeometryForm.representByCylinder(radius = 1.03515f, height = 1.09374f) _
 
     ams_respawn_tube.Name = "ams_respawn_tube"
-    ams_respawn_tube.Delay = 10
+    ams_respawn_tube.Delay = 10 // Temporary - Default value is 15 seconds
     ams_respawn_tube.SpecificPointFunc = SpawnPoint.AMS
     ams_respawn_tube.Damageable = false
     ams_respawn_tube.Repairable = false
@@ -7612,7 +7612,7 @@ object GlobalDefinitions {
     //TODO will need geometry when Damageable = true
 
     respawn_tube_tower.Name = "respawn_tube_tower"
-    respawn_tube_tower.Delay = 10
+    respawn_tube_tower.Delay = 10 // Temporary - Default value is 20
     respawn_tube_tower.SpecificPointFunc = SpawnPoint.Tube
     respawn_tube_tower.MaxHealth = 1000
     respawn_tube_tower.Damageable = true

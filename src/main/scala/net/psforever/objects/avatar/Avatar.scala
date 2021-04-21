@@ -24,7 +24,7 @@ object Avatar {
     GlobalDefinitions.dropship              -> 5.minutes,
     GlobalDefinitions.flail                 -> 5.minutes,
     GlobalDefinitions.fury                  -> 5.minutes,
-    GlobalDefinitions.galaxy_gunship        -> 10.minutes,
+    GlobalDefinitions.galaxy_gunship        -> 15.minutes, //Temporary - Default is 10 minutes
     GlobalDefinitions.lodestar              -> 5.minutes,
     GlobalDefinitions.liberator             -> 5.minutes,
     GlobalDefinitions.lightgunship          -> 5.minutes,
@@ -63,7 +63,7 @@ object Avatar {
     GlobalDefinitions.medkit           -> 5.seconds,
     GlobalDefinitions.super_armorkit   -> 20.minutes,
     GlobalDefinitions.super_medkit     -> 20.minutes,
-    GlobalDefinitions.super_staminakit -> 20.minutes
+    GlobalDefinitions.super_staminakit -> 5.minutes // Temporary - Default value is 20 minutes
   )
 }
 
