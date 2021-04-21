@@ -7612,7 +7612,7 @@ object GlobalDefinitions {
     //TODO will need geometry when Damageable = true
 
     respawn_tube_tower.Name = "respawn_tube_tower"
-    respawn_tube_tower.Delay = 10
+    respawn_tube_tower.Delay = 10 // Temporary - Default value is 20
     respawn_tube_tower.SpecificPointFunc = SpawnPoint.Tube
     respawn_tube_tower.MaxHealth = 1000
     respawn_tube_tower.Damageable = true
