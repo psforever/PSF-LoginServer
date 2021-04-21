@@ -3316,13 +3316,16 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * only the zone-specific squad members will receive the important messages about their squad member's spawn.
     */
   def RespawnSquadSetup(): Unit = {
-    if (squadUI.nonEmpty) {
-      sendResponse(PlanetsideAttributeMessage(player.GUID, 31, squad_supplement_id))
-      continent.AvatarEvents ! AvatarServiceMessage(
-        s"${player.Faction}",
-        AvatarAction.PlanetsideAttribute(player.GUID, 31, squad_supplement_id)
-      )
-      sendResponse(PlanetsideAttributeMessage(player.GUID, 32, squadUI(player.CharId).index))
+    squadUI.get(player.CharId) match {
+      case Some(elem) =>
+        sendResponse(PlanetsideAttributeMessage(player.GUID, 31, squad_supplement_id))
+        continent.AvatarEvents ! AvatarServiceMessage(
+          s"${player.Faction}",
+          AvatarAction.PlanetsideAttribute(player.GUID, 31, squad_supplement_id)
+        )
+        sendResponse(PlanetsideAttributeMessage(player.GUID, 32, elem.index))
+      case _ =>
+        log.warn(s"RespawnSquadSetup: asked to redraw squad information, but ${player.Name} has no squad element for squad $squad_supplement_id")
     }
   }
 

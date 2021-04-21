@@ -105,7 +105,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
           log.trace(s"New login UN:$username. $clientVersion")
         }
 
-        accountLogin(username, password.get)
+        accountLogin(username, password.getOrElse(""))
 
       case ConnectToWorldRequestMessage(name, _, _, _, _, _, _) =>
         log.info(s"Connect to world request for '$name'")
