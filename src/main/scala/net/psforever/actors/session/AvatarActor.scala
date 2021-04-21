@@ -1283,6 +1283,10 @@ class AvatarActor(
                 case "Kit" =>
                   doll.Slot(objectIndex).Equipment =
                     Kit(DefinitionUtil.idToDefinition(objectId).asInstanceOf[KitDefinition])
+                case "Telepad" | "BoomerTrigger" => ;
+                  //special types of equipment that are not actually loaded
+                case name =>
+                  log.error(s"failing to add unknown equipment to a loadout - $name")
               }
 
               toolAmmo foreach { toolAmmo =>
