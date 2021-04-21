@@ -7366,7 +7366,7 @@ object GlobalDefinitions {
     val vterm = GeometryForm.representByCylinder(radius = 1.03515f, height = 1.09374f) _
 
     ams_respawn_tube.Name = "ams_respawn_tube"
-    ams_respawn_tube.Delay = 10
+    ams_respawn_tube.Delay = 10 // Temporary - Default value is 15 seconds
     ams_respawn_tube.SpecificPointFunc = SpawnPoint.AMS
     ams_respawn_tube.Damageable = false
     ams_respawn_tube.Repairable = false
@@ -7590,7 +7590,7 @@ object GlobalDefinitions {
     bfr_terminal.Geometry = GeometryForm.representByCylinder(radius = 0.92185f, height = 2.64693f)
 
     respawn_tube.Name = "respawn_tube"
-    respawn_tube.Delay = 10
+    respawn_tube.Delay = 5 // Temporary - Until Bio Lab Benefit, default value is 10
     respawn_tube.SpecificPointFunc = SpawnPoint.Tube
     respawn_tube.MaxHealth = 1000
     respawn_tube.Damageable = true
