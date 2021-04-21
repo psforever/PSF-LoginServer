@@ -262,7 +262,7 @@ class ChatActor(
                 sessionActor ! SessionActor.Suicide()
               }
 
-            case (CMT_DESTROY, _, contents) =>
+            case (CMT_DESTROY, _, contents) if contents.matches("\\d+") =>
               val guid = contents.toInt
               session.zone.GUID(session.zone.map.terminalToSpawnPad.getOrElse(guid, guid)) match {
                 case Some(pad: VehicleSpawnPad) =>
