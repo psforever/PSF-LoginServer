@@ -7590,7 +7590,7 @@ object GlobalDefinitions {
     bfr_terminal.Geometry = GeometryForm.representByCylinder(radius = 0.92185f, height = 2.64693f)
 
     respawn_tube.Name = "respawn_tube"
-    respawn_tube.Delay = 5 // Temporary - Until Bio Lab Benefit, default value is 10
+    respawn_tube.Delay = 10
     respawn_tube.SpecificPointFunc = SpawnPoint.Tube
     respawn_tube.MaxHealth = 1000
     respawn_tube.Damageable = true
