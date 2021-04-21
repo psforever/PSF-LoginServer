@@ -6624,11 +6624,11 @@ object GlobalDefinitions {
     mosquito.Geometry = GeometryForm.representByCylinder(radius = 2.72108f, height = 2.5f)
 
     lightgunship.Name = "lightgunship" // Reaver
-    lightgunship.MaxHealth = 1000
+    lightgunship.MaxHealth = 855 // Temporary - Correct Reaver Health from pre-"Coder Madness 2" Event
     lightgunship.Damageable = true
     lightgunship.Repairable = true
     lightgunship.RepairIfDestroyed = false
-    lightgunship.MaxShields = 200
+    lightgunship.MaxShields = 171 // Temporary - Correct Reaver Shields from pre-"Coder Madness 2" Event
     lightgunship.CanFly = true
     lightgunship.Seats += 0             -> bailableSeat
     lightgunship.controlledWeapons += 0 -> 1
