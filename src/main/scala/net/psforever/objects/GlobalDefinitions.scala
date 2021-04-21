@@ -128,7 +128,7 @@ object GlobalDefinitions {
   silent_run.InitializationDuration = 90
   silent_run.StaminaCost = 1
   silent_run.CostIntervalDefault = 333
-  silent_run.CostIntervalByExoSuitHashMap(ExoSuitType.Agile) = 1000
+  silent_run.CostIntervalByExoSuitHashMap(ExoSuitType.Infiltration) = 1000
 
   val surge = new ImplantDefinition(ImplantType.Surge) {
     Name = "surge"
