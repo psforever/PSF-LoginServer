@@ -135,7 +135,8 @@ object EquipmentTerminalDefinition {
     "peregrine_particle_cannon_ammo"  -> MakeAmmoBox(peregrine_particle_cannon_ammo),
     "peregrine_rocket_pod_ammo"       -> MakeAmmoBox(peregrine_rocket_pod_ammo),
     "peregrine_sparrow_ammo"          -> MakeAmmoBox(peregrine_sparrow_ammo),
-    "150mmbullet"                     -> MakeAmmoBox(bullet_150mm)
+    "150mmbullet"                     -> MakeAmmoBox(bullet_150mm),
+    "firebird_missile"                -> MakeAmmoBox(firebird_missile)
   )
 
   /**
