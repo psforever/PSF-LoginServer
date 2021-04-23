@@ -86,6 +86,7 @@ add_property remote_electronics_kit equiptime 500
 add_property remote_electronics_kit holstertime 500
 add_property repeater equiptime 500
 add_property repeater holstertime 500
+add_property router allowed false
 add_property six_shooter equiptime 500
 add_property six_shooter holstertime 500
 add_property spiker equiptime 500
