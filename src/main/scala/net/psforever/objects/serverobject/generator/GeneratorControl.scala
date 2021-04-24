@@ -381,7 +381,7 @@ object GeneratorControl {
     /* withinSideToSide; squaring negates the "which side" concern */
     MagnitudeSquared(VectorProjection(dir, uside)) < 121 &&
     ( /* withinFrontBack */
-      if (VectorProjection(udir, ufront) == ufront) {
+      if (DotProduct(udir, ufront) > 0) {
         MagnitudeSquared(VectorProjection(dir, ufront)) < 210 //front, towards entry door
       } else {
         MagnitudeSquared(VectorProjection(dir, neg(ufront))) < 72 //back, towards back of room
