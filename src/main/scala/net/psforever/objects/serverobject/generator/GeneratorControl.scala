@@ -3,15 +3,16 @@ package net.psforever.objects.serverobject.generator
 
 import akka.actor.{Actor, Cancellable}
 import net.psforever.actors.zone.BuildingActor
-import net.psforever.objects.{Default, Player, Tool}
+import net.psforever.objects.{Default, PlanetSideGameObject, Player, Tool}
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.DamageableEntity
 import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, Repairable, RepairableEntity}
+import net.psforever.objects.serverobject.terminals.{GeneratorTerminalDefinition, Terminal}
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.TriggerEffectMessage
-import net.psforever.types.PlanetSideGeneratorState
+import net.psforever.types.{PlanetSideGeneratorState, Vector3}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 
@@ -39,6 +40,24 @@ class GeneratorControl(gen: Generator)
   var queuedExplosion: Cancellable = Default.Cancellable
   /** when damaged, announce that damage was dealt on a schedule */
   var alarmCooldown: Cancellable   = Default.Cancellable
+  /** the canned explosion used by this generator */
+  lazy val explosionFunc: (PlanetSideGameObject, PlanetSideGameObject, Float) => Boolean = {
+    /*
+    to determine the orientation of the generator room, locate the unique terminal - the generator terminal
+    there will only be one terminal in the facility and it will be between the entry door and the generator itself
+    this will define the "forward-facing" direction of the generator
+    */
+    gen.Owner.Amenities.find {
+      case t: Terminal => t.Definition.isInstanceOf[GeneratorTerminalDefinition]
+      case _           => false
+    } match {
+      case Some(t) => //installed in a facility; use common dimensions of room
+        GeneratorControl.generatorRoomExplosionDetectionTestSetup(t.Position, gen)
+      case None => //unverifiable state; explicit default calculations
+        val func: (PlanetSideGameObject, PlanetSideGameObject, Float) => Boolean = Zone.distanceCheck
+        func
+    }
+  }
 
   /*
   behavior of the generator piggybacks from the logic used in `AmenityAutoRepair`
@@ -103,7 +122,7 @@ class GeneratorControl(gen: Generator)
           queuedExplosion = Default.Cancellable
           imminentExplosion = false
           //hate on everything nearby
-          Zone.causeExplosion(gen.Zone, gen, gen.LastDamage)
+          Zone.causeExplosion(gen.Zone, gen, gen.LastDamage, explosionFunc)
           gen.ClearHistory()
 
         case GeneratorControl.Restored() =>
@@ -276,5 +295,97 @@ object GeneratorControl {
       //the generator is under attack
       target.Actor ! UnderThreatAlarm()
     }
+  }
+
+  /**
+    * The explosion of the generator affects all targets within the generator room.
+    * Perform setup using basic input to calculate the data that will orient the "room"
+    * in terms of what targets can be affected by the explosion.
+    * @param pointTowardsFront starting from the generator's centroid,
+    *                          a point that represents something "in front of" the generator
+    * @param source the generator
+    * @return a function that takes source and target and
+    *         calculates whether or not the target will be affected by an explosion of the source
+    */
+  def generatorRoomExplosionDetectionTestSetup(
+                                                pointTowardsFront: Vector3,
+                                                source: PlanetSideGameObject
+                                              ): (PlanetSideGameObject, PlanetSideGameObject, Float)=> Boolean = {
+    import net.psforever.types.Vector3._
+    val sourceGeometry = source.Definition.Geometry(source)
+    val sourcePositionXY = source.Position.xy
+    val up = Vector3(0,0,1)
+    val inFrontOf = if (pointTowardsFront.xy == sourcePositionXY) {
+      pointTowardsFront.xy + Vector3(1,0,0)
+    } else {
+      pointTowardsFront.xy
+    }
+    val front = inFrontOf - sourcePositionXY
+    val side = CrossProduct(front, up)
+    generatorRoomExplosionDetectionTest(
+      sourcePositionXY,
+      Unit(front),
+      Unit(side),
+      Unit(up),
+      sourceGeometry.pointOnOutside(up).asVector3.z,
+      sourceGeometry.pointOnOutside(neg(up)).asVector3.z
+    )
+  }
+
+  /**
+    * The explosion of the generator affects all targets within the generator room.
+    * The generator room is not perfectly geometric nor it is even properly centered on the generator unit.
+    * As a consequence, different measurements must be performed to determine that the target is "within" and
+    * that the target is not "outside" of the detection radius of the room.
+    * Magic numbers for the room dimensions are employed.
+    * @see `Zone.causeExplosion`
+    * @see `Zone.distanceCheck`
+    * @param g1ctrXY the center of the generator on the xy-axis
+    * @param ufront a `Vector3` entity that points to the "front" direction of the generator;
+    *               the `u` prefix indicates a "unit vector"
+    * @param uside a `Vector3` entity that points to the "side" direction of the generator;
+    *              the `u` prefix indicates a "unit vector"
+    * @param uup a `Vector3` entity that points to the "top" direction of the generator;
+    *            the `u` prefix indicates a "unit vector"
+    * @param topPoint a point at the top of the generator;
+    *                 represents the highest possible point of damage
+    * @param basePoint a point at the bottom of the generator;
+    *                  represents the lowest possible point of damage
+    * @param source a game entity, should be the source of the explosion
+    * @param target a game entity, should be the target of the explosion
+    * @param maxDistance the square of the maximum distance permissible between game entities;
+    *                    not used here
+    * @return `true`, if the target entities are near enough to each other;
+    *        `false`, otherwise
+    */
+  def generatorRoomExplosionDetectionTest(
+                                           g1ctrXY: Vector3,
+                                           ufront: Vector3,
+                                           uside: Vector3,
+                                           uup: Vector3,
+                                           topPoint: Float,
+                                           basePoint: Float
+                                         )
+                                         (
+                                           source: PlanetSideGameObject,
+                                           target: PlanetSideGameObject,
+                                           maxDistance: Float
+                                         ): Boolean = {
+    import net.psforever.types.Vector3._
+    val g2 = target.Definition.Geometry(target)
+    val udir = Unit(target.Position.xy - g1ctrXY) //direction from source to target, xy-axis
+    val dir = g2.pointOnOutside(neg(udir)).asVector3.xy - g1ctrXY //distance from source to target, xy-axis
+    /* withinBaseToTop */
+    topPoint > g2.pointOnOutside(neg(uup)).asVector3.z &&
+    basePoint <= g2.pointOnOutside(uup).asVector3.z &&
+    /* withinSideToSide; squaring negates the "which side" concern */
+    MagnitudeSquared(VectorProjection(dir, uside)) < 121 &&
+    ( /* withinFrontBack */
+      if (VectorProjection(udir, ufront) == ufront) {
+        MagnitudeSquared(VectorProjection(dir, ufront)) < 210 //front, towards entry door
+      } else {
+        MagnitudeSquared(VectorProjection(dir, neg(ufront))) < 72 //back, towards back of room
+      }
+    )
   }
 }
