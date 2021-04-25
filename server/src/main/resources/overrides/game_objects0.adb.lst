@@ -72,10 +72,8 @@ add_property nano_dispenser holstertime 750
 add_property pellet_gun equiptime 600
 add_property pellet_gun holstertime 600
 add_property peregrine_flight requirement_award0 false
-add_property portable_manned_turret odf_buildings true
 add_property portable_manned_turret odf_soi_enemy true
 add_property portable_manned_turret odf_soi_friendly true
-add_property portable_manned_turret odf_walls true
 add_property pulsar equiptime 600
 add_property pulsar holstertime 600
 add_property punisher equiptime 600
