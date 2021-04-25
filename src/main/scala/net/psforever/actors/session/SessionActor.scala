@@ -4011,20 +4011,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             val originalModeIndex = obj.FireModeIndex
             if (obj match {
               case citem: ConstructionItem =>
-                val originalAmmoIndex = citem.AmmoTypeIndex
                 val modeChanged = Deployables.performConstructionItemFireModeChange(
                   player.avatar.certifications,
                   citem,
                   originalModeIndex
                 )
-                val ammoChanged = originalAmmoIndex != citem.AmmoTypeIndex
-                if(modeChanged && ammoChanged) {
-                  //tool ammo for a fire mode is normally preserved
-                  sendResponse(ChangeFireModeMessage(item_guid, originalModeIndex)) //must assume previous mode ...
-                  sendResponse(ChangeAmmoMessage(item_guid, citem.AmmoTypeIndex)) //... to set ammo type
-                } else if (ammoChanged) {
-                  obj.FireModeIndex = originalAmmoIndex
-                }
                 modeChanged
               case _ =>
                 obj.NextFireMode == originalModeIndex
@@ -4032,7 +4023,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               val modeIndex = obj.FireModeIndex
               obj match {
                 case citem: ConstructionItem =>
-                  log.info(s"${player.Name} switched ${player.Sex.possessive} ${obj.Definition.Name} to construct ${citem.AmmoType} (mode #$modeIndex")
+                  log.info(s"${player.Name} switched ${player.Sex.possessive} ${obj.Definition.Name} to construct ${citem.AmmoType} (mode #$modeIndex)")
                 case _ =>
                   log.info(s"${player.Name} changed ${player.Sex.possessive} her ${obj.Definition.Name}'s fire mode to #$modeIndex")
               }

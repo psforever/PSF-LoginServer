@@ -1045,8 +1045,8 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       case citem: ConstructionItem
         if willBeVisible =>
         if (citem.AmmoTypeIndex > 0) {
-          //necessary; can not preserve ammo type in construction tool packets
-          citem.AmmoTypeIndex = 0
+          //can not preserve ammo type in construction tool packets
+          citem.resetAmmoTypes()
         }
         Deployables.initializeConstructionAmmoMode(player.avatar.certifications, citem)
 

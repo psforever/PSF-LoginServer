@@ -411,9 +411,7 @@ object Players {
     * @param index where to put the discovered replacement
     */
   def findReplacementConstructionItem(player: Player, tool: ConstructionItem, index: Int): Unit = {
-    val fireMode   = tool.FireModeIndex
     val definition = tool.Definition
-
     if (player.Slot(index).Equipment.isEmpty) {
       FindEquipmentStock(player, { e => e.Definition == definition }, 1) match {
         case x :: _ =>
@@ -423,19 +421,22 @@ object Players {
           val pguid = player.GUID
           val obj  = x.obj.asInstanceOf[ConstructionItem]
           if ((player.Slot(index).Equipment = obj).contains(obj)) {
+            val fireMode = tool.FireModeIndex
+            val ammoType = tool.AmmoTypeIndex
             player.Inventory -= x.start
+            obj.FireModeIndex = fireMode
+            //TODO any penalty for being handed an OCM version of the tool?
             events ! AvatarServiceMessage(
               zone.id,
               AvatarAction.EquipmentInHand(Service.defaultPlayerGUID, pguid, index, obj)
             )
-            if (obj.FireModeIndex != fireMode) {
-              obj.FireModeIndex = fireMode
+            if (obj.AmmoTypeIndex != ammoType) {
+              obj.AmmoTypeIndex = ammoType
               events ! AvatarServiceMessage(
                 name,
-                AvatarAction.ChangeFireMode(Service.defaultPlayerGUID, obj.GUID, fireMode)
+                AvatarAction.SendResponse(Service.defaultPlayerGUID, ChangeAmmoMessage(obj.GUID, ammoType))
               )
             }
-            //ammo type?
             if (player.DrawnSlot == Player.HandsDownSlot) {
               player.DrawnSlot = index
               events ! AvatarServiceMessage(
