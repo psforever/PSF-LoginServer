@@ -7366,7 +7366,7 @@ object GlobalDefinitions {
     val vterm = GeometryForm.representByCylinder(radius = 1.03515f, height = 1.09374f) _
 
     ams_respawn_tube.Name = "ams_respawn_tube"
-    ams_respawn_tube.Delay = 15
+    ams_respawn_tube.Delay = 10 // Temporary -- Default value is 15
     ams_respawn_tube.SpecificPointFunc = SpawnPoint.AMS
     ams_respawn_tube.Damageable = false
     ams_respawn_tube.Repairable = false
@@ -7612,7 +7612,7 @@ object GlobalDefinitions {
     //TODO will need geometry when Damageable = true
 
     respawn_tube_tower.Name = "respawn_tube_tower"
-    respawn_tube_tower.Delay = 20
+    respawn_tube_tower.Delay = 10 // Temporary -- Default value is 20
     respawn_tube_tower.SpecificPointFunc = SpawnPoint.Tube
     respawn_tube_tower.MaxHealth = 1000
     respawn_tube_tower.Damageable = true
