@@ -101,6 +101,13 @@ class TelepadDeployableControl(tpad: TelepadDeployable)
     Zone.causeExplosion(target.Zone, target, Some(cause))
   }
 
+  override def startOwnerlessDecay(): Unit = {
+    //telepads do not decay when they become ownerless
+    //telepad decay is tied to their lifecycle with routers
+    tpad.Owner = None
+    tpad.OwnerName = None
+  }
+
   override def finalizeDeployable(callback: ActorRef): Unit = {
     super.finalizeDeployable(callback)
     decay.cancel() //telepad does not decay if unowned; but, deconstruct if router link fails

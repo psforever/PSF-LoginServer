@@ -213,13 +213,17 @@ object Deployables {
                                              originalModeIndex: Int
                                            ): Boolean = {
     obj.AmmoTypeIndex = 0
+    /*
+    if any of the fire modes possess an initial option that is not valid for a given set of certifications,
+    but a subsequent option is valid, the do...while loop has to be modified to traverse and compare each option
+    */
     do {
       obj.NextFireMode
     } while (
       !Deployables.constructionItemPermissionComparison(certs, obj.ModePermissions) &&
       originalModeIndex != obj.FireModeIndex
     )
-    originalModeIndex == obj.FireModeIndex
+    originalModeIndex != obj.FireModeIndex
   }
 
   /**

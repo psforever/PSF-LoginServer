@@ -127,6 +127,11 @@ trait DeployableBehavior {
         LocalAction.DeployableMapIcon(Service.defaultPlayerGUID, DeploymentAction.Build, info)
       )
     }
+    startOwnerlessDecay()
+  }
+
+  def startOwnerlessDecay(): Unit = {
+    val obj = DeployableObject
     if (obj.Owner.nonEmpty && decay.isCancelled) {
       //without an owner, this deployable should begin to decay and will deconstruct later
       import scala.concurrent.ExecutionContext.Implicits.global
