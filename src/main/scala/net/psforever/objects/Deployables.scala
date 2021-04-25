@@ -143,6 +143,86 @@ object Deployables {
   }
 
   /**
+    * If the default ammunition mode for the `ConstructionTool` is not supported by the given certifications,
+    * find a suitable ammunition mode and switch to it internally.
+    * No special complaint is raised if the `ConstructionItem` itself is completely unsupported.
+    * @param certs the certification baseline being compared against
+    * @param obj the `ConstructionItem` entity
+    * @return `true`, if the ammunition mode of the item has been changed;
+    *        `false`, otherwise
+    */
+  def initializeConstructionAmmoMode(
+                                      certs: Set[Certification],
+                                      obj: ConstructionItem
+                                    ): Boolean = {
+    if (!Deployables.constructionItemPermissionComparison(certs, obj.ModePermissions)) {
+      Deployables.performConstructionItemAmmoChange(certs, obj, obj.AmmoTypeIndex)
+    } else {
+      false
+    }
+  }
+
+  /**
+    * The custom behavior responding to the packet `ChangeAmmoMessage` for `ConstructionItem` game objects.
+    * Iterate through sub-modes corresponding to a type of "deployable" as ammunition for this fire mode
+    * and check each of these sub-modes for their certification requirements to be met before they can be used.
+    * Additional effort is exerted to ensure that the requirements for the given ammunition are satisfied.
+    * If no satisfactory combination is achieved, the original state will be restored.
+    * @see `Certification`
+    * @see `ChangeAmmoMessage`
+    * @see `ConstructionItem.ModePermissions`
+    * @see `Deployables.constructionItemPermissionComparison`
+    * @param certs the certification baseline being compared against
+    * @param obj the `ConstructionItem` entity
+    * @param originalAmmoIndex the starting point ammunition type mode index
+    * @return `true`, if the ammunition mode of the item has been changed;
+    *        `false`, otherwise
+    */
+  def performConstructionItemAmmoChange(
+                                         certs: Set[Certification],
+                                         obj: ConstructionItem,
+                                         originalAmmoIndex: Int
+                                       ): Boolean = {
+    do {
+      obj.NextAmmoType
+    } while (
+      !Deployables.constructionItemPermissionComparison(certs, obj.ModePermissions) &&
+      originalAmmoIndex != obj.AmmoTypeIndex
+    )
+    obj.AmmoTypeIndex != originalAmmoIndex
+  }
+
+  /**
+    * The custom behavior responding to the message `ChangeFireModeMessage` for `ConstructionItem` game objects.
+    * Each fire mode has sub-modes corresponding to a type of "deployable" as ammunition
+    * and each of these sub-modes have certification requirements that must be met before they can be used.
+    * Additional effort is exerted to ensure that the requirements for the given mode and given sub-mode are satisfied.
+    * If no satisfactory combination is achieved, the original state will be restored.
+    * @see `Deployables.constructionItemPermissionComparison`
+    * @see `Deployables.performConstructionItemAmmoChange`
+    * @see `FireModeSwitch.NextFireMode`
+    * @param certs the certification baseline being compared against
+    * @param obj the `ConstructionItem` entity
+    * @param originalModeIndex the starting point fire mode index
+    * @return `true`, if the ammunition mode of the item has been changed;
+    *        `false`, otherwise
+    */
+  def performConstructionItemFireModeChange(
+                                             certs: Set[Certification],
+                                             obj: ConstructionItem,
+                                             originalModeIndex: Int
+                                           ): Boolean = {
+    obj.AmmoTypeIndex = 0
+    do {
+      obj.NextFireMode
+    } while (
+      !Deployables.constructionItemPermissionComparison(certs, obj.ModePermissions) &&
+      originalModeIndex != obj.FireModeIndex
+    )
+    originalModeIndex == obj.FireModeIndex
+  }
+
+  /**
     * Compare sets of certifications to determine if
     * the requested `Engineering`-like certification requirements of the one group can be found in a another group.
     * @see `CertificationType`

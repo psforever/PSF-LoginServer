@@ -4993,28 +4993,35 @@ object GlobalDefinitions {
 
     ace.Name = "ace"
     ace.Size = EquipmentSize.Pistol
-    ace.Modes += new ConstructionFireMode
-    ace.Modes.head.Item(DeployedItem.boomer, Set(Certification.CombatEngineering))
-    ace.Modes += new ConstructionFireMode
-    ace.Modes(1).Item(DeployedItem.he_mine, Set(Certification.CombatEngineering))
-    ace.Modes(1).Item(DeployedItem.jammer_mine, Set(Certification.AssaultEngineering))
-    ace.Modes += new ConstructionFireMode
-    ace.Modes(2).Item(DeployedItem.spitfire_turret, Set(Certification.CombatEngineering))
-    ace.Modes(2).Item(DeployedItem.spitfire_cloaked, Set(Certification.FortificationEngineering))
-    ace.Modes(2).Item(DeployedItem.spitfire_aa, Set(Certification.FortificationEngineering))
-    ace.Modes += new ConstructionFireMode
-    ace.Modes(3).Item(DeployedItem.motionalarmsensor, Set(Certification.CombatEngineering))
-    ace.Modes(3).Item(DeployedItem.sensor_shield, Set(Certification.AdvancedHacking, Certification.CombatEngineering))
+    ace.Modes += new ConstructionFireMode {
+      Item(DeployedItem.boomer, Set(Certification.CombatEngineering))
+    }
+    ace.Modes += new ConstructionFireMode {
+      Item(DeployedItem.he_mine, Set(Certification.CombatEngineering))
+      Item(DeployedItem.jammer_mine, Set(Certification.AssaultEngineering))
+    }
+    ace.Modes += new ConstructionFireMode {
+      Item(DeployedItem.spitfire_turret, Set(Certification.CombatEngineering))
+      Item(DeployedItem.spitfire_cloaked, Set(Certification.FortificationEngineering))
+      Item(DeployedItem.spitfire_aa, Set(Certification.FortificationEngineering))
+    }
+    ace.Modes += new ConstructionFireMode {
+      Item(DeployedItem.motionalarmsensor, Set(Certification.CombatEngineering))
+      Item(DeployedItem.sensor_shield, Set(Certification.AdvancedHacking, Certification.CombatEngineering))
+    }
     ace.Tile = InventoryTile.Tile33
 
     advanced_ace.Name = "advanced_ace"
     advanced_ace.Size = EquipmentSize.Rifle
-    advanced_ace.Modes += new ConstructionFireMode
-    advanced_ace.Modes.head.Item(DeployedItem.tank_traps, Set(Certification.FortificationEngineering))
-    advanced_ace.Modes += new ConstructionFireMode
-    advanced_ace.Modes(1).Item(DeployedItem.portable_manned_turret, Set(Certification.AssaultEngineering))
-    advanced_ace.Modes += new ConstructionFireMode
-    advanced_ace.Modes(2).Item(DeployedItem.deployable_shield_generator, Set(Certification.AssaultEngineering))
+    advanced_ace.Modes += new ConstructionFireMode {
+      Item(DeployedItem.portable_manned_turret, Set(Certification.AssaultEngineering))
+    }
+    advanced_ace.Modes += new ConstructionFireMode {
+      Item(DeployedItem.tank_traps, Set(Certification.FortificationEngineering))
+    }
+    advanced_ace.Modes += new ConstructionFireMode {
+      Item(DeployedItem.deployable_shield_generator, Set(Certification.AssaultEngineering))
+    }
     advanced_ace.Tile = InventoryTile.Tile93
 
     router_telepad.Name = "router_telepad"

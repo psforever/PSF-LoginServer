@@ -3991,7 +3991,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case msg @ ChangeAmmoMessage(item_guid, unk1) =>
         FindContainedEquipment match {
           case (Some(_), Some(obj: ConstructionItem)) =>
-            PerformConstructionItemAmmoChange(obj, obj.AmmoTypeIndex)
+            if (Deployables.performConstructionItemAmmoChange(player.avatar.certifications, obj, obj.AmmoTypeIndex)) {
+              log.info(
+                s"${player.Name} switched construction object ${obj.Definition.Name} to ${obj.AmmoType} (mode #${obj.FireModeIndex})"
+              )
+              sendResponse(ChangeAmmoMessage(obj.GUID, obj.AmmoTypeIndex))
+            }
           case (Some(obj: PlanetSideServerObject), Some(tool: Tool)) =>
             PerformToolAmmoChange(tool, obj)
           case (_, Some(obj)) =>
@@ -4004,23 +4009,27 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         FindEquipment match {
           case Some(obj: PlanetSideGameObject with FireModeSwitch[_]) =>
             val originalModeIndex = obj.FireModeIndex
-            obj match {
-              case cItem: ConstructionItem =>
-                NextConstructionItemFireMode(cItem, originalModeIndex)
+            if (obj match {
+              case citem: ConstructionItem =>
+                val originalAmmoIndex = citem.AmmoTypeIndex
+                val changed = Deployables.performConstructionItemFireModeChange(
+                  player.avatar.certifications,
+                  citem,
+                  originalModeIndex
+                )
+                if(changed && originalAmmoIndex != citem.AmmoTypeIndex) {
+                  sendResponse(ChangeAmmoMessage(citem.GUID, citem.AmmoTypeIndex))
+                }
+                changed
               case _ =>
-                obj.NextFireMode
-            }
-            val modeIndex = obj.FireModeIndex
-            val tool_guid = obj.GUID
-            if (originalModeIndex == modeIndex) {
-              obj.FireModeIndex = originalModeIndex
-              sendResponse(ChangeFireModeMessage(tool_guid, originalModeIndex)) //reinforcement
-            } else {
-              log.info(s"${player.Name} is changing his ${obj.Definition.Name} to fire mode #$modeIndex")
-              sendResponse(ChangeFireModeMessage(tool_guid, modeIndex))
+                obj.NextFireMode == originalModeIndex
+            }) {
+              val modeIndex = obj.FireModeIndex
+              log.info(s"${player.Name} is changing ${player.Sex.possessive} ${obj.Definition.Name} to fire mode #$modeIndex")
+              sendResponse(ChangeFireModeMessage(item_guid, modeIndex))
               continent.AvatarEvents ! AvatarServiceMessage(
                 continent.id,
-                AvatarAction.ChangeFireMode(player.GUID, tool_guid, modeIndex)
+                AvatarAction.ChangeFireMode(player.GUID, item_guid, modeIndex)
               )
             }
           case Some(_) =>
@@ -4260,7 +4269,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 case Some(unholsteredItem: Equipment) =>
                   log.info(s"${player.Name} has drawn a $unholsteredItem from its holster")
                   if (unholsteredItem.Definition == GlobalDefinitions.remote_electronics_kit) {
-                    // Player has unholstered a REK - we need to set an atttribute on the REK itself to change the beam/icon colour to the correct one for the player's hack level
+                    //rek beam/icon colour must match the player's correct hack level
                     continent.AvatarEvents ! AvatarServiceMessage(
                       player.Continent,
                       AvatarAction.PlanetsideAttribute(unholsteredItem.GUID, 116, player.avatar.hackingSkillLevel())
@@ -7999,54 +8008,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @param obj a `Deployable` object
     */
   def DontRedrawIcons(obj: Deployable): Unit = {}
-
-  /**
-    * The custom behavior responding to the message `ChangeFireModeMessage` for `ConstructionItem` game objects.
-    * Each fire mode has sub-modes corresponding to a type of "deployable" as ammunition
-    * and each of these sub-modes have certification requirements that must be met before they can be used.
-    * Additional effort is exerted to ensure that the requirements for the given mode and given sub-mode are satisfied.
-    * If no satisfactory combination is achieved, the original state will be restored.
-    * @see `FireModeSwitch.NextFireMode`
-    * @see `PerformConstructionItemAmmoChange`
-    * @param obj the `ConstructionItem` object
-    * @param originalModeIndex the starting point fire mode index
-    * @return the changed fire mode
-    */
-  def NextConstructionItemFireMode(obj: ConstructionItem, originalModeIndex: Int): ConstructionFireMode = {
-    do {
-      obj.NextFireMode
-      if (!Deployables.constructionItemPermissionComparison(player.avatar.certifications, obj.ModePermissions)) {
-        PerformConstructionItemAmmoChange(obj, obj.AmmoTypeIndex)
-      }
-      sendResponse(ChangeFireModeMessage(obj.GUID, obj.FireModeIndex))
-    } while (!Deployables.constructionItemPermissionComparison(
-      player.avatar.certifications,
-      obj.ModePermissions
-    ) && originalModeIndex != obj.FireModeIndex)
-    obj.FireMode
-  }
-
-  /**
-    * The custom behavior responding to the message `ChangeAmmoMessage` for `ConstructionItem` game objects.
-    * Iterate through sub-modes corresponding to a type of "deployable" as ammunition for this fire mode
-    * and check each of these sub-modes for their certification requirements to be met before they can be used.
-    * Additional effort is exerted to ensure that the requirements for the given ammunition are satisfied.
-    * If no satisfactory combination is achieved, the original state will be restored.
-    * @param obj the `ConstructionItem` object
-    * @param originalAmmoIndex the starting point ammunition type mode index
-    */
-  def PerformConstructionItemAmmoChange(obj: ConstructionItem, originalAmmoIndex: Int): Unit = {
-    do {
-      obj.NextAmmoType
-    } while (!Deployables.constructionItemPermissionComparison(
-      player.avatar.certifications,
-      obj.ModePermissions
-    ) && originalAmmoIndex != obj.AmmoTypeIndex)
-    log.info(
-      s"${player.Name} switched construction object ${obj.Definition.Name} to ${obj.AmmoType} (mode #${obj.FireModeIndex})"
-    )
-    sendResponse(ChangeAmmoMessage(obj.GUID, obj.AmmoTypeIndex))
-  }
 
   /**
     * Common actions related to constructing a new `Deployable` object in the game environment.<br>

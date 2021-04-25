@@ -339,6 +339,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                 (finalHolsters, finalInventory)
               }
               (afterHolsters ++ afterInventory).foreach { entry => entry.obj.Faction = player.Faction }
+              afterHolsters.foreach {
+                case InventoryItem(citem: ConstructionItem, _) =>
+                  Deployables.initializeConstructionAmmoMode(player.avatar.certifications, citem)
+                case _ => ;
+              }
               toDeleteOrDrop.foreach { entry => entry.obj.Faction = PlanetSideEmpire.NEUTRAL }
               //deactivate non-passive implants
               avatarActor ! AvatarActor.DeactivateActiveImplants()
@@ -1022,22 +1027,8 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     val definition = item.Definition
     val faction    = obj.Faction
     val toChannel = if (player.isBackpack) { self.toString } else { name }
+    val willBeVisible = obj.VisibleSlots.contains(slot)
     item.Faction = faction
-    events ! AvatarServiceMessage(
-      toChannel,
-      AvatarAction.SendResponse(
-        Service.defaultPlayerGUID,
-        ObjectCreateDetailedMessage(
-          definition.ObjectId,
-          item.GUID,
-          ObjectCreateMessageParent(guid, slot),
-          definition.Packet.DetailedConstructorData(item).get
-        )
-      )
-    )
-    if (!player.isBackpack && obj.VisibleSlots.contains(slot)) {
-      events ! AvatarServiceMessage(zone.id, AvatarAction.EquipmentInHand(guid, guid, slot, item))
-    }
     //handle specific types of items
     item match {
       case trigger: BoomerTrigger =>
@@ -1050,7 +1041,31 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
             }
           case _ => ;
         }
+
+      case citem: ConstructionItem
+        if willBeVisible =>
+        if (citem.AmmoTypeIndex > 0) {
+          //necessary; can not preserve ammo type in construction tool packets
+          citem.AmmoTypeIndex = 0
+        }
+        Deployables.initializeConstructionAmmoMode(player.avatar.certifications, citem)
+
       case _ => ;
+    }
+    events ! AvatarServiceMessage(
+      toChannel,
+      AvatarAction.SendResponse(
+        Service.defaultPlayerGUID,
+        ObjectCreateDetailedMessage(
+          definition.ObjectId,
+          item.GUID,
+          ObjectCreateMessageParent(guid, slot),
+          definition.Packet.DetailedConstructorData(item).get
+        )
+      )
+    )
+    if (!player.isBackpack && willBeVisible) {
+      events ! AvatarServiceMessage(zone.id, AvatarAction.EquipmentInHand(guid, guid, slot, item))
     }
   }
 
