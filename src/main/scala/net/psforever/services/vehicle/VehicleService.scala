@@ -338,20 +338,6 @@ class VehicleService(zone: Zone) extends Actor {
         )
       )
 
-    case VehicleSpawnPad.LoadVehicle(vehicle) =>
-      val definition = vehicle.Definition
-      val vtype      = definition.ObjectId
-      val vguid      = vehicle.GUID
-      val vdata      = definition.Packet.ConstructorData(vehicle).get
-      zone.Transport ! Zone.Vehicle.Spawn(vehicle)
-      VehicleEvents.publish(
-        VehicleServiceResponse(
-          s"/${zone.id}/Vehicle",
-          Service.defaultPlayerGUID,
-          VehicleResponse.LoadVehicle(vehicle, vtype, vguid, vdata)
-        )
-      )
-
     //correspondence from WorldSessionActor
     case VehicleServiceMessage.AMSDeploymentChange(_) =>
       VehicleEvents.publish(

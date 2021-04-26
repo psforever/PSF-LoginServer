@@ -3316,16 +3316,18 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * only the zone-specific squad members will receive the important messages about their squad member's spawn.
     */
   def RespawnSquadSetup(): Unit = {
-    squadUI.get(player.CharId) match {
-      case Some(elem) =>
-        sendResponse(PlanetsideAttributeMessage(player.GUID, 31, squad_supplement_id))
-        continent.AvatarEvents ! AvatarServiceMessage(
-          s"${player.Faction}",
-          AvatarAction.PlanetsideAttribute(player.GUID, 31, squad_supplement_id)
-        )
-        sendResponse(PlanetsideAttributeMessage(player.GUID, 32, elem.index))
-      case _ =>
-        log.warn(s"RespawnSquadSetup: asked to redraw squad information, but ${player.Name} has no squad element for squad $squad_supplement_id")
+    if (squad_supplement_id > 0) {
+      squadUI.get(player.CharId) match {
+        case Some(elem) =>
+          sendResponse(PlanetsideAttributeMessage(player.GUID, 31, squad_supplement_id))
+          continent.AvatarEvents ! AvatarServiceMessage(
+            s"${player.Faction}",
+            AvatarAction.PlanetsideAttribute(player.GUID, 31, squad_supplement_id)
+          )
+          sendResponse(PlanetsideAttributeMessage(player.GUID, 32, elem.index))
+        case _ =>
+          log.warn(s"RespawnSquadSetup: asked to redraw squad information, but ${player.Name} has no squad element for squad $squad_supplement_id")
+      }
     }
   }
 
@@ -5556,7 +5558,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 destinationBuildingGuid,
                 context.self
               )
-              log.info(s"${player.Name} is trying to use a warp gate")
+              log.info(s"${player.Name} wants to use a warp gate")
 
             case Some(wg: WarpGate) if !wg.Active =>
               log.warn(s"WarpgateRequest: ${player.Name} is knocking on an inactive warp gate")
@@ -5668,11 +5670,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
 
       case msg @ DeployRequestMessage(player_guid, vehicle_guid, deploy_state, unk2, unk3, pos) =>
-        if (player.avatar.vehicle.contains(vehicle_guid)) {
-          if (player.avatar.vehicle == player.VehicleSeated) {
+        val vehicle = player.avatar.vehicle
+        if (vehicle.contains(vehicle_guid)) {
+          if (vehicle == player.VehicleSeated) {
             continent.GUID(vehicle_guid) match {
               case Some(obj: Vehicle) =>
-                log.info(s"${player.Name} is requesting a deployment change for ${obj.Definition.Name}")
+                log.info(s"${player.Name} is requesting a deployment change for ${obj.Definition.Name} - $deploy_state")
                 obj.Actor ! Deployment.TryDeploymentChange(deploy_state)
 
               case _ =>
@@ -7100,7 +7103,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         vehicle.Orientation = shiftOrientation.getOrElse(vehicle.Orientation)
         val vdata = if (seat == 0) {
           //driver
-          continent.Transport ! Zone.Vehicle.Spawn(vehicle)
+          if (vehicle.Zone ne continent) {
+            continent.Transport ! Zone.Vehicle.Spawn(vehicle)
+          }
           //as the driver, we must temporarily exclude ourselves from being in the vehicle during its creation
           val mount = vehicle.Seats(0)
           mount.unmount(player)
@@ -9542,8 +9547,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         val projectilePlace = projectiles(projectileIndex)
         if (
           projectilePlace match {
-            case Some(projectile) => !projectile.isResolved
-            case None             => false
+            case Some(projectile) =>
+              !projectile.isResolved && System.currentTimeMillis() - projectile.fire_time < projectile.profile.Lifespan.toLong
+            case None =>
+              false
           }
         ) {
           log.debug(
