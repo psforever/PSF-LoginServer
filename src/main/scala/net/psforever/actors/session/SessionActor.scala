@@ -5356,7 +5356,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         HandleWeaponFire(weapon_guid, projectile_guid, shot_origin)
 
       case msg @ WeaponLazeTargetPositionMessage(_, _, pos2) =>
-        log.debug(s"${player.Name} is lazing the position $pos2; to what ends?")
+        log.info(s"${player.Name} is lazing the position ${continent.id}@(${pos2.x},${pos2.y},${pos2.z})")
 
       case msg @ ObjectDetectedMessage(guid1, guid2, unk, targets) =>
         FindWeapon match {

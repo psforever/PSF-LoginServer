@@ -7915,11 +7915,11 @@ object GlobalDefinitions {
     generator.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 99999
-      DamageRadiusMin = 14
-      DamageRadius = 14.5f
-      DamageAtEdge = 0.00002f
+      DamageRadiusMin = 15
+      DamageRadius = 15.1f
+      DamageAtEdge = 0.000011f
       Modifiers = ExplodingRadialDegrade
-      //damage is 99999 at 14m, dropping rapidly to ~1 at 14.5m
+      //damage is 99999 at 15m, dropping rapidly to ~1 at 15.1m
     }
     generator.Geometry = GeometryForm.representByCylinder(radius = 1.2617f, height = 9.14063f)
 
