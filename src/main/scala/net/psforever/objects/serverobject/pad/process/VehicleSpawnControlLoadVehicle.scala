@@ -73,7 +73,7 @@ class VehicleSpawnControlLoadVehicle(pad: VehicleSpawnPad) extends VehicleSpawnC
         context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
       }
 
-    case Zone.Vehicle.CanNotSpawn(zone, vehicle, reason) =>
+    case Zone.Vehicle.CanNotSpawn(_, _, reason) =>
       trace(s"vehicle $reason; abort order fulfillment")
       temp.cancel()
       context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
