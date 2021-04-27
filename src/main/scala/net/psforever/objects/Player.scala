@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.avatar.{Avatar, LoadoutManager}
+import net.psforever.objects.avatar.{Avatar, LoadoutManager, SpecialCarry}
 import net.psforever.objects.definition.{AvatarDefinition, ExoSuitDefinition, SpecialExoSuitDefinition}
 import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot, JammableUnit}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
@@ -44,6 +44,7 @@ class Player(var avatar: Avatar)
   private var drawnSlot: Int                         = Player.HandsDownSlot
   private var lastDrawnSlot: Int                     = Player.HandsDownSlot
   private var backpackAccess: Option[PlanetSideGUID] = None
+  private var carrying: Option[SpecialCarry]         = None
 
   private var facingYawUpper: Float = 0f
   private var crouching: Boolean    = false
@@ -496,6 +497,16 @@ class Player(var avatar: Avatar)
   def VehicleSeated_=(guid: Option[PlanetSideGUID]): Option[PlanetSideGUID] = {
     vehicleSeated = guid
     VehicleSeated
+  }
+
+  def Carrying: Option[SpecialCarry] = carrying
+
+  def Carrying_=(item: SpecialCarry): Option[SpecialCarry] = {
+    Carrying
+  }
+
+  def Carrying_=(item: Option[SpecialCarry]): Option[SpecialCarry] = {
+    Carrying
   }
 
   def DamageModel = exosuit.asInstanceOf[DamageResistanceModel]

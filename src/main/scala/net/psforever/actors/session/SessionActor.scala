@@ -29,7 +29,7 @@ import net.psforever.objects.serverobject.llu.CaptureFlag
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.mount.Mountable
-import net.psforever.objects.serverobject.pad.VehicleSpawnPad
+import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals._
@@ -60,12 +60,7 @@ import net.psforever.services.local.support.{CaptureFlagManager, HackCaptureActo
 import net.psforever.services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
 import net.psforever.services.properties.PropertyOverrideManager
 import net.psforever.services.support.SupportActor
-import net.psforever.services.teamwork.{
-  SquadResponse,
-  SquadServiceMessage,
-  SquadServiceResponse,
-  SquadAction => SquadServiceAction
-}
+import net.psforever.services.teamwork.{SquadResponse, SquadServiceMessage, SquadServiceResponse, SquadAction => SquadServiceAction}
 import net.psforever.services.hart.HartTimer
 import net.psforever.services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
 import net.psforever.services.{RemoverActor, Service, ServiceManager, InterstellarClusterService => ICS}
@@ -2190,6 +2185,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     specialItemSlotGuid match {
       case Some(guid: PlanetSideGUID) =>
         specialItemSlotGuid = None
+        player.Carrying = None
         continent.GUID(guid) match {
           case Some(llu: CaptureFlag) =>
             llu.Carrier match {
@@ -2398,6 +2394,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           case Some(guid) =>
             if (guid == llu.GUID) {
               specialItemSlotGuid = None
+              player.Carrying = None
             }
           case _ => ;
         }
@@ -2675,7 +2672,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           case None =>
             avatarActor ! AvatarActor.UpdatePurchaseTime(item.Definition)
             continent.tasks ! BuyNewEquipmentPutInInventory(
-              continent.GUID(tplayer.VehicleSeated) match { case Some(v: Vehicle) => v; case _ => player },
+              continent.GUID(tplayer.VehicleSeated) match { case Some(v : Vehicle) => v; case _ => player },
               tplayer,
               msg.terminal_guid
             )(item)
@@ -2701,13 +2698,18 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         lastTerminalOrderFulfillment = true
 
       case Terminal.BuyVehicle(vehicle, weapons, trunk) =>
-        continent.map.terminalToSpawnPad.get(msg.terminal_guid.guid) match {
-          case Some(padGuid) =>
-            tplayer.avatar.purchaseCooldown(vehicle.Definition) match {
-              case Some(_) =>
-                sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
-              case None =>
-                val pad = continent.GUID(padGuid).get.asInstanceOf[VehicleSpawnPad]
+        tplayer.avatar.purchaseCooldown(vehicle.Definition) match {
+          case Some(_) =>
+            sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
+          case None =>
+            continent.map.terminalToSpawnPad
+              .find { case (termid, _) => termid == msg.terminal_guid.guid }
+              .collect {
+                case (a: Int, b: Int) => (continent.GUID(a), continent.GUID(b))
+                case _                => (None, None)
+              }
+              .get match {
+              case (Some(_: Terminal), Some(pad: VehicleSpawnPad)) =>
                 vehicle.Faction = tplayer.Faction
                 vehicle.Position = pad.Position
                 vehicle.Orientation = pad.Orientation + Vector3.z(pad.Definition.VehicleCreationZOrientOffset)
@@ -2734,11 +2736,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 })
                 continent.tasks ! RegisterVehicleFromSpawnPad(vehicle, pad)
                 sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true))
+              case _ =>
+                log.error(
+                  s"${tplayer.Name} wanted to spawn a vehicle, but there was no spawn pad associated with terminal ${msg.terminal_guid} to accept it"
+                )
+                sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
             }
-          case None =>
-            log.error(
-              s"${tplayer.Name} wanted to spawn a vehicle, but there was no spawn pad associated with terminal ${msg.terminal_guid} to accept it"
-            )
         }
         lastTerminalOrderFulfillment = true
 
@@ -5101,6 +5104,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             if (specialItemSlotGuid.isEmpty) {
               if (obj.Faction == player.Faction) {
                 specialItemSlotGuid = Some(obj.GUID)
+                player.Carrying = SpecialCarry.CaptureFlag
                 continent.LocalEvents ! CaptureFlagManager.PickupFlag(obj, player)
               } else {
                 log.warn(

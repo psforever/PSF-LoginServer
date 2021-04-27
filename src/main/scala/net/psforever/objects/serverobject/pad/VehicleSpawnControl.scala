@@ -2,11 +2,14 @@
 package net.psforever.objects.serverobject.pad
 
 import akka.actor.{ActorContext, Cancellable, Props}
+import net.psforever.objects.avatar.SpecialCarry
 import net.psforever.objects.guid.GUIDTask.UnregisterVehicle
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.pad.process.{VehicleSpawnControlBase, VehicleSpawnControlConcealPlayer}
+import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{Default, Player, Vehicle}
+import net.psforever.types.Vector3
 
 import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -306,6 +309,31 @@ object VehicleSpawnControl {
     assert(driver.HasGUID, s"when ordering a vehicle, the prospective driver ${driver.Name} does not have a GUID")
     assert(vehicle.HasGUID, s"when ordering a vehicle, the ${vehicle.Definition.Name} does not have a GUID")
     val DriverGUID = driver.GUID
+    val time = System.currentTimeMillis()
+  }
+
+  def validateOrderCredentials(term: Terminal, player: Player, vehicle: Vehicle): Option[String] = {
+    if (!player.HasGUID || !vehicle.HasGUID || player.Zone != term.Zone || vehicle.Destroyed) {
+      Some("@SVCP_RemovedFromVehicleQueue_Generic")
+    } else if (!player.isAlive) {
+      Some("@SVCP_RemovedFromVehicleQueue_Destroyed")
+    } else if (vehicle.PassengerInSeat(player).isEmpty) {
+      if (player.VehicleSeated.nonEmpty) {
+        Some("@SVCP_RemovedFromVehicleQueue_ParentChanged")
+      } else if (Vector3.DistanceSquared(term.Position, player.Position) > 25) {
+        Some("@SVCP_RemovedFromVehicleQueue_MovedTooFar")
+      } else if (!vehicle.Seats(0).definition.restriction.test(player)) {
+        Some("@SVCP_RemovedFromVehicleQueue_ArmorChanged")
+      } else if (player.Carrying.contains(SpecialCarry.CaptureFlag)) {
+        Some("@SVCP_RemovedFromVehicleQueue_CaptureFlag")
+//      } else if (player.Carrying.contains(SpecialCarry.MonolithUnit)) {
+//        Some("@SVCP_RemovedFromVehicleQueue_MonolithUnit")
+      } else {
+        None
+      }
+    } else {
+      None
+    }
   }
 
   /**

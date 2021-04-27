@@ -6788,9 +6788,7 @@ object GlobalDefinitions {
     dropship.MaxShields = 1000
     dropship.CanFly = true
     dropship.Seats += 0 -> new SeatDefinition()
-    dropship.Seats += 1 -> new SeatDefinition() {
-      bailable = true
-    }
+    dropship.Seats += 1 -> bailableSeat
     dropship.Seats += 2 -> bailableSeat
     dropship.Seats += 3 -> bailableSeat
     dropship.Seats += 4 -> bailableSeat
