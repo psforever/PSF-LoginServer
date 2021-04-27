@@ -26,6 +26,9 @@ class Door(private val ddef: DoorDefinition) extends Amenity {
     Open
   }
 
+  /** Doors do not have health, so only check if they are damageable. */
+  override def CanDamage : Boolean = Definition.Damageable
+
   def Definition: DoorDefinition = ddef
 }
 
