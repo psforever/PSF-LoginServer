@@ -1063,9 +1063,13 @@ object GlobalDefinitions {
 
   val lock_external = new IFFLockDefinition
 
-  val door = new DoorDefinition
+  val door = new DoorDefinition(242)
 
-  val gr_door_mb_orb = new DoorDefinition
+  val door_spawn_mb = new DoorDefinition(257)
+
+  val gr_door_mb_orb = new DoorDefinition(368)
+
+  val spawn_tube_door = new DoorDefinition(813)
 
   val resource_silo = new ResourceSiloDefinition
 
@@ -7729,9 +7733,17 @@ object GlobalDefinitions {
     door.Damageable = false
     door.Repairable = false
 
+    door_spawn_mb.Name = "door_spawn_mb"
+    door_spawn_mb.Damageable = true
+    door_spawn_mb.Repairable = false
+
     gr_door_mb_orb.Name = "gr_door_mb_orb"
     gr_door_mb_orb.Damageable = false
     gr_door_mb_orb.Repairable = false
+
+    spawn_tube_door.Name = "spawn_tube_door"
+    spawn_tube_door.Damageable = true
+    spawn_tube_door.Repairable = false
 
     resource_silo.Name = "resource_silo"
     resource_silo.Damageable = false

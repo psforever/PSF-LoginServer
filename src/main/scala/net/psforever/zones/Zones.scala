@@ -1,17 +1,18 @@
 package net.psforever.zones
 
 import java.io.FileNotFoundException
+
 import net.psforever.objects.serverobject.terminals.{ProximityTerminal, ProximityTerminalDefinition, Terminal, TerminalDefinition}
 import net.psforever.objects.serverobject.mblocker.Locker
-
 import java.util.concurrent.atomic.AtomicInteger
+
 import akka.actor.ActorContext
 import io.circe._
 import io.circe.parser._
 import net.psforever.objects.{GlobalDefinitions, LocalLockerItem, LocalProjectile}
 import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.definition.BasicDefinition
-import net.psforever.objects.serverobject.doors.Door
+import net.psforever.objects.serverobject.doors.{Door, DoorDefinition, SpawnTubeDoor}
 import net.psforever.objects.serverobject.generator.Generator
 import net.psforever.objects.serverobject.llu.{CaptureFlagSocket, CaptureFlagSocketDefinition}
 import net.psforever.objects.serverobject.locks.IFFLock
@@ -356,6 +357,16 @@ object Zones {
               Door.Constructor(obj.position, GlobalDefinitions.gr_door_mb_orb),
               owningBuildingGuid = ownerGuid
             )
+
+        case doorType if doorType.equals("door_spawn_mb") || doorType.equals("spawn_tube_door") =>
+          zoneMap.addLocalObject(
+            obj.guid,
+            SpawnTubeDoor.Constructor(
+              obj.position,
+              DefinitionUtil.fromString(doorType).asInstanceOf[DoorDefinition]
+            ),
+            owningBuildingGuid = ownerGuid
+          )
 
         case objectType if doorTypes.contains(objectType) =>
           zoneMap

@@ -20,7 +20,7 @@ class DoorControl(door: Door)
   var isLocked: Boolean = false
   var lockingMechanism: Door.LockingMechanismLogic = DoorControl.alwaysOpen
 
-  val commonBehavior: Receive = checkBehavior
+  def commonBehavior: Receive = checkBehavior
     .orElse {
       case Door.Lock =>
         isLocked = true

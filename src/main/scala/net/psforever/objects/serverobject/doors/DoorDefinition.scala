@@ -5,8 +5,8 @@ import net.psforever.objects.serverobject.structures.AmenityDefinition
 
 /**
   * The definition for any `Door`.
-  * Object Id 242 is a generic door.
   */
-class DoorDefinition extends AmenityDefinition(242) {
+class DoorDefinition(objectId: Int)
+  extends AmenityDefinition(objectId) {
   Name = "door"
 }
