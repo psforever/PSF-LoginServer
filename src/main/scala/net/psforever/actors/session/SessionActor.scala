@@ -29,7 +29,7 @@ import net.psforever.objects.serverobject.llu.CaptureFlag
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.mount.Mountable
-import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
+import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals._
@@ -2709,7 +2709,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 case _                => (None, None)
               }
               .get match {
-              case (Some(_: Terminal), Some(pad: VehicleSpawnPad)) =>
+              case (Some(term: Terminal), Some(pad: VehicleSpawnPad)) =>
                 vehicle.Faction = tplayer.Faction
                 vehicle.Position = pad.Position
                 vehicle.Orientation = pad.Orientation + Vector3.z(pad.Definition.VehicleCreationZOrientOffset)
@@ -2734,7 +2734,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                   entry.obj.Faction = tplayer.Faction
                   vTrunk.InsertQuickly(entry.start, entry.obj)
                 })
-                continent.tasks ! RegisterVehicleFromSpawnPad(vehicle, pad)
+                continent.tasks ! RegisterVehicleFromSpawnPad(vehicle, pad, term)
                 sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true))
               case _ =>
                 log.error(
@@ -2991,16 +2991,23 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case VehicleResponse.ServerVehicleOverrideEnd(vehicle, pad) =>
         DriverVehicleControl(vehicle, vehicle.Definition.AutoPilotSpeed2)
 
-      case VehicleResponse.PeriodicReminder(cause, data) =>
-        val msg: String = cause match {
-          case VehicleSpawnPad.Reminders.Blocked =>
-            s"The vehicle spawn where you placed your order is blocked. ${data.getOrElse("")}"
-          case VehicleSpawnPad.Reminders.Queue =>
-            s"Your position in the vehicle spawn queue is ${data.getOrElse("dead last")}."
-          case VehicleSpawnPad.Reminders.Cancelled =>
-            "Your vehicle order has been cancelled."
+      case VehicleResponse.PeriodicReminder(VehicleSpawnPad.Reminders.Blocked, data) =>
+        sendResponse(ChatMsg(
+          ChatMessageType.CMT_OPEN,
+          true,
+          "",
+          s"The vehicle spawn where you placed your order is blocked. ${data.getOrElse("")}",
+          None
+        ))
+
+      case VehicleResponse.PeriodicReminder(_, data) =>
+        val (isType, flag, msg): (ChatMessageType, Boolean, String) = data match {
+          case Some(msg: String)
+            if msg.startsWith("@") => (ChatMessageType.UNK_227, false, msg)
+          case Some(msg: String)   => (ChatMessageType.CMT_OPEN, true, msg)
+          case _                   => (ChatMessageType.CMT_OPEN, true, "Your vehicle order has been cancelled.")
         }
-        sendResponse(ChatMsg(ChatMessageType.CMT_OPEN, true, "", msg, None))
+        sendResponse(ChatMsg(isType, flag, "", msg, None))
 
       case VehicleResponse.ChangeLoadout(target, old_weapons, added_weapons, old_inventory, new_inventory) =>
         //TODO when vehicle weapons can be changed without visual glitches, rewrite this
@@ -6037,12 +6044,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @see `RegisterVehicle`
     * @return a `TaskResolver.GiveTask` message
     */
-  def RegisterVehicleFromSpawnPad(obj: Vehicle, pad: VehicleSpawnPad): TaskResolver.GiveTask = {
+  def RegisterVehicleFromSpawnPad(obj: Vehicle, pad: VehicleSpawnPad, terminal: Terminal): TaskResolver.GiveTask = {
     TaskResolver.GiveTask(
       new Task() {
-        private val localVehicle = obj
-        private val localPad     = pad.Actor
-        private val localPlayer  = player
+        private val localVehicle  = obj
+        private val localPad      = pad.Actor
+        private val localTerminal = terminal
+        private val localPlayer   = player
 
         override def Description: String = s"register a ${localVehicle.Definition.Name} for spawn pad"
 
@@ -6055,7 +6063,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
 
         def Execute(resolver: ActorRef): Unit = {
-          localPad ! VehicleSpawnPad.VehicleOrder(localPlayer, localVehicle)
+          localPad ! VehicleSpawnPad.VehicleOrder(localPlayer, localVehicle, localTerminal)
           resolver ! Success(this)
         }
       },
