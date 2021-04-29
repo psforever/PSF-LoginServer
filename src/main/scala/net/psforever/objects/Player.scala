@@ -13,7 +13,7 @@ import net.psforever.objects.vital.resistance.ResistanceProfile
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.resolution.DamageResistanceModel
-import net.psforever.objects.zones.ZoneAware
+import net.psforever.objects.zones.{ZoneAware, Zoning}
 import net.psforever.types.{PlanetSideGUID, _}
 
 import scala.annotation.tailrec
@@ -30,6 +30,7 @@ class Player(var avatar: Avatar)
     with ZoneAware
     with AuraContainer {
   private var backpack: Boolean = false
+  private var released: Boolean = false
   private var armor: Int        = 0
 
   private var capacitor: Float                         = 0f
@@ -46,11 +47,12 @@ class Player(var avatar: Avatar)
   private var backpackAccess: Option[PlanetSideGUID] = None
   private var carrying: Option[SpecialCarry]         = None
 
-  private var facingYawUpper: Float = 0f
-  private var crouching: Boolean    = false
-  private var jumping: Boolean      = false
-  private var cloaked: Boolean      = false
-  private var afk: Boolean          = false
+  private var facingYawUpper: Float       = 0f
+  private var crouching: Boolean          = false
+  private var jumping: Boolean            = false
+  private var cloaked: Boolean            = false
+  private var afk: Boolean                = false
+  private var zoning: Zoning.Method.Value = Zoning.Method.None
 
   private var vehicleSeated: Option[PlanetSideGUID] = None
 
@@ -96,6 +98,7 @@ class Player(var avatar: Avatar)
       Health = Definition.DefaultHealth
       Armor = MaxArmor
       Capacitor = 0
+      released = false
     }
     isAlive
   }
@@ -109,17 +112,17 @@ class Player(var avatar: Avatar)
   def Revive: Boolean = {
     Destroyed = false
     Health = Definition.DefaultHealth
+    released = false
     true
   }
 
   def Release: Boolean = {
-    if (!isAlive) {
-      backpack = true
-      true
-    } else {
-      false
-    }
+    released = true
+    backpack = !isAlive
+    true
   }
+
+  def isReleased: Boolean = released
 
   def Armor: Int = armor
 
@@ -507,6 +510,13 @@ class Player(var avatar: Avatar)
 
   def Carrying_=(item: Option[SpecialCarry]): Option[SpecialCarry] = {
     Carrying
+  }
+
+  def ZoningRequest: Zoning.Method.Value = zoning
+
+  def ZoningRequest_=(request: Zoning.Method.Value): Zoning.Method.Value = {
+    zoning = request
+    ZoningRequest
   }
 
   def DamageModel = exosuit.asInstanceOf[DamageResistanceModel]

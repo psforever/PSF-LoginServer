@@ -7,7 +7,7 @@ object Zoning {
   object Method extends Enumeration {
     type Type = Value
 
-    val None, InstantAction, Recall, Quit = Value
+    val None, InstantAction, OutfitRecall, Recall, Quit = Value
   }
 
   object Status extends Enumeration {

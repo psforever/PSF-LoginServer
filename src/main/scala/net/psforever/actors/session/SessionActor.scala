@@ -438,6 +438,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       session.player.spectator = spectator
 
     case Recall() =>
+      player.ZoningRequest = Zoning.Method.Recall
       zoningType = Zoning.Method.Recall
       zoningChatMessageType = ChatMessageType.CMT_RECALL
       zoningStatus = Zoning.Status.Request
@@ -451,6 +452,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       })
 
     case InstantAction() =>
+      player.ZoningRequest = Zoning.Method.InstantAction
       zoningType = Zoning.Method.InstantAction
       zoningChatMessageType = ChatMessageType.CMT_INSTANTACTION
       zoningStatus = Zoning.Status.Request
@@ -477,10 +479,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self)
 
     case Quit() =>
-      //priority to quitting is given to quit over other zoning methods
+      //priority is given to quit over other zoning methods
       if (session.zoningType == Zoning.Method.InstantAction || session.zoningType == Zoning.Method.Recall) {
         CancelZoningProcessWithDescriptiveReason("cancel")
       }
+      player.ZoningRequest = Zoning.Method.Quit
       zoningType = Zoning.Method.Quit
       zoningChatMessageType = ChatMessageType.CMT_QUIT
       zoningStatus = Zoning.Status.Request
@@ -1721,6 +1724,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     */
   def CancelZoningProcess(): Unit = {
     zoningTimer.cancel()
+    player.ZoningRequest = Zoning.Method.None
     zoningType = Zoning.Method.None
     zoningStatus = Zoning.Status.None
     zoningCounter = 0

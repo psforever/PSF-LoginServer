@@ -2,13 +2,12 @@
 package net.psforever.objects.serverobject.pad
 
 import akka.actor.{Cancellable, Props}
-import enumeratum.values.{IntEnum, IntEnumEntry}
 import net.psforever.objects.avatar.SpecialCarry
 import net.psforever.objects.guid.GUIDTask.UnregisterVehicle
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.pad.process.{VehicleSpawnControlBase, VehicleSpawnControlConcealPlayer}
 import net.psforever.objects.serverobject.terminals.Terminal
-import net.psforever.objects.zones.Zone
+import net.psforever.objects.zones.{Zone, Zoning}
 import net.psforever.objects.{Default, Player, Vehicle}
 import net.psforever.types.Vector3
 
@@ -366,16 +365,15 @@ object VehicleSpawnControl {
   private final val periodicReminderTestDelay: FiniteDuration = 1000 milliseconds
   private final val testsBetweenVocalReminder: Long = 10
 
-  sealed abstract class ProcessControl(val value: Int) extends IntEnumEntry
   /**
     * Control messages for the vehicle spawn process.
     */
-  object ProcessControl extends IntEnum[ProcessControl] {
-    val values = findValues
+  object ProcessControl {
+    sealed trait ProcessControl
 
-    case object Flush extends ProcessControl(value = 0)
-    case object GetNewOrder extends ProcessControl(value = 1)
-    final case class Reminder(n : Int) extends ProcessControl(n)
+    case object Flush extends ProcessControl
+    case object GetNewOrder extends ProcessControl
+    final case class Reminder(n : Int) extends ProcessControl
   }
 
   /**
@@ -402,13 +400,13 @@ object VehicleSpawnControl {
   def validateOrderCredentials(term: Terminal, player: Player, vehicle: Vehicle): Option[String] = {
     if (!player.HasGUID || player.Zone != term.Zone || !vehicle.HasGUID || vehicle.Destroyed) {
       Some("@SVCP_RemovedFromVehicleQueue_Generic")
-    } else if (!player.isAlive) {
+    } else if (!player.isAlive || player.isReleased) {
       Some("@SVCP_RemovedFromVehicleQueue_Destroyed")
     } else if (vehicle.PassengerInSeat(player).isEmpty) {
       //once seated, these are not a concern anymore
       if (term.Destroyed) {
         Some("@SVCP_RemovedFromQueue_TerminalDestroyed")
-      } else if (Vector3.DistanceSquared(term.Position, player.Position) > 100) {
+      } else if (Vector3.DistanceSquared(term.Position, player.Position) > 1225) {
         Some("@SVCP_RemovedFromVehicleQueue_MovedTooFar")
       } else if (player.VehicleSeated.nonEmpty) {
         Some("@SVCP_RemovedFromVehicleQueue_ParentChanged")
@@ -420,6 +418,14 @@ object VehicleSpawnControl {
         Some("@SVCP_RemovedFromVehicleQueue_VanuModule")
       } else if (player.Carrying.contains(SpecialCarry.MonolithUnit)) {
         Some("@SVCP_RemovedFromVehicleQueue_MonolithUnit")
+      } else if ( player.ZoningRequest == Zoning.Method.Quit) {
+        Some("@SVCP_RemovedFromVehicleQueue_Quit")
+      } else if ( player.ZoningRequest == Zoning.Method.InstantAction) {
+        Some("@SVCP_RemovedFromVehicleQueue_InstantAction")
+      } else if ( player.ZoningRequest == Zoning.Method.Recall) {
+        Some("@SVCP_RemovedFromVehicleQueue_Recall")
+      } else if ( player.ZoningRequest == Zoning.Method.OutfitRecall) {
+        Some("@SVCP_RemovedFromVehicleQueue_OutfitRecall")
       } else {
         None
       }
