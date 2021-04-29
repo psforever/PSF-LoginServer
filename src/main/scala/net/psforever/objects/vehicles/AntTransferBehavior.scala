@@ -58,7 +58,7 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
     ntuChargingTick.cancel()
     val obj = ChargeTransferObject
     //log.trace(s"NtuCharging: Vehicle $guid is charging NTU capacitor.")
-    if (obj.NtuCapacitor < obj.Definition.MaxNtuCapacitor) {
+    if (obj.NtuCapacitor < obj.Definition.MaxNtuCapacitor && obj.DeploymentState == DriveState.Deployed) {
       //charging
       panelAnimationFunc = InitialCharge
       transferTarget = Some(target)
@@ -96,7 +96,7 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
   def HandleDischargingEvent(target: TransferContainer): Boolean = {
     //log.trace(s"NtuDischarging: Vehicle $guid is discharging NTU into silo $silo_guid")
     val obj = ChargeTransferObject
-    if (obj.NtuCapacitor > 0) {
+    if (obj.NtuCapacitor > 0 && obj.DeploymentState == DriveState.Deployed) {
       panelAnimationFunc = InitialDischarge
       transferTarget = Some(target)
       transferEvent = TransferBehavior.Event.Discharging
@@ -177,8 +177,8 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
   def HandleNtuOffer(sender: ActorRef, src: NtuContainer): Unit = {}
 
   def HandleNtuRequest(sender: ActorRef, min: Float, max: Float): Unit = {
-    if (transferEvent == TransferBehavior.Event.Discharging) {
-      val chargeable = ChargeTransferObject
+    val chargeable = ChargeTransferObject
+    if (chargeable.DeploymentState == DriveState.Deployed && transferEvent == TransferBehavior.Event.Discharging) {
       val chargeToDeposit = if (min == 0) {
         transferTarget match {
           case Some(silo: ResourceSilo) =>
@@ -194,18 +194,21 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
       chargeable.NtuCapacitor -= chargeToDeposit
       UpdateNtuUI(chargeable)
       sender ! Ntu.Grant(chargeable, chargeToDeposit)
+    } else {
+      TryStopChargingEvent(chargeable)
+      sender ! Ntu.Grant(chargeable, 0)
     }
   }
 
   def HandleNtuGrant(sender: ActorRef, src: NtuContainer, amount: Float): Unit = {
-    if (transferEvent == TransferBehavior.Event.Charging) {
-      val obj = ChargeTransferObject
-      if (ReceiveAndDepositUntilFull(obj, amount)) {
-        panelAnimationFunc()
-      } else {
-        TryStopChargingEvent(obj)
-        sender ! Ntu.Request(0, 0)
-      }
+    val obj = ChargeTransferObject
+    if (obj.DeploymentState == DriveState.Deployed &&
+        transferEvent == TransferBehavior.Event.Charging &&
+        ReceiveAndDepositUntilFull(obj, amount)) {
+      panelAnimationFunc()
+    } else {
+      TryStopChargingEvent(obj)
+      sender ! Ntu.Request(0, 0)
     }
   }
 }

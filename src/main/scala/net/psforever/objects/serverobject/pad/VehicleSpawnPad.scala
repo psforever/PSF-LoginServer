@@ -45,12 +45,6 @@ object VehicleSpawnPad {
   final case class RevealPlayer(player_guid: PlanetSideGUID)
 
   /**
-    * Message to properly introduce the vehicle into the zone.
-    * @param vehicle the vehicle being spawned
-    */
-  final case class LoadVehicle(vehicle: Vehicle)
-
-  /**
     * Message to attach the vehicle to the spawn pad's lifting platform ("put on rails").
     * The attachment process (to the third slot) itself begins autonomous operation of the lifting platform.
     * @see `ObjectAttachMessage`

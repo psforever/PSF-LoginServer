@@ -193,7 +193,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var loadConfZone: Boolean                                          = false
   var noSpawnPointHere: Boolean                                      = false
   var usingMedicalTerminal: Option[PlanetSideGUID]                   = None
-  var controlled: Option[Int]                                        = None
+  var serverVehicleControlVelocity: Option[Int]                      = None
   var deadState: DeadState.Value                                     = DeadState.Dead
   val projectiles: Array[Option[Projectile]] =
     Array.fill[Option[Projectile]](Projectile.rangeUID - Projectile.baseUID)(None)
@@ -502,41 +502,45 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       accountPersistence ! AccountPersistenceService.Kick(player.Name, time)
 
     case SetZone(zoneId, position) =>
-      PlayerActionsToCancel()
-      continent.GUID(player.VehicleSeated) match {
-        case Some(vehicle: Vehicle) if vehicle.MountedIn.isEmpty =>
-          vehicle.PassengerInSeat(player) match {
-            case Some(0) =>
-              deadState = DeadState.Release // cancel movement updates
-              vehicle.Position = position
-              LoadZonePhysicalSpawnPoint(zoneId, position, Vector3.Zero, 0 seconds)
-            case _ => // not seated as the driver, in which case we can't move
-          }
-        case None =>
-          deadState = DeadState.Release // cancel movement updates
-          player.Position = position
-          // continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, player.GUID))
-          LoadZonePhysicalSpawnPoint(zoneId, position, Vector3.Zero, 0 seconds)
-        case _ => // seated in something that is not a vehicle or the vehicle is cargo, in which case we can't move
+      if (serverVehicleControlVelocity.isEmpty) {
+        PlayerActionsToCancel()
+        continent.GUID(player.VehicleSeated) match {
+          case Some(vehicle : Vehicle) if vehicle.MountedIn.isEmpty =>
+            vehicle.PassengerInSeat(player) match {
+              case Some(0) =>
+                deadState = DeadState.Release // cancel movement updates
+                vehicle.Position = position
+                LoadZonePhysicalSpawnPoint(zoneId, position, Vector3.Zero, 0 seconds)
+              case _ => // not seated as the driver, in which case we can't move
+            }
+          case None =>
+            deadState = DeadState.Release // cancel movement updates
+            player.Position = position
+            // continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, player.GUID))
+            LoadZonePhysicalSpawnPoint(zoneId, position, Vector3.Zero, 0 seconds)
+          case _ => // seated in something that is not a vehicle or the vehicle is cargo, in which case we can't move
+        }
       }
 
     case SetPosition(position) =>
-      PlayerActionsToCancel()
-      continent.GUID(player.VehicleSeated) match {
-        case Some(vehicle: Vehicle) if vehicle.MountedIn.isEmpty =>
-          vehicle.PassengerInSeat(player) match {
-            case Some(0) =>
-              deadState = DeadState.Release // cancel movement updates
-              vehicle.Position = position
-              LoadZonePhysicalSpawnPoint(continent.id, position, Vector3.z(vehicle.Orientation.z), 0 seconds)
-            case _ => // not seated as the driver, in which case we can't move
-          }
-        case None =>
-          deadState = DeadState.Release // cancel movement updates
-          player.Position = position
-          sendResponse(PlayerStateShiftMessage(ShiftState(0, position, player.Orientation.z, None)))
-          deadState = DeadState.Alive // must be set here
-        case _ => // seated in something that is not a vehicle or the vehicle is cargo, in which case we can't move
+      if (serverVehicleControlVelocity.isEmpty) {
+        PlayerActionsToCancel()
+        continent.GUID(player.VehicleSeated) match {
+          case Some(vehicle : Vehicle) if vehicle.MountedIn.isEmpty =>
+            vehicle.PassengerInSeat(player) match {
+              case Some(0) =>
+                deadState = DeadState.Release // cancel movement updates
+                vehicle.Position = position
+                LoadZonePhysicalSpawnPoint(continent.id, position, Vector3.z(vehicle.Orientation.z), 0 seconds)
+              case _ => // not seated as the driver, in which case we can't move
+            }
+          case None =>
+            deadState = DeadState.Release // cancel movement updates
+            player.Position = position
+            sendResponse(PlayerStateShiftMessage(ShiftState(0, position, player.Orientation.z, None)))
+            deadState = DeadState.Alive // must be set here
+          case _ => // seated in something that is not a vehicle or the vehicle is cargo, in which case we can't move
+        }
       }
 
     case SetConnectionState(state) =>
@@ -2762,6 +2766,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     val tplayer_guid = if (player.HasGUID) player.GUID else PlanetSideGUID(0)
     reply match {
       case VehicleResponse.AttachToRails(vehicle_guid, pad_guid) =>
+        serverVehicleControlVelocity = Some(0)
         sendResponse(ObjectAttachMessage(pad_guid, vehicle_guid, 3))
 
       case VehicleResponse.ChildObjectState(object_guid, pitch, yaw) =>
@@ -2936,7 +2941,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               if (strafe > 1) 0
               else speed
             //strafe or reverse, not both
-            controlled = Some(reverseSpeed)
+            serverVehicleControlVelocity = Some(reverseSpeed)
             sendResponse(ServerVehicleOverrideMsg(true, true, true, false, 0, strafe, reverseSpeed, Some(0)))
             import scala.concurrent.ExecutionContext.Implicits.global
             context.system.scheduler.scheduleOnce(
@@ -2945,7 +2950,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               VehicleServiceResponse(toChannel, PlanetSideGUID(0), VehicleResponse.KickCargo(vehicle, 0, delay))
             )
           } else {
-            controlled = None
+            serverVehicleControlVelocity = None
             sendResponse(ServerVehicleOverrideMsg(false, false, false, false, 0, 0, 0, None))
           }
         }
@@ -3316,16 +3321,18 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * only the zone-specific squad members will receive the important messages about their squad member's spawn.
     */
   def RespawnSquadSetup(): Unit = {
-    squadUI.get(player.CharId) match {
-      case Some(elem) =>
-        sendResponse(PlanetsideAttributeMessage(player.GUID, 31, squad_supplement_id))
-        continent.AvatarEvents ! AvatarServiceMessage(
-          s"${player.Faction}",
-          AvatarAction.PlanetsideAttribute(player.GUID, 31, squad_supplement_id)
-        )
-        sendResponse(PlanetsideAttributeMessage(player.GUID, 32, elem.index))
-      case _ =>
-        log.warn(s"RespawnSquadSetup: asked to redraw squad information, but ${player.Name} has no squad element for squad $squad_supplement_id")
+    if (squad_supplement_id > 0) {
+      squadUI.get(player.CharId) match {
+        case Some(elem) =>
+          sendResponse(PlanetsideAttributeMessage(player.GUID, 31, squad_supplement_id))
+          continent.AvatarEvents ! AvatarServiceMessage(
+            s"${player.Faction}",
+            AvatarAction.PlanetsideAttribute(player.GUID, 31, squad_supplement_id)
+          )
+          sendResponse(PlanetsideAttributeMessage(player.GUID, 32, elem.index))
+        case _ =>
+          log.warn(s"RespawnSquadSetup: asked to redraw squad information, but ${player.Name} has no squad element for squad $squad_supplement_id")
+      }
     }
   }
 
@@ -5556,7 +5563,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 destinationBuildingGuid,
                 context.self
               )
-              log.info(s"${player.Name} is trying to use a warp gate")
+              log.info(s"${player.Name} wants to use a warp gate")
 
             case Some(wg: WarpGate) if !wg.Active =>
               log.warn(s"WarpgateRequest: ${player.Name} is knocking on an inactive warp gate")
@@ -5600,13 +5607,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               )
               None
           }) match {
+            case Some(_) if serverVehicleControlVelocity.nonEmpty =>
+              log.debug(
+                s"DismountVehicleMsg: ${player.Name} can not dismount from vehicle while server has asserted control; please wait"
+              )
             case Some(obj: Mountable) =>
               obj.PassengerInSeat(player) match {
-                case Some(0) if controlled.nonEmpty =>
-                  log.warn(
-                    s"DismountVehicleMsg: ${player.Name} can not dismount from vehicle as driver while server has asserted control; please wait ..."
-                  )
-                case Some(seat_num) =>
+               case Some(seat_num) =>
                   obj.Actor ! Mountable.TryDismount(player, seat_num)
                   if (interstellarFerry.isDefined) {
                     //short-circuit the temporary channel for transferring between zones, the player is no longer doing that
@@ -5668,11 +5675,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
 
       case msg @ DeployRequestMessage(player_guid, vehicle_guid, deploy_state, unk2, unk3, pos) =>
-        if (player.avatar.vehicle.contains(vehicle_guid)) {
-          if (player.avatar.vehicle == player.VehicleSeated) {
+        val vehicle = player.avatar.vehicle
+        if (vehicle.contains(vehicle_guid)) {
+          if (vehicle == player.VehicleSeated) {
             continent.GUID(vehicle_guid) match {
               case Some(obj: Vehicle) =>
-                log.info(s"${player.Name} is requesting a deployment change for ${obj.Definition.Name}")
+                log.info(s"${player.Name} is requesting a deployment change for ${obj.Definition.Name} - $deploy_state")
                 obj.Actor ! Deployment.TryDeploymentChange(deploy_state)
 
               case _ =>
@@ -7019,6 +7027,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     progressBarUpdate.cancel()
     progressBarValue = None
     lastTerminalOrderFulfillment = true
+    serverVehicleControlVelocity = None
     accessedContainer match {
       case Some(v: Vehicle) =>
         val vguid = v.GUID
@@ -7100,7 +7109,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         vehicle.Orientation = shiftOrientation.getOrElse(vehicle.Orientation)
         val vdata = if (seat == 0) {
           //driver
-          continent.Transport ! Zone.Vehicle.Spawn(vehicle)
+          if (vehicle.Zone ne continent) {
+            continent.Transport ! Zone.Vehicle.Spawn(vehicle)
+          }
           //as the driver, we must temporarily exclude ourselves from being in the vehicle during its creation
           val mount = vehicle.Seats(0)
           mount.unmount(player)
@@ -7738,7 +7749,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * Set the vehicle to move in reverse
     */
   def ServerVehicleLockReverse(): Unit = {
-    controlled = Some(0)
+    serverVehicleControlVelocity = Some(0)
     sendResponse(
       ServerVehicleOverrideMsg(
         lock_accelerator = true,
@@ -7759,7 +7770,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * Set the vehicle to strafe right
     */
   def ServerVehicleLockStrafeRight(): Unit = {
-    controlled = Some(0)
+    serverVehicleControlVelocity = Some(0)
     sendResponse(
       ServerVehicleOverrideMsg(
         lock_accelerator = true,
@@ -7780,7 +7791,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * Set the vehicle to strafe left
     */
   def ServerVehicleLockStrafeLeft(): Unit = {
-    controlled = Some(0)
+    serverVehicleControlVelocity = Some(0)
     sendResponse(
       ServerVehicleOverrideMsg(
         lock_accelerator = true,
@@ -7801,7 +7812,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @param vehicle the vehicle being controlled
     */
   def ServerVehicleLock(vehicle: Vehicle): Unit = {
-    controlled = Some(0)
+    serverVehicleControlVelocity = Some(0)
     sendResponse(ServerVehicleOverrideMsg(true, true, false, false, 0, 1, 0, Some(0)))
   }
 
@@ -7812,7 +7823,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @param flight whether the vehicle is ascending or not, if the vehicle is an applicable type
     */
   def ServerVehicleOverride(vehicle: Vehicle, speed: Int = 0, flight: Int = 0): Unit = {
-    controlled = Some(speed)
+    serverVehicleControlVelocity = Some(speed)
     sendResponse(ServerVehicleOverrideMsg(true, true, false, false, flight, 0, speed, Some(0)))
   }
 
@@ -7824,8 +7835,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @param flight whether the vehicle is ascending or not, if the vehicle is an applicable type
     */
   def DriverVehicleControl(vehicle: Vehicle, speed: Int = 0, flight: Int = 0): Unit = {
-    if (controlled.nonEmpty) {
-      controlled = None
+    if (serverVehicleControlVelocity.nonEmpty) {
+      serverVehicleControlVelocity = None
       sendResponse(ServerVehicleOverrideMsg(false, false, false, true, flight, 0, speed, None))
     }
   }
@@ -7837,8 +7848,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @param vehicle the vehicle
     */
   def TotalDriverVehicleControl(vehicle: Vehicle): Unit = {
-    if (controlled.nonEmpty) {
-      controlled = None
+    if (serverVehicleControlVelocity.nonEmpty) {
+      serverVehicleControlVelocity = None
       sendResponse(ServerVehicleOverrideMsg(false, false, false, false, 0, 0, 0, None))
     }
   }
@@ -9542,8 +9553,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         val projectilePlace = projectiles(projectileIndex)
         if (
           projectilePlace match {
-            case Some(projectile) => !projectile.isResolved
-            case None             => false
+            case Some(projectile) =>
+              !projectile.isResolved && System.currentTimeMillis() - projectile.fire_time < projectile.profile.Lifespan.toLong
+            case None =>
+              false
           }
         ) {
           log.debug(

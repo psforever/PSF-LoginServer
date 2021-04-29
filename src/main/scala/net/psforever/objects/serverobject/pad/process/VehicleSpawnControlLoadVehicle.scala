@@ -1,9 +1,12 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.pad.process
 
-import akka.actor.Props
-import net.psforever.objects.GlobalDefinitions
+import akka.actor.{Cancellable, Props}
+import net.psforever.objects.{Default, GlobalDefinitions}
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
+import net.psforever.objects.zones.Zone
+import net.psforever.services.Service
+import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.Vector3
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -25,6 +28,13 @@ class VehicleSpawnControlLoadVehicle(pad: VehicleSpawnPad) extends VehicleSpawnC
 
   val railJack = context.actorOf(Props(classOf[VehicleSpawnControlRailJack], pad), s"${context.parent.path.name}-rails")
 
+  var temp: Cancellable = Default.Cancellable
+
+  override def postStop() : Unit = {
+    temp.cancel()
+    super.postStop()
+  }
+
   def receive: Receive = {
     case order @ VehicleSpawnControl.Order(driver, vehicle) =>
       if (driver.Continent == pad.Continent && vehicle.Health > 0 && driver.isAlive) {
@@ -33,17 +43,48 @@ class VehicleSpawnControlLoadVehicle(pad: VehicleSpawnPad) extends VehicleSpawnC
           if (GlobalDefinitions.isFlightVehicle(vehicle.Definition)) 9 else 5
         ) //appear below the trench and doors
         vehicle.Cloaked = vehicle.Definition.CanCloak && driver.Cloaked
-        pad.Zone.VehicleEvents ! VehicleSpawnPad.LoadVehicle(vehicle)
-        context.system.scheduler.scheduleOnce(100 milliseconds, railJack, order)
+        pad.Zone.Transport.tell(Zone.Vehicle.Spawn(vehicle), self)
+        temp = context.system.scheduler.scheduleOnce(
+          delay = 100 milliseconds,
+          self,
+          VehicleSpawnControlLoadVehicle.WaitOnSpawn(order)
+        )
       } else {
         trace("owner lost or vehicle in poor condition; abort order fulfillment")
         VehicleSpawnControl.DisposeVehicle(order.vehicle, pad.Zone)
         context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
       }
 
+    case Zone.Vehicle.HasSpawned(zone, vehicle) =>
+      val definition = vehicle.Definition
+      val vtype      = definition.ObjectId
+      val vguid      = vehicle.GUID
+      val vdata      = definition.Packet.ConstructorData(vehicle).get
+      zone.VehicleEvents ! VehicleServiceMessage(
+        zone.id,
+        VehicleAction.LoadVehicle(Service.defaultPlayerGUID, vehicle, vtype, vguid, vdata)
+      )
+
+    case VehicleSpawnControlLoadVehicle.WaitOnSpawn(order) =>
+      if (pad.Zone.Vehicles.contains(order.vehicle)) {
+        railJack ! order
+      } else {
+        VehicleSpawnControl.DisposeVehicle(order.vehicle, pad.Zone)
+        context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
+      }
+
+    case Zone.Vehicle.CanNotSpawn(_, _, reason) =>
+      trace(s"vehicle $reason; abort order fulfillment")
+      temp.cancel()
+      context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
+
     case msg @ (VehicleSpawnControl.ProcessControl.Reminder | VehicleSpawnControl.ProcessControl.GetNewOrder) =>
       context.parent ! msg
 
     case _ => ;
   }
+}
+
+object VehicleSpawnControlLoadVehicle {
+  private case class WaitOnSpawn(order: VehicleSpawnControl.Order)
 }

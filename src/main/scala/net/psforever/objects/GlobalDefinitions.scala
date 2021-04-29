@@ -6797,6 +6797,7 @@ object GlobalDefinitions {
     dropship.Seats += 5 -> bailableSeat
     dropship.Seats += 6 -> bailableSeat
     dropship.Seats += 7 -> bailableSeat
+    dropship.Seats += 8 -> bailableSeat
     dropship.Seats += 9 -> new SeatDefinition() {
       bailable = true
       restriction = MaxOnly

@@ -36,7 +36,7 @@ class VehicleSpawnControl2Test extends ActorTest {
       pad.Actor ! VehicleSpawnPad.VehicleOrder(player, vehicle) //order
 
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.ConcealPlayer])
-      probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.LoadVehicle])
+      probe.expectMsgClass(1 minute, classOf[VehicleServiceMessage])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.AttachToRails])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.StartPlayerSeatedInVehicle])
       vehicle.Seats(0).mount(player)
@@ -72,7 +72,7 @@ class VehicleSpawnControl3Test extends ActorTest {
         case _                                                                       => false
       })
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.ConcealPlayer])
-      probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.LoadVehicle])
+      probe.expectMsgClass(1 minute, classOf[VehicleServiceMessage])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.AttachToRails])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.StartPlayerSeatedInVehicle])
       vehicle.Seats(0).mount(player)
@@ -132,7 +132,7 @@ class VehicleSpawnControl5Test extends ActorTest() {
       pad.Actor ! VehicleSpawnPad.VehicleOrder(player, vehicle) //order
 
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.ConcealPlayer])
-      probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.LoadVehicle])
+      probe.expectMsgClass(1 minute, classOf[VehicleServiceMessage])
       vehicle.Health = 0 //problem
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.AttachToRails])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.DetachFromRails])
@@ -159,7 +159,7 @@ class VehicleSpawnControl6Test extends ActorTest() {
       pad.Actor ! VehicleSpawnPad.VehicleOrder(player, vehicle) //order
 
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.ConcealPlayer])
-      probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.LoadVehicle])
+      probe.expectMsgClass(1 minute, classOf[VehicleServiceMessage])
       player.Die
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.AttachToRails])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.DetachFromRails])
@@ -187,7 +187,7 @@ class VehicleSpawnControl7Test extends ActorTest {
       pad.Actor ! VehicleSpawnPad.VehicleOrder(player, vehicle) //order
 
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.ConcealPlayer])
-      probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.LoadVehicle])
+      probe.expectMsgClass(1 minute, classOf[VehicleServiceMessage])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.AttachToRails])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.StartPlayerSeatedInVehicle])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.DetachFromRails])
