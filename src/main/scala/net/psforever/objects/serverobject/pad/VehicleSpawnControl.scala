@@ -40,6 +40,9 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
   /** a reminder sent to future customers */
   var periodicReminder: Cancellable = Default.Cancellable
 
+  /** repeatedly test whether queued orders are valid */
+  var queueManagement: Cancellable = Default.Cancellable
+
   /** a list of vehicle orders that have been submitted for this spawn pad */
   var orders: List[VehicleSpawnPad.VehicleOrder] = List.empty[VehicleSpawnPad.VehicleOrder]
 
@@ -70,6 +73,11 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
     }
   }
 
+  override def postStop() : Unit = {
+    periodicReminder.cancel()
+    queueManagement.cancel()
+  }
+
   def receive: Receive =
     checkBehavior.orElse {
       case msg @ VehicleSpawnPad.VehicleOrder(player, vehicle, _) =>
@@ -88,33 +96,29 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
           SelectOrder()
         }
 
+      case VehicleSpawnControl.ProcessControl.QueueManagement =>
+        queueManagementTask()
+
       /*
       When the vehicle is spawned and added to the pad, it will "occupy" the pad and block it from further action.
       Normally, the player who wanted to spawn the vehicle will be automatically put into the driver mount.
       If this is blocked, the vehicle will idle on the pad and must be moved far enough away from the point of origin.
-      During this time, a periodic message about the spawn pad being blocked
-      will be broadcast to all current customers in the order queue.
+      During this time, a periodic message about the spawn pad being blocked will be broadcast to the order queue.
       */
-      case VehicleSpawnControl.ProcessControl.Reminder(numTests) =>
+      case VehicleSpawnControl.ProcessControl.Reminder =>
         trackedOrder match {
           case Some(entry) =>
-            val nextTest = if (periodicReminder.isCancelled) {
+            if (periodicReminder.isCancelled) {
               trace(s"the pad has become blocked by a ${entry.vehicle.Definition.Name} in its current order")
-              0
+              periodicReminder = context.system.scheduler.scheduleWithFixedDelay(
+                VehicleSpawnControl.periodicReminderTestDelay,
+                VehicleSpawnControl.periodicReminderTestDelay,
+                self,
+                VehicleSpawnControl.ProcessControl.Reminder
+              )
             } else {
-              orders = orderCredentialsCheck(orders).toList
-              if (numTests == VehicleSpawnControl.testsBetweenVocalReminder) {
-                BlockedReminder(entry, orders)
-                0
-              } else {
-                numTests + 1
-              }
+              BlockedReminder(entry, orders)
             }
-            periodicReminder = context.system.scheduler.scheduleOnce(
-              VehicleSpawnControl.periodicReminderTestDelay,
-              self,
-              VehicleSpawnControl.ProcessControl.Reminder(nextTest)
-            )
           case None => ;
             periodicReminder.cancel()
         }
@@ -156,10 +160,20 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
       case Some(tracked) =>
         !tracked.driver.Name.equals(name)
       case None =>
+        handleOrderFunc = NewTasking
         NewTasking(order)
         false
     }) {
       orders.indexWhere { _.player.Name.equals(name) } match {
+        case -1 if orders.isEmpty =>
+          //first queued order
+          orders = List(order)
+          queueManagementTask()
+          pad.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(
+            name,
+            VehicleSpawnPad.Reminders.Queue,
+            Some(s"@SVCP_PositionInQueue^2~^2~")
+          )
         case -1 =>
           //new order
           orders = orders :+ order
@@ -204,11 +218,13 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
         val (completeOrder, remainingOrders): (Option[VehicleSpawnPad.VehicleOrder], List[VehicleSpawnPad.VehicleOrder]) =
           orderCredentialsCheck(orders) match {
             case x :: Nil =>
+              queueManagement.cancel()
               (Some(x), Nil)
             case x :: b =>
               (Some(x), b)
             case Nil =>
               handleOrderFunc = NewTasking
+              queueManagement.cancel()
               (None, Nil)
           }
         orders = remainingOrders
@@ -244,6 +260,27 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
         trackedOrder = Some(newOrder) //guard on
         context.system.scheduler.scheduleOnce(2000 milliseconds, concealPlayer, newOrder)
       case None => ;
+    }
+  }
+
+  /**
+    * One-stop shop to test queued vehicle spawn pad orders for valid credentials and
+    * either start a periodic examination of those credentials until the queue has been emptied or
+    * cancel a running periodic examination if the queue is already empty.
+    */
+  def queueManagementTask(): Unit = {
+    if (orders.nonEmpty) {
+      orders = orderCredentialsCheck(orders).toList
+      if (queueManagement.isCancelled) {
+        queueManagement = context.system.scheduler.scheduleWithFixedDelay(
+          1.second,
+          1.second,
+          self,
+          VehicleSpawnControl.ProcessControl.QueueManagement
+        )
+      }
+    } else {
+      queueManagement.cancel()
     }
   }
 
@@ -362,8 +399,7 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
 }
 
 object VehicleSpawnControl {
-  private final val periodicReminderTestDelay: FiniteDuration = 1000 milliseconds
-  private final val testsBetweenVocalReminder: Long = 10
+  private final val periodicReminderTestDelay: FiniteDuration = 10 seconds
 
   /**
     * Control messages for the vehicle spawn process.
@@ -373,7 +409,8 @@ object VehicleSpawnControl {
 
     case object Flush extends ProcessControl
     case object GetNewOrder extends ProcessControl
-    final case class Reminder(n : Int) extends ProcessControl
+    case object Reminder extends ProcessControl
+    case object QueueManagement extends ProcessControl
   }
 
   /**

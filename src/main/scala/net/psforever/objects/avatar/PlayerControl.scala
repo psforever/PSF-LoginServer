@@ -711,6 +711,9 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     //uninitialize implants
     avatarActor ! AvatarActor.DeinitializeImplants()
 
+    //log historical event
+    target.History(cause)
+    //log message
     cause.adversarial match {
       case Some(a) =>
         damageLog.info(s"DisplayDestroy: ${a.defender} was killed by ${a.attacker}")

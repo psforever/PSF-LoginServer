@@ -44,6 +44,7 @@ import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.base._
+import net.psforever.objects.vital.etc.ExplodingEntityReason
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.{Zone, ZoneHotSpotProjector, Zoning}
@@ -1858,6 +1859,16 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
         DropSpecialSlotItem()
         ToggleMaxSpecialState(enable = false)
+        if (player.LastDamage match {
+          case Some(damage) => damage.interaction.cause match {
+            case cause: ExplodingEntityReason => cause.entity.isInstanceOf[VehicleSpawnPad]
+            case _ => false
+          }
+          case None => false
+        }) {
+          //also, @SVCP_Killed_TooCloseToPadOnCreate^n~ or "... within n meters of pad ..."
+          sendResponse(ChatMsg(ChatMessageType.UNK_227, false, "", "@SVCP_Killed_OnPadOnCreate", None))
+        }
 
         keepAliveFunc = NormalKeepAlive
         zoningStatus = Zoning.Status.None

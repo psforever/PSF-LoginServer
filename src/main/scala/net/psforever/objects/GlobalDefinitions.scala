@@ -7711,6 +7711,15 @@ object GlobalDefinitions {
     mb_pad_creation.Name = "mb_pad_creation"
     mb_pad_creation.Damageable = false
     mb_pad_creation.Repairable = false
+    mb_pad_creation.explodes = true
+    mb_pad_creation.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 99999
+      DamageRadiusMin = 14
+      DamageRadius = 14.5f
+      DamageAtEdge = 0.00002f
+      //damage is 99999 at 14m, dropping rapidly to ~1 at 14.5m
+    }
 
     dropship_pad_doors.Name = "dropship_pad_doors"
     dropship_pad_doors.Damageable = false
