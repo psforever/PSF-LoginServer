@@ -4,7 +4,7 @@ package net.psforever.objects.zones
 import akka.actor.{ActorContext, ActorRef, Props}
 import akka.routing.RandomPool
 import net.psforever.objects.ballistics.{Projectile, SourceEntry}
-import net.psforever.objects._
+import net.psforever.objects.{PlanetSideGameObject, _}
 import net.psforever.objects.ce.{ComplexDeployable, Deployable, SimpleDeployable}
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.equipment.Equipment
@@ -40,13 +40,14 @@ import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.geometry.Geometry3D
 import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
 import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vehicles.UtilityType
-import net.psforever.objects.vital.etc.{EmpReason, ExplodingEntityReason}
+import net.psforever.objects.vital.etc.ExplodingEntityReason
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.vital.Vitality
@@ -1092,177 +1093,169 @@ object Zone {
   }
 
   /**
-    * Allocates `Damageable` targets within the radius of a server-prepared explosion
-    * and informs those entities that they have affected by the aforementioned explosion.
-    * @see `Amenity.Owner`
-    * @see `ComplexDeployable`
-    * @see `DamageInteraction`
-    * @see `DamageResult`
-    * @see `DamageWithPosition`
-    * @see `ExplodingEntityReason`
-    * @see `SimpleDeployable`
-    * @see `VitalityDefinition`
-    * @see `VitalityDefinition.innateDamage`
-    * @see `Zone.Buildings`
-    * @see `Zone.DeployableList`
-    * @see `Zone.LivePlayers`
-    * @see `Zone.LocalEvents`
-    * @see `Zone.Vehicles`
-    * @param zone the zone in which the explosion should occur
-    * @param obj the entity that embodies the explosion (information)
-    * @param instigation whatever prior action triggered the entity to explode, if anything
-    * @param detectionTest a custom test to determine if any given target is affected;
-    *                      defaults to an internal test for simple radial proximity
+    * Allocates `Damageable` targets within the vicinity of server-prepared damage dealing
+    * and informs those entities that they have affected by the aforementioned damage.
+    * Usually, this is considered an "explosion;" but, the application can be utilized for a variety of unbound damage.
+    * @param zone the zone in which the damage should occur
+    * @param source the entity that embodies the damage (information)
+    * @param createInteraction how the interaction for this damage is to prepared
+    * @param testTargetsFromZone a custom test for determining whether the allocated targets are affected by the damage
+    * @param acquireTargetsFromZone the main target-collecting algorithm
     * @return a list of affected entities;
     *         only mostly complete due to the exclusion of objects whose damage resolution is different than usual
     */
-  def causeExplosion(
-                      zone: Zone,
-                      obj: PlanetSideGameObject with Vitality,
-                      instigation: Option[DamageResult],
-                      detectionTest: (PlanetSideGameObject, PlanetSideGameObject, Float) => Boolean = distanceCheck
+  def serverSideDamage(
+                        zone: Zone,
+                        source: PlanetSideGameObject with FactionAffinity with Vitality,
+                        createInteraction: (PlanetSideGameObject with FactionAffinity with Vitality, PlanetSideGameObject with FactionAffinity with Vitality) => DamageInteraction,
+                        testTargetsFromZone: (PlanetSideGameObject, PlanetSideGameObject, Float) => Boolean = distanceCheck,
+                        acquireTargetsFromZone: (Zone, PlanetSideGameObject with FactionAffinity with Vitality, DamageWithPosition) => (List[PlanetSideServerObject with Vitality], List[PlanetSideGameObject with FactionAffinity with Vitality]) = findAllTargets
                     ): List[PlanetSideServerObject] = {
-    obj.Definition.innateDamage match {
-      case Some(explosion) if obj.Definition.explodes =>
-        //useful in this form
-        val sourcePosition = obj.Position
-        val sourcePositionXY = sourcePosition.xy
-        val radius = explosion.DamageRadius * explosion.DamageRadius
-        //collect all targets that can be damaged
-        //players
-        val playerTargets = zone.LivePlayers.filterNot { _.VehicleSeated.nonEmpty }
-        //vehicles
-        val vehicleTargets = zone.Vehicles.filterNot { v => v.Destroyed || v.MountedIn.nonEmpty }
-        //deployables
-        val (simpleDeployableTargets, complexDeployableTargets) =
-          zone.DeployableList
-            .filterNot { _.Destroyed }
-            .foldRight((List.empty[SimpleDeployable], List.empty[ComplexDeployable])) { case (f, (simp, comp)) =>
-              f match {
-                case o: SimpleDeployable => (simp :+ o, comp)
-                case o: ComplexDeployable => (simp, comp :+ o)
-                case _ => (simp, comp)
-              }
-            }
-        //amenities
-        val soiTargets = obj match {
-          case o: Amenity =>
-            //fortunately, even where soi overlap, amenities in different buildings are never that close to each other
-            o.Owner.Amenities
-          case _ =>
-            zone.Buildings.values
-              .filter { b =>
-                val soiRadius = b.Definition.SOIRadius * b.Definition.SOIRadius
-                Vector3.DistanceSquared(sourcePositionXY, b.Position.xy) < soiRadius || soiRadius <= radius
-              }
-              .flatMap { _.Amenities }
-              .filter { _.Definition.Damageable }
-        }
-        //restrict to targets according to the detection plan
-        val allAffectedTargets = (playerTargets ++ vehicleTargets ++ complexDeployableTargets ++ soiTargets)
-          .filter { target =>
-            (target ne obj) && detectionTest(obj, target, radius)
-          }
-        //inform remaining targets that they have suffered an explosion
-        allAffectedTargets
-          .foreach { target =>
-            target.Actor ! Vitality.Damage(
-              DamageInteraction(
-                SourceEntry(target),
-                ExplodingEntityReason(obj, target.DamageModel, instigation),
-                target.Position
-              ).calculate()
-            )
-          }
-        //important note - these are not returned as targets that were affected
-        simpleDeployableTargets
-          .filter { target =>
-            (target ne obj) && detectionTest(obj, target, radius)
-          }
-          .foreach { target =>
-            zone.LocalEvents ! Vitality.DamageOn(
-              target,
-              DamageInteraction(
-                SourceEntry(target),
-                ExplodingEntityReason(obj, target.DamageModel, instigation),
-                target.Position
-              ).calculate()
-            )
-          }
-        allAffectedTargets
+    source.Definition.innateDamage match {
+      case Some(damage) =>
+        serverSideDamage(zone, source, damage, createInteraction, testTargetsFromZone, acquireTargetsFromZone)
       case None =>
         Nil
     }
   }
 
   /**
-    * Allocates `Damageable` targets within the radius of a server-prepared electromagnetic pulse
-    * and informs those entities that they have affected by the aforementioned pulse.
-    * Targets within the effect radius within other rooms are affected, unlike with normal damage.
-    * The only affected target is Boomer deployables.
-    * @see `Amenity.Owner`
-    * @see `BoomerDeployable`
+    * Allocates `Damageable` targets within the vicinity of server-prepared damage dealing
+    * and informs those entities that they have affected by the aforementioned damage.
+    * Usually, this is considered an "explosion;" but, the application can be utilized for a variety of unbound damage.
     * @see `DamageInteraction`
     * @see `DamageResult`
     * @see `DamageWithPosition`
-    * @see `EmpReason`
-    * @see `Zone.DeployableList`
-    * @param zone the zone in which the emp should occur
-    * @param obj the entity that triggered the emp (information)
-    * @param sourcePosition where the emp physically originates
-    * @param effect characteristics of the emp produced
-    * @param detectionTest a custom test to determine if any given target is affected;
-    *                      defaults to an internal test for simple radial proximity
-    * @return a list of affected entities
+    * @see `Vitality.Damage`
+    * @see `Vitality.DamageOn`
+    * @see `VitalityDefinition`
+    * @see `VitalityDefinition.innateDamage`
+    * @see `Zone.LocalEvents`
+    * @param zone the zone in which the damage should occur
+    * @param source the entity that embodies the damage (information)
+    * @param createInteraction how the interaction for this damage is to prepared
+    * @param testTargetsFromZone a custom test for determining whether the allocated targets are affected by the damage
+    * @param acquireTargetsFromZone the main target-collecting algorithm
+    * @return a list of affected entities;
+    *         only mostly complete due to the exclusion of objects whose damage resolution is different than usual
     */
-  def causeSpecialEmp(
-                       zone: Zone,
-                       obj: PlanetSideServerObject with Vitality,
-                       sourcePosition: Vector3,
-                       effect: DamageWithPosition,
-                       detectionTest: (PlanetSideGameObject, PlanetSideGameObject, Float) => Boolean = distanceCheck
-                     ): List[PlanetSideServerObject] = {
-    val proxy: ExplosiveDeployable = {
-      //construct a proxy unit to represent the pulse
-      val o = new ExplosiveDeployable(GlobalDefinitions.special_emp)
-      o.Owner = Some(obj.GUID)
-      o.OwnerName = obj match {
-        case p: Player          => p.Name
-        case o: OwnableByPlayer => o.OwnerName.getOrElse("")
-        case _                  => ""
-      }
-      o.Position = sourcePosition
-      o.Faction = obj.Faction
-      o
-    }
-    val radius = effect.DamageRadius * effect.DamageRadius
-    //only boomers can be affected (that's why it's special)
-    val allAffectedTargets = zone.DeployableList
-      .collect { case o: BoomerDeployable if !o.Destroyed && (o ne obj) && detectionTest(proxy, o, radius) => o }
-    //inform targets that they have suffered the effects of the emp
+  def serverSideDamage(
+                        zone: Zone,
+                        source: PlanetSideGameObject with FactionAffinity with Vitality,
+                        properties: DamageWithPosition,
+                        createInteraction: (PlanetSideGameObject with FactionAffinity with Vitality, PlanetSideGameObject with FactionAffinity with Vitality) => DamageInteraction,
+                        testTargetsFromZone: (PlanetSideGameObject, PlanetSideGameObject, Float) => Boolean,
+                        acquireTargetsFromZone: (Zone, PlanetSideGameObject with FactionAffinity with Vitality, DamageWithPosition) => (List[PlanetSideServerObject with Vitality], List[PlanetSideGameObject with FactionAffinity with Vitality])
+                      ): List[PlanetSideServerObject] = {
+    //collect targets that can be damaged
+    val (pssos, psgos) = acquireTargetsFromZone(zone, source, properties)
+    val radius = properties.DamageRadius * properties.DamageRadius
+    //restrict to targets according to the detection plan
+    val allAffectedTargets = pssos.filter { target => testTargetsFromZone(source, target, radius) }
+    //inform remaining targets that they have suffered damage
     allAffectedTargets
-      .foreach { target =>
-        target.Actor ! Vitality.Damage(
-          DamageInteraction(
-            SourceEntry(target),
-            EmpReason(obj, effect, target),
-            sourcePosition
-          ).calculate()
-        )
-      }
+      .foreach { target => target.Actor ! Vitality.Damage(createInteraction(source, target).calculate()) }
+    //important note - these are not returned as targets that were affected
+    psgos
+      .filter { target => testTargetsFromZone(source, target, radius) }
+      .foreach { target => zone.LocalEvents ! Vitality.DamageOn(target, createInteraction(source, target).calculate()) }
     allAffectedTargets
   }
 
   /**
+    * na
+    * @see `Amenity.Owner`
+    * @see `ComplexDeployable`
+    * @see `DamageWithPosition`
+    * @see `SimpleDeployable`
+    * @see `Zone.Buildings`
+    * @see `Zone.DeployableList`
+    * @see `Zone.LivePlayers`
+    * @see `Zone.Vehicles`
+    * @param zone the zone in which to search
+    * @param source a game entity that is treated as the origin and is excluded from results
+    * @param damagePropertiesBySource information about the effect/damage
+    * @return two lists of objects with different characteristics;
+    *         the first list is `PlanetSideServerObject` entities with `Vitality`;
+    *         the second list is `PlanetSideGameObject` entities with both `Vitality` and `FactionAffinity`
+    */
+  def findAllTargets(
+                      zone: Zone,
+                      source: PlanetSideGameObject with Vitality,
+                      damagePropertiesBySource: DamageWithPosition
+                    ): (List[PlanetSideServerObject with Vitality], List[PlanetSideGameObject with FactionAffinity with Vitality]) = {
+    val sourcePosition = source.Position
+    val sourcePositionXY = sourcePosition.xy
+    val radius = damagePropertiesBySource.DamageRadius * damagePropertiesBySource.DamageRadius
+    //collect all targets that can be damaged
+    //players
+    val playerTargets = zone.LivePlayers.filterNot { _.VehicleSeated.nonEmpty }
+    //vehicles
+    val vehicleTargets = zone.Vehicles.filterNot { v => v.Destroyed || v.MountedIn.nonEmpty }
+    //deployables
+    val (simpleDeployableTargets, complexDeployableTargets) =
+      zone.DeployableList
+        .filterNot { _.Destroyed }
+        .foldRight((List.empty[SimpleDeployable], List.empty[ComplexDeployable])) { case (f, (simp, comp)) =>
+          f match {
+            case o: SimpleDeployable => (simp :+ o, comp)
+            case o: ComplexDeployable => (simp, comp :+ o)
+            case _ => (simp, comp)
+          }
+        }
+    //amenities
+    val soiTargets = source match {
+      case o: Amenity =>
+        //fortunately, even where soi overlap, amenities in different buildings are never that close to each other
+        o.Owner.Amenities
+      case _ =>
+        zone.Buildings.values
+          .filter { b =>
+            val soiRadius = b.Definition.SOIRadius * b.Definition.SOIRadius
+            Vector3.DistanceSquared(sourcePositionXY, b.Position.xy) < soiRadius || soiRadius <= radius
+          }
+          .flatMap { _.Amenities }
+          .filter { _.Definition.Damageable }
+    }
+    (
+      (playerTargets ++ vehicleTargets ++ complexDeployableTargets ++ soiTargets)
+        .filter { target => target ne source },
+      simpleDeployableTargets
+        .filter { target => target ne source }
+    )
+  }
+
+  /**
+    *
+    * @param instigation what previous event happened, if any, that caused this explosion
+    * @param source a game object that represents the source of the explosion
+    * @param target a game object that is affected by the explosion
+    * @return a `DamageInteraction` object
+    */
+  def explosionDamage(
+                       instigation: Option[DamageResult]
+                     )
+                     (
+                       source: PlanetSideGameObject with FactionAffinity with Vitality,
+                       target: PlanetSideGameObject with FactionAffinity with Vitality
+                     ): DamageInteraction = {
+    DamageInteraction(
+      SourceEntry(target),
+      ExplodingEntityReason(source, target.DamageModel, instigation),
+      target.Position
+    )
+  }
+
+  /**
     * Two game entities are considered "near" each other if they are within a certain distance of one another.
-    * A default function literal mainly used for `causesExplosion`.
-    * @see `causeExplosion`
+    * A default function literal mainly used for `serverSideDamage`.
     * @see `ObjectDefinition.Geometry`
-    * @param obj1 a game entity, should be the source of the explosion
-    * @param obj2 a game entity, should be the target of the explosion
+    * @see `serverSideDamage`
+    * @param obj1 a game entity, should be the source of the damage
+    * @param obj2 a game entity, should be the target of the damage
     * @param maxDistance the square of the maximum distance permissible between game entities
     *                    before they are no longer considered "near"
-    * @return `true`, if the target entities are near enough to each other;
+    * @return `true`, if the two entities are near enough to each other;
     *        `false`, otherwise
     */
   def distanceCheck(obj1: PlanetSideGameObject, obj2: PlanetSideGameObject, maxDistance: Float): Boolean = {
@@ -1278,7 +1271,7 @@ object Zone {
     * @return `true`, if the target entities are near enough to each other;
     *        `false`, otherwise
     */
-  def distanceCheck(g1: Geometry3D, g2: Geometry3D, maxDistance: Float): Boolean = {
+  private def distanceCheck(g1: Geometry3D, g2: Geometry3D, maxDistance: Float): Boolean = {
     Vector3.DistanceSquared(g1.center.asVector3, g2.center.asVector3) <= maxDistance ||
     distanceCheck(g1, g2) <= maxDistance
   }

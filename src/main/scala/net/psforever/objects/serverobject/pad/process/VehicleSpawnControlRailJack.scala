@@ -4,10 +4,12 @@ package net.psforever.objects.serverobject.pad.process
 import akka.actor.Props
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.ballistics.SourceEntry
+import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
-import net.psforever.objects.vital.base.DamageType
-import net.psforever.objects.vital.etc.VehicleSpawnReason
-import net.psforever.objects.vital.interaction.DamageInteraction
+import net.psforever.objects.vital.Vitality
+import net.psforever.objects.vital.etc.{ExplodingEntityReason, VehicleSpawnReason}
+import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
+import net.psforever.objects.vital.prop.DamageProperties
 import net.psforever.objects.zones.Zone
 import net.psforever.types.Vector3
 
@@ -35,14 +37,10 @@ class VehicleSpawnControlRailJack(pad: VehicleSpawnPad) extends VehicleSpawnCont
   def receive: Receive = {
     case order @ VehicleSpawnControl.Order(driver, vehicle) =>
       vehicle.MountedIn = pad.GUID
-      Zone.causeExplosion(
+      Zone.serverSideDamage(
         pad.Zone,
         pad,
-        Some(DamageInteraction(
-          SourceEntry(pad),
-          VehicleSpawnReason(SourceEntry(driver), SourceEntry(vehicle)),
-          pad.Position
-        ).calculate(DamageType.None)(pad)),
+        VehicleSpawnControlRailJack.prepareSpawnExplosion(pad, SourceEntry(driver), SourceEntry(vehicle)),
         killBoxFunc
       )
       pad.Zone.VehicleEvents ! VehicleSpawnPad.AttachToRails(vehicle, pad)
@@ -56,6 +54,47 @@ class VehicleSpawnControlRailJack(pad: VehicleSpawnPad) extends VehicleSpawnCont
 }
 
 object VehicleSpawnControlRailJack {
+  def prepareSpawnExplosion(
+                             pad: VehicleSpawnPad,
+                             driver: SourceEntry,
+                             vehicle: SourceEntry
+                           ):
+                           (
+                             PlanetSideGameObject with FactionAffinity with Vitality,
+                             PlanetSideGameObject with FactionAffinity with Vitality
+                           ) => DamageInteraction = {
+    vehicleSpawnExplosion(
+      vehicle,
+      pad.Definition.innateDamage.get,
+      Some(DamageInteraction(
+        SourceEntry(pad),
+        VehicleSpawnReason(driver, vehicle),
+        pad.Position
+      ).calculate()(pad))
+    )
+  }
+
+  def vehicleSpawnExplosion(
+                             vehicle: SourceEntry,
+                             properties: DamageProperties,
+                             cause: Option[DamageResult]
+                           )
+                           (
+                             source: PlanetSideGameObject with FactionAffinity with Vitality,
+                             target: PlanetSideGameObject with FactionAffinity with Vitality
+                           ): DamageInteraction = {
+    DamageInteraction(
+      SourceEntry(target),
+      ExplodingEntityReason(
+        vehicle,
+        properties,
+        target.DamageModel,
+        cause
+      ),
+      target.Position
+    )
+  }
+
   def prepareKillBox(pad: VehicleSpawnPad): (PlanetSideGameObject, PlanetSideGameObject, Float) => Boolean = {
     val forward = Vector3(0,1,0).Rz(pad.Orientation.z + pad.Definition.VehicleCreationZOrientOffset)
     vehicleSpawnKillBox(

@@ -4,10 +4,11 @@ package net.psforever.objects.vital.etc
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.definition.ObjectDefinition
+import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.vital.{Vitality, VitalityDefinition}
 import net.psforever.objects.vital.base.{DamageModifiers, DamageReason, DamageResolution}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
-import net.psforever.objects.vital.prop.DamageWithPosition
+import net.psforever.objects.vital.prop.{DamageProperties, DamageWithPosition}
 import net.psforever.objects.vital.resolution.DamageAndResistance
 import net.psforever.objects.zones.Zone
 
@@ -18,21 +19,18 @@ import net.psforever.objects.zones.Zone
   * @see `VitalityDefinition.explodes`
   * @see `VitalityDefinition.innateDamage`
   * @see `Zone.causesExplosion`
-  * @param entity the source of the explosive yield
+  * @param entity what is accredited as the source of the explosive yield
+  * @param source information about the explosive yield
   * @param damageModel the model to be utilized in these calculations;
   *                    typically, but not always, defined by the target
   * @param instigation what previous event happened, if any, that caused this explosion
   */
 final case class ExplodingEntityReason(
-                                        entity: PlanetSideGameObject with Vitality,
+                                        entity: SourceEntry,
+                                        source: DamageProperties,
                                         damageModel: DamageAndResistance,
                                         instigation: Option[DamageResult]
                                       ) extends DamageReason {
-  private val definition = entity.Definition.asInstanceOf[ObjectDefinition with VitalityDefinition]
-  assert(definition.explodes && definition.innateDamage.nonEmpty, "causal entity does not explode")
-
-  def source: DamageWithPosition = definition.innateDamage.get
-
   def resolution: DamageResolution.Value = DamageResolution.Explosion
 
   def same(test: DamageReason): Boolean = test match {
@@ -43,11 +41,29 @@ final case class ExplodingEntityReason(
   /** lay the blame on that which caused this explosion to occur */
   def adversary: Option[SourceEntry] = instigation match {
     case Some(prior) => prior.interaction.cause.adversary
-    case None         => None
+    case None         => Some(entity)
   }
 
-  /** the entity that exploded is the source of the damage */
-  override def attribution: Int = definition.ObjectId
+  override def attribution: Int = entity.Definition.ObjectId
+}
+
+object ExplodingEntityReason {
+  /**
+    * An overloaded constructor for a wrapper for a "damage source" in damage calculations.
+    * @param entity the source of the explosive yield
+    * @param damageModel the model to be utilized in these calculations
+    * @param instigation what previous event happened, if any, that caused this explosion
+    * @return an `ExplodingEntityReason` entity
+    */
+  def apply(
+             entity: PlanetSideGameObject with FactionAffinity with Vitality,
+             damageModel: DamageAndResistance,
+             instigation: Option[DamageResult]
+           ): ExplodingEntityReason = {
+    val definition = entity.Definition.asInstanceOf[ObjectDefinition with VitalityDefinition]
+    assert(definition.explodes && definition.innateDamage.nonEmpty, "causal entity does not explode")
+    ExplodingEntityReason(SourceEntry(entity), definition.innateDamage.get, damageModel, instigation)
+  }
 }
 
 object ExplodingDamageModifiers {

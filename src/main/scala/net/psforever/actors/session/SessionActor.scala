@@ -5530,11 +5530,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               projectile.profile.JammerProjectile ||
               projectile.profile.SympatheticExplosion
             ) {
-              Zone.causeSpecialEmp(
+              //can also substitute 'projectile.profile' for 'SpecialEmp.emp'
+              Zone.serverSideDamage(
                 continent,
                 player,
-                explosion_pos,
-                GlobalDefinitions.special_emp.innateDamage.get
+                SpecialEmp.emp,
+                SpecialEmp.createEmpInteraction(SpecialEmp.emp, explosion_pos),
+                SpecialEmp.prepareDistanceCheck(player, explosion_pos, player.Faction),
+                SpecialEmp.findAllBoomers
               )
             }
             if (profile.ExistsOnRemoteClients && projectile.HasGUID) {

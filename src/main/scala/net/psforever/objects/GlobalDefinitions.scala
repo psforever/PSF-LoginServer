@@ -982,8 +982,6 @@ object GlobalDefinitions {
 
   val router_telepad_deployable = SimpleDeployableDefinition(DeployedItem.router_telepad_deployable)
 
-  val special_emp = ExplosiveDeployableDefinition(DeployedItem.jammer_mine)
-
   //this is only treated like a deployable
   val internal_router_telepad_deployable = InternalTelepadDefinition() //objectId: 744
   init_deployables()
@@ -7037,11 +7035,10 @@ object GlobalDefinitions {
     * Initialize `Deployable` globals.
     */
   private def init_deployables(): Unit = {
-    val mine        = GeometryForm.representByCylinder(radius = 0.1914f, height = 0.0957f) _
+    val mine = GeometryForm.representByCylinder(radius = 0.1914f, height = 0.0957f) _
     val smallTurret = GeometryForm.representByCylinder(radius = 0.48435f, height = 1.23438f) _
-    val sensor      = GeometryForm.representByCylinder(radius = 0.1914f, height = 1.21875f) _
+    val sensor = GeometryForm.representByCylinder(radius = 0.1914f, height = 1.21875f) _
     val largeTurret = GeometryForm.representByCylinder(radius = 0.8437f, height = 2.29687f) _
-
     boomer.Name = "boomer"
     boomer.Descriptor = "Boomers"
     boomer.MaxHealth = 100
@@ -7064,7 +7061,6 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     boomer.Geometry = mine
-
     he_mine.Name = "he_mine"
     he_mine.Descriptor = "Mines"
     he_mine.MaxHealth = 100
@@ -7086,7 +7082,6 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     he_mine.Geometry = mine
-
     jammer_mine.Name = "jammer_mine"
     jammer_mine.Descriptor = "JammerMines"
     jammer_mine.MaxHealth = 100
@@ -7096,14 +7091,13 @@ object GlobalDefinitions {
     jammer_mine.DeployTime = Duration.create(1000, "ms")
     jammer_mine.DetonateOnJamming = false
     jammer_mine.Geometry = mine
-
     spitfire_turret.Name = "spitfire_turret"
     spitfire_turret.Descriptor = "Spitfires"
     spitfire_turret.MaxHealth = 100
     spitfire_turret.Damageable = true
     spitfire_turret.Repairable = true
     spitfire_turret.RepairIfDestroyed = false
-    spitfire_turret.WeaponPaths += 1                     -> new mutable.HashMap()
+    spitfire_turret.WeaponPaths += 1 -> new mutable.HashMap()
     spitfire_turret.WeaponPaths(1) += TurretUpgrade.None -> spitfire_weapon
     spitfire_turret.ReserveAmmunition = false
     spitfire_turret.DeployCategory = DeployableCategory.SmallTurrets
@@ -7120,14 +7114,13 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     spitfire_turret.Geometry = smallTurret
-
     spitfire_cloaked.Name = "spitfire_cloaked"
     spitfire_cloaked.Descriptor = "CloakingSpitfires"
     spitfire_cloaked.MaxHealth = 100
     spitfire_cloaked.Damageable = true
     spitfire_cloaked.Repairable = true
     spitfire_cloaked.RepairIfDestroyed = false
-    spitfire_cloaked.WeaponPaths += 1                     -> new mutable.HashMap()
+    spitfire_cloaked.WeaponPaths += 1 -> new mutable.HashMap()
     spitfire_cloaked.WeaponPaths(1) += TurretUpgrade.None -> spitfire_weapon
     spitfire_cloaked.ReserveAmmunition = false
     spitfire_cloaked.DeployCategory = DeployableCategory.SmallTurrets
@@ -7143,14 +7136,13 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     spitfire_cloaked.Geometry = smallTurret
-
     spitfire_aa.Name = "spitfire_aa"
     spitfire_aa.Descriptor = "FlakSpitfires"
     spitfire_aa.MaxHealth = 100
     spitfire_aa.Damageable = true
     spitfire_aa.Repairable = true
     spitfire_aa.RepairIfDestroyed = false
-    spitfire_aa.WeaponPaths += 1                     -> new mutable.HashMap()
+    spitfire_aa.WeaponPaths += 1 -> new mutable.HashMap()
     spitfire_aa.WeaponPaths(1) += TurretUpgrade.None -> spitfire_aa_weapon
     spitfire_aa.ReserveAmmunition = false
     spitfire_aa.DeployCategory = DeployableCategory.SmallTurrets
@@ -7166,7 +7158,6 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     spitfire_aa.Geometry = smallTurret
-
     motionalarmsensor.Name = "motionalarmsensor"
     motionalarmsensor.Descriptor = "MotionSensors"
     motionalarmsensor.MaxHealth = 100
@@ -7175,7 +7166,6 @@ object GlobalDefinitions {
     motionalarmsensor.RepairIfDestroyed = false
     motionalarmsensor.DeployTime = Duration.create(1000, "ms")
     motionalarmsensor.Geometry = sensor
-
     sensor_shield.Name = "sensor_shield"
     sensor_shield.Descriptor = "SensorShields"
     sensor_shield.MaxHealth = 100
@@ -7184,7 +7174,6 @@ object GlobalDefinitions {
     sensor_shield.RepairIfDestroyed = false
     sensor_shield.DeployTime = Duration.create(5000, "ms")
     sensor_shield.Geometry = sensor
-
     tank_traps.Name = "tank_traps"
     tank_traps.Descriptor = "TankTraps"
     tank_traps.MaxHealth = 5000
@@ -7203,7 +7192,6 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     tank_traps.Geometry = GeometryForm.representByCylinder(radius = 2.89680997f, height = 3.57812f)
-
     val fieldTurretConverter = new FieldTurretConverter
     portable_manned_turret.Name = "portable_manned_turret"
     portable_manned_turret.Descriptor = "FieldTurrets"
@@ -7211,11 +7199,11 @@ object GlobalDefinitions {
     portable_manned_turret.Damageable = true
     portable_manned_turret.Repairable = true
     portable_manned_turret.RepairIfDestroyed = false
-    portable_manned_turret.controlledWeapons += 0               -> 1
-    portable_manned_turret.WeaponPaths += 1                     -> new mutable.HashMap()
+    portable_manned_turret.controlledWeapons += 0 -> 1
+    portable_manned_turret.WeaponPaths += 1 -> new mutable.HashMap()
     portable_manned_turret.WeaponPaths(1) += TurretUpgrade.None -> energy_gun
-    portable_manned_turret.MountPoints += 1                     -> MountInfo(0)
-    portable_manned_turret.MountPoints += 2                     -> MountInfo(0)
+    portable_manned_turret.MountPoints += 1 -> MountInfo(0)
+    portable_manned_turret.MountPoints += 2 -> MountInfo(0)
     portable_manned_turret.ReserveAmmunition = true
     portable_manned_turret.FactionLocked = true
     portable_manned_turret.Packet = fieldTurretConverter
@@ -7232,18 +7220,17 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     portable_manned_turret.Geometry = largeTurret
-
     portable_manned_turret_nc.Name = "portable_manned_turret_nc"
     portable_manned_turret_nc.Descriptor = "FieldTurrets"
     portable_manned_turret_nc.MaxHealth = 1000
     portable_manned_turret_nc.Damageable = true
     portable_manned_turret_nc.Repairable = true
     portable_manned_turret_nc.RepairIfDestroyed = false
-    portable_manned_turret_nc.WeaponPaths += 1                     -> new mutable.HashMap()
+    portable_manned_turret_nc.WeaponPaths += 1 -> new mutable.HashMap()
     portable_manned_turret_nc.WeaponPaths(1) += TurretUpgrade.None -> energy_gun_nc
-    portable_manned_turret_nc.controlledWeapons += 0               -> 1
-    portable_manned_turret_nc.MountPoints += 1                     -> MountInfo(0)
-    portable_manned_turret_nc.MountPoints += 2                     -> MountInfo(0)
+    portable_manned_turret_nc.controlledWeapons += 0 -> 1
+    portable_manned_turret_nc.MountPoints += 1 -> MountInfo(0)
+    portable_manned_turret_nc.MountPoints += 2 -> MountInfo(0)
     portable_manned_turret_nc.ReserveAmmunition = true
     portable_manned_turret_nc.FactionLocked = true
     portable_manned_turret_nc.Packet = fieldTurretConverter
@@ -7260,18 +7247,17 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     portable_manned_turret_nc.Geometry = largeTurret
-
     portable_manned_turret_tr.Name = "portable_manned_turret_tr"
     portable_manned_turret_tr.Descriptor = "FieldTurrets"
     portable_manned_turret_tr.MaxHealth = 1000
     portable_manned_turret_tr.Damageable = true
     portable_manned_turret_tr.Repairable = true
     portable_manned_turret_tr.RepairIfDestroyed = false
-    portable_manned_turret_tr.WeaponPaths += 1                     -> new mutable.HashMap()
+    portable_manned_turret_tr.WeaponPaths += 1 -> new mutable.HashMap()
     portable_manned_turret_tr.WeaponPaths(1) += TurretUpgrade.None -> energy_gun_tr
-    portable_manned_turret_tr.controlledWeapons += 0               -> 1
-    portable_manned_turret_tr.MountPoints += 1                     -> MountInfo(0)
-    portable_manned_turret_tr.MountPoints += 2                     -> MountInfo(0)
+    portable_manned_turret_tr.controlledWeapons += 0 -> 1
+    portable_manned_turret_tr.MountPoints += 1 -> MountInfo(0)
+    portable_manned_turret_tr.MountPoints += 2 -> MountInfo(0)
     portable_manned_turret_tr.ReserveAmmunition = true
     portable_manned_turret_tr.FactionLocked = true
     portable_manned_turret_tr.Packet = fieldTurretConverter
@@ -7288,18 +7274,17 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     portable_manned_turret_tr.Geometry = largeTurret
-
     portable_manned_turret_vs.Name = "portable_manned_turret_vs"
     portable_manned_turret_vs.Descriptor = "FieldTurrets"
     portable_manned_turret_vs.MaxHealth = 1000
     portable_manned_turret_vs.Damageable = true
     portable_manned_turret_vs.Repairable = true
     portable_manned_turret_vs.RepairIfDestroyed = false
-    portable_manned_turret_vs.WeaponPaths += 1                     -> new mutable.HashMap()
+    portable_manned_turret_vs.WeaponPaths += 1 -> new mutable.HashMap()
     portable_manned_turret_vs.WeaponPaths(1) += TurretUpgrade.None -> energy_gun_vs
-    portable_manned_turret_vs.controlledWeapons += 0               -> 1
-    portable_manned_turret_vs.MountPoints += 1                     -> MountInfo(0)
-    portable_manned_turret_vs.MountPoints += 2                     -> MountInfo(0)
+    portable_manned_turret_vs.controlledWeapons += 0 -> 1
+    portable_manned_turret_vs.MountPoints += 1 -> MountInfo(0)
+    portable_manned_turret_vs.MountPoints += 2 -> MountInfo(0)
     portable_manned_turret_vs.ReserveAmmunition = true
     portable_manned_turret_vs.FactionLocked = true
     portable_manned_turret_vs.Packet = fieldTurretConverter
@@ -7316,7 +7301,6 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     portable_manned_turret_vs.Geometry = largeTurret
-
     deployable_shield_generator.Name = "deployable_shield_generator"
     deployable_shield_generator.Descriptor = "ShieldGenerators"
     deployable_shield_generator.MaxHealth = 1700
@@ -7326,7 +7310,6 @@ object GlobalDefinitions {
     deployable_shield_generator.DeployTime = Duration.create(6000, "ms")
     deployable_shield_generator.Model = ComplexDeployableResolutions.calculate
     deployable_shield_generator.Geometry = GeometryForm.representByCylinder(radius = 0.6562f, height = 2.17188f)
-
     router_telepad_deployable.Name = "router_telepad_deployable"
     router_telepad_deployable.MaxHealth = 100
     router_telepad_deployable.Damageable = true
@@ -7336,7 +7319,6 @@ object GlobalDefinitions {
     router_telepad_deployable.Packet = new TelepadDeployableConverter
     router_telepad_deployable.Model = SimpleResolutions.calculate
     router_telepad_deployable.Geometry = GeometryForm.representByRaisedSphere(radius = 1.2344f)
-
     internal_router_telepad_deployable.Name = "router_telepad_deployable"
     internal_router_telepad_deployable.MaxHealth = 1
     internal_router_telepad_deployable.Damageable = false
@@ -7344,22 +7326,6 @@ object GlobalDefinitions {
     internal_router_telepad_deployable.DeployTime = Duration.create(1, "ms")
     internal_router_telepad_deployable.DeployCategory = DeployableCategory.Telepads
     internal_router_telepad_deployable.Packet = new InternalTelepadDeployableConverter
-
-    special_emp.Name = "emp"
-    special_emp.MaxHealth = 1
-    special_emp.Damageable = false
-    special_emp.Repairable = false
-    special_emp.DeployCategory = DeployableCategory.Mines
-    special_emp.explodes = true
-    special_emp.innateDamage = new DamageWithPosition {
-      CausesDamageType = DamageType.Splash
-      SympatheticExplosion = true
-      Damage0 = 0
-      DamageAtEdge = 1.0f
-      DamageRadius = 5f
-      AdditionalEffect = true
-      Modifiers = MaxDistanceCutoff
-    }
   }
 
   /**

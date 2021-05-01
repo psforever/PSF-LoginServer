@@ -93,7 +93,7 @@ trait DamageableWeaponTurret
     EndAllAggravation()
     DamageableWeaponTurret.DestructionAwareness(obj, cause)
     DamageableMountable.DestructionAwareness(obj, cause)
-    Zone.causeExplosion(target.Zone, target, Some(cause))
+    Zone.serverSideDamage(target.Zone, target, Zone.explosionDamage(Some(cause)))
   }
 }
 
