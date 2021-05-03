@@ -37,7 +37,7 @@ class VehicleSpawnControlLoadVehicle(pad: VehicleSpawnPad) extends VehicleSpawnC
 
   def receive: Receive = {
     case order @ VehicleSpawnControl.Order(driver, vehicle) =>
-      if (driver.Continent == pad.Continent && vehicle.Health > 0 && driver.isAlive) {
+      if (VehicleSpawnControl.validateOrderCredentials(pad, driver, vehicle).isEmpty) {
         trace(s"loading the ${vehicle.Definition.Name}")
         vehicle.Position = vehicle.Position - Vector3.z(
           if (GlobalDefinitions.isFlightVehicle(vehicle.Definition)) 9 else 5

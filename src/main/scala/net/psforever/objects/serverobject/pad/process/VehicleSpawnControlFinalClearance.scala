@@ -25,7 +25,7 @@ class VehicleSpawnControlFinalClearance(pad: VehicleSpawnPad) extends VehicleSpa
   def receive: Receive = {
     case order @ VehicleSpawnControl.Order(driver, vehicle) =>
       if (vehicle.PassengerInSeat(driver).isEmpty) {
-        //ensure the vacant vehicle is above the trench and doors
+        //ensure the vacant vehicle is above the trench and the doors
         vehicle.Position = pad.Position + Vector3.z(pad.Definition.VehicleCreationZOffset)
         val definition = vehicle.Definition
         pad.Zone.VehicleEvents ! VehicleServiceMessage(

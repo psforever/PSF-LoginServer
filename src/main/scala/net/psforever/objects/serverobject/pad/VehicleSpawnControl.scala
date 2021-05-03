@@ -3,12 +3,12 @@ package net.psforever.objects.serverobject.pad
 
 import akka.actor.{Cancellable, Props}
 import net.psforever.objects.avatar.SpecialCarry
+import net.psforever.objects.entity.WorldEntity
 import net.psforever.objects.guid.GUIDTask.UnregisterVehicle
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.pad.process.{VehicleSpawnControlBase, VehicleSpawnControlConcealPlayer}
-import net.psforever.objects.serverobject.terminals.Terminal
-import net.psforever.objects.zones.{Zone, Zoning}
-import net.psforever.objects.{Default, Player, Vehicle}
+import net.psforever.objects.zones.{Zone, ZoneAware, Zoning}
+import net.psforever.objects.{Default, PlanetSideGameObject, Player, Vehicle}
 import net.psforever.types.Vector3
 
 import scala.annotation.tailrec
@@ -428,22 +428,31 @@ object VehicleSpawnControl {
   /**
     * Assess the applicable details of an order that is being processed (is usually enqueued)
     * and determine whether it is is still valid based on the current situation of those details.
-    * @param term the terminal on which the order was processed
+    * @param inZoneThing some physical aspect of this system through which the order will be processed;
+    *                    either the vehicle spawn pad or the vehicle spawn terminal are useful;
+    *                    this entity and the player are subject to a distance check
     * @param player the player who would be the driver of the vehicle filed in the order
     * @param vehicle the vehicle filed in the order
+    * @param tooFarDistance the distance check;
+    *                       defaults to 1225 (35m squared) relative to the anticipation of a `Terminal` entity
     * @return whether or not a cancellation message is associated with these entry details,
     *         explaining why the order should be cancelled
     */
-  def validateOrderCredentials(term: Terminal, player: Player, vehicle: Vehicle): Option[String] = {
-    if (!player.HasGUID || player.Zone != term.Zone || !vehicle.HasGUID || vehicle.Destroyed) {
+  def validateOrderCredentials(
+                                inZoneThing: PlanetSideGameObject with WorldEntity with ZoneAware,
+                                player: Player,
+                                vehicle: Vehicle,
+                                tooFarDistance: Float = 1225
+                              ): Option[String] = {
+    if (!player.HasGUID || player.Zone != inZoneThing.Zone || !vehicle.HasGUID || vehicle.Destroyed) {
       Some("@SVCP_RemovedFromVehicleQueue_Generic")
     } else if (!player.isAlive || player.isReleased) {
       Some("@SVCP_RemovedFromVehicleQueue_Destroyed")
     } else if (vehicle.PassengerInSeat(player).isEmpty) {
       //once seated, these are not a concern anymore
-      if (term.Destroyed) {
+      if (inZoneThing.Destroyed) {
         Some("@SVCP_RemovedFromQueue_TerminalDestroyed")
-      } else if (Vector3.DistanceSquared(term.Position, player.Position) > 1225) {
+      } else if (Vector3.DistanceSquared(inZoneThing.Position, player.Position) > tooFarDistance) {
         Some("@SVCP_RemovedFromVehicleQueue_MovedTooFar")
       } else if (player.VehicleSeated.nonEmpty) {
         Some("@SVCP_RemovedFromVehicleQueue_ParentChanged")
