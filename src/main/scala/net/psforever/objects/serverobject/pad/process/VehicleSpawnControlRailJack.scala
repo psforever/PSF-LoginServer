@@ -11,7 +11,6 @@ import net.psforever.objects.vital.etc.{ExplodingEntityReason, VehicleSpawnReaso
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.prop.DamageProperties
 import net.psforever.objects.zones.Zone
-import net.psforever.types.Vector3
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -31,9 +30,6 @@ class VehicleSpawnControlRailJack(pad: VehicleSpawnPad) extends VehicleSpawnCont
   val seatDriver =
     context.actorOf(Props(classOf[VehicleSpawnControlSeatDriver], pad), s"${context.parent.path.name}-mount")
 
-  val killBoxFunc: (PlanetSideGameObject, PlanetSideGameObject, Float) => Boolean =
-    VehicleSpawnControlRailJack.prepareKillBox(pad)
-
   def receive: Receive = {
     case order @ VehicleSpawnControl.Order(driver, vehicle) =>
       vehicle.MountedIn = pad.GUID
@@ -41,7 +37,7 @@ class VehicleSpawnControlRailJack(pad: VehicleSpawnPad) extends VehicleSpawnCont
         pad.Zone,
         pad,
         VehicleSpawnControlRailJack.prepareSpawnExplosion(pad, SourceEntry(driver), SourceEntry(vehicle)),
-        killBoxFunc
+        pad.Definition.killBox(pad, vehicle.Definition.CanFly)
       )
       pad.Zone.VehicleEvents ! VehicleSpawnPad.AttachToRails(vehicle, pad)
       context.system.scheduler.scheduleOnce(10 milliseconds, seatDriver, order)
@@ -93,53 +89,5 @@ object VehicleSpawnControlRailJack {
       ),
       target.Position
     )
-  }
-
-  def prepareKillBox(pad: VehicleSpawnPad): (PlanetSideGameObject, PlanetSideGameObject, Float) => Boolean = {
-    val forward = Vector3(0,1,0).Rz(pad.Orientation.z + pad.Definition.VehicleCreationZOrientOffset)
-    vehicleSpawnKillBox(
-      forward,
-      Vector3.CrossProduct(forward, Vector3(0,0,1)),
-      pad.Position,
-      forwardLimit = 14,
-      backLimit = 10,
-      sideLimit = 7.5f,
-      aboveLimit = 5
-    )
-  }
-
-  protected def vehicleSpawnKillBox(
-                                     forward: Vector3,
-                                     side: Vector3,
-                                     origin: Vector3,
-                                     forwardLimit: Float,
-                                     backLimit: Float,
-                                     sideLimit: Float,
-                                     aboveLimit: Float
-                                   )
-                                   (
-                                     obj1: PlanetSideGameObject,
-                                     obj2: PlanetSideGameObject,
-                                     maxDistance: Float
-                                   ): Boolean = {
-    val dir: Vector3 = {
-      val g2 = obj2.Definition.Geometry(obj2)
-      val cdir = Vector3.Unit(origin - g2.center.asVector3)
-      val point = g2.pointOnOutside(cdir).asVector3
-      point - origin
-    }
-    val originZ = origin.z
-    val obj2Z = obj2.Position.z
-    originZ - 1 <= obj2Z && originZ + aboveLimit > obj2Z &&
-    {
-      val calculatedForwardDistance = Vector3.ScalarProjection(dir, forward)
-      if (calculatedForwardDistance >= 0) {
-        calculatedForwardDistance < forwardLimit
-      }
-      else {
-        -calculatedForwardDistance < backLimit
-      }
-    } &&
-    math.abs(Vector3.ScalarProjection(dir, side)) < sideLimit
   }
 }

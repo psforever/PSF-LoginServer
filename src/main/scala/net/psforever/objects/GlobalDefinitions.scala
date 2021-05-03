@@ -20,12 +20,7 @@ import net.psforever.objects.serverobject.painbox.PainboxDefinition
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.tube.SpawnTubeDefinition
 import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
-import net.psforever.objects.serverobject.structures.{
-  AmenityDefinition,
-  AutoRepairStats,
-  BuildingDefinition,
-  WarpGateDefinition
-}
+import net.psforever.objects.serverobject.structures.{AmenityDefinition, AutoRepairStats, BuildingDefinition, WarpGateDefinition}
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalDefinition
 import net.psforever.objects.serverobject.terminals.implant.{ImplantTerminalDefinition, ImplantTerminalMechDefinition}
 import net.psforever.objects.serverobject.turret.{FacilityTurretDefinition, TurretUpgrade}
@@ -7677,7 +7672,12 @@ object GlobalDefinitions {
     mb_pad_creation.Name = "mb_pad_creation"
     mb_pad_creation.Damageable = false
     mb_pad_creation.Repairable = false
-    mb_pad_creation.explodes = true
+    mb_pad_creation.killBox = VehicleSpawnPadDefinition.prepareKillBox(
+      forwardLimit = 14,
+      backLimit = 10,
+      sideLimit = 7.5f,
+      aboveLimit = 5 //double to 10 when spawning a flying vehicle
+    )
     mb_pad_creation.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 99999
@@ -7690,10 +7690,36 @@ object GlobalDefinitions {
     dropship_pad_doors.Name = "dropship_pad_doors"
     dropship_pad_doors.Damageable = false
     dropship_pad_doors.Repairable = false
+    dropship_pad_doors.killBox = VehicleSpawnPadDefinition.prepareKillBox(
+      forwardLimit = 14,
+      backLimit = 14,
+      sideLimit = 13.5f,
+      aboveLimit = 5 //doubles to 10
+    )
+    dropship_pad_doors.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 99999
+      DamageRadiusMin = 14
+      DamageRadius = 14.5f
+      DamageAtEdge = 0.00002f
+      //damage is 99999 at 14m, dropping rapidly to ~1 at 14.5m
+    }
 
     vanu_vehicle_creation_pad.Name = "vanu_vehicle_creation_pad"
     vanu_vehicle_creation_pad.Damageable = false
     vanu_vehicle_creation_pad.Repairable = false
+    vanu_vehicle_creation_pad.killBox = VehicleSpawnPadDefinition.prepareVanuKillBox(
+      radius = 8.5f,
+      aboveLimit = 5
+    )
+    vanu_vehicle_creation_pad.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 99999
+      DamageRadiusMin = 14
+      DamageRadius = 14.5f
+      DamageAtEdge = 0.00002f
+      //damage is 99999 at 14m, dropping rapidly to ~1 at 14.5m
+    }
 
     mb_locker.Name = "mb_locker"
     mb_locker.Damageable = false

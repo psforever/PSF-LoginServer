@@ -1226,7 +1226,7 @@ object Zone {
   }
 
   /**
-    *
+    * na
     * @param instigation what previous event happened, if any, that caused this explosion
     * @param source a game object that represents the source of the explosion
     * @param target a game object that is affected by the explosion
