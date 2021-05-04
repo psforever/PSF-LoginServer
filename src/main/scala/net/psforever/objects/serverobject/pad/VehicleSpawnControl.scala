@@ -499,7 +499,7 @@ object VehicleSpawnControl {
     */
   def DisposeVehicle(vehicle: Vehicle, zone: Zone): Unit = {
     if (zone.Vehicles.exists(_.GUID == vehicle.GUID)) { //already added to zone
-      vehicle.Actor ! Vehicle.Deconstruct()
+      vehicle.Actor ! Vehicle.Deconstruct(Some(0.seconds))
     } else { //just registered to zone
       zone.tasks ! UnregisterVehicle(vehicle)(zone.GUID)
     }

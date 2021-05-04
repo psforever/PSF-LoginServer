@@ -22,9 +22,10 @@ class VehicleSpawnControlDriverControl(pad: VehicleSpawnPad) extends VehicleSpaw
 
   def receive: Receive = {
     case order @ VehicleSpawnControl.Order(driver, vehicle) =>
-      trace(s"returning control of ${vehicle.Definition.Name} to ${driver.Name}")
-      pad.Zone.VehicleEvents ! VehicleSpawnPad.ServerVehicleOverrideEnd(driver.Name, vehicle, pad)
-      vehicle.MountedIn = None
+      trace(s"returning control of ${vehicle.Definition.Name} to its current driver")
+      if (vehicle.PassengerInSeat(driver).nonEmpty) {
+        pad.Zone.VehicleEvents ! VehicleSpawnPad.ServerVehicleOverrideEnd(driver.Name, vehicle, pad)
+      }
       finalClear ! order
 
     case msg @ (VehicleSpawnControl.ProcessControl.Reminder | VehicleSpawnControl.ProcessControl.GetNewOrder) =>

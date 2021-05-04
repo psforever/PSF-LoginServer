@@ -2811,7 +2811,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           ObjectDetachMessage(
             pad_guid,
             vehicle_guid,
-            pad_position + Vector3(0, 0, pad.VehicleCreationZOffset),
+            pad_position + Vector3.z(pad.VehicleCreationZOffset),
             pad_orientation_z + pad.VehicleCreationZOrientOffset
           )
         )

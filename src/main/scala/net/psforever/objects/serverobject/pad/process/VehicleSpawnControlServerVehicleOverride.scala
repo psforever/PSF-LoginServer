@@ -30,6 +30,7 @@ class VehicleSpawnControlServerVehicleOverride(pad: VehicleSpawnPad) extends Veh
       val vehicleFailState = vehicle.Health == 0 || vehicle.Position == Vector3.Zero
       val driverFailState =
         !driver.isAlive || driver.Continent != pad.Continent || !vehicle.PassengerInSeat(driver).contains(0)
+      vehicle.MountedIn = None
       pad.Zone.VehicleEvents ! VehicleSpawnPad.DetachFromRails(vehicle, pad)
       if (vehicleFailState || driverFailState) {
         if (vehicleFailState) {
