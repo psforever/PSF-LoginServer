@@ -5,57 +5,16 @@ import java.util.concurrent.atomic.AtomicInteger
 import akka.actor.Cancellable
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
-import net.psforever.objects.avatar.{Avatar, BattleRank, Certification, Cosmetic, Implant}
+import net.psforever.objects.avatar._
 import net.psforever.objects.definition.converter.CharacterSelectConverter
-import net.psforever.objects.definition.{
-  AmmoBoxDefinition,
-  BasicDefinition,
-  ConstructionItemDefinition,
-  ImplantDefinition,
-  KitDefinition,
-  SimpleItemDefinition,
-  ToolDefinition
-}
+import net.psforever.objects.definition._
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.loadouts.{InfantryLoadout, Loadout}
-import net.psforever.objects.{
-  Account,
-  AmmoBox,
-  ConstructionItem,
-  GlobalDefinitions,
-  Kit,
-  Player,
-  Session,
-  SimpleItem,
-  Tool
-}
+import net.psforever.objects._
 import net.psforever.packet.game.objectcreate.ObjectClass
-import net.psforever.packet.game.{
-  ActionProgressMessage,
-  ActionResultMessage,
-  AvatarImplantMessage,
-  AvatarVehicleTimerMessage,
-  BattleExperienceMessage,
-  CharacterInfoMessage,
-  CreateShortcutMessage,
-  FavoritesMessage,
-  ImplantAction,
-  ItemTransactionResultMessage,
-  ObjectCreateDetailedMessage,
-  PlanetSideZoneID,
-  PlanetsideAttributeMessage
-}
-import net.psforever.types.{
-  CharacterSex,
-  CharacterVoice,
-  ExoSuitType,
-  ImplantType,
-  LoadoutType,
-  PlanetSideEmpire,
-  PlanetSideGUID,
-  TransactionType
-}
+import net.psforever.packet.game._
+import net.psforever.types._
 import net.psforever.util.Database._
 import net.psforever.persistence
 import net.psforever.util.{Config, DefinitionUtil}
@@ -269,8 +228,8 @@ class AvatarActor(
 
   def postStartBehaviour(): Behavior[Command] = {
     account match {
-      case Some(account) =>
-        buffer.unstashAll(active(account))
+      case Some(_account) =>
+        buffer.unstashAll(active(_account))
       case _ =>
         Behaviors.same
     }
@@ -328,7 +287,7 @@ class AvatarActor(
 
                   result.onComplete {
                     case Success(_) =>
-                      log.debug(s"AvatarActor: created character ${name} for account ${account.name}")
+                      log.debug(s"AvatarActor: created character $name for account ${account.name}")
                       sessionActor ! SessionActor.SendResponse(ActionResultMessage.Pass)
                       sendAvatars(account)
                     case Failure(e) => log.error(e)("db failure")
@@ -445,8 +404,8 @@ class AvatarActor(
                   sessionActor ! SessionActor.SendResponse(
                     ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = false)
                   )
-                case Success(replace) =>
-                  replace.foreach { cert =>
+                case Success(_replace) =>
+                  _replace.foreach { cert =>
                     sessionActor ! SessionActor.SendResponse(
                       PlanetsideAttributeMessage(session.get.player.GUID, 25, cert.value)
                     )
@@ -519,15 +478,29 @@ class AvatarActor(
                     ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = false)
                   )
                 case Success(certs) =>
+                  val player = session.get.player
                   context.self ! ReplaceAvatar(avatar.copy(certifications = avatar.certifications.diff(certs)))
                   certs.foreach { cert =>
                     sessionActor ! SessionActor.SendResponse(
-                      PlanetsideAttributeMessage(session.get.player.GUID, 25, cert.value)
+                      PlanetsideAttributeMessage(player.GUID, 25, cert.value)
                     )
                   }
                   sessionActor ! SessionActor.SendResponse(
                     ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = true)
                   )
+                  //wearing invalid armor
+                  if ((certification == Certification.ReinforcedExoSuit && player.ExoSuit == ExoSuitType.Reinforced) ||
+                      (certification == Certification.InfiltrationSuit && player.ExoSuit == ExoSuitType.Infiltration) ||
+                      (player.ExoSuit == ExoSuitType.MAX && {
+                        val wep = player.Slot(slot = 0).Equipment
+                        certification == Certification.UniMAX ||
+                        (certification == Certification.AAMAX && InfantryLoadout.DetermineSubtypeA(ExoSuitType.MAX, wep) == 1) ||
+                        (certification == Certification.AIMAX && InfantryLoadout.DetermineSubtypeA(ExoSuitType.MAX, wep) == 2) ||
+                        (certification == Certification.AVMAX && InfantryLoadout.DetermineSubtypeA(ExoSuitType.MAX, wep) == 3)
+                      })
+                  ) {
+                    player.Actor ! PlayerControl.SetExoSuit(ExoSuitType.Standard, 0)
+                  }
               }
           }
           Behaviors.same
@@ -591,24 +564,24 @@ class AvatarActor(
         case LearnImplant(terminalGuid, definition) =>
           // TODO there used to be a terminal check here, do we really need it?
           val index = avatar.implants.zipWithIndex.collectFirst {
-            case (Some(implant), index) if implant.definition.implantType == definition.implantType => index
-            case (None, index) if index < avatar.br.implantSlots                                    => index
+            case (Some(implant), _index) if implant.definition.implantType == definition.implantType => _index
+            case (None, _index) if _index < avatar.br.implantSlots                                    => _index
           }
           index match {
-            case Some(index) =>
+            case Some(_index) =>
               import ctx._
               ctx
                 .run(query[persistence.Implant].insert(_.name -> lift(definition.Name), _.avatarId -> lift(avatar.id)))
                 .onComplete {
                   case Success(_) =>
                     context.self ! ReplaceAvatar(
-                      avatar.copy(implants = avatar.implants.updated(index, Some(Implant(definition))))
+                      avatar.copy(implants = avatar.implants.updated(_index, Some(Implant(definition))))
                     )
                     sessionActor ! SessionActor.SendResponse(
                       AvatarImplantMessage(
                         session.get.player.GUID,
                         ImplantAction.Add,
-                        index,
+                        _index,
                         definition.implantType.value
                       )
                     )
@@ -630,10 +603,10 @@ class AvatarActor(
         case SellImplant(terminalGuid, definition) =>
           // TODO there used to be a terminal check here, do we really need it?
           val index = avatar.implants.zipWithIndex.collectFirst {
-            case (Some(implant), index) if implant.definition.implantType == definition.implantType => index
+            case (Some(implant), _index) if implant.definition.implantType == definition.implantType => _index
           }
           index match {
-            case Some(index) =>
+            case Some(_index) =>
               import ctx._
               ctx
                 .run(
@@ -644,9 +617,9 @@ class AvatarActor(
                 )
                 .onComplete {
                   case Success(_) =>
-                    context.self ! ReplaceAvatar(avatar.copy(implants = avatar.implants.updated(index, None)))
+                    context.self ! ReplaceAvatar(avatar.copy(implants = avatar.implants.updated(_index, None)))
                     sessionActor ! SessionActor.SendResponse(
-                      AvatarImplantMessage(session.get.player.GUID, ImplantAction.Remove, index, 0)
+                      AvatarImplantMessage(session.get.player.GUID, ImplantAction.Remove, _index, 0)
                     )
                     sessionActor ! SessionActor.SendResponse(
                       ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = true)
@@ -858,7 +831,7 @@ class AvatarActor(
           Behaviors.same
 
         case ConsumeStamina(stamina) =>
-          assert(stamina > 0, s"consumed stamina must be larger than 0, but is: ${stamina}")
+          assert(stamina > 0, s"consumed stamina must be larger than 0, but is: $stamina")
           consumeStamina(stamina)
           Behaviors.same
 
@@ -1260,7 +1233,7 @@ class AvatarActor(
           doll.ExoSuit = ExoSuitType(loadout.exosuitId)
 
           loadout.items.split("/").foreach {
-            case value =>
+            value =>
               val (objectType, objectIndex, objectId, toolAmmo) = value.split(",") match {
                 case Array(a, b: String, c: String)    => (a, b.toInt, c.toInt, None)
                 case Array(a, b: String, c: String, d) => (a, b.toInt, c.toInt, Some(d))
@@ -1318,9 +1291,9 @@ class AvatarActor(
   def defaultStaminaRegen(): Cancellable = {
     context.system.scheduler.scheduleWithFixedDelay(0.5 seconds, 0.5 seconds)(() => {
       (session, _avatar) match {
-        case (Some(session), Some(_)) =>
+        case (Some(_session), Some(_)) =>
           if (
-            !avatar.staminaFull && (session.player.VehicleSeated.nonEmpty || !session.player.isMoving && !session.player.Jumping)
+            !avatar.staminaFull && (_session.player.VehicleSeated.nonEmpty || !_session.player.isMoving && !_session.player.Jumping)
           ) {
             context.self ! RestoreStamina(1)
           }

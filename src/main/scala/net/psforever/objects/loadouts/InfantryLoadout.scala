@@ -88,8 +88,7 @@ object InfantryLoadout {
   /**
     * The sub-type of the player's uniform, as used in `FavoritesMessage`.<br>
     * <br>
-    * The values for `Standard`, `Infiltration`, and the generic `MAX` are not perfectly known.
-    * The latter-most exo-suit option is presumed.
+    * The values for a specific `MAX` type is only known by knowing the subtype.
     * @param suit the player's uniform
     * @param subtype the mechanized assault exo-suit subtype as determined by their arm weapons
     * @return the numeric subtype

@@ -221,107 +221,13 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
             }
           }
 
+        case PlayerControl.SetExoSuit(exosuit: ExoSuitType.Value, subtype: Int) =>
+          setExoSuit(exosuit, subtype)
+
         case Terminal.TerminalMessage(_, msg, order) =>
           order match {
             case Terminal.BuyExosuit(exosuit, subtype) =>
-              var toDelete: List[InventoryItem] = Nil
-              val originalSuit                  = player.ExoSuit
-              val originalSubtype               = Loadout.DetermineSubtype(player)
-              val requestToChangeArmor          = originalSuit != exosuit || originalSubtype != subtype
-              val allowedToChangeArmor = Players.CertificationToUseExoSuit(player, exosuit, subtype) &&
-                (if (exosuit == ExoSuitType.MAX) {
-                   val weapon = GlobalDefinitions.MAXArms(subtype, player.Faction)
-                   player.avatar.purchaseCooldown(weapon) match {
-                     case Some(_) =>
-                       false
-                     case None =>
-                       avatarActor ! AvatarActor.UpdatePurchaseTime(weapon)
-                       true
-                   }
-                 } else {
-                   true
-                 })
-              val result = if (requestToChangeArmor && allowedToChangeArmor) {
-                log.info(s"${player.Name} wants to change to a different exo-suit - $exosuit")
-                val beforeHolsters  = Players.clearHolsters(player.Holsters().iterator)
-                val beforeInventory = player.Inventory.Clear()
-                //change suit
-                val originalArmor = player.Armor
-                player.ExoSuit = exosuit //changes the value of MaxArmor to reflect the new exo-suit
-                val toMaxArmor = player.MaxArmor
-                val toArmor = if (originalSuit != exosuit || originalSubtype != subtype || originalArmor > toMaxArmor) {
-                  player.History(HealFromExoSuitChange(PlayerSource(player), exosuit))
-                  player.Armor = toMaxArmor
-                } else {
-                  player.Armor = originalArmor
-                }
-                //ensure arm is down, even if it needs to go back up
-                if (player.DrawnSlot != Player.HandsDownSlot) {
-                  player.DrawnSlot = Player.HandsDownSlot
-                }
-                val normalHolsters = if (originalSuit == ExoSuitType.MAX) {
-                  val (maxWeapons, normalWeapons) = beforeHolsters.partition(elem => elem.obj.Size == EquipmentSize.Max)
-                  toDelete ++= maxWeapons
-                  normalWeapons
-                } else {
-                  beforeHolsters
-                }
-                //populate holsters
-                val (afterHolsters, finalInventory) = if (exosuit == ExoSuitType.MAX) {
-                  (
-                    normalHolsters,
-                    Players.fillEmptyHolsters(List(player.Slot(4)).iterator, normalHolsters) ++ beforeInventory
-                  )
-                } else if (originalSuit == exosuit) { //note - this will rarely be the situation
-                  (normalHolsters, Players.fillEmptyHolsters(player.Holsters().iterator, normalHolsters))
-                } else {
-                  val (afterHolsters, toInventory) =
-                    normalHolsters.partition(elem => elem.obj.Size == player.Slot(elem.start).Size)
-                  afterHolsters.foreach({ elem => player.Slot(elem.start).Equipment = elem.obj })
-                  val remainder = Players.fillEmptyHolsters(player.Holsters().iterator, toInventory ++ beforeInventory)
-                  (
-                    player.HolsterItems(),
-                    remainder
-                  )
-                }
-                //put items back into inventory
-                val (stow, drop) = if (originalSuit == exosuit) {
-                  (finalInventory, Nil)
-                } else {
-                  val (a, b) = GridInventory.recoverInventory(finalInventory, player.Inventory)
-                  (
-                    a,
-                    b.map {
-                      InventoryItem(_, -1)
-                    }
-                  )
-                }
-                stow.foreach { elem =>
-                  player.Inventory.InsertQuickly(elem.start, elem.obj)
-                }
-                //deactivate non-passive implants
-                avatarActor ! AvatarActor.DeactivateActiveImplants()
-                player.Zone.AvatarEvents ! AvatarServiceMessage(
-                  player.Zone.id,
-                  AvatarAction.ChangeExosuit(
-                    player.GUID,
-                    toArmor,
-                    exosuit,
-                    subtype,
-                    player.LastDrawnSlot,
-                    exosuit == ExoSuitType.MAX && requestToChangeArmor,
-                    beforeHolsters.map { case InventoryItem(obj, _) => (obj, obj.GUID) },
-                    afterHolsters,
-                    beforeInventory.map { case InventoryItem(obj, _) => (obj, obj.GUID) },
-                    stow,
-                    drop,
-                    toDelete.map { case InventoryItem(obj, _) => (obj, obj.GUID) }
-                  )
-                )
-                true
-              } else {
-                false
-              }
+              val result = setExoSuit(exosuit, subtype)
               player.Zone.AvatarEvents ! AvatarServiceMessage(
                 player.Name,
                 AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, result)
@@ -510,6 +416,107 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
 
         case _ => ;
       }
+
+  def setExoSuit(exosuit: ExoSuitType.Value, subtype: Int): Boolean = {
+    var toDelete: List[InventoryItem] = Nil
+    val originalSuit                  = player.ExoSuit
+    val originalSubtype               = Loadout.DetermineSubtype(player)
+    val requestToChangeArmor          = originalSuit != exosuit || originalSubtype != subtype
+    val allowedToChangeArmor = Players.CertificationToUseExoSuit(player, exosuit, subtype) &&
+                               (if (exosuit == ExoSuitType.MAX) {
+                                 val weapon = GlobalDefinitions.MAXArms(subtype, player.Faction)
+                                 player.avatar.purchaseCooldown(weapon) match {
+                                   case Some(_) =>
+                                     false
+                                   case None =>
+                                     avatarActor ! AvatarActor.UpdatePurchaseTime(weapon)
+                                     true
+                                 }
+                               } else {
+                                 true
+                               })
+    if (requestToChangeArmor && allowedToChangeArmor) {
+      log.info(s"${player.Name} wants to change to a different exo-suit - $exosuit")
+      val beforeHolsters  = Players.clearHolsters(player.Holsters().iterator)
+      val beforeInventory = player.Inventory.Clear()
+      //change suit
+      val originalArmor = player.Armor
+      player.ExoSuit = exosuit //changes the value of MaxArmor to reflect the new exo-suit
+      val toMaxArmor = player.MaxArmor
+      val toArmor = if (originalSuit != exosuit || originalSubtype != subtype || originalArmor > toMaxArmor) {
+        player.History(HealFromExoSuitChange(PlayerSource(player), exosuit))
+        player.Armor = toMaxArmor
+      } else {
+        player.Armor = originalArmor
+      }
+      //ensure arm is down, even if it needs to go back up
+      if (player.DrawnSlot != Player.HandsDownSlot) {
+        player.DrawnSlot = Player.HandsDownSlot
+      }
+      val normalHolsters = if (originalSuit == ExoSuitType.MAX) {
+        val (maxWeapons, normalWeapons) = beforeHolsters.partition(elem => elem.obj.Size == EquipmentSize.Max)
+        toDelete ++= maxWeapons
+        normalWeapons
+      } else {
+        beforeHolsters
+      }
+      //populate holsters
+      val (afterHolsters, finalInventory) = if (exosuit == ExoSuitType.MAX) {
+        (
+          normalHolsters,
+          Players.fillEmptyHolsters(List(player.Slot(4)).iterator, normalHolsters) ++ beforeInventory
+        )
+      } else if (originalSuit == exosuit) { //note - this will rarely be the situation
+        (normalHolsters, Players.fillEmptyHolsters(player.Holsters().iterator, normalHolsters))
+      } else {
+        val (afterHolsters, toInventory) =
+          normalHolsters.partition(elem => elem.obj.Size == player.Slot(elem.start).Size)
+        afterHolsters.foreach({ elem => player.Slot(elem.start).Equipment = elem.obj })
+        val remainder = Players.fillEmptyHolsters(player.Holsters().iterator, toInventory ++ beforeInventory)
+        (
+          player.HolsterItems(),
+          remainder
+        )
+      }
+      //put items back into inventory
+      val (stow, drop) = if (originalSuit == exosuit) {
+        (finalInventory, Nil)
+      } else {
+        val (a, b) = GridInventory.recoverInventory(finalInventory, player.Inventory)
+        (
+          a,
+          b.map {
+            InventoryItem(_, -1)
+          }
+        )
+      }
+      stow.foreach { elem =>
+        player.Inventory.InsertQuickly(elem.start, elem.obj)
+      }
+      //deactivate non-passive implants
+      avatarActor ! AvatarActor.DeactivateActiveImplants()
+      player.Zone.AvatarEvents ! AvatarServiceMessage(
+        player.Zone.id,
+        AvatarAction.ChangeExosuit(
+          player.GUID,
+          toArmor,
+          exosuit,
+          subtype,
+          player.LastDrawnSlot,
+          exosuit == ExoSuitType.MAX && requestToChangeArmor,
+          beforeHolsters.map { case InventoryItem(obj, _) => (obj, obj.GUID) },
+          afterHolsters,
+          beforeInventory.map { case InventoryItem(obj, _) => (obj, obj.GUID) },
+          stow,
+          drop,
+          toDelete.map { case InventoryItem(obj, _) => (obj, obj.GUID) }
+        )
+      )
+      true
+    } else {
+      false
+    }
+  }
 
   override protected def PerformDamage(
     target: Target,
@@ -1133,6 +1140,9 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
 }
 
 object PlayerControl {
+  /** na */
+  final case class SetExoSuit(exosuit: ExoSuitType.Value, subtype: Int)
+
   /**
     * Transform an applicable Aura effect into its `PlanetsideAttributeMessage` value.
     * @see `Aura`
