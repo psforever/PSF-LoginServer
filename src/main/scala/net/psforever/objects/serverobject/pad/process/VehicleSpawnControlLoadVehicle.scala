@@ -49,12 +49,8 @@ class VehicleSpawnControlLoadVehicle(pad: VehicleSpawnPad) extends VehicleSpawnC
         //if too long, or something goes wrong
         result.recover {
           case _ =>
-            temp match {
-              case Some(_order) => railJack ! VehicleSpawnControl.DisposeVehicle(_order.vehicle, pad.Zone)
-              case None => ; //should we have gotten this message?
-            }
             temp = None
-            context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
+            context.parent ! VehicleSpawnControl.ProcessControl.OrderCancelled
         }
         //resolution
         result.onComplete {
@@ -71,26 +67,23 @@ class VehicleSpawnControlLoadVehicle(pad: VehicleSpawnPad) extends VehicleSpawnC
             railJack ! temp.get
             temp = None
 
-          case Success(Zone.Vehicle.CanNotSpawn(z, v, reason)) =>
+          case Success(Zone.Vehicle.CanNotSpawn(_, _, reason)) =>
             trace(s"vehicle can not spawn - $reason; abort order fulfillment")
-            VehicleSpawnControl.DisposeVehicle(v, z)
             temp = None
-            context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
+            context.parent ! VehicleSpawnControl.ProcessControl.OrderCancelled
 
           case _ =>
             temp match {
-              case Some(_order) =>
+              case Some(_) =>
                 trace(s"abort order fulfillment")
-                VehicleSpawnControl.DisposeVehicle(_order.vehicle, pad.Zone)
-                context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
+                context.parent ! VehicleSpawnControl.ProcessControl.OrderCancelled
               case None => ; //should we have gotten this message?
             }
             temp = None
         }
       } else {
         trace("owner lost or vehicle in poor condition; abort order fulfillment")
-        VehicleSpawnControl.DisposeVehicle(order.vehicle, pad.Zone)
-        context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
+        context.parent ! VehicleSpawnControl.ProcessControl.OrderCancelled
       }
 
     case msg @ (VehicleSpawnControl.ProcessControl.Reminder | VehicleSpawnControl.ProcessControl.GetNewOrder) =>

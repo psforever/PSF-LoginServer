@@ -90,6 +90,20 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
             e.printStackTrace()
         }
 
+      case VehicleSpawnControl.ProcessControl.OrderCancelled =>
+        trackedOrder match {
+          case Some(entry)
+            if sender() == concealPlayer =>
+            CancelOrder(
+              entry,
+              VehicleSpawnControl.validateOrderCredentials(pad, entry.driver, entry.vehicle)
+                .orElse(Some("@SVCP_RemovedFromVehicleQueue_Generic"))
+            )
+          case _ => ;
+        }
+        trackedOrder = None //guard off
+        SelectOrder()
+
       case VehicleSpawnControl.ProcessControl.GetNewOrder =>
         if (sender() == concealPlayer) {
           trackedOrder = None //guard off
@@ -408,6 +422,7 @@ object VehicleSpawnControl {
     sealed trait ProcessControl
 
     case object Flush extends ProcessControl
+    case object OrderCancelled extends ProcessControl
     case object GetNewOrder extends ProcessControl
     case object Reminder extends ProcessControl
     case object QueueManagement extends ProcessControl
@@ -498,7 +513,7 @@ object VehicleSpawnControl {
     * @param zone the zone in which the vehicle is registered (should be located)
     */
   def DisposeVehicle(vehicle: Vehicle, zone: Zone): Unit = {
-    if (zone.Vehicles.exists(_.GUID == vehicle.GUID)) { //already added to zone
+    if (zone.Vehicles.contains(vehicle)) { //already added to zone
       vehicle.Actor ! Vehicle.Deconstruct(Some(0.seconds))
     } else { //just registered to zone
       zone.tasks ! UnregisterVehicle(vehicle)(zone.GUID)

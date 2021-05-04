@@ -32,11 +32,12 @@ class VehicleSpawnControlConcealPlayer(pad: VehicleSpawnPad) extends VehicleSpaw
         context.system.scheduler.scheduleOnce(2000 milliseconds, loadVehicle, order)
       } else {
         trace(s"integral component lost; abort order fulfillment")
-        VehicleSpawnControl.DisposeVehicle(order.vehicle, pad.Zone)
-        context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
+        context.parent ! VehicleSpawnControl.ProcessControl.OrderCancelled
       }
 
-    case msg @ (VehicleSpawnControl.ProcessControl.Reminder | VehicleSpawnControl.ProcessControl.GetNewOrder) =>
+    case msg @ (VehicleSpawnControl.ProcessControl.Reminder |
+                VehicleSpawnControl.ProcessControl.GetNewOrder |
+                VehicleSpawnControl.ProcessControl.OrderCancelled) =>
       context.parent ! msg
 
     case _ => ;
