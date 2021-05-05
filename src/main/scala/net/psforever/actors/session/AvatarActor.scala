@@ -696,15 +696,19 @@ class AvatarActor(
           Behaviors.same
 
         case UpdatePurchaseTime(definition, time) =>
-          //only send for items with cooldowns
-          Avatar.purchaseCooldowns.get(definition) match {
-            case Some(cooldown) =>
-              // TODO save to db
-              avatar = avatar.copy(purchaseTimes = avatar.purchaseTimes.updated(definition.Name, time))
-              updatePurchaseTimer(definition.Name, cooldown.toSeconds, unk1 = true)
-            case None => ;
-            //log.warn(s"UpdatePurchaseTime message for item '${definition.Name}' without cooldown")
+          // TODO save to db
+          var newTimes = avatar.purchaseTimes
+          resolveSharedPurchaseTimeNames(resolvePurchaseTimeName(avatar.faction, definition)).foreach {
+            case (item, name) =>
+              Avatar.purchaseCooldowns.get(item) match {
+                case Some(cooldown) =>
+                  //only send for items with cooldowns
+                  newTimes = newTimes.updated(item.Name, time)
+                  updatePurchaseTimer(name, cooldown.toSeconds, unk1 = true)
+                case _ => ;
+              }
           }
+          avatar = avatar.copy(purchaseTimes = newTimes)
           Behaviors.same
 
         case UpdateUseTime(definition, time) =>
@@ -1315,6 +1319,47 @@ class AvatarActor(
     })
   }
 
+  def resolvePurchaseTimeName(faction: PlanetSideEmpire.Value, item: BasicDefinition): (BasicDefinition, String) = {
+    val factionName : String = faction.toString.toLowerCase
+    val name = item match {
+      case GlobalDefinitions.trhev_dualcycler |
+           GlobalDefinitions.nchev_scattercannon |
+           GlobalDefinitions.vshev_quasar   =>
+        s"${factionName}hev_antipersonnel"
+      case GlobalDefinitions.trhev_pounder |
+           GlobalDefinitions.nchev_falcon |
+           GlobalDefinitions.vshev_comet    =>
+        s"${factionName}hev_antivehicular"
+      case GlobalDefinitions.trhev_burster |
+           GlobalDefinitions.nchev_sparrow |
+           GlobalDefinitions.vshev_starfire =>
+        s"${factionName}hev_antiaircraft"
+      case _                                =>
+        item.Name
+    }
+    (item, name)
+  }
+
+  def resolveSharedPurchaseTimeNames(pair: (BasicDefinition, String)): Seq[(BasicDefinition, String)] = {
+    val (_, name) = pair
+    if (name.matches("(tr|nc|vs)hev_.+") && Config.app.game.sharedMaxCooldown) {
+      val faction = name.take(2)
+      (if (faction.equals("nc")) {
+        Seq(GlobalDefinitions.nchev_scattercannon, GlobalDefinitions.nchev_falcon, GlobalDefinitions.nchev_sparrow)
+      }
+      else if (faction.equals("vs")) {
+        Seq(GlobalDefinitions.vshev_quasar, GlobalDefinitions.vshev_comet, GlobalDefinitions.vshev_starfire)
+      }
+      else {
+        Seq(GlobalDefinitions.trhev_dualcycler, GlobalDefinitions.trhev_pounder, GlobalDefinitions.trhev_burster)
+      }).zip(
+        Seq(s"${faction}hev_antipersonnel", s"${faction}hev_antivehicular", s"${faction}hev_antiaircraft")
+      )
+    } else {
+      Seq(pair)
+    }
+  }
+
   def refreshPurchaseTimes(keys: Set[String]): Unit = {
     var keysToDrop: Seq[String] = Nil
     keys.foreach { key =>
@@ -1323,23 +1368,7 @@ class AvatarActor(
           val secondsSincePurchase = Seconds.secondsBetween(purchaseTime, LocalDateTime.now()).getSeconds
           Avatar.purchaseCooldowns.find(_._1.Name == name) match {
             case Some((obj, cooldown)) if cooldown.toSeconds - secondsSincePurchase > 0 =>
-              val faction : String = avatar.faction.toString.toLowerCase
-              val name = obj match {
-                case GlobalDefinitions.trhev_dualcycler |
-                     GlobalDefinitions.nchev_scattercannon |
-                     GlobalDefinitions.vshev_quasar   =>
-                  s"${faction}hev_antipersonnel"
-                case GlobalDefinitions.trhev_pounder |
-                     GlobalDefinitions.nchev_falcon |
-                     GlobalDefinitions.vshev_comet    =>
-                  s"${faction}hev_antivehicular"
-                case GlobalDefinitions.trhev_burster |
-                     GlobalDefinitions.nchev_sparrow |
-                     GlobalDefinitions.vshev_starfire =>
-                  s"${faction}hev_antiaircraft"
-                case _                                =>
-                  obj.Name
-              }
+              val (_, name) = resolvePurchaseTimeName(avatar.faction, obj)
               updatePurchaseTimer(name, cooldown.toSeconds - secondsSincePurchase, unk1 = true)
 
             case _ =>
