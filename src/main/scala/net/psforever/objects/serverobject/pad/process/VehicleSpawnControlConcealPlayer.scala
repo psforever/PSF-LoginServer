@@ -25,19 +25,19 @@ class VehicleSpawnControlConcealPlayer(pad: VehicleSpawnPad) extends VehicleSpaw
     context.actorOf(Props(classOf[VehicleSpawnControlLoadVehicle], pad), s"${context.parent.path.name}-load")
 
   def receive: Receive = {
-    case order @ VehicleSpawnControl.Order(driver, _) =>
-      //TODO how far can the driver stray from the Terminal before his order is cancelled?
-      if (driver.Continent == pad.Continent && driver.VehicleSeated.isEmpty && driver.isAlive) {
+    case order @ VehicleSpawnControl.Order(driver, vehicle) =>
+      if (VehicleSpawnControl.validateOrderCredentials(pad, driver, vehicle).isEmpty) {
         trace(s"hiding ${driver.Name}")
         pad.Zone.VehicleEvents ! VehicleSpawnPad.ConcealPlayer(driver.GUID)
         context.system.scheduler.scheduleOnce(2000 milliseconds, loadVehicle, order)
       } else {
         trace(s"integral component lost; abort order fulfillment")
-        VehicleSpawnControl.DisposeVehicle(order.vehicle, pad.Zone)
-        context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
+        context.parent ! VehicleSpawnControl.ProcessControl.OrderCancelled
       }
 
-    case msg @ (VehicleSpawnControl.ProcessControl.Reminder | VehicleSpawnControl.ProcessControl.GetNewOrder) =>
+    case msg @ (VehicleSpawnControl.ProcessControl.Reminder |
+                VehicleSpawnControl.ProcessControl.GetNewOrder |
+                VehicleSpawnControl.ProcessControl.OrderCancelled) =>
       context.parent ! msg
 
     case _ => ;

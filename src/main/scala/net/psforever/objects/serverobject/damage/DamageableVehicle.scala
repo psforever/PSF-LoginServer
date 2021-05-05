@@ -205,7 +205,7 @@ trait DamageableVehicle
       }
     })
     //things positioned around us can get hurt from us
-    Zone.causeExplosion(obj.Zone, obj, Some(cause))
+    Zone.serverSideDamage(obj.Zone, target, Zone.explosionDamage(Some(cause)))
     //special considerations for certain vehicles
     Vehicles.BeforeUnloadVehicle(obj, zone)
     //shields

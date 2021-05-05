@@ -122,7 +122,7 @@ class GeneratorControl(gen: Generator)
           queuedExplosion = Default.Cancellable
           imminentExplosion = false
           //hate on everything nearby
-          Zone.causeExplosion(gen.Zone, gen, gen.LastDamage, explosionFunc)
+          Zone.serverSideDamage(gen.Zone, gen, Zone.explosionDamage(gen.LastDamage), explosionFunc)
           gen.ClearHistory()
 
         case GeneratorControl.Restored() =>
@@ -338,8 +338,8 @@ object GeneratorControl {
     * As a consequence, different measurements must be performed to determine that the target is "within" and
     * that the target is not "outside" of the detection radius of the room.
     * Magic numbers for the room dimensions are employed.
-    * @see `Zone.causeExplosion`
     * @see `Zone.distanceCheck`
+    * @see `Zone.serverSideDamage`
     * @param g1ctrXY the center of the generator on the xy-axis
     * @param ufront a `Vector3` entity that points to the "front" direction of the generator;
     *               the `u` prefix indicates a "unit vector"

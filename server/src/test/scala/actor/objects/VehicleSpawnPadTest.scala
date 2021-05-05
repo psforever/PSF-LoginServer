@@ -13,6 +13,7 @@ import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
+import net.psforever.objects.serverobject.terminals.Terminal
 
 import scala.concurrent.duration._
 
@@ -29,11 +30,11 @@ class VehicleSpawnControl1Test extends ActorTest {
 class VehicleSpawnControl2Test extends ActorTest {
   "VehicleSpawnControl" should {
     "complete a vehicle order" in {
-      val (vehicle, player, pad, zone) = VehicleSpawnPadControlTest.SetUpAgents(PlanetSideEmpire.TR)
+      val (vehicle, player, pad, terminal, zone) = VehicleSpawnPadControlTest.SetUpAgents(PlanetSideEmpire.TR)
       val probe                        = new TestProbe(system, "zone-events")
 
-      zone.VehicleEvents = probe.ref                            //zone events
-      pad.Actor ! VehicleSpawnPad.VehicleOrder(player, vehicle) //order
+      zone.VehicleEvents = probe.ref                                      //zone events
+      pad.Actor ! VehicleSpawnPad.VehicleOrder(player, vehicle, terminal) //order
 
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.ConcealPlayer])
       probe.expectMsgClass(1 minute, classOf[VehicleServiceMessage])
@@ -55,7 +56,7 @@ class VehicleSpawnControl2Test extends ActorTest {
 class VehicleSpawnControl3Test extends ActorTest {
   "VehicleSpawnControl" should {
     "block the second vehicle order until the first is completed" in {
-      val (vehicle, player, pad, zone) = VehicleSpawnPadControlTest.SetUpAgents(PlanetSideEmpire.TR)
+      val (vehicle, player, pad, terminal, zone) = VehicleSpawnPadControlTest.SetUpAgents(PlanetSideEmpire.TR)
       //we can recycle the vehicle and the player for each order
       val probe   = new TestProbe(system, "zone-events")
       val player2 = Player(Avatar(0, "test2", player.Faction, CharacterSex.Male, 0, CharacterVoice.Mute))
@@ -63,9 +64,9 @@ class VehicleSpawnControl3Test extends ActorTest {
       player2.Continent = zone.id
       player2.Spawn()
 
-      zone.VehicleEvents = probe.ref                             //zone events
-      pad.Actor ! VehicleSpawnPad.VehicleOrder(player, vehicle)  //first order
-      pad.Actor ! VehicleSpawnPad.VehicleOrder(player2, vehicle) //second order (vehicle shared)
+      zone.VehicleEvents = probe.ref                                       //zone events
+      pad.Actor ! VehicleSpawnPad.VehicleOrder(player, vehicle, terminal)  //first order
+      pad.Actor ! VehicleSpawnPad.VehicleOrder(player2, vehicle, terminal) //second order (vehicle shared)
 
       assert(probe.receiveOne(1 seconds) match {
         case VehicleSpawnPad.PeriodicReminder(_, VehicleSpawnPad.Reminders.Queue, _) => true
@@ -103,12 +104,12 @@ class VehicleSpawnControl3Test extends ActorTest {
 class VehicleSpawnControl4Test extends ActorTest {
   "VehicleSpawnControl" should {
     "clean up the vehicle if the driver-to-be is on the wrong continent" in {
-      val (vehicle, player, pad, zone) = VehicleSpawnPadControlTest.SetUpAgents(PlanetSideEmpire.TR)
+      val (vehicle, player, pad, terminal, zone) = VehicleSpawnPadControlTest.SetUpAgents(PlanetSideEmpire.TR)
       val probe                        = new TestProbe(system, "zone-events")
       zone.VehicleEvents = probe.ref
       player.Continent = "problem" //problem
 
-      pad.Actor ! VehicleSpawnPad.VehicleOrder(player, vehicle) //order
+      pad.Actor ! VehicleSpawnPad.VehicleOrder(player, vehicle, terminal) //order
 
       val msg = probe.receiveOne(1 minute)
 //      assert(
@@ -125,11 +126,11 @@ class VehicleSpawnControl4Test extends ActorTest {
 class VehicleSpawnControl5Test extends ActorTest() {
   "VehicleSpawnControl" should {
     "abandon a destroyed vehicle on the spawn pad (blocking)" in {
-      val (vehicle, player, pad, zone) = VehicleSpawnPadControlTest.SetUpAgents(PlanetSideEmpire.TR)
+      val (vehicle, player, pad, terminal, zone) = VehicleSpawnPadControlTest.SetUpAgents(PlanetSideEmpire.TR)
 
       val probe = new TestProbe(system, "zone-events")
       zone.VehicleEvents = probe.ref
-      pad.Actor ! VehicleSpawnPad.VehicleOrder(player, vehicle) //order
+      pad.Actor ! VehicleSpawnPad.VehicleOrder(player, vehicle, terminal) //order
 
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.ConcealPlayer])
       probe.expectMsgClass(1 minute, classOf[VehicleServiceMessage])
@@ -152,11 +153,11 @@ class VehicleSpawnControl5Test extends ActorTest() {
 class VehicleSpawnControl6Test extends ActorTest() {
   "VehicleSpawnControl" should {
     "abandon a vehicle on the spawn pad if driver is unfit to drive (blocking)" in {
-      val (vehicle, player, pad, zone) = VehicleSpawnPadControlTest.SetUpAgents(PlanetSideEmpire.TR)
+      val (vehicle, player, pad, terminal, zone) = VehicleSpawnPadControlTest.SetUpAgents(PlanetSideEmpire.TR)
 
       val probe = new TestProbe(system, "zone-events")
       zone.VehicleEvents = probe.ref
-      pad.Actor ! VehicleSpawnPad.VehicleOrder(player, vehicle) //order
+      pad.Actor ! VehicleSpawnPad.VehicleOrder(player, vehicle, terminal) //order
 
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.ConcealPlayer])
       probe.expectMsgClass(1 minute, classOf[VehicleServiceMessage])
@@ -179,12 +180,12 @@ class VehicleSpawnControl6Test extends ActorTest() {
 class VehicleSpawnControl7Test extends ActorTest {
   "VehicleSpawnControl" should {
     "abandon a vehicle on the spawn pad if driver is unfit to drive (blocking)" in {
-      val (vehicle, player, pad, zone) = VehicleSpawnPadControlTest.SetUpAgents(PlanetSideEmpire.TR)
+      val (vehicle, player, pad, terminal, zone) = VehicleSpawnPadControlTest.SetUpAgents(PlanetSideEmpire.TR)
       val probe                        = new TestProbe(system, "zone-events")
       player.ExoSuit = ExoSuitType.MAX
 
-      zone.VehicleEvents = probe.ref                            //zone events
-      pad.Actor ! VehicleSpawnPad.VehicleOrder(player, vehicle) //order
+      zone.VehicleEvents = probe.ref                                      //zone events
+      pad.Actor ! VehicleSpawnPad.VehicleOrder(player, vehicle, terminal) //order
 
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.ConcealPlayer])
       probe.expectMsgClass(1 minute, classOf[VehicleServiceMessage])
@@ -210,7 +211,7 @@ object VehicleSpawnPadControlTest {
 
   def SetUpAgents(
       faction: PlanetSideEmpire.Value
-  )(implicit system: ActorSystem): (Vehicle, Player, VehicleSpawnPad, Zone) = {
+  )(implicit system: ActorSystem): (Vehicle, Player, VehicleSpawnPad, Terminal, Zone) = {
     import net.psforever.objects.guid.NumberPoolHub
     import net.psforever.objects.guid.source.MaxNumberSource
     import net.psforever.objects.serverobject.structures.Building
@@ -218,6 +219,7 @@ object VehicleSpawnPadControlTest {
     import net.psforever.objects.Tool
     import net.psforever.types.CharacterSex
 
+    val terminal            = Terminal(GlobalDefinitions.vehicle_terminal_combined)
     val vehicle             = Vehicle(GlobalDefinitions.two_man_assault_buggy)
     val weapon              = vehicle.WeaponControlledFromSeat(1).get.asInstanceOf[Tool]
     val guid: NumberPoolHub = new NumberPoolHub(MaxNumberSource(5))
@@ -252,6 +254,6 @@ object VehicleSpawnPadControlTest {
     //note: pad and vehicle are both at Vector3(1,0,0) so they count as blocking
     pad.Position = Vector3(1, 0, 0)
     vehicle.Position = Vector3(1, 0, 0)
-    (vehicle, player, pad, zone)
+    (vehicle, player, pad, terminal, zone)
   }
 }

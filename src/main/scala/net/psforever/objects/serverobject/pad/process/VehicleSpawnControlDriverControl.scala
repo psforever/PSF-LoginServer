@@ -22,13 +22,10 @@ class VehicleSpawnControlDriverControl(pad: VehicleSpawnPad) extends VehicleSpaw
 
   def receive: Receive = {
     case order @ VehicleSpawnControl.Order(driver, vehicle) =>
-      if (vehicle.Health > 0 && vehicle.PassengerInSeat(driver).contains(0)) {
-        trace(s"returning control of ${vehicle.Definition.Name} to ${driver.Name}")
+      trace(s"returning control of ${vehicle.Definition.Name} to its current driver")
+      if (vehicle.PassengerInSeat(driver).nonEmpty) {
         pad.Zone.VehicleEvents ! VehicleSpawnPad.ServerVehicleOverrideEnd(driver.Name, vehicle, pad)
-      } else {
-        trace(s"${driver.Name} is not seated in ${vehicle.Definition.Name}; vehicle controls might have been locked")
       }
-      vehicle.MountedIn = None
       finalClear ! order
 
     case msg @ (VehicleSpawnControl.ProcessControl.Reminder | VehicleSpawnControl.ProcessControl.GetNewOrder) =>

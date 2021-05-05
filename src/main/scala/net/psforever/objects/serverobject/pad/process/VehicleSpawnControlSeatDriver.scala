@@ -44,7 +44,7 @@ class VehicleSpawnControlSeatDriver(pad: VehicleSpawnPad) extends VehicleSpawnCo
       val vehicle = entry.vehicle
       //avoid unattended vehicle blocking the pad; user should mount (and does so normally) to reset decon timer
       vehicle.Actor ! Vehicle.Deconstruct(Some(30 seconds))
-      if (vehicle.Health > 0 && driver.isAlive && driver.Continent == pad.Continent && driver.VehicleSeated.isEmpty) {
+      if (VehicleSpawnControl.validateOrderCredentials(pad, driver, vehicle).isEmpty) {
         trace("driver to be made seated in vehicle")
         pad.Zone.VehicleEvents ! VehicleSpawnPad.StartPlayerSeatedInVehicle(driver.Name, vehicle, pad)
       } else {
@@ -53,7 +53,10 @@ class VehicleSpawnControlSeatDriver(pad: VehicleSpawnPad) extends VehicleSpawnCo
       context.system.scheduler.scheduleOnce(2500 milliseconds, self, VehicleSpawnControlSeatDriver.DriverInSeat(entry))
 
     case VehicleSpawnControlSeatDriver.DriverInSeat(entry) =>
-      if (entry.vehicle.Health > 0 && entry.driver.isAlive && entry.vehicle.PassengerInSeat(entry.driver).contains(0)) {
+      val driver  = entry.driver
+      val vehicle = entry.vehicle
+      if (VehicleSpawnControl.validateOrderCredentials(pad, driver, vehicle).isEmpty &&
+          entry.vehicle.PassengerInSeat(entry.driver).contains(0)) {
         trace(s"driver ${entry.driver.Name} has taken the wheel")
         pad.Zone.VehicleEvents ! VehicleSpawnPad.PlayerSeatedInVehicle(entry.driver.Name, entry.vehicle, pad)
       } else {

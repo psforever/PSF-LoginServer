@@ -170,7 +170,12 @@ object ExplosiveDeployableControl {
     val zone = target.Zone
     zone.Activity ! Zone.HotSpot.Activity(cause)
     zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.Detonate(target.GUID, target))
-    Zone.causeExplosion(zone, target, Some(cause), ExplosiveDeployableControl.detectionForExplosiveSource(target))
+    Zone.serverSideDamage(
+      zone,
+      target,
+      Zone.explosionDamage(Some(cause)),
+      ExplosiveDeployableControl.detectionForExplosiveSource(target)
+    )
   }
 
   /**

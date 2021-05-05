@@ -44,6 +44,7 @@ import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.base._
+import net.psforever.objects.vital.etc.ExplodingEntityReason
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.{Zone, ZoneHotSpotProjector, Zoning}
@@ -60,12 +61,7 @@ import net.psforever.services.local.support.{CaptureFlagManager, HackCaptureActo
 import net.psforever.services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
 import net.psforever.services.properties.PropertyOverrideManager
 import net.psforever.services.support.SupportActor
-import net.psforever.services.teamwork.{
-  SquadResponse,
-  SquadServiceMessage,
-  SquadServiceResponse,
-  SquadAction => SquadServiceAction
-}
+import net.psforever.services.teamwork.{SquadResponse, SquadServiceMessage, SquadServiceResponse, SquadAction => SquadServiceAction}
 import net.psforever.services.hart.HartTimer
 import net.psforever.services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
 import net.psforever.services.{RemoverActor, Service, ServiceManager, InterstellarClusterService => ICS}
@@ -443,6 +439,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       session.player.spectator = spectator
 
     case Recall() =>
+      player.ZoningRequest = Zoning.Method.Recall
       zoningType = Zoning.Method.Recall
       zoningChatMessageType = ChatMessageType.CMT_RECALL
       zoningStatus = Zoning.Status.Request
@@ -456,6 +453,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       })
 
     case InstantAction() =>
+      player.ZoningRequest = Zoning.Method.InstantAction
       zoningType = Zoning.Method.InstantAction
       zoningChatMessageType = ChatMessageType.CMT_INSTANTACTION
       zoningStatus = Zoning.Status.Request
@@ -482,10 +480,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self)
 
     case Quit() =>
-      //priority to quitting is given to quit over other zoning methods
+      //priority is given to quit over other zoning methods
       if (session.zoningType == Zoning.Method.InstantAction || session.zoningType == Zoning.Method.Recall) {
         CancelZoningProcessWithDescriptiveReason("cancel")
       }
+      player.ZoningRequest = Zoning.Method.Quit
       zoningType = Zoning.Method.Quit
       zoningChatMessageType = ChatMessageType.CMT_QUIT
       zoningStatus = Zoning.Status.Request
@@ -1726,6 +1725,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     */
   def CancelZoningProcess(): Unit = {
     zoningTimer.cancel()
+    player.ZoningRequest = Zoning.Method.None
     zoningType = Zoning.Method.None
     zoningStatus = Zoning.Status.None
     zoningCounter = 0
@@ -1859,6 +1859,16 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
         DropSpecialSlotItem()
         ToggleMaxSpecialState(enable = false)
+        if (player.LastDamage match {
+          case Some(damage) => damage.interaction.cause match {
+            case cause: ExplodingEntityReason => cause.entity.isInstanceOf[VehicleSpawnPad]
+            case _ => false
+          }
+          case None => false
+        }) {
+          //also, @SVCP_Killed_TooCloseToPadOnCreate^n~ or "... within n meters of pad ..."
+          sendResponse(ChatMsg(ChatMessageType.UNK_227, false, "", "@SVCP_Killed_OnPadOnCreate", None))
+        }
 
         keepAliveFunc = NormalKeepAlive
         zoningStatus = Zoning.Status.None
@@ -1866,7 +1876,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
         continent.GUID(mount) match {
           case Some(obj: Vehicle) =>
-            TotalDriverVehicleControl(obj)
+            ConditionalDriverVehicleControl(obj)
             UnaccessContainer(obj)
           case _ => ;
         }
@@ -2190,6 +2200,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     specialItemSlotGuid match {
       case Some(guid: PlanetSideGUID) =>
         specialItemSlotGuid = None
+        player.Carrying = None
         continent.GUID(guid) match {
           case Some(llu: CaptureFlag) =>
             llu.Carrier match {
@@ -2398,6 +2409,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           case Some(guid) =>
             if (guid == llu.GUID) {
               specialItemSlotGuid = None
+              player.Carrying = None
             }
           case _ => ;
         }
@@ -2622,7 +2634,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         val player_guid: PlanetSideGUID = tplayer.GUID
         if (player_guid == player.GUID) {
           //disembarking self
-          TotalDriverVehicleControl(obj)
+          ConditionalDriverVehicleControl(obj)
           UnaccessContainer(obj)
           DismountAction(tplayer, obj, seat_num)
         } else {
@@ -2675,7 +2687,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           case None =>
             avatarActor ! AvatarActor.UpdatePurchaseTime(item.Definition)
             continent.tasks ! BuyNewEquipmentPutInInventory(
-              continent.GUID(tplayer.VehicleSeated) match { case Some(v: Vehicle) => v; case _ => player },
+              continent.GUID(tplayer.VehicleSeated) match { case Some(v : Vehicle) => v; case _ => player },
               tplayer,
               msg.terminal_guid
             )(item)
@@ -2701,13 +2713,18 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         lastTerminalOrderFulfillment = true
 
       case Terminal.BuyVehicle(vehicle, weapons, trunk) =>
-        continent.map.terminalToSpawnPad.get(msg.terminal_guid.guid) match {
-          case Some(padGuid) =>
-            tplayer.avatar.purchaseCooldown(vehicle.Definition) match {
-              case Some(_) =>
-                sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
-              case None =>
-                val pad = continent.GUID(padGuid).get.asInstanceOf[VehicleSpawnPad]
+        tplayer.avatar.purchaseCooldown(vehicle.Definition) match {
+          case Some(_) =>
+            sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
+          case None =>
+            continent.map.terminalToSpawnPad
+              .find { case (termid, _) => termid == msg.terminal_guid.guid }
+              .collect {
+                case (a: Int, b: Int) => (continent.GUID(a), continent.GUID(b))
+                case _                => (None, None)
+              }
+              .get match {
+              case (Some(term: Terminal), Some(pad: VehicleSpawnPad)) =>
                 vehicle.Faction = tplayer.Faction
                 vehicle.Position = pad.Position
                 vehicle.Orientation = pad.Orientation + Vector3.z(pad.Definition.VehicleCreationZOrientOffset)
@@ -2732,13 +2749,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                   entry.obj.Faction = tplayer.Faction
                   vTrunk.InsertQuickly(entry.start, entry.obj)
                 })
-                continent.tasks ! RegisterVehicleFromSpawnPad(vehicle, pad)
+                continent.tasks ! RegisterVehicleFromSpawnPad(vehicle, pad, term)
                 sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true))
+              case _ =>
+                log.error(
+                  s"${tplayer.Name} wanted to spawn a vehicle, but there was no spawn pad associated with terminal ${msg.terminal_guid} to accept it"
+                )
+                sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
             }
-          case None =>
-            log.error(
-              s"${tplayer.Name} wanted to spawn a vehicle, but there was no spawn pad associated with terminal ${msg.terminal_guid} to accept it"
-            )
         }
         lastTerminalOrderFulfillment = true
 
@@ -2793,7 +2811,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           ObjectDetachMessage(
             pad_guid,
             vehicle_guid,
-            pad_position + Vector3(0, 0, pad.VehicleCreationZOffset),
+            pad_position + Vector3.z(pad.VehicleCreationZOffset),
             pad_orientation_z + pad.VehicleCreationZOrientOffset
           )
         )
@@ -2958,6 +2976,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case VehicleResponse.StartPlayerSeatedInVehicle(vehicle, pad) =>
         val vehicle_guid = vehicle.GUID
         PlayerActionsToCancel()
+        serverVehicleControlVelocity = Some(0)
         CancelAllProximityUnits()
         if (player.VisibleSlots.contains(player.DrawnSlot)) {
           player.DrawnSlot = Player.HandsDownSlot
@@ -2988,16 +3007,23 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case VehicleResponse.ServerVehicleOverrideEnd(vehicle, pad) =>
         DriverVehicleControl(vehicle, vehicle.Definition.AutoPilotSpeed2)
 
-      case VehicleResponse.PeriodicReminder(cause, data) =>
-        val msg: String = cause match {
-          case VehicleSpawnPad.Reminders.Blocked =>
-            s"The vehicle spawn where you placed your order is blocked. ${data.getOrElse("")}"
-          case VehicleSpawnPad.Reminders.Queue =>
-            s"Your position in the vehicle spawn queue is ${data.getOrElse("dead last")}."
-          case VehicleSpawnPad.Reminders.Cancelled =>
-            "Your vehicle order has been cancelled."
+      case VehicleResponse.PeriodicReminder(VehicleSpawnPad.Reminders.Blocked, data) =>
+        sendResponse(ChatMsg(
+          ChatMessageType.CMT_OPEN,
+          true,
+          "",
+          s"The vehicle spawn where you placed your order is blocked. ${data.getOrElse("")}",
+          None
+        ))
+
+      case VehicleResponse.PeriodicReminder(_, data) =>
+        val (isType, flag, msg): (ChatMessageType, Boolean, String) = data match {
+          case Some(msg: String)
+            if msg.startsWith("@") => (ChatMessageType.UNK_227, false, msg)
+          case Some(msg: String)   => (ChatMessageType.CMT_OPEN, true, msg)
+          case _                   => (ChatMessageType.CMT_OPEN, true, "Your vehicle order has been cancelled.")
         }
-        sendResponse(ChatMsg(ChatMessageType.CMT_OPEN, true, "", msg, None))
+        sendResponse(ChatMsg(isType, flag, "", msg, None))
 
       case VehicleResponse.ChangeLoadout(target, old_weapons, added_weapons, old_inventory, new_inventory) =>
         //TODO when vehicle weapons can be changed without visual glitches, rewrite this
@@ -4869,6 +4895,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                     }
                   case _ => log.warn("Item in specialItemSlotGuid is not registered with continent or is not a LLU")
                 }
+              case _ => ;
             }
 
           case Some(obj: FacilityTurret) =>
@@ -5101,6 +5128,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             if (specialItemSlotGuid.isEmpty) {
               if (obj.Faction == player.Faction) {
                 specialItemSlotGuid = Some(obj.GUID)
+                player.Carrying = SpecialCarry.CaptureFlag
                 continent.LocalEvents ! CaptureFlagManager.PickupFlag(obj, player)
               } else {
                 log.warn(
@@ -5504,11 +5532,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               projectile.profile.JammerProjectile ||
               projectile.profile.SympatheticExplosion
             ) {
-              Zone.causeSpecialEmp(
+              //can also substitute 'projectile.profile' for 'SpecialEmp.emp'
+              Zone.serverSideDamage(
                 continent,
                 player,
-                explosion_pos,
-                GlobalDefinitions.special_emp.innateDamage.get
+                SpecialEmp.emp,
+                SpecialEmp.createEmpInteraction(SpecialEmp.emp, explosion_pos),
+                SpecialEmp.prepareDistanceCheck(player, explosion_pos, player.Faction),
+                SpecialEmp.findAllBoomers
               )
             }
             if (profile.ExistsOnRemoteClients && projectile.HasGUID) {
@@ -6033,12 +6064,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @see `RegisterVehicle`
     * @return a `TaskResolver.GiveTask` message
     */
-  def RegisterVehicleFromSpawnPad(obj: Vehicle, pad: VehicleSpawnPad): TaskResolver.GiveTask = {
+  def RegisterVehicleFromSpawnPad(obj: Vehicle, pad: VehicleSpawnPad, terminal: Terminal): TaskResolver.GiveTask = {
     TaskResolver.GiveTask(
       new Task() {
-        private val localVehicle = obj
-        private val localPad     = pad.Actor
-        private val localPlayer  = player
+        private val localVehicle  = obj
+        private val localPad      = pad.Actor
+        private val localTerminal = terminal
+        private val localPlayer   = player
 
         override def Description: String = s"register a ${localVehicle.Definition.Name} for spawn pad"
 
@@ -6051,7 +6083,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
 
         def Execute(resolver: ActorRef): Unit = {
-          localPad ! VehicleSpawnPad.VehicleOrder(localPlayer, localVehicle)
+          localPad ! VehicleSpawnPad.VehicleOrder(localPlayer, localVehicle, localTerminal)
           resolver ! Success(this)
         }
       },
@@ -7027,10 +7059,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     progressBarUpdate.cancel()
     progressBarValue = None
     lastTerminalOrderFulfillment = true
-    serverVehicleControlVelocity = None
     accessedContainer match {
       case Some(v: Vehicle) =>
         val vguid = v.GUID
+        ConditionalDriverVehicleControl(v)
         if (v.AccessingTrunk.contains(player.GUID)) {
           if (player.VehicleSeated.contains(vguid)) {
             v.AccessingTrunk = None //player is seated; just stop accessing trunk
@@ -7749,7 +7781,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * Set the vehicle to move in reverse
     */
   def ServerVehicleLockReverse(): Unit = {
-    serverVehicleControlVelocity = Some(0)
+    serverVehicleControlVelocity = Some(-1)
     sendResponse(
       ServerVehicleOverrideMsg(
         lock_accelerator = true,
@@ -7770,7 +7802,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * Set the vehicle to strafe right
     */
   def ServerVehicleLockStrafeRight(): Unit = {
-    serverVehicleControlVelocity = Some(0)
+    serverVehicleControlVelocity = Some(-1)
     sendResponse(
       ServerVehicleOverrideMsg(
         lock_accelerator = true,
@@ -7791,7 +7823,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * Set the vehicle to strafe left
     */
   def ServerVehicleLockStrafeLeft(): Unit = {
-    serverVehicleControlVelocity = Some(0)
+    serverVehicleControlVelocity = Some(-1)
     sendResponse(
       ServerVehicleOverrideMsg(
         lock_accelerator = true,
@@ -7812,7 +7844,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @param vehicle the vehicle being controlled
     */
   def ServerVehicleLock(vehicle: Vehicle): Unit = {
-    serverVehicleControlVelocity = Some(0)
+    serverVehicleControlVelocity = Some(-1)
     sendResponse(ServerVehicleOverrideMsg(true, true, false, false, 0, 1, 0, Some(0)))
   }
 
@@ -7847,11 +7879,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * Stop all movement entirely.
     * @param vehicle the vehicle
     */
-  def TotalDriverVehicleControl(vehicle: Vehicle): Unit = {
-    if (serverVehicleControlVelocity.nonEmpty) {
-      serverVehicleControlVelocity = None
-      sendResponse(ServerVehicleOverrideMsg(false, false, false, false, 0, 0, 0, None))
+  def ConditionalDriverVehicleControl(vehicle: Vehicle): Unit = {
+    if (serverVehicleControlVelocity.nonEmpty && !serverVehicleControlVelocity.contains(0)) {
+      TotalDriverVehicleControl(vehicle)
     }
+  }
+
+  def TotalDriverVehicleControl(vehicle: Vehicle): Unit = {
+    serverVehicleControlVelocity = None
+    sendResponse(ServerVehicleOverrideMsg(false, false, false, false, 0, 0, 0, None))
   }
 
   /**
@@ -8883,6 +8919,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     if (player.avatar.vehicle.nonEmpty && player.VehicleSeated != player.avatar.vehicle) {
       continent.GUID(player.avatar.vehicle) match {
         case Some(vehicle: Vehicle) if vehicle.Actor != Default.Actor =>
+          TotalDriverVehicleControl(vehicle)
           vehicle.Actor ! Vehicle.Ownership(None)
         case _ => ;
       }

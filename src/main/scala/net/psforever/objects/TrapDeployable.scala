@@ -47,6 +47,6 @@ class TrapDeployableControl(trap: TrapDeployable) extends Actor with DamageableE
   override protected def DestructionAwareness(target: Damageable.Target, cause: DamageResult): Unit = {
     super.DestructionAwareness(target, cause)
     Deployables.AnnounceDestroyDeployable(trap, None)
-    Zone.causeExplosion(target.Zone, target, Some(cause))
+    Zone.serverSideDamage(target.Zone, target, Zone.explosionDamage(Some(cause)))
   }
 }

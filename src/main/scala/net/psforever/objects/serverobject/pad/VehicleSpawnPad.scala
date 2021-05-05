@@ -3,6 +3,7 @@ package net.psforever.objects.serverobject.pad
 
 import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.serverobject.structures.Amenity
+import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.types.PlanetSideGUID
 
 /**
@@ -28,7 +29,7 @@ object VehicleSpawnPad {
     * @param player the player who submitted the order (the "owner")
     * @param vehicle the vehicle produced from the order
     */
-  final case class VehicleOrder(player: Player, vehicle: Vehicle)
+  final case class VehicleOrder(player: Player, vehicle: Vehicle, terminal: Terminal)
 
   /**
     * Message to indicate that a certain player should be made transparent.
@@ -130,9 +131,11 @@ object VehicleSpawnPad {
     * An `Enumeration` of reasons for sending a periodic reminder to the user.
     */
   object Reminders extends Enumeration {
-    val Queue, //optional data is the numeric position in the queue
-    Blocked,   //optional data is a message regarding the blockage
-    Cancelled = Value
+    val
+    Queue, //optional data is the numeric position in the queue
+    Blocked, //optional data is a message regarding the blockage
+    Cancelled //optional data is the message
+    = Value
   }
 
   /**
