@@ -488,16 +488,18 @@ class AvatarActor(
                   sessionActor ! SessionActor.SendResponse(
                     ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = true)
                   )
-                  //wearing invalid armor
-                  if ((certification == Certification.ReinforcedExoSuit && player.ExoSuit == ExoSuitType.Reinforced) ||
-                      (certification == Certification.InfiltrationSuit && player.ExoSuit == ExoSuitType.Infiltration) ||
-                      (player.ExoSuit == ExoSuitType.MAX && {
-                        val wep = player.Slot(slot = 0).Equipment
-                        certification == Certification.UniMAX ||
-                        (certification == Certification.AAMAX && InfantryLoadout.DetermineSubtypeA(ExoSuitType.MAX, wep) == 1) ||
-                        (certification == Certification.AIMAX && InfantryLoadout.DetermineSubtypeA(ExoSuitType.MAX, wep) == 2) ||
-                        (certification == Certification.AVMAX && InfantryLoadout.DetermineSubtypeA(ExoSuitType.MAX, wep) == 3)
-                      })
+                  //wearing invalid armor?
+                  if (
+                    if (certification == Certification.ReinforcedExoSuit) player.ExoSuit == ExoSuitType.Reinforced
+                    else if (certification == Certification.InfiltrationSuit) player.ExoSuit == ExoSuitType.Infiltration
+                    else if (player.ExoSuit == ExoSuitType.MAX) {
+                      lazy val subtype = InfantryLoadout.DetermineSubtypeA(ExoSuitType.MAX, player.Slot(slot = 0).Equipment)
+                      if (certification == Certification.UniMAX) true
+                      else if (certification == Certification.AAMAX) subtype == 1
+                      else if (certification == Certification.AIMAX) subtype == 2
+                      else if (certification == Certification.AVMAX) subtype == 3
+                      else false
+                    } else false
                   ) {
                     player.Actor ! PlayerControl.SetExoSuit(ExoSuitType.Standard, 0)
                   }
