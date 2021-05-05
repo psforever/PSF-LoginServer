@@ -14,7 +14,6 @@ import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.damage.{AggravatedBehavior, Damageable, DamageableEntity}
 import net.psforever.objects.serverobject.mount.Mountable
-import net.psforever.objects.serverobject.repair.Repairable
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
@@ -27,6 +26,7 @@ import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.objects.locker.LockerContainerControl
 import net.psforever.objects.serverobject.environment._
+import net.psforever.objects.serverobject.repair.Repairable
 import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
 import net.psforever.objects.vital.environment.EnvironmentReason
 import net.psforever.objects.vital.etc.{PainboxReason, SuicideReason}
@@ -185,7 +185,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
             val guid   = player.GUID
             if (!(player.isMoving || user.isMoving)) { //only allow stationary repairs
               val newArmor = player.Armor =
-                originalArmor + Repairable.Quality + RepairValue(item) + definition.RepairMod
+                originalArmor + Repairable.applyLevelModifier(user, item, RepairValue(item)).toInt + definition.RepairMod
               val magazine = item.Discharge()
               events ! AvatarServiceMessage(
                 uname,
@@ -863,12 +863,15 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       case _ => ;
     }
 
-  def RepairValue(item: Tool): Int =
-    if (player.ExoSuit != ExoSuitType.MAX) {
+  def RepairValue(item: Tool): Float = {
+    item.AmmoSlot.Box.Definition.repairAmount +
+    (if (player.ExoSuit != ExoSuitType.MAX) {
       item.FireMode.Add.Damage0
-    } else {
-      item.FireMode.Add.Damage3
     }
+    else {
+      item.FireMode.Add.Damage3
+    })
+  }
 
   def MessageDeferredCallback(msg: Any): Unit = {
     msg match {

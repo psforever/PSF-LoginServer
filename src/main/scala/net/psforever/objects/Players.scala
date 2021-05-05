@@ -1,6 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects
 
+import net.psforever.objects.avatar.Certification
 import net.psforever.objects.definition.ExoSuitDefinition
 import net.psforever.objects.equipment.EquipmentSlot
 import net.psforever.objects.inventory.InventoryItem
@@ -132,6 +133,31 @@ object Players {
         certs.intersect(InfantryLoadout.DetermineSubtypeC(subtype)).nonEmpty
       case permissions =>
         player.avatar.certifications.intersect(permissions.toSet).nonEmpty
+    }
+  }
+
+  /**
+    * For a given selection of certification, find the player's engineer level.
+    * The level of a player with no engineering certification is 0.
+    * The certifications that matter are all related to the ability to repair damaged equipment and
+    * the ability to place combat support utilities - combat engineering (ce) deployables - in the game world.
+    * @see `Avatar.certifications`
+    * @see `Certification`
+    * @param player the player whose certifications are to be tested
+    * @return the engineering level
+    */
+  def repairModifierLevel(player: Player): Int = {
+    val certs = player.avatar.certifications
+    if(certs.contains(Certification.AdvancedEngineering) ||
+       certs.contains(Certification.AssaultEngineering) ||
+       certs.contains(Certification.FortificationEngineering)) {
+      3
+    } else if (certs.contains(Certification.CombatEngineering)) {
+      2
+    } else if (certs.contains(Certification.Engineering)) {
+      1
+    } else {
+      0
     }
   }
 }

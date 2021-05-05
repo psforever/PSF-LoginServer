@@ -82,8 +82,8 @@ trait RepairableEntity extends Repairable {
     val name           = player.Name
     val originalHealth = target.Health
     val updatedHealth =
-      if (!(player.isMoving(1f) || target.isMoving(1f))) { //only allow stationary repairs within margin of error
-        val repairValue = Repairable.Quality + RepairValue(item) + target.Definition.RepairMod
+      if (!(player.isMoving(test = 1f) || target.isMoving(test = 1f))) { //only allow stationary repairs within margin of error
+        val repairValue = Repairable.applyLevelModifier(player, item, RepairToolValue(item)).toInt + target.Definition.RepairMod
         val magazine  = item.Discharge()
         events ! AvatarServiceMessage(
           player.Name,
@@ -107,11 +107,11 @@ trait RepairableEntity extends Repairable {
   }
 
   protected def PerformRepairs(target: Repairable.Target, amount: Int): Int = {
-    val zone           = target.Zone
-    val zoneId         = zone.id
-    val events         = zone.AvatarEvents
-    val tguid          = target.GUID
-    val newHealth      = target.Health = target.Health + amount
+    val zone      = target.Zone
+    val zoneId    = zone.id
+    val events    = zone.AvatarEvents
+    val tguid     = target.GUID
+    val newHealth = target.Health = target.Health + amount
     if (target.Destroyed) {
       if (newHealth >= target.Definition.RepairRestoresAt) {
         events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 0, newHealth))
@@ -122,7 +122,4 @@ trait RepairableEntity extends Repairable {
     }
     newHealth
   }
-
-  /* random object repair modifier */
-  override def RepairValue(item: Tool): Int = item.FireMode.Add.Damage1
 }

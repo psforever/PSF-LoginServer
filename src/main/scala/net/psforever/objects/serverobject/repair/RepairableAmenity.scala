@@ -1,6 +1,7 @@
 //Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.repair
 
+import net.psforever.objects.Tool
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 
@@ -15,6 +16,8 @@ trait RepairableAmenity extends RepairableEntity {
     super.Restoration(obj)
     RepairableAmenity.Restoration(obj)
   }
+
+  override def RepairToolValue(item: Tool): Float = super.RepairToolValue(item) + item.FireMode.Add.Damage1
 }
 
 object RepairableAmenity {

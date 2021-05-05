@@ -8,6 +8,8 @@ class AmmoBoxDefinition(objectId: Int) extends EquipmentDefinition(objectId) {
   import net.psforever.objects.equipment.EquipmentSize
   private val ammoType: Ammo.Value = Ammo(objectId) //let throw NoSuchElementException
   private var capacity: Int        = 1
+  var repairAmount: Float          = 0
+
   Name = "ammo box"
   Size = EquipmentSize.Inventory
   Packet = AmmoBoxDefinition.converter
