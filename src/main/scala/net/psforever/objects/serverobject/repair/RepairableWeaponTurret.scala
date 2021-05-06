@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.repair
 
 import net.psforever.objects.Tool
+import net.psforever.objects.equipment.EquipmentSlot
 import net.psforever.objects.serverobject.turret.WeaponTurret
 import net.psforever.objects.vehicles.MountedWeapons
 import net.psforever.services.Service
@@ -41,9 +42,9 @@ object RepairableWeaponTurret {
     val tguid  = target.GUID
     val events = zone.VehicleEvents
     target.Weapons
-      .map({ case (index, slot) => (index, slot.Equipment) })
+      .map({ case (index, slot: EquipmentSlot) => (index, slot.Equipment) })
       .collect {
-        case (index, Some(tool: Tool)) =>
+        case (index: Int, Some(tool: Tool)) =>
           events ! VehicleServiceMessage(
             zoneId,
             VehicleAction.EquipmentInSlot(Service.defaultPlayerGUID, tguid, index, tool)

@@ -6,7 +6,7 @@ import akka.actor.{ActorSystem, Props}
 import akka.testkit.TestProbe
 import base.ActorTest
 import net.psforever.actors.session.AvatarActor
-import net.psforever.objects.avatar.{Avatar, PlayerControl}
+import net.psforever.objects.avatar.{Avatar, Certification, PlayerControl}
 import net.psforever.objects.ballistics._
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.MaxNumberSource
@@ -185,8 +185,9 @@ class PlayerControlHealSelfTest extends ActorTest {
 }
 
 class PlayerControlRepairTest extends ActorTest {
-  val player1 =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
+  val avatar = Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)
+    .copy(certifications = Set(Certification.Engineering))
+  val player1 = Player(avatar) //guid=1
   val player2 =
     Player(Avatar(1, "TestCharacter2", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=2
   val avatarProbe = TestProbe()
@@ -281,8 +282,9 @@ class PlayerControlRepairTest extends ActorTest {
 }
 
 class PlayerControlRepairSelfTest extends ActorTest {
-  val player1 =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
+  val avatar = Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)
+    .copy(certifications = Set(Certification.Engineering))
+  val player1 = Player(avatar) //guid=1
   val avatarProbe = TestProbe()
   val guid = new NumberPoolHub(new MaxNumberSource(15))
   val zone = new Zone("test", new ZoneMap("test"), 0) {

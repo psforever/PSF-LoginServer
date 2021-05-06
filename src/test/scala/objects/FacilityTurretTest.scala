@@ -4,7 +4,7 @@ package objects
 import akka.actor.Props
 import akka.testkit.TestProbe
 import base.ActorTest
-import net.psforever.objects.avatar.Avatar
+import net.psforever.objects.avatar.{Avatar, Certification}
 import net.psforever.objects.{Default, GlobalDefinitions, Player, Tool}
 import net.psforever.objects.definition.ToolDefinition
 import net.psforever.objects.guid.NumberPoolHub
@@ -200,8 +200,9 @@ class FacilityTurretControlRestorationTest extends ActorTest {
   turret.Position = Vector3(1, 0, 0)
   val turretWeapon = turret.Weapons.values.head.Equipment.get.asInstanceOf[Tool]
 
-  val player1 =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=3
+  val avatar = Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)
+    .copy(certifications = Set(Certification.Engineering))
+  val player1 = Player(avatar) //guid=3
   player1.Spawn()
   player1.Position = Vector3(2, 2, 2)
   val player1Probe = TestProbe()

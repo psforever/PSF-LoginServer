@@ -5,7 +5,7 @@ import akka.actor.Props
 import akka.testkit.TestProbe
 import base.ActorTest
 import net.psforever.objects._
-import net.psforever.objects.avatar.Avatar
+import net.psforever.objects.avatar.{Avatar, Certification}
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.CommonMessages
@@ -36,8 +36,9 @@ class RepairableEntityRepairTest extends ActorTest {
   }
   val building = Building("test-building", 1, 1, zone, StructureType.Facility) //guid=1
   val gen      = Generator(GlobalDefinitions.generator)                        //guid=2
-  val player1 =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=3
+  val avatar = Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)
+    .copy(certifications = Set(Certification.Engineering))
+  val player1 = Player(avatar) //guid=3
   player1.Spawn()
   guid.register(building, 1)
   guid.register(gen, 2)
@@ -149,8 +150,9 @@ class RepairableAmenityTest extends ActorTest {
   }
   val building = Building("test-building", 1, 1, zone, StructureType.Facility) //guid=1
   val term     = Terminal(GlobalDefinitions.order_terminal)                    //guid=2
-  val player1 =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=3
+  val avatar = Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)
+    .copy(certifications = Set(Certification.Engineering))
+  val player1 = Player(avatar) //guid=3
   player1.Spawn()
   guid.register(building, 1)
   guid.register(term, 2)
@@ -250,8 +252,9 @@ class RepairableTurretWeapon extends ActorTest {
   turret.Position = Vector3(1, 0, 0)
   val turretWeapon = turret.Weapons.values.head.Equipment.get.asInstanceOf[Tool]
 
-  val player1 =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=3
+  val avatar = Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)
+    .copy(certifications = Set(Certification.Engineering))
+  val player1 = Player(avatar) //guid=3
   player1.Spawn()
   player1.Position = Vector3(2, 2, 2)
   val player1Probe = TestProbe()
@@ -336,8 +339,9 @@ class RepairableVehicleRepair extends ActorTest {
   atv.Position = Vector3(1, 0, 0)
   val atvWeapon = atv.Weapons(1).Equipment.get.asInstanceOf[Tool]
 
-  val player1 =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=4
+  val avatar = Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)
+    .copy(certifications = Set(Certification.Engineering))
+  val player1 = Player(avatar) //guid=4
   player1.Spawn()
   player1.Position = Vector3(2, 2, 2)
   val player1Probe = TestProbe()

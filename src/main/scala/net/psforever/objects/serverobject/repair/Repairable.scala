@@ -3,7 +3,7 @@ package net.psforever.objects.serverobject.repair
 
 import akka.actor.Actor.Receive
 import net.psforever.objects.equipment.Ammo
-import net.psforever.objects.{GlobalDefinitions, Player, Tool}
+import net.psforever.objects.{GlobalDefinitions, Player, Players, Tool}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.vital.Vitality
 
@@ -51,7 +51,7 @@ trait Repairable {
     * @param item the tool in question
     * @return an amount to add to the repair attempt progress
     */
-  def RepairValue(item: Tool): Int = 0
+  def RepairToolValue(item: Tool): Float = item.AmmoSlot.Box.Definition.repairAmount
 
   /**
     * The entity is no longer destroyed.
@@ -65,8 +65,19 @@ trait Repairable {
 object Repairable {
   /* the type of all entities governed by this mixin; see Damageable.Target */
   final type Target = PlanetSideServerObject with Vitality
-  /* the basic repair value; originally found on the `armor_canister` object definition */
-  final val Quality: Int = 12
+
+  /**
+    * Apply the player's engineering modifier to a repairing tool's base repair value.
+    * @see `AmmoBoxDefinition.RepairMultiplier`
+    * @see `Players.repairModifierLevel`
+    * @param user the player using the tool used for repairing
+    * @param item the tool used for repairing
+    * @param amount the base amount of repairing
+    * @return a modified amount of repairing
+    */
+  def applyLevelModifier(user: Player, item: Tool, amount: Float): Float = {
+    item.Definition.RepairMultiplier(Players.repairModifierLevel(user)) * amount
+  }
 
   /**
     * The entity is no longer destroyed.

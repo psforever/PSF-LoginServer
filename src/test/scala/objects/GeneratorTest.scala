@@ -5,7 +5,7 @@ import akka.actor.{ActorRef, Props}
 import akka.testkit.TestProbe
 import base.ActorTest
 import net.psforever.actors.zone.BuildingActor
-import net.psforever.objects.avatar.Avatar
+import net.psforever.objects.avatar.{Avatar, Certification}
 import net.psforever.objects.ballistics._
 import net.psforever.objects.{GlobalDefinitions, Player, Tool}
 import net.psforever.objects.guid.NumberPoolHub
@@ -773,8 +773,9 @@ class GeneratorControlRepairPastRestorePoint extends ActorTest {
   gen.Position = Vector3(1, 0, 0)
   gen.Actor = system.actorOf(Props(classOf[GeneratorControl], gen), "generator-control")
 
-  val player1 =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=3
+  val avatar = Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)
+    .copy(certifications = Set(Certification.Engineering))
+  val player1 = Player(avatar) //guid=3
   player1.Position = Vector3(14, 0, 0)                                                                     //<14m from generator; dies
   player1.Spawn()
   val player1Probe = TestProbe()

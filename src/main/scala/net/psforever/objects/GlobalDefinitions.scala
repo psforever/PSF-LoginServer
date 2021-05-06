@@ -1911,6 +1911,7 @@ object GlobalDefinitions {
 
     armor_canister.Name = "armor_canister"
     armor_canister.Capacity = 100
+    armor_canister.repairAmount = 12f //ADB says 12.5, but 12 is better for the math
     armor_canister.Tile = InventoryTile.Tile23
 
     upgrade_canister.Name = "upgrade_canister"
@@ -4938,6 +4939,9 @@ object GlobalDefinitions {
     nano_dispenser.FireModes.head.Add.Damage2 = 0
     nano_dispenser.FireModes.head.Add.Damage3 = 0
     nano_dispenser.FireModes.head.Add.Damage4 = 20
+    nano_dispenser.AddRepairMultiplier(level = 3, value = 2.0f)
+    nano_dispenser.AddRepairMultiplier(level = 2, value = 1.5f)
+    nano_dispenser.AddRepairMultiplier(level = 1, value = 1.0f)
     nano_dispenser.Tile = InventoryTile.Tile63
 
     bank.Name = "bank"
@@ -4952,6 +4956,9 @@ object GlobalDefinitions {
     bank.FireModes(1).AmmoTypeIndices += 0
     bank.FireModes(1).AmmoSlotIndex = 0
     bank.FireModes(1).Magazine = 100
+    bank.AddRepairMultiplier(level = 3, value = 1.5f)
+    bank.AddRepairMultiplier(level = 2, value = 1.2f)
+    bank.AddRepairMultiplier(level = 1, value = 1.0f)
     bank.Tile = InventoryTile.Tile33
 
     remote_electronics_kit.Name = "remote_electronics_kit"
