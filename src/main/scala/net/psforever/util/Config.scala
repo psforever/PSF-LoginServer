@@ -137,7 +137,8 @@ case class GameConfig(
     bepRate: Double,
     cepRate: Double,
     newAvatar: NewAvatar,
-    hart: HartConfig
+    hart: HartConfig,
+    sharedMaxCooldown: Boolean
 )
 
 case class NewAvatar(

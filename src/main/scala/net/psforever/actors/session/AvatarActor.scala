@@ -5,57 +5,16 @@ import java.util.concurrent.atomic.AtomicInteger
 import akka.actor.Cancellable
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
-import net.psforever.objects.avatar.{Avatar, BattleRank, Certification, Cosmetic, Implant}
+import net.psforever.objects.avatar._
 import net.psforever.objects.definition.converter.CharacterSelectConverter
-import net.psforever.objects.definition.{
-  AmmoBoxDefinition,
-  BasicDefinition,
-  ConstructionItemDefinition,
-  ImplantDefinition,
-  KitDefinition,
-  SimpleItemDefinition,
-  ToolDefinition
-}
+import net.psforever.objects.definition._
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.loadouts.{InfantryLoadout, Loadout}
-import net.psforever.objects.{
-  Account,
-  AmmoBox,
-  ConstructionItem,
-  GlobalDefinitions,
-  Kit,
-  Player,
-  Session,
-  SimpleItem,
-  Tool
-}
+import net.psforever.objects._
 import net.psforever.packet.game.objectcreate.ObjectClass
-import net.psforever.packet.game.{
-  ActionProgressMessage,
-  ActionResultMessage,
-  AvatarImplantMessage,
-  AvatarVehicleTimerMessage,
-  BattleExperienceMessage,
-  CharacterInfoMessage,
-  CreateShortcutMessage,
-  FavoritesMessage,
-  ImplantAction,
-  ItemTransactionResultMessage,
-  ObjectCreateDetailedMessage,
-  PlanetSideZoneID,
-  PlanetsideAttributeMessage
-}
-import net.psforever.types.{
-  CharacterSex,
-  CharacterVoice,
-  ExoSuitType,
-  ImplantType,
-  LoadoutType,
-  PlanetSideEmpire,
-  PlanetSideGUID,
-  TransactionType
-}
+import net.psforever.packet.game._
+import net.psforever.types._
 import net.psforever.util.Database._
 import net.psforever.persistence
 import net.psforever.util.{Config, DefinitionUtil}
@@ -269,8 +228,8 @@ class AvatarActor(
 
   def postStartBehaviour(): Behavior[Command] = {
     account match {
-      case Some(account) =>
-        buffer.unstashAll(active(account))
+      case Some(_account) =>
+        buffer.unstashAll(active(_account))
       case _ =>
         Behaviors.same
     }
@@ -328,7 +287,7 @@ class AvatarActor(
 
                   result.onComplete {
                     case Success(_) =>
-                      log.debug(s"AvatarActor: created character ${name} for account ${account.name}")
+                      log.debug(s"AvatarActor: created character $name for account ${account.name}")
                       sessionActor ! SessionActor.SendResponse(ActionResultMessage.Pass)
                       sendAvatars(account)
                     case Failure(e) => log.error(e)("db failure")
@@ -445,8 +404,8 @@ class AvatarActor(
                   sessionActor ! SessionActor.SendResponse(
                     ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = false)
                   )
-                case Success(replace) =>
-                  replace.foreach { cert =>
+                case Success(_replace) =>
+                  _replace.foreach { cert =>
                     sessionActor ! SessionActor.SendResponse(
                       PlanetsideAttributeMessage(session.get.player.GUID, 25, cert.value)
                     )
@@ -519,15 +478,31 @@ class AvatarActor(
                     ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = false)
                   )
                 case Success(certs) =>
+                  val player = session.get.player
                   context.self ! ReplaceAvatar(avatar.copy(certifications = avatar.certifications.diff(certs)))
                   certs.foreach { cert =>
                     sessionActor ! SessionActor.SendResponse(
-                      PlanetsideAttributeMessage(session.get.player.GUID, 25, cert.value)
+                      PlanetsideAttributeMessage(player.GUID, 25, cert.value)
                     )
                   }
                   sessionActor ! SessionActor.SendResponse(
                     ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = true)
                   )
+                  //wearing invalid armor?
+                  if (
+                    if (certification == Certification.ReinforcedExoSuit) player.ExoSuit == ExoSuitType.Reinforced
+                    else if (certification == Certification.InfiltrationSuit) player.ExoSuit == ExoSuitType.Infiltration
+                    else if (player.ExoSuit == ExoSuitType.MAX) {
+                      lazy val subtype = InfantryLoadout.DetermineSubtypeA(ExoSuitType.MAX, player.Slot(slot = 0).Equipment)
+                      if (certification == Certification.UniMAX) true
+                      else if (certification == Certification.AAMAX) subtype == 1
+                      else if (certification == Certification.AIMAX) subtype == 2
+                      else if (certification == Certification.AVMAX) subtype == 3
+                      else false
+                    } else false
+                  ) {
+                    player.Actor ! PlayerControl.SetExoSuit(ExoSuitType.Standard, 0)
+                  }
               }
           }
           Behaviors.same
@@ -591,24 +566,24 @@ class AvatarActor(
         case LearnImplant(terminalGuid, definition) =>
           // TODO there used to be a terminal check here, do we really need it?
           val index = avatar.implants.zipWithIndex.collectFirst {
-            case (Some(implant), index) if implant.definition.implantType == definition.implantType => index
-            case (None, index) if index < avatar.br.implantSlots                                    => index
+            case (Some(implant), _index) if implant.definition.implantType == definition.implantType => _index
+            case (None, _index) if _index < avatar.br.implantSlots                                    => _index
           }
           index match {
-            case Some(index) =>
+            case Some(_index) =>
               import ctx._
               ctx
                 .run(query[persistence.Implant].insert(_.name -> lift(definition.Name), _.avatarId -> lift(avatar.id)))
                 .onComplete {
                   case Success(_) =>
                     context.self ! ReplaceAvatar(
-                      avatar.copy(implants = avatar.implants.updated(index, Some(Implant(definition))))
+                      avatar.copy(implants = avatar.implants.updated(_index, Some(Implant(definition))))
                     )
                     sessionActor ! SessionActor.SendResponse(
                       AvatarImplantMessage(
                         session.get.player.GUID,
                         ImplantAction.Add,
-                        index,
+                        _index,
                         definition.implantType.value
                       )
                     )
@@ -630,10 +605,10 @@ class AvatarActor(
         case SellImplant(terminalGuid, definition) =>
           // TODO there used to be a terminal check here, do we really need it?
           val index = avatar.implants.zipWithIndex.collectFirst {
-            case (Some(implant), index) if implant.definition.implantType == definition.implantType => index
+            case (Some(implant), _index) if implant.definition.implantType == definition.implantType => _index
           }
           index match {
-            case Some(index) =>
+            case Some(_index) =>
               import ctx._
               ctx
                 .run(
@@ -644,9 +619,9 @@ class AvatarActor(
                 )
                 .onComplete {
                   case Success(_) =>
-                    context.self ! ReplaceAvatar(avatar.copy(implants = avatar.implants.updated(index, None)))
+                    context.self ! ReplaceAvatar(avatar.copy(implants = avatar.implants.updated(_index, None)))
                     sessionActor ! SessionActor.SendResponse(
-                      AvatarImplantMessage(session.get.player.GUID, ImplantAction.Remove, index, 0)
+                      AvatarImplantMessage(session.get.player.GUID, ImplantAction.Remove, _index, 0)
                     )
                     sessionActor ! SessionActor.SendResponse(
                       ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = true)
@@ -721,15 +696,19 @@ class AvatarActor(
           Behaviors.same
 
         case UpdatePurchaseTime(definition, time) =>
-          //only send for items with cooldowns
-          Avatar.purchaseCooldowns.get(definition) match {
-            case Some(cooldown) =>
-              // TODO save to db
-              avatar = avatar.copy(purchaseTimes = avatar.purchaseTimes.updated(definition.Name, time))
-              updatePurchaseTimer(definition.Name, cooldown.toSeconds, unk1 = true)
-            case None => ;
-            //log.warn(s"UpdatePurchaseTime message for item '${definition.Name}' without cooldown")
+          // TODO save to db
+          var newTimes = avatar.purchaseTimes
+          resolveSharedPurchaseTimeNames(resolvePurchaseTimeName(avatar.faction, definition)).foreach {
+            case (item, name) =>
+              Avatar.purchaseCooldowns.get(item) match {
+                case Some(cooldown) =>
+                  //only send for items with cooldowns
+                  newTimes = newTimes.updated(item.Name, time)
+                  updatePurchaseTimer(name, cooldown.toSeconds, unk1 = true)
+                case _ => ;
+              }
           }
+          avatar = avatar.copy(purchaseTimes = newTimes)
           Behaviors.same
 
         case UpdateUseTime(definition, time) =>
@@ -858,7 +837,7 @@ class AvatarActor(
           Behaviors.same
 
         case ConsumeStamina(stamina) =>
-          assert(stamina > 0, s"consumed stamina must be larger than 0, but is: ${stamina}")
+          assert(stamina > 0, s"consumed stamina must be larger than 0, but is: $stamina")
           consumeStamina(stamina)
           Behaviors.same
 
@@ -1260,7 +1239,7 @@ class AvatarActor(
           doll.ExoSuit = ExoSuitType(loadout.exosuitId)
 
           loadout.items.split("/").foreach {
-            case value =>
+            value =>
               val (objectType, objectIndex, objectId, toolAmmo) = value.split(",") match {
                 case Array(a, b: String, c: String)    => (a, b.toInt, c.toInt, None)
                 case Array(a, b: String, c: String, d) => (a, b.toInt, c.toInt, Some(d))
@@ -1318,9 +1297,9 @@ class AvatarActor(
   def defaultStaminaRegen(): Cancellable = {
     context.system.scheduler.scheduleWithFixedDelay(0.5 seconds, 0.5 seconds)(() => {
       (session, _avatar) match {
-        case (Some(session), Some(_)) =>
+        case (Some(_session), Some(_)) =>
           if (
-            !avatar.staminaFull && (session.player.VehicleSeated.nonEmpty || !session.player.isMoving && !session.player.Jumping)
+            !avatar.staminaFull && (_session.player.VehicleSeated.nonEmpty || !_session.player.isMoving && !_session.player.Jumping)
           ) {
             context.self ! RestoreStamina(1)
           }
@@ -1340,6 +1319,47 @@ class AvatarActor(
     })
   }
 
+  def resolvePurchaseTimeName(faction: PlanetSideEmpire.Value, item: BasicDefinition): (BasicDefinition, String) = {
+    val factionName : String = faction.toString.toLowerCase
+    val name = item match {
+      case GlobalDefinitions.trhev_dualcycler |
+           GlobalDefinitions.nchev_scattercannon |
+           GlobalDefinitions.vshev_quasar   =>
+        s"${factionName}hev_antipersonnel"
+      case GlobalDefinitions.trhev_pounder |
+           GlobalDefinitions.nchev_falcon |
+           GlobalDefinitions.vshev_comet    =>
+        s"${factionName}hev_antivehicular"
+      case GlobalDefinitions.trhev_burster |
+           GlobalDefinitions.nchev_sparrow |
+           GlobalDefinitions.vshev_starfire =>
+        s"${factionName}hev_antiaircraft"
+      case _                                =>
+        item.Name
+    }
+    (item, name)
+  }
+
+  def resolveSharedPurchaseTimeNames(pair: (BasicDefinition, String)): Seq[(BasicDefinition, String)] = {
+    val (_, name) = pair
+    if (name.matches("(tr|nc|vs)hev_.+") && Config.app.game.sharedMaxCooldown) {
+      val faction = name.take(2)
+      (if (faction.equals("nc")) {
+        Seq(GlobalDefinitions.nchev_scattercannon, GlobalDefinitions.nchev_falcon, GlobalDefinitions.nchev_sparrow)
+      }
+      else if (faction.equals("vs")) {
+        Seq(GlobalDefinitions.vshev_quasar, GlobalDefinitions.vshev_comet, GlobalDefinitions.vshev_starfire)
+      }
+      else {
+        Seq(GlobalDefinitions.trhev_dualcycler, GlobalDefinitions.trhev_pounder, GlobalDefinitions.trhev_burster)
+      }).zip(
+        Seq(s"${faction}hev_antipersonnel", s"${faction}hev_antivehicular", s"${faction}hev_antiaircraft")
+      )
+    } else {
+      Seq(pair)
+    }
+  }
+
   def refreshPurchaseTimes(keys: Set[String]): Unit = {
     var keysToDrop: Seq[String] = Nil
     keys.foreach { key =>
@@ -1348,23 +1368,7 @@ class AvatarActor(
           val secondsSincePurchase = Seconds.secondsBetween(purchaseTime, LocalDateTime.now()).getSeconds
           Avatar.purchaseCooldowns.find(_._1.Name == name) match {
             case Some((obj, cooldown)) if cooldown.toSeconds - secondsSincePurchase > 0 =>
-              val faction : String = avatar.faction.toString.toLowerCase
-              val name = obj match {
-                case GlobalDefinitions.trhev_dualcycler |
-                     GlobalDefinitions.nchev_scattercannon |
-                     GlobalDefinitions.vshev_quasar   =>
-                  s"${faction}hev_antipersonnel"
-                case GlobalDefinitions.trhev_pounder |
-                     GlobalDefinitions.nchev_falcon |
-                     GlobalDefinitions.vshev_comet    =>
-                  s"${faction}hev_antivehicular"
-                case GlobalDefinitions.trhev_burster |
-                     GlobalDefinitions.nchev_sparrow |
-                     GlobalDefinitions.vshev_starfire =>
-                  s"${faction}hev_antiaircraft"
-                case _                                =>
-                  obj.Name
-              }
+              val (_, name) = resolvePurchaseTimeName(avatar.faction, obj)
               updatePurchaseTimer(name, cooldown.toSeconds - secondsSincePurchase, unk1 = true)
 
             case _ =>
