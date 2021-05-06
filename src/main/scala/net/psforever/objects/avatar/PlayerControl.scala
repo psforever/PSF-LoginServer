@@ -185,7 +185,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
             val guid   = player.GUID
             if (!(player.isMoving || user.isMoving)) { //only allow stationary repairs
               val newArmor = player.Armor =
-                originalArmor + Repairable.applyLevelModifier(user, item, RepairValue(item)).toInt + definition.RepairMod
+                originalArmor + Repairable.applyLevelModifier(user, item, RepairToolValue(item)).toInt + definition.RepairMod
               val magazine = item.Discharge()
               events ! AvatarServiceMessage(
                 uname,
@@ -863,7 +863,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       case _ => ;
     }
 
-  def RepairValue(item: Tool): Float = {
+  def RepairToolValue(item: Tool): Float = {
     item.AmmoSlot.Box.Definition.repairAmount +
     (if (player.ExoSuit != ExoSuitType.MAX) {
       item.FireMode.Add.Damage0

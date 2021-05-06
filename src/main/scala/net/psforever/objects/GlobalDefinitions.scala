@@ -1911,7 +1911,7 @@ object GlobalDefinitions {
 
     armor_canister.Name = "armor_canister"
     armor_canister.Capacity = 100
-    armor_canister.repairAmount = 12.5f
+    armor_canister.repairAmount = 12f //ADB says 12.5, but 12 is better for the math
     armor_canister.Tile = InventoryTile.Tile23
 
     upgrade_canister.Name = "upgrade_canister"
