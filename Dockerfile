@@ -6,7 +6,7 @@ WORKDIR /PSF-LoginServer
 
 RUN sbt server/pack
 
-FROM openjdk:8-slim
+FROM openjdk:17-slim
 
 COPY --from=builder /PSF-LoginServer/server/target/pack/ /usr/local
 
