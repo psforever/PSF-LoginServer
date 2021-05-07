@@ -200,6 +200,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var lastTerminalOrderFulfillment: Boolean                           = true
   var shiftPosition: Option[Vector3]                                  = None
   var shiftOrientation: Option[Vector3]                               = None
+  var nextSpawnPoint: Option[SpawnPoint]                              = None
   var setupAvatarFunc: () => Unit                                     = AvatarCreate
   var setCurrentAvatarFunc: Player => Unit                            = SetCurrentAvatarNormally
   var persist: () => Unit                                             = NoPersistence
@@ -509,14 +510,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               case Some(0) =>
                 deadState = DeadState.Release // cancel movement updates
                 vehicle.Position = position
-                LoadZonePhysicalSpawnPoint(zoneId, position, Vector3.Zero, 0 seconds)
+                LoadZonePhysicalSpawnPoint(zoneId, position, Vector3.Zero, 0 seconds, None)
               case _ => // not seated as the driver, in which case we can't move
             }
           case None =>
             deadState = DeadState.Release // cancel movement updates
             player.Position = position
             // continent.AvatarEvents ! AvatarServiceMessage(continent.Id, AvatarAction.ObjectDelete(player.GUID, player.GUID))
-            LoadZonePhysicalSpawnPoint(zoneId, position, Vector3.Zero, 0 seconds)
+            LoadZonePhysicalSpawnPoint(zoneId, position, Vector3.Zero, 0 seconds, None)
           case _ => // seated in something that is not a vehicle or the vehicle is cargo, in which case we can't move
         }
       }
@@ -530,7 +531,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               case Some(0) =>
                 deadState = DeadState.Release // cancel movement updates
                 vehicle.Position = position
-                LoadZonePhysicalSpawnPoint(continent.id, position, Vector3.z(vehicle.Orientation.z), 0 seconds)
+                LoadZonePhysicalSpawnPoint(continent.id, position, Vector3.z(vehicle.Orientation.z), 0 seconds, None)
               case _ => // not seated as the driver, in which case we can't move
             }
           case None =>
@@ -610,7 +611,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               deadState = DeadState.Release
               sendResponse(AvatarDeadStateMessage(DeadState.Release, 0, 0, player.Position, player.Faction, true))
               interstellarFerry = Some(v) //on the other continent and registered to that continent's GUID system
-              LoadZonePhysicalSpawnPoint(v.Continent, v.Position, v.Orientation, 1 seconds)
+              LoadZonePhysicalSpawnPoint(v.Continent, v.Position, v.Orientation, 1 seconds, None)
             case _ =>
               interstellarFerry match {
                 case None =>
@@ -1003,16 +1004,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           response match {
             case Some((zone, spawnPoint)) =>
               val obj = continent.GUID(player.VehicleSeated) match {
-                case Some(obj: Vehicle) if !obj.Destroyed =>
-                  obj
-                case _ =>
-                  player
+                case Some(obj: Vehicle) if !obj.Destroyed => obj
+                case _                                    => player
               }
               val (pos, ori) = spawnPoint.SpecificPoint(obj)
               if (previousZoningType == Zoning.Method.InstantAction)
-                LoadZonePhysicalSpawnPoint(zone.id, pos, ori, respawnTime = 0 seconds)
+                LoadZonePhysicalSpawnPoint(zone.id, pos, ori, respawnTime = 0 seconds, Some(spawnPoint))
               else
-                LoadZonePhysicalSpawnPoint(zone.id, pos, ori, CountSpawnDelay(zone.id, spawnPoint, continent.id))
+                LoadZonePhysicalSpawnPoint(zone.id, pos, ori, CountSpawnDelay(zone.id, spawnPoint, continent.id), Some(spawnPoint))
             case None =>
               log.warn(
                 s"SpawnPointResponse: ${player.Name} received no spawn point response when asking InterstellarClusterService; sending home"
@@ -1300,37 +1299,58 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           session.zone.map.checksum
         )
       )
-      //important! the LoadMapMessage must be processed by the client before the avatar is created
-      setupAvatarFunc()
-      //interimUngunnedVehicle should have been setup by setupAvatarFunc, if it is applicable
-      turnCounterFunc = interimUngunnedVehicle match {
-        case Some(_) =>
-          TurnCounterDuringInterimWhileInPassengerSeat
-        case None =>
-          TurnCounterDuringInterim
+      if (isAcceptableNextSpawnPoint()) {
+        //important! the LoadMapMessage must be processed by the client before the avatar is created
+        setupAvatarFunc()
+        //interimUngunnedVehicle should have been setup by setupAvatarFunc, if it is applicable
+        turnCounterFunc = interimUngunnedVehicle match {
+          case Some(_) =>
+            TurnCounterDuringInterimWhileInPassengerSeat
+          case None =>
+            TurnCounterDuringInterim
+        }
+        keepAliveFunc = NormalKeepAlive
+        upstreamMessageCount = 0
+        setAvatar = false
+        persist()
+      } else {
+        //look for different spawn point in same zone
+        cluster ! ICS.GetNearbySpawnPoint(
+          session.zone.Number,
+          tplayer,
+          Seq(SpawnGroup.Facility, SpawnGroup.Tower, SpawnGroup.AMS),
+          context.self
+        )
       }
-      keepAliveFunc = NormalKeepAlive
-      upstreamMessageCount = 0
-      setAvatar = false
-      persist()
 
     case PlayerLoaded(tplayer) =>
       //same zone
       log.info(s"${tplayer.Name} will respawn")
       tplayer.avatar = avatar
       session = session.copy(player = tplayer)
-      setupAvatarFunc()
-      //interimUngunnedVehicle should have been setup by setupAvatarFunc, if it is applicable
-      turnCounterFunc = interimUngunnedVehicle match {
-        case Some(_) =>
-          TurnCounterDuringInterimWhileInPassengerSeat
-        case None =>
-          TurnCounterDuringInterim
+      if (isAcceptableNextSpawnPoint()) {
+        //try this spawn point
+        setupAvatarFunc()
+        //interimUngunnedVehicle should have been setup by setupAvatarFunc, if it is applicable
+        turnCounterFunc = interimUngunnedVehicle match {
+          case Some(_) =>
+            TurnCounterDuringInterimWhileInPassengerSeat
+          case None =>
+            TurnCounterDuringInterim
+        }
+        keepAliveFunc = NormalKeepAlive
+        upstreamMessageCount = 0
+        setAvatar = false
+        persist()
+      } else {
+        //look for different spawn point in same zone
+        cluster ! ICS.GetNearbySpawnPoint(
+          continent.Number,
+          tplayer,
+          Seq(SpawnGroup.Facility, SpawnGroup.Tower, SpawnGroup.AMS),
+          context.self
+        )
       }
-      keepAliveFunc = NormalKeepAlive
-      upstreamMessageCount = 0
-      setAvatar = false
-      persist()
 
     case PlayerFailedToLoad(tplayer) =>
       player.Continent match {
@@ -1386,7 +1406,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             continent.Population ! Zone.Population.Leave(avatar) //does not matter if it doesn't work
             zoneLoaded = None
             zoneReload = true
-            LoadZonePhysicalSpawnPoint(toZoneId, pos, orient, 0 seconds)
+            LoadZonePhysicalSpawnPoint(toZoneId, pos, orient, respawnTime = 0 seconds, None)
         }
       } else if (tplayer.isAlive) {
         if (
@@ -1399,7 +1419,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           if (!setAvatar || waitingOnUpstream) {
             setCurrentAvatarFunc(tplayer)
             respawnTimer = context.system.scheduler.scheduleOnce(
-              delay = (if (attempt <= max_attempts / 2) 10 else 5) seconds,
+              delay = (if (attempt <= max_attempts / 2) 10
+              else 5) seconds,
               self,
               SetCurrentAvatar(tplayer, max_attempts, attempt + max_attempts / 3)
             )
@@ -1408,8 +1429,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               case (Some(v: Vehicle), Some(seatNumber))
                   if seatNumber > 0 && v.WeaponControlledFromSeat(seatNumber).isEmpty =>
                 KeepAlivePersistence
-              case _ => NormalKeepAlive
+              case _ =>
+                NormalKeepAlive
             }
+            nextSpawnPoint = None
           }
           //if not the condition above, player has started playing normally
         } else {
@@ -1693,7 +1716,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     interstellarFerry = Some(droppod) //leverage vehicle gating
     player.Position = droppod.Position
     player.VehicleSeated = PlanetSideGUID(0)
-    LoadZonePhysicalSpawnPoint(zone.id, droppod.Position, Vector3.Zero, 0 seconds)
+    LoadZonePhysicalSpawnPoint(zone.id, droppod.Position, Vector3.Zero, 0 seconds, None)
   }
 
   /**
@@ -8593,7 +8616,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @param respawnTime the character downtime spent respawning, as clocked on the redeployment screen;
     *                    does not factor in any time required for loading zone or game objects
     */
-  def LoadZonePhysicalSpawnPoint(zoneId: String, pos: Vector3, ori: Vector3, respawnTime: FiniteDuration): Unit = {
+  def LoadZonePhysicalSpawnPoint(
+                                  zoneId: String,
+                                  pos: Vector3,
+                                  ori: Vector3,
+                                  respawnTime: FiniteDuration,
+                                  physSpawnPoint: Option[SpawnPoint]
+                                ): Unit = {
     log.info(s"${player.Name} will load in zone $zoneId at position $pos in $respawnTime")
     respawnTimer.cancel()
     reviveTimer.cancel()
@@ -8608,6 +8637,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         unk5 = true
       )
     )
+    nextSpawnPoint = physSpawnPoint
     shiftPosition = Some(pos)
     shiftOrientation = Some(ori)
 
@@ -9128,6 +9158,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   /**
     * Given an origin and a destination, determine how long the process of traveling should take in reconstruction time.
     * For most destinations, the unit of receiving ("spawn point") determines the reconstruction time.
+    * Possession of a lattice-linked friendly Bio Laboratory halves the time of spawning at facilities.
     * In a special consideration, travel to any sanctuary or sanctuary-special zone should be as immediate as zone loading.
     *
     * @param toZoneId     the zone where the target is headed
@@ -9137,12 +9168,18 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     */
   def CountSpawnDelay(toZoneId: String, toSpawnPoint: SpawnPoint, fromZoneId: String): FiniteDuration = {
     val sanctuaryZoneId = Zones.sanctuaryZoneId(player.Faction)
-    if (fromZoneId.equals("Nowhere") || sanctuaryZoneId.equals(toZoneId)) { //to sanctuary
+    if (fromZoneId.equals("Nowhere") || sanctuaryZoneId.equals(toZoneId) || !isAcceptableNextSpawnPoint()) {
+      //to sanctuary
       0 seconds
-    } else if (!player.isAlive) {
-      toSpawnPoint.Definition.Delay seconds //TODO +cumulative death penalty
     } else {
-      toSpawnPoint.Definition.Delay seconds
+      //to other zones
+      //biolabs have benefits ...
+      val cryoBenefit: Float = toSpawnPoint.Owner match {
+        case b: Building if b.latticeConnectedFacilityBenefits().contains(GlobalDefinitions.cryo_facility) => 0.5f
+        case _                                                                                             => 1f
+      }
+      //TODO cumulative death penalty
+      toSpawnPoint.Definition.Delay.toFloat * cryoBenefit seconds
     }
   }
 
@@ -9711,6 +9748,24 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         out
       case _ =>
         (None, None)
+    }
+  }
+
+  def isAcceptableNextSpawnPoint(): Boolean = isAcceptableSpawnPoint(nextSpawnPoint)
+
+  def isAcceptableSpawnPoint(spawnPoint: SpawnPoint): Boolean = isAcceptableSpawnPoint(Some(spawnPoint))
+
+  def isAcceptableSpawnPoint(spawnPoint: Option[SpawnPoint]): Boolean = {
+    spawnPoint match {
+      case Some(aSpawnPoint) =>
+        !aSpawnPoint.isOffline &&
+        (aSpawnPoint.Owner match {
+          case w: WarpGate => w.Active
+          case b: Building => b.Faction == player.Faction
+          case v: Vehicle  => v.Faction == player.Faction && !v.Destroyed && v.DeploymentState == DriveState.Deployed
+          case _           => true
+        })
+      case None            => true
     }
   }
 
