@@ -9,6 +9,7 @@ import net.psforever.packet.game.BuildingInfoUpdateMessage
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGeneratorState, Vector3}
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.actors.zone.BuildingActor
+import net.psforever.objects.definition.ObjectDefinition
 
 import scala.collection.mutable
 
@@ -153,6 +154,10 @@ class WarpGate(name: String, building_guid: Int, map_id: Int, zone: Zone, buildi
   def NtuCapacitor: Float = Definition.MaxNtuCapacitor
 
   def NtuCapacitor_=(value: Float): Float = NtuCapacitor
+
+  override def hasLatticeBenefit(wantedBenefit: ObjectDefinition): Boolean = false
+
+  override def latticeConnectedFacilityBenefits(): Set[ObjectDefinition] = Set.empty
 
   override def Definition: WarpGateDefinition = buildingDefinition
 }

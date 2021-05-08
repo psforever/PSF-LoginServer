@@ -9169,14 +9169,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   def CountSpawnDelay(toZoneId: String, toSpawnPoint: SpawnPoint, fromZoneId: String): FiniteDuration = {
     val sanctuaryZoneId = Zones.sanctuaryZoneId(player.Faction)
     if (fromZoneId.equals("Nowhere") || sanctuaryZoneId.equals(toZoneId) || !isAcceptableNextSpawnPoint()) {
-      //to sanctuary
+      //first login, to sanctuary, resolution of invalid spawn point
       0 seconds
     } else {
-      //to other zones
-      //biolabs have benefits ...
+      //for other zones ...
+      //biolabs have/grant benefits
       val cryoBenefit: Float = toSpawnPoint.Owner match {
-        case b: Building if b.latticeConnectedFacilityBenefits().contains(GlobalDefinitions.cryo_facility) => 0.5f
-        case _                                                                                             => 1f
+        case b: Building if b.hasLatticeBenefit(GlobalDefinitions.cryo_facility) => 0.5f
+        case _                                                                   => 1f
       }
       //TODO cumulative death penalty
       toSpawnPoint.Definition.Delay.toFloat * cryoBenefit seconds

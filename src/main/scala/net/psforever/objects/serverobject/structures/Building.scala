@@ -207,6 +207,27 @@ class Building(
     )
   }
 
+  def hasLatticeBenefit(wantedBenefit: ObjectDefinition): Boolean = {
+    if (Faction == PlanetSideEmpire.NEUTRAL) {
+      false
+    } else {
+      // Check this Building is on the lattice first
+      zone.Lattice find this match {
+        case Some(_) =>
+          val subGraph = Zone.Lattice filter (
+            (b : Building) =>
+              b.Faction == this.Faction &&
+              !b.CaptureTerminalIsHacked &&
+              b.NtuLevel > 0 &&
+              (b.Generator.isEmpty || b.Generator.get.Condition != PlanetSideGeneratorState.Destroyed)
+            )
+          findLatticeBenefit(wantedBenefit, subGraph)
+        case None =>
+          false
+      }
+    }
+  }
+
   private def findLatticeBenefit(
                                   wantedBenefit: ObjectDefinition,
                                   subGraph: Graph[Building, GraphEdge.UnDiEdge]
