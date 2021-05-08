@@ -2594,7 +2594,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))
         UpdateWeaponAtSeatPosition(obj, seat_number)
         MountingAction(tplayer, obj, seat_number)
-        keepAliveFunc = KeepAlivePersistence
 
       case Mountable.CanMount(obj: Mountable, _, _) =>
         log.warn(s"MountVehicleMsg: $obj is some mountable object and nothing will happen for ${player.Name}")
@@ -3971,11 +3970,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         FindContainedWeapon match {
           case (Some(o), Some(tool)) =>
             (o match {
-              case mount: Mountable => mount.PassengerInSeat(player)
-              case _                => None
+              case mount: Mountable => (o, mount.PassengerInSeat(player))
+              case _                => (None, None)
             }) match {
-              case None | Some(0) => ;
-              case Some(_) =>
+              case (None, None) | (_, None) | (_: Vehicle, Some(0)) => ;
+              case _ =>
                 persist()
                 turnCounterFunc(player.GUID)
             }
