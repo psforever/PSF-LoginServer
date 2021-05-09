@@ -182,53 +182,6 @@ class Building(
       (o.nonEmpty, false) //TODO poll pain field strength
     }
 
-    val latticeBenefit: Int = {
-      if (Faction == PlanetSideEmpire.NEUTRAL) 0
-      else {
-        def FindLatticeBenefit(
-            wantedBenefit: ObjectDefinition,
-            subGraph: Graph[Building, GraphEdge.UnDiEdge]
-        ): Boolean = {
-          var found = false
-
-          subGraph find this match {
-            case Some(self) =>
-              if (this.Definition == wantedBenefit) found = true
-              else {
-                self pathUntil (_.Definition == wantedBenefit) match {
-                  case Some(_) => found = true
-                  case None    => ;
-                }
-              }
-            case None => ;
-          }
-
-          found
-        }
-
-        // Check this Building is on the lattice first
-        zone.Lattice find this match {
-          case Some(_) =>
-            val subGraph = Zone.Lattice filter ((b: Building) =>
-              b.Faction == this.Faction
-                && !b.CaptureTerminalIsHacked
-                && b.NtuLevel > 0
-                && (b.Generator.isEmpty || b.Generator.get.Condition != PlanetSideGeneratorState.Destroyed)
-            )
-
-            var stackedBenefit = 0
-            if (FindLatticeBenefit(GlobalDefinitions.amp_station, subGraph)) stackedBenefit |= 1
-            if (FindLatticeBenefit(GlobalDefinitions.comm_station_dsp, subGraph)) stackedBenefit |= 2
-            if (FindLatticeBenefit(GlobalDefinitions.cryo_facility, subGraph)) stackedBenefit |= 4
-            if (FindLatticeBenefit(GlobalDefinitions.comm_station, subGraph)) stackedBenefit |= 8
-            if (FindLatticeBenefit(GlobalDefinitions.tech_plant, subGraph)) stackedBenefit |= 16
-
-            stackedBenefit
-          case None => 0;
-        }
-      }
-    }
-
     BuildingInfoUpdateMessage(
       Zone.Number,
       MapId,
@@ -242,7 +195,7 @@ class Building(
       generatorState,
       spawnTubesNormal,
       forceDomeActive,
-      if (generatorState != PlanetSideGeneratorState.Destroyed) latticeBenefit else 0,
+      if (generatorState != PlanetSideGeneratorState.Destroyed) latticeBenefitsValue() else 0,
       if (generatorState != PlanetSideGeneratorState.Destroyed) 48 else 0,    // cavern benefit
       Nil,   // unk4,
       0,     // unk5
@@ -252,6 +205,95 @@ class Building(
       boostSpawnPain,
       boostGeneratorPain
     )
+  }
+
+  def hasLatticeBenefit(wantedBenefit: ObjectDefinition): Boolean = {
+    if (Faction == PlanetSideEmpire.NEUTRAL) {
+      false
+    } else {
+      // Check this Building is on the lattice first
+      zone.Lattice find this match {
+        case Some(_) =>
+          val subGraph = Zone.Lattice filter (
+            (b : Building) =>
+              b.Faction == this.Faction &&
+              !b.CaptureTerminalIsHacked &&
+              b.NtuLevel > 0 &&
+              (b.Generator.isEmpty || b.Generator.get.Condition != PlanetSideGeneratorState.Destroyed)
+            )
+          findLatticeBenefit(wantedBenefit, subGraph)
+        case None =>
+          false
+      }
+    }
+  }
+
+  private def findLatticeBenefit(
+                                  wantedBenefit: ObjectDefinition,
+                                  subGraph: Graph[Building, GraphEdge.UnDiEdge]
+                                ): Boolean = {
+    var found = false
+    subGraph find this match {
+      case Some(self) =>
+        if (this.Definition == wantedBenefit) {
+          found = true
+        } else {
+          self pathUntil (_.Definition == wantedBenefit) match {
+            case Some(_) => found = true
+            case None    => ;
+          }
+        }
+      case None => ;
+    }
+    found
+  }
+
+  def latticeConnectedFacilityBenefits(): Set[ObjectDefinition] = {
+    if (Faction == PlanetSideEmpire.NEUTRAL) {
+      Set.empty
+    } else {
+      // Check this Building is on the lattice first
+      zone.Lattice find this match {
+        case Some(_) =>
+          val subGraph = Zone.Lattice filter ((b: Building) =>
+            b.Faction == this.Faction
+            && !b.CaptureTerminalIsHacked
+            && b.NtuLevel > 0
+            && (b.Generator.isEmpty || b.Generator.get.Condition != PlanetSideGeneratorState.Destroyed)
+            )
+
+          import scala.collection.mutable
+          var connectedBases: mutable.Set[ObjectDefinition] = mutable.Set()
+          if (findLatticeBenefit(GlobalDefinitions.amp_station, subGraph)) {
+            connectedBases.add(GlobalDefinitions.amp_station)
+          }
+          if (findLatticeBenefit(GlobalDefinitions.comm_station_dsp, subGraph)) {
+            connectedBases.add(GlobalDefinitions.comm_station_dsp)
+          }
+          if (findLatticeBenefit(GlobalDefinitions.cryo_facility, subGraph)) {
+            connectedBases.add(GlobalDefinitions.cryo_facility)
+          }
+          if (findLatticeBenefit(GlobalDefinitions.comm_station, subGraph)) {
+            connectedBases.add(GlobalDefinitions.comm_station)
+          }
+          if (findLatticeBenefit(GlobalDefinitions.tech_plant, subGraph)) {
+            connectedBases.add(GlobalDefinitions.tech_plant)
+          }
+          connectedBases.toSet
+        case None =>
+          Set.empty
+      }
+    }
+  }
+
+  def latticeBenefitsValue(): Int = {
+    latticeConnectedFacilityBenefits().collect {
+      case GlobalDefinitions.amp_station => 1
+      case GlobalDefinitions.comm_station_dsp => 2
+      case GlobalDefinitions.cryo_facility => 4
+      case GlobalDefinitions.comm_station => 8
+      case GlobalDefinitions.tech_plant => 16
+    }.sum
   }
 
   def BuildingType: StructureType = buildingType
