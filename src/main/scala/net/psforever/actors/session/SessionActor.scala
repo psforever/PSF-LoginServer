@@ -1877,6 +1877,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         continent.GUID(mount) match {
           case Some(obj: Vehicle) =>
             ConditionalDriverVehicleControl(obj)
+            serverVehicleControlVelocity = None
             UnaccessContainer(obj)
           case _ => ;
         }
