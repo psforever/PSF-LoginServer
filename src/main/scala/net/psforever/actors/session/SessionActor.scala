@@ -1900,6 +1900,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         continent.GUID(mount) match {
           case Some(obj: Vehicle) =>
             ConditionalDriverVehicleControl(obj)
+            serverVehicleControlVelocity = None
             UnaccessContainer(obj)
           case _ => ;
         }
@@ -2806,7 +2807,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     val tplayer_guid = if (player.HasGUID) player.GUID else PlanetSideGUID(0)
     reply match {
       case VehicleResponse.AttachToRails(vehicle_guid, pad_guid) =>
-        serverVehicleControlVelocity = Some(0)
         sendResponse(ObjectAttachMessage(pad_guid, vehicle_guid, 3))
 
       case VehicleResponse.ChildObjectState(object_guid, pitch, yaw) =>
@@ -3675,10 +3675,18 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           sendResponse(
             ObjectCreateMessage(vdefinition.ObjectId, vguid, vdefinition.Packet.ConstructorData(vehicle).get)
           )
-          //occupants other than driver
+          //occupants other than driver (with exceptions)
           vehicle.Seats
-            .filter({ case (index, seat) => seat.isOccupied && live.contains(seat.occupant.get) && index > 0 })
-            .foreach({
+            .filter {
+              case (index, seat) =>
+                seat.isOccupied &&
+                live.contains(seat.occupant.get) &&
+                (vehicle.Definition match {
+                  case GlobalDefinitions.orbital_shuttle | GlobalDefinitions.droppod => true
+                  case _                                                             => index > 0
+                })
+            }
+            .foreach {
               case (index, seat) =>
                 val targetPlayer    = seat.occupant.get
                 val targetDefiniton = targetPlayer.avatar.definition
@@ -3690,7 +3698,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                     targetDefiniton.Packet.ConstructorData(targetPlayer).get
                   )
                 )
-            })
+            }
         })
         vehicles.collect {
           case vehicle if vehicle.Faction == faction =>
@@ -3702,11 +3710,17 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             //depict any other passengers already in this zone
             val vguid = vehicle.GUID
             vehicle.Seats
-              .filter({
+              .filter {
                 case (index, seat) =>
-                  seat.isOccupied && !seat.occupant.contains(player) && live.contains(seat.occupant.get) && index > 0
-              })
-              .foreach({
+                  seat.isOccupied &&
+                  !seat.occupant.contains(player) &&
+                  live.contains(seat.occupant.get) &&
+                  (vehicle.Definition match {
+                    case GlobalDefinitions.orbital_shuttle => true
+                    case _                                 => index > 0
+                  })
+              }
+              .foreach {
                 case (index, seat) =>
                   val targetPlayer     = seat.occupant.get
                   val targetDefinition = targetPlayer.avatar.definition
@@ -3718,7 +3732,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                       targetDefinition.Packet.ConstructorData(targetPlayer).get
                     )
                   )
-              })
+              }
             //since we would have only subscribed recently, we need to reload mount access states
             (0 to 3).foreach { group =>
               sendResponse(PlanetsideAttributeMessage(vguid, group + 10, vehicle.PermissionGroup(group).get.id))
