@@ -3,7 +3,8 @@ package net.psforever.objects.definition
 
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.definition.converter.{ObjectCreateConverter, PacketConverter}
-import net.psforever.objects.geometry.{Geometry3D, GeometryForm}
+import net.psforever.objects.geometry.GeometryForm
+import net.psforever.objects.geometry.d3.Geometry3D
 import net.psforever.types.OxygenState
 
 /**

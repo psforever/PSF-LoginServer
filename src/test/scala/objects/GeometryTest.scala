@@ -2,6 +2,7 @@
 package objects
 
 import net.psforever.objects.geometry._
+import net.psforever.objects.geometry.d3._
 import net.psforever.types.Vector3
 import org.specs2.mutable.Specification
 

@@ -38,7 +38,7 @@ import akka.actor.typed
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
-import net.psforever.objects.geometry.Geometry3D
+import net.psforever.objects.geometry.d3.Geometry3D
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.doors.Door

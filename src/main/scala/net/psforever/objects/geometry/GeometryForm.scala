@@ -2,6 +2,7 @@
 package net.psforever.objects.geometry
 
 import net.psforever.objects.ballistics.{PlayerSource, SourceEntry}
+import net.psforever.objects.geometry.d3.{Cylinder, Geometry3D, Point3D, Sphere}
 import net.psforever.objects.{GlobalDefinitions, PlanetSideGameObject, Player}
 import net.psforever.types.{ExoSuitType, Vector3}
 
