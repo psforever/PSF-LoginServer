@@ -87,6 +87,8 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
   /** The basic support structure for the globally unique number system used by this `Zone`. */
   private var guid: NumberPoolHub = new NumberPoolHub(new MaxNumberSource(65536))
 
+  val blockMap: BlockMap = new BlockMap(map.scale.width.toInt, spanSize = 200)
+
   /** A synchronized `List` of items (`Equipment`) dropped by players on the ground and can be collected again. */
   private val equipmentOnGround: ListBuffer[Equipment] = ListBuffer[Equipment]()
 
@@ -209,6 +211,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
       MakeLattice()
       AssignAmenities()
       CreateSpawnGroups()
+      CreateAndPopulateBlockMap()
 
       validate()
     }
@@ -726,6 +729,11 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     val entry: Map[Building, List[SpawnPoint]] = PairMap(building -> points)
     spawnGroups = spawnGroups ++ entry
     entry
+  }
+
+  def CreateAndPopulateBlockMap(): Unit = {
+    vehicles.foreach { vehicle => blockMap.addTo(vehicle, range = 0f) }
+    buildings.values.foreach { building => blockMap.addTo(building, building.Definition.SOIRadius.toFloat) }
   }
 
   def StartPlayerManagementSystems(): Unit = {

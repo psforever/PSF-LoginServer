@@ -53,6 +53,12 @@ object ZoneActor {
 
   final case class DespawnVehicle(vehicle: Vehicle) extends Command
 
+  final case class AddToBlockMap(target: Any, toPosition: Vector3) extends Command
+
+  final case class UpdateBlockMap(target: Any, toPosition: Vector3, fromPosition: Vector3) extends Command
+
+  final case class RemoveFromBlockMap(target: Any, fromPosition: Vector3) extends Command
+
   final case class HotSpotActivity(defender: SourceEntry, attacker: SourceEntry, location: Vector3) extends Command
 
   // TODO remove
@@ -123,6 +129,17 @@ class ZoneActor(context: ActorContext[ZoneActor.Command], zone: Zone)
 
       case DespawnVehicle(vehicle) =>
         zone.Transport ! Zone.Vehicle.Despawn(vehicle)
+
+      case AddToBlockMap(target, toPosition) =>
+        log.info(s"${target.getClass().getSimpleName} added to blockmap")
+        zone.blockMap.addTo(target, toPosition, range = 0)
+
+      case UpdateBlockMap(target, toPosition, fromPosition) =>
+        zone.blockMap.move(target, toPosition, fromPosition, range = 0)
+
+      case RemoveFromBlockMap(target, fromPosition) =>
+        log.info(s"${target.getClass().getSimpleName} removed from blockmap")
+        zone.blockMap.removeFrom(target, fromPosition, range = 0)
 
       case HotSpotActivity(defender, attacker, location) =>
         zone.Activity ! Zone.HotSpot.Activity(defender, attacker, location)

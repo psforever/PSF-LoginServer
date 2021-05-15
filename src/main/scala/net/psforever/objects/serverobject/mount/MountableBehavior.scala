@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.mount
 
 import akka.actor.Actor
+import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.Player
 import net.psforever.objects.entity.WorldEntity
 import net.psforever.objects.serverobject.PlanetSideServerObject
@@ -43,6 +44,7 @@ trait MountableBehavior {
         case Some(seatNum) if mountTest(obj, seatNum, user) && tryMount(obj, seatNum, user) =>
           user.VehicleSeated = obj.GUID
           usedMountPoint.put(user.Name, mount_point)
+          obj.Zone.actor ! ZoneActor.RemoveFromBlockMap(user, obj.Position)
           sender() ! Mountable.MountMessages(user, Mountable.CanMount(obj, seatNum, mount_point))
         case _ =>
           sender() ! Mountable.MountMessages(user, Mountable.CanNotMount(obj, mount_point))
@@ -84,6 +86,7 @@ trait MountableBehavior {
       val obj = MountableObject
       if (dismountTest(obj, seat_number, user) && tryDismount(obj, seat_number, user)) {
         user.VehicleSeated = None
+        obj.Zone.actor ! ZoneActor.AddToBlockMap(user, obj.Position)
         sender() ! Mountable.MountMessages(
           user,
           Mountable.CanDismount(obj, seat_number, getUsedMountPoint(user.Name, seat_number))

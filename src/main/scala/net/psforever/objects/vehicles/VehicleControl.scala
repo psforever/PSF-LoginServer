@@ -2,6 +2,7 @@
 package net.psforever.objects.vehicles
 
 import akka.actor.{Actor, Cancellable}
+import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects._
 import net.psforever.objects.ballistics.VehicleSource
 import net.psforever.objects.ce.TelepadLike
@@ -406,6 +407,9 @@ class VehicleControl(vehicle: Vehicle)
           case Some(player) =>
             seat.unmount(player)
             player.VehicleSeated = None
+            if (player.isAlive) {
+              zone.actor ! ZoneActor.AddToBlockMap(player, vehicle.Position)
+            }
             if (player.HasGUID) {
               events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, false, guid))
             }
