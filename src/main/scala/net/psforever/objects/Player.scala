@@ -14,7 +14,7 @@ import net.psforever.objects.vital.resistance.ResistanceProfile
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.resolution.DamageResistanceModel
-import net.psforever.objects.zones.{ZoneAware, Zoning}
+import net.psforever.objects.zones.{BlockMapEntity, ZoneAware, Zoning}
 import net.psforever.types.{PlanetSideGUID, _}
 
 import scala.annotation.tailrec
@@ -22,6 +22,7 @@ import scala.util.{Success, Try}
 
 class Player(var avatar: Avatar)
     extends PlanetSideServerObject
+    with BlockMapEntity
     with InteractsWithZoneEnvironment
     with FactionAffinity
     with Vitality

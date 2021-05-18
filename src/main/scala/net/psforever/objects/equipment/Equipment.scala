@@ -5,6 +5,7 @@ import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.definition.EquipmentDefinition
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.zones.BlockMapEntity
 import net.psforever.types.PlanetSideEmpire
 
 /**
@@ -14,7 +15,10 @@ import net.psforever.types.PlanetSideEmpire
   * and, special carried (like a lattice logic unit);
   * and, dropped on the ground in the game world and render where it was deposited.
   */
-abstract class Equipment extends PlanetSideGameObject with FactionAffinity {
+abstract class Equipment
+  extends PlanetSideGameObject
+  with FactionAffinity
+  with BlockMapEntity {
   private var faction: PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
 
   def Faction: PlanetSideEmpire.Value = faction

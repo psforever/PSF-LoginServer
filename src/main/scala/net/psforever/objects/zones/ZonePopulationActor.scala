@@ -37,7 +37,7 @@ class ZonePopulationActor(zone: Zone, playerMap: TrieMap[Int, Option[Player]], c
           tplayer.Zone = Zone.Nowhere
           PlayerLeave(tplayer)
           if (tplayer.VehicleSeated.isEmpty) {
-            zone.actor ! ZoneActor.RemoveFromBlockMap(tplayer, tplayer.Position)
+            zone.actor ! ZoneActor.RemoveFromBlockMap(tplayer)
           }
           sender() ! Zone.Population.PlayerHasLeft(zone, player)
           if (playerMap.isEmpty) {
@@ -70,7 +70,7 @@ class ZonePopulationActor(zone: Zone, playerMap: TrieMap[Int, Option[Player]], c
         case Some(tplayer) =>
           PlayerLeave(tplayer)
           if (tplayer.VehicleSeated.isEmpty) {
-            zone.actor ! ZoneActor.RemoveFromBlockMap(tplayer, tplayer.Position)
+            zone.actor ! ZoneActor.RemoveFromBlockMap(tplayer)
           }
           sender() ! Zone.Population.PlayerHasLeft(zone, Some(tplayer))
         case None =>
@@ -102,7 +102,7 @@ class ZonePopulationActor(zone: Zone, playerMap: TrieMap[Int, Option[Player]], c
     case Zone.Corpse.Remove(player) =>
       if (CorpseRemove(player, corpseList)) {
         PlayerLeave(player)
-        zone.actor ! ZoneActor.RemoveFromBlockMap(player, player.Position)
+        zone.actor ! ZoneActor.RemoveFromBlockMap(player)
       }
 
     case _ => ;

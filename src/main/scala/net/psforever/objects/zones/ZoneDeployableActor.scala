@@ -45,7 +45,7 @@ class ZoneDeployableActor(zone: Zone, deployableList: ListBuffer[Deployable]) ex
       if (DeployableDismiss(obj, deployableList)) {
         obj.Actor ! Zone.Deployable.IsDismissed(obj)
         obj.Definition.Uninitialize(obj, context)
-        zone.actor ! ZoneActor.RemoveFromBlockMap(obj, obj.Position)
+        zone.actor ! ZoneActor.RemoveFromBlockMap(obj)
       }
 
     case Zone.Deployable.IsBuilt(_) => ;

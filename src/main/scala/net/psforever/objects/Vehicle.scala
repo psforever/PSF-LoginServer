@@ -16,6 +16,7 @@ import net.psforever.objects.vehicles._
 import net.psforever.objects.vital.resistance.StandardResistanceProfile
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.resolution.DamageResistanceModel
+import net.psforever.objects.zones.BlockMapEntity
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 import scala.concurrent.duration.FiniteDuration
@@ -71,6 +72,7 @@ import scala.util.{Success, Try}
   */
 class Vehicle(private val vehicleDef: VehicleDefinition)
     extends AmenityOwner
+    with BlockMapEntity
     with MountableWeapons
     with InteractsWithZoneEnvironment
     with Hackable

@@ -2,6 +2,7 @@
 package net.psforever.objects.zones
 
 import net.psforever.objects.ce.Deployable
+import net.psforever.objects.entity.WorldEntity
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.serverobject.environment.PieceOfEnvironment
 import net.psforever.objects.serverobject.structures.Building
@@ -9,6 +10,40 @@ import net.psforever.objects.{PlanetSideGameObject, Player, Vehicle}
 import net.psforever.types.Vector3
 
 import scala.collection.mutable.ListBuffer
+
+sealed case class BlockMapEntry(coords: Vector3, range: Float, sectors: Set[Int])
+
+trait BlockMapEntity
+  extends WorldEntity {
+  private var _blockMapEntry: Option[BlockMapEntry] = None
+  private var _updateBlockMapEntryFunc: (BlockMapEntity, Vector3) => Boolean = BlockMapEntity.doNotUpdateBlockMap
+
+  def blockMapEntry: Option[BlockMapEntry] = _blockMapEntry
+
+  def blockMapEntry_=(entry: Option[BlockMapEntry]): Option[BlockMapEntry] = {
+    entry match {
+      case None =>
+        _updateBlockMapEntryFunc = BlockMapEntity.doNotUpdateBlockMap
+        _blockMapEntry = None
+      case Some(_) =>
+        _updateBlockMapEntryFunc = BlockMapEntity.updateBlockMap
+        _blockMapEntry = entry
+    }
+    entry
+  }
+
+  def updateBlockMapEntry(newCoords: Vector3): Boolean = _updateBlockMapEntryFunc(this, newCoords)
+}
+
+object BlockMapEntity {
+  private def doNotUpdateBlockMap(target: BlockMapEntity, newCoords: Vector3): Boolean = false
+
+  private def updateBlockMap(target: BlockMapEntity, newCoords: Vector3): Boolean = {
+    val oldEntry = target.blockMapEntry.get
+    target.blockMapEntry = Some(BlockMapEntry(newCoords, oldEntry.range, oldEntry.sectors))
+    true
+  }
+}
 
 trait SectorPopulation {
   def livePlayerList: List[Player]
@@ -37,14 +72,14 @@ trait SectorPopulation {
 }
 
 trait SectorTraits {
-  def longitude: Int
+  def longitude: Float
 
-  def latitude: Int
+  def latitude: Float
 
   def span: Int
 }
 
-class SectorListOf[A](eqFunc: (A, A) => Boolean = (a: A, b: A) => a equals b){
+class SectorListOf[A](eqFunc: (A, A) => Boolean = (a: A, b: A) => a equals b) {
   private val internalList: ListBuffer[A] = ListBuffer[A]()
 
   def addTo(elem: A): List[A] = {
@@ -73,7 +108,7 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
   )
 
   val corpses: SectorListOf[Player] = new SectorListOf[Player](
-    (a: Player, b: Player) => a eq b
+    (a: Player, b: Player) => a.GUID == b.GUID || (a eq b)
   )
 
   val vehicles: SectorListOf[Vehicle] = new SectorListOf[Vehicle](
@@ -110,7 +145,7 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
 
   def environmentList: List[PieceOfEnvironment] = environment.list
 
-  def addTo(o: Any): Boolean = {
+  def addTo(o: BlockMapEntity): Boolean = {
     o match {
       case p: Player =>
         if (!p.isBackpack) {
@@ -177,7 +212,7 @@ object SectorGroup {
   }
 }
 
-class BlockMap(fullMapSize: Int, spanSize: Int) {
+class BlockMap(fullMapSize: Int, val spanSize: Int) {
   val (blocks, blocksInRow): (ListBuffer[Sector], Int) = {
     val corners: List[Int] = List.range(0, fullMapSize, spanSize)
     (ListBuffer.newBuilder[Sector].addAll(
@@ -189,7 +224,123 @@ class BlockMap(fullMapSize: Int, spanSize: Int) {
     ).result(), corners.size)
   }
 
-  private def sectorIndices(p: Vector3, range: Float): Iterable[Int] = {
+  def sector(p: Vector3, range: Float): SectorPopulation = {
+    val output = BlockMap.sectorIndices(blockMap = this, p, range).map { blocks }
+    if (output.size == 1) {
+      output.head
+    } else {
+      SectorGroup(output)
+    }
+  }
+
+  def addTo(target: BlockMapEntity): SectorPopulation = {
+    addTo(target, target.Position)
+  }
+
+  def addTo(target: BlockMapEntity, toPosition: Vector3): SectorPopulation = {
+    addTo(target, toPosition, BlockMap.rangeFromEntity(target))
+  }
+
+  def addTo(target: BlockMapEntity, range: Float): SectorPopulation = {
+    addTo(target, target.Position, range)
+  }
+
+  def addTo(target: BlockMapEntity, toPosition: Vector3, range: Float): SectorPopulation = {
+    val to = BlockMap.sectorIndices(blockMap = this, toPosition, range)
+    val toSectors = to.toSet.map { blocks }
+    toSectors.foreach { block => block.addTo(target) }
+    target.blockMapEntry = Some(BlockMapEntry(toPosition, range, to.toSet))
+    if (to.size == 1) {
+      toSectors.head
+    } else {
+      SectorGroup(toSectors)
+    }
+  }
+
+  def removeFrom(target: BlockMapEntity): SectorPopulation = {
+    target.blockMapEntry match {
+      case Some(entry) => removeFrom(target, entry.coords, entry.range)
+      case None        => SectorGroup(Nil)
+    }
+  }
+
+  def removeFrom(target: BlockMapEntity, fromPosition: Vector3): SectorPopulation = {
+    removeFrom(target)
+  }
+
+  def removeFrom(target: BlockMapEntity, range: Float): SectorPopulation =
+    removeFrom(target)
+
+  def removeFrom(target: BlockMapEntity, fromPosition: Vector3, range: Float): SectorPopulation = {
+    val from = target.blockMapEntry.get.sectors.map { blocks }
+    target.blockMapEntry = None
+    from.foreach { block => block.removeFrom(target) }
+    if (from.size == 1) {
+      from.head
+    } else {
+      SectorGroup(from)
+    }
+  }
+
+  def ensureRemoveFrom(target: BlockMapEntity): SectorPopulation = {
+    target.blockMapEntry = None
+    val foundSectors = blocks.filter { sector =>
+      target match {
+        case p: Player     => !p.isBackpack && sector.livePlayers.list.contains(p) || sector.corpses.list.contains(p)
+        case v: Vehicle    => sector.vehicles.list.contains(v)
+        case e: Equipment  => sector.equipmentOnGround.list.contains(e)
+        case d: Deployable => sector.deployables.list.contains(d)
+        case _             => false
+      }
+    }
+    foundSectors.foreach { _.removeFrom(target) }
+    SectorGroup(foundSectors)
+  }
+
+  def move(target: BlockMapEntity): SectorPopulation = {
+    target.blockMapEntry match {
+      case Some(entry) => move(target, target.Position, entry.coords, entry.range)
+      case None        => SectorGroup(Nil)
+    }
+  }
+
+  def move(target: BlockMapEntity, toPosition: Vector3): SectorPopulation = {
+    target.blockMapEntry match {
+      case Some(entry) => move(target, toPosition, entry.coords, entry.range)
+      case None        => SectorGroup(Nil)
+    }
+  }
+
+  def move(target: BlockMapEntity, toPosition: Vector3, fromPosition: Vector3): SectorPopulation = {
+    move(target, toPosition)
+  }
+
+  def move(target: BlockMapEntity, toPosition: Vector3, fromPosition: Vector3, range: Float): SectorPopulation = {
+    target.blockMapEntry match {
+      case Some(entry) =>
+        val from = entry.sectors
+        val to = BlockMap.sectorIndices(blockMap = this, toPosition, range).toSet
+        from.diff(to).foreach { index => blocks(index).removeFrom(target) }
+        to.diff(from).foreach { index => blocks(index).addTo(target) }
+        val out = to.map { blocks }
+        target.blockMapEntry = Some(BlockMapEntry(toPosition, range, to))
+        if (out.size == 1) {
+          out.head
+        } else {
+          SectorGroup(out)
+        }
+      case None    =>
+        SectorGroup(Nil)
+    }
+  }
+}
+
+object BlockMap {
+  def sectorIndices(blockMap: BlockMap, p: Vector3, range: Float): Iterable[Int] = {
+    sectorIndices(blockMap.spanSize, blockMap.blocksInRow, p, range)
+  }
+
+  def sectorIndices(spanSize: Int, blocksInRow: Int, p: Vector3, range: Float): Iterable[Int] = {
     val corners = Seq(
       p + Vector3(-range,  range, 0),
       p + Vector3( range,  range, 0),
@@ -208,93 +359,21 @@ class BlockMap(fullMapSize: Int, spanSize: Int) {
     }
   }
 
-  def sector(p: Vector3, range: Float): SectorPopulation = {
-    val output = sectorIndices(p, range).map { blocks }
-    if (output.size == 1) {
-      output.head
-    } else {
-      SectorGroup(output)
-    }
-  }
+  def rangeFromEntity(target: BlockMapEntity, defaultRadius: Option[Float] = None): Float = {
+    target match {
+      case b: Building =>
+        b.Definition.SOIRadius.toFloat
 
-  def addTo(target: PlanetSideGameObject): SectorPopulation = {
-    val range = {
-      val v = target.Definition.Geometry(target)
-      val pos = target.Position
-      math.sqrt(math.max(
-        Vector3.DistanceSquared(pos, v.pointOnOutside(Vector3(1,0,0)).asVector3),
-        Vector3.DistanceSquared(pos, v.pointOnOutside(Vector3(0,1,0)).asVector3)
-      ))
-    }.toFloat
-    addTo(target, target.Position, range)
-  }
+      case o: PlanetSideGameObject =>
+        val pos = target.Position
+        val v = o.Definition.Geometry(o)
+        math.sqrt(math.max(
+          Vector3.DistanceSquared(pos, v.pointOnOutside(Vector3(1,0,0)).asVector3),
+          Vector3.DistanceSquared(pos, v.pointOnOutside(Vector3(0,1,0)).asVector3)
+        )).toFloat
 
-  def addTo(target: PlanetSideGameObject, range: Float): SectorPopulation = {
-    addTo(target, target.Position, range)
-  }
-
-  def addTo(target: Any, toPosition: Vector3, range: Float): SectorPopulation = {
-    val to = sectorIndices(toPosition, range).toSet.map { blocks }
-    to.foreach { block => block.addTo(target) }
-    if (to.size == 1) {
-      to.head
-    } else {
-      SectorGroup(to)
-    }
-  }
-
-  def removeFrom(target: PlanetSideGameObject): SectorPopulation = {
-    val range = {
-      val v = target.Definition.Geometry(target)
-      val pos = target.Position
-      math.sqrt(math.max(
-        Vector3.DistanceSquared(pos, v.pointOnOutside(Vector3(1,0,0)).asVector3),
-        Vector3.DistanceSquared(pos, v.pointOnOutside(Vector3(0,1,0)).asVector3)
-      ))
-    }.toFloat
-    removeFrom(target, target.Position, range)
-  }
-
-  def removeFrom(target: PlanetSideGameObject, range: Float): SectorPopulation =
-    removeFrom(target, target.Position, range)
-
-  def removeFrom(target: Any, fromPosition: Vector3, range: Float): SectorPopulation = {
-    val from = sectorIndices(fromPosition, range).toSet.map { blocks }
-    from.foreach { block => block.removeFrom(target) }
-    if (from.size == 1) {
-      from.head
-    } else {
-      SectorGroup(from)
-    }
-  }
-
-  def ensureRemoveFrom(target: PlanetSideGameObject): SectorPopulation = {
-    val foundSectors = blocks.filter { sector =>
-      target match {
-        case p: Player     => !p.isBackpack && sector.livePlayers.list.contains(p) || sector.corpses.list.contains(p)
-        case v: Vehicle    => sector.vehicles.list.contains(v)
-        case e: Equipment  => sector.equipmentOnGround.list.contains(e)
-        case d: Deployable => sector.deployables.list.contains(d)
-        case _             => false
-      }
-    }
-    foundSectors.foreach { _.removeFrom(target) }
-    SectorGroup(foundSectors)
-  }
-
-  def move(target: PlanetSideGameObject, toPosition: Vector3, range: Float): SectorPopulation =
-    move(target, toPosition, target.Position, range)
-
-  def move(target: Any, toPosition: Vector3, fromPosition: Vector3, range: Float): SectorPopulation = {
-    val from = sectorIndices(fromPosition, range).toSet
-    val to = sectorIndices(toPosition, range).toSet
-    from.diff(to).foreach { index => blocks(index).removeFrom(target) }
-    to.diff(from).foreach { index => blocks(index).addTo(target) }
-    val out = to.map { blocks }
-    if (out.size == 1) {
-      out.head
-    } else {
-      SectorGroup(out)
+      case _ =>
+        defaultRadius.getOrElse(1.0f)
     }
   }
 }

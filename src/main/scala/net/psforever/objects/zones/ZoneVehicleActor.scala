@@ -56,7 +56,7 @@ class ZoneVehicleActor(zone: Zone, vehicleList: ListBuffer[Vehicle]) extends Act
           vehicleList.remove(index)
           context.stop(vehicle.Actor)
           vehicle.Actor = Default.Actor
-          zone.actor ! ZoneActor.RemoveFromBlockMap(vehicle, vehicle.Position)
+          zone.actor ! ZoneActor.RemoveFromBlockMap(vehicle)
           sender() ! Zone.Vehicle.HasDespawned(zone, vehicle)
         case None => ;
           sender() ! Zone.Vehicle.CanNotDespawn(zone, vehicle, "can not find")

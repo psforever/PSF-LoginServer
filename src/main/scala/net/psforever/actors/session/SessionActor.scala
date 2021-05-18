@@ -47,7 +47,7 @@ import net.psforever.objects.vital.base._
 import net.psforever.objects.vital.etc.ExplodingEntityReason
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
-import net.psforever.objects.zones.{Zone, ZoneHotSpotProjector, Zoning}
+import net.psforever.objects.zones._
 import net.psforever.packet._
 import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
 import net.psforever.packet.game.objectcreate._
@@ -2473,7 +2473,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           log.info(s"${player.Name} is prepped for dropping")
           //get ready for orbital drop
           DismountAction(tplayer, obj, seat_num)
-          continent.actor ! ZoneActor.RemoveFromBlockMap(player, player.Position) //character doesn't need it
+          continent.actor ! ZoneActor.RemoveFromBlockMap(player) //character doesn't need it
           //DismountAction(...) uses vehicle service, so use that service to coordinate the remainder of the messages
           continent.VehicleEvents ! VehicleServiceMessage(
             player.Name,
@@ -3750,7 +3750,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           ) =>
         persist()
         turnCounterFunc(avatar_guid)
-        continent.actor ! ZoneActor.UpdateBlockMap(player, pos, player.Position)
+        updateBlockMap(player, continent, pos)
         val isMoving     = WorldEntity.isMoving(vel)
         val isMovingPlus = isMoving || is_jumping || jump_thrust
         if (isMovingPlus) {
@@ -3887,7 +3887,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             persist()
             turnCounterFunc(player.GUID)
             if (obj.MountedIn.isEmpty) {
-              continent.actor ! ZoneActor.UpdateBlockMap(obj, pos, obj.Position)
+              updateBlockMap(obj, continent, pos)
             }
             val seat = obj.Seats(0)
             player.Position = pos //convenient
@@ -9152,6 +9152,18 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           case _           => true
         })
       case None            => true
+    }
+  }
+
+  def updateBlockMap(target: BlockMapEntity, zone: Zone, newCoords: Vector3): Unit = {
+    target.blockMapEntry match {
+      case Some(entry) =>
+        if (BlockMap.sectorIndices(continent.blockMap, newCoords, entry.range).toSet.equals(entry.sectors)) {
+          target.updateBlockMapEntry(newCoords) //soft update
+        } else {
+          zone.actor ! ZoneActor.UpdateBlockMap(target, newCoords) //hard update
+        }
+      case None        => ;
     }
   }
 

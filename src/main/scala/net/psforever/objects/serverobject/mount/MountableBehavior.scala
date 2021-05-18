@@ -44,7 +44,7 @@ trait MountableBehavior {
         case Some(seatNum) if mountTest(obj, seatNum, user) && tryMount(obj, seatNum, user) =>
           user.VehicleSeated = obj.GUID
           usedMountPoint.put(user.Name, mount_point)
-          obj.Zone.actor ! ZoneActor.RemoveFromBlockMap(user, obj.Position)
+          obj.Zone.actor ! ZoneActor.RemoveFromBlockMap(user)
           sender() ! Mountable.MountMessages(user, Mountable.CanMount(obj, seatNum, mount_point))
         case _ =>
           sender() ! Mountable.MountMessages(user, Mountable.CanNotMount(obj, mount_point))

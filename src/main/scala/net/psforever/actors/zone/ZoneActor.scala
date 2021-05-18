@@ -6,7 +6,7 @@ import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
-import net.psforever.objects.zones.Zone
+import net.psforever.objects.zones.{BlockMapEntity, SectorGroup, Zone}
 import net.psforever.objects.{ConstructionItem, Player, Vehicle}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
@@ -53,11 +53,13 @@ object ZoneActor {
 
   final case class DespawnVehicle(vehicle: Vehicle) extends Command
 
-  final case class AddToBlockMap(target: Any, toPosition: Vector3) extends Command
+  final case class AddToBlockMap(target: BlockMapEntity, toPosition: Vector3) extends Command
 
-  final case class UpdateBlockMap(target: Any, toPosition: Vector3, fromPosition: Vector3) extends Command
+  final case class UpdateBlockMap(target: BlockMapEntity, toPosition: Vector3) extends Command
 
-  final case class RemoveFromBlockMap(target: Any, fromPosition: Vector3) extends Command
+  final case class RemoveFromBlockMap(target: BlockMapEntity) extends Command
+
+  final case class ChangedSectors(addedTo: SectorGroup, removedFrom: SectorGroup)
 
   final case class HotSpotActivity(defender: SourceEntry, attacker: SourceEntry, location: Vector3) extends Command
 
@@ -132,14 +134,14 @@ class ZoneActor(context: ActorContext[ZoneActor.Command], zone: Zone)
 
       case AddToBlockMap(target, toPosition) =>
         log.info(s"${target.getClass().getSimpleName} added to blockmap")
-        zone.blockMap.addTo(target, toPosition, range = 0)
+        zone.blockMap.addTo(target, toPosition)
 
-      case UpdateBlockMap(target, toPosition, fromPosition) =>
-        zone.blockMap.move(target, toPosition, fromPosition, range = 0)
+      case UpdateBlockMap(target, toPosition) =>
+        zone.blockMap.move(target, toPosition)
 
-      case RemoveFromBlockMap(target, fromPosition) =>
+      case RemoveFromBlockMap(target) =>
         log.info(s"${target.getClass().getSimpleName} removed from blockmap")
-        zone.blockMap.removeFrom(target, fromPosition, range = 0)
+        zone.blockMap.removeFrom(target)
 
       case HotSpotActivity(defender, attacker, location) =>
         zone.Activity ! Zone.HotSpot.Activity(defender, attacker, location)

@@ -156,7 +156,7 @@ object CargoBehavior {
             VehicleAction.SendResponse(PlanetSideGUID(0), PlanetsideAttributeMessage(cargoGUID, 68, cargo.Shields))
           )
           CargoMountBehaviorForAll(carrier, cargo, mountPoint)
-          zone.actor ! ZoneActor.RemoveFromBlockMap(cargo, cargo.Position)
+          zone.actor ! ZoneActor.RemoveFromBlockMap(cargo)
           false
         } else if (distance > 625 || iteration >= 40) {
           //vehicles moved too far away or took too long to get into proper position; abort mounting
@@ -286,7 +286,7 @@ object CargoBehavior {
           hold.mount(cargo)
           cargo.MountedIn = carrierGUID
           CargoMountBehaviorForAll(carrier, cargo, mountPoint)
-          zone.actor ! ZoneActor.RemoveFromBlockMap(cargo, cargo.Position)
+          zone.actor ! ZoneActor.RemoveFromBlockMap(cargo)
           false
         } else {
           //cargo vehicle did not move far away enough yet and there is more time to wait; reschedule check
