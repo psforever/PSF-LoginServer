@@ -102,6 +102,7 @@ class CaptureFlagManager(val taskResolver: ActorRef, zone: Zone) extends Actor{
       )
 
       // Add the flag as an amenity and track it internally
+      socket.captureFlag = flag
       TrackFlag(flag)
 
       taskResolver ! CallBackForTask(
@@ -128,15 +129,19 @@ class CaptureFlagManager(val taskResolver: ActorRef, zone: Zone) extends Actor{
       HandleFlagDespawn(flag)
 
     case CaptureFlagManager.Lost(flag: CaptureFlag, reason: CaptureFlagLostReasonEnum) =>
-      val message = reason match {
+      reason match {
         case CaptureFlagLostReasonEnum.Resecured =>
-          CaptureFlagChatMessageStrings.CTF_Failed_SourceResecured(flag.Owner.asInstanceOf[Building])
-        case CaptureFlagLostReasonEnum.TimedOut =>
-          CaptureFlagChatMessageStrings.CTF_Failed_TimedOut(flag.Owner.asInstanceOf[Building].Name, flag.Target)
+          ChatBroadcast(
+            flag.Zone,
+            CaptureFlagChatMessageStrings.CTF_Failed_SourceResecured(flag.Owner.asInstanceOf[Building])
+          )
+        case CaptureFlagLostReasonEnum.TimedOut  =>
+          ChatBroadcast(
+            flag.Zone,
+            CaptureFlagChatMessageStrings.CTF_Failed_TimedOut(flag.Owner.asInstanceOf[Building].Name, flag.Target)
+          )
+        case CaptureFlagLostReasonEnum.Ended     => ; /* no message */
       }
-
-      ChatBroadcast(flag.Zone, message)
-
       HandleFlagDespawn(flag)
 
     case CaptureFlagManager.PickupFlag(flag: CaptureFlag, player: Player) =>
@@ -173,14 +178,13 @@ class CaptureFlagManager(val taskResolver: ActorRef, zone: Zone) extends Actor{
   }
 
   private def HandleFlagDespawn(flag: CaptureFlag): Unit = {
+    // Remove the flag as an amenity
+    flag.Owner.asInstanceOf[Building].GetFlagSocket.get.captureFlag = None
+    UntrackFlag(flag)
     // Unregister LLU from clients,
     flag.Zone.LocalEvents ! LocalServiceMessage(flag.Zone.id, LocalAction.LluDespawned(PlanetSideGUID(-1), flag))
-
     // Then unregister it from the GUID pool
     taskResolver ! TaskResolver.GiveTask(GUIDTask.UnregisterObjectTask(flag)(flag.Zone.GUID).task)
-
-    // Remove the flag as an amenity
-    UntrackFlag(flag)
   }
 
   private def ChatBroadcast(zone: Zone, message: String, fanfare: Boolean = true): Unit = {
@@ -271,6 +275,7 @@ object CaptureFlagChatMessageStrings {
       case PlanetSideEmpire.TR => "TerranRepublic"
       case PlanetSideEmpire.NC => "NewConglomerate"
       case PlanetSideEmpire.VS => "VanuSovereigncy" // Yes, this is wrong. It is like that in packet captures.
+      case _                   => "TerranRepublic" //todo: BO message?
     }
   }
 }
@@ -278,5 +283,5 @@ object CaptureFlagChatMessageStrings {
 object CaptureFlagLostReasonEnum extends Enumeration {
   type CaptureFlagLostReasonEnum = Value
 
-  val Resecured, TimedOut = Value
+  val Resecured, TimedOut, Ended = Value
 }

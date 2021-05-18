@@ -11,7 +11,19 @@ import net.psforever.types.Vector3
   * It is used as a position reference for spawning the LLU in the correct location when the base is hacked
   * @param tDef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
-class CaptureFlagSocket(tDef: CaptureFlagSocketDefinition) extends Amenity {
+class CaptureFlagSocket(tDef: CaptureFlagSocketDefinition)
+  extends Amenity {
+  private var spawnedCaptureFlag: Option[CaptureFlag] = None
+
+  def captureFlag: Option[CaptureFlag] = spawnedCaptureFlag
+
+  def captureFlag_=(flag: CaptureFlag): Option[CaptureFlag] = captureFlag_=(Some(flag))
+
+  def captureFlag_=(flag: Option[CaptureFlag]): Option[CaptureFlag] = {
+    spawnedCaptureFlag = flag
+    captureFlag
+  }
+
   def Definition : CaptureFlagSocketDefinition = tDef
 }
 
