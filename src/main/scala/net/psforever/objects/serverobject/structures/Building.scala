@@ -129,7 +129,12 @@ class Building(
   }
 
   def GetFlagSocket: Option[CaptureFlagSocket] = this.Amenities.find(_.Definition == GlobalDefinitions.llm_socket).asInstanceOf[Option[CaptureFlagSocket]]
-  def GetFlag: Option[CaptureFlag] = this.Amenities.find(_.Definition == GlobalDefinitions.capture_flag).asInstanceOf[Option[CaptureFlag]]
+  def GetFlag: Option[CaptureFlag] = {
+    GetFlagSocket match {
+      case Some(socket) => socket.captureFlag
+      case None         => None
+    }
+  }
 
   def HackableAmenities: List[Amenity with Hackable] = {
     Amenities.filter(x => x.isInstanceOf[Hackable]).map(x => x.asInstanceOf[Amenity with Hackable])
