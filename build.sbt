@@ -56,7 +56,7 @@ lazy val psforeverSettings = Seq(
     "org.scalatest"              %% "scalatest"                  % "3.2.9"  % "test",
     "org.scodec"                 %% "scodec-core"                % "1.11.8",
     "ch.qos.logback"              % "logback-classic"            % "1.2.3",
-    "org.log4s"                  %% "log4s"                      % "1.9.0",
+    "org.log4s"                  %% "log4s"                      % "1.10.0",
     "org.fusesource.jansi"        % "jansi"                      % "2.3.2",
     "org.scoverage"              %% "scalac-scoverage-plugin"    % "1.4.2",
     "com.github.nscala-time"     %% "nscala-time"                % "2.28.0",
