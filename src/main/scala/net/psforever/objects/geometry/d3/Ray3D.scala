@@ -15,10 +15,12 @@ import net.psforever.types.Vector3
   * @param p the point of origin
   * @param d the direction
   */
-final case class Ray3D(p: Point3D, d: Vector3)
+final case class Ray3D(p: Point, d: Vector3)
   extends Geometry3D
   with geometry.Line {
-  def center: Point3D = p
+  def center: Point = p
+
+  def moveCenter(point: geometry.Point): Geometry3D = Ray3D(Point(point), d)
 }
 
 object Ray3D {
@@ -30,7 +32,7 @@ object Ray3D {
     * @param d the direction
     * @return a `Ray3D` entity
     */
-  def apply(x: Float, y: Float, z: Float, d: Vector3): Ray3D = Ray3D(Point3D(x,y,z), d)
+  def apply(x: Float, y: Float, z: Float, d: Vector3): Ray3D = Ray3D(Point(x,y,z), d)
 
   /**
     * An overloaded constructor that uses a `Vector3` entity to express coordinates.
@@ -38,5 +40,5 @@ object Ray3D {
     * @param d the direction
     * @return a `Ray3D` entity
     */
-  def apply(v: Vector3, d: Vector3): Ray3D = Ray3D(Point3D(v.x, v.y, v.z), d)
+  def apply(v: Vector3, d: Vector3): Ray3D = Ray3D(Point(v.x, v.y, v.z), d)
 }

@@ -1,6 +1,7 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.geometry.d3
 
+import net.psforever.objects.geometry
 import net.psforever.objects.geometry.Geometry
 import net.psforever.types.Vector3
 
@@ -14,16 +15,18 @@ import net.psforever.types.Vector3
   * @param height na
   */
 final case class Cuboid(
-                         p: Point3D,
+                         p: Point,
                          relativeForward: Vector3,
                          relativeUp: Vector3,
                          length: Float,
                          width: Float,
                          height: Float,
                        ) extends VolumetricGeometry {
-  def center: Point3D = Point3D(p.asVector3 + relativeUp * height * 0.5f)
+  def center: Point = Point(p.asVector3 + relativeUp * height * 0.5f)
 
-  override def pointOnOutside(v: Vector3): Point3D = {
+  def moveCenter(point: geometry.Point): VolumetricGeometry = Cuboid(Point(point), relativeForward, relativeUp, length, width, height)
+
+  override def pointOnOutside(v: Vector3): Point = {
     import net.psforever.types.Vector3.{CrossProduct, DotProduct, neg}
     val height2 = height * 0.5f
     val relativeSide = CrossProduct(relativeForward, relativeUp)
@@ -70,6 +73,6 @@ final case class Cuboid(
         dy()
       }
     }
-    Point3D(center.asVector3 + (v * scaleFactor))
+    Point(center.asVector3 + (v * scaleFactor))
   }
 }

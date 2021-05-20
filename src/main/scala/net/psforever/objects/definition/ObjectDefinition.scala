@@ -4,7 +4,7 @@ package net.psforever.objects.definition
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.definition.converter.{ObjectCreateConverter, PacketConverter}
 import net.psforever.objects.geometry.GeometryForm
-import net.psforever.objects.geometry.d3.Geometry3D
+import net.psforever.objects.geometry.d3.VolumetricGeometry
 import net.psforever.types.OxygenState
 
 /**
@@ -87,15 +87,15 @@ abstract class ObjectDefinition(private val objectId: Int) extends BasicDefiniti
     ServerSplashTargetsCentroid
   }
 
-  private var serverGeometry: Any => Geometry3D = GeometryForm.representByPoint()
+  private var serverGeometry: Any => VolumetricGeometry = GeometryForm.representByPoint()
 
-  def Geometry: Any => Geometry3D = if (ServerSplashTargetsCentroid) {
+  def Geometry: Any => VolumetricGeometry = if (ServerSplashTargetsCentroid) {
     GeometryForm.representByPoint()
   } else {
     serverGeometry
   }
 
-  def Geometry_=(func: Any => Geometry3D): Any => Geometry3D = {
+  def Geometry_=(func: Any => VolumetricGeometry): Any => VolumetricGeometry = {
     serverGeometry = func
     Geometry
   }

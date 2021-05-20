@@ -1,7 +1,8 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.geometry.d3
 
-import net.psforever.objects.geometry._
+import net.psforever.objects.geometry
+import net.psforever.objects.geometry.{Geometry, Slope}
 import net.psforever.types.Vector3
 
 /**
@@ -15,7 +16,7 @@ import net.psforever.types.Vector3
   * @param radius a distance expressed in all circular cross-sections along the `relativeUp` direction
   * @param height the distance between the "base" and the "top"
   */
-final case class Cylinder(p: Point3D, relativeUp: Vector3, radius: Float, height: Float)
+final case class Cylinder(p: Point, relativeUp: Vector3, radius: Float, height: Float)
   extends VolumetricGeometry {
   Slope.assertUnitVector(relativeUp)
 
@@ -23,7 +24,9 @@ final case class Cylinder(p: Point3D, relativeUp: Vector3, radius: Float, height
     * The center point of a cylinder is halfway between the "top" and the "base" along the direction of `relativeUp`.
     * @return a point
     */
-  def center: Point3D = Point3D(p.asVector3 + relativeUp * height * 0.5f)
+  def center: Point = Point(p.asVector3 + relativeUp * height * 0.5f)
+
+  def moveCenter(point: geometry.Point): VolumetricGeometry = Cylinder(Point(point), relativeUp, radius, height)
 
   /**
     * Find a point on the exterior of the geometry if a line was drawn outwards from the centroid.
@@ -35,13 +38,13 @@ final case class Cylinder(p: Point3D, relativeUp: Vector3, radius: Float, height
     * @param v the vector in the direction of the point on the exterior
     * @return a point
     */
-  override def pointOnOutside(v: Vector3): Point3D = {
+  override def pointOnOutside(v: Vector3): Point = {
     val centerVector = center.asVector3
     val slope = Vector3.Unit(v)
     val dotProdOfSlopeAndUp = Vector3.DotProduct(slope, relativeUp)
     if (Geometry.equalFloats(dotProdOfSlopeAndUp, value2 = 1) || Geometry.equalFloats(dotProdOfSlopeAndUp, value2 = -1)) {
       // very rare condition: 'slope' and 'relativeUp' are parallel or antiparallel
-      Point3D(centerVector + slope * height * 0.5f)
+      Point(centerVector + slope * height * 0.5f)
     } else {
       val acrossTopAndBase = slope - relativeUp * dotProdOfSlopeAndUp
       val pointOnSide = centerVector + slope * (radius / Vector3.Magnitude(acrossTopAndBase))
@@ -60,7 +63,7 @@ final case class Cylinder(p: Point3D, relativeUp: Vector3, radius: Float, height
         // 'relativeUp` is already a unit vector (magnitude of 1)
         centerVector + slope * height * 0.5f
       }
-      Point3D(target)
+      Point(target)
     }
   }
 }
@@ -73,7 +76,7 @@ object Cylinder {
     * @param height the distance between the "base" and the "top"
     * @return
     */
-  def apply(p: Point3D, radius: Float, height: Float): Cylinder = Cylinder(p, Vector3(0,0,1), radius, height)
+  def apply(p: Point, radius: Float, height: Float): Cylinder = Cylinder(p, Vector3(0,0,1), radius, height)
 
   /**
     * An overloaded constructor where the origin point is expressed as a vector
@@ -83,7 +86,7 @@ object Cylinder {
     * @param height the distance between the "base" and the "top"
     * @return
     */
-  def apply(p: Vector3, radius: Float, height: Float): Cylinder = Cylinder(Point3D(p), Vector3(0,0,1), radius, height)
+  def apply(p: Vector3, radius: Float, height: Float): Cylinder = Cylinder(Point(p), Vector3(0,0,1), radius, height)
 
   /**
     * An overloaded constructor the origin point is expressed as a vector.
@@ -93,5 +96,5 @@ object Cylinder {
     * @param height the distance between the "base" and the "top"
     * @return
     */
-  def apply(p: Vector3, v: Vector3, radius: Float, height: Float): Cylinder = Cylinder(Point3D(p), v, radius, height)
+  def apply(p: Vector3, v: Vector3, radius: Float, height: Float): Cylinder = Cylinder(Point(p), v, radius, height)
 }

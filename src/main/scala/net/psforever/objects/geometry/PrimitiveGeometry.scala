@@ -14,12 +14,12 @@ trait PrimitiveGeometry {
   def center: Point
 
   /**
-    * Find a point on the exterior of the geometry if a line was drawn outwards from the centroid.
-    * What counts as "the exterior" is limited to the complexity of the geometry.
-    * @param v the vector in the direction of the point on the exterior
-    * @return a point
+    * Move the centroid of the shape to the given point
+    * @param point the new center point
+    * @return geometry centered on the new point;
+    *         ideally, should be the same type of geometry as the original object
     */
-  def pointOnOutside(v: Vector3) : Point
+  def moveCenter(point: Point): PrimitiveGeometry
 }
 
 //trait Geometry2D extends PrimitiveGeometry {

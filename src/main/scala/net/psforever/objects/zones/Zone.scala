@@ -38,7 +38,7 @@ import akka.actor.typed
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
-import net.psforever.objects.geometry.d3.Geometry3D
+import net.psforever.objects.geometry.d3.VolumetricGeometry
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.doors.Door
@@ -1256,7 +1256,7 @@ object Zone {
     * @return `true`, if the target entities are near enough to each other;
     *        `false`, otherwise
     */
-  private def distanceCheck(g1: Geometry3D, g2: Geometry3D, maxDistance: Float): Boolean = {
+  private def distanceCheck(g1: VolumetricGeometry, g2: VolumetricGeometry, maxDistance: Float): Boolean = {
     Vector3.DistanceSquared(g1.center.asVector3, g2.center.asVector3) <= maxDistance ||
     distanceCheck(g1, g2) <= maxDistance
   }
@@ -1270,7 +1270,7 @@ object Zone {
     * @param g2 the geometric representation of a game entity
     * @return the crude distance between the two geometric representations
     */
-  def distanceCheck(g1: Geometry3D, g2: Geometry3D): Float = {
+  def distanceCheck(g1: VolumetricGeometry, g2: VolumetricGeometry): Float = {
     val dir = Vector3.Unit(g2.center.asVector3 - g1.center.asVector3)
     val point1 = g1.pointOnOutside(dir).asVector3
     val point2 = g2.pointOnOutside(Vector3.neg(dir)).asVector3

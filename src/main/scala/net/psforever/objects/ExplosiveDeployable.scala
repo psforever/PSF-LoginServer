@@ -6,7 +6,7 @@ import net.psforever.objects.ce._
 import net.psforever.objects.definition.DeployableDefinition
 import net.psforever.objects.definition.converter.SmallDeployableConverter
 import net.psforever.objects.equipment.JammableUnit
-import net.psforever.objects.geometry.d3.Geometry3D
+import net.psforever.objects.geometry.d3.VolumetricGeometry
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity}
@@ -224,7 +224,7 @@ object ExplosiveDeployableControl {
     * @return `true`, if the target entities are near enough to each other;
     *        `false`, otherwise
     */
-  def detectTarget(g1: Geometry3D, up: Vector3)(obj1: PlanetSideGameObject, obj2: PlanetSideGameObject, maxDistance: Float) : Boolean = {
+  def detectTarget(g1: VolumetricGeometry, up: Vector3)(obj1: PlanetSideGameObject, obj2: PlanetSideGameObject, maxDistance: Float) : Boolean = {
     val g2 = obj2.Definition.Geometry(obj2)
     val dir = g2.center.asVector3 - g1.center.asVector3
     //val scalar = Vector3.ScalarProjection(dir, up)
