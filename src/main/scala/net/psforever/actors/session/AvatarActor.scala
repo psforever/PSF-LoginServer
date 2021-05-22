@@ -355,7 +355,7 @@ class AvatarActor(
                 loadouts = loadouts,
                 // make sure we always have the base certifications
                 certifications =
-                  certs.map(cert => Certification.withValue(cert.id)).toSet ++ Certification.values.filter(_.cost == 0),
+                  certs.map(cert => Certification.withValue(cert.id)).toSet ++ Config.app.game.baseCertifications,
                 implants = implants.map(implant => Some(Implant(implant.toImplantDefinition))).padTo(3, None)
               )
 
