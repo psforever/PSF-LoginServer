@@ -295,7 +295,7 @@ object GamePacketOpcode extends Enumeration {
   = Value
 
   private def noDecoder(opcode: GamePacketOpcode.Type) =
-    (bits: BitVector) => Attempt.failure(Err(s"Could not find a marshaller for game packet $opcode (${bits.toHex}"))
+    (bits: BitVector) => Attempt.failure(Err(s"Could not find a marshaller for game packet $opcode (${bits.toHex})"))
 
   /// Mapping of packet IDs to decoders. Notice that we are using the @switch annotation which ensures that the Scala
   /// compiler will be able to optimize this as a lookup table (switch statement). Microbenchmarks show a nearly 400x

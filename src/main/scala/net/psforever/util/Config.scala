@@ -1,11 +1,10 @@
 package net.psforever.util
 
 import java.nio.file.Paths
-
 import com.typesafe.config.{Config => TypesafeConfig}
 import enumeratum.{Enum, EnumEntry}
 import enumeratum.values.{IntEnum, IntEnumEntry}
-import net.psforever.objects.avatar.{BattleRank, CommandRank}
+import net.psforever.objects.avatar.{BattleRank, Certification, CommandRank}
 import net.psforever.packet.game.ServerType
 import net.psforever.types.ChatMessageType
 import pureconfig.ConfigConvert.viaNonEmptyStringOpt
@@ -34,6 +33,7 @@ object Config {
           case e: ServerType if e.name == v            => e.asInstanceOf[A]
           case e: BattleRank if e.value.toString == v  => e.asInstanceOf[A]
           case e: CommandRank if e.value.toString == v => e.asInstanceOf[A]
+          case e: Certification if e.name == v         => e.asInstanceOf[A]
         },
       _.value.toString
     )
@@ -119,10 +119,10 @@ case class NetworkConfig(
 )
 
 case class MiddlewareConfig(
-  packetBundlingDelay: FiniteDuration,
-  inReorderTimeout: FiniteDuration,
-  inSubslotMissingDelay: FiniteDuration,
-  inSubslotMissingAttempts: Int
+    packetBundlingDelay: FiniteDuration,
+    inReorderTimeout: FiniteDuration,
+    inSubslotMissingDelay: FiniteDuration,
+    inSubslotMissingAttempts: Int
 )
 
 case class SessionConfig(
@@ -138,7 +138,8 @@ case class GameConfig(
     cepRate: Double,
     newAvatar: NewAvatar,
     hart: HartConfig,
-    sharedMaxCooldown: Boolean
+    sharedMaxCooldown: Boolean,
+    baseCertifications: Seq[Certification]
 )
 
 case class NewAvatar(

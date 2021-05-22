@@ -92,7 +92,7 @@ case object Certification extends IntEnum[Certification] {
   case object BFRAntiInfantry
       extends Certification(value = 25, name = "TODO4", cost = 1, requires = Set(BattleFrameRobotics)) // TODO name
 
-  case object StandardExoSuit extends Certification(value = 26, name = "TODO5", cost = 0)
+  case object StandardExoSuit extends Certification(value = 26, name = "standard_armor", cost = 0)
 
   case object AgileExoSuit extends Certification(value = 27, name = "agile_armor", cost = 0)
 
