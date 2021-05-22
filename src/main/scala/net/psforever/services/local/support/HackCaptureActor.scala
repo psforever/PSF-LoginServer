@@ -162,6 +162,9 @@ class HackCaptureActor(val taskResolver: ActorRef) extends Actor {
             false
         }
 
+      case _: Building =>
+        false //building does not possess an LLU socket
+
       case thing =>
         log.error(s"Capture terminal has unexpected owner - $thing - that is not a facility")
         false
