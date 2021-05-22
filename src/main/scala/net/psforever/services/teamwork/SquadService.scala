@@ -2923,18 +2923,20 @@ class SquadService extends Actor {
             .toList
             .unzip { case (member, index) => (member.CharId, index) }
           val toChannel = features.ToChannel
-          memberCharIds.foreach { charId =>
-            SquadEvents.subscribe(UserEvents(charId), s"/$toChannel/Squad")
-            Publish(
-              charId,
-              SquadResponse.Join(
-                squad,
-                indices.filterNot(_ == position) :+ position,
-                toChannel
-              )
-            )
-            InitWaypoints(charId, squad.GUID)
-          }
+          memberCharIds
+              .map { id => (id, UserEvents.get(id)) }
+              .collect { case (id, Some(sub)) =>
+                SquadEvents.subscribe(sub, s"/$toChannel/Squad")
+                Publish(
+                  id,
+                  SquadResponse.Join(
+                    squad,
+                    indices.filterNot(_ == position) :+ position,
+                    toChannel
+                  )
+                )
+                InitWaypoints(id, squad.GUID)
+              }
           //fully update for all users
           InitSquadDetail(squad)
         } else {

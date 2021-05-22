@@ -4,13 +4,15 @@ package net.psforever.objects.serverobject.environment
 import enumeratum.{Enum, EnumEntry}
 import net.psforever.objects.{PlanetSideGameObject, Player}
 import net.psforever.objects.vital.Vitality
+import net.psforever.objects.zones.BlockMapEntity
 import net.psforever.types.{PlanetSideGUID, Vector3}
 
 /**
   * The representation of a feature of the game world that is not a formal game object,
   * usually terrain, but can be used to represent any bounded region.
   */
-trait PieceOfEnvironment {
+trait PieceOfEnvironment
+  extends BlockMapEntity {
   /** a general description of this environment */
   def attribute: EnvironmentTrait
   /** a special representation of the region that qualifies as "this environment" */
@@ -36,6 +38,18 @@ trait PieceOfEnvironment {
     */
   def testStepIntoInteraction(pos: Vector3, previousPos: Vector3, varDepth: Float): Option[Boolean] =
     PieceOfEnvironment.testStepIntoInteraction(body = this, pos, previousPos, varDepth)
+
+  def Position: Vector3 = collision.bounding.center.asVector3 + Vector3.z(collision.altitude)
+
+  def Position_=(vec : Vector3) : Vector3 = Position
+
+  def Orientation: Vector3 = Vector3.Zero
+
+  def Orientation_=(vec: Vector3): Vector3 = Vector3.Zero
+
+  def Velocity: Option[Vector3] = None
+
+  def Velocity_=(vec: Option[Vector3]): Option[Vector3] = None
 }
 
 /**
@@ -100,6 +114,8 @@ final case class SeaLevel(attribute: EnvironmentTrait, altitude: Float)
   private val planar = DeepPlane(altitude)
 
   def collision : EnvironmentCollision = planar
+
+  override def Position: Vector3 = Vector3.Zero
 }
 
 object SeaLevel {

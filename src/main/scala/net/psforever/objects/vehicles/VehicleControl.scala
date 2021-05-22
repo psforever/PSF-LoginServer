@@ -791,7 +791,10 @@ class VehicleControl(vehicle: Vehicle)
         percentage,
         body,
         vehicle.Seats.values
-          .flatMap { case seat if seat.isOccupied => seat.occupants }
+          .flatMap {
+            case seat if seat.isOccupied => seat.occupants
+            case _                       => Nil
+          }
           .filter { p => p.isAlive && (p.Zone eq vehicle.Zone) }
       )
     }

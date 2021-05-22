@@ -38,26 +38,26 @@ class GeometryTest extends Specification {
     }
   }
 
-  "Ray3D" should {
+  "Ray" should {
     "construct (1)" in {
-      Ray3D(Point(1,2,3.5f), Vector3(1,0,0))
+      Ray(Point(1,2,3.5f), Vector3(1,0,0))
       ok
     }
 
     "construct (2)" in {
-      Ray3D(1,2,3.5f, Vector3(1,0,0)) mustEqual Ray3D(Point(1,2,3.5f), Vector3(1,0,0))
+      Ray(1,2,3.5f, Vector3(1,0,0)) mustEqual Ray(Point(1,2,3.5f), Vector3(1,0,0))
     }
 
     "construct (3)" in {
-      Ray3D(Vector3(1,2,3.5f), Vector3(1,0,0)) mustEqual Ray3D(Point(1,2,3.5f), Vector3(1,0,0))
+      Ray(Vector3(1,2,3.5f), Vector3(1,0,0)) mustEqual Ray(Point(1,2,3.5f), Vector3(1,0,0))
     }
 
     "have a unit vector as its direction vector" in {
-      Ray3D(1,2,3.5f, Vector3(1,1,1)) must throwA[AssertionError]
+      Ray(1,2,3.5f, Vector3(1,1,1)) must throwA[AssertionError]
     }
 
     "have its target point as the center point" in {
-      val obj = Ray3D(1,2,3.5f, Vector3(1,0,0))
+      val obj = Ray(1,2,3.5f, Vector3(1,0,0))
       obj.center mustEqual Point(1,2,3.5f)
     }
   }

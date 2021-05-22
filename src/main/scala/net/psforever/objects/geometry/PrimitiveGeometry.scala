@@ -22,14 +22,6 @@ trait PrimitiveGeometry {
   def moveCenter(point: Point): PrimitiveGeometry
 }
 
-//trait Geometry2D extends PrimitiveGeometry {
-//  def center: Point2D
-//
-//  def pointOnOutside(v: Vector3): Point2D = center
-//}
-
-
-
 /**
   * Characteristics of a geometric figure with only three coordinates to define a position.
   */

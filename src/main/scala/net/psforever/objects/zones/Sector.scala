@@ -212,16 +212,19 @@ object SectorGroup {
   }
 }
 
-class BlockMap(fullMapSize: Int, val spanSize: Int) {
-  val (blocks, blocksInRow): (ListBuffer[Sector], Int) = {
-    val corners: List[Int] = List.range(0, fullMapSize, spanSize)
-    (ListBuffer.newBuilder[Sector].addAll(
-      corners.flatMap { latitude =>
-        corners.map { longitude =>
+class BlockMap(fullMapWidth: Int, fullMapHeight: Int, desiredSpanSize: Int) {
+  val spanSize: Int = math.min(math.max(1, desiredSpanSize), fullMapWidth)
+  val blocksInRow: Int = fullMapWidth / spanSize + (if (fullMapWidth % spanSize > 0) 1 else 0)
+  val blocks: ListBuffer[Sector] = {
+    val horizontal: List[Int] = List.range(0, fullMapWidth, spanSize)
+    val vertical: List[Int] = List.range(0, fullMapHeight, spanSize)
+    ListBuffer.newBuilder[Sector].addAll(
+      vertical.flatMap { latitude =>
+        horizontal.map { longitude =>
           new Sector(longitude, latitude, spanSize)
         }
       }
-    ).result(), corners.size)
+    ).result()
   }
 
   def sector(p: Vector3, range: Float): SectorPopulation = {
@@ -336,33 +339,39 @@ class BlockMap(fullMapSize: Int, val spanSize: Int) {
 }
 
 object BlockMap {
-  def sectorIndices(blockMap: BlockMap, p: Vector3, range: Float): Iterable[Int] = {
-    sectorIndices(blockMap.spanSize, blockMap.blocksInRow, p, range)
+  def apply(scale: MapScale, spanSize: Int): BlockMap = {
+    new BlockMap(scale.width.toInt, scale.height.toInt, spanSize)
   }
 
-  def sectorIndices(spanSize: Int, blocksInRow: Int, p: Vector3, range: Float): Iterable[Int] = {
-    val corners = Seq(
-      p + Vector3(-range,  range, 0),
-      p + Vector3( range,  range, 0),
-      p + Vector3(-range, -range, 0),
-      p + Vector3( range, -range, 0)
-    ).map { d => (d.y / spanSize).toInt * blocksInRow + (d.x / spanSize).toInt }
-    if (corners(1) - corners.head > 2 || corners(3) - corners.head > 2) {
-      var d = 0
-      (corners.head to corners(2)).flatMap { _ =>
-        val _out = corners.head + d to corners(1) + d
-        d += blocksInRow
-        _out
+  def sectorIndices(blockMap: BlockMap, p: Vector3, range: Float): Iterable[Int] = {
+    sectorIndices(blockMap.spanSize, blockMap.blocksInRow, blockMap.blocks.size, p, range)
+  }
+
+  def sectorIndices(spanSize: Int, blocksInRow: Int, blocksTotal: Int, p: Vector3, range: Float): Iterable[Int] = {
+    val corners = {
+      val blocksInColumn = blocksTotal / blocksInRow
+      val lowx = math.max(0, p.x - range)
+      val highx = math.min(p.x + range, (blocksInRow * spanSize - 1).toFloat)
+      val lowy = math.max(0, p.y - range)
+      val highy = math.min(p.y + range, (blocksInColumn * spanSize - 1).toFloat)
+      Seq( (lowx,  lowy), (highx, lowy), (lowx,  highy), (highx, highy) )
+    }.map { case (x, y) =>
+      (y / spanSize).toInt * blocksInRow + (x / spanSize).toInt
+    }
+    if (corners(1) - corners.head > 1 || corners(2) - corners.head > blocksInRow) {
+      (0 to (corners(2) - corners.head) / blocksInRow).flatMap { d =>
+        val perRow = d * blocksInRow
+        (corners.head + perRow) to (corners(1) + perRow)
       }
     } else {
-      corners.distinct.sorted
+      corners.distinct
     }
   }
 
   def rangeFromEntity(target: BlockMapEntity, defaultRadius: Option[Float] = None): Float = {
     target match {
       case b: Building =>
-        b.Definition.SOIRadius.toFloat
+        b.Definition.SOIRadius.toFloat * 0.5f
 
       case o: PlanetSideGameObject =>
         val pos = target.Position
@@ -371,6 +380,13 @@ object BlockMap {
           Vector3.DistanceSquared(pos, v.pointOnOutside(Vector3(1,0,0)).asVector3),
           Vector3.DistanceSquared(pos, v.pointOnOutside(Vector3(0,1,0)).asVector3)
         )).toFloat
+
+      case e: PieceOfEnvironment =>
+        val bounds = e.collision.bounding
+        math.max(
+          (bounds.top - bounds.base) * 0.5f,
+          (bounds.right - bounds.left) * 0.5f
+        )
 
       case _ =>
         defaultRadius.getOrElse(1.0f)
