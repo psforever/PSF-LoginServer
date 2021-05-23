@@ -6,6 +6,7 @@ import net.psforever.actors.session.AvatarActor
 import net.psforever.objects.{Player, _}
 import net.psforever.objects.ballistics.PlayerSource
 import net.psforever.objects.equipment._
+import net.psforever.objects.guid.GUIDTask
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
 import net.psforever.objects.loadouts.Loadout
 import net.psforever.objects.serverobject.aura.{Aura, AuraEffectBehavior}
@@ -219,6 +220,82 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   .SendResponse(Service.defaultPlayerGUID, RepairMessage(guid, player.Armor * 100 / player.MaxArmor))
               )
             }
+          }
+
+        case CommonMessages.Use(_, Some(kit: Kit)) if player.isAlive =>
+          val kdef = kit.Definition
+          val (thisKitIsUsed, attribute, value, msg): (Option[Int], Int, Long, String) = player.avatar.useCooldown(kdef) match {
+            case Some(cooldown) =>
+              (None, 0, 0, s"@TimeUntilNextUse^${cooldown.getStandardSeconds}")
+
+            case None =>
+              val indexOpt = player.Find(kit)
+              indexOpt match {
+                case Some(index) =>
+                  if (kdef == GlobalDefinitions.medkit) {
+                    if (player.Health == player.MaxHealth) {
+                      (None, 0, 0, "@HealComplete")
+                    } else {
+                      player.History(HealFromKit(PlayerSource(player), 25, kdef))
+                      player.Health = player.Health + 25
+                      (Some(index), 0, player.Health, "")
+                    }
+                  } else if (kdef == GlobalDefinitions.super_medkit) {
+                    if (player.Health == player.MaxHealth) {
+                      (None, 0, 0, "@HealComplete")
+                    } else {
+                      player.History(HealFromKit(PlayerSource(player), 100, kdef))
+                      player.Health = player.Health + 100
+                      (Some(index), 0, player.Health, "")
+                    }
+                  } else if (kdef == GlobalDefinitions.super_armorkit) {
+                    if (player.Armor == player.MaxArmor) {
+                      (None, 0, 0, "Armor at maximum - No repairing required.")
+                    } else {
+                      player.History(RepairFromKit(PlayerSource(player), 200, kdef))
+                      player.Armor = player.Armor + 200
+                      (Some(index), 4, player.Armor, "")
+                    }
+                  } else if (kdef == GlobalDefinitions.super_staminakit) {
+                    if (player.avatar.staminaFull) {
+                      (None, 0, 0, "Stamina at maximum - No recharge required.")
+                    } else {
+                      avatarActor ! AvatarActor.RestoreStamina(100)
+                      //(Some(index), 2, player.avatar.stamina, "")
+                      (None, 0, 0, "")
+                    }
+                  } else {
+                    log.warn(s"UseItem: Your $kit behavior is not supported, ${player.Name}")
+                    (None, 0, 0, "")
+                  }
+
+                case None =>
+                  log.error(s"UseItem: Anticipated a $kit for ${player.Name}, but can't find it")
+                  (None, 0, 0, "")
+              }
+          }
+          thisKitIsUsed match {
+            case Some(slot) =>
+              //kit was found belonging to player and is to be used
+              val kguid = kit.GUID
+              val zone = player.Zone
+              avatarActor ! AvatarActor.UpdateUseTime(kdef)
+              player.Slot(slot).Equipment = None //remove from slot immediately; must exist on client for now
+              zone.tasks ! GUIDTask.UnregisterEquipment(kit)(zone.GUID)
+              zone.AvatarEvents ! AvatarServiceMessage(
+                zone.id,
+                AvatarAction.PlanetsideAttributeToAll(player.GUID, attribute, value)
+              )
+              zone.AvatarEvents ! AvatarServiceMessage(
+                player.Name,
+                AvatarAction.UseKit(kguid, kdef.ObjectId)
+              )
+            case None if msg.length > 0 =>
+              player.Zone.AvatarEvents ! AvatarServiceMessage(
+                player.Name,
+                AvatarAction.KitNotUsed(kit.GUID, msg)
+              )
+            case None => ;
           }
 
         case PlayerControl.SetExoSuit(exosuit: ExoSuitType.Value, subtype: Int) =>

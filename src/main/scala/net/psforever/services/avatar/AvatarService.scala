@@ -411,6 +411,24 @@ class AvatarService(zone: Zone) extends Actor {
         case AvatarAction.DropSpecialItem() =>
           AvatarEvents.publish(AvatarServiceResponse(s"/$forChannel/Avatar", Service.defaultPlayerGUID, AvatarResponse.DropSpecialItem()))
 
+        case AvatarAction.UseKit(kit_guid, kit_objid) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(
+              s"/$forChannel/Avatar",
+              Service.defaultPlayerGUID,
+              AvatarResponse.UseKit(kit_guid, kit_objid)
+            )
+          )
+
+        case AvatarAction.KitNotUsed(kit_guid, msg) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(
+              s"/$forChannel/Avatar",
+              Service.defaultPlayerGUID,
+              AvatarResponse.KitNotUsed(kit_guid, msg)
+            )
+          )
+
         case _ => ;
       }
 
