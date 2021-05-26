@@ -5922,6 +5922,25 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           self.toTyped[ICS.DroppodLaunchExchange]
         )
 
+      case msg @ InvalidTerrainMessage(_, vehicle_guid, alert, _) =>
+        //log.info(s"$msg")
+        (continent.GUID(vehicle_guid), continent.GUID(player.VehicleSeated)) match {
+          case (Some(packetVehicle: Vehicle), Some(playerVehicle: Vehicle)) if packetVehicle eq playerVehicle =>
+            if (alert == TerrainCondition.Unsafe) {
+              log.info(s"${player.Name}'s ${packetVehicle.Definition.Name} is approaching terrain unsuitable for idling")
+            }
+          case (Some(packetVehicle: Vehicle), Some(playerVehicle: Vehicle)) =>
+            if (alert == TerrainCondition.Unsafe) {
+              log.info(s"${packetVehicle.Definition.Name}@${packetVehicle.GUID} is approaching terrain unsuitable for idling, but is not ${player.Name}'s vehicle")
+            }
+          case (Some(_: Vehicle), _) =>
+            log.warn(s"InvalidTerrain: ${player.Name} is not seated in a(ny) vehicle near unsuitable terrain")
+          case (Some(packetThing), _) =>
+            log.warn(s"InvalidTerrain: ${player.Name} thinks that ${packetThing.Definition.Name}@${packetThing.GUID} is near unsuitable terrain")
+          case _ =>
+            log.error(s"InvalidTerrain: ${player.Name} is complaining about a thing@$vehicle_guid that can not be found")
+        }
+
       case msg @ ActionCancelMessage(u1, u2, u3) =>
         progressBarUpdate.cancel()
         progressBarValue = None
