@@ -75,9 +75,9 @@ lazy val psforeverSettings = Seq(
     "commons-io"                  % "commons-io"                 % "2.9.0",
     "com.github.scopt"           %% "scopt"                      % "4.0.1",
     "io.sentry"                   % "sentry-logback"             % "4.3.0",
-    "io.circe"                   %% "circe-core"                 % "0.13.0",
-    "io.circe"                   %% "circe-generic"              % "0.13.0",
-    "io.circe"                   %% "circe-parser"               % "0.13.0",
+    "io.circe"                   %% "circe-core"                 % "0.14.0",
+    "io.circe"                   %% "circe-generic"              % "0.14.0",
+    "io.circe"                   %% "circe-parser"               % "0.14.0",
     "org.scala-lang.modules"     %% "scala-parallel-collections" % "1.0.3",
     "org.bouncycastle"            % "bcprov-jdk15on"             % "1.68",
     "org.codehaus.janino"         % "janino"                     % "3.1.4"
