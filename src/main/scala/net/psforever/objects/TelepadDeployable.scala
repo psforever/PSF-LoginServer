@@ -98,7 +98,6 @@ class TelepadDeployableControl(tpad: TelepadDeployable)
     super.DestructionAwareness(target, cause)
     TelepadControl.DestructionAwareness(tpad)
     Deployables.AnnounceDestroyDeployable(tpad, None)
-    Zone.causeExplosion(target.Zone, target, Some(cause))
   }
 
   override def startOwnerlessDecay(): Unit = {

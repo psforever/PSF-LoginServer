@@ -6652,10 +6652,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
   /**
     * For a given facility structure, configure a client by dispatching the appropriate packets.
-    * Pay special attention to the details of `BuildingInfoUpdateMessage` when preparing this packet.<br>
-    * <br>
-    * 24 Janurtay 2019:<br>
-    * Manual `BIUM` construction to alleviate player login.
     * @see `BuildingInfoUpdateMessage`
     * @see `DensityLevelUpdateMessage`
     * @param continentNumber the zone id

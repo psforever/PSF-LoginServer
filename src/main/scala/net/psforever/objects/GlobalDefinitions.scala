@@ -7048,6 +7048,7 @@ object GlobalDefinitions {
     val smallTurret = GeometryForm.representByCylinder(radius = 0.48435f, height = 1.23438f) _
     val sensor = GeometryForm.representByCylinder(radius = 0.1914f, height = 1.21875f) _
     val largeTurret = GeometryForm.representByCylinder(radius = 0.8437f, height = 2.29687f) _
+
     boomer.Name = "boomer"
     boomer.Descriptor = "Boomers"
     boomer.MaxHealth = 100
@@ -7071,6 +7072,7 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     boomer.Geometry = mine
+
     he_mine.Name = "he_mine"
     he_mine.Descriptor = "Mines"
     he_mine.MaxHealth = 100
@@ -7093,6 +7095,7 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     he_mine.Geometry = mine
+
     jammer_mine.Name = "jammer_mine"
     jammer_mine.Descriptor = "JammerMines"
     jammer_mine.MaxHealth = 100
@@ -7103,6 +7106,7 @@ object GlobalDefinitions {
     jammer_mine.deployAnimation = DeployAnimation.Standard
     jammer_mine.DetonateOnJamming = false
     jammer_mine.Geometry = mine
+
     spitfire_turret.Name = "spitfire_turret"
     spitfire_turret.Descriptor = "Spitfires"
     spitfire_turret.MaxHealth = 100
@@ -7126,6 +7130,7 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     spitfire_turret.Geometry = smallTurret
+
     spitfire_cloaked.Name = "spitfire_cloaked"
     spitfire_cloaked.Descriptor = "CloakingSpitfires"
     spitfire_cloaked.MaxHealth = 100
@@ -7149,6 +7154,7 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     spitfire_cloaked.Geometry = smallTurret
+
     spitfire_aa.Name = "spitfire_aa"
     spitfire_aa.Descriptor = "FlakSpitfires"
     spitfire_aa.MaxHealth = 100
@@ -7172,6 +7178,7 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     spitfire_aa.Geometry = smallTurret
+
     motionalarmsensor.Name = "motionalarmsensor"
     motionalarmsensor.Descriptor = "MotionSensors"
     motionalarmsensor.MaxHealth = 100
@@ -7181,6 +7188,7 @@ object GlobalDefinitions {
     motionalarmsensor.DeployTime = Duration.create(1000, "ms")
     motionalarmsensor.deployAnimation = DeployAnimation.Standard
     motionalarmsensor.Geometry = sensor
+
     sensor_shield.Name = "sensor_shield"
     sensor_shield.Descriptor = "SensorShields"
     sensor_shield.MaxHealth = 100
@@ -7190,6 +7198,7 @@ object GlobalDefinitions {
     sensor_shield.DeployTime = Duration.create(5000, "ms")
     sensor_shield.deployAnimation = DeployAnimation.Standard
     sensor_shield.Geometry = sensor
+
     tank_traps.Name = "tank_traps"
     tank_traps.Descriptor = "TankTraps"
     tank_traps.MaxHealth = 5000
@@ -7209,6 +7218,7 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     tank_traps.Geometry = GeometryForm.representByCylinder(radius = 2.89680997f, height = 3.57812f)
+
     val fieldTurretConverter = new FieldTurretConverter
     portable_manned_turret.Name = "portable_manned_turret"
     portable_manned_turret.Descriptor = "FieldTurrets"
@@ -7238,6 +7248,7 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     portable_manned_turret.Geometry = largeTurret
+
     portable_manned_turret_nc.Name = "portable_manned_turret_nc"
     portable_manned_turret_nc.Descriptor = "FieldTurrets"
     portable_manned_turret_nc.MaxHealth = 1000
@@ -7266,6 +7277,7 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     portable_manned_turret_nc.Geometry = largeTurret
+
     portable_manned_turret_tr.Name = "portable_manned_turret_tr"
     portable_manned_turret_tr.Descriptor = "FieldTurrets"
     portable_manned_turret_tr.MaxHealth = 1000
@@ -7294,6 +7306,7 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     portable_manned_turret_tr.Geometry = largeTurret
+
     portable_manned_turret_vs.Name = "portable_manned_turret_vs"
     portable_manned_turret_vs.Descriptor = "FieldTurrets"
     portable_manned_turret_vs.MaxHealth = 1000
@@ -7322,6 +7335,7 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     portable_manned_turret_vs.Geometry = largeTurret
+
     deployable_shield_generator.Name = "deployable_shield_generator"
     deployable_shield_generator.Descriptor = "ShieldGenerators"
     deployable_shield_generator.MaxHealth = 1700
@@ -7332,6 +7346,7 @@ object GlobalDefinitions {
     deployable_shield_generator.deployAnimation = DeployAnimation.Fdu
     deployable_shield_generator.Model = ComplexDeployableResolutions.calculate
     deployable_shield_generator.Geometry = GeometryForm.representByCylinder(radius = 0.6562f, height = 2.17188f)
+
     router_telepad_deployable.Name = "router_telepad_deployable"
     router_telepad_deployable.MaxHealth = 100
     router_telepad_deployable.Damageable = true
@@ -7341,6 +7356,7 @@ object GlobalDefinitions {
     router_telepad_deployable.Packet = new TelepadDeployableConverter
     router_telepad_deployable.Model = SimpleResolutions.calculate
     router_telepad_deployable.Geometry = GeometryForm.representByRaisedSphere(radius = 1.2344f)
+
     internal_router_telepad_deployable.Name = "router_telepad_deployable"
     internal_router_telepad_deployable.MaxHealth = 1
     internal_router_telepad_deployable.Damageable = false
