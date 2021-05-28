@@ -121,4 +121,6 @@ object AvatarResponse {
 
   final case class TeardownConnection() extends Response
   //  final case class PlayerStateShift(itemID : PlanetSideGUID) extends Response
+  final case class UseKit(kit_guid: PlanetSideGUID, kit_objid: Int) extends Response
+  final case class KitNotUsed(kit_guid: PlanetSideGUID, msg: String) extends Response
 }

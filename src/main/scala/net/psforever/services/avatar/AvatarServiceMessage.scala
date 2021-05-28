@@ -150,6 +150,8 @@ object AvatarAction {
       drop: List[InventoryItem]
   ) extends Action
   final case class DropSpecialItem() extends Action
+  final case class UseKit(kit_guid: PlanetSideGUID, kit_objid: Int) extends Action
+  final case class KitNotUsed(kit_guid: PlanetSideGUID, msg: String) extends Action
 
   final case class TeardownConnection() extends Action
   //  final case class PlayerStateShift(killer : PlanetSideGUID, victim : PlanetSideGUID) extends Action

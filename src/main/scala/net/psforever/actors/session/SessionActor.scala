@@ -198,6 +198,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var updateSquad: () => Unit                                         = NoSquadUpdates
   var recentTeleportAttempt: Long                                     = 0
   var lastTerminalOrderFulfillment: Boolean                           = true
+  var kitToBeUsed: Option[PlanetSideGUID]                             = None
   var shiftPosition: Option[Vector3]                                  = None
   var shiftOrientation: Option[Vector3]                               = None
   var nextSpawnPoint: Option[SpawnPoint]                              = None
@@ -2215,6 +2216,29 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           old_holsters.foreach { case (_, guid) => sendResponse(ObjectDeleteMessage(guid, 0)) }
           //redraw handled by callback
         }
+
+      case AvatarResponse.UseKit(kguid, kObjId) =>
+        kitToBeUsed = None
+        sendResponse(
+          UseItemMessage(
+            tplayer_guid,
+            kguid,
+            tplayer_guid,
+            4294967295L,
+            false,
+            Vector3.Zero,
+            Vector3.Zero,
+            126,
+            0, //sequence time?
+            137,
+            kObjId
+          )
+        )
+        sendResponse(ObjectDeleteMessage(kguid, 0))
+
+      case AvatarResponse.KitNotUsed(_, msg) =>
+        kitToBeUsed = None
+        sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", msg, None))
 
       case _ => ;
     }
@@ -4732,133 +4756,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 AccessContainer(obj)
               }
             } else if (!unk3 && player.isAlive) { //potential kit use
-              ValidObject(item_used_guid) match {
-                case Some(kit: Kit) =>
-                  player.avatar.useCooldown(kit.Definition) match {
-                    case Some(cooldown) =>
-                      sendResponse(
-                        ChatMsg(
-                          ChatMessageType.UNK_225,
-                          false,
-                          "",
-                          s"@TimeUntilNextUse^${cooldown.getStandardSeconds}",
-                          None
-                        )
-                      )
-
-                    case None =>
-                      val indexOpt = player.Find(kit)
-                      val kitIsUsed = indexOpt match {
-                        case Some(index) =>
-                          if (kit.Definition == GlobalDefinitions.medkit) {
-                            if (player.Health == player.MaxHealth) {
-                              sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", "@HealComplete", None))
-                              false
-                            } else {
-                              player.History(HealFromKit(PlayerSource(player), 25, kit.Definition))
-                              player.Health = player.Health + 25
-                              sendResponse(PlanetsideAttributeMessage(avatar_guid, 0, player.Health))
-                              continent.AvatarEvents ! AvatarServiceMessage(
-                                continent.id,
-                                AvatarAction.PlanetsideAttribute(avatar_guid, 0, player.Health)
-                              )
-                              true
-                            }
-                          } else if (kit.Definition == GlobalDefinitions.super_medkit) {
-                            if (player.Health == player.MaxHealth) {
-                              sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", "@HealComplete", None))
-                              false
-                            } else {
-                              player.History(HealFromKit(PlayerSource(player), 100, kit.Definition))
-                              player.Health = player.Health + 100
-                              sendResponse(PlanetsideAttributeMessage(avatar_guid, 0, player.Health))
-                              continent.AvatarEvents ! AvatarServiceMessage(
-                                continent.id,
-                                AvatarAction.PlanetsideAttribute(avatar_guid, 0, player.Health)
-                              )
-                              true
-                            }
-                          } else if (kit.Definition == GlobalDefinitions.super_armorkit) {
-                            if (player.Armor == player.MaxArmor) {
-                              sendResponse(
-                                ChatMsg(
-                                  ChatMessageType.UNK_225,
-                                  false,
-                                  "",
-                                  "Armor at maximum - No repairing required.",
-                                  None
-                                )
-                              )
-                              false
-                            } else {
-                              player.History(RepairFromKit(PlayerSource(player), 200, kit.Definition))
-                              player.Armor = player.Armor + 200
-                              sendResponse(PlanetsideAttributeMessage(avatar_guid, 4, player.Armor))
-                              continent.AvatarEvents ! AvatarServiceMessage(
-                                continent.id,
-                                AvatarAction.PlanetsideAttribute(avatar_guid, 4, player.Armor)
-                              )
-                              true
-                            }
-                          } else if (kit.Definition == GlobalDefinitions.super_staminakit) {
-                            if (player.avatar.staminaFull) {
-                              sendResponse(
-                                ChatMsg(
-                                  ChatMessageType.UNK_225,
-                                  false,
-                                  "",
-                                  "Stamina at maximum - No recharge required.",
-                                  None
-                                )
-                              )
-                              false
-                            } else {
-                              avatarActor ! AvatarActor.RestoreStamina(100)
-                              // TODO do we need this? this used to always send the old stamina amount...
-                              /*
-                              sendResponse(PlanetsideAttributeMessage(avatar_guid, 2, player.Stamina))
-                               */
-                              true
-                            }
-                          } else {
-                            log.warn(s"UseItem: Your $kit behavior is not supported, ${player.Name}")
-                            false
-                          }
-
-                        case None =>
-                          log.error(s"UseItem: Anticipated a $kit for ${player.Name}, but can't find it")
-                          false
-                      }
-                      if (kitIsUsed) {
-                        //kit was found belonging to player and was used
-                        avatarActor ! AvatarActor.UpdateUseTime(kit.Definition)
-                        player.Slot(indexOpt.get).Equipment =
-                          None //remove from slot immediately; must exist on client for next packet
-                        sendResponse(
-                          UseItemMessage(
-                            avatar_guid,
-                            item_used_guid,
-                            object_guid,
-                            0,
-                            unk3,
-                            unk4,
-                            unk5,
-                            unk6,
-                            unk7,
-                            unk8,
-                            itemType
-                          )
-                        )
-                        sendResponse(ObjectDeleteMessage(kit.GUID, 0))
-                        continent.tasks ! GUIDTask.UnregisterEquipment(kit)(continent.GUID)
-                      }
-                  }
-
-                case Some(item) =>
-                  log.warn(s"UseItem: ${player.Name} looking for Kit to use, but found $item instead")
-                case None =>
-                  log.error(s"UseItem: anticipated a Kit $item_used_guid for ${player.Name}, but can't find it")
-              }
+              (continent.GUID(item_used_guid), kitToBeUsed) match {
+                case (Some(kit: Kit), None) =>
+                  kitToBeUsed = Some(item_used_guid)
+                  player.Actor ! CommonMessages.Use(player, Some(kit))
+                case (Some(_: Kit), Some(_)) | (None, Some(_)) => ; //a kit is already queued to be used; ignore this request
+                case (Some(item), _) =>
+                  log.error(s"UseItem: ${player.Name} looking for Kit to use, but found $item instead")
+                case (None, None) =>
+                  log.warn(s"UseItem: anticipated a Kit $item_used_guid for ${player.Name}, but can't find it")              }
             } else if (itemType == ObjectClass.avatar && unk3) {
               equipment match {
                 case Some(tool: Tool) if tool.Definition == GlobalDefinitions.bank =>
@@ -7114,6 +7020,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     progressBarUpdate.cancel()
     progressBarValue = None
     lastTerminalOrderFulfillment = true
+    kitToBeUsed = None
     accessedContainer match {
       case Some(v: Vehicle) =>
         val vguid = v.GUID
