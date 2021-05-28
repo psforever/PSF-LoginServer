@@ -81,25 +81,6 @@ class BoomerDeployableControl(mine: BoomerDeployable)
     super.gainOwnership(player, player.Faction)
   }
 
-//  override def finalizeDeployable(tool : ConstructionItem) : Unit = {
-//    val zone = mine.Zone
-//    val trigger = new BoomerTrigger
-//    trigger.Companion = mine.GUID
-//    mine.Trigger = trigger
-//    zone.tasks ! GUIDTask.UnregisterEquipment(tool)(zone.GUID)
-//    zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, tool.GUID))
-//    Zone.EquipmentIs.Where(tool, tool.GUID, zone) match {
-//      case Some(Zone.EquipmentIs.InContainer(player: Player, index)) =>
-//        player.Slot(index).Equipment = None
-//        zone.tasks ! HoldNewEquipmentUp(player)(trigger, index)
-//      case _ => ;
-//        mine.Trigger = None
-//        //don't know where boomer trigger "should" go
-//        //zone.tasks ! PutNewEquipmentInInventoryOrDrop(player)(trigger)
-//    }
-//    super.finalizeDeployable(tool)
-//  }
-
   override def dismissDeployable() : Unit = {
     super.dismissDeployable()
     val zone = mine.Zone

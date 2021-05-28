@@ -383,7 +383,7 @@ class EquipmentTest extends Specification {
       obj.AmmoType mustEqual DeployedItem.he_mine
     }
 
-    "when switching fire modes, ammo mode resets to the first entry" in {
+    "when switching fire modes, ammo mode should be maintained" in {
       val obj: ConstructionItem = ConstructionItem(GlobalDefinitions.ace)
       obj.NextFireMode
       obj.AmmoType mustEqual DeployedItem.he_mine
@@ -392,8 +392,8 @@ class EquipmentTest extends Specification {
       obj.NextFireMode //spitfire_turret
       obj.NextFireMode //motionalarmsensor
       obj.NextFireMode //boomer
-      obj.NextFireMode
-      obj.AmmoType mustEqual DeployedItem.he_mine
+      obj.NextFireMode //?
+      obj.AmmoType mustEqual DeployedItem.jammer_mine
     }
 
     "qualify certifications that must be met before ammo types may be used" in {
