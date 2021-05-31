@@ -3,7 +3,7 @@ package net.psforever.objects.serverobject.environment
 
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.zones.Zone
+import net.psforever.objects.zones.{BlockMapEntity, Zone}
 
 /**
   * This game entity may infrequently test whether it may interact with game world environment.
@@ -165,7 +165,14 @@ object InteractsWithZoneEnvironment {
   def checkAllEnvironmentInteractions(obj: PlanetSideServerObject): Option[PieceOfEnvironment] = {
     val position = obj.Position
     val depth = GlobalDefinitions.MaxDepth(obj)
-    obj.Zone.map.environment.find { body => body.attribute.canInteractWith(obj) && body.testInteraction(position, depth) }
+    (obj match {
+      case bme: BlockMapEntity =>
+        obj.Zone.blockMap.sector(bme).environmentList
+      case _ =>
+        obj.Zone.map.environment
+    }).find { body =>
+      body.attribute.canInteractWith(obj) && body.testInteraction(position, depth)
+    }
   }
 
   /**

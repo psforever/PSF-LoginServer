@@ -133,14 +133,12 @@ class ZoneActor(context: ActorContext[ZoneActor.Command], zone: Zone)
         zone.Transport ! Zone.Vehicle.Despawn(vehicle)
 
       case AddToBlockMap(target, toPosition) =>
-        log.info(s"${target.getClass().getSimpleName} added to blockmap")
         zone.blockMap.addTo(target, toPosition)
 
       case UpdateBlockMap(target, toPosition) =>
         zone.blockMap.move(target, toPosition)
 
       case RemoveFromBlockMap(target) =>
-        log.info(s"${target.getClass().getSimpleName} removed from blockmap")
         zone.blockMap.removeFrom(target)
 
       case HotSpotActivity(defender, attacker, location) =>

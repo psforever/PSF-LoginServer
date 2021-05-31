@@ -32,6 +32,17 @@ trait BlockMapEntity
     entry
   }
 
+  def sector(zone: Zone, range: Float): SectorPopulation = {
+    zone.blockMap.sector(
+      //TODO same zone check?
+      _blockMapEntry match {
+        case Some(entry) => entry.coords
+        case None => Position
+      },
+      range
+    )
+  }
+
   def updateBlockMapEntry(newCoords: Vector3): Boolean = _updateBlockMapEntryFunc(this, newCoords)
 }
 
@@ -227,6 +238,20 @@ class BlockMap(fullMapWidth: Int, fullMapHeight: Int, desiredSpanSize: Int) {
     ).result()
   }
 
+  def sector(entity: BlockMapEntity): SectorPopulation = {
+    entity.blockMapEntry match {
+      case Some(entry) =>
+        val output = entry.sectors.map { blocks }
+        if (output.size == 1) {
+          output.head
+        } else {
+          SectorGroup(output)
+        }
+      case None =>
+        SectorGroup(Nil)
+    }
+  }
+
   def sector(p: Vector3, range: Float): SectorPopulation = {
     val output = BlockMap.sectorIndices(blockMap = this, p, range).map { blocks }
     if (output.size == 1) {
@@ -383,10 +408,7 @@ object BlockMap {
 
       case e: PieceOfEnvironment =>
         val bounds = e.collision.bounding
-        math.max(
-          (bounds.top - bounds.base) * 0.5f,
-          (bounds.right - bounds.left) * 0.5f
-        )
+        math.max(bounds.top - bounds.base, bounds.right - bounds.left) * 0.5f
 
       case _ =>
         defaultRadius.getOrElse(1.0f)

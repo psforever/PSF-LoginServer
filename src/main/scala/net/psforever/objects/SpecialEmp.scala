@@ -123,6 +123,7 @@ object SpecialEmp {
     * A sort of `SpecialEmp` that only affects deployed boomer explosives
     * must find affected deployed boomer explosive entities.
     * @see `BoomerDeployable`
+    * @param range the distance to search for applicable sector
     * @param zone the zone in which to search
     * @param obj a game entity that is excluded from results
     * @param properties information about the effect/damage
@@ -131,10 +132,17 @@ object SpecialEmp {
     *         since only boomer explosives are returned, this second list can be ignored
     */
   def findAllBoomers(
+                      range: Float
+                    )
+                    (
                       zone: Zone,
                       obj: PlanetSideGameObject with FactionAffinity with Vitality,
                       properties: DamageWithPosition
                     ): List[PlanetSideServerObject with Vitality] = {
-    zone.DeployableList.collect { case o: BoomerDeployable if !o.Destroyed && (o ne obj) => o }
+    zone
+      .blockMap
+      .sector(obj.Position, range)
+      .deployableList
+      .collect { case o: BoomerDeployable if !o.Destroyed && (o ne obj) => o }
   }
 }

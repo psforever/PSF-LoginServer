@@ -5289,7 +5289,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 SpecialEmp.emp,
                 SpecialEmp.createEmpInteraction(SpecialEmp.emp, explosion_pos),
                 SpecialEmp.prepareDistanceCheck(player, explosion_pos, player.Faction),
-                SpecialEmp.findAllBoomers
+                SpecialEmp.findAllBoomers(profile.DamageRadius)
               )
             }
             if (profile.ExistsOnRemoteClients && projectile.HasGUID) {

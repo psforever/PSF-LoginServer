@@ -87,7 +87,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
   /** The basic support structure for the globally unique number system used by this `Zone`. */
   private var guid: NumberPoolHub = new NumberPoolHub(new MaxNumberSource(65536))
 
-  val blockMap: BlockMap = BlockMap(map.scale, spanSize = 200)
+  val blockMap: BlockMap = BlockMap(map.scale, spanSize = 100)
 
   /** A synchronized `List` of items (`Equipment`) dropped by players on the ground and can be collected again. */
   private val equipmentOnGround: ListBuffer[Equipment] = ListBuffer[Equipment]()
@@ -1193,29 +1193,31 @@ object Zone {
     val sourcePosition = source.Position
     val sourcePositionXY = sourcePosition.xy
     val radius = damagePropertiesBySource.DamageRadius * damagePropertiesBySource.DamageRadius
+    val sectors = zone.blockMap.sector(sourcePositionXY, damagePropertiesBySource.DamageRadius)
     //collect all targets that can be damaged
     //players
-    val playerTargets = zone.LivePlayers.filterNot { _.VehicleSeated.nonEmpty }
+    val playerTargets = sectors.livePlayerList.filterNot { _.VehicleSeated.nonEmpty }
     //vehicles
-    val vehicleTargets = zone.Vehicles.filterNot { v => v.Destroyed || v.MountedIn.nonEmpty }
+    val vehicleTargets = sectors.vehicleList.filterNot { v => v.Destroyed || v.MountedIn.nonEmpty }
     //deployables
-    val deployableTargets = zone.DeployableList.filterNot { _.Destroyed }
+    val deployableTargets = sectors.deployableList.filterNot { _.Destroyed }
     //amenities
     val soiTargets = source match {
       case o: Amenity =>
         //fortunately, even where soi overlap, amenities in different buildings are never that close to each other
         o.Owner.Amenities
       case _ =>
-        zone.Buildings.values
-          .filter { b =>
-            val soiRadius = b.Definition.SOIRadius * b.Definition.SOIRadius
-            Vector3.DistanceSquared(sourcePositionXY, b.Position.xy) < soiRadius || soiRadius <= radius
+        sectors
+          .buildingList
+          .flatMap {
+            case b if {
+              val soiRadius = b.Definition.SOIRadius * b.Definition.SOIRadius
+              Vector3.DistanceSquared(sourcePositionXY, b.Position.xy) < soiRadius || soiRadius <= radius
+            } => b.Amenities.filter { _.Definition.Damageable }
+            case _ => Nil
           }
-          .flatMap { _.Amenities }
-          .filter { _.Definition.Damageable }
-    }
 
-    //restrict to targets according to the detection plan
+    }
     (playerTargets ++ vehicleTargets ++ deployableTargets ++ soiTargets).filter { target => target ne source }
   }
 
