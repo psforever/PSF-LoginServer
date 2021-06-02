@@ -1,6 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects
 
+import net.psforever.objects.ce.TelepadLike
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.transfer.TransferContainer
@@ -9,12 +10,12 @@ import net.psforever.objects.vehicles._
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.TriggeredSound
 import net.psforever.types.{DriveState, PlanetSideGUID, Vector3}
-import net.psforever.services.{RemoverActor, Service}
+import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
-import scala.concurrent.duration._
+//import scala.concurrent.duration._
 
 object Vehicles {
   private val log = org.log4s.getLogger("Vehicles")
@@ -309,7 +310,13 @@ object Vehicles {
     // If AMS is deployed, swap it to the new faction
     target.Definition match {
       case GlobalDefinitions.router =>
-        Vehicles.RemoveTelepads(target)
+        target.Utility(UtilityType.internal_router_telepad_deployable) match {
+          case Some(util: Utility.InternalTelepad) =>
+            //"power cycle"
+            util.Actor ! TelepadLike.Deactivate(util)
+            util.Actor ! TelepadLike.Activate(util)
+          case _ => ;
+        }
       case GlobalDefinitions.ams if target.DeploymentState == DriveState.Deployed =>
         zone.VehicleEvents ! VehicleServiceMessage.AMSDeploymentChange(zone)
       case _ => ;
@@ -387,25 +394,6 @@ object Vehicles {
         vehicle.Actor ! Deployment.TryUndeploy(DriveState.Undeploying)
       case GlobalDefinitions.router =>
         vehicle.Actor ! Deployment.TryUndeploy(DriveState.Undeploying)
-      case _ => ;
-    }
-  }
-
-  def RemoveTelepads(vehicle: Vehicle): Unit = {
-    val zone = vehicle.Zone
-    (vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
-      case Some(util: Utility.InternalTelepad) =>
-        val telepad = util.Telepad
-        util.Telepad = None
-        zone.GUID(telepad)
-      case _ =>
-        None
-    }) match {
-      case Some(telepad: TelepadDeployable) =>
-        log.debug(s"BeforeUnload: deconstructing telepad $telepad that was linked to router $vehicle ...")
-        telepad.Active = false
-        zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(telepad), zone))
-        zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(telepad, zone, Some(0 seconds)))
       case _ => ;
     }
   }

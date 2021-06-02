@@ -24,7 +24,7 @@ class ConstructionItem(private val cItemDef: ConstructionItemDefinition)
     extends Equipment
     with FireModeSwitch[ConstructionFireMode] {
   private var fireModeIndex: Int = 0
-  private var ammoTypeIndex: Int = 0
+  private val ammoTypeIndices: Array[Int] = Array.fill[Int](cItemDef.Modes.size)(elem = 0)
 
   def FireModeIndex: Int = fireModeIndex
 
@@ -37,28 +37,32 @@ class ConstructionItem(private val cItemDef: ConstructionItemDefinition)
 
   def NextFireMode: ConstructionFireMode = {
     FireModeIndex = FireModeIndex + 1
-    ammoTypeIndex = 0
     FireMode
   }
 
-  def AmmoTypeIndex: Int = ammoTypeIndex
+  def AmmoTypeIndex: Int = ammoTypeIndices(fireModeIndex)
 
   def AmmoTypeIndex_=(index: Int): Int = {
-    ammoTypeIndex = index % FireMode.Deployables.length
+    ammoTypeIndices(fireModeIndex) = index % FireMode.Deployables.length
     AmmoTypeIndex
   }
 
-  def AmmoType: DeployedItem.Value = FireMode.Deployables(ammoTypeIndex)
+  def AmmoType: DeployedItem.Value = FireMode.Deployables(AmmoTypeIndex)
 
   def NextAmmoType: DeployedItem.Value = {
     AmmoTypeIndex = AmmoTypeIndex + 1
-    FireMode.Deployables(ammoTypeIndex)
+    FireMode.Deployables(AmmoTypeIndex)
   }
 
-  def ModePermissions: Set[Certification] = FireMode.Permissions(ammoTypeIndex)
+  def ModePermissions: Set[Certification] = FireMode.Permissions(AmmoTypeIndex)
+
+  def resetAmmoTypes(): Unit = {
+    ammoTypeIndices.indices.foreach { index => ammoTypeIndices.update(index, 0) }
+  }
 
   def Definition: ConstructionItemDefinition = cItemDef
 }
+
 
 object ConstructionItem {
   def apply(cItemDef: ConstructionItemDefinition): ConstructionItem = {

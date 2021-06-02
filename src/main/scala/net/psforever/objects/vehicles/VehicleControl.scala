@@ -31,7 +31,6 @@ import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.types._
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -605,17 +604,9 @@ class VehicleControl(vehicle: Vehicle)
           state match {
             case DriveState.Deploying =>
               vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
-                case Some(util: Utility.InternalTelepad) =>
-                  util.Active = true
-                case _ =>
-                //log.warn(s"DeploymentActivities: could not find internal telepad in router@${vehicle.GUID.guid} while $state")
+                case Some(util: Utility.InternalTelepad) => util.Actor ! TelepadLike.Activate(util)
+                case _ => ;
               }
-            case DriveState.Deployed =>
-              //let the timer do all the work
-              events ! LocalServiceMessage(
-                zoneChannel,
-                LocalAction.ToggleTeleportSystem(GUID0, vehicle, TelepadLike.AppraiseTeleportationSystem(vehicle, zone))
-              )
             case _ => ;
           }
         }
@@ -663,8 +654,10 @@ class VehicleControl(vehicle: Vehicle)
           state match {
             case DriveState.Undeploying =>
               //deactivate internal router before trying to reset the system
-              Vehicles.RemoveTelepads(vehicle)
-              zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.ToggleTeleportSystem(GUID0, vehicle, None))
+              vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
+                case Some(util: Utility.InternalTelepad) => util.Actor ! TelepadLike.Deactivate(util)
+                case _ => ;
+              }
             case _ => ;
           }
         }

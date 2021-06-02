@@ -4,7 +4,7 @@ package net.psforever.services.galaxy
 import net.psforever.objects.Vehicle
 import net.psforever.objects.vehicles.VehicleManifest
 import net.psforever.objects.zones.HotSpotInfo
-import net.psforever.packet.game.{BuildingInfoUpdateMessage, CaptureFlagUpdateMessage, FlagInfo}
+import net.psforever.packet.game.{BuildingInfoUpdateMessage, CaptureFlagUpdateMessage}
 import net.psforever.types.PlanetSideGUID
 import net.psforever.services.GenericEventBusMsg
 

@@ -7,18 +7,17 @@ import net.psforever.objects.avatar.{Avatar, Certification}
 import scala.concurrent.duration._
 import net.psforever.objects.ce.{Deployable, DeployedItem}
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{DeployableInfo, DeploymentAction}
+import net.psforever.packet.game._
 import net.psforever.types.PlanetSideGUID
-import net.psforever.services.RemoverActor
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 
 object Deployables {
   //private val log = org.log4s.getLogger("Deployables")
 
   object Make {
-    def apply(item: DeployedItem.Value): () => PlanetSideGameObject with Deployable = cemap(item)
+    def apply(item: DeployedItem.Value): () => Deployable = cemap(item)
 
-    private val cemap: Map[DeployedItem.Value, () => PlanetSideGameObject with Deployable] = Map(
+    private val cemap: Map[DeployedItem.Value, () => Deployable] = Map(
       DeployedItem.boomer                 -> { () => new BoomerDeployable(GlobalDefinitions.boomer) },
       DeployedItem.he_mine                -> { () => new ExplosiveDeployable(GlobalDefinitions.he_mine) },
       DeployedItem.jammer_mine            -> { () => new ExplosiveDeployable(GlobalDefinitions.jammer_mine) },
@@ -50,6 +49,22 @@ object Deployables {
 
   /**
     * Distribute information that a deployable has been destroyed.
+    * Additionally, since the player who destroyed the deployable isn't necessarily the owner,
+    * and the real owner will still be aware of the existence of the deployable,
+    * that player must be informed of the loss of the deployable directly.
+    * @see `AnnounceDestroyDeployable(Deployable)`
+    * @see `Deployable.Deconstruct`
+    * @param target the deployable that is destroyed
+    * @param time length of time that the deployable is allowed to exist in the game world;
+    *             `None` indicates the normal un-owned existence time (180 seconds)
+    */
+  def AnnounceDestroyDeployable(target: Deployable, time: Option[FiniteDuration]): Unit = {
+    AnnounceDestroyDeployable(target)
+    target.Actor ! Deployable.Deconstruct(time)
+  }
+
+  /**
+    * Distribute information that a deployable has been destroyed.
     * The deployable may not have yet been eliminated from the game world (client or server),
     * but its health is zero and it has entered the conditions where it is nearly irrelevant.<br>
     * <br>
@@ -58,36 +73,36 @@ object Deployables {
     * This function eventually invokes the same routine
     * but mainly goes into effect when the deployable has been destroyed
     * and may still leave a physical component in the game world to be cleaned up later.
-    * That is the task `EliminateDeployable` performs.
-    * Additionally, since the player who destroyed the deployable isn't necessarily the owner,
-    * and the real owner will still be aware of the existence of the deployable,
-    * that player must be informed of the loss of the deployable directly.
-    * @see `DeployableRemover`
-    * @see `Vitality.DamageResolution`
-    * @see `LocalResponse.EliminateDeployable`
-    * @see `DeconstructDeployable`
+    * @see `DeployableInfo`
+    * @see `DeploymentAction`
+    * @see `LocalAction.DeployableMapIcon`
     * @param target the deployable that is destroyed
-    * @param time length of time that the deployable is allowed to exist in the game world;
-    *             `None` indicates the normal un-owned existence time (180 seconds)
-    */
-  def AnnounceDestroyDeployable(target: PlanetSideGameObject with Deployable, time: Option[FiniteDuration]): Unit = {
+    **/
+  def AnnounceDestroyDeployable(target: Deployable): Unit = {
     val zone = target.Zone
+    val events = zone.LocalEvents
+    val item = target.Definition.Item
     target.OwnerName match {
       case Some(owner) =>
+        zone.Players.find { p => owner.equals(p.name) } match {
+          case Some(p) =>
+            if (p.deployables.Remove(target)) {
+              events ! LocalServiceMessage(owner, LocalAction.DeployableUIFor(item))
+            }
+          case None => ;
+        }
+        target.Owner = None
         target.OwnerName = None
-        zone.LocalEvents ! LocalServiceMessage(owner, LocalAction.AlertDestroyDeployable(PlanetSideGUID(0), target))
       case None => ;
     }
-    zone.LocalEvents ! LocalServiceMessage(
+    events ! LocalServiceMessage(
       s"${target.Faction}",
       LocalAction.DeployableMapIcon(
         PlanetSideGUID(0),
         DeploymentAction.Dismiss,
-        DeployableInfo(target.GUID, Deployable.Icon(target.Definition.Item), target.Position, PlanetSideGUID(0))
+        DeployableInfo(target.GUID, Deployable.Icon(item), target.Position, PlanetSideGUID(0))
       )
     )
-    zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(target), zone))
-    zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(target, zone, time))
   }
 
   /**
@@ -99,28 +114,16 @@ object Deployables {
     * @return all previously-owned deployables after they have been processed;
     *         boomers are listed before all other deployable types
     */
-  def Disown(zone: Zone, avatar: Avatar, replyTo: ActorRef): List[PlanetSideGameObject with Deployable] = {
-    val (boomers, deployables) =
-      avatar.deployables
-        .Clear()
-        .map(zone.GUID)
-        .collect { case Some(obj) => obj.asInstanceOf[PlanetSideGameObject with Deployable] }
-        .partition(_.isInstanceOf[BoomerDeployable])
-    //do not change the OwnerName field at this time
-    boomers.collect({
-      case obj: BoomerDeployable =>
-        zone.LocalEvents.tell(
-          LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, zone, Some(0 seconds))),
-          replyTo
-        ) //near-instant
-        obj.Owner = None
-        obj.Trigger = None
-    })
-    deployables.foreach(obj => {
-      zone.LocalEvents.tell(LocalServiceMessage.Deployables(RemoverActor.AddTask(obj, zone)), replyTo) //normal decay
-      obj.Owner = None
-    })
-    boomers ++ deployables
+  def Disown(zone: Zone, avatar: Avatar, replyTo: ActorRef): List[Deployable] = {
+    avatar.deployables
+      .Clear()
+      .map(zone.GUID)
+      .collect {
+        case Some(obj: Deployable) =>
+          obj.Actor ! Deployable.Ownership(None)
+          obj.Owner = None //fast-forward the effect
+          obj
+      }
   }
 
   /**
@@ -137,6 +140,89 @@ object Deployables {
     */
   def InitializeDeployableUIElements(avatar: Avatar): List[(Int, Int, Int, Int)] = {
     avatar.deployables.UpdateUI()
+  }
+
+  /**
+    * If the default ammunition mode for the `ConstructionTool` is not supported by the given certifications,
+    * find a suitable ammunition mode and switch to it internally.
+    * No special complaint is raised if the `ConstructionItem` itself is completely unsupported.
+    * @param certs the certification baseline being compared against
+    * @param obj the `ConstructionItem` entity
+    * @return `true`, if the ammunition mode of the item has been changed;
+    *        `false`, otherwise
+    */
+  def initializeConstructionAmmoMode(
+                                      certs: Set[Certification],
+                                      obj: ConstructionItem
+                                    ): Boolean = {
+    if (!Deployables.constructionItemPermissionComparison(certs, obj.ModePermissions)) {
+      Deployables.performConstructionItemAmmoChange(certs, obj, obj.AmmoTypeIndex)
+    } else {
+      false
+    }
+  }
+
+  /**
+    * The custom behavior responding to the packet `ChangeAmmoMessage` for `ConstructionItem` game objects.
+    * Iterate through sub-modes corresponding to a type of "deployable" as ammunition for this fire mode
+    * and check each of these sub-modes for their certification requirements to be met before they can be used.
+    * Additional effort is exerted to ensure that the requirements for the given ammunition are satisfied.
+    * If no satisfactory combination is achieved, the original state will be restored.
+    * @see `Certification`
+    * @see `ChangeAmmoMessage`
+    * @see `ConstructionItem.ModePermissions`
+    * @see `Deployables.constructionItemPermissionComparison`
+    * @param certs the certification baseline being compared against
+    * @param obj the `ConstructionItem` entity
+    * @param originalAmmoIndex the starting point ammunition type mode index
+    * @return `true`, if the ammunition mode of the item has been changed;
+    *        `false`, otherwise
+    */
+  def performConstructionItemAmmoChange(
+                                         certs: Set[Certification],
+                                         obj: ConstructionItem,
+                                         originalAmmoIndex: Int
+                                       ): Boolean = {
+    do {
+      obj.NextAmmoType
+    } while (
+      !Deployables.constructionItemPermissionComparison(certs, obj.ModePermissions) &&
+      originalAmmoIndex != obj.AmmoTypeIndex
+    )
+    obj.AmmoTypeIndex != originalAmmoIndex
+  }
+
+  /**
+    * The custom behavior responding to the message `ChangeFireModeMessage` for `ConstructionItem` game objects.
+    * Each fire mode has sub-modes corresponding to a type of "deployable" as ammunition
+    * and each of these sub-modes have certification requirements that must be met before they can be used.
+    * Additional effort is exerted to ensure that the requirements for the given mode and given sub-mode are satisfied.
+    * If no satisfactory combination is achieved, the original state will be restored.
+    * @see `Deployables.constructionItemPermissionComparison`
+    * @see `Deployables.performConstructionItemAmmoChange`
+    * @see `FireModeSwitch.NextFireMode`
+    * @param certs the certification baseline being compared against
+    * @param obj the `ConstructionItem` entity
+    * @param originalModeIndex the starting point fire mode index
+    * @return `true`, if the ammunition mode of the item has been changed;
+    *        `false`, otherwise
+    */
+  def performConstructionItemFireModeChange(
+                                             certs: Set[Certification],
+                                             obj: ConstructionItem,
+                                             originalModeIndex: Int
+                                           ): Boolean = {
+    /*
+    if any of the fire modes possess an initial option that is not valid for a given set of certifications,
+    but a subsequent option is valid, the do...while loop has to be modified to traverse and compare each option
+    */
+    do {
+      obj.NextFireMode
+    } while (
+      !Deployables.constructionItemPermissionComparison(certs, obj.ModePermissions) &&
+      originalModeIndex != obj.FireModeIndex
+    )
+    originalModeIndex != obj.FireModeIndex
   }
 
   /**

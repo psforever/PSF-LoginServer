@@ -2,6 +2,7 @@
 package net.psforever.objects
 
 import net.psforever.objects.avatar.{Avatar, LoadoutManager, SpecialCarry}
+import net.psforever.objects.ce.Deployable
 import net.psforever.objects.definition.{AvatarDefinition, ExoSuitDefinition, SpecialExoSuitDefinition}
 import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot, JammableUnit}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
@@ -202,7 +203,7 @@ class Player(var avatar: Avatar)
   def HolsterItems(): List[InventoryItem] = holsters
     .zipWithIndex
     .collect {
-      case out @ (slot: EquipmentSlot, index: Int) if slot.Equipment.nonEmpty => InventoryItem(slot.Equipment.get, index)
+      case (slot: EquipmentSlot, index: Int) if slot.Equipment.nonEmpty => InventoryItem(slot.Equipment.get, index)
     }.toList
 
   def Inventory: GridInventory = inventory
@@ -538,11 +539,11 @@ class Player(var avatar: Avatar)
 
   override def toString: String = {
     val guid = if (HasGUID) {
-      s" ${Continent}-${GUID.guid}"
+      s" $Continent-${GUID.guid}"
     } else {
       ""
     }
-    s"${avatar.name}$guid ${avatar.faction} H: ${Health}/${MaxHealth} A: ${Armor}/${MaxArmor}"
+    s"${avatar.name}$guid ${avatar.faction} H: $Health/$MaxHealth A: $Armor/$MaxArmor"
   }
 }
 
@@ -550,6 +551,10 @@ object Player {
   final val LockerSlot: Int    = 5
   final val FreeHandSlot: Int  = 250
   final val HandsDownSlot: Int = 255
+
+  final case class BuildDeployable(obj: Deployable, withTool: ConstructionItem)
+
+  final case class LoseDeployable(obj: Deployable)
 
   final case class Die(reason: Option[DamageInteraction])
 

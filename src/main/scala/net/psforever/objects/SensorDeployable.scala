@@ -1,10 +1,10 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.objects
 
-import akka.actor.{Actor, ActorContext, Props}
+import akka.actor.{Actor, ActorContext, ActorRef, Props}
 import net.psforever.objects.ce._
 import net.psforever.objects.definition.converter.SmallDeployableConverter
-import net.psforever.objects.definition.{ComplexDeployableDefinition, SimpleDeployableDefinition}
+import net.psforever.objects.definition.DeployableDefinition
 import net.psforever.objects.equipment.{JammableBehavior, JammableUnit}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity}
@@ -19,21 +19,17 @@ import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.duration._
 
-class SensorDeployable(cdef: SensorDeployableDefinition) extends ComplexDeployable(cdef) with Hackable with JammableUnit
+class SensorDeployable(cdef: SensorDeployableDefinition) extends Deployable(cdef) with Hackable with JammableUnit
 
-class SensorDeployableDefinition(private val objectId: Int) extends ComplexDeployableDefinition(objectId) {
+class SensorDeployableDefinition(private val objectId: Int) extends DeployableDefinition(objectId) {
   Name = "sensor_deployable"
   DeployCategory = DeployableCategory.Sensors
   Model = SimpleResolutions.calculate
   Packet = new SmallDeployableConverter
 
-  override def Initialize(obj: PlanetSideServerObject with Deployable, context: ActorContext) = {
+  override def Initialize(obj: Deployable, context: ActorContext) = {
     obj.Actor =
       context.actorOf(Props(classOf[SensorDeployableControl], obj), PlanetSideServerObject.UniqueActorName(obj))
-  }
-
-  override def Uninitialize(obj: PlanetSideServerObject with Deployable, context: ActorContext) = {
-    SimpleDeployableDefinition.SimpleUninitialize(obj, context)
   }
 }
 
@@ -45,15 +41,23 @@ object SensorDeployableDefinition {
 
 class SensorDeployableControl(sensor: SensorDeployable)
     extends Actor
+    with DeployableBehavior
     with JammableBehavior
     with DamageableEntity
     with RepairableEntity {
+  def DeployableObject = sensor
   def JammableObject   = sensor
   def DamageableObject = sensor
   def RepairableObject = sensor
 
+  override def postStop(): Unit = {
+    super.postStop()
+    deployableBehaviorPostStop()
+  }
+
   def receive: Receive =
-    jammableBehavior
+    deployableBehavior
+      .orElse(jammableBehavior)
       .orElse(takesDamage)
       .orElse(canBeRepairedByNanoDispenser)
       .orElse {
@@ -106,13 +110,23 @@ class SensorDeployableControl(sensor: SensorDeployable)
   override def CancelJammeredStatus(target: Any): Unit = {
     target match {
       case obj: PlanetSideServerObject with JammableUnit if obj.Jammed =>
-        sensor.Zone.LocalEvents ! LocalServiceMessage(
-          sensor.Zone.id,
+        val zone = sensor.Zone
+        zone.LocalEvents ! LocalServiceMessage(
+          zone.id,
           LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", obj.GUID, true, 1000)
         )
       case _ => ;
     }
     super.CancelJammeredStatus(target)
+  }
+
+  override def finalizeDeployable(callback: ActorRef) : Unit = {
+    super.finalizeDeployable(callback)
+    val zone = sensor.Zone
+    zone.LocalEvents ! LocalServiceMessage(
+      zone.id,
+      LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", sensor.GUID, true, 1000)
+    )
   }
 }
 
@@ -123,7 +137,7 @@ object SensorDeployableControl {
     * @param target na
     * @param attribution na
     */
-  def DestructionAwareness(target: Damageable.Target with Deployable, attribution: PlanetSideGUID): Unit = {
+  def DestructionAwareness(target: Deployable, attribution: PlanetSideGUID): Unit = {
     Deployables.AnnounceDestroyDeployable(target, Some(1 seconds))
     val zone = target.Zone
     zone.LocalEvents ! LocalServiceMessage(

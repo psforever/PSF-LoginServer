@@ -2,8 +2,8 @@
 package net.psforever.objects
 
 import akka.actor.{Actor, ActorContext, Props}
-import net.psforever.objects.ce.{ComplexDeployable, Deployable, DeployableCategory}
-import net.psforever.objects.definition.{ComplexDeployableDefinition, SimpleDeployableDefinition}
+import net.psforever.objects.ce.{Deployable, DeployableBehavior, DeployableCategory}
+import net.psforever.objects.definition.DeployableDefinition
 import net.psforever.objects.definition.converter.ShieldGeneratorConverter
 import net.psforever.objects.equipment.{JammableBehavior, JammableUnit}
 import net.psforever.objects.serverobject.damage.Damageable.Target
@@ -18,35 +18,40 @@ import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 class ShieldGeneratorDeployable(cdef: ShieldGeneratorDefinition)
-    extends ComplexDeployable(cdef)
+    extends Deployable(cdef)
     with Hackable
     with JammableUnit
 
-class ShieldGeneratorDefinition extends ComplexDeployableDefinition(240) {
+class ShieldGeneratorDefinition extends DeployableDefinition(240) {
   Packet = new ShieldGeneratorConverter
   DeployCategory = DeployableCategory.ShieldGenerators
 
-  override def Initialize(obj: PlanetSideServerObject with Deployable, context: ActorContext) = {
+  override def Initialize(obj: Deployable, context: ActorContext) = {
     obj.Actor =
       context.actorOf(Props(classOf[ShieldGeneratorControl], obj), PlanetSideServerObject.UniqueActorName(obj))
-  }
-
-  override def Uninitialize(obj: PlanetSideServerObject with Deployable, context: ActorContext) = {
-    SimpleDeployableDefinition.SimpleUninitialize(obj, context)
   }
 }
 
 class ShieldGeneratorControl(gen: ShieldGeneratorDeployable)
     extends Actor
+    with DeployableBehavior
     with JammableBehavior
     with DamageableEntity
     with RepairableEntity {
-  def JammableObject                         = gen
-  def DamageableObject                       = gen
-  def RepairableObject                       = gen
+  def DeployableObject = gen
+  def JammableObject   = gen
+  def DamageableObject = gen
+  def RepairableObject = gen
+  deletionType = 1 //from DeployableBehavior
+
+  override def postStop(): Unit = {
+    super.postStop()
+    deployableBehaviorPostStop()
+  }
 
   def receive: Receive =
-    jammableBehavior
+    deployableBehavior
+      .orElse(jammableBehavior)
       .orElse(takesDamage)
       .orElse(canBeRepairedByNanoDispenser)
       .orElse {
@@ -166,7 +171,7 @@ object ShieldGeneratorControl {
     * @param target na
     * @param attribution na
     */
-  def DestructionAwareness(target: Damageable.Target with Deployable, attribution: PlanetSideGUID): Unit = {
+  def DestructionAwareness(target: Deployable, attribution: PlanetSideGUID): Unit = {
     Deployables.AnnounceDestroyDeployable(target, None)
   }
 }

@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.local
 
-import net.psforever.objects.ce.Deployable
+import net.psforever.objects.ce.{Deployable, DeployedItem}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.hackable.Hackable
@@ -22,24 +22,27 @@ final case class LocalServiceMessage(forChannel: String, actionMessage: LocalAct
 
 object LocalServiceMessage {
   final case class Deployables(msg: Any)
-
-  final case class Telepads(msg: Any)
 }
 
 object LocalAction {
   trait Action
 
-  final case class AlertDestroyDeployable(player_guid: PlanetSideGUID, obj: PlanetSideGameObject with Deployable)
-      extends Action
   final case class DeployableMapIcon(
-      player_guid: PlanetSideGUID,
-      behavior: DeploymentAction.Value,
-      deployInfo: DeployableInfo
-  )                                                                                    extends Action
+                                      player_guid: PlanetSideGUID,
+                                      behavior: DeploymentAction.Value,
+                                      deployInfo: DeployableInfo
+                                    )                                                  extends Action
+  final case class DeployableUIFor(obj: DeployedItem.Value)                            extends Action
   final case class Detonate(guid: PlanetSideGUID, obj: PlanetSideGameObject)           extends Action
   final case class DoorOpens(player_guid: PlanetSideGUID, continent: Zone, door: Door) extends Action
   final case class DoorCloses(player_guid: PlanetSideGUID, door_guid: PlanetSideGUID)  extends Action
   final case class DoorSlamsShut(door: Door)                                           extends Action
+  final case class EliminateDeployable(
+                                        obj: Deployable,
+                                        object_guid: PlanetSideGUID,
+                                        pos: Vector3,
+                                        deletionEffect: Int
+                                      )                                                extends Action
   final case class HackClear(player_guid: PlanetSideGUID, target: PlanetSideServerObject, unk1: Long, unk2: Long = 8L)
       extends Action
   final case class HackTemporarily(
@@ -66,7 +69,6 @@ object LocalAction {
       attribute_number: PlanetsideAttributeEnum,
       attribute_value: Long
   ) extends Action
-
   final case class SendGenericObjectActionMessage(
      player_guid: PlanetSideGUID,
      target: PlanetSideGUID,
@@ -82,7 +84,7 @@ object LocalAction {
     player_guid: PlanetSideGUID,
     action_number: GenericActionEnum
   ) extends Action
-
+  final case class RouterTelepadMessage(msg: String)                                      extends Action
   final case class RouterTelepadTransport(
       player_guid: PlanetSideGUID,
       passenger_guid: PlanetSideGUID,
@@ -99,6 +101,11 @@ object LocalAction {
   ) extends Action
   final case class ShuttleEvent(ev: OrbitalShuttleEvent)                                              extends Action
   final case class ShuttleState(guid: PlanetSideGUID, pos: Vector3, orientation: Vector3, state: Int) extends Action
+  final case class StartRouterInternalTelepad(
+    router_guid: PlanetSideGUID,
+    obj_guid: PlanetSideGUID,
+    obj: Utility.InternalTelepad
+  ) extends Action
   final case class ToggleTeleportSystem(
       player_guid: PlanetSideGUID,
       router: Vehicle,

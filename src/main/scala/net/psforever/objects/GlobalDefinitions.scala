@@ -947,7 +947,7 @@ object GlobalDefinitions {
   /*
   combat engineering deployables
    */
-  val boomer = ExplosiveDeployableDefinition(DeployedItem.boomer)
+  val boomer = BoomerDeployableDefinition(DeployedItem.boomer)
 
   val he_mine = ExplosiveDeployableDefinition(DeployedItem.he_mine)
 
@@ -975,7 +975,7 @@ object GlobalDefinitions {
 
   val deployable_shield_generator = new ShieldGeneratorDefinition
 
-  val router_telepad_deployable = SimpleDeployableDefinition(DeployedItem.router_telepad_deployable)
+  val router_telepad_deployable = TelepadDeployableDefinition(DeployedItem.router_telepad_deployable)
 
   //this is only treated like a deployable
   val internal_router_telepad_deployable = InternalTelepadDefinition() //objectId: 744
@@ -4993,28 +4993,35 @@ object GlobalDefinitions {
 
     ace.Name = "ace"
     ace.Size = EquipmentSize.Pistol
-    ace.Modes += new ConstructionFireMode
-    ace.Modes.head.Item(DeployedItem.boomer, Set(Certification.CombatEngineering))
-    ace.Modes += new ConstructionFireMode
-    ace.Modes(1).Item(DeployedItem.he_mine, Set(Certification.CombatEngineering))
-    ace.Modes(1).Item(DeployedItem.jammer_mine, Set(Certification.AssaultEngineering))
-    ace.Modes += new ConstructionFireMode
-    ace.Modes(2).Item(DeployedItem.spitfire_turret, Set(Certification.CombatEngineering))
-    ace.Modes(2).Item(DeployedItem.spitfire_cloaked, Set(Certification.FortificationEngineering))
-    ace.Modes(2).Item(DeployedItem.spitfire_aa, Set(Certification.FortificationEngineering))
-    ace.Modes += new ConstructionFireMode
-    ace.Modes(3).Item(DeployedItem.motionalarmsensor, Set(Certification.CombatEngineering))
-    ace.Modes(3).Item(DeployedItem.sensor_shield, Set(Certification.AdvancedHacking, Certification.CombatEngineering))
+    ace.Modes += new ConstructionFireMode {
+      Item(DeployedItem.boomer, Set(Certification.CombatEngineering))
+    }
+    ace.Modes += new ConstructionFireMode {
+      Item(DeployedItem.he_mine, Set(Certification.CombatEngineering))
+      Item(DeployedItem.jammer_mine, Set(Certification.AssaultEngineering))
+    }
+    ace.Modes += new ConstructionFireMode {
+      Item(DeployedItem.spitfire_turret, Set(Certification.CombatEngineering))
+      Item(DeployedItem.spitfire_cloaked, Set(Certification.FortificationEngineering))
+      Item(DeployedItem.spitfire_aa, Set(Certification.FortificationEngineering))
+    }
+    ace.Modes += new ConstructionFireMode {
+      Item(DeployedItem.motionalarmsensor, Set(Certification.CombatEngineering))
+      Item(DeployedItem.sensor_shield, Set(Certification.AdvancedHacking, Certification.CombatEngineering))
+    }
     ace.Tile = InventoryTile.Tile33
 
     advanced_ace.Name = "advanced_ace"
     advanced_ace.Size = EquipmentSize.Rifle
-    advanced_ace.Modes += new ConstructionFireMode
-    advanced_ace.Modes.head.Item(DeployedItem.tank_traps, Set(Certification.FortificationEngineering))
-    advanced_ace.Modes += new ConstructionFireMode
-    advanced_ace.Modes(1).Item(DeployedItem.portable_manned_turret, Set(Certification.AssaultEngineering))
-    advanced_ace.Modes += new ConstructionFireMode
-    advanced_ace.Modes(2).Item(DeployedItem.deployable_shield_generator, Set(Certification.AssaultEngineering))
+    advanced_ace.Modes += new ConstructionFireMode {
+      Item(DeployedItem.portable_manned_turret, Set(Certification.AssaultEngineering))
+    }
+    advanced_ace.Modes += new ConstructionFireMode {
+      Item(DeployedItem.tank_traps, Set(Certification.FortificationEngineering))
+    }
+    advanced_ace.Modes += new ConstructionFireMode {
+      Item(DeployedItem.deployable_shield_generator, Set(Certification.AssaultEngineering))
+    }
     advanced_ace.Tile = InventoryTile.Tile93
 
     router_telepad.Name = "router_telepad"
@@ -7041,6 +7048,7 @@ object GlobalDefinitions {
     val smallTurret = GeometryForm.representByCylinder(radius = 0.48435f, height = 1.23438f) _
     val sensor = GeometryForm.representByCylinder(radius = 0.1914f, height = 1.21875f) _
     val largeTurret = GeometryForm.representByCylinder(radius = 0.8437f, height = 2.29687f) _
+
     boomer.Name = "boomer"
     boomer.Descriptor = "Boomers"
     boomer.MaxHealth = 100
@@ -7049,6 +7057,7 @@ object GlobalDefinitions {
     boomer.Repairable = false
     boomer.DeployCategory = DeployableCategory.Boomers
     boomer.DeployTime = Duration.create(1000, "ms")
+    boomer.deployAnimation = DeployAnimation.Standard
     boomer.explodes = true
     boomer.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.Splash
@@ -7063,6 +7072,7 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     boomer.Geometry = mine
+
     he_mine.Name = "he_mine"
     he_mine.Descriptor = "Mines"
     he_mine.MaxHealth = 100
@@ -7070,6 +7080,7 @@ object GlobalDefinitions {
     he_mine.DamageableByFriendlyFire = false
     he_mine.Repairable = false
     he_mine.DeployTime = Duration.create(1000, "ms")
+    he_mine.deployAnimation = DeployAnimation.Standard
     he_mine.explodes = true
     he_mine.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.Splash
@@ -7084,6 +7095,7 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     he_mine.Geometry = mine
+
     jammer_mine.Name = "jammer_mine"
     jammer_mine.Descriptor = "JammerMines"
     jammer_mine.MaxHealth = 100
@@ -7091,8 +7103,10 @@ object GlobalDefinitions {
     jammer_mine.DamageableByFriendlyFire = false
     jammer_mine.Repairable = false
     jammer_mine.DeployTime = Duration.create(1000, "ms")
+    jammer_mine.deployAnimation = DeployAnimation.Standard
     jammer_mine.DetonateOnJamming = false
     jammer_mine.Geometry = mine
+
     spitfire_turret.Name = "spitfire_turret"
     spitfire_turret.Descriptor = "Spitfires"
     spitfire_turret.MaxHealth = 100
@@ -7105,7 +7119,7 @@ object GlobalDefinitions {
     spitfire_turret.DeployCategory = DeployableCategory.SmallTurrets
     spitfire_turret.DeployTime = Duration.create(5000, "ms")
     spitfire_turret.Model = ComplexDeployableResolutions.calculate
-    spitfire_turret.explodes = true
+    spitfire_turret.deployAnimation = DeployAnimation.Standard
     spitfire_turret.explodes = true
     spitfire_turret.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
@@ -7116,6 +7130,7 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     spitfire_turret.Geometry = smallTurret
+
     spitfire_cloaked.Name = "spitfire_cloaked"
     spitfire_cloaked.Descriptor = "CloakingSpitfires"
     spitfire_cloaked.MaxHealth = 100
@@ -7127,6 +7142,7 @@ object GlobalDefinitions {
     spitfire_cloaked.ReserveAmmunition = false
     spitfire_cloaked.DeployCategory = DeployableCategory.SmallTurrets
     spitfire_cloaked.DeployTime = Duration.create(5000, "ms")
+    spitfire_cloaked.deployAnimation = DeployAnimation.Standard
     spitfire_cloaked.Model = ComplexDeployableResolutions.calculate
     spitfire_cloaked.explodes = true
     spitfire_cloaked.innateDamage = new DamageWithPosition {
@@ -7138,6 +7154,7 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     spitfire_cloaked.Geometry = smallTurret
+
     spitfire_aa.Name = "spitfire_aa"
     spitfire_aa.Descriptor = "FlakSpitfires"
     spitfire_aa.MaxHealth = 100
@@ -7149,6 +7166,7 @@ object GlobalDefinitions {
     spitfire_aa.ReserveAmmunition = false
     spitfire_aa.DeployCategory = DeployableCategory.SmallTurrets
     spitfire_aa.DeployTime = Duration.create(5000, "ms")
+    spitfire_aa.deployAnimation = DeployAnimation.Standard
     spitfire_aa.Model = ComplexDeployableResolutions.calculate
     spitfire_aa.explodes = true
     spitfire_aa.innateDamage = new DamageWithPosition {
@@ -7160,6 +7178,7 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     spitfire_aa.Geometry = smallTurret
+
     motionalarmsensor.Name = "motionalarmsensor"
     motionalarmsensor.Descriptor = "MotionSensors"
     motionalarmsensor.MaxHealth = 100
@@ -7167,7 +7186,9 @@ object GlobalDefinitions {
     motionalarmsensor.Repairable = true
     motionalarmsensor.RepairIfDestroyed = false
     motionalarmsensor.DeployTime = Duration.create(1000, "ms")
+    motionalarmsensor.deployAnimation = DeployAnimation.Standard
     motionalarmsensor.Geometry = sensor
+
     sensor_shield.Name = "sensor_shield"
     sensor_shield.Descriptor = "SensorShields"
     sensor_shield.MaxHealth = 100
@@ -7175,7 +7196,9 @@ object GlobalDefinitions {
     sensor_shield.Repairable = true
     sensor_shield.RepairIfDestroyed = false
     sensor_shield.DeployTime = Duration.create(5000, "ms")
+    sensor_shield.deployAnimation = DeployAnimation.Standard
     sensor_shield.Geometry = sensor
+
     tank_traps.Name = "tank_traps"
     tank_traps.Descriptor = "TankTraps"
     tank_traps.MaxHealth = 5000
@@ -7184,6 +7207,7 @@ object GlobalDefinitions {
     tank_traps.RepairIfDestroyed = false
     tank_traps.DeployCategory = DeployableCategory.TankTraps
     tank_traps.DeployTime = Duration.create(6000, "ms")
+    tank_traps.deployAnimation = DeployAnimation.Fdu
     //tank_traps do not explode
     tank_traps.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
@@ -7194,6 +7218,7 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     tank_traps.Geometry = GeometryForm.representByCylinder(radius = 2.89680997f, height = 3.57812f)
+
     val fieldTurretConverter = new FieldTurretConverter
     portable_manned_turret.Name = "portable_manned_turret"
     portable_manned_turret.Descriptor = "FieldTurrets"
@@ -7211,6 +7236,7 @@ object GlobalDefinitions {
     portable_manned_turret.Packet = fieldTurretConverter
     portable_manned_turret.DeployCategory = DeployableCategory.FieldTurrets
     portable_manned_turret.DeployTime = Duration.create(6000, "ms")
+    portable_manned_turret.deployAnimation = DeployAnimation.Fdu
     portable_manned_turret.Model = ComplexDeployableResolutions.calculate
     portable_manned_turret.explodes = true
     portable_manned_turret.innateDamage = new DamageWithPosition {
@@ -7222,6 +7248,7 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     portable_manned_turret.Geometry = largeTurret
+
     portable_manned_turret_nc.Name = "portable_manned_turret_nc"
     portable_manned_turret_nc.Descriptor = "FieldTurrets"
     portable_manned_turret_nc.MaxHealth = 1000
@@ -7238,6 +7265,7 @@ object GlobalDefinitions {
     portable_manned_turret_nc.Packet = fieldTurretConverter
     portable_manned_turret_nc.DeployCategory = DeployableCategory.FieldTurrets
     portable_manned_turret_nc.DeployTime = Duration.create(6000, "ms")
+    portable_manned_turret_nc.deployAnimation = DeployAnimation.Fdu
     portable_manned_turret_nc.Model = ComplexDeployableResolutions.calculate
     portable_manned_turret_nc.explodes = true
     portable_manned_turret_nc.innateDamage = new DamageWithPosition {
@@ -7249,6 +7277,7 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     portable_manned_turret_nc.Geometry = largeTurret
+
     portable_manned_turret_tr.Name = "portable_manned_turret_tr"
     portable_manned_turret_tr.Descriptor = "FieldTurrets"
     portable_manned_turret_tr.MaxHealth = 1000
@@ -7265,6 +7294,7 @@ object GlobalDefinitions {
     portable_manned_turret_tr.Packet = fieldTurretConverter
     portable_manned_turret_tr.DeployCategory = DeployableCategory.FieldTurrets
     portable_manned_turret_tr.DeployTime = Duration.create(6000, "ms")
+    portable_manned_turret_tr.deployAnimation = DeployAnimation.Fdu
     portable_manned_turret_tr.Model = ComplexDeployableResolutions.calculate
     portable_manned_turret_tr.explodes = true
     portable_manned_turret_tr.innateDamage = new DamageWithPosition {
@@ -7276,6 +7306,7 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     portable_manned_turret_tr.Geometry = largeTurret
+
     portable_manned_turret_vs.Name = "portable_manned_turret_vs"
     portable_manned_turret_vs.Descriptor = "FieldTurrets"
     portable_manned_turret_vs.MaxHealth = 1000
@@ -7292,6 +7323,7 @@ object GlobalDefinitions {
     portable_manned_turret_vs.Packet = fieldTurretConverter
     portable_manned_turret_vs.DeployCategory = DeployableCategory.FieldTurrets
     portable_manned_turret_vs.DeployTime = Duration.create(6000, "ms")
+    portable_manned_turret_vs.deployAnimation = DeployAnimation.Fdu
     portable_manned_turret_vs.Model = ComplexDeployableResolutions.calculate
     portable_manned_turret_vs.explodes = true
     portable_manned_turret_vs.innateDamage = new DamageWithPosition {
@@ -7303,6 +7335,7 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     portable_manned_turret_vs.Geometry = largeTurret
+
     deployable_shield_generator.Name = "deployable_shield_generator"
     deployable_shield_generator.Descriptor = "ShieldGenerators"
     deployable_shield_generator.MaxHealth = 1700
@@ -7310,8 +7343,10 @@ object GlobalDefinitions {
     deployable_shield_generator.Repairable = true
     deployable_shield_generator.RepairIfDestroyed = false
     deployable_shield_generator.DeployTime = Duration.create(6000, "ms")
+    deployable_shield_generator.deployAnimation = DeployAnimation.Fdu
     deployable_shield_generator.Model = ComplexDeployableResolutions.calculate
     deployable_shield_generator.Geometry = GeometryForm.representByCylinder(radius = 0.6562f, height = 2.17188f)
+
     router_telepad_deployable.Name = "router_telepad_deployable"
     router_telepad_deployable.MaxHealth = 100
     router_telepad_deployable.Damageable = true
@@ -7321,6 +7356,7 @@ object GlobalDefinitions {
     router_telepad_deployable.Packet = new TelepadDeployableConverter
     router_telepad_deployable.Model = SimpleResolutions.calculate
     router_telepad_deployable.Geometry = GeometryForm.representByRaisedSphere(radius = 1.2344f)
+
     internal_router_telepad_deployable.Name = "router_telepad_deployable"
     internal_router_telepad_deployable.MaxHealth = 1
     internal_router_telepad_deployable.Damageable = false

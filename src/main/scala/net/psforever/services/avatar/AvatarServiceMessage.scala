@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.avatar
 
-import net.psforever.objects.{PlanetSideGameObject, Player}
+import net.psforever.objects.Player
 import net.psforever.objects.ballistics.{Projectile, SourceEntry}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.Equipment
@@ -40,7 +40,7 @@ object AvatarAction {
   final case class ConcealPlayer(player_guid: PlanetSideGUID)                                        extends Action
   final case class EnvironmentalDamage(player_guid: PlanetSideGUID, source_guid: PlanetSideGUID, amount: Int)
       extends Action
-  final case class DeployItem(player_guid: PlanetSideGUID, item: PlanetSideGameObject with Deployable) extends Action
+  final case class DeployItem(player_guid: PlanetSideGUID, item: Deployable) extends Action
   final case class DeactivateImplantSlot(player_guid: PlanetSideGUID, slot: Int)                       extends Action
   final case class ActivateImplantSlot(player_guid: PlanetSideGUID, slot: Int)                         extends Action
   final case class Destroy(victim: PlanetSideGUID, killer: PlanetSideGUID, weapon: PlanetSideGUID, pos: Vector3)

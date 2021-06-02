@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition.converter
 
-import net.psforever.objects.equipment.Equipment
-import net.psforever.objects.Vehicle
+import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
+import net.psforever.objects.{PlanetSideGameObject, Vehicle}
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types.{DriveState, PlanetSideGUID}
 
@@ -86,7 +86,7 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
 
   private def MakeMountings(obj: Vehicle): List[InventoryItemData.InventoryItem] = {
     obj.Weapons.collect {
-      case (index, slot) if slot.Equipment.nonEmpty =>
+      case (index, slot: EquipmentSlot) if slot.Equipment.nonEmpty =>
         val equip: Equipment = slot.Equipment.get
         val equipDef         = equip.Definition
         InventoryItemData(equipDef.ObjectId, equip.GUID, index, equipDef.Packet.ConstructorData(equip).get)
@@ -98,8 +98,8 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
       .EquipmentUtilities(obj.Utilities)
       .map({
         case (index, utilContainer) =>
-          val util    = utilContainer()
-          val utilDef = util.Definition
+          val util: PlanetSideGameObject = utilContainer()
+          val utilDef                    = util.Definition
           InventoryItemData(utilDef.ObjectId, util.GUID, index, utilDef.Packet.ConstructorData(util).get)
       })
       .toList

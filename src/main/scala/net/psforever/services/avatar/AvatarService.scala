@@ -280,7 +280,7 @@ class AvatarService(zone: Zone) extends Actor {
           )
         case AvatarAction.PutDownFDU(player_guid) =>
           AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.PutDownFDU(player_guid))
+            AvatarServiceResponse(s"/$forChannel/Avatar", Service.defaultPlayerGUID, AvatarResponse.PutDownFDU(player_guid))
           )
         case AvatarAction.Release(player, _, time) =>
           undertaker forward RemoverActor.AddTask(player, zone, time)

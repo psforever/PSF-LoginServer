@@ -883,4 +883,22 @@ object WorldSession {
         false
     }
   }
+
+  def CallBackForTask(task: TaskResolver.GiveTask, sendTo: ActorRef, pass: Any): TaskResolver.GiveTask = {
+    TaskResolver.GiveTask(
+      new Task() {
+        private val localDesc   = task.task.Description
+        private val destination = sendTo
+        private val passMsg     = pass
+
+        override def Description: String = s"callback for tasking $localDesc"
+
+        def Execute(resolver: ActorRef): Unit = {
+          destination ! passMsg
+          resolver ! Success(this)
+        }
+      },
+      List(task)
+    )
+  }
 }

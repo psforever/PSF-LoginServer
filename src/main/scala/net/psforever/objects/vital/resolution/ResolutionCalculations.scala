@@ -3,7 +3,7 @@ package net.psforever.objects.vital.resolution
 
 import net.psforever.objects.{PlanetSideGameObject, Player, TurretDeployable, Vehicle}
 import net.psforever.objects.ballistics.{PlayerSource, SourceEntry}
-import net.psforever.objects.ce.ComplexDeployable
+import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.vital.base.DamageResolution
@@ -266,7 +266,7 @@ object ResolutionCalculations {
           ce.Health -= damage
         }
 
-      case ce: ComplexDeployable if CanDamage(ce, damage, data) =>
+      case ce: Deployable if CanDamage(ce, damage, data) =>
         if (ce.Shields > 0) {
           if (damage > ce.Shields) {
             ce.Health -= (damage - ce.Shields)
@@ -310,7 +310,7 @@ object ResolutionCalculations {
         }
         VehicleApplication(dam, data)(target)
 
-      case _: ComplexDeployable =>
+      case _: Deployable =>
         val dam : Int = damage match {
           case a: Int => a
           case _ => 0

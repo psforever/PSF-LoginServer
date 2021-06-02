@@ -1,13 +1,11 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.local
 
-import net.psforever.objects.{PlanetSideGameObject, TelepadDeployable, Vehicle}
-import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.llu.CaptureFlag
-import net.psforever.objects.serverobject.structures.{AmenityOwner, Building}
+import net.psforever.objects.{PlanetSideGameObject, TelepadDeployable, Vehicle}
+import net.psforever.objects.ce.{Deployable, DeployedItem}
 import net.psforever.objects.serverobject.terminals.{ProximityUnit, Terminal}
 import net.psforever.objects.vehicles.Utility
-import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.GenericActionEnum.GenericActionEnum
 import net.psforever.packet.game.GenericObjectActionEnum.GenericObjectActionEnum
 import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
@@ -26,17 +24,18 @@ final case class LocalServiceResponse(
 object LocalResponse {
   trait Response
 
-  final case class AlertDestroyDeployable(obj: PlanetSideGameObject with Deployable)             extends Response
   final case class DeployableMapIcon(action: DeploymentAction.Value, deployInfo: DeployableInfo) extends Response
+  final case class DeployableUIFor(obj: DeployedItem.Value)                                      extends Response
   final case class Detonate(guid: PlanetSideGUID, obj: PlanetSideGameObject)                     extends Response
   final case class DoorOpens(door_guid: PlanetSideGUID)                                          extends Response
   final case class DoorCloses(door_guid: PlanetSideGUID)                                         extends Response
   final case class EliminateDeployable(
-      obj: PlanetSideGameObject with Deployable,
-      object_guid: PlanetSideGUID,
-      pos: Vector3
-  )                                                                                extends Response
-  final case class SendHackMessageHackCleared(target_guid: PlanetSideGUID, unk1: Long, unk2: Long)  extends Response
+                                        obj: Deployable,
+                                        object_guid: PlanetSideGUID,
+                                        pos: Vector3,
+                                        deletionEffect: Int
+  )                                                                                                extends Response
+  final case class SendHackMessageHackCleared(target_guid: PlanetSideGUID, unk1: Long, unk2: Long) extends Response
   final case class HackObject(target_guid: PlanetSideGUID, unk1: Long, unk2: Long) extends Response
 
   final case class SendPacket(packet: PlanetSideGamePacket) extends Response
@@ -70,6 +69,11 @@ object LocalResponse {
   ) extends Response
   final case class ShuttleEvent(ev: OrbitalShuttleEvent)                                              extends Response
   final case class ShuttleState(guid: PlanetSideGUID, pos: Vector3, orientation: Vector3, state: Int) extends Response
+  final case class StartRouterInternalTelepad(
+    router_guid: PlanetSideGUID,
+    obj_guid: PlanetSideGUID,
+    obj: Utility.InternalTelepad
+  ) extends Response
   final case class ToggleTeleportSystem(
       router: Vehicle,
       systemPlan: Option[(Utility.InternalTelepad, TelepadDeployable)]

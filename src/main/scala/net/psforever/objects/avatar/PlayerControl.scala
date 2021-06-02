@@ -3,8 +3,11 @@ package net.psforever.objects.avatar
 
 import akka.actor.{Actor, ActorRef, Props, typed}
 import net.psforever.actors.session.AvatarActor
+import net.psforever.login.WorldSession.{DropEquipmentFromInventory, HoldNewEquipmentUp, PutNewEquipmentInInventoryOrDrop, RemoveOldEquipmentFromInventory}
 import net.psforever.objects.{Player, _}
 import net.psforever.objects.ballistics.PlayerSource
+import net.psforever.objects.ce.Deployable
+import net.psforever.objects.definition.DeployAnimation
 import net.psforever.objects.equipment._
 import net.psforever.objects.guid.GUIDTask
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
@@ -22,7 +25,7 @@ import net.psforever.objects.zones._
 import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.types._
-import net.psforever.services.{RemoverActor, Service}
+import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.objects.locker.LockerContainerControl
@@ -33,6 +36,7 @@ import net.psforever.objects.vital.environment.EnvironmentReason
 import net.psforever.objects.vital.etc.{PainboxReason, SuicideReason}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.services.hart.ShuttleState
+import net.psforever.packet.PlanetSideGamePacket
 
 import scala.concurrent.duration._
 
@@ -44,8 +48,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     with AggravatedBehavior
     with AuraEffectBehavior
     with RespondsToZoneEnvironment {
-
-  def JammableObject   = player
+  def JammableObject = player
 
   def DamageableObject = player
 
@@ -65,12 +68,12 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
   SetInteraction(EnvironmentAttribute.Death, doInteractingWithDeath)
   SetInteraction(EnvironmentAttribute.GantryDenialField, doInteractingWithGantryField)
   SetInteractionStop(EnvironmentAttribute.Water, stopInteractingWithWater)
-
-  private[this] val log       = org.log4s.getLogger(player.Name)
+  private[this] val log = org.log4s.getLogger(player.Name)
   private[this] val damageLog = org.log4s.getLogger(Damageable.LogChannel)
   /** suffocating, or regaining breath? */
   var submergedCondition: Option[OxygenState] = None
-
+  /** assistance for deployable construction, retention of the construction item */
+  var deployablePair: Option[(Deployable, ConstructionItem)] = None
   /** control agency for the player's locker container (dedicated inventory slot #5) */
   val lockerControlAgent: ActorRef = {
     val locker = player.avatar.locker
@@ -110,20 +113,20 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           if item.Definition == GlobalDefinitions.medicalapplicator && player.isAlive =>
           //heal
           val originalHealth = player.Health
-          val definition     = player.Definition
+          val definition = player.Definition
           if (
             player.MaxHealth > 0 && originalHealth < player.MaxHealth &&
             user.Faction == player.Faction &&
             item.Magazine > 0 &&
             Vector3.Distance(user.Position, player.Position) < definition.RepairDistance
           ) {
-            val zone   = player.Zone
+            val zone = player.Zone
             val events = zone.AvatarEvents
-            val uname  = user.Name
-            val guid   = player.GUID
+            val uname = user.Name
+            val guid = player.GUID
             if (!(player.isMoving || user.isMoving)) { //only allow stationary heals
               val newHealth = player.Health = originalHealth + 10
-              val magazine  = item.Discharge()
+              val magazine = item.Discharge()
               events ! AvatarServiceMessage(
                 uname,
                 AvatarAction.SendResponse(
@@ -173,17 +176,17 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
 
         case CommonMessages.Use(user, Some(item: Tool)) if item.Definition == GlobalDefinitions.bank =>
           val originalArmor = player.Armor
-          val definition    = player.Definition
+          val definition = player.Definition
           if (
             player.MaxArmor > 0 && originalArmor < player.MaxArmor &&
             user.Faction == player.Faction &&
             item.AmmoType == Ammo.armor_canister && item.Magazine > 0 &&
             Vector3.Distance(user.Position, player.Position) < definition.RepairDistance
           ) {
-            val zone   = player.Zone
+            val zone = player.Zone
             val events = zone.AvatarEvents
-            val uname  = user.Name
-            val guid   = player.GUID
+            val uname = user.Name
+            val guid = player.GUID
             if (!(player.isMoving || user.isMoving)) { //only allow stationary repairs
               val newArmor = player.Armor =
                 originalArmor + Repairable.applyLevelModifier(user, item, RepairToolValue(item)).toInt + definition.RepairMod
@@ -313,16 +316,16 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
             case Terminal.InfantryLoadout(exosuit, subtype, holsters, inventory) =>
               log.info(s"${player.Name} wants to change equipment loadout to their option #${msg.unk1 + 1}")
               val fallbackSubtype = 0
-              val fallbackSuit    = ExoSuitType.Standard
-              val originalSuit    = player.ExoSuit
+              val fallbackSuit = ExoSuitType.Standard
+              val originalSuit = player.ExoSuit
               val originalSubtype = Loadout.DetermineSubtype(player)
               //sanitize exo-suit for change
-              val dropPred      = ContainableBehavior.DropPredicate(player)
-              val oldHolsters   = Players.clearHolsters(player.Holsters().iterator)
-              val dropHolsters  = oldHolsters.filter(dropPred)
-              val oldInventory  = player.Inventory.Clear()
+              val dropPred = ContainableBehavior.DropPredicate(player)
+              val oldHolsters = Players.clearHolsters(player.Holsters().iterator)
+              val dropHolsters = oldHolsters.filter(dropPred)
+              val oldInventory = player.Inventory.Clear()
               val dropInventory = oldInventory.filter(dropPred)
-              val toDeleteOrDrop: List[InventoryItem] = (player.FreeHand.Equipment match {
+              val toDeleteOrDrop : List[InventoryItem] = (player.FreeHand.Equipment match {
                 case Some(obj) =>
                   val out = InventoryItem(obj, -1)
                   player.FreeHand.Equipment = None
@@ -337,27 +340,27 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               //a loadout with a prohibited exo-suit type will result in the fallback exo-suit type
               //imposed 5min delay on mechanized exo-suit switches
               val (nextSuit, nextSubtype) =
-                if (
-                  Players.CertificationToUseExoSuit(player, exosuit, subtype) &&
-                  (if (exosuit == ExoSuitType.MAX) {
-                     val weapon = GlobalDefinitions.MAXArms(subtype, player.Faction)
-                     player.avatar.purchaseCooldown(weapon) match {
-                       case Some(_) => false
-                       case None =>
-                         avatarActor ! AvatarActor.UpdatePurchaseTime(weapon)
-                         true
-                     }
-                   } else {
-                     true
-                   })
-                ) {
-                  (exosuit, subtype)
+              if (
+                Players.CertificationToUseExoSuit(player, exosuit, subtype) &&
+                (if (exosuit == ExoSuitType.MAX) {
+                  val weapon = GlobalDefinitions.MAXArms(subtype, player.Faction)
+                  player.avatar.purchaseCooldown(weapon) match {
+                    case Some(_) => false
+                    case None =>
+                      avatarActor ! AvatarActor.UpdatePurchaseTime(weapon)
+                      true
+                  }
                 } else {
-                  log.warn(
-                    s"${player.Name} no longer has permission to wear the exo-suit type $exosuit; will wear $fallbackSuit instead"
-                  )
-                  (fallbackSuit, fallbackSubtype)
-                }
+                  true
+                })
+              ) {
+                (exosuit, subtype)
+              } else {
+                log.warn(
+                  s"${player.Name} no longer has permission to wear the exo-suit type $exosuit; will wear $fallbackSuit instead"
+                )
+                (fallbackSuit, fallbackSubtype)
+              }
               //sanitize (incoming) inventory
               //TODO equipment permissions; these loops may be expanded upon in future
               val curatedHolsters = for {
@@ -412,6 +415,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                 (finalHolsters, finalInventory)
               }
               (afterHolsters ++ afterInventory).foreach { entry => entry.obj.Faction = player.Faction }
+              afterHolsters.foreach {
+                case InventoryItem(citem: ConstructionItem, _) =>
+                  Deployables.initializeConstructionAmmoMode(player.avatar.certifications, citem)
+                case _ => ;
+              }
               toDeleteOrDrop.foreach { entry => entry.obj.Faction = PlanetSideEmpire.NEUTRAL }
               //deactivate non-passive implants
               avatarActor ! AvatarActor.DeactivateActiveImplants()
@@ -439,46 +447,13 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           }
 
         case Zone.Ground.ItemOnGround(item, _, _) =>
-          val name         = player.Name
-          val zone         = player.Zone
-          val avatarEvents = zone.AvatarEvents
-          val localEvents  = zone.LocalEvents
           item match {
             case trigger: BoomerTrigger =>
-              //dropped the trigger, no longer own the boomer; make certain whole faction is aware of that
-              (zone.GUID(trigger.Companion), zone.Players.find { _.name == name }) match {
-                case (Some(boomer: BoomerDeployable), Some(avatar)) =>
-                  val guid           = boomer.GUID
-                  val factionChannel = boomer.Faction.toString
-                  if (avatar.deployables.Remove(boomer)) {
-                    boomer.Faction = PlanetSideEmpire.NEUTRAL
-                    boomer.AssignOwnership(None)
-                    avatar.deployables.UpdateUIElement(boomer.Definition.Item).foreach {
-                      case (currElem, curr, maxElem, max) =>
-                        avatarEvents ! AvatarServiceMessage(
-                          name,
-                          AvatarAction.PlanetsideAttributeToAll(Service.defaultPlayerGUID, maxElem, max)
-                        )
-                        avatarEvents ! AvatarServiceMessage(
-                          name,
-                          AvatarAction.PlanetsideAttributeToAll(Service.defaultPlayerGUID, currElem, curr)
-                        )
-                    }
-                    localEvents ! LocalServiceMessage.Deployables(RemoverActor.AddTask(boomer, zone))
-                    localEvents ! LocalServiceMessage(
-                      factionChannel,
-                      LocalAction.DeployableMapIcon(
-                        Service.defaultPlayerGUID,
-                        DeploymentAction.Dismiss,
-                        DeployableInfo(guid, DeployableIcon.Boomer, boomer.Position, PlanetSideGUID(0))
-                      )
-                    )
-                    avatarEvents ! AvatarServiceMessage(
-                      factionChannel,
-                      AvatarAction.SetEmpire(Service.defaultPlayerGUID, guid, PlanetSideEmpire.NEUTRAL)
-                    )
-                  }
-                case _ => ; //pointless trigger? or a trigger being deleted?
+              //drop the trigger, lose the boomer; make certain whole faction is aware of that
+              player.Zone.GUID(trigger.Companion) match {
+                case Some(obj: BoomerDeployable) =>
+                  loseDeployableOwnership(obj)
+                case _ => ;
               }
             case _ => ;
           }
@@ -491,14 +466,85 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         case Zone.Ground.CanNotPickupItem(_, item_guid, reason) =>
           log.warn(s"${player.Name} failed to pick up an item ($item_guid) from the ground because $reason")
 
+        case Player.BuildDeployable(obj: TelepadDeployable, tool: Telepad) =>
+          obj.Router = tool.Router //necessary; forwards link to the router that prodcued the telepad
+          setupDeployable(obj, tool)
+
+        case Player.BuildDeployable(obj, tool) =>
+          setupDeployable(obj, tool)
+
+        case Zone.Deployable.IsBuilt(obj: BoomerDeployable) =>
+          deployablePair match {
+            case Some((deployable, tool)) if deployable eq obj =>
+              val zone = player.Zone
+              //boomers
+              val trigger = new BoomerTrigger
+              trigger.Companion = obj.GUID
+              obj.Trigger = trigger
+              //TODO sufficiently delete the tool
+              zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.ObjectDelete(player.GUID, tool.GUID))
+              zone.tasks ! GUIDTask.UnregisterEquipment(tool)(zone.GUID)
+              player.Find(tool) match {
+                case Some(index) if player.VisibleSlots.contains(index) =>
+                  player.Slot(index).Equipment = None
+                  zone.tasks ! HoldNewEquipmentUp(player)(trigger, index)
+                case Some(index) =>
+                  player.Slot(index).Equipment = None
+                  zone.tasks ! PutNewEquipmentInInventoryOrDrop(player)(trigger)
+                case None =>
+                  //don't know where boomer trigger "should" go
+                  zone.tasks ! PutNewEquipmentInInventoryOrDrop(player)(trigger)
+              }
+              Players.buildCooldownReset(zone, player.Name, obj)
+            case _ => ;
+          }
+          deployablePair = None
+
+        case Zone.Deployable.IsBuilt(obj: TelepadDeployable) =>
+          deployablePair match {
+            case Some((deployable, tool: Telepad)) if deployable eq obj =>
+              RemoveOldEquipmentFromInventory(player)(tool)
+              val zone = player.Zone
+              zone.GUID(obj.Router) match {
+                case Some(v: Vehicle)
+                  if v.Definition == GlobalDefinitions.router => ;
+                case _ =>
+                  player.Actor ! Player.LoseDeployable(obj)
+                  TelepadControl.TelepadError(zone, player.Name, msg = "@Telepad_NoDeploy_RouterLost")
+              }
+              Players.buildCooldownReset(zone, player.Name, obj)
+            case _ => ;
+          }
+          deployablePair = None
+
+        case Zone.Deployable.IsBuilt(obj) =>
+          deployablePair match {
+            case Some((deployable, tool)) if deployable eq obj =>
+              Players.buildCooldownReset(player.Zone, player.Name, obj)
+              player.Find(tool) match {
+                case Some(index) =>
+                  Players.commonDestroyConstructionItem(player, tool, index)
+                  Players.findReplacementConstructionItem(player, tool, index)
+                case None =>
+                  log.warn(s"${player.Name} should have destroyed a ${tool.Definition.Name} here, but could not find it")
+              }
+            case _ => ;
+          }
+          deployablePair = None
+
+        case Player.LoseDeployable(obj) =>
+          if (player.avatar.deployables.Remove(obj)) {
+            player.Zone.LocalEvents ! LocalServiceMessage(player.Name, LocalAction.DeployableUIFor(obj.Definition.Item))
+          }
+
         case _ => ;
       }
 
   def setExoSuit(exosuit: ExoSuitType.Value, subtype: Int): Boolean = {
-    var toDelete: List[InventoryItem] = Nil
-    val originalSuit                  = player.ExoSuit
-    val originalSubtype               = Loadout.DetermineSubtype(player)
-    val requestToChangeArmor          = originalSuit != exosuit || originalSubtype != subtype
+    var toDelete : List[InventoryItem] = Nil
+    val originalSuit = player.ExoSuit
+    val originalSubtype = Loadout.DetermineSubtype(player)
+    val requestToChangeArmor = originalSuit != exosuit || originalSubtype != subtype
     val allowedToChangeArmor = Players.CertificationToUseExoSuit(player, exosuit, subtype) &&
                                (if (exosuit == ExoSuitType.MAX) {
                                  val weapon = GlobalDefinitions.MAXArms(subtype, player.Faction)
@@ -509,12 +555,13 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                                      avatarActor ! AvatarActor.UpdatePurchaseTime(weapon)
                                      true
                                  }
-                               } else {
+                               }
+                               else {
                                  true
                                })
     if (requestToChangeArmor && allowedToChangeArmor) {
       log.info(s"${player.Name} wants to change to a different exo-suit - $exosuit")
-      val beforeHolsters  = Players.clearHolsters(player.Holsters().iterator)
+      val beforeHolsters = Players.clearHolsters(player.Holsters().iterator)
       val beforeInventory = player.Inventory.Clear()
       //change suit
       val originalArmor = player.Armor
@@ -523,7 +570,8 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       val toArmor = if (originalSuit != exosuit || originalSubtype != subtype || originalArmor > toMaxArmor) {
         player.History(HealFromExoSuitChange(PlayerSource(player), exosuit))
         player.Armor = toMaxArmor
-      } else {
+      }
+      else {
         player.Armor = originalArmor
       }
       //ensure arm is down, even if it needs to go back up
@@ -534,7 +582,8 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         val (maxWeapons, normalWeapons) = beforeHolsters.partition(elem => elem.obj.Size == EquipmentSize.Max)
         toDelete ++= maxWeapons
         normalWeapons
-      } else {
+      }
+      else {
         beforeHolsters
       }
       //populate holsters
@@ -543,9 +592,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           normalHolsters,
           Players.fillEmptyHolsters(List(player.Slot(4)).iterator, normalHolsters) ++ beforeInventory
         )
-      } else if (originalSuit == exosuit) { //note - this will rarely be the situation
+      }
+      else if (originalSuit == exosuit) { //note - this will rarely be the situation
         (normalHolsters, Players.fillEmptyHolsters(player.Holsters().iterator, normalHolsters))
-      } else {
+      }
+      else {
         val (afterHolsters, toInventory) =
           normalHolsters.partition(elem => elem.obj.Size == player.Slot(elem.start).Size)
         afterHolsters.foreach({ elem => player.Slot(elem.start).Equipment = elem.obj })
@@ -558,7 +609,8 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       //put items back into inventory
       val (stow, drop) = if (originalSuit == exosuit) {
         (finalInventory, Nil)
-      } else {
+      }
+      else {
         val (a, b) = GridInventory.recoverInventory(finalInventory, player.Inventory)
         (
           a,
@@ -590,8 +642,61 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         )
       )
       true
-    } else {
+    }
+    else {
       false
+    }
+  }
+
+  def loseDeployableOwnership(obj: Deployable): Boolean = {
+    if (player.avatar.deployables.Remove(obj)) {
+      obj.Actor ! Deployable.Ownership(None)
+      player.Zone.LocalEvents ! LocalServiceMessage(player.Name, LocalAction.DeployableUIFor(obj.Definition.Item))
+      true
+    }
+    else {
+      false
+    }
+  }
+
+  def setupDeployable(obj: Deployable, tool: ConstructionItem): Unit = {
+    if (deployablePair.isEmpty) {
+      val zone = player.Zone
+      val deployables = player.avatar.deployables
+      if (deployables.Valid(obj) &&
+          !deployables.Contains(obj) &&
+          Players.deployableWithinBuildLimits(player, obj)) {
+        tool.Definition match {
+          case GlobalDefinitions.ace | /* animation handled in deployable lifecycle */
+               GlobalDefinitions.router_telepad => ; /* no special animation */
+          case GlobalDefinitions.advanced_ace
+            if obj.Definition.deployAnimation == DeployAnimation.Fdu =>
+            zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.PutDownFDU(player.GUID))
+          case _ =>
+            org.log4s.getLogger(name = "Deployables").warn(
+              s"not sure what kind of construction item to animate - ${tool.Definition.Name}"
+            )
+        }
+        deployablePair = Some((obj, tool))
+        obj.Faction = player.Faction
+        obj.AssignOwnership(player)
+        obj.Actor ! Zone.Deployable.Setup()
+      }
+      else {
+        log.warn(s"cannot build a ${obj.Definition.Name}")
+        DropEquipmentFromInventory(player)(tool, Some(obj.Position))
+        Players.buildCooldownReset(zone, player.Name, obj)
+        obj.Position = Vector3.Zero
+        obj.AssignOwnership(None)
+        zone.Deployables ! Zone.Deployable.Dismiss(obj)
+      }
+    } else {
+      log.warn(s"already building one deployable, so cannot build a ${obj.Definition.Name}")
+      obj.Position = Vector3.Zero
+      obj.AssignOwnership(None)
+      val zone = player.Zone
+      zone.Deployables ! Zone.Deployable.Dismiss(obj)
+      Players.buildCooldownReset(zone, player.Name, obj)
     }
   }
 
@@ -998,7 +1103,31 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     val definition = item.Definition
     val faction    = obj.Faction
     val toChannel = if (player.isBackpack) { self.toString } else { name }
+    val willBeVisible = obj.VisibleSlots.contains(slot)
     item.Faction = faction
+    //handle specific types of items
+    item match {
+      case trigger: BoomerTrigger =>
+        //pick up the trigger, own the boomer; make certain whole faction is aware of that
+        zone.GUID(trigger.Companion) match {
+          case Some(obj: BoomerDeployable) =>
+            val deployables = player.avatar.deployables
+            if (deployables.Valid(obj)) {
+              Players.gainDeployableOwnership(player, obj, deployables.AddOverLimit)
+            }
+          case _ => ;
+        }
+
+      case citem: ConstructionItem
+        if willBeVisible =>
+        if (citem.AmmoTypeIndex > 0) {
+          //can not preserve ammo type in construction tool packets
+          citem.resetAmmoTypes()
+        }
+        Deployables.initializeConstructionAmmoMode(player.avatar.certifications, citem)
+
+      case _ => ;
+    }
     events ! AvatarServiceMessage(
       toChannel,
       AvatarAction.SendResponse(
@@ -1011,55 +1140,8 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         )
       )
     )
-    if (!player.isBackpack && obj.VisibleSlots.contains(slot)) {
+    if (!player.isBackpack && willBeVisible) {
       events ! AvatarServiceMessage(zone.id, AvatarAction.EquipmentInHand(guid, guid, slot, item))
-    }
-    //handle specific types of items
-    item match {
-      case trigger: BoomerTrigger =>
-        //pick up the trigger, own the boomer; make certain whole faction is aware of that
-        (zone.GUID(trigger.Companion), zone.Players.find { _.name == name }) match {
-          case (Some(boomer: BoomerDeployable), Some(avatar))
-              if !boomer.OwnerName.contains(name) || boomer.Faction != faction =>
-            val bguid          = boomer.GUID
-            val faction        = player.Faction
-            val factionChannel = faction.toString
-            if (avatar.deployables.Add(boomer)) {
-              boomer.Faction = faction
-              boomer.AssignOwnership(player)
-              avatar.deployables.UpdateUIElement(boomer.Definition.Item).foreach {
-                case (currElem, curr, maxElem, max) =>
-                  events ! AvatarServiceMessage(
-                    name,
-                    AvatarAction.PlanetsideAttributeToAll(Service.defaultPlayerGUID, maxElem, max)
-                  )
-                  events ! AvatarServiceMessage(
-                    name,
-                    AvatarAction.PlanetsideAttributeToAll(Service.defaultPlayerGUID, currElem, curr)
-                  )
-              }
-              zone.LocalEvents ! LocalServiceMessage.Deployables(RemoverActor.ClearSpecific(List(boomer), zone))
-              events ! AvatarServiceMessage(
-                factionChannel,
-                AvatarAction.SetEmpire(Service.defaultPlayerGUID, bguid, faction)
-              )
-              zone.LocalEvents ! LocalServiceMessage(
-                factionChannel,
-                LocalAction.DeployableMapIcon(
-                  Service.defaultPlayerGUID,
-                  DeploymentAction.Build,
-                  DeployableInfo(
-                    bguid,
-                    DeployableIcon.Boomer,
-                    boomer.Position,
-                    boomer.Owner.getOrElse(PlanetSideGUID(0))
-                  )
-                )
-              )
-            }
-          case _ => ; //pointless trigger?
-        }
-      case _ => ;
     }
   }
 
@@ -1239,5 +1321,9 @@ object PlayerControl {
     case Aura.Napalm => 4
     case Aura.Fire => 8
     case _ => 0
+  }
+
+  def sendResponse(zone: Zone, channel: String, msg: PlanetSideGamePacket): Unit = {
+    zone.AvatarEvents ! AvatarServiceMessage(channel, AvatarAction.SendResponse(Service.defaultPlayerGUID, msg))
   }
 }
