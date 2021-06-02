@@ -229,6 +229,7 @@ trait DeployableBehavior {
     */
   def finalizeDeployable(callback: ActorRef): Unit = {
     setup.cancel()
+    setup = Default.Cancellable
     constructed = Some(true)
     val obj = DeployableObject
     val zone       = obj.Zone
@@ -267,6 +268,7 @@ trait DeployableBehavior {
     val duration = time.getOrElse(Deployable.cleanup)
     import scala.concurrent.ExecutionContext.Implicits.global
     setup.cancel()
+    setup = Default.Cancellable
     decay.cancel()
     decay = context.system.scheduler.scheduleOnce(duration, self, DeployableBehavior.FinalizeElimination())
   }
@@ -288,6 +290,7 @@ trait DeployableBehavior {
     */
   def dismissDeployable(): Unit = {
     setup.cancel()
+    setup = Default.Cancellable
     decay.cancel()
     val obj = DeployableObject
     val zone = obj.Zone

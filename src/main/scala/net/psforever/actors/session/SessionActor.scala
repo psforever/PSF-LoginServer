@@ -3831,6 +3831,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           KickedByAdministration()
         }
         player.zoneInteraction()
+        treadOnExplosiveDeployables(player)
 
       case msg @ ChildObjectStateMessage(object_guid, pitch, yaw) =>
         //the majority of the following check retrieves information to determine if we are in control of the child
@@ -3933,6 +3934,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             )
             updateSquad()
             obj.zoneInteraction()
+            treadOnExplosiveDeployables(obj)
           case (None, _) =>
           //log.error(s"VehicleState: no vehicle $vehicle_guid found in zone")
           //TODO placing a "not driving" warning here may trigger as we are disembarking the vehicle
@@ -9165,6 +9167,19 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
       case None        => ;
     }
+  }
+
+  def treadOnExplosiveDeployables(us: PlanetSideServerObject): Unit = {
+    continent.blockMap
+      .sector(us.Position, range = 30) //TODO replace random range number
+      .deployableList
+      .collect {
+        case _: BoomerDeployable => ;
+        case ex: ExplosiveDeployable if
+        ex.Faction != us.Faction &&
+        Zone.distanceCheck(us, ex, ex.Definition.triggerRadius) =>
+          ex.Actor ! ExplosiveDeployable.TriggeredBy(player)
+      }
   }
 
   def failWithError(error: String) = {

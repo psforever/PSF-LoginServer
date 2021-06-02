@@ -1,9 +1,10 @@
 // Copyright (c) 2018 PSForever
 package net.psforever.objects
 
-import akka.actor.{Actor, ActorContext, Props}
+import akka.actor.{Actor, ActorContext, ActorRef, Props}
+import net.psforever.objects.ballistics.{DeployableSource, PlayerSource, SourceEntry}
 import net.psforever.objects.ce._
-import net.psforever.objects.definition.DeployableDefinition
+import net.psforever.objects.definition.{DeployableDefinition, ExoSuitDefinition}
 import net.psforever.objects.definition.converter.SmallDeployableConverter
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.geometry.d3.VolumetricGeometry
@@ -11,12 +12,13 @@ import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity}
 import net.psforever.objects.serverobject.damage.Damageable.Target
+import net.psforever.objects.vital.etc.TrippedMineReason
 import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
 import net.psforever.objects.vital.{SimpleResolutions, Vitality}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.Zone
-import net.psforever.types.Vector3
+import net.psforever.types.{ExoSuitType, Vector3}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
@@ -30,13 +32,20 @@ class ExplosiveDeployable(cdef: ExplosiveDeployableDefinition)
   override def Definition: ExplosiveDeployableDefinition = cdef
 }
 
-class ExplosiveDeployableDefinition(private val objectId: Int) extends DeployableDefinition(objectId) {
+object ExplosiveDeployable {
+  final case class TriggeredBy(obj: PlanetSideServerObject)
+}
+
+class ExplosiveDeployableDefinition(private val objectId: Int)
+  extends DeployableDefinition(objectId) {
   Name = "explosive_deployable"
   DeployCategory = DeployableCategory.Mines
   Model = SimpleResolutions.calculate
   Packet = new SmallDeployableConverter
 
   private var detonateOnJamming: Boolean = true
+
+  var triggerRadius: Float = 0f
 
   def DetonateOnJamming: Boolean = detonateOnJamming
 
@@ -47,7 +56,7 @@ class ExplosiveDeployableDefinition(private val objectId: Int) extends Deployabl
 
   override def Initialize(obj: Deployable, context: ActorContext) = {
     obj.Actor =
-      context.actorOf(Props(classOf[ExplosiveDeployableControl], obj), PlanetSideServerObject.UniqueActorName(obj))
+      context.actorOf(Props(classOf[MineDeployableControl], obj), PlanetSideServerObject.UniqueActorName(obj))
   }
 }
 
@@ -57,7 +66,7 @@ object ExplosiveDeployableDefinition {
   }
 }
 
-class ExplosiveDeployableControl(mine: ExplosiveDeployable)
+abstract class ExplosiveDeployableControl(mine: ExplosiveDeployable)
   extends Actor
   with DeployableBehavior
   with Damageable {
@@ -69,12 +78,9 @@ class ExplosiveDeployableControl(mine: ExplosiveDeployable)
     deployableBehaviorPostStop()
   }
 
-  def receive: Receive =
+  def commonMineBehavior: Receive =
     deployableBehavior
       .orElse(takesDamage)
-      .orElse {
-        case _ => ;
-      }
 
   override protected def PerformDamage(
     target: Target,
@@ -224,7 +230,15 @@ object ExplosiveDeployableControl {
     * @return `true`, if the target entities are near enough to each other;
     *        `false`, otherwise
     */
-  def detectTarget(g1: VolumetricGeometry, up: Vector3)(obj1: PlanetSideGameObject, obj2: PlanetSideGameObject, maxDistance: Float) : Boolean = {
+  def detectTarget(
+                    g1: VolumetricGeometry,
+                    up: Vector3
+                  )
+                  (
+                    obj1: PlanetSideGameObject,
+                    obj2: PlanetSideGameObject,
+                    maxDistance: Float
+                  ) : Boolean = {
     val g2 = obj2.Definition.Geometry(obj2)
     val dir = g2.center.asVector3 - g1.center.asVector3
     //val scalar = Vector3.ScalarProjection(dir, up)
@@ -236,5 +250,111 @@ object ExplosiveDeployableControl {
       Vector3.DistanceSquared(g1.center.asVector3, g2.center.asVector3),
       Vector3.DistanceSquared(point1, point2)
     ) <= maxDistance
+  }
+}
+
+class MineDeployableControl(mine: ExplosiveDeployable)
+  extends ExplosiveDeployableControl(mine) {
+
+  def receive: Receive =
+    commonMineBehavior
+      .orElse {
+        case ExplosiveDeployable.TriggeredBy(obj) =>
+          setTriggered(Some(obj), delay = 200)
+
+        case MineDeployableControl.Triggered() =>
+          explodes(testForTriggeringTarget(
+            mine,
+            mine.Definition.innateDamage.map { _.DamageRadius }.getOrElse(mine.Definition.triggerRadius)
+          ))
+
+        case _ => ;
+      }
+
+  override def finalizeDeployable(callback: ActorRef): Unit = {
+    super.finalizeDeployable(callback)
+    //initial triggering upon build
+    setTriggered(testForTriggeringTarget(mine, mine.Definition.triggerRadius), delay = 1000)
+  }
+
+  def testForTriggeringTarget(mine: ExplosiveDeployable, range: Float): Option[PlanetSideServerObject] = {
+    val position = mine.Position
+    val faction = mine.Faction
+    val range2 = range * range
+    val sector = mine.Zone.blockMap.sector(position, range)
+    (sector.livePlayerList ++ sector.vehicleList)
+      .find { thing => thing.Faction != faction && Vector3.DistanceSquared(thing.Position, position) < range2 }
+  }
+
+  def setTriggered(instigator: Option[PlanetSideServerObject], delay: Long): Unit = {
+    instigator match {
+      case Some(_) if isConstructed.contains(true) && setup.isCancelled =>
+        //re-use the setup timer here
+        import scala.concurrent.ExecutionContext.Implicits.global
+        setup = context.system.scheduler.scheduleOnce(delay milliseconds, self, MineDeployableControl.Triggered())
+      case _ => ;
+    }
+  }
+
+  def explodes(instigator: Option[PlanetSideServerObject]): Unit = {
+    instigator match {
+      case Some(_) =>
+        //explosion
+        mine.Destroyed = true
+        ExplosiveDeployableControl.DamageResolution(
+          mine,
+          DamageInteraction(
+            SourceEntry(mine),
+            MineDeployableControl.trippedMineReason(mine),
+            mine.Position
+          ).calculate()(mine),
+          damage = 0
+        )
+      case None =>
+        //reset
+        setup = Default.Cancellable
+    }
+  }
+}
+
+object MineDeployableControl {
+  private case class Triggered()
+
+  def trippedMineReason(mine: ExplosiveDeployable): TrippedMineReason = {
+    val deployableSource = DeployableSource(mine)
+    val blame = mine.OwnerName match {
+      case Some(name) =>
+        val(charId, exosuit, seated): (Long, ExoSuitType.Value, Boolean) = mine.Zone
+          .LivePlayers
+          .find { _.Name.equals(name) } match {
+          case Some(player) =>
+            //if the owner is alive in the same zone as the mine, use data from their body to create the source
+            (player.CharId, player.ExoSuit, player.VehicleSeated.nonEmpty)
+          case None         =>
+            //if the owner is as dead as a corpse or is not in the same zone as the mine, use defaults
+            (0L, ExoSuitType.Standard, false)
+        }
+        val faction = mine.Faction
+        PlayerSource(
+          name,
+          charId,
+          GlobalDefinitions.avatar,
+          mine.Faction,
+          exosuit,
+          seated,
+          100,
+          100,
+          mine.Position,
+          Vector3.Zero,
+          None,
+          crouching = false,
+          jumping = false,
+          ExoSuitDefinition.Select(exosuit, faction)
+        )
+      case None =>
+        //credit where credit is due
+        deployableSource
+    }
+    TrippedMineReason(deployableSource, blame)
   }
 }
