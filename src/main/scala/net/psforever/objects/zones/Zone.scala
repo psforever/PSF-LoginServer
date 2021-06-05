@@ -51,6 +51,7 @@ import net.psforever.objects.vital.etc.ExplodingEntityReason
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.vital.Vitality
+import net.psforever.objects.zones.blockmap.BlockMap
 import net.psforever.services.Service
 
 /**

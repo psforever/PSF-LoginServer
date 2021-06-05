@@ -6,7 +6,8 @@ import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
-import net.psforever.objects.zones.{BlockMapEntity, SectorGroup, Zone}
+import net.psforever.objects.zones.Zone
+import net.psforever.objects.zones.blockmap.{BlockMapEntity, SectorGroup}
 import net.psforever.objects.{ConstructionItem, Player, Vehicle}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 

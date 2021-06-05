@@ -4,20 +4,21 @@ package net.psforever.objects.serverobject.environment
 import akka.actor.{Actor, Cancellable}
 import net.psforever.objects.Default
 import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.zones.InteractsWithZone
 import net.psforever.types.OxygenState
 
 import scala.collection.mutable
 
 /**
-  * The mixin code for any server object that responds to the game world around it.
+  * The mixin code for any server object that responds to environmental representations in the game world.
   * Specific types of environmental region is bound by geometry,
   * designated by attributes,
-  * and gets reacted to when coming into contact with that geometry.
+  * and targets react when coming into contact with it.
   * Ideally, the target under control instigates the responses towards the environment
   * by independently re-evaluating the conditions of its interactions.
   * Only one kind of environment can elicit a response at a time.
   * While a reversal of this trigger scheme is possible, it is not ideal.
-  * @see `InteractsWithZoneEnvironment`
+  * @see `InteractsWithEnvironment`
   * @see `PieceOfEnvironment`
   */
 trait RespondsToZoneEnvironment {
@@ -39,10 +40,10 @@ trait RespondsToZoneEnvironment {
   private var interactWithEnvironmentStop: mutable.HashMap[EnvironmentTrait, RespondsToZoneEnvironment.Interaction] =
     mutable.HashMap[EnvironmentTrait, RespondsToZoneEnvironment.Interaction]()
 
-  def InteractiveObject: PlanetSideServerObject with InteractsWithZoneEnvironment
+  def InteractiveObject: PlanetSideServerObject with InteractsWithZone
 
   val environmentBehavior: Receive = {
-    case InteractWithEnvironment(target, body, optional) =>
+    case InteractingWithEnvironment(target, body, optional) =>
       doEnvironmentInteracting(target, body, optional)
 
     case EscapeFromEnvironment(target, body, optional) =>

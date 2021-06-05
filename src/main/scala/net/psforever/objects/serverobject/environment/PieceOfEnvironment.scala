@@ -4,7 +4,7 @@ package net.psforever.objects.serverobject.environment
 import enumeratum.{Enum, EnumEntry}
 import net.psforever.objects.{PlanetSideGameObject, Player}
 import net.psforever.objects.vital.Vitality
-import net.psforever.objects.zones.BlockMapEntity
+import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.types.{PlanetSideGUID, Vector3}
 
 /**

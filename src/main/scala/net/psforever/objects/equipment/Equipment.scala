@@ -5,7 +5,7 @@ import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.definition.EquipmentDefinition
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.serverobject.affinity.FactionAffinity
-import net.psforever.objects.zones.BlockMapEntity
+import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.types.PlanetSideEmpire
 
 /**

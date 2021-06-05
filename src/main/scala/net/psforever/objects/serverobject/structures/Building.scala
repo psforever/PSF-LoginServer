@@ -12,7 +12,8 @@ import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.painbox.Painbox
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.tube.SpawnTube
-import net.psforever.objects.zones.{BlockMapEntity, Zone}
+import net.psforever.objects.zones.Zone
+import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.packet.game.BuildingInfoUpdateMessage
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, PlanetSideGeneratorState, Vector3}
 import scalax.collection.{Graph, GraphEdge}

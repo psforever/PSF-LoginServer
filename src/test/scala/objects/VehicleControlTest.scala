@@ -655,12 +655,12 @@ class VehicleControlInteractWithWaterPartialTest extends ActorTest {
   "VehicleControl" should {
     "causes disability when the vehicle drives too deep in water (check driver messaging)" in {
       vehicle.Position = Vector3(5,5,-3) //right in the pool
-      vehicle.zoneInteraction() //trigger
+      vehicle.zoneInteractions() //trigger
 
       val msg_drown = playerProbe.receiveOne(250 milliseconds)
       assert(
         msg_drown match {
-          case InteractWithEnvironment(
+          case InteractingWithEnvironment(
             p1,
             p2,
             Some(OxygenStateTarget(PlanetSideGUID(2), OxygenState.Suffocation, 100f))
@@ -711,7 +711,7 @@ class VehicleControlInteractWithWaterTest extends ActorTest {
   "VehicleControl" should {
     "causes disability when the vehicle drives too deep in water" in {
       vehicle.Position = Vector3(5,5,-3) //right in the pool
-      vehicle.zoneInteraction() //trigger
+      vehicle.zoneInteractions() //trigger
 
       val msg_drown = avatarProbe.receiveOne(250 milliseconds)
       assert(
@@ -777,11 +777,11 @@ class VehicleControlStopInteractWithWaterTest extends ActorTest {
   "VehicleControl" should {
     "stop becoming disabled if the vehicle drives out of the water" in {
       vehicle.Position = Vector3(5,5,-3) //right in the pool
-      vehicle.zoneInteraction() //trigger
+      vehicle.zoneInteractions() //trigger
       val msg_drown = playerProbe.receiveOne(250 milliseconds)
       assert(
         msg_drown match {
-          case InteractWithEnvironment(
+          case InteractingWithEnvironment(
             p1,
             p2,
             Some(OxygenStateTarget(PlanetSideGUID(2), OxygenState.Suffocation, 100f))
@@ -791,7 +791,7 @@ class VehicleControlStopInteractWithWaterTest extends ActorTest {
       )
 
       vehicle.Position = Vector3.Zero //that's enough of that
-      vehicle.zoneInteraction()
+      vehicle.zoneInteractions()
       val msg_recover = playerProbe.receiveOne(250 milliseconds)
       assert(
         msg_recover match {
@@ -849,7 +849,7 @@ class VehicleControlInteractWithLavaTest extends ActorTest {
       assert(vehicle.Health > 0) //alive
       assert(player1.Health == 100) //alive
       vehicle.Position = Vector3(5,5,-3) //right in the pool
-      vehicle.zoneInteraction() //trigger
+      vehicle.zoneInteractions() //trigger
 
       val msg_burn = vehicleProbe.receiveN(3,1 seconds)
       msg_burn.foreach { msg =>
@@ -907,7 +907,7 @@ class VehicleControlInteractWithDeathTest extends ActorTest {
       assert(vehicle.Health > 0) //alive
       assert(player1.Health == 100) //alive
       vehicle.Position = Vector3(5,5,-3) //right in the pool
-      vehicle.zoneInteraction() //trigger
+      vehicle.zoneInteractions() //trigger
 
       probe.receiveOne(2 seconds) //wait until player1's implants deinitialize
       assert(vehicle.Health == 0) //ded

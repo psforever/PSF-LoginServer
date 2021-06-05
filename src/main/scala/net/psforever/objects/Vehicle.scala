@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
+import net.psforever.objects.ce.InteractWithMines
 import net.psforever.objects.definition.{ToolDefinition, VehicleDefinition}
 import net.psforever.objects.equipment.{EquipmentSize, EquipmentSlot, JammableUnit}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem, InventoryTile}
@@ -9,14 +10,15 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.aura.AuraContainer
 import net.psforever.objects.serverobject.deploy.Deployment
-import net.psforever.objects.serverobject.environment.InteractsWithZoneEnvironment
+import net.psforever.objects.serverobject.environment.InteractWithEnvironment
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.AmenityOwner
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vital.resistance.StandardResistanceProfile
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.resolution.DamageResistanceModel
-import net.psforever.objects.zones.BlockMapEntity
+import net.psforever.objects.zones.InteractsWithZone
+import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 import scala.concurrent.duration.FiniteDuration
@@ -74,7 +76,7 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     extends AmenityOwner
     with BlockMapEntity
     with MountableWeapons
-    with InteractsWithZoneEnvironment
+    with InteractsWithZone
     with Hackable
     with FactionAffinity
     with Deployment
@@ -85,6 +87,9 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     with CommonNtuContainer
     with Container
     with AuraContainer {
+  interaction(new InteractWithEnvironment())
+  interaction(new InteractWithMines(range = 30))
+
   private var faction: PlanetSideEmpire.Value     = PlanetSideEmpire.NEUTRAL
   private var shields: Int                        = 0
   private var decal: Int                          = 0

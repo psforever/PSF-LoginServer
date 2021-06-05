@@ -48,6 +48,7 @@ import net.psforever.objects.vital.etc.ExplodingEntityReason
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones._
+import net.psforever.objects.zones.blockmap.{BlockMap, BlockMapEntity}
 import net.psforever.packet._
 import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
 import net.psforever.packet.game.objectcreate._
@@ -3830,8 +3831,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         if (player.death_by == -1) {
           KickedByAdministration()
         }
-        player.zoneInteraction()
-        treadOnExplosiveDeployables(player)
+        player.zoneInteractions()
 
       case msg @ ChildObjectStateMessage(object_guid, pitch, yaw) =>
         //the majority of the following check retrieves information to determine if we are in control of the child
@@ -3933,8 +3933,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               )
             )
             updateSquad()
-            obj.zoneInteraction()
-            treadOnExplosiveDeployables(obj)
+            obj.zoneInteractions()
           case (None, _) =>
           //log.error(s"VehicleState: no vehicle $vehicle_guid found in zone")
           //TODO placing a "not driving" warning here may trigger as we are disembarking the vehicle
@@ -6918,7 +6917,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             case _ =>
               vehicle.MountedIn = None
           }
-          vehicle.allowZoneEnvironmentInteractions = true
+          vehicle.allowInteraction = true
           data
         } else {
           //passenger
@@ -8244,7 +8243,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         )
     }
     //
-    vehicle.allowZoneEnvironmentInteractions = false
+    vehicle.allowInteraction = false
     if (!zoneReload && zoneId == continent.id) {
       if (vehicle.Definition == GlobalDefinitions.droppod) {
         //instant action droppod in the same zone
@@ -9167,19 +9166,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
       case None        => ;
     }
-  }
-
-  def treadOnExplosiveDeployables(us: PlanetSideServerObject): Unit = {
-    continent.blockMap
-      .sector(us.Position, range = 30) //TODO replace random range number
-      .deployableList
-      .collect {
-        case _: BoomerDeployable => ;
-        case ex: ExplosiveDeployable if
-        ex.Faction != us.Faction &&
-        Zone.distanceCheck(us, ex, ex.Definition.triggerRadius) =>
-          ex.Actor ! ExplosiveDeployable.TriggeredBy(player)
-      }
   }
 
   def failWithError(error: String) = {

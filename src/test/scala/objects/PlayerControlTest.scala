@@ -799,7 +799,7 @@ class PlayerControlInteractWithWaterTest extends ActorTest {
     "cause drowning when player steps too deep in water" in {
       assert(player1.Health == 100)
       player1.Position = Vector3(5,5,-3) //right in the pool
-      player1.zoneInteraction() //trigger
+      player1.zoneInteractions() //trigger
 
       val msg_drown = avatarProbe.receiveOne(250 milliseconds)
       assert(
@@ -851,7 +851,7 @@ class PlayerControlStopInteractWithWaterTest extends ActorTest {
     "stop drowning if player steps out of deep water" in {
       assert(player1.Health == 100)
       player1.Position = Vector3(5,5,-3) //right in the pool
-      player1.zoneInteraction() //trigger
+      player1.zoneInteractions() //trigger
 
       val msg_drown = avatarProbe.receiveOne(250 milliseconds)
       assert(
@@ -865,7 +865,7 @@ class PlayerControlStopInteractWithWaterTest extends ActorTest {
       )
       //player would normally die in 60s
       player1.Position = Vector3.Zero //pool's closed
-      player1.zoneInteraction() //trigger
+      player1.zoneInteractions() //trigger
       val msg_recover = avatarProbe.receiveOne(250 milliseconds)
       assert(
         msg_recover match {
@@ -915,7 +915,7 @@ class PlayerControlInteractWithLavaTest extends ActorTest {
     "take continuous damage if player steps into lava" in {
       assert(player1.Health == 100) //alive
       player1.Position = Vector3(5,5,-3) //right in the pool
-      player1.zoneInteraction() //trigger
+      player1.zoneInteractions() //trigger
 
       val msg_burn = avatarProbe.receiveN(3, 1 seconds)
       assert(
@@ -975,7 +975,7 @@ class PlayerControlInteractWithDeathTest extends ActorTest {
     "take continuous damage if player steps into a pool of death" in {
       assert(player1.Health == 100) //alive
       player1.Position = Vector3(5,5,-3) //right in the pool
-      player1.zoneInteraction() //trigger
+      player1.zoneInteractions() //trigger
 
       probe.receiveOne(250 milliseconds) //wait until oplayer1's implants deinitialize
       assert(player1.Health == 0) //ded

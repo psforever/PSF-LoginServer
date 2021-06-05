@@ -1217,7 +1217,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       if (player.Health > 0) {
         StartAuraEffect(Aura.Fire, duration = 1250L) //burn
         import scala.concurrent.ExecutionContext.Implicits.global
-        interactionTimer = context.system.scheduler.scheduleOnce(delay = 250 milliseconds, self, InteractWithEnvironment(player, body, None))
+        interactionTimer = context.system.scheduler.scheduleOnce(delay = 250 milliseconds, self, InteractingWithEnvironment(player, body, None))
       }
     }
   }
@@ -1258,7 +1258,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         interactionTimer = context.system.scheduler.scheduleOnce(
           delay = 250 milliseconds,
           self,
-          InteractWithEnvironment(player, body, None)
+          InteractingWithEnvironment(player, body, None)
         )
       case _ => ;
         //something configured incorrectly; no need to keep checking

@@ -7,7 +7,8 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.resolution.DamageResistanceModel
-import net.psforever.objects.zones.{BlockMapEntity, ZoneAware}
+import net.psforever.objects.zones.ZoneAware
+import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.packet.game.DeployableIcon
 import net.psforever.types.PlanetSideEmpire
 
