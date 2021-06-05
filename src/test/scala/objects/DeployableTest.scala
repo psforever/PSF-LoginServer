@@ -339,7 +339,7 @@ class ExplosiveDeployableJammerTest extends ActorTest {
   j_mine.Owner = player2
   j_mine.OwnerName = player2.Name
   j_mine.Faction = PlanetSideEmpire.NC
-  j_mine.Actor = system.actorOf(Props(classOf[ExplosiveDeployableControl], j_mine), "j-mine-control")
+  j_mine.Actor = system.actorOf(Props(classOf[MineDeployableControl], j_mine), "j-mine-control")
 
   val jMineSource = SourceEntry(j_mine)
   val pSource     = PlayerSource(player1)
@@ -421,7 +421,7 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
   h_mine.Owner = player2
   h_mine.OwnerName = player2.Name
   h_mine.Faction = PlanetSideEmpire.NC
-  h_mine.Actor = system.actorOf(Props(classOf[ExplosiveDeployableControl], h_mine), "h-mine-control")
+  h_mine.Actor = system.actorOf(Props(classOf[MineDeployableControl], h_mine), "h-mine-control")
 
   val pSource     = PlayerSource(player1)
   val projectile  = weapon.Projectile
@@ -527,7 +527,7 @@ class ExplosiveDeployableDestructionTest extends ActorTest {
   h_mine.Owner = player2
   h_mine.OwnerName = player2.Name
   h_mine.Faction = PlanetSideEmpire.NC
-  h_mine.Actor = system.actorOf(Props(classOf[ExplosiveDeployableControl], h_mine), "h-mine-control")
+  h_mine.Actor = system.actorOf(Props(classOf[MineDeployableControl], h_mine), "h-mine-control")
 
   val hMineSource = SourceEntry(h_mine)
   val pSource     = PlayerSource(player1)
