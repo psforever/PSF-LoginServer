@@ -4,6 +4,8 @@ package objects
 import akka.actor.{ActorRef, Props}
 import akka.testkit.TestProbe
 import base.{ActorTest, FreedContextActorTest}
+import akka.actor.typed.scaladsl.adapter._
+import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.{Avatar, Certification, PlayerControl}
 import net.psforever.objects.{ConstructionItem, Deployables, GlobalDefinitions, Player}
 import net.psforever.objects.ce.{Deployable, DeployedItem}
@@ -32,6 +34,8 @@ class DeployableBehaviorSetupTest extends ActorTest {
     override def AvatarEvents: ActorRef = eventsProbe.ref
     override def LocalEvents: ActorRef = eventsProbe.ref
     override def Deployables: ActorRef = deployables
+
+    this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
   }
   guid.register(jmine, number = 1)
   jmine.Faction = PlanetSideEmpire.TR
@@ -91,6 +95,8 @@ class DeployableBehaviorSetupOwnedP1Test extends ActorTest {
     override def Deployables: ActorRef = deployables
     override def Players = List(avatar)
     override def LivePlayers = List(player)
+
+    this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
   }
   guid.register(jmine, number = 1)
   guid.register(citem, number = 2)
@@ -136,6 +142,8 @@ class DeployableBehaviorSetupOwnedP2Test extends FreedContextActorTest {
     override def Players = List(avatar)
     override def LivePlayers = List(player)
     override def tasks: ActorRef = eventsProbe.ref
+
+    this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
   }
   guid.register(jmine, number = 1)
   guid.register(citem, number = 2)
@@ -238,6 +246,8 @@ class DeployableBehaviorDeconstructTest extends ActorTest {
     override def LocalEvents: ActorRef = eventsProbe.ref
     override def tasks: ActorRef = eventsProbe.ref
     override def Deployables: ActorRef = deployables
+
+    this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
   }
   guid.register(jmine, number = 1)
   jmine.Faction = PlanetSideEmpire.TR
@@ -295,6 +305,8 @@ class DeployableBehaviorDeconstructOwnedTest extends FreedContextActorTest {
     override def Players = List(avatar)
     override def LivePlayers = List(player)
     override def tasks: ActorRef = eventsProbe.ref
+
+    this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
   }
   guid.register(jmine, number = 1)
   guid.register(citem, number = 2)

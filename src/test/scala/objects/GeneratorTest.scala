@@ -375,6 +375,8 @@ class GeneratorControlKillsTest extends ActorTest {
   guid.register(gen, 2)
   guid.register(player1, 3)
   guid.register(player2, 4)
+  zone.blockMap.addTo(player1)
+  zone.blockMap.addTo(player2)
 
   val weapon     = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile = weapon.Projectile

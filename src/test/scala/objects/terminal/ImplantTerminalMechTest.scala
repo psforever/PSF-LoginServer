@@ -2,7 +2,9 @@
 package objects.terminal
 
 import akka.actor.{ActorSystem, Props}
+import akka.testkit.TestProbe
 import base.ActorTest
+import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.{Default, GlobalDefinitions, Player}
 import net.psforever.objects.guid.NumberPoolHub
@@ -156,11 +158,14 @@ class ImplantTerminalMechControl5Test extends ActorTest {
 
 object ImplantTerminalMechTest {
   def SetUpAgents(faction: PlanetSideEmpire.Value)(implicit system: ActorSystem): (Player, ImplantTerminalMech) = {
+    import akka.actor.typed.scaladsl.adapter._
+
     val guid = new NumberPoolHub(new MaxNumberSource(10))
     val map  = new ZoneMap("test")
     val zone = new Zone("test", map, 0) {
       override def SetupNumberPools() = {}
       GUID(guid)
+      this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
     }
     val building = new Building(
       "Building",

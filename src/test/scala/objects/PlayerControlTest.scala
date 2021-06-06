@@ -786,6 +786,8 @@ class PlayerControlInteractWithWaterTest extends ActorTest {
     override def LivePlayers = List(player1)
     override def AvatarEvents = avatarProbe.ref
   }
+  zone.blockMap.addTo(player1)
+  zone.blockMap.addTo(pool)
 
   player1.Zone = zone
   player1.Spawn()
@@ -838,6 +840,8 @@ class PlayerControlStopInteractWithWaterTest extends ActorTest {
     override def LivePlayers = List(player1)
     override def AvatarEvents = avatarProbe.ref
   }
+  zone.blockMap.addTo(player1)
+  zone.blockMap.addTo(pool)
 
   player1.Zone = zone
   player1.Spawn()
@@ -902,6 +906,8 @@ class PlayerControlInteractWithLavaTest extends ActorTest {
     override def AvatarEvents = avatarProbe.ref
     override def Activity = TestProbe().ref
   }
+  zone.blockMap.addTo(player1)
+  zone.blockMap.addTo(pool)
 
   player1.Zone = zone
   player1.Spawn()
@@ -962,6 +968,8 @@ class PlayerControlInteractWithDeathTest extends ActorTest {
     override def AvatarEvents = avatarProbe.ref
     override def Activity = TestProbe().ref
   }
+  zone.blockMap.addTo(player1)
+  zone.blockMap.addTo(pool)
 
   player1.Zone = zone
   player1.Spawn()

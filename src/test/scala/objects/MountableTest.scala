@@ -2,12 +2,16 @@
 package objects
 
 import akka.actor.{Actor, ActorRef, Props}
+import akka.testkit.TestProbe
+import akka.actor.typed.scaladsl.adapter._
 import base.ActorTest
+import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.Player
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.mount._
 import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.types.{CharacterSex, CharacterVoice, PlanetSideEmpire, PlanetSideGUID}
 
 import scala.concurrent.duration.Duration
@@ -27,6 +31,10 @@ class MountableControl2Test extends ActorTest {
     "let a player mount" in {
       val player = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
       val obj    = new MountableTest.MountableTestObject
+      obj.Zone = new Zone("test", new ZoneMap("test"), 0) {
+        override def SetupNumberPools() = {}
+        this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
+      }
       obj.Actor = system.actorOf(Props(classOf[MountableTest.MountableTestControl], obj), "mountable")
       val msg = Mountable.TryMount(player, 0)
 
@@ -69,9 +77,8 @@ class MountableControl3Test extends ActorTest {
 object MountableTest {
   class MountableTestObject extends PlanetSideServerObject with Mountable {
     seats += 0 -> new Seat(new SeatDefinition())
-    GUID = PlanetSideGUID(1)
-    //eh whatever
-    def Faction                      = PlanetSideEmpire.TR
+    GUID = PlanetSideGUID(1) //eh whatever
+    def Faction = PlanetSideEmpire.TR
     def Definition = new ObjectDefinition(1) with MountableDefinition {
       MountPoints += 0 -> MountInfo(0)
     }

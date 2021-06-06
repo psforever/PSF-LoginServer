@@ -3,7 +3,9 @@ package objects
 
 import akka.actor.Props
 import akka.testkit.TestProbe
+import akka.actor.typed.scaladsl.adapter._
 import base.ActorTest
+import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.{Avatar, Certification}
 import net.psforever.objects.{Default, GlobalDefinitions, Player, Tool}
 import net.psforever.objects.definition.ToolDefinition
@@ -103,6 +105,10 @@ class FacilityTurretControl2Test extends ActorTest {
   val player = Player(Avatar(0, "", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
   val obj    = FacilityTurret(GlobalDefinitions.manned_turret)
   obj.GUID = PlanetSideGUID(1)
+  obj.Zone = new Zone("test", new ZoneMap("test"), 0) {
+    override def SetupNumberPools() = {}
+    this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
+  }
   obj.Actor = system.actorOf(Props(classOf[FacilityTurretControl], obj), "turret-control")
   val bldg = Building("Building", guid = 0, map_id = 0, Zone.Nowhere, StructureType.Building)
   bldg.Amenities = obj
@@ -156,6 +162,10 @@ class FacilityTurretControl4Test extends ActorTest {
   val player = Player(Avatar(0, "", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
   val obj = FacilityTurret(GlobalDefinitions.vanu_sentry_turret)
   obj.GUID = PlanetSideGUID(1)
+  obj.Zone = new Zone("test", new ZoneMap("test"), 0) {
+    override def SetupNumberPools() = {}
+    this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
+  }
   obj.Actor = system.actorOf(Props(classOf[FacilityTurretControl], obj), "turret-control")
   val bldg = Building("Building", guid = 0, map_id = 0, Zone.Nowhere, StructureType.Building)
   bldg.Amenities = obj

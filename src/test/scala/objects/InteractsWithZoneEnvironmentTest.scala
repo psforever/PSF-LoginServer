@@ -21,6 +21,9 @@ class InteractsWithZoneEnvironmentTest extends ActorTest {
     }
     new Zone("test-zone", testMap, zoneNumber = 0)
   }
+  testZone.blockMap.addTo(pool1)
+  testZone.blockMap.addTo(pool2)
+  testZone.blockMap.addTo(pool3)
 
   "InteractsWithZoneEnvironment" should {
     "not interact with any environment when it does not encroach any environment" in {
@@ -163,12 +166,10 @@ class InteractsWithZoneEnvironmentTest extends ActorTest {
 
     obj.allowInteraction = false
     val msg2 = testProbe.receiveOne(max = 250 milliseconds)
-    assert(
-      msg2 match {
-        case EscapeFromEnvironment(o, b, _) => (o eq obj) && (b eq pool1)
-        case _ => false
-      }
-    )
+    msg2 match {
+      case EscapeFromEnvironment(o, b, _) => assert((o eq obj) && (b eq pool1))
+      case _ => assert( false)
+    }
     obj.zoneInteractions()
     testProbe.expectNoMessage(max = 500 milliseconds)
   }

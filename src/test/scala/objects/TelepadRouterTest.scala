@@ -2,8 +2,10 @@
 package objects
 
 import akka.actor.{ActorRef, Props}
+import akka.actor.typed.scaladsl.adapter._
 import akka.testkit.TestProbe
 import base.ActorTest
+import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects._
 import net.psforever.objects.ce.{DeployableCategory, DeployedItem, TelepadLike}
 import net.psforever.objects.guid.NumberPoolHub
@@ -33,6 +35,8 @@ class TelepadDeployableNoRouterTest extends ActorTest {
     override def AvatarEvents: ActorRef = eventsProbe.ref
     override def LocalEvents: ActorRef = eventsProbe.ref
     override def Deployables: ActorRef = deployables
+
+    this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
   }
   guid.register(telepad, number = 1)
 
@@ -96,6 +100,8 @@ class TelepadDeployableNoActivationTest extends ActorTest {
     override def LocalEvents: ActorRef = eventsProbe.ref
     override def Deployables: ActorRef = deployables
     override def Vehicles: List[Vehicle] = List(router)
+
+    this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
   }
   guid.register(telepad, number = 1)
   guid.register(router, number = 2)
@@ -165,6 +171,8 @@ class TelepadDeployableAttemptTest extends ActorTest {
     override def LocalEvents: ActorRef = eventsProbe.ref
     override def Deployables: ActorRef = deployables
     override def Vehicles: List[Vehicle] = List(router)
+
+    this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
   }
   guid.register(telepad, number = 1)
   guid.register(router, number = 2)
@@ -226,6 +234,8 @@ class TelepadDeployableResponseFromRouterTest extends ActorTest {
     override def VehicleEvents: ActorRef = eventsProbe.ref
     override def Deployables: ActorRef = deployables
     override def Vehicles: List[Vehicle] = List(router)
+
+    this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
   }
   guid.register(telepad, number = 1)
   guid.register(router, number = 2)

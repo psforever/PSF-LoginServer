@@ -23,7 +23,11 @@ trait InteractsWithZone
     val before = _allowInteraction
     _allowInteraction = permit
     if (before != permit) {
-      interactions.foreach { _.interaction(target = this) }
+      if (permit) {
+        interactions.foreach { _.interaction(target = this) }
+      } else {
+        interactions.foreach ( _.resetInteraction(target = this) )
+      }
     }
     _allowInteraction
   }
