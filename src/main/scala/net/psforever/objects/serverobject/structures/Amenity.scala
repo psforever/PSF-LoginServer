@@ -6,6 +6,7 @@ import net.psforever.objects.vital.resistance.StandardResistanceProfile
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.resolution.DamageAndResistance
 import net.psforever.objects.zones.Zone
+import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 import net.psforever.objects.zones.{Zone => World}
 
@@ -23,7 +24,8 @@ import net.psforever.objects.zones.{Zone => World}
 abstract class Amenity
   extends PlanetSideServerObject
     with Vitality
-    with StandardResistanceProfile {
+    with StandardResistanceProfile
+    with BlockMapEntity {
   private[this] val log = org.log4s.getLogger("Amenity")
 
   /** what other entity has authority over this amenity; usually either a building or a vehicle */

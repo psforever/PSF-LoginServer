@@ -739,7 +739,10 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
 
   def PopulateBlockMap(): Unit = {
     vehicles.foreach { vehicle => blockMap.addTo(vehicle) }
-    buildings.values.foreach { building => blockMap.addTo(building) }
+    buildings.values.foreach { building =>
+      blockMap.addTo(building)
+      building.Amenities.foreach { amenity => blockMap.addTo(amenity) }
+    }
     map.environment.foreach { env => blockMap.addTo(env) }
   }
 
@@ -1178,14 +1181,8 @@ object Zone {
 
   /**
     * na
-    * @see `Amenity.Owner`
-    * @see `ComplexDeployable`
     * @see `DamageWithPosition`
-    * @see `SimpleDeployable`
-    * @see `Zone.Buildings`
-    * @see `Zone.DeployableList`
-    * @see `Zone.LivePlayers`
-    * @see `Zone.Vehicles`
+    * @see `Zone.blockMap.sector`
     * @param zone   the zone in which the explosion should occur
     * @param source a game entity that is treated as the origin and is excluded from results
     * @param damagePropertiesBySource information about the effect/damage
@@ -1198,7 +1195,6 @@ object Zone {
                     ): List[PlanetSideServerObject with Vitality] = {
     val sourcePosition = source.Position
     val sourcePositionXY = sourcePosition.xy
-    val radius = damagePropertiesBySource.DamageRadius * damagePropertiesBySource.DamageRadius
     val sectors = zone.blockMap.sector(sourcePositionXY, damagePropertiesBySource.DamageRadius)
     //collect all targets that can be damaged
     //players
@@ -1208,22 +1204,8 @@ object Zone {
     //deployables
     val deployableTargets = sectors.deployableList.filterNot { _.Destroyed }
     //amenities
-    val soiTargets = source match {
-      case o: Amenity =>
-        //fortunately, even where soi overlap, amenities in different buildings are never that close to each other
-        o.Owner.Amenities
-      case _ =>
-        sectors
-          .buildingList
-          .flatMap {
-            case b if {
-              val soiRadius = b.Definition.SOIRadius * b.Definition.SOIRadius
-              Vector3.DistanceSquared(sourcePositionXY, b.Position.xy) < soiRadius || soiRadius <= radius
-            } => b.Amenities.filter { _.Definition.Damageable }
-            case _ => Nil
-          }
-
-    }
+    val soiTargets = sectors.amenityList.collect { case amenity: Vitality if !amenity.Destroyed => amenity }
+    //altogether ...
     (playerTargets ++ vehicleTargets ++ deployableTargets ++ soiTargets).filter { target => target ne source }
   }
 

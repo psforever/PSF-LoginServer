@@ -4,7 +4,7 @@ package net.psforever.objects.zones.blockmap
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.serverobject.environment.PieceOfEnvironment
-import net.psforever.objects.serverobject.structures.Building
+import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.{Player, Vehicle}
 
 import scala.collection.mutable.ListBuffer
@@ -25,6 +25,8 @@ trait SectorPopulation {
 
   def buildingList: List[Building]
 
+  def amenityList: List[Amenity]
+
   def environmentList: List[PieceOfEnvironment]
 
   /**
@@ -37,6 +39,7 @@ trait SectorPopulation {
     equipmentOnGroundList.size +
     deployableList.size +
     buildingList.size +
+    amenityList.size +
     environmentList.size
   }
 }
@@ -129,7 +132,11 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
   )
 
   private val buildings: SectorListOf[Building] = new SectorListOf[Building](
-    (a: Building, b: Building) => a.Name.equals(b.Name)
+    (a: Building, b: Building) => a eq b
+  )
+
+  private val amenities: SectorListOf[Amenity] = new SectorListOf[Amenity](
+    (a: Amenity, b: Amenity) => a eq b
   )
 
   private val environment: SectorListOf[PieceOfEnvironment] = new SectorListOf[PieceOfEnvironment](
@@ -147,6 +154,8 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
   def deployableList: List[Deployable] = deployables.list
 
   def buildingList: List[Building] = buildings.list
+
+  def amenityList : List[Amenity] = amenities.list
 
   def environmentList: List[PieceOfEnvironment] = environment.list
 
@@ -176,6 +185,8 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
         deployables.list.size < deployables.addTo(d).size
       case b: Building =>
         buildings.list.size < buildings.addTo(b).size
+      case a: Amenity =>
+        amenities.list.size < amenities.addTo(a).size
       case e: PieceOfEnvironment =>
         environment.list.size < environment.addTo(e).size
       case _ =>
@@ -215,6 +226,7 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
   * @param equipmentOnGroundList dropped equipment
   * @param deployableList deployed combat engineering gear
   * @param buildingList the structures
+  * @param amenityList the structures within the structures
   * @param environmentList fields that represent the game world environment
   */
 class SectorGroup(
@@ -224,6 +236,7 @@ class SectorGroup(
                    val equipmentOnGroundList: List[Equipment],
                    val deployableList: List[Deployable],
                    val buildingList: List[Building],
+                   val amenityList: List[Amenity],
                    val environmentList: List[PieceOfEnvironment]
                  )
   extends SectorPopulation
@@ -243,6 +256,7 @@ object SectorGroup {
       sector.equipmentOnGroundList,
       sector.deployableList,
       sector.buildingList,
+      sector.amenityList,
       sector.environmentList
     )
   }
@@ -261,6 +275,7 @@ object SectorGroup {
       sectors.flatMap { _.equipmentOnGroundList }.toList.distinct,
       sectors.flatMap { _.deployableList }.toList.distinct,
       sectors.flatMap { _.buildingList }.toList.distinct,
+      sectors.flatMap { _.amenityList }.toList.distinct,
       sectors.flatMap { _.environmentList }.toList.distinct
     )
   }
