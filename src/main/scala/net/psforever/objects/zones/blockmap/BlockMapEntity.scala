@@ -7,13 +7,22 @@ import net.psforever.types.Vector3
 
 sealed case class BlockMapEntry(coords: Vector3, range: Float, sectors: Set[Int])
 
+/**
+  * An game object that can be represented on a blockmap.
+  * The only requirement is that the entity can position itself in a zone's coordinate space.
+  * @see `BlockMap`
+  * @see `WorldEntity`
+  */
 trait BlockMapEntity
   extends WorldEntity {
+  /** internal data regarding an active representation on a blockmap */
   private var _blockMapEntry: Option[BlockMapEntry] = None
+  /** the function that allows for updates of the internal data */
   private var _updateBlockMapEntryFunc: (BlockMapEntity, Vector3) => Boolean = BlockMapEntity.doNotUpdateBlockMap
 
+  /** internal data regarding an active representation on a blockmap */
   def blockMapEntry: Option[BlockMapEntry] = _blockMapEntry
-
+  /** internal data regarding an active representation on a blockmap */
   def blockMapEntry_=(entry: Option[BlockMapEntry]): Option[BlockMapEntry] = {
     entry match {
       case None =>
@@ -26,6 +35,13 @@ trait BlockMapEntity
     entry
   }
 
+  /**
+    * Buckets in the blockmap are called "sectors".
+    * Find the sectors in a given blockmap in which the entity would be represented within a given range.
+    * @param zone what region the blockmap represents
+    * @param range the custom distance from the central sector along the major axes
+    * @return a conglomerate sector which lists all of the entities in the allocated sector(s)
+    */
   def sector(zone: Zone, range: Float): SectorPopulation = {
     zone.blockMap.sector(
       //TODO same zone check?
@@ -37,6 +53,13 @@ trait BlockMapEntity
     )
   }
 
+  /**
+    * Update the internal data's known coordinate position without changing representation on whatever blockmap.
+    * Has the potential to cause major issues with the blockmap if used without external checks.
+    * @param newCoords the coordinate position
+    * @return `true`, if the coordinates were updated;
+    *        `false`, otherwise
+    */
   def updateBlockMapEntry(newCoords: Vector3): Boolean = _updateBlockMapEntryFunc(this, newCoords)
 }
 

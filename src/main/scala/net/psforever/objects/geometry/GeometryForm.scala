@@ -8,7 +8,7 @@ import net.psforever.types.{ExoSuitType, Vector3}
 
 object GeometryForm {
   /** this point can not be used for purposes of geometric representation */
-  lazy val invalidPoint: Point     = Point(Float.MinValue, Float.MinValue, Float.MinValue)
+  lazy val invalidPoint: d3.Point     = d3.Point(Float.MinValue, Float.MinValue, Float.MinValue)
   /** this cylinder can not be used for purposes of geometric representation */
   lazy val invalidCylinder: Cylinder = Cylinder(invalidPoint.asVector3, Vector3.Zero, Float.MinValue, 0)
 

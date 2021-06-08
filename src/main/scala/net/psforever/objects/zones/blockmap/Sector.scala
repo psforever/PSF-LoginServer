@@ -9,6 +9,9 @@ import net.psforever.objects.{Player, Vehicle}
 
 import scala.collection.mutable.ListBuffer
 
+/**
+  * The collections of entities in a sector conglomerate.
+  */
 trait SectorPopulation {
   def livePlayerList: List[Player]
 
@@ -24,6 +27,9 @@ trait SectorPopulation {
 
   def environmentList: List[PieceOfEnvironment]
 
+  /**
+    * A count of all the entities in all the lists.
+    */
   def total: Int = {
     livePlayerList.size +
     corpseList.size +
@@ -35,17 +41,32 @@ trait SectorPopulation {
   }
 }
 
+/**
+  * Information about the sector.
+  */
 trait SectorTraits {
+  /** the starting coordinate of the region (in terms of width) */
   def longitude: Float
-
+  /** the starting coordinate of the region (in terms of length) */
   def latitude: Float
-
+  /** how width and long is the region */
   def span: Int
 }
 
+/**
+  * Custom lists of entities for sector buckets.
+  * @param eqFunc a custom equivalence function to distinguish between the entities in the list
+  * @tparam A the type of object that will be the entities stored in the list
+  */
 class SectorListOf[A](eqFunc: (A, A) => Boolean = (a: A, b: A) => a equals b) {
   private val internalList: ListBuffer[A] = ListBuffer[A]()
 
+  /**
+    * Insert the entity into the list as long as it cannot be found in the list
+    * according to the custom equivalence function.
+    * @param elem the entity
+    * @return a conventional list of entities
+    */
   def addTo(elem: A): List[A] = {
     internalList.indexWhere { item => eqFunc(elem, item) } match {
       case -1 => internalList.addOne(elem)
@@ -54,6 +75,12 @@ class SectorListOf[A](eqFunc: (A, A) => Boolean = (a: A, b: A) => a equals b) {
     list
   }
 
+  /**
+    * Remove the entity from the list as long as it can be found in the list
+    * according to the custom equivalence function.
+    * @param elem the entity
+    * @return a conventional list of entities
+    */
   def removeFrom(elem: A): List[A] = {
     internalList.indexWhere { item => eqFunc(elem, item) } match {
       case -1    => ;
@@ -62,36 +89,50 @@ class SectorListOf[A](eqFunc: (A, A) => Boolean = (a: A, b: A) => a equals b) {
     list
   }
 
+  /**
+    * Cast this specialized list of entities into a conventional list of entities.
+    * @return a conventional list of entities
+    */
   def list: List[A] = internalList.toList
 }
 
+/**
+  * The bucket of a blockmap structure
+  * that contains lists of entities that, within a given span of coordinate distance,
+  * are considered neighbors.
+  * While the coordinate space that supports a blockmap (?) may be any combination of two dimensions,
+  * the sectors are always square.
+  * @param longitude a starting coordinate of the region (in terms of width)
+  * @param latitude a starting coordinate of the region (in terms of length)
+  * @param span the distance across the sector in both directions
+  */
 class Sector(val longitude: Int, val latitude: Int, val span: Int)
   extends SectorPopulation {
-  val livePlayers: SectorListOf[Player] = new SectorListOf[Player](
+  private val livePlayers: SectorListOf[Player] = new SectorListOf[Player](
     (a: Player, b: Player) => a.CharId == b.CharId
   )
 
-  val corpses: SectorListOf[Player] = new SectorListOf[Player](
+  private val corpses: SectorListOf[Player] = new SectorListOf[Player](
     (a: Player, b: Player) => a.GUID == b.GUID || (a eq b)
   )
 
-  val vehicles: SectorListOf[Vehicle] = new SectorListOf[Vehicle](
+  private val vehicles: SectorListOf[Vehicle] = new SectorListOf[Vehicle](
     (a: Vehicle, b: Vehicle) => a eq b
   )
 
-  val equipmentOnGround: SectorListOf[Equipment] = new SectorListOf[Equipment](
+  private val equipmentOnGround: SectorListOf[Equipment] = new SectorListOf[Equipment](
     (a: Equipment, b: Equipment) => a eq b
   )
 
-  val deployables: SectorListOf[Deployable] = new SectorListOf[Deployable](
+  private val deployables: SectorListOf[Deployable] = new SectorListOf[Deployable](
     (a: Deployable, b: Deployable) => a eq b
   )
 
-  val buildings: SectorListOf[Building] = new SectorListOf[Building](
+  private val buildings: SectorListOf[Building] = new SectorListOf[Building](
     (a: Building, b: Building) => a.Name.equals(b.Name)
   )
 
-  val environment: SectorListOf[PieceOfEnvironment] = new SectorListOf[PieceOfEnvironment](
+  private val environment: SectorListOf[PieceOfEnvironment] = new SectorListOf[PieceOfEnvironment](
     (a: PieceOfEnvironment, b: PieceOfEnvironment) => a eq b
   )
 
@@ -109,9 +150,17 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
 
   def environmentList: List[PieceOfEnvironment] = environment.list
 
+  /**
+    * Appropriate an entity added to this blockmap bucket
+    * inot a list of objects that are like itself.
+    * @param o the entity
+    * @return whether or not the entity was added
+    */
   def addTo(o: BlockMapEntity): Boolean = {
     o match {
       case p: Player =>
+        //players and corpses are the same kind of object, but are distinguished by a single flag
+        //when adding to the "corpse" list, first attempt to remove from the "player" list
         if (!p.isBackpack) {
           livePlayers.list.size < livePlayers.addTo(p).size
         }
@@ -134,11 +183,17 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
     }
   }
 
+  /**
+    * Remove an entity added to this blockmap bucket
+    * from a list of already-added objects that are like itself.
+    * @param o the entity
+    * @return whether or not the entity was removed
+    */
   def removeFrom(o: Any): Boolean = {
     o match {
       case p: Player =>
-        if (!p.isBackpack) livePlayers.list.size > livePlayers.removeFrom(p).size
-        else corpses.list.size > corpses.removeFrom(p).size
+        livePlayers.list.size > livePlayers.removeFrom(p).size ||
+        corpses.list.size > corpses.removeFrom(p).size
       case v: Vehicle =>
         vehicles.list.size > vehicles.removeFrom(v).size
       case e: Equipment =>
@@ -151,6 +206,17 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
   }
 }
 
+/**
+  * The specific datastructure that is mentioned when using the term "sector conglomerate".
+  * Typically used to compose the lists of entities from various individual sectors.
+  * @param livePlayerList the living players
+  * @param corpseList the dead players
+  * @param vehicleList vehicles
+  * @param equipmentOnGroundList dropped equipment
+  * @param deployableList deployed combat engineering gear
+  * @param buildingList the structures
+  * @param environmentList fields that represent the game world environment
+  */
 class SectorGroup(
                    val livePlayerList: List[Player],
                    val corpseList: List[Player],
@@ -163,6 +229,30 @@ class SectorGroup(
   extends SectorPopulation
 
 object SectorGroup {
+  /**
+    * Overloaded constructor that takes a single sector
+    * and transfers the lists of entities into a single conglomeration of the sector populations.
+    * @param sector the sector to be counted
+    * @return a `SectorGroup` object
+    */
+  def apply(sector: Sector): SectorGroup = {
+    new SectorGroup(
+      sector.livePlayerList,
+      sector.corpseList,
+      sector.vehicleList,
+      sector.equipmentOnGroundList,
+      sector.deployableList,
+      sector.buildingList,
+      sector.environmentList
+    )
+  }
+
+  /**
+    * Overloaded constructor that takes a group of sectors
+    * and condenses all of the lists of entities into a single conglomeration of the sector populations.
+    * @param sectors the series of sectors to be counted
+    * @return a `SectorGroup` object
+    */
   def apply(sectors: Iterable[Sector]): SectorGroup = {
     new SectorGroup(
       sectors.flatMap { _.livePlayerList }.toList.distinct,

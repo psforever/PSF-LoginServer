@@ -6,8 +6,6 @@ import net.psforever.types.Vector3
 
 /**
   * Basic interface of all two-dimensional geometry.
-  * For the only real requirement for a three-dimensional geometric figure is that it has three components of position
-  * and an equal number of components demonstrating equal that said dimensionality.
   */
 trait Geometry2D extends PrimitiveGeometry {
   def center: Point

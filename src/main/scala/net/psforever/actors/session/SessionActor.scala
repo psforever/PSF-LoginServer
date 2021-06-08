@@ -2103,6 +2103,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         )
         sendResponse(ObjectDeleteMessage(kguid, 0))
 
+      case AvatarResponse.KitNotUsed(_, "") =>
+        kitToBeUsed = None
+
       case AvatarResponse.KitNotUsed(_, msg) =>
         kitToBeUsed = None
         sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", msg, None))
@@ -9159,7 +9162,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   def updateBlockMap(target: BlockMapEntity, zone: Zone, newCoords: Vector3): Unit = {
     target.blockMapEntry match {
       case Some(entry) =>
-        if (BlockMap.sectorIndices(continent.blockMap, newCoords, entry.range).toSet.equals(entry.sectors)) {
+        if (BlockMap.findSectorIndices(continent.blockMap, newCoords, entry.range).toSet.equals(entry.sectors)) {
           target.updateBlockMapEntry(newCoords) //soft update
         } else {
           zone.actor ! ZoneActor.UpdateBlockMap(target, newCoords) //hard update

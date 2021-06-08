@@ -88,7 +88,12 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
   /** The basic support structure for the globally unique number system used by this `Zone`. */
   private var guid: NumberPoolHub = new NumberPoolHub(new MaxNumberSource(65536))
 
-  val blockMap: BlockMap = BlockMap(map.scale, spanSize = 100)
+  /** The blockmap structure for partitioning entities and environmental aspects of the zone.
+    * For a standard 8912`^`2 map, each of the four hundred formal map grids is 445.6m long and wide.
+    * A `desiredSpanSize` of 100m divides the blockmap into 8100 sectors.
+    * A `desiredSpanSize` of 50m divides the blockmap into 32041 sectors.
+    */
+  val blockMap: BlockMap = BlockMap(map.scale, desiredSpanSize = 100)
 
   /** A synchronized `List` of items (`Equipment`) dropped by players on the ground and can be collected again. */
   private val equipmentOnGround: ListBuffer[Equipment] = ListBuffer[Equipment]()

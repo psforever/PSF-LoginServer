@@ -293,12 +293,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                 player.Name,
                 AvatarAction.UseKit(kguid, kdef.ObjectId)
               )
-            case None if msg.length > 0 =>
+            case _ =>
               player.Zone.AvatarEvents ! AvatarServiceMessage(
                 player.Name,
                 AvatarAction.KitNotUsed(kit.GUID, msg)
               )
-            case None => ;
           }
 
         case PlayerControl.SetExoSuit(exosuit: ExoSuitType.Value, subtype: Int) =>

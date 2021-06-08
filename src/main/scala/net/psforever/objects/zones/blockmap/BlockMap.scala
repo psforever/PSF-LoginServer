@@ -9,15 +9,30 @@ import net.psforever.types.Vector3
 
 import scala.collection.mutable.ListBuffer
 
+/**
+  * A data structure which divides coordinate space into buckets or coordinate spans.
+  * The function of the blockmap is to organize the instantiated game objects (entities)
+  * that can be represented in coordinate space into a bucket each or into multiple buckets each
+  * that reflect their locality with other game objects in the same coordinate space.
+  * Polling based on either positions or on entities should be able to recover a lists of entities
+  * that are considered neighbors in the context of that position and a rectangular distance around the position.
+  * The purpose of the blockmap is to improve targeting when making such locality determinations.<br>
+  * <br>
+  * The coordinate space of a PlanetSide zone may contain 65535 entities, one of which is the same target entity.
+  * A bucket on the blockmap should contain only a small fraction of the full zone's entities.
+  * @param fullMapWidth maximum width of the coordinate space (m)
+  * @param fullMapHeight maximum height of the coordinate space (m)
+  * @param desiredSpanSize the amount of coordinate space attributed to each bucket in the blockmap (m)
+  */
 class BlockMap(fullMapWidth: Int, fullMapHeight: Int, desiredSpanSize: Int) {
-  /** a resolution between the desired span size and a realistic value to use for the span size;
+  /** a clamping of the desired span size to a realistic value to use for the span size;
     * blocks can not be too small, but also should not be much larger than the width of the representable region
     * a block spanning as wide as the map is an acceptable cap
     */
-  val spanSize: Int = math.min(math.max(1, desiredSpanSize), fullMapWidth)
+  val spanSize: Int = math.min(math.max(10, desiredSpanSize), fullMapWidth)
   /** how many sectors are in a row;
     * the far side sector may run off into un-navigable regions but will always contain a sliver of represented map space,
-    * e.g., on a 0-10 grid where the span size is 3, the spans will begin at (0, 3, 6, 9)
+    * for example, on a 0-10 grid where the span size is 3, the spans will begin at (0, 3, 6, 9)
     * and the last span will only have two-thirds of its region valid;
     * the invalid, not represented regions should be silently ignored
     */
@@ -55,14 +70,14 @@ class BlockMap(fullMapWidth: Int, fullMapHeight: Int, desiredSpanSize: Int) {
   /**
     * Given a coordinate position within representable space and a range from that representable space,
     * find the sector conglomerate to which this range allocates.
-    * @see `BlockMap.sectorIndices`
+    * @see `BlockMap.findSectorIndices`
     * @see `BlockMap.quickToSectorGroup`
     * @param p the game world coordinates
     * @param range the axis distance from the provided coordinates
     * @return a conglomerate sector which lists all of the entities in the discovered sector(s)
     */
   def sector(p: Vector3, range: Float): SectorPopulation = {
-    BlockMap.quickToSectorGroup( BlockMap.sectorIndices(blockMap = this, p, range).map { blocks } )
+    BlockMap.quickToSectorGroup( BlockMap.findSectorIndices(blockMap = this, p, range).map { blocks } )
   }
 
   /**
@@ -103,14 +118,14 @@ class BlockMap(fullMapWidth: Int, fullMapHeight: Int, desiredSpanSize: Int) {
   /**
     * Allocate this entity into appropriate sectors on the blockmap
     * using the provided game world coordinates and the provided axis range.
-    * @see `BlockMap.sectorIndices`
+    * @see `BlockMap.findSectorIndices`
     * @param target the entity
     * @param toPosition the game world coordinates that indicate the central sector
     * @param range the distance from the central sector along the major axes
     * @return a conglomerate sector which lists all of the entities in the allocated sector(s)
     */
   def addTo(target: BlockMapEntity, toPosition: Vector3, range: Float): SectorPopulation = {
-    val to = BlockMap.sectorIndices(blockMap = this, toPosition, range)
+    val to = BlockMap.findSectorIndices(blockMap = this, toPosition, range)
     val toSectors = to.toSet.map { blocks }
     toSectors.foreach { block => block.addTo(target) }
     target.blockMapEntry = Some(BlockMapEntry(toPosition, range, to.toSet))
@@ -192,6 +207,12 @@ class BlockMap(fullMapWidth: Int, fullMapHeight: Int, desiredSpanSize: Int) {
     }
   }
 
+  /**
+    * Move an entity on the blockmap structure and update the prerequisite internal information.
+    * @see `move(BlockMapEntity, Vector3, Vector3, Float)`
+    * @param target the entity
+    * @return a conglomerate sector which lists all of the entities in the allocated sector(s)
+    */
   def move(target: BlockMapEntity): SectorPopulation = {
     target.blockMapEntry match {
       case Some(entry) => move(target, target.Position, entry.coords, entry.range)
@@ -199,6 +220,13 @@ class BlockMap(fullMapWidth: Int, fullMapHeight: Int, desiredSpanSize: Int) {
     }
   }
 
+  /**
+    * Move an entity on the blockmap structure and update the prerequisite internal information.
+    * @see `move(BlockMapEntity, Vector3, Vector3, Float)`
+    * @param target the entity
+    * @param toPosition the next location of the entity in world coordinates
+    * @return a conglomerate sector which lists all of the entities in the allocated sector(s)
+    */
   def move(target: BlockMapEntity, toPosition: Vector3): SectorPopulation = {
     target.blockMapEntry match {
       case Some(entry) => move(target, toPosition, entry.coords, entry.range)
@@ -206,24 +234,35 @@ class BlockMap(fullMapWidth: Int, fullMapHeight: Int, desiredSpanSize: Int) {
     }
   }
 
+  /**
+    * Move an entity on the blockmap structure and update the prerequisite internal information.
+    * @see `move(BlockMapEntity, Vector3)`
+    * @param target the entity
+    * @param toPosition the next location of the entity in world coordinates
+    * @param fromPosition ignored
+    * @return a conglomerate sector which lists all of the entities in the allocated sector(s)
+    */
   def move(target: BlockMapEntity, toPosition: Vector3, fromPosition: Vector3): SectorPopulation = {
     move(target, toPosition)
   }
 
+  /**
+    * Move an entity on the blockmap structure and update the prerequisite internal information.
+    * @param target the entity
+    * @param toPosition the next location of the entity in world coordinates
+    * @param fromPosition the current location of the entity in world coordinates
+    * @param range the distance from the location along the major axes
+    * @return a conglomerate sector which lists all of the entities in the allocated sector(s)
+    */
   def move(target: BlockMapEntity, toPosition: Vector3, fromPosition: Vector3, range: Float): SectorPopulation = {
     target.blockMapEntry match {
       case Some(entry) =>
         val from = entry.sectors
-        val to = BlockMap.sectorIndices(blockMap = this, toPosition, range).toSet
-        from.diff(to).foreach { index => blocks(index).removeFrom(target) }
+        val to = BlockMap.findSectorIndices(blockMap = this, toPosition, range).toSet
         to.diff(from).foreach { index => blocks(index).addTo(target) }
-        val out = to.map { blocks }
+        from.diff(to).foreach { index => blocks(index).removeFrom(target) }
         target.blockMapEntry = Some(BlockMapEntry(toPosition, range, to))
-        if (out.size == 1) {
-          out.head
-        } else {
-          SectorGroup(out)
-        }
+        BlockMap.quickToSectorGroup(to.map { blocks })
       case None    =>
         SectorGroup(Nil)
     }
@@ -231,16 +270,62 @@ class BlockMap(fullMapWidth: Int, fullMapHeight: Int, desiredSpanSize: Int) {
 }
 
 object BlockMap {
-  def apply(scale: MapScale, spanSize: Int): BlockMap = {
-    new BlockMap(scale.width.toInt, scale.height.toInt, spanSize)
+  /**
+    * Overloaded constructor that uses a `MapScale` field, common with `Zone` entities.
+    * @param scale the two-dimensional scale of the map
+    * @param desiredSpanSize the length and width of a sector
+    * @return a ` BlockMap` entity
+    */
+  def apply(scale: MapScale, desiredSpanSize: Int): BlockMap = {
+    new BlockMap(scale.width.toInt, scale.height.toInt, desiredSpanSize)
   }
 
-  def sectorIndices(blockMap: BlockMap, p: Vector3, range: Float): Iterable[Int] = {
-    sectorIndices(blockMap.spanSize, blockMap.blocksInRow, blockMap.blocks.size, p, range)
+  /**
+    * The blockmap is mapped to a coordinate range in two directions,
+    * so find the indices of the sectors that correspond to the region
+    * defined by the range around a coordinate position.
+    * @param blockMap the blockmap structure
+    * @param p the coordinate position
+    * @param range a rectangular range aigned with lateral axes extending from a coordinate position
+    * @return the indices of the sectors in the blockmap structure
+    */
+  def findSectorIndices(blockMap: BlockMap, p: Vector3, range: Float): Iterable[Int] = {
+    findSectorIndices(blockMap.spanSize, blockMap.blocksInRow, blockMap.blocks.size, p, range)
   }
 
-  def sectorIndices(spanSize: Int, blocksInRow: Int, blocksTotal: Int, p: Vector3, range: Float): Iterable[Int] = {
+  /**
+    * The blockmap is mapped to a coordinate range in two directions,
+    * so find the indices of the sectors that correspond to the region
+    * defined by the range around a coordinate position.
+    * @param spanSize the length and width of a sector
+    * @param blocksInRow the number of sectors across the width (in a row) of the blockmap
+    * @param blocksTotal the number of sectors in the blockmap
+    * @param p the coordinate position
+    * @param range a rectangular range aigned with lateral axes extending from a coordinate position
+    * @return the indices of the sectors in the blockmap structure
+    */
+  private def findSectorIndices(spanSize: Int, blocksInRow: Int, blocksTotal: Int, p: Vector3, range: Float): Iterable[Int] = {
     val corners = {
+      /*
+      find the corners of a rectangular region extending in all cardinal directions from the position;
+      transform these corners into four sector indices;
+      if the first index matches the last index, the position and range are only in one sector;
+        [----][----][----]
+        [----][1234][----]
+        [----][----][----]
+      if the first and the second or the first and the third are further apart than an adjacent column or row,
+      then the missing indices need to be filled in and all of those sectors include the position and range;
+        [----][----][----][----][----]
+        [----][1   ][    ][2   ][----]
+        [----][    ][    ][    ][----]
+        [----][3   ][    ][4   ][----]
+        [----][----][----][----][----]
+      if neither of the previous, just return all distinct corner indices
+        [----][----][----][----]      [----][----][----]      [----][----][----][----]
+        [----][1   ][2   ][----]      [----][1  2][----]      [----][1  3][2  4][----]
+        [----][3   ][4   ][----]      [----][3  4][----]      [----][----][----][----]
+        [----][----][----][----]      [----][----][----]
+       */
       val blocksInColumn = blocksTotal / blocksInRow
       val lowx = math.max(0, p.x - range)
       val highx = math.min(p.x + range, (blocksInRow * spanSize - 1).toFloat)
@@ -250,7 +335,9 @@ object BlockMap {
     }.map { case (x, y) =>
       (y / spanSize).toInt * blocksInRow + (x / spanSize).toInt
     }
-    if (corners(1) - corners.head > 1 || corners(2) - corners.head > blocksInRow) {
+    if (corners.head == corners(3)) {
+      List(corners.head)
+    } else if (corners(1) - corners.head > 1 || corners(2) - corners.head > blocksInRow) {
       (0 to (corners(2) - corners.head) / blocksInRow).flatMap { d =>
         val perRow = d * blocksInRow
         (corners.head + perRow) to (corners(1) + perRow)
@@ -302,7 +389,7 @@ object BlockMap {
     */
   def quickToSectorGroup(to: Iterable[Sector]): SectorPopulation = {
     if (to.size == 1) {
-      to.head
+      SectorGroup(to.head)
     } else {
       SectorGroup(to)
     }
