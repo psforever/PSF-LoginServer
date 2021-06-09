@@ -120,7 +120,8 @@ case object MapInfo extends StringEnum[MapInfo] {
         scale = MapScale.Dim8192,
         environment = List(
           SeaLevel(EnvironmentAttribute.Water, 10.03125f),
-          Pool(EnvironmentAttribute.Water, 213.03125f, 3116.7266f, 4724.414f, 2685.8281f, 4187.4375f) //southwest of tootega
+          Pool(EnvironmentAttribute.Water, 213.03125f, 3116.7266f, 4724.414f, 2685.8281f, 4363.461f), //east side of southwest of tootega
+          Pool(EnvironmentAttribute.Water, 213.03125f, 2994.2969f, 4363.461f, 2685.8281f, 4187.4375f), //west side of southwest of tootega
         )
       )
 
