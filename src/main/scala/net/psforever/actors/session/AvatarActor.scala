@@ -9,9 +9,10 @@ import net.psforever.objects.avatar._
 import net.psforever.objects.definition.converter.CharacterSelectConverter
 import net.psforever.objects.definition._
 import net.psforever.objects.equipment.Equipment
-import net.psforever.objects.inventory.InventoryItem
+import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.loadouts.{InfantryLoadout, Loadout}
 import net.psforever.objects._
+import net.psforever.objects.locker.LockerContainer
 import net.psforever.packet.game.objectcreate.ObjectClass
 import net.psforever.packet.game._
 import net.psforever.types._
@@ -97,6 +98,9 @@ object AvatarActor {
 
   /** Refresh the client's loadouts */
   final case class RefreshLoadouts() extends Command
+
+  /** Take all the entries in the player's locker and write it to the database */
+  final case class SaveLocker() extends Command
 
   /** Set purchase time for the use of calculating cooldowns */
   final case class UpdatePurchaseTime(definition: BasicDefinition, time: LocalDateTime = LocalDateTime.now())
@@ -190,6 +194,7 @@ class AvatarActor(
   val implantTimers: mutable.Map[Int, Cancellable] = mutable.Map()
   var staminaRegenTimer: Cancellable               = Cancellable.alreadyCancelled
   var _avatar: Option[Avatar]                      = None
+  var saveLockerFunc: () => Unit                   = storeNewLocker
   //val topic: ActorRef[Topic.Command[Avatar]]       = context.spawnAnonymous(Topic[Avatar]("avatar"))
 
   def avatar: Avatar = _avatar.get
@@ -347,16 +352,18 @@ class AvatarActor(
             loadouts <- loadLoadouts()
             implants <- ctx.run(query[persistence.Implant].filter(_.avatarId == lift(avatar.id)))
             certs    <- ctx.run(query[persistence.Certification].filter(_.avatarId == lift(avatar.id)))
-          } yield (loadouts, implants, certs)
+            locker   <- loadLocker()
+          } yield (loadouts, implants, certs, locker)
 
           result.onComplete {
-            case Success((loadouts, implants, certs)) =>
+            case Success((loadouts, implants, certs, locker)) =>
               avatar = avatar.copy(
                 loadouts = loadouts,
                 // make sure we always have the base certifications
                 certifications =
                   certs.map(cert => Certification.withValue(cert.id)).toSet ++ Config.app.game.baseCertifications,
-                implants = implants.map(implant => Some(Implant(implant.toImplantDefinition))).padTo(3, None)
+                implants = implants.map(implant => Some(Implant(implant.toImplantDefinition))).padTo(3, None),
+                locker = locker
               )
 
               staminaRegenTimer.cancel()
@@ -372,6 +379,7 @@ class AvatarActor(
           updateDeployableUIElements(
             avatar.deployables.UpdateUI()
           )
+
           Behaviors.same
 
         case AddFirstTimeEvent(event) =>
@@ -695,6 +703,10 @@ class AvatarActor(
           }
           Behaviors.same
 
+        case SaveLocker() =>
+          saveLockerFunc()
+          Behaviors.same
+
         case UpdatePurchaseTime(definition, time) =>
           // TODO save to db
           var newTimes = avatar.purchaseTimes
@@ -938,6 +950,7 @@ class AvatarActor(
         case (_, PostStop) =>
           staminaRegenTimer.cancel()
           implantTimers.values.foreach(_.cancel())
+          saveLockerFunc()
           Behaviors.same
       }
   }
@@ -1216,6 +1229,57 @@ class AvatarActor(
     } yield ()
   }
 
+  def storeNewLocker(): Unit = {
+    if (_avatar.nonEmpty) {
+      val items : String = {
+        val clobber : StringBuilder = new StringBuilder()
+        avatar.locker.Inventory.Items.foreach {
+          case InventoryItem(obj, index) =>
+            clobber.append(encodeLoadoutClobFragment(obj, index))
+        }
+        clobber.mkString.drop(1)
+      }
+      if (items.nonEmpty) {
+        saveLockerFunc = storeLocker
+        import ctx._
+        ctx.run(
+          query[persistence.Locker].insert(
+            _.avatarId -> lift(avatar.id),
+            _.items -> lift(items)
+          )
+        ).onComplete {
+          case Success(_) =>
+            log.debug(s"saving locker contents belonging to ${avatar.name}")
+          case Failure(e) =>
+            saveLockerFunc = doNotStoreLocker
+            log.error(e)("db failure")
+        }
+      }
+    }
+  }
+
+  def doNotStoreLocker(): Unit = {
+    /* most likely the database encountered an error; don't do anything with it until the restart */
+  }
+
+  def storeLocker(): Unit = {
+    import ctx._
+    val items : String = {
+      val clobber : StringBuilder = new StringBuilder()
+      avatar.locker.Inventory.Items.foreach {
+        case InventoryItem(obj, index) =>
+          clobber.append(encodeLoadoutClobFragment(obj, index))
+      }
+      clobber.mkString.drop(1)
+    }
+    log.debug(s"saving locker contents belonging to ${avatar.name}")
+    ctx.run(
+      query[persistence.Locker]
+        .filter(_.avatarId == lift(avatar.id))
+        .update(_.items -> lift(items))
+    )
+  }
+
   def encodeLoadoutClobFragment(equipment: Equipment, index: Int): String = {
     val ammoInfo: String = equipment match {
       case tool: Tool =>
@@ -1237,61 +1301,74 @@ class AvatarActor(
         loadouts.map { loadout =>
           val doll = new Player(Avatar(0, "doll", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
           doll.ExoSuit = ExoSuitType(loadout.exosuitId)
-
-          loadout.items.split("/").foreach {
-            value =>
-              val (objectType, objectIndex, objectId, toolAmmo) = value.split(",") match {
-                case Array(a, b: String, c: String)    => (a, b.toInt, c.toInt, None)
-                case Array(a, b: String, c: String, d) => (a, b.toInt, c.toInt, Some(d))
-              }
-
-              objectType match {
-                case "Tool" =>
-                  doll.Slot(objectIndex).Equipment =
-                    Tool(DefinitionUtil.idToDefinition(objectId).asInstanceOf[ToolDefinition])
-                case "AmmoBox" =>
-                  doll.Slot(objectIndex).Equipment =
-                    AmmoBox(DefinitionUtil.idToDefinition(objectId).asInstanceOf[AmmoBoxDefinition])
-                case "ConstructionItem" =>
-                  doll.Slot(objectIndex).Equipment = ConstructionItem(
-                    DefinitionUtil.idToDefinition(objectId).asInstanceOf[ConstructionItemDefinition]
-                  )
-                case "SimpleItem" =>
-                  doll.Slot(objectIndex).Equipment =
-                    SimpleItem(DefinitionUtil.idToDefinition(objectId).asInstanceOf[SimpleItemDefinition])
-                case "Kit" =>
-                  doll.Slot(objectIndex).Equipment =
-                    Kit(DefinitionUtil.idToDefinition(objectId).asInstanceOf[KitDefinition])
-                case "Telepad" | "BoomerTrigger" => ;
-                  //special types of equipment that are not actually loaded
-                case name =>
-                  log.error(s"failing to add unknown equipment to a loadout - $name")
-              }
-
-              toolAmmo foreach { toolAmmo =>
-                toolAmmo.toString.split("_").drop(1).foreach { value =>
-                  val (ammoSlots, ammoTypeIndex, ammoBoxDefinition) = value.split("-") match {
-                    case Array(a: String, b: String, c: String) => (a.toInt, b.toInt, c.toInt)
-                  }
-                  doll.Slot(objectIndex).Equipment.get.asInstanceOf[Tool].AmmoSlots(ammoSlots).AmmoTypeIndex =
-                    ammoTypeIndex
-                  doll.Slot(objectIndex).Equipment.get.asInstanceOf[Tool].AmmoSlots(ammoSlots).Box =
-                    AmmoBox(AmmoBoxDefinition(ammoBoxDefinition))
-                }
-              }
-          }
+          buildContainedEquipmentFromClob(doll, loadout.items)
 
           val result = (loadout.loadoutNumber, Loadout.Create(doll, loadout.name))
-
           (0 until 4).foreach(index => {
             doll.Slot(index).Equipment = None
           })
           doll.Inventory.Clear()
-
           result
         }
       }
       .map { loadouts => (0 until 15).map { index => loadouts.find(_._1 == index).map(_._2) } }
+  }
+
+  def loadLocker(): Future[LockerContainer] = {
+    val locker = Avatar.makeLocker()
+    import ctx._
+    ctx
+      .run(query[persistence.Locker].filter(_.avatarId == lift(avatar.id)))
+      .map { entry =>
+        saveLockerFunc = storeLocker
+        entry.foreach { contents => buildContainedEquipmentFromClob(locker, contents.items) }
+      }
+      .map { _ => locker }
+  }
+
+  def buildContainedEquipmentFromClob(container: Container, clob: String): Unit = {
+    clob.split("/").foreach {
+      value =>
+        val (objectType, objectIndex, objectId, toolAmmo) = value.split(",") match {
+          case Array(a, b: String, c: String)    => (a, b.toInt, c.toInt, None)
+          case Array(a, b: String, c: String, d) => (a, b.toInt, c.toInt, Some(d))
+        }
+
+        objectType match {
+          case "Tool" =>
+            container.Slot(objectIndex).Equipment =
+              Tool(DefinitionUtil.idToDefinition(objectId).asInstanceOf[ToolDefinition])
+          case "AmmoBox" =>
+            container.Slot(objectIndex).Equipment =
+              AmmoBox(DefinitionUtil.idToDefinition(objectId).asInstanceOf[AmmoBoxDefinition])
+          case "ConstructionItem" =>
+            container.Slot(objectIndex).Equipment = ConstructionItem(
+              DefinitionUtil.idToDefinition(objectId).asInstanceOf[ConstructionItemDefinition]
+            )
+          case "SimpleItem" =>
+            container.Slot(objectIndex).Equipment =
+              SimpleItem(DefinitionUtil.idToDefinition(objectId).asInstanceOf[SimpleItemDefinition])
+          case "Kit" =>
+            container.Slot(objectIndex).Equipment =
+              Kit(DefinitionUtil.idToDefinition(objectId).asInstanceOf[KitDefinition])
+          case "Telepad" | "BoomerTrigger" => ;
+          //special types of equipment that are not actually loaded
+          case name =>
+            log.error(s"failing to add unknown equipment to a locker - $name")
+        }
+
+        toolAmmo foreach { toolAmmo =>
+          toolAmmo.toString.split("_").drop(1).foreach { value =>
+            val (ammoSlots, ammoTypeIndex, ammoBoxDefinition) = value.split("-") match {
+              case Array(a: String, b: String, c: String) => (a.toInt, b.toInt, c.toInt)
+            }
+            container.Slot(objectIndex).Equipment.get.asInstanceOf[Tool].AmmoSlots(ammoSlots).AmmoTypeIndex =
+              ammoTypeIndex
+            container.Slot(objectIndex).Equipment.get.asInstanceOf[Tool].AmmoSlots(ammoSlots).Box =
+              AmmoBox(AmmoBoxDefinition(ammoBoxDefinition))
+          }
+        }
+    }
   }
 
   def defaultStaminaRegen(): Cancellable = {
