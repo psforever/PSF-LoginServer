@@ -3,6 +3,7 @@ package net.psforever.objects.zones
 
 import akka.actor.Actor
 import net.psforever.objects.Player
+import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.ce.Deployable
 
 import scala.annotation.tailrec
@@ -13,7 +14,6 @@ import scala.collection.mutable.ListBuffer
   * @param zone the `Zone` object
   */
 class ZoneDeployableActor(zone: Zone, deployableList: ListBuffer[Deployable]) extends Actor {
-
   import ZoneDeployableActor._
 
   private[this] val log = org.log4s.getLogger
@@ -23,6 +23,7 @@ class ZoneDeployableActor(zone: Zone, deployableList: ListBuffer[Deployable]) ex
       if (DeployableBuild(obj, deployableList)) {
         obj.Zone = zone
         obj.Definition.Initialize(obj, context)
+        zone.actor ! ZoneActor.AddToBlockMap(obj, obj.Position)
         obj.Actor ! Zone.Deployable.Setup()
       } else {
         log.warn(s"failed to build a ${obj.Definition.Name}")
@@ -33,6 +34,7 @@ class ZoneDeployableActor(zone: Zone, deployableList: ListBuffer[Deployable]) ex
       if (DeployableBuild(obj, deployableList)) {
         obj.Zone = zone
         obj.Definition.Initialize(obj, context)
+        zone.actor ! ZoneActor.AddToBlockMap(obj, obj.Position)
         owner.Actor ! Player.BuildDeployable(obj, tool)
       } else {
         log.warn(s"failed to build a ${obj.Definition.Name} belonging to ${obj.OwnerName.getOrElse("no one")}")
@@ -43,6 +45,7 @@ class ZoneDeployableActor(zone: Zone, deployableList: ListBuffer[Deployable]) ex
       if (DeployableDismiss(obj, deployableList)) {
         obj.Actor ! Zone.Deployable.IsDismissed(obj)
         obj.Definition.Uninitialize(obj, context)
+        zone.actor ! ZoneActor.RemoveFromBlockMap(obj)
       }
 
     case Zone.Deployable.IsBuilt(_) => ;

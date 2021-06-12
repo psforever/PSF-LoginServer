@@ -2,6 +2,7 @@
 package net.psforever.objects.zones
 
 import akka.actor.{Actor, Props}
+import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.{Default, Vehicle}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.vehicles.VehicleControl
@@ -44,6 +45,9 @@ class ZoneVehicleActor(zone: Zone, vehicleList: ListBuffer[Vehicle]) extends Act
         vehicle.Actor =
           context.actorOf(Props(classOf[VehicleControl], vehicle), PlanetSideServerObject.UniqueActorName(vehicle))
       }
+      if (vehicle.MountedIn.isEmpty) {
+        zone.actor ! ZoneActor.AddToBlockMap(vehicle, vehicle.Position)
+      }
       sender() ! Zone.Vehicle.HasSpawned(zone, vehicle)
 
     case Zone.Vehicle.Despawn(vehicle) =>
@@ -52,6 +56,7 @@ class ZoneVehicleActor(zone: Zone, vehicleList: ListBuffer[Vehicle]) extends Act
           vehicleList.remove(index)
           context.stop(vehicle.Actor)
           vehicle.Actor = Default.Actor
+          zone.actor ! ZoneActor.RemoveFromBlockMap(vehicle)
           sender() ! Zone.Vehicle.HasDespawned(zone, vehicle)
         case None => ;
           sender() ! Zone.Vehicle.CanNotDespawn(zone, vehicle, "can not find")

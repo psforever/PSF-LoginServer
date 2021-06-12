@@ -329,6 +329,7 @@ class VehicleControlMountingBlockedExosuitTest extends ActorTest {
     override def LocalEvents: ActorRef = catchall
     override def VehicleEvents: ActorRef = catchall
     override def Activity: ActorRef = catchall
+    this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
   }
   val vehicle = Vehicle(GlobalDefinitions.apc_tr)
   vehicle.Faction = PlanetSideEmpire.TR
@@ -392,6 +393,10 @@ class VehicleControlMountingBlockedSeatPermissionTest extends ActorTest {
   vehicle.Faction = PlanetSideEmpire.TR
   vehicle.GUID = PlanetSideGUID(10)
   vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
+  vehicle.Zone = new Zone("test", new ZoneMap("test-map"), 0) {
+    override def SetupNumberPools(): Unit = {}
+    this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
+  }
 
   val player1 = Player(VehicleTest.avatar1)
   player1.GUID = PlanetSideGUID(1)
@@ -418,6 +423,10 @@ class VehicleControlMountingDriverSeatTest extends ActorTest {
   vehicle.Faction = PlanetSideEmpire.TR
   vehicle.GUID = PlanetSideGUID(10)
   vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
+  vehicle.Zone = new Zone("test", new ZoneMap("test-map"), 0) {
+    override def SetupNumberPools(): Unit = {}
+    this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
+  }
   val player1 = Player(VehicleTest.avatar1)
   player1.GUID = PlanetSideGUID(1)
 
@@ -439,6 +448,11 @@ class VehicleControlMountingOwnedLockedDriverSeatTest extends ActorTest {
   vehicle.Faction = PlanetSideEmpire.TR
   vehicle.GUID = PlanetSideGUID(10)
   vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
+  vehicle.Zone = new Zone("test", new ZoneMap("test-map"), 0) {
+    override def SetupNumberPools(): Unit = {}
+    this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
+  }
+
   val player1 = Player(VehicleTest.avatar1)
   player1.GUID = PlanetSideGUID(1)
   val player2 = Player(VehicleTest.avatar1)
@@ -470,6 +484,11 @@ class VehicleControlMountingOwnedUnlockedDriverSeatTest extends ActorTest {
   vehicle.Faction = PlanetSideEmpire.TR
   vehicle.GUID = PlanetSideGUID(10)
   vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test")
+  vehicle.Zone = new Zone("test", new ZoneMap("test-map"), 0) {
+    override def SetupNumberPools(): Unit = {}
+    this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
+  }
+
   val player1 = Player(VehicleTest.avatar1)
   player1.GUID = PlanetSideGUID(1)
   val player2 = Player(VehicleTest.avatar1)
@@ -640,6 +659,8 @@ class VehicleControlInteractWithWaterPartialTest extends ActorTest {
     override def LivePlayers = List(player1)
     override def Vehicles = List(vehicle)
   }
+  zone.blockMap.addTo(vehicle)
+  zone.blockMap.addTo(pool)
 
   guid.register(player1, 1)
   guid.register(vehicle, 2)
@@ -655,12 +676,12 @@ class VehicleControlInteractWithWaterPartialTest extends ActorTest {
   "VehicleControl" should {
     "causes disability when the vehicle drives too deep in water (check driver messaging)" in {
       vehicle.Position = Vector3(5,5,-3) //right in the pool
-      vehicle.zoneInteraction() //trigger
+      vehicle.zoneInteractions() //trigger
 
       val msg_drown = playerProbe.receiveOne(250 milliseconds)
       assert(
         msg_drown match {
-          case InteractWithEnvironment(
+          case InteractingWithEnvironment(
             p1,
             p2,
             Some(OxygenStateTarget(PlanetSideGUID(2), OxygenState.Suffocation, 100f))
@@ -693,7 +714,11 @@ class VehicleControlInteractWithWaterTest extends ActorTest {
     override def Vehicles = List(vehicle)
     override def AvatarEvents = avatarProbe.ref
     override def VehicleEvents = vehicleProbe.ref
+
+    this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
   }
+  zone.blockMap.addTo(vehicle)
+  zone.blockMap.addTo(pool)
 
   guid.register(player1, 1)
   guid.register(vehicle, 2)
@@ -711,7 +736,7 @@ class VehicleControlInteractWithWaterTest extends ActorTest {
   "VehicleControl" should {
     "causes disability when the vehicle drives too deep in water" in {
       vehicle.Position = Vector3(5,5,-3) //right in the pool
-      vehicle.zoneInteraction() //trigger
+      vehicle.zoneInteractions() //trigger
 
       val msg_drown = avatarProbe.receiveOne(250 milliseconds)
       assert(
@@ -728,16 +753,14 @@ class VehicleControlInteractWithWaterTest extends ActorTest {
       )
       //player will die in 60s
       //vehicle will disable in 5s; driver will be kicked
-      val msg_kick = vehicleProbe.receiveOne(6 seconds)
-      assert(
-        msg_kick match {
-          case VehicleServiceMessage(
-            "test-zone",
-            VehicleAction.KickPassenger(PlanetSideGUID(1), 4, _, PlanetSideGUID(2))
-          )      => true
-          case _ => false
-        }
-      )
+      val msg_kick = vehicleProbe.receiveOne(10 seconds)
+      msg_kick match {
+        case VehicleServiceMessage(
+          "test-zone",
+          VehicleAction.KickPassenger(PlanetSideGUID(1), 4, _, PlanetSideGUID(2))
+        )      => assert(true)
+        case _ => assert(false)
+      }
       //player will die, but detailing players death messages is not necessary for this test
     }
   }
@@ -762,6 +785,8 @@ class VehicleControlStopInteractWithWaterTest extends ActorTest {
     override def LivePlayers = List(player1)
     override def Vehicles = List(vehicle)
   }
+  zone.blockMap.addTo(vehicle)
+  zone.blockMap.addTo(pool)
 
   guid.register(player1, 1)
   guid.register(vehicle, 2)
@@ -777,11 +802,11 @@ class VehicleControlStopInteractWithWaterTest extends ActorTest {
   "VehicleControl" should {
     "stop becoming disabled if the vehicle drives out of the water" in {
       vehicle.Position = Vector3(5,5,-3) //right in the pool
-      vehicle.zoneInteraction() //trigger
+      vehicle.zoneInteractions() //trigger
       val msg_drown = playerProbe.receiveOne(250 milliseconds)
       assert(
         msg_drown match {
-          case InteractWithEnvironment(
+          case InteractingWithEnvironment(
             p1,
             p2,
             Some(OxygenStateTarget(PlanetSideGUID(2), OxygenState.Suffocation, 100f))
@@ -791,7 +816,7 @@ class VehicleControlStopInteractWithWaterTest extends ActorTest {
       )
 
       vehicle.Position = Vector3.Zero //that's enough of that
-      vehicle.zoneInteraction()
+      vehicle.zoneInteractions()
       val msg_recover = playerProbe.receiveOne(250 milliseconds)
       assert(
         msg_recover match {
@@ -830,6 +855,8 @@ class VehicleControlInteractWithLavaTest extends ActorTest {
     override def VehicleEvents = vehicleProbe.ref
     override def Activity = TestProbe().ref
   }
+  zone.blockMap.addTo(vehicle)
+  zone.blockMap.addTo(pool)
 
   guid.register(player1, 1)
   guid.register(vehicle, 2)
@@ -849,7 +876,7 @@ class VehicleControlInteractWithLavaTest extends ActorTest {
       assert(vehicle.Health > 0) //alive
       assert(player1.Health == 100) //alive
       vehicle.Position = Vector3(5,5,-3) //right in the pool
-      vehicle.zoneInteraction() //trigger
+      vehicle.zoneInteractions() //trigger
 
       val msg_burn = vehicleProbe.receiveN(3,1 seconds)
       msg_burn.foreach { msg =>
@@ -888,6 +915,8 @@ class VehicleControlInteractWithDeathTest extends ActorTest {
     override def AvatarEvents = TestProbe().ref
     override def VehicleEvents = TestProbe().ref
   }
+  zone.blockMap.addTo(vehicle)
+  zone.blockMap.addTo(pool)
 
   guid.register(player1, 1)
   guid.register(vehicle, 2)
@@ -907,7 +936,7 @@ class VehicleControlInteractWithDeathTest extends ActorTest {
       assert(vehicle.Health > 0) //alive
       assert(player1.Health == 100) //alive
       vehicle.Position = Vector3(5,5,-3) //right in the pool
-      vehicle.zoneInteraction() //trigger
+      vehicle.zoneInteractions() //trigger
 
       probe.receiveOne(2 seconds) //wait until player1's implants deinitialize
       assert(vehicle.Health == 0) //ded

@@ -2,8 +2,10 @@
 package net.psforever.objects.zones
 
 import akka.actor.{Actor, ActorRef, Props}
+import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.{CorpseControl, PlayerControl}
 import net.psforever.objects.{Default, Player}
+
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.ListBuffer
 
@@ -34,6 +36,9 @@ class ZonePopulationActor(zone: Zone, playerMap: TrieMap[Int, Option[Player]], c
         case player @ Some(tplayer) =>
           tplayer.Zone = Zone.Nowhere
           PlayerLeave(tplayer)
+          if (tplayer.VehicleSeated.isEmpty) {
+            zone.actor ! ZoneActor.RemoveFromBlockMap(tplayer)
+          }
           sender() ! Zone.Population.PlayerHasLeft(zone, player)
           if (playerMap.isEmpty) {
             zone.StopPlayerManagementSystems()
@@ -52,6 +57,9 @@ class ZonePopulationActor(zone: Zone, playerMap: TrieMap[Int, Option[Player]], c
               name = GetPlayerControlName(player, None)
             )
             player.Zone = zone
+            if (player.VehicleSeated.isEmpty) {
+              zone.actor ! ZoneActor.AddToBlockMap(player, player.Position)
+            }
           }
         case None =>
           sender() ! Zone.Population.PlayerCanNotSpawn(zone, player)
@@ -61,6 +69,9 @@ class ZonePopulationActor(zone: Zone, playerMap: TrieMap[Int, Option[Player]], c
       PopulationRelease(avatar.id, playerMap) match {
         case Some(tplayer) =>
           PlayerLeave(tplayer)
+          if (tplayer.VehicleSeated.isEmpty) {
+            zone.actor ! ZoneActor.RemoveFromBlockMap(tplayer)
+          }
           sender() ! Zone.Population.PlayerHasLeft(zone, Some(tplayer))
         case None =>
           sender() ! Zone.Population.PlayerHasLeft(zone, None)
@@ -85,11 +96,13 @@ class ZonePopulationActor(zone: Zone, playerMap: TrieMap[Int, Option[Player]], c
           name = s"corpse_of_${GetPlayerControlName(player, control)}"
         )
         player.Zone = zone
+        zone.actor ! ZoneActor.AddToBlockMap(player, player.Position)
       }
 
     case Zone.Corpse.Remove(player) =>
       if (CorpseRemove(player, corpseList)) {
         PlayerLeave(player)
+        zone.actor ! ZoneActor.RemoveFromBlockMap(player)
       }
 
     case _ => ;

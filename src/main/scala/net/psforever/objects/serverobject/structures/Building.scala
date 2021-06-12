@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.structures
 
 import java.util.concurrent.TimeUnit
+
 import akka.actor.ActorContext
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.{GlobalDefinitions, NtuContainer, Player}
@@ -12,6 +13,7 @@ import net.psforever.objects.serverobject.painbox.Painbox
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.zones.Zone
+import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.packet.game.BuildingInfoUpdateMessage
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, PlanetSideGeneratorState, Vector3}
 import scalax.collection.{Graph, GraphEdge}
@@ -26,7 +28,8 @@ class Building(
     private val zone: Zone,
     private val buildingType: StructureType,
     private val buildingDefinition: BuildingDefinition
-) extends AmenityOwner {
+) extends AmenityOwner
+  with BlockMapEntity {
 
   private var faction: PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
   private var playersInSOI: List[Player]      = List.empty

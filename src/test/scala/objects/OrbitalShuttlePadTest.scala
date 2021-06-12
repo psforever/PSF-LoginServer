@@ -5,7 +5,7 @@ import akka.actor.{ActorRef, Props}
 import akka.routing.RandomPool
 import akka.testkit.TestProbe
 import base.FreedContextActorTest
-import net.psforever.actors.zone.BuildingActor
+import net.psforever.actors.zone.{BuildingActor, ZoneActor}
 import net.psforever.objects.guid.actor.UniqueNumberSystem
 import net.psforever.objects.{GlobalDefinitions, Vehicle}
 import net.psforever.objects.guid.{NumberPoolHub, TaskResolver}
@@ -56,6 +56,9 @@ class OrbitalShuttlePadControltest extends FreedContextActorTest {
     override def Vehicles = { vehicles.toList }
     override def Buildings = { buildingMap.toMap }
     override def tasks = { resolver }
+
+    import akka.actor.typed.scaladsl.adapter._
+    this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
   }
   val building = new Building(
     name = "test-orbital-building-tr",

@@ -6,7 +6,7 @@ import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.environment._
 import net.psforever.objects.vital.{Vitality, VitalityDefinition}
-import net.psforever.objects.zones.{Zone, ZoneMap}
+import net.psforever.objects.zones.{InteractsWithZone, Zone, ZoneMap}
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 import scala.concurrent.duration._
@@ -21,6 +21,9 @@ class InteractsWithZoneEnvironmentTest extends ActorTest {
     }
     new Zone("test-zone", testMap, zoneNumber = 0)
   }
+  testZone.blockMap.addTo(pool1)
+  testZone.blockMap.addTo(pool2)
+  testZone.blockMap.addTo(pool3)
 
   "InteractsWithZoneEnvironment" should {
     "not interact with any environment when it does not encroach any environment" in {
@@ -30,7 +33,7 @@ class InteractsWithZoneEnvironmentTest extends ActorTest {
       obj.Actor = testProbe.ref
 
       assert(obj.Position == Vector3.Zero)
-      obj.zoneInteraction()
+      obj.zoneInteractions()
       testProbe.expectNoMessage(max = 500 milliseconds)
     }
 
@@ -41,15 +44,15 @@ class InteractsWithZoneEnvironmentTest extends ActorTest {
       obj.Actor = testProbe.ref
 
       obj.Position = Vector3(1,1,-2)
-      obj.zoneInteraction()
+      obj.zoneInteractions()
       val msg = testProbe.receiveOne(max = 250 milliseconds)
       assert(
         msg match {
-          case InteractWithEnvironment(o, b, _) => (o eq obj) && (b eq pool1)
+          case InteractingWithEnvironment(o, b, _) => (o eq obj) && (b eq pool1)
           case _ => false
         }
       )
-      obj.zoneInteraction()
+      obj.zoneInteractions()
       testProbe.expectNoMessage(max = 500 milliseconds)
     }
 
@@ -60,17 +63,17 @@ class InteractsWithZoneEnvironmentTest extends ActorTest {
       obj.Actor = testProbe.ref
 
       obj.Position = Vector3(1,1,-2)
-      obj.zoneInteraction()
+      obj.zoneInteractions()
       val msg1 = testProbe.receiveOne(max = 250 milliseconds)
       assert(
         msg1 match {
-          case InteractWithEnvironment(o, b, _) => (o eq obj) && (b eq pool1)
+          case InteractingWithEnvironment(o, b, _) => (o eq obj) && (b eq pool1)
           case _ => false
         }
       )
 
       obj.Position = Vector3(1,1,1)
-      obj.zoneInteraction()
+      obj.zoneInteractions()
       val msg2 = testProbe.receiveOne(max = 250 milliseconds)
       assert(
         msg2 match {
@@ -78,7 +81,7 @@ class InteractsWithZoneEnvironmentTest extends ActorTest {
           case _ => false
         }
       )
-      obj.zoneInteraction()
+      obj.zoneInteractions()
       testProbe.expectNoMessage(max = 500 milliseconds)
     }
 
@@ -89,21 +92,21 @@ class InteractsWithZoneEnvironmentTest extends ActorTest {
       obj.Actor = testProbe.ref
 
       obj.Position = Vector3(7,7,-2)
-      obj.zoneInteraction()
+      obj.zoneInteractions()
       val msg1 = testProbe.receiveOne(max = 250 milliseconds)
       assert(
         msg1 match {
-          case InteractWithEnvironment(o, b, _) => (o eq obj) && (b eq pool1)
+          case InteractingWithEnvironment(o, b, _) => (o eq obj) && (b eq pool1)
           case _ => false
         }
       )
 
       obj.Position = Vector3(12,7,-2)
-      obj.zoneInteraction()
+      obj.zoneInteractions()
       val msg2 = testProbe.receiveOne(max = 250 milliseconds)
       assert(
         msg2 match {
-          case InteractWithEnvironment(o, b, _) => (o eq obj) && (b eq pool2)
+          case InteractingWithEnvironment(o, b, _) => (o eq obj) && (b eq pool2)
           case _ => false
         }
       )
@@ -117,17 +120,17 @@ class InteractsWithZoneEnvironmentTest extends ActorTest {
       obj.Actor = testProbe.ref
 
       obj.Position = Vector3(7,7,-2)
-      obj.zoneInteraction()
+      obj.zoneInteractions()
       val msg1 = testProbe.receiveOne(max = 250 milliseconds)
       assert(
         msg1 match {
-          case InteractWithEnvironment(o, b, _) => (o eq obj) && (b eq pool1)
+          case InteractingWithEnvironment(o, b, _) => (o eq obj) && (b eq pool1)
           case _ => false
         }
       )
 
       obj.Position = Vector3(7,12,-2)
-      obj.zoneInteraction()
+      obj.zoneInteractions()
       val msgs = testProbe.receiveN(2, max = 250 milliseconds)
       assert(
         msgs.head match {
@@ -137,7 +140,7 @@ class InteractsWithZoneEnvironmentTest extends ActorTest {
       )
       assert(
         msgs(1) match {
-          case InteractWithEnvironment(o, b, _) => (o eq obj) && (b eq pool3)
+          case InteractingWithEnvironment(o, b, _) => (o eq obj) && (b eq pool3)
           case _ => false
         }
       )
@@ -152,24 +155,22 @@ class InteractsWithZoneEnvironmentTest extends ActorTest {
     obj.Actor = testProbe.ref
 
     obj.Position = Vector3(1,1,-2)
-    obj.zoneInteraction()
+    obj.zoneInteractions()
     val msg1 = testProbe.receiveOne(max = 250 milliseconds)
     assert(
       msg1 match {
-        case InteractWithEnvironment(o, b, _) => (o eq obj) && (b eq pool1)
+        case InteractingWithEnvironment(o, b, _) => (o eq obj) && (b eq pool1)
         case _ => false
       }
     )
 
-    obj.allowZoneEnvironmentInteractions = false
+    obj.allowInteraction = false
     val msg2 = testProbe.receiveOne(max = 250 milliseconds)
-    assert(
-      msg2 match {
-        case EscapeFromEnvironment(o, b, _) => (o eq obj) && (b eq pool1)
-        case _ => false
-      }
-    )
-    obj.zoneInteraction()
+    msg2 match {
+      case EscapeFromEnvironment(o, b, _) => assert((o eq obj) && (b eq pool1))
+      case _ => assert( false)
+    }
+    obj.zoneInteractions()
     testProbe.expectNoMessage(max = 500 milliseconds)
   }
 
@@ -179,16 +180,16 @@ class InteractsWithZoneEnvironmentTest extends ActorTest {
     obj.Zone = testZone
     obj.Actor = testProbe.ref
 
-    obj.allowZoneEnvironmentInteractions = false
+    obj.allowInteraction = false
     obj.Position = Vector3(1,1,-2)
-    obj.zoneInteraction()
+    obj.zoneInteractions()
     testProbe.expectNoMessage(max = 500 milliseconds)
 
-    obj.allowZoneEnvironmentInteractions = true
+    obj.allowInteraction = true
     val msg1 = testProbe.receiveOne(max = 250 milliseconds)
     assert(
       msg1 match {
-        case InteractWithEnvironment(o, b, _) => (o eq obj) && (b eq pool1)
+        case InteractingWithEnvironment(o, b, _) => (o eq obj) && (b eq pool1)
         case _ => false
       }
     )
@@ -196,10 +197,11 @@ class InteractsWithZoneEnvironmentTest extends ActorTest {
 }
 
 object InteractsWithZoneEnvironmentTest {
-  def testObject(): PlanetSideServerObject with InteractsWithZoneEnvironment = {
+  def testObject(): PlanetSideServerObject with InteractsWithZone = {
     new PlanetSideServerObject
-      with InteractsWithZoneEnvironment
+      with InteractsWithZone
       with Vitality {
+      interaction(new InteractWithEnvironment())
       def Faction: PlanetSideEmpire.Value = PlanetSideEmpire.VS
       def DamageModel = null
       def Definition: ObjectDefinition with VitalityDefinition = new ObjectDefinition(objectId = 0) with VitalityDefinition {

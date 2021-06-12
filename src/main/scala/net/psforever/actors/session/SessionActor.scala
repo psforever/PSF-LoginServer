@@ -6,6 +6,7 @@ import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware, typed}
 import akka.pattern.ask
 import akka.util.Timeout
 import net.psforever.actors.net.MiddlewareActor
+import net.psforever.actors.zone.ZoneActor
 import net.psforever.login.WorldSession._
 import net.psforever.objects._
 import net.psforever.objects.avatar._
@@ -46,7 +47,8 @@ import net.psforever.objects.vital.base._
 import net.psforever.objects.vital.etc.ExplodingEntityReason
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
-import net.psforever.objects.zones.{Zone, ZoneHotSpotProjector, Zoning}
+import net.psforever.objects.zones._
+import net.psforever.objects.zones.blockmap.{BlockMap, BlockMapEntity}
 import net.psforever.packet._
 import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
 import net.psforever.packet.game.objectcreate._
@@ -2101,6 +2103,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         )
         sendResponse(ObjectDeleteMessage(kguid, 0))
 
+      case AvatarResponse.KitNotUsed(_, "") =>
+        kitToBeUsed = None
+
       case AvatarResponse.KitNotUsed(_, msg) =>
         kitToBeUsed = None
         sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", msg, None))
@@ -2469,9 +2474,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             LocalAction.SendResponse(ObjectDetachMessage(sguid, pguid, pos, 0, 0, zang))
           )
         } else {
+          log.info(s"${player.Name} is prepped for dropping")
           //get ready for orbital drop
           DismountAction(tplayer, obj, seat_num)
-          log.info(s"${player.Name} is prepped for dropping")
+          continent.actor ! ZoneActor.RemoveFromBlockMap(player) //character doesn't need it
           //DismountAction(...) uses vehicle service, so use that service to coordinate the remainder of the messages
           continent.VehicleEvents ! VehicleServiceMessage(
             player.Name,
@@ -3748,6 +3754,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           ) =>
         persist()
         turnCounterFunc(avatar_guid)
+        updateBlockMap(player, continent, pos)
         val isMoving     = WorldEntity.isMoving(vel)
         val isMovingPlus = isMoving || is_jumping || jump_thrust
         if (isMovingPlus) {
@@ -3827,7 +3834,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         if (player.death_by == -1) {
           KickedByAdministration()
         }
-        player.zoneInteraction()
+        player.zoneInteractions()
 
       case msg @ ChildObjectStateMessage(object_guid, pitch, yaw) =>
         //the majority of the following check retrieves information to determine if we are in control of the child
@@ -3883,6 +3890,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             //we're driving the vehicle
             persist()
             turnCounterFunc(player.GUID)
+            if (obj.MountedIn.isEmpty) {
+              updateBlockMap(obj, continent, pos)
+            }
             val seat = obj.Seats(0)
             player.Position = pos //convenient
             if (obj.WeaponControlledFromSeat(0).isEmpty) {
@@ -3926,7 +3936,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               )
             )
             updateSquad()
-            obj.zoneInteraction()
+            obj.zoneInteractions()
           case (None, _) =>
           //log.error(s"VehicleState: no vehicle $vehicle_guid found in zone")
           //TODO placing a "not driving" warning here may trigger as we are disembarking the vehicle
@@ -5283,7 +5293,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 SpecialEmp.emp,
                 SpecialEmp.createEmpInteraction(SpecialEmp.emp, explosion_pos),
                 SpecialEmp.prepareDistanceCheck(player, explosion_pos, player.Faction),
-                SpecialEmp.findAllBoomers
+                SpecialEmp.findAllBoomers(profile.DamageRadius)
               )
             }
             if (profile.ExistsOnRemoteClients && projectile.HasGUID) {
@@ -6910,7 +6920,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             case _ =>
               vehicle.MountedIn = None
           }
-          vehicle.allowZoneEnvironmentInteractions = true
+          vehicle.allowInteraction = true
           data
         } else {
           //passenger
@@ -7747,7 +7757,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   }
 
   /**
-    * Common activities/procedure when a player dismounts a valid object.
+    * Common activities/procedure when a player dismounts a valid mountable object.
     * @param tplayer the player
     * @param obj the mountable object
     * @param seatNum the mount out of which which the player is disembarking
@@ -8236,7 +8246,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         )
     }
     //
-    vehicle.allowZoneEnvironmentInteractions = false
+    vehicle.allowInteraction = false
     if (!zoneReload && zoneId == continent.id) {
       if (vehicle.Definition == GlobalDefinitions.droppod) {
         //instant action droppod in the same zone
@@ -9146,6 +9156,18 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           case _           => true
         })
       case None            => true
+    }
+  }
+
+  def updateBlockMap(target: BlockMapEntity, zone: Zone, newCoords: Vector3): Unit = {
+    target.blockMapEntry match {
+      case Some(entry) =>
+        if (BlockMap.findSectorIndices(continent.blockMap, newCoords, entry.range).toSet.equals(entry.sectors)) {
+          target.updateBlockMapEntry(newCoords) //soft update
+        } else {
+          zone.actor ! ZoneActor.UpdateBlockMap(target, newCoords) //hard update
+        }
+      case None        => ;
     }
   }
 

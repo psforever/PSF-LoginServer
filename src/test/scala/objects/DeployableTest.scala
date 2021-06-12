@@ -4,6 +4,7 @@ package objects
 import akka.actor.{Actor, ActorRef, Props}
 import akka.testkit.TestProbe
 import base.ActorTest
+import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.ballistics._
 import net.psforever.objects.ce.DeployedItem
 import net.psforever.objects.guid.NumberPoolHub
@@ -22,6 +23,8 @@ import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
+
+import akka.actor.typed.scaladsl.adapter._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
@@ -339,7 +342,7 @@ class ExplosiveDeployableJammerTest extends ActorTest {
   j_mine.Owner = player2
   j_mine.OwnerName = player2.Name
   j_mine.Faction = PlanetSideEmpire.NC
-  j_mine.Actor = system.actorOf(Props(classOf[ExplosiveDeployableControl], j_mine), "j-mine-control")
+  j_mine.Actor = system.actorOf(Props(classOf[MineDeployableControl], j_mine), "j-mine-control")
 
   val jMineSource = SourceEntry(j_mine)
   val pSource     = PlayerSource(player1)
@@ -406,6 +409,8 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
     override def Players = List(avatar1, avatar2)
     override def LivePlayers = List(player1, player2)
     override def tasks: ActorRef = eventsProbe.ref
+
+    this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
   }
   player1.Spawn()
   player1.Actor = player1Probe.ref
@@ -421,7 +426,9 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
   h_mine.Owner = player2
   h_mine.OwnerName = player2.Name
   h_mine.Faction = PlanetSideEmpire.NC
-  h_mine.Actor = system.actorOf(Props(classOf[ExplosiveDeployableControl], h_mine), "h-mine-control")
+  h_mine.Actor = system.actorOf(Props(classOf[MineDeployableControl], h_mine), "h-mine-control")
+  zone.blockMap.addTo(player1)
+  zone.blockMap.addTo(player2)
 
   val pSource     = PlayerSource(player1)
   val projectile  = weapon.Projectile
@@ -527,7 +534,7 @@ class ExplosiveDeployableDestructionTest extends ActorTest {
   h_mine.Owner = player2
   h_mine.OwnerName = player2.Name
   h_mine.Faction = PlanetSideEmpire.NC
-  h_mine.Actor = system.actorOf(Props(classOf[ExplosiveDeployableControl], h_mine), "h-mine-control")
+  h_mine.Actor = system.actorOf(Props(classOf[MineDeployableControl], h_mine), "h-mine-control")
 
   val hMineSource = SourceEntry(h_mine)
   val pSource     = PlayerSource(player1)
@@ -633,6 +640,10 @@ class TurretControlMountTest extends ActorTest {
     "control mounting" in {
       val obj = new TurretDeployable(GlobalDefinitions.portable_manned_turret_tr) { GUID = PlanetSideGUID(1) }
       obj.Faction = PlanetSideEmpire.TR
+      obj.Zone = new Zone("test", new ZoneMap("test"), 0) {
+        override def SetupNumberPools() = {}
+        this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
+      }
       obj.Actor = system.actorOf(Props(classOf[TurretControl], obj), s"${obj.Definition.Name}_test")
 
       assert(obj.Seats(0).occupant.isEmpty)
@@ -654,6 +665,10 @@ class TurretControlBlockMountTest extends ActorTest {
       val obj = new TurretDeployable(GlobalDefinitions.portable_manned_turret_tr) { GUID = PlanetSideGUID(1) }
       obj.Faction = PlanetSideEmpire.TR
       obj.Actor = system.actorOf(Props(classOf[TurretControl], obj), s"${obj.Definition.Name}_test")
+      obj.Zone = new Zone("test", new ZoneMap("test"), 0) {
+        override def SetupNumberPools() = {}
+        this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
+      }
 
       assert(obj.Seats(0).occupant.isEmpty)
       val player1 = Player(Avatar(0, "test1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
@@ -701,6 +716,10 @@ class TurretControlDismountTest extends ActorTest {
     "control dismounting" in {
       val obj = new TurretDeployable(GlobalDefinitions.portable_manned_turret_tr) { GUID = PlanetSideGUID(1) }
       obj.Faction = PlanetSideEmpire.TR
+      obj.Zone = new Zone("test", new ZoneMap("test"), 0) {
+        override def SetupNumberPools() = {}
+        this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
+      }
       obj.Actor = system.actorOf(Props(classOf[TurretControl], obj), s"${obj.Definition.Name}_test")
 
       assert(obj.Seats(0).occupant.isEmpty)
@@ -733,7 +752,13 @@ class TurretControlBetrayalMountTest extends ActorTest {
           MountPoints += 1 -> MountInfo(0, Vector3.Zero)
           FactionLocked = false
         } //required (defaults to true)
-      ) { GUID = PlanetSideGUID(1) }
+      ) {
+        GUID = PlanetSideGUID(1)
+        Zone = new Zone("test", new ZoneMap("test"), 0) {
+          override def SetupNumberPools() = {}
+          this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
+        }
+      }
       obj.Faction = PlanetSideEmpire.TR
       obj.Actor = system.actorOf(Props(classOf[TurretControl], obj), s"${obj.Definition.Name}_test")
       val probe = new TestProbe(system)

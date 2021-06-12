@@ -38,7 +38,7 @@ import akka.actor.typed
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
-import net.psforever.objects.geometry.Geometry3D
+import net.psforever.objects.geometry.d3.VolumetricGeometry
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.doors.Door
@@ -51,6 +51,7 @@ import net.psforever.objects.vital.etc.ExplodingEntityReason
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.vital.Vitality
+import net.psforever.objects.zones.blockmap.BlockMap
 import net.psforever.services.Service
 
 /**
@@ -86,6 +87,13 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
 
   /** The basic support structure for the globally unique number system used by this `Zone`. */
   private var guid: NumberPoolHub = new NumberPoolHub(new MaxNumberSource(65536))
+
+  /** The blockmap structure for partitioning entities and environmental aspects of the zone.
+    * For a standard 8912`^`2 map, each of the four hundred formal map grids is 445.6m long and wide.
+    * A `desiredSpanSize` of 100m divides the blockmap into 8100 sectors.
+    * A `desiredSpanSize` of 50m divides the blockmap into 32041 sectors.
+    */
+  val blockMap: BlockMap = BlockMap(map.scale, desiredSpanSize = 100)
 
   /** A synchronized `List` of items (`Equipment`) dropped by players on the ground and can be collected again. */
   private val equipmentOnGround: ListBuffer[Equipment] = ListBuffer[Equipment]()
@@ -209,6 +217,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
       MakeLattice()
       AssignAmenities()
       CreateSpawnGroups()
+      PopulateBlockMap()
 
       validate()
     }
@@ -728,6 +737,15 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     entry
   }
 
+  def PopulateBlockMap(): Unit = {
+    vehicles.foreach { vehicle => blockMap.addTo(vehicle) }
+    buildings.values.foreach { building =>
+      blockMap.addTo(building)
+      building.Amenities.foreach { amenity => blockMap.addTo(amenity) }
+    }
+    map.environment.foreach { env => blockMap.addTo(env) }
+  }
+
   def StartPlayerManagementSystems(): Unit = {
     soi ! SOI.Start()
   }
@@ -1163,14 +1181,8 @@ object Zone {
 
   /**
     * na
-    * @see `Amenity.Owner`
-    * @see `ComplexDeployable`
     * @see `DamageWithPosition`
-    * @see `SimpleDeployable`
-    * @see `Zone.Buildings`
-    * @see `Zone.DeployableList`
-    * @see `Zone.LivePlayers`
-    * @see `Zone.Vehicles`
+    * @see `Zone.blockMap.sector`
     * @param zone   the zone in which the explosion should occur
     * @param source a game entity that is treated as the origin and is excluded from results
     * @param damagePropertiesBySource information about the effect/damage
@@ -1183,30 +1195,17 @@ object Zone {
                     ): List[PlanetSideServerObject with Vitality] = {
     val sourcePosition = source.Position
     val sourcePositionXY = sourcePosition.xy
-    val radius = damagePropertiesBySource.DamageRadius * damagePropertiesBySource.DamageRadius
+    val sectors = zone.blockMap.sector(sourcePositionXY, damagePropertiesBySource.DamageRadius)
     //collect all targets that can be damaged
     //players
-    val playerTargets = zone.LivePlayers.filterNot { _.VehicleSeated.nonEmpty }
+    val playerTargets = sectors.livePlayerList.filterNot { _.VehicleSeated.nonEmpty }
     //vehicles
-    val vehicleTargets = zone.Vehicles.filterNot { v => v.Destroyed || v.MountedIn.nonEmpty }
+    val vehicleTargets = sectors.vehicleList.filterNot { v => v.Destroyed || v.MountedIn.nonEmpty }
     //deployables
-    val deployableTargets = zone.DeployableList.filterNot { _.Destroyed }
+    val deployableTargets = sectors.deployableList.filterNot { _.Destroyed }
     //amenities
-    val soiTargets = source match {
-      case o: Amenity =>
-        //fortunately, even where soi overlap, amenities in different buildings are never that close to each other
-        o.Owner.Amenities
-      case _ =>
-        zone.Buildings.values
-          .filter { b =>
-            val soiRadius = b.Definition.SOIRadius * b.Definition.SOIRadius
-            Vector3.DistanceSquared(sourcePositionXY, b.Position.xy) < soiRadius || soiRadius <= radius
-          }
-          .flatMap { _.Amenities }
-          .filter { _.Definition.Damageable }
-    }
-
-    //restrict to targets according to the detection plan
+    val soiTargets = sectors.amenityList.collect { case amenity: Vitality if !amenity.Destroyed => amenity }
+    //altogether ...
     (playerTargets ++ vehicleTargets ++ deployableTargets ++ soiTargets).filter { target => target ne source }
   }
 
@@ -1256,7 +1255,7 @@ object Zone {
     * @return `true`, if the target entities are near enough to each other;
     *        `false`, otherwise
     */
-  private def distanceCheck(g1: Geometry3D, g2: Geometry3D, maxDistance: Float): Boolean = {
+  private def distanceCheck(g1: VolumetricGeometry, g2: VolumetricGeometry, maxDistance: Float): Boolean = {
     Vector3.DistanceSquared(g1.center.asVector3, g2.center.asVector3) <= maxDistance ||
     distanceCheck(g1, g2) <= maxDistance
   }
@@ -1270,7 +1269,7 @@ object Zone {
     * @param g2 the geometric representation of a game entity
     * @return the crude distance between the two geometric representations
     */
-  def distanceCheck(g1: Geometry3D, g2: Geometry3D): Float = {
+  def distanceCheck(g1: VolumetricGeometry, g2: VolumetricGeometry): Float = {
     val dir = Vector3.Unit(g2.center.asVector3 - g1.center.asVector3)
     val point1 = g1.pointOnOutside(dir).asVector3
     val point2 = g2.pointOnOutside(Vector3.neg(dir)).asVector3

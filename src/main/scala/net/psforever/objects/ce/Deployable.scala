@@ -8,12 +8,14 @@ import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.resolution.DamageResistanceModel
 import net.psforever.objects.zones.ZoneAware
+import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.packet.game.DeployableIcon
 import net.psforever.types.PlanetSideEmpire
 
 trait BaseDeployable
   extends PlanetSideServerObject
     with FactionAffinity
+    with BlockMapEntity
     with Vitality
     with OwnableByPlayer
     with ZoneAware {

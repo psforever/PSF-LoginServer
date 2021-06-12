@@ -7,6 +7,7 @@ import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.zones.Zone
+import net.psforever.objects.zones.blockmap.{BlockMapEntity, SectorGroup}
 import net.psforever.objects.{ConstructionItem, Player, Vehicle}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
@@ -52,6 +53,14 @@ object ZoneActor {
   final case class SpawnVehicle(vehicle: Vehicle) extends Command
 
   final case class DespawnVehicle(vehicle: Vehicle) extends Command
+
+  final case class AddToBlockMap(target: BlockMapEntity, toPosition: Vector3) extends Command
+
+  final case class UpdateBlockMap(target: BlockMapEntity, toPosition: Vector3) extends Command
+
+  final case class RemoveFromBlockMap(target: BlockMapEntity) extends Command
+
+  final case class ChangedSectors(addedTo: SectorGroup, removedFrom: SectorGroup)
 
   final case class HotSpotActivity(defender: SourceEntry, attacker: SourceEntry, location: Vector3) extends Command
 
@@ -123,6 +132,15 @@ class ZoneActor(context: ActorContext[ZoneActor.Command], zone: Zone)
 
       case DespawnVehicle(vehicle) =>
         zone.Transport ! Zone.Vehicle.Despawn(vehicle)
+
+      case AddToBlockMap(target, toPosition) =>
+        zone.blockMap.addTo(target, toPosition)
+
+      case UpdateBlockMap(target, toPosition) =>
+        zone.blockMap.move(target, toPosition)
+
+      case RemoveFromBlockMap(target) =>
+        zone.blockMap.removeFrom(target)
 
       case HotSpotActivity(defender, attacker, location) =>
         zone.Activity ! Zone.HotSpot.Activity(defender, attacker, location)

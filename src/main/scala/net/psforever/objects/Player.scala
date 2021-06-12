@@ -2,19 +2,20 @@
 package net.psforever.objects
 
 import net.psforever.objects.avatar.{Avatar, LoadoutManager, SpecialCarry}
-import net.psforever.objects.ce.Deployable
+import net.psforever.objects.ce.{Deployable, InteractWithMines}
 import net.psforever.objects.definition.{AvatarDefinition, ExoSuitDefinition, SpecialExoSuitDefinition}
 import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot, JammableUnit}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.aura.AuraContainer
-import net.psforever.objects.serverobject.environment.InteractsWithZoneEnvironment
+import net.psforever.objects.serverobject.environment.InteractWithEnvironment
 import net.psforever.objects.vital.resistance.ResistanceProfile
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.resolution.DamageResistanceModel
-import net.psforever.objects.zones.{ZoneAware, Zoning}
+import net.psforever.objects.zones.blockmap.BlockMapEntity
+import net.psforever.objects.zones.{InteractsWithZone, ZoneAware, Zoning}
 import net.psforever.types.{PlanetSideGUID, _}
 
 import scala.annotation.tailrec
@@ -22,7 +23,8 @@ import scala.util.{Success, Try}
 
 class Player(var avatar: Avatar)
     extends PlanetSideServerObject
-    with InteractsWithZoneEnvironment
+    with BlockMapEntity
+    with InteractsWithZone
     with FactionAffinity
     with Vitality
     with ResistanceProfile
@@ -30,6 +32,9 @@ class Player(var avatar: Avatar)
     with JammableUnit
     with ZoneAware
     with AuraContainer {
+  interaction(new InteractWithEnvironment())
+  interaction(new InteractWithMines(range = 10))
+
   private var backpack: Boolean = false
   private var released: Boolean = false
   private var armor: Int        = 0

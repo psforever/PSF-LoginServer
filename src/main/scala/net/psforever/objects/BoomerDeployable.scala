@@ -50,9 +50,8 @@ object BoomerDeployableDefinition {
 class BoomerDeployableControl(mine: BoomerDeployable)
   extends ExplosiveDeployableControl(mine) {
 
-  override def receive: Receive =
-    deployableBehavior
-      .orElse(takesDamage)
+  def receive: Receive =
+    commonMineBehavior
       .orElse {
         case CommonMessages.Use(player, Some(trigger: BoomerTrigger)) if mine.Trigger.contains(trigger) =>
           // the trigger damages the mine, which sets it off, which causes an explosion

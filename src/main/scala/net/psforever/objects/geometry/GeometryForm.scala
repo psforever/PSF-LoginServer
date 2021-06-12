@@ -2,12 +2,13 @@
 package net.psforever.objects.geometry
 
 import net.psforever.objects.ballistics.{PlayerSource, SourceEntry}
+import net.psforever.objects.geometry.d3._
 import net.psforever.objects.{GlobalDefinitions, PlanetSideGameObject, Player}
 import net.psforever.types.{ExoSuitType, Vector3}
 
 object GeometryForm {
   /** this point can not be used for purposes of geometric representation */
-  lazy val invalidPoint: Point3D     = Point3D(Float.MinValue, Float.MinValue, Float.MinValue)
+  lazy val invalidPoint: d3.Point     = d3.Point(Float.MinValue, Float.MinValue, Float.MinValue)
   /** this cylinder can not be used for purposes of geometric representation */
   lazy val invalidCylinder: Cylinder = Cylinder(invalidPoint.asVector3, Vector3.Zero, Float.MinValue, 0)
 
@@ -16,27 +17,46 @@ object GeometryForm {
     * @param o the entity
     * @return the representation
     */
-  def representByPoint()(o: Any): Geometry3D = {
+  def representByPoint()(o: Any): VolumetricGeometry = {
     o match {
-      case p: PlanetSideGameObject => Point3D(p.Position)
-      case s: SourceEntry          => Point3D(s.Position)
+      case p: PlanetSideGameObject => Point(p.Position)
+      case s: SourceEntry          => Point(s.Position)
       case _                       => invalidPoint
     }
   }
 
   /**
-    * The geometric representation is a sphere around the entity's centroid
-    * positioned following the axis of rotation (the entity's base).
-    * @param radius how wide a hemisphere is
+    * The geometric representation is a sphere using a position as the entity's centroid
+    * and all points exist a distance from that point.
+    * @param radius how wide a quarter-sphere is
     * @param o the entity
     * @return the representation
     */
-  def representBySphere(radius: Float)(o: Any): Geometry3D = {
+  def representBySphere(radius: Float)(o: Any): VolumetricGeometry = {
     o match {
       case p: PlanetSideGameObject =>
         Sphere(p.Position, radius)
       case s: SourceEntry          =>
         Sphere(s.Position, radius)
+      case _                       =>
+        Sphere(invalidPoint, radius)
+    }
+  }
+
+  /**
+    * The geometric representation is a sphere using a position as the entity's base (foot position)
+    * and the centroid is located just above it a fixed distance.
+    * All points exist a distance from that centroid.
+    * @param radius how wide a quarter-sphere is
+    * @param o the entity
+    * @return the representation
+    */
+  def representBySphereOnBase(radius: Float)(o: Any): VolumetricGeometry = {
+    o match {
+      case p: PlanetSideGameObject =>
+        Sphere(p.Position + Vector3.z(radius), radius)
+      case s: SourceEntry          =>
+        Sphere(s.Position + Vector3.z(radius), radius)
       case _                       =>
         Sphere(invalidPoint, radius)
     }
@@ -49,7 +69,7 @@ object GeometryForm {
     * @param o the entity
     * @return the representation
     */
-  def representByRaisedSphere(radius: Float)(o: Any): Geometry3D = {
+  def representByRaisedSphere(radius: Float)(o: Any): VolumetricGeometry = {
     o match {
       case p: PlanetSideGameObject =>
         Sphere(p.Position + Vector3.relativeUp(p.Orientation) * radius, radius)
@@ -67,7 +87,7 @@ object GeometryForm {
     * @param o the entity
     * @return the representation
     */
-  def representByCylinder(radius: Float, height: Float)(o: Any): Geometry3D = {
+  def representByCylinder(radius: Float, height: Float)(o: Any): VolumetricGeometry = {
     o match {
       case p: PlanetSideGameObject => Cylinder(p.Position, Vector3.relativeUp(p.Orientation), radius, height)
       case s: SourceEntry          => Cylinder(s.Position, Vector3.relativeUp(s.Orientation), radius, height)
@@ -82,7 +102,7 @@ object GeometryForm {
     * @param o the entity
     * @return the representation
     */
-  def representPlayerByCylinder(radius: Float)(o: Any): Geometry3D = {
+  def representPlayerByCylinder(radius: Float)(o: Any): VolumetricGeometry = {
     o match {
       case p: Player =>
         val radialOffset = if(p.ExoSuit == ExoSuitType.MAX) 0.25f else 0f
@@ -113,7 +133,7 @@ object GeometryForm {
     * @param o the entity
     * @return the representation
     */
-  def representHoveringEntityByCylinder(radius: Float, height: Float, hoversAt: Float)(o: Any): Geometry3D = {
+  def representHoveringEntityByCylinder(radius: Float, height: Float, hoversAt: Float)(o: Any): VolumetricGeometry = {
     o match {
       case p: PlanetSideGameObject =>
         Cylinder(p.Position, Vector3.relativeUp(p.Orientation), radius, height)

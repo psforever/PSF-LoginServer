@@ -7082,6 +7082,7 @@ object GlobalDefinitions {
     he_mine.DeployTime = Duration.create(1000, "ms")
     he_mine.deployAnimation = DeployAnimation.Standard
     he_mine.explodes = true
+    he_mine.triggerRadius = 3f
     he_mine.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.Splash
       SympatheticExplosion = true
@@ -7105,6 +7106,39 @@ object GlobalDefinitions {
     jammer_mine.DeployTime = Duration.create(1000, "ms")
     jammer_mine.deployAnimation = DeployAnimation.Standard
     jammer_mine.DetonateOnJamming = false
+    jammer_mine.explodes = true
+    jammer_mine.triggerRadius = 3f
+    jammer_mine.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.Splash
+      Damage0 = 0
+      DamageRadius = 10f
+      DamageAtEdge = 1.0f
+      AdditionalEffect = true
+      JammedEffectDuration += TargetValidation(
+        EffectTarget.Category.Player,
+        EffectTarget.Validation.Player
+      ) -> 1000
+      JammedEffectDuration += TargetValidation(
+        EffectTarget.Category.Vehicle,
+        EffectTarget.Validation.AMS
+      ) -> 5000
+      JammedEffectDuration += TargetValidation(
+        EffectTarget.Category.Deployable,
+        EffectTarget.Validation.MotionSensor
+      ) -> 30000
+      JammedEffectDuration += TargetValidation(
+        EffectTarget.Category.Deployable,
+        EffectTarget.Validation.Spitfire
+      ) -> 30000
+      JammedEffectDuration += TargetValidation(
+        EffectTarget.Category.Turret,
+        EffectTarget.Validation.Turret
+      ) -> 30000
+      JammedEffectDuration += TargetValidation(
+        EffectTarget.Category.Vehicle,
+        EffectTarget.Validation.VehicleNotAMS
+      ) -> 10000
+    }
     jammer_mine.Geometry = mine
 
     spitfire_turret.Name = "spitfire_turret"

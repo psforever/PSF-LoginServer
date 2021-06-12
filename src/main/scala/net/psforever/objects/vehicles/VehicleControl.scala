@@ -2,6 +2,7 @@
 package net.psforever.objects.vehicles
 
 import akka.actor.{Actor, Cancellable}
+import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects._
 import net.psforever.objects.ballistics.VehicleSource
 import net.psforever.objects.ce.TelepadLike
@@ -406,6 +407,9 @@ class VehicleControl(vehicle: Vehicle)
           case Some(player) =>
             seat.unmount(player)
             player.VehicleSeated = None
+            if (player.isAlive) {
+              zone.actor ! ZoneActor.AddToBlockMap(player, vehicle.Position)
+            }
             if (player.HasGUID) {
               events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, false, guid))
             }
@@ -703,7 +707,7 @@ class VehicleControl(vehicle: Vehicle)
   /**
     * Tell the given targets that
     * water causes vehicles to become disabled if they dive off too far, too deep.
-    * @see `InteractWithEnvironment`
+    * @see `InteractingWithEnvironment`
     * @see `OxygenState`
     * @see `OxygenStateTarget`
     * @param percentage the progress bar completion state
@@ -717,7 +721,7 @@ class VehicleControl(vehicle: Vehicle)
                                      ): Unit = {
     val vtarget = Some(OxygenStateTarget(vehicle.GUID, OxygenState.Suffocation, percentage))
     targets.foreach { target =>
-      target.Actor ! InteractWithEnvironment(target, body, vtarget)
+      target.Actor ! InteractingWithEnvironment(target, body, vtarget)
     }
   }
 
@@ -741,7 +745,7 @@ class VehicleControl(vehicle: Vehicle)
       //keep doing damage
       if (vehicle.Health > 0) {
         import scala.concurrent.ExecutionContext.Implicits.global
-        interactionTimer = context.system.scheduler.scheduleOnce(delay = 250 milliseconds, self, InteractWithEnvironment(obj, body, None))
+        interactionTimer = context.system.scheduler.scheduleOnce(delay = 250 milliseconds, self, InteractingWithEnvironment(obj, body, None))
       }
     }
   }
@@ -787,7 +791,10 @@ class VehicleControl(vehicle: Vehicle)
         percentage,
         body,
         vehicle.Seats.values
-          .flatMap { case seat if seat.isOccupied => seat.occupants }
+          .flatMap {
+            case seat if seat.isOccupied => seat.occupants
+            case _                       => Nil
+          }
           .filter { p => p.isAlive && (p.Zone eq vehicle.Zone) }
       )
     }

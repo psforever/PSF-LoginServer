@@ -106,7 +106,7 @@ case object MapInfo extends StringEnum[MapInfo] {
           Pool(EnvironmentAttribute.Water, 43.765625f, 3997.2812f, 3991.539f, 3937.8906f, 3937.875f), //southwest of neit
           Pool(EnvironmentAttribute.Water, 43.671875f, 2694.2031f, 3079.875f, 2552.414f, 2898.8203f), //west of anu
           Pool(EnvironmentAttribute.Water, 42.671875f, 5174.4844f, 5930.133f, 4981.4297f, 5812.383f), //west of lugh
-          Pool(EnvironmentAttribute.Water, 42.203125f, 4935.742f, 5716.086f, 5496.6953f, 5444.5625f), //across road, west of lugh
+          Pool(EnvironmentAttribute.Water, 42.203125f, 4935.742f, 5716.086f, 4711.289f, 5444.5625f), //across road, west of lugh
           Pool(EnvironmentAttribute.Water, 41.765625f, 2073.914f, 4982.5938f, 1995.4688f, 4899.086f), //L15-M16
           Pool(EnvironmentAttribute.Water, 41.3125f, 3761.1484f, 2616.75f, 3627.4297f, 2505.1328f), //G11, south
           Pool(EnvironmentAttribute.Water, 40.421875f, 4058.8281f, 2791.6562f, 3985.1016f, 2685.3672f) //G11, north

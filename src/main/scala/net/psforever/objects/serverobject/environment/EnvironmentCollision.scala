@@ -1,6 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.environment
 
+import net.psforever.objects.geometry.d2.Rectangle
 import net.psforever.types.Vector3
 
 /**
@@ -20,6 +21,8 @@ trait EnvironmentCollision {
     *        `false`, otherwise
     */
   def testInteraction(pos: Vector3, varDepth: Float): Boolean
+
+  def bounding: Rectangle
 }
 
 /**
@@ -31,6 +34,12 @@ final case class DeepPlane(altitude: Float)
   extends EnvironmentCollision {
   def testInteraction(pos: Vector3, varDepth: Float): Boolean = {
     pos.z + varDepth < altitude
+  }
+
+  def bounding: Rectangle = {
+    val max = Float.MaxValue * 0.25f
+    val min = Float.MinValue * 0.25f
+    Rectangle(max, max, min, min)
   }
 }
 
@@ -49,6 +58,8 @@ final case class DeepSquare(altitude: Float, north: Float, east: Float, south: F
   def testInteraction(pos: Vector3, varDepth: Float): Boolean = {
     pos.z + varDepth < altitude && north > pos.y && pos.y >= south && east > pos.x && pos.x >= west
   }
+
+  def bounding: Rectangle = Rectangle(north, east, south, west)
 }
 
 /**
@@ -68,6 +79,8 @@ final case class DeepSurface(altitude: Float, north: Float, east: Float, south: 
   def testInteraction(pos: Vector3, varDepth: Float): Boolean = {
     pos.z < altitude && north > pos.y && pos.y >= south && east > pos.x && pos.x >= west
   }
+
+  def bounding: Rectangle = Rectangle(north, east, south, west)
 }
 
 /**
@@ -79,6 +92,8 @@ final case class DeepSurface(altitude: Float, north: Float, east: Float, south: 
 final case class DeepCircularSurface(center: Vector3, radius: Float)
   extends EnvironmentCollision {
   def altitude: Float = center.z
+
+  def bounding: Rectangle = Rectangle(center.y + radius, center.x + radius, center.y - radius, center.x - radius)
 
   def testInteraction(pos: Vector3, varDepth: Float): Boolean = {
     pos.z < center.z && Vector3.DistanceSquared(pos.xy, center.xy) < radius * radius
