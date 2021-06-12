@@ -5105,7 +5105,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       case msg @ FavoritesRequest(player_guid, loadoutType, action, line, label) =>
         CancelZoningProcessWithDescriptiveReason("cancel_use")
-        log.info(s"${player.Name} wishes to load a saved favorite loadout")
         action match {
           case FavoritesAction.Save   => avatarActor ! AvatarActor.SaveLoadout(player, loadoutType, label, line)
           case FavoritesAction.Delete => avatarActor ! AvatarActor.DeleteLoadout(player, loadoutType, line)
