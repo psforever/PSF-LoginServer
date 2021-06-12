@@ -97,7 +97,10 @@ object AvatarActor {
   /** Delete a loadout */
   final case class DeleteLoadout(player: Player, loadoutType: LoadoutType.Value, number: Int) extends Command
 
-  /** Refresh the client's loadouts */
+  /** Refresh the client's loadouts, excluding empty entries */
+  final case class InitialRefreshLoadouts() extends Command
+
+  /** Refresh all of the client's loadouts */
   final case class RefreshLoadouts() extends Command
 
   /** Take all the entries in the player's locker and write it to the database */
@@ -711,8 +714,12 @@ class AvatarActor(
           saveLockerFunc()
           Behaviors.same
 
+        case InitialRefreshLoadouts() =>
+          refreshLoadouts(avatar.loadouts.zipWithIndex)
+          Behaviors.same
+
         case RefreshLoadouts() =>
-          refreshLoadouts()
+          refreshLoadouts(avatar.loadouts.zipWithIndex.collect { case out @ (Some(_), _) => out })
           Behaviors.same
 
         case UpdatePurchaseTime(definition, time) =>
@@ -1403,48 +1410,7 @@ class AvatarActor(
       .map { loadouts =>
         loadouts.map { loadout =>
           val toy = new Vehicle(DefinitionUtil.idToDefinition(loadout.vehicle).asInstanceOf[VehicleDefinition])
-          loadout.items.split("/").foreach {
-            value =>
-              val (objectType, objectIndex, objectId, toolAmmo) = value.split(",") match {
-                case Array(a, b: String, c: String)    => (a, b.toInt, c.toInt, None)
-                case Array(a, b: String, c: String, d) => (a, b.toInt, c.toInt, Some(d))
-              }
-
-              objectType match {
-                case "Tool" =>
-                  toy.Slot(objectIndex).Equipment =
-                    Tool(DefinitionUtil.idToDefinition(objectId).asInstanceOf[ToolDefinition])
-                case "AmmoBox" =>
-                  toy.Slot(objectIndex).Equipment =
-                    AmmoBox(DefinitionUtil.idToDefinition(objectId).asInstanceOf[AmmoBoxDefinition])
-                case "ConstructionItem" =>
-                  toy.Slot(objectIndex).Equipment = ConstructionItem(
-                    DefinitionUtil.idToDefinition(objectId).asInstanceOf[ConstructionItemDefinition]
-                  )
-                case "SimpleItem" =>
-                  toy.Slot(objectIndex).Equipment =
-                    SimpleItem(DefinitionUtil.idToDefinition(objectId).asInstanceOf[SimpleItemDefinition])
-                case "Kit" =>
-                  toy.Slot(objectIndex).Equipment =
-                    Kit(DefinitionUtil.idToDefinition(objectId).asInstanceOf[KitDefinition])
-                case "Telepad" | "BoomerTrigger" => ;
-                //special types of equipment that are not actually loaded
-                case name =>
-                  log.error(s"failing to add unknown equipment to a loadout - $name")
-              }
-
-              toolAmmo foreach { toolAmmo =>
-                toolAmmo.toString.split("_").drop(1).foreach { value =>
-                  val (ammoSlots, ammoTypeIndex, ammoBoxDefinition) = value.split("-") match {
-                    case Array(a: String, b: String, c: String) => (a.toInt, b.toInt, c.toInt)
-                  }
-                  toy.Slot(objectIndex).Equipment.get.asInstanceOf[Tool].AmmoSlots(ammoSlots).AmmoTypeIndex =
-                    ammoTypeIndex
-                  toy.Slot(objectIndex).Equipment.get.asInstanceOf[Tool].AmmoSlots(ammoSlots).Box =
-                    AmmoBox(AmmoBoxDefinition(ammoBoxDefinition))
-                }
-              }
-          }
+          buildContainedEquipmentFromClob(toy, loadout.items)
 
           val result = (loadout.loadoutNumber, Loadout.Create(toy, loadout.name))
           toy.Weapons.values.foreach(slot => {
@@ -1457,8 +1423,8 @@ class AvatarActor(
       .map { loadouts => (0 until 5).map { index => loadouts.find(_._1 == index).map(_._2) } }
   }
 
-  def refreshLoadouts(): Unit = {
-    avatar.loadouts.zipWithIndex.map {
+  def refreshLoadouts(loadouts: Iterable[(Option[Loadout], Int)]): Unit = {
+    loadouts.map {
       case (Some(loadout: InfantryLoadout), index) =>
         FavoritesMessage(
           LoadoutType.Infantry,
