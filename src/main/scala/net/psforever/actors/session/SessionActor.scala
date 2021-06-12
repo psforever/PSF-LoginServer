@@ -317,10 +317,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     continent.LocalEvents ! Service.Leave()
     continent.VehicleEvents ! Service.Leave()
 
-    // when going from classic -> typed this seems necessary
-    context.stop(avatarActor)
-    context.stop(chatActor)
-
     if (avatar != null) {
       //TODO put any temporary values back into the avatar
       squadService ! Service.Leave(Some(s"${avatar.faction}"))
@@ -335,6 +331,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
       }
     }
+    // when going from classic -> typed this seems necessary
+    akka.actor.TypedActor(context.system).poisonPill(avatarActor)
+    akka.actor.TypedActor(context.system).poisonPill(chatActor)
   }
 
   def ValidObject(id: Int): Option[PlanetSideGameObject] = ValidObject(Some(PlanetSideGUID(id)))
@@ -6116,6 +6115,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         UnaccessVehicleContainer(v)
       case o: LockerContainer =>
         UnaccessGenericContainer(o)
+        avatarActor ! AvatarActor.SaveLocker()
       case p: Player if p.isBackpack =>
         UnaccessCorpseContainer(p)
       case _: PlanetSideServerObject with Container =>

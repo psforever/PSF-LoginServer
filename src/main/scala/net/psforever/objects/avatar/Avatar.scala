@@ -65,6 +65,14 @@ object Avatar {
     GlobalDefinitions.super_medkit     -> 20.minutes,
     GlobalDefinitions.super_staminakit -> 5.minutes // Temporary - Default value is 20 minutes
   )
+
+  def makeLocker(): LockerContainer = {
+    new LockerContainer({
+      val inv = new LocallyRegisteredInventory(numbers = 40150 until 40450) // TODO var bad
+      inv.Resize(30,20)
+      inv
+    })
+  }
 }
 
 case class Avatar(
@@ -84,11 +92,7 @@ case class Avatar(
     loadouts: Seq[Option[Loadout]] = Seq.fill(15)(None),
     squadLoadouts: Seq[Option[SquadLoadout]] = Seq.fill(10)(None),
     implants: Seq[Option[Implant]] = Seq(None, None, None),
-    locker: LockerContainer = new LockerContainer({
-      val inv = new LocallyRegisteredInventory(numbers = 40150 until 40450) // TODO var bad
-      inv.Resize(30,20)
-      inv
-    }),
+    locker: LockerContainer = Avatar.makeLocker(),
     deployables: DeployableToolbox = new DeployableToolbox(), // TODO var bad
     lookingForSquad: Boolean = false,
     var vehicle: Option[PlanetSideGUID] = None, // TODO var bad
