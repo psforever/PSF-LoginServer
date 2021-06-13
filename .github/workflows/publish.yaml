@@ -1,32 +1,11 @@
-name: Publish
-on: [push]
+name: Publish Docker Image
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    types: [ opened, reopened, synchronize ]
 jobs:
-  docs:
-    if: github.ref == 'refs/heads/master'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Cache SBT
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.ivy2/cache
-            ~/.sbt
-          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Setup Scala
-        uses: olafurpg/setup-scala@v12
-      - name: Build docs
-        run: sbt docs/unidoc
-      - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@4.1.4
-        with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH: gh-pages
-          FOLDER: docs/target/scala-2.13/unidoc
-
   docker:
     runs-on: ubuntu-latest
     steps:
@@ -36,7 +15,11 @@ jobs:
         id: prep
         run: |
           DOCKER_IMAGE=server
-          REPOSITORY="$(echo $GITHUB_REPOSITORY | tr '[:upper:]' '[:lower:]')"
+          REPOSITORY="$(echo $GITHUB_REPOSITORY | tr '[:upper:]' '[:lower:]')" # Repository name must be lowercase in image tags
+
+          if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
+              GITHUB_SHA=$(cat $GITHUB_EVENT_PATH | jq -r .pull_request.head.sha) # GITHUB_SHA is the merge SHA, not the head commit SHA in a PR, replace it.
+          fi
 
           TAGS="ghcr.io/${REPOSITORY}/${DOCKER_IMAGE}:${GITHUB_SHA}"
           if [ "${{ github.ref }}" = "refs/heads/master" ]; then
