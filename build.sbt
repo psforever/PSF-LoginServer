@@ -72,7 +72,7 @@ lazy val psforeverSettings = Seq(
     "com.github.pureconfig"      %% "pureconfig"                 % "0.16.0",
     "com.beachape"               %% "enumeratum"                 % "1.6.1",
     "joda-time"                   % "joda-time"                  % "2.10.10",
-    "commons-io"                  % "commons-io"                 % "2.9.0",
+    "commons-io"                  % "commons-io"                 % "2.10.0",
     "com.github.scopt"           %% "scopt"                      % "4.0.1",
     "io.sentry"                   % "sentry-logback"             % "5.0.1",
     "io.circe"                   %% "circe-core"                 % "0.14.1",
