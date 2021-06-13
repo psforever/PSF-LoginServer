@@ -183,16 +183,6 @@ object Server {
     loggerContext.reset()
     configurator.doConfigure(loggerConfigPath)
 
-    Config.result match {
-      case Left(failures) =>
-        logger.error("Loading config failed")
-        failures.toList.foreach { failure =>
-          logger.error(failure.toString)
-        }
-        sys.exit(1)
-      case Right(_) =>
-    }
-
     val builder = OParser.builder[CliConfig]
 
     val parser = {
