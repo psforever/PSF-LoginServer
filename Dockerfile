@@ -10,8 +10,8 @@ FROM openjdk:17-slim
 
 COPY --from=builder /PSF-LoginServer/server/target/pack/ /usr/local
 
-EXPOSE 51000
-EXPOSE 51001
-EXPOSE 51002
+EXPOSE 51000/udp
+EXPOSE 51001/udp
+EXPOSE 51002/tcp
 
 CMD ["psforever-server"]
