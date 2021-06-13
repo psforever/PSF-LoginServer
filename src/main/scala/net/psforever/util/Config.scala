@@ -8,7 +8,6 @@ import net.psforever.objects.avatar.{BattleRank, Certification, CommandRank}
 import net.psforever.packet.game.ServerType
 import net.psforever.types.ChatMessageType
 import pureconfig.ConfigConvert.viaNonEmptyStringOpt
-import pureconfig.ConfigReader.Result
 import pureconfig.{ConfigConvert, ConfigSource}
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
