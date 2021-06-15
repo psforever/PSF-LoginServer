@@ -218,7 +218,50 @@ object DefinitionUtil {
       case 39  => advanced_ace
       case 148 => boomer
       case 149 => boomer_trigger
-      case _   => frag_grenade
+      //vehicles
+      case 67  => apc_tr
+      case 66  => apc_nc
+      case 68  => apc_vs
+      case 46  => ams
+      case 60  => ant
+      //case 83  => aphelion_flight
+      //case 84  => aphelion_gunner
+      case 118 => aurora
+      case 135 => battlewagon
+      //case 199 => colossus_flight
+      //case 200 => colossus_gunner
+      case 258 => droppod
+      case 259 => dropship
+      case 294 => flail
+      case 335 => fury
+      case 338 => galaxy_gunship
+      case 432 => liberator
+      case 441 => lightgunship
+      case 446 => lightning
+      case 459 => lodestar
+      case 470 => magrider
+      case 572 => mosquito
+      case 532 => mediumtransport
+      case 608 => orbital_shuttle
+      //case 642 => peregrine_flight
+      //case 643 => peregrine_gunner
+      case 671 => phantasm
+      case 697 => prowler
+      case 707 => quadassault
+      case 710 => quadstealth
+      case 741 => router
+      case 784 => skyguard
+      case 847 => switchblade
+      case 862 => threemanheavybuggy
+      case 865 => thunderer
+      case 896 => two_man_assault_buggy
+      case 898 => twomanheavybuggy
+      case 900 => twomanhoverbuggy
+      case 923 => vanguard
+      case 986 => vulture
+      case 997 => wasp
+      //default
+      case _  => throw new IllegalArgumentException(s"you can not build $id")
     }
   }
 

@@ -332,8 +332,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       }
     }
     // when going from classic -> typed this seems necessary
-    akka.actor.TypedActor(context.system).poisonPill(avatarActor)
-    akka.actor.TypedActor(context.system).poisonPill(chatActor)
+    context.stop(avatarActor)
+    context.stop(chatActor)
   }
 
   def ValidObject(id: Int): Option[PlanetSideGameObject] = ValidObject(Some(PlanetSideGUID(id)))
@@ -3078,7 +3078,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     sendResponse(CreateShortcutMessage(guid, 1, 0, true, Shortcut.Medkit))
     sendResponse(ChangeShortcutBankMessage(guid, 0))
     //Favorites lists
-    avatarActor ! AvatarActor.RefreshLoadouts()
+    avatarActor ! AvatarActor.InitialRefreshLoadouts()
 
     sendResponse(
       SetChatFilterMessage(ChatChannel.Platoon, false, ChatChannel.values.toList)
@@ -5105,7 +5105,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       case msg @ FavoritesRequest(player_guid, loadoutType, action, line, label) =>
         CancelZoningProcessWithDescriptiveReason("cancel_use")
-        log.info(s"${player.Name} wishes to load a saved favorite loadout")
         action match {
           case FavoritesAction.Save   => avatarActor ! AvatarActor.SaveLoadout(player, loadoutType, label, line)
           case FavoritesAction.Delete => avatarActor ! AvatarActor.DeleteLoadout(player, loadoutType, line)

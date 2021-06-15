@@ -8,9 +8,10 @@ import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
 import net.psforever.objects.avatar._
 import net.psforever.objects.definition.converter.CharacterSelectConverter
 import net.psforever.objects.definition._
-import net.psforever.objects.equipment.Equipment
-import net.psforever.objects.inventory.{Container, InventoryItem}
-import net.psforever.objects.loadouts.{InfantryLoadout, Loadout}
+import net.psforever.objects.inventory.Container
+import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
+import net.psforever.objects.inventory.InventoryItem
+import net.psforever.objects.loadouts.{InfantryLoadout, Loadout, VehicleLoadout}
 import net.psforever.objects._
 import net.psforever.objects.locker.LockerContainer
 import net.psforever.packet.game.objectcreate.ObjectClass
@@ -96,7 +97,10 @@ object AvatarActor {
   /** Delete a loadout */
   final case class DeleteLoadout(player: Player, loadoutType: LoadoutType.Value, number: Int) extends Command
 
-  /** Refresh the client's loadouts */
+  /** Refresh the client's loadouts, excluding empty entries */
+  final case class InitialRefreshLoadouts() extends Command
+
+  /** Refresh all of the client's loadouts */
   final case class RefreshLoadouts() extends Command
 
   /** Take all the entries in the player's locker and write it to the database */
@@ -349,7 +353,7 @@ class AvatarActor(
                 .filter(_.id == lift(avatar.id))
                 .update(_.lastLogin -> lift(LocalDateTime.now()))
             )
-            loadouts <- loadLoadouts()
+            loadouts <- initializeAllLoadouts()
             implants <- ctx.run(query[persistence.Implant].filter(_.avatarId == lift(avatar.id)))
             certs    <- ctx.run(query[persistence.Certification].filter(_.avatarId == lift(avatar.id)))
             locker   <- loadLocker()
@@ -374,12 +378,7 @@ class AvatarActor(
           Behaviors.same
 
         case ReplaceAvatar(newAvatar) =>
-          avatar = newAvatar
-          avatar.deployables.UpdateMaxCounts(avatar.certifications)
-          updateDeployableUIElements(
-            avatar.deployables.UpdateUI()
-          )
-
+          replaceAvatar(newAvatar)
           Behaviors.same
 
         case AddFirstTimeEvent(event) =>
@@ -434,7 +433,7 @@ class AvatarActor(
                         sessionActor ! SessionActor.SendResponse(
                           PlanetsideAttributeMessage(session.get.player.GUID, 24, certification.value)
                         )
-                        context.self ! ReplaceAvatar(
+                        replaceAvatar(
                           avatar.copy(certifications = avatar.certifications.diff(replace) + certification)
                         )
                         sessionActor ! SessionActor.SendResponse(
@@ -487,7 +486,7 @@ class AvatarActor(
                   )
                 case Success(certs) =>
                   val player = session.get.player
-                  context.self ! ReplaceAvatar(avatar.copy(certifications = avatar.certifications.diff(certs)))
+                  replaceAvatar(avatar.copy(certifications = avatar.certifications.diff(certs)))
                   certs.foreach { cert =>
                     sessionActor ! SessionActor.SendResponse(
                       PlanetsideAttributeMessage(player.GUID, 25, cert.value)
@@ -548,7 +547,7 @@ class AvatarActor(
             )
             .onComplete {
               case Success(_) =>
-                context.self ! ReplaceAvatar(avatar.copy(certifications = certifications))
+                replaceAvatar(avatar.copy(certifications = certifications))
               case Failure(exception) =>
                 log.error(exception)("db failure")
             }
@@ -584,9 +583,7 @@ class AvatarActor(
                 .run(query[persistence.Implant].insert(_.name -> lift(definition.Name), _.avatarId -> lift(avatar.id)))
                 .onComplete {
                   case Success(_) =>
-                    context.self ! ReplaceAvatar(
-                      avatar.copy(implants = avatar.implants.updated(_index, Some(Implant(definition))))
-                    )
+                    replaceAvatar(avatar.copy(implants = avatar.implants.updated(_index, Some(Implant(definition)))))
                     sessionActor ! SessionActor.SendResponse(
                       AvatarImplantMessage(
                         session.get.player.GUID,
@@ -627,7 +624,7 @@ class AvatarActor(
                 )
                 .onComplete {
                   case Success(_) =>
-                    context.self ! ReplaceAvatar(avatar.copy(implants = avatar.implants.updated(_index, None)))
+                    replaceAvatar(avatar.copy(implants = avatar.implants.updated(_index, None)))
                     sessionActor ! SessionActor.SendResponse(
                       AvatarImplantMessage(session.get.player.GUID, ImplantAction.Remove, _index, 0)
                     )
@@ -647,64 +644,82 @@ class AvatarActor(
           Behaviors.same
 
         case SaveLoadout(player, loadoutType, label, number) =>
+          log.info(s"${player.Name} wishes to save a favorite $loadoutType loadout as #${number+1}")
           val name = label.getOrElse(s"missing_loadout_${number + 1}")
-          loadoutType match {
+          val (lineNo, result): (Int, Future[Loadout]) = loadoutType match {
             case LoadoutType.Infantry =>
-              storeLoadout(player, name, number).onComplete {
-                case Success(_) =>
-                  loadLoadouts().onComplete {
-                    case Success(loadouts) =>
-                      context.self ! ReplaceAvatar(avatar.copy(loadouts = loadouts))
-                      context.self ! RefreshLoadouts()
-                    case Failure(exception) => log.error(exception)("db failure")
-                  }
-
-                case Failure(exception) => log.error(exception)("db failure")
-              }
+              (
+                number,
+                storeLoadout(player, name, number)
+              )
 
             case LoadoutType.Vehicle =>
-              // TODO
-              // storeLoadout(player, name, 10 + number)
-              sessionActor ! SessionActor.SendResponse(FavoritesMessage(loadoutType, player.GUID, number, name))
+              (
+                number + 10,
+                player.Zone.GUID(avatar.vehicle) match {
+                  case Some(vehicle: Vehicle) =>
+                    storeVehicleLoadout(player, name, number, vehicle)
+                  case _ =>
+                    throwLoadoutFailure(s"no owned vehicle found for ${player.Name}")
+                }
+              )
+          }
+          result.onComplete {
+            case Success(loadout) =>
+              replaceAvatar(avatar.copy(loadouts = avatar.loadouts.updated(lineNo, Some(loadout))))
+              refreshLoadout(lineNo)
+            case Failure(exception) =>
+              log.error(exception)("db failure (?)")
           }
           Behaviors.same
 
         case DeleteLoadout(player, loadoutType, number) =>
+          log.info(s"${player.Name} wishes to delete a favorite $loadoutType loadout - #${number+1}")
           import ctx._
-          ctx
-            .run(
-              query[persistence.Loadout]
-                .filter(_.avatarId == lift(avatar.id))
-                .filter(_.loadoutNumber == lift(number))
-                .delete
-            )
-            .onComplete {
-              case Success(_) =>
-                context.self ! ReplaceAvatar(avatar.copy(loadouts = avatar.loadouts.updated(number, None)))
-                sessionActor ! SessionActor.SendResponse(FavoritesMessage(loadoutType, player.GUID, number, ""))
-              case Failure(exception) =>
-                log.error(exception)("db failure")
-            }
-          Behaviors.same
-
-        case RefreshLoadouts() =>
-          avatar.loadouts.zipWithIndex.foreach {
-            case (Some(loadout: InfantryLoadout), index) =>
-              sessionActor ! SessionActor.SendResponse(
-                FavoritesMessage(
-                  LoadoutType.Infantry,
-                  session.get.player.GUID,
-                  index,
-                  loadout.label,
-                  InfantryLoadout.DetermineSubtypeB(loadout.exosuit, loadout.subtype)
+          val (lineNo, result) = loadoutType match {
+            case LoadoutType.Infantry if avatar.loadouts(number).nonEmpty =>
+              (
+                number,
+                ctx.run(
+                  query[persistence.Loadout]
+                    .filter(_.avatarId == lift(avatar.id))
+                    .filter(_.loadoutNumber == lift(number))
+                    .delete
                 )
               )
-            case _ => ;
+            case LoadoutType.Vehicle if avatar.loadouts(number + 10).nonEmpty =>
+              val lineNo = number + 10
+              (
+                lineNo,
+                ctx.run(
+                  query[persistence.Vehicleloadout]
+                    .filter(_.avatarId == lift(avatar.id))
+                    .filter(_.loadoutNumber == lift(number))
+                    .delete
+                )
+              )
+            case _ =>
+              (number, throwLoadoutFailure("unhandled loadout type or no loadout"))
+          }
+          result.onComplete {
+            case Success(_) =>
+              replaceAvatar(avatar.copy(loadouts = avatar.loadouts.updated(lineNo, None)))
+              sessionActor ! SessionActor.SendResponse(FavoritesMessage(loadoutType, player.GUID, number, ""))
+            case Failure(exception) =>
+              log.error(exception)("db failure (?)")
           }
           Behaviors.same
 
         case SaveLocker() =>
           saveLockerFunc()
+          Behaviors.same
+
+        case InitialRefreshLoadouts() =>
+          refreshLoadouts(avatar.loadouts.zipWithIndex)
+          Behaviors.same
+
+        case RefreshLoadouts() =>
+          refreshLoadouts(avatar.loadouts.zipWithIndex.collect { case out @ (Some(_), _) => out })
           Behaviors.same
 
         case UpdatePurchaseTime(definition, time) =>
@@ -955,6 +970,22 @@ class AvatarActor(
       }
   }
 
+  def throwLoadoutFailure(msg: String): Future[Loadout] = {
+    throwLoadoutFailure(new Exception(msg))
+  }
+
+  def throwLoadoutFailure(ex: Throwable): Future[Loadout] = {
+    Future.failed(ex).asInstanceOf[Future[Loadout]]
+  }
+
+  def replaceAvatar(newAvatar: Avatar): Unit = {
+    avatar = newAvatar
+    avatar.deployables.UpdateMaxCounts(avatar.certifications)
+    updateDeployableUIElements(
+      avatar.deployables.UpdateUI()
+    )
+  }
+
   def setCosmetics(cosmetics: Set[Cosmetic]): Future[Unit] = {
     val p = Promise[Unit]()
 
@@ -1183,9 +1214,8 @@ class AvatarActor(
     }
   }
 
-  def storeLoadout(owner: Player, label: String, line: Int): Future[Unit] = {
+  def storeLoadout(owner: Player, label: String, line: Int): Future[Loadout] = {
     import ctx._
-
     val items: String = {
       val clobber: StringBuilder = new StringBuilder()
       //encode holsters
@@ -1226,7 +1256,53 @@ class AvatarActor(
             )
           )
       }
-    } yield ()
+    } yield Loadout.Create(owner, label)
+  }
+
+  def storeVehicleLoadout(owner: Player, label: String, line: Int, vehicle: Vehicle): Future[Loadout] = {
+    import ctx._
+    val items: String = {
+      val clobber: StringBuilder = new StringBuilder()
+      //encode holsters
+      vehicle
+        .Weapons
+        .collect {
+          case (index, slot: EquipmentSlot) if slot.Equipment.nonEmpty =>
+            clobber.append(encodeLoadoutClobFragment(slot.Equipment.get, index))
+        }
+      //encode inventory
+      vehicle.Inventory.Items.foreach {
+        case InventoryItem(obj, index) =>
+          clobber.append(encodeLoadoutClobFragment(obj, index))
+      }
+      clobber.mkString.drop(1)
+    }
+
+    for {
+      loadouts <- ctx.run(
+        query[persistence.Vehicleloadout]
+          .filter(_.avatarId == lift(owner.CharId))
+          .filter(_.loadoutNumber == lift(line))
+      )
+      _ <- loadouts.headOption match {
+        case Some(loadout) =>
+          ctx.run(
+            query[persistence.Vehicleloadout]
+              .filter(_.id == lift(loadout.id))
+              .update(_.name -> lift(label), _.vehicle -> lift(vehicle.Definition.ObjectId), _.items -> lift(items))
+          )
+        case None =>
+          ctx.run(
+            query[persistence.Vehicleloadout].insert(
+              _.avatarId      -> lift(owner.avatar.id),
+              _.loadoutNumber -> lift(line),
+              _.name          -> lift(label),
+              _.vehicle       -> lift(vehicle.Definition.ObjectId),
+              _.items         -> lift(items)
+            )
+          )
+      }
+    } yield Loadout.Create(vehicle, label)
   }
 
   def storeNewLocker(): Unit = {
@@ -1293,6 +1369,19 @@ class AvatarActor(
     s"/${equipment.getClass.getSimpleName},$index,${equipment.Definition.ObjectId},$ammoInfo"
   }
 
+  def initializeAllLoadouts(): Future[Seq[Option[Loadout]]] = {
+    for {
+      infantry <- loadLoadouts().andThen {
+        case out @ Success(_) => out
+        case Failure(_) => Future(Array.fill[Option[Loadout]](10)(None).toSeq)
+      }
+      vehicles <- loadVehicleLoadouts().andThen {
+        case out @ Success(_) => out
+        case Failure(_) => Future(Array.fill[Option[Loadout]](5)(None).toSeq)
+      }
+    } yield infantry ++ vehicles
+  }
+
   def loadLoadouts(): Future[Seq[Option[Loadout]]] = {
     import ctx._
     ctx
@@ -1311,7 +1400,102 @@ class AvatarActor(
           result
         }
       }
-      .map { loadouts => (0 until 15).map { index => loadouts.find(_._1 == index).map(_._2) } }
+      .map { loadouts => (0 until 10).map { index => loadouts.find(_._1 == index).map(_._2) } }
+  }
+
+  def loadVehicleLoadouts(): Future[Seq[Option[Loadout]]] = {
+    import ctx._
+    ctx
+      .run(query[persistence.Vehicleloadout].filter(_.avatarId == lift(avatar.id)))
+      .map { loadouts =>
+        loadouts.map { loadout =>
+          val toy = new Vehicle(DefinitionUtil.idToDefinition(loadout.vehicle).asInstanceOf[VehicleDefinition])
+          buildContainedEquipmentFromClob(toy, loadout.items)
+
+          val result = (loadout.loadoutNumber, Loadout.Create(toy, loadout.name))
+          toy.Weapons.values.foreach(slot => {
+            slot.Equipment = None
+          })
+          toy.Inventory.Clear()
+          result
+        }
+      }
+      .map { loadouts => (0 until 5).map { index => loadouts.find(_._1 == index).map(_._2) } }
+  }
+
+  def refreshLoadouts(loadouts: Iterable[(Option[Loadout], Int)]): Unit = {
+    loadouts.map {
+      case (Some(loadout: InfantryLoadout), index) =>
+        FavoritesMessage(
+          LoadoutType.Infantry,
+          session.get.player.GUID,
+          index,
+          loadout.label,
+          InfantryLoadout.DetermineSubtypeB(loadout.exosuit, loadout.subtype)
+        )
+      case (Some(loadout: VehicleLoadout), index) =>
+        FavoritesMessage(
+          LoadoutType.Vehicle,
+          session.get.player.GUID,
+          index - 10,
+          loadout.label,
+          0
+        )
+      case (_, index) =>
+        val (mtype, lineNo) = if (index < 10) {
+          (LoadoutType.Infantry, index)
+        } else {
+          (LoadoutType.Vehicle, index - 10)
+        }
+        FavoritesMessage(
+          mtype,
+          session.get.player.GUID,
+          lineNo,
+          "",
+          0
+        )
+    }.foreach { sessionActor ! SessionActor.SendResponse(_) }
+  }
+
+  def refreshLoadout(line: Int): Unit = {
+    avatar.loadouts.lift(line) match {
+      case Some(Some(loadout: InfantryLoadout)) =>
+        sessionActor ! SessionActor.SendResponse(
+          FavoritesMessage(
+            LoadoutType.Infantry,
+            session.get.player.GUID,
+            line,
+            loadout.label,
+            InfantryLoadout.DetermineSubtypeB(loadout.exosuit, loadout.subtype)
+          )
+        )
+      case Some(Some(loadout: VehicleLoadout)) =>
+        sessionActor ! SessionActor.SendResponse(
+          FavoritesMessage(
+            LoadoutType.Vehicle,
+            session.get.player.GUID,
+            line - 10,
+            loadout.label,
+            0
+          )
+        )
+      case Some(None) =>
+        val (mtype, lineNo) = if (line < 10) {
+          (LoadoutType.Infantry, line)
+        } else {
+          (LoadoutType.Vehicle, line - 10)
+        }
+        sessionActor ! SessionActor.SendResponse(
+          FavoritesMessage(
+            mtype,
+            session.get.player.GUID,
+            lineNo,
+            "",
+            0
+          )
+        )
+      case _ => ;
+    }
   }
 
   def loadLocker(): Future[LockerContainer] = {
