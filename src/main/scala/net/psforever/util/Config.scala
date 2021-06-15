@@ -8,13 +8,14 @@ import net.psforever.objects.avatar.{BattleRank, Certification, CommandRank}
 import net.psforever.packet.game.ServerType
 import net.psforever.types.ChatMessageType
 import pureconfig.ConfigConvert.viaNonEmptyStringOpt
-import pureconfig.ConfigReader.Result
 import pureconfig.{ConfigConvert, ConfigSource}
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
 import pureconfig.generic.auto._ // intellij: this is not unused
 
 object Config {
+  private val logger = org.log4s.getLogger
+
   // prog.home is defined when we are running from SBT pack
   val directory: String = System.getProperty("prog.home") match {
     case null =>
@@ -53,18 +54,34 @@ object Config {
   private val source = {
     val configFile = Paths.get(directory, "psforever.conf").toFile
     if (configFile.exists)
-      ConfigSource.file(configFile).withFallback(ConfigSource.defaultApplication)
+      ConfigSource.file(configFile).withFallback(ConfigSource.default)
     else
-      ConfigSource.defaultApplication
+      ConfigSource.default
   }
 
-  val result: Result[AppConfig] = source.load[AppConfig]
-
   // Raw config object - prefer app when possible
-  lazy val config: TypesafeConfig = source.config().toOption.get
+  lazy val config: TypesafeConfig = source.config() match {
+    case Right(config) => config
+    case Left(failures) => {
+      logger.error("Loading config failed")
+      failures.toList.foreach { failure =>
+        logger.error(failure.toString)
+      }
+      sys.exit(1)
+    }
+  }
 
   // Typed config object
-  lazy val app: AppConfig = result.toOption.get
+  lazy val app: AppConfig = source.load[AppConfig] match {
+    case Right(config) => config
+    case Left(failures) => {
+      logger.error("Loading config failed")
+      failures.toList.foreach { failure =>
+        logger.error(failure.toString)
+      }
+      sys.exit(1)
+    }
+  }
 }
 
 case class AppConfig(
