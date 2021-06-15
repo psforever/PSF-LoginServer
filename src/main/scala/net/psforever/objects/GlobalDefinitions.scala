@@ -911,15 +911,15 @@ object GlobalDefinitions {
 
   val magrider = VehicleDefinition(ObjectClass.magrider)
 
-  val ant = VehicleDefinition(ObjectClass.ant)
+  val ant = VehicleDefinition.Ant(ObjectClass.ant)
 
-  val ams = VehicleDefinition(ObjectClass.ams)
+  val ams = VehicleDefinition.Ams(ObjectClass.ams)
 
-  val router = VehicleDefinition(ObjectClass.router)
+  val router = VehicleDefinition.Router(ObjectClass.router)
 
-  val switchblade = VehicleDefinition(ObjectClass.switchblade)
+  val switchblade = VehicleDefinition.Deployer(ObjectClass.switchblade)
 
-  val flail = VehicleDefinition(ObjectClass.flail)
+  val flail = VehicleDefinition.Deployer(ObjectClass.flail)
 
   val mosquito = VehicleDefinition(ObjectClass.mosquito)
 
@@ -931,11 +931,11 @@ object GlobalDefinitions {
 
   val vulture = VehicleDefinition(ObjectClass.vulture)
 
-  val dropship = VehicleDefinition(ObjectClass.dropship)
+  val dropship = VehicleDefinition.Carrier(ObjectClass.dropship)
 
   val galaxy_gunship = VehicleDefinition(ObjectClass.galaxy_gunship)
 
-  val lodestar = VehicleDefinition(ObjectClass.lodestar)
+  val lodestar = VehicleDefinition.Carrier(ObjectClass.lodestar)
 
   val phantasm = VehicleDefinition(ObjectClass.phantasm)
 
