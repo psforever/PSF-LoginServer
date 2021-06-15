@@ -11,7 +11,7 @@ import scala.concurrent.duration._
 
 //ant
 class AntControl(vehicle: Vehicle)
-  extends DeployableVehicleControl(vehicle)
+  extends DeployingVehicleControl(vehicle)
     with AntTransferBehavior {
   def ChargeTransferObject = vehicle
 

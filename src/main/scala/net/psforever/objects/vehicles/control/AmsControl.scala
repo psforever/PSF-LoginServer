@@ -8,7 +8,7 @@ import net.psforever.types.DriveState
 
 //ams
 class AmsControl(vehicle: Vehicle)
-  extends DeployableVehicleControl(vehicle) {
+  extends DeployingVehicleControl(vehicle) {
 
   override def specificResponseToDeployment(state: DriveState.Value): Unit = {
     state match {

@@ -28,27 +28,12 @@ trait DamageableVehicle
   }
 
   /** whether or not the vehicle has been damaged directly, report that damage has occurred */
-  private var reportDamageToVehicle: Boolean = false
+  protected var reportDamageToVehicle: Boolean = false
 
   def DamageableObject: Vehicle
   def AggravatedObject : Vehicle = DamageableObject
 
-  override val takesDamage: Receive =
-    originalTakesDamage
-      .orElse(aggravatedBehavior)
-      .orElse {
-        case DamageableVehicle.Damage(cause, damage) =>
-          //cargo vehicles inherit feedback from carrier
-          reportDamageToVehicle = damage > 0
-          DamageAwareness(DamageableObject, cause, amount = 0)
-
-        case DamageableVehicle.Destruction(cause) =>
-          //cargo vehicles are destroyed when carrier is destroyed
-          val obj = DamageableObject
-          obj.Health = 0
-          obj.History(cause)
-          DestructionAwareness(obj, cause)
-      }
+  override val takesDamage: Receive = originalTakesDamage.orElse(aggravatedBehavior)
 
   /**
     * Vehicles may have charged shields that absorb damage before the vehicle's own health is affected.
@@ -83,8 +68,6 @@ trait DamageableVehicle
   /**
     * Most all vehicles and the weapons mounted to them can jam
     * if the projectile that strikes (near) them has jammering properties.
-    * A damaged carrier alerts its cargo vehicles of the source of the damage,
-    * but it will not be affected by the same jammering effect.
     * If this vehicle has shields that were affected by previous damage, that is also reported to the clients.
     * @see `Service.defaultPlayerGUID`
     * @see `Vehicle.CargoHolds`
@@ -156,22 +139,10 @@ trait DamageableVehicle
         //alert to damage source
         DamageableMountable.DamageAwareness(obj, cause, totalDamage)
       }
-      //alert cargo occupants to damage source
-      obj.CargoHolds.values.foreach(hold => {
-        hold.occupant match {
-          case Some(cargo) =>
-            cargo.Actor ! DamageableVehicle.Damage(cause, totalDamage)
-          case None => ;
-        }
-      })
     }
   }
 
   /**
-    * A destroyed carrier informs its cargo vehicles that they should also be destroyed
-    * for reasons of the same cause being inherited as the source of damage.
-    * Regardless of the amount of damage they carrier takes or some other target would take,
-    * its cargo vehicles die immediately.
     * The vehicle's shields are zero'd out if they were previously energized
     * so that the vehicle's corpse does not act like it is still protected by vehicle shields.
     * Finally, the vehicle is tasked for deconstruction.
@@ -196,14 +167,6 @@ trait DamageableVehicle
     EndAllAggravation()
     //passengers die with us
     DamageableMountable.DestructionAwareness(obj, cause)
-    //cargo vehicles die with us
-    obj.CargoHolds.values.foreach(hold => {
-      hold.occupant match {
-        case Some(cargo) =>
-          cargo.Actor ! DamageableVehicle.Destruction(cause)
-        case None => ;
-      }
-    })
     //things positioned around us can get hurt from us
     Zone.serverSideDamage(obj.Zone, target, Zone.explosionDamage(Some(cause)))
     //special considerations for certain vehicles
@@ -221,20 +184,4 @@ trait DamageableVehicle
     target.ClearHistory()
     DamageableWeaponTurret.DestructionAwareness(obj, cause)
   }
-}
-
-object DamageableVehicle {
-
-  /**
-    * Message for instructing the target's cargo vehicles about a damage source affecting their carrier.
-    * @param cause historical information about damage
-    */
-  private case class Damage(cause: DamageResult, amount: Int)
-
-  /**
-    * Message for instructing the target's cargo vehicles that their carrier is destroyed,
-    * and they should be destroyed too.
-    * @param cause historical information about damage
-    */
-  private case class Destruction(cause: DamageResult)
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 PSForever
+// Copyright (c) 2017-2021 PSForever
 package net.psforever.objects.vehicles.control
 
 import akka.actor.{Actor, Cancellable}
@@ -119,7 +119,7 @@ class VehicleControl(vehicle: Vehicle)
 
       case Vehicle.ChargeShields(amount) =>
         val now : Long = System.currentTimeMillis()
-        //make certain vehicle doesn't charge shields too quickly
+        //make certain vehicles don't charge shields too quickly
         if (
           vehicle.Health > 0 && vehicle.Shields < vehicle.MaxShields &&
           !vehicle.History.exists(VehicleControl.LastShieldChargeOrDamage(now))

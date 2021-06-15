@@ -9,7 +9,7 @@ import net.psforever.types._
 
 //switchblade
 //flail
-class DeployableVehicleControl(vehicle: Vehicle)
+class DeployingVehicleControl(vehicle: Vehicle)
   extends VehicleControl(vehicle)
     with DeploymentBehavior {
   def DeploymentObject = vehicle
@@ -45,7 +45,7 @@ class DeployableVehicleControl(vehicle: Vehicle)
   }
 
   override def TryDeploymentChange(obj: Deployment.DeploymentObject, state: DriveState.Value): Boolean = {
-    DeployableVehicleControl.DeploymentAngleCheck(obj) && super.TryDeploymentChange(obj, state)
+    Deployment.AngleCheck(obj) && super.TryDeploymentChange(obj, state)
   }
 
   override def DeploymentAction(
@@ -73,10 +73,4 @@ class DeployableVehicleControl(vehicle: Vehicle)
   }
 
   def specificResponseToUndeployment(state: DriveState.Value): Unit = { }
-}
-
-object DeployableVehicleControl {
-  def DeploymentAngleCheck(obj: Deployment.DeploymentObject): Boolean = {
-    obj.Orientation.x <= 30 || obj.Orientation.x >= 330
-  }
 }
