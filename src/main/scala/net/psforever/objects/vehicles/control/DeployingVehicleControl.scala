@@ -7,8 +7,16 @@ import net.psforever.objects.serverobject.deploy.{Deployment, DeploymentBehavior
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.types._
 
-//switchblade
-//flail
+/**
+  * A vehicle control agency exclusive to vehicles that can switch out a navigation mode
+  * and convert to a sessile mode that affords additional functionality.
+  * This includes only the Switchblade and the Flail.
+  * Other vehicles that deploy are handled by specific instances of this control agency.
+  * @see `AmsControl`
+  * @see `AntControl`
+  * @see `RouterControl`
+  * @param vehicle the vehicle
+  */
 class DeployingVehicleControl(vehicle: Vehicle)
   extends VehicleControl(vehicle)
     with DeploymentBehavior {
@@ -16,6 +24,10 @@ class DeployingVehicleControl(vehicle: Vehicle)
 
   override def commonEnabledBehavior : Receive = super.commonEnabledBehavior.orElse(deployBehavior)
 
+  /**
+    * Even when disabled, the vehicle can be made to undeploy.
+    * Even when disabled, passengers can formally dismount from the vehicle.
+    */
   override def commonDisabledBehavior : Receive =
     super.commonDisabledBehavior
       .orElse {
@@ -27,6 +39,9 @@ class DeployingVehicleControl(vehicle: Vehicle)
           dismountCleanup(seat_num)
       }
 
+  /**
+    * Even when on the verge of deletion, the vehicle can be made to undeploy.
+    */
   override def commonDeleteBehavior : Receive =
     super.commonDeleteBehavior
       .orElse {
@@ -34,11 +49,17 @@ class DeployingVehicleControl(vehicle: Vehicle)
           deployBehavior.apply(msg)
       }
 
+  /**
+    * Even when disabled, the vehicle can be made to undeploy.
+    */
   override def PrepareForDisabled(kickPassengers: Boolean) : Unit = {
     vehicle.Actor ! Deployment.TryUndeploy(DriveState.Undeploying)
     super.PrepareForDisabled(kickPassengers)
   }
 
+  /**
+    * Even when on the verge of deletion, the vehicle can be made to undeploy.
+    */
   override def PrepareForDeletion() : Unit = {
     vehicle.Actor ! Deployment.TryUndeploy(DriveState.Undeploying)
     super.PrepareForDeletion()

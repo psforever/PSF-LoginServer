@@ -37,9 +37,9 @@ import scala.concurrent.duration._
 /**
   * An `Actor` that handles messages being dispatched to a specific `Vehicle`.<br>
   * <br>
-  * Vehicle-controlling actors have two behavioral states - responsive and "`Disabled`."
+  * Vehicle-controlling actors have two important behavioral states - responsive and "`Disabled`."
   * The latter is applicable only when the specific vehicle is being deconstructed.
-  *
+  * Furthermore, being "ready to delete" is also a behavoral state for the end of life operations of the vehicle.
   * @param vehicle the `Vehicle` object being governed
   */
 class VehicleControl(vehicle: Vehicle)

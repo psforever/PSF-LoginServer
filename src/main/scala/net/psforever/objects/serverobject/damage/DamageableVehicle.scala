@@ -33,7 +33,21 @@ trait DamageableVehicle
   def DamageableObject: Vehicle
   def AggravatedObject : Vehicle = DamageableObject
 
-  override val takesDamage: Receive = originalTakesDamage.orElse(aggravatedBehavior)
+  override val takesDamage: Receive = originalTakesDamage
+    .orElse(aggravatedBehavior)
+    .orElse {
+      case DamageableVehicle.Damage(cause, damage) =>
+        //cargo vehicles inherit feedback from carrier
+        reportDamageToVehicle = damage > 0
+        DamageAwareness(DamageableObject, cause, amount = 0)
+
+      case DamageableVehicle.Destruction(cause) =>
+        //cargo vehicles are destroyed when carrier is destroyed
+        val obj = DamageableObject
+        obj.Health = 0
+        obj.History(cause)
+        DestructionAwareness(obj, cause)
+    }
 
   /**
     * Vehicles may have charged shields that absorb damage before the vehicle's own health is affected.
@@ -184,4 +198,19 @@ trait DamageableVehicle
     target.ClearHistory()
     DamageableWeaponTurret.DestructionAwareness(obj, cause)
   }
+}
+
+object DamageableVehicle {
+  /**
+    * Message for instructing the target's cargo vehicles about a damage source affecting their carrier.
+    * @param cause historical information about damage
+    */
+  final case class Damage(cause: DamageResult, amount: Int)
+
+  /**
+    * Message for instructing the target's cargo vehicles that their carrier is destroyed,
+    * and they should be destroyed too.
+    * @param cause historical information about damage
+    */
+  final case class Destruction(cause: DamageResult)
 }

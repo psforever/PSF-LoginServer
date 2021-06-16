@@ -214,6 +214,10 @@ object VehicleDefinition {
       )
     }
   }
+  /**
+    * Vehicle definition for the advanced mobile spawn (AMS) vehicle.
+    * @param objectId the object id that is associated with this sort of `Vehicle`
+    */
   def Ams(objectId: Int): VehicleDefinition = new AmsDefinition(objectId)
 
   protected class AntDefinition(objectId: Int) extends VehicleDefinition(objectId) {
@@ -225,6 +229,10 @@ object VehicleDefinition {
       )
     }
   }
+  /**
+    * Vehicle definition for the advanced nanite transport (ANT) vehicle.
+    * @param objectId the object id that is associated with this sort of `Vehicle`
+    */
   def Ant(objectId: Int): VehicleDefinition = new AntDefinition(objectId)
 
   protected class ApcDefinition(objectId: Int) extends VehicleDefinition(objectId) {
@@ -236,6 +244,10 @@ object VehicleDefinition {
       )
     }
   }
+  /**
+    * Vehicle definition(s) for the armored personnel carrier (`apc*`) vehicles.
+    * @param objectId the object id that is associated with this sort of `Vehicle`
+    */
   def Apc(objectId: Int): VehicleDefinition = new ApcDefinition(objectId)
 
   protected class CarrierDefinition(objectId: Int) extends VehicleDefinition(objectId) {
@@ -247,6 +259,10 @@ object VehicleDefinition {
       )
     }
   }
+  /**
+    * Vehicle definition(s) for the vehicles (carriers) that are used to transport other vehicles (cargo).
+    * @param objectId the object id that is associated with this sort of `Vehicle`
+    */
   def Carrier(objectId: Int): VehicleDefinition = new CarrierDefinition(objectId)
 
   protected class DeployingDefinition(objectId: Int) extends VehicleDefinition(objectId) {
@@ -258,6 +274,10 @@ object VehicleDefinition {
       )
     }
   }
+  /**
+    * Vehicle definition(s) for the vehicles that perform significant mode state transitions.
+    * @param objectId the object id that is associated with this sort of `Vehicle`
+    */
   def Deploying(objectId: Int): VehicleDefinition = new DeployingDefinition(objectId)
 
   protected class RouterDefinition(objectId: Int) extends VehicleDefinition(objectId) {
@@ -269,5 +289,9 @@ object VehicleDefinition {
       )
     }
   }
+  /**
+    * Vehicle definition for the Router.
+    * @param objectId the object id that is associated with this sort of `Vehicle`
+    */
   def Router(objectId: Int): VehicleDefinition = new RouterDefinition(objectId)
 }

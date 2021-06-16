@@ -215,7 +215,7 @@ object VehicleSpawnPadControlTest {
     import net.psforever.objects.guid.NumberPoolHub
     import net.psforever.objects.guid.source.MaxNumberSource
     import net.psforever.objects.serverobject.structures.Building
-    import net.psforever.objects.vehicles.VehicleControl
+    import net.psforever.objects.vehicles.control.VehicleControl
     import net.psforever.objects.Tool
     import net.psforever.types.CharacterSex
 

@@ -7,7 +7,7 @@ import base.{ActorTest, FreedContextActorTest}
 import net.psforever.objects.{GlobalDefinitions, SensorDeployable, Vehicle}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.terminals.{ProximityTerminal, Terminal}
-import net.psforever.objects.vehicles.VehicleControl
+import net.psforever.objects.vehicles.control.VehicleControl
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game._
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}

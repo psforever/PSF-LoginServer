@@ -9,7 +9,13 @@ import net.psforever.types.DriveState
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
-//ant
+/**
+  * A vehicle control agency exclusive to the advanced nanite transport (ANT).
+  * When deployed, nanites in the package of nanite transfer units (NTU) are moved around
+  * and may be may be acquired from a Warp Gate structure
+  * or supplied to a nanite resource silo belonging to a mjaor facility.
+  * @param vehicle the ANT
+  */
 class AntControl(vehicle: Vehicle)
   extends DeployingVehicleControl(vehicle)
     with AntTransferBehavior {
@@ -20,6 +26,11 @@ class AntControl(vehicle: Vehicle)
 
   override def commonEnabledBehavior: Receive = super.commonEnabledBehavior.orElse(antBehavior)
 
+  /**
+    * React to a deployment state change.
+    * Make ourselves available to nanite charging or discharging.
+    * @param state the deployment state
+    */
   override def specificResponseToDeployment(state: DriveState.Value): Unit = {
     state match {
       case DriveState.Deployed =>
@@ -34,6 +45,11 @@ class AntControl(vehicle: Vehicle)
     }
   }
 
+  /**
+    * React to an undeployment state change.
+    * Stop charging or discharging and tell the partner entity that it is no longer interacting with this vehicle.
+    * @param state the undeployment state
+    */
   override def specificResponseToUndeployment(state: DriveState.Value): Unit = {
     state match {
       case DriveState.Undeploying =>

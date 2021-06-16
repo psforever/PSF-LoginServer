@@ -3,7 +3,8 @@ package objects
 
 import akka.actor.Props
 import akka.testkit.TestProbe
-import base.ActorTest
+import base.{ActorTest, FreedContextActorTest}
+import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects._
 import net.psforever.objects.ballistics._
 import net.psforever.objects.equipment.JammableUnit
@@ -15,7 +16,7 @@ import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.serverobject.terminals.{Terminal, TerminalControl, TerminalDefinition}
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.{FacilityTurret, FacilityTurretControl, TurretUpgrade}
-import net.psforever.objects.vehicles.VehicleControl
+import net.psforever.objects.vehicles.control.VehicleControl
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game.DamageWithPositionMessage
@@ -1222,7 +1223,7 @@ class DamageableVehicleDamageTest extends ActorTest {
   }
 }
 
-class DamageableVehicleDamageMountedTest extends ActorTest {
+class DamageableVehicleDamageMountedTest extends FreedContextActorTest {
   val guid = new NumberPoolHub(new MaxNumberSource(15))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
@@ -1234,6 +1235,8 @@ class DamageableVehicleDamageMountedTest extends ActorTest {
   zone.Activity = activityProbe.ref
   zone.AvatarEvents = avatarProbe.ref
   zone.VehicleEvents = vehicleProbe.ref
+  import akka.actor.typed.scaladsl.adapter._
+  zone.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
 
   val lodestar = Vehicle(GlobalDefinitions.lodestar) //guid=1 & 4,5,6,7,8,9
   lodestar.Position = Vector3(1, 0, 0)
@@ -1271,7 +1274,7 @@ class DamageableVehicleDamageMountedTest extends ActorTest {
   guid.register(atv, 11)
 
   //the lodestar control actor needs to load after the utilities have guid's assigned
-  lodestar.Actor = system.actorOf(Props(classOf[VehicleControl], lodestar), "lodestar-control")
+  lodestar.Definition.Initialize(lodestar, context)
   lodestar.Zone = zone
   lodestar.Seats(0).mount(player2)
   player2.VehicleSeated = lodestar.GUID
@@ -1314,50 +1317,38 @@ class DamageableVehicleDamageMountedTest extends ActorTest {
     assert(atv.Shields == 1)
 
     lodestar.Actor ! Vitality.Damage(applyDamageTo)
-    val msg12   = vehicleProbe.receiveN(2, 200 milliseconds)
-    val msg3    = activityProbe.receiveOne(200 milliseconds)
-    val msg45   = avatarProbe.receiveN(2,200 milliseconds)
-    assert(
-      msg12.head match {
-        case VehicleServiceMessage(_, VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), PlanetSideGUID(1), 68, _)) => true
-        case _                                                                                                        => false
-      }
-    )
-    assert(
-      msg12(1) match {
-        case VehicleServiceMessage("test", VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), PlanetSideGUID(1), 0, _)) => true
-        case _                                                                                                            => false
-      }
-    )
-    assert(
-      msg3 match {
-        case activity: Zone.HotSpot.Activity =>
-          activity.attacker == pSource &&
-            activity.defender == SourceEntry(lodestar) &&
-            activity.location == Vector3(1, 0, 0)
-        case _ => false
-      }
-    )
-    assert(
-      msg45.head match {
-        case AvatarServiceMessage(
-              "TestCharacter2",
-              AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(400, Vector3(2, 0, 0)))
-            ) =>
-          true
-        case _ => false
-      }
-    )
-    assert(
-      msg45(1) match {
-        case AvatarServiceMessage(
-              "TestCharacter3",
-              AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(0, Vector3(2, 0, 0)))
-            ) =>
-          true
-        case _ => false
-      }
-    )
+    val msg12   = vehicleProbe.receiveN(2, 500 milliseconds)
+    val msg3    = activityProbe.receiveOne(500 milliseconds)
+    val msg45   = avatarProbe.receiveN(2,500 milliseconds)
+    msg12.head match {
+      case VehicleServiceMessage(_, VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), PlanetSideGUID(1), 68, _)) => ;
+      case _                                                                                                        => assert(false)
+    }
+    msg12(1) match {
+      case VehicleServiceMessage("test", VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), PlanetSideGUID(1), 0, _)) => ;
+      case _                                                                                                            => assert(false)
+    }
+    msg3 match {
+      case activity: Zone.HotSpot.Activity =>
+        assert(activity.attacker == pSource &&
+          activity.defender == SourceEntry(lodestar) &&
+          activity.location == Vector3(1, 0, 0))
+      case _ => assert(false)
+    }
+    msg45.head match {
+      case AvatarServiceMessage(
+            "TestCharacter2",
+            AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(400, Vector3(2, 0, 0)))
+          ) => ;
+      case _ => assert(false)
+    }
+    msg45(1) match {
+      case AvatarServiceMessage(
+            "TestCharacter3",
+            AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(0, Vector3(2, 0, 0)))
+          ) => ;
+      case _ => assert(false)
+    }
     assert(lodestar.Health < lodestar.Definition.DefaultHealth)
     assert(lodestar.Shields == 0)
     assert(atv.Health == atv.Definition.DefaultHealth)
@@ -1365,7 +1356,7 @@ class DamageableVehicleDamageMountedTest extends ActorTest {
   }
 }
 
-class DamageableVehicleJammeringMountedTest extends ActorTest {
+class DamageableVehicleJammeringMountedTest extends FreedContextActorTest {
   val guid = new NumberPoolHub(new MaxNumberSource(15))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
@@ -1417,7 +1408,7 @@ class DamageableVehicleJammeringMountedTest extends ActorTest {
   guid.register(player2, 12)
   guid.register(player3, 13)
 
-  lodestar.Actor = system.actorOf(Props(classOf[VehicleControl], lodestar), "lodestar-control")
+  lodestar.Definition.Initialize(lodestar, context)
   atv.Zone = zone
   lodestar.Zone = zone
   atv.Seats(0).mount(player2)
@@ -1585,7 +1576,7 @@ class DamageableVehicleDestroyTest extends ActorTest {
   }
 }
 
-class DamageableVehicleDestroyMountedTest extends ActorTest {
+class DamageableVehicleDestroyMountedTest extends FreedContextActorTest {
   val atv = Vehicle(GlobalDefinitions.quadassault) //guid=1
   atv.Actor = system.actorOf(Props(classOf[VehicleControl], atv), "atv-control")
   atv.Position = Vector3(1, 0, 0)
@@ -1611,19 +1602,22 @@ class DamageableVehicleDestroyMountedTest extends ActorTest {
   val player3Probe = TestProbe()
   player3.Actor = player3Probe.ref
 
-
+  val activityProbe = TestProbe()
+  val avatarProbe   = TestProbe()
+  val vehicleProbe  = TestProbe()
+  val catchall = TestProbe()
   val guid = new NumberPoolHub(new MaxNumberSource(15))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     override def SetupNumberPools() = {}
     GUID(guid)
     override def LivePlayers = List(player1, player2, player3)
+    override def Activity = activityProbe.ref
+    override def AvatarEvents = avatarProbe.ref
+    override def VehicleEvents = vehicleProbe.ref
+    override def tasks = catchall.ref
+    import akka.actor.typed.scaladsl.adapter._
+    this.actor = catchall.ref.toTyped[ZoneActor.Command]
   }
-  val activityProbe = TestProbe()
-  val avatarProbe   = TestProbe()
-  val vehicleProbe  = TestProbe()
-  zone.Activity = activityProbe.ref
-  zone.AvatarEvents = avatarProbe.ref
-  zone.VehicleEvents = vehicleProbe.ref
 
   guid.register(atv, 1)
   guid.register(atvWeapon, 2)
@@ -1639,7 +1633,7 @@ class DamageableVehicleDestroyMountedTest extends ActorTest {
   guid.register(player2, 12)
   guid.register(player3, 13)
 
-  lodestar.Actor = system.actorOf(Props(classOf[VehicleControl], lodestar), "lodestar-control")
+  lodestar.Definition.Initialize(lodestar, context)
   atv.Zone = zone
   lodestar.Zone = zone
   atv.Seats(0).mount(player2)

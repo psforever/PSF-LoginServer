@@ -12,7 +12,13 @@ import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
-//apc, apc_nc, apc_tr, apc_vs
+/**
+  * A vehicle control agency exclusive to the armored personnel carrier (APC) ground transport vehicles.
+  * These vehicles include the Juggernaut (`apc_tr`), the Vindicator (`apc_nc`), the and Leviathan (`apc_vs`).
+  * A completely faction-neutral transport in the same sytle (`apc`) does exist but is unused.
+  * A common characteristic of this type of vehicle is the ability to discharge a defensive wide-area electromagnetic pulse.
+  * @param vehicle the APC
+  */
 class ApcControl(vehicle: Vehicle)
   extends VehicleControl(vehicle) {
   protected var capacitor = Default.Cancellable
@@ -45,35 +51,45 @@ class ApcControl(vehicle: Vehicle)
             val events = zone.VehicleEvents
             val pos = vehicle.Position
             val GUID0 = Service.defaultPlayerGUID
-            val emp = SpecialEmp.emp
+            val emp = vehicle.Definition.innateDamage.getOrElse { SpecialEmp.emp }
+            val faction = vehicle.Faction
+            //drain the capacitor
             vehicle.Capacitor = 0
             events ! VehicleServiceMessage(
               self.toString(),
               VehicleAction.PlanetsideAttribute(GUID0, vehicle.GUID, 113, 0)
             )
+            //cause the emp
             events ! VehicleServiceMessage(
               zone.id,
               VehicleAction.SendResponse(
                 GUID0,
                 TriggerEffectMessage(
                   GUID0,
-                  s"apc_explosion_emp_${vehicle.Faction}",
+                  s"apc_explosion_emp_${faction.toString.toLowerCase}",
                   None,
                   Some(TriggeredEffectLocation(pos, vehicle.Orientation))
                 )
               )
             )
+            //resolve what targets are affected by the emp
             Zone.serverSideDamage(
               zone,
               vehicle,
               emp,
               SpecialEmp.createEmpInteraction(emp, pos),
-              Zone.distanceCheck,
+              Zone.distanceCheck, //TODO ExplosiveDeployableControl.detectionForExplosiveSource(vehicle),
               Zone.findAllTargets
             )
+            //start charging again
+            startCapacitorTimer()
           }
-          startCapacitorTimer()
       }
+
+  override def PrepareForDisabled(kickPassengers: Boolean) : Unit = {
+    super.PrepareForDisabled(kickPassengers)
+    capacitor.cancel()
+  }
 
   override protected def DestructionAwareness(target: Target, cause: DamageResult): Unit = {
     super.DestructionAwareness(target, cause)
@@ -81,6 +97,7 @@ class ApcControl(vehicle: Vehicle)
     vehicle.Capacitor = 0
   }
 
+  //TODO switch from magic numbers to definition numbers?
   private def startCapacitorTimer(): Unit = {
     capacitor = context.system.scheduler.scheduleOnce(
       delay = 1000 millisecond,
@@ -91,5 +108,9 @@ class ApcControl(vehicle: Vehicle)
 }
 
 object ApcControl {
+  /**
+    * Charge the vehicle's internal capacitor by the given amount during the schedulefd charge event.
+    * @param amount how much energy in the charge
+    */
   private case class CapacitorCharge(amount: Int)
 }

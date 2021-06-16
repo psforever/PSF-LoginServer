@@ -6,10 +6,20 @@ import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.DriveState
 
-//ams
+/**
+  * A vehicle control agency exclusive to the advanced mobile spawn (AMS).
+  * When deployed, infantry troops may manifest nearby the vehicle
+  * as they switch from being deconstructed (or dead) to being alive.
+  * @param vehicle the AMS
+  */
 class AmsControl(vehicle: Vehicle)
   extends DeployingVehicleControl(vehicle) {
 
+  /**
+    * React to a deployment state change.
+    * Announce that this AMS is ready to accept troop deployment.
+    * @param state the deployment state
+    */
   override def specificResponseToDeployment(state: DriveState.Value): Unit = {
     state match {
       case DriveState.Deployed =>
@@ -25,6 +35,11 @@ class AmsControl(vehicle: Vehicle)
     }
   }
 
+  /**
+    * React to an undeployment state change.
+    * This AMS is now off the grid.
+    * @param state the deployment state
+    */
   override def specificResponseToUndeployment(state: DriveState.Value): Unit = {
     state match {
       case DriveState.Undeploying =>
