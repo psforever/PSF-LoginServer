@@ -78,7 +78,7 @@ class ApcControl(vehicle: Vehicle)
               vehicle,
               emp,
               SpecialEmp.createEmpInteraction(emp, pos),
-              Zone.distanceCheck, //TODO ExplosiveDeployableControl.detectionForExplosiveSource(vehicle),
+              ExplosiveDeployableControl.detectionForExplosiveSource(vehicle),
               Zone.findAllTargets
             )
             //start charging again
