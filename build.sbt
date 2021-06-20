@@ -70,7 +70,7 @@ lazy val psforeverSettings = Seq(
     "org.postgresql"              % "postgresql"                 % "42.2.22",
     "com.typesafe"                % "config"                     % "1.4.1",
     "com.github.pureconfig"      %% "pureconfig"                 % "0.16.0",
-    "com.beachape"               %% "enumeratum"                 % "1.6.1",
+    "com.beachape"               %% "enumeratum"                 % "1.7.0",
     "joda-time"                   % "joda-time"                  % "2.10.10",
     "commons-io"                  % "commons-io"                 % "2.10.0",
     "com.github.scopt"           %% "scopt"                      % "4.0.1",
