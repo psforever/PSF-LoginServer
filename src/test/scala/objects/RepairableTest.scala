@@ -13,7 +13,7 @@ import net.psforever.objects.serverobject.generator.{Generator, GeneratorControl
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.serverobject.terminals.{Terminal, TerminalControl}
 import net.psforever.objects.serverobject.turret.{FacilityTurret, FacilityTurretControl}
-import net.psforever.objects.vehicles.VehicleControl
+import net.psforever.objects.vehicles.control.VehicleControl
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game.{InventoryStateMessage, RepairMessage}
 import net.psforever.types._

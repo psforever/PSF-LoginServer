@@ -14,7 +14,6 @@ import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.resourcesilo.{ResourceSilo, ResourceSiloControl}
 import net.psforever.objects.serverobject.structures.{AutoRepairStats, Building, StructureType}
 import net.psforever.objects.serverobject.terminals.{OrderTerminalDefinition, Terminal, TerminalControl}
-import net.psforever.objects.vehicles.VehicleControl
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.damage.DamageProfile
@@ -201,7 +200,7 @@ class AutoRepairFacilityIntegrationAntGiveNtuTest extends FreedContextActorTest 
   val maxNtuCap = ant.Definition.MaxNtuCapacitor
   player.Spawn()
   ant.NtuCapacitor = maxNtuCap
-  ant.Actor = context.actorOf(Props(classOf[VehicleControl], ant), name = "test-ant")
+  ant.Definition.Initialize(ant, context)
   ant.Zone = zone
   ant.Seats(0).mount(player)
   ant.DeploymentState = DriveState.Deployed
@@ -295,7 +294,7 @@ class AutoRepairFacilityIntegrationTerminalDestroyedTerminalAntTest extends Free
   val maxNtuCap = ant.Definition.MaxNtuCapacitor
   player.Spawn()
   ant.NtuCapacitor = maxNtuCap
-  ant.Actor = context.actorOf(Props(classOf[VehicleControl], ant), name = "test-ant")
+  ant.Definition.Initialize(ant, context)
   ant.Zone = zone
   ant.Seats(0).mount(player)
   ant.DeploymentState = DriveState.Deployed
@@ -397,7 +396,7 @@ class AutoRepairFacilityIntegrationTerminalIncompleteRepairTest extends FreedCon
   val maxNtuCap = ant.Definition.MaxNtuCapacitor
   player.Spawn()
   ant.NtuCapacitor = maxNtuCap
-  ant.Actor = context.actorOf(Props(classOf[VehicleControl], ant), name = "test-ant")
+  ant.Definition.Initialize(ant, context)
   ant.Zone = zone
   ant.Seats(0).mount(player)
   ant.DeploymentState = DriveState.Deployed

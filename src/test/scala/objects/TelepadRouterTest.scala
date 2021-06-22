@@ -4,14 +4,14 @@ package objects
 import akka.actor.{ActorRef, Props}
 import akka.actor.typed.scaladsl.adapter._
 import akka.testkit.TestProbe
-import base.ActorTest
+import base.{ActorTest, FreedContextActorTest}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects._
 import net.psforever.objects.ce.{DeployableCategory, DeployedItem, TelepadLike}
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.deploy.Deployment
-import net.psforever.objects.vehicles.{Utility, UtilityType, VehicleControl}
+import net.psforever.objects.vehicles.{Utility, UtilityType}
 import net.psforever.objects.zones.{Zone, ZoneDeployableActor, ZoneMap}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.packet.game._
@@ -214,7 +214,7 @@ class TelepadDeployableAttemptTest extends ActorTest {
   }
 }
 
-class TelepadDeployableResponseFromRouterTest extends ActorTest {
+class TelepadDeployableResponseFromRouterTest extends FreedContextActorTest {
   val eventsProbe = new TestProbe(system)
   val telepad = new TelepadDeployable(TelepadRouterTest.router_telepad_deployable) //guid=1
   val router = Vehicle(GlobalDefinitions.router) //guid=2
@@ -242,17 +242,20 @@ class TelepadDeployableResponseFromRouterTest extends ActorTest {
   guid.register(internal, number = 3)
   guid.register(router.Utility(UtilityType.teleportpad_terminal).get, number = 4) //necessary
   router.Zone = zone
-  router.Actor = system.actorOf(Props(classOf[VehicleControl], router), "test-router")
+  router.Definition.Initialize(router, context)
   telepad.Router = PlanetSideGUID(2) //artificial
 
   "TelepadDeployable" should {
     "link with a connected router" in {
       assert(!telepad.Active, "link to router test - telepad active earlier than intended (1)")
       assert(!internal.Active, "link to router test - router internals active earlier than intended")
-      router.Actor.tell(Deployment.TryDeploy(DriveState.Deploying), new TestProbe(system).ref)
+      val deploymentProbe = new TestProbe(system)
+      router.Actor.tell(Deployment.TryDeploy(DriveState.Deploying), deploymentProbe.ref)
       eventsProbe.receiveN(10, 10.seconds) //flush all messages related to deployment
+      deploymentProbe.receiveOne(2.seconds) //CanDeploy
+      deploymentProbe.expectNoMessage(2.seconds) //intentional delay
+      assert(internal.Active, "link to router test - router internals not active when expected")
       assert(!telepad.Active, "link to router test - telepad active earlier than intended (2)")
-      assert(internal.Active, "link to router test - router internals active not active when expected")
 
       assert(deployableList.isEmpty, "link to router test - deployable list is not empty")
       zone.Deployables ! Zone.Deployable.Build(telepad)

@@ -1,11 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.zones
 
-import akka.actor.{Actor, Props}
+import akka.actor.Actor
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.{Default, Vehicle}
-import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.vehicles.VehicleControl
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
@@ -42,8 +40,7 @@ class ZoneVehicleActor(zone: Zone, vehicleList: ListBuffer[Vehicle]) extends Act
       } else {
         vehicleList += vehicle
         vehicle.Zone = zone
-        vehicle.Actor =
-          context.actorOf(Props(classOf[VehicleControl], vehicle), PlanetSideServerObject.UniqueActorName(vehicle))
+        vehicle.Definition.Initialize(vehicle, context)
       }
       if (vehicle.MountedIn.isEmpty) {
         zone.actor ! ZoneActor.AddToBlockMap(vehicle, vehicle.Position)
@@ -54,8 +51,7 @@ class ZoneVehicleActor(zone: Zone, vehicleList: ListBuffer[Vehicle]) extends Act
       ZoneVehicleActor.recursiveFindVehicle(vehicleList.iterator, vehicle) match {
         case Some(index) =>
           vehicleList.remove(index)
-          context.stop(vehicle.Actor)
-          vehicle.Actor = Default.Actor
+          vehicle.Definition.Uninitialize(vehicle, context)
           zone.actor ! ZoneActor.RemoveFromBlockMap(vehicle)
           sender() ! Zone.Vehicle.HasDespawned(zone, vehicle)
         case None => ;

@@ -897,11 +897,11 @@ object GlobalDefinitions {
 
   val aurora = VehicleDefinition(ObjectClass.aurora)
 
-  val apc_tr = VehicleDefinition(ObjectClass.apc_tr)
+  val apc_tr = VehicleDefinition.Apc(ObjectClass.apc_tr)
 
-  val apc_nc = VehicleDefinition(ObjectClass.apc_nc)
+  val apc_nc = VehicleDefinition.Apc(ObjectClass.apc_nc)
 
-  val apc_vs = VehicleDefinition(ObjectClass.apc_vs)
+  val apc_vs = VehicleDefinition.Apc(ObjectClass.apc_vs)
 
   val lightning = VehicleDefinition(ObjectClass.lightning)
 
@@ -911,15 +911,15 @@ object GlobalDefinitions {
 
   val magrider = VehicleDefinition(ObjectClass.magrider)
 
-  val ant = VehicleDefinition(ObjectClass.ant)
+  val ant = VehicleDefinition.Ant(ObjectClass.ant)
 
-  val ams = VehicleDefinition(ObjectClass.ams)
+  val ams = VehicleDefinition.Ams(ObjectClass.ams)
 
-  val router = VehicleDefinition(ObjectClass.router)
+  val router = VehicleDefinition.Router(ObjectClass.router)
 
-  val switchblade = VehicleDefinition(ObjectClass.switchblade)
+  val switchblade = VehicleDefinition.Deploying(ObjectClass.switchblade)
 
-  val flail = VehicleDefinition(ObjectClass.flail)
+  val flail = VehicleDefinition.Deploying(ObjectClass.flail)
 
   val mosquito = VehicleDefinition(ObjectClass.mosquito)
 
@@ -931,11 +931,11 @@ object GlobalDefinitions {
 
   val vulture = VehicleDefinition(ObjectClass.vulture)
 
-  val dropship = VehicleDefinition(ObjectClass.dropship)
+  val dropship = VehicleDefinition.Carrier(ObjectClass.dropship)
 
   val galaxy_gunship = VehicleDefinition(ObjectClass.galaxy_gunship)
 
-  val lodestar = VehicleDefinition(ObjectClass.lodestar)
+  val lodestar = VehicleDefinition.Carrier(ObjectClass.lodestar)
 
   val phantasm = VehicleDefinition(ObjectClass.phantasm)
 
@@ -6146,6 +6146,7 @@ object GlobalDefinitions {
     apc_tr.MaxDepth = 3
     apc_tr.UnderwaterLifespan(suffocation = 15000L, recovery = 7500L)
     apc_tr.Geometry = apcForm
+    apc_tr.MaxCapacitor = 300
 
     apc_nc.Name = "apc_nc" // Vindicator
     apc_nc.MaxHealth = 6000
@@ -6208,6 +6209,7 @@ object GlobalDefinitions {
     apc_nc.MaxDepth = 3
     apc_nc.UnderwaterLifespan(suffocation = 15000L, recovery = 7500L)
     apc_nc.Geometry = apcForm
+    apc_nc.MaxCapacitor = 300
 
     apc_vs.Name = "apc_vs" // Leviathan
     apc_vs.MaxHealth = 6000
@@ -6270,6 +6272,7 @@ object GlobalDefinitions {
     apc_vs.MaxDepth = 3
     apc_vs.UnderwaterLifespan(suffocation = 15000L, recovery = 7500L)
     apc_vs.Geometry = apcForm
+    apc_vs.MaxCapacitor = 300
 
     lightning.Name = "lightning"
     lightning.MaxHealth = 2000

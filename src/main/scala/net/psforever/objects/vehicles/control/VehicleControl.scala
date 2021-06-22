@@ -1,11 +1,10 @@
-// Copyright (c) 2017-2020 PSForever
-package net.psforever.objects.vehicles
+// Copyright (c) 2017-2021 PSForever
+package net.psforever.objects.vehicles.control
 
 import akka.actor.{Actor, Cancellable}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects._
 import net.psforever.objects.ballistics.VehicleSource
-import net.psforever.objects.ce.TelepadLike
 import net.psforever.objects.entity.WorldEntity
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot, JammableMountedWeapons}
 import net.psforever.objects.guid.GUIDTask
@@ -14,14 +13,12 @@ import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObjec
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.containable.{Containable, ContainableBehavior}
 import net.psforever.objects.serverobject.damage.{AggravatedBehavior, DamageableVehicle}
-import net.psforever.objects.serverobject.deploy.Deployment.DeploymentObject
-import net.psforever.objects.serverobject.deploy.{Deployment, DeploymentBehavior}
 import net.psforever.objects.serverobject.environment._
 import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.repair.RepairableVehicle
 import net.psforever.objects.serverobject.terminals.Terminal
-import net.psforever.objects.serverobject.transfer.TransferBehavior
+import net.psforever.objects.vehicles.{AccessPermissionGroup, CargoBehavior, Utility, VehicleLockState}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.VehicleShieldCharge
 import net.psforever.objects.vital.environment.EnvironmentReason
@@ -40,44 +37,35 @@ import scala.concurrent.duration._
 /**
   * An `Actor` that handles messages being dispatched to a specific `Vehicle`.<br>
   * <br>
-  * Vehicle-controlling actors have two behavioral states - responsive and "`Disabled`."
+  * Vehicle-controlling actors have two important behavioral states - responsive and "`Disabled`."
   * The latter is applicable only when the specific vehicle is being deconstructed.
-  *
+  * Furthermore, being "ready to delete" is also a behavoral state for the end of life operations of the vehicle.
   * @param vehicle the `Vehicle` object being governed
   */
 class VehicleControl(vehicle: Vehicle)
-    extends Actor
+  extends Actor
     with FactionAffinityBehavior.Check
-    with DeploymentBehavior
     with MountableBehavior
-    with CargoBehavior
     with DamageableVehicle
     with RepairableVehicle
     with JammableMountedWeapons
     with ContainableBehavior
-    with AntTransferBehavior
     with AggravatedBehavior
     with RespondsToZoneEnvironment {
   //make control actors belonging to utilities when making control actor belonging to vehicle
-  vehicle.Utilities.foreach({ case (_, util) => util.Setup })
+  vehicle.Utilities.foreach { case (_, util) => util.Setup }
 
   def MountableObject = vehicle
-
-  def CargoObject = vehicle
 
   def JammableObject = vehicle
 
   def FactionObject = vehicle
-
-  def DeploymentObject = vehicle
 
   def DamageableObject = vehicle
 
   def RepairableObject = vehicle
 
   def ContainerObject = vehicle
-
-  def ChargeTransferObject = vehicle
 
   def InteractiveObject = vehicle
   SetInteraction(EnvironmentAttribute.Water, doInteractingWithWater)
@@ -87,10 +75,6 @@ class VehicleControl(vehicle: Vehicle)
     SetInteractionStop(EnvironmentAttribute.Water, stopInteractingWithWater)
   }
 
-  if (vehicle.Definition == GlobalDefinitions.ant) {
-    findChargeTargetFunc = Vehicles.FindANTChargingSource
-    findDischargeTargetFunc = Vehicles.FindANTDischargingTarget
-  }
   /** cheap flag for whether the vehicle is decaying */
   var decaying : Boolean = false
   /** primary vehicle decay timer */
@@ -112,199 +96,197 @@ class VehicleControl(vehicle: Vehicle)
     recoverFromEnvironmentInteracting()
   }
 
-  def Enabled : Receive =
-    checkBehavior
-      .orElse(deployBehavior)
-      .orElse(cargoBehavior)
-      .orElse(jammableBehavior)
-      .orElse(takesDamage)
-      .orElse(canBeRepairedByNanoDispenser)
-      .orElse(containerBehavior)
-      .orElse(antBehavior)
-      .orElse(environmentBehavior)
-      .orElse {
-        case Vehicle.Ownership(None) =>
-          LoseOwnership()
+  def commonEnabledBehavior: Receive = checkBehavior
+    .orElse(jammableBehavior)
+    .orElse(takesDamage)
+    .orElse(canBeRepairedByNanoDispenser)
+    .orElse(containerBehavior)
+    .orElse(environmentBehavior)
+    .orElse {
+      case Vehicle.Ownership(None) =>
+        LoseOwnership()
 
-        case Vehicle.Ownership(Some(player)) =>
-          GainOwnership(player)
+      case Vehicle.Ownership(Some(player)) =>
+        GainOwnership(player)
 
-        case msg @ Mountable.TryMount(player, mount_point) =>
-          mountBehavior.apply(msg)
-          mountCleanup(mount_point, player)
+      case msg @ Mountable.TryMount(player, mount_point) =>
+        mountBehavior.apply(msg)
+        mountCleanup(mount_point, player)
 
-        case msg @ Mountable.TryDismount(_, seat_num) =>
-          dismountBehavior.apply(msg)
-          dismountCleanup(seat_num)
+      case msg @ Mountable.TryDismount(_, seat_num) =>
+        dismountBehavior.apply(msg)
+        dismountCleanup(seat_num)
 
-        case Vehicle.ChargeShields(amount) =>
-          val now : Long = System.currentTimeMillis()
-          //make certain vehicle doesn't charge shields too quickly
-          if (
-            vehicle.Health > 0 && vehicle.Shields < vehicle.MaxShields &&
-            !vehicle.History.exists(VehicleControl.LastShieldChargeOrDamage(now))
-          ) {
-            vehicle.History(VehicleShieldCharge(VehicleSource(vehicle), amount))
-            vehicle.Shields = vehicle.Shields + amount
-            vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
-              s"${vehicle.Actor}",
-              VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), vehicle.GUID, 68, vehicle.Shields)
-            )
-          }
+      case Vehicle.ChargeShields(amount) =>
+        val now : Long = System.currentTimeMillis()
+        //make certain vehicles don't charge shields too quickly
+        if (
+          vehicle.Health > 0 && vehicle.Shields < vehicle.MaxShields &&
+          !vehicle.History.exists(VehicleControl.LastShieldChargeOrDamage(now))
+        ) {
+          vehicle.History(VehicleShieldCharge(VehicleSource(vehicle), amount))
+          vehicle.Shields = vehicle.Shields + amount
+          vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
+            s"${vehicle.Actor}",
+            VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), vehicle.GUID, 68, vehicle.Shields)
+          )
+        }
 
-        case Vehicle.UpdateZoneInteractionProgressUI(player) =>
-          updateZoneInteractionProgressUI(player)
+      case Vehicle.UpdateZoneInteractionProgressUI(player) =>
+        updateZoneInteractionProgressUI(player)
 
-        case FactionAffinity.ConvertFactionAffinity(faction) =>
-          val originalAffinity = vehicle.Faction
-          if (originalAffinity != (vehicle.Faction = faction)) {
-            vehicle.Utilities.foreach({
-              case (_ : Int, util : Utility) => util().Actor forward FactionAffinity.ConfirmFactionAffinity()
-            })
-          }
-          sender() ! FactionAffinity.AssertFactionAffinity(vehicle, faction)
+      case FactionAffinity.ConvertFactionAffinity(faction) =>
+        val originalAffinity = vehicle.Faction
+        if (originalAffinity != (vehicle.Faction = faction)) {
+          vehicle.Utilities.foreach({
+            case (_ : Int, util : Utility) => util().Actor forward FactionAffinity.ConfirmFactionAffinity()
+          })
+        }
+        sender() ! FactionAffinity.AssertFactionAffinity(vehicle, faction)
 
-        case CommonMessages.Use(player, Some(item : SimpleItem))
-          if item.Definition == GlobalDefinitions.remote_electronics_kit =>
-          //TODO setup certifications check
-          if (vehicle.Faction != player.Faction) {
-            sender() ! CommonMessages.Progress(
-              GenericHackables.GetHackSpeed(player, vehicle),
-              Vehicles.FinishHackingVehicle(vehicle, player, 3212836864L),
-              GenericHackables.HackingTickAction(progressType = 1, player, vehicle, item.GUID)
-            )
-          }
+      case CommonMessages.Use(player, Some(item : SimpleItem))
+        if item.Definition == GlobalDefinitions.remote_electronics_kit =>
+        //TODO setup certifications check
+        if (vehicle.Faction != player.Faction) {
+          sender() ! CommonMessages.Progress(
+            GenericHackables.GetHackSpeed(player, vehicle),
+            Vehicles.FinishHackingVehicle(vehicle, player, 3212836864L),
+            GenericHackables.HackingTickAction(progressType = 1, player, vehicle, item.GUID)
+          )
+        }
 
-        case Terminal.TerminalMessage(player, msg, reply) =>
-          reply match {
-            case Terminal.VehicleLoadout(definition, weapons, inventory) =>
-              org.log4s
-                .getLogger(vehicle.Definition.Name)
-                .info(s"changing vehicle equipment loadout to ${player.Name}'s option #${msg.unk1 + 1}")
-              //remove old inventory
-              val oldInventory = vehicle.Inventory.Clear().map { case InventoryItem(obj, _) => (obj, obj.GUID) }
-              //"dropped" items are lost; if it doesn't go in the trunk, it vanishes into the nanite cloud
-              val (_, afterInventory) = inventory.partition(ContainableBehavior.DropPredicate(player))
-              val (oldWeapons, newWeapons, finalInventory) = if (vehicle.Definition == definition) {
-                //vehicles are the same type
-                //TODO want to completely swap weapons, but holster icon vanishes temporarily after swap
-                //TODO BFR arms must be swapped properly
-                //              //remove old weapons
-                //              val oldWeapons = vehicle.Weapons.values.collect { case slot if slot.Equipment.nonEmpty =>
-                //                val obj = slot.Equipment.get
-                //                slot.Equipment = None
-                //                (obj, obj.GUID)
-                //              }.toList
-                //              (oldWeapons, weapons, afterInventory)
-                //TODO for now, just refill ammo; assume weapons stay the same
-                vehicle.Weapons
-                  .collect { case (_, slot : EquipmentSlot) if slot.Equipment.nonEmpty => slot.Equipment.get }
-                  .collect {
-                    case weapon : Tool =>
-                      weapon.AmmoSlots.foreach { ammo => ammo.Box.Capacity = ammo.Box.Definition.Capacity }
-                  }
-                (Nil, Nil, afterInventory)
+      case Terminal.TerminalMessage(player, msg, reply) =>
+        reply match {
+          case Terminal.VehicleLoadout(definition, weapons, inventory) =>
+            org.log4s
+              .getLogger(vehicle.Definition.Name)
+              .info(s"changing vehicle equipment loadout to ${player.Name}'s option #${msg.unk1 + 1}")
+            //remove old inventory
+            val oldInventory = vehicle.Inventory.Clear().map { case InventoryItem(obj, _) => (obj, obj.GUID) }
+            //"dropped" items are lost; if it doesn't go in the trunk, it vanishes into the nanite cloud
+            val (_, afterInventory) = inventory.partition(ContainableBehavior.DropPredicate(player))
+            val (oldWeapons, newWeapons, finalInventory) = if (vehicle.Definition == definition) {
+              //vehicles are the same type
+              //TODO want to completely swap weapons, but holster icon vanishes temporarily after swap
+              //TODO BFR arms must be swapped properly
+              //              //remove old weapons
+              //              val oldWeapons = vehicle.Weapons.values.collect { case slot if slot.Equipment.nonEmpty =>
+              //                val obj = slot.Equipment.get
+              //                slot.Equipment = None
+              //                (obj, obj.GUID)
+              //              }.toList
+              //              (oldWeapons, weapons, afterInventory)
+              //TODO for now, just refill ammo; assume weapons stay the same
+              vehicle.Weapons
+                .collect { case (_, slot : EquipmentSlot) if slot.Equipment.nonEmpty => slot.Equipment.get }
+                .collect {
+                  case weapon : Tool =>
+                    weapon.AmmoSlots.foreach { ammo => ammo.Box.Capacity = ammo.Box.Definition.Capacity }
+                }
+              (Nil, Nil, afterInventory)
+            }
+            else {
+              //vehicle loadout is not for this vehicle
+              //do not transfer over weapon ammo
+              if (
+                vehicle.Definition.TrunkSize == definition.TrunkSize && vehicle.Definition.TrunkOffset == definition.TrunkOffset
+              ) {
+                (Nil, Nil, afterInventory) //trunk is the same dimensions, however
               }
               else {
-                //vehicle loadout is not for this vehicle
-                //do not transfer over weapon ammo
-                if (
-                  vehicle.Definition.TrunkSize == definition.TrunkSize && vehicle.Definition.TrunkOffset == definition.TrunkOffset
-                ) {
-                  (Nil, Nil, afterInventory) //trunk is the same dimensions, however
-                }
-                else {
-                  //accommodate as much of inventory as possible
-                  val (stow, _) = GridInventory.recoverInventory(afterInventory, vehicle.Inventory)
-                  (Nil, Nil, stow)
-                }
+                //accommodate as much of inventory as possible
+                val (stow, _) = GridInventory.recoverInventory(afterInventory, vehicle.Inventory)
+                (Nil, Nil, stow)
               }
-              finalInventory.foreach {
-                _.obj.Faction = vehicle.Faction
-              }
-              player.Zone.VehicleEvents ! VehicleServiceMessage(
-                player.Zone.id,
-                VehicleAction.ChangeLoadout(vehicle.GUID, oldWeapons, newWeapons, oldInventory, finalInventory)
-              )
-              player.Zone.AvatarEvents ! AvatarServiceMessage(
-                player.Name,
-                AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, true)
-              )
+            }
+            finalInventory.foreach {
+              _.obj.Faction = vehicle.Faction
+            }
+            player.Zone.VehicleEvents ! VehicleServiceMessage(
+              player.Zone.id,
+              VehicleAction.ChangeLoadout(vehicle.GUID, oldWeapons, newWeapons, oldInventory, finalInventory)
+            )
+            player.Zone.AvatarEvents ! AvatarServiceMessage(
+              player.Name,
+              AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, true)
+            )
 
-            case _ => ;
-          }
+          case _ => ;
+        }
 
-        case VehicleControl.Disable() =>
-          PrepareForDisabled(kickPassengers = false)
-          context.become(Disabled)
+      case VehicleControl.Disable() =>
+        PrepareForDisabled(kickPassengers = false)
+        context.become(Disabled)
 
-        case Vehicle.Deconstruct(time) =>
-          time match {
-            case Some(delay) if vehicle.Definition.undergoesDecay =>
-              decaying = true
-              decayTimer.cancel()
-              decayTimer = context.system.scheduler.scheduleOnce(delay, self, VehicleControl.PrepareForDeletion())
-            case _ =>
-              PrepareForDisabled(kickPassengers = true)
-              PrepareForDeletion()
-              context.become(ReadyToDelete)
-          }
+      case Vehicle.Deconstruct(time) =>
+        time match {
+          case Some(delay) if vehicle.Definition.undergoesDecay =>
+            decaying = true
+            decayTimer.cancel()
+            decayTimer = context.system.scheduler.scheduleOnce(delay, self, VehicleControl.PrepareForDeletion())
+          case _ =>
+            PrepareForDisabled(kickPassengers = true)
+            PrepareForDeletion()
+            context.become(ReadyToDelete)
+        }
 
-        case VehicleControl.PrepareForDeletion() =>
-          PrepareForDisabled(kickPassengers = true)
-          PrepareForDeletion()
-          context.become(ReadyToDelete)
+      case VehicleControl.PrepareForDeletion() =>
+        PrepareForDisabled(kickPassengers = true)
+        PrepareForDeletion()
+        context.become(ReadyToDelete)
 
-        case VehicleControl.AssignOwnership(player) =>
-          vehicle.AssignOwnership(player)
+      case VehicleControl.AssignOwnership(player) =>
+        vehicle.AssignOwnership(player)
+    }
 
+  final def Enabled: Receive =
+    commonEnabledBehavior
+      .orElse {
         case _ => ;
       }
 
-  def Disabled : Receive =
-    checkBehavior
-      .orElse {
-        case msg : Deployment.TryUndeploy =>
-          deployBehavior.apply(msg)
+  def commonDisabledBehavior: Receive = checkBehavior
+    .orElse {
+      case msg @ Mountable.TryDismount(_, seat_num) =>
+        dismountBehavior.apply(msg)
+        dismountCleanup(seat_num)
 
-        case msg @ Mountable.TryDismount(_, seat_num) =>
-          dismountBehavior.apply(msg)
-          dismountCleanup(seat_num)
+      case Vehicle.Deconstruct(time) =>
+        time match {
+          case Some(delay) if vehicle.Definition.undergoesDecay =>
+            decaying = true
+            decayTimer.cancel()
+            decayTimer = context.system.scheduler.scheduleOnce(delay, self, VehicleControl.PrepareForDeletion())
+          case _ =>
+            PrepareForDeletion()
+            context.become(ReadyToDelete)
+        }
 
-        case Vehicle.Deconstruct(time) =>
-          time match {
-            case Some(delay) if vehicle.Definition.undergoesDecay =>
-              decaying = true
-              decayTimer.cancel()
-              decayTimer = context.system.scheduler.scheduleOnce(delay, self, VehicleControl.PrepareForDeletion())
-            case _ =>
-              PrepareForDeletion()
-              context.become(ReadyToDelete)
-          }
+      case VehicleControl.PrepareForDeletion() =>
+        PrepareForDeletion()
+        context.become(ReadyToDelete)
+    }
 
-        case VehicleControl.PrepareForDeletion() =>
-          PrepareForDeletion()
-          context.become(ReadyToDelete)
+  final def Disabled: Receive = commonDisabledBehavior
+    .orElse {
+      case _ => ;
+    }
 
-        case _ =>
-      }
+  def commonDeleteBehavior: Receive = checkBehavior
+    .orElse {
+      case VehicleControl.Deletion() =>
+        val zone = vehicle.Zone
+        zone.VehicleEvents ! VehicleServiceMessage(
+          zone.id,
+          VehicleAction.UnloadVehicle(Service.defaultPlayerGUID, vehicle, vehicle.GUID)
+        )
+        zone.Transport.tell(Zone.Vehicle.Despawn(vehicle), zone.Transport)
+    }
 
-  def ReadyToDelete : Receive =
-    checkBehavior
-      .orElse {
-        case msg : Deployment.TryUndeploy =>
-          deployBehavior.apply(msg)
-
-        case VehicleControl.Deletion() =>
-          val zone = vehicle.Zone
-          zone.VehicleEvents ! VehicleServiceMessage(
-            zone.id,
-            VehicleAction.UnloadVehicle(Service.defaultPlayerGUID, vehicle, vehicle.GUID)
-          )
-          zone.Transport.tell(Zone.Vehicle.Despawn(vehicle), zone.Transport)
-
-        case _ =>
-      }
+  final def ReadyToDelete: Receive = commonDeleteBehavior
+    .orElse {
+      case _ => ;
+    }
 
   override protected def mountTest(
                                     obj: PlanetSideServerObject with Mountable,
@@ -387,7 +369,6 @@ class VehicleControl(vehicle: Vehicle)
     val events = zone.VehicleEvents
     //miscellaneous changes
     recoverFromEnvironmentInteracting()
-    Vehicles.BeforeUnloadVehicle(vehicle, zone)
     //escape being someone else's cargo
     vehicle.MountedIn match {
       case Some(_) =>
@@ -417,28 +398,11 @@ class VehicleControl(vehicle: Vehicle)
         }
       }
     }
-    //abandon all cargo
-    vehicle.CargoHolds.values
-      .collect {
-        case hold if hold.isOccupied =>
-          val cargo = hold.occupant.get
-          CargoBehavior.HandleVehicleCargoDismount(
-            cargo.GUID,
-            cargo,
-            guid,
-            vehicle,
-            bailed = false,
-            requestedByPassenger = false,
-            kicked = false
-          )
-      }
-    }
+  }
 
   def PrepareForDeletion() : Unit = {
     decaying = false
     val zone = vehicle.Zone
-    //miscellaneous changes
-    Vehicles.BeforeUnloadVehicle(vehicle, zone)
     //cancel jammed behavior
     CancelJammeredSound(vehicle)
     CancelJammeredStatus(vehicle)
@@ -555,119 +519,6 @@ class VehicleControl(vehicle: Vehicle)
       toChannel,
       VehicleAction.ObjectDelete(item.GUID)
     )
-  }
-
-  override def TryDeploymentChange(obj: Deployment.DeploymentObject, state: DriveState.Value): Boolean = {
-    VehicleControl.DeploymentAngleCheck(obj) && super.TryDeploymentChange(obj, state)
-  }
-
-  override def DeploymentAction(
-      obj: DeploymentObject,
-      state: DriveState.Value,
-      prevState: DriveState.Value
-  ): DriveState.Value = {
-    val out = super.DeploymentAction(obj, state, prevState)
-    obj match {
-      case vehicle: Vehicle =>
-        val guid        = vehicle.GUID
-        val zone        = vehicle.Zone
-        val zoneChannel = zone.id
-        val GUID0       = Service.defaultPlayerGUID
-        val driverChannel = vehicle.Seats(0).occupant match {
-          case Some(tplayer) => tplayer.Name
-          case None          => ""
-        }
-        Vehicles.ReloadAccessPermissions(vehicle, vehicle.Faction.toString)
-        //ams
-        if (vehicle.Definition == GlobalDefinitions.ams) {
-          val events = zone.VehicleEvents
-          state match {
-            case DriveState.Deployed =>
-              events ! VehicleServiceMessage.AMSDeploymentChange(zone)
-              events ! VehicleServiceMessage(driverChannel, VehicleAction.PlanetsideAttribute(GUID0, guid, 81, 1))
-            case _ => ;
-          }
-        }
-        //ant
-        else if (vehicle.Definition == GlobalDefinitions.ant) {
-          state match {
-            case DriveState.Deployed =>
-              // Start ntu regeneration
-              // If vehicle sends UseItemMessage with silo as target NTU regeneration will be disabled and orb particles will be disabled
-              context.system.scheduler.scheduleOnce(
-                delay = 1000 milliseconds,
-                vehicle.Actor,
-                TransferBehavior.Charging(Ntu.Nanites)
-              )
-            case _ => ;
-          }
-        }
-        //router
-        else if (vehicle.Definition == GlobalDefinitions.router) {
-          val events = zone.LocalEvents
-          state match {
-            case DriveState.Deploying =>
-              vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
-                case Some(util: Utility.InternalTelepad) => util.Actor ! TelepadLike.Activate(util)
-                case _ => ;
-              }
-            case _ => ;
-          }
-        }
-      case _ => ;
-    }
-    out
-  }
-
-  override def UndeploymentAction(
-      obj: DeploymentObject,
-      state: DriveState.Value,
-      prevState: DriveState.Value
-  ): DriveState.Value = {
-    val out = if (decaying) state else super.UndeploymentAction(obj, state, prevState)
-    obj match {
-      case vehicle: Vehicle =>
-        val guid  = vehicle.GUID
-        val zone  = vehicle.Zone
-        val GUID0 = Service.defaultPlayerGUID
-        val driverChannel = vehicle.Seats(0).occupant match {
-          case Some(tplayer) => tplayer.Name
-          case None          => ""
-        }
-        Vehicles.ReloadAccessPermissions(vehicle, vehicle.Faction.toString)
-        //ams
-        if (vehicle.Definition == GlobalDefinitions.ams) {
-          val events = zone.VehicleEvents
-          state match {
-            case DriveState.Undeploying =>
-              events ! VehicleServiceMessage.AMSDeploymentChange(zone)
-              events ! VehicleServiceMessage(driverChannel, VehicleAction.PlanetsideAttribute(GUID0, guid, 81, 0))
-            case _ => ;
-          }
-        }
-        //ant
-        else if (vehicle.Definition == GlobalDefinitions.ant) {
-          state match {
-            case DriveState.Undeploying =>
-              TryStopChargingEvent(vehicle)
-            case _ => ;
-          }
-        }
-        //router
-        else if (vehicle.Definition == GlobalDefinitions.router) {
-          state match {
-            case DriveState.Undeploying =>
-              //deactivate internal router before trying to reset the system
-              vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
-                case Some(util: Utility.InternalTelepad) => util.Actor ! TelepadLike.Deactivate(util)
-                case _ => ;
-              }
-            case _ => ;
-          }
-        }
-      case _ => ;
-    }
-    out
   }
 
   /**
@@ -894,9 +745,5 @@ object VehicleControl {
       case vsc: VehicleShieldCharge   => now - vsc.time < (1 seconds).toMillis      //previous charge delays next by 1s
       case _                          => false
     }
-  }
-
-  def DeploymentAngleCheck(obj: Deployment.DeploymentObject): Boolean = {
-    obj.Orientation.x <= 30 || obj.Orientation.x >= 330
   }
 }

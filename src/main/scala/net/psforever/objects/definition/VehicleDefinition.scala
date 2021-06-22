@@ -1,9 +1,11 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition
 
-import net.psforever.objects.NtuContainerDefinition
+import akka.actor.{ActorContext, Props}
+import net.psforever.objects.{Default, NtuContainerDefinition, Vehicle}
 import net.psforever.objects.definition.converter.VehicleConverter
 import net.psforever.objects.inventory.InventoryTile
+import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.vehicles.{DestroyedVehicle, MountableWeaponsDefinition, UtilityType}
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.damage.DamageCalculations
@@ -181,6 +183,19 @@ class VehicleDefinition(objectId: Int)
     destroyedModel = model
     DestroyedModel
   }
+
+  def Initialize(obj: Vehicle, context: ActorContext): Unit = {
+    import net.psforever.objects.vehicles.control.VehicleControl
+    obj.Actor = context.actorOf(
+      Props(classOf[VehicleControl], obj),
+      PlanetSideServerObject.UniqueActorName(obj)
+    )
+  }
+
+  def Uninitialize(obj: Vehicle, context: ActorContext): Unit = {
+    obj.Actor ! akka.actor.PoisonPill
+    obj.Actor = Default.Actor
+  }
 }
 
 object VehicleDefinition {
@@ -189,4 +204,94 @@ object VehicleDefinition {
   def apply(objectId: Int): VehicleDefinition = {
     new VehicleDefinition(objectId)
   }
+
+  protected class AmsDefinition(objectId: Int) extends VehicleDefinition(objectId) {
+    import net.psforever.objects.vehicles.control.AmsControl
+    override def Initialize(obj: Vehicle, context: ActorContext): Unit = {
+      obj.Actor = context.actorOf(
+        Props(classOf[AmsControl], obj),
+        PlanetSideServerObject.UniqueActorName(obj)
+      )
+    }
+  }
+  /**
+    * Vehicle definition for the advanced mobile spawn (AMS) vehicle.
+    * @param objectId the object id that is associated with this sort of `Vehicle`
+    */
+  def Ams(objectId: Int): VehicleDefinition = new AmsDefinition(objectId)
+
+  protected class AntDefinition(objectId: Int) extends VehicleDefinition(objectId) {
+    import net.psforever.objects.vehicles.control.AntControl
+    override def Initialize(obj: Vehicle, context: ActorContext): Unit = {
+      obj.Actor = context.actorOf(
+        Props(classOf[AntControl], obj),
+        PlanetSideServerObject.UniqueActorName(obj)
+      )
+    }
+  }
+  /**
+    * Vehicle definition for the advanced nanite transport (ANT) vehicle.
+    * @param objectId the object id that is associated with this sort of `Vehicle`
+    */
+  def Ant(objectId: Int): VehicleDefinition = new AntDefinition(objectId)
+
+  protected class ApcDefinition(objectId: Int) extends VehicleDefinition(objectId) {
+    import net.psforever.objects.vehicles.control.ApcControl
+    override def Initialize(obj: Vehicle, context: ActorContext): Unit = {
+      obj.Actor = context.actorOf(
+        Props(classOf[ApcControl], obj),
+        PlanetSideServerObject.UniqueActorName(obj)
+      )
+    }
+  }
+  /**
+    * Vehicle definition(s) for the armored personnel carrier (`apc*`) vehicles.
+    * @param objectId the object id that is associated with this sort of `Vehicle`
+    */
+  def Apc(objectId: Int): VehicleDefinition = new ApcDefinition(objectId)
+
+  protected class CarrierDefinition(objectId: Int) extends VehicleDefinition(objectId) {
+    import net.psforever.objects.vehicles.control.CargoCarrierControl
+    override def Initialize(obj: Vehicle, context: ActorContext): Unit = {
+      obj.Actor = context.actorOf(
+        Props(classOf[CargoCarrierControl], obj),
+        PlanetSideServerObject.UniqueActorName(obj)
+      )
+    }
+  }
+  /**
+    * Vehicle definition(s) for the vehicles (carriers) that are used to transport other vehicles (cargo).
+    * @param objectId the object id that is associated with this sort of `Vehicle`
+    */
+  def Carrier(objectId: Int): VehicleDefinition = new CarrierDefinition(objectId)
+
+  protected class DeployingDefinition(objectId: Int) extends VehicleDefinition(objectId) {
+    import net.psforever.objects.vehicles.control.DeployingVehicleControl
+    override def Initialize(obj: Vehicle, context: ActorContext): Unit = {
+      obj.Actor = context.actorOf(
+        Props(classOf[DeployingVehicleControl], obj),
+        PlanetSideServerObject.UniqueActorName(obj)
+      )
+    }
+  }
+  /**
+    * Vehicle definition(s) for the vehicles that perform significant mode state transitions.
+    * @param objectId the object id that is associated with this sort of `Vehicle`
+    */
+  def Deploying(objectId: Int): VehicleDefinition = new DeployingDefinition(objectId)
+
+  protected class RouterDefinition(objectId: Int) extends VehicleDefinition(objectId) {
+    import net.psforever.objects.vehicles.control.RouterControl
+    override def Initialize(obj: Vehicle, context: ActorContext): Unit = {
+      obj.Actor = context.actorOf(
+        Props(classOf[RouterControl], obj),
+        PlanetSideServerObject.UniqueActorName(obj)
+      )
+    }
+  }
+  /**
+    * Vehicle definition for the Router.
+    * @param objectId the object id that is associated with this sort of `Vehicle`
+    */
+  def Router(objectId: Int): VehicleDefinition = new RouterDefinition(objectId)
 }

@@ -110,4 +110,8 @@ object Deployment {
     */
   def CheckForUndeployState(state: DriveState.Value): Boolean =
     state == DriveState.Undeploying || state == DriveState.Mobile || state == DriveState.State7
+
+  def AngleCheck(obj: Deployment.DeploymentObject): Boolean = {
+    obj.Orientation.x <= 30 || obj.Orientation.x >= 330
+  }
 }

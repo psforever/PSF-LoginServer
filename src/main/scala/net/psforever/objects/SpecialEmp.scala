@@ -42,6 +42,11 @@ object SpecialEmp {
   }
 
   /**
+    * Trigger an electromagnetic pulse.
+    */
+  final case class Burst()
+
+  /**
     * The damage interaction for an electromagnetic pulse effect.
     * @param empEffect information about the effect
     * @param position where the effect occurs

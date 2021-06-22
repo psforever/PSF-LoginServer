@@ -7,15 +7,17 @@ import akka.testkit.TestProbe
 import base.{ActorTest, FreedContextActorTest}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.{Avatar, PlayerControl}
-import net.psforever.objects.{GlobalDefinitions, Player, Vehicle}
+import net.psforever.objects.ce.DeployedItem
+import net.psforever.objects._
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.environment._
 import net.psforever.objects.serverobject.mount.Mountable
-import net.psforever.objects.vehicles.{VehicleControl, VehicleLockState}
-import net.psforever.objects.vital.VehicleShieldCharge
+import net.psforever.objects.vehicles.VehicleLockState
+import net.psforever.objects.vehicles.control.VehicleControl
+import net.psforever.objects.vital.{VehicleShieldCharge, Vitality}
 import net.psforever.objects.zones.{Zone, ZoneMap}
-import net.psforever.packet.game.{CargoMountPointStatusMessage, ObjectDetachMessage, PlanetsideAttributeMessage}
+import net.psforever.packet.game._
 import net.psforever.services.ServiceManager
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
@@ -201,12 +203,16 @@ class VehicleControlPrepareForDeletionMountedInTest extends FreedContextActorTes
 }
 
 class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActorTest {
+  val vehicleProbe = new TestProbe(system)
+  val catchall = new TestProbe(system)
   val guid = new NumberPoolHub(new MaxNumberSource(10))
   ServiceManager.boot
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     GUID(guid)
 
     override def SetupNumberPools(): Unit = {}
+    override def VehicleEvents = vehicleProbe.ref
+    override def tasks = catchall.ref
   }
   zone.actor = system.spawn(ZoneActor(zone), "test-zone-actor")
   // crappy workaround but without it the zone doesn't get initialized in time
@@ -219,6 +225,7 @@ class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActor
   vehicle.Actor = cargoProbe.ref
   val lodestar = Vehicle(GlobalDefinitions.lodestar)
   lodestar.Faction = PlanetSideEmpire.TR
+  lodestar.Zone = zone
   val player1 = Player(VehicleTest.avatar1) //name="test1"
   val player2 = Player(VehicleTest.avatar2) //name="test2"
 
@@ -237,85 +244,64 @@ class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActor
   player2.VehicleSeated = lodestar.GUID
   lodestar.CargoHolds(1).mount(vehicle)
   vehicle.MountedIn = lodestar.GUID
-
-  val vehicleProbe = new TestProbe(system)
-  zone.VehicleEvents = vehicleProbe.ref
-  zone.Transport ! Zone.Vehicle.Spawn(lodestar) //can not fake this
+  lodestar.Definition.Initialize(lodestar, context)
 
   "VehicleControl" should {
     "if with mounted cargo, eject it when marked for deconstruction" in {
       lodestar.Actor ! Vehicle.Deconstruct()
 
       val vehicle_msg = vehicleProbe.receiveN(6, 500 milliseconds)
-      assert(
-        vehicle_msg.head match {
-          case VehicleServiceMessage(
+      vehicle_msg(5) match {
+        case VehicleServiceMessage(
           "test",
           VehicleAction.KickPassenger(PlanetSideGUID(4), 4, false, PlanetSideGUID(2))
-          ) =>
-            true
-          case _ => false
-        }
-      )
+        ) => ;
+        case _ => assert(false)
+      }
       assert(player2.VehicleSeated.isEmpty)
       assert(lodestar.Seats(0).occupant.isEmpty)
       //cargo dismounting messages
-      assert(
-        vehicle_msg(1) match {
-          case VehicleServiceMessage(
+      vehicle_msg.head match {
+        case VehicleServiceMessage(
           _,
           VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 0, _))
-          ) =>
-            true
-          case _ => false
-        }
-      )
-      assert(
-        vehicle_msg(2) match {
-          case VehicleServiceMessage(
+        ) => ;
+        case _ => assert(false)
+      }
+      vehicle_msg(1) match {
+        case VehicleServiceMessage(
           _,
           VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 68, _))
-          ) =>
-            true
-          case _ => false
-        }
-      )
-      assert(
-        vehicle_msg(3) match {
-          case VehicleServiceMessage(
+        ) => ;
+        case _ => assert(false)
+      }
+      vehicle_msg(2) match {
+        case VehicleServiceMessage(
           "test",
           VehicleAction.SendResponse(
-          _,
-          CargoMountPointStatusMessage(PlanetSideGUID(2), _, PlanetSideGUID(1), _, 1, CargoStatus.InProgress, 0)
+            _,
+            CargoMountPointStatusMessage(PlanetSideGUID(2), _, PlanetSideGUID(1), _, 1, CargoStatus.InProgress, 0)
           )
-          ) =>
-            true
-          case _ => false
-        }
-      )
-      assert(
-        vehicle_msg(4) match {
-          case VehicleServiceMessage(
+        ) => ;
+        case _ => assert(false)
+      }
+      vehicle_msg(3) match {
+        case VehicleServiceMessage(
           "test",
           VehicleAction.SendResponse(_, ObjectDetachMessage(PlanetSideGUID(2), PlanetSideGUID(1), _, _, _, _))
-          ) =>
-            true
-          case _ => false
-        }
-      )
-      assert(
-        vehicle_msg(5) match {
-          case VehicleServiceMessage(
+        ) => ;
+        case _ => assert(false)
+      }
+      vehicle_msg(4) match {
+        case VehicleServiceMessage(
           "test",
           VehicleAction.SendResponse(
-          _,
-          CargoMountPointStatusMessage(PlanetSideGUID(2), _, _, PlanetSideGUID(1), 1, CargoStatus.Empty, 0)
+            _,
+            CargoMountPointStatusMessage(PlanetSideGUID(2), _, _, PlanetSideGUID(1), 1, CargoStatus.Empty, 0)
           )
-          ) =>
-            true
-          case _ => false
-        }
-      )
+        ) => ;
+        case _ => assert(false)
+      }
     }
   }
 }
@@ -941,6 +927,142 @@ class VehicleControlInteractWithDeathTest extends ActorTest {
       probe.receiveOne(2 seconds) //wait until player1's implants deinitialize
       assert(vehicle.Health == 0) //ded
       assert(player1.Health == 0) //ded
+    }
+  }
+}
+
+class ApcControlCanChargeCapacitor extends FreedContextActorTest {
+  val apc = Vehicle(GlobalDefinitions.apc_tr) //guid=1, weapons not registered
+
+  val guid = new NumberPoolHub(new MaxNumberSource(max = 5))
+  val localProbe = TestProbe()
+  val vehicleProbe = TestProbe()
+  val catchall = TestProbe()
+  val zone = new Zone(id = "test-zone", new ZoneMap(name = "test-map"), zoneNumber = 0) {
+    override def SetupNumberPools(): Unit = {}
+    GUID(guid)
+    override def Vehicles = List(apc)
+    override def VehicleEvents = vehicleProbe.ref
+    override def LocalEvents = localProbe.ref
+    override def AvatarEvents = catchall.ref
+    override def Activity = catchall.ref
+  }
+
+  guid.register(apc, number = 1)
+  apc.Faction = PlanetSideEmpire.VS
+  apc.Zone = zone
+  //apc.Definition.Initialize(apc, context) //do later ...
+  zone.blockMap.addTo(apc)
+
+  val maxCapacitor = apc.Definition.MaxCapacitor
+
+  "ApcControl" should {
+    "charge its capacitors when initialized" in {
+      assert(apc.Capacitor == 0)
+      apc.Definition.Initialize(apc, context)
+      do {
+        val msg = vehicleProbe.receiveOne(3.seconds)
+        msg match {
+          case VehicleServiceMessage(_, VehicleAction.PlanetsideAttribute(_, PlanetSideGUID(1), 113, capacitance)) =>
+            assert(capacitance > 0)
+          case _ =>
+            assert(false)
+        }
+      }
+      while(apc.Capacitor < maxCapacitor)
+      vehicleProbe.expectNoMessage(5.seconds)
+      assert(apc.Capacitor == maxCapacitor)
+    }
+  }
+}
+
+class ApcControlCanEmp extends FreedContextActorTest {
+  val apc = Vehicle(GlobalDefinitions.apc_vs) //guid=1, weapons not registered
+  val fury = Vehicle(GlobalDefinitions.fury) //guid=2, weapons not registered
+  val boomer = Deployables.Make(DeployedItem.boomer)() //guid=3, no trigger
+  val boomer2 = Deployables.Make(DeployedItem.boomer)() //guid=4, no trigger
+
+  val guid = new NumberPoolHub(new MaxNumberSource(max = 5))
+  val localProbe = TestProbe()
+  val vehicleProbe = TestProbe()
+  val catchall = TestProbe()
+  val zone = new Zone(id = "test-zone", new ZoneMap(name = "test-map"), zoneNumber = 0) {
+    override def SetupNumberPools(): Unit = {}
+    GUID(guid)
+    override def Vehicles = List(apc, fury)
+    override def DeployableList = List(boomer, boomer2)
+    override def VehicleEvents = vehicleProbe.ref
+    override def LocalEvents = localProbe.ref
+    override def AvatarEvents = catchall.ref
+    override def Activity = catchall.ref
+  }
+
+  guid.register(apc, number = 1)
+  apc.Faction = PlanetSideEmpire.VS
+  apc.Zone = zone
+  apc.Capacitor = apc.Definition.MaxCapacitor
+  apc.Definition.Initialize(apc, context)
+  zone.blockMap.addTo(apc)
+
+  val furyProbe = TestProbe()
+  guid.register(fury, number = 2)
+  fury.Position = Vector3(4, 0, 0) //within 15m of apc
+  fury.Faction = PlanetSideEmpire.TR
+  fury.Zone = zone
+  fury.Actor = furyProbe.ref
+  zone.blockMap.addTo(fury)
+
+  val boomerProbe = TestProbe()
+  guid.register(boomer, number = 3)
+  boomer.Position = Vector3(0, 14, 0) //within 15m of apc
+  boomer.Faction = PlanetSideEmpire.TR
+  boomer.Zone = zone
+  boomer.Actor = boomerProbe.ref
+  zone.blockMap.addTo(boomer)
+
+  val boomer2Probe = TestProbe()
+  guid.register(boomer2, number = 4)
+  boomer2.Position = Vector3(0, 30, 0) //beyond 15m of apc
+  boomer2.Faction = PlanetSideEmpire.TR
+  boomer2.Zone = zone
+  boomer2.Actor = boomer2Probe.ref
+  zone.blockMap.addTo(boomer2)
+
+  "ApcControl" should {
+    "charge its capacitors when initialized" in {
+      assert(apc.Capacitor == apc.Definition.MaxCapacitor)
+      apc.Definition.Initialize(apc, context)
+      vehicleProbe.expectNoMessage(5.seconds) //the capacitor is max, so no charging is needed
+
+      apc.Actor ! SpecialEmp.Burst()
+      val vehicleMsgs = vehicleProbe.receiveN(2, 500.milliseconds)
+      vehicleMsgs.head match {
+        case VehicleServiceMessage(_, VehicleAction.PlanetsideAttribute(_, PlanetSideGUID(1), 113, 0)) => ;
+        case _ => assert(false)
+      }
+      vehicleMsgs(1) match {
+        case VehicleServiceMessage(
+        "test-zone",
+          VehicleAction.SendResponse(
+            _,
+            TriggerEffectMessage(_, "apc_explosion_emp_vs", None, Some(TriggeredEffectLocation(Vector3.Zero, Vector3.Zero)))
+          )
+        ) => ;
+        case _ => assert(false)
+      }
+      assert(apc.Capacitor == 0)
+
+      val furyMsg = furyProbe.receiveOne(200.milliseconds)
+      furyMsg match {
+        case Vitality.Damage(_) => ;
+        case _ => assert(false)
+      }
+      val boomerMsg = boomerProbe.receiveOne(200.milliseconds)
+      boomerMsg match {
+        case Vitality.Damage(_) => ;
+        case _ => assert(false)
+      }
+      boomer2Probe.expectNoMessage(400.milliseconds) //out of range
     }
   }
 }

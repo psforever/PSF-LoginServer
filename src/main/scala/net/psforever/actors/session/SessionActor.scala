@@ -958,8 +958,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       }
 
     case Deployment.CanNotChangeDeployment(obj, state, reason) =>
-      if (Deployment.CheckForDeployState(state) && !VehicleControl.DeploymentAngleCheck(obj)) {
-        CanNotChangeDeployment(obj, state, "ground too steep")
+      if (Deployment.CheckForDeployState(state) && !Deployment.AngleCheck(obj)) {
+        CanNotChangeDeployment(obj, state, reason = "ground too steep")
       } else {
         CanNotChangeDeployment(obj, state, reason)
       }
@@ -2407,13 +2407,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         val obj_guid: PlanetSideGUID = obj.GUID
         CancelAllProximityUnits()
         sendResponse(PlanetsideAttributeMessage(obj_guid, 0, obj.Health))
-        sendResponse(PlanetsideAttributeMessage(obj_guid, 68, obj.Shields)) //shield health
+        sendResponse(PlanetsideAttributeMessage(obj_guid, 68, obj.Shields))
         if (obj.Definition == GlobalDefinitions.ant) {
           sendResponse(PlanetsideAttributeMessage(obj_guid, 45, obj.NtuCapacitorScaled))
         }
         if (obj.Definition.MaxCapacitor > 0) {
-          val capacitor = scala.math.ceil((obj.Capacitor.toFloat / obj.Definition.MaxCapacitor.toFloat) * 10).toInt
-          sendResponse(PlanetsideAttributeMessage(obj_guid, 113, capacitor))
+          sendResponse(PlanetsideAttributeMessage(obj_guid, 113, obj.Capacitor))
         }
         if (seat_number == 0) {
           if (obj.Definition == GlobalDefinitions.quadstealth) {
@@ -3150,14 +3149,16 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           vehicle.Actor ! JammableUnit.ClearJammeredSound()
         }
         //positive shield strength
-        if (vehicle.Shields > 0) {
+        if (vehicle.Definition.MaxShields > 0) {
           sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 68, vehicle.Shields))
         }
         // ANT capacitor
         if (vehicle.Definition == GlobalDefinitions.ant) {
-          sendResponse(
-            PlanetsideAttributeMessage(vehicle.GUID, 45, vehicle.NtuCapacitorScaled)
-          ) // set ntu on vehicle UI
+          sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 45, vehicle.NtuCapacitorScaled)) // set ntu on vehicle UI
+        }
+        // vehicle capacitor
+        if (vehicle.Definition.MaxCapacitor > 0) {
+          sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 113, vehicle.Capacitor))
         }
         LoadZoneTransferPassengerMessages(
           guid,
@@ -4966,7 +4967,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
 
       case msg @ GenericObjectActionMessage(object_guid, code) =>
+        log.debug(s"$msg")
         ValidObject(object_guid) match {
+          case Some(vehicle: Vehicle) =>
+            if (code == 55) {
+              //apc emp
+              vehicle.Actor ! SpecialEmp.Burst()
+            }
           case Some(tool: Tool) =>
             if (tool.Definition == GlobalDefinitions.maelstrom && code == 35) {
               //maelstrom primary fire mode effect (no target)
