@@ -62,11 +62,11 @@ Format is: Time left - 2 bytes, faction - 1 byte (1-4), isResecured - 1 byte (0-
 <code>45 - NTU charge bar 0-10, 5 = 50% full. Seems to apply to both ANT and NTU Silo (possibly siphons?)</code><br>
 <code>46 - Sends "Generator damage is at a critical level!" message</code>
 <code>47 - Sets base NTU level to CRITICAL.</code><br>
-<code>48 - Set to 1 to send base power loss message &amp; turns on red warning lights throughout base.<br>
+<code>48 - Set to 1 to send base power loss message &amp; turns on red warning lights throughout base.</code><br>
 <code>49 - Vehicle texture effects state? (&gt;0 turns on ANT panel glow or ntu silo panel glow + orbs) (bit?)</code><br>
 <code>52 - Vehicle particle effects? (&gt;0 turns on orbs going towards ANT. Doesn't affect silo) (bit?)</code><br>
 <code>53 - LFS. Value is 1 to flag LFS</code><br>
-<code>54 - Player "Aura". Values can be expressed in the first byte's lower nibble:</code></code></p><ul><li>0 - nothing</li><li>1 - plasma</li><li>2 - ancient</li><li>4 - LLU (?)</li><li>8 - fire</li><li>e.g., 13 = 8 + 4 + 1 = fire and LLU and plasma</li></ul><p><code>55 - "Someone is attempting to Heal you". Value is 1</code><br>
+<code>54 - Player "Aura". Values can be expressed in the first byte's lower nibble:</code></p><ul><li>0 - nothing</li><li>1 - plasma</li><li>2 - ancient</li><li>4 - LLU (?)</li><li>8 - fire</li><li>e.g., 13 = 8 + 4 + 1 = fire and LLU and plasma</li></ul><p><code>55 - "Someone is attempting to Heal you". Value is 1</code><br>
 <code>56 - "Someone is attempting to Repair you". Value is 1</code><br>
 <code>64 - ????? related to using router telepads</code>
 <code>67 - Enables base shields (from cavern module/lock)</code><br>
@@ -86,6 +86,7 @@ Format is: Time left - 2 bytes, faction - 1 byte (1-4), isResecured - 1 byte (0-
 <code>21 - Declare a player the vehicle's owner, by globally unique identifier</code><br>
 <code>22 - Toggles gunner and passenger mount points (1 = hides, 0 = reveals; this also locks their permissions)</code><br>
 <code>54 - Plays jammed buzzing sound in vicinity of target</code><br>
+<code>55 - Trigger APC EMP</code><br>
 <code>68 - Vehicle shield health</code><br>
 <code>79 - ???</code><br>
 <code>80 - Damage vehicle (unknown value)</code><br>
