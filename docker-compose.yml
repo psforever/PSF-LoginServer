@@ -11,6 +11,8 @@ services:
       - 51000-51001:51000-51001/udp
       - 51002:51002/tcp
     command: sbt server/run
+    environment:
+      CONFIG_FORCE_database_host: db
   adminer:
     image: adminer
     ports:
