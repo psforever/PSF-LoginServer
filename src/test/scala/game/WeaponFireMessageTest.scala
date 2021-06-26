@@ -30,12 +30,12 @@ class WeaponFireMessageTest extends Specification {
         projectile_guid mustEqual PlanetSideGUID(40100)
         shot_origin mustEqual Vector3(3675.4688f, 2726.9922f, 92.921875f)
         unk1 mustEqual 0
-        unk2 mustEqual 64294
+        unk2 mustEqual 1241
         unk3 mustEqual 1502
         unk4 mustEqual 200
         unk5 mustEqual 255
-        unk6 mustEqual 0
-        unk7 mustEqual None
+        unk6 mustEqual ProjectileCharacteristics.Standard
+        unk7.isEmpty mustEqual true
       case _ =>
         ko
     }
@@ -48,11 +48,11 @@ class WeaponFireMessageTest extends Specification {
       PlanetSideGUID(40100),
       Vector3(3675.4688f, 2726.9922f, 92.921875f),
       0,
-      64294,
+      1241,
       1502,
       200,
       255,
-      0,
+      ProjectileCharacteristics.Standard,
       None
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector

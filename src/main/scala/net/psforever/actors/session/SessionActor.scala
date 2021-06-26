@@ -4120,46 +4120,24 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case msg @ ChangeFireStateMessage_Stop(item_guid) =>
         prefire = None
         shootingStop = System.currentTimeMillis()
-        val weapon: Option[Equipment] = if (shooting.contains(item_guid)) {
+        if (shooting.contains(item_guid)) {
           shooting = None
-          continent.AvatarEvents ! AvatarServiceMessage(
-            continent.id,
-            AvatarAction.ChangeFireState_Stop(player.GUID, item_guid)
-          )
-          FindEquipment
-        } else {
-          FindEquipment match {
-            case Some(tool: Tool) => //special cases
-              //the decimator does not send a ChangeFireState_Start on the last shot
-              if (
-                tool.Definition == GlobalDefinitions.phoenix &&
-                tool.Projectile != GlobalDefinitions.phoenix_missile_guided_projectile
-              ) {
-                //suppress the decimator's alternate fire mode, however
-                continent.AvatarEvents ! AvatarServiceMessage(
-                  continent.id,
-                  AvatarAction.ChangeFireState_Start(player.GUID, item_guid)
-                )
-                shootingStart = System.currentTimeMillis() - 1L
-              }
-              continent.AvatarEvents ! AvatarServiceMessage(
-                continent.id,
-                AvatarAction.ChangeFireState_Stop(player.GUID, item_guid)
-              )
-              Some(tool)
-            case Some(tool) => //permissible, for now
-              continent.AvatarEvents ! AvatarServiceMessage(
-                continent.id,
-                AvatarAction.ChangeFireState_Stop(player.GUID, item_guid)
-              )
-              Some(tool)
-            case _ =>
-              //log.warn(s"ChangeFireState_Stop: ${player.Name} never started firing item ${item_guid.guid} in the first place?")
-              None
-          }
         }
-        weapon match {
+        val pguid = player.GUID
+        FindEquipment match {
           case Some(tool: Tool) =>
+            //the decimator does not send a ChangeFireState_Start on the last shot; heaven knows why
+            if (
+              tool.Definition == GlobalDefinitions.phoenix &&
+              tool.Projectile != GlobalDefinitions.phoenix_missile_guided_projectile
+            ) {
+              //suppress the decimator's alternate fire mode, however
+              continent.AvatarEvents ! AvatarServiceMessage(
+                continent.id,
+                AvatarAction.ChangeFireState_Start(pguid, item_guid)
+              )
+              shootingStart = System.currentTimeMillis() - 1L
+            }
             tool.FireMode match {
               case mode: ChargeFireModeDefinition =>
                 sendResponse(QuantityUpdateMessage(tool.AmmoSlot.Box.GUID, tool.Magazine))
@@ -4168,18 +4146,24 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             if (tool.Magazine == 0) {
               FireCycleCleanup(tool)
             }
-          case Some(trigger: BoomerTrigger) =>
-            val playerGUID = player.GUID
             continent.AvatarEvents ! AvatarServiceMessage(
               continent.id,
-              AvatarAction.ChangeFireState_Start(playerGUID, item_guid)
+              AvatarAction.ChangeFireState_Stop(pguid, item_guid)
+            )
+
+          case Some(trigger: BoomerTrigger) =>
+            continent.AvatarEvents ! AvatarServiceMessage(
+              continent.id,
+              AvatarAction.ChangeFireState_Start(pguid, item_guid)
             )
             continent.GUID(trigger.Companion) match {
               case Some(boomer: BoomerDeployable) =>
                 boomer.Actor ! CommonMessages.Use(player, Some(trigger))
               case Some(_) | None => ;
             }
+
           case _ => ;
+          //log.warn(s"ChangeFireState_Stop: ${player.Name} never started firing item ${item_guid.guid} in the first place?")
         }
         progressBarUpdate.cancel()
         progressBarValue = None
@@ -5128,19 +5112,19 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
 
       case msg @ WeaponFireMessage(
-            seq_time,
-            weapon_guid,
-            projectile_guid,
-            shot_origin,
-            unk1,
-            unk2,
-            unk3,
-            unk4,
-            unk5,
-            unk6,
-            unk7
-          ) =>
-        HandleWeaponFire(weapon_guid, projectile_guid, shot_origin)
+        _,
+        weapon_guid,
+        projectile_guid,
+        shot_origin,
+        _,
+        _,
+        _,
+        _, //max_distance,
+        _,
+        _, //projectile_type,
+        thrown_projectile_vel
+      ) =>
+        HandleWeaponFire(weapon_guid, projectile_guid, shot_origin, thrown_projectile_vel.flatten)
 
       case msg @ WeaponLazeTargetPositionMessage(_, _, pos2) =>
         log.info(s"${player.Name} is lazing the position ${continent.id}@(${pos2.x},${pos2.y},${pos2.z})")
@@ -9009,7 +8993,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     middlewareActor ! MiddlewareActor.Teardown()
   }
 
-  def HandleWeaponFire(weaponGUID: PlanetSideGUID, projectileGUID: PlanetSideGUID, shotOrigin: Vector3): Unit = {
+  def HandleWeaponFire(
+                        weaponGUID: PlanetSideGUID,
+                        projectileGUID: PlanetSideGUID,
+                        shotOrigin: Vector3,
+                        shotVelocity: Option[Vector3]
+                      ): Unit = {
     HandleWeaponFireAccountability(weaponGUID, projectileGUID) match {
       case (Some(obj), Some(tool)) =>
         val projectileIndex = projectileGUID.guid - Projectile.baseUID
@@ -9054,10 +9043,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               projectile_info,
               tool.Definition,
               tool.FireMode,
-              player,
+              PlayerSource(player),
               attribution,
               shotOrigin,
-              angle
+              angle,
+              shotVelocity
             )
           val initialQuality = tool.FireMode match {
             case mode: ChargeFireModeDefinition =>
@@ -9071,18 +9061,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               s"WeaponFireMessage: ${player.Name}'s ${projectile_info.Name} is a remote projectile"
             )
             continent.tasks ! (if (projectile.HasGUID) {
-                                 continent.AvatarEvents ! AvatarServiceMessage(
-                                   continent.id,
-                                   AvatarAction.ProjectileExplodes(
-                                     player.GUID,
-                                     projectile.GUID,
-                                     projectile
-                                   )
-                                 )
-                                 ReregisterProjectile(projectile)
-                               } else {
-                                 RegisterProjectile(projectile)
-                               })
+              continent.AvatarEvents ! AvatarServiceMessage(
+                continent.id,
+                AvatarAction.ProjectileExplodes(player.GUID, projectile.GUID, projectile)
+              )
+              ReregisterProjectile(projectile)
+            } else {
+              RegisterProjectile(projectile)
+            })
           }
           projectilesToCleanUp(projectileIndex) = false
 

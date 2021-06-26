@@ -12,7 +12,7 @@ import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.types.Vector3
 
 /**
-  * A summation of weapon (`Tool`) discharge.
+  * A summation of weapon discharge.
   * @see `ProjectileDefinition`
   * @see `ToolDefinition`
   * @see `FireModeDefinition`
@@ -28,9 +28,10 @@ import net.psforever.types.Vector3
   *                     if not, then it is a type of vehicle (and owner should have a positive `seated` field)
   * @param shot_origin where the projectile started
   * @param shot_angle in which direction the projectile was aimed when it was discharged
+  * @param shot_velocity the initial velocity coordinates of the projectile according to its world directions
   * @param quality na
   * @param id an exclusive identifier for this projectile;
-  *           normally generated internally, but can be manually set
+  *           normally generated internally, but can be manually set (for modifying a continuous projectile reference)
   * @param fire_time when the weapon discharged was recorded;
   *                  defaults to `System.currentTimeMillis()`
   */
@@ -42,18 +43,20 @@ final case class Projectile(
     attribute_to: Int,
     shot_origin: Vector3,
     shot_angle: Vector3,
+    shot_velocity: Option[Vector3],
     quality: ProjectileQuality = ProjectileQuality.Normal,
     id: Long = Projectile.idGenerator.getAndIncrement(),
     fire_time: Long = System.currentTimeMillis()
 ) extends PlanetSideGameObject {
   Position = shot_origin
   Orientation = shot_angle
-  Velocity = {
-    val initVel: Int     = profile.InitialVelocity              //initial velocity
-    val radAngle: Double = math.toRadians(shot_angle.y)         //angle of elevation
-    val rise: Float      = initVel * math.sin(radAngle).toFloat //z
-    val ground: Float    = initVel * math.cos(radAngle).toFloat //base
-    Vector3.Rz(Vector3(0, -ground, 0), shot_angle.z) + Vector3.z(rise)
+  Velocity = shot_velocity.getOrElse {
+    val radz = math.toRadians(shot_angle.z)
+    Vector3.Unit(Vector3(
+      math.sin(radz).toFloat,
+      math.cos(radz).toFloat,
+      math.sin(math.toRadians(shot_angle.y)).toFloat
+    )) * profile.InitialVelocity.toFloat
   }
 
   /** Information about the current world coordinates and orientation of the projectile */
@@ -77,6 +80,7 @@ final case class Projectile(
       attribute_to,
       shot_origin,
       shot_angle,
+      shot_velocity,
       value,
       id,
       fire_time
@@ -127,14 +131,14 @@ object Projectile {
     * @return the `Projectile` object
     */
   def apply(
-      profile: ProjectileDefinition,
-      tool_def: ToolDefinition,
-      fire_mode: FireModeDefinition,
-      owner: PlanetSideGameObject with FactionAffinity,
-      shot_origin: Vector3,
-      shot_angle: Vector3
-  ): Projectile = {
-    Projectile(profile, tool_def, fire_mode, SourceEntry(owner), tool_def.ObjectId, shot_origin, shot_angle)
+             profile: ProjectileDefinition,
+             tool_def: ToolDefinition,
+             fire_mode: FireModeDefinition,
+             owner: PlanetSideGameObject with FactionAffinity,
+             shot_origin: Vector3,
+             shot_angle: Vector3
+           ): Projectile = {
+    Projectile(profile, tool_def, fire_mode, SourceEntry(owner), tool_def.ObjectId, shot_origin, shot_angle, None)
   }
 
   /**
@@ -149,14 +153,26 @@ object Projectile {
     * @return the `Projectile` object
     */
   def apply(
-      profile: ProjectileDefinition,
-      tool_def: ToolDefinition,
-      fire_mode: FireModeDefinition,
-      owner: PlanetSideGameObject with FactionAffinity,
-      attribute_to: Int,
-      shot_origin: Vector3,
-      shot_angle: Vector3
-  ): Projectile = {
-    Projectile(profile, tool_def, fire_mode, SourceEntry(owner), attribute_to, shot_origin, shot_angle)
+             profile: ProjectileDefinition,
+             tool_def: ToolDefinition,
+             fire_mode: FireModeDefinition,
+             owner: PlanetSideGameObject with FactionAffinity,
+             attribute_to: Int,
+             shot_origin: Vector3,
+             shot_angle: Vector3
+           ): Projectile = {
+    Projectile(profile, tool_def, fire_mode, SourceEntry(owner), attribute_to, shot_origin, shot_angle, None)
+  }
+
+  def apply(
+             profile: ProjectileDefinition,
+             tool_def: ToolDefinition,
+             fire_mode: FireModeDefinition,
+             owner: SourceEntry,
+             attribute_to: Int,
+             shot_origin: Vector3,
+             shot_angle: Vector3
+           ): Projectile = {
+    Projectile(profile, tool_def, fire_mode, owner, attribute_to, shot_origin, shot_angle, None)
   }
 }
