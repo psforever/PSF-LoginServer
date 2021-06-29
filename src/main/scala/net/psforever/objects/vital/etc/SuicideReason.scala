@@ -33,7 +33,7 @@ final case class SuicideReason()
   */
   def source: DamageProperties = SuicideReason.damageProperties
 
-  def resolution: DamageResolution.Value = DamageResolution.Resolved
+  def resolution: DamageResolution.Value = DamageResolution.Suicide
 
   def same(test: DamageReason): Boolean = {
     test.source eq source
