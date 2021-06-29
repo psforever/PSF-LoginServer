@@ -864,8 +864,11 @@ class AvatarActor(
           Behaviors.same
 
         case ConsumeStamina(stamina) =>
-          assert(stamina > 0, s"consumed stamina must be larger than 0, but is: $stamina")
-          consumeStamina(stamina)
+          if (stamina > 0) {
+            consumeStamina(stamina)
+          } else {
+            log.warn(s"consumed stamina must be larger than 0, but is: $stamina")
+          }
           Behaviors.same
 
         case SuspendStaminaRegeneration(duration) =>

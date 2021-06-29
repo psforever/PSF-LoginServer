@@ -2415,7 +2415,7 @@ object GlobalDefinitions {
     chainblade_projectile.InitialVelocity = 100
     chainblade_projectile.Lifespan = .02f
     ProjectileDefinition.CalculateDerivedFields(chainblade_projectile)
-    chainblade_projectile.Modifiers = MaxDistanceCutoff
+    chainblade_projectile.Modifiers = List(MeleeBoosted, MaxDistanceCutoff)
 
     colossus_100mm_projectile.Name = "colossus_100mm_projectile"
     colossus_100mm_projectile.Damage0 = 58
@@ -2766,7 +2766,7 @@ object GlobalDefinitions {
     forceblade_projectile.InitialVelocity = 100
     forceblade_projectile.Lifespan = .02f
     ProjectileDefinition.CalculateDerivedFields(forceblade_projectile)
-    forceblade_projectile.Modifiers = MaxDistanceCutoff
+    forceblade_projectile.Modifiers = List(MeleeBoosted, MaxDistanceCutoff)
 
     frag_cartridge_projectile.Name = "frag_cartridge_projectile"
     // TODO for later, maybe : set_resource_parent frag_cartridge_projectile game_objects frag_grenade_projectile
@@ -3243,7 +3243,7 @@ object GlobalDefinitions {
     magcutter_projectile.InitialVelocity = 100
     magcutter_projectile.Lifespan = .02f
     ProjectileDefinition.CalculateDerivedFields(magcutter_projectile)
-    magcutter_projectile.Modifiers = MaxDistanceCutoff
+    magcutter_projectile.Modifiers = List(MeleeBoosted, MaxDistanceCutoff)
 
     melee_ammo_projectile.Name = "melee_ammo_projectile"
     melee_ammo_projectile.Damage0 = 25
@@ -3252,7 +3252,7 @@ object GlobalDefinitions {
     melee_ammo_projectile.InitialVelocity = 100
     melee_ammo_projectile.Lifespan = .02f
     ProjectileDefinition.CalculateDerivedFields(melee_ammo_projectile)
-    melee_ammo_projectile.Modifiers = MaxDistanceCutoff
+    melee_ammo_projectile.Modifiers = List(MeleeBoosted, MaxDistanceCutoff)
 
     meteor_common.Name = "meteor_common"
     meteor_common.DamageAtEdge = .1f
