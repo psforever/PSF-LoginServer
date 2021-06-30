@@ -13,7 +13,9 @@ import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.loadouts.{InfantryLoadout, Loadout, VehicleLoadout}
 import net.psforever.objects._
+import net.psforever.objects.ballistics.PlayerSource
 import net.psforever.objects.locker.LockerContainer
+import net.psforever.objects.vital.HealFromImplant
 import net.psforever.packet.game.objectcreate.ObjectClass
 import net.psforever.packet.game._
 import net.psforever.types._
@@ -761,7 +763,7 @@ class AvatarActor(
               if (!implant.initialized) {
                 log.warn(s"requested activation of uninitialized implant $implantType")
               } else if (
-                !consumeStamina(implant.definition.ActivationStaminaCost) ||
+                !consumeThisMuchStamina(implant.definition.ActivationStaminaCost) ||
                 avatar.stamina < implant.definition.StaminaCost
               ) {
                 // not enough stamina to activate
@@ -796,7 +798,33 @@ class AvatarActor(
                 // TODO costInterval should be an option ^
                 if (interval.toMillis > 0) {
                   implantTimers(slot) = context.system.scheduler.scheduleWithFixedDelay(interval, interval)(() => {
-                    if (!consumeStamina(implant.definition.StaminaCost)) {
+                    val player = session.get.player
+                    if (implantType match {
+                      case ImplantType.AdvancedRegen =>
+                        //for every 1hp: 2sp (running), 1.5sp (standing), 1sp (crouched)
+                        // to simulate '1.5sp (standing)', find if 0.0...1.0 * 100 is an even number
+                        val cost = implant.definition.StaminaCost -
+                                   (if (player.Crouching || (!player.isMoving && (math.random() * 100) % 2 == 1)) 1 else 0)
+                        val aliveAndWounded = player.isAlive && player.Health < player.MaxHealth
+                        if (aliveAndWounded && consumeThisMuchStamina(cost)) {
+                          //heal
+                          val originalHealth = player.Health
+                          val zone = player.Zone
+                          val events = zone.AvatarEvents
+                          val guid = player.GUID
+                          val newHealth = player.Health = originalHealth + 1
+                          player.History(HealFromImplant(PlayerSource(player), 1, implantType))
+                          events ! AvatarServiceMessage(
+                            zone.id,
+                            AvatarAction.PlanetsideAttributeToAll(guid, 0, newHealth)
+                          )
+                          false
+                        } else {
+                          !aliveAndWounded
+                        }
+                      case _ =>
+                        !player.isAlive || !consumeThisMuchStamina(implant.definition.StaminaCost)
+                    }) {
                       context.self ! DeactivateImplant(implantType)
                     }
                   })
@@ -865,7 +893,7 @@ class AvatarActor(
 
         case ConsumeStamina(stamina) =>
           assert(stamina > 0, s"consumed stamina must be larger than 0, but is: $stamina")
-          consumeStamina(stamina)
+          consumeThisMuchStamina(stamina)
           Behaviors.same
 
         case SuspendStaminaRegeneration(duration) =>
@@ -1012,34 +1040,50 @@ class AvatarActor(
     p.future
   }
 
-  /** Consumes given stamina and returns false if current stamina was too low to consume the full amount */
-  def consumeStamina(stamina: Int): Boolean = {
-    if (stamina == 0) return true
-    if (!session.get.player.HasGUID) return false
-    val consumed     = (avatar.stamina - stamina) >= 0
-    val totalStamina = math.max(0, avatar.stamina - stamina)
-    val fatigued = if (!avatar.fatigued && totalStamina == 0) {
-      context.self ! DeactivateActiveImplants()
+  /**
+    * Drain at most a given amount of stamina from the player's pool of stamina.
+    * If the player's reserves become zero in the act, inform the player that he is fatigued
+    * meaning that he will only be able to walk, all implants will deactivate,
+    * and all exertion that require stamina use will become impossible until a threshold of stamina is regained.
+    * @param stamina an amount to drain
+    * @return `true`, as long as the amount of stamina can be drained in total;
+    *        `false`, otherwise
+    */
+  def consumeThisMuchStamina(stamina: Int): Boolean = {
+    if (stamina < 1) {
       true
     } else {
-      totalStamina == 0
-    }
-    if (!avatar.fatigued && fatigued) {
-      avatar.implants.zipWithIndex.foreach {
-        case (Some(implant), slot) =>
-          if (implant.active) {
-            deactivateImplant(implant.definition.implantType)
+      val resultingStamina = avatar.stamina - stamina
+      val totalStamina = math.max(0, resultingStamina)
+      val alreadyFatigued = avatar.fatigued
+      val becomeFatigued = !alreadyFatigued && totalStamina == 0
+      avatar = avatar.copy(stamina = totalStamina, fatigued = alreadyFatigued || becomeFatigued)
+      val player = session.get.player
+      if (player.HasGUID) {
+        if (becomeFatigued) {
+          avatar.implants.zipWithIndex.foreach {
+            case (Some(implant), slot) =>
+              if (implant.active) {
+                deactivateImplant(implant.definition.implantType)
+              }
+              sessionActor ! SessionActor.SendResponse(
+                AvatarImplantMessage(player.GUID, ImplantAction.OutOfStamina, slot, 1)
+              )
+            case _ => ;
           }
-          sessionActor ! SessionActor.SendResponse(
-            AvatarImplantMessage(session.get.player.GUID, ImplantAction.OutOfStamina, slot, 1)
-          )
-        case _ => ()
+        }
+        sessionActor ! SessionActor.SendResponse(PlanetsideAttributeMessage(player.GUID, 2, avatar.stamina))
+      } else if (becomeFatigued) {
+        avatar = avatar.copy(implants = avatar.implants.zipWithIndex.collect {
+          case (Some(implant), slot) if implant.active =>
+            implantTimers(slot).cancel()
+            Some(implant.copy(active = false))
+          case (out, _) =>
+            out
+        })
       }
+      resultingStamina >= 0
     }
-
-    avatar = avatar.copy(stamina = totalStamina, fatigued = fatigued)
-    sessionActor ! SessionActor.SendResponse(PlanetsideAttributeMessage(session.get.player.GUID, 2, avatar.stamina))
-    consumed
   }
 
   def initializeImplants(): Unit = {
