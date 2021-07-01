@@ -756,6 +756,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       })) {
         //activate second wind
         player.Health += 25
+        player.History(HealFromImplant(PlayerSource(player), 25, ImplantType.SecondWind))
         avatarActor ! AvatarActor.ResetImplant(ImplantType.SecondWind)
         avatarActor ! AvatarActor.RestoreStamina(25)
       }
