@@ -7710,19 +7710,32 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       None
     } else {
       projectile.Resolve()
-      val outProjectile = if (projectile.profile.ProjectileDamageTypes.contains(DamageType.Aggravated)) {
-        val quality = projectile.profile.Aggravated match {
-          case Some(aggravation)
-              if aggravation.targets.exists(validation => validation.test(target)) &&
-                aggravation.info.exists(_.damage_type == AggravatedDamage.basicDamageType(resolution)) =>
-            ProjectileQuality.AggravatesTarget
-          case _ =>
-            ProjectileQuality.Normal
+      val outProjectile =
+        if (projectile.profile.ProjectileDamageTypes.contains(DamageType.Aggravated)) {
+          //aggravated
+          val quality = projectile.profile.Aggravated match {
+            case Some(aggravation)
+                if aggravation.targets.exists(validation => validation.test(target)) &&
+                  aggravation.info.exists(_.damage_type == AggravatedDamage.basicDamageType(resolution)) =>
+              ProjectileQuality.AggravatesTarget
+            case _ =>
+              ProjectileQuality.Normal
+          }
+          projectile.quality(quality)
+        } else if (projectile.tool_def.Size == EquipmentSize.Melee) {
+          //melee
+          val quality = player.avatar.implants.flatten.find { entry => entry.definition == GlobalDefinitions.melee_booster } match {
+            case Some(booster) if booster.active && player.avatar.stamina > 9 =>
+              avatarActor ! AvatarActor.ConsumeStamina(10)
+              ProjectileQuality.Modified(25f)
+            case _ =>
+              ProjectileQuality.Normal
+          }
+          projectile.quality(quality)
+        } else {
+          //normal
+          projectile
         }
-        projectile.quality(quality)
-      } else {
-        projectile
-      }
       Some(DamageInteraction(SourceEntry(target), ProjectileReason(resolution, outProjectile, target.DamageModel), pos))
     }
   }

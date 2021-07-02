@@ -293,6 +293,19 @@ case object FlakBurst extends ProjectileDamageModifiers.Mod {
   }
 }
 
+/**
+  * If the damage is resolved by way of a melee weapon,
+  * the damage might be increased if the attack was initiated
+  * while the attacker was under the effect of an active Melee Boost implant.
+  * @see `GlobalDefinitions.melee_booster`
+  * @see `ProjectileQuality`
+  */
+case object MeleeBoosted extends ProjectileDamageModifiers.Mod {
+  override def calculate(damage: Int, data: DamageInteraction, cause: ProjectileReason): Int = {
+    cause.projectile.quality.mod.toInt + damage
+  }
+}
+
 /* Functions */
 object ProjectileDamageModifierFunctions {
   /**

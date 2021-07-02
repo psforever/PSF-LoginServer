@@ -142,6 +142,9 @@ object AvatarActor {
   /** Deinitialize implants (before zoning or respawning) */
   final case class DeinitializeImplants() extends Command
 
+  /** Deinitialize a certain implant, then initialize it again */
+  final case class ResetImplant(implant: ImplantType) extends Command
+
   /** Shorthand for DeinitializeImplants and InitializeImplants */
   final case class ResetImplants() extends Command
 
@@ -174,7 +177,7 @@ object AvatarActor {
 
   private case class ServiceManagerLookupResult(result: ServiceManager.LookupResult) extends Command
 
-  private case class SetStamina(stamina: Int) extends Command
+  final case class SetStamina(stamina: Int) extends Command
 
   private case class SetImplantInitialized(implantType: ImplantType) extends Command
 
@@ -869,8 +872,7 @@ class AvatarActor(
           Behaviors.same
 
         case RestoreStamina(stamina) =>
-          assert(stamina > 0)
-          if (session.get.player.HasGUID) {
+          if (stamina > 0 && session.get.player.HasGUID) {
             val totalStamina = math.min(avatar.maxStamina, avatar.stamina + stamina)
             val fatigued = if (avatar.fatigued && totalStamina >= 20) {
               avatar.implants.zipWithIndex.foreach {
@@ -892,8 +894,11 @@ class AvatarActor(
           Behaviors.same
 
         case ConsumeStamina(stamina) =>
-          assert(stamina > 0, s"consumed stamina must be larger than 0, but is: $stamina")
-          consumeThisMuchStamina(stamina)
+          if (stamina > 0) {
+            consumeThisMuchStamina(stamina)
+          } else {
+            log.warn(s"consumed stamina must be larger than 0, but is: $stamina")
+          }
           Behaviors.same
 
         case SuspendStaminaRegeneration(duration) =>
@@ -913,6 +918,10 @@ class AvatarActor(
 
         case DeinitializeImplants() =>
           deinitializeImplants()
+          Behaviors.same
+
+        case ResetImplant(implantType) =>
+          resetAnImplant(implantType)
           Behaviors.same
 
         case ResetImplants() =>
@@ -1136,6 +1145,42 @@ class AvatarActor(
         Some(implant.copy(initialized = false, active = false))
       case (None, _) => None
     })
+  }
+
+  def resetAnImplant(implantType: ImplantType): Unit = {
+    avatar.implants.zipWithIndex.find {
+      case (Some(imp), _) => imp.definition.implantType == implantType
+      case (None, _)      => false
+    } match {
+      case Some((Some(imp), index)) =>
+        //deactivate
+        if (imp.active) {
+          deactivateImplant(implantType)
+        }
+        //deinitialize
+        session.get.zone.AvatarEvents ! AvatarServiceMessage(
+          session.get.zone.id,
+          AvatarAction.SendResponse(
+            Service.defaultPlayerGUID,
+            AvatarImplantMessage(session.get.player.GUID, ImplantAction.Initialization, index, 0)
+          )
+        )
+        avatar = avatar.copy(
+          implants = avatar.implants.updated(index, Some(imp.copy(initialized = false, active = false)))
+        )
+        //restart initialization process
+        implantTimers(index).cancel()
+        implantTimers(index) = context.scheduleOnce(
+          imp.definition.InitializationDuration.seconds,
+          context.self,
+          SetImplantInitialized(implantType)
+        )
+        session.get.zone.AvatarEvents ! AvatarServiceMessage(
+          avatar.name,
+          AvatarAction.SendResponse(Service.defaultPlayerGUID, ActionProgressMessage(index + 6, 0))
+        )
+      case _ => ;
+    }
   }
 
   def deactivateImplant(implantType: ImplantType): Unit = {

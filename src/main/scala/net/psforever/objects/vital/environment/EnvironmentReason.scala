@@ -17,7 +17,7 @@ import net.psforever.objects.vital.{NoResistanceSelection, SimpleResolutions, Vi
   * @param against for the purposes of damage, what kind of target is being acted upon
   */
 final case class EnvironmentReason(body: PieceOfEnvironment, against: DamageCalculations.Selector) extends DamageReason {
-  def resolution: DamageResolution.Value = DamageResolution.Hit
+  def resolution: DamageResolution.Value = DamageResolution.Environmental
 
   def source: DamageProperties = EnvironmentReason.selectDamage(body)
 
