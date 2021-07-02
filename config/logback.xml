@@ -20,17 +20,9 @@
     <encoder>
       <pattern>%date{ISO8601} %5level %logger{35} - %msg%n</pattern>
     </encoder>
-    <filter class="ch.qos.logback.core.filter.EvaluatorFilter">
-      <evaluator>
-        <matcher>
-          <Name>encrypted</Name>
-          <!-- occurs during latency or relogging complications; the messages are useless -->
-          <regex>Unexpected packet type EncryptedPacket</regex>
-        </matcher>
-        <expression>encrypted.matches(formattedMessage)</expression>
-      </evaluator>
-      <OnMatch>DENY</OnMatch>
-      <OnMismatch>NEUTRAL</OnMismatch>
+    <filter class="net.psforever.filter.MsgRegexFilter">
+      <!-- occurs during latency or relogging complications; the messages are useless -->
+      <regex>Unexpected packet type EncryptedPacket</regex>
     </filter>
     <filter class="net.psforever.filters.LoggerPrefixFilter">
       <!--
@@ -103,17 +95,9 @@
     <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
       <level>WARN</level>
     </filter>
-    <filter class="ch.qos.logback.core.filter.EvaluatorFilter">
-      <evaluator>
-        <matcher>
-          <Name>encrypted</Name>
-          <!-- occurs during logging or relogging complications; the messages are useless -->
-          <regex>Unexpected packet type EncryptedPacket</regex>
-        </matcher>
-        <expression>encrypted.matches(formattedMessage)</expression>
-      </evaluator>
-      <OnMatch>DENY</OnMatch>
-      <OnMismatch>NEUTRAL</OnMismatch>
+    <filter class="net.psforever.filters.MsgRegexFilter">
+      <!-- occurs during logging or relogging complications; the messages are useless -->
+      <regex>Unexpected packet type EncryptedPacket</regex>
     </filter>
   </appender>
 
