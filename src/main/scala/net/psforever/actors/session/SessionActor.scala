@@ -7724,7 +7724,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           projectile.quality(quality)
         } else if (projectile.tool_def.Size == EquipmentSize.Melee) {
           //melee
-          val quality = player.avatar.implants.flatten.find { entry => entry.definition == GlobalDefinitions.melee_booster } match {
+          val quality = player.avatar.implants.flatten.find { entry => entry.definition.implantType == ImplantType.MeleeBooster } match {
             case Some(booster) if booster.active && player.avatar.stamina > 9 =>
               avatarActor ! AvatarActor.ConsumeStamina(10)
               ProjectileQuality.Modified(25f)
