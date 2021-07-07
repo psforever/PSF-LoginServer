@@ -9,7 +9,6 @@ import net.psforever.objects.guid.NumberPoolHub
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.language.implicitConversions
 import scala.util.{Failure, Success}
 
 /**
