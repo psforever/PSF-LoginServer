@@ -1108,6 +1108,8 @@ object GlobalDefinitions {
   val generator = new GeneratorDefinition(351)
 
   val obbasemesh = new AmenityDefinition(598) {}
+
+  val targeting_laser_dispenser = new OrderTerminalDefinition(851)
   initMiscellaneous()
 
   /*
@@ -6578,13 +6580,14 @@ object GlobalDefinitions {
     flail.Seats += 0             -> new SeatDefinition()
     flail.controlledWeapons += 0 -> 1
     flail.Weapons += 1           -> flail_weapon
+    flail.Utilities += 2         -> UtilityType.targeting_laser_dispenser
     flail.MountPoints += 1       -> MountInfo(0)
     flail.TrunkSize = InventoryTile.Tile1511
     flail.TrunkOffset = 30
     flail.TrunkLocation = Vector3(-3.75f, 0f, 0f)
     flail.Deployment = true
-    flail.DeployTime = 2000
-    flail.UndeployTime = 2000
+    flail.DeployTime = 5750
+    flail.UndeployTime = 5750
     flail.AutoPilotSpeeds = (14, 6)
     flail.Packet = variantConverter
     flail.DestroyedModel = Some(DestroyedVehicle.Flail)
@@ -7671,6 +7674,11 @@ object GlobalDefinitions {
     teleportpad_terminal.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.routerTerminal)
     teleportpad_terminal.Damageable = false
     teleportpad_terminal.Repairable = false
+
+    targeting_laser_dispenser.Name = "targeting_laser_dispenser"
+    targeting_laser_dispenser.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.flailTerminal)
+    targeting_laser_dispenser.Damageable = false
+    targeting_laser_dispenser.Repairable = false
 
     medical_terminal.Name = "medical_terminal"
     medical_terminal.Interval = 500

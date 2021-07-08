@@ -4752,6 +4752,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                     player,
                     ItemTransactionMessage(object_guid, TransactionType.Buy, 0, "router_telepad", 0, PlanetSideGUID(0))
                   )
+                } else if (tdef == GlobalDefinitions.targeting_laser_dispenser) {
+                  //explicit request
+                  log.info(s"${player.Name} is purchasing a targeting laser")
+                  CancelZoningProcessWithDescriptiveReason("cancel_use")
+                  terminal.Actor ! Terminal.Request(
+                    player,
+                    ItemTransactionMessage(object_guid, TransactionType.Buy, 0, "flail_targeting_laser", 0, PlanetSideGUID(0))
+                  )
                 } else {
                   log.info(s"${player.Name} is accessing a ${terminal.Definition.Name}")
                   CancelZoningProcessWithDescriptiveReason("cancel_use")
