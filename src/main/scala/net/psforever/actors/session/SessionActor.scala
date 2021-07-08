@@ -3982,6 +3982,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             log.warn(s"ProjectileState: constructed projectile ${projectile_guid.guid} can not be found")
         }
 
+      case msg @ LongRangeProjectileInfoMessage(guid, pos, vel) =>
+        log.info(s"$msg")
+
       case msg @ ReleaseAvatarRequestMessage() =>
         log.info(s"${player.Name} on ${continent.id} has released")
         reviveTimer.cancel()
