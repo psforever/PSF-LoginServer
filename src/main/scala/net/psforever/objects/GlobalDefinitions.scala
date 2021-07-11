@@ -2657,7 +2657,10 @@ object GlobalDefinitions {
     flail_projectile.InitialVelocity = 75
     flail_projectile.Lifespan = 40f
     ProjectileDefinition.CalculateDerivedFields(flail_projectile)
-    //TODO flail_projectile.Modifiers = RadialDegrade?
+    flail_projectile.Modifiers = List(
+      FlailDistanceDamageBoost,
+      RadialDegrade
+    )
 
     flamethrower_fireball.Name = "flamethrower_fireball"
     flamethrower_fireball.Damage0 = 30
@@ -6586,8 +6589,8 @@ object GlobalDefinitions {
     flail.TrunkOffset = 30
     flail.TrunkLocation = Vector3(-3.75f, 0f, 0f)
     flail.Deployment = true
-    flail.DeployTime = 5750
-    flail.UndeployTime = 5750
+    flail.DeployTime = 5500
+    flail.UndeployTime = 5500
     flail.AutoPilotSpeeds = (14, 6)
     flail.Packet = variantConverter
     flail.DestroyedModel = Some(DestroyedVehicle.Flail)

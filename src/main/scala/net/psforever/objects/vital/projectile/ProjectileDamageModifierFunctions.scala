@@ -306,6 +306,29 @@ case object MeleeBoosted extends ProjectileDamageModifiers.Mod {
   }
 }
 
+/**
+  * If the Flail's projectile exceeds it's distance before degrade in travel distance,
+  * the damage caused by the projectile increases by up to multiple times its base damage at 600m.
+  * It does not inflate for further beyond 600m.
+  */
+case object FlailDistanceDamageBoost extends ProjectileDamageModifiers.Mod {
+  override def calculate(damage: Int, data: DamageInteraction, cause: ProjectileReason): Int = {
+    val projectile = cause.projectile
+    val profile = projectile.profile
+    val distance   = Vector3.Distance(data.hitPos, projectile.shot_origin) //TODO calculate arc distance?
+    val distanceNoDegrade = profile.DistanceNoDegrade
+    val distanceNoMultiplier = 600f - distanceNoDegrade
+    if (distance > profile.DistanceMax) {
+      0
+    } else if (distance >= distanceNoDegrade) {
+      damage + (damage * (profile.DegradeMultiplier - 1) *
+                math.min(distance - distanceNoDegrade, distanceNoMultiplier) / distanceNoMultiplier).toInt
+    } else {
+      damage
+    }
+  }
+}
+
 /* Functions */
 object ProjectileDamageModifierFunctions {
   /**

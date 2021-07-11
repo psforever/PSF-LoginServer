@@ -3982,8 +3982,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             log.warn(s"ProjectileState: constructed projectile ${projectile_guid.guid} can not be found")
         }
 
-      case msg @ LongRangeProjectileInfoMessage(guid, pos, vel) =>
-        log.info(s"$msg")
+      case msg @ LongRangeProjectileInfoMessage(guid, _, _) =>
+        //log.info(s"$msg")
+        FindContainedWeapon match {
+          case (Some(vehicle: Vehicle), Some(weapon: Tool))
+            if weapon.GUID == guid => ; //now what?
+          case _ => ;
+        }
 
       case msg @ ReleaseAvatarRequestMessage() =>
         log.info(s"${player.Name} on ${continent.id} has released")
@@ -5177,20 +5182,23 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             //find target(s)
             (hit_info match {
               case Some(hitInfo) =>
+                val hitPos     = hitInfo.hit_pos
                 ValidObject(hitInfo.hitobject_guid) match {
                   case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
-                    CheckForHitPositionDiscrepancy(projectile_guid, hitInfo.hit_pos, target)
-                    List((target, hitInfo.shot_origin, hitInfo.hit_pos))
+                    CheckForHitPositionDiscrepancy(projectile_guid, hitPos, target)
+                    List((target, hitInfo.shot_origin, hitPos))
 
                   case None if projectile.profile.DamageProxy.getOrElse(0) > 0 =>
                     //server-side maelstrom grenade target selection
                     if (projectile.tool_def == GlobalDefinitions.maelstrom) {
-                      val hitPos     = hitInfo.hit_pos
                       val shotOrigin = hitInfo.shot_origin
                       val radius     = projectile.profile.LashRadius * projectile.profile.LashRadius
-                      val targets = continent.LivePlayers.filter { target =>
-                        Vector3.DistanceSquared(target.Position, hitPos) <= radius
-                      }
+                      val targets = continent.blockMap
+                        .sector(hitPos, projectile.profile.LashRadius)
+                        .livePlayerList
+                        .filter { target =>
+                          Vector3.DistanceSquared(target.Position, hitPos) <= radius
+                        }
                       //chainlash is separated from the actual damage application for convenience
                       continent.AvatarEvents ! AvatarServiceMessage(
                         continent.id,
@@ -5199,9 +5207,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                           ChainLashMessage(
                             hitPos,
                             projectile.profile.ObjectId,
-                            targets.map {
-                              _.GUID
-                            }.toList
+                            targets.map { _.GUID }
                           )
                         )
                       )
@@ -5212,6 +5218,18 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                     } else {
                       Nil
                     }
+
+                  case None if projectile.profile == GlobalDefinitions.flail_projectile =>
+                    val radius  = projectile.profile.DamageRadius * projectile.profile.DamageRadius
+                    val targets = Zone.findAllTargets(hitPos)(continent, player, projectile.profile)
+                      .filter { target =>
+                        Vector3.DistanceSquared(target.Position, hitPos) <= radius
+                      }
+                    targets.map { target =>
+                      CheckForHitPositionDiscrepancy(projectile_guid, hitPos, target)
+                      (target, hitPos, target.Position)
+                    }
+
                   case _ =>
                     Nil
                 }
