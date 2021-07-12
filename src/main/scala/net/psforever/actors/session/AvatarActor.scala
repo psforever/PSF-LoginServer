@@ -745,9 +745,10 @@ class AvatarActor(
 
         case UpdateUseTime(definition, time) =>
           if (!Avatar.useCooldowns.contains(definition)) {
-            log.warn(s"UpdateUseTime message for item '${definition.Name}' without cooldown")
+            log.warn(s"${avatar.name} is updating a use time for item '${definition.Name}' thta has no cooldown")
           }
           avatar = avatar.copy(useTimes = avatar.useTimes.updated(definition.Name, time))
+          sessionActor ! SessionActor.UseCooldownRenewed(definition, time)
           Behaviors.same
 
         case RefreshPurchaseTimes() =>

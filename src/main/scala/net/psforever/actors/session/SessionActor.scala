@@ -68,6 +68,7 @@ import net.psforever.services.{RemoverActor, Service, ServiceManager, Interstell
 import net.psforever.types._
 import net.psforever.util.{Config, DefinitionUtil}
 import net.psforever.zones.Zones
+import org.joda.time.LocalDateTime
 import org.log4s.MDC
 
 import scala.collection.mutable
@@ -116,6 +117,8 @@ object SessionActor {
   final case class Suicide() extends Command
 
   final case class Kick(player: Player, time: Option[Long] = None) extends Command
+
+  final case class UseCooldownRenewed(definition: BasicDefinition, time: LocalDateTime) extends Command
 
   /**
     * The message that progresses some form of user-driven activity with a certain eventual outcome
@@ -547,6 +550,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
     case SetSilenced(silenced) =>
       player.silenced = silenced
+
+    case UseCooldownRenewed(definition, _) =>
+      definition match {
+        case _: KitDefinition =>
+          kitToBeUsed = None
+        case _ => ;
+      }
 
     case CommonMessages.Progress(rate, finishedAction, stepAction) =>
       if (progressBarValue.isEmpty) {
@@ -2084,7 +2094,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
 
       case AvatarResponse.UseKit(kguid, kObjId) =>
-        kitToBeUsed = None
         sendResponse(
           UseItemMessage(
             tplayer_guid,
@@ -4562,7 +4571,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 case (Some(kit: Kit), None) =>
                   kitToBeUsed = Some(item_used_guid)
                   player.Actor ! CommonMessages.Use(player, Some(kit))
-                case (Some(_: Kit), Some(_)) | (None, Some(_)) => ; //a kit is already queued to be used; ignore this request
+                case (Some(_: Kit), Some(_)) | (None, Some(_)) =>
+                  //a kit is already queued to be used; ignore this request
+                  sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", "Please wait ...", None))
                 case (Some(item), _) =>
                   log.error(s"UseItem: ${player.Name} looking for Kit to use, but found $item instead")
                 case (None, None) =>
