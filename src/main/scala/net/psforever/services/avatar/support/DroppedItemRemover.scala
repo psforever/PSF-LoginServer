@@ -1,15 +1,15 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.avatar.support
 
-import akka.actor.ActorRef
 import net.psforever.objects.equipment.Equipment
-import net.psforever.objects.guid.{GUIDTask, TaskResolver}
+import net.psforever.objects.guid.actor.TaskBundle
+import net.psforever.objects.guid.GUIDTask
 import net.psforever.services.{RemoverActor, Service}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 
 import scala.concurrent.duration._
 
-class DroppedItemRemover(taskResolver: ActorRef) extends RemoverActor(taskResolver) {
+class DroppedItemRemover extends RemoverActor() {
   final val FirstStandardDuration: FiniteDuration = 3 minutes
 
   final val SecondStandardDuration: FiniteDuration = 500 milliseconds
@@ -31,7 +31,7 @@ class DroppedItemRemover(taskResolver: ActorRef) extends RemoverActor(taskResolv
 
   def ClearanceTest(entry: RemoverActor.Entry): Boolean = !entry.zone.EquipmentOnGround.contains(entry.obj)
 
-  def DeletionTask(entry: RemoverActor.Entry): TaskResolver.GiveTask = {
-    GUIDTask.UnregisterEquipment(entry.obj.asInstanceOf[Equipment])(entry.zone.GUID)
+  def DeletionTask(entry: RemoverActor.Entry): TaskBundle = {
+    GUIDTask.unregisterEquipment(entry.zone.GUID, entry.obj.asInstanceOf[Equipment])
   }
 }

@@ -9,6 +9,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import net.psforever.objects.guid.GUIDTask
 import net.psforever.objects._
 import net.psforever.objects.avatar.Avatar
+import net.psforever.objects.guid.actor.TaskWorkflow
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.zones.Zone
 import net.psforever.types.Vector3
@@ -389,7 +390,8 @@ class PersistenceMonitor(name: String, squadService: ActorRef) extends Actor {
     }
     inZone.Population.tell(Zone.Population.Release(avatar), parent)
     inZone.AvatarEvents.tell(AvatarServiceMessage(inZone.id, AvatarAction.ObjectDelete(pguid, pguid)), parent)
-    inZone.tasks.tell(GUIDTask.UnregisterPlayer(player)(inZone.GUID), parent)
+    TaskWorkflow.execute(GUIDTask.unregisterPlayer(inZone.GUID, player))
+    //inZone.tasks.tell(GUIDTask.UnregisterPlayer(player)(inZone.GUID), parent)
     AvatarLogout(avatar)
   }
 
@@ -408,7 +410,8 @@ class PersistenceMonitor(name: String, squadService: ActorRef) extends Actor {
     squadService.tell(Service.Leave(Some(avatar.id.toString)), context.parent)
     Deployables.Disown(inZone, avatar, context.parent)
     inZone.Population.tell(Zone.Population.Leave(avatar), context.parent)
-    inZone.tasks.tell(GUIDTask.UnregisterObjectTask(avatar.locker)(inZone.GUID), context.parent)
+    TaskWorkflow.execute(GUIDTask.unregisterObject(inZone.GUID, avatar.locker))
+    //inZone.tasks.tell(GUIDTask.UnregisterObjectTask(avatar.locker)(inZone.GUID), context.parent)
     log.info(s"Logout of ${avatar.name}")
   }
 }

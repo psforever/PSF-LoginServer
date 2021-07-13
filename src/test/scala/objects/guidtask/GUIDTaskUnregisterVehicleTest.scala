@@ -3,11 +3,12 @@ package objects.guidtask
 
 import base.ActorTest
 import net.psforever.objects._
-import net.psforever.objects.guid.{GUIDTask, TaskResolver}
+import net.psforever.objects.guid.actor.{TaskBundle, TaskWorkflow}
+import net.psforever.objects.guid.GUIDTask
 
 class GUIDTaskUnregisterVehicleTest extends ActorTest {
   "RegisterVehicle" in {
-    val (guid, uns, taskResolver, probe) = GUIDTaskTest.CommonTestSetup
+    val (guid, uns, _, probe) = GUIDTaskTest.CommonTestSetup
     val obj                              = Vehicle(GlobalDefinitions.fury)
     val obj_wep                          = obj.WeaponControlledFromSeat(0).get
     val obj_wep_ammo = (obj.WeaponControlledFromSeat(0).get.asInstanceOf[Tool].AmmoSlots.head.Box =
@@ -23,10 +24,10 @@ class GUIDTaskUnregisterVehicleTest extends ActorTest {
     assert(obj_wep.HasGUID)
     assert(obj_wep_ammo.HasGUID)
     assert(obj_trunk_ammo.HasGUID)
-    taskResolver ! TaskResolver.GiveTask(
+    TaskWorkflow.execute(TaskBundle(
       new GUIDTaskTest.RegisterTestTask(probe.ref),
-      List(GUIDTask.UnregisterVehicle(obj)(uns))
-    )
+      GUIDTask.unregisterVehicle(uns, obj)
+    ))
     probe.expectMsg(scala.util.Success)
     assert(!obj.HasGUID)
     assert(!obj_wep.HasGUID)

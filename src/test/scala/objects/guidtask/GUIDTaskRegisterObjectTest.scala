@@ -2,18 +2,19 @@
 package objects.guidtask
 
 import base.ActorTest
-import net.psforever.objects.guid.{GUIDTask, TaskResolver}
+import net.psforever.objects.guid.actor.{TaskBundle, TaskWorkflow}
+import net.psforever.objects.guid.GUIDTask
 
 class GUIDTaskRegisterObjectTest extends ActorTest {
   "RegisterObjectTask" in {
-    val (_, uns, taskResolver, probe) = GUIDTaskTest.CommonTestSetup
+    val (_, uns, _, probe) = GUIDTaskTest.CommonTestSetup
     val obj                           = new GUIDTaskTest.TestObject
 
     assert(!obj.HasGUID)
-    taskResolver ! TaskResolver.GiveTask(
+    TaskWorkflow.execute(TaskBundle(
       new GUIDTaskTest.RegisterTestTask(probe.ref),
-      List(GUIDTask.RegisterObjectTask(obj)(uns))
-    )
+      GUIDTask.registerObject(uns, obj)
+    ))
     probe.expectMsg(scala.util.Success)
     assert(obj.HasGUID)
   }

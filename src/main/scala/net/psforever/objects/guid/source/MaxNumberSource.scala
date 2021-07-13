@@ -80,9 +80,9 @@ class MaxNumberSource(val max: Int) extends NumberSource {
   }
 
   def clear(): List[IdentifiableEntity] = {
+    ary.foreach { _.policy = AvailabilityPolicy.Available }
     ary.collect {
       case key if key.obj.nonEmpty =>
-        key.policy = AvailabilityPolicy.Available
         val obj = key.obj.get
         key.obj = None
         obj

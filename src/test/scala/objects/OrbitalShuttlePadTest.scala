@@ -8,7 +8,7 @@ import base.FreedContextActorTest
 import net.psforever.actors.zone.{BuildingActor, ZoneActor}
 import net.psforever.objects.guid.actor.UniqueNumberSystem
 import net.psforever.objects.{GlobalDefinitions, Vehicle}
-import net.psforever.objects.guid.{NumberPoolHub, TaskResolver}
+import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.shuttle.{OrbitalShuttle, OrbitalShuttlePad, OrbitalShuttlePadControl, ShuttleAmenity}
@@ -35,7 +35,6 @@ class OrbitalShuttlePadControltest extends FreedContextActorTest {
   val guid = new NumberPoolHub(new MaxNumberSource(max = 15))
   guid.AddPool("dynamic", (11 to 15).toList)
   val catchall = new TestProbe(system).ref
-  val resolver = context.actorOf(RandomPool(1).props(Props[TaskResolver]()), s"test-taskResolver")
   val uns = context.actorOf(
     RandomPool(1).props(
       Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystem.AllocateNumberPoolActors(this.guid))
@@ -55,7 +54,6 @@ class OrbitalShuttlePadControltest extends FreedContextActorTest {
     override def Transport = { transport }
     override def Vehicles = { vehicles.toList }
     override def Buildings = { buildingMap.toMap }
-    override def tasks = { resolver }
 
     import akka.actor.typed.scaladsl.adapter._
     this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]

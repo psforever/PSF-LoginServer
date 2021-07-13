@@ -3,19 +3,20 @@ package objects.guidtask
 
 import base.ActorTest
 import net.psforever.objects._
-import net.psforever.objects.guid.{GUIDTask, TaskResolver}
+import net.psforever.objects.guid.actor.{TaskBundle, TaskWorkflow}
+import net.psforever.objects.guid.GUIDTask
 
 class GUIDTaskUnregisterAmmoTest extends ActorTest {
   "UnregisterEquipment -> UnregisterObjectTask" in {
-    val (guid, uns, taskResolver, probe) = GUIDTaskTest.CommonTestSetup
+    val (guid, uns, _, probe) = GUIDTaskTest.CommonTestSetup
     val obj                              = AmmoBox(GlobalDefinitions.energy_cell)
     guid.register(obj, "dynamic")
 
     assert(obj.HasGUID)
-    taskResolver ! TaskResolver.GiveTask(
+    TaskWorkflow.execute(TaskBundle(
       new GUIDTaskTest.RegisterTestTask(probe.ref),
-      List(GUIDTask.UnregisterEquipment(obj)(uns))
-    )
+      GUIDTask.unregisterEquipment(uns, obj)
+    ))
     probe.expectMsg(scala.util.Success)
     assert(!obj.HasGUID)
   }

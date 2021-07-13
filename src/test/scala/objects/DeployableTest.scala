@@ -330,7 +330,6 @@ class ExplosiveDeployableJammerTest extends ActorTest {
     override def Deployables: ActorRef = deployables
     override def Players = List(avatar1, avatar2)
     override def LivePlayers = List(player1, player2)
-    override def tasks: ActorRef = eventsProbe.ref
   }
   player1.Spawn()
   player2.Spawn()
@@ -408,7 +407,6 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
     override def Deployables: ActorRef = deployables
     override def Players = List(avatar1, avatar2)
     override def LivePlayers = List(player1, player2)
-    override def tasks: ActorRef = eventsProbe.ref
 
     this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
   }
@@ -518,7 +516,6 @@ class ExplosiveDeployableDestructionTest extends ActorTest {
     override def Deployables: ActorRef = deployables
     override def Players = List(avatar1, avatar2)
     override def LivePlayers = List(player1, player2)
-    override def tasks: ActorRef = eventsProbe.ref
   }
   player1.Spawn()
   player1.Actor = player1Probe.ref

@@ -1,8 +1,10 @@
 package net.psforever.services.local.support
 
 import akka.actor.{Actor, ActorRef, Cancellable}
+import net.psforever.login.WorldSession
+import net.psforever.objects.guid.actor.TaskWorkflow
 import net.psforever.objects.{Default, Player}
-import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
+import net.psforever.objects.guid.GUIDTask
 import net.psforever.objects.serverobject.llu.CaptureFlag
 import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
@@ -16,14 +18,11 @@ import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 import scala.concurrent.duration.DurationInt
-import scala.util.Success
-
 
 /**
   * Responsible for handling capture flag related lifecycles
-  * @param taskResolver A reference to a zone's task resolver actor
   */
-class CaptureFlagManager(val taskResolver: ActorRef, zone: Zone) extends Actor{
+class CaptureFlagManager(zone: Zone) extends Actor{
   private[this] val log = org.log4s.getLogger(self.path.name)
 
   var galaxyService: ActorRef = ActorRef.noSender
@@ -105,14 +104,14 @@ class CaptureFlagManager(val taskResolver: ActorRef, zone: Zone) extends Actor{
       socket.captureFlag = flag
       TrackFlag(flag)
 
-      taskResolver ! CallBackForTask(
-        TaskResolver.GiveTask(GUIDTask.RegisterObjectTask(flag)(socket.Zone.GUID).task),
+      TaskWorkflow.execute(WorldSession.CallBackForTask(
+        GUIDTask.registerObject(socket.Zone.GUID, flag),
         socket.Zone.LocalEvents,
         LocalServiceMessage(
           socket.Zone.id,
           LocalAction.LluSpawned(PlanetSideGUID(-1), flag)
         )
-      )
+      ))
 
       // Broadcast chat message for LLU spawn
       val owner = flag.Owner.asInstanceOf[Building]
@@ -184,7 +183,7 @@ class CaptureFlagManager(val taskResolver: ActorRef, zone: Zone) extends Actor{
     // Unregister LLU from clients,
     flag.Zone.LocalEvents ! LocalServiceMessage(flag.Zone.id, LocalAction.LluDespawned(PlanetSideGUID(-1), flag))
     // Then unregister it from the GUID pool
-    taskResolver ! TaskResolver.GiveTask(GUIDTask.UnregisterObjectTask(flag)(flag.Zone.GUID).task)
+    TaskWorkflow.execute(GUIDTask.unregisterObject(flag.Zone.GUID,flag))
   }
 
   private def ChatBroadcast(zone: Zone, message: String, fanfare: Boolean = true): Unit = {
@@ -200,25 +199,6 @@ class CaptureFlagManager(val taskResolver: ActorRef, zone: Zone) extends Actor{
         PlanetSideGUID(-1),
         ChatMsg(messageType, wideContents = false, "", message, None)
       )
-    )
-  }
-
-  // Todo: Duplicate from SessionActor. Make common.
-  def CallBackForTask(task: TaskResolver.GiveTask, sendTo: ActorRef, pass: Any): TaskResolver.GiveTask = {
-    TaskResolver.GiveTask(
-      new Task() {
-        private val localDesc   = task.task.Description
-        private val destination = sendTo
-        private val passMsg     = pass
-
-        override def Description: String = s"callback for tasking $localDesc"
-
-        def Execute(resolver: ActorRef): Unit = {
-          destination ! passMsg
-          resolver ! Success(this)
-        }
-      },
-      List(task)
     )
   }
 }

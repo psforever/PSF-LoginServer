@@ -3,11 +3,12 @@ package objects.guidtask
 
 import base.ActorTest
 import net.psforever.objects._
-import net.psforever.objects.guid.{GUIDTask, TaskResolver}
+import net.psforever.objects.guid.actor.{TaskBundle, TaskWorkflow}
+import net.psforever.objects.guid.GUIDTask
 
 class GUIDTaskUnregisterTurretTest extends ActorTest {
   "UnregisterDeployableTurret" in {
-    val (guid, uns, taskResolver, probe) = GUIDTaskTest.CommonTestSetup
+    val (guid, uns, _, probe) = GUIDTaskTest.CommonTestSetup
     val obj                              = new TurretDeployable(GlobalDefinitions.portable_manned_turret_vs)
     val obj_wep                          = obj.Weapons(1).Equipment.get
     val obj_ammo                         = obj_wep.asInstanceOf[Tool].AmmoSlot.Box
@@ -21,10 +22,10 @@ class GUIDTaskUnregisterTurretTest extends ActorTest {
     assert(obj_wep.HasGUID)
     assert(obj_ammo.HasGUID)
     obj_res.foreach(box => box.HasGUID)
-    taskResolver ! TaskResolver.GiveTask(
+    TaskWorkflow.execute(TaskBundle(
       new GUIDTaskTest.RegisterTestTask(probe.ref),
-      List(GUIDTask.UnregisterDeployableTurret(obj)(uns))
-    )
+      GUIDTask.unregisterDeployableTurret(uns, obj)
+    ))
     probe.expectMsg(scala.util.Success)
     assert(!obj.HasGUID)
     assert(!obj_wep.HasGUID)

@@ -1,6 +1,6 @@
 package net.psforever.services.local.support
 
-import akka.actor.{Actor, ActorRef, Cancellable}
+import akka.actor.{Actor, Cancellable}
 import net.psforever.actors.zone.{BuildingActor, ZoneActor}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.hackable.Hackable
@@ -20,7 +20,7 @@ import scala.util.Random
 /**
   * Responsible for handling the aspects related to hacking control consoles and capturing bases.
   */
-class HackCaptureActor(val taskResolver: ActorRef) extends Actor {
+class HackCaptureActor extends Actor {
   private[this] val log = org.log4s.getLogger
 
   private var clearTrigger: Cancellable = Default.Cancellable

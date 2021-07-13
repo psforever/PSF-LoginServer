@@ -2,6 +2,7 @@
 package objects.guidtask
 
 import java.util.logging.LogManager
+
 import scala.util.Success
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.TestProbe
@@ -9,16 +10,22 @@ import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.guid.actor.{NumberPoolActor, UniqueNumberSystem}
 import net.psforever.objects.guid.selector.RandomSelector
 import net.psforever.objects.guid.source.MaxNumberSource
-import net.psforever.objects.guid.{NumberPoolHub, Task, TaskResolver}
+import net.psforever.objects.guid.NumberPoolHub
+import net.psforever.objects.guid.actor.Task
+
+import scala.concurrent.Future
 
 object GUIDTaskTest {
   class TestObject extends IdentifiableEntity
 
   class RegisterTestTask(probe: ActorRef) extends Task {
-    def Execute(resolver: ActorRef): Unit = {
+    def action(): Future[Any] = {
       probe ! Success
-      resolver ! Success(this)
+      Future(this)(scala.concurrent.ExecutionContext.Implicits.global)
     }
+    def undo(): Unit = {}
+
+    override def isSuccessful() : Boolean = false
   }
 
   def CommonTestSetup(implicit system: ActorSystem): (NumberPoolHub, ActorRef, ActorRef, TestProbe) = {
@@ -32,9 +39,8 @@ object GUIDTaskTest {
       RandomPool(25).props(Props(classOf[UniqueNumberSystem], guid, GUIDTaskTest.AllocateNumberPoolActors(guid))),
       "uns"
     )
-    val taskResolver = system.actorOf(RandomPool(15).props(Props[TaskResolver]()), "resolver")
     LogManager.getLogManager.reset() //suppresses any internal loggers created by the above elements
-    (guid, uns, taskResolver, TestProbe())
+    (guid, uns, ActorRef.noSender, TestProbe())
   }
 
   /**

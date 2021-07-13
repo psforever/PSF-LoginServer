@@ -142,7 +142,8 @@ class NumberSourceTest extends Specification {
       obj.getAvailable(10).get.Object = test1
       obj.getAvailable(15).get.Object = test2
       obj.getAvailable(20).get.Object = test3
-      obj.countUsed mustEqual 3
+      obj.countUsed mustEqual 4
+      obj.countDangling mustEqual 1
 
       val list: List[IdentifiableEntity] = obj.clear()
       obj.countUsed mustEqual 0
@@ -289,7 +290,8 @@ class NumberSourceTest extends Specification {
       obj.getAvailable(26).get.Object = test1
       obj.getAvailable(28).get.Object = test2
       obj.getAvailable(30).get.Object = test3
-      obj.countUsed mustEqual 3
+      obj.countUsed mustEqual 4
+      obj.countDangling mustEqual 1
 
       val list: List[IdentifiableEntity] = obj.clear()
       obj.countUsed mustEqual 0

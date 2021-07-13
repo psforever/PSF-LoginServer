@@ -1614,7 +1614,6 @@ class DamageableVehicleDestroyMountedTest extends FreedContextActorTest {
     override def Activity = activityProbe.ref
     override def AvatarEvents = avatarProbe.ref
     override def VehicleEvents = vehicleProbe.ref
-    override def tasks = catchall.ref
     import akka.actor.typed.scaladsl.adapter._
     this.actor = catchall.ref.toTyped[ZoneActor.Command]
   }

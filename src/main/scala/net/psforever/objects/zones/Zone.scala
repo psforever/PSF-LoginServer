@@ -8,7 +8,7 @@ import net.psforever.objects.ballistics.{Projectile, SourceEntry}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.equipment.Equipment
-import net.psforever.objects.guid.{NumberPoolHub, TaskResolver}
+import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.actor.UniqueNumberSystem
 import net.psforever.objects.guid.key.LoanedKey
 import net.psforever.objects.guid.selector.RandomSelector
@@ -105,8 +105,6 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
   /** Used by the `Zone` to coordinate `Equipment` dropping and collection requests. */
   private var ground: ActorRef = Default.Actor
 
-  private var taskResolver: ActorRef = Default.Actor
-
   /**
     */
   private val constructions: ListBuffer[Deployable] = ListBuffer()
@@ -189,7 +187,6 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
   def init(implicit context: ActorContext): Unit = {
     if (accessor == ActorRef.noSender) {
       SetupNumberPools()
-      taskResolver = CreateTaskResolvers(context)
       accessor = context.actorOf(
         RandomPool(25).props(
           Props(classOf[UniqueNumberSystem], this.guid, UniqueNumberSystem.AllocateNumberPoolActors(this.guid))
@@ -835,12 +832,6 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
   def VehicleEvents_=(bus: ActorRef): ActorRef = {
     vehicleEvents = bus
     VehicleEvents
-  }
-
-  def tasks: ActorRef = taskResolver
-
-  protected def CreateTaskResolvers(context: ActorContext, numberCreated: Int = 20): ActorRef = {
-    context.actorOf(RandomPool(numberCreated).props(Props[TaskResolver]()), s"zone-$id-taskResolver")
   }
 }
 

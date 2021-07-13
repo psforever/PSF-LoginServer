@@ -77,9 +77,9 @@ class SpecificNumberSource(values: Iterable[Int]) extends NumberSource {
   }
 
   def clear(): List[IdentifiableEntity] = {
+    ary.values.foreach { _.policy = AvailabilityPolicy.Available }
     ary.values.collect {
       case key if key.obj.nonEmpty =>
-        key.policy = AvailabilityPolicy.Available
         val obj = key.obj.get
         key.obj = None
         obj

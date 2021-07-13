@@ -8,6 +8,7 @@ import net.psforever.objects.ballistics.VehicleSource
 import net.psforever.objects.entity.WorldEntity
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot, JammableMountedWeapons}
 import net.psforever.objects.guid.GUIDTask
+import net.psforever.objects.guid.actor.TaskWorkflow
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
@@ -407,7 +408,7 @@ class VehicleControl(vehicle: Vehicle)
     CancelJammeredSound(vehicle)
     CancelJammeredStatus(vehicle)
     //unregister
-    zone.tasks ! GUIDTask.UnregisterVehicle(vehicle)(zone.GUID)
+    TaskWorkflow.execute(GUIDTask.unregisterVehicle(zone.GUID, vehicle))
     //banished to the shadow realm
     vehicle.Position = Vector3.Zero
     //queue final deletion
