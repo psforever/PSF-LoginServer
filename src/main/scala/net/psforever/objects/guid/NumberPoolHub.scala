@@ -25,9 +25,6 @@ class NumberPoolHub(private val source: NumberSource) {
   private val hash: mutable.HashMap[String, NumberPool] = mutable.HashMap[String, NumberPool]()
   private val bigpool: mutable.LongMap[String]          = mutable.LongMap[String]()
   hash += "generic" -> new GenericPool(bigpool, source.size)
-  source.finalizeRestrictions.foreach(i =>
-    bigpool += i.toLong -> ""
-  ) //these numbers can never be pooled; the source can no longer restrict numbers
 
   /**
     * Given a globally unique identifier, return any object registered to it.<br>

@@ -1,16 +1,20 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.guid
 
-/**
-  * The availability of individual GUIDs is maintained by the given policy.
-  */
-object AvailabilityPolicy extends Enumeration {
-  type Type = Value
 
-  /**
-    * An `AVAILABLE` GUID is ready and waiting to be `LEASED` for use.
-    * A `LEASED` GUID has been issued and is currently being used.
-    * A `RESTRICTED` GUID can never be freed.  It is allowed, however, to be assigned once as if it were `LEASED`.
-    */
-  val Available, Leased, Restricted = Value
+/**
+  * The availability of individual global unique identifier (GUID) keys is maintained by the given policy.
+  */
+sealed trait AvailabilityPolicy
+
+object AvailabilityPolicy {
+  /**An `Available` key is ready and waiting to be `Leased` for use. */
+  case object Available extends AvailabilityPolicy
+
+  /** A `Leased` key has been issued and is currently being used for some purpose.*/
+  case object Leased extends AvailabilityPolicy
+
+  /** A `Dangling` key ia a unique sort of key that has been `Leased` but has not yet been applied for any specific purpose.
+    * As a policy, it should be used as a status to check but should not be designated on any key. */
+  case object Dangling extends AvailabilityPolicy
 }

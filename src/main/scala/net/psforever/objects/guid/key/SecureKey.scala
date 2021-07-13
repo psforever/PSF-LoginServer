@@ -11,7 +11,7 @@ import net.psforever.objects.guid.AvailabilityPolicy
 final class SecureKey(private val guid: Int, private val key: Monitor) {
   def GUID: Int = guid
 
-  def Policy: AvailabilityPolicy.Value = key.policy
+  def Policy: AvailabilityPolicy = key.policy
 
   import net.psforever.objects.entity.IdentifiableEntity
   def Object: Option[IdentifiableEntity] = key.obj

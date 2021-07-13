@@ -18,13 +18,14 @@ class MaxNumberSource(val max: Int) extends NumberSource {
   }
   private val ary: Array[Key] = Array.ofDim[Key](max + 1)
   (0 to max).foreach(x => { ary(x) = new Key })
-  private var allowRestrictions: Boolean = true
 
   def size: Int = ary.length
 
-  def countAvailable: Int = ary.count(key => key.policy == AvailabilityPolicy.Available)
+  def countAvailable: Int = ary.count { _.policy == AvailabilityPolicy.Available }
 
-  def countUsed: Int = ary.count(_.policy != AvailabilityPolicy.Available)
+  def countUsed: Int = ary.count { _.policy == AvailabilityPolicy.Leased }
+
+  def countDangling: Int = ary.count { key => key.policy == AvailabilityPolicy.Leased && key.obj.isEmpty }
 
   def test(number: Int): Boolean = -1 < number && number < size
 
@@ -78,39 +79,14 @@ class MaxNumberSource(val max: Int) extends NumberSource {
     out
   }
 
-  /**
-    * Produce a modifiable wrapper for the `Monitor` for this number, only if the number has not been used.
-    * This wrapped `Monitor` can only be assigned once and the number may not be `returnNumber`ed to this source.
-    * @param number the number
-    * @return the wrapped `Monitor`
-    * @throws ArrayIndexOutOfBoundsException if the requested number is above or below the range
-    */
-  def restrictNumber(number: Int): Option[LoanedKey] = {
-    ary.lift(number) match {
-      case Some(key: Key) if allowRestrictions && key.policy != AvailabilityPolicy.Restricted =>
-        key.policy = AvailabilityPolicy.Restricted
-        Some(new LoanedKey(number, key))
-      case _ =>
-        None
-    }
-  }
-
-  def finalizeRestrictions: List[Int] = {
-    allowRestrictions = false
-    ary.zipWithIndex.filter(entry => entry._1.policy == AvailabilityPolicy.Restricted).map(entry => entry._2).toList
-  }
-
   def clear(): List[IdentifiableEntity] = {
-    val leased = ary.filter(_.policy != AvailabilityPolicy.Available)
-    leased collect { case key if key.obj.isEmpty =>
-      key.policy = AvailabilityPolicy.Available
-    }
-    leased.toList collect { case key if key.obj.nonEmpty =>
-      key.policy = AvailabilityPolicy.Available
-      val out = key.obj.get
-      key.obj = None
-      out
-    }
+    ary.collect {
+      case key if key.obj.nonEmpty =>
+        key.policy = AvailabilityPolicy.Available
+        val obj = key.obj.get
+        key.obj = None
+        obj
+    }.toList
   }
 }
 

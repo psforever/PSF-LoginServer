@@ -262,46 +262,6 @@ class NumberPoolHubTest extends Specification {
       }
     }
 
-    "not affect the hidden restricted pool by adding a new pool" in {
-      val src = new MaxNumberSource(51)
-      src.restrictNumber(4)
-      src.restrictNumber(8) //in fibonacci
-      src.restrictNumber(10)
-      src.restrictNumber(12)
-      val hub = new NumberPoolHub(src)
-      hub.AddPool("fibonacci", numberList) must throwA[IllegalArgumentException]
-    }
-
-    "not register an object to a number belonging to the restricted pool" in {
-      val src = new MaxNumberSource(51)
-      src.restrictNumber(4)
-      val hub = new NumberPoolHub(src)
-      val obj = new EntityTestClass()
-      hub.register(obj, 4).isFailure mustEqual true
-    }
-
-    "not register an object to the restricted pool directly" in {
-      val src = new MaxNumberSource(51)
-//      src.restrictNumber(4)
-      val hub = new NumberPoolHub(src)
-      val obj = new EntityTestClass()
-      hub.register(obj, "").isFailure mustEqual true //the empty string represents the restricted pool
-    }
-
-    "not register a number belonging to the restricted pool" in {
-      val src = new MaxNumberSource(51)
-      src.restrictNumber(4)
-      val hub = new NumberPoolHub(src)
-      hub.register(4).isFailure mustEqual true
-    }
-
-    "not unregister a number belonging to the restricted pool" in {
-      val src = new MaxNumberSource(51)
-      src.restrictNumber(4)
-      val hub = new NumberPoolHub(src)
-      hub.unregister(4).isFailure mustEqual true
-    }
-
     "identity an object that is registered to it" in {
       val hub1 = new NumberPoolHub(new MaxNumberSource(10))
       val hub2 = new NumberPoolHub(new MaxNumberSource(10))
@@ -320,12 +280,6 @@ class NumberPoolHubTest extends Specification {
       val src1 = new MaxNumberSource(5)
       val hub1 = new NumberPoolHub(src1)
       val src2 = new MaxNumberSource(10)
-      src2.restrictNumber(0)
-      src2.restrictNumber(1)
-      src2.restrictNumber(2)
-      src2.restrictNumber(3)
-      src2.restrictNumber(4)
-      src2.restrictNumber(5)
       val hub2 = new NumberPoolHub(src2)
       val obj1 = new EntityTestClass()
       val obj2 = new EntityTestClass()
