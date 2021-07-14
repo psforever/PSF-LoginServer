@@ -5184,6 +5184,17 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               case Some(hitInfo) =>
                 val hitPos     = hitInfo.hit_pos
                 ValidObject(hitInfo.hitobject_guid) match {
+                  case _ if projectile.profile == GlobalDefinitions.flail_projectile =>
+                    val radius  = projectile.profile.DamageRadius * projectile.profile.DamageRadius
+                    val targets = Zone.findAllTargets(hitPos)(continent, player, projectile.profile)
+                      .filter { target =>
+                        Vector3.DistanceSquared(target.Position, hitPos) <= radius
+                      }
+                    targets.map { target =>
+                      CheckForHitPositionDiscrepancy(projectile_guid, hitPos, target)
+                      (target, hitPos, target.Position)
+                    }
+
                   case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
                     CheckForHitPositionDiscrepancy(projectile_guid, hitPos, target)
                     List((target, hitInfo.shot_origin, hitPos))
@@ -5217,17 +5228,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                       }
                     } else {
                       Nil
-                    }
-
-                  case None if projectile.profile == GlobalDefinitions.flail_projectile =>
-                    val radius  = projectile.profile.DamageRadius * projectile.profile.DamageRadius
-                    val targets = Zone.findAllTargets(hitPos)(continent, player, projectile.profile)
-                      .filter { target =>
-                        Vector3.DistanceSquared(target.Position, hitPos) <= radius
-                      }
-                    targets.map { target =>
-                      CheckForHitPositionDiscrepancy(projectile_guid, hitPos, target)
-                      (target, hitPos, target.Position)
                     }
 
                   case _ =>

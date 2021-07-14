@@ -2,7 +2,7 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
-import net.psforever.types.{SquadWaypoints, Vector3}
+import net.psforever.types.{SquadWaypoint, Vector3}
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}
@@ -13,7 +13,7 @@ final case class SquadWaypointEvent(
     event_type: WaypointEventAction.Value,
     unk: Int,
     char_id: Long,
-    waypoint_type: SquadWaypoints.Value,
+    waypoint_type: SquadWaypoint,
     unk5: Option[Long],
     waypoint_info: Option[WaypointEvent]
 ) extends PlanetSideGamePacket {
@@ -23,13 +23,13 @@ final case class SquadWaypointEvent(
 }
 
 object SquadWaypointEvent extends Marshallable[SquadWaypointEvent] {
-  def Add(unk: Int, char_id: Long, waypoint_type: SquadWaypoints.Value, waypoint: WaypointEvent): SquadWaypointEvent =
+  def Add(unk: Int, char_id: Long, waypoint_type: SquadWaypoint, waypoint: WaypointEvent): SquadWaypointEvent =
     SquadWaypointEvent(WaypointEventAction.Add, unk, char_id, waypoint_type, None, Some(waypoint))
 
-  def Unknown1(unk: Int, char_id: Long, waypoint_type: SquadWaypoints.Value, unk_a: Long): SquadWaypointEvent =
+  def Unknown1(unk: Int, char_id: Long, waypoint_type: SquadWaypoint, unk_a: Long): SquadWaypointEvent =
     SquadWaypointEvent(WaypointEventAction.Unknown1, unk, char_id, waypoint_type, Some(unk_a), None)
 
-  def Remove(unk: Int, char_id: Long, waypoint_type: SquadWaypoints.Value): SquadWaypointEvent =
+  def Remove(unk: Int, char_id: Long, waypoint_type: SquadWaypoint): SquadWaypointEvent =
     SquadWaypointEvent(WaypointEventAction.Remove, unk, char_id, waypoint_type, None, None)
 
   private val waypoint_codec: Codec[WaypointEvent] = (
@@ -42,7 +42,7 @@ object SquadWaypointEvent extends Marshallable[SquadWaypointEvent] {
     ("event_type" | WaypointEventAction.codec) >>:~ { event_type =>
       ("unk" | uint16L) ::
         ("char_id" | uint32L) ::
-        ("waypoint_type" | SquadWaypoints.codec) ::
+        ("waypoint_type" | SquadWaypoint.codec) ::
         ("unk5" | conditional(event_type == WaypointEventAction.Unknown1, uint32L)) ::
         ("waypoint_info" | conditional(event_type == WaypointEventAction.Add, waypoint_codec))
     }

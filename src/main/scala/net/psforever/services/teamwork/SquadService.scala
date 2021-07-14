@@ -6,25 +6,16 @@ import net.psforever.objects.definition.converter.StatConverter
 import net.psforever.objects.loadouts.SquadLoadout
 import net.psforever.objects.teamwork.{Member, Squad, SquadFeatures}
 import net.psforever.objects.zones.Zone
-import net.psforever.objects.{LivePlayerList, Player}
-import net.psforever.packet.game.{
-  PlanetSideZoneID,
-  SquadDetail,
-  SquadInfo,
-  SquadPositionDetail,
-  SquadPositionEntry,
-  WaypointEventAction,
-  WaypointInfo,
-  SquadAction => SquadRequestAction
-}
+import net.psforever.objects.{Default, LivePlayerList, Player}
+import net.psforever.packet.game.{PlanetSideZoneID, SquadDetail, SquadInfo, SquadPositionDetail, SquadPositionEntry, WaypointEventAction, WaypointInfo, SquadAction => SquadRequestAction}
 import net.psforever.services.{GenericEventBus, Service}
 import net.psforever.types._
-
-import akka.actor.{Actor, ActorRef, Terminated}
+import akka.actor.{Actor, ActorRef, Cancellable, Terminated}
 import java.io.{PrintWriter, StringWriter}
+
+import scala.concurrent.duration._
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
 
 class SquadService extends Actor {
   import SquadService._
@@ -43,17 +34,26 @@ class SquadService extends Actor {
   private var squadFeatures: TrieMap[PlanetSideGUID, SquadFeatures] = new TrieMap[PlanetSideGUID, SquadFeatures]()
 
   /**
+    * key - unique char id; value - the POSIX time after which it is cleared
+    */
+  private var lazeIndices: Seq[LazeWaypointData] = Seq.empty
+  /**
+    * The periodic clearing of laze pointer waypoints.
+    */
+  private var lazeIndexBlanking: Cancellable = Default.Cancellable
+
+  /**
     * The list of squads that each of the factions see for the purposes of keeping track of changes to the list.
     * These squads are considered public "listed" squads -
     * all the players of a certain faction can see them in the squad list
     * and may have limited interaction with their squad definition windows.<br>
     * key - squad unique number; value - the squad's unique identifier number
     */
-  private val publishedLists: TrieMap[PlanetSideEmpire.Value, ListBuffer[PlanetSideGUID]] =
-    TrieMap[PlanetSideEmpire.Value, ListBuffer[PlanetSideGUID]](
-      PlanetSideEmpire.TR -> ListBuffer.empty,
-      PlanetSideEmpire.NC -> ListBuffer.empty,
-      PlanetSideEmpire.VS -> ListBuffer.empty
+  private val publishedLists: TrieMap[PlanetSideEmpire.Value, mutable.ListBuffer[PlanetSideGUID]] =
+    TrieMap[PlanetSideEmpire.Value, mutable.ListBuffer[PlanetSideGUID]](
+      PlanetSideEmpire.TR -> mutable.ListBuffer.empty,
+      PlanetSideEmpire.NC -> mutable.ListBuffer.empty,
+      PlanetSideEmpire.VS -> mutable.ListBuffer.empty
     )
 
   /**
@@ -148,6 +148,8 @@ class SquadService extends Actor {
         SquadEvents.unsubscribe(actor)
     }
     UserEvents.clear()
+    //misc
+    lazeIndices = Nil
   }
 
   /**
@@ -443,6 +445,34 @@ class SquadService extends Actor {
 
         case msg =>
           log.warn(s"Unhandled action $msg from ${sender()}")
+      }
+
+    case SquadService.BlankLazeWaypoints() =>
+      lazeIndexBlanking.cancel()
+      val curr = System.currentTimeMillis()
+      val blank = lazeIndices.takeWhile { data => curr >= data.endTime }
+      lazeIndices = lazeIndices.drop(blank.size)
+      blank.foreach { data =>
+        GetParticipatingSquad(data.charId) match {
+          case Some(squad) =>
+            Publish(
+              squadFeatures(squad.GUID).ToChannel,
+              SquadResponse.WaypointEvent(WaypointEventAction.Remove, data.charId, SquadWaypoint(data.waypointType), None, None, 0),
+              Seq()
+            )
+          case None => ;
+        }
+      }
+      //retime
+      lazeIndices match {
+        case Nil => ;
+        case x :: _ =>
+          import scala.concurrent.ExecutionContext.Implicits.global
+          lazeIndexBlanking = context.system.scheduler.scheduleOnce(
+            math.min(0, x.endTime - curr).milliseconds,
+            self,
+            SquadService.BlankLazeWaypoints()
+          )
       }
 
     case msg =>
@@ -1257,32 +1287,64 @@ class SquadService extends Actor {
     }
   }
 
-  def SquadActionWaypoint(tplayer: Player, waypointType: SquadWaypoints.Value, info: Option[WaypointInfo]): Unit = {
+  def SquadActionWaypoint(tplayer: Player, waypointType: SquadWaypoint, info: Option[WaypointInfo]): Unit = {
     val playerCharId = tplayer.CharId
-    (GetLeadingSquad(tplayer, None) match {
-      case Some(squad) =>
-        info match {
-          case Some(winfo) =>
-            (Some(squad), AddWaypoint(squad.GUID, waypointType, winfo))
-          case _ =>
-            RemoveWaypoint(squad.GUID, waypointType)
-            (Some(squad), None)
-        }
-      case _ => (None, None)
+    (if (waypointType.subtype == WaypointSubtype.Laze) {
+      //laze rally can be updated by any squad member
+      GetParticipatingSquad(tplayer) match {
+        case Some(squad) =>
+          info match {
+            case Some(winfo) =>
+              //the laze-indicated target waypoint is not retained
+              val curr = System.currentTimeMillis()
+              val clippedLazes = lazeIndices.filterNot { _.charId == playerCharId }
+              if (lazeIndices.isEmpty || clippedLazes.headOption != lazeIndices.headOption) {
+                //reason to retime blanking
+                lazeIndexBlanking.cancel()
+                import scala.concurrent.ExecutionContext.Implicits.global
+                lazeIndexBlanking = lazeIndices.headOption match {
+                  case Some(data) =>
+                    context.system.scheduler.scheduleOnce(math.min(0, data.endTime - curr).milliseconds, self, SquadService.BlankLazeWaypoints())
+                  case None =>
+                    context.system.scheduler.scheduleOnce(15.seconds, self, SquadService.BlankLazeWaypoints())
+                }
+              }
+              lazeIndices = clippedLazes :+ LazeWaypointData(playerCharId, waypointType.value, curr + 15000)
+              (Some(squad), Some(WaypointData(winfo.zone_number, winfo.pos)))
+            case None =>
+              (Some(squad), None)
+          }
+        case None =>
+          (None, None)
+      }
+    } else {
+      //only the squad leader may update other squad waypoints
+      GetLeadingSquad(tplayer, None) match {
+        case Some(squad) =>
+          info match {
+            case Some(winfo) =>
+              (Some(squad), AddWaypoint(squad.GUID, waypointType, winfo))
+            case _ =>
+              RemoveWaypoint(squad.GUID, waypointType)
+              (Some(squad), None)
+          }
+        case None =>
+          (None, None)
+      }
     }) match {
       case (Some(squad), Some(_)) =>
         //waypoint added or updated
         Publish(
-          s"${squadFeatures(squad.GUID).ToChannel}",
+          squadFeatures(squad.GUID).ToChannel,
           SquadResponse.WaypointEvent(WaypointEventAction.Add, playerCharId, waypointType, None, info, 1),
-          Seq(tplayer.CharId)
+          Seq(playerCharId)
         )
       case (Some(squad), None) =>
         //waypoint removed
         Publish(
-          s"${squadFeatures(squad.GUID).ToChannel}",
+          squadFeatures(squad.GUID).ToChannel,
           SquadResponse.WaypointEvent(WaypointEventAction.Remove, playerCharId, waypointType, None, None, 0),
-          Seq(tplayer.CharId)
+          Seq(playerCharId)
         )
 
       case msg =>
@@ -3170,6 +3232,7 @@ class SquadService extends Actor {
     membership.foreach { charId =>
       Publish(charId, SquadResponse.Membership(SquadResponseType.Disband, 0, 0, charId, None, "", false, Some(None)))
     }
+    lazeIndices = lazeIndices.filterNot { data => membership.toSeq.contains(data.charId) }
   }
 
   /**
@@ -3211,6 +3274,7 @@ class SquadService extends Actor {
     * Despite the name, no waypoints are actually "added."
     * All of the waypoints constantly exist as long as the squad to which they are attached exists.
     * They are merely "activated" and "deactivated."
+    * No waypoint is ever remembered for the laze-indicated target.
     * @see `SquadWaypointRequest`
     * @see `WaypointInfo`
     * @param guid the squad's unique identifier
@@ -3220,12 +3284,12 @@ class SquadService extends Actor {
     */
   def AddWaypoint(
       guid: PlanetSideGUID,
-      waypointType: SquadWaypoints.Value,
+      waypointType: SquadWaypoint,
       info: WaypointInfo
   ): Option[WaypointData] = {
     squadFeatures.get(guid) match {
       case Some(features) =>
-        features.Waypoints.lift(waypointType.id) match {
+        features.Waypoints.lift(waypointType.value) match {
           case Some(point) =>
             point.zone_number = info.zone_number
             point.pos = info.pos
@@ -3250,13 +3314,13 @@ class SquadService extends Actor {
     * @param guid the squad's unique identifier
     * @param waypointType the type of the waypoint
     */
-  def RemoveWaypoint(guid: PlanetSideGUID, waypointType: SquadWaypoints.Value): Unit = {
+  def RemoveWaypoint(guid: PlanetSideGUID, waypointType: SquadWaypoint): Unit = {
     squadFeatures.get(guid) match {
       case Some(features) =>
-        features.Waypoints.lift(waypointType.id) match {
+        features.Waypoints.lift(waypointType.value) match {
           case Some(point) =>
             point.pos = Vector3.z(1)
-          case _ =>
+          case None =>
             log.warn(s"no squad waypoint $waypointType found")
         }
       case _ =>
@@ -3281,7 +3345,7 @@ class SquadService extends Actor {
             squad.Leader.CharId,
             list.zipWithIndex.collect {
               case (point, index) if point.pos != vz1 =>
-                (SquadWaypoints(index), WaypointInfo(point.zone_number, point.pos), 1)
+                (SquadWaypoint(index), WaypointInfo(point.zone_number, point.pos), 1)
             }
           )
         )
@@ -3565,13 +3629,25 @@ class SquadService extends Actor {
 }
 
 object SquadService {
-
+  private case class BlankLazeWaypoints()
+  
+  private case class LazeWaypointData(charId: Long, waypointType: Int, endTime: Long)
+  
   /**
     * Information necessary to display a specific map marker.
     */
   class WaypointData() {
     var zone_number: Int = 1
     var pos: Vector3     = Vector3.z(1) //a waypoint with a non-zero z-coordinate will flag as not getting drawn
+  }
+
+  object WaypointData{
+    def apply(zone_number: Int, pos: Vector3): WaypointData = {
+      val data = new WaypointData()
+      data.zone_number = zone_number
+      data.pos = pos
+      data
+    }
   }
 
   /**

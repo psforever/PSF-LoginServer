@@ -1215,7 +1215,7 @@ object Zone {
                       source: PlanetSideGameObject with Vitality,
                       damagePropertiesBySource: DamageWithPosition
                     ): List[PlanetSideServerObject with Vitality] = {
-    findAllTargets(zone, source.Position, damagePropertiesBySource).filter { target => target ne source }
+    findAllTargets(zone, sourcePosition, damagePropertiesBySource).filter { target => target ne source }
   }
 
   /**

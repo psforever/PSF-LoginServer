@@ -4,7 +4,7 @@ package net.psforever.services.teamwork
 import net.psforever.objects.Player
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{WaypointEventAction, WaypointInfo, SquadAction => PacketSquadAction}
-import net.psforever.types.{PlanetSideGUID, SquadRequestType, SquadWaypoints, Vector3}
+import net.psforever.types.{PlanetSideGUID, SquadRequestType, SquadWaypoint, Vector3}
 
 final case class SquadServiceMessage(tplayer: Player, zone: Zone, actionMessage: Any)
 
@@ -29,7 +29,7 @@ object SquadAction {
   ) extends Action
   final case class Waypoint(
       event_type: WaypointEventAction.Value,
-      waypoint_type: SquadWaypoints.Value,
+      waypoint_type: SquadWaypoint,
       unk: Option[Long],
       waypoint_info: Option[WaypointInfo]
   ) extends Action
