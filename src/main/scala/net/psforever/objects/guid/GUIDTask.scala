@@ -38,12 +38,13 @@ object GUIDTask {
   private implicit val timeout = Timeout(2.seconds)
 
   //registration tasking
-  private case class RegisterObjectTask(
+  protected case class RegisterObjectTask(
                                          guid: ActorRef,
-                                         obj: IdentifiableEntity
+                                         obj: IdentifiableEntity,
+                                         pool: String
                                        ) extends Task {
     def action(): Future[Any] = {
-      ask(guid, Register(obj, "dynamic"))
+      ask(guid, Register(obj, pool))
     }
 
     def undo(): Unit = {
@@ -52,19 +53,37 @@ object GUIDTask {
 
     def isSuccessful() : Boolean = obj.HasGUID
 
-    override def description(): String = s"register $obj"
+    override def description(): String = s"register $obj to $pool"
   }
 
+  def RegisterObjectTask(guid: ActorRef, obj: IdentifiableEntity): RegisterObjectTask = obj match {
+    case o: PlanetSideGameObject => RegisterObjectTask(guid, o)
+    case _                       => RegisterObjectTask(guid, obj, "generic")
+  }
+
+  def RegisterObjectTask(guid: ActorRef, obj: PlanetSideGameObject): RegisterObjectTask =
+    RegisterObjectTask(guid, obj, obj.Definition.registerAs)
+
   /**
-    * Construct tasking that registers an object with a globally unique identifier selected from a pool of numbers.<br>
-    * <br>
+    * Construct tasking that registers an object with a globally unique identifier selected from a pool of numbers.
     * Regardless of the complexity of the object provided to this function, only the current depth will be assigned a GUID.
     * This is the most basic operation that all objects that can be assigned a GUID must perform.
     * @param obj the object being registered
     * @param guid implicit reference to a unique number system
     * @return a `TaskBundle` message
     */
-  def registerObject(guid: ActorRef, obj: IdentifiableEntity): TaskBundle = TaskBundle(RegisterObjectTask(guid, obj))
+  def registerObject(guid: ActorRef, obj: IdentifiableEntity): TaskBundle =
+    TaskBundle(RegisterObjectTask(guid, obj, "generic"))
+
+  /**
+    * Construct tasking that registers an object with a globally unique identifier selected from a specific pool of numbers.
+    * Regardless of the complexity of the object provided to this function, only the current depth will be assigned a GUID.
+    * @param obj the object being registered
+    * @param guid implicit reference to a unique number system
+    * @return a `TaskBundle` message
+    */
+  def registerObject(guid: ActorRef, obj: PlanetSideGameObject): TaskBundle =
+    TaskBundle(RegisterObjectTask(guid, obj, obj.Definition.registerAs))
 
   /**
     * Construct tasking that registers an object with a globally unique identifier selected from a pool of numbers, as a `Tool`.<br>
@@ -220,7 +239,7 @@ object GUIDTask {
   }
 
   //unregistration tasking
-  private case class UnregisterObjectTask(
+  protected case class UnregisterObjectTask(
                                          guid: ActorRef,
                                          obj: IdentifiableEntity
                                        ) extends Task {
@@ -228,9 +247,7 @@ object GUIDTask {
       ask(guid, Unregister(obj))
     }
 
-    def undo(): Unit = {
-      guid.tell(Register(obj, "dynamic"), guid)
-    }
+    def undo(): Unit = RegisterObjectTask(guid, obj)
 
     def isSuccessful() : Boolean = !obj.HasGUID
 

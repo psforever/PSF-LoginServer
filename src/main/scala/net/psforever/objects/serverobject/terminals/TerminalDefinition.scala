@@ -13,6 +13,7 @@ import net.psforever.objects.serverobject.structures.AmenityDefinition
 abstract class TerminalDefinition(objectId: Int) extends AmenityDefinition(objectId) {
   Name = "terminal"
   Packet = new TerminalConverter
+  registerAs = "terminals"
 
   /**
     * The unimplemented functionality for the entry function of form of activity

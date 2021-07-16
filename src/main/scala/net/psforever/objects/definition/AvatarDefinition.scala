@@ -14,6 +14,7 @@ class AvatarDefinition(objectId: Int) extends ObjectDefinition(objectId) with Vi
   Avatars(objectId) //let throw NoSuchElementException
   Packet = AvatarDefinition.converter
   Geometry = GeometryForm.representPlayerByCylinder(radius = 1.6f)
+  registerAs = "players"
 }
 
 object AvatarDefinition {

@@ -6,8 +6,9 @@ import net.psforever.objects.equipment.SItem
 class SimpleItemDefinition(objectId: Int) extends EquipmentDefinition(objectId) {
   import net.psforever.objects.equipment.EquipmentSize
   SItem(objectId) //let throw NoSuchElementException
-  Name = "tool"
+  Name = "simple_item"
   Size = EquipmentSize.Pistol //all items
+  registerAs = "items"
 }
 
 object SimpleItemDefinition {
