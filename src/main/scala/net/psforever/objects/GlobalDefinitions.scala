@@ -1046,6 +1046,8 @@ object GlobalDefinitions {
 
   val repair_silo = new MedicalTerminalDefinition(729)
 
+  val recharge_terminal = new MedicalTerminalDefinition(724)
+
   val mb_pad_creation = new VehicleSpawnPadDefinition(525)
 
   val dropship_pad_doors = new VehicleSpawnPadDefinition(261)
@@ -1583,6 +1585,18 @@ object GlobalDefinitions {
     edef match {
       case `spiker` | `maelstrom` | `radiator` | `ancient_ammo_combo` | `maelstrom_ammo` => true
       case _                                                                             => false
+    }
+  }
+
+  /**
+    * Using the definition for a `Vehicle` determine whether it is a "cavern Vehicle."
+    * @param vdef the `VehicleDefinition` of the item
+    * @return `true`, if it is; otherwise, `false`
+    */
+  def isCavernVehicle(vdef: VehicleDefinition): Boolean = {
+    vdef match {
+      case `router` | `switchblade` | `flail` => true
+      case _                                  => false
     }
   }
 
@@ -7759,6 +7773,13 @@ object GlobalDefinitions {
     repair_silo.TargetValidation += EffectTarget.Category.Vehicle -> EffectTarget.Validation.RepairSilo
     repair_silo.Damageable = false
     repair_silo.Repairable = false
+
+    recharge_terminal.Name = "recharge_terminal"
+    recharge_terminal.Interval = 1000
+    recharge_terminal.UseRadius = 20
+    recharge_terminal.TargetValidation += EffectTarget.Category.Vehicle -> EffectTarget.Validation.AncientVehicleWeaponRecharge
+    recharge_terminal.Damageable = false
+    recharge_terminal.Repairable = false
 
     mb_pad_creation.Name = "mb_pad_creation"
     mb_pad_creation.Damageable = false

@@ -4913,10 +4913,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         continent.GUID(object_guid) match {
           case Some(obj: Terminal with ProximityUnit) =>
             HandleProximityTerminalUse(obj)
-          case Some(obj) => ;
+          case Some(obj) =>
             log.warn(s"ProximityTerminalUse: $obj does not have proximity effects for ${player.Name}")
           case None =>
-            log.error(s"ProximityTerminalUse: ${player.Name} can not find an oject with guid $object_guid")
+            log.error(s"ProximityTerminalUse: ${player.Name} can not find an object with guid $object_guid")
         }
 
       case msg @ UnuseItemMessage(player_guid, object_guid) =>
