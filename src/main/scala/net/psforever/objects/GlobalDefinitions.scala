@@ -2667,6 +2667,7 @@ object GlobalDefinitions {
     flail_projectile.DamageRadius = 15f
     flail_projectile.ProjectileDamageType = DamageType.Splash
     flail_projectile.DegradeDelay = 1.5f
+    //a DegradeDelay of 1.5s equals a DistanceNoDegrade of 112.5m
     flail_projectile.DegradeMultiplier = 5f
     flail_projectile.InitialVelocity = 75
     flail_projectile.Lifespan = 40f

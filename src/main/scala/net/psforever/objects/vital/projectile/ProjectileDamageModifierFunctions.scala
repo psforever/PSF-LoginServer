@@ -315,7 +315,7 @@ case object FlailDistanceDamageBoost extends ProjectileDamageModifiers.Mod {
   override def calculate(damage: Int, data: DamageInteraction, cause: ProjectileReason): Int = {
     val projectile = cause.projectile
     val profile = projectile.profile
-    val distance   = Vector3.Distance(data.hitPos, projectile.shot_origin) //TODO calculate arc distance?
+    val distance   = Vector3.Distance(data.hitPos.xy, projectile.shot_origin.xy)
     val distanceNoDegrade = profile.DistanceNoDegrade
     val distanceNoMultiplier = 600f - distanceNoDegrade
     if (distance > profile.DistanceMax) {

@@ -354,7 +354,7 @@ class VehicleService(zone: Zone) extends Actor {
       val healAmount = medDef.HealAmount
       if (!target.Destroyed && term.Validate(target)) {
         //repair vehicle
-        if (healAmount != 0 && target.Health < target.MaxHealth) {
+        if (healAmount > 0 && target.Health < target.MaxHealth) {
           val healAmount = medDef.HealAmount
           target.Health = target.Health + healAmount
           target.History(RepairFromTerm(VehicleSource(target), healAmount, medDef))
@@ -367,8 +367,8 @@ class VehicleService(zone: Zone) extends Actor {
           )
         }
         //recharge ammunition of cavern vehicles
-        else if (GlobalDefinitions.isCavernVehicle(target.Definition)) {
-          //TODO check cavern module benefits on facility
+        if (GlobalDefinitions.isCavernVehicle(target.Definition) && term.Definition == GlobalDefinitions.recharge_terminal) {
+          //TODO check cavern module benefits on facility; unlike facility benefits, it's faked for now
           val channel = s"/${target.Actor.toString}/Vehicle"
           val parent = target.GUID
           val excludeNone = Service.defaultPlayerGUID

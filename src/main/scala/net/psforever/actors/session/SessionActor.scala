@@ -271,6 +271,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var keepAliveFunc: () => Unit                      = KeepAlivePersistenceInitial
   var setAvatar: Boolean                             = false
   var turnCounterFunc: PlanetSideGUID => Unit        = TurnCounterDuringInterim
+  var waypointCooldown: Long = 0L
 
   var clientKeepAlive: Cancellable   = Default.Cancellable
   var progressBarUpdate: Cancellable = Default.Cancellable
@@ -1736,7 +1737,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }) match {
           case (_, Some(adversarial)) => adversarial.attacker.Name
           case (Some(reason), None)   => s"a ${reason.interaction.cause.getClass.getSimpleName}"
-          case _                      => "an unfortunate circumstance"
+          case _                      => s"an unfortunate circumstance (probably ${player.Sex.pronounObject} own fault)"
         }
         log.info(s"${player.Name} has died, killed by $cause")
         val respawnTimer = 300.seconds
@@ -5149,8 +5150,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       ) =>
         HandleWeaponFire(weapon_guid, projectile_guid, shot_origin, thrown_projectile_vel.flatten)
 
-      case msg @ WeaponLazeTargetPositionMessage(_, _, pos2) =>
-        log.info(s"${player.Name} is lazing the position ${continent.id}@(${pos2.x},${pos2.y},${pos2.z})")
+      case WeaponLazeTargetPositionMessage(_, _, _) => ;
+        //do not need to handle the progress bar animation/state on the server
+        //laze waypoint is requested by client upon completion (see SquadWaypointRequest)
+        val purpose = if (squad_supplement_id > 0) {
+          s" for ${player.Sex.possessive} squad (#${squad_supplement_id -1})"
+        } else {
+          " ..."
+        }
+        log.info(s"${player.Name} is lazing a position$purpose")
 
       case msg @ ObjectDetectedMessage(guid1, guid2, unk, targets) =>
         FindWeapon match {
@@ -5512,7 +5520,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         )
 
       case msg @ SquadWaypointRequest(request, _, wtype, unk, info) =>
-        squadService ! SquadServiceMessage(player, continent, SquadServiceAction.Waypoint(request, wtype, unk, info))
+        val time = System.currentTimeMillis()
+        val subtype = wtype.subtype
+        if(subtype == WaypointSubtype.Squad) {
+          squadService ! SquadServiceMessage(player, continent, SquadServiceAction.Waypoint(request, wtype, unk, info))
+        } else if (subtype == WaypointSubtype.Laze && time - waypointCooldown > 1000) {
+          //guarding against duplicating laze waypoints
+          waypointCooldown = time
+          squadService ! SquadServiceMessage(player, continent, SquadServiceAction.Waypoint(request, wtype, unk, info))
+        }
 
       case msg @ GenericCollisionMsg(u1, p, t, php, thp, pv, tv, ppos, tpos, u2, u3, u4) =>
         log.info(s"${player.Name} would be in intense and excruciating pain right now if collision worked")
