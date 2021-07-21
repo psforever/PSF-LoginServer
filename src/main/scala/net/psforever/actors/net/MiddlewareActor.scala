@@ -22,7 +22,7 @@ import net.psforever.objects.Default
 import net.psforever.packet._
 import net.psforever.packet.control._
 import net.psforever.packet.crypto.{ClientChallengeXchg, ClientFinished, ServerChallengeXchg, ServerFinished}
-import net.psforever.packet.game.{ChangeFireModeMessage, CharacterInfoMessage, KeepAliveMessage, PingMsg}
+import net.psforever.packet.game._
 import net.psforever.packet.PacketCoding.CryptoCoding
 import net.psforever.util.{Config, DiffieHellman, Md5Mac}
 
@@ -88,6 +88,16 @@ object MiddlewareActor {
 
   /** Send outgoing packet */
   final case class Send(msg: PlanetSidePacket) extends Command
+
+  /** Send outgoing packet as its hexadecimal directly */
+  final case class Raw(msg: BitVector, exclusive: Boolean) extends Command
+  object Raw {
+    def apply(msg: BitVector): Raw = Raw(msg, exclusive = false)
+
+    def apply(msg: ByteVector): Raw = Raw(msg.toBitVector, exclusive = false)
+
+    def apply(msg: ByteVector, exclusive: Boolean): Raw = Raw(msg, exclusive)
+  }
 
   /** Teardown connection */
   final case class Teardown() extends Command
@@ -440,6 +450,14 @@ class MiddlewareActor(
 
         case Send(packet) =>
           out(packet)
+          Behaviors.same
+
+        case Raw(msg, exclusive) =>
+          if (exclusive) {
+            outQueue.enqueue((KeepAliveMessage(), msg)) //caught by bundling isolation filter
+          } else {
+            outQueue.enqueue((ActionResultMessage.Pass, msg))
+          }
           Behaviors.same
 
         case ProcessQueue() =>
