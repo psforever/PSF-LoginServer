@@ -2,15 +2,13 @@
 package net.psforever.objects.zones
 
 import akka.actor.{ActorContext, ActorRef, Props}
-import akka.routing.RandomPool
 import net.psforever.objects.{PlanetSideGameObject, _}
-import net.psforever.objects.ballistics.{Projectile, SourceEntry}
+import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.actor.UniqueNumberSystem
 import net.psforever.objects.guid.key.LoanedKey
-import net.psforever.objects.guid.selector.RandomSelector
 import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.inventory.Container
 import net.psforever.objects.serverobject.painbox.{Painbox, PainboxDefinition}
@@ -34,10 +32,12 @@ import scalax.collection.GraphEdge._
 
 import scala.util.Try
 import akka.actor.typed
+import akka.routing.RandomPool
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.geometry.d3.VolumetricGeometry
+import net.psforever.objects.guid.pool.NumberPool
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.doors.Door
@@ -186,9 +186,10 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
   def init(implicit context: ActorContext): Unit = {
     if (accessor == ActorRef.noSender) {
       SetupNumberPools()
+      val func: (ActorContext, NumberPoolHub) => Map[String, ActorRef] = UniqueNumberSystem.AllocateNumberPoolActors
       accessor = context.actorOf(
         RandomPool(25).props(
-          Props(classOf[UniqueNumberSystem], this.guid, UniqueNumberSystem.AllocateNumberPoolActors(this.guid))
+          Props(classOf[UniqueNumberSystem], this.guid, func)
         ),
         s"zone-$id-uns"
       )
@@ -330,24 +331,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     }
   }
 
-  def SetupNumberPools(): Unit = {
-    //TODO tailor to suit requirements of zone
-    guid.AddPool(name = "environment", (0 to 3000).toList) //3000; read-only
-    guid.AddPool(name = "players", (3001 to 4500).toList).Selector = new RandomSelector //1500
-    guid.AddPool(name = "lockers", (4501 to 5000).toList).Selector = new RandomSelector //500
-    guid.AddPool(name = "tools", (5001 to 9500).toList).Selector = new RandomSelector //4500
-    guid.AddPool(name = "ammo", (9501 to 23000).toList).Selector = new RandomSelector //13500
-    guid.AddPool(name = "kits", (23001 to 36500).toList).Selector = new RandomSelector //13500
-    guid.AddPool(name = "items", (36501 to 39500).toList).Selector = new RandomSelector //3000
-    //39501 to 40099 = 599, generic
-    guid.AddPool(name = "projectiles", (Projectile.baseUID until Projectile.rangeUID).toList) //40100 + 49; read-only
-    guid.AddPool(name = "locker-contents", (40150 to 40450).toList) //300; read-only
-    //40451 to 45000 = 4550, generic
-    guid.AddPool(name = "vehicles", (45001 to 47000).toList).Selector = new RandomSelector //2000; includes wreckage
-    guid.AddPool(name = "terminals", (47001 to 48000).toList).Selector = new RandomSelector //1000
-    guid.AddPool(name = "deployables", (48001 to 64000).toList).Selector = new RandomSelector //16000
-    //64001 to 65535 = 1535, generic
-  }
+  def SetupNumberPools(): Unit = { /* override to tailor to suit requirements of zone */ }
 
   def findSpawns(
       faction: PlanetSideEmpire.Value,
@@ -469,12 +453,14 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     * @return `true`, if the new pool is created;
     *        `false`, if the new pool can not be created because the system has already been started
     */
-  def AddPool(name: String, pool: Seq[Int]): Boolean = {
+  def AddPool(name: String, pool: Seq[Int]): Option[NumberPool] = {
     if (accessor == Default.Actor || accessor == null) {
-      guid.AddPool(name, pool.toList)
-      true
+      guid.AddPool(name, pool.toList) match {
+        case _: Exception => None
+        case out => Some(out)
+      }
     } else {
-      false
+      None
     }
   }
 

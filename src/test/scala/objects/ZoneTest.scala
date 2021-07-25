@@ -130,7 +130,7 @@ class ZoneActorTest extends ActorTest {
       zone.actor = system.spawn(ZoneActor(zone), "test-add-pool-actor-init")
       expectNoMessage(Duration.create(500, "ms"))
 
-      assert(!zone.AddPool("test1", 1 to 2))
+      assert(zone.AddPool("test1", 1 to 2).isEmpty)
     }
 
     "refuse to remove number pools after the Actor is started" in {

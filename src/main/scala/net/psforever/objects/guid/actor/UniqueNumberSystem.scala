@@ -28,26 +28,34 @@ import scala.util.{Failure, Success}
   * Short circuits and recoveries as available on all steps though reporting is split between logging and callbacks.
   * The process of removing the association between a number and object (unregistering) is a similar four part process.<br>
   * <br>
-  * The important relationship between this `Actor` and the `Map` of `NumberPoolActors` is an "gate."
+  * The important relationship between this `Actor` and the `Map` of `NumberPoolActors` is as a "gate."
   * A single `Map` is constructed and shared between multiple entry points to the UID system where requests are messaged.
   * Multiple entry points send messages to the same `NumberPool`.
   * That `NumberPool` deals with the messages one at a time and sends reply to each entry point that communicated with it.
   * This process is almost as fast as the process of the `NumberPool` selecting a number.
   * (At least, both should be fast.)
   * @param guid the `NumberPoolHub` that is partially manipulated by this `Actor`
-  * @param poolActors a common mapping created from the `NumberPool`s in `guid`;
-  *                   there is currently no check for this condition save for requests failing
+  * @param poolActorConversionFunc a common mapping created from the `NumberPool`s in `guid`;
+  *                                there is currently no check for this condition save for requests failing
   */
-class UniqueNumberSystem(private val guid: NumberPoolHub, private val poolActors: Map[String, ActorRef]) extends Actor {
+class UniqueNumberSystem(
+                          guid: NumberPoolHub,
+                          poolActorConversionFunc: (ActorContext, NumberPoolHub) => Map[String, ActorRef]
+                        ) extends Actor {
   private[this] val log   = org.log4s.getLogger
-  implicit val timeout = Timeout(2.seconds)
+  private implicit val timeout = Timeout(2.seconds)
+  private val poolActors: Map[String, ActorRef] = poolActorConversionFunc(context, guid)
 
   def receive: Receive = {
-    case Register(obj, Some(pname), None, call) =>
+    case Register(obj, Some(pname), _, call) =>
       val callback = call.getOrElse(sender())
       if (obj.HasGUID) {
-        AlreadyRegistered(obj, pname)
-        callback ! Success(obj)
+        alreadyRegisteredTo(obj, pname) match {
+          case Some(poolName) =>
+            callback ! Success(AlreadyRegisteredEntity(RegisteredEntity(obj, poolName, guid, obj.GUID.guid)))
+          case None =>
+            UniqueNumberSystem.callbackWhenRegisteredToWrongPlace(obj, obj.GUID.guid, callback)
+        }
       } else {
         RegistrationProcess(obj, pname, callback)
       }
@@ -58,9 +66,9 @@ class UniqueNumberSystem(private val guid: NumberPoolHub, private val poolActors
         val number = obj.GUID.guid
         guid.WhichPool(number) match {
           case Some(pname) =>
-            UnregistrationProcess(number, obj, pname, callback)
+            UnregistrationProcess(obj, number, pname, callback)
           case None =>
-            callback ! Failure(new Exception(s"$obj, registered to number $number, is not part of a known number pool"))
+            UniqueNumberSystem.callbackWhenRegisteredToWrongPlace(obj, number, callback)
         }
       } catch {
         case _: Exception =>
@@ -74,27 +82,62 @@ class UniqueNumberSystem(private val guid: NumberPoolHub, private val poolActors
 
   /**
     * A step of the object registration process.
-    * Send a message to the `NumberPool` to request a number back.
+    * @see `RegistrationProcess(IdentifiableEntity, NumberPoolHub, Map[String, ActorRef], String, ActorRef)`
     * @param poolName the pool to which the object is trying to register
     */
-  private def RegistrationProcess(obj: IdentifiableEntity, poolName: String, callback: ActorRef): Unit = {
+  private def RegistrationProcess(
+                                   obj: IdentifiableEntity,
+                                   poolName: String,
+                                   callback: ActorRef
+                                 ): Unit = {
+    RegistrationProcess(obj, guid, poolActors, poolName, callback)
+  }
+
+  /**
+    * A step of the object registration process.
+    * Send a message to the `NumberPool` to request a number back.
+    * If a number is received, continue with a successful registration process.
+    * If no number is received, or some other issue occurs, attempt to recover from the error and report it.
+    * This method is designed to be recursive as it is also utilized for the recovery attempt
+    * and must pass all of the necessary information on to that next attempt.
+    * @param poolName the pool to which the object is trying to register
+    */
+  private def RegistrationProcess(
+                                   obj: IdentifiableEntity,
+                                   hub: NumberPoolHub,
+                                   poolActors: Map[String, ActorRef],
+                                   poolName: String,
+                                   callback: ActorRef
+                                 ): Unit = {
     poolActors.get(poolName) match {
       case Some(pool) =>
+        //cache
         val localTarget = obj
-        val localPool = poolName
+        val localUns = hub
+        val localPools = poolActors
+        val localPoolName = poolName
+        val localPool = pool
         val localCallback = callback
+        val successFunc: (IdentifiableEntity, NumberPoolHub, String, ActorRef, Int, ActorRef) => Unit =
+          UniqueNumberSystem.processRegisterResult
+        val retryFunc: (IdentifiableEntity, NumberPoolHub, Map[String, ActorRef], String, ActorRef) => Unit =
+          RegistrationProcess
 
         val result = ask(pool, NumberPoolActor.GetAnyNumber(None))(timeout)
         result.onComplete {
           case Success(NumberPoolActor.GiveNumber(number, _)) =>
-            processRegisterResult(localTarget, localPool, localCallback, number)
+            successFunc(localTarget, localUns, localPoolName, localPool, number, localCallback)
           case Success(NumberPoolActor.NoNumber(ex, _)) =>
-            localCallback ! Failure(ex)
+            if (poolName.equals("generic")) {
+              localCallback ! Failure(ex)
+            } else {
+              retryFunc(localTarget, localUns, localPools, "generic", localCallback)
+            }
           case msg =>
             log.warn(s"unexpected message $msg during $localTarget's registration process")
         }
         result.recover {
-          case ex : AskTimeoutException =>
+          case ex: AskTimeoutException =>
             localCallback ! Failure(new Exception(s"did not register entity $localTarget in time", ex))
         }
 
@@ -105,47 +148,39 @@ class UniqueNumberSystem(private val guid: NumberPoolHub, private val poolActors
   }
 
   /**
-    * A step of the object registration process.
-    * This step completes the registration by asking the `NumberPoolHub` to sort out its `NumberSource`.
-    * @param number the number to use
-    */
-  private def processRegisterResult(obj: IdentifiableEntity, poolName: String, callback: ActorRef, number: Int): Unit = {
-    guid.latterPartRegister(obj, number) match {
-      case Success(_) =>
-        callback ! Success(obj)
-      case Failure(ex) =>
-        //do not log; use callback
-        NoCallbackReturnNumber(number, poolName) //recovery?
-        callback ! Failure(ex)
-    }
-  }
-
-  /**
     * A step of the object unregistration process.
     * Send a message to the `NumberPool` to restore the availability of one of its numbers.
     * @param poolName the pool to which the number will try to be returned
     * @param number the number that was previously drawn from the specified `NumberPool`
     */
-  private def UnregistrationProcess(number: Int, obj: IdentifiableEntity, poolName: String, callback: ActorRef): Unit = {
+  private def UnregistrationProcess(
+                                     obj: IdentifiableEntity,
+                                     number: Int,
+                                     poolName: String,
+                                     callback: ActorRef): Unit = {
     //val localEntry = request
     poolActors.get(poolName) match {
       case Some(pool) =>
-        val localNumber = number
         val localTarget = obj
-        val localPool = poolName
+        val localUns = guid
+        val localPoolName = poolName
+        val localPool = pool
+        val localNumber = number
         val localCallback = callback
+        val successFunc: (IdentifiableEntity, NumberPoolHub, String, ActorRef, Int, ActorRef) => Unit =
+          UniqueNumberSystem.processUnregisterResult
 
         val result = ask(pool, NumberPoolActor.ReturnNumber(number, None))
         result.onComplete {
           case Success(NumberPoolActor.ReturnNumberResult(_, None, _)) =>
-            processUnregisterResult(localTarget, localPool, localCallback, localNumber)
+            successFunc(localTarget, localUns, localPoolName, localPool, localNumber, localCallback)
           case Success(NumberPoolActor.ReturnNumberResult(_, Some(ex), _)) => //if there is a problem when returning the number
-            localCallback ! Failure(new Exception(s"could not unregister $localTarget with number $number", ex))
+            localCallback ! Failure(new Exception(s"could not unregister $localTarget with number $localNumber", ex))
           case msg =>
             log.warn(s"unexpected message $msg during $localTarget's unregistration process")
         }
         result.recover {
-          case ex : AskTimeoutException =>
+          case ex: AskTimeoutException =>
             localCallback ! Failure(new Exception(s"did not register entity $localTarget in time", ex))
         }
 
@@ -156,50 +191,98 @@ class UniqueNumberSystem(private val guid: NumberPoolHub, private val poolActors
   }
 
   /**
-    * A step of the object unregistration process.
-    * This step completes revoking of the object's registration by consulting the `NumberSource`.
+    * Generate a relevant logging message for an object that is trying to register is actually already registered.
+    * @param obj the object that was trying to register
+    * @param poolName the pool to which the object was trying to register
+    * @return the pool name to which the entity is registered, if it can be discovered
+    */
+  private def alreadyRegisteredTo(obj: IdentifiableEntity, poolName: String): Option[String] = {
+    val (msg, determinedName) =
+      guid.WhichPool(obj) match {
+        case out @ Some(pname) =>
+          if (poolName.equals(pname)) {
+            (s"to pool $poolName", Some(poolName))
+          } else {
+            (s"but to different pool $pname", out)
+          }
+        case None =>
+          ("but not to any pool known to this system", None)
+      }
+    log.warn(s"$obj already registered $msg")
+    determinedName
+  }
+}
+
+object UniqueNumberSystem {
+  private implicit val timeout = Timeout(2.seconds)
+
+  /**
+    * Transform `NumberPool`s into `NumberPoolActor`s and pair them with their name.
+    * @param poolSource where the raw `NumberPools` are located
+    * @param context used to create the `NumberPoolActor` instances
+    * @return a `Map` of the pool names to the `ActorRef` created from the `NumberPool`
+    */
+ def AllocateNumberPoolActors(context: ActorContext, poolSource: NumberPoolHub): Map[String, ActorRef] = {
+   poolSource.Pools
+     .map { case (pname, pool) => (pname, context.actorOf(Props(classOf[NumberPoolActor], pool), pname)) }
+     .toMap
+ }
+
+  /**
+    * A step of the object registration process.
+    * This step completes the registration by asking the `NumberPoolHub` to sort out its `NumberSource`.
     * @param number the number to use
     */
-  private def processUnregisterResult(obj: IdentifiableEntity, poolName: String, callback: ActorRef, number: Int): Unit = {
-    guid.latterPartUnregister(number) match {
-      case Some(_) =>
-        obj.Invalidate()
-        callback ! Success(obj)
-      case None =>
+  private def processRegisterResult(
+                                     obj: IdentifiableEntity,
+                                     guid: NumberPoolHub,
+                                     poolName: String,
+                                     pool: ActorRef,
+                                     number: Int,
+                                     callback: ActorRef
+                                   ): Unit = {
+    guid.latterPartRegister(obj, number) match {
+      case Success(_) =>
+        callback ! Success(RegisteredEntity(obj, poolName, guid, number))
+      case Failure(ex) =>
         //do not log; use callback
-        NoCallbackGetSpecificNumber(number, poolName) //recovery?
-        callback ! Failure(new Exception(s"failed to unregister $obj from number $number; this may be a critical error"))
+        returnNumberNoCallback(number, pool) //recovery?
+        callback ! Failure(ex)
     }
   }
 
   /**
-    * Generate a relevant logging message for an object that is trying to register is actually already registered.
-    * @param obj the object that was trying to register
-    * @param poolName the pool to which the object was trying to register
+    * A step of the object unregistration process.
+    * This step completes revoking of the object's registration by consulting the `NumberSource`.
+    * @param number the number to use
     */
-  private def AlreadyRegistered(obj: IdentifiableEntity, poolName: String): Unit = {
-    val msg =
-      guid.WhichPool(obj) match {
-        case Some(pname) =>
-          if (poolName.equals(pname)) {
-            s"to pool $poolName"
-          } else {
-            s"but to different pool $pname"
-          }
-        case None =>
-          "but not to any pool known to this system"
-      }
-    log.warn(s"$obj already registered $msg")
+  private def processUnregisterResult(
+                                       obj: IdentifiableEntity,
+                                       guid: NumberPoolHub,
+                                       poolName: String,
+                                       pool: ActorRef,
+                                       number: Int,
+                                       callback: ActorRef
+                                     ): Unit = {
+    guid.latterPartUnregister(number) match {
+      case Some(_) =>
+        obj.Invalidate()
+        callback ! Success(UnregisteredEntity(obj, poolName, guid, number))
+      case None =>
+        //do not log; use callback
+        requestSpecificNumberNoCallback(number, pool) //recovery?
+        callback ! Failure(new Exception(s"failed to unregister $obj from number $number; this may be a critical error"))
+    }
   }
 
   /**
     * Access a specific `NumberPool` in a way that doesn't invoke a callback and reset one of its numbers.
     * To avoid fully processing the callback, an id of `Long.MinValue` is used to short circuit the routine.
     * @param number the number that was drawn from a `NumberPool`
-    * @param poolName the `NumberPool` from which the `number` was drawn
+    * @param pool the `NumberPool` from which the `number` was drawn
     */
-  private def NoCallbackReturnNumber(number: Int, poolName: String): Unit = {
-    val result = ask(poolActors(poolName), NumberPoolActor.ReturnNumber(number, Some(Long.MinValue)))
+  private def returnNumberNoCallback(number: Int, pool: ActorRef): Unit = {
+    val result = ask(pool, NumberPoolActor.ReturnNumber(number, Some(Long.MinValue)))
     result.onComplete { _ => ; }
     result.recover { case _ => ; }
   }
@@ -208,28 +291,17 @@ class UniqueNumberSystem(private val guid: NumberPoolHub, private val poolActors
     * Access a specific `NumberPool` in a way that doesn't invoke a callback and claim one of its numbers.
     * To avoid fully processing the callback, an id of `Long.MinValue` is used to short circuit the routine.
     * @param number the number to be drawn from a `NumberPool`
-    * @param poolName the `NumberPool` from which the `number` is to be drawn
+    * @param pool the `NumberPool` from which the `number` is to be drawn
     */
-  private def NoCallbackGetSpecificNumber(number: Int, poolName: String): Unit = {
-    val result = ask(poolActors(poolName), NumberPoolActor.GetSpecificNumber(number, Some(Long.MinValue)))
+  private def requestSpecificNumberNoCallback(number: Int, pool: ActorRef): Unit = {
+    val result = ask(pool, NumberPoolActor.GetSpecificNumber(number, Some(Long.MinValue)))
     result.onComplete { _ => ; }
     result.recover { case _ => ; }
   }
-}
 
-object UniqueNumberSystem {
-  /**
-    * Transform `NumberPool`s into `NumberPoolActor`s and pair them with their name.
-    * @param poolSource where the raw `NumberPools` are located
-    * @param context used to create the `NumberPoolActor` instances
-    * @return a `Map` of the pool names to the `ActorRef` created from the `NumberPool`
-    */
-  def AllocateNumberPoolActors(poolSource: NumberPoolHub)(implicit context: ActorContext): Map[String, ActorRef] = {
-    poolSource.Pools
-      .map { case (pname, pool) => (pname, context.actorOf(Props(classOf[NumberPoolActor], pool), pname)) }
-      .toMap
+  private def callbackWhenRegisteredToWrongPlace(obj: IdentifiableEntity, number: Int, callback: ActorRef): Unit = {
+    callback ! Failure(
+      new Exception(s"$obj registered to number $number that is not part of a known or local number pool")
+    )
   }
-
-  def AllocateNumberPoolActors(implicit context: ActorContext, poolSource: NumberPoolHub): Map[String, ActorRef] =
-    AllocateNumberPoolActors(poolSource)(context)
 }

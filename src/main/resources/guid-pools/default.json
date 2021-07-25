@@ -1,0 +1,74 @@
+[
+  {
+    "Name": "environment",
+    "Start": 0,
+    "Max": 3000,
+    "Selector": "specific"
+  },
+  {
+    "Name": "players",
+    "Start": 3001,
+    "Max": 4500,
+    "Selector": "random"
+  },
+  {
+    "Name": "lockers",
+    "Start": 4501,
+    "Max": 5000,
+    "Selector": "random"
+  },
+  {
+    "Name": "tools",
+    "Start": 5001,
+    "Max": 9500,
+    "Selector": "random"
+  },
+  {
+    "Name": "ammo",
+    "Start": 9501,
+    "Max": 23000,
+    "Selector": "random"
+  },
+  {
+    "Name": "kits",
+    "Start": 23001,
+    "Max": 36500,
+    "Selector": "random"
+  },
+  {
+    "Name": "items",
+    "Start": 36501,
+    "Max": 39500,
+    "Selector": "random"
+  },
+  {
+    "Name": "projectiles",
+    "Start": 40100,
+    "Max": 40149,
+    "Selector": "specific"
+  },
+  {
+    "Name": "locker-contents",
+    "Start": 40150,
+    "Max": 40450,
+    "Selector": "specific"
+  },
+  {
+    "Name": "vehicles",
+    "Start": 45001,
+    "Max": 47000,
+    "Selector": "random"
+  },
+  {
+    "Name": "terminals",
+    "Start": 47001,
+    "Max": 48000,
+    "Selector": "random"
+  },
+  {
+    "Name": "deployables",
+    "Start": 48001,
+    "Max": 64000,
+    "Selector": "random"
+  }
+]
