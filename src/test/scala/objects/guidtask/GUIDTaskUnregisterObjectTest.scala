@@ -4,19 +4,20 @@ package objects.guidtask
 import base.ActorTest
 import net.psforever.objects.guid.actor.{TaskBundle, TaskWorkflow}
 import net.psforever.objects.guid.GUIDTask
+import scala.concurrent.duration._
 
 class GUIDTaskUnregisterObjectTest extends ActorTest {
   "UnregisterObjectTask" in {
     val (guid, uns, _, probe) = GUIDTaskTest.CommonTestSetup
     val obj                              = new GUIDTaskTest.TestObject
-    guid.register(obj, "dynamic")
+    guid.register(obj)
 
     assert(obj.HasGUID)
     TaskWorkflow.execute(TaskBundle(
       new GUIDTaskTest.RegisterTestTask(probe.ref),
       GUIDTask.unregisterObject(uns, obj)
     ))
-    probe.expectMsg(scala.util.Success)
+    probe.expectMsg(5.second, scala.util.Success(true))
     assert(!obj.HasGUID)
   }
 }

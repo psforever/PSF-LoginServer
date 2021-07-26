@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package objects.number
 
-import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.actor.{ActorContext, ActorRef, ActorSystem, Props}
 import base.ActorTest
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.guid.NumberPoolHub
@@ -37,8 +37,10 @@ class UniqueNumberSystemTest extends ActorTest() {
       guid.AddPool("pool1", (1001 to 2000).toList)
       guid.AddPool("pool2", (3001 to 4000).toList)
       guid.AddPool("pool3", (5001 to 6000).toList)
+      val func: (ActorContext, NumberPoolHub) => Map[String, ActorRef] =
+        UniqueNumberSystem.AllocateNumberPoolActors
       system.actorOf(
-        Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystemTest.AllocateNumberPoolActors(guid)),
+        Props(classOf[UniqueNumberSystem], guid, func),
         "uns"
       )
       //as long as it constructs ...
@@ -59,8 +61,10 @@ class UniqueNumberSystemTest1 extends ActorTest() {
       guid.AddPool("pool1", pool1).Selector = new RandomSelector
       guid.AddPool("pool2", pool2).Selector = new RandomSelector
       guid.AddPool("pool3", pool3).Selector = new RandomSelector
+      val func: (ActorContext, NumberPoolHub) => Map[String, ActorRef] =
+        UniqueNumberSystem.AllocateNumberPoolActors
       val uns = system.actorOf(
-        Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystemTest.AllocateNumberPoolActors(guid)),
+        Props(classOf[UniqueNumberSystem], guid, func),
         "uns"
       )
       assert(src.countUsed == 0)
@@ -103,8 +107,10 @@ class UniqueNumberSystemTest2 extends ActorTest() {
       guid.AddPool("pool1", (1001 to 2000).toList).Selector = new RandomSelector
       guid.AddPool("pool2", (3001 to 4000).toList).Selector = new RandomSelector
       guid.AddPool("pool3", (5001 to 6000).toList).Selector = new RandomSelector
+      val func: (ActorContext, NumberPoolHub) => Map[String, ActorRef] =
+        UniqueNumberSystem.AllocateNumberPoolActors
       val uns = system.actorOf(
-        Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystemTest.AllocateNumberPoolActors(guid)),
+        Props(classOf[UniqueNumberSystem], guid, func),
         "uns"
       )
       val testObj = new EntityTestClass()
@@ -139,8 +145,10 @@ class UniqueNumberSystemTest3 extends ActorTest() {
       guid.AddPool("pool1", (1001 to 2000).toList).Selector = new RandomSelector
       guid.AddPool("pool2", (3001 to 4000).toList).Selector = new RandomSelector
       guid.AddPool("pool3", (5001 to 6000).toList).Selector = new RandomSelector
+      val func: (ActorContext, NumberPoolHub) => Map[String, ActorRef] =
+        UniqueNumberSystem.AllocateNumberPoolActors
       val uns = system.actorOf(
-        Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystemTest.AllocateNumberPoolActors(guid)),
+        Props(classOf[UniqueNumberSystem], guid, func),
         "uns"
       )
       val testObj = new EntityTestClass()
@@ -161,26 +169,28 @@ class UniqueNumberSystemTest4 extends ActorTest() {
 
   "UniqueNumberSystem" should {
     "Register (failure; empty pool)" in {
-      val src: MaxNumberSource = MaxNumberSource(6000)
+      val src: MaxNumberSource = MaxNumberSource(7)
       val guid: NumberPoolHub      = new NumberPoolHub(src)
-      guid.AddPool("pool1", (1001 to 2000).toList).Selector = new RandomSelector
-      guid.AddPool("pool2", (3001 to 4000).toList).Selector = new RandomSelector
-      guid.AddPool("pool3", (5001 to 6000).toList).Selector = new RandomSelector
-      guid.AddPool("pool4", 50 :: Nil).Selector = new RandomSelector //list of one element; can not add an empty list
+      guid.AddPool("pool1", (0 to 2).toList).Selector = new RandomSelector
+      guid.AddPool("pool2", (3 to 4).toList).Selector = new RandomSelector
+      guid.AddPool("pool3", (5 to 6).toList).Selector = new RandomSelector
+      guid.AddPool("pool4", 7 :: Nil).Selector = new RandomSelector //list of one element; can not add an empty list
+      val func: (ActorContext, NumberPoolHub) => Map[String, ActorRef] =
+        UniqueNumberSystem.AllocateNumberPoolActors
       val uns = system.actorOf(
-        Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystemTest.AllocateNumberPoolActors(guid)),
+        Props(classOf[UniqueNumberSystem], guid, func),
         "uns"
       )
 
       val testObj1 = new EntityTestClass()
       uns ! Register(testObj1, "pool4")
-      val msg1 = receiveOne(Duration.create(500, "ms"))
-      assert(msg1.isInstanceOf[Success[_]]) //pool4 is now empty
+      receiveOne(Duration.create(500, "ms"))
+      assert(testObj1.HasGUID) //pool4 is now empty
 
       val testObj2 = new EntityTestClass()
       uns ! Register(testObj2, "pool4")
-      val msg2 = receiveOne(Duration.create(500, "ms"))
-      assert(msg2.isInstanceOf[Failure[_]])
+      receiveOne(Duration.create(500, "ms"))
+      assert(!testObj2.HasGUID)
     }
   }
 }
@@ -196,8 +206,10 @@ class UniqueNumberSystemTest5 extends ActorTest() {
       guid.AddPool("pool1", (1001 to 2000).toList).Selector = new RandomSelector
       guid.AddPool("pool2", pool2).Selector = new RandomSelector
       guid.AddPool("pool3", (5001 to 6000).toList).Selector = new RandomSelector
+      val func: (ActorContext, NumberPoolHub) => Map[String, ActorRef] =
+        UniqueNumberSystem.AllocateNumberPoolActors
       val uns = system.actorOf(
-        Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystemTest.AllocateNumberPoolActors(guid)),
+        Props(classOf[UniqueNumberSystem], guid, func),
         "uns"
       )
       val testObj = new EntityTestClass()
@@ -230,8 +242,10 @@ class UniqueNumberSystemTest6 extends ActorTest() {
       guid.AddPool("pool1", (1001 to 2000).toList).Selector = new RandomSelector
       guid.AddPool("pool2", (3001 to 4000).toList).Selector = new RandomSelector
       guid.AddPool("pool3", (5001 to 6000).toList).Selector = new RandomSelector
+      val func: (ActorContext, NumberPoolHub) => Map[String, ActorRef] =
+        UniqueNumberSystem.AllocateNumberPoolActors
       val uns = system.actorOf(
-        Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystemTest.AllocateNumberPoolActors(guid)),
+        Props(classOf[UniqueNumberSystem], guid, func),
         "uns"
       )
       val testObj = new EntityTestClass()
@@ -257,8 +271,10 @@ class UniqueNumberSystemTest7 extends ActorTest() {
       guid.AddPool("pool1", (1001 to 2000).toList).Selector = new RandomSelector
       guid.AddPool("pool2", (3001 to 4000).toList).Selector = new RandomSelector
       guid.AddPool("pool3", (5001 to 6000).toList).Selector = new RandomSelector
+      val func: (ActorContext, NumberPoolHub) => Map[String, ActorRef] =
+        UniqueNumberSystem.AllocateNumberPoolActors
       val uns = system.actorOf(
-        Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystemTest.AllocateNumberPoolActors(guid)),
+        Props(classOf[UniqueNumberSystem], guid, func),
         "uns"
       )
       val testObj = new EntityTestClass()
@@ -285,8 +301,10 @@ class UniqueNumberSystemTest8 extends ActorTest() {
       guid.AddPool("pool1", (1001 to 2000).toList).Selector = new RandomSelector
       guid.AddPool("pool2", (3001 to 4000).toList).Selector = new RandomSelector
       guid.AddPool("pool3", (5001 to 6000).toList).Selector = new RandomSelector
+      val func: (ActorContext, NumberPoolHub) => Map[String, ActorRef] =
+        UniqueNumberSystem.AllocateNumberPoolActors
       val uns = system.actorOf(
-        Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystemTest.AllocateNumberPoolActors(guid)),
+        Props(classOf[UniqueNumberSystem], guid, func),
         "uns"
       )
       val testObj = new EntityTestClass()
@@ -313,8 +331,10 @@ class UniqueNumberSystemTest9 extends ActorTest() {
       guid.AddPool("pool1", (1001 to 2000).toList).Selector = new RandomSelector
       guid.AddPool("pool2", (3001 to 4000).toList).Selector = new RandomSelector
       guid.AddPool("pool3", (5001 to 6000).toList).Selector = new RandomSelector
+      val func: (ActorContext, NumberPoolHub) => Map[String, ActorRef] =
+        UniqueNumberSystem.AllocateNumberPoolActors
       val uns = system.actorOf(
-        Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystemTest.AllocateNumberPoolActors(guid)),
+        Props(classOf[UniqueNumberSystem], guid, func),
         "uns"
       )
       val excp = new Exception("EXCEPTION MESSAGE")
@@ -345,26 +365,30 @@ class UniqueNumberSystemTestA extends ActorTest {
 
   "UniqueNumberSystem" should {
     "remain consistent between registrations" in {
-      val src: MaxNumberSource = MaxNumberSource(10)
+      val src: MaxNumberSource = MaxNumberSource(9)
       val guid: NumberPoolHub      = new NumberPoolHub(src)
-      guid.AddPool("pool1", (0 until 10).toList).Selector = new RandomSelector
+      guid.AddPool("pool1", (0 to 9).toList).Selector = new RandomSelector
+      val func: (ActorContext, NumberPoolHub) => Map[String, ActorRef] =
+        UniqueNumberSystem.AllocateNumberPoolActors
       val uns = system.actorOf(
-        Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystemTest.AllocateNumberPoolActors(guid)),
+        Props(classOf[UniqueNumberSystem], guid, func),
         "uns"
       )
       expectNoMessage(Duration.create(200, "ms"))
 
       assert(src.countUsed == 0)
-      (0 to 4).foreach(i => { assert(guid.register(new EntityTestClass(), i).isSuccess) })
+      (0 to 4).foreach(i => { assert(guid.register(new EntityTestClass(), i).isSuccess) }) //0, 1, 2, 3, 4
       assert(src.countUsed == 5)
 
-      (0 to 5).foreach(_ => { uns ! Register(new EntityTestClass(), "pool1") })
-      assert(receiveOne(200 milliseconds).isInstanceOf[Success[_]]) //6th
-      assert(receiveOne(200 milliseconds).isInstanceOf[Success[_]]) //7th
-      assert(receiveOne(200 milliseconds).isInstanceOf[Success[_]]) //8th
-      assert(receiveOne(200 milliseconds).isInstanceOf[Success[_]]) //9th
-      assert(receiveOne(200 milliseconds).isInstanceOf[Success[_]]) //10th
-      assert(receiveOne(200 milliseconds).isInstanceOf[Failure[_]]) //no more
+      val objs = (0 to 5).map { _ => new EntityTestClass() }
+      objs.foreach { obj => uns ! Register(obj, "pool1") } //5, 6, 7, 8, 9, '10'
+      receiveOne(200 milliseconds) match { case Success(_) => ; case _ => assert(false) } //5
+      receiveOne(200 milliseconds) match { case Success(_) => ; case _ => assert(false) } //6
+      receiveOne(200 milliseconds) match { case Success(_) => ; case _ => assert(false) } //7
+      receiveOne(200 milliseconds) match { case Success(_) => ; case _ => assert(false) } //8
+      receiveOne(200 milliseconds) match { case Success(_) => ; case _ => assert(false) } //9
+      receiveOne(200 milliseconds) match { case Failure(_) => ; case _ => assert(false) } //'10'
+      assert(!objs.last.HasGUID)
       assert(src.countUsed == 10)
     }
   }

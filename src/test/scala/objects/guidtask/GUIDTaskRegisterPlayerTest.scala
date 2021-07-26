@@ -8,6 +8,7 @@ import net.psforever.objects.guid.actor.{TaskBundle, TaskWorkflow}
 import net.psforever.objects.guid.GUIDTask
 import net.psforever.objects.locker.LockerEquipment
 import net.psforever.types.{CharacterSex, CharacterVoice, PlanetSideEmpire}
+import scala.concurrent.duration._
 
 class GUIDTaskRegisterPlayerTest extends ActorTest {
   "RegisterPlayer" in {
@@ -33,7 +34,7 @@ class GUIDTaskRegisterPlayerTest extends ActorTest {
       new GUIDTaskTest.RegisterTestTask(probe.ref),
       GUIDTask.registerPlayer(uns, obj)
     ))
-    probe.expectMsg(scala.util.Success)
+    probe.expectMsg(5.second, scala.util.Success(true))
     assert(obj.HasGUID)
     assert(obj_wep.HasGUID)
     assert(obj_wep_ammo.HasGUID)

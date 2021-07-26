@@ -8,6 +8,7 @@ import net.psforever.objects.guid.actor.{TaskBundle, TaskWorkflow}
 import net.psforever.objects.guid.GUIDTask
 import net.psforever.objects.locker.LockerEquipment
 import net.psforever.types.{CharacterSex, CharacterVoice, PlanetSideEmpire}
+import scala.concurrent.duration._
 
 class GUIDTaskUnregisterAvatarTest extends ActorTest {
   "UnregisterAvatar" in {
@@ -22,12 +23,12 @@ class GUIDTaskUnregisterAvatarTest extends ActorTest {
     val obj_locker      = obj.Slot(5).Equipment.get
     val obj_locker_ammo = AmmoBox(GlobalDefinitions.energy_cell)
     obj_locker.asInstanceOf[LockerEquipment].Inventory += 0 -> obj_locker_ammo
-    guid.register(obj, "dynamic")
-    guid.register(obj_wep, "dynamic")
-    guid.register(obj_wep_ammo, "dynamic")
-    guid.register(obj_inv_ammo, "dynamic")
-    guid.register(obj_locker, "dynamic")
-    guid.register(obj_locker_ammo, "dynamic")
+    guid.register(obj)
+    guid.register(obj_wep)
+    guid.register(obj_wep_ammo)
+    guid.register(obj_inv_ammo)
+    guid.register(obj_locker)
+    guid.register(obj_locker_ammo)
 
     assert(obj.HasGUID)
     assert(obj_wep.HasGUID)
@@ -39,7 +40,7 @@ class GUIDTaskUnregisterAvatarTest extends ActorTest {
       new GUIDTaskTest.RegisterTestTask(probe.ref),
       GUIDTask.unregisterAvatar(uns, obj)
     ))
-    probe.expectMsg(scala.util.Success)
+    probe.expectMsg(5.second, scala.util.Success(true))
     assert(!obj.HasGUID)
     assert(!obj_wep.HasGUID)
     assert(!obj_wep_ammo.HasGUID)

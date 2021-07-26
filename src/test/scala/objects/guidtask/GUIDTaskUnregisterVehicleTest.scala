@@ -5,6 +5,7 @@ import base.ActorTest
 import net.psforever.objects._
 import net.psforever.objects.guid.actor.{TaskBundle, TaskWorkflow}
 import net.psforever.objects.guid.GUIDTask
+import scala.concurrent.duration._
 
 class GUIDTaskUnregisterVehicleTest extends ActorTest {
   "RegisterVehicle" in {
@@ -15,10 +16,10 @@ class GUIDTaskUnregisterVehicleTest extends ActorTest {
       AmmoBox(GlobalDefinitions.hellfire_ammo)).get
     obj.Trunk += 30 -> AmmoBox(GlobalDefinitions.hellfire_ammo)
     val obj_trunk_ammo = obj.Trunk.Items(0).obj
-    guid.register(obj, "dynamic")
-    guid.register(obj_wep, "dynamic")
-    guid.register(obj_wep_ammo, "dynamic")
-    guid.register(obj_trunk_ammo, "dynamic")
+    guid.register(obj)
+    guid.register(obj_wep)
+    guid.register(obj_wep_ammo)
+    guid.register(obj_trunk_ammo)
 
     assert(obj.HasGUID)
     assert(obj_wep.HasGUID)
@@ -28,7 +29,7 @@ class GUIDTaskUnregisterVehicleTest extends ActorTest {
       new GUIDTaskTest.RegisterTestTask(probe.ref),
       GUIDTask.unregisterVehicle(uns, obj)
     ))
-    probe.expectMsg(scala.util.Success)
+    probe.expectMsg(5.second, scala.util.Success(true))
     assert(!obj.HasGUID)
     assert(!obj_wep.HasGUID)
     assert(!obj_wep_ammo.HasGUID)

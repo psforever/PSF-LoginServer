@@ -5,6 +5,7 @@ import base.ActorTest
 import net.psforever.objects._
 import net.psforever.objects.guid.actor.{TaskBundle, TaskWorkflow}
 import net.psforever.objects.guid.GUIDTask
+import scala.concurrent.duration._
 
 class GUIDTaskRegisterVehicleTest extends ActorTest {
   "RegisterVehicle" in {
@@ -24,7 +25,7 @@ class GUIDTaskRegisterVehicleTest extends ActorTest {
       new GUIDTaskTest.RegisterTestTask(probe.ref),
       GUIDTask.registerVehicle(uns, obj)
     ))
-    probe.expectMsg(scala.util.Success)
+    probe.expectMsg(5.second, scala.util.Success(true))
     assert(obj.HasGUID)
     assert(obj_wep.HasGUID)
     assert(obj_wep_ammo.HasGUID)

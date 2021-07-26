@@ -24,15 +24,19 @@ class GenericPool(private val hub: mutable.LongMap[String], private val max: Int
     selector.SelectionIndex = -1 //clear
     if (specific == -1) {
       val number = GenericPool.rand(hub.keys.toList, max)
-      hub += number.toLong -> "generic"
-      numbers += number
-      Success(number)
+      if (number > -1) {
+        hub += number.toLong -> "generic"
+        numbers += number
+        Success(number)
+      } else {
+        Failure(new Exception("no numbers available in the generic pool"))
+      }
     } else if (hub.get(specific).isEmpty) {
       hub += specific.toLong -> "generic"
       numbers += specific
       Success(specific)
     } else {
-      Failure(new Exception("selector was not initialized properly, or no numbers available in the pool"))
+      Failure(new Exception("selector may not have been initialized properly"))
     }
   }
 

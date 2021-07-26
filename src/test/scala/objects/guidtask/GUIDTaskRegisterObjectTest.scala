@@ -4,6 +4,7 @@ package objects.guidtask
 import base.ActorTest
 import net.psforever.objects.guid.actor.{TaskBundle, TaskWorkflow}
 import net.psforever.objects.guid.GUIDTask
+import scala.concurrent.duration._
 
 class GUIDTaskRegisterObjectTest extends ActorTest {
   "RegisterObjectTask" in {
@@ -15,7 +16,7 @@ class GUIDTaskRegisterObjectTest extends ActorTest {
       new GUIDTaskTest.RegisterTestTask(probe.ref),
       GUIDTask.registerObject(uns, obj)
     ))
-    probe.expectMsg(scala.util.Success)
+    probe.expectMsg(5.second, scala.util.Success(true))
     assert(obj.HasGUID)
   }
 }

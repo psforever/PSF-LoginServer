@@ -5,6 +5,7 @@ import base.ActorTest
 import net.psforever.objects._
 import net.psforever.objects.guid.actor.{TaskBundle, TaskWorkflow}
 import net.psforever.objects.guid.GUIDTask
+import scala.concurrent.duration._
 
 class GUIDTaskUnregisterTurretTest extends ActorTest {
   "UnregisterDeployableTurret" in {
@@ -13,10 +14,10 @@ class GUIDTaskUnregisterTurretTest extends ActorTest {
     val obj_wep                          = obj.Weapons(1).Equipment.get
     val obj_ammo                         = obj_wep.asInstanceOf[Tool].AmmoSlot.Box
     val obj_res                          = obj.Inventory.Items.map(_.obj)
-    guid.register(obj, "dynamic")
-    guid.register(obj_wep, "dynamic")
-    guid.register(obj_ammo, "dynamic")
-    obj_res.foreach(box => guid.register(box, "dynamic"))
+    guid.register(obj)
+    guid.register(obj_wep)
+    guid.register(obj_ammo)
+    obj_res.foreach(box => guid.register(box))
 
     assert(obj.HasGUID)
     assert(obj_wep.HasGUID)
@@ -26,7 +27,7 @@ class GUIDTaskUnregisterTurretTest extends ActorTest {
       new GUIDTaskTest.RegisterTestTask(probe.ref),
       GUIDTask.unregisterDeployableTurret(uns, obj)
     ))
-    probe.expectMsg(scala.util.Success)
+    probe.expectMsg(5.second, scala.util.Success(true))
     assert(!obj.HasGUID)
     assert(!obj_wep.HasGUID)
     assert(!obj_ammo.HasGUID)

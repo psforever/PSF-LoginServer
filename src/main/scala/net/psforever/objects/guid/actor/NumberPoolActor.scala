@@ -25,7 +25,7 @@ class NumberPoolActor(pool: NumberPool) extends Actor {
       sender() ! (pool.Get() match {
         case Success(value) =>
           NumberPoolActor.GiveNumber(value, id)
-        case Failure(ex) => ;
+        case Failure(ex) =>
           NumberPoolActor.NoNumber(ex, id)
       })
 

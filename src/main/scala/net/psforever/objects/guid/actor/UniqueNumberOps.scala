@@ -1,13 +1,14 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.guid.actor
 
-import akka.actor.{Actor, ActorContext, ActorRef, Props}
+import akka.actor.ActorRef
 import akka.pattern.{AskTimeoutException, ask}
 import akka.util.Timeout
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.guid.NumberPoolHub
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
@@ -35,62 +36,73 @@ import scala.util.{Failure, Success}
   * This process is almost as fast as the process of the `NumberPool` selecting a number.
   * (At least, both should be fast.)
   * @param guid the `NumberPoolHub` that is partially manipulated by this `Actor`
-  * @param poolActorConversionFunc a common mapping created from the `NumberPool`s in `guid`;
-  *                                there is currently no check for this condition save for requests failing
+  * @param poolActors a common mapping created from the `NumberPool`s in `guid`;
+  *                   there is currently no check for this condition save for requests failing
   */
-class UniqueNumberSystem(
-                          guid: NumberPoolHub,
-                          poolActorConversionFunc: (ActorContext, NumberPoolHub) => Map[String, ActorRef]
-                        ) extends Actor {
-  private[this] val log   = org.log4s.getLogger
+class UniqueNumberOps(
+                       guid: NumberPoolHub,
+                       poolActors: Map[String, ActorRef]
+                     ) {
   private implicit val timeout = Timeout(2.seconds)
-  private val poolActors: Map[String, ActorRef] = poolActorConversionFunc(context, guid)
 
-  def receive: Receive = {
-    case Register(obj, Some(pname), _, call) =>
-      val callback = call.getOrElse(sender())
-      if (obj.HasGUID) {
-        alreadyRegisteredTo(obj, pname) match {
-          case Some(poolName) =>
-            callback ! Success(AlreadyRegisteredEntity(RegisteredEntity(obj, poolName, guid, obj.GUID.guid)))
-          case None =>
-            UniqueNumberSystem.callbackWhenRegisteredToWrongPlace(obj, obj.GUID.guid, callback)
-        }
-      } else {
-        RegistrationProcess(obj, pname, callback)
+  def Register(
+                obj: IdentifiableEntity,
+                poolName: String
+              ): Future[Any] = {
+    val result: Promise[Any] = Promise()
+    if (obj.HasGUID) {
+      alreadyRegisteredTo(obj, poolName) match {
+        case Some(pname) =>
+          result.success {
+            AlreadyRegisteredEntity(RegisteredEntity(obj, pname, guid, obj.GUID.guid))
+          }
+        case None =>
+          result.completeWith {
+            UniqueNumberOps.callbackWhenRegisteredToWrongPlace(obj, obj.GUID.guid)
+          }
       }
-
-    case Unregister(obj, call) =>
-      val callback = call.getOrElse(sender())
-      try {
-        val number = obj.GUID.guid
-        guid.WhichPool(number) match {
-          case Some(pname) =>
-            UnregistrationProcess(obj, number, pname, callback)
-          case None =>
-            UniqueNumberSystem.callbackWhenRegisteredToWrongPlace(obj, number, callback)
-        }
-      } catch {
-        case _: Exception =>
-          log.warn(s"$obj is already unregistered")
-          callback ! Success(obj)
+    } else {
+      result.completeWith {
+        RegistrationProcess(obj, poolName)
       }
+    }
+    result.future
+  }
 
-    case msg =>
-      log.warn(s"unexpected message received - $msg")
+  def Unregister(obj: IdentifiableEntity): Future[Any] = {
+    val result: Promise[Any] = Promise()
+    try {
+      val number = obj.GUID.guid
+      guid.WhichPool(number) match {
+        case Some(pname) =>
+          result.completeWith {
+            UnregistrationProcess(obj, number, pname)
+          }
+        case None =>
+          result.completeWith {
+            UniqueNumberOps.callbackWhenRegisteredToWrongPlace(obj, number)
+          }
+      }
+    } catch {
+      case _: Exception =>
+        UniqueNumberOps.log.warn(s"$obj is already unregistered")
+        result.completeWith {
+          Future(obj)
+        }
+    }
+    result.future
   }
 
   /**
     * A step of the object registration process.
-    * @see `RegistrationProcess(IdentifiableEntity, NumberPoolHub, Map[String, ActorRef], String, ActorRef)`
+    * @see `RegistrationProcess(IdentifiableEntity, NumberPoolHub, Map[String, ActorRef], String)`
     * @param poolName the pool to which the object is trying to register
     */
   private def RegistrationProcess(
                                    obj: IdentifiableEntity,
-                                   poolName: String,
-                                   callback: ActorRef
-                                 ): Unit = {
-    RegistrationProcess(obj, guid, poolActors, poolName, callback)
+                                   poolName: String
+                                 ): Future[Any] = {
+    RegistrationProcess(obj, guid, poolActors, poolName)
   }
 
   /**
@@ -106,9 +118,9 @@ class UniqueNumberSystem(
                                    obj: IdentifiableEntity,
                                    hub: NumberPoolHub,
                                    poolActors: Map[String, ActorRef],
-                                   poolName: String,
-                                   callback: ActorRef
-                                 ): Unit = {
+                                   poolName: String
+                                 ): Future[Any] = {
+    val promisingResult: Promise[Any] = Promise()
     poolActors.get(poolName) match {
       case Some(pool) =>
         //cache
@@ -117,34 +129,44 @@ class UniqueNumberSystem(
         val localPools = poolActors
         val localPoolName = poolName
         val localPool = pool
-        val localCallback = callback
-        val successFunc: (IdentifiableEntity, NumberPoolHub, String, ActorRef, Int, ActorRef) => Unit =
-          UniqueNumberSystem.processRegisterResult
-        val retryFunc: (IdentifiableEntity, NumberPoolHub, Map[String, ActorRef], String, ActorRef) => Unit =
+        val successFunc: (IdentifiableEntity, NumberPoolHub, String, ActorRef, Int) => Future[Any] =
+          UniqueNumberOps.processRegisterResult
+        val retryFunc: (IdentifiableEntity, NumberPoolHub, Map[String, ActorRef], String) => Future[Any] =
           RegistrationProcess
 
         val result = ask(pool, NumberPoolActor.GetAnyNumber(None))(timeout)
         result.onComplete {
           case Success(NumberPoolActor.GiveNumber(number, _)) =>
-            successFunc(localTarget, localUns, localPoolName, localPool, number, localCallback)
+            promisingResult.completeWith {
+              successFunc(localTarget, localUns, localPoolName, localPool, number)
+            }
           case Success(NumberPoolActor.NoNumber(ex, _)) =>
-            if (localPoolName.equals("generic")) {
-              localCallback ! Failure(ex)
+            if (poolName.equals("generic")) {
+              promisingResult.completeWith {
+                Future(Failure(ex))
+              }
             } else {
-              retryFunc(localTarget, localUns, localPools, "generic", localCallback)
+              promisingResult.completeWith {
+                retryFunc(localTarget, localUns, localPools, "generic")
+              }
             }
           case msg =>
-            log.warn(s"unexpected message $msg during $localTarget's registration process")
+            UniqueNumberOps.log.warn(s"unexpected message $msg during $localTarget's registration process")
         }
         result.recover {
           case ex: AskTimeoutException =>
-            localCallback ! Failure(new Exception(s"did not register entity $localTarget in time", ex))
+            promisingResult.completeWith {
+              Future(Failure(new Exception(s"did not register entity $localTarget in time", ex)))
+            }
         }
 
       case None =>
-        //do not log; use callback
-        callback ! Failure(new Exception(s"can not find pool $poolName; $obj was not registered"))
+        //do not log
+        promisingResult.completeWith {
+          Future(Failure(new Exception(s"can not find pool $poolName; $obj was not registered")))
+        }
     }
+    promisingResult.future
   }
 
   /**
@@ -156,10 +178,10 @@ class UniqueNumberSystem(
   private def UnregistrationProcess(
                                      obj: IdentifiableEntity,
                                      number: Int,
-                                     poolName: String,
-                                     callback: ActorRef
-                                   ): Unit = {
+                                     poolName: String
+                                   ): Future[Any] = {
     //val localEntry = request
+    val promisingResult: Promise[Any] = Promise()
     poolActors.get(poolName) match {
       case Some(pool) =>
         val localTarget = obj
@@ -167,28 +189,36 @@ class UniqueNumberSystem(
         val localPoolName = poolName
         val localPool = pool
         val localNumber = number
-        val localCallback = callback
-        val successFunc: (IdentifiableEntity, NumberPoolHub, String, ActorRef, Int, ActorRef) => Unit =
-          UniqueNumberSystem.processUnregisterResult
+        val successFunc: (IdentifiableEntity, NumberPoolHub, String, ActorRef, Int) => Future[Any] =
+          UniqueNumberOps.processUnregisterResult
 
         val result = ask(pool, NumberPoolActor.ReturnNumber(number, None))
         result.onComplete {
           case Success(NumberPoolActor.ReturnNumberResult(_, None, _)) =>
-            successFunc(localTarget, localUns, localPoolName, localPool, localNumber, localCallback)
+            promisingResult.completeWith {
+              successFunc(localTarget, localUns, localPoolName, localPool, localNumber)
+            }
           case Success(NumberPoolActor.ReturnNumberResult(_, Some(ex), _)) => //if there is a problem when returning the number
-            localCallback ! Failure(new Exception(s"could not unregister $localTarget with number $localNumber", ex))
+            promisingResult.completeWith {
+              Future(Failure(new Exception(s"could not unregister $localTarget with number $localNumber", ex)))
+            }
           case msg =>
-            log.warn(s"unexpected message $msg during $localTarget's unregistration process")
+            UniqueNumberOps.log.warn(s"unexpected message $msg during $localTarget's unregistration process")
         }
         result.recover {
           case ex: AskTimeoutException =>
-            localCallback ! Failure(new Exception(s"did not register entity $localTarget in time", ex))
+            promisingResult.completeWith {
+              Future(Failure(new Exception(s"did not register entity $localTarget in time", ex)))
+            }
         }
 
       case None =>
         //do not log; use callback
-        callback ! Failure(new Exception(s"can not find pool $poolName; $obj was not unregistered"))
+        promisingResult.completeWith {
+          Future(Failure(new Exception(s"can not find pool $poolName; $obj was not unregistered")))
+        }
     }
+    promisingResult.future
   }
 
   /**
@@ -209,25 +239,14 @@ class UniqueNumberSystem(
         case None =>
           ("but not to any pool known to this system", None)
       }
-    log.warn(s"$obj already registered $msg")
+    UniqueNumberOps.log.warn(s"$obj already registered $msg")
     determinedName
   }
 }
 
-object UniqueNumberSystem {
+object UniqueNumberOps {
+  private val log   = org.log4s.getLogger
   private implicit val timeout = Timeout(2.seconds)
-
-  /**
-    * Transform `NumberPool`s into `NumberPoolActor`s and pair them with their name.
-    * @param poolSource where the raw `NumberPools` are located
-    * @param context used to create the `NumberPoolActor` instances
-    * @return a `Map` of the pool names to the `ActorRef` created from the `NumberPool`
-    */
- def AllocateNumberPoolActors(context: ActorContext, poolSource: NumberPoolHub): Map[String, ActorRef] = {
-   poolSource.Pools
-     .map { case (pname, pool) => (pname, context.actorOf(Props(classOf[NumberPoolActor], pool), pname)) }
-     .toMap
- }
 
   /**
     * A step of the object registration process.
@@ -239,16 +258,15 @@ object UniqueNumberSystem {
                                      guid: NumberPoolHub,
                                      poolName: String,
                                      pool: ActorRef,
-                                     number: Int,
-                                     callback: ActorRef
-                                   ): Unit = {
+                                     number: Int
+                                   ): Future[Any] = {
     guid.latterPartRegister(obj, number) match {
       case Success(_) =>
-        callback ! Success(RegisteredEntity(obj, poolName, guid, number))
+        Future(RegisteredEntity(obj, poolName, guid, number))
       case Failure(ex) =>
         //do not log; use callback
         returnNumberNoCallback(number, pool) //recovery?
-        callback ! Failure(ex)
+        Future(Failure(ex))
     }
   }
 
@@ -262,17 +280,18 @@ object UniqueNumberSystem {
                                        guid: NumberPoolHub,
                                        poolName: String,
                                        pool: ActorRef,
-                                       number: Int,
-                                       callback: ActorRef
-                                     ): Unit = {
+                                       number: Int
+                                     ): Future[Any] = {
     guid.latterPartUnregister(number) match {
       case Some(_) =>
         obj.Invalidate()
-        callback ! Success(UnregisteredEntity(obj, poolName, guid, number))
+        Future(UnregisteredEntity(obj, poolName, guid, number))
       case None =>
         //do not log; use callback
         requestSpecificNumberNoCallback(number, pool) //recovery?
-        callback ! Failure(new Exception(s"failed to unregister $obj from number $number; this may be a critical error"))
+        Future(Failure(
+          new Exception(s"failed to unregister $obj from number $number; this may be a critical error")
+        ))
     }
   }
 
@@ -282,10 +301,11 @@ object UniqueNumberSystem {
     * @param number the number that was drawn from a `NumberPool`
     * @param pool the `NumberPool` from which the `number` was drawn
     */
-  private def returnNumberNoCallback(number: Int, pool: ActorRef): Unit = {
+  private def returnNumberNoCallback(number: Int, pool: ActorRef): Future[Any] = {
     val result = ask(pool, NumberPoolActor.ReturnNumber(number, Some(Long.MinValue)))
     result.onComplete { _ => ; }
     result.recover { case _ => ; }
+    result
   }
 
   /**
@@ -294,15 +314,16 @@ object UniqueNumberSystem {
     * @param number the number to be drawn from a `NumberPool`
     * @param pool the `NumberPool` from which the `number` is to be drawn
     */
-  private def requestSpecificNumberNoCallback(number: Int, pool: ActorRef): Unit = {
+  private def requestSpecificNumberNoCallback(number: Int, pool: ActorRef): Future[Any] = {
     val result = ask(pool, NumberPoolActor.GetSpecificNumber(number, Some(Long.MinValue)))
     result.onComplete { _ => ; }
     result.recover { case _ => ; }
+    result
   }
 
-  private def callbackWhenRegisteredToWrongPlace(obj: IdentifiableEntity, number: Int, callback: ActorRef): Unit = {
-    callback ! Failure(
+  private def callbackWhenRegisteredToWrongPlace(obj: IdentifiableEntity, number: Int): Future[Any] = {
+    Future(Failure(
       new Exception(s"$obj registered to number $number that is not part of a known or local number pool")
-    )
+    ))
   }
 }

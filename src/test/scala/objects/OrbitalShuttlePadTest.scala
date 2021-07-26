@@ -1,7 +1,7 @@
 // Copyright (c) 2021 PSForever
 package objects
 
-import akka.actor.{ActorRef, Props}
+import akka.actor.{ActorContext, ActorRef, Props}
 import akka.routing.RandomPool
 import akka.testkit.TestProbe
 import base.FreedContextActorTest
@@ -33,14 +33,17 @@ class OrbitalShuttlePadControltest extends FreedContextActorTest {
   var buildingMap = new TrieMap[Int, Building]()
   val vehicles = ListBuffer[Vehicle]()
   val guid = new NumberPoolHub(new MaxNumberSource(max = 15))
-  guid.AddPool("dynamic", (11 to 15).toList)
+  guid.AddPool("vehicles", (11 to 15).toList)
   val catchall = new TestProbe(system).ref
-  val uns = context.actorOf(
-    RandomPool(1).props(
-      Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystem.AllocateNumberPoolActors(this.guid))
-    ),
-    s"test-uns"
-  )
+  val uns = {
+    val alloc: (ActorContext, NumberPoolHub) => Map[String, ActorRef] = UniqueNumberSystem.AllocateNumberPoolActors
+    context.actorOf(
+      RandomPool(1).props(
+        Props(classOf[UniqueNumberSystem], guid, alloc)
+      ),
+      s"test-uns"
+    )
+  }
   val zone = new Zone("test", new ZoneMap("test-map"), 0) {
     val transport: ActorRef = context.actorOf(Props(classOf[ZoneVehicleActor], this, vehicles), s"zone-test-vehicles")
 
