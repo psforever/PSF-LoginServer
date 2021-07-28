@@ -16,8 +16,7 @@ import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter.{CorpseConverter, DestroyedVehicleConverter}
 import net.psforever.objects.entity.{SimpleWorldEntity, WorldEntity}
 import net.psforever.objects.equipment._
-import net.psforever.objects.guid.actor.{Task, TaskBundle, TaskWorkflow}
-import net.psforever.objects.guid.GUIDTask
+import net.psforever.objects.guid.{GUIDTask, Task, TaskBundle, TaskWorkflow}
 import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.serverobject.affinity.FactionAffinity

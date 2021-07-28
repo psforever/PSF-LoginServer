@@ -7,8 +7,7 @@ import net.psforever.objects.avatar.PlayerControl
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.definition.ExoSuitDefinition
 import net.psforever.objects.equipment.EquipmentSlot
-import net.psforever.objects.guid.GUIDTask
-import net.psforever.objects.guid.actor.TaskWorkflow
+import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.loadouts.InfantryLoadout
 import net.psforever.objects.zones.Zone

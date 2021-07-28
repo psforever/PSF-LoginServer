@@ -1,8 +1,6 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.guid.key
 
-import net.psforever.objects.guid.AvailabilityPolicy
-
 /**
   * An unmodifiable reference to an active number monitor object (`Key`).
   * @param guid the number (globally unique identifier)

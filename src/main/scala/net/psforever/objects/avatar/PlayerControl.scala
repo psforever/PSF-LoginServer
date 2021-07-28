@@ -9,8 +9,7 @@ import net.psforever.objects.ballistics.PlayerSource
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.definition.DeployAnimation
 import net.psforever.objects.equipment._
-import net.psforever.objects.guid.actor.TaskWorkflow
-import net.psforever.objects.guid.GUIDTask
+import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
 import net.psforever.objects.loadouts.Loadout
 import net.psforever.objects.serverobject.aura.{Aura, AuraEffectBehavior}

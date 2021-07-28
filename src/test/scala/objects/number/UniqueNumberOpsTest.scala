@@ -3,8 +3,7 @@ package objects.number
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import net.psforever.objects.entity.IdentifiableEntity
-import net.psforever.objects.guid.NumberPoolHub
-import net.psforever.objects.guid.actor.{UniqueNumberOps, UniqueNumberSystem}
+import net.psforever.objects.guid.{NumberPoolHub, UniqueNumberOps, UniqueNumberSetup}
 import net.psforever.objects.guid.source.MaxNumberSource
 import org.scalatest.flatspec.AsyncFlatSpec
 import akka.pattern.ask
@@ -27,9 +26,9 @@ class UniqueNumberOpsTest extends AsyncFlatSpec {
     assert(!entity.HasGUID)
     assert(source.countUsed == 0)
 
-    ask(sys.actorOf(Props[UniqueNumberOpsTest.NumberPoolBuilder], "test"), hub)(Timeout(2.seconds)).onComplete {
-      case Success(pools: Map[String,ActorRef]) =>
-        val unops = new UniqueNumberOps(hub, pools)
+    ask(sys.actorOf(Props[UniqueNumberOpsTest.NumberPoolBuilder](), "test"), hub)(Timeout(2.seconds)).onComplete {
+      case Success(pools: Map[_,_]) =>
+        val unops = new UniqueNumberOps(hub, pools.asInstanceOf[Map[String, ActorRef]])
         promise.completeWith { unops.Register(entity, poolName = "default") }
       case _ =>
         promise.failure(new Exception(""))
@@ -47,7 +46,7 @@ object UniqueNumberOpsTest {
   class NumberPoolBuilder extends Actor {
     def receive: Receive = {
       case hub: NumberPoolHub =>
-        sender() ! UniqueNumberSystem.AllocateNumberPoolActors(context, hub)
+        sender() ! UniqueNumberSetup.AllocateNumberPoolActors(context, hub)
       case _ => ;
     }
   }

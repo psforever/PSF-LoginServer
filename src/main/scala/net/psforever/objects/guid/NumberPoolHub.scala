@@ -2,7 +2,7 @@
 package net.psforever.objects.guid
 
 import net.psforever.objects.entity.{IdentifiableEntity, NoGUIDException}
-import net.psforever.objects.guid.key.LoanedKey
+import net.psforever.objects.guid.key.{AvailabilityPolicy, LoanedKey}
 import net.psforever.objects.guid.pool.{ExclusivePool, GenericPool, NumberPool}
 import net.psforever.objects.guid.source.NumberSource
 import net.psforever.types.PlanetSideGUID
@@ -324,7 +324,7 @@ class NumberPoolHub(private val source: NumberSource) {
     * @param number the number whose assignment is requested
     * @return an object that has been registered
     */
-  def latterPartRegister(obj: IdentifiableEntity, number: Int): Try[IdentifiableEntity] = {
+  private[guid] def latterPartRegister(obj: IdentifiableEntity, number: Int): Try[IdentifiableEntity] = {
     register_GetMonitorFromSource(number) match {
       case Success(monitor) =>
         monitor.Object = obj
@@ -456,7 +456,7 @@ class NumberPoolHub(private val source: NumberSource) {
     * @param number the number to return.
     * @return any object previously using this number
     */
-  def latterPartUnregister(number: Int): Option[IdentifiableEntity] = source.returnNumber(number)
+  private[guid] def latterPartUnregister(number: Int): Option[IdentifiableEntity] = source.returnNumber(number)
 
   /**
     * Determines if the object is registered.<br>

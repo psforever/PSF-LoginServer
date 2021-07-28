@@ -2,8 +2,7 @@
 package net.psforever.objects.serverobject.shuttle
 
 import akka.actor.{Actor, ActorRef}
-import net.psforever.objects.guid.actor.{Task, TaskBundle, TaskWorkflow}
-import net.psforever.objects.guid.GUIDTask
+import net.psforever.objects.guid.{GUIDTask, Task, TaskBundle, TaskWorkflow}
 import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.doors.Door

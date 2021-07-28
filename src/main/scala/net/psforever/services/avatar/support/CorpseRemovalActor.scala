@@ -1,9 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.avatar.support
 
-import net.psforever.objects.guid.GUIDTask
+import net.psforever.objects.guid.{GUIDTask, TaskBundle}
 import net.psforever.objects.Player
-import net.psforever.objects.guid.actor.TaskBundle
 import net.psforever.types.ExoSuitType
 import net.psforever.services.{RemoverActor, Service}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}

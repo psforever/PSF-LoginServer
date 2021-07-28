@@ -4,10 +4,10 @@ package objects.guidtask
 import base.ActorTest
 import net.psforever.objects._
 import net.psforever.objects.avatar.Avatar
-import net.psforever.objects.guid.actor.{TaskBundle, TaskWorkflow}
-import net.psforever.objects.guid.GUIDTask
+import net.psforever.objects.guid.{GUIDTask, TaskBundle, TaskWorkflow}
 import net.psforever.objects.locker.LockerEquipment
 import net.psforever.types.{CharacterSex, CharacterVoice, PlanetSideEmpire}
+
 import scala.concurrent.duration._
 
 class GUIDTaskRegisterPlayerTest extends ActorTest {

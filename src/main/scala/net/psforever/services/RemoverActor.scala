@@ -2,7 +2,7 @@
 package net.psforever.services
 
 import akka.actor.Cancellable
-import net.psforever.objects.guid.actor.{Task, TaskBundle, TaskWorkflow}
+import net.psforever.objects.guid.{Task, TaskBundle, TaskWorkflow}
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{Default, PlanetSideGameObject}
 import net.psforever.types.Vector3

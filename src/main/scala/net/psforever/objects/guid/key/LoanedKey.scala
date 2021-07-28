@@ -2,7 +2,6 @@
 package net.psforever.objects.guid.key
 
 import net.psforever.objects.entity.IdentifiableEntity
-import net.psforever.objects.guid.AvailabilityPolicy
 
 /**
   * The only indirect public access a queued number monitor object (`Key`) is allowed.

@@ -1,14 +1,12 @@
 // Copyright (c) 2021 PSForever
 package objects
 
-import akka.actor.{ActorContext, ActorRef, Props}
-import akka.routing.RandomPool
+import akka.actor.{ActorRef, Props}
 import akka.testkit.TestProbe
 import base.FreedContextActorTest
 import net.psforever.actors.zone.{BuildingActor, ZoneActor}
-import net.psforever.objects.guid.actor.UniqueNumberSystem
 import net.psforever.objects.{GlobalDefinitions, Vehicle}
-import net.psforever.objects.guid.NumberPoolHub
+import net.psforever.objects.guid.{NumberPoolHub, UniqueNumberOps, UniqueNumberSetup}
 import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.shuttle.{OrbitalShuttle, OrbitalShuttlePad, OrbitalShuttlePadControl, ShuttleAmenity}
@@ -23,7 +21,7 @@ import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 
-class OrbitalShuttlePadControltest extends FreedContextActorTest {
+class OrbitalShuttlePadControlTest extends FreedContextActorTest {
   import akka.actor.typed.scaladsl.adapter._
   system.spawn(InterstellarClusterService(Nil), InterstellarClusterService.InterstellarClusterServiceKey.id)
   val services = ServiceManager.boot(system)
@@ -32,24 +30,17 @@ class OrbitalShuttlePadControltest extends FreedContextActorTest {
   expectNoMessage(1000 milliseconds)
   var buildingMap = new TrieMap[Int, Building]()
   val vehicles = ListBuffer[Vehicle]()
-  val guid = new NumberPoolHub(new MaxNumberSource(max = 15))
+  val guid = new NumberPoolHub(new MaxNumberSource(max = 20))
   guid.AddPool("vehicles", (11 to 15).toList)
+  guid.AddPool("tools", (16 to 19).toList)
   val catchall = new TestProbe(system).ref
-  val uns = {
-    val alloc: (ActorContext, NumberPoolHub) => Map[String, ActorRef] = UniqueNumberSystem.AllocateNumberPoolActors
-    context.actorOf(
-      RandomPool(1).props(
-        Props(classOf[UniqueNumberSystem], guid, alloc)
-      ),
-      s"test-uns"
-    )
-  }
+  val unops = new UniqueNumberOps(guid, UniqueNumberSetup.AllocateNumberPoolActors(context, guid))
   val zone = new Zone("test", new ZoneMap("test-map"), 0) {
     val transport: ActorRef = context.actorOf(Props(classOf[ZoneVehicleActor], this, vehicles), s"zone-test-vehicles")
 
     override def SetupNumberPools() = {}
     GUID(guid)
-    override def GUID = { uns }
+    override def GUID = { unops }
     override def AvatarEvents = catchall
     override def LocalEvents = catchall
     override def VehicleEvents = catchall

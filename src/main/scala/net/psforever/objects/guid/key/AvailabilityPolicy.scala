@@ -1,6 +1,5 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.guid
-
+package net.psforever.objects.guid.key
 
 /**
   * The availability of individual global unique identifier (GUID) keys is maintained by the given policy.

@@ -6,8 +6,7 @@ import net.psforever.objects.{PlanetSideGameObject, _}
 import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.Equipment
-import net.psforever.objects.guid.NumberPoolHub
-import net.psforever.objects.guid.actor.UniqueNumberSystem
+import net.psforever.objects.guid.{NumberPoolHub, UniqueNumberOps, UniqueNumberSetup}
 import net.psforever.objects.guid.key.LoanedKey
 import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.inventory.Container
@@ -32,7 +31,6 @@ import scalax.collection.GraphEdge._
 
 import scala.util.Try
 import akka.actor.typed
-import akka.routing.RandomPool
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
@@ -78,14 +76,16 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
   /** Governs general synchronized external requests. */
   var actor: typed.ActorRef[ZoneActor.Command] = _
 
-  /** Actor that handles SOI related functionality, for example if a player is in a SOI */
+  /** Actor that handles SOI related functionality, for example if a player is in an SOI */
   private var soi = Default.Actor
-
-  /** Used by the globally unique identifier system to coordinate requests. */
-  private var accessor: ActorRef = ActorRef.noSender
 
   /** The basic support structure for the globally unique number system used by this `Zone`. */
   private var guid: NumberPoolHub = new NumberPoolHub(new MaxNumberSource(65536))
+  /** The core of the unique number system, to which requests may be submitted.
+    * @see `UniqueNumberSys`
+    * @see `Zone.Init(ActorContext)`
+    */
+  private[zones] var unops: UniqueNumberOps = _
 
   /** The blockmap structure for partitioning entities and environmental aspects of the zone.
     * For a standard 8912`^`2 map, each of the four hundred formal map grids is 445.6m long and wide.
@@ -174,7 +174,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     * First, the `Actor`-driven aspect of the globally unique identifier system for this `Zone` is finalized.
     * Second, all supporting `Actor` agents are created, e.g., `ground`.
     * Third, the `ZoneMap` server objects are loaded and constructed within that aforementioned system.
-    * To avoid being called more than once, there is a test whether the `accessor` for the globally unique identifier system has been changed.<br>
+    * To avoid being called more than once, there is a test whether the globally unique identifier system has been changed.<br>
     * <br>
     * Execution of this operation should be fail-safe.
     * The chances of failure should be mitigated or skipped.
@@ -184,15 +184,9 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     * @param context a reference to an `ActorContext` necessary for `Props`
     */
   def init(implicit context: ActorContext): Unit = {
-    if (accessor == ActorRef.noSender) {
+    if (unops == null) {
       SetupNumberPools()
-      val func: (ActorContext, NumberPoolHub) => Map[String, ActorRef] = UniqueNumberSystem.AllocateNumberPoolActors
-      accessor = context.actorOf(
-        RandomPool(25).props(
-          Props(classOf[UniqueNumberSystem], this.guid, func)
-        ),
-        s"zone-$id-uns"
-      )
+      context.actorOf(Props(classOf[UniqueNumberSys], this, this.guid), s"zone-$id-uns")
       ground = context.actorOf(Props(classOf[ZoneGroundActor], this, equipmentOnGround), s"zone-$id-ground")
       deployables = context.actorOf(Props(classOf[ZoneDeployableActor], this, constructions), s"zone-$id-deployables")
       transport = context.actorOf(Props(classOf[ZoneVehicleActor], this, vehicles), s"zone-$id-vehicles")
@@ -414,14 +408,14 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
   def Number: Int = zoneNumber
 
   /**
-    * The globally unique identifier system is synchronized via an `Actor` to ensure that concurrent requests do not clash.
+    * The globally unique identifier system ensures that concurrent requests do not clash.
     * A clash is merely when the same number is produced more than once by the same system due to concurrent requests.
-    * @return synchronized reference to the globally unique identifier system
+    * @return reference to the globally unique identifier system
     */
-  def GUID: ActorRef = accessor
+  def GUID: UniqueNumberOps = unops
 
   /**
-    * Replace the current globally unique identifier system with a new one.
+    * Replace the current globally unique identifier support structure with a new one.
     * The replacement will not occur if the current system is populated or if its synchronized reference has been created.
     * The primary use of this function should be testing.
     * A warning will be issued.
@@ -454,7 +448,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     *        `false`, if the new pool can not be created because the system has already been started
     */
   def AddPool(name: String, pool: Seq[Int]): Option[NumberPool] = {
-    if (accessor == Default.Actor || accessor == null) {
+    if (unops == null) {
       guid.AddPool(name, pool.toList) match {
         case _: Exception => None
         case out => Some(out)
@@ -469,13 +463,12 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     * Throws exceptions for specific reasons if the pool can not be removed before the system has been started.
     * @see `NumberPoolHub.RemovePool`
     * @param name the name of the pool
-    * @return `true`, if the new pool is un-made;
-    *        `false`, if the new pool can not be removed because the system has already been started
+    * @return `true`, if the pool is un-made;
+    *        `false`, if the pool can not be removed (because the system has already been started?)
     */
   def RemovePool(name: String): Boolean = {
-    if (accessor == Default.Actor) {
-      guid.RemovePool(name)
-      true
+    if (unops == null) {
+      guid.RemovePool(name).nonEmpty
     } else {
       false
     }
@@ -506,7 +499,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
 
   /**
     * Recover an object from the globally unique identifier system by the number that was assigned previously.
-    * The object must be upcast into due to the differtence between the storage type and the return type.
+    * The object must be upcast into due to the minor difference between the storage type and the return type.
     * @param object_guid the globally unique identifier requested
     * @return the associated object, if it exists
     * @see `NumberPoolHub(Int)`
@@ -815,6 +808,27 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
   def VehicleEvents_=(bus: ActorRef): ActorRef = {
     vehicleEvents = bus
     VehicleEvents
+  }
+}
+
+/**
+  * A local class for spawning `Actor`s to manage the number pools for this zone,
+  * create a number system operations class to access those pools within the context of registering and unregistering,
+  * and assign that number pool operations class to the containing zone
+  * through specific scope access.
+  * @see `UniqueNumberOps`
+  * @see `UniqueNumberSetup`
+  * @see `UniqueNumberSetup.AllocateNumberPoolActors`
+  * @see `Zone.unops`
+  * @param zone the zone in which the operations class will be referenced
+  * @param guid the number pool management class
+  */
+private class UniqueNumberSys(zone: Zone, guid: NumberPoolHub)
+  extends UniqueNumberSetup(guid, UniqueNumberSetup.AllocateNumberPoolActors) {
+  override def init(): UniqueNumberOps = {
+    val unsys = super.init()
+    zone.unops = unsys // zone.unops is accessible from here by virtue of being 'private[zones]`
+    unsys
   }
 }
 

@@ -2,8 +2,7 @@
 package net.psforever.services.avatar.support
 
 import net.psforever.objects.equipment.Equipment
-import net.psforever.objects.guid.actor.TaskBundle
-import net.psforever.objects.guid.GUIDTask
+import net.psforever.objects.guid.{GUIDTask, TaskBundle}
 import net.psforever.services.{RemoverActor, Service}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 

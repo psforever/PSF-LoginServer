@@ -2,9 +2,8 @@ package net.psforever.services.local.support
 
 import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.login.WorldSession
-import net.psforever.objects.guid.actor.TaskWorkflow
 import net.psforever.objects.{Default, Player}
-import net.psforever.objects.guid.GUIDTask
+import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.serverobject.llu.CaptureFlag
 import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal

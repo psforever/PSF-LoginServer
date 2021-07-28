@@ -3,9 +3,9 @@ package objects.number
 
 import akka.actor.Props
 import base.ActorTest
-import net.psforever.objects.guid.actor.NumberPoolActor
 import net.psforever.objects.guid.pool.ExclusivePool
 import net.psforever.objects.guid.selector.RandomSelector
+import net.psforever.objects.guid.uns.NumberPoolActor
 
 import scala.concurrent.duration.Duration
 

@@ -2,8 +2,7 @@
 package net.psforever.objects.guid.source
 
 import net.psforever.objects.entity.IdentifiableEntity
-import net.psforever.objects.guid.AvailabilityPolicy
-import net.psforever.objects.guid.key.{LoanedKey, SecureKey}
+import net.psforever.objects.guid.key.{AvailabilityPolicy, LoanedKey, SecureKey}
 
 /**
   * A `NumberSource` is considered a master "pool" of numbers from which all numbers are available to be drawn.

@@ -2,8 +2,8 @@
 package objects.guidtask
 
 import base.ActorTest
-import net.psforever.objects.guid.actor.{TaskBundle, TaskWorkflow}
-import net.psforever.objects.guid.GUIDTask
+import net.psforever.objects.guid.{GUIDTask, TaskBundle, TaskWorkflow}
+
 import scala.concurrent.duration._
 
 class GUIDTaskRegisterObjectTest extends ActorTest {

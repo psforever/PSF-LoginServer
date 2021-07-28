@@ -7,8 +7,7 @@ import net.psforever.objects._
 import net.psforever.objects.ballistics.VehicleSource
 import net.psforever.objects.entity.WorldEntity
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot, JammableMountedWeapons}
-import net.psforever.objects.guid.GUIDTask
-import net.psforever.objects.guid.actor.TaskWorkflow
+import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}

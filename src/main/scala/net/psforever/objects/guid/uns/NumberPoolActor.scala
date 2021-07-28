@@ -1,5 +1,5 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.guid.actor
+package net.psforever.objects.guid.uns
 
 import akka.actor.Actor
 import net.psforever.objects.guid.pool.NumberPool
@@ -82,6 +82,9 @@ object NumberPoolActor {
 
   /**
     * Use the `SpecificSelector` on this pool to extract a specific object from the pool, if it is included and available.
+    * Getting a specific number involves creating the appropriate selector and swapping with the current selector.
+    * This process may involve re-formatting the underlying number pool array once for each selector.
+    * @see `NumberSelector.Format`
     * @param pool the `NumberPool` to draw from
     * @param number the number requested
     * @return the number requested, or an error

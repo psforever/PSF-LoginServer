@@ -6,10 +6,9 @@ import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
-import net.psforever.objects.guid.GUIDTask
+import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects._
 import net.psforever.objects.avatar.Avatar
-import net.psforever.objects.guid.actor.TaskWorkflow
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.zones.Zone
 import net.psforever.types.Vector3

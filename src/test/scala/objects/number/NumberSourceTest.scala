@@ -1,8 +1,7 @@
 // Copyright (c) 2017 PSForever
 package objects.number
 
-import net.psforever.objects.guid.AvailabilityPolicy
-import net.psforever.objects.guid.key.{LoanedKey, SecureKey}
+import net.psforever.objects.guid.key.{AvailabilityPolicy, LoanedKey, SecureKey}
 import net.psforever.types.PlanetSideGUID
 import org.specs2.mutable.Specification
 

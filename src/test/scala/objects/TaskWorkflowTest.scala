@@ -1,7 +1,7 @@
 // Copyright (c) 2021 PSForever
 package objects
 
-import net.psforever.objects.guid.actor.{Task, TaskBundle, TaskWorkflow}
+import net.psforever.objects.guid.{Task, TaskBundle, TaskWorkflow}
 import org.scalatest.flatspec.AsyncFlatSpec
 
 import scala.concurrent.Future
