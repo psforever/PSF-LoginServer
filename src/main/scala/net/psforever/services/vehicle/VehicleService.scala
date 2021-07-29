@@ -2,7 +2,7 @@
 package net.psforever.services.vehicle
 
 import akka.actor.{Actor, ActorRef, Props}
-import net.psforever.objects.Vehicle
+import net.psforever.objects.{GlobalDefinitions, Tool, Vehicle}
 import net.psforever.objects.ballistics.VehicleSource
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.terminals.{MedicalTerminalDefinition, ProximityUnit}
@@ -352,16 +352,45 @@ class VehicleService(zone: Zone) extends Actor {
     case ProximityUnit.Action(term, target: Vehicle) =>
       val medDef     = term.Definition.asInstanceOf[MedicalTerminalDefinition]
       val healAmount = medDef.HealAmount
-      if (healAmount != 0 && term.Validate(target) && target.Health < target.MaxHealth) {
-        target.Health = target.Health + healAmount
-        target.History(RepairFromTerm(VehicleSource(target), healAmount, medDef))
-        VehicleEvents.publish(
-          VehicleServiceResponse(
-            s"/${term.Continent}/Vehicle",
-            PlanetSideGUID(0),
-            VehicleResponse.PlanetsideAttribute(target.GUID, 0, target.Health)
+      if (!target.Destroyed && term.Validate(target)) {
+        //repair vehicle
+        if (healAmount > 0 && target.Health < target.MaxHealth) {
+          val healAmount = medDef.HealAmount
+          target.Health = target.Health + healAmount
+          target.History(RepairFromTerm(VehicleSource(target), healAmount, medDef))
+          VehicleEvents.publish(
+            VehicleServiceResponse(
+              s"/${term.Continent}/Vehicle",
+              PlanetSideGUID(0),
+              VehicleResponse.PlanetsideAttribute(target.GUID, 0, target.Health)
+            )
           )
-        )
+        }
+        //recharge ammunition of cavern vehicles
+        if (GlobalDefinitions.isCavernVehicle(target.Definition) && term.Definition == GlobalDefinitions.recharge_terminal) {
+          //TODO check cavern module benefits on facility; unlike facility benefits, it's faked for now
+          val channel = s"/${target.Actor.toString}/Vehicle"
+          val parent = target.GUID
+          val excludeNone = Service.defaultPlayerGUID
+          target.Weapons.values
+            .map { _.Equipment }
+            .collect { case Some(weapon: Tool) =>
+              weapon.AmmoSlots
+                .foreach { slot =>
+                  val box = slot.Box
+                  if (box.Capacity < slot.Definition.Magazine) {
+                    val capacity = box.Capacity += 1
+                    VehicleEvents.publish(
+                      VehicleServiceResponse(
+                        channel,
+                        excludeNone,
+                        VehicleResponse.InventoryState2(box.GUID, parent, capacity)
+                      )
+                    )
+                  }
+              }
+            }
+        }
       }
 
     case msg =>

@@ -274,6 +274,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var keepAliveFunc: () => Unit                      = KeepAlivePersistenceInitial
   var setAvatar: Boolean                             = false
   var turnCounterFunc: PlanetSideGUID => Unit        = TurnCounterDuringInterim
+  var waypointCooldown: Long = 0L
 
   var clientKeepAlive: Cancellable   = Default.Cancellable
   var progressBarUpdate: Cancellable = Default.Cancellable
@@ -1746,7 +1747,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }) match {
           case (_, Some(adversarial)) => adversarial.attacker.Name
           case (Some(reason), None)   => s"a ${reason.interaction.cause.getClass.getSimpleName}"
-          case _                      => "an unfortunate circumstance"
+          case _                      => s"an unfortunate circumstance (probably ${player.Sex.pronounObject} own fault)"
         }
         log.info(s"${player.Name} has died, killed by $cause")
         val respawnTimer = 300.seconds
@@ -3991,6 +3992,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             log.warn(s"ProjectileState: constructed projectile ${projectile_guid.guid} can not be found")
         }
 
+      case msg @ LongRangeProjectileInfoMessage(guid, _, _) =>
+        //log.info(s"$msg")
+        FindContainedWeapon match {
+          case (Some(vehicle: Vehicle), Some(weapon: Tool))
+            if weapon.GUID == guid => ; //now what?
+          case _ => ;
+        }
+
       case msg @ ReleaseAvatarRequestMessage() =>
         log.info(s"${player.Name} on ${continent.id} has released")
         reviveTimer.cancel()
@@ -4763,6 +4772,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                     player,
                     ItemTransactionMessage(object_guid, TransactionType.Buy, 0, "router_telepad", 0, PlanetSideGUID(0))
                   )
+                } else if (tdef == GlobalDefinitions.targeting_laser_dispenser) {
+                  //explicit request
+                  log.info(s"${player.Name} is purchasing a targeting laser")
+                  CancelZoningProcessWithDescriptiveReason("cancel_use")
+                  terminal.Actor ! Terminal.Request(
+                    player,
+                    ItemTransactionMessage(object_guid, TransactionType.Buy, 0, "flail_targeting_laser", 0, PlanetSideGUID(0))
+                  )
                 } else {
                   log.info(s"${player.Name} is accessing a ${terminal.Definition.Name}")
                   CancelZoningProcessWithDescriptiveReason("cancel_use")
@@ -4908,10 +4925,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         continent.GUID(object_guid) match {
           case Some(obj: Terminal with ProximityUnit) =>
             HandleProximityTerminalUse(obj)
-          case Some(obj) => ;
+          case Some(obj) =>
             log.warn(s"ProximityTerminalUse: $obj does not have proximity effects for ${player.Name}")
           case None =>
-            log.error(s"ProximityTerminalUse: ${player.Name} can not find an oject with guid $object_guid")
+            log.error(s"ProximityTerminalUse: ${player.Name} can not find an object with guid $object_guid")
         }
 
       case msg @ UnuseItemMessage(player_guid, object_guid) =>
@@ -5144,8 +5161,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       ) =>
         HandleWeaponFire(weapon_guid, projectile_guid, shot_origin, thrown_projectile_vel.flatten)
 
-      case msg @ WeaponLazeTargetPositionMessage(_, _, pos2) =>
-        log.info(s"${player.Name} is lazing the position ${continent.id}@(${pos2.x},${pos2.y},${pos2.z})")
+      case WeaponLazeTargetPositionMessage(_, _, _) => ;
+        //do not need to handle the progress bar animation/state on the server
+        //laze waypoint is requested by client upon completion (see SquadWaypointRequest)
+        val purpose = if (squad_supplement_id > 0) {
+          s" for ${player.Sex.possessive} squad (#${squad_supplement_id -1})"
+        } else {
+          " ..."
+        }
+        log.info(s"${player.Name} is lazing a position$purpose")
 
       case msg @ ObjectDetectedMessage(guid1, guid2, unk, targets) =>
         FindWeapon match {
@@ -5177,20 +5201,34 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             //find target(s)
             (hit_info match {
               case Some(hitInfo) =>
+                val hitPos     = hitInfo.hit_pos
                 ValidObject(hitInfo.hitobject_guid) match {
+                  case _ if projectile.profile == GlobalDefinitions.flail_projectile =>
+                    val radius  = projectile.profile.DamageRadius * projectile.profile.DamageRadius
+                    val targets = Zone.findAllTargets(hitPos)(continent, player, projectile.profile)
+                      .filter { target =>
+                        Vector3.DistanceSquared(target.Position, hitPos) <= radius
+                      }
+                    targets.map { target =>
+                      CheckForHitPositionDiscrepancy(projectile_guid, hitPos, target)
+                      (target, hitPos, target.Position)
+                    }
+
                   case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
-                    CheckForHitPositionDiscrepancy(projectile_guid, hitInfo.hit_pos, target)
-                    List((target, hitInfo.shot_origin, hitInfo.hit_pos))
+                    CheckForHitPositionDiscrepancy(projectile_guid, hitPos, target)
+                    List((target, hitInfo.shot_origin, hitPos))
 
                   case None if projectile.profile.DamageProxy.getOrElse(0) > 0 =>
                     //server-side maelstrom grenade target selection
                     if (projectile.tool_def == GlobalDefinitions.maelstrom) {
-                      val hitPos     = hitInfo.hit_pos
                       val shotOrigin = hitInfo.shot_origin
                       val radius     = projectile.profile.LashRadius * projectile.profile.LashRadius
-                      val targets = continent.LivePlayers.filter { target =>
-                        Vector3.DistanceSquared(target.Position, hitPos) <= radius
-                      }
+                      val targets = continent.blockMap
+                        .sector(hitPos, projectile.profile.LashRadius)
+                        .livePlayerList
+                        .filter { target =>
+                          Vector3.DistanceSquared(target.Position, hitPos) <= radius
+                        }
                       //chainlash is separated from the actual damage application for convenience
                       continent.AvatarEvents ! AvatarServiceMessage(
                         continent.id,
@@ -5199,9 +5237,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                           ChainLashMessage(
                             hitPos,
                             projectile.profile.ObjectId,
-                            targets.map {
-                              _.GUID
-                            }.toList
+                            targets.map { _.GUID }
                           )
                         )
                       )
@@ -5212,6 +5248,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                     } else {
                       Nil
                     }
+
                   case _ =>
                     Nil
                 }
@@ -5494,7 +5531,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         )
 
       case msg @ SquadWaypointRequest(request, _, wtype, unk, info) =>
-        squadService ! SquadServiceMessage(player, continent, SquadServiceAction.Waypoint(request, wtype, unk, info))
+        val time = System.currentTimeMillis()
+        val subtype = wtype.subtype
+        if(subtype == WaypointSubtype.Squad) {
+          squadService ! SquadServiceMessage(player, continent, SquadServiceAction.Waypoint(request, wtype, unk, info))
+        } else if (subtype == WaypointSubtype.Laze && time - waypointCooldown > 1000) {
+          //guarding against duplicating laze waypoints
+          waypointCooldown = time
+          squadService ! SquadServiceMessage(player, continent, SquadServiceAction.Waypoint(request, wtype, unk, info))
+        }
 
       case msg @ GenericCollisionMsg(u1, p, t, php, thp, pv, tv, ppos, tpos, u2, u3, u4) =>
         log.info(s"${player.Name} would be in intense and excruciating pain right now if collision worked")

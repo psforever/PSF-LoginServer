@@ -6,25 +6,16 @@ import net.psforever.objects.definition.converter.StatConverter
 import net.psforever.objects.loadouts.SquadLoadout
 import net.psforever.objects.teamwork.{Member, Squad, SquadFeatures}
 import net.psforever.objects.zones.Zone
-import net.psforever.objects.{LivePlayerList, Player}
-import net.psforever.packet.game.{
-  PlanetSideZoneID,
-  SquadDetail,
-  SquadInfo,
-  SquadPositionDetail,
-  SquadPositionEntry,
-  WaypointEventAction,
-  WaypointInfo,
-  SquadAction => SquadRequestAction
-}
+import net.psforever.objects.{Default, LivePlayerList, Player}
+import net.psforever.packet.game.{PlanetSideZoneID, SquadDetail, SquadInfo, SquadPositionDetail, SquadPositionEntry, WaypointEventAction, WaypointInfo, SquadAction => SquadRequestAction}
 import net.psforever.services.{GenericEventBus, Service}
 import net.psforever.types._
-
-import akka.actor.{Actor, ActorRef, Terminated}
+import akka.actor.{Actor, ActorRef, Cancellable, Terminated}
 import java.io.{PrintWriter, StringWriter}
+
+import scala.concurrent.duration._
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
 
 class SquadService extends Actor {
   import SquadService._
@@ -43,17 +34,26 @@ class SquadService extends Actor {
   private var squadFeatures: TrieMap[PlanetSideGUID, SquadFeatures] = new TrieMap[PlanetSideGUID, SquadFeatures]()
 
   /**
+    * key - unique char id; value - the POSIX time after which it is cleared
+    */
+  private var lazeIndices: Seq[LazeWaypointData] = Seq.empty
+  /**
+    * The periodic clearing of laze pointer waypoints.
+    */
+  private var lazeIndexBlanking: Cancellable = Default.Cancellable
+
+  /**
     * The list of squads that each of the factions see for the purposes of keeping track of changes to the list.
     * These squads are considered public "listed" squads -
     * all the players of a certain faction can see them in the squad list
     * and may have limited interaction with their squad definition windows.<br>
     * key - squad unique number; value - the squad's unique identifier number
     */
-  private val publishedLists: TrieMap[PlanetSideEmpire.Value, ListBuffer[PlanetSideGUID]] =
-    TrieMap[PlanetSideEmpire.Value, ListBuffer[PlanetSideGUID]](
-      PlanetSideEmpire.TR -> ListBuffer.empty,
-      PlanetSideEmpire.NC -> ListBuffer.empty,
-      PlanetSideEmpire.VS -> ListBuffer.empty
+  private val publishedLists: TrieMap[PlanetSideEmpire.Value, mutable.ListBuffer[PlanetSideGUID]] =
+    TrieMap[PlanetSideEmpire.Value, mutable.ListBuffer[PlanetSideGUID]](
+      PlanetSideEmpire.TR -> mutable.ListBuffer.empty,
+      PlanetSideEmpire.NC -> mutable.ListBuffer.empty,
+      PlanetSideEmpire.VS -> mutable.ListBuffer.empty
     )
 
   /**
@@ -125,9 +125,9 @@ class SquadService extends Actor {
 
   private[this] val log = org.log4s.getLogger
 
-  private def debug(msg: String): Unit = {
-    log.debug(msg)
-  }
+  private def info(msg: String): Unit = log.info(msg)
+
+  private def debug(msg: String): Unit = log.debug(msg)
 
   override def postStop(): Unit = {
     //invitations
@@ -148,6 +148,8 @@ class SquadService extends Actor {
         SquadEvents.unsubscribe(actor)
     }
     UserEvents.clear()
+    //misc
+    lazeIndices = Nil
   }
 
   /**
@@ -443,6 +445,34 @@ class SquadService extends Actor {
 
         case msg =>
           log.warn(s"Unhandled action $msg from ${sender()}")
+      }
+
+    case SquadService.BlankLazeWaypoints() =>
+      lazeIndexBlanking.cancel()
+      val curr = System.currentTimeMillis()
+      val blank = lazeIndices.takeWhile { data => curr >= data.endTime }
+      lazeIndices = lazeIndices.drop(blank.size)
+      blank.foreach { data =>
+        GetParticipatingSquad(data.charId) match {
+          case Some(squad) =>
+            Publish(
+              squadFeatures(squad.GUID).ToChannel,
+              SquadResponse.WaypointEvent(WaypointEventAction.Remove, data.charId, SquadWaypoint(data.waypointType), None, None, 0),
+              Seq()
+            )
+          case None => ;
+        }
+      }
+      //retime
+      lazeIndices match {
+        case Nil => ;
+        case x :: _ =>
+          import scala.concurrent.ExecutionContext.Implicits.global
+          lazeIndexBlanking = context.system.scheduler.scheduleOnce(
+            math.min(0, x.endTime - curr).milliseconds,
+            self,
+            SquadService.BlankLazeWaypoints()
+          )
       }
 
     case msg =>
@@ -1230,7 +1260,7 @@ class SquadService extends Actor {
                 queuedInvites += promotedPlayer -> (xs ++ queuedInvites.remove(promotedPlayer).toList.flatten)
             }
         }
-        debug(s"Promoting player ${leader.Name} to be the leader of ${squad.Task}")
+        info(s"Promoting player ${leader.Name} to be the leader of ${squad.Task}")
         Publish(features.ToChannel, SquadResponse.PromoteMember(squad, promotedPlayer, index, 0))
         if (features.Listed) {
           Publish(promotingPlayer, SquadResponse.SetListSquad(PlanetSideGUID(0)))
@@ -1257,32 +1287,71 @@ class SquadService extends Actor {
     }
   }
 
-  def SquadActionWaypoint(tplayer: Player, waypointType: SquadWaypoints.Value, info: Option[WaypointInfo]): Unit = {
+  def SquadActionWaypoint(tplayer: Player, waypointType: SquadWaypoint, info: Option[WaypointInfo]): Unit = {
     val playerCharId = tplayer.CharId
-    (GetLeadingSquad(tplayer, None) match {
-      case Some(squad) =>
-        info match {
-          case Some(winfo) =>
-            (Some(squad), AddWaypoint(squad.GUID, waypointType, winfo))
-          case _ =>
-            RemoveWaypoint(squad.GUID, waypointType)
-            (Some(squad), None)
-        }
-      case _ => (None, None)
+    (if (waypointType.subtype == WaypointSubtype.Laze) {
+      //laze rally can be updated by any squad member
+      GetParticipatingSquad(tplayer) match {
+        case Some(squad) =>
+          info match {
+            case Some(winfo) =>
+              //the laze-indicated target waypoint is not retained
+              val curr = System.currentTimeMillis()
+              val clippedLazes = {
+                val index = lazeIndices.indexWhere { _.charId == playerCharId }
+                if (index > -1) {
+                  lazeIndices.take(index) ++ lazeIndices.drop(index + 1)
+                } else {
+                  lazeIndices
+                }
+              }
+              if (lazeIndices.isEmpty || clippedLazes.headOption != lazeIndices.headOption) {
+                //reason to retime blanking
+                lazeIndexBlanking.cancel()
+                import scala.concurrent.ExecutionContext.Implicits.global
+                lazeIndexBlanking = lazeIndices.headOption match {
+                  case Some(data) =>
+                    context.system.scheduler.scheduleOnce(math.min(0, data.endTime - curr).milliseconds, self, SquadService.BlankLazeWaypoints())
+                  case None =>
+                    context.system.scheduler.scheduleOnce(15.seconds, self, SquadService.BlankLazeWaypoints())
+                }
+              }
+              lazeIndices = clippedLazes :+ LazeWaypointData(playerCharId, waypointType.value, curr + 15000)
+              (Some(squad), Some(WaypointData(winfo.zone_number, winfo.pos)))
+            case None =>
+              (Some(squad), None)
+          }
+        case None =>
+          (None, None)
+      }
+    } else {
+      //only the squad leader may update other squad waypoints
+      GetLeadingSquad(tplayer, None) match {
+        case Some(squad) =>
+          info match {
+            case Some(winfo) =>
+              (Some(squad), AddWaypoint(squad.GUID, waypointType, winfo))
+            case _ =>
+              RemoveWaypoint(squad.GUID, waypointType)
+              (Some(squad), None)
+          }
+        case None =>
+          (None, None)
+      }
     }) match {
       case (Some(squad), Some(_)) =>
         //waypoint added or updated
         Publish(
-          s"${squadFeatures(squad.GUID).ToChannel}",
+          squadFeatures(squad.GUID).ToChannel,
           SquadResponse.WaypointEvent(WaypointEventAction.Add, playerCharId, waypointType, None, info, 1),
-          Seq(tplayer.CharId)
+          Seq(playerCharId)
         )
       case (Some(squad), None) =>
         //waypoint removed
         Publish(
-          s"${squadFeatures(squad.GUID).ToChannel}",
+          squadFeatures(squad.GUID).ToChannel,
           SquadResponse.WaypointEvent(WaypointEventAction.Remove, playerCharId, waypointType, None, None, 0),
-          Seq(tplayer.CharId)
+          Seq(playerCharId)
         )
 
       case msg =>
@@ -1312,31 +1381,31 @@ class SquadService extends Actor {
         SquadActionDefinitionDeleteSquadFavorite(tplayer, line, sendTo)
 
       case ChangeSquadPurpose(purpose) =>
-        SquadActionDefinitionChangeSquadPurpose(tplayer, lSquadOpt, purpose)
+        SquadActionDefinitionChangeSquadPurpose(tplayer, pSquadOpt, lSquadOpt, purpose)
 
       case ChangeSquadZone(zone_id) =>
-        SquadActionDefinitionChangeSquadZone(tplayer, lSquadOpt, zone_id, sendTo)
+        SquadActionDefinitionChangeSquadZone(tplayer, pSquadOpt, lSquadOpt, zone_id, sendTo)
 
       case CloseSquadMemberPosition(position) =>
-        SquadActionDefinitionCloseSquadMemberPosition(tplayer, lSquadOpt, position)
+        SquadActionDefinitionCloseSquadMemberPosition(tplayer, pSquadOpt, lSquadOpt, position)
 
       case AddSquadMemberPosition(position) =>
-        SquadActionDefinitionAddSquadMemberPosition(tplayer, lSquadOpt, position)
+        SquadActionDefinitionAddSquadMemberPosition(tplayer, pSquadOpt, lSquadOpt, position)
 
       case ChangeSquadMemberRequirementsRole(position, role) =>
-        SquadActionDefinitionChangeSquadMemberRequirementsRole(tplayer, lSquadOpt, position, role)
+        SquadActionDefinitionChangeSquadMemberRequirementsRole(tplayer, pSquadOpt, lSquadOpt, position, role)
 
       case ChangeSquadMemberRequirementsDetailedOrders(position, orders) =>
-        SquadActionDefinitionChangeSquadMemberRequirementsDetailedOrders(tplayer, lSquadOpt, position, orders)
+        SquadActionDefinitionChangeSquadMemberRequirementsDetailedOrders(tplayer, pSquadOpt, lSquadOpt, position, orders)
 
       case ChangeSquadMemberRequirementsCertifications(position, certs) =>
-        SquadActionDefinitionChangeSquadMemberRequirementsCertifications(tplayer, lSquadOpt, position, certs)
+        SquadActionDefinitionChangeSquadMemberRequirementsCertifications(tplayer, pSquadOpt, lSquadOpt, position, certs)
 
       case LocationFollowsSquadLead(state) =>
-        SquadActionDefinitionLocationFollowsSquadLead(tplayer, lSquadOpt, state)
+        SquadActionDefinitionLocationFollowsSquadLead(tplayer, pSquadOpt, lSquadOpt, state)
 
       case AutoApproveInvitationRequests(state) =>
-        SquadActionDefinitionAutoApproveInvitationRequests(tplayer, lSquadOpt, state)
+        SquadActionDefinitionAutoApproveInvitationRequests(tplayer, pSquadOpt, lSquadOpt, state)
 
       case FindLfsSoldiersForRole(position) =>
         SquadActionDefinitionFindLfsSoldiersForRole(tplayer, zone, lSquadOpt, position)
@@ -1345,7 +1414,7 @@ class SquadService extends Actor {
         SquadActionDefinitionCancelFind(lSquadOpt)
 
       case RequestListSquad() =>
-        SquadActionDefinitionRequestListSquad(tplayer, lSquadOpt, sendTo)
+        SquadActionDefinitionRequestListSquad(tplayer, pSquadOpt, lSquadOpt, sendTo)
 
       case StopListSquad() =>
         SquadActionDefinitionStopListSquad(tplayer, lSquadOpt, sendTo)
@@ -1413,16 +1482,31 @@ class SquadService extends Actor {
     }
   }
 
+  def GetOrCreateSquadOnlyIfLeader(
+                                    player: Player,
+                                    participatingSquadOpt: Option[Squad],
+                                    leadingSquadOpt: Option[Squad]
+                                  ): Option[Squad] = {
+    if (participatingSquadOpt.isEmpty) {
+      Some(StartSquad(player))
+    } else if (participatingSquadOpt == leadingSquadOpt) {
+      leadingSquadOpt
+    } else {
+      None
+    }
+  }
+
   def SquadActionDefinitionSaveSquadFavorite(
                                               tplayer: Player,
                                               line: Int,
                                               lSquadOpt: Option[Squad],
                                               sendTo: ActorRef
                                             ): Unit = {
-    val squad = lSquadOpt.getOrElse(StartSquad(tplayer))
-    if (squad.Task.nonEmpty && squad.ZoneId > 0) {
-      tplayer.squadLoadouts.SaveLoadout(squad, squad.Task, line)
-      Publish(sendTo, SquadResponse.ListSquadFavorite(line, squad.Task))
+    lSquadOpt match {
+      case Some(squad) if squad.Task.nonEmpty && squad.ZoneId > 0 =>
+        tplayer.squadLoadouts.SaveLoadout(squad, squad.Task, line)
+        Publish(sendTo, SquadResponse.ListSquadFavorite(line, squad.Task))
+      case _ => ;
     }
   }
 
@@ -1433,18 +1517,20 @@ class SquadService extends Actor {
                                               lSquadOpt: Option[Squad],
                                               sendTo: ActorRef
                                             ): Unit = {
-    if (pSquadOpt.isEmpty || pSquadOpt == lSquadOpt) {
-      val squad = lSquadOpt.getOrElse(StartSquad(tplayer))
-      tplayer.squadLoadouts.LoadLoadout(line) match {
-        case Some(loadout: SquadLoadout) if squad.Size == 1 =>
-          SquadService.LoadSquadDefinition(squad, loadout)
-          UpdateSquadListWhenListed(squadFeatures(squad.GUID), SquadService.PublishFullListing(squad))
-          Publish(sendTo, SquadResponse.AssociateWithSquad(PlanetSideGUID(0)))
-          InitSquadDetail(PlanetSideGUID(0), Seq(tplayer.CharId), squad)
-          UpdateSquadDetail(squad)
-          Publish(sendTo, SquadResponse.AssociateWithSquad(squad.GUID))
-        case _ =>
-      }
+    //TODO seems all wrong
+    pSquadOpt match {
+      case Some(squad) =>
+        tplayer.squadLoadouts.LoadLoadout(line) match {
+          case Some(loadout: SquadLoadout) if squad.Size == 1 =>
+            SquadService.LoadSquadDefinition(squad, loadout)
+            UpdateSquadListWhenListed(squadFeatures(squad.GUID), SquadService.PublishFullListing(squad))
+            Publish(sendTo, SquadResponse.AssociateWithSquad(PlanetSideGUID(0)))
+            InitSquadDetail(PlanetSideGUID(0), Seq(tplayer.CharId), squad)
+            UpdateSquadDetail(squad)
+            Publish(sendTo, SquadResponse.AssociateWithSquad(squad.GUID))
+          case _ =>
+        }
+      case _ => ;
     }
   }
 
@@ -1453,165 +1539,207 @@ class SquadService extends Actor {
     Publish(sendTo, SquadResponse.ListSquadFavorite(line, ""))
   }
 
-  def SquadActionDefinitionChangeSquadPurpose(tplayer: Player, lSquadOpt: Option[Squad], purpose: String): Unit = {
-    val squad = lSquadOpt.getOrElse(StartSquad(tplayer))
-    squad.Task = purpose
-    UpdateSquadListWhenListed(squadFeatures(squad.GUID), SquadInfo().Task(purpose))
-    UpdateSquadDetail(squad.GUID, SquadDetail().Task(purpose))
+  def SquadActionDefinitionChangeSquadPurpose(
+                                               tplayer: Player,
+                                               pSquadOpt: Option[Squad],
+                                               lSquadOpt: Option[Squad],
+                                               purpose: String
+                                             ): Unit = {
+    GetOrCreateSquadOnlyIfLeader(tplayer, pSquadOpt, lSquadOpt) match {
+      case Some(squad) =>
+        squad.Task = purpose
+        UpdateSquadListWhenListed(squadFeatures(squad.GUID), SquadInfo().Task(purpose))
+        UpdateSquadDetail(squad.GUID, SquadDetail().Task(purpose))
+      case None => ;
+    }
   }
 
   def SquadActionDefinitionChangeSquadZone(
                                             tplayer: Player,
+                                            pSquadOpt: Option[Squad],
                                             lSquadOpt: Option[Squad],
                                             zone_id: PlanetSideZoneID,
                                             sendTo: ActorRef
                                           ): Unit = {
-    val squad = lSquadOpt.getOrElse(StartSquad(tplayer))
-    squad.ZoneId = zone_id.zoneId.toInt
-    UpdateSquadListWhenListed(squadFeatures(squad.GUID), SquadInfo().ZoneId(zone_id))
-    InitialAssociation(squad)
-    Publish(sendTo, SquadResponse.Detail(squad.GUID, SquadService.PublishFullDetails(squad)))
-    UpdateSquadDetail(
-      squad.GUID,
-      squad.GUID,
-      Seq(squad.Leader.CharId),
-      SquadDetail().ZoneId(zone_id)
-    )
+    GetOrCreateSquadOnlyIfLeader(tplayer, pSquadOpt, lSquadOpt) match {
+      case Some(squad) =>
+        squad.ZoneId = zone_id.zoneId.toInt
+        UpdateSquadListWhenListed(squadFeatures(squad.GUID), SquadInfo().ZoneId(zone_id))
+        InitialAssociation(squad)
+        Publish(sendTo, SquadResponse.Detail(squad.GUID, SquadService.PublishFullDetails(squad)))
+        UpdateSquadDetail(
+          squad.GUID,
+          squad.GUID,
+          Seq(squad.Leader.CharId),
+          SquadDetail().ZoneId(zone_id)
+        )
+      case None => ;
+    }
   }
 
   def SquadActionDefinitionCloseSquadMemberPosition(
                                                      tplayer: Player,
+                                                     pSquadOpt: Option[Squad],
                                                      lSquadOpt: Option[Squad],
                                                      position: Int
                                                    ): Unit = {
-    val squad = lSquadOpt.getOrElse(StartSquad(tplayer))
-    squad.Availability.lift(position) match {
-      case Some(true) if position > 0 => //do not close squad leader position; undefined behavior
-        squad.Availability.update(position, false)
-        val memberPosition = squad.Membership(position)
-        if (memberPosition.CharId > 0) {
-          LeaveSquad(memberPosition.CharId, squad)
+    GetOrCreateSquadOnlyIfLeader(tplayer, pSquadOpt, lSquadOpt) match {
+      case Some(squad) =>
+        squad.Availability.lift(position) match {
+          case Some(true) if position > 0 => //do not close squad leader position; undefined behavior
+            squad.Availability.update(position, false)
+            val memberPosition = squad.Membership(position)
+            if (memberPosition.CharId > 0) {
+              LeaveSquad(memberPosition.CharId, squad)
+            }
+            UpdateSquadListWhenListed(squadFeatures(squad.GUID), SquadInfo().Capacity(squad.Capacity))
+            UpdateSquadDetail(
+              squad.GUID,
+              SquadDetail().Members(List(SquadPositionEntry(position, SquadPositionDetail.Closed)))
+            )
+          case Some(_) | None => ;
         }
-        UpdateSquadListWhenListed(squadFeatures(squad.GUID), SquadInfo().Capacity(squad.Capacity))
-        UpdateSquadDetail(
-          squad.GUID,
-          SquadDetail().Members(List(SquadPositionEntry(position, SquadPositionDetail.Closed)))
-        )
-      case Some(_) | None => ;
+      case None => ;
     }
   }
 
   def SquadActionDefinitionAddSquadMemberPosition(
                                                    tplayer: Player,
+                                                   pSquadOpt: Option[Squad],
                                                    lSquadOpt: Option[Squad],
                                                    position: Int
                                                  ): Unit = {
-    val squad = lSquadOpt.getOrElse(StartSquad(tplayer))
-    squad.Availability.lift(position) match {
-      case Some(false) =>
-        squad.Availability.update(position, true)
-        UpdateSquadListWhenListed(squadFeatures(squad.GUID), SquadInfo().Capacity(squad.Capacity))
-        UpdateSquadDetail(
-          squad.GUID,
-          SquadDetail().Members(List(SquadPositionEntry(position, SquadPositionDetail.Open)))
-        )
-      case Some(true) | None => ;
+    GetOrCreateSquadOnlyIfLeader(tplayer, pSquadOpt, lSquadOpt) match {
+      case Some(squad) =>
+        squad.Availability.lift(position) match {
+          case Some(false) =>
+            squad.Availability.update(position, true)
+            UpdateSquadListWhenListed(squadFeatures(squad.GUID), SquadInfo().Capacity(squad.Capacity))
+            UpdateSquadDetail(
+              squad.GUID,
+              SquadDetail().Members(List(SquadPositionEntry(position, SquadPositionDetail.Open)))
+            )
+          case Some(true) | None => ;
+        }
+      case None => ;
     }
   }
 
   def SquadActionDefinitionChangeSquadMemberRequirementsRole(
                                                               tplayer: Player,
+                                                              pSquadOpt: Option[Squad],
                                                               lSquadOpt: Option[Squad],
                                                               position: Int,
                                                               role: String
                                                             ): Unit ={
-    val squad = lSquadOpt.getOrElse(StartSquad(tplayer))
-    squad.Availability.lift(position) match {
-      case Some(true) =>
-        squad.Membership(position).Role = role
-        UpdateSquadDetail(
-          squad.GUID,
-          SquadDetail().Members(List(SquadPositionEntry(position, SquadPositionDetail().Role(role))))
-        )
-      case Some(false) | None => ;
+    GetOrCreateSquadOnlyIfLeader(tplayer, pSquadOpt, lSquadOpt) match {
+      case Some(squad) =>
+        squad.Availability.lift(position) match {
+          case Some(true) =>
+            squad.Membership(position).Role = role
+            UpdateSquadDetail(
+              squad.GUID,
+              SquadDetail().Members(List(SquadPositionEntry(position, SquadPositionDetail().Role(role))))
+            )
+          case Some(false) | None => ;
+        }
+      case None => ;
     }
   }
 
   def SquadActionDefinitionChangeSquadMemberRequirementsDetailedOrders(
                                                                         tplayer: Player,
+                                                                        pSquadOpt: Option[Squad],
                                                                         lSquadOpt: Option[Squad],
                                                                         position: Int,
                                                                         orders: String
                                                                       ): Unit = {
-    val squad = lSquadOpt.getOrElse(StartSquad(tplayer))
-    squad.Availability.lift(position) match {
-      case Some(true) =>
-        squad.Membership(position).Orders = orders
-        UpdateSquadDetail(
-          squad.GUID,
-          SquadDetail().Members(
-            List(SquadPositionEntry(position, SquadPositionDetail().DetailedOrders(orders)))
-          )
-        )
-      case Some(false) | None => ;
+    GetOrCreateSquadOnlyIfLeader(tplayer, pSquadOpt, lSquadOpt) match {
+      case Some(squad) =>
+        squad.Availability.lift(position) match {
+          case Some(true) =>
+            squad.Membership(position).Orders = orders
+            UpdateSquadDetail(
+              squad.GUID,
+              SquadDetail().Members(
+                List(SquadPositionEntry(position, SquadPositionDetail().DetailedOrders(orders)))
+              )
+            )
+          case Some(false) | None => ;
+        }
+      case None => ;
     }
   }
 
   def SquadActionDefinitionChangeSquadMemberRequirementsCertifications(
                                                                         tplayer: Player,
+                                                                        pSquadOpt: Option[Squad],
                                                                         lSquadOpt: Option[Squad],
                                                                         position: Int,
                                                                         certs: Set[Certification]
                                                                       ): Unit = {
-    val squad = lSquadOpt.getOrElse(StartSquad(tplayer))
-    squad.Availability.lift(position) match {
-      case Some(true) =>
-        squad.Membership(position).Requirements = certs
-        UpdateSquadDetail(
-          squad.GUID,
-          SquadDetail().Members(List(SquadPositionEntry(position, SquadPositionDetail().Requirements(certs))))
-        )
-      case Some(false) | None => ;
+    GetOrCreateSquadOnlyIfLeader(tplayer, pSquadOpt, lSquadOpt) match {
+      case Some(squad) =>
+        squad.Availability.lift(position) match {
+          case Some(true) =>
+            squad.Membership(position).Requirements = certs
+            UpdateSquadDetail(
+              squad.GUID,
+              SquadDetail().Members(List(SquadPositionEntry(position, SquadPositionDetail().Requirements(certs))))
+            )
+          case Some(false) | None => ;
+        }
+      case None => ;
     }
   }
 
   def SquadActionDefinitionLocationFollowsSquadLead(
                                                      tplayer: Player,
+                                                     pSquadOpt: Option[Squad],
                                                      lSquadOpt: Option[Squad],
                                                      state: Boolean
                                                    ): Unit = {
-    val features = squadFeatures(lSquadOpt.getOrElse(StartSquad(tplayer)).GUID)
-    features.LocationFollowsSquadLead = state
+    GetOrCreateSquadOnlyIfLeader(tplayer, pSquadOpt, lSquadOpt) match {
+      case Some(squad) =>
+        val features = squadFeatures(squad.GUID)
+        features.LocationFollowsSquadLead = state
+      case None => ;
+    }
   }
 
   def SquadActionDefinitionAutoApproveInvitationRequests(
                                                           tplayer: Player,
+                                                          pSquadOpt: Option[Squad],
                                                           lSquadOpt: Option[Squad],
                                                           state: Boolean
                                                         ): Unit = {
-    val features = squadFeatures(lSquadOpt.getOrElse(StartSquad(tplayer)).GUID)
-    features.AutoApproveInvitationRequests = state
-    if (state) {
-      //allowed auto-approval - resolve the requests (only)
-      val charId = tplayer.CharId
-      val (requests, others) = (invites.get(charId).toList ++ queuedInvites.get(charId).toList)
-        .partition({ case _: RequestRole => true })
-      invites.remove(charId)
-      queuedInvites.remove(charId)
-      previousInvites.remove(charId)
-      requests.foreach {
-        case request: RequestRole =>
-          JoinSquad(request.player, features.Squad, request.position)
-        case _ => ;
-      }
-      others.collect { case invite: Invitation => invite } match {
-        case Nil => ;
-        case x :: Nil =>
-          AddInviteAndRespond(charId, x, x.InviterCharId, x.InviterName)
-        case x :: xs =>
-          AddInviteAndRespond(charId, x, x.InviterCharId, x.InviterName)
-          queuedInvites += charId -> xs
-      }
+    GetOrCreateSquadOnlyIfLeader(tplayer, pSquadOpt, lSquadOpt) match {
+      case Some(squad) =>
+        val features = squadFeatures(squad.GUID)
+        features.AutoApproveInvitationRequests = state
+        if (state) {
+          //allowed auto-approval - resolve the requests (only)
+          val charId = tplayer.CharId
+          val (requests, others) = (invites.get(charId).toList ++ queuedInvites.get(charId).toList)
+            .partition({ case _: RequestRole => true })
+          invites.remove(charId)
+          queuedInvites.remove(charId)
+          previousInvites.remove(charId)
+          requests.foreach {
+            case request: RequestRole =>
+              JoinSquad(request.player, features.Squad, request.position)
+            case _ => ;
+          }
+          others.collect { case invite: Invitation => invite } match {
+            case Nil => ;
+            case x :: Nil =>
+              AddInviteAndRespond(charId, x, x.InviterCharId, x.InviterName)
+            case x :: xs =>
+              AddInviteAndRespond(charId, x, x.InviterCharId, x.InviterName)
+              queuedInvites += charId -> xs
+          }
+        }
+      case None => ;
     }
   }
 
@@ -1745,24 +1873,36 @@ class SquadService extends Actor {
     }
   }
 
-  def SquadActionDefinitionRequestListSquad(tplayer: Player, lSquadOpt: Option[Squad], sendTo: ActorRef): Unit = {
-    val squad    = lSquadOpt.getOrElse(StartSquad(tplayer))
-    val features = squadFeatures(squad.GUID)
-    if (!features.Listed && squad.Task.nonEmpty && squad.ZoneId > 0) {
-      features.Listed = true
-      InitialAssociation(squad)
-      Publish(sendTo, SquadResponse.SetListSquad(squad.GUID))
-      UpdateSquadList(squad, None)
+  def SquadActionDefinitionRequestListSquad(
+                                             tplayer: Player,
+                                             pSquadOpt: Option[Squad],
+                                             lSquadOpt: Option[Squad],
+                                             sendTo: ActorRef
+                                           ): Unit = {
+    GetOrCreateSquadOnlyIfLeader(tplayer, pSquadOpt, lSquadOpt) match {
+      case Some(squad) =>
+        val features = squadFeatures(squad.GUID)
+        if (!features.Listed && squad.Task.nonEmpty && squad.ZoneId > 0) {
+          features.Listed = true
+          InitialAssociation(squad)
+          Publish(sendTo, SquadResponse.SetListSquad(squad.GUID))
+          UpdateSquadList(squad, None)
+        }
+      case None => ;
     }
   }
 
   def SquadActionDefinitionStopListSquad(tplayer: Player, lSquadOpt: Option[Squad], sendTo: ActorRef): Unit = {
-    val squad    = lSquadOpt.getOrElse(StartSquad(tplayer))
-    val features = squadFeatures(squad.GUID)
-    if (features.Listed) {
-      features.Listed = false
-      Publish(sendTo, SquadResponse.SetListSquad(PlanetSideGUID(0)))
-      UpdateSquadList(squad, None)
+    lSquadOpt match {
+      case Some(squad) =>
+        val features = squadFeatures(squad.GUID)
+        if (features.Listed) {
+          features.Listed = false
+          Publish(sendTo, SquadResponse.SetListSquad(PlanetSideGUID(0)))
+          UpdateSquadList(squad, None)
+        }
+      case None => ;
+        //how did we get into this situation?
     }
   }
 
@@ -2868,7 +3008,7 @@ class SquadService extends Actor {
     leadPosition.ZoneId = 1
     squadFeatures += squad.GUID          -> new SquadFeatures(squad).Start
     memberToSquad += squad.Leader.CharId -> squad
-    debug(s"$name-$faction has created a new squad")
+    info(s"$name-$faction has created a new squad (#${squad.GUID.guid})")
     squad
   }
 
@@ -2902,6 +3042,7 @@ class SquadService extends Actor {
     val role   = squad.Membership(position)
     UserEvents.get(charId) match {
       case Some(events) if squad.Leader.CharId != charId && squad.isAvailable(position, player.avatar.certifications) =>
+        info(s"${player.Name}-${player.Faction} joins position ${position+1} of squad #${squad.GUID.guid} - ${squad.Task}")
         role.Name = player.Name
         role.CharId = charId
         role.Health = StatConverter.Health(player.Health, player.MaxHealth, min = 1, max = 64)
@@ -3006,7 +3147,7 @@ class SquadService extends Actor {
   def LeaveSquad(charId: Long, squad: Squad): Boolean = {
     val membership = squad.Membership.zipWithIndex
     membership.find { case (_member, _) => _member.CharId == charId } match {
-      case data @ Some((_, index)) if squad.Leader.CharId != charId =>
+      case data @ Some((us, index)) if squad.Leader.CharId != charId =>
         PanicLeaveSquad(charId, squad, data)
         //member leaves the squad completely (see PanicSquadLeave)
         Publish(
@@ -3019,6 +3160,7 @@ class SquadService extends Actor {
           )
         )
         SquadEvents.unsubscribe(UserEvents(charId), s"/${squadFeatures(squad.GUID).ToChannel}/Squad")
+        info(s"${us.Name} has left squad #${squad.GUID.guid}")
         true
       case _ =>
         false
@@ -3051,6 +3193,7 @@ class SquadService extends Actor {
   def PanicLeaveSquad(charId: Long, squad: Squad, entry: Option[(Member, Int)]): Boolean = {
     entry match {
       case Some((member, index)) =>
+        info(s"${member.Name}-${squad.Faction} has left squad #${squad.GUID.guid} - ${squad.Task}")
         val entry = (charId, index)
         //member leaves the squad completely
         memberToSquad.remove(charId)
@@ -3146,6 +3289,7 @@ class SquadService extends Actor {
       squad.Membership.collect { case member if member.CharId > 0 && member.CharId != leader => member.CharId }
     )
     //the squad is being disbanded, the squad events channel is also going away; use cached character ids
+    info(s"Squad #${squad.GUID.guid} has been disbanded.")
     Publish(leader, SquadResponse.Membership(SquadResponseType.Disband, 0, 0, leader, None, "", true, Some(None)))
   }
 
@@ -3170,6 +3314,7 @@ class SquadService extends Actor {
     membership.foreach { charId =>
       Publish(charId, SquadResponse.Membership(SquadResponseType.Disband, 0, 0, charId, None, "", false, Some(None)))
     }
+    lazeIndices = lazeIndices.filterNot { data => membership.toSeq.contains(data.charId) }
   }
 
   /**
@@ -3211,6 +3356,7 @@ class SquadService extends Actor {
     * Despite the name, no waypoints are actually "added."
     * All of the waypoints constantly exist as long as the squad to which they are attached exists.
     * They are merely "activated" and "deactivated."
+    * No waypoint is ever remembered for the laze-indicated target.
     * @see `SquadWaypointRequest`
     * @see `WaypointInfo`
     * @param guid the squad's unique identifier
@@ -3220,12 +3366,12 @@ class SquadService extends Actor {
     */
   def AddWaypoint(
       guid: PlanetSideGUID,
-      waypointType: SquadWaypoints.Value,
+      waypointType: SquadWaypoint,
       info: WaypointInfo
   ): Option[WaypointData] = {
     squadFeatures.get(guid) match {
       case Some(features) =>
-        features.Waypoints.lift(waypointType.id) match {
+        features.Waypoints.lift(waypointType.value) match {
           case Some(point) =>
             point.zone_number = info.zone_number
             point.pos = info.pos
@@ -3250,13 +3396,13 @@ class SquadService extends Actor {
     * @param guid the squad's unique identifier
     * @param waypointType the type of the waypoint
     */
-  def RemoveWaypoint(guid: PlanetSideGUID, waypointType: SquadWaypoints.Value): Unit = {
+  def RemoveWaypoint(guid: PlanetSideGUID, waypointType: SquadWaypoint): Unit = {
     squadFeatures.get(guid) match {
       case Some(features) =>
-        features.Waypoints.lift(waypointType.id) match {
+        features.Waypoints.lift(waypointType.value) match {
           case Some(point) =>
             point.pos = Vector3.z(1)
-          case _ =>
+          case None =>
             log.warn(s"no squad waypoint $waypointType found")
         }
       case _ =>
@@ -3281,7 +3427,7 @@ class SquadService extends Actor {
             squad.Leader.CharId,
             list.zipWithIndex.collect {
               case (point, index) if point.pos != vz1 =>
-                (SquadWaypoints(index), WaypointInfo(point.zone_number, point.pos), 1)
+                (SquadWaypoint(index), WaypointInfo(point.zone_number, point.pos), 1)
             }
           )
         )
@@ -3565,13 +3711,25 @@ class SquadService extends Actor {
 }
 
 object SquadService {
-
+  private case class BlankLazeWaypoints()
+  
+  private case class LazeWaypointData(charId: Long, waypointType: Int, endTime: Long)
+  
   /**
     * Information necessary to display a specific map marker.
     */
   class WaypointData() {
     var zone_number: Int = 1
     var pos: Vector3     = Vector3.z(1) //a waypoint with a non-zero z-coordinate will flag as not getting drawn
+  }
+
+  object WaypointData{
+    def apply(zone_number: Int, pos: Vector3): WaypointData = {
+      val data = new WaypointData()
+      data.zone_number = zone_number
+      data.pos = pos
+      data
+    }
   }
 
   /**
