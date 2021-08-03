@@ -23,6 +23,8 @@ import net.psforever.packet._
 import net.psforever.packet.control._
 import net.psforever.packet.crypto.{ClientChallengeXchg, ClientFinished, ServerChallengeXchg, ServerFinished}
 import net.psforever.packet.game._
+import net.psforever.packet.crypto._
+import net.psforever.packet.game.{ChangeFireModeMessage, CharacterInfoMessage, KeepAliveMessage, PingMsg}
 import net.psforever.packet.PacketCoding.CryptoCoding
 import net.psforever.util.{Config, DiffieHellman, Md5Mac}
 
@@ -382,7 +384,7 @@ class MiddlewareActor(
           PacketCoding.unmarshalPacket(msg, None, CryptoPacketOpcode.ClientFinished) match {
             case Successful(packet) =>
               packet match {
-                case (ClientFinished(clientPubKey, _), Some(_)) =>
+                case (ClientFinished(_, clientPubKey, _), Some(_)) =>
                   serverMACBuffer ++= msg.drop(3)
                   val agreedKey = dh.agree(clientPubKey.toArray)
                   val agreedMessage = ByteVector("master secret".getBytes) ++ clientChallenge ++
@@ -439,6 +441,8 @@ class MiddlewareActor(
       .receiveMessage[Command] {
         case Receive(msg) =>
           PacketCoding.unmarshalPacket(msg, crypto) match {
+            case Successful((Ignore(data), _)) =>
+              log.info(s"caught CryptoPacket Ignore with hex - $data")
             case Successful((packet, Some(sequence))) =>
               activeSequenceFunc(packet, sequence)
             case Successful((packet, None)) =>

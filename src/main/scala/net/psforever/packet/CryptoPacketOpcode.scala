@@ -8,8 +8,9 @@ object CryptoPacketOpcode extends Enumeration {
   type Type = Value
   val Ignore, ClientChallengeXchg, ServerChallengeXchg, ClientFinished, ServerFinished = Value
 
-  def getPacketDecoder(opcode: CryptoPacketOpcode.Type): (BitVector) => Attempt[DecodeResult[PlanetSideCryptoPacket]] =
+  def getPacketDecoder(opcode: CryptoPacketOpcode.Type): BitVector => Attempt[DecodeResult[PlanetSideCryptoPacket]] =
     opcode match {
+      case Ignore              => crypto.Ignore.decode
       case ClientChallengeXchg => crypto.ClientChallengeXchg.decode
       case ServerChallengeXchg => crypto.ServerChallengeXchg.decode
       case ServerFinished      => crypto.ServerFinished.decode
@@ -17,7 +18,7 @@ object CryptoPacketOpcode extends Enumeration {
       case default =>
         (a: BitVector) =>
           Attempt.failure(
-            Err(s"Could not find a marshaller for crypto packet ${opcode}")
+            Err(s"Could not find a marshaller for crypto packet $opcode")
               .pushContext("get_marshaller")
           )
     }
