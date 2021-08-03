@@ -9,8 +9,8 @@ import scala.concurrent.duration._
 
 class GUIDTaskRegisterToolTest extends ActorTest {
   "RegisterEquipment -> RegisterTool" in {
-    val (_, uns, _, probe) = GUIDTaskTest.CommonTestSetup
-    val obj                           = Tool(GlobalDefinitions.beamer)
+    val (_, uns, probe)    = GUIDTaskTest.CommonTestSetup
+    val obj                = Tool(GlobalDefinitions.beamer)
     obj.AmmoSlots.head.Box = AmmoBox(GlobalDefinitions.energy_cell)
 
     assert(!obj.HasGUID)

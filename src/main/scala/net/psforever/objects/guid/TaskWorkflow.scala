@@ -43,6 +43,17 @@ trait Task
 }
 
 /**
+  * A primary unit of work in a workflow that is set up to execute and never be taken back.
+  * Good for top-level tasking that only reports on the success of work carried out by subtasks.
+  */
+trait StraightforwardTask
+  extends Task {
+  def undo(): Unit = { /* blank */ }
+
+  def isSuccessful(): Boolean = false /* always primed to be executed */
+}
+
+/**
   * The packaging of a more complicated unit of work in a workflow
   * in which one task relies on the successful completion of other tasks.
   * @param mainTask the primary task

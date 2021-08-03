@@ -10,24 +10,21 @@ import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.guid.selector.RandomSelector
 import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.guid.uns.NumberPoolActor
-import net.psforever.objects.guid.{NumberPoolHub, Task, UniqueNumberOps}
+import net.psforever.objects.guid.{NumberPoolHub, StraightforwardTask, UniqueNumberOps}
 
 import scala.concurrent.Future
 
 object GUIDTaskTest {
   class TestObject extends IdentifiableEntity
 
-  class RegisterTestTask(probe: ActorRef) extends Task {
+  class RegisterTestTask(probe: ActorRef) extends StraightforwardTask {
     def action(): Future[Any] = {
       probe ! Success(true)
       Future(this)(scala.concurrent.ExecutionContext.Implicits.global)
     }
-    def undo(): Unit = {}
-
-    override def isSuccessful() : Boolean = false
   }
 
-  def CommonTestSetup(implicit system: ActorSystem): (NumberPoolHub, UniqueNumberOps, ActorRef, TestProbe) = {
+  def CommonTestSetup(implicit system: ActorSystem): (NumberPoolHub, UniqueNumberOps, TestProbe) = {
     import akka.testkit.TestProbe
 
     val guid: NumberPoolHub = new NumberPoolHub(new MaxNumberSource(90))
@@ -41,7 +38,7 @@ object GUIDTaskTest {
     guid.AddPool("deployables", (71 to 80).toList).Selector = new RandomSelector
     val uns = new UniqueNumberOps(guid, AllocateNumberPoolActors(guid)(system))
     LogManager.getLogManager.reset() //suppresses any internal loggers created by the above elements
-    (guid, uns, ActorRef.noSender, TestProbe())
+    (guid, uns, TestProbe())
   }
 
   /**

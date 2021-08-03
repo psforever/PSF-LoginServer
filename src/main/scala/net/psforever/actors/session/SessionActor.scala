@@ -16,7 +16,7 @@ import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter.{CorpseConverter, DestroyedVehicleConverter}
 import net.psforever.objects.entity.{SimpleWorldEntity, WorldEntity}
 import net.psforever.objects.equipment._
-import net.psforever.objects.guid.{GUIDTask, Task, TaskBundle, TaskWorkflow}
+import net.psforever.objects.guid._
 import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.serverobject.affinity.FactionAffinity
@@ -5667,7 +5667,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     */
   private def registerNewAvatar(tplayer: Player): TaskBundle = {
     TaskBundle(
-      new Task() {
+      new StraightforwardTask() {
         private val localPlayer   = tplayer
         private val localAnnounce = self
 
@@ -5677,10 +5677,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           localAnnounce ! NewPlayerLoaded(localPlayer)
           Future(true)
         }
-
-        def undo(): Unit = { /*can not undo*/ }
-
-        def isSuccessful() : Boolean = false
       },
       List(GUIDTask.registerAvatar(continent.GUID, tplayer))
     )
@@ -5695,7 +5691,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     */
   private def registerAvatar(tplayer: Player): TaskBundle = {
     TaskBundle(
-      new Task() {
+      new StraightforwardTask() {
         private val localPlayer   = tplayer
         private val localAnnounce = self
 
@@ -5705,10 +5701,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           localAnnounce ! PlayerLoaded(localPlayer)
           Future(true)
         }
-
-        def undo(): Unit = { /*can not undo*/ }
-
-        def isSuccessful() : Boolean = false
       },
       List(GUIDTask.registerPlayer(continent.GUID, tplayer))
     )
@@ -5723,7 +5715,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     */
   private def registerVehicle(vehicle: Vehicle): TaskBundle = {
     TaskBundle(
-      new Task() {
+      new StraightforwardTask() {
         private val localVehicle = vehicle
         private val localAnnounce = self
 
@@ -5732,10 +5724,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         def action(): Future[Any] = {
           Future(true)
         }
-
-        def undo(): Unit = { /*can not undo*/ }
-
-        def isSuccessful() : Boolean = false
       },
       List(GUIDTask.registerVehicle(continent.GUID, vehicle))
     )
@@ -5769,7 +5757,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     */
   private def registerDroppod(vehicle: Vehicle, tplayer: Player): TaskBundle = {
     TaskBundle(
-      new Task() {
+      new StraightforwardTask() {
         private val localDriver   = tplayer
         private val localVehicle  = vehicle
         private val localAnnounce = self
@@ -5782,10 +5770,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           localAnnounce ! PlayerLoaded(localDriver)
           Future(true)
         }
-
-        def undo(): Unit = { /*can not undo*/ }
-
-        def isSuccessful() : Boolean = false
       },
       List(GUIDTask.registerObject(continent.GUID, vehicle))
     )
@@ -5803,7 +5787,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     */
   private def registerVehicleFromSpawnPad(vehicle: Vehicle, pad: VehicleSpawnPad, terminal: Terminal): TaskBundle = {
     TaskBundle(
-      new Task() {
+      new StraightforwardTask() {
         private val localVehicle  = vehicle
         private val localPad      = pad.Actor
         private val localTerminal = terminal
@@ -5815,10 +5799,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           localPad ! VehicleSpawnPad.VehicleOrder(localPlayer, localVehicle, localTerminal)
           Future(true)
         }
-
-        def undo(): Unit = { /*can not undo*/ }
-
-        def isSuccessful() : Boolean = false
       },
       List(registerVehicle(vehicle))
     )
@@ -5826,7 +5806,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
   private def registerDrivenVehicle(vehicle: Vehicle, driver: Player): TaskBundle = {
     TaskBundle(
-      new Task() {
+      new StraightforwardTask() {
         private val localVehicle  = vehicle
         private val localDriver   = driver
         private val localAnnounce = self
@@ -5839,10 +5819,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           localAnnounce ! NewPlayerLoaded(localDriver)
           Future(true)
         }
-
-        def undo(): Unit = { /*can not undo*/ }
-
-        def isSuccessful() : Boolean = false
       },
       List(GUIDTask.registerAvatar(continent.GUID, driver), GUIDTask.registerVehicle(continent.GUID, vehicle))
     )
@@ -5857,7 +5833,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     */
   private def registerProjectile(obj: Projectile): TaskBundle = {
     TaskBundle(
-      new Task() {
+      new StraightforwardTask() {
         private val globalProjectile = obj
         private val localAnnounce    = self
 
@@ -5867,10 +5843,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           localAnnounce ! LoadedRemoteProjectile(globalProjectile.GUID, Some(globalProjectile))
           Future(true)
         }
-
-        def undo(): Unit = { /*can not undo*/ }
-
-        def isSuccessful() : Boolean = false
       },
       List(GUIDTask.registerObject(continent.GUID, obj))
     )
@@ -5878,7 +5850,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
   private def unregisterDrivenVehicle(vehicle: Vehicle, driver: Player): TaskBundle = {
     TaskBundle(
-      new Task() {
+      new StraightforwardTask() {
         private val localVehicle  = vehicle
         private val localDriver   = driver
         private val localAnnounce = self
@@ -5888,10 +5860,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         def action(): Future[Any] = {
           Future(true)
         }
-
-        def undo(): Unit = { /*can not undo*/ }
-
-        def isSuccessful() : Boolean = false
       },
       List(GUIDTask.unregisterAvatar(continent.GUID, driver), GUIDTask.unregisterVehicle(continent.GUID, vehicle))
     )
@@ -5906,7 +5874,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     */
   private def unregisterProjectile(obj: Projectile): TaskBundle = {
     TaskBundle(
-      new Task() {
+      new StraightforwardTask() {
         private val globalProjectile = obj
         private val localAnnounce    = self
         private val localMsg         = AvatarServiceMessage(continent.id, AvatarAction.ObjectDelete(player.GUID, obj.GUID, 2))
@@ -5917,10 +5885,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           localAnnounce ! localMsg
           Future(true)
         }
-
-        def undo(): Unit = { /*can not undo*/ }
-
-        def isSuccessful() : Boolean = false
       },
       List(GUIDTask.unregisterObject(continent.GUID, obj))
     )
@@ -8299,7 +8263,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                           zoneMessage: ICS.FindZone
                         ): TaskBundle = {
     TaskBundle(
-      new Task() {
+      new StraightforwardTask() {
         val localAvatar = avatar
         val localZone = continent
         val localCluster = cluster
@@ -8311,10 +8275,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           cluster ! zoneMessage
           Future(true)
         }
-
-        def undo(): Unit = { /*can not undo*/ }
-
-        def isSuccessful() : Boolean = false
       },
       task
     )

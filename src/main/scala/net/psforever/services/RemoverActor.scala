@@ -2,7 +2,7 @@
 package net.psforever.services
 
 import akka.actor.Cancellable
-import net.psforever.objects.guid.{Task, TaskBundle, TaskWorkflow}
+import net.psforever.objects.guid.{StraightforwardTask, TaskBundle, TaskWorkflow}
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{Default, PlanetSideGameObject}
 import net.psforever.types.Vector3
@@ -255,17 +255,13 @@ abstract class RemoverActor() extends SupportActor[RemoverActor.Entry] {
   def FinalTask(entry: RemoverActor.Entry): TaskBundle = {
     import scala.concurrent.ExecutionContext.Implicits.global
     TaskBundle(
-      new Task() {
+      new StraightforwardTask() {
 //        private val localEntry    = entry
 //        private val localAnnounce = self
 
         def action(): Future[Any] = {
           Future(this)
         }
-
-        def undo(): Unit = { }
-
-        override def isSuccessful() : Boolean = false
 
 //        override def onFailure(ex: Throwable): Unit = {
 //          localAnnounce ! RemoverActor.FailureToWork(localEntry, ex)

@@ -148,9 +148,9 @@ class UniqueNumberOps(
         val localPoolName = poolName
         val localPool = pool
 
-        val result = ask(pool, NumberPoolActor.GetAnyNumber(None))(timeout)
+        val result = ask(pool, NumberPoolActor.GetAnyNumber())(timeout)
         result.onComplete {
-          case Success(NumberPoolActor.GiveNumber(number, _)) =>
+          case Success(NumberPoolActor.GiveNumber(number)) =>
             UniqueNumberOps.processRegisterResult(
               localPromise,
               localTarget,
@@ -159,10 +159,10 @@ class UniqueNumberOps(
               localPool,
               number
             )
-          case Success(NumberPoolActor.NoNumber(ex, _)) =>
+          case Success(NumberPoolActor.NoNumber(ex)) =>
             registrationProcessRetry(localPromise, ex, localTarget, localUns, localPools, localPoolName)
           case msg =>
-            UniqueNumberOps.log.warn(s"unexpected message $msg during $localTarget's registration process")
+            UniqueNumberOps.log.warn(s"unexpected message during $localTarget's registration process - $msg")
         }
         result.recover {
           case ex: AskTimeoutException =>
@@ -197,6 +197,7 @@ class UniqueNumberOps(
     if (poolName.equals("generic")) {
       promise.failure(new RegisteringException(msg = s"did not register entity $obj", exception))
     } else {
+      org.log4s.getLogger("UniqueNumberOps").warn(s"${exception.getLocalizedMessage()} - $poolName")
       promise.completeWith(registrationProcess(obj, guid, pools, poolName = "generic"))
     }
   }
@@ -246,9 +247,9 @@ class UniqueNumberOps(
         val localPool = pool
         val localNumber = number
 
-        val result = ask(pool, NumberPoolActor.ReturnNumber(number, None))
+        val result = ask(pool, NumberPoolActor.ReturnNumber(number))
         result.onComplete {
-          case Success(NumberPoolActor.ReturnNumberResult(_, None, _)) =>
+          case Success(NumberPoolActor.ReturnNumberResult(_, None)) =>
             UniqueNumberOps.processUnregisterResult(
               localPromise,
               localTarget,
@@ -257,7 +258,7 @@ class UniqueNumberOps(
               localPool,
               localNumber
             )
-          case Success(NumberPoolActor.ReturnNumberResult(_, Some(ex), _)) => //if there is a problem when returning the number
+          case Success(NumberPoolActor.ReturnNumberResult(_, Some(ex))) => //if there is a problem when returning the number
             localPromise.failure { new UnregisteringException(msg = s"could not unregister $localTarget with number $localNumber", ex) }
           case msg =>
             UniqueNumberOps.log.warn(s"unexpected message $msg during $localTarget's unregistration process")
@@ -361,27 +362,25 @@ object UniqueNumberOps {
   }
 
   /**
-    * Access a specific `NumberPool` in a way that doesn't invoke a callback and reset one of its numbers.
-    * To avoid fully processing the callback, an id of `Long.MinValue` is used to short circuit the routine.
+    * Access a specific `NumberPool` in a way that doesn't propagate a callback and reset one of its numbers.
     * The `ask` pattern catches any reply message and ensures nothing happens because of it.
     * @param number the number that was drawn from a `NumberPool`
     * @param pool the `NumberPool` from which the `number` was drawn
     */
   private def returnNumberNoCallback(number: Int, pool: ActorRef): Unit = {
-    val result = ask(pool, NumberPoolActor.ReturnNumber(number, Some(Long.MinValue)))
+    val result = ask(pool, NumberPoolActor.ReturnNumber(number))
     result.onComplete { _ => ; }
     result.recover { case _ => ; }
   }
 
   /**
-    * Access a specific `NumberPool` in a way that doesn't invoke a callback and claim one of its numbers.
-    * To avoid fully processing the callback, an id of `Long.MinValue` is used to short circuit the routine.
+    * Access a specific `NumberPool` in a way that doesn't propagate a callback and claim one of its numbers.
     * The `ask` pattern catches any reply message and ensures nothing happens because of it.
     * @param number the number to be drawn from a `NumberPool`
     * @param pool the `NumberPool` from which the `number` is to be drawn
     */
   private def requestSpecificNumberNoCallback(number: Int, pool: ActorRef): Unit = {
-    val result = ask(pool, NumberPoolActor.GetSpecificNumber(number, Some(Long.MinValue)))
+    val result = ask(pool, NumberPoolActor.GetSpecificNumber(number))
     result.onComplete { _ => ; }
     result.recover { case _ => ; }
   }

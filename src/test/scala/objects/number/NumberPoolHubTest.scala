@@ -276,7 +276,7 @@ class NumberPoolHubTest extends Specification {
       hub2.isRegistered(obj1) mustEqual false
     }
 
-    "identity a number that is registered to it" in {
+    "identity an entity that is registered to it" in {
       val src1 = new MaxNumberSource(5)
       val hub1 = new NumberPoolHub(src1)
       val src2 = new MaxNumberSource(10)
@@ -285,13 +285,12 @@ class NumberPoolHubTest extends Specification {
       val obj2 = new EntityTestClass()
       hub1.register(obj1)
       hub2.register(obj2)
-      val num1 = obj1.GUID.guid
-      val num2 = obj2.GUID.guid
 
-      hub1.isRegistered(num1) mustEqual true
-      hub2.isRegistered(num2) mustEqual true
-      hub1.isRegistered(num2) mustEqual false
-      hub2.isRegistered(num1) mustEqual false
+      obj1.GUID mustEqual obj2.GUID
+      hub1.isRegistered(obj1) mustEqual true
+      hub2.isRegistered(obj2) mustEqual true
+      hub1.isRegistered(obj2) mustEqual false
+      hub2.isRegistered(obj1) mustEqual false
     }
   }
 }

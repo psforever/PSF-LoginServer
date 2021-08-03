@@ -9,9 +9,9 @@ import scala.concurrent.duration._
 
 class GUIDTaskRegisterVehicleTest extends ActorTest {
   "RegisterVehicle" in {
-    val (_, uns, _, probe) = GUIDTaskTest.CommonTestSetup
-    val obj                           = Vehicle(GlobalDefinitions.fury)
-    val obj_wep                       = obj.WeaponControlledFromSeat(0).get
+    val (_, uns, probe) = GUIDTaskTest.CommonTestSetup
+    val obj             = Vehicle(GlobalDefinitions.fury)
+    val obj_wep         = obj.WeaponControlledFromSeat(0).get
     val obj_wep_ammo = (obj.WeaponControlledFromSeat(0).get.asInstanceOf[Tool].AmmoSlots.head.Box =
       AmmoBox(GlobalDefinitions.hellfire_ammo)).get
     obj.Trunk += 30 -> AmmoBox(GlobalDefinitions.hellfire_ammo)

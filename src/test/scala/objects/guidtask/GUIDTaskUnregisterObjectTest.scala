@@ -8,8 +8,8 @@ import scala.concurrent.duration._
 
 class GUIDTaskUnregisterObjectTest extends ActorTest {
   "UnregisterObjectTask" in {
-    val (guid, uns, _, probe) = GUIDTaskTest.CommonTestSetup
-    val obj                              = new GUIDTaskTest.TestObject
+    val (guid, uns, probe) = GUIDTaskTest.CommonTestSetup
+    val obj                = new GUIDTaskTest.TestObject
     guid.register(obj)
 
     assert(obj.HasGUID)

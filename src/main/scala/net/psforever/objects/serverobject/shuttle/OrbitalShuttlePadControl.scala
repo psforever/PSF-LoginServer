@@ -2,7 +2,7 @@
 package net.psforever.objects.serverobject.shuttle
 
 import akka.actor.{Actor, ActorRef}
-import net.psforever.objects.guid.{GUIDTask, Task, TaskBundle, TaskWorkflow}
+import net.psforever.objects.guid._
 import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.doors.Door
@@ -132,7 +132,7 @@ object OrbitalShuttlePadControl {
   def registerShuttle(zone: Zone, shuttle: Vehicle, ref: ActorRef): TaskBundle = {
     import scala.concurrent.ExecutionContext.Implicits.global
     TaskBundle(
-      new Task() {
+      new StraightforwardTask() {
         private val localZone = zone
         private val localShuttle = shuttle
         private val localSelf = ref
@@ -143,10 +143,6 @@ object OrbitalShuttlePadControl {
           localZone.Transport.tell(Zone.Vehicle.Spawn(localShuttle), localSelf)
           Future(this)
         }
-
-        def undo(): Unit = { }
-
-        override def isSuccessful() : Boolean = false
       }, GUIDTask.registerVehicle(zone.GUID, shuttle)
     )
   }

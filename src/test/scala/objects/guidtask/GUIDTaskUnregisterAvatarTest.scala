@@ -12,9 +12,9 @@ import scala.concurrent.duration._
 
 class GUIDTaskUnregisterAvatarTest extends ActorTest {
   "UnregisterAvatar" in {
-    val (guid, uns, _, probe) = GUIDTaskTest.CommonTestSetup
-    val obj                              = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
-    val obj_wep                          = Tool(GlobalDefinitions.beamer)
+    val (guid, uns, probe) = GUIDTaskTest.CommonTestSetup
+    val obj                = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
+    val obj_wep            = Tool(GlobalDefinitions.beamer)
     obj.Slot(0).Equipment = obj_wep
     val obj_wep_ammo = AmmoBox(GlobalDefinitions.energy_cell)
     obj_wep.AmmoSlots.head.Box = obj_wep_ammo
@@ -23,12 +23,12 @@ class GUIDTaskUnregisterAvatarTest extends ActorTest {
     val obj_locker      = obj.Slot(5).Equipment.get
     val obj_locker_ammo = AmmoBox(GlobalDefinitions.energy_cell)
     obj_locker.asInstanceOf[LockerEquipment].Inventory += 0 -> obj_locker_ammo
-    guid.register(obj)
-    guid.register(obj_wep)
-    guid.register(obj_wep_ammo)
-    guid.register(obj_inv_ammo)
-    guid.register(obj_locker)
-    guid.register(obj_locker_ammo)
+    guid.register(obj, name = "players")
+    guid.register(obj_wep, name = "tools")
+    guid.register(obj_wep_ammo, name = "ammo")
+    guid.register(obj_inv_ammo, name = "ammo")
+    guid.register(obj_locker, name = "lockers")
+    guid.register(obj_locker_ammo, name = "amoo")
 
     assert(obj.HasGUID)
     assert(obj_wep.HasGUID)

@@ -135,13 +135,13 @@ class NumberPoolTest extends Specification {
 
   "GenericPool" should {
     "construct" in {
-      new GenericPool(mutable.LongMap[String](), 11)
+      GenericPool(mutable.LongMap[String](), max = 11, poolName = "generic")
       ok
     }
 
     "get a provided number" in {
       val map = mutable.LongMap[String]()
-      val obj = new GenericPool(map, 11)
+      val obj = GenericPool(map, max = 11, poolName = "generic")
       obj.Numbers.isEmpty mustEqual true
       obj.Selector.asInstanceOf[SpecificSelector].SelectionIndex = 5
       obj.Get() match {
@@ -157,7 +157,7 @@ class NumberPoolTest extends Specification {
 
     "return a number" in {
       val map = mutable.LongMap[String]()
-      val obj = new GenericPool(map, 11)
+      val obj = GenericPool(map, max = 11, poolName = "generic")
       obj.Selector.asInstanceOf[SpecificSelector].SelectionIndex = 5
       obj.Get()
       map.get(5).contains("generic") mustEqual true
@@ -170,7 +170,7 @@ class NumberPoolTest extends Specification {
     "block on numbers that are already defined" in {
       val map = mutable.LongMap[String]()
       map += 5L -> "test" //5 is defined
-      val obj = new GenericPool(map, 11)
+      val obj = GenericPool(map, max = 11, poolName = "generic")
       obj.Numbers.isEmpty mustEqual true
       obj.Selector.asInstanceOf[SpecificSelector].SelectionIndex = 5 //5 is requested
       obj.Get() match {
@@ -183,10 +183,10 @@ class NumberPoolTest extends Specification {
 
     "get a free number on own if none provided" in {
       val map = mutable.LongMap[String]()
-      val obj = new GenericPool(map, 11)
+      val obj = GenericPool(map, max = 11, poolName = "generic")
       obj.Get() match {
         case Success(number) =>
-          number mustEqual 5
+          number mustEqual 1
         case _ =>
           ko
       }
@@ -195,10 +195,10 @@ class NumberPoolTest extends Specification {
     "get a free number that is not already defined" in {
       val map = mutable.LongMap[String]()
       map += 5L -> "test" //5 is defined; think, -1 :: 5 :: 11
-      val obj = new GenericPool(map, 11)
+      val obj = GenericPool(map, max = 11, poolName = "generic")
       obj.Get() match {
         case Success(number) =>
-          number mustEqual 2 // think, -1 :: 2 :: 5 :: 11
+          number mustEqual 1 // think, -1 :: 2 :: 5 :: 11
         case _ => ko
       }
 
@@ -208,10 +208,10 @@ class NumberPoolTest extends Specification {
       val map = mutable.LongMap[String]()
       map += 5L -> "test" //5 is defined; think, -1 :: 5 :: 11
       map += 4L -> "test" //4 is defined; think, -1 :: 4 :: 5 :: 11
-      val obj = new GenericPool(map, 11)
+      val obj = GenericPool(map, max = 11, poolName = "generic")
       obj.Get() match {
         case Success(number) =>
-          number mustEqual 8 // think, -1 :: 4 :: 5 :: 8 :: 11
+          number mustEqual 1 // think, -1 :: 4 :: 5 :: 8 :: 11
         case _ =>
           ko
       }

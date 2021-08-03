@@ -4,7 +4,7 @@ package net.psforever.services.vehicle.support
 import akka.actor.Cancellable
 import net.psforever.objects.equipment.EquipmentSlot
 import net.psforever.objects.{AmmoBox, Default, PlanetSideGameObject, Tool}
-import net.psforever.objects.guid.{GUIDTask, Task, TaskBundle, TaskWorkflow}
+import net.psforever.objects.guid._
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade, WeaponTurret}
 import net.psforever.objects.vehicles.MountedWeapons
@@ -176,17 +176,13 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
       .toList
     import scala.concurrent.ExecutionContext.Implicits.global
     val newBoxesTask = TaskBundle(
-      new Task() {
+      new StraightforwardTask() {
         private val localFunc: () => Unit = FinishUpgradingTurret(entry)
 
         def action(): Future[Any] = {
           localFunc()
           Future(this)
         }
-
-        def undo(): Unit = { }
-
-        override def isSuccessful() : Boolean = false
       },
       newBoxes
         .filterNot { box => oldBoxes.exists(_ eq box) }
@@ -194,17 +190,13 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
         .toList
     )
     TaskWorkflow.execute(TaskBundle(
-      new Task() {
+      new StraightforwardTask() {
         private val tasks = oldBoxesTask
 
         def action(): Future[Any] = {
           tasks.foreach { TaskWorkflow.execute }
           Future(this)
         }
-
-        def undo(): Unit = { }
-
-        override def isSuccessful() : Boolean = false
       },
       newBoxesTask
     ))

@@ -8,8 +8,8 @@ import scala.concurrent.duration._
 
 class GUIDTaskRegisterObjectTest extends ActorTest {
   "RegisterObjectTask" in {
-    val (_, uns, _, probe) = GUIDTaskTest.CommonTestSetup
-    val obj                           = new GUIDTaskTest.TestObject
+    val (_, uns, probe) = GUIDTaskTest.CommonTestSetup
+    val obj             = new GUIDTaskTest.TestObject
 
     assert(!obj.HasGUID)
     TaskWorkflow.execute(TaskBundle(

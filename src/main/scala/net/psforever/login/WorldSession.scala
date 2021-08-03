@@ -4,7 +4,7 @@ import akka.actor.ActorRef
 import akka.pattern.{AskTimeoutException, ask}
 import akka.util.Timeout
 import net.psforever.objects.equipment.{Ammo, Equipment}
-import net.psforever.objects.guid.{GUIDTask, Task, TaskBundle, TaskWorkflow}
+import net.psforever.objects.guid._
 import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.serverobject.PlanetSideServerObject
@@ -86,7 +86,7 @@ object WorldSession {
                                     )(item: Equipment, slot: Int): TaskBundle = {
     val localZone = obj.Zone
     TaskBundle(
-      new Task() {
+      new StraightforwardTask() {
         private val localContainer = obj
         private val localItem      = item
         private val localSlot      = slot
@@ -94,10 +94,6 @@ object WorldSession {
         def action(): Future[Any] = {
           PutEquipmentInInventorySlot(localContainer)(localItem, localSlot)
         }
-
-        def undo(): Unit = { }
-
-        def isSuccessful() : Boolean = false
       },
       GUIDTask.registerEquipment(localZone.GUID, item)
     )
@@ -122,17 +118,13 @@ object WorldSession {
   )(item: Equipment): TaskBundle = {
     val localZone = obj.Zone
     TaskBundle(
-      new Task() {
+      new StraightforwardTask() {
         private val localContainer = obj
         private val localItem      = item
 
         def action(): Future[Any] = {
           PutEquipmentInInventoryOrDrop(localContainer)(localItem)
         }
-
-        def undo(): Unit = { }
-
-        def isSuccessful() : Boolean = false
       },
       GUIDTask.registerEquipment(localZone.GUID, item)
     )
@@ -193,7 +185,7 @@ object WorldSession {
   )(item: Equipment, slot: Int): TaskBundle = {
     val localZone = obj.Zone
     TaskBundle(
-      new Task() {
+      new StraightforwardTask() {
         private val localContainer                             = obj
         private val localItem                                  = item
         private val localSlot                                  = slot
@@ -204,10 +196,6 @@ object WorldSession {
         def action(): Future[Any] = {
           localFunc(localItem, localSlot)
         }
-
-        def undo(): Unit = { }
-
-        override def isSuccessful(): Boolean = false
       },
       GUIDTask.registerEquipment(localZone.GUID, item)
     )
@@ -241,7 +229,7 @@ object WorldSession {
   )(item: Equipment): TaskBundle = {
     val localZone = obj.Zone
     TaskBundle(
-      new Task() {
+      new StraightforwardTask() {
         private val localContainer                = obj
         private val localItem                     = item
         private val localPlayer                   = player
@@ -274,10 +262,6 @@ object WorldSession {
             }
           Future(true)
         }
-
-        def undo(): Unit = { }
-
-        override def isSuccessful() : Boolean = false
       },
       GUIDTask.registerEquipment(localZone.GUID, item)
     )
@@ -315,7 +299,7 @@ object WorldSession {
     if (player.VisibleSlots.contains(slot)) {
       val localZone = player.Zone
       TaskBundle(
-        new Task() {
+        new StraightforwardTask() {
           private val localPlayer   = player
           private val localGUID     = player.GUID
           private val localItem     = item
@@ -349,10 +333,6 @@ object WorldSession {
               }
             Future(this)
           }
-
-          def undo(): Unit = { }
-
-          override def isSuccessful() : Boolean = false
         },
         GUIDTask.registerEquipment(localZone.GUID, item)
       )
@@ -596,7 +576,7 @@ object WorldSession {
         (false, None)
     }
     if (performSwap) {
-      def moveItemTaskFunc(toSlot: Int): Task = new Task() {
+      def moveItemTaskFunc(toSlot: Int): Task = new StraightforwardTask() {
         val localGUID = swapItemGUID //the swap item's original GUID, if any swap item
         val localChannel = toChannel
         val localSource = source
@@ -627,10 +607,6 @@ object WorldSession {
           moveResult.onComplete(localMoveOnComplete)
           moveResult
         }
-
-        def undo(): Unit = { }
-
-        override def isSuccessful() : Boolean = false
       }
       val resultOnComplete: Try[Any] => Unit = {
         case Success(Containable.ItemFromSlot(fromSource, Some(itemToMove), Some(fromSlot))) =>
@@ -678,7 +654,7 @@ object WorldSession {
                                           dest: Int
                                         ): Unit = {
     TaskWorkflow.execute(TaskBundle(
-      new Task() {
+      new StraightforwardTask() {
         val localGUID        = item.GUID //original GUID
         val localChannel     = toChannel
         val localSource      = source
@@ -707,10 +683,6 @@ object WorldSession {
           zone.AvatarEvents ! AvatarServiceMessage(localChannel, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, localGUID))
           ask(localSource.Actor, Containable.MoveItem(localDestination, localItem, localSlot))
         }
-
-        def undo(): Unit = { }
-
-        override def isSuccessful() : Boolean = false
       },
       GUIDTask.registerEquipment(destination.Zone.GUID, item))
     )
@@ -863,7 +835,7 @@ object WorldSession {
 
   def CallBackForTask(task: TaskBundle, sendTo: ActorRef, pass: Any): TaskBundle = {
     TaskBundle(
-      new Task() {
+      new StraightforwardTask() {
         private val localDesc   = task.description()
         private val destination = sendTo
         private val passMsg     = pass
@@ -874,10 +846,6 @@ object WorldSession {
           destination ! passMsg
           Future(this)
         }
-
-        def undo() : Unit = { /*can not undo*/ }
-
-        def isSuccessful() : Boolean = false
       },
       task
     )

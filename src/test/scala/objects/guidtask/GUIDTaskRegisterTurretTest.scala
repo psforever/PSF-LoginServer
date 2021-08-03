@@ -9,11 +9,11 @@ import scala.concurrent.duration._
 
 class GUIDTaskRegisterTurretTest extends ActorTest {
   "RegisterDeployableTurret" in {
-    val (_, uns, _, probe) = GUIDTaskTest.CommonTestSetup
-    val obj                           = new TurretDeployable(GlobalDefinitions.portable_manned_turret_vs)
-    val obj_wep                       = obj.Weapons(1).Equipment.get
-    val obj_ammo                      = obj_wep.asInstanceOf[Tool].AmmoSlot.Box
-    val obj_res                       = obj.Inventory.Items.map(_.obj)
+    val (_, uns, probe) = GUIDTaskTest.CommonTestSetup
+    val obj             = new TurretDeployable(GlobalDefinitions.portable_manned_turret_vs)
+    val obj_wep         = obj.Weapons(1).Equipment.get
+    val obj_ammo        = obj_wep.asInstanceOf[Tool].AmmoSlot.Box
+    val obj_res         = obj.Inventory.Items.map(_.obj)
 
     assert(!obj.HasGUID)
     assert(!obj_wep.HasGUID)

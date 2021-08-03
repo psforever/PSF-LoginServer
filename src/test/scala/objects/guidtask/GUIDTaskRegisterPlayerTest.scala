@@ -12,9 +12,9 @@ import scala.concurrent.duration._
 
 class GUIDTaskRegisterPlayerTest extends ActorTest {
   "RegisterPlayer" in {
-    val (_, uns, _, probe) = GUIDTaskTest.CommonTestSetup
-    val obj                           = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
-    val obj_wep                       = Tool(GlobalDefinitions.beamer)
+    val (_, uns, probe) = GUIDTaskTest.CommonTestSetup
+    val obj             = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
+    val obj_wep         = Tool(GlobalDefinitions.beamer)
     obj.Slot(0).Equipment = obj_wep
     val obj_wep_ammo = AmmoBox(GlobalDefinitions.energy_cell)
     obj_wep.AmmoSlots.head.Box = obj_wep_ammo

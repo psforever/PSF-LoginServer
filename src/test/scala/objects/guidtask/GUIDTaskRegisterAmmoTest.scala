@@ -9,8 +9,8 @@ import scala.concurrent.duration._
 
 class GUIDTaskRegisterAmmoTest extends ActorTest {
   "RegisterEquipment -> RegisterObjectTask" in {
-    val (_, uns, _, probe) = GUIDTaskTest.CommonTestSetup
-    val obj                = AmmoBox(GlobalDefinitions.energy_cell)
+    val (_, uns, probe) = GUIDTaskTest.CommonTestSetup
+    val obj             = AmmoBox(GlobalDefinitions.energy_cell)
 
     assert(!obj.HasGUID)
     TaskWorkflow.execute(TaskBundle(

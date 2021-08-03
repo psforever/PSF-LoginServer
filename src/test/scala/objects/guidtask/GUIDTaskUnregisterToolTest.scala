@@ -9,11 +9,11 @@ import scala.concurrent.duration._
 
 class GUIDTaskUnregisterToolTest extends ActorTest {
   "UnregisterEquipment -> UnregisterTool" in {
-    val (guid, uns, _, probe) = GUIDTaskTest.CommonTestSetup
-    val obj                              = Tool(GlobalDefinitions.beamer)
+    val (guid, uns, probe) = GUIDTaskTest.CommonTestSetup
+    val obj                = Tool(GlobalDefinitions.beamer)
     obj.AmmoSlots.head.Box = AmmoBox(GlobalDefinitions.energy_cell)
-    guid.register(obj)
-    guid.register(obj.AmmoSlots.head.Box)
+    guid.register(obj, name = "tools")
+    guid.register(obj.AmmoSlots.head.Box, name ="ammo")
 
     assert(obj.HasGUID)
     assert(obj.AmmoSlots.head.Box.HasGUID)

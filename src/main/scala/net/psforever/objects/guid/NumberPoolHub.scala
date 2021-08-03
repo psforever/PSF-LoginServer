@@ -24,7 +24,7 @@ class NumberPoolHub(private val source: NumberSource) {
   import scala.collection.mutable
   private val hash: mutable.HashMap[String, NumberPool] = mutable.HashMap[String, NumberPool]()
   private val bigpool: mutable.LongMap[String]          = mutable.LongMap[String]()
-  hash += "generic" -> new GenericPool(bigpool, source.size)
+  hash += "generic" -> GenericPool(bigpool, source.size, poolName = "generic")
 
   /**
     * Given a globally unique identifier, return any object registered to it.<br>
