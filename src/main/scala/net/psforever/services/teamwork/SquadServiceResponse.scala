@@ -3,7 +3,7 @@ package net.psforever.services.teamwork
 
 import net.psforever.objects.teamwork.Squad
 import net.psforever.packet.game.{SquadDetail, SquadInfo, WaypointEventAction, WaypointInfo}
-import net.psforever.types.{PlanetSideGUID, SquadResponseType, SquadWaypoints}
+import net.psforever.types.{PlanetSideGUID, SquadResponseType, SquadWaypoint}
 import net.psforever.services.GenericEventBusMsg
 
 final case class SquadServiceResponse(channel: String, exclude: Iterable[Long], response: SquadResponse.Response)
@@ -48,12 +48,12 @@ object SquadResponse {
 
   final case class Detail(guid: PlanetSideGUID, squad_detail: SquadDetail) extends Response
 
-  final case class InitWaypoints(char_id: Long, waypoints: Iterable[(SquadWaypoints.Value, WaypointInfo, Int)])
+  final case class InitWaypoints(char_id: Long, waypoints: Iterable[(SquadWaypoint, WaypointInfo, Int)])
       extends Response
   final case class WaypointEvent(
       event_type: WaypointEventAction.Value,
       char_id: Long,
-      waypoint_type: SquadWaypoints.Value,
+      waypoint_type: SquadWaypoint,
       unk5: Option[Long],
       waypoint_info: Option[WaypointInfo],
       unk: Int

@@ -446,7 +446,7 @@ object GamePacketOpcode extends Enumeration {
       case 0x77 => game.SquadState.decode
       // 0x78
       case 0x78 => game.OxygenStateMessage.decode
-      case 0x79 => noDecoder(TradeMessage)
+      case 0x79 => game.TradeMessage.decode
       case 0x7a => noDecoder(UnknownMessage122)
       case 0x7b => game.DamageFeedbackMessage.decode
       case 0x7c => game.DismountBuildingMsg.decode
@@ -538,7 +538,7 @@ object GamePacketOpcode extends Enumeration {
       case 0xc4 => game.QuantityDeltaUpdateMessage.decode
       case 0xc5 => game.ChainLashMessage.decode
       case 0xc6 => game.ZoneInfoMessage.decode
-      case 0xc7 => noDecoder(LongRangeProjectileInfoMessage)
+      case 0xc7 => game.LongRangeProjectileInfoMessage.decode
       // 0xc8
       case 0xc8 => game.WeaponLazeTargetPositionMessage.decode
       case 0xc9 => noDecoder(ModuleLimitsMessage)

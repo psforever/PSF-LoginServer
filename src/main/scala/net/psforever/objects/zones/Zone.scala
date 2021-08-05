@@ -1181,7 +1181,45 @@ object Zone {
                       source: PlanetSideGameObject with Vitality,
                       damagePropertiesBySource: DamageWithPosition
                     ): List[PlanetSideServerObject with Vitality] = {
-    val sourcePosition = source.Position
+    findAllTargets(zone, source.Position, damagePropertiesBySource).filter { target => target ne source }
+  }
+
+  /**
+    * na
+    * @see `DamageWithPosition`
+    * @see `Zone.blockMap.sector`
+    * @param sourcePosition a custom position that is used as the origin of the explosion;
+    *                       not necessarily related to source
+    * @param zone   the zone in which the explosion should occur
+    * @param source a game entity that is treated as the origin and is excluded from results
+    * @param damagePropertiesBySource information about the effect/damage
+    * @return a list of affected entities
+    */
+  def findAllTargets(
+                      sourcePosition: Vector3
+                    )
+                    (
+                      zone: Zone,
+                      source: PlanetSideGameObject with Vitality,
+                      damagePropertiesBySource: DamageWithPosition
+                    ): List[PlanetSideServerObject with Vitality] = {
+    findAllTargets(zone, sourcePosition, damagePropertiesBySource).filter { target => target ne source }
+  }
+
+  /**
+    * na
+    * @see `DamageWithPosition`
+    * @see `Zone.blockMap.sector`
+    * @param zone   the zone in which the explosion should occur
+    * @param sourcePosition a position that is used as the origin of the explosion
+    * @param damagePropertiesBySource information about the effect/damage
+    * @return a list of affected entities
+    */
+  def findAllTargets(
+                      zone: Zone,
+                      sourcePosition: Vector3,
+                      damagePropertiesBySource: DamageWithPosition
+                    ): List[PlanetSideServerObject with Vitality] = {
     val sourcePositionXY = sourcePosition.xy
     val sectors = zone.blockMap.sector(sourcePositionXY, damagePropertiesBySource.DamageRadius)
     //collect all targets that can be damaged
@@ -1194,7 +1232,7 @@ object Zone {
     //amenities
     val soiTargets = sectors.amenityList.collect { case amenity: Vitality if !amenity.Destroyed => amenity }
     //altogether ...
-    (playerTargets ++ vehicleTargets ++ deployableTargets ++ soiTargets).filter { target => target ne source }
+    playerTargets ++ vehicleTargets ++ deployableTargets ++ soiTargets
   }
 
   /**

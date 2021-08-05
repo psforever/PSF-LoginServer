@@ -25,7 +25,8 @@ import net.psforever.types.{PlanetSideGUID, Vector3}
 object UtilityType extends Enumeration {
   type Type = Value
   val ams_respawn_tube, bfr_rearm_terminal, lodestar_repair_terminal, matrix_terminalc, multivehicle_rearm_terminal,
-      order_terminala, order_terminalb, teleportpad_terminal, internal_router_telepad_deployable = Value
+      order_terminala, order_terminalb, targeting_laser_dispenser, teleportpad_terminal,
+      internal_router_telepad_deployable = Value
 }
 
 /**
@@ -126,6 +127,8 @@ object Utility {
         new TerminalUtility(GlobalDefinitions.order_terminala)
       case UtilityType.order_terminalb =>
         new TerminalUtility(GlobalDefinitions.order_terminalb)
+      case UtilityType.targeting_laser_dispenser =>
+        new TerminalUtility(GlobalDefinitions.targeting_laser_dispenser)
       case UtilityType.teleportpad_terminal =>
         new TeleportPadTerminalUtility(GlobalDefinitions.teleportpad_terminal)
       case UtilityType.internal_router_telepad_deployable =>
@@ -250,6 +253,8 @@ object Utility {
       case UtilityType.order_terminala =>
         OrderTerminalDefinition.Setup
       case UtilityType.order_terminalb =>
+        OrderTerminalDefinition.Setup
+      case UtilityType.targeting_laser_dispenser =>
         OrderTerminalDefinition.Setup
       case UtilityType.teleportpad_terminal =>
         OrderTerminalDefinition.Setup

@@ -510,6 +510,11 @@ object Zones {
                 Terminal.Constructor(obj.position, GlobalDefinitions.ground_rearm_terminal),
                 owningBuildingGuid = ownerGuid
               )
+              zoneMap.addLocalObject(
+                obj.guid + 3,
+                ProximityTerminal.Constructor(obj.position, GlobalDefinitions.recharge_terminal),
+                owningBuildingGuid = ownerGuid
+              )
             case "pad_landing_frame" | "pad_landing_tower_frame" =>
               // startup.pak-out/game_objects.adb.lst:22518:add_property pad_landing_frame has_aggregate_rearm_terminal true
               // startup.pak-out/game_objects.adb.lst:22519:add_property pad_landing_frame has_aggregate_recharge_terminal true
@@ -518,6 +523,11 @@ object Zones {
               zoneMap.addLocalObject(
                 obj.guid + 1,
                 Terminal.Constructor(obj.position, GlobalDefinitions.air_rearm_terminal),
+                owningBuildingGuid = ownerGuid
+              )
+              zoneMap.addLocalObject(
+                obj.guid + 2,
+                ProximityTerminal.Constructor(obj.position, GlobalDefinitions.recharge_terminal),
                 owningBuildingGuid = ownerGuid
               )
             case _ => ;

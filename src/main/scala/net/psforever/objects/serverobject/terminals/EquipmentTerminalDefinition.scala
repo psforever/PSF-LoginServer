@@ -214,6 +214,11 @@ object EquipmentTerminalDefinition {
   val routerTerminal: Map[String, () => Equipment] = Map("router_telepad" -> MakeTelepad(router_telepad))
 
   /**
+    * A single-element `Map` of the one piece of `Equipment` for the Flail.
+    */
+  val flailTerminal: Map[String, () => Equipment] = Map("flail_targeting_laser" -> MakeSimpleItem(flail_targeting_laser))
+
+  /**
     * Create a new `Tool` from provided `EquipmentDefinition` objects.
     *
     * @param tdef the `ToolDefinition` object

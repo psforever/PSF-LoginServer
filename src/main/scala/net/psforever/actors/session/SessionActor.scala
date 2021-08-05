@@ -68,6 +68,7 @@ import net.psforever.services.{RemoverActor, Service, ServiceManager, Interstell
 import net.psforever.types._
 import net.psforever.util.{Config, DefinitionUtil}
 import net.psforever.zones.Zones
+import org.joda.time.LocalDateTime
 import org.log4s.MDC
 
 import scala.collection.mutable
@@ -116,6 +117,8 @@ object SessionActor {
   final case class Suicide() extends Command
 
   final case class Kick(player: Player, time: Option[Long] = None) extends Command
+
+  final case class UseCooldownRenewed(definition: BasicDefinition, time: LocalDateTime) extends Command
 
   /**
     * The message that progresses some form of user-driven activity with a certain eventual outcome
@@ -271,6 +274,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var keepAliveFunc: () => Unit                      = KeepAlivePersistenceInitial
   var setAvatar: Boolean                             = false
   var turnCounterFunc: PlanetSideGUID => Unit        = TurnCounterDuringInterim
+  var waypointCooldown: Long = 0L
 
   var clientKeepAlive: Cancellable   = Default.Cancellable
   var progressBarUpdate: Cancellable = Default.Cancellable
@@ -370,7 +374,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case out @ Some(obj) if obj.HasGUID =>
         out
 
-      case None if id.nonEmpty && id.get != PlanetSideGUID(0) =>
+      case None if !id.contains(PlanetSideGUID(0)) =>
         //delete stale entity reference from client
         log.error(s"${player.Name} has an invalid reference to GUID ${id.get.guid} in zone ${continent.id}")
         sendResponse(ObjectDeleteMessage(id.get, 0))
@@ -547,6 +551,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
     case SetSilenced(silenced) =>
       player.silenced = silenced
+
+    case UseCooldownRenewed(definition, _) =>
+      definition match {
+        case _: KitDefinition =>
+          kitToBeUsed = None
+        case _ => ;
+      }
 
     case CommonMessages.Progress(rate, finishedAction, stepAction) =>
       if (progressBarValue.isEmpty) {
@@ -1736,7 +1747,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }) match {
           case (_, Some(adversarial)) => adversarial.attacker.Name
           case (Some(reason), None)   => s"a ${reason.interaction.cause.getClass.getSimpleName}"
-          case _                      => "an unfortunate circumstance"
+          case _                      => s"an unfortunate circumstance (probably ${player.Sex.pronounObject} own fault)"
         }
         log.info(s"${player.Name} has died, killed by $cause")
         val respawnTimer = 300.seconds
@@ -2084,7 +2095,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
 
       case AvatarResponse.UseKit(kguid, kObjId) =>
-        kitToBeUsed = None
         sendResponse(
           UseItemMessage(
             tplayer_guid,
@@ -3982,6 +3992,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             log.warn(s"ProjectileState: constructed projectile ${projectile_guid.guid} can not be found")
         }
 
+      case msg @ LongRangeProjectileInfoMessage(guid, _, _) =>
+        //log.info(s"$msg")
+        FindContainedWeapon match {
+          case (Some(vehicle: Vehicle), Some(weapon: Tool))
+            if weapon.GUID == guid => ; //now what?
+          case _ => ;
+        }
+
       case msg @ ReleaseAvatarRequestMessage() =>
         log.info(s"${player.Name} on ${continent.id} has released")
         reviveTimer.cancel()
@@ -4562,7 +4580,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 case (Some(kit: Kit), None) =>
                   kitToBeUsed = Some(item_used_guid)
                   player.Actor ! CommonMessages.Use(player, Some(kit))
-                case (Some(_: Kit), Some(_)) | (None, Some(_)) => ; //a kit is already queued to be used; ignore this request
+                case (Some(_: Kit), Some(_)) | (None, Some(_)) =>
+                  //a kit is already queued to be used; ignore this request
+                  sendResponse(ChatMsg(ChatMessageType.UNK_225, false, "", "Please wait ...", None))
                 case (Some(item), _) =>
                   log.error(s"UseItem: ${player.Name} looking for Kit to use, but found $item instead")
                 case (None, None) =>
@@ -4752,6 +4772,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                     player,
                     ItemTransactionMessage(object_guid, TransactionType.Buy, 0, "router_telepad", 0, PlanetSideGUID(0))
                   )
+                } else if (tdef == GlobalDefinitions.targeting_laser_dispenser) {
+                  //explicit request
+                  log.info(s"${player.Name} is purchasing a targeting laser")
+                  CancelZoningProcessWithDescriptiveReason("cancel_use")
+                  terminal.Actor ! Terminal.Request(
+                    player,
+                    ItemTransactionMessage(object_guid, TransactionType.Buy, 0, "flail_targeting_laser", 0, PlanetSideGUID(0))
+                  )
                 } else {
                   log.info(s"${player.Name} is accessing a ${terminal.Definition.Name}")
                   CancelZoningProcessWithDescriptiveReason("cancel_use")
@@ -4845,6 +4873,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                   log.error(
                     s"telepad@${object_guid.guid} is linked to wrong kind of object - ${o.Definition.Name}, ${obj.Router}"
                   )
+                  obj.Actor ! Deployable.Deconstruct()
                 case None => ;
               }
             }
@@ -4897,10 +4926,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         continent.GUID(object_guid) match {
           case Some(obj: Terminal with ProximityUnit) =>
             HandleProximityTerminalUse(obj)
-          case Some(obj) => ;
+          case Some(obj) =>
             log.warn(s"ProximityTerminalUse: $obj does not have proximity effects for ${player.Name}")
           case None =>
-            log.error(s"ProximityTerminalUse: ${player.Name} can not find an oject with guid $object_guid")
+            log.error(s"ProximityTerminalUse: ${player.Name} can not find an object with guid $object_guid")
         }
 
       case msg @ UnuseItemMessage(player_guid, object_guid) =>
@@ -5133,8 +5162,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       ) =>
         HandleWeaponFire(weapon_guid, projectile_guid, shot_origin, thrown_projectile_vel.flatten)
 
-      case msg @ WeaponLazeTargetPositionMessage(_, _, pos2) =>
-        log.info(s"${player.Name} is lazing the position ${continent.id}@(${pos2.x},${pos2.y},${pos2.z})")
+      case WeaponLazeTargetPositionMessage(_, _, _) => ;
+        //do not need to handle the progress bar animation/state on the server
+        //laze waypoint is requested by client upon completion (see SquadWaypointRequest)
+        val purpose = if (squad_supplement_id > 0) {
+          s" for ${player.Sex.possessive} squad (#${squad_supplement_id -1})"
+        } else {
+          " ..."
+        }
+        log.info(s"${player.Name} is lazing a position$purpose")
 
       case msg @ ObjectDetectedMessage(guid1, guid2, unk, targets) =>
         FindWeapon match {
@@ -5166,20 +5202,34 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             //find target(s)
             (hit_info match {
               case Some(hitInfo) =>
+                val hitPos     = hitInfo.hit_pos
                 ValidObject(hitInfo.hitobject_guid) match {
+                  case _ if projectile.profile == GlobalDefinitions.flail_projectile =>
+                    val radius  = projectile.profile.DamageRadius * projectile.profile.DamageRadius
+                    val targets = Zone.findAllTargets(hitPos)(continent, player, projectile.profile)
+                      .filter { target =>
+                        Vector3.DistanceSquared(target.Position, hitPos) <= radius
+                      }
+                    targets.map { target =>
+                      CheckForHitPositionDiscrepancy(projectile_guid, hitPos, target)
+                      (target, hitPos, target.Position)
+                    }
+
                   case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
-                    CheckForHitPositionDiscrepancy(projectile_guid, hitInfo.hit_pos, target)
-                    List((target, hitInfo.shot_origin, hitInfo.hit_pos))
+                    CheckForHitPositionDiscrepancy(projectile_guid, hitPos, target)
+                    List((target, hitInfo.shot_origin, hitPos))
 
                   case None if projectile.profile.DamageProxy.getOrElse(0) > 0 =>
                     //server-side maelstrom grenade target selection
                     if (projectile.tool_def == GlobalDefinitions.maelstrom) {
-                      val hitPos     = hitInfo.hit_pos
                       val shotOrigin = hitInfo.shot_origin
                       val radius     = projectile.profile.LashRadius * projectile.profile.LashRadius
-                      val targets = continent.LivePlayers.filter { target =>
-                        Vector3.DistanceSquared(target.Position, hitPos) <= radius
-                      }
+                      val targets = continent.blockMap
+                        .sector(hitPos, projectile.profile.LashRadius)
+                        .livePlayerList
+                        .filter { target =>
+                          Vector3.DistanceSquared(target.Position, hitPos) <= radius
+                        }
                       //chainlash is separated from the actual damage application for convenience
                       continent.AvatarEvents ! AvatarServiceMessage(
                         continent.id,
@@ -5188,9 +5238,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                           ChainLashMessage(
                             hitPos,
                             projectile.profile.ObjectId,
-                            targets.map {
-                              _.GUID
-                            }.toList
+                            targets.map { _.GUID }
                           )
                         )
                       )
@@ -5201,6 +5249,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                     } else {
                       Nil
                     }
+
                   case _ =>
                     Nil
                 }
@@ -5379,6 +5428,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               dismountWarning(
                 s"DismountVehicleMsg: player ${player.Name}_guid not considered seated in a mountable entity"
               )
+              sendResponse(DismountVehicleMsg(player_guid, bailType, wasKickedByDriver))
               None
           }) match {
             case Some(_) if serverVehicleControlVelocity.nonEmpty =>
@@ -5483,7 +5533,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         )
 
       case msg @ SquadWaypointRequest(request, _, wtype, unk, info) =>
-        squadService ! SquadServiceMessage(player, continent, SquadServiceAction.Waypoint(request, wtype, unk, info))
+        val time = System.currentTimeMillis()
+        val subtype = wtype.subtype
+        if(subtype == WaypointSubtype.Squad) {
+          squadService ! SquadServiceMessage(player, continent, SquadServiceAction.Waypoint(request, wtype, unk, info))
+        } else if (subtype == WaypointSubtype.Laze && time - waypointCooldown > 1000) {
+          //guarding against duplicating laze waypoints
+          waypointCooldown = time
+          squadService ! SquadServiceMessage(player, continent, SquadServiceAction.Waypoint(request, wtype, unk, info))
+        }
 
       case msg @ GenericCollisionMsg(u1, p, t, php, thp, pv, tv, ppos, tpos, u2, u3, u4) =>
         log.info(s"${player.Name} would be in intense and excruciating pain right now if collision worked")
@@ -5653,6 +5711,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case msg @ ActionCancelMessage(u1, u2, u3) =>
         progressBarUpdate.cancel()
         progressBarValue = None
+
+      case msg @ TradeMessage(_,_) =>
+        log.info(s"${player.Name} wants to trade, for some reason - $msg")
 
       case _ =>
         log.warn(s"Unhandled GamePacket $pkt")
@@ -6216,39 +6277,42 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         FindEquipmentStock(obj, FindAmmoBoxThatUses(requestedAmmoType), fullMagazine, CountAmmunition).reverse match {
           case Nil => ;
           case x :: xs =>
-            val (deleteFunc, modifyFunc): (Equipment => Future[Any], (AmmoBox, Int) => Unit) = obj match {
-              case veh: Vehicle =>
-                (RemoveOldEquipmentFromInventory(veh), ModifyAmmunitionInVehicle(veh))
-              case _ =>
-                (RemoveOldEquipmentFromInventory(obj), ModifyAmmunition(obj))
+            val modifyFunc: (AmmoBox, Int) => Unit = obj match {
+              case veh: Vehicle => ModifyAmmunitionInVehicle(veh)
+              case _ =>            ModifyAmmunition(obj)
             }
-            val (stowNewFunc, stowFunc): (Equipment => TaskBundle, Equipment => Future[Any]) =
-              (PutNewEquipmentInInventoryOrDrop(obj), PutEquipmentInInventoryOrDrop(obj))
-
+            val stowNewFunc: Equipment => TaskResolver.GiveTask = PutNewEquipmentInInventoryOrDrop(obj)
+            val stowFunc: Equipment => Future[Any] =              PutEquipmentInInventoryOrDrop(obj)
+          
             xs.foreach(item => {
-              obj.Inventory -= x.start
-              deleteFunc(item.obj)
+              obj.Inventory -= item.start
+              sendResponse(ObjectDeleteMessage(item.obj.GUID, 0))
+              continent.tasks ! GUIDTask.UnregisterObjectTask(item.obj)(continent.GUID)
             })
 
-            //box will be the replacement ammo; give it the discovered magazine and load it into the weapon @ 0
+            //box will be the replacement ammo; give it the discovered magazine and load it into the weapon
             val box                 = x.obj.asInstanceOf[AmmoBox]
+            //previousBox is the current magazine in tool; it will be removed from the weapon
+            val previousBox         = tool.AmmoSlot.Box
             val originalBoxCapacity = box.Capacity
-            val tailReloadValue: Int = if (xs.isEmpty) { 0 }
-            else { xs.map(_.obj.asInstanceOf[AmmoBox].Capacity).sum }
+            val tailReloadValue: Int = if (xs.isEmpty) {
+              0
+            } else {
+              xs.map(_.obj.asInstanceOf[AmmoBox].Capacity).sum
+            }
             val sumReloadValue: Int = originalBoxCapacity + tailReloadValue
-            val previousBox         = tool.AmmoSlot.Box //current magazine in tool
-            sendResponse(ObjectDetachMessage(tool.GUID, previousBox.GUID, Vector3.Zero, 0f))
-            sendResponse(ObjectDetachMessage(player.GUID, box.GUID, Vector3.Zero, 0f))
+            val ammoSlotIndex       = tool.FireMode.AmmoSlotIndex
+            val box_guid            = box.GUID
+            val tool_guid           = tool.GUID
             obj.Inventory -= x.start //remove replacement ammo from inventory
-            val ammoSlotIndex = tool.FireMode.AmmoSlotIndex
             tool.AmmoSlots(ammoSlotIndex).Box = box //put replacement ammo in tool
-            sendResponse(ObjectAttachMessage(tool.GUID, box.GUID, ammoSlotIndex))
+            sendResponse(ObjectDetachMessage(tool_guid, previousBox.GUID, Vector3.Zero, 0f))
+            sendResponse(ObjectDetachMessage(obj.GUID, box_guid, Vector3.Zero, 0f))
+            sendResponse(ObjectAttachMessage(tool_guid, box_guid, ammoSlotIndex))
 
             //announce swapped ammunition box in weapon
             val previous_box_guid = previousBox.GUID
             val boxDef            = box.Definition
-            val box_guid          = box.GUID
-            val tool_guid         = tool.GUID
             sendResponse(ChangeAmmoMessage(tool_guid, box.Capacity))
             continent.AvatarEvents ! AvatarServiceMessage(
               continent.id,

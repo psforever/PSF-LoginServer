@@ -2,7 +2,7 @@
 package net.psforever.objects.teamwork
 
 import akka.actor.{ActorContext, ActorRef, Props}
-import net.psforever.types.SquadWaypoints
+import net.psforever.types.SquadWaypoint
 import net.psforever.services.teamwork.SquadService.WaypointData
 import net.psforever.services.teamwork.SquadSwitchboard
 
@@ -29,7 +29,9 @@ class SquadFeatures(val Squad: Squad) {
   /**
     * Waypoint data.
     * The first four slots are used for squad waypoints.
-    * The fifth slot is used for the squad leader experience waypoint.<br>
+    * The fifth slot is used for the squad leader experience waypoint.
+    * There is a sixth waypoint used for a target that has been indicated by the laze pointer
+    * but its id indication does not follow the indexes of the previous waypoints.<br>
     * <br>
     * All of the waypoints constantly exist as long as the squad to which they are attached exists.
     * They are merely "activated" and "deactivated."
@@ -75,7 +77,7 @@ class SquadFeatures(val Squad: Squad) {
 
   def Start(implicit context: ActorContext): SquadFeatures = {
     switchboard = context.actorOf(Props[SquadSwitchboard](), s"squad_${Squad.GUID.guid}_${System.currentTimeMillis}")
-    waypoints = Array.fill[WaypointData](SquadWaypoints.values.size)(new WaypointData())
+    waypoints = Array.fill[WaypointData](SquadWaypoint.values.size)(new WaypointData())
     this
   }
 

@@ -918,9 +918,9 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     //log message
     cause.adversarial match {
       case Some(a) =>
-        damageLog.info(s"DisplayDestroy: ${a.defender} was killed by ${a.attacker}")
+        damageLog.info(s"${a.defender.Name} was killed by ${a.attacker.Name}")
       case _ =>
-        damageLog.info(s"DisplayDestroy: ${player.Name} killed ${player.Sex.pronounObject}self.")
+        damageLog.info(s"${player.Name} killed ${player.Sex.pronounObject}self")
     }
 
     // This would normally happen async as part of AvatarAction.Killed, but if it doesn't happen before deleting calling AvatarAction.ObjectDelete on the player the LLU will end up invisible to others if carried

@@ -1043,6 +1043,8 @@ object GlobalDefinitions {
 
   val repair_silo = new MedicalTerminalDefinition(729)
 
+  val recharge_terminal = new MedicalTerminalDefinition(724)
+
   val mb_pad_creation = new VehicleSpawnPadDefinition(525)
 
   val dropship_pad_doors = new VehicleSpawnPadDefinition(261)
@@ -1105,6 +1107,8 @@ object GlobalDefinitions {
   val generator = new GeneratorDefinition(351)
 
   val obbasemesh = new AmenityDefinition(598) {}
+
+  val targeting_laser_dispenser = new OrderTerminalDefinition(851)
   initMiscellaneous()
 
   /*
@@ -1578,6 +1582,18 @@ object GlobalDefinitions {
     edef match {
       case `spiker` | `maelstrom` | `radiator` | `ancient_ammo_combo` | `maelstrom_ammo` => true
       case _                                                                             => false
+    }
+  }
+
+  /**
+    * Using the definition for a `Vehicle` determine whether it is a "cavern Vehicle."
+    * @param vdef the `VehicleDefinition` of the item
+    * @return `true`, if it is; otherwise, `false`
+    */
+  def isCavernVehicle(vdef: VehicleDefinition): Boolean = {
+    vdef match {
+      case `router` | `switchblade` | `flail` => true
+      case _                                  => false
     }
   }
 
@@ -2648,11 +2664,15 @@ object GlobalDefinitions {
     flail_projectile.DamageRadius = 15f
     flail_projectile.ProjectileDamageType = DamageType.Splash
     flail_projectile.DegradeDelay = 1.5f
+    //a DegradeDelay of 1.5s equals a DistanceNoDegrade of 112.5m
     flail_projectile.DegradeMultiplier = 5f
     flail_projectile.InitialVelocity = 75
     flail_projectile.Lifespan = 40f
     ProjectileDefinition.CalculateDerivedFields(flail_projectile)
-    //TODO flail_projectile.Modifiers = RadialDegrade?
+    flail_projectile.Modifiers = List(
+      FlailDistanceDamageBoost,
+      RadialDegrade
+    )
 
     flamethrower_fireball.Name = "flamethrower_fireball"
     flamethrower_fireball.Damage0 = 30
@@ -6575,13 +6595,14 @@ object GlobalDefinitions {
     flail.Seats += 0             -> new SeatDefinition()
     flail.controlledWeapons += 0 -> 1
     flail.Weapons += 1           -> flail_weapon
+    flail.Utilities += 2         -> UtilityType.targeting_laser_dispenser
     flail.MountPoints += 1       -> MountInfo(0)
     flail.TrunkSize = InventoryTile.Tile1511
     flail.TrunkOffset = 30
     flail.TrunkLocation = Vector3(-3.75f, 0f, 0f)
     flail.Deployment = true
-    flail.DeployTime = 2000
-    flail.UndeployTime = 2000
+    flail.DeployTime = 5500
+    flail.UndeployTime = 5500
     flail.AutoPilotSpeeds = (14, 6)
     flail.Packet = variantConverter
     flail.DestroyedModel = Some(DestroyedVehicle.Flail)
@@ -7669,6 +7690,11 @@ object GlobalDefinitions {
     teleportpad_terminal.Damageable = false
     teleportpad_terminal.Repairable = false
 
+    targeting_laser_dispenser.Name = "targeting_laser_dispenser"
+    targeting_laser_dispenser.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.flailTerminal)
+    targeting_laser_dispenser.Damageable = false
+    targeting_laser_dispenser.Repairable = false
+
     medical_terminal.Name = "medical_terminal"
     medical_terminal.Interval = 500
     medical_terminal.HealAmount = 5
@@ -7745,6 +7771,13 @@ object GlobalDefinitions {
     repair_silo.TargetValidation += EffectTarget.Category.Vehicle -> EffectTarget.Validation.RepairSilo
     repair_silo.Damageable = false
     repair_silo.Repairable = false
+
+    recharge_terminal.Name = "recharge_terminal"
+    recharge_terminal.Interval = 1000
+    recharge_terminal.UseRadius = 20
+    recharge_terminal.TargetValidation += EffectTarget.Category.Vehicle -> EffectTarget.Validation.AncientVehicleWeaponRecharge
+    recharge_terminal.Damageable = false
+    recharge_terminal.Repairable = false
 
     mb_pad_creation.Name = "mb_pad_creation"
     mb_pad_creation.Damageable = false
