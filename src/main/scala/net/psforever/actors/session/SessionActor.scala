@@ -374,7 +374,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case out @ Some(obj) if obj.HasGUID =>
         out
 
-      case None if id.nonEmpty && id.get != PlanetSideGUID(0) =>
+      case None if !id.contains(PlanetSideGUID(0)) =>
         //delete stale entity reference from client
         log.error(s"${player.Name} has an invalid reference to GUID ${id.get.guid} in zone ${continent.id}")
         sendResponse(ObjectDeleteMessage(id.get, 0))
@@ -4873,6 +4873,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                   log.error(
                     s"telepad@${object_guid.guid} is linked to wrong kind of object - ${o.Definition.Name}, ${obj.Router}"
                   )
+                  obj.Actor ! Deployable.Deconstruct()
                 case None => ;
               }
             }
@@ -5427,6 +5428,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               dismountWarning(
                 s"DismountVehicleMsg: player ${player.Name}_guid not considered seated in a mountable entity"
               )
+              sendResponse(DismountVehicleMsg(player_guid, bailType, wasKickedByDriver))
               None
           }) match {
             case Some(_) if serverVehicleControlVelocity.nonEmpty =>
@@ -5709,6 +5711,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case msg @ ActionCancelMessage(u1, u2, u3) =>
         progressBarUpdate.cancel()
         progressBarValue = None
+
+      case msg @ TradeMessage(_,_) =>
+        log.info(s"${player.Name} wants to trade, for some reason - $msg")
 
       case _ =>
         log.warn(s"Unhandled GamePacket $pkt")
@@ -6362,39 +6367,42 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         FindEquipmentStock(obj, FindAmmoBoxThatUses(requestedAmmoType), fullMagazine, CountAmmunition).reverse match {
           case Nil => ;
           case x :: xs =>
-            val (deleteFunc, modifyFunc): (Equipment => Future[Any], (AmmoBox, Int) => Unit) = obj match {
-              case veh: Vehicle =>
-                (RemoveOldEquipmentFromInventory(veh), ModifyAmmunitionInVehicle(veh))
-              case _ =>
-                (RemoveOldEquipmentFromInventory(obj), ModifyAmmunition(obj))
+            val modifyFunc: (AmmoBox, Int) => Unit = obj match {
+              case veh: Vehicle => ModifyAmmunitionInVehicle(veh)
+              case _ =>            ModifyAmmunition(obj)
             }
-            val (stowNewFunc, stowFunc): (Equipment => TaskResolver.GiveTask, Equipment => Future[Any]) =
-              (PutNewEquipmentInInventoryOrDrop(obj), PutEquipmentInInventoryOrDrop(obj))
+            val stowNewFunc: Equipment => TaskResolver.GiveTask = PutNewEquipmentInInventoryOrDrop(obj)
+            val stowFunc: Equipment => Future[Any] =              PutEquipmentInInventoryOrDrop(obj)
 
             xs.foreach(item => {
-              obj.Inventory -= x.start
-              deleteFunc(item.obj)
+              obj.Inventory -= item.start
+              sendResponse(ObjectDeleteMessage(item.obj.GUID, 0))
+              continent.tasks ! GUIDTask.UnregisterObjectTask(item.obj)(continent.GUID)
             })
 
-            //box will be the replacement ammo; give it the discovered magazine and load it into the weapon @ 0
+            //box will be the replacement ammo; give it the discovered magazine and load it into the weapon
             val box                 = x.obj.asInstanceOf[AmmoBox]
+            //previousBox is the current magazine in tool; it will be removed from the weapon
+            val previousBox         = tool.AmmoSlot.Box
             val originalBoxCapacity = box.Capacity
-            val tailReloadValue: Int = if (xs.isEmpty) { 0 }
-            else { xs.map(_.obj.asInstanceOf[AmmoBox].Capacity).sum }
+            val tailReloadValue: Int = if (xs.isEmpty) {
+              0
+            } else {
+              xs.map(_.obj.asInstanceOf[AmmoBox].Capacity).sum
+            }
             val sumReloadValue: Int = originalBoxCapacity + tailReloadValue
-            val previousBox         = tool.AmmoSlot.Box //current magazine in tool
-            sendResponse(ObjectDetachMessage(tool.GUID, previousBox.GUID, Vector3.Zero, 0f))
-            sendResponse(ObjectDetachMessage(player.GUID, box.GUID, Vector3.Zero, 0f))
+            val ammoSlotIndex       = tool.FireMode.AmmoSlotIndex
+            val box_guid            = box.GUID
+            val tool_guid           = tool.GUID
             obj.Inventory -= x.start //remove replacement ammo from inventory
-            val ammoSlotIndex = tool.FireMode.AmmoSlotIndex
             tool.AmmoSlots(ammoSlotIndex).Box = box //put replacement ammo in tool
-            sendResponse(ObjectAttachMessage(tool.GUID, box.GUID, ammoSlotIndex))
+            sendResponse(ObjectDetachMessage(tool_guid, previousBox.GUID, Vector3.Zero, 0f))
+            sendResponse(ObjectDetachMessage(obj.GUID, box_guid, Vector3.Zero, 0f))
+            sendResponse(ObjectAttachMessage(tool_guid, box_guid, ammoSlotIndex))
 
             //announce swapped ammunition box in weapon
             val previous_box_guid = previousBox.GUID
             val boxDef            = box.Definition
-            val box_guid          = box.GUID
-            val tool_guid         = tool.GUID
             sendResponse(ChangeAmmoMessage(tool_guid, box.Capacity))
             continent.AvatarEvents ! AvatarServiceMessage(
               continent.id,

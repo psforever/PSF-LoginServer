@@ -277,7 +277,7 @@ class Player(var avatar: Avatar)
       None
     } else {
       val slot = iter.next()
-      if (slot.Equipment.isDefined && slot.Equipment.get.GUID == guid) {
+      if (slot.Equipment match { case Some(o) => o.GUID == guid; case _ => false }) {
         Some(index)
       } else {
         findInHolsters(iter, guid, index + 1)

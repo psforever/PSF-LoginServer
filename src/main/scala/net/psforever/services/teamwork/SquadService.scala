@@ -2067,7 +2067,12 @@ class SquadService extends Actor {
       case (Some((fromMember, fromPosition)), (toMember, _)) if fromPosition != 0 =>
         val name = fromMember.Name
         SwapMemberPosition(toMember, fromMember)
-        Publish(squadFeatures(guid).ToChannel, SquadResponse.AssignMember(squad, fromPosition, position))
+        squadFeatures.get(guid) match {
+          case Some(features) =>
+            Publish(features.ToChannel, SquadResponse.AssignMember(squad, fromPosition, position))
+          case None =>
+            //we might be in trouble; we might not ...
+        }
         UpdateSquadDetail(
           squad.GUID,
           SquadDetail().Members(
