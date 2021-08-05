@@ -6281,13 +6281,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               case veh: Vehicle => ModifyAmmunitionInVehicle(veh)
               case _ =>            ModifyAmmunition(obj)
             }
-            val stowNewFunc: Equipment => TaskResolver.GiveTask = PutNewEquipmentInInventoryOrDrop(obj)
-            val stowFunc: Equipment => Future[Any] =              PutEquipmentInInventoryOrDrop(obj)
+            val stowNewFunc: Equipment => TaskBundle = PutNewEquipmentInInventoryOrDrop(obj)
+            val stowFunc: Equipment => Future[Any]   = PutEquipmentInInventoryOrDrop(obj)
           
             xs.foreach(item => {
               obj.Inventory -= item.start
               sendResponse(ObjectDeleteMessage(item.obj.GUID, 0))
-              continent.tasks ! GUIDTask.UnregisterObjectTask(item.obj)(continent.GUID)
+              TaskWorkflow.execute(GUIDTask.unregisterObject(continent.GUID, item.obj))
             })
 
             //box will be the replacement ammo; give it the discovered magazine and load it into the weapon
