@@ -11,10 +11,11 @@ class GenericCollisionMsgTest extends Specification {
   //TODO find a better test later
   val string =
     hex"3C 92C00000190000001B2A8010932CEF505C70946F00000000000000000000000017725EBC6D6A058000000000000000000000000000003F8FF45140"
+
   "decode" in {
     PacketCoding.decodePacket(string).require match {
-      case GenericCollisionMsg(unk1, p, t, php, thp, pv, tv, ppos, tpos, unk2, unk3, unk4) =>
-        unk1 mustEqual 2
+      case GenericCollisionMsg(ct, p, php, ppos, pv, t, thp, tpos, tv, unk2, unk3, unk4) =>
+        ct mustEqual CollisionIs.OfInfantry
         p mustEqual PlanetSideGUID(75)
         t mustEqual PlanetSideGUID(0)
         php mustEqual 100
@@ -38,16 +39,17 @@ class GenericCollisionMsgTest extends Specification {
         ko
     }
   }
+
   "encode" in {
     val msg = GenericCollisionMsg(
-      2,
+      CollisionIs.OfInfantry,
       PlanetSideGUID(75),
-      PlanetSideGUID(0),
       100,
-      0,
-      Vector3(32.166428f, 23.712547f, -0.012802706f),
-      Vector3(0.0f, 0.0f, 0.0f),
       Vector3(3986.7266f, 2615.3672f, 90.625f),
+      Vector3(32.166428f, 23.712547f, -0.012802706f),
+      PlanetSideGUID(0),
+      0,
+      Vector3(0.0f, 0.0f, 0.0f),
       Vector3(0.0f, 0.0f, 0.0f),
       0L,
       0L,

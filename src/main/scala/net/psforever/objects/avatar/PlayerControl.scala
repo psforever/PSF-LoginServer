@@ -32,6 +32,7 @@ import net.psforever.objects.locker.LockerContainerControl
 import net.psforever.objects.serverobject.environment._
 import net.psforever.objects.serverobject.repair.Repairable
 import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
+import net.psforever.objects.vital.collision.CollisionReason
 import net.psforever.objects.vital.environment.EnvironmentReason
 import net.psforever.objects.vital.etc.{PainboxReason, SuicideReason}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
@@ -795,7 +796,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       case _ =>
         cause.interaction.cause.source.Aggravated.nonEmpty
     }
-    //log historical event
+    //log historical event (always)
     target.History(cause)
     //stat changes
     if (damageToCapacitor > 0) {
@@ -803,11 +804,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         target.Name,
         AvatarAction.PlanetsideAttributeSelf(targetGUID, 7, target.Capacitor.toLong)
       )
-      announceConfrontation = true
+      announceConfrontation = true //TODO should we?
     }
     if (damageToStamina > 0) {
       avatarActor ! AvatarActor.ConsumeStamina(damageToStamina)
-      announceConfrontation = true
+      announceConfrontation = true //TODO should we?
     }
     if (damageToHealth > 0) {
       events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(targetGUID, 0, health))
@@ -815,14 +816,19 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     }
     val countableDamage = damageToHealth + damageToArmor
     if(announceConfrontation) {
-      if (!aggravated) {
+      if (aggravated) {
+        events ! AvatarServiceMessage(
+          zoneId,
+          AvatarAction.SendResponse(Service.defaultPlayerGUID, AggravatedDamageMessage(targetGUID, countableDamage))
+        )
+      } else {
         //activity on map
         zone.Activity ! Zone.HotSpot.Activity(cause)
         //alert to damage source
         cause.adversarial match {
           case Some(adversarial) =>
             adversarial.attacker match {
-              case pSource : PlayerSource => //player damage
+              case pSource: PlayerSource => //player damage
                 val name = pSource.Name
                 zone.LivePlayers.find(_.Name == name).orElse(zone.Corpses.find(_.Name == name)) match {
                   case Some(tplayer) =>
@@ -855,6 +861,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   target.Name,
                   AvatarAction.EnvironmentalDamage(target.GUID, o.entity.GUID, countableDamage)
                 )
+              case _: CollisionReason =>
+                events ! AvatarServiceMessage(
+                  zoneId,
+                  AvatarAction.SendResponse(Service.defaultPlayerGUID, AggravatedDamageMessage(targetGUID, countableDamage))
+                )
               case _ =>
                 zone.AvatarEvents ! AvatarServiceMessage(
                   target.Name,
@@ -863,19 +874,6 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
             }
         }
       }
-      else {
-        //general alert
-        zone.AvatarEvents ! AvatarServiceMessage(
-          target.Name,
-          AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(countableDamage, Vector3.Zero))
-        )
-      }
-    }
-    if (aggravated) {
-      events ! AvatarServiceMessage(
-        zoneId,
-        AvatarAction.SendResponse(Service.defaultPlayerGUID, AggravatedDamageMessage(targetGUID, countableDamage))
-      )
     }
   }
 

@@ -5,6 +5,7 @@ import akka.actor.Actor
 import net.psforever.objects.{Vehicle, Vehicles}
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.damage.Damageable.Target
+import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.vital.resolution.ResolutionCalculations
 import net.psforever.services.Service
@@ -103,13 +104,13 @@ trait DamageableVehicle
       case _ => (0, 0, 0)
     }
     var announceConfrontation: Boolean = reportDamageToVehicle || totalDamage > 0
-    val aggravated = TryAggravationEffectActivate(cause) match {
+    val showAsAggravated = (TryAggravationEffectActivate(cause) match {
       case Some(_) =>
         announceConfrontation = true
         false
       case _ =>
         cause.interaction.cause.source.Aggravated.nonEmpty
-    }
+    }) || cause.interaction.cause.resolution == DamageResolution.Collision
     reportDamageToVehicle = false
 
     if (obj.MountedIn.nonEmpty) {
@@ -139,7 +140,7 @@ trait DamageableVehicle
       }
     }
     if (announceConfrontation) {
-      if (aggravated) {
+      if (showAsAggravated) {
         val msg = VehicleAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(totalDamage, Vector3.Zero))
         obj.Seats.values
           .collect { case seat if seat.occupant.nonEmpty => seat.occupant.get.Name }

@@ -44,6 +44,7 @@ import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.base._
+import net.psforever.objects.vital.collision.CollisionReason
 import net.psforever.objects.vital.etc.ExplodingEntityReason
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
@@ -1642,7 +1643,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     */
   def HandleAvatarServiceResponse(toChannel: String, guid: PlanetSideGUID, reply: AvatarResponse.Response): Unit = {
     val tplayer_guid =
-      if (player.HasGUID) player.GUID
+      if (player != null && player.HasGUID) player.GUID
       else PlanetSideGUID(0)
     reply match {
       case AvatarResponse.TeardownConnection() =>
@@ -5552,8 +5553,28 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           squadService ! SquadServiceMessage(player, continent, SquadServiceAction.Waypoint(request, wtype, unk, info))
         }
 
-      case msg @ GenericCollisionMsg(u1, p, t, php, thp, pv, tv, ppos, tpos, u2, u3, u4) =>
-        log.info(s"${player.Name} would be in intense and excruciating pain right now if collision worked")
+      case msg @ GenericCollisionMsg(ctype, p, php, ppos, pv, t, thp, tpos, tv, u1, u2, u3) =>
+        log.info(s"$msg")
+        ((ctype, ValidObject(p)) match {
+          case (CollisionIs.OfInfantry, out @ Some(p: Player))
+            if p == player                                                 => (out, None)
+          case (CollisionIs.OfAircraft, out @ Some(v: Vehicle))
+            if v.Definition.CanFly && v.Seats(0).occupant.contains(player) => (out, ValidObject(t))
+          case (CollisionIs.OfGroundVehicle, out @ Some(v: Vehicle))
+            if v.Seats(0).occupant.contains(player)                        => (out, ValidObject(t))
+          case _ => (None, None)
+        }) match {
+          case (Some(target: PlanetSideGameObject with Vitality with FactionAffinity), _) =>
+            HandleDealingDamage(
+              target,
+              DamageInteraction(
+                SourceEntry(target),
+                CollisionReason(pv, target.DamageModel),
+                ppos
+              )
+            )
+          case _ => ;
+        }
 
       case msg @ BugReportMessage(
             version_major,
